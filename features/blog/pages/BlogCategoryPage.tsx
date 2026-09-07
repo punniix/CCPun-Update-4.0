@@ -85,7 +85,8 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
   const queryParams = await searchParams ?? {};
   const initialQuery = typeof queryParams.q === "string" ? queryParams.q : "";
   const articles = await getContentProvider().listArticles({ includeDrafts: false });
-  const relevantArticles = articles.filter((article) => article.status === "published" && articleBelongsToHub(article, hub));
+  const publishedArticles = articles.filter((article) => article.status === "published");
+  const relevantArticles = publishedArticles.filter((article) => articleBelongsToHub(article, hub));
   const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);
   const shouldIndexHub = hub.indexable && relevantIndexableArticles.length > 0;
   const schema = shouldIndexHub ? buildBlogTopicHubSchema(hub, relevantIndexableArticles) : null;
@@ -95,6 +96,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
     <Website43Blog
       key={`${hub.slug}:${initialQuery}`}
       articles={toWebsite43ArticleItems(relevantArticles)}
+      featuredArticles={toWebsite43ArticleItems(publishedArticles)}
       activeCategorySlug={hub.slug}
       initialQuery={initialQuery}
     />
