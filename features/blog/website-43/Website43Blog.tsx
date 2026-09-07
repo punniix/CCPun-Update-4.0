@@ -24,8 +24,9 @@ function ArticleCard({ article }: { article: Website43ArticleItem }) {
   );
 }
 
-export default function Website43Blog({ articles, activeCategorySlug = null, initialQuery = '', topicContent, topicNavigation }: {
+export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, initialQuery = '', topicContent, topicNavigation }: {
   articles: Website43ArticleItem[];
+  featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
   initialQuery?: string;
   topicContent?: ReactNode;
@@ -39,10 +40,11 @@ export default function Website43Blog({ articles, activeCategorySlug = null, ini
   const [query, setQuery] = useState(initialQuery);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
-  const featuredCount = articles.length;
+  const featuredSource = featuredArticles ?? articles;
+  const featuredCount = featuredSource.length;
   const loopedFeaturedArticles = useMemo(
-    () => Array.from({ length: FEATURED_REPEAT_COUNT }, () => articles).flat(),
-    [articles],
+    () => Array.from({ length: FEATURED_REPEAT_COUNT }, () => featuredSource).flat(),
+    [featuredSource],
   );
 
   const categories = [{ slug: null, title: 'ทุกหมวดหมู่' }, ...BLOG_TOPIC_HUBS];
@@ -177,7 +179,7 @@ export default function Website43Blog({ articles, activeCategorySlug = null, ini
               </div>
             </div>
             <div className={styles.carouselControls} aria-label="เลือกบทความแนะนำ">
-              {articles.map((article, index) => (
+              {featuredSource.map((article, index) => (
                 <button
                   className={`${styles.carouselDotButton} ${index === activeFeatured ? styles.carouselDotButtonActive : ''}`}
                   type="button"
