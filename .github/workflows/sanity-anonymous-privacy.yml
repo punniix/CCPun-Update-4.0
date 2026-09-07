@@ -1,0 +1,33 @@
+name: Sanity anonymous privacy boundary
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [v4-production]
+    paths:
+      - .github/workflows/sanity-anonymous-privacy.yml
+      - qa/sanity-anonymous-privacy.mjs
+      - tests/sanity-anonymous-privacy.test.mjs
+      - cms/sanity/**
+      - lib/admin/**
+      - lib/sanity-live.ts
+      - sanity.config.ts
+
+permissions:
+  contents: read
+
+jobs:
+  privacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test the probe's fail-closed assertions
+        run: node --test tests/sanity-anonymous-privacy.test.mjs
+      - name: Anonymous Sanity API and CDN reads (no secrets)
+        run: node qa/sanity-anonymous-privacy.mjs
