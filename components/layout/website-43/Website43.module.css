@@ -203,7 +203,7 @@
 .about { position: relative; min-height: 642px; padding: 56px 80px 80px; background: var(--w43-deep); }
 .aboutInner { position: relative; width: min(1280px,100%); min-height: 506px; margin: 0 auto; }
 .aboutPortraitStage { position: absolute; top: 46px; left: 0; width: 400px; height: 400px; overflow: hidden; border-radius: 16px; background: #f4f7fb; }
-.aboutPortrait { position: absolute; top: 22px; left: 0; width: 400px; height: 526px; max-width: none; object-fit: cover; border-radius: 20px; }
+.aboutPortrait { position: absolute; top: 0; left: 0; width: 400px; height: 526px; max-width: none; object-fit: cover; object-position: center top; border-radius: 20px; }
 .aboutCopy { margin-left: 470px; width: min(720px, calc(100% - 470px)); }
 .aboutCopy .h2 { margin-top: 20px; }
 .aboutParagraphs { margin-top: 36px; color: var(--w43-muted); font-size: 17px; line-height: 1.7; }
@@ -469,7 +469,7 @@
   .about { min-height: 584px; padding: 48px 40px 40px; }
   .aboutInner { min-height: 496px; }
   .aboutPortraitStage { top: 64px; width: 260px; height: 260px; }
-  .aboutPortrait { top: 16px; width: 260px; height: 342px; }
+  .aboutPortrait { top: 0; width: 260px; height: 342px; }
   .aboutCopy { margin-left: 290px; width: calc(100% - 290px); }
   .aboutParagraphs { margin-top: 32px; font-size: 16px; }
   .advisorNote { margin-top: 22px; padding: 24px; font-size: 20px; }
