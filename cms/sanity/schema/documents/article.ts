@@ -65,7 +65,7 @@ export const article = defineType({
       options: { layout: "tags" },
     }),
     defineField({ name: "author", title: "ผู้เขียน", type: "reference", to: [{ type: "author" }], group: "content", validation: (Rule) => Rule.required() }),
-    defineField({ name: "featuredImage", title: "รูปหน้าปกบทความ (แนะนำ 1400×600 px)", type: "imageWithAlt", group: "content", description: "กรอบหน้าเว็บใช้สัดส่วน 7:3; เลือกจุดสำคัญของภาพด้วย hotspot ได้" }),
+    defineField({ name: "featuredImage", title: "รูปหน้าปกบทความ (แนะนำ 1200×630 px)", type: "imageWithAlt", group: "content", description: "กรอบหน้า Article ใช้สัดส่วน 1200:630 (~1.91:1) ซึ่งตรงกับ Featured/OG image ปัจจุบัน; เลือกจุดสำคัญของภาพด้วย hotspot ได้" }),
     defineField({ name: "migratedFeaturedImage", title: "Migrated featured image", type: "migratedImage", readOnly: true, hidden: true }),
     defineField({ name: "body", title: "เนื้อหาบทความ", type: "portableText", group: "content", validation: (Rule) => Rule.required().min(1) }),
     defineField({ name: "faq", title: "FAQ ที่แสดงในบทความ", type: "array", of: [defineArrayMember({ type: "faqItem" })], group: "content" }),
