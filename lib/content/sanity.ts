@@ -78,10 +78,16 @@ const pdfDownloadSchema = z.object({
   }),
 });
 const detailsBlockSchema = z.object({ _type: z.literal("detailsBlock"), summary: z.string().min(1), text: z.string().min(1) });
+const legacyTableRowSchema = z.array(z.string());
+const tableRowSchema = z.object({
+  _type: z.literal("tableRow"),
+  _key: z.string().nullish(),
+  cells: z.array(z.string()),
+});
 const simpleTableSchema = z.object({
   _type: z.literal("simpleTable"),
   headers: z.array(z.string()).nullish(),
-  rows: z.array(z.array(z.string())).nullish(),
+  rows: z.array(z.union([legacyTableRowSchema, tableRowSchema])).nullish(),
 });
 const dividerSchema = z.object({ _type: z.literal("divider") });
 const bodyItemSchema = z.union([
@@ -290,7 +296,11 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
     }
     if (item._type === "simpleTable") {
       flushList();
-      result.push({ type: "table", headers: item.headers ?? [], rows: item.rows ?? [] });
+      result.push({
+        type: "table",
+        headers: item.headers ?? [],
+        rows: (item.rows ?? []).map((row) => Array.isArray(row) ? row : row.cells),
+      });
       continue;
     }
     if (item._type === "divider") {
