@@ -88,7 +88,13 @@ for (const [slug, label, expected] of [['health-insurance', 'ประกัน�
 const archive = doc(await overview({ searchParams: Promise.resolve({ q: 'ข้อมูล' }) }));
 assert.equal(archive.querySelector('input[type="search"]').getAttribute('value'), 'ข้อมูล');
 assert.ok(!archive.body.textContent.includes('DRAFT MUST NOT LEAK'));
-assert.ok([...archive.querySelectorAll('nav[aria-label="หัวข้อบทความหลัก"] a')].some((link) => link.getAttribute('href').replace(/\/$/, '') === '/blog/health-insurance'));
+// The owner removed only the bottom topic picker, not category routes or the top menu.
+assert.equal(archive.querySelector('nav[aria-label="หัวข้อบทความหลัก"]'), null, 'remove the entire bottom navigation wrapper');
+assert.ok(!archive.body.textContent.includes('เลือกหัวข้อที่ต้องการอ่าน'), 'remove the bottom heading');
+assert.ok(archive.querySelector('button[aria-controls="blog-category-options"]'), 'retain the top category picker');
+assert.equal(archive.querySelectorAll('.articleGrid > a').length, 2, 'retain published article cards');
+assert.ok(archive.querySelector('main').lastElementChild.classList.contains('blogContent'), 'do not leave a trailing spacer or empty navigation section');
+assert.equal(archive.querySelector('main').nextElementSibling.tagName, 'FOOTER', 'retain the footer directly after the article section');
 await assert.rejects(articleRoute.default({ params: Promise.resolve({ category: 'life-insurance', slug: 'draft-only' }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
 await assert.rejects(articleRoute.default({ params: Promise.resolve({ category: 'life-insurance', slug: health.slug }) }), /NEXT_REDIRECT/);
 const draftMetadata = await articleRoute.generateMetadata({ params: Promise.resolve({ category: 'life-insurance', slug: 'draft-only' }) });
@@ -121,6 +127,14 @@ await React.act(async () => root.render(React.createElement(BlogClient, { articl
 const input = browserDom.window.document.querySelector('input[type="search"]');
 assert.equal(input.value, 'สุขภาพ', 'cached stale initial props must read the restored browser URL on mount');
 assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 1);
+const categoryButton = browserDom.window.document.querySelector('button[aria-controls="blog-category-options"]');
+await React.act(async () => categoryButton.click());
+assert.equal(categoryButton.getAttribute('aria-expanded'), 'true');
+for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness']) {
+  assert.ok(browserDom.window.document.querySelector(`#blog-category-options a[href="/blog/${slug}/"]`), `retain the top menu link for ${slug}`);
+}
+await React.act(async () => categoryButton.click());
+assert.equal(categoryButton.getAttribute('aria-expanded'), 'false');
 await React.act(async () => {
   browserDom.window.history.replaceState(null, '', '/blog/');
   browserDom.window.dispatchEvent(new browserDom.window.PopStateEvent('popstate'));
@@ -133,4 +147,4 @@ for (const [key, descriptor] of savedGlobals) {
   else delete globalThis[key];
 }
 browserDom.window.close();
-console.log('PASS: actual Article block/credit/anchor/profile renderer, Bangkok date, public route/filter/metadata/redirect, stale Draft cookie and cached browser query restoration');
+console.log('PASS: actual Article block/credit/anchor/profile renderer, Bangkok date, public route/filter/metadata/redirect, bottom topic removal, top category menu, stale Draft cookie and cached browser query restoration');
