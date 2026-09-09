@@ -19,7 +19,9 @@ test("public social metadata keeps current SEO and featured-image fallbacks", ()
   assert.match(articleType, /ogTitle\?: string/);
   assert.match(articleType, /ogDescription\?: string/);
   assert.match(sanityContent, /ogTitle: raw\.seo\?\.ogTitle/);
-  assert.match(articleRoute, /buildArticleMetadata\(article/);
+  assert.match(articleRoute, /title: article\.ogTitle \|\| article\.seoTitle/);
+  assert.match(articleRoute, /description: article\.ogDescription \|\| article\.seoDescription/);
+  assert.match(articleRoute, /article\.ogImage\?\.src \?\? article\.featuredImage\?\.src \?\? DEFAULT_SOCIAL_IMAGE/);
   assert.match(articleMetadata, /title: article\.ogTitle \|\| article\.seoTitle/);
   assert.match(articleMetadata, /description: article\.ogDescription \|\| article\.seoDescription/);
   assert.match(articleMetadata, /article\.ogImage\?\.src \?\? article\.featuredImage\?\.src \?\? DEFAULT_SOCIAL_IMAGE/);
