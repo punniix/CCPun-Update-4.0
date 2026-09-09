@@ -17,6 +17,7 @@ export const reviewMetadata = defineType({
     defineField({
       name: "status",
       title: "สถานะการตรวจเนื้อหา",
+      description: "สถานะนี้ใช้กับฉบับที่กำลังแก้เท่านั้น การเลือกอนุมัติยังไม่เปลี่ยนหน้าเว็บ ต้องยืนยันเผยแพร่อีกครั้งหลังตรวจตัวอย่าง",
       type: "string",
       initialValue: "drafting",
       options: { list: reviewStatuses, layout: "dropdown" },

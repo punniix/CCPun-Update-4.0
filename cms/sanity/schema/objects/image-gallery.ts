@@ -1,9 +1,11 @@
+import { Images } from "lucide-react";
 import { defineArrayMember, defineField, defineType } from "sanity";
 
 export const imageGallery = defineType({
   name: "imageGallery",
   title: "แกลเลอรีรูปภาพ",
   type: "object",
+  icon: Images,
   fields: [
     defineField({
       name: "images",

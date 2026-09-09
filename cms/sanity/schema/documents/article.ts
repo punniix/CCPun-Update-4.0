@@ -2,11 +2,15 @@ import { defineArrayMember, defineField, defineType } from "sanity";
 import { ACTIVE_ARTICLE_CATEGORIES, isReservedArticleSlug } from "../../../../lib/content/taxonomy";
 import SeoScoreInput from "../../components/SeoScoreInput";
 
+import { ArticleEditorialInput } from "../../policy/article-editorial-status";
+import { reviewLabels } from "../../policy/article-publication";
+
 const activeArticleCategorySlugs = ACTIVE_ARTICLE_CATEGORIES.map(({ slug }) => slug);
 
 export const article = defineType({
   name: "article",
-  title: "Article",
+  title: "บทความ",
+  components: { input: ArticleEditorialInput },
   type: "document",
   groups: [
     { name: "content", title: "เขียนบทความ", default: true },
@@ -68,7 +72,7 @@ export const article = defineType({
     defineField({ name: "featuredImage", title: "รูปหน้าปกบทความ (แนะนำ 1200×630 px)", type: "imageWithAlt", group: "content", description: "กรอบหน้า Article ใช้สัดส่วน 1200:630 (~1.91:1) ซึ่งตรงกับ Featured/OG image ปัจจุบัน; เลือกจุดสำคัญของภาพด้วย hotspot ได้" }),
     defineField({ name: "migratedFeaturedImage", title: "Migrated featured image", type: "migratedImage", readOnly: true, hidden: true }),
     defineField({ name: "body", title: "เนื้อหาบทความ", type: "portableText", group: "content", validation: (Rule) => Rule.required().min(1) }),
-    defineField({ name: "faq", title: "FAQ ที่แสดงในบทความ", type: "array", of: [defineArrayMember({ type: "faqItem" })], group: "content" }),
+    defineField({ name: "faq", title: "FAQ ที่แสดงในบทความ", type: "array", of: [defineArrayMember({ type: "faqItem" })], group: "content", description: "ใช้ชุดคำถามนี้เป็นหลักสำหรับ FAQ ใหม่ ตรวจว่าไม่ซ้ำกับคำถามในเนื้อหาเดิมก่อนเพิ่ม และอย่าลบ FAQ เดิมเป็นชุดจนกว่าผู้ดูแลจะตรวจการแสดงผลและข้อมูลค้นหาแล้ว" }),
     defineField({ name: "sources", title: "แหล่งอ้างอิง", type: "array", of: [defineArrayMember({ type: "sourceReference" })], group: "review" }),
     defineField({ name: "review", title: "ขั้นตรวจเนื้อหา", type: "reviewMetadata", group: "publication", validation: (Rule) => Rule.required() }),
     defineField({ name: "seo", title: "SEO Control Center", type: "seoMetadata", group: "seoGeo", components: { input: SeoScoreInput }, validation: (Rule) => Rule.required() }),
@@ -76,7 +80,7 @@ export const article = defineType({
     defineField({ name: "migration", title: "Migration source", type: "migrationSource", readOnly: true, hidden: true }),
     defineField({
       name: "contentUpdatedAt",
-      title: "วันที่แก้เนื้อหาล่าสุด",
+      title: "วันเผยแพร่การปรับปรุงเนื้อหาล่าสุด",
       description: "ระบบอัปเดตอัตโนมัติเมื่อเผยแพร่การแก้ไข เพื่อให้หน้าเว็บ Article Schema และ sitemap.xml ใช้วันเดียวกัน",
       type: "datetime",
       group: "publication",
@@ -84,7 +88,8 @@ export const article = defineType({
     }),
     defineField({
       name: "publishedAt",
-      title: "วันเวลาเผยแพร่",
+      title: "วันเผยแพร่ครั้งแรก (ระบบเก็บไว้เมื่อปรับปรุงบทความ)",
+      description: "สำหรับบทความใหม่ ตั้งวันเผยแพร่ได้ หรือเว้นให้ระบบกำหนดอัตโนมัติ สำหรับบทความที่ Live แล้ว ระบบจะยึดวันแรกจากฉบับ Live เสมอ แม้แก้ค่านี้ใน Draft",
       type: "datetime",
       group: "publication",
       validation: (Rule) =>
@@ -102,9 +107,9 @@ export const article = defineType({
         ? true
         : "Published documents require review status Approved";
     }),
-  orderings: [{ title: "Updated, newest", name: "updatedDesc", by: [{ field: "_updatedAt", direction: "desc" }] }],
+  orderings: [{ title: "แก้ไขล่าสุดก่อน", name: "updatedDesc", by: [{ field: "_updatedAt", direction: "desc" }] }],
   preview: {
     select: { title: "title", subtitle: "review.status", media: "featuredImage" },
-    prepare: ({ title, subtitle, media }) => ({ title, subtitle: subtitle ? `Review: ${subtitle}` : "Review status missing", media }),
+    prepare: ({ title, subtitle, media }) => ({ title: title?.trim() || "บทความใหม่", subtitle: `ตรวจสอบ: ${reviewLabels[subtitle] || "ยังไม่ได้ระบุ"}`, media }),
   },
 });

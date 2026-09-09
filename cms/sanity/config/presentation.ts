@@ -2,6 +2,7 @@ import { defineLocations, presentationTool } from "sanity/presentation";
 
 export function createStudioPresentationPlugin() {
   return presentationTool({
+    title: "ตัวอย่างเว็บไซต์",
     previewUrl: {
       initial: "/",
       previewMode: {
@@ -15,10 +16,10 @@ export function createStudioPresentationPlugin() {
           resolve: (document) => ({
             locations: document?.slug
               ? [
-                  { title: document.title || "Untitled article", href: `/blog/${document.categorySlug || "personal-finance"}/${document.slug}/` },
-                  { title: "Blog hub", href: "/blog/" },
+                  { title: document.title || "บทความใหม่", href: `/blog/${document.categorySlug || "personal-finance"}/${document.slug}/` },
+                  { title: "รวมบทความ", href: "/blog/" },
                 ]
-              : [{ title: "Blog hub", href: "/blog/" }],
+              : [{ title: "รวมบทความ", href: "/blog/" }],
           }),
         }),
       },

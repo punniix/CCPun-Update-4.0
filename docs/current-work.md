@@ -10,3 +10,5 @@ Use, in order:
 4. Live Vercel read-back for deployment status.
 
 This pointer never authorizes push, merge, deployment, environment mutation or data mutation.
+
+Article optimization workflow, migration evidence, production steps and rollback: [runbook](./admin-layer/article-optimize-workflow.md). Current execution status remains in receipt `sanity-optimize-20260909`.
