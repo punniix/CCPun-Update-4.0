@@ -272,9 +272,9 @@ async function inspect(client, routeKey, viewport) {
     if (cards.length === 5) {
       const maxY = Math.max(...cards.map(c=>Math.round(c.y)));
       const last = cards.filter(c=>Math.abs(Math.round(c.y)-maxY)<3);
-      const minX = Math.min(...last.map(c=>c.x)); const maxRight = Math.max(...last.map(c=>c.x+c.w));
-      const contentCenter = base.clientWidth/2; const rowCenter=(minX+maxRight)/2;
-      expect('Blog orphan row visually centered', Math.abs(rowCenter-contentCenter) < 4, `${rowCenter} vs ${contentCenter}; ${JSON.stringify(last)}`);
+      const firstRowX = Math.min(...cards.filter(c=>Math.abs(Math.round(c.y)-Math.min(...cards.map(item=>Math.round(item.y))))<3).map(c=>c.x));
+      const lastRowX = Math.min(...last.map(c=>c.x));
+      expect('Blog wrapped final row stays left-anchored like Figma', Math.abs(lastRowX-firstRowX) < 4, `${lastRowX} vs ${firstRowX}; ${JSON.stringify(last)}`);
     }
   }
   if (routeKey === 'article') {

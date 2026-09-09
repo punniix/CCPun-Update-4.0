@@ -154,3 +154,13 @@ After write access is available:
 5. Check for clipping/overflow, hidden/orphan nodes, font drift and broken prototype destinations.
 6. Re-read changed nodes and capture visual evidence.
 7. Record the final Figma node IDs and sync commit/deployment in the task receipt.
+
+## Integration verification before remote delivery
+
+- Latest Production `2495dcd` was merged into the isolated UAT branch; conflicts on shared Sanity/analytics/article data contracts were resolved to the Production side before adding UAT-only motion.
+- `npm run check:foundation`: PASS, including 386/386 Admin tests after updating two stale source-shape assertions to the current released Blog/Article implementation without weakening the underlying SEO contracts.
+- UAT optimized webpack build: PASS.
+- Motion/interactions built-server matrix: 123 passed, 0 failed across 390 / 640 / 820 / 1024 / 1440, including both calculator flows and Reduce Motion.
+- Full Website 4.3 responsive matrix: 464 passed, 0 failed across all eight Preview routes and 390 / 600 / 820 / 1100 / 1440. The Blog final wrapped row guard now checks the already-established Figma left-anchor behavior from `Website43FinalPolishStyles` instead of the obsolete centered-row expectation.
+
+Remote push/Preview deployment is authorized by the current owner request. Production deployment remains out of scope.
