@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
-import { renderResultShareImage } from '@/lib/shared/result-share-image';
 
 type Summary = {
   familySupport: number;
@@ -17,6 +16,7 @@ function amount(value: number): string {
 }
 
 async function makeImage(summary: Summary): Promise<Blob> {
+  const { renderResultShareImage } = await import('@/lib/shared/result-share-image');
   return renderResultShareImage({
     toolName: 'เครื่องมือวางแผนทุนประกันชีวิต',
     resultLabel: 'ส่วนต่างทุนประกันชีวิต',

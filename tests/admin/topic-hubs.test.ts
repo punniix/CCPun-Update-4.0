@@ -130,7 +130,7 @@ test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO
   const schemaSource = source("lib/content/structured-data/article-schema.ts");
   assert.doesNotMatch(articlePage, /\/blog\/\?category=/);
   assert.doesNotMatch(schemaSource, /\/blog\/\?category=/);
-  assert.match(articlePage, /href=\{topicHref\}/);
+  assert.match(source("features/blog/website-43/Website43Article.tsx"), /href=\{topicHref\}/);
   assert.match(articlePage, /getMovedArticleRedirectPath\(category, slug\)/);
   assert.match(schemaSource, /articleSection:\s*sectionName/);
   assert.match(schemaSource, /item:\s*sectionUrl/);

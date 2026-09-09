@@ -1,23 +1,22 @@
 import assert from "node:assert/strict";
-
 const BASE_URL = process.env.PRODUCTION_READ_BASE_URL ?? "http://127.0.0.1:3000";
-
 const response = await fetch(`${BASE_URL}/`);
-assert.equal(response.status, 200, `Homepage must return 200, received ${response.status}`);
-
+assert.equal(response.status, 200);
 const html = await response.text();
-const pictureMatch = html.match(/<picture>[\s\S]*?<\/picture>/);
-assert.ok(pictureMatch, "Homepage must render the responsive hero <picture> element");
-
-const picture = pictureMatch[0];
-assert.match(picture, /media="\(min-width: 768px\)"/);
-assert.match(picture, /hero-pun-laptop-v3\.png/);
-assert.match(picture, /hero-pun-laptop-mobile-v5\.webp/);
-assert.match(picture, /loading="eager"/);
-assert.match(picture, /fetchPriority="high"|fetchpriority="high"/);
-assert.doesNotMatch(picture, /loading="lazy"/);
-
-const imageTags = picture.match(/<img\b/g) ?? [];
-assert.equal(imageTags.length, 1, "Responsive hero <picture> must contain one rendered <img> fallback");
-
-console.log("PASS: rendered homepage LCP image markup");
+const hero = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0];
+assert.ok(hero, "Homepage renders its hero in server HTML");
+assert.match(hero, /home-hero-desktop/);
+assert.match(hero, /loading="eager"/);
+assert.match(hero, /fetchPriority="high"|fetchpriority="high"/);
+assert.doesNotMatch(hero, /loading="lazy"/);
+assert.equal((hero.match(/<img\b/g) ?? []).length, 1);
+assert.doesNotMatch(html, /href="\/preview\//);
+assert.doesNotMatch(html, /href=""/);
+const schemas = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((match) => JSON.parse(match[1]));
+const faq = schemas.find((schema) => schema['@type'] === 'FAQPage');
+assert.equal(faq?.mainEntity.length, 2);
+for (const item of faq.mainEntity) {
+  assert.ok(html.includes(item.name));
+  assert.ok(html.includes(item.acceptedAnswer.text));
+}
+console.log("PASS: rendered Home LCP, public links and matching FAQ schema");

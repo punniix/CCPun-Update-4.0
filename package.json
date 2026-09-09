@@ -15,7 +15,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:architecture": "node scripts/check-repository-architecture.mjs",
-    "test:vercel": "node tests/vercel-native-regression.mjs && node --test tests/vercel-build-routing.test.mjs && node --import tsx --test tests/ai-crawler-observability.test.ts && node --import tsx tests/analytics-regression.ts",
+    "test:vercel": "node tests/vercel-native-regression.mjs && node --test tests/vercel-build-routing.test.mjs && node --import tsx --test tests/ai-crawler-observability.test.ts && node --import tsx tests/analytics-regression.ts && node --import tsx tests/analytics-component-regression.mjs",
     "test:search-intent-owners": "node tests/search-intent-owner-regression.mjs",
     "test:foundation-contracts": "node tests/foundation-safety-regression.mjs && node tests/search-intent-owner-regression.mjs",
     "check:foundation": "npm run lint && npx tsc --noEmit --incremental false && npm run test:architecture && npm run test:foundation-contracts && npm run test:vercel && npm run test:admin",

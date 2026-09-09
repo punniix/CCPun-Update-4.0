@@ -67,7 +67,8 @@ test("Preview disable is a same-origin POST and every current caller uses POST",
   assert.doesNotMatch(route, /export async function GET/);
   assert.match(route, /NextResponse\.redirect\([^;]+, 303\)/);
   assert.match(proxy, /\(isAdminApi \|\| isPreviewApi\)[\s\S]*?!\["GET", "HEAD", "OPTIONS"\]\.includes\(request\.method\)/);
-  assert.match(article, /<form action="\/api\/preview\/disable\/" method="post">/);
+  assert.match(article, /IS_DRAFT_PREVIEW_ALLOWED && isEnabled/);
+  assert.match(read("features/blog/website-43/Website43Article.tsx"), /<form action="\/api\/preview\/disable\/" method="post">/);
   assert.match(qa, /const disableResponse = await evaluate[\s\S]*?fetch\(["']\/api\/preview\/disable\/["'], \{ method: ["']POST["'] \}\)/);
   assert.match(qa, /!disableResponse\?\.ok \|\| disableResponse\.pathname !== ["']\/blog\/["']/);
   assert.doesNotMatch(sanityConfig, /disable:\s*["']\/api\/preview\/disable/);

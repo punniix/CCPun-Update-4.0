@@ -24,7 +24,12 @@ export const author = defineType({
       title: "ลิงก์โปรไฟล์",
       type: "string",
       description: "ใช้ URL เต็ม, path ภายในเว็บไซต์ หรือ anchor เช่น #about-ccpun",
-      validation: (Rule) => Rule.custom((value) => !value || /^(https?:\/\/|\/(?!\/)|#)/.test(value) ? true : "กรอก URL, path ภายในเว็บไซต์ หรือ anchor ที่ขึ้นต้นด้วย #"),
+      validation: (Rule) =>
+        Rule.custom((value) =>
+          !value || /^(https?:\/\/|\/(?!\/)|#)/.test(value)
+            ? true
+            : "กรอก URL, path ภายในเว็บไซต์ หรือ anchor ที่ขึ้นต้นด้วย #",
+        ),
     }),
     defineField({ name: "credentials", title: "Credentials", type: "array", of: [defineArrayMember({ type: "string" })] }),
     defineField({
@@ -34,5 +39,5 @@ export const author = defineType({
       of: [defineArrayMember({ type: "url", validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }) })],
     }),
   ],
-  preview: { select: { title: "name", subtitle: "slug.current" } },
+  preview: { select: { title: "profileName", subtitle: "profileRole", media: "profileAvatar" } },
 });

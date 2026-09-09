@@ -5,7 +5,6 @@ import { Download } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import { CI_ASSESSMENT_VERSION } from '@/features/ci-planning/calculator/constants';
 import type { CIEstimationMethod, CIResult } from '@/features/ci-planning/calculator/types';
-import { createCIResultImageSummary, renderCIResultImage } from '@/features/ci-planning/result-image';
 
 interface ResultImageDownloadButtonProps {
   result: CIResult;
@@ -25,6 +24,7 @@ export default function ResultImageDownloadButton({
     setState('working');
 
     try {
+      const { createCIResultImageSummary, renderCIResultImage } = await import('@/features/ci-planning/result-image');
       const summary = createCIResultImageSummary(result, selectedMethod, CI_ASSESSMENT_VERSION);
       const blob = await renderCIResultImage(summary);
       const objectUrl = URL.createObjectURL(blob);

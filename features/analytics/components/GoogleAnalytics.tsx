@@ -5,12 +5,18 @@ import { CCPUN_SITE_VERSION, clearPendingAnalyticsEvents, flushPendingAnalyticsE
 import { getConsentData } from '@/lib/cookie-consent';
 
 function loadGA(gaId: string) {
-  if (document.getElementById('ga-script')) return flushPendingAnalyticsEvents('analytics');
   if (!document.getElementById('gtm-script') || typeof window.gtag !== 'function') return;
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = (...args: unknown[]) => window.dataLayer?.push(args);
-  window.gtag('js', new Date());
   window.gtag('set', { site_version: CCPUN_SITE_VERSION });
+  // GTM owns GA initialization after the semantic cutover; keep the native fallback below.
+  if (process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED === 'true' || document.getElementById('ga-script')) {
+    return flushPendingAnalyticsEvents('analytics');
+  }
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () {
+    // eslint-disable-next-line prefer-rest-params -- Google command protocol requires Arguments, not an Array.
+    window.dataLayer?.push(arguments);
+  };
+  window.gtag('js', new Date());
   window.gtag('config', gaId);
   const script = document.createElement('script');
   script.id = 'ga-script'; script.async = true; script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
@@ -46,14 +52,15 @@ export default function GoogleAnalytics({ gaId }: { gaId: string }) {
       if (path.startsWith('/privacy') || path.startsWith('/cookie-policy')) return;
 
       const nav = link.closest('nav');
-      const explicitSurface = link.dataset.analyticsSurface;
-      const explicitLocation = link.dataset.analyticsLocation;
-      const surface = explicitSurface ?? (path.startsWith('/ci-planning') ? 'ci_planning'
+      const surface = path.startsWith('/ci-planning') ? 'ci_planning'
         : path.startsWith('/tools/fhc') || path.startsWith('/tools/financial-health-check') ? 'fhc'
         : path.startsWith('/blog/') ? 'blog'
         : path === '/' ? 'homepage'
-        : null);
-      const location = explicitLocation ?? (nav ? (link.closest('#mobile-navigation') ? 'navbar_mobile' : 'navbar')
+        : null;
+      const explicitLocation = link.dataset.analyticsLocation;
+      const allowedLocation = explicitLocation === 'navbar' || explicitLocation === 'navbar_mobile' || explicitLocation === 'home_faq'
+        ? explicitLocation : null;
+      const location = allowedLocation ?? (nav ? (link.closest('#mobile-navigation') ? 'navbar_mobile' : 'navbar')
         : link.closest('#home') ? 'home_hero'
         : link.closest('[data-uat-section="contact"]') ? 'home_contact'
         : surface === 'fhc' ? 'fhc_landing'

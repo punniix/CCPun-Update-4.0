@@ -12,7 +12,10 @@ const deniedConsent = {
 
 function ensureGoogleQueue() {
   window.dataLayer = window.dataLayer || [];
-  window.gtag = window.gtag || ((...args: unknown[]) => window.dataLayer?.push(args));
+  window.gtag = window.gtag || function () {
+    // eslint-disable-next-line prefer-rest-params -- Google command protocol requires Arguments, not an Array.
+    window.dataLayer?.push(arguments);
+  };
 }
 
 function loadGTM(gtmId: string) {

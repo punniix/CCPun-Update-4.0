@@ -42,6 +42,7 @@ cms/sanity (editorial and Admin schema/configuration)
 | `lib/analytics.ts` | semantic event and provider mapping authority | UI |
 | `lib/cookie-consent.ts` | stored consent authority | feature-specific consent copies |
 | `lib/seo/` | shared deterministic SEO and structured-data infrastructure | persisted CMS schema |
+| `lib/observability/` | server-side crawler classification and sanitized request logging | analytics provider events or editorial content |
 | `lib/shared/` | small cross-feature helpers with no feature dependency | miscellaneous dumping ground |
 | `cms/sanity/` | Sanity schemas, Studio configuration, lifecycle policy and CMS documentation | physical URL taxonomy |
 | `db/` | reviewed relational migrations for operational state such as publishing jobs, locks and platform IDs | editorial content or credentials in source control |

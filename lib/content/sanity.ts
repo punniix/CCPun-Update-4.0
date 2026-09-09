@@ -78,10 +78,16 @@ const pdfDownloadSchema = z.object({
   }),
 });
 const detailsBlockSchema = z.object({ _type: z.literal("detailsBlock"), summary: z.string().min(1), text: z.string().min(1) });
+const legacyTableRowSchema = z.array(z.string());
+const tableRowSchema = z.object({
+  _type: z.literal("tableRow"),
+  _key: z.string().nullish(),
+  cells: z.array(z.string()),
+});
 const simpleTableSchema = z.object({
   _type: z.literal("simpleTable"),
   headers: z.array(z.string()).nullish(),
-  rows: z.array(z.array(z.string())).nullish(),
+  rows: z.array(z.union([legacyTableRowSchema, tableRowSchema])).nullish(),
 });
 const dividerSchema = z.object({ _type: z.literal("divider") });
 const bodyItemSchema = z.union([
@@ -125,18 +131,18 @@ const rawArticleSchema = z.object({
   authorName: z.string().min(1),
   author: z.object({
     name: z.string().min(1),
-    profileName: z.string().min(1).nullish(),
-    profileRole: z.string().min(1).nullish(),
-    profileBio: z.string().min(1).nullish(),
-    profileCtaLabel: z.string().min(1).nullish(),
-    profileCtaUrl: z.string().refine((value) => /^(https?:\/\/|\/(?!\/)|#)/.test(value)).nullish(),
+    profileName: z.string().min(1).nullish().catch(undefined),
+    profileRole: z.string().min(1).nullish().catch(undefined),
+    profileBio: z.string().min(1).nullish().catch(undefined),
+    profileCtaLabel: z.string().min(1).nullish().catch(undefined),
+    profileCtaUrl: z.string().refine((value) => /^(https?:\/\/|\/(?!\/)|#)/.test(value)).nullish().catch(undefined),
     profileAvatar: z.object({
       src: z.string().min(1),
       alt: z.string().min(1),
       width: z.number().positive(),
       height: z.number().positive(),
-    }).nullish(),
-  }).nullish(),
+    }).nullish().catch(undefined),
+  }).nullish().catch(undefined),
   publishedAt: z.string().nullish(),
   updatedAt: z.string().min(1),
   seo: z.object({
@@ -290,7 +296,11 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
     }
     if (item._type === "simpleTable") {
       flushList();
-      result.push({ type: "table", headers: item.headers ?? [], rows: item.rows ?? [] });
+      result.push({
+        type: "table",
+        headers: item.headers ?? [],
+        rows: (item.rows ?? []).map((row) => Array.isArray(row) ? row : row.cells),
+      });
       continue;
     }
     if (item._type === "divider") {

@@ -21,7 +21,7 @@ Do not duplicate human pageview, source/medium, scroll or conversion tracking in
 
 ## Vercel AI crawler observability
 
-`proxy.ts` has a header-based matcher for the AI User-Agent tokens tracked by `lib/ai-crawler-observability.ts`. Ordinary browser traffic does not enter Proxy because of this new matcher; the existing Admin/auth matchers are unchanged.
+`proxy.ts` has a header-based matcher for the AI User-Agent tokens tracked by `lib/observability/ai-crawler.ts`. Ordinary browser traffic does not enter Proxy because of this new matcher; the existing Admin/auth matchers are unchanged.
 
 Recognized public AI requests emit one structured line:
 
@@ -103,4 +103,4 @@ A future CCPun Marketing Dashboard may aggregate these sources, but their owners
 
 ## Rollback
 
-Revert the observability commit(s) that add `lib/ai-crawler-observability.ts`, the AI User-Agent matcher/log call in `proxy.ts`, and the associated regression test. No GA4 event names, consent behavior, SEO URLs, Sanity data or Production content are changed by this feature.
+Revert the observability commit(s) that add `lib/observability/ai-crawler.ts`, the AI User-Agent matcher/log call in `proxy.ts`, and the associated regression test. No GA4 event names, consent behavior, SEO URLs, Sanity data or Production content are changed by this feature.

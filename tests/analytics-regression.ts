@@ -46,50 +46,42 @@ assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytic
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
 assert.equal(acquisitionSource.includes('fbclid'), false, 'click identifiers must not be parsed, stored, or sent');
 process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'false';
-const browserConsent = JSON.stringify({
-  status: 'custom',
-  essential: true,
-  performance: false,
-  analytics: true,
-  social: false,
-  timestamp: new Date().toISOString(),
-  expires: Date.now() + 60_000,
-});
-Object.defineProperty(globalThis, 'localStorage', {
-  configurable: true,
-  value: {
-    getItem: () => browserConsent,
-    setItem: () => undefined,
-    removeItem: () => undefined,
-    clear: () => undefined,
-    key: () => null,
-    length: 0,
-  },
-});
-
-clearPendingAnalyticsEvents();
-const readyEvents: unknown[][] = [];
-Object.defineProperty(globalThis, 'window', {
-  configurable: true,
-  writable: true,
-  value: { gtag: (...args: unknown[]) => readyEvents.push(args) },
-});
-const duplicateParams = { tool_name: 'ci_planning', cta_location: 'ci_landing' };
-for (let index = 0; index < 3; index += 1) trackEvent('ci_calculator_cta_click', duplicateParams);
-assert.equal(readyEvents.length, 1, 'duplicate scoped CTA events must be skipped without resetting dedupe state');
-
-clearPendingAnalyticsEvents();
-const queuedEvents: unknown[][] = [];
-Object.defineProperty(globalThis, 'window', { configurable: true, writable: true, value: {} });
-trackEvent('ci_landing_view', duplicateParams);
-trackEvent('ci_calculator_cta_click', duplicateParams);
-trackEvent('ci_calculator_cta_click', duplicateParams);
-window.gtag = (...args: unknown[]) => queuedEvents.push(args);
-flushPendingAnalyticsEvents('analytics');
-assert.deepEqual(
-  queuedEvents.map((entry) => entry[1]),
-  ['ci_landing_view', 'ci_calculator_cta_click'],
-  'duplicate CTA must not clear unrelated pending analytics events before provider readiness',
-);
-
+let analyticsConsent = true;
+const sent: unknown[][] = [];
+const browser = { gtag: (...args: unknown[]) => { sent.push(args); } } as Window;
+Object.defineProperty(globalThis, 'window', { configurable: true, value: browser });
+Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
+  getItem: () => JSON.stringify({ analytics: analyticsConsent, social: false, expires: Date.now() + 60000 }),
+} });
+try {
+  const cta = { tool_name: 'ci_planning', cta_location: 'ci_landing' };
+  for (const eventName of ['ci_calculator_cta_click', 'result_image_download']) {
+    clearPendingAnalyticsEvents();
+    sent.length = 0;
+    for (let i = 0; i < 3; i++) trackEvent(eventName, cta);
+    assert.equal(sent.length, 1, 'repeated duplicates must not reset page-lifetime dedupe');
+  }
+  clearPendingAnalyticsEvents();
+  sent.length = 0;
+  delete browser.gtag;
+  trackEvent('ci_landing_view', cta);
+  trackEvent('ci_calculator_cta_click', cta);
+  trackEvent('ci_calculator_cta_click', cta);
+  browser.gtag = (...args: unknown[]) => { sent.push(args); };
+  flushPendingAnalyticsEvents('analytics');
+  assert.deepEqual(sent.map((args) => args[1]), ['ci_landing_view', 'ci_calculator_cta_click'], 'a duplicate must preserve earlier queued events');
+  delete browser.gtag;
+  trackEvent('ci_result_view', cta);
+  analyticsConsent = false;
+  trackEvent('ci_landing_view', cta);
+  analyticsConsent = true;
+  browser.gtag = (...args: unknown[]) => { sent.push(args); };
+  flushPendingAnalyticsEvents('analytics');
+  assert.equal(sent.length, 2, 'revoking consent must discard queued events');
+} finally {
+  clearPendingAnalyticsEvents();
+  Reflect.deleteProperty(globalThis, 'window');
+  Reflect.deleteProperty(globalThis, 'localStorage');
+  delete process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED;
+}
 console.log('analytics regression checks passed');

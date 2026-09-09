@@ -10,8 +10,10 @@ const schema = await read('lib/content/structured-data/article-schema.ts');
 const blogPage = await read('features/blog/pages/BlogArchivePage.tsx');
 const categoryPage = await read('features/blog/pages/BlogCategoryPage.tsx');
 const articlePage = await read('features/blog/pages/ArticlePage.tsx');
+const articlePresentation = await read('features/blog/website-43/Website43Article.tsx');
+const blogPresentation = await read('features/blog/website-43/Website43Blog.tsx');
 const sitemap = await read('app/sitemaps/blog.xml/route.ts');
-const archive = await read('features/blog/components/BlogArchive.tsx');
+
 const card = await read('features/blog/components/ArticleCard.tsx');
 
 for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness', 'investment']) {
@@ -40,7 +42,7 @@ assert.match(taxonomy, /semanticTopic\?: string \| null/);
 const overrideResolution = taxonomy.indexOf('const override = articleSlug');
 const explicitResolution = taxonomy.indexOf('const explicitTopic = semanticTopic');
 assert.ok(overrideResolution >= 0 && explicitResolution > overrideResolution, 'protected slug semantic overrides must precede editable CMS Semantic Topic');
-for (const surface of [blogPage, categoryPage, articlePage, card, schema, sitemap]) {
+for (const surface of [blogPage, categoryPage, articlePresentation, card, schema, sitemap]) {
   assert.match(surface, /semanticTopic: article\.semanticTopic/);
 }
 
@@ -62,8 +64,8 @@ assert.match(categoryPage, /hub\.featuredLink\.href/);
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.
 assert.match(articlePage, /getMovedArticleRedirectPath\(category, slug\)/);
 assert.match(articlePage, /getArticleCategorySlug\(article\)/);
-assert.match(articlePage, /getArticleSemanticTopic/);
-assert.match(articlePage, /href=\{topicHref\}/);
+assert.match(articlePresentation, /getArticleSemanticTopic/);
+assert.match(articlePresentation, /href=\{topicHref\}/);
 assert.doesNotMatch(articlePage, /\/blog\/\?category=/);
 assert.match(card, /const href = getArticlePath\(article\)/);
 assert.match(card, /getArticleSemanticTopic/);
@@ -90,8 +92,12 @@ assert.match(blogPage, /href=\{`\/blog\/\$\{hub\.slug\}\/`\}/);
 assert.match(blogPage, /navigableHubs\.map/);
 
 // Query-string filters remain a client-side UX convenience, not an SEO breadcrumb node.
-assert.match(archive, /window\.history/);
-assert.match(archive, /params\.set\("category"/);
-assert.match(archive, /params\.set\("tag"/);
+assert.match(blogPresentation, /window\.history\.replaceState/);
+assert.match(blogPresentation, /url\.searchParams\.set\('q'/);
+assert.match(blogPage, /filters\.category/);
+assert.match(blogPage, /filters\.tag/);
+assert.match(blogPresentation, /activeCategorySlug/);
+assert.match(categoryPage, /<Website43Blog/);
+assert.match(blogPage, /<Website43Blog/);
 
 console.log('PASS: SEO topic hub routing regression');

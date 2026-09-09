@@ -1,40 +1,23 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const hero = readFileSync(new URL("../features/home/components/HeroSection.tsx", import.meta.url), "utf8");
-
-assert.match(hero, /import Image, \{ getImageProps \} from "next\/image";/);
-assert.match(hero, /src: "\/assets\/hero-pun-laptop-v3\.png"/);
-assert.match(hero, /quality: 90/);
-assert.match(hero, /loading: "eager"/);
-assert.match(hero, /fetchPriority: "high"/);
-
-assert.match(hero, /<picture>/);
-assert.match(hero, /media="\(min-width: 768px\)"/);
-assert.match(hero, /srcSet=\{desktopHeroImageProps\.srcSet\}/);
-assert.match(hero, /sizes=\{desktopHeroImageProps\.sizes\}/);
-assert.match(hero, /src="\/assets\/hero-pun-laptop-mobile-v5\.webp"/);
+const home = readFileSync(new URL("../features/home/website-43/Website43Home.tsx", import.meta.url), "utf8");
+const route = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+assert.match(route, /<Website43Home/);
+const hero = home.split('<section id="home"')[1].split('</section>')[0];
+assert.match(hero, /home-hero-desktop\.png/);
 assert.match(hero, /loading="eager"/);
 assert.match(hero, /fetchPriority="high"/);
+assert.match(hero, /sizes="100vw"/);
 assert.doesNotMatch(hero, /loading="lazy"/);
-
-const portraitMarkers = hero.match(/data-uat-role="hero-portrait"/g) ?? [];
-assert.equal(portraitMarkers.length, 1, "Homepage must expose one responsive hero portrait wrapper");
-
-const imageComponents = hero.match(/<Image\b/g) ?? [];
-assert.equal(imageComponents.length, 1, "Responsive art direction must use one fallback Image element");
-
-assert.match(
-  hero,
-  /className="absolute inset-x-0 top-20 aspect-\[4\/3\] overflow-hidden md:inset-0 md:aspect-auto"/,
-  "Hero portrait geometry must remain 4:3 below the mobile top offset and full-bleed on desktop",
-);
-assert.match(
-  hero,
-  /className="absolute inset-0 h-full w-full object-cover object-center md:object-\[62%_center\]"/,
-  "Mobile and desktop object positions must preserve the approved crop",
-);
-assert.match(hero, /className="pointer-events-none absolute inset-0 md:hidden"/);
-assert.match(hero, /className="pointer-events-none absolute inset-0 hidden md:block"/);
-
-console.log("PASS: homepage responsive LCP image loading contract");
+assert.equal((hero.match(/<Image\b/g) ?? []).length, 1, "Home hero must request one responsive image");
+const headline = home.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, "");
+assert.equal(headline, "เพราะปัญหาทางการเงินมันซับซ้อน เราจึงต้องวางแผน ออกแบบให้เหมาะกับตัวคุณ", "Line-wrap markup must preserve the approved headline text");
+assert.match(home, /<main id="main-content" tabIndex=\{\-1\}>/);
+assert.match(route, /mainEntity: homeFaqs\.map/);
+assert.match(home, /homeFaqs as faqs/);
+assert.doesNotMatch(home, /\/preview\//);
+const shared = readFileSync(new URL("../components/layout/website-43/Website43Shared.tsx", import.meta.url), "utf8");
+assert.match(shared, /import CookieSettingsButton from '@\/components\/layout\/CookieSettingsButton'/);
+assert.match(shared, /<CookieSettingsButton \/>/, "Home must preserve consent reopening outside responsive footer variants");
+console.log("PASS: approved Home responsive LCP and FAQ composition contract");

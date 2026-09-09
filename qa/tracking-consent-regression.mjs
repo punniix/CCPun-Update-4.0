@@ -2,6 +2,9 @@ const CDP_HTTP = process.env.CDP_HTTP ?? 'http://127.0.0.1:9343';
 const BASE_URL = process.env.TRACKING_BASE_URL ?? 'http://127.0.0.1:3006';
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? '';
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? '';
+const SEMANTIC_MODE = process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED === 'true';
+// Provider requests are blocked below: semantic mode must leave GA initialization to GTM.
+const APP_GA_COUNT = SEMANTIC_MODE ? 0 : 1;
 
 if (!/^G-[A-Z0-9]+$/.test(GA_ID) || !/^\d{5,20}$/.test(META_PIXEL_ID)) {
   throw new Error('Set valid NEXT_PUBLIC_GA_ID and NEXT_PUBLIC_META_PIXEL_ID for this QA run.');
@@ -82,14 +85,16 @@ async function navigate(client, path) {
 
 async function inspect(client) {
   return evaluate(client, `(() => {
-    const normalize = (row) => Array.isArray(row) ? Array.from(row) : row;
+    const normalize = (row) => Array.isArray(row) || Object.prototype.toString.call(row) === '[object Arguments]' ? Array.from(row) : row;
     const dataLayer = (window.dataLayer ?? []).map(normalize);
+    const googleCommandTypes = (window.dataLayer ?? []).filter((row) => ['consent', 'set', 'js', 'config', 'event'].includes(row?.[0])).map((row) => Object.prototype.toString.call(row));
     const fbq = (window.fbq?.queue ?? []).map(normalize);
     return {
       gaScripts: [...document.querySelectorAll('#ga-script')].map((item) => item.src),
       gtmScripts: [...document.querySelectorAll('#gtm-script')].map((item) => item.src),
       metaScripts: [...document.querySelectorAll('#meta-pixel-script')].map((item) => item.src),
       dataLayer,
+      googleCommandTypes,
       fbq,
       consent: localStorage.getItem('ccpun_cookie_consent'),
       trackingResources: performance.getEntriesByType('resource').map((entry) => entry.name)
@@ -132,6 +137,10 @@ try {
   expect('pre-consent loads no Meta script', state.metaScripts.length === 0);
   expect('pre-consent creates no tracking cookie', state.trackingCookies.length === 0);
   const defaultConsent = state.dataLayer.find((row) => row[0] === 'consent' && row[1] === 'default')?.[2];
+  expect('Google commands use the provider Arguments protocol', state.googleCommandTypes.length > 0 && state.googleCommandTypes.every((type) => type === '[object Arguments]'));
+  const defaultConsentIndex = state.dataLayer.findIndex((row) => row[0] === 'consent' && row[1] === 'default');
+  const gtmStartIndex = state.dataLayer.findIndex((row) => row.event === 'gtm.js');
+  expect('consent default precedes GTM startup', defaultConsentIndex >= 0 && gtmStartIndex > defaultConsentIndex);
   expect('pre-consent defaults analytics storage to denied', defaultConsent?.analytics_storage === 'denied');
   expect('pre-consent defaults all advertising consent signals to denied',
     defaultConsent?.ad_storage === 'denied' && defaultConsent?.ad_user_data === 'denied' && defaultConsent?.ad_personalization === 'denied');
@@ -155,14 +164,14 @@ try {
   })()`);
   await sleep(500);
   state = await inspect(client);
-  expect('accepted consent loads one GA script', state.gaScripts.length === 1);
+  expect('accepted consent respects GA initialization owner', state.gaScripts.length === APP_GA_COUNT);
   expect('accepted consent loads GTM-5DKMGSK3 once', state.gtmScripts.length === 1 && state.gtmScripts[0]?.includes('GTM-5DKMGSK3'));
-  expect('accepted consent uses expected GA property', state.gaScripts[0]?.includes(GA_ID), state.gaScripts[0] ?? '');
+  if (!SEMANTIC_MODE) expect('accepted consent uses expected GA property', state.gaScripts[0]?.includes(GA_ID), state.gaScripts[0] ?? '');
   expect('accepted consent loads one Meta script', state.metaScripts.length === 1);
   expect('Meta initializes expected dataset', state.fbq.some((row) => row[0] === 'init' && row[1] === META_PIXEL_ID));
   expect('CI PageView fires once', state.fbq.filter((row) => row[0] === 'track' && row[1] === 'PageView').length === 1);
   expect('CI ViewContent fires once', state.fbq.filter((row) => row[0] === 'track' && row[1] === 'ViewContent').length === 1);
-  expect('GA config is queued once', state.dataLayer.filter((row) => row[0] === 'config' && row[1] === GA_ID).length === 1);
+  expect('GA config respects initialization owner', state.dataLayer.filter((row) => row[0] === 'config' && row[1] === GA_ID).length === APP_GA_COUNT);
   expect('first accepted consent emits ci_landing_view once', state.dataLayer.filter((row) => isDataLayerEvent(row, 'ci_landing_view')).length === 1);
   expect('accepted consent grants analytics storage', state.dataLayer.some((row) => row[0] === 'consent' && row[1] === 'update' && row[2]?.analytics_storage === 'granted'));
   expect('accepted consent keeps advertising consent denied', state.dataLayer.some((row) => row[0] === 'consent' && row[1] === 'update' && row[2]?.ad_storage === 'denied' && row[2]?.ad_user_data === 'denied' && row[2]?.ad_personalization === 'denied'));
@@ -170,7 +179,7 @@ try {
   await evaluate(client, `window.dispatchEvent(new CustomEvent('ccpun:consent', {detail:'accepted'})); true`);
   await sleep(250);
   state = await inspect(client);
-  expect('repeat consent does not duplicate GA script', state.gaScripts.length === 1);
+  expect('repeat consent does not duplicate GA script', state.gaScripts.length === APP_GA_COUNT);
   expect('repeat consent does not duplicate GTM script', state.gtmScripts.length === 1);
   expect('repeat consent does not duplicate Meta script', state.metaScripts.length === 1);
   expect('repeat consent does not duplicate CI PageView', state.fbq.filter((row) => row[0] === 'track' && row[1] === 'PageView').length === 1);

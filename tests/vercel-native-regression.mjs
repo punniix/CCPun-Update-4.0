@@ -63,7 +63,6 @@ for (const requiredRoute of [
   'features/blog/pages/BlogCategoryPage.tsx',
   'features/blog/pages/ArticlePage.tsx',
   'lib/content/url.ts',
-  'lib/content/article-metadata.ts',
   'app/api/preview/enable/route.ts',
   'app/api/snt-admin/content/[id]/preview/route.ts',
   'app/studio/[[...tool]]/page.tsx',
@@ -151,13 +150,15 @@ assert.match(blogSitemap, /getArticleCanonical/);
 assert.match(blogSitemap, /filter\(isArticleCanonicalAligned\)/);
 
 const articlePage = read('features/blog/pages/ArticlePage.tsx');
-const articleMetadata = read('lib/content/article-metadata.ts');
-assert.match(articlePage, /buildArticleMetadata\(article/);
-assert.match(articleMetadata, /index:\s*false,\s*follow:\s*false/);
+const articlePresentation = read('features/blog/website-43/Website43Article.tsx');
+const website43Shell = read('components/layout/website-43/Website43Shared.tsx');
+assert.match(articlePage, /index:\s*false,\s*follow:\s*false/);
 assert.match(articlePage, /isArticleCanonicalAligned\(article\) \? buildArticleSchemaGraph\(article\) : null/);
-assert.match(articlePage, /blog\.ccpun\.com|blog-article-hero|Financial/);
-assert.match(articleMetadata, /getArticleCanonical/);
-assert.match(articlePage, /href="\/tools\/financial-health-check\/"/);
+assert.match(articlePage, /Website43Article/);
+assert.match(articlePage, /getArticleCanonical/);
+assert.match(articlePresentation, /href="https:\/\/lin\.ee\/tqLCs4f"/);
+assert.match(articlePresentation, /data-analytics-location="blog_article"/);
+assert.match(website43Shell, /\/tools\/financial-health-check/);
 assert.doesNotMatch(articlePage, /ฟรี|ไม่มีค่าใช้จ่าย/);
 
 const publishedWordPressExporter = read('scripts/export-wordpress-published.mjs');
@@ -259,7 +260,8 @@ assert.match(articleSchema, /"@type": "FAQPage"/);
 
 const articleFaq = read('features/blog/components/ArticleFaq.tsx');
 assert.match(articleFaq, /คำถามที่พบบ่อย/);
-assert.match(articlePage, /<ArticleFaq items=\{article\.faq \?\? \[\]\} \/>/);
+assert.match(articlePresentation, /article\.faq\.map/);
+assert.match(articlePresentation, /<details className=\{styles\.faqItem\}/);
 
 const sanityModel = read('cms/sanity/content-model.ts');
 assert.match(sanityModel, /reviewWorkflow/);
@@ -417,7 +419,7 @@ assert.match(analyticsRegression, /discard calculator values/);
 assert.match(analyticsRegression, /semantic event layer must fail closed without consent/);
 
 for (const landingSource of [
-  read('features/ci-planning/components/CILandingTracker.tsx'),
+  read('features/ci-planning/components/CILandingIntro.tsx'),
   read('features/financial-health-check/components/LifeCoverageWizard.tsx'),
 ]) {
   assert.match(landingSource, /landingTrackedRef/);
@@ -473,5 +475,7 @@ const seoPage = read('app/snt-admin/(protected)/seo/page.tsx');
 assert.match(reviewPage, /\/studio\/structure\/article;/, 'Review preview must use the working Studio structure route');
 assert.match(seoPage, /\/studio\/structure\/article;/, 'SEO Studio action must use the working Studio structure route');
 assert.doesNotMatch(reviewPage, /\/studio\/intent\/edit\//, 'Review preview must not use the trailing-slash-broken Studio intent route');
+
+await import('./website43-blog-article-regression.mjs');
 
 console.log('PASS: Vercel-native regression');

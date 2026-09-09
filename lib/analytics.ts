@@ -35,7 +35,7 @@ const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   tool_name: new Set(['ci_planning', 'fhc']),
   step_name: new Set(['risk_assessment', 'expenses', 'existing_ci', 'risk_handling']),
   contact_channel: new Set(['facebook_inbox', 'line']),
-  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_contact', 'blog_article']),
+  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article']),
   surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog']),
   calculator_version: new Set(['ci_planning_v6']),
   page_version: CI_PAGE_VERSIONS,
@@ -172,7 +172,7 @@ export function trackEvent(eventName: string, params: EventParams = {}): void {
         else enqueue(pendingGA, [name, gaParams]);
       }
     }
-  } else clearPendingAnalyticsEvents('analytics');
+  } else if (!consent.analytics) clearPendingAnalyticsEvents('analytics');
   if (consent.social && event.meta !== 'none' && event.metaName) {
     const safeMeta = metaParams(safe);
     if (typeof window.fbq === 'function') window.fbq(event.meta === 'standard' ? 'track' : 'trackCustom', event.metaName, safeMeta);
