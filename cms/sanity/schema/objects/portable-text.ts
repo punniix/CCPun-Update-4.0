@@ -2,20 +2,20 @@ import { defineArrayMember, defineField, defineType } from "sanity";
 
 export const portableText = defineType({
   name: "portableText",
-  title: "Article body",
+  title: "เนื้อหาบทความ",
   type: "array",
   of: [
     defineArrayMember({
       type: "block",
       styles: [
-        { title: "Normal", value: "normal" },
-        { title: "Heading 2", value: "h2" },
-        { title: "Heading 3", value: "h3" },
-        { title: "Quote", value: "blockquote" },
+        { title: "ย่อหน้าปกติ", value: "normal" },
+        { title: "หัวข้อหลัก (H2)", value: "h2" },
+        { title: "หัวข้อย่อย (H3)", value: "h3" },
+        { title: "ข้อความอ้างอิง", value: "blockquote" },
       ],
       lists: [
-        { title: "Bullet", value: "bullet" },
-        { title: "Numbered", value: "number" },
+        { title: "รายการหัวข้อ", value: "bullet" },
+        { title: "รายการลำดับเลข", value: "number" },
       ],
       marks: {
         annotations: [
@@ -23,6 +23,7 @@ export const portableText = defineType({
             name: "link",
             title: "ลิงก์",
             type: "object",
+            preview: { select: { title: "href" }, prepare: ({ title }) => ({ title: title || "ลิงก์ใหม่" }) },
             fields: [
               defineField({
                 name: "href",

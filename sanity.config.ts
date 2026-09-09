@@ -1,5 +1,6 @@
 "use client";
 
+import { ArticleLiveBadge } from "./cms/sanity/policy/article-editorial-status";
 import { defineConfig } from "sanity";
 import { schemaTypes } from "./cms/sanity/schema";
 import { createStudioPresentationPlugin } from "./cms/sanity/config/presentation";
@@ -44,6 +45,7 @@ export const sanityStudioConfig =
         ],
         schema: { types: schemaTypes },
         document: {
+          badges: (previous, context) => context.schemaType === "article" ? [...previous, ArticleLiveBadge] : previous,
           actions: (previousActions, context) =>
             wrapGoogleSafeArticlePublishActions(
               protectProductionContentLifecycleActions(

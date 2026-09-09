@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import type { SanityClient } from "@sanity/client";
+import { articlePublishBlock, publishApprovedArticle, type PublishableArticle } from "../cms/sanity/policy/article-publication";
 import {
   latestSitemapLastmod,
   normalizeSitemapLastmod,
@@ -69,16 +71,39 @@ test("uses a lightweight published-only Sanity query for Google sitemap entries"
   assert.doesNotMatch(source, /body\[\]|faq\[\]|featuredImage\.asset/);
 });
 
-test("protects Google publish eligibility and sets one meaningful publication timestamp", () => {
+test("protects Google publish eligibility and sets one meaningful publication timestamp", async () => {
   const action = readSource("cms/sanity/policy/article-publish-action.tsx");
   const config = readSource("sanity.config.ts");
   const schema = readSource("cms/sanity/schema/documents/article.ts");
 
-  assert.match(action, /draft\?\.review\?\.status === "approved"/);
-  assert.match(action, /hasFuturePublicationDate/);
-  assert.match(action, /contentUpdatedAt:\s*now/);
-  assert.match(action, /draft\?\.publishedAt \? \{\} : \{ publishedAt: now \}/);
-  assert.match(action, /patch\.execute[\s\S]*publish\.execute/);
+  const now = "2026-09-09T12:00:00.000Z";
+  const firstPublishedAt = "2024-01-01T00:00:00.000Z";
+  const draft: PublishableArticle = {
+    _id: "drafts.google-eligibility", _type: "article", _rev: "draft-revision",
+    _createdAt: firstPublishedAt, _updatedAt: firstPublishedAt,
+    review: { status: "approved" }, publishedAt: "2025-01-01T00:00:00.000Z",
+  };
+  const published = { ...draft, _id: "google-eligibility", _rev: "live-revision", publishedAt: firstPublishedAt };
+  assert.equal(articlePublishBlock(draft, published, Date.parse(now)), null);
+  assert.ok(articlePublishBlock({ ...draft, review: { status: "drafting" } }, published, Date.parse(now)));
+  assert.ok(articlePublishBlock({ ...draft, publishedAt: "2030-01-01T00:00:00Z" }, null, Date.parse(now)));
+  assert.ok(articlePublishBlock({ ...draft, publishedAt: "not-a-date" }, null, Date.parse(now)));
+  let written: PublishableArticle | undefined;
+  let committed = false;
+  const transaction = {
+    patch() { return transaction; },
+    createOrReplace(document: PublishableArticle) { written = document; return transaction; },
+    delete(id: string) { assert.equal(id, draft._id); return transaction; },
+    async commit() { committed = true; return { transactionId: "test" }; },
+  };
+  await publishApprovedArticle({ transaction: () => transaction } as unknown as SanityClient, draft, published, now);
+  assert.equal(committed, true);
+  assert.equal(written?.publishedAt, firstPublishedAt);
+  assert.equal(written?.contentUpdatedAt, now);
+  assert.equal(resolveContentLastmod(written!), now);
+  assert.equal(draft.contentUpdatedAt, undefined, "publication must not stamp a saved draft separately");
+  assert.match(action, /articlePublishBlock\(draft, published\)/);
+  assert.match(action, /await publishApprovedArticle\(client, draft, published\)/);
   assert.match(action, /schemaType !== "article"[\s\S]*action\.action === "publish"/);
   assert.match(config, /wrapGoogleSafeArticlePublishActions[\s\S]*protectProductionContentLifecycleActions/);
   assert.match(schema, /name:\s*"contentUpdatedAt"[\s\S]*readOnly:\s*true/);
