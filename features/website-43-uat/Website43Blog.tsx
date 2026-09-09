@@ -23,7 +23,7 @@ function ArticleCard({ article }: { article: Website43ArticleItem }) {
   );
 }
 
-export default function Website43Blog({ articles }: { articles: Website43ArticleItem[] }) {
+export default function Website43Blog({ articles, subtleMotion = false }: { articles: Website43ArticleItem[]; subtleMotion?: boolean }) {
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
   const featuredRailRef = useRef<HTMLDivElement>(null);
   const featuredScrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,7 +62,8 @@ export default function Website43Blog({ articles }: { articles: Website43Article
     const scrollerRect = scroller.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
     const left = scroller.scrollLeft + (cardRect.left - scrollerRect.left) - (scroller.clientWidth - cardRect.width) / 2;
-    scroller.scrollTo({ left, behavior });
+    const reduceMotion = subtleMotion && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    scroller.scrollTo({ left, behavior: reduceMotion ? 'instant' : behavior });
   };
 
   useEffect(() => {

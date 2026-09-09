@@ -2,5 +2,5 @@ import LifeCoverageWizard from '@/features/financial-health-check/components/Lif
 import { Website43FinancialHealthCheck } from '@/features/website-43-uat/Website43Tools';
 
 export default function Page() {
-  return <Website43FinancialHealthCheck calculator={<LifeCoverageWizard />} />;
+  return <Website43FinancialHealthCheck calculator={<LifeCoverageWizard subtleMotion />} />;
 }

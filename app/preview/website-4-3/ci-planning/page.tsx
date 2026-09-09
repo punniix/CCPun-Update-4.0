@@ -4,5 +4,5 @@ import { CI_FAQS } from '@/features/ci-planning/content';
 import { Website43CIPlanning } from '@/features/website-43-uat/Website43Tools';
 
 export default function Page() {
-  return <Website43CIPlanning calculator={<CIWizard />} landingTracker={<CILandingTracker />} faqItems={CI_FAQS} />;
+  return <Website43CIPlanning calculator={<CIWizard subtleMotion />} landingTracker={<CILandingTracker />} faqItems={CI_FAQS} />;
 }

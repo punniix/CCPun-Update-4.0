@@ -37,7 +37,7 @@ function MoneyField({ id, label, help, value, onChange, error }: { id: keyof Val
   </div>;
 }
 
-export default function LifeCoverageWizard() {
+export default function LifeCoverageWizard({ subtleMotion = false }: { subtleMotion?: boolean } = {}) {
   const [step, setStep] = useState(1);
   const [values, setValues] = useState<Values>(initialValues);
   const [error, setError] = useState('');
@@ -47,6 +47,25 @@ export default function LifeCoverageWizard() {
   const startedRef = useRef(false);
   const completedRef = useRef(false);
   const trackedStepsRef = useRef(new Set<number>());
+  const stepPanelRef = useRef<HTMLDivElement>(null);
+  const previousStepRef = useRef(step);
+  useEffect(() => {
+    const previous = previousStepRef.current;
+    previousStepRef.current = step;
+    const panel = stepPanelRef.current;
+    if (!subtleMotion || showResult || previous === step || !panel) return;
+    const heading = panel.querySelector<HTMLElement>('h3');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (preference.matches || typeof panel.animate !== 'function') return;
+    const animation = panel.animate(
+      [{ opacity: 0.85, translate: `${step > previous ? 12 : -12}px 0` }, { opacity: 1, translate: '0 0' }],
+      { duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    );
+    const stop = () => { if (preference.matches) animation.cancel(); };
+    preference.addEventListener('change', stop);
+    return () => { animation.cancel(); preference.removeEventListener('change', stop); };
+  }, [step, showResult, subtleMotion]);
   useEffect(() => {
     const trackLanding = () => {
       if (landingTrackedRef.current || !getConsentData()?.analytics) return;
@@ -143,7 +162,7 @@ export default function LifeCoverageWizard() {
   return <section aria-labelledby="life-calculator-title">
     <div className="mb-8 text-center"><p className="text-sm font-semibold text-primary">เครื่องคำนวณทุนประกันชีวิต</p><h2 id="life-calculator-title" className="mt-2 text-2xl font-bold text-foreground">เริ่มจากภาระที่คนข้างหลังต้องดูแล</h2><p className="mt-2 text-sm text-muted-foreground">2 ขั้นตอน · กรอกเท่าที่ทราบ ช่องที่ไม่มีก็เว้นได้</p><div role="progressbar" aria-label={`ขั้นตอนที่ ${step} จาก 2`} aria-valuemin={1} aria-valuemax={2} aria-valuenow={step} className="mt-5 h-1 rounded bg-border/40"><div className="h-full rounded bg-primary transition-all" style={{ width: `${step * 50}%` }} /></div></div>
     {error && <p id="life-calculator-error" role="alert" className="mt-5 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
-    <div className="form-glass mt-7 space-y-8 p-5 md:p-8 lg:p-10">
+    <div ref={stepPanelRef} data-w43-motion-step={subtleMotion ? step : undefined} className="form-glass mt-7 space-y-8 p-5 md:p-8 lg:p-10">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
           {step === 1 ? <Wallet className="h-5 w-5 text-primary" aria-hidden="true" /> : <Shield className="h-5 w-5 text-primary" aria-hidden="true" />}

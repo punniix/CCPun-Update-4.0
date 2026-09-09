@@ -10,3 +10,5 @@ Use, in order:
 4. Live Vercel read-back for deployment status.
 
 This pointer never authorizes push, merge, deployment, environment mutation or data mutation.
+
+Website 4.3 motion reference: [`website-43-motion-uat.md`](./website-43-motion-uat.md), with scope/evidence/next owner in workspace receipt `website43-motion-uat-20260909`. Read current GitHub and Vercel state rather than inferring delivery from this reference.

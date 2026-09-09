@@ -6,5 +6,5 @@ import { listWebsite43PreviewArticles } from '@/features/website-43-uat/blogPrev
 export default async function Page() {
   const { isEnabled } = await draftMode();
   const articles = await listWebsite43PreviewArticles({ includeDrafts: isEnabled });
-  return <Website43Blog articles={toWebsite43ArticleItems(articles)} />;
+  return <Website43Blog articles={toWebsite43ArticleItems(articles)} subtleMotion />;
 }

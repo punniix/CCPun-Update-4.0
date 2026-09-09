@@ -22,7 +22,13 @@ const slideVariants = {
   exit: (direction: number) => ({ x: direction > 0 ? -160 : 160, opacity: 0 }),
 };
 
-export default function CIWizard() {
+const subtleSlideVariants = {
+  enter: (direction: number) => ({ x: direction > 0 ? 12 : -12, opacity: 0.85 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({ x: direction > 0 ? -12 : 12, opacity: 0.85 }),
+};
+
+export default function CIWizard({ subtleMotion = false }: { subtleMotion?: boolean } = {}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<CIFormData>(INITIAL_CI_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -164,11 +170,12 @@ export default function CIWizard() {
               ref={stepRef}
               key={currentStep}
               custom={direction}
-              variants={slideVariants}
+              variants={subtleMotion ? subtleSlideVariants : slideVariants}
+              data-w43-motion-step={subtleMotion ? currentStep + 1 : undefined}
               initial={reduceMotion ? false : 'enter'}
               animate="center"
               exit={reduceMotion ? undefined : 'exit'}
-              transition={{ duration: reduceMotion ? 0 : 0.28, ease: 'easeInOut' }}
+              transition={{ duration: reduceMotion ? 0 : subtleMotion ? 0.12 : 0.28, ease: 'easeInOut' }}
             >
               {currentStep === 0
                 ? <StepExpenses {...stepProps} />

@@ -1,0 +1,69 @@
+/* Opt-in UAT layer. No new layout boxes, font, color palette, or sticky header behavior. */
+.scope { display: contents; }
+
+.scope [data-w43-motion-control],
+.scope [data-w43-motion-card] {
+  transition-property: translate, scale, background-color, border-color, color, box-shadow;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.scope [data-w43-motion-control]:focus-visible,
+.scope [data-w43-motion-card]:focus-visible,
+.scope summary:focus-visible {
+  outline: 2px solid var(--w43-gold, #e0c985);
+  outline-offset: 4px;
+}
+/* Disclosure containers clip overflowing content: keep their focus ring inside. */
+.scope summary:focus-visible {
+  outline-offset: -4px;
+  border-radius: 12px;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .scope [data-w43-motion-card]:hover {
+    translate: 0 -3px;
+    border-color: var(--w43-gold, #e0c985);
+  }
+  .scope [data-w43-motion-control]:not(:disabled):not([aria-disabled="true"]):hover {
+    translate: 0 -1px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scope [data-w43-motion-control]:not(:disabled):not([aria-disabled="true"]):active {
+    scale: 0.98;
+    translate: 0 0;
+    transition-duration: 100ms;
+  }
+}
+
+.scope :global(#calculator) :is(input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  transition: border-color 160ms ease-out, box-shadow 160ms ease-out;
+}
+.scope :global(#calculator) :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--w43-gold, #e0c985);
+  outline-offset: 2px;
+}
+.scope :global(#calculator) [role="progressbar"] > div {
+  transition-property: width, background-color;
+  transition-duration: 220ms;
+  transition-timing-function: ease-out;
+}
+.scope :global(#calculator) :is([aria-pressed], [role="tab"], [role="radio"]) {
+  transition: background-color 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scope *, .scope *::before, .scope *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .scope [data-w43-motion-control], .scope [data-w43-motion-card] {
+    translate: none !important;
+    scale: none !important;
+  }
+}

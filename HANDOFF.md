@@ -11,3 +11,5 @@ Before repository work:
 5. Inspect the exact target branch/worktree and scoped diff.
 
 GitHub PR state, deployment state and Production authorization must be verified live for the current task.
+
+For the isolated Website 4.3 motion change, read [`docs/website-43-motion-uat.md`](./docs/website-43-motion-uat.md) and workspace receipt `website43-motion-uat-20260909` before integration. These references do not authorize remote delivery or Production changes.

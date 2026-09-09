@@ -1,0 +1,814 @@
+{
+  "createdAt": "2026-09-09T01:31:42.825Z",
+  "base": "http://127.0.0.1:3113",
+  "passed": 123,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "Home 390 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 390,
+        "scroll": 390,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Home 390 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 390 menu visible and inside viewport",
+      "pass": true,
+      "detail": {
+        "visible": true,
+        "inside": true
+      }
+    },
+    {
+      "name": "Home 390 Escape closes menu",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 390 FAQ activation",
+      "pass": true,
+      "detail": {
+        "open": true,
+        "motion": "opening"
+      }
+    },
+    {
+      "name": "Home 390 FAQ auto height restored",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 390 FAQ keeps summary focus",
+      "pass": true,
+      "detail": {
+        "tag": "SUMMARY",
+        "text": "CCPun คือใคร?+",
+        "focused": true
+      }
+    },
+    {
+      "name": "Home 390 FAQ keyboard close",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 390 FAQ rapid reversal",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 390 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 390,
+        "scroll": 390,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Blog 390 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 390 clickable cards enhanced",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 390 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 390,
+        "scroll": 390,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "FHC 390 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 390,
+        "scroll": 390,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "CI 390 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 640 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 640,
+        "scroll": 632,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Home 640 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 640 menu visible and inside viewport",
+      "pass": true,
+      "detail": {
+        "visible": true,
+        "inside": true
+      }
+    },
+    {
+      "name": "Home 640 Escape closes menu",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 640 FAQ activation",
+      "pass": true,
+      "detail": {
+        "open": true,
+        "motion": "opening"
+      }
+    },
+    {
+      "name": "Home 640 FAQ auto height restored",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 640 FAQ keeps summary focus",
+      "pass": true,
+      "detail": {
+        "tag": "SUMMARY",
+        "text": "CCPun คือใคร?+",
+        "focused": true
+      }
+    },
+    {
+      "name": "Home 640 FAQ keyboard close",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 640 FAQ rapid reversal",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 640 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 640,
+        "scroll": 632,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Blog 640 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 640 clickable cards enhanced",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 640 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 640,
+        "scroll": 632,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "FHC 640 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 640 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 640,
+        "scroll": 632,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "CI 640 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 820 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 820,
+        "scroll": 812,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Home 820 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 820 menu visible and inside viewport",
+      "pass": true,
+      "detail": {
+        "visible": true,
+        "inside": true
+      }
+    },
+    {
+      "name": "Home 820 Escape closes menu",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 820 FAQ activation",
+      "pass": true,
+      "detail": {
+        "open": true,
+        "motion": "opening"
+      }
+    },
+    {
+      "name": "Home 820 FAQ auto height restored",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 820 FAQ keeps summary focus",
+      "pass": true,
+      "detail": {
+        "tag": "SUMMARY",
+        "text": "CCPun คือใคร?+",
+        "focused": true
+      }
+    },
+    {
+      "name": "Home 820 FAQ keyboard close",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 820 FAQ rapid reversal",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 820 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 820,
+        "scroll": 812,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Blog 820 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 820 clickable cards enhanced",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 820 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 820,
+        "scroll": 812,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "FHC 820 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 820 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 820,
+        "scroll": 812,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "CI 820 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1024 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1024,
+        "scroll": 1016,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Home 1024 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1024 menu visible and inside viewport",
+      "pass": true,
+      "detail": {
+        "visible": true,
+        "inside": true
+      }
+    },
+    {
+      "name": "Home 1024 Escape closes menu",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1024 FAQ activation",
+      "pass": true,
+      "detail": {
+        "open": true,
+        "motion": "opening"
+      }
+    },
+    {
+      "name": "Home 1024 FAQ auto height restored",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1024 FAQ keeps summary focus",
+      "pass": true,
+      "detail": {
+        "tag": "SUMMARY",
+        "text": "CCPun คือใคร?+",
+        "focused": true
+      }
+    },
+    {
+      "name": "Home 1024 FAQ keyboard close",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1024 FAQ rapid reversal",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 1024 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1024,
+        "scroll": 1016,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Blog 1024 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 1024 clickable cards enhanced",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 1024 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1024,
+        "scroll": 1016,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "FHC 1024 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1024 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1024,
+        "scroll": 1016,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "CI 1024 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1440 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1440,
+        "scroll": 1432,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Home 1440 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1440 menu visible and inside viewport",
+      "pass": true,
+      "detail": {
+        "visible": true,
+        "inside": true
+      }
+    },
+    {
+      "name": "Home 1440 Escape closes menu",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1440 FAQ activation",
+      "pass": true,
+      "detail": {
+        "open": true,
+        "motion": "opening"
+      }
+    },
+    {
+      "name": "Home 1440 FAQ auto height restored",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1440 FAQ keeps summary focus",
+      "pass": true,
+      "detail": {
+        "tag": "SUMMARY",
+        "text": "CCPun คือใคร?+",
+        "focused": true
+      }
+    },
+    {
+      "name": "Home 1440 FAQ keyboard close",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Home 1440 FAQ rapid reversal",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 1440 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1440,
+        "scroll": 1432,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "Blog 1440 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog 1440 clickable cards enhanced",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 1440 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1440,
+        "scroll": 1432,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "FHC 1440 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1440 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1440,
+        "scroll": 1432,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow, nocache"
+      }
+    },
+    {
+      "name": "CI 1440 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 390 required validation preserved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 390 step two + heading focus",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 390 values preserved on back",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 390 exact result unchanged",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 390 FAQ activation",
+      "pass": true,
+      "detail": {
+        "open": true
+      }
+    },
+    {
+      "name": "Reduced 390 FAQ auto height restored",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 390 FAQ keeps summary focus",
+      "pass": true,
+      "detail": {
+        "tag": "SUMMARY",
+        "text": "CCPun คือใคร?+",
+        "focused": true
+      }
+    },
+    {
+      "name": "Reduced 390 FAQ keyboard close",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 390 FAQ rapid reversal",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 390 no active animation",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 1440 required validation preserved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 1440 step two + heading focus",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 1440 values preserved on back",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "FHC 1440 exact result unchanged",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 1440 FAQ activation",
+      "pass": true,
+      "detail": {
+        "open": true
+      }
+    },
+    {
+      "name": "Reduced 1440 FAQ auto height restored",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 1440 FAQ keeps summary focus",
+      "pass": true,
+      "detail": {
+        "tag": "SUMMARY",
+        "text": "CCPun คือใคร?+",
+        "focused": true
+      }
+    },
+    {
+      "name": "Reduced 1440 FAQ keyboard close",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 1440 FAQ rapid reversal",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced 1440 no active animation",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 normal validation retained",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 normal reaches second step",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 normal retains entered values",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 normal exact expense-method result",
+      "pass": true,
+      "detail": "1,100,000"
+    },
+    {
+      "name": "CI 390 reduced validation retained",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 reduced reaches second step",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 reduced retains entered values",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 390 reduced exact expense-method result",
+      "pass": true,
+      "detail": "1,100,000"
+    },
+    {
+      "name": "CI 1440 normal validation retained",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1440 normal reaches second step",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1440 normal retains entered values",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1440 normal exact expense-method result",
+      "pass": true,
+      "detail": "1,100,000"
+    },
+    {
+      "name": "CI 1440 reduced validation retained",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1440 reduced reaches second step",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1440 reduced retains entered values",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "CI 1440 reduced exact expense-method result",
+      "pass": true,
+      "detail": "1,100,000"
+    },
+    {
+      "name": "Desktop card has restrained hover lift",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog category dropdown keeps existing choices",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Blog category selection closes dropdown and keeps results",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Reduced Motion carousel changes immediately without smooth scroll",
+      "pass": true,
+      "detail": {
+        "before": 2480,
+        "after": 2976
+      }
+    },
+    {
+      "name": "Article 1440 no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "width": 1440,
+        "scroll": 1432,
+        "heroVisible": true,
+        "scope": "contents",
+        "robots": "noindex, nofollow"
+      }
+    },
+    {
+      "name": "Article 1440 hero visible / no layout wrapper / noindex",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "No-JS server-rendered hero and FAQ retained",
+      "pass": true,
+      "detail": null
+    }
+  ]
+}
