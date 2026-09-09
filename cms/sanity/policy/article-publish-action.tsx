@@ -24,7 +24,7 @@ export function createGoogleSafeArticlePublishAction(originalAction: DocumentAct
     return {
       ...result,
       disabled,
-      label: isPublishing ? "กำลังเผยแพร่…" : blocked || "ยืนยันอนุมัติและเผยแพร่",
+      label: isPublishing ? "กำลังเผยแพร่…" : blocked || (published ? "อัปเดตบทความ" : "เผยแพร่บทความ"),
       title: "ตรวจตัวอย่างและเลือก อนุมัติเนื้อหาแล้ว ในแท็บ ตัวอย่าง / สถานะเผยแพร่ จากนั้นยืนยันเผยแพร่ฉบับนี้",
       onHandle: () => {
         if (disabled || !draft) return;
@@ -40,7 +40,7 @@ export function createGoogleSafeArticlePublishAction(originalAction: DocumentAct
         message: published
           ? "คุณตรวจตัวอย่าง ตรวจเนื้อหาและข้อเท็จจริง และอนุมัติฉบับนี้แล้วใช่ไหม? เมื่อยืนยัน ฉบับแก้ไขนี้จะแทนฉบับ Live โดยคงวันเผยแพร่ครั้งแรกและ URL เดิม"
           : "คุณตรวจตัวอย่าง ตรวจเนื้อหาและข้อเท็จจริง และอนุมัติฉบับนี้แล้วใช่ไหม? เมื่อยืนยัน บทความนี้จะเผยแพร่บนเว็บไซต์",
-        confirmButtonText: "ยืนยันเผยแพร่ฉบับที่อนุมัติ",
+        confirmButtonText: published ? "ยืนยันอัปเดตบทความ" : "ยืนยันเผยแพร่บทความ",
         cancelButtonText: "กลับไปตรวจอีกครั้ง",
         onCancel: () => setConfirmation(null),
         onConfirm: async () => {

@@ -1,6 +1,6 @@
 # Article optimization workflow
 
-Task receipt: `sanity-optimize-20260909`. Branch: `codex/admin-sanity-optimize-workflow-20260909`, based on `v4-production@2495dcd`. PR #83 is the reviewed delivery unit. The owner subsequently authorized a Production code patch despite the unavailable authenticated UAT visual check. That approval does not authorize Production content normalization or article publication.
+Task receipt: `sanity-optimize-20260909`. Branch: `codex/admin-sanity-optimize-workflow-20260909`, based on `v4-production@2495dcd`. PR #83 is the reviewed delivery unit. The owner subsequently authorized the Production code patch despite unavailable authenticated UAT visual QA, then separately approved the exact Production normalization scope of 3 raw documents / 8 rows. Neither approval authorizes article publication.
 
 ## Owner steps
 
@@ -32,6 +32,16 @@ Target: `ccb9lnw5/uat`. Dry-run identified 16 legacy rows in 3 existing mirror D
 
 Private full exports and exact dry-run/patch evidence remain in the current task's `work/` directory and are not committed to this public repository.
 
+## Production migration completion, 2026-09-09
+
+After a fresh dry-run and explicit owner approval, one revision-guarded atomic transaction `F7rHb53lSmZ7ztxhfkkJjd` normalized exactly these raw records in `kyfxgjnq/production`:
+
+- `ccpun-wp-published-359`: 2 rows.
+- `ccpun-wp-published-413`: 4 rows.
+- `drafts.ccpun-wp-published-359`: 2 rows.
+
+Post-apply integrity verification covered all 61 exported records. Only the approved normalization paths and expected server revision/update metadata changed; a fresh dry-run returned zero remaining patches. There was no publication, Draft/Published crossover, reference change, FAQ removal, or historical release mutation. AIA Vitality's separate Draft was preserved. Exact before/after exports and transaction evidence remain in the task receipt's private evidence paths.
+
 ## Migration execution and rollback
 
 Export full raw records into an envelope `{projectId,dataset,documents}`. Never export a merged draft perspective for migration.
@@ -52,6 +62,15 @@ Local Studio through Next.js correctly stopped at the unconfigured Auth.js login
 
 The baseline audit reported high findings in `js-yaml` and `sharp`. Patch updates to js-yaml 4.3.2, sharp 0.35.4 and @humanfs/node 0.16.8 address the released fixes. Both full and production-only lock audits now report zero high/critical findings. Five moderate records remain downstream of a single adm-zip archive-extraction advisory with no patched upstream release; no forced downgrade or major update was applied. This task does not extract untrusted archives. AgentShield live startup scan was unavailable; cached historical grades are not current security proof.
 
-Production content is unchanged. Production code patch approval was received after the owner could not open Preview and directed patching Production; final release status and exact Web/Admin deployment read-backs belong in PR #83 and the task receipt. Production data migration still requires explicit confirmation of the exact 3 documents / 8 rows.
+PR #83 merged as `aea1f3b99bdc9408957b6d1f5dc5a75e2926fa29`. Both Web and Admin Production were read back as READY at that exact merge SHA. Authenticated, read-only Admin visual verification of AIA Vitality is complete as recorded below. The exact approved Production normalization is complete as recorded above; any additional Production mutation requires new scoped authorization. The latest Web/Admin deployment read-backs and final visual evidence belong in PR #83 and receipt `sanity-optimize-20260909`.
 
 Preview `dpl_249XvRLmPvpxJ6UNqTK8igJiND6M` at commit `42f6063` built READY; Web Preview was correctly skipped. Vercel Visit opened the preview root, but `/studio/` failed with Chrome ERR_BLOCKED_BY_CLIENT for both the owner and automation. This is not successful authenticated UAT visual QA. The owner explicitly accepted a Production code patch with read-only Production visual verification instead.
+
+## Final Production provenance, 2026-09-09
+
+Both deployments resolve to merge SHA `aea1f3b99bdc9408957b6d1f5dc5a75e2926fa29`:
+
+- Admin: `dpl_GxvXFGKcurmrniCNXhJBCfakgTLa`, READY, Production alias `admin.ccpun.com`.
+- Web: `dpl_H8ksvUhPRB38LbexgEp4rCm3jPz9`, READY, Production alias `ccpun.com`.
+
+Authenticated Chrome tab `1182020171` opened the Production AIA Vitality Article. Read-only inspection confirmed the Thai Live + unpublished changes banner, Draft review status `drafting`, correctly disabled publish action, protected slug/category fields, FAQ question titles, migrated-image alt previews, table title with 4 rows, and 3 readable source titles. Screenshots of the banner and sources were visually checked. This verification made no edits and did not publish. Successful publication and failure/concurrency behavior were verified by automated synthetic tests, not by publishing a Production article.
