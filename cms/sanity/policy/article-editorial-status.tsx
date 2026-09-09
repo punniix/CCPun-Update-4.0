@@ -11,7 +11,7 @@ function ArticleDraftPreview({ id, slug, categoryId }: { id: string; slug: strin
   if (!categorySlug) return <span>ตรวจหมวดหมู่และ URL ของบทความก่อนดูตัวอย่าง</span>;
   return <IntentLink
     intent="edit"
-    params={{ id, type: "article", mode: "presentation", presentation: "presentation", preview: `/blog/${encodeURIComponent(categorySlug)}/${encodeURIComponent(slug)}/`, perspective: "drafts" }}
+    params={{ id, type: "article", mode: "presentation", presentation: "presentation", preview: `/blog/${encodeURIComponent(categorySlug)}/${encodeURIComponent(slug)}/` }}
     style={{ display: "inline-block", border: "1px solid currentColor", borderRadius: 4, padding: "10px 16px", color: "inherit", textDecoration: "none" }}
   >ดูตัวอย่าง</IntentLink>;
 }

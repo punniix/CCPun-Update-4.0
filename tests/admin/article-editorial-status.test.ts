@@ -6,6 +6,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import type { ObjectInputProps } from "sanity";
 import { presentationTool } from "sanity/presentation";
+import { createPublishedId, getVersionId } from "@sanity/id-utils";
 import ts from "typescript";
 import { publicationSummary, reviewLabels } from "../../cms/sanity/policy/article-publication";
 
@@ -35,7 +36,8 @@ test("editorial controls preview the selected draft, focus review and show UAT n
   const render = () => act(async () => root.render(createElement(exports.ArticleEditorialInput!, props)));
   try {
     await render();
-    assert.equal(params.id, "selected"); assert.equal(params.preview, "/blog/life-insurance/aia-vitality/"); assert.equal(params.perspective, "drafts");
+    assert.equal(params.id, "selected"); assert.equal(params.preview, "/blog/life-insurance/aia-vitality/"); assert.equal(params.perspective, undefined);
+    assert.equal(params.version, undefined);
     assert.equal(dom.window.document.body.textContent.includes("ใน UAT"), false);
     await act(async () => dom.window.document.querySelector("button").click());
     assert.deepEqual(focused, ["review", "status"]);
@@ -43,7 +45,10 @@ test("editorial controls preview the selected draft, focus review and show UAT n
     assert.ok(Array.isArray(tools));
     const state = tools[0].getIntentState!("edit", params, {}, undefined) as { id: string; _searchParams: string[][] };
     assert.equal(state.id, "selected");
-    assert.deepEqual(state._searchParams, [["preview", "/blog/life-insurance/aia-vitality/"], ["perspective", "drafts"]]);
+    assert.deepEqual(state._searchParams, [["preview", "/blog/life-insurance/aia-vitality/"]]);
+    // Native Presentation interprets an explicit perspective as a release version. Drafts is reserved.
+    assert.throws(() => getVersionId(createPublishedId(state.id), "drafts"), /invalid VERSION/);
+    assert.equal(state._searchParams.some(([key]) => key === "perspective" || key === "version"), false);
     workspace = { projectId: "ccb9lnw5", dataset: "uat" }; await render();
     assert.equal(dom.window.document.body.textContent.includes("ใน UAT"), true);
     category = {}; await render();
