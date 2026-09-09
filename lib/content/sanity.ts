@@ -104,7 +104,84 @@ const bodyItemSchema = z.union([
 ]);
 const faqItemSchema = z.object({ question: z.string().min(1), answer: z.string().min(1) });
 
-// A draft can contain an unfinished Studio block. It must not turn Preview into a 500.
+const authorSchema = z.object({
+  name: z.string().min(1),
+  profileName: z.string().min(1).nullish().catch(undefined),
+  profileRole: z.string().min(1).nullish().catch(undefined),
+  profileBio: z.string().min(1).nullish().catch(undefined),
+  profileCtaLabel: z.string().min(1).nullish().catch(undefined),
+  profileCtaUrl: z.string().refine((value) => /^(https?:\/\/|\/(?!\/)|#)/.test(value)).nullish().catch(undefined),
+  profileAvatar: z.object({
+    src: z.string().min(1),
+    alt: z.string().min(1),
+    width: z.number().positive(),
+    height: z.number().positive(),
+  }).nullish().catch(undefined),
+});
+
+const seoSchema = z.object({
+  title: z.string().min(1).nullish(),
+  description: z.string().min(1).nullish(),
+  ogTitle: z.string().min(1).nullish(),
+  ogDescription: z.string().min(1).nullish(),
+  semanticTopic: z.string().min(1).nullish(),
+  canonical: z.string().url().nullish(),
+  noindex: z.boolean().nullish(),
+}).nullish();
+
+const imageSchema = z.object({
+  src: z.string().min(1),
+  alt: z.string().min(1),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  caption: z.string().nullish().optional(),
+  credit: z.string().nullish().optional(),
+}).nullish();
+
+const baseArticleSchema = z.object({
+  _id: z.string(),
+  _originalId: z.string().nullish(),
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  excerpt: z.string().min(1).nullish(),
+  category: z.string().min(1),
+  categorySlug: z.string().min(1).nullish(),
+  tags: z.array(z.string()).nullish(),
+  authorName: z.string().min(1),
+  author: authorSchema.nullish().catch(undefined),
+  publishedAt: z.string().nullish(),
+  updatedAt: z.string().min(1),
+  seo: seoSchema,
+  ogImage: imageSchema,
+  featuredImage: imageSchema,
+});
+
+const rawArticleSchema = baseArticleSchema.extend({
+  body: z.array(z.unknown()),
+  faq: z.array(z.unknown()).nullish(),
+  sources: z.array(z.object({
+    label: z.string().min(1),
+    url: z.string().url().nullish(),
+    publisher: z.string().nullish(),
+    accessedAt: z.string().nullish(),
+  })).nullish(),
+  review: z.object({
+    status: z.enum(["drafting", "content-review", "fact-check", "compliance-review", "ready-for-coo", "approved"]).optional(),
+    contentReviewedAt: z.string().nullish(),
+    factCheckedAt: z.string().nullish(),
+    complianceReviewedAt: z.string().nullish(),
+  }).nullish(),
+  geo: z.object({
+    summary: z.string().nullish(),
+    keyEntities: z.array(z.string()).nullish(),
+    keyQuestions: z.array(z.string()).nullish(),
+  }).nullish(),
+});
+
+type RawArticle = z.infer<typeof rawArticleSchema>;
+type RawArticleSummary = z.infer<typeof baseArticleSchema>;
+type PortableBodyItem = z.infer<typeof bodyItemSchema>;
+
 function parseRenderableBodyItems(items: unknown[]): PortableBodyItem[] {
   return items.flatMap((item) => {
     const parsed = bodyItemSchema.safeParse(item);
@@ -119,89 +196,6 @@ function parseRenderableFaqItems(items: unknown[]) {
   });
 }
 
-const rawArticleSchema = z.object({
-  _id: z.string(),
-  _originalId: z.string().nullish(),
-  slug: z.string().min(1),
-  title: z.string().min(1),
-  excerpt: z.string().min(1).nullish(),
-  category: z.string().min(1),
-  categorySlug: z.string().min(1).nullish(),
-  tags: z.array(z.string()).nullish(),
-  authorName: z.string().min(1),
-  author: z.object({
-    name: z.string().min(1),
-    profileName: z.string().min(1).nullish().catch(undefined),
-    profileRole: z.string().min(1).nullish().catch(undefined),
-    profileBio: z.string().min(1).nullish().catch(undefined),
-    profileCtaLabel: z.string().min(1).nullish().catch(undefined),
-    profileCtaUrl: z.string().refine((value) => /^(https?:\/\/|\/(?!\/)|#)/.test(value)).nullish().catch(undefined),
-    profileAvatar: z.object({
-      src: z.string().min(1),
-      alt: z.string().min(1),
-      width: z.number().positive(),
-      height: z.number().positive(),
-    }).nullish().catch(undefined),
-  }).nullish().catch(undefined),
-  publishedAt: z.string().nullish(),
-  updatedAt: z.string().min(1),
-  seo: z.object({
-    title: z.string().min(1).nullish(),
-    description: z.string().min(1).nullish(),
-    ogTitle: z.string().min(1).nullish(),
-    ogDescription: z.string().min(1).nullish(),
-    semanticTopic: z.string().min(1).nullish(),
-    canonical: z.string().url().nullish(),
-    noindex: z.boolean().nullish(),
-  }).nullish(),
-  ogImage: z.object({
-    src: z.string().min(1),
-    alt: z.string().min(1),
-    width: z.number().positive(),
-    height: z.number().positive(),
-  }).nullish(),
-  featuredImage: z
-    .object({
-      src: z.string().min(1),
-      alt: z.string().min(1),
-      width: z.number().positive(),
-      height: z.number().positive(),
-      caption: z.string().nullish(),
-      credit: z.string().nullish(),
-    })
-    .nullish(),
-  body: z.array(z.unknown()),
-  faq: z.array(z.unknown()).nullish(),
-  sources: z
-    .array(
-      z.object({
-        label: z.string().min(1),
-        url: z.string().url().nullish(),
-        publisher: z.string().nullish(),
-        accessedAt: z.string().nullish(),
-      }),
-    )
-    .nullish(),
-  review: z
-    .object({
-      status: z.enum(["drafting", "content-review", "fact-check", "compliance-review", "ready-for-coo", "approved"]).optional(),
-      contentReviewedAt: z.string().nullish(),
-      factCheckedAt: z.string().nullish(),
-      complianceReviewedAt: z.string().nullish(),
-    })
-    .nullish(),
-  geo: z
-    .object({
-      summary: z.string().nullish(),
-      keyEntities: z.array(z.string()).nullish(),
-      keyQuestions: z.array(z.string()).nullish(),
-    })
-    .nullish(),
-});
-
-type RawArticle = z.infer<typeof rawArticleSchema>;
-type PortableBodyItem = z.infer<typeof bodyItemSchema>;
-
 export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleBlock[] {
   const result: ArticleBlock[] = [];
   let listType: "bulletList" | "numberList" | null = null;
@@ -215,103 +209,42 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
 
   const richText = (item: Extract<PortableBodyItem, { _type: "block" }>) => {
     const markDefs = new Map((item.markDefs ?? []).map((mark) => [mark._key, mark]));
-    const segments = item.children
-      .filter((child) => child.text.length > 0)
-      .map((child) => {
-        const marks = child.marks ?? [];
-        const linkKey = marks.find((mark) => markDefs.has(mark));
-        return {
-          text: child.text,
-          ...(linkKey
-            ? {
-                href: markDefs.get(linkKey)?.href,
-                openInNewTab: markDefs.get(linkKey)?.openInNewTab ?? undefined,
-                nofollow: markDefs.get(linkKey)?.nofollow ?? undefined,
-                sponsored: markDefs.get(linkKey)?.sponsored ?? undefined,
-              }
-            : {}),
-          ...(marks.includes("strong") ? { strong: true } : {}),
-          ...(marks.includes("em") ? { emphasis: true } : {}),
-        };
-      });
+    const segments = item.children.filter((child) => child.text.length > 0).map((child) => {
+      const marks = child.marks ?? [];
+      const linkKey = marks.find((mark) => markDefs.has(mark));
+      return {
+        text: child.text,
+        ...(linkKey ? {
+          href: markDefs.get(linkKey)?.href,
+          openInNewTab: markDefs.get(linkKey)?.openInNewTab ?? undefined,
+          nofollow: markDefs.get(linkKey)?.nofollow ?? undefined,
+          sponsored: markDefs.get(linkKey)?.sponsored ?? undefined,
+        } : {}),
+        ...(marks.includes("strong") ? { strong: true } : {}),
+        ...(marks.includes("em") ? { emphasis: true } : {}),
+      };
+    });
     const text = segments.map((segment) => segment.text).join("").trim();
     return { text, ...(segments.some((segment) => segment.href || segment.strong || segment.emphasis) ? { segments } : {}) };
   };
 
   for (const item of items) {
-    if (item._type === "callout") {
-      flushList();
-      result.push({ type: "callout", title: item.title ?? undefined, text: item.text });
-      continue;
-    }
+    const keylessFlush = () => flushList();
+    if (item._type === "callout") { keylessFlush(); result.push({ type: "callout", title: item.title ?? undefined, text: item.text }); continue; }
     if (item._type === "imageWithAlt" || item._type === "migratedImage") {
-      flushList();
-      result.push({
-        type: "image",
-        src: item.src,
-        alt: item.alt,
-        width: item.width,
-        height: item.height,
-        caption: item.caption ?? undefined,
-        ...(item._type === "imageWithAlt" ? { credit: item.credit ?? undefined } : {}),
-      });
+      keylessFlush();
+      result.push({ type: "image", src: item.src, alt: item.alt, width: item.width, height: item.height, caption: item.caption ?? undefined, ...(item._type === "imageWithAlt" ? { credit: item.credit ?? undefined } : {}) });
       continue;
     }
-    if (item._type === "imageGallery") {
-      flushList();
-      result.push({
-        type: "gallery",
-        images: item.images.map((image) => ({
-          src: image.src,
-          alt: image.alt,
-          width: image.width,
-          height: image.height,
-          caption: image.caption ?? undefined,
-          credit: image.credit ?? undefined,
-        })),
-      });
-      continue;
-    }
-    if (item._type === "ctaBlock") {
-      flushList();
-      result.push({ type: "cta", label: item.label, url: item.url, style: item.style, openInNewTab: item.openInNewTab ?? undefined });
-      continue;
-    }
-    if (item._type === "pdfDownload") {
-      flushList();
-      result.push({
-        type: "pdf",
-        title: item.title,
-        description: item.description ?? undefined,
-        url: item.file.url,
-        filename: item.file.filename ?? undefined,
-        size: item.file.size ?? undefined,
-      });
-      continue;
-    }
-    if (item._type === "detailsBlock") {
-      flushList();
-      result.push({ type: "details", summary: item.summary, text: item.text });
-      continue;
-    }
-    if (item._type === "simpleTable") {
-      flushList();
-      result.push({
-        type: "table",
-        headers: item.headers ?? [],
-        rows: (item.rows ?? []).map((row) => Array.isArray(row) ? row : row.cells),
-      });
-      continue;
-    }
-    if (item._type === "divider") {
-      flushList();
-      result.push({ type: "divider" });
-      continue;
-    }
+    if (item._type === "imageGallery") { keylessFlush(); result.push({ type: "gallery", images: item.images.map((image) => ({ ...image, caption: image.caption ?? undefined, credit: image.credit ?? undefined })) }); continue; }
+    if (item._type === "ctaBlock") { keylessFlush(); result.push({ type: "cta", label: item.label, url: item.url, style: item.style, openInNewTab: item.openInNewTab ?? undefined }); continue; }
+    if (item._type === "pdfDownload") { keylessFlush(); result.push({ type: "pdf", title: item.title, description: item.description ?? undefined, url: item.file.url, filename: item.file.filename ?? undefined, size: item.file.size ?? undefined }); continue; }
+    if (item._type === "detailsBlock") { keylessFlush(); result.push({ type: "details", summary: item.summary, text: item.text }); continue; }
+    if (item._type === "simpleTable") { keylessFlush(); result.push({ type: "table", headers: item.headers ?? [], rows: (item.rows ?? []).map((row) => Array.isArray(row) ? row : row.cells) }); continue; }
+    if (item._type === "divider") { keylessFlush(); result.push({ type: "divider" }); continue; }
 
     const rich = richText(item);
     if (!rich.text) continue;
-
     if (item.listItem === "bullet" || item.listItem === "number") {
       const nextType = item.listItem === "bullet" ? "bulletList" : "numberList";
       if (listType !== nextType) flushList();
@@ -319,37 +252,23 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
       listItems.push(rich);
       continue;
     }
-
     flushList();
-    if (item.style === "h2" || item.style === "h3") {
-      result.push({ type: "heading", level: item.style === "h2" ? 2 : 3, ...rich });
-    } else if (item.style === "blockquote") {
-      result.push({ type: "quote", ...rich });
-    } else {
-      result.push({ type: "paragraph", ...rich });
-    }
+    if (item.style === "h2" || item.style === "h3") result.push({ type: "heading", level: item.style === "h2" ? 2 : 3, ...rich });
+    else if (item.style === "blockquote") result.push({ type: "quote", ...rich });
+    else result.push({ type: "paragraph", ...rich });
   }
 
   flushList();
   return result;
 }
 
-function toArticle(rawInput: unknown): Article {
-  const raw: RawArticle = rawArticleSchema.parse(rawInput);
+function articleBase(raw: RawArticleSummary, body: ArticleBlock[] = []): Article {
   const originalId = raw._originalId ?? raw._id;
   const status = originalId.startsWith("drafts.") ? "draft" : "published";
-  const body = status === "draft" ? parseRenderableBodyItems(raw.body) : z.array(bodyItemSchema).parse(raw.body);
-  const faq = raw.faq
-    ? status === "draft"
-      ? parseRenderableFaqItems(raw.faq)
-      : z.array(faqItemSchema).parse(raw.faq)
-    : undefined;
   const excerpt = raw.excerpt?.trim();
   const seoTitle = raw.seo?.title?.trim();
   const seoDescription = raw.seo?.description?.trim();
-  if (status === "published" && (!excerpt || !seoDescription)) {
-    throw new Error("Published article is missing required SEO fields");
-  }
+  if (status === "published" && (!excerpt || !seoDescription)) throw new Error("Published article is missing required SEO fields");
 
   return {
     id: originalId,
@@ -361,17 +280,15 @@ function toArticle(rawInput: unknown): Article {
     tags: raw.tags ?? undefined,
     semanticTopic: raw.seo?.semanticTopic ?? undefined,
     authorName: raw.authorName,
-    author: raw.author
-      ? {
-          name: raw.author.name,
-          profileName: raw.author.profileName ?? undefined,
-          profileRole: raw.author.profileRole ?? undefined,
-          profileBio: raw.author.profileBio ?? undefined,
-          profileCtaLabel: raw.author.profileCtaLabel ?? undefined,
-          profileCtaUrl: raw.author.profileCtaUrl ?? undefined,
-          profileAvatar: raw.author.profileAvatar ?? undefined,
-        }
-      : undefined,
+    author: raw.author ? {
+      name: raw.author.name,
+      profileName: raw.author.profileName ?? undefined,
+      profileRole: raw.author.profileRole ?? undefined,
+      profileBio: raw.author.profileBio ?? undefined,
+      profileCtaLabel: raw.author.profileCtaLabel ?? undefined,
+      profileCtaUrl: raw.author.profileCtaUrl ?? undefined,
+      profileAvatar: raw.author.profileAvatar ?? undefined,
+    } : undefined,
     status,
     publishedAt: raw.publishedAt ?? undefined,
     updatedAt: raw.updatedAt,
@@ -379,46 +296,51 @@ function toArticle(rawInput: unknown): Article {
     seoDescription: seoDescription || excerpt || raw.title,
     ogTitle: raw.seo?.ogTitle ?? undefined,
     ogDescription: raw.seo?.ogDescription ?? undefined,
-    ogImage: raw.ogImage ?? undefined,
+    ogImage: raw.ogImage ? { src: raw.ogImage.src, alt: raw.ogImage.alt, width: raw.ogImage.width, height: raw.ogImage.height } : undefined,
     canonical: raw.seo?.canonical ?? undefined,
     noindex: raw.seo?.noindex ?? false,
-    featuredImage: raw.featuredImage
-      ? {
-          src: raw.featuredImage.src,
-          alt: raw.featuredImage.alt,
-          width: raw.featuredImage.width,
-          height: raw.featuredImage.height,
-          caption: raw.featuredImage.caption ?? undefined,
-          credit: raw.featuredImage.credit ?? undefined,
-        }
-      : undefined,
-    body: portableTextToArticleBlocks(body),
-    faq,
-    sources: raw.sources?.map((source) => ({
-      label: source.label,
-      url: source.url ?? undefined,
-      publisher: source.publisher ?? undefined,
-      accessedAt: source.accessedAt ?? undefined,
-    })),
-    review: raw.review
-      ? {
-          status: raw.review.status,
-          contentReviewedAt: raw.review.contentReviewedAt ?? undefined,
-          factCheckedAt: raw.review.factCheckedAt ?? undefined,
-          complianceReviewedAt: raw.review.complianceReviewedAt ?? undefined,
-        }
-      : undefined,
-    geo: raw.geo
-      ? {
-          summary: raw.geo.summary ?? undefined,
-          keyEntities: raw.geo.keyEntities ?? undefined,
-          keyQuestions: raw.geo.keyQuestions ?? undefined,
-        }
-      : undefined,
+    featuredImage: raw.featuredImage ? {
+      src: raw.featuredImage.src,
+      alt: raw.featuredImage.alt,
+      width: raw.featuredImage.width,
+      height: raw.featuredImage.height,
+      caption: raw.featuredImage.caption ?? undefined,
+      credit: raw.featuredImage.credit ?? undefined,
+    } : undefined,
+    body,
   };
 }
 
-const articleProjection = groq`{
+function toArticle(rawInput: unknown): Article {
+  const raw: RawArticle = rawArticleSchema.parse(rawInput);
+  const originalId = raw._originalId ?? raw._id;
+  const status = originalId.startsWith("drafts.") ? "draft" : "published";
+  const bodyItems = status === "draft" ? parseRenderableBodyItems(raw.body) : z.array(bodyItemSchema).parse(raw.body);
+  const faq = raw.faq ? (status === "draft" ? parseRenderableFaqItems(raw.faq) : z.array(faqItemSchema).parse(raw.faq)) : undefined;
+  const article = articleBase(raw, portableTextToArticleBlocks(bodyItems));
+  return {
+    ...article,
+    faq,
+    sources: raw.sources?.map((source) => ({ label: source.label, url: source.url ?? undefined, publisher: source.publisher ?? undefined, accessedAt: source.accessedAt ?? undefined })),
+    review: raw.review ? {
+      status: raw.review.status,
+      contentReviewedAt: raw.review.contentReviewedAt ?? undefined,
+      factCheckedAt: raw.review.factCheckedAt ?? undefined,
+      complianceReviewedAt: raw.review.complianceReviewedAt ?? undefined,
+    } : undefined,
+    geo: raw.geo ? {
+      summary: raw.geo.summary ?? undefined,
+      keyEntities: raw.geo.keyEntities ?? undefined,
+      keyQuestions: raw.geo.keyQuestions ?? undefined,
+    } : undefined,
+  };
+}
+
+function toArticleSummary(rawInput: unknown): Article {
+  return articleBase(baseArticleSchema.parse(rawInput));
+}
+
+const baseProjection = groq`{
   _id,
   _originalId,
   "slug": slug.current,
@@ -467,7 +389,11 @@ const articleProjection = groq`{
       "alt": migratedFeaturedImage.alt,
       "caption": migratedFeaturedImage.caption
     }
-  ),
+  )
+}`;
+
+const articleProjection = groq`{
+  ...${baseProjection},
   body[]{
     _type,
     style,
@@ -488,14 +414,7 @@ const articleProjection = groq`{
     openInNewTab,
     summary,
     description,
-    images[]{
-      "src": asset->url,
-      "width": asset->metadata.dimensions.width,
-      "height": asset->metadata.dimensions.height,
-      alt,
-      caption,
-      credit
-    },
+    images[]{"src": asset->url, "width": asset->metadata.dimensions.width, "height": asset->metadata.dimensions.height, alt, caption, credit},
     "file": file.asset->{"url": url, "filename": originalFilename, mimeType, size},
     headers,
     rows
@@ -506,23 +425,25 @@ const articleProjection = groq`{
   geo
 }`;
 
-const listQuery = groq`*[_type == "article" && defined(slug.current)] | order(coalesce(publishedAt, _updatedAt) desc) ${articleProjection}`;
+const listQuery = groq`*[_type == "article" && defined(slug.current)] | order(coalesce(publishedAt, _updatedAt) desc) ${baseProjection}`;
 const bySlugQuery = groq`*[_type == "article" && slug.current == $slug][0] ${articleProjection}`;
 
 function configuredClient(includeDrafts: boolean) {
   if (!client) throw new Error("Sanity is not configured");
   if (includeDrafts && !IS_DRAFT_PREVIEW_ALLOWED) throw new Error("Sanity Draft Mode is not allowed in this application lane");
   if (includeDrafts && !token) throw new Error("Sanity Draft Mode requires SANITY_API_READ_TOKEN");
-  return client.withConfig({
-    perspective: includeDrafts ? "drafts" : "published",
-    token: token || undefined,
-    useCdn: false,
-    stega: { enabled: includeDrafts, studioUrl: "/studio" },
-  });
+  return client.withConfig({ perspective: includeDrafts ? "drafts" : "published", token: token || undefined, useCdn: false, stega: { enabled: includeDrafts, studioUrl: "/studio" } });
 }
 
 export function getSanityPreviewClient() {
   return configuredClient(true);
+}
+
+function reportSanityError(scope: string, error: unknown) {
+  const detail = error instanceof z.ZodError
+    ? { type: "validation", issues: error.issues.map((issue) => ({ path: issue.path.join("."), code: issue.code })) }
+    : { type: error instanceof Error ? error.name : "unknown" };
+  console.error("[sanity-content]", scope, detail);
 }
 
 export const sanityContentProvider: ContentProvider = {
@@ -530,13 +451,18 @@ export const sanityContentProvider: ContentProvider = {
     try {
       const includeDrafts = options.includeDrafts === true;
       if (includeDrafts && !IS_DRAFT_PREVIEW_ALLOWED) throw new Error("DRAFT_PREVIEW_NOT_ALLOWED");
-      const { data } = await sanityFetch({
-        query: listQuery,
-        perspective: includeDrafts ? "drafts" : "published",
-        stega: includeDrafts,
+      const { data } = await sanityFetch({ query: listQuery, perspective: includeDrafts ? "drafts" : "published", stega: includeDrafts });
+      const rows = z.array(z.unknown()).parse(data);
+      return rows.flatMap((row) => {
+        try {
+          return [toArticleSummary(row)];
+        } catch (error) {
+          reportSanityError("listArticles:record-skipped", error);
+          return [];
+        }
       });
-      return z.array(z.unknown()).parse(data).map(toArticle);
-    } catch {
+    } catch (error) {
+      reportSanityError("listArticles:request-failed", error);
       throw new Error("Sanity content request failed; details redacted");
     }
   },
@@ -544,14 +470,10 @@ export const sanityContentProvider: ContentProvider = {
     try {
       const includeDrafts = options.includeDrafts === true;
       if (includeDrafts && !IS_DRAFT_PREVIEW_ALLOWED) throw new Error("DRAFT_PREVIEW_NOT_ALLOWED");
-      const { data } = await sanityFetch({
-        query: bySlugQuery,
-        params: { slug },
-        perspective: includeDrafts ? "drafts" : "published",
-        stega: includeDrafts,
-      });
+      const { data } = await sanityFetch({ query: bySlugQuery, params: { slug }, perspective: includeDrafts ? "drafts" : "published", stega: includeDrafts });
       return data ? toArticle(data) : null;
-    } catch {
+    } catch (error) {
+      reportSanityError("getArticleBySlug:request-failed", error);
       throw new Error("Sanity content request failed; details redacted");
     }
   },

@@ -64,8 +64,21 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
 
   const schema = isArticleCanonicalAligned(article) ? buildArticleSchemaGraph(article) : null;
 
-  const relatedArticles = (await getContentProvider().listArticles({ includeDrafts: false }))
-    .filter((candidate) => candidate.status === "published" && candidate.slug !== article.slug).slice(0, 2);
+  let relatedArticles = [] as Awaited<ReturnType<ReturnType<typeof getContentProvider>["listArticles"]>>;
+  try {
+    const candidates = (await getContentProvider().listArticles({ includeDrafts: false }))
+      .filter((candidate) => candidate.status === "published" && candidate.slug !== article.slug);
+    relatedArticles = candidates
+      .sort((a, b) => {
+        const aScore = (a.categorySlug === article.categorySlug ? 2 : 0) + (a.semanticTopic && a.semanticTopic === article.semanticTopic ? 3 : 0);
+        const bScore = (b.categorySlug === article.categorySlug ? 2 : 0) + (b.semanticTopic && b.semanticTopic === article.semanticTopic ? 3 : 0);
+        return bScore - aScore;
+      })
+      .slice(0, 2);
+  } catch (error) {
+    console.error("[blog-related] related articles unavailable", { type: error instanceof Error ? error.name : "unknown" });
+  }
+
   return <>
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
     <Website43Article preview={includeDrafts} article={article} relatedArticles={relatedArticles} />

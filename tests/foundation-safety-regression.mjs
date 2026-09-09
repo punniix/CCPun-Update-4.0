@@ -59,6 +59,47 @@ expect(
 );
 expect('disallowed Sanity data plane returns no actions', studioPolicy.includes('if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) return [];'));
 
+const sanityContent = read('lib/content/sanity.ts');
+expect(
+  'Sanity list query uses lightweight projection',
+  sanityContent.includes('const listQuery = groq`*[_type == "article" && defined(slug.current)] | order(coalesce(publishedAt, _updatedAt) desc) ${baseProjection}`')
+    && sanityContent.includes('const bySlugQuery = groq`*[_type == "article" && slug.current == $slug][0] ${articleProjection}`'),
+);
+expect(
+  'Sanity list isolates invalid records',
+  sanityContent.includes('listArticles:record-skipped')
+    && sanityContent.includes('return rows.flatMap((row) => {')
+    && sanityContent.includes('return [toArticleSummary(row)]'),
+);
+expect(
+  'Sanity full article remains strict',
+  sanityContent.includes('z.array(bodyItemSchema).parse(raw.body)')
+    && sanityContent.includes('Published article is missing required SEO fields'),
+);
+expect(
+  'Sanity errors remain externally redacted with internal typed logging',
+  sanityContent.includes('reportSanityError(')
+    && sanityContent.includes('Sanity content request failed; details redacted'),
+);
+
+const articlePage = read('features/blog/pages/ArticlePage.tsx');
+expect(
+  'related article failure cannot take down article rendering',
+  articlePage.includes('let relatedArticles = []')
+    && articlePage.includes('[blog-related] related articles unavailable')
+    && articlePage.includes('try {')
+    && articlePage.includes('catch (error)'),
+);
+
+const blogArchive = read('features/blog/pages/BlogArchivePage.tsx');
+expect(
+  'blog archive owns Open Graph URL and social metadata',
+  blogArchive.includes('const BLOG_URL = "https://ccpun.com/blog/"')
+    && blogArchive.includes('openGraph: {')
+    && blogArchive.includes('url: BLOG_URL')
+    && blogArchive.includes('twitter: {'),
+);
+
 const analytics = read('lib/analytics.ts');
 expect('analytics remains consent-gated', analytics.includes("import { getConsentData } from './cookie-consent';") && analytics.includes('if (!consent) return;'));
 expect('analytics keeps allowlisted parameter sanitizer', analytics.includes('export function sanitizeEventParams'));

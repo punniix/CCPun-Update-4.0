@@ -7,17 +7,37 @@ import { getContentProvider } from "@/lib/content/provider";
 import { BLOG_TOPIC_HUBS, isArticleInSemanticTopic } from "@/lib/content/taxonomy";
 import { isArticleCanonicalAligned } from "@/lib/content/url";
 
+const BLOG_TITLE = "บทความการเงิน การลงทุน และการวางแผนอนาคต | CCPun";
+const BLOG_DESCRIPTION = "เคล็ดลับการเงิน การลงทุน ประกัน และการวางแผนอนาคตจาก CCPun Financial Advisor";
+const BLOG_URL = "https://ccpun.com/blog/";
+const BLOG_IMAGE = "https://ccpun.com/assets/blog-hub-hero-ccpun-v1.webp";
+
 export const metadata: Metadata = {
-  title: "บทความการเงิน การลงทุน และการวางแผนอนาคต | CCPun",
-  description: "เคล็ดลับการเงิน การลงทุน ประกัน และการวางแผนอนาคตจาก CCPun Financial Advisor",
-  alternates: { canonical: "https://ccpun.com/blog/" },
+  title: BLOG_TITLE,
+  description: BLOG_DESCRIPTION,
+  alternates: { canonical: BLOG_URL },
+  openGraph: {
+    type: "website",
+    locale: "th_TH",
+    url: BLOG_URL,
+    title: BLOG_TITLE,
+    description: BLOG_DESCRIPTION,
+    siteName: "CCPun Financial Advisor",
+    images: [{ url: BLOG_IMAGE, alt: "บทความการเงิน ประกัน และการลงทุนจาก CCPun" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: BLOG_TITLE,
+    description: BLOG_DESCRIPTION,
+    images: [BLOG_IMAGE],
+  },
 };
 
 export default async function BlogPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const filters = await searchParams ?? {};
-  const query = typeof filters.q === 'string' ? filters.q : '';
-  const legacyCategory = typeof filters.category === 'string' ? filters.category : '';
-  const legacyTag = typeof filters.tag === 'string' ? filters.tag : '';
+  const query = typeof filters.q === "string" ? filters.q : "";
+  const legacyCategory = typeof filters.category === "string" ? filters.category : "";
+  const legacyTag = typeof filters.tag === "string" ? filters.tag : "";
   const cmsArticles = await getContentProvider().listArticles({ includeDrafts: false });
   const articles = cmsArticles.filter((article) => article.status === "published");
   const publishedIndexableArticles = articles.filter(
@@ -33,8 +53,8 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
     }, hub.slug)),
   );
 
-  const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === 'all' || article.category === legacyCategory)
-    && (!legacyTag || legacyTag === 'all' || article.tags?.includes(legacyTag)));
+  const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === "all" || article.category === legacyCategory)
+    && (!legacyTag || legacyTag === "all" || article.tags?.includes(legacyTag)));
   return <Website43Blog key={`all:${query}:${legacyCategory}:${legacyTag}`} articles={toWebsite43ArticleItems(visibleArticles)} initialQuery={query}
     topicNavigation={navigableHubs.length > 0 ? <nav className={styles.section} aria-label="หัวข้อบทความหลัก"><div className={styles.inner}>
       <h2 className={styles.h2}>เลือกหัวข้อที่ต้องการอ่าน</h2><div className={styles.heroActions} style={{ flexWrap: "wrap" }}>{navigableHubs.map((hub) => <Link className={styles.outlineButton} key={hub.slug} href={`/blog/${hub.slug}/`}>{hub.title}</Link>)}</div>
