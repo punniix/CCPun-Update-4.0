@@ -4,7 +4,6 @@ import Footer from "@/components/layout/Footer";
 import ToolHero from "@/components/layout/ToolHero";
 import CILandingIntro from "@/features/ci-planning/components/CILandingIntro";
 import CIWizard from "@/features/ci-planning/components/CIWizard";
-import { CI_FAQS } from "@/features/ci-planning/content";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 
 export const metadata: Metadata = {
@@ -63,6 +62,21 @@ const ciPlanningSchema = {
   },
   description: "เครื่องมือ Research Preview สำหรับเปรียบเทียบทุนตามรายได้หรือรายจ่าย กับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้",
 };
+
+const CI_FAQS = [
+  {
+    question: "ได้เลขทุนแล้ว ต้องทำอย่างไรต่อ?",
+    answer: "บันทึกภาพผลลัพธ์ไว้ แล้วทบทวนว่ารายได้ ค่าใช้จ่าย ระยะเวลาที่เลือก และทรัพยากรที่พร้อมใช้ตรงกับสถานการณ์จริงหรือไม่ หากต้องการคุยต่อ เพิ่มเพื่อน LINE @ccpun เพื่อทบทวนแผนประกันโรคร้ายแรงครับ",
+  },
+  {
+    question: "ทุนตามรายได้กับทุนตามรายจ่ายต่างกันอย่างไร?",
+    answer: "ทุนตามรายได้ดูจากรายได้ต่อเดือนและระยะเวลาที่เลือก ส่วนทุนตามรายจ่ายดูจากค่าใช้จ่ายครอบครัว ค่าเรียน ค่างวด และหนี้ที่เหลือ ระบบแสดงแยกกันและไม่นำมาบวกกัน",
+  },
+  {
+    question: "สินทรัพย์สภาพคล่องควรกรอกอะไรบ้าง?",
+    answer: "กรอกเฉพาะเงินสด เงินฝาก หรือสินทรัพย์ที่พร้อมเปลี่ยนเป็นเงินเพื่อนำมาใช้ได้จริง โดยไม่รวมบ้าน รถ หรือทรัพย์สินที่ครอบครัวยังจำเป็นต้องใช้",
+  },
+] as const;
 
 const faqSchema = {
   "@context": "https://schema.org",
