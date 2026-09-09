@@ -9,54 +9,6 @@ import styles from './Website43.module.css';
  */
 export function Website43FinalPolishStyles() {
   const css = String.raw`
-/*
- * Thai copy must use native dictionary line breaking. Do not fall back to
- * arbitrary grapheme breaking (for example leaving the last character of a
- * Thai word on a new line). URLs keep their own emergency wrapping rule below.
- */
-.${styles.root} {
-  word-break: normal;
-  overflow-wrap: normal;
-  line-break: auto;
-  hyphens: none;
-}
-.${styles.root} h1,
-.${styles.root} h2,
-.${styles.root} h3,
-.${styles.root} p,
-.${styles.root} li,
-.${styles.root} summary,
-.${styles.root} a,
-.${styles.root} button,
-.${styles.root} span {
-  word-break: normal;
-  overflow-wrap: normal;
-  line-break: auto;
-  hyphens: none;
-}
-.${styles.articleSources} a {
-  overflow-wrap: anywhere;
-}
-
-/* Blog: keep the wrapped article rows anchored to the left like Figma. */
-.${styles.articleGrid} {
-  justify-content: flex-start;
-}
-
-/* Blog category trigger is a compact one-line control in every reference. */
-.${styles.categoryMenu} {
-  width: 157px;
-}
-.${styles.categoryMenuButton},
-.${styles.categoryMenuButton} > span:first-child {
-  white-space: nowrap;
-}
-
-/* Figma uses a centered IMAGE/FILL crop for the Home portrait at every mode. */
-.${styles.homeHeroPicture} img {
-  object-position: center center;
-}
-
 @media (min-width: 1024px) {
   /* 1100 reference uses the same 56px shell gutter as Navbar; 1440 resolves to 80px. */
   .${styles.root} {

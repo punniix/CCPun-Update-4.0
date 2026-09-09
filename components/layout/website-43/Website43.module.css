@@ -18,11 +18,29 @@
   color: var(--w43-ink);
   font-family: var(--font-kanit), Kanit, system-ui, sans-serif;
   font-weight: 400;
+  word-break: normal;
+  overflow-wrap: normal;
+  line-break: auto;
+  hyphens: none;
 }
 
 .root *, .root *::before, .root *::after { box-sizing: border-box; }
 .root a { color: inherit; text-decoration: none; }
 .root button, .root input, .root select { font: inherit; }
+.root h1,
+.root h2,
+.root h3,
+.root p,
+.root li,
+.root summary,
+.root a,
+.root button,
+.root span {
+  word-break: normal;
+  overflow-wrap: normal;
+  line-break: auto;
+  hyphens: none;
+}
 
 .brand { font-size: 24px; font-weight: 700; line-height: 1; white-space: nowrap; }
 .brandCc { color: #faf7f2; }
@@ -176,7 +194,7 @@
 /* Home */
 .homeHero { position: relative; height: 800px; overflow: hidden; background: #060b09; }
 .homeHeroPicture, .homeHeroPicture img { position: absolute; inset: 0; width: 100%; height: 100%; }
-.homeHeroPicture img { object-fit: cover; object-position: left center; }
+.homeHeroPicture img { object-fit: cover; object-position: center center; }
 .homeHeroGradient { position: absolute; inset: 0; width: min(1120px, 100%); background: linear-gradient(90deg,rgba(6,11,9,.94) 0%,rgba(6,11,9,.72) 48%,rgba(6,11,9,.22) 78%,rgba(6,11,9,0) 100%); }
 .homeHeroBottomGradient { display: none; }
 .homeHeroCopy { position: absolute; z-index: 5; top: 196px; left: max(80px, calc((100vw - 1280px) / 2)); width: 760px; }
@@ -302,7 +320,7 @@
 .searchField:focus-visible { border-color: var(--w43-gold-bright); box-shadow: 0 0 0 2px rgba(224,201,133,.16); }
 .articleListHeading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-top: 32px; }
 .articleListHeading .h2 { margin-top: 0; }
-.articleGrid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px 18px; margin-top: 20px; }
+.articleGrid { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 20px 18px; margin-top: 20px; }
 .articleCard { flex: 0 1 calc((100% - 36px) / 3); overflow: hidden; border: 1px solid var(--w43-border); border-radius: 14px; }
 .articleImage { display: block; width: 100%; aspect-ratio: 1200/630; object-fit: cover; }
 .articleCardBody { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
@@ -561,7 +579,7 @@
 
   .homeHero { height: 740px; }
   .homeHeroPicture { inset: auto 0 auto 0; top: 244px; height: 496px; }
-  .homeHeroPicture img { object-fit: cover; object-position: 60% center; }
+  .homeHeroPicture img { object-fit: cover; object-position: center center; }
   .homeHeroGradient { inset: 0; width: 100%; background: linear-gradient(180deg,rgb(4,6,5) 0%,rgb(4,6,5) 34%,rgba(4,6,5,.88) 37%,rgba(4,6,5,.55) 40%,rgba(4,6,5,.25) 42%,rgba(4,6,5,0) 44%,rgba(4,6,5,0) 100%); }
   .homeHeroBottomGradient { display: block; position: absolute; z-index: 2; left: 0; right: 0; top: 505px; height: 235px; background: linear-gradient(180deg,rgba(4,5,4,.1) 0%,rgba(4,5,4,.34) 22%,rgba(4,5,4,.58) 52%,rgba(4,5,4,.7) 78%,rgba(4,5,4,.74) 100%); }
   .homeHeroCopy { top: 104px; left: 24px; width: min(342px, calc(100% - 48px)); }
@@ -718,7 +736,7 @@
 .articleCallout strong { display: block; margin-bottom: 8px; color: var(--w43-gold); }
 .articleCallout p { margin: 0; }
 .articleSources { margin: 20px 0 0; padding-left: 1.25em; color: var(--w43-muted); font-size: 15px; line-height: 1.7; }
-.articleSources a { color: var(--w43-gold) !important; }
+.articleSources a { color: var(--w43-gold) !important; overflow-wrap: anywhere; }
 
 /* Website 4.3 article TOC hierarchy + liquid-glass tools menu */
 .toc {
@@ -888,7 +906,7 @@
 .navDropdown a { position: relative; z-index: 1; }
 
 /* Website 4.3 custom blog category submenu */
-.categoryMenu { position: relative; z-index: 30; width: 210px; }
+.categoryMenu { position: relative; z-index: 30; width: 157px; }
 .categoryMenuButton {
   width: 100%;
   min-height: 52px;
@@ -905,6 +923,7 @@
   font-size: 14px;
   font-weight: 600;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -979,7 +998,6 @@
 .articleListHeading { justify-content: flex-start; }
 
 @media (max-width: 639px) {
-  .categoryMenu { width: min(230px,100%); }
   .categoryMenuPanel { width: min(300px, calc(100vw - 48px)); }
   .categoryMenuButton { min-height: 52px; }
 }
