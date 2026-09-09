@@ -1,6 +1,6 @@
 # Article optimization workflow
 
-Task receipt: `sanity-optimize-20260909`. Branch: `codex/admin-sanity-optimize-workflow-20260909`, based on `v4-production@2495dcd`. This code is an Admin Preview candidate, not Production deployment approval.
+Task receipt: `sanity-optimize-20260909`. Branch: `codex/admin-sanity-optimize-workflow-20260909`, based on `v4-production@2495dcd`. PR #83 is the reviewed delivery unit. The owner subsequently authorized a Production code patch despite the unavailable authenticated UAT visual check. That approval does not authorize Production content normalization or article publication.
 
 ## Owner steps
 
@@ -50,6 +50,8 @@ Targeted tests cover card previews, state labels, atomic publication, dates, con
 
 Local Studio through Next.js correctly stopped at the unconfigured Auth.js login gate; no authentication bypass was used. Standalone Sanity CLI is not the supported Next.js environment configuration and was not used as acceptance proof.
 
-The dependency audit on the unchanged baseline reports 2 high findings (`js-yaml`, `sharp`) and 5 moderate including CLI archive extraction dependencies; no dependency changes are included in this CMS candidate. These require a separate scoped remediation/review before Production promotion. AgentShield live startup scan was unavailable; cached historical grades are not current security proof.
+The baseline audit reported high findings in `js-yaml` and `sharp`. Patch updates to js-yaml 4.3.2, sharp 0.35.4 and @humanfs/node 0.16.8 address the released fixes. Both full and production-only lock audits now report zero high/critical findings. Five moderate records remain downstream of a single adm-zip archive-extraction advisory with no patched upstream release; no forced downgrade or major update was applied. This task does not extract untrusted archives. AgentShield live startup scan was unavailable; cached historical grades are not current security proof.
 
-Production content and Production deployments remain unchanged by this task. Production migration and Production code promotion require their own explicit final approval and fresh provider read-back.
+Production content is unchanged. Production code patch approval was received after the owner could not open Preview and directed patching Production; final release status and exact Web/Admin deployment read-backs belong in PR #83 and the task receipt. Production data migration still requires explicit confirmation of the exact 3 documents / 8 rows.
+
+Preview `dpl_249XvRLmPvpxJ6UNqTK8igJiND6M` at commit `42f6063` built READY; Web Preview was correctly skipped. Vercel Visit opened the preview root, but `/studio/` failed with Chrome ERR_BLOCKED_BY_CLIENT for both the owner and automation. This is not successful authenticated UAT visual QA. The owner explicitly accepted a Production code patch with read-only Production visual verification instead.

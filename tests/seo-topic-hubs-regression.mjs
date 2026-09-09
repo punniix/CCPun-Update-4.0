@@ -59,7 +59,9 @@ assert.match(categoryPage, /alternates: \{ canonical \}/);
 assert.match(categoryPage, /const shouldIndexHub = hub\.indexable && relevantIndexableArticles\.length > 0/);
 assert.match(categoryPage, /!isEnabled && shouldIndexHub \? \{ index: true, follow: true \} : \{ index: false, follow: true \}/);
 assert.match(categoryPage, /const schema = shouldIndexHub \? buildBlogTopicHubSchema\(hub, relevantIndexableArticles\) : null/);
-assert.match(categoryPage, /hub\.featuredLink\.href/);
+assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
+assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles\)\}/);
+assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItems\(publishedArticles\)\}/);
 
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.
 assert.match(articlePage, /getMovedArticleRedirectPath\(category, slug\)/);
