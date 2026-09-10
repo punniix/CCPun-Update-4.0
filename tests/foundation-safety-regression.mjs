@@ -72,6 +72,14 @@ for (const forbiddenKey of ['email', 'phone', 'income', 'expense', 'health_condi
   expect(`analytics allowlist excludes sensitive field ${forbiddenKey}`, !keyPattern.test(allowlist));
 }
 
+const ciProgress = read('features/ci-planning/components/CIProgress.tsx');
+expect(
+  'CI progress keeps desktop edge labels inside the viewport',
+  ciProgress.includes("idx === 0 && 'left-0 translate-x-0 text-left'")
+    && ciProgress.includes("idx === TOTAL_STEPS - 1 && 'right-0 translate-x-0 text-right'")
+    && ciProgress.includes("idx > 0 && idx < TOTAL_STEPS - 1 && 'left-1/2 -translate-x-1/2'"),
+);
+
 const migrationContract = read('cms/sanity/migration-contract.md');
 expect('content migration remains draft-first', migrationContract.includes('A content import is not publication'));
 expect('published migration requires coordinated URL release', migrationContract.includes('redirect + new canonical + sitemap/internal-link ownership together'));
