@@ -72,6 +72,24 @@ for (const forbiddenKey of ['email', 'phone', 'income', 'expense', 'health_condi
   expect(`analytics allowlist excludes sensitive field ${forbiddenKey}`, !keyPattern.test(allowlist));
 }
 
+const ciProgress = read('features/ci-planning/components/CIProgress.tsx');
+const ciWizard = read('features/ci-planning/components/CIWizard.tsx');
+const ciWebsite43Preview = read('app/preview/website-4-3/ci-planning/page.tsx');
+expect(
+  'Website 4.3 CI uses the Figma segmented progress treatment only in its scoped variant',
+  ciProgress.includes('website43?: boolean;')
+    && ciProgress.includes('if (website43)')
+    && ciProgress.includes("'mt-3 grid grid-cols-2 gap-1.5'")
+    && ciProgress.includes("idx <= currentStep ? 'bg-primary' : 'bg-muted'")
+    && ciWizard.includes('website43={subtleMotion}')
+    && ciWebsite43Preview.includes('<CIWizard subtleMotion />'),
+);
+expect(
+  'Default CI progress treatment remains available outside Website 4.3 UAT',
+  ciProgress.includes("'hidden md:block absolute top-full mt-2 text-sm whitespace-nowrap transition-colors duration-300'")
+    && ciProgress.includes("'left-1/2 -translate-x-1/2'"),
+);
+
 const migrationContract = read('cms/sanity/migration-contract.md');
 expect('content migration remains draft-first', migrationContract.includes('A content import is not publication'));
 expect('published migration requires coordinated URL release', migrationContract.includes('redirect + new canonical + sitemap/internal-link ownership together'));
