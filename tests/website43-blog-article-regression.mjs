@@ -88,7 +88,8 @@ for (const [slug, label, expected] of [['health-insurance', 'ประกัน�
 const archive = doc(await overview({ searchParams: Promise.resolve({ q: 'ข้อมูล' }) }));
 assert.equal(archive.querySelector('input[type="search"]').getAttribute('value'), 'ข้อมูล');
 assert.ok(!archive.body.textContent.includes('DRAFT MUST NOT LEAK'));
-assert.ok([...archive.querySelectorAll('nav[aria-label="หัวข้อบทความหลัก"] a')].some((link) => link.getAttribute('href').replace(/\/$/, '') === '/blog/health-insurance'));
+assert.equal(archive.querySelectorAll('nav[aria-label="หัวข้อบทความหลัก"]').length, 0);
+assert.ok(!archive.body.textContent.includes('เลือกหัวข้อที่ต้องการอ่าน'));
 await assert.rejects(articleRoute.default({ params: Promise.resolve({ category: 'life-insurance', slug: 'draft-only' }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
 await assert.rejects(articleRoute.default({ params: Promise.resolve({ category: 'life-insurance', slug: health.slug }) }), /NEXT_REDIRECT/);
 const draftMetadata = await articleRoute.generateMetadata({ params: Promise.resolve({ category: 'life-insurance', slug: 'draft-only' }) });
