@@ -138,7 +138,7 @@ test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO
   assert.match(schemaSource, /item:\s*sectionUrl/);
 });
 
-test("Blog sitemap and navigation expose only useful indexable hub nodes", () => {
+test("Blog sitemap exposes useful indexable hub nodes while archive omits topic navigation", () => {
   const sitemap = source("app/sitemaps/blog.xml/route.ts");
   const blogPage = source("features/blog/pages/BlogArchivePage.tsx");
   const blogArchive = source("features/blog/components/BlogArchive.tsx");
@@ -151,11 +151,10 @@ test("Blog sitemap and navigation expose only useful indexable hub nodes", () =>
   assert.match(sitemap, /if \(!hub\.indexable\) return \[\]/);
   assert.doesNotMatch(sitemap, /\?category=|\?tag=/);
 
-  assert.match(blogPage, /BLOG_TOPIC_HUBS\.filter/);
-  assert.match(blogPage, /hub\.indexable/);
-  assert.match(blogPage, /isArticleCanonicalAligned\(article\)/);
-  assert.match(blogPage, /aria-label="หัวข้อบทความหลัก"/);
-  assert.doesNotMatch(blogArchive, /BLOG_TOPIC_HUBS/, "SEO hub navigation should be server-rendered by features/blog/pages/BlogArchivePage.tsx, not owned by the client filter component");
+  assert.doesNotMatch(blogPage, /BLOG_TOPIC_HUBS/);
+  assert.doesNotMatch(blogPage, /aria-label="หัวข้อบทความหลัก"/);
+  assert.doesNotMatch(blogPage, /เลือกหัวข้อที่ต้องการอ่าน/);
+  assert.doesNotMatch(blogArchive, /BLOG_TOPIC_HUBS/);
 
   assert.match(articleCard, /const href = getArticlePath\(article\)/);
   assert.match(articleCard, /getArticleSemanticTopic/);
