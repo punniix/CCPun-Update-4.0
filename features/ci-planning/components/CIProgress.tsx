@@ -25,6 +25,8 @@ export default function CIProgress({ currentStep }: CIProgressProps) {
           const isCompleted = idx < currentStep;
           const isCurrent = idx === currentStep;
           const isFuture = idx > currentStep;
+          const isFirst = idx === 0;
+          const isLast = idx === TOTAL_STEPS - 1;
 
           return (
             <div
@@ -54,11 +56,11 @@ export default function CIProgress({ currentStep }: CIProgressProps) {
                   )}
                 </div>
 
-                {/* Label — desktop only, centered under dot */}
+                {/* Keep tablet/desktop labels inside the progress track instead of centering past the viewport edge. */}
                 <span
                   className={cn(
                     'hidden md:block absolute top-full mt-2 text-sm whitespace-nowrap transition-colors duration-300',
-                    'left-1/2 -translate-x-1/2',
+                    isFirst ? 'left-0 text-left' : isLast ? 'right-0 text-right' : 'left-1/2 -translate-x-1/2',
                     isCompleted && 'text-primary',
                     isCurrent && 'text-primary font-medium',
                     isFuture && 'text-muted-foreground'
