@@ -6,11 +6,40 @@ import { CI_STEP_LABELS } from '@/features/ci-planning/calculator/constants';
 
 interface CIProgressProps {
   currentStep: number;
+  website43?: boolean;
 }
 
 const TOTAL_STEPS = CI_STEP_LABELS.length;
 
-export default function CIProgress({ currentStep }: CIProgressProps) {
+export default function CIProgress({ currentStep, website43 = false }: CIProgressProps) {
+  if (website43) {
+    return (
+      <div
+        className="w-full mb-6"
+        role="progressbar"
+        aria-valuenow={currentStep + 1}
+        aria-valuemin={1}
+        aria-valuemax={TOTAL_STEPS}
+        aria-label={`ขั้นตอนที่ ${currentStep + 1} จาก ${TOTAL_STEPS}`}
+      >
+        <p className="m-0 text-sm font-semibold text-primary">
+          ขั้นตอน {currentStep + 1} จาก {TOTAL_STEPS}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-1.5" aria-hidden="true">
+          {Array.from({ length: TOTAL_STEPS }).map((_, idx) => (
+            <span
+              key={idx}
+              className={cn(
+                'block h-1 rounded-full transition-colors duration-200',
+                idx <= currentStep ? 'bg-primary' : 'bg-muted'
+              )}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="w-full pb-8 mb-6"
@@ -25,8 +54,6 @@ export default function CIProgress({ currentStep }: CIProgressProps) {
           const isCompleted = idx < currentStep;
           const isCurrent = idx === currentStep;
           const isFuture = idx > currentStep;
-          const isFirst = idx === 0;
-          const isLast = idx === TOTAL_STEPS - 1;
 
           return (
             <div
@@ -56,11 +83,11 @@ export default function CIProgress({ currentStep }: CIProgressProps) {
                   )}
                 </div>
 
-                {/* Keep tablet/desktop labels inside the progress track instead of centering past the viewport edge. */}
+                {/* Label — desktop only, centered under dot */}
                 <span
                   className={cn(
                     'hidden md:block absolute top-full mt-2 text-sm whitespace-nowrap transition-colors duration-300',
-                    isFirst ? 'left-0 text-left' : isLast ? 'right-0 text-right' : 'left-1/2 -translate-x-1/2',
+                    'left-1/2 -translate-x-1/2',
                     isCompleted && 'text-primary',
                     isCurrent && 'text-primary font-medium',
                     isFuture && 'text-muted-foreground'
