@@ -155,7 +155,7 @@ export default function CIWizard({ subtleMotion = false }: { subtleMotion?: bool
   return (
     <div>
       <div className="mb-8">
-        <CIProgress currentStep={currentStep} />
+        <CIProgress currentStep={currentStep} website43={subtleMotion} />
         {currentStep === 0 && (
           <p className="mt-2 text-center text-sm text-muted-foreground">
             2 ขั้นตอน ใช้ข้อมูลเท่าที่คุณทราบ
