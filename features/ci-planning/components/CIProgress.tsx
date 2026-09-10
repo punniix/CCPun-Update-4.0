@@ -54,11 +54,13 @@ export default function CIProgress({ currentStep }: CIProgressProps) {
                   )}
                 </div>
 
-                {/* Label — desktop only, centered under dot */}
+                {/* Label — desktop only; keep edge labels inside the viewport. */}
                 <span
                   className={cn(
                     'hidden md:block absolute top-full mt-2 text-sm whitespace-nowrap transition-colors duration-300',
-                    'left-1/2 -translate-x-1/2',
+                    idx === 0 && 'left-0 translate-x-0 text-left',
+                    idx === TOTAL_STEPS - 1 && 'right-0 translate-x-0 text-right',
+                    idx > 0 && idx < TOTAL_STEPS - 1 && 'left-1/2 -translate-x-1/2',
                     isCompleted && 'text-primary',
                     isCurrent && 'text-primary font-medium',
                     isFuture && 'text-muted-foreground'
