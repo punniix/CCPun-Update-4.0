@@ -123,10 +123,8 @@ for (const [oldPath, finalPath] of oldRedirects) {
 
 const blog = await request('/blog/');
 assertStatus(blog.response.status, 200, '/blog/');
-for (const path of ['/blog/personal-finance/', '/blog/life-insurance/', '/blog/health-insurance/', '/blog/critical-illness/']) {
-  assertContains(blog.text, `href="${path}"`, '/blog/ server-rendered topic navigation');
-}
-assert.ok(!blog.text.includes('href="/blog/investment/"'), '/blog/ should not promote the thin noindex investment hub yet');
+assert.ok(!blog.text.includes('aria-label="หัวข้อบทความหลัก"'), '/blog/ must not render the removed topic-navigation section');
+assert.ok(!blog.text.includes('เลือกหัวข้อที่ต้องการอ่าน'), '/blog/ must not render the removed topic-navigation heading');
 
 const sitemap = await request('/sitemaps/blog.xml');
 assertStatus(sitemap.response.status, 200, '/sitemaps/blog.xml');
