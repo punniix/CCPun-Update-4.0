@@ -42,7 +42,7 @@ assert.match(taxonomy, /semanticTopic\?: string \| null/);
 const overrideResolution = taxonomy.indexOf('const override = articleSlug');
 const explicitResolution = taxonomy.indexOf('const explicitTopic = semanticTopic');
 assert.ok(overrideResolution >= 0 && explicitResolution > overrideResolution, 'protected slug semantic overrides must precede editable CMS Semantic Topic');
-for (const surface of [blogPage, categoryPage, articlePresentation, card, schema, sitemap]) {
+for (const surface of [categoryPage, articlePresentation, card, schema, sitemap]) {
   assert.match(surface, /semanticTopic: article\.semanticTopic/);
 }
 
@@ -87,11 +87,10 @@ assert.match(sitemap, /https:\/\/ccpun\.com\/blog\/\$\{hub\.slug\}\//);
 assert.match(sitemap, /uniqueSortedEntries/);
 assert.doesNotMatch(sitemap, /\?category=|\?tag=/);
 
-// Main Blog page exposes indexable topic hubs as server-rendered internal links.
-assert.match(blogPage, /const navigableHubs = BLOG_TOPIC_HUBS\.filter/);
-assert.match(blogPage, /isArticleCanonicalAligned\(article\)/);
-assert.match(blogPage, /href=\{`\/blog\/\$\{hub\.slug\}\/`\}/);
-assert.match(blogPage, /navigableHubs\.map/);
+// Main Blog page intentionally omits the topic-navigation section; hub routes and sitemap remain canonical SEO owners.
+assert.doesNotMatch(blogPage, /BLOG_TOPIC_HUBS/);
+assert.doesNotMatch(blogPage, /เลือกหัวข้อที่ต้องการอ่าน/);
+assert.doesNotMatch(blogPage, /aria-label="หัวข้อบทความหลัก"/);
 
 // Query-string filters remain a client-side UX convenience, not an SEO breadcrumb node.
 assert.match(blogPresentation, /window\.history\.replaceState/);
