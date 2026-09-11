@@ -7,10 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Website43PreviewLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <script src="/preview/website-4-3/figma-capture" async />
-      <Website43MotionBoundary>{children}</Website43MotionBoundary>
-    </>
-  );
+  return <Website43MotionBoundary>{children}</Website43MotionBoundary>;
 }

@@ -1,7 +1,7 @@
 # Website 4.3 Responsive Layout Contract
 
 Date: 2026-09-11
-Status: UAT design/development source of truth
+Status: UAT layout requirements; visual acceptance is tracked in the live PR
 Scope: Website 4.3 preview/UAT only. This document does not authorize Production promotion.
 
 ## Why this exists
@@ -18,15 +18,15 @@ For horizontal layout decisions, use this order:
 
 1. This responsive layout contract.
 2. `features/website-43-uat/Website43LayoutContractStyles.tsx` for implementation invariants.
-3. Clean Figma responsive source-of-truth frames that implement this contract.
+3. Figma responsive frames only after they have been verified against the real UAT UI and this contract.
 4. Transition/final-polish styles only for component-level interpolation and visual tuning.
 
-Clean Figma source of truth:
+Figma target, to be repaired in place:
 
 - `CCPun Website 4.3 — Responsive Source of Truth`
 - https://www.figma.com/design/GnY9j08aOonw70CA1memRK
 - Foundation references: `02 — Foundations`, `03 — Components`, `14 — Website 4.3 · Source of Truth`, `90 — Responsive QA`.
-- Complete real-page screen coverage:
+- Required real-page screen coverage in the existing pages:
   - `S01 — Home`
   - `S02 — Blog Archive`
   - `S03 — Blog Article`
@@ -35,8 +35,9 @@ Clean Figma source of truth:
   - `S06 — Privacy`
   - `S07 — Cookie Policy`
   - `S08 — 404`
-- Every screen page contains canonical `390 / 820 / 1440` frames and uses the shared responsive layout variables rather than a page-specific shell model.
-- Each of the eight page boards was rendered through Figma screenshot output after creation to verify that the board is visible and not an empty/page-name-only placeholder.
+- Every screen page must contain canonical `390 / 820 / 1440` UI with the real UAT images and text, using shared responsive layout variables rather than a page-specific shell model.
+- Existing page names, structural frames and renders of schematic boards are not proof of completed visual coverage. Inspect the actual nodes and corresponding UAT captures; record completion evidence in the live PR.
+- Do not create Q/V duplicate pages or delete existing structures before verified replacements are ready.
 - Treat the older CCPun UX/UI file and Website 4.3 experiment frames as archive/reference, not horizontal-layout authority.
 
 Do not use archived Website 4.3 experiment frames as layout authority.
@@ -155,16 +156,16 @@ Required assertions:
 - No transition/final-polish rule may reintroduce `margin-left: 0` / `margin-right: 0` on a constrained standard shell.
 - No child CTA/proof/footer/tool-story compensation may use one gutter to counteract another gutter.
 
-Static regression coverage lives in `tests/website-43-layout-contract.test.mjs` and is part of `test:foundation-contracts`. The regression also rejects the legacy horizontal compensation patterns removed during PR #93.
+Static regression coverage lives in `tests/website-43-layout-contract.test.mjs` and is part of `test:foundation-contracts`. The regression also rejects the legacy horizontal compensation patterns removed during PR #93. These source-pattern and arithmetic checks do not render a browser and cannot certify real viewport alignment, loaded images or route correctness.
 
 ## Figma contract
 
-The clean Website 4.3 Figma source of truth includes:
+The required Website 4.3 Figma deliverable includes:
 
 - Layout-contract/foundation page.
 - Canonical component variants: 390, 820, 1440, 1728.
 - Responsive QA matrix including transition/wide references.
-- Real-page canonical frames at 390, 820 and 1440 for Home, Blog Archive, Blog Article, Financial Health Check, CI Planning, Privacy, Cookie Policy and 404.
+- Real-page canonical UI at 390, 820 and 1440 for Home, Blog Archive, Blog Article, Financial Health Check, CI Planning, Privacy, Cookie Policy and 404.
 - Visible shell/gutter behavior separated from full-bleed outer regions.
 - A Screen Coverage section on `14 — Website 4.3 · Source of Truth` so missing page coverage is visible during review.
 
@@ -172,7 +173,9 @@ The reusable `Layout / Centered Shell` component binds its left and right paddin
 
 Figma should describe the same contract as code; it should not contain independent left/right measurements that require developers to reverse-engineer page-specific behavior.
 
-The current Figma screens are editable structural source-of-truth frames built from the code contract. Live browser capture remains a visual-diff aid, not the horizontal-layout authority; if authenticated capture is unavailable, do not claim pixel-perfect browser verification from the Figma structure alone.
+Do not call schematic frames completed UI or label an old screenshot as the current UAT. Keep flat screenshot references distinct from editable design. A visual pass requires the exact route, observed viewport width, loaded images, deployment/head reference and Figma node IDs. An article must be an actual article, not a missing-route/404 response; use the repository's `/blog/[category]/[slug]/` structure and a real link discovered from the archive. Use `/preview/website-4-3/404/` for the explicit Website 4.3 404 design, and test unknown-route behavior separately.
+
+If authenticated capture is unavailable, keep the visual gate incomplete and leave PR #93 Draft. Do not keep regenerating capture IDs or add runtime capture/relay endpoints as a substitute for an authorized browser capable of resize, capture and export. Capture tooling belongs in the QA/browser environment, not the website application.
 
 ## Change policy
 
