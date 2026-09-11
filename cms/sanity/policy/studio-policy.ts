@@ -19,6 +19,7 @@ const SYSTEM_DOCUMENT_TYPES = new Set([
   "ubersuggestAccountSnapshot",
   "ubersuggestGeoSnapshot",
   "auditLog",
+  "publishSchedule",
 ]);
 const DRAFT_ONLY_DOCUMENT_TYPES = new Set(["masterContent", "socialVariant"]);
 const OWNER_HIDDEN_DOCUMENT_TYPES = new Set(["category", ...SYSTEM_DOCUMENT_TYPES]);
