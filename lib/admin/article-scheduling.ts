@@ -13,7 +13,7 @@ import {
   getScheduleDelaySeconds,
   normalizeArticleId,
 } from "../../cms/sanity/policy/article-scheduling";
-import { publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
+import { articlePublishBlock, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
@@ -167,7 +167,7 @@ export async function runScheduledArticlePublication(input: { scheduleId: string
     return { status: "stale" as const };
   }
 
-  const blocked = articleScheduleBlock(draft, published, schedule.scheduledAt, Date.now() - 31_000);
+  const blocked = articlePublishBlock(draft, published, Date.now());
   if (blocked) {
     await setScheduleOutcome(client, schedule, "failed", "PUBLICATION_GUARD_BLOCKED");
     return { status: "failed" as const, errorCode: "PUBLICATION_GUARD_BLOCKED" };
