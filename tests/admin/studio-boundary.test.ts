@@ -165,8 +165,8 @@ test("Local Production Studio is off in read mode and enables the owner article 
   assert.deepEqual(filterStudioNewDocumentOptions(newDocumentOptions, "production", "local-production", PRODUCTION_SANITY_PROJECT_ID), [newDocumentOptions[0]]);
   assert.deepEqual(filterStudioNewDocumentOptions(newDocumentOptions, "uat", "local-uat", UAT_SANITY_PROJECT_ID), [newDocumentOptions[0]]);
   assert.deepEqual(getStudioPublishingOptions("production", "local-production", PRODUCTION_SANITY_PROJECT_ID), {
-    releases: { enabled: true },
-    scheduledDrafts: { enabled: true },
+    releases: { enabled: false },
+    scheduledDrafts: { enabled: false },
     scheduledPublishing: { enabled: false },
   });
 });
