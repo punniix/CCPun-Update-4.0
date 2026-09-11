@@ -45,6 +45,12 @@ jobs:
               raise SystemExit('Expected API method type not found')
           text = text.replace(methods_old, methods_new, 1)
 
+          matcher_old = '/export async function (GET|POST)/g'
+          matcher_new = '/export async function (GET|POST|DELETE)/g'
+          if matcher_old not in text:
+              raise SystemExit('Expected API method matcher not found')
+          text = text.replace(matcher_old, matcher_new, 1)
+
           anchor = '''  "app/api/snt-admin/content/[id]/preview/route.ts": {\n    methods: ["POST"], identity: /getAdminIdentity\\(\\)/, authorization: /"draft:apply"/,\n    validation: { file: "app/api/snt-admin/content/[id]/preview/route.ts", pattern: /articleIdSchema\\.safeParse/, },\n  },\n'''
           addition = anchor + '''  "app/api/snt-admin/content/[id]/schedule/route.ts": {\n    methods: ["GET", "POST", "DELETE"], identity: /getAdminIdentity\\(\\)/, authorization: /"content:schedule"/,\n    validation: { file: "app/api/snt-admin/content/[id]/schedule/route.ts", pattern: /bodySchema\\.safeParse\\(await request\\.json\\(\\)\\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },\n  },\n'''
           if anchor not in text:
@@ -64,4 +70,4 @@ jobs:
           git add package.json package-lock.json tests/admin/studio-boundary.test.ts tests/admin/admin-api-inventory.test.ts
           git commit -m "feat: wire durable workflow dependency for article scheduling"
           git push origin HEAD:feature/free-plan-article-scheduling-20260911
-# verification rerun 4
+# verification rerun 5
