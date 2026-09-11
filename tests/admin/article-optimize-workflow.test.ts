@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { SanityClient } from "@sanity/client";
+import type { SanityClient } from "sanity";
 import { articlePublishBlock, publicationSummary, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
 import { faqItem } from "../../cms/sanity/schema/objects/faq-item";
 import { sourceReference } from "../../cms/sanity/schema/objects/source-reference";
