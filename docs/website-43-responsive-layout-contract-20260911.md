@@ -8,7 +8,9 @@ Scope: Website 4.3 preview/UAT only. This document does not authorize Production
 
 Website 4.3 previously allowed responsive transition styles to set a constrained shell width while also pinning that shell to the left edge (`margin-left: 0; margin-right: 0`). On wide desktop viewports this placed all unused width on the right side of the screen, creating visibly unbalanced whitespace and forcing page-by-page fixes.
 
-The layout foundation is now explicit: full-bleed sections may span the viewport, but ordinary page content belongs inside one centered shared shell. Component-specific polish may change internal geometry, but it must not own horizontal page-shell alignment.
+A later UAT screenshot also exposed a second class of debt: child-level compensations such as a separate `heroActions` horizontal offset could survive after the parent hero had already moved to the shared centered-shell anchor. The result was a headline/body aligned correctly while CTA/proof content drifted left.
+
+The layout foundation is now explicit: full-bleed sections may span the viewport, but ordinary page content belongs inside one centered shared shell. Component-specific polish may change internal geometry, but it must not own horizontal page-shell alignment or compensate against another gutter token.
 
 ## Source-of-truth hierarchy
 
@@ -23,7 +25,17 @@ Clean Figma source of truth:
 
 - `CCPun Website 4.3 — Responsive Source of Truth`
 - https://www.figma.com/design/GnY9j08aOonw70CA1memRK
-- Use `02 — Foundations`, `03 — Components`, `14 — Website 4.3 · Source of Truth`, and `90 — Responsive QA` as the active layout references.
+- Foundation references: `02 — Foundations`, `03 — Components`, `14 — Website 4.3 · Source of Truth`, `90 — Responsive QA`.
+- Complete real-page screen coverage:
+  - `S01 — Home`
+  - `S02 — Blog Archive`
+  - `S03 — Blog Article`
+  - `S04 — Financial Health Check`
+  - `S05 — CI Planning`
+  - `S06 — Privacy`
+  - `S07 — Cookie Policy`
+  - `S08 — 404`
+- Every screen page contains canonical `390 / 820 / 1440` frames and uses the shared responsive layout variables rather than a page-specific shell model.
 - Treat the older CCPun UX/UI file and Website 4.3 experiment frames as archive/reference, not horizontal-layout authority.
 
 Do not use archived Website 4.3 experiment frames as layout authority.
@@ -88,18 +100,20 @@ This token is the alignment anchor for desktop hero copy and other full-bleed co
 
 `Website43TransitionStyles.tsx`
 - May interpolate component geometry between canonical frames.
-- Must not be treated as the authority for centering the page shell.
+- Must not own shell margins or introduce a compensating horizontal offset.
+- Shared gutter variables should resolve to one alignment model instead of requiring later counter-offsets.
 
 `Website43FinalPolishStyles.tsx`
-- May refine visual geometry after viewport QA.
-- Must not override centered-shell invariants.
+- May refine typography, image crop, control size and internal component geometry after viewport QA.
+- Must not override centered-shell invariants or add child-level horizontal compensation such as a CTA offset against a different gutter.
 
 `Website43LayoutContractStyles.tsx`
 - Loads after transition and final-polish styles.
 - Owns horizontal shell centering and wide-screen shell-edge alignment.
-- Uses the stable QA marker `data-w43-layout-contract="centered-shell-v1"`.
+- Uses the stable QA marker `data-w43-layout-contract="centered-shell-v2"`.
+- May neutralize a child offset (`margin-left/right: 0`) only to explicitly inherit the already-correct parent anchor; this is not permission to left-pin a constrained shell.
 
-When the legacy transition bridge is simplified in the future, old left-pinning declarations should be removed rather than re-created elsewhere. Until then, the layout contract is intentionally loaded last so old bridge declarations cannot regress the shell.
+The legacy transition/final-polish left-pinning and Home CTA compensation were removed in PR #93 rather than merely hidden beneath another override. Future cleanup should continue removing obsolete bridge declarations instead of re-creating them elsewhere.
 
 ## Allowed exceptions
 
@@ -108,9 +122,11 @@ An exception must be intentional and documented. Typical allowed cases:
 - Full-bleed hero imagery/backgrounds.
 - A carousel viewport that intentionally reaches the viewport edge while its heading remains shell-aligned.
 - Decorative gradients or image stages.
+- Image safe-area positioning that does not move readable content.
 - A reading column intentionally narrower than the standard shell, provided it is centered or explicitly anchored within a centered parent grid.
+- Internal component alignment such as TOC indentation, avatar/grid columns, menus, or card internals that does not redefine the page shell.
 
-A standard card grid, footer, FAQ, page heading, legal content, article header, blog listing, or ordinary section is not an exception.
+A standard card grid, footer, FAQ, page heading, legal content, article header, blog listing, tool story, calculator wrapper, hero CTA group, or ordinary section is not an exception.
 
 ## Responsive QA contract
 
@@ -135,24 +151,28 @@ Required assertions:
 - Wide desktop does not accumulate dead space on only one side.
 - Full-bleed visuals remain full bleed without dragging readable content off the shared alignment grid.
 - Responsive transitions do not introduce a new layout mode at 600 or 1100.
+- No transition/final-polish rule may reintroduce `margin-left: 0` / `margin-right: 0` on a constrained standard shell.
+- No child CTA/proof/footer/tool-story compensation may use one gutter to counteract another gutter.
 
-Static regression coverage lives in `tests/website-43-layout-contract.test.mjs` and is part of `test:foundation-contracts`.
+Static regression coverage lives in `tests/website-43-layout-contract.test.mjs` and is part of `test:foundation-contracts`. The regression also rejects the legacy horizontal compensation patterns removed during PR #93.
 
 ## Figma contract
 
-The clean Website 4.3 Figma source of truth should show, at minimum:
+The clean Website 4.3 Figma source of truth includes:
 
 - Layout-contract/foundation page.
-- Canonical frames: 390, 820, 1440.
-- Transition-reference frames: 600, 1100.
-- Wide-desktop QA frame: 1728 (1920 may remain QA-only if no separate visual decision exists).
-- Visible shell/gutter annotations.
-- Full-bleed outer section separated from centered inner content shell.
+- Canonical component variants: 390, 820, 1440, 1728.
+- Responsive QA matrix including transition/wide references.
+- Real-page canonical frames at 390, 820 and 1440 for Home, Blog Archive, Blog Article, Financial Health Check, CI Planning, Privacy, Cookie Policy and 404.
+- Visible shell/gutter behavior separated from full-bleed outer regions.
+- A Screen Coverage section on `14 — Website 4.3 · Source of Truth` so missing page coverage is visible during review.
+
+The reusable `Layout / Centered Shell` component binds its left and right padding to the same `Shell/Edge` responsive variable. Use it instead of redrawing page-shell geometry manually.
 
 Figma should describe the same contract as code; it should not contain independent left/right measurements that require developers to reverse-engineer page-specific behavior.
 
-The reusable `Layout / Centered Shell` component in the clean file binds its left and right padding to the same `Shell/Edge` responsive variable. Use it instead of redrawing page-shell geometry manually.
+The current Figma screens are editable structural source-of-truth frames built from the code contract. Live browser capture remains a visual-diff aid, not the horizontal-layout authority; if authenticated capture is unavailable, do not claim pixel-perfect browser verification from the Figma structure alone.
 
 ## Change policy
 
-If a future design requires a different maximum shell width, gutter model or canonical breakpoint, change the contract, implementation token(s), Figma foundations and regression test in the same branch/PR. Do not change one layer independently.
+If a future design requires a different maximum shell width, gutter model or canonical breakpoint, change the contract, implementation token(s), Figma foundations, affected screen pages and regression test in the same branch/PR. Do not change one layer independently.
