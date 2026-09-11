@@ -1,4 +1,4 @@
-import type { SanityClient, SanityDocument } from "@sanity/client";
+import type { SanityClient, SanityDocument } from "sanity";
 
 export type PublishableArticle = SanityDocument & {
   publishedAt?: string;
