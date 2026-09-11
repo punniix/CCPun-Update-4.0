@@ -179,7 +179,7 @@
 .homeHeroPicture img { object-fit: cover; object-position: left center; }
 .homeHeroGradient { position: absolute; inset: 0; width: min(1120px, 100%); background: linear-gradient(90deg,rgba(6,11,9,.94) 0%,rgba(6,11,9,.72) 48%,rgba(6,11,9,.22) 78%,rgba(6,11,9,0) 100%); }
 .homeHeroBottomGradient { display: none; }
-.homeHeroCopy { position: absolute; z-index: 5; top: 196px; left: max(80px, calc((100vw - 1280px) / 2)); width: 760px; }
+.homeHeroCopy { position: absolute; z-index: 5; top: 196px; left: var(--w43-hero-gutter, 80px); width: 760px; }
 .homeHeroCopy .eyebrow { font-size: 15px; line-height: 22px; }
 .homeHeroTitle { min-height: 180px; margin: 22px 0 0; font-size: 44px; font-weight: 700; line-height: 60px; }
 .homeHeroTitle .homeHeroWord { white-space: nowrap; }
@@ -279,7 +279,7 @@
 .blogHero { position: relative; height: 430px; overflow: hidden; background: var(--w43-deep); }
 .blogHeroImage { position: absolute; inset: 0 0 0 auto; width: 810px; height: 430px; object-fit: cover; }
 .blogHeroGradient { position: absolute; inset: 0 auto 0 0; width: 1120px; background: linear-gradient(90deg,rgba(14,10,10,.99) 0%,rgba(18,12,12,.96) 46%,rgba(24,15,15,.66) 72%,rgba(24,15,15,.18) 90%,rgba(24,15,15,0) 100%); }
-.blogHeroCopy { position: absolute; z-index: 4; top: 188px; left: max(80px, calc((100vw - 1280px)/2)); }
+.blogHeroCopy { position: absolute; z-index: 4; top: 188px; left: var(--w43-hero-gutter, 80px); }
 .blogHeroCopy h1 { margin: 0; font-size: 44px; line-height: 58px; font-weight: 700; }
 .blogHeroCopy p { margin: 12px 0 0; color: var(--w43-muted); font-size: 16px; line-height: 1.5; }
 .blogContent { position: relative; padding: 48px 80px 80px; background: var(--w43-bg); }
@@ -348,7 +348,7 @@
 .toolHero::after { content: ''; position: absolute; z-index: 1; right: 0; bottom: 0; left: 0; height: 170px; pointer-events: none; background: linear-gradient(180deg,rgba(6,11,9,0) 0%,rgba(6,11,9,.58) 56%,#060b09 100%); }
 .toolHeroImage { position: absolute; inset: 0 0 0 auto; width: 820px; height: 620px; object-fit: contain; }
 .toolHeroGradient { position: absolute; top: 0; bottom: 0; left: 360px; width: 720px; background: linear-gradient(90deg,rgba(6,11,9,1) 0%,rgba(6,11,9,.96) 34%,rgba(6,11,9,.66) 58%,rgba(6,11,9,.16) 84%,rgba(6,11,9,0) 100%); }
-.toolHeroCopy { position: absolute; z-index: 4; left: max(80px,calc((100vw - 1280px)/2)); top: 198px; width: 720px; }
+.toolHeroCopy { position: absolute; z-index: 4; left: var(--w43-hero-gutter, 80px); top: 198px; width: 720px; }
 .toolBadge { display: inline-flex; min-height: 32px; align-items: center; padding: 5px 12px; border: 1px solid rgba(224,201,133,.35); border-radius: 999px; background: rgba(224,201,133,.08); color: var(--w43-gold); font-size: 13px; font-weight: 600; }
 .toolTitle { margin: 20px 0 0; font-size: 42px; font-weight: 700; line-height: 1.24; }
 .toolTitleGold { color: var(--w43-gold); }

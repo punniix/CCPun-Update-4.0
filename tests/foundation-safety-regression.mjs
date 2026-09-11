@@ -79,7 +79,7 @@ expect(
   'Website 4.3 CI uses the Figma segmented progress treatment only in its scoped variant',
   ciProgress.includes('website43?: boolean;')
     && ciProgress.includes('if (website43)')
-    && ciProgress.includes("'mt-3 grid grid-cols-2 gap-1.5'")
+    && ciProgress.includes('className="mt-3 grid grid-cols-2 gap-1.5"')
     && ciProgress.includes("idx <= currentStep ? 'bg-primary' : 'bg-muted'")
     && ciWizard.includes('website43={subtleMotion}')
     && ciWebsite43Preview.includes('<CIWizard subtleMotion />'),

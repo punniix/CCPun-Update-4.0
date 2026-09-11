@@ -1,21 +1,19 @@
 import styles from './Website43.module.css';
 
 /**
- * Visual interpolation bridge for Website 4.3.
+ * Responsive interpolation bridge for Website 4.3.
  *
- * Figma remains canonical at 390 / 820 / 1440. The 600 and 1100 layouts are
- * transition references only; they do not introduce new responsive modes.
- * This stylesheet interpolates inside the existing <=639, 640-1023, and
- * >=1024 mode boundaries. There are deliberately no 600px / 1100px media
- * queries.
+ * Canonical design modes remain 390 / 820 / 1440. 600 and 1100 are transition
+ * QA references only. This layer owns interpolation and component geometry;
+ * horizontal page-shell centering belongs exclusively to
+ * Website43LayoutContractStyles.
  */
 export function Website43TransitionStyles() {
   const css = String.raw`
 .${styles.root} {
   --w43-nav-gutter: clamp(56px, calc(7.05882vw - 21.6471px), 80px);
-  --w43-content-gutter: 80px;
-  --w43-hero-gutter: clamp(61.111px, 5.55556vw, 80px);
-  --w43-shell-width: min(calc(100vw - 112px), clamp(988px, calc(85.8824vw + 43.0588px), 1280px));
+  --w43-content-gutter: var(--w43-nav-gutter);
+  --w43-hero-gutter: var(--w43-nav-gutter);
 }
 
 .${styles.navBand} {
@@ -41,28 +39,16 @@ export function Website43TransitionStyles() {
   padding-right: var(--w43-content-gutter);
 }
 
-.${styles.section} > .${styles.inner},
-.${styles.sectionDeep} > .${styles.inner},
-.${styles.blogContent} > .${styles.inner},
-.${styles.articleHeader} > .${styles.inner},
-.${styles.legalHeader} > .${styles.inner},
-.${styles.legalBody} > .${styles.inner},
-.${styles.footerWrap} > .${styles.inner} {
-  width: var(--w43-shell-width);
-  max-width: none;
-  margin-left: 0;
-  margin-right: 0;
-}
-
 .${styles.about} {
-  padding-left: var(--w43-hero-gutter);
-  padding-right: var(--w43-hero-gutter);
+  padding-left: var(--w43-content-gutter);
+  padding-right: var(--w43-content-gutter);
 }
 
 .${styles.homeHeroCopy} {
   left: var(--w43-hero-gutter);
 }
 
+/* Full-bleed hero imagery may interpolate independently from the shared shell. */
 .${styles.blogHeroImage} {
   inset: 18px 0 auto auto;
   width: clamp(710px, calc(61.7647vw + 30.5882px), 920px);
@@ -93,7 +79,7 @@ export function Website43TransitionStyles() {
   width: clamp(620px, calc(29.4118vw + 296.4706px), 720px);
 }
 .${styles.toolHeroCopy} {
-  left: var(--w43-nav-gutter);
+  left: var(--w43-hero-gutter);
   top: 128px;
   width: clamp(700px, calc(17.6471vw + 505.8824px), 760px);
 }
@@ -116,19 +102,12 @@ export function Website43TransitionStyles() {
   grid-template-columns: clamp(236px, calc(18.8235vw + 28.9412px), 300px) minmax(0, 720px);
   gap: clamp(32px, calc(2.35294vw + 6.11765px), 40px);
 }
-.${styles.legalGrid} {
-  width: min(988px, calc(100vw - 112px));
-  max-width: none;
-  margin-left: 0;
-  margin-right: 0;
-}
 
 @media (max-width: 1023px) {
   .${styles.root} {
     --w43-nav-gutter: 40px;
     --w43-content-gutter: 40px;
     --w43-hero-gutter: 40px;
-    --w43-shell-width: 100%;
   }
 
   .${styles.navBand},
@@ -138,17 +117,6 @@ export function Website43TransitionStyles() {
   }
   .${styles.navOverlay} {
     width: calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter));
-  }
-
-  .${styles.section} > .${styles.inner},
-  .${styles.sectionDeep} > .${styles.inner},
-  .${styles.blogContent} > .${styles.inner},
-  .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
-  .${styles.footerWrap} > .${styles.inner} {
-    width: 100%;
-    max-width: none;
   }
 
   .${styles.homeHeroCopy} {
@@ -173,7 +141,7 @@ export function Website43TransitionStyles() {
   }
   .${styles.blogHeroCopy} {
     top: 150px;
-    left: 40px;
+    left: var(--w43-hero-gutter);
   }
 
   .${styles.toolHero} {
@@ -192,8 +160,8 @@ export function Website43TransitionStyles() {
   }
   .${styles.toolHeroCopy} {
     top: 104px;
-    left: 40px;
-    width: min(620px, calc(100% - 80px));
+    left: var(--w43-hero-gutter);
+    width: min(620px, calc(100% - var(--w43-hero-gutter) - var(--w43-hero-gutter)));
   }
   .${styles.toolTitle} {
     font-size: 38px;
@@ -211,10 +179,6 @@ export function Website43TransitionStyles() {
     grid-template-columns: 200px minmax(0, 1fr);
     gap: 32px;
   }
-  .${styles.legalGrid} {
-    width: 100%;
-    max-width: none;
-  }
 }
 
 @media (max-width: 639px) {
@@ -223,7 +187,6 @@ export function Website43TransitionStyles() {
     --w43-content-gutter: 24px;
     --w43-hero-gutter: clamp(24px, calc(11.4286vw - 20.5714px), 48px);
     --w43-mobile-reading-width: min(calc(100vw - 48px), clamp(342px, calc(77.1429vw + 41.1429px), 504px));
-    --w43-shell-width: var(--w43-mobile-reading-width);
   }
 
   .${styles.navBand},
@@ -251,23 +214,9 @@ export function Website43TransitionStyles() {
     padding-right: var(--w43-content-gutter);
   }
 
-  .${styles.section} > .${styles.inner},
-  .${styles.sectionDeep} > .${styles.inner},
-  .${styles.blogContent} > .${styles.inner},
-  .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
-  .${styles.footerWrap} > .${styles.inner},
-  .${styles.aboutInner} {
-    width: var(--w43-mobile-reading-width);
-    max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
-  }
-
   .${styles.about} {
-    padding-left: 24px;
-    padding-right: 24px;
+    padding-left: var(--w43-content-gutter);
+    padding-right: var(--w43-content-gutter);
   }
 
   .${styles.homeHeroCopy} {
@@ -277,21 +226,14 @@ export function Website43TransitionStyles() {
   .${styles.homeHeroTitle} {
     width: 100%;
   }
-  .${styles.threeCols} {
-    width: var(--w43-mobile-reading-width);
-    max-width: 100%;
-    justify-items: start;
-  }
-  .${styles.threeCols} > * {
-    width: min(342px, 100%);
-  }
+  .${styles.threeCols},
   .${styles.stats} {
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
-    justify-items: start;
   }
+  .${styles.threeCols} > *,
   .${styles.stats} > * {
-    width: min(342px, 100%);
+    width: 100%;
   }
 
   .${styles.blogHero} {
@@ -335,14 +277,10 @@ export function Website43TransitionStyles() {
     display: block;
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
   }
   .${styles.legalGrid} {
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
   }
 
   .${styles.toolHero} {
