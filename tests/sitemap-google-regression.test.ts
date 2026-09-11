@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import type { SanityClient } from "@sanity/client";
+import type { SanityClient } from "sanity";
 import { articlePublishBlock, publishApprovedArticle, type PublishableArticle } from "../cms/sanity/policy/article-publication";
 import {
   latestSitemapLastmod,
