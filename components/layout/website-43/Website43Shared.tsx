@@ -138,7 +138,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
           </div>
           <div className={styles.footerRule} />
           <p className={styles.footerDisclaimer}>ข้อมูลบนเว็บไซต์มีวัตถุประสงค์เพื่อให้ความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล</p>
-          <p className={styles.footerCopyright}>© 2026 CCPUN · ที่ปรึกษาการเงินส่วนบุคคล</p>
+          <p className={styles.footerCopyright}>© 2026 CCPUN · ที่ปรึกษาทางการเงิน และผู้วางแผนการลงทุน</p>
         </div>
 
         <div className={`${styles.footerCompact} ${notFound ? styles.notFoundFooterCompact : ''}`}>
