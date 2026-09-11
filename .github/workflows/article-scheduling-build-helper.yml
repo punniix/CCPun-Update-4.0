@@ -2,72 +2,47 @@ name: Article scheduling build helper
 
 on:
   push:
-    branches:
-      - feature/free-plan-article-scheduling-20260911
-    paths:
-      - .github/workflows/article-scheduling-build-helper.yml
+    branches: [feature/free-plan-article-scheduling-20260911]
+    paths: [.github/workflows/article-scheduling-build-helper.yml]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  verify:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
           cache: npm
-      - name: Install durable workflow runtime
-        run: npm install workflow
-      - name: Align reviewed scheduling contracts
+      - run: npm ci
+      - name: Inspect installed framework documentation
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          studio = Path('tests/admin/studio-boundary.test.ts')
-          text = studio.read_text()
-          old = '''  assert.deepEqual(getStudioPublishingOptions("production", "local-production", PRODUCTION_SANITY_PROJECT_ID), {\n    releases: { enabled: true },\n    scheduledDrafts: { enabled: true },\n    scheduledPublishing: { enabled: false },\n  });'''
-          new = '''  assert.deepEqual(getStudioPublishingOptions("production", "local-production", PRODUCTION_SANITY_PROJECT_ID), {\n    releases: { enabled: false },\n    scheduledDrafts: { enabled: false },\n    scheduledPublishing: { enabled: false },\n  });'''
-          if old not in text:
-              raise SystemExit('Expected Studio scheduling assertion not found')
-          studio.write_text(text.replace(old, new))
-
-          inventory = Path('tests/admin/admin-api-inventory.test.ts')
-          text = inventory.read_text()
-          methods_old = '  methods: Array<"GET" | "POST">;'
-          methods_new = '  methods: Array<"GET" | "POST" | "DELETE">;'
-          if methods_old not in text:
-              raise SystemExit('Expected API method type not found')
-          text = text.replace(methods_old, methods_new, 1)
-
-          matcher_old = '/export async function (GET|POST)/g'
-          matcher_new = '/export async function (GET|POST|DELETE)/g'
-          if matcher_old not in text:
-              raise SystemExit('Expected API method matcher not found')
-          text = text.replace(matcher_old, matcher_new, 1)
-
-          anchor = '''  "app/api/snt-admin/content/[id]/preview/route.ts": {\n    methods: ["POST"], identity: /getAdminIdentity\\(\\)/, authorization: /"draft:apply"/,\n    validation: { file: "app/api/snt-admin/content/[id]/preview/route.ts", pattern: /articleIdSchema\\.safeParse/, },\n  },\n'''
-          addition = anchor + '''  "app/api/snt-admin/content/[id]/schedule/route.ts": {\n    methods: ["GET", "POST", "DELETE"], identity: /getAdminIdentity\\(\\)/, authorization: /"content:schedule"/,\n    validation: { file: "app/api/snt-admin/content/[id]/schedule/route.ts", pattern: /bodySchema\\.safeParse\\(await request\\.json\\(\\)\\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },\n  },\n'''
-          if anchor not in text:
-              raise SystemExit('Expected content preview contract anchor not found')
-          inventory.write_text(text.replace(anchor, addition, 1))
+          roots = [Path('node_modules/next/dist/docs'), Path('node_modules/workflow/docs')]
+          targets = []
+          for root in roots:
+              for p in root.rglob('*'):
+                  if p.is_file() and p.suffix in ('.md', '.mdx') and (p.stem in ('route', 'route-handlers', 'sleep', 'start', 'with-workflow') or str(p).endswith('getting-started/next.mdx')):
+                      targets.append(p)
+          for p in sorted(targets):
+              print('\n=== ' + str(p) + ' ===\n' + p.read_text()[:20000])
+          for p in Path('node_modules/workflow/docs').rglob('*.mdx'):
+              text = p.read_text()
+              if 'maxRetries' in text:
+                  idx = text.index('maxRetries')
+                  print('\n=== RETRY: ' + str(p) + ' ===\n' + text[max(0, idx-800):idx+2200])
           PY
-      - name: Foundation checks
-        run: npm run check:foundation
-      - name: Production-parity build
-        run: npm run build
-      - name: Diff check
-        run: git diff --check
-      - name: Commit dependency and reviewed contracts
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json tests/admin/studio-boundary.test.ts tests/admin/admin-api-inventory.test.ts
-          git commit -m "feat: wire durable workflow dependency for article scheduling"
-          git push origin HEAD:feature/free-plan-article-scheduling-20260911
-# verification rerun 5
+      - name: Export tracked source for scoped review
+        run: git archive --format=tar.gz HEAD -o /tmp/scheduling-source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scheduling-source
+          path: /tmp/scheduling-source.tar.gz
+          retention-days: 1
