@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import styles from './Website43.module.css';
 import { Website43FinalPolishStyles } from './Website43FinalPolishStyles';
+import { Website43LayoutContractStyles } from './Website43LayoutContractStyles';
 import { Website43TransitionStyles } from './Website43TransitionStyles';
 import { WEBSITE43_BASE as BASE } from './constants';
 
@@ -36,6 +37,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
     <div className={styles.nav}>
       <Website43TransitionStyles />
       <Website43FinalPolishStyles />
+      <Website43LayoutContractStyles />
       <Link href={BASE} aria-label="CCPUN หน้าแรก"><Website43Brand /></Link>
       <div className={styles.navSpacer} />
       <nav className={styles.navLinks} aria-label="เมนูหลัก">
