@@ -24,13 +24,14 @@ export async function openArticleScheduleStore(): Promise<ScheduleStore> {
   if (!lane) throw new ArticleScheduleError("not-ready");
   const expected = SCHEDULER_LANES[lane];
   // Never fall back to social, owner, backfill or generic DATABASE_URL credentials.
-  const sql = neon(process.env.CCPUN_ADMIN_DATABASE_URL!, { fetchOptions: { signal: AbortSignal.timeout(10_000) } });
+  const connectionString = process.env.CCPUN_ADMIN_DATABASE_URL!;
+  const freshSql = () => neon(connectionString, { fetchOptions: { signal: AbortSignal.timeout(10_000) } });
   const identitySchema = z.object({ database_name: z.literal("neondb"), role_name: z.literal(SCHEDULER_ROLE), lane: z.literal(lane),
     project_id: z.literal(expected.projectId), branch_id: z.literal(expected.branchId), endpoint_id: z.literal(expected.endpointId),
     sanity_project_id: z.literal(expected.sanityProjectId), sanity_dataset: z.literal(expected.dataset), mode: z.literal(expected.mode),
     enabled: z.boolean(), migration_version: z.literal(ARTICLE_SCHEDULER_MIGRATION), migration_checksum: z.literal(ARTICLE_SCHEDULER_CHECKSUM) });
   async function verifyIdentity() {
-    const rows = await sql.query(`SELECT current_database() AS database_name,current_user AS role_name,
+    const rows = await freshSql().query(`SELECT current_database() AS database_name,current_user AS role_name,
       lane,project_id,branch_id,endpoint_id,sanity_project_id,sanity_dataset,mode,enabled,migration_version,migration_checksum
       FROM ccpun_admin.article_scheduler_identity WHERE singleton=true`);
     const parsed = z.array(identitySchema).length(1).safeParse(rows);
@@ -41,7 +42,7 @@ export async function openArticleScheduleStore(): Promise<ScheduleStore> {
   async function query(statement: string, parameters: unknown[]) {
     // Recheck the durable data-plane identity on every operation, including pinned workflows.
     await verifyIdentity();
-    return sql.query(statement, parameters);
+    return freshSql().query(statement, parameters);
   }
   async function one(statement: string, parameters: unknown[]) {
     const rows = z.array(scheduleRowSchema).max(1).parse(await query(statement, parameters));
