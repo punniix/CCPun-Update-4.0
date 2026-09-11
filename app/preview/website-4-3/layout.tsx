@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import Website43MotionBoundary from '@/features/website-43-uat/Website43MotionBoundary';
 
 export const metadata: Metadata = {
@@ -10,7 +9,7 @@ export const metadata: Metadata = {
 export default function Website43PreviewLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
+      <script src="/preview/website-4-3/figma-capture" async />
       <Website43MotionBoundary>{children}</Website43MotionBoundary>
     </>
   );
