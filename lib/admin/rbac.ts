@@ -8,6 +8,7 @@ export const ADMIN_PERMISSIONS = [
   "dashboard:read",
   "content:read",
   "content:propose",
+  "content:schedule",
   "seo:read",
   "seo:propose",
   "research:read",
