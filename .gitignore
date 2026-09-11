@@ -63,3 +63,7 @@ next-env.d.ts
 # Local CCPun Admin launcher runtime/build output
 /.ccpun-local/
 /tools/local-admin/dist/
+
+# Workflow SDK generated transport and local execution data
+/.workflow-data/
+/app/.well-known/workflow/
