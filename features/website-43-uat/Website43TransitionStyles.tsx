@@ -1,20 +1,19 @@
 import styles from './Website43.module.css';
 
 /**
- * Visual interpolation bridge for Website 4.3.
+ * Responsive interpolation bridge for Website 4.3.
  *
- * Figma remains canonical at 390 / 820 / 1440. The 600 and 1100 layouts are
- * transition references only; they do not introduce new responsive modes.
- * This stylesheet interpolates inside the existing <=639, 640-1023, and
- * >=1024 mode boundaries. There are deliberately no 600px / 1100px media
- * queries.
+ * Canonical design modes remain 390 / 820 / 1440. 600 and 1100 are transition
+ * QA references only. This layer owns interpolation and component geometry;
+ * horizontal page-shell centering belongs exclusively to
+ * Website43LayoutContractStyles.
  */
 export function Website43TransitionStyles() {
   const css = String.raw`
 .${styles.root} {
   --w43-nav-gutter: clamp(56px, calc(7.05882vw - 21.6471px), 80px);
-  --w43-content-gutter: 80px;
-  --w43-hero-gutter: clamp(61.111px, 5.55556vw, 80px);
+  --w43-content-gutter: var(--w43-nav-gutter);
+  --w43-hero-gutter: var(--w43-nav-gutter);
   --w43-shell-width: min(calc(100vw - 112px), clamp(988px, calc(85.8824vw + 43.0588px), 1280px));
 }
 
@@ -50,19 +49,18 @@ export function Website43TransitionStyles() {
 .${styles.footerWrap} > .${styles.inner} {
   width: var(--w43-shell-width);
   max-width: none;
-  margin-left: 0;
-  margin-right: 0;
 }
 
 .${styles.about} {
-  padding-left: var(--w43-hero-gutter);
-  padding-right: var(--w43-hero-gutter);
+  padding-left: var(--w43-content-gutter);
+  padding-right: var(--w43-content-gutter);
 }
 
 .${styles.homeHeroCopy} {
   left: var(--w43-hero-gutter);
 }
 
+/* Full-bleed hero imagery may interpolate independently from the shared shell. */
 .${styles.blogHeroImage} {
   inset: 18px 0 auto auto;
   width: clamp(710px, calc(61.7647vw + 30.5882px), 920px);
@@ -93,7 +91,7 @@ export function Website43TransitionStyles() {
   width: clamp(620px, calc(29.4118vw + 296.4706px), 720px);
 }
 .${styles.toolHeroCopy} {
-  left: var(--w43-nav-gutter);
+  left: var(--w43-hero-gutter);
   top: 128px;
   width: clamp(700px, calc(17.6471vw + 505.8824px), 760px);
 }
@@ -119,8 +117,6 @@ export function Website43TransitionStyles() {
 .${styles.legalGrid} {
   width: min(988px, calc(100vw - 112px));
   max-width: none;
-  margin-left: 0;
-  margin-right: 0;
 }
 
 @media (max-width: 1023px) {
@@ -173,7 +169,7 @@ export function Website43TransitionStyles() {
   }
   .${styles.blogHeroCopy} {
     top: 150px;
-    left: 40px;
+    left: var(--w43-hero-gutter);
   }
 
   .${styles.toolHero} {
@@ -192,8 +188,8 @@ export function Website43TransitionStyles() {
   }
   .${styles.toolHeroCopy} {
     top: 104px;
-    left: 40px;
-    width: min(620px, calc(100% - 80px));
+    left: var(--w43-hero-gutter);
+    width: min(620px, calc(100% - var(--w43-hero-gutter) - var(--w43-hero-gutter)));
   }
   .${styles.toolTitle} {
     font-size: 38px;
@@ -261,13 +257,11 @@ export function Website43TransitionStyles() {
   .${styles.aboutInner} {
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
   }
 
   .${styles.about} {
-    padding-left: 24px;
-    padding-right: 24px;
+    padding-left: var(--w43-content-gutter);
+    padding-right: var(--w43-content-gutter);
   }
 
   .${styles.homeHeroCopy} {
@@ -277,21 +271,14 @@ export function Website43TransitionStyles() {
   .${styles.homeHeroTitle} {
     width: 100%;
   }
-  .${styles.threeCols} {
-    width: var(--w43-mobile-reading-width);
-    max-width: 100%;
-    justify-items: start;
-  }
-  .${styles.threeCols} > * {
-    width: min(342px, 100%);
-  }
+  .${styles.threeCols},
   .${styles.stats} {
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
-    justify-items: start;
   }
+  .${styles.threeCols} > *,
   .${styles.stats} > * {
-    width: min(342px, 100%);
+    width: 100%;
   }
 
   .${styles.blogHero} {
@@ -335,14 +322,10 @@ export function Website43TransitionStyles() {
     display: block;
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
   }
   .${styles.legalGrid} {
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
   }
 
   .${styles.toolHero} {
