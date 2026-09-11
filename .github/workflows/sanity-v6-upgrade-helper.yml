@@ -53,3 +53,5 @@ jobs:
           git add package.json package-lock.json
           git commit -m "chore: upgrade Sanity Studio to v6"
           git push origin HEAD:chore/sanity-v6-upgrade-20260911
+
+# compatibility pass 3
