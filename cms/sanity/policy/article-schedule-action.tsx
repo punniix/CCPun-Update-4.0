@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { DocumentActionComponent } from "sanity";
+import type { PublishableArticle } from "./article-publication";
 import type { AdminEnvironment } from "../../../lib/admin/environment";
 
 type ScheduleState = {
@@ -35,9 +36,10 @@ function formatBangkok(value?: string) {
   }).format(new Date(value));
 }
 
-export function createArticleScheduleAction(environment: AdminEnvironment): DocumentActionComponent {
+export function createArticleScheduleAction(): DocumentActionComponent {
   const ArticleScheduleAction: DocumentActionComponent = (props) => {
     const logicalId = props.id.replace(/^drafts\./, "");
+    const draft = props.draft as PublishableArticle | null;
     const [open, setOpen] = useState(false);
     const [scheduledLocal, setScheduledLocal] = useState(defaultBangkokLocal);
     const [schedule, setSchedule] = useState<ScheduleState | null>(null);
@@ -55,7 +57,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
         .then(async (response) => response.ok ? response.json() : null)
         .then((payload) => {
           if (cancelled) return;
-          const next = payload?.schedule ?? null;
+          const next = (payload?.schedule ?? null) as ScheduleState | null;
           setSchedule(next);
           if (next?.scheduledAt) {
             const parts = new Intl.DateTimeFormat("en-CA", {
@@ -87,7 +89,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
         });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload?.error || "ตั้งเวลาไม่สำเร็จ");
-        setSchedule(payload.schedule ?? null);
+        setSchedule((payload.schedule ?? null) as ScheduleState | null);
         setOpen(false);
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "ตั้งเวลาไม่สำเร็จ");
@@ -103,7 +105,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
         const response = await fetch(endpoint, { method: "DELETE", credentials: "same-origin" });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload?.error || "ยกเลิกไม่สำเร็จ");
-        setSchedule(payload.schedule ?? null);
+        setSchedule((payload.schedule ?? null) as ScheduleState | null);
         setOpen(false);
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "ยกเลิกไม่สำเร็จ");
@@ -119,7 +121,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
     return {
       label: scheduledLabel,
       title: "ตั้งเวลาเผยแพร่บทความด้วยเวลาประเทศไทย (Asia/Bangkok)",
-      disabled: busy || !props.draft || props.draft?.review?.status !== "approved",
+      disabled: busy || !draft || draft.review?.status !== "approved",
       onHandle: () => setOpen(true),
       dialog: open ? {
         type: "dialog",
@@ -160,7 +162,6 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
       } : null,
     };
   };
-  ArticleScheduleAction.action = "ccpunSchedule";
   ArticleScheduleAction.displayName = "CCPunArticleScheduleAction";
   return ArticleScheduleAction;
 }
@@ -171,5 +172,5 @@ export function appendArticleScheduleAction(
   schemaType?: string,
 ) {
   if (environment !== "production-admin" || schemaType !== "article") return actions;
-  return [...actions, createArticleScheduleAction(environment)];
+  return [...actions, createArticleScheduleAction()];
 }
