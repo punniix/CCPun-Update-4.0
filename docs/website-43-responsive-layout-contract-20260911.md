@@ -36,6 +36,7 @@ Clean Figma source of truth:
   - `S07 — Cookie Policy`
   - `S08 — 404`
 - Every screen page contains canonical `390 / 820 / 1440` frames and uses the shared responsive layout variables rather than a page-specific shell model.
+- Each of the eight page boards was rendered through Figma screenshot output after creation to verify that the board is visible and not an empty/page-name-only placeholder.
 - Treat the older CCPun UX/UI file and Website 4.3 experiment frames as archive/reference, not horizontal-layout authority.
 
 Do not use archived Website 4.3 experiment frames as layout authority.
