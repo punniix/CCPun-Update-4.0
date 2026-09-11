@@ -2,8 +2,6 @@ name: Sanity Free-plan privacy boundary
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "15 2 * * *"
   pull_request:
     branches: [v4-production]
     paths:
