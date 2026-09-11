@@ -19,6 +19,13 @@ For horizontal layout decisions, use this order:
 3. Clean Figma responsive source-of-truth frames that implement this contract.
 4. Transition/final-polish styles only for component-level interpolation and visual tuning.
 
+Clean Figma source of truth:
+
+- `CCPun Website 4.3 — Responsive Source of Truth`
+- https://www.figma.com/design/GnY9j08aOonw70CA1memRK
+- Use `02 — Foundations`, `03 — Components`, `14 — Website 4.3 · Source of Truth`, and `90 — Responsive QA` as the active layout references.
+- Treat the older CCPun UX/UI file and Website 4.3 experiment frames as archive/reference, not horizontal-layout authority.
+
 Do not use archived Website 4.3 experiment frames as layout authority.
 
 ## Core composition rule
@@ -143,6 +150,8 @@ The clean Website 4.3 Figma source of truth should show, at minimum:
 - Full-bleed outer section separated from centered inner content shell.
 
 Figma should describe the same contract as code; it should not contain independent left/right measurements that require developers to reverse-engineer page-specific behavior.
+
+The reusable `Layout / Centered Shell` component in the clean file binds its left and right padding to the same `Shell/Edge` responsive variable. Use it instead of redrawing page-shell geometry manually.
 
 ## Change policy
 
