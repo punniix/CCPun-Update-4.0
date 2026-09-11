@@ -9,8 +9,8 @@ import {
   markScheduleStartFailed,
   prepareArticleSchedule,
 } from "@/lib/admin/article-scheduling";
+import { scheduledArticlePublicationWorkflow } from "@/lib/admin/article-publication-workflow";
 import { bangkokLocalDateTimeToIso } from "@/cms/sanity/policy/article-scheduling";
-import { scheduledArticlePublicationWorkflow } from "@/workflows/article-publication";
 
 const bodySchema = z.object({
   scheduledLocal: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
