@@ -1,0 +1,36 @@
+name: Sanity Free-plan privacy boundary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 2 * * *"
+  pull_request:
+    branches: [v4-production]
+    paths:
+      - .github/workflows/sanity-free-plan-privacy.yml
+      - qa/sanity-free-plan-privacy.mjs
+      - tests/sanity-free-plan-privacy.test.mjs
+      - cms/sanity/**
+      - lib/admin/**
+      - lib/content/sanity.ts
+      - lib/sanity-live.ts
+      - sanity.config.ts
+
+permissions:
+  contents: read
+
+jobs:
+  privacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test fail-closed privacy assertions
+        run: node --test tests/sanity-free-plan-privacy.test.mjs
+      - name: Anonymous Sanity API and CDN reads across Free-plan datasets
+        run: node qa/sanity-free-plan-privacy.mjs
