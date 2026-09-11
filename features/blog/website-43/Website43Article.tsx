@@ -97,8 +97,8 @@ function renderBody(items: ArticleBlock[], headingIds: Map<number, string>) {
 export default function Website43Article({ article, relatedArticles = [], preview = false }: { article: Article; relatedArticles?: Article[]; preview?: boolean }) {
   const author = {
     name: article.author?.profileName ?? article.author?.name ?? article.authorName ?? 'ชนาธิป ชิตประเสริฐ',
-    role: article.author?.profileRole ?? 'ที่ปรึกษาการเงินส่วนบุคคล',
-    bio: article.author?.profileBio ?? 'ผู้แนะนำการลงทุนและตัวแทนประกันชีวิต เน้นอธิบายจากเป้าหมายและสถานการณ์จริง เพื่อช่วยให้เห็นภาพรวมก่อนตัดสินใจ',
+    role: 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน',
+    bio: 'ในฐานะที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน ผมเริ่มจากเป้าหมาย ความเสี่ยง และสถานการณ์ของแต่ละคน ก่อนช่วยพิจารณาทางเลือกด้านการลงทุนหรือประกันให้เหมาะกับชีวิตจริง',
     profileCtaLabel: article.author?.profileCtaLabel ?? 'รู้จัก CCPun เพิ่มเติม',
     profileCtaUrl: article.author?.profileCtaUrl?.startsWith('#') ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? '/#about-ccpun',
     avatar: article.author?.profileAvatar ?? { src: '/assets/pun.jpg', alt: 'ชนาธิป ชิตประเสริฐ', width: 96, height: 96 },
