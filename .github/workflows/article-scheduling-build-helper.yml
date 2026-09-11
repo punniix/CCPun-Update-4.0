@@ -49,3 +49,4 @@ jobs:
           git add package.json package-lock.json tests/admin/studio-boundary.test.ts
           git commit -m "feat: wire durable workflow dependency for article scheduling"
           git push origin HEAD:feature/free-plan-article-scheduling-20260911
+# verification rerun 2
