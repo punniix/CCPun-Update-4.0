@@ -12,3 +12,5 @@ Use, in order:
 This pointer never authorizes push, merge, deployment, environment mutation or data mutation.
 
 Website 4.3 motion reference: [`website-43-motion-uat.md`](./website-43-motion-uat.md), with scope/evidence/next owner in workspace receipt `website43-motion-uat-20260909`. Read current GitHub and Vercel state rather than inferring delivery from this reference.
+
+Website 4.3 responsive layout reference: [`website-43-responsive-layout-contract-20260911.md`](./website-43-responsive-layout-contract-20260911.md). Shared-shell centering, gutters, wide-screen alignment and Figma responsive frames must follow that contract. Treat this as UAT work until live PR/check/deployment state and explicit Production authorization say otherwise.
