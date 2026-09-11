@@ -24,17 +24,32 @@ jobs:
           cache: npm
       - name: Install durable workflow runtime
         run: npm install workflow
-      - name: Align Studio boundary expectation with Free-plan scheduler
+      - name: Align reviewed scheduling contracts
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path('tests/admin/studio-boundary.test.ts')
-          text = path.read_text()
+
+          studio = Path('tests/admin/studio-boundary.test.ts')
+          text = studio.read_text()
           old = '''  assert.deepEqual(getStudioPublishingOptions("production", "local-production", PRODUCTION_SANITY_PROJECT_ID), {\n    releases: { enabled: true },\n    scheduledDrafts: { enabled: true },\n    scheduledPublishing: { enabled: false },\n  });'''
           new = '''  assert.deepEqual(getStudioPublishingOptions("production", "local-production", PRODUCTION_SANITY_PROJECT_ID), {\n    releases: { enabled: false },\n    scheduledDrafts: { enabled: false },\n    scheduledPublishing: { enabled: false },\n  });'''
           if old not in text:
               raise SystemExit('Expected Studio scheduling assertion not found')
-          path.write_text(text.replace(old, new))
+          studio.write_text(text.replace(old, new))
+
+          inventory = Path('tests/admin/admin-api-inventory.test.ts')
+          text = inventory.read_text()
+          methods_old = '  methods: Array<"GET" | "POST">;'
+          methods_new = '  methods: Array<"GET" | "POST" | "DELETE">;'
+          if methods_old not in text:
+              raise SystemExit('Expected API method type not found')
+          text = text.replace(methods_old, methods_new, 1)
+
+          anchor = '''  "app/api/snt-admin/content/[id]/preview/route.ts": {\n    methods: ["POST"], identity: /getAdminIdentity\\(\\)/, authorization: /"draft:apply"/,\n    validation: { file: "app/api/snt-admin/content/[id]/preview/route.ts", pattern: /articleIdSchema\\.safeParse/, },\n  },\n'''
+          addition = anchor + '''  "app/api/snt-admin/content/[id]/schedule/route.ts": {\n    methods: ["GET", "POST", "DELETE"], identity: /getAdminIdentity\\(\\)/, authorization: /"content:schedule"/,\n    validation: { file: "app/api/snt-admin/content/[id]/schedule/route.ts", pattern: /bodySchema\\.safeParse\\(await request\\.json\\(\\)\\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },\n  },\n'''
+          if anchor not in text:
+              raise SystemExit('Expected content preview contract anchor not found')
+          inventory.write_text(text.replace(anchor, addition, 1))
           PY
       - name: Foundation checks
         run: npm run check:foundation
@@ -42,11 +57,11 @@ jobs:
         run: npm run build
       - name: Diff check
         run: git diff --check
-      - name: Commit dependency and test lockstep
+      - name: Commit dependency and reviewed contracts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json tests/admin/studio-boundary.test.ts
+          git add package.json package-lock.json tests/admin/studio-boundary.test.ts tests/admin/admin-api-inventory.test.ts
           git commit -m "feat: wire durable workflow dependency for article scheduling"
           git push origin HEAD:feature/free-plan-article-scheduling-20260911
-# verification rerun 3
+# verification rerun 4
