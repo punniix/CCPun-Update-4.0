@@ -4,15 +4,15 @@ export const personSchema = {
   "@type": "Person",
   "@id": "https://ccpun.com/#person",
   "name": "ปั้น",
-  "jobTitle": "ที่ปรึกษาการเงินอิสระ",
-  "description": "ที่ปรึกษาการเงินอิสระ ประสบการณ์กว่า 5 ปี เชี่ยวชาญด้านการลงทุน กองทุนรวม ประกันชีวิต และวางแผนภาษี",
+  "jobTitle": "ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
+  "description": "ปั้นเป็นที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน ช่วยลูกค้าดูเป้าหมาย ระยะเวลา ความเสี่ยง และสถานการณ์ปัจจุบัน ก่อนพิจารณาทางเลือกด้านการลงทุนหรือประกันตามขอบเขตบริการ",
   "telephone": "+66633438513",
   "url": "https://ccpun.com",
-  "knowsAbout": ["การวางแผนการเงิน", "ประกันชีวิต", "ประกันสุขภาพ", "กองทุนรวม", "การลงทุน", "วางแผนภาษี", "RMF", "SSF", "ThaiESG"],
+  "knowsAbout": ["การวางแผนการลงทุน", "กองทุนรวม", "RMF", "Thai ESG", "ประกันชีวิต", "ประกันสุขภาพ", "ประกันโรคร้ายแรง", "ประกันวินาศภัย"],
   "hasCredential": [
     {
       "@type": "EducationalOccupationalCredential",
-      "name": "ใบอนุญาตนักวิเคราะห์การลงทุน (IC)",
+      "name": "ผู้วางแผนการลงทุน (เลขทะเบียน 106654)",
       "credentialCategory": "ใบอนุญาต",
       "identifier": "106654",
       "recognizedBy": { "@type": "Organization", "name": "สำนักงานคณะกรรมการกำกับหลักทรัพย์และตลาดหลักทรัพย์ (ก.ล.ต.)" }
@@ -22,6 +22,13 @@ export const personSchema = {
       "name": "ใบอนุญาตตัวแทนประกันชีวิต",
       "credentialCategory": "ใบอนุญาต",
       "identifier": "6801064783",
+      "recognizedBy": { "@type": "Organization", "name": "สำนักงานคณะกรรมการกำกับและส่งเสริมการประกอบธุรกิจประกันภัย (คปภ.)" }
+    },
+    {
+      "@type": "EducationalOccupationalCredential",
+      "name": "การจัดการประกันวินาศภัยโดยตรง (เลขที่ 6904009841)",
+      "credentialCategory": "ใบอนุญาต",
+      "identifier": "6904009841",
       "recognizedBy": { "@type": "Organization", "name": "สำนักงานคณะกรรมการกำกับและส่งเสริมการประกอบธุรกิจประกันภัย (คปภ.)" }
     }
   ],
@@ -53,7 +60,7 @@ export const financialServiceSchema = {
   "@id": "https://ccpun.com/#organization",
   "name": "CCPun Financial Advisor",
   "alternateName": "ปั้น ที่ปรึกษาการเงิน",
-  "description": "ที่ปรึกษาการเงินและประกัน AIA กรุงเทพฯ ให้คำปรึกษาการลงทุน ประกันชีวิต ประกันสุขภาพ และวางแผนภาษี",
+  "description": "CCPun ให้คำปรึกษาด้านการเงินและวางแผนการลงทุน รวมถึงประกันชีวิต ประกันสุขภาพ และประกันวินาศภัย ตามขอบเขตใบอนุญาต",
   "url": "https://ccpun.com",
   "logo": {
     "@type": "ImageObject",
@@ -67,7 +74,7 @@ export const financialServiceSchema = {
     { "@type": "Country", "name": "Thailand" },
   ],
   "availableLanguage": "Thai",
-  "serviceType": ["ที่ปรึกษาการเงินอิสระ", "การลงทุน", "กองทุนรวม", "ประกันชีวิต", "วางแผนภาษี"],
+  "serviceType": ["ที่ปรึกษาทางการเงิน", "การวางแผนการลงทุน", "กองทุนรวม", "ประกันชีวิต", "ประกันสุขภาพ", "ประกันโรคร้ายแรง", "ประกันวินาศภัย"],
   "priceRange": "$$",
   "address": {
     "@type": "PostalAddress",
