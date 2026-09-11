@@ -17,7 +17,7 @@ function routeFiles(directory: string): string[] {
 }
 
 type RouteContract = {
-  methods: Array<"GET" | "POST">;
+  methods: Array<"GET" | "POST" | "DELETE">;
   identity: RegExp;
   authorization: RegExp;
   validation: { file: string; pattern: RegExp; exception?: string };
@@ -27,6 +27,10 @@ const contracts: Record<string, RouteContract> = {
   "app/api/snt-admin/content/[id]/preview/route.ts": {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"draft:apply"/,
     validation: { file: "app/api/snt-admin/content/[id]/preview/route.ts", pattern: /articleIdSchema\.safeParse/, },
+  },
+  "app/api/snt-admin/content/[id]/schedule/route.ts": {
+    methods: ["GET", "POST", "DELETE"], identity: /getAdminIdentity\(\)/, authorization: /"content:schedule"/,
+    validation: { file: "app/api/snt-admin/content/[id]/schedule/route.ts", pattern: /bodySchema\.safeParse\(await request\.json\(\)\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },
   },
   "app/api/snt-admin/content/route.ts": {
     methods: ["GET"], identity: /getAdminIdentity\(\)/, authorization: /"content:read"/,
@@ -185,7 +189,7 @@ test("every Admin API route has an explicit reviewed contract", () => {
 test("Admin routes retain identity, authorization, and request validation coverage", () => {
   for (const [route, contract] of Object.entries(contracts)) {
     const source = read(route);
-    assert.deepEqual([...source.matchAll(/export async function (GET|POST)/g)].map((match) => match[1]), contract.methods, route);
+    assert.deepEqual([...source.matchAll(/export async function (GET|POST|DELETE)/g)].map((match) => match[1]), contract.methods, route);
     assert.match(source, contract.identity, `${route}: identity`);
     assert.match(source, contract.authorization, `${route}: authorization`);
     assert.match(read(contract.validation.file), contract.validation.pattern, `${route}: validation${contract.validation.exception ? ` (${contract.validation.exception})` : ""}`);

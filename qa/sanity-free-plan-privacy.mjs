@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 const API_VERSION = "2026-08-20";
 const OPERATIONAL_TYPES = [
   "auditLog",
+  "publishSchedule",
   "researchSnapshot",
   "seoSuggestion",
   "ubersuggestAccountSnapshot",
