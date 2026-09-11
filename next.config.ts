@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withWorkflow } from "workflow/next";
 import { IS_REVIEW_ENVIRONMENT } from "./lib/deployment-environment";
 import { SECURITY_HEADERS } from "./lib/security-policy";
 import { getAdminEnvironment, isSanityLaneAllowed } from "./lib/admin/environment";
@@ -106,8 +107,12 @@ const nextConfig: NextConfig = {
         source: "/api/preview/:path*",
         headers: PRIVATE_ADMIN_API_HEADERS,
       },
+      {
+        source: "/.well-known/workflow/:path*",
+        headers: PRIVATE_ADMIN_API_HEADERS,
+      },
     ];
   },
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);
