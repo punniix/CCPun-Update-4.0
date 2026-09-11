@@ -106,11 +106,13 @@ export const config = {
     "/studio/:path*",
     "/api/preview/:path*",
     "/api/auth/:path*",
-    { source: "/:path*", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
-    { source: "/:path*", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },
-    { source: "/:path*", has: [{ type: "host", value: "admin.ccpun.com" }] },
+    // Workflow's signed internal transport does not use a browser Auth.js session.
+    // The owner-facing API matchers above remain unchanged.
+    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
+    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },
+    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "admin.ccpun.com" }] },
     {
-      source: "/:path*",
+      source: "/((?!\\.well-known/workflow/).*)",
       has: [
         {
           type: "header",
