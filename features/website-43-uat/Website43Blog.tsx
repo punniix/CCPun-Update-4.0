@@ -123,6 +123,51 @@ export default function Website43Blog({ articles, subtleMotion = false }: { arti
     }, 120);
   };
 
+  const searchAndCategoryControls = (
+    <div className={styles.searchFilters} style={{ marginTop: 0, marginBottom: 32 }}>
+      <input
+        className={styles.searchField}
+        type="search"
+        placeholder="ค้นหาบทความ…"
+        aria-label="ค้นหาบทความ"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      <div className={styles.categoryMenu} ref={categoryMenuRef}>
+        <button
+          className={styles.categoryMenuButton}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={categoryMenuOpen}
+          onClick={() => setCategoryMenuOpen((open) => !open)}
+        >
+          <span>{category === 'ทั้งหมด' ? 'ทุกหมวดหมู่' : category}</span>
+          <span className={`${styles.categoryMenuChevron} ${categoryMenuOpen ? styles.categoryMenuChevronOpen : ''}`} aria-hidden="true">⌄</span>
+        </button>
+        {categoryMenuOpen ? (
+          <div className={styles.categoryMenuPanel} role="menu" aria-label="เลือกหมวดหมู่บทความ">
+            {categories.map((item) => {
+              const selected = category === item;
+              return (
+                <button
+                  className={`${styles.categoryMenuOption} ${selected ? styles.categoryMenuOptionActive : ''}`}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={selected}
+                  onClick={() => { setCategory(item); setCategoryMenuOpen(false); }}
+                  key={item}
+                >
+                  <span className={styles.categoryMenuIndicator} aria-hidden="true">{selected ? '✓' : ''}</span>
+                  <span>{item === 'ทั้งหมด' ? 'ทุกหมวดหมู่' : item}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.root}>
       <main id="main-content">
@@ -138,6 +183,7 @@ export default function Website43Blog({ articles, subtleMotion = false }: { arti
 
         <section className={styles.blogContent}>
           <div className={styles.inner}>
+            {searchAndCategoryControls}
             <p className={styles.eyebrow}>บทความแนะนำ</p>
           </div>
           <div className={styles.featuredViewport} aria-label="บทความแนะนำ">
@@ -176,48 +222,6 @@ export default function Website43Blog({ articles, subtleMotion = false }: { arti
           </div>
 
           <div className={styles.inner}>
-            <div className={styles.searchFilters}>
-              <input
-                className={styles.searchField}
-                type="search"
-                placeholder="ค้นหาบทความ…"
-                aria-label="ค้นหาบทความ"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              <div className={styles.categoryMenu} ref={categoryMenuRef}>
-                <button
-                  className={styles.categoryMenuButton}
-                  type="button"
-                  aria-haspopup="menu"
-                  aria-expanded={categoryMenuOpen}
-                  onClick={() => setCategoryMenuOpen((open) => !open)}
-                >
-                  <span>{category === 'ทั้งหมด' ? 'ทุกหมวดหมู่' : category}</span>
-                  <span className={`${styles.categoryMenuChevron} ${categoryMenuOpen ? styles.categoryMenuChevronOpen : ''}`} aria-hidden="true">⌄</span>
-                </button>
-                {categoryMenuOpen ? (
-                  <div className={styles.categoryMenuPanel} role="menu" aria-label="เลือกหมวดหมู่บทความ">
-                    {categories.map((item) => {
-                      const selected = category === item;
-                      return (
-                        <button
-                          className={`${styles.categoryMenuOption} ${selected ? styles.categoryMenuOptionActive : ''}`}
-                          type="button"
-                          role="menuitemradio"
-                          aria-checked={selected}
-                          onClick={() => { setCategory(item); setCategoryMenuOpen(false); }}
-                          key={item}
-                        >
-                          <span className={styles.categoryMenuIndicator} aria-hidden="true">{selected ? '✓' : ''}</span>
-                          <span>{item === 'ทั้งหมด' ? 'ทุกหมวดหมู่' : item}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-            </div>
             <div className={styles.articleListHeading}>
               <h2 className={styles.h2}>บทความทั้งหมด</h2>
             </div>
