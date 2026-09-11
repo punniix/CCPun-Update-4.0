@@ -35,7 +35,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
     const [open, setOpen] = useState(false);
     const [scheduledLocal, setScheduledLocal] = useState(() => localBangkok(Date.now() + 10 * 60_000));
     const [state, setState] = useState<{ ready: boolean; mode: "publish" | "validate-only"; schedule: ScheduleView | null } | null>(null);
-    const [confirmation, setConfirmation] = useState<{ draft: string | null; published: string | null; requestId: string } | null>(null);
+    const [confirmation, setConfirmation] = useState<{ articleId: string; draft: string | null; published: string | null } | null>(null);
     const [confirmed, setConfirmed] = useState(false);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -62,7 +62,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
 
     const schedule = state?.schedule;
     const isTest = environment !== "production-admin";
-    const unchanged = confirmation?.draft === (draft?._rev ?? null) && confirmation?.published === (published?._rev ?? null);
+    const unchanged = confirmation?.articleId === props.id && confirmation?.draft === (draft?._rev ?? null) && confirmation?.published === (published?._rev ?? null);
     const blocked = articlePublishBlock(draft, published);
     const validating = sync.isSyncing || validation.isValidating || validation.validation.some((item) => item.level === "error");
     const locked = schedule?.status === "executing" || schedule?.status === "reconciliation-required" || schedule?.status === "preparing";
@@ -77,7 +77,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
       try {
         const body = cancel ? { expectedGeneration: schedule!.generation, expectedVersion: schedule!.rowVersion }
           : { scheduledLocal, draftRevision: confirmation!.draft, publishedRevision: confirmation!.published,
-            expectedGeneration: schedule?.generation ?? null, expectedVersion: schedule?.rowVersion ?? 0, requestId: confirmation!.requestId };
+            expectedGeneration: schedule?.generation ?? null, expectedVersion: schedule?.rowVersion ?? 0, requestId: crypto.randomUUID() };
         const response = await fetch(endpoint, { method: cancel ? "DELETE" : "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
         const result = await response.json();
         if (!response.ok) throw new Error(result?.error || "not-ready");
@@ -99,7 +99,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
       // Do not disable management when the Draft becomes unapproved or disappears.
       disabled: busy,
       onHandle: () => {
-        setConfirmation({ draft: draft?._rev ?? null, published: published?._rev ?? null, requestId: crypto.randomUUID() });
+        setConfirmation({ articleId: props.id, draft: draft?._rev ?? null, published: published?._rev ?? null });
         setConfirmed(false); setError(null);
         setScheduledLocal(schedule ? localBangkok(schedule.scheduledAt) : localBangkok(Date.now() + 10 * 60_000));
         setOpen(true);
