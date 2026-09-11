@@ -1,196 +1,95 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-import type { SanityClient } from "sanity";
 import { createClient, groq } from "next-sanity";
-import { getAdminEnvironment, isAdminDataPlaneAllowed } from "./environment";
+import { z } from "zod";
+import type { SanityClient } from "sanity";
+import { isAdminReadDataPlaneAllowed, getAdminEnvironment } from "./environment";
 import { getAdminSanityReadToken, getAdminSanityWriteToken } from "./sanity-credentials";
-import {
-  articleScheduleBlock,
-  articleScheduleDocumentId,
-  type ArticleScheduleDocument,
-  type ArticleScheduleStatus,
-  getScheduleDelaySeconds,
-  normalizeArticleId,
-} from "../../cms/sanity/policy/article-scheduling";
-import { articlePublishBlock, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
+import { getAdminRoleForEmail } from "./rbac";
+import { articleScheduleBlock } from "../../cms/sanity/policy/article-scheduling";
+import { publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
+import { executeArticleSchedule, matchesScheduledSnapshot, type ArticlePair } from "./article-schedule-executor";
+import { ArticleScheduleError, articleIdSchema, revisionSchema, scheduleRequestSchema, scheduleView } from "./operations/article-schedule-contract";
+import { openArticleScheduleStore } from "./operations/article-schedule-store";
 
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
-const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
-const readToken = getAdminSanityReadToken();
-const writeToken = getAdminSanityWriteToken();
-
-const baseClient = projectId && dataset
-  ? createClient({ projectId, dataset, apiVersion: "2026-09-11", useCdn: false, stega: false })
-  : null;
-
-function requireProductionWriteClient() {
-  if (getAdminEnvironment() !== "production-admin") throw new Error("SCHEDULE_PRODUCTION_ADMIN_ONLY");
-  if (!baseClient || !readToken || !writeToken || !isAdminDataPlaneAllowed(dataset)) {
-    throw new Error("SCHEDULE_SANITY_WRITE_NOT_CONFIGURED");
-  }
-  return baseClient.withConfig({ token: writeToken, perspective: "raw", useCdn: false });
+function articleClient(write = false) {
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
+  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
+  const token = write ? getAdminSanityWriteToken() : getAdminSanityReadToken();
+  if (!projectId || !dataset || !token || !isAdminReadDataPlaneAllowed(dataset)
+    || (write && getAdminEnvironment() !== "production-admin")) throw new ArticleScheduleError("not-ready");
+  return createClient({ projectId, dataset, token, apiVersion: "2026-09-11", perspective: "raw", useCdn: false,
+    stega: false, maxRetries: 0, timeout: 20_000 });
+}
+const articleIdentitySchema = z.object({ _id: z.string(), _type: z.literal("article"), _rev: revisionSchema }).passthrough();
+async function readArticlePair(articleId: string): Promise<ArticlePair> {
+  articleIdSchema.parse(articleId);
+  const result = await articleClient().fetch(groq`{
+    "draft": *[_id == $draftId && _type == "article"][0],
+    "published": *[_id == $articleId && _type == "article"][0]
+  }`, { articleId, draftId: `drafts.${articleId}` });
+  z.object({ draft: articleIdentitySchema.nullable(), published: articleIdentitySchema.nullable() }).parse(result);
+  return result as ArticlePair;
 }
 
-const articlePairQuery = groq`{
-  "draft": *[_id == $draftId && _type == "article"][0],
-  "published": *[_id == $articleId && _type == "article"][0]
-}`;
-
-async function readArticlePair(client: ReturnType<typeof requireProductionWriteClient>, articleId: string) {
-  const logicalId = normalizeArticleId(articleId);
-  const pair = await client.fetch(articlePairQuery, { articleId: logicalId, draftId: `drafts.${logicalId}` }) as {
-    draft: PublishableArticle | null;
-    published: PublishableArticle | null;
-  };
-  return { logicalId, ...pair };
+export async function getArticleScheduleState(articleId: string) {
+  articleIdSchema.parse(articleId);
+  const store = await openArticleScheduleStore();
+  return { ready: store.enabled, mode: store.mode, schedule: scheduleView(await store.read(articleId)) };
 }
 
-export async function getArticleSchedule(articleId: string) {
-  if (!baseClient || !readToken || getAdminEnvironment() !== "production-admin") return null;
-  const scheduleId = articleScheduleDocumentId(articleId);
-  return baseClient.withConfig({ token: readToken, perspective: "raw", useCdn: false }).fetch(
-    groq`*[_id == $scheduleId && _type == "publishSchedule"][0]{
-      _id, _type, _rev, articleId, draftId, draftRevision, scheduledAt, timezone,
-      generation, status, createdByRole, createdAt, updatedAt, completedAt, errorCode
-    }`,
-    { scheduleId },
-  ) as Promise<ArticleScheduleDocument | null>;
+export async function prepareArticleSchedule(input: z.infer<typeof scheduleRequestSchema> & { articleId: string; scheduledAt: string; actor: string }) {
+  articleIdSchema.parse(input.articleId);
+  if (getAdminRoleForEmail(input.actor) !== "owner") throw new ArticleScheduleError("not-ready");
+  const store = await openArticleScheduleStore();
+  if (!store.enabled) throw new ArticleScheduleError("not-ready");
+  const current = await store.read(input.articleId);
+  const snapshot = { generation: input.requestId, draftRevision: input.draftRevision, publishedRevision: input.publishedRevision, scheduledAt: input.scheduledAt, actor: input.actor };
+  if (current?.generation === input.requestId) {
+    if (!matchesScheduledSnapshot(current, snapshot)) throw new ArticleScheduleError("conflict");
+    // Retrying the same browser request never dispatches a second workflow.
+    return { row: current, dispatch: false };
+  }
+  const { draft, published } = await readArticlePair(input.articleId);
+  if (!draft || draft._rev !== input.draftRevision || (published?._rev ?? null) !== input.publishedRevision) throw new ArticleScheduleError("conflict");
+  if (articleScheduleBlock(draft, published, input.scheduledAt)) throw new ArticleScheduleError("article-not-ready");
+  // Check write readiness before accepting a real Production schedule; UAT needs no write client.
+  if (store.mode === "publish") articleClient(true);
+  const row = await store.prepare({ articleId: input.articleId, ...snapshot, expectedGeneration: input.expectedGeneration, expectedVersion: input.expectedVersion });
+  if (!row) throw new ArticleScheduleError("conflict");
+  return { row, dispatch: true };
 }
 
-export async function prepareArticleSchedule(input: {
-  articleId: string;
-  scheduledAt: string;
-  createdByRole: string;
-  now?: string;
-}) {
-  const client = requireProductionWriteClient();
-  const now = input.now ?? new Date().toISOString();
-  const { logicalId, draft, published } = await readArticlePair(client, input.articleId);
-  const blocked = articleScheduleBlock(draft, published, input.scheduledAt, Date.parse(now));
-  if (blocked) throw new Error(`SCHEDULE_BLOCKED:${blocked}`);
-  if (!draft?._rev) throw new Error("SCHEDULE_DRAFT_REQUIRED");
-
-  const scheduleId = articleScheduleDocumentId(logicalId);
-  const generation = randomUUID();
-  const delaySeconds = getScheduleDelaySeconds(input.scheduledAt, Date.parse(now));
-  if (delaySeconds === null) throw new Error("SCHEDULE_INVALID_TIME");
-
-  const document: ArticleScheduleDocument = {
-    _id: scheduleId,
-    _type: "publishSchedule",
-    articleId: logicalId,
-    draftId: draft._id,
-    draftRevision: draft._rev,
-    scheduledAt: input.scheduledAt,
-    timezone: "Asia/Bangkok",
-    generation,
-    status: "scheduled",
-    createdByRole: input.createdByRole,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await client.createOrReplace(document);
-  return { scheduleId, generation, delaySeconds, scheduledAt: input.scheduledAt };
+export async function acknowledgeArticleSchedule(articleId: string, generation: string, runId: string) {
+  const store = await openArticleScheduleStore();
+  const row = await store.acknowledge(articleId, generation, z.string().min(1).max(200).parse(runId));
+  if (!row) throw new ArticleScheduleError("conflict");
+  return scheduleView(row);
+}
+export async function markScheduleStartFailed(articleId: string, generation: string) {
+  await (await openArticleScheduleStore()).failDispatch(articleId, generation);
+}
+export async function cancelArticleSchedule(articleId: string, generation: string, version: number, actor: string) {
+  articleIdSchema.parse(articleId);
+  // Cancellation remains available with feature activation disabled and with no Draft present.
+  const store = await openArticleScheduleStore();
+  const current = await store.read(articleId);
+  if (current?.generation === generation && current.status === "cancelled") return scheduleView(current);
+  const row = await store.cancel(articleId, generation, version, actor);
+  if (!row) throw new ArticleScheduleError("conflict");
+  return scheduleView(row);
 }
 
-export async function cancelArticleSchedule(articleId: string) {
-  const client = requireProductionWriteClient();
-  const scheduleId = articleScheduleDocumentId(articleId);
-  const current = await getArticleSchedule(articleId);
-  if (!current || current.status !== "scheduled") return current;
-  const now = new Date().toISOString();
-  await client.patch(scheduleId).ifRevisionId(current._rev!).set({
-    status: "cancelled" satisfies ArticleScheduleStatus,
-    generation: randomUUID(),
-    updatedAt: now,
-    completedAt: now,
-  }).unset(["errorCode"]).commit({ visibility: "sync", tag: "article.schedule.cancel" });
-  return getArticleSchedule(articleId);
-}
-
-export async function markScheduleStartFailed(scheduleId: string, generation: string) {
-  const client = requireProductionWriteClient();
-  const current = await client.fetch(
-    groq`*[_id == $scheduleId && _type == "publishSchedule"][0]{_id,_rev,generation,status}`,
-    { scheduleId },
-  ) as { _id: string; _rev: string; generation: string; status: ArticleScheduleStatus } | null;
-  if (!current || current.generation !== generation || current.status !== "scheduled") return;
-  const now = new Date().toISOString();
-  await client.patch(scheduleId).ifRevisionId(current._rev).set({
-    status: "failed",
-    errorCode: "WORKFLOW_START_FAILED",
-    updatedAt: now,
-    completedAt: now,
-  }).commit({ visibility: "sync", tag: "article.schedule.start-failed" });
-}
-
-async function setScheduleOutcome(
-  client: ReturnType<typeof requireProductionWriteClient>,
-  schedule: ArticleScheduleDocument,
-  status: ArticleScheduleStatus,
-  errorCode?: string,
-) {
-  const now = new Date().toISOString();
-  const patch = client.patch(schedule._id).ifRevisionId(schedule._rev!).set({ status, updatedAt: now, completedAt: now });
-  if (errorCode) patch.set({ errorCode });
-  else patch.unset(["errorCode"]);
-  await patch.commit({ visibility: "sync", tag: `article.schedule.${status}` });
-}
-
-export async function runScheduledArticlePublication(input: { scheduleId: string; generation: string }) {
-  const client = requireProductionWriteClient();
-  const schedule = await client.fetch(
-    groq`*[_id == $scheduleId && _type == "publishSchedule"][0]{
-      _id, _type, _rev, articleId, draftId, draftRevision, scheduledAt, timezone,
-      generation, status, createdByRole, createdAt, updatedAt, completedAt, errorCode
-    }`,
-    { scheduleId: input.scheduleId },
-  ) as ArticleScheduleDocument | null;
-
-  if (!schedule || schedule.status !== "scheduled" || schedule.generation !== input.generation) {
-    return { status: "ignored" as const };
-  }
-  if (Date.parse(schedule.scheduledAt) > Date.now() + 5_000) return { status: "not-due" as const };
-
-  const { draft, published } = await readArticlePair(client, schedule.articleId);
-  if (!draft) {
-    if (published) {
-      await setScheduleOutcome(client, schedule, "published");
-      return { status: "published" as const, recovered: true };
-    }
-    await setScheduleOutcome(client, schedule, "failed", "DRAFT_MISSING");
-    return { status: "failed" as const, errorCode: "DRAFT_MISSING" };
-  }
-  if (draft._rev !== schedule.draftRevision) {
-    await setScheduleOutcome(client, schedule, "stale", "DRAFT_REVISION_CHANGED");
-    return { status: "stale" as const };
-  }
-
-  const blocked = articlePublishBlock(draft, published, Date.now());
-  if (blocked) {
-    await setScheduleOutcome(client, schedule, "failed", "PUBLICATION_GUARD_BLOCKED");
-    return { status: "failed" as const, errorCode: "PUBLICATION_GUARD_BLOCKED" };
-  }
-
-  try {
-    await publishApprovedArticle(client as unknown as SanityClient, draft, published);
-  } catch (error) {
-    const after = await readArticlePair(client, schedule.articleId);
-    if (!after.draft && after.published) {
-      await setScheduleOutcome(client, schedule, "published");
-      return { status: "published" as const, recovered: true };
-    }
-    await setScheduleOutcome(client, schedule, "failed", "PUBLICATION_TRANSACTION_FAILED");
-    throw error;
-  }
-
-  const latest = await client.fetch(
-    groq`*[_id == $scheduleId && _type == "publishSchedule"][0]{_id,_rev,generation,status}`,
-    { scheduleId: schedule._id },
-  ) as Pick<ArticleScheduleDocument, "_id" | "_rev" | "generation" | "status"> | null;
-  if (latest?.status === "scheduled" && latest.generation === input.generation) {
-    await setScheduleOutcome(client, { ...schedule, _rev: latest._rev }, "published");
-  }
-  return { status: "published" as const };
+export async function runScheduledArticlePublication(input: { articleId: string; generation: string }) {
+  articleIdSchema.parse(input.articleId);
+  z.string().uuid().parse(input.generation);
+  const store = await openArticleScheduleStore();
+  return executeArticleSchedule({ store, readArticle: readArticlePair, ownerAllowed: (actor) => getAdminRoleForEmail(actor) === "owner",
+    async publish(draft: PublishableArticle, published: PublishableArticle | null) {
+      // Studio uses client v8 while next-sanity retains v7. Only the shared transaction
+      // protocol used by publishApprovedArticle crosses this existing compatibility boundary.
+      const receipt = await publishApprovedArticle(articleClient(true) as unknown as SanityClient, draft, published);
+      return { transactionId: receipt.transactionId };
+    },
+  }, input);
 }
