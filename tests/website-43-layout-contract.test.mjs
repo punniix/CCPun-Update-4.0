@@ -33,6 +33,11 @@ assert.doesNotMatch(contract, /50vw/, 'layout contract must not derive shell ali
 assert.doesNotMatch(moduleCss, /(?:homeHeroCopy|blogHeroCopy|toolHeroCopy)[^}]*100vw/s, 'base hero copy must not retain legacy viewport compensation');
 assert.match(moduleCss, /homeHeroCopy[^}]*left:\s*var\(--w43-hero-gutter,\s*80px\)[\s\S]*blogHeroCopy[^}]*left:\s*var\(--w43-hero-gutter,\s*80px\)[\s\S]*toolHeroCopy[^}]*left:\s*var\(--w43-hero-gutter,\s*80px\)/s, 'base hero copy must consume the shared hero gutter token');
 
+assert.doesNotMatch(transition, /--w43-shell-width/, 'transition must not calculate a second viewport-sized shell');
+assert.doesNotMatch(transition, /legalGrid\}\s*\{[^}]*100vw/s, 'legal reading width must not exceed its containing block');
+assert.match(contract, /width:\s*100%;\s*max-width:\s*var\(--w43-shell-max\)/, 'the shared contract owns containing-block constrained widths');
+assert.match(contract, /navOverlay\}\s*\{\s*width:\s*min\(var\(--w43-shell-max\),\s*calc\(100% - var\(--w43-nav-gutter\) - var\(--w43-nav-gutter\)\)\)/s, 'overlay navigation is constrained to the same available space');
+
 /* Transition references must use shared tokens rather than page-specific edge numbers. */
 assert.match(transition, /blogHeroCopy[\s\S]*left:\s*var\(--w43-hero-gutter\)/, 'blog hero copy must use the shared hero gutter');
 assert.match(transition, /toolHeroCopy[\s\S]*left:\s*var\(--w43-hero-gutter\)/, 'tool hero copy must use the shared hero gutter');
@@ -49,21 +54,23 @@ for (const viewport of viewportCases) {
       ? 40
       : Math.min(80, Math.max(56, 0.0705882 * viewport - 21.6471));
 
-  const interpolatedShell = Math.min(1280, Math.max(988, 0.858824 * viewport + 43.0588));
-  const shellWidth = viewport < 640
-    ? Math.min(viewport - 48, Math.min(504, Math.max(342, 0.771429 * viewport + 41.1429)))
-    : viewport < 1024
-      ? viewport - 80
-      : Math.min(viewport - 112, interpolatedShell);
-
-  const left = (viewport - shellWidth) / 2;
-  const right = viewport - shellWidth - left;
-  assert.ok(left >= 0 && right >= 0, `shell must stay inside ${viewport}px viewport`);
-  assert.ok(Math.abs(left - right) < 0.001, `shell margins must balance at ${viewport}px`);
-
-  if (viewport >= 1024) {
-    const shellEdge = Math.max(navGutter, viewport / 2 - 640);
-    assert.ok(shellEdge >= navGutter, `wide hero edge must respect minimum gutter at ${viewport}px`);
+  for (const scrollbar of [0, 8, 17]) {
+    const layoutWidth = viewport - scrollbar;
+    const gutter = viewport < 640 ? 24 : navGutter;
+    const cap = viewport < 640
+      ? Math.min(504, Math.max(342, 0.771429 * viewport + 41.1429))
+      : 1280;
+    const shellWidth = Math.min(layoutWidth - 2 * gutter, cap);
+    const left = (layoutWidth - shellWidth) / 2;
+    const right = layoutWidth - shellWidth - left;
+    assert.ok(shellWidth <= layoutWidth - 2 * gutter, `shell respects the containing block at ${viewport}px / scrollbar ${scrollbar}`);
+    assert.ok(Math.abs(left - right) < 0.001, `shell margins balance at ${viewport}px / scrollbar ${scrollbar}`);
+    if (viewport >= 1024) {
+      const shellEdge = Math.max(navGutter, (layoutWidth - 1280) / 2);
+      const navWidth = Math.min(1280, layoutWidth - 2 * navGutter);
+      assert.ok(Math.abs(shellEdge - left) < 0.001, `hero and content share the same coordinate system at ${viewport}px / scrollbar ${scrollbar}`);
+      assert.ok(Math.abs((layoutWidth - navWidth) / 2 - left) < 0.001, `navigation shares the shell edge at ${viewport}px / scrollbar ${scrollbar}`);
+    }
   }
 }
 

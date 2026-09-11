@@ -90,11 +90,13 @@ The content shell remains capped at 1280 px. Extra viewport width is distributed
 
 The shared wide-screen alignment edge is:
 
-`max(minimum responsive gutter, (viewport width - 1280 px) / 2)`
+`max(minimum responsive gutter, (containing layout width - 1280 px) / 2)`
 
 Implementation token:
 
-`--w43-shell-edge: max(var(--w43-nav-gutter), calc(50vw - 640px))`
+`--w43-shell-edge: max(var(--w43-nav-gutter), calc((100% - var(--w43-shell-max)) / 2))`
+
+The containing layout width excludes a classic vertical scrollbar. Do not use `50vw` or a separately interpolated viewport width for a readable shell. The standard inner shell uses `width: 100%; max-width: var(--w43-shell-max)` inside its padded parent; the overlay navigation uses the same cap and subtracts its gutters from its actual containing width. Narrow legal content uses `min(988px, 100%)` within that shell. Canonical dimensions above describe the no-reserved-scrollbar reference; QA records both `innerWidth` and `documentElement.clientWidth` and tests scrollbar-present geometry separately.
 
 This token is the alignment anchor for desktop hero copy and other full-bleed compositions that need to line up with the centered content shell.
 

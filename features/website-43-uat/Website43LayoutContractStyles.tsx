@@ -17,6 +17,23 @@ export function Website43LayoutContractStyles() {
   --w43-shell-edge: max(var(--w43-nav-gutter), calc((100% - var(--w43-shell-max)) / 2));
 }
 
+/* Resolve widths inside their actual padded containing block. Viewport units
+   include classic scrollbars and used to overflow these gutters by 8–17px. */
+.${styles.section} > .${styles.inner},
+.${styles.sectionDeep} > .${styles.inner},
+.${styles.blogContent} > .${styles.inner},
+.${styles.articleHeader} > .${styles.inner},
+.${styles.legalHeader} > .${styles.inner},
+.${styles.legalBody} > .${styles.inner},
+.${styles.footerWrap} > .${styles.inner},
+.${styles.aboutInner} {
+  width: 100%;
+  max-width: var(--w43-shell-max);
+}
+.${styles.legalGrid} {
+  width: min(988px, 100%);
+}
+
 /* Every constrained standard shell shares symmetric spare space. */
 .${styles.section} > .${styles.inner},
 .${styles.sectionDeep} > .${styles.inner},
@@ -50,7 +67,7 @@ export function Website43LayoutContractStyles() {
 
   /* Overlay navigation uses the same constrained shell as standard sections. */
   .${styles.navOverlay} {
-    width: var(--w43-shell-width);
+    width: min(var(--w43-shell-max), calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter)));
   }
 
   /* Full-bleed images stay full bleed; readable copy shares one shell edge. */
@@ -81,6 +98,8 @@ export function Website43LayoutContractStyles() {
   .${styles.articleReadingGrid},
   .${styles.legalGrid},
   .${styles.notFound} > .${styles.inner} {
+    width: var(--w43-mobile-reading-width);
+    max-width: 100%;
     margin-left: auto;
     margin-right: auto;
   }

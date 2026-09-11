@@ -14,7 +14,6 @@ export function Website43TransitionStyles() {
   --w43-nav-gutter: clamp(56px, calc(7.05882vw - 21.6471px), 80px);
   --w43-content-gutter: var(--w43-nav-gutter);
   --w43-hero-gutter: var(--w43-nav-gutter);
-  --w43-shell-width: min(calc(100vw - 112px), clamp(988px, calc(85.8824vw + 43.0588px), 1280px));
 }
 
 .${styles.navBand} {
@@ -38,17 +37,6 @@ export function Website43TransitionStyles() {
 .${styles.footerWrap} {
   padding-left: var(--w43-content-gutter);
   padding-right: var(--w43-content-gutter);
-}
-
-.${styles.section} > .${styles.inner},
-.${styles.sectionDeep} > .${styles.inner},
-.${styles.blogContent} > .${styles.inner},
-.${styles.articleHeader} > .${styles.inner},
-.${styles.legalHeader} > .${styles.inner},
-.${styles.legalBody} > .${styles.inner},
-.${styles.footerWrap} > .${styles.inner} {
-  width: var(--w43-shell-width);
-  max-width: none;
 }
 
 .${styles.about} {
@@ -114,17 +102,12 @@ export function Website43TransitionStyles() {
   grid-template-columns: clamp(236px, calc(18.8235vw + 28.9412px), 300px) minmax(0, 720px);
   gap: clamp(32px, calc(2.35294vw + 6.11765px), 40px);
 }
-.${styles.legalGrid} {
-  width: min(988px, calc(100vw - 112px));
-  max-width: none;
-}
 
 @media (max-width: 1023px) {
   .${styles.root} {
     --w43-nav-gutter: 40px;
     --w43-content-gutter: 40px;
     --w43-hero-gutter: 40px;
-    --w43-shell-width: 100%;
   }
 
   .${styles.navBand},
@@ -134,17 +117,6 @@ export function Website43TransitionStyles() {
   }
   .${styles.navOverlay} {
     width: calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter));
-  }
-
-  .${styles.section} > .${styles.inner},
-  .${styles.sectionDeep} > .${styles.inner},
-  .${styles.blogContent} > .${styles.inner},
-  .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
-  .${styles.footerWrap} > .${styles.inner} {
-    width: 100%;
-    max-width: none;
   }
 
   .${styles.homeHeroCopy} {
@@ -207,10 +179,6 @@ export function Website43TransitionStyles() {
     grid-template-columns: 200px minmax(0, 1fr);
     gap: 32px;
   }
-  .${styles.legalGrid} {
-    width: 100%;
-    max-width: none;
-  }
 }
 
 @media (max-width: 639px) {
@@ -219,7 +187,6 @@ export function Website43TransitionStyles() {
     --w43-content-gutter: 24px;
     --w43-hero-gutter: clamp(24px, calc(11.4286vw - 20.5714px), 48px);
     --w43-mobile-reading-width: min(calc(100vw - 48px), clamp(342px, calc(77.1429vw + 41.1429px), 504px));
-    --w43-shell-width: var(--w43-mobile-reading-width);
   }
 
   .${styles.navBand},
@@ -245,18 +212,6 @@ export function Website43TransitionStyles() {
   .${styles.footerWrap} {
     padding-left: var(--w43-content-gutter);
     padding-right: var(--w43-content-gutter);
-  }
-
-  .${styles.section} > .${styles.inner},
-  .${styles.sectionDeep} > .${styles.inner},
-  .${styles.blogContent} > .${styles.inner},
-  .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
-  .${styles.footerWrap} > .${styles.inner},
-  .${styles.aboutInner} {
-    width: var(--w43-mobile-reading-width);
-    max-width: 100%;
   }
 
   .${styles.about} {
