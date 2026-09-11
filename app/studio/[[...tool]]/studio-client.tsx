@@ -1,5 +1,6 @@
 "use client";
 
+import "@sanity/ui/styles.css";
 import { Studio } from "sanity";
 import { sanityStudioConfig } from "../../../sanity.config";
 

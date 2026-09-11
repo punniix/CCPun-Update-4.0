@@ -55,6 +55,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@sanity/ui": "^4.2.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
@@ -62,7 +63,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.3",
     "jsdom": "^29.1.1",
-    "sanity": "^5.31.2",
+    "sanity": "^6.13.1",
     "styled-components": "^6.1.19",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
