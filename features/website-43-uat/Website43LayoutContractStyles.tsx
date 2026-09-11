@@ -14,7 +14,7 @@ export function Website43LayoutContractStyles() {
   const css = String.raw`
 .${styles.root} {
   --w43-shell-max: 1280px;
-  --w43-shell-edge: max(var(--w43-nav-gutter), calc(50vw - 640px));
+  --w43-shell-edge: max(var(--w43-nav-gutter), calc((100% - var(--w43-shell-max)) / 2));
 }
 
 /* Every constrained standard shell shares symmetric spare space. */

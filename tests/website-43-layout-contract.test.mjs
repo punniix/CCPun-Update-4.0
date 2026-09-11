@@ -17,7 +17,7 @@ assert.ok(contractIndex > polishIndex, 'layout contract must load last so shell 
 
 assert.match(contract, /data-w43-layout-contract="centered-shell-v2"/, 'layout contract marker must stay stable for QA');
 assert.match(contract, /--w43-shell-max:\s*1280px/, 'desktop shell cap must remain 1280px');
-assert.match(contract, /--w43-shell-edge:\s*max\(var\(--w43-nav-gutter\),\s*calc\(50vw - 640px\)\)/, 'wide-screen shell edge must stay centered');
+assert.match(contract, /--w43-shell-edge:\s*max\(var\(--w43-nav-gutter\),\s*calc\(\(100% - var\(--w43-shell-max\)\) \/ 2\)\)/, 'wide-screen shell edge must use the scrollbar-excluding containing width');
 assert.match(contract, /margin-left:\s*auto;[\s\S]*margin-right:\s*auto;/, 'shared shells must use automatic symmetric margins');
 assert.match(contract, /homeHeroCopy[\s\S]*blogHeroCopy[\s\S]*toolHeroCopy[\s\S]*left:\s*var\(--w43-shell-edge\)/, 'desktop hero copy must align to the centered shell edge');
 assert.match(contract, /heroActions[\s\S]*heroProof[\s\S]*margin-left:\s*0;[\s\S]*margin-right:\s*0;/, 'hero children must inherit their parent anchor without compensation');
@@ -29,6 +29,9 @@ assert.doesNotMatch(polish, /heroActions[^}]*margin-left/s, 'hero CTA group must
 assert.doesNotMatch(polish, /footerWrap[^}]*padding-left/s, 'final polish must not own footer horizontal shell padding');
 assert.doesNotMatch(polish, /toolStorySection[^}]*padding-left/s, 'final polish must not own tool-story horizontal shell padding');
 assert.doesNotMatch(polish, /notFound[^}]*margin-left/s, 'final polish must not left-pin 404 readable content');
+assert.doesNotMatch(contract, /50vw/, 'layout contract must not derive shell alignment from viewport units that include the scrollbar');
+assert.doesNotMatch(moduleCss, /(?:homeHeroCopy|blogHeroCopy|toolHeroCopy)[^}]*100vw/s, 'base hero copy must not retain legacy viewport compensation');
+assert.match(moduleCss, /homeHeroCopy[^}]*left:\s*var\(--w43-hero-gutter,\s*80px\)[\s\S]*blogHeroCopy[^}]*left:\s*var\(--w43-hero-gutter,\s*80px\)[\s\S]*toolHeroCopy[^}]*left:\s*var\(--w43-hero-gutter,\s*80px\)/s, 'base hero copy must consume the shared hero gutter token');
 
 /* Transition references must use shared tokens rather than page-specific edge numbers. */
 assert.match(transition, /blogHeroCopy[\s\S]*left:\s*var\(--w43-hero-gutter\)/, 'blog hero copy must use the shared hero gutter');
