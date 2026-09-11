@@ -1,48 +1,98 @@
-name: Article scheduling build helper
+name: Article scheduling safety CI
 
 on:
   push:
     branches: [feature/free-plan-article-scheduling-20260911]
     paths: [.github/workflows/article-scheduling-build-helper.yml]
+  pull_request:
+    branches: [v4-production]
+    paths:
+      - .github/workflows/article-scheduling-build-helper.yml
+      - lib/admin/article-schedul*.ts
+      - lib/admin/article-publication-workflow.ts
+      - lib/admin/operations/article-schedule-*.ts
+      - cms/sanity/policy/article-schedul*
+      - db/migrations/20260911_article_scheduling_v1.ts
+      - tests/admin/article-schedul*.test.ts
+      - app/api/snt-admin/content/**/schedule/**
 
 permissions:
   contents: read
 
+concurrency:
+  group: article-scheduler-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  inspect:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+        with: { persist-credentials: false }
       - uses: actions/setup-node@v4
-        with:
-          node-version: 24.x
-          cache: npm
-      - run: npm ci
-      - name: Inspect installed framework documentation
+        with: { node-version: 24.x, cache: npm }
+      - id: install
+        run: npm ci
+      - name: Foundation contracts and scheduler unit tests
+        run: npm run check:foundation
+      - name: Anonymous privacy boundary
+        if: always() && steps.install.outcome == 'success'
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          roots = [Path('node_modules/next/dist/docs'), Path('node_modules/workflow/docs')]
-          targets = []
-          for root in roots:
-              for p in root.rglob('*'):
-                  if p.is_file() and p.suffix in ('.md', '.mdx') and (p.stem in ('route', 'route-handlers', 'sleep', 'start', 'with-workflow') or str(p).endswith('getting-started/next.mdx')):
-                      targets.append(p)
-          for p in sorted(targets):
-              print('\n=== ' + str(p) + ' ===\n' + p.read_text()[:20000])
-          for p in Path('node_modules/workflow/docs').rglob('*.mdx'):
-              text = p.read_text()
-              if 'maxRetries' in text:
-                  idx = text.index('maxRetries')
-                  print('\n=== RETRY: ' + str(p) + ' ===\n' + text[max(0, idx-800):idx+2200])
-          PY
-      - name: Export tracked source for scoped review
-        run: git archive --format=tar.gz HEAD -o /tmp/scheduling-source.tar.gz
+          node --test tests/sanity-free-plan-privacy.test.mjs
+          node qa/sanity-free-plan-privacy.mjs
+      - name: Production-parity workflow build on UAT content lane
+        if: always() && steps.install.outcome == 'success'
+        run: npm run build
+        env:
+          CCPUN_APP_ENV: development
+          NEXT_PUBLIC_CCPUN_APP_ENV: development
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+      - name: Export immutable review source and offline migration SQL
+        if: always() && steps.install.outcome == 'success'
+        run: |
+          git diff --check
+          mkdir -p /tmp/scheduling-review
+          git archive --format=tar.gz HEAD -o /tmp/scheduling-review/source.tar.gz
+          node --import tsx --input-type=module - <<'JS'
+          import { writeFileSync } from 'node:fs';
+          import { buildArticleSchedulerMigration, ARTICLE_SCHEDULER_CHECKSUM } from './db/migrations/20260911_article_scheduling_v1.ts';
+          for (const lane of ['uat', 'production']) writeFileSync(`/tmp/scheduling-review/migration-${lane}.sql`, buildArticleSchedulerMigration(lane));
+          writeFileSync('/tmp/scheduling-review/checksum.txt', ARTICLE_SCHEDULER_CHECKSUM);
+          JS
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: scheduling-source
-          path: /tmp/scheduling-source.tar.gz
+          name: scheduling-review
+          path: /tmp/scheduling-review/
           retention-days: 1
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: neondb
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24.x, cache: npm }
+      - run: npm ci
+      - name: Execute canonical SQL under the restricted runtime role
+        run: node --import tsx --test tests/admin/article-schedule-postgres.test.ts
+        env:
+          CCPUN_SCHEDULER_PG_TEST: '1'
+          PGHOST: 127.0.0.1
+          PGDATABASE: neondb
+          PGUSER: postgres
+          PGPASSWORD: disposable-ci-only
