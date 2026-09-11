@@ -1,19 +1,15 @@
 import styles from './Website43.module.css';
 
 /**
- * Final visual polish after the five-viewport UAT pass.
+ * Final component-level visual polish after responsive UAT.
  *
- * 600 and 1100 remain transition references only. These rules refine geometry
- * inside the existing responsive modes; they intentionally add no new
- * breakpoint at either reference width.
+ * IMPORTANT: this layer must not own horizontal page-shell alignment. Shared
+ * shell centering and hero alignment belong to Website43LayoutContractStyles.
+ * 600 and 1100 remain transition QA references, not independent breakpoints.
  */
 export function Website43FinalPolishStyles() {
   const css = String.raw`
-/*
- * Thai copy must use native dictionary line breaking. Do not fall back to
- * arbitrary grapheme breaking (for example leaving the last character of a
- * Thai word on a new line). URLs keep their own emergency wrapping rule below.
- */
+/* Thai copy uses native dictionary line breaking. URLs retain emergency wrap. */
 .${styles.root} {
   word-break: normal;
   overflow-wrap: normal;
@@ -38,12 +34,11 @@ export function Website43FinalPolishStyles() {
   overflow-wrap: anywhere;
 }
 
-/* Blog: keep the wrapped article rows anchored to the left like Figma. */
+/* Blog rows intentionally start from the shared shell edge. */
 .${styles.articleGrid} {
   justify-content: flex-start;
 }
 
-/* Blog category trigger is a compact one-line control in every reference. */
 .${styles.categoryMenu} {
   width: 157px;
 }
@@ -52,23 +47,12 @@ export function Website43FinalPolishStyles() {
   white-space: nowrap;
 }
 
-/* Figma uses a centered IMAGE/FILL crop for the Home portrait at every mode. */
 .${styles.homeHeroPicture} img {
   object-position: center center;
 }
 
 @media (min-width: 1024px) {
-  /* 1100 reference uses the same 56px shell gutter as Navbar; 1440 resolves to 80px. */
-  .${styles.root} {
-    --w43-content-gutter: var(--w43-nav-gutter);
-  }
-
-  /*
-   * Home hero must interpolate the actual Figma text/gradient geometry between
-   * the 1100 transition reference and the 1440 canonical frame. Previously only
-   * the left gutter interpolated, leaving the 1440 text widths active at 1100-
-   * 1439px and changing the line breaks/crop balance.
-   */
+  /* Interpolate Home text/gradient geometry without changing its shell anchor. */
   .${styles.homeHeroGradient} {
     width: clamp(840px, calc(82.35294vw - 65.88235px), 1120px);
   }
@@ -78,16 +62,8 @@ export function Website43FinalPolishStyles() {
   .${styles.homeHeroBody} {
     width: clamp(465.972px, 42.36111vw, 610px);
   }
-  .${styles.heroActions} {
-    margin-left: calc(var(--w43-nav-gutter) - var(--w43-hero-gutter));
-  }
 
-  .${styles.footerWrap} {
-    padding-left: var(--w43-nav-gutter);
-    padding-right: var(--w43-nav-gutter);
-  }
-
-  /* Keep portrait subjects below the navigation safe area on image-led heroes. */
+  /* Image safe areas are full-bleed composition decisions, not shell offsets. */
   .${styles.blogHeroImage} {
     inset: 80px 0 auto auto;
     height: calc(100% - 18px);
@@ -95,12 +71,6 @@ export function Website43FinalPolishStyles() {
   .${styles.toolHeroImage} {
     inset: 96px 0 auto auto;
     height: 620px;
-  }
-
-  /* The 1100 transition reference uses the same fluid shell as navigation. */
-  .${styles.toolStorySection} {
-    padding-left: var(--w43-nav-gutter);
-    padding-right: var(--w43-nav-gutter);
   }
 
   .${styles.notFound} {
@@ -113,9 +83,7 @@ export function Website43FinalPolishStyles() {
   }
   .${styles.notFoundFooterWrap} {
     padding-top: clamp(16px, calc(7.05882vw - 61.6471px), 40px);
-    padding-right: var(--w43-nav-gutter);
     padding-bottom: clamp(0px, calc(11.7647vw - 129.4118px), 40px);
-    padding-left: var(--w43-nav-gutter);
   }
 }
 
@@ -129,7 +97,6 @@ export function Website43FinalPolishStyles() {
     height: 346px;
   }
 
-  /* Featured stories use the same two-column card width as the article grid. */
   .${styles.featuredCard} {
     width: calc((100vw - 98px) / 2);
     flex-basis: calc((100vw - 98px) / 2);
@@ -154,24 +121,18 @@ export function Website43FinalPolishStyles() {
     font-size: 96px;
   }
   .${styles.notFoundFooterWrap} {
-    padding: 40px;
+    padding-top: 40px;
+    padding-bottom: 40px;
   }
 }
 
 @media (max-width: 639px) {
-  /* 390 canonical = 24px content gutter; 600 transition reference = 48px. */
-  .${styles.root} {
-    --w43-content-gutter: var(--w43-hero-gutter);
-  }
-
-  /* Blog search fills the reading shell: 342px at 390 and 504px at 600. */
+  /* Blog controls fill the shared mobile reading shell. */
   .${styles.searchFilters},
   .${styles.searchField} {
     width: 100%;
     max-width: 100%;
   }
-
-  /* Featured stories share the same reading width as the single-column cards below. */
   .${styles.featuredCard} {
     width: var(--w43-mobile-reading-width);
     flex-basis: var(--w43-mobile-reading-width);
@@ -179,18 +140,12 @@ export function Website43FinalPolishStyles() {
   .${styles.featuredScroller} {
     padding-inline: var(--w43-hero-gutter);
   }
-
-  /* Cards fill the Figma reading shell: 342px at 390 and 504px at 600. */
   .${styles.threeCols} > *,
   .${styles.stats} > * {
     width: 100%;
   }
 
-  /*
-   * Tool heroes use the same mobile composition language as Home:
-   * navigation + top title, portrait starts below the title, and the supporting
-   * copy/CTA sits on the lower image with a dedicated readability gradient.
-   */
+  /* Tool hero mobile composition: full-bleed image, shell-aligned copy. */
   .${styles.toolHero} {
     height: 740px;
   }
@@ -203,7 +158,6 @@ export function Website43FinalPolishStyles() {
     height: 440px;
     object-fit: cover;
     object-position: center center;
-    /* Fade the portrait in from the dark hero surface rather than exposing a hard top edge. */
     -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
     mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
   }
@@ -226,7 +180,6 @@ export function Website43FinalPolishStyles() {
   }
   .${styles.toolHeroCopy} {
     top: 0;
-    left: var(--w43-hero-gutter);
     width: calc(100% - var(--w43-hero-gutter) - var(--w43-hero-gutter));
     height: 740px;
   }
@@ -263,15 +216,7 @@ export function Website43FinalPolishStyles() {
 
   .${styles.notFound} {
     padding-top: clamp(48px, calc(3.80952vw + 33.1429px), 56px);
-    padding-right: var(--w43-hero-gutter);
     padding-bottom: 40px;
-    padding-left: var(--w43-hero-gutter);
-  }
-  .${styles.notFound} > .${styles.inner} {
-    width: var(--w43-mobile-reading-width);
-    max-width: 100%;
-    margin-right: auto;
-    margin-left: 0;
   }
   .${styles.notFoundCode} {
     font-size: 72px;
@@ -283,12 +228,10 @@ export function Website43FinalPolishStyles() {
   .${styles.notFoundFooterWrap} {
     height: clamp(137px, calc(11.9048vw + 90.5714px), 162px);
     padding-top: 24px;
-    padding-right: var(--w43-hero-gutter);
     padding-bottom: 24px;
-    padding-left: var(--w43-hero-gutter);
   }
 }
 `;
 
-  return <style data-w43-final-polish="five-viewport-uat">{css}</style>;
+  return <style data-w43-final-polish="component-only-v2">{css}</style>;
 }
