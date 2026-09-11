@@ -3,17 +3,12 @@ import styles from './Website43.module.css';
 /**
  * Website 4.3 horizontal layout contract.
  *
- * This layer owns page-shell alignment. Transition/final-polish styles may tune
- * component geometry, but they must not left-pin shared shells. Keeping the
- * invariant here prevents wide-screen dead space and keeps Figma/code aligned.
+ * This is the single horizontal alignment authority. Transition/final-polish
+ * styles may tune component internals and full-bleed imagery, but they must not
+ * introduce compensating horizontal offsets for ordinary readable content.
  *
- * Contract:
- * - full-bleed sections may span the viewport;
- * - shared inner shells are centered at every viewport;
- * - desktop shell content is capped at 1280px;
- * - wide-screen hero copy aligns to the same centered shell edge;
- * - mobile reading shells remain centered when their canonical width is
- *   narrower than the available content area.
+ * Structure: viewport/full bleed -> responsive gutter -> centered shell ->
+ * component content.
  */
 export function Website43LayoutContractStyles() {
   const css = String.raw`
@@ -22,7 +17,7 @@ export function Website43LayoutContractStyles() {
   --w43-shell-edge: max(var(--w43-nav-gutter), calc(50vw - 640px));
 }
 
-/* Shared shell invariant: never pin a constrained shell to one viewport edge. */
+/* Every constrained standard shell shares symmetric spare space. */
 .${styles.section} > .${styles.inner},
 .${styles.sectionDeep} > .${styles.inner},
 .${styles.blogContent} > .${styles.inner},
@@ -31,23 +26,34 @@ export function Website43LayoutContractStyles() {
 .${styles.legalBody} > .${styles.inner},
 .${styles.footerWrap} > .${styles.inner},
 .${styles.aboutInner},
+.${styles.narrow},
 .${styles.articleReadingGrid},
 .${styles.legalGrid},
+.${styles.calculatorHeader},
+.${styles.calculatorStage},
 .${styles.notFound} > .${styles.inner} {
   margin-left: auto;
   margin-right: auto;
 }
 
+/* Children of hero copy inherit the hero anchor; never compensate separately. */
+.${styles.heroActions},
+.${styles.heroProof} {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 @media (min-width: 1024px) {
-  /* Full-bleed imagery stays full width; copy aligns to the centered 1280px shell. */
   .${styles.root} {
     --w43-hero-gutter: var(--w43-shell-edge);
   }
 
+  /* Overlay navigation uses the same constrained shell as standard sections. */
   .${styles.navOverlay} {
     width: var(--w43-shell-width);
   }
 
+  /* Full-bleed images stay full bleed; readable copy shares one shell edge. */
   .${styles.homeHeroCopy},
   .${styles.blogHeroCopy},
   .${styles.toolHeroCopy} {
@@ -55,8 +61,15 @@ export function Website43LayoutContractStyles() {
   }
 }
 
+@media (min-width: 640px) and (max-width: 1023px) {
+  .${styles.homeHeroCopy},
+  .${styles.blogHeroCopy},
+  .${styles.toolHeroCopy} {
+    left: var(--w43-hero-gutter);
+  }
+}
+
 @media (max-width: 639px) {
-  /* 600px transition frames use a 504px reading shell: center the spare space. */
   .${styles.section} > .${styles.inner},
   .${styles.sectionDeep} > .${styles.inner},
   .${styles.blogContent} > .${styles.inner},
@@ -71,8 +84,14 @@ export function Website43LayoutContractStyles() {
     margin-left: auto;
     margin-right: auto;
   }
+
+  .${styles.homeHeroCopy},
+  .${styles.blogHeroCopy},
+  .${styles.toolHeroCopy} {
+    left: var(--w43-hero-gutter);
+  }
 }
 `;
 
-  return <style data-w43-layout-contract="centered-shell-v1">{css}</style>;
+  return <style data-w43-layout-contract="centered-shell-v2">{css}</style>;
 }
