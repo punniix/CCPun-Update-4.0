@@ -24,9 +24,9 @@ export default function SeoScoreInput(props: ObjectInputProps<SeoValue>) {
   const tone = score == null ? "default" : score >= 85 ? "positive" : score >= 70 ? "primary" : score >= 50 ? "caution" : "critical";
 
   return (
-    <Stack space={4}>
+    <Stack gap={4}>
       <Card padding={4} radius={3} border>
-        <Stack space={2}>
+        <Stack gap={2}>
           <Text size={1} weight="semibold">SEO Control Center</Text>
           <Text size={1}>
             แก้ SEO Title, Meta Description, Search Intent และ Semantic Topic ได้ในฟอร์มด้านล่าง ส่วนความพร้อม SEO / GEO แบบสดให้ตรวจใน Control Plane เพื่อไม่คำนวณผลตรวจซ้ำใน Studio
@@ -41,9 +41,9 @@ export default function SeoScoreInput(props: ObjectInputProps<SeoValue>) {
       </Card>
 
       <Card padding={4} radius={3} border tone={tone}>
-        <Stack space={3}>
+        <Stack gap={3}>
           <Flex align="center" justify="space-between" gap={3}>
-            <Stack space={2}>
+            <Stack gap={2}>
               <Text size={1} weight="semibold">ผลตรวจ SEO ล่าสุดที่บันทึก</Text>
               <Text size={4} weight="bold">{score == null ? "ยังไม่ตรวจ" : `${score}/100`}</Text>
             </Stack>
