@@ -26,11 +26,11 @@ jobs:
           node-version: 24.x
           cache: npm
 
-      - name: Upgrade Sanity Studio core to v6
-        run: npm install --save-dev sanity@^6.13.1
+      - name: Upgrade Sanity Studio core and direct UI dependency
+        run: npm install --save-dev sanity@^6.13.1 @sanity/ui@^4.2.1
 
       - name: Show resolved Sanity stack
-        run: npm ls sanity next-sanity @sanity/client react react-dom
+        run: npm ls sanity @sanity/ui next-sanity @sanity/client react react-dom
 
       - name: Foundation checks
         run: npm run check:foundation
