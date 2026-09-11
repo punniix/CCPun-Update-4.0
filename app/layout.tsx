@@ -20,13 +20,13 @@ const kanit = Kanit({
 
 export const metadata: Metadata = {
   metadataBase: new URL(IS_ADMIN_APPLICATION ? "https://admin.ccpun.com" : "https://ccpun.com"),
-  title: IS_ADMIN_APPLICATION ? "CCPun Control Plane" : "CCPun ที่ปรึกษาการเงินอิสระด้านประกันชีวิต การลงทุน",
-  description: IS_ADMIN_APPLICATION ? "พื้นที่ควบคุมภายในของ CCPun" : "CCPun ที่ปรึกษาการเงินอิสระ ให้คำแนะนำด้านประกันชีวิต ประกันสุขภาพ ประกันโรคร้ายแรง ประกันทุนสูง และการลงทุน ออกแบบเฉพาะสำหรับคุณ มีใบอนุญาต ก.ล.ต. และ คปภ.",
+  title: IS_ADMIN_APPLICATION ? "CCPun Control Plane" : "CCPun | ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
+  description: IS_ADMIN_APPLICATION ? "พื้นที่ควบคุมภายในของ CCPun" : "ไม่แน่ใจว่าควรลงทุนหรือทำประกันแบบไหน? CCPun ที่ปรึกษาทางการเงิน ช่วยดูเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี ก่อนค่อยเลือกทางที่เหมาะกับชีวิตคุณ",
   keywords: IS_ADMIN_APPLICATION ? undefined : ["ที่ปรึกษาการเงิน", "กองทุนรวม", "ประกันชีวิต", "วางแผนภาษี", "RMF", "SSF", "ThaiESG", "AIA", "Finnomena", "PhillipCapital"],
   authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)", url: "https://ccpun.com" }],
   openGraph: IS_ADMIN_APPLICATION ? null : {
-    title: "CCPun ที่ปรึกษาการเงินอิสระด้านประกันชีวิต การลงทุน",
-    description: "CCPun ที่ปรึกษาการเงินอิสระ ให้คำแนะนำด้านประกันชีวิต ประกันสุขภาพ ประกันโรคร้ายแรง ประกันทุนสูง และการลงทุน ออกแบบเฉพาะสำหรับคุณ มีใบอนุญาต ก.ล.ต. และ คปภ.",
+    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
+    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
     url: "https://ccpun.com",
     siteName: "CCPun Financial Advisor",
     images: [{ url: "https://ccpun.com/og-image-20260610.webp?v=68ae8d8", width: 1200, height: 630, alt: "CCPun ที่ปรึกษาการเงิน" }],
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
   },
   twitter: IS_ADMIN_APPLICATION ? null : {
     card: "summary_large_image",
-    title: "CCPun ที่ปรึกษาการเงินอิสระด้านประกันชีวิต การลงทุน",
-    description: "CCPun ที่ปรึกษาการเงินอิสระ ให้คำแนะนำด้านประกันชีวิต ประกันสุขภาพ ประกันโรคร้ายแรง ประกันทุนสูง และการลงทุน ออกแบบเฉพาะสำหรับคุณ มีใบอนุญาต ก.ล.ต. และ คปภ.",
+    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
+    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
     images: ["https://ccpun.com/og-image-20260610.webp?v=68ae8d8"],
   },
   alternates: IS_ADMIN_APPLICATION ? { canonical: null } : {
