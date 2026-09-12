@@ -1,20 +1,8 @@
 import "server-only";
 
-import type { ComponentType } from "react";
-import { defineLive } from "next-sanity/live";
-import { sanityReadToken, sanityServerClient } from "@/lib/sanity-fetch";
-
-type LiveProps = { includeDrafts?: boolean };
-
-const NoopLive: ComponentType<LiveProps> = () => null;
-
-const live = sanityServerClient
-  ? defineLive({
-      client: sanityServerClient,
-      serverToken: sanityReadToken || false,
-      browserToken: false,
-    })
-  : null;
-
-/** Preview-only client bridge. Public content fetching lives in sanity-fetch.ts. */
-export const SanityLive = live?.SanityLive ?? NoopLive;
+/**
+ * Backward-compatible public content fetch entry point.
+ * Preview-only Sanity Live tooling lives in sanity-preview-live.ts so normal
+ * website requests cannot pull preview client modules into their initial JS.
+ */
+export { sanityFetch } from "@/lib/sanity-fetch";
