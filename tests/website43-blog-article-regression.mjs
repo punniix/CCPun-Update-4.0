@@ -64,12 +64,13 @@ const health = { ...article, id: 'health', slug: 'aia-health-happy-describe', ca
 const draft = { ...article, id: 'draft', slug: 'draft-only', title: 'DRAFT MUST NOT LEAK', status: 'draft' };
 const calls = [];
 const mock = (path, exports) => { require.cache[require.resolve(path)] = { exports }; };
+const nextNavigation = require('next/navigation');
 mock('../lib/content/provider.ts', { getContentProvider: () => ({
   listArticles: async (options) => { calls.push(options); return [article, health, draft]; },
   getArticleBySlug: async (slug, options) => { calls.push(options); return [article, health, draft].find((entry) => entry.slug === slug) ?? null; },
 }) });
 mock('next/headers', { draftMode: async () => ({ isEnabled: true }) });
-mock('next/navigation', { useRouter: () => ({ replace: () => {} }) });
+mock('next/navigation', { ...nextNavigation, useRouter: () => ({ replace: () => {} }) });
 mock('../lib/deployment-environment.ts', { IS_DRAFT_PREVIEW_ALLOWED: false });
 const overview = require('../features/blog/pages/BlogArchivePage.tsx').default;
 const category = require('../features/blog/pages/BlogCategoryPage.tsx');
@@ -117,7 +118,7 @@ Object.defineProperties(globalThis, {
 });
 mock('next/link', { __esModule: true, default: ({ children, href, ...props }) => React.createElement('a', { ...props, href }, children) });
 mock('next/image', { __esModule: true, default: ({ src, alt }) => React.createElement('img', { src, alt }) });
-mock('next/navigation', { useRouter: () => ({
+mock('next/navigation', { ...nextNavigation, useRouter: () => ({
   replace: (href) => browserDom.window.history.replaceState(browserDom.window.history.state, '', href),
 }) });
 delete require.cache[require.resolve('../features/blog/website-43/Website43BlogInteractive.tsx')];
