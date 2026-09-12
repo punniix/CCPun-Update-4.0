@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import styles from './Website43.module.css';
+import styles from './Website43Navbar.module.css';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
 
 function Website43NavbarBrand() {

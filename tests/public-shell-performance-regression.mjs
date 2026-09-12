@@ -7,6 +7,7 @@ const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 const googleTagManager = read('features/analytics/components/GoogleTagManager.tsx');
 const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
 const website43Navbar = read('components/layout/website-43/Website43Navbar.tsx');
+const website43NavbarStyles = read('components/layout/website-43/Website43Navbar.module.css');
 const website43FinalPolish = read('components/layout/website-43/Website43FinalPolishStyles.tsx');
 
 assert.match(
@@ -88,6 +89,31 @@ assert.doesNotMatch(
   website43Navbar,
   /CookieSettingsButton|Website43Footer|SectionHeading/,
   'Navbar client island must not carry static footer or heading code',
+);
+assert.match(
+  website43Navbar,
+  /import styles from '\.\/Website43Navbar\.module\.css';/,
+  'Navbar client island must use its narrow dedicated CSS module',
+);
+assert.doesNotMatch(
+  website43Navbar,
+  /Website43\.module\.css/,
+  'Navbar client island must not import the all-surface Website 4.3 CSS map',
+);
+assert.match(
+  website43NavbarStyles,
+  /\.navBand[\s\S]*--w43-nav-gutter[\s\S]*@media \(max-width: 1023px\)[\s\S]*@media \(max-width: 639px\)/,
+  'Dedicated navbar styles must preserve the existing fluid desktop, tablet, and mobile gutter contract',
+);
+assert.doesNotMatch(
+  website43NavbarStyles,
+  /\.navOverlay\s*\{[^}]*max-width:/,
+  'Overlay navbar must keep the existing wide-screen fluid width instead of introducing a new 1280px cap',
+);
+assert.doesNotMatch(
+  website43NavbarStyles,
+  /\.homeHero|\.articleHeader|\.toolHero|\.footerWrap/,
+  'Dedicated navbar CSS must not carry unrelated Home, Article, Tool, or Footer style maps',
 );
 assert.match(
   website43FinalPolish,
