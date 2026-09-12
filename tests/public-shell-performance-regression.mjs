@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const layout = read('app/layout.tsx');
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
+const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
 
 assert.match(
   layout,
@@ -34,6 +35,16 @@ assert.match(
   clientWidgets,
   /pathname === '\/ci-planning'[\s\S]*pathname === '\/tools\/financial-health-check'/,
   'Meta Pixel route gate must retain both paid tool surfaces',
+);
+assert.match(
+  layout,
+  /<Website43TransitionStyles \/>[\s\S]*<Website43FinalPolishStyles \/>/,
+  'Website 4.3 responsive style bridges must render on the server shell',
+);
+assert.doesNotMatch(
+  website43Shared,
+  /Website43(?:Transition|FinalPolish)Styles/,
+  'Large static Website 4.3 style strings must stay out of the hydrated navbar bundle',
 );
 
 console.log('Public shell performance regression checks passed.');
