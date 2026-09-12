@@ -62,7 +62,16 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
     <div className={styles.root}>
       <main id="main-content" tabIndex={-1}>
         <section className={styles.blogHero} aria-labelledby="blog-title">
-          <Image className={styles.blogHeroImage} src="/assets/website-43/blog-hero.png" alt="" width={1774} height={887} sizes="(max-width: 639px) 100vw, 56vw" priority />
+          <Image
+            className={styles.blogHeroImage}
+            src="/assets/website-43/blog-hero.png"
+            alt=""
+            width={1774}
+            height={887}
+            sizes="(max-width: 639px) 100vw, 56vw"
+            loading="eager"
+            fetchPriority="high"
+          />
           <div className={styles.blogHeroGradient} aria-hidden="true" />
           <Website43Navbar overlay />
           <div className={styles.blogHeroCopy}>

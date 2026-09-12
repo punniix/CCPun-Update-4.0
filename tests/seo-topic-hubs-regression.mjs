@@ -94,7 +94,7 @@ assert.doesNotMatch(blogPage, /เลือกหัวข้อที่ต้�
 assert.doesNotMatch(blogPage, /aria-label="หัวข้อบทความหลัก"/);
 
 // Query-string filters remain a client-side UX convenience, not an SEO breadcrumb node.
-assert.match(blogInteractive, /window\.history\.replaceState/);
+assert.match(blogInteractive, /nativeReplaceState\.call\(window\.history/);
 assert.match(blogInteractive, /url\.searchParams\.set\('q'/);
 assert.match(blogPage, /filters\.category/);
 assert.match(blogPage, /filters\.tag/);
