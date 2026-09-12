@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { draftMode } from "next/headers";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
 import Website43Article from "@/features/blog/website-43/Website43Article";
@@ -10,11 +11,15 @@ import { getArticleCanonical, getArticleCategorySlug, getArticlePath, getMovedAr
 
 const DEFAULT_SOCIAL_IMAGE = "/assets/blog-hub-hero-ccpun-v1.webp";
 
+const getArticleBySlugForRequest = cache((slug: string, includeDrafts: boolean) =>
+  getContentProvider().getArticleBySlug(slug, { includeDrafts }),
+);
+
 export async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }): Promise<Metadata> {
   const { category, slug } = await params;
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
-  const article = await getContentProvider().getArticleBySlug(slug, { includeDrafts });
+  const article = await getArticleBySlugForRequest(slug, includeDrafts);
   if (!article || (!includeDrafts && article.status !== "published")) {
     return {
       title: "ไม่พบหน้า | CCPun",
@@ -58,7 +63,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
   if (movedPath) permanentRedirect(movedPath);
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
-  const article = await getContentProvider().getArticleBySlug(slug, { includeDrafts });
+  const provider = getContentProvider();
+  const relatedArticlesPromise = provider.listArticles({ includeDrafts: false });
+  const article = await getArticleBySlugForRequest(slug, includeDrafts);
   if (!article || (!includeDrafts && article.status !== "published")) notFound();
   if (category !== getArticleCategorySlug(article)) permanentRedirect(getArticlePath(article));
 
@@ -66,7 +73,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
 
   let relatedArticles = [] as Awaited<ReturnType<ReturnType<typeof getContentProvider>["listArticles"]>>;
   try {
-    const candidates = (await getContentProvider().listArticles({ includeDrafts: false }))
+    const candidates = (await relatedArticlesPromise)
       .filter((candidate) => candidate.status === "published" && candidate.slug !== article.slug);
     relatedArticles = candidates
       .sort((a, b) => {
