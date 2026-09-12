@@ -4,6 +4,9 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const layout = read('app/layout.tsx');
 const draftPreviewRuntime = read('components/preview/DraftPreviewRuntime.tsx');
+const sanityLive = read('lib/sanity-live.ts');
+const sanityPreviewLive = read('lib/admin/sanity-preview-live.ts');
+const sanityFetch = read('lib/content/sanity-fetch.ts');
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 const googleTagManager = read('features/analytics/components/GoogleTagManager.tsx');
 const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
@@ -28,7 +31,7 @@ assert.match(
 );
 assert.doesNotMatch(
   layout,
-  /from ["']next-sanity\/visual-editing["']|from ["']@\/lib\/sanity-live["']/,
+  /from ["']next-sanity\/visual-editing["']|from ["']@\/lib\/(?:sanity-live|admin\/sanity-preview-live)["']/,
   'Public root layout must not statically import preview client runtimes',
 );
 assert.match(
@@ -38,13 +41,33 @@ assert.match(
 );
 assert.match(
   draftPreviewRuntime,
-  /if \(!enabled\) return null;[\s\S]*import\(["']@\/lib\/sanity-live["']\)[\s\S]*import\(["']next-sanity\/visual-editing["']\)/,
-  'Sanity Live and Visual Editing must only be imported after the preview gate passes',
+  /if \(!enabled\) return null;[\s\S]*import\(["']@\/lib\/admin\/sanity-preview-live["']\)[\s\S]*import\(["']next-sanity\/visual-editing["']\)/,
+  'Sanity Live and Visual Editing must only be imported from preview-only modules after the preview gate passes',
 );
 assert.match(
   draftPreviewRuntime,
   /<SanityLive includeDrafts=\{isDraftMode\} \/>[\s\S]*isDraftMode \? <VisualEditing \/>/,
   'Allowed preview environments must preserve Sanity Live and draft visual editing behavior',
+);
+assert.match(
+  sanityLive,
+  /export \{ sanityFetch \} from ["']@\/lib\/content\/sanity-fetch["']/,
+  'Legacy public Sanity entry must delegate only to the content-owned server fetch module',
+);
+assert.doesNotMatch(
+  sanityLive,
+  /defineLive|next-sanity\/live|SanityLive/,
+  'Public Sanity fetch entry must not carry preview live client references',
+);
+assert.match(
+  sanityPreviewLive,
+  /defineLive[\s\S]*export const SanityLive/,
+  'Preview-only Sanity module must retain the live preview bridge',
+);
+assert.doesNotMatch(
+  sanityFetch,
+  /defineLive|next-sanity\/live|VisualEditing/,
+  'Public server fetch implementation must stay free of preview client tooling',
 );
 assert.match(
   clientWidgets,
