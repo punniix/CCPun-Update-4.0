@@ -24,10 +24,20 @@ assert.match(
   /const isDraftMode = IS_DRAFT_PREVIEW_ALLOWED \? \(await draftMode\(\)\)\.isEnabled : false;/,
   'Public web must not read Draft Mode when Draft Preview is unavailable',
 );
+assert.doesNotMatch(
+  layout,
+  /import\s+DraftPreviewRuntime\s+from\s+["']@\/components\/preview\/DraftPreviewRuntime["']/,
+  'Public root layout must not statically import the preview boundary into the shared graph',
+);
 assert.match(
   layout,
-  /<DraftPreviewRuntime enabled=\{IS_DRAFT_PREVIEW_ALLOWED\} isDraftMode=\{isDraftMode\} \/>/,
-  'Root shell must delegate preview tooling through the server-only lazy preview boundary',
+  /if \(IS_DRAFT_PREVIEW_ALLOWED\) \{[\s\S]*await import\(["']@\/components\/preview\/DraftPreviewRuntime["']\)[\s\S]*draftPreviewRuntime =/,
+  'Root shell must import the entire preview boundary only after the deployment preview gate passes',
+);
+assert.match(
+  layout,
+  /\{draftPreviewRuntime\}/,
+  'Root shell must render only the gated server-side preview boundary result',
 );
 assert.doesNotMatch(
   layout,
