@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const layout = read('app/layout.tsx');
+const nextConfig = read('next.config.ts');
 const draftPreviewRuntime = read('components/preview/DraftPreviewRuntime.tsx');
+const draftPreviewRuntimeNoop = read('components/preview/DraftPreviewRuntimeNoop.tsx');
 const sanityLive = read('lib/sanity-live.ts');
 const sanityPreviewLive = read('lib/admin/sanity-preview-live.ts');
 const sanityFetch = read('lib/content/sanity-fetch.ts');
@@ -28,6 +30,33 @@ assert.doesNotMatch(
   layout,
   /import\s+DraftPreviewRuntime\s+from\s+["']@\/components\/preview\/DraftPreviewRuntime["']/,
   'Public root layout must not statically import the preview boundary into the shared graph',
+);
+const previewRuntimeEnvironmentBlock = nextConfig.match(
+  /const USE_REAL_DRAFT_PREVIEW_RUNTIME = \[([\s\S]*?)\]\.includes\(APP_ENVIRONMENT\);/,
+)?.[1] ?? '';
+for (const environment of ['development', 'local-uat', 'local-production', 'admin-uat', 'production-admin']) {
+  assert.match(
+    previewRuntimeEnvironmentBlock,
+    new RegExp(`['"]${environment}['"]`),
+    `${environment} must keep the real Draft Preview runtime`,
+  );
+}
+assert.doesNotMatch(
+  previewRuntimeEnvironmentBlock,
+  /["'](?:web-uat|production)["']/,
+  'Public web build environments must resolve Draft Preview to the no-op boundary',
+);
+assert.match(
+  nextConfig,
+  /resolveAlias:[\s\S]*["']@\/components\/preview\/DraftPreviewRuntime["']:[\s\S]*USE_REAL_DRAFT_PREVIEW_RUNTIME[\s\S]*DraftPreviewRuntime\.tsx[\s\S]*DraftPreviewRuntimeNoop\.tsx/,
+  'Turbopack must resolve the root Draft Preview import at build time',
+);
+assert.match(draftPreviewRuntimeNoop, /import ["']server-only["'];/);
+assert.match(draftPreviewRuntimeNoop, /return null;/);
+assert.doesNotMatch(
+  draftPreviewRuntimeNoop,
+  /SanityLive|VisualEditing|next-sanity|sanity-preview-live/,
+  'Public Draft Preview no-op must contain no preview client references',
 );
 assert.match(
   layout,

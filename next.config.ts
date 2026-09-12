@@ -17,6 +17,13 @@ const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
 const APP_ENVIRONMENT = getAdminEnvironment();
 const SANITY_LANE_ALLOWED = isSanityLaneAllowed(SANITY_DATASET, APP_ENVIRONMENT);
+const USE_REAL_DRAFT_PREVIEW_RUNTIME = [
+  "development",
+  "local-uat",
+  "local-production",
+  "admin-uat",
+  "production-admin",
+].includes(APP_ENVIRONMENT);
 const LOCAL_DIST_DIR = APP_ENVIRONMENT === "local-uat"
   ? ".ccpun-local/next-uat"
   : APP_ENVIRONMENT === "local-production"
@@ -36,6 +43,11 @@ const nextConfig: NextConfig = {
   compress: true,
   turbopack: {
     root: process.cwd(),
+    resolveAlias: {
+      "@/components/preview/DraftPreviewRuntime": USE_REAL_DRAFT_PREVIEW_RUNTIME
+        ? "./components/preview/DraftPreviewRuntime.tsx"
+        : "./components/preview/DraftPreviewRuntimeNoop.tsx",
+    },
   },
   experimental: {
     optimizePackageImports: [
