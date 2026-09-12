@@ -95,7 +95,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         {children}
         <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} />
-        {IS_DRAFT_PREVIEW_ALLOWED ? <SanityLive includeDrafts={isDraftMode} /> : null}
+        {IS_DRAFT_PREVIEW_ALLOWED ? <SanityLive includeDrafts={IS_DRAFT_PREVIEW_ALLOWED && isDraftMode} /> : null}
         {IS_DRAFT_PREVIEW_ALLOWED && isDraftMode ? <VisualEditing /> : null}
       </body>
     </html>
