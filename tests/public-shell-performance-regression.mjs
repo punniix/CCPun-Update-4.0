@@ -259,8 +259,13 @@ assert.equal(
 );
 assert.equal(
   (blogCategoryPage.match(/await getPublishedArticlesForRequest\(\)/g) ?? []).length,
-  2,
-  'Blog category metadata and page render must both use the request-scoped accessor',
+  1,
+  'Blog category metadata must use the request-scoped accessor',
+);
+assert.match(
+  blogCategoryPage,
+  /const articlesPromise = getPublishedArticlesForRequest\(\);[\s\S]*const articles = await articlesPromise;/,
+  'Blog category page must start and await the same request-scoped accessor while resolving search params',
 );
 
 console.log('Public shell performance regression checks passed.');
