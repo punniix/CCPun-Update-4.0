@@ -15,6 +15,9 @@ const website43Shared = read('components/layout/website-43/Website43Shared.tsx')
 const website43Navbar = read('components/layout/website-43/Website43Navbar.tsx');
 const website43NavbarStyles = read('components/layout/website-43/Website43Navbar.module.css');
 const website43FinalPolish = read('components/layout/website-43/Website43FinalPolishStyles.tsx');
+const website43Blog = read('features/blog/website-43/Website43Blog.tsx');
+const website43BlogInteractive = read('features/blog/website-43/Website43BlogInteractive.tsx');
+const blogCategoryPage = read('features/blog/pages/BlogCategoryPage.tsx');
 
 assert.match(
   layout,
@@ -207,6 +210,62 @@ assert.match(
   website43FinalPolish,
   /\.\$\{styles\.homeHeroBottomGradient\}\s*\{\s*display:\s*none;/,
   'Mobile Home must keep the lower readability fade folded into the primary gradient layer',
+);
+
+assert.doesNotMatch(
+  website43Blog,
+  /^['\"]use client['\"];?/m,
+  'Blog Hero, shared shell, topic content and footer must stay server-rendered',
+);
+assert.match(
+  website43Blog,
+  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer \/>/,
+  'Blog shell must keep the existing Hero/Navbar/content/Footer order while delegating only interactions to the client island',
+);
+assert.match(
+  website43Blog,
+  /BLOG_TOPIC_HUBS\.map\(\(\{ slug, title \}\) => \(\{ slug, title \}\)\)/,
+  'Blog shell must pass only the minimal category label/slug data required by the interactive island',
+);
+assert.match(
+  website43Blog,
+  /classNames=\{BLOG_CLIENT_CLASS_NAMES\}/,
+  'Blog client island must receive exact server-resolved Website 4.3 class names without importing the full CSS-module map',
+);
+assert.match(
+  website43BlogInteractive,
+  /^['\"]use client['\"];?/m,
+  'Blog carousel/search/category behavior must remain in an explicit client island',
+);
+assert.doesNotMatch(
+  website43BlogInteractive,
+  /Website43\.module\.css|Website43Footer|Website43Navbar|BLOG_TOPIC_HUBS/,
+  'Blog client island must not pull the all-surface CSS map, static shell, or full taxonomy module into its client bundle',
+);
+assert.match(
+  website43BlogInteractive,
+  /featuredScrollerRef[\s\S]*syncFeaturedDot[\s\S]*window\.history\.replaceState/,
+  'Blog client island must preserve carousel state and live search URL behavior',
+);
+assert.match(
+  blogCategoryPage,
+  /const getPublishedArticlesForRequest = cache\(\(\) =>[\s\S]*listArticles\(\{ includeDrafts: false \}\)/,
+  'Blog category metadata and page render must share one request-scoped published-article read',
+);
+assert.equal(
+  (blogCategoryPage.match(/listArticles\(\{ includeDrafts: false \}\)/g) ?? []).length,
+  1,
+  'Blog category must keep exactly one underlying published listArticles read declaration',
+);
+assert.equal(
+  (blogCategoryPage.match(/await getPublishedArticlesForRequest\(\)/g) ?? []).length,
+  1,
+  'Blog category metadata must use the request-scoped accessor',
+);
+assert.match(
+  blogCategoryPage,
+  /const articlesPromise = getPublishedArticlesForRequest\(\);[\s\S]*const articles = await articlesPromise;/,
+  'Blog category page must start and await the same request-scoped accessor while resolving search params',
 );
 
 console.log('Public shell performance regression checks passed.');
