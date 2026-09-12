@@ -5,8 +5,8 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 const layout = read('app/layout.tsx');
 const draftPreviewRuntime = read('components/preview/DraftPreviewRuntime.tsx');
 const sanityLive = read('lib/sanity-live.ts');
-const sanityPreviewLive = read('lib/sanity-preview-live.ts');
-const sanityFetch = read('lib/sanity-fetch.ts');
+const sanityPreviewLive = read('lib/admin/sanity-preview-live.ts');
+const sanityFetch = read('lib/content/sanity-fetch.ts');
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 const googleTagManager = read('features/analytics/components/GoogleTagManager.tsx');
 const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
@@ -31,7 +31,7 @@ assert.match(
 );
 assert.doesNotMatch(
   layout,
-  /from ["']next-sanity\/visual-editing["']|from ["']@\/lib\/sanity-(?:live|preview-live)["']/,
+  /from ["']next-sanity\/visual-editing["']|from ["']@\/lib\/(?:sanity-live|admin\/sanity-preview-live)["']/,
   'Public root layout must not statically import preview client runtimes',
 );
 assert.match(
@@ -41,7 +41,7 @@ assert.match(
 );
 assert.match(
   draftPreviewRuntime,
-  /if \(!enabled\) return null;[\s\S]*import\(["']@\/lib\/sanity-preview-live["']\)[\s\S]*import\(["']next-sanity\/visual-editing["']\)/,
+  /if \(!enabled\) return null;[\s\S]*import\(["']@\/lib\/admin\/sanity-preview-live["']\)[\s\S]*import\(["']next-sanity\/visual-editing["']\)/,
   'Sanity Live and Visual Editing must only be imported from preview-only modules after the preview gate passes',
 );
 assert.match(
@@ -51,8 +51,8 @@ assert.match(
 );
 assert.match(
   sanityLive,
-  /export \{ sanityFetch \} from ["']@\/lib\/sanity-fetch["']/,
-  'Legacy public Sanity entry must delegate only to the server fetch module',
+  /export \{ sanityFetch \} from ["']@\/lib\/content\/sanity-fetch["']/,
+  'Legacy public Sanity entry must delegate only to the content-owned server fetch module',
 );
 assert.doesNotMatch(
   sanityLive,
