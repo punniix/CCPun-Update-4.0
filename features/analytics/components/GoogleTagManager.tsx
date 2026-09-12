@@ -42,7 +42,7 @@ export default function GoogleTagManager({ gtmId, deferUntilLoad = false }: Goog
   useEffect(() => {
     let started = false;
     let idleHandle: number | null = null;
-    let fallbackTimer: number | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
     const apply = () => {
       const becameReady = loadGTM(gtmId);
@@ -68,10 +68,10 @@ export default function GoogleTagManager({ gtmId, deferUntilLoad = false }: Goog
     };
 
     const scheduleAfterLoad = () => {
-      if ('requestIdleCallback' in window) {
+      if (typeof window.requestIdleCallback === 'function') {
         idleHandle = window.requestIdleCallback(start, { timeout: 1000 });
       } else {
-        fallbackTimer = window.setTimeout(start, 200);
+        fallbackTimer = setTimeout(start, 200);
       }
     };
 
@@ -88,8 +88,8 @@ export default function GoogleTagManager({ gtmId, deferUntilLoad = false }: Goog
     return () => {
       window.removeEventListener('ccpun:consent', onConsent);
       window.removeEventListener('load', scheduleAfterLoad);
-      if (idleHandle !== null && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
-      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      if (idleHandle !== null && typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idleHandle);
+      if (fallbackTimer !== null) clearTimeout(fallbackTimer);
     };
   }, [deferUntilLoad, gtmId]);
 
