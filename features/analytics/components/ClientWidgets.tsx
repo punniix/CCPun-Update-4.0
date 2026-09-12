@@ -25,7 +25,7 @@ export default function ClientWidgets({ gaId, gtmId, metaPixelId }: { gaId: stri
 
   return <>
     <CookieConsent />
-    {gtmId && <GoogleTagManager gtmId={gtmId} />}
+    {gtmId && <GoogleTagManager gtmId={gtmId} deferUntilLoad={pathname === '/'} />}
     {gaId && <GoogleAnalytics gaId={gaId} />}
     {metaPixelId && isMetaPixelSurface && <MetaPixel pixelId={metaPixelId} />}
   </>;
