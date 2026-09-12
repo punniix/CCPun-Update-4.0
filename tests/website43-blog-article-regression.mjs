@@ -103,7 +103,8 @@ const shared = readFileSync(new URL('../components/layout/website-43/Website43Sh
 const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8');
 assert.ok(!shared.includes('Website43TransitionStyles') && !shared.includes('Website43FinalPolishStyles'), 'static responsive CSS must not hydrate with the shared navbar');
 assert.ok(layout.includes('<Website43TransitionStyles />') && layout.includes('<Website43FinalPolishStyles />'), 'static responsive CSS must remain server-rendered in the public shell');
-// Render the client list as a cached route remount after popstate already fired.
+
+// Render only the dedicated Blog interaction island as a cached route remount after popstate already fired.
 const browserDom = new JSDOM('<div id="app"></div>', { url: 'https://ccpun.com/blog/?q=สุขภาพ' });
 const savedGlobals = new Map(['window', 'document', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 Object.defineProperties(globalThis, {
@@ -113,14 +114,20 @@ Object.defineProperties(globalThis, {
   cancelAnimationFrame: { value: () => {}, configurable: true },
   IS_REACT_ACT_ENVIRONMENT: { value: true, configurable: true },
 });
-mock('../components/layout/website-43/Website43Shared.tsx', { Website43Navbar: () => null, Website43Footer: () => null });
 mock('next/link', { __esModule: true, default: ({ children, href, ...props }) => React.createElement('a', { ...props, href }, children) });
 mock('next/image', { __esModule: true, default: ({ src, alt }) => React.createElement('img', { src, alt }) });
-delete require.cache[require.resolve('../features/blog/website-43/Website43Blog.tsx')];
-const BlogClient = require('../features/blog/website-43/Website43Blog.tsx').default;
+delete require.cache[require.resolve('../features/blog/website-43/Website43BlogInteractive.tsx')];
+const BlogClient = require('../features/blog/website-43/Website43BlogInteractive.tsx').default;
 const { createRoot } = require('react-dom/client');
 const root = createRoot(browserDom.window.document.getElementById('app'));
-await React.act(async () => root.render(React.createElement(BlogClient, { articles: [toWebsite43ArticleItem(article), toWebsite43ArticleItem(health)], initialQuery: '' })));
+const classNames = new Proxy({}, { get: (_, key) => String(key) });
+const categories = [{ slug: null, title: 'ทุกหมวดหมู่' }];
+await React.act(async () => root.render(React.createElement(BlogClient, {
+  articles: [toWebsite43ArticleItem(article), toWebsite43ArticleItem(health)],
+  initialQuery: '',
+  classNames,
+  categories,
+})));
 const input = browserDom.window.document.querySelector('input[type="search"]');
 assert.equal(input.value, 'สุขภาพ', 'cached stale initial props must read the restored browser URL on mount');
 assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 1);
