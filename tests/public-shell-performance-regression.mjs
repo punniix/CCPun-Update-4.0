@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const layout = read('app/layout.tsx');
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
+const googleTagManager = read('features/analytics/components/GoogleTagManager.tsx');
 const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
 const website43Navbar = read('components/layout/website-43/Website43Navbar.tsx');
 const website43FinalPolish = read('components/layout/website-43/Website43FinalPolishStyles.tsx');
@@ -37,6 +38,26 @@ assert.match(
   clientWidgets,
   /pathname === '\/ci-planning'[\s\S]*pathname === '\/tools\/financial-health-check'/,
   'Meta Pixel route gate must retain both paid tool surfaces',
+);
+assert.match(
+  clientWidgets,
+  /<GoogleTagManager gtmId=\{gtmId\} deferUntilLoad=\{pathname === '\/'\} \/>/,
+  'Home must defer GTM provider startup beyond the critical paint while other public routes keep the existing startup behavior',
+);
+assert.match(
+  googleTagManager,
+  /deferUntilLoad = false[\s\S]*document\.readyState === 'complete'[\s\S]*window\.addEventListener\('load', scheduleAfterLoad, \{ once: true \}\)/,
+  'Deferred GTM must wait until the Home load boundary before provider startup',
+);
+assert.match(
+  googleTagManager,
+  /requestIdleCallback\(start, \{ timeout: 1000 \}\)/,
+  'Deferred Home GTM must prefer an idle slot after load instead of competing with LCP paint',
+);
+assert.match(
+  googleTagManager,
+  /const onConsent = \(\) => \{[\s\S]*if \(started\) apply\(\);/,
+  'Consent changes before deferred startup must stay persisted without waking GTM during Home critical paint',
 );
 assert.match(
   layout,
