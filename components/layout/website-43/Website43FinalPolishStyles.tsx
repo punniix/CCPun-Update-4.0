@@ -115,6 +115,43 @@ export function Website43FinalPolishStyles() {
     --w43-content-gutter: var(--w43-hero-gutter);
   }
 
+  /*
+   * Home keeps the same 390px composition while interpolating smoothly toward
+   * the 600px transition reference. The image remains eager/high-priority; this
+   * only makes its paint box fluid and folds the two visual gradient layers into
+   * one server-rendered layer so mobile has less compositing work before LCP.
+   */
+  .${styles.homeHero} {
+    height: clamp(740px, calc(9.52381vw + 702.857px), 760px);
+    isolation: isolate;
+  }
+  .${styles.homeHeroPicture} {
+    top: clamp(244px, calc(5.71429vw + 221.714px), 256px);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: auto;
+    contain: layout paint;
+  }
+  .${styles.homeHeroGradient} {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg,rgba(4,5,4,.10) 0%,rgba(4,5,4,.34) 22%,rgba(4,5,4,.58) 52%,rgba(4,5,4,.70) 78%,rgba(4,5,4,.74) 100%) bottom / 100% clamp(235px, calc(7.14286vw + 207.143px), 250px) no-repeat,
+      linear-gradient(180deg,rgb(4,6,5) 0%,rgb(4,6,5) 34%,rgba(4,6,5,.88) 37%,rgba(4,6,5,.55) 40%,rgba(4,6,5,.25) 42%,rgba(4,6,5,0) 44%,rgba(4,6,5,0) 100%);
+  }
+  .${styles.homeHeroBottomGradient} {
+    display: none;
+  }
+  .${styles.homeHeroCopy} {
+    top: clamp(104px, calc(3.80952vw + 89.1429px), 112px);
+  }
+  .${styles.homeHeroBody} {
+    margin-top: clamp(326px, calc(1.90476vw + 318.571px), 330px);
+  }
+
   /* Blog search fills the reading shell: 342px at 390 and 504px at 600. */
   .${styles.searchFilters},
   .${styles.searchField} {
