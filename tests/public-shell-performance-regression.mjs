@@ -107,6 +107,11 @@ assert.match(
 );
 assert.doesNotMatch(
   website43NavbarStyles,
+  /\.navOverlay\s*\{[^}]*max-width:/,
+  'Overlay navbar must keep the existing wide-screen fluid width instead of introducing a new 1280px cap',
+);
+assert.doesNotMatch(
+  website43NavbarStyles,
   /\.homeHero|\.articleHeader|\.toolHero|\.footerWrap/,
   'Dedicated navbar CSS must not carry unrelated Home, Article, Tool, or Footer style maps',
 );
