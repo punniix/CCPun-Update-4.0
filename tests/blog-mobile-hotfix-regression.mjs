@@ -17,13 +17,13 @@ assert.doesNotMatch(
 );
 assert.match(
   blogInteractive,
-  /Object\.getPrototypeOf\(window\.history\)\.replaceState[\s\S]*nativeReplaceState\.call\(window\.history, window\.history\.state, '', url\.pathname \+ url\.search\)/,
-  'Blog live search must update ?q= through the native History implementation without triggering App Router navigation',
+  /const nativeReplaceState = window\.history\.replaceState;[\s\S]*nativeReplaceState\.call\(window\.history, null, '', `\$\{url\.pathname\}\$\{url\.search\}\$\{url\.hash\}`\)/,
+  'Blog live search must use the Next-integrated browser History method without triggering a server navigation',
 );
 assert.doesNotMatch(
   blogInteractive,
-  /window\.history\.replaceState\(/,
-  'Blog live search must not go through Next App Router patched replaceState for client-only filtering',
+  /Object\.getPrototypeOf\(window\.history\)\.replaceState|router\.replace\(/,
+  'Blog live search must not bypass the Next-integrated History method or trigger App Router server navigation',
 );
 
 console.log('PASS: Blog mobile LCP priority and live-search URL state contracts');
