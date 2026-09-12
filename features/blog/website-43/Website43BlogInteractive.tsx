@@ -234,7 +234,8 @@ export default function Website43BlogInteractive({
               setQuery(value);
               const url = new URL(window.location.href);
               if (value.trim()) url.searchParams.set('q', value); else url.searchParams.delete('q');
-              window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+              const nativeReplaceState = window.history.replaceState;
+              nativeReplaceState.call(window.history, null, '', `${url.pathname}${url.search}${url.hash}`);
             }}
           />
           <div className={classNames.categoryMenu} ref={categoryMenuRef} onBlur={(event) => {
