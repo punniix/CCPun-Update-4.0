@@ -236,7 +236,12 @@ export default function Website43BlogInteractive({
               setQuery(value);
               const url = new URL(window.location.href);
               if (value.trim()) url.searchParams.set('q', value); else url.searchParams.delete('q');
-              router.replace(url.pathname + url.search, { scroll: false });
+              try {
+                router.replace(url.pathname + url.search, { scroll: false });
+              } catch {
+                const nativeReplaceState = Object.getPrototypeOf(window.history).replaceState as History['replaceState'];
+                nativeReplaceState.call(window.history, window.history.state, '', url.pathname + url.search);
+              }
             }}
           />
           <div className={classNames.categoryMenu} ref={categoryMenuRef} onBlur={(event) => {
