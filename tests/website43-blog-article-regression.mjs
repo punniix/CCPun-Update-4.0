@@ -100,7 +100,9 @@ assert.equal((await category.generateMetadata({ params: Promise.resolve({ catego
 await articleRoute.generateMetadata({ params: Promise.resolve({ category: 'life-insurance', slug: article.slug }) });
 assert.ok(calls.length > 0 && calls.every((call) => call.includeDrafts === false), 'stale draft cookie cannot cross public Production read gate');
 const shared = readFileSync(new URL('../components/layout/website-43/Website43Shared.tsx', import.meta.url), 'utf8');
-assert.ok(shared.includes('Website43TransitionStyles') && shared.includes('Website43FinalPolishStyles'));
+const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8');
+assert.ok(!shared.includes('Website43TransitionStyles') && !shared.includes('Website43FinalPolishStyles'), 'static responsive CSS must not hydrate with the shared navbar');
+assert.ok(layout.includes('<Website43TransitionStyles />') && layout.includes('<Website43FinalPolishStyles />'), 'static responsive CSS must remain server-rendered in the public shell');
 // Render the client list as a cached route remount after popstate already fired.
 const browserDom = new JSDOM('<div id="app"></div>', { url: 'https://ccpun.com/blog/?q=สุขภาพ' });
 const savedGlobals = new Map(['window', 'document', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
