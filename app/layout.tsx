@@ -16,6 +16,11 @@ const kanit = Kanit({
   weight: ["300", "400", "600", "700"],
   variable: "--font-kanit",
   display: "optional",
+  // Website 4.3 can paint with its system fallback immediately. Loading all
+  // Thai + Latin weight files at highest priority competes with the Home LCP
+  // image on cold mobile visits, so let the browser fetch the same self-hosted
+  // Kanit files only when its CSS actually needs them.
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -51,7 +56,10 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const isDraftMode = (await draftMode()).isEnabled;
+  // Public web production does not expose Draft Preview. Avoid touching Draft
+  // Mode there so the static public shell stays independent from preview-only
+  // request state and the Sanity live client never enters the public runtime.
+  const isDraftMode = IS_DRAFT_PREVIEW_ALLOWED ? (await draftMode()).isEnabled : false;
 
   return (
     <html lang="th" className={kanit.variable} suppressHydrationWarning>
@@ -87,7 +95,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         {children}
         <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} />
-        <SanityLive includeDrafts={IS_DRAFT_PREVIEW_ALLOWED && isDraftMode} />
+        {IS_DRAFT_PREVIEW_ALLOWED ? <SanityLive includeDrafts={isDraftMode} /> : null}
         {IS_DRAFT_PREVIEW_ALLOWED && isDraftMode ? <VisualEditing /> : null}
       </body>
     </html>
