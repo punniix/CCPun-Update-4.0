@@ -69,6 +69,7 @@ mock('../lib/content/provider.ts', { getContentProvider: () => ({
   getArticleBySlug: async (slug, options) => { calls.push(options); return [article, health, draft].find((entry) => entry.slug === slug) ?? null; },
 }) });
 mock('next/headers', { draftMode: async () => ({ isEnabled: true }) });
+mock('next/navigation', { useRouter: () => ({ replace: () => {} }) });
 mock('../lib/deployment-environment.ts', { IS_DRAFT_PREVIEW_ALLOWED: false });
 const overview = require('../features/blog/pages/BlogArchivePage.tsx').default;
 const category = require('../features/blog/pages/BlogCategoryPage.tsx');
@@ -116,6 +117,9 @@ Object.defineProperties(globalThis, {
 });
 mock('next/link', { __esModule: true, default: ({ children, href, ...props }) => React.createElement('a', { ...props, href }, children) });
 mock('next/image', { __esModule: true, default: ({ src, alt }) => React.createElement('img', { src, alt }) });
+mock('next/navigation', { useRouter: () => ({
+  replace: (href) => browserDom.window.history.replaceState(browserDom.window.history.state, '', href),
+}) });
 delete require.cache[require.resolve('../features/blog/website-43/Website43BlogInteractive.tsx')];
 const BlogClient = require('../features/blog/website-43/Website43BlogInteractive.tsx').default;
 const { createRoot } = require('react-dom/client');
@@ -137,6 +141,22 @@ await React.act(async () => {
 });
 assert.equal(input.value, '');
 assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 2);
+
+const inputValueSetter = Object.getOwnPropertyDescriptor(browserDom.window.HTMLInputElement.prototype, 'value').set;
+await React.act(async () => {
+  inputValueSetter.call(input, 'abc123');
+  input.dispatchEvent(new browserDom.window.Event('input', { bubbles: true }));
+});
+assert.equal(input.value, 'abc123');
+assert.equal(new URL(browserDom.window.location.href).searchParams.get('q'), 'abc123', 'live search must persist q through App Router replace');
+assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 0);
+await React.act(async () => {
+  inputValueSetter.call(input, '');
+  input.dispatchEvent(new browserDom.window.Event('input', { bubbles: true }));
+});
+assert.equal(new URL(browserDom.window.location.href).searchParams.has('q'), false, 'clearing live search must remove q from the URL');
+assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 2);
+
 await React.act(async () => root.unmount());
 for (const [key, descriptor] of savedGlobals) {
   if (descriptor) Object.defineProperty(globalThis, key, descriptor);
