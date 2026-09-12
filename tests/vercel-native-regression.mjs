@@ -378,6 +378,7 @@ assert.match(proxy, /admin\.ccpun\.com/);
 assert.match(proxy, /["']\/api\/auth\/:path\*["']/);
 
 const rootLayout = read('app/layout.tsx');
+const draftPreviewRuntime = read('components/preview/DraftPreviewRuntime.tsx');
 assert.match(rootLayout, /<html[^>]*suppressHydrationWarning/);
 assert.match(rootLayout, /<html lang="th"/);
 assert.match(rootLayout, /PRODUCTION_ANALYTICS_ENABLED/);
@@ -388,8 +389,16 @@ assert.match(rootLayout, /openGraph: IS_ADMIN_APPLICATION \? null/);
 assert.match(rootLayout, /twitter: IS_ADMIN_APPLICATION \? null/);
 assert.match(rootLayout, /alternates: IS_ADMIN_APPLICATION \? \{ canonical: null \}/);
 assert.match(rootLayout, /!IS_ADMIN_APPLICATION \? <script type="application\/ld\+json"/);
-assert.match(rootLayout, /SanityLive includeDrafts=\{IS_DRAFT_PREVIEW_ALLOWED && isDraftMode\}/);
-assert.match(rootLayout, /IS_DRAFT_PREVIEW_ALLOWED && isDraftMode \? <VisualEditing \/> : null/);
+assert.match(rootLayout, /import DraftPreviewRuntime from ["']@\/components\/preview\/DraftPreviewRuntime["']/);
+assert.match(rootLayout, /<DraftPreviewRuntime enabled=\{IS_DRAFT_PREVIEW_ALLOWED\} isDraftMode=\{isDraftMode\} \/>/);
+assert.doesNotMatch(rootLayout, /from ["']@\/lib\/sanity-live["']/);
+assert.doesNotMatch(rootLayout, /from ["']next-sanity\/visual-editing["']/);
+assert.match(draftPreviewRuntime, /import ["']server-only["']/);
+assert.match(draftPreviewRuntime, /if \(!enabled\) return null/);
+assert.match(draftPreviewRuntime, /import\(["']@\/lib\/sanity-live["']\)/);
+assert.match(draftPreviewRuntime, /import\(["']next-sanity\/visual-editing["']\)/);
+assert.match(draftPreviewRuntime, /<SanityLive includeDrafts=\{isDraftMode\} \/>/);
+assert.match(draftPreviewRuntime, /isDraftMode \? <VisualEditing \/> : null/);
 assert.match(deploymentEnvironment, /IS_DRAFT_PREVIEW_ALLOWED = isAdminReadDataPlaneAllowed/);
 
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');

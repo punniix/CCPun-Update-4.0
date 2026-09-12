@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const layout = read('app/layout.tsx');
+const draftPreviewRuntime = read('components/preview/DraftPreviewRuntime.tsx');
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 const googleTagManager = read('features/analytics/components/GoogleTagManager.tsx');
 const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
@@ -22,13 +23,28 @@ assert.match(
 );
 assert.match(
   layout,
-  /\{IS_DRAFT_PREVIEW_ALLOWED \? <SanityLive includeDrafts=\{IS_DRAFT_PREVIEW_ALLOWED && isDraftMode\} \/> : null\}/,
-  'Sanity Live must stay confined to environments that support Draft Preview',
+  /<DraftPreviewRuntime enabled=\{IS_DRAFT_PREVIEW_ALLOWED\} isDraftMode=\{isDraftMode\} \/>/,
+  'Root shell must delegate preview tooling through the server-only lazy preview boundary',
 );
 assert.doesNotMatch(
   layout,
-  /^\s*<SanityLive includeDrafts=/m,
-  'Sanity Live must never mount unconditionally on the public shell',
+  /from ["']next-sanity\/visual-editing["']|from ["']@\/lib\/sanity-live["']/,
+  'Public root layout must not statically import preview client runtimes',
+);
+assert.match(
+  draftPreviewRuntime,
+  /import ["']server-only["'];/,
+  'Draft preview boundary must remain server-only',
+);
+assert.match(
+  draftPreviewRuntime,
+  /if \(!enabled\) return null;[\s\S]*import\(["']@\/lib\/sanity-live["']\)[\s\S]*import\(["']next-sanity\/visual-editing["']\)/,
+  'Sanity Live and Visual Editing must only be imported after the preview gate passes',
+);
+assert.match(
+  draftPreviewRuntime,
+  /<SanityLive includeDrafts=\{isDraftMode\} \/>[\s\S]*isDraftMode \? <VisualEditing \/>/,
+  'Allowed preview environments must preserve Sanity Live and draft visual editing behavior',
 );
 assert.match(
   clientWidgets,
