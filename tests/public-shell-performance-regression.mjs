@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const layout = read('app/layout.tsx');
+const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 
 assert.match(
   layout,
@@ -23,6 +24,16 @@ assert.doesNotMatch(
   layout,
   /^\s*<SanityLive includeDrafts=/m,
   'Sanity Live must never mount unconditionally on the public shell',
+);
+assert.match(
+  clientWidgets,
+  /metaPixelId && isMetaPixelSurface && <MetaPixel pixelId=\{metaPixelId\} \/>/,
+  'Meta Pixel bundle must stay off Home, Blog, legal, and other non-paid-tool routes',
+);
+assert.match(
+  clientWidgets,
+  /pathname === '\/ci-planning'[\s\S]*pathname === '\/tools\/financial-health-check'/,
+  'Meta Pixel route gate must retain both paid tool surfaces',
 );
 
 console.log('Public shell performance regression checks passed.');

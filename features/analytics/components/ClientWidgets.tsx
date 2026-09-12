@@ -14,8 +14,19 @@ export default function ClientWidgets({ gaId, gtmId, metaPixelId }: { gaId: stri
     || pathname.startsWith('/snt-admin/')
     || pathname === '/studio'
     || pathname.startsWith('/studio/');
+  const isMetaPixelSurface = pathname === '/ci-planning'
+    || pathname.startsWith('/ci-planning/')
+    || pathname === '/tools/fhc'
+    || pathname.startsWith('/tools/fhc/')
+    || pathname === '/tools/financial-health-check'
+    || pathname.startsWith('/tools/financial-health-check/');
 
   if (isPrivateSurface) return null;
 
-  return <><CookieConsent />{gtmId && <GoogleTagManager gtmId={gtmId} />}{gaId && <GoogleAnalytics gaId={gaId} />}{metaPixelId && <MetaPixel pixelId={metaPixelId} />}</>;
+  return <>
+    <CookieConsent />
+    {gtmId && <GoogleTagManager gtmId={gtmId} />}
+    {gaId && <GoogleAnalytics gaId={gaId} />}
+    {metaPixelId && isMetaPixelSurface && <MetaPixel pixelId={metaPixelId} />}
+  </>;
 }
