@@ -39,5 +39,5 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
 
   const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === "all" || article.category === legacyCategory)
     && (!legacyTag || legacyTag === "all" || article.tags?.includes(legacyTag)));
-  return <Website43Blog key={`all:${query}:${legacyCategory}:${legacyTag}`} articles={toWebsite43ArticleItems(visibleArticles)} initialQuery={query} />;
+  return <Website43Blog key={`all:${legacyCategory}:${legacyTag}`} articles={toWebsite43ArticleItems(visibleArticles)} initialQuery={query} />;
 }
