@@ -5,8 +5,6 @@ import CookieSettingsButton from '@/components/layout/CookieSettingsButton';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import styles from './Website43.module.css';
-import { Website43FinalPolishStyles } from './Website43FinalPolishStyles';
-import { Website43TransitionStyles } from './Website43TransitionStyles';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
 
 export function Website43Brand() {
@@ -52,8 +50,6 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
         setOpen(false); setToolsOpen(false); setMobileToolsOpen(false);
       }
     }}>
-      <Website43TransitionStyles />
-      <Website43FinalPolishStyles />
       <Link href={HOME} aria-label="CCPUN หน้าแรก"><Website43Brand /></Link>
       <div className={styles.navSpacer} />
       <nav className={styles.navLinks} aria-label="เมนูหลัก">

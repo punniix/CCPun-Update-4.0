@@ -6,6 +6,8 @@ import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
 import { VisualEditing } from "next-sanity/visual-editing";
 import { SanityLive } from "@/lib/sanity-live";
+import { Website43FinalPolishStyles } from "@/components/layout/website-43/Website43FinalPolishStyles";
+import { Website43TransitionStyles } from "@/components/layout/website-43/Website43TransitionStyles";
 import { IS_ADMIN_APPLICATION, IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT, PRODUCTION_ANALYTICS_ENABLED } from "@/lib/deployment-environment";
 
 const GA_ID = PRODUCTION_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID ?? "") : "";
@@ -67,6 +69,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {IS_REVIEW_ENVIRONMENT ? <meta name="darkreader-lock" /> : null}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
+        <Website43TransitionStyles />
+        <Website43FinalPolishStyles />
         {/* Critical hero CSS — inlined to unblock above-the-fold render */}
         <style dangerouslySetInnerHTML={{ __html: `
           :root{color-scheme:dark;--background:0 15% 18%;--foreground:0 10% 98%;--primary:45 60% 70%;--primary-foreground:0 15% 12%;--muted-foreground:0 10% 70%;--border:0 12% 32%;--radius:1rem;}
