@@ -4,7 +4,6 @@ import { Kanit } from "next/font/google";
 import "./globals.css";
 import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
-import DraftPreviewRuntime from "@/components/preview/DraftPreviewRuntime";
 import { Website43FinalPolishStyles } from "@/components/layout/website-43/Website43FinalPolishStyles";
 import { Website43TransitionStyles } from "@/components/layout/website-43/Website43TransitionStyles";
 import { IS_ADMIN_APPLICATION, IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT, PRODUCTION_ANALYTICS_ENABLED } from "@/lib/deployment-environment";
@@ -59,9 +58,17 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Public web production does not expose Draft Preview. Avoid touching Draft
   // Mode there so the static public shell stays independent from preview-only
-  // request state. DraftPreviewRuntime performs the preview client imports only
-  // after this deployment has explicitly passed the same data-plane gate.
+  // request state. Import the entire preview boundary only after the deployment
+  // gate passes so its client references never enter the public root graph.
   const isDraftMode = IS_DRAFT_PREVIEW_ALLOWED ? (await draftMode()).isEnabled : false;
+  let draftPreviewRuntime: React.ReactNode = null;
+
+  if (IS_DRAFT_PREVIEW_ALLOWED) {
+    const { default: DraftPreviewRuntime } = await import("@/components/preview/DraftPreviewRuntime");
+    draftPreviewRuntime = (
+      <DraftPreviewRuntime enabled={IS_DRAFT_PREVIEW_ALLOWED} isDraftMode={isDraftMode} />
+    );
+  }
 
   return (
     <html lang="th" className={kanit.variable} suppressHydrationWarning>
@@ -99,7 +106,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         {children}
         <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} />
-        <DraftPreviewRuntime enabled={IS_DRAFT_PREVIEW_ALLOWED} isDraftMode={isDraftMode} />
+        {draftPreviewRuntime}
       </body>
     </html>
   );
