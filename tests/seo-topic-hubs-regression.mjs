@@ -12,6 +12,7 @@ const categoryPage = await read('features/blog/pages/BlogCategoryPage.tsx');
 const articlePage = await read('features/blog/pages/ArticlePage.tsx');
 const articlePresentation = await read('features/blog/website-43/Website43Article.tsx');
 const blogPresentation = await read('features/blog/website-43/Website43Blog.tsx');
+const blogInteractive = await read('features/blog/website-43/Website43BlogInteractive.tsx');
 const sitemap = await read('app/sitemaps/blog.xml/route.ts');
 
 const card = await read('features/blog/components/ArticleCard.tsx');
@@ -93,11 +94,12 @@ assert.doesNotMatch(blogPage, /เลือกหัวข้อที่ต้�
 assert.doesNotMatch(blogPage, /aria-label="หัวข้อบทความหลัก"/);
 
 // Query-string filters remain a client-side UX convenience, not an SEO breadcrumb node.
-assert.match(blogPresentation, /window\.history\.replaceState/);
-assert.match(blogPresentation, /url\.searchParams\.set\('q'/);
+assert.match(blogInteractive, /window\.history\.replaceState/);
+assert.match(blogInteractive, /url\.searchParams\.set\('q'/);
 assert.match(blogPage, /filters\.category/);
 assert.match(blogPage, /filters\.tag/);
 assert.match(blogPresentation, /activeCategorySlug/);
+assert.match(blogInteractive, /activeCategorySlug/);
 assert.match(categoryPage, /<Website43Blog/);
 assert.match(blogPage, /<Website43Blog/);
 
