@@ -6,6 +6,7 @@ const layout = read('app/layout.tsx');
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
 const website43Navbar = read('components/layout/website-43/Website43Navbar.tsx');
+const website43FinalPolish = read('components/layout/website-43/Website43FinalPolishStyles.tsx');
 
 assert.match(
   layout,
@@ -66,6 +67,21 @@ assert.doesNotMatch(
   website43Navbar,
   /CookieSettingsButton|Website43Footer|SectionHeading/,
   'Navbar client island must not carry static footer or heading code',
+);
+assert.match(
+  website43FinalPolish,
+  /\.\$\{styles\.homeHero\}\s*\{[\s\S]*height:\s*clamp\(740px,[\s\S]*760px\)/,
+  'Mobile Home hero must interpolate between the 390 canonical and 600 transition reference instead of locking one height',
+);
+assert.match(
+  website43FinalPolish,
+  /\.\$\{styles\.homeHeroPicture\}\s*\{[\s\S]*contain:\s*layout paint/,
+  'Mobile Home LCP image paint must remain isolated from the rest of the page layout',
+);
+assert.match(
+  website43FinalPolish,
+  /\.\$\{styles\.homeHeroBottomGradient\}\s*\{\s*display:\s*none;/,
+  'Mobile Home must keep the lower readability fade folded into the primary gradient layer',
 );
 
 console.log('Public shell performance regression checks passed.');
