@@ -244,8 +244,8 @@ assert.doesNotMatch(
 );
 assert.match(
   website43BlogInteractive,
-  /featuredScrollerRef[\s\S]*syncFeaturedDot[\s\S]*window\.history\.replaceState/,
-  'Blog client island must preserve carousel state and live search URL behavior',
+  /featuredScrollerRef[\s\S]*syncFeaturedDot[\s\S]*nativeReplaceState\.call/,
+  'Blog client island must preserve carousel state and live search URL behavior through native History state updates',
 );
 assert.match(
   blogCategoryPage,
