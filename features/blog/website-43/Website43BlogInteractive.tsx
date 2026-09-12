@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Website43ArticleItem } from './blogData';
 
@@ -76,7 +75,6 @@ export default function Website43BlogInteractive({
   categories: Website43BlogCategoryItem[];
   classNames: Website43BlogClientClassNames;
 }) {
-  const router = useRouter();
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
   const featuredRailRef = useRef<HTMLDivElement>(null);
   const featuredScrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,12 +234,7 @@ export default function Website43BlogInteractive({
               setQuery(value);
               const url = new URL(window.location.href);
               if (value.trim()) url.searchParams.set('q', value); else url.searchParams.delete('q');
-              try {
-                router.replace(url.pathname + url.search, { scroll: false });
-              } catch {
-                const nativeReplaceState = Object.getPrototypeOf(window.history).replaceState as History['replaceState'];
-                nativeReplaceState.call(window.history, window.history.state, '', url.pathname + url.search);
-              }
+              window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
             }}
           />
           <div className={classNames.categoryMenu} ref={categoryMenuRef} onBlur={(event) => {
