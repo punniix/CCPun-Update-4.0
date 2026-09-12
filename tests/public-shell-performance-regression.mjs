@@ -16,7 +16,7 @@ assert.match(
 );
 assert.match(
   layout,
-  /\{IS_DRAFT_PREVIEW_ALLOWED \? <SanityLive includeDrafts=\{isDraftMode\} \/> : null\}/,
+  /\{IS_DRAFT_PREVIEW_ALLOWED \? <SanityLive includeDrafts=\{IS_DRAFT_PREVIEW_ALLOWED && isDraftMode\} \/> : null\}/,
   'Sanity Live must stay confined to environments that support Draft Preview',
 );
 assert.doesNotMatch(
