@@ -1,3 +1,4 @@
+import { cache } from "react";
 import Website43Blog from "@/features/blog/website-43/Website43Blog";
 import { toWebsite43ArticleItems } from "@/features/blog/website-43/blogData";
 import type { Metadata } from "next";
@@ -16,6 +17,9 @@ import { getArticlePath, getLegacyCategoryRedirectPath, isArticleCanonicalAligne
 
 const SITE_URL = "https://ccpun.com";
 const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/assets/blog-hub-hero-ccpun-v1.webp`;
+const getPublishedArticlesForRequest = cache(() =>
+  getContentProvider().listArticles({ includeDrafts: false }),
+);
 
 function articleBelongsToHub(article: Article, hub: BlogTopicHub) {
   return isArticleInSemanticTopic(
@@ -40,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   if (!hub) return { title: "บทความ | CCPun", alternates: { canonical: null }, robots: { index: false, follow: true } };
 
   const { isEnabled } = await draftMode();
-  const articles = await getContentProvider().listArticles({ includeDrafts: false });
+  const articles = await getPublishedArticlesForRequest();
   const relevantIndexableArticles = articles.filter(
     (article) => articleBelongsToHub(article, hub) && isPublicIndexableArticle(article),
   );
@@ -82,9 +86,10 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
     permanentRedirect(getArticlePath(article));
   }
 
+  const articlesPromise = getPublishedArticlesForRequest();
   const queryParams = await searchParams ?? {};
   const initialQuery = typeof queryParams.q === "string" ? queryParams.q : "";
-  const articles = await getContentProvider().listArticles({ includeDrafts: false });
+  const articles = await articlesPromise;
   const publishedArticles = articles.filter((article) => article.status === "published");
   const relevantArticles = publishedArticles.filter((article) => articleBelongsToHub(article, hub));
   const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);
