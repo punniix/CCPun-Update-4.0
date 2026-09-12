@@ -33,8 +33,17 @@ function loadGTM(gtmId: string) {
   return true;
 }
 
-export default function GoogleTagManager({ gtmId }: { gtmId: string }) {
+type GoogleTagManagerProps = {
+  gtmId: string;
+  deferUntilLoad?: boolean;
+};
+
+export default function GoogleTagManager({ gtmId, deferUntilLoad = false }: GoogleTagManagerProps) {
   useEffect(() => {
+    let started = false;
+    let idleHandle: number | null = null;
+    let fallbackTimer: number | null = null;
+
     const apply = () => {
       const becameReady = loadGTM(gtmId);
       ensureGoogleQueue();
@@ -45,10 +54,44 @@ export default function GoogleTagManager({ gtmId }: { gtmId: string }) {
       if (becameReady) window.dispatchEvent(new CustomEvent('ccpun:gtm-ready'));
     };
 
-    apply();
-    window.addEventListener('ccpun:consent', apply);
-    return () => window.removeEventListener('ccpun:consent', apply);
-  }, [gtmId]);
+    const onConsent = () => {
+      // Before the deferred Home start, the latest choice is already persisted
+      // in localStorage. Read it once GTM starts instead of waking the provider
+      // during the critical paint window.
+      if (started) apply();
+    };
+
+    const start = () => {
+      if (started) return;
+      started = true;
+      apply();
+    };
+
+    const scheduleAfterLoad = () => {
+      if ('requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(start, { timeout: 1000 });
+      } else {
+        fallbackTimer = window.setTimeout(start, 200);
+      }
+    };
+
+    window.addEventListener('ccpun:consent', onConsent);
+
+    if (!deferUntilLoad || document.getElementById('gtm-script')) {
+      start();
+    } else if (document.readyState === 'complete') {
+      scheduleAfterLoad();
+    } else {
+      window.addEventListener('load', scheduleAfterLoad, { once: true });
+    }
+
+    return () => {
+      window.removeEventListener('ccpun:consent', onConsent);
+      window.removeEventListener('load', scheduleAfterLoad);
+      if (idleHandle !== null && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+    };
+  }, [deferUntilLoad, gtmId]);
 
   return null;
 }
