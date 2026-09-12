@@ -25,7 +25,7 @@ export default function Website43Home() {
     <div className={styles.root}>
       <main id="main-content" tabIndex={-1}>
         <section id="home" className={styles.homeHero} aria-labelledby="home-hero-title">
-          <div className={styles.homeHeroPicture}><Image src="/assets/website-43/home-hero-desktop.png" alt="CCPun กำลังนั่งทำงานพร้อมคอมพิวเตอร์โน้ตบุ๊ก" fill loading="eager" fetchPriority="high" sizes="100vw" /></div>
+          <div className={styles.homeHeroPicture}><Image src="/assets/website-43/home-hero-desktop.png" alt="CCPun กำลังนั่งทำงานพร้อมคอมพิวเตอร์โน้ตบุ๊ก" fill preload sizes="100vw" /></div>
           <div className={styles.homeHeroGradient} aria-hidden="true" /><div className={styles.homeHeroBottomGradient} aria-hidden="true" /><Website43Navbar overlay />
           <div className={styles.homeHeroCopy}>
             <p className={styles.eyebrow}>คุณเล่าปัญหามา เราสร้างแผนแก้ไขไป</p>
