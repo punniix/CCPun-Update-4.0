@@ -62,6 +62,23 @@ test("runtime identity accepts only the exact Production Admin lane", () => {
   ]) assert.equal(isAdminOperationsRuntimeIdentityValid({ ...valid, ...changed }), false);
 });
 
+test("Production legacy backfill is dry-run by default and exact-source guarded", () => {
+  const script = read("scripts/backfill-production-sanity-admin-operations.ts");
+  assert.match(script, /projectId: "kyfxgjnq", dataset: "production"/);
+  assert.match(script, /projectId: "lively-bar-43618798"/);
+  assert.match(script, /branchId: "br-long-resonance-b3ys5xrv"/);
+  assert.match(script, /endpointId: "ep-broad-butterfly-b3ro7u8w"/);
+  assert.match(script, /const apply = process\.argv\.includes\("--apply"\)/);
+  assert.match(script, /--expect-source-digest=/);
+  assert.match(script, /CCPUN_APP_ENV !== "local-production"/);
+  assert.match(script, /CCPUN_ADMIN_BACKFILL_DATABASE_URL/);
+  assert.match(script, /\["neondb_owner", "cloud_admin"\]/);
+  assert.match(script, /refuses ccpun_admin_runtime/);
+  assert.match(script, /scheduler_grants_preserved/);
+  assert.match(script, /prepareBackfillInsert/);
+  assert.doesNotMatch(script, /SANITY_API_WRITE_TOKEN/);
+});
+
 test("owner-facing Admin surfaces health and explicit SEO re-audit", () => {
   const layout = read("app/snt-admin/(protected)/layout.tsx");
   const health = read("app/snt-admin/(protected)/health/page.tsx");
