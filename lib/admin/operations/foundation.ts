@@ -1,5 +1,5 @@
-export const ADMIN_OPERATIONS_MIGRATION_VERSION = "20260830_website_42_admin_operations_v1";
-export const ADMIN_OPERATIONS_MIGRATION_CHECKSUM = "sha256:51f16b563368488362408f323f95863ecf8f277b6b725b96189fedddf1300e4f";
+export const ADMIN_OPERATIONS_UAT_MIGRATION_VERSION = "20260830_website_42_admin_operations_v1";
+export const ADMIN_OPERATIONS_UAT_MIGRATION_CHECKSUM = "sha256:51f16b563368488362408f323f95863ecf8f277b6b725b96189fedddf1300e4f";
 export const ADMIN_OPERATIONS_PRODUCTION_MIGRATION_VERSION = "20260913_admin_operations_production_v1";
 export const ADMIN_OPERATIONS_PRODUCTION_MIGRATION_CHECKSUM = "sha256:5895b0882bf199c2017e761b15d87cac5a94bab44c5c832f68fa2b3cf385ac51";
 
@@ -11,8 +11,8 @@ export const ADMIN_OPERATIONS_LANES = {
     hostSuffix: "c-3.ap-southeast-1.aws.neon.tech",
     database: "neondb",
     runtimeRole: "ccpun_admin_runtime",
-    migrationVersion: ADMIN_OPERATIONS_MIGRATION_VERSION,
-    migrationChecksum: ADMIN_OPERATIONS_MIGRATION_CHECKSUM,
+    migrationVersion: ADMIN_OPERATIONS_UAT_MIGRATION_VERSION,
+    migrationChecksum: ADMIN_OPERATIONS_UAT_MIGRATION_CHECKSUM,
   },
   production: {
     projectId: "lively-bar-43618798",
@@ -29,8 +29,15 @@ export const ADMIN_OPERATIONS_LANES = {
 export type AdminOperationsLane = keyof typeof ADMIN_OPERATIONS_LANES;
 export type AdminOperationsIdentity = (typeof ADMIN_OPERATIONS_LANES)[AdminOperationsLane];
 
-// Backwards-compatible UAT identity for UAT-only migration/backfill tooling.
-export const ADMIN_OPERATIONS_IDENTITY = ADMIN_OPERATIONS_LANES.uat;
+function defaultLane(variables: Record<string, string | undefined> = process.env): AdminOperationsLane {
+  return variables.CCPUN_APP_ENV?.trim() === "production-admin" ? "production" : "uat";
+}
+
+// Backwards-compatible exports used by the database client and UAT-only migration tooling.
+// In Production Admin these resolve to the production lane at module load; elsewhere they stay UAT-pinned.
+export const ADMIN_OPERATIONS_IDENTITY = ADMIN_OPERATIONS_LANES[defaultLane()];
+export const ADMIN_OPERATIONS_MIGRATION_VERSION = ADMIN_OPERATIONS_IDENTITY.migrationVersion;
+export const ADMIN_OPERATIONS_MIGRATION_CHECKSUM = ADMIN_OPERATIONS_IDENTITY.migrationChecksum;
 
 export type AdminOperationsRuntimeIdentity = {
   environment: string | undefined;
@@ -59,10 +66,15 @@ export function resolveAdminOperationsRuntimeIdentity(input: AdminOperationsRunt
       : null;
   if (!lane || !input.connectionString) return null;
 
+  const vercelEnvironment = input.vercelEnvironment ?? process.env.VERCEL_ENV?.trim();
+  const gitBranch = input.gitBranch ?? process.env.VERCEL_GIT_COMMIT_REF?.trim();
+  const vercelProjectId = input.vercelProjectId ?? process.env.VERCEL_PROJECT_ID?.trim();
+  const productionAdminProjectId = input.productionAdminProjectId ?? process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim();
+
   if (lane === "production") {
-    if (input.vercelEnvironment !== "production" || input.gitBranch !== "v4-production") return null;
-    if (input.productionAdminProjectId && input.vercelProjectId !== input.productionAdminProjectId) return null;
-  } else if (environment === "admin-uat" && input.vercelEnvironment && input.vercelEnvironment !== "preview") {
+    if (vercelEnvironment !== "production" || gitBranch !== "v4-production") return null;
+    if (productionAdminProjectId && vercelProjectId !== productionAdminProjectId) return null;
+  } else if (environment === "admin-uat" && vercelEnvironment && vercelEnvironment !== "preview") {
     return null;
   }
 
