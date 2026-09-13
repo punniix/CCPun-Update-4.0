@@ -23,14 +23,15 @@ export default async function AdminAuditPage() {
 
       {result.error ? (
         <section className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50">
-          ยังอ่านประวัติจาก Sanity ไม่ได้ ระบบหยุดไว้เพื่อความปลอดภัยและจะไม่สลับไปอ่านข้อมูลจากอีกสภาพแวดล้อม
+          <h2 className="font-semibold">ยังอ่านประวัติจากฐานข้อมูล Control Plane ไม่ได้</h2>
+          <p className="mt-2 text-amber-50/80">ระบบหยุดไว้เพื่อความปลอดภัยเมื่อ private operational database ไม่ตรง lane หรือยังไม่พร้อม และจะไม่ย้อนกลับไปใช้ Sanity operational records เก่าแทนโดยอัตโนมัติ</p>
         </section>
       ) : null}
 
       {!result.error && result.rows.length === 0 ? (
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-7 text-center">
           <h2 className="text-lg font-semibold">ยังไม่มีรายการในประวัติ</h2>
-          <p className="mt-2 text-sm text-white/65">เมื่อสร้างข้อเสนอ อนุมัติ หรือนำไปใช้กับฉบับร่าง ระบบจะแสดงรายการที่นี่</p>
+          <p className="mt-2 text-sm text-white/65">เมื่อสร้างข้อเสนอ อนุมัติ ตรวจ SEO หรือนำข้อเสนอไปใช้กับฉบับร่าง ระบบจะแสดงรายการที่นี่</p>
         </section>
       ) : null}
 
