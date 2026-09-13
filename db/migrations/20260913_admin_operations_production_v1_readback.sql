@@ -3,7 +3,7 @@ SELECT
   EXISTS (
     SELECT 1 FROM ccpun_admin.schema_migration
     WHERE version = '20260913_admin_operations_production_v1'
-      AND checksum = 'sha256:5895b0882bf199c2017e761b15d87cac5a94bab44c5c832f68fa2b3cf385ac51'
+      AND checksum = 'sha256:2bb2d5ad44e492b56d91bd604a49830f0fd615d90b0767d8b8ef9807ee4fcd4d'
   ) AS checksum_ok,
   EXISTS (
     SELECT 1 FROM ccpun_admin.system_identity
@@ -13,7 +13,7 @@ SELECT
       AND endpoint_id = 'ep-broad-butterfly-b3ro7u8w'
       AND database_name = 'neondb'
       AND migration_version = '20260913_admin_operations_production_v1'
-      AND migration_checksum = 'sha256:5895b0882bf199c2017e761b15d87cac5a94bab44c5c832f68fa2b3cf385ac51'
+      AND migration_checksum = 'sha256:2bb2d5ad44e492b56d91bd604a49830f0fd615d90b0767d8b8ef9807ee4fcd4d'
   ) AS identity_ok,
   EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ccpun_admin_runtime') AS runtime_role_exists,
   EXISTS (
