@@ -1,0 +1,80 @@
+name: Admin Control Plane Env Diagnostic
+
+on:
+  push:
+    branches:
+      - diag/admin-control-plane-env-20260913
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect Production Admin env safely
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          TEAM_ID: team_GbcO71LS2dLHwiBV6Cs39Kax
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_TOKEN"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/${PROJECT_ID}/env?teamId=${TEAM_ID}&decrypt=true" \
+            -o /tmp/vercel-env.json
+
+          node <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/vercel-env.json', 'utf8'));
+          const envs = Array.isArray(raw.envs) ? raw.envs : [];
+          const expected = {
+            CCPUN_APP_ENV: 'production-admin',
+            CCPUN_NEON_PROJECT_ID: 'lively-bar-43618798',
+            CCPUN_NEON_BRANCH_ID: 'br-long-resonance-b3ys5xrv',
+            CCPUN_NEON_DATABASE: 'neondb',
+            CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: 'prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN',
+          };
+
+          function targetsProduction(item) {
+            return Array.isArray(item.target) && item.target.includes('production');
+          }
+
+          for (const [key, wanted] of Object.entries(expected)) {
+            const matches = envs.filter((item) => item.key === key && targetsProduction(item));
+            const exact = matches.some((item) => typeof item.value === 'string' && item.value.trim() === wanted);
+            console.log(`${key}: production_entries=${matches.length}; exact_expected=${exact}`);
+          }
+
+          const dbEntries = envs.filter((item) => item.key === 'CCPUN_ADMIN_DATABASE_URL' && targetsProduction(item));
+          console.log(`CCPUN_ADMIN_DATABASE_URL: production_entries=${dbEntries.length}`);
+          for (const item of dbEntries) {
+            let parsed;
+            try {
+              parsed = new URL(item.value);
+            } catch {
+              console.log('  parseable=false');
+              continue;
+            }
+            const allowedHosts = new Set([
+              'ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech',
+              'ep-broad-butterfly-b3ro7u8w-pooler.c-4.ap-southeast-1.aws.neon.tech',
+            ]);
+            console.log([
+              '  parseable=true',
+              `protocol_ok=${parsed.protocol === 'postgresql:'}`,
+              `host_ok=${allowedHosts.has(parsed.hostname)}`,
+              `role_ok=${decodeURIComponent(parsed.username) === 'ccpun_admin_runtime'}`,
+              `password_present=${Boolean(parsed.password)}`,
+              `database_ok=${decodeURIComponent(parsed.pathname.slice(1)) === 'neondb'}`,
+              `sslmode_require=${parsed.searchParams.get('sslmode') === 'require'}`,
+              `port_empty=${!parsed.port}`,
+            ].join('; '));
+          }
+
+          const relevant = envs.filter((item) => item.key.startsWith('CCPUN_') || item.key.includes('DATABASE'));
+          console.log(`relevant_env_keys=${[...new Set(relevant.map((item) => item.key))].sort().join(',')}`);
+          NODE
