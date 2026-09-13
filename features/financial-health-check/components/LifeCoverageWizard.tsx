@@ -118,7 +118,7 @@ export default function LifeCoverageWizard() {
   };
   if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" className="space-y-6">
     <p className="text-sm font-semibold text-primary">ผลการประเมินโมดูลความคุ้มครองชีวิต</p>
-    <h2 id="life-result-title" tabIndex={-1} className="scroll-mt-28 break-words rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-3xl font-bold text-foreground">ช่องว่างความคุ้มครองเบื้องต้น<br /><span className="text-primary">{money(result.gap)} บาท</span></h2>
+    <h2 id="life-result-title" tabIndex={-1} className="scroll-mt-28 break-words rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-3xl font-bold text-foreground">ช่องว่างความคุ้มครอง<span className="whitespace-nowrap">เบื้องต้น</span><br /><span className="text-primary">{money(result.gap)} บาท</span></h2>
     <p className="leading-relaxed text-muted-foreground">ตัวเลขนี้คือส่วนต่างระหว่างภาระที่คุณกรอกกับทุนประกันชีวิตและสินทรัพย์ที่ระบุ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ และยังไม่ใช่ผลประเมินสุขภาพการเงินทั้งแผน</p>
     <dl className="divide-y divide-border/30 rounded-xl border border-border/40 bg-card/40 px-4">
       <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
