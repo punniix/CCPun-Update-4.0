@@ -10,6 +10,7 @@ import {
   isAdminSurfaceAllowed,
   isProductionEnvironment,
 } from "@/lib/admin/environment";
+import { classifyProductionAdminPath } from "@/lib/admin/host-routing";
 import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
 
 export default auth((request) => {
@@ -56,6 +57,19 @@ export default auth((request) => {
     if (!originAllowed) {
       return new NextResponse("Not Found", { status: 404 });
     }
+
+    if (isProductionAdmin) {
+      const disposition = classifyProductionAdminPath(pathname);
+      if (disposition === "entry") {
+        return NextResponse.redirect(
+          new URL(role ? "/snt-admin/dashboard/" : "/snt-admin/login/", request.url),
+        );
+      }
+      if (disposition === "reject") {
+        return new NextResponse("Not Found", { status: 404 });
+      }
+    }
+
     if (isInvalidAdminMutation) {
       return NextResponse.json({ error: "invalid-origin" }, { status: 403 });
     }
