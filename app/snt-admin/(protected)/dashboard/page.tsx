@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { adminDataLaneLabel, connectionLabel, environmentLabel } from "@/lib/admin/presentation";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
+import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
 import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
 
 export const metadata: Metadata = { title: "เริ่มที่นี่" };
@@ -13,6 +14,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
   await requireAdminPermission("dashboard:read");
   const params = await searchParams;
   const status = getAdminSanityStatus();
+  const operations = getAdminOperationsRuntimeStatus();
   const lane = adminDataLaneLabel(status.environment);
   const studioReady = isStudioDataPlaneAllowed(status.dataset ?? undefined);
   const steps = [
@@ -51,11 +53,24 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         </p>
       </section>
 
-      <section className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="สถานะการเชื่อมต่อ">
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สถานะการเชื่อมต่อ">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">ชุดข้อมูล</p><p className="mt-2 text-lg font-semibold">{status.dataset ?? "ยังไม่ได้ตั้งค่า"}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">การอ่านข้อมูล</p><p className="mt-2 text-lg font-semibold">{connectionLabel(status.readReady, "read", status.environment)}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">แก้บทความใน Studio</p><p className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", status.environment)}</p>{studioReady && !status.writeReady ? <p className="mt-2 text-xs leading-5 text-white/50">ปุ่ม Apply อัตโนมัติยังปิดไว้</p> : null}</article>
+        <Link href="/snt-admin/health/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">
+          <p className="text-sm text-white/60">Control Plane</p>
+          <p className={`mt-2 text-lg font-semibold ${operations.identityValid ? "text-emerald-200" : operations.configured ? "text-amber-200" : "text-white/70"}`}>
+            {operations.identityValid ? "พร้อมใช้งาน" : operations.configured ? "ต้องตรวจ identity" : "ยังไม่เปิด private DB"}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-white/50">ประวัติ · ข้อเสนอ SEO · Research · System Health</p>
+        </Link>
       </section>
+
+      {!operations.identityValid ? (
+        <section className="mt-4 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-4 text-sm leading-6 text-amber-50">
+          ประวัติการทำงาน ข้อเสนอที่รอตรวจ และการบันทึก SEO audit จะทำงานแบบ fail-closed จนกว่า private Control Plane database จะผ่าน identity guard <Link href="/snt-admin/health/" className="font-medium underline underline-offset-4">ดู System Health</Link>
+        </section>
+      ) : null}
 
       {status.environment === "local-production" ? (
         <section className="mt-6 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-5" aria-labelledby="mac-start-heading">

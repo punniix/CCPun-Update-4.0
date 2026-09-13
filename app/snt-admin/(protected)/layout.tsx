@@ -29,6 +29,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
   ] },
   { href: "/snt-admin/reviews/", label: "ข้อเสนอที่รอตรวจ", permission: "reviews:read" },
   { href: "/snt-admin/audit/", label: "ประวัติการทำงาน", permission: "audit:read" },
+  { href: "/snt-admin/health/", label: "System Health", permission: "settings:read" },
 ];
 
 export default async function ProtectedAdminLayout({ children }: { children: React.ReactNode }) {
