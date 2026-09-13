@@ -306,7 +306,9 @@ assert(
 );
 assert(ciExpensesSource.includes('id="ci-monthly-income"'), 'Step 1 must expose an accessible monthly-income field');
 assert(ciExistingSource.includes('id="ci-liquid-assets"'), 'Step 2 must expose a stable liquid-assets field');
-assert(ciExistingSource.includes('เช่น เงินสด กองทุนพันธบัตรรัฐบาล หรือเงินฝาก'), 'liquid-assets field must show the approved grey placeholder example');
+assert(ciExistingSource.includes('placeholder="เช่น 500,000"'), 'liquid-assets currency field must use a short numeric example');
+assert(ciExistingSource.includes('บ้าน รถ หรือทรัพย์สินจำเป็นที่ไม่ตั้งใจขายไม่ต้องกรอก'), 'short numeric examples must retain the asset inclusion guidance');
+assert(ciExpensesSource.includes('placeholder="เช่น 100,000"'), 'other-debt currency field must use a short numeric example');
 assert(ciExistingSource.includes('เงินก้อนจากประกันโรคร้ายแรงที่มี'), 'Step 2 must retain the existing CI lump-sum field');
 assert(
   ciExpensesSource.includes('รายได้ ภาระ และระยะที่ต้องการวางแผน')

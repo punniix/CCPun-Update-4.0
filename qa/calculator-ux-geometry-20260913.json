@@ -1,0 +1,1342 @@
+{
+  "sha": "0e7c9396ddab3a13c8ca256145b4343d67a21e18",
+  "deployment": "dpl_4FEiFUeRrkevKrDUTrtAu9wHvY6Y",
+  "method": "Real same-origin iframe document viewport, height 1000px; desktop Chrome; not touch-device emulation",
+  "observations": [
+    {
+      "state": "fhc-initial",
+      "client": 382,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 308
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 308
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 274
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 274
+        }
+      ],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    },
+    {
+      "state": "fhc-required-error",
+      "client": 382,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 308
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 308
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 274
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 274
+        }
+      ],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    },
+    {
+      "state": "fhc-step2",
+      "client": 382,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 308
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 308
+        }
+      ],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    },
+    {
+      "state": "fhc-result",
+      "client": 382,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    },
+    {
+      "state": "fhc-initial",
+      "client": 592,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 518
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 518
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 484
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 484
+        }
+      ],
+      "overflow": [],
+      "scroll": 592,
+      "width": 600
+    },
+    {
+      "state": "fhc-step2",
+      "client": 592,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 518
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 518
+        }
+      ],
+      "overflow": [],
+      "scroll": 592,
+      "width": 600
+    },
+    {
+      "state": "fhc-result",
+      "client": 592,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 592,
+      "width": 600
+    },
+    {
+      "state": "fhc-initial",
+      "client": 812,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 670
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 670
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 636
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 636
+        }
+      ],
+      "overflow": [],
+      "scroll": 812,
+      "width": 820
+    },
+    {
+      "state": "fhc-step2",
+      "client": 812,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 670
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 670
+        }
+      ],
+      "overflow": [],
+      "scroll": 812,
+      "width": 820
+    },
+    {
+      "state": "fhc-result",
+      "client": 812,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 812,
+      "width": 820
+    },
+    {
+      "state": "fhc-initial",
+      "client": 1016,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 620
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1016,
+      "width": 1024
+    },
+    {
+      "state": "fhc-step2",
+      "client": 1016,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1016,
+      "width": 1024
+    },
+    {
+      "state": "fhc-result",
+      "client": 1016,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 1016,
+      "width": 1024
+    },
+    {
+      "state": "fhc-initial",
+      "client": 1092,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 620
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1092,
+      "width": 1100
+    },
+    {
+      "state": "fhc-step2",
+      "client": 1092,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1092,
+      "width": 1100
+    },
+    {
+      "state": "fhc-result",
+      "client": 1092,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 1092,
+      "width": 1100
+    },
+    {
+      "state": "fhc-initial",
+      "client": 1272,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 620
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1272,
+      "width": 1280
+    },
+    {
+      "state": "fhc-step2",
+      "client": 1272,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1272,
+      "width": 1280
+    },
+    {
+      "state": "fhc-result",
+      "client": 1272,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 1272,
+      "width": 1280
+    },
+    {
+      "state": "fhc-initial",
+      "client": 1432,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 620
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1432,
+      "width": 1440
+    },
+    {
+      "state": "fhc-step2",
+      "client": 1432,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1432,
+      "width": 1440
+    },
+    {
+      "state": "fhc-result",
+      "client": 1432,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 1432,
+      "width": 1440
+    },
+    {
+      "state": "fhc-initial",
+      "client": 1720,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 620
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1720,
+      "width": 1728
+    },
+    {
+      "state": "fhc-step2",
+      "client": 1720,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1720,
+      "width": 1728
+    },
+    {
+      "state": "fhc-result",
+      "client": 1720,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 1720,
+      "width": 1728
+    },
+    {
+      "state": "fhc-initial",
+      "client": 1912,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "householdMonthly",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "supportYears",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "debt",
+          "width": 620
+        },
+        {
+          "height": 48,
+          "id": "education",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1912,
+      "width": 1920
+    },
+    {
+      "state": "fhc-step2",
+      "client": 1912,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "existingLifeCoverage",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "liquidAssets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1912,
+      "width": 1920
+    },
+    {
+      "state": "fhc-result",
+      "client": 1912,
+      "inputs": [],
+      "overflow": [],
+      "scroll": 1912,
+      "width": 1920
+    },
+    {
+      "state": "ci-initial",
+      "client": 382,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 308
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 308
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 308
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 274
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 274
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 274
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 274
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 274
+        }
+      ],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    },
+    {
+      "state": "ci-step2",
+      "client": 382,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 308
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 308
+        }
+      ],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    },
+    {
+      "state": "ci-result",
+      "client": 382,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    },
+    {
+      "state": "ci-initial",
+      "client": 592,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 518
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 518
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 518
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 484
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 484
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 484
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 484
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 484
+        }
+      ],
+      "overflow": [],
+      "scroll": 592,
+      "width": 600
+    },
+    {
+      "state": "ci-step2",
+      "client": 592,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 518
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 518
+        }
+      ],
+      "overflow": [],
+      "scroll": 592,
+      "width": 600
+    },
+    {
+      "state": "ci-result",
+      "client": 592,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 592,
+      "width": 600
+    },
+    {
+      "state": "ci-initial",
+      "client": 812,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 670
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 670
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 670
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 310
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 310
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 310
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 310
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 636
+        }
+      ],
+      "overflow": [],
+      "scroll": 812,
+      "width": 820
+    },
+    {
+      "state": "ci-step2",
+      "client": 812,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 670
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 670
+        }
+      ],
+      "overflow": [],
+      "scroll": 812,
+      "width": 820
+    },
+    {
+      "state": "ci-result",
+      "client": 812,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 812,
+      "width": 820
+    },
+    {
+      "state": "ci-initial",
+      "client": 1016,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1016,
+      "width": 1024
+    },
+    {
+      "state": "ci-step2",
+      "client": 1016,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1016,
+      "width": 1024
+    },
+    {
+      "state": "ci-result",
+      "client": 1016,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 1016,
+      "width": 1024
+    },
+    {
+      "state": "ci-initial",
+      "client": 1092,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1092,
+      "width": 1100
+    },
+    {
+      "state": "ci-step2",
+      "client": 1092,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1092,
+      "width": 1100
+    },
+    {
+      "state": "ci-result",
+      "client": 1092,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 1092,
+      "width": 1100
+    },
+    {
+      "state": "ci-initial",
+      "client": 1272,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1272,
+      "width": 1280
+    },
+    {
+      "state": "ci-step2",
+      "client": 1272,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1272,
+      "width": 1280
+    },
+    {
+      "state": "ci-result",
+      "client": 1272,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 1272,
+      "width": 1280
+    },
+    {
+      "state": "ci-initial",
+      "client": 1432,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1432,
+      "width": 1440
+    },
+    {
+      "state": "ci-step2",
+      "client": 1432,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1432,
+      "width": 1440
+    },
+    {
+      "state": "ci-result",
+      "client": 1432,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 1432,
+      "width": 1440
+    },
+    {
+      "state": "ci-initial",
+      "client": 1720,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1720,
+      "width": 1728
+    },
+    {
+      "state": "ci-step2",
+      "client": 1720,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1720,
+      "width": 1728
+    },
+    {
+      "state": "ci-result",
+      "client": 1720,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 1720,
+      "width": 1728
+    },
+    {
+      "state": "ci-initial",
+      "client": 1912,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-monthly-income",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-household",
+          "width": 654
+        },
+        {
+          "height": 44,
+          "id": "ci-reserve-years",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-mortgage-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-payment",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-car-installments",
+          "width": 302
+        },
+        {
+          "height": 48,
+          "id": "ci-other-debt-balance",
+          "width": 620
+        }
+      ],
+      "overflow": [],
+      "scroll": 1912,
+      "width": 1920
+    },
+    {
+      "state": "ci-step2",
+      "client": 1912,
+      "inputs": [
+        {
+          "height": 48,
+          "id": "ci-lump-sum",
+          "width": 654
+        },
+        {
+          "height": 48,
+          "id": "ci-liquid-assets",
+          "width": 654
+        }
+      ],
+      "overflow": [],
+      "scroll": 1912,
+      "width": 1920
+    },
+    {
+      "state": "ci-result",
+      "client": 1912,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 1912,
+      "width": 1920
+    },
+    {
+      "state": "ci-extreme-result",
+      "client": 382,
+      "inputs": [
+        {
+          "height": 16,
+          "id": "ci-estimation-method-expense",
+          "width": 16
+        },
+        {
+          "height": 16,
+          "id": "ci-estimation-method-income",
+          "width": 16
+        }
+      ],
+      "overflow": [],
+      "scroll": 382,
+      "width": 390
+    }
+  ]
+}
