@@ -23,7 +23,7 @@ const expectedSourceDigest = expectedDigestArg?.slice("--expect-source-digest=".
 type SourceDocument = Record<string, unknown> & {
   _id: string;
   _rev: string;
-  _type: "auditLog" | "researchSnapshot" | "seoSuggestion";
+  _type: string;
 };
 
 type Prepared = ReturnType<typeof prepareBackfillInsert>;
