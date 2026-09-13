@@ -51,7 +51,7 @@ function NeedBars({
 
       <div aria-hidden="true" className="space-y-5">
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
             <span className="text-muted-foreground">{methodLabel}</span>
             <span className="font-semibold tabular-nums text-foreground">{baht(need)}</span>
           </div>
@@ -61,7 +61,7 @@ function NeedBars({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
             <span className="text-muted-foreground">เงินก้อนจากประกันโรคร้ายแรง</span>
             <span className="font-semibold tabular-nums text-foreground">{baht(existingCoverage)}</span>
           </div>
@@ -71,7 +71,7 @@ function NeedBars({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
             <span className="text-muted-foreground">สินทรัพย์สภาพคล่อง</span>
             <span className="font-semibold tabular-nums text-foreground">{baht(liquidAssets)}</span>
           </div>
@@ -81,7 +81,7 @@ function NeedBars({
         </div>
       </div>
 
-      <dl className="grid gap-3 rounded-xl border border-border/30 bg-background/25 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-3 rounded-xl border border-border/30 bg-background/25 p-4 sm:grid-cols-2">
         <div>
           <dt className="text-sm text-muted-foreground">{methodLabel}</dt>
           <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(need)}</dd>
@@ -146,7 +146,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
                     <label
                       key={method}
                       htmlFor={inputId}
-                      className={`flex min-h-14 cursor-pointer items-center justify-between gap-3 border-l-2 px-4 py-3 focus-within:ring-2 focus-within:ring-ring ${activeMethod === method ? 'border-primary bg-primary/5' : 'border-border/50 bg-background/20'}`}
+                      className={`flex min-h-14 cursor-pointer flex-wrap items-center justify-between gap-3 border-l-2 px-4 py-3 focus-within:ring-2 focus-within:ring-ring ${activeMethod === method ? 'border-primary bg-primary/5' : 'border-border/50 bg-background/20'}`}
                     >
                       <span className="flex items-center gap-3">
                         <input
@@ -170,7 +170,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
               </p>
             </fieldset>
           )}
-          <output className="block text-4xl font-bold tabular-nums text-primary" aria-live="polite" aria-atomic="true">
+          <output className="block break-words text-[clamp(1.5rem,5vw,2.25rem)] font-bold tabular-nums text-primary" aria-live="polite" aria-atomic="true">
             {baht(selectedNeed)}
           </output>
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -301,11 +301,11 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <button type="button" onClick={onEditData} className="glass-button flex flex-1 items-center justify-center gap-2">
+        <button type="button" onClick={onEditData} className="glass-button flex min-h-12 flex-1 items-center justify-center gap-2">
           <Edit3 className="h-4 w-4" />
           <span>แก้ไขข้อมูล</span>
         </button>
-        <button type="button" onClick={onReset} className="glass-button flex flex-1 items-center justify-center gap-2">
+        <button type="button" onClick={onReset} className="glass-button flex min-h-12 flex-1 items-center justify-center gap-2">
           <RefreshCw className="h-4 w-4" />
           <span>เริ่มใหม่</span>
         </button>

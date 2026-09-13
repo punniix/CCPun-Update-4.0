@@ -24,7 +24,7 @@ export default function StepExistingCI({ data, updateData, errors }: StepProps) 
           <Shield className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-foreground focus:outline-none">เงินก้อนและสินทรัพย์ที่พร้อมใช้</h2>
+          <h2 tabIndex={-1} className="scroll-mt-28 rounded-sm text-xl font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">เงินก้อนและสินทรัพย์ที่พร้อมใช้</h2>
           <p className="text-sm text-muted-foreground">กรอกเท่าที่ทราบ หรือเว้นไว้ได้หากยังไม่มี</p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export default function StepExistingCI({ data, updateData, errors }: StepProps) 
             error={Boolean(errors.lumpSum)}
             aria-describedby={errors.lumpSum ? 'ci-lump-sum-help ci-lump-sum-error' : 'ci-lump-sum-help'}
           />
-          {errors.lumpSum && <p id="ci-lump-sum-error" role="alert" className="text-sm text-destructive">{errors.lumpSum}</p>}
+          {errors.lumpSum && <p id="ci-lump-sum-error" role="alert" tabIndex={-1} className="text-sm text-destructive">{errors.lumpSum}</p>}
           <p id="ci-lump-sum-help" className="text-sm leading-relaxed text-muted-foreground">
             ดูจำนวนเงินก้อนจากกรมธรรม์ที่คาดว่าจะได้รับเมื่อเป็นไปตามเงื่อนไข
           </p>
@@ -65,7 +65,7 @@ export default function StepExistingCI({ data, updateData, errors }: StepProps) 
             error={Boolean(errors.liquidAssets)}
             aria-describedby={errors.liquidAssets ? 'ci-liquid-assets-guidance ci-liquid-assets-help ci-liquid-assets-error' : 'ci-liquid-assets-guidance ci-liquid-assets-help'}
           />
-          {errors.liquidAssets && <p id="ci-liquid-assets-error" role="alert" className="text-sm text-destructive">{errors.liquidAssets}</p>}
+          {errors.liquidAssets && <p id="ci-liquid-assets-error" role="alert" tabIndex={-1} className="text-sm text-destructive">{errors.liquidAssets}</p>}
           <p id="ci-liquid-assets-help" className="text-sm leading-relaxed text-muted-foreground">
             หากยังไม่มีสินทรัพย์ที่ต้องการนำมาคิด กรอก 0 ได้
           </p>

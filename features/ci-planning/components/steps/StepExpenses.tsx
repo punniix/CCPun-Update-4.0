@@ -140,7 +140,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
           <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-foreground focus:outline-none">รายได้ ภาระ และระยะที่ต้องการวางแผน</h2>
+          <h2 tabIndex={-1} className="scroll-mt-28 rounded-sm text-xl font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">รายได้ ภาระ และระยะที่ต้องการวางแผน</h2>
           <p className="text-sm text-muted-foreground">อย่างน้อยกรอกรายได้ หรือค่าใช้จ่ายและภาระ 1 รายการ ช่องอื่นเว้นได้</p>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">เริ่มจากข้อมูลที่แน่ใจก่อน แล้วค่อยเติมส่วนที่ต้องการนำมาดูในแผนนี้</p>
         </div>
@@ -428,7 +428,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
         </p>
       )}
 
-      <dl className="grid gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:grid-cols-2">
         <div>
           <dt className="text-sm text-muted-foreground">ทุนครัวเรือน</dt>
           <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(householdNeed)}</dd>
