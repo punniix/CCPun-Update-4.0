@@ -1,5 +1,13 @@
 BEGIN;
 
+SELECT 1 / CASE WHEN current_database() = 'neondb' THEN 1 ELSE 0 END AS database_guard;
+SELECT 1 / CASE WHEN EXISTS (
+  SELECT 1 FROM pg_roles
+  WHERE rolname = 'ccpun_admin_runtime'
+    AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole
+    AND NOT rolinherit AND NOT rolreplication AND NOT rolbypassrls
+) THEN 1 ELSE 0 END AS runtime_role_guard;
+
 CREATE SCHEMA IF NOT EXISTS ccpun_admin;
 
 CREATE TABLE IF NOT EXISTS ccpun_admin.schema_migration (
@@ -8,32 +16,27 @@ CREATE TABLE IF NOT EXISTS ccpun_admin.schema_migration (
   applied_at timestamptz NOT NULL DEFAULT now()
 );
 
-DO $migration_guard$
-DECLARE
-  current_checksum text;
-BEGIN
-  IF current_database() <> 'neondb' THEN
-    RAISE EXCEPTION 'CCPUN Production Admin operations migration requires database neondb';
-  END IF;
-  PERFORM pg_advisory_xact_lock(hashtext('ccpun_admin:20260913_admin_operations_production_v1'));
-  SELECT checksum INTO current_checksum
-  FROM ccpun_admin.schema_migration
-  WHERE version = '20260913_admin_operations_production_v1';
+SELECT pg_advisory_xact_lock(hashtext('ccpun_admin:20260913_admin_operations_production_v1'));
 
-  IF current_checksum IS NOT NULL AND current_checksum <> 'sha256:5895b0882bf199c2017e761b15d87cac5a94bab44c5c832f68fa2b3cf385ac51' THEN
-    RAISE EXCEPTION 'CCPUN Production Admin operations migration checksum mismatch';
-  END IF;
+SELECT 1 / CASE WHEN NOT EXISTS (
+  SELECT 1 FROM ccpun_admin.schema_migration
+  WHERE version = '20260913_admin_operations_production_v1'
+    AND checksum <> 'sha256:2bb2d5ad44e492b56d91bd604a49830f0fd615d90b0767d8b8ef9807ee4fcd4d'
+) THEN 1 ELSE 0 END AS checksum_guard;
 
-  IF current_checksum IS NULL AND (
-    to_regclass('ccpun_admin.audit_log') IS NOT NULL OR
-    to_regclass('ccpun_admin.research_snapshot') IS NOT NULL OR
-    to_regclass('ccpun_admin.seo_suggestion') IS NOT NULL OR
-    to_regclass('ccpun_admin.system_identity') IS NOT NULL
-  ) THEN
-    RAISE EXCEPTION 'CCPUN Production Admin operations schema exists without the current migration ledger';
-  END IF;
-END
-$migration_guard$;
+SELECT 1 / CASE WHEN
+  EXISTS (
+    SELECT 1 FROM ccpun_admin.schema_migration
+    WHERE version = '20260913_admin_operations_production_v1'
+      AND checksum = 'sha256:2bb2d5ad44e492b56d91bd604a49830f0fd615d90b0767d8b8ef9807ee4fcd4d'
+  )
+  OR (
+    to_regclass('ccpun_admin.audit_log') IS NULL
+    AND to_regclass('ccpun_admin.research_snapshot') IS NULL
+    AND to_regclass('ccpun_admin.seo_suggestion') IS NULL
+    AND to_regclass('ccpun_admin.system_identity') IS NULL
+  )
+THEN 1 ELSE 0 END AS schema_guard;
 
 -- checksum-source-begin
 CREATE TABLE IF NOT EXISTS ccpun_admin.system_identity (
@@ -142,16 +145,6 @@ CREATE TABLE IF NOT EXISTS ccpun_admin.seo_suggestion (
 CREATE INDEX IF NOT EXISTS seo_suggestion_queue_idx
   ON ccpun_admin.seo_suggestion (created_at DESC);
 
-DO $runtime_role$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ccpun_admin_runtime') THEN
-    CREATE ROLE ccpun_admin_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS;
-  ELSE
-    ALTER ROLE ccpun_admin_runtime WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS;
-  END IF;
-END
-$runtime_role$;
-
 GRANT CONNECT ON DATABASE neondb TO ccpun_admin_runtime;
 GRANT USAGE ON SCHEMA ccpun_admin TO ccpun_admin_runtime;
 REVOKE ALL PRIVILEGES ON ccpun_admin.system_identity, ccpun_admin.schema_migration,
@@ -167,21 +160,15 @@ GRANT UPDATE (
   apply_claimed_at, applied_target_revision, reconciliation_reason, updated_at
 ) ON ccpun_admin.seo_suggestion TO ccpun_admin_runtime;
 
-DO $social_revoke$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'ccpun_social') THEN
-    EXECUTE 'REVOKE ALL PRIVILEGES ON SCHEMA ccpun_social FROM ccpun_admin_runtime';
-    EXECUTE 'REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA ccpun_social FROM ccpun_admin_runtime';
-    EXECUTE 'REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ccpun_social FROM ccpun_admin_runtime';
-  END IF;
-END
-$social_revoke$;
+REVOKE ALL PRIVILEGES ON SCHEMA ccpun_social FROM ccpun_admin_runtime;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA ccpun_social FROM ccpun_admin_runtime;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ccpun_social FROM ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration (version, checksum)
 VALUES (
   '20260913_admin_operations_production_v1',
-  'sha256:5895b0882bf199c2017e761b15d87cac5a94bab44c5c832f68fa2b3cf385ac51'
+  'sha256:2bb2d5ad44e492b56d91bd604a49830f0fd615d90b0767d8b8ef9807ee4fcd4d'
 )
 ON CONFLICT (version) DO NOTHING;
 
@@ -194,7 +181,7 @@ INSERT INTO ccpun_admin.system_identity (
   'ep-broad-butterfly-b3ro7u8w',
   'neondb',
   '20260913_admin_operations_production_v1',
-  'sha256:5895b0882bf199c2017e761b15d87cac5a94bab44c5c832f68fa2b3cf385ac51'
+  'sha256:2bb2d5ad44e492b56d91bd604a49830f0fd615d90b0767d8b8ef9807ee4fcd4d'
 )
 ON CONFLICT (singleton) DO UPDATE SET
   project_id = EXCLUDED.project_id,
