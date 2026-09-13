@@ -406,7 +406,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
               id="ci-other-debt-balance"
               value={expenses.otherDebtBalance}
               onChange={(value) => handleExpense('otherDebtBalance', value)}
-              placeholder="เช่น หนี้บัตรเครดิต หรือสินเชื่อส่วนบุคคล"
+              placeholder="เช่น 100,000"
               error={Boolean(errors.otherDebtBalance)}
               aria-describedby={describedBy('ci-other-debt-balance-help', errors.otherDebtBalance && 'ci-other-debt-balance-error')}
             />

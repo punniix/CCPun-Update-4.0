@@ -61,7 +61,7 @@ export default function StepExistingCI({ data, updateData, errors }: StepProps) 
             value={existingCI.liquidAssets}
             onChange={(value) => handleAmount('liquidAssets', value)}
             showZero
-            placeholder="เช่น เงินสด กองทุนพันธบัตรรัฐบาล หรือเงินฝาก"
+            placeholder="เช่น 500,000"
             error={Boolean(errors.liquidAssets)}
             aria-describedby={errors.liquidAssets ? 'ci-liquid-assets-guidance ci-liquid-assets-help ci-liquid-assets-error' : 'ci-liquid-assets-guidance ci-liquid-assets-help'}
           />
