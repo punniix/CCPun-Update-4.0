@@ -78,7 +78,7 @@ test("mounted scheduler suppresses duplicate clicks but gives a new confirmed re
     await ui.open();await ui.confirm();const button=ui.button("ยืนยันตั้งเวลา");
     await act(async()=>{button.click();button.click();});assert.equal(ui.state.calls.length,1);
     const first=ui.state.calls[0].body;assert.equal(first.draftRevision,"draft-1");assert.equal(first.publishedRevision,null);
-    await ui.confirm();await ui.click(ui.button("ยืนยันตั้งเวลา"));assert.equal(ui.state.calls.length,2);
+    await ui.confirm();await ui.click(ui.button("ยืนยันเลื่อนเวลา"));assert.equal(ui.state.calls.length,2);
     assert.notEqual(ui.state.calls[1].body.requestId,first.requestId);
     assert.equal(ui.state.calls[1].body.expectedGeneration,first.requestId);
   }finally{await ui.close();}

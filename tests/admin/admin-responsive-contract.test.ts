@@ -9,10 +9,11 @@ test("Admin layout contains wide content without widening the mobile viewport", 
   const layout = readSource("app/(control-plane)/layout.tsx");
 
   assert.match(layout, /<div className="[^"]*\boverflow-x-hidden\b[^"]*">/);
-  assert.match(layout, /grid-cols-\[minmax\(0,1fr\)\]/);
-  assert.match(layout, /lg:grid-cols-\[220px_minmax\(0,1fr\)\]/);
-  assert.match(layout, /<aside className="[^"]*\bmin-w-0\b/);
+  assert.match(layout, /md:grid-cols-\[72px_minmax\(0,1fr\)\]/);
+  assert.match(layout, /lg:grid-cols-\[232px_minmax\(0,1fr\)\]/);
   assert.match(layout, /<main[^>]*className="[^"]*\bmin-w-0\b/);
+  const navigation = readSource("features/admin/components/AdminNavigation.tsx");
+  assert.match(navigation, /<aside className="[^"]*md:w-\[72px\][^"]*lg:w-\[232px\]/);
 });
 
 test("Admin data tables remain horizontally scrollable inside labelled regions", () => {
