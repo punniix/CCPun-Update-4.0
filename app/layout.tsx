@@ -105,7 +105,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           ข้ามไปเนื้อหาหลัก
         </a>
         {children}
-        <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} />
+        {!IS_ADMIN_APPLICATION ? <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} /> : null}
         {draftPreviewRuntime}
       </body>
     </html>

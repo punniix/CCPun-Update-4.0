@@ -216,6 +216,7 @@ export async function listAdminArticles(): Promise<AdminContentResult> {
       status,
       rows: parsedRows.map((row) => ({
         ...row,
+        isDraft: row.isDraft || row.id.startsWith("drafts."),
         hasPublished: publishedIdSet.has(row.id.replace(/^drafts\./, "")),
       })),
       error: null,

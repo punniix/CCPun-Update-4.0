@@ -13,6 +13,7 @@ import {
 import {
   classifyProductionAdminPath,
   isAdminRequestBoundary,
+  isAuthenticatedAdminPreviewPath,
   isExactAdminPreviewOrigin,
 } from "@/lib/admin/host-routing";
 import {
@@ -98,7 +99,10 @@ export default auth((request) => {
         );
       }
       if (disposition === "reject") {
-        return NextResponse.rewrite(new URL(`${ADMIN_NOT_FOUND_PATH}/`, request.url), { status: 404 });
+        const authenticatedPreviewSurface = Boolean(role) && isAuthenticatedAdminPreviewPath(pathname);
+        if (!authenticatedPreviewSurface) {
+          return NextResponse.rewrite(new URL(`${ADMIN_NOT_FOUND_PATH}/`, request.url), { status: 404 });
+        }
       }
     }
 
@@ -134,7 +138,7 @@ export default auth((request) => {
     return NextResponse.next();
   }
 
-  if (!isAdminPage && !isAdminApi && !isStudioPage && !isPreviewApi) return NextResponse.next();
+  if (!isAdminPage && !isAdminApi && !isStudioPage && !isPreviewApi && !isAuthApi) return NextResponse.next();
   if (isProductionEnvironment() || !adminSurfaceAllowed) {
     return new NextResponse("Not Found", { status: 404 });
   }
