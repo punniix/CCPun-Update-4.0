@@ -25,23 +25,16 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
   { href: "/seo/", label: "SEO", permission: "seo:read", children: [
       { href: "/seo/opportunities/", label: "Opportunities" },
       { href: "/seo/audits/", label: "Audits" },
-      { href: "/seo/keywords/", label: "Keywords" },
-      { href: "/seo/internal-links/", label: "Internal links" },
-      { href: "/seo/competitors/", label: "Competitors" },
-      { href: "/seo/reports/", label: "Reports" },
   ] },
   { href: "/social/", label: "Social", permission: "social:read", children: [
       { href: "/social/posts/", label: "Posts" },
       { href: "/social/calendar/", label: "Calendar" },
-      { href: "/social/campaigns/", label: "Campaigns" },
       { href: "/social/queue/", label: "Queue" },
       { href: "/social/accounts/", label: "Accounts" },
   ] },
   { href: "/analytics/", label: "Analytics", permission: "dashboard:read", children: [
-      { href: "/analytics/website/", label: "Website" },
       { href: "/analytics/search/", label: "Search" },
       { href: "/analytics/social/", label: "Social" },
-      { href: "/analytics/conversions/", label: "Conversions" },
   ] },
   { href: "/operations/", label: "Operations", permission: "settings:read", children: [
       { href: "/operations/health/", label: "Health" },

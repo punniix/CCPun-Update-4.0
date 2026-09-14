@@ -51,3 +51,43 @@ test("Audit page exposes Scheduler transitions plus links to operational logs", 
   assert.match(source, /\/operations\/deployments\//);
   assert.match(source, /\/content\/calendar\//);
 });
+
+
+test("Control Plane navigation exposes only implemented workspaces", () => {
+  const layout = read("app/(control-plane)/layout.tsx");
+  for (const deadEnd of [
+    "/seo/keywords/",
+    "/seo/internal-links/",
+    "/seo/competitors/",
+    "/seo/reports/",
+    "/social/campaigns/",
+    "/analytics/website/",
+    "/analytics/conversions/",
+  ]) {
+    assert.doesNotMatch(layout, new RegExp(deadEnd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  for (const live of ["/seo/opportunities/", "/seo/audits/", "/social/posts/", "/social/calendar/", "/social/queue/", "/analytics/search/", "/analytics/social/"]) {
+    assert.match(layout, new RegExp(live.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+});
+
+test("legacy placeholder routes redirect into canonical live workspaces", () => {
+  const seo = read("app/(control-plane)/seo/[section]/page.tsx");
+  const analytics = read("app/(control-plane)/analytics/[section]/page.tsx");
+  const social = read("app/(control-plane)/social/[section]/page.tsx");
+  const postDetail = read("app/(control-plane)/social/posts/[id]/page.tsx");
+  assert.match(seo, /keywords: "\/content\/research\/"/);
+  assert.match(seo, /"internal-links": "\/seo\/audits\/"/);
+  assert.match(analytics, /website: "\/analytics\/search\/"/);
+  assert.match(social, /section === "campaigns"\) redirect\("\/social\/posts\/"\)/);
+  assert.match(postDetail, /redirect\("\/social\/posts\/"\)/);
+});
+
+test("Settings child routes are real read-only diagnostics rather than capability placeholders", () => {
+  const settings = read("app/(control-plane)/settings/[section]/page.tsx");
+  assert.match(settings, /getSeoGoogleProviderReadiness/);
+  assert.match(settings, /getSocialProviderReadiness/);
+  assert.match(settings, /ADMIN_PERMISSIONS/);
+  assert.match(settings, /readArticleSchedulerModel/);
+  assert.doesNotMatch(settings, /AdminCapabilityState|status="partial"|status="not-configured"/);
+});
