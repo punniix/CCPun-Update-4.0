@@ -27,7 +27,7 @@ export default async function SeoOpportunitiesPage() {
           <h1 className="mt-2 text-3xl font-semibold">Organic Search Performance</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูตัวเลขจริงจาก Google Search Console และ GA4 เทียบช่วงก่อนหน้าที่ยาวเท่ากัน ทุกครั้งเกิดจากการกด Sync โดยมนุษย์ ระบบอ่านอย่างเดียว ไม่สร้างข้อเสนอ และไม่แก้บทความ</p>
         </div>
-        <Link href="/snt-admin/seo/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ SEO Control Center</Link>
+        <Link href="/seo/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ SEO Control Center</Link>
       </div>
 
       <GscManualSync defaultStartDate={bangkokDate(27)} defaultEndDate={bangkokDate(0)} laneLabel={laneLabel} />

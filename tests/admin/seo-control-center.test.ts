@@ -8,8 +8,8 @@ test("SEO Control Center keeps semantic topic separate from protected published 
     readFileSync("cms/sanity/schema/objects/seo-metadata.ts", "utf8"),
   ].join("\n");
   const input = readFileSync("cms/sanity/components/SeoScoreInput.tsx", "utf8");
-  const adminPage = readFileSync("app/snt-admin/(protected)/seo/page.tsx", "utf8");
-  const detailPage = readFileSync("app/snt-admin/(protected)/seo/[id]/page.tsx", "utf8");
+  const adminPage = readFileSync("app/(control-plane)/seo/page.tsx", "utf8");
+  const detailPage = readFileSync("app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
   const contract = readFileSync("docs/seo-control-center-v1.md", "utf8");
 
   assert.match(schema, /BLOG_TOPIC_HUBS/);

@@ -22,7 +22,7 @@ export default async function YouTubeConnectionUatPage() {
         <h1 className="text-3xl font-semibold">YouTube Connection</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">เตรียม YouTube Data API สำหรับอ่าน Channel และสถิติวิดีโอล่าสุดเมื่อเจ้าของกดเท่านั้น</p>
       </div>
-      <Link href="/snt-admin/distribution/operations/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
+      <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
     </div>
     <YouTubeReadOnlyPanel ready={readiness.status === "manual-sync-ready"} analyticsReady={getSocialAnalyticsIngestionRuntimeStatus().enabled} missing={missing} />
     <section role="note" className="mt-7 rounded-3xl border border-amber-200/20 bg-amber-200/[0.05] p-5 text-sm leading-6 text-amber-50/80">

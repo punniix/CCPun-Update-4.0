@@ -99,7 +99,7 @@ test("Sheets export rejects expired interactive authorization before any Google 
 });
 
 test("Sheets route is an owner-only same-origin runtime mutation and the UI keeps the token in memory", () => {
-  const route = readFileSync(new URL("../../app/api/snt-admin/social/export/sheets/route.ts", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../../app/api/admin/social/export/sheets/route.ts", import.meta.url), "utf8");
   const service = readFileSync(new URL("../../lib/admin/social/sheets-export.ts", import.meta.url), "utf8");
   const component = readFileSync(new URL("../../features/admin/social/SocialSheetsExport.tsx", import.meta.url), "utf8");
   assert.match(route, /identity\.actorType !== "human" \|\| identity\.role !== "owner"/);

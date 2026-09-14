@@ -80,11 +80,11 @@ test("Production legacy backfill is dry-run by default and exact-source guarded"
 });
 
 test("owner-facing Admin surfaces health and explicit SEO re-audit", () => {
-  const layout = read("app/snt-admin/(protected)/layout.tsx");
-  const health = read("app/snt-admin/(protected)/health/page.tsx");
-  const audit = read("app/snt-admin/(protected)/audit/page.tsx");
+  const layout = read("app/(control-plane)/layout.tsx");
+  const health = read("app/(control-plane)/operations/health/page.tsx");
+  const audit = read("app/(control-plane)/operations/audit-log/page.tsx");
   const button = read("features/admin/components/RunSeoAuditButton.tsx");
-  assert.match(layout, /\/snt-admin\/health\//);
+  assert.match(layout, /\/operations\/health\//);
   assert.match(layout, /permission: "settings:read"/);
   assert.match(health, /Vercel Runtime/);
   assert.match(health, /Control Plane Operations/);

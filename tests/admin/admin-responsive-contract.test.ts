@@ -6,7 +6,7 @@ const readSource = (relativePath: string) =>
   readFileSync(new URL(`../../${relativePath}`, import.meta.url), "utf8");
 
 test("Admin layout contains wide content without widening the mobile viewport", () => {
-  const layout = readSource("app/snt-admin/(protected)/layout.tsx");
+  const layout = readSource("app/(control-plane)/layout.tsx");
 
   assert.match(layout, /<div className="[^"]*\boverflow-x-hidden\b[^"]*">/);
   assert.match(layout, /grid-cols-\[minmax\(0,1fr\)\]/);
@@ -17,10 +17,10 @@ test("Admin layout contains wide content without widening the mobile viewport", 
 
 test("Admin data tables remain horizontally scrollable inside labelled regions", () => {
   const tablePages = [
-    "app/snt-admin/(protected)/content/page.tsx",
-    "app/snt-admin/(protected)/seo/page.tsx",
+    "app/(control-plane)/content/articles/page.tsx",
+    "app/(control-plane)/seo/page.tsx",
     "features/admin/research/page.tsx",
-    "app/snt-admin/(protected)/audit/page.tsx",
+    "app/(control-plane)/operations/audit-log/page.tsx",
   ];
 
   for (const page of tablePages) {

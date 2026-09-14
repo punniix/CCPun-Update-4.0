@@ -197,7 +197,7 @@ test("Auth.js never assigns an Admin role while authentication is misconfigured"
 });
 
 test("Admin mutations require an exact browser origin", () => {
-  const url = "https://admin-preview.example/api/snt-admin/reviews/1/approve";
+  const url = "https://admin-preview.example/api/admin/reviews/1/approve";
 
   assert.equal(isSameOriginAdminMutation(url, "https://admin-preview.example"), true);
   assert.equal(isSameOriginAdminMutation(url, "https://attacker.example"), false);

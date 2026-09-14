@@ -289,7 +289,7 @@ try {
   state = await inspect(client);
   expect('repeat accepted consent keeps fhc_landing_view at one', state.dataLayer.filter((row) => isDataLayerEvent(row, 'fhc_landing_view')).length === 1);
 
-  for (const privatePath of ['/snt-admin/', '/studio/']) {
+  for (const privatePath of ['/dashboard/', '/snt-admin/', '/studio/']) {
     await navigate(client, privatePath);
     state = await inspect(client);
     expect(`${privatePath} loads no public tracking tags`, state.gtmScripts.length === 0 && state.gaScripts.length === 0 && state.metaScripts.length === 0);

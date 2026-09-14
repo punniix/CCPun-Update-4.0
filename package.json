@@ -88,7 +88,16 @@
       "brace-expansion": "5.0.9"
     },
     "@sanity/runtime-cli": {
-      "adm-zip": "0.6.0"
+      "adm-zip": "0.6.1"
+    },
+    "@vercel/frameworks": {
+      "smol-toml": "1.8.0"
+    },
+    "@workflow/world-local": {
+      "undici": "7.29.0"
+    },
+    "@workflow/world-vercel": {
+      "undici": "7.29.0"
     },
     "typeid-js": {
       "uuid": "11.1.1"

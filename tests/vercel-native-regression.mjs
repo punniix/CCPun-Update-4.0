@@ -64,7 +64,7 @@ for (const requiredRoute of [
   'features/blog/pages/ArticlePage.tsx',
   'lib/content/url.ts',
   'app/api/preview/enable/route.ts',
-  'app/api/snt-admin/content/[id]/preview/route.ts',
+  'app/api/admin/content/[id]/preview/route.ts',
   'app/studio/[[...tool]]/page.tsx',
   'app/studio/[[...tool]]/studio-client.tsx',
   'sanity.config.ts',
@@ -87,7 +87,7 @@ assert.match(previewRoute, /defineEnableDraftMode/);
 assert.match(previewRoute, /IS_DRAFT_PREVIEW_ALLOWED/);
 assert.match(previewRoute, /getAdminSanityReadToken/);
 assert.doesNotMatch(previewRoute, /draft\.enable\(\)/);
-const ownerPreviewRoute = read('app/api/snt-admin/content/[id]/preview/route.ts');
+const ownerPreviewRoute = read('app/api/admin/content/[id]/preview/route.ts');
 assert.match(ownerPreviewRoute, /hasAdminPermission\(identity\.role, "draft:apply"\)/);
 assert.match(ownerPreviewRoute, /row\.isDraft/);
 assert.match(ownerPreviewRoute, /draftMode\(\)\)\.enable\(\)/);
@@ -361,6 +361,7 @@ assert.match(nextConfig, /X-Robots-Tag/);
 assert.match(nextConfig, /noindex, nofollow, noarchive/);
 assert.match(nextConfig, /source:\s*["']\/:path\*["'],\s*headers:\s*\[\.\.\.SECURITY_HEADERS, \.\.\.REVIEW_HEADERS\]/);
 assert.match(nextConfig, /source:\s*["']\/snt-admin\/:path\*["'],\s*headers:\s*PRIVATE_SURFACE_ROBOTS_HEADERS/);
+assert.match(nextConfig, /source:\s*["']\/api\/admin\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/studio\/:path\*["'],\s*headers:\s*PRIVATE_SURFACE_ROBOTS_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/api\/snt-admin\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/api\/preview\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
@@ -404,8 +405,7 @@ assert.match(deploymentEnvironment, /IS_DRAFT_PREVIEW_ALLOWED = isAdminReadDataP
 
 const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 assert.match(clientWidgets, /import \{ usePathname \} from ['"]next\/navigation['"]/);
-assert.match(clientWidgets, /pathname === ['"]\/snt-admin['"]/);
-assert.match(clientWidgets, /pathname\.startsWith\(['"]\/snt-admin\/['"]\)/);
+assert.match(clientWidgets, /isAdminPagePath\(pathname\)/);
 assert.match(clientWidgets, /pathname === ['"]\/studio['"]/);
 assert.match(clientWidgets, /pathname\.startsWith\(['"]\/studio\/['"]\)/);
 assert.match(clientWidgets, /if \(isPrivateSurface\) return null/);
@@ -452,8 +452,8 @@ for (const contractCheck of [
   assert.match(trackingQa, new RegExp(contractCheck));
 }
 
-const adminLoginPage = read('app/snt-admin/(auth)/login/page.tsx');
-const protectedAdminLayout = read('app/snt-admin/(protected)/layout.tsx');
+const adminLoginPage = read('app/(control-plane-auth)/login/page.tsx');
+const protectedAdminLayout = read('app/(control-plane)/layout.tsx');
 for (const adminSurface of [adminLoginPage, protectedAdminLayout]) {
   assert.match(adminSurface, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false,\s*nocache:\s*true\s*\}/);
 }
@@ -462,9 +462,9 @@ assert.match(protectedAdminLayout, /<main id="main-content"/);
 assert.doesNotMatch(protectedAdminLayout, /admin-skip-link/);
 
 for (const tablePage of [
-  read('app/snt-admin/(protected)/content/page.tsx'),
-  read('app/snt-admin/(protected)/seo/page.tsx'),
-  read('app/snt-admin/(protected)/audit/page.tsx'),
+  read('app/(control-plane)/content/articles/page.tsx'),
+  read('app/(control-plane)/seo/page.tsx'),
+  read('app/(control-plane)/operations/audit-log/page.tsx'),
 ]) {
   assert.match(tablePage, /text-white\/60 xl:hidden/);
 }
@@ -480,8 +480,8 @@ const publicDiscoverySurface = [
 ].join('\n');
 assert.doesNotMatch(publicDiscoverySurface, /\/snt-admin\//, 'Admin routes must stay out of public navigation and sitemaps');
 
-const reviewPage = read('app/snt-admin/(protected)/reviews/page.tsx');
-const seoPage = read('app/snt-admin/(protected)/seo/page.tsx');
+const reviewPage = read('app/(control-plane)/dashboard/inbox/page.tsx');
+const seoPage = read('app/(control-plane)/seo/page.tsx');
 assert.match(reviewPage, /\/studio\/structure\/article;/, 'Review preview must use the working Studio structure route');
 assert.match(seoPage, /\/studio\/structure\/article;/, 'SEO Studio action must use the working Studio structure route');
 assert.doesNotMatch(reviewPage, /\/studio\/intent\/edit\//, 'Review preview must not use the trailing-slash-broken Studio intent route');

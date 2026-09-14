@@ -445,7 +445,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
       commentSeriesMode: form.commentSeriesMode, commentSeries: form.commentSeries,
     };
     try {
-      const response = await fetch("/api/snt-admin/social/drafts/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const response = await fetch("/api/admin/social/drafts/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         const errors: Record<string, string> = {
@@ -469,7 +469,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
     const scheduledAt = form.platform === "facebook" && form.publishingMode === "native-scheduled" && form.scheduledAt
       ? new Date(`${form.scheduledAt}:00+07:00`).toISOString() : null;
     try {
-      const response = await fetch("/api/snt-admin/social/publications/", {
+      const response = await fetch("/api/admin/social/publications/", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ variantId: form.id, expectedRevision: form.revision, expectedVersion: form.version, scheduledAt }),
       });
@@ -521,7 +521,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
           },
         } : {}),
       };
-      const response = await fetch("/api/snt-admin/social/publications/execute", {
+      const response = await fetch("/api/admin/social/publications/execute", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const payload = await response.json().catch(() => null);

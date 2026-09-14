@@ -67,7 +67,7 @@ test("Production routing classifies PR45 Admin paths, Website 4.3 Web paths and 
   const pr45Paths = [
     "AGENTS.md",
     "HANDOFF.md",
-    "app/api/snt-admin/social/operations/route.ts",
+    "app/api/admin/social/operations/route.ts",
     "cms/sanity/schema/documents/social-variant.ts",
     "db/migrations/20260829_website_42_social_post_formats.sql",
     "features/admin/social/operations-page.tsx",

@@ -4,12 +4,12 @@ import test from "node:test";
 
 const ubersuggest = readFileSync(new URL("../../lib/admin/ubersuggest.ts", import.meta.url), "utf8");
 const ubersuggestContracts = readFileSync(new URL("../../lib/admin/ubersuggest-contracts.ts", import.meta.url), "utf8");
-const researchRoute = readFileSync(new URL("../../app/api/snt-admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
+const researchRoute = readFileSync(new URL("../../app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
 const growth = readFileSync(new URL("../../lib/admin/growth.ts", import.meta.url), "utf8");
-const growthPage = readFileSync(new URL("../../app/snt-admin/(protected)/growth/page.tsx", import.meta.url), "utf8");
-const growthLoading = readFileSync(new URL("../../app/snt-admin/(protected)/growth/loading.tsx", import.meta.url), "utf8");
+const growthPage = readFileSync(new URL("../../app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8");
+const growthLoading = readFileSync(new URL("../../app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
 const research = readFileSync(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
-const geoPage = readFileSync(new URL("../../app/snt-admin/(protected)/seo/[id]/page.tsx", import.meta.url), "utf8");
+const geoPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 const researchPage = readFileSync(new URL("../../features/admin/research/page.tsx", import.meta.url), "utf8");
 const researchForm = readFileSync(new URL("../../features/admin/components/UbersuggestResearchForm.tsx", import.meta.url), "utf8");
 

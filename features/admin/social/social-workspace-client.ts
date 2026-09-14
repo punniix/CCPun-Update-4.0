@@ -206,8 +206,8 @@ async function readJson(url: string, signal?: AbortSignal) {
 
 export async function loadSocialWorkspace(signal?: AbortSignal): Promise<WorkspaceResult> {
   const [draftResult, publicationResult] = await Promise.allSettled([
-    readJson("/api/snt-admin/social/drafts/", signal),
-    readJson("/api/snt-admin/social/publications/", signal),
+    readJson("/api/admin/social/drafts/", signal),
+    readJson("/api/admin/social/publications/", signal),
   ]);
   const draftPayload = draftResult.status === "fulfilled" ? object(draftResult.value) : null;
   const publicationPayload = publicationResult.status === "fulfilled" ? object(publicationResult.value) : null;
@@ -368,7 +368,7 @@ export async function verifyGoogleDrivePickerFiles(input: {
       accessToken: input.session.accessToken,
       authorization: input.session.authorization,
     });
-    const response = await fetch("/api/snt-admin/media", {
+    const response = await fetch("/api/admin/media", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       cache: "no-store",

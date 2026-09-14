@@ -69,5 +69,5 @@ test("queue storage has no Sanity operational writes and Workflow wiring uses an
   assert.match(read("lib/admin/article-publication-workflow.ts"),/sleep\(new Date\(input\.scheduledAt\)\)/);
   assert.match(read("lib/admin/article-publication-workflow.ts"),/maxRetries = 0/);
   assert.match(read("proxy.ts"),/well-known\/workflow\//);
-  assert.match(read("app/api/snt-admin/content/[id]/schedule/route.ts"),/cancelScheduleRequestSchema\.safeParse/);
+  assert.match(read("app/api/admin/content/[id]/schedule/route.ts"),/cancelScheduleRequestSchema\.safeParse/);
 });

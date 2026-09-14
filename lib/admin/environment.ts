@@ -90,8 +90,27 @@ export function parseAdminEnvironment(value: string | undefined): AdminEnvironme
   return "unknown";
 }
 
+export function resolveAdminEnvironment(
+  explicitValue: string | undefined,
+  vercelEnvironment: string | undefined,
+  deploymentProjectId: string | undefined,
+): AdminEnvironment {
+  const explicitEnvironment = parseAdminEnvironment(explicitValue);
+  if (explicitValue?.trim()) return explicitEnvironment;
+
+  const isAdminPreview =
+    vercelEnvironment?.trim().toLowerCase() === "preview" &&
+    deploymentProjectId?.trim() === CCPUN_VERCEL_PROJECT_IDS.adminProduction;
+
+  return isAdminPreview ? "admin-uat" : "unknown";
+}
+
 export function getAdminEnvironment(): AdminEnvironment {
-  return parseAdminEnvironment(process.env.CCPUN_APP_ENV);
+  return resolveAdminEnvironment(
+    process.env.CCPUN_APP_ENV,
+    process.env.VERCEL_ENV,
+    process.env.VERCEL_PROJECT_ID,
+  );
 }
 
 export function resolveSanityConfigEnvironment(

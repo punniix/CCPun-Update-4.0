@@ -31,7 +31,7 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
     const published = props.published as PublishableArticle | null;
     const sync = useSyncState(props.id, props.type);
     const validation = useValidationStatus(props.draft?._id || props.id, props.type, true);
-    const endpoint = `/api/snt-admin/content/${encodeURIComponent(props.id.replace(/^drafts\./, ""))}/schedule/`;
+    const endpoint = `/api/admin/content/${encodeURIComponent(props.id.replace(/^drafts\./, ""))}/schedule/`;
     const [open, setOpen] = useState(false);
     const [scheduledLocal, setScheduledLocal] = useState(() => localBangkok(Date.now() + 10 * 60_000));
     const [state, setState] = useState<{ ready: boolean; mode: "publish" | "validate-only"; schedule: ScheduleView | null } | null>(null);

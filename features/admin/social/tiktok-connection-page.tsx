@@ -23,7 +23,7 @@ export default async function TikTokConnectionUatPage() {
           <h1 className="text-3xl font-semibold">TikTok Connection</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">เตรียม Display API สำหรับอ่านโปรไฟล์ วิดีโอล่าสุด และสถิติย้อนหลังเมื่อคุณกดเท่านั้น</p>
         </div>
-        <Link href="/snt-admin/distribution/operations/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
+        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
       </div>
       <TikTokReadOnlyPanel
         ready={readiness.status === "manual-sync-ready"}

@@ -122,7 +122,7 @@ export function submitInstagramHandoffMedia(input: {
   if (!isGoogleDriveAuthorizationUsable(input.session.authorization)) throw new Error("drive-authorization-expired");
   const form = document.createElement("form");
   form.method = "POST";
-  form.action = "/api/snt-admin/social/providers/meta/handoff";
+  form.action = "/api/admin/social/providers/meta/handoff";
   form.target = "_blank";
   form.hidden = true;
   const fields = {
@@ -192,7 +192,7 @@ export async function searchInstagramAudioOptions(input: {
   searchQuery: string;
   signal?: AbortSignal;
 }) {
-  const response = await fetch("/api/snt-admin/social/providers/meta/audio", {
+  const response = await fetch("/api/admin/social/providers/meta/audio", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",

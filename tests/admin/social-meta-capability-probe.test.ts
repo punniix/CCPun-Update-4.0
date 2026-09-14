@@ -53,7 +53,7 @@ test("Meta capability probe distinguishes configured attestation from live token
 });
 
 test("Meta capability HTTP route is human-only, same-origin, POST-only, and never writes provider data", () => {
-  const route = read("app/api/snt-admin/social/providers/meta/capabilities/route.ts");
+  const route = read("app/api/admin/social/providers/meta/capabilities/route.ts");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);

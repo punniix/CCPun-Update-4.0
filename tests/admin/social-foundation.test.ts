@@ -169,15 +169,15 @@ test("Migration checksum covers the reviewed DDL and operational constraints", (
 });
 
 test("Social API is authenticated, owner-scoped, exact-origin and read-only", () => {
-  const route = read("app/api/snt-admin/social/foundation/route.ts");
-  const page = read("app/snt-admin/(protected)/distribution/page.tsx");
+  const route = read("app/api/admin/social/foundation/route.ts");
+  const page = read("app/(control-plane)/social/page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
   assert.match(route, /isConfiguredAdminOrigin\(request\.url, process\.env\.AUTH_URL\)/);
   assert.match(route, /export async function GET\(request: Request\)/);
   assert.doesNotMatch(route, /export async function (?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /publish|mutate|createClient/);
-  assert.equal(page.trim(), 'export { metadata, default } from "@/features/admin/social/page";');
+  assert.equal(page.trim(), 'export { metadata, default } from "@/features/admin/social/control-plane-page";');
 });
 
 test("Sanity keeps the canonical parent reference and excludes operational fields", () => {

@@ -216,9 +216,9 @@ test("Upload intent rate limiter hashes each actor and returns deterministic Ret
 });
 
 test("Media APIs keep synthetic GET separate from owner-only runtime Drive verification and metadata-only upload intents", () => {
-  const listRoute = read("app/api/snt-admin/media/route.ts");
+  const listRoute = read("app/api/admin/media/route.ts");
   const driveFoundation = read("lib/admin/media/google-drive-foundation.ts");
-  const uploadRoute = read("app/api/snt-admin/media/upload-intents/route.ts");
+  const uploadRoute = read("app/api/admin/media/upload-intents/route.ts");
   const service = read("lib/admin/media/service.ts");
 
   assert.match(listRoute, /getAdminIdentity\(\)/);
@@ -280,8 +280,8 @@ test("Media migration is additive, checksum-locked and provider-neutral", () => 
 test("Distribution Overview owns the root route while the Media Library presentation is retained", () => {
   const page = read("features/admin/social/page.tsx");
   const mediaSection = read("features/admin/media/MediaLibraryUatSection.tsx");
-  const route = read("app/snt-admin/(protected)/distribution/page.tsx");
-  const navigation = read("app/snt-admin/(protected)/layout.tsx");
+  const route = read("app/(control-plane)/social/page.tsx");
+  const navigation = read("app/(control-plane)/layout.tsx");
   assert.match(page, /getMediaLibraryRuntimeStatus/);
   assert.match(page, /MediaLibraryUatSection/);
   assert.doesNotMatch(mediaSection, /text-white\/45/);
@@ -291,9 +291,9 @@ test("Distribution Overview owns the root route while the Media Library presenta
   assert.match(mediaSection, /Refresh metadata/);
   assert.match(mediaSection, /Manual OAuth \/ Picker/);
   assert.equal((mediaSection.match(/disabled aria-disabled="true"/g) ?? []).length, 2);
-  assert.equal(route.trim(), 'export { metadata, default } from "@/features/admin/social/page";');
-  assert.match(page, /redirect\("\/snt-admin\/distribution\/overview\/"\)/);
-  assert.equal((navigation.match(/\{ href: "\/snt-admin\/distribution\/"/g) ?? []).length, 1);
+  assert.equal(route.trim(), 'export { metadata, default } from "@/features/admin/social/control-plane-page";');
+  assert.doesNotMatch(page, /redirect\(/);
+  assert.equal((navigation.match(/\{ href: "\/social\/"/g) ?? []).length, 1);
 });
 
 test("Google Picker and GIS use only their exact CSP origins", () => {

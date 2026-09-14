@@ -106,8 +106,8 @@ test("Picker selection fails closed when size is absent and client never persist
   assert.match(client, /setAppId\(input\.appId\.trim\(\)\)/);
   assert.match(workspace, /NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_APP_ID/);
   assert.match(workspace, /validateInstagramMedia/);
-  assert.match(client, /\/api\/snt-admin\/media/);
-  assert.match(workspace, /\/api\/snt-admin\/social\/publications\/execute/);
+  assert.match(client, /\/api\/admin\/media/);
+  assert.match(workspace, /\/api\/admin\/social\/publications\/execute/);
   assert.match(workspace, /expectedSha256: file!\.sha256Checksum/);
   assert.match(workspace, /useRef<GoogleDriveMemorySession \| null>/);
   assert.match(publishingStore, /mediaAssetIds: variant\.mediaBindings\.map\(\(media\) => media\.assetId\)/);

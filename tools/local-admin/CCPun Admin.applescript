@@ -1,7 +1,7 @@
 use scripting additions
 
 property controllerPath : "/Users/punnii/Desktop/CCPun x AI/CCPun-Financial Advisor Project/Dev/Homepage-v4-1-admin-lab/Dev/Homepage/tools/local-admin/ccpun_admin.py"
-property adminURL : "http://localhost:3000/snt-admin/"
+property adminURL : "http://localhost:3000/dashboard/"
 
 on runController(actionName)
   with timeout of 120 seconds

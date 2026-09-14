@@ -26,7 +26,7 @@ STATE_FILE = RUNTIME_DIR / "server.json"
 PROJECT_ID = "kyfxgjnq"
 DATASET = "production"
 ORIGIN = "http://localhost:3000"
-ADMIN_URL = f"{ORIGIN}/snt-admin/"
+ADMIN_URL = f"{ORIGIN}/dashboard/"
 PORT = 3000
 # ponytail: fixed targets are the safety boundary; add configuration only if a second lane is approved.
 

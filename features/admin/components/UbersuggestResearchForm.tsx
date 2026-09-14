@@ -19,7 +19,7 @@ export default function UbersuggestResearchForm({ connected, writeReady }: { con
 
   async function connect() {
     setState("working");
-    const response = await fetch("/api/snt-admin/providers/ubersuggest/connect/", { method: "POST" }).catch(() => null);
+    const response = await fetch("/api/admin/providers/ubersuggest/connect/", { method: "POST" }).catch(() => null);
     const payload = await response?.json().catch(() => null);
     if (!response?.ok || (!payload?.connected && typeof payload?.authorizationUrl !== "string")) {
       setMessage("ยังเริ่มการเชื่อมต่อ Ubersuggest ไม่ได้ กรุณาลองใหม่");
@@ -37,7 +37,7 @@ export default function UbersuggestResearchForm({ connected, writeReady }: { con
     if (!window.confirm(`ดึงข้อมูล Ubersuggest สำหรับ “${keyword}” หรือไม่? ระบบจะใช้โควตาเฉพาะเมื่อไม่มีข้อมูลใหม่ภายใน 24 ชั่วโมง`)) return;
     setState("working");
     setMessage("");
-    const response = await fetch("/api/snt-admin/research/ubersuggest/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyword }) }).catch(() => null);
+    const response = await fetch("/api/admin/research/ubersuggest/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyword }) }).catch(() => null);
     const payload = await response?.json().catch(() => null);
     if (!response?.ok) {
       setMessage(providerErrorMessages[payload?.error] ?? "ยังดึงข้อมูลไม่ได้ ระบบไม่ได้บันทึกข้อมูล กรุณาลองใหม่");

@@ -33,7 +33,7 @@ export default function ReviewDecisionControls({
 
     const payload = decision === "edit" ? { after, reason } : { reason };
     try {
-      const response = await fetch(`/api/snt-admin/reviews/${encodeURIComponent(id)}/${decision}/`, {
+      const response = await fetch(`/api/admin/reviews/${encodeURIComponent(id)}/${decision}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

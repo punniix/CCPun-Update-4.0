@@ -10,7 +10,18 @@ import {
   isAdminSurfaceAllowed,
   isProductionEnvironment,
 } from "@/lib/admin/environment";
-import { classifyProductionAdminPath } from "@/lib/admin/host-routing";
+import {
+  classifyProductionAdminPath,
+  isAdminRequestBoundary,
+  isExactAdminPreviewOrigin,
+} from "@/lib/admin/host-routing";
+import {
+  isAdminApiPath,
+  isAdminPagePath,
+  ADMIN_NOT_FOUND_PATH,
+  legacyAdminPageDestination,
+  safeAdminReturnPath,
+} from "@/lib/admin/routes";
 import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
 
 export default auth((request) => {
@@ -27,10 +38,20 @@ export default auth((request) => {
   const environment = getAdminEnvironment();
   const adminSurfaceAllowed = isAdminSurfaceAllowed(environment);
   const isProductionAdmin = environment === "production-admin";
+  const isAdminUat = environment === "admin-uat";
+  const isDeployedAdmin = isProductionAdmin || isAdminUat;
   const isLocalUat = environment === "local-uat";
   const isLocalProduction = environment === "local-production";
-  const isAdminPage = pathname.startsWith("/snt-admin");
-  const isAdminApi = pathname.startsWith("/api/snt-admin");
+  const isDedicatedAdmin = isDeployedAdmin || isLocalUat || isLocalProduction;
+  const isAdminBoundaryRequest = isAdminRequestBoundary({
+    environment,
+    vercelEnvironment: process.env.VERCEL_ENV,
+    deploymentProjectId: process.env.VERCEL_PROJECT_ID,
+    host: request.headers.get("host"),
+  });
+  const isAdminPage = isAdminPagePath(pathname);
+  const isAdminApi = isAdminApiPath(pathname);
+  const legacyPageDestination = legacyAdminPageDestination(pathname);
   const isStudioPage = pathname.startsWith("/studio");
   const isPreviewApi = pathname.startsWith("/api/preview");
   const isAuthApi = pathname === "/api/auth" || pathname.startsWith("/api/auth/");
@@ -39,34 +60,45 @@ export default auth((request) => {
     pathname.startsWith("/_next/image") ||
     pathname.startsWith("/favicon.") ||
     pathname === "/robots.txt";
-  const isLoginPage = pathname === "/snt-admin/login" || pathname === "/snt-admin/login/";
+  const isLoginPage = pathname === "/login" || pathname === "/login/";
+  const isAdminNotFoundPage =
+    pathname === ADMIN_NOT_FOUND_PATH || pathname === `${ADMIN_NOT_FOUND_PATH}/`;
   const role = request.auth?.user?.role ?? null;
   const isInvalidAdminMutation =
     (isAdminApi || isPreviewApi) &&
     !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
     !isSameOriginAdminMutation(request.url, request.headers.get("origin"));
 
-  if (isProductionAdmin || isLocalUat || isLocalProduction) {
+  if (isAdminBoundaryRequest) {
     if (!adminSurfaceAllowed) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
     const originAllowed = isLocalUat || isLocalProduction
       ? isLocalAdminHost(request.headers.get("host"), environment)
-      : isConfiguredAdminOrigin(request.url, process.env.AUTH_URL);
+      : isExactAdminPreviewOrigin({
+          environment,
+          vercelEnvironment: process.env.VERCEL_ENV,
+          deploymentProjectId: process.env.VERCEL_PROJECT_ID,
+          host: request.headers.get("host"),
+        }) || isConfiguredAdminOrigin(request.url, process.env.AUTH_URL);
     if (!originAllowed) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    if (isProductionAdmin) {
+    if (isAdminNotFoundPage) {
+      return NextResponse.next({ status: 404 });
+    }
+
+    if (isDedicatedAdmin) {
       const disposition = classifyProductionAdminPath(pathname);
       if (disposition === "entry") {
         return NextResponse.redirect(
-          new URL(role ? "/snt-admin/dashboard/" : "/snt-admin/login/", request.url),
+          new URL(role ? "/dashboard/" : "/login/", request.url),
         );
       }
       if (disposition === "reject") {
-        return new NextResponse("Not Found", { status: 404 });
+        return NextResponse.rewrite(new URL(`${ADMIN_NOT_FOUND_PATH}/`, request.url), { status: 404 });
       }
     }
 
@@ -74,15 +106,30 @@ export default auth((request) => {
       return NextResponse.json({ error: "invalid-origin" }, { status: 403 });
     }
     if (isAuthApi || isPublicBootstrapPath) return NextResponse.next();
+    if (legacyPageDestination) {
+      const destination = new URL(legacyPageDestination, request.url);
+      destination.search = request.nextUrl.search;
+      if (!role && legacyPageDestination !== "/login/") {
+        const loginUrl = new URL("/login/", request.url);
+        loginUrl.searchParams.set("callbackUrl", `${legacyPageDestination}${request.nextUrl.search}`);
+        return NextResponse.redirect(loginUrl);
+      }
+      return NextResponse.redirect(role && legacyPageDestination === "/login/"
+        ? new URL("/dashboard/", request.url)
+        : destination);
+    }
     if (isLoginPage) {
-      if (role) return NextResponse.redirect(new URL("/snt-admin/dashboard/", request.url));
+      if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
       return NextResponse.next();
     }
     if (!role) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
       }
-      return NextResponse.redirect(new URL("/snt-admin/login/", request.url));
+      const loginUrl = new URL("/login/", request.url);
+      const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+      if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
+      return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
   }
@@ -97,7 +144,7 @@ export default auth((request) => {
   }
 
   if (isLoginPage) {
-    if (role) return NextResponse.redirect(new URL("/snt-admin/dashboard/", request.url));
+    if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
     return NextResponse.next();
   }
 
@@ -105,8 +152,9 @@ export default auth((request) => {
     if (isAdminApi || isPreviewApi) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-    const loginUrl = new URL("/snt-admin/login/", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    const loginUrl = new URL("/login/", request.url);
+    const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+    if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -115,7 +163,20 @@ export default auth((request) => {
 
 export const config = {
   matcher: [
+    // Root must always reach the environment/project boundary so a dedicated
+    // Admin application can never fall through to the public homepage.
+    "/",
+    "/login/:path*",
+    "/dashboard/:path*",
+    "/content/:path*",
+    "/seo/:path*",
+    "/social/:path*",
+    "/analytics/:path*",
+    "/operations/:path*",
+    "/settings/:path*",
+    "/admin-not-found/:path*",
     "/snt-admin/:path*",
+    "/api/admin/:path*",
     "/api/snt-admin/:path*",
     "/studio/:path*",
     "/api/preview/:path*",
@@ -125,6 +186,10 @@ export const config = {
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "admin.ccpun.com" }] },
+    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "localhost" }] },
+    // Generated Vercel aliases must enter the environment/project boundary too.
+    // Only the immutable Admin project may resolve Preview to the Admin UAT lane.
+    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin(?:-.+)?\\.vercel\\.app" }] },
     {
       source: "/((?!\\.well-known/workflow/).*)",
       has: [

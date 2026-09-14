@@ -13,6 +13,7 @@ import {
   isStudioDataPlaneAllowed,
   isLocalProductionDraftWriteEnabled,
   parseAdminEnvironment,
+  resolveAdminEnvironment,
   resolveSanityConfigEnvironment,
 } from "../../lib/admin/environment";
 import { shouldEnforceHttps } from "../../lib/security-policy";
@@ -67,6 +68,54 @@ test("Admin survivor Preview has a dedicated UAT lane without Production access"
   );
   assert.equal(isAdminDataPlaneAllowed("uat", "admin-uat", UAT_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(isAdminDataPlaneAllowed("uat", "admin-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
+});
+
+test("only the exact Admin Vercel Preview may infer admin-uat when the explicit lane is absent", () => {
+  assert.equal(resolveAdminEnvironment(undefined, "preview", PRODUCTION_ADMIN_PROJECT_ID), "admin-uat");
+  assert.equal(resolveAdminEnvironment("", "PREVIEW", PRODUCTION_ADMIN_PROJECT_ID), "admin-uat");
+
+  assert.equal(resolveAdminEnvironment(undefined, "preview", WEB_PROJECT_ID), "unknown");
+  assert.equal(resolveAdminEnvironment(undefined, "preview", "prj_unapproved"), "unknown");
+  assert.equal(resolveAdminEnvironment(undefined, "preview", undefined), "unknown");
+  assert.equal(resolveAdminEnvironment(undefined, "production", PRODUCTION_ADMIN_PROJECT_ID), "unknown");
+  assert.equal(resolveAdminEnvironment("staging", "preview", PRODUCTION_ADMIN_PROJECT_ID), "unknown");
+
+  assert.equal(resolveAdminEnvironment("web-uat", "preview", PRODUCTION_ADMIN_PROJECT_ID), "web-uat");
+  assert.equal(resolveAdminEnvironment("production", "preview", PRODUCTION_ADMIN_PROJECT_ID), "production");
+  assert.equal(resolveAdminEnvironment("production-admin", "preview", WEB_PROJECT_ID), "production-admin");
+});
+
+test("inferred Admin Preview stays pinned to the exact Sanity UAT lane", () => {
+  const environment = resolveAdminEnvironment(undefined, "preview", PRODUCTION_ADMIN_PROJECT_ID);
+  assert.equal(environment, "admin-uat");
+  assert.equal(
+    isSanityLaneAllowed("uat", environment, PRODUCTION_ADMIN_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID),
+    true,
+  );
+  assert.equal(
+    isAdminDataPlaneAllowed("uat", environment, PRODUCTION_ADMIN_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID),
+    true,
+  );
+  assert.equal(
+    isSanityLaneAllowed(
+      "production",
+      environment,
+      PRODUCTION_ADMIN_PROJECT_ID,
+      undefined,
+      PRODUCTION_SANITY_PROJECT_ID,
+    ),
+    false,
+  );
+  assert.equal(
+    isAdminDataPlaneAllowed(
+      "production",
+      environment,
+      PRODUCTION_ADMIN_PROJECT_ID,
+      undefined,
+      PRODUCTION_SANITY_PROJECT_ID,
+    ),
+    false,
+  );
 });
 
 test("each deployed application lane accepts only its approved Vercel project and Sanity lane", () => {

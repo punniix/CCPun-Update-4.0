@@ -90,7 +90,7 @@ test("Content Calendar derives one read-only item per variant without provider e
   assert.equal(items.every((item) => item.masterContentId === "synthetic-master-001" && item.providerWriteAllowed === false), true);
   assert.equal(items.every((item) => typeof item.analyticsAvailable === "boolean"), true);
   const page = read("features/admin/social/calendar-page.tsx");
-  const route = read("app/snt-admin/(protected)/distribution/calendar/page.tsx");
+  const route = read("app/(control-plane)/social/calendar/page.tsx");
   assert.match(page, /requireAdminPermission\("social:read"\)/);
   assert.match(page, /getSocialOperationsRuntimeStatus\(\)\.enabled/);
   assert.match(page, /ไม่มีคำสั่งส่งโพสต์/);
@@ -123,9 +123,9 @@ test("Comment Series waits for the main post and rejects unsafe thread graphs", 
 });
 
 test("Social operations API is authenticated, exact-origin and GET-only", () => {
-  const route = read("app/api/snt-admin/social/operations/route.ts");
-  const page = read("app/snt-admin/(protected)/distribution/operations/page.tsx");
-  const layout = read("app/snt-admin/(protected)/layout.tsx");
+  const route = read("app/api/admin/social/operations/route.ts");
+  const page = read("app/(control-plane)/social/posts/page.tsx");
+  const layout = read("app/(control-plane)/layout.tsx");
   const distribution = read("features/admin/social/page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
@@ -134,7 +134,7 @@ test("Social operations API is authenticated, exact-origin and GET-only", () => 
   assert.doesNotMatch(route, /export async function (?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /fetch\(|\b(?:INSERT|UPDATE|DELETE|POST|PATCH|PUT)\b/i);
   assert.equal(page.trim(), 'export { metadata, default } from "@/features/admin/social/operations-page";');
-  assert.match(layout, /getSocialFoundationRuntimeStatus\(\)\.enabled \|\| getSocialOperationsRuntimeStatus\(\)\.enabled/);
-  assert.match(layout, /item\.href !== "\/snt-admin\/distribution\/" \|\| socialEnabled/);
-  assert.match(distribution, /redirect\("\/snt-admin\/distribution\/overview\/"\)/);
+  assert.match(layout, /\{ href: "\/social\/", label: "Social"/);
+  assert.doesNotMatch(layout, /socialEnabled/);
+  assert.doesNotMatch(distribution, /redirect\(/);
 });

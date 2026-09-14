@@ -19,7 +19,7 @@ export default async function ContentCalendarUatPage() {
           <h1 className="mt-2 text-3xl font-semibold">Content Calendar</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดู Sanity Draft และ publication record ปัจจุบัน รายการใหม่ที่เพิ่มภายหลังจะปรากฏจาก API โดยไม่ต้องแก้หน้าเว็บ และหน้านี้ไม่มีคำสั่งส่งโพสต์</p>
         </div>
-        <Link href="/snt-admin/distribution/operations/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
+        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
       </div>
 
       <SocialCalendarDashboard />

@@ -14,7 +14,7 @@ on:
       - cms/sanity/policy/article-schedul*
       - db/migrations/20260911_article_scheduling_v1.ts
       - tests/admin/article-schedul*.test.ts
-      - app/api/snt-admin/content/**/schedule/**
+      - app/api/admin/content/**/schedule/**
 
 permissions:
   contents: read

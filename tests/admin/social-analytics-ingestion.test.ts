@@ -101,7 +101,7 @@ test("provider-native history is additive, checksum-locked and change-only", () 
 });
 
 test("manual provider persistence stays human-only, same-origin and provider-write free", () => {
-  const route = read("app/api/snt-admin/social/analytics/sync/[provider]/route.ts");
+  const route = read("app/api/admin/social/analytics/sync/[provider]/route.ts");
   const service = read("lib/admin/social/analytics-ingestion.ts");
   const panel = read("features/admin/social/provider-readonly-panels.tsx");
   const dashboard = read("features/admin/social/analytics-page.tsx");

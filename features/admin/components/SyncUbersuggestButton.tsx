@@ -15,7 +15,7 @@ export default function SyncUbersuggestButton() {
     setState("running");
     setMessage("");
     try {
-      const response = await fetch("/api/snt-admin/providers/ubersuggest/sync/", { method: "POST" });
+      const response = await fetch("/api/admin/providers/ubersuggest/sync/", { method: "POST" });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setMessage(friendlyApiErrorFromPayload(payload));

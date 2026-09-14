@@ -47,8 +47,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     maxAge: 8 * 60 * 60,
   },
   pages: {
-    signIn: "/snt-admin/login",
-    error: "/snt-admin/login",
+    signIn: "/login",
+    error: "/login",
   },
   providers: adminAuthConfigured
     ? [

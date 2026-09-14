@@ -8,11 +8,11 @@ const viewports = [
   { name: "tablet-landscape", width: 1024, height: 768, mobile: false },
 ];
 const routes = [
-  ["dashboard", "/snt-admin/dashboard/", "เริ่มที่นี่"],
-  ["reviews", "/snt-admin/reviews/", "ข้อเสนอที่รอตรวจ"],
-  ["seo", "/snt-admin/seo/", "SEO Control Center"],
-  ["research", "/snt-admin/research/", "Research Intelligence"],
-  ["growth", "/snt-admin/growth/", "ภาพรวมการเติบโต"],
+  ["dashboard", "/dashboard/", "เริ่มที่นี่"],
+  ["reviews", "/dashboard/inbox/", "ข้อเสนอที่รอตรวจ"],
+  ["seo", "/seo/", "SEO Control Center"],
+  ["research", "/content/research/", "Research Intelligence"],
+  ["growth", "/analytics/search/", "ภาพรวมการเติบโต"],
 ];
 
 if (!preview) throw new Error("ADMIN_PREVIEW_URL is required");
@@ -134,7 +134,7 @@ try {
         };
       })()`);
 
-      if (page.pathname.startsWith("/snt-admin/login") || page.body.includes("เข้าสู่ระบบด้วย Google")) {
+      if (page.pathname.startsWith("/login") || page.body.includes("เข้าสู่ระบบด้วย Google")) {
         throw new Error("Authenticated Preview session is required; no auth bypass is available");
       }
       if (!page.heading.includes(heading)) throw new Error(`${viewport.name}/${name}: heading mismatch (${page.heading})`);
@@ -154,7 +154,7 @@ try {
     }
   }
 
-  const session = await evaluate(client, `fetch("/api/snt-admin/session/", { cache: "no-store" }).then(async (response) => ({ ok: response.ok, status: response.status, authenticated: Boolean((await response.json().catch(() => null))?.role) }))`);
+  const session = await evaluate(client, `fetch("/api/admin/session/", { cache: "no-store" }).then(async (response) => ({ ok: response.ok, status: response.status, authenticated: Boolean((await response.json().catch(() => null))?.role) }))`);
   if (!session.ok || !session.authenticated) throw new Error(`Admin session read-back failed (${session.status})`);
   console.log(JSON.stringify({ baseUrl: baseUrl.origin, reviewExpectation, results }, null, 2));
 } finally {

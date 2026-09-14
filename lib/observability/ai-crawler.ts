@@ -49,7 +49,7 @@ export const AI_CRAWLER_DEFINITIONS: readonly AiCrawlerDefinition[] = [
 
 export const AI_CRAWLER_USER_AGENT_TOKENS = AI_CRAWLER_DEFINITIONS.map(({ token }) => token);
 
-const EXCLUDED_PUBLIC_PREFIXES = ["/_next/", "/api/", "/snt-admin/", "/studio/"];
+const EXCLUDED_PUBLIC_PREFIXES = ["/_next/", "/api/", "/studio/"];
 const EXCLUDED_ASSET_EXTENSION = /\.(?:avif|bmp|css|gif|ico|jpe?g|js|map|mp4|png|svg|ttf|webm|webp|woff2?)$/i;
 
 function tokenPattern(token: string): RegExp {
@@ -64,7 +64,7 @@ export function classifyAiCrawler(userAgent: string | null | undefined): AiCrawl
 
 export function isTrackablePublicPath(pathname: string): boolean {
   if (!pathname.startsWith("/")) return false;
-  if (pathname === "/api" || pathname === "/snt-admin" || pathname === "/studio") return false;
+  if (pathname === "/api" || pathname === "/studio" || isAdminPagePath(pathname)) return false;
   if (EXCLUDED_PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false;
   return !EXCLUDED_ASSET_EXTENSION.test(pathname);
 }
@@ -118,3 +118,4 @@ export function observeAiCrawlerRequest(
   write(`[AI_CRAWL] ${JSON.stringify(event)}`);
   return event;
 }
+import { isAdminPagePath } from "@/lib/admin/routes";

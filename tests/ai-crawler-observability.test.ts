@@ -27,7 +27,7 @@ test("tracks public content and metadata paths but excludes private and asset pa
   for (const path of ["/", "/blog/health-insurance/example/", "/robots.txt", "/sitemaps/blog.xml", "/guide.pdf"]) {
     assert.equal(isTrackablePublicPath(path), true, path);
   }
-  for (const path of ["/api", "/api/lead", "/snt-admin", "/snt-admin/dashboard/", "/studio", "/studio/desk", "/_next/image", "/hero.webp", "/app.js"]) {
+  for (const path of ["/api", "/api/lead", "/snt-admin", "/dashboard/", "/studio", "/studio/desk", "/_next/image", "/hero.webp", "/app.js"]) {
     assert.equal(isTrackablePublicPath(path), false, path);
   }
 });
@@ -73,7 +73,7 @@ test("suppresses AI events on the Admin Vercel project and private routes", () =
   };
 
   assert.equal(buildAiCrawlerLogEvent({ ...base, pathname: "/blog/example/", projectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" }), null);
-  assert.equal(buildAiCrawlerLogEvent({ ...base, pathname: "/snt-admin/dashboard/", projectId: CCPUN_WEB_VERCEL_PROJECT_ID }), null);
+  assert.equal(buildAiCrawlerLogEvent({ ...base, pathname: "/dashboard/", projectId: CCPUN_WEB_VERCEL_PROJECT_ID }), null);
 });
 
 test("emits one searchable AI_CRAWL line only for recognized traffic", () => {

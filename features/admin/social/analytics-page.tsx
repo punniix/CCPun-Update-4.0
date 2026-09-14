@@ -49,8 +49,8 @@ export default async function SocialAnalyticsPage({ searchParams }: AnalyticsPag
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/snt-admin/distribution/analytics/" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#9eebce] px-4 py-2.5 text-sm font-semibold text-[#101820] hover:bg-[#b6f3dc] focus:outline-none focus:ring-2 focus:ring-[#e0c985]"><BarChart3 className="h-4 w-4" />Marketing Dashboard</Link>
-            <Link href="/snt-admin/distribution/operations/" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]"><Layers3 className="h-4 w-4" />Social Posts</Link>
+            <Link href="/analytics/social/" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#9eebce] px-4 py-2.5 text-sm font-semibold text-[#101820] hover:bg-[#b6f3dc] focus:outline-none focus:ring-2 focus:ring-[#e0c985]"><BarChart3 className="h-4 w-4" />Marketing Dashboard</Link>
+            <Link href="/social/posts/" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]"><Layers3 className="h-4 w-4" />Social Posts</Link>
           </div>
         </div>
         {result.error ? <p role="alert" className="mt-6 rounded-2xl border border-rose-200/20 bg-rose-200/[0.05] p-4 text-sm text-rose-100">{result.error}</p> : null}
@@ -88,7 +88,7 @@ export default async function SocialAnalyticsPage({ searchParams }: AnalyticsPag
             ดูว่าอะไรเวิร์ก อะไรควรทำซ้ำ และตัวเลขไหนต้องอ่านพร้อมข้อจำกัด โดยไม่ต้องเปิด Neon หรือ join ตารางเอง
           </p>
         </div>
-        <Link href="/snt-admin/distribution/analytics/?view=raw" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]"><Database className="h-4 w-4" />เปิด Raw Stats</Link>
+        <Link href="/analytics/social/?view=raw" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]"><Database className="h-4 w-4" />เปิด Raw Stats</Link>
       </div>
       {fallbackNotice ? <p role="status" className="mt-5 rounded-2xl border border-amber-200/15 bg-amber-200/[0.05] p-4 text-sm leading-6 text-amber-100/80">{fallbackNotice}</p> : null}
       {marketingData.posts.length ? <SocialMarketingDashboard data={marketingData} /> : <p className="mt-6 rounded-2xl border border-white/10 p-5 text-sm text-white/65">ยังไม่มีข้อมูล Social สำหรับสร้าง Marketing Dashboard</p>}

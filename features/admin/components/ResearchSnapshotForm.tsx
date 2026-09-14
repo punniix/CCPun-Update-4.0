@@ -27,7 +27,7 @@ export default function ResearchSnapshotForm() {
     };
 
     try {
-      const response = await fetch("/api/snt-admin/research/", {
+      const response = await fetch("/api/admin/research/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
