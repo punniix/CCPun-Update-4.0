@@ -38,7 +38,8 @@
   .glass-button {
     @apply relative min-h-11 overflow-hidden rounded-full px-5 py-3 md:px-8 md:py-4 font-semibold;
     transition-property: transform, box-shadow, border-color, background-color, color;
-    transition-duration: 300ms;
+    transition-duration: var(--motion-duration-micro);
+    transition-timing-function: var(--motion-ease-standard);
     background: linear-gradient(135deg,
       rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 100%
     );
@@ -56,7 +57,8 @@
   .glass-button-sm {
     @apply relative min-h-11 overflow-hidden rounded-full px-4 py-2 font-semibold;
     transition-property: transform, box-shadow, border-color, background-color, color;
-    transition-duration: 300ms;
+    transition-duration: var(--motion-duration-micro);
+    transition-timing-function: var(--motion-ease-standard);
     background: linear-gradient(135deg,
       rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 100%
     );
@@ -74,7 +76,8 @@
   .gold-button {
     @apply relative min-h-11 overflow-hidden rounded-full px-5 py-3 md:px-8 md:py-4 font-semibold;
     transition-property: transform, box-shadow, background-position, background-color, color;
-    transition-duration: 300ms;
+    transition-duration: var(--motion-duration-micro);
+    transition-timing-function: var(--motion-ease-standard);
     color: hsl(var(--primary-foreground));
     background: linear-gradient(135deg,
       hsl(45,60%,70%) 0%, hsl(45,70%,78%) 50%, hsl(45,60%,70%) 100%
@@ -101,7 +104,8 @@
   .service-card {
     @apply relative overflow-hidden rounded-2xl p-5 md:p-8;
     transition-property: transform, box-shadow, border-color, background-color;
-    transition-duration: 500ms;
+    transition-duration: var(--motion-duration-reveal);
+    transition-timing-function: var(--motion-ease-standard);
     background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -120,7 +124,8 @@
   .pain-card {
     @apply relative overflow-hidden rounded-2xl p-4 md:p-6 text-center;
     transition-property: transform, box-shadow, border-color, background-color;
-    transition-duration: 300ms;
+    transition-duration: var(--motion-duration-micro);
+    transition-timing-function: var(--motion-ease-standard);
     background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -234,7 +239,7 @@
   /* Service accent bar — CSS-only entrance (replaces framer-motion scaleX) */
   .service-accent-bar {
     transform-origin: left;
-    animation: accent-bar-in 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+    animation: accent-bar-in var(--motion-duration-reveal) var(--motion-ease-standard) both;
   }
 }
 
@@ -256,7 +261,7 @@
       transparent 65%
     );
     transform: translateX(-100%);
-    transition: transform 0.7s cubic-bezier(0.4,0,0.2,1);
+    transition: transform var(--motion-duration-explain) var(--motion-ease-standard);
   }
 
   .liquid-shine:hover::after {
@@ -275,7 +280,7 @@
   }
 
   .glass-reflection:hover::before {
-    animation: glass-reflect 0.7s ease-out;
+    animation: glass-reflect var(--motion-duration-explain) var(--motion-ease-standard);
   }
 }
 
@@ -337,10 +342,7 @@
   to   { transform: scaleX(1); }
 }
 
-.hero-badge    { animation: hero-fade-up 0.4s ease both; }
-.hero-heading  { animation: hero-fade-up 0.4s ease both; }
-.hero-subtitle { animation: hero-fade-up 0.4s ease 0.1s both; }
-.hero-cta      { animation: hero-fade-up 0.4s ease 0.2s both; }
+/* Critical hero content paints in its final state; motion starts below the fold. */
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -351,10 +353,14 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
   }
+
+  .money-comparison__marker { opacity: 1; transform: translate(-1px, -50%); }
 }
 
 /* ── 7. Scrollbar ── */
@@ -469,11 +475,56 @@
 }
 
 @keyframes fhcBarGrow {
-  from { width: 0; }
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 .fhc-bar {
-  animation: fhcBarGrow 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+  transform-origin: left;
+  animation: fhcBarGrow var(--motion-duration-explain) var(--motion-ease-emphasized) both;
+}
+
+.money-comparison__track {
+  position: relative;
+  height: 1rem;
+  border: 1px solid hsl(var(--border) / .65);
+  border-radius: 9999px;
+  overflow: visible;
+  background: hsl(var(--secondary) / .72);
+}
+
+.money-comparison__fill {
+  position: absolute;
+  inset-block: -1px;
+  left: -1px;
+  border: 1px solid hsl(var(--primary));
+  border-radius: 9999px;
+  background: hsl(var(--primary) / .82);
+  transform-origin: left;
+  animation: fhcBarGrow var(--motion-duration-explain) var(--motion-ease-emphasized) both;
+}
+
+.money-comparison__marker {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 1.75rem;
+  background: hsl(var(--foreground));
+  transform: translate(-1px, calc(-50% + var(--motion-distance-micro)));
+  opacity: 0;
+  animation: money-marker-in var(--motion-duration-reveal) var(--motion-ease-standard) var(--motion-duration-explain) forwards;
+}
+
+@keyframes money-marker-in {
+  to { transform: translate(-1px, -50%); opacity: 1; }
+}
+
+.motion-lab-skeleton {
+  animation: motion-lab-skeleton 1.2s var(--motion-ease-standard) 3;
+}
+
+@keyframes motion-lab-skeleton {
+  50% { opacity: .62; transform: translateY(var(--motion-distance-micro)); }
 }
 
 /* ── 10. FHC Print Styles ── */
@@ -561,7 +612,7 @@
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
-  transition: color 200ms ease-out, border-color 200ms ease-out, background-color 200ms ease-out;
+  transition: color var(--motion-duration-micro) var(--motion-ease-standard), border-color var(--motion-duration-micro) var(--motion-ease-standard), background-color var(--motion-duration-micro) var(--motion-ease-standard);
 }
 
 .blog-cat-pill:hover,
@@ -585,7 +636,7 @@
 
 .blog-card {
   border-radius: 1rem;
-  transition: border-color 200ms ease-out, transform 200ms ease-out;
+  transition: border-color var(--motion-duration-micro) var(--motion-ease-standard), transform var(--motion-duration-micro) var(--motion-ease-standard);
 }
 
 .blog-card:hover {
@@ -602,7 +653,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 200ms ease-out;
+  transition: transform var(--motion-duration-micro) var(--motion-ease-standard);
 }
 
 .blog-card__image-overlay { background: rgba(0, 0, 0, 0.1); }

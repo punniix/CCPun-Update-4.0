@@ -10,6 +10,7 @@ import {
 } from '@/features/ci-planning/calculator/constants';
 import type { CIEstimationMethod, CIResult as CIResultType } from '@/features/ci-planning/calculator/types';
 import ResultImageDownloadButton from '@/features/ci-planning/components/ResultImageDownloadButton';
+import MoneyComparison from '@/components/ui/MoneyComparison';
 
 interface CIResultProps {
   result: CIResultType;
@@ -25,82 +26,6 @@ function getDefaultEstimationMethod(result: CIResultType): CIEstimationMethod {
   if (result.calculatedNeed > 0) return 'expense';
   if (result.incomeBasedNeed > 0) return 'income';
   return 'expense';
-}
-
-function NeedBars({
-  need,
-  existingCoverage,
-  liquidAssets,
-  availableResources,
-  methodLabel,
-}: {
-  need: number;
-  existingCoverage: number;
-  liquidAssets: number;
-  availableResources: number;
-  methodLabel: string;
-}) {
-  const scaleMax = Math.max(need, availableResources, 1);
-  const width = (value: number) => `${Math.min((value / scaleMax) * 100, 100)}%`;
-
-  return (
-    <figure className="space-y-4">
-      <figcaption className="text-sm font-semibold text-foreground">
-        เปรียบเทียบ{methodLabel}กับทรัพยากรที่พร้อมใช้
-      </figcaption>
-
-      <div aria-hidden="true" className="space-y-5">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted-foreground">{methodLabel}</span>
-            <span className="font-semibold tabular-nums text-foreground">{baht(need)}</span>
-          </div>
-          <div className="h-4 overflow-hidden rounded-full bg-muted/50">
-            <div className="h-full rounded-full bg-primary" style={{ width: width(need) }} />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted-foreground">เงินก้อนจากประกันโรคร้ายแรง</span>
-            <span className="font-semibold tabular-nums text-foreground">{baht(existingCoverage)}</span>
-          </div>
-          <div className="h-4 overflow-hidden rounded-full bg-muted/50">
-            <div className="h-full rounded-full bg-foreground/70" style={{ width: width(existingCoverage) }} />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted-foreground">สินทรัพย์สภาพคล่อง</span>
-            <span className="font-semibold tabular-nums text-foreground">{baht(liquidAssets)}</span>
-          </div>
-          <div className="h-4 overflow-hidden rounded-full bg-muted/50">
-            <div className="h-full rounded-full bg-primary/55" style={{ width: width(liquidAssets) }} />
-          </div>
-        </div>
-      </div>
-
-      <dl className="grid gap-3 rounded-xl border border-border/30 bg-background/25 p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <dt className="text-sm text-muted-foreground">{methodLabel}</dt>
-          <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(need)}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">เงินก้อนจากประกันโรคร้ายแรง</dt>
-          <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(existingCoverage)}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">สินทรัพย์สภาพคล่อง</dt>
-          <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(liquidAssets)}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">เงินและสินทรัพย์ที่พร้อมใช้รวม</dt>
-          <dd className="mt-1 font-semibold tabular-nums text-primary">{baht(availableResources)}</dd>
-        </div>
-      </dl>
-    </figure>
-  );
 }
 
 export default function CIResult({ result, onEditData, onReset }: CIResultProps) {
@@ -146,7 +71,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
                     <label
                       key={method}
                       htmlFor={inputId}
-                      className={`flex min-h-14 cursor-pointer items-center justify-between gap-3 border-l-2 px-4 py-3 focus-within:ring-2 focus-within:ring-ring ${activeMethod === method ? 'border-primary bg-primary/5' : 'border-border/50 bg-background/20'}`}
+                      className={`flex min-h-14 cursor-pointer flex-wrap items-center justify-between gap-3 border-l-2 px-4 py-3 focus-within:ring-2 focus-within:ring-ring ${activeMethod === method ? 'border-primary bg-primary/5' : 'border-border/50 bg-background/20'}`}
                     >
                       <span className="flex items-center gap-3">
                         <input
@@ -170,7 +95,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
               </p>
             </fieldset>
           )}
-          <output className="block text-4xl font-bold tabular-nums text-primary" aria-live="polite" aria-atomic="true">
+          <output className="block break-words text-[clamp(1.5rem,5vw,2.25rem)] font-bold tabular-nums text-primary" aria-live="polite" aria-atomic="true">
             {baht(selectedNeed)}
           </output>
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -180,13 +105,15 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           </p>
         </div>
 
-        <NeedBars
+        <MoneyComparison
           need={selectedNeed}
-          existingCoverage={result.existingCoverage}
-          liquidAssets={result.liquidAssets}
-          availableResources={result.availableResources}
-          methodLabel={methodLabel}
+          resources={result.availableResources}
+          title={`เปรียบเทียบ${methodLabel}กับทรัพยากรที่พร้อมใช้`}
+          needLabel={methodLabel}
         />
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          ทรัพยากรรวมประกอบด้วยเงินก้อนจากประกันโรคร้ายแรง {baht(result.existingCoverage)} และสินทรัพย์สภาพคล่อง {baht(result.liquidAssets)}
+        </p>
 
         <div className="rounded-xl border border-primary/25 bg-primary/5 p-4">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -301,11 +228,11 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <button type="button" onClick={onEditData} className="glass-button flex flex-1 items-center justify-center gap-2">
+        <button type="button" onClick={onEditData} className="glass-button flex min-h-12 flex-1 items-center justify-center gap-2">
           <Edit3 className="h-4 w-4" />
           <span>แก้ไขข้อมูล</span>
         </button>
-        <button type="button" onClick={onReset} className="glass-button flex flex-1 items-center justify-center gap-2">
+        <button type="button" onClick={onReset} className="glass-button flex min-h-12 flex-1 items-center justify-center gap-2">
           <RefreshCw className="h-4 w-4" />
           <span>เริ่มใหม่</span>
         </button>
