@@ -81,7 +81,7 @@ test('CI errors, dependent field limits, preserved inputs, zero coverage, method
     assert.match(document.activeElement.textContent, /30/);
     await fill('ci-education-0-years', 3);
     await click('ถัดไป');
-    assert.equal(document.activeElement.tagName, 'H2');
+    assert.equal(document.activeElement.tagName, 'H3');
     assert.match(document.activeElement.textContent, /เงินก้อน/);
     await click('ย้อนกลับ');
     assert.equal(document.getElementById('ci-household').value, '30,000');
@@ -93,7 +93,7 @@ test('CI errors, dependent field limits, preserved inputs, zero coverage, method
     assert.equal(document.querySelector('output').textContent.trim(), '3,000,000 บาท');
     await click('แก้ไขข้อมูล');
     assert.equal(document.getElementById('ci-household').value, '30,000');
-    assert.equal(document.activeElement.tagName, 'H2');
+    assert.equal(document.activeElement.tagName, 'H3');
     await click('ถัดไป');
     await click('ดูผลคำนวณ');
     await click('เริ่มใหม่');

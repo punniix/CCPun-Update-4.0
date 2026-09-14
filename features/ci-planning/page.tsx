@@ -113,15 +113,18 @@ export default function CiPlanningPage() {
         <section
           id="ci-calculator"
           aria-labelledby="ci-calculator-title"
-          className="mx-auto max-w-3xl scroll-mt-28 px-4 pt-6"
+          className="mt-12 scroll-mt-28 border-y border-white/5 bg-[hsl(0_15%_16%_/_0.72)] px-4 py-12 sm:py-14 md:mt-16 md:py-16"
         >
-          <div className="mb-6 text-center">
-            <p className="text-sm font-semibold text-primary">เครื่องคำนวณทุนโรคร้ายแรง</p>
-            <h2 id="ci-calculator-title" className="mt-2 text-2xl font-bold text-foreground">
-              เริ่มจากรายได้และภาระที่ยังต้องดูแล
-            </h2>
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-7 max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">เครื่องคำนวณทุนโรคร้ายแรง</p>
+              <h2 id="ci-calculator-title" className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">
+                2 ขั้นตอน เพื่อเห็นส่วนต่างที่ต้องเตรียม
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-white/55 sm:text-base">เริ่มจากรายได้และภาระที่ยังต้องดูแล แล้วค่อยเทียบกับเงินก้อนและสินทรัพย์ที่พร้อมใช้</p>
+            </div>
+            <CIWizard />
           </div>
-          <CIWizard />
         </section>
 
         <section aria-label="ข้อมูลประกอบการอ่านผลการวางแผนทุนโรคร้ายแรง" className="px-4 pt-14 md:pt-20">
