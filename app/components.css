@@ -360,7 +360,11 @@
     transition-delay: 0ms !important;
   }
 
-  .money-comparison__marker { opacity: 1; transform: translate(-1px, -50%); }
+  .money-comparison__marker {
+    opacity: 1 !important;
+    transform: translate(-1px, -50%) !important;
+    animation: none !important;
+  }
 }
 
 /* ── 7. Scrollbar ── */

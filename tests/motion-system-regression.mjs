@@ -15,6 +15,7 @@ test('shared motion envelope and reduced-motion guard remain explicit', () => {
   }
   assert.ok(website43.includes('var(--motion-duration-micro)'));
   assert.match(css, /animation-delay: 0ms !important/);
+  assert.match(css, /\.money-comparison__marker \{[\s\S]*opacity: 1 !important;[\s\S]*animation: none !important;/);
 });
 
 test('critical content is not hidden behind hero entrance motion', () => {
