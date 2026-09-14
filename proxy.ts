@@ -34,8 +34,11 @@ export default auth((request) => {
   const environment = getAdminEnvironment();
   const adminSurfaceAllowed = isAdminSurfaceAllowed(environment);
   const isProductionAdmin = environment === "production-admin";
+  const isAdminUat = environment === "admin-uat";
+  const isDeployedAdmin = isProductionAdmin || isAdminUat;
   const isLocalUat = environment === "local-uat";
   const isLocalProduction = environment === "local-production";
+  const isDedicatedAdmin = isDeployedAdmin || isLocalUat || isLocalProduction;
   const isAdminPage = isAdminPagePath(pathname);
   const isAdminApi = isAdminApiPath(pathname);
   const legacyPageDestination = legacyAdminPageDestination(pathname);
@@ -48,13 +51,15 @@ export default auth((request) => {
     pathname.startsWith("/favicon.") ||
     pathname === "/robots.txt";
   const isLoginPage = pathname === "/login" || pathname === "/login/";
+  const isAdminNotFoundPage =
+    pathname === ADMIN_NOT_FOUND_PATH || pathname === `${ADMIN_NOT_FOUND_PATH}/`;
   const role = request.auth?.user?.role ?? null;
   const isInvalidAdminMutation =
     (isAdminApi || isPreviewApi) &&
     !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
     !isSameOriginAdminMutation(request.url, request.headers.get("origin"));
 
-  if (isProductionAdmin || isLocalUat || isLocalProduction) {
+  if (isDedicatedAdmin) {
     if (!adminSurfaceAllowed) {
       return new NextResponse("Not Found", { status: 404 });
     }
@@ -66,7 +71,11 @@ export default auth((request) => {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    if (isProductionAdmin) {
+    if (isAdminNotFoundPage) {
+      return NextResponse.next({ status: 404 });
+    }
+
+    if (isDedicatedAdmin) {
       const disposition = classifyProductionAdminPath(pathname);
       if (disposition === "entry") {
         return NextResponse.redirect(
@@ -139,6 +148,9 @@ export default auth((request) => {
 
 export const config = {
   matcher: [
+    // Root must always reach the environment/project boundary so a dedicated
+    // Admin application can never fall through to the public homepage.
+    "/",
     "/login/:path*",
     "/dashboard/:path*",
     "/content/:path*",
@@ -159,6 +171,10 @@ export const config = {
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "admin.ccpun.com" }] },
+    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "localhost" }] },
+    // Generated Vercel aliases must enter the environment/project boundary too.
+    // Only the immutable Admin project may resolve Preview to the Admin UAT lane.
+    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin(?:-.+)?\\.vercel\\.app" }] },
     {
       source: "/((?!\\.well-known/workflow/).*)",
       has: [

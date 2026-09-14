@@ -71,6 +71,17 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
   assert.equal(safeAdminReturnPath("/api/admin/session/"), null);
 
   const proxy = read("proxy.ts");
+  const environment = read("lib/admin/environment.ts");
+  assert.match(environment, /resolveAdminEnvironment\([\s\S]*process\.env\.VERCEL_ENV,[\s\S]*process\.env\.VERCEL_PROJECT_ID/);
+  assert.doesNotMatch(environment, /resolveAdminEnvironment\([\s\S]{0,160}NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID/);
+  assert.match(proxy, /const isAdminUat = environment === "admin-uat"/);
+  assert.match(proxy, /const isDeployedAdmin = isProductionAdmin \|\| isAdminUat/);
+  assert.match(proxy, /const isDedicatedAdmin = isDeployedAdmin \|\| isLocalUat \|\| isLocalProduction/);
+  assert.match(proxy, /if \(isDedicatedAdmin\)/);
+  assert.match(proxy, /matcher:\s*\[\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*"\/",/);
+  assert.match(proxy, /type: "host", value: "localhost"/);
+  assert.match(proxy, /type: "host", value: "ccpun-admin\(\?:-\.\+\)\?\\\\\.vercel\\\\\.app"/);
+  assert.match(proxy, /if \(isAdminNotFoundPage\) \{\s*return NextResponse\.next\(\{ status: 404 \}\)/);
   assert.match(proxy, /disposition === "entry"[\s\S]*role \? "\/dashboard\/" : "\/login\/"/);
   assert.match(proxy, /if \(pathname\.startsWith\("\/api\/"\)\) \{\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401 \}\)/);
   assert.match(proxy, /if \(isAdminApi \|\| isPreviewApi\) \{\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401 \}\)/);

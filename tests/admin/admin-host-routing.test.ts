@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import {
+  CCPUN_VERCEL_PROJECT_IDS,
+  isAdminSurfaceAllowed,
+  resolveAdminEnvironment,
+} from "../../lib/admin/environment";
 import { classifyProductionAdminPath } from "../../lib/admin/host-routing";
 
 test("Production Admin root is an explicit Control Plane entry route", () => {
@@ -39,6 +44,33 @@ test("Production Admin rejects public CCPun website routes even for authenticate
     "/api/public-example",
   ]) {
     assert.equal(classifyProductionAdminPath(path), "reject", path);
+  }
+});
+
+test("Admin Preview uses the deployed Admin route policy while Web Preview cannot mount Admin", () => {
+  const adminPreview = resolveAdminEnvironment(
+    undefined,
+    "preview",
+    CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+  );
+  assert.equal(adminPreview, "admin-uat");
+  assert.equal(isAdminSurfaceAllowed(adminPreview, CCPUN_VERCEL_PROJECT_IDS.adminProduction), true);
+  assert.equal(classifyProductionAdminPath("/"), "entry");
+  assert.equal(classifyProductionAdminPath("/dashboard/"), "allow");
+  assert.equal(classifyProductionAdminPath("/api/admin/session/"), "allow");
+  assert.equal(classifyProductionAdminPath("/blog/"), "reject");
+
+  const webPreview = resolveAdminEnvironment(undefined, "preview", CCPUN_VERCEL_PROJECT_IDS.web);
+  assert.equal(webPreview, "unknown");
+  assert.equal(isAdminSurfaceAllowed(webPreview, CCPUN_VERCEL_PROJECT_IDS.web), false);
+});
+
+test("dedicated local Admin hosts share root entry and unknown-route rejection", () => {
+  for (const environment of ["local-uat", "local-production"] as const) {
+    assert.equal(isAdminSurfaceAllowed(environment), true, environment);
+    assert.equal(classifyProductionAdminPath("/"), "entry", environment);
+    assert.equal(classifyProductionAdminPath("/dashboard/"), "allow", environment);
+    assert.equal(classifyProductionAdminPath("/definitely-missing-admin-route/"), "reject", environment);
   }
 });
 
