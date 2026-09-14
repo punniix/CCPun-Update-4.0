@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Edit3, MessageCircle, RefreshCw, Shield, Wallet } from 'lucide-react';
 import FHCLifeResultImageDownloadButton from '@/features/financial-health-check/components/FHCLifeResultImageDownloadButton';
 import CurrencyInput from '@/components/ui/CurrencyInput';
+import MoneyComparison from '@/components/ui/MoneyComparison';
 import { trackEvent } from '@/lib/analytics';
 import { getConsentData } from '@/lib/cookie-consent';
 
@@ -43,6 +44,16 @@ export default function LifeCoverageWizard() {
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<keyof Values | ''>('');
   const [showResult, setShowResult] = useState(false);
+  const viewRef = useRef<HTMLElement>(null);
+  const previousViewRef = useRef('1:form');
+  useEffect(() => {
+    const view = `${step}:${showResult ? 'result' : 'form'}`;
+    if (previousViewRef.current === view) return;
+    previousViewRef.current = view;
+    const heading = viewRef.current?.querySelector<HTMLElement>(showResult ? 'h2' : 'h3');
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }, [step, showResult]);
   const landingTrackedRef = useRef(false);
   const startedRef = useRef(false);
   const completedRef = useRef(false);
@@ -106,10 +117,11 @@ export default function LifeCoverageWizard() {
     setStep(2);
     trackStep(2);
   };
-  if (showResult) return <section aria-labelledby="life-result-title" className="space-y-6">
+  if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" className="space-y-6">
     <p className="text-sm font-semibold text-primary">ผลการประเมินโมดูลความคุ้มครองชีวิต</p>
-    <h2 id="life-result-title" className="text-3xl font-bold text-foreground">ช่องว่างความคุ้มครองเบื้องต้น<br /><span className="text-primary">{money(result.gap)} บาท</span></h2>
+    <h2 id="life-result-title" tabIndex={-1} className="scroll-mt-28 break-words rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-3xl font-bold text-foreground">ช่องว่างความคุ้มครอง<span className="whitespace-nowrap">เบื้องต้น</span><br /><span className="text-primary">{money(result.gap)} บาท</span></h2>
     <p className="leading-relaxed text-muted-foreground">ตัวเลขนี้คือส่วนต่างระหว่างภาระที่คุณกรอกกับทุนประกันชีวิตและสินทรัพย์ที่ระบุ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ และยังไม่ใช่ผลประเมินสุขภาพการเงินทั้งแผน</p>
+    <MoneyComparison need={result.need} resources={result.resources} title="ภาระที่ต้องดูแลเทียบกับทรัพยากรที่พร้อมใช้" needLabel="ภาระตามข้อมูลที่กรอก" />
     <dl className="divide-y divide-border/30 rounded-xl border border-border/40 bg-card/40 px-4">
       <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <dt className="leading-relaxed">ค่าใช้จ่ายในครอบครัวตามจำนวนปีที่ต้องการให้เงินก้อนรองรับ</dt>
@@ -137,18 +149,19 @@ export default function LifeCoverageWizard() {
         คุยกับ CCPun ทาง LINE OA
       </a>
     </div>
-    <div className="flex flex-col gap-3 sm:flex-row"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button flex flex-1 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" /><span>แก้ไขข้อมูล</span></button><button type="button" onClick={() => { setValues(initialValues); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button flex flex-1 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" /><span>เริ่มใหม่</span></button></div>
+    <div className="flex flex-col gap-3 sm:flex-row"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button flex min-h-12 flex-1 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" /><span>แก้ไขข้อมูล</span></button><button type="button" onClick={() => { setValues(initialValues); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button flex min-h-12 flex-1 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" /><span>เริ่มใหม่</span></button></div>
   </section>;
 
-  return <section aria-labelledby="life-calculator-title">
-    <div className="mb-8 text-center"><p className="text-sm font-semibold text-primary">เครื่องคำนวณทุนประกันชีวิต</p><h2 id="life-calculator-title" className="mt-2 text-2xl font-bold text-foreground">เริ่มจากภาระที่คนข้างหลังต้องดูแล</h2><p className="mt-2 text-sm text-muted-foreground">2 ขั้นตอน · กรอกเท่าที่ทราบ ช่องที่ไม่มีก็เว้นได้</p><div role="progressbar" aria-label={`ขั้นตอนที่ ${step} จาก 2`} aria-valuemin={1} aria-valuemax={2} aria-valuenow={step} className="mt-5 h-1 rounded bg-border/40"><div className="h-full rounded bg-primary transition-all" style={{ width: `${step * 50}%` }} /></div></div>
+  return <section ref={viewRef} aria-labelledby="life-calculator-title">
+    <form noValidate onSubmit={(event) => { event.preventDefault(); next(); }}>
+    <div className="mb-8 text-center"><p className="text-sm font-semibold text-primary">เครื่องคำนวณทุนประกันชีวิต</p><h2 id="life-calculator-title" className="mt-2 text-2xl font-bold text-foreground">เริ่มจากภาระที่คนข้างหลังต้องดูแล</h2><p className="mt-2 text-sm text-muted-foreground">2 ขั้นตอน · ต้องกรอกค่าใช้จ่ายครัวเรือน ช่องอื่นที่ไม่มีเว้นได้</p><p className="mt-4 text-sm font-semibold text-primary" aria-live="polite" aria-atomic="true">ขั้นตอนที่ {step} จาก 2 · {step === 1 ? 'ภาระที่ต้องดูแล' : 'ทรัพยากรที่พร้อมใช้'}</p><div role="progressbar" aria-label={`ขั้นตอนที่ ${step} จาก 2`} aria-valuemin={1} aria-valuemax={2} aria-valuenow={step} className="mt-3 h-1 rounded bg-border/40"><div className="h-full rounded bg-primary" style={{ width: `${step * 50}%` }} /></div></div>
     {error && <p id="life-calculator-error" role="alert" className="mt-5 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
     <div className="form-glass mt-7 space-y-8 p-5 md:p-8 lg:p-10">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
           {step === 1 ? <Wallet className="h-5 w-5 text-primary" aria-hidden="true" /> : <Shield className="h-5 w-5 text-primary" aria-hidden="true" />}
         </div>
-        <div><h3 className="text-xl font-bold text-foreground">{step === 1 ? 'ภาระที่คนข้างหลังต้องดูแล' : 'ทรัพยากรที่ตั้งใจใช้ในแผนนี้'}</h3><p className="text-sm text-muted-foreground">{step === 1 ? 'เริ่มจากข้อมูลที่แน่ใจก่อน ช่องที่ไม่มีก็เว้นได้' : 'กรอกเท่าที่ทราบ หรือเว้นไว้ได้หากยังไม่มี'}</p></div>
+        <div><h3 tabIndex={-1} className="scroll-mt-28 rounded-sm text-xl font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{step === 1 ? 'ภาระที่คนข้างหลังต้องดูแล' : 'ทรัพยากรที่ตั้งใจใช้ในแผนนี้'}</h3><p className="text-sm text-muted-foreground">{step === 1 ? 'กรอกค่าใช้จ่ายครัวเรือนก่อน แล้วเติมภาระอื่นที่มี' : 'กรอกเท่าที่ทราบ หรือเว้นไว้ได้หากยังไม่มี'}</p></div>
       </div>
       <div className="space-y-6">
         {step === 1 ? <>
@@ -159,6 +172,7 @@ export default function LifeCoverageWizard() {
         </> : <><MoneyField id="existingLifeCoverage" label="ทุนประกันชีวิตที่มีอยู่" help="กรอกเฉพาะทุนที่ตั้งใจให้ครอบครัวใช้ตามแผนนี้" value={values.existingLifeCoverage} onChange={(value) => updateValue('existingLifeCoverage', value)} error={errorField === 'existingLifeCoverage'} /><MoneyField id="liquidAssets" label="สินทรัพย์สภาพคล่องที่ตั้งใจใช้" help="ไม่หักเงินสำรองฉุกเฉินโดยอัตโนมัติ เพื่อไม่ให้นับเงินก้อนเดียวซ้ำ" value={values.liquidAssets} onChange={(value) => updateValue('liquidAssets', value)} error={errorField === 'liquidAssets'} /></>}
       </div>
     </div>
-    <div className="mt-8 flex items-center justify-between border-t border-border/30 pt-6">{step === 1 ? <span /> : <button type="button" onClick={() => { setStep(1); setError(''); setErrorField(''); }} className="glass-button inline-flex min-h-11 items-center gap-2"><ChevronLeft className="h-4 w-4" aria-hidden="true" />ย้อนกลับ</button>}<button type="button" onClick={next} className="gold-button inline-flex min-h-11 items-center gap-2">{step === 1 ? 'ถัดไป' : 'ดูผลการคำนวณ'}<ChevronRight className="h-4 w-4" aria-hidden="true" /></button></div>
+    <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border/30 pt-6">{step === 1 ? <span /> : <button type="button" onClick={() => { setStep(1); setError(''); setErrorField(''); }} className="glass-button inline-flex min-h-12 items-center gap-2"><ChevronLeft className="h-4 w-4" aria-hidden="true" />ย้อนกลับ</button>}<button type="submit" className="gold-button inline-flex min-h-12 items-center gap-2">{step === 1 ? 'ถัดไป' : 'ดูผลการคำนวณ'}<ChevronRight className="h-4 w-4" aria-hidden="true" /></button></div>
+    </form>
   </section>;
 }

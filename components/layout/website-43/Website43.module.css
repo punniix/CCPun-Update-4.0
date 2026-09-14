@@ -89,7 +89,7 @@
   min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0;
   background: transparent; color: var(--w43-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
 }
-.navChevron { display: inline-block; font-size: 15px; line-height: 1; transform: translateY(-1px); transition: transform .18s ease; }
+.navChevron { display: inline-block; font-size: 15px; line-height: 1; transform: translateY(-1px); transition: transform var(--motion-duration-micro) var(--motion-ease-standard); }
 .navChevronOpen { transform: translateY(1px) rotate(180deg); }
 .navDropdown {
   position: absolute; z-index: 80; top: calc(100% + 8px); left: 50%; width: 288px; padding: 8px;
@@ -104,7 +104,7 @@
 }
 .navDropdown a {
   position: relative; z-index: 1; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 12px;
-  border-radius: 11px; color: var(--w43-muted); font-size: 14px; font-weight: 500; transition: background .15s ease, color .15s ease;
+  border-radius: 11px; color: var(--w43-muted); font-size: 14px; font-weight: 500; transition: background var(--motion-duration-micro) var(--motion-ease-standard), color var(--motion-duration-micro) var(--motion-ease-standard);
 }
 @media (hover: hover) and (pointer: fine) {
   .navDropdown a:hover { background: rgba(255,255,255,.06); color: var(--w43-gold-bright); outline: none; }
@@ -283,7 +283,7 @@
 .faqSummary { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; cursor: pointer; list-style: none; font-size: 16px; font-weight: 600; }
 .faqSummary::-webkit-details-marker { display: none; }
 .faqSummary:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: -3px; border-radius: 14px; }
-.faqIcon { flex: 0 0 auto; color: var(--w43-ink); font-size: 22px; font-weight: 600; line-height: 1; transition: transform .18s ease; }
+.faqIcon { flex: 0 0 auto; color: var(--w43-ink); font-size: 22px; font-weight: 600; line-height: 1; transition: transform var(--motion-duration-micro) var(--motion-ease-standard); }
 .faqItem[open] .faqIcon { transform: rotate(45deg); }
 .faqAnswer { margin: 0; padding: 0 20px 20px; color: var(--w43-muted); font-size: 15px; font-weight: 400; line-height: 1.65; }
 .faqCta { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; margin-top: 20px; padding: 0 20px; border-radius: 12px; background: var(--w43-gold); color: var(--w43-deep) !important; font-weight: 600; }
@@ -307,13 +307,14 @@
 .featuredRail { display: flex; gap: 16px; width: max-content; }
 .featuredCard { width: 480px; flex: 0 0 480px; aspect-ratio: 1200/630; overflow: hidden; border: 1px solid var(--w43-border); border-radius: 16px; scroll-snap-align: center; scroll-snap-stop: always; }
 .featuredCard img { width: 100%; height: 100%; object-fit: cover; }
-.carouselControls { display: flex; justify-content: center; align-items: center; gap: 7px; margin-top: 14px; }
-.carouselDotButton { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 999px; background: var(--w43-border); cursor: pointer; transition: width .18s ease, background .18s ease; }
+.carouselControls { display: flex; justify-content: center; align-items: center; gap: 0; margin-top: 2px; }
+.carouselDotButton { position: relative; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; cursor: pointer; }
+.carouselDotButton::before { content: ''; position: absolute; top: 50%; left: 50%; width: 9px; height: 9px; border-radius: 999px; background: var(--w43-border); transform: translate(-50%, -50%); transition: width var(--motion-duration-micro) var(--motion-ease-standard), background var(--motion-duration-micro) var(--motion-ease-standard); }
 @media (hover: hover) and (pointer: fine) {
-  .carouselDotButton:hover { background: var(--w43-gold-bright); outline: none; }
+  .carouselDotButton:hover::before { background: var(--w43-gold-bright); }
 }
-.carouselDotButton:focus-visible { background: var(--w43-gold-bright); outline: none; }
-.carouselDotButtonActive { width: 30px; background: var(--w43-gold); }
+.carouselDotButton:focus-visible::before { background: var(--w43-gold-bright); }
+.carouselDotButtonActive::before { width: 30px; background: var(--w43-gold); }
 .searchFilters { display: flex; gap: 16px; align-items: center; margin-top: 32px; }
 .searchField { width: 360px; height: 52px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--w43-surface); color: var(--w43-ink); padding: 0 16px; outline: none; }
 .searchField::placeholder { color: var(--w43-muted); }
@@ -770,7 +771,7 @@
   font-size: 13px !important;
   font-weight: 600;
   line-height: 1.45 !important;
-  transition: background .16s ease, color .16s ease;
+  transition: background var(--motion-duration-micro) var(--motion-ease-standard), color var(--motion-duration-micro) var(--motion-ease-standard);
 }
 .tocPrimary > span {
   width: 5px;
@@ -809,7 +810,7 @@
   font-size: 12px !important;
   font-weight: 400;
   line-height: 1.45 !important;
-  transition: background .16s ease, color .16s ease;
+  transition: background var(--motion-duration-micro) var(--motion-ease-standard), color var(--motion-duration-micro) var(--motion-ease-standard);
 }
 @media (hover: hover) and (pointer: fine) {
   .tocSecondary:hover {
@@ -942,7 +943,7 @@
   flex: 0 0 auto;
   font-size: 18px;
   line-height: 1;
-  transition: transform .18s ease;
+  transition: transform var(--motion-duration-micro) var(--motion-ease-standard);
 }
 .categoryMenuChevronOpen { transform: rotate(180deg); }
 .categoryMenuPanel {
@@ -1032,7 +1033,7 @@
   background: transparent;
   color: rgba(250,249,249,.78);
   box-shadow: none;
-  transition: background .16s ease, color .16s ease;
+  transition: background var(--motion-duration-micro) var(--motion-ease-standard), color var(--motion-duration-micro) var(--motion-ease-standard);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1179,9 +1180,9 @@
 
 /* Website 4.3 interaction feedback: stable geometry, no entrance animation. */
 .primaryButton, .outlineButton, .navCta, .hamburger {
-  transition: background-color .14s ease, border-color .14s ease, transform .12s ease;
+  transition: background-color var(--motion-duration-micro) var(--motion-ease-standard), border-color var(--motion-duration-micro) var(--motion-ease-standard), transform var(--motion-duration-instant) var(--motion-ease-standard);
 }
-.navLinks > a, .navToolsButton { border-radius: 6px; transition: background-color .12s ease, color .12s ease; }
+.navLinks > a, .navToolsButton { border-radius: 6px; transition: background-color var(--motion-duration-instant) var(--motion-ease-standard), color var(--motion-duration-instant) var(--motion-ease-standard); }
 .navLinks [aria-current], .mobileMenu [aria-current],
 .navToolsButton[data-active="true"], .mobileTools > button[data-active="true"] {
   color: var(--w43-gold-bright);
@@ -1189,16 +1190,17 @@
   text-decoration-thickness: 2px;
   text-underline-offset: 6px;
 }
-.articleCard, .featuredCard { transition: border-color .15s ease; }
-.articleTitle { text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .2em; transition: text-decoration-color .15s ease; }
-.faqSummary { transition: background-color .14s ease; }
-.faqIcon, .navChevron, .categoryMenuChevron { transition: transform .2s ease; }
+.articleCard, .featuredCard { transition: border-color var(--motion-duration-micro) var(--motion-ease-standard), transform var(--motion-duration-micro) var(--motion-ease-standard); }
+.articleTitle { text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .2em; transition: text-decoration-color var(--motion-duration-micro) var(--motion-ease-standard); }
+.faqSummary { transition: background-color var(--motion-duration-instant) var(--motion-ease-standard); }
+.faqIcon, .navChevron, .categoryMenuChevron { transition: transform var(--motion-duration-micro) var(--motion-ease-standard); }
 
 @media (hover: hover) and (pointer: fine) {
   .primaryButton:not(:disabled):hover, .navCta:hover { background-color: var(--w43-gold-bright); border-color: var(--w43-gold-bright); }
   .outlineButton:not(:disabled):hover { background-color: rgba(224,201,133,.10); }
   .navLinks > a:hover, .navToolsButton:hover, .hamburger:hover, .faqSummary:hover { background-color: rgba(224,201,133,.06); }
   .articleCard:hover, .featuredCard:hover { border-color: var(--w43-gold); }
+  .articleCard:hover, .featuredCard:hover { transform: translateY(calc(-1 * var(--motion-distance-micro))); }
   .articleCard:hover .articleTitle { text-decoration-color: var(--w43-gold); }
   .planLink:hover, .learnCard a:hover { text-decoration: underline; text-underline-offset: .2em; }
 }
