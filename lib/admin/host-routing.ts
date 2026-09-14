@@ -35,6 +35,20 @@ export function isAdminRequestBoundary(input: {
   return isExactAdminVercelDeployment || isKnownAdminDeploymentHost(input.host);
 }
 
+export function isExactAdminPreviewOrigin(input: {
+  environment: AdminEnvironment;
+  vercelEnvironment: string | undefined;
+  deploymentProjectId: string | undefined;
+  host: string | null;
+}): boolean {
+  return Boolean(
+    input.environment === "admin-uat" &&
+    input.vercelEnvironment?.trim().toLowerCase() === "preview" &&
+    input.deploymentProjectId?.trim() === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
+    isKnownAdminDeploymentHost(input.host),
+  );
+}
+
 function isPathOrChild(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }

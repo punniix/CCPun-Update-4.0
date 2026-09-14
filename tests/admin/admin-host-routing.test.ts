@@ -9,6 +9,7 @@ import {
 import {
   classifyProductionAdminPath,
   isAdminRequestBoundary,
+  isExactAdminPreviewOrigin,
   isKnownAdminDeploymentHost,
 } from "../../lib/admin/host-routing";
 
@@ -67,6 +68,45 @@ test("Admin Preview uses the deployed Admin route policy while Web Preview canno
   const webPreview = resolveAdminEnvironment(undefined, "preview", CCPUN_VERCEL_PROJECT_IDS.web);
   assert.equal(webPreview, "unknown");
   assert.equal(isAdminSurfaceAllowed(webPreview, CCPUN_VERCEL_PROJECT_IDS.web), false);
+});
+
+test("exact Admin Preview aliases may use their generated same-project origin without weakening Production", () => {
+  assert.equal(
+    isExactAdminPreviewOrigin({
+      environment: "admin-uat",
+      vercelEnvironment: "preview",
+      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+      host: "ccpun-admin-13wutidr7-punniixs-projects.vercel.app",
+    }),
+    true,
+  );
+  assert.equal(
+    isExactAdminPreviewOrigin({
+      environment: "production-admin",
+      vercelEnvironment: "production",
+      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+      host: "admin.ccpun.com",
+    }),
+    false,
+  );
+  assert.equal(
+    isExactAdminPreviewOrigin({
+      environment: "admin-uat",
+      vercelEnvironment: "preview",
+      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.web,
+      host: "ccpun-admin-attacker.vercel.app",
+    }),
+    false,
+  );
+  assert.equal(
+    isExactAdminPreviewOrigin({
+      environment: "admin-uat",
+      vercelEnvironment: "preview",
+      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+      host: "ccpun-web-preview-punniixs-projects.vercel.app",
+    }),
+    false,
+  );
 });
 
 test("local UAT remains a dedicated Admin boundary", () => {

@@ -13,6 +13,7 @@ import {
 import {
   classifyProductionAdminPath,
   isAdminRequestBoundary,
+  isExactAdminPreviewOrigin,
 } from "@/lib/admin/host-routing";
 import {
   isAdminApiPath,
@@ -75,7 +76,12 @@ export default auth((request) => {
 
     const originAllowed = isLocalUat || isLocalProduction
       ? isLocalAdminHost(request.headers.get("host"), environment)
-      : isConfiguredAdminOrigin(request.url, process.env.AUTH_URL);
+      : isExactAdminPreviewOrigin({
+          environment,
+          vercelEnvironment: process.env.VERCEL_ENV,
+          deploymentProjectId: process.env.VERCEL_PROJECT_ID,
+          host: request.headers.get("host"),
+        }) || isConfiguredAdminOrigin(request.url, process.env.AUTH_URL);
     if (!originAllowed) {
       return new NextResponse("Not Found", { status: 404 });
     }
