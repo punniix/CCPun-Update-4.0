@@ -109,9 +109,9 @@ export const article = defineType({
     }),
   orderings: [{ title: "แก้ไขล่าสุดก่อน", name: "updatedDesc", by: [{ field: "_updatedAt", direction: "desc" }] }],
   preview: {
-    select: { title: "title", id: "_id", publishedAt: "publishedAt", reviewStatus: "review.status", media: "featuredImage" },
-    prepare: ({ title, id, publishedAt, reviewStatus, media }) => {
-      const draft = String(id ?? "").startsWith("drafts.");
+    select: { title: "title", id: "_id", originalId: "_originalId", publishedAt: "publishedAt", reviewStatus: "review.status", media: "featuredImage" },
+    prepare: ({ title, id, originalId, publishedAt, reviewStatus, media }) => {
+      const draft = String(originalId ?? id ?? "").startsWith("drafts.");
       const publicationLabel = draft
         ? publishedAt ? "เผยแพร่แล้ว · มีฉบับร่างแก้ไข" : "ฉบับร่างใหม่"
         : publishedAt ? "เผยแพร่แล้ว · ฉบับ Live" : "ยังไม่เผยแพร่";
