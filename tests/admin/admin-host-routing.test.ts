@@ -69,13 +69,33 @@ test("Admin Preview uses the deployed Admin route policy while Web Preview canno
   assert.equal(isAdminSurfaceAllowed(webPreview, CCPUN_VERCEL_PROJECT_IDS.web), false);
 });
 
-test("dedicated local Admin hosts share root entry and unknown-route rejection", () => {
-  for (const environment of ["local-uat", "local-production"] as const) {
-    assert.equal(isAdminSurfaceAllowed(environment), true, environment);
-    assert.equal(classifyProductionAdminPath("/"), "entry", environment);
-    assert.equal(classifyProductionAdminPath("/dashboard/"), "allow", environment);
-    assert.equal(classifyProductionAdminPath("/definitely-missing-admin-route/"), "reject", environment);
-  }
+test("local UAT remains a dedicated Admin boundary", () => {
+  assert.equal(isAdminSurfaceAllowed("local-uat"), true);
+  assert.equal(
+    isAdminRequestBoundary({
+      environment: "local-uat",
+      vercelEnvironment: undefined,
+      deploymentProjectId: undefined,
+      host: "localhost:3000",
+    }),
+    true,
+  );
+  assert.equal(classifyProductionAdminPath("/"), "entry");
+  assert.equal(classifyProductionAdminPath("/dashboard/"), "allow");
+  assert.equal(classifyProductionAdminPath("/definitely-missing-admin-route/"), "reject");
+});
+
+test("local Production read lane keeps the public website root outside the dedicated Admin boundary", () => {
+  assert.equal(isAdminSurfaceAllowed("local-production"), true);
+  assert.equal(
+    isAdminRequestBoundary({
+      environment: "local-production",
+      vercelEnvironment: undefined,
+      deploymentProjectId: undefined,
+      host: "127.0.0.1:3000",
+    }),
+    false,
+  );
 });
 
 test("Admin deployment identity and known hosts enter a deny-only boundary even with the wrong lane", () => {

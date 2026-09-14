@@ -8,7 +8,6 @@ export type ProductionAdminPathDisposition = "entry" | "allow" | "reject";
 
 const DEDICATED_ADMIN_ENVIRONMENTS = new Set<AdminEnvironment>([
   "local-uat",
-  "local-production",
   "admin-uat",
   "production-admin",
 ]);
