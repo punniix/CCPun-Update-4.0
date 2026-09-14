@@ -21,6 +21,8 @@ const MOVED_ARTICLE_PATHS: Record<string, string> = {
 
 type ArticleCategoryInput = Pick<Article, "category" | "categorySlug"> & Partial<Pick<Article, "slug">>;
 
+const PREVIEW_CATEGORY_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export function getArticleCategorySlug(article: ArticleCategoryInput) {
   const protectedCategory = article.slug ? ARTICLE_CANONICAL_CATEGORY_OVERRIDES[article.slug] : undefined;
   if (protectedCategory) return protectedCategory;
@@ -33,8 +35,24 @@ export function getArticleCategorySlug(article: ArticleCategoryInput) {
   return slug;
 }
 
+export function getArticlePreviewCategorySlug(article: ArticleCategoryInput) {
+  const canonicalCategory = normalizeArticleTaxonomy({
+    categoryTitle: article.category,
+    categorySlug: article.categorySlug,
+  }).categorySlug;
+  if (canonicalCategory) return canonicalCategory;
+
+  const rawCategory = article.categorySlug?.trim().toLowerCase() ?? "";
+  if (PREVIEW_CATEGORY_SEGMENT.test(rawCategory)) return rawCategory;
+  throw new Error("Unsupported article preview category");
+}
+
 export function getArticlePath(article: Pick<Article, "slug" | "category" | "categorySlug">) {
   return `/blog/${getArticleCategorySlug(article)}/${article.slug}/`;
+}
+
+export function getArticlePreviewPath(article: Pick<Article, "slug" | "category" | "categorySlug">) {
+  return `/blog/${getArticlePreviewCategorySlug(article)}/${article.slug}/`;
 }
 
 export function getArticleCanonical(article: Pick<Article, "slug" | "category" | "categorySlug" | "canonical">) {

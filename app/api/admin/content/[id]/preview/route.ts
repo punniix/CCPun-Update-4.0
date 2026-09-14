@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
-import { getArticleCategorySlug } from "@/lib/content/url";
+import { getArticlePreviewCategorySlug } from "@/lib/content/url";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -24,6 +24,6 @@ export async function POST(_request: Request, context: RouteContext) {
   if (result.error || !article?.slug) return new NextResponse("Not Found", { status: 404 });
 
   (await draftMode()).enable();
-  const category = getArticleCategorySlug({ category: article.category ?? "", categorySlug: article.categorySlug ?? undefined });
+  const category = getArticlePreviewCategorySlug({ category: article.category ?? "", categorySlug: article.categorySlug ?? undefined });
   return NextResponse.redirect(new URL(`/blog/${category}/${article.slug}/`, _request.url), 303);
 }
