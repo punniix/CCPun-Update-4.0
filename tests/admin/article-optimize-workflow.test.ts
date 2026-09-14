@@ -84,6 +84,17 @@ test("first publish sets dates and fails when a published version appears concur
   assert.deepEqual(conflict.read().get(fresh._id), fresh);
 });
 
+test("real publication clears Draft noindex so scheduled publishes are indexable like normal articles", async () => {
+  const fresh = {
+    ...draft,
+    publishedAt: undefined,
+    seo: { noindex: true },
+  } as PublishableArticle;
+  const db = memoryClient([fresh]);
+  await publishApprovedArticle(db.client, fresh, null, now);
+  assert.equal(db.read().get("article1")?.seo?.noindex, false);
+});
+
 test("failed publication and revision conflicts leave both dates and versions untouched", async () => {
   for (const [changedDraft, changedLive, fail] of [[draft, published, true], [{ ...draft, _rev: "new" }, published, false], [draft, { ...published, _rev: "new" }, false]] as const) {
     const db = memoryClient([changedDraft, changedLive], fail);
