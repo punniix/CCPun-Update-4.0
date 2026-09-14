@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   getArticleCanonical,
   getArticlePath,
+  getArticlePreviewPath,
   getLegacyCategoryRedirectPath,
   getMovedArticleRedirectPath,
   isArticleCanonicalAligned,
@@ -67,5 +68,16 @@ test("unknown categories fail closed instead of silently becoming personal-finan
   assert.throws(
     () => getArticlePath({ slug: "example", category: "ประกันสุขภาพ", categorySlug: "personal-finance" }),
     /Unsupported article category/,
+  );
+});
+
+
+test("draft preview may use a safe non-public category segment without changing public taxonomy", () => {
+  const draftOnly = { slug: "car-insurance-types", category: "ประกันรถยนต์", categorySlug: "motor-insurance" };
+  assert.equal(getArticlePreviewPath(draftOnly), "/blog/motor-insurance/car-insurance-types/");
+  assert.throws(() => getArticlePath(draftOnly), /Unsupported article category/);
+  assert.throws(
+    () => getArticlePreviewPath({ slug: "bad", category: "Unknown", categorySlug: "../admin" }),
+    /Unsupported article preview category/,
   );
 });

@@ -3,11 +3,11 @@ import { draftMode } from "next/headers";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
 import Website43Article from "@/features/blog/website-43/Website43Article";
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
 import { getContentProvider } from "@/lib/content/provider";
 import { buildArticleSchemaGraph } from "@/lib/content/structured-data/article-schema";
-import { getArticleCanonical, getArticleCategorySlug, getArticlePath, getMovedArticleRedirectPath, isArticleCanonicalAligned } from "@/lib/content/url";
+import { getArticleCanonical, getArticleCategorySlug, getArticlePath, getArticlePreviewCategorySlug, getArticlePreviewPath, getMovedArticleRedirectPath, isArticleCanonicalAligned } from "@/lib/content/url";
 
 const DEFAULT_SOCIAL_IMAGE = "/assets/blog-hub-hero-ccpun-v1.webp";
 
@@ -28,9 +28,9 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
     };
   }
 
-  const finalCategory = getArticleCategorySlug(article);
+  const finalCategory = includeDrafts ? getArticlePreviewCategorySlug(article) : getArticleCategorySlug(article);
   if (category !== finalCategory) return { robots: { index: false, follow: true } };
-  const canonical = getArticleCanonical(article);
+  const canonical = includeDrafts ? null : getArticleCanonical(article);
   const isDraft = includeDrafts || article.status !== "published";
   const noindex = isDraft || article.noindex === true || !isArticleCanonicalAligned(article);
 
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
     openGraph: {
       type: "article",
       locale: "th_TH",
-      url: canonical,
+      ...(canonical ? { url: canonical } : {}),
       title: article.ogTitle || article.seoTitle,
       description: article.ogDescription || article.seoDescription,
       siteName: "CCPun Financial Advisor",
@@ -67,7 +67,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
   const relatedArticlesPromise = provider.listArticles({ includeDrafts: false });
   const article = await getArticleBySlugForRequest(slug, includeDrafts);
   if (!article || (!includeDrafts && article.status !== "published")) notFound();
-  if (category !== getArticleCategorySlug(article)) permanentRedirect(getArticlePath(article));
+  const routeCategory = includeDrafts ? getArticlePreviewCategorySlug(article) : getArticleCategorySlug(article);
+  if (category !== routeCategory) {
+    if (includeDrafts) redirect(getArticlePreviewPath(article));
+    permanentRedirect(getArticlePath(article));
+  }
 
   const schema = isArticleCanonicalAligned(article) ? buildArticleSchemaGraph(article) : null;
 

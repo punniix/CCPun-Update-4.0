@@ -3,6 +3,7 @@ import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
 import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
 import { resolveArticleSchedulerLane } from "@/lib/admin/operations/article-schedule-contract";
+import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
 import { getSocialFoundationRuntimeStatus } from "@/lib/admin/social/foundation";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 
@@ -47,6 +48,7 @@ export default async function AdminHealthPage() {
   const sanity = getAdminSanityStatus();
   const operations = getAdminOperationsRuntimeStatus();
   const schedulerLane = resolveArticleSchedulerLane(process.env);
+  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
 
@@ -60,7 +62,11 @@ export default async function AdminHealthPage() {
     : vercelEnvironment === "preview" ? "ok" : "warning";
   const operationsState: HealthState = operations.identityValid ? "ok" : operations.configured ? "warning" : "off";
   const sanityState: HealthState = sanity.readReady ? (sanity.writeReady ? "ok" : "warning") : "warning";
-  const schedulerState: HealthState = schedulerLane ? (process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED === "1" ? "ok" : "warning") : "off";
+  const schedulerState: HealthState = !schedulerLane
+    ? "off"
+    : scheduler.status === "ready" && scheduler.effectiveEnabled
+      ? "ok"
+      : "warning";
   const socialState: HealthState = socialOperations.enabled || socialFoundation.enabled ? "ok" : "off";
 
   return (
@@ -99,8 +105,14 @@ export default async function AdminHealthPage() {
 
         <Card title="Article Scheduler" state={schedulerState}>
           <Row label="Lane" value={schedulerLane ?? "—"} />
-          <Row label="Switch" value={process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED === "1" ? "เปิด" : "ปิด"} />
-          <p className="pt-2 text-white/50">การขึ้นว่า “พร้อม” หมายถึง runtime identity และ durable switch ตรง lane เท่านั้น ไม่ได้สั่ง Publish บทความใด ๆ</p>
+          <Row label="Mode" value={scheduler.mode ?? "—"} />
+          <Row label="Runtime switch" value={scheduler.runtimeEnabled ? "เปิด" : "ปิด"} />
+          <Row label="Durable Neon switch" value={scheduler.status === "ready" ? scheduler.durableEnabled ? "เปิด" : "ปิด" : "อ่านไม่ได้"} />
+          <Row label="Effective scheduling" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} />
+          <Row label="Schedule records" value={scheduler.status === "ready" ? scheduler.schedules.length.toLocaleString("th-TH") : "—"} />
+          <Row label="Audit records" value={scheduler.status === "ready" ? scheduler.audit.length.toLocaleString("th-TH") : "—"} />
+          {scheduler.error ? <p className="pt-2 text-amber-100/80">Read error: {scheduler.error}</p> : null}
+          <p className="pt-2 text-white/50">สถานะ “พร้อม” ต้องผ่านทั้ง runtime identity, runtime switch และ durable database switch พร้อมกัน การเปิด durable switch ต้องใช้ database-owner channel แยกจาก runtime credential</p>
         </Card>
 
         <Card title="Social / Distribution" state={socialState}>
