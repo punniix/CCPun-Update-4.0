@@ -6,6 +6,7 @@ export type PublishableArticle = SanityDocument & {
   slug?: { current?: string };
   category?: { _ref?: string };
   review?: { status?: string };
+  seo?: Record<string, unknown> & { noindex?: boolean };
 };
 
 export const reviewLabels: Record<string, string> = {
@@ -38,12 +39,32 @@ export function articlePublishBlock(draft: PublishableArticle | null, published:
   return null;
 }
 
+/**
+ * Normal owner-approved publication is always indexable.
+ * Draft/preview protection must never leak into a Live document. Any future
+ * intentional Live noindex use case must go through a separate explicit workflow.
+ */
+export function buildPublishedArticleDocument(
+  draft: PublishableArticle,
+  published: PublishableArticle | null,
+  now = new Date().toISOString(),
+): PublishableArticle {
+  const seo = draft.seo ? { ...draft.seo, noindex: false } : undefined;
+  return {
+    ...draft,
+    ...(seo ? { seo } : {}),
+    _id: draft._id.slice(7),
+    publishedAt: published?.publishedAt || draft.publishedAt || now,
+    contentUpdatedAt: now,
+  };
+}
+
 /** Atomic publication: failed/conflicting writes leave both versions and dates untouched. */
 export async function publishApprovedArticle(client: SanityClient, draft: PublishableArticle, published: PublishableArticle | null, now = new Date().toISOString()) {
   const blocked = articlePublishBlock(draft, published, Date.parse(now));
   if (blocked) throw new Error(blocked);
   const publishedId = draft._id.slice(7);
-  const document = { ...draft, _id: publishedId, publishedAt: published?.publishedAt || draft.publishedAt || now, contentUpdatedAt: now };
+  const document = buildPublishedArticleDocument(draft, published, now);
   // Sanity owns document system metadata; content and existing weak references stay intact.
   const payload: Record<string, unknown> = { ...document };
   for (const field of ["_rev", "_createdAt", "_updatedAt", "_system"]) delete payload[field];
