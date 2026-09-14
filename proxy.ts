@@ -109,6 +109,14 @@ export default auth((request) => {
     if (isInvalidAdminMutation) {
       return NextResponse.json({ error: "invalid-origin" }, { status: 403 });
     }
+    if (
+      request.method === "POST" &&
+      /^\/api\/admin\/content\/[^/]+\/preview\/$/.test(pathname)
+    ) {
+      const canonicalPreviewUrl = request.nextUrl.clone();
+      canonicalPreviewUrl.pathname = pathname.slice(0, -1);
+      return NextResponse.rewrite(canonicalPreviewUrl);
+    }
     if (isAuthApi || isPublicBootstrapPath) return NextResponse.next();
     if (legacyPageDestination) {
       const destination = new URL(legacyPageDestination, request.url);

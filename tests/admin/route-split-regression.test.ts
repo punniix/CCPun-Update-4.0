@@ -6,8 +6,10 @@ const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta
 
 test("public host cannot fall through to Admin Auth.js endpoints", () => {
   const proxy = read("proxy.ts");
+  const nextConfig = read("next.config.ts");
   assert.match(proxy, /!isAdminPage && !isAdminApi && !isStudioPage && !isPreviewApi && !isAuthApi/);
   assert.match(proxy, /if \(isProductionEnvironment\(\) \|\| !adminSurfaceAllowed\) \{\s*return new NextResponse\("Not Found", \{ status: 404 \}\)/);
+  assert.match(nextConfig, /source: "\/api\/auth\/:path\*"[\s\S]*headers: PRIVATE_ADMIN_API_HEADERS/);
 });
 
 test("Admin draft preview is authenticated, narrow and no-store", () => {
@@ -35,4 +37,12 @@ test("Admin application never renders public analytics or cookie consent widgets
 test("Admin article index normalizes draft perspective IDs", () => {
   const control = read("lib/admin/sanity-control.ts");
   assert.match(control, /isDraft: row\.isDraft \|\| row\.id\.startsWith\("drafts\."\)/);
+});
+
+test("dynamic article Preview POST survives trailingSlash normalization", () => {
+  const proxy = read("proxy.ts");
+  assert.match(proxy, /request\.method === "POST"/);
+  assert.ok(proxy.includes('/^\\/api\\/admin\\/content\\/[^/]+\\/preview\\/$/.test(pathname)'));
+  assert.match(proxy, /canonicalPreviewUrl\.pathname = pathname\.slice\(0, -1\)/);
+  assert.match(proxy, /NextResponse\.rewrite\(canonicalPreviewUrl\)/);
 });
