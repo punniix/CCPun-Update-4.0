@@ -122,7 +122,7 @@ test("Approval runtime is exact UAT, branch and runtime-role gated", () => {
 });
 
 test("Approval API is owner-only, same-origin, validated and never calls a provider", () => {
-  const route = read("app/api/snt-admin/social/publications/route.ts");
+  const route = read("app/api/admin/social/publications/route.ts");
   assert.match(route, /export async function GET/);
   assert.match(route, /listApprovedSocialVariants/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);

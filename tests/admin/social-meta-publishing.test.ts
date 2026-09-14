@@ -359,7 +359,7 @@ test("Meta publishing requires attested scopes and logs only safe provider diagn
 });
 
 test("Instagram audio route is human-only, same-origin and gated to the exact UAT provider lane", () => {
-  const route = read("app/api/snt-admin/social/providers/meta/audio/route.ts");
+  const route = read("app/api/admin/social/providers/meta/audio/route.ts");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
   assert.match(route, /isSameOriginAdminMutation\(request\.url, request\.headers\.get\("origin"\)\)/);

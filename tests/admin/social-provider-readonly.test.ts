@@ -195,7 +195,7 @@ test("TikTok read rejects timestamps that cannot become valid dates", async () =
 
 test("Manual social routes and pages remain human-only, same-origin and provider-write free", () => {
   for (const provider of ["meta", "youtube", "tiktok"] as const) {
-    const route = read(`app/api/snt-admin/social/providers/${provider}/discovery/route.ts`);
+    const route = read(`app/api/admin/social/providers/${provider}/discovery/route.ts`);
     assert.match(route, /identity\.actorType !== "human"/);
     assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
     assert.match(route, /isSameOriginAdminMutation\(request\.url, request\.headers\.get\("origin"\)\)/);

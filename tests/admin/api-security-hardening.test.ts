@@ -33,8 +33,8 @@ test("audit before/after keeps only approved fields and drops credential-shaped 
 
 test("approve and apply validate bounded Sanity document IDs before data access", () => {
   const source = read("lib/admin/sanity-control.ts");
-  const approveRoute = read("app/api/snt-admin/reviews/[id]/approve/route.ts");
-  const applyRoute = read("app/api/snt-admin/reviews/[id]/apply/route.ts");
+  const approveRoute = read("app/api/admin/reviews/[id]/approve/route.ts");
+  const applyRoute = read("app/api/admin/reviews/[id]/apply/route.ts");
   assert.match(source, /const documentIdSchema = z\.string\(\)\.min\(1\)\.max\(200\)\.regex\(\/\^\[A-Za-z0-9_\.\-\]\+\$\/\)/);
   assert.match(source, /suggestionDocumentIdSchema = documentIdSchema\.regex\([\s\S]*?seoSuggestion/);
   assert.match(source, /approveSeoSuggestion[\s\S]*?const parsedId = parseSuggestionDocumentId\(input\.id\);[\s\S]*?requireWriteClient\(\)/);
@@ -46,8 +46,8 @@ test("approve and apply validate bounded Sanity document IDs before data access"
 
 test("SEO audit and proposal routes validate bounded article IDs before data access", () => {
   const source = read("lib/admin/seo-audit.ts");
-  const auditRoute = read("app/api/snt-admin/seo/audit/[id]/route.ts");
-  const proposalRoute = read("app/api/snt-admin/seo/audit/[id]/proposals/route.ts");
+  const auditRoute = read("app/api/admin/seo/audit/[id]/route.ts");
+  const proposalRoute = read("app/api/admin/seo/audit/[id]/proposals/route.ts");
 
   assert.match(source, /const articleDocumentIdSchema = z\.string\(\)\.min\(1\)\.max\(200\)\.regex\(\/\^\[A-Za-z0-9_\.\-\]\+\$\/\)/);
   assert.match(source, /runSeoAudit[\s\S]*?const cleanId = parseArticleDocumentId\(articleId\);[\s\S]*?readClient\.fetch/);
@@ -96,9 +96,9 @@ test("Article writes stay in Sanity while operational records use the private Ne
 
 test("human edit and reject decisions are validated, authorized, revision-guarded, and audited", () => {
   const control = read("lib/admin/sanity-control.ts");
-  const editRoute = read("app/api/snt-admin/reviews/[id]/edit/route.ts");
-  const rejectRoute = read("app/api/snt-admin/reviews/[id]/reject/route.ts");
-  const page = read("app/snt-admin/(protected)/reviews/page.tsx");
+  const editRoute = read("app/api/admin/reviews/[id]/edit/route.ts");
+  const rejectRoute = read("app/api/admin/reviews/[id]/reject/route.ts");
+  const page = read("app/(control-plane)/dashboard/inbox/page.tsx");
   const schema = read("cms/sanity/admin/schema/admin-types.ts");
 
   assert.match(control, /reviewDecisionSchema = z\.discriminatedUnion/);
@@ -118,11 +118,11 @@ test("human edit and reject decisions are validated, authorized, revision-guarde
 
 test("Admin APIs do not expose internal authorization reasons", () => {
   for (const route of [
-    "app/api/snt-admin/reviews/[id]/approve/route.ts",
-    "app/api/snt-admin/reviews/[id]/apply/route.ts",
-    "app/api/snt-admin/seo/suggestions/route.ts",
-    "app/api/snt-admin/seo/audit/[id]/route.ts",
-    "app/api/snt-admin/seo/audit/[id]/proposals/route.ts",
-    "app/api/snt-admin/research/route.ts",
+    "app/api/admin/reviews/[id]/approve/route.ts",
+    "app/api/admin/reviews/[id]/apply/route.ts",
+    "app/api/admin/seo/suggestions/route.ts",
+    "app/api/admin/seo/audit/[id]/route.ts",
+    "app/api/admin/seo/audit/[id]/proposals/route.ts",
+    "app/api/admin/research/route.ts",
   ]) assert.doesNotMatch(read(route), /reason: (?:policy\.reason|error\.message)/);
 });

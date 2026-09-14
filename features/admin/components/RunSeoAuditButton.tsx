@@ -17,7 +17,7 @@ export default function RunSeoAuditButton({ articleId, hasPreviousAudit = false 
     setState("running");
     setErrorMessage("");
     try {
-      const response = await fetch(`/api/snt-admin/seo/audit/${encodeURIComponent(articleId)}/`, { method: "POST" });
+      const response = await fetch(`/api/admin/seo/audit/${encodeURIComponent(articleId)}/`, { method: "POST" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         setErrorMessage(friendlyApiErrorFromPayload(payload));

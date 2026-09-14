@@ -69,7 +69,7 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
     setMessage("");
     setResult(null);
     try {
-      const response = await fetch("/api/snt-admin/seo/opportunities/sync/ga4/", {
+      const response = await fetch("/api/admin/seo/opportunities/sync/ga4/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ startDate, endDate }),

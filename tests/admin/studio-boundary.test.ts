@@ -27,7 +27,7 @@ const studioStructure = readFileSync(new URL("../../cms/sanity/config/structure.
 const masterContentSchema = readFileSync(new URL("../../cms/sanity/schema/documents/master-content.ts", import.meta.url), "utf8");
 const socialVariantSchema = readFileSync(new URL("../../cms/sanity/schema/documents/social-variant.ts", import.meta.url), "utf8");
 const adminDataRefresh = readFileSync(new URL("../../features/admin/components/AdminDataRefresh.tsx", import.meta.url), "utf8");
-const adminContentPage = readFileSync(new URL("../../app/snt-admin/(protected)/content/page.tsx", import.meta.url), "utf8");
+const adminContentPage = readFileSync(new URL("../../app/(control-plane)/content/articles/page.tsx", import.meta.url), "utf8");
 
 afterEach(() => {
   if (originalProjectId === undefined) delete process.env.VERCEL_PROJECT_ID;
@@ -244,7 +244,7 @@ test("Studio keeps identified owner content and hides system/category management
 });
 
 test("Safari-safe admin routes avoid the stuck streaming boundary", () => {
-  assert.equal(existsSync(new URL("../../app/snt-admin/(protected)/loading.tsx", import.meta.url)), false);
+  assert.equal(existsSync(new URL("../../app/(control-plane)/loading.tsx", import.meta.url)), false);
   assert.doesNotMatch(studioPage, /<NextStudio/);
   assert.match(studioClient, /import \{ Studio \} from "sanity"/);
   assert.match(studioClient, /<Studio config=\{sanityStudioConfig\}/);

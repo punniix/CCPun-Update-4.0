@@ -21,7 +21,7 @@ export default function SocialSheetsExport() {
         session = await requestGoogleDriveMemorySession(googleClientId);
         sessionRef.current = session;
       }
-      const response = await fetch("/api/snt-admin/social/export/sheets", {
+      const response = await fetch("/api/admin/social/export/sheets", {
         method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store",
         body: JSON.stringify({ accessToken: session.accessToken, authorization: session.authorization }),
       });

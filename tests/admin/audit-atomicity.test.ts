@@ -6,12 +6,12 @@ const researchService = readFileSync(new URL("../../lib/admin/research.ts", impo
 const seoAuditService = readFileSync(new URL("../../lib/admin/seo-audit.ts", import.meta.url), "utf8");
 const seoProposalService = readFileSync(new URL("../../lib/admin/seo-proposals.ts", import.meta.url), "utf8");
 const contentReadinessService = readFileSync(new URL("../../lib/admin/content-readiness.ts", import.meta.url), "utf8");
-const researchRoute = readFileSync(new URL("../../app/api/snt-admin/research/route.ts", import.meta.url), "utf8");
-const seoAuditRoute = readFileSync(new URL("../../app/api/snt-admin/seo/audit/[id]/route.ts", import.meta.url), "utf8");
-const proposalRoute = readFileSync(new URL("../../app/api/snt-admin/seo/audit/[id]/proposals/route.ts", import.meta.url), "utf8");
+const researchRoute = readFileSync(new URL("../../app/api/admin/research/route.ts", import.meta.url), "utf8");
+const seoAuditRoute = readFileSync(new URL("../../app/api/admin/seo/audit/[id]/route.ts", import.meta.url), "utf8");
+const proposalRoute = readFileSync(new URL("../../app/api/admin/seo/audit/[id]/proposals/route.ts", import.meta.url), "utf8");
 const sanityControl = readFileSync(new URL("../../lib/admin/sanity-control.ts", import.meta.url), "utf8");
 const studioScore = readFileSync(new URL("../../cms/sanity/components/SeoScoreInput.tsx", import.meta.url), "utf8");
-const seoDetailPage = readFileSync(new URL("../../app/snt-admin/(protected)/seo/[id]/page.tsx", import.meta.url), "utf8");
+const seoDetailPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 
 test("research and audit records use Neon while Article audit snapshots keep exact Sanity revisions", () => {
   const operations = readFileSync(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");

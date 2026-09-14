@@ -261,7 +261,7 @@ test("GSC provider is server-only, paginated, bounded and never logs credentials
 });
 
 test("GSC manual sync is human-only, exact-origin, bounded and read-only", () => {
-  const route = read("app/api/snt-admin/seo/opportunities/sync/gsc/route.ts");
+  const route = read("app/api/admin/seo/opportunities/sync/gsc/route.ts");
   const control = read("features/admin/seo/opportunities/GscManualSync.tsx");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
@@ -345,7 +345,7 @@ test("GA4 provider requests bounded Organic Search landing outcomes without cred
 });
 
 test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", () => {
-  const route = read("app/api/snt-admin/seo/opportunities/sync/ga4/route.ts");
+  const route = read("app/api/admin/seo/opportunities/sync/ga4/route.ts");
   const control = read("features/admin/seo/opportunities/Ga4ManualSync.tsx");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
@@ -384,8 +384,8 @@ test("Organic Search page removes synthetic and operational telemetry", () => {
 });
 
 test("SEO opportunities API is authenticated, exact-origin and GET-only", () => {
-  const route = read("app/api/snt-admin/seo/opportunities/route.ts");
-  const page = read("app/snt-admin/(protected)/seo/opportunities/page.tsx");
+  const route = read("app/api/admin/seo/opportunities/route.ts");
+  const page = read("app/(control-plane)/seo/opportunities/page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "seo:read"\)/);
   assert.match(route, /isConfiguredAdminOrigin\(request\.url, process\.env\.AUTH_URL\)/);

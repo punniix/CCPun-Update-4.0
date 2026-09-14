@@ -27,7 +27,7 @@ export default async function PostLiveAnalyticsUatPage() {
           <h1 className="text-3xl font-semibold">สถิติย้อนหลังหลัง Live</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านข้อมูลหลัง Live จบเท่านั้น ไม่มี Real-time polling, background sync หรือการเรียก Provider ในรอบนี้</p>
         </div>
-        <Link href="/snt-admin/distribution/operations/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
+        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
       </div>
 
       {report.snapshots.map((snapshot) => (

@@ -48,9 +48,9 @@ test("admin presentation uses friendly Thai labels and hides unknown API detail"
 });
 
 test("production-capable admin surfaces do not hard-code UAT copy", () => {
-  const dashboard = readFileSync("app/snt-admin/(protected)/dashboard/page.tsx", "utf8");
-  const login = readFileSync("app/snt-admin/(auth)/login/page.tsx", "utf8");
-  const audit = readFileSync("app/snt-admin/(protected)/audit/page.tsx", "utf8");
+  const dashboard = readFileSync("app/(control-plane)/dashboard/page.tsx", "utf8");
+  const login = readFileSync("app/(control-plane-auth)/login/page.tsx", "utf8");
+  const audit = readFileSync("app/(control-plane)/operations/audit-log/page.tsx", "utf8");
 
   assert.match(dashboard, /พื้นที่นี้ทำงานใน/);
   assert.match(dashboard, /\{lane\}/);
@@ -80,7 +80,7 @@ test("production-capable admin surfaces do not hard-code UAT copy", () => {
 });
 
 test("content list separates document state from content review state", () => {
-  const contentPage = readFileSync("app/snt-admin/(protected)/content/page.tsx", "utf8");
+  const contentPage = readFileSync("app/(control-plane)/content/articles/page.tsx", "utf8");
   const sanityControl = readFileSync("lib/admin/sanity-control.ts", "utf8");
   assert.match(contentPage, /สถานะเอกสาร/);
   assert.match(contentPage, /ขั้นตรวจเนื้อหา/);

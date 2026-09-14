@@ -29,7 +29,7 @@ import type { ResearchInput } from "./research-input";
 
 const SERVER_URL = new URL("https://ubersuggest-mcp.neilpatelapi.com/mcp");
 const PROVIDER_ORIGIN = SERVER_URL.origin;
-const CALLBACK_PATH = "/api/snt-admin/providers/ubersuggest/callback";
+const CALLBACK_PATH = "/api/admin/providers/ubersuggest/callback";
 const STORE_DIR = path.join(process.cwd(), ".ccpun-local");
 const STORE_PATH = path.join(STORE_DIR, "ubersuggest-oauth.json");
 const STORE_TMP_PATH = `${STORE_PATH}.tmp`;

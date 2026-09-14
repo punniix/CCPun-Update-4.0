@@ -229,7 +229,7 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   const page = read("features/admin/social/analytics-page.tsx");
   const dashboard = read("features/admin/social/SocialMarketingDashboard.tsx");
   const visuals = read("features/admin/social/MarketingDashboardVisuals.tsx");
-  const layout = read("app/snt-admin/(protected)/layout.tsx");
+  const layout = read("app/(control-plane)/layout.tsx");
 
   assert.match(page, /view === "raw"/);
   assert.match(page, /getSocialMarketingDashboard/);
@@ -246,7 +246,7 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   assert.match(dashboard, /executiveSummary/);
   assert.match(visuals, /<svg/);
   assert.doesNotMatch(dashboard + visuals, /recharts|chart\.js|echarts|highcharts|localStorage|sessionStorage/);
-  assert.match(layout, /label: "Marketing"/);
+  assert.match(layout, /href: "\/analytics\/social\/", label: "Social"/);
 });
 
 

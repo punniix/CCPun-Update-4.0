@@ -26,7 +26,7 @@ export default function ApplySuggestionButton({ id, articleId, disabled = false 
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/snt-admin/reviews/${encodeURIComponent(id)}/apply/`, {
+      const response = await fetch(`/api/admin/reviews/${encodeURIComponent(id)}/apply/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -50,7 +50,7 @@ export default function ApplySuggestionButton({ id, articleId, disabled = false 
     <>
       {isStale ? (
         <Link
-          href={articleId ? `/snt-admin/seo/${encodeURIComponent(articleId)}/` : "/snt-admin/seo/"}
+          href={articleId ? `/seo/audits/${encodeURIComponent(articleId)}/` : "/seo/"}
           className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-sm font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15"
         >
           ตรวจ SEO และสร้างข้อเสนอใหม่

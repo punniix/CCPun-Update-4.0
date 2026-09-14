@@ -37,7 +37,7 @@ export default async function MetaConnectionUatPage() {
             อ่าน Facebook Page, Instagram และ native counters ของโพสต์ล่าสุดเมื่อคุณกด Sync เท่านั้น
           </p>
         </div>
-        <Link href="/snt-admin/distribution/operations/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">
+        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">
           กลับ Social Operations
         </Link>
       </div>

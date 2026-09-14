@@ -133,7 +133,7 @@ test("channel modes are compatible and Sanity list responses are validated", () 
 });
 
 test("social Draft API stays owner-only, same-origin, runtime-gated and has no publish action", () => {
-  const route = readFileSync(new URL("../../app/api/snt-admin/social/drafts/route.ts", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../../app/api/admin/social/drafts/route.ts", import.meta.url), "utf8");
   const store = readFileSync(new URL("../../lib/admin/social/drafts.ts", import.meta.url), "utf8");
   assert.match(route, /identity\.actorType !== "human" \|\| identity\.role !== "owner"/);
   assert.match(route, /isConfiguredAdminOrigin/);

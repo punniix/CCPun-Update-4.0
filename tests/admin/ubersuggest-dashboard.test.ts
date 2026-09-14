@@ -5,10 +5,10 @@ import test from "node:test";
 const provider = readFileSync("lib/admin/ubersuggest.ts", "utf8");
 const normalized = readFileSync("lib/admin/ubersuggest-dashboard-provider.ts", "utf8");
 const snapshots = readFileSync("lib/admin/ubersuggest-dashboard.ts", "utf8");
-const route = readFileSync("app/api/snt-admin/providers/ubersuggest/sync/route.ts", "utf8");
-const legacyPage = readFileSync("app/snt-admin/(protected)/ubersuggest/page.tsx", "utf8");
+const route = readFileSync("app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
+const routes = readFileSync("lib/admin/routes.ts", "utf8");
 const researchPage = readFileSync("features/admin/research/page.tsx", "utf8");
-const layout = readFileSync("app/snt-admin/(protected)/layout.tsx", "utf8");
+const layout = readFileSync("app/(control-plane)/layout.tsx", "utf8");
 const schema = readFileSync("cms/sanity/admin/schema/ubersuggest-types.ts", "utf8");
 const studioPolicy = readFileSync("cms/sanity/policy/studio-policy.ts", "utf8");
 const studioConfig = readFileSync("sanity.config.ts", "utf8");
@@ -83,8 +83,8 @@ test("Production Research uses snapshots while Local lanes retain provider query
   assert.match(researchPage, /localProviderLane/);
 });
 
-test("legacy Ubersuggest route redirects into unified Research Intelligence and navigation has one research entry", () => {
-  assert.match(legacyPage, /redirect\("\/snt-admin\/research\/#ubersuggest-intelligence"\)/);
-  assert.match(layout, /href: "\/snt-admin\/research\/", label: "Research Intelligence"/);
+test("legacy Ubersuggest route maps into unified Research and navigation has one canonical research entry", () => {
+  assert.match(routes, /\["\/snt-admin\/ubersuggest", "\/content\/research\/"\]/);
+  assert.match(layout, /href: "\/content\/research\/", label: "Research"/);
   assert.doesNotMatch(layout, /href: "\/snt-admin\/ubersuggest\/"/);
 });

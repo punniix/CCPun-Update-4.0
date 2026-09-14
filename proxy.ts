@@ -11,6 +11,13 @@ import {
   isProductionEnvironment,
 } from "@/lib/admin/environment";
 import { classifyProductionAdminPath } from "@/lib/admin/host-routing";
+import {
+  isAdminApiPath,
+  isAdminPagePath,
+  ADMIN_NOT_FOUND_PATH,
+  legacyAdminPageDestination,
+  safeAdminReturnPath,
+} from "@/lib/admin/routes";
 import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
 
 export default auth((request) => {
@@ -29,8 +36,9 @@ export default auth((request) => {
   const isProductionAdmin = environment === "production-admin";
   const isLocalUat = environment === "local-uat";
   const isLocalProduction = environment === "local-production";
-  const isAdminPage = pathname.startsWith("/snt-admin");
-  const isAdminApi = pathname.startsWith("/api/snt-admin");
+  const isAdminPage = isAdminPagePath(pathname);
+  const isAdminApi = isAdminApiPath(pathname);
+  const legacyPageDestination = legacyAdminPageDestination(pathname);
   const isStudioPage = pathname.startsWith("/studio");
   const isPreviewApi = pathname.startsWith("/api/preview");
   const isAuthApi = pathname === "/api/auth" || pathname.startsWith("/api/auth/");
@@ -39,7 +47,7 @@ export default auth((request) => {
     pathname.startsWith("/_next/image") ||
     pathname.startsWith("/favicon.") ||
     pathname === "/robots.txt";
-  const isLoginPage = pathname === "/snt-admin/login" || pathname === "/snt-admin/login/";
+  const isLoginPage = pathname === "/login" || pathname === "/login/";
   const role = request.auth?.user?.role ?? null;
   const isInvalidAdminMutation =
     (isAdminApi || isPreviewApi) &&
@@ -62,11 +70,11 @@ export default auth((request) => {
       const disposition = classifyProductionAdminPath(pathname);
       if (disposition === "entry") {
         return NextResponse.redirect(
-          new URL(role ? "/snt-admin/dashboard/" : "/snt-admin/login/", request.url),
+          new URL(role ? "/dashboard/" : "/login/", request.url),
         );
       }
       if (disposition === "reject") {
-        return new NextResponse("Not Found", { status: 404 });
+        return NextResponse.rewrite(new URL(`${ADMIN_NOT_FOUND_PATH}/`, request.url), { status: 404 });
       }
     }
 
@@ -74,15 +82,30 @@ export default auth((request) => {
       return NextResponse.json({ error: "invalid-origin" }, { status: 403 });
     }
     if (isAuthApi || isPublicBootstrapPath) return NextResponse.next();
+    if (legacyPageDestination) {
+      const destination = new URL(legacyPageDestination, request.url);
+      destination.search = request.nextUrl.search;
+      if (!role && legacyPageDestination !== "/login/") {
+        const loginUrl = new URL("/login/", request.url);
+        loginUrl.searchParams.set("callbackUrl", `${legacyPageDestination}${request.nextUrl.search}`);
+        return NextResponse.redirect(loginUrl);
+      }
+      return NextResponse.redirect(role && legacyPageDestination === "/login/"
+        ? new URL("/dashboard/", request.url)
+        : destination);
+    }
     if (isLoginPage) {
-      if (role) return NextResponse.redirect(new URL("/snt-admin/dashboard/", request.url));
+      if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
       return NextResponse.next();
     }
     if (!role) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
       }
-      return NextResponse.redirect(new URL("/snt-admin/login/", request.url));
+      const loginUrl = new URL("/login/", request.url);
+      const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+      if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
+      return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
   }
@@ -97,7 +120,7 @@ export default auth((request) => {
   }
 
   if (isLoginPage) {
-    if (role) return NextResponse.redirect(new URL("/snt-admin/dashboard/", request.url));
+    if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
     return NextResponse.next();
   }
 
@@ -105,8 +128,9 @@ export default auth((request) => {
     if (isAdminApi || isPreviewApi) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-    const loginUrl = new URL("/snt-admin/login/", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    const loginUrl = new URL("/login/", request.url);
+    const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+    if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -115,7 +139,17 @@ export default auth((request) => {
 
 export const config = {
   matcher: [
+    "/login/:path*",
+    "/dashboard/:path*",
+    "/content/:path*",
+    "/seo/:path*",
+    "/social/:path*",
+    "/analytics/:path*",
+    "/operations/:path*",
+    "/settings/:path*",
+    "/admin-not-found/:path*",
     "/snt-admin/:path*",
+    "/api/admin/:path*",
     "/api/snt-admin/:path*",
     "/studio/:path*",
     "/api/preview/:path*",

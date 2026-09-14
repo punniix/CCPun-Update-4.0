@@ -69,9 +69,9 @@ test("synthetic Post-Live runtime is UAT-only and fails closed in Production", (
 });
 
 test("Post-Live preview route is authenticated, exact-origin and GET-only", () => {
-  const route = read("app/api/snt-admin/social/analytics/post-live/route.ts");
+  const route = read("app/api/admin/social/analytics/post-live/route.ts");
   const page = read("features/admin/social/post-live-page.tsx");
-  const entry = read("app/snt-admin/(protected)/distribution/analytics/post-live/page.tsx");
+  const entry = read("app/(control-plane)/analytics/social/post-live/page.tsx");
   const operations = read("features/admin/social/operations-page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
@@ -84,7 +84,7 @@ test("Post-Live preview route is authenticated, exact-origin and GET-only", () =
   assert.match(page, /runtime\.environment === "production-admin"/);
   assert.match(page, /Real-time polling, background sync/);
   assert.equal(entry.trim(), 'export { metadata, default } from "@/features/admin/social/post-live-page";');
-  assert.match(operations, /showDeferredConnections \? <Link href="\/snt-admin\/distribution\/analytics\/post-live\/"/);
+  assert.match(operations, /showDeferredConnections \? <Link href="\/analytics\/social\/post-live\/"/);
 });
 
 test("Post-Live ingestion normalizes historical provider evidence without enabling provider calls", () => {

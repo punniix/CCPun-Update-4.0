@@ -53,7 +53,7 @@ export function MetaReadOnlyPanel({ ready, analyticsReady, missing }: { ready: b
     setLoading(true);
     setError(null);
     try {
-      const response = await manualSync(analyticsReady ? "/api/snt-admin/social/analytics/sync/meta/" : "/api/snt-admin/social/providers/meta/discovery/");
+      const response = await manualSync(analyticsReady ? "/api/admin/social/analytics/sync/meta/" : "/api/admin/social/providers/meta/discovery/");
       setResult(response.discovery as typeof result);
       setStored(response.persistence?.providerContentsSeen ?? response.persistence?.matchedSnapshots ?? null);
     } catch (cause) {
@@ -103,7 +103,7 @@ export function YouTubeReadOnlyPanel({ ready, analyticsReady, missing }: { ready
     setLoading(true);
     setError(null);
     try {
-      const response = await manualSync(analyticsReady ? "/api/snt-admin/social/analytics/sync/youtube/" : "/api/snt-admin/social/providers/youtube/discovery/");
+      const response = await manualSync(analyticsReady ? "/api/admin/social/analytics/sync/youtube/" : "/api/admin/social/providers/youtube/discovery/");
       setResult(response.discovery as typeof result);
       setStored(response.persistence?.matchedSnapshots ?? null);
     } catch (cause) {
@@ -150,8 +150,8 @@ export function TikTokReadOnlyPanel({ ready, analyticsReady, missing }: { ready:
     setError(null);
     try {
       const response = await manualSync(analyticsReady
-        ? "/api/snt-admin/social/analytics/sync/tiktok/"
-        : "/api/snt-admin/social/providers/tiktok/discovery/");
+        ? "/api/admin/social/analytics/sync/tiktok/"
+        : "/api/admin/social/providers/tiktok/discovery/");
       setResult(response.discovery as typeof result);
       setStored(response.persistence?.matchedSnapshots ?? null);
     } catch (cause) {

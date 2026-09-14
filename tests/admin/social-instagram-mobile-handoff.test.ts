@@ -69,7 +69,7 @@ test("Instagram audio discovery returns safe reference metadata only", () => {
 });
 
 test("mobile handoff route is read-only, human-only, same-origin and never puts Drive tokens in URLs", () => {
-  const route = readFileSync(new URL("../../app/api/snt-admin/social/providers/meta/handoff/route.ts", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../../app/api/admin/social/providers/meta/handoff/route.ts", import.meta.url), "utf8");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
   assert.match(route, /isSameOriginAdminMutation\(request\.url, request\.headers\.get\("origin"\)\)/);

@@ -9,10 +9,10 @@ import { SocialOverviewSummary } from "@/features/admin/social/SocialWorkspaceSu
 export const metadata: Metadata = { title: "Social Overview" };
 
 const routes = [
-  { href: "/snt-admin/distribution/operations/", label: "Posts", title: "เตรียมโพสต์และฉบับร่าง", detail: "แพลตฟอร์ม เวลา สื่อ แคปชัน สถานะอนุมัติ และ mobile handoff" },
-  { href: "/snt-admin/distribution/calendar/", label: "Calendar", title: "ดูแผนเผยแพร่", detail: "ดูวันเวลา สถานะ และ publishing mode ของทุกช่องทาง" },
-  { href: "/snt-admin/distribution/analytics/", label: "Stats", title: "วิเคราะห์ผลโพสต์", detail: "กรอง metric ดูแนวโน้ม Top content และ Raw Snapshot History" },
-  { href: "/snt-admin/distribution/connections/", label: "Connections", title: "ตรวจการเชื่อมต่อ", detail: "Meta, YouTube และ TikTok แบบ manual read-only" },
+  { href: "/social/posts/", label: "Posts", title: "เตรียมโพสต์และฉบับร่าง", detail: "แพลตฟอร์ม เวลา สื่อ แคปชัน สถานะอนุมัติ และ mobile handoff" },
+  { href: "/social/calendar/", label: "Calendar", title: "ดูแผนเผยแพร่", detail: "ดูวันเวลา สถานะ และ publishing mode ของทุกช่องทาง" },
+  { href: "/analytics/social/", label: "Stats", title: "วิเคราะห์ผลโพสต์", detail: "กรอง metric ดูแนวโน้ม Top content และ Raw Snapshot History" },
+  { href: "/social/accounts/", label: "Connections", title: "ตรวจการเชื่อมต่อ", detail: "Meta, YouTube และ TikTok แบบ manual read-only" },
 ] as const;
 
 export default async function SocialOverviewPage() {

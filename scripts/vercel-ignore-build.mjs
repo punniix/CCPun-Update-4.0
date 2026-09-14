@@ -5,8 +5,10 @@ const WEB_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 const ADMIN_PROJECT_ID = "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN";
 
 const ADMIN_ONLY_PREFIXES = [
-  "app/api/snt-admin/",
-  "app/snt-admin/",
+  "app/(control-plane)/",
+  "app/(control-plane-auth)/",
+  "app/(control-plane-error)/",
+  "app/api/admin/",
   "app/studio/",
   "cms/sanity/",
   "db/",

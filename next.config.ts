@@ -12,6 +12,16 @@ const PRIVATE_ADMIN_API_HEADERS = [
   ...PRIVATE_SURFACE_ROBOTS_HEADERS,
   { key: "Cache-Control", value: "private, no-cache, no-store, max-age=0, must-revalidate" },
 ];
+const ADMIN_PRIVATE_PAGE_SOURCES = [
+  "/login/:path*",
+  "/dashboard/:path*",
+  "/content/:path*",
+  "/seo/:path*",
+  "/social/:path*",
+  "/analytics/:path*",
+  "/operations/:path*",
+  "/settings/:path*",
+];
 
 const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
@@ -97,6 +107,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        // ponytail: one method-preserving adapter keeps delayed jobs and OAuth callbacks alive during migration.
+        { source: "/api/snt-admin/:path*", destination: "/api/admin/:path*" },
+      ],
+    };
+  },
   async headers() {
     return [
       {
@@ -107,9 +125,17 @@ const nextConfig: NextConfig = {
         source: "/snt-admin/:path*",
         headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
       },
+      ...ADMIN_PRIVATE_PAGE_SOURCES.map((source) => ({
+        source,
+        headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
+      })),
       {
         source: "/studio/:path*",
         headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
+      },
+      {
+        source: "/api/admin/:path*",
+        headers: PRIVATE_ADMIN_API_HEADERS,
       },
       {
         source: "/api/snt-admin/:path*",

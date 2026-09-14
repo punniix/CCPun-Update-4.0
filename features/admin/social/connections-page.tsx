@@ -8,19 +8,19 @@ export const metadata: Metadata = { title: "Social Connections" };
 
 const connections = [
   {
-    href: "/snt-admin/distribution/connections/meta/",
+    href: "/social/accounts/meta/",
     title: "Meta",
     platforms: "Facebook · Instagram",
     description: "ตรวจ Page, Instagram account และสิทธิ์แบบอ่านอย่างเดียว พร้อมเริ่ม Manual Sync เมื่อเปิดใช้งาน",
   },
   {
-    href: "/snt-admin/distribution/connections/youtube/",
+    href: "/social/accounts/youtube/",
     title: "YouTube",
     platforms: "YouTube · Shorts · Live",
     description: "ตรวจ Channel และข้อมูลย้อนหลังที่ได้รับอนุญาต โดยไม่อัปโหลดหรือเผยแพร่วิดีโอ",
   },
   {
-    href: "/snt-admin/distribution/connections/tiktok/",
+    href: "/social/accounts/tiktok/",
     title: "TikTok",
     platforms: "TikTok",
     description: "ตรวจ Profile และรายการวิดีโอแบบอ่านอย่างเดียว ไม่มีการสร้าง Draft หรือส่งวิดีโอ",

@@ -40,9 +40,9 @@ test("Multiple Pages require explicit selection and stale authorization requires
 
 test("Synthetic Meta connection and GET route stay UAT-only and read-only", () => {
   assert.equal(SYNTHETIC_META_CONNECTION.mode, "synthetic-uat");
-  const route = read("app/api/snt-admin/social/providers/meta/connection/route.ts");
+  const route = read("app/api/admin/social/providers/meta/connection/route.ts");
   const page = read("features/admin/social/meta-connection-page.tsx");
-  const entry = read("app/snt-admin/(protected)/distribution/connections/meta/page.tsx");
+  const entry = read("app/(control-plane)/social/accounts/meta/page.tsx");
   const operations = read("features/admin/social/operations-page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
@@ -56,5 +56,5 @@ test("Synthetic Meta connection and GET route stay UAT-only and read-only", () =
   assert.match(page, /\{showFixture \? <>/);
   assert.ok(page.indexOf("{showFixture ? <>") < page.indexOf("connection.pages.map"));
   assert.equal(entry.trim(), 'export { metadata, default } from "@/features/admin/social/meta-connection-page";');
-  assert.match(operations, /distribution\/connections\/meta/);
+  assert.match(operations, /\/social\/accounts\/meta\//);
 });

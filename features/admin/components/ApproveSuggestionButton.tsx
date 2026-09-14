@@ -24,7 +24,7 @@ export default function ApproveSuggestionButton({ id, disabled = false }: { id: 
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/snt-admin/reviews/${encodeURIComponent(id)}/approve/`, {
+      const response = await fetch(`/api/admin/reviews/${encodeURIComponent(id)}/approve/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

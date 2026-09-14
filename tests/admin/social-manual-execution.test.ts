@@ -702,7 +702,7 @@ test("Mocked Facebook native schedule claims once and uses the Page token return
 });
 
 test("Manual execution route is owner-only, same-origin, UAT-gated and has no background runner", () => {
-  const route = read("app/api/snt-admin/social/publications/execute/route.ts");
+  const route = read("app/api/admin/social/publications/execute/route.ts");
   const store = read("lib/admin/social/execution-store.ts");
   assert.match(route, /identity\.actorType !== "human" \|\| identity\.role !== "owner"/);
   assert.match(route, /isSameOriginAdminMutation\(request\.url, request\.headers\.get\("origin"\)\)/);

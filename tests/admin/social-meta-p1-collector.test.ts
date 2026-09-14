@@ -145,7 +145,7 @@ test("Manual analytics discovery enriches bounded Facebook and Instagram provide
 test("Analytics ingestion enables P1 Insights only on manual persistence sync with bounded 25-item backfill", () => {
   const source = read("lib/admin/social/analytics-ingestion.ts");
   assert.match(source, /fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since, includeInsights: true, insightsBackfillLimit: 25 \}\)/);
-  assert.doesNotMatch(read("app/api/snt-admin/social/providers/meta/discovery/route.ts"), /includeInsights/);
+  assert.doesNotMatch(read("app/api/admin/social/providers/meta/discovery/route.ts"), /includeInsights/);
 });
 
 test("Metric schemas preserve Reel watch-time native milliseconds", () => {

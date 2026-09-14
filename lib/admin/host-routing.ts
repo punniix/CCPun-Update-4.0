@@ -1,3 +1,5 @@
+import { isAdminApiPath, isAdminPagePath } from "./routes";
+
 export type ProductionAdminPathDisposition = "entry" | "allow" | "reject";
 
 function isPathOrChild(pathname: string, prefix: string): boolean {
@@ -10,8 +12,8 @@ export function classifyProductionAdminPath(pathname: string): ProductionAdminPa
   if (path === "/") return "entry";
 
   if (
-    isPathOrChild(path, "/snt-admin") ||
-    isPathOrChild(path, "/api/snt-admin") ||
+    isAdminPagePath(path) ||
+    isAdminApiPath(path) ||
     isPathOrChild(path, "/studio") ||
     isPathOrChild(path, "/api/preview") ||
     isPathOrChild(path, "/api/auth") ||

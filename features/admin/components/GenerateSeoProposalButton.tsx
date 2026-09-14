@@ -15,7 +15,7 @@ export default function GenerateSeoProposalButton({ articleId }: { articleId: st
     setState("running");
     setError("");
     try {
-      const response = await fetch(`/api/snt-admin/seo/audit/${encodeURIComponent(articleId)}/proposals/`, { method: "POST" });
+      const response = await fetch(`/api/admin/seo/audit/${encodeURIComponent(articleId)}/proposals/`, { method: "POST" });
       if (!response.ok) {
         setError(friendlyApiErrorFromPayload(await response.json().catch(() => null)));
         setState("error");

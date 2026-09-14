@@ -185,7 +185,7 @@ test("Backfill service is resumable in fixed batches and retries failed attempts
 });
 
 test("Full-backfill HTTP route is owner-only, same-origin, bounded and has no provider-write action", () => {
-  const route = read("app/api/snt-admin/social/analytics/backfill/meta-insights/route.ts");
+  const route = read("app/api/admin/social/analytics/backfill/meta-insights/route.ts");
   assert.match(route, /export const maxDuration = 60/);
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /identity\.actorType !== "human" \|\| identity\.role !== "owner"/);

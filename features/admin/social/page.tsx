@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import MediaLibraryUatSection from "@/features/admin/media/MediaLibraryUatSection";
 import { getMediaLibraryRuntimeStatus } from "@/lib/admin/media/foundation";
@@ -9,7 +9,6 @@ import {
   socialFoundationSnapshotSchema,
   SYNTHETIC_SOCIAL_FOUNDATION,
 } from "@/lib/admin/social/foundation";
-import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 
 export const metadata: Metadata = { title: "Distribution UAT" };
 
@@ -39,9 +38,6 @@ function readinessLabel(readiness: Awaited<ReturnType<typeof getSocialDatabaseRe
 export default async function SocialFoundationUatPage() {
   await requireAdminPermission("social:read");
   const runtime = getSocialFoundationRuntimeStatus();
-  if (!runtime.enabled && getSocialOperationsRuntimeStatus().enabled) {
-    redirect("/snt-admin/distribution/overview/");
-  }
   const mediaRuntime = getMediaLibraryRuntimeStatus();
   if (!runtime.enabled && !mediaRuntime.enabled) notFound();
 
