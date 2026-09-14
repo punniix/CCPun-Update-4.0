@@ -36,3 +36,11 @@ test("Admin article index normalizes draft perspective IDs", () => {
   const control = read("lib/admin/sanity-control.ts");
   assert.match(control, /isDraft: row\.isDraft \|\| row\.id\.startsWith\("drafts\."\)/);
 });
+
+test("dynamic article Preview POST survives trailingSlash normalization", () => {
+  const proxy = read("proxy.ts");
+  assert.match(proxy, /request\.method === "POST"/);
+  assert.ok(proxy.includes('/^\\/api\\/admin\\/content\\/[^/]+\\/preview\\/$/.test(pathname)'));
+  assert.match(proxy, /canonicalPreviewUrl\.pathname = pathname\.slice\(0, -1\)/);
+  assert.match(proxy, /NextResponse\.rewrite\(canonicalPreviewUrl\)/);
+});
