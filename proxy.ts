@@ -10,7 +10,10 @@ import {
   isAdminSurfaceAllowed,
   isProductionEnvironment,
 } from "@/lib/admin/environment";
-import { classifyProductionAdminPath } from "@/lib/admin/host-routing";
+import {
+  classifyProductionAdminPath,
+  isAdminRequestBoundary,
+} from "@/lib/admin/host-routing";
 import {
   isAdminApiPath,
   isAdminPagePath,
@@ -39,6 +42,12 @@ export default auth((request) => {
   const isLocalUat = environment === "local-uat";
   const isLocalProduction = environment === "local-production";
   const isDedicatedAdmin = isDeployedAdmin || isLocalUat || isLocalProduction;
+  const isAdminBoundaryRequest = isAdminRequestBoundary({
+    environment,
+    vercelEnvironment: process.env.VERCEL_ENV,
+    deploymentProjectId: process.env.VERCEL_PROJECT_ID,
+    host: request.headers.get("host"),
+  });
   const isAdminPage = isAdminPagePath(pathname);
   const isAdminApi = isAdminApiPath(pathname);
   const legacyPageDestination = legacyAdminPageDestination(pathname);
@@ -59,7 +68,7 @@ export default auth((request) => {
     !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
     !isSameOriginAdminMutation(request.url, request.headers.get("origin"));
 
-  if (isDedicatedAdmin) {
+  if (isAdminBoundaryRequest) {
     if (!adminSurfaceAllowed) {
       return new NextResponse("Not Found", { status: 404 });
     }

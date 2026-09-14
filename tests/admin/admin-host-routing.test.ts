@@ -6,7 +6,11 @@ import {
   isAdminSurfaceAllowed,
   resolveAdminEnvironment,
 } from "../../lib/admin/environment";
-import { classifyProductionAdminPath } from "../../lib/admin/host-routing";
+import {
+  classifyProductionAdminPath,
+  isAdminRequestBoundary,
+  isKnownAdminDeploymentHost,
+} from "../../lib/admin/host-routing";
 
 test("Production Admin root is an explicit Control Plane entry route", () => {
   assert.equal(classifyProductionAdminPath("/"), "entry");
@@ -72,6 +76,49 @@ test("dedicated local Admin hosts share root entry and unknown-route rejection",
     assert.equal(classifyProductionAdminPath("/dashboard/"), "allow", environment);
     assert.equal(classifyProductionAdminPath("/definitely-missing-admin-route/"), "reject", environment);
   }
+});
+
+test("Admin deployment identity and known hosts enter a deny-only boundary even with the wrong lane", () => {
+  for (const environment of ["production", "unknown"] as const) {
+    assert.equal(
+      isAdminRequestBoundary({
+        environment,
+        vercelEnvironment: "preview",
+        deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+        host: "ccpun-admin-test-punniixs-projects.vercel.app",
+      }),
+      true,
+    );
+    assert.equal(isAdminSurfaceAllowed(environment, CCPUN_VERCEL_PROJECT_IDS.adminProduction), false);
+  }
+
+  assert.equal(isKnownAdminDeploymentHost("admin.ccpun.com"), true);
+  assert.equal(isKnownAdminDeploymentHost("ccpun-admin.vercel.app"), true);
+  assert.equal(isKnownAdminDeploymentHost("ccpun-admin-preview-team.vercel.app"), true);
+  assert.equal(
+    isAdminRequestBoundary({
+      environment: "unknown",
+      vercelEnvironment: undefined,
+      deploymentProjectId: undefined,
+      host: "admin.ccpun.com",
+    }),
+    true,
+  );
+  assert.equal(isAdminSurfaceAllowed("unknown"), false);
+});
+
+test("Web Preview and unknown public hosts do not become an Admin boundary", () => {
+  assert.equal(
+    isAdminRequestBoundary({
+      environment: "unknown",
+      vercelEnvironment: "preview",
+      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.web,
+      host: "ccpun-web-preview-punniixs-projects.vercel.app",
+    }),
+    false,
+  );
+  assert.equal(isKnownAdminDeploymentHost("ccpun.com"), false);
+  assert.equal(isKnownAdminDeploymentHost("localhost:3100"), false);
 });
 
 test("Production Admin robots policy stays noindex while CCPun web policy remains separate", () => {

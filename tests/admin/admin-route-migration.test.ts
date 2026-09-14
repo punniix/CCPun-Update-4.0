@@ -77,7 +77,8 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
   assert.match(proxy, /const isAdminUat = environment === "admin-uat"/);
   assert.match(proxy, /const isDeployedAdmin = isProductionAdmin \|\| isAdminUat/);
   assert.match(proxy, /const isDedicatedAdmin = isDeployedAdmin \|\| isLocalUat \|\| isLocalProduction/);
-  assert.match(proxy, /if \(isDedicatedAdmin\)/);
+  assert.match(proxy, /const isAdminBoundaryRequest = isAdminRequestBoundary\(\{/);
+  assert.match(proxy, /if \(isAdminBoundaryRequest\) \{\s*if \(!adminSurfaceAllowed\) \{\s*return new NextResponse\("Not Found", \{ status: 404 \}\)/);
   assert.match(proxy, /matcher:\s*\[\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*"\/",/);
   assert.match(proxy, /type: "host", value: "localhost"/);
   assert.match(proxy, /type: "host", value: "ccpun-admin\(\?:-\.\+\)\?\\\\\.vercel\\\\\.app"/);
