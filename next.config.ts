@@ -151,6 +151,10 @@ const nextConfig: NextConfig = {
         headers: PRIVATE_ADMIN_API_HEADERS,
       },
       {
+        source: "/api/auth/:path*",
+        headers: PRIVATE_ADMIN_API_HEADERS,
+      },
+      {
         source: "/.well-known/workflow/:path*",
         headers: PRIVATE_ADMIN_API_HEADERS,
       },
