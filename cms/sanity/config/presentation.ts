@@ -4,7 +4,7 @@ export function createStudioPresentationPlugin() {
   return presentationTool({
     title: "ตัวอย่างเว็บไซต์",
     previewUrl: {
-      initial: "/",
+      initial: "/blog/",
       previewMode: {
         enable: "/api/preview/enable",
       },

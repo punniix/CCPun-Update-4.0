@@ -9,6 +9,7 @@ import {
 import {
   classifyProductionAdminPath,
   isAdminRequestBoundary,
+  isAuthenticatedAdminPreviewPath,
   isExactAdminPreviewOrigin,
   isKnownAdminDeploymentHost,
 } from "../../lib/admin/host-routing";
@@ -36,7 +37,7 @@ test("Production Admin allows only Control Plane, Auth, Studio and bootstrap rou
   }
 });
 
-test("Production Admin rejects public CCPun website routes even for authenticated users", () => {
+test("Production Admin classifier rejects public CCPun website routes by default", () => {
   for (const path of [
     "/blog",
     "/blog/insurance",
@@ -49,6 +50,24 @@ test("Production Admin rejects public CCPun website routes even for authenticate
     "/api/public-example",
   ]) {
     assert.equal(classifyProductionAdminPath(path), "reject", path);
+  }
+});
+
+test("authenticated Admin draft preview whitelist is narrow and article-focused", () => {
+  for (const path of ["/blog", "/blog/", "/blog/life-insurance/example/", "/assets/example.webp", "/images/example.png"]) {
+    assert.equal(isAuthenticatedAdminPreviewPath(path), true, path);
+  }
+  for (const path of [
+    "/",
+    "/tools/financial-health-check/",
+    "/ci-planning/",
+    "/privacy/",
+    "/cookie-policy/",
+    "/sitemap.xml",
+    "/api/auth/session/",
+    "/api/admin/session/",
+  ]) {
+    assert.equal(isAuthenticatedAdminPreviewPath(path), false, path);
   }
 });
 

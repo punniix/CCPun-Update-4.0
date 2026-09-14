@@ -109,7 +109,14 @@ export const article = defineType({
     }),
   orderings: [{ title: "แก้ไขล่าสุดก่อน", name: "updatedDesc", by: [{ field: "_updatedAt", direction: "desc" }] }],
   preview: {
-    select: { title: "title", subtitle: "review.status", media: "featuredImage" },
-    prepare: ({ title, subtitle, media }) => ({ title: title?.trim() || "บทความใหม่", subtitle: `ตรวจสอบ: ${reviewLabels[subtitle] || "ยังไม่ได้ระบุ"}`, media }),
+    select: { title: "title", id: "_id", publishedAt: "publishedAt", reviewStatus: "review.status", media: "featuredImage" },
+    prepare: ({ title, id, publishedAt, reviewStatus, media }) => {
+      const draft = String(id ?? "").startsWith("drafts.");
+      const publicationLabel = draft
+        ? publishedAt ? "เผยแพร่แล้ว · มีฉบับร่างแก้ไข" : "ฉบับร่างใหม่"
+        : publishedAt ? "เผยแพร่แล้ว · ฉบับ Live" : "ยังไม่เผยแพร่";
+      const reviewLabel = reviewLabels[reviewStatus] || "ยังไม่ได้ระบุขั้นตรวจ";
+      return { title: title?.trim() || "บทความใหม่", subtitle: `${publicationLabel} · ${reviewLabel}`, media };
+    },
   },
 });

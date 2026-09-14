@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
-import { IS_REVIEW_ENVIRONMENT } from "./lib/deployment-environment";
+import { IS_ADMIN_APPLICATION, IS_REVIEW_ENVIRONMENT } from "./lib/deployment-environment";
 import { SECURITY_HEADERS } from "./lib/security-policy";
 import { getAdminEnvironment, isSanityLaneAllowed } from "./lib/admin/environment";
 
@@ -22,6 +22,7 @@ const ADMIN_PRIVATE_PAGE_SOURCES = [
   "/operations/:path*",
   "/settings/:path*",
 ];
+const ADMIN_PROTECTED_PREVIEW_SOURCES = IS_ADMIN_APPLICATION ? ["/blog/:path*"] : [];
 
 const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
@@ -128,6 +129,10 @@ const nextConfig: NextConfig = {
       ...ADMIN_PRIVATE_PAGE_SOURCES.map((source) => ({
         source,
         headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
+      })),
+      ...ADMIN_PROTECTED_PREVIEW_SOURCES.map((source) => ({
+        source,
+        headers: PRIVATE_ADMIN_API_HEADERS,
       })),
       {
         source: "/studio/:path*",

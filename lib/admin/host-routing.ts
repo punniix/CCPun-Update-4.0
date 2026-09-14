@@ -53,6 +53,15 @@ function isPathOrChild(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+export function isAuthenticatedAdminPreviewPath(pathname: string): boolean {
+  const path = pathname || "/";
+  return (
+    isPathOrChild(path, "/blog") ||
+    isPathOrChild(path, "/assets") ||
+    isPathOrChild(path, "/images")
+  );
+}
+
 export function classifyProductionAdminPath(pathname: string): ProductionAdminPathDisposition {
   const path = pathname || "/";
 
