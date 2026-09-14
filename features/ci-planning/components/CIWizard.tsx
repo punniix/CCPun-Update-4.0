@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import { calculateCI } from '@/features/ci-planning/calculator/calculator';
@@ -16,24 +15,26 @@ import StepExpenses from './steps/StepExpenses';
 const TOTAL_STEPS = 2;
 const STEP_SECTION_KEYS: Array<'expenses' | 'existingCI'> = ['expenses', 'existingCI'];
 
-const slideVariants = {
-  enter: (direction: number) => ({ x: direction > 0 ? 160 : -160, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({ x: direction > 0 ? -160 : 160, opacity: 0 }),
-};
-
 export default function CIWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<CIFormData>(INITIAL_CI_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<CIResult | null>(null);
-  const [direction, setDirection] = useState(0);
   const hasStartedRef = useRef(false);
   const hasCompletedRef = useRef(false);
   const trackedStepsRef = useRef(new Set<number>());
   const startedAtRef = useRef<number | null>(null);
   const stepRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
+  const previousViewRef = useRef('0:form');
+  useEffect(() => {
+    const view = `${currentStep}:${result ? 'result' : 'form'}`;
+    if (previousViewRef.current === view) return;
+    previousViewRef.current = view;
+    if (result) return; // Result owns its own heading focus.
+    const heading = stepRef.current?.querySelector<HTMLElement>('h2');
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }, [currentStep, result]);
 
   useEffect(() => {
     const startedAt = startedAtRef.current;
@@ -110,7 +111,6 @@ export default function CIWizard() {
     }
 
     const nextStep = currentStep + 1;
-    setDirection(1);
     setErrors({});
     setCurrentStep(nextStep);
     trackStepView(nextStep + 1);
@@ -118,7 +118,6 @@ export default function CIWizard() {
 
   const handlePrev = () => {
     if (currentStep === 0) return;
-    setDirection(-1);
     setErrors({});
     setCurrentStep((step) => step - 1);
   };
@@ -147,7 +146,7 @@ export default function CIWizard() {
   const stepProps = { data: formData, updateData, errors };
 
   return (
-    <div>
+    <form noValidate onSubmit={(event) => { event.preventDefault(); handleNext(); }}>
       <div className="mb-8">
         <CIProgress currentStep={currentStep} />
         {currentStep === 0 && (
@@ -158,43 +157,26 @@ export default function CIWizard() {
       </div>
 
       <div className="flex min-h-[320px] flex-col">
-        <div className="relative flex-1 overflow-hidden">
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
-            <motion.div
-              ref={stepRef}
-              key={currentStep}
-              custom={direction}
-              variants={slideVariants}
-              initial={reduceMotion ? false : 'enter'}
-              animate="center"
-              exit={reduceMotion ? undefined : 'exit'}
-              transition={{ duration: reduceMotion ? 0 : 0.28, ease: 'easeInOut' }}
-            >
-              {currentStep === 0
-                ? <StepExpenses {...stepProps} />
-                : <StepExistingCI {...stepProps} />}
-            </motion.div>
-          </AnimatePresence>
+        <div ref={stepRef} className="min-w-0 flex-1">
+          {currentStep === 0
+            ? <StepExpenses {...stepProps} />
+            : <StepExistingCI {...stepProps} />}
         </div>
 
-        <div className={`mt-8 flex items-center border-t border-border/30 pt-6 ${currentStep === 0 ? 'justify-center' : 'justify-between'}`}>
+        <div className="mt-8 flex flex-wrap items-center justify-end gap-3 border-t border-border/30 pt-6">
           {currentStep > 0 && (
             <button
               type="button"
               onClick={handlePrev}
               aria-label="ย้อนกลับ"
-              className="glass-button flex items-center gap-2 text-foreground"
+              className="glass-button mr-auto flex min-h-12 items-center gap-2 text-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
               <span>ย้อนกลับ</span>
             </button>
           )}
 
-          {currentStep > 0 && (
-            <span className="text-sm text-muted-foreground">{currentStep + 1} / {TOTAL_STEPS}</span>
-          )}
-
-          <button type="button" onClick={handleNext} className="gold-button flex items-center gap-2">
+          <button type="submit" className="gold-button flex min-h-12 items-center justify-center gap-2">
             <span>{currentStep === TOTAL_STEPS - 1 ? 'ดูผลคำนวณ' : 'ถัดไป'}</span>
             {currentStep === TOTAL_STEPS - 1
               ? <BarChart3 className="h-4 w-4" />
@@ -202,6 +184,6 @@ export default function CIWizard() {
           </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 }

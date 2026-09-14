@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, ReactNode } from "react";
+import { MOTION } from "@/lib/motion/tokens";
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -17,20 +18,20 @@ const ScrollReveal = ({
   children,
   className = "",
   delay = 0,
-  duration = 0.6,
+  duration = MOTION.duration.reveal,
   direction = "up",
-  distance = 50,
+  distance = MOTION.distance.reveal,
   once = true,
   threshold = 0.2,
 }: ScrollRevealProps) => {
   const ref = useRef<HTMLDivElement>(null);
 
-  const getTranslate = () => {
+  const getTranslate = (resolvedDistance = distance) => {
     switch (direction) {
-      case "up":    return `translateY(${distance}px)`;
-      case "down":  return `translateY(-${distance}px)`;
-      case "left":  return `translateX(${distance}px)`;
-      case "right": return `translateX(-${distance}px)`;
+      case "up":    return `translateY(${resolvedDistance}px)`;
+      case "down":  return `translateY(-${resolvedDistance}px)`;
+      case "left":  return `translateX(${resolvedDistance}px)`;
+      case "right": return `translateX(-${resolvedDistance}px)`;
       case "none":  return "none";
     }
   };
@@ -54,9 +55,13 @@ const ScrollReveal = ({
     }
 
     // Set initial hidden state
+    const resolvedDistance = window.matchMedia('(max-width: 640px)').matches
+      ? Math.min(distance, 8)
+      : distance;
+    const easing = `cubic-bezier(${MOTION.easing.standard.join(',')})`;
     el.style.opacity = "0";
-    el.style.transform = getTranslate();
-    el.style.transition = `opacity ${duration}s cubic-bezier(0.25,0.1,0.25,1) ${delay}s, transform ${duration}s cubic-bezier(0.25,0.1,0.25,1) ${delay}s`;
+    el.style.transform = getTranslate(resolvedDistance);
+    el.style.transition = `opacity ${duration}s ${easing} ${delay}s, transform ${duration}s ${easing} ${delay}s`;
     el.style.willChange = "transform, opacity";
 
     const observer = new IntersectionObserver(
@@ -68,7 +73,7 @@ const ScrollReveal = ({
             if (once) observer.unobserve(el);
           } else if (!once) {
             el.style.opacity = "0";
-            el.style.transform = getTranslate();
+            el.style.transform = getTranslate(resolvedDistance);
           }
         });
       },

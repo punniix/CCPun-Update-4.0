@@ -153,6 +153,14 @@ export default function CiPlanningPage() {
               </p>
             </aside>
 
+            <aside aria-labelledby="ci-recovery-title" className="border-y border-border/40 py-6">
+              <p className="text-sm font-semibold text-primary">Recovery Reserve · ข้อพิจารณาเพิ่มเติม</p>
+              <h2 id="ci-recovery-title" className="mt-2 text-2xl font-bold text-foreground">ค่าใช้จ่ายระหว่างพักฟื้นยังไม่ถูกเติมให้อัตโนมัติ</h2>
+              <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground">
+                ค่าฟื้นฟูและกายภาพ การเดินทางหรืออุปกรณ์ การปรับบ้าน และผลกระทบจากผู้ดูแลแตกต่างกันมาก เครื่องมือจึงไม่ตั้งค่าเริ่มต้นหรือสมมติรายได้ที่หายไปให้เอง เพื่อไม่สร้างความแม่นยำเกินจริง ควรทบทวนรายการเหล่านี้แยกจากผลประมาณการก่อนตัดสินใจ
+              </p>
+            </aside>
+
             <section aria-labelledby="ci-faq-title">
               <h2 id="ci-faq-title" className="text-2xl font-bold text-foreground">
                 คำถามที่พบบ่อย
