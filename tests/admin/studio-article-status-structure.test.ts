@@ -10,10 +10,10 @@ test("Studio article workspace separates publication lifecycle states", () => {
   assert.match(source, /ฉบับร่างใหม่ · ยังไม่เคยเผยแพร่/);
   assert.match(source, /เผยแพร่แล้ว · มีฉบับร่างแก้ไข/);
   assert.match(source, /เผยแพร่แล้ว · ฉบับ Live/);
-  assert.match(source, /const ARTICLE_DRAFT_FILTER = `_type == "article" && _id in path\("drafts\.\*\*"\)`/);
+  assert.match(source, /const ARTICLE_DRAFT_FILTER = `_type == "article" && _originalId in path\("drafts\.\*\*"\)`/);
   assert.match(source, /\$\{ARTICLE_DRAFT_FILTER\} && !defined\(publishedAt\)/);
   assert.match(source, /\$\{ARTICLE_DRAFT_FILTER\} && defined\(publishedAt\)/);
-  assert.match(source, /!\(_id in path\("drafts\.\*\*"\)\) && defined\(publishedAt\)/);
+  assert.match(source, /!defined\(_originalId\) && defined\(publishedAt\)/);
 });
 
 test("Studio article workspace exposes the existing review workflow as filtered draft lists", () => {
@@ -28,6 +28,7 @@ test("Studio article workspace exposes the existing review workflow as filtered 
 test("Article list preview displays publication state together with review stage", () => {
   const source = read("cms/sanity/schema/documents/article.ts");
   assert.match(source, /id: "_id"/);
+  assert.match(source, /originalId: "_originalId"/);
   assert.match(source, /publishedAt: "publishedAt"/);
   assert.match(source, /เผยแพร่แล้ว · มีฉบับร่างแก้ไข/);
   assert.match(source, /ฉบับร่างใหม่/);

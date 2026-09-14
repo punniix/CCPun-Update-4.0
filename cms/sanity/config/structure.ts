@@ -2,7 +2,7 @@ import { structureTool, type StructureBuilder } from "sanity/structure";
 import { filterStudioStructureItems } from "../policy/studio-policy";
 import type { AdminEnvironment } from "../../../lib/admin/environment";
 
-const ARTICLE_DRAFT_FILTER = `_type == "article" && _id in path("drafts.**")`;
+const ARTICLE_DRAFT_FILTER = `_type == "article" && _originalId in path("drafts.**")`;
 
 function articleDocumentList(
   S: StructureBuilder,
@@ -53,7 +53,7 @@ function articleWorkspace(
           S.listItem()
             .id("articles-published")
             .title("เผยแพร่แล้ว · ฉบับ Live")
-            .child(articleDocumentList(S, "เผยแพร่แล้ว · ฉบับ Live", `_type == "article" && !(_id in path("drafts.**")) && defined(publishedAt)`)),
+            .child(articleDocumentList(S, "เผยแพร่แล้ว · ฉบับ Live", `_type == "article" && !defined(_originalId) && defined(publishedAt)`)),
           S.divider(),
           S.listItem()
             .id("articles-review-stage")
