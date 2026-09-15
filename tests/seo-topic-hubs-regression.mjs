@@ -28,11 +28,13 @@ assert.match(taxonomy, /"what-is-critical-illness-insurance": "critical-illness-
 assert.match(taxonomy, /"aia-vitality": "life-insurance"/);
 
 // Foundation cutover: Health and Critical Illness are reviewed physical article
-// categories. The legacy Critical Illness topic slug remains an alias only.
+// categories. Motor remains a separately guarded public route rather than being
+// widened into this primary taxonomy registry by the CI migration.
 const activeCategoryBlock = taxonomy.match(/ACTIVE_ARTICLE_CATEGORIES = \[[\s\S]*?\] as const/)?.[0] ?? '';
-for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'motor-insurance', 'investment']) {
+for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
   assert.match(activeCategoryBlock, new RegExp(slug));
 }
+assert.doesNotMatch(activeCategoryBlock, /motor-insurance/);
 assert.match(taxonomy, /"critical-illness": "critical-illness-insurance"/);
 
 // Explicit Semantic Topic is carried from Sanity into the public semantic layer, but protected

@@ -3,7 +3,6 @@ export const ACTIVE_ARTICLE_CATEGORIES = [
   { slug: "life-insurance", title: "ประกันชีวิต" },
   { slug: "health-insurance", title: "ประกันสุขภาพ" },
   { slug: "critical-illness-insurance", title: "ประกันโรคร้ายแรง" },
-  { slug: "motor-insurance", title: "ประกันรถยนต์" },
   { slug: "investment", title: "การลงทุน" },
 ] as const;
 
@@ -156,7 +155,7 @@ export function normalizeArticleTaxonomy({
   const title = categoryTitle?.trim() ?? "";
   const suppliedSlug = categorySlug?.trim().toLowerCase() ?? "";
   const slug = CATEGORY_SLUG_ALIASES[suppliedSlug] ?? suppliedSlug;
-  const legacySlugTopic = LEGACY_CATEGORY_TOPICS[slug as keyof typeof LEGACY_CATEGORY_TOPICS];
+  const legacySlugTopic = LEGACY_CATEGORY_TOPICS[suppliedSlug as keyof typeof LEGACY_CATEGORY_TOPICS];
   const legacyTitleTopic = LEGACY_TOPIC_BY_TITLE[title];
   const combinedLegacyTitle = title === "ประกันสุขภาพและโรคร้ายแรง";
   const slugCategory = activeSlugs.has(slug) ? slug : legacySlugTopic ? "life-insurance" : null;

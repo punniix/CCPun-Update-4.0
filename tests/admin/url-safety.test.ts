@@ -9,19 +9,19 @@ import {
   isArticleCanonicalAligned,
 } from "../../lib/content/url";
 
-test("health insurance is a physical URL category while critical illness keeps the existing life path", () => {
+test("health insurance and critical illness are reviewed physical URL categories", () => {
   const health = { slug: "example", category: "ประกันสุขภาพ", categorySlug: "health-insurance" };
   assert.equal(getArticlePath(health), "/blog/health-insurance/example/");
   assert.equal(getArticleCanonical(health), "https://ccpun.com/blog/health-insurance/example/");
   assert.equal(isArticleCanonicalAligned(health), true);
 
   const critical = { slug: "example", category: "ประกันโรคร้ายแรง", categorySlug: "critical-illness" };
-  assert.equal(getArticlePath(critical), "/blog/life-insurance/example/");
-  assert.equal(getArticleCanonical(critical), "https://ccpun.com/blog/life-insurance/example/");
+  assert.equal(getArticlePath(critical), "/blog/critical-illness-insurance/example/");
+  assert.equal(getArticleCanonical(critical), "https://ccpun.com/blog/critical-illness-insurance/example/");
   assert.equal(isArticleCanonicalAligned(critical), true);
 });
 
-test("motor insurance is an explicitly reviewed public URL category", () => {
+test("motor insurance remains an explicitly reviewed guarded public URL category", () => {
   const motor = { slug: "car-insurance-types", category: "ประกันรถยนต์", categorySlug: "motor-insurance" };
   assert.equal(getArticlePath(motor), "/blog/motor-insurance/car-insurance-types/");
   assert.equal(getArticleCanonical(motor), "https://ccpun.com/blog/motor-insurance/car-insurance-types/");
@@ -43,17 +43,21 @@ test("protected health winner pages resolve to Health even while published Sanit
 });
 
 test("controlled article moves are locked to one-hop final paths", () => {
+  const finalCritical = "/blog/critical-illness-insurance/what-is-critical-illness-insurance/";
   assert.equal(getMovedArticleRedirectPath("life-insurance", "aia-health-happy-describe"), "/blog/health-insurance/aia-health-happy-describe/");
   assert.equal(getMovedArticleRedirectPath("life-insurance", "aia-health-ci-hero-guide"), "/blog/health-insurance/aia-health-ci-hero-guide/");
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-happy-describe"), null);
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-ci-hero-guide"), null);
-  assert.equal(getMovedArticleRedirectPath("critical-illness", "critical-illness-insurance"), "/blog/life-insurance/critical-illness-insurance/");
+  assert.equal(getMovedArticleRedirectPath("life-insurance", "critical-illness-insurance"), finalCritical);
+  assert.equal(getMovedArticleRedirectPath("critical-illness", "critical-illness-insurance"), finalCritical);
+  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "critical-illness-insurance"), finalCritical);
+  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "what-is-critical-illness-insurance"), null);
   assert.equal(getMovedArticleRedirectPath("life-insurance", "aia-vitality"), null);
 });
 
-test("legacy category landing paths redirect to tag filters without colliding with article slugs", () => {
+test("legacy category landing paths redirect without colliding with final category owners", () => {
   assert.equal(getLegacyCategoryRedirectPath("health-insurance"), "/blog/?tag=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B1%E0%B8%99%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B8%A0%E0%B8%B2%E0%B8%9E");
-  assert.equal(getLegacyCategoryRedirectPath("critical-illness"), "/blog/?tag=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B1%E0%B8%99%E0%B9%82%E0%B8%A3%E0%B8%84%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%A2%E0%B9%81%E0%B8%A3%E0%B8%87");
+  assert.equal(getLegacyCategoryRedirectPath("critical-illness"), "/blog/critical-illness-insurance/");
   assert.equal(getLegacyCategoryRedirectPath("critical-illness-insurance"), null);
 });
 
