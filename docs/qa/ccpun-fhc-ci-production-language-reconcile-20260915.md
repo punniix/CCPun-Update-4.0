@@ -210,3 +210,30 @@ Article `aia-health-ci-hero-guide` readback after the final specificity fix:
 The Article support width rule uses the stronger `.section > .articleSupportInner` / `.sectionDeep > .articleSupportInner` selector so the shared 1280px public shell cannot override the 1060px Article reading axis.
 
 Blog archive and Health category were also loaded with real Production content in the read-only lane. Fresh 390/820 loads confirmed the featured carousel and article cards stay inside the responsive shell with zero horizontal overflow (342px single-column at 390; 361px two-column cards at 820). A transient overflow observed only while programmatically resizing one already-hydrated carousel tab did not reproduce on fresh loads and was therefore classified as emulation state rather than initial-layout behavior.
+
+
+## Article sources + Kanit first-paint performance follow-up
+
+Owner review explicitly included the Article `แหล่งอ้างอิง` section in the reading-width requirement and requested Kanit to be available from the first visual paint without sacrificing LCP.
+
+Article sources:
+- the conditional sources block is explicitly tagged `data-uat-section="article-sources"`
+- its inner container remains `articleSupportInner`, so it inherits the same 1060px desktop reading/support axis as FAQ, author, CTA, related articles and disclaimer
+- regression coverage now checks this block directly instead of only relying on a support-section count
+
+Font/LCP experiment (390x844 mobile emulation, cache disabled, 150ms latency, ~1.6 Mbps download, five runs per candidate):
+- baseline `next/font` (`preload:false`, `display:optional`): LCP median ~980ms, CLS 0
+- preload all Thai + Latin weights: LCP median ~1252ms — rejected
+- preload all four Thai weights: LCP median ~1272ms — rejected
+- preload Thai 400/700 only + Home hero preload: LCP median ~964ms — passed
+- preload Thai 400/600/700 + Home hero preload: LCP median ~992ms, CLS 0 — selected because it covers the normal Website 4.3 above-the-fold body/nav/eyebrow/heading weights while remaining effectively at baseline LCP
+
+Selected loading strategy:
+- full Kanit family remains self-hosted through `next/font` with Thai + Latin weights 300/400/600/700, `display:optional`, `preload:false`
+- a bounded critical Kanit instance preloads only Thai 400/600/700
+- generated HTML contains exactly three critical font preloads (not all font files) plus the Home LCP image preload
+- browser resource timing confirmed the preloaded 400/600/700 Thai files complete before first paint under the test throttle
+- the normal copies of those Thai weights are not fetched again; the preloaded `.p` resources satisfy the active `@font-face` declarations
+- Home hero image is explicitly preloaded/fetch-priority high so the font budget does not displace the image LCP candidate
+
+This is intentionally not a font-blocking strategy: `font-display: optional` keeps text paintable on unusually slow connections instead of forcing LCP to wait for a font. It prioritizes the real Kanit files early enough for the normal first paint while preserving a safe fallback path.

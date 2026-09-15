@@ -189,7 +189,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
         </section>
 
         {article.sources && article.sources.length > 0 && (
-          <section className={styles.section}>
+          <section className={styles.section} data-uat-section="article-sources">
             <div className={`${styles.inner} ${styles.articleSupportInner}`}>
               <h2 className={styles.h2}>แหล่งอ้างอิง</h2>
               <ul className={styles.articleSources}>

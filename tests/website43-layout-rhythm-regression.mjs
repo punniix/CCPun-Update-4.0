@@ -8,6 +8,8 @@ const transition = read('components/layout/website-43/Website43TransitionStyles.
 const navbar = read('components/layout/website-43/Website43Navbar.module.css');
 const css = read('components/layout/website-43/Website43.module.css');
 const article = read('features/blog/website-43/Website43Article.tsx');
+const layout = read('app/layout.tsx');
+const home = read('features/home/website-43/Website43Home.tsx');
 
 test('wide desktop Website 4.3 shells stay centered instead of pinning to the left', () => {
   assert.match(transition, /--w43-shell-left: max\(var\(--w43-nav-gutter\), calc\(\(100vw - 1280px\) \/ 2\)\)/);
@@ -33,4 +35,20 @@ test('major vertical transitions use balanced rhythm instead of UAT-only compres
   assert.match(css, /\.articleHeader \{ padding: 56px 80px 32px;/);
   assert.match(css, /\.articleReadingWrap \{ padding: 48px 80px 72px;/);
   assert.match(css, /@media \(min-width: 1200px\)[\s\S]*?\.calculatorSection[\s\S]*?padding-bottom: 48px;/);
+});
+
+
+test('article sources stay on the same support/read axis as the rest of the article', () => {
+  assert.match(article, /article\.sources && article\.sources\.length > 0[\s\S]*?data-uat-section="article-sources"[\s\S]*?styles\.articleSupportInner[\s\S]*?>แหล่งอ้างอิง</);
+});
+
+test('Kanit starts early without putting the whole font family on the critical path', () => {
+  assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["300", "400", "600", "700"\][\s\S]*?display: "optional"[\s\S]*?preload: false/);
+  assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai"\][\s\S]*?weight: \["400", "600", "700"\][\s\S]*?display: "optional"[\s\S]*?preload: true/);
+  assert.match(layout, /className=\{`\$\{kanit\.variable\} \$\{kanitCritical\.variable\}`\}/);
+  assert.doesNotMatch(layout, /const kanitCritical = Kanit\(\{[\s\S]*?weight: \[[^\]]*"300"/);
+});
+
+test('the Home LCP image is preloaded alongside the bounded critical font budget', () => {
+  assert.match(home, /home-hero-desktop\.png[\s\S]*?fill preload loading="eager" fetchPriority="high" sizes="100vw"/);
 });

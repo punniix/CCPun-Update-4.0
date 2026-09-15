@@ -16,11 +16,15 @@ const kanit = Kanit({
   weight: ["300", "400", "600", "700"],
   variable: "--font-kanit",
   display: "optional",
-  // Website 4.3 can paint with its system fallback immediately. Loading all
-  // Thai + Latin weight files at highest priority competes with the Home LCP
-  // image on cold mobile visits, so let the browser fetch the same self-hosted
-  // Kanit files only when its CSS actually needs them.
   preload: false,
+});
+
+const kanitCritical = Kanit({
+  subsets: ["thai"],
+  weight: ["400", "600", "700"],
+  variable: "--font-kanit-critical",
+  display: "optional",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -71,7 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="th" className={kanit.variable} suppressHydrationWarning>
+    <html lang="th" className={`${kanit.variable} ${kanitCritical.variable}`} suppressHydrationWarning>
       <head>
         {IS_REVIEW_ENVIRONMENT ? <meta name="darkreader-lock" /> : null}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
