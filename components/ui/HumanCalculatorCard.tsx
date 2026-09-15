@@ -18,16 +18,21 @@ export default function HumanCalculatorCard({
   labelledBy?: string;
 }) {
   const progress = Math.max(0, Math.min(100, (step / total) * 100));
+
   return (
     <section
       aria-labelledby={labelledBy}
       data-ui="human-centered-calculator-card"
-      className="mx-auto w-full max-w-[44rem] rounded-2xl border border-white/10 bg-[hsl(0_12%_27%_/_0.72)] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.16)] backdrop-blur-sm sm:p-5 md:p-6"
+      className="mx-auto w-full max-w-[44rem] rounded-2xl border p-4 sm:p-5 md:p-6"
+      style={{
+        borderColor: 'var(--w43-border)',
+        background: 'var(--w43-surface)',
+      }}
     >
       <div className="mb-5">
-        <div className="flex items-center justify-between gap-4 text-xs font-medium text-primary">
-          <span>ขั้นตอน {step} จาก {total}</span>
-          <span className="text-white/45">ใช้ข้อมูลเท่าที่ทราบ</span>
+        <div className="flex items-center justify-between gap-4 text-xs font-medium">
+          <span style={{ color: 'var(--w43-gold)' }}>ขั้นตอน {step} จาก {total}</span>
+          <span style={{ color: 'var(--w43-muted)' }}>ใช้ข้อมูลเท่าที่ทราบ</span>
         </div>
         <div
           role="progressbar"
@@ -35,20 +40,34 @@ export default function HumanCalculatorCard({
           aria-valuemin={1}
           aria-valuemax={total}
           aria-valuenow={step}
-          className="mt-3 h-0.5 overflow-hidden rounded-full bg-white/15"
+          className="mt-3 h-px overflow-hidden rounded-full"
+          style={{ background: 'rgba(250,249,249,.14)' }}
         >
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none"
+            style={{ width: `${progress}%`, background: 'var(--w43-gold)' }}
           />
         </div>
       </div>
+
       <div className="mb-5">
-        <h3 id={labelledBy} tabIndex={-1} className="scroll-mt-28 rounded-sm text-lg font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-xl">{title}</h3>
-        {description ? <p className="mt-1.5 text-sm leading-6 text-white/55">{description}</p> : null}
+        <h3
+          id={labelledBy}
+          tabIndex={-1}
+          className="scroll-mt-28 rounded-sm text-lg font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-xl"
+          style={{ color: 'var(--w43-ink)' }}
+        >
+          {title}
+        </h3>
+        {description ? (
+          <p className="mt-1.5 text-sm leading-6" style={{ color: 'var(--w43-muted)' }}>{description}</p>
+        ) : null}
       </div>
+
       <div className="space-y-5">{children}</div>
-      {footer ? <div className="mt-6 border-t border-white/10 pt-4">{footer}</div> : null}
+      {footer ? (
+        <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--w43-border)' }}>{footer}</div>
+      ) : null}
     </section>
   );
 }

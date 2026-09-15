@@ -247,7 +247,7 @@ for (const requiredLandingCopy of [
   );
 }
 assert(!ciLandingSource.includes('คำถามที่ไม่มีคำตอบเดียว'), 'lean CI landing must remove the deleted eyebrow');
-assert(ciPageSource.includes('highlightOnNewLine'), 'CI hero highlight must start on its own line');
+assert(ciPageSource.includes('Website43ToolHero') && ciPageSource.includes('line2="เพียงพอรับภาระจริงไหม?"'), 'CI hero must keep the approved Website 4.3 split-title treatment');
 assert(!ciPageSource.includes('· Beta'), 'CI Research Preview must not retain the Beta label');
 assert(!navConfigSource.includes('วางแผนเงินก้อนโรคร้ายแรง (Beta)'), 'CI navigation must not retain the Beta label');
 for (const activeCiSource of [ciPageSource, ciExpensesSource, ciExistingSource, ciResultSource, ciCalculatorSource, ciTypesSource]) {

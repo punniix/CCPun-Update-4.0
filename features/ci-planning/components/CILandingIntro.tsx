@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef } from 'react';
+import styles from '@/components/layout/website-43/Website43.module.css';
 import { trackEvent } from '@/lib/analytics';
 import { CI_ASSESSMENT_VERSION } from '@/features/ci-planning/calculator/constants';
 import { getConsentData } from '@/lib/cookie-consent';
@@ -52,40 +53,35 @@ export default function CILandingIntro() {
   }, []);
 
   return (
-    <section aria-labelledby="ci-problem-title" className="px-4 py-12 md:py-16">
-      <div className="mx-auto max-w-5xl">
-        <h2 id="ci-problem-title" className="text-2xl font-bold leading-snug text-foreground md:text-3xl">
-          เพราะคำว่า “พอ” ของแต่ละคนไม่เท่ากัน
-        </h2>
-        <div className="mt-5 max-w-3xl space-y-4 text-base leading-relaxed text-muted-foreground">
+    <section aria-labelledby="ci-problem-title" className={styles.toolStorySection}>
+      <div className={styles.narrow}>
+        <h2 id="ci-problem-title" className={styles.h2}>เพราะคำว่า “พอ” ของแต่ละคนไม่เท่ากัน</h2>
+        <div className={styles.storyCopy}>
           <p>หลายๆ คน รวมถึงผม พอเริ่มคิดเรื่องทุนประกันโรคร้ายแรง ก็มักติดอยู่กับคำถามเดียวกันว่า “ต้องมีเท่าไรถึงจะพอ?”</p>
           <p>เพราะเราไม่รู้ล่วงหน้าว่าโรคร้ายแรงจะเกิดเมื่อไร ต้องพักรักษาตัวนานแค่ไหน หรือรายได้จะหายไปเท่าไร แต่ค่าบ้าน ค่ารถ หนี้บัตรเครดิต ค่าเทอมลูก และค่าใช้จ่ายในครอบครัวยังเดินต่อ</p>
           <p>ผมจึงลองแยกรายได้และภาระทีละส่วน วางตามช่วงเวลาที่ต้องรับผิดชอบจริง แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์ที่พร้อมใช้ เพื่อให้เห็นที่มาของตัวเลขชัดขึ้น</p>
         </div>
 
-        <ul className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {storyBeats.map((beat, index) => (
-            <li key={beat.title} className={index === 2 ? 'md:col-span-2 md:mx-auto md:w-[calc(50%-1rem)] lg:col-span-1 lg:mx-0 lg:w-auto' : undefined}>
-              <div className="relative aspect-[4/3] w-full overflow-hidden">
-                <Image src={beat.src} alt={beat.alt} fill loading="lazy" sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) 46vw, 320px" className="object-cover" />
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(90deg, hsl(var(--background)) 0%, transparent 10%, transparent 90%, hsl(var(--background)) 100%)' }} />
-                <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4" style={{ background: 'linear-gradient(180deg, transparent 0%, hsl(var(--background)) 100%)' }} />
+        <div className={styles.ciStoryGrid}>
+          {storyBeats.map((beat) => (
+            <article className={styles.ciStoryCard} key={beat.title}>
+              <Image
+                src={beat.src}
+                alt={beat.alt}
+                width={1200}
+                height={900}
+                sizes="(max-width: 639px) calc(100vw - 48px), (max-width: 1023px) 46vw, 390px"
+              />
+              <div>
+                <h3>{beat.title}</h3>
+                <p>{beat.description}</p>
               </div>
-              <div className="border-l border-primary/40 pl-4">
-                <h3 className="text-lg font-semibold text-foreground">{beat.title}</h3>
-                <p className="mt-2 text-base leading-relaxed text-muted-foreground">{beat.description}</p>
-              </div>
-            </li>
+            </article>
           ))}
-        </ul>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">ภาพประกอบสร้างด้วย Generative AI</p>
-        <p className="mt-10 max-w-3xl text-base leading-relaxed text-foreground/90">
+        </div>
+        <p className={styles.eyebrow} style={{ marginTop: 20 }}>ภาพประกอบสร้างด้วย Generative AI</p>
+        <p className={styles.lead}>
           เมื่อแยกทีละส่วน คุณจะเห็นที่มาของตัวเลข ภาระส่วนไหนต้องดูแลอีกนาน และเงินก้อนจากประกันโรคร้ายแรงที่มีอยู่ช่วยรองรับได้เพียงใด
-        </p>
-        <p className="mt-8 border-t border-border/30 pt-5 text-sm leading-relaxed text-muted-foreground">
-          ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลและสมมติฐานที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล
-          และไม่ยืนยันว่าจำนวนเงินจะเพียงพอในทุกกรณี โปรดศึกษารายละเอียดความคุ้มครอง เงื่อนไข
-          และข้อยกเว้นของกรมธรรม์ก่อนตัดสินใจทำประกันภัย และประกันไม่ใช่เงินฝาก
         </p>
       </div>
     </section>

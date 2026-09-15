@@ -128,28 +128,28 @@ export default function LifeCoverageWizard() {
     trackStep(2);
   };
 
-  if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="mx-auto max-w-[44rem] space-y-6">
-    <div className="rounded-2xl border border-primary/25 bg-primary/[0.06] p-5 sm:p-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">ผลการประเมิน</p>
-      <h2 id="life-result-title" tabIndex={-1} className="mt-2 scroll-mt-28 rounded-sm text-2xl font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-3xl">ช่องว่างความคุ้มครองเบื้องต้น<span className="sr-only"> {money(result.gap)} บาท</span></h2>
-      <p className="mt-3 text-4xl font-semibold tabular-nums text-primary sm:text-5xl">{money(result.gap)} <span className="text-lg font-medium">บาท</span></p>
-      <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">ส่วนต่างระหว่างภาระที่คุณกรอก กับทุนประกันชีวิตและสินทรัพย์ที่ตั้งใจใช้ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ</p>
+  if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result">
+    <div className="ccpun-calculator-result-lead">
+      <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
+      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ช่องว่างความคุ้มครองเบื้องต้น<span className="sr-only"> {money(result.gap)} บาท</span></h2>
+      <p className="ccpun-calculator-result-amount">{money(result.gap)} <small>บาท</small></p>
+      <p className="ccpun-calculator-result-body">ส่วนต่างระหว่างภาระที่คุณกรอก กับทุนประกันชีวิตและสินทรัพย์ที่ตั้งใจใช้ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ</p>
     </div>
 
     <MoneyComparison need={result.need} resources={result.resources} title="ภาระที่ต้องดูแลเทียบกับทรัพยากรที่พร้อมใช้" needLabel="ภาระตามข้อมูลที่กรอก" />
 
-    <dl className="divide-y divide-white/10 border-y border-white/10">
-      <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"><dt className="text-sm text-white/55">ค่าใช้จ่ายครอบครัวตามช่วงเวลาที่เลือก</dt><dd className="font-medium tabular-nums">{money(result.familySupport)} บาท</dd></div>
-      <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"><dt className="text-sm text-white/55">หนี้และทุนการศึกษาบุตร</dt><dd className="font-medium tabular-nums">{money(values.debt + values.education)} บาท</dd></div>
-      <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"><dt className="text-sm text-white/55">ทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</dt><dd className="font-medium tabular-nums">{money(result.resources)} บาท</dd></div>
+    <dl className="ccpun-calculator-result-rows">
+      <div className="ccpun-calculator-result-row"><dt>ค่าใช้จ่ายครอบครัวตามช่วงเวลาที่เลือก</dt><dd>{money(result.familySupport)} บาท</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>หนี้และทุนการศึกษาบุตร</dt><dd>{money(values.debt + values.education)} บาท</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>ทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</dt><dd>{money(result.resources)} บาท</dd></div>
     </dl>
 
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 text-sm leading-6 text-white/55">ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล และไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี</div>
+    <div className="ccpun-calculator-result-notice">ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล และไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี</div>
 
-    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-center sm:p-6">
+    <div className="ccpun-calculator-result-cta">
       <FHCLifeResultImageDownloadButton summary={{ familySupport: result.familySupport, debtAndEducation: values.debt + values.education, resources: result.resources, gap: result.gap }} />
-      <h3 className="mt-4 text-lg font-semibold">อยากทบทวนตัวเลขต่อ?</h3>
-      <p className="mt-1 text-sm leading-6 text-white/50">บันทึกภาพนี้ไว้ แล้วส่งมาคุยกับ CCPun ทาง LINE OA ได้เมื่อพร้อม</p>
+      <h3>อยากทบทวนตัวเลขต่อ?</h3>
+      <p>บันทึกภาพนี้ไว้ แล้วส่งมาคุยกับ CCPun ทาง LINE OA ได้เมื่อพร้อม</p>
       <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)" onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />คุยกับ CCPun ทาง LINE OA</a>
     </div>
 

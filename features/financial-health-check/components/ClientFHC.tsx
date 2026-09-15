@@ -1,40 +1,57 @@
-'use client';
-
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import ToolHero from '@/components/layout/ToolHero';
-import FHCLandingIntro from './FHCLandingIntro';
+import styles from '@/components/layout/website-43/Website43.module.css';
+import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
+import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero';
+import FHCLandingIntro, { FHC_FAQS } from './FHCLandingIntro';
 import LifeCoverageWizard from './LifeCoverageWizard';
 
 export default function ClientFHC() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar isToolPage />
+    <div className={styles.root}>
+      <main id="main-content" tabIndex={-1}>
+        <Website43ToolHero
+          image="/assets/website-43/fhc-hero.png"
+          badge="Financial Health Check · โมดูลความคุ้มครองชีวิต"
+          line1="ตรวจสุขภาพการเงิน"
+          line2="เริ่มจากช่องว่างความคุ้มครอง"
+          description="ประเมินภาระที่ครอบครัวยังต้องดูแล แล้วเทียบกับทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้ เพื่อเห็นจุดที่ควรทบทวนต่อในแผนการเงิน"
+          ctaHref="#fhc-calculator"
+          ctaLabel="เริ่มประเมิน"
+        />
 
-      <ToolHero
-        badge="Financial Health Check · โมดูลความคุ้มครองชีวิต"
-        title="ตรวจสุขภาพการเงิน"
-        highlight="เริ่มจากช่องว่างความคุ้มครอง"
-        highlightOnNewLine
-        description="ประเมินภาระที่ครอบครัวยังต้องดูแล แล้วเทียบกับทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้ เพื่อเห็นจุดที่ควรทบทวนต่อในแผนการเงิน"
-      />
-
-      {/* Main content */}
-      <main id="main-content" tabIndex={-1} className="pb-16">
         <FHCLandingIntro />
-        <section id="fhc-calculator" aria-labelledby="fhc-calculator-heading" className="mt-12 scroll-mt-28 border-y border-white/5 bg-[hsl(0_15%_16%_/_0.72)] px-4 py-12 sm:py-14 md:mt-16 md:py-16">
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-7 max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">เครื่องคำนวณทุนประกันชีวิต</p>
-              <h2 id="fhc-calculator-heading" className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">เริ่มจากภาระที่คนข้างหลังต้องดูแล</h2>
-              <p className="mt-2 text-sm leading-6 text-white/55 sm:text-base">2 ขั้นตอน เพื่อเห็นภาระรวม เทียบกับทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</p>
-            </div>
+
+        <section id="fhc-calculator" aria-labelledby="fhc-calculator-heading" className={styles.calculatorSection}>
+          <div className={styles.calculatorHeader}>
+            <p className={styles.eyebrow}>เครื่องคำนวณทุนประกันชีวิต</p>
+            <h2 id="fhc-calculator-heading">เริ่มจากภาระที่คนข้างหลังต้องดูแล</h2>
+            <p>2 ขั้นตอน เพื่อเห็นภาระรวม เทียบกับทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</p>
+          </div>
+          <div className={styles.calculatorStage}>
             <LifeCoverageWizard />
           </div>
         </section>
-      </main>
 
-      <Footer />
+        <section className={`${styles.sectionDeep} ${styles.sectionBottomLarge}`} aria-labelledby="fhc-faq-title">
+          <div className={styles.narrow}>
+            <div className={styles.toolFaq}>
+              <p className={styles.eyebrow}>คำถามที่พบบ่อย</p>
+              <h2 id="fhc-faq-title" className={styles.h2}>เรื่องที่ควรรู้ก่อนใช้ผลประเมิน</h2>
+              <div className={styles.faqDetails}>
+                {FHC_FAQS.map((faq) => (
+                  <details key={faq.question}>
+                    <summary>{faq.question}</summary>
+                    <p>{faq.answer}</p>
+                  </details>
+                ))}
+              </div>
+            </div>
+            <p className={styles.toolDisclaimer}>
+              ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลและสมมติฐานที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล และไม่ยืนยันว่าจำนวนเงินจะเพียงพอในทุกกรณี โปรดศึกษารายละเอียดความคุ้มครอง เงื่อนไข และข้อยกเว้นของกรมธรรม์ก่อนตัดสินใจทำประกันภัย และประกันไม่ใช่เงินฝาก
+            </p>
+          </div>
+        </section>
+      </main>
+      <Website43Footer />
     </div>
   );
 }

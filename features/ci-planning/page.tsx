@@ -1,91 +1,91 @@
-import type { Metadata } from "next";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import ToolHero from "@/components/layout/ToolHero";
-import CILandingIntro from "@/features/ci-planning/components/CILandingIntro";
-import CIWizard from "@/features/ci-planning/components/CIWizard";
-import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
+import type { Metadata } from 'next';
+import styles from '@/components/layout/website-43/Website43.module.css';
+import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
+import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero';
+import CILandingIntro from '@/features/ci-planning/components/CILandingIntro';
+import CIWizard from '@/features/ci-planning/components/CIWizard';
+import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 
 export const metadata: Metadata = {
-  title: "วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun",
-  description: "วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง",
-  keywords: ["วางแผนทุนโรคร้ายแรง", "คำนวณทุนโรคร้ายแรง", "ทุนประกันโรคร้ายแรง"],
+  title: 'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
+  description: 'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง',
+  keywords: ['วางแผนทุนโรคร้ายแรง', 'คำนวณทุนโรคร้ายแรง', 'ทุนประกันโรคร้ายแรง'],
   openGraph: {
-    title: "วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun",
-    description: "วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง",
-    url: "https://ccpun.com/ci-planning/",
-    siteName: "CCPun Financial Advisor",
+    title: 'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
+    description: 'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง',
+    url: 'https://ccpun.com/ci-planning/',
+    siteName: 'CCPun Financial Advisor',
     images: [
       {
-        url: "https://ccpun.com/og-image-20260610.webp?v=68ae8d8",
+        url: 'https://ccpun.com/og-image-20260610.webp?v=68ae8d8',
         width: 1200,
         height: 630,
-        alt: "CCPun วางแผนทุนประกันโรคร้ายแรง",
+        alt: 'CCPun วางแผนทุนประกันโรคร้ายแรง',
       },
     ],
-    locale: "th_TH",
-    type: "website",
+    locale: 'th_TH',
+    type: 'website',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun",
-    description: "วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง",
-    images: ["https://ccpun.com/og-image-20260610.webp?v=68ae8d8"],
+    card: 'summary_large_image',
+    title: 'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
+    description: 'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง',
+    images: ['https://ccpun.com/og-image-20260610.webp?v=68ae8d8'],
   },
   robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
   alternates: {
-    canonical: "https://ccpun.com/ci-planning/",
-    languages: { "th-TH": "https://ccpun.com/ci-planning/", "x-default": "https://ccpun.com/ci-planning/" },
+    canonical: 'https://ccpun.com/ci-planning/',
+    languages: { 'th-TH': 'https://ccpun.com/ci-planning/', 'x-default': 'https://ccpun.com/ci-planning/' },
   },
 };
 
 const breadcrumbSchema = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "หน้าหลัก", "item": "https://ccpun.com/" },
-    { "@type": "ListItem", "position": 2, "name": "การวางแผนทุนโรคร้ายแรง", "item": "https://ccpun.com/ci-planning/" },
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'หน้าหลัก', item: 'https://ccpun.com/' },
+    { '@type': 'ListItem', position: 2, name: 'การวางแผนทุนโรคร้ายแรง', item: 'https://ccpun.com/ci-planning/' },
   ],
 };
 
 const ciPlanningSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "การวางแผนทุนโรคร้ายแรง · Research Preview",
-  url: "https://ccpun.com/ci-planning/",
-  applicationCategory: "FinanceApplication",
-  operatingSystem: "Web",
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'การวางแผนทุนโรคร้ายแรง · Research Preview',
+  url: 'https://ccpun.com/ci-planning/',
+  applicationCategory: 'FinanceApplication',
+  operatingSystem: 'Web',
   author: {
-    "@type": "Organization",
-    name: "CCPun Financial Advisor",
-    url: "https://ccpun.com",
+    '@type': 'Organization',
+    name: 'CCPun Financial Advisor',
+    url: 'https://ccpun.com',
   },
-  description: "เครื่องมือ Research Preview สำหรับเปรียบเทียบทุนตามรายได้หรือรายจ่าย กับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้",
+  description: 'เครื่องมือ Research Preview สำหรับเปรียบเทียบทุนตามรายได้หรือรายจ่าย กับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้',
 };
 
 const CI_FAQS = [
   {
-    question: "ได้เลขทุนแล้ว ต้องทำอย่างไรต่อ?",
-    answer: "บันทึกภาพผลลัพธ์ไว้ แล้วทบทวนว่ารายได้ ค่าใช้จ่าย ระยะเวลาที่เลือก และทรัพยากรที่พร้อมใช้ตรงกับสถานการณ์จริงหรือไม่ หากต้องการคุยต่อ เพิ่มเพื่อน LINE @ccpun เพื่อทบทวนแผนประกันโรคร้ายแรงครับ",
+    question: 'ได้เลขทุนแล้ว ต้องทำอย่างไรต่อ?',
+    answer: 'บันทึกภาพผลลัพธ์ไว้ แล้วทบทวนว่ารายได้ ค่าใช้จ่าย ระยะเวลาที่เลือก และทรัพยากรที่พร้อมใช้ตรงกับสถานการณ์จริงหรือไม่ หากต้องการคุยต่อ เพิ่มเพื่อน LINE @ccpun เพื่อทบทวนแผนประกันโรคร้ายแรงครับ',
   },
   {
-    question: "ทุนตามรายได้กับทุนตามรายจ่ายต่างกันอย่างไร?",
-    answer: "ทุนตามรายได้ดูจากรายได้ต่อเดือนและระยะเวลาที่เลือก ส่วนทุนตามรายจ่ายดูจากค่าใช้จ่ายครอบครัว ค่าเรียน ค่างวด และหนี้ที่เหลือ ระบบแสดงแยกกันและไม่นำมาบวกกัน",
+    question: 'ทุนตามรายได้กับทุนตามรายจ่ายต่างกันอย่างไร?',
+    answer: 'ทุนตามรายได้ดูจากรายได้ต่อเดือนและระยะเวลาที่เลือก ส่วนทุนตามรายจ่ายดูจากค่าใช้จ่ายครอบครัว ค่าเรียน ค่างวด และหนี้ที่เหลือ ระบบแสดงแยกกันและไม่นำมาบวกกัน',
   },
   {
-    question: "สินทรัพย์สภาพคล่องควรกรอกอะไรบ้าง?",
-    answer: "กรอกเฉพาะเงินสด เงินฝาก หรือสินทรัพย์ที่พร้อมเปลี่ยนเป็นเงินเพื่อนำมาใช้ได้จริง โดยไม่รวมบ้าน รถ หรือทรัพย์สินที่ครอบครัวยังจำเป็นต้องใช้",
+    question: 'สินทรัพย์สภาพคล่องควรกรอกอะไรบ้าง?',
+    answer: 'กรอกเฉพาะเงินสด เงินฝาก หรือสินทรัพย์ที่พร้อมเปลี่ยนเป็นเงินเพื่อนำมาใช้ได้จริง โดยไม่รวมบ้าน รถ หรือทรัพย์สินที่ครอบครัวยังจำเป็นต้องใช้',
   },
 ] as const;
 
 const faqSchema = {
-  "@context": "https://schema.org",
+  '@context': 'https://schema.org',
   "@type": "FAQPage",
   mainEntity: CI_FAQS.map((faq) => ({
-    "@type": "Question",
+    '@type': 'Question',
     name: faq.question,
     acceptedAnswer: {
-      "@type": "Answer",
+      '@type': 'Answer',
       text: faq.answer,
     },
   })),
@@ -93,98 +93,82 @@ const faqSchema = {
 
 export default function CiPlanningPage() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className={styles.root}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(ciPlanningSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ciPlanningSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <Navbar isToolPage />
-      <main id="main-content" tabIndex={-1} className="flex-1 pb-16">
-        <ToolHero
+
+      <main id="main-content" tabIndex={-1}>
+        <Website43ToolHero
+          image="/assets/website-43/ci-hero.png"
           badge="เครื่องมือวางแผนทุนโรคร้ายแรง · Research Preview"
-          title="เงินก้อนจากประกันโรคร้ายแรงที่มี "
-          highlight="เพียงพอรับภาระจริงไหม?"
-          highlightOnNewLine
+          line1="เงินก้อนจากประกันโรคร้ายแรงที่มี "
+          line2="เพียงพอรับภาระจริงไหม?"
           description="กรอกรายได้หรือภาระที่ยังต้องดูแล แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้"
+          ctaHref="#ci-calculator"
+          ctaLabel="เริ่มประเมิน"
         />
+
         <CILandingIntro />
-        <section
-          id="ci-calculator"
-          aria-labelledby="ci-calculator-title"
-          className="mt-12 scroll-mt-28 border-y border-white/5 bg-[hsl(0_15%_16%_/_0.72)] px-4 py-12 sm:py-14 md:mt-16 md:py-16"
-        >
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-7 max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">เครื่องคำนวณทุนโรคร้ายแรง</p>
-              <h2 id="ci-calculator-title" className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">
-                2 ขั้นตอน เพื่อเห็นส่วนต่างที่ต้องเตรียม
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-white/55 sm:text-base">เริ่มจากรายได้และภาระที่ยังต้องดูแล แล้วค่อยเทียบกับเงินก้อนและสินทรัพย์ที่พร้อมใช้</p>
-            </div>
+
+        <section id="ci-calculator" aria-labelledby="ci-calculator-title" className={styles.calculatorSection}>
+          <div className={styles.calculatorHeader}>
+            <p className={styles.eyebrow}>เครื่องคำนวณทุนโรคร้ายแรง</p>
+            <h2 id="ci-calculator-title">2 ขั้นตอน เพื่อเห็นส่วนต่างที่ต้องเตรียม</h2>
+            <p>เริ่มจากรายได้และภาระที่ยังต้องดูแล แล้วค่อยเทียบกับเงินก้อนและสินทรัพย์ที่พร้อมใช้</p>
+          </div>
+          <div className={styles.calculatorStage}>
             <CIWizard />
           </div>
         </section>
 
-        <section aria-label="ข้อมูลประกอบการอ่านผลการวางแผนทุนโรคร้ายแรง" className="px-4 pt-14 md:pt-20">
-          <div className="mx-auto max-w-5xl space-y-12 md:space-y-16">
-            <aside
-              aria-labelledby="ci-example-title"
-              className="rounded-2xl border border-border/30 bg-card/40 p-5 md:p-8"
-            >
-              <p className="text-sm font-semibold text-primary">เลือกมุมที่อยากวางแผน</p>
-              <h2 id="ci-example-title" className="mt-2 text-2xl font-bold text-foreground">
-                เลือกดูประมาณการจากรายจ่ายหรือรายได้
-              </h2>
-              <dl className="mt-6 grid gap-6 md:grid-cols-2">
-                <div className="border-l border-primary/40 pl-4">
-                  <dt className="font-semibold text-foreground">ทุนตามรายจ่าย</dt>
-                  <dd className="mt-2 text-base leading-relaxed text-muted-foreground">
-                    ดูจากค่าใช้จ่าย ค่าเรียน ค่างวด และหนี้อื่นที่ยังต้องดูแลตามช่วงเวลาที่กรอก
-                  </dd>
-                </div>
-                <div className="border-l border-border/50 pl-4">
-                  <dt className="font-semibold text-foreground">ทุนตามรายได้</dt>
-                  <dd className="mt-2 text-base leading-relaxed text-muted-foreground">
-                    ดูจากรายได้ต่อเดือนและระยะเวลาที่ต้องการวางแผน เมื่อคุณเลือกกรอกรายได้
-                  </dd>
-                </div>
-              </dl>
-              <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-                เครื่องมือแสดงสองวิธีแยกกัน ไม่นำมาบวกกัน แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้
-              </p>
-            </aside>
+        <section className={styles.toolStorySection} aria-labelledby="ci-reading-title">
+          <div className={styles.narrow}>
+            <p className={styles.eyebrow}>วิธีอ่านผล</p>
+            <h2 id="ci-reading-title" className={styles.h2}>ผลลัพธ์มี 2 มุม เลือกอ่านแยกกัน</h2>
+            <p className={styles.lead}>เครื่องมือแสดงสองวิธีแยกกัน ไม่นำมาบวกกัน แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้</p>
 
-            <aside aria-labelledby="ci-recovery-title" className="border-y border-border/40 py-6">
-              <p className="text-sm font-semibold text-primary">Recovery Reserve · ข้อพิจารณาเพิ่มเติม</p>
-              <h2 id="ci-recovery-title" className="mt-2 text-2xl font-bold text-foreground">ค่าใช้จ่ายระหว่างพักฟื้นยังไม่ถูกเติมให้อัตโนมัติ</h2>
-              <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground">
+            <div className={styles.toolMethodGrid}>
+              <article className={styles.toolMethodItem}>
+                <h3>ทุนตามรายจ่าย</h3>
+                <p>ดูจากค่าใช้จ่าย ค่าเรียน ค่างวด และหนี้อื่นที่ยังต้องดูแลตามช่วงเวลาที่กรอก</p>
+              </article>
+              <article className={styles.toolMethodItem}>
+                <h3>ทุนตามรายได้</h3>
+                <p>ดูจากรายได้ต่อเดือนและระยะเวลาที่ต้องการวางแผน เมื่อคุณเลือกกรอกรายได้</p>
+              </article>
+            </div>
+            <div className={styles.methodBox}>
+              <div>
+                <p className={styles.eyebrow}>ทุนสำรองช่วงพักฟื้น · ข้อพิจารณาเพิ่มเติม</p>
+                <h3>ค่าใช้จ่ายระหว่างพักฟื้นยังไม่ถูกเติมให้อัตโนมัติ</h3>
+              </div>
+              <p>
                 ค่าฟื้นฟูและกายภาพ การเดินทางหรืออุปกรณ์ การปรับบ้าน และผลกระทบจากผู้ดูแลแตกต่างกันมาก เครื่องมือจึงไม่ตั้งค่าเริ่มต้นหรือสมมติรายได้ที่หายไปให้เอง เพื่อไม่สร้างความแม่นยำเกินจริง ควรทบทวนรายการเหล่านี้แยกจากผลประมาณการก่อนตัดสินใจ
               </p>
-            </aside>
+            </div>
 
-            <section aria-labelledby="ci-faq-title">
-              <h2 id="ci-faq-title" className="text-2xl font-bold text-foreground">
-                คำถามที่พบบ่อย
-              </h2>
-              <div className="mt-6 divide-y divide-border/30 border-y border-border/30">
+            <div className={styles.toolFaq}>
+              <p className={styles.eyebrow}>คำถามที่พบบ่อย</p>
+              <h2 className={styles.h2}>เรื่องที่ควรรู้ก่อนใช้ผลประเมิน</h2>
+              <div className={styles.faqDetails}>
                 {CI_FAQS.map((faq) => (
-                  <details key={faq.question} className="group py-1">
-                    <summary className="min-h-11 cursor-pointer py-3 text-base font-semibold leading-relaxed text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-                      {faq.question}
-                    </summary>
-                    <p className="pb-5 pr-2 text-base leading-relaxed text-muted-foreground">
-                      {faq.answer}
-                    </p>
+                  <details key={faq.question}>
+                    <summary>{faq.question}</summary>
+                    <p>{faq.answer}</p>
                   </details>
                 ))}
               </div>
-            </section>
+            </div>
+
+            <p className={styles.toolDisclaimer}>
+              ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลและสมมติฐานที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล และไม่ยืนยันว่าจำนวนเงินจะเพียงพอในทุกกรณี โปรดศึกษารายละเอียดความคุ้มครอง เงื่อนไข และข้อยกเว้นของกรมธรรม์ก่อนตัดสินใจทำประกันภัย และประกันไม่ใช่เงินฝาก
+            </p>
           </div>
         </section>
       </main>
-      <Footer />
+
+      <Website43Footer />
     </div>
   );
 }
