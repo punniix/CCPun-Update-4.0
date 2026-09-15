@@ -147,7 +147,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
                 alt={article.featuredImage.alt}
                 width={article.featuredImage.width}
                 height={article.featuredImage.height}
-                sizes="(max-width: 767px) calc(100vw - 48px), 1100px"
+                sizes="(max-width: 767px) calc(100vw - 48px), 1060px"
                 priority
               />
               {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
@@ -189,8 +189,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
         </section>
 
         {article.sources && article.sources.length > 0 && (
-          <section className={styles.section}>
-            <div className={styles.inner}>
+          <section className={styles.section} data-uat-section="article-sources">
+            <div className={`${styles.inner} ${styles.articleSupportInner}`}>
               <h2 className={styles.h2}>แหล่งอ้างอิง</h2>
               <ul className={styles.articleSources}>
                 {article.sources.map((source, index) => <li key={`${source.label}-${index}`}>{source.url ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.label}</a> : source.label}</li>)}
@@ -201,7 +201,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
 
         {article.faq && article.faq.length > 0 && (
           <section id="faq" className={`${styles.section} ${styles.sectionBottomLarge}`}>
-            <div className={styles.inner}>
+            <div className={`${styles.inner} ${styles.articleSupportInner}`}>
               <SectionHeading eyebrow="คำถามที่พบบ่อย" title="คำถามเกี่ยวกับบทความนี้" />
               <div className={styles.faqList}>
                 {article.faq.map(({ question, answer }) => (
@@ -216,7 +216,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
         )}
 
         <section className={styles.section}>
-          <div className={styles.inner}>
+          <div className={`${styles.inner} ${styles.articleSupportInner}`}>
             <div className={styles.authorCard}>
               <Image className={styles.authorAvatar} src={author.avatar.src} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} sizes="(max-width: 639px) 72px, 96px" />
               <div className={styles.authorIdentity}>
@@ -230,7 +230,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
         </section>
 
         <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}>
-          <div className={styles.inner}>
+          <div className={`${styles.inner} ${styles.articleSupportInner}`}>
             <h2 className={styles.h2}>อยากจัดลำดับแผนให้เหมาะกับชีวิตคุณ?</h2>
             <p className={styles.lead} style={{ color: '#faf9f9' }}>เตรียมข้อมูลรายได้ รายจ่าย หนี้ และเป้าหมาย แล้วคุยกันแบบเห็นภาพรวม</p>
             <a className={styles.faqCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-surface="blog" data-analytics-location="blog_article">ปรึกษากับ CCPun</a>
@@ -239,7 +239,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
 
         {relatedArticles.length > 0 && (
           <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}>
-            <div className={styles.inner}>
+            <div className={`${styles.inner} ${styles.articleSupportInner}`}>
               <h2 className={styles.h2}>อ่านต่อ</h2>
               <div className={styles.relatedGrid}>
                 {relatedArticles.slice(0, 2).map((candidate) => {
@@ -261,7 +261,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
             </div>
           </section>
         )}
-        <section className={styles.section}><div className={styles.inner}><p className={styles.cardBody}>บทความนี้จัดทำเพื่อให้ข้อมูลทั่วไป ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก และการลงทุนมีความเสี่ยง ควรศึกษาความคุ้มครอง เงื่อนไข ข้อยกเว้น และความเหมาะสมก่อนตัดสินใจ</p></div></section>
+        <section className={styles.section}><div className={`${styles.inner} ${styles.articleSupportInner}`}><p className={styles.cardBody}>บทความนี้จัดทำเพื่อให้ข้อมูลทั่วไป ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก และการลงทุนมีความเสี่ยง ควรศึกษาความคุ้มครอง เงื่อนไข ข้อยกเว้น และความเหมาะสมก่อนตัดสินใจ</p></div></section>
       </main>
       <Website43Footer />
     </div>

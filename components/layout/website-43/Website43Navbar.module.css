@@ -16,7 +16,7 @@
   z-index: 30;
   top: 32px;
   left: 50%;
-  width: calc(100% - var(--w43-nav-gutter, 80px) - var(--w43-nav-gutter, 80px));
+  width: min(1280px, calc(100% - var(--w43-nav-gutter, 80px) - var(--w43-nav-gutter, 80px)));
   transform: translateX(-50%);
 }
 
