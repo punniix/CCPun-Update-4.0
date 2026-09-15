@@ -122,6 +122,9 @@ export default function Website43Article({ article, relatedArticles = [], previe
     else groups[groups.length - 1].children.push(heading);
     return groups;
   }, []);
+  const publishedDateLabel = article.publishedAt ? thaiDateFormatter.format(new Date(article.publishedAt)) : null;
+  const updatedDateLabel = thaiDateFormatter.format(new Date(article.updatedAt));
+  const showUpdatedDate = !publishedDateLabel || publishedDateLabel !== updatedDateLabel;
 
   return (
     <div className={styles.root}>
@@ -136,24 +139,13 @@ export default function Website43Article({ article, relatedArticles = [], previe
               <Link href="/">หน้าแรก</Link> <span>›</span> <Link href={`${BASE}/blog`}>บทความ</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
             <h1 className={styles.articleHeadline}>{article.title}</h1>
-            <p className={styles.articleHeaderMeta}>
-              {article.publishedAt ? `เผยแพร่เมื่อ ${thaiDateFormatter.format(new Date(article.publishedAt))} · ` : ''}
-              {`อัปเดตล่าสุด ${thaiDateFormatter.format(new Date(article.updatedAt))}`}
-            </p>
-            {article.featuredImage && (
-              <figure className={styles.articleInlineFigure}>
-              <Image
-                className={styles.articleFeature}
-                src={article.featuredImage.src}
-                alt={article.featuredImage.alt}
-                width={article.featuredImage.width}
-                height={article.featuredImage.height}
-                sizes="(max-width: 767px) calc(100vw - 48px), 720px"
-                priority
-              />
-              {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
-              </figure>
-            )}
+            <div className={styles.articleMetaRow}>
+              <p className={styles.articleByline}>โดย {author.name}</p>
+              <p className={styles.articleHeaderMeta}>
+                {publishedDateLabel ? `เผยแพร่เมื่อ ${publishedDateLabel}` : null}
+                {showUpdatedDate ? `${publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด ${updatedDateLabel}` : null}
+              </p>
+            </div>
           </div>
         </header>
 
@@ -165,15 +157,31 @@ export default function Website43Article({ article, relatedArticles = [], previe
                 <Website43ArticleToc groups={tocGroups} />
               </aside>
             )}
-            {headings.length > 0 && (
-              <details className={styles.tocMobile}>
-                <summary>หัวข้อเนื้อหา</summary>
-                <div className={styles.tocMobileList}>
-                  <Website43ArticleToc groups={tocGroups} />
-                </div>
-              </details>
-            )}
-            <article className={styles.prose}>{renderBody(article.body, headingIds)}</article>
+            <div className={styles.articleMainColumn}>
+              {article.featuredImage && (
+                <figure className={styles.articleInlineFigure}>
+                  <Image
+                    className={styles.articleFeature}
+                    src={article.featuredImage.src}
+                    alt={article.featuredImage.alt}
+                    width={article.featuredImage.width}
+                    height={article.featuredImage.height}
+                    sizes="(max-width: 767px) calc(100vw - 48px), 720px"
+                    priority
+                  />
+                  {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
+                </figure>
+              )}
+              {headings.length > 0 && (
+                <details className={styles.tocMobile}>
+                  <summary>หัวข้อเนื้อหา</summary>
+                  <div className={styles.tocMobileList}>
+                    <Website43ArticleToc groups={tocGroups} />
+                  </div>
+                </details>
+              )}
+              <article className={styles.prose}>{renderBody(article.body, headingIds)}</article>
+            </div>
           </div>
         </section>
 
