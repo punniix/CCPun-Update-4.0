@@ -224,8 +224,8 @@ assert.match(
 );
 assert.match(
   website43Blog,
-  /BLOG_TOPIC_HUBS\.map\(\(\{ slug, title \}\) => \(\{ slug, title \}\)\)/,
-  'Blog shell must pass only the minimal category label/slug data required by the interactive island',
+  /ACTIVE_ARTICLE_CATEGORIES\.map\(\(\{ slug, title \}\) => \(\{ slug, title \}\)\)/,
+  'Blog shell must pass only the minimal reviewed category label/slug data required by the interactive island',
 );
 assert.match(
   website43Blog,
@@ -239,8 +239,8 @@ assert.match(
 );
 assert.doesNotMatch(
   website43BlogInteractive,
-  /Website43\.module\.css|Website43Footer|Website43Navbar|BLOG_TOPIC_HUBS/,
-  'Blog client island must not pull the all-surface CSS map, static shell, or full taxonomy module into its client bundle',
+  /Website43\.module\.css|Website43Footer|Website43Navbar|BLOG_TOPIC_HUBS|ACTIVE_ARTICLE_CATEGORIES/,
+  'Blog client island must not pull the all-surface CSS map, static shell, or taxonomy registry into its client bundle',
 );
 assert.match(
   website43BlogInteractive,
