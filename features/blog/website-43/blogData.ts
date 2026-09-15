@@ -53,7 +53,25 @@ export function toWebsite43ArticleItem(article: Article): Website43ArticleItem {
 }
 
 export function toWebsite43ArticleItems(articles: Article[]): Website43ArticleItem[] {
-  return articles
-    .map(toWebsite43ArticleItem)
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  const items: Website43ArticleItem[] = [];
+
+  for (const article of articles) {
+    try {
+      items.push(toWebsite43ArticleItem(article));
+    } catch (error) {
+      // CMS taxonomy is editor-controlled data. A single legacy, malformed, or
+      // newly introduced category must never take down the entire public archive.
+      // Keep strict URL validation for article routes, but isolate bad records at
+      // this collection boundary and surface enough context in server logs to fix
+      // the source data safely.
+      console.error('[blog] Skipping article with invalid archive taxonomy', {
+        slug: article.slug,
+        category: article.category,
+        categorySlug: article.categorySlug,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 }
