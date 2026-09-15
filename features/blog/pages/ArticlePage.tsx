@@ -78,7 +78,21 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
   let relatedArticles = [] as Awaited<ReturnType<ReturnType<typeof getContentProvider>["listArticles"]>>;
   try {
     const candidates = (await relatedArticlesPromise)
-      .filter((candidate) => candidate.status === "published" && candidate.slug !== article.slug);
+      .filter((candidate) => candidate.status === "published" && candidate.slug !== article.slug)
+      .filter((candidate) => {
+        try {
+          getArticlePath(candidate);
+          return true;
+        } catch (error) {
+          console.error("[blog-related] skipping article with invalid taxonomy", {
+            slug: candidate.slug,
+            category: candidate.category,
+            categorySlug: candidate.categorySlug,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return false;
+        }
+      });
     relatedArticles = candidates
       .sort((a, b) => {
         const aScore = (a.categorySlug === article.categorySlug ? 2 : 0) + (a.semanticTopic && a.semanticTopic === article.semanticTopic ? 3 : 0);
