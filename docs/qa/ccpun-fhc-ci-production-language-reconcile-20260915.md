@@ -194,3 +194,19 @@ Responsive matrix verified locally for Home, Blog, Blog Category, FHC, CI and 40
 - 1920: shell x=320, width=1280
 
 All tested widths reported zero horizontal overflow. New `website43-layout-rhythm-regression.mjs` is wired into the Foundation/Vercel regression suite so wide-desktop centering and Article width parity cannot silently regress.
+
+### Final Article readback and Blog data check
+
+The exact branch was also run in the guarded `local-production` read-only lane against the Production Sanity dataset to verify the real article/content geometry without allowing Draft writes.
+
+Article `aia-health-ci-hero-guide` readback after the final specificity fix:
+- 390: title / featured / reading / support sections = x24, width342
+- 820: title / featured / reading / support sections = x40, width740
+- 1100: title / featured / reading / support sections = x56, width988
+- 1440: title / featured / reading / support sections = x190, width1060
+- 1920: title / featured / reading / support sections = x430, width1060
+- zero horizontal overflow at every checked width
+
+The Article support width rule uses the stronger `.section > .articleSupportInner` / `.sectionDeep > .articleSupportInner` selector so the shared 1280px public shell cannot override the 1060px Article reading axis.
+
+Blog archive and Health category were also loaded with real Production content in the read-only lane. Fresh 390/820 loads confirmed the featured carousel and article cards stay inside the responsive shell with zero horizontal overflow (342px single-column at 390; 361px two-column cards at 820). A transient overflow observed only while programmatically resizing one already-hydrated carousel tab did not reproduce on fresh loads and was therefore classified as emulation state rather than initial-layout behavior.

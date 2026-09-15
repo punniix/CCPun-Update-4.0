@@ -23,6 +23,7 @@ test('article header, featured image and support sections share the reading-sect
   assert.match(css, /\.articleHeader \.articleFeature \{ display: block; width: 100%/);
   assert.match(css, /\.articleReadingGrid \{[\s\S]*?width: min\(1060px,100%\); margin: 0 auto;/);
   assert.match(css, /\.articleSupportInner \{ width: min\(1060px,100%\); margin-inline: auto; \}/);
+  assert.match(transition, /\.\$\{styles\.section\} > \.\$\{styles\.articleSupportInner\},\s*\.\$\{styles\.sectionDeep\} > \.\$\{styles\.articleSupportInner\}/);
   assert.ok((article.match(/articleSupportInner/g) || []).length >= 6, 'article support sections should follow the same reading shell');
 });
 

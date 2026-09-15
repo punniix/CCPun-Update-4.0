@@ -55,7 +55,8 @@ export function Website43TransitionStyles() {
   margin-left: auto;
   margin-right: auto;
 }
-.${styles.articleSupportInner} {
+.${styles.section} > .${styles.articleSupportInner},
+.${styles.sectionDeep} > .${styles.articleSupportInner} {
   width: min(1060px, 100%);
   max-width: 1060px;
   margin-left: auto;
