@@ -101,3 +101,21 @@ test('Home learning cards share one visual composition including the READ card',
   assert.doesNotMatch(home, /<article className=\{styles\.learnCard\}[\s\S]*?>READ</);
   assert.match(css, /\.learnArticleImage \{ object-position: 68% center; \}/);
 });
+
+
+test('FAQ expanded answer has editorial breathing room below its divider', () => {
+  assert.match(css, /\.faqAnswer \{ margin: 0; padding: 16px 20px 22px; border-top: 1px solid rgba\(224,201,133,\.10\);/);
+});
+
+test('Blog category filter is a compact publication-style dropdown with stable layering', () => {
+  const blogInteractive = read('features/blog/website-43/Website43BlogInteractive.tsx');
+  assert.doesNotMatch(blogInteractive, /categoryMenuRef\} onBlur=/);
+  assert.match(blogInteractive, /hidden=\{!categoryMenuOpen\}/);
+  assert.match(blogInteractive, /document\.addEventListener\('mousedown', onPointerDown\)/);
+  assert.match(blogInteractive, /event\.key === 'Escape'/);
+  assert.match(css, /\.categoryMenu \{ position: relative; z-index: 30; width: 220px; \}/);
+  assert.match(css, /\.categoryMenuPanel \{[\s\S]*?width: 100%;[\s\S]*?max-height: min\(420px, calc\(100vh - 180px\)\);[\s\S]*?overflow-y: auto;/);
+  assert.match(css, /\.searchFilters:has\(\.categoryMenuPanel\) \{ position: relative; z-index: 12; \}/);
+  assert.match(css, /\.articleGrid \{ position: relative; z-index: 1; \}/);
+  assert.match(css, /@media \(max-width: 639px\) \{[\s\S]*?\.categoryMenu \{ width: 100%; \}[\s\S]*?\.categoryMenuPanel \{ width: 100%; \}/);
+});
