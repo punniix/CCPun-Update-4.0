@@ -33,6 +33,8 @@ const scheduleRowSchema = z.object({
   row_version: z.coerce.number().int().positive(),
   status: scheduleStatusSchema,
   mode: z.enum(["publish", "validate-only"]),
+  draft_revision: z.string().min(1).max(200),
+  published_revision: z.string().min(1).max(200).nullable(),
   scheduled_at: timestamp,
   created_by: z.string(),
   workflow_run_id: z.string().nullable(),
@@ -132,7 +134,7 @@ export async function readArticleSchedulerModel(
 
     const [schedules, audit] = await Promise.all([
       sql.query(
-        `SELECT article_id,generation,row_version,status,mode,scheduled_at,created_by,workflow_run_id,lease_expires_at,
+        `SELECT article_id,generation,row_version,status,mode,draft_revision,published_revision,scheduled_at,created_by,workflow_run_id,lease_expires_at,
           created_at,updated_at,completed_at,error_code,transaction_id
          FROM ccpun_admin.article_schedule
          ORDER BY scheduled_at DESC, updated_at DESC LIMIT $1`,

@@ -134,7 +134,8 @@ test("Social operations API is authenticated, exact-origin and GET-only", () => 
   assert.doesNotMatch(route, /export async function (?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /fetch\(|\b(?:INSERT|UPDATE|DELETE|POST|PATCH|PUT)\b/i);
   assert.equal(page.trim(), 'export { metadata, default } from "@/features/admin/social/operations-page";');
-  assert.match(layout, /\{ href: "\/social\/", label: "Social"/);
+  assert.match(layout, /key: "distribution"/);
+  assert.match(layout, /\{ href: "\/social\/", label: "Overview", permission: "social:read" \}/);
   assert.doesNotMatch(layout, /socialEnabled/);
   assert.doesNotMatch(distribution, /redirect\(/);
 });

@@ -68,6 +68,8 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
     const locked = schedule?.status === "executing" || schedule?.status === "reconciliation-required" || schedule?.status === "preparing";
     const canSchedule = Boolean(state?.ready && !loading && !busy && !validating && !blocked && unchanged && confirmed && !locked && draft && confirmation && scheduledLocal && !props.version && !props.liveEdit);
     const canCancel = Boolean(schedule && ["preparing", "scheduled"].includes(schedule.status) && !loading && !busy);
+    const isRescheduling = schedule?.status === "scheduled";
+    const isSchedulingAgain = schedule?.status === "cancelled";
 
     async function mutate(cancel: boolean) {
       if (inFlight.current || (cancel ? !canCancel : !canSchedule)) return;
@@ -94,7 +96,13 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
 
     if (props.version || props.liveEdit) return null;
     return {
-      label: schedule ? `${isTest ? "ทดสอบ · " : ""}${labels[schedule.status]}` : isTest ? "ทดสอบตั้งเวลา (ไม่เผยแพร่)" : "ตั้งเวลาเผยแพร่",
+      label: isRescheduling
+        ? `${isTest ? "ทดสอบ · " : ""}เลื่อนเวลา / ยกเลิก Schedule`
+        : isSchedulingAgain
+          ? `${isTest ? "ทดสอบ · " : ""}ตั้งเวลาใหม่`
+          : schedule
+            ? `${isTest ? "ทดสอบ · " : ""}${labels[schedule.status]}`
+            : isTest ? "ทดสอบตั้งเวลา (ไม่เผยแพร่)" : "ตั้งเวลาเผยแพร่",
       title: "จัดการกำหนดเผยแพร่ด้วยเวลาประเทศไทย",
       // Do not disable management when the Draft becomes unapproved or disappears.
       disabled: busy,
@@ -105,7 +113,13 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
         setOpen(true);
       },
       dialog: open ? {
-        type: "dialog", header: isTest ? "ทดสอบคิวใน UAT · ไม่เผยแพร่บทความ" : "ตั้งเวลาเผยแพร่บทความ",
+        type: "dialog", header: isTest
+          ? "ทดสอบคิวใน UAT · ไม่เผยแพร่บทความ"
+          : isRescheduling
+            ? "เลื่อนเวลาหรือยกเลิก Schedule"
+            : isSchedulingAgain
+              ? "ตั้งเวลาเผยแพร่ใหม่"
+              : "ตั้งเวลาเผยแพร่บทความ",
         onClose: () => { if (!busy) setOpen(false); },
         content: (
           <div style={{ padding: "1rem", display: "grid", gap: "1rem", maxWidth: 540 }}>
@@ -119,10 +133,24 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
               <input type="datetime-local" value={scheduledLocal} onChange={(event) => { setScheduledLocal(event.currentTarget.value); setConfirmed(false); }} disabled={busy} style={{ font: "inherit", padding: ".7rem" }} />
             </label>
             {blocked || validating || !unchanged ? <p>{!unchanged ? "ฉบับบทความเปลี่ยน กรุณาปิดแล้วเปิดหน้าตั้งเวลาใหม่" : blocked || "รอการบันทึกและตรวจฟอร์มให้เสร็จก่อนตั้งเวลา"}</p> : null}
-            <label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)} disabled={busy} /> {isTest ? "ยืนยันทดสอบฉบับนี้ โดยไม่มีการเผยแพร่" : "ฉันตรวจตัวอย่างและอนุมัติให้เผยแพร่ฉบับนี้ตามเวลาที่เลือกแล้ว"}</label>
+            <label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)} disabled={busy} /> {isTest
+              ? "ยืนยันทดสอบฉบับนี้ โดยไม่มีการเผยแพร่"
+              : isRescheduling
+                ? "ฉันยืนยันให้เลื่อนเวลาโดยใช้ฉบับที่อนุมัติไว้เดิม หากบทความเปลี่ยน ระบบต้องปฏิเสธรายการนี้"
+                : isSchedulingAgain
+                  ? "ฉันตรวจตัวอย่างและอนุมัติให้ตั้งเวลาเผยแพร่ฉบับนี้ใหม่"
+                  : "ฉันตรวจตัวอย่างและอนุมัติให้เผยแพร่ฉบับนี้ตามเวลาที่เลือกแล้ว"}</label>
             {error ? <p role="alert">{error}</p> : null}
             <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap" }}>
-              <button type="button" onClick={() => void mutate(false)} disabled={!canSchedule} style={{ minHeight: 44 }}>{busy ? "กำลังดำเนินการ…" : isTest ? "ยืนยันตั้งเวลาทดสอบ" : "ยืนยันตั้งเวลา"}</button>
+              <button type="button" onClick={() => void mutate(false)} disabled={!canSchedule} style={{ minHeight: 44 }}>{busy
+                ? "กำลังดำเนินการ…"
+                : isTest
+                  ? "ยืนยันตั้งเวลาทดสอบ"
+                  : isRescheduling
+                    ? "ยืนยันเลื่อนเวลา"
+                    : isSchedulingAgain
+                      ? "ยืนยันตั้งเวลาใหม่"
+                      : "ยืนยันตั้งเวลา"}</button>
               {schedule && ["preparing", "scheduled"].includes(schedule.status) ? <button type="button" onClick={() => void mutate(true)} disabled={!canCancel} style={{ minHeight: 44 }}>ยกเลิกคิวนี้</button> : null}
               <button type="button" disabled={busy || loading} onClick={() => { setError(null); setRefresh((value) => value + 1); }} style={{ minHeight: 44 }}>โหลดสถานะล่าสุด</button>
             </div>

@@ -246,7 +246,8 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   assert.match(dashboard, /executiveSummary/);
   assert.match(visuals, /<svg/);
   assert.doesNotMatch(dashboard + visuals, /recharts|chart\.js|echarts|highcharts|localStorage|sessionStorage/);
-  assert.match(layout, /href: "\/analytics\/social\/", label: "Social"/);
+  assert.match(layout, /href: "\/analytics\/social\/", label: "Social Analytics"/);
+  assert.match(layout, /key: "growth"/);
 });
 
 

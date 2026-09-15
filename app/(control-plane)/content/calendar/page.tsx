@@ -1,4 +1,7 @@
 import Link from "next/link";
+import ArticleScheduleControls from "@/features/admin/content/ArticleScheduleControls";
+import { getAdminIdentity } from "@/lib/admin/identity";
+import { hasAdminPermission } from "@/lib/admin/rbac";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
 import { readArticleSchedulerModel, type ArticleScheduleRecord } from "@/lib/admin/operations/article-scheduler-read-model";
@@ -37,7 +40,7 @@ function statusTone(status: string) {
   return "border-white/10 bg-white/[0.04] text-white/65";
 }
 
-function CalendarRecord({ record, title }: { record: ArticleScheduleRecord; title: string }) {
+function CalendarRecord({ record, title, canManage }: { record: ArticleScheduleRecord; title: string; canManage: boolean }) {
   return (
     <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -54,16 +57,19 @@ function CalendarRecord({ record, title }: { record: ArticleScheduleRecord; titl
         <div><dt className="text-white/35">ผู้ตั้งเวลา</dt><dd className="mt-0.5 break-all">{record.created_by}</dd></div>
       </dl>
       {record.error_code ? <p className="mt-3 text-xs text-rose-100">Error: {record.error_code}</p> : null}
+      {canManage ? <ArticleScheduleControls record={{ articleId: record.article_id, generation: record.generation, rowVersion: record.row_version, status: record.status, scheduledAt: record.scheduled_at, draftRevision: record.draft_revision, publishedRevision: record.published_revision }} /> : null}
     </article>
   );
 }
 
 export default async function ContentCalendarPage() {
   await requireAdminPermission("content:read");
-  const [scheduler, articles] = await Promise.all([
+  const [scheduler, articles, identity] = await Promise.all([
     readArticleSchedulerModel({ scheduleLimit: 120, auditLimit: 1 }),
     listAdminArticles(),
+    getAdminIdentity(),
   ]);
+  const canManage = hasAdminPermission(identity?.role ?? null, "content:schedule");
 
   const titleById = new Map(
     articles.rows.map((article) => [article.id.replace(/^drafts\./, ""), article.title || article.id]),
@@ -113,7 +119,7 @@ export default async function ContentCalendarPage() {
           {[...groups.entries()].map(([key, items]) => (
             <section key={key} className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
               <div className="flex items-center justify-between gap-4"><h2 className="text-lg font-semibold">{dayLabel(items[0].scheduled_at)}</h2><span className="text-xs text-white/40">{items.length} รายการ</span></div>
-              <div className="mt-4 grid gap-3 xl:grid-cols-2">{items.map((record) => <CalendarRecord key={record.generation} record={record} title={titleById.get(record.article_id) ?? record.article_id} />)}</div>
+              <div className="mt-4 grid gap-3 xl:grid-cols-2">{items.map((record) => <CalendarRecord key={record.generation} record={record} title={titleById.get(record.article_id) ?? record.article_id} canManage={canManage} />)}</div>
             </section>
           ))}
         </div>
