@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 
 const ORIGIN = process.env.SEO_TEST_ORIGIN || 'http://127.0.0.1:3000';
+const CRITICAL_HUB_PATH = '/blog/critical-illness-insurance/';
+const CRITICAL_FINAL_PATH = '/blog/critical-illness-insurance/what-is-critical-illness-insurance/';
+const CRITICAL_OLD_LIFE_PATH = '/blog/life-insurance/critical-illness-insurance/';
+const CRITICAL_LEGACY_HUB_PATH = '/blog/critical-illness/';
+const CRITICAL_LEGACY_ARTICLE_PATH = '/blog/critical-illness/critical-illness-insurance/';
 
 async function request(path, { redirect = 'follow' } = {}) {
   const response = await fetch(new URL(path, ORIGIN), { redirect });
@@ -29,6 +34,14 @@ function assertContains(html, value, label) {
   assert.ok(html.includes(value), `${label} missing ${value}`);
 }
 
+async function assertPermanentRedirect(oldPath, finalPath) {
+  const first = await request(oldPath, { redirect: 'manual' });
+  assert.ok([301, 308].includes(first.response.status), `${oldPath} expected permanent redirect, got ${first.response.status}`);
+  const location = first.response.headers.get('location');
+  assert.ok(location, `${oldPath} missing Location header`);
+  assert.equal(new URL(location, ORIGIN).pathname, finalPath, `${oldPath} must redirect directly to ${finalPath}`);
+}
+
 const hubCases = [
   {
     path: '/blog/personal-finance/',
@@ -54,11 +67,10 @@ const hubCases = [
     ],
   },
   {
-    path: '/blog/critical-illness/',
-    canonical: 'https://ccpun.com/blog/critical-illness/',
+    path: CRITICAL_HUB_PATH,
+    canonical: 'https://ccpun.com/blog/critical-illness-insurance/',
     index: true,
     mustContain: [
-      '/blog/life-insurance/critical-illness-insurance/',
       '/ci-planning/',
       '"@type":"CollectionPage"',
       '"@type":"ItemList"',
@@ -88,7 +100,6 @@ for (const hub of hubCases) {
 const canonicalArticles = [
   ['/blog/health-insurance/aia-health-happy-describe/', 'https://ccpun.com/blog/health-insurance/aia-health-happy-describe/', '/blog/health-insurance/', 'ประกันสุขภาพ'],
   ['/blog/health-insurance/aia-health-ci-hero-guide/', 'https://ccpun.com/blog/health-insurance/aia-health-ci-hero-guide/', '/blog/health-insurance/', 'ประกันสุขภาพ'],
-  ['/blog/life-insurance/critical-illness-insurance/', 'https://ccpun.com/blog/life-insurance/critical-illness-insurance/', '/blog/critical-illness/', 'ประกันโรคร้ายแรง'],
   ['/blog/life-insurance/aia-vitality/', 'https://ccpun.com/blog/life-insurance/aia-vitality/', '/blog/life-insurance/', 'ประกันชีวิต'],
   ['/blog/personal-finance/financial-pyramid/', 'https://ccpun.com/blog/personal-finance/financial-pyramid/', '/blog/personal-finance/', 'การเงินส่วนบุคคล'],
 ];
@@ -104,19 +115,48 @@ for (const [path, canonical, topicPath, articleSection] of canonicalArticles) {
   assertContains(text, `"mainEntityOfPage":"${canonical}"`, `${path} JSON-LD canonical`);
 }
 
+// Coordinated Critical Illness migration supports exactly two healthy states:
+// 1) code-first/pre-content cutover: old Life owner is still 200 and final slug is absent;
+// 2) post-content cutover: final owner is 200 and every historical app path redirects there directly.
+const finalCritical = await request(CRITICAL_FINAL_PATH, { redirect: 'manual' });
+assert.ok([200, 404].includes(finalCritical.response.status), `${CRITICAL_FINAL_PATH} must be either pre-cutover 404 or post-cutover 200`);
+const criticalCutoverLive = finalCritical.response.status === 200;
+const criticalOldCanonical = 'https://ccpun.com/blog/life-insurance/critical-illness-insurance/';
+const criticalFinalCanonical = 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/';
+
+if (criticalCutoverLive) {
+  assertCanonical(finalCritical.text, criticalFinalCanonical, CRITICAL_FINAL_PATH);
+  assertContains(finalCritical.text, `href="${CRITICAL_HUB_PATH}"`, `${CRITICAL_FINAL_PATH} semantic breadcrumb`);
+  assertContains(finalCritical.text, '"articleSection":"ประกันโรคร้ายแรง"', `${CRITICAL_FINAL_PATH} JSON-LD`);
+  assertContains(finalCritical.text, `"mainEntityOfPage":"${criticalFinalCanonical}"`, `${CRITICAL_FINAL_PATH} JSON-LD canonical`);
+  await assertPermanentRedirect(CRITICAL_OLD_LIFE_PATH, CRITICAL_FINAL_PATH);
+  await assertPermanentRedirect(CRITICAL_LEGACY_ARTICLE_PATH, CRITICAL_FINAL_PATH);
+} else {
+  const oldOwner = await request(CRITICAL_OLD_LIFE_PATH, { redirect: 'manual' });
+  assertStatus(oldOwner.response.status, 200, CRITICAL_OLD_LIFE_PATH);
+  assertCanonical(oldOwner.text, criticalOldCanonical, CRITICAL_OLD_LIFE_PATH);
+  assertContains(oldOwner.text, `href="${CRITICAL_HUB_PATH}"`, `${CRITICAL_OLD_LIFE_PATH} semantic breadcrumb`);
+  assertContains(oldOwner.text, '"articleSection":"ประกันโรคร้ายแรง"', `${CRITICAL_OLD_LIFE_PATH} JSON-LD`);
+  assertContains(oldOwner.text, `"mainEntityOfPage":"${criticalOldCanonical}"`, `${CRITICAL_OLD_LIFE_PATH} JSON-LD canonical`);
+  await assertPermanentRedirect(CRITICAL_LEGACY_ARTICLE_PATH, CRITICAL_OLD_LIFE_PATH);
+}
+
+await assertPermanentRedirect(CRITICAL_LEGACY_HUB_PATH, CRITICAL_HUB_PATH);
+
+const criticalHub = await request(CRITICAL_HUB_PATH);
+assertContains(
+  criticalHub.text,
+  criticalCutoverLive ? CRITICAL_FINAL_PATH : CRITICAL_OLD_LIFE_PATH,
+  `${CRITICAL_HUB_PATH} current Critical Illness owner link`,
+);
+
 const oldRedirects = [
   ['/blog/life-insurance/aia-health-happy-describe/', '/blog/health-insurance/aia-health-happy-describe/'],
   ['/blog/life-insurance/aia-health-ci-hero-guide/', '/blog/health-insurance/aia-health-ci-hero-guide/'],
-  ['/blog/critical-illness/critical-illness-insurance/', '/blog/life-insurance/critical-illness-insurance/'],
 ];
 
 for (const [oldPath, finalPath] of oldRedirects) {
-  const first = await request(oldPath, { redirect: 'manual' });
-  assert.ok([301, 308].includes(first.response.status), `${oldPath} expected permanent redirect, got ${first.response.status}`);
-  const location = first.response.headers.get('location');
-  assert.ok(location, `${oldPath} missing Location header`);
-  assert.equal(new URL(location, ORIGIN).pathname, finalPath, `${oldPath} must redirect directly to final current URL`);
-
+  await assertPermanentRedirect(oldPath, finalPath);
   const final = await request(finalPath, { redirect: 'manual' });
   assertStatus(final.response.status, 200, finalPath);
 }
@@ -132,16 +172,19 @@ for (const loc of [
   'https://ccpun.com/blog/personal-finance/',
   'https://ccpun.com/blog/life-insurance/',
   'https://ccpun.com/blog/health-insurance/',
-  'https://ccpun.com/blog/critical-illness/',
+  'https://ccpun.com/blog/critical-illness-insurance/',
   ...canonicalArticles.map(([, canonical]) => canonical),
+  criticalCutoverLive ? criticalFinalCanonical : criticalOldCanonical,
 ]) {
   assertContains(sitemap.text, `<loc>${loc}</loc>`, '/sitemaps/blog.xml');
 }
 for (const staleLoc of [
   'https://ccpun.com/blog/life-insurance/aia-health-happy-describe/',
   'https://ccpun.com/blog/life-insurance/aia-health-ci-hero-guide/',
+  'https://ccpun.com/blog/critical-illness/',
+  criticalCutoverLive ? criticalOldCanonical : criticalFinalCanonical,
 ]) {
-  assert.ok(!sitemap.text.includes(`<loc>${staleLoc}</loc>`), `/sitemaps/blog.xml must not contain stale Health Life URL ${staleLoc}`);
+  assert.ok(!sitemap.text.includes(`<loc>${staleLoc}</loc>`), `/sitemaps/blog.xml must not contain stale/non-current URL ${staleLoc}`);
 }
 assert.equal(new Set([...sitemap.text.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])).size, [...sitemap.text.matchAll(/<loc>([^<]+)<\/loc>/g)].length, 'blog sitemap must not contain duplicate URLs');
 assert.ok(!sitemap.text.includes('https://ccpun.com/blog/investment/'), 'noindex investment hub must not be in sitemap');
@@ -156,4 +199,4 @@ assertContains(robotsTxt.text, 'User-Agent: *', '/robots.txt');
 assertContains(robotsTxt.text, 'Disallow: /', '/robots.txt');
 assert.ok(!robotsTxt.text.includes('Sitemap: https://ccpun.com/sitemap.xml'), '/robots.txt review lane must not advertise the public sitemap');
 
-console.log('PASS: SEO topic hub HTTP regression');
+console.log(`PASS: SEO topic hub HTTP regression (${criticalCutoverLive ? 'post-cutover' : 'pre-cutover'} Critical Illness owner)`);
