@@ -1,11 +1,9 @@
-import { ACTIVE_ARTICLE_CATEGORIES } from "../../lib/content/taxonomy";
-
 export const sanityContentModel = {
   version: "4.1",
   taxonomy: {
     primaryCategory: {
       role: "One required primary category controls article grouping and the category URL segment.",
-      active: ACTIVE_ARTICLE_CATEGORIES,
+      activeSource: "Sanity category documents where status == active",
       legacyReferencesRemainReadable: true,
     },
     tags: {
@@ -31,7 +29,7 @@ export const sanityContentModel = {
           required: true,
           group: "content",
           role: "primary",
-          selectableSlugs: ACTIVE_ARTICLE_CATEGORIES.map(({ slug }) => slug),
+          selectableWhen: "referenced category.status == active",
         },
         { name: "tags", type: "array", of: "string", group: "content", role: "topic-labels" },
         { name: "author", type: "reference", to: "author", required: true, group: "content" },
@@ -73,7 +71,9 @@ export const sanityContentModel = {
       title: "Category",
       fields: [
         { name: "title", type: "string", required: true },
-        { name: "slug", type: "slug", required: true, unique: true },
+        { name: "slug", type: "slug", required: true, unique: true, ownsCanonical: "https://ccpun.com/blog/{slug}/" },
+        { name: "status", type: "string", required: true, options: ["draft", "active"], default: "draft" },
+        { name: "redirectTo", type: "reference", to: "category", requiredWhenDeactivatingPublicOwner: true },
         { name: "description", type: "text" },
       ],
     },

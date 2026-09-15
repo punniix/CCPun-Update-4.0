@@ -1,11 +1,10 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
-import { ACTIVE_ARTICLE_CATEGORIES, isReservedArticleSlug } from "../../../../lib/content/taxonomy";
+import { isReservedArticleSlug } from "../../../../lib/content/taxonomy";
 import SeoScoreInput from "../../components/SeoScoreInput";
+import { validateArticleSlugAgainstCategoryRegistry } from "../../policy/category-registry-validation";
 
 import { ArticleEditorialInput } from "../../policy/article-editorial-status";
 import { reviewLabels } from "../../policy/article-publication";
-
-const activeArticleCategorySlugs = ACTIVE_ARTICLE_CATEGORIES.map(({ slug }) => slug);
 
 export const article = defineType({
   name: "article",
@@ -29,11 +28,12 @@ export const article = defineType({
       options: { source: "title", maxLength: 96 },
       readOnly: ({ document }) => Boolean(document?.publishedAt),
       validation: (Rule) =>
-        Rule.required().custom((value) =>
-          isReservedArticleSlug((value as { current?: string } | undefined)?.current)
-            ? "URL นี้สงวนไว้สำหรับส่งต่อหมวดหมู่เดิม กรุณาใช้ slug อื่น"
-            : true,
-        ),
+        Rule.required().custom(async (value, context) => {
+          if (isReservedArticleSlug((value as { current?: string } | undefined)?.current)) {
+            return "URL นี้สงวนไว้สำหรับส่งต่อหมวดหมู่เดิม กรุณาใช้ slug อื่น";
+          }
+          return validateArticleSlugAgainstCategoryRegistry(value as { current?: string } | undefined, context);
+        }),
     }),
     defineField({
       name: "excerpt",
@@ -54,8 +54,7 @@ export const article = defineType({
       readOnly: ({ document }) => Boolean(document?.publishedAt),
       options: {
         disableNew: true,
-        filter: "slug.current in $activeSlugs",
-        filterParams: { activeSlugs: activeArticleCategorySlugs },
+        filter: "status == 'active'",
       },
       validation: (Rule) => Rule.required(),
     }),

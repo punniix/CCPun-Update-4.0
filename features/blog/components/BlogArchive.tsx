@@ -4,37 +4,37 @@ import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Search } from "lucide-react";
 import ArticleCard from "./ArticleCard";
 import type { Article } from "@/lib/content/types";
-import { ACTIVE_ARTICLE_CATEGORIES, LEGACY_CATEGORY_TOPICS } from "@/lib/content/taxonomy";
+import { LEGACY_CATEGORY_TOPICS } from "@/lib/content/taxonomy";
 
-const CATEGORIES = [
-  { id: "all", label: "ทั้งหมด" },
-  ...ACTIVE_ARTICLE_CATEGORIES
-    .filter(({ slug }) => !Object.hasOwn(LEGACY_CATEGORY_TOPICS, slug))
-    .map(({ title }) => ({ id: title, label: title })),
-];
+function deriveCategories(articles: Article[]) {
+  const excluded = new Set<string>(Object.values(LEGACY_CATEGORY_TOPICS));
+  const titles = [...new Set(articles.map((article) => article.category.trim()).filter((title) => title && !excluded.has(title)))];
+  return [{ id: "all", label: "ทั้งหมด" }, ...titles.sort((a, b) => a.localeCompare(b, "th")).map((title) => ({ id: title, label: title }))];
+}
 const TOPIC_TAGS = ["ประกันสุขภาพ", "ประกันโรคร้ายแรง"];
 
 type Filters = { category: string; tag: string; query: string };
 
-function readFilters(): Filters {
+function readFilters(categories: { id: string; label: string }[]): Filters {
   const params = new URLSearchParams(window.location.search);
   const category = params.get("category") || "all";
   return {
-    category: CATEGORIES.some((item) => item.id === category) ? category : "all",
+    category: categories.some((item) => item.id === category) ? category : "all",
     tag: TOPIC_TAGS.includes(params.get("tag") ?? "") ? params.get("tag")! : "all",
     query: params.get("q") || "",
   };
 }
 
 export default function BlogArchive({ articles, showDraft }: { articles: Article[]; showDraft: boolean }) {
+  const categories = useMemo(() => deriveCategories(articles), [articles]);
   const [filters, setFilters] = useState<Filters>({ category: "all", tag: "all", query: "" });
 
   useEffect(() => {
-    const sync = () => setFilters(readFilters());
+    const sync = () => setFilters(readFilters(categories));
     sync();
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
-  }, []);
+  }, [categories]);
 
   const updateFilters = (category: string, tag: string, query: string, replace = false) => {
     const params = new URLSearchParams();
@@ -66,7 +66,7 @@ export default function BlogArchive({ articles, showDraft }: { articles: Article
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
             <div className="hide-scrollbar flex min-w-0 flex-nowrap gap-2 overflow-x-auto pb-1 sm:flex-1 sm:gap-3 lg:flex-wrap lg:overflow-visible">
-              {CATEGORIES.map((category) => {
+              {categories.map((category) => {
                 const active = filters.category === category.id;
                 return (
                   <button

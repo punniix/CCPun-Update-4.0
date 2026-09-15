@@ -1,4 +1,5 @@
 import type { Article } from "./types";
+import { CATEGORY_SLUG_PATTERN } from "./category-registry";
 import { LEGACY_CATEGORY_TOPICS, normalizeArticleTaxonomy } from "./taxonomy";
 
 // Foundation cutover before UX/UI 4.2. These two winner pages now have one
@@ -9,14 +10,6 @@ import { LEGACY_CATEGORY_TOPICS, normalizeArticleTaxonomy } from "./taxonomy";
 const ARTICLE_CANONICAL_CATEGORY_OVERRIDES: Record<string, string> = {
   "aia-health-happy-describe": "health-insurance",
   "aia-health-ci-hero-guide": "health-insurance",
-};
-
-// Physical URL categories that are already live in Production Sanity but are
-// intentionally independent from the older financial-planning topic-hub set.
-// Keep this allowlist explicit so a new CMS category cannot silently become a
-// public URL without a reviewed routing decision.
-const ADDITIONAL_PUBLIC_CATEGORIES: Record<string, string> = {
-  "motor-insurance": "ประกันรถยนต์",
 };
 
 const MOVED_CATEGORY_PATHS: Record<string, string> = {
@@ -35,20 +28,9 @@ const MOVED_ARTICLE_PATHS: Record<string, string> = {
 
 type ArticleCategoryInput = Pick<Article, "category" | "categorySlug"> & Partial<Pick<Article, "slug">>;
 
-const PREVIEW_CATEGORY_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-function getAdditionalPublicCategory(article: ArticleCategoryInput) {
-  const rawSlug = article.categorySlug?.trim().toLowerCase() ?? "";
-  const expectedTitle = ADDITIONAL_PUBLIC_CATEGORIES[rawSlug];
-  return expectedTitle && article.category?.trim() === expectedTitle ? rawSlug : null;
-}
-
 export function getArticleCategorySlug(article: ArticleCategoryInput) {
   const protectedCategory = article.slug ? ARTICLE_CANONICAL_CATEGORY_OVERRIDES[article.slug] : undefined;
   if (protectedCategory) return protectedCategory;
-
-  const additionalCategory = getAdditionalPublicCategory(article);
-  if (additionalCategory) return additionalCategory;
 
   const slug = normalizeArticleTaxonomy({
     categoryTitle: article.category,
@@ -59,9 +41,6 @@ export function getArticleCategorySlug(article: ArticleCategoryInput) {
 }
 
 export function getArticlePreviewCategorySlug(article: ArticleCategoryInput) {
-  const additionalCategory = getAdditionalPublicCategory(article);
-  if (additionalCategory) return additionalCategory;
-
   const canonicalCategory = normalizeArticleTaxonomy({
     categoryTitle: article.category,
     categorySlug: article.categorySlug,
@@ -69,7 +48,7 @@ export function getArticlePreviewCategorySlug(article: ArticleCategoryInput) {
   if (canonicalCategory) return canonicalCategory;
 
   const rawCategory = article.categorySlug?.trim().toLowerCase() ?? "";
-  if (PREVIEW_CATEGORY_SEGMENT.test(rawCategory)) return rawCategory;
+  if (CATEGORY_SLUG_PATTERN.test(rawCategory)) return rawCategory;
   throw new Error("Unsupported article preview category");
 }
 
