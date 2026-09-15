@@ -157,3 +157,40 @@ Verification after this refinement:
 - `npm run check:foundation` PASS (existing generated workflow lint warning only)
 - `npm run build` PASS
 - `git diff --check` PASS
+
+## Website 4.3 full public-layout audit — wide desktop + article rhythm
+
+Owner review expanded the scope from the calculator pages to every public Website 4.3 surface after the same left-bias and spacing issue was also observed on Home and Blog.
+
+Root cause on wide desktop:
+- the shared 1280px shell was forced to `margin-left: 0` inside an 80px-padded section
+- at 1440px this is invisible because 1280 + 80 + 80 fills the viewport
+- at 1920px the same shell stayed at x=80 instead of centering at x=320, leaving a large dead area on the right
+- overlay navigation and hero copy used the same left-pinned behavior
+
+Shared fix:
+- shell children now use auto margins
+- Home / Blog / Tool hero copy follows a shared shell-left anchor
+- overlay Navbar is capped at 1280px and centered
+- Footer and generic Website 4.3 sections inherit the same centered shell
+- 404 remained centered and was verified unchanged
+
+Article fix:
+- Production article measurement at 1440px showed featured image 1280px vs reading grid 1060px (TOC 300 + prose 720 + gap 40)
+- article breadcrumb/title/meta/featured image now use the same 1060px reading axis
+- article support sections (sources, FAQ, author, CTA, related articles, disclaimer) use the same 1060px axis
+- featured image `sizes` hint is now 1060px on desktop
+- Article header → reading gap reduced from the former 48 + 64 padding stack to 32 + 48
+
+Home / tool rhythm:
+- Home learning → FAQ UAT-only compressed transition changed from 24 + 24 to 40 + 40
+- desktop calculator bottom padding reduced from 72 to 48 so the next section does not feel detached
+
+Responsive matrix verified locally for Home, Blog, Blog Category, FHC, CI and 404 at:
+- 390: shell x=24, width=342
+- 820: shell x=40, width=740
+- 1100: shell x=56, width=988
+- 1440: shell x=80, width=1280
+- 1920: shell x=320, width=1280
+
+All tested widths reported zero horizontal overflow. New `website43-layout-rhythm-regression.mjs` is wired into the Foundation/Vercel regression suite so wide-desktop centering and Article width parity cannot silently regress.

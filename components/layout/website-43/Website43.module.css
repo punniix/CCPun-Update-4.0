@@ -287,8 +287,8 @@
 .faqItem[open] .faqIcon { transform: rotate(45deg); }
 .faqAnswer { margin: 0; padding: 0 20px 20px; color: var(--w43-muted); font-size: 15px; font-weight: 400; line-height: 1.65; }
 .faqCta { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; margin-top: 20px; padding: 0 20px; border-radius: 12px; background: var(--w43-gold); color: var(--w43-deep) !important; font-weight: 600; }
-.section[data-uat-section="home-learning"] { padding-bottom: 24px; }
-.section[data-uat-section="home-faq"] { padding-top: 24px; }
+.section[data-uat-section="home-learning"] { padding-bottom: 40px; }
+.section[data-uat-section="home-faq"] { padding-top: 40px; }
 .finalActions { display: flex; gap: 12px; margin-top: 20px; }
 .finalActions .primaryButton { width: 180px; }
 .finalActions .outlineButton { width: 200px; }
@@ -332,12 +332,14 @@
 .emptyState { margin-top: 20px; padding: 28px; border: 1px solid var(--w43-border); border-radius: 14px; color: var(--w43-muted); text-align: center; }
 
 /* Article */
-.articleHeader { padding: 56px 80px 48px; background: var(--w43-bg); }
-.breadcrumbs { color: var(--w43-gold); font-size: 14px; font-weight: 600; }
-.articleHeadline { max-width: 1040px; margin: 24px 0 0; font-size: 44px; font-weight: 700; line-height: 1.25; }
-.articleHeaderMeta { max-width: 1040px; margin: 20px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
-.articleFeature { display: block; width: min(1280px,100%); aspect-ratio: 1200/630; margin: 40px auto 0; object-fit: cover; border-radius: 16px; }
-.articleReadingWrap { padding: 64px 80px 80px; background: var(--w43-deep); }
+.articleHeader { padding: 56px 80px 32px; background: var(--w43-bg); }
+.breadcrumbs { width: min(1060px,100%); margin-inline: auto; color: var(--w43-gold); font-size: 14px; font-weight: 600; }
+.articleHeadline { width: min(1060px,100%); max-width: none; margin: 24px auto 0; font-size: 44px; font-weight: 700; line-height: 1.25; }
+.articleHeaderMeta { width: min(1060px,100%); max-width: none; margin: 20px auto 0; color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
+.articleHeader .articleInlineFigure { width: min(1060px,100%); margin: 40px auto 0; }
+.articleHeader .articleFeature { display: block; width: 100%; aspect-ratio: 1200/630; margin: 0; object-fit: cover; border-radius: 16px; }
+.articleSupportInner { width: min(1060px,100%); margin-inline: auto; }
+.articleReadingWrap { padding: 48px 80px 72px; background: var(--w43-deep); }
 .articleReadingGrid { display: grid; grid-template-columns: 300px 720px; gap: 40px; width: min(1060px,100%); margin: 0 auto; }
 .toc { position: sticky; top: 24px; align-self: start; padding: 20px; border: 1px solid var(--w43-border); border-radius: 16px; background: rgba(74,58,58,.45); }
 .toc strong { font-size: 16px; }
@@ -458,7 +460,7 @@
     align-items: start;
     justify-content: center;
     padding-top: 48px;
-    padding-bottom: 72px;
+    padding-bottom: 48px;
   }
   .calculatorHeader {
     width: 100%;
