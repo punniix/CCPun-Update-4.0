@@ -54,7 +54,7 @@ export default function CILandingIntro() {
 
   return (
     <section aria-labelledby="ci-problem-title" className={styles.toolStorySection}>
-      <div className={styles.narrow}>
+      <div className={styles.inner}>
         <h2 id="ci-problem-title" className={styles.h2}>เพราะคำว่า “พอ” ของแต่ละคนไม่เท่ากัน</h2>
         <div className={styles.storyCopy}>
           <p>หลายๆ คน รวมถึงผม พอเริ่มคิดเรื่องทุนประกันโรคร้ายแรง ก็มักติดอยู่กับคำถามเดียวกันว่า “ต้องมีเท่าไรถึงจะพอ?”</p>

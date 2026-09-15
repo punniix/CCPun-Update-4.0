@@ -37,7 +37,7 @@ export const FHC_FAQS = [
 export default function FHCLandingIntro() {
   return (
     <section aria-labelledby="fhc-intro-title" className={styles.toolStorySection}>
-      <div className={styles.narrow}>
+      <div className={styles.inner}>
         <h2 id="fhc-intro-title" className={styles.h2}>
           การตรวจสุขภาพการเงินต้องดูหลายเรื่องให้เชื่อมกัน
         </h2>

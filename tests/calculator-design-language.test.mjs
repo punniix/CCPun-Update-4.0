@@ -51,6 +51,17 @@ test('calculator surfaces follow Production flat-by-default styling instead of t
   assert.match(website43Css, /\.toolMethodGrid/);
 });
 
+test('desktop spacing follows the Production 1280px shell and avoids centered dead space', () => {
+  assert.match(fhcIntro, /className=\{styles\.inner\}/);
+  assert.match(ciIntro, /className=\{styles\.inner\}/);
+  assert.match(ciShell, /className=\{styles\.inner\}/);
+  assert.match(fhcShell, /toolFaqStandalone/);
+  assert.match(card, /max-w-\[48rem\]/);
+  assert.match(website43Css, /@media \(min-width: 1200px\)/);
+  assert.match(website43Css, /grid-template-columns: minmax\(300px, 360px\) minmax\(0, 768px\)/);
+  assert.match(website43Css, /\.toolFaqStandalone \{ margin-top: 0; \}/);
+});
+
 test('FHC and CI result states keep the same Production Website 4.3 visual language', () => {
   assert.match(fhcWizard, /ccpun-calculator-result/);
   assert.match(fhcWizard, /ccpun-calculator-result-lead/);

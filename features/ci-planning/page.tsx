@@ -123,7 +123,7 @@ export default function CiPlanningPage() {
         </section>
 
         <section className={styles.toolStorySection} aria-labelledby="ci-reading-title">
-          <div className={styles.narrow}>
+          <div className={styles.inner}>
             <p className={styles.eyebrow}>วิธีอ่านผล</p>
             <h2 id="ci-reading-title" className={styles.h2}>ผลลัพธ์มี 2 มุม เลือกอ่านแยกกัน</h2>
             <p className={styles.lead}>เครื่องมือแสดงสองวิธีแยกกัน ไม่นำมาบวกกัน แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้</p>

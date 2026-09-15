@@ -375,22 +375,26 @@
 .toolHero .primaryButton { margin-top: 28px; min-width: 150px; }
 .storyIntro { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
 .storyVisual { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 18px; }
-.storyCopy p { margin: 14px 0 0; color: var(--w43-muted); font-size: 17px; line-height: 1.7; }
-.toolDisclaimer { margin: 28px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
+.storyCopy { max-width: 900px; margin-top: 20px; }
+.storyCopy p { margin: 0; color: var(--w43-muted); font-size: 17px; line-height: 1.7; }
+.storyCopy p + p { margin-top: 14px; }
+.toolDisclaimer { margin: 24px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
 .toolInlineLink { color: var(--w43-gold) !important; text-decoration: underline !important; text-underline-offset: 4px; }
 .truthGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 24px; }
 .truth { min-height: 180px; padding: 20px; border: 1px solid rgba(91,72,72,.5); border-radius: 14px; background: rgba(74,58,58,.16); }
 .truthNum { color: rgba(224,201,133,.7); font-size: 20px; font-weight: 700; }
 .truth h3 { margin: 14px 0 0; font-size: 20px; line-height: 1.4; }
 .truth p { color: var(--w43-muted); font-size: 15px; line-height: 1.6; }
-.toolMethodGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-top: 24px; }
+.toolMethodGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-top: 28px; }
 .toolMethodItem { padding: 20px; border: 1px solid rgba(91,72,72,.6); border-radius: 14px; background: rgba(74,58,58,.16); }
 .toolMethodItem h3 { margin: 0; color: var(--w43-ink); font-size: 20px; font-weight: 600; line-height: 1.4; }
 .toolMethodItem p { margin: 10px 0 0; color: var(--w43-muted); font-size: 15px; line-height: 1.6; }
-.methodBox { display: flex; flex-direction: column; gap: 12px; margin-top: 56px; padding: 28px; border: 1px solid var(--w43-border); border-radius: 18px; background: rgba(74,58,58,.28); }
+.methodBox { display: flex; flex-direction: column; gap: 12px; margin-top: 40px; padding: 28px; border: 1px solid var(--w43-border); border-radius: 18px; background: rgba(74,58,58,.28); }
 .methodBox h3 { margin: 8px 0 0; font-size: 26px; }
-.methodBox p { margin: 0 0 14px; color: var(--w43-muted); font-size: 16px; line-height: 1.65; }
-.toolFaq { margin-top: 56px; }
+.methodBox p { margin: 0; color: var(--w43-muted); font-size: 16px; line-height: 1.65; }
+.methodBox p + p { margin-top: 12px; }
+.toolFaq { margin-top: 48px; }
+.toolFaqStandalone { margin-top: 0; }
 .faqDetails { border-block: 1px solid rgba(91,72,72,.7); }
 .faqDetails details { border-bottom: 1px solid rgba(91,72,72,.55); }
 .faqDetails details:last-child { border-bottom: 0; }
@@ -399,7 +403,8 @@
 .faqDetails p { margin: 0; padding: 0 0 18px; color: var(--w43-muted); font-size: 15px; line-height: 1.65; }
 .toolCtas { display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--w43-border); }
 .toolCtasActions { display: flex; gap: 12px; }
-.toolStorySection { padding: 48px 80px 24px; background: var(--w43-bg); }
+.toolStorySection { padding: 48px 80px 32px; background: var(--w43-bg); }
+.toolStorySection > .inner > .h2:first-child { margin-top: 0; }
 .calculatorSection { padding: 32px 80px 64px; background: var(--w43-bg); }
 .calculatorHeader { width: min(768px,100%); margin: 0 auto 28px; text-align: center; }
 .calculatorHeader h2 { margin: 8px 0 0; font-size: 30px; line-height: 1.3; }
@@ -444,6 +449,33 @@
 .ciStoryCard div { padding: 20px; }
 .ciStoryCard h3 { margin: 0; font-size: 20px; }
 .ciStoryCard p { margin: 10px 0 0; color: var(--w43-muted); font-size: 15px; line-height: 1.6; }
+
+@media (min-width: 1200px) {
+  .calculatorSection {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 768px);
+    column-gap: 64px;
+    align-items: start;
+    justify-content: center;
+    padding-top: 48px;
+    padding-bottom: 72px;
+  }
+  .calculatorHeader {
+    width: 100%;
+    margin: 8px 0 0;
+    text-align: left;
+  }
+  .calculatorHeader h2 { margin-top: 12px; }
+  .calculatorHeader p { margin-top: 14px; line-height: 1.6; }
+  .calculatorStage { width: 100%; margin: 0; }
+  .methodBox {
+    display: grid;
+    grid-template-columns: minmax(280px, .82fr) minmax(0, 1.18fr);
+    column-gap: 48px;
+    row-gap: 0;
+    align-items: start;
+  }
+}
 
 /* Legal */
 .legalHeader { padding: 80px; background: var(--w43-bg); }

@@ -45,6 +45,7 @@ export function Website43TransitionStyles() {
 .${styles.sectionDeep} > .${styles.inner},
 .${styles.blogContent} > .${styles.inner},
 .${styles.articleHeader} > .${styles.inner},
+.${styles.toolStorySection} > .${styles.inner},
 .${styles.legalHeader} > .${styles.inner},
 .${styles.legalBody} > .${styles.inner},
 .${styles.footerWrap} > .${styles.inner} {

@@ -23,7 +23,7 @@ export default function HumanCalculatorCard({
     <section
       aria-labelledby={labelledBy}
       data-ui="human-centered-calculator-card"
-      className="mx-auto w-full max-w-[44rem] rounded-2xl border p-4 sm:p-5 md:p-6"
+      className="mx-auto w-full max-w-[48rem] rounded-2xl border p-4 sm:p-5 md:p-6"
       style={{
         borderColor: 'var(--w43-border)',
         background: 'var(--w43-surface)',

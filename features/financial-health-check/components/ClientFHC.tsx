@@ -31,9 +31,9 @@ export default function ClientFHC() {
           </div>
         </section>
 
-        <section className={`${styles.sectionDeep} ${styles.sectionBottomLarge}`} aria-labelledby="fhc-faq-title">
-          <div className={styles.narrow}>
-            <div className={styles.toolFaq}>
+        <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`} aria-labelledby="fhc-faq-title">
+          <div className={styles.inner}>
+            <div className={`${styles.toolFaq} ${styles.toolFaqStandalone}`}>
               <p className={styles.eyebrow}>คำถามที่พบบ่อย</p>
               <h2 id="fhc-faq-title" className={styles.h2}>เรื่องที่ควรรู้ก่อนใช้ผลประเมิน</h2>
               <div className={styles.faqDetails}>

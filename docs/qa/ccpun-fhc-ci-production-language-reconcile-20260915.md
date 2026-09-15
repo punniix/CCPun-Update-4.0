@@ -136,3 +136,24 @@ This branch is locally verified only. No push, PR update, merge or Production de
 After the final source commit, the optimized build was served with `next start` on local port 3002 without loading credential files. Both public routes returned HTTP 200. A clean Chrome CDP pass at 390px reported no runtime exception, no hydration error, no Next error portal, no horizontal overflow, and the expected Website 4.3 background for both FHC and CI.
 
 A hydration warning observed earlier under `next dev` did not reproduce under the optimized Production build. The dev run also logged the expected Auth.js `MissingSecret` diagnostic because local credentials were intentionally not loaded; the public Production-build route check itself was clean.
+
+## Desktop spacing refinement — owner review follow-up
+
+Owner review found two visual issues on desktop: several sections carried too much empty space on the left, and vertical spacing was inconsistent between adjacent content groups.
+
+This follow-up changes layout only. Calculator domain/formula paths and `LifeCoverageWizard` calculation logic were not modified.
+
+Measured at 1440px before → after:
+- tool story/FAQ shell: x=144, width=1152 → x=80, width=1280 (same shell as Production Home/Blog)
+- centered calculator: x=336, width=768 → two-column composition with intro x=124 width=360 and calculator x=548 width=768
+- FHC FAQ effective top gap: 96px → 56px
+- FHC method block height: ~300px → ~240px
+- CI recovery/method block height: ~219px → ~137px
+
+Responsive checks at 390 / 820 / 1100 / 1280 / 1440 all reported zero horizontal overflow. Mobile and tablet retain their existing 24px / 40px shell gutters; the two-column calculator composition activates only at >=1200px.
+
+Verification after this refinement:
+- `npm run test:calculators` PASS, including frozen Production formula parity
+- `npm run check:foundation` PASS (existing generated workflow lint warning only)
+- `npm run build` PASS
+- `git diff --check` PASS
