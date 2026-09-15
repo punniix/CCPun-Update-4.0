@@ -238,9 +238,7 @@ export default function Website43BlogInteractive({
               nativeReplaceState.call(window.history, null, '', `${url.pathname}${url.search}${url.hash}`);
             }}
           />
-          <div className={classNames.categoryMenu} ref={categoryMenuRef} onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setCategoryMenuOpen(false);
-          }}>
+          <div className={classNames.categoryMenu} ref={categoryMenuRef}>
             <button
               ref={categoryButtonRef}
               className={classNames.categoryMenuButton}
@@ -252,25 +250,28 @@ export default function Website43BlogInteractive({
               <span>{activeCategory.title}</span>
               <span className={`${classNames.categoryMenuChevron} ${categoryMenuOpen ? classNames.categoryMenuChevronOpen : ''}`} aria-hidden="true">⌄</span>
             </button>
-            {categoryMenuOpen ? (
-              <nav id="blog-category-options" className={classNames.categoryMenuPanel} aria-label="เลือกหมวดหมู่บทความ">
-                {categories.map((item) => {
-                  const selected = activeCategory.slug === item.slug;
-                  return (
-                    <Link
-                      className={`${classNames.categoryMenuOption} ${selected ? classNames.categoryMenuOptionActive : ''}`}
-                      href={item.slug ? `/blog/${item.slug}/` : '/blog/'}
-                      aria-current={selected ? 'page' : undefined}
-                      onClick={() => setCategoryMenuOpen(false)}
-                      key={item.title}
-                    >
-                      <span className={classNames.categoryMenuIndicator} aria-hidden="true">{selected ? '✓' : ''}</span>
-                      <span>{item.title}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            ) : null}
+            <nav
+              id="blog-category-options"
+              className={classNames.categoryMenuPanel}
+              aria-label="เลือกหมวดหมู่บทความ"
+              hidden={!categoryMenuOpen}
+            >
+              {categories.map((item) => {
+                const selected = activeCategory.slug === item.slug;
+                return (
+                  <Link
+                    className={`${classNames.categoryMenuOption} ${selected ? classNames.categoryMenuOptionActive : ''}`}
+                    href={item.slug ? `/blog/${item.slug}/` : '/blog/'}
+                    aria-current={selected ? 'page' : undefined}
+                    onClick={() => setCategoryMenuOpen(false)}
+                    key={item.title}
+                  >
+                    <span className={classNames.categoryMenuIndicator} aria-hidden="true">{selected ? '✓' : ''}</span>
+                    <span>{item.title}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         </div>
         <div className={classNames.articleListHeading}>
