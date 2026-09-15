@@ -1,0 +1,350 @@
+{
+  "meta": {
+    "sourceCommit": "1a43900d4bdc6698139094bb616c6ddbbea9d91f",
+    "purpose": "Frozen pre-UX calculator output and domain hash contract; self-contained for shallow CI checkouts"
+  },
+  "fixtures": {
+    "normal": {
+      "ci": {
+        "householdMonthly": 30000,
+        "householdNeed": 1800000,
+        "educationPlans": [
+          {
+            "annualCost": 60000,
+            "yearsRemaining": 3
+          }
+        ],
+        "educationNeed": 180000,
+        "mortgageDebtNeed": 900000,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 200000,
+        "debtNeed": 1100000,
+        "calculatedNeed": 3080000,
+        "existingCoverage": 500000,
+        "liquidAssets": 100000,
+        "availableResources": 600000,
+        "signedGap": 2480000,
+        "gap": 2480000,
+        "shortfall": 2480000,
+        "surplus": 0,
+        "incomeBasedNeed": 3000000,
+        "incomeSignedGap": 2400000,
+        "incomeShortfall": 2400000,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 5
+      },
+      "fhc": {
+        "familySupport": 1800000,
+        "need": 2060000,
+        "resources": 600000,
+        "gap": 1460000
+      }
+    },
+    "minimal-valid": {
+      "ci": {
+        "householdMonthly": 1,
+        "householdNeed": 12,
+        "educationPlans": [],
+        "educationNeed": 0,
+        "mortgageDebtNeed": 0,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 0,
+        "debtNeed": 0,
+        "calculatedNeed": 12,
+        "existingCoverage": 0,
+        "liquidAssets": 0,
+        "availableResources": 0,
+        "signedGap": 12,
+        "gap": 12,
+        "shortfall": 12,
+        "surplus": 0,
+        "incomeBasedNeed": 12,
+        "incomeSignedGap": 12,
+        "incomeShortfall": 12,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 1
+      },
+      "fhc": {
+        "familySupport": 12,
+        "need": 12,
+        "resources": 0,
+        "gap": 12
+      }
+    },
+    "zero-resource": {
+      "ci": {
+        "householdMonthly": 30000,
+        "householdNeed": 1800000,
+        "educationPlans": [],
+        "educationNeed": 0,
+        "mortgageDebtNeed": 0,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 0,
+        "debtNeed": 0,
+        "calculatedNeed": 1800000,
+        "existingCoverage": 0,
+        "liquidAssets": 0,
+        "availableResources": 0,
+        "signedGap": 1800000,
+        "gap": 1800000,
+        "shortfall": 1800000,
+        "surplus": 0,
+        "incomeBasedNeed": 3000000,
+        "incomeSignedGap": 3000000,
+        "incomeShortfall": 3000000,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 5
+      },
+      "fhc": {
+        "familySupport": 1800000,
+        "need": 1800000,
+        "resources": 0,
+        "gap": 1800000
+      }
+    },
+    "low-resource": {
+      "ci": {
+        "householdMonthly": 8000,
+        "householdNeed": 96000,
+        "educationPlans": [],
+        "educationNeed": 0,
+        "mortgageDebtNeed": 0,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 0,
+        "debtNeed": 0,
+        "calculatedNeed": 96000,
+        "existingCoverage": 0,
+        "liquidAssets": 0,
+        "availableResources": 0,
+        "signedGap": 96000,
+        "gap": 96000,
+        "shortfall": 96000,
+        "surplus": 0,
+        "incomeBasedNeed": 108000,
+        "incomeSignedGap": 108000,
+        "incomeShortfall": 108000,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 1
+      },
+      "fhc": {
+        "familySupport": 96000,
+        "need": 96000,
+        "resources": 0,
+        "gap": 96000
+      }
+    },
+    "high-income": {
+      "ci": {
+        "householdMonthly": 300000,
+        "householdNeed": 36000000,
+        "educationPlans": [
+          {
+            "annualCost": 600000,
+            "yearsRemaining": 3
+          }
+        ],
+        "educationNeed": 1800000,
+        "mortgageDebtNeed": 1800000,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 5000000,
+        "debtNeed": 6800000,
+        "calculatedNeed": 44600000,
+        "existingCoverage": 10000000,
+        "liquidAssets": 2000000,
+        "availableResources": 12000000,
+        "signedGap": 32600000,
+        "gap": 32600000,
+        "shortfall": 32600000,
+        "surplus": 0,
+        "incomeBasedNeed": 120000000,
+        "incomeSignedGap": 108000000,
+        "incomeShortfall": 108000000,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 10
+      },
+      "fhc": {
+        "familySupport": 72000000,
+        "need": 77600000,
+        "resources": 12000000,
+        "gap": 65600000
+      }
+    },
+    "debt-heavy": {
+      "ci": {
+        "householdMonthly": 20000,
+        "householdNeed": 1200000,
+        "educationPlans": [
+          {
+            "annualCost": 100000,
+            "yearsRemaining": 3
+          }
+        ],
+        "educationNeed": 300000,
+        "mortgageDebtNeed": 900000,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 9000000,
+        "debtNeed": 9900000,
+        "calculatedNeed": 11400000,
+        "existingCoverage": 100000,
+        "liquidAssets": 0,
+        "availableResources": 100000,
+        "signedGap": 11300000,
+        "gap": 11300000,
+        "shortfall": 11300000,
+        "surplus": 0,
+        "incomeBasedNeed": 2100000,
+        "incomeSignedGap": 2000000,
+        "incomeShortfall": 2000000,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 5
+      },
+      "fhc": {
+        "familySupport": 1200000,
+        "need": 10300000,
+        "resources": 100000,
+        "gap": 10200000
+      }
+    },
+    "education-heavy": {
+      "ci": {
+        "householdMonthly": 45000,
+        "householdNeed": 4320000,
+        "educationPlans": [
+          {
+            "annualCost": 4000000,
+            "yearsRemaining": 3
+          }
+        ],
+        "educationNeed": 12000000,
+        "mortgageDebtNeed": 1440000,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 500000,
+        "debtNeed": 1940000,
+        "calculatedNeed": 18260000,
+        "existingCoverage": 1000000,
+        "liquidAssets": 250000,
+        "availableResources": 1250000,
+        "signedGap": 17010000,
+        "gap": 17010000,
+        "shortfall": 17010000,
+        "surplus": 0,
+        "incomeBasedNeed": 7680000,
+        "incomeSignedGap": 6430000,
+        "incomeShortfall": 6430000,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 8
+      },
+      "fhc": {
+        "familySupport": 4320000,
+        "need": 8820000,
+        "resources": 1250000,
+        "gap": 7570000
+      }
+    },
+    "high-resource": {
+      "ci": {
+        "householdMonthly": 50000,
+        "householdNeed": 3000000,
+        "educationPlans": [],
+        "educationNeed": 0,
+        "mortgageDebtNeed": 0,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 0,
+        "debtNeed": 0,
+        "calculatedNeed": 3000000,
+        "existingCoverage": 10000000,
+        "liquidAssets": 5000000,
+        "availableResources": 15000000,
+        "signedGap": -12000000,
+        "gap": 0,
+        "shortfall": 0,
+        "surplus": 12000000,
+        "incomeBasedNeed": 5400000,
+        "incomeSignedGap": -9600000,
+        "incomeShortfall": 0,
+        "incomeSurplus": 9600000,
+        "effectiveReserveYears": 5
+      },
+      "fhc": {
+        "familySupport": 3000000,
+        "need": 3000000,
+        "resources": 15000000,
+        "gap": 0
+      }
+    },
+    "edge-valid-surplus": {
+      "ci": {
+        "householdMonthly": 1,
+        "householdNeed": 120,
+        "educationPlans": [],
+        "educationNeed": 0,
+        "mortgageDebtNeed": 0,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 0,
+        "debtNeed": 0,
+        "calculatedNeed": 120,
+        "existingCoverage": 1000000000000,
+        "liquidAssets": 0,
+        "availableResources": 1000000000000,
+        "signedGap": -999999999880,
+        "gap": 0,
+        "shortfall": 0,
+        "surplus": 999999999880,
+        "incomeBasedNeed": 120,
+        "incomeSignedGap": -999999999880,
+        "incomeShortfall": 0,
+        "incomeSurplus": 999999999880,
+        "effectiveReserveYears": 10
+      },
+      "fhc": {
+        "familySupport": 240,
+        "need": 240,
+        "resources": 1000000000000,
+        "gap": 0
+      }
+    },
+    "boundary-period": {
+      "ci": {
+        "householdMonthly": 50000,
+        "householdNeed": 6000000,
+        "educationPlans": [],
+        "educationNeed": 0,
+        "mortgageDebtNeed": 0,
+        "carDebtNeed": 0,
+        "otherDebtBalance": 0,
+        "debtNeed": 0,
+        "calculatedNeed": 6000000,
+        "existingCoverage": 0,
+        "liquidAssets": 0,
+        "availableResources": 0,
+        "signedGap": 6000000,
+        "gap": 6000000,
+        "shortfall": 6000000,
+        "surplus": 0,
+        "incomeBasedNeed": 12000000,
+        "incomeSignedGap": 12000000,
+        "incomeShortfall": 12000000,
+        "incomeSurplus": 0,
+        "effectiveReserveYears": 10
+      },
+      "fhc": {
+        "familySupport": 12000000,
+        "need": 12000000,
+        "resources": 0,
+        "gap": 12000000
+      }
+    }
+  },
+  "files": {
+    "features/ci-planning/calculator/calculator.ts": "b2f15e8e740ff970dfe2a44f33d0b4744af4a9a7cd75693e7751e5a4c804d9b9",
+    "features/ci-planning/calculator/constants.ts": "acc89b41abd65bb32a2bf88903d60fcc7caaa8c1c7d7d1894042b2ee1429ee71",
+    "features/ci-planning/calculator/schemas.ts": "c71d31f53247743f12b3e06388b90715137e5a13e718cc548e2dfe195d5c369a",
+    "features/ci-planning/calculator/types.ts": "879719af167acc2ae88791b53936fdd8bf592b7e3021a1e956551bc84aa68575",
+    "features/financial-health-check/calculator/calculator.ts": "9ef80e4ab929415dfb9bbaa99c0dd7a92c88b5bbbdf77e114e9fc66e9285e43e",
+    "features/financial-health-check/calculator/constants.ts": "d061d8d5bd14d80dc0b4f01602c31e0e1a07973e1ad6220d5f1a01082cf41c7f",
+    "features/financial-health-check/calculator/nickname.ts": "7c8963df2e5c8cea003b9e5f0342fc95e2a6767d17c72cd087f78069b5508ec0",
+    "features/financial-health-check/calculator/schemas.ts": "c754f0ce90976576f7ed3ee2526661c58ad1e38ad31370eae3cc086c440ce5e2",
+    "features/financial-health-check/calculator/types.ts": "2cd5c90747297d9112f9de50fb62f5a0cdd22addf80b3d540c9f6033fe5b6b01"
+  },
+  "fhcCallbackSha256": "1ea0626964f421872a3587fa4a51a5a9283973da9e3a388c3bf46b11c30620bb"
+}

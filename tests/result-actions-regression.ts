@@ -247,7 +247,7 @@ for (const requiredLandingCopy of [
   );
 }
 assert(!ciLandingSource.includes('คำถามที่ไม่มีคำตอบเดียว'), 'lean CI landing must remove the deleted eyebrow');
-assert(ciPageSource.includes('highlightOnNewLine'), 'CI hero highlight must start on its own line');
+assert(ciPageSource.includes('Website43ToolHero') && ciPageSource.includes('line2="เพียงพอรับภาระจริงไหม?"'), 'CI hero must keep the approved Website 4.3 split-title treatment');
 assert(!ciPageSource.includes('· Beta'), 'CI Research Preview must not retain the Beta label');
 assert(!navConfigSource.includes('วางแผนเงินก้อนโรคร้ายแรง (Beta)'), 'CI navigation must not retain the Beta label');
 for (const activeCiSource of [ciPageSource, ciExpensesSource, ciExistingSource, ciResultSource, ciCalculatorSource, ciTypesSource]) {
@@ -306,7 +306,9 @@ assert(
 );
 assert(ciExpensesSource.includes('id="ci-monthly-income"'), 'Step 1 must expose an accessible monthly-income field');
 assert(ciExistingSource.includes('id="ci-liquid-assets"'), 'Step 2 must expose a stable liquid-assets field');
-assert(ciExistingSource.includes('เช่น เงินสด กองทุนพันธบัตรรัฐบาล หรือเงินฝาก'), 'liquid-assets field must show the approved grey placeholder example');
+assert(ciExistingSource.includes('placeholder="เช่น 500,000"'), 'liquid-assets currency field must use a short numeric example');
+assert(ciExistingSource.includes('บ้าน รถ หรือทรัพย์สินจำเป็นที่ไม่ตั้งใจขายไม่ต้องกรอก'), 'short numeric examples must retain the asset inclusion guidance');
+assert(ciExpensesSource.includes('placeholder="เช่น 100,000"'), 'other-debt currency field must use a short numeric example');
 assert(ciExistingSource.includes('เงินก้อนจากประกันโรคร้ายแรงที่มี'), 'Step 2 must retain the existing CI lump-sum field');
 assert(
   ciExpensesSource.includes('รายได้ ภาระ และระยะที่ต้องการวางแผน')
