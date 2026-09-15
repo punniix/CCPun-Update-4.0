@@ -7,6 +7,7 @@ import { getArticlePath } from '@/lib/content/url';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { SectionHeading, Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
+import Website43ArticleToc from './Website43ArticleToc';
 
 const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   day: 'numeric',
@@ -147,7 +148,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
                 alt={article.featuredImage.alt}
                 width={article.featuredImage.width}
                 height={article.featuredImage.height}
-                sizes="(max-width: 767px) calc(100vw - 48px), 1060px"
+                sizes="(max-width: 767px) calc(100vw - 48px), 720px"
                 priority
               />
               {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
@@ -161,26 +162,14 @@ export default function Website43Article({ article, relatedArticles = [], previe
             {headings.length > 0 && (
               <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">
                 <strong>หัวข้อเนื้อหา</strong>
-                <div className={styles.tocList}>
-                  {tocGroups.map((group) => (
-                    <div className={styles.tocGroup} key={group.primary.id}>
-                      <a className={styles.tocPrimary} href={`#${group.primary.id}`}><span aria-hidden="true" />{group.primary.label}</a>
-                      {group.children.length > 0 && <div className={styles.tocSublist}>{group.children.map((heading) => <a className={styles.tocSecondary} href={`#${heading.id}`} key={heading.id}>{heading.label}</a>)}</div>}
-                    </div>
-                  ))}
-                </div>
+                <Website43ArticleToc groups={tocGroups} />
               </aside>
             )}
             {headings.length > 0 && (
               <details className={styles.tocMobile}>
                 <summary>หัวข้อเนื้อหา</summary>
                 <div className={styles.tocMobileList}>
-                  {tocGroups.map((group) => (
-                    <div className={styles.tocGroup} key={group.primary.id}>
-                      <a className={styles.tocPrimary} href={`#${group.primary.id}`}><span aria-hidden="true" />{group.primary.label}</a>
-                      {group.children.length > 0 && <div className={styles.tocSublist}>{group.children.map((heading) => <a className={styles.tocSecondary} href={`#${heading.id}`} key={heading.id}>{heading.label}</a>)}</div>}
-                    </div>
-                  ))}
+                  <Website43ArticleToc groups={tocGroups} />
                 </div>
               </details>
             )}
