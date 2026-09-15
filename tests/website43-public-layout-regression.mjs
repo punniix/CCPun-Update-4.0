@@ -8,6 +8,7 @@ const transition = read('components/layout/website-43/Website43TransitionStyles.
 const navbar = read('components/layout/website-43/Website43Navbar.module.css');
 const css = read('components/layout/website-43/Website43.module.css');
 const article = read('features/blog/website-43/Website43Article.tsx');
+const articleToc = read('features/blog/website-43/Website43ArticleToc.tsx');
 const layout = read('app/layout.tsx');
 const home = read('features/home/website-43/Website43Home.tsx');
 
@@ -19,14 +20,26 @@ test('wide desktop Website 4.3 shells stay centered instead of pinning to the le
   assert.match(navbar, /width: min\(1280px, calc\(100% - var\(--w43-nav-gutter, 80px\) - var\(--w43-nav-gutter, 80px\)\)\)/);
 });
 
-test('article header, featured image, sources and support sections share the reading-section width', () => {
+test('article featured image follows the 720px content column while support sections keep the 1060px reading axis', () => {
   assert.match(css, /\.articleHeader \.articleInlineFigure \{ width: min\(1060px,100%\); margin: 40px auto 0; \}/);
-  assert.match(css, /\.articleHeader \.articleFeature \{ display: block; width: 100%/);
-  assert.match(css, /\.articleReadingGrid \{[\s\S]*?width: min\(1060px,100%\); margin: 0 auto;/);
+  assert.match(css, /\.articleHeader \.articleFeature \{ display: block; width: min\(720px,100%\);[\s\S]*?margin: 0 0 0 auto;/);
+  assert.match(css, /\.articleHeader \.articleInlineFigure figcaption \{ width: min\(720px,100%\); margin-left: auto; \}/);
+  assert.match(article, /sizes="\(max-width: 767px\) calc\(100vw - 48px\), 720px"/);
+  assert.match(css, /\.articleReadingGrid \{[\s\S]*?grid-template-columns: 300px 720px;[\s\S]*?width: min\(1060px,100%\); margin: 0 auto;/);
   assert.match(css, /\.articleSupportInner \{ width: min\(1060px,100%\); margin-inline: auto; \}/);
   assert.match(transition, /\.\$\{styles\.section\} > \.\$\{styles\.articleSupportInner\},\s*\.\$\{styles\.sectionDeep\} > \.\$\{styles\.articleSupportInner\}/);
   assert.match(article, /article\.sources && article\.sources\.length > 0[\s\S]*?data-uat-section="article-sources"[\s\S]*?styles\.articleSupportInner[\s\S]*?>แหล่งอ้างอิง</);
   assert.ok((article.match(/articleSupportInner/g) || []).length >= 6, 'article support sections should follow the same reading shell');
+});
+
+test('article TOC keeps H2 links navigable and lets users collapse or expand nested H3 items', () => {
+  assert.match(article, /Website43ArticleToc groups=\{tocGroups\}/);
+  assert.match(articleToc, /aria-expanded=\{isExpanded\}/);
+  assert.match(articleToc, /aria-controls=\{sublistId\}/);
+  assert.match(articleToc, /hidden=\{!isExpanded\}/);
+  assert.match(articleToc, /href=\{`#\$\{group\.primary\.id\}`\}/);
+  assert.match(articleToc, /group\.children\.map/);
+  assert.match(css, /\.tocToggle\[aria-expanded="true"\] \.tocChevron \{ transform: rotate\(180deg\); \}/);
 });
 
 test('Home and Article vertical rhythm use the reviewed public spacing', () => {
