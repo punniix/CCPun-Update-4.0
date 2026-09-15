@@ -40,7 +40,11 @@ jobs:
       - name: Homepage LCP loading contract
         run: node tests/home-lcp-regression.mjs
 
+      # Production health is a post-merge verification. Running it on a PR makes
+      # incident fixes impossible to merge when the currently deployed version is
+      # the thing that is unhealthy. Keep it blocking on v4-production pushes.
       - name: Live legacy URL ledger against Production
+        if: github.event_name != 'pull_request'
         run: npm run qa:legacy-urls
 
       - name: SEO topic hub static contract
