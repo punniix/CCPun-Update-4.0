@@ -238,7 +238,8 @@ test("Studio keeps identified owner content and hides system/category management
   const schemaSource = readFileSync(new URL("../../cms/sanity/schema/documents/article.ts", import.meta.url), "utf8");
   assert.match(schemaSource, /to: \[\{ type: "category" \}\]/);
   assert.match(schemaSource, /disableNew: true/);
-  assert.match(schemaSource, /filter: "slug\.current in \$activeSlugs"/);
+  assert.match(schemaSource, /filter: "status == 'active'"/);
+  assert.match(schemaSource, /validateArticleSlugAgainstCategoryRegistry/);
   assert.match(studioConfig, /createStudioStructurePlugin/);
   assert.match(studioStructure, /S\.list\(\)\.id\("content"\)\.title\("เนื้อหา"\)/);
 });

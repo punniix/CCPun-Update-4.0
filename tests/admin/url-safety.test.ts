@@ -21,16 +21,12 @@ test("health insurance and critical illness are reviewed physical URL categories
   assert.equal(isArticleCanonicalAligned(critical), true);
 });
 
-test("motor insurance remains an explicitly reviewed guarded public URL category", () => {
+test("motor insurance uses its referenced Sanity category slug without a code allowlist", () => {
   const motor = { slug: "car-insurance-types", category: "ประกันรถยนต์", categorySlug: "motor-insurance" };
   assert.equal(getArticlePath(motor), "/blog/motor-insurance/car-insurance-types/");
   assert.equal(getArticleCanonical(motor), "https://ccpun.com/blog/motor-insurance/car-insurance-types/");
   assert.equal(isArticleCanonicalAligned(motor), true);
-
-  assert.throws(
-    () => getArticlePath({ ...motor, category: "Unknown" }),
-    /Unsupported article category/,
-  );
+  assert.equal(getArticlePath({ ...motor, category: "Updated display title" }), "/blog/motor-insurance/car-insurance-types/");
 });
 
 test("protected health winner pages resolve to Health even while published Sanity references are still Life", () => {
@@ -79,20 +75,27 @@ test("an explicit stale or decorated canonical fails the release alignment check
   assert.equal(isArticleCanonicalAligned({ ...base, canonical: "https://ccpun.com/blog/life-insurance/example/" }), true);
 });
 
-test("unknown categories fail closed instead of silently becoming personal-finance", () => {
-  assert.throws(() => getArticlePath({ slug: "example", category: "Unknown", categorySlug: "unknown" }), /Unsupported article category/);
+test("dynamic registry category slugs are accepted while known title/slug conflicts still fail closed", () => {
+  assert.equal(
+    getArticlePath({ slug: "example", category: "ประกันเดินทาง", categorySlug: "travel-insurance" }),
+    "/blog/travel-insurance/example/",
+  );
   assert.throws(
     () => getArticlePath({ slug: "example", category: "ประกันสุขภาพ", categorySlug: "personal-finance" }),
     /Unsupported article category/,
   );
 });
 
-test("draft preview may use a safe non-public category segment without changing public taxonomy", () => {
+test("draft preview uses the same safe category slug contract while public exposure is enforced by provider/registry state", () => {
   const draftOnly = { slug: "travel-insurance-draft", category: "ประกันเดินทาง", categorySlug: "travel-insurance" };
   assert.equal(getArticlePreviewPath(draftOnly), "/blog/travel-insurance/travel-insurance-draft/");
-  assert.throws(() => getArticlePath(draftOnly), /Unsupported article category/);
+  assert.equal(getArticlePath(draftOnly), "/blog/travel-insurance/travel-insurance-draft/");
   assert.throws(
     () => getArticlePreviewPath({ slug: "bad", category: "Unknown", categorySlug: "../admin" }),
     /Unsupported article preview category/,
+  );
+  assert.throws(
+    () => getArticlePath({ slug: "bad", category: "Unknown", categorySlug: "../admin" }),
+    /Unsupported article category/,
   );
 });

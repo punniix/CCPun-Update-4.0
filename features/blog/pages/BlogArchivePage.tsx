@@ -1,7 +1,11 @@
 import Website43Blog from "@/features/blog/website-43/Website43Blog";
 import { toWebsite43ArticleItems } from "@/features/blog/website-43/blogData";
 import type { Metadata } from "next";
+import { draftMode } from "next/headers";
 import { getContentProvider } from "@/lib/content/provider";
+import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
+import { listCategoryMenuEntries } from "@/lib/content/category-registry";
+import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";
 
 const BLOG_TITLE = "บทความการเงิน การลงทุน และการวางแผนอนาคต | CCPun";
 const BLOG_DESCRIPTION = "เคล็ดลับการเงิน การลงทุน ประกัน และการวางแผนอนาคตจาก CCPun Financial Advisor";
@@ -34,10 +38,16 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
   const query = typeof filters.q === "string" ? filters.q : "";
   const legacyCategory = typeof filters.category === "string" ? filters.category : "";
   const legacyTag = typeof filters.tag === "string" ? filters.tag : "";
-  const cmsArticles = await getContentProvider().listArticles({ includeDrafts: false });
-  const articles = cmsArticles.filter((article) => article.status === "published");
+  const { isEnabled } = await draftMode();
+  const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
+  const [cmsArticles, registry] = await Promise.all([
+    getContentProvider().listArticles({ includeDrafts }),
+    listCategoryRegistry({ includeDrafts }),
+  ]);
+  const articles = cmsArticles.filter((article) => includeDrafts || article.status === "published");
+  const categories = listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));
 
   const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === "all" || article.category === legacyCategory)
     && (!legacyTag || legacyTag === "all" || article.tags?.includes(legacyTag)));
-  return <Website43Blog key={`all:${legacyCategory}:${legacyTag}`} articles={toWebsite43ArticleItems(visibleArticles)} initialQuery={query} />;
+  return <Website43Blog key={`all:${legacyCategory}:${legacyTag}`} articles={toWebsite43ArticleItems(visibleArticles)} initialQuery={query} categories={categories} />;
 }

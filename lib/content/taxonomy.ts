@@ -1,10 +1,4 @@
-export const ACTIVE_ARTICLE_CATEGORIES = [
-  { slug: "personal-finance", title: "การเงินส่วนบุคคล" },
-  { slug: "life-insurance", title: "ประกันชีวิต" },
-  { slug: "health-insurance", title: "ประกันสุขภาพ" },
-  { slug: "critical-illness-insurance", title: "ประกันโรคร้ายแรง" },
-  { slug: "investment", title: "การลงทุน" },
-] as const;
+import { CATEGORY_SLUG_PATTERN } from "./category-registry";
 
 export const BLOG_TOPIC_HUBS = [
   {
@@ -94,8 +88,16 @@ type NormalizedArticleTaxonomy = {
   tags: string[];
 };
 
-const activeSlugByTitle = new Map<string, string>(ACTIVE_ARTICLE_CATEGORIES.map(({ title, slug }) => [title, slug]));
-const activeSlugs = new Set<string>(ACTIVE_ARTICLE_CATEGORIES.map(({ slug }) => slug));
+// Compatibility only for historical/title-only inputs. Public category
+// availability is owned exclusively by the Sanity Category Registry.
+const LEGACY_CATEGORY_SLUG_BY_TITLE: Record<string, string> = {
+  "การเงินส่วนบุคคล": "personal-finance",
+  "ประกันชีวิต": "life-insurance",
+  "ประกันสุขภาพ": "health-insurance",
+  "การลงทุน": "investment",
+  "ประกันโรคร้ายแรง": "critical-illness-insurance",
+};
+
 const hubBySlug = new Map<string, BlogTopicHub>(BLOG_TOPIC_HUBS.map((hub) => [hub.slug, hub] as const));
 
 const CATEGORY_SLUG_ALIASES: Record<string, string> = {
@@ -158,8 +160,19 @@ export function normalizeArticleTaxonomy({
   const legacySlugTopic = LEGACY_CATEGORY_TOPICS[suppliedSlug as keyof typeof LEGACY_CATEGORY_TOPICS];
   const legacyTitleTopic = LEGACY_TOPIC_BY_TITLE[title];
   const combinedLegacyTitle = title === "ประกันสุขภาพและโรคร้ายแรง";
-  const slugCategory = activeSlugs.has(slug) ? slug : legacySlugTopic ? "life-insurance" : null;
-  const titleCategory = activeSlugByTitle.get(title) ?? (legacyTitleTopic || combinedLegacyTitle ? "life-insurance" : null);
+  const titleCategory = LEGACY_CATEGORY_SLUG_BY_TITLE[title] ?? null;
+
+  // Any valid referenced category slug can be a physical owner. This is what
+  // lets a newly activated Sanity category (for example motor/travel/critical
+  // illness after its coordinated cutover) work without a code allowlist.
+  // The historical combined Health+Critical category keeps its old Life owner.
+  const slugCategory = !slug
+    ? null
+    : combinedLegacyTitle
+      ? "life-insurance"
+      : CATEGORY_SLUG_PATTERN.test(slug)
+        ? slug
+        : null;
   const categoryConflict = Boolean(slugCategory && titleCategory && slugCategory !== titleCategory && !combinedLegacyTitle);
   const inheritedTopics = legacySlugTopic
     ? [legacySlugTopic]
