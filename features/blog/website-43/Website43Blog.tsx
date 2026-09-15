@@ -3,15 +3,18 @@ import type { ReactNode } from 'react';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import type { Website43ArticleItem } from './blogData';
-import { BLOG_TOPIC_HUBS } from '@/lib/content/taxonomy';
+import { ACTIVE_ARTICLE_CATEGORIES } from '@/lib/content/taxonomy';
 import Website43BlogInteractive, {
   type Website43BlogCategoryItem,
   type Website43BlogClientClassNames,
 } from './Website43BlogInteractive';
 
+// Public category navigation must follow the same reviewed registry used by
+// article routing. Topic hubs are a separate SEO/editorial concern and must not
+// be the source of truth for which physical article categories are selectable.
 const BLOG_CATEGORIES: Website43BlogCategoryItem[] = [
   { slug: null, title: 'ทุกหมวดหมู่' },
-  ...BLOG_TOPIC_HUBS.map(({ slug, title }) => ({ slug, title })),
+  ...ACTIVE_ARTICLE_CATEGORIES.map(({ slug, title }) => ({ slug, title })),
 ];
 
 const BLOG_CLIENT_CLASS_NAMES = {
