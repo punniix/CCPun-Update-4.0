@@ -1179,7 +1179,16 @@
   .root .toolHeroImage { top: 0; bottom: 0; height: 100%; object-fit: cover; }
 }
 
-/* Website 4.3 interaction feedback: stable geometry, no entrance animation. */
+/* Website 4.3 motion DNA: restrained, progressive, and LCP-safe. */
+@keyframes w43Reveal {
+  from { opacity: .9; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes w43DisclosureIn {
+  from { opacity: .82; translate: 0 -4px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
 .primaryButton, .outlineButton, .navCta, .hamburger {
   transition: background-color .14s ease, border-color .14s ease, transform .12s ease;
 }
@@ -1191,22 +1200,79 @@
   text-decoration-thickness: 2px;
   text-underline-offset: 6px;
 }
-.articleCard, .featuredCard { transition: border-color .15s ease; }
+.articleCard, .featuredCard, .toolCtaCard {
+  transition: border-color .16s ease, box-shadow .18s cubic-bezier(.2,0,0,1), transform .18s cubic-bezier(.2,0,0,1);
+  transform: translateY(0);
+}
+.articleCard img, .featuredCard img, .toolCtaCard img {
+  scale: 1;
+  transition: scale .36s cubic-bezier(.2,0,0,1);
+}
 .articleTitle { text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .2em; transition: text-decoration-color .15s ease; }
 .faqSummary { transition: background-color .14s ease; }
-.faqIcon, .navChevron, .categoryMenuChevron { transition: transform .2s ease; }
+.faqIcon, .navChevron, .categoryMenuChevron, .tocChevron { transition: transform .2s ease; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .faqItem[open] .faqAnswer,
+  .articleDetails[open] > :not(summary),
+  .tocMobile[open] > :not(summary),
+  .tocSublist:not([hidden]) {
+    animation: w43DisclosureIn .18s cubic-bezier(.2,0,0,1) both;
+  }
+
+  .navDropdown, .mobileMenu, .mobileSubmenu, .categoryMenuPanel {
+    transition: opacity .18s cubic-bezier(.2,0,0,1), translate .18s cubic-bezier(.2,0,0,1);
+  }
+  @starting-style {
+    .navDropdown, .mobileMenu, .mobileSubmenu, .categoryMenuPanel {
+      opacity: .9;
+      translate: 0 -6px;
+    }
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .threeCols > *,
+    .stats > *,
+    .partners > *,
+    .journey > *,
+    .learnGrid > .toolCtaCard,
+    .learnGrid > .toolCtaGrid > .toolCtaCard,
+    .articleGrid > .articleCard,
+    .relatedGrid > .articleCard,
+    .voices,
+    .faqList,
+    .searchFilters,
+    .articleSupportInner {
+      animation-name: w43Reveal;
+      animation-duration: 1ms;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 32%;
+    }
+  }
+}
 
 @media (hover: hover) and (pointer: fine) {
   .primaryButton:not(:disabled):hover, .navCta:hover { background-color: var(--w43-gold-bright); border-color: var(--w43-gold-bright); }
   .outlineButton:not(:disabled):hover { background-color: rgba(224,201,133,.10); }
   .navLinks > a:hover, .navToolsButton:hover, .hamburger:hover, .faqSummary:hover { background-color: rgba(224,201,133,.06); }
-  .articleCard:hover, .featuredCard:hover { border-color: var(--w43-gold); }
+  .articleCard:hover, .featuredCard:hover, .toolCtaCard:hover { border-color: var(--w43-gold); }
   .articleCard:hover .articleTitle { text-decoration-color: var(--w43-gold); }
   .planLink:hover, .learnCard a:hover { text-decoration: underline; text-underline-offset: .2em; }
 }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .articleCard:hover, .featuredCard:hover, .toolCtaCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,.16);
+  }
+  .articleCard:hover img, .featuredCard:hover img, .toolCtaCard:hover img { scale: 1.015; }
+}
 .primaryButton:not(:disabled):active, .outlineButton:not(:disabled):active, .navCta:active { transform: scale(.985); }
 .primaryButton:disabled, .outlineButton:disabled { opacity: .5; cursor: not-allowed; }
-.articleCard:focus-visible, .featuredCard:focus-visible { border-color: var(--w43-gold); }
+.articleCard:focus-visible, .featuredCard:focus-visible, .toolCtaCard:focus-visible { border-color: var(--w43-gold); }
 .articleCard:focus-visible .articleTitle { text-decoration-color: var(--w43-gold); }
 .root :is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--w43-gold-bright); outline-offset: 3px; }
 .root :is(.faqSummary, .tocMobile summary, .featuredCard):focus-visible { outline-offset: -3px; }
@@ -1214,4 +1280,6 @@
 @media (prefers-reduced-motion: reduce) {
   .root *, .root *::before, .root *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
   .primaryButton:active, .outlineButton:active, .navCta:active { transform: none; }
+  .articleCard, .featuredCard, .toolCtaCard { translate: none !important; transform: none !important; }
+  .articleCard img, .featuredCard img, .toolCtaCard img { scale: 1 !important; }
 }
