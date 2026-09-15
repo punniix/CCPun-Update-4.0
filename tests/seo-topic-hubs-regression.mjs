@@ -17,22 +17,25 @@ const sitemap = await read('app/sitemaps/blog.xml/route.ts');
 
 const card = await read('features/blog/components/ArticleCard.tsx');
 
-for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness', 'investment']) {
+for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
   assert.match(taxonomy, new RegExp(`slug: ["']${slug}["']`));
 }
 assert.match(taxonomy, /slug: "investment"[\s\S]*?indexable: false/);
 assert.match(taxonomy, /"aia-health-happy-describe": "health-insurance"/);
 assert.match(taxonomy, /"aia-health-ci-hero-guide": "health-insurance"/);
-assert.match(taxonomy, /"critical-illness-insurance": "critical-illness"/);
+assert.match(taxonomy, /"critical-illness-insurance": "critical-illness-insurance"/);
+assert.match(taxonomy, /"what-is-critical-illness-insurance": "critical-illness-insurance"/);
 assert.match(taxonomy, /"aia-vitality": "life-insurance"/);
 
-// Foundation cutover: Health is now a real physical article category. Critical Illness
-// remains semantic-only until a separate physical URL migration is approved.
+// Foundation cutover: Health and Critical Illness are reviewed physical article
+// categories. Motor remains a separately guarded public route rather than being
+// widened into this primary taxonomy registry by the CI migration.
 const activeCategoryBlock = taxonomy.match(/ACTIVE_ARTICLE_CATEGORIES = \[[\s\S]*?\] as const/)?.[0] ?? '';
-for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'investment']) {
+for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
   assert.match(activeCategoryBlock, new RegExp(slug));
 }
-assert.doesNotMatch(activeCategoryBlock, /critical-illness/);
+assert.doesNotMatch(activeCategoryBlock, /motor-insurance/);
+assert.match(taxonomy, /"critical-illness": "critical-illness-insurance"/);
 
 // Explicit Semantic Topic is carried from Sanity into the public semantic layer, but protected
 // slug overrides must win so winner-page semantics cannot be changed accidentally in the CMS.
@@ -43,14 +46,18 @@ assert.match(taxonomy, /semanticTopic\?: string \| null/);
 const overrideResolution = taxonomy.indexOf('const override = articleSlug');
 const explicitResolution = taxonomy.indexOf('const explicitTopic = semanticTopic');
 assert.ok(overrideResolution >= 0 && explicitResolution > overrideResolution, 'protected slug semantic overrides must precede editable CMS Semantic Topic');
+assert.match(taxonomy, /CATEGORY_SLUG_ALIASES\[explicitTopic\] \?\? explicitTopic/);
 for (const surface of [categoryPage, articlePresentation, card, schema, sitemap]) {
   assert.match(surface, /semanticTopic: article\.semanticTopic/);
 }
 
-// Health winner pages now move old Life paths directly to their final Health owners.
+// Winner-page migrations always send historical physical paths directly to their
+// final owners. Critical Illness now has an approved physical category and article owner.
 assert.match(urls, /"life-insurance\/aia-health-happy-describe": "\/blog\/health-insurance\/aia-health-happy-describe\/"/);
 assert.match(urls, /"life-insurance\/aia-health-ci-hero-guide": "\/blog\/health-insurance\/aia-health-ci-hero-guide\/"/);
-assert.match(urls, /"critical-illness\/critical-illness-insurance": "\/blog\/life-insurance\/critical-illness-insurance\/"/);
+assert.match(urls, /"life-insurance\/critical-illness-insurance": "\/blog\/critical-illness-insurance\/what-is-critical-illness-insurance\/"/);
+assert.match(urls, /"critical-illness\/critical-illness-insurance": "\/blog\/critical-illness-insurance\/what-is-critical-illness-insurance\/"/);
+assert.match(urls, /"critical-illness": "\/blog\/critical-illness-insurance\/"/);
 assert.doesNotMatch(urls, /"health-insurance\/aia-health-happy-describe": "\/blog\/life-insurance/);
 assert.doesNotMatch(urls, /"health-insurance\/aia-health-ci-hero-guide": "\/blog\/life-insurance/);
 
@@ -66,6 +73,7 @@ assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItems\(publishe
 
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.
 assert.match(articlePage, /getMovedArticleRedirectPath\(category, slug\)/);
+assert.match(articlePage, /movedTargetArticle\?\.status === "published"/);
 assert.match(articlePage, /getArticleCategorySlug\(article\)/);
 assert.match(articlePresentation, /getArticleSemanticTopic/);
 assert.match(articlePresentation, /href=\{topicHref\}/);

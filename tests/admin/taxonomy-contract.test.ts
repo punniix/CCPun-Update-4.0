@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ACTIVE_ARTICLE_CATEGORIES, isReservedArticleSlug, normalizeArticleTaxonomy } from "../../lib/content/taxonomy";
 
-test("taxonomy exposes exactly four primary URL-bearing categories", () => {
+test("taxonomy exposes exactly five primary URL-bearing categories", () => {
   assert.deepEqual(ACTIVE_ARTICLE_CATEGORIES, [
     { slug: "personal-finance", title: "การเงินส่วนบุคคล" },
     { slug: "life-insurance", title: "ประกันชีวิต" },
     { slug: "health-insurance", title: "ประกันสุขภาพ" },
+    { slug: "critical-illness-insurance", title: "ประกันโรคร้ายแรง" },
     { slug: "investment", title: "การลงทุน" },
   ]);
 });
@@ -29,7 +30,11 @@ test("active category slugs and titles normalize to their physical URL owner", (
     tags: ["ประกันสุขภาพ"],
   });
   assert.deepEqual(normalizeArticleTaxonomy({ categoryTitle: "ประกันโรคร้ายแรง" }), {
-    categorySlug: "life-insurance",
+    categorySlug: "critical-illness-insurance",
+    tags: ["ประกันโรคร้ายแรง"],
+  });
+  assert.deepEqual(normalizeArticleTaxonomy({ categorySlug: "critical-illness" }), {
+    categorySlug: "critical-illness-insurance",
     tags: ["ประกันโรคร้ายแรง"],
   });
   assert.deepEqual(normalizeArticleTaxonomy({ categoryTitle: "การลงทุน" }), {
@@ -48,10 +53,10 @@ test("the legacy UAT personal-finance slug normalizes to the active category", (
 test("topic hub slugs stay reserved and cannot collide with article slugs", () => {
   assert.equal(isReservedArticleSlug("health-insurance"), true);
   assert.equal(isReservedArticleSlug("critical-illness"), true);
-  assert.equal(isReservedArticleSlug("critical-illness-insurance"), false);
+  assert.equal(isReservedArticleSlug("critical-illness-insurance"), true);
 });
 
-test("current Health is physical while the historical combined WordPress category stays backward compatible", () => {
+test("current Health and Critical Illness are physical while the historical combined WordPress category stays backward compatible", () => {
   assert.deepEqual(normalizeArticleTaxonomy({ categoryTitle: "ประกันสุขภาพและโรคร้ายแรง", categorySlug: "health-insurance" }), {
     categorySlug: "life-insurance",
     tags: ["ประกันสุขภาพ"],
