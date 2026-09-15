@@ -11,6 +11,14 @@ const ARTICLE_CANONICAL_CATEGORY_OVERRIDES: Record<string, string> = {
   "aia-health-ci-hero-guide": "health-insurance",
 };
 
+// Physical URL categories that are already live in Production Sanity but are
+// intentionally independent from the older financial-planning topic-hub set.
+// Keep this allowlist explicit so a new CMS category cannot silently become a
+// public URL without a reviewed routing decision.
+const ADDITIONAL_PUBLIC_CATEGORIES: Record<string, string> = {
+  "motor-insurance": "ประกันรถยนต์",
+};
+
 // Historical/interim CCPun article paths redirect directly to the final owner.
 // Do not add an intermediate hop.
 const MOVED_ARTICLE_PATHS: Record<string, string> = {
@@ -23,9 +31,18 @@ type ArticleCategoryInput = Pick<Article, "category" | "categorySlug"> & Partial
 
 const PREVIEW_CATEGORY_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+function getAdditionalPublicCategory(article: ArticleCategoryInput) {
+  const rawSlug = article.categorySlug?.trim().toLowerCase() ?? "";
+  const expectedTitle = ADDITIONAL_PUBLIC_CATEGORIES[rawSlug];
+  return expectedTitle && article.category?.trim() === expectedTitle ? rawSlug : null;
+}
+
 export function getArticleCategorySlug(article: ArticleCategoryInput) {
   const protectedCategory = article.slug ? ARTICLE_CANONICAL_CATEGORY_OVERRIDES[article.slug] : undefined;
   if (protectedCategory) return protectedCategory;
+
+  const additionalCategory = getAdditionalPublicCategory(article);
+  if (additionalCategory) return additionalCategory;
 
   const slug = normalizeArticleTaxonomy({
     categoryTitle: article.category,
@@ -36,6 +53,9 @@ export function getArticleCategorySlug(article: ArticleCategoryInput) {
 }
 
 export function getArticlePreviewCategorySlug(article: ArticleCategoryInput) {
+  const additionalCategory = getAdditionalPublicCategory(article);
+  if (additionalCategory) return additionalCategory;
+
   const canonicalCategory = normalizeArticleTaxonomy({
     categoryTitle: article.category,
     categorySlug: article.categorySlug,

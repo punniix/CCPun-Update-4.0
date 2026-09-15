@@ -21,6 +21,18 @@ test("health insurance is a physical URL category while critical illness keeps t
   assert.equal(isArticleCanonicalAligned(critical), true);
 });
 
+test("motor insurance is an explicitly reviewed public URL category", () => {
+  const motor = { slug: "car-insurance-types", category: "ประกันรถยนต์", categorySlug: "motor-insurance" };
+  assert.equal(getArticlePath(motor), "/blog/motor-insurance/car-insurance-types/");
+  assert.equal(getArticleCanonical(motor), "https://ccpun.com/blog/motor-insurance/car-insurance-types/");
+  assert.equal(isArticleCanonicalAligned(motor), true);
+
+  assert.throws(
+    () => getArticlePath({ ...motor, category: "Unknown" }),
+    /Unsupported article category/,
+  );
+});
+
 test("protected health winner pages resolve to Health even while published Sanity references are still Life", () => {
   for (const slug of ["aia-health-happy-describe", "aia-health-ci-hero-guide"]) {
     const article = { slug, category: "ประกันชีวิต", categorySlug: "life-insurance" };
@@ -71,10 +83,9 @@ test("unknown categories fail closed instead of silently becoming personal-finan
   );
 });
 
-
 test("draft preview may use a safe non-public category segment without changing public taxonomy", () => {
-  const draftOnly = { slug: "car-insurance-types", category: "ประกันรถยนต์", categorySlug: "motor-insurance" };
-  assert.equal(getArticlePreviewPath(draftOnly), "/blog/motor-insurance/car-insurance-types/");
+  const draftOnly = { slug: "travel-insurance-draft", category: "ประกันเดินทาง", categorySlug: "travel-insurance" };
+  assert.equal(getArticlePreviewPath(draftOnly), "/blog/travel-insurance/travel-insurance-draft/");
   assert.throws(() => getArticlePath(draftOnly), /Unsupported article category/);
   assert.throws(
     () => getArticlePreviewPath({ slug: "bad", category: "Unknown", categorySlug: "../admin" }),
