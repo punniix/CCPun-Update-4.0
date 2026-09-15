@@ -59,10 +59,21 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
 
 export default async function ArticlePage({ params }: { params: Promise<{ category: string; slug: string }> }) {
   const { category, slug } = await params;
-  const movedPath = getMovedArticleRedirectPath(category, slug);
-  if (movedPath) permanentRedirect(movedPath);
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
+  const movedPath = getMovedArticleRedirectPath(category, slug);
+
+  // A moved URL redirects only after the final owner is actually published.
+  // This keeps the old canonical alive during a coordinated code/content cutover
+  // instead of sending users and crawlers to a not-yet-available destination.
+  if (movedPath && !includeDrafts) {
+    const movedTargetSlug = movedPath.split("/").filter(Boolean).at(-1);
+    const movedTargetArticle = movedTargetSlug
+      ? await getArticleBySlugForRequest(movedTargetSlug, false)
+      : null;
+    if (movedTargetArticle?.status === "published") permanentRedirect(movedPath);
+  }
+
   const provider = getContentProvider();
   const relatedArticlesPromise = provider.listArticles({ includeDrafts: false });
   const article = await getArticleBySlugForRequest(slug, includeDrafts);

@@ -19,12 +19,18 @@ const ADDITIONAL_PUBLIC_CATEGORIES: Record<string, string> = {
   "motor-insurance": "ประกันรถยนต์",
 };
 
+const MOVED_CATEGORY_PATHS: Record<string, string> = {
+  "critical-illness": "/blog/critical-illness-insurance/",
+};
+
 // Historical/interim CCPun article paths redirect directly to the final owner.
 // Do not add an intermediate hop.
 const MOVED_ARTICLE_PATHS: Record<string, string> = {
   "life-insurance/aia-health-happy-describe": "/blog/health-insurance/aia-health-happy-describe/",
   "life-insurance/aia-health-ci-hero-guide": "/blog/health-insurance/aia-health-ci-hero-guide/",
-  "critical-illness/critical-illness-insurance": "/blog/life-insurance/critical-illness-insurance/",
+  "life-insurance/critical-illness-insurance": "/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
+  "critical-illness/critical-illness-insurance": "/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
+  "critical-illness-insurance/critical-illness-insurance": "/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
 };
 
 type ArticleCategoryInput = Pick<Article, "category" | "categorySlug"> & Partial<Pick<Article, "slug">>;
@@ -97,6 +103,9 @@ export function isArticleCanonicalAligned(article: Pick<Article, "slug" | "categ
 }
 
 export function getLegacyCategoryRedirectPath(segment: string) {
+  const movedPath = MOVED_CATEGORY_PATHS[segment];
+  if (movedPath) return movedPath;
+
   const topic = LEGACY_CATEGORY_TOPICS[segment as keyof typeof LEGACY_CATEGORY_TOPICS];
   return topic ? `/blog/?tag=${encodeURIComponent(topic)}` : null;
 }

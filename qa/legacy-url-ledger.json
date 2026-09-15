@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "frozenAt": "2026-08-26",
+  "version": 3,
+  "frozenAt": "2026-09-16",
   "mappings": [
     {
       "id": "blog-root",
@@ -47,11 +47,13 @@
     },
     {
       "id": "critical-illness-insurance",
-      "state": "live",
+      "state": "planned",
       "source": "https://blog.ccpun.com/critical-illness-insurance/",
       "destination": "https://ccpun.com/blog/life-insurance/critical-illness-insurance/",
+      "plannedDestination": "https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
       "sourceStatus": 301,
-      "destinationStatus": 200
+      "destinationStatus": 200,
+      "preserveQueryString": true
     }
   ]
 }
