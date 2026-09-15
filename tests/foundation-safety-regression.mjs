@@ -90,6 +90,12 @@ expect(
     && articlePage.includes('try {')
     && articlePage.includes('catch (error)'),
 );
+expect(
+  'invalid related taxonomy is isolated before article cards render',
+  articlePage.includes('getArticlePath(candidate);')
+    && articlePage.includes('[blog-related] skipping article with invalid taxonomy')
+    && articlePage.includes('return false;'),
+);
 
 const blogArchive = read('features/blog/pages/BlogArchivePage.tsx');
 expect(
