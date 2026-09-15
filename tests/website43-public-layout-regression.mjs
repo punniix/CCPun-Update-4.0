@@ -20,16 +20,15 @@ test('wide desktop Website 4.3 shells stay centered instead of pinning to the le
   assert.match(navbar, /width: min\(1280px, calc\(100% - var\(--w43-nav-gutter, 80px\) - var\(--w43-nav-gutter, 80px\)\)\)/);
 });
 
-test('article featured image follows the 720px content column while support sections keep the 1060px reading axis', () => {
-  assert.match(css, /\.articleHeader \.articleInlineFigure \{ width: min\(1060px,100%\); margin: 40px auto 0; \}/);
-  assert.match(css, /\.articleHeader \.articleFeature \{ display: block; width: min\(720px,100%\);[\s\S]*?margin: 0 0 0 auto;/);
-  assert.match(css, /\.articleHeader \.articleInlineFigure figcaption \{ width: min\(720px,100%\); margin-left: auto; \}/);
+test('article uses one editorial spread: TOC sidebar + 720px main column + aligned support sections', () => {
+  assert.match(article, /className=\{styles\.articleMainColumn\}/);
+  assert.match(article, /className=\{styles\.articleInlineFigure\}[\s\S]*?className=\{styles\.articleFeature\}/);
   assert.match(article, /sizes="\(max-width: 767px\) calc\(100vw - 48px\), 720px"/);
-  assert.match(css, /\.articleReadingGrid \{[\s\S]*?grid-template-columns: 300px 720px;[\s\S]*?width: min\(1060px,100%\); margin: 0 auto;/);
-  assert.match(css, /\.articleSupportInner \{ width: min\(1060px,100%\); margin-inline: auto; \}/);
-  assert.match(transition, /\.\$\{styles\.section\} > \.\$\{styles\.articleSupportInner\},\s*\.\$\{styles\.sectionDeep\} > \.\$\{styles\.articleSupportInner\}/);
+  assert.match(css, /\.articleReadingGrid \{[\s\S]*?grid-template-columns: 260px 720px;[\s\S]*?gap: 48px;[\s\S]*?width: min\(1028px,100%\); margin: 0 auto;/);
+  assert.match(css, /\.articleFeature \{ display: block; width: 100%;[\s\S]*?border-radius: 8px;/);
+  assert.match(css, /\.articleSupportInner \{ width: min\(1028px,100%\); margin-inline: auto; \}/);
+  assert.match(transition, /\.\$\{styles\.section\} > \.\$\{styles\.articleSupportInner\},\s*\.\$\{styles\.sectionDeep\} > \.\$\{styles\.articleSupportInner\} \{[\s\S]*?width: min\(1028px, 100%\);/);
   assert.match(article, /article\.sources && article\.sources\.length > 0[\s\S]*?data-uat-section="article-sources"[\s\S]*?styles\.articleSupportInner[\s\S]*?>แหล่งอ้างอิง</);
-  assert.ok((article.match(/articleSupportInner/g) || []).length >= 6, 'article support sections should follow the same reading shell');
 });
 
 test('article TOC keeps H2 links navigable and lets users collapse or expand nested H3 items', () => {
@@ -45,8 +44,17 @@ test('article TOC keeps H2 links navigable and lets users collapse or expand nes
 test('Home and Article vertical rhythm use the reviewed public spacing', () => {
   assert.match(css, /section\[data-uat-section="home-learning"\] \{ padding-bottom: 40px; \}/);
   assert.match(css, /section\[data-uat-section="home-faq"\] \{ padding-top: 40px; \}/);
-  assert.match(css, /\.articleHeader \{ padding: 56px 80px 32px;/);
-  assert.match(css, /\.articleReadingWrap \{ padding: 48px 80px 72px;/);
+  assert.match(css, /\.articleHeader \{ padding: 56px 80px 34px;/);
+  assert.match(css, /\.articleReadingWrap \{ padding: 38px 80px 72px;/);
+  assert.match(css, /\.articleMetaRow \{[\s\S]*?border-top: 1px solid/);
+});
+
+test('article metadata hides redundant updated date when publish and update calendar dates match', () => {
+  assert.match(article, /const publishedDateLabel = article\.publishedAt \? thaiDateFormatter\.format\(new Date\(article\.publishedAt\)\) : null;/);
+  assert.match(article, /const updatedDateLabel = thaiDateFormatter\.format\(new Date\(article\.updatedAt\)\);/);
+  assert.match(article, /const showUpdatedDate = !publishedDateLabel \|\| publishedDateLabel !== updatedDateLabel;/);
+  assert.match(article, /\{publishedDateLabel \? `เผยแพร่เมื่อ \$\{publishedDateLabel\}` : null\}/);
+  assert.match(article, /\{showUpdatedDate \? `\$\{publishedDateLabel \? ' · ' : ''\}อัปเดตล่าสุด \$\{updatedDateLabel\}` : null\}/);
 });
 
 test('Kanit starts early without putting the whole font family on the critical path', () => {
