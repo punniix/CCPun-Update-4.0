@@ -186,18 +186,20 @@ assert.match(articleUrl, /getArticleCanonical/);
 assert.match(articleUrl, /isArticleCanonicalAligned/);
 assert.match(articleUrl, /getLegacyCategoryRedirectPath/);
 const articleTaxonomy = read('lib/content/taxonomy.ts');
+const categoryRegistry = read('lib/content/category-registry.ts');
+const categoryRegistrySanity = read('lib/content/category-registry-sanity.ts');
 const blogArchive = read('features/blog/components/BlogArchive.tsx');
-for (const [slug, title] of [
-  ['personal-finance', 'การเงินส่วนบุคคล'],
-  ['life-insurance', 'ประกันชีวิต'],
-  ['investment', 'การลงทุน'],
-]) {
-  assert.match(articleTaxonomy, new RegExp(`slug: ["']${slug}["'], title: ["']${title}["']`));
+for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
+  assert.match(articleTaxonomy, new RegExp(`slug: ["']${slug}["']`));
 }
+assert.doesNotMatch(articleTaxonomy, /ACTIVE_ARTICLE_CATEGORIES/);
 assert.doesNotMatch(articleTaxonomy, /legacyTopic\s*\?\s*["']life-insurance["']/);
 assert.match(articleTaxonomy, /isReservedArticleSlug/);
+assert.match(categoryRegistry, /CATEGORY_STATUS_VALUES = \["draft", "active"\]/);
+assert.match(categoryRegistry, /resolveCategoryRoute/);
+assert.match(categoryRegistrySanity, /_type == "category"/);
 assert.match(blogArchive, /LEGACY_CATEGORY_TOPICS/);
-assert.match(blogArchive, /!Object\.hasOwn\(LEGACY_CATEGORY_TOPICS, slug\)/);
+assert.match(blogArchive, /deriveCategories\(articles/);
 const legacyArticles = read('lib/content/legacy.ts');
 assert.doesNotMatch(legacyArticles, /category:\s*["']ประกันสุขภาพและโรคร้ายแรง["']/);
 assert.match(legacyArticles, /tags:\s*\[["']ประกันสุขภาพ["'],\s*["']ประกันโรคร้ายแรง["']\]/);

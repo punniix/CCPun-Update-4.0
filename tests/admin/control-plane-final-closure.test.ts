@@ -4,14 +4,14 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-test("draft preview uses preview-only category routing without widening public taxonomy", () => {
+test("draft preview uses the shared registry-safe category slug contract behind the preview gate", () => {
   const route = read("app/api/admin/content/[id]/preview/route.ts");
   const page = read("features/blog/pages/ArticlePage.tsx");
   const url = read("lib/content/url.ts");
   assert.match(route, /getArticlePreviewCategorySlug/);
   assert.match(page, /includeDrafts \? getArticlePreviewCategorySlug\(article\) : getArticleCategorySlug\(article\)/);
   assert.match(page, /includeDrafts\) redirect\(getArticlePreviewPath\(article\)\)/);
-  assert.match(url, /PREVIEW_CATEGORY_SEGMENT/);
+  assert.match(url, /CATEGORY_SLUG_PATTERN/);
   assert.match(url, /Unsupported article preview category/);
   assert.match(url, /Unsupported article category/);
 });

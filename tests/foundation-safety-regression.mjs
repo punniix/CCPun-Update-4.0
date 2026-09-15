@@ -39,9 +39,12 @@ expect('health winner canonical category override remains protected', urlContrac
 expect('canonical alignment remains ccpun.com only', urlContract.includes('canonical.origin === "https://ccpun.com"'));
 
 const taxonomy = read('lib/content/taxonomy.ts');
+const categoryRegistry = read('lib/content/category-registry.ts');
 expect(
-  'critical illness physical category is active',
-  taxonomy.includes('{ slug: "critical-illness-insurance", title: "ประกันโรคร้ายแรง" }'),
+  'critical illness physical ownership is registry-gated',
+  taxonomy.includes('slug: "critical-illness-insurance"')
+    && !taxonomy.includes('ACTIVE_ARTICLE_CATEGORIES')
+    && categoryRegistry.includes('CATEGORY_STATUS_VALUES = ["draft", "active"]'),
 );
 expect(
   'legacy critical illness topic slug aliases to the approved category',

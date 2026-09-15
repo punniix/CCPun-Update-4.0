@@ -1,12 +1,21 @@
 import { createHash, randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
-import { ACTIVE_ARTICLE_CATEGORIES, normalizeArticleTaxonomy } from "../lib/content/taxonomy";
+import { normalizeArticleTaxonomy } from "../lib/content/taxonomy";
 import { appendScriptAdminAudit } from "./admin-operations-audit";
 
 const UAT_PROJECT_ID = "ccb9lnw5";
 const UAT_DATASET = "uat";
 const ALLOWED_APP_ENVIRONMENTS = new Set(["local-uat", "development", "lab", "uat"]);
+// Historical migration contract only. Runtime/public category availability is
+// owned by Sanity Category Registry, not this compatibility fixture.
+const LEGACY_UAT_MIGRATION_CATEGORIES = [
+  { slug: "personal-finance", title: "การเงินส่วนบุคคล" },
+  { slug: "life-insurance", title: "ประกันชีวิต" },
+  { slug: "health-insurance", title: "ประกันสุขภาพ" },
+  { slug: "critical-illness-insurance", title: "ประกันโรคร้ายแรง" },
+  { slug: "investment", title: "การลงทุน" },
+] as const;
 
 type EnvironmentInput = Record<string, string | undefined>;
 
@@ -139,7 +148,7 @@ function equalStringArrays(left: readonly string[], right: readonly string[]) {
 function resolveActiveCategories(categories: readonly RawCategory[]) {
   const ids = new Map<string, string>();
   const creates: CategoryCreate[] = [];
-  for (const active of ACTIVE_ARTICLE_CATEGORIES) {
+  for (const active of LEGACY_UAT_MIGRATION_CATEGORIES) {
     const defaultId = `ccpun-category-${active.slug}`;
     if (categories.some((category) => category._id === defaultId && category._type !== "category")) {
       throw new Error(`Refusing taxonomy migration: target ID ${defaultId} belongs to another document type`);
@@ -231,9 +240,12 @@ export function buildTaxonomyMigrationPlan(
       throw new Error(`Refusing taxonomy migration: unknown category for Draft ${draft._id}`);
     }
 
+    const targetCategory = LEGACY_UAT_MIGRATION_CATEGORIES.find(({ slug }) => slug === normalized.categorySlug);
+    if (!targetCategory) {
+      throw new Error(`Refusing taxonomy migration: unknown category for Draft ${draft._id}`);
+    }
     const targetCategoryId = activeCategories.ids.get(normalized.categorySlug);
-    const targetCategory = ACTIVE_ARTICLE_CATEGORIES.find(({ slug }) => slug === normalized.categorySlug);
-    if (!targetCategoryId || !targetCategory) {
+    if (!targetCategoryId) {
       throw new Error(`Refusing taxonomy migration: missing target category for Draft ${draft._id}`);
     }
     const categoryChanged = logicalArticleId(currentCategory.ref ?? "") !== targetCategoryId

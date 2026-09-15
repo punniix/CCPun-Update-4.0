@@ -1,16 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ACTIVE_ARTICLE_CATEGORIES, isReservedArticleSlug, normalizeArticleTaxonomy } from "../../lib/content/taxonomy";
-
-test("taxonomy exposes exactly five primary URL-bearing categories", () => {
-  assert.deepEqual(ACTIVE_ARTICLE_CATEGORIES, [
-    { slug: "personal-finance", title: "การเงินส่วนบุคคล" },
-    { slug: "life-insurance", title: "ประกันชีวิต" },
-    { slug: "health-insurance", title: "ประกันสุขภาพ" },
-    { slug: "critical-illness-insurance", title: "ประกันโรคร้ายแรง" },
-    { slug: "investment", title: "การลงทุน" },
-  ]);
-});
+import { isReservedArticleSlug, normalizeArticleTaxonomy } from "../../lib/content/taxonomy";
 
 test("active category slugs and titles normalize to their physical URL owner", () => {
   assert.deepEqual(normalizeArticleTaxonomy({ categorySlug: "personal-finance" }), {
@@ -87,9 +77,9 @@ test("existing tags are trimmed, blanks dropped, and deduped case-insensitively 
   assert.deepEqual(sourceTags, ["  Retirement ", "retirement", "", "  ", "ประกันสุขภาพ", "Health"]);
 });
 
-test("unknown category signals fail closed while preserving normalized tags", () => {
-  assert.deepEqual(normalizeArticleTaxonomy({ categorySlug: "legacy-unknown", tags: [" Topic "] }), {
-    categorySlug: null,
+test("valid Sanity category slugs normalize generically so registry activation needs no code allowlist", () => {
+  assert.deepEqual(normalizeArticleTaxonomy({ categorySlug: "travel-insurance", tags: [" Topic "] }), {
+    categorySlug: "travel-insurance",
     tags: ["Topic"],
   });
 });
