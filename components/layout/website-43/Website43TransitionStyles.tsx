@@ -16,6 +16,7 @@ export function Website43TransitionStyles() {
   --w43-content-gutter: 80px;
   --w43-hero-gutter: clamp(61.111px, 5.55556vw, 80px);
   --w43-shell-width: min(calc(100vw - 112px), clamp(988px, calc(85.8824vw + 43.0588px), 1280px));
+  --w43-shell-left: max(var(--w43-nav-gutter), calc((100vw - 1280px) / 2));
 }
 
 .${styles.navBand} {
@@ -23,7 +24,7 @@ export function Website43TransitionStyles() {
   padding-right: var(--w43-nav-gutter);
 }
 .${styles.navOverlay} {
-  width: calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter));
+  width: min(1280px, calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter)));
 }
 
 .${styles.section},
@@ -50,8 +51,15 @@ export function Website43TransitionStyles() {
 .${styles.footerWrap} > .${styles.inner} {
   width: var(--w43-shell-width);
   max-width: none;
-  margin-left: 0;
-  margin-right: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+.${styles.section} > .${styles.articleSupportInner},
+.${styles.sectionDeep} > .${styles.articleSupportInner} {
+  width: min(1060px, 100%);
+  max-width: 1060px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .${styles.about} {
@@ -60,7 +68,7 @@ export function Website43TransitionStyles() {
 }
 
 .${styles.homeHeroCopy} {
-  left: var(--w43-hero-gutter);
+  left: var(--w43-shell-left);
 }
 
 .${styles.blogHeroImage} {
@@ -77,7 +85,7 @@ export function Website43TransitionStyles() {
 }
 .${styles.blogHeroCopy} {
   top: 174px;
-  left: var(--w43-hero-gutter);
+  left: var(--w43-shell-left);
 }
 
 .${styles.toolHeroImage} {
@@ -119,8 +127,8 @@ export function Website43TransitionStyles() {
 .${styles.legalGrid} {
   width: min(988px, calc(100vw - 112px));
   max-width: none;
-  margin-left: 0;
-  margin-right: 0;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 1023px) {
