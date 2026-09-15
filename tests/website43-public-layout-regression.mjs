@@ -78,3 +78,26 @@ test('release scope does not replace CI or FHC with Website 4.3 tool shells', ()
   assert.match(ci, /components\/layout\/Navbar/);
   assert.doesNotMatch(ci, /Website43ToolHero/);
 });
+
+
+test('Article header keeps only date metadata and the author identity stays in the lower author card', () => {
+  assert.doesNotMatch(article, /className=\{styles\.articleByline\}/);
+  assert.match(article, /className=\{styles\.articleHeaderMeta\}/);
+  assert.match(article, /className=\{styles\.authorCard\}[\s\S]*?className=\{styles\.authorName\}/);
+  assert.match(css, /\.articleMetaRow \{[\s\S]*?justify-content: flex-end;/);
+});
+
+test('Article CTA to related-content rhythm is compact and explicitly scoped', () => {
+  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articlePlanCtaSection\}`\}[\s\S]*?>อยากจัดลำดับแผนให้เหมาะกับชีวิตคุณ\?</);
+  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articleRelatedSection\}`\}[\s\S]*?>อ่านต่อ</);
+  assert.match(css, /\.articlePlanCtaSection \{ padding-top: 40px; padding-bottom: 24px; \}/);
+  assert.match(css, /\.articleRelatedSection \{ padding-top: 24px; padding-bottom: 48px; \}/);
+});
+
+test('Home learning cards share one visual composition including the READ card', () => {
+  assert.match(home, /className=\{`\$\{styles\.toolCtaCard\} \$\{styles\.learnArticleCard\}`\}/);
+  assert.match(home, /src="\/assets\/website-43\/blog-hero\.png"[\s\S]*?styles\.learnArticleImage/);
+  assert.match(home, /styles\.toolCtaContent[\s\S]*?>READ<[\s\S]*?>บทความการเงิน<[\s\S]*?styles\.toolCtaAction/);
+  assert.doesNotMatch(home, /<article className=\{styles\.learnCard\}[\s\S]*?>READ</);
+  assert.match(css, /\.learnArticleImage \{ object-position: 68% center; \}/);
+});

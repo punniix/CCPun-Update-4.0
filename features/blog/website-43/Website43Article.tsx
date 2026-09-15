@@ -140,7 +140,6 @@ export default function Website43Article({ article, relatedArticles = [], previe
             </nav>
             <h1 className={styles.articleHeadline}>{article.title}</h1>
             <div className={styles.articleMetaRow}>
-              <p className={styles.articleByline}>โดย {author.name}</p>
               <p className={styles.articleHeaderMeta}>
                 {publishedDateLabel ? `เผยแพร่เมื่อ ${publishedDateLabel}` : null}
                 {showUpdatedDate ? `${publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด ${updatedDateLabel}` : null}
@@ -226,7 +225,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
           </div>
         </section>
 
-        <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}>
+        <section className={`${styles.sectionDeep} ${styles.articlePlanCtaSection}`}>
           <div className={`${styles.inner} ${styles.articleSupportInner}`}>
             <h2 className={styles.h2}>อยากจัดลำดับแผนให้เหมาะกับชีวิตคุณ?</h2>
             <p className={styles.lead} style={{ color: '#faf9f9' }}>เตรียมข้อมูลรายได้ รายจ่าย หนี้ และเป้าหมาย แล้วคุยกันแบบเห็นภาพรวม</p>
@@ -235,7 +234,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
         </section>
 
         {relatedArticles.length > 0 && (
-          <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}>
+          <section className={`${styles.sectionDeep} ${styles.articleRelatedSection}`}>
             <div className={`${styles.inner} ${styles.articleSupportInner}`}>
               <h2 className={styles.h2}>อ่านต่อ</h2>
               <div className={styles.relatedGrid}>
