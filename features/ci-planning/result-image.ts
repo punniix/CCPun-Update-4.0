@@ -28,6 +28,7 @@ export interface CIResultImageSummary {
     household: number;
     education: number;
     debt: number;
+    recovery: number;
   }> | null;
   assessmentVersion: string;
   disclaimer: typeof SUMMARY_DISCLAIMER;
@@ -47,6 +48,9 @@ export function createCIResultImageSummary(
       household: result.householdNeed,
       education: result.educationNeed,
       debt: result.debtNeed,
+      // Kept in the export DTO as a separately labelled context value only.
+      // It is NOT part of mainNeedToday or the expense-method shortfall.
+      recovery: result.recoveryReserveNeed,
     });
 
   return Object.freeze({
