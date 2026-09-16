@@ -48,8 +48,6 @@ export function createCIResultImageSummary(
       household: result.householdNeed,
       education: result.educationNeed,
       debt: result.debtNeed,
-      // Kept in the export DTO as a separately labelled context value only.
-      // It is NOT part of mainNeedToday or the expense-method shortfall.
       recovery: result.recoveryReserveNeed,
     });
 
@@ -91,9 +89,10 @@ export async function renderCIResultImage(
       ? 'เงินและสินทรัพย์ที่มีมากกว่าประมาณการ'
       : 'ส่วนต่างจากประมาณการ';
   const differenceValue = summary.shortfall > 0 ? summary.shortfall : summary.surplus;
+  const baseNeed = Math.max(summary.mainNeedToday - summary.recoveryReserve, 0);
   const methodDetail = summary.breakdown
-    ? 'ค่าใช้จ่ายครัวเรือน + ค่าเรียน + ภาระหนี้; Recovery Reserve คำนวณแยกและไม่รวมในทุนตามรายจ่าย'
-    : 'รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก; Recovery Reserve คำนวณแยกและไม่รวมในทุนตามรายได้';
+    ? `ทุนตามรายจ่ายพื้นฐาน ${baht(baseNeed)} + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`
+    : `ทุนตามรายได้พื้นฐาน ${baht(baseNeed)} + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`;
 
   return renderResultShareImage({
     toolName: summary.toolName,
@@ -110,7 +109,7 @@ export async function renderCIResultImage(
     noticeDetail: summary.imageNotice,
     actionLabel: 'เพิ่มเพื่อน LINE @ccpun',
     scopeNote: summary.recoveryReserve > 0
-      ? `Recovery Reserve แยกต่างหาก ${baht(summary.recoveryReserve)}; แหล่งอ้างอิงหลักปี 2025–2026 และไม่บวกในทุนตามรายจ่ายหรือรายได้`
-      : 'Recovery Reserve ยังเป็น 0 และคำนวณแยกจากทุนตามรายจ่ายและทุนตามรายได้',
+      ? `Recovery Reserve ${baht(summary.recoveryReserve)} คำนวณแยกจากข้อมูล research แล้วบวก 1 ครั้งในวิธีที่เลือก; แหล่งอ้างอิงหลักปี 2025–2026`
+      : 'Recovery Reserve ยังเป็น 0; หากกรอก ระบบจะคำนวณแยกแล้วบวก 1 ครั้งในทั้งทุนตามรายจ่ายและทุนตามรายได้',
   }, logoPath, lineQrPath);
 }
