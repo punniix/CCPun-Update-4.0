@@ -50,17 +50,13 @@ SEO and migration assertions were moved to their current implementation owners r
 
 ## Final validation
 
-Final head: `7b96c7dc4116ad0099f8e0779a651d4514557760`
+Final validated implementation head before this documentation note: `a790060c2af63228b1c4cf525bfa49d6c05122a1`
 
-GitHub Foundation CI run `35130537477` completed successfully:
+GitHub Foundation CI run `35131119408` completed successfully:
 
 - Foundation code, SEO, analytics and admin contracts: PASS
 - FHC and CI calculator regression gate: PASS
 - FHC and CI exhaustive browser QA: PASS
-  - FHC browser assertions: 104/104
-  - FHC formula properties: 64/64
-  - FHC static checks: 13/13
-  - CI browser assertions: 50/50
 - Google sitemap deterministic contract: PASS
 - Homepage LCP loading contract: PASS
 - SEO topic hub static contract: PASS
@@ -69,9 +65,7 @@ GitHub Foundation CI run `35130537477` completed successfully:
 - Live legacy URL ledger: expected skip in this PR lane
 
 Foundation/Admin suite retained 483 passing tests, 1 intentional skip, and 0 failures.
+Sanity Free-plan privacy boundary: PASS.
+Vercel Preview on the same implementation state: READY.
 
-Sanity Free-plan privacy boundary run `35130537313`: PASS.
-
-Vercel Preview deployment `dpl_H2NTKSoEQnd9NYBXBMSxP3ZNtvd9`: READY on the same final SHA.
-
-Phase 3 does not include a Production merge/deploy until explicitly authorized.
+Production merge/deploy was explicitly authorized after the final QA gate. The post-merge deployment and live smoke results are recorded in the deployment history rather than changing runtime code for documentation.
