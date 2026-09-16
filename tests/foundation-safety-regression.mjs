@@ -24,18 +24,26 @@ const urlContract = read('lib/content/url.ts');
 const frozenMovedPaths = [
   ['life-insurance/aia-health-happy-describe', '/blog/health-insurance/aia-health-happy-describe/'],
   ['life-insurance/aia-health-ci-hero-guide', '/blog/health-insurance/aia-health-ci-hero-guide/'],
-  ['life-insurance/critical-illness-insurance', '/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
-  ['critical-illness/critical-illness-insurance', '/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
-  ['critical-illness-insurance/critical-illness-insurance', '/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
+  ['life-insurance/critical-illness-insurance', '/blog/critical-illness-insurance/critical-illness-insurance/'],
+  ['critical-illness/critical-illness-insurance', '/blog/critical-illness-insurance/critical-illness-insurance/'],
 ];
 for (const [source, destination] of frozenMovedPaths) {
   expect(`frozen URL contract ${source}`, urlContract.includes(`"${source}": "${destination}"`), destination);
 }
 expect(
+  'critical illness final owner is terminal',
+  !urlContract.includes('"critical-illness-insurance/critical-illness-insurance":'),
+);
+expect(
   'critical illness legacy category redirects directly to the approved hub',
   urlContract.includes('"critical-illness": "/blog/critical-illness-insurance/"'),
 );
-expect('health winner canonical category override remains protected', urlContract.includes('"aia-health-happy-describe": "health-insurance"') && urlContract.includes('"aia-health-ci-hero-guide": "health-insurance"'));
+expect(
+  'winner canonical category overrides remain protected',
+  urlContract.includes('"aia-health-happy-describe": "health-insurance"')
+    && urlContract.includes('"aia-health-ci-hero-guide": "health-insurance"')
+    && urlContract.includes('"critical-illness-insurance": "critical-illness-insurance"'),
+);
 expect('canonical alignment remains ccpun.com only', urlContract.includes('canonical.origin === "https://ccpun.com"'));
 
 const taxonomy = read('lib/content/taxonomy.ts');
@@ -51,9 +59,9 @@ expect(
   taxonomy.includes('"critical-illness": "critical-illness-insurance"'),
 );
 expect(
-  'critical illness definition keeps one semantic owner through slug migration',
+  'critical illness definition preserves one semantic owner without leaf slug rename',
   taxonomy.includes('"critical-illness-insurance": "critical-illness-insurance"')
-    && taxonomy.includes('"what-is-critical-illness-insurance": "critical-illness-insurance"'),
+    && !taxonomy.includes('"what-is-critical-illness-insurance": "critical-illness-insurance"'),
 );
 
 const ledger = JSON.parse(read('qa/legacy-url-ledger.json'));
@@ -68,15 +76,16 @@ for (const destination of [
 const criticalIllnessLegacy = ledger.mappings.find(({ id }) => id === 'critical-illness-insurance');
 expect(
   'critical illness legacy source is tracked for direct final cutover',
-  criticalIllnessLegacy?.plannedDestination === 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/',
+  criticalIllnessLegacy?.plannedDestination === 'https://ccpun.com/blog/critical-illness-insurance/critical-illness-insurance/',
 );
 
 const intentRegistry = JSON.parse(read('qa/search-intent-owner-registry.json'));
 const criticalIllnessOwner = intentRegistry.owners.find(({ intentId }) => intentId === 'critical-illness-insurance-definition');
 expect(
-  'critical illness search intent owner moves to final canonical',
-  criticalIllnessOwner?.ownerUrl === 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/'
-    && criticalIllnessOwner?.semanticTopic === 'critical-illness-insurance',
+  'critical illness search intent owner moves to final canonical without leaf rename',
+  criticalIllnessOwner?.ownerUrl === 'https://ccpun.com/blog/critical-illness-insurance/critical-illness-insurance/'
+    && criticalIllnessOwner?.semanticTopic === 'critical-illness-insurance'
+    && criticalIllnessOwner?.ownerState === 'published',
 );
 
 const studioPolicy = read('cms/sanity/policy/studio-policy.ts');
