@@ -13,7 +13,7 @@ test('Recovery Reserve defaults to zero and does not change legacy CI outputs', 
   assert.equal(result.recoveryRehabNeed, 0);
 });
 
-test('Recovery Reserve formula uses current source-backed rates and is added only to expense method', () => {
+test('Recovery Reserve formula uses current source-backed rates and stays separate from both primary methods', () => {
   const recovery = {
     treatmentVisits: 4,
     caregiverHomeDays: 10,
@@ -32,8 +32,39 @@ test('Recovery Reserve formula uses current source-backed rates and is added onl
   input.expenses.recovery = recovery;
   const result = calculateCI(input);
   assert.equal(result.recoveryReserveNeed, expected);
-  assert.equal(result.calculatedNeed, 20_000 * 12 * 5 + expected);
-  assert.equal(result.incomeBasedNeed, 50_000 * 12 * 5, 'income method must not add Recovery Reserve twice');
+  assert.equal(result.calculatedNeed, 20_000 * 12 * 5, 'expense method must exclude Recovery Reserve');
+  assert.equal(result.incomeBasedNeed, 50_000 * 12 * 5, 'income method must exclude Recovery Reserve');
+  assert.equal(result.shortfall, 20_000 * 12 * 5, 'expense gap must not include Recovery Reserve when no resources are entered');
+  assert.equal(result.incomeShortfall, 50_000 * 12 * 5, 'income gap must not include Recovery Reserve when no resources are entered');
+});
+
+test('changing Recovery Reserve never changes expense or income method outputs', () => {
+  const base = structuredClone(INITIAL_CI_FORM_DATA);
+  base.expenses.monthlyIncome = 80_000;
+  base.expenses.household = 35_000;
+  base.expenses.reserveYears = 4;
+  base.existingCI.lumpSum = 500_000;
+  base.existingCI.liquidAssets = 200_000;
+
+  const withoutRecovery = calculateCI(base);
+  const withRecoveryInput = structuredClone(base);
+  withRecoveryInput.expenses.recovery = {
+    treatmentVisits: 20,
+    caregiverHomeDays: 90,
+    rehabSessions: 20,
+    homeRehabSessions: 20,
+    equipmentAndHomeModification: 40_000,
+    otherRecoveryCosts: 250_000,
+  };
+  const withRecovery = calculateCI(withRecoveryInput);
+
+  assert.ok(withRecovery.recoveryReserveNeed > 0);
+  assert.equal(withRecovery.calculatedNeed, withoutRecovery.calculatedNeed);
+  assert.equal(withRecovery.shortfall, withoutRecovery.shortfall);
+  assert.equal(withRecovery.surplus, withoutRecovery.surplus);
+  assert.equal(withRecovery.incomeBasedNeed, withoutRecovery.incomeBasedNeed);
+  assert.equal(withRecovery.incomeShortfall, withoutRecovery.incomeShortfall);
+  assert.equal(withRecovery.incomeSurplus, withoutRecovery.incomeSurplus);
 });
 
 test('home rehab sessions cannot exceed total rehab sessions', () => {
