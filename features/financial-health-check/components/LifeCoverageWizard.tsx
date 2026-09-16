@@ -144,7 +144,7 @@ export default function LifeCoverageWizard() {
       <div className="ccpun-calculator-result-row"><dt>ทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</dt><dd>{money(result.resources)} บาท</dd></div>
     </dl>
 
-    <div className="ccpun-calculator-result-notice">ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล และไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี</div>
+    <div className="ccpun-calculator-result-notice">ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล ไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี และประกันไม่ใช่เงินฝาก</div>
 
     <div className="ccpun-calculator-result-cta">
       <FHCLifeResultImageDownloadButton summary={{ familySupport: result.familySupport, debtAndEducation: values.debt + values.education, resources: result.resources, gap: result.gap }} />
