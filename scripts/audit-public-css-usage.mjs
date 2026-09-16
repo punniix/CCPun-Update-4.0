@@ -162,14 +162,16 @@ const moduleUnused = dynamicModuleAccess.length === 0
   ? moduleClasses.filter((className) => !hasModuleUsage(className))
   : [];
 
-const styleBridgeFiles = trackedFiles
+const styleOwnerFiles = trackedFiles
   .filter((file) => /^components\/layout\/website-43\/Website43.*Styles\.tsx$/.test(file))
   .sort();
-const allowedStyleBridges = [
+const canonicalResponsiveOwner = 'components/layout/website-43/Website43ResponsiveStyles.tsx';
+const retiredResponsiveOwners = [
   'components/layout/website-43/Website43FinalPolishStyles.tsx',
   'components/layout/website-43/Website43TransitionStyles.tsx',
-].sort();
-const unexpectedStyleBridges = styleBridgeFiles.filter((file) => !allowedStyleBridges.includes(file));
+];
+const unexpectedStyleOwners = styleOwnerFiles.filter((file) => file !== canonicalResponsiveOwner);
+const layoutSource = readFileSync('app/layout.tsx', 'utf8');
 
 console.log('PUBLIC_STYLE_OWNERSHIP_AUDIT');
 console.log(`runtime_files=${runtimeFiles.length}`);
@@ -183,7 +185,7 @@ console.log(`website43_module_classes=${moduleClasses.length}`);
 console.log(`website43_importers=${moduleImporters.length}`);
 console.log(`website43_dynamic_access=${dynamicModuleAccess.length}`);
 console.log(`website43_zero_reachable_reference=${moduleUnused.length}`);
-console.log(`website43_style_bridges=${styleBridgeFiles.length}`);
+console.log(`website43_responsive_style_owners=${styleOwnerFiles.length}`);
 console.log('WEBSITE43_ZERO_REFERENCE_START');
 for (const className of moduleUnused) console.log(className);
 console.log('WEBSITE43_ZERO_REFERENCE_END');
@@ -198,6 +200,12 @@ if (duplicateGlobalOwners.length > 0) {
 if (dynamicModuleAccess.length > 0) {
   throw new Error('Website43.module.css uses dynamic property access; static ownership auditing is no longer safe.');
 }
-if (unexpectedStyleBridges.length > 0 || styleBridgeFiles.length !== allowedStyleBridges.length) {
-  throw new Error(`Do not add another Website 4.3 patch stylesheet. Consolidate rules into the owning CSS Module. Found: ${styleBridgeFiles.join(', ')}`);
+if (!trackedFileSet.has(canonicalResponsiveOwner) || unexpectedStyleOwners.length > 0 || styleOwnerFiles.length !== 1) {
+  throw new Error(`Website 4.3 responsive runtime must have one owner only: ${canonicalResponsiveOwner}. Found: ${styleOwnerFiles.join(', ')}`);
+}
+for (const retiredOwner of retiredResponsiveOwners) {
+  if (trackedFileSet.has(retiredOwner)) throw new Error(`Retired responsive patch owner must stay removed: ${retiredOwner}`);
+}
+if (!layoutSource.includes('Website43ResponsiveStyles') || retiredResponsiveOwners.some((file) => layoutSource.includes(file.split('/').at(-1).replace('.tsx', '')))) {
+  throw new Error('app/layout.tsx must mount only Website43ResponsiveStyles for Website 4.3 responsive runtime CSS.');
 }
