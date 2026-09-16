@@ -40,6 +40,11 @@ jobs:
       - name: Refresh dependency lock
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
+      - name: Normalize generated text
+        shell: bash
+        run: |
+          sed -i 's/[[:space:]]\+$//' components/layout/website-43/Website43.module.css
+
       - name: Remove one-shot workflow
         run: rm .github/workflows/phase3-finalizer.yml
 
