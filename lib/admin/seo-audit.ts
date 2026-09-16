@@ -140,6 +140,7 @@ export function auditArticleSeo(article: z.infer<typeof auditArticleSchema>): Se
   const geo = article.geo ?? {};
   const geoIsFresh = isReviewDateFresh(geo.reviewedAt);
   const matchingQuestions = countMatchingQuestions(geo.keyQuestions ?? [], article.faqQuestions);
+  const draftWillPublishIndexable = article.id.startsWith("drafts.");
   const geoChecks: GeoAuditCheck[] = [
     { id: "answer-first", label: "มี GEO summary อย่างน้อย 60 ตัวอักษร", passed: countGraphemes(geo.summary ?? "") >= 60, detail: geo.summary ? `${countGraphemes(geo.summary)} ตัวอักษร` : "ยังไม่มี GEO summary", required: true },
     { id: "entities", label: "ระบุบุคคล/ผลิตภัณฑ์/แนวคิดสำคัญชัดเจน", passed: (geo.keyEntities?.length ?? 0) >= 2, detail: `${geo.keyEntities?.length ?? 0} entities`, required: true },
@@ -171,7 +172,18 @@ export function auditArticleSeo(article: z.infer<typeof auditArticleSchema>): Se
     buildCheck({ id: "excerpt", label: "มีคำโปรย Blog/Search อย่างน้อย 40 ตัวอักษร", passed: Boolean(article.excerpt && excerptLength >= 40), weight: 4, severity: "warning", detail: article.excerpt ? `${excerptLength} ตัวอักษร` : "ยังไม่มี excerpt" }),
     buildCheck({ id: "sources", label: "มีแหล่งอ้างอิง", passed: article.sourcesCount > 0, weight: 5, severity: "warning", detail: `Sources: ${article.sourcesCount}` }),
     buildCheck({ id: "canonical", label: "Canonical ปลอดภัย", passed: canonicalSafe, weight: 5, severity: "critical", detail: seo.canonical || "ใช้ canonical อัตโนมัติ" }),
-    buildCheck({ id: "indexability", label: "พร้อมให้ index เมื่อ Publish", passed: seo.noindex !== true, weight: 5, severity: "critical", detail: seo.noindex === true ? "noindex=true" : "indexable" }),
+    buildCheck({
+      id: "indexability",
+      label: "พร้อมให้ index เมื่อ Publish",
+      passed: draftWillPublishIndexable || seo.noindex !== true,
+      weight: 5,
+      severity: "critical",
+      detail: draftWillPublishIndexable && seo.noindex === true
+        ? "Draft noindex=true; CCPun Publish workflow จะบังคับ Live เป็น false"
+        : seo.noindex === true
+          ? "Live noindex=true"
+          : "indexable",
+    }),
     buildCheck({ id: "search-intent", label: "กำหนด Search intent", passed: Boolean(seo.searchIntent), weight: 3, severity: "opportunity", detail: seo.searchIntent || "ยังไม่กำหนด", proposalType: "search-intent" }),
     buildCheck({ id: "review", label: "ผ่าน Review workflow", passed: article.reviewStatus === "approved", weight: 3, severity: "warning", detail: article.reviewStatus || "missing" }),
   ];
