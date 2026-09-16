@@ -1,0 +1,95 @@
+name: CCPun Vercel Monorepo Migration Audit
+
+on:
+  push:
+    branches: [architecture/vercel-monorepo-isolation-20260917]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccpun-vercel-monorepo-migration-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v7.0.1
+
+      - name: Audit runtime import and environment ownership
+        run: node scripts/audit-monorepo-boundaries.mjs
+
+      - name: Require Vercel audit credential
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo 'VERCEL_TOKEN repository secret is required for Vercel migration audit.' >&2
+            exit 1
+          fi
+
+      - name: Audit locked Vercel project settings and environment metadata
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: team_GbcO71LS2dLHwiBV6Cs39Kax
+        shell: bash
+        run: |
+          node <<'NODE'
+          const projects = [
+            { role: 'web', id: 'prj_dxwjITkd0av5QiJQv2snUlIASUWu' },
+            { role: 'admin', id: 'prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN' },
+          ];
+          const token = process.env.VERCEL_TOKEN;
+          const teamId = process.env.VERCEL_TEAM_ID;
+          const headers = { Authorization: `Bearer ${token}` };
+
+          async function getJson(url) {
+            const response = await fetch(url, { headers });
+            if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${url.replace(token, '[redacted]')}`);
+            return response.json();
+          }
+
+          const output = [];
+          for (const project of projects) {
+            const settings = await getJson(`https://api.vercel.com/v9/projects/${project.id}?teamId=${teamId}`);
+            const envResponse = await getJson(`https://api.vercel.com/v10/projects/${project.id}/env?teamId=${teamId}&decrypt=false`);
+            const envs = Array.isArray(envResponse.envs) ? envResponse.envs : [];
+            output.push({
+              role: project.role,
+              projectId: project.id,
+              name: settings.name,
+              framework: settings.framework,
+              nodeVersion: settings.nodeVersion,
+              rootDirectory: settings.rootDirectory ?? null,
+              buildCommand: settings.buildCommand ?? null,
+              installCommand: settings.installCommand ?? null,
+              outputDirectory: settings.outputDirectory ?? null,
+              devCommand: settings.devCommand ?? null,
+              commandForIgnoringBuildStep: settings.commandForIgnoringBuildStep ?? null,
+              sourceFilesOutsideRootDirectory: settings.sourceFilesOutsideRootDirectory ?? null,
+              productionBranch: settings.link?.productionBranch ?? settings.productionBranch ?? null,
+              gitRepository: settings.link ? {
+                type: settings.link.type ?? null,
+                repo: settings.link.repo ?? null,
+                org: settings.link.org ?? null,
+                repoId: settings.link.repoId ?? null,
+              } : null,
+              environments: envs.map((item) => ({
+                key: item.key,
+                type: item.type,
+                target: item.target,
+                gitBranch: item.gitBranch ?? null,
+                customEnvironmentIds: item.customEnvironmentIds ?? [],
+              })).sort((a, b) => a.key.localeCompare(b.key)),
+            });
+          }
+
+          console.log('CCPUN_VERCEL_PROJECT_AUDIT_START');
+          console.log(JSON.stringify(output, null, 2));
+          console.log('CCPUN_VERCEL_PROJECT_AUDIT_END');
+          NODE
