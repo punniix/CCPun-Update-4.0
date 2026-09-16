@@ -108,6 +108,10 @@ function packageRoot(specifier) {
   return specifier.split('/')[0];
 }
 
+function sourceImportsDependency(source, dependency) {
+  return importSpecifiers(source).some((specifier) => packageRoot(specifier) === dependency);
+}
+
 function dependencyCounts(sourceEntries, dependencies) {
   const counts = new Map(dependencies.map((dependency) => [dependency, 0]));
   for (const [, source] of sourceEntries) {
@@ -117,6 +121,10 @@ function dependencyCounts(sourceEntries, dependencies) {
     }
   }
   return counts;
+}
+
+function dependencyConsumers(sourceEntries, dependency) {
+  return sourceEntries.filter(([, source]) => sourceImportsDependency(source, dependency)).map(([file]) => file).sort();
 }
 
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -172,6 +180,14 @@ for (const dependency of dependencies) {
   console.log(`${dependency}\tpublic=${publicDependencyCounts.get(dependency)}\tall_routes=${routeDependencyCounts.get(dependency)}\trepo_code=${repoDependencyCounts.get(dependency)}`);
 }
 console.log('DEPENDENCY_USAGE_END');
+
+console.log('NON_PUBLIC_DEPENDENCY_OWNERS_START');
+for (const dependency of dependencies.filter((name) => publicDependencyCounts.get(name) === 0)) {
+  console.log(dependency);
+  for (const file of dependencyConsumers(allRouteSources, dependency)) console.log(`  route:${file}`);
+  for (const file of dependencyConsumers(repoCodeSources, dependency).filter((file) => !reachable.has(file))) console.log(`  non_route:${file}`);
+}
+console.log('NON_PUBLIC_DEPENDENCY_OWNERS_END');
 
 const repoZeroDependencies = dependencies.filter((dependency) => repoDependencyCounts.get(dependency) === 0);
 console.log('ZERO_REPO_CODE_DEPENDENCIES_START');
