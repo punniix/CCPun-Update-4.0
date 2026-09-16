@@ -17,8 +17,8 @@ const articlePage = await read('features/blog/pages/ArticlePage.tsx');
 const articlePresentation = await read('features/blog/website-43/Website43Article.tsx');
 const blogPresentation = await read('features/blog/website-43/Website43Blog.tsx');
 const blogInteractive = await read('features/blog/website-43/Website43BlogInteractive.tsx');
+const blogData = await read('features/blog/website-43/blogData.ts');
 const sitemap = await read('app/sitemaps/blog.xml/route.ts');
-const card = await read('features/blog/components/ArticleCard.tsx');
 
 for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
   assert.match(taxonomy, new RegExp(`slug: ["']${slug}["']`));
@@ -59,7 +59,7 @@ const overrideResolution = taxonomy.indexOf('const override = articleSlug');
 const explicitResolution = taxonomy.indexOf('const explicitTopic = semanticTopic');
 assert.ok(overrideResolution >= 0 && explicitResolution > overrideResolution, 'protected slug semantic overrides must precede editable CMS Semantic Topic');
 assert.match(taxonomy, /CATEGORY_SLUG_ALIASES\[explicitTopic\] \?\? explicitTopic/);
-for (const surface of [categoryPage, articlePresentation, card, schema, sitemap]) {
+for (const surface of [categoryPage, articlePresentation, blogData, schema, sitemap]) {
   assert.match(surface, /semanticTopic: article\.semanticTopic/);
 }
 
@@ -93,8 +93,8 @@ assert.match(articlePage, /getArticleCategorySlug\(article\)/);
 assert.match(articlePresentation, /getArticleSemanticTopic/);
 assert.match(articlePresentation, /href=\{topicHref\}/);
 assert.doesNotMatch(articlePage, /\/blog\/\?category=/);
-assert.match(card, /const href = getArticlePath\(article\)/);
-assert.match(card, /getArticleSemanticTopic/);
+assert.match(blogData, /const articlePath = getArticlePath\(article\)/);
+assert.match(blogData, /getArticleSemanticTopic/);
 
 // JSON-LD uses semantic hub but mainEntityOfPage remains canonical.
 assert.match(schema, /mainEntityOfPage: canonical/);
