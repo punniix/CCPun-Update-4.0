@@ -64,8 +64,9 @@ test("Health winner pages and Critical Illness migration keep semantic and physi
 
   assert.equal(getArticlePath(healthHappy), "/blog/health-insurance/aia-health-happy-describe/");
   assert.equal(getArticlePath(healthCiHero), "/blog/health-insurance/aia-health-ci-hero-guide/");
-  assert.equal(getArticlePath(critical), "/blog/life-insurance/critical-illness-insurance/");
+  assert.equal(getArticlePath(critical), "/blog/critical-illness-insurance/what-is-critical-illness-insurance/");
   assert.equal(getArticleCanonical(healthHappy), "https://ccpun.com/blog/health-insurance/aia-health-happy-describe/");
+  assert.equal(getArticleCanonical(critical), "https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/");
 });
 
 test("controlled moved article redirects point one hop to their approved terminal owner", () => {
