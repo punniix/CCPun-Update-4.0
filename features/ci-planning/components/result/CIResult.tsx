@@ -88,7 +88,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           </label>;
         })}
       </div>
-      <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">สองวิธีไม่ถูกนำมาบวกกัน แต่แต่ละวิธีจะบวก Recovery Reserve ก้อนเดียวกัน 1 ครั้ง: ฐานตามรายจ่าย + Recovery Reserve หรือฐานตามรายได้ + Recovery Reserve</p>
+      <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">ระบบแสดงสองวิธีแยกกันและไม่นำมาบวกกัน โดยแต่ละวิธีจะบวก Recovery Reserve ก้อนเดียวกัน 1 ครั้ง: ฐานตามรายจ่าย + Recovery Reserve หรือฐานตามรายได้ + Recovery Reserve</p>
     </fieldset> : null}
 
     <MoneyComparison need={selectedNeed} resources={result.availableResources} title={`เปรียบเทียบ${methodLabel}กับทรัพยากรที่พร้อมใช้`} needLabel={methodLabel} />
