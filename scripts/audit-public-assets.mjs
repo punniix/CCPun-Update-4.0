@@ -1,88 +1,84 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { extname } from 'node:path';
+import {
+  getReachableStyleFiles,
+  reachableSources,
+  trackedFiles,
+  trackedFileSet,
+} from './lib/public-reachability.mjs';
 
-const trackedFiles = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
-  .split('\0')
-  .filter(Boolean);
-
-const publicFiles = trackedFiles.filter((file) => file.startsWith('public/') && !file.endsWith('/'));
-const textExtensions = new Set([
-  '', '.css', '.csv', '.html', '.js', '.jsx', '.json', '.md', '.mjs', '.svg', '.toml', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml',
+const assetExtensions = new Set([
+  '.avif', '.gif', '.ico', '.jpeg', '.jpg', '.mp3', '.mp4', '.otf', '.pdf',
+  '.png', '.svg', '.ttf', '.webm', '.webp', '.woff', '.woff2',
 ]);
-const searchFiles = trackedFiles.filter((file) =>
-  !file.startsWith('.git/') &&
-  !file.startsWith('node_modules/') &&
-  textExtensions.has(extname(file).toLowerCase()),
-);
-const searchSources = [];
-for (const file of searchFiles) {
-  try {
-    searchSources.push([file, readFileSync(file, 'utf8')]);
-  } catch {
-    // Ignore text-extension files that are not UTF-8 readable.
+
+// Blog/CMS media is outside this cleanup. It has a separate content lifecycle and
+// must never be deleted merely because the App Router source graph does not cite it.
+const excludedBlogAssetPrefixes = ['public/assets/blog-migration/'];
+const excludedBlogAssets = new Set(['public/assets/blog-hub-hero-ccpun-v1.webp']);
+
+// Browser/protocol ownership can exist without a literal source reference.
+const implicitlyOwnedAssets = new Set(['public/favicon.ico']);
+
+const auditedAssets = trackedFiles
+  .filter((file) => file.startsWith('public/') && assetExtensions.has(extname(file).toLowerCase()))
+  .filter((file) => !excludedBlogAssetPrefixes.some((prefix) => file.startsWith(prefix)))
+  .filter((file) => !excludedBlogAssets.has(file))
+  .sort();
+
+const reachableStyleFiles = getReachableStyleFiles();
+const referenceSources = [
+  ...reachableSources,
+  ...[...reachableStyleFiles].map((file) => [file, readFileSync(file, 'utf8')]),
+  ...['next.config.ts', 'vercel.json']
+    .filter((file) => trackedFileSet.has(file))
+    .map((file) => [file, readFileSync(file, 'utf8')]),
+];
+
+// Dynamic asset families are conservatively retained. Example:
+// `/assets/icons/${name}.svg` owns that whole directory prefix until the builder
+// is refactored to a statically enumerable manifest.
+const dynamicAssetPrefixes = new Set();
+for (const [, source] of referenceSources) {
+  for (const match of source.matchAll(/([/][A-Za-z0-9._/-]*[/])[^`'"\n]*\$\{/g)) {
+    if (match[1].startsWith('/assets/')) dynamicAssetPrefixes.add(match[1]);
   }
 }
 
-const implicitExactPaths = new Set([
-  'public/favicon.ico',
-  'public/llms.txt',
-]);
-const protectedPrefixes = [
-  'public/.well-known/',
-  // These are migration/source artifacts that may still be referenced by historical
-  // Sanity content or migration ledgers. They need a content-plane audit before deletion.
-  'public/assets/blog-migration/',
-];
-
-function publicUrl(file) {
+function publicUrlFor(file) {
   return `/${file.slice('public/'.length)}`;
 }
 
-function isProtected(file) {
-  return implicitExactPaths.has(file) || protectedPrefixes.some((prefix) => file.startsWith(prefix));
+function hasRuntimeReference(file) {
+  if (implicitlyOwnedAssets.has(file)) return true;
+  const publicUrl = publicUrlFor(file);
+  const relativeUrl = publicUrl.slice(1);
+  if ([...dynamicAssetPrefixes].some((prefix) => publicUrl.startsWith(prefix))) return true;
+  return referenceSources.some(([, source]) => source.includes(publicUrl) || source.includes(relativeUrl));
 }
 
-function hasReference(file) {
-  const url = publicUrl(file);
-  const relative = file.slice('public/'.length);
-  const basename = relative.split('/').at(-1);
-  for (const [sourceFile, source] of searchSources) {
-    if (sourceFile === file) continue;
-    if (source.includes(url) || source.includes(relative) || (basename && source.includes(basename))) {
-      return true;
-    }
-  }
-  return false;
+function fileSize(file) {
+  const row = execFileSync('git', ['ls-tree', '-l', 'HEAD', file], { encoding: 'utf8' }).trim();
+  const size = Number(row.split(/\s+/)[3] ?? 0);
+  return Number.isFinite(size) ? size : 0;
 }
 
-const entries = publicFiles.map((file) => ({
-  file,
-  size: statSync(file).size,
-  protected: isProtected(file),
-  referenced: hasReference(file),
-}));
+const candidates = auditedAssets
+  .filter((file) => !hasRuntimeReference(file))
+  .map((file) => ({ file, bytes: fileSize(file), url: publicUrlFor(file) }))
+  .sort((a, b) => b.bytes - a.bytes || a.file.localeCompare(b.file));
+const candidateBytes = candidates.reduce((sum, asset) => sum + asset.bytes, 0);
 
-const candidates = entries
-  .filter((entry) => !entry.protected && !entry.referenced)
-  .sort((a, b) => b.size - a.size || a.file.localeCompare(b.file));
+console.log('PUBLIC_NON_BLOG_ASSET_AUDIT');
+console.log(`audited_assets=${auditedAssets.length}`);
+console.log(`reachable_style_files=${reachableStyleFiles.size}`);
+console.log(`dynamic_asset_prefixes=${dynamicAssetPrefixes.size}`);
+console.log(`zero_runtime_reference_assets=${candidates.length}`);
+console.log(`zero_runtime_reference_bytes=${candidateBytes}`);
+console.log('ZERO_RUNTIME_REFERENCE_ASSETS_START');
+for (const asset of candidates) console.log(`${asset.bytes}\t${asset.file}\t${asset.url}`);
+console.log('ZERO_RUNTIME_REFERENCE_ASSETS_END');
 
-const protectedUnreferenced = entries
-  .filter((entry) => entry.protected && !entry.referenced)
-  .sort((a, b) => b.size - a.size || a.file.localeCompare(b.file));
-
-const totalBytes = entries.reduce((sum, entry) => sum + entry.size, 0);
-const candidateBytes = candidates.reduce((sum, entry) => sum + entry.size, 0);
-
-console.log('PUBLIC_ASSET_AUDIT');
-console.log(`public_files=${entries.length}`);
-console.log(`public_bytes=${totalBytes}`);
-console.log(`unreferenced_delete_candidates=${candidates.length}`);
-console.log(`unreferenced_delete_candidate_bytes=${candidateBytes}`);
-console.log(`protected_unreferenced=${protectedUnreferenced.length}`);
-console.log('UNREFERENCED_DELETE_CANDIDATES_START');
-for (const entry of candidates) console.log(`${entry.size}\t${entry.file}`);
-console.log('UNREFERENCED_DELETE_CANDIDATES_END');
-console.log('PROTECTED_UNREFERENCED_START');
-for (const entry of protectedUnreferenced) console.log(`${entry.size}\t${entry.file}`);
-console.log('PROTECTED_UNREFERENCED_END');
+// Discovery-only during this cleanup pass. Once each candidate has been reviewed
+// and either deleted or given an explicit owner, this becomes a permanent gate.
