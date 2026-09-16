@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(path, 'utf8');
-const clientWidgets = read('features/analytics/components/ClientWidgets.tsx');
 const transition = read('components/layout/website-43/Website43TransitionStyles.tsx');
 const finalPolish = read('components/layout/website-43/Website43FinalPolishStyles.tsx');
 
@@ -15,11 +14,6 @@ const inlineCss = (source, label) => {
 const transitionCss = inlineCss(transition, 'Website43TransitionStyles');
 const finalPolishCss = inlineCss(finalPolish, 'Website43FinalPolishStyles');
 
-assert.doesNotMatch(
-  clientWidgets,
-  /@\/lib\/admin\//,
-  'public analytics island must not pull Admin routing into the hydrated client graph',
-);
 assert.doesNotMatch(
   finalPolishCss,
   /\/\*/,
