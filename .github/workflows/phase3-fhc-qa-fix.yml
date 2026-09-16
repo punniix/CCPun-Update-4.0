@@ -1,0 +1,50 @@
+name: Phase 3 FHC QA Owner Fix
+
+on:
+  pull_request:
+    branches: [v4-production]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'audit/public-web-full-phase3-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Move FHC formula static check to model owner
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('qa/fhc-exhaustive-uat.mjs')
+          source = path.read_text()
+          old_read = "  const life = await readFile('features/financial-health-check/components/LifeCoverageWizard.tsx', 'utf8');\n  const currency = await readFile('components/ui/CurrencyInput.tsx', 'utf8');"
+          new_read = "  const life = await readFile('features/financial-health-check/components/LifeCoverageWizard.tsx', 'utf8');\n  const lifeModel = await readFile('features/financial-health-check/components/lifeCoverageModel.ts', 'utf8');\n  const currency = await readFile('components/ui/CurrencyInput.tsx', 'utf8');"
+          old_check = "  assertion(section, 'active two-step wizard formula source present', life.includes('values.householdMonthly * 12 * values.supportYears') && life.includes('Math.max(need - resources, 0)'));"
+          new_check = "  assertion(section, 'active two-step wizard formula source present', lifeModel.includes('values.householdMonthly * 12 * values.supportYears') && lifeModel.includes('Math.max(need - resources, 0)') && life.includes('calculateLifeCoverage(values)'));"
+          if source.count(old_read) != 1 or source.count(old_check) != 1:
+              raise SystemExit('stale FHC QA owner markers were not found exactly once')
+          path.write_text(source.replace(old_read, new_read).replace(old_check, new_check))
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/phase3-fhc-qa-fix.yml
+
+      - name: Commit QA ownership migration
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "test(fhc): bind static QA to live model owner"
+          git push origin "HEAD:${HEAD_REF}"
