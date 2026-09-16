@@ -173,10 +173,85 @@ const retiredResponsiveOwners = [
 const unexpectedStyleOwners = styleOwnerFiles.filter((file) => file !== canonicalResponsiveOwner);
 const layoutSource = readFileSync('app/layout.tsx', 'utf8');
 
-console.log('PUBLIC_STYLE_OWNERSHIP_AUDIT');
+// Static asset ownership: only files that can be sent as binary/media payloads are
+// audited here. Operational public files (llms.txt, .well-known, JSON configs) have
+// explicit protocol/tooling owners and are outside the asset lifecycle.
+const assetExtensions = new Set([
+  '.avif', '.gif', '.ico', '.jpeg', '.jpg', '.mp3', '.mp4', '.otf', '.pdf', '.png', '.svg', '.ttf', '.webm', '.webp', '.woff', '.woff2',
+]);
+const publicAssets = trackedFiles
+  .filter((file) => file.startsWith('public/') && assetExtensions.has(extname(file).toLowerCase()))
+  .sort();
+const implicitlyOwnedAssets = new Set(['public/favicon.ico']);
+
+function resolveCssImport(fromFile, specifier) {
+  if (!specifier.endsWith('.css')) return null;
+  if (specifier.startsWith('@/')) return toRepoPath(specifier.slice(2));
+  if (specifier.startsWith('.')) return toRepoPath(join(dirname(fromFile), specifier));
+  return null;
+}
+
+const reachableStyleFiles = new Set();
+const styleQueue = [];
+for (const [file, source] of reachableSources) {
+  const importPatterns = [
+    /\bimport\s+['"]([^'"]+\.css)['"]/g,
+    /\bimport\s+[^'";]+?\s+from\s+['"]([^'"]+\.css)['"]/g,
+  ];
+  for (const pattern of importPatterns) {
+    for (const match of source.matchAll(pattern)) {
+      const resolved = resolveCssImport(file, match[1]);
+      if (resolved && trackedFileSet.has(resolved)) styleQueue.push(resolved);
+    }
+  }
+}
+while (styleQueue.length) {
+  const cssPath = styleQueue.shift();
+  if (reachableStyleFiles.has(cssPath)) continue;
+  reachableStyleFiles.add(cssPath);
+  const cssSource = readFileSync(cssPath, 'utf8');
+  for (const match of cssSource.matchAll(/@import\s+['"]([^'"]+\.css)['"]/g)) {
+    const resolved = resolveCssImport(cssPath, match[1]);
+    if (resolved && trackedFileSet.has(resolved) && !reachableStyleFiles.has(resolved)) styleQueue.push(resolved);
+  }
+}
+
+const assetReferenceSources = [
+  ...reachableSources,
+  ...[...reachableStyleFiles].map((file) => [file, readFileSync(file, 'utf8')]),
+  ...['next.config.ts', 'vercel.json'].filter((file) => trackedFileSet.has(file)).map((file) => [file, readFileSync(file, 'utf8')]),
+];
+const dynamicAssetPrefixes = new Set();
+for (const [, source] of assetReferenceSources) {
+  for (const match of source.matchAll(/([/][A-Za-z0-9._/-]*[/])[^`'"\n]*\$\{/g)) {
+    if (match[1].startsWith('/assets/')) dynamicAssetPrefixes.add(match[1]);
+  }
+}
+
+function publicUrlFor(file) {
+  return `/${file.slice('public/'.length)}`;
+}
+
+function assetHasReference(file) {
+  if (implicitlyOwnedAssets.has(file)) return true;
+  const publicUrl = publicUrlFor(file);
+  if ([...dynamicAssetPrefixes].some((prefix) => publicUrl.startsWith(prefix))) return true;
+  const relativeUrl = publicUrl.slice(1);
+  return assetReferenceSources.some(([, source]) => source.includes(publicUrl) || source.includes(relativeUrl));
+}
+
+const zeroReferenceAssets = publicAssets.filter((file) => !assetHasReference(file));
+const zeroReferenceAssetBytes = zeroReferenceAssets.reduce((sum, file) => {
+  const row = execFileSync('git', ['ls-tree', '-l', 'HEAD', file], { encoding: 'utf8' }).trim();
+  const size = Number(row.split(/\s+/)[3] ?? 0);
+  return sum + (Number.isFinite(size) ? size : 0);
+}, 0);
+
+console.log('PUBLIC_OWNERSHIP_AUDIT');
 console.log(`runtime_files=${runtimeFiles.length}`);
 console.log(`route_entries=${entryFiles.length}`);
 console.log(`reachable_runtime_files=${reachable.size}`);
+console.log(`reachable_style_files=${reachableStyleFiles.size}`);
 console.log(`owned_global_stylesheets=${ownedGlobalCssPaths.length}`);
 console.log(`global_class_selectors=${globalClassOwners.size}`);
 console.log(`global_zero_reachable_reference=${globalUnused.length}`);
@@ -186,9 +261,16 @@ console.log(`website43_importers=${moduleImporters.length}`);
 console.log(`website43_dynamic_access=${dynamicModuleAccess.length}`);
 console.log(`website43_zero_reachable_reference=${moduleUnused.length}`);
 console.log(`website43_responsive_style_owners=${styleOwnerFiles.length}`);
+console.log(`public_binary_assets=${publicAssets.length}`);
+console.log(`public_dynamic_asset_prefixes=${dynamicAssetPrefixes.size}`);
+console.log(`public_zero_code_reference_assets=${zeroReferenceAssets.length}`);
+console.log(`public_zero_code_reference_bytes=${zeroReferenceAssetBytes}`);
 console.log('WEBSITE43_ZERO_REFERENCE_START');
 for (const className of moduleUnused) console.log(className);
 console.log('WEBSITE43_ZERO_REFERENCE_END');
+console.log('PUBLIC_ZERO_REFERENCE_ASSETS_START');
+for (const file of zeroReferenceAssets) console.log(`${file}\t${publicUrlFor(file)}`);
+console.log('PUBLIC_ZERO_REFERENCE_ASSETS_END');
 
 if (globalUnused.length > 0) {
   throw new Error(`Owned global CSS has ${globalUnused.length} class selector(s) with no reachable runtime reference: ${globalUnused.join(', ')}`);
