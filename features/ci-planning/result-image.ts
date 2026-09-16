@@ -92,7 +92,7 @@ export async function renderCIResultImage(
   const baseNeed = Math.max(summary.mainNeedToday - summary.recoveryReserve, 0);
   const methodDetail = summary.breakdown
     ? `ทุนตามรายจ่ายพื้นฐาน ${baht(baseNeed)} + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`
-    : `ทุนตามรายได้พื้นฐาน ${baht(baseNeed)} + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`;
+    : `รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก = ${baht(baseNeed)}; + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`;
 
   return renderResultShareImage({
     toolName: summary.toolName,
