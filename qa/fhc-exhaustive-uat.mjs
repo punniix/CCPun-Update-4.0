@@ -179,9 +179,10 @@ function seededFormulaCases(section) {
 
 async function staticChecks(section) {
   const life = await readFile('features/financial-health-check/components/LifeCoverageWizard.tsx', 'utf8');
+  const lifeModel = await readFile('features/financial-health-check/components/lifeCoverageModel.ts', 'utf8');
   const currency = await readFile('components/ui/CurrencyInput.tsx', 'utf8');
   const analytics = await readFile('lib/analytics.ts', 'utf8');
-  assertion(section, 'active two-step wizard formula source present', life.includes('values.householdMonthly * 12 * values.supportYears') && life.includes('Math.max(need - resources, 0)'));
+  assertion(section, 'active two-step wizard formula source present', lifeModel.includes('values.householdMonthly * 12 * values.supportYears') && lifeModel.includes('Math.max(need - resources, 0)') && life.includes('calculateLifeCoverage(values)'));
   assertion(section, 'legacy wizard not imported by active client', !(await readFile('features/financial-health-check/components/ClientFHC.tsx', 'utf8')).includes('FHCWizard'));
   assertion(section, 'currency input requests numeric keyboard', currency.includes('inputMode="numeric"'));
   assertion(section, 'analytics allowlist omits calculator money fields', !analytics.includes("'householdMonthly'") && !analytics.includes("'existingLifeCoverage'"));
