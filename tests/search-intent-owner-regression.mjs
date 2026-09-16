@@ -59,11 +59,12 @@ for (const owner of registry.owners) {
   }
 
   if (owner.ownershipBasis === "approved-url-migration") {
-    assert.equal(owner.ownerState, "planned", `${owner.intentId}: migration owner stays planned until content cutover`);
     assert.equal(mapping.plannedDestination, owner.ownerUrl, `${owner.intentId}: planned destination must equal the final owner`);
     assert.ok(["live", "planned"].includes(mapping.state), `${owner.intentId}: migration mapping must be live-current or planned-final`);
-    if (mapping.state === "live") {
-      assert.notEqual(mapping.destination, owner.ownerUrl, `${owner.intentId}: staged live mapping must still point to the current owner`);
+    if (owner.ownerState === "published") {
+      assert.notEqual(mapping.destination, owner.ownerUrl, `${owner.intentId}: app owner is live while external legacy may still point to the former owner`);
+    } else {
+      assert.equal(owner.ownerState, "planned", `${owner.intentId}: pre-cutover migration owner must be planned`);
     }
   }
 
@@ -85,8 +86,8 @@ assert.match(healthCiHero.protectedRule ?? "", /not critical-illness lump-sum/i)
 const criticalIllness = registry.owners.find((owner) => owner.intentId === "critical-illness-insurance-definition");
 assert.ok(criticalIllness, "Critical Illness definition owner contract is required");
 assert.equal(criticalIllness.semanticTopic, "critical-illness-insurance");
-assert.equal(criticalIllness.ownerUrl, "https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/");
-assert.equal(criticalIllness.ownerState, "planned");
+assert.equal(criticalIllness.ownerUrl, "https://ccpun.com/blog/critical-illness-insurance/critical-illness-insurance/");
+assert.equal(criticalIllness.ownerState, "published");
 assert.equal(criticalIllness.ownershipBasis, "approved-url-migration");
 
 console.log(`PASS: Search Intent Owner Registry (${registry.owners.length} owners, ${queryOwners.size} protected query forms)`);
