@@ -1,0 +1,23 @@
+/* Financial Health Check print contract. Keep print-only rules owned by the feature. */
+@media print {
+  footer, [data-fhc-no-print],
+  .gold-button, .glass-button { display: none !important; }
+
+  body, main { background: white !important; color: black !important; }
+
+  .glass-card {
+    background: white !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .text-gold-gradient {
+    color: #b8963e !important;
+    background: none !important;
+  }
+
+  [data-fhc-result] { break-inside: avoid; }
+  [data-fhc-print-header] { display: block !important; }
+}

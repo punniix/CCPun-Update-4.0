@@ -14,7 +14,7 @@ const googleTagManager = read('features/analytics/components/GoogleTagManager.ts
 const website43Shared = read('components/layout/website-43/Website43Shared.tsx');
 const website43Navbar = read('components/layout/website-43/Website43Navbar.tsx');
 const website43NavbarStyles = read('components/layout/website-43/Website43Navbar.module.css');
-const website43FinalPolish = read('components/layout/website-43/Website43FinalPolishStyles.tsx');
+const website43ResponsiveStyles = read('components/layout/website-43/Website43ResponsiveStyles.tsx');
 const website43Blog = read('features/blog/website-43/Website43Blog.tsx');
 const website43BlogInteractive = read('features/blog/website-43/Website43BlogInteractive.tsx');
 const blogCategoryPage = read('features/blog/pages/BlogCategoryPage.tsx');
@@ -143,13 +143,18 @@ assert.match(
 );
 assert.match(
   layout,
-  /<Website43TransitionStyles \/>[\s\S]*<Website43FinalPolishStyles \/>/,
-  'Website 4.3 responsive style bridges must render on the server shell',
+  /<Website43ResponsiveStyles \/>/,
+  'Website 4.3 responsive interpolation must have one server-rendered root owner',
+);
+assert.doesNotMatch(
+  layout,
+  /Website43(?:Transition|FinalPolish)Styles/,
+  'Root shell must not reintroduce layered Website 4.3 transition/final-polish style owners',
 );
 assert.doesNotMatch(
   website43Shared,
-  /Website43(?:Transition|FinalPolish)Styles/,
-  'Large static Website 4.3 style strings must stay out of the hydrated navbar bundle',
+  /Website43ResponsiveStyles/,
+  'Large static Website 4.3 responsive style strings must stay out of the hydrated navbar bundle',
 );
 assert.doesNotMatch(
   website43Shared,
@@ -197,19 +202,24 @@ assert.doesNotMatch(
   'Dedicated navbar CSS must not carry unrelated Home, Article, Tool, or Footer style maps',
 );
 assert.match(
-  website43FinalPolish,
+  website43ResponsiveStyles,
   /\.\$\{styles\.homeHero\}\s*\{[\s\S]*height:\s*clamp\(740px,[\s\S]*760px\)/,
   'Mobile Home hero must interpolate between the 390 canonical and 600 transition reference instead of locking one height',
 );
 assert.match(
-  website43FinalPolish,
+  website43ResponsiveStyles,
   /\.\$\{styles\.homeHeroPicture\}\s*\{[\s\S]*contain:\s*layout paint/,
   'Mobile Home LCP image paint must remain isolated from the rest of the page layout',
 );
 assert.match(
-  website43FinalPolish,
+  website43ResponsiveStyles,
   /\.\$\{styles\.homeHeroBottomGradient\}\s*\{\s*display:\s*none;/,
   'Mobile Home must keep the lower readability fade folded into the primary gradient layer',
+);
+assert.match(
+  website43ResponsiveStyles,
+  /Keep all responsive[\s\S]*here instead of adding another hotfix\/polish style layer/,
+  'Responsive style ownership must document the no-new-patch-layer rule',
 );
 
 assert.doesNotMatch(

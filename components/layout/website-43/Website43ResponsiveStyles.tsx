@@ -1,19 +1,17 @@
 import styles from './Website43.module.css';
 
 /**
- * Visual interpolation bridge for Website 4.3.
+ * Canonical runtime owner for Website 4.3 responsive interpolation.
  *
  * Figma remains canonical at 390 / 820 / 1440. The 600 and 1100 layouts are
- * transition references only; they do not introduce new responsive modes.
- * This stylesheet interpolates inside the existing <=639, 640-1023, and
- * >=1024 mode boundaries. There are deliberately no 600px / 1100px media
- * queries.
+ * transition references only; they do not add breakpoints. Keep all responsive
+ * geometry refinements here instead of adding another hotfix/polish style layer.
  */
-export function Website43TransitionStyles() {
-  const css = String.raw`
+export function Website43ResponsiveStyles() {
+  // Fluid interpolation shared across the existing desktop/tablet/mobile modes.
+  const interpolationCss = String.raw`
 .${styles.root} {
   --w43-nav-gutter: clamp(56px, calc(7.05882vw - 21.6471px), 80px);
-  --w43-content-gutter: 80px;
   --w43-hero-gutter: clamp(61.111px, 5.55556vw, 80px);
   --w43-shell-width: min(calc(100vw - 112px), clamp(988px, calc(85.8824vw + 43.0588px), 1280px));
   --w43-shell-left: max(var(--w43-nav-gutter), calc((100vw - 1280px) / 2));
@@ -72,9 +70,7 @@ export function Website43TransitionStyles() {
 }
 
 .${styles.blogHeroImage} {
-  inset: 18px 0 auto auto;
   width: clamp(710px, calc(61.7647vw + 30.5882px), 920px);
-  height: calc(100% - 18px);
   object-fit: cover;
   object-position: center center;
 }
@@ -89,9 +85,7 @@ export function Website43TransitionStyles() {
 }
 
 .${styles.toolHeroImage} {
-  inset: 0 0 0 auto;
   width: clamp(630px, calc(55.8824vw + 15.2941px), 820px);
-  height: 620px;
   object-fit: cover;
   object-position: center center;
 }
@@ -167,13 +161,6 @@ export function Website43TransitionStyles() {
   .${styles.blogHero} {
     height: 360px;
   }
-  .${styles.blogHeroImage} {
-    top: 14px;
-    right: 0;
-    left: auto;
-    width: 508px;
-    height: 346px;
-  }
   .${styles.blogHeroGradient} {
     inset: 0 auto 0 0;
     width: 690px;
@@ -186,12 +173,6 @@ export function Website43TransitionStyles() {
 
   .${styles.toolHero} {
     height: 600px;
-  }
-  .${styles.toolHeroImage} {
-    inset: 0;
-    width: 100%;
-    height: 600px;
-    object-fit: cover;
   }
   .${styles.toolHeroGradient} {
     inset: 0;
@@ -228,7 +209,6 @@ export function Website43TransitionStyles() {
 @media (max-width: 639px) {
   .${styles.root} {
     --w43-nav-gutter: clamp(24px, calc(3.80952vw + 9.14286px), 32px);
-    --w43-content-gutter: 24px;
     --w43-hero-gutter: clamp(24px, calc(11.4286vw - 20.5714px), 48px);
     --w43-mobile-reading-width: min(calc(100vw - 48px), clamp(342px, calc(77.1429vw + 41.1429px), 504px));
     --w43-shell-width: var(--w43-mobile-reading-width);
@@ -290,16 +270,10 @@ export function Website43TransitionStyles() {
     max-width: 100%;
     justify-items: start;
   }
-  .${styles.threeCols} > * {
-    width: min(342px, 100%);
-  }
   .${styles.stats} {
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
     justify-items: start;
-  }
-  .${styles.stats} > * {
-    width: min(342px, 100%);
   }
 
   .${styles.blogHero} {
@@ -353,75 +327,263 @@ export function Website43TransitionStyles() {
     margin-right: auto;
   }
 
-  .${styles.toolHero} {
-    height: clamp(680px, calc(-9.52381vw + 737.143px), 700px);
+  .${styles.toolHeroCopy} {
+    z-index: 4;
+  }
+  .${styles.toolHero} .${styles.primaryButton} {
+    width: clamp(140px, calc(31.579vw + 16.8421px), 206.316px);
+  }
+}
+`;
+
+  // Canonical refinements from the completed five-viewport UAT pass. These
+  // intentionally override interpolation values above, so future changes belong
+  // here rather than in another FinalPolish/Hotfix component.
+  const refinementCss = String.raw`
+@media (min-width: 1024px) {
+  .${styles.root} {
+    --w43-content-gutter: var(--w43-nav-gutter);
+  }
+
+  .${styles.homeHeroGradient} {
+    width: clamp(840px, calc(82.35294vw - 65.88235px), 1120px);
+  }
+  .${styles.homeHeroCopy} {
+    width: min(640px, calc(50vw - var(--w43-hero-gutter) - 8px));
+  }
+  .${styles.homeHeroTitle},
+  .${styles.homeHeroBody} {
+    width: 100%;
+  }
+  .${styles.heroActions} {
+    margin-left: calc(var(--w43-nav-gutter) - var(--w43-hero-gutter));
+  }
+
+  .${styles.footerWrap} {
+    padding-left: var(--w43-nav-gutter);
+    padding-right: var(--w43-nav-gutter);
+  }
+
+  .${styles.blogHeroImage} {
+    inset: 80px 0 auto auto;
+    height: calc(100% - 18px);
   }
   .${styles.toolHeroImage} {
-    top: clamp(320px, calc(-33.3333vw + 520px), 390px);
+    inset: 96px 0 auto auto;
+    height: 620px;
+  }
+
+  .${styles.toolStorySection} {
+    padding-left: var(--w43-nav-gutter);
+    padding-right: var(--w43-nav-gutter);
+  }
+
+  .${styles.notFound} {
+    height: clamp(390px, calc(16.4706vw + 208.8235px), 446px);
+    padding-top: clamp(72px, calc(4.70588vw + 20.2353px), 88px);
+    padding-bottom: clamp(30px, calc(2.94118vw - 2.35294px), 40px);
+  }
+  .${styles.notFoundCode} {
+    font-size: clamp(96px, calc(7.05882vw + 18.3529px), 120px);
+  }
+  .${styles.notFoundFooterWrap} {
+    padding-top: clamp(16px, calc(7.05882vw - 61.6471px), 40px);
+    padding-right: var(--w43-nav-gutter);
+    padding-bottom: clamp(0px, calc(11.7647vw - 129.4118px), 40px);
+    padding-left: var(--w43-nav-gutter);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .${styles.blogHeroImage} {
+    top: 76px;
+    right: 0;
+    bottom: auto;
+    left: auto;
+    width: 508px;
+    height: 346px;
+  }
+
+  .${styles.featuredCard} {
+    width: calc((100vw - 98px) / 2);
+    flex-basis: calc((100vw - 98px) / 2);
+  }
+  .${styles.featuredScroller} {
+    padding-inline: calc(25vw + 24.5px);
+  }
+
+  .${styles.toolHeroImage} {
+    inset: 80px 0 auto 0;
+    width: 100%;
+    height: 600px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .${styles.notFound} {
+    height: auto;
+    padding-top: 72px;
+  }
+  .${styles.notFoundCode} {
+    font-size: 96px;
+  }
+  .${styles.notFoundFooterWrap} {
+    padding: 40px;
+  }
+}
+
+@media (max-width: 639px) {
+  .${styles.root} {
+    --w43-content-gutter: var(--w43-hero-gutter);
+  }
+
+  .${styles.homeHero} {
+    height: clamp(740px, calc(9.52381vw + 702.857px), 760px);
+    isolation: isolate;
+  }
+  .${styles.homeHeroPicture} {
+    top: clamp(244px, calc(5.71429vw + 221.714px), 256px);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: auto;
+    contain: layout paint;
+  }
+  .${styles.homeHeroGradient} {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg,rgba(4,5,4,.10) 0%,rgba(4,5,4,.34) 22%,rgba(4,5,4,.58) 52%,rgba(4,5,4,.70) 78%,rgba(4,5,4,.74) 100%) bottom / 100% clamp(235px, calc(7.14286vw + 207.143px), 250px) no-repeat,
+      linear-gradient(180deg,rgb(4,6,5) 0%,rgb(4,6,5) 34%,rgba(4,6,5,.88) 37%,rgba(4,6,5,.55) 40%,rgba(4,6,5,.25) 42%,rgba(4,6,5,0) 44%,rgba(4,6,5,0) 100%);
+  }
+  .${styles.homeHeroBottomGradient} {
+    display: none;
+  }
+  .${styles.homeHeroCopy} {
+    top: clamp(104px, calc(3.80952vw + 89.1429px), 112px);
+  }
+  .${styles.homeHeroBody} {
+    margin-top: clamp(326px, calc(1.90476vw + 318.571px), 330px);
+  }
+
+  .${styles.searchFilters},
+  .${styles.searchField} {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .${styles.featuredCard} {
+    width: var(--w43-mobile-reading-width);
+    flex-basis: var(--w43-mobile-reading-width);
+  }
+  .${styles.featuredScroller} {
+    padding-inline: var(--w43-hero-gutter);
+  }
+
+  .${styles.threeCols} > *,
+  .${styles.stats} > * {
+    width: 100%;
+  }
+
+  .${styles.toolHero} {
+    height: 740px;
+  }
+  .${styles.toolHeroImage} {
+    top: 300px;
     right: auto;
     bottom: auto;
     left: 0;
     width: 100%;
-    height: clamp(293px, calc(31.9048vw + 168.571px), 360px);
+    height: 440px;
     object-fit: cover;
     object-position: center center;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
   }
   .${styles.toolHeroGradient} {
-    inset: 0 auto auto 0;
+    inset: 0;
     width: 100%;
-    height: clamp(520px, calc(9.52381vw + 482.857px), 540px);
-    background: linear-gradient(
-      180deg,
-      rgba(4,6,5,.99) 0%,
-      rgba(4,6,5,.98) 45%,
-      rgba(4,6,5,.86) 56%,
-      rgba(4,6,5,.55) 68%,
-      rgba(4,6,5,.24) 82%,
-      rgba(4,6,5,0) 100%
-    );
+    height: 740px;
+    background: linear-gradient(180deg,rgb(4,6,5) 0%,rgb(4,6,5) 34%,rgba(4,6,5,.88) 37%,rgba(4,6,5,.55) 40%,rgba(4,6,5,.25) 42%,rgba(4,6,5,0) 44%,rgba(4,6,5,0) 100%);
   }
   .${styles.toolHero}::after {
     content: '';
     position: absolute;
     z-index: 2;
-    top: clamp(310px, calc(-23.8095vw + 452.857px), 360px);
+    top: 505px;
     right: 0;
     left: 0;
-    height: clamp(340px, calc(14.2857vw + 284.286px), 370px);
+    height: 235px;
     pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      rgba(4,5,4,.10) 0%,
-      rgba(4,5,4,.34) 22%,
-      rgba(4,5,4,.58) 52%,
-      rgba(4,5,4,.70) 78%,
-      rgba(4,5,4,.74) 100%
-    );
+    background: linear-gradient(180deg,rgba(4,5,4,.1) 0%,rgba(4,5,4,.34) 22%,rgba(4,5,4,.58) 52%,rgba(4,5,4,.7) 78%,rgba(4,5,4,.74) 100%);
   }
   .${styles.toolHeroCopy} {
-    z-index: 4;
-    top: 96px;
+    top: 0;
     left: var(--w43-hero-gutter);
     width: calc(100% - var(--w43-hero-gutter) - var(--w43-hero-gutter));
+    height: 740px;
+  }
+  .${styles.toolBadge} {
+    position: absolute;
+    top: 104px;
+    left: 0;
   }
   .${styles.toolTitle} {
-    margin-top: 10px;
+    position: absolute;
+    top: 164px;
+    left: 0;
+    width: 100%;
+    margin: 0;
     font-size: 30px;
     line-height: 39px;
   }
   .${styles.toolDescription} {
+    position: absolute;
+    top: 548px;
+    left: 0;
     width: 100%;
-    margin-top: 10px;
+    margin: 0;
     font-size: 15px;
     line-height: 1.6;
   }
   .${styles.toolHero} .${styles.primaryButton} {
-    width: clamp(140px, calc(31.579vw + 16.8421px), 206.316px);
+    position: absolute;
+    top: 635px;
+    left: 0;
     min-width: 140px;
-    margin-top: 10px;
+    margin: 0;
+  }
+
+  .${styles.notFound} {
+    padding-top: clamp(48px, calc(3.80952vw + 33.1429px), 56px);
+    padding-right: var(--w43-hero-gutter);
+    padding-bottom: 40px;
+    padding-left: var(--w43-hero-gutter);
+  }
+  .${styles.notFound} > .${styles.inner} {
+    width: var(--w43-mobile-reading-width);
+    max-width: 100%;
+    margin-right: auto;
+    margin-left: 0;
+  }
+  .${styles.notFoundCode} {
+    font-size: 72px;
+  }
+  .${styles.notFoundActions},
+  .${styles.blogRecovery} {
+    width: 100%;
+  }
+  .${styles.notFoundFooterWrap} {
+    height: clamp(137px, calc(11.9048vw + 90.5714px), 162px);
+    padding-top: 24px;
+    padding-right: var(--w43-hero-gutter);
+    padding-bottom: 24px;
+    padding-left: var(--w43-hero-gutter);
   }
 }
 `;
 
-  return <style data-w43-transition-reference="600-1100">{css}</style>;
+  return <style data-w43-responsive="canonical">{`${interpolationCss}\n${refinementCss}`}</style>;
 }

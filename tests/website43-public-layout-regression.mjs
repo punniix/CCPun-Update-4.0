@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(path, 'utf8');
 
-const transition = read('components/layout/website-43/Website43TransitionStyles.tsx');
+const responsive = read('components/layout/website-43/Website43ResponsiveStyles.tsx');
 const navbar = read('components/layout/website-43/Website43Navbar.module.css');
 const css = read('components/layout/website-43/Website43.module.css');
 const article = read('features/blog/website-43/Website43Article.tsx');
@@ -14,10 +14,10 @@ const home = read('features/home/website-43/Website43Home.tsx');
 const blog = read('features/blog/website-43/Website43Blog.tsx');
 
 test('wide desktop Website 4.3 shells stay centered instead of pinning to the left', () => {
-  assert.match(transition, /--w43-shell-left: max\(var\(--w43-nav-gutter\), calc\(\(100vw - 1280px\) \/ 2\)\)/);
-  assert.match(transition, /margin-left: auto;\s*margin-right: auto;/);
-  assert.match(transition, /\.\$\{styles\.homeHeroCopy\} \{\s*left: var\(--w43-shell-left\)/);
-  assert.match(transition, /\.\$\{styles\.blogHeroCopy\} \{[\s\S]*?left: var\(--w43-shell-left\)/);
+  assert.match(responsive, /--w43-shell-left: max\(var\(--w43-nav-gutter\), calc\(\(100vw - 1280px\) \/ 2\)\)/);
+  assert.match(responsive, /margin-left: auto;\s*margin-right: auto;/);
+  assert.match(responsive, /\.\$\{styles\.homeHeroCopy\} \{\s*left: var\(--w43-shell-left\)/);
+  assert.match(responsive, /\.\$\{styles\.blogHeroCopy\} \{[\s\S]*?left: var\(--w43-shell-left\)/);
   assert.match(navbar, /width: min\(1280px, calc\(100% - var\(--w43-nav-gutter, 80px\) - var\(--w43-nav-gutter, 80px\)\)\)/);
 });
 
@@ -28,7 +28,7 @@ test('article uses one editorial spread: TOC sidebar + 720px main column + align
   assert.match(css, /\.articleReadingGrid \{[\s\S]*?grid-template-columns: 260px 720px;[\s\S]*?gap: 48px;[\s\S]*?width: min\(1028px,100%\); margin: 0 auto;/);
   assert.match(css, /\.articleFeature \{ display: block; width: 100%;[\s\S]*?border-radius: 8px;/);
   assert.match(css, /\.articleSupportInner \{ width: min\(1028px,100%\); margin-inline: auto; \}/);
-  assert.match(transition, /\.\$\{styles\.section\} > \.\$\{styles\.articleSupportInner\},\s*\.\$\{styles\.sectionDeep\} > \.\$\{styles\.articleSupportInner\} \{[\s\S]*?width: min\(1028px, 100%\);/);
+  assert.match(responsive, /\.\$\{styles\.section\} > \.\$\{styles\.articleSupportInner\},\s*\.\$\{styles\.sectionDeep\} > \.\$\{styles\.articleSupportInner\} \{[\s\S]*?width: min\(1028px, 100%\);/);
   assert.match(article, /article\.sources && article\.sources\.length > 0[\s\S]*?data-uat-section="article-sources"[\s\S]*?styles\.articleSupportInner[\s\S]*?>แหล่งอ้างอิง</);
 });
 
@@ -107,7 +107,7 @@ test('Home learning cards share one visual composition including the READ card',
 
 
 test('FAQ expanded answer has editorial breathing room below its divider', () => {
-  assert.match(css, /\.faqAnswer \{ margin: 0; padding: 16px 20px 22px; border-top: 1px solid rgba\(224,201,133,\.10\);/);
+  assert.match(css, /\.faqAnswer \{ margin: 0; padding: 16px 20px 22px; border-top: 1px solid rgba\(224,201,133,.10\);/);
 });
 
 test('Blog category filter is a compact publication-style dropdown with stable layering', () => {

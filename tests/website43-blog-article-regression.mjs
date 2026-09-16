@@ -113,8 +113,9 @@ assert.ok(calls.length > 0 && calls.every((call) => call.includeDrafts === false
 const shared = readFileSync(new URL('../components/layout/website-43/Website43Shared.tsx', import.meta.url), 'utf8');
 const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8');
 const articleStyles = readFileSync(new URL('../components/layout/website-43/Website43.module.css', import.meta.url), 'utf8');
-assert.ok(!shared.includes('Website43TransitionStyles') && !shared.includes('Website43FinalPolishStyles'), 'static responsive CSS must not hydrate with the shared navbar');
-assert.ok(layout.includes('<Website43TransitionStyles />') && layout.includes('<Website43FinalPolishStyles />'), 'static responsive CSS must remain server-rendered in the public shell');
+assert.ok(!shared.includes('Website43ResponsiveStyles'), 'static responsive CSS must not hydrate with the shared navbar');
+assert.ok(layout.includes('<Website43ResponsiveStyles />'), 'canonical responsive CSS must remain server-rendered in the public shell');
+assert.ok(!layout.includes('Website43TransitionStyles') && !layout.includes('Website43FinalPolishStyles'), 'retired responsive patch owners must stay out of the public shell');
 assert.match(articleStyles, /\.prose ol\s*\{[^}]*list-style-type:\s*decimal;/s, 'ordered article lists must restore decimal markers after Tailwind Preflight');
 assert.match(articleStyles, /\.prose ul\s*\{[^}]*list-style-type:\s*disc;/s, 'unordered article lists must restore bullet markers after Tailwind Preflight');
 assert.match(articleStyles, /\.articleSources\s*\{[^}]*list-style:\s*disc outside;/s, 'article source lists must keep visible markers');
