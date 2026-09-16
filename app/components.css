@@ -215,12 +215,12 @@
 ::-webkit-scrollbar-thumb:hover { background: hsl(42,50%,55%); }
 
 @media print {
-  .glass-nav, footer, [data-fhc-no-print],
+  footer, [data-fhc-no-print],
   .gold-button, .glass-button { display: none !important; }
 
   body, main { background: white !important; color: black !important; }
 
-  .glass-card, .form-glass {
+  .glass-card {
     background: white !important;
     border: 1px solid #ccc !important;
     box-shadow: none !important;
