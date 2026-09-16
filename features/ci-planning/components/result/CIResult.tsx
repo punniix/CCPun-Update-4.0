@@ -35,8 +35,13 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
   const hasTrackedResultViewRef = useRef(false);
   const expenseBaseNeed = result.expenseBaseNeed ?? Math.max(result.calculatedNeed - result.recoveryReserveNeed, 0);
   const incomeBaseNeed = result.incomeBaseNeed ?? Math.max(result.incomeBasedNeed - result.recoveryReserveNeed, 0);
-  const hasIncomeMethod = incomeBaseNeed > 0;
-  const activeMethod = selectedMethod === 'income' && hasIncomeMethod ? 'income' : 'expense';
+  const availableMethods: CIEstimationMethod[] = [
+    ...(expenseBaseNeed > 0 ? ['expense' as const] : []),
+    ...(incomeBaseNeed > 0 ? ['income' as const] : []),
+  ];
+  const activeMethod = availableMethods.includes(selectedMethod)
+    ? selectedMethod
+    : (availableMethods[0] ?? 'expense');
   const methodLabel = CI_ESTIMATION_METHOD_LABELS[activeMethod];
   const selectedBaseNeed = activeMethod === 'income' ? incomeBaseNeed : expenseBaseNeed;
   const selectedNeed = activeMethod === 'income' ? result.incomeBasedNeed : result.calculatedNeed;
@@ -70,10 +75,10 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       <p className="ccpun-calculator-result-body">ยอดรวมนี้ = {baht(selectedBaseNeed)} จาก{activeMethod === 'expense' ? 'รายจ่ายและภาระที่กรอก' : 'รายได้ตามช่วงเวลาที่เลือก'} + Recovery Reserve {baht(result.recoveryReserveNeed)} โดยบวก Recovery Reserve เพียง 1 ครั้ง</p>
     </section>
 
-    {hasIncomeMethod ? <fieldset className="space-y-3" aria-describedby="ci-estimation-method-help">
+    {availableMethods.length > 1 ? <fieldset className="space-y-3" aria-describedby="ci-estimation-method-help">
       <legend className="ccpun-calculator-result-panel-title">เลือกวิธีดูประมาณการ</legend>
       <div className="ccpun-calculator-result-method-grid">
-        {(['expense', 'income'] as const).map((method) => {
+        {availableMethods.map((method) => {
           const value = method === 'expense' ? result.calculatedNeed : result.incomeBasedNeed;
           const inputId = `ci-estimation-method-${method}`;
           const selected = activeMethod === method;
@@ -114,7 +119,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
       <p className="ccpun-calculator-result-eyebrow">ส่วนเพิ่มจากข้อมูล research · ค่าใช้จ่ายนอกโรงพยาบาล</p>
       <h3 id="ci-recovery-result-title" className="ccpun-calculator-result-panel-title mt-1">Recovery Reserve · {baht(result.recoveryReserveNeed)}</h3>
-      <p className="ccpun-calculator-result-body">Recovery Reserve คำนวณแยกเพื่อให้เห็นที่มาชัดเจน แล้วบวกเพิ่ม 1 ครั้งในยอดรวมของทั้งทุนตามรายจ่ายและทุนตามรายได้ โดยไม่ได้นำสองวิธีมาบวกเข้าหากัน</p>
+      <p className="ccpun-calculator-result-body">Recovery Reserve คำนวณแยกเพื่อให้เห็นที่มาชัดเจน แล้วบวกเพิ่ม 1 ครั้งในยอดรวมของแต่ละวิธีที่มีฐานข้อมูล โดยไม่ได้นำทุนตามรายจ่ายกับทุนตามรายได้มาบวกเข้าหากัน</p>
       {result.recoveryReserveNeed > 0 ? <>
         <dl className="ccpun-calculator-result-rows mt-4">
           <div className="ccpun-calculator-result-row"><dt>ไปรักษา/ติดตาม {result.recoveryTreatmentVisits} ครั้ง × {baht(CI_RECOVERY_REFERENCE.treatmentVisit.total)}</dt><dd>{baht(result.recoveryVisitNeed)}</dd></div>
