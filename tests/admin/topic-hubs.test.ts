@@ -147,8 +147,8 @@ test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO
 test("Blog sitemap exposes useful indexable hub nodes while archive omits topic navigation", () => {
   const sitemap = source("app/sitemaps/blog.xml/route.ts");
   const blogPage = source("features/blog/pages/BlogArchivePage.tsx");
-  const blogArchive = source("features/blog/components/BlogArchive.tsx");
-  const articleCard = source("features/blog/components/ArticleCard.tsx");
+  const blogPresentation = source("features/blog/website-43/Website43Blog.tsx");
+  const blogData = source("features/blog/website-43/blogData.ts");
 
   assert.match(sitemap, /articles\.filter\(isArticleCanonicalAligned\)/);
   assert.match(sitemap, /canonicalArticles\.filter/);
@@ -160,8 +160,8 @@ test("Blog sitemap exposes useful indexable hub nodes while archive omits topic 
   assert.doesNotMatch(blogPage, /BLOG_TOPIC_HUBS/);
   assert.doesNotMatch(blogPage, /aria-label="หัวข้อบทความหลัก"/);
   assert.doesNotMatch(blogPage, /เลือกหัวข้อที่ต้องการอ่าน/);
-  assert.doesNotMatch(blogArchive, /BLOG_TOPIC_HUBS/);
+  assert.doesNotMatch(blogPresentation, /BLOG_TOPIC_HUBS/);
 
-  assert.match(articleCard, /const href = getArticlePath\(article\)/);
-  assert.match(articleCard, /getArticleSemanticTopic/);
+  assert.match(blogData, /const articlePath = getArticlePath\(article\)/);
+  assert.match(blogData, /getArticleSemanticTopic/);
 });
