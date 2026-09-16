@@ -2,14 +2,14 @@ import type { Article } from "./types";
 import { CATEGORY_SLUG_PATTERN } from "./category-registry";
 import { LEGACY_CATEGORY_TOPICS, normalizeArticleTaxonomy } from "./taxonomy";
 
-// Foundation cutover before UX/UI 4.2. These two winner pages now have one
-// approved physical/canonical owner under /health-insurance/. Keep this override
-// until every published Sanity article reference has naturally converged on the
-// Health Insurance category; leaving it in place afterwards is harmless and
-// protects against an accidental category regression.
+// Protected physical/canonical owners. Health Happy + Health CI Hero established
+// the migration pattern: keep the leaf article slug stable and move only the
+// category segment. Critical Illness now follows the same contract so the public
+// owner can move before the published Sanity category reference naturally converges.
 const ARTICLE_CANONICAL_CATEGORY_OVERRIDES: Record<string, string> = {
   "aia-health-happy-describe": "health-insurance",
   "aia-health-ci-hero-guide": "health-insurance",
+  "critical-illness-insurance": "critical-illness-insurance",
 };
 
 const MOVED_CATEGORY_PATHS: Record<string, string> = {
@@ -17,13 +17,13 @@ const MOVED_CATEGORY_PATHS: Record<string, string> = {
 };
 
 // Historical/interim CCPun article paths redirect directly to the final owner.
-// Do not add an intermediate hop.
+// Preserve the existing leaf slug during category migration, matching the Health
+// winner-page cutover and avoiding an unnecessary second slug migration.
 const MOVED_ARTICLE_PATHS: Record<string, string> = {
   "life-insurance/aia-health-happy-describe": "/blog/health-insurance/aia-health-happy-describe/",
   "life-insurance/aia-health-ci-hero-guide": "/blog/health-insurance/aia-health-ci-hero-guide/",
-  "life-insurance/critical-illness-insurance": "/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
-  "critical-illness/critical-illness-insurance": "/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
-  "critical-illness-insurance/critical-illness-insurance": "/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
+  "life-insurance/critical-illness-insurance": "/blog/critical-illness-insurance/critical-illness-insurance/",
+  "critical-illness/critical-illness-insurance": "/blog/critical-illness-insurance/critical-illness-insurance/",
 };
 
 type ArticleCategoryInput = Pick<Article, "category" | "categorySlug"> & Partial<Pick<Article, "slug">>;
