@@ -98,16 +98,10 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:3005/tools/financial-health-check/ > /tmp/fhc-cloud.html
           curl --fail --silent --show-error -D /tmp/fhc-cloud.headers -o /dev/null http://127.0.0.1:3005/tools/financial-health-check/
           curl --fail --silent --show-error http://127.0.0.1:3005/robots.txt > /tmp/fhc-cloud.robots
-          CLOUD_HTML_PATH=/tmp/fhc-cloud.html \
-          CLOUD_HEADERS_PATH=/tmp/fhc-cloud.headers \
-          CLOUD_ROBOTS_PATH=/tmp/fhc-cloud.robots \
-          UAT_BASE_URL=http://127.0.0.1:3005 \
-          CDP_HTTP=http://127.0.0.1:9342 \
-          node qa/fhc-exhaustive-uat.mjs
 
           UAT_BASE_URL=http://127.0.0.1:3005 \
           CDP_HTTP=http://127.0.0.1:9342 \
-          node qa/ci-recovery-additive-uat.mjs
+          bash qa/run-calculator-browser-gate.sh
 
       - name: Google sitemap deterministic contract
         run: node --import tsx --test tests/sitemap-google-regression.test.ts
