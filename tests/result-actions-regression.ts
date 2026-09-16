@@ -161,14 +161,11 @@ const ciLandingSource = readFileSync(
   new URL('../features/ci-planning/components/CILandingIntro.tsx', import.meta.url),
   'utf8',
 );
-const ciWalkthroughSource = readFileSync(
-  new URL('../features/ci-planning/components/CIPreToolWalkthrough.tsx', import.meta.url),
-  'utf8',
-);
-const ciExpensesSource = readFileSync(
-  new URL('../features/ci-planning/components/steps/StepExpenses.tsx', import.meta.url),
-  'utf8',
-);
+const ciExpensesSurfaceSource = [
+  readFileSync(new URL('../features/ci-planning/components/steps/StepExpenses.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../features/ci-planning/components/steps/ExpenseObligationsSection.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../features/ci-planning/components/steps/RecoveryReserveSection.tsx', import.meta.url), 'utf8'),
+].join('\n');
 const ciExistingSource = readFileSync(
   new URL('../features/ci-planning/components/steps/StepExistingCI.tsx', import.meta.url),
   'utf8',
@@ -259,19 +256,19 @@ assert(!ciLandingSource.includes('คำถามที่ไม่มีคำ�
 assert(ciPageSource.includes('Website43ToolHero') && ciPageSource.includes('line2="เพียงพอรับภาระจริงไหม?"'), 'CI hero must keep the approved Website 4.3 split-title treatment');
 assert(!ciPageSource.includes('· Beta'), 'CI Research Preview must not retain the Beta label');
 assert(!navConfigSource.includes('วางแผนเงินก้อนโรคร้ายแรง (Beta)'), 'CI navigation must not retain the Beta label');
-for (const activeCiSource of [ciPageSource, ciExpensesSource, ciExistingSource, ciResultSource, ciCalculatorSource, ciTypesSource]) {
+for (const activeCiSource of [ciPageSource, ciExpensesSurfaceSource, ciExistingSource, ciResultSource, ciCalculatorSource, ciTypesSource]) {
   assert(!/เงินเฟ้อ|inflation/i.test(activeCiSource), 'active CI scope must not retain inflation code or copy');
   assert(!/multiPay|Multi-pay|ความคุ้มครองโรคร้ายแรงที่อาจจ่ายได้หลายครั้ง/.test(activeCiSource), 'active CI scope must not retain Multi-pay');
 }
 equal(
-  (ciWalkthroughSource.match(/href="#ci-calculator"/g) ?? []).length,
+  (ciPageSource.match(/ctaHref="#ci-calculator"/g) ?? []).length,
   1,
   'lean CI landing must have exactly one pre-calculator anchor',
 );
 equal(
-  (ciWalkthroughSource.match(/gold-button/g) ?? []).length,
+  (ciPageSource.match(/ctaLabel="เริ่มประเมิน"/g) ?? []).length,
   1,
-  'lean CI landing must have exactly one pre-calculator gold CTA',
+  'CI tool hero must have exactly one primary pre-calculator CTA label',
 );
 for (const storyImage of [
   '/assets/ci-story-income-v6.webp',
@@ -305,32 +302,32 @@ equal(
 assert(!ciLandingSource.includes('<figure'), 'lean CI landing must not contain a standalone image figure');
 assert(!ciLandingSource.includes('rounded-full'), 'lean CI landing must not restore image chips');
 assert(
-  ciExpensesSource.includes('หนี้อื่นๆ คงเหลือทั้งหมด'),
+  ciExpensesSurfaceSource.includes('หนี้อื่นๆ คงเหลือทั้งหมด'),
   'Step 1 must use the exact other-debt field label',
 );
-assert(ciExpensesSource.includes('id="ci-other-debt-balance"'), 'Step 1 must expose a stable other-debt field id');
+assert(ciExpensesSurfaceSource.includes('id="ci-other-debt-balance"'), 'Step 1 must expose a stable other-debt field id');
 assert(
-  ciExpensesSource.includes('ค่างวดบ้านและรถนับตามงวดที่เหลือภายในช่วงที่เลือก ส่วนหนี้อื่นนับจากยอดคงเหลือครั้งเดียว'),
+  ciExpensesSurfaceSource.includes('ค่างวดบ้านและรถนับตามงวดที่เหลือภายในช่วงที่เลือก ส่วนหนี้อื่นนับจากยอดคงเหลือครั้งเดียว'),
   'Step 1 must explain debt treatment concisely',
 );
-assert(ciExpensesSource.includes('id="ci-monthly-income"'), 'Step 1 must expose an accessible monthly-income field');
+assert(ciExpensesSurfaceSource.includes('id="ci-monthly-income"'), 'Step 1 must expose an accessible monthly-income field');
 assert(ciExistingSource.includes('id="ci-liquid-assets"'), 'Step 2 must expose a stable liquid-assets field');
 assert(ciExistingSource.includes('placeholder="เช่น 500,000"'), 'liquid-assets currency field must use a short numeric example');
 assert(ciExistingSource.includes('บ้าน รถ หรือทรัพย์สินจำเป็นที่ไม่ตั้งใจขายไม่ต้องกรอก'), 'short numeric examples must retain the asset inclusion guidance');
-assert(ciExpensesSource.includes('placeholder="เช่น 100,000"'), 'other-debt currency field must use a short numeric example');
+assert(ciExpensesSurfaceSource.includes('placeholder="เช่น 100,000"'), 'other-debt currency field must use a short numeric example');
 assert(ciExistingSource.includes('เงินก้อนจากประกันโรคร้ายแรงที่มี'), 'Step 2 must retain the existing CI lump-sum field');
 assert(
-  ciExpensesSource.includes('รายได้ ภาระ และระยะที่ต้องการวางแผน')
-    && ciExpensesSource.includes('อย่างน้อยกรอกรายได้ หรือค่าใช้จ่ายและภาระ 1 รายการ ช่องอื่นเว้นได้'),
+  ciExpensesSurfaceSource.includes('รายได้ ภาระ และระยะที่ต้องการวางแผน')
+    && ciExpensesSurfaceSource.includes('อย่างน้อยกรอกรายได้ หรือค่าใช้จ่ายและภาระ 1 รายการ ช่องอื่นเว้นได้'),
   'Step 1 must use the approved heading and subtitle',
 );
 assert(
-  ciExpensesSource.includes('กรอกเมื่อต้องการดูทุนตามรายได้ ระบบจะแสดงแยกจากทุนตามรายจ่าย'),
+  ciExpensesSurfaceSource.includes('กรอกเมื่อต้องการดูทุนตามรายได้ ระบบจะแสดงแยกจากทุนตามรายจ่าย'),
   'monthly-income field must explain that methods stay separate',
 );
 assert(!analyticsSource.includes("'monthlyIncome'"), 'raw monthly income must never enter the analytics allowlist');
 assert(!analyticsSource.includes("'otherDebtBalance'"), 'raw other debt must never enter the analytics allowlist');
-for (const source of [ciExpensesSource, ciResultSource]) {
+for (const source of [ciExpensesSurfaceSource, ciResultSource]) {
   assert(source.includes('ภาระหนี้รวม'), 'CI debt surfaces must use the aggregate debt label');
 }
 for (const source of [ciResultSource, imageSource]) {

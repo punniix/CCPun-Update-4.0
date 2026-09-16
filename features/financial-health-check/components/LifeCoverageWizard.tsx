@@ -8,28 +8,10 @@ import HumanCalculatorCard from '@/components/ui/HumanCalculatorCard';
 import MoneyComparison from '@/components/ui/MoneyComparison';
 import { trackEvent } from '@/lib/analytics';
 import { getConsentData } from '@/lib/cookie-consent';
+import { calculateLifeCoverage, formatLifeCoverageMoney, LIFE_COVERAGE_INITIAL_VALUES, type LifeCoverageValues } from './lifeCoverageModel';
 
-type Values = {
-  householdMonthly: number;
-  supportYears: number;
-  debt: number;
-  education: number;
-  existingLifeCoverage: number;
-  liquidAssets: number;
-};
 
-const initialValues: Values = {
-  householdMonthly: 0,
-  supportYears: 10,
-  debt: 0,
-  education: 0,
-  existingLifeCoverage: 0,
-  liquidAssets: 0,
-};
-
-const money = (value: number) => new Intl.NumberFormat('th-TH').format(value);
-
-function MoneyField({ id, label, help, value, onChange, error }: { id: keyof Values; label: string; help?: string; value: number; onChange: (value: number) => void; error?: boolean }) {
+function MoneyField({ id, label, help, value, onChange, error }: { id: keyof LifeCoverageValues; label: string; help?: string; value: number; onChange: (value: number) => void; error?: boolean }) {
   const helpId = help ? `${id}-help` : undefined;
   const describedBy = [helpId, error && 'life-calculator-error'].filter(Boolean).join(' ') || undefined;
   return <div className="space-y-2">
@@ -41,9 +23,9 @@ function MoneyField({ id, label, help, value, onChange, error }: { id: keyof Val
 
 export default function LifeCoverageWizard() {
   const [step, setStep] = useState(1);
-  const [values, setValues] = useState<Values>(initialValues);
+  const [values, setValues] = useState<LifeCoverageValues>(LIFE_COVERAGE_INITIAL_VALUES);
   const [error, setError] = useState('');
-  const [errorField, setErrorField] = useState<keyof Values | ''>('');
+  const [errorField, setErrorField] = useState<keyof LifeCoverageValues | ''>('');
   const [showResult, setShowResult] = useState(false);
   const viewRef = useRef<HTMLElement>(null);
   const previousViewRef = useRef('1:form');
@@ -89,21 +71,16 @@ export default function LifeCoverageWizard() {
     trackEvent('fhc_calculator_start', { tool_name: 'fhc', cta_location: 'fhc_calculator', surface_group: 'fhc' });
     trackStep(1);
   };
-  const updateValue = (key: keyof Values, value: number) => {
+  const updateValue = (key: keyof LifeCoverageValues, value: number) => {
     trackStart();
     setValues((old) => ({ ...old, [key]: value }));
     setError('');
     setErrorField('');
   };
 
-  const result = useMemo(() => {
-    const familySupport = values.householdMonthly * 12 * values.supportYears;
-    const need = familySupport + values.debt + values.education;
-    const resources = values.existingLifeCoverage + values.liquidAssets;
-    return { familySupport, need, resources, gap: Math.max(need - resources, 0) };
-  }, [values]);
+  const result = useMemo(() => calculateLifeCoverage(values), [values]);
 
-  const fail = (field: keyof Values, message: string) => {
+  const fail = (field: keyof LifeCoverageValues, message: string) => {
     setError(message);
     setErrorField(field);
     window.requestAnimationFrame(() => document.getElementById(field)?.focus());
@@ -131,17 +108,17 @@ export default function LifeCoverageWizard() {
   if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result">
     <div className="ccpun-calculator-result-lead">
       <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
-      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ช่องว่างความคุ้มครอง<span className="whitespace-nowrap">เบื้องต้น</span><span className="sr-only"> {money(result.gap)} บาท</span></h2>
-      <p className="ccpun-calculator-result-amount">{money(result.gap)} <small>บาท</small></p>
+      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ช่องว่างความคุ้มครอง<span className="whitespace-nowrap">เบื้องต้น</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} บาท</span></h2>
+      <p className="ccpun-calculator-result-amount">{formatLifeCoverageMoney(result.gap)} <small>บาท</small></p>
       <p className="ccpun-calculator-result-body">ส่วนต่างระหว่างภาระที่คุณกรอก กับทุนประกันชีวิตและสินทรัพย์ที่ตั้งใจใช้ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ</p>
     </div>
 
     <MoneyComparison need={result.need} resources={result.resources} title="ภาระที่ต้องดูแลเทียบกับทรัพยากรที่พร้อมใช้" needLabel="ภาระตามข้อมูลที่กรอก" />
 
     <dl className="ccpun-calculator-result-rows">
-      <div className="ccpun-calculator-result-row"><dt>ค่าใช้จ่ายครอบครัวตามช่วงเวลาที่เลือก</dt><dd>{money(result.familySupport)} บาท</dd></div>
-      <div className="ccpun-calculator-result-row"><dt>หนี้และทุนการศึกษาบุตร</dt><dd>{money(values.debt + values.education)} บาท</dd></div>
-      <div className="ccpun-calculator-result-row"><dt>ทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</dt><dd>{money(result.resources)} บาท</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>ค่าใช้จ่ายครอบครัวตามช่วงเวลาที่เลือก</dt><dd>{formatLifeCoverageMoney(result.familySupport)} บาท</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>หนี้และทุนการศึกษาบุตร</dt><dd>{formatLifeCoverageMoney(values.debt + values.education)} บาท</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>ทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</dt><dd>{formatLifeCoverageMoney(result.resources)} บาท</dd></div>
     </dl>
 
     <div className="ccpun-calculator-result-notice">ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล ไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี และประกันไม่ใช่เงินฝาก</div>
@@ -153,7 +130,7 @@ export default function LifeCoverageWizard() {
       <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)" onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />คุยกับ CCPun ทาง LINE OA</a>
     </div>
 
-    <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" />แก้ไขข้อมูล</button><button type="button" onClick={() => { setValues(initialValues); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" />เริ่มใหม่</button></div>
+    <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" />แก้ไขข้อมูล</button><button type="button" onClick={() => { setValues(LIFE_COVERAGE_INITIAL_VALUES); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" />เริ่มใหม่</button></div>
   </section>;
 
   const educationOpen = values.education > 0 || errorField === 'education';

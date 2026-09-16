@@ -126,7 +126,7 @@ assert.match(sanityStructure, /structureTool/);
 assert.match(sanityStructure, /filterStudioStructureItems/);
 assert.doesNotMatch(sanityConfig, /SANITY_API_(READ|WRITE)_TOKEN/);
 
-const sanityProvider = read('lib/content/sanity.ts');
+const sanityProvider = [read('lib/content/sanity-schema.ts'), read('lib/content/sanity.ts')].join('\n');
 assert.match(sanityProvider, /perspective:\s*includeDrafts \? "drafts" : "published"/);
 assert.match(sanityProvider, /includeDrafts && !IS_DRAFT_PREVIEW_ALLOWED/);
 assert.match(sanityProvider, /import "server-only"/);
@@ -188,7 +188,9 @@ assert.match(articleUrl, /getLegacyCategoryRedirectPath/);
 const articleTaxonomy = read('lib/content/taxonomy.ts');
 const categoryRegistry = read('lib/content/category-registry.ts');
 const categoryRegistrySanity = read('lib/content/category-registry-sanity.ts');
-const blogArchive = read('features/blog/components/BlogArchive.tsx');
+const blogArchivePage = read('features/blog/pages/BlogArchivePage.tsx');
+const blogPresentation = read('features/blog/website-43/Website43Blog.tsx');
+const blogData = read('features/blog/website-43/blogData.ts');
 for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
   assert.match(articleTaxonomy, new RegExp(`slug: ["']${slug}["']`));
 }
@@ -198,8 +200,11 @@ assert.match(articleTaxonomy, /isReservedArticleSlug/);
 assert.match(categoryRegistry, /CATEGORY_STATUS_VALUES = \["draft", "active"\]/);
 assert.match(categoryRegistry, /resolveCategoryRoute/);
 assert.match(categoryRegistrySanity, /_type == "category"/);
-assert.match(blogArchive, /LEGACY_CATEGORY_TOPICS/);
-assert.match(blogArchive, /deriveCategories\(articles/);
+assert.match(blogArchivePage, /listCategoryRegistry/);
+assert.match(blogArchivePage, /listCategoryMenuEntries/);
+assert.match(blogPresentation, /Website43BlogInteractive/);
+assert.match(blogData, /getArticlePath/);
+assert.match(blogData, /getArticleSemanticTopic/);
 const legacyArticles = read('lib/content/legacy.ts');
 assert.doesNotMatch(legacyArticles, /category:\s*["']ประกันสุขภาพและโรคร้ายแรง["']/);
 assert.match(legacyArticles, /tags:\s*\[["']ประกันสุขภาพ["'],\s*["']ประกันโรคร้ายแรง["']\]/);
@@ -222,7 +227,7 @@ assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
 const cookiePolicy = read('app/cookie-policy/page.tsx');
 const privacyPolicy = read('app/privacy/page.tsx');
-const consentUi = read('features/analytics/components/CookieConsent.tsx');
+const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);
   assert.match(disclosure, /Meta Pixel/);
@@ -251,8 +256,8 @@ assert.match(cookiePolicy, /หากล้างข้อมูลเว็บ�
 assert.doesNotMatch(cookiePolicy, /ไม่ได้ — จำเป็นต่อการทำงานของเว็บไซต์|ปิดไม่ได้ — จำเป็นต่อการทำงานของเว็บไซต์/);
 assert.doesNotMatch(consentUi, /ตกลงการตั้งค่า/);
 
-const navbar = read('components/layout/Navbar.tsx');
-assert.match(navbar, /href="\/blog\/"/);
+const navbar = read('components/layout/website-43/Website43Navbar.tsx');
+assert.match(navbar, /\$\{BASE\}\/blog/);
 
 
 const articleSchema = read('lib/content/structured-data/article-schema.ts');
@@ -262,8 +267,7 @@ assert.match(articleSchema, /"@type": "BreadcrumbList"/);
 assert.match(articleSchema, /getArticleCanonical/);
 assert.match(articleSchema, /"@type": "FAQPage"/);
 
-const articleFaq = read('features/blog/components/ArticleFaq.tsx');
-assert.match(articleFaq, /คำถามที่พบบ่อย/);
+assert.match(articlePresentation, /คำถามที่พบบ่อย/);
 assert.match(articlePresentation, /article\.faq\.map/);
 assert.match(articlePresentation, /<details className=\{styles\.faqItem\}/);
 
@@ -309,8 +313,10 @@ assert.deepEqual(portableTextMembers, [
   'simpleTable',
   'divider',
 ]);
-const articleBodyRenderer = read('features/blog/components/ArticleBody.tsx');
-assert.match(articleBodyRenderer, /ArticleTableOfContents/);
+const articleBodyRenderer = read('features/blog/website-43/Website43ArticleBody.tsx');
+const articleTocRenderer = read('features/blog/website-43/Website43ArticleToc.tsx');
+assert.match(articleTocRenderer, /groups/);
+assert.match(articlePresentation, /renderWebsite43ArticleBody\(article\.body, headingIds\)/);
 assert.match(articleBodyRenderer, /id=\{headingId\(index\)\}/);
 for (const [schemaType, publicType] of [
   ['callout', 'callout'],
@@ -324,7 +330,7 @@ for (const [schemaType, publicType] of [
   ['divider', 'divider'],
 ]) {
   assert.match(sanityProvider, new RegExp(`literal\\(["']${schemaType}["']\\)`), `${schemaType} requires a validated Sanity parser`);
-  assert.match(articleBodyRenderer, new RegExp(`block\\.type === ["']${publicType}["']`), `${schemaType} requires a public renderer`);
+  assert.match(articleBodyRenderer, new RegExp(`item\\.type === ["']${publicType}["']`), `${schemaType} requires a public renderer`);
 }
 
 const deploymentEnvironment = read('lib/deployment-environment.ts');
@@ -474,7 +480,7 @@ for (const tablePage of [
 }
 
 const publicDiscoverySurface = [
-  read('components/layout/Navbar.tsx'),
+  read('components/layout/website-43/Website43Navbar.tsx'),
   read('lib/nav-config.json'),
   read('public/nav-config.json'),
   read('app/sitemap.xml/route.ts'),

@@ -44,11 +44,8 @@ function isClientModule(file) {
 // non-runtime contract, so it is safer to keep it than to disguise it as active
 // application code. Any new orphan outside this list fails CI.
 function intentionalOrphanReason(file) {
-  if (file.startsWith('features/blog/components/')) return 'test-bound pre-Website43 Blog renderer';
-  if (file === 'features/ci-planning/components/CIPreToolWalkthrough.tsx') return 'regression fixture for retired walkthrough behavior';
   if (file === 'features/ci-planning/legacy/calculator.ts') return 'frozen CI formula parity reference';
   if (file.startsWith('features/financial-health-check/calculator/')) return 'frozen FHC formula parity reference';
-  if (file === 'components/layout/Navbar.tsx') return 'test-bound pre-Website43 navbar contract';
   if (file === 'components/preview/DraftPreviewRuntimeNoop.tsx') return 'build-time Turbopack alias boundary';
   if (file === 'lib/content/legacy.ts') return 'migration/test fixture for frozen legacy article mappings';
   return null;
@@ -69,7 +66,7 @@ const testSources = testFiles.map((file) => [file, readFileSync(file, 'utf8')]);
 function testsReferencing(file) {
   const basename = file.split('/').at(-1);
   return testSources
-    .filter(([, source]) => source.includes(file) || (basename && source.includes(basename)))
+    .filter(([, source]) => source.includes(file) || (basename && (source.includes(`'${'${basename}'}'`) || source.includes(`"${'${basename}'}"`))))
     .map(([testFile]) => testFile);
 }
 

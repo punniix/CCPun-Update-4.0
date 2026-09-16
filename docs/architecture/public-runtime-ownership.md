@@ -9,9 +9,9 @@ This document maps the current user-facing `ccpun.com` runtime. Its purpose is t
 | Home `/` | `features/home/website-43/Website43Home.tsx` | Website 4.3 is the only Home renderer. The pre-Website43 `features/home/components/` subtree was retired in Phase 3. |
 | Blog archive `/blog/` | `features/blog/pages/BlogArchivePage.tsx` → `features/blog/website-43/Website43Blog.tsx` | Category Registry is injected server-side. Search/filter/carousel interaction belongs to `Website43BlogInteractive.tsx`. |
 | Blog category/topic | `features/blog/pages/BlogCategoryPage.tsx` | Physical category availability comes from Sanity Category Registry; semantic hub policy remains in `lib/content/taxonomy.ts`. |
-| Article | `features/blog/pages/ArticlePage.tsx` → `features/blog/website-43/Website43Article.tsx` | Body blocks, FAQ, sources, author card and visible semantic breadcrumbs render here. TOC interaction is isolated in `Website43ArticleToc.tsx`. |
-| CI Planning | `features/ci-planning/page.tsx` + current `components/` + `calculator/` | `features/ci-planning/legacy/calculator.ts` is parity evidence only and must not be imported into new UI. |
-| Financial Health Check | `features/financial-health-check/page.tsx` → `components/ClientFHC.tsx` → `components/LifeCoverageWizard.tsx` | The older multi-step FHC UI was retired in Phase 3. `calculator/` is retained only as a frozen regression reference until its parity contract is deliberately retired. |
+| Article | `features/blog/pages/ArticlePage.tsx` → `features/blog/website-43/Website43Article.tsx` | Body block rendering is owned by `Website43ArticleBody.tsx`; TOC interaction is isolated in `Website43ArticleToc.tsx`. |
+| CI Planning | `features/ci-planning/page.tsx` + current `components/` + `calculator/` | Step 1 model logic, debt/education UI and Recovery Reserve UI have separate owners. `legacy/calculator.ts` is parity evidence only. |
+| Financial Health Check | `features/financial-health-check/page.tsx` → `components/ClientFHC.tsx` → `components/LifeCoverageWizard.tsx` | Pure calculation/model helpers live in `lifeCoverageModel.ts`; the older `calculator/` directory remains only as a frozen regression reference. |
 | Privacy / Cookie | `app/privacy/page.tsx`, `app/cookie-policy/page.tsx` + `Website43Legal.module.css` | Legal presentation has a dedicated style owner; do not add legal rules back into the all-surface Website43 CSS map. |
 | Website 4.3 shared shell | `components/layout/website-43/` | Shared server shell: `Website43Shared.tsx`; navbar client island: `Website43Navbar.tsx`; responsive runtime owner: `Website43ResponsiveStyles.tsx`. |
 | Analytics / consent | `features/analytics/components/` | `ClientWidgets` is the public route-aware boundary. Consent remains mandatory before analytics providers. Meta Pixel remains route-gated to paid-tool surfaces. |
@@ -20,14 +20,7 @@ This document maps the current user-facing `ccpun.com` runtime. Its purpose is t
 
 ## Blog legacy status
 
-`features/blog/components/` contains pre-Website43 renderer source that is not reachable from the current App Router. Some files are still read directly by older regression tests. These files are **test-bound legacy**, not runtime owners.
-
-Rules:
-
-1. Do not import a legacy Blog component into new Public code.
-2. Migrate a regression assertion to the current `pages/` / `website-43/` owner before deleting the legacy file it reads.
-3. Do not weaken SEO, block-rendering, FAQ or category-registry coverage merely to remove the old file.
-4. Blog/CMS media has a separate content lifecycle and is not deleted by source reachability audits.
+The pre-Website43 Blog renderer was fully retired after its block, FAQ, category and SEO regression assertions were moved to the current `pages/` and `website-43/` owners. Do not recreate `features/blog/components/` as a parallel renderer. Blog/CMS media still has a separate content lifecycle and is not deleted by source reachability audits.
 
 ## Calculator parity status
 
