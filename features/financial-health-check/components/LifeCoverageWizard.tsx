@@ -131,7 +131,7 @@ export default function LifeCoverageWizard() {
   if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result">
     <div className="ccpun-calculator-result-lead">
       <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
-      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ช่องว่างความคุ้มครองเบื้องต้น<span className="sr-only"> {money(result.gap)} บาท</span></h2>
+      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ช่องว่างความคุ้มครอง<span className="whitespace-nowrap">เบื้องต้น</span><span className="sr-only"> {money(result.gap)} บาท</span></h2>
       <p className="ccpun-calculator-result-amount">{money(result.gap)} <small>บาท</small></p>
       <p className="ccpun-calculator-result-body">ส่วนต่างระหว่างภาระที่คุณกรอก กับทุนประกันชีวิตและสินทรัพย์ที่ตั้งใจใช้ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ</p>
     </div>

@@ -112,7 +112,7 @@ test("already-normalized taxonomy is idempotent and published-only articles are 
   assert.equal(plan.draftArticleCount, 1);
   assert.equal(plan.publishedOnlyCount, 1);
   assert.deepEqual(plan.changes, []);
-  assert.equal(plan.categoryCreates.length, 3);
+  assert.equal(plan.categoryCreates.length, 4);
 });
 
 test("an empty UAT taxonomy plans deterministic active categories and normalizes the UAT fixture", () => {
@@ -137,6 +137,7 @@ test("an empty UAT taxonomy plans deterministic active categories and normalizes
     "ccpun-category-personal-finance",
     "ccpun-category-life-insurance",
     "ccpun-category-health-insurance",
+    "ccpun-category-critical-illness-insurance",
     "ccpun-category-investment",
   ]);
   assert.deepEqual(plan.changes[0].set, {
@@ -235,11 +236,11 @@ test("apply requires durable Neon intent and success audits around the revision-
 
   const audits: Array<Record<string, unknown>> = [];
   const result = await applyTaxonomyMigration(client, plan, "2026-08-22T00:00:00.000Z", async (audit) => { audits.push(audit); });
-  assert.deepEqual(result, { changed: 1, categoriesCreated: 3, auditLogCreated: true });
+  assert.deepEqual(result, { changed: 1, categoriesCreated: 4, auditLogCreated: true });
   assert.equal(transactionCount, 1);
   assert.equal(commitCount, 1);
   assert.equal(operations.filter((operation) => operation.kind === "patch").length, 1);
-  assert.equal(operations.filter((operation) => operation.kind === "createIfNotExists").length, 3);
+  assert.equal(operations.filter((operation) => operation.kind === "createIfNotExists").length, 4);
   const articlePatch = operations.find((operation) => operation.kind === "patch");
   assert.deepEqual(articlePatch, {
     kind: "patch",

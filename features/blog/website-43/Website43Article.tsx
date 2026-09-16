@@ -7,6 +7,7 @@ import { getArticlePath } from '@/lib/content/url';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { SectionHeading, Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
+import Website43ArticleToc from './Website43ArticleToc';
 
 const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   day: 'numeric',
@@ -121,6 +122,9 @@ export default function Website43Article({ article, relatedArticles = [], previe
     else groups[groups.length - 1].children.push(heading);
     return groups;
   }, []);
+  const publishedDateLabel = article.publishedAt ? thaiDateFormatter.format(new Date(article.publishedAt)) : null;
+  const updatedDateLabel = thaiDateFormatter.format(new Date(article.updatedAt));
+  const showUpdatedDate = !publishedDateLabel || publishedDateLabel !== updatedDateLabel;
 
   return (
     <div className={styles.root}>
@@ -135,24 +139,12 @@ export default function Website43Article({ article, relatedArticles = [], previe
               <Link href="/">หน้าแรก</Link> <span>›</span> <Link href={`${BASE}/blog`}>บทความ</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
             <h1 className={styles.articleHeadline}>{article.title}</h1>
-            <p className={styles.articleHeaderMeta}>
-              {article.publishedAt ? `เผยแพร่เมื่อ ${thaiDateFormatter.format(new Date(article.publishedAt))} · ` : ''}
-              {`อัปเดตล่าสุด ${thaiDateFormatter.format(new Date(article.updatedAt))}`}
-            </p>
-            {article.featuredImage && (
-              <figure className={styles.articleInlineFigure}>
-              <Image
-                className={styles.articleFeature}
-                src={article.featuredImage.src}
-                alt={article.featuredImage.alt}
-                width={article.featuredImage.width}
-                height={article.featuredImage.height}
-                sizes="(max-width: 767px) calc(100vw - 48px), 1060px"
-                priority
-              />
-              {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
-              </figure>
-            )}
+            <div className={styles.articleMetaRow}>
+              <p className={styles.articleHeaderMeta}>
+                {publishedDateLabel ? `เผยแพร่เมื่อ ${publishedDateLabel}` : null}
+                {showUpdatedDate ? `${publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด ${updatedDateLabel}` : null}
+              </p>
+            </div>
           </div>
         </header>
 
@@ -161,30 +153,34 @@ export default function Website43Article({ article, relatedArticles = [], previe
             {headings.length > 0 && (
               <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">
                 <strong>หัวข้อเนื้อหา</strong>
-                <div className={styles.tocList}>
-                  {tocGroups.map((group) => (
-                    <div className={styles.tocGroup} key={group.primary.id}>
-                      <a className={styles.tocPrimary} href={`#${group.primary.id}`}><span aria-hidden="true" />{group.primary.label}</a>
-                      {group.children.length > 0 && <div className={styles.tocSublist}>{group.children.map((heading) => <a className={styles.tocSecondary} href={`#${heading.id}`} key={heading.id}>{heading.label}</a>)}</div>}
-                    </div>
-                  ))}
-                </div>
+                <Website43ArticleToc groups={tocGroups} />
               </aside>
             )}
-            {headings.length > 0 && (
-              <details className={styles.tocMobile}>
-                <summary>หัวข้อเนื้อหา</summary>
-                <div className={styles.tocMobileList}>
-                  {tocGroups.map((group) => (
-                    <div className={styles.tocGroup} key={group.primary.id}>
-                      <a className={styles.tocPrimary} href={`#${group.primary.id}`}><span aria-hidden="true" />{group.primary.label}</a>
-                      {group.children.length > 0 && <div className={styles.tocSublist}>{group.children.map((heading) => <a className={styles.tocSecondary} href={`#${heading.id}`} key={heading.id}>{heading.label}</a>)}</div>}
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
-            <article className={styles.prose}>{renderBody(article.body, headingIds)}</article>
+            <div className={styles.articleMainColumn}>
+              {article.featuredImage && (
+                <figure className={styles.articleInlineFigure}>
+                  <Image
+                    className={styles.articleFeature}
+                    src={article.featuredImage.src}
+                    alt={article.featuredImage.alt}
+                    width={article.featuredImage.width}
+                    height={article.featuredImage.height}
+                    sizes="(max-width: 767px) calc(100vw - 48px), 720px"
+                    priority
+                  />
+                  {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
+                </figure>
+              )}
+              {headings.length > 0 && (
+                <details className={styles.tocMobile}>
+                  <summary>หัวข้อเนื้อหา</summary>
+                  <div className={styles.tocMobileList}>
+                    <Website43ArticleToc groups={tocGroups} />
+                  </div>
+                </details>
+              )}
+              <article className={styles.prose}>{renderBody(article.body, headingIds)}</article>
+            </div>
           </div>
         </section>
 
@@ -229,7 +225,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
           </div>
         </section>
 
-        <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}>
+        <section className={`${styles.sectionDeep} ${styles.articlePlanCtaSection}`}>
           <div className={`${styles.inner} ${styles.articleSupportInner}`}>
             <h2 className={styles.h2}>อยากจัดลำดับแผนให้เหมาะกับชีวิตคุณ?</h2>
             <p className={styles.lead} style={{ color: '#faf9f9' }}>เตรียมข้อมูลรายได้ รายจ่าย หนี้ และเป้าหมาย แล้วคุยกันแบบเห็นภาพรวม</p>
@@ -238,7 +234,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
         </section>
 
         {relatedArticles.length > 0 && (
-          <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}>
+          <section className={`${styles.sectionDeep} ${styles.articleRelatedSection}`}>
             <div className={`${styles.inner} ${styles.articleSupportInner}`}>
               <h2 className={styles.h2}>อ่านต่อ</h2>
               <div className={styles.relatedGrid}>

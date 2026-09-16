@@ -1,9 +1,4 @@
-export const ACTIVE_ARTICLE_CATEGORIES = [
-  { slug: "personal-finance", title: "การเงินส่วนบุคคล" },
-  { slug: "life-insurance", title: "ประกันชีวิต" },
-  { slug: "health-insurance", title: "ประกันสุขภาพ" },
-  { slug: "investment", title: "การลงทุน" },
-] as const;
+import { CATEGORY_SLUG_PATTERN } from "./category-registry";
 
 export const BLOG_TOPIC_HUBS = [
   {
@@ -43,7 +38,7 @@ export const BLOG_TOPIC_HUBS = [
     indexable: true,
   },
   {
-    slug: "critical-illness",
+    slug: "critical-illness-insurance",
     title: "ประกันโรคร้ายแรง",
     seoTitle: "ประกันโรคร้ายแรง | วางแผนเงินก้อนเมื่อเจ็บป่วย | CCPun",
     description: "รวมบทความประกันโรคร้ายแรง ความต่างจากประกันสุขภาพ และแนวทางประเมินเงินก้อนเพื่อรองรับรายได้และค่าใช้จ่ายนอกโรงพยาบาล",
@@ -93,12 +88,21 @@ type NormalizedArticleTaxonomy = {
   tags: string[];
 };
 
-const activeSlugByTitle = new Map<string, string>(ACTIVE_ARTICLE_CATEGORIES.map(({ title, slug }) => [title, slug]));
-const activeSlugs = new Set<string>(ACTIVE_ARTICLE_CATEGORIES.map(({ slug }) => slug));
+// Compatibility only for historical/title-only inputs. Public category
+// availability is owned exclusively by the Sanity Category Registry.
+const LEGACY_CATEGORY_SLUG_BY_TITLE: Record<string, string> = {
+  "การเงินส่วนบุคคล": "personal-finance",
+  "ประกันชีวิต": "life-insurance",
+  "ประกันสุขภาพ": "health-insurance",
+  "การลงทุน": "investment",
+  "ประกันโรคร้ายแรง": "critical-illness-insurance",
+};
+
 const hubBySlug = new Map<string, BlogTopicHub>(BLOG_TOPIC_HUBS.map((hub) => [hub.slug, hub] as const));
 
 const CATEGORY_SLUG_ALIASES: Record<string, string> = {
   "personal-finance-uat": "personal-finance",
+  "critical-illness": "critical-illness-insurance",
 };
 
 export const LEGACY_CATEGORY_TOPICS = {
@@ -114,17 +118,18 @@ const LEGACY_TOPIC_BY_TITLE: Record<string, string> = {
 const TOPIC_SLUG_BY_TAG: Record<string, BlogTopicSlug> = {
   "ประกันชีวิต": "life-insurance",
   "ประกันสุขภาพ": "health-insurance",
-  "ประกันโรคร้ายแรง": "critical-illness",
+  "ประกันโรคร้ายแรง": "critical-illness-insurance",
 };
 
 // Protected semantic identity is independent from editor metadata. Health Happy
-// and Health CI Hero now also have physical/canonical ownership under the Health
-// Insurance category; Critical Illness remains a semantic-only hub exception
-// until a separate physical URL migration is explicitly approved.
+// and Health CI Hero own Health physical/canonical URLs. The approved Critical
+// Illness migration now gives the lump-sum topic its own physical category while
+// preserving the legacy topic slug as an alias during migration.
 const ARTICLE_SEMANTIC_TOPIC_OVERRIDES: Record<string, BlogTopicSlug> = {
   "aia-health-happy-describe": "health-insurance",
   "aia-health-ci-hero-guide": "health-insurance",
-  "critical-illness-insurance": "critical-illness",
+  "critical-illness-insurance": "critical-illness-insurance",
+  "what-is-critical-illness-insurance": "critical-illness-insurance",
   "aia-vitality": "life-insurance",
 };
 
@@ -152,11 +157,22 @@ export function normalizeArticleTaxonomy({
   const title = categoryTitle?.trim() ?? "";
   const suppliedSlug = categorySlug?.trim().toLowerCase() ?? "";
   const slug = CATEGORY_SLUG_ALIASES[suppliedSlug] ?? suppliedSlug;
-  const legacySlugTopic = LEGACY_CATEGORY_TOPICS[slug as keyof typeof LEGACY_CATEGORY_TOPICS];
+  const legacySlugTopic = LEGACY_CATEGORY_TOPICS[suppliedSlug as keyof typeof LEGACY_CATEGORY_TOPICS];
   const legacyTitleTopic = LEGACY_TOPIC_BY_TITLE[title];
   const combinedLegacyTitle = title === "ประกันสุขภาพและโรคร้ายแรง";
-  const slugCategory = activeSlugs.has(slug) ? slug : legacySlugTopic ? "life-insurance" : null;
-  const titleCategory = activeSlugByTitle.get(title) ?? (legacyTitleTopic || combinedLegacyTitle ? "life-insurance" : null);
+  const titleCategory = LEGACY_CATEGORY_SLUG_BY_TITLE[title] ?? null;
+
+  // Any valid referenced category slug can be a physical owner. This is what
+  // lets a newly activated Sanity category (for example motor/travel/critical
+  // illness after its coordinated cutover) work without a code allowlist.
+  // The historical combined Health+Critical category keeps its old Life owner.
+  const slugCategory = !slug
+    ? null
+    : combinedLegacyTitle
+      ? "life-insurance"
+      : CATEGORY_SLUG_PATTERN.test(slug)
+        ? slug
+        : null;
   const categoryConflict = Boolean(slugCategory && titleCategory && slugCategory !== titleCategory && !combinedLegacyTitle);
   const inheritedTopics = legacySlugTopic
     ? [legacySlugTopic]
@@ -194,7 +210,8 @@ export function getArticleSemanticTopic({
 
   const explicitTopic = semanticTopic?.trim().toLowerCase();
   if (explicitTopic) {
-    const explicitHub = hubBySlug.get(explicitTopic);
+    const normalizedExplicitTopic = CATEGORY_SLUG_ALIASES[explicitTopic] ?? explicitTopic;
+    const explicitHub = hubBySlug.get(normalizedExplicitTopic);
     if (explicitHub) return explicitHub;
   }
 

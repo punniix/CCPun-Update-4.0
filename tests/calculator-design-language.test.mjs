@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(path, 'utf8');
 
@@ -75,9 +75,9 @@ test('FHC and CI result states keep the same Production Website 4.3 visual langu
   assert.match(website43Css, /ccpun-calculator-result-lead/);
 });
 
-test('the legacy ToolHero entrypoint is only a compatibility alias to the Production Website 4.3 hero', () => {
-  assert.equal(existsSync('components/layout/ToolHero.tsx'), true);
-  const compatibilityHero = read('components/layout/ToolHero.tsx');
-  assert.match(compatibilityHero, /Website43ToolHero/);
-  assert.doesNotMatch(compatibilityHero, /radial-gradient|bg-primary|rounded-full|backdrop/);
+test('FHC and CI use the new Website 4.3 tool hero without rewriting the legacy ToolHero surface', () => {
+  for (const source of [fhcShell, ciShell]) {
+    assert.match(source, /components\/layout\/website-43\/Website43ToolHero/);
+    assert.doesNotMatch(source, /components\/layout\/ToolHero/);
+  }
 });

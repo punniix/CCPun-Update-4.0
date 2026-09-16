@@ -3,16 +3,10 @@ import type { ReactNode } from 'react';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import type { Website43ArticleItem } from './blogData';
-import { BLOG_TOPIC_HUBS } from '@/lib/content/taxonomy';
 import Website43BlogInteractive, {
   type Website43BlogCategoryItem,
   type Website43BlogClientClassNames,
 } from './Website43BlogInteractive';
-
-const BLOG_CATEGORIES: Website43BlogCategoryItem[] = [
-  { slug: null, title: 'ทุกหมวดหมู่' },
-  ...BLOG_TOPIC_HUBS.map(({ slug, title }) => ({ slug, title })),
-];
 
 const BLOG_CLIENT_CLASS_NAMES = {
   articleCard: styles.articleCard,
@@ -48,15 +42,17 @@ const BLOG_CLIENT_CLASS_NAMES = {
   emptyState: styles.emptyState,
 } satisfies Website43BlogClientClassNames;
 
-export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, initialQuery = '', topicContent, topicNavigation }: {
+export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, initialQuery = '', categories = [], topicContent, topicNavigation }: {
   articles: Website43ArticleItem[];
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
   initialQuery?: string;
+  categories?: Website43BlogCategoryItem[];
   topicContent?: ReactNode;
   topicNavigation?: ReactNode;
 }) {
-  const activeCategory = BLOG_CATEGORIES.find((item) => item.slug === activeCategorySlug) ?? BLOG_CATEGORIES[0];
+  const blogCategories: Website43BlogCategoryItem[] = [{ slug: null, title: 'ทุกหมวดหมู่' }, ...categories];
+  const activeCategory = blogCategories.find((item) => item.slug === activeCategorySlug) ?? blogCategories[0];
 
   return (
     <div className={styles.root}>
@@ -86,7 +82,7 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
           featuredArticles={featuredArticles}
           activeCategorySlug={activeCategorySlug}
           initialQuery={initialQuery}
-          categories={BLOG_CATEGORIES}
+          categories={blogCategories}
           classNames={BLOG_CLIENT_CLASS_NAMES}
         />
         {topicNavigation}

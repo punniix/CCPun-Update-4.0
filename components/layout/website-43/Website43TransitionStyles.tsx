@@ -46,7 +46,6 @@ export function Website43TransitionStyles() {
 .${styles.sectionDeep} > .${styles.inner},
 .${styles.blogContent} > .${styles.inner},
 .${styles.articleHeader} > .${styles.inner},
-.${styles.toolStorySection} > .${styles.inner},
 .${styles.legalHeader} > .${styles.inner},
 .${styles.legalBody} > .${styles.inner},
 .${styles.footerWrap} > .${styles.inner} {
@@ -57,8 +56,8 @@ export function Website43TransitionStyles() {
 }
 .${styles.section} > .${styles.articleSupportInner},
 .${styles.sectionDeep} > .${styles.articleSupportInner} {
-  width: min(1060px, 100%);
-  max-width: 1060px;
+  width: min(1028px, 100%);
+  max-width: 1028px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -102,7 +101,7 @@ export function Website43TransitionStyles() {
   width: clamp(620px, calc(29.4118vw + 296.4706px), 720px);
 }
 .${styles.toolHeroCopy} {
-  left: var(--w43-shell-left);
+  left: var(--w43-nav-gutter);
   top: 128px;
   width: clamp(700px, calc(17.6471vw + 505.8824px), 760px);
 }
@@ -122,8 +121,8 @@ export function Website43TransitionStyles() {
 }
 
 .${styles.articleReadingGrid} {
-  grid-template-columns: clamp(236px, calc(18.8235vw + 28.9412px), 300px) minmax(0, 720px);
-  gap: clamp(32px, calc(2.35294vw + 6.11765px), 40px);
+  grid-template-columns: minmax(220px, 260px) minmax(0, 720px);
+  gap: clamp(32px, 3.333vw, 48px);
 }
 .${styles.legalGrid} {
   width: min(988px, calc(100vw - 112px));

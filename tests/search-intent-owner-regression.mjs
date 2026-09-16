@@ -10,16 +10,18 @@ const allowedSemanticTopics = new Set([
   "personal-finance",
   "life-insurance",
   "health-insurance",
-  "critical-illness",
+  "critical-illness-insurance",
   "investment",
 ]);
 const allowedSearchIntents = new Set(["informational", "commercial", "transactional", "navigational", "mixed"]);
+const allowedOwnershipBases = new Set(["existing-published-page", "approved-url-migration"]);
+const allowedOwnerStates = new Set(["published", "planned"]);
 const legacyById = new Map(legacyLedger.mappings.map((mapping) => [mapping.id, mapping]));
 const legacySources = new Set(legacyLedger.mappings.map((mapping) => mapping.source));
 const intentIds = new Set();
 const queryOwners = new Map();
 
-assert.equal(registry.version, 1);
+assert.equal(registry.version, 2);
 assert.equal(registry.policy, "1 Search Intent = 1 Owner");
 assert.ok(Array.isArray(registry.owners) && registry.owners.length > 0, "registry must contain at least one reviewed owner");
 
@@ -34,8 +36,8 @@ for (const owner of registry.owners) {
   assert.ok(Array.isArray(owner.queryVariants), `${owner.intentId}: queryVariants must be an array`);
   assert.ok(allowedSearchIntents.has(owner.searchIntent), `${owner.intentId}: unsupported searchIntent`);
   assert.ok(allowedSemanticTopics.has(owner.semanticTopic), `${owner.intentId}: unsupported semanticTopic`);
-  assert.equal(owner.ownerState, "published", `${owner.intentId}: v1 owners must already be published`);
-  assert.equal(owner.ownershipBasis, "existing-published-page", `${owner.intentId}: ownership basis must stay explicit`);
+  assert.ok(allowedOwnerStates.has(owner.ownerState), `${owner.intentId}: unsupported ownerState`);
+  assert.ok(allowedOwnershipBases.has(owner.ownershipBasis), `${owner.intentId}: ownership basis must stay explicit`);
 
   const ownerUrl = new URL(owner.ownerUrl);
   assert.equal(ownerUrl.origin, "https://ccpun.com", `${owner.intentId}: owner must be on ccpun.com`);
@@ -49,6 +51,27 @@ for (const owner of registry.owners) {
   assert.ok(mapping, `${owner.intentId}: legacy mapping ${owner.legacyMappingId} is missing`);
   const approvedDestination = mapping.plannedDestination ?? mapping.destination;
   assert.equal(approvedDestination, owner.ownerUrl, `${owner.intentId}: owner must match the approved migration destination`);
+
+  if (owner.ownershipBasis === "existing-published-page") {
+    assert.equal(owner.ownerState, "published", `${owner.intentId}: existing owner must be published`);
+    assert.equal(mapping.state, "live", `${owner.intentId}: existing owner must have a live legacy mapping`);
+    assert.equal(mapping.destination, owner.ownerUrl, `${owner.intentId}: live legacy destination must equal the owner`);
+  }
+
+  if (owner.ownershipBasis === "approved-url-migration") {
+    if (owner.ownerState === "planned") {
+      assert.equal(mapping.plannedDestination, owner.ownerUrl, `${owner.intentId}: planned destination must equal the final owner`);
+      assert.ok(["live", "planned"].includes(mapping.state), `${owner.intentId}: migration mapping must be live-current or planned-final`);
+      if (mapping.state === "live") {
+        assert.notEqual(mapping.destination, owner.ownerUrl, `${owner.intentId}: staged live mapping must still point to the current owner`);
+      }
+    } else {
+      assert.equal(owner.ownerState, "published", `${owner.intentId}: migrated owner must be planned or published`);
+      assert.equal(mapping.state, "live", `${owner.intentId}: published migrated owner must have a live legacy mapping`);
+      assert.equal(mapping.destination, owner.ownerUrl, `${owner.intentId}: live migration destination must equal the published owner`);
+      assert.equal(mapping.plannedDestination, undefined, `${owner.intentId}: completed migration must not retain a planned destination`);
+    }
+  }
 
   for (const query of [owner.primaryQuery, ...owner.queryVariants]) {
     assert.equal(typeof query, "string");
@@ -64,5 +87,12 @@ assert.ok(healthCiHero, "Health CI Hero owner contract is required");
 assert.equal(healthCiHero.semanticTopic, "health-insurance");
 assert.equal(healthCiHero.ownerUrl, "https://ccpun.com/blog/health-insurance/aia-health-ci-hero-guide/");
 assert.match(healthCiHero.protectedRule ?? "", /not critical-illness lump-sum/i);
+
+const criticalIllness = registry.owners.find((owner) => owner.intentId === "critical-illness-insurance-definition");
+assert.ok(criticalIllness, "Critical Illness definition owner contract is required");
+assert.equal(criticalIllness.semanticTopic, "critical-illness-insurance");
+assert.equal(criticalIllness.ownerUrl, "https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/");
+assert.equal(criticalIllness.ownerState, "published");
+assert.equal(criticalIllness.ownershipBasis, "approved-url-migration");
 
 console.log(`PASS: Search Intent Owner Registry (${registry.owners.length} owners, ${queryOwners.size} protected query forms)`);

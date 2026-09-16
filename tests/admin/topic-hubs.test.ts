@@ -41,16 +41,17 @@ test("Phase 1 exposes five real topic hubs while investment remains non-indexabl
     "personal-finance",
     "life-insurance",
     "health-insurance",
-    "critical-illness",
+    "critical-illness-insurance",
     "investment",
   ]);
   assert.equal(getBlogTopicHub("health-insurance")?.indexable, true);
-  assert.equal(getBlogTopicHub("critical-illness")?.indexable, true);
+  assert.equal(getBlogTopicHub("critical-illness-insurance")?.indexable, true);
+  assert.equal(getBlogTopicHub("critical-illness"), null);
   assert.equal(getBlogTopicHub("investment")?.indexable, false);
   assert.equal(getBlogTopicHub("unknown"), null);
 });
 
-test("Health winner pages use Health as both semantic topic and physical canonical owner", () => {
+test("Health winner pages and Critical Illness migration keep semantic and physical ownership explicit", () => {
   const healthHappy = article({ slug: "aia-health-happy-describe", tags: ["ประกันสุขภาพ"] });
   const healthCiHero = article({ slug: "aia-health-ci-hero-guide", tags: ["ประกันชีวิต", "ประกันสุขภาพ", "ประกันโรคร้ายแรง"] });
   const critical = article({ slug: "critical-illness-insurance", tags: ["ประกันชีวิต", "ประกันสุขภาพ", "ประกันโรคร้ายแรง"] });
@@ -58,20 +59,24 @@ test("Health winner pages use Health as both semantic topic and physical canonic
 
   assert.equal(getArticleSemanticTopic({ articleSlug: healthHappy.slug, categoryTitle: healthHappy.category, categorySlug: healthHappy.categorySlug, tags: healthHappy.tags })?.slug, "health-insurance");
   assert.equal(getArticleSemanticTopic({ articleSlug: healthCiHero.slug, categoryTitle: healthCiHero.category, categorySlug: healthCiHero.categorySlug, tags: healthCiHero.tags })?.slug, "health-insurance");
-  assert.equal(getArticleSemanticTopic({ articleSlug: critical.slug, categoryTitle: critical.category, categorySlug: critical.categorySlug, tags: critical.tags })?.slug, "critical-illness");
+  assert.equal(getArticleSemanticTopic({ articleSlug: critical.slug, categoryTitle: critical.category, categorySlug: critical.categorySlug, tags: critical.tags })?.slug, "critical-illness-insurance");
   assert.equal(getArticleSemanticTopic({ articleSlug: vitality.slug, categoryTitle: vitality.category, categorySlug: vitality.categorySlug, tags: vitality.tags })?.slug, "life-insurance");
 
   assert.equal(getArticlePath(healthHappy), "/blog/health-insurance/aia-health-happy-describe/");
   assert.equal(getArticlePath(healthCiHero), "/blog/health-insurance/aia-health-ci-hero-guide/");
-  assert.equal(getArticlePath(critical), "/blog/life-insurance/critical-illness-insurance/");
+  assert.equal(getArticlePath(critical), "/blog/critical-illness-insurance/what-is-critical-illness-insurance/");
   assert.equal(getArticleCanonical(healthHappy), "https://ccpun.com/blog/health-insurance/aia-health-happy-describe/");
+  assert.equal(getArticleCanonical(critical), "https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/");
 });
 
 test("controlled moved article redirects point one hop to their approved terminal owner", () => {
+  const finalCritical = "/blog/critical-illness-insurance/what-is-critical-illness-insurance/";
   const moved = [
     ["life-insurance", "aia-health-happy-describe", "/blog/health-insurance/aia-health-happy-describe/"],
     ["life-insurance", "aia-health-ci-hero-guide", "/blog/health-insurance/aia-health-ci-hero-guide/"],
-    ["critical-illness", "critical-illness-insurance", "/blog/life-insurance/critical-illness-insurance/"],
+    ["life-insurance", "critical-illness-insurance", finalCritical],
+    ["critical-illness", "critical-illness-insurance", finalCritical],
+    ["critical-illness-insurance", "critical-illness-insurance", finalCritical],
   ] as const;
 
   for (const [category, slug, target] of moved) {
@@ -82,7 +87,7 @@ test("controlled moved article redirects point one hop to their approved termina
 
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-happy-describe"), null);
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-ci-hero-guide"), null);
-  assert.equal(getMovedArticleRedirectPath("life-insurance", "critical-illness-insurance"), null);
+  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "what-is-critical-illness-insurance"), null);
 });
 
 test("article schema uses Health canonical and semantic topic for Health winner pages", () => {
@@ -120,7 +125,8 @@ test("hub route resolves real hubs before any legacy one-segment redirect fallba
   assert.ok(hubLookup >= 0, "topic hub lookup is missing");
   assert.ok(legacyFallback > hubLookup, "topic hubs must be resolved before legacy redirect fallback");
   assert.match(categoryPage, /alternates:\s*\{ canonical \}/);
-  assert.match(categoryPage, /robots:\s*!isEnabled && shouldIndexHub/);
+  assert.match(categoryPage, /const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled/);
+  assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
   assert.match(categoryPage, /buildBlogTopicHubSchema\(hub, relevantIndexableArticles\)/);
   assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
   assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles\)\}/);

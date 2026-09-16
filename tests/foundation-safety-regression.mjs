@@ -24,13 +24,37 @@ const urlContract = read('lib/content/url.ts');
 const frozenMovedPaths = [
   ['life-insurance/aia-health-happy-describe', '/blog/health-insurance/aia-health-happy-describe/'],
   ['life-insurance/aia-health-ci-hero-guide', '/blog/health-insurance/aia-health-ci-hero-guide/'],
-  ['critical-illness/critical-illness-insurance', '/blog/life-insurance/critical-illness-insurance/'],
+  ['life-insurance/critical-illness-insurance', '/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
+  ['critical-illness/critical-illness-insurance', '/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
+  ['critical-illness-insurance/critical-illness-insurance', '/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
 ];
 for (const [source, destination] of frozenMovedPaths) {
   expect(`frozen URL contract ${source}`, urlContract.includes(`"${source}": "${destination}"`), destination);
 }
+expect(
+  'critical illness legacy category redirects directly to the approved hub',
+  urlContract.includes('"critical-illness": "/blog/critical-illness-insurance/"'),
+);
 expect('health winner canonical category override remains protected', urlContract.includes('"aia-health-happy-describe": "health-insurance"') && urlContract.includes('"aia-health-ci-hero-guide": "health-insurance"'));
 expect('canonical alignment remains ccpun.com only', urlContract.includes('canonical.origin === "https://ccpun.com"'));
+
+const taxonomy = read('lib/content/taxonomy.ts');
+const categoryRegistry = read('lib/content/category-registry.ts');
+expect(
+  'critical illness physical ownership is registry-gated',
+  taxonomy.includes('slug: "critical-illness-insurance"')
+    && !taxonomy.includes('ACTIVE_ARTICLE_CATEGORIES')
+    && categoryRegistry.includes('CATEGORY_STATUS_VALUES = ["draft", "active"]'),
+);
+expect(
+  'legacy critical illness topic slug aliases to the approved category',
+  taxonomy.includes('"critical-illness": "critical-illness-insurance"'),
+);
+expect(
+  'critical illness definition keeps one semantic owner through slug migration',
+  taxonomy.includes('"critical-illness-insurance": "critical-illness-insurance"')
+    && taxonomy.includes('"what-is-critical-illness-insurance": "critical-illness-insurance"'),
+);
 
 const ledger = JSON.parse(read('qa/legacy-url-ledger.json'));
 expect('legacy URL ledger remains frozen', typeof ledger.frozenAt === 'string' && ledger.frozenAt.length > 0);
@@ -41,6 +65,22 @@ for (const destination of [
 ]) {
   expect(`legacy ledger retains approved winner destination ${destination}`, ledgerText.includes(`https://ccpun.com${destination}`));
 }
+const criticalIllnessLegacy = ledger.mappings.find(({ id }) => id === 'critical-illness-insurance');
+expect(
+  'critical illness legacy source is frozen to the live final owner',
+  criticalIllnessLegacy?.state === 'live'
+    && criticalIllnessLegacy?.destination === 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/'
+    && criticalIllnessLegacy?.plannedDestination === undefined,
+);
+
+const intentRegistry = JSON.parse(read('qa/search-intent-owner-registry.json'));
+const criticalIllnessOwner = intentRegistry.owners.find(({ intentId }) => intentId === 'critical-illness-insurance-definition');
+expect(
+  'critical illness search intent owner moves to final canonical',
+  criticalIllnessOwner?.ownerUrl === 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/'
+    && criticalIllnessOwner?.semanticTopic === 'critical-illness-insurance'
+    && criticalIllnessOwner?.ownerState === 'published',
+);
 
 const studioPolicy = read('cms/sanity/policy/studio-policy.ts');
 expect('non-production Studio blocks publish', /BLOCKED_NON_PRODUCTION_ACTIONS[^\n]*"publish"/.test(studioPolicy));
@@ -84,11 +124,23 @@ expect(
 
 const articlePage = read('features/blog/pages/ArticlePage.tsx');
 expect(
+  'moved article redirect waits for final published owner',
+  articlePage.includes('const movedTargetSlug = movedPath.split("/").filter(Boolean).at(-1);')
+    && articlePage.includes('movedTargetArticle?.status === "published"')
+    && articlePage.includes('permanentRedirect(movedPath)'),
+);
+expect(
   'related article failure cannot take down article rendering',
   articlePage.includes('let relatedArticles = []')
     && articlePage.includes('[blog-related] related articles unavailable')
     && articlePage.includes('try {')
     && articlePage.includes('catch (error)'),
+);
+expect(
+  'invalid related taxonomy is isolated before article cards render',
+  articlePage.includes('getArticlePath(candidate);')
+    && articlePage.includes('[blog-related] skipping article with invalid taxonomy')
+    && articlePage.includes('return false;'),
 );
 
 const blogArchive = read('features/blog/pages/BlogArchivePage.tsx');

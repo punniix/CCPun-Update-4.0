@@ -23,9 +23,15 @@ export default function MoneyComparison({
     <figure className="money-comparison space-y-4">
       <figcaption className="text-sm font-semibold text-foreground">{title}</figcaption>
       {need > 0 ? (
-        <div aria-hidden="true" className="money-comparison__track">
-          <span className="money-comparison__fill" style={{ width: `${coveredPercent}%` }} />
-          <span className="money-comparison__marker" style={{ left: `${coveredPercent}%` }} />
+        <div aria-hidden="true" className="relative h-4 overflow-visible rounded-full border border-border/60 bg-secondary/70">
+          <span
+            className="absolute -inset-y-px left-[-1px] rounded-full border border-primary bg-primary/80 transition-[width] duration-500 motion-reduce:transition-none"
+            style={{ width: `${coveredPercent}%` }}
+          />
+          <span
+            className="absolute top-1/2 h-7 w-0.5 -translate-x-px -translate-y-1/2 bg-foreground"
+            style={{ left: `${coveredPercent}%` }}
+          />
         </div>
       ) : (
         <p className="rounded-xl border border-border/30 bg-background/25 p-4 text-sm text-muted-foreground">

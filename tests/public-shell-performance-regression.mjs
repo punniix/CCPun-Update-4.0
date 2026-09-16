@@ -224,8 +224,18 @@ assert.match(
 );
 assert.match(
   website43Blog,
-  /BLOG_TOPIC_HUBS\.map\(\(\{ slug, title \}\) => \(\{ slug, title \}\)\)/,
-  'Blog shell must pass only the minimal category label/slug data required by the interactive island',
+  /categories\?: Website43BlogCategoryItem\[\]/,
+  'Blog shell must accept only the minimal category label/slug registry projection required by the interactive island',
+);
+assert.match(
+  website43Blog,
+  /const blogCategories: Website43BlogCategoryItem\[\] = \[\{ slug: null, title: 'ทุกหมวดหมู่' \}, \.\.\.categories\]/,
+  'Blog shell must prepend the all-category option without importing a client-side taxonomy registry',
+);
+assert.doesNotMatch(
+  website43Blog,
+  /BLOG_TOPIC_HUBS|ACTIVE_ARTICLE_CATEGORIES/,
+  'Blog shell must not bundle semantic hubs or a hard-coded physical category registry',
 );
 assert.match(
   website43Blog,
@@ -239,8 +249,8 @@ assert.match(
 );
 assert.doesNotMatch(
   website43BlogInteractive,
-  /Website43\.module\.css|Website43Footer|Website43Navbar|BLOG_TOPIC_HUBS/,
-  'Blog client island must not pull the all-surface CSS map, static shell, or full taxonomy module into its client bundle',
+  /Website43\.module\.css|Website43Footer|Website43Navbar|BLOG_TOPIC_HUBS|ACTIVE_ARTICLE_CATEGORIES/,
+  'Blog client island must not pull the all-surface CSS map, static shell, or taxonomy registry into its client bundle',
 );
 assert.match(
   website43BlogInteractive,
@@ -249,23 +259,18 @@ assert.match(
 );
 assert.match(
   blogCategoryPage,
-  /const getPublishedArticlesForRequest = cache\(\(\) =>[\s\S]*listArticles\(\{ includeDrafts: false \}\)/,
-  'Blog category metadata and page render must share one request-scoped published-article read',
-);
-assert.equal(
-  (blogCategoryPage.match(/listArticles\(\{ includeDrafts: false \}\)/g) ?? []).length,
-  1,
-  'Blog category must keep exactly one underlying published listArticles read declaration',
-);
-assert.equal(
-  (blogCategoryPage.match(/await getPublishedArticlesForRequest\(\)/g) ?? []).length,
-  1,
-  'Blog category metadata must use the request-scoped accessor',
+  /const getArticlesForRequest = cache\(\(includeDrafts: boolean\) =>[\s\S]*listArticles\(\{ includeDrafts \}\)/,
+  'Blog category metadata and page render must share one request-scoped article accessor keyed by preview visibility',
 );
 assert.match(
   blogCategoryPage,
-  /const articlesPromise = getPublishedArticlesForRequest\(\);[\s\S]*const articles = await articlesPromise;/,
-  'Blog category page must start and await the same request-scoped accessor while resolving search params',
+  /const getRegistryForRequest = cache\(\(includeDrafts: boolean\) =>[\s\S]*listCategoryRegistry\(\{ includeDrafts \}\)/,
+  'Blog category metadata and page render must share one request-scoped Category Registry accessor',
+);
+assert.match(
+  blogCategoryPage,
+  /const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled/,
+  'Draft cookies must not bypass the deployment preview gate while category and article reads share preview state',
 );
 
 console.log('Public shell performance regression checks passed.');

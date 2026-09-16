@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import FHCProgress from './FHCProgress';
@@ -16,14 +16,13 @@ import { INITIAL_FORM_DATA, STEP_LABELS } from '@/features/financial-health-chec
 import { validateStep } from '@/features/financial-health-check/calculator/schemas';
 import { calculateFHC } from '@/features/financial-health-check/calculator/calculator';
 import type { FHCFormData, FHCResult } from '@/features/financial-health-check/calculator/types';
-import { MOTION } from '@/lib/motion/tokens';
 
 const TOTAL_STEPS = STEP_LABELS.length;
 
 // Slide animation variants
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? MOTION.distance.reveal : -MOTION.distance.reveal,
+    x: direction > 0 ? 200 : -200,
     opacity: 0,
   }),
   center: {
@@ -31,7 +30,7 @@ const slideVariants = {
     opacity: 1,
   },
   exit: (direction: number) => ({
-    x: direction > 0 ? -MOTION.distance.reveal : MOTION.distance.reveal,
+    x: direction > 0 ? -200 : 200,
     opacity: 0,
   }),
 };
@@ -56,19 +55,18 @@ export default function FHCWizard() {
   const [hasStarted, setHasStarted] = useState(false);
   const stepRef = useRef<HTMLDivElement>(null);
   const validationMessage = Object.values(errors)[0];
-  const reduceMotion = useReducedMotion();
 
-  // Focus moves immediately; motion never delays navigation meaning.
+  // Focus heading of new step after animation completes
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    const timer = setTimeout(() => {
       const heading = stepRef.current?.querySelector('h2');
       if (heading) {
         heading.setAttribute('tabIndex', '-1');
         heading.style.outline = 'none';
         heading.focus();
       }
-    });
-    return () => window.cancelAnimationFrame(frame);
+    }, 350);
+    return () => clearTimeout(timer);
   }, [currentStep]);
 
   const isFirstStep = currentStep === 0;
@@ -204,16 +202,16 @@ export default function FHCWizard() {
           </p>
         )}
         <div className="flex-1 relative overflow-hidden">
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
+          <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               ref={stepRef}
               key={currentStep}
               custom={direction}
               variants={slideVariants}
-              initial={reduceMotion ? false : 'enter'}
+              initial="enter"
               animate="center"
-              exit={reduceMotion ? undefined : 'exit'}
-              transition={{ duration: reduceMotion ? 0 : MOTION.duration.reveal, ease: MOTION.easing.standard }}
+              exit="exit"
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
               {renderStep()}
             </motion.div>

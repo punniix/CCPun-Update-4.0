@@ -67,4 +67,3 @@ next-env.d.ts
 # Workflow SDK generated transport and local execution data
 /.workflow-data/
 /app/.well-known/workflow/
-/.swc
