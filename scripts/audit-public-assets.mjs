@@ -80,5 +80,6 @@ console.log('ZERO_RUNTIME_REFERENCE_ASSETS_START');
 for (const asset of candidates) console.log(`${asset.bytes}\t${asset.file}\t${asset.url}`);
 console.log('ZERO_RUNTIME_REFERENCE_ASSETS_END');
 
-// Discovery-only during this cleanup pass. Once each candidate has been reviewed
-// and either deleted or given an explicit owner, this becomes a permanent gate.
+if (candidates.length > 0) {
+  throw new Error(`Non-Blog Public assets must have a runtime/protocol owner. Found ${candidates.length} unowned asset(s): ${candidates.map((asset) => asset.file).join(', ')}`);
+}
