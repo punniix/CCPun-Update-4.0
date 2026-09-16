@@ -119,7 +119,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
       <p className="ccpun-calculator-result-eyebrow">ส่วนเพิ่มจากข้อมูล research · ค่าใช้จ่ายนอกโรงพยาบาล</p>
       <h3 id="ci-recovery-result-title" className="ccpun-calculator-result-panel-title mt-1">Recovery Reserve · {baht(result.recoveryReserveNeed)}</h3>
-      <p className="ccpun-calculator-result-body">Recovery Reserve คำนวณแยกเพื่อให้เห็นที่มาชัดเจน แล้วบวกเพิ่ม 1 ครั้งในยอดรวมของแต่ละวิธีที่มีฐานข้อมูล โดยไม่ได้นำทุนตามรายจ่ายกับทุนตามรายได้มาบวกเข้าหากัน</p>
+      <p className="ccpun-calculator-result-body">Recovery Reserve คำนวณแยกเพื่อให้เห็นที่มาชัดเจน แล้วบวกเพิ่ม 1 ครั้งในยอดรวมของแต่ละวิธีที่มีฐานข้อมูล โดยไม่ได้นำสองวิธีมาบวกเข้าหากัน</p>
       {result.recoveryReserveNeed > 0 ? <>
         <dl className="ccpun-calculator-result-rows mt-4">
           <div className="ccpun-calculator-result-row"><dt>ไปรักษา/ติดตาม {result.recoveryTreatmentVisits} ครั้ง × {baht(CI_RECOVERY_REFERENCE.treatmentVisit.total)}</dt><dd>{baht(result.recoveryVisitNeed)}</dd></div>
