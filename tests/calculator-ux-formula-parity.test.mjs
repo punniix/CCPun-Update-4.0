@@ -11,7 +11,8 @@ const baseline = JSON.parse(readFileSync('tests/fixtures/calculator-production-b
 const read = (path) => readFileSync(path, 'utf8');
 const sha256 = (source) => createHash('sha256').update(source).digest('hex');
 const ciPath = 'features/ci-planning/calculator/calculator.ts';
-const fhcPath = 'features/financial-health-check/components/LifeCoverageWizard.tsx';
+const fhcModelPath = 'features/financial-health-check/components/lifeCoverageModel.ts';
+const fhcWizardPath = 'features/financial-health-check/components/LifeCoverageWizard.tsx';
 
 function ci(source) {
   const exports = {};
@@ -31,27 +32,14 @@ function ci(source) {
   return exports.calculateCI;
 }
 
-function fhc(source) {
-  // Execute the actual in-component memo callback, not a duplicate test formula.
-  const ast = ts.createSourceFile('wizard.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  let callback;
-  function visit(node) {
-    if (
-      ts.isVariableDeclaration(node)
-      && node.name.getText(ast) === 'result'
-      && node.initializer
-      && ts.isCallExpression(node.initializer)
-      && node.initializer.expression.getText(ast) === 'useMemo'
-    ) callback = node.initializer.arguments[0];
-    ts.forEachChild(node, visit);
-  }
-  visit(ast);
-  assert.ok(callback, 'the live LifeCoverageWizard calculation must be located');
-  const callbackSource = callback.getText(ast);
-  return {
-    calculate: new Function('values', `return (${callbackSource})();`),
-    callbackSource,
-  };
+function fhcModel(source) {
+  const exports = {};
+  new Function(
+    'exports',
+    ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText,
+  )(exports);
+  assert.equal(typeof exports.calculateLifeCoverage, 'function', 'the live FHC calculation owner must export calculateLifeCoverage');
+  return exports.calculateLifeCoverage;
 }
 
 const fixtures = [
@@ -68,7 +56,7 @@ const fixtures = [
 ];
 
 const calculateCI = ci(read(ciPath));
-const liveFHC = fhc(read(fhcPath));
+const calculateLiveFHC = fhcModel(read(fhcModelPath));
 
 for (const fixture of fixtures) {
   test(`matches frozen Production calculator output: ${fixture.name}`, () => {
@@ -100,7 +88,7 @@ for (const fixture of fixtures) {
     const legacyCI = Object.fromEntries(Object.keys(expected.ci).map((key) => [key, actualCI[key]]));
     assert.deepEqual(legacyCI, expected.ci);
     assert.equal(actualCI.recoveryReserveNeed, 0, 'Recovery Reserve must default to zero for frozen legacy inputs');
-    assert.deepEqual(liveFHC.calculate(structuredClone(lifeInput)), expected.fhc);
+    assert.deepEqual(calculateLiveFHC(structuredClone(lifeInput)), expected.fhc);
   });
 }
 
@@ -111,6 +99,9 @@ test('FHC domain files remain frozen while CI legacy outputs remain parity-cover
   }
 });
 
-test('FHC live calculation callback matches the frozen Production calculation contract', () => {
-  assert.equal(sha256(liveFHC.callbackSource), baseline.fhcCallbackSha256);
+test('FHC live wizard delegates calculation to the pure model owner', () => {
+  const wizard = read(fhcWizardPath);
+  assert.match(wizard, /import \{ calculateLifeCoverage,[\s\S]*from '\.\/lifeCoverageModel'/);
+  assert.match(wizard, /useMemo\(\(\) => calculateLifeCoverage\(values\), \[values\]\)/);
+  assert.doesNotMatch(wizard, /const familySupport = values\.householdMonthly \* 12 \* values\.supportYears/);
 });
