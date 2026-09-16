@@ -40,6 +40,20 @@ function isClientModule(file) {
   return /^\s*["']use client["'];?/m.test(source);
 }
 
+// These files are intentionally not route-reachable. Each entry has an explicit
+// non-runtime contract, so it is safer to keep it than to disguise it as active
+// application code. Any new orphan outside this list fails CI.
+function intentionalOrphanReason(file) {
+  if (file.startsWith('features/blog/components/')) return 'test-bound pre-Website43 Blog renderer';
+  if (file === 'features/ci-planning/components/CIPreToolWalkthrough.tsx') return 'regression fixture for retired walkthrough behavior';
+  if (file === 'features/ci-planning/legacy/calculator.ts') return 'frozen CI formula parity reference';
+  if (file.startsWith('features/financial-health-check/calculator/')) return 'frozen FHC formula parity reference';
+  if (file === 'components/layout/Navbar.tsx') return 'test-bound pre-Website43 navbar contract';
+  if (file === 'components/preview/DraftPreviewRuntimeNoop.tsx') return 'build-time Turbopack alias boundary';
+  if (file === 'lib/content/legacy.ts') return 'migration/test fixture for frozen legacy article mappings';
+  return null;
+}
+
 const reverseGraph = new Map();
 for (const [importer, dependencies] of graph) {
   for (const dependency of dependencies) {
@@ -74,7 +88,13 @@ for (const [area] of areas) {
   areaRows.push({ area, total: files.length, public: publicFiles.length, internal: internalOnly.length, orphan: orphanFiles.length, clients: clientFiles.length });
 
   for (const file of orphanFiles) {
-    orphanRows.push({ area, file, tests: testsReferencing(file), importers: reverseGraph.get(file) ?? [] });
+    orphanRows.push({
+      area,
+      file,
+      tests: testsReferencing(file),
+      importers: reverseGraph.get(file) ?? [],
+      reason: intentionalOrphanReason(file),
+    });
   }
   for (const file of internalOnly) internalOnlyRows.push({ area, file });
   for (const file of clientFiles) publicClientRows.push({ area, file });
@@ -136,11 +156,16 @@ const publicDependencyCounts = dependencyCounts(publicReachableSources, dependen
 const routeDependencyCounts = dependencyCounts(allRouteSources, dependencies);
 const repoDependencyCounts = dependencyCounts(repoCodeSources, dependencies);
 
+const unexpectedOrphans = orphanRows.filter((row) => !row.reason);
+const intentionalOrphans = orphanRows.filter((row) => row.reason);
+
 console.log('PUBLIC_ARCHITECTURE_AUDIT');
 console.log(`public_entry_files=${publicEntryFiles.length}`);
 console.log(`public_reachable_runtime_files=${publicReachable.size}`);
 console.log(`all_route_reachable_runtime_files=${reachable.size}`);
 console.log(`unclassified_public_runtime_files=${unclassifiedPublic.length}`);
+console.log(`intentional_orphan_runtime_files=${intentionalOrphans.length}`);
+console.log(`unexpected_orphan_runtime_files=${unexpectedOrphans.length}`);
 console.log('PUBLIC_ENTRY_FILES_START');
 for (const file of [...publicEntryFiles].sort()) console.log(file);
 console.log('PUBLIC_ENTRY_FILES_END');
@@ -153,7 +178,7 @@ console.log('AREA_SUMMARY_END');
 
 console.log('ORPHAN_RUNTIME_START');
 for (const row of orphanRows.sort((a, b) => a.file.localeCompare(b.file))) {
-  console.log(`${row.area}\t${row.file}\ttest_refs=${row.tests.length}\timporters=${row.importers.length}`);
+  console.log(`${row.area}\t${row.file}\tstatus=${row.reason ? 'intentional' : 'unexpected'}\treason=${row.reason ?? 'none'}\ttest_refs=${row.tests.length}\timporters=${row.importers.length}`);
   for (const testFile of row.tests) console.log(`  test:${testFile}`);
   for (const importer of row.importers) console.log(`  importer:${importer}`);
 }
@@ -194,5 +219,6 @@ console.log('ZERO_REPO_CODE_DEPENDENCIES_START');
 for (const dependency of repoZeroDependencies) console.log(dependency);
 console.log('ZERO_REPO_CODE_DEPENDENCIES_END');
 
-// Phase 3 starts as an evidence-producing audit. Cleanup commits promote proven
-// ownership rules into blocking regressions only after current owners are mapped.
+if (unexpectedOrphans.length > 0) {
+  throw new Error(`Public ownership audit found ${unexpectedOrphans.length} unexpected orphan runtime file(s): ${unexpectedOrphans.map((row) => row.file).join(', ')}`);
+}
