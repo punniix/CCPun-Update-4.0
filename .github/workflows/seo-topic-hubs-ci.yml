@@ -40,6 +40,7 @@ jobs:
           node --test tests/calculator-design-language.test.mjs
           node --test tests/calculator-ux-formula-parity.test.mjs
           node --test tests/calculator-ux-journey.test.mjs
+          node --test tests/ci-recovery-ui-regression.test.mjs
           node --import tsx tests/result-actions-regression.ts
           node tests/fhc-seo-geo-regression.mjs
 
