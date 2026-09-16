@@ -92,10 +92,9 @@ function requireRecoveryAmount(value: number, name: string): number {
 
 /**
  * Research-backed Recovery Reserve.
- * This is intentionally a standalone planning amount. It is not added to either
- * the expense-based method or the income-based method, so the three estimates
- * remain independently readable and no research benchmark silently changes the
- * user's primary method result.
+ * It is calculated as a clearly separated component, then added once to each
+ * estimation method independently. This lets the UI show the research-backed
+ * amount explicitly without hiding it inside either base formula.
  */
 export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
   const treatmentVisits = requireRecoveryCount(recovery.treatmentVisits, 'treatmentVisits', 100);
@@ -122,14 +121,18 @@ export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
 export function calculateCI(formData: CIFormData): CIResult {
   const { expenses, existingCI } = formData;
 
-  // Expense-based worksheet formula:
+  // Expense base:
   // ค่าใช้จ่ายครัวเรือน × 12 × ปีสำรอง
   // + Σ(ค่าใช้จ่ายการศึกษาต่อปี × ปีที่เหลือรายคน)
   // + ค่างวด × min(งวดคงเหลือ, ปีสำรอง × 12)
   // + ยอดหนี้อื่นคงเหลือรวม (ครั้งเดียว)
   //
-  // Recovery Reserve is calculated independently below and MUST NOT be added
-  // to calculatedNeed or incomeBasedNeed.
+  // Income base:
+  // รายได้ต่อเดือน × 12 × ปีสำรอง
+  //
+  // Recovery Reserve is calculated separately, then added ONCE to each base:
+  // expense total = expense base + Recovery Reserve
+  // income total = income base + Recovery Reserve
   const effectiveReserveYears = expenses.reserveYears;
   const householdMonthly = expenses.household;
   const householdNeed = calcHouseholdNeed(householdMonthly, effectiveReserveYears);
@@ -152,11 +155,13 @@ export function calculateCI(formData: CIFormData): CIResult {
     equipmentAndHomeModification: 0, otherRecoveryCosts: 0,
   });
   const recoveryReserveNeed = recovery.total;
-  const calculatedNeed = householdNeed + educationNeed + debtNeed;
-  const incomeBasedNeed = calcIncomeBasedNeed(
+  const expenseBaseNeed = householdNeed + educationNeed + debtNeed;
+  const incomeBaseNeed = calcIncomeBasedNeed(
     expenses.monthlyIncome ?? 0,
     effectiveReserveYears,
   );
+  const calculatedNeed = expenseBaseNeed + recoveryReserveNeed;
+  const incomeBasedNeed = incomeBaseNeed + recoveryReserveNeed;
 
   const existingCoverage = existingCI.lumpSum ?? 0;
   const liquidAssets = existingCI.liquidAssets ?? 0;
@@ -188,6 +193,8 @@ export function calculateCI(formData: CIFormData): CIResult {
     recoveryEquipmentAndHomeModification: recovery.equipmentAndHomeModification,
     recoveryOtherCosts: recovery.otherRecoveryCosts,
     recoveryReserveNeed,
+    expenseBaseNeed,
+    incomeBaseNeed,
     calculatedNeed,
     existingCoverage,
     liquidAssets,
