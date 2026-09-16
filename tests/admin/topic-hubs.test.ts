@@ -64,18 +64,17 @@ test("Health winner pages and Critical Illness migration keep semantic and physi
 
   assert.equal(getArticlePath(healthHappy), "/blog/health-insurance/aia-health-happy-describe/");
   assert.equal(getArticlePath(healthCiHero), "/blog/health-insurance/aia-health-ci-hero-guide/");
-  assert.equal(getArticlePath(critical), "/blog/life-insurance/critical-illness-insurance/");
-  assert.equal(getArticleCanonical(healthHappy), "https://ccpun.com/blog/health-insurance/aia-health-happy-describe/");
+  assert.equal(getArticlePath(critical), "/blog/critical-illness-insurance/critical-illness-insurance/");
+  assert.equal(getArticleCanonical(critical), "https://ccpun.com/blog/critical-illness-insurance/critical-illness-insurance/");
 });
 
 test("controlled moved article redirects point one hop to their approved terminal owner", () => {
-  const finalCritical = "/blog/critical-illness-insurance/what-is-critical-illness-insurance/";
+  const finalCritical = "/blog/critical-illness-insurance/critical-illness-insurance/";
   const moved = [
     ["life-insurance", "aia-health-happy-describe", "/blog/health-insurance/aia-health-happy-describe/"],
     ["life-insurance", "aia-health-ci-hero-guide", "/blog/health-insurance/aia-health-ci-hero-guide/"],
     ["life-insurance", "critical-illness-insurance", finalCritical],
     ["critical-illness", "critical-illness-insurance", finalCritical],
-    ["critical-illness-insurance", "critical-illness-insurance", finalCritical],
   ] as const;
 
   for (const [category, slug, target] of moved) {
@@ -86,7 +85,7 @@ test("controlled moved article redirects point one hop to their approved termina
 
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-happy-describe"), null);
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-ci-hero-guide"), null);
-  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "what-is-critical-illness-insurance"), null);
+  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "critical-illness-insurance"), null);
 });
 
 test("article schema uses Health canonical and semantic topic for Health winner pages", () => {
