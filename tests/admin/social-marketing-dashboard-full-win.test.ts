@@ -245,6 +245,10 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   assert.match(dashboard, /buildMarketingCsv/);
   assert.match(dashboard, /executiveSummary/);
   assert.match(visuals, /<svg/);
+  assert.match(visuals, /useState<string \| null>\(null\)/);
+  assert.match(visuals, /failedUrl === url/);
+  assert.match(visuals, /onError=\{\(\) => setFailedUrl\(url\)\}/);
+  assert.match(visuals, /key=\{url\}/);
   assert.doesNotMatch(dashboard + visuals, /recharts|chart\.js|echarts|highcharts|localStorage|sessionStorage/);
   assert.match(layout, /href: "\/analytics\/social\/", label: "Social"/);
 });

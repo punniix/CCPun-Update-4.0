@@ -99,6 +99,15 @@ function digest(parts: unknown[]) {
   return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 }
 
+function transientThumbnailIdentity(value: string | null) {
+  if (!value) return null;
+  try {
+    return new URL(value).pathname;
+  } catch {
+    return value;
+  }
+}
+
 function providerContentId(platform: string, providerObjectId: string) {
   return `provider-content:${digest(["meta", platform, providerObjectId])}`;
 }
@@ -134,28 +143,44 @@ async function fetchProvider(provider: z.infer<typeof socialAnalyticsProviderSch
   if (provider === "meta") {
     const discovery = await fetchMetaReadOnlyDiscovery(env, fetcher, { since, includeInsights: true, insightsBackfillLimit: 25 });
     if (!discovery.selectedPageId) throw new Error("META_PAGE_SELECTION_REQUIRED");
+    // Meta image URLs are transient CDN URLs. Incremental metric collection stays bounded to the
+    // overlap window, while a metadata-only pass refreshes old permalinks/thumbnails without
+    // turning every historical post into an Insights API request.
+    const metadataDiscovery = since === null
+      ? discovery
+      : await fetchMetaReadOnlyDiscovery(env, fetcher, { since: null, includeInsights: false });
+    if (!metadataDiscovery.selectedPageId) throw new Error("META_PAGE_SELECTION_REQUIRED");
     const linked = new Map(refs.map((item) => [`${item.platform}:${item.platformObjectId}`, item.publicationId]));
-    const providerContents = [
-      ...discovery.facebookPosts.map((item) => ({ ...item, platform: "facebook" as const, providerAccountId: discovery.selectedPageId! })),
-      ...discovery.instagramMedia.map((item) => ({ ...item, platform: "instagram" as const, providerAccountId: discovery.selectedInstagramAccountId ?? discovery.selectedPageId! })),
+    const toProviderContents = (source: Awaited<ReturnType<typeof fetchMetaReadOnlyDiscovery>>) => [
+      ...source.facebookPosts.map((item) => ({ ...item, platform: "facebook" as const, providerAccountId: source.selectedPageId! })),
+      ...source.instagramMedia.map((item) => ({ ...item, platform: "instagram" as const, providerAccountId: source.selectedInstagramAccountId ?? source.selectedPageId! })),
     ].map((item) => {
       const contentId = providerContentId(item.platform, item.id);
-      const nativeMetrics = normalizeMetaAnalytics({ publicationId: contentId, platform: item.platform, fetchedAt: discovery.fetchedAt, metrics: item.metrics }).nativeMetrics;
+      const nativeMetrics = normalizeMetaAnalytics({ publicationId: contentId, platform: item.platform, fetchedAt: source.fetchedAt, metrics: item.metrics }).nativeMetrics;
       return {
         contentId, platform: item.platform, providerAccountId: item.providerAccountId, providerObjectId: item.id,
         linkedPublicationId: linked.get(`${item.platform}:${item.id}`) ?? null,
         publishedAt: item.publishedAt, text: item.text, mediaType: item.mediaType,
-        permalink: item.permalink, thumbnailUrl: item.thumbnailUrl, nativeMetrics,
+        permalink: item.permalink, thumbnailUrl: item.thumbnailUrl, nativeMetrics, fetchedAt: source.fetchedAt,
       };
     });
-    return { discovery, matched: matchMetaHistoricalAnalytics(refs, discovery), accountId: discovery.selectedPageId, cursor: null, providerContents };
+    const providerContents = toProviderContents(metadataDiscovery);
+    const providerMetricContents = since === null ? providerContents : toProviderContents(discovery);
+    return {
+      discovery,
+      matched: matchMetaHistoricalAnalytics(refs, discovery),
+      accountId: discovery.selectedPageId,
+      cursor: null,
+      providerContents,
+      providerMetricContents,
+    };
   }
   if (provider === "youtube") {
     const discovery = await fetchYouTubeReadOnlyDiscovery(env, fetcher);
-    return { discovery, matched: matchYouTubeHistoricalAnalytics(refs, discovery), accountId: discovery.channel.id, cursor: null, providerContents: [] };
+    return { discovery, matched: matchYouTubeHistoricalAnalytics(refs, discovery), accountId: discovery.channel.id, cursor: null, providerContents: [], providerMetricContents: [] };
   }
   const discovery = await fetchTikTokReadOnlyDiscovery(env, fetcher);
-  return { discovery, matched: matchTikTokHistoricalAnalytics(refs, discovery), accountId: discovery.profile.openId, cursor: discovery.nextCursor === null ? null : String(discovery.nextCursor), providerContents: [] };
+  return { discovery, matched: matchTikTokHistoricalAnalytics(refs, discovery), accountId: discovery.profile.openId, cursor: discovery.nextCursor === null ? null : String(discovery.nextCursor), providerContents: [], providerMetricContents: [] };
 }
 
 export async function syncSocialHistoricalAnalytics(input: {
@@ -180,7 +205,7 @@ export async function syncSocialHistoricalAnalytics(input: {
   ));
   const platforms = provider === "meta" ? new Set(["facebook", "instagram"]) : new Set([provider]);
   const relevant = publications.filter((publication) => platforms.has(publication.platform));
-  const { discovery, matched, accountId, cursor, providerContents } = await fetchProvider(provider, relevant, env, input.fetcher ?? fetch, since);
+  const { discovery, matched, accountId, cursor, providerContents, providerMetricContents } = await fetchProvider(provider, relevant, env, input.fetcher ?? fetch, since);
   const publishedAt = new Map(relevant.map((publication) => [publication.publication_id, publication.published_at.getTime()]));
   const objectIds = new Map(relevant.map((publication) => [publication.publication_id, publication.platform_object_id]));
   const candidates = matched.snapshots.filter((snapshot) => Date.parse(snapshot.fetchedAt) >= (publishedAt.get(snapshot.publicationId) ?? Number.POSITIVE_INFINITY));
@@ -194,8 +219,7 @@ export async function syncSocialHistoricalAnalytics(input: {
 
   await sql.transaction((transaction) => [
     ...providerContents.flatMap((content) => {
-      const contentHash = digest([content.text, content.mediaType, content.permalink, content.thumbnailUrl]);
-      const nativeMetricsHash = metricsHash(content.nativeMetrics);
+      const contentHash = digest([content.text, content.mediaType, content.permalink, transientThumbnailIdentity(content.thumbnailUrl)]);
       return [
         transaction.query(
           `INSERT INTO ccpun_social.social_provider_content
@@ -207,23 +231,26 @@ export async function syncSocialHistoricalAnalytics(input: {
              permalink_url=EXCLUDED.permalink_url,thumbnail_url=EXCLUDED.thumbnail_url,
              latest_content_hash=EXCLUDED.latest_content_hash,last_seen_at=EXCLUDED.last_seen_at,updated_at=now()`,
           [content.contentId, content.platform, content.providerAccountId, content.providerObjectId, content.linkedPublicationId,
-            content.publishedAt, content.text, content.mediaType, content.permalink, content.thumbnailUrl, contentHash, discovery.fetchedAt],
+            content.publishedAt, content.text, content.mediaType, content.permalink, content.thumbnailUrl, contentHash, content.fetchedAt],
         ),
         transaction.query(
           `INSERT INTO ccpun_social.social_provider_content_revision
            (id,content_id,content_hash,captured_at,text_content,media_type,permalink_url,thumbnail_url)
            VALUES ($1,$2,$3,$4::timestamptz,$5,$6,$7,$8) ON CONFLICT (content_id,content_hash) DO NOTHING`,
-          [`provider-revision:${digest([content.contentId, contentHash])}`, content.contentId, contentHash, discovery.fetchedAt,
+          [`provider-revision:${digest([content.contentId, contentHash])}`, content.contentId, contentHash, content.fetchedAt,
             content.text, content.mediaType, content.permalink, content.thumbnailUrl],
         ),
-        transaction.query(
-          `INSERT INTO ccpun_social.social_provider_metric_snapshot
-           (id,content_id,provider,platform,provider_object_id,fetched_at,metrics_hash,native_metrics)
-           VALUES ($1,$2,'meta',$3,$4,$5::timestamptz,$6,$7::jsonb) ON CONFLICT (content_id,metrics_hash) DO NOTHING`,
-          [`provider-metric:${digest([content.contentId, nativeMetricsHash])}`, content.contentId, content.platform,
-            content.providerObjectId, discovery.fetchedAt, nativeMetricsHash, JSON.stringify(content.nativeMetrics)],
-        ),
       ];
+    }),
+    ...providerMetricContents.map((content) => {
+      const nativeMetricsHash = metricsHash(content.nativeMetrics);
+      return transaction.query(
+        `INSERT INTO ccpun_social.social_provider_metric_snapshot
+         (id,content_id,provider,platform,provider_object_id,fetched_at,metrics_hash,native_metrics)
+         VALUES ($1,$2,'meta',$3,$4,$5::timestamptz,$6,$7::jsonb) ON CONFLICT (content_id,metrics_hash) DO NOTHING`,
+        [`provider-metric:${digest([content.contentId, nativeMetricsHash])}`, content.contentId, content.platform,
+          content.providerObjectId, content.fetchedAt, nativeMetricsHash, JSON.stringify(content.nativeMetrics)],
+      );
     }),
     ...snapshots.map((snapshot) => transaction.query(
       `INSERT INTO ccpun_social.social_metric_snapshot (id,publication_id,provider,platform,platform_object_id,collection_mode,fetched_at,native_metrics,limitations)

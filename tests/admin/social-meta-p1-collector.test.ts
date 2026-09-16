@@ -142,9 +142,16 @@ test("Manual analytics discovery enriches bounded Facebook and Instagram provide
   ]);
 });
 
-test("Analytics ingestion enables P1 Insights only on manual persistence sync with bounded 25-item backfill", () => {
+test("Analytics ingestion keeps P1 Insights bounded while refreshing full Meta content metadata", () => {
   const source = read("lib/admin/social/analytics-ingestion.ts");
   assert.match(source, /fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since, includeInsights: true, insightsBackfillLimit: 25 \}\)/);
+  assert.match(source, /metadataDiscovery = since === null[\s\S]*fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since: null, includeInsights: false \}\)/);
+  assert.match(source, /providerContents = toProviderContents\(metadataDiscovery\)/);
+  assert.match(source, /providerMetricContents = since === null \? providerContents : toProviderContents\(discovery\)/);
+  assert.match(source, /matched: matchMetaHistoricalAnalytics\(refs, discovery\)/);
+  assert.match(source, /providerMetricContents\.map/);
+  assert.match(source, /function transientThumbnailIdentity[\s\S]*new URL\(value\)\.pathname/);
+  assert.match(source, /transientThumbnailIdentity\(content\.thumbnailUrl\)/);
   assert.doesNotMatch(read("app/api/admin/social/providers/meta/discovery/route.ts"), /includeInsights/);
 });
 

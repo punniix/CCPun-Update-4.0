@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- Social provider thumbnail hosts are dynamic runtime data. */
 
+import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Database, ExternalLink, Image as ImageIcon } from "lucide-react";
 import type {
   MarketingMetricUnit,
@@ -65,15 +66,16 @@ export function CoverageBadge({ rate }: { rate: number | null }) {
 
 export function PostThumbnail({ post, size = "md" }: { post: MarketingPost; size?: "sm" | "md" | "lg" }) {
   const url = safeExternalUrl(post.thumbnail);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const classes = size === "lg" ? "h-24 w-24 rounded-2xl" : size === "sm" ? "h-12 w-12 rounded-xl" : "h-16 w-16 rounded-xl";
-  if (!url) {
+  if (!url || failedUrl === url) {
     return (
       <div aria-hidden="true" className={`flex shrink-0 items-center justify-center border border-white/10 bg-white/[0.04] text-white/35 ${classes}`}>
         <ImageIcon className={size === "lg" ? "h-7 w-7" : "h-5 w-5"} />
       </div>
     );
   }
-  return <img src={url} alt="" loading="lazy" referrerPolicy="no-referrer" className={`shrink-0 border border-white/10 object-cover ${classes}`} />;
+  return <img key={url} src={url} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailedUrl(url)} className={`shrink-0 border border-white/10 object-cover ${classes}`} />;
 }
 
 export function PostIdentity({ post, compact = false }: { post: MarketingPost; compact?: boolean }) {
