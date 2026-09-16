@@ -1,0 +1,138 @@
+name: CCPun Monorepo Shadow Bootstrap
+
+on:
+  push:
+    branches: [architecture/vercel-monorepo-isolation-20260917]
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Use Node 24
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Create shadow application roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf apps/web apps/admin
+          mkdir -p apps/web/app apps/admin/app apps/admin/public
+
+          cp -R app/blog app/ci-planning app/cookie-policy app/privacy app/sitemap.xml app/sitemaps app/tools apps/web/app/
+          cp app/page.tsx app/not-found.tsx app/robots.ts app/layout.tsx apps/web/app/
+
+          cp -R 'app/(control-plane)' 'app/(control-plane-auth)' 'app/(control-plane-error)' apps/admin/app/
+          mkdir -p apps/admin/app/api
+          cp -R app/api/admin app/api/auth app/api/preview apps/admin/app/api/
+          cp -R app/studio apps/admin/app/
+          cp -R app/blog apps/admin/app/
+          cp app/robots.ts app/layout.tsx apps/admin/app/
+
+          cat > apps/web/app/globals.css <<'EOF'
+          @import "../../../app/globals.css";
+          EOF
+          cat > apps/admin/app/globals.css <<'EOF'
+          @import "../../../app/globals.css";
+          EOF
+
+          cat > apps/admin/app/page.tsx <<'EOF'
+          import { redirect } from "next/navigation";
+          import { auth } from "@/auth";
+
+          export const dynamic = "force-dynamic";
+
+          export default async function AdminEntryPage() {
+            const session = await auth();
+            redirect(session?.user?.role ? "/dashboard/" : "/login/");
+          }
+          EOF
+
+          if [ -f public/favicon.png ]; then cp public/favicon.png apps/admin/public/favicon.png; fi
+          ln -s ../../public apps/web/public
+
+          cp postcss.config.mjs apps/web/postcss.config.mjs
+          cp postcss.config.mjs apps/admin/postcss.config.mjs
+          cp proxy.ts apps/web/proxy.ts
+          cp proxy.ts apps/admin/proxy.ts
+
+          python <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path('.')
+          pkg_path = root / 'package.json'
+          pkg = json.loads(pkg_path.read_text())
+          pkg['private'] = True
+          pkg['workspaces'] = ['apps/*', 'packages/*']
+          scripts = pkg.setdefault('scripts', {})
+          scripts['build:web:shadow'] = 'npm run build --workspace @ccpun/web'
+          scripts['build:admin:shadow'] = 'npm run build --workspace @ccpun/admin'
+          scripts['typecheck:web:shadow'] = 'tsc -p apps/web/tsconfig.json --noEmit --incremental false'
+          scripts['typecheck:admin:shadow'] = 'tsc -p apps/admin/tsconfig.json --noEmit --incremental false'
+          pkg_path.write_text(json.dumps(pkg, indent=2, ensure_ascii=False) + '\n')
+
+          versions = {name: pkg['dependencies'][name] for name in ('next', 'react', 'react-dom')}
+          for role, name in [('web', '@ccpun/web'), ('admin', '@ccpun/admin')]:
+              app_pkg = {
+                  'name': name,
+                  'version': '1.0.0',
+                  'private': True,
+                  'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start'},
+                  'dependencies': versions,
+                  'engines': {'node': '24.x'},
+              }
+              Path(f'apps/{role}/package.json').write_text(json.dumps(app_pkg, indent=2) + '\n')
+
+              tsconfig = {
+                  'extends': '../../tsconfig.json',
+                  'compilerOptions': {
+                      'baseUrl': '../..',
+                      'paths': {'@/*': ['./*']},
+                      'incremental': True,
+                      'tsBuildInfoFile': '.next/cache/tsconfig.tsbuildinfo',
+                  },
+                  'include': ['next-env.d.ts', 'app/**/*.ts', 'app/**/*.tsx', 'proxy.ts', '.next/types/**/*.ts', '.next/dev/types/**/*.ts'],
+                  'exclude': ['node_modules'],
+              }
+              Path(f'apps/{role}/tsconfig.json').write_text(json.dumps(tsconfig, indent=2) + '\n')
+              Path(f'apps/{role}/next-env.d.ts').write_text('/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n\n// NOTE: This file should not be edited.\n')
+
+          base = Path('next.config.ts').read_text()
+          for role in ('web', 'admin'):
+              config = base.replace('import type { NextConfig } from "next";\n', 'import type { NextConfig } from "next";\nimport path from "node:path";\n')
+              config = config.replace('from "./lib/', 'from "../../lib/')
+              config = config.replace('root: process.cwd(),', 'root: path.resolve(process.cwd(), "../.."),')
+              config = config.replace('? "./components/preview/DraftPreviewRuntime.tsx"', '? path.resolve(process.cwd(), "../..", "components/preview/DraftPreviewRuntime.tsx")')
+              config = config.replace(': "./components/preview/DraftPreviewRuntimeNoop.tsx",', ': path.resolve(process.cwd(), "../..", "components/preview/DraftPreviewRuntimeNoop.tsx"),')
+              Path(f'apps/{role}/next.config.ts').write_text(config)
+          PY
+
+          rm .github/workflows/monorepo-shadow-bootstrap.yml
+          npm install --package-lock-only --ignore-scripts
+          git diff --check
+
+      - name: Commit shadow application roots
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "architecture: add shadow Web and Admin application roots"
+          git push origin "HEAD:${HEAD_REF}"
