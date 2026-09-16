@@ -34,10 +34,10 @@ function escapeRegExp(value) {
 }
 
 const globalsSource = readFileSync('app/globals.css', 'utf8');
-const ownedGlobalCssPaths = [
-  'components/styles/public-compat.css',
-  'components/styles/public-motion.css',
-  'features/financial-health-check/styles/print.css',
+const globalStylesheets = [
+  { path: 'components/styles/public-compat.css', role: 'base' },
+  { path: 'components/styles/public-motion.css', role: 'base' },
+  { path: 'features/financial-health-check/styles/print.css', role: 'contextual' },
 ];
 const requiredGlobalImports = [
   '@import "../components/styles/public-compat.css";',
@@ -55,17 +55,23 @@ if (trackedFileSet.has('app/components.css') || globalsSource.includes('./compon
 }
 
 const globalClassOwners = new Map();
-for (const cssPath of ownedGlobalCssPaths) {
-  if (!trackedFileSet.has(cssPath)) throw new Error(`Missing owned global stylesheet: ${cssPath}`);
-  const css = readFileSync(cssPath, 'utf8');
+for (const stylesheet of globalStylesheets) {
+  if (!trackedFileSet.has(stylesheet.path)) throw new Error(`Missing owned global stylesheet: ${stylesheet.path}`);
+  const css = readFileSync(stylesheet.path, 'utf8');
   for (const className of extractClasses(css)) {
     const owners = globalClassOwners.get(className) ?? [];
-    owners.push(cssPath);
+    owners.push(stylesheet);
     globalClassOwners.set(className, owners);
   }
 }
+
 const globalUnused = [...globalClassOwners.keys()].filter((className) => !hasLiteralReachableUsage(className));
-const duplicateGlobalOwners = [...globalClassOwners.entries()].filter(([, owners]) => owners.length > 1);
+const duplicateBaseOwners = [...globalClassOwners.entries()].filter(([, owners]) => owners.filter((owner) => owner.role === 'base').length > 1);
+const orphanContextualOverrides = [...globalClassOwners.entries()].filter(([, owners]) => {
+  const hasContextual = owners.some((owner) => owner.role === 'contextual');
+  const hasBase = owners.some((owner) => owner.role === 'base');
+  return hasContextual && !hasBase;
+});
 
 const moduleCssPath = 'components/layout/website-43/Website43.module.css';
 const moduleCss = readFileSync(moduleCssPath, 'utf8');
@@ -111,10 +117,11 @@ console.log('PUBLIC_STYLE_OWNERSHIP_AUDIT');
 console.log(`runtime_files=${runtimeFiles.length}`);
 console.log(`route_entries=${entryFiles.length}`);
 console.log(`reachable_runtime_files=${reachable.size}`);
-console.log(`owned_global_stylesheets=${ownedGlobalCssPaths.length}`);
+console.log(`owned_global_stylesheets=${globalStylesheets.length}`);
 console.log(`global_class_selectors=${globalClassOwners.size}`);
 console.log(`global_zero_reachable_reference=${globalUnused.length}`);
-console.log(`global_duplicate_owners=${duplicateGlobalOwners.length}`);
+console.log(`global_duplicate_base_owners=${duplicateBaseOwners.length}`);
+console.log(`global_orphan_contextual_overrides=${orphanContextualOverrides.length}`);
 console.log(`website43_module_classes=${moduleClasses.length}`);
 console.log(`website43_importers=${moduleImporters.length}`);
 console.log(`website43_dynamic_access=${dynamicModuleAccess.length}`);
@@ -127,9 +134,17 @@ console.log('WEBSITE43_ZERO_REFERENCE_END');
 if (globalUnused.length > 0) {
   throw new Error(`Owned global CSS has ${globalUnused.length} class selector(s) with no reachable runtime reference: ${globalUnused.join(', ')}`);
 }
-if (duplicateGlobalOwners.length > 0) {
-  const detail = duplicateGlobalOwners.map(([name, owners]) => `${name}: ${owners.join(' + ')}`).join('; ');
-  throw new Error(`Global class ownership is ambiguous: ${detail}`);
+if (duplicateBaseOwners.length > 0) {
+  const detail = duplicateBaseOwners
+    .map(([name, owners]) => `${name}: ${owners.filter((owner) => owner.role === 'base').map((owner) => owner.path).join(' + ')}`)
+    .join('; ');
+  throw new Error(`Global base class ownership is ambiguous: ${detail}`);
+}
+if (orphanContextualOverrides.length > 0) {
+  const detail = orphanContextualOverrides
+    .map(([name, owners]) => `${name}: ${owners.filter((owner) => owner.role === 'contextual').map((owner) => owner.path).join(' + ')}`)
+    .join('; ');
+  throw new Error(`Contextual global overrides must point to an existing base-owned class: ${detail}`);
 }
 if (dynamicModuleAccess.length > 0) {
   throw new Error('Website43.module.css uses dynamic property access; static ownership auditing is no longer safe.');
