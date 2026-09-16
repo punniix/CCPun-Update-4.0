@@ -1,0 +1,89 @@
+/*
+ * Shared Public Web motion primitives.
+ * Keep named animations here; feature-specific motion belongs with its feature.
+ */
+@keyframes glass-reflect {
+  0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  50%       { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25%       { transform: translateY(-20px) translateX(10px); }
+  50%       { transform: translateY(0) translateX(20px); }
+  75%       { transform: translateY(20px) translateX(10px); }
+}
+
+@keyframes scroll-breath {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  50%       { transform: translateX(-50%) translateY(6px); opacity: 0.62; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(197,160,89,0.3); }
+  50%       { box-shadow: 0 0 40px rgba(197,160,89,0.5); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes accent-bar-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes fhcUnlockFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fhcBarGrow {
+  from { width: 0; }
+}
+
+.hero-badge    { animation: hero-fade-up 0.4s ease both; }
+.hero-heading  { animation: hero-fade-up 0.4s ease both; }
+.hero-subtitle { animation: hero-fade-up 0.4s ease 0.1s both; }
+.hero-cta      { animation: hero-fade-up 0.4s ease 0.2s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
