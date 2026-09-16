@@ -122,14 +122,13 @@ const TOPIC_SLUG_BY_TAG: Record<string, BlogTopicSlug> = {
 };
 
 // Protected semantic identity is independent from editor metadata. Health Happy
-// and Health CI Hero own Health physical/canonical URLs. The approved Critical
-// Illness migration now gives the lump-sum topic its own physical category while
-// preserving the legacy topic slug as an alias during migration.
+// and Health CI Hero own Health physical/canonical URLs. Critical Illness follows
+// the same migration rule: preserve the article leaf slug and move only the
+// physical category owner.
 const ARTICLE_SEMANTIC_TOPIC_OVERRIDES: Record<string, BlogTopicSlug> = {
   "aia-health-happy-describe": "health-insurance",
   "aia-health-ci-hero-guide": "health-insurance",
   "critical-illness-insurance": "critical-illness-insurance",
-  "what-is-critical-illness-insurance": "critical-illness-insurance",
   "aia-vitality": "life-insurance",
 };
 
