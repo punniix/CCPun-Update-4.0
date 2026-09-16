@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import Link from "next/link";
 import { ArrowLeft, Shield } from "lucide-react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import { Website43Footer, Website43Navbar } from "@/components/layout/website-43/Website43Shared";
+import w43Styles from "@/components/layout/website-43/Website43.module.css";
+import legalStyles from "@/components/layout/website-43/Website43Legal.module.css";
 
 export const metadata: Metadata = {
   title: "นโยบายความเป็นส่วนตัว | CCPun ที่ปรึกษาทางการเงิน",
@@ -23,43 +24,38 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <>
-      <Navbar isToolPage />
-      <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pt-32 pb-16">
-      <div className="max-w-3xl mx-auto">
+    <div className={`${w43Styles.root} ${legalStyles.page}`}>
+      <Website43Navbar />
+      <main id="main-content" tabIndex={-1} className={legalStyles.main}>
+      <div className={legalStyles.inner}>
 
         {/* Back link */}
-        <div className="mb-10">
+        <div className={legalStyles.backRow}>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+            className={legalStyles.backLink}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft />
             กลับหน้าหลัก
           </Link>
         </div>
 
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-6 mx-auto"
-            style={{
-              background: "linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
-              border: "1px solid rgba(255,255,255,0.15)",
-            }}
-          >
-            <Shield className="w-7 h-7 text-primary" />
+        <div className={legalStyles.header}>
+          <div className={legalStyles.iconWrap}>
+            <Shield className={legalStyles.headerIcon} />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+          <h1 className={legalStyles.title}>
             นโยบายความเป็นส่วนตัว
           </h1>
-          <div className="section-divider mb-4" />
-          <p className="text-muted-foreground text-sm">
+          <div className={legalStyles.headerRule} />
+          <p className={legalStyles.updated}>
             อัปเดตล่าสุด: สิงหาคม 2569
           </p>
         </div>
 
         {/* Content */}
-        <div className="rounded-2xl border border-border/40 bg-card/70 p-6 sm:p-10 space-y-10">
+        <div className={legalStyles.content}>
 
           {/* Intro */}
           <p className="text-foreground leading-relaxed">
@@ -304,19 +300,19 @@ export default function PrivacyPage() {
         </div>
 
         {/* Bottom back link */}
-        <div className="mt-10 text-center">
+        <div className={legalStyles.bottomBack}>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+            className={legalStyles.backLink}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft />
             กลับหน้าหลัก
           </Link>
         </div>
 
       </div>
       </main>
-      <Footer />
-    </>
+      <Website43Footer />
+    </div>
   );
 }

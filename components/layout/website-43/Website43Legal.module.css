@@ -1,0 +1,266 @@
+.page {
+  min-height: 100vh;
+  background: var(--w43-bg);
+}
+
+.main {
+  padding: 48px 80px 64px;
+  background: var(--w43-bg);
+}
+
+.inner {
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+
+.backRow {
+  margin-bottom: 28px;
+}
+
+.backLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  color: var(--w43-muted) !important;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color .18s ease;
+}
+
+.backLink:hover,
+.backLink:focus-visible {
+  color: var(--w43-gold-bright) !important;
+  outline: none;
+}
+
+.backLink svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.header {
+  padding: 12px 0 8px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.iconWrap {
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  border: 1px solid var(--w43-border);
+  border-radius: 14px;
+  background: var(--w43-deep);
+  color: var(--w43-gold);
+}
+
+.headerIcon {
+  width: 28px;
+  height: 28px;
+}
+
+.title {
+  margin: 0;
+  color: var(--w43-ink);
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.headerRule {
+  width: 56px;
+  height: 2px;
+  margin: 20px auto 14px;
+  border-radius: 999px;
+  background: var(--w43-gold);
+}
+
+.updated {
+  margin: 0;
+  color: var(--w43-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.content {
+  padding: 36px 40px;
+  border: 1px solid var(--w43-border);
+  border-radius: 16px;
+  background: var(--w43-deep);
+  box-shadow: none;
+}
+
+.content > p:first-child {
+  margin-top: 0;
+  color: var(--w43-ink) !important;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.content section {
+  margin-top: 32px;
+}
+
+.content section + section {
+  padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, .09);
+}
+
+.content h2 {
+  margin: 0 0 10px;
+  color: var(--w43-gold-bright) !important;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.content :global(.section-divider) {
+  width: 48px !important;
+  height: 1px;
+  margin: 0 0 20px !important;
+  background: var(--w43-gold);
+  opacity: .72;
+}
+
+.content p,
+.content li,
+.content address,
+.content td,
+.content th {
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+.content :global(.text-foreground) {
+  color: var(--w43-ink) !important;
+}
+
+.content :global(.text-muted-foreground) {
+  color: var(--w43-muted) !important;
+}
+
+.content :global(.text-primary),
+.content a {
+  color: var(--w43-gold-bright) !important;
+}
+
+.content :global(.bg-primary) {
+  background: var(--w43-gold) !important;
+}
+
+.content :global(.text-gold-gradient) {
+  color: var(--w43-gold-bright) !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.content ul {
+  margin-top: 0;
+  padding-left: 0;
+}
+
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.content tbody tr + tr {
+  border-top-color: rgba(255, 255, 255, .09) !important;
+}
+
+.policyCard {
+  margin-bottom: 14px !important;
+  border: 1px solid var(--w43-border) !important;
+  border-radius: 12px !important;
+  background: var(--w43-bg) !important;
+}
+
+.policyCard:last-child {
+  margin-bottom: 0 !important;
+}
+
+.bottomBack {
+  margin-top: 28px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .main {
+    padding: 36px 32px 56px;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 28px 20px 48px;
+  }
+
+  .backRow {
+    margin-bottom: 18px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .iconWrap {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 16px;
+  }
+
+  .title {
+    font-size: 32px;
+  }
+
+  .content {
+    padding: 26px 22px;
+    border-radius: 14px;
+  }
+
+  .content > p:first-child {
+    font-size: 16px;
+  }
+
+  .content section {
+    margin-top: 28px;
+  }
+
+  .content section + section {
+    padding-top: 26px;
+  }
+
+  .content h2 {
+    font-size: 20px;
+  }
+
+  .content p,
+  .content li,
+  .content address,
+  .content td,
+  .content th {
+    font-size: 14px;
+  }
+
+  .content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .policyCard {
+    padding: 18px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backLink {
+    transition: none;
+  }
+}

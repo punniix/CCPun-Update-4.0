@@ -122,3 +122,32 @@ test('Blog category filter is a compact publication-style dropdown with stable l
   assert.match(css, /\.articleGrid \{ position: relative; z-index: 1; \}/);
   assert.match(css, /@media \(max-width: 639px\) \{[\s\S]*?\.categoryMenu \{ width: 100%; \}[\s\S]*?\.categoryMenuPanel \{ width: 100%; \}/);
 });
+
+test('Privacy and Cookie Policy use the Production Website 4.3 shell while preserving legal and SEO contracts', () => {
+  const privacy = read('app/privacy/page.tsx');
+  const cookiePolicy = read('app/cookie-policy/page.tsx');
+  const legalCss = read('components/layout/website-43/Website43Legal.module.css');
+
+  for (const source of [privacy, cookiePolicy]) {
+    assert.match(source, /Website43Navbar/);
+    assert.match(source, /Website43Footer/);
+    assert.match(source, /w43Styles\.root/);
+    assert.match(source, /legalStyles\.content/);
+    assert.doesNotMatch(source, /components\/layout\/Navbar/);
+    assert.doesNotMatch(source, /components\/layout\/Footer/);
+  }
+
+  assert.match(privacy, /canonical: "https:\/\/ccpun\.com\/privacy\/"/);
+  assert.match(cookiePolicy, /canonical: "https:\/\/ccpun\.com\/cookie-policy\/"/);
+  assert.match(privacy, /ภายใต้พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ\.ศ\. 2562 \(PDPA\) คุณมีสิทธิ์/);
+  assert.match(privacy, /ผู้ควบคุมข้อมูลส่วนบุคคลของเว็บไซต์นี้คือ/);
+  assert.match(cookiePolicy, /Google Analytics 4 \(GA4\) และ Google Tag Manager \(GTM\)/);
+  assert.match(cookiePolicy, /Meta Pixel เพื่อการวัดผลและการตลาด/);
+  assert.match(cookiePolicy, /คุณควบคุมการใช้คุกกี้ได้ 3 วิธี/);
+
+  assert.match(legalCss, /background: var\(--w43-bg\)/);
+  assert.match(legalCss, /border: 1px solid var\(--w43-border\)/);
+  assert.match(legalCss, /color: var\(--w43-gold-bright\)/);
+  assert.match(legalCss, /@media \(max-width: 640px\)/);
+  assert.match(legalCss, /overflow-x: auto/);
+});
