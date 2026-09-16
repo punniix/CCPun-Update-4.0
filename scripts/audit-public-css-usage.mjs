@@ -149,6 +149,9 @@ if (orphanContextualOverrides.length > 0) {
 if (dynamicModuleAccess.length > 0) {
   throw new Error('Website43.module.css uses dynamic property access; static ownership auditing is no longer safe.');
 }
+if (moduleUnused.length > 0) {
+  throw new Error(`Website43.module.css has ${moduleUnused.length} class selector(s) with no reachable runtime reference: ${moduleUnused.join(', ')}`);
+}
 if (!trackedFileSet.has(canonicalResponsiveOwner) || unexpectedStyleOwners.length > 0 || styleOwnerFiles.length !== 1) {
   throw new Error(`Website 4.3 responsive runtime must have one owner only: ${canonicalResponsiveOwner}. Found: ${styleOwnerFiles.join(', ')}`);
 }

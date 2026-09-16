@@ -1,10 +1,10 @@
 'use client';
 
-import { ExternalLink, Plus, Trash2 } from 'lucide-react';
 import CurrencyInput from '@/components/ui/CurrencyInput';
-import { calcDebtNeed, calcHouseholdNeed, calcIncomeBasedNeed, calcOtherDebtNeed, calcRecoveryReserveNeed } from '@/features/ci-planning/calculator/calculator';
 import type { CIEducationPlan, CIFormData, CIRecoveryCosts } from '@/features/ci-planning/calculator/types';
-import { CI_RECOVERY_REFERENCE, CI_RECOVERY_SOURCES } from '@/features/ci-planning/recovery-evidence';
+import ExpenseObligationsSection from './ExpenseObligationsSection';
+import RecoveryReserveSection from './RecoveryReserveSection';
+import { baht, describedBy, safePlanPreview, safeRecoveryPreview, type ExpenseField, type RecoveryAmountField, type RecoveryCountField } from './StepExpenses.model';
 
 interface StepProps {
   data: CIFormData;
@@ -12,85 +12,9 @@ interface StepProps {
   errors: Record<string, string>;
 }
 
-type ExpenseField =
-  | 'monthlyIncome'
-  | 'household'
-  | 'mortgagePayment'
-  | 'mortgageInstallmentsRemaining'
-  | 'carPayment'
-  | 'carInstallmentsRemaining'
-  | 'otherDebtBalance';
-
-type RecoveryCountField = 'treatmentVisits' | 'caregiverHomeDays' | 'rehabSessions' | 'homeRehabSessions';
-type RecoveryAmountField = 'equipmentAndHomeModification' | 'otherRecoveryCosts';
-
-function baht(value: number) {
-  return `${Math.round(value).toLocaleString('th-TH')} บาท`;
-}
-
-function previewBaht(value: number | null) {
-  return value === null ? '—' : baht(value);
-}
-
-function describedBy(...ids: Array<string | false | undefined>) {
-  return ids.filter(Boolean).join(' ') || undefined;
-}
-
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return <p id={id} role="alert" tabIndex={-1} className="text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{message}</p>;
-}
-
-function previewInstallments(value: number) {
-  return Number.isInteger(value) && value >= 0 && value <= 600 ? value : 0;
-}
-
-function previewEducationSubtotal(plan: CIEducationPlan): number | null {
-  const annualCost = Number.isSafeInteger(plan.annualCost) && plan.annualCost > 0 ? plan.annualCost : 0;
-  const years = Number.isInteger(plan.yearsRemaining) && plan.yearsRemaining > 0 ? plan.yearsRemaining : 0;
-  const subtotal = annualCost * years;
-  return Number.isSafeInteger(subtotal) ? subtotal : null;
-}
-
-function RecoverySourceLink({ id, children }: { id: string; children: React.ReactNode }) {
-  const source = CI_RECOVERY_SOURCES.find((item) => item.id === id);
-  if (!source) return <>{children}</>;
-  return <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary">{children}<ExternalLink className="h-3 w-3" aria-hidden="true" /></a>;
-}
-
-function safeRecoveryPreview(recovery: CIRecoveryCosts) {
-  try { return calcRecoveryReserveNeed(recovery); }
-  catch { return { treatmentVisits: 0, caregiverHomeDays: 0, rehabSessions: 0, homeRehabSessions: 0, visitNeed: 0, caregiverHomeNeed: 0, rehabNeed: 0, equipmentAndHomeModification: Math.max(0, recovery.equipmentAndHomeModification || 0), otherRecoveryCosts: Math.max(0, recovery.otherRecoveryCosts || 0), total: 0 }; }
-}
-
-function safeAddPreview(...values: number[]) {
-  const total = values.reduce((sum, value) => sum + value, 0);
-  if (!Number.isSafeInteger(total) || total < 0) throw new RangeError('preview total exceeds the safe integer range');
-  return total;
-}
-
-function safePlanPreview(expenses: CIFormData['expenses'], recoveryReserveNeed: number) {
-  try {
-    const { educationPlans, reserveYears } = expenses;
-    const householdNeed = calcHouseholdNeed(expenses.household, reserveYears);
-    let educationNeed = 0;
-    for (const plan of educationPlans) {
-      const subtotal = previewEducationSubtotal(plan);
-      if (subtotal === null) throw new RangeError('education preview exceeds the safe integer range');
-      educationNeed = safeAddPreview(educationNeed, subtotal);
-    }
-    const mortgageDebtNeed = calcDebtNeed(expenses.mortgagePayment, previewInstallments(expenses.mortgageInstallmentsRemaining), reserveYears);
-    const carDebtNeed = calcDebtNeed(expenses.carPayment, previewInstallments(expenses.carInstallmentsRemaining), reserveYears);
-    const otherDebtBalance = calcOtherDebtNeed(expenses.otherDebtBalance);
-    const debtNeed = safeAddPreview(mortgageDebtNeed, carDebtNeed, otherDebtBalance);
-    const expenseBaseNeed = safeAddPreview(householdNeed, educationNeed, debtNeed);
-    const incomeBaseNeed = calcIncomeBasedNeed(expenses.monthlyIncome, reserveYears);
-    const expenseTotalNeed = expenseBaseNeed > 0 ? safeAddPreview(expenseBaseNeed, recoveryReserveNeed) : 0;
-    const incomeTotalNeed = incomeBaseNeed > 0 ? safeAddPreview(incomeBaseNeed, recoveryReserveNeed) : 0;
-    return { householdNeed, educationNeed, debtNeed, expenseBaseNeed, incomeBaseNeed, expenseTotalNeed, incomeTotalNeed };
-  } catch {
-    return null;
-  }
 }
 
 export default function StepExpenses({ data, updateData, errors }: StepProps) {
@@ -154,69 +78,28 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
 
     {errors.expenses && <p id="ci-expenses-error" role="alert" tabIndex={-1} className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.expenses}</p>}
 
-    <details open={hasAdvancedData} className="group border-t border-white/10 pt-4">
-      <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">เพิ่มภาระอื่น: ค่าเรียนและหนี้ (ถ้ามี)</summary>
-      <div className="mt-5 space-y-7">
-        <section aria-labelledby="ci-education-title">
-          <div className="flex items-end justify-between gap-3"><div><h4 id="ci-education-title" className="text-sm font-medium text-foreground">แผนการศึกษาบุตร</h4><p className="mt-1 text-xs leading-5 text-white/45">เพิ่มแยกเป็นรายคนได้</p></div><button type="button" onClick={handleAddEducationPlan} className="glass-button inline-flex min-h-10 items-center gap-2 px-3 text-sm"><Plus className="h-4 w-4" aria-hidden="true" />เพิ่มบุตร</button></div>
-          {educationPlans.length ? <div className="mt-4 space-y-5">{educationPlans.map((plan, index) => {
-            const annualCostError = errors[`educationPlans.${index}.annualCost`];
-            const yearsError = errors[`educationPlans.${index}.yearsRemaining`];
-            const annualCostId = `ci-education-${index}-annual-cost`;
-            const yearsId = `ci-education-${index}-years`;
-            return <fieldset key={index} className="rounded-xl border border-white/10 p-4"><legend className="flex w-full items-center justify-between gap-3 px-1 text-sm font-medium"><span>บุตรคนที่ {index + 1}</span><button type="button" onClick={() => handleRemoveEducationPlan(index)} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-white/45 hover:bg-destructive/10 hover:text-destructive" aria-label={`ลบแผนการศึกษาบุตรคนที่ ${index + 1}`}><Trash2 className="h-4 w-4" aria-hidden="true" /></button></legend><div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label htmlFor={annualCostId} className="text-xs text-white/55">ค่าใช้จ่ายต่อปี</label><CurrencyInput id={annualCostId} value={plan.annualCost} onChange={(value) => handleEducationPlan(index, 'annualCost', value)} placeholder="เช่น 60,000" error={Boolean(annualCostError)} aria-describedby={annualCostError ? `${annualCostId}-error` : undefined} /><FieldError id={`${annualCostId}-error`} message={annualCostError} /></div><div className="space-y-2"><label htmlFor={yearsId} className="text-xs text-white/55">เหลืออีกกี่ปี</label><input id={yearsId} type="number" inputMode="numeric" min={1} max={30} step={1} value={plan.yearsRemaining || ''} onChange={(event) => handleEducationYears(index, event)} placeholder="เช่น 10" aria-invalid={Boolean(yearsError) || undefined} aria-describedby={describedBy(`${yearsId}-help`, yearsError && `${yearsId}-error`)} className={`h-12 w-full rounded-md border bg-background/50 px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${yearsError ? 'border-destructive' : 'border-border/50'}`} /><p id={`${yearsId}-help`} className="text-xs text-white/45">1–30 ปี</p><FieldError id={`${yearsId}-error`} message={yearsError} /></div></div><p className="mt-3 text-xs text-white/45">รวมคนนี้: <strong className="font-medium text-foreground">{previewBaht(previewEducationSubtotal(plan))}</strong></p></fieldset>;
-          })}<p className="text-sm text-white/55">รวมทุนการศึกษา <strong className="font-semibold text-foreground">{planPreview ? baht(planPreview.educationNeed) : '—'}</strong></p></div> : <p className="mt-3 text-xs text-white/40">ไม่มีข้อมูลส่วนนี้ก็ข้ามได้</p>}
-        </section>
+    <ExpenseObligationsSection
+      open={hasAdvancedData}
+      educationPlans={educationPlans}
+      expenses={expenses}
+      errors={errors}
+      planPreview={planPreview}
+      handleAddEducationPlan={handleAddEducationPlan}
+      handleEducationPlan={handleEducationPlan}
+      handleEducationYears={handleEducationYears}
+      handleRemoveEducationPlan={handleRemoveEducationPlan}
+      handleExpense={handleExpense}
+      handleInstallments={handleInstallments}
+    />
 
-        <section aria-labelledby="ci-debt-title" className="border-t border-white/10 pt-5">
-          <h4 id="ci-debt-title" className="text-sm font-medium text-foreground">ภาระหนี้</h4>
-          <div className="mt-4 grid gap-5 sm:grid-cols-2">
-            <div className="space-y-2"><label htmlFor="ci-mortgage-payment" className="text-xs text-white/55">ค่างวดบ้าน/เดือน</label><CurrencyInput id="ci-mortgage-payment" value={expenses.mortgagePayment} onChange={(value) => handleExpense('mortgagePayment', value)} placeholder="15,000" error={Boolean(errors.mortgagePayment)} aria-describedby={errors.mortgagePayment ? 'ci-mortgage-payment-error' : undefined} /><FieldError id="ci-mortgage-payment-error" message={errors.mortgagePayment} /></div>
-            <div className="space-y-2"><label htmlFor="ci-mortgage-installments" className="text-xs text-white/55">งวดบ้านที่เหลือ</label><input id="ci-mortgage-installments" type="number" inputMode="numeric" min={0} max={600} step={1} value={expenses.mortgageInstallmentsRemaining || ''} onChange={(event) => handleInstallments('mortgageInstallmentsRemaining', event)} placeholder="60" aria-invalid={Boolean(errors.mortgageInstallmentsRemaining) || undefined} aria-describedby={describedBy('ci-mortgage-installments-help', errors.mortgageInstallmentsRemaining && 'ci-mortgage-installments-error')} className={`h-12 w-full rounded-md border bg-background/50 px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.mortgageInstallmentsRemaining ? 'border-destructive' : 'border-border/50'}`} /><p id="ci-mortgage-installments-help" className="text-xs text-white/45">0–600 งวด</p><FieldError id="ci-mortgage-installments-error" message={errors.mortgageInstallmentsRemaining} /></div>
-            <div className="space-y-2"><label htmlFor="ci-car-payment" className="text-xs text-white/55">ค่างวดรถ/เดือน</label><CurrencyInput id="ci-car-payment" value={expenses.carPayment} onChange={(value) => handleExpense('carPayment', value)} placeholder="8,000" error={Boolean(errors.carPayment)} aria-describedby={errors.carPayment ? 'ci-car-payment-error' : undefined} /><FieldError id="ci-car-payment-error" message={errors.carPayment} /></div>
-            <div className="space-y-2"><label htmlFor="ci-car-installments" className="text-xs text-white/55">งวดรถที่เหลือ</label><input id="ci-car-installments" type="number" inputMode="numeric" min={0} max={600} step={1} value={expenses.carInstallmentsRemaining || ''} onChange={(event) => handleInstallments('carInstallmentsRemaining', event)} placeholder="36" aria-invalid={Boolean(errors.carInstallmentsRemaining) || undefined} aria-describedby={describedBy('ci-car-installments-help', errors.carInstallmentsRemaining && 'ci-car-installments-error')} className={`h-12 w-full rounded-md border bg-background/50 px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.carInstallmentsRemaining ? 'border-destructive' : 'border-border/50'}`} /><p id="ci-car-installments-help" className="text-xs text-white/45">0–600 งวด</p><FieldError id="ci-car-installments-error" message={errors.carInstallmentsRemaining} /></div>
-          </div>
-          <div className="mt-5 space-y-2"><label htmlFor="ci-other-debt-balance" className="text-xs text-white/55">หนี้อื่นๆ คงเหลือทั้งหมด</label><CurrencyInput id="ci-other-debt-balance" value={expenses.otherDebtBalance} onChange={(value) => handleExpense('otherDebtBalance', value)} placeholder="เช่น 100,000" error={Boolean(errors.otherDebtBalance)} aria-describedby={describedBy('ci-other-debt-balance-help', errors.otherDebtBalance && 'ci-other-debt-balance-error')} /><p id="ci-other-debt-balance-help" className="text-xs leading-5 text-white/45">รวมบัตรเครดิต สินเชื่อส่วนบุคคล หรือหนี้อื่นแล้วกรอกครั้งเดียว</p><FieldError id="ci-other-debt-balance-error" message={errors.otherDebtBalance} /></div>
-          <p className="mt-4 text-xs leading-5 text-white/45">ค่างวดบ้านและรถนับตามงวดที่เหลือภายในช่วงที่เลือก ส่วนหนี้อื่นนับจากยอดคงเหลือครั้งเดียว</p>
-        </section>
-      </div>
-    </details>
-
-    <details open={hasRecoveryData} className="group border-t border-white/10 pt-4" data-ui="ci-recovery-reserve">
-      <summary className="cursor-pointer py-2 text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ค่าใช้จ่ายช่วงรักษาและพักฟื้น (Recovery Reserve)</summary>
-      <div className="mt-5 space-y-6">
-        <p className="text-xs leading-5 text-white/60">ส่วนนี้เป็นประมาณการจากข้อมูล research สำหรับค่าใช้จ่ายนอกโรงพยาบาล คำนวณเป็นก้อนแยกเพื่อให้เห็นที่มาชัดเจน แล้วบวกเพิ่ม 1 ครั้งในยอดรวมของแต่ละวิธีที่มีฐานข้อมูล ระบบไม่ตั้งยอดมาตรฐานให้ทุกคน จำนวนครั้ง/วันและค่าใช้จ่ายเริ่มที่ 0 จนกว่าคุณจะกรอกเอง</p>
-
-        <section className="space-y-3" aria-labelledby="ci-recovery-visits-title">
-          <h4 id="ci-recovery-visits-title" className="text-sm font-medium text-foreground">ค่าใช้จ่ายต่อครั้งที่ไปรักษา/ติดตาม</h4>
-          <p className="text-xs leading-5 text-white/60">อ้างอิงงานวิจัยไทยปี 2025: เดินทาง {baht(CI_RECOVERY_REFERENCE.treatmentVisit.transport)} + อาหาร {baht(CI_RECOVERY_REFERENCE.treatmentVisit.food)} + ค่ารักษาเพิ่มนอกสิทธิ {baht(CI_RECOVERY_REFERENCE.treatmentVisit.additionalMedicalOutOfPocket)} + รายได้ผู้ดูแลที่หายไป {baht(CI_RECOVERY_REFERENCE.treatmentVisit.caregiverLostIncome)} = <strong className="text-foreground">{baht(CI_RECOVERY_REFERENCE.treatmentVisit.total)}/ครั้ง</strong> · <RecoverySourceLink id="thai-breast-cancer-cost-2025">ที่มา</RecoverySourceLink></p>
-          <div className="space-y-2"><label htmlFor="ci-recovery-treatment-visits" className="text-xs text-white/65">คาดว่าจะมีค่าใช้จ่ายลักษณะนี้กี่ครั้ง</label><input id="ci-recovery-treatment-visits" type="number" inputMode="numeric" min={0} max={100} step={1} value={recovery.treatmentVisits || ''} onChange={(event) => handleRecoveryCount('treatmentVisits', event)} placeholder="0" aria-invalid={Boolean(errors['recovery.treatmentVisits']) || undefined} className="h-12 w-full rounded-md border border-border/50 bg-background/50 px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><FieldError id="ci-recovery-treatment-visits-error" message={errors['recovery.treatmentVisits']} /></div>
-          <p className="text-xs text-white/60">รวมส่วนนี้ <strong className="text-foreground">{baht(recoveryPreview.visitNeed)}</strong></p>
-        </section>
-
-        <section className="space-y-3 border-t border-white/10 pt-5" aria-labelledby="ci-recovery-caregiver-title">
-          <h4 id="ci-recovery-caregiver-title" className="text-sm font-medium text-foreground">ผู้ดูแลที่ต้องหยุดงานมาดูแลที่บ้าน</h4>
-          <p className="text-xs leading-5 text-white/60">งานวิจัยไทยปี 2025 พบรายได้ผู้ดูแลที่หายไปจากการดูแลที่บ้านเฉลี่ย <strong className="text-foreground">{baht(CI_RECOVERY_REFERENCE.caregiverHomePerDay)}/วัน</strong> · <RecoverySourceLink id="thai-breast-cancer-cost-2025">ที่มา</RecoverySourceLink></p>
-          <div className="space-y-2"><label htmlFor="ci-recovery-caregiver-days" className="text-xs text-white/65">คาดว่าจะกระทบกี่วัน</label><input id="ci-recovery-caregiver-days" type="number" inputMode="numeric" min={0} max={730} step={1} value={recovery.caregiverHomeDays || ''} onChange={(event) => handleRecoveryCount('caregiverHomeDays', event)} placeholder="0" aria-invalid={Boolean(errors['recovery.caregiverHomeDays']) || undefined} className="h-12 w-full rounded-md border border-border/50 bg-background/50 px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><FieldError id="ci-recovery-caregiver-days-error" message={errors['recovery.caregiverHomeDays']} /></div>
-          <p className="text-xs text-white/60">รวมส่วนนี้ <strong className="text-foreground">{baht(recoveryPreview.caregiverHomeNeed)}</strong></p>
-        </section>
-
-        <section className="space-y-3 border-t border-white/10 pt-5" aria-labelledby="ci-recovery-rehab-title">
-          <h4 id="ci-recovery-rehab-title" className="text-sm font-medium text-foreground">กายภาพ/ฟื้นฟู</h4>
-          <p className="text-xs leading-5 text-white/60">benchmark สปสช. ปี 2569: {baht(CI_RECOVERY_REFERENCE.rehabilitation.perSession)}/ครั้ง และถ้าให้บริการที่บ้านเพิ่ม {baht(CI_RECOVERY_REFERENCE.rehabilitation.homeServiceAddOnPerSession)}/ครั้ง ภายใต้กรอบไม่เกิน {CI_RECOVERY_REFERENCE.rehabilitation.benchmarkSessionLimit} ครั้ง · <RecoverySourceLink id="nhso-rehab-2026">ที่มา</RecoverySourceLink> (เป็นอัตราจ่ายบริการภาครัฐ ไม่ใช่ราคาคลินิกเอกชน)</p>
-          <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label htmlFor="ci-recovery-rehab-sessions" className="text-xs text-white/65">จำนวนครั้งกายภาพทั้งหมด</label><input id="ci-recovery-rehab-sessions" type="number" inputMode="numeric" min={0} max={20} step={1} value={recovery.rehabSessions || ''} onChange={(event) => handleRecoveryCount('rehabSessions', event)} placeholder="0" aria-invalid={Boolean(errors['recovery.rehabSessions']) || undefined} className="h-12 w-full rounded-md border border-border/50 bg-background/50 px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><FieldError id="ci-recovery-rehab-sessions-error" message={errors['recovery.rehabSessions']} /></div><div className="space-y-2"><label htmlFor="ci-recovery-home-rehab-sessions" className="text-xs text-white/65">ในนี้เป็นบริการที่บ้านกี่ครั้ง</label><input id="ci-recovery-home-rehab-sessions" type="number" inputMode="numeric" min={0} max={20} step={1} value={recovery.homeRehabSessions || ''} onChange={(event) => handleRecoveryCount('homeRehabSessions', event)} placeholder="0" aria-invalid={Boolean(errors['recovery.homeRehabSessions']) || undefined} className="h-12 w-full rounded-md border border-border/50 bg-background/50 px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><FieldError id="ci-recovery-home-rehab-sessions-error" message={errors['recovery.homeRehabSessions']} /></div></div>
-          <p className="text-xs text-white/60">รวมส่วนนี้ <strong className="text-foreground">{baht(recoveryPreview.rehabNeed)}</strong></p>
-        </section>
-
-        <section className="space-y-3 border-t border-white/10 pt-5" aria-labelledby="ci-recovery-manual-title">
-          <h4 id="ci-recovery-manual-title" className="text-sm font-medium text-foreground">อุปกรณ์ / ปรับบ้าน / ค่าใช้จ่ายอื่น</h4>
-          <p className="text-xs leading-5 text-white/60">กรอกตามสถานการณ์จริง ระบบไม่เติมให้เอง ปัจจุบันโครงการปรับบ้านผู้สูงอายุของกรมกิจการผู้สูงอายุปี 2568 ใช้วงเงินสนับสนุนอ้างอิงสูงสุด <strong className="text-foreground">{baht(CI_RECOVERY_REFERENCE.homeModificationPublicProgramCeiling)}</strong>/หลัง · <RecoverySourceLink id="dop-home-2025">ที่มา</RecoverySourceLink> ซึ่งไม่ใช่ราคาตลาด</p>
-          <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label htmlFor="ci-recovery-equipment-home" className="text-xs text-white/65">อุปกรณ์และ/หรือปรับบ้าน</label><CurrencyInput id="ci-recovery-equipment-home" value={recovery.equipmentAndHomeModification} onChange={(value) => handleRecoveryAmount('equipmentAndHomeModification', value)} placeholder="กรอกตามที่คาด" error={Boolean(errors['recovery.equipmentAndHomeModification'])} /></div><div className="space-y-2"><label htmlFor="ci-recovery-other" className="text-xs text-white/65">ค่าใช้จ่ายช่วงพักฟื้นอื่น</label><CurrencyInput id="ci-recovery-other" value={recovery.otherRecoveryCosts} onChange={(value) => handleRecoveryAmount('otherRecoveryCosts', value)} placeholder="กรอกตามที่คาด" error={Boolean(errors['recovery.otherRecoveryCosts'])} /></div></div>
-        </section>
-
-        <div className="rounded-xl border border-primary/30 bg-primary/[0.08] p-4"><p className="text-xs font-medium text-primary">Recovery Reserve จากข้อมูลที่กรอก · คำนวณแยก</p><output className="mt-1 block text-2xl font-semibold tabular-nums text-primary" aria-live="polite">{baht(recoveryPreview.total)}</output><p className="mt-2 text-xs leading-5 text-white/60">ก้อนนี้จะถูกบวกเพิ่ม 1 ครั้งในยอดรวมของแต่ละวิธีที่มีฐานข้อมูล แต่ทุนตามรายจ่ายกับทุนตามรายได้จะยังแสดงแยกกันและไม่ถูกนำมาบวกเข้าหากัน</p></div>
-      </div>
-    </details>
+    <RecoveryReserveSection
+      open={hasRecoveryData}
+      recovery={recovery}
+      errors={errors}
+      recoveryPreview={recoveryPreview}
+      handleRecoveryCount={handleRecoveryCount}
+      handleRecoveryAmount={handleRecoveryAmount}
+    />
 
     {planPreview ? <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/10 pt-4 text-xs sm:grid-cols-3 lg:grid-cols-6">
       <div><dt className="text-white/40">ครัวเรือน</dt><dd className="mt-1 font-medium text-white/80">{baht(planPreview.householdNeed)}</dd></div>

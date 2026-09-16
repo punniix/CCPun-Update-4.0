@@ -8,6 +8,7 @@ const fhcShell = read('features/financial-health-check/components/ClientFHC.tsx'
 const fhcIntro = read('features/financial-health-check/components/FHCLandingIntro.tsx');
 const ciShell = read('features/ci-planning/page.tsx');
 const ciIntro = read('features/ci-planning/components/CILandingIntro.tsx');
+const ciRecoverySection = read('features/ci-planning/components/steps/RecoveryReserveSection.tsx');
 const card = read('components/ui/HumanCalculatorCard.tsx');
 const fhcWizard = read('features/financial-health-check/components/LifeCoverageWizard.tsx');
 const ciResult = read('features/ci-planning/components/result/CIResult.tsx');
@@ -37,7 +38,7 @@ test('latest calculator content is retained while confusing duplicate framing is
   assert.doesNotMatch(ciIntro, /border-l/);
   assert.match(ciShell, /ทุนสำรองช่วงพักฟื้น · ข้อพิจารณาเพิ่มเติม/);
   assert.match(ciShell, /Recovery Reserve/);
-  assert.match(read('features/ci-planning/components/steps/StepExpenses.tsx'), /ที่มา|RecoverySourceLink/);
+  assert.match(ciRecoverySection, /ที่มา|RecoverySourceLink/);
   assert.match(ciShell, /ผลลัพธ์มี 2 มุม เลือกอ่านแยกกัน/);
   assert.match(ciShell, /ระบบแสดงแยกกันและไม่นำมาบวกกัน/);
 });

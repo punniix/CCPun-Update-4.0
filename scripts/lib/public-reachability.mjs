@@ -60,20 +60,48 @@ for (const rootEntry of ['proxy.ts', 'auth.ts']) {
   if (runtimeFileSet.has(rootEntry)) entryFiles.push(rootEntry);
 }
 
-export const reachable = new Set();
-const queue = [...new Set(entryFiles)];
-while (queue.length) {
-  const file = queue.shift();
-  if (reachable.has(file)) continue;
-  reachable.add(file);
-  for (const dependency of graph.get(file) ?? []) {
-    if (!reachable.has(dependency)) queue.push(dependency);
+export function walkReachable(roots) {
+  const found = new Set();
+  const queue = [...new Set(roots)];
+  while (queue.length) {
+    const file = queue.shift();
+    if (!runtimeFileSet.has(file) || found.has(file)) continue;
+    found.add(file);
+    for (const dependency of graph.get(file) ?? []) {
+      if (!found.has(dependency)) queue.push(dependency);
+    }
   }
+  return found;
 }
 
-export const reachableSources = [...reachable]
-  .filter((file) => sourceByFile.has(file))
-  .map((file) => [file, sourceByFile.get(file)]);
+export function sourcesFor(files) {
+  return [...files]
+    .filter((file) => sourceByFile.has(file))
+    .map((file) => [file, sourceByFile.get(file)]);
+}
+
+export const reachable = walkReachable(entryFiles);
+export const reachableSources = sourcesFor(reachable);
+
+const publicExcludedEntryPrefixes = [
+  'app/(control-plane',
+  'app/api/',
+  'app/studio/',
+  'app/login/',
+  'app/.well-known/workflow/',
+];
+
+export function isPublicPageEntry(file) {
+  return appEntryPattern.test(file) && !publicExcludedEntryPrefixes.some((prefix) => file.startsWith(prefix));
+}
+
+// Public page reachability deliberately excludes Proxy/Auth/Admin/Studio/API roots.
+// This graph answers “what can the user-facing site render/import?” rather than
+// “what can any route in this repository import?”. Request-boundary infrastructure
+// can be audited separately without contaminating Public component ownership.
+export const publicEntryFiles = entryFiles.filter(isPublicPageEntry);
+export const publicReachable = walkReachable(publicEntryFiles);
+export const publicReachableSources = sourcesFor(publicReachable);
 
 export function resolveCssImport(fromFile, specifier) {
   if (!specifier.endsWith('.css')) return null;
@@ -82,11 +110,11 @@ export function resolveCssImport(fromFile, specifier) {
   return null;
 }
 
-export function getReachableStyleFiles() {
+export function getReachableStyleFiles(sourceEntries = reachableSources) {
   const reachableStyleFiles = new Set();
   const styleQueue = [];
 
-  for (const [file, source] of reachableSources) {
+  for (const [file, source] of sourceEntries) {
     const importPatterns = [
       /\bimport\s+['"]([^'"]+\.css)['"]/g,
       /\bimport\s+[^'";]+?\s+from\s+['"]([^'"]+\.css)['"]/g,
