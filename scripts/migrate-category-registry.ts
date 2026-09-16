@@ -139,7 +139,11 @@ const expectedLane = args.target === "production" ? PRODUCTION : UAT;
 const client = getCliClient({ apiVersion: API_VERSION }).withConfig({ useCdn: false, perspective: "raw" });
 assertLane(args.target, args.mode, args.confirm, client);
 
-const rawCategories = await client.fetch<CategoryDoc[]>(`*[_type == "category"] | order(_id asc){_id,_type,_rev,title,slug,status,description,redirectTo}`);
+const rawCategoriesAll = await client.fetch<CategoryDoc[]>(`*[_type == "category"] | order(_id asc){_id,_type,_rev,title,slug,status,description,redirectTo}`);
+// `perspective: raw` can return both `drafts.<id>` and the published document.
+// Registry migration owns published Category documents only; including both
+// variants would manufacture duplicate-slug collisions during preflight.
+const rawCategories = rawCategoriesAll.filter((doc) => !doc._id.startsWith("drafts."));
 if (args.target === "production") assertProductionIdentity(rawCategories);
 
 let motorSeed: CategoryDoc | null = null;
@@ -210,7 +214,8 @@ if (plannedPatches.length || motorSeed) {
   await tx.commit({ visibility: "sync" });
 }
 
-const after = await client.fetch<CategoryDoc[]>(`*[_type == "category"] | order(_id asc){_id,_type,_rev,title,slug,status,description,redirectTo}`);
+const afterAll = await client.fetch<CategoryDoc[]>(`*[_type == "category"] | order(_id asc){_id,_type,_rev,title,slug,status,description,redirectTo}`);
+const after = afterAll.filter((doc) => !doc._id.startsWith("drafts."));
 for (const patch of plannedPatches) {
   const doc = after.find((candidate) => candidate._id === patch.id);
   if (!doc || doc.status !== patch.to) throw new Error(`Readback failed: ${patch.id} did not reach ${patch.to}`);
