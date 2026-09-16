@@ -2,9 +2,11 @@
 // CI Planning — Calculator
 // =============================================
 
+import { CI_RECOVERY_REFERENCE } from '@/features/ci-planning/recovery-evidence';
 import type {
   CIEducationPlan,
   CIFormData,
+  CIRecoveryCosts,
   CIResult,
 } from './types';
 
@@ -74,6 +76,40 @@ export function calcOtherDebtNeed(otherDebtBalance: number): number {
   return otherDebtBalance;
 }
 
+
+function requireRecoveryCount(value: number, name: string, max: number): number {
+  if (!Number.isInteger(value) || value < 0 || value > max) {
+    throw new RangeError(name + ' must be an integer between 0 and ' + max);
+  }
+  return value;
+}
+
+function requireRecoveryAmount(value: number, name: string): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError(name + ' must be finite and greater than or equal to 0');
+  }
+  return value;
+}
+
+export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
+  const treatmentVisits = requireRecoveryCount(recovery.treatmentVisits, 'treatmentVisits', 100);
+  const caregiverHomeDays = requireRecoveryCount(recovery.caregiverHomeDays, 'caregiverHomeDays', 730);
+  const rehabSessions = requireRecoveryCount(recovery.rehabSessions, 'rehabSessions', CI_RECOVERY_REFERENCE.rehabilitation.benchmarkSessionLimit);
+  const homeRehabSessions = requireRecoveryCount(recovery.homeRehabSessions, 'homeRehabSessions', CI_RECOVERY_REFERENCE.rehabilitation.benchmarkSessionLimit);
+  if (homeRehabSessions > rehabSessions) throw new RangeError('homeRehabSessions must not exceed rehabSessions');
+  const equipmentAndHomeModification = requireRecoveryAmount(recovery.equipmentAndHomeModification, 'equipmentAndHomeModification');
+  const otherRecoveryCosts = requireRecoveryAmount(recovery.otherRecoveryCosts, 'otherRecoveryCosts');
+  const visitNeed = treatmentVisits * CI_RECOVERY_REFERENCE.treatmentVisit.total;
+  const caregiverHomeNeed = caregiverHomeDays * CI_RECOVERY_REFERENCE.caregiverHomePerDay;
+  const rehabNeed = rehabSessions * CI_RECOVERY_REFERENCE.rehabilitation.perSession
+    + homeRehabSessions * CI_RECOVERY_REFERENCE.rehabilitation.homeServiceAddOnPerSession;
+  return {
+    treatmentVisits, caregiverHomeDays, rehabSessions, homeRehabSessions,
+    visitNeed, caregiverHomeNeed, rehabNeed, equipmentAndHomeModification, otherRecoveryCosts,
+    total: visitNeed + caregiverHomeNeed + rehabNeed + equipmentAndHomeModification + otherRecoveryCosts,
+  };
+}
+
 /**
  * Main calculator
  */
@@ -102,7 +138,12 @@ export function calculateCI(formData: CIFormData): CIResult {
   );
   const otherDebtBalance = calcOtherDebtNeed(expenses.otherDebtBalance ?? 0);
   const debtNeed = mortgageDebtNeed + carDebtNeed + otherDebtBalance;
-  const calculatedNeed = householdNeed + educationNeed + debtNeed;
+  const recovery = calcRecoveryReserveNeed(expenses.recovery ?? {
+    treatmentVisits: 0, caregiverHomeDays: 0, rehabSessions: 0, homeRehabSessions: 0,
+    equipmentAndHomeModification: 0, otherRecoveryCosts: 0,
+  });
+  const recoveryReserveNeed = recovery.total;
+  const calculatedNeed = householdNeed + educationNeed + debtNeed + recoveryReserveNeed;
   const incomeBasedNeed = calcIncomeBasedNeed(
     expenses.monthlyIncome ?? 0,
     effectiveReserveYears,
@@ -128,6 +169,16 @@ export function calculateCI(formData: CIFormData): CIResult {
     carDebtNeed,
     otherDebtBalance,
     debtNeed,
+    recoveryTreatmentVisits: recovery.treatmentVisits,
+    recoveryCaregiverHomeDays: recovery.caregiverHomeDays,
+    recoveryRehabSessions: recovery.rehabSessions,
+    recoveryHomeRehabSessions: recovery.homeRehabSessions,
+    recoveryVisitNeed: recovery.visitNeed,
+    recoveryCaregiverHomeNeed: recovery.caregiverHomeNeed,
+    recoveryRehabNeed: recovery.rehabNeed,
+    recoveryEquipmentAndHomeModification: recovery.equipmentAndHomeModification,
+    recoveryOtherCosts: recovery.otherRecoveryCosts,
+    recoveryReserveNeed,
     calculatedNeed,
     existingCoverage,
     liquidAssets,

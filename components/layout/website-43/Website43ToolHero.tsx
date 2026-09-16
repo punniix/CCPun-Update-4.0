@@ -10,6 +10,7 @@ type Website43ToolHeroProps = {
   description: string;
   ctaHref: string;
   ctaLabel?: string;
+  strongContrast?: boolean;
 };
 
 export default function Website43ToolHero({
@@ -20,6 +21,7 @@ export default function Website43ToolHero({
   description,
   ctaHref,
   ctaLabel = 'เริ่มประเมิน',
+  strongContrast = false,
 }: Website43ToolHeroProps) {
   return (
     <section className={styles.toolHero} aria-labelledby="tool-hero-title">
@@ -34,6 +36,7 @@ export default function Website43ToolHero({
         priority
       />
       <div className={styles.toolHeroGradient} aria-hidden="true" />
+      {strongContrast ? <div className={styles.toolHeroReadabilityOverlay} aria-hidden="true" /> : null}
       <Website43Navbar overlay />
       <div className={styles.toolHeroCopy}>
         <span className={styles.toolBadge}>{badge}</span>

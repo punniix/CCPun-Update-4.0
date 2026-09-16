@@ -35,6 +35,16 @@ const result: CIResult = {
   carDebtNeed: 222_222,
   otherDebtBalance: 777_777,
   debtNeed: 666_666,
+  recoveryTreatmentVisits: 0,
+  recoveryCaregiverHomeDays: 0,
+  recoveryRehabSessions: 0,
+  recoveryHomeRehabSessions: 0,
+  recoveryVisitNeed: 0,
+  recoveryCaregiverHomeNeed: 0,
+  recoveryRehabNeed: 0,
+  recoveryEquipmentAndHomeModification: 0,
+  recoveryOtherCosts: 0,
+  recoveryReserveNeed: 0,
   calculatedNeed: 1_703_661,
   existingCoverage: 500_000,
   liquidAssets: 250_000,
@@ -68,6 +78,7 @@ const expectedKeys = [
   'liquidAssets',
   'mainNeedToday',
   'methodLabel',
+  'recoveryReserve',
   'shortfall',
   'surplus',
   'toolName',
@@ -88,6 +99,8 @@ equal(summary.availableResources, result.availableResources, 'expense export mus
 equal(summary.breakdown.household, result.householdNeed, 'aggregate household need must be included');
 equal(summary.breakdown.education, result.educationNeed, 'aggregate education need must be included');
 equal(summary.breakdown.debt, result.debtNeed, 'aggregate debt need must be included');
+equal(summary.breakdown.recovery, result.recoveryReserveNeed, 'Recovery Reserve must be included in expense breakdown');
+equal(summary.recoveryReserve, result.recoveryReserveNeed, 'Recovery Reserve must be explicit in top-level image summary');
 
 const incomeSummary = createCIResultImageSummary(
   result,
@@ -173,12 +186,8 @@ const ccpunWordmarkSource = readFileSync(
   new URL('../public/assets/ccpun-text-logo.svg', import.meta.url),
   'utf8',
 );
-for (const source of [ciResultSource, imageSource]) {
-  assert(
-    source.includes('ค่ารักษาส่วนที่ประกันสุขภาพไม่ครอบคลุม'),
-    'CI result and saved image must disclose excluded medical expense differences',
-  );
-}
+assert(ciResultSource.includes('Recovery Reserve'), 'CI result must expose Recovery Reserve');
+assert(imageSource.includes('Recovery Reserve'), 'saved image must state Recovery Reserve inclusion/exclusion');
 for (const networkPrimitive of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'WebSocket']) {
   assert(!shareImageSource.includes(networkPrimitive), `shared result image module must not use ${networkPrimitive}`);
 }

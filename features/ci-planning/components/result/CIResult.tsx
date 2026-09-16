@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Edit3, MessageCircle, RefreshCw } from 'lucide-react';
+import { Edit3, ExternalLink, MessageCircle, RefreshCw } from 'lucide-react';
 import MoneyComparison from '@/components/ui/MoneyComparison';
 import { trackEvent } from '@/lib/analytics';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/features/ci-planning/calculator/constants';
 import type { CIEstimationMethod, CIResult as CIResultType } from '@/features/ci-planning/calculator/types';
 import ResultImageDownloadButton from '@/features/ci-planning/components/ResultImageDownloadButton';
+import { CI_RECOVERY_REFERENCE, CI_RECOVERY_SOURCES } from '@/features/ci-planning/recovery-evidence';
 
 interface CIResultProps {
   result: CIResultType;
@@ -64,7 +65,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       <h2 ref={resultHeadingRef} tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ประมาณการทุนเบื้องต้น · {methodLabel}</h2>
       <output className="ccpun-calculator-result-amount" aria-live="polite" aria-atomic="true">{baht(selectedNeed)}</output>
       <p className="ccpun-calculator-result-body">{activeMethod === 'expense'
-        ? 'คำนวณจากรายจ่าย ระยะเวลาที่เลือก ค่าเรียน ค่างวด และหนี้ที่กรอก'
+        ? (result.recoveryReserveNeed > 0 ? 'คำนวณจากรายจ่าย ระยะเวลาที่เลือก ค่าเรียน ค่างวด หนี้ และ Recovery Reserve ที่คุณกรอก' : 'คำนวณจากรายจ่าย ระยะเวลาที่เลือก ค่าเรียน ค่างวด และหนี้ที่กรอก โดย Recovery Reserve ยังเป็น 0')
         : 'คำนวณจากรายได้ต่อเดือนและระยะเวลาที่เลือก โดยแสดงเป็นอีกวิธีหนึ่งแยกจากทุนตามรายจ่าย'}</p>
     </section>
 
@@ -81,7 +82,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           </label>;
         })}
       </div>
-      <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">ระบบแสดงสองวิธีแยกกันและไม่นำมาบวกกัน</p>
+      <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">ระบบแสดงสองวิธีแยกกันและไม่นำมาบวกกัน Recovery Reserve ถูกบวกเฉพาะทุนตามรายจ่าย ส่วนทุนตามรายได้ไม่บวกซ้ำเพื่อหลีกเลี่ยงการนับผลกระทบรายได้ซ้ำ</p>
     </fieldset> : null}
 
     <MoneyComparison need={selectedNeed} resources={result.availableResources} title={`เปรียบเทียบ${methodLabel}กับทรัพยากรที่พร้อมใช้`} needLabel={methodLabel} />
@@ -97,18 +98,34 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     <details className="ccpun-calculator-result-details">
       <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ดูที่มาของประมาณการ</summary>
       <div className="mt-4">
-        {activeMethod === 'expense' ? <dl className="grid gap-3 sm:grid-cols-3">
+        {activeMethod === 'expense' ? <dl className="grid gap-3 sm:grid-cols-4">
           <div><dt className="ccpun-calculator-result-eyebrow">ค่าใช้จ่ายครอบครัว</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.householdNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">ค่าเรียนบุตร</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.educationNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">ภาระหนี้รวม</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.debtNeed)}</dd></div>
-        </dl> : <p className="ccpun-calculator-result-body">ทุนตามรายได้ดูจากรายได้ต่อเดือนตลอดระยะเวลาที่เลือก และแสดงแยกจากทุนตามรายจ่าย</p>}
+          <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
+        </dl> : <p className="ccpun-calculator-result-body">ทุนตามรายได้ดูจากรายได้ต่อเดือนตลอดระยะเวลาที่เลือก โดยไม่บวก Recovery Reserve ซ้ำ หากต้องการเผื่อค่าใช้จ่ายนอกโรงพยาบาลให้ดูตัวเลข Recovery Reserve แยกด้านล่าง</p>}
       </div>
     </details>
 
-    <aside className="ccpun-calculator-result-notice">
-      <p className="font-medium" style={{ color: 'var(--w43-ink)' }}>ยังไม่รวมค่าใช้จ่ายระหว่างพักฟื้นโดยอัตโนมัติ</p>
-      <p className="mt-2">ค่าผู้ดูแล ค่าฟื้นฟู การเดินทาง อุปกรณ์ หรือค่ารักษาส่วนที่ประกันสุขภาพไม่ครอบคลุมแตกต่างกันมาก จึงควรทบทวนแยกจากผลประมาณการนี้</p>
-    </aside>
+    <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
+      <p className="ccpun-calculator-result-eyebrow">Add-on สำหรับค่าใช้จ่ายนอกโรงพยาบาล</p>
+      <h3 id="ci-recovery-result-title" className="ccpun-calculator-result-panel-title mt-1">Recovery Reserve · {baht(result.recoveryReserveNeed)}</h3>
+      {result.recoveryReserveNeed > 0 ? <>
+        <dl className="ccpun-calculator-result-rows mt-4">
+          <div className="ccpun-calculator-result-row"><dt>ไปรักษา/ติดตาม {result.recoveryTreatmentVisits} ครั้ง × {baht(CI_RECOVERY_REFERENCE.treatmentVisit.total)}</dt><dd>{baht(result.recoveryVisitNeed)}</dd></div>
+          <div className="ccpun-calculator-result-row"><dt>ผู้ดูแลที่บ้าน {result.recoveryCaregiverHomeDays} วัน × {baht(CI_RECOVERY_REFERENCE.caregiverHomePerDay)}</dt><dd>{baht(result.recoveryCaregiverHomeNeed)}</dd></div>
+          <div className="ccpun-calculator-result-row"><dt>กายภาพ {result.recoveryRehabSessions} ครั้ง (ที่บ้าน {result.recoveryHomeRehabSessions} ครั้ง)</dt><dd>{baht(result.recoveryRehabNeed)}</dd></div>
+          <div className="ccpun-calculator-result-row"><dt>อุปกรณ์/ปรับบ้าน</dt><dd>{baht(result.recoveryEquipmentAndHomeModification)}</dd></div>
+          <div className="ccpun-calculator-result-row"><dt>ค่าใช้จ่ายอื่นช่วงพักฟื้น</dt><dd>{baht(result.recoveryOtherCosts)}</dd></div>
+        </dl>
+      </> : <p className="ccpun-calculator-result-body">ยังไม่ได้รวมค่าใช้จ่ายช่วงรักษาและพักฟื้น เพราะคุณยังไม่ได้กรอกจำนวนครั้ง/วันหรือค่าใช้จ่ายใน Recovery Reserve</p>}
+      <details className="mt-4 border-t pt-4" style={{ borderColor: 'var(--w43-border)' }}>
+        <summary className="cursor-pointer text-sm font-medium">ที่มาของตัวเลข (ข้อมูลปี 2025–2026)</summary>
+        <div className="mt-3 space-y-3 text-xs leading-5" style={{ color: 'var(--w43-muted)' }}>
+          {CI_RECOVERY_SOURCES.map((source) => <p key={source.id}><a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1" style={{ color: 'var(--w43-gold)' }}>{source.publisher} · {source.year}<ExternalLink className="h-3 w-3" aria-hidden="true" /></a><br />{source.note}</p>)}
+        </div>
+      </details>
+    </section>
 
     <div className="ccpun-calculator-result-cta">
       <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />

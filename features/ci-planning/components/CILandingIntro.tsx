@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { trackEvent } from '@/lib/analytics';
 import { CI_ASSESSMENT_VERSION } from '@/features/ci-planning/calculator/constants';
@@ -30,6 +31,25 @@ const storyBeats = [
 
 export default function CILandingIntro() {
   const landingTrackedRef = useRef(false);
+  const storyCarouselRef = useRef<HTMLDivElement>(null);
+  const [storyIndex, setStoryIndex] = useState(0);
+
+  const scrollStories = (direction: -1 | 1) => {
+    const node = storyCarouselRef.current;
+    const cards = node ? Array.from(node.querySelectorAll<HTMLElement>('article')) : [];
+    if (!node || cards.length === 0) return;
+    const next = Math.max(0, Math.min(cards.length - 1, storyIndex + direction));
+    cards[next]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    setStoryIndex(next);
+  };
+
+  const syncStoryIndex = () => {
+    const node = storyCarouselRef.current;
+    const cards = node ? Array.from(node.querySelectorAll<HTMLElement>('article')) : [];
+    if (!node || cards.length === 0) return;
+    const nearest = cards.reduce((best, card, index) => Math.abs(card.offsetLeft - node.scrollLeft) < Math.abs(cards[best].offsetLeft - node.scrollLeft) ? index : best, 0);
+    setStoryIndex(nearest);
+  };
 
   useEffect(() => {
     const trackLanding = () => {
@@ -62,22 +82,29 @@ export default function CILandingIntro() {
           <p>ผมจึงลองแยกรายได้และภาระทีละส่วน วางตามช่วงเวลาที่ต้องรับผิดชอบจริง แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์ที่พร้อมใช้ เพื่อให้เห็นที่มาของตัวเลขชัดขึ้น</p>
         </div>
 
-        <div className={styles.ciStoryGrid}>
-          {storyBeats.map((beat) => (
-            <article className={styles.ciStoryCard} key={beat.title}>
-              <Image
-                src={beat.src}
-                alt={beat.alt}
-                width={1200}
-                height={900}
-                sizes="(max-width: 639px) calc(100vw - 48px), (max-width: 1023px) 46vw, 390px"
-              />
-              <div>
-                <h3>{beat.title}</h3>
-                <p>{beat.description}</p>
-              </div>
-            </article>
-          ))}
+        <div className={styles.ciStoryCarouselWrap}>
+          <div ref={storyCarouselRef} onScroll={syncStoryIndex} className={styles.ciStoryGrid} aria-label="ตัวอย่างภาระทางการเงินเมื่อเจอโรคร้ายแรง">
+            {storyBeats.map((beat) => (
+              <article className={styles.ciStoryCard} key={beat.title}>
+                <Image
+                  src={beat.src}
+                  alt={beat.alt}
+                  width={1200}
+                  height={900}
+                  sizes="(max-width: 639px) 82vw, (max-width: 1023px) 46vw, 390px"
+                />
+                <div>
+                  <h3>{beat.title}</h3>
+                  <p>{beat.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className={styles.ciStoryCarouselControls} aria-label="เลื่อนการ์ดตัวอย่าง">
+            <button type="button" disabled={storyIndex === 0} onClick={() => scrollStories(-1)} aria-label="ดูการ์ดก่อนหน้า"><ChevronLeft aria-hidden="true" /></button>
+            <span aria-live="polite">{storyIndex + 1} / {storyBeats.length} · ปัดซ้าย–ขวาได้</span>
+            <button type="button" disabled={storyIndex === storyBeats.length - 1} onClick={() => scrollStories(1)} aria-label="ดูการ์ดถัดไป"><ChevronRight aria-hidden="true" /></button>
+          </div>
         </div>
         <p className={styles.eyebrow} style={{ marginTop: 20 }}>ภาพประกอบสร้างด้วย Generative AI</p>
         <p className={styles.lead}>

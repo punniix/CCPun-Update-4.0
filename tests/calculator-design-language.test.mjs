@@ -36,7 +36,8 @@ test('latest calculator content is retained while confusing duplicate framing is
   assert.match(ciIntro, /ทุนประกันโรคร้ายแรงที่มีอยู่ และสินทรัพย์/);
   assert.doesNotMatch(ciIntro, /border-l/);
   assert.match(ciShell, /ทุนสำรองช่วงพักฟื้น · ข้อพิจารณาเพิ่มเติม/);
-  assert.doesNotMatch(ciShell, /Recovery Reserve/);
+  assert.match(ciShell, /Recovery Reserve/);
+  assert.match(read('features/ci-planning/components/steps/StepExpenses.tsx'), /ที่มา|RecoverySourceLink/);
   assert.match(ciShell, /ผลลัพธ์มี 2 มุม เลือกอ่านแยกกัน/);
   assert.match(ciShell, /ระบบแสดงแยกกันและไม่นำมาบวกกัน/);
 });
@@ -80,4 +81,14 @@ test('FHC and CI use the new Website 4.3 tool hero without rewriting the legacy 
     assert.match(source, /components\/layout\/website-43\/Website43ToolHero/);
     assert.doesNotMatch(source, /components\/layout\/ToolHero/);
   }
+});
+
+
+test('mobile CI story cards expose swipe, arrows and position cue without changing desktop grid', () => {
+  const intro = read('features/ci-planning/components/CILandingIntro.tsx');
+  assert.match(intro, /ChevronLeft/);
+  assert.match(intro, /ChevronRight/);
+  assert.match(intro, /storyIndex \+ 1/);
+  assert.match(website43Css, /scroll-snap-type: x mandatory/);
+  assert.match(website43Css, /ciStoryCarouselControls/);
 });

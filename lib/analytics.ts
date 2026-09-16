@@ -37,7 +37,7 @@ const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   contact_channel: new Set(['facebook_inbox', 'line']),
   cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article']),
   surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog']),
-  calculator_version: new Set(['ci_planning_v6']),
+  calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
   utm_source: /^[a-z0-9][a-z0-9_-]{0,63}$/,
   utm_medium: /^[a-z0-9][a-z0-9_-]{0,63}$/,

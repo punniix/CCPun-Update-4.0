@@ -28,6 +28,29 @@ const educationPlanSchema = z.object({
     .max(30, 'จำนวนปีต้องไม่เกิน 30 ปี'),
 });
 
+
+const recoveryCount = z.number()
+  .finite('กรุณากรอกจำนวนให้ถูกต้อง')
+  .int('กรุณากรอกเป็นจำนวนเต็ม')
+  .min(0, 'จำนวนต้องไม่ติดลบ');
+
+const recoverySchema = z.object({
+  treatmentVisits: recoveryCount.max(100, 'จำนวนครั้งรักษา/ติดตามต้องไม่เกิน 100 ครั้ง'),
+  caregiverHomeDays: recoveryCount.max(730, 'จำนวนวันผู้ดูแลต้องไม่เกิน 730 วัน'),
+  rehabSessions: recoveryCount.max(20, 'benchmark กายภาพนี้รองรับไม่เกิน 20 ครั้ง'),
+  homeRehabSessions: recoveryCount.max(20, 'จำนวนครั้งบริการที่บ้านต้องไม่เกิน 20 ครั้ง'),
+  equipmentAndHomeModification: nonNegativeAmount,
+  otherRecoveryCosts: nonNegativeAmount,
+}).superRefine((data, context) => {
+  if (data.homeRehabSessions > data.rehabSessions) {
+    context.addIssue({
+      code: 'custom',
+      path: ['homeRehabSessions'],
+      message: 'จำนวนครั้งกายภาพที่บ้านต้องไม่มากกว่าจำนวนครั้งกายภาพทั้งหมด',
+    });
+  }
+});
+
 const stepExpensesSchema = z.object({
   monthlyIncome: nonNegativeAmount,
   household: nonNegativeAmount,
@@ -42,6 +65,7 @@ const stepExpensesSchema = z.object({
     .int('จำนวนปีต้องเป็นจำนวนเต็ม')
     .min(1, 'ระยะสำรองต้องอย่างน้อย 1 ปี')
     .max(10, 'ระยะสำรองต้องไม่เกิน 10 ปี'),
+  recovery: recoverySchema,
 }).superRefine((data, context) => {
   if (data.mortgagePayment > 0 && data.mortgageInstallmentsRemaining === 0) {
     context.addIssue({
@@ -80,8 +104,13 @@ const stepExpensesSchema = z.object({
   ].some((amount) => amount > 0);
 
   const hasEducationInput = data.educationPlans.length > 0;
+  const hasRecoveryInput = data.recovery.treatmentVisits > 0
+    || data.recovery.caregiverHomeDays > 0
+    || data.recovery.rehabSessions > 0
+    || data.recovery.equipmentAndHomeModification > 0
+    || data.recovery.otherRecoveryCosts > 0;
 
-  if (data.monthlyIncome === 0 && !expenseSideBurden && !hasEducationInput) {
+  if (data.monthlyIncome === 0 && !expenseSideBurden && !hasEducationInput && !hasRecoveryInput) {
     context.addIssue({
       code: 'custom',
       path: ['expenses'],

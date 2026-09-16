@@ -237,3 +237,29 @@ Selected loading strategy:
 - Home hero image is explicitly preloaded/fetch-priority high so the font budget does not displace the image LCP candidate
 
 This is intentionally not a font-blocking strategy: `font-display: optional` keeps text paintable on unusually slow connections instead of forcing LCP to wait for a font. It prioritizes the real Kanit files early enough for the normal first paint while preserving a safe fallback path.
+
+## 2026-09-16 owner UAT follow-up — Recovery Reserve + mobile readability
+
+Owner UAT feedback after consolidated PR #125 added four scoped requirements without reopening Home/Blog/Article:
+
+- CI Recovery Reserve must be a real, transparent add-on for out-of-hospital / recovery costs instead of only a disclaimer.
+- Cost evidence must be 2023 or newer; implementation uses 2025–2026 references only.
+- FHC tool hero needs stronger contrast over the bright image; the overlay remains tool-scoped and opt-in.
+- Tool FAQ answer/divider spacing is increased; CI story cards become a mobile-only swipe/scroll-snap carousel with accessible previous/next controls and position cue.
+
+### Recovery Reserve evidence contract
+
+The new CI recovery model deliberately does **not** restore legacy Website 4.0 medical-buffer or 6/9/12-month heuristics and does not hard-code the prior 300k / 1.0M illustrative scenarios.
+
+Current reference set:
+- 2025 Thailand cost-of-illness study, Health Region 9, data Sep 2024–Feb 2025, 202 patient-caregiver pairs: transport, food, additional out-of-pocket medical costs, caregiver lost income per visit, and caregiver home-care time loss.
+- NHSO FY 2569 physical-therapy service benchmark: 450 THB/session plus 200 THB/session home-service add-on; explicitly presented as a public reimbursement/service benchmark, not private market pricing.
+- Department of Older Persons FY 2568 home-environment program: 40,000 THB/home as a public-program ceiling/reference only; never auto-added.
+
+All quantities and manual amounts default to zero. Recovery Reserve is added only to the expense-based method; the income-based method remains unchanged to avoid double-counting income impact. Analytics continues to send metadata only, never recovery quantities or amounts.
+
+Automated regression now asserts evidence year >= 2023, exact source-backed rates, zero/default parity, rehab validation, and no Recovery Reserve double-add to the income method.
+
+### Figma handoff
+
+After the exact code head is committed and Preview is green, sync Figma `S05 — CI Planning` to that exact SHA. `S04 — Financial Health Check` should also reflect the tool-hero contrast change. Do not modify Home/Blog/Article Figma pages for this follow-up.

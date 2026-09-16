@@ -21,12 +21,14 @@ export interface CIResultImageSummary {
   existingCICover: number;
   liquidAssets: number;
   availableResources: number;
+  recoveryReserve: number;
   shortfall: number;
   surplus: number;
   breakdown: Readonly<{
     household: number;
     education: number;
     debt: number;
+    recovery: number;
   }> | null;
   assessmentVersion: string;
   disclaimer: typeof SUMMARY_DISCLAIMER;
@@ -46,6 +48,7 @@ export function createCIResultImageSummary(
       household: result.householdNeed,
       education: result.educationNeed,
       debt: result.debtNeed,
+      recovery: result.recoveryReserveNeed,
     });
 
   return Object.freeze({
@@ -61,6 +64,7 @@ export function createCIResultImageSummary(
     existingCICover: result.existingCoverage,
     liquidAssets: result.liquidAssets,
     availableResources: result.availableResources,
+    recoveryReserve: result.recoveryReserveNeed,
     shortfall: isIncomeMethod ? result.incomeShortfall : result.shortfall,
     surplus: isIncomeMethod ? result.incomeSurplus : result.surplus,
     breakdown,
@@ -86,8 +90,8 @@ export async function renderCIResultImage(
       : 'ส่วนต่างจากประมาณการ';
   const differenceValue = summary.shortfall > 0 ? summary.shortfall : summary.surplus;
   const methodDetail = summary.breakdown
-    ? 'ค่าใช้จ่ายครัวเรือน + ค่าเรียน + ภาระหนี้ตามข้อมูลที่กรอก'
-    : 'รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก';
+    ? (summary.recoveryReserve > 0 ? 'ค่าใช้จ่ายครัวเรือน + ค่าเรียน + ภาระหนี้ + Recovery Reserve จากข้อมูลที่กรอก' : 'ค่าใช้จ่ายครัวเรือน + ค่าเรียน + ภาระหนี้ (Recovery Reserve = 0)')
+    : 'รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก; Recovery Reserve แสดงแยกและไม่บวกซ้ำ';
 
   return renderResultShareImage({
     toolName: summary.toolName,
@@ -103,6 +107,8 @@ export async function renderCIResultImage(
     noticeTitle: summary.disclaimer,
     noticeDetail: summary.imageNotice,
     actionLabel: 'เพิ่มเพื่อน LINE @ccpun',
-    scopeNote: 'ยังไม่รวมค่าจ้างผู้ดูแล และค่ารักษาส่วนที่ประกันสุขภาพไม่ครอบคลุม',
+    scopeNote: summary.recoveryReserve > 0
+      ? `Recovery Reserve จากข้อมูลที่กรอก ${baht(summary.recoveryReserve)}; แหล่งอ้างอิงหลักปี 2025–2026`
+      : 'Recovery Reserve ยังเป็น 0 เพราะยังไม่ได้กรอกจำนวนครั้ง/วันหรือค่าใช้จ่ายช่วงพักฟื้น',
   }, logoPath, lineQrPath);
 }

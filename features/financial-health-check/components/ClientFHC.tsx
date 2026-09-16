@@ -16,6 +16,7 @@ export default function ClientFHC() {
           description="ประเมินภาระที่ครอบครัวยังต้องดูแล แล้วเทียบกับทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้ เพื่อเห็นจุดที่ควรทบทวนต่อในแผนการเงิน"
           ctaHref="#fhc-calculator"
           ctaLabel="เริ่มประเมิน"
+          strongContrast
         />
 
         <FHCLandingIntro />
