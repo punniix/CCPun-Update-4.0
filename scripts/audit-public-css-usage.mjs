@@ -5,6 +5,7 @@ import { dirname, extname, join, normalize } from 'node:path';
 const trackedFiles = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
   .split('\0')
   .filter(Boolean);
+const trackedFileSet = new Set(trackedFiles);
 
 const runtimeExtensions = ['.js', '.jsx', '.mjs', '.ts', '.tsx'];
 const runtimeExtensionSet = new Set(runtimeExtensions);
@@ -94,10 +95,39 @@ function hasLiteralReachableUsage(className) {
   return reachableSources.some(([, source]) => source.includes(className));
 }
 
-const globalCssPath = 'app/components.css';
-const globalCss = readFileSync(globalCssPath, 'utf8');
-const globalClasses = extractClasses(globalCss);
-const globalUnused = globalClasses.filter((className) => !hasLiteralReachableUsage(className));
+const globalsPath = 'app/globals.css';
+const globalsSource = readFileSync(globalsPath, 'utf8');
+const ownedGlobalCssPaths = [
+  'components/styles/public-compat.css',
+  'components/styles/public-motion.css',
+  'features/financial-health-check/styles/print.css',
+];
+const requiredGlobalImports = [
+  '@import "../components/styles/public-compat.css";',
+  '@import "../components/styles/public-motion.css";',
+  '@import "../features/financial-health-check/styles/print.css";',
+];
+for (const requiredImport of requiredGlobalImports) {
+  if (!globalsSource.includes(requiredImport)) {
+    throw new Error(`app/globals.css must keep explicit style ownership import: ${requiredImport}`);
+  }
+}
+if (trackedFileSet.has('app/components.css') || globalsSource.includes('./components.css')) {
+  throw new Error('Do not recreate the generic app/components.css style bucket; use an explicit owner stylesheet.');
+}
+
+const globalClassOwners = new Map();
+for (const cssPath of ownedGlobalCssPaths) {
+  if (!trackedFileSet.has(cssPath)) throw new Error(`Missing owned global stylesheet: ${cssPath}`);
+  const css = readFileSync(cssPath, 'utf8');
+  for (const className of extractClasses(css)) {
+    const owners = globalClassOwners.get(className) ?? [];
+    owners.push(cssPath);
+    globalClassOwners.set(className, owners);
+  }
+}
+const globalUnused = [...globalClassOwners.keys()].filter((className) => !hasLiteralReachableUsage(className));
+const duplicateGlobalOwners = [...globalClassOwners.entries()].filter(([, owners]) => owners.length > 1);
 
 const moduleCssPath = 'components/layout/website-43/Website43.module.css';
 const moduleCss = readFileSync(moduleCssPath, 'utf8');
@@ -132,41 +162,42 @@ const moduleUnused = dynamicModuleAccess.length === 0
   ? moduleClasses.filter((className) => !hasModuleUsage(className))
   : [];
 
-const unreachableFeatureFiles = runtimeFiles
-  .filter((file) => (file.startsWith('features/') || file.startsWith('components/')) && !reachable.has(file))
+const styleBridgeFiles = trackedFiles
+  .filter((file) => /^components\/layout\/website-43\/Website43.*Styles\.tsx$/.test(file))
   .sort();
-const unreachableLegacyBlogFiles = unreachableFeatureFiles.filter((file) => file.startsWith('features/blog/components/'));
+const allowedStyleBridges = [
+  'components/layout/website-43/Website43FinalPolishStyles.tsx',
+  'components/layout/website-43/Website43TransitionStyles.tsx',
+].sort();
+const unexpectedStyleBridges = styleBridgeFiles.filter((file) => !allowedStyleBridges.includes(file));
 
-console.log('PUBLIC_CSS_AUDIT');
+console.log('PUBLIC_STYLE_OWNERSHIP_AUDIT');
 console.log(`runtime_files=${runtimeFiles.length}`);
 console.log(`route_entries=${entryFiles.length}`);
 console.log(`reachable_runtime_files=${reachable.size}`);
-console.log(`unreachable_feature_component_files=${unreachableFeatureFiles.length}`);
-console.log(`unreachable_legacy_blog_component_files=${unreachableLegacyBlogFiles.length}`);
-console.log(`global_css_classes=${globalClasses.length}`);
+console.log(`owned_global_stylesheets=${ownedGlobalCssPaths.length}`);
+console.log(`global_class_selectors=${globalClassOwners.size}`);
 console.log(`global_zero_reachable_reference=${globalUnused.length}`);
+console.log(`global_duplicate_owners=${duplicateGlobalOwners.length}`);
 console.log(`website43_module_classes=${moduleClasses.length}`);
 console.log(`website43_importers=${moduleImporters.length}`);
 console.log(`website43_dynamic_access=${dynamicModuleAccess.length}`);
 console.log(`website43_zero_reachable_reference=${moduleUnused.length}`);
-console.log('GLOBAL_ZERO_REFERENCE_START');
-for (const className of globalUnused) console.log(className);
-console.log('GLOBAL_ZERO_REFERENCE_END');
+console.log(`website43_style_bridges=${styleBridgeFiles.length}`);
 console.log('WEBSITE43_ZERO_REFERENCE_START');
 for (const className of moduleUnused) console.log(className);
 console.log('WEBSITE43_ZERO_REFERENCE_END');
-console.log('UNREACHABLE_LEGACY_BLOG_FILES_START');
-for (const file of unreachableLegacyBlogFiles) console.log(file);
-console.log('UNREACHABLE_LEGACY_BLOG_FILES_END');
-if (dynamicModuleAccess.length > 0) {
-  console.log('WEBSITE43_DYNAMIC_ACCESS_START');
-  for (const { file, alias } of dynamicModuleAccess) console.log(`${file}: ${alias}`);
-  console.log('WEBSITE43_DYNAMIC_ACCESS_END');
-}
 
 if (globalUnused.length > 0) {
-  throw new Error(`Global CSS has ${globalUnused.length} class selector(s) with no reachable runtime reference: ${globalUnused.join(', ')}`);
+  throw new Error(`Owned global CSS has ${globalUnused.length} class selector(s) with no reachable runtime reference: ${globalUnused.join(', ')}`);
+}
+if (duplicateGlobalOwners.length > 0) {
+  const detail = duplicateGlobalOwners.map(([name, owners]) => `${name}: ${owners.join(' + ')}`).join('; ');
+  throw new Error(`Global class ownership is ambiguous: ${detail}`);
 }
 if (dynamicModuleAccess.length > 0) {
-  throw new Error('Website43.module.css uses dynamic property access; static reachability audit is no longer safe.');
+  throw new Error('Website43.module.css uses dynamic property access; static ownership auditing is no longer safe.');
+}
+if (unexpectedStyleBridges.length > 0 || styleBridgeFiles.length !== allowedStyleBridges.length) {
+  throw new Error(`Do not add another Website 4.3 patch stylesheet. Consolidate rules into the owning CSS Module. Found: ${styleBridgeFiles.join(', ')}`);
 }
