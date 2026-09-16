@@ -34,6 +34,77 @@ jobs:
       - name: Foundation code, SEO, analytics and admin contracts
         run: npm run check:foundation
 
+      - name: FHC and CI calculator regression gate
+        run: |
+          node --import tsx tests/calculator-regression.ts
+          node --import tsx --test tests/ci-numeric-safety.test.ts
+          node --test tests/calculator-design-language.test.mjs
+          node --test tests/calculator-ux-formula-parity.test.mjs
+          node --import tsx --test tests/calculator-ux-journey.test.mjs
+          node --import tsx --test tests/ci-recovery-ui-regression.test.mjs
+          node --import tsx --test tests/ci-numeric-ui-regression.test.mjs
+          node --import tsx tests/result-actions-regression.ts
+          node tests/fhc-seo-geo-regression.mjs
+
+      - name: FHC and CI exhaustive browser QA
+        shell: bash
+        env:
+          CCPUN_UAT_MODE: "1"
+          CCPUN_APP_ENV: development
+          NEXT_PUBLIC_CCPUN_APP_ENV: development
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          SANITY_STUDIO_PROJECT_ID: ccb9lnw5
+          SANITY_STUDIO_DATASET: uat
+          AUTH_URL: http://127.0.0.1:3005
+        run: |
+          set -euo pipefail
+          npx next dev --hostname 127.0.0.1 --port 3005 > /tmp/ccpun-calculator-browser-next.log 2>&1 &
+          SERVER_PID=$!
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME_BIN" ]; then
+            echo 'Chrome/Chromium is required for exhaustive browser QA.' >&2
+            exit 1
+          fi
+          "$CHROME_BIN" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --remote-debugging-address=127.0.0.1 --remote-debugging-port=9342 about:blank > /tmp/ccpun-calculator-browser-chrome.log 2>&1 &
+          CHROME_PID=$!
+          cleanup() {
+            kill "$SERVER_PID" "$CHROME_PID" 2>/dev/null || true
+            wait "$SERVER_PID" 2>/dev/null || true
+            wait "$CHROME_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          READY=0
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:3005/tools/financial-health-check/ >/dev/null 2>&1 \
+              && curl --fail --silent http://127.0.0.1:3005/ci-planning/ >/dev/null 2>&1 \
+              && curl --fail --silent http://127.0.0.1:9342/json/version >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              echo 'Calculator browser QA server exited before becoming ready.' >&2
+              cat /tmp/ccpun-calculator-browser-next.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            echo 'Timed out waiting for calculator browser QA runtime.' >&2
+            cat /tmp/ccpun-calculator-browser-next.log
+            cat /tmp/ccpun-calculator-browser-chrome.log
+            exit 1
+          fi
+
+          curl --fail --silent --show-error http://127.0.0.1:3005/tools/financial-health-check/ > /tmp/fhc-cloud.html
+          curl --fail --silent --show-error -D /tmp/fhc-cloud.headers -o /dev/null http://127.0.0.1:3005/tools/financial-health-check/
+          curl --fail --silent --show-error http://127.0.0.1:3005/robots.txt > /tmp/fhc-cloud.robots
+
+          UAT_BASE_URL=http://127.0.0.1:3005 \
+          CDP_HTTP=http://127.0.0.1:9342 \
+          bash qa/run-calculator-browser-gate.sh
+
       - name: Google sitemap deterministic contract
         run: node --import tsx --test tests/sitemap-google-regression.test.ts
 

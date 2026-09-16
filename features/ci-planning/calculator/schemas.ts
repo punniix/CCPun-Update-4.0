@@ -28,6 +28,37 @@ const educationPlanSchema = z.object({
     .max(30, 'จำนวนปีต้องไม่เกิน 30 ปี'),
 });
 
+const recoveryCount = z.number()
+  .finite('กรุณากรอกจำนวนให้ถูกต้อง')
+  .int('กรุณากรอกเป็นจำนวนเต็ม')
+  .min(0, 'จำนวนต้องไม่ติดลบ');
+
+const ZERO_RECOVERY = {
+  treatmentVisits: 0,
+  caregiverHomeDays: 0,
+  rehabSessions: 0,
+  homeRehabSessions: 0,
+  equipmentAndHomeModification: 0,
+  otherRecoveryCosts: 0,
+} as const;
+
+const recoverySchema = z.object({
+  treatmentVisits: recoveryCount.max(100, 'จำนวนครั้งรักษา/ติดตามต้องไม่เกิน 100 ครั้ง'),
+  caregiverHomeDays: recoveryCount.max(730, 'จำนวนวันผู้ดูแลต้องไม่เกิน 730 วัน'),
+  rehabSessions: recoveryCount.max(20, 'benchmark กายภาพนี้รองรับไม่เกิน 20 ครั้ง'),
+  homeRehabSessions: recoveryCount.max(20, 'จำนวนครั้งบริการที่บ้านต้องไม่เกิน 20 ครั้ง'),
+  equipmentAndHomeModification: nonNegativeAmount,
+  otherRecoveryCosts: nonNegativeAmount,
+}).superRefine((data, context) => {
+  if (data.homeRehabSessions > data.rehabSessions) {
+    context.addIssue({
+      code: 'custom',
+      path: ['homeRehabSessions'],
+      message: 'จำนวนครั้งกายภาพที่บ้านต้องไม่มากกว่าจำนวนครั้งกายภาพทั้งหมด',
+    });
+  }
+});
+
 const stepExpensesSchema = z.object({
   monthlyIncome: nonNegativeAmount,
   household: nonNegativeAmount,
@@ -42,6 +73,9 @@ const stepExpensesSchema = z.object({
     .int('จำนวนปีต้องเป็นจำนวนเต็ม')
     .min(1, 'ระยะสำรองต้องอย่างน้อย 1 ปี')
     .max(10, 'ระยะสำรองต้องไม่เกิน 10 ปี'),
+  // Legacy callers and old fixtures predate Recovery Reserve. Missing recovery
+  // must therefore be equivalent to an all-zero add-on, not a schema failure.
+  recovery: recoverySchema.default(ZERO_RECOVERY),
 }).superRefine((data, context) => {
   if (data.mortgagePayment > 0 && data.mortgageInstallmentsRemaining === 0) {
     context.addIssue({
@@ -78,14 +112,16 @@ const stepExpensesSchema = z.object({
     data.carPayment,
     data.otherDebtBalance,
   ].some((amount) => amount > 0);
-
   const hasEducationInput = data.educationPlans.length > 0;
 
+  // Recovery Reserve is an add-on to a primary income/expense basis. It cannot
+  // be the only planning basis, otherwise a research-backed component would be
+  // misrepresented as a standalone primary method.
   if (data.monthlyIncome === 0 && !expenseSideBurden && !hasEducationInput) {
     context.addIssue({
       code: 'custom',
       path: ['expenses'],
-      message: 'กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการ',
+      message: 'กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการก่อนเพิ่ม Recovery Reserve',
     });
   }
 });

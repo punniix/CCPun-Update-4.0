@@ -323,14 +323,14 @@ async function main() {
     assertion(report.browserAssertions, 'reset restores blank amount, 10 years, step 1', reset.monthly === '' && reset.years === '10' && reset.step === '1', JSON.stringify(reset));
 
     await navigate(client); await evaluate(client, `document.getElementById('householdMonthly').focus()`);
-    const focusOrder = ['supportYears', 'debt', 'education'];
+    const focusOrder = ['supportYears', 'debt', 'เพิ่มทุนการศึกษาบุตร (ถ้ามี)'];
     const observed = [];
     for (let i = 0; i < 3; i++) {
       await client.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
       await client.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
-      observed.push(await evaluate(client, `document.activeElement?.id || ''`));
+      observed.push(await evaluate(client, `(() => { const active=document.activeElement; return active?.id || active?.textContent?.replace(/\\s+/g,' ').trim() || active?.tagName || ''; })()`));
     }
-    assertion(report.browserAssertions, 'keyboard focus order follows fields', JSON.stringify(observed) === JSON.stringify(focusOrder), JSON.stringify(observed));
+    assertion(report.browserAssertions, 'keyboard focus order follows visible controls', JSON.stringify(observed) === JSON.stringify(focusOrder), JSON.stringify(observed));
     await evaluate(client, `document.getElementById('supportYears').focus()`);
     await client.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
     await client.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });

@@ -35,6 +35,16 @@ const result: CIResult = {
   carDebtNeed: 222_222,
   otherDebtBalance: 777_777,
   debtNeed: 666_666,
+  recoveryTreatmentVisits: 0,
+  recoveryCaregiverHomeDays: 0,
+  recoveryRehabSessions: 0,
+  recoveryHomeRehabSessions: 0,
+  recoveryVisitNeed: 0,
+  recoveryCaregiverHomeNeed: 0,
+  recoveryRehabNeed: 0,
+  recoveryEquipmentAndHomeModification: 0,
+  recoveryOtherCosts: 0,
+  recoveryReserveNeed: 0,
   calculatedNeed: 1_703_661,
   existingCoverage: 500_000,
   liquidAssets: 250_000,
@@ -68,6 +78,7 @@ const expectedKeys = [
   'liquidAssets',
   'mainNeedToday',
   'methodLabel',
+  'recoveryReserve',
   'shortfall',
   'surplus',
   'toolName',
@@ -88,6 +99,8 @@ equal(summary.availableResources, result.availableResources, 'expense export mus
 equal(summary.breakdown.household, result.householdNeed, 'aggregate household need must be included');
 equal(summary.breakdown.education, result.educationNeed, 'aggregate education need must be included');
 equal(summary.breakdown.debt, result.debtNeed, 'aggregate debt need must be included');
+equal(summary.breakdown.recovery, result.recoveryReserveNeed, 'Recovery Reserve must be included in expense breakdown');
+equal(summary.recoveryReserve, result.recoveryReserveNeed, 'Recovery Reserve must be explicit in top-level image summary');
 
 const incomeSummary = createCIResultImageSummary(
   result,
@@ -173,12 +186,8 @@ const ccpunWordmarkSource = readFileSync(
   new URL('../public/assets/ccpun-text-logo.svg', import.meta.url),
   'utf8',
 );
-for (const source of [ciResultSource, imageSource]) {
-  assert(
-    source.includes('ค่ารักษาส่วนที่ประกันสุขภาพไม่ครอบคลุม'),
-    'CI result and saved image must disclose excluded medical expense differences',
-  );
-}
+assert(ciResultSource.includes('Recovery Reserve'), 'CI result must expose Recovery Reserve');
+assert(imageSource.includes('Recovery Reserve'), 'saved image must state Recovery Reserve inclusion/exclusion');
 for (const networkPrimitive of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'WebSocket']) {
   assert(!shareImageSource.includes(networkPrimitive), `shared result image module must not use ${networkPrimitive}`);
 }
@@ -247,7 +256,7 @@ for (const requiredLandingCopy of [
   );
 }
 assert(!ciLandingSource.includes('คำถามที่ไม่มีคำตอบเดียว'), 'lean CI landing must remove the deleted eyebrow');
-assert(ciPageSource.includes('highlightOnNewLine'), 'CI hero highlight must start on its own line');
+assert(ciPageSource.includes('Website43ToolHero') && ciPageSource.includes('line2="เพียงพอรับภาระจริงไหม?"'), 'CI hero must keep the approved Website 4.3 split-title treatment');
 assert(!ciPageSource.includes('· Beta'), 'CI Research Preview must not retain the Beta label');
 assert(!navConfigSource.includes('วางแผนเงินก้อนโรคร้ายแรง (Beta)'), 'CI navigation must not retain the Beta label');
 for (const activeCiSource of [ciPageSource, ciExpensesSource, ciExistingSource, ciResultSource, ciCalculatorSource, ciTypesSource]) {
@@ -306,7 +315,9 @@ assert(
 );
 assert(ciExpensesSource.includes('id="ci-monthly-income"'), 'Step 1 must expose an accessible monthly-income field');
 assert(ciExistingSource.includes('id="ci-liquid-assets"'), 'Step 2 must expose a stable liquid-assets field');
-assert(ciExistingSource.includes('เช่น เงินสด กองทุนพันธบัตรรัฐบาล หรือเงินฝาก'), 'liquid-assets field must show the approved grey placeholder example');
+assert(ciExistingSource.includes('placeholder="เช่น 500,000"'), 'liquid-assets currency field must use a short numeric example');
+assert(ciExistingSource.includes('บ้าน รถ หรือทรัพย์สินจำเป็นที่ไม่ตั้งใจขายไม่ต้องกรอก'), 'short numeric examples must retain the asset inclusion guidance');
+assert(ciExpensesSource.includes('placeholder="เช่น 100,000"'), 'other-debt currency field must use a short numeric example');
 assert(ciExistingSource.includes('เงินก้อนจากประกันโรคร้ายแรงที่มี'), 'Step 2 must retain the existing CI lump-sum field');
 assert(
   ciExpensesSource.includes('รายได้ ภาระ และระยะที่ต้องการวางแผน')

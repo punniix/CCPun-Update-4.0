@@ -11,6 +11,7 @@ const article = read('features/blog/website-43/Website43Article.tsx');
 const articleToc = read('features/blog/website-43/Website43ArticleToc.tsx');
 const layout = read('app/layout.tsx');
 const home = read('features/home/website-43/Website43Home.tsx');
+const blog = read('features/blog/website-43/Website43Blog.tsx');
 
 test('wide desktop Website 4.3 shells stay centered instead of pinning to the left', () => {
   assert.match(transition, /--w43-shell-left: max\(var\(--w43-nav-gutter\), calc\(\(100vw - 1280px\) \/ 2\)\)/);
@@ -68,15 +69,17 @@ test('the Home LCP image is preloaded alongside the bounded critical font budget
   assert.match(home, /home-hero-desktop\.png[\s\S]*?fill preload loading="eager" fetchPriority="high" sizes="100vw"/);
 });
 
-test('release scope does not replace CI or FHC with Website 4.3 tool shells', () => {
+test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI use the new aligned tool shell', () => {
   const fhc = read('features/financial-health-check/components/ClientFHC.tsx');
   const ci = read('features/ci-planning/page.tsx');
-  assert.match(fhc, /components\/layout\/ToolHero/);
-  assert.match(fhc, /components\/layout\/Navbar/);
-  assert.doesNotMatch(fhc, /Website43ToolHero/);
-  assert.match(ci, /components\/layout\/ToolHero/);
-  assert.match(ci, /components\/layout\/Navbar/);
-  assert.doesNotMatch(ci, /Website43ToolHero/);
+  assert.match(home, /Website43/);
+  assert.match(blog, /Website43/);
+  for (const source of [fhc, ci]) {
+    assert.match(source, /components\/layout\/website-43\/Website43ToolHero/);
+    assert.match(source, /Website43Footer/);
+    assert.doesNotMatch(source, /components\/layout\/ToolHero/);
+    assert.doesNotMatch(source, /components\/layout\/Navbar/);
+  }
 });
 
 
