@@ -317,7 +317,8 @@ const articleBodyRenderer = read('features/blog/website-43/Website43ArticleBody.
 const articleTocRenderer = read('features/blog/website-43/Website43ArticleToc.tsx');
 assert.match(articleTocRenderer, /groups/);
 assert.match(articlePresentation, /renderWebsite43ArticleBody\(article\.body, headingIds\)/);
-assert.match(articleBodyRenderer, /id=\{headingId\(index\)\}/);
+assert.match(articleBodyRenderer, /const id = headingIds\.get\(index\)/);
+assert.match(articleBodyRenderer, /id=\{id\}/);
 for (const [schemaType, publicType] of [
   ['callout', 'callout'],
   ['imageWithAlt', 'image'],
