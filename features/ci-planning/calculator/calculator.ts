@@ -76,7 +76,6 @@ export function calcOtherDebtNeed(otherDebtBalance: number): number {
   return otherDebtBalance;
 }
 
-
 function requireRecoveryCount(value: number, name: string, max: number): number {
   if (!Number.isInteger(value) || value < 0 || value > max) {
     throw new RangeError(name + ' must be an integer between 0 and ' + max);
@@ -91,6 +90,13 @@ function requireRecoveryAmount(value: number, name: string): number {
   return value;
 }
 
+/**
+ * Research-backed Recovery Reserve.
+ * This is intentionally a standalone planning amount. It is not added to either
+ * the expense-based method or the income-based method, so the three estimates
+ * remain independently readable and no research benchmark silently changes the
+ * user's primary method result.
+ */
 export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
   const treatmentVisits = requireRecoveryCount(recovery.treatmentVisits, 'treatmentVisits', 100);
   const caregiverHomeDays = requireRecoveryCount(recovery.caregiverHomeDays, 'caregiverHomeDays', 730);
@@ -116,11 +122,14 @@ export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
 export function calculateCI(formData: CIFormData): CIResult {
   const { expenses, existingCI } = formData;
 
-  // Worksheet formula:
+  // Expense-based worksheet formula:
   // ค่าใช้จ่ายครัวเรือน × 12 × ปีสำรอง
   // + Σ(ค่าใช้จ่ายการศึกษาต่อปี × ปีที่เหลือรายคน)
   // + ค่างวด × min(งวดคงเหลือ, ปีสำรอง × 12)
   // + ยอดหนี้อื่นคงเหลือรวม (ครั้งเดียว)
+  //
+  // Recovery Reserve is calculated independently below and MUST NOT be added
+  // to calculatedNeed or incomeBasedNeed.
   const effectiveReserveYears = expenses.reserveYears;
   const householdMonthly = expenses.household;
   const householdNeed = calcHouseholdNeed(householdMonthly, effectiveReserveYears);
@@ -143,7 +152,7 @@ export function calculateCI(formData: CIFormData): CIResult {
     equipmentAndHomeModification: 0, otherRecoveryCosts: 0,
   });
   const recoveryReserveNeed = recovery.total;
-  const calculatedNeed = householdNeed + educationNeed + debtNeed + recoveryReserveNeed;
+  const calculatedNeed = householdNeed + educationNeed + debtNeed;
   const incomeBasedNeed = calcIncomeBasedNeed(
     expenses.monthlyIncome ?? 0,
     effectiveReserveYears,
