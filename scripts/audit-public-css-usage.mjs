@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { dirname, extname, join, normalize, posix } from 'node:path';
+import { dirname, extname, join, normalize } from 'node:path';
 
 const trackedFiles = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
   .split('\0')
@@ -162,4 +162,14 @@ if (dynamicModuleAccess.length > 0) {
   console.log('WEBSITE43_DYNAMIC_ACCESS_START');
   for (const { file, alias } of dynamicModuleAccess) console.log(`${file}: ${alias}`);
   console.log('WEBSITE43_DYNAMIC_ACCESS_END');
+}
+
+if (globalUnused.length > 0) {
+  throw new Error(`Global CSS has ${globalUnused.length} class selector(s) with no reachable runtime reference: ${globalUnused.join(', ')}`);
+}
+if (unreachableLegacyBlogFiles.length > 0) {
+  throw new Error(`Legacy Blog components returned outside the App Router graph: ${unreachableLegacyBlogFiles.join(', ')}`);
+}
+if (dynamicModuleAccess.length > 0) {
+  throw new Error('Website43.module.css uses dynamic property access; static reachability audit is no longer safe.');
 }
