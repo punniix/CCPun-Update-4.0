@@ -1,0 +1,61 @@
+name: Phase 3 One-Shot Finalizer
+
+on:
+  pull_request:
+    branches: [v4-production]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase3-finalizer-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    if: github.head_ref == 'audit/public-web-full-phase3-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Use Node 24
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Add disposable cleanup markers
+        shell: bash
+        run: |
+          printf '\n# BEGIN PHASE3 FINALIZER\n# END PHASE3 FINALIZER\n' >> .github/workflows/seo-topic-hubs-ci.yml
+
+      - name: Apply Phase 3 ownership cleanup
+        run: node scripts/phase3-finalize.mjs
+
+      - name: Refresh dependency lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/phase3-finalizer.yml
+
+      - name: Commit final cleanup to PR branch
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'No finalizer changes to commit.'
+            exit 0
+          fi
+          git commit -m "refactor(web): complete Phase 3 ownership cleanup"
+          git push origin "HEAD:${HEAD_REF}"
