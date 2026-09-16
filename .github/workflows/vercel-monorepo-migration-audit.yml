@@ -20,6 +20,11 @@ jobs:
       - name: Checkout migration branch
         uses: actions/checkout@v7.0.1
 
+      - name: Use Node 24
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+
       - name: Audit runtime import and environment ownership
         run: node scripts/audit-monorepo-boundaries.mjs
 
@@ -41,43 +46,63 @@ jobs:
         run: |
           node <<'NODE'
           const projects = [
-            { role: 'web', id: 'prj_dxwjITkd0av5QiJQv2snUlIASUWu' },
-            { role: 'admin', id: 'prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN' },
+            { role: 'web', id: 'prj_dxwjITkd0av5QiJQv2snUlIASUWu', name: 'ccpun-web' },
+            { role: 'admin', id: 'prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN', name: 'ccpun-admin' },
           ];
           const token = process.env.VERCEL_TOKEN;
           const teamId = process.env.VERCEL_TEAM_ID;
-          const headers = { Authorization: `Bearer ${token}` };
+          const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-          async function getJson(url) {
-            const response = await fetch(url, { headers });
-            if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${url.replace(token, '[redacted]')}`);
-            return response.json();
+          async function firstJson(candidates) {
+            const attempts = [];
+            for (const candidate of candidates) {
+              const response = await fetch(candidate.url, { headers, redirect: 'error' });
+              attempts.push({ label: candidate.label, status: response.status });
+              if (response.ok) return { payload: await response.json(), selected: candidate.label, attempts };
+            }
+            return { payload: null, selected: null, attempts };
           }
 
           const output = [];
           for (const project of projects) {
-            const settings = await getJson(`https://api.vercel.com/v9/projects/${project.id}?teamId=${teamId}`);
-            const envResponse = await getJson(`https://api.vercel.com/v10/projects/${project.id}/env?teamId=${teamId}&decrypt=false`);
-            const envs = Array.isArray(envResponse.envs) ? envResponse.envs : [];
+            const scoped = `teamId=${encodeURIComponent(teamId)}`;
+            const settingsResult = await firstJson([
+              { label: 'id+team', url: `https://api.vercel.com/v9/projects/${project.id}?${scoped}` },
+              { label: 'name+team', url: `https://api.vercel.com/v9/projects/${project.name}?${scoped}` },
+              { label: 'id', url: `https://api.vercel.com/v9/projects/${project.id}` },
+              { label: 'name', url: `https://api.vercel.com/v9/projects/${project.name}` },
+            ]);
+            const envResult = await firstJson([
+              { label: 'id+team', url: `https://api.vercel.com/v10/projects/${project.id}/env?${scoped}&decrypt=false` },
+              { label: 'name+team', url: `https://api.vercel.com/v10/projects/${project.name}/env?${scoped}&decrypt=false` },
+              { label: 'id', url: `https://api.vercel.com/v10/projects/${project.id}/env?decrypt=false` },
+              { label: 'name', url: `https://api.vercel.com/v10/projects/${project.name}/env?decrypt=false` },
+            ]);
+            const settings = settingsResult.payload;
+            const envs = Array.isArray(envResult.payload?.envs) ? envResult.payload.envs : [];
             output.push({
               role: project.role,
               projectId: project.id,
-              name: settings.name,
-              framework: settings.framework,
-              nodeVersion: settings.nodeVersion,
-              rootDirectory: settings.rootDirectory ?? null,
-              buildCommand: settings.buildCommand ?? null,
-              installCommand: settings.installCommand ?? null,
-              outputDirectory: settings.outputDirectory ?? null,
-              devCommand: settings.devCommand ?? null,
-              commandForIgnoringBuildStep: settings.commandForIgnoringBuildStep ?? null,
-              sourceFilesOutsideRootDirectory: settings.sourceFilesOutsideRootDirectory ?? null,
-              productionBranch: settings.link?.productionBranch ?? settings.productionBranch ?? null,
-              gitRepository: settings.link ? {
-                type: settings.link.type ?? null,
-                repo: settings.link.repo ?? null,
-                org: settings.link.org ?? null,
-                repoId: settings.link.repoId ?? null,
+              projectLookup: { selected: settingsResult.selected, attempts: settingsResult.attempts },
+              envLookup: { selected: envResult.selected, attempts: envResult.attempts },
+              settings: settings ? {
+                name: settings.name,
+                framework: settings.framework,
+                nodeVersion: settings.nodeVersion,
+                rootDirectory: settings.rootDirectory ?? null,
+                buildCommand: settings.buildCommand ?? null,
+                installCommand: settings.installCommand ?? null,
+                outputDirectory: settings.outputDirectory ?? null,
+                devCommand: settings.devCommand ?? null,
+                commandForIgnoringBuildStep: settings.commandForIgnoringBuildStep ?? null,
+                sourceFilesOutsideRootDirectory: settings.sourceFilesOutsideRootDirectory ?? null,
+                productionBranch: settings.link?.productionBranch ?? settings.productionBranch ?? null,
+                gitRepository: settings.link ? {
+                  type: settings.link.type ?? null,
+                  repo: settings.link.repo ?? null,
+                  org: settings.link.org ?? null,
+                  repoId: settings.link.repoId ?? null,
+                } : null,
               } : null,
               environments: envs.map((item) => ({
                 key: item.key,
@@ -92,4 +117,8 @@ jobs:
           console.log('CCPUN_VERCEL_PROJECT_AUDIT_START');
           console.log(JSON.stringify(output, null, 2));
           console.log('CCPUN_VERCEL_PROJECT_AUDIT_END');
+
+          if (output.some((item) => !item.settings || !item.envLookup.selected)) {
+            throw new Error('VERCEL_PROJECT_OR_ENV_METADATA_UNAVAILABLE');
+          }
           NODE
