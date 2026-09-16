@@ -106,7 +106,7 @@ jobs:
 
           UAT_BASE_URL=http://127.0.0.1:3005 \
           CDP_HTTP=http://127.0.0.1:9342 \
-          node qa/ci-exhaustive-uat.mjs
+          node qa/ci-recovery-additive-uat.mjs
 
       - name: Google sitemap deterministic contract
         run: node --import tsx --test tests/sitemap-google-regression.test.ts
