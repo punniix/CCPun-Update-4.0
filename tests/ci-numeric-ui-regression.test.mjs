@@ -40,6 +40,10 @@ test('CI surfaces arithmetic overflow as a focused Thai error instead of crashin
   await act(async () => root.render(createElement(CI)));
   try {
     await fill('ci-monthly-income', Number.MAX_SAFE_INTEGER);
+    const previewWarning = document.querySelector('#ci-preview-range-warning');
+    assert.ok(previewWarning, 'unsafe preview must fail soft instead of crashing during render');
+    assert.match(previewWarning.textContent, /สูงเกินช่วง/);
+
     await click('ถัดไป');
     assert.match(document.activeElement.textContent, /เงินก้อน/);
     await click('ดูผลคำนวณ');
