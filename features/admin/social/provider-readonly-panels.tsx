@@ -19,7 +19,11 @@ const errorLabel: Record<string, string> = {
 
 async function manualSync(endpoint: string) {
   const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" } });
-  const body = await response.json().catch(() => null) as { error?: string; discovery?: unknown; persistence?: { matchedSnapshots: number; providerContentsSeen?: number; syncMode?: string } } | null;
+  const body = await response.json().catch(() => null) as { error?: string; discovery?: unknown; persistence?: {
+    matchedSnapshots: number; providerContentsSeen?: number; syncMode?: string;
+    metricsOverlapDays?: number | null; metricsWindowDays?: number | null;
+    metadataRefreshAttempted?: number; metadataRefreshSucceeded?: number; metadataRefreshBatchSize?: number | null;
+  } } | null;
   if (!response.ok || !body?.discovery) throw new Error(errorLabel[body?.error ?? ""] ?? "Sync ไม่สำเร็จ");
   return body;
 }
@@ -49,13 +53,19 @@ export function MetaReadOnlyPanel({ ready, analyticsReady, missing }: { ready: b
     instagramMedia: Array<{ id: string; text: string; publishedAt: string; metrics: { likes?: number; comments?: number } }>;
   }>(null);
   const [stored, setStored] = useState<number | null>(null);
+  const [syncDetail, setSyncDetail] = useState<string | null>(null);
   async function sync() {
     setLoading(true);
     setError(null);
+    setSyncDetail(null);
     try {
       const response = await manualSync(analyticsReady ? "/api/admin/social/analytics/sync/meta/" : "/api/admin/social/providers/meta/discovery/");
       setResult(response.discovery as typeof result);
       setStored(response.persistence?.providerContentsSeen ?? response.persistence?.matchedSnapshots ?? null);
+      const persistence = response.persistence;
+      if (persistence?.metricsOverlapDays) {
+        setSyncDetail(`Metrics overlap ${persistence.metricsOverlapDays} วัน · รอบนี้อ่านจริง ${persistence.metricsWindowDays ?? persistence.metricsOverlapDays} วัน · Refresh metadata ${persistence.metadataRefreshSucceeded ?? 0}/${persistence.metadataRefreshAttempted ?? 0} รายการ`);
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Sync ไม่สำเร็จ");
     } finally {
@@ -72,6 +82,7 @@ export function MetaReadOnlyPanel({ ready, analyticsReady, missing }: { ready: b
       </button>
       {error ? <p role="alert" className="mt-3 text-sm text-rose-200">{error}</p> : null}
       {stored !== null ? <p role="status" className="mt-3 text-sm text-emerald-200">บันทึก content และสถิติจาก Meta แล้ว {stored} รายการ</p> : null}
+      {syncDetail ? <p className="mt-1 text-xs text-white/45">{syncDetail}</p> : null}
       {result ? <div className="mt-5">
         <p className="text-xs text-white/45">อัปเดตล่าสุด {new Date(result.fetchedAt).toLocaleString("th-TH")}</p>
         <DecisionCards items={[

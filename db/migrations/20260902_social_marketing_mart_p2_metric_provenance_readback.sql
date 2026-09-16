@@ -43,7 +43,12 @@ SELECT
     SELECT 1 FROM ccpun_social.post_metric_status_latest
     WHERE provider='meta' AND metric_value_stale
   ) AS no_stale_meta_values,
-  (SELECT count(*) = 380 FROM ccpun_social.post_performance_clean WHERE provider='meta') AS clean_post_count_ok,
+  (
+    (SELECT count(*) FROM ccpun_social.post_performance_clean WHERE provider='meta')
+      = (SELECT count(*) FROM ccpun_social.marketing_content_current WHERE provider='meta')
+    AND (SELECT count(*) FROM ccpun_social.post_performance_clean WHERE provider='meta')
+      = (SELECT count(DISTINCT content_id) FROM ccpun_social.post_performance_clean WHERE provider='meta')
+  ) AS clean_post_count_ok,
   has_table_privilege('ccpun_social_runtime','ccpun_social.post_metric_status_latest','SELECT') AS runtime_status_read_ok,
   has_table_privilege('ccpun_social_runtime','ccpun_social.post_metric_coverage_summary','SELECT') AS runtime_coverage_read_ok,
   has_table_privilege('ccpun_social_runtime','ccpun_social.post_performance_clean','SELECT') AS runtime_clean_read_ok;

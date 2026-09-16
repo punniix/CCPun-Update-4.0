@@ -142,16 +142,21 @@ test("Manual analytics discovery enriches bounded Facebook and Instagram provide
   ]);
 });
 
-test("Analytics ingestion keeps P1 Insights bounded while refreshing full Meta content metadata", () => {
+test("Analytics ingestion keeps P1 Insights bounded while historical Meta metadata refresh is batched", () => {
   const source = read("lib/admin/social/analytics-ingestion.ts");
-  assert.match(source, /fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since, includeInsights: true, insightsBackfillLimit: 25 \}\)/);
-  assert.match(source, /metadataDiscovery = since === null[\s\S]*fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since: null, includeInsights: false \}\)/);
-  assert.match(source, /providerContents = toProviderContents\(metadataDiscovery\)/);
-  assert.match(source, /providerMetricContents = since === null \? providerContents : toProviderContents\(discovery\)/);
+  assert.match(source, /insightsBackfillLimit: metaPolicy\.insightsBackfillLimit/);
+  assert.match(source, /fetchMetaContentMetadataByIds/);
+  assert.match(source, /metadataRefreshBatchSize/);
+  assert.match(source, /metadataRefreshDays/);
+  assert.match(source, /published_at < \$1::timestamptz/);
+  assert.match(source, /GREATEST\(last_seen_at,updated_at\) < now\(\) - \(\$2::int \* interval '1 day'\)/);
+  assert.match(source, /metadataRefreshUnavailableTargets\.map[\s\S]*SET updated_at=now\(\)/);
+  assert.match(source, /providerMetricContents: recentProviderContents/);
   assert.match(source, /matched: matchMetaHistoricalAnalytics\(refs, discovery\)/);
   assert.match(source, /providerMetricContents\.map/);
   assert.match(source, /function transientThumbnailIdentity[\s\S]*new URL\(value\)\.pathname/);
   assert.match(source, /transientThumbnailIdentity\(content\.thumbnailUrl\)/);
+  assert.doesNotMatch(source, /fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since: null, includeInsights: false \}\)/);
   assert.doesNotMatch(read("app/api/admin/social/providers/meta/discovery/route.ts"), /includeInsights/);
 });
 

@@ -55,7 +55,9 @@ test("Provenance readback verifies Facebook Share semantics and clean-mart safet
   assert.match(readback, /facebook_share_not_fetched_eliminated/);
   assert.match(readback, /facebook_share_not_returned_present/);
   assert.match(readback, /no_stale_meta_values/);
-  assert.match(readback, /count\(\*\) = 380/);
+  assert.match(readback, /post_performance_clean[\s\S]*marketing_content_current/);
+  assert.match(readback, /count\(DISTINCT content_id\)/);
+  assert.doesNotMatch(readback, /count\(\*\) = 380/);
   assert.match(readback, /runtime_status_read_ok/);
   assert.match(readback, /runtime_coverage_read_ok/);
   assert.match(readback, /runtime_clean_read_ok/);
