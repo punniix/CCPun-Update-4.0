@@ -54,9 +54,9 @@
         "ประกันโรคร้ายแรงต่างจากประกันสุขภาพอย่างไร"
       ],
       "searchIntent": "informational",
-      "ownerUrl": "https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/",
+      "ownerUrl": "https://ccpun.com/blog/critical-illness-insurance/critical-illness-insurance/",
       "semanticTopic": "critical-illness-insurance",
-      "ownerState": "planned",
+      "ownerState": "published",
       "ownershipBasis": "approved-url-migration",
       "legacyMappingId": "critical-illness-insurance"
     },
