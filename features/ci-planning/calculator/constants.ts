@@ -49,4 +49,4 @@ export const CI_ESTIMATION_METHOD_LABELS: Record<CIEstimationMethod, string> = {
   income: 'ทุนตามรายได้',
 };
 
-export const CI_ASSESSMENT_VERSION = 'ci_planning_v7_recovery_sources_2025_2026';
+export const CI_ASSESSMENT_VERSION = 'ci_planning_v8_recovery_standalone_2025_2026';
