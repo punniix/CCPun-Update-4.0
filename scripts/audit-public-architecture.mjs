@@ -11,6 +11,8 @@ import {
   trackedFiles,
 } from './lib/public-reachability.mjs';
 
+// Order matters: the first matching owner wins, so specific feature/layout owners
+// stay distinct from broader shared directories.
 const areas = [
   ['blog', ['features/blog/']],
   ['home', ['features/home/']],
@@ -18,8 +20,12 @@ const areas = [
   ['financial-health-check', ['features/financial-health-check/']],
   ['analytics', ['features/analytics/']],
   ['website-43-shared', ['components/layout/website-43/']],
+  ['layout-shared', ['components/layout/']],
+  ['ui-shared', ['components/ui/']],
+  ['preview-shared', ['components/preview/']],
   ['content-platform', ['lib/content/']],
   ['seo-platform', ['lib/seo/']],
+  ['shared-lib', ['lib/shared/']],
 ];
 
 function areaFor(file) {
@@ -59,8 +65,8 @@ const internalOnlyRows = [];
 const publicClientRows = [];
 const publicLargeRows = [];
 
-for (const [area, prefixes] of areas) {
-  const files = runtimeFiles.filter((file) => prefixes.some((prefix) => file.startsWith(prefix))).sort();
+for (const [area] of areas) {
+  const files = runtimeFiles.filter((file) => areaFor(file) === area).sort();
   const publicFiles = files.filter((file) => publicReachable.has(file));
   const internalOnly = files.filter((file) => !publicReachable.has(file) && reachable.has(file));
   const orphanFiles = files.filter((file) => !reachable.has(file));
@@ -78,6 +84,10 @@ for (const [area, prefixes] of areas) {
     if (bytes >= 8000) publicLargeRows.push({ area, file, bytes });
   }
 }
+
+const unclassifiedPublic = [...publicReachable]
+  .filter((file) => !file.startsWith('app/') && areaFor(file) === null)
+  .sort();
 
 function importSpecifiers(source) {
   const values = new Set();
@@ -122,6 +132,7 @@ console.log('PUBLIC_ARCHITECTURE_AUDIT');
 console.log(`public_entry_files=${publicEntryFiles.length}`);
 console.log(`public_reachable_runtime_files=${publicReachable.size}`);
 console.log(`all_route_reachable_runtime_files=${reachable.size}`);
+console.log(`unclassified_public_runtime_files=${unclassifiedPublic.length}`);
 console.log('PUBLIC_ENTRY_FILES_START');
 for (const file of [...publicEntryFiles].sort()) console.log(file);
 console.log('PUBLIC_ENTRY_FILES_END');
@@ -143,6 +154,10 @@ console.log('ORPHAN_RUNTIME_END');
 console.log('INTERNAL_ONLY_RUNTIME_START');
 for (const row of internalOnlyRows.sort((a, b) => a.file.localeCompare(b.file))) console.log(`${row.area}\t${row.file}`);
 console.log('INTERNAL_ONLY_RUNTIME_END');
+
+console.log('PUBLIC_UNCLASSIFIED_RUNTIME_START');
+for (const file of unclassifiedPublic) console.log(file);
+console.log('PUBLIC_UNCLASSIFIED_RUNTIME_END');
 
 console.log('PUBLIC_CLIENT_ISLANDS_START');
 for (const row of publicClientRows.sort((a, b) => a.file.localeCompare(b.file))) console.log(`${row.area}\t${row.file}`);
