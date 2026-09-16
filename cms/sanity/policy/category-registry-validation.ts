@@ -1,4 +1,5 @@
 import type { ValidationContext } from "sanity";
+import { sourceSlugHasPublicRouteOverride } from "../../../lib/content/article-route-overrides";
 import {
   buildCategoryRegistry,
   CATEGORY_SLUG_PATTERN,
@@ -85,7 +86,7 @@ export async function validateCategoryRegistryDocument(
     if (publishedStatus === "active" && status === "draft") references.add(id);
 
     const registry = buildCategoryRegistry([...withoutCurrent, currentRow], {
-      routeOwnerSlugs,
+      routeOwnerSlugs: routeOwnerSlugs.filter((ownerSlug) => !sourceSlugHasPublicRouteOverride(ownerSlug)),
       canonicalOwnerUrls,
       referencedCategoryIds: references,
     });
@@ -105,7 +106,7 @@ export async function validateArticleSlugAgainstCategoryRegistry(
   context: ValidationContext,
 ): Promise<true | string> {
   const slug = value?.current?.trim().toLowerCase() ?? "";
-  if (!slug || !CATEGORY_SLUG_PATTERN.test(slug)) return true;
+  if (!slug || !CATEGORY_SLUG_PATTERN.test(slug) || sourceSlugHasPublicRouteOverride(slug)) return true;
   try {
     const client = context.getClient({ apiVersion: API_VERSION }).withConfig({ useCdn: false, perspective: "drafts" });
     const collision = await client.fetch<number>(
