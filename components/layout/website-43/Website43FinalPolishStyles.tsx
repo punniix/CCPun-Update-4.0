@@ -10,15 +10,10 @@ import styles from './Website43.module.css';
 export function Website43FinalPolishStyles() {
   const css = String.raw`
 @media (min-width: 1024px) {
-  /* 1100 reference uses the same 56px shell gutter as Navbar; 1440 resolves to 80px. */
   .${styles.root} {
     --w43-content-gutter: var(--w43-nav-gutter);
   }
 
-  /* Keep desktop copy in the left half, clear of the centered portrait's face.
-   * The narrower width wraps complete Thai words without changing font size.
-   * Tablet copy already starts below the face; mobile remains unchanged.
-   */
   .${styles.homeHeroGradient} {
     width: clamp(840px, calc(82.35294vw - 65.88235px), 1120px);
   }
@@ -38,7 +33,6 @@ export function Website43FinalPolishStyles() {
     padding-right: var(--w43-nav-gutter);
   }
 
-  /* Keep portrait subjects below the navigation safe area on image-led heroes. */
   .${styles.blogHeroImage} {
     inset: 80px 0 auto auto;
     height: calc(100% - 18px);
@@ -48,7 +42,6 @@ export function Website43FinalPolishStyles() {
     height: 620px;
   }
 
-  /* The 1100 transition reference uses the same fluid shell as navigation. */
   .${styles.toolStorySection} {
     padding-left: var(--w43-nav-gutter);
     padding-right: var(--w43-nav-gutter);
@@ -80,7 +73,6 @@ export function Website43FinalPolishStyles() {
     height: 346px;
   }
 
-  /* Featured stories use the same two-column card width as the article grid. */
   .${styles.featuredCard} {
     width: calc((100vw - 98px) / 2);
     flex-basis: calc((100vw - 98px) / 2);
@@ -110,17 +102,10 @@ export function Website43FinalPolishStyles() {
 }
 
 @media (max-width: 639px) {
-  /* 390 canonical = 24px content gutter; 600 transition reference = 48px. */
   .${styles.root} {
     --w43-content-gutter: var(--w43-hero-gutter);
   }
 
-  /*
-   * Home keeps the same 390px composition while interpolating smoothly toward
-   * the 600px transition reference. The image remains eager/high-priority; this
-   * only makes its paint box fluid and folds the two visual gradient layers into
-   * one server-rendered layer so mobile has less compositing work before LCP.
-   */
   .${styles.homeHero} {
     height: clamp(740px, calc(9.52381vw + 702.857px), 760px);
     isolation: isolate;
@@ -152,14 +137,12 @@ export function Website43FinalPolishStyles() {
     margin-top: clamp(326px, calc(1.90476vw + 318.571px), 330px);
   }
 
-  /* Blog search fills the reading shell: 342px at 390 and 504px at 600. */
   .${styles.searchFilters},
   .${styles.searchField} {
     width: 100%;
     max-width: 100%;
   }
 
-  /* Featured stories share the same reading width as the single-column cards below. */
   .${styles.featuredCard} {
     width: var(--w43-mobile-reading-width);
     flex-basis: var(--w43-mobile-reading-width);
@@ -168,17 +151,11 @@ export function Website43FinalPolishStyles() {
     padding-inline: var(--w43-hero-gutter);
   }
 
-  /* Cards fill the Figma reading shell: 342px at 390 and 504px at 600. */
   .${styles.threeCols} > *,
   .${styles.stats} > * {
     width: 100%;
   }
 
-  /*
-   * Tool heroes use the same mobile composition language as Home:
-   * navigation + top title, portrait starts below the title, and the supporting
-   * copy/CTA sits on the lower image with a dedicated readability gradient.
-   */
   .${styles.toolHero} {
     height: 740px;
   }
@@ -191,7 +168,6 @@ export function Website43FinalPolishStyles() {
     height: 440px;
     object-fit: cover;
     object-position: center center;
-    /* Fade the portrait in from the dark hero surface rather than exposing a hard top edge. */
     -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
     mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
   }
