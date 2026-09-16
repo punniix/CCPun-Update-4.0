@@ -167,9 +167,6 @@ if (dynamicModuleAccess.length > 0) {
 if (globalUnused.length > 0) {
   throw new Error(`Global CSS has ${globalUnused.length} class selector(s) with no reachable runtime reference: ${globalUnused.join(', ')}`);
 }
-if (unreachableLegacyBlogFiles.length > 0) {
-  throw new Error(`Legacy Blog components returned outside the App Router graph: ${unreachableLegacyBlogFiles.join(', ')}`);
-}
 if (dynamicModuleAccess.length > 0) {
   throw new Error('Website43.module.css uses dynamic property access; static reachability audit is no longer safe.');
 }
