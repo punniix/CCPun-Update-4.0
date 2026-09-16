@@ -1,11 +1,18 @@
 @import "tailwindcss";
-@import "./components.css";
+@import "../components/styles/public-compat.css";
+@import "../components/styles/public-motion.css";
+@import "../features/financial-health-check/styles/print.css";
 
 /*
 ====================================
-CCPun — Liquid Glass Design System
-Theme: Warm Brown & Gold Glassmorphism
-Tailwind v4 CSS-first configuration
+CCPun global foundation
+
+Ownership:
+- tokens/theme/document defaults live here
+- cross-feature compatibility classes live in components/styles/public-compat.css
+- shared named animations/reduced-motion live in components/styles/public-motion.css
+- feature-only global contracts stay with their feature owner
+- Website 4.3 visual rules belong in its CSS Modules, not in this file
 ====================================
 */
 
@@ -82,27 +89,29 @@ Tailwind v4 CSS-first configuration
   --animate-scroll-breath: scroll-breath 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-/* ── 3. Base ── */
+/* ── 3. Document foundation ── */
 @layer base {
   * {
     border-color: hsl(var(--border));
   }
-	  html {
-	    scroll-behavior: smooth;
-	    scroll-padding-top: 80px;
-	    overflow-x: clip;
-	  }
-	body {
-	    background-color: hsl(var(--background));
-	    color: hsl(var(--foreground));
-	    font-family: 'Kanit', system-ui, sans-serif;
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Kanit', system-ui, sans-serif;
     font-size: 1rem;
-	    font-weight: 300;
-	    line-height: 1.6;
-	    -webkit-font-smoothing: antialiased;
-	    -moz-osx-font-smoothing: grayscale;
-	    overflow-x: clip;
-	  }
+    font-weight: 300;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
 
   :focus-visible {
     outline: 3px solid #e0c985;
@@ -110,6 +119,7 @@ Tailwind v4 CSS-first configuration
   }
 }
 
+/* Admin skip link is intentionally global because Web and Admin share the root stylesheet. */
 .admin-skip-link {
   position: fixed;
   left: 1rem;
@@ -129,22 +139,25 @@ Tailwind v4 CSS-first configuration
   transform: translateY(0);
 }
 
-/* Readability baseline for Thai copy inside dense cards and tools. */
-.form-glass .text-xs,
+/* Readability baseline retained only for the reachable shared glass-card primitive. */
 .glass-card .text-xs {
   font-size: 0.8125rem;
   line-height: 1.55;
 }
 
-.form-glass .text-sm,
 .glass-card .text-sm {
   font-size: 0.9375rem;
   line-height: 1.6;
 }
 
 @media (min-width: 768px) {
-  .form-glass .text-xs,
   .glass-card .text-xs {
     font-size: 0.875rem;
   }
 }
+
+/* Global document scrollbar. Feature scroll containers own their own scrollbar rules. */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: hsl(0,45%,6%); }
+::-webkit-scrollbar-thumb { background: hsl(0,30%,22%); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(42,50%,55%); }
