@@ -2,7 +2,7 @@
 
 import { ExternalLink, Plus, Trash2 } from 'lucide-react';
 import CurrencyInput from '@/components/ui/CurrencyInput';
-import { calcDebtNeed, calcHouseholdNeed, calcIncomeBasedNeed, calcRecoveryReserveNeed } from '@/features/ci-planning/calculator/calculator';
+import { calcDebtNeed, calcHouseholdNeed, calcIncomeBasedNeed, calcOtherDebtNeed, calcRecoveryReserveNeed } from '@/features/ci-planning/calculator/calculator';
 import type { CIEducationPlan, CIFormData, CIRecoveryCosts } from '@/features/ci-planning/calculator/types';
 import { CI_RECOVERY_REFERENCE, CI_RECOVERY_SOURCES } from '@/features/ci-planning/recovery-evidence';
 
@@ -28,6 +28,10 @@ function baht(value: number) {
   return `${Math.round(value).toLocaleString('th-TH')} บาท`;
 }
 
+function previewBaht(value: number | null) {
+  return value === null ? '—' : baht(value);
+}
+
 function describedBy(...ids: Array<string | false | undefined>) {
   return ids.filter(Boolean).join(' ') || undefined;
 }
@@ -41,10 +45,11 @@ function previewInstallments(value: number) {
   return Number.isInteger(value) && value >= 0 && value <= 600 ? value : 0;
 }
 
-function previewEducationSubtotal(plan: CIEducationPlan) {
-  const annualCost = Number.isFinite(plan.annualCost) && plan.annualCost > 0 ? plan.annualCost : 0;
+function previewEducationSubtotal(plan: CIEducationPlan): number | null {
+  const annualCost = Number.isSafeInteger(plan.annualCost) && plan.annualCost > 0 ? plan.annualCost : 0;
   const years = Number.isInteger(plan.yearsRemaining) && plan.yearsRemaining > 0 ? plan.yearsRemaining : 0;
-  return annualCost * years;
+  const subtotal = annualCost * years;
+  return Number.isSafeInteger(subtotal) ? subtotal : null;
 }
 
 function RecoverySourceLink({ id, children }: { id: string; children: React.ReactNode }) {
@@ -56,6 +61,36 @@ function RecoverySourceLink({ id, children }: { id: string; children: React.Reac
 function safeRecoveryPreview(recovery: CIRecoveryCosts) {
   try { return calcRecoveryReserveNeed(recovery); }
   catch { return { treatmentVisits: 0, caregiverHomeDays: 0, rehabSessions: 0, homeRehabSessions: 0, visitNeed: 0, caregiverHomeNeed: 0, rehabNeed: 0, equipmentAndHomeModification: Math.max(0, recovery.equipmentAndHomeModification || 0), otherRecoveryCosts: Math.max(0, recovery.otherRecoveryCosts || 0), total: 0 }; }
+}
+
+function safeAddPreview(...values: number[]) {
+  const total = values.reduce((sum, value) => sum + value, 0);
+  if (!Number.isSafeInteger(total) || total < 0) throw new RangeError('preview total exceeds the safe integer range');
+  return total;
+}
+
+function safePlanPreview(expenses: CIFormData['expenses'], recoveryReserveNeed: number) {
+  try {
+    const { educationPlans, reserveYears } = expenses;
+    const householdNeed = calcHouseholdNeed(expenses.household, reserveYears);
+    let educationNeed = 0;
+    for (const plan of educationPlans) {
+      const subtotal = previewEducationSubtotal(plan);
+      if (subtotal === null) throw new RangeError('education preview exceeds the safe integer range');
+      educationNeed = safeAddPreview(educationNeed, subtotal);
+    }
+    const mortgageDebtNeed = calcDebtNeed(expenses.mortgagePayment, previewInstallments(expenses.mortgageInstallmentsRemaining), reserveYears);
+    const carDebtNeed = calcDebtNeed(expenses.carPayment, previewInstallments(expenses.carInstallmentsRemaining), reserveYears);
+    const otherDebtBalance = calcOtherDebtNeed(expenses.otherDebtBalance);
+    const debtNeed = safeAddPreview(mortgageDebtNeed, carDebtNeed, otherDebtBalance);
+    const expenseBaseNeed = safeAddPreview(householdNeed, educationNeed, debtNeed);
+    const incomeBaseNeed = calcIncomeBasedNeed(expenses.monthlyIncome, reserveYears);
+    const expenseTotalNeed = expenseBaseNeed > 0 ? safeAddPreview(expenseBaseNeed, recoveryReserveNeed) : 0;
+    const incomeTotalNeed = incomeBaseNeed > 0 ? safeAddPreview(incomeBaseNeed, recoveryReserveNeed) : 0;
+    return { householdNeed, educationNeed, debtNeed, expenseBaseNeed, incomeBaseNeed, expenseTotalNeed, incomeTotalNeed };
+  } catch {
+    return null;
+  }
 }
 
 export default function StepExpenses({ data, updateData, errors }: StepProps) {
@@ -89,17 +124,8 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
     updateExpenses({ ...expenses, educationPlans: educationPlans.filter((_, planIndex) => planIndex !== index) });
   };
 
-  const householdNeed = calcHouseholdNeed(expenses.household, reserveYears);
-  const educationNeed = educationPlans.reduce((total, plan) => total + previewEducationSubtotal(plan), 0);
-  const mortgageDebtNeed = calcDebtNeed(expenses.mortgagePayment, previewInstallments(expenses.mortgageInstallmentsRemaining), reserveYears);
-  const carDebtNeed = calcDebtNeed(expenses.carPayment, previewInstallments(expenses.carInstallmentsRemaining), reserveYears);
-  const otherDebtBalance = Number.isFinite(expenses.otherDebtBalance) && expenses.otherDebtBalance >= 0 ? expenses.otherDebtBalance : 0;
-  const debtNeed = mortgageDebtNeed + carDebtNeed + otherDebtBalance;
   const recoveryPreview = safeRecoveryPreview(recovery);
-  const expenseBaseNeed = householdNeed + educationNeed + debtNeed;
-  const incomeBaseNeed = calcIncomeBasedNeed(expenses.monthlyIncome, reserveYears);
-  const expenseTotalNeed = expenseBaseNeed > 0 ? expenseBaseNeed + recoveryPreview.total : 0;
-  const incomeTotalNeed = incomeBaseNeed > 0 ? incomeBaseNeed + recoveryPreview.total : 0;
+  const planPreview = safePlanPreview(expenses, recoveryPreview.total);
   const hasAdvancedData = educationPlans.length > 0 || expenses.mortgagePayment > 0 || expenses.mortgageInstallmentsRemaining > 0 || expenses.carPayment > 0 || expenses.carInstallmentsRemaining > 0 || expenses.otherDebtBalance > 0;
   const hasRecoveryData = recovery.treatmentVisits > 0 || recovery.caregiverHomeDays > 0 || recovery.rehabSessions > 0 || recovery.homeRehabSessions > 0 || recovery.equipmentAndHomeModification > 0 || recovery.otherRecoveryCosts > 0;
 
@@ -138,8 +164,8 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
             const yearsError = errors[`educationPlans.${index}.yearsRemaining`];
             const annualCostId = `ci-education-${index}-annual-cost`;
             const yearsId = `ci-education-${index}-years`;
-            return <fieldset key={index} className="rounded-xl border border-white/10 p-4"><legend className="flex w-full items-center justify-between gap-3 px-1 text-sm font-medium"><span>บุตรคนที่ {index + 1}</span><button type="button" onClick={() => handleRemoveEducationPlan(index)} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-white/45 hover:bg-destructive/10 hover:text-destructive" aria-label={`ลบแผนการศึกษาบุตรคนที่ ${index + 1}`}><Trash2 className="h-4 w-4" aria-hidden="true" /></button></legend><div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label htmlFor={annualCostId} className="text-xs text-white/55">ค่าใช้จ่ายต่อปี</label><CurrencyInput id={annualCostId} value={plan.annualCost} onChange={(value) => handleEducationPlan(index, 'annualCost', value)} placeholder="เช่น 60,000" error={Boolean(annualCostError)} aria-describedby={annualCostError ? `${annualCostId}-error` : undefined} /><FieldError id={`${annualCostId}-error`} message={annualCostError} /></div><div className="space-y-2"><label htmlFor={yearsId} className="text-xs text-white/55">เหลืออีกกี่ปี</label><input id={yearsId} type="number" inputMode="numeric" min={1} max={30} step={1} value={plan.yearsRemaining || ''} onChange={(event) => handleEducationYears(index, event)} placeholder="เช่น 10" aria-invalid={Boolean(yearsError) || undefined} aria-describedby={describedBy(`${yearsId}-help`, yearsError && `${yearsId}-error`)} className={`h-12 w-full rounded-md border bg-background/50 px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${yearsError ? 'border-destructive' : 'border-border/50'}`} /><p id={`${yearsId}-help`} className="text-xs text-white/45">1–30 ปี</p><FieldError id={`${yearsId}-error`} message={yearsError} /></div></div><p className="mt-3 text-xs text-white/45">รวมคนนี้: <strong className="font-medium text-foreground">{baht(previewEducationSubtotal(plan))}</strong></p></fieldset>;
-          })}<p className="text-sm text-white/55">รวมทุนการศึกษา <strong className="font-semibold text-foreground">{baht(educationNeed)}</strong></p></div> : <p className="mt-3 text-xs text-white/40">ไม่มีข้อมูลส่วนนี้ก็ข้ามได้</p>}
+            return <fieldset key={index} className="rounded-xl border border-white/10 p-4"><legend className="flex w-full items-center justify-between gap-3 px-1 text-sm font-medium"><span>บุตรคนที่ {index + 1}</span><button type="button" onClick={() => handleRemoveEducationPlan(index)} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-white/45 hover:bg-destructive/10 hover:text-destructive" aria-label={`ลบแผนการศึกษาบุตรคนที่ ${index + 1}`}><Trash2 className="h-4 w-4" aria-hidden="true" /></button></legend><div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label htmlFor={annualCostId} className="text-xs text-white/55">ค่าใช้จ่ายต่อปี</label><CurrencyInput id={annualCostId} value={plan.annualCost} onChange={(value) => handleEducationPlan(index, 'annualCost', value)} placeholder="เช่น 60,000" error={Boolean(annualCostError)} aria-describedby={annualCostError ? `${annualCostId}-error` : undefined} /><FieldError id={`${annualCostId}-error`} message={annualCostError} /></div><div className="space-y-2"><label htmlFor={yearsId} className="text-xs text-white/55">เหลืออีกกี่ปี</label><input id={yearsId} type="number" inputMode="numeric" min={1} max={30} step={1} value={plan.yearsRemaining || ''} onChange={(event) => handleEducationYears(index, event)} placeholder="เช่น 10" aria-invalid={Boolean(yearsError) || undefined} aria-describedby={describedBy(`${yearsId}-help`, yearsError && `${yearsId}-error`)} className={`h-12 w-full rounded-md border bg-background/50 px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${yearsError ? 'border-destructive' : 'border-border/50'}`} /><p id={`${yearsId}-help"`} className="text-xs text-white/45">1–30 ปี</p><FieldError id={`${yearsId}-error`} message={yearsError} /></div></div><p className="mt-3 text-xs text-white/45">รวมคนนี้: <strong className="font-medium text-foreground">{previewBaht(previewEducationSubtotal(plan))}</strong></p></fieldset>;
+          })}<p className="text-sm text-white/55">รวมทุนการศึกษา <strong className="font-semibold text-foreground">{planPreview ? baht(planPreview.educationNeed) : '—'}</strong></p></div> : <p className="mt-3 text-xs text-white/40">ไม่มีข้อมูลส่วนนี้ก็ข้ามได้</p>}
         </section>
 
         <section aria-labelledby="ci-debt-title" className="border-t border-white/10 pt-5">
@@ -192,13 +218,13 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       </div>
     </details>
 
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/10 pt-4 text-xs sm:grid-cols-3 lg:grid-cols-6">
-      <div><dt className="text-white/40">ครัวเรือน</dt><dd className="mt-1 font-medium text-white/80">{baht(householdNeed)}</dd></div>
-      <div><dt className="text-white/40">การศึกษา</dt><dd className="mt-1 font-medium text-white/80">{baht(educationNeed)}</dd></div>
-      <div><dt className="text-white/40">ภาระหนี้รวม</dt><dd className="mt-1 font-medium text-white/80">{baht(debtNeed)}</dd></div>
+    {planPreview ? <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/10 pt-4 text-xs sm:grid-cols-3 lg:grid-cols-6">
+      <div><dt className="text-white/40">ครัวเรือน</dt><dd className="mt-1 font-medium text-white/80">{baht(planPreview.householdNeed)}</dd></div>
+      <div><dt className="text-white/40">การศึกษา</dt><dd className="mt-1 font-medium text-white/80">{baht(planPreview.educationNeed)}</dd></div>
+      <div><dt className="text-white/40">ภาระหนี้รวม</dt><dd className="mt-1 font-medium text-white/80">{baht(planPreview.debtNeed)}</dd></div>
       <div><dt className="text-white/40">Recovery Reserve</dt><dd className="mt-1 font-medium text-white/80">{baht(recoveryPreview.total)}</dd></div>
-      <div><dt className="text-white/40">ทุนตามรายจ่ายรวม</dt><dd className="mt-1 font-semibold text-primary">{expenseBaseNeed > 0 ? baht(expenseTotalNeed) : '—'}</dd></div>
-      <div><dt className="text-white/40">ทุนตามรายได้รวม</dt><dd className="mt-1 font-semibold text-primary">{incomeBaseNeed > 0 ? baht(incomeTotalNeed) : '—'}</dd></div>
-    </dl>
+      <div><dt className="text-white/40">ทุนตามรายจ่ายรวม</dt><dd className="mt-1 font-semibold text-primary">{planPreview.expenseBaseNeed > 0 ? baht(planPreview.expenseTotalNeed) : '—'}</dd></div>
+      <div><dt className="text-white/40">ทุนตามรายได้รวม</dt><dd className="mt-1 font-semibold text-primary">{planPreview.incomeBaseNeed > 0 ? baht(planPreview.incomeTotalNeed) : '—'}</dd></div>
+    </dl> : <p id="ci-preview-range-warning" role="status" className="border-t border-white/10 pt-4 text-xs leading-5 text-destructive">ตัวเลขบางส่วนสูงเกินช่วงที่เครื่องมือนี้แสดงตัวอย่างระหว่างกรอกได้ กรุณาตรวจสอบข้อมูลก่อนดำเนินการต่อ ระบบจะไม่คำนวณผลลัพธ์จากค่าที่เกินช่วงอย่างเงียบ ๆ</p>}
   </div>;
 }
