@@ -93,7 +93,12 @@ test("provider-native history is additive, checksum-locked and change-only", () 
 
   const service = read("lib/admin/social/analytics-ingestion.ts");
   assert.match(read("lib/admin/social/runtime.ts"), new RegExp(historyMigrationVersion));
-  assert.match(service, /14 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(service, /META_METRICS_OVERLAP_DEFAULT_DAYS = 30/);
+  assert.match(service, /META_METRICS_OVERLAP_MAX_DAYS = 180/);
+  assert.match(service, /META_METADATA_REFRESH_DEFAULT_DAYS = 2/);
+  assert.match(service, /META_METADATA_REFRESH_BATCH_DEFAULT = 100/);
+  assert.match(service, /CCPUN_META_METRICS_OVERLAP_DAYS/);
+  assert.doesNotMatch(service, /14 \* 24 \* 60 \* 60 \* 1000/);
   assert.match(service, /ON CONFLICT \(content_id,content_hash\) DO NOTHING/);
   assert.match(service, /ON CONFLICT \(content_id,metrics_hash\) DO NOTHING/);
   assert.match(service, /latestMetricHash[\s\S]*metricsHash/);
@@ -125,6 +130,8 @@ test("manual provider persistence stays human-only, same-origin and provider-wri
   assert.match(service, /collection_mode/);
   assert.doesNotMatch(service, /video\.upload|video\.publish|setInterval|cron/);
   assert.match(panel, /Sync และบันทึกสถิติย้อนหลัง/);
+  assert.match(panel, /Metrics overlap/);
+  assert.match(panel, /Refresh metadata/);
   assert.match(dashboard, /ไม่รวม Views\/Reach ข้ามแพลตฟอร์ม/);
   assert.match(dashboard, /metric\.delta/);
 });
@@ -164,6 +171,10 @@ test("Every manual Meta sync upserts newly discovered unlinked content without a
   assert.match(service, /providerContents\.flatMap/);
   assert.match(service, /linkedPublicationId: linked\.get\([\s\S]*\) \?\? null/);
   assert.match(service, /ON CONFLICT \(provider,platform,provider_object_id\) DO UPDATE SET/);
-  assert.match(service, /14 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(service, /fetchMetaContentMetadataByIds/);
+  assert.match(service, /metadataRefreshBatchSize/);
+  assert.match(service, /ORDER BY \(thumbnail_url IS NULL\) ASC,GREATEST\(last_seen_at,updated_at\) ASC,published_at DESC/);
+  assert.match(service, /metadataRefreshUnavailableTargets\.map[\s\S]*SET updated_at=now\(\)/);
+  assert.doesNotMatch(service, /fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since: null, includeInsights: false \}\)/);
   assert.doesNotMatch(service, /\b379\b/);
 });

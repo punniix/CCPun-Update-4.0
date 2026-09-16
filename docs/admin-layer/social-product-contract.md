@@ -5,7 +5,7 @@ This file is the PR57 acceptance source of truth. Chat summaries and agent-local
 ## Content continuity
 
 - Read current and future `socialVariant` Drafts from Sanity on every workspace load; no fixture or baseline-count fallback.
-- Discover new provider content on every manual sync and refresh mutable Meta metrics with a 14-day overlap.
+- Discover new provider content on every manual sync; refresh mutable Meta metrics with a configurable bounded overlap (30 days by default, adjustable up to 180 days). The effective read window starts at the previous successful sync minus that overlap, so a delayed sync automatically covers the elapsed gap plus the overlap. Stale historical metadata/thumbnails refresh in bounded batches rather than scanning the full history on every sync.
 - Keep editorial bodies in Sanity and operational publication/metric state in Neon.
 
 ## Facebook authoring and publishing

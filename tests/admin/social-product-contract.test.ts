@@ -21,7 +21,8 @@ test("PR57 contract cannot silently collapse Facebook publishing to text only", 
 test("PR57 contract retains future content, human gates, native metrics and export", () => {
   for (const requirement of [
     /current and future `socialVariant` Drafts/,
-    /14-day overlap/,
+    /configurable bounded overlap/,
+    /bounded batches rather than scanning the full history/,
     /resets review to `drafting`/,
     /never sums unlike metrics/,
     /Google Sheets export/,

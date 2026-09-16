@@ -5,7 +5,7 @@ import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import { normalizeMetaAnalytics } from "./provider-adapters";
 import { WEBSITE_42_SOCIAL_ANALYTICS_BRANCH } from "./provider-readonly";
-import { fetchMetaReadOnlyDiscovery, matchMetaHistoricalAnalytics } from "./providers/meta/read-only";
+import { fetchMetaContentMetadataByIds, fetchMetaReadOnlyDiscovery, matchMetaHistoricalAnalytics } from "./providers/meta/read-only";
 import { fetchTikTokReadOnlyDiscovery, matchTikTokHistoricalAnalytics } from "./providers/tiktok/read-only";
 import { fetchYouTubeReadOnlyDiscovery, matchYouTubeHistoricalAnalytics } from "./providers/youtube/read-only";
 import {
@@ -43,6 +43,31 @@ const syncStateSchema = z.array(z.object({
   last_success_at: z.coerce.date().nullable(),
   backfill_completed_at: z.coerce.date().nullable(),
 })).max(1);
+const metaMetadataRefreshTargetsSchema = z.array(z.object({
+  platform: z.enum(["facebook", "instagram"]),
+  provider_object_id: z.string().trim().min(1).max(200),
+  last_seen_at: z.coerce.date(),
+})).max(100);
+
+const META_METRICS_OVERLAP_DEFAULT_DAYS = 30;
+const META_METRICS_OVERLAP_MAX_DAYS = 180;
+const META_INSIGHTS_LIMIT_DEFAULT = 25;
+const META_METADATA_REFRESH_DEFAULT_DAYS = 2;
+const META_METADATA_REFRESH_BATCH_DEFAULT = 100;
+
+function boundedInteger(value: string | undefined, fallback: number, min: number, max: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
+}
+
+export function resolveMetaAnalyticsSyncPolicy(env: Record<string, string | undefined> = process.env) {
+  return {
+    metricsOverlapDays: boundedInteger(env.CCPUN_META_METRICS_OVERLAP_DAYS, META_METRICS_OVERLAP_DEFAULT_DAYS, 1, META_METRICS_OVERLAP_MAX_DAYS),
+    insightsBackfillLimit: boundedInteger(env.CCPUN_META_INSIGHTS_BACKFILL_LIMIT, META_INSIGHTS_LIMIT_DEFAULT, 1, 50),
+    metadataRefreshDays: boundedInteger(env.CCPUN_META_METADATA_REFRESH_DAYS, META_METADATA_REFRESH_DEFAULT_DAYS, 1, 30),
+    metadataRefreshBatchSize: boundedInteger(env.CCPUN_META_METADATA_REFRESH_BATCH_SIZE, META_METADATA_REFRESH_BATCH_DEFAULT, 1, 100),
+  };
+}
 const dashboardRowsSchema = z.array(z.object({
   publication_id: z.string().trim().min(1).max(120), provider: socialAnalyticsProviderSchema,
   platform: z.enum(["facebook", "instagram", "youtube", "tiktok"]), platform_object_id: z.string().trim().min(1).max(200),
@@ -138,49 +163,70 @@ async function verifiedSql(env: Record<string, string | undefined>) {
   return sql;
 }
 
-async function fetchProvider(provider: z.infer<typeof socialAnalyticsProviderSchema>, publications: z.infer<typeof publicationsSchema>, env: Record<string, string | undefined>, fetcher: typeof fetch, since: string | null) {
+async function fetchProvider(
+  provider: z.infer<typeof socialAnalyticsProviderSchema>,
+  publications: z.infer<typeof publicationsSchema>,
+  env: Record<string, string | undefined>,
+  fetcher: typeof fetch,
+  since: string | null,
+  metaPolicy: ReturnType<typeof resolveMetaAnalyticsSyncPolicy>,
+  metadataTargets: z.infer<typeof metaMetadataRefreshTargetsSchema>,
+) {
   const refs = publications.map((item) => ({ publicationId: item.publication_id, platform: item.platform, platformObjectId: item.platform_object_id }));
   if (provider === "meta") {
-    const discovery = await fetchMetaReadOnlyDiscovery(env, fetcher, { since, includeInsights: true, insightsBackfillLimit: 25 });
+    const discovery = await fetchMetaReadOnlyDiscovery(env, fetcher, {
+      since,
+      includeInsights: true,
+      insightsBackfillLimit: metaPolicy.insightsBackfillLimit,
+    });
     if (!discovery.selectedPageId) throw new Error("META_PAGE_SELECTION_REQUIRED");
-    // Meta image URLs are transient CDN URLs. Incremental metric collection stays bounded to the
-    // overlap window, while a metadata-only pass refreshes old permalinks/thumbnails without
-    // turning every historical post into an Insights API request.
-    const metadataDiscovery = since === null
-      ? discovery
-      : await fetchMetaReadOnlyDiscovery(env, fetcher, { since: null, includeInsights: false });
-    if (!metadataDiscovery.selectedPageId) throw new Error("META_PAGE_SELECTION_REQUIRED");
     const linked = new Map(refs.map((item) => [`${item.platform}:${item.platformObjectId}`, item.publicationId]));
-    const toProviderContents = (source: Awaited<ReturnType<typeof fetchMetaReadOnlyDiscovery>>) => [
-      ...source.facebookPosts.map((item) => ({ ...item, platform: "facebook" as const, providerAccountId: source.selectedPageId! })),
-      ...source.instagramMedia.map((item) => ({ ...item, platform: "instagram" as const, providerAccountId: source.selectedInstagramAccountId ?? source.selectedPageId! })),
-    ].map((item) => {
+    const toProviderContent = (item: {
+      id: string; platform: "facebook" | "instagram"; text: string; mediaType: string; publishedAt: string;
+      permalink: string | null; thumbnailUrl: string | null; metrics: Record<string, number | undefined>;
+    }, fetchedAt: string, providerAccountId: string) => {
       const contentId = providerContentId(item.platform, item.id);
-      const nativeMetrics = normalizeMetaAnalytics({ publicationId: contentId, platform: item.platform, fetchedAt: source.fetchedAt, metrics: item.metrics }).nativeMetrics;
+      const nativeMetrics = normalizeMetaAnalytics({ publicationId: contentId, platform: item.platform, fetchedAt, metrics: item.metrics }).nativeMetrics;
       return {
-        contentId, platform: item.platform, providerAccountId: item.providerAccountId, providerObjectId: item.id,
+        contentId, platform: item.platform, providerAccountId, providerObjectId: item.id,
         linkedPublicationId: linked.get(`${item.platform}:${item.id}`) ?? null,
         publishedAt: item.publishedAt, text: item.text, mediaType: item.mediaType,
-        permalink: item.permalink, thumbnailUrl: item.thumbnailUrl, nativeMetrics, fetchedAt: source.fetchedAt,
+        permalink: item.permalink, thumbnailUrl: item.thumbnailUrl, nativeMetrics, fetchedAt,
       };
-    });
-    const providerContents = toProviderContents(metadataDiscovery);
-    const providerMetricContents = since === null ? providerContents : toProviderContents(discovery);
+    };
+    const recentProviderContents = [
+      ...discovery.facebookPosts.map((item) => toProviderContent({ ...item, platform: "facebook" as const }, discovery.fetchedAt, discovery.selectedPageId!)),
+      ...discovery.instagramMedia.map((item) => toProviderContent({ ...item, platform: "instagram" as const }, discovery.fetchedAt, discovery.selectedInstagramAccountId ?? discovery.selectedPageId!)),
+    ];
+    const metadataRefresh = since !== null && metadataTargets.length > 0
+      ? await fetchMetaContentMetadataByIds(env, metadataTargets.map((target) => ({ platform: target.platform, providerObjectId: target.provider_object_id })), fetcher)
+      : null;
+    const refreshedProviderContents = metadataRefresh?.items.map((item) => toProviderContent(
+      item,
+      metadataRefresh.fetchedAt,
+      item.platform === "facebook" ? metadataRefresh.selectedPageId : metadataRefresh.selectedInstagramAccountId ?? metadataRefresh.selectedPageId,
+    )) ?? [];
+    const providerContentByKey = new Map(recentProviderContents.map((content) => [`${content.platform}:${content.providerObjectId}`, content]));
+    for (const content of refreshedProviderContents) providerContentByKey.set(`${content.platform}:${content.providerObjectId}`, content);
     return {
       discovery,
       matched: matchMetaHistoricalAnalytics(refs, discovery),
       accountId: discovery.selectedPageId,
       cursor: null,
-      providerContents,
-      providerMetricContents,
+      providerContents: [...providerContentByKey.values()],
+      providerMetricContents: recentProviderContents,
+      metadataRefreshAttempted: metadataTargets.length,
+      metadataRefreshSucceeded: refreshedProviderContents.length,
+      metadataRefreshUnavailableObjectIds: metadataRefresh?.unavailableObjectIds ?? [],
+      metadataRefreshUnavailableTargets: metadataRefresh?.unavailableTargets ?? [],
     };
   }
   if (provider === "youtube") {
     const discovery = await fetchYouTubeReadOnlyDiscovery(env, fetcher);
-    return { discovery, matched: matchYouTubeHistoricalAnalytics(refs, discovery), accountId: discovery.channel.id, cursor: null, providerContents: [], providerMetricContents: [] };
+    return { discovery, matched: matchYouTubeHistoricalAnalytics(refs, discovery), accountId: discovery.channel.id, cursor: null, providerContents: [], providerMetricContents: [], metadataRefreshAttempted: 0, metadataRefreshSucceeded: 0, metadataRefreshUnavailableObjectIds: [] as string[], metadataRefreshUnavailableTargets: [] as Array<{ platform: "facebook" | "instagram"; providerObjectId: string }> };
   }
   const discovery = await fetchTikTokReadOnlyDiscovery(env, fetcher);
-  return { discovery, matched: matchTikTokHistoricalAnalytics(refs, discovery), accountId: discovery.profile.openId, cursor: discovery.nextCursor === null ? null : String(discovery.nextCursor), providerContents: [], providerMetricContents: [] };
+  return { discovery, matched: matchTikTokHistoricalAnalytics(refs, discovery), accountId: discovery.profile.openId, cursor: discovery.nextCursor === null ? null : String(discovery.nextCursor), providerContents: [], providerMetricContents: [], metadataRefreshAttempted: 0, metadataRefreshSucceeded: 0, metadataRefreshUnavailableObjectIds: [] as string[], metadataRefreshUnavailableTargets: [] as Array<{ platform: "facebook" | "instagram"; providerObjectId: string }> };
 }
 
 export async function syncSocialHistoricalAnalytics(input: {
@@ -195,9 +241,23 @@ export async function syncSocialHistoricalAnalytics(input: {
      WHERE provider=$1 ORDER BY last_success_at DESC NULLS LAST LIMIT 1`,
     [provider],
   ))[0];
+  const metaPolicy = resolveMetaAnalyticsSyncPolicy(env);
   const since = provider === "meta" && syncState?.backfill_completed_at && syncState.last_success_at
-    ? new Date(syncState.last_success_at.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    ? new Date(syncState.last_success_at.getTime() - metaPolicy.metricsOverlapDays * 24 * 60 * 60 * 1000).toISOString()
     : null;
+  const metadataRefreshTargets = provider === "meta" && since !== null
+    ? metaMetadataRefreshTargetsSchema.parse(await sql.query(
+      `SELECT platform,provider_object_id,last_seen_at
+       FROM ccpun_social.social_provider_content
+       WHERE provider='meta'
+         AND platform IN ('facebook','instagram')
+         AND published_at < $1::timestamptz
+         AND GREATEST(last_seen_at,updated_at) < now() - ($2::int * interval '1 day')
+       ORDER BY (thumbnail_url IS NULL) ASC,GREATEST(last_seen_at,updated_at) ASC,published_at DESC
+       LIMIT $3`,
+      [since, metaPolicy.metadataRefreshDays, metaPolicy.metadataRefreshBatchSize],
+    ))
+    : [];
   const publications = publicationsSchema.parse(await sql.query(
     `SELECT publication.id AS publication_id, variant.channel AS platform, publication.platform_object_id, publication.published_at
      FROM ccpun_social.social_publication AS publication JOIN ccpun_social.social_variant_link AS variant ON variant.variant_id=publication.variant_id
@@ -205,7 +265,10 @@ export async function syncSocialHistoricalAnalytics(input: {
   ));
   const platforms = provider === "meta" ? new Set(["facebook", "instagram"]) : new Set([provider]);
   const relevant = publications.filter((publication) => platforms.has(publication.platform));
-  const { discovery, matched, accountId, cursor, providerContents, providerMetricContents } = await fetchProvider(provider, relevant, env, input.fetcher ?? fetch, since);
+  const {
+    discovery, matched, accountId, cursor, providerContents, providerMetricContents,
+    metadataRefreshAttempted, metadataRefreshSucceeded, metadataRefreshUnavailableObjectIds, metadataRefreshUnavailableTargets,
+  } = await fetchProvider(provider, relevant, env, input.fetcher ?? fetch, since, metaPolicy, metadataRefreshTargets);
   const publishedAt = new Map(relevant.map((publication) => [publication.publication_id, publication.published_at.getTime()]));
   const objectIds = new Map(relevant.map((publication) => [publication.publication_id, publication.platform_object_id]));
   const candidates = matched.snapshots.filter((snapshot) => Date.parse(snapshot.fetchedAt) >= (publishedAt.get(snapshot.publicationId) ?? Number.POSITIVE_INFINITY));
@@ -242,6 +305,12 @@ export async function syncSocialHistoricalAnalytics(input: {
         ),
       ];
     }),
+    ...metadataRefreshUnavailableTargets.map((target) => transaction.query(
+      `UPDATE ccpun_social.social_provider_content
+       SET updated_at=now()
+       WHERE provider='meta' AND platform=$1 AND provider_object_id=$2`,
+      [target.platform, target.providerObjectId],
+    )),
     ...providerMetricContents.map((content) => {
       const nativeMetricsHash = metricsHash(content.nativeMetrics);
       return transaction.query(
@@ -273,10 +342,22 @@ export async function syncSocialHistoricalAnalytics(input: {
       [`audit:${input.requestId}`, safeActorRef(input.actor), input.requestId],
     ),
   ], { isolationLevel: "Serializable" });
+  const metricsWindowDays = provider === "meta" && since !== null
+    ? Math.max(1, Math.ceil((Date.parse(discovery.fetchedAt) - Date.parse(since)) / (24 * 60 * 60 * 1000)))
+    : null;
   return { discovery, persistence: {
     matchedSnapshots: snapshots.length, providerContentsSeen: providerContents.length,
-    syncMode: provider === "meta" ? (since === null ? "full-backfill" as const : "incremental-14-day" as const) : "recent-provider-read" as const,
-    syncWindowStart: since, unmatchedProviderObjectIds: matched.unmatchedProviderObjectIds, cursorStored: cursor !== null,
+    syncMode: provider === "meta" ? (since === null ? "full-backfill" as const : "incremental-overlap" as const) : "recent-provider-read" as const,
+    syncWindowStart: since,
+    metricsOverlapDays: provider === "meta" ? metaPolicy.metricsOverlapDays : null,
+    metricsWindowDays,
+    insightsBackfillLimit: provider === "meta" ? metaPolicy.insightsBackfillLimit : null,
+    metadataRefreshDays: provider === "meta" ? metaPolicy.metadataRefreshDays : null,
+    metadataRefreshBatchSize: provider === "meta" ? metaPolicy.metadataRefreshBatchSize : null,
+    metadataRefreshAttempted,
+    metadataRefreshSucceeded,
+    metadataRefreshUnavailableObjectIds,
+    unmatchedProviderObjectIds: matched.unmatchedProviderObjectIds, cursorStored: cursor !== null,
     providerWriteAllowed: false as const, backgroundSyncAllowed: false as const,
   } };
 }

@@ -34,7 +34,7 @@ const responseSchema = z.object({
 const metaDateTimeSchema = z.string()
   .transform((value) => value.replace(/([+-]\d{2})(\d{2})$/, "$1:$2"))
   .pipe(z.string().datetime({ offset: true }));
-const facebookPostsSchema = z.object({ data: z.array(z.object({
+const facebookPostSchema = z.object({
   id: z.string().trim().min(1).max(200),
   message: optionalText(5000).transform((value) => value ?? ""),
   status_type: z.string().trim().min(1).max(80).nullable().optional().transform((value) => value ?? undefined),
@@ -44,8 +44,8 @@ const facebookPostsSchema = z.object({ data: z.array(z.object({
   shares: optionalShares,
   comments: optionalSummary,
   reactions: optionalSummary,
-})).max(100), paging: pagingSchema });
-const instagramMediaSchema = z.object({ data: z.array(z.object({
+});
+const instagramMediaItemSchema = z.object({
   id: z.string().trim().min(1).max(200),
   caption: optionalText(5000).transform((value) => value ?? ""),
   media_type: z.string().trim().min(1).max(40),
@@ -56,7 +56,17 @@ const instagramMediaSchema = z.object({ data: z.array(z.object({
   media_url: optionalUrl(2000),
   like_count: optionalCount,
   comments_count: optionalCount,
-})).max(100), paging: pagingSchema });
+});
+const facebookPostsSchema = z.object({ data: z.array(facebookPostSchema).max(100), paging: pagingSchema });
+const instagramMediaSchema = z.object({ data: z.array(instagramMediaItemSchema).max(100), paging: pagingSchema });
+const metaContentTargetSchema = z.object({
+  platform: z.enum(["facebook", "instagram"]),
+  providerObjectId: z.string().trim().min(1).max(200),
+});
+const metaObjectBatchResponseSchema = z.record(z.string(), z.unknown());
+const META_METADATA_IDS_PER_REQUEST = 25;
+const FACEBOOK_CONTENT_FIELDS = "id,message,status_type,created_time,permalink_url,full_picture,shares,comments.limit(0).summary(true),reactions.limit(0).summary(true)";
+const INSTAGRAM_CONTENT_FIELDS = "id,caption,media_type,media_product_type,timestamp,permalink,thumbnail_url,media_url,like_count,comments_count";
 
 type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 type Publication = { publicationId: string; platform: string; platformObjectId: string | null };
@@ -136,11 +146,7 @@ async function readAllPages<T>(
   throw new Error("META_READ_PAGINATION_LIMIT");
 }
 
-export async function fetchMetaReadOnlyDiscovery(
-  env: Record<string, string | undefined> = process.env,
-  fetcher: FetchLike = fetch,
-  options: { since?: string | null; includeInsights?: boolean; insightsBackfillLimit?: number } = {},
-) {
+async function resolveMetaReadContext(env: Record<string, string | undefined>, fetcher: FetchLike) {
   if (getSocialProviderReadiness("meta", env).status !== "manual-sync-ready") {
     throw new Error("META_READ_NOT_CONFIGURED");
   }
@@ -157,7 +163,54 @@ export async function fetchMetaReadOnlyDiscovery(
   const pages = parsedPages.data.data;
   const selectedPageId = env.CCPUN_META_PAGE_ID?.trim() || (pages.length === 1 ? pages[0]!.id : null);
   const selectedPage = pages.find((page) => page.id === selectedPageId);
-  const selectedPageToken = selectedPage?.access_token ?? token;
+  return {
+    version,
+    pages,
+    selectedPageId,
+    selectedPage,
+    selectedPageToken: selectedPage?.access_token ?? token,
+  };
+}
+
+function normalizedFacebookPost(post: z.infer<typeof facebookPostSchema>, insightMetrics: MetaInsightMetricFields = {}) {
+  return {
+    id: post.id,
+    text: post.message,
+    mediaType: post.status_type ?? "post",
+    publishedAt: post.created_time,
+    permalink: post.permalink_url ?? null,
+    thumbnailUrl: post.full_picture ?? null,
+    metrics: {
+      likes: post.reactions?.summary.total_count,
+      comments: post.comments?.summary.total_count,
+      shares: post.shares?.count,
+      ...insightMetrics,
+    },
+  };
+}
+
+function normalizedInstagramMedia(media: z.infer<typeof instagramMediaItemSchema>, insightMetrics: MetaInsightMetricFields = {}) {
+  return {
+    id: media.id,
+    text: media.caption,
+    mediaType: media.media_type,
+    publishedAt: media.timestamp,
+    permalink: media.permalink ?? null,
+    thumbnailUrl: media.thumbnail_url ?? media.media_url ?? null,
+    metrics: {
+      likes: media.like_count,
+      comments: media.comments_count,
+      ...insightMetrics,
+    },
+  };
+}
+
+export async function fetchMetaReadOnlyDiscovery(
+  env: Record<string, string | undefined> = process.env,
+  fetcher: FetchLike = fetch,
+  options: { since?: string | null; includeInsights?: boolean; insightsBackfillLimit?: number } = {},
+) {
+  const { version, pages, selectedPageId, selectedPage, selectedPageToken } = await resolveMetaReadContext(env, fetcher);
   const since = options.since === undefined || options.since === null ? null : z.string().datetime().parse(options.since);
   const withSince = (value: string) => {
     if (!since) return value;
@@ -166,11 +219,11 @@ export async function fetchMetaReadOnlyDiscovery(
     return url.toString();
   };
   const [facebookPosts, instagramMedia] = selectedPage ? await Promise.all([
-    readAllPages(withSince(`https://graph.facebook.com/${version}/${encodeURIComponent(selectedPage.id)}/published_posts?fields=${encodeURIComponent("id,message,status_type,created_time,permalink_url,full_picture,shares,comments.limit(0).summary(true),reactions.limit(0).summary(true)")}&limit=100`), selectedPageToken, facebookPostsSchema, fetcher, undefined, "facebook-posts"),
+    readAllPages(withSince(`https://graph.facebook.com/${version}/${encodeURIComponent(selectedPage.id)}/published_posts?fields=${encodeURIComponent(FACEBOOK_CONTENT_FIELDS)}&limit=100`), selectedPageToken, facebookPostsSchema, fetcher, undefined, "facebook-posts"),
     selectedPage.instagram_business_account
       // ponytail: IG media has cursor-only pagination; stop after the first page wholly older than the overlap window.
       ? readAllPages(
-        `https://graph.facebook.com/${version}/${encodeURIComponent(selectedPage.instagram_business_account.id)}/media?fields=${encodeURIComponent("id,caption,media_type,media_product_type,timestamp,permalink,thumbnail_url,media_url,like_count,comments_count")}&limit=100`,
+        `https://graph.facebook.com/${version}/${encodeURIComponent(selectedPage.instagram_business_account.id)}/media?fields=${encodeURIComponent(INSTAGRAM_CONTENT_FIELDS)}&limit=100`,
         selectedPageToken,
         instagramMediaSchema,
         fetcher,
@@ -184,7 +237,7 @@ export async function fetchMetaReadOnlyDiscovery(
   let latestFacebookForInsights = facebookPosts.slice(0, insightLimit);
   if (includeInsights && since && selectedPage) {
     latestFacebookForInsights = await readAllPages(
-      `https://graph.facebook.com/${version}/${encodeURIComponent(selectedPage.id)}/published_posts?fields=${encodeURIComponent("id,message,status_type,created_time,permalink_url,full_picture,shares,comments.limit(0).summary(true),reactions.limit(0).summary(true)")}&limit=${insightLimit}`,
+      `https://graph.facebook.com/${version}/${encodeURIComponent(selectedPage.id)}/published_posts?fields=${encodeURIComponent(FACEBOOK_CONTENT_FIELDS)}&limit=${insightLimit}`,
       selectedPageToken, facebookPostsSchema, fetcher, () => true, "facebook-insights-backfill",
     );
   }
@@ -252,16 +305,65 @@ export async function fetchMetaReadOnlyDiscovery(
     selectedInstagramAccountId: selectedPage?.instagram_business_account?.id ?? null,
     insightsCollected: includeInsights,
     insightBackfillLimit: includeInsights ? insightLimit : 0,
-    facebookPosts: facebookReturned.map((post) => ({
-      id: post.id, text: post.message, mediaType: post.status_type ?? "post", publishedAt: post.created_time,
-      permalink: post.permalink_url ?? null, thumbnailUrl: post.full_picture ?? null,
-      metrics: { likes: post.reactions?.summary.total_count, comments: post.comments?.summary.total_count, shares: post.shares?.count, ...(facebookInsightMap.get(post.id) ?? {}) },
-    })),
-    instagramMedia: instagramReturned.map((media) => ({
-      id: media.id, text: media.caption, mediaType: media.media_type, publishedAt: media.timestamp, permalink: media.permalink ?? null,
-      thumbnailUrl: media.thumbnail_url ?? media.media_url ?? null,
-      metrics: { likes: media.like_count, comments: media.comments_count, ...(instagramInsightMap.get(media.id) ?? {}) },
-    })),
+    facebookPosts: facebookReturned.map((post) => normalizedFacebookPost(post, facebookInsightMap.get(post.id))),
+    instagramMedia: instagramReturned.map((media) => normalizedInstagramMedia(media, instagramInsightMap.get(media.id))),
+  };
+}
+
+export async function fetchMetaContentMetadataByIds(
+  env: Record<string, string | undefined>,
+  targetsInput: Array<z.input<typeof metaContentTargetSchema>>,
+  fetcher: FetchLike = fetch,
+) {
+  const parsedTargets = z.array(metaContentTargetSchema).max(100).parse(targetsInput);
+  const targets = [...new Map(parsedTargets.map((target) => [`${target.platform}:${target.providerObjectId}`, target])).values()];
+  const { version, selectedPageId, selectedPage, selectedPageToken } = await resolveMetaReadContext(env, fetcher);
+  if (!selectedPageId || !selectedPage) throw new Error("META_PAGE_SELECTION_REQUIRED");
+  if (targets.length === 0) {
+    return { fetchedAt: new Date().toISOString(), selectedPageId, selectedInstagramAccountId: selectedPage.instagram_business_account?.id ?? null, items: [], unavailableObjectIds: [], unavailableTargets: [] };
+  }
+
+  const batches = (["facebook", "instagram"] as const).flatMap((platform) => {
+    const platformTargets = targets.filter((target) => target.platform === platform);
+    const result: Array<{ platform: typeof platform; targets: typeof platformTargets }> = [];
+    for (let index = 0; index < platformTargets.length; index += META_METADATA_IDS_PER_REQUEST) {
+      result.push({ platform, targets: platformTargets.slice(index, index + META_METADATA_IDS_PER_REQUEST) });
+    }
+    return result;
+  });
+
+  const batchResults = await mapWithConcurrency(batches, 2, async (batch) => {
+    const url = new URL(`https://graph.facebook.com/${version}/`);
+    url.searchParams.set("ids", batch.targets.map((target) => target.providerObjectId).join(","));
+    url.searchParams.set("fields", batch.platform === "facebook" ? FACEBOOK_CONTENT_FIELDS : INSTAGRAM_CONTENT_FIELDS);
+    const raw = await request(url.toString(), selectedPageToken, fetcher);
+    const parsed = metaObjectBatchResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      logInvalidResponse(`metadata-refresh:${batch.platform}`, parsed.error);
+      throw new Error("META_READ_INVALID_RESPONSE");
+    }
+    const itemSchema = batch.platform === "facebook" ? facebookPostSchema : instagramMediaItemSchema;
+    return batch.targets.map((target) => {
+      const payload = parsed.data[target.providerObjectId];
+      const item = itemSchema.safeParse(payload);
+      if (!item.success) return { target, item: null };
+      return {
+        target,
+        item: batch.platform === "facebook"
+          ? { ...normalizedFacebookPost(item.data as z.infer<typeof facebookPostSchema>), platform: "facebook" as const }
+          : { ...normalizedInstagramMedia(item.data as z.infer<typeof instagramMediaItemSchema>), platform: "instagram" as const },
+      };
+    });
+  });
+  const results = batchResults.flat();
+  const fetchedAt = new Date().toISOString();
+  return {
+    fetchedAt,
+    selectedPageId,
+    selectedInstagramAccountId: selectedPage.instagram_business_account?.id ?? null,
+    items: results.flatMap((result) => result.item ? [result.item] : []),
+    unavailableObjectIds: results.filter((result) => !result.item).map((result) => result.target.providerObjectId),
+    unavailableTargets: results.filter((result) => !result.item).map((result) => result.target),
   };
 }
 

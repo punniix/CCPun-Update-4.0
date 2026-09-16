@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import { getSocialProviderReadiness, WEBSITE_42_SOCIAL_PROVIDER_BRANCH } from "../../lib/admin/social/provider-readonly";
-import { fetchMetaReadOnlyDiscovery, matchMetaHistoricalAnalytics } from "../../lib/admin/social/providers/meta/read-only";
+import { fetchMetaContentMetadataByIds, fetchMetaReadOnlyDiscovery, matchMetaHistoricalAnalytics } from "../../lib/admin/social/providers/meta/read-only";
 import { fetchTikTokReadOnlyDiscovery, matchTikTokHistoricalAnalytics } from "../../lib/admin/social/providers/tiktok/read-only";
 import { fetchYouTubeReadOnlyDiscovery, matchYouTubeHistoricalAnalytics } from "../../lib/admin/social/providers/youtube/read-only";
 
@@ -73,7 +73,7 @@ test("Meta discovery accepts a scoped system-user token and returns only sanitiz
   assert.deepEqual(matched.snapshots.map((snapshot) => snapshot.source), ["meta", "meta"]);
 });
 
-test("Meta history follows cursors and applies the 14-day window without putting tokens in URLs", async () => {
+test("Meta history follows cursors and applies the caller-provided overlap window without putting tokens in URLs", async () => {
   const requests: string[] = [];
   const result = await fetchMetaReadOnlyDiscovery({
     ...lane,
@@ -109,6 +109,56 @@ test("Meta history follows cursors and applies the 14-day window without putting
   assert.equal(requests.some((url) => url.includes("after=fb-after")), true);
   assert.equal(requests.some((url) => url.includes("after=ig-after")), true);
   assert.equal(requests.every((url) => !url.includes("meta-secret")), true);
+});
+
+test("Meta historical metadata refresh batches object IDs without requesting Insights or exposing tokens", async () => {
+  const requests: Array<{ url: string; authorization: string }> = [];
+  const result = await fetchMetaContentMetadataByIds({
+    ...lane,
+    CCPUN_META_ACCESS_TOKEN: "meta-system-token",
+    CCPUN_META_GRAPH_VERSION: "v26.0",
+    CCPUN_META_GRANTED_SCOPES: "pages_show_list,pages_read_engagement,instagram_basic",
+  }, [
+    { platform: "facebook", providerObjectId: "fb-old-1" },
+    { platform: "facebook", providerObjectId: "fb-old-2" },
+    { platform: "instagram", providerObjectId: "ig-old-1" },
+    { platform: "facebook", providerObjectId: "fb-old-1" },
+  ], async (input, init) => {
+    const url = String(input);
+    requests.push({ url, authorization: new Headers(init?.headers).get("authorization") ?? "" });
+    if (url.includes("/me/accounts")) return new Response(JSON.stringify({ data: [{
+      id: "page-1", name: "CCPun", access_token: "page-token", instagram_business_account: { id: "ig-1", username: "ccpun" },
+    }] }));
+    const parsed = new URL(url);
+    const ids = parsed.searchParams.get("ids")?.split(",") ?? [];
+    if (ids.includes("fb-old-1")) return new Response(JSON.stringify({
+      "fb-old-1": {
+        id: "fb-old-1", message: "Old FB", status_type: "added_photos", created_time: "2026-06-01T10:00:00+0000",
+        permalink_url: "https://www.facebook.com/posts/1", full_picture: "https://scontent.xx.fbcdn.net/fb-old-1.jpg?oe=future",
+        reactions: { summary: { total_count: 9 } }, comments: { summary: { total_count: 2 } }, shares: { count: 1 },
+      },
+      "fb-old-2": { error: { code: 100 } },
+    }));
+    if (ids.includes("ig-old-1")) return new Response(JSON.stringify({
+      "ig-old-1": {
+        id: "ig-old-1", caption: "Old IG", media_type: "IMAGE", timestamp: "2026-06-01T10:00:00+0000",
+        permalink: "https://www.instagram.com/p/old/", media_url: "https://scontent.cdninstagram.com/ig-old-1.jpg?oe=future",
+        like_count: 11, comments_count: 3,
+      },
+    }));
+    throw new Error(`Unexpected request ${url}`);
+  });
+
+  assert.equal(requests.length, 3);
+  assert.equal(requests.filter((request) => new URL(request.url).searchParams.has("ids")).length, 2);
+  assert.equal(requests.some((request) => request.url.includes("/insights")), false);
+  assert.equal(requests.every((request) => !request.url.includes("meta-system-token") && !request.url.includes("page-token")), true);
+  assert.equal(requests[0]?.authorization, "Bearer meta-system-token");
+  assert.equal(requests.slice(1).every((request) => request.authorization === "Bearer page-token"), true);
+  assert.deepEqual(result.items.map((item) => [item.platform, item.id]), [["facebook", "fb-old-1"], ["instagram", "ig-old-1"]]);
+  assert.deepEqual(result.unavailableObjectIds, ["fb-old-2"]);
+  assert.equal(result.items.find((item) => item.id === "fb-old-1")?.thumbnailUrl?.includes("fb-old-1.jpg"), true);
+  assert.equal(result.items.find((item) => item.id === "ig-old-1")?.thumbnailUrl?.includes("ig-old-1.jpg"), true);
 });
 
 test("Meta auth diagnostics log only safe endpoint and provider codes", async () => {
