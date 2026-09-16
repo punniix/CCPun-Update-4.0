@@ -29,25 +29,29 @@ test("motor insurance uses its referenced Sanity category slug without a code al
   assert.equal(getArticlePath({ ...motor, category: "Updated display title" }), "/blog/motor-insurance/car-insurance-types/");
 });
 
-test("protected health winner pages resolve to Health even while published Sanity references are still Life", () => {
+test("protected winner pages resolve to their approved physical owner while published Sanity references converge", () => {
   for (const slug of ["aia-health-happy-describe", "aia-health-ci-hero-guide"]) {
     const article = { slug, category: "ประกันชีวิต", categorySlug: "life-insurance" };
     assert.equal(getArticlePath(article), `/blog/health-insurance/${slug}/`);
     assert.equal(getArticleCanonical(article), `https://ccpun.com/blog/health-insurance/${slug}/`);
     assert.equal(isArticleCanonicalAligned(article), true);
   }
+
+  const critical = { slug: "critical-illness-insurance", category: "ประกันชีวิต", categorySlug: "life-insurance" };
+  assert.equal(getArticlePath(critical), "/blog/critical-illness-insurance/critical-illness-insurance/");
+  assert.equal(getArticleCanonical(critical), "https://ccpun.com/blog/critical-illness-insurance/critical-illness-insurance/");
+  assert.equal(isArticleCanonicalAligned(critical), true);
 });
 
-test("controlled article moves are locked to one-hop final paths", () => {
-  const finalCritical = "/blog/critical-illness-insurance/what-is-critical-illness-insurance/";
+test("controlled article moves preserve the leaf slug and point one hop to terminal owners", () => {
+  const finalCritical = "/blog/critical-illness-insurance/critical-illness-insurance/";
   assert.equal(getMovedArticleRedirectPath("life-insurance", "aia-health-happy-describe"), "/blog/health-insurance/aia-health-happy-describe/");
   assert.equal(getMovedArticleRedirectPath("life-insurance", "aia-health-ci-hero-guide"), "/blog/health-insurance/aia-health-ci-hero-guide/");
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-happy-describe"), null);
   assert.equal(getMovedArticleRedirectPath("health-insurance", "aia-health-ci-hero-guide"), null);
   assert.equal(getMovedArticleRedirectPath("life-insurance", "critical-illness-insurance"), finalCritical);
   assert.equal(getMovedArticleRedirectPath("critical-illness", "critical-illness-insurance"), finalCritical);
-  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "critical-illness-insurance"), finalCritical);
-  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "what-is-critical-illness-insurance"), null);
+  assert.equal(getMovedArticleRedirectPath("critical-illness-insurance", "critical-illness-insurance"), null);
   assert.equal(getMovedArticleRedirectPath("life-insurance", "aia-vitality"), null);
 });
 
@@ -57,7 +61,7 @@ test("legacy category landing paths redirect without colliding with final catego
   assert.equal(getLegacyCategoryRedirectPath("critical-illness-insurance"), null);
 });
 
-test("protected health canonical ignores the old Life canonical during the transition", () => {
+test("protected canonical overrides ignore stale Life canonicals during category migration", () => {
   const protectedHealth = {
     slug: "aia-health-ci-hero-guide",
     category: "ประกันชีวิต",
@@ -66,6 +70,15 @@ test("protected health canonical ignores the old Life canonical during the trans
   };
   assert.equal(getArticleCanonical(protectedHealth), "https://ccpun.com/blog/health-insurance/aia-health-ci-hero-guide/");
   assert.equal(isArticleCanonicalAligned(protectedHealth), true);
+
+  const protectedCritical = {
+    slug: "critical-illness-insurance",
+    category: "ประกันชีวิต",
+    categorySlug: "life-insurance",
+    canonical: "https://ccpun.com/blog/life-insurance/critical-illness-insurance/",
+  };
+  assert.equal(getArticleCanonical(protectedCritical), "https://ccpun.com/blog/critical-illness-insurance/critical-illness-insurance/");
+  assert.equal(isArticleCanonicalAligned(protectedCritical), true);
 });
 
 test("an explicit stale or decorated canonical fails the release alignment check for non-protected articles", () => {
