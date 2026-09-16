@@ -14,6 +14,7 @@ import StepExpenses from './steps/StepExpenses';
 
 const TOTAL_STEPS = 2;
 const STEP_SECTION_KEYS: Array<'expenses' | 'existingCI'> = ['expenses', 'existingCI'];
+const CALCULATION_RANGE_ERROR = 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง';
 
 export default function CIWizard() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -72,21 +73,31 @@ export default function CIWizard() {
     setErrors({});
   }, [trackStart]);
 
+  const focusFirstAlert = () => {
+    window.requestAnimationFrame(() => {
+      const alert = stepRef.current?.querySelector<HTMLElement>('[role="alert"]');
+      alert?.scrollIntoView({ block: 'center', behavior: 'instant' });
+      alert?.focus({ preventScroll: true });
+    });
+  };
+
   const handleNext = () => {
     const sectionKey = STEP_SECTION_KEYS[currentStep];
     const stepErrors = validateCIStep(currentStep, formData[sectionKey] as unknown as Record<string, unknown>);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
-      window.requestAnimationFrame(() => {
-        const alert = stepRef.current?.querySelector<HTMLElement>('[role="alert"]');
-        alert?.scrollIntoView({ block: 'center', behavior: 'instant' });
-        alert?.focus({ preventScroll: true });
-      });
+      focusFirstAlert();
       return;
     }
     trackStart();
     if (currentStep === TOTAL_STEPS - 1) {
-      setResult(calculateCI(formData));
+      try {
+        setResult(calculateCI(formData));
+      } catch (error) {
+        if (!(error instanceof RangeError)) throw error;
+        setErrors({ calculation: CALCULATION_RANGE_ERROR });
+        focusFirstAlert();
+      }
       return;
     }
     const nextStep = currentStep + 1;
@@ -130,6 +141,7 @@ export default function CIWizard() {
         description={currentStep === 0 ? 'เริ่มจาก 3 ข้อมูลหลัก แล้วค่อยเปิดรายละเอียดค่าเรียนหรือหนี้เมื่อมี' : 'กรอกเฉพาะเงินที่ตั้งใจนำมาใช้ในแผนนี้'}
         footer={footer}
       >
+        {errors.calculation ? <p id="ci-calculation-error" role="alert" tabIndex={-1} className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.calculation}</p> : null}
         {currentStep === 0 ? <StepExpenses {...stepProps} /> : <StepExistingCI {...stepProps} />}
       </HumanCalculatorCard>
     </div>
