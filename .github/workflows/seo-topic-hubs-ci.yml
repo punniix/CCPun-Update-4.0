@@ -37,6 +37,7 @@ jobs:
       - name: FHC and CI calculator regression gate
         run: |
           node --import tsx tests/calculator-regression.ts
+          node --import tsx --test tests/ci-numeric-safety.test.ts
           node --test tests/calculator-design-language.test.mjs
           node --test tests/calculator-ux-formula-parity.test.mjs
           node --import tsx --test tests/calculator-ux-journey.test.mjs
