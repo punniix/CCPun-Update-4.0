@@ -47,7 +47,6 @@ function previewEducationSubtotal(plan: CIEducationPlan) {
   return annualCost * years;
 }
 
-
 function RecoverySourceLink({ id, children }: { id: string; children: React.ReactNode }) {
   const source = CI_RECOVERY_SOURCES.find((item) => item.id === id);
   if (!source) return <>{children}</>;
@@ -97,7 +96,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
   const otherDebtBalance = Number.isFinite(expenses.otherDebtBalance) && expenses.otherDebtBalance >= 0 ? expenses.otherDebtBalance : 0;
   const debtNeed = mortgageDebtNeed + carDebtNeed + otherDebtBalance;
   const recoveryPreview = safeRecoveryPreview(recovery);
-  const calculatedNeed = householdNeed + educationNeed + debtNeed + recoveryPreview.total;
+  const expenseNeed = householdNeed + educationNeed + debtNeed;
   const hasAdvancedData = educationPlans.length > 0 || expenses.mortgagePayment > 0 || expenses.mortgageInstallmentsRemaining > 0 || expenses.carPayment > 0 || expenses.carInstallmentsRemaining > 0 || expenses.otherDebtBalance > 0;
   const hasRecoveryData = recovery.treatmentVisits > 0 || recovery.caregiverHomeDays > 0 || recovery.rehabSessions > 0 || recovery.homeRehabSessions > 0 || recovery.equipmentAndHomeModification > 0 || recovery.otherRecoveryCosts > 0;
 
@@ -154,11 +153,10 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       </div>
     </details>
 
-
     <details open={hasRecoveryData} className="group border-t border-white/10 pt-4" data-ui="ci-recovery-reserve">
       <summary className="cursor-pointer py-2 text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ค่าใช้จ่ายช่วงรักษาและพักฟื้น (Recovery Reserve)</summary>
       <div className="mt-5 space-y-6">
-        <p className="text-xs leading-5 text-white/60">ส่วนนี้เป็น add-on สำหรับค่าใช้จ่ายนอกโรงพยาบาล ไม่ใช่ค่ารักษาหลัก ระบบไม่ตั้งยอดก้อนมาตรฐานให้ทุกคน จำนวนครั้ง/วันและค่าใช้จ่ายเริ่มที่ 0 จนกว่าคุณจะกรอกเอง</p>
+        <p className="text-xs leading-5 text-white/60">ส่วนนี้เป็นประมาณการจากข้อมูล research สำหรับค่าใช้จ่ายนอกโรงพยาบาล คำนวณเป็นก้อนแยกจากทั้งทุนตามรายจ่ายและทุนตามรายได้ ระบบไม่ตั้งยอดมาตรฐานให้ทุกคน จำนวนครั้ง/วันและค่าใช้จ่ายเริ่มที่ 0 จนกว่าคุณจะกรอกเอง</p>
 
         <section className="space-y-3" aria-labelledby="ci-recovery-visits-title">
           <h4 id="ci-recovery-visits-title" className="text-sm font-medium text-foreground">ค่าใช้จ่ายต่อครั้งที่ไปรักษา/ติดตาม</h4>
@@ -187,7 +185,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
           <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label htmlFor="ci-recovery-equipment-home" className="text-xs text-white/65">อุปกรณ์และ/หรือปรับบ้าน</label><CurrencyInput id="ci-recovery-equipment-home" value={recovery.equipmentAndHomeModification} onChange={(value) => handleRecoveryAmount('equipmentAndHomeModification', value)} placeholder="กรอกตามที่คาด" error={Boolean(errors['recovery.equipmentAndHomeModification'])} /></div><div className="space-y-2"><label htmlFor="ci-recovery-other" className="text-xs text-white/65">ค่าใช้จ่ายช่วงพักฟื้นอื่น</label><CurrencyInput id="ci-recovery-other" value={recovery.otherRecoveryCosts} onChange={(value) => handleRecoveryAmount('otherRecoveryCosts', value)} placeholder="กรอกตามที่คาด" error={Boolean(errors['recovery.otherRecoveryCosts'])} /></div></div>
         </section>
 
-        <div className="rounded-xl border border-primary/30 bg-primary/[0.08] p-4"><p className="text-xs font-medium text-primary">Recovery Reserve จากข้อมูลที่กรอก</p><output className="mt-1 block text-2xl font-semibold tabular-nums text-primary" aria-live="polite">{baht(recoveryPreview.total)}</output><p className="mt-2 text-xs leading-5 text-white/60">ตัวเลขนี้จะถูกบวกเฉพาะ “ทุนตามรายจ่าย” ไม่บวกซ้ำใน “ทุนตามรายได้” เพื่อหลีกเลี่ยงการนับผลกระทบรายได้ซ้ำ</p></div>
+        <div className="rounded-xl border border-primary/30 bg-primary/[0.08] p-4"><p className="text-xs font-medium text-primary">Recovery Reserve จากข้อมูลที่กรอก · คำนวณแยก</p><output className="mt-1 block text-2xl font-semibold tabular-nums text-primary" aria-live="polite">{baht(recoveryPreview.total)}</output><p className="mt-2 text-xs leading-5 text-white/60">ตัวเลขนี้ไม่ถูกบวกใน “ทุนตามรายจ่าย” หรือ “ทุนตามรายได้” เพื่อให้คุณเห็นค่าใช้จ่ายช่วงพักฟื้นเป็นอีกก้อนหนึ่งอย่างชัดเจน</p></div>
       </div>
     </details>
 
@@ -195,8 +193,8 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       <div><dt className="text-white/40">ครัวเรือน</dt><dd className="mt-1 font-medium text-white/80">{baht(householdNeed)}</dd></div>
       <div><dt className="text-white/40">การศึกษา</dt><dd className="mt-1 font-medium text-white/80">{baht(educationNeed)}</dd></div>
       <div><dt className="text-white/40">ภาระหนี้รวม</dt><dd className="mt-1 font-medium text-white/80">{baht(debtNeed)}</dd></div>
-      <div><dt className="text-white/40">Recovery Reserve</dt><dd className="mt-1 font-medium text-white/80">{baht(recoveryPreview.total)}</dd></div>
-      <div><dt className="text-white/40">ทุนตามรายจ่าย</dt><dd className="mt-1 font-semibold text-primary">{baht(calculatedNeed)}</dd></div>
+      <div><dt className="text-white/40">Recovery Reserve · แยก</dt><dd className="mt-1 font-medium text-white/80">{baht(recoveryPreview.total)}</dd></div>
+      <div><dt className="text-white/40">ทุนตามรายจ่าย</dt><dd className="mt-1 font-semibold text-primary">{baht(expenseNeed)}</dd></div>
     </dl>
   </div>;
 }
