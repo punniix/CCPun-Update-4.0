@@ -69,8 +69,8 @@ export interface CIResult {
   recoveryEquipmentAndHomeModification: number;
   recoveryOtherCosts: number;
   recoveryReserveNeed: number;    // Recovery Reserve แบบ source-backed; แสดงเป็นก้อนแยกแต่บวกเพิ่มในทั้ง 2 วิธี
-  expenseBaseNeed: number;        // household + education + debt ก่อนบวก Recovery Reserve
-  incomeBaseNeed: number;         // รายได้ต่อเดือน × 12 × ปีสำรอง ก่อนบวก Recovery Reserve
+  expenseBaseNeed?: number;       // household + education + debt ก่อนบวก Recovery Reserve; optional เพื่อรองรับ fixture/ผล legacy
+  incomeBaseNeed?: number;        // รายได้ต่อเดือน × 12 × ปีสำรอง ก่อนบวก Recovery Reserve; optional เพื่อรองรับ fixture/ผล legacy
   calculatedNeed: number;         // expenseBaseNeed + recoveryReserveNeed
   existingCoverage: number;       // เงินก้อนจากประกันโรคร้ายแรงที่มี
   liquidAssets: number;           // สินทรัพย์สภาพคล่องที่พร้อมใช้
