@@ -354,8 +354,10 @@
 .prose h2 { margin: 46px 0 14px; padding-top: 26px; border-top: 1px solid rgba(91,72,72,.62); color: var(--w43-ink); font-size: 30px; line-height: 1.28; }
 .prose h3 { margin: 30px 0 10px; color: var(--w43-ink); font-size: 21px; line-height: 1.4; }
 .prose p { margin: 0 0 18px; }
-.prose ol, .prose ul { margin: 0 0 20px; padding-left: 1.35em; }
-.prose li { margin: 8px 0; }
+.prose ol, .prose ul { margin: 0 0 20px; padding-inline-start: 1.5em; list-style-position: outside; }
+.prose ol { list-style-type: decimal; }
+.prose ul { list-style-type: disc; }
+.prose li { display: list-item; margin: 8px 0; padding-inline-start: .12em; }
 .articleQuote { margin: 28px 0; padding: 24px; border-left: 3px solid var(--w43-gold); background: var(--w43-surface); color: var(--w43-ink); font-size: 20px; font-weight: 600; line-height: 1.55; }
 .articleFaq { margin-top: 44px; }
 .lineCta { margin-top: 48px; padding: 28px; border: 1px solid var(--w43-border); border-radius: 16px; background: var(--w43-surface); }
@@ -748,7 +750,8 @@
 .articleCallout { margin: 28px 0; padding: 20px; border: 1px solid var(--w43-border); border-radius: 14px; background: var(--w43-surface); }
 .articleCallout strong { display: block; margin-bottom: 8px; color: var(--w43-gold); }
 .articleCallout p { margin: 0; }
-.articleSources { margin: 20px 0 0; padding-left: 1.25em; color: var(--w43-muted); font-size: 15px; line-height: 1.7; }
+.articleSources { margin: 20px 0 0; padding-inline-start: 1.35em; list-style: disc outside; color: var(--w43-muted); font-size: 15px; line-height: 1.7; }
+.articleSources li { display: list-item; }
 .articleSources a { color: var(--w43-gold) !important; overflow-wrap: anywhere; }
 
 /* Website 4.3 article TOC hierarchy */
