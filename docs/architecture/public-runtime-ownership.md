@@ -39,6 +39,8 @@ The CI and FHC legacy/reference calculators are not permission to maintain two P
 - CI: `features/ci-planning/legacy/calculator.ts`
 - FHC: `features/financial-health-check/calculator/`
 
+The live FHC calculation owner is `features/financial-health-check/components/lifeCoverageModel.ts`; formula-parity and exhaustive static QA must bind to that model while `LifeCoverageWizard.tsx` is checked only as the delegating UI owner.
+
 Do not import these references into new UI. Retire them only together with an equally explicit replacement parity contract.
 
 ## Style ownership
