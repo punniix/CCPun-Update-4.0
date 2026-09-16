@@ -93,8 +93,8 @@ function requireRecoveryAmount(value: number, name: string): number {
 /**
  * Research-backed Recovery Reserve.
  * It is calculated as a clearly separated component, then added once to each
- * estimation method independently. This lets the UI show the research-backed
- * amount explicitly without hiding it inside either base formula.
+ * available estimation method independently. The UI can therefore show the
+ * research-backed amount explicitly without hiding it inside either base formula.
  */
 export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
   const treatmentVisits = requireRecoveryCount(recovery.treatmentVisits, 'treatmentVisits', 100);
@@ -115,9 +115,7 @@ export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
   };
 }
 
-/**
- * Main calculator
- */
+/** Main calculator */
 export function calculateCI(formData: CIFormData): CIResult {
   const { expenses, existingCI } = formData;
 
@@ -130,9 +128,8 @@ export function calculateCI(formData: CIFormData): CIResult {
   // Income base:
   // รายได้ต่อเดือน × 12 × ปีสำรอง
   //
-  // Recovery Reserve is calculated separately, then added ONCE to each base:
-  // expense total = expense base + Recovery Reserve
-  // income total = income base + Recovery Reserve
+  // Recovery Reserve is calculated separately, then added ONCE to each method
+  // that actually has a primary base. A missing method stays unavailable at 0.
   const effectiveReserveYears = expenses.reserveYears;
   const householdMonthly = expenses.household;
   const householdNeed = calcHouseholdNeed(householdMonthly, effectiveReserveYears);
@@ -160,8 +157,8 @@ export function calculateCI(formData: CIFormData): CIResult {
     expenses.monthlyIncome ?? 0,
     effectiveReserveYears,
   );
-  const calculatedNeed = expenseBaseNeed + recoveryReserveNeed;
-  const incomeBasedNeed = incomeBaseNeed + recoveryReserveNeed;
+  const calculatedNeed = expenseBaseNeed > 0 ? expenseBaseNeed + recoveryReserveNeed : 0;
+  const incomeBasedNeed = incomeBaseNeed > 0 ? incomeBaseNeed + recoveryReserveNeed : 0;
 
   const existingCoverage = existingCI.lumpSum ?? 0;
   const liquidAssets = existingCI.liquidAssets ?? 0;
