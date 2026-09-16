@@ -21,12 +21,14 @@ export interface CIResultImageSummary {
   existingCICover: number;
   liquidAssets: number;
   availableResources: number;
+  recoveryReserve: number;
   shortfall: number;
   surplus: number;
   breakdown: Readonly<{
     household: number;
     education: number;
     debt: number;
+    recovery: number;
   }> | null;
   assessmentVersion: string;
   disclaimer: typeof SUMMARY_DISCLAIMER;
@@ -46,6 +48,7 @@ export function createCIResultImageSummary(
       household: result.householdNeed,
       education: result.educationNeed,
       debt: result.debtNeed,
+      recovery: result.recoveryReserveNeed,
     });
 
   return Object.freeze({
@@ -61,6 +64,7 @@ export function createCIResultImageSummary(
     existingCICover: result.existingCoverage,
     liquidAssets: result.liquidAssets,
     availableResources: result.availableResources,
+    recoveryReserve: result.recoveryReserveNeed,
     shortfall: isIncomeMethod ? result.incomeShortfall : result.shortfall,
     surplus: isIncomeMethod ? result.incomeSurplus : result.surplus,
     breakdown,
@@ -85,9 +89,10 @@ export async function renderCIResultImage(
       ? 'เงินและสินทรัพย์ที่มีมากกว่าประมาณการ'
       : 'ส่วนต่างจากประมาณการ';
   const differenceValue = summary.shortfall > 0 ? summary.shortfall : summary.surplus;
+  const baseNeed = Math.max(summary.mainNeedToday - summary.recoveryReserve, 0);
   const methodDetail = summary.breakdown
-    ? 'ค่าใช้จ่ายครัวเรือน + ค่าเรียน + ภาระหนี้ตามข้อมูลที่กรอก'
-    : 'รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก';
+    ? `ทุนตามรายจ่ายพื้นฐาน ${baht(baseNeed)} + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`
+    : `รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก = ${baht(baseNeed)}; + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`;
 
   return renderResultShareImage({
     toolName: summary.toolName,
@@ -103,6 +108,8 @@ export async function renderCIResultImage(
     noticeTitle: summary.disclaimer,
     noticeDetail: summary.imageNotice,
     actionLabel: 'เพิ่มเพื่อน LINE @ccpun',
-    scopeNote: 'ยังไม่รวมค่าจ้างผู้ดูแล และค่ารักษาส่วนที่ประกันสุขภาพไม่ครอบคลุม',
+    scopeNote: summary.recoveryReserve > 0
+      ? `Recovery Reserve ${baht(summary.recoveryReserve)} คำนวณแยกจากข้อมูล research แล้วบวก 1 ครั้งในวิธีที่เลือก; แหล่งอ้างอิงหลักปี 2025–2026`
+      : 'Recovery Reserve ยังเป็น 0; หากกรอก ระบบจะคำนวณแยกแล้วบวก 1 ครั้งในทั้งทุนตามรายจ่ายและทุนตามรายได้',
   }, logoPath, lineQrPath);
 }

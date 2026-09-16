@@ -59,7 +59,10 @@ test('reduced-motion removes all decorative movement', () => {
   assert.match(css, /\.articleCard img, \.featuredCard img, \.toolCtaCard img \{ scale: 1 !important; \}/);
 });
 
-test('motion selectors do not opt CI or FHC into Website 4.3 motion', () => {
-  assert.doesNotMatch(fhc, /Website43\.module\.css|w43Reveal|toolCtaCard/);
-  assert.doesNotMatch(ci, /Website43Motion|w43Reveal/);
+test('FHC and CI share the Production Website 4.3 visual language without opting into decorative reveal motion', () => {
+  for (const source of [fhc, ci]) {
+    assert.match(source, /Website43\.module\.css/);
+    assert.match(source, /Website43ToolHero/);
+    assert.doesNotMatch(source, /Website43Motion|w43Reveal|toolCtaCard|framer-motion|MotionConfig/);
+  }
 });

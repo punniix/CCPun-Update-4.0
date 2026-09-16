@@ -216,7 +216,9 @@ const fhcDescriptionLength = [...new Intl.Segmenter('th', { granularity: 'graphe
 assert.ok(fhcDescriptionLength >= 140 && fhcDescriptionLength <= 155, `FHC description must be 140-155 Thai graphemes, received ${fhcDescriptionLength}`);
 assert.match(fhcDescription, /เฉพาะความคุ้มครองชีวิต/);
 assert.match(read('features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx'), /ประกันไม่ใช่เงินฝาก/);
-assert.match(read('features/financial-health-check/components/FHCLandingIntro.tsx'), /7 เรื่องใน 3 กลุ่มที่ควรทบทวนให้เชื่อมกัน/);
+const fhcLanding = read('features/financial-health-check/components/FHCLandingIntro.tsx');
+assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
+assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
 const cookiePolicy = read('app/cookie-policy/page.tsx');
 const privacyPolicy = read('app/privacy/page.tsx');
