@@ -27,14 +27,12 @@ assert.match(taxonomy, /slug: "investment"[\s\S]*?indexable: false/);
 assert.match(taxonomy, /"aia-health-happy-describe": "health-insurance"/);
 assert.match(taxonomy, /"aia-health-ci-hero-guide": "health-insurance"/);
 assert.match(taxonomy, /"critical-illness-insurance": "critical-illness-insurance"/);
-assert.match(taxonomy, /"what-is-critical-illness-insurance": "critical-illness-insurance"/);
+assert.doesNotMatch(taxonomy, /"what-is-critical-illness-insurance": "critical-illness-insurance"/);
 assert.match(taxonomy, /"aia-vitality": "life-insurance"/);
 assert.match(taxonomy, /"critical-illness": "critical-illness-insurance"/);
 
 // Physical categories are no longer enumerated in taxonomy/presentation. Sanity
 // Category Registry owns public physical category activation and URL availability.
-// The Critical Illness zero-downtime migration remains semantic/redirect policy
-// until its future Sanity Category is actually activated.
 assert.doesNotMatch(taxonomy, /ACTIVE_ARTICLE_CATEGORIES/);
 assert.doesNotMatch(blogPresentation, /ACTIVE_ARTICLE_CATEGORIES|BLOG_TOPIC_HUBS/);
 assert.match(categoryRegistry, /CATEGORY_STATUS_VALUES = \["draft", "active"\]/);
@@ -63,12 +61,15 @@ for (const surface of [categoryPage, articlePresentation, card, schema, sitemap]
   assert.match(surface, /semanticTopic: article\.semanticTopic/);
 }
 
-// Winner-page migrations keep historical paths one-hop and gate the new Critical
-// Illness article redirect on the final target actually being published.
+// Health established the physical migration contract: preserve the leaf article
+// slug and move only the category segment. Critical Illness follows the same
+// one-hop rule and its final path must itself be terminal.
 assert.match(urls, /"life-insurance\/aia-health-happy-describe": "\/blog\/health-insurance\/aia-health-happy-describe\/"/);
 assert.match(urls, /"life-insurance\/aia-health-ci-hero-guide": "\/blog\/health-insurance\/aia-health-ci-hero-guide\/"/);
-assert.match(urls, /"life-insurance\/critical-illness-insurance": "\/blog\/critical-illness-insurance\/what-is-critical-illness-insurance\/"/);
-assert.match(urls, /"critical-illness\/critical-illness-insurance": "\/blog\/critical-illness-insurance\/what-is-critical-illness-insurance\/"/);
+assert.match(urls, /"critical-illness-insurance": "critical-illness-insurance"/);
+assert.match(urls, /"life-insurance\/critical-illness-insurance": "\/blog\/critical-illness-insurance\/critical-illness-insurance\/"/);
+assert.match(urls, /"critical-illness\/critical-illness-insurance": "\/blog\/critical-illness-insurance\/critical-illness-insurance\/"/);
+assert.doesNotMatch(urls, /"critical-illness-insurance\/critical-illness-insurance":/);
 assert.match(urls, /"critical-illness": "\/blog\/critical-illness-insurance\/"/);
 assert.doesNotMatch(urls, /ADDITIONAL_PUBLIC_CATEGORIES/);
 assert.match(articlePage, /getMovedArticleRedirectPath\(category, slug\)/);
