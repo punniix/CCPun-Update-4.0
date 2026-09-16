@@ -1,5 +1,6 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
 import { BLOG_TOPIC_HUBS } from "../../../../lib/content/taxonomy";
+import { validateArticleCanonicalAgainstCategoryRegistry } from "../../policy/category-registry-validation";
 
 const semanticTopicOptions = BLOG_TOPIC_HUBS.map(({ slug, title }) => ({ title, value: slug }));
 
@@ -96,7 +97,7 @@ export const seoMetadata = defineType({
       description: "เว้นว่างเพื่อใช้ canonical จาก route ปัจจุบัน บทความที่เคยเผยแพร่แล้วต้องเปลี่ยนผ่าน SEO Migration Workflow เท่านั้น",
       type: "url",
       readOnly: ({ document }) => Boolean(document?.publishedAt),
-      validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }),
+      validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }).custom(validateArticleCanonicalAgainstCategoryRegistry),
     }),
     defineField({
       name: "noindex",

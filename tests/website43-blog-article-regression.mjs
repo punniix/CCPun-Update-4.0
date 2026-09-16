@@ -65,6 +65,15 @@ const draft = { ...article, id: 'draft', slug: 'draft-only', title: 'DRAFT MUST 
 const calls = [];
 const mock = (path, exports) => { require.cache[require.resolve(path)] = { exports }; };
 const nextNavigation = require('next/navigation');
+const { buildCategoryRegistry } = require('../lib/content/category-registry.ts');
+const categoryRegistryFixture = buildCategoryRegistry([
+  { _id: 'personal', title: 'การเงินส่วนบุคคล', slug: 'personal-finance', status: 'active' },
+  { _id: 'life', title: 'ประกันชีวิต', slug: 'life-insurance', status: 'active' },
+  { _id: 'health', title: 'ประกันสุขภาพ', slug: 'health-insurance', status: 'active' },
+  { _id: 'investment', title: 'การลงทุน', slug: 'investment', status: 'active' },
+  { _id: 'motor', title: 'ประกันรถยนต์', slug: 'motor-insurance', status: 'active' },
+]);
+mock('../lib/content/category-registry-sanity.ts', { listCategoryRegistry: async () => categoryRegistryFixture });
 mock('../lib/content/provider.ts', { getContentProvider: () => ({
   listArticles: async (options) => { calls.push(options); return [article, health, draft]; },
   getArticleBySlug: async (slug, options) => { calls.push(options); return [article, health, draft].find((entry) => entry.slug === slug) ?? null; },

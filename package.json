@@ -31,6 +31,9 @@
     "cms:remediate:wordpress": "CCPUN_APP_ENV=local-production NEXT_PUBLIC_SANITY_PROJECT_ID=kyfxgjnq NEXT_PUBLIC_SANITY_DATASET=production node --env-file-if-exists=.env.local scripts/remediate-wordpress-mapping.mjs --dry-run",
     "cms:taxonomy:uat:dry-run": "CCPUN_APP_ENV=local-uat SANITY_API_PROJECT_ID=ccb9lnw5 SANITY_API_DATASET=uat node --import tsx scripts/migrate-uat-taxonomy.ts --dry-run",
     "cms:taxonomy:production:self-test": "node scripts/migrate-production-article-taxonomy.mjs --self-test",
+    "cms:category-registry:uat:dry-run": "CCPUN_APP_ENV=local-uat NEXT_PUBLIC_CCPUN_APP_ENV=local-uat NEXT_PUBLIC_SANITY_PROJECT_ID=ccb9lnw5 NEXT_PUBLIC_SANITY_DATASET=uat SANITY_STUDIO_PROJECT_ID=ccb9lnw5 SANITY_STUDIO_DATASET=uat node --env-file-if-exists=.env.local --import tsx scripts/migrate-category-registry.ts --target=uat --dry-run",
+    "cms:category-registry:production:dry-run": "CCPUN_APP_ENV=local-production NEXT_PUBLIC_CCPUN_APP_ENV=local-production CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 NEXT_PUBLIC_CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 NEXT_PUBLIC_SANITY_PROJECT_ID=kyfxgjnq NEXT_PUBLIC_SANITY_DATASET=production SANITY_STUDIO_PROJECT_ID=kyfxgjnq SANITY_STUDIO_DATASET=production node --env-file-if-exists=.env.local --import tsx scripts/migrate-category-registry.ts --target=production --dry-run",
+    "qa:category-registry": "node --import tsx scripts/qa-category-registry.ts",
     "guard:survivor": "node scripts/guard-survivor-deploy.mjs",
     "build:survivor": "npm run guard:survivor && next build",
     "test:admin": "node --import tsx --test tests/admin/*.test.ts"
