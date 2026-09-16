@@ -97,6 +97,7 @@ async function main() {
   const files = [...new Set(absoluteFiles.map(relative))].sort();
   const sourceByFile = new Map();
   const edges = new Map();
+  const reverseEdges = new Map();
   const externalByFile = new Map();
   const envByFile = new Map();
 
@@ -117,6 +118,13 @@ async function main() {
     edges.set(file, local);
     externalByFile.set(file, external);
     envByFile.set(file, new Set([...source.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)].map((match) => match[1])));
+  }
+
+  for (const [importer, dependencies] of edges) {
+    for (const dependency of dependencies) {
+      if (!reverseEdges.has(dependency)) reverseEdges.set(dependency, new Set());
+      reverseEdges.get(dependency).add(importer);
+    }
   }
 
   function reachable(roots) {
@@ -167,6 +175,12 @@ async function main() {
   const dependencies = [...dependencyOwners.entries()]
     .map(([name, owners]) => ({ name, owners: [...owners].sort() }))
     .sort((a, b) => a.name.localeCompare(b.name));
+  const sharedImporters = shared.map((file) => ({
+    file,
+    importers: [...(reverseEdges.get(file) ?? [])]
+      .map((importer) => ({ file: importer, owner: ownerOf(importer) }))
+      .sort((a, b) => a.file.localeCompare(b.file)),
+  }));
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -181,6 +195,7 @@ async function main() {
       unassignedRoutes: unassignedRoutes.length,
     },
     sharedRuntimeFiles: shared,
+    sharedImporters,
     unassignedRoutes,
     environmentVariables,
     dependencies,
