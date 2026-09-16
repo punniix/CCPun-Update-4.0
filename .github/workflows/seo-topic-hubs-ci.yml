@@ -34,6 +34,15 @@ jobs:
       - name: Foundation code, SEO, analytics and admin contracts
         run: npm run check:foundation
 
+      - name: FHC and CI calculator regression gate
+        run: |
+          node --import tsx tests/calculator-regression.ts
+          node --test tests/calculator-design-language.test.mjs
+          node --test tests/calculator-ux-formula-parity.test.mjs
+          node --test tests/calculator-ux-journey.test.mjs
+          node --import tsx tests/result-actions-regression.ts
+          node tests/fhc-seo-geo-regression.mjs
+
       - name: Google sitemap deterministic contract
         run: node --import tsx --test tests/sitemap-google-regression.test.ts
 
