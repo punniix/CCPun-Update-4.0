@@ -32,7 +32,7 @@ assert.deepEqual(legacyUrlLedger.mappings.map(({ id, destination }) => [id, dest
   ['aia-health-ci-hero', 'https://ccpun.com/blog/health-insurance/aia-health-ci-hero-guide/'],
   ['financial-pyramid', 'https://ccpun.com/blog/personal-finance/financial-pyramid/'],
   ['aia-vitality', 'https://ccpun.com/blog/life-insurance/aia-vitality/'],
-  ['critical-illness-insurance', 'https://ccpun.com/blog/life-insurance/critical-illness-insurance/'],
+  ['critical-illness-insurance', 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
 ]);
 assert.match(read('qa/legacy-url-regression.mjs'), /redirect target drifted/);
 
