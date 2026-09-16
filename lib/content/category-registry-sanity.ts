@@ -3,6 +3,7 @@ import "server-only";
 import { groq } from "next-sanity";
 import { sanityFetch } from "@/lib/sanity-live";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
+import { sourceSlugHasPublicRouteOverride } from "./article-route-overrides";
 import {
   buildCategoryRegistry,
   emptyCategoryRegistry,
@@ -54,7 +55,11 @@ export async function listCategoryRegistry(options: { includeDrafts?: boolean } 
     const raw = (data ?? {}) as RawRegistryResponse;
     const rows = Array.isArray(raw.categories) ? raw.categories as RawCategoryRegistryRow[] : [];
     const context: CategoryRegistryContext = {
-      routeOwnerSlugs: stringArray(raw.routeOwnerSlugs),
+      // A Sanity source slug that has an explicit public-route override no longer
+      // owns the one-segment /blog/{slug}/ fallback route. Excluding it here lets
+      // the reviewed destination category claim that segment without weakening
+      // collision checks for ordinary article slugs.
+      routeOwnerSlugs: stringArray(raw.routeOwnerSlugs).filter((slug) => !sourceSlugHasPublicRouteOverride(slug)),
       canonicalOwnerUrls: stringArray(raw.canonicalOwnerUrls),
       referencedCategoryIds: stringArray(raw.referencedCategoryIds),
     };
