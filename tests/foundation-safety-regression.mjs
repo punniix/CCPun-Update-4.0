@@ -67,8 +67,10 @@ for (const destination of [
 }
 const criticalIllnessLegacy = ledger.mappings.find(({ id }) => id === 'critical-illness-insurance');
 expect(
-  'critical illness legacy source is tracked for direct final cutover',
-  criticalIllnessLegacy?.plannedDestination === 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/',
+  'critical illness legacy source is frozen to the live final owner',
+  criticalIllnessLegacy?.state === 'live'
+    && criticalIllnessLegacy?.destination === 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/'
+    && criticalIllnessLegacy?.plannedDestination === undefined,
 );
 
 const intentRegistry = JSON.parse(read('qa/search-intent-owner-registry.json'));
@@ -76,7 +78,8 @@ const criticalIllnessOwner = intentRegistry.owners.find(({ intentId }) => intent
 expect(
   'critical illness search intent owner moves to final canonical',
   criticalIllnessOwner?.ownerUrl === 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/'
-    && criticalIllnessOwner?.semanticTopic === 'critical-illness-insurance',
+    && criticalIllnessOwner?.semanticTopic === 'critical-illness-insurance'
+    && criticalIllnessOwner?.ownerState === 'published',
 );
 
 const studioPolicy = read('cms/sanity/policy/studio-policy.ts');

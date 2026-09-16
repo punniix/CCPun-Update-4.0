@@ -59,11 +59,17 @@ for (const owner of registry.owners) {
   }
 
   if (owner.ownershipBasis === "approved-url-migration") {
-    assert.equal(owner.ownerState, "planned", `${owner.intentId}: migration owner stays planned until content cutover`);
-    assert.equal(mapping.plannedDestination, owner.ownerUrl, `${owner.intentId}: planned destination must equal the final owner`);
-    assert.ok(["live", "planned"].includes(mapping.state), `${owner.intentId}: migration mapping must be live-current or planned-final`);
-    if (mapping.state === "live") {
-      assert.notEqual(mapping.destination, owner.ownerUrl, `${owner.intentId}: staged live mapping must still point to the current owner`);
+    if (owner.ownerState === "planned") {
+      assert.equal(mapping.plannedDestination, owner.ownerUrl, `${owner.intentId}: planned destination must equal the final owner`);
+      assert.ok(["live", "planned"].includes(mapping.state), `${owner.intentId}: migration mapping must be live-current or planned-final`);
+      if (mapping.state === "live") {
+        assert.notEqual(mapping.destination, owner.ownerUrl, `${owner.intentId}: staged live mapping must still point to the current owner`);
+      }
+    } else {
+      assert.equal(owner.ownerState, "published", `${owner.intentId}: migrated owner must be planned or published`);
+      assert.equal(mapping.state, "live", `${owner.intentId}: published migrated owner must have a live legacy mapping`);
+      assert.equal(mapping.destination, owner.ownerUrl, `${owner.intentId}: live migration destination must equal the published owner`);
+      assert.equal(mapping.plannedDestination, undefined, `${owner.intentId}: completed migration must not retain a planned destination`);
     }
   }
 
@@ -86,7 +92,7 @@ const criticalIllness = registry.owners.find((owner) => owner.intentId === "crit
 assert.ok(criticalIllness, "Critical Illness definition owner contract is required");
 assert.equal(criticalIllness.semanticTopic, "critical-illness-insurance");
 assert.equal(criticalIllness.ownerUrl, "https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/");
-assert.equal(criticalIllness.ownerState, "planned");
+assert.equal(criticalIllness.ownerState, "published");
 assert.equal(criticalIllness.ownershipBasis, "approved-url-migration");
 
 console.log(`PASS: Search Intent Owner Registry (${registry.owners.length} owners, ${queryOwners.size} protected query forms)`);
