@@ -84,7 +84,7 @@ export const reachable = walkReachable(entryFiles);
 export const reachableSources = sourcesFor(reachable);
 
 const publicExcludedEntryPrefixes = [
-  'app/(control-plane)/',
+  'app/(control-plane',
   'app/api/',
   'app/studio/',
   'app/login/',
