@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "local:uat": "CCPUN_UAT_MODE=1 CCPUN_APP_ENV=local-uat NEXT_PUBLIC_CCPUN_APP_ENV=local-uat NEXT_PUBLIC_SANITY_PROJECT_ID=ccb9lnw5 NEXT_PUBLIC_SANITY_DATASET=uat SANITY_STUDIO_PROJECT_ID=ccb9lnw5 SANITY_STUDIO_DATASET=uat AUTH_URL=http://localhost:3100 next dev --hostname 127.0.0.1 --port 3100",
-    "local:production:read": "CCPUN_UAT_MODE=0 CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=0 NEXT_PUBLIC_CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=0 CCPUN_APP_ENV=local-production NEXT_PUBLIC_CCPUN_APP_ENV=local-production NEXT_PUBLIC_SANITY_PROJECT_ID=kyfxgjnq NEXT_PUBLIC_SANITY_DATASET=production SANITY_STUDIO_PROJECT_ID=kyfxgjnw5 SANITY_STUDIO_DATASET=production AUTH_URL=http://localhost:3000 next dev --webpack --hostname 127.0.0.1 --port 3000",
+    "local:production:read": "CCPUN_UAT_MODE=0 CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=0 NEXT_PUBLIC_CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=0 CCPUN_APP_ENV=local-production NEXT_PUBLIC_CCPUN_APP_ENV=local-production NEXT_PUBLIC_SANITY_PROJECT_ID=kyfxgjnq NEXT_PUBLIC_SANITY_DATASET=production SANITY_STUDIO_PROJECT_ID=kyfxgjnq SANITY_STUDIO_DATASET=production AUTH_URL=http://localhost:3000 next dev --webpack --hostname 127.0.0.1 --port 3000",
     "local:production:draft": "CCPUN_UAT_MODE=0 CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 NEXT_PUBLIC_CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 CCPUN_APP_ENV=local-production NEXT_PUBLIC_CCPUN_APP_ENV=local-production NEXT_PUBLIC_SANITY_PROJECT_ID=kyfxgjnq NEXT_PUBLIC_SANITY_DATASET=production SANITY_STUDIO_PROJECT_ID=kyfxgjnq SANITY_STUDIO_DATASET=production AUTH_URL=http://localhost:3000 next dev --webpack --hostname 127.0.0.1 --port 3000",
     "build": "next build",
     "start": "next start",
