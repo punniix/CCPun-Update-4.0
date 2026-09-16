@@ -33,9 +33,10 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
   const [selectedMethod, setSelectedMethod] = useState<CIEstimationMethod>(() => getDefaultEstimationMethod(result));
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const hasTrackedResultViewRef = useRef(false);
-  const hasIncomeMethod = result.incomeBasedNeed > 0;
+  const hasIncomeMethod = result.incomeBaseNeed > 0;
   const activeMethod = selectedMethod === 'income' && hasIncomeMethod ? 'income' : 'expense';
   const methodLabel = CI_ESTIMATION_METHOD_LABELS[activeMethod];
+  const selectedBaseNeed = activeMethod === 'income' ? result.incomeBaseNeed : result.expenseBaseNeed;
   const selectedNeed = activeMethod === 'income' ? result.incomeBasedNeed : result.calculatedNeed;
   const displayedGap = activeMethod === 'income' ? result.incomeShortfall : result.shortfall;
   const displayedSurplus = activeMethod === 'income' ? result.incomeSurplus : result.surplus;
@@ -64,9 +65,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
       <h2 ref={resultHeadingRef} tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ประมาณการทุนเบื้องต้น · {methodLabel}</h2>
       <output className="ccpun-calculator-result-amount" aria-live="polite" aria-atomic="true">{baht(selectedNeed)}</output>
-      <p className="ccpun-calculator-result-body">{activeMethod === 'expense'
-        ? 'คำนวณจากรายจ่าย ระยะเวลาที่เลือก ค่าเรียน ค่างวด และหนี้ที่กรอก โดยไม่รวม Recovery Reserve'
-        : 'คำนวณจากรายได้ต่อเดือนและระยะเวลาที่เลือก โดยไม่รวม Recovery Reserve และแสดงแยกจากทุนตามรายจ่าย'}</p>
+      <p className="ccpun-calculator-result-body">ยอดรวมนี้ = {baht(selectedBaseNeed)} จาก{activeMethod === 'expense' ? 'รายจ่ายและภาระที่กรอก' : 'รายได้ตามช่วงเวลาที่เลือก'} + Recovery Reserve {baht(result.recoveryReserveNeed)} โดยบวก Recovery Reserve เพียง 1 ครั้ง</p>
     </section>
 
     {hasIncomeMethod ? <fieldset className="space-y-3" aria-describedby="ci-estimation-method-help">
@@ -82,7 +81,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           </label>;
         })}
       </div>
-      <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">ระบบแสดงทุนตามรายจ่ายและทุนตามรายได้แยกกัน และ Recovery Reserve เป็นก้อนที่สามแยกต่างหาก ไม่ถูกบวกเข้าในสองวิธีนี้</p>
+      <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">สองวิธีไม่ถูกนำมาบวกกัน แต่แต่ละวิธีจะบวก Recovery Reserve ก้อนเดียวกัน 1 ครั้ง: ฐานตามรายจ่าย + Recovery Reserve หรือฐานตามรายได้ + Recovery Reserve</p>
     </fieldset> : null}
 
     <MoneyComparison need={selectedNeed} resources={result.availableResources} title={`เปรียบเทียบ${methodLabel}กับทรัพยากรที่พร้อมใช้`} needLabel={methodLabel} />
@@ -98,18 +97,22 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     <details className="ccpun-calculator-result-details">
       <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ดูที่มาของประมาณการ</summary>
       <div className="mt-4">
-        {activeMethod === 'expense' ? <dl className="grid gap-3 sm:grid-cols-3">
+        {activeMethod === 'expense' ? <dl className="grid gap-3 sm:grid-cols-4">
           <div><dt className="ccpun-calculator-result-eyebrow">ค่าใช้จ่ายครอบครัว</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.householdNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">ค่าเรียนบุตร</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.educationNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">ภาระหนี้รวม</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.debtNeed)}</dd></div>
-        </dl> : <p className="ccpun-calculator-result-body">ทุนตามรายได้ดูจากรายได้ต่อเดือนตลอดระยะเวลาที่เลือก ส่วน Recovery Reserve เป็นประมาณการแยกต่างหากด้านล่างและไม่ถูกบวกในวิธีนี้</p>}
+          <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
+        </dl> : <dl className="grid gap-3 sm:grid-cols-2">
+          <div><dt className="ccpun-calculator-result-eyebrow">ทุนตามรายได้ก่อน Recovery</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.incomeBaseNeed)}</dd></div>
+          <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
+        </dl>}
       </div>
     </details>
 
     <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
-      <p className="ccpun-calculator-result-eyebrow">ประมาณการแยก · ค่าใช้จ่ายนอกโรงพยาบาล</p>
+      <p className="ccpun-calculator-result-eyebrow">ส่วนเพิ่มจากข้อมูล research · ค่าใช้จ่ายนอกโรงพยาบาล</p>
       <h3 id="ci-recovery-result-title" className="ccpun-calculator-result-panel-title mt-1">Recovery Reserve · {baht(result.recoveryReserveNeed)}</h3>
-      <p className="ccpun-calculator-result-body">ตัวเลขนี้มาจากข้อมูล research และข้อมูลที่คุณกรอก โดยแสดงเป็นก้อนแยกจากทั้งทุนตามรายจ่ายและทุนตามรายได้ ไม่ถูกบวกเข้าในสองวิธีหลัก</p>
+      <p className="ccpun-calculator-result-body">Recovery Reserve คำนวณแยกเพื่อให้เห็นที่มาชัดเจน แล้วบวกเพิ่ม 1 ครั้งในยอดรวมของทั้งทุนตามรายจ่ายและทุนตามรายได้ โดยไม่ได้นำสองวิธีมาบวกเข้าหากัน</p>
       {result.recoveryReserveNeed > 0 ? <>
         <dl className="ccpun-calculator-result-rows mt-4">
           <div className="ccpun-calculator-result-row"><dt>ไปรักษา/ติดตาม {result.recoveryTreatmentVisits} ครั้ง × {baht(CI_RECOVERY_REFERENCE.treatmentVisit.total)}</dt><dd>{baht(result.recoveryVisitNeed)}</dd></div>
