@@ -42,7 +42,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return (
         <figure className={styles.articleInlineFigure} key={key}>
           <Image src={item.src} alt={item.alt} width={item.width} height={item.height} sizes="(max-width: 767px) calc(100vw - 48px), 720px" loading="lazy" />
-          {(item.caption || item.credit) && <figcaption>{item.caption}{item.caption && item.credit ? " · " : ""}{item.credit ? `เครดิต: ${item.credit}` : ""}</figcaption>}
+          {(item.caption || item.credit) && <figcaption>{item.caption}{item.caption && item.credit ? ' · ' : ''}{item.credit ? `เครดิต: ${item.credit}` : ''}</figcaption>}
         </figure>
       );
     }
@@ -52,7 +52,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
           {item.images.map((image, imageIndex) => (
             <figure key={`${key}-${imageIndex}`}>
               <Image src={image.src} alt={image.alt} width={image.width} height={image.height} sizes="(max-width: 767px) calc(100vw - 48px), 360px" loading="lazy" />
-              {(image.caption || image.credit) && <figcaption>{image.caption}{image.caption && image.credit ? " · " : ""}{image.credit ? `เครดิต: ${image.credit}` : ""}</figcaption>}
+              {(image.caption || image.credit) && <figcaption>{image.caption}{image.caption && image.credit ? ' · ' : ''}{image.credit ? `เครดิต: ${image.credit}` : ''}</figcaption>}
             </figure>
           ))}
         </div>
@@ -63,7 +63,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return <a className={item.style === 'primary' ? styles.primaryButton : styles.outlineButton} href={item.url} target={newTab ? '_blank' : undefined} rel={newTab ? 'noopener noreferrer' : undefined} key={key}>{item.label}</a>;
     }
     if (item.type === 'pdf') {
-      return <a className={styles.articleDownload} href={item.url} target="_blank" rel="noopener noreferrer" key={key}><strong>{item.title}</strong>{item.description && <span>{item.description}</span>}<span>เปิดไฟล์ PDF{item.size ? ` (${(item.size / 1048576).toFixed(1)} MB)` : ""}</span></a>;
+      return <a className={styles.articleDownload} href={item.url} target="_blank" rel="noopener noreferrer" key={key}><strong>{item.title}</strong>{item.description && <span>{item.description}</span>}<span>เปิดไฟล์ PDF{item.size ? ` (${(item.size / 1048576).toFixed(1)} MB)` : ''}</span></a>;
     }
     if (item.type === 'details') {
       return <details className={styles.articleDetails} key={key}><summary>{item.summary}</summary><p>{item.text}</p></details>;
@@ -78,6 +78,9 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
         </div>
       );
     }
-    return <hr className={styles.articleDivider} key={key} />;
+    if (item.type === 'divider') return <hr className={styles.articleDivider} key={key} />;
+
+    const exhaustive: never = item;
+    return exhaustive;
   });
 }
