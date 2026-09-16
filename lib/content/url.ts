@@ -1,12 +1,16 @@
 import type { Article } from "./types";
 import { CATEGORY_SLUG_PATTERN } from "./category-registry";
+import {
+  getArticlePublicRouteOverride,
+  getArticlePublicSlug,
+  getArticleSourceSlugForPublicRoute,
+} from "./article-route-overrides";
 import { LEGACY_CATEGORY_TOPICS, normalizeArticleTaxonomy } from "./taxonomy";
 
-// Foundation cutover before UX/UI 4.2. These two winner pages now have one
-// approved physical/canonical owner under /health-insurance/. Keep this override
-// until every published Sanity article reference has naturally converged on the
-// Health Insurance category; leaving it in place afterwards is harmless and
-// protects against an accidental category regression.
+// Foundation cutover before UX/UI 4.2. Health winner pages keep protected
+// physical/canonical owners while published Sanity references converge. Critical
+// Illness uses the same safety model, plus a reviewed public leaf-slug alias, so
+// unrelated draft content never needs to be published just to move URL ownership.
 const ARTICLE_CANONICAL_CATEGORY_OVERRIDES: Record<string, string> = {
   "aia-health-happy-describe": "health-insurance",
   "aia-health-ci-hero-guide": "health-insurance",
@@ -29,6 +33,9 @@ const MOVED_ARTICLE_PATHS: Record<string, string> = {
 type ArticleCategoryInput = Pick<Article, "category" | "categorySlug"> & Partial<Pick<Article, "slug">>;
 
 export function getArticleCategorySlug(article: ArticleCategoryInput) {
+  const publicRoute = article.slug ? getArticlePublicRouteOverride(article.slug) : null;
+  if (publicRoute) return publicRoute.categorySlug;
+
   const protectedCategory = article.slug ? ARTICLE_CANONICAL_CATEGORY_OVERRIDES[article.slug] : undefined;
   if (protectedCategory) return protectedCategory;
 
@@ -53,7 +60,7 @@ export function getArticlePreviewCategorySlug(article: ArticleCategoryInput) {
 }
 
 export function getArticlePath(article: Pick<Article, "slug" | "category" | "categorySlug">) {
-  return `/blog/${getArticleCategorySlug(article)}/${article.slug}/`;
+  return `/blog/${getArticleCategorySlug(article)}/${getArticlePublicSlug(article.slug)}/`;
 }
 
 export function getArticlePreviewPath(article: Pick<Article, "slug" | "category" | "categorySlug">) {
@@ -61,7 +68,7 @@ export function getArticlePreviewPath(article: Pick<Article, "slug" | "category"
 }
 
 export function getArticleCanonical(article: Pick<Article, "slug" | "category" | "categorySlug" | "canonical">) {
-  if (ARTICLE_CANONICAL_CATEGORY_OVERRIDES[article.slug]) {
+  if (getArticlePublicRouteOverride(article.slug) || ARTICLE_CANONICAL_CATEGORY_OVERRIDES[article.slug]) {
     return `https://ccpun.com${getArticlePath(article)}`;
   }
   return article.canonical ?? `https://ccpun.com${getArticlePath(article)}`;
@@ -91,4 +98,8 @@ export function getLegacyCategoryRedirectPath(segment: string) {
 
 export function getMovedArticleRedirectPath(category: string, slug: string) {
   return MOVED_ARTICLE_PATHS[`${category}/${slug}`] ?? null;
+}
+
+export function getArticleSourceSlugForRoute(publicSlug: string) {
+  return getArticleSourceSlugForPublicRoute(publicSlug);
 }
