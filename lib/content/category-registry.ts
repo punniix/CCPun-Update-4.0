@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getArticlePublicRouteOverride } from "./article-route-overrides";
 
 export const CATEGORY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CATEGORY_STATUS_VALUES = ["draft", "active"] as const;
@@ -272,15 +273,17 @@ export function resolveCategoryRoute(
 }
 
 export function articleBelongsToPhysicalCategory(
-  article: { categorySlug?: string | null },
+  article: { slug?: string | null; categorySlug?: string | null },
   category: Pick<CategoryRegistryEntry, "slug">,
 ) {
-  return article.categorySlug?.trim().toLowerCase() === category.slug;
+  const reviewedOwner = getArticlePublicRouteOverride(article.slug)?.categorySlug;
+  const categorySlug = reviewedOwner ?? article.categorySlug?.trim().toLowerCase();
+  return categorySlug === category.slug;
 }
 
 export function listPhysicalCategorySitemapEntries(
   registry: CategoryRegistry,
-  articles: readonly { categorySlug?: string | null }[],
+  articles: readonly { slug?: string | null; categorySlug?: string | null }[],
   options: { isCategoryIndexable?: (category: CategoryRegistryEntry) => boolean } = {},
 ) {
   const isCategoryIndexable = options.isCategoryIndexable ?? (() => true);

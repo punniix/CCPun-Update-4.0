@@ -4,6 +4,7 @@ import {
   getArticleCanonical,
   getArticlePath,
   getArticlePreviewPath,
+  getArticleSourceSlugForRoute,
   getLegacyCategoryRedirectPath,
   getMovedArticleRedirectPath,
   isArticleCanonicalAligned,
@@ -36,6 +37,21 @@ test("protected health winner pages resolve to Health even while published Sanit
     assert.equal(getArticleCanonical(article), `https://ccpun.com/blog/health-insurance/${slug}/`);
     assert.equal(isArticleCanonicalAligned(article), true);
   }
+});
+
+test("critical illness public owner can move without publishing the unrelated Sanity draft", () => {
+  const article = {
+    slug: "critical-illness-insurance",
+    category: "ประกันชีวิต",
+    categorySlug: "life-insurance",
+    canonical: "https://ccpun.com/blog/life-insurance/critical-illness-insurance/",
+  };
+  const final = "/blog/critical-illness-insurance/what-is-critical-illness-insurance/";
+  assert.equal(getArticlePath(article), final);
+  assert.equal(getArticleCanonical(article), `https://ccpun.com${final}`);
+  assert.equal(isArticleCanonicalAligned(article), true);
+  assert.equal(getArticleSourceSlugForRoute("what-is-critical-illness-insurance"), "critical-illness-insurance");
+  assert.equal(getArticleSourceSlugForRoute("aia-vitality"), "aia-vitality");
 });
 
 test("controlled article moves are locked to one-hop final paths", () => {
