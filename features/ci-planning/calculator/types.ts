@@ -68,18 +68,20 @@ export interface CIResult {
   recoveryRehabNeed: number;
   recoveryEquipmentAndHomeModification: number;
   recoveryOtherCosts: number;
-  recoveryReserveNeed: number;    // รวม Recovery Reserve; บวกเฉพาะทุนตามรายจ่าย
-  calculatedNeed: number;         // household + education + debt + recovery reserve
+  recoveryReserveNeed: number;    // Recovery Reserve แบบ source-backed; แสดงเป็นก้อนแยกแต่บวกเพิ่มในทั้ง 2 วิธี
+  expenseBaseNeed: number;        // household + education + debt ก่อนบวก Recovery Reserve
+  incomeBaseNeed: number;         // รายได้ต่อเดือน × 12 × ปีสำรอง ก่อนบวก Recovery Reserve
+  calculatedNeed: number;         // expenseBaseNeed + recoveryReserveNeed
   existingCoverage: number;       // เงินก้อนจากประกันโรคร้ายแรงที่มี
   liquidAssets: number;           // สินทรัพย์สภาพคล่องที่พร้อมใช้
   availableResources: number;     // existingCoverage + liquidAssets
-  signedGap: number;               // calculatedNeed - availableResources
-  gap: number;                     // alias ของ shortfall สำหรับ UI compatibility
-  shortfall: number;               // max(signedGap, 0)
-  surplus: number;                 // max(-signedGap, 0)
-  incomeBasedNeed: number;         // รายได้ต่อเดือน × 12 × ปีสำรอง; ไม่บวก Recovery Reserve เพื่อกัน double count
-  incomeSignedGap: number;         // incomeBasedNeed - availableResources
-  incomeShortfall: number;         // max(incomeSignedGap, 0)
-  incomeSurplus: number;           // max(-incomeSignedGap, 0)
-  effectiveReserveYears: number;  // ข = ปีสำรองที่ผู้ใช้เลือก
+  signedGap: number;              // calculatedNeed - availableResources
+  gap: number;                    // alias ของ shortfall สำหรับ UI compatibility
+  shortfall: number;              // max(signedGap, 0)
+  surplus: number;                // max(-signedGap, 0)
+  incomeBasedNeed: number;        // incomeBaseNeed + recoveryReserveNeed
+  incomeSignedGap: number;        // incomeBasedNeed - availableResources
+  incomeShortfall: number;        // max(incomeSignedGap, 0)
+  incomeSurplus: number;          // max(-incomeSignedGap, 0)
+  effectiveReserveYears: number;  // ปีสำรองที่ผู้ใช้เลือก
 }
