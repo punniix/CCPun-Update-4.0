@@ -28,7 +28,6 @@ const educationPlanSchema = z.object({
     .max(30, 'จำนวนปีต้องไม่เกิน 30 ปี'),
 });
 
-
 const recoveryCount = z.number()
   .finite('กรุณากรอกจำนวนให้ถูกต้อง')
   .int('กรุณากรอกเป็นจำนวนเต็ม')
@@ -102,19 +101,16 @@ const stepExpensesSchema = z.object({
     data.carPayment,
     data.otherDebtBalance,
   ].some((amount) => amount > 0);
-
   const hasEducationInput = data.educationPlans.length > 0;
-  const hasRecoveryInput = data.recovery.treatmentVisits > 0
-    || data.recovery.caregiverHomeDays > 0
-    || data.recovery.rehabSessions > 0
-    || data.recovery.equipmentAndHomeModification > 0
-    || data.recovery.otherRecoveryCosts > 0;
 
-  if (data.monthlyIncome === 0 && !expenseSideBurden && !hasEducationInput && !hasRecoveryInput) {
+  // Recovery Reserve is an add-on to a primary income/expense basis. It cannot
+  // be the only planning basis, otherwise a research-backed component would be
+  // misrepresented as a standalone primary method.
+  if (data.monthlyIncome === 0 && !expenseSideBurden && !hasEducationInput) {
     context.addIssue({
       code: 'custom',
       path: ['expenses'],
-      message: 'กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการ',
+      message: 'กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการก่อนเพิ่ม Recovery Reserve',
     });
   }
 });
