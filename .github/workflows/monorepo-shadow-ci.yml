@@ -1,0 +1,78 @@
+name: CCPun Monorepo Shadow CI
+
+on:
+  pull_request:
+    branches: [v4-production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccpun-monorepo-shadow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-shadow:
+    if: github.event_name != 'pull_request' || github.head_ref == 'architecture/vercel-monorepo-isolation-20260917'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck Web shadow
+        run: npm run typecheck:web:shadow
+      - name: Build Web shadow
+        run: npm run build:web:shadow
+        env:
+          CCPUN_APP_ENV: development
+          NEXT_PUBLIC_CCPUN_APP_ENV: development
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          VERCEL_ENV: preview
+
+  admin-shadow:
+    if: github.event_name != 'pull_request' || github.head_ref == 'architecture/vercel-monorepo-isolation-20260917'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck Admin shadow
+        run: npm run typecheck:admin:shadow
+        env:
+          CCPUN_APP_ENV: admin-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: admin-uat
+          VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          SANITY_STUDIO_PROJECT_ID: ccb9lnw5
+          SANITY_STUDIO_DATASET: uat
+          AUTH_URL: http://127.0.0.1:3100
+          CCPUN_ADMIN_OWNER_EMAILS: owner@example.invalid
+          VERCEL_ENV: preview
+      - name: Build Admin shadow
+        run: npm run build:admin:shadow
+        env:
+          CCPUN_APP_ENV: admin-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: admin-uat
+          VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          SANITY_STUDIO_PROJECT_ID: ccb9lnw5
+          SANITY_STUDIO_DATASET: uat
+          AUTH_URL: http://127.0.0.1:3100
+          CCPUN_ADMIN_OWNER_EMAILS: owner@example.invalid
+          VERCEL_ENV: preview
