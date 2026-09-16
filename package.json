@@ -39,7 +39,11 @@
     "qa:category-registry": "node --import tsx scripts/qa-category-registry.ts",
     "guard:survivor": "node scripts/guard-survivor-deploy.mjs",
     "build:survivor": "npm run guard:survivor && next build",
-    "test:admin": "node --import tsx --test tests/admin/*.test.ts"
+    "test:admin": "node --import tsx --test tests/admin/*.test.ts",
+    "build:web:shadow": "npm run build --workspace @ccpun/web",
+    "build:admin:shadow": "npm run build --workspace @ccpun/admin",
+    "typecheck:web:shadow": "tsc -p apps/web/tsconfig.json --noEmit --incremental false",
+    "typecheck:admin:shadow": "tsc -p apps/admin/tsconfig.json --noEmit --incremental false"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
@@ -108,5 +112,9 @@
     "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
     "unrs-resolver@1.12.2": true
-  }
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }
