@@ -33,6 +33,15 @@ const recoveryCount = z.number()
   .int('กรุณากรอกเป็นจำนวนเต็ม')
   .min(0, 'จำนวนต้องไม่ติดลบ');
 
+const ZERO_RECOVERY = {
+  treatmentVisits: 0,
+  caregiverHomeDays: 0,
+  rehabSessions: 0,
+  homeRehabSessions: 0,
+  equipmentAndHomeModification: 0,
+  otherRecoveryCosts: 0,
+} as const;
+
 const recoverySchema = z.object({
   treatmentVisits: recoveryCount.max(100, 'จำนวนครั้งรักษา/ติดตามต้องไม่เกิน 100 ครั้ง'),
   caregiverHomeDays: recoveryCount.max(730, 'จำนวนวันผู้ดูแลต้องไม่เกิน 730 วัน'),
@@ -64,7 +73,9 @@ const stepExpensesSchema = z.object({
     .int('จำนวนปีต้องเป็นจำนวนเต็ม')
     .min(1, 'ระยะสำรองต้องอย่างน้อย 1 ปี')
     .max(10, 'ระยะสำรองต้องไม่เกิน 10 ปี'),
-  recovery: recoverySchema,
+  // Legacy callers and old fixtures predate Recovery Reserve. Missing recovery
+  // must therefore be equivalent to an all-zero add-on, not a schema failure.
+  recovery: recoverySchema.default(ZERO_RECOVERY),
 }).superRefine((data, context) => {
   if (data.mortgagePayment > 0 && data.mortgageInstallmentsRemaining === 0) {
     context.addIssue({
