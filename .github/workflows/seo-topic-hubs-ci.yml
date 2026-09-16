@@ -43,7 +43,7 @@ jobs:
           node --import tsx tests/result-actions-regression.ts
           node tests/fhc-seo-geo-regression.mjs
 
-      - name: FHC exhaustive browser QA
+      - name: FHC and CI exhaustive browser QA
         shell: bash
         env:
           CCPUN_UAT_MODE: "1"
@@ -56,14 +56,14 @@ jobs:
           AUTH_URL: http://127.0.0.1:3005
         run: |
           set -euo pipefail
-          npx next dev --hostname 127.0.0.1 --port 3005 > /tmp/ccpun-fhc-browser-next.log 2>&1 &
+          npx next dev --hostname 127.0.0.1 --port 3005 > /tmp/ccpun-calculator-browser-next.log 2>&1 &
           SERVER_PID=$!
           CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           if [ -z "$CHROME_BIN" ]; then
             echo 'Chrome/Chromium is required for exhaustive browser QA.' >&2
             exit 1
           fi
-          "$CHROME_BIN" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --remote-debugging-address=127.0.0.1 --remote-debugging-port=9342 about:blank > /tmp/ccpun-fhc-browser-chrome.log 2>&1 &
+          "$CHROME_BIN" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --remote-debugging-address=127.0.0.1 --remote-debugging-port=9342 about:blank > /tmp/ccpun-calculator-browser-chrome.log 2>&1 &
           CHROME_PID=$!
           cleanup() {
             kill "$SERVER_PID" "$CHROME_PID" 2>/dev/null || true
@@ -75,21 +75,22 @@ jobs:
           READY=0
           for attempt in $(seq 1 90); do
             if curl --fail --silent http://127.0.0.1:3005/tools/financial-health-check/ >/dev/null 2>&1 \
+              && curl --fail --silent http://127.0.0.1:3005/ci-planning/ >/dev/null 2>&1 \
               && curl --fail --silent http://127.0.0.1:9342/json/version >/dev/null 2>&1; then
               READY=1
               break
             fi
             if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-              echo 'FHC browser QA server exited before becoming ready.' >&2
-              cat /tmp/ccpun-fhc-browser-next.log
+              echo 'Calculator browser QA server exited before becoming ready.' >&2
+              cat /tmp/ccpun-calculator-browser-next.log
               exit 1
             fi
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then
-            echo 'Timed out waiting for FHC browser QA runtime.' >&2
-            cat /tmp/ccpun-fhc-browser-next.log
-            cat /tmp/ccpun-fhc-browser-chrome.log
+            echo 'Timed out waiting for calculator browser QA runtime.' >&2
+            cat /tmp/ccpun-calculator-browser-next.log
+            cat /tmp/ccpun-calculator-browser-chrome.log
             exit 1
           fi
 
@@ -102,6 +103,10 @@ jobs:
           UAT_BASE_URL=http://127.0.0.1:3005 \
           CDP_HTTP=http://127.0.0.1:9342 \
           node qa/fhc-exhaustive-uat.mjs
+
+          UAT_BASE_URL=http://127.0.0.1:3005 \
+          CDP_HTTP=http://127.0.0.1:9342 \
+          node qa/ci-exhaustive-uat.mjs
 
       - name: Google sitemap deterministic contract
         run: node --import tsx --test tests/sitemap-google-regression.test.ts
