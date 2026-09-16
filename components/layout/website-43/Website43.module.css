@@ -408,13 +408,15 @@
 .faqDetails { border-block: 1px solid rgba(91,72,72,.7); }
 .faqDetails details { border-bottom: 1px solid rgba(91,72,72,.55); }
 .faqDetails details:last-child { border-bottom: 0; }
-.faqDetails summary { min-height: 64px; display: flex; align-items: center; padding: 18px 0; cursor: pointer; color: var(--w43-ink); font-size: 16px; font-weight: 600; line-height: 1.5; list-style: none; }
+.faqDetails summary { min-height: 64px; display: flex; align-items: center; padding: 20px 0 12px; cursor: pointer; color: var(--w43-ink); font-size: 16px; font-weight: 600; line-height: 1.5; list-style: none; }
 .faqDetails summary::-webkit-details-marker { display: none; }
-.faqDetails p { margin: 0; padding: 0 0 24px; color: var(--w43-muted); font-size: 15px; line-height: 1.7; }
+.faqDetails p { margin: 0; padding: 4px 0 30px; color: var(--w43-muted); font-size: 15px; line-height: 1.7; }
 .toolCtas { display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--w43-border); }
 .toolCtasActions { display: flex; gap: 12px; }
 .toolStorySection { padding: 48px 80px 32px; background: var(--w43-bg); }
 .toolStorySection > .inner > .h2:first-child { margin-top: 0; }
+.fhcIntroCompact { padding-bottom: 12px; }
+.fhcContextSection { padding-top: 48px; }
 .calculatorSection { padding: 32px 80px 64px; background: var(--w43-bg); }
 .calculatorHeader { width: min(768px,100%); margin: 0 auto 28px; text-align: center; }
 .calculatorHeader h2 { margin: 8px 0 0; font-size: 30px; line-height: 1.3; }
@@ -755,7 +757,7 @@
   .toolHero::after { height: 96px; }
   .toolHeroImage { top: 244px; left: 0; width: 100%; height: 340px; object-fit: cover; object-position: center center; }
   .toolHeroGradient { inset: 0; width: 100%; background: linear-gradient(180deg,rgba(6,11,9,1) 0px,rgba(6,11,9,1) 244px,rgba(6,11,9,.88) 268px,rgba(6,11,9,.55) 294px,rgba(6,11,9,.22) 320px,rgba(6,11,9,0) 348px); }
-  .toolHeroReadabilityOverlay { background: linear-gradient(180deg,rgba(6,11,9,.86) 0px,rgba(6,11,9,.78) 244px,rgba(6,11,9,.34) 330px,rgba(6,11,9,.08) 430px,rgba(6,11,9,0) 100%); }
+  .toolHeroReadabilityOverlay { background: linear-gradient(180deg,rgba(6,11,9,.92) 0px,rgba(6,11,9,.9) 244px,rgba(6,11,9,.66) 330px,rgba(6,11,9,.56) 430px,rgba(6,11,9,.74) 100%); }
   .toolHeroCopy { top: 104px; left: 24px; width: 342px; }
   .toolBadge { font-size: 12px; }
   .toolTitle { margin-top: 16px; font-size: 30px; line-height: 1.28; }
@@ -772,8 +774,12 @@
   .toolCtasActions { flex-direction: column; }
   .toolCtasActions a { width: 100%; }
   .toolStorySection { padding: 32px 24px 16px; }
-  .calculatorSection { padding: 24px 24px 40px; }
+  .fhcIntroCompact { padding-bottom: 8px; }
+  .fhcContextSection { padding-top: 32px; }
+  .calculatorSection { padding: 20px 24px 40px; }
   .calculatorHeader h2 { font-size: 26px; }
+  .faqDetails summary { padding: 22px 0 14px; }
+  .faqDetails p { padding: 6px 0 34px; }
   .calculatorStage :global(.ccpun-calculator-result-lead) { padding: 20px; }
   .calculatorStage :global(.ccpun-calculator-result-title) { font-size: 26px; }
   .calculatorStage :global(.ccpun-calculator-result-amount) { font-size: 38px; }

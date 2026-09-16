@@ -36,7 +36,7 @@ export const FHC_FAQS = [
 
 export default function FHCLandingIntro() {
   return (
-    <section aria-labelledby="fhc-intro-title" className={styles.toolStorySection}>
+    <section aria-labelledby="fhc-intro-title" className={`${styles.toolStorySection} ${styles.fhcIntroCompact}`}>
       <div className={styles.inner}>
         <h2 id="fhc-intro-title" className={styles.h2}>
           การตรวจสุขภาพการเงินต้องดูหลายเรื่องให้เชื่อมกัน
@@ -49,8 +49,17 @@ export default function FHCLandingIntro() {
             หน้า Financial Health Check นี้เริ่มจากโมดูลความคุ้มครองชีวิต เพื่อช่วยให้เห็นภาระที่ครอบครัวยังต้องดูแลและส่วนต่างของเงินก้อน ก่อนนำไปทบทวนด้านอื่นของแผนการเงิน
           </p>
         </div>
+      </div>
+    </section>
+  );
+}
 
-        <p className={styles.eyebrow} style={{ marginTop: 36 }}>3 เรื่องที่ควรทบทวนให้เชื่อมกัน</p>
+export function FHCPlanningContext() {
+  return (
+    <section aria-labelledby="fhc-context-title" className={`${styles.toolStorySection} ${styles.fhcContextSection}`}>
+      <div className={styles.inner}>
+        <p className={styles.eyebrow}>ดูต่อหลังได้ผลประเมิน</p>
+        <h2 id="fhc-context-title" className={styles.h2}>3 เรื่องที่ควรทบทวนให้เชื่อมกัน</h2>
         <div className={styles.truthGrid}>
           {truths.map(([number, title, description]) => (
             <article className={styles.truth} key={number}>

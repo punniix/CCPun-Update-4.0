@@ -263,3 +263,20 @@ Automated regression now asserts evidence year >= 2023, exact source-backed rate
 ### Figma handoff
 
 After the exact code head is committed and Preview is green, sync Figma `S05 — CI Planning` to that exact SHA. `S04 — Financial Health Check` should also reflect the tool-hero contrast change. Do not modify Home/Blog/Article Figma pages for this follow-up.
+
+## 2026-09-16 owner UAT follow-up — FHC access/readability/FAQ rhythm
+
+Owner mobile review found three remaining UX issues in FHC:
+
+- The calculator was discoverable from the hero CTA but visually sat behind the entire explanatory FHC context, making it feel much farther away than CI Planning.
+- The opt-in FHC mobile hero overlay still faded too far over the image, so the lower white copy did not have enough contrast.
+- Tool FAQ answers still sat too close to the divider rhythm on mobile.
+
+Implemented:
+
+- FHC now mirrors the CI information sequence more closely: hero → compact context → calculator → deeper planning context → FAQ. The existing three planning truths and method explanation are preserved after the calculator instead of removed.
+- FHC `strongContrast` mobile overlay now stays dark through the lower image/copy region instead of fading to transparent.
+- Tool FAQ summary/answer spacing was increased, with an additional mobile override so expanded answers have visible space above the next divider.
+- Home/Blog/Article/global public shell remains unchanged.
+
+QA contracts now assert calculator-before-deeper-context ordering, FHC strong-contrast mobile overlay, and mobile FAQ divider spacing. Calculator formula parity, journey tests, Recovery Reserve tests, result-action tests, Foundation gate, TypeScript, and optimized build remain required before Preview acceptance.

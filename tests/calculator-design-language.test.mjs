@@ -83,6 +83,22 @@ test('FHC and CI use the new Website 4.3 tool hero without rewriting the legacy 
   }
 });
 
+test('FHC reaches the calculator before the deeper planning context and keeps the mobile hero readable', () => {
+  const introIndex = fhcShell.indexOf('<FHCLandingIntro />');
+  const calculatorIndex = fhcShell.indexOf('id="fhc-calculator"');
+  const contextIndex = fhcShell.indexOf('<FHCPlanningContext />');
+  assert.ok(introIndex >= 0 && calculatorIndex > introIndex && contextIndex > calculatorIndex);
+  assert.match(fhcShell, /strongContrast/);
+  assert.match(fhcIntro, /fhcIntroCompact/);
+  assert.match(fhcIntro, /FHCPlanningContext/);
+  assert.match(website43Css, /\.fhcIntroCompact \{ padding-bottom: 8px; \}/);
+  assert.match(website43Css, /\.toolHeroReadabilityOverlay \{ background: linear-gradient\(180deg,rgba\(6,11,9,\.92\).*rgba\(6,11,9,\.74\) 100%\)/);
+});
+
+test('tool FAQ answers keep breathing room from divider lines on mobile', () => {
+  assert.match(website43Css, /\.faqDetails summary \{ padding: 22px 0 14px; \}/);
+  assert.match(website43Css, /\.faqDetails p \{ padding: 6px 0 34px; \}/);
+});
 
 test('mobile CI story cards expose swipe, arrows and position cue without changing desktop grid', () => {
   const intro = read('features/ci-planning/components/CILandingIntro.tsx');

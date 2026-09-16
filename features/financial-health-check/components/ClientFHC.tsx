@@ -1,7 +1,7 @@
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
 import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero';
-import FHCLandingIntro, { FHC_FAQS } from './FHCLandingIntro';
+import FHCLandingIntro, { FHC_FAQS, FHCPlanningContext } from './FHCLandingIntro';
 import LifeCoverageWizard from './LifeCoverageWizard';
 
 export default function ClientFHC() {
@@ -31,6 +31,8 @@ export default function ClientFHC() {
             <LifeCoverageWizard />
           </div>
         </section>
+
+        <FHCPlanningContext />
 
         <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`} aria-labelledby="fhc-faq-title">
           <div className={styles.inner}>
