@@ -33,10 +33,12 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
   const [selectedMethod, setSelectedMethod] = useState<CIEstimationMethod>(() => getDefaultEstimationMethod(result));
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const hasTrackedResultViewRef = useRef(false);
-  const hasIncomeMethod = result.incomeBaseNeed > 0;
+  const expenseBaseNeed = result.expenseBaseNeed ?? Math.max(result.calculatedNeed - result.recoveryReserveNeed, 0);
+  const incomeBaseNeed = result.incomeBaseNeed ?? Math.max(result.incomeBasedNeed - result.recoveryReserveNeed, 0);
+  const hasIncomeMethod = incomeBaseNeed > 0;
   const activeMethod = selectedMethod === 'income' && hasIncomeMethod ? 'income' : 'expense';
   const methodLabel = CI_ESTIMATION_METHOD_LABELS[activeMethod];
-  const selectedBaseNeed = activeMethod === 'income' ? result.incomeBaseNeed : result.expenseBaseNeed;
+  const selectedBaseNeed = activeMethod === 'income' ? incomeBaseNeed : expenseBaseNeed;
   const selectedNeed = activeMethod === 'income' ? result.incomeBasedNeed : result.calculatedNeed;
   const displayedGap = activeMethod === 'income' ? result.incomeShortfall : result.shortfall;
   const displayedSurplus = activeMethod === 'income' ? result.incomeSurplus : result.surplus;
@@ -103,7 +105,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           <div><dt className="ccpun-calculator-result-eyebrow">ภาระหนี้รวม</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.debtNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
         </dl> : <dl className="grid gap-3 sm:grid-cols-2">
-          <div><dt className="ccpun-calculator-result-eyebrow">ทุนตามรายได้ก่อน Recovery</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.incomeBaseNeed)}</dd></div>
+          <div><dt className="ccpun-calculator-result-eyebrow">ทุนตามรายได้ก่อน Recovery</dt><dd className="mt-1 font-medium tabular-nums">{baht(incomeBaseNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
         </dl>}
       </div>
