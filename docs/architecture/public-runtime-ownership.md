@@ -30,7 +30,7 @@ The following implementation families are retired and must not be recreated as f
 - retired CI walkthrough/tool UI
 - unused shared toast/scroll/form UI utilities removed during the ownership audit
 
-Regression assertions were moved to current runtime owners before the retired Blog/Navbar/CI sources were deleted.
+Regression assertions were moved to current runtime owners before the retired Blog/Navbar/CI sources were deleted. Source-bound regressions must continue to target current owner paths; never recreate a retired source file merely to satisfy an old test fixture.
 
 ## Calculator parity status
 
