@@ -15,10 +15,13 @@ export function isPathOrChild(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-export function isPrivateSurfacePath(pathname: string): boolean {
+export function isAdminPagePath(pathname: string): boolean {
   return isPathOrChild(pathname, "/login")
     || CONTROL_PLANE_PAGE_PREFIXES.some((prefix) => isPathOrChild(pathname, prefix))
     || isPathOrChild(pathname, LEGACY_CONTROL_PLANE_PAGE_PREFIX)
-    || isPathOrChild(pathname, CONTROL_PLANE_NOT_FOUND_PATH)
-    || isPathOrChild(pathname, "/studio");
+    || isPathOrChild(pathname, CONTROL_PLANE_NOT_FOUND_PATH);
+}
+
+export function isPrivateSurfacePath(pathname: string): boolean {
+  return isAdminPagePath(pathname) || isPathOrChild(pathname, "/studio");
 }
