@@ -69,15 +69,17 @@ Do not create one Neon branch per feature or PR. Admin Preview uses the existing
 
 ### Admin Preview / UAT
 
-Authorization is based on the immutable data plane, not a historical feature-branch allowlist:
+New Control Plane work uses the `admin/*` branch convention plus the immutable UAT data plane. Historical feature branches may remain accepted only where a legacy module explicitly lists them for compatibility.
 
+A new Admin feature is UAT-authorized only when all applicable conditions hold:
+
+- branch starts with `admin/`;
 - Vercel environment is Preview when supplied;
 - Vercel project is the exact `ccpun-admin` project;
-- Git branch is present and is not `v4-production`;
 - Sanity is exactly `ccb9lnw5/uat`;
 - Neon, when required, is the exact UAT project/branch/endpoint/database and least-privilege runtime role.
 
-This lets future branches such as `admin/openquok-*` use UAT without modifying a branch list.
+`v4-production`, unrelated branch prefixes, wrong Vercel projects and wrong Sanity/Neon lanes fail closed. A future branch such as `admin/openquok-sdk-v0-0-13` therefore works without adding another branch-specific allowlist entry.
 
 ### Admin Production
 
