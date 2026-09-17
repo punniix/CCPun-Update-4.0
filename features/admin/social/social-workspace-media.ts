@@ -20,8 +20,8 @@ export type SocialMediaReference = {
   heightPx: number | null;
   durationMs: number | null;
   sha256Checksum: string | null;
-  altText: string | null;
-  thumbnailTimestampMs: number | null;
+  altText?: string | null;
+  thumbnailTimestampMs?: number | null;
 };
 
 export type GoogleDrivePickerFile = {
@@ -98,7 +98,7 @@ function validateReelMedia(media: readonly SocialMediaReference[]) {
     || (reel.durationMs ?? 0) < 1 || (reel.durationMs ?? 0) > 86_400_000) {
     return { ok: false as const, reason: "reel-metadata-unavailable" as const };
   }
-  if (reel.thumbnailTimestampMs !== null && reel.thumbnailTimestampMs >= reel.durationMs!) {
+  if (reel.thumbnailTimestampMs != null && reel.thumbnailTimestampMs >= reel.durationMs!) {
     return { ok: false as const, reason: "thumbnail-timestamp-out-of-range" as const };
   }
   return reel.heightPx! > reel.widthPx!
