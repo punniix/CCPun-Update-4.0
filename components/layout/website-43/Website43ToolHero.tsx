@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import styles from './Website43.module.css';
 import { Website43Navbar } from './Website43Shared';
 
@@ -47,7 +46,7 @@ export default function Website43ToolHero({
           <span className={styles.toolTitleGold}>{line2}</span>
         </h1>
         <p className={styles.toolDescription}>{description}</p>
-        <a className={`${styles.primaryButton} ${functionalMotion.tactileButton}`} href={ctaHref}>{ctaLabel}</a>
+        <a className={`${styles.primaryButton} ccpun-motion-tactile`} href={ctaHref}>{ctaLabel}</a>
       </div>
     </section>
   );
