@@ -44,7 +44,7 @@ test("event descriptors never copy message text, source identity or postback dat
   assert.doesNotMatch(JSON.stringify(descriptor), /PRIVATE_MESSAGE|U_PRIVATE_USER|PRIVATE_POSTBACK_DATA/);
 });
 
-test("webhook route is hidden from crawlers and contains no raw payload logging", async () => {
+test("webhook route is hidden from crawlers and contains no secret-exfiltration primitives", async () => {
   const routeSource = await readFile("apps/web/app/api/line/webhook/route.ts", "utf8");
   const robotsSource = await readFile("apps/web/app/robots.ts", "utf8");
 
@@ -52,6 +52,13 @@ test("webhook route is hidden from crawlers and contains no raw payload logging"
   assert.match(LINE_WEBHOOK_X_ROBOTS_TAG, /nofollow/);
   assert.match(routeSource, /export function GET\(\)/);
   assert.match(routeSource, /export function HEAD\(\)/);
+  assert.match(routeSource, /application\/json/);
   assert.doesNotMatch(routeSource, /console\.(log|info|warn|error|debug)/);
+  assert.doesNotMatch(routeSource, /\beval\s*\(/);
+  assert.doesNotMatch(routeSource, /new\s+Function\s*\(/);
+  assert.doesNotMatch(routeSource, /child_process|execFile|spawn\s*\(/);
+  assert.doesNotMatch(routeSource, /\bfetch\s*\(/);
+  assert.doesNotMatch(routeSource, /LINE_CHANNEL_ACCESS_TOKEN/);
+  assert.doesNotMatch(routeSource, /NEXT_PUBLIC_LINE/);
   assert.match(robotsSource, /"\/api\/"/);
 });
