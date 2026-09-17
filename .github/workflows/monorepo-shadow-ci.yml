@@ -23,6 +23,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Verify app-root Vercel config
+        run: node --test tests/vercel-app-root-config.test.mjs
       - name: Typecheck Web shadow
         run: npm run typecheck:web:shadow
       - name: Build Web shadow
