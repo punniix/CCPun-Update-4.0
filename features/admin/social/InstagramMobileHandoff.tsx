@@ -255,7 +255,7 @@ export function InstagramMobileHandoff(props: {
         return <li key={`${reference.assetId}:${reference.order ?? index + 1}`} className="rounded-xl border border-white/10 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/65">
             <span>ไฟล์ {index + 1} · {asset?.name ?? reference.mimeType ?? "กำลังรอตรวจ"}</span>
-            {reference.thumbnailTimestampMs !== null ? <span>Poster @ {(reference.thumbnailTimestampMs / 1_000).toFixed(1)}s</span> : null}
+            {reference.thumbnailTimestampMs != null ? <span>Poster @ {(reference.thumbnailTimestampMs / 1_000).toFixed(1)}s</span> : null}
           </div>
           {reference.altText ? <p className="mt-2 text-xs leading-5 text-white/45">Alt: {reference.altText}</p> : null}
           <div className="mt-2 grid grid-cols-2 gap-2">
