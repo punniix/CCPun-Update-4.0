@@ -15,7 +15,7 @@ import {
   SOCIAL_FORMAT_MIGRATION_VERSION,
   type SocialDatabaseReadiness,
 } from "./foundation";
-import { resolveSocialRuntime } from "./runtime";
+import { resolveSocialRuntime, SOCIAL_UAT_RUNTIME_BRANCHES } from "./runtime";
 import {
   resolveSocialMarketingCapabilityMode,
   SOCIAL_MARKETING_MART_P2,
@@ -35,6 +35,7 @@ export async function getSocialDatabaseReadiness(
     return { configured: true, reachable: false, migrationCurrent: false, errorCategory: "invalid-configuration" };
   }
   const runtime = resolveSocialRuntime({ ...env, CCPUN_SOCIAL_DATABASE_URL: connectionString }, {
+    uatBranches: SOCIAL_UAT_RUNTIME_BRANCHES,
     requireUatNeon: true,
   });
   if (!runtime) {
@@ -165,6 +166,7 @@ export async function getSocialDatabaseCapabilityStatus(
   if (!isSocialDatabaseConnectionString(connectionString)) return unavailable("invalid-configuration");
 
   const runtime = resolveSocialRuntime({ ...env, CCPUN_SOCIAL_DATABASE_URL: connectionString }, {
+    uatBranches: SOCIAL_UAT_RUNTIME_BRANCHES,
     requireUatNeon: true,
   });
   if (!runtime) return unavailable("invalid-configuration");
