@@ -44,7 +44,8 @@ export default function HumanCalculatorCard({
           style={{ background: 'rgba(250,249,249,.14)' }}
         >
           <div
-            className="h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none"
+            data-ui="calculator-progress-fill"
+            className="h-full rounded-full transition-[width] duration-[240ms] ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none"
             style={{ width: `${progress}%`, background: 'var(--w43-gold)' }}
           />
         </div>

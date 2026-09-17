@@ -10,6 +10,9 @@ import { trackEvent } from '@/lib/analytics';
 import { getConsentData } from '@/lib/cookie-consent';
 import { calculateLifeCoverage, formatLifeCoverageMoney, LIFE_COVERAGE_INITIAL_VALUES, type LifeCoverageValues } from './lifeCoverageModel';
 
+const STEP_OUT_MS = 100;
+const STEP_IN_MS = 140;
+type MotionPhase = 'idle' | 'out' | 'in';
 
 function MoneyField({ id, label, help, value, onChange, error }: { id: keyof LifeCoverageValues; label: string; help?: string; value: number; onChange: (value: number) => void; error?: boolean }) {
   const helpId = help ? `${id}-help` : undefined;
@@ -27,8 +30,14 @@ export default function LifeCoverageWizard() {
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<keyof LifeCoverageValues | ''>('');
   const [showResult, setShowResult] = useState(false);
+  const [motionPhase, setMotionPhase] = useState<MotionPhase>('idle');
   const viewRef = useRef<HTMLElement>(null);
   const previousViewRef = useRef('1:form');
+  const motionTimersRef = useRef<number[]>([]);
+
+  useEffect(() => () => {
+    motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+  }, []);
 
   useEffect(() => {
     const view = `${step}:${showResult ? 'result' : 'form'}`;
@@ -86,7 +95,32 @@ export default function LifeCoverageWizard() {
     window.requestAnimationFrame(() => document.getElementById(field)?.focus());
   };
 
+  const runStepTransition = (commit: () => void) => {
+    if (motionPhase === 'out') return;
+    if (motionPhase === 'in') {
+      motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      motionTimersRef.current = [];
+    }
+    const motionPreference = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+    if (!motionPreference || motionPreference.matches) {
+      setMotionPhase('idle');
+      commit();
+      return;
+    }
+    setMotionPhase('out');
+    const outTimer = window.setTimeout(() => {
+      commit();
+      setMotionPhase('in');
+      const inTimer = window.setTimeout(() => setMotionPhase('idle'), STEP_IN_MS);
+      motionTimersRef.current.push(inTimer);
+    }, STEP_OUT_MS);
+    motionTimersRef.current.push(outTimer);
+  };
+
   const next = () => {
+    if (motionPhase === 'out') return;
     if (step === 1 && !values.householdMonthly) { fail('householdMonthly', 'กรอกค่าใช้จ่ายครัวเรือนต่อเดือนก่อน'); return; }
     if (step === 1 && (values.supportYears < 1 || values.supportYears > 20)) { fail('supportYears', 'จำนวนปีที่ต้องการให้เงินก้อนรองรับต้องอยู่ระหว่าง 1–20 ปี'); return; }
     if (step === 1 && !Number.isSafeInteger(result.need)) { fail('householdMonthly', 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูล'); return; }
@@ -101,11 +135,13 @@ export default function LifeCoverageWizard() {
       }
       return;
     }
-    setStep(2);
-    trackStep(2);
+    runStepTransition(() => {
+      setStep(2);
+      trackStep(2);
+    });
   };
 
-  if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result">
+  if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <div className="ccpun-calculator-result-lead">
       <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
       <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ช่องว่างความคุ้มครอง<span className="whitespace-nowrap">เบื้องต้น</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} บาท</span></h2>
@@ -127,19 +163,19 @@ export default function LifeCoverageWizard() {
       <FHCLifeResultImageDownloadButton summary={{ familySupport: result.familySupport, debtAndEducation: values.debt + values.education, resources: result.resources, gap: result.gap }} />
       <h3>อยากทบทวนตัวเลขต่อ?</h3>
       <p>บันทึกภาพนี้ไว้ แล้วส่งมาคุยกับ CCPun ทาง LINE OA ได้เมื่อพร้อม</p>
-      <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)" onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />คุยกับ CCPun ทาง LINE OA</a>
+      <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)" onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button ccpun-motion-tactile mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />คุยกับ CCPun ทาง LINE OA</a>
     </div>
 
-    <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" />แก้ไขข้อมูล</button><button type="button" onClick={() => { setValues(LIFE_COVERAGE_INITIAL_VALUES); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" />เริ่มใหม่</button></div>
+    <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" />แก้ไขข้อมูล</button><button type="button" onClick={() => { setValues(LIFE_COVERAGE_INITIAL_VALUES); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" />เริ่มใหม่</button></div>
   </section>;
 
   const educationOpen = values.education > 0 || errorField === 'education';
-  const footer = <div className="flex items-center gap-3">{step === 2 ? <button type="button" onClick={() => { setStep(1); setError(''); setErrorField(''); }} className="glass-button inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" aria-hidden="true" />ย้อนกลับ</button> : <span className="flex-1" />}<button type="submit" className="gold-button ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44">{step === 1 ? 'ถัดไป' : 'ดูผลการคำนวณ'}<ChevronRight className="h-4 w-4" aria-hidden="true" /></button></div>;
+  const footer = <div className="flex items-center gap-3">{step === 2 ? <button type="button" onClick={() => runStepTransition(() => { setStep(1); setError(''); setErrorField(''); })} className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" aria-hidden="true" />ย้อนกลับ</button> : <span className="flex-1" />}<button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44">{step === 1 ? 'ถัดไป' : 'ดูผลการคำนวณ'}<ChevronRight className="h-4 w-4" aria-hidden="true" /></button></div>;
 
-  return <section ref={viewRef}>
+  return <section ref={viewRef} className="ccpun-motion-step-view" data-motion-phase={motionPhase}>
     <form noValidate onSubmit={(event) => { event.preventDefault(); next(); }}>
       <HumanCalculatorCard step={step} total={2} labelledBy={`fhc-step-${step}-title`} title={step === 1 ? 'ภาระที่ต้องดูแล' : 'ทรัพยากรที่พร้อมใช้'} description={step === 1 ? 'เริ่มจาก 3 ข้อมูลหลัก ส่วนทุนการศึกษาบุตรเพิ่มได้เมื่อมี' : 'กรอกเฉพาะเงินก้อนที่ตั้งใจนำมาใช้ในแผนนี้'} footer={footer}>
-        {error ? <p id="life-calculator-error" role="alert" className="rounded-xl border border-destructive/35 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">{error}</p> : null}
+        {error ? <p id="life-calculator-error" role="alert" className="ccpun-motion-validation rounded-xl border border-destructive/35 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">{error}</p> : null}
         {step === 1 ? <>
           <MoneyField id="householdMonthly" label="ค่าใช้จ่ายครัวเรือนต่อเดือน" help="กรอกหลังหักรายได้อื่นที่ยังมีอยู่แล้ว" value={values.householdMonthly} onChange={(value) => updateValue('householdMonthly', value)} error={errorField === 'householdMonthly'} />
           <fieldset className="space-y-2"><legend className="text-sm font-medium text-foreground">จำนวนปีที่ต้องการให้เงินก้อนรองรับ</legend><div className="flex items-center justify-between text-xs text-white/45"><span>1 ปี</span><output htmlFor="supportYears" className="text-base font-semibold tabular-nums text-primary">{values.supportYears} ปี</output><span>20 ปี</span></div><input id="supportYears" type="range" min="1" max="20" step="1" value={values.supportYears} onChange={(event) => updateValue('supportYears', Number(event.target.value))} aria-invalid={errorField === 'supportYears' || undefined} aria-describedby={errorField === 'supportYears' ? 'supportYears-help life-calculator-error' : 'supportYears-help'} aria-label="จำนวนปีที่ต้องการให้เงินก้อนรองรับ" className="min-h-11 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><p id="supportYears-help" className="text-xs leading-5 text-white/45">ปรับได้ 1–20 ปี</p></fieldset>

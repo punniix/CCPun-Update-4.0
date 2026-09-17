@@ -101,7 +101,7 @@ export default function CurrencyInput({
         aria-describedby={ariaDescribedby}
         aria-invalid={error || undefined}
         className={cn(
-          'bg-background/50 border-border/50 focus:border-primary/50 h-12 text-foreground placeholder:text-muted-foreground pl-8',
+          'bg-background/50 border-border/50 focus:border-primary/50 h-12 text-foreground placeholder:text-muted-foreground pl-8 ccpun-motion-input-feedback',
           error && 'border-destructive',
           className
         )}

@@ -1,3 +1,4 @@
+import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
 import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero';
@@ -7,7 +8,7 @@ import LifeCoverageWizard from './LifeCoverageWizard';
 export default function ClientFHC() {
   return (
     <div className={styles.root}>
-      <main id="main-content" tabIndex={-1}>
+      <main id="main-content" tabIndex={-1} className={functionalMotion.scope}>
         <Website43ToolHero
           image="/assets/website-43/fhc-hero.png"
           badge="Financial Health Check · โมดูลความคุ้มครองชีวิต"

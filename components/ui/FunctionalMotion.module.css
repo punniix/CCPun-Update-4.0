@@ -1,0 +1,95 @@
+@keyframes calculatorStepIn {
+  from { opacity: .92; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes calculatorResultIn {
+  from { opacity: .9; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes validationIn {
+  from { opacity: .92; translate: 0 4px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.scope :global(.ccpun-motion-step-view) {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.scope :global(.ccpun-motion-step-view[data-motion-phase='out']) {
+  opacity: .92;
+  translate: 0 -4px;
+  transition:
+    opacity .1s cubic-bezier(.2, 0, 0, 1),
+    translate .1s cubic-bezier(.2, 0, 0, 1);
+}
+
+.scope :global(.ccpun-motion-step-view[data-motion-phase='in']) {
+  animation: calculatorStepIn .14s cubic-bezier(.2, 0, 0, 1) both;
+}
+
+.scope :global(.ccpun-motion-result-reveal) {
+  animation: calculatorResultIn .22s cubic-bezier(.2, 0, 0, 1) both;
+}
+
+.scope :global(.ccpun-motion-tactile) {
+  scale: 1;
+  transition:
+    scale .12s cubic-bezier(.2, 0, 0, 1),
+    background-color .14s cubic-bezier(.2, 0, 0, 1),
+    border-color .14s cubic-bezier(.2, 0, 0, 1),
+    color .14s cubic-bezier(.2, 0, 0, 1);
+}
+
+.scope :global(.ccpun-motion-tactile:not(:disabled):active) {
+  scale: .98;
+}
+
+.scope :global(.ccpun-motion-input-feedback) {
+  transition:
+    border-color .16s cubic-bezier(.2, 0, 0, 1),
+    background-color .16s cubic-bezier(.2, 0, 0, 1),
+    box-shadow .16s cubic-bezier(.2, 0, 0, 1);
+}
+
+.scope :global(.ccpun-motion-input-feedback:not([aria-invalid='true']):focus-visible) {
+  background-color: rgba(224, 201, 133, .035);
+  box-shadow: 0 0 0 2px rgba(224, 201, 133, .12);
+}
+
+.scope :global(.ccpun-motion-selection) {
+  transition:
+    border-color .16s cubic-bezier(.2, 0, 0, 1),
+    background-color .16s cubic-bezier(.2, 0, 0, 1),
+    box-shadow .16s cubic-bezier(.2, 0, 0, 1);
+}
+
+.scope :global(.ccpun-motion-selection-active) {
+  box-shadow: inset 0 0 0 1px rgba(224, 201, 133, .16);
+}
+
+.scope :global(.ccpun-motion-validation) {
+  animation: validationIn .16s cubic-bezier(.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scope :global(.ccpun-motion-step-view),
+  .scope :global(.ccpun-motion-step-view[data-motion-phase='out']),
+  .scope :global(.ccpun-motion-step-view[data-motion-phase='in']),
+  .scope :global(.ccpun-motion-result-reveal),
+  .scope :global(.ccpun-motion-tactile),
+  .scope :global(.ccpun-motion-input-feedback),
+  .scope :global(.ccpun-motion-selection),
+  .scope :global(.ccpun-motion-validation) {
+    animation: none !important;
+    transition: none !important;
+    translate: 0 0 !important;
+  }
+
+  .scope :global(.ccpun-motion-tactile),
+  .scope :global(.ccpun-motion-tactile:not(:disabled):active) {
+    scale: 1 !important;
+  }
+}

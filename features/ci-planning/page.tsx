@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
 import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero';
@@ -79,8 +80,8 @@ const CI_FAQS = [
 ] as const;
 
 const faqSchema = {
-  '@context': 'https://schema.org',
   "@type": "FAQPage",
+  '@context': 'https://schema.org',
   mainEntity: CI_FAQS.map((faq) => ({
     '@type': 'Question',
     name: faq.question,
@@ -98,7 +99,7 @@ export default function CiPlanningPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ciPlanningSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
-      <main id="main-content" tabIndex={-1}>
+      <main id="main-content" tabIndex={-1} className={functionalMotion.scope}>
         <Website43ToolHero
           image="/assets/website-43/ci-hero.png"
           badge="เครื่องมือวางแผนทุนโรคร้ายแรง · Research Preview"
