@@ -51,7 +51,9 @@ const NEUTRAL_FILES = new Set([
   "HANDOFF.md",
   "README.md",
   ".github/workflows/sanity-free-plan-privacy.yml",
+  ".github/workflows/seo-topic-hubs-ci.yml",
   "scripts/vercel-ignore-build.mjs",
+  "tests/vercel-app-root-config.test.mjs",
   "tests/vercel-build-routing.test.mjs",
 ]);
 
@@ -72,11 +74,15 @@ export function classifyProductionChanges(changedPaths) {
 
   let hasAdminChange = false;
   let hasWebChange = false;
+  let hasNeutralChange = false;
   for (const path of changedPaths) {
     if (typeof path !== "string" || !path || path.startsWith("/") || path.includes("\\") || path.split("/").includes("..")) {
       return "mixed-or-unknown";
     }
-    if (NEUTRAL_FILES.has(path) || hasPrefix(path, NEUTRAL_PREFIXES)) continue;
+    if (NEUTRAL_FILES.has(path) || hasPrefix(path, NEUTRAL_PREFIXES)) {
+      hasNeutralChange = true;
+      continue;
+    }
     if (WEB_ONLY_FILES.has(path) || hasPrefix(path, WEB_ONLY_PREFIXES)) {
       hasWebChange = true;
       continue;
@@ -90,6 +96,7 @@ export function classifyProductionChanges(changedPaths) {
 
   if (hasAdminChange && !hasWebChange) return "admin-only";
   if (hasWebChange && !hasAdminChange) return "web-only";
+  if (!hasAdminChange && !hasWebChange && hasNeutralChange) return "neutral-only";
   return "mixed-or-unknown";
 }
 
@@ -131,6 +138,10 @@ export function shouldBuild({ projectId, environment, branch, changedPaths }) {
     const classification = classifyProductionChanges(changedPaths);
     if (classification === "admin-only") return projectId === ADMIN_PROJECT_ID;
     if (classification === "web-only") return projectId === WEB_PROJECT_ID;
+    // Production push CI promotes the exact Admin SHA after verification, so
+    // neutral control-plane/test changes still need an Admin candidate. They do
+    // not need a Web deployment.
+    if (classification === "neutral-only") return projectId === ADMIN_PROJECT_ID;
     return true;
   }
   if (!branch) return false;
