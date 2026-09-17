@@ -94,14 +94,42 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
     "lib/admin/social/schema-capabilities.ts",
     "tests/admin/social-schema-capabilities.test.ts",
   ];
+  const friendlyMotionPaths = [
+    "components/layout/website-43/Website43ToolHero.tsx",
+    "components/ui/CurrencyInput.tsx",
+    "components/ui/FunctionalMotion.module.css",
+    "components/ui/HumanCalculatorCard.tsx",
+    "features/ci-planning/components/CIWizard.tsx",
+    "features/ci-planning/components/result/CIResult.tsx",
+    "features/ci-planning/page.tsx",
+    "features/financial-health-check/components/ClientFHC.tsx",
+    "features/financial-health-check/components/LifeCoverageWizard.tsx",
+    "tests/website43-public-motion-regression.mjs",
+  ];
+  const heroPressFollowupPaths = [
+    "components/layout/website-43/Website43ToolHero.tsx",
+    "tests/website43-public-motion-regression.mjs",
+  ];
 
   assert.equal(classifyProductionChanges(pr45Paths), "admin-only");
   assert.equal(classifyProductionChanges(website43Paths), "web-only");
   assert.equal(classifyProductionChanges(isolatedAdminPaths), "admin-only");
   assert.equal(classifyProductionChanges(isolatedWebPaths), "web-only");
   assert.equal(classifyProductionChanges(adminHardeningPaths), "admin-only");
+  assert.equal(classifyProductionChanges(friendlyMotionPaths), "web-only");
+  assert.equal(classifyProductionChanges(heroPressFollowupPaths), "web-only");
   assert.equal(classifyProductionChanges([isolatedAdminPaths[0], isolatedWebPaths[0]]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges([pr45Paths[2], website43Paths[0]]), "mixed-or-unknown");
+  assert.equal(
+    classifyProductionChanges(["components/layout/website-43/Website43ResponsiveStyles.tsx"]),
+    "mixed-or-unknown",
+    "Admin imports Website43ResponsiveStyles at runtime",
+  );
+  assert.equal(
+    classifyProductionChanges(["components/layout/website-43/Website43.module.css"]),
+    "mixed-or-unknown",
+    "Website43.module.css is shared by the Admin responsive-style runtime",
+  );
   for (const sharedPath of [
     ".github/workflows/ci.yml",
     "middleware.ts",
@@ -126,6 +154,10 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: isolatedWebPaths }), false);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: isolatedAdminPaths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: isolatedAdminPaths }), true);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: friendlyMotionPaths }), true);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: friendlyMotionPaths }), false);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: heroPressFollowupPaths }), true);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: heroPressFollowupPaths }), false);
   for (const projectId of [web, admin]) {
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: ["middleware.ts"] }), true);
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: null }), true);
@@ -173,6 +205,58 @@ test("Production Ignored Build Step uses native git evidence and fails safe", ()
       assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: isolatedAdminCommit, commitSha: unknownCommit }).status, 1);
       assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: "deadbeef", commitSha: unknownCommit }).status, 1);
     }
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test("Production merge commit without previous SHA still isolates Web-only shared-root changes", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-vercel-routing-merge-"));
+  try {
+    git(fixture, "init", "--quiet");
+    git(fixture, "config", "user.name", "CCPun Routing Test");
+    git(fixture, "config", "user.email", "routing-test@example.invalid");
+    commitFixture(fixture, "README.md", "base\n", "base");
+    const baseBranch = git(fixture, "branch", "--show-current");
+
+    git(fixture, "checkout", "-b", "web/friendly-motion");
+    commitFixture(
+      fixture,
+      "components/layout/website-43/Website43ToolHero.tsx",
+      "export default function Website43ToolHero() { return null; }\n",
+      "web hero",
+    );
+    commitFixture(
+      fixture,
+      "tests/website43-public-motion-regression.mjs",
+      "export {};\n",
+      "web motion test",
+    );
+
+    git(fixture, "checkout", baseBranch);
+    git(fixture, "merge", "--no-ff", "web/friendly-motion", "-m", "merge web motion");
+    const mergeSha = git(fixture, "rev-parse", "HEAD");
+
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: web,
+        environment: "production",
+        branch: "v4-production",
+        commitSha: mergeSha,
+      }).status,
+      1,
+      "Web continues build from first-parent merge diff",
+    );
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: admin,
+        environment: "production",
+        branch: "v4-production",
+        commitSha: mergeSha,
+      }).status,
+      0,
+      "Admin skips Web-only first-parent merge diff",
+    );
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
