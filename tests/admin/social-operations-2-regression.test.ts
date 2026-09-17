@@ -36,9 +36,11 @@ test("Calendar and Queue are operational Social surfaces rather than aliases", (
 
 test("reschedule and cancel mutate only the latest publication job with CAS", () => {
   const service = read("lib/admin/social/operations-service.ts");
-  const latestJobJoin = /JOIN LATERAL \(\s*SELECT \* FROM ccpun_social\.social_publication_job\s*WHERE publication_id=publication\.id ORDER BY created_at DESC,id DESC LIMIT 1\s*\) AS job ON true/g;
+  const latestJobJoin = /JOIN LATERAL \(\s*SELECT \* FROM ccpun_social\.social_publication_job\s*WHERE publication_id=publication\.id ORDER BY created_at DESC,id DESC LIMIT 1(?: FOR UPDATE)?\s*\) AS job ON true/g;
   const matches = service.match(latestJobJoin) ?? [];
-  assert.ok(matches.length >= 3, `expected latest-job selection for reads + both mutations, got ${matches.length}`);
+  assert.ok(matches.length >= 4, `expected latest-job selection for reads + both mutations, got ${matches.length}`);
+  assert.ok((service.match(/LIMIT 1 FOR UPDATE/g) ?? []).length >= 2, "both amendment mutations must row-lock the latest job");
+  assert.ok((service.match(/FOR UPDATE OF publication/g) ?? []).length >= 2, "both amendment mutations must lock publication state");
   assert.match(service, /job\.version=\$2/);
   assert.match(service, /version=version\+1/);
   assert.match(service, /ON CONFLICT \(id\) DO NOTHING/);
