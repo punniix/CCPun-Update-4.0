@@ -244,14 +244,14 @@ export async function rescheduleSocialPublication(input: {
        JOIN ccpun_social.social_variant_link AS variant ON variant.variant_id=publication.variant_id
        JOIN LATERAL (
          SELECT * FROM ccpun_social.social_publication_job
-         WHERE publication_id=publication.id ORDER BY created_at DESC,id DESC LIMIT 1
+         WHERE publication_id=publication.id ORDER BY created_at DESC,id DESC LIMIT 1 FOR UPDATE
        ) AS job ON true
        WHERE publication.id=$1 AND job.version=$2 AND variant.channel='facebook'
          AND publication.execution_target='facebook-native-scheduled'
          AND publication.platform_object_id IS NULL AND job.attempt_count=0
          AND publication.status IN ('approved','failed','cancelled','superseded')
          AND job.status IN ('queued','failed','cancelled')
-       FOR UPDATE OF publication,job
+       FOR UPDATE OF publication
      ), amended_publication AS (
        UPDATE ccpun_social.social_publication
        SET status='approved',scheduled_at=$3::timestamptz,platform_object_id=NULL,published_at=NULL,updated_at=now()
@@ -307,14 +307,14 @@ export async function cancelSocialPublication(input: {
        JOIN ccpun_social.social_variant_link AS variant ON variant.variant_id=publication.variant_id
        JOIN LATERAL (
          SELECT * FROM ccpun_social.social_publication_job
-         WHERE publication_id=publication.id ORDER BY created_at DESC,id DESC LIMIT 1
+         WHERE publication_id=publication.id ORDER BY created_at DESC,id DESC LIMIT 1 FOR UPDATE
        ) AS job ON true
        WHERE publication.id=$1 AND job.version=$2 AND variant.channel='facebook'
          AND publication.execution_target='facebook-native-scheduled'
          AND publication.platform_object_id IS NULL AND job.attempt_count=0
          AND publication.status IN ('approved','failed','cancelled','superseded')
          AND job.status IN ('queued','failed','cancelled')
-       FOR UPDATE OF publication,job
+       FOR UPDATE OF publication
      ), cancelled_publication AS (
        UPDATE ccpun_social.social_publication SET status='cancelled',updated_at=now()
        WHERE id=(SELECT publication_id FROM eligible) RETURNING id,status,scheduled_at
