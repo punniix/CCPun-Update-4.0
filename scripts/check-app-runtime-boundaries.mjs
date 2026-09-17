@@ -7,6 +7,24 @@ const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
 const SCAN_DIRS = ["app", "apps", "features", "components", "lib", "cms", "db"];
 const ROOT_FILES = ["auth.ts", "proxy.ts", "next.config.ts"];
 const IGNORE_PARTS = new Set(["node_modules", ".next", ".git", ".ccpun-local"]);
+const ADMIN_ONLY_SECRET_KEYS = [
+  "AUTH_SECRET",
+  "AUTH_GOOGLE_SECRET",
+  "CCPUN_ADMIN_DATABASE_URL",
+  "CCPUN_GOOGLE_DATA_CLIENT_SECRET",
+  "CCPUN_GOOGLE_DATA_REFRESH_TOKEN",
+  "CCPUN_META_ACCESS_TOKEN",
+  "CCPUN_VERCEL_READ_TOKEN",
+  "CCPUN_SOCIAL_DATABASE_DATABASE_URL",
+  "CCPUN_SOCIAL_DATABASE_DATABASE_URL_UNPOOLED",
+  "CCPUN_SOCIAL_DATABASE_PGPASSWORD",
+  "CCPUN_SOCIAL_DATABASE_POSTGRES_PASSWORD",
+  "CCPUN_SOCIAL_DATABASE_POSTGRES_PRISMA_URL",
+  "CCPUN_SOCIAL_DATABASE_POSTGRES_URL",
+  "CCPUN_SOCIAL_DATABASE_POSTGRES_URL_NON_POOLING",
+  "CCPUN_SOCIAL_DATABASE_POSTGRES_URL_NO_SSL",
+  "CCPUN_SOCIAL_DATABASE_URL",
+];
 
 const normalize = (value) => value.split(path.sep).join("/");
 const relative = (value) => normalize(path.relative(ROOT, value));
@@ -135,6 +153,12 @@ const writeCredentialPattern = /SANITY_(?:PRODUCTION_)?(?:API_|RESEARCH_)?WRITE_
 const webWriteCredentialLeaks = [...webReachable]
   .filter((file) => writeCredentialPattern.test(sourceByFile.get(file) ?? ""))
   .sort();
+const webAdminSecretLeaks = [...webReachable]
+  .filter((file) => {
+    const source = sourceByFile.get(file) ?? "";
+    return ADMIN_ONLY_SECRET_KEYS.some((key) => source.includes(key));
+  })
+  .sort();
 const webExternalPackages = new Set(
   [...webReachable].flatMap((file) => [...(externalByFile.get(file) ?? [])]),
 );
@@ -149,6 +173,11 @@ assert.deepEqual(
   [],
   `Web runtime must never reference Sanity write credentials: ${describeImportPaths(webRoots, webWriteCredentialLeaks)}`,
 );
+assert.deepEqual(
+  webAdminSecretLeaks,
+  [],
+  `Web runtime must never reference Admin-only secrets: ${describeImportPaths(webRoots, webAdminSecretLeaks)}`,
+);
 assert.equal(webExternalPackages.has("workflow"), false, "Web runtime must not depend on the Admin Workflow runtime");
 
 const sharedReachable = [...webReachable].filter((file) => adminReachable.has(file)).sort();
@@ -160,5 +189,6 @@ console.log(JSON.stringify({
   sharedReachable: sharedReachable.length,
   webAdminRuntimeLeaks,
   webWriteCredentialLeaks,
+  webAdminSecretLeaks,
 }, null, 2));
 console.log("App runtime boundary contract passed.");
