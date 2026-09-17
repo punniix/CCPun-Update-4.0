@@ -15,12 +15,24 @@ for (const pointer of ["HANDOFF.md", "docs/current-work.md", "docs/architecture.
 }
 
 const allowedTopLevelDirectories = new Set([
-  ".agents", ".github", ".impeccable", ".qwen", ".windsurf", "app", "cms", "components",
+  ".agents", ".github", ".impeccable", ".qwen", ".windsurf", "app", "apps", "cms", "components",
   "db", "docs", "features", "hooks", "lib", "public", "qa", "scripts", "skills", "tests", "tools",
   "types", "workers",
 ]);
 for (const directory of new Set(files.filter((file) => file.includes("/")).map((file) => file.split("/")[0]))) {
   assert.ok(allowedTopLevelDirectories.has(directory), `unexpected top-level directory: ${directory}`);
+}
+
+const applicationOwners = [...new Set(
+  files
+    .filter((file) => file.startsWith("apps/") && file.split("/").length > 2)
+    .map((file) => file.split("/")[1]),
+)].sort();
+assert.deepEqual(applicationOwners, ["admin", "web"], "apps/ may contain only the locked Web and Admin application roots");
+for (const owner of applicationOwners) {
+  for (const requiredFile of ["package.json", "next.config.ts", "tsconfig.json", "app/layout.tsx"]) {
+    assert.ok(files.includes(`apps/${owner}/${requiredFile}`), `missing ${owner} application boundary: ${requiredFile}`);
+  }
 }
 
 assert.equal(

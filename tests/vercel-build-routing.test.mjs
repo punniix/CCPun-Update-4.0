@@ -63,7 +63,7 @@ test("shared 4.1 Preview releases build in both survivors", () => {
   }
 });
 
-test("Production routing classifies PR45 Admin paths, Website 4.3 Web paths and fail-safe changes", () => {
+test("Production routing classifies legacy roots, isolated app roots and fail-safe changes", () => {
   const pr45Paths = [
     "AGENTS.md",
     "HANDOFF.md",
@@ -77,9 +77,22 @@ test("Production routing classifies PR45 Admin paths, Website 4.3 Web paths and 
     "tests/vercel-build-routing.test.mjs",
   ];
   const website43Paths = ["features/home/components/Hero.tsx", "app/page.tsx", "public/assets/home-hero.webp"];
+  const isolatedAdminPaths = [
+    "apps/admin/app/(control-plane)/dashboard/page.tsx",
+    "apps/admin/app/api/admin/session/route.ts",
+    "apps/admin/next.config.ts",
+  ];
+  const isolatedWebPaths = [
+    "apps/web/app/page.tsx",
+    "apps/web/app/blog/page.tsx",
+    "apps/web/next.config.ts",
+  ];
 
   assert.equal(classifyProductionChanges(pr45Paths), "admin-only");
   assert.equal(classifyProductionChanges(website43Paths), "web-only");
+  assert.equal(classifyProductionChanges(isolatedAdminPaths), "admin-only");
+  assert.equal(classifyProductionChanges(isolatedWebPaths), "web-only");
+  assert.equal(classifyProductionChanges([isolatedAdminPaths[0], isolatedWebPaths[0]]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges([pr45Paths[2], website43Paths[0]]), "mixed-or-unknown");
   for (const sharedPath of [
     ".github/workflows/ci.yml",
@@ -87,6 +100,7 @@ test("Production routing classifies PR45 Admin paths, Website 4.3 Web paths and 
     "next.config.ts",
     "package-lock.json",
     "package.json",
+    "packages/shared/index.ts",
     "scripts/release.mjs",
     "vercel.json",
   ]) {
@@ -98,6 +112,10 @@ test("Production routing classifies PR45 Admin paths, Website 4.3 Web paths and 
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: pr45Paths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: website43Paths }), true);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: website43Paths }), false);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: isolatedWebPaths }), true);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: isolatedWebPaths }), false);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: isolatedAdminPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: isolatedAdminPaths }), true);
   for (const projectId of [web, admin]) {
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: ["middleware.ts"] }), true);
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: null }), true);
@@ -129,14 +147,20 @@ test("Production Ignored Build Step uses native git evidence and fails safe", ()
     const base = commitFixture(fixture, "README.md", "base\n", "base");
     const adminCommit = commitFixture(fixture, "lib/admin/social/foundation.ts", "export {};\n", "admin");
     const webCommit = commitFixture(fixture, "features/home/page.tsx", "export default null;\n", "web");
+    const isolatedWebCommit = commitFixture(fixture, "apps/web/app/page.tsx", "export default null;\n", "isolated web");
+    const isolatedAdminCommit = commitFixture(fixture, "apps/admin/app/page.tsx", "export default null;\n", "isolated admin");
     const unknownCommit = commitFixture(fixture, "middleware.ts", "export {};\n", "unknown");
 
     assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: base, commitSha: adminCommit }).status, 0);
     assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: base, commitSha: adminCommit }).status, 1);
     assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: adminCommit, commitSha: webCommit }).status, 1);
     assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: adminCommit, commitSha: webCommit }).status, 0);
+    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: webCommit, commitSha: isolatedWebCommit }).status, 1);
+    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: webCommit, commitSha: isolatedWebCommit }).status, 0);
+    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: isolatedWebCommit, commitSha: isolatedAdminCommit }).status, 0);
+    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: isolatedWebCommit, commitSha: isolatedAdminCommit }).status, 1);
     for (const projectId of [web, admin]) {
-      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: webCommit, commitSha: unknownCommit }).status, 1);
+      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: isolatedAdminCommit, commitSha: unknownCommit }).status, 1);
       assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: "deadbeef", commitSha: unknownCommit }).status, 1);
     }
   } finally {
