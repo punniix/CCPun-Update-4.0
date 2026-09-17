@@ -2,69 +2,119 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-type NavigationItem = { href: string; label: string; children?: Array<{ href: string; label: string }> };
+type NavigationChild = { href: string; label: string };
+type NavigationItem = { href: string; label: string; children?: NavigationChild[] };
 
-function NavigationLinks({
-  items,
-  pathname,
-  onNavigate,
-}: {
-  items: NavigationItem[];
+function isPathWithin(pathname: string, href: string) {
+  if (pathname === href) return true;
+  const normalized = href.endsWith("/") ? href : `${href}/`;
+  return pathname.startsWith(normalized);
+}
+
+function contextualItems(item: NavigationItem): NavigationChild[] {
+  const children = item.children ?? [];
+  return [{ href: item.href, label: "Overview" }, ...children.filter((child) => child.href !== item.href)];
+}
+
+function PrimaryModules({ items, pathname }: { items: NavigationItem[]; pathname: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {items.map((item) => {
+        const active = isPathWithin(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={pathname === item.href ? "page" : undefined}
+            aria-expanded={active && Boolean(item.children?.length) ? true : undefined}
+            aria-controls={active && item.children?.length ? `admin-context-${item.label.toLowerCase()}` : undefined}
+            className={`flex min-h-11 items-center rounded-xl border px-3.5 py-2.5 text-sm font-medium transition motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${
+              active
+                ? "border-[#e0c985]/35 bg-[#e0c985]/[0.09] text-[#f4df9b]"
+                : "border-transparent text-white/65 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
+            }`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function ContextNavigation({ item, pathname, onNavigate }: {
+  item: NavigationItem;
   pathname: string;
   onNavigate?: () => void;
 }) {
-  return items.map((item) => {
-    const exact = pathname === item.href;
-    const within = exact || (item.href !== "/dashboard/" && pathname.startsWith(item.href));
-    return (
-      <div key={item.href} className="min-w-0">
-        <Link
-          href={item.href}
-          onClick={onNavigate}
-          aria-current={exact ? "page" : undefined}
-          className={`flex min-h-11 items-center border-l-2 px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${
-            within
-              ? "border-[#e0c985] font-medium text-[#f4df9b]"
-              : "border-transparent text-white/65 hover:border-white/20 hover:text-white"
-          }`}
-        >
-          {item.label}
-        </Link>
-        {item.children ? (
-          <div role="group" className={`${within ? "flex" : "hidden"} ml-3 flex-col gap-1 border-l border-white/10 pl-2 lg:flex`} aria-label={`เมนูย่อย ${item.label}`}>
-            {item.children.map((child) => {
-              const childActive = pathname === child.href || pathname.startsWith(child.href);
-              return (
-                <Link
-                  key={child.href}
-                  href={child.href}
-                  onClick={onNavigate}
-                  aria-current={childActive ? "page" : undefined}
-                  className={`flex min-h-11 items-center rounded-lg px-3 py-2 text-xs transition focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${childActive ? "bg-[#e0c985]/10 font-medium text-[#f4df9b]" : "text-white/60 hover:bg-white/5 hover:text-white"}`}
-                >
-                  {child.label}
-                </Link>
-              );
-            })}
-          </div>
-        ) : null}
+  const links = contextualItems(item);
+  return (
+    <div
+      id={`admin-context-${item.label.toLowerCase()}`}
+      className="mt-5 border-t border-white/10 pt-4"
+      aria-label={`${item.label} section navigation`}
+    >
+      <div className="mb-2 flex items-center justify-between px-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">{item.label}</p>
+        <span className="text-[10px] text-[#e0c985]/70">Section</span>
       </div>
-    );
-  });
+      <div role="list" className="flex flex-col gap-1">
+        {links.map((child) => {
+          const exactOverview = child.href === item.href;
+          const active = exactOverview ? pathname === child.href : isPathWithin(pathname, child.href);
+          return (
+            <Link
+              key={child.href}
+              href={child.href}
+              onClick={onNavigate}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-11 items-center rounded-lg border-l-2 px-3 py-2 text-xs transition motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${
+                active
+                  ? "border-[#e0c985] bg-[#e0c985]/[0.08] font-medium text-[#f4df9b]"
+                  : "border-transparent text-white/58 hover:bg-white/[0.04] hover:text-white"
+              }`}
+            >
+              {child.label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function AdminNavigation({ items }: { items: NavigationItem[] }) {
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [mobileGroupHref, setMobileGroupHref] = useState<string | null>(null);
+
+  const activeItem = useMemo(
+    () => items.find((item) => isPathWithin(pathname, item.href)) ?? null,
+    [items, pathname],
+  );
+  const mobileGroup = items.find((item) => item.href === mobileGroupHref) ?? null;
+
+  useEffect(() => {
+    setMobileGroupHref(null);
+  }, [pathname]);
+
+  function closeDialog() {
+    dialogRef.current?.close();
+    setMobileGroupHref(null);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }
 
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="dialog"
-        className="inline-flex min-h-11 w-full items-center justify-between rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white lg:hidden"
+        aria-controls="admin-mobile-navigation"
+        className="inline-flex min-h-11 w-full touch-manipulation items-center justify-between rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white transition motion-reduce:transition-none hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-[#e0c985] lg:hidden"
         onClick={() => dialogRef.current?.showModal()}
       >
         เมนู Control Plane
@@ -72,24 +122,84 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
       </button>
 
       <dialog
+        id="admin-mobile-navigation"
         ref={dialogRef}
         aria-label="เมนู Control Plane"
-        className="m-0 h-dvh max-h-none w-[min(88vw,22rem)] max-w-none bg-navy-800 p-0 text-white shadow-2xl backdrop:bg-black/70 lg:hidden"
+        className="m-0 h-dvh max-h-none w-[min(92vw,22rem)] max-w-none bg-navy-800 p-0 text-white shadow-2xl backdrop:bg-black/70 lg:hidden"
+        onClose={() => setMobileGroupHref(null)}
         onClick={(event) => {
-          if (event.target === event.currentTarget) dialogRef.current?.close();
+          if (event.target === event.currentTarget) closeDialog();
         }}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <strong className="text-sm text-[#f4df9b]">CCPun Control Plane</strong>
-          <button type="button" autoFocus onClick={() => dialogRef.current?.close()} className="min-h-11 rounded-lg px-3 text-sm text-white/70 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">ปิด</button>
+        <div className="flex min-h-16 items-center justify-between border-b border-white/10 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            {mobileGroup ? (
+              <button
+                type="button"
+                onClick={() => setMobileGroupHref(null)}
+                className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg text-sm text-white/75 transition motion-reduce:transition-none hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]"
+                aria-label="กลับไปเมนูหลัก"
+              >
+                ←
+              </button>
+            ) : null}
+            <div className="min-w-0">
+              <strong className="block truncate text-sm text-[#f4df9b]">{mobileGroup?.label ?? "CCPun Control Plane"}</strong>
+              {mobileGroup ? <span className="text-[11px] text-white/45">Section navigation</span> : null}
+            </div>
+          </div>
+          <button
+            type="button"
+            autoFocus
+            onClick={closeDialog}
+            className="min-h-11 touch-manipulation rounded-lg px-3 text-sm text-white/70 transition motion-reduce:transition-none hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]"
+          >
+            ปิด
+          </button>
         </div>
-        <nav aria-label="เมนูหน้าควบคุมบนมือถือ" className="h-[calc(100dvh-77px)] overflow-y-auto px-4 py-4">
-          <NavigationLinks items={items} pathname={pathname} onNavigate={() => dialogRef.current?.close()} />
+
+        <nav aria-label="เมนูหน้าควบคุมบนมือถือ" className="h-[calc(100dvh-64px)] overflow-y-auto px-4 py-4">
+          {mobileGroup ? (
+            <ContextNavigation item={mobileGroup} pathname={pathname} onNavigate={closeDialog} />
+          ) : (
+            <div className="flex flex-col gap-1">
+              {items.map((item) => {
+                const active = isPathWithin(pathname, item.href);
+                const hasChildren = Boolean(item.children?.length);
+                if (!hasChildren) {
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeDialog}
+                      aria-current={pathname === item.href ? "page" : undefined}
+                      className={`flex min-h-11 touch-manipulation items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${active ? "border-[#e0c985]/35 bg-[#e0c985]/[0.09] text-[#f4df9b]" : "border-transparent text-white/70"}`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    key={item.href}
+                    type="button"
+                    aria-expanded={false}
+                    onClick={() => setMobileGroupHref(item.href)}
+                    className={`flex min-h-11 touch-manipulation items-center justify-between rounded-xl border px-3.5 py-2.5 text-left text-sm font-medium transition motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${active ? "border-[#e0c985]/35 bg-[#e0c985]/[0.09] text-[#f4df9b]" : "border-transparent text-white/70 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"}`}
+                  >
+                    <span>{item.label}</span>
+                    <span aria-hidden="true" className="text-white/35">→</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </nav>
       </dialog>
 
-      <nav aria-label="เมนูหน้าควบคุม" className="hidden lg:flex lg:flex-col lg:gap-1">
-        <NavigationLinks items={items} pathname={pathname} />
+      <nav aria-label="เมนูหน้าควบคุม" className="hidden lg:block">
+        <PrimaryModules items={items} pathname={pathname} />
+        {activeItem?.children?.length ? <ContextNavigation item={activeItem} pathname={pathname} /> : null}
       </nav>
     </>
   );
