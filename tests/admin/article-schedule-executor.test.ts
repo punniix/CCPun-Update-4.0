@@ -8,7 +8,7 @@ import type { ScheduleStore } from "../../lib/admin/operations/article-schedule-
 const now = Date.parse("2026-09-11T12:00:00Z");
 function fixture(mode: "publish" | "validate-only" = "publish") {
   const article: ArticlePair = { draft: { _id: "drafts.article-1", _type: "article", _rev: "draft-1", _createdAt: "2026-01-01T00:00:00Z", _updatedAt: "2026-01-01T00:00:00Z",
-    title: "Article", excerpt: "Excerpt", slug: { current: "article-1" }, category: { _ref: "category-1" }, author: { _type: "reference", _ref: "author-1" },
+    title: "Article", excerpt: "Excerpt", slug: { current: "article-1" }, category: { _type: "reference", _ref: "category-1" }, author: { _type: "reference", _ref: "author-1" },
     body: [{ _type: "block", _key: "a", children: [{ _type: "span", text: "Unchanged content" }] }], seo: { description: "Description" }, review: { status: "approved" } }, published: null };
   const row: ArticleScheduleRow = { article_id: "article-1", generation: randomUUID(), row_version: 2, draft_revision: "draft-1", published_revision: null,
     scheduled_at: new Date(now - 60_000).toISOString(), timezone: "Asia/Bangkok", mode, status: "scheduled", created_by: "owner@example.test",
