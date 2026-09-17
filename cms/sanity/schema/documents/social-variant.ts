@@ -117,6 +117,38 @@ export const socialVariant = defineType({
       })],
     }),
     defineField({
+      name: "instagramAudio",
+      title: "Instagram Reel Audio",
+      type: "object",
+      hidden: ({ document }) => document?.channel !== "instagram" || document?.format !== "reel",
+      fields: [
+        defineField({
+          name: "mode",
+          title: "Mode",
+          type: "string",
+          options: { list: [
+            { title: "Original audio", value: "original" },
+            { title: "Instagram Audio API", value: "instagram-audio" },
+            { title: "Add music later in Instagram", value: "add-in-app" },
+          ] },
+          validation: (Rule) => Rule.required(),
+        }),
+        defineField({ name: "audioId", title: "Audio ID", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "audioType", title: "Audio Type", type: "string", options: { list: ["music", "original_sound"] }, hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "title", title: "Audio title", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "artist", title: "Artist", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "creator", title: "Creator", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "audioVolume", title: "Audio volume", type: "number", initialValue: 100, validation: (Rule) => Rule.required().integer().min(0).max(100) }),
+        defineField({ name: "videoVolume", title: "Video volume", type: "number", initialValue: 100, validation: (Rule) => Rule.required().integer().min(0).max(100) }),
+      ],
+      validation: (Rule) => Rule.custom((value, context) => {
+        if (context.document?.channel !== "instagram" || context.document?.format !== "reel" || !value) return true;
+        const audio = value as { mode?: string; audioId?: string; audioType?: string; title?: string };
+        if (audio.mode === "instagram-audio" && (!audio.audioId || !audio.audioType || !audio.title)) return "Instagram Audio API mode ต้องมี audioId, audioType และ title";
+        return ["original", "instagram-audio", "add-in-app"].includes(audio.mode ?? "") ? true : "Audio mode ไม่ถูกต้อง";
+      }),
+    }),
+    defineField({
       name: "commentSeriesMode",
       title: "รูปแบบ Comment Series",
       type: "string",
