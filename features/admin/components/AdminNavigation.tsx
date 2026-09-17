@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type NavigationChild = { href: string; label: string };
 type NavigationItem = { href: string; label: string; children?: NavigationChild[] };
@@ -96,10 +96,6 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
     [items, pathname],
   );
   const mobileGroup = items.find((item) => item.href === mobileGroupHref) ?? null;
-
-  useEffect(() => {
-    setMobileGroupHref(null);
-  }, [pathname]);
 
   function closeDialog() {
     dialogRef.current?.close();
