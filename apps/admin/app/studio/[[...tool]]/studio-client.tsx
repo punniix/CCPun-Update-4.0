@@ -2,7 +2,7 @@
 
 import "@sanity/ui/styles.css";
 import { Studio } from "sanity";
-import { sanityStudioConfig } from "../../../sanity.config";
+import { sanityStudioConfig } from "../../../../../sanity.config";
 
 export default function StudioClient() {
   if (!sanityStudioConfig) return null;
