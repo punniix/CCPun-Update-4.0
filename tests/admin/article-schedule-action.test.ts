@@ -34,7 +34,7 @@ async function mount(queued=false,ready=true,readFails=false) {
     return require(id);
   },exports);
   const action=exports.createArticleScheduleAction("production-admin");let current:Bag;
-  let props:Bag={id:"article-1",type:"article",draft:{_id:"drafts.article-1",_type:"article",_rev:"draft-1",review:{status:"approved"},slug:{current:"article-1"},category:{_ref:"category-1"}},published:null};
+  let props:Bag={id:"article-1",type:"article",draft:{_id:"drafts.article-1",_type:"article",_rev:"draft-1",review:{status:"approved"},slug:{current:"article-1"},category:{_type:"reference",_ref:"category-1"}},published:null};
   function Probe(){current=action(props);return current?.dialog?.content??null;}
   const render=async(update:Bag={})=>{props={...props,...update};await act(async()=>root.render(createElement(Probe)));};
   await render();

@@ -82,6 +82,7 @@ test("protects Google publish eligibility and sets one meaningful publication ti
     _id: "drafts.google-eligibility", _type: "article", _rev: "draft-revision",
     _createdAt: firstPublishedAt, _updatedAt: firstPublishedAt,
     review: { status: "approved" }, publishedAt: "2025-01-01T00:00:00.000Z",
+    category: { _type: "reference", _ref: "category-google" },
   };
   const published = { ...draft, _id: "google-eligibility", _rev: "live-revision", publishedAt: firstPublishedAt };
   assert.equal(articlePublishBlock(draft, published, Date.parse(now)), null);
