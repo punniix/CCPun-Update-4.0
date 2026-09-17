@@ -17,9 +17,9 @@ export const SOCIAL_PRODUCTION_ANALYTICS_MIGRATION_CHECKSUM = "sha256:ef14d2a6c6
 export const SOCIAL_PROVIDER_HISTORY_MIGRATION_VERSION = "20260901_website_42_social_provider_native_history";
 export const SOCIAL_PROVIDER_HISTORY_MIGRATION_CHECKSUM = "sha256:cc4c2516ad261983d3d3997796711fb9b0290afe8625ab82fc002f4536bc549c";
 
-// Retained only as compatibility exports for older tests/tooling. UAT authorization no
-// longer depends on a feature-branch allowlist; the immutable Vercel/Sanity/Neon data
-// plane is the security boundary so new Admin feature branches work without code edits.
+// Historical feature branches remain accepted only for backwards compatibility.
+// New Control Plane work uses the `admin/` prefix so UAT does not require a new
+// allowlist entry for every feature while unrelated/Web branches stay denied.
 export const SOCIAL_UAT_FOUNDATION_BRANCH = "codex/website-42-social-media-integration-20260829";
 export const SOCIAL_UAT_OPERATIONS_BRANCH = SOCIAL_UAT_FOUNDATION_BRANCH;
 export const SOCIAL_UAT_PROVIDER_BRANCH = "codex/website-42-social-provider-readonly-20260831";
@@ -73,7 +73,7 @@ export type SocialRuntimeInput = {
 };
 
 export type SocialRuntimeRequirements = {
-  /** @deprecated Branch-name allowlists are compatibility input only and are not an authorization boundary. */
+  /** Historical branches accepted for a legacy module. New feature work should use `admin/*`. */
   uatBranches?: readonly string[];
   requireUatNeon?: boolean;
 };
@@ -98,8 +98,12 @@ function isBoundedIdentity(value: string | undefined, prefix?: string) {
   );
 }
 
-function isSafeUatGitBranch(branch: string | undefined) {
-  return Boolean(branch && branch !== SOCIAL_PRODUCTION_BRANCH);
+function isSafeUatGitBranch(branch: string | undefined, compatibilityBranches: readonly string[] = []) {
+  return Boolean(
+    branch
+    && branch !== SOCIAL_PRODUCTION_BRANCH
+    && (branch.startsWith("admin/") || compatibilityBranches.includes(branch)),
+  );
 }
 
 export function getConfiguredProductionSocialNeonIdentity(
@@ -148,10 +152,6 @@ export function resolveSocialRuntimeDescriptor(
   input: SocialRuntimeInput,
   requirements: SocialRuntimeRequirements = {},
 ): SocialRuntimeDescriptor | null {
-  // Keep consuming the compatibility field so old call sites remain source-compatible,
-  // but never use branch names as an authorization decision.
-  void requirements.uatBranches;
-
   const projectId = trimmed(input.projectId);
   const productionAdminProjectId = trimmed(input.productionAdminProjectId);
   const gitBranch = trimmed(input.gitBranch);
@@ -163,7 +163,7 @@ export function resolveSocialRuntimeDescriptor(
     if (projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
       || (productionAdminProjectId && productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction)
       || (vercelEnvironment && vercelEnvironment !== "preview")
-      || !isSafeUatGitBranch(gitBranch)
+      || !isSafeUatGitBranch(gitBranch, requirements.uatBranches)
       || sanityProjectId !== SOCIAL_UAT_SANITY_PROJECT_ID
       || sanityDataset !== SOCIAL_UAT_SANITY_DATASET
       || (requirements.requireUatNeon
