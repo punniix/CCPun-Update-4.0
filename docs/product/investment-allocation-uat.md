@@ -27,10 +27,12 @@ Risk Spectrum 1–8 is displayed as a product fact layer and is not a suitabilit
 The default journey is now **Single Fund / Simple Mode**:
 
 ```text
-Amount → Fund category → SEC-backed subcategory → browse active funds → customer selects fund → select share class when needed → SEC facts → Pun review
+Amount → Fund category → geography → optional AMC filter → browse active funds → customer selects fund → select share class when needed → SEC facts → Pun review
 ```
 
 The original allocation builder remains available as **Multiple Funds / Advanced Mode**. This avoids forcing a customer who wants one mixed fund to construct an asset-allocation portfolio first.
+
+Customer-facing language rule: raw integration terms and identifiers (`policy_desc`, `spec_code`, `proj_id`, endpoint names, environment labels and internal provenance codes) stay in the system/audit layer. The public UI uses plain Thai such as “กองทุนหุ้น”, “ข้อมูลจาก ก.ล.ต.” and “ขายคืนแล้วรับเงินเมื่อไร”. Fund project IDs are not shown on normal fund cards.
 
 Fund taxonomy is derived from SEC fields, not fund-name heuristics:
 

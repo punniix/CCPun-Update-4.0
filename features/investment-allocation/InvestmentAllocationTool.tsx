@@ -21,12 +21,12 @@ export default function InvestmentAllocationTool() {
             <button className={styles.modeCard} data-active={mode === "single"} type="button" onClick={() => setMode("single")}>
               <span className={styles.modeBadge}>เริ่มง่าย</span>
               <strong>ใช้กองเดียว</strong>
-              <span>เลือกกองทุน 1 กอง แล้วดูว่าเงินอยู่ในสินทรัพย์อะไร Risk ระดับไหน และรับเงินคืนตามเงื่อนไขอะไร</span>
+              <span>เลือกกองทุน 1 กอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ความเสี่ยงระดับไหน และขายคืนแล้วรับเงินตามเงื่อนไขอะไร</span>
             </button>
             <button className={styles.modeCard} data-active={mode === "portfolio"} type="button" onClick={() => setMode("portfolio")}>
               <span className={styles.modeBadge}>ขั้นสูง</span>
               <strong>จัดหลายกองเอง</strong>
-              <span>กำหนด Allocation เลือกหลายกอง และดู Effective Allocation ของพอร์ตที่คุณประกอบเอง</span>
+              <span>กำหนดสัดส่วน เลือกหลายกอง และดูว่าสุดท้ายเงินกระจายไปอยู่ในสินทรัพย์อะไรบ้าง</span>
             </button>
           </div>
         </div>

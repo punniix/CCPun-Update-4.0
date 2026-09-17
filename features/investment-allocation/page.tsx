@@ -7,21 +7,21 @@ import InvestmentAllocationTool from "./InvestmentAllocationTool";
 import styles from "./InvestmentAllocation.module.css";
 
 const URL = "https://ccpun.com/tools/investment-allocation/";
-const DESCRIPTION = "เครื่องมือช่วยมองภาพ Allocation จากกองทุนที่คุณเลือกเอง แยก Target กับ Effective Allocation, Risk Spectrum 1–8 และเงื่อนไขสภาพคล่อง โดยไม่จัดอันดับหรือเลือกกองทุนแทนคุณ";
+const DESCRIPTION = "เลือกกองทุนด้วยตัวเอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ระดับความเสี่ยงเท่าไร และขายคืนแล้วรับเงินตามเงื่อนไขแบบไหน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ";
 
 export const metadata: Metadata = {
-  title: "Investment Allocation Tool | ดูพอร์ตจากกองที่คุณเลือกเอง | CCPun",
+  title: "เครื่องมือวางแผนกองทุน | เลือกกองเอง ดูข้อมูลจาก ก.ล.ต. | CCPun",
   description: DESCRIPTION,
   alternates: { canonical: URL, languages: { "th-TH": URL, "x-default": URL } },
   robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
-  openGraph: { title: "CCPun Investment Allocation Tool", description: DESCRIPTION, url: URL, siteName: "CCPun Financial Advisor", locale: "th_TH", type: "website" },
-  twitter: { card: "summary", title: "CCPun Investment Allocation Tool", description: DESCRIPTION },
+  openGraph: { title: "CCPun เครื่องมือวางแผนกองทุน", description: DESCRIPTION, url: URL, siteName: "CCPun Financial Advisor", locale: "th_TH", type: "website" },
+  twitter: { card: "summary", title: "CCPun เครื่องมือวางแผนกองทุน", description: DESCRIPTION },
 };
 
 const schema = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "CCPun Investment Allocation Tool",
+  name: "CCPun เครื่องมือวางแผนกองทุน",
   url: URL,
   applicationCategory: "FinanceApplication",
   operatingSystem: "Web",
@@ -36,11 +36,11 @@ export default function InvestmentAllocationPage() {
       <Website43Navbar />
       <section className={styles.hero}>
         <div className={styles.heroInner}>
-          <span className={styles.badge}>CCPun Investment · UAT</span>
+          <span className={styles.badge}>CCPun Investment</span>
           <h1>คุณเลือกกองเอง<br /><span>ระบบช่วยให้เห็นว่าเงินอยู่ตรงไหน</span></h1>
-          <p className={styles.heroLead}>เริ่มง่ายด้วยกองเดียว หรือเลือกโหมดจัดหลายกองเอง แล้วดูข้อมูลจาก SEC Fund Factsheet ทั้งประเภทกอง Risk Spectrum สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน โดยไม่จัดอันดับหรือเลือกกองแทนคุณ</p>
+          <p className={styles.heroLead}>เริ่มง่ายด้วยกองเดียว หรือจัดหลายกองเอง แล้วดูข้อมูลกองทุนจาก ก.ล.ต. ทั้งประเภทกอง ระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ</p>
           <div className={styles.heroProof} aria-label="ขอบเขตของเครื่องมือ">
-            <span>กองเดียวหรือหลายกอง</span><span>SEC Fund Factsheet</span><span>No fund ranking</span><span>No expected return</span>
+            <span>กองเดียวหรือหลายกอง</span><span>ข้อมูลจาก ก.ล.ต.</span><span>คุณเลือกกองเอง</span><span>ไม่มีการคาดการณ์ผลตอบแทน</span>
           </div>
           <a className={styles.heroAction} href="#investment-mode-title">เริ่มเลือกวิธีลงทุน</a>
         </div>
@@ -49,8 +49,8 @@ export default function InvestmentAllocationPage() {
       <section className={styles.legalSection} aria-label="ขอบเขตข้อมูล">
         <div className={styles.legalInner}>
           <h2>เครื่องมือนี้ช่วยอธิบาย ไม่ได้ตัดสินใจแทน</h2>
-          <p><strong>Phase 1</strong> แสดงผลจากสิ่งที่ผู้ใช้กรอกและกองที่ผู้ใช้เลือกเอง พร้อมสถานะข้อมูลที่รู้/ไม่รู้ ข้อมูล Risk และ Liquidity เป็น factual layer แยกจากกัน ไม่ใช่การประเมินความเหมาะสมเฉพาะบุคคลหรือคำแนะนำซื้อขาย</p>
-          <p>UAT อาจใช้ข้อมูลสังเคราะห์ที่ติดป้ายชัดเจนเมื่อยังไม่มี SEC subscription key ใน Preview environment ข้อมูลดังกล่าวมีไว้ทดสอบ UX และ calculation เท่านั้น ไม่ใช่ข้อเท็จจริงของกองทุนจริง</p>
+          <p>ผลลัพธ์มาจากจำนวนเงินและกองทุนที่คุณเลือกเอง ระบบแสดงระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขขายคืนแยกกัน โดยไม่ตัดสินว่ากองใดเหมาะกับคุณหรือควรซื้อขายกองไหน</p>
+          <p>ถ้าข้อมูลบางส่วนยังไม่พร้อม ระบบจะแจ้งตรง ๆ และจะไม่เติมข้อมูลหรือเดาแทนข้อมูลจาก ก.ล.ต.</p>
         </div>
       </section>
       <Website43Footer warnings />

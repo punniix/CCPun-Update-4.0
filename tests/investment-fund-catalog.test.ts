@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
 import {
   categoryFromPolicy,
@@ -45,4 +47,47 @@ test("money market stays under the fixed-income family and is not exposed as a s
   assert.deepEqual(subcategoryOptions("fixed_income"), ["all", "domestic", "foreign", "domestic_foreign"]);
   assert.equal(subcategoryOptions("equity").includes("money_market"), false);
   assert.equal(subcategoryOptions("mixed").includes("money_market"), false);
+});
+
+
+test("customer-facing investment UI does not expose internal SEC/dev terminology", () => {
+  const root = process.cwd();
+  const customerFiles = [
+    "features/investment-allocation/SingleFundBuilder.tsx",
+    "features/investment-allocation/PortfolioBuilder.tsx",
+    "features/investment-allocation/InvestmentAllocationTool.tsx",
+    "features/investment-allocation/page.tsx",
+    "components/layout/website-43/Website43Navbar.tsx",
+    "components/layout/website-43/Website43Shared.tsx",
+  ].map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");
+
+  for (const forbidden of [
+    "SEC policy_desc:",
+    "Fund Specification:",
+    "SEC v2",
+    "UAT SYNTHETIC",
+    "selection: customer",
+    "Target Asset Allocation",
+    "Known coverage",
+    "Snapshot references",
+    "Public Web",
+    "Admin/Neon",
+    "data-feasibility",
+    "normalization สำหรับ UAT",
+    "Portfolio Risk Score",
+  ]) {
+    assert.equal(customerFiles.includes(forbidden), false, `customer UI leaked internal term: ${forbidden}`);
+  }
+  assert.equal(customerFiles.includes("{fund.abbreviation} · {fund.projectId}"), false, "fund cards must not expose SEC project ids");
+});
+
+test("fund catalog supports optional AMC filtering through the normalized planning API", () => {
+  const root = process.cwd();
+  const server = readFileSync(resolve(root, "features/investment-allocation/server/sec-v2.ts"), "utf8");
+  const catalogRoute = readFileSync(resolve(root, "apps/web/app/api/investment-allocation/catalog/route.ts"), "utf8");
+  const amcRoute = readFileSync(resolve(root, "apps/web/app/api/investment-allocation/amcs/route.ts"), "utf8");
+  assert.match(server, /params\.set\("company_info", amcId\)/);
+  assert.match(server, /export async function listFundAmcs/);
+  assert.match(catalogRoute, /searchParams\.get\("amc"\)/);
+  assert.match(amcRoute, /listFundAmcs/);
 });

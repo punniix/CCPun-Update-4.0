@@ -9,11 +9,11 @@ export const FUND_CATEGORY_LABELS: Record<FundCatalogCategory, string> = {
 };
 
 export const FUND_CATEGORY_DESCRIPTIONS: Record<FundCatalogCategory, string> = {
-  equity: "SEC policy_desc: ตราสารทุน",
-  mixed: "SEC policy_desc: ผสม",
-  fixed_income: "SEC policy_desc: ตราสารหนี้ โดยกองตลาดเงินแยกด้วย Fund Specification: MM",
-  alternative: "SEC policy_desc: ทรัพย์สินทางเลือก",
-  other: "รายการอื่นที่ SEC ไม่อยู่ใน 4 หมวดข้างต้น",
+  equity: "เน้นลงทุนในหุ้น",
+  mixed: "ลงทุนได้หลายประเภท เช่น หุ้นและตราสารหนี้",
+  fixed_income: "กองตราสารหนี้และกองทุนตลาดเงิน",
+  alternative: "เช่น อสังหาริมทรัพย์ สินค้าโภคภัณฑ์ หรือสินทรัพย์ทางเลือกอื่น",
+  other: "กองทุนที่ไม่อยู่ในหมวดหลักข้างต้น",
 };
 
 export const FUND_SUBCATEGORY_LABELS: Record<FundCatalogSubcategory, string> = {

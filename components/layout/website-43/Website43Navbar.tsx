@@ -63,7 +63,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
             <div id="home-tools-navigation" className={styles.navDropdown}>
               <Link href={`${BASE}/tools/financial-health-check`} aria-current={pathname === `${BASE}/tools/financial-health-check` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />ตรวจสุขภาพการเงิน (Beta)</Link>
               <Link href={`${BASE}/ci-planning`} aria-current={pathname === `${BASE}/ci-planning` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />วางแผนเงินก้อนโรคร้ายแรง</Link>
-              <Link href={`${BASE}/tools/investment-allocation`} aria-current={pathname === `${BASE}/tools/investment-allocation` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />จัด Allocation การลงทุน (UAT)</Link>
+              <Link href={`${BASE}/tools/investment-allocation`} aria-current={pathname === `${BASE}/tools/investment-allocation` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />วางแผนกองทุน</Link>
             </div>
           ) : null}
         </div>
@@ -84,7 +84,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
               <div className={styles.mobileSubmenu}>
                 <Link href={`${BASE}/tools/financial-health-check`} aria-current={pathname === `${BASE}/tools/financial-health-check` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>ตรวจสุขภาพการเงิน (Beta)</Link>
                 <Link href={`${BASE}/ci-planning`} aria-current={pathname === `${BASE}/ci-planning` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>วางแผนเงินก้อนโรคร้ายแรง</Link>
-                <Link href={`${BASE}/tools/investment-allocation`} aria-current={pathname === `${BASE}/tools/investment-allocation` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>จัด Allocation การลงทุน (UAT)</Link>
+                <Link href={`${BASE}/tools/investment-allocation`} aria-current={pathname === `${BASE}/tools/investment-allocation` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>วางแผนกองทุน</Link>
               </div>
             ) : null}
           </div>

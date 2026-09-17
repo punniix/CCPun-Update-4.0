@@ -138,6 +138,21 @@ export type FundSearchResponse = {
 export type FundCatalogCategory = "equity" | "mixed" | "fixed_income" | "alternative" | "other";
 export type FundCatalogSubcategory = "all" | "domestic" | "foreign" | "domestic_foreign" | "money_market";
 
+export type FundAmcOption = {
+  id: string;
+  nameTh: string;
+  nameEn: string | null;
+  lastUpdated: string | null;
+};
+
+export type FundAmcResponse = {
+  source: "sec_v2" | "uat_synthetic" | "unavailable";
+  state: DataState;
+  items: FundAmcOption[];
+  fetchedAt: string;
+  message: string | null;
+};
+
 export type FundCatalogItem = {
   projectId: string;
   amcId: string;
@@ -165,6 +180,7 @@ export type FundCatalogResponse = {
   query: string;
   category: FundCatalogCategory | "all";
   subcategory: FundCatalogSubcategory;
+  amcId: string | null;
   fetchedAt: string;
   message: string | null;
 };

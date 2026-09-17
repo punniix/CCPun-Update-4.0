@@ -11,18 +11,21 @@ export async function GET(request: Request) {
   const query = (url.searchParams.get("q") ?? "").trim();
   const categoryRaw = url.searchParams.get("category") ?? "all";
   const subcategoryRaw = url.searchParams.get("subcategory") ?? "all";
+  const amcId = url.searchParams.get("amc")?.trim() || null;
   const cursor = url.searchParams.get("cursor");
   const limitRaw = Number(url.searchParams.get("limit") ?? "20");
 
   if (query.length > 120) return Response.json({ error: "query_too_long" }, { status: 400 });
   if (!CATEGORIES.has(categoryRaw as FundCatalogCategory | "all")) return Response.json({ error: "category_invalid" }, { status: 400 });
   if (!SUBCATEGORIES.has(subcategoryRaw as FundCatalogSubcategory)) return Response.json({ error: "subcategory_invalid" }, { status: 400 });
+  if (amcId && !/^[A-Za-z0-9_-]{1,64}$/.test(amcId)) return Response.json({ error: "amc_invalid" }, { status: 400 });
   if (cursor && cursor.length > 2000) return Response.json({ error: "cursor_invalid" }, { status: 400 });
 
   const result = await listFundCatalog({
     query,
     category: categoryRaw as FundCatalogCategory | "all",
     subcategory: subcategoryRaw as FundCatalogSubcategory,
+    amcId,
     cursor,
     limit: Number.isFinite(limitRaw) ? limitRaw : 20,
   });

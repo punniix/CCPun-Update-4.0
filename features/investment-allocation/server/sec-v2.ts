@@ -3,6 +3,8 @@ import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { normalizeLiquidity } from "../domain/calculation";
 import { categoryFromPolicy, matchesGeography } from "../domain/catalog";
 import type {
+  FundAmcOption,
+  FundAmcResponse,
   FundAssetAllocationFact,
   FundCatalogCategory,
   FundCatalogItem,
@@ -114,6 +116,20 @@ function normalizeCatalogItem(value: unknown): FundCatalogItem | null {
   };
 }
 
+function normalizeAmc(value: unknown): FundAmcOption | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const id = asString(row.unique_id);
+  const nameTh = asString(row.comp_name_th);
+  if (!id || !nameTh) return null;
+  return {
+    id,
+    nameTh,
+    nameEn: asString(row.comp_name_en),
+    lastUpdated: asString(row.last_upd_date),
+  };
+}
+
 function normalizeClass(value: unknown): FundClassOption | null {
   const row = asRecord(value);
   if (!row) return null;
@@ -216,6 +232,47 @@ async function loadMoneyMarketProjectIds(key: string): Promise<Set<string>> {
   return moneyMarketIdsPromise;
 }
 
+export async function listFundAmcs(): Promise<FundAmcResponse> {
+  const fetchedAt = new Date().toISOString();
+  const key = getSubscriptionKey();
+
+  if (!key) {
+    if (!isReviewLikeEnvironment()) {
+      return { source: "unavailable", state: "unavailable", items: [], fetchedAt, message: "รายชื่อ บลจ. ยังไม่พร้อมใช้งาน" };
+    }
+    return {
+      source: "uat_synthetic",
+      state: "demo",
+      items: [{ id: "UAT-AMC", nameTh: "บลจ. ตัวอย่าง", nameEn: null, lastUpdated: null }],
+      fetchedAt,
+      message: "ใช้รายชื่อจำลองชั่วคราว",
+    };
+  }
+
+  try {
+    const items: FundAmcOption[] = [];
+    const seen = new Set<string>();
+    let cursor = "";
+    for (let page = 0; page < 20; page += 1) {
+      const params = new URLSearchParams({ page_size: String(SEC_PAGE_SIZE) });
+      if (cursor) params.set("next_cursor", cursor);
+      const envelope = await secGet(`/v2/fund/general-info/amcs?${params.toString()}`, key, 60 * 60 * 24);
+      for (const raw of asItems(envelope)) {
+        const amc = normalizeAmc(raw);
+        if (!amc || seen.has(amc.id)) continue;
+        seen.add(amc.id);
+        items.push(amc);
+      }
+      cursor = asString(envelope.next_cursor) ?? "";
+      if (!cursor) break;
+    }
+    items.sort((a, b) => a.nameTh.localeCompare(b.nameTh, "th"));
+    return { source: "sec_v2", state: "fresh", items, fetchedAt, message: null };
+  } catch {
+    return { source: "unavailable", state: "unavailable", items: [], fetchedAt, message: "โหลดรายชื่อ บลจ. ไม่สำเร็จชั่วคราว" };
+  }
+}
+
 function demoCatalogItems(): FundCatalogItem[] {
   return UAT_SYNTHETIC_FUNDS.map((fund) => {
     const category: FundCatalogCategory = fund.constructionBucket === "equity"
@@ -249,6 +306,7 @@ export async function listFundCatalog(options: {
   query?: string;
   category?: FundCatalogCategory | "all";
   subcategory?: FundCatalogSubcategory;
+  amcId?: string | null;
   cursor?: string | null;
   limit?: number;
 }): Promise<FundCatalogResponse> {
@@ -256,20 +314,22 @@ export async function listFundCatalog(options: {
   const query = options.query?.trim().slice(0, 120) ?? "";
   const category = options.category ?? "all";
   const subcategory = options.subcategory ?? "all";
+  const amcId = options.amcId?.trim() || null;
   const limit = Math.min(40, Math.max(8, options.limit ?? CATALOG_PAGE_SIZE));
   const key = getSubscriptionKey();
 
   if (!key) {
     if (!isReviewLikeEnvironment()) {
-      return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, fetchedAt, message: "บริการข้อมูลกองทุนยังไม่พร้อมใช้งาน" };
+      return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, amcId, fetchedAt, message: "บริการข้อมูลกองทุนยังไม่พร้อมใช้งาน" };
     }
     const normalizedQuery = query.toLowerCase();
     const items = demoCatalogItems().filter((item) => {
       if (normalizedQuery && !`${item.nameTh} ${item.abbreviation}`.toLowerCase().includes(normalizedQuery)) return false;
       if (category !== "all" && item.category !== category) return false;
+      if (amcId && item.amcId !== amcId) return false;
       return true;
     }).slice(0, limit);
-    return { source: "uat_synthetic", state: "demo", items, nextCursor: null, hasMore: false, query, category, subcategory, fetchedAt, message: "Preview นี้ไม่มี SEC key จึงแสดงข้อมูลสังเคราะห์ UAT เท่านั้น" };
+    return { source: "uat_synthetic", state: "demo", items, nextCursor: null, hasMore: false, query, category, subcategory, amcId, fetchedAt, message: "กำลังใช้ข้อมูลตัวอย่างชั่วคราว" };
   }
 
   try {
@@ -288,6 +348,7 @@ export async function listFundCatalog(options: {
       const currentCursor = secCursor;
       const params = new URLSearchParams({ page_size: String(SEC_PAGE_SIZE), fund_status: status });
       if (query) params.set("project_info", query);
+      if (amcId) params.set("company_info", amcId);
       if (currentCursor) params.set("next_cursor", currentCursor);
       const envelope = await secGet(`/v2/fund/general-info/profiles?${params.toString()}`, key);
       const rawItems = asItems(envelope);
@@ -313,6 +374,7 @@ export async function listFundCatalog(options: {
             query,
             category,
             subcategory,
+            amcId,
             fetchedAt,
             message: null,
           };
@@ -339,11 +401,12 @@ export async function listFundCatalog(options: {
       query,
       category,
       subcategory,
+      amcId,
       fetchedAt,
       message: results.length ? null : "ไม่พบกองทุนที่ตรงกับตัวกรองนี้",
     };
   } catch {
-    return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, fetchedAt, message: "SEC Open API ไม่พร้อมใช้งานชั่วคราว" };
+    return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, amcId, fetchedAt, message: "โหลดข้อมูลกองทุนไม่สำเร็จชั่วคราว" };
   }
 }
 
@@ -449,16 +512,16 @@ export async function getFundDetail(projectId: string, requestedClassName?: stri
     dealing: dealingResult.state,
   };
   const warnings: string[] = [];
-  if (!fund) warnings.push("ไม่พบข้อมูล Profile ของกองทุนจาก SEC");
+  if (!fund) warnings.push("ยังไม่พบข้อมูลพื้นฐานของกองทุนนี้");
   if (classes.length > 1 && !selectedClassName) warnings.push("กองนี้มีหลายชนิดหน่วยลงทุน กรุณาเลือกชนิดหน่วยก่อนดูเงื่อนไขซื้อขาย");
-  if (!risk) warnings.push("ยังไม่มี Risk Spectrum ที่ระบบอ่านได้");
-  if (!assetAllocation.length) warnings.push("ยังไม่มี Asset Allocation ล่าสุดที่ระบบอ่านได้");
-  if (assetAllocation.some((row) => row.percentNav < 0)) warnings.push("Asset Allocation มีรายการติดลบตามข้อมูล Fund Factsheet ระบบคงค่าตามต้นทางและไม่ปรับให้รวม 100%");
+  if (!risk) warnings.push("ยังไม่มีข้อมูลระดับความเสี่ยงที่แสดงได้ในตอนนี้");
+  if (!assetAllocation.length) warnings.push("ยังไม่มีข้อมูลสัดส่วนสินทรัพย์ที่แสดงได้ในตอนนี้");
+  if (assetAllocation.some((row) => row.percentNav < 0)) warnings.push("ข้อมูลสัดส่วนสินทรัพย์มีบางรายการเป็นค่าติดลบตามที่กองทุนรายงาน ระบบจึงแสดงตามต้นทางโดยไม่ปรับตัวเลขเอง");
   const assetTotal = assetAllocation.reduce((sum, row) => sum + row.percentNav, 0);
-  if (assetAllocation.length && Math.abs(assetTotal - 100) > 0.5) warnings.push(`สัดส่วนสินทรัพย์รวม ${Math.round(assetTotal * 100) / 100}% ตามข้อมูลต้นทาง ระบบไม่ renormalize`);
-  if (selectedClassName && !dealing) warnings.push("ยังไม่มีข้อมูล Subscription / Redemption สำหรับชนิดหน่วยที่เลือก");
-  for (const [endpoint, state] of Object.entries(endpointStates)) if (state === "unavailable") warnings.push(`SEC endpoint ${endpoint} ไม่พร้อมใช้งานชั่วคราว`);
-  if (risk?.rawCode && !risk.level) warnings.push(`SEC ระบุ Risk Spectrum เป็น ${risk.rawCode} ซึ่งอยู่นอกระดับ 1–8 ที่เครื่องมือนี้แสดง`);
+  if (assetAllocation.length && Math.abs(assetTotal - 100) > 0.5) warnings.push(`สัดส่วนสินทรัพย์ที่รายงานรวม ${Math.round(assetTotal * 100) / 100}% ระบบแสดงตามข้อมูลต้นทางโดยไม่ปรับให้เป็น 100%`);
+  if (selectedClassName && !dealing) warnings.push("ยังไม่มีข้อมูลเงื่อนไขซื้อและขายคืนสำหรับชนิดหน่วยที่เลือก");
+  if (Object.values(endpointStates).includes("unavailable")) warnings.push("ข้อมูลบางส่วนจาก ก.ล.ต. ไม่พร้อมใช้งานชั่วคราว");
+  if (risk?.rawCode && !risk.level) warnings.push("ข้อมูลระดับความเสี่ยงของกองนี้อยู่ในรูปแบบที่เครื่องมือยังไม่สามารถแสดงเป็นระดับ 1–8 ได้");
 
   const dataDate = latestDate([
     risk?.sourceDate,
@@ -506,13 +569,11 @@ export async function searchPlanningFunds(query: string): Promise<FundSearchResp
   const normalizedQuery = query.trim().slice(0, 120);
   const fetchedAt = new Date().toISOString();
   const key = getSubscriptionKey();
-  if (!normalizedQuery) return { mode: key ? "sec_live" : "uat_demo", state: "unavailable", query: "", funds: [], message: "กรอกชื่อหรือรหัสกองทุนเพื่อค้นหา", fetchedAt };
+  if (!normalizedQuery) return { mode: key ? "sec_live" : "uat_demo", state: "unavailable", query: "", funds: [], message: "กรอกชื่อกองหรือชื่อย่อเพื่อค้นหา", fetchedAt };
 
-  const demoRequested = isReviewLikeEnvironment() && /(?:^|\s)(uat|demo|ตัวอย่าง)(?:\s|$)/i.test(normalizedQuery);
-  if (demoRequested) return { mode: "uat_demo", state: "demo", query: normalizedQuery, funds: searchDemoFunds("uat"), message: "กำลังแสดงข้อมูลสังเคราะห์สำหรับทดสอบ UAT เท่านั้น ไม่ใช่ข้อมูลกองทุนจริงจาก ก.ล.ต.", fetchedAt };
   if (!key) {
     if (!isReviewLikeEnvironment()) return { mode: "sec_live", state: "unavailable", query: normalizedQuery, funds: [], message: "บริการค้นหาข้อมูลกองทุนยังไม่พร้อมใช้งาน", fetchedAt };
-    return { mode: "uat_demo", state: "demo", query: normalizedQuery, funds: searchDemoFunds(normalizedQuery), message: "Preview นี้ไม่มี SEC key จึงใช้ได้เฉพาะข้อมูลสังเคราะห์ที่ติดป้าย UAT ชัดเจน", fetchedAt };
+    return { mode: "uat_demo", state: "demo", query: normalizedQuery, funds: searchDemoFunds(normalizedQuery), message: "กำลังใช้ข้อมูลตัวอย่างชั่วคราว", fetchedAt };
   }
 
   const catalog = await listFundCatalog({ query: normalizedQuery, limit: 8 });
@@ -521,5 +582,5 @@ export async function searchPlanningFunds(query: string): Promise<FundSearchResp
     try { return profileToPlanningFund(profile, await loadLatestRisk(profile.projectId, key), fetchedAt); }
     catch { return profileToPlanningFund(profile, null, fetchedAt); }
   }));
-  return { mode: "sec_live", state: funds.length ? "partial" : "unavailable", query: normalizedQuery, funds, message: funds.length ? "ผลค้นหากอง active จาก SEC v2" : "ไม่พบกองทุนจากคำค้นนี้", fetchedAt };
+  return { mode: "sec_live", state: funds.length ? "partial" : "unavailable", query: normalizedQuery, funds, message: funds.length ? "ผลค้นหาจากข้อมูลกองทุนของ ก.ล.ต." : "ไม่พบกองทุนจากคำค้นนี้", fetchedAt };
 }

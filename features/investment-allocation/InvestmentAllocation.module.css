@@ -32,7 +32,7 @@
 .moneyInputWrap { position: relative; }
 .moneyInputWrap input { width: 100%; min-height: 52px; padding: 0 54px 0 14px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--w43-deep); color: var(--w43-ink); font-size: 18px; font-variant-numeric: tabular-nums; outline: none; }
 .moneyInputWrap span { position: absolute; top: 50%; right: 14px; color: var(--w43-muted); transform: translateY(-50%); font-size: 13px; }
-.moneyInputWrap input:focus, .percentInput:focus, .amountInput:focus, .searchInput:focus { border-color: var(--w43-gold); box-shadow: 0 0 0 3px rgba(224,201,133,.11); }
+.moneyInputWrap input:focus, .percentInput:focus, .amountInput:focus, .searchInput:focus, .amcSelect:focus { border-color: var(--w43-gold); box-shadow: 0 0 0 3px rgba(224,201,133,.11); }
 
 .allocationList { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 .allocationRow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: center; min-height: 62px; padding: 10px 12px; border: 1px solid rgba(91,72,72,.78); border-radius: 12px; background: rgba(37,24,24,.26); }
@@ -66,6 +66,8 @@
 
 .searchRow { display: flex; gap: 8px; margin-top: 20px; }
 .searchInput { min-width: 0; flex: 1; min-height: 48px; padding: 0 13px; border: 1px solid var(--w43-border); border-radius: 11px; background: var(--w43-deep); color: var(--w43-ink); outline: none; }
+.amcSelect { width: 100%; min-height: 48px; padding: 0 40px 0 13px; border: 1px solid var(--w43-border); border-radius: 11px; background: var(--w43-deep); color: var(--w43-ink); font: inherit; font-size: 13px; outline: none; }
+.amcSelect:disabled { opacity: .55; cursor: wait; }
 .smallButton { min-width: 92px; padding: 0 13px; border: 1px solid var(--w43-gold); background: transparent; color: var(--w43-gold); }
 .statusNotice { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--w43-border); border-radius: 11px; background: rgba(37,24,24,.32); color: var(--w43-muted); font-size: 12px; line-height: 1.6; }
 .statusNotice strong { color: var(--w43-gold); }
