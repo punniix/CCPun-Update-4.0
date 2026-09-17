@@ -46,8 +46,50 @@ jobs:
       - name: Vercel and public runtime contracts
         run: npm run test:vercel
 
-      - name: Admin contracts
-        run: npm run test:admin
+      - name: Admin Social authoring and workspace contracts
+        run: |
+          node --import tsx --test \
+            tests/admin/social-comment-series-ui.test.ts \
+            tests/admin/social-draft-persistence.test.ts \
+            tests/admin/social-foundation.test.ts \
+            tests/admin/social-instagram-mobile-handoff.test.ts \
+            tests/admin/social-lifecycle-contracts.test.ts \
+            tests/admin/social-operations-2-regression.test.ts \
+            tests/admin/social-operations-core.test.ts \
+            tests/admin/social-product-contract.test.ts \
+            tests/admin/social-schema-capabilities.test.ts \
+            tests/admin/social-workspace-integration.test.ts
+
+      - name: Admin Social execution and provider contracts
+        run: |
+          node --import tsx --test \
+            tests/admin/social-manual-execution.test.ts \
+            tests/admin/social-meta-capability-probe.test.ts \
+            tests/admin/social-meta-connection.test.ts \
+            tests/admin/social-meta-publishing.test.ts \
+            tests/admin/social-provider-adapters.test.ts \
+            tests/admin/social-provider-readonly.test.ts \
+            tests/admin/social-publication-execution.test.ts \
+            tests/admin/social-runtime-boundary.test.ts
+
+      - name: Admin Social analytics contracts
+        run: |
+          node --import tsx --test \
+            tests/admin/social-analytics-ingestion.test.ts \
+            tests/admin/social-marketing-dashboard-full-win.test.ts \
+            tests/admin/social-marketing-mart.test.ts \
+            tests/admin/social-meta-full-backfill-clean.test.ts \
+            tests/admin/social-meta-metric-provenance.test.ts \
+            tests/admin/social-meta-p1-collector.test.ts \
+            tests/admin/social-post-live.test.ts \
+            tests/admin/social-sheets-export.test.ts
+
+      - name: Admin non-Social contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find tests/admin -maxdepth 1 -type f -name '*.test.ts' ! -name 'social-*' | sort)
+          node --import tsx --test "${files[@]}"
 
       - name: FHC and CI calculator regression gate
         run: |
