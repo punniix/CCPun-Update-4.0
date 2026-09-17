@@ -110,7 +110,7 @@ export default function CIWizard() {
   };
 
   const handleNext = () => {
-    if (motionPhase !== 'idle') return;
+    if (motionPhase === 'out') return;
     const sectionKey = STEP_SECTION_KEYS[currentStep];
     const stepErrors = validateCIStep(currentStep, formData[sectionKey] as unknown as Record<string, unknown>);
     if (Object.keys(stepErrors).length > 0) {
