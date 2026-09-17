@@ -55,7 +55,9 @@ test('card hover motion stays restrained and does not resize layout', () => {
 test('functional button press feedback is tactile and restrained', () => {
   assert.match(functionalCss, /ccpun-motion-tactile[\s\S]*?scale: 1;[\s\S]*?scale \.12s cubic-bezier\(\.2, 0, 0, 1\)/);
   assert.match(functionalCss, /ccpun-motion-tactile:not\(:disabled\):active[\s\S]*?scale: \.98;/);
-  assert.match(toolHero, /ccpun-motion-tactile/);
+  assert.doesNotMatch(toolHero, /ccpun-motion-tactile/);
+  assert.match(toolHero, /className=\{styles\.primaryButton\}/);
+  assert.match(css, /\.primaryButton:not\(:disabled\):active,[\s\S]*?transform: scale\(\.985\)/);
   assert.match(fhcWizard, /ccpun-motion-tactile/);
   assert.match(ciWizard, /ccpun-motion-tactile/);
 });
