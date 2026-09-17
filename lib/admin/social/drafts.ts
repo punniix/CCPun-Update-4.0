@@ -64,7 +64,18 @@ export async function getSocialDraftWorkspace() {
         "commentSeriesMode": coalesce(commentSeriesMode, "top-level"),
         "commentSeries": coalesce(commentSeries[] | order(position asc){ position, text }, []),
         "reviewStatus": review.status,
-        "mediaReferences": coalesce(mediaReferences[]{ assetId, role, "order": coalesce(order, null), "mimeType": coalesce(mimeType, null), "sha256Checksum": coalesce(sha256Checksum, null), "widthPx": coalesce(widthPx, null), "heightPx": coalesce(heightPx, null), "durationMs": coalesce(durationMs, null) }, [])
+        "mediaReferences": coalesce(mediaReferences[]{
+          assetId,
+          role,
+          "order": coalesce(order, null),
+          "mimeType": coalesce(mimeType, null),
+          "sha256Checksum": coalesce(sha256Checksum, null),
+          "widthPx": coalesce(widthPx, null),
+          "heightPx": coalesce(heightPx, null),
+          "durationMs": coalesce(durationMs, null),
+          "altText": coalesce(altText, null),
+          "thumbnailTimestampMs": coalesce(thumbnailTimestampMs, null)
+        }, [])
       },
     "masterContentChoices": *[_type == "masterContent" && review.status == "approved"]
       | order(_updatedAt desc)[0...200]{
