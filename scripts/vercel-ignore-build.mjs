@@ -33,8 +33,18 @@ const WEB_ONLY_PREFIXES = [
   "features/financial-health-check/",
   "features/home/",
   "public/",
+  "tests/website43-",
 ];
-const WEB_ONLY_FILES = new Set(["app/page.tsx"]);
+const WEB_ONLY_FILES = new Set([
+  "app/page.tsx",
+  // These shared-root files are Public Web calculator/tool surfaces. Do not
+  // broaden this to components/layout/website-43/* because Admin imports
+  // Website43ResponsiveStyles and Website43.module.css at runtime.
+  "components/layout/website-43/Website43ToolHero.tsx",
+  "components/ui/CurrencyInput.tsx",
+  "components/ui/FunctionalMotion.module.css",
+  "components/ui/HumanCalculatorCard.tsx",
+]);
 const NEUTRAL_PREFIXES = ["docs/"];
 const NEUTRAL_FILES = new Set([
   "AGENTS.md",
