@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { resolveContentEnvironment } from "@/lib/content/sanity-lane";
 import { CONTROL_PLANE_PAGE_PREFIXES } from "@/lib/routing/private-surfaces";
 
@@ -11,11 +12,7 @@ const privatePaths = [
 ];
 
 export default function robots(): MetadataRoute.Robots {
-  const environment = resolveContentEnvironment();
-  const blockAll =
-    process.env.VERCEL_ENV === "preview" ||
-    process.env.CCPUN_UAT_MODE === "1" ||
-    environment !== "production";
+  const blockAll = IS_REVIEW_ENVIRONMENT || resolveContentEnvironment() !== "production";
 
   if (blockAll) {
     return {
