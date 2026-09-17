@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -102,6 +103,7 @@ export default function CurrencyInput({
         aria-invalid={error || undefined}
         className={cn(
           'bg-background/50 border-border/50 focus:border-primary/50 h-12 text-foreground placeholder:text-muted-foreground pl-8',
+          functionalMotion.inputFeedback,
           error && 'border-destructive',
           className
         )}
