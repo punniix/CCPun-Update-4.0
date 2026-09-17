@@ -24,8 +24,11 @@ export type InstagramAudioOption = {
   audioType: "music" | "original_sound";
   title: string;
   artist: string | null;
+  creator: string | null;
   durationMs: number;
+  artworkUrl: string | null;
   previewUrl: string | null;
+  adsEligible: boolean | null;
 };
 
 const allowedMimeTypes = new Set<InstagramHandoffAsset["mimeType"]>([
@@ -181,8 +184,13 @@ export function normalizeInstagramAudioOptions(value: unknown): InstagramAudioOp
       audioType: item.audio_type,
       title: item.title,
       artist: typeof item.display_artist === "string" && item.display_artist.trim() ? item.display_artist : null,
+      creator: typeof item.ig_username === "string" && item.ig_username.trim() ? item.ig_username : null,
       durationMs: item.duration_in_ms,
-      previewUrl: safeHttpsUrl(item.on_platform_audio_preview_link),
+      artworkUrl: safeHttpsUrl(item.cover_artwork_thumbnail_uri)
+        ?? safeHttpsUrl(item.cover_artwork_thumbnail_url)
+        ?? safeHttpsUrl(item.profile_picture_url),
+      previewUrl: safeHttpsUrl(item.on_platform_audio_preview_link) ?? safeHttpsUrl(item.download_url),
+      adsEligible: typeof item.is_ads_eligible === "boolean" ? item.is_ads_eligible : null,
     }];
   });
 }

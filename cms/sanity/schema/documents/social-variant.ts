@@ -91,8 +91,62 @@ export const socialVariant = defineType({
           defineField({ name: "widthPx", title: "Width", type: "number", readOnly: true }),
           defineField({ name: "heightPx", title: "Height", type: "number", readOnly: true }),
           defineField({ name: "durationMs", title: "Duration", type: "number", readOnly: true }),
+          defineField({
+            name: "altText",
+            title: "Alt Text",
+            description: "คำอธิบายสื่อสำหรับ accessibility; ไม่แทน Caption",
+            type: "text",
+            rows: 2,
+            validation: (Rule) => Rule.max(2000),
+          }),
+          defineField({
+            name: "thumbnailTimestampMs",
+            title: "Thumbnail Timestamp (ms)",
+            description: "ตำแหน่งเฟรม poster/cover ของวิดีโอ โดยต้องอยู่ภายใน duration",
+            type: "number",
+            hidden: ({ parent }) => (parent as { mimeType?: string } | undefined)?.mimeType !== "video/mp4",
+            validation: (Rule) => Rule.integer().min(0).max(86_400_000).custom((value, context) => {
+              if (value === undefined || value === null) return true;
+              const parent = context.parent as { mimeType?: string; durationMs?: number } | undefined;
+              if (parent?.mimeType !== "video/mp4") return "Thumbnail timestamp ใช้ได้กับวิดีโอเท่านั้น";
+              if (!parent.durationMs) return "ต้องมี duration ของวิดีโอก่อนเลือก thumbnail timestamp";
+              return value < parent.durationMs ? true : "Thumbnail timestamp ต้องอยู่ภายใน duration ของวิดีโอ";
+            }),
+          }),
         ],
       })],
+    }),
+    defineField({
+      name: "instagramAudio",
+      title: "Instagram Reel Audio",
+      type: "object",
+      hidden: ({ document }) => document?.channel !== "instagram" || document?.format !== "reel",
+      fields: [
+        defineField({
+          name: "mode",
+          title: "Mode",
+          type: "string",
+          options: { list: [
+            { title: "Original audio", value: "original" },
+            { title: "Instagram Audio API", value: "instagram-audio" },
+            { title: "Add music later in Instagram", value: "add-in-app" },
+          ] },
+          validation: (Rule) => Rule.required(),
+        }),
+        defineField({ name: "audioId", title: "Audio ID", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "audioType", title: "Audio Type", type: "string", options: { list: ["music", "original_sound"] }, hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "title", title: "Audio title", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "artist", title: "Artist", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "creator", title: "Creator", type: "string", hidden: ({ parent }) => (parent as { mode?: string } | undefined)?.mode !== "instagram-audio" }),
+        defineField({ name: "audioVolume", title: "Audio volume", type: "number", initialValue: 100, validation: (Rule) => Rule.required().integer().min(0).max(100) }),
+        defineField({ name: "videoVolume", title: "Video volume", type: "number", initialValue: 100, validation: (Rule) => Rule.required().integer().min(0).max(100) }),
+      ],
+      validation: (Rule) => Rule.custom((value, context) => {
+        if (context.document?.channel !== "instagram" || context.document?.format !== "reel" || !value) return true;
+        const audio = value as { mode?: string; audioId?: string; audioType?: string; title?: string };
+        if (audio.mode === "instagram-audio" && (!audio.audioId || !audio.audioType || !audio.title)) return "Instagram Audio API mode ต้องมี audioId, audioType และ title";
+        return ["original", "instagram-audio", "add-in-app"].includes(audio.mode ?? "") ? true : "Audio mode ไม่ถูกต้อง";
+      }),
     }),
     defineField({
       name: "commentSeriesMode",

@@ -94,6 +94,10 @@ function mediaReference(value: unknown): SocialMediaReference | null {
   const item = object(value);
   if (!item || typeof item.assetId !== "string" || typeof item.role !== "string") return null;
   if (!["primary", "carousel-item", "cover", "thumbnail", "caption"].includes(item.role)) return null;
+  const durationMs = typeof item.durationMs === "number" ? item.durationMs : null;
+  const thumbnailTimestampMs = typeof item.thumbnailTimestampMs === "number" && Number.isInteger(item.thumbnailTimestampMs)
+    && item.thumbnailTimestampMs >= 0 && (durationMs === null || item.thumbnailTimestampMs < durationMs)
+    ? item.thumbnailTimestampMs : null;
   return {
     assetId: item.assetId,
     role: item.role as SocialMediaReference["role"],
@@ -101,9 +105,11 @@ function mediaReference(value: unknown): SocialMediaReference | null {
     mimeType: typeof item.mimeType === "string" ? item.mimeType : null,
     widthPx: typeof item.widthPx === "number" ? item.widthPx : null,
     heightPx: typeof item.heightPx === "number" ? item.heightPx : null,
-    durationMs: typeof item.durationMs === "number" ? item.durationMs : null,
+    durationMs,
     sha256Checksum: typeof item.sha256Checksum === "string" && /^[a-f0-9]{64}$/.test(item.sha256Checksum)
       ? item.sha256Checksum : null,
+    altText: typeof item.altText === "string" ? item.altText.slice(0, 2_000) : null,
+    thumbnailTimestampMs,
   };
 }
 

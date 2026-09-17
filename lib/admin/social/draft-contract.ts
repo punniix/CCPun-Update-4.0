@@ -13,9 +13,20 @@ const mediaReferenceSchema = z.strictObject({
   widthPx: z.number().int().min(1).max(32_768).nullable(),
   heightPx: z.number().int().min(1).max(32_768).nullable(),
   durationMs: z.number().int().min(1).max(86_400_000).nullable(),
+  altText: z.string().trim().max(2_000).nullable().default(null),
+  thumbnailTimestampMs: z.number().int().min(0).max(86_400_000).nullable().default(null),
 }).superRefine((reference, context) => {
   if ((reference.role === "carousel-item") !== (reference.order !== null)) {
     context.addIssue({ code: "custom", path: ["order"], message: "Only carousel items use an explicit order" });
+  }
+  if (reference.thumbnailTimestampMs !== null) {
+    if (reference.mimeType !== "video/mp4") {
+      context.addIssue({ code: "custom", path: ["thumbnailTimestampMs"], message: "Thumbnail timestamp is supported only for video" });
+    } else if (reference.durationMs === null) {
+      context.addIssue({ code: "custom", path: ["durationMs"], message: "Video duration is required before selecting a thumbnail timestamp" });
+    } else if (reference.thumbnailTimestampMs >= reference.durationMs) {
+      context.addIssue({ code: "custom", path: ["thumbnailTimestampMs"], message: "Thumbnail timestamp must be inside the video duration" });
+    }
   }
 });
 const commentSeriesItemSchema = z.strictObject({

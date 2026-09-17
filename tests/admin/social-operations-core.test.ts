@@ -83,17 +83,25 @@ test("Social analytics preserves native metrics and never creates a cross-platfo
   assert.equal(socialOperationsSnapshotSchema.safeParse(invalid).success, false);
 });
 
-test("Content Calendar derives one read-only item per variant without provider execution", () => {
+test("Synthetic calendar stays read-only while Admin Calendar uses guarded operational services", () => {
   const items = buildSyntheticContentCalendar();
   assert.equal(items.length, 5);
   assert.deepEqual(items.map((item) => item.status), ["approved", "awaiting-native-finish", "draft", "approved", "published"]);
   assert.equal(items.every((item) => item.masterContentId === "synthetic-master-001" && item.providerWriteAllowed === false), true);
   assert.equal(items.every((item) => typeof item.analyticsAvailable === "boolean"), true);
   const page = read("features/admin/social/calendar-page.tsx");
+  const client = read("features/admin/social/SocialOperationalCalendar.tsx");
+  const service = read("lib/admin/social/operations-service.ts");
   const route = read("app/(control-plane)/social/calendar/page.tsx");
   assert.match(page, /requireAdminPermission\("social:read"\)/);
   assert.match(page, /getSocialOperationsRuntimeStatus\(\)\.enabled/);
-  assert.match(page, /ไม่มีคำสั่งส่งโพสต์/);
+  assert.match(page, /listSocialOperationalItems/);
+  assert.match(page, /SocialOperationalCalendar/);
+  assert.match(page, /Human Approval/);
+  assert.match(client, /rescheduleSocialPublication/);
+  assert.match(client, /cancelSocialPublication/);
+  assert.match(service, /expectedJobVersion/);
+  assert.match(service, /SOCIAL_OPERATION_CAS_CONFLICT/);
   assert.equal(route.trim(), 'export { metadata, default } from "@/features/admin/social/calendar-page";');
 });
 

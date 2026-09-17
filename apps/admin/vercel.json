@@ -8,5 +8,11 @@
       "ux/**": false,
       "**/*website-43*": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/admin/social/worker",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

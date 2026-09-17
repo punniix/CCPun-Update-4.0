@@ -30,7 +30,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
       { href: "/social/posts/", label: "Posts" },
       { href: "/social/calendar/", label: "Calendar" },
       { href: "/social/queue/", label: "Queue" },
-      { href: "/social/accounts/", label: "Accounts" },
+      { href: "/social/accounts/", label: "Connections" },
   ] },
   { href: "/analytics/", label: "Analytics", permission: "dashboard:read", children: [
       { href: "/analytics/search/", label: "Search" },
@@ -98,9 +98,9 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
           <AdminNavigation items={navItems} />
           <div className="mt-4 rounded-2xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-4 text-sm leading-6 text-white/70 lg:mt-6">
             {environment === "production-admin" || environment === "local-production" ? (
-              <><strong className="font-medium text-[#f4df9b]">Production Draft — ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น ระบบอ่านข้อมูลจริงได้ และจะเขียนได้เมื่อเปิดโหมด Draft โดยชัดเจน" : "ระบบแก้ได้เฉพาะฉบับร่างหลังคุณอนุมัติ"} ระบบจะไม่เผยแพร่หรือลบเนื้อหาให้เอง</>
+              <><strong className="font-medium text-[#f4df9b]">Production · ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น และใช้ข้อมูลจริงตามสิทธิ์ที่กำหนด" : "การแก้ Draft และการอนุมัติยังต้องเป็น Human action"} Social Worker ทำได้เฉพาะ publication ที่ผ่าน approval และ provider-write gate แล้วเท่านั้น</>
             ) : (
-              <><strong className="font-medium text-[#f4df9b]">พื้นที่ทดสอบ UAT:</strong> ระบบช่วยตรวจและเสนอได้ แต่ไม่เผยแพร่ ไม่ลบ และไม่เปลี่ยน Production ให้เอง</>
+              <><strong className="font-medium text-[#f4df9b]">พื้นที่ทดสอบ UAT:</strong> ใช้สำหรับตรวจ workflow และ contract ก่อน Production โดย provider write ยังคงถูกควบคุมด้วย environment gate และ Human Approval</>
             )}
           </div>
         </aside>

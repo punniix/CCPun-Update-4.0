@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { requestGoogleDriveMemorySession } from "@/features/admin/social/social-workspace-client";
 import { isGoogleDriveAuthorizationUsable, type SocialMediaReference } from "@/features/admin/social/social-workspace-media";
 import {
@@ -12,6 +12,34 @@ import {
   type InstagramHandoffAsset,
   type InstagramHandoffDriveSession,
 } from "@/features/admin/social/instagram-mobile-handoff";
+
+type AudioMode = "original" | "instagram-audio" | "add-in-app";
+type StoredAudio = {
+  mode: AudioMode;
+  audioId?: string;
+  audioType?: "music" | "original_sound";
+  title?: string;
+  artist?: string | null;
+  creator?: string | null;
+  audioVolume: number;
+  videoVolume: number;
+};
+type AudioConfigPayload = {
+  audio?: {
+    revision: string;
+    version: number;
+    reviewStatus?: string;
+    configuration: StoredAudio;
+  };
+  error?: string;
+};
+
+function durationLabel(durationMs: number) {
+  const totalSeconds = Math.max(0, Math.round(durationMs / 1_000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
 
 export function InstagramMobileHandoff(props: {
   variantId: string;
@@ -27,17 +55,67 @@ export function InstagramMobileHandoff(props: {
   const [assets, setAssets] = useState<InstagramHandoffAsset[]>([]);
   const [mediaState, setMediaState] = useState<"idle" | "running" | "ready" | "error">("idle");
   const [notice, setNotice] = useState("");
+
+  const [audioMode, setAudioMode] = useState<AudioMode>("original");
   const [audioType, setAudioType] = useState<"music" | "original_sound">("music");
   const [audioQuery, setAudioQuery] = useState("");
   const [audioState, setAudioState] = useState<"idle" | "running" | "ready" | "error">("idle");
   const [audioOptions, setAudioOptions] = useState<InstagramAudioOption[]>([]);
-  const [selectedAudioId, setSelectedAudioId] = useState("");
+  const [selectedAudio, setSelectedAudio] = useState<InstagramAudioOption | null>(null);
+  const [audioVolume, setAudioVolume] = useState(100);
+  const [videoVolume, setVideoVolume] = useState(100);
+  const [configState, setConfigState] = useState<"idle" | "loading" | "ready" | "saving" | "error">(
+    props.format === "reel" ? "loading" : "idle",
+  );
+  const [draftRevision, setDraftRevision] = useState<string | null>(props.revision);
+  const [draftVersion, setDraftVersion] = useState(props.version);
+  const [approvalInvalidated, setApprovalInvalidated] = useState(false);
 
   const orderedReferences = useMemo(
     () => [...props.mediaReferences].sort((left, right) => (left.order ?? 1) - (right.order ?? 1)),
     [props.mediaReferences],
   );
-  const selectedAudio = audioOptions.find((option) => option.audioId === selectedAudioId) ?? null;
+  const approvalUsable = props.approvalRecorded && !approvalInvalidated;
+
+  useEffect(() => {
+    if (props.format !== "reel") return;
+    const controller = new AbortController();
+    const url = new URL("/api/admin/social/drafts/instagram-audio/", window.location.origin);
+    url.searchParams.set("variantId", props.variantId);
+    void fetch(url, { cache: "no-store", credentials: "same-origin", signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null) as AudioConfigPayload | null;
+        if (!response.ok || !payload?.audio) throw new Error(payload?.error ?? "audio-config-unavailable");
+        const stored = payload.audio.configuration;
+        setDraftRevision(payload.audio.revision);
+        setDraftVersion(payload.audio.version);
+        if (props.revision && payload.audio.revision !== props.revision && props.approvalRecorded) setApprovalInvalidated(true);
+        setAudioMode(stored.mode);
+        setAudioVolume(stored.audioVolume);
+        setVideoVolume(stored.videoVolume);
+        if (stored.mode === "instagram-audio" && stored.audioId && stored.audioType && stored.title) {
+          setAudioType(stored.audioType);
+          setSelectedAudio({
+            audioId: stored.audioId,
+            audioType: stored.audioType,
+            title: stored.title,
+            artist: stored.artist ?? null,
+            creator: stored.creator ?? null,
+            durationMs: 0,
+            artworkUrl: null,
+            previewUrl: null,
+            adsEligible: null,
+          });
+        }
+        setConfigState("ready");
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setConfigState("error");
+        setNotice(error instanceof Error ? `โหลด Audio configuration ไม่สำเร็จ: ${error.message}` : "โหลด Audio configuration ไม่สำเร็จ");
+      });
+    return () => controller.abort();
+  }, [props.format, props.variantId, props.revision, props.approvalRecorded]);
 
   async function driveSession() {
     if (session.current && isGoogleDriveAuthorizationUsable(session.current.authorization)) return session.current;
@@ -64,7 +142,7 @@ export function InstagramMobileHandoff(props: {
   async function transfer(reference: SocialMediaReference, mode: "inline" | "attachment") {
     setNotice("");
     try {
-      if (!props.approvalRecorded || !props.revision) throw new Error("instagram-handoff-approval-required");
+      if (!approvalUsable || !props.revision) throw new Error("instagram-handoff-approval-required");
       const currentSession = await driveSession();
       const asset = assets.find((item) => item.assetId === reference.assetId)
         ?? (await prepareInstagramHandoffAssets({ references: [reference], session: currentSession }))[0];
@@ -78,7 +156,9 @@ export function InstagramMobileHandoff(props: {
       setNotice(mode === "inline" ? "เปิดไฟล์ที่ตรวจแล้วในแท็บใหม่" : "เริ่มดาวน์โหลดไฟล์ที่ตรวจแล้ว");
     } catch {
       session.current = null;
-      setNotice("ไฟล์หรือสิทธิ์หมดอายุ กรุณากดเตรียมไฟล์บนมือถืออีกครั้ง");
+      setNotice(approvalInvalidated
+        ? "Audio configuration ทำให้ revision เปลี่ยนแล้ว ต้อง Review/Approve revision ใหม่ก่อน Mobile Handoff"
+        : "ไฟล์หรือสิทธิ์หมดอายุ กรุณากดเตรียมไฟล์บนมือถืออีกครั้ง");
     }
   }
 
@@ -94,89 +174,195 @@ export function InstagramMobileHandoff(props: {
   async function searchAudio() {
     setAudioState("running");
     setAudioOptions([]);
-    setSelectedAudioId("");
     try {
       const options = await searchInstagramAudioOptions({ audioType, searchQuery: audioQuery });
       setAudioOptions(options);
       setAudioState("ready");
-    } catch {
+    } catch (error) {
       setAudioState("error");
+      setNotice(error instanceof Error ? `ค้นหา Audio ไม่สำเร็จ: ${error.message}` : "ค้นหา Audio ไม่สำเร็จ");
+    }
+  }
+
+  async function saveAudioConfiguration() {
+    if (!draftRevision) {
+      setNotice("ยังไม่มี Draft revision ที่ใช้บันทึก Audio configuration");
+      return;
+    }
+    if (audioMode === "instagram-audio" && !selectedAudio) {
+      setNotice("เลือก Audio จากผลค้นหาก่อนบันทึก");
+      return;
+    }
+    const configuration: StoredAudio = audioMode === "instagram-audio" && selectedAudio ? {
+      mode: "instagram-audio",
+      audioId: selectedAudio.audioId,
+      audioType: selectedAudio.audioType,
+      title: selectedAudio.title,
+      artist: selectedAudio.artist,
+      creator: selectedAudio.creator,
+      audioVolume,
+      videoVolume,
+    } : { mode: audioMode, audioVolume, videoVolume };
+
+    setConfigState("saving");
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/social/drafts/instagram-audio/", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variantId: props.variantId, expectedRevision: draftRevision, configuration }),
+      });
+      const payload = await response.json().catch(() => null) as AudioConfigPayload | null;
+      if (!response.ok || !payload?.audio) throw new Error(payload?.error ?? "audio-config-save-failed");
+      setDraftRevision(payload.audio.revision);
+      setDraftVersion(payload.audio.version);
+      setAudioMode(payload.audio.configuration.mode);
+      setAudioVolume(payload.audio.configuration.audioVolume);
+      setVideoVolume(payload.audio.configuration.videoVolume);
+      setApprovalInvalidated(true);
+      setConfigState("ready");
+      setNotice("บันทึก Audio configuration แล้ว Meta revalidate audioId สำเร็จ และ revision ถูก reset เป็น Drafting; ต้อง Review/Approve ใหม่ก่อน publish");
+    } catch (error) {
+      setConfigState("error");
+      setNotice(error instanceof Error ? `บันทึก Audio ไม่สำเร็จ: ${error.message}` : "บันทึก Audio ไม่สำเร็จ");
     }
   }
 
   return (
     <section id="instagram-handoff-guide" className="mt-5 border-t border-white/10 pt-5" aria-labelledby="instagram-handoff-title">
-      <h3 id="instagram-handoff-title" className="font-semibold">Instagram mobile handoff</h3>
+      <h3 id="instagram-handoff-title" className="font-semibold">Instagram Direct + Mobile Handoff</h3>
       <p className="mt-2 text-sm leading-6 text-white/70">
-        คัดลอกแคปชัน เปิดหรือดาวน์โหลดสื่อที่อนุมัติแล้ว แล้วทำขั้นตอนสุดท้ายใน Instagram บนมือถือ
-        ระบบนี้ไม่สร้าง Instagram Native Draft และยังไม่เปิด Direct schedule
+        Mobile Handoff เป็น workflow หลักเมื่อเพลงหรือ feature ต้องจบใน Instagram app ส่วน Direct lane จะเปิดเฉพาะ capability ที่ provider และ media delivery contract รองรับครบ และจะ fail closed เมื่อไม่ชัดเจน
       </p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <button type="button" onClick={() => copy(props.caption, "คัดลอกแคปชันแล้ว")} disabled={!props.caption.trim()}
-          className="min-h-11 rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80 hover:bg-white/5 disabled:opacity-40">
+          className="min-h-11 rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">
           คัดลอกแคปชัน
         </button>
-        <button type="button" onClick={prepareMedia} disabled={!props.approvalRecorded || !props.revision || !props.driveOAuthClientId || !orderedReferences.length || mediaState === "running"}
-          className="min-h-11 rounded-xl border border-[#e0c985]/50 px-3 py-2.5 text-sm font-semibold text-[#f4df9b] hover:bg-[#e0c985]/10 disabled:opacity-40">
+        <button type="button" onClick={prepareMedia} disabled={!approvalUsable || !props.revision || !props.driveOAuthClientId || !orderedReferences.length || mediaState === "running"}
+          className="min-h-11 rounded-xl border border-[#e0c985]/50 px-3 py-2.5 text-sm font-semibold text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">
           {mediaState === "running" ? "กำลังตรวจไฟล์…" : "เตรียมไฟล์บนมือถือ"}
         </button>
       </div>
       {!props.driveOAuthClientId ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ยังไม่มี Google Drive OAuth client ID จึงเปิดไฟล์บนอุปกรณ์นี้ไม่ได้</p> : null}
-      {!props.approvalRecorded || !props.revision ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ต้องอนุมัติ revision นี้ก่อน จึงจะเปิดหรือดาวน์โหลดไฟล์ที่ผูกกับ handoff ได้</p> : null}
+      {!approvalUsable || !props.revision ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ต้องมี Human-approved revision ปัจจุบันก่อน จึงจะเปิดหรือดาวน์โหลดไฟล์ที่ผูกกับ handoff ได้</p> : null}
       {!orderedReferences.length ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ยังไม่มีสื่อที่อนุมัติสำหรับ Instagram ชิ้นนี้</p> : null}
 
       {orderedReferences.length ? <ol className="mt-3 space-y-2">{orderedReferences.map((reference, index) => {
         const asset = assets.find((item) => item.assetId === reference.assetId);
         return <li key={`${reference.assetId}:${reference.order ?? index + 1}`} className="rounded-xl border border-white/10 p-3">
-          <div className="text-xs text-white/65">ไฟล์ {index + 1} · {asset?.name ?? reference.mimeType ?? "กำลังรอตรวจ"}</div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/65">
+            <span>ไฟล์ {index + 1} · {asset?.name ?? reference.mimeType ?? "กำลังรอตรวจ"}</span>
+            {reference.thumbnailTimestampMs != null ? <span>Poster @ {(reference.thumbnailTimestampMs / 1_000).toFixed(1)}s</span> : null}
+          </div>
+          {reference.altText ? <p className="mt-2 text-xs leading-5 text-white/45">Alt: {reference.altText}</p> : null}
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => transfer(reference, "inline")} disabled={!props.approvalRecorded || !props.revision} className="min-h-11 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80 hover:bg-white/5 disabled:opacity-40">เปิดสื่อ</button>
-            <button type="button" onClick={() => transfer(reference, "attachment")} disabled={!props.approvalRecorded || !props.revision} className="min-h-11 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80 hover:bg-white/5 disabled:opacity-40">ดาวน์โหลด</button>
+            <button type="button" onClick={() => transfer(reference, "inline")} disabled={!approvalUsable || !props.revision} className="min-h-11 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">เปิดสื่อ</button>
+            <button type="button" onClick={() => transfer(reference, "attachment")} disabled={!approvalUsable || !props.revision} className="min-h-11 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">ดาวน์โหลด</button>
           </div>
         </li>;
       })}</ol> : null}
 
-      {props.format === "reel" ? <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 p-4">
-        <h4 className="text-sm font-semibold text-white/90">ค้นหาเพลงเพื่อเตรียมตัวเลือก</h4>
-        <p className="mt-1 text-xs leading-5 text-white/60">
-          เพลงที่เลือกตรงนี้เป็นข้อมูลอ้างอิงเท่านั้น Mobile handoff ไม่ส่งเพลงเข้า Instagram
-          และไม่สร้าง Native Draft คุณต้องเลือกเพลงอีกครั้งในแอปก่อนโพสต์
-        </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[10rem_1fr_auto]">
-          <select value={audioType} onChange={(event) => setAudioType(event.target.value as typeof audioType)}
-            className="min-h-11 rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white">
-            <option value="music">เพลง</option><option value="original_sound">Original sound</option>
-          </select>
-          <input value={audioQuery} onChange={(event) => setAudioQuery(event.target.value)} maxLength={100} placeholder="ชื่อเพลงหรือศิลปิน"
-            className="min-h-11 rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white placeholder:text-white/35" />
-          <button type="button" onClick={searchAudio} disabled={audioState === "running"}
-            className="min-h-11 rounded-xl border border-white/15 px-4 text-sm text-white/80 disabled:opacity-40">
-            {audioState === "running" ? "กำลังค้นหา…" : "ค้นหา"}
+      {props.format === "reel" ? <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h4 className="text-sm font-semibold text-white/90">Reel Audio</h4>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-white/60">
+              เลือก Original audio, ค้นหาเฉพาะ Audio ที่ Meta API คืนให้บัญชีที่เชื่อมต่อ หรือเลือก Add music later in Instagram ไม่มีการอ้างว่า API เข้าถึง Music Library ทั้งหมด
+            </p>
+          </div>
+          <span className="text-[11px] text-white/40">Draft v{draftVersion} · {configState}</span>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Instagram audio mode">
+          {([
+            ["original", "Original audio", "คงเสียงต้นฉบับของวิดีโอ"],
+            ["instagram-audio", "Search Instagram Audio", "ใช้ audioId ที่ Meta API รองรับ"],
+            ["add-in-app", "Add music later", "จบขั้นตอนเพลงใน Instagram app"],
+          ] as const).map(([mode, label, detail]) => (
+            <button key={mode} type="button" role="radio" aria-checked={audioMode === mode} onClick={() => setAudioMode(mode)}
+              className={`min-h-20 rounded-xl border p-3 text-left focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${audioMode === mode ? "border-[#e0c985]/55 bg-[#e0c985]/[0.08]" : "border-white/10 hover:bg-white/[0.03]"}`}>
+              <span className="block text-sm font-medium text-white/85">{label}</span>
+              <span className="mt-1 block text-xs leading-5 text-white/45">{detail}</span>
+            </button>
+          ))}
+        </div>
+
+        {audioMode === "instagram-audio" ? <div className="mt-4">
+          <div className="grid gap-2 sm:grid-cols-[10rem_1fr_auto]">
+            <select value={audioType} onChange={(event) => setAudioType(event.target.value as typeof audioType)}
+              aria-label="Audio type"
+              className="min-h-11 rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
+              <option value="music">Music</option><option value="original_sound">Original sound</option>
+            </select>
+            <input value={audioQuery} onChange={(event) => setAudioQuery(event.target.value)} maxLength={100} placeholder="ชื่อเพลง ศิลปิน หรือ creator"
+              className="min-h-11 rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[#e0c985]" />
+            <button type="button" onClick={searchAudio} disabled={audioState === "running"}
+              className="min-h-11 rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">
+              {audioState === "running" ? "กำลังค้นหา…" : "ค้นหา"}
+            </button>
+          </div>
+          {audioState === "error" ? <p className="mt-2 text-xs text-rose-200">ค้นหา Audio ไม่ได้ในขณะนี้ เลือก Add music later เพื่อใช้ Mobile Handoff ได้</p> : null}
+          {audioState === "ready" && !audioOptions.length ? <p className="mt-2 text-xs text-white/55">ไม่พบรายการที่ API คืนสำหรับ query นี้</p> : null}
+
+          {audioOptions.length ? <div className="mt-3 grid gap-3 lg:grid-cols-2">{audioOptions.map((option) => {
+            const selected = selectedAudio?.audioId === option.audioId;
+            return <article key={option.audioId} className={`rounded-2xl border p-3 ${selected ? "border-[#e0c985]/55 bg-[#e0c985]/[0.06]" : "border-white/10 bg-white/[0.02]"}`}>
+              <div className="flex gap-3">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
+                  {option.artworkUrl ? <img src={option.artworkUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> : <div className="flex h-full items-center justify-center text-lg text-white/30" aria-hidden="true">♪</div>}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-white/90">{option.title}</div>
+                  <div className="mt-1 truncate text-xs text-white/50">{option.artist ?? option.creator ?? "Creator not returned"}</div>
+                  <div className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-white/35">
+                    <span>{option.audioType === "music" ? "Music" : "Original sound"}</span>
+                    <span>{durationLabel(option.durationMs)}</span>
+                    <span>Available via Meta now</span>
+                  </div>
+                </div>
+              </div>
+              {option.previewUrl ? <audio className="mt-3 h-10 w-full" controls preload="none" src={option.previewUrl}>Audio preview ไม่รองรับใน browser นี้</audio> : <p className="mt-3 text-[11px] text-white/35">Meta ไม่คืน preview/download URL สำหรับรายการนี้</p>}
+              <button type="button" onClick={() => setSelectedAudio(option)} aria-pressed={selected}
+                className={`mt-3 min-h-11 w-full rounded-xl border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${selected ? "border-[#e0c985]/50 text-[#f4df9b]" : "border-white/15 text-white/75 hover:bg-white/5"}`}>
+                {selected ? "Selected" : "Select audio"}
+              </button>
+            </article>;
+          })}</div> : null}
+
+          {selectedAudio ? <div className="mt-3 rounded-xl border border-[#e0c985]/20 bg-[#e0c985]/[0.04] p-3 text-xs text-white/65">
+            Selected: <strong className="font-medium text-white/85">{selectedAudio.title}</strong>{selectedAudio.artist ? ` — ${selectedAudio.artist}` : selectedAudio.creator ? ` — @${selectedAudio.creator}` : ""}. audioId จะถูก revalidate ก่อนบันทึกและต้อง revalidate อีกครั้งก่อน Direct publish
+          </div> : null}
+        </div> : null}
+
+        <fieldset className="mt-4 grid gap-3 sm:grid-cols-2" disabled={configState === "saving"}>
+          <legend className="sr-only">Audio volume configuration</legend>
+          <label className="rounded-xl border border-white/10 p-3 text-xs text-white/60">Audio volume · {audioVolume}%
+            <input type="range" min="0" max="100" step="1" value={audioVolume} onChange={(event) => setAudioVolume(Number(event.target.value))} className="mt-2 w-full" />
+          </label>
+          <label className="rounded-xl border border-white/10 p-3 text-xs text-white/60">Video volume · {videoVolume}%
+            <input type="range" min="0" max="100" step="1" value={videoVolume} onChange={(event) => setVideoVolume(Number(event.target.value))} className="mt-2 w-full" />
+          </label>
+        </fieldset>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-white/45">
+            {audioMode === "add-in-app" ? "Mobile Handoff lane: เลือกเพลงจริงใน Instagram app" : "Direct-capable audio config: ยังต้องมี trusted provider media URL และ provider capability ครบก่อนเปิด final mutation"}
+          </p>
+          <button type="button" onClick={saveAudioConfiguration} disabled={configState === "saving" || !draftRevision || (audioMode === "instagram-audio" && !selectedAudio)}
+            className="min-h-11 shrink-0 rounded-xl border border-[#e0c985]/50 px-4 text-sm font-semibold text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">
+            {configState === "saving" ? "กำลัง revalidate…" : "Save audio configuration"}
           </button>
         </div>
-        {audioState === "error" ? <p className="mt-2 text-xs text-rose-200">ค้นหาเพลงไม่ได้ในขณะนี้ ให้เลือกเพลงโดยตรงใน Instagram</p> : null}
-        {audioState === "ready" && !audioOptions.length ? <p className="mt-2 text-xs text-white/55">ไม่พบรายการที่ตรงกัน</p> : null}
-        {audioOptions.length ? <label className="mt-3 block text-xs text-white/65">ตัวเลือกอ้างอิง
-          <select value={selectedAudioId} onChange={(event) => setSelectedAudioId(event.target.value)}
-            className="mt-1.5 min-h-11 w-full rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white">
-            <option value="">เลือกเพลง</option>
-            {audioOptions.map((option) => <option key={option.audioId} value={option.audioId}>{option.title}{option.artist ? ` — ${option.artist}` : ""}</option>)}
-          </select>
-        </label> : null}
-        {selectedAudio ? <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60">
-          <span>เลือกไว้เป็นอ้างอิง: {selectedAudio.title}{selectedAudio.artist ? ` — ${selectedAudio.artist}` : ""}</span>
-          <button type="button" onClick={() => copy([selectedAudio.title, selectedAudio.artist].filter(Boolean).join(" — "), "คัดลอกชื่อเพลงแล้ว")}
-            className="min-h-11 rounded-xl border border-white/15 px-3 text-white/80">คัดลอกชื่อเพลง</button>
-          {selectedAudio.previewUrl ? <a href={selectedAudio.previewUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-3 text-white/80">ฟังตัวอย่างบน Instagram</a> : null}
-        </div> : null}
       </div> : null}
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80">เปิด Instagram</a>
-        <a href="https://business.facebook.com/latest/home" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80">เปิด Meta Business Suite</a>
+        <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">เปิด Instagram</a>
+        <a href="https://business.facebook.com/latest/home" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">เปิด Meta Business Suite</a>
       </div>
-      {notice ? <p role="status" className="mt-3 text-xs leading-5 text-[#9ef0ce]">{notice}</p> : null}
+      {notice ? <p role="status" aria-live="polite" className="mt-3 text-xs leading-5 text-[#9ef0ce]">{notice}</p> : null}
     </section>
   );
 }

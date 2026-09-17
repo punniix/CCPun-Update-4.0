@@ -72,7 +72,9 @@ test("Post-Live preview route is authenticated, exact-origin and GET-only", () =
   const route = read("app/api/admin/social/analytics/post-live/route.ts");
   const page = read("features/admin/social/post-live-page.tsx");
   const entry = read("app/(control-plane)/analytics/social/post-live/page.tsx");
-  const operations = read("features/admin/social/operations-page.tsx");
+  const analytics = read("features/admin/social/analytics-page.tsx");
+  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const queue = read("features/admin/social/operations-page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
   assert.match(route, /isConfiguredAdminOrigin\(request\.url, process\.env\.AUTH_URL\)/);
@@ -84,7 +86,9 @@ test("Post-Live preview route is authenticated, exact-origin and GET-only", () =
   assert.match(page, /runtime\.environment === "production-admin"/);
   assert.match(page, /Real-time polling, background sync/);
   assert.equal(entry.trim(), 'export { metadata, default } from "@/features/admin/social/post-live-page";');
-  assert.match(operations, /showDeferredConnections \? <Link href="\/analytics\/social\/post-live\/"/);
+  assert.match(analytics, /SOCIAL · MARKETING INTELLIGENCE/);
+  assert.match(layout, /href: "\/analytics\/social\/", label: "Social"/);
+  assert.doesNotMatch(queue, /\/analytics\/social\/post-live\//);
 });
 
 test("Post-Live ingestion normalizes historical provider evidence without enabling provider calls", () => {
