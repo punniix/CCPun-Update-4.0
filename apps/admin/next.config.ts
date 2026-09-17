@@ -1,52 +1,35 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { withWorkflow } from "workflow/next";
-import { IS_ADMIN_APPLICATION, IS_REVIEW_ENVIRONMENT } from "../../lib/deployment-environment";
 import { SECURITY_HEADERS } from "../../lib/security-policy";
 import { getAdminEnvironment, isSanityLaneAllowed } from "../../lib/admin/environment";
 
-const REVIEW_HEADERS = IS_REVIEW_ENVIRONMENT
-  ? [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]
-  : [];
 const PRIVATE_SURFACE_ROBOTS_HEADERS = [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }];
 const PRIVATE_ADMIN_API_HEADERS = [
   ...PRIVATE_SURFACE_ROBOTS_HEADERS,
   { key: "Cache-Control", value: "private, no-cache, no-store, max-age=0, must-revalidate" },
 ];
-const ADMIN_PRIVATE_PAGE_SOURCES = [
-  "/login/:path*",
-  "/dashboard/:path*",
-  "/content/:path*",
-  "/seo/:path*",
-  "/social/:path*",
-  "/analytics/:path*",
-  "/operations/:path*",
-  "/settings/:path*",
-];
-const ADMIN_PROTECTED_PREVIEW_SOURCES = IS_ADMIN_APPLICATION ? ["/blog/:path*"] : [];
-
+const ADMIN_ENVIRONMENT = getAdminEnvironment();
 const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
-const APP_ENVIRONMENT = getAdminEnvironment();
-const SANITY_LANE_ALLOWED = isSanityLaneAllowed(SANITY_DATASET, APP_ENVIRONMENT);
+const SANITY_LANE_ALLOWED = isSanityLaneAllowed(SANITY_DATASET, ADMIN_ENVIRONMENT);
 const USE_REAL_DRAFT_PREVIEW_RUNTIME = [
   "development",
   "local-uat",
   "local-production",
   "admin-uat",
   "production-admin",
-].includes(APP_ENVIRONMENT);
-const LOCAL_DIST_DIR = APP_ENVIRONMENT === "local-uat"
+].includes(ADMIN_ENVIRONMENT);
+const LOCAL_DIST_DIR = ADMIN_ENVIRONMENT === "local-uat"
   ? ".ccpun-local/next-uat"
-  : APP_ENVIRONMENT === "local-production"
+  : ADMIN_ENVIRONMENT === "local-production"
     ? ".ccpun-local/next-production"
     : ".next";
 
 const nextConfig: NextConfig = {
-  // ponytail: separate build state lets both fixed local lanes run at once.
   distDir: LOCAL_DIST_DIR,
   env: {
-    NEXT_PUBLIC_CCPUN_APP_ENV: APP_ENVIRONMENT === "unknown" ? "" : APP_ENVIRONMENT,
+    NEXT_PUBLIC_CCPUN_APP_ENV: ADMIN_ENVIRONMENT === "unknown" ? "" : ADMIN_ENVIRONMENT,
     NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID?.trim() ?? "",
     NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID:
       process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim() ?? "",
@@ -95,24 +78,9 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
-  async redirects() {
-    return [
-      {
-        source: "/living-benefits/:path*",
-        destination: "/ci-planning/",
-        permanent: true,
-      },
-      {
-        source: "/tools/fhc/:path*",
-        destination: "/tools/financial-health-check/",
-        permanent: true,
-      },
-    ];
-  },
   async rewrites() {
     return {
       beforeFiles: [
-        // ponytail: one method-preserving adapter keeps delayed jobs and OAuth callbacks alive during migration.
         { source: "/api/snt-admin/:path*", destination: "/api/admin/:path*" },
       ],
     };
@@ -121,23 +89,11 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: [...SECURITY_HEADERS, ...REVIEW_HEADERS],
+        headers: [...SECURITY_HEADERS, ...PRIVATE_SURFACE_ROBOTS_HEADERS],
       },
       {
-        source: "/snt-admin/:path*",
-        headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
-      },
-      ...ADMIN_PRIVATE_PAGE_SOURCES.map((source) => ({
-        source,
-        headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
-      })),
-      ...ADMIN_PROTECTED_PREVIEW_SOURCES.map((source) => ({
-        source,
+        source: "/blog/:path*",
         headers: PRIVATE_ADMIN_API_HEADERS,
-      })),
-      {
-        source: "/studio/:path*",
-        headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
       },
       {
         source: "/api/admin/:path*",

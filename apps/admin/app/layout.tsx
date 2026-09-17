@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { Kanit } from "next/font/google";
 import "./globals.css";
-import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
-import ClientWidgets from "@/features/analytics/components/ClientWidgets";
 import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
-import { IS_ADMIN_APPLICATION, IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT, PRODUCTION_ANALYTICS_ENABLED } from "@/lib/deployment-environment";
+import { getAdminEnvironment, isAdminReadDataPlaneAllowed } from "@/lib/admin/environment";
 
-const GA_ID = PRODUCTION_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID ?? "") : "";
-const META_PIXEL_ID = PRODUCTION_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "") : "";
-const GTM_ID = PRODUCTION_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : "";
+const ADMIN_ENVIRONMENT = getAdminEnvironment();
+const DRAFT_PREVIEW_ALLOWED = isAdminReadDataPlaneAllowed(
+  process.env.NEXT_PUBLIC_SANITY_DATASET,
+  ADMIN_ENVIRONMENT,
+);
 const kanit = Kanit({
   subsets: ["thai", "latin"],
   weight: ["300", "400", "600", "700"],
@@ -27,31 +27,11 @@ const kanitCritical = Kanit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(IS_ADMIN_APPLICATION ? "https://admin.ccpun.com" : "https://ccpun.com"),
-  title: IS_ADMIN_APPLICATION ? "CCPun Control Plane" : "CCPun | ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
-  description: IS_ADMIN_APPLICATION ? "พื้นที่ควบคุมภายในของ CCPun" : "ไม่แน่ใจว่าควรลงทุนหรือทำประกันแบบไหน? CCPun ที่ปรึกษาทางการเงิน ช่วยดูเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี ก่อนค่อยเลือกทางที่เหมาะกับชีวิตคุณ",
-  keywords: IS_ADMIN_APPLICATION ? undefined : ["ที่ปรึกษาการเงิน", "กองทุนรวม", "ประกันชีวิต", "วางแผนภาษี", "RMF", "SSF", "ThaiESG", "AIA", "Finnomena", "PhillipCapital"],
-  authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)", url: "https://ccpun.com" }],
-  openGraph: IS_ADMIN_APPLICATION ? null : {
-    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
-    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
-    url: "https://ccpun.com",
-    siteName: "CCPun Financial Advisor",
-    images: [{ url: "https://ccpun.com/og-image-20260610.webp?v=68ae8d8", width: 1200, height: 630, alt: "CCPun ที่ปรึกษาการเงิน" }],
-    locale: "th_TH",
-    type: "website",
-  },
-  twitter: IS_ADMIN_APPLICATION ? null : {
-    card: "summary_large_image",
-    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
-    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
-    images: ["https://ccpun.com/og-image-20260610.webp?v=68ae8d8"],
-  },
-  alternates: IS_ADMIN_APPLICATION ? { canonical: null } : {
-    canonical: "https://ccpun.com/",
-    languages: { "th-TH": "https://ccpun.com/", "x-default": "https://ccpun.com/" },
-  },
-  robots: IS_ADMIN_APPLICATION || IS_REVIEW_ENVIRONMENT ? { index: false, follow: false, nocache: true } : undefined,
+  metadataBase: new URL("https://admin.ccpun.com"),
+  title: "CCPun Control Plane",
+  description: "พื้นที่ควบคุมภายในของ CCPun",
+  alternates: { canonical: null },
+  robots: { index: false, follow: false, nocache: true },
   icons: {
     icon: { url: "/favicon.png", type: "image/png" },
     apple: "/favicon.png",
@@ -59,28 +39,23 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Public web production does not expose Draft Preview. Avoid touching Draft
-  // Mode there so the static public shell stays independent from preview-only
-  // request state. Import the entire preview boundary only after the deployment
-  // gate passes so its client references never enter the public root graph.
-  const isDraftMode = IS_DRAFT_PREVIEW_ALLOWED ? (await draftMode()).isEnabled : false;
+  const isDraftMode = DRAFT_PREVIEW_ALLOWED ? (await draftMode()).isEnabled : false;
   let draftPreviewRuntime: React.ReactNode = null;
 
-  if (IS_DRAFT_PREVIEW_ALLOWED) {
+  if (DRAFT_PREVIEW_ALLOWED) {
     const { default: DraftPreviewRuntime } = await import("@/components/preview/DraftPreviewRuntime");
     draftPreviewRuntime = (
-      <DraftPreviewRuntime enabled={IS_DRAFT_PREVIEW_ALLOWED} isDraftMode={isDraftMode} />
+      <DraftPreviewRuntime enabled={DRAFT_PREVIEW_ALLOWED} isDraftMode={isDraftMode} />
     );
   }
 
   return (
     <html lang="th" className={`${kanit.variable} ${kanitCritical.variable}`} suppressHydrationWarning>
       <head>
-        {IS_REVIEW_ENVIRONMENT ? <meta name="darkreader-lock" /> : null}
+        <meta name="darkreader-lock" />
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         <Website43ResponsiveStyles />
-        {/* Critical hero CSS — inlined to unblock above-the-fold render */}
         <style dangerouslySetInnerHTML={{ __html: `
           :root{color-scheme:dark;--background:0 15% 18%;--foreground:0 10% 98%;--primary:45 60% 70%;--primary-foreground:0 15% 12%;--muted-foreground:0 10% 70%;--border:0 12% 32%;--radius:1rem;}
           body{background-color:hsl(0 15% 18%);color:hsl(0 10% 98%);font-family:'Kanit',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;}
@@ -100,14 +75,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           @keyframes scroll-breath{0%,100%{transform:translateX(-50%) translateY(0);opacity:1}50%{transform:translateX(-50%) translateY(6px);opacity:.62}}
           @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-badge,.hero-heading,.hero-subtitle,.hero-cta,.scroll-indicator{animation:none!important}}
         ` }} />
-        {!IS_ADMIN_APPLICATION ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ccpunSchemaGraph) }} /> : null}
       </head>
       <body className="antialiased font-sans">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:p-2 focus:bg-background focus:text-foreground focus:rounded focus:border focus:border-primary/50">
           ข้ามไปเนื้อหาหลัก
         </a>
         {children}
-        {!IS_ADMIN_APPLICATION ? <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} /> : null}
         {draftPreviewRuntime}
       </body>
     </html>

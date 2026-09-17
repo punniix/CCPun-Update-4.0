@@ -14,7 +14,6 @@ concurrency:
 
 jobs:
   web-shadow:
-    if: github.event_name != 'pull_request' || github.head_ref == 'architecture/vercel-monorepo-isolation-20260917'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -24,6 +23,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Verify app-root Vercel config
+        run: node --test tests/vercel-app-root-config.test.mjs
       - name: Typecheck Web shadow
         run: npm run typecheck:web:shadow
       - name: Build Web shadow
@@ -36,7 +37,6 @@ jobs:
           VERCEL_ENV: preview
 
   admin-shadow:
-    if: github.event_name != 'pull_request' || github.head_ref == 'architecture/vercel-monorepo-isolation-20260917'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

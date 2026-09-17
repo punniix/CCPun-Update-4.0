@@ -2,15 +2,15 @@ import "server-only";
 
 import { createClient, groq } from "next-sanity";
 import { z } from "zod";
-import { isSanityLaneAllowed } from "@/lib/admin/environment";
-import { getAdminSanityReadToken } from "@/lib/admin/sanity-credentials";
+import { getSanityReadToken } from "@/lib/content/sanity-credentials";
+import { isContentSanityLaneAllowed } from "@/lib/content/sanity-lane";
 import { resolveContentLastmod } from "@/lib/sitemap/google";
 import type { Article } from "./types";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
-const token = getAdminSanityReadToken();
-const hasSanityConfig = Boolean(projectId && dataset && isSanityLaneAllowed(dataset));
+const token = getSanityReadToken();
+const hasSanityConfig = Boolean(projectId && dataset && isContentSanityLaneAllowed(projectId, dataset));
 const isDeployedProduction = process.env.VERCEL_ENV === "production";
 
 const client = hasSanityConfig

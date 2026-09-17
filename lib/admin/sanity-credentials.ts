@@ -1,12 +1,10 @@
 import "server-only";
 
+import { getSanityReadToken } from "../content/sanity-credentials";
 import { getAdminEnvironment, isLocalProductionDraftWriteEnabled } from "./environment";
 
 export function getAdminSanityReadToken(): string | undefined {
-  const value = getAdminEnvironment() === "local-production"
-    ? process.env.SANITY_PRODUCTION_API_READ_TOKEN
-    : process.env.SANITY_API_READ_TOKEN;
-  return value?.trim() || undefined;
+  return getSanityReadToken();
 }
 
 export function getAdminSanityWriteToken(): string | undefined {

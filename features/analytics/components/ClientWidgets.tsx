@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { isAdminPagePath } from '@/lib/admin/routes';
+import { isAdminPagePath } from '@/lib/routing/private-surfaces';
 
 const CookieConsent = dynamic(() => import('@/features/analytics/components/CookieConsent'), { ssr: false });
 const GoogleAnalytics = dynamic(() => import('@/features/analytics/components/GoogleAnalytics'), { ssr: false });

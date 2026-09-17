@@ -1,3 +1,5 @@
+import { isPrivateSurfacePath } from "@/lib/routing/private-surfaces";
+
 export type AiCrawlerCategory = "ai_assistant" | "ai_search" | "ai_crawler";
 
 export interface AiCrawlerDefinition {
@@ -64,7 +66,7 @@ export function classifyAiCrawler(userAgent: string | null | undefined): AiCrawl
 
 export function isTrackablePublicPath(pathname: string): boolean {
   if (!pathname.startsWith("/")) return false;
-  if (pathname === "/api" || pathname === "/studio" || isAdminPagePath(pathname)) return false;
+  if (pathname === "/api" || isPrivateSurfacePath(pathname)) return false;
   if (EXCLUDED_PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false;
   return !EXCLUDED_ASSET_EXTENSION.test(pathname);
 }
@@ -118,4 +120,3 @@ export function observeAiCrawlerRequest(
   write(`[AI_CRAWL] ${JSON.stringify(event)}`);
   return event;
 }
-import { isAdminPagePath } from "@/lib/admin/routes";
