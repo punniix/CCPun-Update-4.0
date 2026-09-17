@@ -248,11 +248,10 @@ export async function rescheduleSocialPublication(input: {
          AND publication.platform_object_id IS NULL AND job.attempt_count=0
          AND publication.status IN ('approved','failed','cancelled','superseded')
          AND job.status IN ('queued','failed','cancelled')
-       ORDER BY job.created_at DESC,id DESC LIMIT 1 FOR UPDATE OF publication,job
+       ORDER BY job.created_at DESC,job.id DESC LIMIT 1 FOR UPDATE OF publication,job
      ), amended_publication AS (
        UPDATE ccpun_social.social_publication
-       SET status='approved',scheduled_at=$3::timestamptz,approved_by_actor_ref=$4,
-         approved_at=$5::timestamptz,approval_request_ref=$6,platform_object_id=NULL,published_at=NULL,updated_at=now()
+       SET status='approved',scheduled_at=$3::timestamptz,platform_object_id=NULL,published_at=NULL,updated_at=now()
        WHERE id=(SELECT publication_id FROM eligible) RETURNING id,status,scheduled_at
      ), amended_job AS (
        UPDATE ccpun_social.social_publication_job
@@ -263,7 +262,7 @@ export async function rescheduleSocialPublication(input: {
      ), audit AS (
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
-       SELECT $7,'human',$4,'publication:reschedule','publication',$1,$6,'succeeded'
+       SELECT $6,'human',$4,'publication:reschedule','publication',$1,$5,'succeeded'
        FROM amended_publication CROSS JOIN amended_job ON CONFLICT (id) DO NOTHING RETURNING id
      )
      SELECT amended_publication.id AS publication_id,amended_publication.status AS publication_status,
@@ -271,7 +270,7 @@ export async function rescheduleSocialPublication(input: {
        amended_job.version AS job_version
      FROM amended_publication CROSS JOIN amended_job
      WHERE EXISTS (SELECT 1 FROM audit)`,
-    [mutation.publicationId, mutation.expectedJobVersion, mutation.scheduledAt, actorRef, now.toISOString(), mutation.idempotencyKey, auditId],
+    [mutation.publicationId, mutation.expectedJobVersion, mutation.scheduledAt, actorRef, mutation.idempotencyKey, auditId],
   ));
   const row = rows[0];
   if (!row) {
@@ -309,7 +308,7 @@ export async function cancelSocialPublication(input: {
          AND publication.platform_object_id IS NULL AND job.attempt_count=0
          AND publication.status IN ('approved','failed','cancelled','superseded')
          AND job.status IN ('queued','failed','cancelled')
-       ORDER BY job.created_at DESC,id DESC LIMIT 1 FOR UPDATE OF publication,job
+       ORDER BY job.created_at DESC,job.id DESC LIMIT 1 FOR UPDATE OF publication,job
      ), cancelled_publication AS (
        UPDATE ccpun_social.social_publication SET status='cancelled',updated_at=now()
        WHERE id=(SELECT publication_id FROM eligible) RETURNING id,status,scheduled_at
