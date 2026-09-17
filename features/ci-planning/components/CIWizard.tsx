@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import HumanCalculatorCard from '@/components/ui/HumanCalculatorCard';
 import { trackEvent } from '@/lib/analytics';
 import { calculateCI } from '@/features/ci-planning/calculator/calculator';
@@ -15,18 +16,27 @@ import StepExpenses from './steps/StepExpenses';
 const TOTAL_STEPS = 2;
 const STEP_SECTION_KEYS: Array<'expenses' | 'existingCI'> = ['expenses', 'existingCI'];
 const CALCULATION_RANGE_ERROR = 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง';
+const STEP_OUT_MS = 100;
+const STEP_IN_MS = 140;
+type MotionPhase = 'idle' | 'out' | 'in';
 
 export default function CIWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<CIFormData>(INITIAL_CI_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<CIResult | null>(null);
+  const [motionPhase, setMotionPhase] = useState<MotionPhase>('idle');
   const hasStartedRef = useRef(false);
   const hasCompletedRef = useRef(false);
   const trackedStepsRef = useRef(new Set<number>());
   const startedAtRef = useRef<number | null>(null);
   const stepRef = useRef<HTMLDivElement>(null);
   const previousViewRef = useRef('0:form');
+  const motionTimersRef = useRef<number[]>([]);
+
+  useEffect(() => () => {
+    motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+  }, []);
 
   useEffect(() => {
     const view = `${currentStep}:${result ? 'result' : 'form'}`;
@@ -81,7 +91,24 @@ export default function CIWizard() {
     });
   };
 
+  const runStepTransition = (commit: () => void) => {
+    if (motionPhase !== 'idle') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      commit();
+      return;
+    }
+    setMotionPhase('out');
+    const outTimer = window.setTimeout(() => {
+      commit();
+      setMotionPhase('in');
+      const inTimer = window.setTimeout(() => setMotionPhase('idle'), STEP_IN_MS);
+      motionTimersRef.current.push(inTimer);
+    }, STEP_OUT_MS);
+    motionTimersRef.current.push(outTimer);
+  };
+
   const handleNext = () => {
+    if (motionPhase !== 'idle') return;
     const sectionKey = STEP_SECTION_KEYS[currentStep];
     const stepErrors = validateCIStep(currentStep, formData[sectionKey] as unknown as Record<string, unknown>);
     if (Object.keys(stepErrors).length > 0) {
@@ -101,15 +128,19 @@ export default function CIWizard() {
       return;
     }
     const nextStep = currentStep + 1;
-    setErrors({});
-    setCurrentStep(nextStep);
-    trackStepView(nextStep + 1);
+    runStepTransition(() => {
+      setErrors({});
+      setCurrentStep(nextStep);
+      trackStepView(nextStep + 1);
+    });
   };
 
   const handlePrev = () => {
-    if (currentStep === 0) return;
-    setErrors({});
-    setCurrentStep((step) => step - 1);
+    if (currentStep === 0 || motionPhase !== 'idle') return;
+    runStepTransition(() => {
+      setErrors({});
+      setCurrentStep((step) => step - 1);
+    });
   };
   const handleEditData = () => { setResult(null); setCurrentStep(0); setErrors({}); };
   const handleReset = () => {
@@ -127,12 +158,12 @@ export default function CIWizard() {
 
   const stepProps = { data: formData, updateData, errors };
   const footer = <div className="flex items-center gap-3">
-    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label="ย้อนกลับ" className="glass-button inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" /><span>ย้อนกลับ</span></button> : <span className="flex-1" />}
-    <button type="submit" className="gold-button ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44"><span>{currentStep === TOTAL_STEPS - 1 ? 'ดูผลคำนวณ' : 'ถัดไป'}</span>{currentStep === TOTAL_STEPS - 1 ? <BarChart3 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label="ย้อนกลับ" className={`glass-button inline-flex min-h-11 items-center gap-2 px-4 ${functionalMotion.tactileButton}`}><ChevronLeft className="h-4 w-4" /><span>ย้อนกลับ</span></button> : <span className="flex-1" />}
+    <button type="submit" className={`gold-button ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44 ${functionalMotion.tactileButton}`}><span>{currentStep === TOTAL_STEPS - 1 ? 'ดูผลคำนวณ' : 'ถัดไป'}</span>{currentStep === TOTAL_STEPS - 1 ? <BarChart3 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
   </div>;
 
   return <form noValidate onSubmit={(event) => { event.preventDefault(); handleNext(); }}>
-    <div ref={stepRef}>
+    <div ref={stepRef} className={functionalMotion.stepView} data-motion-phase={motionPhase}>
       <HumanCalculatorCard
         step={currentStep + 1}
         total={TOTAL_STEPS}
@@ -141,7 +172,7 @@ export default function CIWizard() {
         description={currentStep === 0 ? 'เริ่มจาก 3 ข้อมูลหลัก แล้วค่อยเปิดรายละเอียดค่าเรียนหรือหนี้เมื่อมี' : 'กรอกเฉพาะเงินที่ตั้งใจนำมาใช้ในแผนนี้'}
         footer={footer}
       >
-        {errors.calculation ? <p id="ci-calculation-error" role="alert" tabIndex={-1} className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.calculation}</p> : null}
+        {errors.calculation ? <p id="ci-calculation-error" role="alert" tabIndex={-1} className={`rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${functionalMotion.validationFeedback}`}>{errors.calculation}</p> : null}
         {currentStep === 0 ? <StepExpenses {...stepProps} /> : <StepExistingCI {...stepProps} />}
       </HumanCalculatorCard>
     </div>
