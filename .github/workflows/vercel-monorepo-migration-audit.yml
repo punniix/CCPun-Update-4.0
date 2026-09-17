@@ -2,7 +2,7 @@ name: CCPun Vercel Monorepo Migration Audit
 
 on:
   push:
-    branches: [architecture/vercel-monorepo-isolation-20260917]
+    branches: [architecture/vercel-runtime-cutover-20260917]
   workflow_dispatch:
 
 permissions:
