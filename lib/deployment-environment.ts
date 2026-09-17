@@ -24,16 +24,20 @@ const ADMIN_PROJECT_ALLOWED =
     && DEPLOYMENT_PROJECT_ID === CONTENT_VERCEL_PROJECT_IDS.admin
     && PRODUCTION_ADMIN_PROJECT_ID === CONTENT_VERCEL_PROJECT_IDS.admin);
 
-export const IS_DRAFT_PREVIEW_ALLOWED = Boolean(
-  IS_ADMIN_APPLICATION &&
-  ADMIN_PROJECT_ALLOWED &&
-  isContentSanityLaneAllowed(
-    process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-    process.env.NEXT_PUBLIC_SANITY_DATASET,
-    APP_ENVIRONMENT,
-    DEPLOYMENT_PROJECT_ID,
-  ),
-);
+function isAdminReadDataPlaneAllowed(dataset = process.env.NEXT_PUBLIC_SANITY_DATASET): boolean {
+  return Boolean(
+    IS_ADMIN_APPLICATION &&
+    ADMIN_PROJECT_ALLOWED &&
+    isContentSanityLaneAllowed(
+      process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+      dataset,
+      APP_ENVIRONMENT,
+      DEPLOYMENT_PROJECT_ID,
+    ),
+  );
+}
+
+export const IS_DRAFT_PREVIEW_ALLOWED = isAdminReadDataPlaneAllowed();
 
 export const PRODUCTION_ANALYTICS_ENABLED =
   process.env.VERCEL_ENV === "production" &&
