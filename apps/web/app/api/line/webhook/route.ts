@@ -4,7 +4,7 @@ import {
   lineWebhookResponseHeaders,
   parseLineWebhookEnvelope,
   verifyLineWebhookSignature,
-} from "../../../lib/line/webhook-ingress";
+} from "../../../../lib/line/webhook-ingress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
