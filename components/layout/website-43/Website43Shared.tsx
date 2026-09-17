@@ -41,6 +41,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
               <strong>เครื่องมือ</strong>
               <Link href={`${BASE}/tools/financial-health-check`}>Financial Health Check</Link>
               <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+              <Link href={`${BASE}/tools/investment-allocation`}>Investment Allocation (UAT)</Link>
             </div>
             <div className={styles.footerColumn}>
               <strong>ข้อมูล</strong>
@@ -65,7 +66,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
             {warnings ? <Website43Brand /> : null}
             <p>วางแผนการเงินจากชีวิตจริง เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</p>
             <nav aria-label="เมนูส่วนท้าย">
-              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/tools/financial-health-check`}>FHC</Link> · <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/tools/financial-health-check`}>FHC</Link> · <Link href={`${BASE}/ci-planning`}>CI Planning</Link> · <Link href={`${BASE}/tools/investment-allocation`}>Investment Allocation</Link>
             </nav>
             <nav aria-label="นโยบาย">
               <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
