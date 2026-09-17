@@ -92,7 +92,10 @@ export default function CIWizard() {
 
   const runStepTransition = (commit: () => void) => {
     if (motionPhase !== 'idle') return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const motionPreference = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+    if (!motionPreference || motionPreference.matches) {
       commit();
       return;
     }
