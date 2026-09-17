@@ -44,10 +44,19 @@ const requiredGlobalImports = [
   '@import "../components/styles/public-motion.css";',
   '@import "../features/financial-health-check/styles/print.css";',
 ];
+const requiredTailwindSources = [
+  '@source "../components";',
+  '@source "../features";',
+];
 
 for (const requiredImport of requiredGlobalImports) {
   if (!globalsSource.includes(requiredImport)) {
     throw new Error(`app/globals.css must keep explicit style ownership import: ${requiredImport}`);
+  }
+}
+for (const requiredSource of requiredTailwindSources) {
+  if (!globalsSource.includes(requiredSource)) {
+    throw new Error(`app/globals.css must keep shared Tailwind source coverage: ${requiredSource}`);
   }
 }
 if (trackedFileSet.has('app/components.css') || globalsSource.includes('./components.css')) {
