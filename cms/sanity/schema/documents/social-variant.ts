@@ -91,6 +91,28 @@ export const socialVariant = defineType({
           defineField({ name: "widthPx", title: "Width", type: "number", readOnly: true }),
           defineField({ name: "heightPx", title: "Height", type: "number", readOnly: true }),
           defineField({ name: "durationMs", title: "Duration", type: "number", readOnly: true }),
+          defineField({
+            name: "altText",
+            title: "Alt Text",
+            description: "คำอธิบายสื่อสำหรับ accessibility; ไม่แทน Caption",
+            type: "text",
+            rows: 2,
+            validation: (Rule) => Rule.max(2000),
+          }),
+          defineField({
+            name: "thumbnailTimestampMs",
+            title: "Thumbnail Timestamp (ms)",
+            description: "ตำแหน่งเฟรม poster/cover ของวิดีโอ โดยต้องอยู่ภายใน duration",
+            type: "number",
+            hidden: ({ parent }) => (parent as { mimeType?: string } | undefined)?.mimeType !== "video/mp4",
+            validation: (Rule) => Rule.integer().min(0).max(86_400_000).custom((value, context) => {
+              if (value === undefined || value === null) return true;
+              const parent = context.parent as { mimeType?: string; durationMs?: number } | undefined;
+              if (parent?.mimeType !== "video/mp4") return "Thumbnail timestamp ใช้ได้กับวิดีโอเท่านั้น";
+              if (!parent.durationMs) return "ต้องมี duration ของวิดีโอก่อนเลือก thumbnail timestamp";
+              return value < parent.durationMs ? true : "Thumbnail timestamp ต้องอยู่ภายใน duration ของวิดีโอ";
+            }),
+          }),
         ],
       })],
     }),
