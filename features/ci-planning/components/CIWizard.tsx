@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
-import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import HumanCalculatorCard from '@/components/ui/HumanCalculatorCard';
 import { trackEvent } from '@/lib/analytics';
 import { calculateCI } from '@/features/ci-planning/calculator/calculator';
@@ -158,12 +157,12 @@ export default function CIWizard() {
 
   const stepProps = { data: formData, updateData, errors };
   const footer = <div className="flex items-center gap-3">
-    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label="ย้อนกลับ" className={`glass-button inline-flex min-h-11 items-center gap-2 px-4 ${functionalMotion.tactileButton}`}><ChevronLeft className="h-4 w-4" /><span>ย้อนกลับ</span></button> : <span className="flex-1" />}
-    <button type="submit" className={`gold-button ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44 ${functionalMotion.tactileButton}`}><span>{currentStep === TOTAL_STEPS - 1 ? 'ดูผลคำนวณ' : 'ถัดไป'}</span>{currentStep === TOTAL_STEPS - 1 ? <BarChart3 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label="ย้อนกลับ" className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" /><span>ย้อนกลับ</span></button> : <span className="flex-1" />}
+    <button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44"><span>{currentStep === TOTAL_STEPS - 1 ? 'ดูผลคำนวณ' : 'ถัดไป'}</span>{currentStep === TOTAL_STEPS - 1 ? <BarChart3 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
   </div>;
 
   return <form noValidate onSubmit={(event) => { event.preventDefault(); handleNext(); }}>
-    <div ref={stepRef} className={functionalMotion.stepView} data-motion-phase={motionPhase}>
+    <div ref={stepRef} className="ccpun-motion-step-view" data-motion-phase={motionPhase}>
       <HumanCalculatorCard
         step={currentStep + 1}
         total={TOTAL_STEPS}
@@ -172,7 +171,7 @@ export default function CIWizard() {
         description={currentStep === 0 ? 'เริ่มจาก 3 ข้อมูลหลัก แล้วค่อยเปิดรายละเอียดค่าเรียนหรือหนี้เมื่อมี' : 'กรอกเฉพาะเงินที่ตั้งใจนำมาใช้ในแผนนี้'}
         footer={footer}
       >
-        {errors.calculation ? <p id="ci-calculation-error" role="alert" tabIndex={-1} className={`rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${functionalMotion.validationFeedback}`}>{errors.calculation}</p> : null}
+        {errors.calculation ? <p id="ci-calculation-error" role="alert" tabIndex={-1} className="ccpun-motion-validation rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.calculation}</p> : null}
         {currentStep === 0 ? <StepExpenses {...stepProps} /> : <StepExistingCI {...stepProps} />}
       </HumanCalculatorCard>
     </div>
