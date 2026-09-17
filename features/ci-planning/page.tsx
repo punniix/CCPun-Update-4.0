@@ -80,8 +80,8 @@ const CI_FAQS = [
 ] as const;
 
 const faqSchema = {
+  "@type": "FAQPage",
   '@context': 'https://schema.org',
-  '@type': 'FAQPage',
   mainEntity: CI_FAQS.map((faq) => ({
     '@type': 'Question',
     name: faq.question,
