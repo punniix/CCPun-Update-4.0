@@ -7,8 +7,8 @@ import LifeCoverageWizard from './LifeCoverageWizard';
 
 export default function ClientFHC() {
   return (
-    <div className={`${styles.root} ${functionalMotion.scope}`}>
-      <main id="main-content" tabIndex={-1}>
+    <div className={styles.root}>
+      <main id="main-content" tabIndex={-1} className={functionalMotion.scope}>
         <Website43ToolHero
           image="/assets/website-43/fhc-hero.png"
           badge="Financial Health Check · โมดูลความคุ้มครองชีวิต"
