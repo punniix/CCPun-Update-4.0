@@ -20,6 +20,7 @@ const toolHero = read('components/layout/website-43/Website43ToolHero.tsx');
 
 const revealBlock = css.match(/@supports \(animation-timeline: view\(\)\) \{[\s\S]*?\n\}\n\n@media \(hover: hover\)/)?.[0] ?? '';
 const functionalSources = [functionalCss, fhcWizard, ciWizard, ciResult, calculatorCard, currencyInput, toolHero];
+const calculatorClientSources = [fhcWizard, ciWizard, ciResult, currencyInput];
 
 test('public motion stays CSS-driven and adds no motion library or hydration boundary', () => {
   assert.equal(existsSync('components/layout/website-43/Website43MotionBoundary.tsx'), false);
@@ -52,39 +53,50 @@ test('card hover motion stays restrained and does not resize layout', () => {
 });
 
 test('functional button press feedback is tactile and restrained', () => {
-  assert.match(functionalCss, /\.tactileButton \{[\s\S]*?scale: 1;[\s\S]*?scale \.12s cubic-bezier\(\.2, 0, 0, 1\)/);
-  assert.match(functionalCss, /\.tactileButton:not\(:disabled\):active \{\s*scale: \.98;/);
-  assert.match(toolHero, /functionalMotion\.tactileButton/);
-  assert.match(fhcWizard, /functionalMotion\.tactileButton/);
-  assert.match(ciWizard, /functionalMotion\.tactileButton/);
+  assert.match(functionalCss, /ccpun-motion-tactile[\s\S]*?scale: 1;[\s\S]*?scale \.12s cubic-bezier\(\.2, 0, 0, 1\)/);
+  assert.match(functionalCss, /ccpun-motion-tactile:not\(:disabled\):active[\s\S]*?scale: \.98;/);
+  assert.match(toolHero, /ccpun-motion-tactile/);
+  assert.match(fhcWizard, /ccpun-motion-tactile/);
+  assert.match(ciWizard, /ccpun-motion-tactile/);
 });
 
 test('calculator step and result motion use the restrained motion DNA', () => {
   assert.match(functionalCss, /calculatorStepIn[\s\S]*?opacity: \.92; translate: 0 6px;/);
-  assert.match(functionalCss, /\.stepView\[data-motion-phase='out'\][\s\S]*?opacity: \.92;[\s\S]*?translate: 0 -4px;/);
+  assert.match(functionalCss, /ccpun-motion-step-view\[data-motion-phase='out'\][\s\S]*?opacity: \.92;[\s\S]*?translate: 0 -4px;/);
   assert.match(functionalCss, /opacity \.1s cubic-bezier\(\.2, 0, 0, 1\)/);
   assert.match(functionalCss, /animation: calculatorStepIn \.14s cubic-bezier\(\.2, 0, 0, 1\) both/);
   assert.match(functionalCss, /calculatorResultIn[\s\S]*?opacity: \.9; translate: 0 6px;/);
   assert.match(functionalCss, /animation: calculatorResultIn \.22s cubic-bezier\(\.2, 0, 0, 1\) both/);
   for (const source of [fhcWizard, ciWizard]) {
+    assert.match(source, /className="ccpun-motion-step-view"/);
     assert.match(source, /data-motion-phase=\{motionPhase\}/);
     assert.match(source, /prefers-reduced-motion: reduce/);
     assert.match(source, /STEP_OUT_MS = 100/);
     assert.match(source, /STEP_IN_MS = 140/);
   }
-  assert.match(fhcWizard, /functionalMotion\.resultReveal/);
-  assert.match(ciResult, /functionalMotion\.resultReveal/);
+  assert.match(fhcWizard, /ccpun-motion-result-reveal/);
+  assert.match(ciResult, /ccpun-motion-result-reveal/);
 });
 
 test('calculator progress input and selection feedback stay short and semantic', () => {
   assert.match(calculatorCard, /data-ui="calculator-progress-fill"/);
   assert.match(calculatorCard, /duration-\[240ms\]/);
   assert.match(calculatorCard, /motion-reduce:transition-none/);
-  assert.match(currencyInput, /functionalMotion\.inputFeedback/);
-  assert.match(functionalCss, /\.inputFeedback[\s\S]*?\.16s cubic-bezier\(\.2, 0, 0, 1\)/);
+  assert.match(currencyInput, /ccpun-motion-input-feedback/);
+  assert.match(functionalCss, /ccpun-motion-input-feedback[\s\S]*?\.16s cubic-bezier\(\.2, 0, 0, 1\)/);
   assert.match(ciResult, /type="radio"[\s\S]*?checked=\{selected\}/);
-  assert.match(ciResult, /functionalMotion\.selectionFeedback/);
-  assert.match(ciResult, /functionalMotion\.selectionActive/);
+  assert.match(ciResult, /ccpun-motion-selection/);
+  assert.match(ciResult, /ccpun-motion-selection-active/);
+});
+
+test('functional stylesheet is owned by the Website 4.3 tool shells rather than calculator client modules', () => {
+  assert.match(fhc, /FunctionalMotion\.module\.css/);
+  assert.match(ci, /FunctionalMotion\.module\.css/);
+  assert.match(fhc, /functionalMotion\.scope/);
+  assert.match(ci, /functionalMotion\.scope/);
+  for (const source of calculatorClientSources) {
+    assert.doesNotMatch(source, /FunctionalMotion\.module\.css/);
+  }
 });
 
 test('FAQ article details TOC and menus keep their short feedback motion', () => {
@@ -119,7 +131,5 @@ test('FHC and CI keep Website 4.3 visual language while functional motion stays 
     assert.match(source, /Website43ToolHero/);
     assert.doesNotMatch(source, /w43Reveal|toolCtaCard|framer-motion|MotionConfig/);
   }
-  assert.match(fhcWizard, /FunctionalMotion\.module\.css/);
-  assert.match(ciWizard, /FunctionalMotion\.module\.css/);
   assert.doesNotMatch(functionalCss, /animation-timeline|view\(\)|homeHero|blogHero|articleHeadline|articleFeature|featuredViewport/);
 });
