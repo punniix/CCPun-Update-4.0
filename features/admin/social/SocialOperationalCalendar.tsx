@@ -174,14 +174,6 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
   const statuses = [...new Set(items.map((item) => item.status))].sort();
 
   useEffect(() => {
-    if (!selected) return;
-    setFormDate(selected.scheduledAt ? dateKey(selected.scheduledAt) : dateKey(new Date()));
-    setFormTime(selected.scheduledAt ? timeKey(selected.scheduledAt) : "09:00");
-    setFeedback(null);
-    requestAnimationFrame(() => closeRef.current?.focus());
-  }, [selectedId]);
-
-  useEffect(() => {
     if (!selectedId) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedId(null);
@@ -189,6 +181,14 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [selectedId]);
+
+  function openDetails(item: OperationalItem) {
+    setFormDate(item.scheduledAt ? dateKey(item.scheduledAt) : dateKey(new Date()));
+    setFormTime(item.scheduledAt ? timeKey(item.scheduledAt) : "09:00");
+    setFeedback(null);
+    setSelectedId(item.publicationId);
+    requestAnimationFrame(() => closeRef.current?.focus());
+  }
 
   function patchItem(publicationId: string, patch: Partial<OperationalItem>) {
     setItems((current) => current.map((item) => item.publicationId === publicationId ? { ...item, ...patch } : item));
@@ -334,7 +334,7 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
                       aria-describedby="calendar-drag-help"
                       className={`rounded-xl border p-2 ${item.capabilities.reschedule ? "cursor-grab border-[#e0c985]/20 bg-[#e0c985]/[0.045]" : "border-white/10 bg-white/[0.025]"}`}
                     >
-                      <button type="button" onClick={() => setSelectedId(item.publicationId)} className="block w-full rounded-md text-left focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
+                      <button type="button" onClick={() => openDetails(item)} className="block w-full rounded-md text-left focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
                         <span className="block truncate text-xs font-medium text-white/85">{item.title}</span>
                         <span className="mt-1 flex items-center justify-between gap-2 text-[10px] text-white/45">
                           <span>{item.scheduledAt ? timeKey(item.scheduledAt) : "—"}</span>
