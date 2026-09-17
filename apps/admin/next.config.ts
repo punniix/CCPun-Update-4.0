@@ -57,8 +57,8 @@ const nextConfig: NextConfig = {
     root: path.resolve(process.cwd(), "../.."),
     resolveAlias: {
       "@/components/preview/DraftPreviewRuntime": USE_REAL_DRAFT_PREVIEW_RUNTIME
-        ? "./components/preview/DraftPreviewRuntime.tsx"
-        : "./components/preview/DraftPreviewRuntimeNoop.tsx",
+        ? "../../components/preview/DraftPreviewRuntime.tsx"
+        : "../../components/preview/DraftPreviewRuntimeNoop.tsx",
     },
   },
   experimental: {
