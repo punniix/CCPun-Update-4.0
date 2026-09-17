@@ -40,6 +40,7 @@ const NEUTRAL_FILES = new Set([
   "AGENTS.md",
   "HANDOFF.md",
   "README.md",
+  ".github/workflows/sanity-free-plan-privacy.yml",
   "scripts/vercel-ignore-build.mjs",
   "tests/vercel-build-routing.test.mjs",
 ]);
