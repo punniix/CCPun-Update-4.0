@@ -91,11 +91,16 @@ export default function CIWizard() {
   };
 
   const runStepTransition = (commit: () => void) => {
-    if (motionPhase !== 'idle') return;
+    if (motionPhase === 'out') return;
+    if (motionPhase === 'in') {
+      motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      motionTimersRef.current = [];
+    }
     const motionPreference = typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)')
       : null;
     if (!motionPreference || motionPreference.matches) {
+      setMotionPhase('idle');
       commit();
       return;
     }
@@ -138,7 +143,7 @@ export default function CIWizard() {
   };
 
   const handlePrev = () => {
-    if (currentStep === 0 || motionPhase !== 'idle') return;
+    if (currentStep === 0 || motionPhase === 'out') return;
     runStepTransition(() => {
       setErrors({});
       setCurrentStep((step) => step - 1);
