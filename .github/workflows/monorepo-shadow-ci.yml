@@ -25,6 +25,8 @@ jobs:
       - run: npm ci
       - name: Verify app-root Vercel config
         run: node --test tests/vercel-app-root-config.test.mjs
+      - name: LINE webhook privacy and crawler contracts
+        run: node --import tsx --test tests/line-webhook-ingress.test.ts
       - name: Typecheck Web shadow
         run: npm run typecheck:web:shadow
       - name: Build Web shadow
