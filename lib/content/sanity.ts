@@ -5,15 +5,15 @@ import { z } from "zod";
 import type { Article, ArticleBlock, ContentProvider } from "./types";
 import { baseArticleSchema, bodyItemSchema, faqItemSchema, parseRenderableBodyItems, parseRenderableFaqItems, rawArticleSchema, type PortableBodyItem, type RawArticle, type RawArticleSummary } from './sanity-schema';
 import { sanityFetch } from "@/lib/sanity-live";
-import { isSanityLaneAllowed } from "@/lib/admin/environment";
-import { getAdminSanityReadToken } from "@/lib/admin/sanity-credentials";
+import { getSanityReadToken } from "@/lib/content/sanity-credentials";
+import { isContentSanityLaneAllowed } from "@/lib/content/sanity-lane";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
-const token = getAdminSanityReadToken();
+const token = getSanityReadToken();
 
-export const hasSanityConfig = Boolean(projectId && dataset && isSanityLaneAllowed(dataset));
+export const hasSanityConfig = Boolean(projectId && dataset && isContentSanityLaneAllowed(projectId, dataset));
 
 const client = hasSanityConfig
   ? createClient({
