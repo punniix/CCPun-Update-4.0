@@ -65,6 +65,9 @@ export function describeLineWebhookEvent(event: unknown): LineWebhookEventDescri
 export function lineWebhookResponseHeaders(): HeadersInit {
   return {
     "Cache-Control": "no-store, max-age=0",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
     "X-Robots-Tag": LINE_WEBHOOK_X_ROBOTS_TAG,
   };
 }
