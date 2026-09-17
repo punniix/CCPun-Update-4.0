@@ -114,7 +114,7 @@ export default async function AdminContentPage({ searchParams }: AdminContentPag
         </div>
         <div className="flex flex-wrap gap-2">
           {studioReady ? <Link href="/studio/intent/create/type=article" target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#e0c985] px-4 py-2.5 text-sm font-semibold text-[#17191d] transition hover:brightness-105">สร้างบทความใหม่<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : null}
-          <Link href="/dashboard/inbox/" className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 transition hover:bg-white/5 hover:text-white">
+          <Link href="/dashboard/reviews/" className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 transition hover:bg-white/5 hover:text-white">
             ดูข้อเสนอที่รอตรวจ
           </Link>
           {studioReady ? <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="rounded-xl border border-[#e0c985]/40 px-4 py-2.5 text-sm font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">เปิด Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : null}

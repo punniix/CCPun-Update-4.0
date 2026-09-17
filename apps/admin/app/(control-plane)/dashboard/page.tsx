@@ -24,8 +24,8 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
   const steps = [
     ["1", "เลือกหรือสร้างบทความ", "/content/articles/", `เลือกบทความจาก ${lane} หรือสร้างฉบับร่างใหม่`],
     ["2", "ตรวจ SEO", "/seo/", "ดูผลตรวจที่บันทึกไว้และเหตุผลจากกฎที่อธิบายได้"],
-    ["3", "ตรวจข้อเสนอ", "/dashboard/inbox/", "คุณเป็นคนตัดสินใจว่าจะอนุมัติหรือไม่"],
-    ["4", "นำไปใช้กับฉบับร่าง", "/dashboard/inbox/", `แก้เฉพาะฉบับร่าง ${lane} และไม่เผยแพร่`],
+    ["3", "ตรวจข้อเสนอ", "/dashboard/reviews/", "คุณเป็นคนตัดสินใจว่าจะอนุมัติหรือไม่"],
+    ["4", "นำไปใช้กับฉบับร่าง", "/dashboard/reviews/", `แก้เฉพาะฉบับร่าง ${lane} และไม่เผยแพร่`],
     ["5", status.environment === "local-production" ? "เปิดตัวอย่างและเผยแพร่" : "เปิดตัวอย่าง", "/studio/", studioReady ? "ตรวจหน้าจริงอีกครั้งใน Studio แล้วคุณจึงเลือก Publish หรือ Schedule เอง" : "Studio ปิดอยู่ในโหมดอ่านอย่างเดียว"],
   ] as const;
 
@@ -52,7 +52,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
 
       <section className="mt-6 grid gap-3 md:grid-cols-2" aria-labelledby="attention-heading">
         <h2 id="attention-heading" className="md:col-span-2 text-xl font-semibold">Needs attention</h2>
-        <Link href="/dashboard/inbox/" className="glass-card p-5">
+        <Link href="/dashboard/reviews/" className="glass-card p-5">
           <p className="text-sm text-white/60">Review inbox</p>
           <p className="mt-2 text-xl font-semibold text-gold-400">{pendingReviews == null ? "Unavailable" : pendingReviews === 0 ? "Healthy · 0" : `${pendingReviews} รายการ`}</p>
           <p className="mt-2 text-sm leading-6 text-white/65">{pendingReviews == null ? "ยังอ่าน source ไม่ได้ ไม่ตีความเป็นศูนย์" : "ข้อเสนอที่รอการตัดสินใจจากผู้มีสิทธิ์"}</p>

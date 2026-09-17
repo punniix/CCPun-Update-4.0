@@ -18,6 +18,7 @@ export const ADMIN_PERMISSIONS = [
   "reviews:approve",
   "reviews:edit",
   "reviews:reject",
+  "advisor:read",
   "audit:read",
   "settings:read",
   "social:read",
