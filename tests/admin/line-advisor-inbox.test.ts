@@ -84,7 +84,10 @@ test("Advisor Inbox runtime reuses the exact Admin Neon lane guard", () => {
   assert.match(controlPlane, /resolveAdminOperationsRuntimeIdentity/);
   assert.match(controlPlane, /FROM private_line\.advisor_inbox_safe/);
   assert.doesNotMatch(controlPlane, /FROM private_line\.(?:customer|provider_identity|conversation|message|document|lead|advisor_case)\b/);
-  assert.doesNotMatch(controlPlane, /createLinePrivateCrypto|CCPUN_LINE_ENCRYPTION_KEY|CCPUN_LINE_IDENTITY_HMAC_KEY|CHANNEL_ACCESS_TOKEN/);
+  assert.doesNotMatch(controlPlane, /createLinePrivateCrypto|CCPUN_LINE_IDENTITY_HMAC_KEY/);
+  assert.match(controlPlane, /createLineContentCrypto/);
+  assert.match(controlPlane, /CCPUN_LINE_TRANSCRIPT_ENABLED/);
+  assert.match(controlPlane, /CCPUN_LINE_OUTBOUND_ENABLED/);
 
   for (const [lane, environment, vercelEnvironment] of [
     ["uat", "admin-uat", "preview"],
@@ -126,9 +129,9 @@ test("deployed Admin separates Advisor Inbox from SEO Reviews", () => {
   const seo = read("apps/admin/app/(control-plane)/seo/page.tsx");
 
   assert.match(inbox, /requireAdminPermission\("advisor:read"\)/);
-  assert.match(inbox, /Read-only release/);
-  assert.match(inbox, /transcript/);
-  assert.match(inbox, /Phase 3A ไม่มีปุ่มตอบหรือเปลี่ยนสถานะ/);
+  assert.match(inbox, /Private-by-default/);
+  assert.match(inbox, /transcript\/outbound feature-gated/);
+  assert.match(inbox, /\/dashboard\/inbox\/\$\{item\.leadId\}\//);
   assert.doesNotMatch(inbox, /ApproveSuggestionButton|ApplySuggestionButton|ReviewDecisionControls/);
   assert.match(reviews, /requireAdminPermission\("reviews:read"\)/);
   assert.match(reviews, /ReviewDecisionControls/);

@@ -44,7 +44,7 @@ export default async function AdvisorInboxPage() {
           <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">LINE OA · HUMAN ADVISORY</p>
           <h1 className="mt-2 text-3xl font-semibold">Advisor Inbox</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            Phase 3A แสดงเฉพาะ context ที่จำเป็นต่อการรับช่วงเคส โดยไม่เปิด transcript, LINE user ID, provider ID, เอกสาร หรือข้อความที่เข้ารหัสไว้ใน private runtime
+            Advisor Inbox ใช้ safe operational context เป็นค่าเริ่มต้น ส่วน transcript และ reply จะเปิดได้เฉพาะ owner runtime ที่ผ่าน encryption/provider feature gate เท่านั้น
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -57,8 +57,8 @@ export default async function AdvisorInboxPage() {
         </div>
       </div>
 
-      <section className="mt-6 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/85" aria-label="ขอบเขต Phase 3A">
-        <strong className="font-medium text-sky-100">Read-only release:</strong> ตอนนี้ยังไม่เปิด transcript, การตอบ LINE, การเปลี่ยน stage หรือการจัดการไฟล์จากหน้านี้ ทุก action ที่เปลี่ยนสถานะจะถูกเพิ่มภายหลังผ่าน private Admin boundary แยกต่างหาก
+      <section className="mt-6 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/85" aria-label="Private LINE boundary">
+        <strong className="font-medium text-sky-100">Private-by-default:</strong> safe context เปิดตลอดเมื่อ runtime พร้อม ส่วน transcript/outbound จะ fail-closed จน owner เปิด feature gate และใส่ key/token ใน Vercel โดยตรง
       </section>
 
       <section className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Advisor Inbox summary">
@@ -79,7 +79,7 @@ export default async function AdvisorInboxPage() {
           <p className={`mt-2 text-lg font-semibold ${model.status.viewReady ? "text-emerald-200" : "text-amber-200"}`}>
             {model.status.viewReady ? "Ready" : "Not ready"}
           </p>
-          <p className="mt-1 text-xs leading-5 text-white/50">raw customer data hidden · transcript disabled</p>
+          <p className="mt-1 text-xs leading-5 text-white/50">raw customer data hidden · transcript/outbound feature-gated</p>
         </article>
       </section>
 
@@ -122,7 +122,11 @@ export default async function AdvisorInboxPage() {
                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70">{item.journey}</span>
                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70">{item.conversationStatus}</span>
                   </div>
-                  <h2 className="mt-3 text-lg font-semibold text-white/90">{customerLabel(item)}</h2>
+                  <h2 className="mt-3 text-lg font-semibold text-white/90">
+                    <Link href={`/dashboard/inbox/${item.leadId}/`} className="hover:text-white hover:underline hover:underline-offset-4">
+                      {customerLabel(item)}
+                    </Link>
+                  </h2>
                   <p className="mt-1 text-sm text-white/55">Lead {item.leadId.slice(0, 8)} · Case {item.advisorCaseId?.slice(0, 8) ?? "—"}</p>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-5 gap-y-1 text-sm leading-6 text-white/60 md:block md:text-right">
@@ -145,7 +149,7 @@ export default async function AdvisorInboxPage() {
                 <div className="rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4">
                   <p className="text-xs font-medium uppercase tracking-[0.08em] text-[#e0c985]">Owner context</p>
                   <p className="mt-2 text-sm text-white/75">Advisor: {item.assignedAdvisor ?? "ยังไม่ assign"}</p>
-                  <p className="mt-1 text-xs leading-5 text-white/50">Phase 3A ไม่มีปุ่มตอบหรือเปลี่ยนสถานะ</p>
+                  <p className="mt-1 text-xs leading-5 text-white/50">เปิดเคสเพื่อดู timeline, stage history และ action ที่ผ่าน private gate</p>
                 </div>
               </div>
             </article>

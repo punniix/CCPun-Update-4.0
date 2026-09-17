@@ -21,6 +21,12 @@ export type LinePrivateCrypto = {
   decrypt(value: LineEncryptedValue, purpose: string): string;
 };
 
+export type LineContentCrypto = {
+  keyVersion: typeof LINE_PRIVATE_KEY_VERSION;
+  encrypt(value: string, purpose: string): LineEncryptedValue;
+  decrypt(value: LineEncryptedValue, purpose: string): string;
+};
+
 function decodeBase64Key(value: string | undefined, minimumBytes: number, exactBytes?: number): Buffer {
   const normalized = value?.trim();
   if (!normalized || normalized.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) {
@@ -39,22 +45,9 @@ function aadFor(purpose: string) {
   return Buffer.from(`ccpun-line:v${LINE_PRIVATE_KEY_VERSION}:${purpose}`, "utf8");
 }
 
-export function createLinePrivateCrypto(
-  variables: Record<string, string | undefined> = process.env,
-): LinePrivateCrypto {
-  const lookupKey = decodeBase64Key(variables.CCPUN_LINE_IDENTITY_HMAC_KEY_V1, 32);
-  const encryptionKey = decodeBase64Key(variables.CCPUN_LINE_ENCRYPTION_KEY_V1, 32, 32);
-
+function contentCryptoFromKey(encryptionKey: Buffer): LineContentCrypto {
   return {
     keyVersion: LINE_PRIVATE_KEY_VERSION,
-    lookupDigest(value, purpose) {
-      if (!value) throw new Error("LINE_PRIVATE_LOOKUP_VALUE_REQUIRED");
-      return createHmac("sha256", lookupKey)
-        .update(aadFor(purpose))
-        .update("\0")
-        .update(value, "utf8")
-        .digest("hex");
-    },
     encrypt(value, purpose) {
       if (!value) throw new Error("LINE_PRIVATE_ENCRYPT_VALUE_REQUIRED");
       const nonce = randomBytes(12);
@@ -81,6 +74,31 @@ export function createLinePrivateCrypto(
         decipher.update(Buffer.from(value.ciphertextB64, "base64")),
         decipher.final(),
       ]).toString("utf8");
+    },
+  };
+}
+
+export function createLineContentCrypto(
+  variables: Record<string, string | undefined> = process.env,
+): LineContentCrypto {
+  return contentCryptoFromKey(decodeBase64Key(variables.CCPUN_LINE_ENCRYPTION_KEY_V1, 32, 32));
+}
+
+export function createLinePrivateCrypto(
+  variables: Record<string, string | undefined> = process.env,
+): LinePrivateCrypto {
+  const lookupKey = decodeBase64Key(variables.CCPUN_LINE_IDENTITY_HMAC_KEY_V1, 32);
+  const content = createLineContentCrypto(variables);
+
+  return {
+    ...content,
+    lookupDigest(value, purpose) {
+      if (!value) throw new Error("LINE_PRIVATE_LOOKUP_VALUE_REQUIRED");
+      return createHmac("sha256", lookupKey)
+        .update(aadFor(purpose))
+        .update("\0")
+        .update(value, "utf8")
+        .digest("hex");
     },
   };
 }
