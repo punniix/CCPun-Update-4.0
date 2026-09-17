@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SanityClient } from "sanity";
-import { articlePublishBlock, publicationSummary, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
+import { articleCategoryReferenceBlock, articlePublishBlock, isArticleCategoryReference, publicationSummary, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
 import { faqItem } from "../../cms/sanity/schema/objects/faq-item";
 import { sourceReference } from "../../cms/sanity/schema/objects/source-reference";
 import { tableRow, simpleTable } from "../../cms/sanity/schema/objects/table";
@@ -15,7 +15,7 @@ import { divider } from "../../cms/sanity/schema/objects/divider";
 
 const now = "2026-09-09T12:00:00.000Z";
 const first = "2024-01-01T00:00:00.000Z";
-const draft = { _id: "drafts.article1", _type: "article", _rev: "draft1", _createdAt: first, _updatedAt: first, publishedAt: "2025-01-01T00:00:00.000Z", review: { status: "approved" }, slug: { current: "original" }, category: { _ref: "category" }, faq: [{ _key: "q", question: "keep me" }], author: { _type: "reference", _weak: true, _ref: "author" } } as PublishableArticle;
+const draft = { _id: "drafts.article1", _type: "article", _rev: "draft1", _createdAt: first, _updatedAt: first, publishedAt: "2025-01-01T00:00:00.000Z", review: { status: "approved" }, slug: { current: "original" }, category: { _type: "reference", _ref: "category" }, faq: [{ _key: "q", question: "keep me" }], author: { _type: "reference", _weak: true, _ref: "author" } } as PublishableArticle;
 const published = { ...draft, _id: "article1", _rev: "live1", publishedAt: first };
 
 function memoryClient(seed: PublishableArticle[], fail = false) {
@@ -61,6 +61,15 @@ test("populated and empty Article cards have meaningful previews", () => {
   assert.equal(tableRow.preview!.prepare!({ cells: undefined }).title, "แถวใหม่");
 });
 
+test("category guard accepts only Sanity reference-shaped values", () => {
+  assert.equal(isArticleCategoryReference({ _type: "reference", _ref: "ccpun-category-investment" }), true);
+  assert.equal(articleCategoryReferenceBlock({ _type: "reference", _ref: "ccpun-category-investment" }), null);
+  for (const malformed of ["การลงทุน", "investment", { _ref: "ccpun-category-investment" }, { _type: "reference", _ref: "" }, null]) {
+    assert.equal(isArticleCategoryReference(malformed), false);
+    assert.match(String(articleCategoryReferenceBlock(malformed)), /Sanity reference/);
+  }
+});
+
 test("publication leaves content/references intact and preserves ORIGINAL publishedAt", async () => {
   const db = memoryClient([draft, published]);
   await publishApprovedArticle(db.client, draft, published, now);
@@ -104,11 +113,12 @@ test("failed publication and revision conflicts leave both dates and versions un
   }
 });
 
-test("review, URL, date, release and pending-reference guards fail closed", async () => {
+test("review, URL, date, release, category-shape and pending-reference guards fail closed", async () => {
   const invalid = [
     { ...draft, review: { status: "drafting" } },
     { ...draft, slug: { current: "changed" } },
-    { ...draft, category: { _ref: "changed" } },
+    { ...draft, category: { _type: "reference", _ref: "changed" } },
+    { ...draft, category: "การลงทุน" as unknown as PublishableArticle["category"] },
     { ...draft, _id: "versions.release.article1" },
     { ...draft, author: { _type: "reference", _ref: "author", _strengthenOnPublish: { type: "author" } } },
   ];
