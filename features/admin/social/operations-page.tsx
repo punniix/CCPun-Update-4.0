@@ -1,45 +1,50 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import SocialQueueClient from "@/features/admin/social/SocialQueueClient";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
-import { isSocialPublicationApprovalEnabled } from "@/lib/admin/social/publishing";
-import SocialPostsWorkspace from "@/features/admin/social/SocialPostsWorkspace";
+import { listSocialOperationalItems } from "@/lib/admin/social/operations-service";
 
-export const metadata: Metadata = { title: "Social Posts & Drafts" };
+export const metadata: Metadata = { title: "Social Queue" };
 
-export default async function SocialOperationsUatPage() {
+export default async function SocialQueuePage() {
   await requireAdminPermission("social:read");
-  const runtime = getSocialOperationsRuntimeStatus();
-  if (!runtime.enabled) notFound();
-  const showDeferredConnections = runtime.environment === "admin-uat";
+  if (!getSocialOperationsRuntimeStatus().enabled) notFound();
+
+  let items: Awaited<ReturnType<typeof listSocialOperationalItems>> = [];
+  let unavailable = false;
+  try {
+    items = await listSocialOperationalItems();
+  } catch {
+    unavailable = true;
+  }
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SOCIAL · POSTS & DRAFTS</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SOCIAL · EXECUTION</p>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Social Posts & Drafts</h1>
+          <h1 className="text-3xl font-semibold">Queue</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            สร้างและแก้ Sanity Draft จริงด้วย revision ที่ตรวจสอบได้ พร้อมดู publication state ในมุมมองเดียว การบันทึก Draft ไม่อนุมัติและไม่ส่งโพสต์ให้แพลตฟอร์ม
+            ดู publication job จริง พร้อม attempt budget, lease, provider error และ action ที่เปิดเฉพาะเมื่อ state ปลอดภัย การ Execute ยังคงใช้ revision-bound Human Approval, CAS และ provider-write gate เดิม
           </p>
         </div>
-        <Link href="/social/calendar/" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">เปิด Calendar</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/social/calendar/" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">Calendar</Link>
+          <Link href="/social/posts/" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">Posts</Link>
+        </div>
       </div>
 
-      <section role="note" className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/[0.05] px-4 py-3 text-sm leading-6 text-amber-50/85">
-        การส่งจริงเกิดหลังการอนุมัติและผ่าน safety gate · Instagram mobile handoff ต้องทำต่อในแอปของแพลตฟอร์ม
+      <section role="note" className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3 text-sm leading-6 text-white/65">
+        Jobs ที่ provider mutation อาจเกิดแล้วแต่ checkpoint ไม่ครบจะถูกแสดงเป็น <span className="text-amber-50/85">Needs reconciliation</span> และไม่เปิด blind retry
       </section>
 
-      <SocialPostsWorkspace approvalEnabled={isSocialPublicationApprovalEnabled()} />
-
-      <nav aria-label="ลิงก์ Social ขั้นสูง" className="mt-8 flex flex-wrap gap-2 border-t border-white/10 pt-5">
-        <Link href="/analytics/social/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดู Social Stats</Link>
-        {showDeferredConnections ? <Link href="/analytics/social/post-live/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูสถิติย้อนหลัง Live</Link> : null}
-        <Link href="/social/accounts/meta/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ตรวจ Meta Connection</Link>
-        {showDeferredConnections ? <Link href="/social/accounts/youtube/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ตรวจ YouTube Connection</Link> : null}
-        {showDeferredConnections ? <Link href="/social/accounts/tiktok/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ตรวจ TikTok Connection</Link> : null}
-      </nav>
+      {unavailable ? (
+        <section role="status" className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/[0.05] px-4 py-3 text-sm leading-6 text-amber-50/85">
+          Operational store ยังอ่านไม่ได้ใน request นี้ จึงไม่แสดง queue จากข้อมูลสำรองหรือเดา state
+        </section>
+      ) : <SocialQueueClient initialItems={items} />}
     </div>
   );
 }
