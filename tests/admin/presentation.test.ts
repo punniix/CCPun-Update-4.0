@@ -76,7 +76,8 @@ test("production-capable admin surfaces do not hard-code UAT copy", () => {
 
   const socialOverview = readFileSync("features/admin/social/overview-page.tsx", "utf8");
   assert.match(socialOverview, /isSocialProviderExecutionGateEnabled\(\)/);
-  assert.match(socialOverview, /providerWriteEnabled \? "Provider write เปิดเฉพาะคำสั่ง manual ที่ผ่าน approval และ safety gate" : "Provider write ปิดอยู่"/);
+  assert.match(socialOverview, /providerWriteEnabled \? "Available behind approval gate" : "Disabled"/);
+  assert.match(socialOverview, /Approved text\/link only · media remains manual/);
 });
 
 test("content list separates document state from content review state", () => {
