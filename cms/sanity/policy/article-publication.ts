@@ -1,10 +1,16 @@
 import type { SanityClient, SanityDocument } from "sanity";
 
+export type ArticleCategoryReference = {
+  _type: "reference";
+  _ref: string;
+  _weak?: boolean;
+};
+
 export type PublishableArticle = SanityDocument & {
   publishedAt?: string;
   contentUpdatedAt?: string;
   slug?: { current?: string };
-  category?: { _ref?: string };
+  category?: { _type?: string; _ref?: string; _weak?: boolean };
   review?: { status?: string };
   seo?: Record<string, unknown> & { noindex?: boolean };
 };
@@ -20,6 +26,20 @@ export function publicationSummary(published: unknown, draft: unknown) {
     : "ฉบับร่าง · ยังไม่เผยแพร่";
 }
 
+export function isArticleCategoryReference(value: unknown): value is ArticleCategoryReference {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const reference = value as Record<string, unknown>;
+  return reference._type === "reference"
+    && typeof reference._ref === "string"
+    && reference._ref.trim().length > 0;
+}
+
+export function articleCategoryReferenceBlock(value: unknown) {
+  return isArticleCategoryReference(value)
+    ? null
+    : "หมวดหมู่บทความต้องเป็น Sanity reference ที่ถูกต้อง กรุณาเลือกหมวดหมู่ใหม่ก่อนเผยแพร่";
+}
+
 function hasPendingReference(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const object = value as Record<string, unknown>;
@@ -29,6 +49,9 @@ function hasPendingReference(value: unknown): boolean {
 
 export function articlePublishBlock(draft: PublishableArticle | null, published: PublishableArticle | null, now = Date.now()) {
   if (!draft || draft._type !== "article" || !draft._id.startsWith("drafts.") || !draft._rev) return "ไม่มีฉบับร่างพร้อมเผยแพร่";
+  const draftCategoryBlock = articleCategoryReferenceBlock(draft.category);
+  if (draftCategoryBlock) return draftCategoryBlock;
+  if (published && articleCategoryReferenceBlock(published.category)) return "หมวดหมู่ของฉบับ Live ไม่ใช่ Sanity reference ที่ถูกต้อง กรุณาให้ผู้ดูแลตรวจข้อมูลก่อนอัปเดต";
   if (draft.review?.status !== "approved") return "เลือกสถานะ อนุมัติเนื้อหาแล้ว ก่อนเผยแพร่";
   if (published && published._id !== draft._id.slice(7)) return "ฉบับร่างและฉบับเผยแพร่ไม่ตรงกัน";
   if (published && (!published._rev || !published.publishedAt)) return "ให้ผู้ดูแลตรวจวันเผยแพร่เดิมก่อนดำเนินการ";
