@@ -115,7 +115,7 @@ export default function LifeCoverageWizard() {
   };
 
   const next = () => {
-    if (motionPhase !== 'idle') return;
+    if (motionPhase === 'out') return;
     if (step === 1 && !values.householdMonthly) { fail('householdMonthly', 'กรอกค่าใช้จ่ายครัวเรือนต่อเดือนก่อน'); return; }
     if (step === 1 && (values.supportYears < 1 || values.supportYears > 20)) { fail('supportYears', 'จำนวนปีที่ต้องการให้เงินก้อนรองรับต้องอยู่ระหว่าง 1–20 ปี'); return; }
     if (step === 1 && !Number.isSafeInteger(result.need)) { fail('householdMonthly', 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูล'); return; }
