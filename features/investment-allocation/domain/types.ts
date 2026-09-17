@@ -134,3 +134,95 @@ export type FundSearchResponse = {
   message: string | null;
   fetchedAt: string;
 };
+
+export type FundCatalogCategory = "equity" | "mixed" | "fixed_income" | "alternative" | "other";
+export type FundCatalogSubcategory = "all" | "domestic" | "foreign" | "domestic_foreign" | "money_market";
+
+export type FundCatalogItem = {
+  projectId: string;
+  amcId: string;
+  amcNameTh: string;
+  amcNameEn: string | null;
+  nameTh: string;
+  nameEn: string | null;
+  abbreviation: string;
+  fundStatus: "Registered" | "IPO";
+  policyDesc: string;
+  category: FundCatalogCategory;
+  investCountryFlag: "1" | "2" | "3" | "4" | null;
+  managementStyle: string | null;
+  masterFund: string | null;
+  feederCountry: string | null;
+  lastUpdated: string | null;
+};
+
+export type FundCatalogResponse = {
+  source: "sec_v2" | "uat_synthetic" | "unavailable";
+  state: DataState;
+  items: FundCatalogItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  query: string;
+  category: FundCatalogCategory | "all";
+  subcategory: FundCatalogSubcategory;
+  fetchedAt: string;
+  message: string | null;
+};
+
+export type FundClassOption = {
+  name: string;
+  detail: string | null;
+  description: string | null;
+  taxIncentiveType: string | null;
+  isin: string | null;
+};
+
+export type FundSpecificationFact = {
+  code: string;
+  description: string;
+  className: string;
+  lastUpdated: string | null;
+};
+
+export type FundRiskFact = {
+  level: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | null;
+  rawCode: string | null;
+  description: string | null;
+  sourceDate: string | null;
+  lastUpdated: string | null;
+};
+
+export type FundAssetAllocationFact = {
+  name: string;
+  percentNav: number;
+  sourceDate: string | null;
+  lastUpdated: string | null;
+};
+
+export type FundDealingFact = {
+  className: string;
+  subscriptionPeriod: string | null;
+  subscriptionPeriodOther: string | null;
+  redemptionPeriod: string | null;
+  redemptionPeriodOther: string | null;
+  settlementPeriod: string | null;
+  settlementBucket: LiquidityBucket;
+  sourceDate: string | null;
+  lastUpdated: string | null;
+};
+
+export type FundDetailResponse = {
+  source: "sec_v2" | "unavailable";
+  state: DataState;
+  fund: FundCatalogItem | null;
+  classes: FundClassOption[];
+  selectedClassName: string | null;
+  specifications: FundSpecificationFact[];
+  risk: FundRiskFact | null;
+  assetAllocation: FundAssetAllocationFact[];
+  dealing: FundDealingFact | null;
+  dataDate: string | null;
+  fetchedAt: string;
+  warnings: string[];
+  endpointStates: Record<string, "ok" | "empty" | "unavailable">;
+};

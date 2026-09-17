@@ -37,12 +37,12 @@ export default function InvestmentAllocationPage() {
       <section className={styles.hero}>
         <div className={styles.heroInner}>
           <span className={styles.badge}>CCPun Investment · UAT</span>
-          <h1>คุณเลือกกองเอง<br /><span>ระบบช่วยให้เห็นว่าพอร์ตเป็นอย่างไร</span></h1>
-          <p className={styles.heroLead}>กำหนด Allocation เลือกกองทุนเอง แล้วดู Effective Allocation, Risk Spectrum 1–8 และเงื่อนไขการรับเงินจากข้อมูลที่ระบบมี โดยไม่จัดอันดับกอง ไม่สร้าง Fund Score และไม่บอกให้ซื้อหรือขายกองไหน</p>
+          <h1>คุณเลือกกองเอง<br /><span>ระบบช่วยให้เห็นว่าเงินอยู่ตรงไหน</span></h1>
+          <p className={styles.heroLead}>เริ่มง่ายด้วยกองเดียว หรือเลือกโหมดจัดหลายกองเอง แล้วดูข้อมูลจาก SEC Fund Factsheet ทั้งประเภทกอง Risk Spectrum สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน โดยไม่จัดอันดับหรือเลือกกองแทนคุณ</p>
           <div className={styles.heroProof} aria-label="ขอบเขตของเครื่องมือ">
-            <span>Customer-selected funds</span><span>Deterministic calculation</span><span>No fund ranking</span><span>No expected return</span>
+            <span>กองเดียวหรือหลายกอง</span><span>SEC Fund Factsheet</span><span>No fund ranking</span><span>No expected return</span>
           </div>
-          <a className={styles.heroAction} href="#investment-allocation-builder">เริ่มจัด Allocation</a>
+          <a className={styles.heroAction} href="#investment-mode-title">เริ่มเลือกวิธีลงทุน</a>
         </div>
       </section>
       <InvestmentAllocationTool />

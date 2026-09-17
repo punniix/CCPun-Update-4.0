@@ -22,6 +22,25 @@ Phase 1 must not:
 
 Risk Spectrum 1–8 is displayed as a product fact layer and is not a suitability decision. Liquidity is a separate factual layer and is not treated as a return or risk proxy.
 
+### UAT v2 journey decision
+
+The default journey is now **Single Fund / Simple Mode**:
+
+```text
+Amount → Fund category → SEC-backed subcategory → browse active funds → customer selects fund → select share class when needed → SEC facts → Pun review
+```
+
+The original allocation builder remains available as **Multiple Funds / Advanced Mode**. This avoids forcing a customer who wants one mixed fund to construct an asset-allocation portfolio first.
+
+Fund taxonomy is derived from SEC fields, not fund-name heuristics:
+
+- broad category: exact `policy_desc` (`ตราสารทุน`, `ผสม`, `ตราสารหนี้`, `ทรัพย์สินทางเลือก`, fallback `other`);
+- geography: `invest_country_flag`;
+- equity UI mapping: flag `3` → หุ้นไทย, flags `1/2` → หุ้นต่างประเทศ, flag `4` → หุ้นไทย + ต่างประเทศ;
+- Money Market: SEC Fund Specification `spec_code=MM`; it remains inside the fixed-income family. A dedicated Money Market catalog filter is deferred until the ingestion cache can avoid a cold full-specification scan.
+
+Read-only UAT observation on 2026-09-17: 4,923 active class rows (`Registered` + `IPO`) representing 2,370 unique fund projects were returned by the SEC profile API. These counts are observations for UAT validation, not permanent constants.
+
 ## 2. Audit baseline and reuse
 
 Audited before implementation:
@@ -83,13 +102,23 @@ A Figma connector was not available in this execution session, so a new Figma fi
 
 ```text
 Entry
+  → Choose Single Fund (default) or Multiple Funds
+
+Single Fund
+  → Amount
+  → SEC category
+  → SEC-backed geography subcategory
+  → Browse/search active SEC fund projects
+  → Customer selects one fund (100%)
+  → Select share class when required
+  → Risk / raw asset allocation / subscription-redemption facts
+  → Save locally or copy summary + open LINE
+
+Multiple Funds
   → Amount + Fund Construction Allocation
   → Customer Fund Search / Selection
   → Optional Target Asset Allocation
-  → Result
-       → Edit
-       → Save on this device
-       → Copy summary + open LINE for Pun review
+  → Effective Allocation / Risk / Liquidity result
 ```
 
 ### Frames
@@ -193,20 +222,24 @@ Only currently verified v2 paths are called. Unsupported data is not invented.
 
 | UI field / capability | SEC v2 mapping used in UAT | Status | UAT behavior / limitation |
 | --- | --- | --- | --- |
-| Search fund profile | `GET /v2/fund/general-info/profiles?project_info=...&page_size=...` | Verified endpoint | Normalizes project id, abbreviation, class name and update date |
-| Risk Spectrum 1–8 | `GET /v2/fund/factsheet/risk-spectrum?proj_id=...&start_date=...&page_size=...` | Verified endpoint | Latest returned record is normalized from `RS1`…`RS8` |
-| AMC list | `GET /v2/fund/general-info/amcs?page_size=...` | Verified endpoint, not required by current UI | Reserved for ingestion/entity work |
-| Daily NAV | `GET /v2/fund/daily-info/nav` | Verified endpoint, not required by Phase 1 result | No expected-return logic is built from NAV |
-| Fund construction classification | Current v2 mapping not yet verified | Unsupported for live selection in UAT | Live SEC result is not selectable until classification is verified; UAT synthetic fixtures exercise interaction |
-| Asset allocation / mixed-fund look-through | Current v2 endpoint/field mapping not yet verified | Unsupported for live result in UAT | No live asset allocation is inferred; synthetic fixtures test deterministic engine only |
-| Master fund / feeder structure | Current v2 endpoint/field mapping not yet verified | Unsupported | Displays unavailable until mapped |
-| Fees / terms | Current v2 endpoint/field mapping not yet verified | Unsupported | Displays unavailable until mapped |
-| Cut-off | Current v2 endpoint/field mapping not yet verified | Unsupported | No inferred cut-off |
-| Redemption / settlement | Current v2 endpoint/field mapping not yet verified | Unsupported | Synthetic UAT facts only; live SEC value remains unknown |
-| Source date | Profile `last_upd_date`, risk `start_date` where present | Partial | Stored per normalized fact, not replaced by fetch time |
+| Browse active fund catalog | `GET /v2/fund/general-info/profiles` with `fund_status=Registered` then `IPO`, `page_size=100`, `next_cursor` | Verified live | Public API returns unique fund projects through an opaque CCPun cursor instead of downloading all rows to the browser |
+| Search fund | `project_info` on Profiles | Verified live | Search by project id / Thai or English project information / abbreviation supported by SEC behavior |
+| Broad fund category | Profile `policy_desc` | Verified live | Exact SEC values normalized to equity / mixed / fixed income / alternative / other; never inferred from fund name |
+| Domestic / foreign scope | Profile `invest_country_flag` | Verified live | Equity UI maps flag 3 to หุ้นไทย, flags 1/2 to หุ้นต่างประเทศ, flag 4 to หุ้นไทย + ต่างประเทศ |
+| Money Market classification | `GET /v2/fund/general-info/specifications`, exact `spec_code=MM` | Verified live | Shown as a factual specification after selection; dedicated universe-wide filter deferred until ingestion cache removes the cold full-scan cost |
+| Share classes | Profile `fund_class_*` fields | Verified live | User selects class when a project has multiple classes before class-specific dealing facts are shown |
+| Risk Spectrum | `GET /v2/fund/factsheet/risk-spectrum?proj_id=...&latest=true` | Verified live | `RS1`…`RS8` displayed as levels 1–8; unsupported codes remain raw facts with a warning |
+| Asset allocation | `GET /v2/fund/factsheet/asset-allocation?proj_id=...&latest=true` | Verified live | Displays raw `asset_name` / `asset_ratio` (%NAV). Negative rows are preserved and totals are never renormalized |
+| Subscription / redemption timing | `GET /v2/fund/factsheet/subscription-redemption-periods?proj_id=...&latest=true` | Verified live | `period`, `redemp_period_oth`, and raw `settlement_period` are class-specific factual terms, not date guarantees |
+| Master fund / feeder structure | Profile `feederfund_master_fund`, `feederfund_country` | Verified live where present | Displayed as factual profile data only |
+| Fund specifications | `GET /v2/fund/general-info/specifications?proj_id=...` | Verified live | Supports facts such as Money Market / tax or structural specification codes without using name heuristics |
+| Fees / minimums | SEC v2 endpoints exist and were inspected, but are not needed in the current Single Fund result | Deferred UI | Do not show until the product copy and field mapping are reviewed |
+| Cut-off time | Not present in the verified dealing mapping used here | Unsupported in current UAT | Do not invent a cut-off time |
+| Daily NAV | `GET /v2/fund/daily-info/nav` | Verified endpoint, not used for recommendation | No expected-return, score, or ranking logic is built from NAV |
+| Source date | Factsheet `start_date` / profile `last_upd_date` | Supported | Kept separate from fetch time |
 | Fetch time | Server fetch timestamp | Supported | Stored separately as `fetchedAt` |
 
-A live SEC search result is deliberately partial and non-selectable in UAT when its classification and look-through data have not passed the feasibility gate. The interface does not guess a category from a fund name.
+The public consumer receives normalized CCPun planning objects only. Raw SEC payloads and subscription keys are not exposed to the browser.
 
 ## 7. SEC architecture
 
@@ -225,9 +258,11 @@ Current UAT implementation:
 
 ```text
 Browser
-  → /api/investment-allocation/funds
-  → server-only SEC v2 adapter
-  → normalized PlanningFund
+  → /api/investment-allocation/catalog      (browse/search normalized active fund projects)
+  → /api/investment-allocation/detail       (selected project/class facts)
+  → /api/investment-allocation/funds        (Advanced Mode compatibility)
+  → server-only SEC v2 adapter + cached GETs
+  → normalized CCPun planning objects
   → browser
 ```
 

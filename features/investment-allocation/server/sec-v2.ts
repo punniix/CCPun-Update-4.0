@@ -1,11 +1,29 @@
 import "server-only";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
-import type { FundSearchResponse, PlanningFund } from "../domain/types";
-import { searchDemoFunds } from "./demo-funds";
+import { normalizeLiquidity } from "../domain/calculation";
+import { categoryFromPolicy, matchesGeography } from "../domain/catalog";
+import type {
+  FundAssetAllocationFact,
+  FundCatalogCategory,
+  FundCatalogItem,
+  FundCatalogResponse,
+  FundCatalogSubcategory,
+  FundClassOption,
+  FundDealingFact,
+  FundDetailResponse,
+  FundRiskFact,
+  FundSearchResponse,
+  FundSpecificationFact,
+  PlanningFund,
+} from "../domain/types";
+import { searchDemoFunds, UAT_SYNTHETIC_FUNDS } from "./demo-funds";
 
 const SEC_BASE_URL = "https://api.sec.or.th";
 const SEC_HEADER = "Ocp-Apim-Subscription-Key";
-const SEARCH_PAGE_SIZE = 8;
+const SEC_PAGE_SIZE = 100;
+const CATALOG_PAGE_SIZE = 20;
+const SEC_REVALIDATE_SECONDS = 60 * 60 * 6;
+const ACTIVE_STATUSES = ["Registered", "IPO"] as const;
 
 type SecEnvelope = {
   message?: unknown;
@@ -14,19 +32,26 @@ type SecEnvelope = {
   page_size?: unknown;
 };
 
-type SecProfile = {
-  proj_id: string;
-  proj_abbr_name: string;
-  fund_class_name: string | null;
-  last_upd_date: string | null;
+type CatalogCursor = {
+  statusIndex: number;
+  secCursor: string;
+  offset: number;
+  skipProjectId: string | null;
 };
 
 type SecRiskRow = {
   risk_spectrum: string | null;
+  risk_spectrum_desc: string | null;
   start_date: string | null;
   end_date: string | null;
   prospectus_type: string | null;
+  last_upd_date: string | null;
 };
+
+function isReviewLikeEnvironment(): boolean {
+  const uatMode = process.env.CCPUN_UAT_MODE?.trim().toLowerCase();
+  return IS_REVIEW_ENVIRONMENT || process.env.CCPUN_APP_ENV === "web-uat" || uatMode === "1" || uatMode === "true";
+}
 
 function getSubscriptionKey(): string | null {
   return process.env.SEC_API_PRIMARY_KEY?.trim() || process.env.SEC_API_SECONDARY_KEY?.trim() || null;
@@ -40,17 +65,66 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function normalizeProfile(value: unknown): SecProfile | null {
+function asNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asItems(envelope: SecEnvelope): unknown[] {
+  return Array.isArray(envelope.items) ? envelope.items : [];
+}
+
+function constructionBucketFromCategory(category: FundCatalogCategory): PlanningFund["constructionBucket"] {
+  if (category === "equity") return "equity";
+  if (category === "mixed") return "mixed";
+  if (category === "fixed_income") return "fixed_income";
+  return "other";
+}
+
+function normalizeCountryFlag(value: unknown): FundCatalogItem["investCountryFlag"] {
+  return value === "1" || value === "2" || value === "3" || value === "4" ? value : null;
+}
+
+function normalizeCatalogItem(value: unknown): FundCatalogItem | null {
   const row = asRecord(value);
   if (!row) return null;
-  const projId = asString(row.proj_id);
-  const shortName = asString(row.proj_abbr_name);
-  if (!projId || !shortName) return null;
+  const projectId = asString(row.proj_id);
+  const abbreviation = asString(row.proj_abbr_name);
+  const nameTh = asString(row.proj_name_th);
+  const amcId = asString(row.unique_id);
+  const amcNameTh = asString(row.comp_name_th);
+  const status = asString(row.fund_status);
+  if (!projectId || !abbreviation || !nameTh || !amcId || !amcNameTh || (status !== "Registered" && status !== "IPO")) return null;
+  const policyDesc = asString(row.policy_desc) ?? "อื่น ๆ";
   return {
-    proj_id: projId,
-    proj_abbr_name: shortName,
-    fund_class_name: asString(row.fund_class_name),
-    last_upd_date: asString(row.last_upd_date),
+    projectId,
+    amcId,
+    amcNameTh,
+    amcNameEn: asString(row.comp_name_en),
+    nameTh,
+    nameEn: asString(row.proj_name_en),
+    abbreviation,
+    fundStatus: status,
+    policyDesc,
+    category: categoryFromPolicy(policyDesc),
+    investCountryFlag: normalizeCountryFlag(row.invest_country_flag),
+    managementStyle: asString(row.management_style),
+    masterFund: asString(row.feederfund_master_fund),
+    feederCountry: asString(row.feederfund_country),
+    lastUpdated: asString(row.last_upd_date),
+  };
+}
+
+function normalizeClass(value: unknown): FundClassOption | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const name = asString(row.fund_class_name);
+  if (!name) return null;
+  return {
+    name,
+    detail: asString(row.fund_class_detail),
+    description: asString(row.fund_class_description),
+    taxIncentiveType: asString(row.fund_class_tax_incentive_type),
+    isin: asString(row.fund_class_isin_code),
   };
 }
 
@@ -59,24 +133,35 @@ function normalizeRisk(value: unknown): SecRiskRow | null {
   if (!row) return null;
   return {
     risk_spectrum: asString(row.risk_spectrum),
+    risk_spectrum_desc: asString(row.risk_spectrum_desc),
     start_date: asString(row.start_date),
     end_date: asString(row.end_date),
     prospectus_type: asString(row.prospectus_type),
+    last_upd_date: asString(row.last_upd_date),
   };
 }
 
-function riskLevel(value: string | null): number | null {
+function riskLevel(value: string | null): 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | null {
   if (!value) return null;
   const match = value.toUpperCase().match(/^RS([1-8])$/);
-  return match ? Number(match[1]) : null;
+  return match ? Number(match[1]) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 : null;
 }
 
-async function secGet(path: string, key: string): Promise<SecEnvelope> {
+function normalizeSettlementBucket(raw: string | null) {
+  if (!raw) return "unknown" as const;
+  const value = raw.trim().toUpperCase();
+  if (/^T\+1\b/.test(value)) return "T+1" as const;
+  if (/^T\+2\b/.test(value)) return "T+2" as const;
+  if (/^T\+3\b/.test(value)) return "T+3" as const;
+  return normalizeLiquidity(raw);
+}
+
+async function secGet(path: string, key: string, revalidate = SEC_REVALIDATE_SECONDS): Promise<SecEnvelope> {
   const response = await fetch(`${SEC_BASE_URL}${path}`, {
     method: "GET",
     headers: { [SEC_HEADER]: key, Accept: "application/json" },
-    next: { revalidate: 3600 },
-    signal: AbortSignal.timeout(8_000),
+    next: { revalidate },
+    signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`sec_http_${response.status}`);
   const body: unknown = await response.json();
@@ -85,47 +170,334 @@ async function secGet(path: string, key: string): Promise<SecEnvelope> {
   return envelope as SecEnvelope;
 }
 
-async function loadLatestRisk(projectId: string, key: string): Promise<{ level: number | null; sourceDate: string | null; snapshotId: string }> {
-  const params = new URLSearchParams({ proj_id: projectId, start_date: "2020-01-01", page_size: "100" });
-  const envelope = await secGet(`/v2/fund/factsheet/risk-spectrum?${params.toString()}`, key);
-  const items = Array.isArray(envelope.items) ? envelope.items.map(normalizeRisk).filter((row): row is SecRiskRow => Boolean(row)) : [];
-  const latest = items.sort((a, b) => (b.start_date ?? "").localeCompare(a.start_date ?? ""))[0] ?? null;
-  return {
-    level: riskLevel(latest?.risk_spectrum ?? null),
-    sourceDate: latest?.start_date ?? null,
-    snapshotId: `sec-v2:risk-spectrum:${projectId}:${latest?.start_date ?? "unknown"}`,
-  };
+function encodeCatalogCursor(cursor: CatalogCursor): string {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
 }
 
-function profileToFund(profile: SecProfile, risk: { level: number | null; sourceDate: string | null; snapshotId: string } | null, fetchedAt: string): PlanningFund {
-  const classLabel = profile.fund_class_name ? ` · ${profile.fund_class_name}` : "";
-  const sourceDate = risk?.sourceDate ?? profile.last_upd_date;
+function decodeCatalogCursor(value: string | null | undefined): CatalogCursor {
+  if (!value) return { statusIndex: 0, secCursor: "", offset: 0, skipProjectId: null };
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<CatalogCursor>;
+    const statusIndex = parsed.statusIndex === 1 ? 1 : 0;
+    const secCursor = typeof parsed.secCursor === "string" ? parsed.secCursor : "";
+    const offset = typeof parsed.offset === "number" && Number.isInteger(parsed.offset) && parsed.offset >= 0 ? parsed.offset : 0;
+    const skipProjectId = typeof parsed.skipProjectId === "string" && parsed.skipProjectId ? parsed.skipProjectId : null;
+    return { statusIndex, secCursor, offset, skipProjectId };
+  } catch {
+    return { statusIndex: 0, secCursor: "", offset: 0, skipProjectId: null };
+  }
+}
+
+let moneyMarketIdsPromise: Promise<Set<string>> | null = null;
+
+async function loadMoneyMarketProjectIds(key: string): Promise<Set<string>> {
+  if (moneyMarketIdsPromise) return moneyMarketIdsPromise;
+  moneyMarketIdsPromise = (async () => {
+    const ids = new Set<string>();
+    let cursor = "";
+    for (let page = 0; page < 100; page += 1) {
+      const params = new URLSearchParams({ page_size: String(SEC_PAGE_SIZE) });
+      if (cursor) params.set("next_cursor", cursor);
+      const envelope = await secGet(`/v2/fund/general-info/specifications?${params.toString()}`, key);
+      for (const item of asItems(envelope)) {
+        const row = asRecord(item);
+        if (!row || asString(row.spec_code) !== "MM") continue;
+        const projectId = asString(row.proj_id);
+        if (projectId) ids.add(projectId);
+      }
+      cursor = asString(envelope.next_cursor) ?? "";
+      if (!cursor) break;
+    }
+    return ids;
+  })().catch((error) => {
+    moneyMarketIdsPromise = null;
+    throw error;
+  });
+  return moneyMarketIdsPromise;
+}
+
+function demoCatalogItems(): FundCatalogItem[] {
+  return UAT_SYNTHETIC_FUNDS.map((fund) => {
+    const category: FundCatalogCategory = fund.constructionBucket === "equity"
+      ? "equity"
+      : fund.constructionBucket === "mixed"
+        ? "mixed"
+        : fund.constructionBucket === "fixed_income" || fund.constructionBucket === "money_market"
+          ? "fixed_income"
+          : "other";
+    return {
+      projectId: fund.projectId,
+      amcId: "UAT-AMC",
+      amcNameTh: "UAT Asset Management (ข้อมูลสังเคราะห์)",
+      amcNameEn: null,
+      nameTh: fund.name,
+      nameEn: null,
+      abbreviation: fund.shortName,
+      fundStatus: "Registered",
+      policyDesc: category === "equity" ? "ตราสารทุน" : category === "mixed" ? "ผสม" : category === "fixed_income" ? "ตราสารหนี้" : "อื่น ๆ",
+      category,
+      investCountryFlag: null,
+      managementStyle: null,
+      masterFund: fund.masterFund,
+      feederCountry: null,
+      lastUpdated: fund.provenance.sourceDate,
+    };
+  });
+}
+
+export async function listFundCatalog(options: {
+  query?: string;
+  category?: FundCatalogCategory | "all";
+  subcategory?: FundCatalogSubcategory;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<FundCatalogResponse> {
+  const fetchedAt = new Date().toISOString();
+  const query = options.query?.trim().slice(0, 120) ?? "";
+  const category = options.category ?? "all";
+  const subcategory = options.subcategory ?? "all";
+  const limit = Math.min(40, Math.max(8, options.limit ?? CATALOG_PAGE_SIZE));
+  const key = getSubscriptionKey();
+
+  if (!key) {
+    if (!isReviewLikeEnvironment()) {
+      return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, fetchedAt, message: "บริการข้อมูลกองทุนยังไม่พร้อมใช้งาน" };
+    }
+    const normalizedQuery = query.toLowerCase();
+    const items = demoCatalogItems().filter((item) => {
+      if (normalizedQuery && !`${item.nameTh} ${item.abbreviation}`.toLowerCase().includes(normalizedQuery)) return false;
+      if (category !== "all" && item.category !== category) return false;
+      return true;
+    }).slice(0, limit);
+    return { source: "uat_synthetic", state: "demo", items, nextCursor: null, hasMore: false, query, category, subcategory, fetchedAt, message: "Preview นี้ไม่มี SEC key จึงแสดงข้อมูลสังเคราะห์ UAT เท่านั้น" };
+  }
+
+  try {
+    const moneyMarketIds = subcategory === "money_market" ? await loadMoneyMarketProjectIds(key) : null;
+    const start = decodeCatalogCursor(options.cursor);
+    const results: FundCatalogItem[] = [];
+    const seen = new Set<string>();
+    let statusIndex = start.statusIndex;
+    let secCursor = start.secCursor;
+    let offset = start.offset;
+    const skipProjectId = start.skipProjectId;
+    let pagesScanned = 0;
+
+    while (statusIndex < ACTIVE_STATUSES.length && results.length < limit && pagesScanned < 16) {
+      const status = ACTIVE_STATUSES[statusIndex];
+      const currentCursor = secCursor;
+      const params = new URLSearchParams({ page_size: String(SEC_PAGE_SIZE), fund_status: status });
+      if (query) params.set("project_info", query);
+      if (currentCursor) params.set("next_cursor", currentCursor);
+      const envelope = await secGet(`/v2/fund/general-info/profiles?${params.toString()}`, key);
+      const rawItems = asItems(envelope);
+      pagesScanned += 1;
+
+      for (let index = offset; index < rawItems.length; index += 1) {
+        const item = normalizeCatalogItem(rawItems[index]);
+        if (!item) continue;
+        if (skipProjectId && item.projectId === skipProjectId) continue;
+        if (seen.has(item.projectId)) continue;
+        if (category !== "all" && item.category !== category) continue;
+        if (!matchesGeography(item, subcategory)) continue;
+        if (subcategory === "money_market" && !moneyMarketIds?.has(item.projectId)) continue;
+        seen.add(item.projectId);
+        results.push(item);
+        if (results.length >= limit) {
+          return {
+            source: "sec_v2",
+            state: "fresh",
+            items: results,
+            nextCursor: encodeCatalogCursor({ statusIndex, secCursor: currentCursor, offset: index + 1, skipProjectId: item.projectId }),
+            hasMore: true,
+            query,
+            category,
+            subcategory,
+            fetchedAt,
+            message: null,
+          };
+        }
+      }
+
+      offset = 0;
+      const next = asString(envelope.next_cursor) ?? "";
+      if (next) {
+        secCursor = next;
+      } else {
+        statusIndex += 1;
+        secCursor = "";
+      }
+    }
+
+    const hasMore = statusIndex < ACTIVE_STATUSES.length;
+    return {
+      source: "sec_v2",
+      state: results.length ? "fresh" : "unavailable",
+      items: results,
+      nextCursor: hasMore ? encodeCatalogCursor({ statusIndex, secCursor, offset: 0, skipProjectId: null }) : null,
+      hasMore,
+      query,
+      category,
+      subcategory,
+      fetchedAt,
+      message: results.length ? null : "ไม่พบกองทุนที่ตรงกับตัวกรองนี้",
+    };
+  } catch {
+    return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, fetchedAt, message: "SEC Open API ไม่พร้อมใช้งานชั่วคราว" };
+  }
+}
+
+async function settledEnvelope(path: string, key: string): Promise<{ state: "ok" | "empty" | "unavailable"; items: unknown[] }> {
+  try {
+    const envelope = await secGet(path, key);
+    const items = asItems(envelope);
+    return { state: items.length ? "ok" : "empty", items };
+  } catch {
+    return { state: "unavailable", items: [] };
+  }
+}
+
+function latestDate(values: Array<string | null | undefined>): string | null {
+  const dates = values.filter((value): value is string => Boolean(value));
+  return dates.length ? dates.sort((a, b) => b.localeCompare(a))[0] : null;
+}
+
+export async function getFundDetail(projectId: string, requestedClassName?: string | null): Promise<FundDetailResponse> {
+  const fetchedAt = new Date().toISOString();
+  const key = getSubscriptionKey();
+  if (!key || !/^M\d{4}_\d{4}$/.test(projectId)) {
+    return { source: "unavailable", state: "unavailable", fund: null, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt, warnings: ["ข้อมูลรายละเอียดกองทุนยังไม่พร้อมใช้งาน"], endpointStates: {} };
+  }
+
+  const encoded = encodeURIComponent(projectId);
+  const [profileResult, specificationResult, riskResult, allocationResult, dealingResult] = await Promise.all([
+    settledEnvelope(`/v2/fund/general-info/profiles?project_info=${encoded}&page_size=100`, key),
+    settledEnvelope(`/v2/fund/general-info/specifications?proj_id=${encoded}&page_size=100`, key),
+    settledEnvelope(`/v2/fund/factsheet/risk-spectrum?proj_id=${encoded}&latest=true&page_size=100`, key),
+    settledEnvelope(`/v2/fund/factsheet/asset-allocation?proj_id=${encoded}&latest=true&page_size=100`, key),
+    settledEnvelope(`/v2/fund/factsheet/subscription-redemption-periods?proj_id=${encoded}&latest=true&page_size=100`, key),
+  ]);
+
+  const profileRows = profileResult.items.map(asRecord).filter((row): row is Record<string, unknown> => Boolean(row));
+  const activeProfiles = profileRows.filter((row) => row.fund_status === "Registered" || row.fund_status === "IPO");
+  const fund = normalizeCatalogItem(activeProfiles[0] ?? profileRows[0]);
+  const classes = activeProfiles.map(normalizeClass).filter((row): row is FundClassOption => Boolean(row));
+  const classNames = new Set(classes.map((row) => row.name));
+  const requested = requestedClassName?.trim() || null;
+  const selectedClassName = requested && classNames.has(requested)
+    ? requested
+    : classes.length === 1
+      ? classes[0].name
+      : classNames.has("main")
+        ? "main"
+        : null;
+
+  const specifications: FundSpecificationFact[] = specificationResult.items.flatMap((value) => {
+    const row = asRecord(value);
+    if (!row) return [];
+    const code = asString(row.spec_code);
+    const description = asString(row.spec_desc);
+    const className = asString(row.fund_class_name);
+    if (!code || !description || !className) return [];
+    return [{ code, description, className, lastUpdated: asString(row.last_upd_date) }];
+  }).filter((row) => !selectedClassName || row.className === selectedClassName || row.className === "main");
+
+  const riskRow = riskResult.items.map(normalizeRisk).find((row): row is SecRiskRow => Boolean(row)) ?? null;
+  const risk: FundRiskFact | null = riskRow ? {
+    level: riskLevel(riskRow.risk_spectrum),
+    rawCode: riskRow.risk_spectrum,
+    description: riskRow.risk_spectrum_desc,
+    sourceDate: riskRow.start_date,
+    lastUpdated: riskRow.last_upd_date,
+  } : null;
+
+  const assetAllocation: FundAssetAllocationFact[] = allocationResult.items.flatMap((value) => {
+    const row = asRecord(value);
+    if (!row) return [];
+    const name = asString(row.asset_name);
+    const percentNav = asNumber(row.asset_ratio);
+    if (!name || percentNav === null) return [];
+    return [{ name, percentNav, sourceDate: asString(row.start_date), lastUpdated: asString(row.last_upd_date) }];
+  }).sort((a, b) => b.percentNav - a.percentNav);
+
+  let dealing: FundDealingFact | null = null;
+  if (selectedClassName) {
+    const classRows = dealingResult.items.map(asRecord).filter((row): row is Record<string, unknown> => Boolean(row) && asString((row as Record<string, unknown>).fund_class_name) === selectedClassName);
+    const subscription = classRows.find((row) => asString(row.type) === "subscription") ?? null;
+    const redemption = classRows.find((row) => asString(row.type) === "redemption") ?? null;
+    const settlementPeriod = redemption ? asString(redemption.settlement_period) : null;
+    const sourceDate = latestDate([subscription ? asString(subscription.start_date) : null, redemption ? asString(redemption.start_date) : null]);
+    const lastUpdated = latestDate([subscription ? asString(subscription.last_upd_date) : null, redemption ? asString(redemption.last_upd_date) : null]);
+    dealing = {
+      className: selectedClassName,
+      subscriptionPeriod: subscription ? asString(subscription.period) : null,
+      subscriptionPeriodOther: subscription ? asString(subscription.redemp_period_oth) : null,
+      redemptionPeriod: redemption ? asString(redemption.period) : null,
+      redemptionPeriodOther: redemption ? asString(redemption.redemp_period_oth) : null,
+      settlementPeriod,
+      settlementBucket: normalizeSettlementBucket(settlementPeriod),
+      sourceDate,
+      lastUpdated,
+    };
+  }
+
+  const endpointStates = {
+    profile: profileResult.state,
+    specification: specificationResult.state,
+    risk: riskResult.state,
+    allocation: allocationResult.state,
+    dealing: dealingResult.state,
+  };
+  const warnings: string[] = [];
+  if (!fund) warnings.push("ไม่พบข้อมูล Profile ของกองทุนจาก SEC");
+  if (classes.length > 1 && !selectedClassName) warnings.push("กองนี้มีหลายชนิดหน่วยลงทุน กรุณาเลือกชนิดหน่วยก่อนดูเงื่อนไขซื้อขาย");
+  if (!risk) warnings.push("ยังไม่มี Risk Spectrum ที่ระบบอ่านได้");
+  if (!assetAllocation.length) warnings.push("ยังไม่มี Asset Allocation ล่าสุดที่ระบบอ่านได้");
+  if (assetAllocation.some((row) => row.percentNav < 0)) warnings.push("Asset Allocation มีรายการติดลบตามข้อมูล Fund Factsheet ระบบคงค่าตามต้นทางและไม่ปรับให้รวม 100%");
+  const assetTotal = assetAllocation.reduce((sum, row) => sum + row.percentNav, 0);
+  if (assetAllocation.length && Math.abs(assetTotal - 100) > 0.5) warnings.push(`สัดส่วนสินทรัพย์รวม ${Math.round(assetTotal * 100) / 100}% ตามข้อมูลต้นทาง ระบบไม่ renormalize`);
+  if (selectedClassName && !dealing) warnings.push("ยังไม่มีข้อมูล Subscription / Redemption สำหรับชนิดหน่วยที่เลือก");
+  for (const [endpoint, state] of Object.entries(endpointStates)) if (state === "unavailable") warnings.push(`SEC endpoint ${endpoint} ไม่พร้อมใช้งานชั่วคราว`);
+  if (risk?.rawCode && !risk.level) warnings.push(`SEC ระบุ Risk Spectrum เป็น ${risk.rawCode} ซึ่งอยู่นอกระดับ 1–8 ที่เครื่องมือนี้แสดง`);
+
+  const dataDate = latestDate([
+    risk?.sourceDate,
+    ...assetAllocation.map((row) => row.sourceDate),
+    dealing?.sourceDate,
+  ]);
+  const state = fund && risk && assetAllocation.length ? (Object.values(endpointStates).includes("unavailable") ? "partial" : "fresh") : "partial";
+
+  return { source: "sec_v2", state, fund, classes, selectedClassName, specifications, risk, assetAllocation, dealing, dataDate, fetchedAt, warnings, endpointStates };
+}
+
+async function loadLatestRisk(projectId: string, key: string): Promise<{ level: number | null; sourceDate: string | null; snapshotId: string }> {
+  const params = new URLSearchParams({ proj_id: projectId, latest: "true", page_size: "100" });
+  const envelope = await secGet(`/v2/fund/factsheet/risk-spectrum?${params.toString()}`, key);
+  const latest = asItems(envelope).map(normalizeRisk).find((row): row is SecRiskRow => Boolean(row)) ?? null;
+  return { level: riskLevel(latest?.risk_spectrum ?? null), sourceDate: latest?.start_date ?? null, snapshotId: `sec-v2:risk-spectrum:${projectId}:${latest?.start_date ?? "unknown"}` };
+}
+
+function profileToPlanningFund(profile: FundCatalogItem, risk: { level: number | null; sourceDate: string | null; snapshotId: string } | null, fetchedAt: string): PlanningFund {
   return {
-    id: `sec:${profile.proj_id}:${profile.fund_class_name ?? "project"}`,
-    projectId: profile.proj_id,
-    className: profile.fund_class_name,
-    name: `${profile.proj_abbr_name}${classLabel}`,
-    shortName: profile.proj_abbr_name,
-    constructionBucket: null,
-    policyText: null,
+    id: `sec:${profile.projectId}:project`,
+    projectId: profile.projectId,
+    className: null,
+    name: profile.nameTh,
+    shortName: profile.abbreviation,
+    constructionBucket: constructionBucketFromCategory(profile.category),
+    policyText: profile.policyDesc,
     riskSpectrum: risk?.level ?? null,
     assetAllocation: [],
     liquidity: { rawText: null, normalized: "unknown", sourceDate: null },
     feeSummary: null,
-    masterFund: null,
+    masterFund: profile.masterFund,
     provenance: {
       source: "sec_v2",
-      snapshotIds: [
-        `sec-v2:profile:${profile.proj_id}:${profile.last_upd_date ?? "unknown"}`,
-        ...(risk ? [risk.snapshotId] : []),
-      ],
-      sourceDate,
+      snapshotIds: [`sec-v2:profile:${profile.projectId}:${profile.lastUpdated ?? "unknown"}`, ...(risk ? [risk.snapshotId] : [])],
+      sourceDate: risk?.sourceDate ?? profile.lastUpdated,
       fetchedAt,
       state: "partial",
-      notes: [
-        "SEC v2 profile/risk data only in this UAT adapter.",
-        "Asset allocation, liquidity, fee and master-fund endpoint paths are not used until current v2 field mapping is verified.",
-      ],
+      notes: ["Fund profile and Risk Spectrum come from SEC v2. Asset Allocation and dealing details are loaded only after fund selection."],
     },
   };
 }
@@ -136,69 +508,18 @@ export async function searchPlanningFunds(query: string): Promise<FundSearchResp
   const key = getSubscriptionKey();
   if (!normalizedQuery) return { mode: key ? "sec_live" : "uat_demo", state: "unavailable", query: "", funds: [], message: "กรอกชื่อหรือรหัสกองทุนเพื่อค้นหา", fetchedAt };
 
-  const demoRequested = IS_REVIEW_ENVIRONMENT && /(?:^|\s)(uat|demo|ตัวอย่าง)(?:\s|$)/i.test(normalizedQuery);
-  if (demoRequested) {
-    return {
-      mode: "uat_demo",
-      state: "demo",
-      query: normalizedQuery,
-      funds: searchDemoFunds("uat"),
-      message: "กำลังแสดงข้อมูลสังเคราะห์สำหรับทดสอบ UAT เท่านั้น ไม่ใช่ข้อมูลกองทุนจริงจาก ก.ล.ต.",
-      fetchedAt,
-    };
-  }
-
+  const demoRequested = isReviewLikeEnvironment() && /(?:^|\s)(uat|demo|ตัวอย่าง)(?:\s|$)/i.test(normalizedQuery);
+  if (demoRequested) return { mode: "uat_demo", state: "demo", query: normalizedQuery, funds: searchDemoFunds("uat"), message: "กำลังแสดงข้อมูลสังเคราะห์สำหรับทดสอบ UAT เท่านั้น ไม่ใช่ข้อมูลกองทุนจริงจาก ก.ล.ต.", fetchedAt };
   if (!key) {
-    if (!IS_REVIEW_ENVIRONMENT) {
-      return {
-        mode: "sec_live",
-        state: "unavailable",
-        query: normalizedQuery,
-        funds: [],
-        message: "บริการค้นหาข้อมูลกองทุนยังไม่พร้อมใช้งาน",
-        fetchedAt,
-      };
-    }
-    return {
-      mode: "uat_demo",
-      state: "demo",
-      query: normalizedQuery,
-      funds: searchDemoFunds(normalizedQuery),
-      message: "UAT นี้ยังไม่ได้ผูก SEC subscription key จึงใช้ได้เฉพาะข้อมูลสังเคราะห์ที่ติดป้าย UAT ชัดเจน",
-      fetchedAt,
-    };
+    if (!isReviewLikeEnvironment()) return { mode: "sec_live", state: "unavailable", query: normalizedQuery, funds: [], message: "บริการค้นหาข้อมูลกองทุนยังไม่พร้อมใช้งาน", fetchedAt };
+    return { mode: "uat_demo", state: "demo", query: normalizedQuery, funds: searchDemoFunds(normalizedQuery), message: "Preview นี้ไม่มี SEC key จึงใช้ได้เฉพาะข้อมูลสังเคราะห์ที่ติดป้าย UAT ชัดเจน", fetchedAt };
   }
 
-  try {
-    const params = new URLSearchParams({ project_info: normalizedQuery, page_size: String(SEARCH_PAGE_SIZE) });
-    const envelope = await secGet(`/v2/fund/general-info/profiles?${params.toString()}`, key);
-    const profiles = Array.isArray(envelope.items) ? envelope.items.map(normalizeProfile).filter((row): row is SecProfile => Boolean(row)) : [];
-    const funds = await Promise.all(profiles.map(async (profile) => {
-      try {
-        const risk = await loadLatestRisk(profile.proj_id, key);
-        return profileToFund(profile, risk, fetchedAt);
-      } catch {
-        return profileToFund(profile, null, fetchedAt);
-      }
-    }));
-    return {
-      mode: "sec_live",
-      state: funds.length ? "partial" : "unavailable",
-      query: normalizedQuery,
-      funds,
-      message: funds.length
-        ? "ผลค้นหาจาก SEC v2; UAT นี้เปิดใช้เฉพาะ endpoint ที่ยืนยันแล้ว จึงอาจยังไม่มี allocation/liquidity/fee"
-        : "ไม่พบกองทุนจากคำค้นนี้",
-      fetchedAt,
-    };
-  } catch {
-    return {
-      mode: "sec_live",
-      state: "unavailable",
-      query: normalizedQuery,
-      funds: [],
-      message: "SEC Open API ไม่พร้อมใช้งานชั่วคราว ลองใหม่ภายหลัง โดยข้อมูลที่กรอกไว้ยังอยู่ในหน้านี้",
-      fetchedAt,
-    };
-  }
+  const catalog = await listFundCatalog({ query: normalizedQuery, limit: 8 });
+  if (catalog.source !== "sec_v2") return { mode: "sec_live", state: "unavailable", query: normalizedQuery, funds: [], message: catalog.message, fetchedAt };
+  const funds = await Promise.all(catalog.items.map(async (profile) => {
+    try { return profileToPlanningFund(profile, await loadLatestRisk(profile.projectId, key), fetchedAt); }
+    catch { return profileToPlanningFund(profile, null, fetchedAt); }
+  }));
+  return { mode: "sec_live", state: funds.length ? "partial" : "unavailable", query: normalizedQuery, funds, message: funds.length ? "ผลค้นหากอง active จาก SEC v2" : "ไม่พบกองทุนจากคำค้นนี้", fetchedAt };
 }
