@@ -242,13 +242,16 @@ export async function rescheduleSocialPublication(input: {
        SELECT publication.id AS publication_id,job.id AS job_id
        FROM ccpun_social.social_publication AS publication
        JOIN ccpun_social.social_variant_link AS variant ON variant.variant_id=publication.variant_id
-       JOIN ccpun_social.social_publication_job AS job ON job.publication_id=publication.id
+       JOIN LATERAL (
+         SELECT * FROM ccpun_social.social_publication_job
+         WHERE publication_id=publication.id ORDER BY created_at DESC,id DESC LIMIT 1
+       ) AS job ON true
        WHERE publication.id=$1 AND job.version=$2 AND variant.channel='facebook'
          AND publication.execution_target='facebook-native-scheduled'
          AND publication.platform_object_id IS NULL AND job.attempt_count=0
          AND publication.status IN ('approved','failed','cancelled','superseded')
          AND job.status IN ('queued','failed','cancelled')
-       ORDER BY job.created_at DESC,job.id DESC LIMIT 1 FOR UPDATE OF publication,job
+       FOR UPDATE OF publication,job
      ), amended_publication AS (
        UPDATE ccpun_social.social_publication
        SET status='approved',scheduled_at=$3::timestamptz,platform_object_id=NULL,published_at=NULL,updated_at=now()
@@ -302,13 +305,16 @@ export async function cancelSocialPublication(input: {
        SELECT publication.id AS publication_id,job.id AS job_id
        FROM ccpun_social.social_publication AS publication
        JOIN ccpun_social.social_variant_link AS variant ON variant.variant_id=publication.variant_id
-       JOIN ccpun_social.social_publication_job AS job ON job.publication_id=publication.id
+       JOIN LATERAL (
+         SELECT * FROM ccpun_social.social_publication_job
+         WHERE publication_id=publication.id ORDER BY created_at DESC,id DESC LIMIT 1
+       ) AS job ON true
        WHERE publication.id=$1 AND job.version=$2 AND variant.channel='facebook'
          AND publication.execution_target='facebook-native-scheduled'
          AND publication.platform_object_id IS NULL AND job.attempt_count=0
          AND publication.status IN ('approved','failed','cancelled','superseded')
          AND job.status IN ('queued','failed','cancelled')
-       ORDER BY job.created_at DESC,job.id DESC LIMIT 1 FOR UPDATE OF publication,job
+       FOR UPDATE OF publication,job
      ), cancelled_publication AS (
        UPDATE ccpun_social.social_publication SET status='cancelled',updated_at=now()
        WHERE id=(SELECT publication_id FROM eligible) RETURNING id,status,scheduled_at
