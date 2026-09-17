@@ -87,11 +87,19 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
     "apps/web/app/blog/page.tsx",
     "apps/web/next.config.ts",
   ];
+  const adminHardeningPaths = [
+    ".github/workflows/sanity-free-plan-privacy.yml",
+    "docs/architecture/admin-platform-extension-contract.md",
+    "apps/admin/README.md",
+    "lib/admin/social/schema-capabilities.ts",
+    "tests/admin/social-schema-capabilities.test.ts",
+  ];
 
   assert.equal(classifyProductionChanges(pr45Paths), "admin-only");
   assert.equal(classifyProductionChanges(website43Paths), "web-only");
   assert.equal(classifyProductionChanges(isolatedAdminPaths), "admin-only");
   assert.equal(classifyProductionChanges(isolatedWebPaths), "web-only");
+  assert.equal(classifyProductionChanges(adminHardeningPaths), "admin-only");
   assert.equal(classifyProductionChanges([isolatedAdminPaths[0], isolatedWebPaths[0]]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges([pr45Paths[2], website43Paths[0]]), "mixed-or-unknown");
   for (const sharedPath of [
@@ -110,6 +118,8 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
 
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: pr45Paths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: pr45Paths }), true);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: website43Paths }), true);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: website43Paths }), false);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: isolatedWebPaths }), true);
