@@ -64,7 +64,9 @@ export function InstagramMobileHandoff(props: {
   const [selectedAudio, setSelectedAudio] = useState<InstagramAudioOption | null>(null);
   const [audioVolume, setAudioVolume] = useState(100);
   const [videoVolume, setVideoVolume] = useState(100);
-  const [configState, setConfigState] = useState<"idle" | "loading" | "ready" | "saving" | "error">("idle");
+  const [configState, setConfigState] = useState<"idle" | "loading" | "ready" | "saving" | "error">(
+    props.format === "reel" ? "loading" : "idle",
+  );
   const [draftRevision, setDraftRevision] = useState<string | null>(props.revision);
   const [draftVersion, setDraftVersion] = useState(props.version);
   const [approvalInvalidated, setApprovalInvalidated] = useState(false);
@@ -78,7 +80,6 @@ export function InstagramMobileHandoff(props: {
   useEffect(() => {
     if (props.format !== "reel") return;
     const controller = new AbortController();
-    setConfigState("loading");
     const url = new URL("/api/admin/social/drafts/instagram-audio/", window.location.origin);
     url.searchParams.set("variantId", props.variantId);
     void fetch(url, { cache: "no-store", credentials: "same-origin", signal: controller.signal })
