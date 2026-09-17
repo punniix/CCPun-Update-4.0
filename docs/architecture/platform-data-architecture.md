@@ -73,9 +73,11 @@ Both runtime roles are least-privilege application roles. Owner/backfill credent
 
 The runtime verifies deployment/data identity and migration ledgers before privileged operations. Unknown or mismatched identities fail closed.
 
-UAT and Production may use lane-specific migration version names, so equality of ledger strings is not the parity contract. **Required runtime capabilities are the parity contract**: if Production code depends on a table, column, view or migration capability, UAT must support that capability before the code is considered Preview-ready.
+UAT and Production may use lane-specific migration version names, so equality of ledger strings is not the parity contract. **Required runtime capabilities are the parity contract**: if Production code depends on a table, column, view or migration capability, UAT must support that capability before that feature is considered Preview-ready.
 
-As of the 2026-09-17 audit, `ccpun_admin` capabilities are aligned for current Control Plane usage, while UAT `ccpun_social` is behind Production Marketing Mart capabilities. Catch-up must be tested through the repository migrations on a temporary branch and applied to UAT before future social/marketing features rely on those views.
+As of the 2026-09-17 audit, `ccpun_admin` capabilities are aligned for current Control Plane usage, while UAT `ccpun_social` is behind Production Marketing Mart capabilities. Admin System Health exposes this explicitly as `clean-mart`, `raw-preview-fallback` or `blocked`, including the missing relations. Existing UAT can intentionally use the raw Preview fallback for current features; a future feature that depends on the clean Marketing Mart must not merge until UAT gains that capability.
+
+The existing guarded Marketing Mart migration uses a `DO $...$` block that the available Neon migration-preparation parser did not accept during the audit. The preparation failed before any schema was changed. Do not bypass that safety failure with direct UAT DDL; create/test a tool-compatible migration and use the explicit migration approval flow before applying it.
 
 ## Authentication
 
@@ -101,15 +103,15 @@ Meaningful lanes:
 
 ### Admin Preview authorization
 
-Admin UAT authorization is based on the immutable data plane rather than a historical feature-branch allowlist:
+New Admin feature branches use the `admin/*` convention and must also match the immutable UAT data plane:
 
+- branch starts with `admin/` (historical module-specific branches may remain as explicit compatibility entries only);
 - exact Admin Vercel project;
 - Preview environment when Vercel environment is supplied;
-- a present Git branch that is not `v4-production`;
 - exact Sanity `ccb9lnw5/uat`;
 - exact UAT Neon identity and least-privilege role when Neon is required.
 
-This allows future `admin/*` feature branches to use the same safe UAT plane without code changes.
+`v4-production`, unrelated branch prefixes and wrong Vercel/Sanity/Neon identities fail closed. Future branches such as `admin/openquok-*` therefore work without adding a branch-specific allowlist entry, while old branch names do not become a permanent authorization model.
 
 ### Admin Production authorization
 
@@ -169,7 +171,7 @@ New or forked Admin features must follow `docs/architecture/admin-platform-exten
 ## Change order
 
 1. verify the current Production and UAT baseline;
-2. make the smallest hardening/feature change on a dedicated branch;
+2. make the smallest hardening/feature change on a dedicated `admin/*` branch;
 3. pass Admin architecture, TypeScript, security and provider boundary tests;
 4. test database schema changes on UAT/temporary branches first;
 5. verify Sanity anonymous privacy when Sanity-facing code changes;
