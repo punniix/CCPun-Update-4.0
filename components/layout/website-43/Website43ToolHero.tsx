@@ -46,7 +46,7 @@ export default function Website43ToolHero({
           <span className={styles.toolTitleGold}>{line2}</span>
         </h1>
         <p className={styles.toolDescription}>{description}</p>
-        <a className={`${styles.primaryButton} ccpun-motion-tactile`} href={ctaHref}>{ctaLabel}</a>
+        <a className={styles.primaryButton} href={ctaHref}>{ctaLabel}</a>
       </div>
     </section>
   );
