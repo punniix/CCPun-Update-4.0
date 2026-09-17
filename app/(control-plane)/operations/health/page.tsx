@@ -6,6 +6,10 @@ import { resolveArticleSchedulerLane } from "@/lib/admin/operations/article-sche
 import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
 import { getSocialFoundationRuntimeStatus } from "@/lib/admin/social/foundation";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
+import {
+  getSocialDatabaseCapabilityStatus,
+  getSocialDatabaseReadiness,
+} from "@/lib/admin/social/database";
 
 export const metadata: Metadata = { title: "System Health" };
 
@@ -48,7 +52,11 @@ export default async function AdminHealthPage() {
   const sanity = getAdminSanityStatus();
   const operations = getAdminOperationsRuntimeStatus();
   const schedulerLane = resolveArticleSchedulerLane(process.env);
-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
+  const [scheduler, socialDatabase, socialCapabilities] = await Promise.all([
+    readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 }),
+    getSocialDatabaseReadiness(),
+    getSocialDatabaseCapabilityStatus(),
+  ]);
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
 
@@ -68,13 +76,25 @@ export default async function AdminHealthPage() {
       ? "ok"
       : "warning";
   const socialState: HealthState = socialOperations.enabled || socialFoundation.enabled ? "ok" : "off";
+  const socialDatabaseState: HealthState = socialDatabase.migrationCurrent
+    ? "ok"
+    : socialDatabase.configured
+      ? "warning"
+      : "off";
+  const socialCapabilityState: HealthState = socialCapabilities.mode === "clean-mart"
+    ? "ok"
+    : socialCapabilities.mode === "raw-preview-fallback"
+      ? "warning"
+      : socialCapabilities.configured
+        ? "warning"
+        : "off";
 
   return (
     <div>
       <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">OWNER DIAGNOSTICS</p>
       <h1 className="mt-2 text-3xl font-semibold">System Health</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-        ดูว่า Admin กำลังรันบน deployment ไหน เชื่อม Sanity และ private operational database ถูก lane หรือไม่ รวมถึงสถานะระบบ Schedule และ Social โดยไม่แสดง credential หรือ secret ใด ๆ
+        ดูว่า Admin กำลังรันบน deployment ไหน เชื่อม Sanity และ private operational database ถูก lane หรือไม่ รวมถึงสถานะ Schedule, Social และ schema capability โดยไม่แสดง credential หรือ secret ใด ๆ
       </p>
 
       <div className="mt-7 grid gap-4 xl:grid-cols-2">
@@ -113,6 +133,25 @@ export default async function AdminHealthPage() {
           <Row label="Audit records" value={scheduler.status === "ready" ? scheduler.audit.length.toLocaleString("th-TH") : "—"} />
           {scheduler.error ? <p className="pt-2 text-amber-100/80">Read error: {scheduler.error}</p> : null}
           <p className="pt-2 text-white/50">สถานะ “พร้อม” ต้องผ่านทั้ง runtime identity, runtime switch และ durable database switch พร้อมกัน การเปิด durable switch ต้องใช้ database-owner channel แยกจาก runtime credential</p>
+        </Card>
+
+        <Card title="Social Database" state={socialDatabaseState}>
+          <Row label="Base schema" value={socialDatabase.migrationCurrent ? "พร้อม" : socialDatabase.reachable ? "migration ไม่ครบ" : socialDatabase.errorCategory ?? "ไม่พร้อม"} />
+          <Row label="Reachable" value={socialDatabase.reachable ? "ใช่" : "ไม่"} />
+          <Row label="Configured" value={socialDatabase.configured ? "ใช่" : "ไม่"} />
+          <p className="pt-2 text-white/50">Base schema คือ execution/publication/media state ที่ Social runtime ต้องใช้ก่อนเปิด operation</p>
+        </Card>
+
+        <Card title="Social Schema Capabilities" state={socialCapabilityState}>
+          <Row label="Lane" value={socialCapabilities.lane ?? "—"} />
+          <Row label="Marketing mode" value={socialCapabilities.mode ?? "—"} />
+          <Row label="Mart migration" value={socialCapabilities.martCurrent ? "พร้อม" : "ยังไม่มี"} />
+          <Row label="Provenance" value={socialCapabilities.provenanceCurrent ? "พร้อม" : "ยังไม่มี"} />
+          <Row label="Required views" value={socialCapabilities.relationsCurrent ? "ครบ" : "ยังไม่ครบ"} />
+          <Row label="Missing" value={socialCapabilities.missingRelations.length ? socialCapabilities.missingRelations.join(", ") : "—"} />
+          <p className="pt-2 text-white/50">
+            UAT สามารถใช้ <code>raw-preview-fallback</code> ได้อย่างตั้งใจ แต่ feature ใหม่ที่ต้องพึ่ง clean Marketing Mart ต้องรอ capability นี้ขึ้น <code>clean-mart</code> ก่อน merge
+          </p>
         </Card>
 
         <Card title="Social / Distribution" state={socialState}>
