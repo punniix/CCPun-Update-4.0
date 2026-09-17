@@ -53,7 +53,7 @@ Do not add another auth stack, database authority, Vercel project or per-feature
 
 An Admin feature branch is authorized by the exact UAT data plane rather than an old branch allowlist. Vercel Preview must use the Admin project, Sanity UAT and, when required, the exact UAT Neon identity. `v4-production` is denied from the UAT lane.
 
-Use an `admin/` branch prefix for Admin-only work so Vercel can skip the Public Web survivor.
+Use an `admin/` branch prefix for Admin-only work so Vercel can skip the Public Web survivor. Admin verification files that do not change either runtime (for example the dedicated Sanity Free privacy workflow) are explicitly classified as neutral; generic or unknown workflow changes remain fail-safe and build both projects.
 
 ## Before integrating an upstream fork
 
