@@ -58,3 +58,7 @@ Use an `admin/` branch prefix for Admin-only work so Vercel can skip the Public 
 ## Before integrating an upstream fork
 
 Inventory its license, dependencies, routes, environment variables, data schema, background work and write side effects first. Reuse its feature logic through CCPun adapters; do not copy its auth, database bootstrap or deployment topology by default.
+
+## Production isolation proof
+
+This non-runtime Admin-owned documentation change was added on 2026-09-17 to validate the Production routing contract after the shared-root classifier fix. An Admin-only merge must build `ccpun-admin` while the `ccpun-web` Production candidate is skipped by the Ignored Build Step. Preview branches under `admin/**` are suppressed from the Web project before a deployment candidate is created.
