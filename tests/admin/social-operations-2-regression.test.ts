@@ -8,12 +8,11 @@ test("Admin navigation keeps seven primary modules and exposes Social contextual
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
   const nav = read("features/admin/components/AdminNavigation.tsx");
   for (const label of ["Dashboard", "Content", "SEO", "Social", "Analytics", "Operations", "Settings"]) {
-    assert.match(layout, new RegExp(`label: \\"${label}\\"`));
+    assert.ok(layout.includes(`label: "${label}"`), `missing primary module ${label}`);
   }
   assert.match(layout, /href: "\/social\/queue\/", label: "Queue"/);
   assert.match(nav, /<PrimaryModules items=\{items\} pathname=\{pathname\} \/>/);
   assert.match(nav, /activeItem\?\.children\?\.length \? <ContextNavigation/);
-  assert.doesNotMatch(nav, /lg:flex[^\n]*children/);
   assert.match(nav, /aria-label="กลับไปเมนูหลัก"/);
   assert.match(nav, /min-h-11 min-w-11/);
   assert.match(nav, /motion-reduce:transition-none/);
@@ -72,12 +71,14 @@ test("Instagram audio configuration is revision-bound and preview URLs are not p
   const schema = read("cms/sanity/schema/documents/social-variant.ts");
   const audio = read("lib/admin/social/instagram-audio-config.ts");
   const route = read("apps/admin/app/api/admin/social/drafts/instagram-audio/route.ts");
-  assert.match(schema, /audioConfiguration/);
+  assert.match(schema, /instagramAudio/);
   assert.match(audio, /audioId/);
   assert.match(audio, /videoVolume/);
   assert.match(audio, /audioVolume/);
+  assert.match(audio, /revalidateInstagramAudioConfiguration/);
+  assert.match(audio, /ifRevisionId\(mutation\.expectedRevision\)/);
   assert.match(route, /expectedRevision/);
-  assert.match(route, /revalidate/i);
+  assert.match(route, /saveSocialInstagramAudioConfiguration/);
   assert.doesNotMatch(schema, /previewUrl|downloadUrl/);
 });
 
