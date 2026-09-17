@@ -1,3 +1,4 @@
+import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
 import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero';
@@ -6,7 +7,7 @@ import LifeCoverageWizard from './LifeCoverageWizard';
 
 export default function ClientFHC() {
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${functionalMotion.scope}`}>
       <main id="main-content" tabIndex={-1}>
         <Website43ToolHero
           image="/assets/website-43/fhc-hero.png"
