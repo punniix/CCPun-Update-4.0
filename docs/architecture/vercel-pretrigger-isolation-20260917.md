@@ -44,4 +44,11 @@ Production is not disabled by `git.deploymentEnabled`.
 - shared/unknown Preview: both may deploy.
 - Production: changed-path classification decides Web-only, Admin-only, or both.
 
+## Live probe evidence
+
+The rules were tested from the exact change branch before merge:
+
+- `web/vercel-pretrigger-probe-20260917` commit `39485e69...` created a `ccpun-web` Preview and created no corresponding `ccpun-admin` deployment.
+- `admin/vercel-pretrigger-probe-20260917` commit `47182a00...` created a `ccpun-admin` Preview and created no corresponding `ccpun-web` deployment.
+
 This removes canceled cross-project Preview churn without weakening the Production fail-safe router.
