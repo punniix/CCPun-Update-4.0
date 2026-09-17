@@ -9,14 +9,7 @@ const DEPLOYMENT_PROJECT_ID = process.env.VERCEL_PROJECT_ID?.trim();
 const PRODUCTION_ADMIN_PROJECT_ID = process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim()
   || process.env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim();
 
-export const IS_ADMIN_APPLICATION = [
-  "local-uat",
-  "local-production",
-  "lab",
-  "uat",
-  "admin-uat",
-  "production-admin",
-].includes(APP_ENVIRONMENT);
+export const IS_ADMIN_APPLICATION = ["local-uat", "local-production", "lab", "uat", "admin-uat", "production-admin"].includes(APP_ENVIRONMENT);
 
 export const IS_REVIEW_ENVIRONMENT =
   process.env.VERCEL_ENV === "preview" ||
