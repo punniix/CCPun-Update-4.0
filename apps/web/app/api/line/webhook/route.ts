@@ -47,6 +47,11 @@ export async function POST(request: Request) {
     return noIndexJson({ error: "line_webhook_unavailable" }, 503);
   }
 
+  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!contentType.startsWith("application/json")) {
+    return noIndexJson({ error: "unsupported_media_type" }, 415);
+  }
+
   const contentLength = request.headers.get("content-length");
   if (contentLength) {
     const declaredBytes = Number(contentLength);
@@ -71,7 +76,8 @@ export async function POST(request: Request) {
   }
 
   // Deliberately derive only non-content descriptors at the public ingress.
-  // Raw messages, source identifiers and files are never logged or sent to AI here.
+  // Raw messages, source identifiers and files are never logged, executed,
+  // interpolated into commands/queries, forwarded outbound or sent to AI here.
   envelope.events.map(describeLineWebhookEvent);
 
   return noIndexJson({ ok: true, accepted: envelope.events.length }, 200);
