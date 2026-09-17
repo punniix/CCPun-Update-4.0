@@ -64,6 +64,9 @@ jobs:
           }
 
           const output = [];
+          const drift = [];
+          const unavailable = [];
+
           for (const project of projects) {
             const scoped = `teamId=${encodeURIComponent(teamId)}`;
             const settingsResult = await firstJson([
@@ -80,9 +83,28 @@ jobs:
             ]);
             const settings = settingsResult.payload;
             const envs = Array.isArray(envResult.payload?.envs) ? envResult.payload.envs : [];
+
+            if (!settings || !envResult.selected) {
+              unavailable.push({
+                role: project.role,
+                settingsAttempts: settingsResult.attempts,
+                envAttempts: envResult.attempts,
+              });
+            }
+
+            if (settings) {
+              if (settings.name !== project.name) drift.push(`${project.role}: unexpected project name ${settings.name}`);
+              if (settings.framework !== 'nextjs') drift.push(`${project.role}: framework is ${settings.framework ?? 'null'}, expected nextjs`);
+              if (settings.nodeVersion !== '24.x') drift.push(`${project.role}: Node is ${settings.nodeVersion ?? 'null'}, expected 24.x`);
+              if (settings.link?.type !== 'github' || settings.link?.repo !== 'CCPun-Update-4.0' || settings.link?.org !== 'punniix') {
+                drift.push(`${project.role}: Git repository linkage drifted`);
+              }
+            }
+
             output.push({
               role: project.role,
               projectId: project.id,
+              auditStatus: settings && envResult.selected ? 'available' : 'credential-scope-unavailable',
               projectLookup: { selected: settingsResult.selected, attempts: settingsResult.attempts },
               envLookup: { selected: envResult.selected, attempts: envResult.attempts },
               settings: settings ? {
@@ -104,13 +126,8 @@ jobs:
                   repoId: settings.link.repoId ?? null,
                 } : null,
               } : null,
-              environments: envs.map((item) => ({
-                key: item.key,
-                type: item.type,
-                target: item.target,
-                gitBranch: item.gitBranch ?? null,
-                customEnvironmentIds: item.customEnvironmentIds ?? [],
-              })).sort((a, b) => a.key.localeCompare(b.key)),
+              environmentKeys: [...new Set(envs.map((item) => item.key))].sort(),
+              environmentEntryCount: envs.length,
             });
           }
 
@@ -118,7 +135,12 @@ jobs:
           console.log(JSON.stringify(output, null, 2));
           console.log('CCPUN_VERCEL_PROJECT_AUDIT_END');
 
-          if (output.some((item) => !item.settings || !item.envLookup.selected)) {
-            throw new Error('VERCEL_PROJECT_OR_ENV_METADATA_UNAVAILABLE');
+          for (const item of unavailable) {
+            console.log(`::warning title=Vercel audit credential scope::${item.role} project metadata is not visible to the repository VERCEL_TOKEN. Live migration QA must verify this project with an authorized Vercel connection before cutover.`);
+          }
+
+          if (drift.length) {
+            for (const message of drift) console.error(`::error title=Vercel project drift::${message}`);
+            throw new Error('VERCEL_PROJECT_CONFIGURATION_DRIFT');
           }
           NODE
