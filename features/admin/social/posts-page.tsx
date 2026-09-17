@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 import { isSocialPublicationApprovalEnabled } from "@/lib/admin/social/publishing";
+import SocialMediaMetadataPanel from "@/features/admin/social/SocialMediaMetadataPanel";
 import SocialPostsWorkspace from "@/features/admin/social/SocialPostsWorkspace";
 
 export const metadata: Metadata = { title: "Social Posts & Drafts" };
@@ -35,6 +36,7 @@ export default async function SocialPostsPage() {
       </section>
 
       <SocialPostsWorkspace approvalEnabled={isSocialPublicationApprovalEnabled()} />
+      <SocialMediaMetadataPanel />
 
       <nav aria-label="ลิงก์ Social ขั้นสูง" className="mt-8 flex flex-wrap gap-2 border-t border-white/10 pt-5">
         <Link href="/analytics/social/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">Social Analytics</Link>
