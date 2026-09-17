@@ -11,7 +11,7 @@ type SaveResponse = {
 };
 
 function secondsValue(reference: SocialMediaReference) {
-  return reference.thumbnailTimestampMs === null ? "" : String(reference.thumbnailTimestampMs / 1_000);
+  return reference.thumbnailTimestampMs == null ? "" : String(reference.thumbnailTimestampMs / 1_000);
 }
 
 function normalizeTimestamp(value: string, durationMs: number | null) {
