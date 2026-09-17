@@ -4,7 +4,7 @@ import SeoScoreInput from "../../components/SeoScoreInput";
 import { validateArticleSlugAgainstCategoryRegistry } from "../../policy/category-registry-validation";
 
 import { ArticleEditorialInput } from "../../policy/article-editorial-status";
-import { reviewLabels } from "../../policy/article-publication";
+import { articleCategoryReferenceBlock, reviewLabels } from "../../policy/article-publication";
 
 export const article = defineType({
   name: "article",
@@ -100,6 +100,8 @@ export const article = defineType({
   ],
   validation: (Rule) =>
     Rule.custom((document) => {
+      const categoryBlock = articleCategoryReferenceBlock(document?.category);
+      if (categoryBlock) return categoryBlock;
       const id = String(document?._id ?? "");
       const review = document?.review as { status?: string } | undefined;
       return id.startsWith("drafts.") || review?.status === "approved"

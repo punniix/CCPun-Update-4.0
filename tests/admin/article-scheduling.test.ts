@@ -9,7 +9,7 @@ import { hasAdminPermission } from "../../lib/admin/rbac";
 
 const draft: PublishableArticle = { _id: "drafts.article-1", _type: "article", _rev: "draft-rev-1", _createdAt: "2026-09-01T00:00:00Z", _updatedAt: "2026-09-01T00:00:00Z",
   title: "Title", excerpt: "Excerpt", body: [{ _type: "block", _key: "a", children: [] }], author: { _ref: "author-1" }, seo: {},
-  review: { status: "approved" }, slug: { current: "article-1" }, category: { _ref: "category-1" } };
+  review: { status: "approved" }, slug: { current: "article-1" }, category: { _type: "reference", _ref: "category-1" } };
 const published: PublishableArticle = { ...draft, _id: "article-1", _rev: "live-rev-1", publishedAt: "2026-08-01T00:00:00Z" };
 const now = Date.parse("2026-09-11T12:00:00.000Z");
 
@@ -22,7 +22,7 @@ test("scheduling retains approval URL reference indexing and essential-content g
   const target="2026-09-12T00:30:00.000Z";
   assert.equal(articleScheduleBlock(draft,null,target,now),null);
   assert.equal(articleScheduleBlock(draft,published,target,now),null);
-  for(const changed of [{...draft,review:{status:"drafting"}},{...draft,slug:{current:"changed"}},{...draft,author:{_type:"reference",_ref:"drafts.author"}},{...draft,title:""},{...draft,body:[]},{...draft,seo:{noindex:true}}]) assert.ok(articleScheduleBlock(changed,published,target,now));
+  for(const changed of [{...draft,review:{status:"drafting"}},{...draft,slug:{current:"changed"}},{...draft,author:{_type:"reference",_ref:"drafts.author"}},{...draft,title:""},{...draft,body:[]},{...draft,seo:{noindex:true}},{...draft,category:"การลงทุน" as unknown as PublishableArticle["category"]}]) assert.ok(articleScheduleBlock(changed,published,target,now));
   assert.match(String(articleScheduleBlock(draft,null,"2026-09-11T12:00:10Z",now)),/30 วินาที/);
   assert.match(String(articleScheduleBlock(draft,null,"2027-09-11T12:00:10Z",now)),/90 วัน/);
 });
