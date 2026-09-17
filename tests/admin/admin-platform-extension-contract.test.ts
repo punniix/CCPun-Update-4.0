@@ -14,14 +14,13 @@ test("Admin Preview authorization is data-plane based and Production remains bra
   assert.doesNotMatch(runtime, /requirements\.uatBranches\.includes/);
 });
 
-test("Sanity Free privacy is checked on PR, Production push and a daily schedule", () => {
+test("Sanity Free privacy is checked on PR, Production push and manual dispatch without scheduled workload", () => {
   const workflow = read(".github/workflows/sanity-free-plan-privacy.yml");
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /schedule:/);
-  assert.match(workflow, /cron: "17 1 \* \* \*"/);
   assert.match(workflow, /push:\n\s+branches: \[v4-production\]/);
   assert.match(workflow, /pull_request:\n\s+branches: \[v4-production\]/);
   assert.match(workflow, /node qa\/sanity-free-plan-privacy\.mjs/);
+  assert.doesNotMatch(workflow, /^\s*schedule\s*:/m);
 });
 
 test("Admin extension contract keeps one auth authority and no-cost data ownership", () => {
