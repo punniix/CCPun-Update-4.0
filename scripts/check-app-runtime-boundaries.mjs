@@ -99,6 +99,27 @@ function reachable(roots) {
   return seen;
 }
 
+function findImportPath(roots, target) {
+  const queue = roots.map((root) => [root, [root]]);
+  const seen = new Set();
+  while (queue.length) {
+    const [file, chain] = queue.shift();
+    if (!file || seen.has(file) || !sourceByFile.has(file)) continue;
+    if (file === target) return chain;
+    seen.add(file);
+    for (const dependency of edges.get(file) ?? []) {
+      if (!seen.has(dependency)) queue.push([dependency, [...chain, dependency]]);
+    }
+  }
+  return null;
+}
+
+function describeImportPaths(roots, targets) {
+  return targets
+    .map((target) => `${target} via ${(findImportPath(roots, target) ?? [target]).join(" -> ")}`)
+    .join("; ");
+}
+
 const webRoots = files.filter((file) => file.startsWith("apps/web/"));
 const adminRoots = files.filter((file) => file.startsWith("apps/admin/"));
 assert.ok(webRoots.length > 0, "apps/web must expose a source boundary");
@@ -121,12 +142,12 @@ const webExternalPackages = new Set(
 assert.deepEqual(
   webAdminRuntimeLeaks,
   [],
-  `Web runtime must not import Admin-owned runtime: ${webAdminRuntimeLeaks.join(", ")}`,
+  `Web runtime must not import Admin-owned runtime: ${describeImportPaths(webRoots, webAdminRuntimeLeaks)}`,
 );
 assert.deepEqual(
   webWriteCredentialLeaks,
   [],
-  `Web runtime must never reference Sanity write credentials: ${webWriteCredentialLeaks.join(", ")}`,
+  `Web runtime must never reference Sanity write credentials: ${describeImportPaths(webRoots, webWriteCredentialLeaks)}`,
 );
 assert.equal(webExternalPackages.has("workflow"), false, "Web runtime must not depend on the Admin Workflow runtime");
 
