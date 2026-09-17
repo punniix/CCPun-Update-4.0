@@ -96,11 +96,16 @@ export default function LifeCoverageWizard() {
   };
 
   const runStepTransition = (commit: () => void) => {
-    if (motionPhase !== 'idle') return;
+    if (motionPhase === 'out') return;
+    if (motionPhase === 'in') {
+      motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      motionTimersRef.current = [];
+    }
     const motionPreference = typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)')
       : null;
     if (!motionPreference || motionPreference.matches) {
+      setMotionPhase('idle');
       commit();
       return;
     }
