@@ -56,8 +56,11 @@ test("Instagram audio discovery returns safe reference metadata only", () => {
     audioType: "music",
     title: "Safe song",
     artist: "Artist",
+    creator: null,
     durationMs: 12_000,
+    artworkUrl: null,
     previewUrl: "https://www.instagram.com/reels/audio/1/",
+    adsEligible: null,
   }]);
   assert.equal(normalizeInstagramAudioOptions({ audio: [{
     audio_id: "audio-2",
@@ -84,9 +87,10 @@ test("mobile handoff route is read-only, human-only, same-origin and never puts 
 
 test("mobile UI states the Instagram and music handoff limitations accurately", () => {
   const component = readFileSync(new URL("../../features/admin/social/InstagramMobileHandoff.tsx", import.meta.url), "utf8");
-  assert.match(component, /ไม่สร้าง Instagram Native Draft/);
-  assert.match(component, /ยังไม่เปิด Direct schedule/);
-  assert.match(component, /ต้องเลือกเพลงอีกครั้งในแอปก่อนโพสต์/);
-  assert.match(component, /เปิดหรือดาวน์โหลดสื่อที่อนุมัติแล้ว/);
-  assert.match(component, /ต้องอนุมัติ revision นี้ก่อน/);
+  assert.match(component, /Mobile Handoff เป็น workflow หลัก/);
+  assert.match(component, /Direct lane จะเปิดเฉพาะ capability/);
+  assert.match(component, /Add music later/);
+  assert.match(component, /ต้องมี Human-approved revision/);
+  assert.match(component, /ต้อง Review\/Approve revision ใหม่ก่อน Mobile Handoff/);
+  assert.match(component, /trusted provider media URL/);
 });
