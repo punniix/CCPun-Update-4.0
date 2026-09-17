@@ -79,7 +79,7 @@ test("Instagram audio configuration is revision-bound and preview URLs are not p
   assert.match(audio, /audioVolume/);
   assert.match(audio, /revalidateInstagramAudioConfiguration/);
   assert.match(audio, /ifRevisionId\(mutation\.expectedRevision\)/);
-  assert.match(route, /expectedRevision/);
+  assert.match(route, /instagramAudioConfigurationMutationSchema/);
   assert.match(route, /saveSocialInstagramAudioConfiguration/);
   assert.doesNotMatch(schema, /previewUrl|downloadUrl/);
 });
