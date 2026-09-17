@@ -94,6 +94,12 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
     "lib/admin/social/schema-capabilities.ts",
     "tests/admin/social-schema-capabilities.test.ts",
   ];
+  const neutralOnlyPaths = [
+    ".github/workflows/seo-topic-hubs-ci.yml",
+    "scripts/vercel-ignore-build.mjs",
+    "tests/vercel-app-root-config.test.mjs",
+    "tests/vercel-build-routing.test.mjs",
+  ];
   const friendlyMotionPaths = [
     "components/layout/website-43/Website43ToolHero.tsx",
     "components/ui/CurrencyInput.tsx",
@@ -110,12 +116,52 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
     "components/layout/website-43/Website43ToolHero.tsx",
     "tests/website43-public-motion-regression.mjs",
   ];
+  const pr160Paths = [
+    ".github/workflows/seo-topic-hubs-ci.yml",
+    "apps/admin/app/(control-plane)/layout.tsx",
+    "apps/admin/app/(control-plane)/social/posts/page.tsx",
+    "apps/admin/app/api/admin/social/drafts/instagram-audio/route.ts",
+    "apps/admin/app/api/admin/social/publications/cancel/route.ts",
+    "apps/admin/app/api/admin/social/publications/reschedule/route.ts",
+    "apps/admin/app/api/admin/social/worker/route.ts",
+    "apps/admin/vercel.json",
+    "cms/sanity/schema/documents/social-variant.ts",
+    "features/admin/components/AdminNavigation.tsx",
+    "features/admin/social/InstagramMobileHandoff.tsx",
+    "features/admin/social/SocialMediaMetadataPanel.tsx",
+    "features/admin/social/SocialOperationalCalendar.tsx",
+    "features/admin/social/SocialQueueClient.tsx",
+    "features/admin/social/SocialReviewAttention.tsx",
+    "features/admin/social/calendar-page.tsx",
+    "features/admin/social/connections-page.tsx",
+    "features/admin/social/instagram-mobile-handoff.ts",
+    "features/admin/social/operations-page.tsx",
+    "features/admin/social/overview-page.tsx",
+    "features/admin/social/posts-page.tsx",
+    "features/admin/social/social-operation-client.ts",
+    "features/admin/social/social-workspace-client.ts",
+    "features/admin/social/social-workspace-media.ts",
+    "lib/admin/social/draft-contract.ts",
+    "lib/admin/social/drafts.ts",
+    "lib/admin/social/instagram-audio-config.ts",
+    "lib/admin/social/operations-service.ts",
+    "lib/admin/social/worker.ts",
+    "tests/admin/presentation.test.ts",
+    "tests/admin/social-instagram-mobile-handoff.test.ts",
+    "tests/admin/social-meta-connection.test.ts",
+    "tests/admin/social-operations-2-regression.test.ts",
+    "tests/admin/social-operations-core.test.ts",
+    "tests/admin/social-post-live.test.ts",
+    "tests/vercel-app-root-config.test.mjs",
+  ];
 
   assert.equal(classifyProductionChanges(pr45Paths), "admin-only");
   assert.equal(classifyProductionChanges(website43Paths), "web-only");
   assert.equal(classifyProductionChanges(isolatedAdminPaths), "admin-only");
   assert.equal(classifyProductionChanges(isolatedWebPaths), "web-only");
   assert.equal(classifyProductionChanges(adminHardeningPaths), "admin-only");
+  assert.equal(classifyProductionChanges(neutralOnlyPaths), "neutral-only");
+  assert.equal(classifyProductionChanges(pr160Paths), "admin-only");
   assert.equal(classifyProductionChanges(friendlyMotionPaths), "web-only");
   assert.equal(classifyProductionChanges(heroPressFollowupPaths), "web-only");
   assert.equal(classifyProductionChanges([isolatedAdminPaths[0], isolatedWebPaths[0]]), "mixed-or-unknown");
@@ -148,6 +194,10 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: pr45Paths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), true);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: neutralOnlyPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: neutralOnlyPaths }), true);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: pr160Paths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: pr160Paths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: website43Paths }), true);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: website43Paths }), false);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: isolatedWebPaths }), true);
@@ -187,14 +237,17 @@ test("Production Ignored Build Step uses native git evidence and fails safe", ()
     git(fixture, "config", "user.name", "CCPun Routing Test");
     git(fixture, "config", "user.email", "routing-test@example.invalid");
     const base = commitFixture(fixture, "README.md", "base\n", "base");
+    const neutralCommit = commitFixture(fixture, ".github/workflows/seo-topic-hubs-ci.yml", "name: fixture\n", "neutral");
     const adminCommit = commitFixture(fixture, "lib/admin/social/foundation.ts", "export {};\n", "admin");
     const webCommit = commitFixture(fixture, "features/home/page.tsx", "export default null;\n", "web");
     const isolatedWebCommit = commitFixture(fixture, "apps/web/app/page.tsx", "export default null;\n", "isolated web");
     const isolatedAdminCommit = commitFixture(fixture, "apps/admin/app/page.tsx", "export default null;\n", "isolated admin");
     const unknownCommit = commitFixture(fixture, "middleware.ts", "export {};\n", "unknown");
 
-    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: base, commitSha: adminCommit }).status, 0);
-    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: base, commitSha: adminCommit }).status, 1);
+    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: base, commitSha: neutralCommit }).status, 0);
+    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: base, commitSha: neutralCommit }).status, 1);
+    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: neutralCommit, commitSha: adminCommit }).status, 0);
+    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: neutralCommit, commitSha: adminCommit }).status, 1);
     assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: adminCommit, commitSha: webCommit }).status, 1);
     assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: adminCommit, commitSha: webCommit }).status, 0);
     assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: webCommit, commitSha: isolatedWebCommit }).status, 1);
@@ -262,7 +315,7 @@ test("Production merge commit without previous SHA still isolates Web-only share
   }
 });
 
-test("repository has no Vercel cron or scheduled GitHub workflow", () => {
+test("repository has no root Vercel cron or scheduled GitHub workflow", () => {
   const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
   assert.equal(Object.hasOwn(vercel, "crons"), false);
 
