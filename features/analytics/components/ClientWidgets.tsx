@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { isAdminPagePath } from '@/lib/admin/routes';
+import { isPrivateSurfacePath } from '@/lib/routing/private-surfaces';
 
 const CookieConsent = dynamic(() => import('@/features/analytics/components/CookieConsent'), { ssr: false });
 const GoogleAnalytics = dynamic(() => import('@/features/analytics/components/GoogleAnalytics'), { ssr: false });
@@ -11,9 +11,6 @@ const MetaPixel = dynamic(() => import('@/features/analytics/components/MetaPixe
 
 export default function ClientWidgets({ gaId, gtmId, metaPixelId }: { gaId: string; gtmId: string; metaPixelId: string }) {
   const pathname = usePathname();
-  const isPrivateSurface = isAdminPagePath(pathname)
-    || pathname === '/studio'
-    || pathname.startsWith('/studio/');
   const isMetaPixelSurface = pathname === '/ci-planning'
     || pathname.startsWith('/ci-planning/')
     || pathname === '/tools/fhc'
@@ -21,7 +18,7 @@ export default function ClientWidgets({ gaId, gtmId, metaPixelId }: { gaId: stri
     || pathname === '/tools/financial-health-check'
     || pathname.startsWith('/tools/financial-health-check/');
 
-  if (isPrivateSurface) return null;
+  if (isPrivateSurfacePath(pathname)) return null;
 
   return <>
     <CookieConsent />

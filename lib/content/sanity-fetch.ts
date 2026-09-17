@@ -1,12 +1,12 @@
 import "server-only";
 
 import { createClient } from "next-sanity";
-import { isSanityLaneAllowed } from "@/lib/admin/environment";
-import { getAdminSanityReadToken } from "@/lib/admin/sanity-credentials";
+import { getSanityReadToken } from "./sanity-credentials";
+import { isContentSanityLaneAllowed } from "./sanity-lane";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
-export const sanityReadToken = getAdminSanityReadToken();
+export const sanityReadToken = getSanityReadToken();
 
 type SanityFetchArgs = {
   query: string;
@@ -15,7 +15,7 @@ type SanityFetchArgs = {
   stega?: boolean;
 };
 
-export const sanityServerClient = projectId && dataset && isSanityLaneAllowed(dataset)
+export const sanityServerClient = projectId && dataset && isContentSanityLaneAllowed(projectId, dataset)
   ? createClient({
       projectId,
       dataset,

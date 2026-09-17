@@ -1,21 +1,15 @@
-export const ADMIN_PAGE_PREFIXES = [
-  "/dashboard",
-  "/content",
-  "/seo",
-  "/social",
-  "/analytics",
-  "/operations",
-  "/settings",
-] as const;
+import {
+  CONTROL_PLANE_NOT_FOUND_PATH,
+  CONTROL_PLANE_PAGE_PREFIXES,
+  LEGACY_CONTROL_PLANE_PAGE_PREFIX,
+  isPathOrChild,
+} from "../routing/private-surfaces";
 
+export const ADMIN_PAGE_PREFIXES = CONTROL_PLANE_PAGE_PREFIXES;
 export const ADMIN_API_PREFIX = "/api/admin";
-export const LEGACY_ADMIN_PAGE_PREFIX = "/snt-admin";
+export const LEGACY_ADMIN_PAGE_PREFIX = LEGACY_CONTROL_PLANE_PAGE_PREFIX;
 export const LEGACY_ADMIN_API_PREFIX = "/api/snt-admin";
-export const ADMIN_NOT_FOUND_PATH = "/admin-not-found";
-
-function isPathOrChild(pathname: string, prefix: string): boolean {
-  return pathname === prefix || pathname.startsWith(`${prefix}/`);
-}
+export const ADMIN_NOT_FOUND_PATH = CONTROL_PLANE_NOT_FOUND_PATH;
 
 export function isCanonicalAdminPagePath(pathname: string): boolean {
   return isPathOrChild(pathname, "/login")
