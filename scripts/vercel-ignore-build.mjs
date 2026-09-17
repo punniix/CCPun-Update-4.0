@@ -5,6 +5,7 @@ const WEB_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 const ADMIN_PROJECT_ID = "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN";
 
 const ADMIN_ONLY_PREFIXES = [
+  "apps/admin/",
   "app/(control-plane)/",
   "app/(control-plane-auth)/",
   "app/(control-plane-error)/",
@@ -18,6 +19,7 @@ const ADMIN_ONLY_PREFIXES = [
   "tests/admin/",
 ];
 const WEB_ONLY_PREFIXES = [
+  "apps/web/",
   "app/blog/",
   "app/ci-planning/",
   "app/cookie-policy/",
