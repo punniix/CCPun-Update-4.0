@@ -18,7 +18,9 @@ import {
 
 const uatEnv = {
   CCPUN_APP_ENV: "admin-uat",
+  VERCEL_ENV: "preview",
   VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+  CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
   VERCEL_GIT_COMMIT_REF: SOCIAL_UAT_ANALYTICS_BRANCH,
   NEXT_PUBLIC_SANITY_PROJECT_ID: SOCIAL_UAT_SANITY_PROJECT_ID,
   NEXT_PUBLIC_SANITY_DATASET: SOCIAL_UAT_SANITY_DATASET,
@@ -40,17 +42,37 @@ const productionEnv = {
   CCPUN_SOCIAL_DATABASE_URL: "postgresql://ccpun_social_runtime:production-secret@ep-production-id-pooler.ap-southeast-1.aws.neon.tech/production_social",
 };
 
-test("central social runtime preserves the exact UAT lane", () => {
+test("central social runtime authorizes UAT by immutable data plane rather than feature branch name", () => {
   const runtime = resolveSocialRuntime(uatEnv, {
     uatBranches: [SOCIAL_UAT_ANALYTICS_BRANCH],
     requireUatNeon: true,
   });
   assert.equal(runtime?.lane, "uat");
   assert.deepEqual(runtime?.neonIdentity, SOCIAL_UAT_NEON_IDENTITY);
-  assert.equal(resolveSocialRuntime({ ...uatEnv, VERCEL_GIT_COMMIT_REF: "v4-production" }, {
-    uatBranches: [SOCIAL_UAT_ANALYTICS_BRANCH],
+
+  const futureFeature = resolveSocialRuntime({
+    ...uatEnv,
+    VERCEL_GIT_COMMIT_REF: "admin/openquok-sdk-v0-0-13",
+  }, {
+    uatBranches: ["some-old-branch-that-must-not-be-an-auth-boundary"],
     requireUatNeon: true,
-  }), null);
+  });
+  assert.equal(futureFeature?.lane, "uat");
+  assert.equal(futureFeature?.gitBranch, "admin/openquok-sdk-v0-0-13");
+
+  for (const change of [
+    { VERCEL_GIT_COMMIT_REF: "v4-production" },
+    { VERCEL_ENV: "production" },
+    { VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web },
+    { CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web },
+    { NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq" },
+    { NEXT_PUBLIC_SANITY_DATASET: "production" },
+    { CCPUN_SOCIAL_DATABASE_URL: "postgresql://ccpun_social_runtime:secret@ep-other-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb" },
+  ]) {
+    assert.equal(resolveSocialRuntime({ ...uatEnv, ...change }, {
+      requireUatNeon: true,
+    }), null, JSON.stringify(change));
+  }
 });
 
 test("Production social runtime requires every immutable deployment and data identity", () => {
@@ -133,6 +155,7 @@ test("Production feature gates share the boundary and provider writes remain exp
     flag: "1",
     dataMode: "synthetic",
     environment: "admin-uat",
+    vercelEnvironment: "preview",
     projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
     gitBranch: WEBSITE_42_SOCIAL_BRANCH,
     sanityProjectId: SOCIAL_UAT_SANITY_PROJECT_ID,

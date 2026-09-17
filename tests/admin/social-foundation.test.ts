@@ -30,24 +30,31 @@ const enabledInput = {
   flag: "1",
   dataMode: "synthetic",
   environment: "admin-uat" as const,
+  vercelEnvironment: "preview",
   projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
   gitBranch: WEBSITE_42_SOCIAL_BRANCH,
   sanityProjectId: WEBSITE_42_SANITY_PROJECT_ID,
   sanityDataset: WEBSITE_42_SANITY_DATASET,
 };
 
-test("Social foundation requires the exact Admin UAT code and data plane", () => {
+test("Social foundation requires the exact Admin UAT data plane, not a historical feature branch", () => {
   assert.equal(isSocialFoundationEnabled(enabledInput), true);
+  assert.equal(isSocialFoundationEnabled({
+    ...enabledInput,
+    gitBranch: "admin/openquok-sdk-v0-0-13",
+  }), true);
+  assert.equal(isSocialFoundationEnabled({
+    ...enabledInput,
+    gitBranch: "admin/another-future-tool",
+  }), true);
+
   for (const change of [
     { flag: "true" },
     { dataMode: "live" },
     { environment: "production-admin" as const },
+    { vercelEnvironment: "production" },
     { projectId: CCPUN_VERCEL_PROJECT_IDS.web },
     { gitBranch: "v4-production" },
-    { gitBranch: "codex/website-42-social-foundation-v2-20260828" },
-    { gitBranch: "codex/website-42-media-library-foundation-20260828" },
-    { gitBranch: "codex/website-42-social-operations-core-20260828" },
-    { gitBranch: "codex/unknown-preview" },
     { sanityProjectId: "kyfxgjnq" },
     { sanityDataset: "production" },
   ]) {

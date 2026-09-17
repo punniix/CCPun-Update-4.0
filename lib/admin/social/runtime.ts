@@ -16,6 +16,10 @@ export const SOCIAL_PRODUCTION_ANALYTICS_MIGRATION_VERSION = "20260901_website_4
 export const SOCIAL_PRODUCTION_ANALYTICS_MIGRATION_CHECKSUM = "sha256:ef14d2a6c6c86ce16610fb63d73e46e647fc60f3233e1c20b0489b422899e76e";
 export const SOCIAL_PROVIDER_HISTORY_MIGRATION_VERSION = "20260901_website_42_social_provider_native_history";
 export const SOCIAL_PROVIDER_HISTORY_MIGRATION_CHECKSUM = "sha256:cc4c2516ad261983d3d3997796711fb9b0290afe8625ab82fc002f4536bc549c";
+
+// Historical feature branches remain accepted only for backwards compatibility.
+// New Control Plane work uses the `admin/` prefix so UAT does not require a new
+// allowlist entry for every feature while unrelated/Web branches stay denied.
 export const SOCIAL_UAT_FOUNDATION_BRANCH = "codex/website-42-social-media-integration-20260829";
 export const SOCIAL_UAT_OPERATIONS_BRANCH = SOCIAL_UAT_FOUNDATION_BRANCH;
 export const SOCIAL_UAT_PROVIDER_BRANCH = "codex/website-42-social-provider-readonly-20260831";
@@ -69,7 +73,8 @@ export type SocialRuntimeInput = {
 };
 
 export type SocialRuntimeRequirements = {
-  uatBranches: readonly string[];
+  /** Historical branches accepted for a legacy module. New feature work should use `admin/*`. */
+  uatBranches?: readonly string[];
   requireUatNeon?: boolean;
 };
 
@@ -90,6 +95,14 @@ function isBoundedIdentity(value: string | undefined, prefix?: string) {
     && value.length <= 120
     && /^[A-Za-z0-9_-]+$/.test(value)
     && (!prefix || value.startsWith(prefix)),
+  );
+}
+
+function isSafeUatGitBranch(branch: string | undefined, compatibilityBranches: readonly string[] = []) {
+  return Boolean(
+    branch
+    && branch !== SOCIAL_PRODUCTION_BRANCH
+    && (branch.startsWith("admin/") || compatibilityBranches.includes(branch)),
   );
 }
 
@@ -137,17 +150,20 @@ export function isExactSocialNeonConnectionString(
 
 export function resolveSocialRuntimeDescriptor(
   input: SocialRuntimeInput,
-  requirements: SocialRuntimeRequirements,
+  requirements: SocialRuntimeRequirements = {},
 ): SocialRuntimeDescriptor | null {
   const projectId = trimmed(input.projectId);
+  const productionAdminProjectId = trimmed(input.productionAdminProjectId);
   const gitBranch = trimmed(input.gitBranch);
   const sanityProjectId = trimmed(input.sanityProjectId);
   const sanityDataset = trimmed(input.sanityDataset);
+  const vercelEnvironment = trimmed(input.vercelEnvironment);
 
   if (input.environment === "admin-uat") {
     if (projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
-      || !gitBranch
-      || !requirements.uatBranches.includes(gitBranch)
+      || (productionAdminProjectId && productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction)
+      || (vercelEnvironment && vercelEnvironment !== "preview")
+      || !isSafeUatGitBranch(gitBranch, requirements.uatBranches)
       || sanityProjectId !== SOCIAL_UAT_SANITY_PROJECT_ID
       || sanityDataset !== SOCIAL_UAT_SANITY_DATASET
       || (requirements.requireUatNeon
@@ -159,7 +175,7 @@ export function resolveSocialRuntimeDescriptor(
       environment: "admin-uat",
       vercelEnvironment: "preview",
       projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-      gitBranch,
+      gitBranch: gitBranch!,
       sanityProjectId: SOCIAL_UAT_SANITY_PROJECT_ID,
       sanityDataset: SOCIAL_UAT_SANITY_DATASET,
       neonIdentity: SOCIAL_UAT_NEON_IDENTITY,
@@ -167,9 +183,9 @@ export function resolveSocialRuntimeDescriptor(
   }
 
   if (input.environment !== "production-admin"
-    || trimmed(input.vercelEnvironment) !== "production"
+    || vercelEnvironment !== "production"
     || projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
-    || trimmed(input.productionAdminProjectId) !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
+    || productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
     || gitBranch !== SOCIAL_PRODUCTION_BRANCH
     || sanityProjectId !== SOCIAL_PRODUCTION_SANITY_PROJECT_ID
     || sanityDataset !== SOCIAL_PRODUCTION_SANITY_DATASET) {
@@ -212,7 +228,7 @@ export function socialRuntimeInputFromEnvironment(
 
 export function resolveSocialRuntime(
   env: Record<string, string | undefined> = process.env,
-  requirements: SocialRuntimeRequirements,
+  requirements: SocialRuntimeRequirements = {},
 ) {
   return resolveSocialRuntimeDescriptor(socialRuntimeInputFromEnvironment(env), requirements);
 }

@@ -1,143 +1,184 @@
 # CCPun Platform Data Architecture
 
-Last read-only verification: 2026-08-30.
+Last read-only verification: 2026-09-17.
 
-This document is the canonical repository map for runtime environments and data ownership. It records the current verified architecture, not a migration wish list. Project IDs and dataset names are contracts until a separately approved migration changes them.
+This is the canonical data/runtime ownership map after the Web/Admin Vercel cutover. The current operating constraint is **no additional infrastructure spend**: keep the existing Vercel projects, Sanity Free resources and Neon projects unless a separately approved migration proves a new resource is required.
 
 ## Mental model
 
 ```text
-GitHub = code
-Vercel = runtime and deployment
-Sanity = editorial content, Draft/Published workflow and Article SEO fields
-Neon Postgres = private Admin and social operational state
-Google Drive = private strategy/research documents and long-lived media
-
-Production = real system
-UAT = isolated testing system
+GitHub = code, tests and migration source
+Vercel Web = public runtime
+Vercel Admin = private Control Plane runtime
+Sanity = editorial content and publishing workflow
+Neon = private operational state
+Google Drive = private long-lived documents and source media
+Auth.js = application authentication
 ```
 
-Code, content and operational state must not be mirrored across systems. Deployment context selects the environment; editors never select projects, datasets, databases or Production versus UAT.
+One durable datum has one owner. Do not mirror operational state across Sanity and Neon.
 
-## Current verified topology
+## Runtime topology
 
-| Surface | Current owner | Allowed data plane |
-|---|---|---|
-| Public Web Production | Vercel `ccpun-web`; `ccpun.com`, `www.ccpun.com` | Published reads from Sanity `kyfxgjnq/production` only |
-| Admin Production | Vercel `ccpun-admin`; `admin.ccpun.com` | Authenticated/RBAC-guarded Sanity `kyfxgjnq/production` operations |
-| Admin UAT/Preview | Vercel `ccpun-admin` Preview | Sanity `ccb9lnw5/uat` during its current private trial; UAT-only operational data |
-| Local UAT | loopback `127.0.0.1:3100` | Sanity `ccb9lnw5/uat` during its current private trial; UAT-only operational data |
-| Local Production Draft lane | loopback `127.0.0.1:3000` | Sanity `kyfxgjnq/production`; separately guarded Draft operations only |
-
-Both Vercel projects build from the existing `punniix/CCPun-Update-4.0` repository. Do not create another repository or Vercel project to separate Web, Admin, Sanity or Neon.
-
-Preview routing uses the feature branch name. Production ignored-build routing uses native Git changed-file evidence: an Admin-only Website 4.2 change builds `ccpun-admin` and skips `ccpun-web`, while a Web-only release does the inverse. Mixed changes, unknown paths, an empty diff, or unavailable Git evidence build both survivors. This fail-safe fallback must not be weakened to save a build.
-
-## Sanity boundaries
-
-The current two-project split is an intentional security boundary:
-
-| Project | Dataset | Status | Purpose |
+| Surface | Runtime | Source root | Data plane |
 |---|---|---|---|
-| `kyfxgjnq` | `production` | active | Published content and guarded Production editorial workflows |
-| `kyfxgjnq` | `uat` | legacy, runtime denied | rollback evidence only |
-| `ccb9lnw5` | `uat` | active, private trial | schema, authenticated Draft workflow and synthetic Preview testing |
-| `ccb9lnw5` | `recovery` | active, private trial, non-routine | temporary recovery evidence pending protected export and verification |
+| Public Web Production | Vercel `ccpun-web` (`prj_dxwjITkd0av5QiJQv2snUlIASUWu`) | `apps/web` | published Sanity `kyfxgjnq/production` reads |
+| Admin Production | Vercel `ccpun-admin` (`prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN`) | `apps/admin` | authenticated Sanity Production + Production Neon |
+| Admin Preview/UAT | Vercel `ccpun-admin` Preview | `apps/admin` | Sanity `ccb9lnw5/uat` + UAT Neon |
+| Local UAT | loopback | Admin monorepo | UAT data planes only |
+| Local Production Draft lane | loopback | Admin monorepo | separately guarded Production Draft operations |
 
-Do not consolidate these projects until dataset-scoped user and robot permissions are verified to preserve or improve least privilege. A lower project count is not a valid reason to weaken the Production/UAT boundary.
+Both Vercel projects use the same GitHub repository and deploy independently. Do not create a third Vercel project or split the repository to add an Admin tool.
 
-The current private trial is a verified fact; the possible conversion of `ccb9lnw5/uat` to a public zero-cost dataset is pending and has not happened. Before the trial expires:
+Public Web is considered stable after the 2026-09-17 runtime cutover. Admin development should not change public behavior unless a genuinely shared contract requires it; shared changes still require Web regression coverage.
 
-1. Inventory `uat` and keep it limited to synthetic records plus authenticated Drafts that are safe for the planned lane. Private strategy, research, credentials and Production restore material do not belong there.
-2. Export any private or Production recovery material from `recovery`, record checksums, encrypt the local copy or place it in the Restricted area of the owner-selected `CCPun-Financial Advisor Project` Drive folder, and verify read-back.
-3. Both private datasets revert to public visibility if the trial expires. Do not allow the trial to lapse while private material remains in `recovery`; the intended no-new-spend steady state keeps only `uat` as the active public test lane. Request separate deletion approval only after export and read-back pass; this document does not authorize deleting a dataset or document.
+## Sanity steady state
 
-Private strategy and research documents use the owner-selected Google Drive folder as their source of truth. Its verified child folders include `Website 4.2 — Admin Control Plane` and the existing `Website 4.2 — Media Library`. These names record the current inventory only; authorization still requires the owner-selected immutable root/file IDs, which must not be hard-coded into public code or documentation. Sanity `internal` remains deferred; do not create or populate it merely to mirror Drive. Existing intelligence records require inventory and an approved migration before any move or deletion.
+| Project | Dataset | Purpose |
+|---|---|---|
+| `kyfxgjnq` | `production` | live editorial content, Draft/Published workflow and public content SEO fields |
+| `ccb9lnw5` | `uat` | Admin Preview/UAT editorial fixtures and safe test content |
+| `kyfxgjnq` | `uat` | legacy rollback evidence; runtime denied |
+| `ccb9lnw5` | `recovery` | non-routine recovery placeholder/evidence; not a normal runtime lane |
 
-Production content types include `article`, `author` and `category`. Existing regulated review and compliance states remain product contracts; do not replace them with a shorter generic workflow without explicit approval. Do not add `siteSettings` or another document type until a real consumer requires it.
+The Sanity trial has ended and the architecture must remain safe on the current Free-plan steady state. On 2026-09-17 the repository's unauthenticated API/CDN privacy probe was rerun successfully: Production exposed published editorial controls while operational documents/drafts/versions were not anonymously readable; active UAT exposed no articles, operational documents, drafts or versions; recovery exposed no editorial or operational content.
 
-## Neon boundaries
+The probe is a regression boundary, not permission to store confidential operational data in Sanity. Keep customer data, credentials, private audit history, execution jobs, provider state and other confidential operational records out of Sanity.
 
-Neon project `young-term-47483330` and its existing `main` branch currently belong to the UAT operational lane. The legacy branch name does not make it Production. Do not create a duplicate `uat` child branch, and do not relabel or treat `main` as Production without a read-only branch, database, schema, role, grant, migration-ledger and consumer inventory.
+Production editorial document types include `article`, `author` and `category`. Existing regulated review/compliance states remain product contracts.
 
-The existing `ccpun_social` schema owns social operational state such as publication records, jobs, provider IDs, locks, retries, sync state, audit metadata and idempotency. The separate `ccpun_admin` schema owns Control Plane `auditLog`, `researchSnapshot` and `seoSuggestion` workflow/state. Both schemas reference Sanity content by document identity/revision and neither owns article bodies, authors, categories or public SEO fields.
+Legacy Sanity `auditLog`, `researchSnapshot`, `seoSuggestion` and provider snapshot documents are rollback/compatibility evidence. Runtime code must not create new operational records of those types. Their schemas may remain registered while compatibility evidence exists, but Studio policy hides system types from normal authoring. Deletion requires a separate inventory, parity check, rollback window and explicit approval.
 
-`ccpun_admin` is introduced by the checksum-locked migration `20260830_website_42_admin_operations_v1` (`sha256:51f16b563368488362408f323f95863ecf8f277b6b725b96189fedddf1300e4f`). Runtime access uses only the server-side `CCPUN_ADMIN_DATABASE_URL` as role `ccpun_admin_runtime`; it must never fall back to the social connection, owner/backfill connection or a Sanity write token. The role is created without login/superuser/create/inherit/replication/bypass capability, preserves a separately enabled login on safe migration reruns, and receives only explicit `ccpun_admin` table/column grants; all `ccpun_social` rights are revoked. Every repository operation verifies the live database, current role, persistent `system_identity` row and migration ledger before its query. Runtime is allowed only for `admin-uat` and `local-uat`.
+## Neon steady state
 
-`NOLOGIN` is the deliberate post-migration default. A human Neon owner must later enable `LOGIN` and issue a fresh password for this exact UAT role before configuring the Preview-only runtime URL; the migration/backfill owner URL is never reused. No Production runtime credential or branch is created by this cutover.
+### UAT
 
-The UAT target is pinned to project `young-term-47483330`, branch `br-crimson-mouse-az7ajkv8`, compute `ep-mute-frost-aztvz394`, database `neondb`. Only the exact direct or pooled hostname of that compute is accepted. One-time schema/backfill uses the separate ephemeral `CCPUN_ADMIN_BACKFILL_DATABASE_URL` and accepts only `neondb_owner` or `cloud_admin`; it refuses the runtime role. `--apply` requires the exact cutover baseline (`43` audit, `2` research, `19` suggestions) and is not complete until the source and target deterministic lineage digests match.
+- project: `young-term-47483330`
+- branch: `br-crimson-mouse-az7ajkv8`
+- database: `neondb`
+- Admin runtime role: `ccpun_admin_runtime`
+- Social runtime role: `ccpun_social_runtime`
 
-Create a Production Neon branch only when an approved Production operational use case exists. Do not create a speculative worker, queue, database, schema or service.
+### Production
+
+- project: `lively-bar-43618798`
+- branch: `br-long-resonance-b3ys5xrv`
+- database: `neondb`
+- Admin runtime role: `ccpun_admin_runtime`
+- Social runtime role: `ccpun_social_runtime`
+
+Both runtime roles are least-privilege application roles. Owner/backfill credentials are migration-only and must not become runtime fallback credentials.
+
+`ccpun_admin` owns private Control Plane state such as audit events, research snapshots, SEO suggestion lifecycle and article scheduling. `ccpun_social` owns social execution/provider state, jobs, retries, sync state, media operational metadata and metrics. Neither owns Article bodies, Authors, Categories or public editorial SEO fields.
+
+The runtime verifies deployment/data identity and migration ledgers before privileged operations. Unknown or mismatched identities fail closed.
+
+UAT and Production may use lane-specific migration version names, so equality of ledger strings is not the parity contract. **Required runtime capabilities are the parity contract**: if Production code depends on a table, column, view or migration capability, UAT must support that capability before that feature is considered Preview-ready.
+
+As of the 2026-09-17 audit, `ccpun_admin` capabilities are aligned for current Control Plane usage, while UAT `ccpun_social` is behind Production Marketing Mart capabilities. Admin System Health exposes this explicitly as `clean-mart`, `raw-preview-fallback` or `blocked`, including the missing relations. Existing UAT can intentionally use the raw Preview fallback for current features; a future feature that depends on the clean Marketing Mart must not merge until UAT gains that capability.
+
+The existing guarded Marketing Mart migration uses a `DO $...$` block that the available Neon migration-preparation parser did not accept during the audit. The preparation failed before any schema was changed. Do not bypass that safety failure with direct UAT DDL; create/test a tool-compatible migration and use the explicit migration approval flow before applying it.
+
+## Authentication
+
+Auth.js + Google OAuth + CCPun allowlist/RBAC is the application authentication authority for `admin.ccpun.com`.
+
+Neon Auth is not an application runtime dependency. Existing empty Neon Auth tables/integration artifacts are treated as retirement candidates only; do not disable or delete them until a full consumer audit and rollback plan are complete.
 
 ## Runtime authority
 
-`lib/admin/environment.ts` owns fail-closed environment, Vercel project, Sanity project and dataset matching. These currently meaningful lanes are:
+`lib/admin/environment.ts` owns the fail-closed Vercel/Sanity environment boundary. Admin social runtime adds exact Neon identity checks.
+
+Meaningful lanes:
 
 | Environment | Meaning |
 |---|---|
-| `production` | public Web Production |
 | `production-admin` | private Admin Production |
-| `admin-uat` | Admin branch Preview/UAT |
+| `admin-uat` | Admin Vercel Preview/UAT |
 | `local-production` | loopback Production Draft lane |
 | `local-uat` | loopback UAT lane |
-| `development` / `web-uat` | bounded development/test lanes |
-| `lab` / `uat` | retained compatibility labels that must fail closed |
+| `production` | public Web Production |
+| `web-uat` / `development` | bounded Web/development compatibility lanes |
+| `lab` / `uat` | legacy compatibility labels that fail closed |
 
-Do not bulk-rename environment variables or compatibility labels. Identify every repository, Vercel and script consumer before deprecating a name. Unknown or mismatched values must remain denied.
+### Admin Preview authorization
+
+New Admin feature branches use the `admin/*` convention and must also match the immutable UAT data plane:
+
+- branch starts with `admin/` (historical module-specific branches may remain as explicit compatibility entries only);
+- exact Admin Vercel project;
+- Preview environment when Vercel environment is supplied;
+- exact Sanity `ccb9lnw5/uat`;
+- exact UAT Neon identity and least-privilege role when Neon is required.
+
+`v4-production`, unrelated branch prefixes and wrong Vercel/Sanity/Neon identities fail closed. Future branches such as `admin/openquok-*` therefore work without adding a branch-specific allowlist entry, while old branch names do not become a permanent authorization model.
+
+### Admin Production authorization
+
+Production remains stricter:
+
+- `CCPUN_APP_ENV=production-admin`;
+- `VERCEL_ENV=production`;
+- exact Admin Vercel project identity;
+- Git branch exactly `v4-production`;
+- Sanity exactly `kyfxgjnq/production`;
+- exact configured Production Neon identity/runtime role.
 
 ## Credential contract
 
-- Public Web has no Sanity write credential, internal-dataset credential or social-provider write credential.
-- Production and UAT credentials remain separate and scoped to their exact deployment lanes.
-- Read operations require a read credential and fail closed when it is absent.
-- A read credential must never fall back to a write credential.
-- Credential values never appear in source, logs, commands, reports or documentation.
-- No application may discover or select a higher-privilege credential automatically.
-
-Live Vercel variable names, types, environments and branch scopes must be read back before any rename or deletion. This document records the contract, not secret values.
+- Public Web has no Admin write credentials or private operational DB credentials.
+- Production and UAT credentials are distinct and scoped to their lanes.
+- Read credentials never fall back to write credentials.
+- Owner/backfill DB credentials never become runtime fallbacks.
+- Credential values do not appear in source, reports or logs.
+- Runtime code must not discover or select a higher-privilege credential automatically.
+- Do not bulk-rename or delete Vercel variables without a consumer inventory.
 
 ## Data ownership
 
 | Data | Owner |
 |---|---|
-| Published and Draft editorial content | Sanity |
+| Published/Draft editorial content | Sanity |
 | Public SEO fields attached to content | Sanity |
-| Private research snapshots, Control Plane audit and SEO suggestion lifecycle | Neon `ccpun_admin` |
-| Private strategy and research documents | Google Drive folder `CCPun-Financial Advisor Project` |
-| Long-lived media source files | Google Drive folder `CCPun-Financial Advisor Project` |
-| Social copy and human approval state | Sanity |
-| Publication execution, retries, provider IDs and sync cursors | Neon |
-| Application code, schema source and migrations | GitHub |
+| Private research snapshots | Neon `ccpun_admin` |
+| Control Plane audit | Neon `ccpun_admin` |
+| SEO suggestion lifecycle | Neon `ccpun_admin` |
+| Article scheduling operational state | Neon `ccpun_admin` |
+| Social copy/human editorial approval where already modeled | Sanity |
+| Social execution, provider IDs, retries, metrics and sync cursors | Neon `ccpun_social` |
+| Private strategy/research documents | Google Drive |
+| Long-lived source media | Google Drive |
+| Authentication/session authority | Auth.js |
+| Application code and migration source | GitHub |
 | Deployment/runtime configuration | Vercel |
 
-UAT must never write Production Sanity, Production Neon or real provider state. Code guards must enforce the boundary; naming and documentation alone are insufficient.
+## No-new-spend contract
 
-## Deprecated and temporary resources
+Normal Admin feature development must reuse the current resources. Do not automatically provision:
 
-| Resource | Direction | Retirement gate |
-|---|---|---|
-| `kyfxgjnq/uat` | retire eventually | export, reference/env/CORS/token/Studio inventory, rollback window and explicit deletion approval |
-| legacy `articleV41`, `authorV41`, `categoryV41` documents | migrate or archive eventually | document/reference inventory, export and verified replacement |
-| `lab` and `uat` environment labels | remove eventually | zero consumers plus retained fail-closed regression coverage |
-| misleading Sanity display names | rename eventually | live consumer/read-back verification; immutable project IDs remain unchanged |
+- another Vercel project;
+- another Sanity project/dataset for each feature;
+- another Neon project/branch for each PR;
+- another auth service;
+- another queue/worker/storage service when current Vercel/Neon/Workflow/Drive capabilities suffice.
 
-Nothing in this table authorizes deletion.
+Admin Preview branches share the existing UAT data planes. Synthetic or namespaced test records should be used when parallel work could collide.
 
-Legacy Sanity `auditLog`, `researchSnapshot` and `seoSuggestion` records remain rollback evidence after cutover. Runtime code must not create new records of those types. Deleting legacy records requires a later explicit approval after hash/count parity and a rollback window.
+## Extension contract
 
-## Cross-store SEO apply
-
-An approved SEO suggestion never patches Article content and Neon state optimistically in parallel. The server claims the exact Neon suggestion row/version and request ID, re-reads the Sanity Draft and approved base/revision, patches only the approved `seo.*` field with Sanity `ifRevisionId`, then finalizes Neon with the returned Article revision and sanitized audit. A Sanity result without a returned revision, a failed Neon finalization, or any other ambiguous outcome moves the suggestion to `reconciliation-required`; it is never retried automatically. Human reconciliation must compare the exact Article revision and field value before any later action.
+New or forked Admin features must follow `docs/architecture/admin-platform-extension-contract.md`. In particular, external SDK code must adapt to CCPun Auth/RBAC, API routes and data owners rather than importing upstream deployment/auth/database assumptions wholesale.
 
 ## Change order
 
-1. Record current mappings and verify the exact Production baseline.
-2. Make the smallest code/documentation hardening change in a dedicated branch.
-3. Pass architecture, TypeScript, security and protected-contract checks.
-4. Inventory live Vercel, Sanity and Neon consumers before changing infrastructure.
-5. Test any data migration in UAT with checksums and read-only postflight.
-6. Verify Production and UAT independently.
-7. Perform deletion, merge, Production deployment or provider activation only with exact current approval.
+1. verify the current Production and UAT baseline;
+2. make the smallest hardening/feature change on a dedicated `admin/*` branch;
+3. pass Admin architecture, TypeScript, security and provider boundary tests;
+4. test database schema changes on UAT/temporary branches first;
+5. verify Sanity anonymous privacy when Sanity-facing code changes;
+6. verify Admin Preview and auth/RBAC behavior;
+7. apply provider/database mutations only through the approved migration path;
+8. promote Production only after gates pass;
+9. perform live smoke and runtime-error checks;
+10. preserve a rollback path for consequential changes.
 
-Until these gates pass, preserve the current two-project Sanity split and UAT-only Neon classification.
+Nothing in this document authorizes deletion of legacy data, disabling Neon Auth, deleting environment variables or changing Production database schema without the appropriate migration/approval gate.

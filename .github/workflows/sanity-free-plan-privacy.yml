@@ -2,6 +2,17 @@ name: Sanity Free-plan privacy boundary
 
 on:
   workflow_dispatch:
+  push:
+    branches: [v4-production]
+    paths:
+      - .github/workflows/sanity-free-plan-privacy.yml
+      - qa/sanity-free-plan-privacy.mjs
+      - tests/sanity-free-plan-privacy.test.mjs
+      - cms/sanity/**
+      - lib/admin/**
+      - lib/content/sanity.ts
+      - lib/sanity-live.ts
+      - sanity.config.ts
   pull_request:
     branches: [v4-production]
     paths:

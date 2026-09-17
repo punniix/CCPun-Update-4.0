@@ -16,6 +16,13 @@ import {
   type SocialDatabaseReadiness,
 } from "./foundation";
 import { resolveSocialRuntime, SOCIAL_UAT_RUNTIME_BRANCHES } from "./runtime";
+import {
+  resolveSocialMarketingCapabilityMode,
+  SOCIAL_MARKETING_MART_P2,
+  SOCIAL_MARKETING_MART_PROVENANCE,
+  SOCIAL_MARKETING_REQUIRED_RELATIONS,
+  type SocialMarketingCapabilityMode,
+} from "./schema-capabilities";
 
 export async function getSocialDatabaseReadiness(
   connectionString = process.env.CCPUN_SOCIAL_DATABASE_URL?.trim(),
@@ -121,5 +128,114 @@ export async function getSocialDatabaseReadiness(
     };
   } catch (error) {
     return classifySocialDatabaseError(error);
+  }
+}
+
+export type SocialDatabaseCapabilityStatus = {
+  configured: boolean;
+  reachable: boolean;
+  lane: "uat" | "production" | null;
+  martCurrent: boolean;
+  provenanceCurrent: boolean;
+  relationsCurrent: boolean;
+  missingRelations: string[];
+  mode: SocialMarketingCapabilityMode | null;
+  errorCategory: SocialDatabaseReadiness["errorCategory"];
+};
+
+export async function getSocialDatabaseCapabilityStatus(
+  connectionString = process.env.CCPUN_SOCIAL_DATABASE_URL?.trim(),
+  env: Record<string, string | undefined> = process.env,
+): Promise<SocialDatabaseCapabilityStatus> {
+  const unavailable = (
+    errorCategory: SocialDatabaseReadiness["errorCategory"],
+    configured = Boolean(connectionString),
+  ): SocialDatabaseCapabilityStatus => ({
+    configured,
+    reachable: false,
+    lane: null,
+    martCurrent: false,
+    provenanceCurrent: false,
+    relationsCurrent: false,
+    missingRelations: [...SOCIAL_MARKETING_REQUIRED_RELATIONS],
+    mode: null,
+    errorCategory,
+  });
+
+  if (!connectionString) return unavailable("not-configured", false);
+  if (!isSocialDatabaseConnectionString(connectionString)) return unavailable("invalid-configuration");
+
+  const runtime = resolveSocialRuntime({ ...env, CCPUN_SOCIAL_DATABASE_URL: connectionString }, {
+    uatBranches: SOCIAL_UAT_RUNTIME_BRANCHES,
+    requireUatNeon: true,
+  });
+  if (!runtime) return unavailable("invalid-configuration");
+
+  try {
+    const sql = neon(connectionString, { fetchOptions: { signal: AbortSignal.timeout(3_000) } });
+    const rows = await sql.query(
+      `SELECT
+        EXISTS (SELECT 1 FROM ccpun_social.schema_migration WHERE version=$1 AND checksum=$2) AS mart_current,
+        EXISTS (SELECT 1 FROM ccpun_social.schema_migration WHERE version=$3 AND checksum=$4) AS provenance_current,
+        to_regclass('ccpun_social.marketing_content_current') IS NOT NULL AS marketing_content_current,
+        to_regclass('ccpun_social.post_metric_status_latest') IS NOT NULL AS post_metric_status_latest,
+        to_regclass('ccpun_social.post_metric_coverage_summary') IS NOT NULL AS post_metric_coverage_summary,
+        to_regclass('ccpun_social.post_performance_clean') IS NOT NULL AS post_performance_clean`,
+      [
+        SOCIAL_MARKETING_MART_P2.version,
+        SOCIAL_MARKETING_MART_P2.checksum,
+        SOCIAL_MARKETING_MART_PROVENANCE.version,
+        SOCIAL_MARKETING_MART_PROVENANCE.checksum,
+      ],
+    ) as Array<{
+      mart_current: boolean;
+      provenance_current: boolean;
+      marketing_content_current: boolean;
+      post_metric_status_latest: boolean;
+      post_metric_coverage_summary: boolean;
+      post_performance_clean: boolean;
+    }>;
+    const row = rows[0];
+    if (!row) return unavailable("unavailable");
+
+    const relationState: Record<(typeof SOCIAL_MARKETING_REQUIRED_RELATIONS)[number], boolean> = {
+      marketing_content_current: row.marketing_content_current,
+      post_metric_status_latest: row.post_metric_status_latest,
+      post_metric_coverage_summary: row.post_metric_coverage_summary,
+      post_performance_clean: row.post_performance_clean,
+    };
+    const missingRelations = SOCIAL_MARKETING_REQUIRED_RELATIONS.filter((relation) => !relationState[relation]);
+    const relationsCurrent = missingRelations.length === 0;
+    const mode = resolveSocialMarketingCapabilityMode({
+      lane: runtime.lane,
+      martCurrent: row.mart_current,
+      provenanceCurrent: row.provenance_current,
+      relationsCurrent,
+    });
+
+    return {
+      configured: true,
+      reachable: true,
+      lane: runtime.lane,
+      martCurrent: row.mart_current,
+      provenanceCurrent: row.provenance_current,
+      relationsCurrent,
+      missingRelations,
+      mode,
+      errorCategory: mode === "blocked" ? "migration-missing" : null,
+    };
+  } catch (error) {
+    const classified = classifySocialDatabaseError(error);
+    return {
+      configured: classified.configured,
+      reachable: classified.reachable,
+      lane: runtime.lane,
+      martCurrent: false,
+      provenanceCurrent: false,
+      relationsCurrent: false,
+      missingRelations: [...SOCIAL_MARKETING_REQUIRED_RELATIONS],
+      mode: null,
+      errorCategory: classified.errorCategory,
+    };
   }
 }
