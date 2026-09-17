@@ -21,12 +21,14 @@ test("Admin navigation keeps seven primary modules and exposes Social contextual
 test("Calendar and Queue are operational Social surfaces rather than aliases", () => {
   const calendarPage = read("features/admin/social/calendar-page.tsx");
   const calendarClient = read("features/admin/social/SocialOperationalCalendar.tsx");
+  const operationClient = read("features/admin/social/social-operation-client.ts");
   const queuePage = read("features/admin/social/operations-page.tsx");
   const queueClient = read("features/admin/social/SocialQueueClient.tsx");
   const postsPage = read("apps/admin/app/(control-plane)/social/posts/page.tsx");
   assert.match(calendarPage, /SocialOperationalCalendar/);
   assert.match(calendarClient, /Asia\/Bangkok/);
-  assert.match(calendarClient, /publications\/reschedule/);
+  assert.match(calendarClient, /rescheduleSocialPublication/);
+  assert.match(operationClient, /\/api\/admin\/social\/publications\/reschedule\//);
   assert.match(calendarClient, /draggable/);
   assert.match(queuePage, /SocialQueueClient/);
   assert.match(queueClient, /Execute now|Execute Now/);
@@ -50,12 +52,13 @@ test("reschedule and cancel mutate only the latest publication job with CAS", ()
 test("worker remains approval-gated, bounded and fail-closed for ambiguous provider state", () => {
   const worker = read("lib/admin/social/worker.ts");
   const execution = read("lib/admin/social/execution-store.ts");
+  const publishing = read("lib/admin/social/publishing.ts");
   const workerRoute = read("apps/admin/app/api/admin/social/worker/route.ts");
   assert.match(worker, /MAX_JOBS_PER_RUN = 6/);
   assert.match(worker, /BASE_RETRY_DELAY_MS = 30_000/);
   assert.match(worker, /2 \*\* Math\.max/);
   assert.match(worker, /AUTO_EXECUTABLE_FORMATS = new Set\(\["text-post", "link-post"\]\)/);
-  assert.match(execution, /approvedByActorType: "human"/);
+  assert.match(publishing, /approvedByActorType: z\.literal\("human"\)/);
   assert.match(execution, /SOCIAL_EXECUTION_RECONCILIATION_REQUIRED/);
   assert.match(execution, /SOCIAL_EXECUTION_TRUSTED_MEDIA_REQUIRED/);
   assert.match(workerRoute, /CRON_SECRET/);
