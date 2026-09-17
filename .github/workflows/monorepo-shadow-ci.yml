@@ -14,7 +14,6 @@ concurrency:
 
 jobs:
   web-shadow:
-    if: github.event_name != 'pull_request' || github.head_ref == 'architecture/vercel-monorepo-isolation-20260917'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,7 +35,6 @@ jobs:
           VERCEL_ENV: preview
 
   admin-shadow:
-    if: github.event_name != 'pull_request' || github.head_ref == 'architecture/vercel-monorepo-isolation-20260917'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
