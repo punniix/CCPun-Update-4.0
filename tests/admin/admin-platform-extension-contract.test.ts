@@ -4,14 +4,14 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-test("Admin Preview authorization is data-plane based and Production remains branch-pinned", () => {
+test("Admin Preview uses the admin feature-branch convention plus exact data-plane guards", () => {
   const runtime = read("lib/admin/social/runtime.ts");
   assert.match(runtime, /SOCIAL_UAT_SANITY_PROJECT_ID = "ccb9lnw5"/);
   assert.match(runtime, /SOCIAL_UAT_SANITY_DATASET = "uat"/);
   assert.match(runtime, /SOCIAL_PRODUCTION_BRANCH = "v4-production"/);
+  assert.match(runtime, /branch\.startsWith\("admin\/"\)/);
+  assert.match(runtime, /compatibilityBranches\.includes\(branch\)/);
   assert.match(runtime, /gitBranch !== SOCIAL_PRODUCTION_BRANCH/);
-  assert.doesNotMatch(runtime, /uatBranches\.includes\(gitBranch\)/);
-  assert.doesNotMatch(runtime, /requirements\.uatBranches\.includes/);
 });
 
 test("Sanity Free privacy is checked on PR, Production push and manual dispatch without scheduled workload", () => {
