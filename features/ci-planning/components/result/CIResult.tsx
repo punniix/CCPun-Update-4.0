@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Edit3, ExternalLink, MessageCircle, RefreshCw } from 'lucide-react';
+import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import MoneyComparison from '@/components/ui/MoneyComparison';
 import { trackEvent } from '@/lib/analytics';
 import {
@@ -67,7 +68,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       ? 'ทรัพยากรที่มีมากกว่าประมาณการ'
       : 'ส่วนต่างจากประมาณการ';
 
-  return <div data-ui="human-centered-ci-result" className="ccpun-calculator-result">
+  return <div data-ui="human-centered-ci-result" className={`ccpun-calculator-result ${functionalMotion.resultReveal}`}>
     <section className="ccpun-calculator-result-lead">
       <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
       <h2 ref={resultHeadingRef} tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ประมาณการทุนเบื้องต้น · {methodLabel}</h2>
@@ -82,7 +83,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           const value = method === 'expense' ? result.calculatedNeed : result.incomeBasedNeed;
           const inputId = `ci-estimation-method-${method}`;
           const selected = activeMethod === method;
-          return <label key={method} htmlFor={inputId} className={`ccpun-calculator-result-method ${selected ? 'ccpun-calculator-result-method-selected' : ''} focus-within:ring-2 focus-within:ring-ring`}>
+          return <label key={method} htmlFor={inputId} className={`ccpun-calculator-result-method ${selected ? 'ccpun-calculator-result-method-selected' : ''} focus-within:ring-2 focus-within:ring-ring ${functionalMotion.selectionFeedback} ${selected ? functionalMotion.selectionActive : ''}`}>
             <span className="flex items-center gap-3"><input id={inputId} type="radio" name="ci-estimation-method" value={method} checked={selected} onChange={() => setSelectedMethod(method)} className="h-4 w-4 accent-primary" /><span className="text-sm font-medium">{CI_ESTIMATION_METHOD_LABELS[method]}</span></span>
             <span className="text-sm tabular-nums" style={{ color: 'var(--w43-muted)' }}>{baht(value)}</span>
           </label>;
@@ -141,14 +142,14 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />
       <h3>อยากทบทวนตัวเลขต่อ?</h3>
       <p>บันทึกภาพสรุป แล้วส่งมาคุยรายละเอียดกับ CCPun ทาง LINE OA เมื่อพร้อม</p>
-      <a href={CI_LINE_OA_URL} target="_blank" rel="noopener noreferrer" aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)" className="gold-button mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto" onClick={() => trackEvent('ci_contact_click', { tool_name: 'ci_planning', cta_location: 'ci_result', contact_channel: 'line', calculator_version: CI_ASSESSMENT_VERSION })}><MessageCircle className="h-5 w-5" aria-hidden="true" />คุยกับ CCPun ทาง LINE OA</a>
+      <a href={CI_LINE_OA_URL} target="_blank" rel="noopener noreferrer" aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)" className={`gold-button mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto ${functionalMotion.tactileButton}`} onClick={() => trackEvent('ci_contact_click', { tool_name: 'ci_planning', cta_location: 'ci_result', contact_channel: 'line', calculator_version: CI_ASSESSMENT_VERSION })}><MessageCircle className="h-5 w-5" aria-hidden="true" />คุยกับ CCPun ทาง LINE OA</a>
     </div>
 
     <p className="ccpun-calculator-result-notice">ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลและสมมติฐานที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล โปรดศึกษารายละเอียดความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ และประกันไม่ใช่เงินฝาก</p>
 
     <div className="grid gap-3 sm:grid-cols-2">
-      <button type="button" onClick={onEditData} className="glass-button flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" /><span>แก้ไขข้อมูล</span></button>
-      <button type="button" onClick={onReset} className="glass-button flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" /><span>เริ่มใหม่</span></button>
+      <button type="button" onClick={onEditData} className={`glass-button flex min-h-12 items-center justify-center gap-2 ${functionalMotion.tactileButton}`}><Edit3 className="h-4 w-4" /><span>แก้ไขข้อมูล</span></button>
+      <button type="button" onClick={onReset} className={`glass-button flex min-h-12 items-center justify-center gap-2 ${functionalMotion.tactileButton}`}><RefreshCw className="h-4 w-4" /><span>เริ่มใหม่</span></button>
     </div>
   </div>;
 }
