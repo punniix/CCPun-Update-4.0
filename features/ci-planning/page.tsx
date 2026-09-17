@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
 import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero';
@@ -80,7 +81,7 @@ const CI_FAQS = [
 
 const faqSchema = {
   '@context': 'https://schema.org',
-  "@type": "FAQPage",
+  '@type': 'FAQPage',
   mainEntity: CI_FAQS.map((faq) => ({
     '@type': 'Question',
     name: faq.question,
@@ -93,7 +94,7 @@ const faqSchema = {
 
 export default function CiPlanningPage() {
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${functionalMotion.scope}`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ciPlanningSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
