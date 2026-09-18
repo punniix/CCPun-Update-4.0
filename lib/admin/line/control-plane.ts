@@ -71,7 +71,7 @@ const transcriptRowSchema = z.object({
   content_nonce_b64: z.string().nullable(),
   content_auth_tag_b64: z.string().nullable(),
   content_key_version: z.coerce.number().int().positive().nullable(),
-  content_purpose: z.enum(["message-content", "admin-outbound-message-content"]).nullable(),
+  content_purpose: z.enum(["message-content", "admin-outbound-message-content", "line-oa-import-content"]).nullable(),
 });
 
 const claimRowSchema = z.object({
@@ -123,7 +123,7 @@ export type LineTranscriptItem = {
   occurredAt: string;
   unsentAt: string | null;
   text: string | null;
-  contentState: "available" | "purged" | "not_available" | "legacy_key_unavailable" | "decrypt_failed";
+  contentState: "available" | "retained_after_unsend" | "purged" | "not_available" | "legacy_key_unavailable" | "decrypt_failed";
 };
 
 export type LineStageHistoryItem = {
@@ -192,7 +192,8 @@ export function getLineActivationStatus(
   return {
     runtimeReady: Boolean(runtime && variables.CCPUN_ADMIN_DATABASE_URL?.trim()),
     transcriptEnabled: variables.CCPUN_LINE_TRANSCRIPT_ENABLED?.trim() === "true" && cryptoReady,
-    outboundEnabled: variables.CCPUN_LINE_OUTBOUND_ENABLED?.trim() === "true" && cryptoReady && Boolean(variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim()),
+    // Advisor replies are intentionally handled in LINE OA Manager. Admin is archive/read-only.
+    outboundEnabled: false,
   };
 }
 
@@ -247,7 +248,7 @@ function baseStatus(
     privateConversationReady,
     rawCustomerDataExposedToClient: false,
     transcriptEnabled: activation.transcriptEnabled,
-    replyEnabled: activation.outboundEnabled,
+    replyEnabled: false,
     stageMutationEnabled: privateConversationReady,
   };
 }
@@ -395,11 +396,8 @@ export async function readLineCaseDetail(
           occurredAt: iso(row.occurred_at) ?? "",
           unsentAt: iso(row.unsent_at),
         };
-        if (row.status === "unsent") {
-          return { ...base, text: null, contentState: "purged" as const };
-        }
         if (!row.content_ciphertext_b64 || !row.content_nonce_b64 || !row.content_auth_tag_b64 || !row.content_key_version || !row.content_purpose) {
-          return { ...base, text: null, contentState: "not_available" as const };
+          return { ...base, text: null, contentState: row.status === "unsent" ? "purged" as const : "not_available" as const };
         }
         if (!isLinePrivateKeyVersion(row.content_key_version)) {
           return { ...base, text: null, contentState: "decrypt_failed" as const };
@@ -412,7 +410,7 @@ export async function readLineCaseDetail(
         };
         try {
           const text = crypto.decrypt(encrypted, row.content_purpose);
-          return { ...base, text, contentState: "available" as const };
+          return { ...base, text, contentState: row.status === "unsent" ? "retained_after_unsend" as const : "available" as const };
         } catch (error) {
           if (isLinePrivateKeyUnavailableError(error)) {
             return { ...base, text: null, contentState: "legacy_key_unavailable" as const };

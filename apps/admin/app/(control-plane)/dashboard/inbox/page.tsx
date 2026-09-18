@@ -6,6 +6,7 @@ import {
   type LineAdvisorInboxSafeItem,
 } from "@/lib/admin/line/control-plane";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
+import { getLinePrivateProfiles, type LinePrivateProfile } from "@/lib/admin/line/conversation-archive";
 import { listAdvisorInboxOperational, type AdvisorInboxFilters } from "@/lib/admin/line/advisor-workflow";
 
 export const metadata: Metadata = { title: "Advisor Inbox" };
@@ -21,8 +22,8 @@ function formatBangkokDate(value: string | null) {
   }).format(date);
 }
 
-function customerLabel(item: Pick<LineAdvisorInboxSafeItem, "customerCode">) {
-  return `Customer ${item.customerCode.slice(-8)}`;
+function customerLabel(item: Pick<LineAdvisorInboxSafeItem, "customerCode" | "leadId">, displayName?: string | null) {
+  return displayName?.trim() || `Customer ${item.customerCode.slice(-8)}`;
 }
 
 function priorityLabel(priority: LineAdvisorInboxSafeItem["priority"]) {
@@ -51,6 +52,9 @@ export default async function AdvisorInboxPage({ searchParams }: { searchParams:
     try { filteredRows = await listAdvisorInboxOperational(filters); } catch { filterUnavailable = true; }
   }
   const displayRows = filteredRows ?? model.rows;
+  const privateProfiles = model.unavailableReason
+    ? new Map<string, LinePrivateProfile | null>()
+    : await getLinePrivateProfiles(displayRows.map((row) => row.leadId));
 
   return (
     <div>
@@ -59,7 +63,7 @@ export default async function AdvisorInboxPage({ searchParams }: { searchParams:
           <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">LINE OA · HUMAN ADVISORY</p>
           <h1 className="mt-2 text-3xl font-semibold">Advisor Inbox</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            Advisor Inbox ใช้ safe operational context เป็นค่าเริ่มต้น ส่วน transcript และ reply จะเปิดได้เฉพาะ owner runtime ที่ผ่าน encryption/provider feature gate เท่านั้น
+            Advisor Inbox เป็น Conversation Archive / Customer Timeline สำหรับ owner โดยรับข้อความลูกค้าแบบ realtime จาก webhook และไม่ใช้เป็นช่องตอบลูกค้า
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -73,7 +77,7 @@ export default async function AdvisorInboxPage({ searchParams }: { searchParams:
       </div>
 
       <section className="mt-6 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/85" aria-label="Private LINE boundary">
-        <strong className="font-medium text-sky-100">Private-by-default:</strong> safe context เปิดตลอดเมื่อ runtime พร้อม ส่วน transcript/outbound จะ fail-closed จน owner เปิด feature gate และใส่ key/token ใน Vercel โดยตรง
+        <strong className="font-medium text-sky-100">Private-by-default:</strong> safe operational context แยกจาก owner-only profile/transcript; การตอบลูกค้าให้ทำใน LINE OA Manager เท่านั้น
       </section>
 
       <form method="get" className="mt-6 grid gap-2 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:grid-cols-2 lg:grid-cols-6" aria-label="Safe operational filters">
@@ -106,7 +110,7 @@ export default async function AdvisorInboxPage({ searchParams }: { searchParams:
           <p className={`mt-2 text-lg font-semibold ${model.status.viewReady ? "text-emerald-200" : "text-amber-200"}`}>
             {model.status.viewReady ? "Ready" : "Not ready"}
           </p>
-          <p className="mt-1 text-xs leading-5 text-white/50">raw customer data hidden · transcript/outbound feature-gated</p>
+          <p className="mt-1 text-xs leading-5 text-white/50">raw identity hidden · conversation archive owner-only · Admin outbound disabled</p>
         </article>
       </section>
 
@@ -152,10 +156,12 @@ export default async function AdvisorInboxPage({ searchParams }: { searchParams:
                   </div>
                   <h2 className="mt-3 text-lg font-semibold text-white/90">
                     <Link href={`/dashboard/inbox/${item.leadId}/`} className="hover:text-white hover:underline hover:underline-offset-4">
-                      {customerLabel(item)}
+                      {customerLabel(item, privateProfiles.get(item.leadId)?.displayName)}
                     </Link>
                   </h2>
-                  <p className="mt-1 text-sm text-white/55">Lead {item.leadId.slice(0, 8)} · Case {item.advisorCaseId?.slice(0, 8) ?? "—"}</p>
+                  <p className="mt-1 text-sm text-white/55">
+                    Lead {item.leadId.slice(0, 8)} · Case {item.advisorCaseId?.slice(0, 8) ?? "—"} · Internal ref {item.customerCode.slice(-8)}
+                  </p>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-5 gap-y-1 text-sm leading-6 text-white/60 md:block md:text-right">
                   <div><dt className="sr-only">กิจกรรมล่าสุด</dt><dd>{formatBangkokDate(item.lastActivityAt)}</dd></div>
@@ -177,7 +183,7 @@ export default async function AdvisorInboxPage({ searchParams }: { searchParams:
                 <div className="rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4">
                   <p className="text-xs font-medium uppercase tracking-[0.08em] text-[#e0c985]">Owner context</p>
                   <p className="mt-2 text-sm text-white/75">Advisor: {item.assignedAdvisor ?? "ยังไม่ assign"}</p>
-                  <p className="mt-1 text-xs leading-5 text-white/50">เปิดเคสเพื่อดู timeline, stage history และ action ที่ผ่าน private gate</p>
+                  <p className="mt-1 text-xs leading-5 text-white/50">เปิดเคสเพื่อดู conversation archive, evidence, stage history และ operational context</p>
                 </div>
               </div>
             </article>

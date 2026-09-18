@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LineCaseActions } from "@/features/admin/line/LineCaseActions";
+import { LineOAHistoryImport } from "@/features/admin/line/LineOAHistoryImport";
 import { LeadOutcomeActions } from "@/features/admin/line/LeadOutcomeActions";
 import { AdvisorCaseOperations } from "@/features/admin/line/AdvisorCaseOperations";
 import { readLineCaseDetail } from "@/lib/admin/line/control-plane";
+import { getLinePrivateProfile } from "@/lib/admin/line/conversation-archive";
 import { advisorPrivateNotesEnabled, readAdvisorCaseTimeline, readAdvisorPrivateNotes } from "@/lib/admin/line/advisor-workflow";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 
@@ -41,21 +43,28 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
   }
 
   const item = detail.item;
-  const [operations, privateNotes] = await Promise.all([
+  const [operations, privateNotes, profile] = await Promise.all([
     readAdvisorCaseTimeline(item.leadId).catch(() => ({ events: [], documents: [] })),
     readAdvisorPrivateNotes(item.leadId).catch(() => ({ state: "unavailable" as const, notes: [] })),
+    getLinePrivateProfile(item.leadId).catch(() => null),
   ]);
   const notesEnabled = advisorPrivateNotesEnabled();
+  const customerName = profile?.displayName || `Customer ${item.customerCode.slice(-8)}`;
   return (
     <div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Link href="/dashboard/inbox/" className="text-sm text-white/55 hover:text-white">← Advisor Inbox</Link>
           <p className="mt-5 text-xs font-semibold tracking-[0.12em] text-[#e0c985]">PRIVATE LINE CASE</p>
-          <h1 className="mt-2 text-3xl font-semibold">Customer {item.customerCode.slice(-8)}</h1>
-          <p className="mt-2 text-sm text-white/55">Lead {item.leadId.slice(0, 8)} · {item.journey}</p>
+          <h1 className="mt-2 text-3xl font-semibold">{customerName}</h1>
+          <p className="mt-2 text-sm text-white/55">
+            Lead {item.leadId.slice(0, 8)} · {item.journey} · Internal ref {item.customerCode.slice(-8)}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Link href={`/dashboard/inbox/${item.leadId}/evidence/`} className="inline-flex min-h-9 items-center rounded-xl border border-white/10 px-3 py-1.5 text-white/70 transition hover:bg-white/5 hover:text-white">
+            Evidence
+          </Link>
           <span className="rounded-full border border-[#e0c985]/20 bg-[#e0c985]/10 px-3 py-1.5 text-[#f4df9b]">{item.stage}</span>
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/70">{item.conversationStatus}</span>
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/70">Bot: {detail.botDecision}</span>
@@ -74,7 +83,9 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">Conversation timeline</h2>
-              <p className="mt-1 text-xs leading-5 text-white/50">Plaintext แสดงเฉพาะ server-rendered owner view เมื่อ transcript gate + encryption key พร้อม</p>
+              <p className="mt-1 text-xs leading-5 text-white/50">
+                Inbound จาก webhook เป็น realtime; ข้อความฝั่ง CCPun เติมจาก LINE OA CSV ได้ และ Unsend จะแสดงสถานะโดย archive evidence แยกจาก operational purge
+              </p>
             </div>
             <span className={`rounded-full px-2.5 py-1 text-xs ${detail.transcript.state === "available" ? "bg-emerald-300/10 text-emerald-200" : "bg-amber-300/10 text-amber-200"}`}>{detail.transcript.state}</span>
           </div>
@@ -94,10 +105,13 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
                     <time>{formatBangkokDate(message.occurredAt)}</time>
                   </div>
                   <div className="mt-2 text-sm leading-6 text-white/80">
-                    {message.contentState === "purged" ? <em className="text-white/45">ข้อความถูก Unsend และเนื้อหาถูก purge แล้ว</em>
+                    {message.contentState === "purged" ? <em className="text-white/45">ข้อความ Unsend รุ่นก่อน Evidence Archive จึงไม่มี plaintext เหลือ</em>
                       : message.contentState === "legacy_key_unavailable" ? <span className="text-amber-200/70">ข้อความเดิมยังใช้ encryption key เวอร์ชันเก่า รอ secure rotation ก่อนแสดงผล</span>
                       : message.contentState === "decrypt_failed" ? <span className="text-amber-200/70">ถอดรหัสข้อความนี้ไม่ได้ ระบบหยุดแบบ fail-closed</span>
-                      : message.text ?? <span className="text-white/45">ไม่มี plaintext สำหรับ message type นี้</span>}
+                      : <>
+                          {message.contentState === "retained_after_unsend" ? <span className="mb-2 inline-flex rounded-full border border-rose-300/20 bg-rose-300/10 px-2 py-0.5 text-[11px] text-rose-100">Unsent · retained in owner-only evidence archive</span> : null}
+                          <p className="whitespace-pre-wrap">{message.text ?? "ไม่มี plaintext สำหรับ message type นี้"}</p>
+                        </>}
                   </div>
                 </li>
               ))}
@@ -106,8 +120,9 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
         </section>
 
         <aside className="space-y-5">
-          <LineCaseActions leadId={item.leadId} nextStages={item.nextStages} replyEnabled={detail.status.replyEnabled} stageMutationEnabled={detail.status.stageMutationEnabled} />
+          <LineCaseActions leadId={item.leadId} nextStages={item.nextStages} stageMutationEnabled={detail.status.stageMutationEnabled} />
           <LeadOutcomeActions leadId={item.leadId} />
+          <LineOAHistoryImport leadId={item.leadId} />
           <AdvisorCaseOperations leadId={item.leadId} notesEnabled={notesEnabled} />
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
@@ -143,7 +158,9 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
 
           <section className="rounded-2xl border border-sky-200/15 bg-sky-200/[0.04] p-4 text-xs leading-5 text-sky-100/75">
             <strong className="text-sky-100">Safety boundary</strong>
-            <p className="mt-2">ไม่มี LINE user ID, provider ID, document bytes, health/financial inputs หรือ ciphertext ถูก render ลง client props จากหน้านี้</p>
+            <p className="mt-2">
+              LINE display name แสดงเฉพาะ owner Admin; LINE user ID, provider ID, document bytes, health/financial inputs และ ciphertext ไม่ถูก render ลง client props
+            </p>
           </section>
         </aside>
       </div>

@@ -87,7 +87,7 @@ test("Advisor Inbox runtime reuses the exact Admin Neon lane guard", () => {
   assert.doesNotMatch(controlPlane, /createLinePrivateCrypto|CCPUN_LINE_IDENTITY_HMAC_KEY/);
   assert.match(controlPlane, /createLineContentCrypto/);
   assert.match(controlPlane, /CCPUN_LINE_TRANSCRIPT_ENABLED/);
-  assert.match(controlPlane, /CCPUN_LINE_OUTBOUND_ENABLED/);
+  assert.match(controlPlane, /outboundEnabled:\s*false/);
 
   for (const [lane, environment, vercelEnvironment] of [
     ["uat", "admin-uat", "preview"],
@@ -130,7 +130,7 @@ test("deployed Admin separates Advisor Inbox from SEO Reviews", () => {
 
   assert.match(inbox, /requireAdminPermission\("advisor:read"\)/);
   assert.match(inbox, /Private-by-default/);
-  assert.match(inbox, /transcript\/outbound feature-gated/);
+  assert.match(inbox, /conversation archive owner-only · Admin outbound disabled/);
   assert.match(inbox, /\/dashboard\/inbox\/\$\{item\.leadId\}\//);
   assert.doesNotMatch(inbox, /ApproveSuggestionButton|ApplySuggestionButton|ReviewDecisionControls/);
   assert.match(reviews, /requireAdminPermission\("reviews:read"\)/);
