@@ -7,7 +7,12 @@ import {
   adminOperationsRuntimeInputFromEnvironment,
   resolveAdminOperationsRuntimeIdentity,
 } from "../operations/foundation";
-import { createLineContentCrypto, type LineEncryptedValue } from "../../line/private-crypto";
+import {
+  createLineContentCrypto,
+  isLinePrivateKeyUnavailableError,
+  isLinePrivateKeyVersion,
+  type LineEncryptedValue,
+} from "../../line/private-crypto";
 import { LINE_CASE_STAGES, type LineCaseStage } from "../../line/ecosystem";
 
 const filterSchema = z.object({
@@ -227,14 +232,28 @@ export async function readAdvisorPrivateNotes(leadId: string, variables: Record<
       [leadId, 50],
     ));
     const notes = rows.map((row) => {
-      if (row.content_key_version !== 1) throw new Error("ADVISOR_NOTE_KEY_VERSION");
+      const base = { id: row.note_id, createdAt: iso(row.created_at) ?? "" };
+      if (!isLinePrivateKeyVersion(row.content_key_version)) {
+        return { ...base, text: null, contentState: "decrypt_failed" as const };
+      }
       const encrypted: LineEncryptedValue = {
-        keyVersion: 1,
+        keyVersion: row.content_key_version,
         ciphertextB64: row.content_ciphertext_b64,
         nonceB64: row.content_nonce_b64,
         authTagB64: row.content_auth_tag_b64,
       };
-      return { id: row.note_id, text: crypto.decrypt(encrypted, "advisor-private-note"), createdAt: iso(row.created_at) ?? "" };
+      try {
+        return {
+          ...base,
+          text: crypto.decrypt(encrypted, "advisor-private-note"),
+          contentState: "available" as const,
+        };
+      } catch (error) {
+        if (isLinePrivateKeyUnavailableError(error)) {
+          return { ...base, text: null, contentState: "legacy_key_unavailable" as const };
+        }
+        return { ...base, text: null, contentState: "decrypt_failed" as const };
+      }
     });
     return { state: "available" as const, notes };
   } catch {

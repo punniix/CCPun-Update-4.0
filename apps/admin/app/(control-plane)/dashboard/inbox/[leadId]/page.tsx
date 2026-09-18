@@ -93,7 +93,10 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
                     <time>{formatBangkokDate(message.occurredAt)}</time>
                   </div>
                   <div className="mt-2 text-sm leading-6 text-white/80">
-                    {message.status === "unsent" ? <em className="text-white/45">ข้อความถูก Unsend และเนื้อหาถูก purge แล้ว</em> : message.text ?? <span className="text-white/45">ไม่มี plaintext สำหรับ message type นี้</span>}
+                    {message.contentState === "purged" ? <em className="text-white/45">ข้อความถูก Unsend และเนื้อหาถูก purge แล้ว</em>
+                      : message.contentState === "legacy_key_unavailable" ? <span className="text-amber-200/70">ข้อความเดิมยังใช้ encryption key เวอร์ชันเก่า รอ secure rotation ก่อนแสดงผล</span>
+                      : message.contentState === "decrypt_failed" ? <span className="text-amber-200/70">ถอดรหัสข้อความนี้ไม่ได้ ระบบหยุดแบบ fail-closed</span>
+                      : message.text ?? <span className="text-white/45">ไม่มี plaintext สำหรับ message type นี้</span>}
                   </div>
                 </li>
               ))}
@@ -132,7 +135,7 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
             <h2 className="text-sm font-semibold">Private notes</h2>
-            {privateNotes.state === "available" ? (privateNotes.notes.length ? <ul className="mt-3 space-y-3">{privateNotes.notes.map((note) => <li key={note.id} className="rounded-xl bg-black/20 p-3 text-xs leading-5 text-white/65"><p className="whitespace-pre-wrap">{note.text}</p><time className="mt-2 block text-white/35">{formatBangkokDate(note.createdAt)}</time></li>)}</ul> : <p className="mt-2 text-xs text-white/45">ยังไม่มี private note</p>) : <p className="mt-2 text-xs text-amber-200/70">Private notes {privateNotes.state} — ต้องเปิด encryption gate โดย owner</p>}
+            {privateNotes.state === "available" ? (privateNotes.notes.length ? <ul className="mt-3 space-y-3">{privateNotes.notes.map((note) => <li key={note.id} className="rounded-xl bg-black/20 p-3 text-xs leading-5 text-white/65"><p className="whitespace-pre-wrap">{note.contentState === "available" ? note.text : note.contentState === "legacy_key_unavailable" ? "Private note นี้ยังใช้ encryption key เวอร์ชันเก่า รอ secure rotation" : "Private note นี้ถอดรหัสไม่ได้ ระบบหยุดแบบ fail-closed"}</p><time className="mt-2 block text-white/35">{formatBangkokDate(note.createdAt)}</time></li>)}</ul> : <p className="mt-2 text-xs text-white/45">ยังไม่มี private note</p>) : <p className="mt-2 text-xs text-amber-200/70">Private notes {privateNotes.state} — ต้องเปิด encryption gate โดย owner</p>}
             <p className="mt-2 text-[11px] leading-4 text-white/35">Internal notes เป็น Customer Confidential Data และไม่มี SafeForAI projection</p>
           </section>
 

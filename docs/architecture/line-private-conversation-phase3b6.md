@@ -18,7 +18,7 @@ This release extends the Production Phase 2/3A LINE foundation without activatin
 The page shows safe lead context, stage history, deterministic bot classification, transcript availability, and reply/stage actions. Transcript plaintext is produced server-side only when both conditions are true:
 
 1. `CCPUN_LINE_TRANSCRIPT_ENABLED=true`
-2. `CCPUN_LINE_ENCRYPTION_KEY_V1` is present and valid in the Admin server runtime.
+2. the active encryption-key version is explicitly configured and the matching server-only key is present. During V1→V2 rotation, Admin may run with V2 only; any remaining V1 item is shown as `legacy_key_unavailable` until Web securely rotates that customer's ciphertext.
 
 Otherwise the transcript is explicitly `disabled` or `key_unavailable`. The Admin never falls back to raw table reads.
 
@@ -32,7 +32,7 @@ Admin reply is fail-closed. Provider sending requires all of:
 - same-origin POST;
 - bounded text (1–2,000 characters);
 - `CCPUN_LINE_OUTBOUND_ENABLED=true`;
-- valid `CCPUN_LINE_ENCRYPTION_KEY_V1`;
+- a valid key for `CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION` (V2 after rotation activation);
 - `CCPUN_LINE_CHANNEL_ACCESS_TOKEN`.
 
 The reply is encrypted before it enters `private_line.outbound_message`. The durable queue uses a unique idempotency digest, lease owner/expiry, attempt count, delivery-attempt ledger, and explicit `reconciliation_required` state.
@@ -86,17 +86,31 @@ The release uses three checksum-locked additive steps:
 
 All three have UAT/Production parity and lane-specific guards.
 
-## Human Activation Batch — do not perform during development
+## Encryption key rotation V1 → V2
 
-These owner-only steps are intentionally deferred and must not be pasted into chat:
+The V1 key in `ccpun-web` Production is write-only and must never be revealed, copied through AI, overwritten, or deleted during rotation.
 
-1. In **Vercel `ccpun-admin` Production**, add `CCPUN_LINE_ENCRYPTION_KEY_V1` using the exact same existing value as `ccpun-web` Production. Do not generate a new value.
-2. In **Vercel `ccpun-admin` Production**, add `CCPUN_LINE_CHANNEL_ACCESS_TOKEN` directly from LINE Developers.
-3. Only after the two secrets above are present, add/enable:
+The rotation contract is:
+
+1. The owner creates one new V2 key locally, keeps an owner-held backup, and writes the same V2 value directly to both Production Vercel projects.
+2. Dual-key code and the checksum-locked migration deploy while active encryption still defaults to V1.
+3. Set the non-secret `CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION=2` in both runtimes. Web retains V1+V2; Admin can operate with V2 only.
+4. Set `CCPUN_LINE_LAZY_KEY_ROTATION_ENABLED=true` on Web only. After a successful identity-bearing LINE event, Web can rotate a bounded batch for that exact identity from V1 to V2. There is no global scan endpoint.
+5. System Health reads aggregate key-version counts only. V1 retirement is forbidden until `total_v1_count=0`, `unsupported_version_count=0`, `encrypted_unsent_count=0`, and final security/readback verification passes.
+6. Never delete V1 merely because V2 is active.
+
+Admin-created V1 outbound/private-note records are intentionally not exposed to Web rotation. If `admin_only_v1_count` is non-zero, V1 retirement stays blocked until a separately reviewed Admin-owned rotation path exists.
+
+## Human Activation Batch
+
+Owner-only values are entered directly at the provider and never pasted into chat:
+
+1. `CCPUN_LINE_ENCRYPTION_KEY_V2` must exist in both Production Vercel projects.
+2. `CCPUN_LINE_CHANNEL_ACCESS_TOKEN` must be added directly to `ccpun-admin` Production before outbound LINE sending can be enabled.
+3. After provider readiness and key-rotation verification, the non-secret gates may be enabled:
    - `CCPUN_LINE_TRANSCRIPT_ENABLED=true`
    - `CCPUN_LINE_OUTBOUND_ENABLED=true`
-4. Redeploy Admin Production after those owner changes.
-5. Later Drive/media phases add a separate interactive Google `drive.file` consent gate; access/refresh tokens are never pasted into chat or persisted by this LINE runtime.
-6. Production Admin owner sign-in and real mobile/LINE interactions remain final Human UAT actions.
+4. Later Drive/media phases add a separate interactive Google `drive.file` consent gate; access/refresh tokens are never pasted into chat or persisted by this LINE runtime.
+5. Production Admin owner sign-in and real mobile/LINE interactions remain Final Human UAT actions.
 
-Until that batch is completed, Production can safely contain this release with transcript/outbound disabled.
+Until provider activation is complete, Production can safely contain the release with transcript/outbound provider writes disabled.
