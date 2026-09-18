@@ -11,6 +11,14 @@ BEGIN
 END
 $guard$;
 
+CREATE TEMP TABLE ccpun_line_e2e_ctx ON COMMIT DROP AS
+SELECT
+  md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text) AS event_digest,
+  md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text) AS identity_digest,
+  md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text) AS message_digest,
+  md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text) AS actor_digest,
+  md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text) AS revenue_digest;
+
 SELECT outcome
 FROM private_line.record_safe_web_journey_event(jsonb_build_object(
   'anonymous_id_digest', repeat('6',64),
@@ -25,20 +33,20 @@ FROM private_line.record_safe_web_journey_event(jsonb_build_object(
 
 SELECT outcome
 FROM private_line.ingest_line_event(jsonb_build_object(
-  'event_digest',repeat('1',64),
+  'event_digest',(SELECT event_digest FROM ccpun_line_e2e_ctx),
   'event_type','message',
   'occurred_at',now()::text,
   'is_redelivery',false,
   'source_type','user',
   'identity',jsonb_build_object(
-    'lookup_digest',repeat('2',64),
+    'lookup_digest',(SELECT identity_digest FROM ccpun_line_e2e_ctx),
     'ciphertext_b64','c3ludGhldGljLWlk',
     'nonce_b64','c3ludGhldGljLW5vbmNl',
     'auth_tag_b64','c3ludGhldGljLXRhZw==',
     'key_version',2
   ),
   'message',jsonb_build_object(
-    'provider_message_digest',repeat('3',64),
+    'provider_message_digest',(SELECT message_digest FROM ccpun_line_e2e_ctx),
     'provider_message_ciphertext_b64','c3ludGhldGljLW1lc3NhZ2UtaWQ=',
     'provider_message_nonce_b64','c3ludGhldGljLW5vbmNl',
     'provider_message_auth_tag_b64','c3ludGhldGljLXRhZw==',
@@ -55,7 +63,7 @@ SET journey='motor_quote_review',source_origin='uat',updated_at=now()
 FROM private_line.conversation c
 JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id
 WHERE l.conversation_id=c.conversation_id
-  AND pi.external_ref_digest=repeat('2',64);
+  AND pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx);
 
 INSERT INTO private_line.lead_context(
   lead_id,origin,campaign_id,content_id,need,journey,tool_id,saved_result_ref,question_ids,attribution
@@ -68,7 +76,7 @@ SELECT
 FROM private_line.lead l
 JOIN private_line.conversation c ON c.conversation_id=l.conversation_id
 JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id
-WHERE pi.external_ref_digest=repeat('2',64)
+WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx)
 ON CONFLICT(lead_id) DO UPDATE SET
   origin=EXCLUDED.origin,
   campaign_id=EXCLUDED.campaign_id,
@@ -87,7 +95,7 @@ FROM private_line.admin_bind_lead_attribution(jsonb_build_object(
     FROM private_line.lead l
     JOIN private_line.conversation c ON c.conversation_id=l.conversation_id
     JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id
-    WHERE pi.external_ref_digest=repeat('2',64)
+    WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx)
     LIMIT 1
   ),
   'journey_event_id',(
@@ -99,7 +107,7 @@ FROM private_line.admin_bind_lead_attribution(jsonb_build_object(
     ORDER BY e.created_at DESC
     LIMIT 1
   ),
-  'actor_digest',repeat('4',64)
+  'actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx)
 ));
 
 SELECT outcome FROM private_line.ingress_record_safe_knowledge_event(jsonb_build_object(
@@ -113,42 +121,42 @@ SELECT outcome FROM private_line.ingress_record_safe_knowledge_event(jsonb_build
 ));
 
 SELECT outcome FROM private_line.admin_update_lead_stage(jsonb_build_object(
-  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=repeat('2',64) LIMIT 1),
-  'stage','Qualified','actor_digest',repeat('4',64)
+  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx) LIMIT 1),
+  'stage','Qualified','actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx)
 ));
 SELECT outcome FROM private_line.admin_update_lead_stage(jsonb_build_object(
-  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=repeat('2',64) LIMIT 1),
-  'stage','Expert Review','actor_digest',repeat('4',64)
+  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx) LIMIT 1),
+  'stage','Expert Review','actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx)
 ));
 SELECT outcome FROM private_line.admin_update_lead_stage(jsonb_build_object(
-  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=repeat('2',64) LIMIT 1),
-  'stage','Solution','actor_digest',repeat('4',64)
+  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx) LIMIT 1),
+  'stage','Solution','actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx)
 ));
 SELECT outcome FROM private_line.admin_update_lead_stage(jsonb_build_object(
-  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=repeat('2',64) LIMIT 1),
-  'stage','Implementation','actor_digest',repeat('4',64)
+  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx) LIMIT 1),
+  'stage','Implementation','actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx)
 ));
 
 SELECT outcome FROM private_line.admin_record_implementation(jsonb_build_object(
-  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=repeat('2',64) LIMIT 1),
+  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx) LIMIT 1),
   'status','complete',
   'partner_code','synthetic_partner',
-  'actor_digest',repeat('4',64),
+  'actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx),
   'event_key','impl:uat_e2e_complete'
 ));
 
 SELECT outcome FROM private_line.admin_update_lead_stage(jsonb_build_object(
-  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=repeat('2',64) LIMIT 1),
-  'stage','Won','actor_digest',repeat('4',64)
+  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx) LIMIT 1),
+  'stage','Won','actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx)
 ));
 
 SELECT outcome
 FROM private_line.admin_attribute_revenue(jsonb_build_object(
-  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=repeat('2',64) LIMIT 1),
+  'lead_id',(SELECT l.lead_id::text FROM private_line.lead l JOIN private_line.conversation c ON c.conversation_id=l.conversation_id JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx) LIMIT 1),
   'amount_minor','10000',
   'currency','THB',
-  'idempotency_digest',repeat('5',64),
-  'actor_digest',repeat('4',64)
+  'idempotency_digest',(SELECT revenue_digest FROM ccpun_line_e2e_ctx),
+  'actor_digest',(SELECT actor_digest FROM ccpun_line_e2e_ctx)
 ));
 
 SELECT
@@ -165,7 +173,7 @@ SELECT
     JOIN private_line.advisor_case ac ON ac.lead_id=l.lead_id
     JOIN private_line.conversation c ON c.conversation_id=l.conversation_id
     JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id
-    WHERE pi.external_ref_digest=repeat('2',64)
+    WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx)
       AND l.journey='motor_quote_review'
       AND l.material_received=true
       AND l.stage='Won'
@@ -180,7 +188,7 @@ SELECT
     JOIN private_line.lead l ON l.lead_id=li.lead_id
     JOIN private_line.conversation c ON c.conversation_id=l.conversation_id
     JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id
-    WHERE pi.external_ref_digest=repeat('2',64)
+    WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx)
       AND li.status='complete'
   ) AS implementation_ok,
   EXISTS(
@@ -189,7 +197,7 @@ SELECT
     JOIN private_line.lead l ON l.lead_id=r.lead_id
     JOIN private_line.conversation c ON c.conversation_id=l.conversation_id
     JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id
-    WHERE pi.external_ref_digest=repeat('2',64)
+    WHERE pi.external_ref_digest=(SELECT identity_digest FROM ccpun_line_e2e_ctx)
       AND r.currency='THB'
       AND r.amount_minor=10000
   ) AS revenue_ok,
@@ -233,7 +241,7 @@ SELECT
     FROM private_line.document_storage_object dso
     JOIN private_line.document d ON d.document_id=dso.document_id
     JOIN private_line.message m ON m.message_id=d.message_id
-    WHERE m.provider_message_digest=repeat('3',64)
+    WHERE m.provider_message_digest=(SELECT message_digest FROM ccpun_line_e2e_ctx)
       AND dso.status='pending_fetch'
   ) AS attachment_lifecycle_created_ok;
 
