@@ -50,7 +50,7 @@ test("Admin reply UI and endpoint are retired in favor of LINE OA Manager", () =
   const actions = read("features/admin/line/LineCaseActions.tsx");
   const route = read("apps/admin/app/api/admin/line/inbox/[leadId]/reply/route.ts");
   const control = read("lib/admin/line/control-plane.ts");
-  assert.match(actions, /ตอบลูกค้าผ่าน LINE OA Manager/);
+  assert.match(actions, /ตอบลูกค้าใน LINE OA ตามเดิม/);
   assert.doesNotMatch(actions, /textarea|ส่งผ่าน LINE|sendReply|\/reply\//);
   assert.match(route, /admin-reply-retired-use-line-oa-manager/);
   assert.match(route, /status:\s*410/);
@@ -79,7 +79,8 @@ test("Inbox renders LINE display name owner-side with internal reference fallbac
   assert.match(list, /privateProfiles\.get\(item\.leadId\)\?\.displayName/);
   assert.match(detail, /getLinePrivateProfile/);
   assert.match(detail, /customerName/);
-  assert.match(detail, /Internal ref/);
+  assert.match(detail, /รหัสลูกค้าภายใน/);
+  assert.match(detail, /รายละเอียดระบบ/);
   for (const forbidden of ["external_ref_ciphertext", "lineUserId", "providerMessageId"]) {
     assert.doesNotMatch(list + detail, new RegExp(forbidden, "i"));
   }
@@ -105,9 +106,9 @@ test("Evidence view marks Unsend, fingerprints records, supports print and audit
   const button = read("features/admin/line/EvidencePrintButton.tsx");
   const auditRoute = read("apps/admin/app/api/admin/line/inbox/[leadId]/evidence/audit/route.ts");
   const service = read("lib/admin/line/conversation-archive.ts");
-  assert.match(page, /OWNER-ONLY EVIDENCE VIEW/);
-  assert.match(page, /ลูกค้า Unsend/);
-  assert.match(page, /SHA-256/);
+  assert.match(page, /หลักฐานการคุย/);
+  assert.match(page, /ลูกค้ายกเลิกข้อความนี้/);
+  assert.match(page, /รหัสตรวจสอบ SHA-256/);
   assert.match(page, /ไม่ใช่การรับรองทางกฎหมายจากบุคคลภายนอก/);
   assert.match(button, /window\.print\(\)/);
   assert.match(auditRoute, /advisor:read/);

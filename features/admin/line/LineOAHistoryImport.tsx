@@ -30,7 +30,7 @@ export function LineOAHistoryImport({ leadId }: { leadId: string }) {
       };
       if (!response.ok) throw new Error(payload.error ?? "import_failed");
       setMessage(
-        `นำเข้า ${payload.imported ?? 0} · ซ้ำ ${payload.duplicate ?? 0} · ข้าม ${payload.skipped ?? 0}`,
+        `เพิ่มเข้าประวัติแล้ว ${payload.imported ?? 0} ข้อความ · มีอยู่แล้ว ${payload.duplicate ?? 0} · ข้าม ${payload.skipped ?? 0}`,
       );
       setFile(null);
       router.refresh();
@@ -38,8 +38,8 @@ export function LineOAHistoryImport({ leadId }: { leadId: string }) {
       const code = error instanceof Error ? error.message : "";
       setMessage(
         code.includes("unsupported_format")
-          ? "ยังอ่านรูปแบบ CSV นี้ไม่ได้ กรุณาใช้ไฟล์ประวัติแชทจาก LINE OA Manager หรือส่งตัวอย่าง header มาให้ปรับ parser"
-          : "นำเข้าประวัติ LINE OA ไม่สำเร็จ",
+          ? "ยังอ่านไฟล์นี้ไม่ได้ ลองดาวน์โหลดประวัติการคุยจาก LINE OA ใหม่อีกครั้ง"
+          : "ยังนำเข้าประวัติไม่ได้ ลองใหม่อีกครั้ง",
       );
     } finally {
       setBusy(false);
@@ -48,24 +48,25 @@ export function LineOAHistoryImport({ leadId }: { leadId: string }) {
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-      <h2 className="text-sm font-semibold">LINE OA chat history</h2>
+      <h2 className="text-sm font-semibold">นำเข้าประวัติจาก LINE OA</h2>
       <p className="mt-1 text-xs leading-5 text-white/50">
-        ใช้เติมเฉพาะข้อความฝั่ง CCPun ที่ตอบจาก LINE OA Manager ลงใน Archive
-        ไฟล์ CSV ไม่ถูกเก็บ และข้อความจะถูกเข้ารหัสก่อนบันทึก
+        ใช้เมื่ออยากเติมข้อความที่ CCPun เคยตอบจาก LINE OA ให้ประวัติครบทั้งสองฝั่ง
+        ไฟล์ที่เลือกจะไม่ถูกเก็บไว้
       </p>
 
       <label className="mt-3 block text-xs text-white/55">
-        ชื่อผู้ส่งฝั่ง CCPun ตามที่อยู่ใน CSV
+        ชื่อผู้ส่งฝั่ง CCPun ในไฟล์
         <input
           value={senderLabel}
           onChange={(event) => setSenderLabel(event.target.value)}
           maxLength={200}
+          placeholder="เช่น CCPun"
           className="mt-1 min-h-10 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none"
         />
       </label>
 
       <label className="mt-3 block text-xs text-white/55">
-        Chat history CSV
+        เลือกไฟล์ประวัติการคุย (.csv)
         <input
           type="file"
           accept=".csv,text/csv"
@@ -80,7 +81,7 @@ export function LineOAHistoryImport({ leadId }: { leadId: string }) {
         disabled={busy || !file || !senderLabel.trim()}
         className="mt-3 min-h-10 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm text-white/80 disabled:opacity-40"
       >
-        {busy ? "กำลังนำเข้า…" : "นำเข้าเข้าประวัติ"}
+        {busy ? "กำลังเพิ่มเข้าประวัติ…" : "เพิ่มเข้าประวัติ"}
       </button>
 
       {message ? <p role="status" className="mt-3 text-xs leading-5 text-white/55">{message}</p> : null}

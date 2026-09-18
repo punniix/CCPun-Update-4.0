@@ -112,9 +112,10 @@ test("campaign client never receives provider identity or recipient rows",()=>{
   for(const src of [server,api,ui]){
     assert.doesNotMatch(src,/external_ref_|line_user_id|recipient_ciphertext|provider_identity/);
   }
-  assert.match(ui,/recipient list เข้า client\/AI/);
-  assert.match(ui,/Human Approve/);
-  assert.match(ui,/Provider send:/);
+  assert.match(ui,/ส่งให้ลูกค้ากลุ่มไหน/);
+  assert.match(ui,/ตรวจแล้ว ใช้ข้อความนี้/);
+  assert.match(ui,/การส่งข้อความจริง:/);
+  assert.doesNotMatch(ui,/recipient list เข้า client\/AI|Human Approve|Provider send:|stage segment|priority segment|tag segment/);
 });
 
 test("internal notes are encrypted private-only and absent from Safe Knowledge",()=>{

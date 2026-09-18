@@ -200,8 +200,9 @@ test("System Health exposes only aggregate rotation state and keeps V1 retiremen
   const health = read("apps/admin/app/(control-plane)/operations/health/page.tsx");
   assert.match(helper, /admin_read_line_key_rotation_status/);
   assert.doesNotMatch(helper, /customer_id|lead_id|record_id|ciphertext_b64|nonce_b64|auth_tag_b64/);
-  assert.match(health, /LINE Encryption Rotation/);
-  assert.match(health, /V1 remaining/);
-  assert.match(health, /ยังห้ามลบ V1/);
-  assert.match(health, /ไม่มี customer ID, ciphertext หรือ plaintext/);
+  assert.match(health, /ความพร้อมของการเข้ารหัส LINE/);
+  assert.match(health, /ข้อมูลรุ่นเก่าที่ยังเหลือ/);
+  assert.match(health, /ยังไม่ควรถอด/);
+  assert.match(health, /ไม่แสดงข้อความ ชื่อลูกค้า หรือค่ากุญแจเข้ารหัส/);
+  assert.doesNotMatch(health, /LINE Encryption Rotation|V1 remaining|ciphertext หรือ plaintext/);
 });

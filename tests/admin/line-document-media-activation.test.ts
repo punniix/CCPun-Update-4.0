@@ -381,9 +381,10 @@ test("new LINE/Drive provider modules never persist refresh tokens or emit gener
 
 test("Admin health surface stays aggregate/boolean and does not project private identifiers", () => {
   const page = read("apps/admin/app/(control-plane)/operations/health/page.tsx");
-  assert.match(page, /LINE Runtime \/ Customer Media/);
-  assert.match(page, /Web active V2/);
-  assert.match(page, /Unsafe Drive folders/);
-  assert.match(page, /LINE token/);
+  assert.match(page, /LINE และไฟล์ลูกค้า/);
+  assert.match(page, /การเข้ารหัสล่าสุด/);
+  assert.match(page, /โฟลเดอร์ที่ต้องตรวจสิทธิ์/);
+  assert.match(page, /เชื่อม LINE/);
+  assert.doesNotMatch(page, /LINE Runtime \/ Customer Media|Web active V2|Unsafe Drive folders|LINE token/);
   assert.doesNotMatch(page, /externalFolderId|externalFileId|providerMessageId|LINE user ID.*value=/);
 });

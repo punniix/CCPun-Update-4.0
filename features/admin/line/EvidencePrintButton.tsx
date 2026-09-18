@@ -26,7 +26,7 @@ export function EvidencePrintButton({ leadId, itemCount }: { leadId: string; ite
       disabled={busy}
       className="min-h-10 rounded-xl bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-40 print:hidden"
     >
-      {busy ? "กำลังเตรียม…" : "พิมพ์ / Save PDF"}
+      {busy ? "กำลังเตรียม…" : "พิมพ์ / บันทึกเป็น PDF"}
     </button>
   );
 }

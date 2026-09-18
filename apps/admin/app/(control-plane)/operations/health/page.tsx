@@ -17,9 +17,10 @@ import {
   readLineDocumentMediaHealth,
 } from "@/lib/admin/line/document-media";
 import { getLineMediaProviderReadiness } from "@/lib/admin/line/media-provider";
+import { lineRetentionModeLabel, lineTechnicalStateLabel } from "@/lib/admin/line/presentation";
 import { readLineArchiveHealth } from "@/lib/admin/line/conversation-archive";
 
-export const metadata: Metadata = { title: "System Health" };
+export const metadata: Metadata = { title: "สถานะระบบ" };
 
 type HealthState = "ok" | "warning" | "off";
 
@@ -133,7 +134,7 @@ export default async function AdminHealthPage() {
   return (
     <div>
       <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">OWNER DIAGNOSTICS</p>
-      <h1 className="mt-2 text-3xl font-semibold">System Health</h1>
+      <h1 className="mt-2 text-3xl font-semibold">สถานะระบบ</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
         ดูว่า Admin กำลังรันบน deployment ไหน เชื่อม Sanity และ private operational database ถูก lane หรือไม่ รวมถึงสถานะระบบ Schedule และ Social โดยไม่แสดง credential หรือ secret ใด ๆ
       </p>
@@ -176,102 +177,100 @@ export default async function AdminHealthPage() {
           <p className="pt-2 text-white/50">สถานะ “พร้อม” ต้องผ่านทั้ง runtime identity, runtime switch และ durable database switch พร้อมกัน การเปิด durable switch ต้องใช้ database-owner channel แยกจาก runtime credential</p>
         </Card>
 
-        <Card title="LINE Encryption Rotation" state={lineKeyRotationState}>
-          <Row label="Active version" value={`V${lineKeyRotation.activeVersion}`} />
-          <Row label="V2 configured" value={lineKeyRotation.v2Configured ? "พร้อม" : "ยังไม่พร้อม"} />
-          <Row label="Lazy rotation" value={lineKeyRotation.lazyRotationEnabled ? "เปิด" : "ปิด"} />
+        <Card title="ความพร้อมของการเข้ารหัส LINE" state={lineKeyRotationState}>
+          <Row label="เวอร์ชันที่ใช้อยู่" value={`V${lineKeyRotation.activeVersion}`} />
+          <Row label="กุญแจรุ่นล่าสุด" value={lineKeyRotation.v2Configured ? "พร้อม" : "ยังไม่พร้อม"} />
+          <Row label="อัปเดตกุญแจอัตโนมัติ" value={lineKeyRotation.lazyRotationEnabled ? "เปิด" : "ปิด"} />
           {lineKeyRotation.state === "ready" ? <>
-            <Row label="V1 remaining" value={lineKeyRotation.totalV1Count.toLocaleString("th-TH")} />
-            <Row label="Rotatable V1" value={lineKeyRotation.rotatableV1Count.toLocaleString("th-TH")} />
-            <Row label="Admin-only V1" value={lineKeyRotation.adminOnlyV1Count.toLocaleString("th-TH")} />
-            <Row label="Unsupported" value={lineKeyRotation.unsupportedVersionCount.toLocaleString("th-TH")} />
-            <Row label="Encrypted unsent" value={lineKeyRotation.encryptedUnsentCount.toLocaleString("th-TH")} />
-            <Row label="V1 retirement" value={lineKeyRotation.allV1Zero ? "พร้อมตรวจขั้นสุดท้าย" : "ยังห้ามลบ V1"} />
-          </> : <p className="text-white/50">aggregate rotation status ยังอ่านไม่ได้ โดยไม่ fallback ไปอ่าน private tables ตรง ๆ</p>}
-          <p className="pt-2 text-white/50">แสดงเฉพาะจำนวนตาม key version ไม่มี customer ID, ciphertext หรือ plaintext และ V1 ห้ามลบจนกว่า V1 remaining = 0 พร้อมผ่าน verification ขั้นสุดท้าย</p>
+            <Row label="ข้อมูลรุ่นเก่าที่ยังเหลือ" value={lineKeyRotation.totalV1Count.toLocaleString("th-TH")} />
+            <Row label="รายการที่ยังอัปเดตได้" value={lineKeyRotation.rotatableV1Count.toLocaleString("th-TH")} />
+            <Row label="รายการหลังบ้านที่ยังเป็นรุ่นเก่า" value={lineKeyRotation.adminOnlyV1Count.toLocaleString("th-TH")} />
+            <Row label="รายการที่ระบบไม่รองรับ" value={lineKeyRotation.unsupportedVersionCount.toLocaleString("th-TH")} />
+            <Row label="ข้อความที่ยกเลิกแต่ยังเข้ารหัสอยู่" value={lineKeyRotation.encryptedUnsentCount.toLocaleString("th-TH")} />
+            <Row label="ถอดกุญแจรุ่นเก่าได้หรือยัง" value={lineKeyRotation.allV1Zero ? "พร้อมตรวจขั้นสุดท้าย" : "ยังไม่ควรถอด"} />
+          </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะการเข้ารหัสไม่ได้</p>}
+          <p className="pt-2 text-white/50">หน้านี้แสดงเฉพาะจำนวนรวม ไม่แสดงข้อความ ชื่อลูกค้า หรือค่ากุญแจเข้ารหัส</p>
         </Card>
 
-        <Card title="LINE Runtime / Customer Media" state={lineDocumentMediaState}>
+        <Card title="LINE และไฟล์ลูกค้า" state={lineDocumentMediaState}>
           {lineDocumentMedia.state === "ready" ? <>
-            <Row label="Web active V2" value={lineDocumentMedia.webRuntimeActiveV2 ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"} />
-            <Row label="Web V1 key" value={lineDocumentMedia.webRuntimeV1KeyPresent ? "พบ" : "ไม่พบ"} />
-            <Row label="Web V2 key" value={lineDocumentMedia.webRuntimeV2KeyPresent ? "พบ" : "ไม่พบ"} />
-            <Row label="Web lazy rotation" value={lineDocumentMedia.webRuntimeLazyRotationEnabled ? "เปิดจริง" : "ยังไม่ยืนยัน"} />
-            <Row label="Web status report" value={lineDocumentMedia.webRuntimeLastReportedAt ?? "ยังไม่มี accepted ingress หลัง migration"} />
-            <Row label="Drive folders ready" value={lineDocumentMedia.driveFolderReady.toLocaleString("th-TH")} />
-            <Row label="Unsafe Drive folders" value={lineDocumentMedia.driveFolderUnsafe.toLocaleString("th-TH")} />
-            <Row label="Media pending fetch" value={lineDocumentMedia.pendingFetch.toLocaleString("th-TH")} />
-            <Row label="Media pending upload" value={lineDocumentMedia.pendingUpload.toLocaleString("th-TH")} />
-            <Row label="Media stored" value={lineDocumentMedia.stored.toLocaleString("th-TH")} />
-            <Row label="Media failed" value={lineDocumentMedia.failed.toLocaleString("th-TH")} />
-            <Row label="Media revoke" value={lineDocumentMedia.revokeRequired.toLocaleString("th-TH")} />
-            <Row label="Media reconcile" value={lineDocumentMedia.reconciliationRequired.toLocaleString("th-TH")} />
-          </> : <p className="text-white/50">aggregate Web runtime / media status ยังอ่านไม่ได้ และระบบไม่ fallback ไปอ่าน customer tables ตรง ๆ</p>}
-          <Row label="LINE token" value={lineProviderActivation.channelTokenPresent ? "มี credential" : "ยังไม่มี credential"} />
-          <Row label="Media fetch gate" value={lineMediaProvider.fetchEnabled ? "เปิด" : "ปิด"} />
-          <Row label="Outbound gate" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด" : "ปิด"} />
-          <Row label="Rich Menu gate" value={lineProviderActivation.richMenuWriteGateEnabled ? "เปิด" : "ปิด"} />
-          <Row label="Drive auth" value={lineProviderActivation.driveAuthorizationMode} />
-          <Row label="Drive scope" value={lineProviderActivation.driveScope} />
-          <Row label="Drive credential" value={lineProviderActivation.drivePersistentCredentialConfigured ? "persistent" : "memory-only / ยังไม่ authorize"} />
-          <p className="pt-2 text-white/50">สถานะทั้งหมดเป็น boolean / aggregate เท่านั้น ไม่แสดง token, LINE identity, Drive file/folder ID, customer content หรือ raw provider error</p>
+            <Row label="การเข้ารหัสล่าสุด" value={lineDocumentMedia.webRuntimeActiveV2 ? "ใช้งานอยู่" : "ยังไม่ยืนยัน"} />
+            <Row label="กุญแจรุ่นเดิม" value={lineDocumentMedia.webRuntimeV1KeyPresent ? "ยังเก็บไว้สำหรับความเข้ากันได้" : "ไม่พบ"} />
+            <Row label="กุญแจรุ่นล่าสุด" value={lineDocumentMedia.webRuntimeV2KeyPresent ? "พร้อม" : "ไม่พบ"} />
+            <Row label="อัปเดตข้อมูลเก่าอัตโนมัติ" value={lineDocumentMedia.webRuntimeLazyRotationEnabled ? "เปิด" : "ปิด"} />
+            <Row label="ตรวจล่าสุด" value={lineDocumentMedia.webRuntimeLastReportedAt ?? "ยังไม่มีข้อมูลล่าสุด"} />
+            <Row label="โฟลเดอร์ลูกค้าที่พร้อมใช้" value={lineDocumentMedia.driveFolderReady.toLocaleString("th-TH")} />
+            <Row label="โฟลเดอร์ที่ต้องตรวจสิทธิ์" value={lineDocumentMedia.driveFolderUnsafe.toLocaleString("th-TH")} />
+            <Row label="กำลังรับไฟล์จาก LINE" value={lineDocumentMedia.pendingFetch.toLocaleString("th-TH")} />
+            <Row label="กำลังเก็บไฟล์" value={lineDocumentMedia.pendingUpload.toLocaleString("th-TH")} />
+            <Row label="เก็บไฟล์แล้ว" value={lineDocumentMedia.stored.toLocaleString("th-TH")} />
+            <Row label="ไฟล์ที่ยังเก็บไม่สำเร็จ" value={lineDocumentMedia.failed.toLocaleString("th-TH")} />
+            <Row label="ไฟล์ที่รอลบหลังลูกค้ายกเลิก" value={lineDocumentMedia.revokeRequired.toLocaleString("th-TH")} />
+            <Row label="รายการที่ต้องเช็กเพิ่ม" value={lineDocumentMedia.reconciliationRequired.toLocaleString("th-TH")} />
+          </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะไฟล์ลูกค้าไม่ได้</p>}
+          <Row label="เชื่อม LINE" value={lineProviderActivation.channelTokenPresent ? "พร้อม" : "ยังไม่ได้เชื่อม"} />
+          <Row label="รับไฟล์อัตโนมัติ" value={lineMediaProvider.fetchEnabled ? "เปิด" : "ปิด"} />
+          <Row label="ตอบลูกค้าจาก Admin" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด — ควรตรวจ" : "ปิด · ใช้ LINE OA"} />
+          <Row label="Rich Menu" value={lineProviderActivation.richMenuWriteGateEnabled ? "พร้อมเปิดใช้งาน" : "ยังปิดอยู่"} />
+          <Row label="Google Drive" value={lineProviderActivation.drivePersistentCredentialConfigured ? "เชื่อมแบบถาวร" : "ยังไม่ได้เชื่อม"} />
+          <p className="pt-2 text-white/50">ข้อมูลลูกค้าและไฟล์จริงจะไม่แสดงบนหน้านี้</p>
         </Card>
 
-        <Card title="LINE Conversation Archive" state={lineArchiveState}>
+        <Card title="ประวัติการคุย LINE" state={lineArchiveState}>
           {lineArchive.state === "ready" ? <>
-            <Row label="Archived messages" value={lineArchive.archivedMessageCount.toLocaleString("th-TH")} />
-            <Row label="Retained Unsend" value={lineArchive.retainedUnsentCount.toLocaleString("th-TH")} />
-            <Row label="OA imported replies" value={lineArchive.importedOutboundCount.toLocaleString("th-TH")} />
-            <Row label="Cached LINE profiles" value={lineArchive.cachedProfileCount.toLocaleString("th-TH")} />
-            <Row label="Evidence access" value={lineArchive.evidenceAccessCount.toLocaleString("th-TH")} />
-            <Row label="Admin direct reply" value={lineArchive.directAdminReplyEnabled ? "เปิด — ต้องแก้" : "ปิด · ใช้ LINE OA Manager"} />
-          </> : <p className="text-white/50">Conversation Archive aggregate ยังอ่านไม่ได้ และระบบไม่ fallback ไปอ่าน private archive tables ตรง ๆ</p>}
-          <p className="pt-2 text-white/50">แสดงเฉพาะ aggregate counts; ชื่อ LINE, transcript, ciphertext และ evidence content ไม่ถูกนำมาแสดงบน System Health</p>
+            <Row label="ข้อความที่เก็บไว้" value={lineArchive.archivedMessageCount.toLocaleString("th-TH")} />
+            <Row label="ข้อความที่ลูกค้ายกเลิกแต่ยังมีหลักฐาน" value={lineArchive.retainedUnsentCount.toLocaleString("th-TH")} />
+            <Row label="ข้อความที่นำเข้าจาก LINE OA" value={lineArchive.importedOutboundCount.toLocaleString("th-TH")} />
+            <Row label="รายชื่อลูกค้าที่ดึงชื่อจาก LINE แล้ว" value={lineArchive.cachedProfileCount.toLocaleString("th-TH")} />
+            <Row label="จำนวนครั้งที่เปิดหลักฐาน" value={lineArchive.evidenceAccessCount.toLocaleString("th-TH")} />
+            <Row label="ตอบลูกค้าจาก Admin" value={lineArchive.directAdminReplyEnabled ? "เปิด — ต้องตรวจ" : "ปิด · ใช้ LINE OA ตามเดิม"} />
+          </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะประวัติการคุยไม่ได้</p>}
+          <p className="pt-2 text-white/50">หน้านี้แสดงเฉพาะจำนวนรวม ไม่แสดงชื่อหรือข้อความของลูกค้า</p>
         </Card>
 
-        <Card title="LINE Delivery / Dead Letter" state={lineDeliveryState}>
+        <Card title="งานส่งข้อความจากระบบ" state={lineDeliveryState}>
           {lineDelivery.state === "ready" ? <>
-            <Row label="Outbound queued" value={lineDelivery.outboundQueued.toLocaleString("th-TH")} />
-            <Row label="Outbound leased" value={lineDelivery.outboundLeased.toLocaleString("th-TH")} />
-            <Row label="Outbound sent" value={lineDelivery.outboundSent.toLocaleString("th-TH")} />
-            <Row label="Outbound retryable" value={lineDelivery.outboundRetryableFailed.toLocaleString("th-TH")} />
-            <Row label="Outbound dead-letter" value={lineDelivery.outboundDeadLetter.toLocaleString("th-TH")} />
-            <Row label="Outbound reconcile" value={lineDelivery.outboundReconciliation.toLocaleString("th-TH")} />
-            <Row label="Campaign retryable" value={lineDelivery.campaignRetryableFailed.toLocaleString("th-TH")} />
-            <Row label="Campaign dead-letter" value={lineDelivery.campaignDeadLetter.toLocaleString("th-TH")} />
-            <Row label="Campaign reconcile" value={lineDelivery.campaignReconciliation.toLocaleString("th-TH")} />
-          </> : <p className="text-white/50">delivery health ยังอ่านไม่ได้ และระบบไม่ fallback ไปอ่าน outbound/customer tables ตรง ๆ</p>}
-          <p className="pt-2 text-white/50">retry อัตโนมัติเฉพาะ rate limit / provider unavailable; permanent 4xx, decrypt/key failure เป็น dead-letter และผล provider ที่คลุมเครือเข้า reconciliation โดยไม่ retry อัตโนมัติ</p>
+            <Row label="รอส่ง" value={lineDelivery.outboundQueued.toLocaleString("th-TH")} />
+            <Row label="กำลังดำเนินการ" value={lineDelivery.outboundLeased.toLocaleString("th-TH")} />
+            <Row label="ส่งแล้ว" value={lineDelivery.outboundSent.toLocaleString("th-TH")} />
+            <Row label="รอลองใหม่" value={lineDelivery.outboundRetryableFailed.toLocaleString("th-TH")} />
+            <Row label="ต้องตรวจเอง" value={lineDelivery.outboundDeadLetter.toLocaleString("th-TH")} />
+            <Row label="สถานะยังไม่ชัด" value={lineDelivery.outboundReconciliation.toLocaleString("th-TH")} />
+            <Row label="ข้อความกลุ่มที่รอลองใหม่" value={lineDelivery.campaignRetryableFailed.toLocaleString("th-TH")} />
+            <Row label="ข้อความกลุ่มที่ต้องตรวจเอง" value={lineDelivery.campaignDeadLetter.toLocaleString("th-TH")} />
+            <Row label="ข้อความกลุ่มที่สถานะยังไม่ชัด" value={lineDelivery.campaignReconciliation.toLocaleString("th-TH")} />
+          </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะงานส่งข้อความไม่ได้</p>}
+          <p className="pt-2 text-white/50">ระบบจะลองใหม่เฉพาะกรณีที่ปลอดภัย ถ้าสถานะไม่ชัดจะหยุดไว้ให้ตรวจ ไม่ส่งซ้ำเอง</p>
         </Card>
 
-        <Card title="LINE Business / Privacy Operations" state={lineOperationsState}>
+        <Card title="งานหลังบ้านของ LINE" state={lineOperationsState}>
           {lineOperations.state === "ready" ? <>
-            <Row label="Outbound queued" value={lineOperations.outboundQueued.toLocaleString("th-TH")} />
-            <Row label="Outbound failed" value={lineOperations.outboundFailed.toLocaleString("th-TH")} />
-            <Row label="Outbound reconcile" value={lineOperations.outboundReconciliation.toLocaleString("th-TH")} />
-            <Row label="Campaign queued" value={lineOperations.campaignQueued.toLocaleString("th-TH")} />
-            <Row label="Campaign reconcile" value={lineOperations.campaignReconciliation.toLocaleString("th-TH")} />
-            <Row label="Privacy pending" value={lineOperations.privacyPending.toLocaleString("th-TH")} />
-            <Row label="Business events" value={lineOperations.businessEventCount.toLocaleString("th-TH")} />
-            <Row label="Retention" value={lineOperations.retentionMode} />
-            <Row label="Auto delete" value={lineOperations.automaticDeleteEnabled ? "เปิด" : "ปิด"} />
-          </> : <p className="text-white/50">aggregate LINE operations status ยังอ่านไม่ได้</p>}
-          <p className="pt-2 text-white/50">ส่วนนี้แสดงเฉพาะ counts/status ไม่มี request body, customer identity, ciphertext หรือ raw error และ retention default ไม่มี auto-delete</p>
+            <Row label="ข้อความที่รอส่ง" value={lineOperations.outboundQueued.toLocaleString("th-TH")} />
+            <Row label="ข้อความที่ส่งยังไม่สำเร็จ" value={lineOperations.outboundFailed.toLocaleString("th-TH")} />
+            <Row label="ข้อความที่ต้องเช็กสถานะ" value={lineOperations.outboundReconciliation.toLocaleString("th-TH")} />
+            <Row label="ข้อความกลุ่มที่รอส่ง" value={lineOperations.campaignQueued.toLocaleString("th-TH")} />
+            <Row label="ข้อความกลุ่มที่ต้องเช็กสถานะ" value={lineOperations.campaignReconciliation.toLocaleString("th-TH")} />
+            <Row label="คำขอเรื่องข้อมูลที่รอตรวจ" value={lineOperations.privacyPending.toLocaleString("th-TH")} />
+            <Row label="กิจกรรมธุรกิจที่บันทึกไว้" value={lineOperations.businessEventCount.toLocaleString("th-TH")} />
+            <Row label="การเก็บข้อมูล" value={lineRetentionModeLabel(lineOperations.retentionMode)} />
+            <Row label="ลบข้อมูลอัตโนมัติ" value={lineOperations.automaticDeleteEnabled ? "เปิด" : "ปิด"} />
+          </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะงานหลังบ้านของ LINE ไม่ได้</p>}
+          <p className="pt-2 text-white/50">หน้านี้แสดงเฉพาะจำนวนรวม ไม่แสดงข้อมูลส่วนตัวของลูกค้า</p>
         </Card>
 
-        <Card title="Privacy / Retention Safety" state={privacySafetyState}>
+        <Card title="ความปลอดภัยของข้อมูลลูกค้า" state={privacySafetyState}>
           {privacySafety.state === "ready" ? <>
-            <Row label="Retention mode" value={privacySafety.retentionMode} />
-            <Row label="Auto delete" value={privacySafety.automaticDeleteEnabled ? "เปิด" : "ปิด"} />
-            <Row label="Destructive execute" value={privacySafety.destructiveExecutionAvailable ? "เปิด" : "Human Gate เท่านั้น"} />
-            <Row label="Attachment unsend" value={privacySafety.attachmentUnsendAction} />
-            <Row label="Export manifests" value={privacySafety.preparedExportManifestCount.toLocaleString("th-TH")} />
-            <Row label="Delete tombstones" value={privacySafety.preparedDeleteTombstoneCount.toLocaleString("th-TH")} />
-            <Row label="Attachment cleanup" value={privacySafety.attachmentCleanupRequiredCount.toLocaleString("th-TH")} />
-            <Row label="Backup / restore" value={privacySafety.backupRestoreEvidenceState} />
-            <Row label="Key rotation evidence" value={privacySafety.keyRotationEvidenceState} />
-          </> : <p className="text-white/50">privacy safety aggregate ยังอ่านไม่ได้</p>}
-          <p className="pt-2 text-white/50">Backup/restore ไม่ถูก claim ว่าผ่านจาก runtime เอง ต้อง verify จาก provider/owner evidence แยก และไม่มี raw export/delete content บน health surface นี้</p>
+            <Row label="วิธีเก็บข้อมูล" value={lineRetentionModeLabel(privacySafety.retentionMode)} />
+            <Row label="ลบข้อมูลอัตโนมัติ" value={privacySafety.automaticDeleteEnabled ? "เปิด" : "ปิด"} />
+            <Row label="ลบข้อมูลจริงจากหน้านี้" value={privacySafety.destructiveExecutionAvailable ? "เปิด — ต้องตรวจ" : "ทำไม่ได้ · ต้องยืนยันแยก"} />
+            <Row label="ไฟล์ที่ลูกค้ายกเลิก" value="ยกเลิกการเข้าถึง แล้วลบไฟล์" />
+            <Row label="คำขอสำเนาข้อมูลที่เตรียมไว้" value={privacySafety.preparedExportManifestCount.toLocaleString("th-TH")} />
+            <Row label="คำขอลบข้อมูลที่เตรียมไว้" value={privacySafety.preparedDeleteTombstoneCount.toLocaleString("th-TH")} />
+            <Row label="ไฟล์ที่ยังต้องจัดการ" value={privacySafety.attachmentCleanupRequiredCount.toLocaleString("th-TH")} />
+            <Row label="การสำรองและกู้คืนข้อมูล" value={lineTechnicalStateLabel(privacySafety.backupRestoreEvidenceState)} />
+            <Row label="หลักฐานการเปลี่ยนกุญแจเข้ารหัส" value={lineTechnicalStateLabel(privacySafety.keyRotationEvidenceState)} />
+          </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะความปลอดภัยของข้อมูลไม่ได้</p>}
+          <p className="pt-2 text-white/50">การลบข้อมูลจริงและการกู้คืนข้อมูลยังต้องมีการตรวจยืนยันจากเจ้าของระบบแยกต่างหาก</p>
         </Card>
 
         <Card title="Social / Distribution" state={socialState}>
