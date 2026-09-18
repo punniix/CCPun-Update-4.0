@@ -193,3 +193,15 @@ test("rotation source contains no secret values, generic scan endpoint, or provi
   assert.doesNotMatch(combined, /BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]+|sk_live_|AIza[0-9A-Za-z_-]{20,}/);
   assert.doesNotMatch(combined, /\/api\/.*rotate/i);
 });
+
+
+test("System Health exposes only aggregate rotation state and keeps V1 retirement guarded", () => {
+  const helper = read("lib/admin/line/key-rotation.ts");
+  const health = read("apps/admin/app/(control-plane)/operations/health/page.tsx");
+  assert.match(helper, /admin_read_line_key_rotation_status/);
+  assert.doesNotMatch(helper, /customer_id|lead_id|record_id|ciphertext_b64|nonce_b64|auth_tag_b64/);
+  assert.match(health, /LINE Encryption Rotation/);
+  assert.match(health, /V1 remaining/);
+  assert.match(health, /ยังห้ามลบ V1/);
+  assert.match(health, /ไม่มี customer ID, ciphertext หรือ plaintext/);
+});
