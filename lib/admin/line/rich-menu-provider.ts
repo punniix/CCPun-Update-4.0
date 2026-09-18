@@ -37,6 +37,71 @@ export function getLineRichMenuProviderReadiness(
   };
 }
 
+export type LineRichMenuDefaultStatus =
+  | { state: "not_configured" }
+  | { state: "not_assigned" }
+  | { state: "active_v1" }
+  | { state: "active_other" }
+  | { state: "provider_unavailable" };
+
+export async function readDefaultLineRichMenuStatus(
+  variables: Record<string, string | undefined> = process.env,
+  fetchImpl: typeof fetch = fetch,
+): Promise<LineRichMenuDefaultStatus> {
+  const token = variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim();
+  if (!token) return { state: "not_configured" };
+
+  try {
+    const current = await fetchImpl(`${LINE_API}/v2/bot/user/all/richmenu`, {
+      method: "GET",
+      redirect: "error",
+      signal: AbortSignal.timeout(7_000),
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (current.status === 404) return { state: "not_assigned" };
+    if (!current.ok) return { state: "provider_unavailable" };
+
+    const currentJson = await safeProviderJson(current);
+    const richMenuId = currentJson && typeof currentJson === "object" && "richMenuId" in currentJson
+      ? String((currentJson as { richMenuId?: unknown }).richMenuId ?? "")
+      : "";
+    if (!/^richmenu-[A-Za-z0-9_-]+$/.test(richMenuId)) {
+      return { state: "provider_unavailable" };
+    }
+
+    const details = await fetchImpl(
+      `${LINE_API}/v2/bot/richmenu/${encodeURIComponent(richMenuId)}`,
+      {
+        method: "GET",
+        redirect: "error",
+        signal: AbortSignal.timeout(7_000),
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    if (!details.ok) return { state: "provider_unavailable" };
+    const detailJson = await safeProviderJson(details);
+    if (!detailJson || typeof detailJson !== "object") return { state: "provider_unavailable" };
+
+    const value = detailJson as {
+      name?: unknown;
+      chatBarText?: unknown;
+      size?: { width?: unknown; height?: unknown };
+      areas?: unknown;
+    };
+    const matches =
+      value.name === LINE_RICH_MENU_V1.name
+      && value.chatBarText === LINE_RICH_MENU_V1.chatBarText
+      && value.size?.width === LINE_RICH_MENU_V1.size.width
+      && value.size?.height === LINE_RICH_MENU_V1.size.height
+      && Array.isArray(value.areas)
+      && value.areas.length === LINE_RICH_MENU_V1.areas.length;
+
+    return { state: matches ? "active_v1" : "active_other" };
+  } catch {
+    return { state: "provider_unavailable" };
+  }
+}
+
 function actionFor(item: RichMenuItem) {
   if (item.action === "uri") {
     return { type: "uri", label: item.label, uri: item.uri };
