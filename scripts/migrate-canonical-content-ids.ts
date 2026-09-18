@@ -177,7 +177,7 @@ async function main() {
     const currentIdMap = new Map(migratedIdMap);
     currentIdMap.set(entry.oldId, entry.newId);
     const currentOnlyMap = new Map([[entry.oldId, entry.newId]]);
-    const mutations: any[] = [];
+    const mutations: Parameters<typeof client.mutate>[0] = [];
 
     for (const source of variants) {
       const nextRawId = source._id.startsWith("drafts.") ? `drafts.${entry.newId}` : entry.newId;
