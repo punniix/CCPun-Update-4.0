@@ -20,6 +20,14 @@ expect('agent policy preserves Health CI Hero semantics', agents.includes('AIA H
 expect('agent policy locks Health winner pages to Health physical URLs', agents.includes('AIA Health Happy and AIA Health CI Hero have approved final physical/canonical owners under `/blog/health-insurance/...`'));
 expect('agent policy protects analytics consent', agents.includes('Consent must remain authoritative'));
 
+const nextConfig = read('next.config.ts');
+expect(
+  'retired financial advisor route permanently consolidates to homepage',
+  nextConfig.includes('source: "/financial-advisor/:path*"')
+    && nextConfig.includes('destination: "/"')
+    && nextConfig.includes('permanent: true'),
+);
+
 const urlContract = read('lib/content/url.ts');
 const frozenMovedPaths = [
   ['life-insurance/aia-health-happy-describe', '/blog/health-insurance/aia-health-happy-describe/'],
