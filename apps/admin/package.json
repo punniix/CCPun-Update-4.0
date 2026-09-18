@@ -9,7 +9,8 @@
     "test": "cd ../.. && node --import tsx --test tests/admin/*.test.ts",
     "check": "npm run typecheck && npm run test",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "prebuild": "node ../../scripts/run-one-time-sanity-content-id-migration.mjs"
   },
   "dependencies": {
     "next": "16.3.3",
