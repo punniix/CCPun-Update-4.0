@@ -89,6 +89,14 @@ export function getLineProviderActivationReadiness(
     v2Configured = false;
   }
   const channelTokenPresent = Boolean(variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim());
+  const driveOAuthClientConfigured = Boolean(variables.NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_OAUTH_CLIENT_ID?.trim());
+  const drivePickerConfigured = Boolean(
+    variables.NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_PICKER_API_KEY?.trim()
+    && /^[1-9]\d+$/.test(variables.NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_APP_ID?.trim() ?? ""),
+  );
+  const driveRootPattern = /^[A-Za-z0-9_-]{10,200}$/;
+  const driveRootsConfigured = driveRootPattern.test(variables.CCPUN_GOOGLE_DRIVE_ADMIN_ROOT_FOLDER_ID?.trim() ?? "")
+    && driveRootPattern.test(variables.CCPUN_GOOGLE_DRIVE_MEDIA_ROOT_FOLDER_ID?.trim() ?? "");
   return {
     activeV2,
     v2Configured,
@@ -97,6 +105,10 @@ export function getLineProviderActivationReadiness(
     richMenuWriteGateEnabled: variables.CCPUN_LINE_RICH_MENU_PROVIDER_ENABLED?.trim() === "true",
     driveAuthorizationMode: "owner-interactive" as const,
     driveScope: "drive.file" as const,
+    driveOAuthClientConfigured,
+    drivePickerConfigured,
+    driveRootsConfigured,
+    driveInteractiveConfigReady: driveOAuthClientConfigured && drivePickerConfigured && driveRootsConfigured,
     drivePersistentCredentialConfigured: false,
   };
 }

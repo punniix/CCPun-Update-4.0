@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LineProviderActivationActions } from "@/features/admin/line/LineProviderActivationActions";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
 import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
@@ -19,6 +20,7 @@ import {
 import { getLineMediaProviderReadiness } from "@/lib/admin/line/media-provider";
 import { lineRetentionModeLabel, lineTechnicalStateLabel } from "@/lib/admin/line/presentation";
 import { readLineArchiveHealth } from "@/lib/admin/line/conversation-archive";
+import { readDefaultLineRichMenuStatus } from "@/lib/admin/line/rich-menu-provider";
 
 export const metadata: Metadata = { title: "สถานะระบบ" };
 
@@ -64,13 +66,14 @@ export default async function AdminHealthPage() {
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
-  const [lineKeyRotation, lineOperations, lineDocumentMedia, lineDelivery, privacySafety, lineArchive] = await Promise.all([
+  const [lineKeyRotation, lineOperations, lineDocumentMedia, lineDelivery, privacySafety, lineArchive, lineRichMenu] = await Promise.all([
     readLineKeyRotationStatus(),
     readLineOperationsHealth(),
     readLineDocumentMediaHealth(),
     readLineDeliveryHealth(),
     readPrivacySafetyHealth(),
     readLineArchiveHealth(),
+    readDefaultLineRichMenuStatus(),
   ]);
   const lineProviderActivation = getLineProviderActivationReadiness();
   const lineMediaProvider = getLineMediaProviderReadiness();
@@ -138,6 +141,15 @@ export default async function AdminHealthPage() {
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
         ดูว่า Admin กำลังรันบน deployment ไหน เชื่อม Sanity และ private operational database ถูก lane หรือไม่ รวมถึงสถานะระบบ Schedule และ Social โดยไม่แสดง credential หรือ secret ใด ๆ
       </p>
+
+      <div className="mt-7">
+        <LineProviderActivationActions
+          richMenuState={lineRichMenu.state}
+          richMenuReady={lineProviderActivation.channelTokenPresent && lineProviderActivation.richMenuWriteGateEnabled}
+          driveInteractiveReady={lineProviderActivation.driveInteractiveConfigReady}
+          pendingFileCount={lineDocumentMedia.state === "ready" ? lineDocumentMedia.pendingFetch + lineDocumentMedia.pendingUpload : 0}
+        />
+      </div>
 
       <div className="mt-7 grid gap-4 xl:grid-cols-2">
         <Card title="Vercel Runtime" state={vercelState}>
@@ -211,8 +223,24 @@ export default async function AdminHealthPage() {
           <Row label="เชื่อม LINE" value={lineProviderActivation.channelTokenPresent ? "พร้อม" : "ยังไม่ได้เชื่อม"} />
           <Row label="รับไฟล์อัตโนมัติ" value={lineMediaProvider.fetchEnabled ? "เปิด" : "ปิด"} />
           <Row label="ตอบลูกค้าจาก Admin" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด — ควรตรวจ" : "ปิด · ใช้ LINE OA"} />
-          <Row label="Rich Menu" value={lineProviderActivation.richMenuWriteGateEnabled ? "พร้อมเปิดใช้งาน" : "ยังปิดอยู่"} />
-          <Row label="Google Drive" value={lineProviderActivation.drivePersistentCredentialConfigured ? "เชื่อมแบบถาวร" : "ยังไม่ได้เชื่อม"} />
+          <Row
+            label="Rich Menu"
+            value={
+              lineRichMenu.state === "active_v1"
+                ? "เปิดใช้งานแล้ว"
+                : lineRichMenu.state === "active_other"
+                  ? "มีเมนูอื่นใช้อยู่"
+                  : lineRichMenu.state === "provider_unavailable"
+                    ? "ตรวจสถานะจาก LINE ไม่ได้"
+                    : lineProviderActivation.richMenuWriteGateEnabled
+                      ? "พร้อมให้เจ้าของเปิด"
+                      : "ยังปิดอยู่"
+            }
+          />
+          <Row
+            label="Google Drive"
+            value={lineProviderActivation.driveInteractiveConfigReady ? "พร้อมขออนุญาตเมื่อมีไฟล์" : "ยังต้องตั้งค่า"}
+          />
           <p className="pt-2 text-white/50">ข้อมูลลูกค้าและไฟล์จริงจะไม่แสดงบนหน้านี้</p>
         </Card>
 
