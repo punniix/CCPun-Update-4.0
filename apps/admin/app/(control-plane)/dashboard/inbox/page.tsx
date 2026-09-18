@@ -6,6 +6,7 @@ import {
   type LineAdvisorInboxSafeItem,
 } from "@/lib/admin/line/control-plane";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
+import { listAdvisorInboxOperational, type AdvisorInboxFilters } from "@/lib/admin/line/advisor-workflow";
 
 export const metadata: Metadata = { title: "Advisor Inbox" };
 
@@ -20,7 +21,7 @@ function formatBangkokDate(value: string | null) {
   }).format(date);
 }
 
-function customerLabel(item: LineAdvisorInboxSafeItem) {
+function customerLabel(item: Pick<LineAdvisorInboxSafeItem, "customerCode">) {
   return `Customer ${item.customerCode.slice(-8)}`;
 }
 
@@ -33,9 +34,23 @@ function priorityLabel(priority: LineAdvisorInboxSafeItem["priority"]) {
   }
 }
 
-export default async function AdvisorInboxPage() {
+export default async function AdvisorInboxPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireAdminPermission("advisor:read");
+  const params = await searchParams;
+  const one = (key: string) => typeof params[key] === "string" ? params[key] as string : "";
+  const filters: AdvisorInboxFilters = {};
+  const stage = one("stage"); if (LINE_ADVISOR_INBOX_STAGES.includes(stage as (typeof LINE_ADVISOR_INBOX_STAGES)[number])) filters.stage = stage as AdvisorInboxFilters["stage"];
+  const priority = one("priority"); if (["low","normal","high","urgent"].includes(priority)) filters.priority = priority as AdvisorInboxFilters["priority"];
+  const caseState = one("caseState"); if (["active","waiting","completed"].includes(caseState)) filters.caseState = caseState as AdvisorInboxFilters["caseState"];
+  for (const [key, target] of [["journey","journey"],["tag","tag"],["q","q"]] as const) { const value=one(key).trim().toLowerCase(); if (/^[a-z0-9][a-z0-9_.:-]{0,79}$/.test(value)) filters[target]=value as never; }
+  const filtersActive = Object.keys(filters).length > 0;
   const model = await listAdvisorInboxSafe();
+  let filteredRows: Awaited<ReturnType<typeof listAdvisorInboxOperational>> | null = null;
+  let filterUnavailable = false;
+  if (filtersActive && !model.unavailableReason) {
+    try { filteredRows = await listAdvisorInboxOperational(filters); } catch { filterUnavailable = true; }
+  }
+  const displayRows = filteredRows ?? model.rows;
 
   return (
     <div>
@@ -60,6 +75,18 @@ export default async function AdvisorInboxPage() {
       <section className="mt-6 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/85" aria-label="Private LINE boundary">
         <strong className="font-medium text-sky-100">Private-by-default:</strong> safe context เปิดตลอดเมื่อ runtime พร้อม ส่วน transcript/outbound จะ fail-closed จน owner เปิด feature gate และใส่ key/token ใน Vercel โดยตรง
       </section>
+
+      <form method="get" className="mt-6 grid gap-2 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:grid-cols-2 lg:grid-cols-6" aria-label="Safe operational filters">
+        <select name="stage" defaultValue={one("stage")} className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm text-white"><option value="">ทุก stage</option>{LINE_ADVISOR_INBOX_STAGES.map((value)=><option key={value} value={value}>{value}</option>)}</select>
+        <select name="priority" defaultValue={one("priority")} className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm text-white"><option value="">ทุก priority</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+        <select name="caseState" defaultValue={one("caseState")} className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm text-white"><option value="">ทุก state</option><option value="active">Active</option><option value="waiting">Waiting</option><option value="completed">Completed</option></select>
+        <input name="journey" defaultValue={one("journey")} placeholder="journey" pattern="[a-z0-9][a-z0-9_-]{0,79}" className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm text-white" />
+        <input name="q" defaultValue={one("q")} placeholder="source/content/tool ID" pattern="[a-z0-9][a-z0-9_.:-]{0,79}" className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm text-white" />
+        <button className="min-h-10 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-sm text-white/75">Filter</button>
+        <p className="sm:col-span-2 lg:col-span-6 text-xs leading-5 text-white/40">ค้นเฉพาะ safe operational references เท่านั้น ไม่มี raw transcript/name/phone/email search</p>
+      </form>
+
+      {filterUnavailable ? <p role="alert" className="mt-3 text-sm text-amber-200/80">Filter runtime ไม่พร้อม จึงแสดงรายการทั้งหมดแทน</p> : null}
 
       <section className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Advisor Inbox summary">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
@@ -102,7 +129,7 @@ export default async function AdvisorInboxPage() {
         </section>
       ) : null}
 
-      {!model.unavailableReason && model.rows.length === 0 ? (
+      {!model.unavailableReason && displayRows.length === 0 ? (
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-7 text-center">
           <h2 className="text-lg font-semibold">ยังไม่มีเคสใน Advisor Inbox</h2>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/65">
@@ -111,9 +138,10 @@ export default async function AdvisorInboxPage() {
         </section>
       ) : null}
 
-      {!model.unavailableReason && model.rows.length > 0 ? (
+      {!model.unavailableReason && displayRows.length > 0 ? (
         <section className="mt-6 space-y-4" aria-label="Advisor cases">
-          {model.rows.map((item) => (
+          {filtersActive ? <p className="text-xs text-white/45">Filtered results: {displayRows.length}</p> : null}
+          {displayRows.map((item) => (
             <article key={item.leadId} className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
