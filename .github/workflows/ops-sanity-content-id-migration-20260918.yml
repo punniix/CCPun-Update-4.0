@@ -1,7 +1,7 @@
 name: One-time Production Sanity content ID migration
 
 on:
-  push:
+  pull_request:
     branches: [v4-production]
     paths:
       - .github/workflows/ops-sanity-content-id-migration-20260918.yml
@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   migrate:
+    if: github.head_ref == 'ops/sanity-content-id-migration-observable-20260918'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
