@@ -12,17 +12,19 @@ import {
 } from "../../lib/content/category-registry";
 import { isArticleInSemanticTopic } from "../../lib/content/taxonomy";
 
-const productionFive: RawCategoryRegistryRow[] = [
-  { _id: "ccpun-wp-category-1", title: "การเงินส่วนบุคคล", slug: "personal-finance", status: "active" },
-  { _id: "ccpun-wp-category-4", title: "ประกันชีวิต", slug: "life-insurance", status: "active" },
-  { _id: "ccpun-wp-category-127", title: "ประกันสุขภาพ", slug: "health-insurance", status: "active" },
-  { _id: "ccpun-category-investment", title: "การลงทุน", slug: "investment", status: "active" },
-  { _id: "ccpun-category-motor-insurance", title: "ประกันรถยนต์", slug: "motor-insurance", status: "active" },
+const productionSix: RawCategoryRegistryRow[] = [
+  { _id: "category-personal-finance", title: "การเงินส่วนบุคคล", slug: "personal-finance", status: "active" },
+  { _id: "category-life-insurance", title: "ประกันชีวิต", slug: "life-insurance", status: "active" },
+  { _id: "category-health-insurance", title: "ประกันสุขภาพ", slug: "health-insurance", status: "active" },
+  { _id: "category-investment", title: "การลงทุน", slug: "investment", status: "active" },
+  { _id: "category-motor-insurance", title: "ประกันรถยนต์", slug: "motor-insurance", status: "active" },
+  { _id: "category-critical-illness-insurance", title: "ประกันโรคร้ายแรง", slug: "critical-illness-insurance", status: "active" },
 ];
 
-test("five current Production categories form the active physical registry including motor-insurance", () => {
-  const registry = buildCategoryRegistry(productionFive);
+test("six current Production categories form the active physical registry", () => {
+  const registry = buildCategoryRegistry(productionSix);
   assert.deepEqual(registry.active.map(({ slug }) => slug).sort(), [
+    "critical-illness-insurance",
     "health-insurance",
     "investment",
     "life-insurance",
@@ -33,7 +35,7 @@ test("five current Production categories form the active physical registry inclu
 });
 
 test("draft category is hidden publicly but visible/noindex in preview and activation needs no code change", () => {
-  const rows = [...productionFive, { _id: "travel", title: "ประกันเดินทาง", slug: "travel-insurance", status: "draft" }];
+  const rows = [...productionSix, { _id: "travel", title: "ประกันเดินทาง", slug: "travel-insurance", status: "draft" }];
   const draftRegistry = buildCategoryRegistry(rows);
   assert.equal(resolveCategoryRoute(draftRegistry, "travel-insurance", { includeDrafts: false }).kind, "hidden");
   assert.deepEqual(resolveCategoryRoute(draftRegistry, "travel-insurance", { includeDrafts: true }), {
@@ -64,6 +66,18 @@ test("deactivation of a referenced public category requires a direct redirect gu
     kind: "redirect",
     destinationSlug: "motor-insurance",
   });
+});
+
+test("published and draft variants of the same logical category are not treated as duplicate slugs", () => {
+  const registry = buildCategoryRegistry([
+    { _id: "category-personal-finance", title: "การเงินส่วนบุคคล", slug: "personal-finance", status: "active", description: "Live" },
+    { _id: "drafts.category-personal-finance", title: "การเงินส่วนบุคคล", slug: "personal-finance", status: "active", description: "Draft current" },
+  ]);
+
+  assert.equal(registry.issues.some((issue) => issue.code === "duplicate-slug"), false);
+  assert.equal(registry.entries.length, 1);
+  assert.equal(registry.entries[0]?.id, "category-personal-finance");
+  assert.equal(registry.entries[0]?.description, "Draft current");
 });
 
 test("slug format, duplicate slug, route collision and canonical collision isolate only unsafe rows", () => {
@@ -106,10 +120,10 @@ test("redirect self, chain and multi-node loop are rejected while a direct activ
 
 test("one malformed category and registry request failure fail soft", async () => {
   const registry = buildCategoryRegistry([
-    ...productionFive,
+    ...productionSix,
     { _id: "broken", title: "Broken", slug: "broken", status: "wrong" },
   ]);
-  assert.equal(registry.active.length, 5);
+  assert.equal(registry.active.length, 6);
   assert.ok(registry.issues.some((issue) => issue.id === "broken" && issue.code === "invalid-record"));
 
   const unavailable = await loadCategoryRegistrySafe(async () => { throw new Error("Sanity unavailable"); });
@@ -118,7 +132,7 @@ test("one malformed category and registry request failure fail soft", async () =
 });
 
 test("physical category filtering is independent from semantic topic filtering", () => {
-  const health = buildCategoryRegistry(productionFive).active.find(({ slug }) => slug === "health-insurance")!;
+  const health = buildCategoryRegistry(productionSix).active.find(({ slug }) => slug === "health-insurance")!;
   const lifeArticle = {
     articleSlug: "life-with-health-tag",
     categoryTitle: "ประกันชีวิต",
@@ -131,7 +145,7 @@ test("physical category filtering is independent from semantic topic filtering",
 
 test("physical sitemap entries include active categories with indexable articles only", () => {
   const registry = buildCategoryRegistry([
-    ...productionFive,
+    ...productionSix,
     { _id: "travel", title: "ประกันเดินทาง", slug: "travel-insurance", status: "draft" },
   ]);
   const entries = listPhysicalCategorySitemapEntries(registry, [
@@ -143,20 +157,20 @@ test("physical sitemap entries include active categories with indexable articles
 
 test("travel-insurance lifecycle: draft -> active -> safe deactivate/redirect", () => {
   const draft = buildCategoryRegistry([
-    ...productionFive,
+    ...productionSix,
     { _id: "travel", title: "ประกันเดินทาง", slug: "travel-insurance", status: "draft" },
   ]);
   assert.equal(resolveCategoryRoute(draft, "travel-insurance", { includeDrafts: false }).kind, "hidden");
 
   const active = buildCategoryRegistry([
-    ...productionFive,
+    ...productionSix,
     { _id: "travel", title: "ประกันเดินทาง", slug: "travel-insurance", status: "active" },
   ]);
   assert.equal(resolveCategoryRoute(active, "travel-insurance", { includeDrafts: false }).kind, "category");
 
   const deactivated = buildCategoryRegistry([
-    ...productionFive,
-    { _id: "travel", title: "ประกันเดินทาง", slug: "travel-insurance", status: "draft", redirectToId: "ccpun-category-motor-insurance", redirectToSlug: "motor-insurance" },
+    ...productionSix,
+    { _id: "travel", title: "ประกันเดินทาง", slug: "travel-insurance", status: "draft", redirectToId: "category-motor-insurance", redirectToSlug: "motor-insurance" },
   ], { referencedCategoryIds: ["travel"] });
   assert.deepEqual(resolveCategoryRoute(deactivated, "travel-insurance", { includeDrafts: false }), {
     kind: "redirect",

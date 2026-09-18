@@ -195,7 +195,7 @@ test("Production article lifecycle allows new Draft deletion but protects previo
   assert.equal(protectProductionContentLifecycleActions([deleteAction], "production-admin", "author")[0], deleteAction);
 });
 
-test("Studio keeps identified owner content and hides system/category management", () => {
+test("Studio keeps owner content, surfaces the category registry, and hides system management", () => {
   useLocalProject();
   const structureItems = [
     { getId: () => "article" },
@@ -215,8 +215,8 @@ test("Studio keeps identified owner content and hides system/category management
     { templateId: "socialVariant" },
   ];
 
-  assert.deepEqual(filterStudioStructureItems(structureItems, "local-uat"), [structureItems[0], structureItems[3], structureItems[4], structureItems[5]]);
-  assert.deepEqual(filterStudioStructureItems(structureItems, "production-admin"), [structureItems[0], structureItems[3], structureItems[4], structureItems[5]]);
+  assert.deepEqual(filterStudioStructureItems(structureItems, "local-uat"), [structureItems[0], structureItems[1], structureItems[3], structureItems[4], structureItems[5]]);
+  assert.deepEqual(filterStudioStructureItems(structureItems, "production-admin"), [structureItems[0], structureItems[1], structureItems[3], structureItems[4], structureItems[5]]);
   assert.deepEqual(filterStudioNewDocumentOptions(newDocumentOptions, "uat", "local-uat", UAT_SANITY_PROJECT_ID), [
     newDocumentOptions[0],
     newDocumentOptions[3],
@@ -241,7 +241,8 @@ test("Studio keeps identified owner content and hides system/category management
   assert.match(schemaSource, /filter: "status == 'active'"/);
   assert.match(schemaSource, /validateArticleSlugAgainstCategoryRegistry/);
   assert.match(studioConfig, /createStudioStructurePlugin/);
-  assert.match(studioStructure, /S\.list\(\)\.id\("content"\)\.title\("เนื้อหา"\)/);
+  assert.match(studioStructure, /\.id\("content"\)/);
+  assert.match(studioStructure, /categoryWorkspace\(S\)/);
 });
 
 test("Safari-safe admin routes avoid the stuck streaming boundary", () => {

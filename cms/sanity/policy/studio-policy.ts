@@ -22,7 +22,8 @@ const SYSTEM_DOCUMENT_TYPES = new Set([
   "publishSchedule",
 ]);
 const DRAFT_ONLY_DOCUMENT_TYPES = new Set(["masterContent", "socialVariant"]);
-const OWNER_HIDDEN_DOCUMENT_TYPES = new Set(["category", ...SYSTEM_DOCUMENT_TYPES]);
+const OWNER_HIDDEN_NEW_DOCUMENT_TYPES = new Set(["category", ...SYSTEM_DOCUMENT_TYPES]);
+const OWNER_HIDDEN_STRUCTURE_DOCUMENT_TYPES = SYSTEM_DOCUMENT_TYPES;
 
 function isUatEditorialEnvironment(environment: AdminEnvironment): boolean {
   return environment === "development" || environment === "local-uat" || environment === "admin-uat";
@@ -139,7 +140,7 @@ export function filterStudioNewDocumentOptions<T extends StudioNewDocumentOption
   if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) return [];
   if (environment === "local-production") return options.filter(({ templateId }) => templateId === "article");
   return options.filter(({ templateId }) =>
-    !OWNER_HIDDEN_DOCUMENT_TYPES.has(templateId) &&
+    !OWNER_HIDDEN_NEW_DOCUMENT_TYPES.has(templateId) &&
     (isDraftOnlyEditorialEnvironment(environment) || !DRAFT_ONLY_DOCUMENT_TYPES.has(templateId)),
   );
 }
@@ -152,7 +153,7 @@ export function filterStudioStructureItems<T extends StudioStructureItem>(
     const documentType = item.getId();
     if (!documentType) return false;
     return (
-      !OWNER_HIDDEN_DOCUMENT_TYPES.has(documentType) &&
+      !OWNER_HIDDEN_STRUCTURE_DOCUMENT_TYPES.has(documentType) &&
       (isDraftOnlyEditorialEnvironment(environment) || !DRAFT_ONLY_DOCUMENT_TYPES.has(documentType))
     );
   });

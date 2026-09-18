@@ -3,23 +3,23 @@ import { filterStudioStructureItems } from "../policy/studio-policy";
 import type { AdminEnvironment } from "../../../lib/admin/environment";
 
 const ARTICLE_DRAFT_FILTER = `_type == "article" && _originalId in path("drafts.**")`;
+const CATEGORY_DRAFT_FILTER = `_type == "category" && _originalId in path("drafts.**")`;
 
-function articleDocumentList(
+function documentList(
   S: StructureBuilder,
+  schemaType: "article" | "category",
   title: string,
   filter: string,
 ) {
   return S.documentList()
-    .id(`article-${title}`.replace(/[^a-z0-9-]+/gi, "-").toLowerCase())
+    .id(`${schemaType}-${title}`.replace(/[^a-z0-9-]+/gi, "-").toLowerCase())
     .title(title)
-    .schemaType("article")
+    .schemaType(schemaType)
     .filter(filter)
     .defaultOrdering([{ field: "_updatedAt", direction: "desc" }]);
 }
 
-function articleWorkspace(
-  S: StructureBuilder,
-) {
+function articleWorkspace(S: StructureBuilder) {
   const reviewLists = [
     ["กำลังเขียน", "drafting"],
     ["กำลังตรวจเนื้อหา", "content-review"],
@@ -38,23 +38,22 @@ function articleWorkspace(
         .title("บทความ · แยกตามสถานะ")
         .items([
           S.listItem()
+            .id("articles-production")
+            .title("Production · ฉบับ Live")
+            .child(documentList(S, "article", "Production · ฉบับ Live", `_type == "article" && !defined(_originalId) && defined(publishedAt)`)),
+          S.listItem()
+            .id("articles-optimize")
+            .title("Optimize · มี Draft รอ Publish")
+            .child(documentList(S, "article", "Optimize · มี Draft รอ Publish", `${ARTICLE_DRAFT_FILTER} && defined(publishedAt)`)),
+          S.listItem()
+            .id("articles-never-published")
+            .title("Draft · ยังไม่เคย Publish")
+            .child(documentList(S, "article", "Draft · ยังไม่เคย Publish", `${ARTICLE_DRAFT_FILTER} && !defined(publishedAt)`)),
+          S.divider(),
+          S.listItem()
             .id("articles-all")
             .title("บทความทั้งหมด")
-            .child(articleDocumentList(S, "บทความทั้งหมด", `_type == "article"`)),
-          S.divider(),
-          S.listItem()
-            .id("articles-new-drafts")
-            .title("ฉบับร่างใหม่ · ยังไม่เคยเผยแพร่")
-            .child(articleDocumentList(S, "ฉบับร่างใหม่", `${ARTICLE_DRAFT_FILTER} && !defined(publishedAt)`)),
-          S.listItem()
-            .id("articles-published-with-draft")
-            .title("เผยแพร่แล้ว · มีฉบับร่างแก้ไข")
-            .child(articleDocumentList(S, "เผยแพร่แล้ว · มีฉบับร่างแก้ไข", `${ARTICLE_DRAFT_FILTER} && defined(publishedAt)`)),
-          S.listItem()
-            .id("articles-published")
-            .title("เผยแพร่แล้ว · ฉบับ Live")
-            .child(articleDocumentList(S, "เผยแพร่แล้ว · ฉบับ Live", `_type == "article" && !defined(_originalId) && defined(publishedAt)`)),
-          S.divider(),
+            .child(documentList(S, "article", "บทความทั้งหมด", `_type == "article"`)),
           S.listItem()
             .id("articles-review-stage")
             .title("ขั้นตรวจเนื้อหา")
@@ -67,10 +66,40 @@ function articleWorkspace(
                     S.listItem()
                       .id(`article-review-${status}`)
                       .title(title)
-                      .child(articleDocumentList(S, title, `${ARTICLE_DRAFT_FILTER} && review.status == $reviewStatus`).params({ reviewStatus: status })),
+                      .child(documentList(S, "article", title, `${ARTICLE_DRAFT_FILTER} && review.status == $reviewStatus`).params({ reviewStatus: status })),
                   ),
                 ),
             ),
+        ]),
+    );
+}
+
+function categoryWorkspace(S: StructureBuilder) {
+  return S.listItem()
+    .id("category-workspace")
+    .title("หมวดหมู่")
+    .child(
+      S.list()
+        .id("category-status-workspace")
+        .title("หมวดหมู่ · แยกตามสถานะ")
+        .items([
+          S.listItem()
+            .id("categories-production")
+            .title("Production · Published")
+            .child(documentList(S, "category", "Production · Published", `_type == "category" && !defined(_originalId)`)),
+          S.listItem()
+            .id("categories-optimize")
+            .title("Optimize · Active Draft")
+            .child(documentList(S, "category", "Optimize · Active Draft", `${CATEGORY_DRAFT_FILTER} && status == "active"`)),
+          S.listItem()
+            .id("categories-never-published")
+            .title("Draft · ยังไม่เคย Publish")
+            .child(documentList(S, "category", "Draft · ยังไม่เคย Publish", `${CATEGORY_DRAFT_FILTER} && (status == "draft" || !defined(status))`)),
+          S.divider(),
+          S.listItem()
+            .id("categories-all")
+            .title("หมวดหมู่ทั้งหมด")
+            .child(documentList(S, "category", "หมวดหมู่ทั้งหมด", `_type == "category"`)),
         ]),
     );
 }
@@ -80,9 +109,17 @@ export function createStudioStructurePlugin(environment: AdminEnvironment) {
     structure: (S) => {
       const allowedItems = filterStudioStructureItems(S.documentTypeListItems(), environment);
       const hasArticle = allowedItems.some((item) => item.getId() === "article");
-      const nonArticleItems = allowedItems.filter((item) => item.getId() !== "article");
+      const hasCategory = allowedItems.some((item) => item.getId() === "category");
+      const remainingItems = allowedItems.filter((item) => item.getId() !== "article" && item.getId() !== "category");
 
-      return S.list().id("content").title("เนื้อหา").items(hasArticle ? [articleWorkspace(S), ...nonArticleItems] : nonArticleItems);
+      return S.list()
+        .id("content")
+        .title("เนื้อหา")
+        .items([
+          ...(hasArticle ? [articleWorkspace(S)] : []),
+          ...(hasCategory ? [categoryWorkspace(S)] : []),
+          ...remainingItems,
+        ]);
     },
   });
 }
