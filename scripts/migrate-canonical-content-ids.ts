@@ -124,7 +124,6 @@ async function main() {
   }
 
   const plan: MigrationEntry[] = [];
-  const idMap = new Map<string, string>();
   for (const documents of grouped.values()) {
     const sample = documents[0];
     if (!sample || !MIGRATABLE_TYPES.includes(sample._type as MigratableType)) continue;
@@ -132,7 +131,6 @@ async function main() {
     if (!LEGACY_ID_PATTERN.test(oldId)) continue;
     const type = sample._type as MigratableType;
     const newId = targetId(type, oldId);
-    idMap.set(oldId, newId);
     plan.push({ type, oldId, newId, variants: documents.map((doc) => doc._id).sort() });
   }
 
