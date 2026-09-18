@@ -7,7 +7,16 @@ import { readArticleSchedulerModel } from "@/lib/admin/operations/article-schedu
 import { getSocialFoundationRuntimeStatus } from "@/lib/admin/social/foundation";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 import { readLineKeyRotationStatus } from "@/lib/admin/line/key-rotation";
-import { readLineOperationsHealth } from "@/lib/admin/line/business-intelligence";
+import {
+  readLineDeliveryHealth,
+  readLineOperationsHealth,
+  readPrivacySafetyHealth,
+} from "@/lib/admin/line/business-intelligence";
+import {
+  getLineProviderActivationReadiness,
+  readLineDocumentMediaHealth,
+} from "@/lib/admin/line/document-media";
+import { getLineMediaProviderReadiness } from "@/lib/admin/line/media-provider";
 
 export const metadata: Metadata = { title: "System Health" };
 
@@ -53,10 +62,15 @@ export default async function AdminHealthPage() {
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
-  const [lineKeyRotation, lineOperations] = await Promise.all([
+  const [lineKeyRotation, lineOperations, lineDocumentMedia, lineDelivery, privacySafety] = await Promise.all([
     readLineKeyRotationStatus(),
     readLineOperationsHealth(),
+    readLineDocumentMediaHealth(),
+    readLineDeliveryHealth(),
+    readPrivacySafetyHealth(),
   ]);
+  const lineProviderActivation = getLineProviderActivationReadiness();
+  const lineMediaProvider = getLineMediaProviderReadiness();
 
   const vercelEnvironment = process.env.VERCEL_ENV ?? "—";
   const gitBranch = process.env.VERCEL_GIT_COMMIT_REF ?? "—";
@@ -84,6 +98,28 @@ export default async function AdminHealthPage() {
   const lineOperationsState: HealthState = lineOperations.state !== "ready"
     ? "off"
     : lineOperations.outboundReconciliation > 0 || lineOperations.campaignReconciliation > 0 || lineOperations.automaticDeleteEnabled
+      ? "warning"
+      : "ok";
+  const lineDocumentMediaState: HealthState = lineDocumentMedia.state !== "ready"
+    ? "off"
+    : lineDocumentMedia.driveFolderUnsafe > 0
+      || lineDocumentMedia.reconciliationRequired > 0
+      || !lineDocumentMedia.webRuntimeActiveV2
+      || !lineDocumentMedia.webRuntimeLazyRotationEnabled
+      ? "warning"
+      : "ok";
+  const lineDeliveryState: HealthState = lineDelivery.state !== "ready"
+    ? "off"
+    : lineDelivery.outboundDeadLetter > 0
+      || lineDelivery.outboundReconciliation > 0
+      || lineDelivery.campaignDeadLetter > 0
+      || lineDelivery.campaignReconciliation > 0
+      ? "warning"
+      : "ok";
+  const privacySafetyState: HealthState = privacySafety.state !== "ready"
+    ? "off"
+    : privacySafety.automaticDeleteEnabled
+      || privacySafety.destructiveExecutionAvailable
       ? "warning"
       : "ok";
 
@@ -148,6 +184,47 @@ export default async function AdminHealthPage() {
           <p className="pt-2 text-white/50">แสดงเฉพาะจำนวนตาม key version ไม่มี customer ID, ciphertext หรือ plaintext และ V1 ห้ามลบจนกว่า V1 remaining = 0 พร้อมผ่าน verification ขั้นสุดท้าย</p>
         </Card>
 
+        <Card title="LINE Runtime / Customer Media" state={lineDocumentMediaState}>
+          {lineDocumentMedia.state === "ready" ? <>
+            <Row label="Web active V2" value={lineDocumentMedia.webRuntimeActiveV2 ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"} />
+            <Row label="Web V1 key" value={lineDocumentMedia.webRuntimeV1KeyPresent ? "พบ" : "ไม่พบ"} />
+            <Row label="Web V2 key" value={lineDocumentMedia.webRuntimeV2KeyPresent ? "พบ" : "ไม่พบ"} />
+            <Row label="Web lazy rotation" value={lineDocumentMedia.webRuntimeLazyRotationEnabled ? "เปิดจริง" : "ยังไม่ยืนยัน"} />
+            <Row label="Web status report" value={lineDocumentMedia.webRuntimeLastReportedAt ?? "ยังไม่มี accepted ingress หลัง migration"} />
+            <Row label="Drive folders ready" value={lineDocumentMedia.driveFolderReady.toLocaleString("th-TH")} />
+            <Row label="Unsafe Drive folders" value={lineDocumentMedia.driveFolderUnsafe.toLocaleString("th-TH")} />
+            <Row label="Media pending fetch" value={lineDocumentMedia.pendingFetch.toLocaleString("th-TH")} />
+            <Row label="Media pending upload" value={lineDocumentMedia.pendingUpload.toLocaleString("th-TH")} />
+            <Row label="Media stored" value={lineDocumentMedia.stored.toLocaleString("th-TH")} />
+            <Row label="Media failed" value={lineDocumentMedia.failed.toLocaleString("th-TH")} />
+            <Row label="Media revoke" value={lineDocumentMedia.revokeRequired.toLocaleString("th-TH")} />
+            <Row label="Media reconcile" value={lineDocumentMedia.reconciliationRequired.toLocaleString("th-TH")} />
+          </> : <p className="text-white/50">aggregate Web runtime / media status ยังอ่านไม่ได้ และระบบไม่ fallback ไปอ่าน customer tables ตรง ๆ</p>}
+          <Row label="LINE token" value={lineProviderActivation.channelTokenPresent ? "มี credential" : "ยังไม่มี credential"} />
+          <Row label="Media fetch gate" value={lineMediaProvider.fetchEnabled ? "เปิด" : "ปิด"} />
+          <Row label="Outbound gate" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด" : "ปิด"} />
+          <Row label="Rich Menu gate" value={lineProviderActivation.richMenuWriteGateEnabled ? "เปิด" : "ปิด"} />
+          <Row label="Drive auth" value={lineProviderActivation.driveAuthorizationMode} />
+          <Row label="Drive scope" value={lineProviderActivation.driveScope} />
+          <Row label="Drive credential" value={lineProviderActivation.drivePersistentCredentialConfigured ? "persistent" : "memory-only / ยังไม่ authorize"} />
+          <p className="pt-2 text-white/50">สถานะทั้งหมดเป็น boolean / aggregate เท่านั้น ไม่แสดง token, LINE identity, Drive file/folder ID, customer content หรือ raw provider error</p>
+        </Card>
+
+        <Card title="LINE Delivery / Dead Letter" state={lineDeliveryState}>
+          {lineDelivery.state === "ready" ? <>
+            <Row label="Outbound queued" value={lineDelivery.outboundQueued.toLocaleString("th-TH")} />
+            <Row label="Outbound leased" value={lineDelivery.outboundLeased.toLocaleString("th-TH")} />
+            <Row label="Outbound sent" value={lineDelivery.outboundSent.toLocaleString("th-TH")} />
+            <Row label="Outbound retryable" value={lineDelivery.outboundRetryableFailed.toLocaleString("th-TH")} />
+            <Row label="Outbound dead-letter" value={lineDelivery.outboundDeadLetter.toLocaleString("th-TH")} />
+            <Row label="Outbound reconcile" value={lineDelivery.outboundReconciliation.toLocaleString("th-TH")} />
+            <Row label="Campaign retryable" value={lineDelivery.campaignRetryableFailed.toLocaleString("th-TH")} />
+            <Row label="Campaign dead-letter" value={lineDelivery.campaignDeadLetter.toLocaleString("th-TH")} />
+            <Row label="Campaign reconcile" value={lineDelivery.campaignReconciliation.toLocaleString("th-TH")} />
+          </> : <p className="text-white/50">delivery health ยังอ่านไม่ได้ และระบบไม่ fallback ไปอ่าน outbound/customer tables ตรง ๆ</p>}
+          <p className="pt-2 text-white/50">retry อัตโนมัติเฉพาะ rate limit / provider unavailable; permanent 4xx, decrypt/key failure เป็น dead-letter และผล provider ที่คลุมเครือเข้า reconciliation โดยไม่ retry อัตโนมัติ</p>
+        </Card>
+
         <Card title="LINE Business / Privacy Operations" state={lineOperationsState}>
           {lineOperations.state === "ready" ? <>
             <Row label="Outbound queued" value={lineOperations.outboundQueued.toLocaleString("th-TH")} />
@@ -161,6 +238,21 @@ export default async function AdminHealthPage() {
             <Row label="Auto delete" value={lineOperations.automaticDeleteEnabled ? "เปิด" : "ปิด"} />
           </> : <p className="text-white/50">aggregate LINE operations status ยังอ่านไม่ได้</p>}
           <p className="pt-2 text-white/50">ส่วนนี้แสดงเฉพาะ counts/status ไม่มี request body, customer identity, ciphertext หรือ raw error และ retention default ไม่มี auto-delete</p>
+        </Card>
+
+        <Card title="Privacy / Retention Safety" state={privacySafetyState}>
+          {privacySafety.state === "ready" ? <>
+            <Row label="Retention mode" value={privacySafety.retentionMode} />
+            <Row label="Auto delete" value={privacySafety.automaticDeleteEnabled ? "เปิด" : "ปิด"} />
+            <Row label="Destructive execute" value={privacySafety.destructiveExecutionAvailable ? "เปิด" : "Human Gate เท่านั้น"} />
+            <Row label="Attachment unsend" value={privacySafety.attachmentUnsendAction} />
+            <Row label="Export manifests" value={privacySafety.preparedExportManifestCount.toLocaleString("th-TH")} />
+            <Row label="Delete tombstones" value={privacySafety.preparedDeleteTombstoneCount.toLocaleString("th-TH")} />
+            <Row label="Attachment cleanup" value={privacySafety.attachmentCleanupRequiredCount.toLocaleString("th-TH")} />
+            <Row label="Backup / restore" value={privacySafety.backupRestoreEvidenceState} />
+            <Row label="Key rotation evidence" value={privacySafety.keyRotationEvidenceState} />
+          </> : <p className="text-white/50">privacy safety aggregate ยังอ่านไม่ได้</p>}
+          <p className="pt-2 text-white/50">Backup/restore ไม่ถูก claim ว่าผ่านจาก runtime เอง ต้อง verify จาก provider/owner evidence แยก และไม่มี raw export/delete content บน health surface นี้</p>
         </Card>
 
         <Card title="Social / Distribution" state={socialState}>

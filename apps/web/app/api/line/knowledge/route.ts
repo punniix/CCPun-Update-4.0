@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveSafeKnowledge } from "../../../../lib/line/safe-knowledge-runtime";
+import { recordSafeKnowledgeDecisionBestEffort } from "../../../../lib/line/safe-knowledge-metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
   if (!decision) {
     return NextResponse.json({ error: "unsafe_or_invalid_request" }, { status: 400, headers });
   }
+  await recordSafeKnowledgeDecisionBestEffort(body, decision);
   return NextResponse.json({ decision }, { status: 200, headers });
 }
 

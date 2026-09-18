@@ -100,6 +100,30 @@ export const LINE_RICH_MENU_ITEMS = [
   { id: "human", label: "คุยกับปัน", action: "postback", postbackData: "journey=human_handoff&stage=waiting_for_advisor" },
 ] as const;
 
+export const LINE_RICH_MENU_V1 = {
+  version: "line-rich-menu-v1",
+  size: { width: 2500, height: 1686 },
+  selected: false,
+  name: "CCPun Main v1",
+  chatBarText: "เมนู CCPun",
+  image: {
+    format: "image/png",
+    width: 2500,
+    height: 1686,
+    maxBytes: 1_000_000,
+    assetKey: "ccpun-line-rich-menu-v1",
+  },
+  areas: [
+    { itemId: "content", bounds: { x: 0, y: 0, width: 833, height: 843 } },
+    { itemId: "tools", bounds: { x: 833, y: 0, width: 833, height: 843 } },
+    { itemId: "insurance", bounds: { x: 1666, y: 0, width: 834, height: 843 } },
+    { itemId: "investment", bounds: { x: 0, y: 843, width: 833, height: 843 } },
+    { itemId: "motor", bounds: { x: 833, y: 843, width: 833, height: 843 } },
+    { itemId: "human", bounds: { x: 1666, y: 843, width: 834, height: 843 } },
+  ],
+  desktopFallback: LINE_RICH_MENU_ITEMS,
+} as const;
+
 export const LINE_QUICK_REPLIES = [
   { id: "motor_has_quote", label: "มี Quote แล้ว", journey: "motor_quote_review", stage: "quote_available" },
   { id: "motor_no_quote", label: "ยังไม่มี Quote", journey: "motor_quote_review", stage: "need_vehicle_info" },
