@@ -43,7 +43,8 @@
     "build:web:shadow": "npm run build --workspace @ccpun/web",
     "build:admin:shadow": "npm run build --workspace @ccpun/admin",
     "typecheck:web:shadow": "tsc -p apps/web/tsconfig.json --noEmit --incremental false",
-    "typecheck:admin:shadow": "tsc -p apps/admin/tsconfig.json --noEmit --incremental false"
+    "typecheck:admin:shadow": "tsc -p apps/admin/tsconfig.json --noEmit --incremental false",
+    "cms:content-ids:production:dry-run": "CCPUN_APP_ENV=local-production NEXT_PUBLIC_CCPUN_APP_ENV=local-production CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 NEXT_PUBLIC_CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 NEXT_PUBLIC_SANITY_PROJECT_ID=kyfxgjnq NEXT_PUBLIC_SANITY_DATASET=production SANITY_STUDIO_PROJECT_ID=kyfxgjnq SANITY_STUDIO_DATASET=production node --env-file-if-exists=.env.local --import tsx scripts/migrate-canonical-content-ids.ts --dry-run"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
