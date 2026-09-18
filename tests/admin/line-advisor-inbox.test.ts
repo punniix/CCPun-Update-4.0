@@ -82,8 +82,8 @@ test("Advisor Inbox runtime reuses the exact Admin Neon lane guard", () => {
   const controlPlane = read("lib/admin/line/control-plane.ts");
   assert.match(controlPlane, /adminOperationsRuntimeInputFromEnvironment/);
   assert.match(controlPlane, /resolveAdminOperationsRuntimeIdentity/);
-  assert.match(controlPlane, /FROM private_line\.advisor_inbox_safe/);
-  assert.doesNotMatch(controlPlane, /FROM private_line\.(?:customer|provider_identity|conversation|message|document|lead|advisor_case)\b/);
+  assert.match(controlPlane, /FROM private_line\.admin_read_advisor_inbox/);
+  assert.doesNotMatch(controlPlane, /FROM private_line\.(?:customer|provider_identity|conversation|message|document|lead|advisor_case|lead_context)\b/);
   assert.doesNotMatch(controlPlane, /createLinePrivateCrypto|CCPUN_LINE_IDENTITY_HMAC_KEY/);
   assert.match(controlPlane, /createLineContentCrypto/);
   assert.match(controlPlane, /CCPUN_LINE_TRANSCRIPT_ENABLED/);

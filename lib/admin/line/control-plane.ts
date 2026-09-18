@@ -19,11 +19,11 @@ import {
   type LineBotDecision,
 } from "../../line/ecosystem";
 
-const PRIVATE_CONVERSATION_READY_CHECKSUM = "83c0b6c89014bd11cf3e1aa51d4b7ce0233bfce62b33d594a397514c02e832a0";
+const PRIVATE_CONVERSATION_READY_CHECKSUM = "48d5ebc7084f38f6a4e9bdb5ff4f72b1a7ba9bfc42f8356f6fbfd59ee0607c1c";
 export const LINE_ADVISOR_INBOX_STAGES = LINE_CASE_STAGES;
 
 function privateConversationMigrationVersion(lane: AdminOperationsLane) {
-  return `20260918_line_private_context_compat_v1_${lane}`;
+  return `20260918_line_private_inbox_reader_v1_${lane}`;
 }
 
 const safeInboxRowSchema = z.object({
@@ -216,10 +216,11 @@ async function conversationReady(
        to_regclass('private_line.lead_context_safe')::text AS context_view,
        has_table_privilege(current_user, 'private_line.advisor_inbox_safe', 'SELECT') AS can_read_view,
        has_table_privilege(current_user, 'private_line.lead_context_safe', 'SELECT') AS can_read_context,
+       has_function_privilege(current_user, 'private_line.admin_read_advisor_inbox(uuid,integer)', 'EXECUTE') AS can_read_inbox,
        has_function_privilege(current_user, 'private_line.admin_read_line_transcript(uuid,integer)', 'EXECUTE') AS can_read_transcript,
        current_user AS role_name`,
     [privateConversationMigrationVersion(lane), `sha256:${PRIVATE_CONVERSATION_READY_CHECKSUM}`],
-  ) as Array<{ migration_ready: boolean; safe_view: string | null; context_view: string | null; can_read_view: boolean; can_read_context: boolean; can_read_transcript: boolean; role_name: string }>;
+  ) as Array<{ migration_ready: boolean; safe_view: string | null; context_view: string | null; can_read_view: boolean; can_read_context: boolean; can_read_inbox: boolean; can_read_transcript: boolean; role_name: string }>;
   const row = rows[0];
   return Boolean(
     row?.migration_ready &&
@@ -227,6 +228,7 @@ async function conversationReady(
     row.context_view === "private_line.lead_context_safe" &&
     row.can_read_view &&
     row.can_read_context &&
+    row.can_read_inbox &&
     row.can_read_transcript &&
     row.role_name === "ccpun_admin_runtime"
   );
@@ -315,14 +317,11 @@ export async function listAdvisorInboxSafe(
   let rawRows: unknown;
   try {
     rawRows = await handle.sql.query(
-      `SELECT i.lead_id::text, i.advisor_case_id::text, i.customer_code, i.stage, i.journey,
-              i.material_received, i.conversation_status, i.unread_count, i.last_activity_at,
-              i.priority, i.assigned_advisor, i.latest_message_type, i.latest_message_status,
-              i.latest_message_needs_human, i.updated_at, c.origin, c.campaign_id, c.content_id, c.need, c.tool_id, c.saved_result_ref
-       FROM private_line.advisor_inbox_safe i
-       LEFT JOIN private_line.lead_context_safe c ON c.lead_id=i.lead_id
-       ORDER BY COALESCE(i.last_activity_at, i.updated_at) DESC, i.updated_at DESC
-       LIMIT $1`,
+      `SELECT lead_id::text, advisor_case_id::text, customer_code, stage, journey,
+              material_received, conversation_status, unread_count, last_activity_at,
+              priority, assigned_advisor, latest_message_type, latest_message_status,
+              latest_message_needs_human, updated_at, origin, campaign_id, content_id, need, tool_id, saved_result_ref
+       FROM private_line.admin_read_advisor_inbox(NULL::uuid,$1::integer)`,
       [Math.max(1, Math.min(100, Math.floor(limit)))],
     );
   } catch {
@@ -351,13 +350,11 @@ export async function readLineCaseDetail(
     const ready = await conversationReady(handle.sql, handle.runtime.lane);
     if (!ready) return { status: baseStatus(variables, false, false), item: null, stageHistory: [], transcript: { state: "read_failed", items: [] }, botDecision: "human_handoff", unavailableReason: "private_conversation_not_ready" };
     const safeRows = z.array(safeInboxRowSchema).parse(await handle.sql.query(
-      `SELECT i.lead_id::text, i.advisor_case_id::text, i.customer_code, i.stage, i.journey,
-              i.material_received, i.conversation_status, i.unread_count, i.last_activity_at,
-              i.priority, i.assigned_advisor, i.latest_message_type, i.latest_message_status,
-              i.latest_message_needs_human, i.updated_at, c.origin, c.campaign_id, c.content_id, c.need, c.tool_id, c.saved_result_ref
-       FROM private_line.advisor_inbox_safe i
-       LEFT JOIN private_line.lead_context_safe c ON c.lead_id=i.lead_id
-       WHERE i.lead_id=$1::uuid LIMIT 1`, [leadId],
+      `SELECT lead_id::text, advisor_case_id::text, customer_code, stage, journey,
+              material_received, conversation_status, unread_count, last_activity_at,
+              priority, assigned_advisor, latest_message_type, latest_message_status,
+              latest_message_needs_human, updated_at, origin, campaign_id, content_id, need, tool_id, saved_result_ref
+       FROM private_line.admin_read_advisor_inbox($1::uuid,1::integer)`, [leadId],
     ));
     const item = safeRows[0] ? normalizeInboxRow(safeRows[0]) : null;
     if (!item) return { status: baseStatus(variables, true, true), item: null, stageHistory: [], transcript: { state: "read_failed", items: [] }, botDecision: "human_handoff", unavailableReason: "lead_not_found" };

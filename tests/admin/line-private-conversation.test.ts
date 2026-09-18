@@ -211,10 +211,24 @@ test("context compatibility migration restores the Phase 3A view and isolates sa
   assert.doesNotMatch(bodyUat, /external_ref|ciphertext|nonce|auth_tag|phone|email|health|medical|income|debt/);
 });
 
-test("Admin runtime readiness pins the final compatibility ledger, not an intermediate migration", () => {
+test("inbox reader migration keeps UAT/Production parity and hides base-table access behind one safe function", () => {
+  const uat = read("db/migrations/20260918_line_private_inbox_reader_v1_uat.sql");
+  const production = read("db/migrations/20260918_line_private_inbox_reader_v1_production.sql");
+  const bodyUat = sourceBody(uat);
+  const bodyProduction = sourceBody(production);
+  assert.equal(bodyUat, bodyProduction);
+  assert.equal(createHash("sha256").update(bodyUat).digest("hex"), "48d5ebc7084f38f6a4e9bdb5ff4f72b1a7ba9bfc42f8356f6fbfd59ee0607c1c");
+  assert.match(bodyUat, /SECURITY DEFINER/);
+  assert.match(bodyUat, /SET search_path = pg_catalog, private_line/);
+  assert.match(bodyUat, /REVOKE ALL ON FUNCTION private_line\.admin_read_advisor_inbox\(uuid,integer\) FROM PUBLIC/);
+  assert.match(bodyUat, /REVOKE ALL ON FUNCTION private_line\.admin_read_advisor_inbox\(uuid,integer\) FROM ccpun_line_ingress/);
+  assert.match(bodyUat, /GRANT EXECUTE ON FUNCTION private_line\.admin_read_advisor_inbox\(uuid,integer\) TO ccpun_admin_runtime/);
+});
+
+test("Admin runtime readiness pins the final inbox-reader ledger and never reads private base tables directly", () => {
   const source = read("lib/admin/line/control-plane.ts");
-  assert.match(source, /20260918_line_private_context_compat_v1_\$\{lane\}/);
-  assert.match(source, /83c0b6c89014bd11cf3e1aa51d4b7ce0233bfce62b33d594a397514c02e832a0/);
-  assert.match(source, /private_line\.lead_context_safe/);
-  assert.doesNotMatch(source, /FROM private_line\.lead_context\b/);
+  assert.match(source, /20260918_line_private_inbox_reader_v1_\$\{lane\}/);
+  assert.match(source, /48d5ebc7084f38f6a4e9bdb5ff4f72b1a7ba9bfc42f8356f6fbfd59ee0607c1c/);
+  assert.match(source, /private_line\.admin_read_advisor_inbox/);
+  assert.doesNotMatch(source, /FROM private_line\.(?:lead|customer|conversation|message|advisor_case|lead_context)\b/);
 });
