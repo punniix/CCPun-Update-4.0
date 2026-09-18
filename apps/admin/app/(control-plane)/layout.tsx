@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string; permission?: AdminPermission }> }> = [
   { href: "/dashboard/", label: "Dashboard", permission: "dashboard:read", children: [
       { href: "/dashboard/inbox/", label: "Advisor Inbox", permission: "advisor:read" },
+      { href: "/dashboard/campaigns/", label: "LINE Campaigns", permission: "campaign:read" },
       { href: "/dashboard/reviews/", label: "Reviews", permission: "reviews:read" },
   ] },
   { href: "/content/", label: "Content", permission: "content:read", children: [

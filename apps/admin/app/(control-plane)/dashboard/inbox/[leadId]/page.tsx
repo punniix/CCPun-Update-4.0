@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LineCaseActions } from "@/features/admin/line/LineCaseActions";
+import { AdvisorCaseOperations } from "@/features/admin/line/AdvisorCaseOperations";
 import { readLineCaseDetail } from "@/lib/admin/line/control-plane";
+import { advisorPrivateNotesEnabled, readAdvisorCaseTimeline, readAdvisorPrivateNotes } from "@/lib/admin/line/advisor-workflow";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 
 export const metadata: Metadata = { title: "Advisor Case" };
@@ -38,6 +40,11 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
   }
 
   const item = detail.item;
+  const [operations, privateNotes] = await Promise.all([
+    readAdvisorCaseTimeline(item.leadId).catch(() => ({ events: [], documents: [] })),
+    readAdvisorPrivateNotes(item.leadId).catch(() => ({ state: "unavailable" as const, notes: [] })),
+  ]);
+  const notesEnabled = advisorPrivateNotesEnabled();
   return (
     <div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -96,6 +103,7 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
 
         <aside className="space-y-5">
           <LineCaseActions leadId={item.leadId} nextStages={item.nextStages} replyEnabled={detail.status.replyEnabled} stageMutationEnabled={detail.status.stageMutationEnabled} />
+          <AdvisorCaseOperations leadId={item.leadId} notesEnabled={notesEnabled} />
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
             <h2 className="text-sm font-semibold">Stage history</h2>
@@ -109,6 +117,23 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
                 ))}
               </ol>
             ) : <p className="mt-3 text-xs text-white/45">ยังไม่มี stage transition ที่บันทึกเพิ่ม</p>}
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <h2 className="text-sm font-semibold">Operational timeline</h2>
+            {operations.events.length ? <ol className="mt-3 space-y-2">{operations.events.slice(0,20).map((event) => <li key={event.id} className="text-xs leading-5 text-white/55"><span className="text-white/75">{event.type}</span> · {formatBangkokDate(event.createdAt)}</li>)}</ol> : <p className="mt-2 text-xs text-white/45">ยังไม่มี operational event</p>}
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <h2 className="text-sm font-semibold">Documents</h2>
+            {operations.documents.length ? <ul className="mt-3 space-y-2">{operations.documents.slice(0,20).map((doc) => <li key={doc.id} className="text-xs leading-5 text-white/55">{doc.category} · {doc.status} · {doc.mimeType ?? "unknown type"} · {doc.byteSize ?? "—"} bytes</li>)}</ul> : <p className="mt-2 text-xs text-white/45">ยังไม่มี document metadata</p>}
+            <p className="mt-2 text-[11px] leading-4 text-white/35">ไม่แสดง Drive URL, external file ID หรือ document bytes ใน surface นี้</p>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <h2 className="text-sm font-semibold">Private notes</h2>
+            {privateNotes.state === "available" ? (privateNotes.notes.length ? <ul className="mt-3 space-y-3">{privateNotes.notes.map((note) => <li key={note.id} className="rounded-xl bg-black/20 p-3 text-xs leading-5 text-white/65"><p className="whitespace-pre-wrap">{note.text}</p><time className="mt-2 block text-white/35">{formatBangkokDate(note.createdAt)}</time></li>)}</ul> : <p className="mt-2 text-xs text-white/45">ยังไม่มี private note</p>) : <p className="mt-2 text-xs text-amber-200/70">Private notes {privateNotes.state} — ต้องเปิด encryption gate โดย owner</p>}
+            <p className="mt-2 text-[11px] leading-4 text-white/35">Internal notes เป็น Customer Confidential Data และไม่มี SafeForAI projection</p>
           </section>
 
           <section className="rounded-2xl border border-sky-200/15 bg-sky-200/[0.04] p-4 text-xs leading-5 text-sky-100/75">
