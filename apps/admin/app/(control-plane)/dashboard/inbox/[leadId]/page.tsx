@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LineCaseActions } from "@/features/admin/line/LineCaseActions";
+import { LeadOutcomeActions } from "@/features/admin/line/LeadOutcomeActions";
 import { AdvisorCaseOperations } from "@/features/admin/line/AdvisorCaseOperations";
 import { readLineCaseDetail } from "@/lib/admin/line/control-plane";
 import { advisorPrivateNotesEnabled, readAdvisorCaseTimeline, readAdvisorPrivateNotes } from "@/lib/admin/line/advisor-workflow";
@@ -106,6 +107,7 @@ export default async function AdvisorCasePage({ params }: { params: Promise<{ le
 
         <aside className="space-y-5">
           <LineCaseActions leadId={item.leadId} nextStages={item.nextStages} replyEnabled={detail.status.replyEnabled} stageMutationEnabled={detail.status.stageMutationEnabled} />
+          <LeadOutcomeActions leadId={item.leadId} />
           <AdvisorCaseOperations leadId={item.leadId} notesEnabled={notesEnabled} />
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">

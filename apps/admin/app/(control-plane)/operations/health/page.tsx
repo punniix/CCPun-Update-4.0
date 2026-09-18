@@ -7,6 +7,7 @@ import { readArticleSchedulerModel } from "@/lib/admin/operations/article-schedu
 import { getSocialFoundationRuntimeStatus } from "@/lib/admin/social/foundation";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 import { readLineKeyRotationStatus } from "@/lib/admin/line/key-rotation";
+import { readLineOperationsHealth } from "@/lib/admin/line/business-intelligence";
 
 export const metadata: Metadata = { title: "System Health" };
 
@@ -52,7 +53,10 @@ export default async function AdminHealthPage() {
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
-  const lineKeyRotation = await readLineKeyRotationStatus();
+  const [lineKeyRotation, lineOperations] = await Promise.all([
+    readLineKeyRotationStatus(),
+    readLineOperationsHealth(),
+  ]);
 
   const vercelEnvironment = process.env.VERCEL_ENV ?? "—";
   const gitBranch = process.env.VERCEL_GIT_COMMIT_REF ?? "—";
@@ -77,6 +81,11 @@ export default async function AdminHealthPage() {
       : lineKeyRotation.activeVersion === "2" && lineKeyRotation.v2Configured
         ? "ok"
         : "warning";
+  const lineOperationsState: HealthState = lineOperations.state !== "ready"
+    ? "off"
+    : lineOperations.outboundReconciliation > 0 || lineOperations.campaignReconciliation > 0 || lineOperations.automaticDeleteEnabled
+      ? "warning"
+      : "ok";
 
   return (
     <div>
@@ -137,6 +146,21 @@ export default async function AdminHealthPage() {
             <Row label="V1 retirement" value={lineKeyRotation.allV1Zero ? "พร้อมตรวจขั้นสุดท้าย" : "ยังห้ามลบ V1"} />
           </> : <p className="text-white/50">aggregate rotation status ยังอ่านไม่ได้ โดยไม่ fallback ไปอ่าน private tables ตรง ๆ</p>}
           <p className="pt-2 text-white/50">แสดงเฉพาะจำนวนตาม key version ไม่มี customer ID, ciphertext หรือ plaintext และ V1 ห้ามลบจนกว่า V1 remaining = 0 พร้อมผ่าน verification ขั้นสุดท้าย</p>
+        </Card>
+
+        <Card title="LINE Business / Privacy Operations" state={lineOperationsState}>
+          {lineOperations.state === "ready" ? <>
+            <Row label="Outbound queued" value={lineOperations.outboundQueued.toLocaleString("th-TH")} />
+            <Row label="Outbound failed" value={lineOperations.outboundFailed.toLocaleString("th-TH")} />
+            <Row label="Outbound reconcile" value={lineOperations.outboundReconciliation.toLocaleString("th-TH")} />
+            <Row label="Campaign queued" value={lineOperations.campaignQueued.toLocaleString("th-TH")} />
+            <Row label="Campaign reconcile" value={lineOperations.campaignReconciliation.toLocaleString("th-TH")} />
+            <Row label="Privacy pending" value={lineOperations.privacyPending.toLocaleString("th-TH")} />
+            <Row label="Business events" value={lineOperations.businessEventCount.toLocaleString("th-TH")} />
+            <Row label="Retention" value={lineOperations.retentionMode} />
+            <Row label="Auto delete" value={lineOperations.automaticDeleteEnabled ? "เปิด" : "ปิด"} />
+          </> : <p className="text-white/50">aggregate LINE operations status ยังอ่านไม่ได้</p>}
+          <p className="pt-2 text-white/50">ส่วนนี้แสดงเฉพาะ counts/status ไม่มี request body, customer identity, ciphertext หรือ raw error และ retention default ไม่มี auto-delete</p>
         </Card>
 
         <Card title="Social / Distribution" state={socialState}>

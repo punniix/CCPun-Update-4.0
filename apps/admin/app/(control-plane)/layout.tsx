@@ -37,11 +37,13 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
   { href: "/analytics/", label: "Analytics", permission: "dashboard:read", children: [
       { href: "/analytics/search/", label: "Search" },
       { href: "/analytics/social/", label: "Social" },
+      { href: "/analytics/conversions/", label: "Conversions" },
   ] },
   { href: "/operations/", label: "Operations", permission: "settings:read", children: [
       { href: "/operations/health/", label: "Health" },
       { href: "/operations/deployments/", label: "Deployments" },
       { href: "/operations/jobs/", label: "Jobs" },
+      { href: "/operations/privacy/", label: "Privacy / Data Rights" },
       { href: "/operations/audit-log/", label: "Audit log" },
   ] },
   { href: "/settings/", label: "Settings", permission: "settings:read", children: [
