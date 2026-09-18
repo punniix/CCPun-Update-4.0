@@ -1,5 +1,11 @@
-import { neon } from "@neondatabase/serverless";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { z } from "zod";
 import type { LinePrivateIngestEvent } from "../../../../lib/line/private-domain";
+import {
+  createLineContentCrypto,
+  type LineContentCrypto,
+  type LineEncryptedValue,
+} from "../../../../lib/line/private-crypto";
 
 const WEB_VERCEL_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 
@@ -40,6 +46,16 @@ export type LineIngestOutcome =
   | "unsend_applied"
   | "unsend_pending";
 
+const rotationCandidateSchema = z.object({
+  candidate_kind: z.enum(["identity_external_ref", "message_provider_id", "message_content"]),
+  record_id: z.string().uuid(),
+  source_key_version: z.coerce.number().int(),
+  ciphertext_b64: z.string().min(1),
+  nonce_b64: z.string().min(1),
+  auth_tag_b64: z.string().min(1),
+  purpose: z.enum(["line-user-id", "message-provider-id", "message-content"]),
+});
+
 function inferredEnvironment(variables: Record<string, string | undefined>) {
   const explicit = variables.CCPUN_APP_ENV?.trim();
   if (explicit) return explicit;
@@ -47,6 +63,19 @@ function inferredEnvironment(variables: Record<string, string | undefined>) {
   if (variables.VERCEL_ENV?.trim() === "production") return "production";
   if (variables.VERCEL_ENV?.trim() === "preview") return "web-uat";
   return "unknown";
+}
+
+function lazyRotationCrypto(
+  variables: Record<string, string | undefined>,
+): LineContentCrypto | null {
+  if (variables.CCPUN_LINE_LAZY_KEY_ROTATION_ENABLED?.trim() !== "true") return null;
+  try {
+    const crypto = createLineContentCrypto(variables);
+    if (crypto.keyVersion !== 2 || !crypto.hasKeyVersion(1) || !crypto.hasKeyVersion(2)) return null;
+    return crypto;
+  } catch {
+    return null;
+  }
 }
 
 export function resolveLineIngestRuntime(
@@ -134,6 +163,57 @@ function privateEventPayload(event: LinePrivateIngestEvent) {
   };
 }
 
+type LineIngressSqlClient = NeonQueryFunction<false, false>;
+
+async function rotateCurrentIdentityBestEffort(
+  sql: LineIngressSqlClient,
+  identityDigest: string,
+  crypto: LineContentCrypto,
+) {
+  let candidates: z.infer<typeof rotationCandidateSchema>[];
+  try {
+    candidates = z.array(rotationCandidateSchema).parse(await sql.query(
+      `SELECT candidate_kind,record_id::text,source_key_version,ciphertext_b64,nonce_b64,auth_tag_b64,purpose
+       FROM private_line.ingress_read_line_key_rotation_candidates($1::text,$2::integer)`,
+      [identityDigest, 12],
+    ));
+  } catch {
+    return;
+  }
+
+  for (const candidate of candidates) {
+    if (candidate.source_key_version !== 1) continue;
+    try {
+      const current: LineEncryptedValue = {
+        keyVersion: 1,
+        ciphertextB64: candidate.ciphertext_b64,
+        nonceB64: candidate.nonce_b64,
+        authTagB64: candidate.auth_tag_b64,
+      };
+      const plaintext = crypto.decrypt(current, candidate.purpose);
+      const rotated = crypto.encrypt(plaintext, candidate.purpose);
+      if (rotated.keyVersion !== 2) continue;
+
+      await sql.query(
+        "SELECT outcome FROM private_line.ingress_apply_line_key_rotation($1::jsonb)",
+        [JSON.stringify({
+          identity_digest: identityDigest,
+          candidate_kind: candidate.candidate_kind,
+          record_id: candidate.record_id,
+          source_key_version: 1,
+          target_key_version: 2,
+          ciphertext_b64: rotated.ciphertextB64,
+          nonce_b64: rotated.nonceB64,
+          auth_tag_b64: rotated.authTagB64,
+        })],
+      );
+    } catch {
+      // Rotation is deliberately best-effort. Durable ingestion already succeeded,
+      // and no private value is logged or reflected if one candidate cannot rotate.
+    }
+  }
+}
+
 export type LinePrivateIngestor = (event: LinePrivateIngestEvent) => Promise<LineIngestOutcome>;
 
 export function createLinePrivateIngestor(
@@ -145,6 +225,7 @@ export function createLinePrivateIngestor(
   const sql = neon(runtime.connectionString, {
     fetchOptions: { signal: AbortSignal.timeout(5_000) },
   });
+  const rotationCrypto = lazyRotationCrypto(variables);
 
   return async (event) => {
     const rows = await sql.query(
@@ -161,6 +242,11 @@ export function createLinePrivateIngestor(
     ) {
       throw new Error("LINE_PRIVATE_INGEST_INVALID_RESULT");
     }
+
+    if (outcome === "accepted" && event.identity && rotationCrypto) {
+      await rotateCurrentIdentityBestEffort(sql, event.identity.lookupDigest, rotationCrypto);
+    }
+
     return outcome;
   };
 }

@@ -5,6 +5,7 @@ import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import { adminOperationsRuntimeInputFromEnvironment, resolveAdminOperationsRuntimeIdentity } from "../operations/foundation";
 import { campaignSegmentSchema, lineSafeIdSchema } from "../../line/campaign-safe";
+import { createLineContentCrypto } from "../../line/private-crypto";
 
 const campaignInputSchema = z.object({
   campaignId: z.string().uuid().optional(),
@@ -39,7 +40,13 @@ async function adminSql(vars:Record<string,string|undefined>=process.env){
 }
 
 export function lineCampaignProviderEnabled(vars:Record<string,string|undefined>=process.env){
-  return vars.CCPUN_LINE_CAMPAIGN_SEND_ENABLED?.trim()==="true" && Boolean(vars.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim()) && Boolean(vars.CCPUN_LINE_ENCRYPTION_KEY_V1?.trim());
+  if(vars.CCPUN_LINE_CAMPAIGN_SEND_ENABLED?.trim()!=="true" || !vars.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim()) return false;
+  try {
+    createLineContentCrypto(vars);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function listLineCampaigns(vars:Record<string,string|undefined>=process.env){

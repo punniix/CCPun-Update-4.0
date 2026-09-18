@@ -1,6 +1,11 @@
 import "server-only";
 
-import { createLineContentCrypto, type LineEncryptedValue } from "../../line/private-crypto";
+import {
+  createLineContentCrypto,
+  isLinePrivateKeyUnavailableError,
+  isLinePrivateKeyVersion,
+  type LineEncryptedValue,
+} from "../../line/private-crypto";
 import {
   checkpointLineOutbound,
   claimLineOutbound,
@@ -12,7 +17,16 @@ const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 
 export type LineProviderSendResult =
   | { ok: true; status: "sent" }
-  | { ok: false; status: "not_configured" | "not_claimable" | "failed" | "reconciliation_required" };
+  | {
+      ok: false;
+      status:
+        | "not_configured"
+        | "not_claimable"
+        | "key_unavailable"
+        | "unsupported_key_version"
+        | "failed"
+        | "reconciliation_required";
+    };
 
 function encryptedValue(row: {
   ciphertextB64: string;
@@ -20,9 +34,11 @@ function encryptedValue(row: {
   authTagB64: string;
   keyVersion: number;
 }): LineEncryptedValue {
-  if (row.keyVersion !== 1) throw new Error("LINE_PRIVATE_KEY_VERSION_UNSUPPORTED");
+  if (!isLinePrivateKeyVersion(row.keyVersion)) {
+    throw new Error("LINE_PRIVATE_KEY_VERSION_UNSUPPORTED");
+  }
   return {
-    keyVersion: 1,
+    keyVersion: row.keyVersion,
     ciphertextB64: row.ciphertextB64,
     nonceB64: row.nonceB64,
     authTagB64: row.authTagB64,
@@ -43,18 +59,43 @@ export async function sendLineOutboundById(
   if (!claim) return { ok: false, status: "not_claimable" };
 
   const crypto = createLineContentCrypto(variables);
-  const recipient = crypto.decrypt(encryptedValue({
-    ciphertextB64: claim.recipient_ciphertext_b64,
-    nonceB64: claim.recipient_nonce_b64,
-    authTagB64: claim.recipient_auth_tag_b64,
-    keyVersion: claim.recipient_key_version,
-  }), "line-user-id");
-  const text = crypto.decrypt(encryptedValue({
-    ciphertextB64: claim.content_ciphertext_b64,
-    nonceB64: claim.content_nonce_b64,
-    authTagB64: claim.content_auth_tag_b64,
-    keyVersion: claim.content_key_version,
-  }), "admin-outbound-message-content");
+  let recipient: string;
+  let text: string;
+  try {
+    recipient = crypto.decrypt(encryptedValue({
+      ciphertextB64: claim.recipient_ciphertext_b64,
+      nonceB64: claim.recipient_nonce_b64,
+      authTagB64: claim.recipient_auth_tag_b64,
+      keyVersion: claim.recipient_key_version,
+    }), "line-user-id");
+    text = crypto.decrypt(encryptedValue({
+      ciphertextB64: claim.content_ciphertext_b64,
+      nonceB64: claim.content_nonce_b64,
+      authTagB64: claim.content_auth_tag_b64,
+      keyVersion: claim.content_key_version,
+    }), "admin-outbound-message-content");
+  } catch (error) {
+    const keyUnavailable = isLinePrivateKeyUnavailableError(error);
+    const unsupported = error instanceof Error && error.message === "LINE_PRIVATE_KEY_VERSION_UNSUPPORTED";
+    const errorClass = keyUnavailable
+      ? "key_unavailable"
+      : unsupported
+        ? "unsupported_key_version"
+        : "decrypt_failed";
+    try {
+      await checkpointLineOutbound({
+        outboundId,
+        workerDigest,
+        result: "failed",
+        errorClass,
+      }, variables);
+    } catch {
+      return { ok: false, status: "reconciliation_required" };
+    }
+    if (keyUnavailable) return { ok: false, status: "key_unavailable" };
+    if (unsupported) return { ok: false, status: "unsupported_key_version" };
+    return { ok: false, status: "failed" };
+  }
 
   try {
     const response = await fetchImpl(LINE_PUSH_URL, {

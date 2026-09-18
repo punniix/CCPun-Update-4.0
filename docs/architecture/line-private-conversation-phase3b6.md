@@ -18,7 +18,7 @@ This release extends the Production Phase 2/3A LINE foundation without activatin
 The page shows safe lead context, stage history, deterministic bot classification, transcript availability, and reply/stage actions. Transcript plaintext is produced server-side only when both conditions are true:
 
 1. `CCPUN_LINE_TRANSCRIPT_ENABLED=true`
-2. `CCPUN_LINE_ENCRYPTION_KEY_V1` is present and valid in the Admin server runtime.
+2. the active encryption-key version is explicitly configured and the matching server-only key is present. During V1→V2 rotation, Admin may run with V2 only; any remaining V1 item is shown as `legacy_key_unavailable` until Web securely rotates that customer's ciphertext.
 
 Otherwise the transcript is explicitly `disabled` or `key_unavailable`. The Admin never falls back to raw table reads.
 

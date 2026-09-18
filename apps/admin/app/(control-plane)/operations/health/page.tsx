@@ -6,6 +6,7 @@ import { resolveArticleSchedulerLane } from "@/lib/admin/operations/article-sche
 import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
 import { getSocialFoundationRuntimeStatus } from "@/lib/admin/social/foundation";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
+import { readLineKeyRotationStatus } from "@/lib/admin/line/key-rotation";
 
 export const metadata: Metadata = { title: "System Health" };
 
@@ -51,6 +52,7 @@ export default async function AdminHealthPage() {
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
+  const lineKeyRotation = await readLineKeyRotationStatus();
 
   const vercelEnvironment = process.env.VERCEL_ENV ?? "—";
   const gitBranch = process.env.VERCEL_GIT_COMMIT_REF ?? "—";
@@ -68,6 +70,13 @@ export default async function AdminHealthPage() {
       ? "ok"
       : "warning";
   const socialState: HealthState = socialOperations.enabled || socialFoundation.enabled ? "ok" : "off";
+  const lineKeyRotationState: HealthState = lineKeyRotation.state !== "ready"
+    ? "off"
+    : lineKeyRotation.unsupportedVersionCount > 0 || lineKeyRotation.encryptedUnsentCount > 0
+      ? "warning"
+      : lineKeyRotation.activeVersion === "2" && lineKeyRotation.v2Configured
+        ? "ok"
+        : "warning";
 
   return (
     <div>
@@ -113,6 +122,21 @@ export default async function AdminHealthPage() {
           <Row label="Audit records" value={scheduler.status === "ready" ? scheduler.audit.length.toLocaleString("th-TH") : "—"} />
           {scheduler.error ? <p className="pt-2 text-amber-100/80">Read error: {scheduler.error}</p> : null}
           <p className="pt-2 text-white/50">สถานะ “พร้อม” ต้องผ่านทั้ง runtime identity, runtime switch และ durable database switch พร้อมกัน การเปิด durable switch ต้องใช้ database-owner channel แยกจาก runtime credential</p>
+        </Card>
+
+        <Card title="LINE Encryption Rotation" state={lineKeyRotationState}>
+          <Row label="Active version" value={`V${lineKeyRotation.activeVersion}`} />
+          <Row label="V2 configured" value={lineKeyRotation.v2Configured ? "พร้อม" : "ยังไม่พร้อม"} />
+          <Row label="Lazy rotation" value={lineKeyRotation.lazyRotationEnabled ? "เปิด" : "ปิด"} />
+          {lineKeyRotation.state === "ready" ? <>
+            <Row label="V1 remaining" value={lineKeyRotation.totalV1Count.toLocaleString("th-TH")} />
+            <Row label="Rotatable V1" value={lineKeyRotation.rotatableV1Count.toLocaleString("th-TH")} />
+            <Row label="Admin-only V1" value={lineKeyRotation.adminOnlyV1Count.toLocaleString("th-TH")} />
+            <Row label="Unsupported" value={lineKeyRotation.unsupportedVersionCount.toLocaleString("th-TH")} />
+            <Row label="Encrypted unsent" value={lineKeyRotation.encryptedUnsentCount.toLocaleString("th-TH")} />
+            <Row label="V1 retirement" value={lineKeyRotation.allV1Zero ? "พร้อมตรวจขั้นสุดท้าย" : "ยังห้ามลบ V1"} />
+          </> : <p className="text-white/50">aggregate rotation status ยังอ่านไม่ได้ โดยไม่ fallback ไปอ่าน private tables ตรง ๆ</p>}
+          <p className="pt-2 text-white/50">แสดงเฉพาะจำนวนตาม key version ไม่มี customer ID, ciphertext หรือ plaintext และ V1 ห้ามลบจนกว่า V1 remaining = 0 พร้อมผ่าน verification ขั้นสุดท้าย</p>
         </Card>
 
         <Card title="Social / Distribution" state={socialState}>

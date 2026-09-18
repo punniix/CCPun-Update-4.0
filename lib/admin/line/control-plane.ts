@@ -8,7 +8,12 @@ import {
   resolveAdminOperationsRuntimeIdentity,
   type AdminOperationsLane,
 } from "../operations/foundation";
-import { createLineContentCrypto, type LineEncryptedValue } from "../../line/private-crypto";
+import {
+  createLineContentCrypto,
+  isLinePrivateKeyUnavailableError,
+  isLinePrivateKeyVersion,
+  type LineEncryptedValue,
+} from "../../line/private-crypto";
 import {
   LINE_CASE_STAGES,
   canTransitionLineCaseStage,
@@ -118,6 +123,7 @@ export type LineTranscriptItem = {
   occurredAt: string;
   unsentAt: string | null;
   text: string | null;
+  contentState: "available" | "purged" | "not_available" | "legacy_key_unavailable" | "decrypt_failed";
 };
 
 export type LineStageHistoryItem = {
@@ -379,12 +385,40 @@ export async function readLineCaseDetail(
          FROM private_line.admin_read_line_transcript($1::uuid,$2::integer)`, [leadId, 200],
       ));
       const messages: LineTranscriptItem[] = dbRows.map((row) => {
-        if (row.status === "unsent" || !row.content_ciphertext_b64 || !row.content_nonce_b64 || !row.content_auth_tag_b64 || !row.content_key_version || !row.content_purpose) {
-          return { itemId: row.item_id, sourceKind: row.source_kind, direction: row.direction, messageType: row.message_type, status: row.status, needsHuman: row.needs_human, occurredAt: iso(row.occurred_at) ?? "", unsentAt: iso(row.unsent_at), text: null };
+        const base = {
+          itemId: row.item_id,
+          sourceKind: row.source_kind,
+          direction: row.direction,
+          messageType: row.message_type,
+          status: row.status,
+          needsHuman: row.needs_human,
+          occurredAt: iso(row.occurred_at) ?? "",
+          unsentAt: iso(row.unsent_at),
+        };
+        if (row.status === "unsent") {
+          return { ...base, text: null, contentState: "purged" as const };
         }
-        const encrypted: LineEncryptedValue = { keyVersion: 1, ciphertextB64: row.content_ciphertext_b64, nonceB64: row.content_nonce_b64, authTagB64: row.content_auth_tag_b64 };
-        const text = crypto.decrypt(encrypted, row.content_purpose);
-        return { itemId: row.item_id, sourceKind: row.source_kind, direction: row.direction, messageType: row.message_type, status: row.status, needsHuman: row.needs_human, occurredAt: iso(row.occurred_at) ?? "", unsentAt: iso(row.unsent_at), text };
+        if (!row.content_ciphertext_b64 || !row.content_nonce_b64 || !row.content_auth_tag_b64 || !row.content_key_version || !row.content_purpose) {
+          return { ...base, text: null, contentState: "not_available" as const };
+        }
+        if (!isLinePrivateKeyVersion(row.content_key_version)) {
+          return { ...base, text: null, contentState: "decrypt_failed" as const };
+        }
+        const encrypted: LineEncryptedValue = {
+          keyVersion: row.content_key_version,
+          ciphertextB64: row.content_ciphertext_b64,
+          nonceB64: row.content_nonce_b64,
+          authTagB64: row.content_auth_tag_b64,
+        };
+        try {
+          const text = crypto.decrypt(encrypted, row.content_purpose);
+          return { ...base, text, contentState: "available" as const };
+        } catch (error) {
+          if (isLinePrivateKeyUnavailableError(error)) {
+            return { ...base, text: null, contentState: "legacy_key_unavailable" as const };
+          }
+          return { ...base, text: null, contentState: "decrypt_failed" as const };
+        }
       });
       return { status: baseStatus(variables, true, true), item, stageHistory, transcript: { state: "available", items: messages }, botDecision, unavailableReason: null };
     } catch {
