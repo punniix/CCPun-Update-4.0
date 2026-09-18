@@ -1,0 +1,42 @@
+name: One-time Sanity content ID normalization
+
+on:
+  push:
+    branches: [ops/sanity-content-id-normalize-20260918]
+    paths:
+      - .github/workflows/ops-sanity-content-id-normalize-20260918.yml
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CCPUN_APP_ENV: local-production
+      NEXT_PUBLIC_CCPUN_APP_ENV: local-production
+      NEXT_PUBLIC_SANITY_PROJECT_ID: kyfxgjnq
+      NEXT_PUBLIC_SANITY_DATASET: production
+      SANITY_STUDIO_PROJECT_ID: kyfxgjnq
+      SANITY_STUDIO_DATASET: production
+      SANITY_AUTH_TOKEN: ${{ secrets.SANITY_PRODUCTION_API_WRITE_TOKEN || secrets.SANITY_API_WRITE_TOKEN }}
+      SANITY_API_TOKEN: ${{ secrets.SANITY_PRODUCTION_API_WRITE_TOKEN || secrets.SANITY_API_WRITE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: npm ci
+      - name: Require a Production Sanity write credential
+        shell: bash
+        run: |
+          if [ -z "${SANITY_AUTH_TOKEN:-}" ]; then
+            echo "Production Sanity write credential is not configured in GitHub Actions." >&2
+            exit 1
+          fi
+      - name: Dry-run canonical content ID migration
+        run: node --import tsx scripts/migrate-canonical-content-ids.ts --dry-run
