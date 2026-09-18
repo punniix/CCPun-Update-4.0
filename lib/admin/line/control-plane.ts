@@ -153,7 +153,7 @@ export type LineAdvisorInboxReadModel = {
     materialReceived: number;
     stageCounts: Record<LineCaseStage, number>;
   };
-  unavailableReason: "admin_runtime_not_ready" | "safe_view_not_ready" | "safe_view_read_failed" | null;
+  unavailableReason: "admin_runtime_not_ready" | "safe_view_not_ready" | "safe_view_query_failed" | "safe_view_contract_failed" | null;
 };
 
 export type LineCaseDetailModel = {
@@ -299,11 +299,22 @@ export async function listAdvisorInboxSafe(
   variables: Record<string, string | undefined> = process.env,
 ): Promise<LineAdvisorInboxReadModel> {
   const handle = await runtimeSql(variables);
-  if (!handle) return { status: baseStatus(variables, false, false), rows: [], aggregate: aggregateRows([]), unavailableReason: "admin_runtime_not_ready" };
+  if (!handle) {
+    return { status: baseStatus(variables, false, false), rows: [], aggregate: aggregateRows([]), unavailableReason: "admin_runtime_not_ready" };
+  }
+
   try {
     const ready = await conversationReady(handle.sql, handle.runtime.lane);
-    if (!ready) return { status: baseStatus(variables, false, false), rows: [], aggregate: aggregateRows([]), unavailableReason: "safe_view_not_ready" };
-    const rows = z.array(safeInboxRowSchema).parse(await handle.sql.query(
+    if (!ready) {
+      return { status: baseStatus(variables, false, false), rows: [], aggregate: aggregateRows([]), unavailableReason: "safe_view_not_ready" };
+    }
+  } catch {
+    return { status: baseStatus(variables, false, false), rows: [], aggregate: aggregateRows([]), unavailableReason: "safe_view_query_failed" };
+  }
+
+  let rawRows: unknown;
+  try {
+    rawRows = await handle.sql.query(
       `SELECT i.lead_id::text, i.advisor_case_id::text, i.customer_code, i.stage, i.journey,
               i.material_received, i.conversation_status, i.unread_count, i.last_activity_at,
               i.priority, i.assigned_advisor, i.latest_message_type, i.latest_message_status,
@@ -313,12 +324,18 @@ export async function listAdvisorInboxSafe(
        ORDER BY COALESCE(i.last_activity_at, i.updated_at) DESC, i.updated_at DESC
        LIMIT $1`,
       [Math.max(1, Math.min(100, Math.floor(limit)))],
-    ));
-    const normalized = rows.map(normalizeInboxRow);
-    return { status: baseStatus(variables, true, true), rows: normalized, aggregate: aggregateRows(normalized), unavailableReason: null };
+    );
   } catch {
-    return { status: baseStatus(variables, false, false), rows: [], aggregate: aggregateRows([]), unavailableReason: "safe_view_read_failed" };
+    return { status: baseStatus(variables, true, true), rows: [], aggregate: aggregateRows([]), unavailableReason: "safe_view_query_failed" };
   }
+
+  const parsed = z.array(safeInboxRowSchema).safeParse(rawRows);
+  if (!parsed.success) {
+    return { status: baseStatus(variables, true, true), rows: [], aggregate: aggregateRows([]), unavailableReason: "safe_view_contract_failed" };
+  }
+
+  const normalized = parsed.data.map(normalizeInboxRow);
+  return { status: baseStatus(variables, true, true), rows: normalized, aggregate: aggregateRows(normalized), unavailableReason: null };
 }
 
 export async function readLineCaseDetail(
