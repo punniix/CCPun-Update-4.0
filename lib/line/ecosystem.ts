@@ -133,6 +133,35 @@ export const LINE_QUICK_REPLIES = [
   { id: "invest_move", label: "ก่อนย้าย/สับเปลี่ยน", journey: "investment_before_you_act", stage: "before_switch" },
 ] as const;
 
+export type LinePostbackJourneyId = LineJourneyId | "human_handoff";
+
+export type LinePostbackContext = {
+  journey: LinePostbackJourneyId;
+  stage: string;
+  needsHuman: boolean;
+};
+
+const LINE_LOCKED_POSTBACK_CONTEXTS = new Map<string, LinePostbackContext>([
+  ...LINE_RICH_MENU_ITEMS.flatMap((item) => item.action === "postback"
+    ? [[item.postbackData, {
+        journey: new URLSearchParams(item.postbackData).get("journey") as LinePostbackJourneyId,
+        stage: new URLSearchParams(item.postbackData).get("stage") ?? "",
+        needsHuman: item.id === "human",
+      }] as const]
+    : []),
+  ...LINE_QUICK_REPLIES.map((item) => [
+    `journey=${item.journey}&stage=${item.stage}`,
+    { journey: item.journey, stage: item.stage, needsHuman: false },
+  ] as const),
+]);
+
+export function parseLinePostbackContext(value: unknown): LinePostbackContext | null {
+  if (typeof value !== "string" || value.length > 200) return null;
+  const context = LINE_LOCKED_POSTBACK_CONTEXTS.get(value);
+  if (!context || !context.stage) return null;
+  return { ...context };
+}
+
 const SAFE_ID = /^[a-z0-9][a-z0-9_-]{0,79}$/;
 const SAFE_ATTRIBUTION = /^[a-z0-9][a-z0-9_.:-]{0,79}$/;
 const ALLOWED_INTENT_KEYS = new Set(["journey", "entrypoint", "content_id", "tool_id", "saved_result_id", "campaign_id", "attribution"]);

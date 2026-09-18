@@ -158,6 +158,13 @@ function privateEventPayload(event: LinePrivateIngestEvent) {
           material_received: event.message.materialReceived,
         }
       : null,
+    postback: event.postback
+      ? {
+          journey: event.postback.journey,
+          stage: event.postback.stage,
+          needs_human: event.postback.needsHuman,
+        }
+      : null,
     unsend_target_digest: event.unsendTargetDigest,
     needs_human: event.needsHuman,
   };
@@ -254,6 +261,49 @@ async function rotateCurrentIdentityBestEffort(
 
 export type LinePrivateIngestor = (event: LinePrivateIngestEvent) => Promise<LineIngestOutcome>;
 
+async function applyLineJourneyContextBestEffort(
+  sql: LineIngressSqlClient,
+  event: LinePrivateIngestEvent,
+  outcome: LineIngestOutcome,
+) {
+  if (!event.identity) return;
+
+  if (
+    event.eventType === "postback"
+    && event.postback
+    && (outcome === "accepted" || outcome === "duplicate_event")
+  ) {
+    try {
+      await sql.query(
+        "SELECT outcome FROM private_line.ingress_apply_line_postback_context($1::jsonb)",
+        [JSON.stringify({
+          identity_digest: event.identity.lookupDigest,
+          journey: event.postback.journey,
+          stage: event.postback.stage,
+          needs_human: event.postback.needsHuman,
+        })],
+      );
+    } catch {
+      // Additive context enrichment must never make durable webhook ingestion fail.
+      // A duplicate LINE redelivery can safely try the idempotent context step again.
+    }
+  }
+
+  if (
+    event.eventType === "message"
+    && (outcome === "accepted" || outcome === "duplicate_event" || outcome === "duplicate_message")
+  ) {
+    try {
+      await sql.query(
+        "SELECT outcome FROM private_line.ingress_apply_line_message_context($1::jsonb)",
+        [JSON.stringify({ identity_digest: event.identity.lookupDigest })],
+      );
+    } catch {
+      // The message is already durable. Context enrichment is intentionally best-effort.
+    }
+  }
+}
+
 export function createLinePrivateIngestor(
   variables: Record<string, string | undefined> = process.env,
 ): LinePrivateIngestor {
@@ -282,6 +332,7 @@ export function createLinePrivateIngestor(
     }
 
     await recordLineRuntimeHealthBestEffort(sql, variables);
+    await applyLineJourneyContextBestEffort(sql, event, outcome);
 
     if (outcome === "accepted" && event.identity && rotationCrypto) {
       await rotateCurrentIdentityBestEffort(sql, event.identity.lookupDigest, rotationCrypto);
