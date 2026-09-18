@@ -129,13 +129,14 @@ test("deployed Admin separates Advisor Inbox from SEO Reviews", () => {
   const seo = read("apps/admin/app/(control-plane)/seo/page.tsx");
 
   assert.match(inbox, /requireAdminPermission\("advisor:read"\)/);
-  assert.match(inbox, /Private-by-default/);
-  assert.match(inbox, /conversation archive owner-only · Admin outbound disabled/);
+  assert.match(inbox, /ลูกค้า LINE/);
+  assert.match(inbox, /ตอบใน LINE OA ตามเดิม/);
+  assert.doesNotMatch(inbox, /Private-by-default|conversation archive owner-only|priority|caseState|name="journey"|name="tag"/i);
   assert.match(inbox, /\/dashboard\/inbox\/\$\{item\.leadId\}\//);
   assert.doesNotMatch(inbox, /ApproveSuggestionButton|ApplySuggestionButton|ReviewDecisionControls/);
   assert.match(reviews, /requireAdminPermission\("reviews:read"\)/);
   assert.match(reviews, /ReviewDecisionControls/);
-  assert.match(layout, /\/dashboard\/inbox\/[\s\S]*Advisor Inbox[\s\S]*advisor:read/);
+  assert.match(layout, /\/dashboard\/inbox\/[\s\S]*ลูกค้า LINE[\s\S]*advisor:read/);
   assert.match(layout, /\/dashboard\/reviews\/[\s\S]*Reviews[\s\S]*reviews:read/);
   assert.match(routes, /\["\/snt-admin\/reviews", "\/dashboard\/reviews\/"\]/);
   for (const source of [dashboard, articles, seo]) {

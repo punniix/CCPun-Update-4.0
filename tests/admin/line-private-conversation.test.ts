@@ -172,9 +172,9 @@ test("detail UI never renders provider IDs, ciphertext or document bytes", () =>
   for (const forbidden of ["lineUserId", "providerMessage", "ciphertextB64", "nonceB64", "authTagB64", "externalFileId", "documentBytes"]) {
     assert.doesNotMatch(page, new RegExp(forbidden, "i"));
   }
-  assert.match(page, /Unsend/);
-  assert.match(page, /owner-only/);
-  assert.doesNotMatch(page, /ส่งผ่าน LINE|พิมพ์ข้อความถึงลูกค้า/);
+  assert.match(page, /ลูกค้ายกเลิกข้อความนี้/);
+  assert.match(page, /รายละเอียดระบบ/);
+  assert.doesNotMatch(page, /OWNER-ONLY|Evidence archive|ส่งผ่าน LINE|พิมพ์ข้อความถึงลูกค้า/);
 });
 
 

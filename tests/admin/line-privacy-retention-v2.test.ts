@@ -106,11 +106,12 @@ test("privacy UI exposes preparation and review policy but no irreversible execu
   const retentionRoute=read("apps/admin/app/api/admin/line/privacy/retention/route.ts");
   const prepareRoute=read("apps/admin/app/api/admin/line/privacy/[requestId]/prepare/route.ts");
   assert.match(page,/RetentionPolicyEditor/);
-  assert.match(page,/raw payload materialization: blocked/);
-  assert.match(page,/Delete execution ไม่ได้เปิดจาก UI นี้/);
-  assert.match(ui,/export manifest prepared/);
-  assert.match(ui,/delete tombstone prepared/);
-  assert.match(ui,/destructive execution: blocked/);
+  assert.match(page,/ยังไม่มีข้อมูลดิบถูกส่งออกจากหน้านี้/);
+  assert.match(page,/การลบข้อมูลจริงต้องยืนยันแยกต่างหาก/);
+  assert.match(ui,/เตรียมรายการสำหรับสำเนาข้อมูลแล้ว/);
+  assert.match(ui,/เตรียมรายการที่จะต้องจัดการแล้ว · ยังไม่มีข้อมูลถูกลบ/);
+  assert.match(ui,/การลบจริงต้องยืนยันแยกอีกครั้ง/);
+  assert.doesNotMatch(page+ui,/raw payload materialization: blocked|Delete execution ไม่ได้เปิดจาก UI นี้|export manifest prepared|delete tombstone prepared|destructive execution: blocked/);
   assert.match(retentionRoute,/identity\.role !== "owner"/);
   assert.match(retentionRoute,/isSameOriginAdminMutation/);
   assert.match(prepareRoute,/isSameOriginAdminMutation/);

@@ -184,7 +184,8 @@ test("Admin UI adds real conversions and privacy surfaces without creating anoth
   assert.match(layout, /\/operations\/privacy\//);
   assert.match(conversion, /Qualified Conversations/);
   assert.match(conversion, /Aggregate safe IDs only/);
-  assert.match(privacy, /Delete execution ไม่ได้เปิดจาก UI นี้/);
+  assert.match(privacy, /การลบข้อมูลจริงต้องยืนยันแยกต่างหาก/);
+  assert.doesNotMatch(privacy, /Delete execution ไม่ได้เปิดจาก UI นี้/);
   assert.doesNotMatch(conversion + privacy, /LINE user ID|provider ID|ciphertext|message text/i);
 });
 
