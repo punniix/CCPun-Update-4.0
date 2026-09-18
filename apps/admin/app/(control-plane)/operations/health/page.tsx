@@ -17,6 +17,7 @@ import {
   readLineDocumentMediaHealth,
 } from "@/lib/admin/line/document-media";
 import { getLineMediaProviderReadiness } from "@/lib/admin/line/media-provider";
+import { readLineArchiveHealth } from "@/lib/admin/line/conversation-archive";
 
 export const metadata: Metadata = { title: "System Health" };
 
@@ -62,12 +63,13 @@ export default async function AdminHealthPage() {
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
-  const [lineKeyRotation, lineOperations, lineDocumentMedia, lineDelivery, privacySafety] = await Promise.all([
+  const [lineKeyRotation, lineOperations, lineDocumentMedia, lineDelivery, privacySafety, lineArchive] = await Promise.all([
     readLineKeyRotationStatus(),
     readLineOperationsHealth(),
     readLineDocumentMediaHealth(),
     readLineDeliveryHealth(),
     readPrivacySafetyHealth(),
+    readLineArchiveHealth(),
   ]);
   const lineProviderActivation = getLineProviderActivationReadiness();
   const lineMediaProvider = getLineMediaProviderReadiness();
@@ -120,6 +122,11 @@ export default async function AdminHealthPage() {
     ? "off"
     : privacySafety.automaticDeleteEnabled
       || privacySafety.destructiveExecutionAvailable
+      ? "warning"
+      : "ok";
+  const lineArchiveState: HealthState = lineArchive.state !== "ready"
+    ? "off"
+    : lineArchive.directAdminReplyEnabled
       ? "warning"
       : "ok";
 
@@ -208,6 +215,18 @@ export default async function AdminHealthPage() {
           <Row label="Drive scope" value={lineProviderActivation.driveScope} />
           <Row label="Drive credential" value={lineProviderActivation.drivePersistentCredentialConfigured ? "persistent" : "memory-only / ยังไม่ authorize"} />
           <p className="pt-2 text-white/50">สถานะทั้งหมดเป็น boolean / aggregate เท่านั้น ไม่แสดง token, LINE identity, Drive file/folder ID, customer content หรือ raw provider error</p>
+        </Card>
+
+        <Card title="LINE Conversation Archive" state={lineArchiveState}>
+          {lineArchive.state === "ready" ? <>
+            <Row label="Archived messages" value={lineArchive.archivedMessageCount.toLocaleString("th-TH")} />
+            <Row label="Retained Unsend" value={lineArchive.retainedUnsentCount.toLocaleString("th-TH")} />
+            <Row label="OA imported replies" value={lineArchive.importedOutboundCount.toLocaleString("th-TH")} />
+            <Row label="Cached LINE profiles" value={lineArchive.cachedProfileCount.toLocaleString("th-TH")} />
+            <Row label="Evidence access" value={lineArchive.evidenceAccessCount.toLocaleString("th-TH")} />
+            <Row label="Admin direct reply" value={lineArchive.directAdminReplyEnabled ? "เปิด — ต้องแก้" : "ปิด · ใช้ LINE OA Manager"} />
+          </> : <p className="text-white/50">Conversation Archive aggregate ยังอ่านไม่ได้ และระบบไม่ fallback ไปอ่าน private archive tables ตรง ๆ</p>}
+          <p className="pt-2 text-white/50">แสดงเฉพาะ aggregate counts; ชื่อ LINE, transcript, ciphertext และ evidence content ไม่ถูกนำมาแสดงบน System Health</p>
         </Card>
 
         <Card title="LINE Delivery / Dead Letter" state={lineDeliveryState}>

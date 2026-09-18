@@ -144,14 +144,14 @@ test("Advisor permissions remain owner-only", () => {
   }
 });
 
-test("Admin reply and stage APIs are same-origin, owner gated and fail closed", () => {
+test("Admin reply API is retired while stage mutation remains owner-only", () => {
   const reply = read("apps/admin/app/api/admin/line/inbox/[leadId]/reply/route.ts");
   const stage = read("apps/admin/app/api/admin/line/inbox/[leadId]/stage/route.ts");
   assert.match(reply, /isSameOriginAdminMutation/);
   assert.match(reply, /advisor:reply/);
-  assert.match(reply, /line-outbound-not-configured/);
-  assert.match(reply, /getLineActivationStatus/);
-  assert.doesNotMatch(reply, /LINE_CHANNEL_ACCESS_TOKEN/);
+  assert.match(reply, /admin-reply-retired-use-line-oa-manager/);
+  assert.match(reply, /status:\s*410/);
+  assert.doesNotMatch(reply, /enqueueLineAdminReply|sendLineOutboundById|LINE_CHANNEL_ACCESS_TOKEN/);
   assert.match(stage, /isSameOriginAdminMutation/);
   assert.match(stage, /advisor:case:update/);
   assert.match(stage, /invalid-stage-transition/);
@@ -173,7 +173,8 @@ test("detail UI never renders provider IDs, ciphertext or document bytes", () =>
     assert.doesNotMatch(page, new RegExp(forbidden, "i"));
   }
   assert.match(page, /Unsend/);
-  assert.match(page, /server-rendered owner view/);
+  assert.match(page, /owner-only/);
+  assert.doesNotMatch(page, /ส่งผ่าน LINE|พิมพ์ข้อความถึงลูกค้า/);
 });
 
 

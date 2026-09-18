@@ -1,6 +1,6 @@
 # LINE Private Conversation + Lead/Journey Foundation — Phase 3B–6
 
-This release extends the Production Phase 2/3A LINE foundation without activating any new provider write. It is designed to deploy safely with transcript and outbound reply **off** until the owner completes the final secret/credential activation batch.
+This release extends the Production Phase 2/3A LINE foundation. The current product contract is **LINE OA Manager for replies; Admin for Conversation Archive / Customer Timeline / Evidence only**. Direct advisor replies from Admin are retired and fail closed.
 
 ## Runtime boundaries
 
@@ -15,29 +15,26 @@ This release extends the Production Phase 2/3A LINE foundation without activatin
 
 `/dashboard/inbox/[leadId]/` uses the internal lead UUID only. No LINE user ID or provider identifier appears in the URL or client-facing safe context.
 
-The page shows safe lead context, stage history, deterministic bot classification, transcript availability, and reply/stage actions. Transcript plaintext is produced server-side only when both conditions are true:
+The page shows safe lead context, stage history, deterministic bot classification, owner-only LINE display name, transcript/archive availability, evidence access, and stage actions. It has no active reply box. Transcript plaintext is produced server-side only when both conditions are true:
 
 1. `CCPUN_LINE_TRANSCRIPT_ENABLED=true`
 2. the active encryption-key version is explicitly configured and the matching server-only key is present. During V1→V2 rotation, Admin may run with V2 only; any remaining V1 item is shown as `legacy_key_unavailable` until Web securely rotates that customer's ciphertext.
 
 Otherwise the transcript is explicitly `disabled` or `key_unavailable`. The Admin never falls back to raw table reads.
 
-Unsent LINE messages remain tombstones. The transcript SQL projection returns no content ciphertext/nonce/tag/key version for `status='unsent'`, so purged content cannot be reconstructed through this surface.
+Operational Unsend still purges the live `private_line.message` content fields. Before that can happen, `line_conversation_archive` receives an encrypted evidence copy. The archive record changes to `unsent` and records `unsent_at` without clearing its encrypted message content. Legacy Unsend rows that were already purged before this archive migration remain content-unavailable.
 
-## Outbound reply safety
+## Conversation Archive / reply boundary
 
-Admin reply is fail-closed. Provider sending requires all of:
+- Customer → OA messages enter in realtime through the signed LINE webhook.
+- Human replies remain in LINE OA Manager, not Admin.
+- The Admin reply endpoint is retained only as a compatibility boundary and returns HTTP 410.
+- `ccpun_admin_runtime` no longer has EXECUTE on `admin_enqueue_line_reply(jsonb)` or `admin_claim_line_outbound(jsonb)`.
+- `getLineActivationStatus().outboundEnabled` and the Admin `replyEnabled` status are hard-false.
+- Historical LINE OA Manager replies can be added to the archive through an owner-only CSV import. The CSV bytes are not stored; only selected CCPun-sender rows are encrypted and inserted idempotently.
+- The LINE Channel Access Token remains useful for owner-only profile lookup, media fetch and Rich Menu operations; it is not an authorization to make Admin a chat-send surface.
 
-- owner identity + `advisor:reply`;
-- same-origin POST;
-- bounded text (1–2,000 characters);
-- `CCPUN_LINE_OUTBOUND_ENABLED=true`;
-- a valid key for `CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION` (V2 after rotation activation);
-- `CCPUN_LINE_CHANNEL_ACCESS_TOKEN`.
-
-The reply is encrypted before it enters `private_line.outbound_message`. The durable queue uses a unique idempotency digest, lease owner/expiry, attempt count, delivery-attempt ledger, and explicit `reconciliation_required` state.
-
-The provider adapter calls only `https://api.line.me/v2/bot/message/push`, sends the token only in `Authorization: Bearer`, uses `X-Line-Retry-Key`, has a seven-second timeout, and never automatically retries an ambiguous provider result. Ambiguity is checkpointed for manual reconciliation.
+The historical outbound queue/provider code remains for migration/audit compatibility, but no active Admin route can enqueue or claim new advisor replies.
 
 ## Lead state model
 
@@ -78,13 +75,14 @@ The bridge returns a LINE continue link and attempts to store the safe journey e
 
 ## UAT/Production migration chain
 
-The release uses three checksum-locked additive steps:
+The current chain adds a fourth checksum-locked step:
 
 1. `20260918_line_private_conversation_v1_*` — data model/functions/queue/journey foundation.
 2. `20260918_line_private_conversation_security_v1_*` — revokes default PUBLIC function execution and re-grants only intended role capabilities.
-3. `20260918_line_private_context_compat_v1_*` — restores the original Phase 3A `advisor_inbox_safe` shape and moves new context into `lead_context_safe`, preserving historical readback compatibility.
+3. `20260918_line_private_context_compat_v1_*` — restores the original Phase 3A `advisor_inbox_safe` shape and moves new context into `lead_context_safe`.
+4. `20260918_line_conversation_archive_v1_*` — owner-only encrypted archive, retained Unsend evidence, encrypted LINE profile cache, OA CSV import, evidence access audit, and direct-reply capability revocation.
 
-All three have UAT/Production parity and lane-specific guards.
+UAT and Production archive bodies are parity-locked and checksum-guarded.
 
 ## Encryption key rotation V1 → V2
 
@@ -101,16 +99,13 @@ The rotation contract is:
 
 Admin-created V1 outbound/private-note records are intentionally not exposed to Web rotation. If `admin_only_v1_count` is non-zero, V1 retirement stays blocked until a separately reviewed Admin-owned rotation path exists.
 
-## Human Activation Batch
+## Current owner activation contract
 
 Owner-only values are entered directly at the provider and never pasted into chat:
 
-1. `CCPUN_LINE_ENCRYPTION_KEY_V2` must exist in both Production Vercel projects.
-2. `CCPUN_LINE_CHANNEL_ACCESS_TOKEN` must be added directly to `ccpun-admin` Production before outbound LINE sending can be enabled.
-3. After provider readiness and key-rotation verification, the non-secret gates may be enabled:
-   - `CCPUN_LINE_TRANSCRIPT_ENABLED=true`
-   - `CCPUN_LINE_OUTBOUND_ENABLED=true`
-4. Later Drive/media phases add a separate interactive Google `drive.file` consent gate; access/refresh tokens are never pasted into chat or persisted by this LINE runtime.
-5. Production Admin owner sign-in and real mobile/LINE interactions remain Final Human UAT actions.
-
-Until provider activation is complete, Production can safely contain the release with transcript/outbound provider writes disabled.
+1. `CCPUN_LINE_ENCRYPTION_KEY_V2` remains the active encryption key.
+2. `CCPUN_LINE_CHANNEL_ACCESS_TOKEN` is retained in `ccpun-admin` for private profile lookup, media fetch and gated Rich Menu operations.
+3. `CCPUN_LINE_TRANSCRIPT_ENABLED=true` may remain enabled for owner-only archive reading.
+4. `CCPUN_LINE_OUTBOUND_ENABLED` must remain false; the application and database also fail closed if it is accidentally enabled.
+5. Drive/media uses a separate interactive Google `drive.file` consent gate; access/refresh tokens are never pasted into chat or persisted by this LINE runtime.
+6. LINE OA Manager remains the source of truth for sending human replies. Its exported chat history can be imported later to fill the CCPun side of the archive.
