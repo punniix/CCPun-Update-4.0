@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { getCliClient } from "sanity/cli";
+import { createClient } from "@sanity/client";
 
 const API_VERSION = "2026-09-18";
 const PROJECT_ID = "kyfxgjnq";
@@ -8,8 +7,10 @@ const APP_ENV = "local-production";
 const APPLY_CONFIRM = "CCPUN-CONTENT-ID-NORMALIZE-PRODUCTION";
 const LEGACY_ID_PATTERN = /(?:^|[.-])(wp|v41|published)(?:[.-]|$)/i;
 const MIGRATABLE_TYPES = ["category", "author", "article"] as const;
+const CANONICAL_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type MigratableType = (typeof MIGRATABLE_TYPES)[number];
+
 type RawDocument = Record<string, unknown> & {
   _id: string;
   _type: string;
@@ -25,16 +26,40 @@ type MigrationEntry = {
   type: MigratableType;
   oldId: string;
   newId: string;
+  slug: string;
   variants: string[];
+};
+
+type PublicSnapshot = {
+  categories: Array<{
+    slug: string;
+    status: string | null;
+    title: string | null;
+  }>;
+  articles: Array<{
+    slug: string;
+    title: string | null;
+    categorySlug: string | null;
+    canonical: string | null;
+    publishedAt: string | null;
+    contentUpdatedAt: string | null;
+  }>;
 };
 
 function logicalId(id: string) {
   return id.replace(/^drafts\./, "");
 }
 
-function targetId(type: MigratableType, oldId: string) {
-  const digest = createHash("sha256").update(`${type}:${oldId}`).digest("hex").slice(0, 24);
-  return `ccpun-${type}-${digest}`;
+function slugOf(document: RawDocument) {
+  const slug = (document.slug as { current?: unknown } | undefined)?.current;
+  if (typeof slug !== "string" || !CANONICAL_SLUG_PATTERN.test(slug)) {
+    throw new Error(`Refusing ID normalization: ${document._type} ${document._id} has no canonical a-z0-9 slug`);
+  }
+  return slug;
+}
+
+function targetId(type: MigratableType, slug: string) {
+  return `ccpun-${type}-${slug}`;
 }
 
 function stripSystemFields(document: RawDocument, nextId: string) {
@@ -88,24 +113,63 @@ function topLevelReferencePatch(document: RawDocument, idMap: Map<string, string
 
 function parseArgs(args: string[]) {
   const apply = args.includes("--apply");
-  const dryRun = args.includes("--dry-run") || !apply;
+  const explicitDryRun = args.includes("--dry-run");
   const confirm = args.find((arg) => arg.startsWith("--confirm="))?.slice("--confirm=".length);
   const unknown = args.filter((arg) => arg !== "--apply" && arg !== "--dry-run" && !arg.startsWith("--confirm="));
   if (unknown.length) throw new Error(`Unknown arguments: ${unknown.join(", ")}`);
-  if (apply && dryRun && args.includes("--dry-run")) throw new Error("Choose only one of --dry-run or --apply");
+  if (apply && explicitDryRun) throw new Error("Choose only one of --dry-run or --apply");
   return { apply, confirm };
+}
+
+async function publicSnapshot(client: ReturnType<typeof createClient>): Promise<PublicSnapshot> {
+  return client.fetch<PublicSnapshot>(`{
+    "categories": *[_type == "category" && !(_id in path("drafts.**"))] | order(slug.current asc) {
+      "slug": slug.current,
+      "status": coalesce(status, null),
+      "title": coalesce(title, null)
+    },
+    "articles": *[_type == "article" && !(_id in path("drafts.**")) && !(_id in path("versions.**"))]
+      | order(slug.current asc) {
+        "slug": slug.current,
+        "title": coalesce(title, null),
+        "categorySlug": coalesce(category->slug.current, null),
+        "canonical": coalesce(seo.canonical, null),
+        "publishedAt": coalesce(publishedAt, null),
+        "contentUpdatedAt": coalesce(contentUpdatedAt, null)
+      }
+  }`);
+}
+
+function assertSamePublicSnapshot(before: PublicSnapshot, after: PublicSnapshot) {
+  if (JSON.stringify(before) !== JSON.stringify(after)) {
+    throw new Error("Public URL/content ownership snapshot changed during ID normalization");
+  }
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const client = getCliClient({ apiVersion: API_VERSION }).withConfig({ useCdn: false, perspective: "raw" });
-  const config = client.config();
-  if (config.projectId !== PROJECT_ID || config.dataset !== DATASET || process.env.CCPUN_APP_ENV !== APP_ENV) {
-    throw new Error(`Refusing migration: expected ${APP_ENV} ${PROJECT_ID}/${DATASET}`);
+  const token = process.env.SANITY_API_TOKEN?.trim() || process.env.SANITY_AUTH_TOKEN?.trim();
+  if (!token) throw new Error("Missing Production Sanity write credential");
+  if (process.env.CCPUN_APP_ENV !== APP_ENV) {
+    throw new Error(`Refusing migration: expected CCPUN_APP_ENV=${APP_ENV}`);
+  }
+  if (process.env.NEXT_PUBLIC_SANITY_PROJECT_ID !== PROJECT_ID || process.env.NEXT_PUBLIC_SANITY_DATASET !== DATASET) {
+    throw new Error(`Refusing migration: expected ${PROJECT_ID}/${DATASET}`);
   }
   if (args.apply && args.confirm !== APPLY_CONFIRM) {
     throw new Error(`Refusing apply: pass --confirm=${APPLY_CONFIRM}`);
   }
+
+  const client = createClient({
+    projectId: PROJECT_ID,
+    dataset: DATASET,
+    apiVersion: API_VERSION,
+    useCdn: false,
+    perspective: "raw",
+    token,
+    maxRetries: 0,
+    requestTagPrefix: "ccpun.content-id-normalize",
+  });
 
   const legacyTypeCount = await client.fetch<number>(
     `count(*[_type in ["articleV41","categoryV41"]])`,
@@ -134,15 +198,30 @@ async function main() {
     if (!sample || !MIGRATABLE_TYPES.includes(sample._type as MigratableType)) continue;
     const oldId = logicalId(sample._id);
     if (!LEGACY_ID_PATTERN.test(oldId)) continue;
+
     const type = sample._type as MigratableType;
-    const newId = targetId(type, oldId);
-    plan.push({ type, oldId, newId, variants: documents.map((doc) => doc._id).sort() });
+    const slugs = new Set(documents.map(slugOf));
+    if (slugs.size !== 1) {
+      throw new Error(`Refusing ID normalization: variants for ${oldId} disagree on slug`);
+    }
+    const slug = [...slugs][0]!;
+    const newId = targetId(type, slug);
+    if (LEGACY_ID_PATTERN.test(newId)) {
+      throw new Error(`Refusing ID normalization: generated target still looks legacy: ${newId}`);
+    }
+    plan.push({ type, oldId, newId, slug, variants: documents.map((doc) => doc._id).sort() });
   }
 
   plan.sort((left, right) => {
     const order: Record<MigratableType, number> = { category: 0, author: 1, article: 2 };
-    return order[left.type] - order[right.type] || left.oldId.localeCompare(right.oldId);
+    return order[left.type] - order[right.type] || left.slug.localeCompare(right.slug);
   });
+
+  const duplicateTargets = [...new Set(plan.map((entry) => entry.newId))]
+    .filter((id) => plan.filter((entry) => entry.newId === id).length > 1);
+  if (duplicateTargets.length) {
+    throw new Error(`Refusing migration: duplicate canonical targets ${duplicateTargets.join(", ")}`);
+  }
 
   const targetIds = plan.flatMap((entry) => [entry.newId, `drafts.${entry.newId}`]);
   const existingTargets = targetIds.length
@@ -152,14 +231,24 @@ async function main() {
     throw new Error(`Refusing migration because target IDs already exist: ${existingTargets.join(", ")}`);
   }
 
+  const currentLegacyIdsBefore = await client.fetch<string[]>(
+    `*[_type in $types && !(_id in path("versions.**")) &&
+      (_id match "*wp*" || _id match "*v41*" || _id match "*published*")]._id`,
+    { types: [...MIGRATABLE_TYPES] },
+  );
+  const beforePublic = await publicSnapshot(client);
+
   console.log(JSON.stringify({
     mode: args.apply ? "apply" : "dry-run",
     projectId: PROJECT_ID,
     dataset: DATASET,
-    migrationCount: plan.length,
+    logicalMigrationCount: plan.length,
+    rawVariantCount: plan.reduce((sum, entry) => sum + entry.variants.length, 0),
+    currentLegacyIdCount: currentLegacyIdsBefore.length,
     byType: Object.fromEntries(MIGRATABLE_TYPES.map((type) => [type, plan.filter((entry) => entry.type === type).length])),
     migrations: plan,
-    historicalVersionsExcluded: true,
+    historicalVersionDocumentsRenamed: false,
+    historicalVersionReferencesWillBeRepointed: true,
   }, null, 2));
 
   if (!args.apply) {
@@ -175,7 +264,7 @@ async function main() {
     if (!variants.length) continue;
 
     const referrers = await client.fetch<RawDocument[]>(
-      `*[references($oldId) && !(_id in path("versions.**")) && !(_id in $variantIds)]{...}`,
+      `*[references($oldId) && !(_id in $variantIds)]{...}`,
       { oldId: entry.oldId, variantIds },
     );
 
@@ -208,35 +297,65 @@ async function main() {
         patch: {
           id: source._id,
           ifRevisionID: source._rev,
-          setIfMissing: { _ccpunMigrationGuard: entry.newId },
+          unset: ["_empty_action_guard_pseudo_field_"],
         },
       });
       mutations.push({ delete: { id: source._id } });
     }
 
-    await client.mutate(mutations, { visibility: "sync", returnDocuments: false });
+    await client.mutate(mutations, {
+      visibility: "sync",
+      returnDocuments: false,
+      tag: `ccpun.content-id-normalize.${entry.type}`,
+    });
 
     const [oldRemaining, newVariants, oldRefCount] = await Promise.all([
       client.fetch<number>(`count(*[_id in $ids])`, { ids: variantIds }),
       client.fetch<string[]>(`*[_id in $ids]._id`, { ids: [entry.newId, `drafts.${entry.newId}`] }),
-      client.fetch<number>(`count(*[references($oldId) && !(_id in path("versions.**"))])`, { oldId: entry.oldId }),
+      client.fetch<number>(`count(*[references($oldId)])`, { oldId: entry.oldId }),
     ]);
+
     if (oldRemaining !== 0 || newVariants.length !== variants.length || oldRefCount !== 0) {
       throw new Error(`Readback failed after migrating ${entry.oldId}`);
     }
+
     migratedIdMap.set(entry.oldId, entry.newId);
-    console.log(JSON.stringify({ migrated: entry.oldId, to: entry.newId, variants: newVariants.sort() }));
+    console.log(JSON.stringify({
+      migrated: entry.oldId,
+      to: entry.newId,
+      variants: newVariants.sort(),
+      repointedReferrers: referrers.length,
+    }));
   }
 
   const remainingLegacyCurrentIds = await client.fetch<string[]>(
-    `*[_type in $types && !(_id in path("versions.**")) && (_id match "*wp*" || _id match "*v41*" || _id match "*published*")]._id`,
+    `*[_type in $types && !(_id in path("versions.**")) &&
+      (_id match "*wp*" || _id match "*v41*" || _id match "*published*")]._id`,
     { types: [...MIGRATABLE_TYPES] },
   );
   if (remainingLegacyCurrentIds.length) {
     throw new Error(`Migration finished with legacy current IDs remaining: ${remainingLegacyCurrentIds.join(", ")}`);
   }
 
-  console.log("Content ID normalization complete. Historical release versions were intentionally preserved.");
+  const oldIds = plan.map((entry) => entry.oldId);
+  const oldReferenceCount = oldIds.length
+    ? await client.fetch<number>(`count(*[references($oldIds)])`, { oldIds })
+    : 0;
+  if (oldReferenceCount !== 0) {
+    throw new Error(`Migration finished with ${oldReferenceCount} references to retired IDs`);
+  }
+
+  const afterPublic = await publicSnapshot(client);
+  assertSamePublicSnapshot(beforePublic, afterPublic);
+
+  console.log(JSON.stringify({
+    ok: true,
+    migratedLogicalDocuments: plan.length,
+    remainingLegacyCurrentIds: 0,
+    referencesToRetiredIds: 0,
+    publicSnapshotUnchanged: true,
+    historicalVersionDocumentIdsPreserved: true,
+  }, null, 2));
 }
 
 main().catch((error) => {
