@@ -165,6 +165,44 @@ function privateEventPayload(event: LinePrivateIngestEvent) {
 
 type LineIngressSqlClient = NeonQueryFunction<false, false>;
 
+function lineRuntimeHealthPayload(
+  variables: Record<string, string | undefined>,
+) {
+  try {
+    const crypto = createLineContentCrypto(variables);
+    const lazyRotationEnabled =
+      variables.CCPUN_LINE_LAZY_KEY_ROTATION_ENABLED?.trim() === "true" &&
+      crypto.keyVersion === 2 &&
+      crypto.hasKeyVersion(1) &&
+      crypto.hasKeyVersion(2);
+    return {
+      active_version: crypto.keyVersion,
+      v1_key_present: crypto.hasKeyVersion(1),
+      v2_key_present: crypto.hasKeyVersion(2),
+      lazy_rotation_enabled: lazyRotationEnabled,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function recordLineRuntimeHealthBestEffort(
+  sql: LineIngressSqlClient,
+  variables: Record<string, string | undefined>,
+) {
+  const payload = lineRuntimeHealthPayload(variables);
+  if (!payload) return;
+  try {
+    await sql.query(
+      "SELECT outcome FROM private_line.ingress_record_line_runtime_health($1::jsonb)",
+      [JSON.stringify(payload)],
+    );
+  } catch {
+    // The status function is additive and may not exist during a rolling deploy.
+    // Ingestion must remain available; System Health simply stays stale until the next accepted event.
+  }
+}
+
 async function rotateCurrentIdentityBestEffort(
   sql: LineIngressSqlClient,
   identityDigest: string,
@@ -242,6 +280,8 @@ export function createLinePrivateIngestor(
     ) {
       throw new Error("LINE_PRIVATE_INGEST_INVALID_RESULT");
     }
+
+    await recordLineRuntimeHealthBestEffort(sql, variables);
 
     if (outcome === "accepted" && event.identity && rotationCrypto) {
       await rotateCurrentIdentityBestEffort(sql, event.identity.lookupDigest, rotationCrypto);

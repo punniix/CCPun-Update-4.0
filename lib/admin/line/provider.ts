@@ -1,4 +1,4 @@
-import "server-only";
+if (typeof window !== "undefined") throw new Error("CCPUN_LINE_PROVIDER_SERVER_ONLY");
 
 import {
   createLineContentCrypto,
@@ -12,6 +12,7 @@ import {
   getLineActivationStatus,
   lineWorkerDigest,
 } from "./control-plane";
+import { classifyLineProviderFailure } from "./provider-classification";
 
 const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 
@@ -26,6 +27,7 @@ export type LineProviderSendResult =
         | "unsupported_key_version"
         | "failed"
         | "reconciliation_required";
+      retryClass?: "retryable" | "permanent";
     };
 
 function encryptedValue(row: {
@@ -94,7 +96,7 @@ export async function sendLineOutboundById(
     }
     if (keyUnavailable) return { ok: false, status: "key_unavailable" };
     if (unsupported) return { ok: false, status: "unsupported_key_version" };
-    return { ok: false, status: "failed" };
+    return { ok: false, status: "failed", retryClass: "permanent" };
   }
 
   try {
@@ -115,13 +117,15 @@ export async function sendLineOutboundById(
       return { ok: true, status: "sent" };
     }
 
-    const errorClass = response.status === 429
-      ? "rate_limited"
-      : response.status >= 500
-        ? "provider_unavailable"
-        : "provider_rejected";
-    await checkpointLineOutbound({ outboundId, workerDigest, result: "failed", providerStatusCode: response.status, errorClass }, variables);
-    return { ok: false, status: "failed" };
+    const classification = classifyLineProviderFailure(response.status);
+    await checkpointLineOutbound({
+      outboundId,
+      workerDigest,
+      result: "failed",
+      providerStatusCode: response.status,
+      errorClass: classification.errorClass,
+    }, variables);
+    return { ok: false, status: "failed", retryClass: classification.retryClass };
   } catch {
     try {
       await checkpointLineOutbound({ outboundId, workerDigest, result: "reconciliation_required", errorClass: "provider_result_ambiguous" }, variables);

@@ -60,6 +60,23 @@ export function requiresHumanKnowledgeHandoff(input: SafeKnowledgeRequest) {
     || input.needs_human;
 }
 
+export function buildSafeKnowledgeEventPayload(
+  input: unknown,
+  decision: SafeKnowledgeDecision,
+) {
+  const request = parseSafeKnowledgeRequest(input);
+  if (!request || decision.questionId !== request.question_id) return null;
+  return {
+    question_id: request.question_id,
+    journey: request.journey,
+    stage: request.stage,
+    outcome: decision.kind,
+    reason: decision.kind === "human_handoff" ? decision.reason : null,
+    request_content_id: request.content_id ?? null,
+    source_slug: decision.kind === "human_handoff" ? null : decision.sourceSlug,
+  } as const;
+}
+
 export const SAFE_KNOWLEDGE_FORBIDDEN_KEYS = [
   "customer_id", "lead_id", "line_user_id", "user_id", "name", "display_name",
   "message", "text", "chat", "document", "file", "phone", "email", "address",

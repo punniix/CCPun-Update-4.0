@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
-import { PrivacyRequestActions, PrivacyRequestManager } from "@/features/admin/line/PrivacyRequestManager";
-import { listPrivacyRequests } from "@/lib/admin/line/business-intelligence";
+import {
+  PrivacyRequestActions,
+  PrivacyRequestManager,
+  RetentionPolicyEditor,
+} from "@/features/admin/line/PrivacyRequestManager";
+import {
+  listPrivacyRequests,
+  readPrivacySafetyHealth,
+} from "@/lib/admin/line/business-intelligence";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 
 export const metadata: Metadata = { title: "Privacy / Data Rights" };
@@ -9,7 +16,7 @@ function date(value:string|null){ if(!value) return "—"; const d=new Date(valu
 
 export default async function PrivacyPage(){
   await requireAdminPermission("settings:read");
-  const model=await listPrivacyRequests();
+  const [model,safety]=await Promise.all([listPrivacyRequests(),readPrivacySafetyHealth()]);
   return (
     <div>
       <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">PRIVATE OPERATIONS</p>
@@ -17,6 +24,24 @@ export default async function PrivacyPage(){
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">Export และ Delete เป็น deterministic private workflow เท่านั้น ไม่มี AI อ่านข้อมูลลูกค้า และ retention default เป็น manual review โดยไม่มี auto-delete</p>
 
       <div className="mt-7"><PrivacyRequestManager /></div>
+
+      {safety.state==="ready"?(
+        <>
+          <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-xs text-white/45">Retention</p><p className="mt-2 text-lg font-semibold">{safety.retentionMode}</p><p className="mt-1 text-xs text-white/45">auto-delete: {safety.automaticDeleteEnabled?"on":"off"}</p></article>
+            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-xs text-white/45">Export manifests</p><p className="mt-2 text-lg font-semibold">{safety.preparedExportManifestCount}</p><p className="mt-1 text-xs text-white/45">raw payload materialization: blocked</p></article>
+            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-xs text-white/45">Delete tombstones</p><p className="mt-2 text-lg font-semibold">{safety.preparedDeleteTombstoneCount}</p><p className="mt-1 text-xs text-white/45">attachments to clean: {safety.attachmentCleanupRequiredCount}</p></article>
+            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-xs text-white/45">Recovery evidence</p><p className="mt-2 text-sm font-semibold">{safety.backupRestoreEvidenceState}</p><p className="mt-1 text-xs text-white/45">key rotation: {safety.keyRotationEvidenceState}</p></article>
+          </section>
+          <div className="mt-6">
+            <RetentionPolicyEditor
+              conversationReviewAfterDays={safety.conversationReviewAfterDays}
+              documentReviewAfterDays={safety.documentReviewAfterDays}
+              auditReviewAfterDays={safety.auditReviewAfterDays}
+            />
+          </div>
+        </>
+      ):null}
 
       <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
