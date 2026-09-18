@@ -7,13 +7,24 @@ const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta
 test("Studio article workspace separates publication lifecycle states", () => {
   const source = read("cms/sanity/config/structure.ts");
   assert.match(source, /บทความ · แยกตามสถานะ/);
-  assert.match(source, /ฉบับร่างใหม่ · ยังไม่เคยเผยแพร่/);
-  assert.match(source, /เผยแพร่แล้ว · มีฉบับร่างแก้ไข/);
-  assert.match(source, /เผยแพร่แล้ว · ฉบับ Live/);
+  assert.match(source, /Production · ฉบับ Live/);
+  assert.match(source, /Optimize · มี Draft รอ Publish/);
+  assert.match(source, /Draft · ยังไม่เคย Publish/);
   assert.match(source, /const ARTICLE_DRAFT_FILTER = `_type == "article" && _originalId in path\("drafts\.\*\*"\)`/);
   assert.match(source, /\$\{ARTICLE_DRAFT_FILTER\} && !defined\(publishedAt\)/);
   assert.match(source, /\$\{ARTICLE_DRAFT_FILTER\} && defined\(publishedAt\)/);
   assert.match(source, /!defined\(_originalId\) && defined\(publishedAt\)/);
+});
+
+test("Studio category workspace separates Production, Optimize and never-published Drafts", () => {
+  const source = read("cms/sanity/config/structure.ts");
+  assert.match(source, /หมวดหมู่ · แยกตามสถานะ/);
+  assert.match(source, /Production · Published/);
+  assert.match(source, /Optimize · Active Draft/);
+  assert.match(source, /Draft · ยังไม่เคย Publish/);
+  assert.match(source, /const CATEGORY_DRAFT_FILTER = `_type == "category" && _originalId in path\("drafts\.\*\*"\)`/);
+  assert.match(source, /\$\{CATEGORY_DRAFT_FILTER\} && status == "active"/);
+  assert.match(source, /\$\{CATEGORY_DRAFT_FILTER\} && \(status == "draft" \|\| !defined\(status\)\)/);
 });
 
 test("Studio article workspace exposes the existing review workflow as filtered draft lists", () => {
