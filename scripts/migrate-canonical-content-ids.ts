@@ -164,6 +164,8 @@ async function main() {
     return;
   }
 
+  const migratedIdMap = new Map<string, string>();
+
   for (const entry of plan) {
     const variantIds = [entry.oldId, `drafts.${entry.oldId}`];
     const variants = await client.fetch<RawDocument[]>(`*[_id in $ids]{...}`, { ids: variantIds });
@@ -174,17 +176,20 @@ async function main() {
       { oldId: entry.oldId, variantIds },
     );
 
-    const mutations: Array<Record<string, unknown>> = [];
+    const currentIdMap = new Map(migratedIdMap);
+    currentIdMap.set(entry.oldId, entry.newId);
+    const currentOnlyMap = new Map([[entry.oldId, entry.newId]]);
+    const mutations: any[] = [];
 
     for (const source of variants) {
       const nextRawId = source._id.startsWith("drafts.") ? `drafts.${entry.newId}` : entry.newId;
       const clone = stripSystemFields(source, nextRawId);
-      const rewritten = rewriteRefs(clone, idMap);
+      const rewritten = rewriteRefs(clone, currentIdMap);
       mutations.push({ create: rewritten.value });
     }
 
     for (const referrer of referrers) {
-      const set = topLevelReferencePatch(referrer, idMap);
+      const set = topLevelReferencePatch(referrer, currentOnlyMap);
       if (!Object.keys(set).length) continue;
       mutations.push({
         patch: {
@@ -216,6 +221,7 @@ async function main() {
     if (oldRemaining !== 0 || newVariants.length !== variants.length || oldRefCount !== 0) {
       throw new Error(`Readback failed after migrating ${entry.oldId}`);
     }
+    migratedIdMap.set(entry.oldId, entry.newId);
     console.log(JSON.stringify({ migrated: entry.oldId, to: entry.newId, variants: newVariants.sort() }));
   }
 
