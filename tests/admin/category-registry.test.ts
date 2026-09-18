@@ -123,7 +123,7 @@ test("one malformed category and registry request failure fail soft", async () =
     ...productionSix,
     { _id: "broken", title: "Broken", slug: "broken", status: "wrong" },
   ]);
-  assert.equal(registry.active.length, 5);
+  assert.equal(registry.active.length, 6);
   assert.ok(registry.issues.some((issue) => issue.id === "broken" && issue.code === "invalid-record"));
 
   const unavailable = await loadCategoryRegistrySafe(async () => { throw new Error("Sanity unavailable"); });
