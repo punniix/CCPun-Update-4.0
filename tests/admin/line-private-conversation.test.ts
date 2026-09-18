@@ -225,10 +225,10 @@ test("inbox reader migration keeps UAT/Production parity and hides base-table ac
   assert.match(bodyUat, /GRANT EXECUTE ON FUNCTION private_line\.admin_read_advisor_inbox\(uuid,integer\) TO ccpun_admin_runtime/);
 });
 
-test("Admin runtime readiness pins the final inbox-reader ledger and never reads private base tables directly", () => {
+test("Admin runtime readiness is capability-based and never reads migration/base tables directly", () => {
   const source = read("lib/admin/line/control-plane.ts");
-  assert.match(source, /20260918_line_private_inbox_reader_v1_\$\{lane\}/);
-  assert.match(source, /48d5ebc7084f38f6a4e9bdb5ff4f72b1a7ba9bfc42f8356f6fbfd59ee0607c1c/);
+  assert.match(source, /has_function_privilege\(current_user, 'private_line\.admin_read_advisor_inbox\(uuid,integer\)', 'EXECUTE'\)/);
   assert.match(source, /private_line\.admin_read_advisor_inbox/);
+  assert.doesNotMatch(source, /FROM private_line\.schema_migration\b/);
   assert.doesNotMatch(source, /FROM private_line\.(?:lead|customer|conversation|message|advisor_case|lead_context)\b/);
 });

@@ -19,12 +19,7 @@ import {
   type LineBotDecision,
 } from "../../line/ecosystem";
 
-const PRIVATE_CONVERSATION_READY_CHECKSUM = "48d5ebc7084f38f6a4e9bdb5ff4f72b1a7ba9bfc42f8356f6fbfd59ee0607c1c";
 export const LINE_ADVISOR_INBOX_STAGES = LINE_CASE_STAGES;
-
-function privateConversationMigrationVersion(lane: AdminOperationsLane) {
-  return `20260918_line_private_inbox_reader_v1_${lane}`;
-}
 
 const safeInboxRowSchema = z.object({
   lead_id: z.string().uuid(),
@@ -207,7 +202,6 @@ type LineAdminSqlClient = NonNullable<Awaited<ReturnType<typeof runtimeSql>>>["s
 
 async function conversationReady(
   sql: LineAdminSqlClient,
-  lane: AdminOperationsLane,
 ) {
   const rows = await sql.query(
     `SELECT
@@ -219,7 +213,7 @@ async function conversationReady(
        has_function_privilege(current_user, 'private_line.admin_read_line_transcript(uuid,integer)', 'EXECUTE') AS can_read_transcript,
        current_user AS role_name`,
     [],
-  ) as Array<{ migration_ready: boolean; safe_view: string | null; context_view: string | null; can_read_view: boolean; can_read_context: boolean; can_read_inbox: boolean; can_read_transcript: boolean; role_name: string }>;
+  ) as Array<{ safe_view: string | null; context_view: string | null; can_read_view: boolean; can_read_context: boolean; can_read_inbox: boolean; can_read_transcript: boolean; role_name: string }>;
   const row = rows[0];
   return Boolean(
     row.safe_view === "private_line.advisor_inbox_safe" &&
@@ -304,7 +298,7 @@ export async function listAdvisorInboxSafe(
   }
 
   try {
-    const ready = await conversationReady(handle.sql, handle.runtime.lane);
+    const ready = await conversationReady(handle.sql);
     if (!ready) {
       return { status: baseStatus(variables, false, false), rows: [], aggregate: aggregateRows([]), unavailableReason: "safe_view_not_ready" };
     }
@@ -345,7 +339,7 @@ export async function readLineCaseDetail(
   const handle = await runtimeSql(variables);
   if (!handle) return { status: baseStatus(variables, false, false), item: null, stageHistory: [], transcript: { state: "read_failed", items: [] }, botDecision: "human_handoff", unavailableReason: "admin_runtime_not_ready" };
   try {
-    const ready = await conversationReady(handle.sql, handle.runtime.lane);
+    const ready = await conversationReady(handle.sql);
     if (!ready) return { status: baseStatus(variables, false, false), item: null, stageHistory: [], transcript: { state: "read_failed", items: [] }, botDecision: "human_handoff", unavailableReason: "private_conversation_not_ready" };
     const safeRows = z.array(safeInboxRowSchema).parse(await handle.sql.query(
       `SELECT lead_id::text, advisor_case_id::text, customer_code, stage, journey,
@@ -417,7 +411,7 @@ export async function enqueueLineAdminReply(input: {
   if (!z.string().uuid().safeParse(input.leadId).success || !text || text.length > 2000) throw new Error("LINE_REPLY_INVALID");
   const handle = await runtimeSql(variables);
   const crypto = createLineContentCrypto(variables);
-  if (!handle || !(await conversationReady(handle.sql, handle.runtime.lane))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
+  if (!handle || !(await conversationReady(handle.sql))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
   const requestId = input.requestId ?? randomUUID();
   const encrypted = crypto.encrypt(text, "admin-outbound-message-content");
   const payload = {
@@ -440,7 +434,7 @@ export async function claimLineOutbound(
   variables: Record<string, string | undefined> = process.env,
 ) {
   const handle = await runtimeSql(variables);
-  if (!handle || !(await conversationReady(handle.sql, handle.runtime.lane))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
+  if (!handle || !(await conversationReady(handle.sql))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
   const rows = z.array(claimRowSchema).parse(await handle.sql.query(
     `SELECT outbound_id::text, lead_id::text, attempt_number, recipient_ciphertext_b64, recipient_nonce_b64,
             recipient_auth_tag_b64, recipient_key_version, content_ciphertext_b64, content_nonce_b64,
@@ -458,7 +452,7 @@ export async function checkpointLineOutbound(input: {
   errorClass?: string;
 }, variables: Record<string, string | undefined> = process.env) {
   const handle = await runtimeSql(variables);
-  if (!handle || !(await conversationReady(handle.sql, handle.runtime.lane))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
+  if (!handle || !(await conversationReady(handle.sql))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
   const rows = await handle.sql.query(`SELECT outcome FROM private_line.admin_checkpoint_line_outbound($1::jsonb)`, [JSON.stringify({
     outbound_id: input.outboundId,
     worker_digest: input.workerDigest,
@@ -479,7 +473,7 @@ export async function updateLineLeadStage(input: {
   const detail = await readLineCaseDetail(input.leadId, variables);
   if (!detail.item || !canTransitionLineCaseStage(detail.item.stage, input.stage)) throw new Error("LINE_STAGE_TRANSITION_INVALID");
   const handle = await runtimeSql(variables);
-  if (!handle || !(await conversationReady(handle.sql, handle.runtime.lane))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
+  if (!handle || !(await conversationReady(handle.sql))) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
   const rows = await handle.sql.query(`SELECT outcome, lead_id::text FROM private_line.admin_update_lead_stage($1::jsonb)`, [JSON.stringify({
     lead_id: input.leadId,
     stage: input.stage,
