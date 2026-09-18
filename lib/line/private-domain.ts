@@ -1,3 +1,4 @@
+import { parseLinePostbackContext, type LinePostbackContext } from "./ecosystem";
 import type { LineEncryptedValue, LinePrivateCrypto } from "./private-crypto";
 
 export type LinePrivateIdentity = {
@@ -21,6 +22,7 @@ export type LinePrivateIngestEvent = {
   sourceType: "user" | "group" | "room" | "unknown";
   identity: LinePrivateIdentity | null;
   message: LinePrivateMessage | null;
+  postback: LinePostbackContext | null;
   unsendTargetDigest: string | null;
   needsHuman: boolean;
 };
@@ -91,6 +93,7 @@ export function normalizeLinePrivateEvent(
     isRedelivery: deliveryContext?.isRedelivery === true,
     sourceType: sourceTypeOf(source),
     identity,
+    postback: null as LinePostbackContext | null,
   };
 
   if (type === "unsend") {
@@ -129,14 +132,17 @@ export function normalizeLinePrivateEvent(
   }
 
   if (type === "postback") {
+    const postback = asRecord(event.postback);
+    const context = parseLinePostbackContext(nonEmptyString(postback?.data));
     return {
       kind: "accepted",
       event: {
         ...base,
         eventType: "postback",
         message: null,
+        postback: context,
         unsendTargetDigest: null,
-        needsHuman: false,
+        needsHuman: context?.needsHuman ?? false,
       },
     };
   }
