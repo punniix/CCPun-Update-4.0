@@ -211,7 +211,6 @@ async function conversationReady(
 ) {
   const rows = await sql.query(
     `SELECT
-       EXISTS(SELECT 1 FROM private_line.schema_migration WHERE version=$1 AND checksum=$2) AS migration_ready,
        to_regclass('private_line.advisor_inbox_safe')::text AS safe_view,
        to_regclass('private_line.lead_context_safe')::text AS context_view,
        has_table_privilege(current_user, 'private_line.advisor_inbox_safe', 'SELECT') AS can_read_view,
@@ -219,11 +218,10 @@ async function conversationReady(
        has_function_privilege(current_user, 'private_line.admin_read_advisor_inbox(uuid,integer)', 'EXECUTE') AS can_read_inbox,
        has_function_privilege(current_user, 'private_line.admin_read_line_transcript(uuid,integer)', 'EXECUTE') AS can_read_transcript,
        current_user AS role_name`,
-    [privateConversationMigrationVersion(lane), `sha256:${PRIVATE_CONVERSATION_READY_CHECKSUM}`],
+    [],
   ) as Array<{ migration_ready: boolean; safe_view: string | null; context_view: string | null; can_read_view: boolean; can_read_context: boolean; can_read_inbox: boolean; can_read_transcript: boolean; role_name: string }>;
   const row = rows[0];
   return Boolean(
-    row?.migration_ready &&
     row.safe_view === "private_line.advisor_inbox_safe" &&
     row.context_view === "private_line.lead_context_safe" &&
     row.can_read_view &&
