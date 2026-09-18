@@ -16,6 +16,11 @@ type RawDocument = Record<string, unknown> & {
   _rev: string;
 };
 
+type CreateDocument = Record<string, unknown> & {
+  _id: string;
+  _type: string;
+};
+
 type MigrationEntry = {
   type: MigratableType;
   oldId: string;
@@ -183,7 +188,7 @@ async function main() {
       const nextRawId = source._id.startsWith("drafts.") ? `drafts.${entry.newId}` : entry.newId;
       const clone = stripSystemFields(source, nextRawId);
       const rewritten = rewriteRefs(clone, currentIdMap);
-      mutations.push({ create: rewritten.value });
+      mutations.push({ create: rewritten.value as CreateDocument });
     }
 
     for (const referrer of referrers) {
