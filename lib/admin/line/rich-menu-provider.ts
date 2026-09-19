@@ -9,7 +9,9 @@ import {
 const LINE_API = "https://api.line.me";
 const LINE_DATA_API = "https://api-data.line.me";
 
-type RichMenuItem =\n  | (typeof LINE_RICH_MENU_ITEMS)[number]\n  | (typeof LINE_RICH_MENU_V2_ITEMS)[number];
+type RichMenuItem =
+  | (typeof LINE_RICH_MENU_ITEMS)[number]
+  | (typeof LINE_RICH_MENU_V2_ITEMS)[number];
 
 export type LineRichMenuActivationResult =
   | { ok: true; status: "assigned"; richMenuId: string }
