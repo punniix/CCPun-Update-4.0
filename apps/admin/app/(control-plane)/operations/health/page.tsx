@@ -18,6 +18,7 @@ import {
   readLineDocumentMediaHealth,
 } from "@/lib/admin/line/document-media";
 import { getLineMediaProviderReadiness } from "@/lib/admin/line/media-provider";
+import { getLineSystemDeliveryProviderReadiness } from "@/lib/admin/line/provider";
 import { lineRetentionModeLabel, lineTechnicalStateLabel } from "@/lib/admin/line/presentation";
 import { readLineArchiveHealth } from "@/lib/admin/line/conversation-archive";
 import { readDefaultLineRichMenuStatus } from "@/lib/admin/line/rich-menu-provider";
@@ -77,6 +78,7 @@ export default async function AdminHealthPage() {
   ]);
   const lineProviderActivation = getLineProviderActivationReadiness();
   const lineMediaProvider = getLineMediaProviderReadiness();
+  const lineSystemDeliveryProvider = getLineSystemDeliveryProviderReadiness();
 
   const vercelEnvironment = process.env.VERCEL_ENV ?? "—";
   const gitBranch = process.env.VERCEL_GIT_COMMIT_REF ?? "—";
@@ -145,7 +147,18 @@ export default async function AdminHealthPage() {
       <div className="mt-7">
         <LineProviderActivationActions
           richMenuState={lineRichMenu.state}
-          richMenuReady={lineProviderActivation.channelTokenPresent && lineProviderActivation.richMenuWriteGateEnabled}
+          richMenuReady={
+            lineProviderActivation.channelTokenPresent
+            && lineProviderActivation.richMenuWriteGateEnabled
+            && lineSystemDeliveryProvider.enabled
+            && lineSystemDeliveryProvider.tokenPresent
+            && lineSystemDeliveryProvider.cryptoReady
+          }
+          systemDeliveryReady={
+            lineSystemDeliveryProvider.enabled
+            && lineSystemDeliveryProvider.tokenPresent
+            && lineSystemDeliveryProvider.cryptoReady
+          }
           driveInteractiveReady={lineProviderActivation.driveInteractiveConfigReady}
           pendingFileCount={lineDocumentMedia.state === "ready" ? lineDocumentMedia.pendingFetch + lineDocumentMedia.pendingUpload : 0}
         />
