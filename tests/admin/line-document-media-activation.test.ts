@@ -24,7 +24,7 @@ import {
 } from "../../lib/admin/media/google-drive-foundation";
 import {
   LINE_RICH_MENU_ITEMS,
-  LINE_RICH_MENU_V2,
+  LINE_RICH_MENU_V3,
 } from "../../lib/line/ecosystem";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -208,12 +208,12 @@ test("LINE media fetch is fail-closed and classifies safe provider status withou
 });
 
 test("Rich Menu definition is versioned, deterministic, complete, and provider writes are gated", async () => {
-  assert.equal(LINE_RICH_MENU_V2.version, "line-rich-menu-v2");
-  assert.deepEqual(LINE_RICH_MENU_V2.size, { width: 2500, height: 1686 });
-  assert.equal(LINE_RICH_MENU_V2.areas.length, LINE_RICH_MENU_ITEMS.length);
-  assert.equal(LINE_RICH_MENU_V2.image.maxBytes, 1_000_000);
+  assert.equal(LINE_RICH_MENU_V3.version, "line-rich-menu-v3");
+  assert.deepEqual(LINE_RICH_MENU_V3.size, { width: 2500, height: 1686 });
+  assert.equal(LINE_RICH_MENU_V3.areas.length, LINE_RICH_MENU_ITEMS.length);
+  assert.equal(LINE_RICH_MENU_V3.image.maxBytes, 1_000_000);
   const definition = buildLineRichMenuProviderDefinition();
-  assert.equal(definition.areas.length, 6);
+  assert.equal(definition.areas.length, 4);
   assert.match(JSON.stringify(definition), /journey=life_health_policy_review&stage=entry/);
   assert.match(JSON.stringify(definition), /journey=investment_before_you_act&stage=entry/);
   assert.match(JSON.stringify(definition), /journey=motor_quote_review&stage=entry/);
