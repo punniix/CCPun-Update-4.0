@@ -155,6 +155,8 @@ test("Rich Menu activation endpoint is owner-only, same-origin and fixed to v3",
   assert.match(route, /readDefaultLineRichMenuStatus/);
   assert.match(route, /already-active/);
   assert.match(route, /loadLineRichMenuV3Asset/);
+  assert.match(route, /getLineSystemDeliveryProviderReadiness/);
+  assert.match(route, /systemDelivery\.enabled/);
   assert.doesNotMatch(route, /CCPUN_LINE_CHANNEL_ACCESS_TOKEN|richMenuId.*NextResponse|console\./);
 });
 
@@ -164,6 +166,7 @@ test("Health shows four-cell v3 and keeps Drive authorization on demand", () => 
   assert.match(health, /LineProviderActivationActions/);
   assert.match(health, /พร้อมขออนุญาตเมื่อมีไฟล์/);
   assert.match(action, /ประกันชีวิต · ประกันรถ · เรื่องลงทุน · คุยกับปั้น/);
+  assert.match(action, /การ์ดบทความอัตโนมัติ/);
   assert.match(action, /activate-ccpun-rich-menu-v3/);
   assert.match(action, /ตอนนี้ไม่มีไฟล์รอ จึงยังไม่ต้องกดอนุญาต Google Drive/);
   assert.match(action, /ไม่เก็บ refresh token/);
