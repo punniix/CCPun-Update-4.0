@@ -13,11 +13,13 @@ type RichMenuState =
 export function LineProviderActivationActions({
   richMenuState,
   richMenuReady,
+  systemDeliveryReady,
   driveInteractiveReady,
   pendingFileCount,
 }: {
   richMenuState: RichMenuState;
   richMenuReady: boolean;
+  systemDeliveryReady: boolean;
   driveInteractiveReady: boolean;
   pendingFileCount: number;
 }) {
@@ -87,6 +89,9 @@ export function LineProviderActivationActions({
               <p className="mt-1 text-xs leading-5 text-white/50">
                 ประกันชีวิต · ประกันรถ · เรื่องลงทุน · คุยกับปั้น
               </p>
+              <p className="mt-1 text-xs leading-5 text-white/45">
+                การ์ดบทความอัตโนมัติ: {systemDeliveryReady ? "พร้อม" : "ยังไม่เปิด"}
+              </p>
             </div>
             <span className={`rounded-full border px-2.5 py-1 text-xs ${
               richMenuActive
@@ -145,6 +150,11 @@ export function LineProviderActivationActions({
         </article>
       </div>
 
+      {!systemDeliveryReady ? (
+        <p className="mt-4 text-sm leading-6 text-amber-100/80">
+          Rich Menu v3 จะเปิดได้เมื่อระบบส่ง Article Cards ฝั่ง private provider พร้อม เพื่อไม่ให้ผู้ใช้กดแล้วเจอทางตัน
+        </p>
+      ) : null}
       {message ? <p role="status" className="mt-4 text-sm text-white/70">{message}</p> : null}
     </section>
   );
