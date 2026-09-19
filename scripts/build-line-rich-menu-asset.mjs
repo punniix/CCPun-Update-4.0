@@ -6,12 +6,12 @@ const WIDTH = 2500;
 const HEIGHT = 1686;
 const ROW = 843;
 const cells = [
-  { x: 0, y: 0, w: 833, h: ROW, label: "หาเรื่องอ่าน", icon: "book" },
-  { x: 833, y: 0, w: 833, h: ROW, label: "เครื่องมือ", icon: "tools" },
-  { x: 1666, y: 0, w: 834, h: ROW, label: "ประกัน", icon: "shield" },
-  { x: 0, y: ROW, w: 833, h: ROW, label: "ลงทุน", icon: "chart" },
-  { x: 833, y: ROW, w: 833, h: ROW, label: "รถ", icon: "car" },
-  { x: 1666, y: ROW, w: 834, h: ROW, label: "คุยกับปัน", icon: "chat" },
+  { x: 0, y: 0, w: 833, h: ROW, label: "เรื่องน่ารู้", icon: "book", fontSize: 84 },
+  { x: 833, y: 0, w: 833, h: ROW, label: "ลองเช็ก", icon: "tools", fontSize: 94 },
+  { x: 1666, y: 0, w: 834, h: ROW, label: "ประกันชีวิต", icon: "shield", fontSize: 84 },
+  { x: 0, y: ROW, w: 833, h: ROW, label: "เรื่องลงทุน", icon: "chart", fontSize: 84 },
+  { x: 833, y: ROW, w: 833, h: ROW, label: "ประกันรถ", icon: "car", fontSize: 92 },
+  { x: 1666, y: ROW, w: 834, h: ROW, label: "คุยกับปั้น", icon: "chat", fontSize: 84 },
 ];
 
 function esc(value) {
@@ -73,7 +73,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${
       <rect x="${cell.x+8}" y="${cell.y+8}" width="${cell.w-16}" height="${cell.h-16}" rx="34" fill="${fill}" stroke="#5b4848" stroke-width="4"/>
       <text x="${cell.x+52}" y="${cell.y+76}" fill="#e0c985" font-size="34" font-weight="700" font-family="Kanit, Thonburi, Arial, sans-serif" letter-spacing="1.5">CCPun</text>
       ${icon(cell.icon, cx, cy)}
-      <text x="${cx}" y="${cell.y+650}" text-anchor="middle" fill="#faf9f9" font-size="94" font-weight="600" font-family="Kanit, Thonburi, Arial, sans-serif">${esc(cell.label)}</text>
+      <text x="${cx}" y="${cell.y+650}" text-anchor="middle" fill="#faf9f9" font-size="${cell.fontSize}" font-weight="600" font-family="Kanit, Thonburi, Arial, sans-serif">${esc(cell.label)}</text>
       <circle cx="${cx}" cy="${cell.y+730}" r="7" fill="#e0c985"/>
     </g>`;
   }).join("")}
@@ -81,7 +81,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${
 
 const outDir = path.resolve("lib/admin/line/assets");
 await mkdir(outDir, { recursive: true });
-const outPath = path.join(outDir, "ccpun-line-rich-menu-v1.png");
+const outPath = path.join(outDir, "ccpun-line-rich-menu-v2.png");
 const png = await sharp(Buffer.from(svg))
   .png({ compressionLevel: 9, palette: true, colours: 64 })
   .toBuffer();
