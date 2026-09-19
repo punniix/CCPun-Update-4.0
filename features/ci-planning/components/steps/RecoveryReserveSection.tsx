@@ -12,7 +12,7 @@ import {
   EMPTY_CI_RECOVERY,
   getRecoveryPreset,
 } from '@/features/ci-planning/recovery-evidence';
-import { baht, type safeRecoveryPreview } from './StepExpenses.model';
+import { baht, safeRecoveryPreview } from './StepExpenses.model';
 
 type RecoveryPreview = ReturnType<typeof safeRecoveryPreview>;
 
