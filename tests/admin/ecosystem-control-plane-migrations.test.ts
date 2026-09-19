@@ -14,7 +14,7 @@ test("provider Control Plane migration is checksum-locked and fail-closed", () =
   const digest = "bfb668d37d859d3e01bdbee9ea433e5bdb835157f72ea983ce819c3c24160de1";
   assert.equal(checksum(sql), digest);
   assert.match(sql, new RegExp(`sha256:${digest}`));
-  assert.match(sql, /'line\.rich_menu\.default'.*'hold'.*'hold'/s);
+  assert.match(sql, /'line\.rich_menu\.default'[\s\S]*'hold'[\s\S]*'hold'/);
   assert.match(sql, /ON CONFLICT\(idempotency_key\) DO NOTHING/);
   assert.match(sql, /SECURITY DEFINER/g);
   assert.match(sql, /REVOKE ALL PRIVILEGES ON ccpun_admin\.control_resource/);
@@ -29,7 +29,7 @@ test("customer lifecycle foundation extends private_line without a second CRM", 
   assert.match(sql, /CREATE TABLE IF NOT EXISTS private_line\.customer_journey_instance/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS private_line\.conversation_task/);
   assert.match(sql, /customer\.customer_code/);
-  assert.doesNotMatch(sql, /CREATE SCHEMA.*crm/is);
+  assert.doesNotMatch(sql, /CREATE SCHEMA[\s\S]*crm/i);
 });
 
 test("recovered UAT clean-mart source is checksum-locked and preserves provider truth", () => {
