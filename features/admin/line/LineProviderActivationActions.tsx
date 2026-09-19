@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 type RichMenuState =
   | "not_configured"
   | "not_assigned"
-  | "active_v2"
+  | "active_v3"
   | "active_other"
   | "provider_unavailable";
 
@@ -27,8 +27,8 @@ export function LineProviderActivationActions({
 
   async function activateRichMenu() {
     const wording = richMenuState === "active_other"
-      ? "Rich Menu หลักปัจจุบันจะถูกเปลี่ยนเป็นเมนู CCPun Main v2 สำหรับผู้ใช้ทั้งหมด ยืนยันหรือไม่?"
-      : "ยืนยันให้เมนู CCPun Main v2 เป็น Rich Menu หลักของ @ccpun สำหรับผู้ใช้ทั้งหมดหรือไม่?";
+      ? "Rich Menu หลักปัจจุบันจะถูกเปลี่ยนเป็นเมนู CCPun Main v3 สำหรับผู้ใช้ทั้งหมด ยืนยันหรือไม่?"
+      : "ยืนยันให้เมนู CCPun Main v3 เป็น Rich Menu หลักของ @ccpun สำหรับผู้ใช้ทั้งหมดหรือไม่?";
     if (!window.confirm(wording)) return;
 
     setBusy(true);
@@ -37,7 +37,7 @@ export function LineProviderActivationActions({
       const response = await fetch("/api/admin/line/rich-menu/activate/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmation: "activate-ccpun-rich-menu-v2" }),
+        body: JSON.stringify({ confirmation: "activate-ccpun-rich-menu-v3" }),
       });
       const payload = await response.json().catch(() => ({})) as {
         status?: string;
@@ -68,7 +68,7 @@ export function LineProviderActivationActions({
     }
   }
 
-  const richMenuActive = richMenuState === "active_v2";
+  const richMenuActive = richMenuState === "active_v3";
   const richMenuButtonDisabled =
     busy || richMenuActive || !richMenuReady || richMenuState === "provider_unavailable";
 
@@ -85,7 +85,7 @@ export function LineProviderActivationActions({
             <div>
               <h3 className="font-medium text-white/85">Rich Menu หลัก</h3>
               <p className="mt-1 text-xs leading-5 text-white/50">
-                เรื่องน่ารู้ · ลองเช็ก · ประกันชีวิต · เรื่องลงทุน · ประกันรถ · คุยกับปั้น
+                ประกันชีวิต · ประกันรถ · เรื่องลงทุน · คุยกับปั้น
               </p>
             </div>
             <span className={`rounded-full border px-2.5 py-1 text-xs ${
