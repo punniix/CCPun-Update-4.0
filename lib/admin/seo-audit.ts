@@ -30,7 +30,7 @@ const portableBlockSchema = z.object({
   _type: z.string().optional(),
   style: z.string().optional(),
   children: z.array(portableChildSchema).optional(),
-  markDefs: z.array(markDefSchema).optional(),
+  markDefs: z.array(markDefSchema).nullish().transform((value) => value ?? []),
 }).passthrough();
 
 const auditArticleSchema = z.object({
@@ -71,7 +71,7 @@ const auditArticleSchema = z.object({
   }).nullish(),
 });
 
-export type SeoAuditSeverity = "critical" | "warning" | "opportunity";
+export function parseSeoAuditArticle(raw: unknown) {\n  return auditArticleSchema.parse(raw);\n}\n\nexport type SeoAuditSeverity = "critical" | "warning" | "opportunity";
 
 export type SeoAuditCheck = {
   id: string;
@@ -288,7 +288,7 @@ export async function runSeoAudit(
   }`, { draftId, publishedId: cleanId });
 
   if (!articleRaw) throw new Error("ARTICLE_NOT_FOUND");
-  const article = auditArticleSchema.parse(articleRaw);
+  const article = parseSeoAuditArticle(articleRaw);
   const result = auditArticleSeo(article);
 
   if (persist) {
