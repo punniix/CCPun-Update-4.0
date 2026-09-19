@@ -1,3 +1,4 @@
+import { CogIcon } from "@sanity/icons/Cog";
 import { defineArrayMember, defineField, defineType } from "sanity";
 
 const articleItems = (title: string) => defineField({
@@ -10,10 +11,13 @@ const articleItems = (title: string) => defineField({
       name: "lineDiscoveryArticle",
       fields: [
         defineField({
-          name: "slug",
-          title: "Article slug",
-          type: "string",
-          validation: (Rule) => Rule.required().min(1).max(96),
+          name: "article",
+          title: "บทความ",
+          type: "reference",
+          to: [{ type: "article" }],
+          weak: true,
+          options: { disableNew: true },
+          validation: (Rule) => Rule.required(),
         }),
         defineField({
           name: "enabled",
@@ -23,7 +27,7 @@ const articleItems = (title: string) => defineField({
         }),
       ],
       preview: {
-        select: { title: "slug", enabled: "enabled" },
+        select: { title: "article.title", enabled: "enabled" },
         prepare: ({ title, enabled }) => ({
           title: title || "ยังไม่ได้เลือกบทความ",
           subtitle: enabled === false ? "ปิด" : "เปิด",
@@ -52,6 +56,7 @@ export const lineDiscoveryConfig = defineType({
   name: "lineDiscoveryConfig",
   title: "LINE Discovery (จัดการจาก Admin)",
   type: "document",
+  icon: CogIcon,
   description: "ลำดับบทความสำหรับ Rich Menu v3 แนะนำให้จัดการจาก admin.ccpun.com > Settings > Integrations",
   fields: [
     defineField({ name: "version", title: "Version", type: "number", readOnly: true }),
