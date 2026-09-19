@@ -19,6 +19,7 @@ type ArticleOption = {
 
 type DiscoveryModel = {
   revision: string | null;
+  desiredRichMenu: "v3" | "hold";
   source: "stored" | "default";
   writeReady: boolean;
   journeys: Record<JourneyId, JourneyConfig>;
@@ -51,6 +52,7 @@ function cloneJourneys(value: DiscoveryModel["journeys"]): DiscoveryModel["journ
 export default function LineDiscoveryManager({ initialModel }: { initialModel: DiscoveryModel }) {
   const [activeJourney, setActiveJourney] = useState<JourneyId>("life_health_policy_review");
   const [revision, setRevision] = useState(initialModel.revision);
+  const [desiredRichMenu, setDesiredRichMenu] = useState(initialModel.desiredRichMenu);
   const [source, setSource] = useState(initialModel.source);
   const [writeReady, setWriteReady] = useState(initialModel.writeReady);
   const [articles, setArticles] = useState(initialModel.articles);
@@ -137,6 +139,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
       const payload = await response.json() as DiscoveryModel & { error?: string };
       if (!response.ok) throw new Error(payload.error || "reload-failed");
       setRevision(payload.revision);
+      setDesiredRichMenu(payload.desiredRichMenu);
       setSource(payload.source);
       setWriteReady(payload.writeReady);
       setArticles(payload.articles);
@@ -157,7 +160,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
       const response = await fetch("/api/admin/line/discovery/", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ revision, journeys }),
+        body: JSON.stringify({ revision, desiredRichMenu, journeys }),
       });
       const payload = await response.json() as { status?: string; revision?: string; error?: string };
       if (!response.ok) {
@@ -202,6 +205,26 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
           }`}>
             {writeReady ? "แก้ไขได้" : "อ่านอย่างเดียว"}
           </span>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-white/10 bg-black/10 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-white/80">Rich Menu ที่ต้องการ</p>
+            <p className="mt-1 text-xs leading-5 text-white/45">ใช้เป็น desired state เดียวกันสำหรับ Admin, ChatGPT และ Codex</p>
+          </div>
+          <select
+            value={desiredRichMenu}
+            onChange={(event) => {
+              setDesiredRichMenu(event.target.value as "v3" | "hold");
+              setMessage(null);
+            }}
+            className="min-h-11 rounded-xl border border-white/10 bg-[#2b2020] px-4 text-sm text-white"
+          >
+            <option value="v3">Rich Menu v3 · 4 ช่อง</option>
+            <option value="hold">ไม่ให้ระบบเปลี่ยนเมนู</option>
+          </select>
         </div>
       </div>
 
