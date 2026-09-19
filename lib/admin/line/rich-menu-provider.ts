@@ -2,13 +2,14 @@ if (typeof window !== "undefined") throw new Error("CCPUN_RICH_MENU_PROVIDER_SER
 
 import {
   LINE_RICH_MENU_ITEMS,
+  LINE_RICH_MENU_V2_ITEMS,
   LINE_RICH_MENU_V3,
 } from "../../line/ecosystem";
 
 const LINE_API = "https://api.line.me";
 const LINE_DATA_API = "https://api-data.line.me";
 
-type RichMenuItem = (typeof LINE_RICH_MENU_ITEMS)[number];
+type RichMenuItem =\n  | (typeof LINE_RICH_MENU_ITEMS)[number]\n  | (typeof LINE_RICH_MENU_V2_ITEMS)[number];
 
 export type LineRichMenuActivationResult =
   | { ok: true; status: "assigned"; richMenuId: string }
