@@ -118,7 +118,7 @@ async function validateRichMenuAsset(bytes: Buffer, expected: typeof LINE_RICH_M
     throw new Error("LINE_RICH_MENU_ASSET_DIMENSIONS_INVALID");
   }
   return {
-    blob: new Blob([bytes], { type: expected.image.format }),
+    blob: new Blob([Uint8Array.from(bytes)], { type: expected.image.format }),
     sha256: createHash("sha256").update(bytes).digest("hex"),
     byteSize: bytes.length,
     width,
