@@ -6,7 +6,9 @@ import { readFile } from "node:fs/promises";
 import { LINE_RICH_MENU_V2 } from "../../line/ecosystem";
 
 const EXPECTED_SHA256 = "90a9f83019873af466c410a36ed61c9445e7f3ec736483673b5bbff6c8e63f40";
-const ASSET_URL = new URL("./assets/ccpun-line-rich-menu-v2.png", import.meta.url);
+const ASSET_PART_URLS = Array.from({ length: 7 }, (_, index) =>
+  new URL(`./assets/ccpun-line-rich-menu-v2.b64.part${index}`, import.meta.url),
+);
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 function pngDimension(buffer: Buffer, offset: number) {
@@ -15,7 +17,8 @@ function pngDimension(buffer: Buffer, offset: number) {
 }
 
 export async function loadLineRichMenuV2Asset() {
-  const bytes = await readFile(ASSET_URL);
+  const encoded = (await Promise.all(ASSET_PART_URLS.map((part) => readFile(part, "utf8")))).join("");
+  const bytes = Buffer.from(encoded.trim(), "base64");
   if (bytes.length <= 0 || bytes.length > LINE_RICH_MENU_V2.image.maxBytes) {
     throw new Error("LINE_RICH_MENU_ASSET_SIZE_INVALID");
   }
