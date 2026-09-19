@@ -67,6 +67,8 @@ test("system delivery functions preserve ingress/admin privilege separation", ()
   assert.match(sql, /GRANT EXECUTE ON FUNCTION private_line\.admin_claim_line_system_outbound\(jsonb\)[\s\S]*TO ccpun_admin_runtime/);
   assert.match(sql, /REVOKE ALL ON FUNCTION private_line\.admin_claim_line_system_outbound\(jsonb\)[\s\S]*FROM PUBLIC,ccpun_line_ingress/);
   assert.match(sql, /content_unavailable'\) THEN 'retryable'/);
+  assert.match(sql, /admin_claim_line_outbound/);
+  assert.match(sql, /om\.message_kind<>'system_notice'/);
 });
 
 test("Web ingress queues only safe encrypted intent and dispatches by one-time capability", () => {
