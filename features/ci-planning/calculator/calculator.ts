@@ -2,11 +2,15 @@
 // CI Planning — Calculator
 // =============================================
 
-import { CI_RECOVERY_REFERENCE } from '@/features/ci-planning/recovery-evidence';
+import {
+  CI_RECOVERY_REFERENCE,
+  EMPTY_CI_RECOVERY,
+} from '@/features/ci-planning/recovery-evidence';
 import type {
   CIEducationPlan,
   CIFormData,
   CIRecoveryCosts,
+  CIRecoveryMode,
   CIResult,
 } from './types';
 
@@ -84,7 +88,7 @@ export function calcOtherDebtNeed(otherDebtBalance: number): number {
 
 function requireRecoveryCount(value: number, name: string, max: number): number {
   if (!Number.isInteger(value) || value < 0 || value > max) {
-    throw new RangeError(name + ' must be an integer between 0 and ' + max);
+    throw new RangeError(`${name} must be an integer between 0 and ${max}`);
   }
   return value;
 }
@@ -93,37 +97,132 @@ function requireRecoveryAmount(value: number, name: string): number {
   return safeMoneyInput(value, name);
 }
 
-/**
- * Research-backed Recovery Reserve.
- * It is calculated as a clearly separated component, then added once to each
- * available estimation method independently. The UI can therefore show the
- * research-backed amount explicitly without hiding it inside either base formula.
- */
-export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
-  const treatmentVisits = requireRecoveryCount(recovery.treatmentVisits, 'treatmentVisits', 100);
-  const caregiverHomeDays = requireRecoveryCount(recovery.caregiverHomeDays, 'caregiverHomeDays', 730);
-  const rehabSessions = requireRecoveryCount(recovery.rehabSessions, 'rehabSessions', CI_RECOVERY_REFERENCE.rehabilitation.benchmarkSessionLimit);
-  const homeRehabSessions = requireRecoveryCount(recovery.homeRehabSessions, 'homeRehabSessions', CI_RECOVERY_REFERENCE.rehabilitation.benchmarkSessionLimit);
-  if (homeRehabSessions > rehabSessions) throw new RangeError('homeRehabSessions must not exceed rehabSessions');
-  const equipmentAndHomeModification = requireRecoveryAmount(recovery.equipmentAndHomeModification, 'equipmentAndHomeModification');
-  const otherRecoveryCosts = requireRecoveryAmount(recovery.otherRecoveryCosts, 'otherRecoveryCosts');
-  const visitNeed = safeMoneyResult(treatmentVisits * CI_RECOVERY_REFERENCE.treatmentVisit.total, 'recoveryVisitNeed');
-  const caregiverHomeNeed = safeMoneyResult(caregiverHomeDays * CI_RECOVERY_REFERENCE.caregiverHomePerDay, 'recoveryCaregiverHomeNeed');
-  const rehabNeed = safeMoneyResult(
-    rehabSessions * CI_RECOVERY_REFERENCE.rehabilitation.perSession
-      + homeRehabSessions * CI_RECOVERY_REFERENCE.rehabilitation.homeServiceAddOnPerSession,
-    'recoveryRehabNeed',
-  );
-  const total = safeMoneyResult(
-    safeMoneyResult(visitNeed + caregiverHomeNeed, 'recoverySubtotal')
-      + safeMoneyResult(rehabNeed + equipmentAndHomeModification, 'recoverySubtotal')
-      + otherRecoveryCosts,
-    'recoveryReserveNeed',
-  );
+const RECOVERY_MODES = new Set<CIRecoveryMode>(['none', 'basic', 'continued', 'longTerm', 'custom']);
+
+function normalizeRecoveryCosts(input?: CIRecoveryCosts): CIRecoveryCosts {
+  if (!input) return { ...EMPTY_CI_RECOVERY };
+
+  const raw = input as CIRecoveryCosts & {
+    homeRehabSessions?: number;
+    equipmentAndHomeModification?: number;
+  };
+
+  if (!RECOVERY_MODES.has(raw.mode)) {
+    // Backward-compatible read for legacy fixtures/state created before v10.
+    const treatmentVisits = Number((raw as unknown as { treatmentVisits?: number }).treatmentVisits ?? 0);
+    const caregiverHomeDays = Number((raw as unknown as { caregiverHomeDays?: number }).caregiverHomeDays ?? 0);
+    const rehabSessions = Number((raw as unknown as { rehabSessions?: number }).rehabSessions ?? 0);
+    const homeRehabSessions = Number((raw as unknown as { homeRehabSessions?: number }).homeRehabSessions ?? 0);
+    const equipmentAndHomeModification = Number((raw as unknown as { equipmentAndHomeModification?: number }).equipmentAndHomeModification ?? 0);
+    const otherRecoveryCosts = Number((raw as unknown as { otherRecoveryCosts?: number }).otherRecoveryCosts ?? 0);
+
+    const legacyTotal =
+      treatmentVisits * CI_RECOVERY_REFERENCE.legacyResearch.treatmentVisitTotal
+      + caregiverHomeDays * CI_RECOVERY_REFERENCE.legacyResearch.caregiverLostIncomePerDay
+      + rehabSessions * CI_RECOVERY_REFERENCE.legacyResearch.rehabilitationPerSession
+      + homeRehabSessions * CI_RECOVERY_REFERENCE.legacyResearch.homeRehabAddOnPerSession
+      + equipmentAndHomeModification
+      + otherRecoveryCosts;
+
+    return {
+      ...EMPTY_CI_RECOVERY,
+      mode: legacyTotal > 0 ? 'custom' : 'none',
+      targetReserve: legacyTotal,
+      treatmentVisits,
+      treatmentVisitUnitCost: CI_RECOVERY_REFERENCE.legacyResearch.treatmentVisitTotal,
+      caregiverHomeDays,
+      caregiverDailyCost: CI_RECOVERY_REFERENCE.legacyResearch.caregiverLostIncomePerDay,
+      rehabSessions,
+      rehabUnitCost: CI_RECOVERY_REFERENCE.legacyResearch.rehabilitationPerSession,
+      homeAdaptation: equipmentAndHomeModification,
+      otherRecoveryCosts: otherRecoveryCosts
+        + homeRehabSessions * CI_RECOVERY_REFERENCE.legacyResearch.homeRehabAddOnPerSession,
+    };
+  }
+
   return {
-    treatmentVisits, caregiverHomeDays, rehabSessions, homeRehabSessions,
-    visitNeed, caregiverHomeNeed, rehabNeed, equipmentAndHomeModification, otherRecoveryCosts,
-    total,
+    ...EMPTY_CI_RECOVERY,
+    ...raw,
+  };
+}
+
+/**
+ * Recovery Reserve v10.
+ *
+ * The headline reserve is a separate planning block from income / recurring
+ * living expenses. Presets have a fixed target; custom mode lets the user keep
+ * a chosen headline target while editing the underlying example breakdown.
+ */
+export function calcRecoveryReserveNeed(input: CIRecoveryCosts) {
+  const recovery = normalizeRecoveryCosts(input);
+  if (!RECOVERY_MODES.has(recovery.mode)) throw new RangeError('invalid recovery mode');
+
+  const targetReserve = requireRecoveryAmount(recovery.targetReserve, 'recoveryTargetReserve');
+  const treatmentVisits = requireRecoveryCount(recovery.treatmentVisits, 'treatmentVisits', 100);
+  const treatmentVisitUnitCost = requireRecoveryAmount(recovery.treatmentVisitUnitCost, 'treatmentVisitUnitCost');
+  const caregiverHomeDays = requireRecoveryCount(recovery.caregiverHomeDays, 'caregiverHomeDays', 730);
+  const caregiverDailyCost = requireRecoveryAmount(recovery.caregiverDailyCost, 'caregiverDailyCost');
+  const rehabSessions = requireRecoveryCount(recovery.rehabSessions, 'rehabSessions', 200);
+  const rehabUnitCost = requireRecoveryAmount(recovery.rehabUnitCost, 'rehabUnitCost');
+
+  const pulseOximeter = requireRecoveryAmount(recovery.pulseOximeter, 'pulseOximeter');
+  const bloodPressureMonitor = requireRecoveryAmount(recovery.bloodPressureMonitor, 'bloodPressureMonitor');
+  const thermometer = requireRecoveryAmount(recovery.thermometer, 'thermometer');
+  const walker = requireRecoveryAmount(recovery.walker, 'walker');
+  const wheelchair = requireRecoveryAmount(recovery.wheelchair, 'wheelchair');
+  const showerChair = requireRecoveryAmount(recovery.showerChair, 'showerChair');
+  const grabRailAndSafety = requireRecoveryAmount(recovery.grabRailAndSafety, 'grabRailAndSafety');
+  const hospitalBed = requireRecoveryAmount(recovery.hospitalBed, 'hospitalBed');
+  const consumables = requireRecoveryAmount(recovery.consumables, 'consumables');
+  const homeAdaptation = requireRecoveryAmount(recovery.homeAdaptation, 'homeAdaptation');
+  const majorHousing = requireRecoveryAmount(recovery.majorHousing, 'majorHousing');
+  const contingency = requireRecoveryAmount(recovery.contingency, 'contingency');
+  const otherRecoveryCosts = requireRecoveryAmount(recovery.otherRecoveryCosts, 'otherRecoveryCosts');
+
+  const visitNeed = safeMoneyResult(treatmentVisits * treatmentVisitUnitCost, 'recoveryVisitNeed');
+  const caregiverHomeNeed = safeMoneyResult(caregiverHomeDays * caregiverDailyCost, 'recoveryCaregiverHomeNeed');
+  const rehabNeed = safeMoneyResult(rehabSessions * rehabUnitCost, 'recoveryRehabNeed');
+
+  const equipmentNeed = safeMoneyResult(
+    pulseOximeter
+      + bloodPressureMonitor
+      + thermometer
+      + walker
+      + wheelchair
+      + showerChair
+      + grabRailAndSafety
+      + hospitalBed,
+    'recoveryEquipmentNeed',
+  );
+
+  const breakdownTotal = safeMoneyResult(
+    safeMoneyResult(visitNeed + caregiverHomeNeed + rehabNeed, 'recoveryServiceSubtotal')
+      + safeMoneyResult(equipmentNeed + consumables, 'recoveryEquipmentSubtotal')
+      + safeMoneyResult(homeAdaptation + majorHousing, 'recoveryHousingSubtotal')
+      + safeMoneyResult(contingency + otherRecoveryCosts, 'recoveryBufferSubtotal'),
+    'recoveryBreakdownTotal',
+  );
+
+  const reserveNeed = recovery.mode === 'none' ? 0 : targetReserve;
+  const unallocated = reserveNeed > breakdownTotal ? reserveNeed - breakdownTotal : 0;
+  const overBudget = breakdownTotal > reserveNeed ? breakdownTotal - reserveNeed : 0;
+
+  return {
+    ...recovery,
+    treatmentVisits,
+    treatmentVisitUnitCost,
+    caregiverHomeDays,
+    caregiverDailyCost,
+    rehabSessions,
+    rehabUnitCost,
+    visitNeed,
+    caregiverHomeNeed,
+    rehabNeed,
+    equipmentNeed,
+    breakdownTotal,
+    reserveNeed,
+    unallocated,
+    overBudget,
   };
 }
 
@@ -131,17 +230,6 @@ export function calcRecoveryReserveNeed(recovery: CIRecoveryCosts) {
 export function calculateCI(formData: CIFormData): CIResult {
   const { expenses, existingCI } = formData;
 
-  // Expense base:
-  // ค่าใช้จ่ายครัวเรือน × 12 × ปีสำรอง
-  // + Σ(ค่าใช้จ่ายการศึกษาต่อปี × ปีที่เหลือรายคน)
-  // + ค่างวด × min(งวดคงเหลือ, ปีสำรอง × 12)
-  // + ยอดหนี้อื่นคงเหลือรวม (ครั้งเดียว)
-  //
-  // Income base:
-  // รายได้ต่อเดือน × 12 × ปีสำรอง
-  //
-  // Recovery Reserve is calculated separately, then added ONCE to each method
-  // that actually has a primary base. A missing method stays unavailable at 0.
   const effectiveReserveYears = expenses.reserveYears;
   const householdMonthly = expenses.household;
   const householdNeed = calcHouseholdNeed(householdMonthly, effectiveReserveYears);
@@ -162,11 +250,10 @@ export function calculateCI(formData: CIFormData): CIResult {
     safeMoneyResult(mortgageDebtNeed + carDebtNeed, 'debtNeed') + otherDebtBalance,
     'debtNeed',
   );
-  const recovery = calcRecoveryReserveNeed(expenses.recovery ?? {
-    treatmentVisits: 0, caregiverHomeDays: 0, rehabSessions: 0, homeRehabSessions: 0,
-    equipmentAndHomeModification: 0, otherRecoveryCosts: 0,
-  });
-  const recoveryReserveNeed = recovery.total;
+
+  const recovery = calcRecoveryReserveNeed(expenses.recovery ?? { ...EMPTY_CI_RECOVERY });
+  const recoveryReserveNeed = recovery.reserveNeed;
+
   const expenseBaseNeed = safeMoneyResult(
     safeMoneyResult(householdNeed + educationNeed, 'expenseBaseNeed') + debtNeed,
     'expenseBaseNeed',
@@ -175,6 +262,7 @@ export function calculateCI(formData: CIFormData): CIResult {
     expenses.monthlyIncome ?? 0,
     effectiveReserveYears,
   );
+
   const calculatedNeed = expenseBaseNeed > 0
     ? safeMoneyResult(expenseBaseNeed + recoveryReserveNeed, 'calculatedNeed')
     : 0;
@@ -193,6 +281,11 @@ export function calculateCI(formData: CIFormData): CIResult {
   const incomeShortfall = Math.max(incomeSignedGap, 0);
   const incomeSurplus = Math.max(-incomeSignedGap, 0);
 
+  const equipmentAndHomeModification = safeMoneyResult(
+    recovery.equipmentNeed + recovery.homeAdaptation + recovery.majorHousing,
+    'recoveryEquipmentAndHomeModification',
+  );
+
   return {
     householdMonthly,
     householdNeed,
@@ -202,30 +295,60 @@ export function calculateCI(formData: CIFormData): CIResult {
     carDebtNeed,
     otherDebtBalance,
     debtNeed,
+
+    recoveryMode: recovery.mode,
+    recoveryTargetReserve: recovery.targetReserve,
+    recoveryBreakdownTotal: recovery.breakdownTotal,
+    recoveryUnallocated: recovery.unallocated,
+    recoveryOverBudget: recovery.overBudget,
+
     recoveryTreatmentVisits: recovery.treatmentVisits,
+    recoveryTreatmentVisitUnitCost: recovery.treatmentVisitUnitCost,
     recoveryCaregiverHomeDays: recovery.caregiverHomeDays,
+    recoveryCaregiverDailyCost: recovery.caregiverDailyCost,
     recoveryRehabSessions: recovery.rehabSessions,
-    recoveryHomeRehabSessions: recovery.homeRehabSessions,
+    recoveryRehabUnitCost: recovery.rehabUnitCost,
+
     recoveryVisitNeed: recovery.visitNeed,
     recoveryCaregiverHomeNeed: recovery.caregiverHomeNeed,
     recoveryRehabNeed: recovery.rehabNeed,
-    recoveryEquipmentAndHomeModification: recovery.equipmentAndHomeModification,
+
+    recoveryPulseOximeter: recovery.pulseOximeter,
+    recoveryBloodPressureMonitor: recovery.bloodPressureMonitor,
+    recoveryThermometer: recovery.thermometer,
+    recoveryWalker: recovery.walker,
+    recoveryWheelchair: recovery.wheelchair,
+    recoveryShowerChair: recovery.showerChair,
+    recoveryGrabRailAndSafety: recovery.grabRailAndSafety,
+    recoveryHospitalBed: recovery.hospitalBed,
+    recoveryConsumables: recovery.consumables,
+    recoveryHomeAdaptation: recovery.homeAdaptation,
+    recoveryMajorHousing: recovery.majorHousing,
+    recoveryContingency: recovery.contingency,
     recoveryOtherCosts: recovery.otherRecoveryCosts,
+
+    recoveryHomeRehabSessions: 0,
+    recoveryEquipmentAndHomeModification: equipmentAndHomeModification,
     recoveryReserveNeed,
+
     expenseBaseNeed,
     incomeBaseNeed,
     calculatedNeed,
+
     existingCoverage,
     liquidAssets,
     availableResources,
+
     signedGap,
     gap: shortfall,
     shortfall,
     surplus,
+
     incomeBasedNeed,
     incomeSignedGap,
     incomeShortfall,
     incomeSurplus,
+
     effectiveReserveYears,
   };
 }
