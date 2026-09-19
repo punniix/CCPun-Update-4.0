@@ -34,7 +34,7 @@ export function getLineRichMenuProviderReadiness(
 ) {
   return {
     tokenPresent: Boolean(variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim()),
-    providerWriteEnabled: variables.CCPUN_LINE_RICH_MENU_PROVIDER_ENABLED?.trim() === "true",
+    providerWriteEnabled: variables.CCPUN_LINE_RICH_MENU_PROVIDER_ENABLED?.trim() !== "false",
     definitionVersion: LINE_RICH_MENU_V3.version,
     imageAssetKey: LINE_RICH_MENU_V3.image.assetKey,
   };
