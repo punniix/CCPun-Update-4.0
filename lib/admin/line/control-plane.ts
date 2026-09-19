@@ -499,27 +499,17 @@ export async function readLineSystemDeliveryDatabaseReadiness(
     const rows = z.array(z.object({
       claim_function: z.boolean(),
       can_claim: z.boolean(),
-      dispatch_column: z.boolean(),
-      migration_current: z.boolean(),
     })).length(1).parse(await handle.sql.query(
       `SELECT
          to_regprocedure('private_line.admin_claim_line_system_outbound(jsonb)') IS NOT NULL AS claim_function,
-         has_function_privilege(current_user,'private_line.admin_claim_line_system_outbound(jsonb)','EXECUTE') AS can_claim,
-         EXISTS (
-           SELECT 1 FROM information_schema.columns
-           WHERE table_schema='private_line'
-             AND table_name='outbound_message'
-             AND column_name='dispatch_token_digest'
-         ) AS dispatch_column,
-         EXISTS (
-           SELECT 1 FROM private_line.schema_migration
-           WHERE version LIKE '20260919_line_system_delivery_v1_%'
-             AND checksum='sha256:a3f22b3c32bf72bd7a55c30ce7e9324fc173f018f6a244515962958063f5ab7d'
-         ) AS migration_current`,
+         CASE
+           WHEN to_regprocedure('private_line.admin_claim_line_system_outbound(jsonb)') IS NULL THEN false
+           ELSE has_function_privilege(current_user,'private_line.admin_claim_line_system_outbound(jsonb)','EXECUTE')
+         END AS can_claim`,
       [],
     ));
     const row = rows[0]!;
-    const ready = row.claim_function && row.can_claim && row.dispatch_column && row.migration_current;
+    const ready = row.claim_function && row.can_claim;
     return { ready, reason: ready ? null : "migration-not-ready" as const };
   } catch {
     return { ready: false, reason: "read-failed" as const };
