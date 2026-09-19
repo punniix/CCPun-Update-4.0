@@ -27,7 +27,7 @@ const privateRuntimeSources=[
   "lib/admin/line/document-media.ts",
 ].map(read).join("\n");
 
-test("security matrix: AI raw customer access = 0",()=>{
+test("security matrix: cloud AI raw customer access = 0",()=>{
   const safe=parseLineSafeForAIState({
     journey:"motor_quote_review",
     stage:"waiting_for_advisor",
@@ -61,8 +61,11 @@ test("security matrix: MCP raw customer access = 0",()=>{
 test("security matrix: n8n AI customer access = 0 for private LINE runtime",()=>{
   assert.doesNotMatch(privateRuntimeSources,/\bn8n\b|N8N_/i);
   const architecture=read("docs/architecture/line-private-runtime-v1.md");
-  assert.match(architecture,/never goes through AI, MCP, n8n AI nodes/i);
-  assert.match(architecture,/call an AI SDK, MCP, n8n, analytics, or a client-visible endpoint with private payloads/i);
+  assert.match(architecture,/never goes through cloud AI, MCP, n8n AI nodes/i);
+  assert.match(architecture,/call a cloud AI SDK, MCP, n8n, analytics, or a client-visible endpoint with private payloads/i);
+  const enclave=read("docs/architecture/local-ai-enclave-20260919.md");
+  assert.match(enclave,/n8n remains an orchestration consumer around the enclave, not the inference transport/i);
+  assert.match(enclave,/must not connect to Ollama, receive ciphertext or hold the encryption key/i);
 });
 
 test("security matrix: generic analytics PII = 0",()=>{

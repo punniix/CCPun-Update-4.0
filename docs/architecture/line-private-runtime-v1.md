@@ -4,7 +4,7 @@ Status: Phase 2 durable-ingestion foundation. UAT schema migrated and verified o
 
 ## Purpose
 
-The public LINE webhook remains a narrow, signed ingress endpoint. Customer Confidential Data is normalized only into allowlisted fields and crosses directly into the private Neon operational plane. It never goes through AI, MCP, n8n AI nodes, generic analytics, logs, traces, or client-side code.
+The public LINE webhook remains a narrow, signed ingress endpoint. Customer Confidential Data is normalized only into allowlisted fields and crosses directly into the private Neon operational plane. It never goes through cloud AI, MCP, n8n AI nodes, generic analytics, logs, traces, or client-side code. A separate approved Private Local-AI Enclave may receive an AES-256-GCM envelope and decrypt it only inside the VPS worker memory under `docs/architecture/local-ai-enclave-20260919.md`.
 
 ```text
 LINE
@@ -39,7 +39,7 @@ It must not:
 - fetch arbitrary URLs or LINE message content;
 - reference `LINE_CHANNEL_ACCESS_TOKEN`;
 - use broad Admin/Social Neon credentials;
-- call an AI SDK, MCP, n8n, analytics, or a client-visible endpoint with private payloads.
+- call a cloud AI SDK, MCP, n8n, analytics, or a client-visible endpoint with private payloads. The only AI exception is the isolated local worker contract; n8n never carries its private payload.
 
 ### Neon ingress role
 

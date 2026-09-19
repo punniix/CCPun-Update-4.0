@@ -14,6 +14,7 @@ Sanity = editorial content and publishing workflow
 Neon = private operational state
 Google Drive = private long-lived documents and source media
 Auth.js = application authentication
+Hostinger VPS Local-AI Enclave = private inference worker + Ollama
 ```
 
 One durable datum has one owner. Do not mirror operational state across Sanity and Neon.
@@ -27,6 +28,7 @@ One durable datum has one owner. Do not mirror operational state across Sanity a
 | Admin Preview/UAT | Vercel `ccpun-admin` Preview | `apps/admin` | Sanity `ccb9lnw5/uat` + UAT Neon |
 | Local UAT | loopback | Admin monorepo | UAT data planes only |
 | Local Production Draft lane | loopback | Admin monorepo | separately guarded Production Draft operations |
+| Private Local-AI Enclave | existing Hostinger VPS | `workers/local-ai` | encrypted Neon job queue + private Ollama network |
 
 Both Vercel projects use the same GitHub repository and deploy independently. Do not create a third Vercel project or split the repository to add an Admin tool.
 
@@ -58,6 +60,7 @@ Legacy Sanity `auditLog`, `researchSnapshot`, `seoSuggestion` and provider snaps
 - database: `neondb`
 - Admin runtime role: `ccpun_admin_runtime`
 - Social runtime role: `ccpun_social_runtime`
+- Local-AI worker role: `ccpun_local_ai_runtime` (created `NOLOGIN` until lane activation)
 
 ### Production
 
@@ -66,10 +69,13 @@ Legacy Sanity `auditLog`, `researchSnapshot`, `seoSuggestion` and provider snaps
 - database: `neondb`
 - Admin runtime role: `ccpun_admin_runtime`
 - Social runtime role: `ccpun_social_runtime`
+- Local-AI worker role: `ccpun_local_ai_runtime` (created `NOLOGIN` until lane activation)
 
-Both runtime roles are least-privilege application roles. Owner/backfill credentials are migration-only and must not become runtime fallback credentials.
+All runtime roles are least-privilege roles. Owner/backfill credentials are migration-only and must not become runtime fallback credentials.
 
 `ccpun_admin` owns private Control Plane state such as audit events, research snapshots, SEO suggestion lifecycle and article scheduling. `ccpun_social` owns social execution/provider state, jobs, retries, sync state, media operational metadata and metrics. Neither owns Article bodies, Authors, Categories or public editorial SEO fields.
+
+`ccpun_admin` also owns the Local-AI job ledger. Inputs are AES-256-GCM envelopes; only the dedicated VPS worker can claim and decrypt them. n8n and Admin read models may consume only validated outputs and non-sensitive job metadata. The exact boundary is defined in `docs/architecture/local-ai-enclave-20260919.md`.
 
 The runtime verifies deployment/data identity and migration ledgers before privileged operations. Unknown or mismatched identities fail closed.
 
@@ -151,6 +157,8 @@ Production remains stricter:
 | Authentication/session authority | Auth.js |
 | Application code and migration source | GitHub |
 | Deployment/runtime configuration | Vercel |
+| Local model weights and ephemeral inference memory | Hostinger VPS Private Local-AI Enclave |
+| Local-AI encrypted job state and validated output | Neon `ccpun_admin` |
 
 ## No-new-spend contract
 
