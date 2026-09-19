@@ -213,7 +213,10 @@ function resolveSystemDeliveryDispatchUrl(
       || url.pathname !== "/api/internal/line/system-delivery/dispatch/"
     ) return null;
     if (runtime.lane === "production" && url.hostname !== "admin.ccpun.com") return null;
-    if (runtime.lane === "uat" && !url.hostname.endsWith(".vercel.app")) return null;
+    if (
+      runtime.lane === "uat"
+      && !/^ccpun-admin-[a-z0-9-]+-punniixs-projects\.vercel\.app$/.test(url.hostname)
+    ) return null;
     return url.toString();
   } catch {
     return null;
