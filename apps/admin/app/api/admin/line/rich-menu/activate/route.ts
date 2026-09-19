@@ -9,6 +9,7 @@ import {
   getLineRichMenuProviderReadiness,
   readDefaultLineRichMenuStatus,
 } from "@/lib/admin/line/rich-menu-provider";
+import { getLineSystemDeliveryProviderReadiness } from "@/lib/admin/line/provider";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 
 export const runtime = "nodejs";
@@ -37,7 +38,14 @@ export async function POST(request: Request) {
   if (!body.success) return NextResponse.json({ error: "invalid-request" }, { status: 400, headers });
 
   const readiness = getLineRichMenuProviderReadiness();
-  if (!readiness.tokenPresent || !readiness.providerWriteEnabled) {
+  const systemDelivery = getLineSystemDeliveryProviderReadiness();
+  if (
+    !readiness.tokenPresent
+    || !readiness.providerWriteEnabled
+    || !systemDelivery.enabled
+    || !systemDelivery.tokenPresent
+    || !systemDelivery.cryptoReady
+  ) {
     return NextResponse.json({ error: "rich-menu-not-ready" }, { status: 409, headers });
   }
 
