@@ -238,8 +238,8 @@ function sanityItems(
   items: LineDiscoveryMutation["journeys"][DiscoveryJourney]["items"],
   articleIdBySlug: Map<string, string>,
 ) {
-  return items.map((item, index) => ({
-    _key: String(index + 1).padStart(2, "0") + "-" + item.slug.replace(/[^a-z0-9_-]/gi, "_").slice(0, 72),
+  return items.map((item) => ({
+    _key: "article-" + item.slug.replace(/[^a-z0-9_-]/gi, "_").slice(0, 72),
     article: {
       _type: "reference",
       _ref: articleIdBySlug.get(item.slug)!,
