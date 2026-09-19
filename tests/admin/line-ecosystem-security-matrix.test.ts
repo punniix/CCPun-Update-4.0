@@ -99,6 +99,7 @@ test("security matrix: public DB access = 0 and runtime roles have no raw table 
     "db/migrations/20260918_line_delivery_activation_v1_production.sql",
     "db/migrations/20260918_line_content_intelligence_v2_production.sql",
     "db/migrations/20260918_line_privacy_retention_v2_production.sql",
+    "db/migrations/20260919_line_system_delivery_v1_production.sql",
   ].map(read).join("\n");
   assert.match(migrations,/REVOKE ALL ON SCHEMA private_line FROM PUBLIC/);
   assert.match(migrations,/REVOKE ALL ON ALL TABLES IN SCHEMA private_line FROM PUBLIC/);
@@ -159,6 +160,8 @@ test("security matrix: provider writes remain human-gated in Production configur
   assert.match(rich,/CCPUN_LINE_RICH_MENU_PROVIDER_ENABLED/);
   assert.match(rich,/CCPUN_LINE_CHANNEL_ACCESS_TOKEN/);
   assert.match(outbound,/outboundEnabled/);
+  assert.match(outbound,/CCPUN_LINE_SYSTEM_DELIVERY_ENABLED/);
+  assert.match(outbound,/claimLineSystemOutbound/);
   assert.match(media,/CCPUN_LINE_MEDIA_FETCH_ENABLED/);
   assert.match(media,/CCPUN_LINE_CHANNEL_ACCESS_TOKEN/);
 });
