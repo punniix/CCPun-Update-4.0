@@ -199,7 +199,7 @@ export async function readLineDiscoveryCuration(): Promise<{
   try {
     const raw = await client.fetch(configQuery, { id: LINE_DISCOVERY_CONFIG_ID });
     if (!raw) {
-      return { revision: null, source: "default", journeys: defaultLineDiscoveryCuration() };
+      return { revision: null, desiredRichMenu: "hold", source: "default", journeys: defaultLineDiscoveryCuration() };
     }
     const stored = storedConfigSchema.parse(raw);
     return {
@@ -213,7 +213,7 @@ export async function readLineDiscoveryCuration(): Promise<{
       },
     };
   } catch {
-    return { revision: null, source: "default", journeys: defaultLineDiscoveryCuration() };
+    return { revision: null, desiredRichMenu: "hold", source: "default", journeys: defaultLineDiscoveryCuration() };
   }
 }
 
