@@ -2,7 +2,7 @@ if (typeof window !== "undefined") throw new Error("CCPUN_RICH_MENU_PROVIDER_SER
 
 import {
   LINE_RICH_MENU_ITEMS,
-  LINE_RICH_MENU_V2,
+  LINE_RICH_MENU_V3,
 } from "../../line/ecosystem";
 
 const LINE_API = "https://api.line.me";
@@ -32,15 +32,15 @@ export function getLineRichMenuProviderReadiness(
   return {
     tokenPresent: Boolean(variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim()),
     providerWriteEnabled: variables.CCPUN_LINE_RICH_MENU_PROVIDER_ENABLED?.trim() === "true",
-    definitionVersion: LINE_RICH_MENU_V2.version,
-    imageAssetKey: LINE_RICH_MENU_V2.image.assetKey,
+    definitionVersion: LINE_RICH_MENU_V3.version,
+    imageAssetKey: LINE_RICH_MENU_V3.image.assetKey,
   };
 }
 
 export type LineRichMenuDefaultStatus =
   | { state: "not_configured" }
   | { state: "not_assigned" }
-  | { state: "active_v2" }
+  | { state: "active_v3" }
   | { state: "active_other" }
   | { state: "provider_unavailable" };
 
@@ -89,14 +89,14 @@ export async function readDefaultLineRichMenuStatus(
       areas?: unknown;
     };
     const matches =
-      value.name === LINE_RICH_MENU_V2.name
-      && value.chatBarText === LINE_RICH_MENU_V2.chatBarText
-      && value.size?.width === LINE_RICH_MENU_V2.size.width
-      && value.size?.height === LINE_RICH_MENU_V2.size.height
+      value.name === LINE_RICH_MENU_V3.name
+      && value.chatBarText === LINE_RICH_MENU_V3.chatBarText
+      && value.size?.width === LINE_RICH_MENU_V3.size.width
+      && value.size?.height === LINE_RICH_MENU_V3.size.height
       && Array.isArray(value.areas)
-      && value.areas.length === LINE_RICH_MENU_V2.areas.length;
+      && value.areas.length === LINE_RICH_MENU_V3.areas.length;
 
-    return { state: matches ? "active_v2" : "active_other" };
+    return { state: matches ? "active_v3" : "active_other" };
   } catch {
     return { state: "provider_unavailable" };
   }
@@ -117,11 +117,11 @@ function actionFor(item: RichMenuItem) {
 export function buildLineRichMenuProviderDefinition() {
   const itemById = new Map(LINE_RICH_MENU_ITEMS.map((item) => [item.id, item] as const));
   return {
-    size: LINE_RICH_MENU_V2.size,
-    selected: LINE_RICH_MENU_V2.selected,
-    name: LINE_RICH_MENU_V2.name,
-    chatBarText: LINE_RICH_MENU_V2.chatBarText,
-    areas: LINE_RICH_MENU_V2.areas.map((area) => {
+    size: LINE_RICH_MENU_V3.size,
+    selected: LINE_RICH_MENU_V3.selected,
+    name: LINE_RICH_MENU_V3.name,
+    chatBarText: LINE_RICH_MENU_V3.chatBarText,
+    areas: LINE_RICH_MENU_V3.areas.map((area) => {
       const item = itemById.get(area.itemId);
       if (!item) throw new Error("LINE_RICH_MENU_DEFINITION_INVALID");
       return {
@@ -161,7 +161,7 @@ export async function activateDefaultLineRichMenu(
     !image ||
     (image.type !== "image/png" && image.type !== "image/jpeg") ||
     image.size <= 0 ||
-    image.size > LINE_RICH_MENU_V2.image.maxBytes
+    image.size > LINE_RICH_MENU_V3.image.maxBytes
   ) {
     return { ok: false, status: "invalid_image" };
   }
