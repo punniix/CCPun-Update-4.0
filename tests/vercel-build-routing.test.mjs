@@ -315,6 +315,84 @@ test("Production merge commit without previous SHA still isolates Web-only share
   }
 });
 
+test("Production routing observes deleted Web and Admin files", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-vercel-routing-delete-"));
+  try {
+    git(fixture, "init", "--quiet");
+    git(fixture, "config", "user.name", "CCPun Routing Test");
+    git(fixture, "config", "user.email", "routing-test@example.invalid");
+    commitFixture(fixture, "README.md", "base\n", "base");
+
+    const webAdded = commitFixture(
+      fixture,
+      "features/home/delete-me.tsx",
+      "export default null;\n",
+      "add web fixture",
+    );
+    git(fixture, "rm", "features/home/delete-me.tsx");
+    git(fixture, "commit", "-m", "delete web fixture");
+    const webDeleted = git(fixture, "rev-parse", "HEAD");
+
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: web,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: webAdded,
+        commitSha: webDeleted,
+      }).status,
+      1,
+      "Web must rebuild when a Web-only file is deleted",
+    );
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: admin,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: webAdded,
+        commitSha: webDeleted,
+      }).status,
+      0,
+      "Admin may skip a Web-only deletion",
+    );
+
+    const adminAdded = commitFixture(
+      fixture,
+      "lib/admin/delete-me.ts",
+      "export {};\n",
+      "add admin fixture",
+    );
+    git(fixture, "rm", "lib/admin/delete-me.ts");
+    git(fixture, "commit", "-m", "delete admin fixture");
+    const adminDeleted = git(fixture, "rev-parse", "HEAD");
+
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: web,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: adminAdded,
+        commitSha: adminDeleted,
+      }).status,
+      0,
+      "Web may skip an Admin-only deletion",
+    );
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: admin,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: adminAdded,
+        commitSha: adminDeleted,
+      }).status,
+      1,
+      "Admin must rebuild when an Admin-only file is deleted",
+    );
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
 test("repository has no root Vercel cron or scheduled GitHub workflow", () => {
   const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
   assert.equal(Object.hasOwn(vercel, "crons"), false);
