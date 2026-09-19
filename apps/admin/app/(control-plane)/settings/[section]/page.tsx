@@ -10,6 +10,8 @@ import { readArticleSchedulerModel } from "@/lib/admin/operations/article-schedu
 import { getSeoGoogleProviderReadiness } from "@/lib/admin/seo-intelligence/provider-readiness";
 import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
+import { readLineDiscoveryAdminModel } from "@/lib/admin/line/discovery-config";
+import LineDiscoveryManager from "@/features/admin/line/LineDiscoveryManager";
 
 function State({ ok, yes = "พร้อม", no = "ต้องตั้งค่า" }: { ok: boolean; yes?: string; no?: string }) {
   return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${ok ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-amber-200/20 bg-amber-200/10 text-amber-50"}`}>{ok ? yes : no}</span>;
@@ -29,6 +31,7 @@ async function IntegrationsPage() {
   const meta = getSocialProviderReadiness("meta");
   const youtube = getSocialProviderReadiness("youtube");
   const tiktok = getSocialProviderReadiness("tiktok");
+  const lineDiscovery = await readLineDiscoveryAdminModel();
 
   return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · READINESS</p><h1 className="mt-2 text-3xl font-semibold">Integrations</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">แสดง readiness จาก server configuration โดยไม่เปิดเผย token, client secret หรือ connection string</p>
     <div className="mt-7 grid gap-5 xl:grid-cols-2">
@@ -36,6 +39,7 @@ async function IntegrationsPage() {
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">Search & Analytics</h2><div className="mt-3"><Row label="Google Search Console" value="Manual read-only sync" state={gsc.status === "manual-sync-ready"} /><Row label="Google Analytics 4" value="Manual read-only sync" state={ga4.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/analytics/search/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">Search performance</Link><Link href="/seo/opportunities/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">SEO opportunities</Link></div></section>
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 xl:col-span-2"><h2 className="text-lg font-semibold">Social providers</h2><div className="mt-3 grid gap-x-6 md:grid-cols-3"><Row label="Meta" value="Pages + Instagram read-only readiness" state={meta.status === "manual-sync-ready"} /><Row label="YouTube" value="Read-only readiness" state={youtube.status === "manual-sync-ready"} /><Row label="TikTok" value="Read-only readiness" state={tiktok.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/social/accounts/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">Provider accounts</Link><Link href="/operations/health/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">System Health</Link></div></section>
     </div>
+    <LineDiscoveryManager initialModel={lineDiscovery} />
   </div>;
 }
 
