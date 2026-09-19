@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
-import { getAdminIdentity } from "@/lib/admin/identity";
-import { loadLineRichMenuV3Asset } from "@/lib/admin/line/rich-menu-asset";
 import {
-  activateDefaultLineRichMenu,
-  getLineRichMenuProviderReadiness,
-  readDefaultLineRichMenuStatus,
-} from "@/lib/admin/line/rich-menu-provider";
-import { getLineSystemDeliveryProviderReadiness } from "@/lib/admin/line/provider";
-import { readLineSystemDeliveryDatabaseReadiness } from "@/lib/admin/line/control-plane";
+  readLineRichMenuControlState,
+  submitLineRichMenuCommand,
+} from "@/lib/admin/control-plane/provider-state";
+import { getAdminIdentity } from "@/lib/admin/identity";
+import { buildLineRichMenuProviderDefinition } from "@/lib/admin/line/rich-menu-provider";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 
 export const runtime = "nodejs";
@@ -23,6 +21,8 @@ const headers = {
 
 const bodySchema = z.object({
   confirmation: z.literal("activate-ccpun-rich-menu-v3"),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{15,159}$/).optional(),
 }).strict();
 
 export async function POST(request: Request) {
@@ -34,49 +34,34 @@ export async function POST(request: Request) {
   if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) {
     return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
   }
-
   const body = bodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return NextResponse.json({ error: "invalid-request" }, { status: 400, headers });
 
-  const readiness = getLineRichMenuProviderReadiness();
-  const systemDelivery = getLineSystemDeliveryProviderReadiness();
-  const systemDeliveryDatabase = await readLineSystemDeliveryDatabaseReadiness();
-  if (
-    !readiness.tokenPresent
-    || !readiness.providerWriteEnabled
-    || !systemDelivery.enabled
-    || !systemDelivery.tokenPresent
-    || !systemDelivery.cryptoReady
-    || !systemDeliveryDatabase.ready
-  ) {
-    return NextResponse.json({ error: "rich-menu-not-ready" }, { status: 409, headers });
-  }
-
-  const current = await readDefaultLineRichMenuStatus();
-  if (current.state === "active_v3") {
-    return NextResponse.json({ status: "already-active" }, { status: 200, headers });
-  }
-  if (current.state === "provider_unavailable") {
-    return NextResponse.json({ error: "rich-menu-status-unavailable" }, { status: 503, headers });
-  }
+  const current = await readLineRichMenuControlState().catch(() => null);
+  if (!current) return NextResponse.json({ error: "control-plane-unavailable" }, { status: 503, headers });
+  const expectedVersion = body.data.expectedVersion ?? current.rowVersion;
+  const idempotencyKey = body.data.idempotencyKey ?? `admin:${randomUUID()}`;
 
   try {
-    const asset = await loadLineRichMenuV3Asset();
-    const result = await activateDefaultLineRichMenu(asset.blob);
-    if (result.ok) {
-      return NextResponse.json({ status: "assigned" }, { status: 200, headers });
+    const result = await submitLineRichMenuCommand({
+      command: "reconcile",
+      expectedVersion,
+      idempotencyKey,
+      actor: identity.actor,
+      actorType: identity.actorType,
+      approvedBy: identity.actor,
+      approvalReason: body.data.confirmation,
+      definition: buildLineRichMenuProviderDefinition("line-rich-menu-v3"),
+    });
+    if (result.outcome === "conflict" || result.outcome === "busy" || result.outcome === "idempotency_conflict") {
+      return NextResponse.json({ error: result.outcome, resourceVersion: result.resourceVersion }, { status: 409, headers });
     }
-    if (result.status === "not_configured") {
-      return NextResponse.json({ error: "rich-menu-not-ready" }, { status: 409, headers });
-    }
-    if (result.status === "invalid_image") {
-      return NextResponse.json({ error: "rich-menu-asset-invalid" }, { status: 500, headers });
-    }
-    if (result.status === "reconciliation_required") {
-      return NextResponse.json({ error: "rich-menu-status-unclear" }, { status: 502, headers });
-    }
-    return NextResponse.json({ error: "rich-menu-provider-failed" }, { status: 502, headers });
+    return NextResponse.json({
+      status: result.outcome === "duplicate" ? "queued" : result.outcome,
+      commandId: result.commandId,
+      resourceVersion: result.resourceVersion,
+    }, { status: 202, headers });
   } catch {
-    return NextResponse.json({ error: "rich-menu-activation-unavailable" }, { status: 503, headers });
+    return NextResponse.json({ error: "control-command-failed" }, { status: 503, headers });
   }
 }

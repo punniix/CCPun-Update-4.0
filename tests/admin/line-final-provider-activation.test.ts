@@ -5,7 +5,10 @@ import path from "node:path";
 import test from "node:test";
 
 import { getLineProviderActivationReadiness } from "../../lib/admin/line/document-media";
-import { readDefaultLineRichMenuStatus } from "../../lib/admin/line/rich-menu-provider";
+import {
+  buildLineRichMenuProviderDefinition,
+  readDefaultLineRichMenuStatus,
+} from "../../lib/admin/line/rich-menu-provider";
 import {
   LINE_RICH_MENU_ITEMS,
   LINE_RICH_MENU_V2_ITEMS,
@@ -113,12 +116,7 @@ test("default Rich Menu status recognizes v3 without exposing provider id or tok
           headers: { "content-type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({
-        name: LINE_RICH_MENU_V3.name,
-        chatBarText: LINE_RICH_MENU_V3.chatBarText,
-        size: LINE_RICH_MENU_V3.size,
-        areas: LINE_RICH_MENU_V3.areas.map((area) => ({ bounds: area.bounds, action: { type: "postback" } })),
-      }), {
+      return new Response(JSON.stringify(buildLineRichMenuProviderDefinition()), {
         status: 200,
         headers: { "content-type": "application/json" },
       });
@@ -127,6 +125,24 @@ test("default Rich Menu status recognizes v3 without exposing provider id or tok
   assert.deepEqual(active, { state: "active_v3" });
   assert.equal(requestUrls.length, 2);
   assert.doesNotMatch(JSON.stringify(active), /richmenu-|synthetic-token/);
+
+  const changedAction = buildLineRichMenuProviderDefinition();
+  changedAction.areas[0] = {
+    ...changedAction.areas[0]!,
+    action: {
+      type: "postback",
+      label: "ประกันชีวิต",
+      data: "journey=life_health_policy_review&stage=changed",
+      displayText: "ประกันชีวิต",
+    },
+  };
+  const mismatched = await readDefaultLineRichMenuStatus(
+    { CCPUN_LINE_CHANNEL_ACCESS_TOKEN: "synthetic-token" },
+    async (input) => String(input).endsWith("/v2/bot/user/all/richmenu")
+      ? new Response(JSON.stringify({ richMenuId: "richmenu-synthetic-v3" }), { status: 200 })
+      : new Response(JSON.stringify(changedAction), { status: 200 }),
+  );
+  assert.deepEqual(mismatched, { state: "active_other" });
 });
 
 test("Drive credential readiness recognizes the intended memory-only owner-interactive setup", () => {
@@ -146,18 +162,17 @@ test("Drive credential readiness recognizes the intended memory-only owner-inter
   assert.equal(ready.drivePersistentCredentialConfigured, false);
 });
 
-test("Rich Menu activation endpoint is owner-only, same-origin and fixed to v3", () => {
+test("Rich Menu activation endpoint is owner-only and only submits a durable v3 command", () => {
   const route = read("apps/admin/app/api/admin/line/rich-menu/activate/route.ts");
   assert.match(route, /identity\.role !== "owner"/);
   assert.match(route, /settings:read/);
   assert.match(route, /isSameOriginAdminMutation/);
   assert.match(route, /activate-ccpun-rich-menu-v3/);
-  assert.match(route, /readDefaultLineRichMenuStatus/);
-  assert.match(route, /already-active/);
-  assert.match(route, /loadLineRichMenuV3Asset/);
-  assert.match(route, /getLineSystemDeliveryProviderReadiness/);
-  assert.match(route, /systemDelivery\.enabled/);
-  assert.doesNotMatch(route, /CCPUN_LINE_CHANNEL_ACCESS_TOKEN|richMenuId.*NextResponse|console\./);
+  assert.match(route, /submitLineRichMenuCommand/);
+  assert.match(route, /expectedVersion/);
+  assert.match(route, /idempotencyKey/);
+  assert.match(route, /buildLineRichMenuProviderDefinition\("line-rich-menu-v3"\)/);
+  assert.doesNotMatch(route, /activateDefaultLineRichMenu|CCPUN_LINE_CHANNEL_ACCESS_TOKEN|richMenuId.*NextResponse|console\./);
 });
 
 test("Health shows four-cell v3 and keeps Drive authorization on demand", () => {

@@ -10,7 +10,14 @@ const headers = {
   "X-Robots-Tag": "noindex, nofollow, noarchive",
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  if (!cronSecret) {
+    return NextResponse.json({ error: "rich-menu-reconciler-not-configured" }, { status: 503, headers });
+  }
+  if (request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401, headers });
+  }
   try {
     const result = await reconcileDesiredLineRichMenu();
     return NextResponse.json(result, {

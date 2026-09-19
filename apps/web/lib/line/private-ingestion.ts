@@ -194,7 +194,7 @@ function resolveSystemDeliveryDispatchUrl(
   runtime: LineIngestRuntime,
   variables: Record<string, string | undefined>,
 ) {
-  if (variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() === "false") return null;
+  if (variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() !== "true") return null;
 
   const configured = variables.CCPUN_LINE_SYSTEM_DELIVERY_ADMIN_URL?.trim();
   const raw = configured || (runtime.lane === "production"
@@ -253,7 +253,7 @@ async function enqueueLineDiscoverySystemOutboundBestEffort(
   variables: Record<string, string | undefined>,
 ) {
   if (
-    variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() === "false"
+    variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() !== "true"
     || event.eventType !== "postback"
     || !event.identity
     || !event.postback

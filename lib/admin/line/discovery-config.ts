@@ -59,7 +59,6 @@ const storedJourneySchema = z.object({
 
 const storedConfigSchema = z.object({
   _rev: z.string().min(1),
-  desiredRichMenu: z.enum(["v3", "hold"]).default("hold"),
   lifeHealth: storedJourneySchema.optional(),
   motor: storedJourneySchema.optional(),
   investment: storedJourneySchema.optional(),
@@ -96,7 +95,6 @@ const mutationJourneySchema = z.object({
 
 export const lineDiscoveryMutationSchema = z.object({
   revision: z.string().min(1).nullable(),
-  desiredRichMenu: z.enum(["v3", "hold"]),
   journeys: z.object({
     life_health_policy_review: mutationJourneySchema,
     motor_quote_review: mutationJourneySchema,
@@ -117,7 +115,6 @@ export type LineDiscoveryArticleOption = {
 
 export type LineDiscoveryAdminModel = {
   revision: string | null;
-  desiredRichMenu: "v3" | "hold";
   source: "stored" | "default";
   writeReady: boolean;
   journeys: Record<DiscoveryJourney, LineDiscoverySelection>;
@@ -125,7 +122,7 @@ export type LineDiscoveryAdminModel = {
 };
 
 const configQuery = defineQuery(
-  '*[_id == $id][0]{_rev,desiredRichMenu,lifeHealth{maxCards,items[]{_key,enabled,"slug":article->slug.current}},motor{maxCards,items[]{_key,enabled,"slug":article->slug.current}},investment{maxCards,items[]{_key,enabled,"slug":article->slug.current}}}',
+  '*[_id == $id][0]{_rev,lifeHealth{maxCards,items[]{_key,enabled,"slug":article->slug.current}},motor{maxCards,items[]{_key,enabled,"slug":article->slug.current}},investment{maxCards,items[]{_key,enabled,"slug":article->slug.current}}}',
 );
 
 const publishedArticlesQuery = defineQuery(
@@ -193,18 +190,17 @@ export async function readLineDiscoveryCuration(): Promise<{
 }> {
   const client = readClient();
   if (!client) {
-    return { revision: null, desiredRichMenu: "hold", source: "default", journeys: defaultLineDiscoveryCuration() };
+    return { revision: null, source: "default", journeys: defaultLineDiscoveryCuration() };
   }
 
   try {
     const raw = await client.fetch(configQuery, { id: LINE_DISCOVERY_CONFIG_ID });
     if (!raw) {
-      return { revision: null, desiredRichMenu: "hold", source: "default", journeys: defaultLineDiscoveryCuration() };
+      return { revision: null, source: "default", journeys: defaultLineDiscoveryCuration() };
     }
     const stored = storedConfigSchema.parse(raw);
     return {
       revision: stored._rev,
-      desiredRichMenu: stored.desiredRichMenu,
       source: "stored",
       journeys: {
         life_health_policy_review: selectionFromStored("life_health_policy_review", stored),
@@ -213,7 +209,7 @@ export async function readLineDiscoveryCuration(): Promise<{
       },
     };
   } catch {
-    return { revision: null, desiredRichMenu: "hold", source: "default", journeys: defaultLineDiscoveryCuration() };
+    return { revision: null, source: "default", journeys: defaultLineDiscoveryCuration() };
   }
 }
 
@@ -261,7 +257,6 @@ function toSanityFields(
 ) {
   return {
     version: 1,
-    desiredRichMenu: input.desiredRichMenu,
     lifeHealth: {
       maxCards: input.journeys.life_health_policy_review.maxCards,
       items: sanityItems(input.journeys.life_health_policy_review.items, articleIdBySlug),

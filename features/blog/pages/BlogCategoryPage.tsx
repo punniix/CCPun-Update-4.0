@@ -23,6 +23,7 @@ import {
   type BlogTopicHub,
 } from "@/lib/content/taxonomy";
 import { getArticlePath, getLegacyCategoryRedirectPath, isArticleCanonicalAligned } from "@/lib/content/url";
+import styles from "@/components/layout/website-43/Website43.module.css";
 
 const SITE_URL = "https://ccpun.com";
 const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/assets/blog-hub-hero-ccpun-v1.webp`;
@@ -59,6 +60,26 @@ function physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub
     title: hub?.seoTitle ?? `${category.title} | บทความและความรู้ | CCPun`,
     description: category.description ?? hub?.description ?? `รวมบทความและความรู้เรื่อง${category.title}จาก CCPun`,
   };
+}
+
+function buildTopicIntro(hub: BlogTopicHub | null) {
+  if (!hub?.intro.length) return null;
+
+  const headingId = `blog-topic-intro-${hub.slug}`;
+  return (
+    <section
+      className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}
+      aria-labelledby={headingId}
+    >
+      <div className={styles.inner}>
+        <p className={styles.eyebrow}>{hub.eyebrow}</p>
+        <h2 id={headingId} className={styles.h2}>ทำความเข้าใจ{hub.title}ก่อนตัดสินใจ</h2>
+        <div className={styles.storyCopy}>
+          {hub.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function categoryOpenGraph(category: CategoryRegistryEntry, title: string, description: string) {
@@ -188,6 +209,8 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
         articles={toWebsite43ArticleItems(relevantArticles)}
         featuredArticles={toWebsite43ArticleItems(visibleArticles)}
         activeCategorySlug={category.slug}
+        heroDescription={category.description ?? hub?.description}
+        topicContent={buildTopicIntro(hub)}
         initialQuery={initialQuery}
         categories={categoryMenu(registry, includeDrafts)}
       />
@@ -217,6 +240,8 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
       articles={toWebsite43ArticleItems(relevantArticles)}
       featuredArticles={toWebsite43ArticleItems(publishedArticles)}
       activeCategorySlug={hub.slug}
+      heroDescription={hub.description}
+      topicContent={buildTopicIntro(hub)}
       initialQuery={initialQuery}
       categories={categoryMenu(registry, includeDrafts)}
     />

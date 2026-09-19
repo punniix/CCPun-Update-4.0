@@ -153,7 +153,7 @@ export function getLineSystemDeliveryProviderReadiness(
     cryptoReady = false;
   }
   return {
-    enabled: variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() !== "false",
+    enabled: variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() === "true",
     tokenPresent: Boolean(variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim()),
     cryptoReady,
   };

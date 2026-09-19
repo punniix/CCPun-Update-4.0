@@ -7,7 +7,6 @@ import {
   saveLineDiscoveryCuration,
 } from "@/lib/admin/line/discovery-config";
 import { hasAdminPermission } from "@/lib/admin/rbac";
-import { reconcileDesiredLineRichMenu } from "@/lib/admin/line/rich-menu-reconciler";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,16 +57,9 @@ export async function PUT(request: Request) {
 
   try {
     const result = await saveLineDiscoveryCuration(body, identity.actor);
-    const desired = body && typeof body === "object" && "desiredRichMenu" in body
-      ? (body as { desiredRichMenu?: unknown }).desiredRichMenu
-      : null;
-    const reconciliation = desired === "v3"
-      ? await reconcileDesiredLineRichMenu().catch(() => ({ status: "reconcile_failed" as const }))
-      : { status: "hold" as const };
     return NextResponse.json({
       status: "saved",
       revision: result.revision,
-      richMenu: reconciliation.status,
     }, { headers });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
