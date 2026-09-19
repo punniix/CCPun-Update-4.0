@@ -226,7 +226,7 @@ export default async function AdminHealthPage() {
           <Row
             label="Rich Menu"
             value={
-              lineRichMenu.state === "active_v1"
+              lineRichMenu.state === "active_v2"
                 ? "เปิดใช้งานแล้ว"
                 : lineRichMenu.state === "active_other"
                   ? "มีเมนูอื่นใช้อยู่"
