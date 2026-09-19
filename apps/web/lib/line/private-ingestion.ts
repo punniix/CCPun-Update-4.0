@@ -255,6 +255,7 @@ async function enqueueLineDiscoverySystemOutboundBestEffort(
     || !event.identity
     || !event.postback
     || event.postback.needsHuman
+    || event.postback.stage !== "entry"
     || !isLineArticleDiscoveryJourney(event.postback.journey)
     || (outcome !== "accepted" && outcome !== "duplicate_event")
   ) return;
