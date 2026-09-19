@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { getLineProviderActivationReadiness } from "../../lib/admin/line/document-media";
 import { readDefaultLineRichMenuStatus } from "../../lib/admin/line/rich-menu-provider";
-import { LINE_RICH_MENU_V2 } from "../../lib/line/ecosystem";
+import { LINE_RICH_MENU_ITEMS, LINE_RICH_MENU_V2 } from "../../lib/line/ecosystem";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -33,6 +33,37 @@ test("Rich Menu build script keeps Website 4.3 colors and six locked labels", ()
   assert.match(source, /#e0c985/);
   assert.match(source, /2500/);
   assert.match(source, /1686/);
+});
+
+test("Rich Menu v2 URL actions carry safe UTM attribution while postbacks stay locked", () => {
+  for (const item of LINE_RICH_MENU_ITEMS) {
+    if (item.action === "uri") {
+      const url = new URL(item.uri);
+      assert.equal(url.searchParams.get("utm_source"), "line");
+      assert.equal(url.searchParams.get("utm_medium"), "rich_menu");
+      assert.equal(url.searchParams.get("utm_campaign"), "rich_menu_v2");
+      assert.ok(url.searchParams.get("utm_content"));
+      assert.equal(url.searchParams.has("line_user_id"), false);
+      assert.equal(url.searchParams.has("lead_id"), false);
+    }
+  }
+
+  assert.equal(
+    LINE_RICH_MENU_ITEMS.find((item) => item.id === "insurance")?.postbackData,
+    "journey=life_health_policy_review&stage=entry",
+  );
+  assert.equal(
+    LINE_RICH_MENU_ITEMS.find((item) => item.id === "investment")?.postbackData,
+    "journey=investment_before_you_act&stage=entry",
+  );
+  assert.equal(
+    LINE_RICH_MENU_ITEMS.find((item) => item.id === "motor")?.postbackData,
+    "journey=motor_quote_review&stage=entry",
+  );
+  assert.equal(
+    LINE_RICH_MENU_ITEMS.find((item) => item.id === "human")?.postbackData,
+    "journey=human_handoff&stage=waiting_for_advisor",
+  );
 });
 
 test("default Rich Menu status is read-only and never exposes provider id or token", async () => {
