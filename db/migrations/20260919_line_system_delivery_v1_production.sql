@@ -23,7 +23,7 @@ BEGIN
   ) THEN RAISE EXCEPTION 'LINE runtime identity changed'; END IF;
   PERFORM pg_advisory_xact_lock(hashtext('private_line:20260919_line_system_delivery_v1'));
   SELECT checksum INTO existing_checksum FROM private_line.schema_migration WHERE version='20260919_line_system_delivery_v1_production';
-  IF existing_checksum IS NOT NULL AND existing_checksum<>'sha256:a3f22b3c32bf72bd7a55c30ce7e9324fc173f018f6a244515962958063f5ab7d' THEN
+  IF existing_checksum IS NOT NULL AND existing_checksum<>'sha256:61d1e71b9ca7a0f27e2dd99f0902a514dff7216e5bfbcbc7bd1fda9e04b47e45' THEN
     RAISE EXCEPTION 'LINE system delivery checksum mismatch';
   END IF;
 END
@@ -370,6 +370,6 @@ GRANT EXECUTE ON FUNCTION private_line.admin_claim_line_system_outbound(jsonb)
   TO ccpun_admin_runtime;
 -- checksum-source-end
 INSERT INTO private_line.schema_migration(version,checksum)
-VALUES('20260919_line_system_delivery_v1_production','sha256:a3f22b3c32bf72bd7a55c30ce7e9324fc173f018f6a244515962958063f5ab7d')
+VALUES('20260919_line_system_delivery_v1_production','sha256:61d1e71b9ca7a0f27e2dd99f0902a514dff7216e5bfbcbc7bd1fda9e04b47e45')
 ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum;
 COMMIT;
