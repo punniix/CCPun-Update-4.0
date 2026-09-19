@@ -71,7 +71,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       ? 'ทรัพยากรที่มีมากกว่าประมาณการ'
       : 'ส่วนต่างจากประมาณการ';
 
-  const recoveryRows: Array<[string, number]> = [
+  const recoveryRowCandidates: Array<[string, number]> = [
     [`ติดตามรักษา ${result.recoveryTreatmentVisits} ครั้ง × ${baht(result.recoveryTreatmentVisitUnitCost)}`, result.recoveryVisitNeed],
     [`ผู้ดูแล ${result.recoveryCaregiverHomeDays} วัน × ${baht(result.recoveryCaregiverDailyCost)}`, result.recoveryCaregiverHomeNeed],
     [`กายภาพ/ฟื้นฟู ${result.recoveryRehabSessions} ครั้ง × ${baht(result.recoveryRehabUnitCost)}`, result.recoveryRehabNeed],
@@ -88,7 +88,8 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     ['Major Housing Reserve', result.recoveryMajorHousing],
     ['เงินเผื่อความคลาดเคลื่อน', result.recoveryContingency],
     ['ค่าใช้จ่ายอื่นช่วงพักฟื้น', result.recoveryOtherCosts],
-  ].filter(([, amount]) => amount > 0);
+  ];
+  const recoveryRows = recoveryRowCandidates.filter(([, amount]) => amount > 0);
 
   return <div data-ui="human-centered-ci-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <section className="ccpun-calculator-result-lead">
