@@ -75,9 +75,9 @@ The runtime verifies deployment/data identity and migration ledgers before privi
 
 UAT and Production may use lane-specific migration version names, so equality of ledger strings is not the parity contract. **Required runtime capabilities are the parity contract**: if Production code depends on a table, column, view or migration capability, UAT must support that capability before that feature is considered Preview-ready.
 
-As of the 2026-09-17 audit, `ccpun_admin` capabilities are aligned for current Control Plane usage, while UAT `ccpun_social` is behind Production Marketing Mart capabilities. Admin System Health exposes this explicitly as `clean-mart`, `raw-preview-fallback` or `blocked`, including the missing relations. Existing UAT can intentionally use the raw Preview fallback for current features; a future feature that depends on the clean Marketing Mart must not merge until UAT gains that capability.
+As of the 2026-09-19 promotion, UAT and Production each expose 34 `ccpun_social` relations. Table column signatures and normalized view-definition hashes match across the two projects. UAT now supports the clean Marketing Mart capability used by Production; Admin System Health must still fail closed to `raw-preview-fallback` or `blocked` if a future capability check detects drift.
 
-The existing guarded Marketing Mart migration uses a `DO $...$` block that the available Neon migration-preparation parser did not accept during the audit. The preparation failed before any schema was changed. Do not bypass that safety failure with direct UAT DDL; create/test a tool-compatible migration and use the explicit migration approval flow before applying it.
+The original guarded Marketing Mart source contained a parser-incompatible procedural block. The recovered UAT migration preserves the clean-data contract in tool-compatible SQL and was applied only after prerequisite/checksum guards and temporary-branch proof. Future changes must continue through the explicit UAT-first migration approval flow; direct unreviewed DDL remains prohibited.
 
 ## Authentication
 

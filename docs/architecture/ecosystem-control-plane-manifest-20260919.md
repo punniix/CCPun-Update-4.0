@@ -63,6 +63,18 @@ Agents receive neither provider secrets nor database-owner credentials. n8n/Make
 
 Promotion order is: evidence refresh → temporary-branch migration proof → UAT migration/readback → CI and Preview verification → Production migration/readback → reviewed SHA merge → Vercel deployment → live read-only QA → runtime-error review. Provider activation is a separate human-approved command and is never a deployment side effect.
 
+Neon promotion evidence recorded on 2026-09-19:
+
+| Lane | Change | Neon migration / transaction evidence | Readback |
+|---|---|---|---|
+| UAT | Provider Control Plane v1 | `3298e1b4-3395-42e1-b9bd-5b85175cfc4a` | All identity, function, grant and fail-closed checks passed; resource remains `hold` at row version 1. |
+| UAT | Customer lifecycle foundation v1 | `7bc07585-96fe-4380-8b26-33d8e623fc8b` | Tables, safe views and direct-table denials passed. |
+| UAT | Social Marketing Mart parity | Guarded five-file transaction through P2 provenance | 34/34 relation signatures match Production. |
+| Production | Provider Control Plane v1 | `7eeac8ed-70d7-46b1-ad5d-5db31ee6241e` | `hold/hold`, row version 1, no commands, no operations and no inferred provider actual state. |
+| Production | Customer lifecycle foundation v1 | `f2f450a7-93ea-4e7f-9d52-9b7e1ca5abf7` | Tables, safe views and direct-table denials passed. |
+
+Migration source checksums are `bfb668d37d859d3e01bdbee9ea433e5bdb835157f72ea983ce819c3c24160de1` for Provider Control Plane v1 and `cd12ea86c8705d4cdb1db3002cee9bb8616e208d007a39847edfa3bd37cbc693` for Customer Lifecycle Foundation v1. No provider mutation, customer message or private-data export occurred during this promotion.
+
 Database changes in this release are additive. Rollback is therefore application rollback to the prior reviewed SHA plus `hold` for provider reconciliation. Do not drop new tables, columns, views or legacy Sanity fields during incident response. Forward-fix schema defects after preserving evidence.
 
 ## Local AI gate
