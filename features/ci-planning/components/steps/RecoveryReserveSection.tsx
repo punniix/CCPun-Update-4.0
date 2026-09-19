@@ -3,7 +3,7 @@
 import { ExternalLink, RotateCcw } from 'lucide-react';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 import { calcRecoveryReserveNeed } from '@/features/ci-planning/calculator/calculator';
-import type { CIRecoveryCosts, CIRecoveryMode } from '@/features/ci-planning/calculator/types';
+import type { CIRecoveryCosts } from '@/features/ci-planning/calculator/types';
 import {
   buildCustomRecoveryFromTarget,
   CI_RECOVERY_PRESETS,
