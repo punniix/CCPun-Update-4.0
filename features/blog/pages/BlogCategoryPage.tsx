@@ -113,8 +113,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
     const canonical = getCategoryCanonical(category.slug);
     const shouldIndex = !includeDrafts
       && category.status === "active"
-      && relevantIndexableArticles.length > 0
-      && (hub?.indexable ?? true);
+      && relevantIndexableArticles.length > 0;
 
     return {
       title: copy.title,
@@ -198,8 +197,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
     const hub = getBlogTopicHub(category.slug);
     const shouldIndex = !includeDrafts
       && category.status === "active"
-      && relevantIndexableArticles.length > 0
-      && (hub?.indexable ?? true);
+      && relevantIndexableArticles.length > 0;
     const schema = shouldIndex && hub ? buildBlogTopicHubSchema(hub, relevantIndexableArticles) : null;
 
     return <>
