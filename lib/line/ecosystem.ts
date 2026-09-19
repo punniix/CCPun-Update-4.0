@@ -92,26 +92,26 @@ export function routeLineBot(input: LineBotRoutingInput): LineBotDecision {
 }
 
 export const LINE_RICH_MENU_ITEMS = [
-  { id: "content", label: "หาเรื่องอ่าน", action: "uri", uri: "https://ccpun.com/blog/" },
-  { id: "tools", label: "เครื่องมือ", action: "uri", uri: "https://ccpun.com/tools/" },
-  { id: "insurance", label: "ประกัน", action: "postback", postbackData: "journey=life_health_policy_review&stage=entry" },
-  { id: "investment", label: "ลงทุน", action: "postback", postbackData: "journey=investment_before_you_act&stage=entry" },
-  { id: "motor", label: "รถ", action: "postback", postbackData: "journey=motor_quote_review&stage=entry" },
-  { id: "human", label: "คุยกับปัน", action: "postback", postbackData: "journey=human_handoff&stage=waiting_for_advisor" },
+  { id: "content", label: "เรื่องน่ารู้", action: "uri", uri: "https://ccpun.com/blog/?utm_source=line&utm_medium=rich_menu&utm_campaign=rich_menu_v2&utm_content=content" },
+  { id: "tools", label: "ลองเช็ก", action: "uri", uri: "https://ccpun.com/tools/?utm_source=line&utm_medium=rich_menu&utm_campaign=rich_menu_v2&utm_content=tools" },
+  { id: "insurance", label: "ประกันชีวิต", action: "postback", postbackData: "journey=life_health_policy_review&stage=entry" },
+  { id: "investment", label: "เรื่องลงทุน", action: "postback", postbackData: "journey=investment_before_you_act&stage=entry" },
+  { id: "motor", label: "ประกันรถ", action: "postback", postbackData: "journey=motor_quote_review&stage=entry" },
+  { id: "human", label: "คุยกับปั้น", action: "postback", postbackData: "journey=human_handoff&stage=waiting_for_advisor" },
 ] as const;
 
-export const LINE_RICH_MENU_V1 = {
-  version: "line-rich-menu-v1",
+export const LINE_RICH_MENU_V2 = {
+  version: "line-rich-menu-v2",
   size: { width: 2500, height: 1686 },
   selected: false,
-  name: "CCPun Main v1",
+  name: "CCPun Main v2",
   chatBarText: "เมนู CCPun",
   image: {
     format: "image/png",
     width: 2500,
     height: 1686,
     maxBytes: 1_000_000,
-    assetKey: "ccpun-line-rich-menu-v1",
+    assetKey: "ccpun-line-rich-menu-v2",
   },
   areas: [
     { itemId: "content", bounds: { x: 0, y: 0, width: 833, height: 843 } },
