@@ -71,7 +71,11 @@ const auditArticleSchema = z.object({
   }).nullish(),
 });
 
-export function parseSeoAuditArticle(raw: unknown) {\n  return auditArticleSchema.parse(raw);\n}\n\nexport type SeoAuditSeverity = "critical" | "warning" | "opportunity";
+export function parseSeoAuditArticle(raw: unknown) {
+  return auditArticleSchema.parse(raw);
+}
+
+export type SeoAuditSeverity = "critical" | "warning" | "opportunity";
 
 export type SeoAuditCheck = {
   id: string;
