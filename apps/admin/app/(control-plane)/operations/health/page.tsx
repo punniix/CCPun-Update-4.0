@@ -235,6 +235,16 @@ export default async function AdminHealthPage() {
           </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะไฟล์ลูกค้าไม่ได้</p>}
           <Row label="เชื่อม LINE" value={lineProviderActivation.channelTokenPresent ? "พร้อม" : "ยังไม่ได้เชื่อม"} />
           <Row label="รับไฟล์อัตโนมัติ" value={lineMediaProvider.fetchEnabled ? "เปิด" : "ปิด"} />
+          <Row
+            label="Article Cards อัตโนมัติ"
+            value={
+              lineSystemDeliveryProvider.enabled
+              && lineSystemDeliveryProvider.tokenPresent
+              && lineSystemDeliveryProvider.cryptoReady
+                ? "พร้อม"
+                : "ยังไม่เปิด"
+            }
+          />
           <Row label="ตอบลูกค้าจาก Admin" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด — ควรตรวจ" : "ปิด · ใช้ LINE OA"} />
           <Row
             label="Rich Menu"
