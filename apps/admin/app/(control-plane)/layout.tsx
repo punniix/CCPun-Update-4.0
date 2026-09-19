@@ -9,48 +9,48 @@ import { environmentLabel, roleLabel } from "@/lib/admin/presentation";
 import { hasAdminPermission, type AdminPermission, type AdminRole } from "@/lib/admin/rbac";
 
 export const metadata: Metadata = {
-  title: { default: "CCPun Control Plane", template: "%s | CCPun Control Plane" },
+  title: { default: "ศูนย์จัดการ CCPun", template: "%s | ศูนย์จัดการ CCPun" },
   robots: { index: false, follow: false, nocache: true },
 };
 
 const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string; permission?: AdminPermission }> }> = [
-  { href: "/dashboard/", label: "Dashboard", permission: "dashboard:read", children: [
+  { href: "/dashboard/", label: "ภาพรวม", permission: "dashboard:read", children: [
       { href: "/dashboard/inbox/", label: "ลูกค้า LINE", permission: "advisor:read" },
       { href: "/dashboard/campaigns/", label: "ข้อความแจ้งลูกค้า", permission: "campaign:read" },
-      { href: "/dashboard/reviews/", label: "Reviews", permission: "reviews:read" },
+      { href: "/dashboard/reviews/", label: "งานรอตรวจ", permission: "reviews:read" },
   ] },
-  { href: "/content/", label: "Content", permission: "content:read", children: [
-      { href: "/content/articles/", label: "Articles" },
-      { href: "/content/calendar/", label: "Calendar" },
-      { href: "/content/research/", label: "Research" },
+  { href: "/content/", label: "เนื้อหา", permission: "content:read", children: [
+      { href: "/content/articles/", label: "บทความ" },
+      { href: "/content/calendar/", label: "ปฏิทินเผยแพร่" },
+      { href: "/content/research/", label: "ข้อมูลประกอบ" },
   ] },
   { href: "/seo/", label: "SEO", permission: "seo:read", children: [
-      { href: "/seo/opportunities/", label: "Opportunities" },
-      { href: "/seo/audits/", label: "Audits" },
+      { href: "/seo/opportunities/", label: "โอกาสพัฒนา" },
+      { href: "/seo/audits/", label: "ผลตรวจ" },
   ] },
-  { href: "/social/", label: "Social", permission: "social:read", children: [
-      { href: "/social/posts/", label: "Posts" },
-      { href: "/social/calendar/", label: "Calendar" },
-      { href: "/social/queue/", label: "Queue" },
-      { href: "/social/accounts/", label: "Connections" },
+  { href: "/social/", label: "โซเชียล", permission: "social:read", children: [
+      { href: "/social/posts/", label: "โพสต์" },
+      { href: "/social/calendar/", label: "ปฏิทินโพสต์" },
+      { href: "/social/queue/", label: "คิวส่งโพสต์" },
+      { href: "/social/accounts/", label: "บัญชีที่เชื่อมต่อ" },
   ] },
-  { href: "/analytics/", label: "Analytics", permission: "dashboard:read", children: [
-      { href: "/analytics/search/", label: "Search" },
-      { href: "/analytics/social/", label: "Social" },
-      { href: "/analytics/conversions/", label: "Conversions" },
+  { href: "/analytics/", label: "ผลลัพธ์", permission: "dashboard:read", children: [
+      { href: "/analytics/search/", label: "ผลการค้นหา" },
+      { href: "/analytics/social/", label: "ผลลัพธ์โซเชียล" },
+      { href: "/analytics/conversions/", label: "เส้นทางลูกค้า" },
   ] },
-  { href: "/operations/", label: "Operations", permission: "settings:read", children: [
-      { href: "/operations/health/", label: "Health" },
-      { href: "/operations/deployments/", label: "Deployments" },
-      { href: "/operations/jobs/", label: "Jobs" },
+  { href: "/operations/", label: "สถานะระบบ", permission: "settings:read", children: [
+      { href: "/operations/health/", label: "ภาพรวมระบบ" },
+      { href: "/operations/deployments/", label: "เวอร์ชันที่ใช้งาน" },
+      { href: "/operations/jobs/", label: "งานเบื้องหลัง" },
       { href: "/operations/local-ai/", label: "AI ภายใน" },
-      { href: "/operations/privacy/", label: "Privacy / Data Rights" },
-      { href: "/operations/audit-log/", label: "Audit log" },
+      { href: "/operations/privacy/", label: "ข้อมูลและความเป็นส่วนตัว" },
+      { href: "/operations/audit-log/", label: "ประวัติการทำงาน" },
   ] },
-  { href: "/settings/", label: "Settings", permission: "settings:read", children: [
-      { href: "/settings/integrations/", label: "Integrations" },
-      { href: "/settings/access/", label: "Access" },
-      { href: "/settings/system/", label: "System" },
+  { href: "/settings/", label: "ตั้งค่า", permission: "settings:read", children: [
+      { href: "/settings/integrations/", label: "การเชื่อมต่อ" },
+      { href: "/settings/access/", label: "สิทธิ์ผู้ใช้" },
+      { href: "/settings/system/", label: "ข้อมูลระบบ" },
   ] },
 ];
 
@@ -84,7 +84,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="flex items-center gap-4">
             <div>
-              <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">CCPun Control Plane</p>
+              <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ศูนย์จัดการ CCPun</p>
               <p className="mt-1 text-sm text-white/60">พื้นที่ตรวจและเตรียมงานก่อนเผยแพร่</p>
             </div>
             <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">{currentEnvironmentLabel}</span>
@@ -110,9 +110,9 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
           <AdminNavigation items={navItems} />
           <div className="mt-4 rounded-2xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-4 text-sm leading-6 text-white/70 lg:mt-6">
             {environment === "production-admin" || environment === "local-production" ? (
-              <><strong className="font-medium text-[#f4df9b]">Production · ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น และใช้ข้อมูลจริงตามสิทธิ์ที่กำหนด" : "การแก้ Draft และการอนุมัติยังต้องเป็น Human action"} Social Worker ทำได้เฉพาะ publication ที่ผ่าน approval และ provider-write gate แล้วเท่านั้น</>
+              <><strong className="font-medium text-[#f4df9b]">ระบบจริง · ใช้ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น และใช้ข้อมูลจริงตามสิทธิ์ที่กำหนด" : "การแก้ฉบับร่างและการอนุมัติต้องให้ผู้มีสิทธิ์เป็นคนยืนยัน"} ระบบจะส่งโพสต์ได้เฉพาะรายการที่ตรวจและอนุมัติแล้วเท่านั้น</>
             ) : (
-              <><strong className="font-medium text-[#f4df9b]">พื้นที่ทดสอบ UAT:</strong> ใช้สำหรับตรวจ workflow และ contract ก่อน Production โดย provider write ยังคงถูกควบคุมด้วย environment gate และ Human Approval</>
+              <><strong className="font-medium text-[#f4df9b]">พื้นที่ทดสอบ UAT:</strong> ใช้ตรวจขั้นตอนก่อนนำขึ้นระบบจริง การส่งข้อมูลไปบริการภายนอกยังปิดไว้จนกว่าผู้มีสิทธิ์จะยืนยัน</>
             )}
           </div>
         </aside>

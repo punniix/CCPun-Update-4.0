@@ -84,10 +84,10 @@ test("Post-Live preview route is authenticated, exact-origin and GET-only", () =
   assert.doesNotMatch(route, /fetch\(|setInterval|cron|createClient/);
   assert.match(page, /requireAdminPermission\("social:read"\)/);
   assert.match(page, /runtime\.environment === "production-admin"/);
-  assert.match(page, /Real-time polling, background sync/);
+  assert.match(page, /ไม่ติดตามแบบทันที ไม่ดึงข้อมูลเบื้องหลัง/);
   assert.equal(entry.trim(), 'export { metadata, default } from "@/features/admin/social/post-live-page";');
-  assert.match(analytics, /SOCIAL · MARKETING INTELLIGENCE/);
-  assert.match(layout, /href: "\/analytics\/social\/", label: "Social"/);
+  assert.match(analytics, /โซเชียล · ผลลัพธ์/);
+  assert.match(layout, /href: "\/analytics\/social\/", label: "ผลลัพธ์โซเชียล"/);
   assert.doesNotMatch(queue, /\/analytics\/social\/post-live\//);
 });
 

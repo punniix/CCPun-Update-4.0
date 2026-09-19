@@ -54,7 +54,7 @@ export default async function LocalAiPage() {
       <strong className="text-[#f4df9b]">ข้อมูลลูกค้าถูกป้องกันอย่างไร:</strong> ระบบจะล็อกข้อมูลก่อนบันทึก เปิดอ่านเฉพาะตอนที่ AI ภายในกำลังทำงาน และไม่ส่งข้อความต้นฉบับหรือกุญแจเปิดข้อมูลไปยัง n8n
     </section>
 
-    {model.error ? <p className="mt-5 rounded-2xl border border-rose-300/15 bg-rose-300/[0.04] p-4 text-sm text-rose-100">ขณะนี้ยังเชื่อมต่อระบบ AI ภายในไม่ได้ กรุณาลองใหม่อีกครั้งหรือตรวจหน้า System Health</p> : null}
+    {model.error ? <p className="mt-5 rounded-2xl border border-rose-300/15 bg-rose-300/[0.04] p-4 text-sm text-rose-100">ขณะนี้ยังเชื่อมต่อระบบ AI ภายในไม่ได้ กรุณาลองใหม่อีกครั้งหรือตรวจหน้าภาพรวมระบบ</p> : null}
 
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
       <div><h2 className="text-xl font-semibold">งานล่าสุด</h2><p className="mt-1 text-sm text-white/55">หน้านี้ไม่แสดงข้อความต้นฉบับ กุญแจ หรือข้อมูลส่วนตัวของลูกค้า</p></div>

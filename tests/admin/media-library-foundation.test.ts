@@ -286,10 +286,10 @@ test("Distribution Overview owns the root route while the Media Library presenta
   assert.match(page, /MediaLibraryUatSection/);
   assert.doesNotMatch(mediaSection, /text-white\/45/);
   assert.match(mediaSection, /text-white\/55/);
-  assert.match(mediaSection, /GOOGLE DRIVE · SELECTED FILE ONLY/);
+  assert.match(mediaSection, /GOOGLE DRIVE · เฉพาะไฟล์ที่เลือก/);
   assert.match(mediaSection, /เลือกไฟล์จาก Google Drive/);
-  assert.match(mediaSection, /Refresh metadata/);
-  assert.match(mediaSection, /Manual OAuth \/ Picker/);
+  assert.match(mediaSection, /อัปเดตรายละเอียดไฟล์/);
+  assert.match(mediaSection, /ให้เจ้าของอนุญาตสิทธิ์เฉพาะไฟล์แบบชั่วคราว/);
   assert.equal((mediaSection.match(/disabled aria-disabled="true"/g) ?? []).length, 2);
   assert.equal(route.trim(), 'export { metadata, default } from "@/features/admin/social/control-plane-page";');
   assert.doesNotMatch(page, /redirect\(/);

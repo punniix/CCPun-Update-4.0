@@ -282,9 +282,9 @@ test("GSC manual sync is human-only, exact-origin, bounded and read-only", () =>
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /createClient|\.(?:mutate|create|patch|delete)\(|console\./i);
   assert.match(control, /type="date"/);
-  assert.match(control, /กำลัง Sync/);
+  assert.match(control, /กำลังดึงข้อมูล/);
   assert.match(control, /role="alert"/);
-  assert.match(control, /ไม่บันทึก DB\/Sanity/);
+  assert.match(control, /ไม่บันทึกลงฐานข้อมูลหรือ Sanity/);
   assert.match(control, /ดึงข้อมูลล่าสุดเมื่อ/);
   assert.match(control, /result\.current\.clicks/);
   assert.match(control, /result\.comparison\?\.clicks/);
@@ -361,8 +361,8 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /createClient|sanity|mutate|publish|console\./i);
   assert.match(control, /type="date"/);
-  assert.match(control, /Organic landing pages/);
-  assert.match(control, /ไม่บันทึก DB\/Sanity/);
+  assert.match(control, /ผู้เข้าชมจากผลค้นหา/);
+  assert.match(control, /ไม่บันทึกลงฐานข้อมูลหรือ Sanity/);
   assert.match(control, /ดึงข้อมูลล่าสุดเมื่อ/);
   assert.match(control, /result\.current\.sessions/);
   assert.match(control, /result\.comparison\?\.sessions/);
@@ -374,12 +374,12 @@ test("Organic Search page removes synthetic and operational telemetry", () => {
   const page = read("features/admin/seo/opportunities/page.tsx");
   const gscControl = read("features/admin/seo/opportunities/GscManualSync.tsx");
   const ga4Control = read("features/admin/seo/opportunities/Ga4ManualSync.tsx");
-  assert.match(page, /Organic Search Performance/);
-  assert.match(page, /runtime\.environment === "production-admin" \? "Production" : "UAT"/);
+  assert.match(page, /ผลลัพธ์จากการค้นหาธรรมชาติ/);
+  assert.match(page, /runtime\.environment === "production-admin" \? "ระบบจริง" : "UAT"/);
   assert.match(page, /laneLabel=\{laneLabel\}/);
   assert.doesNotMatch(page, /Performance UAT|READ-ONLY UAT/);
-  assert.match(gscControl, /Search Console สำหรับ \$\{laneLabel\}/);
-  assert.match(ga4Control, /GA4 สำหรับ \$\{laneLabel\}/);
+  assert.match(gscControl, /ยังไม่ได้เชื่อม Search Console สำหรับ \$\{laneLabel\}/);
+  assert.match(ga4Control, /ยังไม่ได้เชื่อม GA4 สำหรับ \$\{laneLabel\}/);
   assert.doesNotMatch(page, /getSyntheticSeoIntelligenceSnapshot|Market provider states|snapshot\.opportunities|Observations/);
 });
 

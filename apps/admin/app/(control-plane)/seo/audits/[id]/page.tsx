@@ -38,7 +38,7 @@ export default async function SeoAuditDetailPage({ params }: PageProps) {
     now: audit.auditedAt,
   });
   const serpTitle = article.seoTitle?.trim() || article.title || "ยังไม่มีชื่อ";
-  const serpDescription = article.seoDescription?.trim() || "ยังไม่มี Meta description";
+  const serpDescription = article.seoDescription?.trim() || "ยังไม่มีคำอธิบายสำหรับผลค้นหา";
   const socialTitle = article.ogTitle?.trim() || serpTitle;
   const socialDescription = article.ogDescription?.trim() || serpDescription;
   const canonical = article.canonical?.trim() || (article.categorySlug && article.slug ? `https://ccpun.com/blog/${article.categorySlug}/${article.slug}/` : "https://ccpun.com/blog/");
@@ -84,7 +84,7 @@ export default async function SeoAuditDetailPage({ params }: PageProps) {
         <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
           {article.socialImage ? <Image src={article.socialImage} alt="" width={1200} height={630} className="aspect-[1.91/1] w-full object-cover" /> : <div className="aspect-[1.91/1] bg-white/5" />}
           <div className="p-5">
-            <h2 className="text-lg font-semibold">ตัวอย่างแชร์ Social</h2>
+            <h2 className="text-lg font-semibold">ตัวอย่างเมื่อแชร์บนโซเชียล</h2>
             <p className="mt-3 font-semibold text-white/90">{socialTitle}</p>
             <p className="mt-1 text-sm leading-6 text-white/60">{socialDescription}</p>
           </div>
@@ -101,19 +101,19 @@ export default async function SeoAuditDetailPage({ params }: PageProps) {
             <p className={`mt-1 text-sm ${readiness.legacyInternalLinks ? "text-amber-200" : "text-emerald-200"}`}>{readiness.legacyInternalLinks ? `${readiness.legacyInternalLinks} ลิงก์ยังผ่าน URL เก่า` : "ไม่พบลิงก์ URL เก่า"}</p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-            <div className="text-sm text-white/55">แหล่งอ้างอิง / FAQ</div>
+            <div className="text-sm text-white/55">แหล่งอ้างอิง / คำถามที่พบบ่อย</div>
             <div className="mt-2 font-semibold">{readiness.sourcesCount} แหล่ง · {readiness.faqCount} คำถาม</div>
             <p className="mt-1 text-sm text-white/60">เพิ่มเองในแท็บตรวจสอบและ SEO / การค้นหา</p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-            <div className="text-sm text-white/55">Fact-check / Compliance</div>
+            <div className="text-sm text-white/55">ตรวจข้อเท็จจริง / ข้อกำกับ</div>
             <div className="mt-2 font-semibold">{Number(readiness.factChecked) + Number(readiness.complianceReviewed)}/2 ขั้น</div>
             <p className={`mt-1 text-sm ${readiness.factChecked && readiness.complianceReviewed ? "text-emerald-200" : "text-amber-200"}`}>{readiness.factChecked && readiness.complianceReviewed ? "บันทึกครบแล้ว" : "ยังต้องบันทึกวันที่ตรวจ"}</p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
             <div className="text-sm text-white/55">ความครบถ้วนข้อมูล GEO / AI Search</div>
             <div className="mt-2 font-semibold">{readiness.geoCompleted}/{readiness.geoTotal} ช่อง</div>
-            <p className="mt-1 text-sm text-white/60">สรุป · Entities · คำถาม · วันที่ตรวจ</p>
+            <p className="mt-1 text-sm text-white/60">สรุป · สิ่งสำคัญที่กล่าวถึง · คำถาม · วันที่ตรวจ</p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
             <div className="text-sm text-white/55">รูปภาพจาก WordPress</div>
@@ -121,9 +121,9 @@ export default async function SeoAuditDetailPage({ params }: PageProps) {
             <p className="mt-1 text-sm text-white/60">{readiness.usesMigratedFeaturedImage && !readiness.hasNativeFeaturedImage ? "หน้าปกเดิมยังแสดงได้; เปลี่ยนเป็นรูป Sanity เมื่อต้องการแก้" : "หน้าปกใช้รูปที่แก้ใน Sanity ได้"}</p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-            <div className="text-sm text-white/55">CTA เก่าจาก Facebook</div>
+            <div className="text-sm text-white/55">คำชวนให้ทำต่อแบบเก่าจาก Facebook</div>
             <div className="mt-2 font-semibold">{readiness.legacyFacebookCtas} จุด</div>
-            <p className={`mt-1 text-sm ${readiness.legacyFacebookCtas ? "text-amber-200" : "text-emerald-200"}`}>{readiness.legacyFacebookCtas ? "ควรตรวจและเปลี่ยนเป็น LINE OA ใน Studio" : "ไม่พบ CTA เก่า"}</p>
+            <p className={`mt-1 text-sm ${readiness.legacyFacebookCtas ? "text-amber-200" : "text-emerald-200"}`}>{readiness.legacyFacebookCtas ? "ควรตรวจและเปลี่ยนเป็น LINE OA ใน Studio" : "ไม่พบคำชวนแบบเก่า"}</p>
           </article>
         </div>
       </section>
@@ -138,7 +138,7 @@ export default async function SeoAuditDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      <p className="mt-5 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/80">ระบบสร้างข้อเสนอ Search intent เท่านั้น เมื่อมี Primary keyword และ Research Snapshot จากแหล่งที่รองรับภายใน 30 วัน ข้อเสนอยังต้องให้มนุษย์ตรวจ ส่วน SEO Title และ Meta description จะไม่ถูกสร้างอัตโนมัติจนกว่าจะมีหลักฐาน GSC ownership ที่เพียงพอ</p>
+      <p className="mt-5 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/80">ระบบสร้างข้อเสนอเรื่องเป้าหมายการค้นหาเฉพาะเมื่อมีคำค้นหลักและข้อมูลประกอบจากแหล่งที่รองรับภายใน 30 วัน ข้อเสนอยังต้องให้ผู้มีสิทธิ์ตรวจ และระบบจะไม่สร้างชื่อหรือคำอธิบายสำหรับผลค้นหาอัตโนมัติ จนกว่าจะยืนยันได้ว่าคำค้นนั้นควรอยู่กับหน้านี้</p>
 
       <section className="mt-6 space-y-3">
         {audit.checks.map((check) => (

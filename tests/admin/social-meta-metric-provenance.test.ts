@@ -87,6 +87,6 @@ test("Backfill and Sheets fail closed until provenance migration is current", ()
 
 test("Sheets presentation states that raw tabs remain and clean marketing tabs are added", () => {
   const component = read("features/admin/social/SocialSheetsExport.tsx");
-  assert.match(component, /คง Raw tabs/);
-  assert.match(component, /Marketing - Posts, Coverage และ QA/);
+  assert.match(component, /ชีตสรุปโพสต์ ความครอบคลุม และข้อมูลสำหรับตรวจคุณภาพ/);
+  assert.match(component, /สร้าง Google Sheets/);
 });

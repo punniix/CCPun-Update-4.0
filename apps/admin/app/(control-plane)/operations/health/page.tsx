@@ -152,10 +152,10 @@ export default async function AdminHealthPage() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">OWNER DIAGNOSTICS</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">สำหรับตรวจสถานะระบบ</p>
       <h1 className="mt-2 text-3xl font-semibold">สถานะระบบ</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-        ดูว่า Admin กำลังรันบน deployment ไหน เชื่อม Sanity และ private operational database ถูก lane หรือไม่ รวมถึงสถานะระบบ Schedule และ Social โดยไม่แสดง credential หรือ secret ใด ๆ
+        ดูว่าระบบหลังบ้าน เนื้อหา ข้อมูลส่วนตัว งานตั้งเวลา LINE และโซเชียลพร้อมใช้งานหรือไม่ โดยไม่แสดงรหัสลับหรือข้อมูลลูกค้า
       </p>
 
       <div className="mt-7">
@@ -187,41 +187,29 @@ export default async function AdminHealthPage() {
       </div>
 
       <div className="mt-7 grid gap-4 xl:grid-cols-2">
-        <Card title="Vercel Runtime" state={vercelState}>
-          <Row label="Environment" value={vercelEnvironment} />
-          <Row label="Git branch" value={gitBranch} />
-          <Row label="Commit" value={gitSha} />
-          <Row label="Region" value={region} />
-          <p className="pt-2 text-white/50">หน้านี้ตอบจาก deployment ปัจจุบันโดยตรง จึงใช้ตรวจ branch / commit / runtime lane ได้โดยไม่ต้องให้ Admin ถือ Vercel API token</p>
+        <Card title="ศูนย์จัดการที่กำลังใช้งาน" state={vercelState}>
+          <p>{vercelState === "ok" ? "กำลังใช้เวอร์ชันจากสายงานที่ถูกต้อง" : "เวอร์ชันหรือสภาพแวดล้อมไม่ตรงตามที่คาด ต้องตรวจเพิ่มเติม"}</p>
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="สภาพแวดล้อม" value={vercelEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /><Row label="Region" value={region} /></div></details>
         </Card>
 
-        <Card title="Sanity Editorial Data" state={sanityState}>
-          <Row label="Project" value={sanity.projectId ?? "—"} />
-          <Row label="Dataset" value={sanity.dataset ?? "—"} />
-          <Row label="Read" value={sanity.readReady ? "พร้อม" : "ไม่พร้อม"} />
-          <Row label="Draft write" value={sanity.writeReady ? "พร้อม" : "ไม่พร้อม"} />
+        <Card title="เนื้อหาใน Sanity" state={sanityState}>
+          <Row label="อ่านเนื้อหา" value={sanity.readReady ? "พร้อม" : "ไม่พร้อม"} />
+          <Row label="แก้ฉบับร่าง" value={sanity.writeReady ? "พร้อม" : "ไม่พร้อม"} />
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรหัสชุดข้อมูล</summary><div className="mt-2 space-y-2"><Row label="Project" value={sanity.projectId ?? "—"} /><Row label="Dataset" value={sanity.dataset ?? "—"} /></div></details>
         </Card>
 
-        <Card title="Control Plane Operations" state={operationsState}>
-          <Row label="Lane" value={operations.lane ?? "—"} />
-          <Row label="Neon project" value={operations.projectId ?? "—"} />
-          <Row label="Branch" value={operations.branchId ?? "—"} />
-          <Row label="Database" value={operations.database ?? "—"} />
-          <Row label="Identity guard" value={operations.identityValid ? "ผ่าน" : operations.configured ? "ไม่ผ่าน" : "ยังไม่มี runtime credential"} />
-          <Row label="Migration" value={operations.migrationVersion ?? "—"} />
-          <p className="pt-2 text-white/50">ส่วนนี้เป็นแหล่งข้อมูลของประวัติการทำงาน, Research snapshots และข้อเสนอ SEO ที่รอตรวจ ไม่ใช่ Sanity editorial documents</p>
+        <Card title="ข้อมูลส่วนตัวและประวัติการทำงาน" state={operationsState}>
+          <Row label="การเชื่อมต่อ" value={operations.identityValid ? "ยืนยันฐานข้อมูลชุดที่ถูกต้องแล้ว" : operations.configured ? "ข้อมูลการเชื่อมต่อไม่ตรง ต้องตรวจ" : "ยังไม่ได้ตั้งค่าการเชื่อมต่อ"} />
+          <p className="pt-2 text-white/50">ส่วนนี้เก็บประวัติ งานรอตรวจ และข้อมูลลูกค้า แยกจากระบบเนื้อหา Sanity</p>
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="Lane" value={operations.lane ?? "—"} /><Row label="Neon project" value={operations.projectId ?? "—"} /><Row label="Branch" value={operations.branchId ?? "—"} /><Row label="Database" value={operations.database ?? "—"} /><Row label="Migration" value={operations.migrationVersion ?? "—"} /></div></details>
         </Card>
 
-        <Card title="Article Scheduler" state={schedulerState}>
-          <Row label="Lane" value={schedulerLane ?? "—"} />
-          <Row label="Mode" value={scheduler.mode ?? "—"} />
-          <Row label="Runtime switch" value={scheduler.runtimeEnabled ? "เปิด" : "ปิด"} />
-          <Row label="Durable Neon switch" value={scheduler.status === "ready" ? scheduler.durableEnabled ? "เปิด" : "ปิด" : "อ่านไม่ได้"} />
-          <Row label="Effective scheduling" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} />
-          <Row label="Schedule records" value={scheduler.status === "ready" ? scheduler.schedules.length.toLocaleString("th-TH") : "—"} />
-          <Row label="Audit records" value={scheduler.status === "ready" ? scheduler.audit.length.toLocaleString("th-TH") : "—"} />
-          {scheduler.error ? <p className="pt-2 text-amber-100/80">Read error: {scheduler.error}</p> : null}
-          <p className="pt-2 text-white/50">สถานะ “พร้อม” ต้องผ่านทั้ง runtime identity, runtime switch และ durable database switch พร้อมกัน การเปิด durable switch ต้องใช้ database-owner channel แยกจาก runtime credential</p>
+        <Card title="ตั้งเวลาเผยแพร่บทความ" state={schedulerState}>
+          <Row label="รับคิวใหม่" value={scheduler.effectiveEnabled ? "พร้อม" : "ยังไม่รับคิวใหม่"} />
+          <Row label="รายการที่อ่านได้" value={scheduler.status === "ready" ? scheduler.schedules.length.toLocaleString("th-TH") : "—"} />
+          {scheduler.error ? <p className="pt-2 text-amber-100/80">ตอนนี้ยังอ่านข้อมูลงานตั้งเวลาไม่ได้</p> : null}
+          <p className="pt-2 text-white/50">ระบบจะรับคิวใหม่เมื่อการเชื่อมต่อและสวิตช์ความปลอดภัยทั้งสองส่วนพร้อมเท่านั้น</p>
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="Lane" value={schedulerLane ?? "—"} /><Row label="Mode" value={scheduler.mode ?? "—"} /><Row label="Runtime switch" value={scheduler.runtimeEnabled ? "เปิด" : "ปิด"} /><Row label="Durable switch" value={scheduler.status === "ready" ? scheduler.durableEnabled ? "เปิด" : "ปิด" : "อ่านไม่ได้"} /><Row label="Audit records" value={scheduler.status === "ready" ? scheduler.audit.length.toLocaleString("th-TH") : "—"} />{scheduler.error ? <Row label="Error" value={scheduler.error} /> : null}</div></details>
         </Card>
 
         <Card title="ความพร้อมของการเข้ารหัส LINE" state={lineKeyRotationState}>
@@ -258,7 +246,7 @@ export default async function AdminHealthPage() {
           <Row label="เชื่อม LINE" value={lineProviderActivation.channelTokenPresent ? "พร้อม" : "ยังไม่ได้เชื่อม"} />
           <Row label="รับไฟล์อัตโนมัติ" value={lineMediaProvider.fetchEnabled ? "เปิด" : "ปิด"} />
           <Row
-            label="Article Cards อัตโนมัติ"
+            label="การ์ดบทความอัตโนมัติ"
             value={
               lineSystemDeliveryProvider.enabled
               && lineSystemDeliveryProvider.tokenPresent
@@ -270,7 +258,7 @@ export default async function AdminHealthPage() {
                   : "ยังไม่พร้อมที่ฐานข้อมูล"
             }
           />
-          <Row label="ตอบลูกค้าจาก Admin" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด — ควรตรวจ" : "ปิด · ใช้ LINE OA"} />
+          <Row label="ตอบลูกค้าจากศูนย์จัดการ" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด — ควรตรวจ" : "ปิด · ใช้ LINE OA"} />
           <Row
             label="Rich Menu"
             value={
@@ -299,7 +287,7 @@ export default async function AdminHealthPage() {
             <Row label="ข้อความที่นำเข้าจาก LINE OA" value={lineArchive.importedOutboundCount.toLocaleString("th-TH")} />
             <Row label="รายชื่อลูกค้าที่ดึงชื่อจาก LINE แล้ว" value={lineArchive.cachedProfileCount.toLocaleString("th-TH")} />
             <Row label="จำนวนครั้งที่เปิดหลักฐาน" value={lineArchive.evidenceAccessCount.toLocaleString("th-TH")} />
-            <Row label="ตอบลูกค้าจาก Admin" value={lineArchive.directAdminReplyEnabled ? "เปิด — ต้องตรวจ" : "ปิด · ใช้ LINE OA ตามเดิม"} />
+            <Row label="ตอบลูกค้าจากศูนย์จัดการ" value={lineArchive.directAdminReplyEnabled ? "เปิด — ต้องตรวจ" : "ปิด · ใช้ LINE OA ตามเดิม"} />
           </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะประวัติการคุยไม่ได้</p>}
           <p className="pt-2 text-white/50">หน้านี้แสดงเฉพาะจำนวนรวม ไม่แสดงชื่อหรือข้อความของลูกค้า</p>
         </Card>
@@ -349,9 +337,9 @@ export default async function AdminHealthPage() {
           <p className="pt-2 text-white/50">การลบข้อมูลจริงและการกู้คืนข้อมูลยังต้องมีการตรวจยืนยันจากเจ้าของระบบแยกต่างหาก</p>
         </Card>
 
-        <Card title="Social / Distribution" state={socialState}>
-          <Row label="Foundation" value={socialFoundation.enabled ? "เปิด" : "ปิด"} />
-          <Row label="Operations" value={socialOperations.enabled ? "เปิด" : "ปิด"} />
+        <Card title="การส่งงานไปโซเชียล" state={socialState}>
+          <Row label="เตรียมโพสต์" value={socialFoundation.enabled ? "เปิด" : "ปิด"} />
+          <Row label="จัดคิวและติดตามผล" value={socialOperations.enabled ? "เปิด" : "ปิด"} />
         </Card>
       </div>
     </div>

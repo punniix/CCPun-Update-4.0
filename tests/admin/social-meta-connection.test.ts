@@ -59,7 +59,7 @@ test("Synthetic Meta connection and GET route stay UAT-only and read-only", () =
   assert.ok(page.indexOf("{showFixture ? <>") < page.indexOf("connection.pages.map"));
   assert.equal(entry.trim(), 'export { metadata, default } from "@/features/admin/social/meta-connection-page";');
   assert.match(connections, /href: "\/social\/accounts\/meta\/"/);
-  assert.match(connections, /Facebook Page · Instagram account/);
-  assert.match(layout, /href: "\/social\/accounts\/", label: "Connections"/);
+  assert.match(connections, /Facebook Page · บัญชี Instagram/);
+  assert.match(layout, /href: "\/social\/accounts\/", label: "บัญชีที่เชื่อมต่อ"/);
   assert.doesNotMatch(queue, /\/social\/accounts\/meta\//);
 });

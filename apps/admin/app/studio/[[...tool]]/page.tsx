@@ -22,8 +22,8 @@ export default async function StudioPage() {
   if (!projectId || !dataset) {
     return (
       <main style={{ minHeight: "100vh", padding: "3rem", fontFamily: "system-ui", background: "#251818", color: "#faf9f9" }}>
-        <h1>Sanity Studio is not configured</h1>
-        <p>Set the public Sanity project and dataset variables for this UAT environment.</p>
+        <h1>ยังเปิด Sanity Studio ไม่ได้</h1>
+        <p>กรุณาให้ผู้ดูแลตั้งค่าโครงการและชุดข้อมูล Sanity สำหรับพื้นที่ทดสอบ UAT ให้ครบ</p>
       </main>
     );
   }

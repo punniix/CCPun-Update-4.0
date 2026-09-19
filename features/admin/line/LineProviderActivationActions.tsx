@@ -10,6 +10,23 @@ type RichMenuState =
   | "active_other"
   | "provider_unavailable";
 
+const desiredModeLabels = {
+  hold: "หยุดการปรับอัตโนมัติ",
+  reconcile: "รอตรวจและปรับให้ตรงกัน",
+  rollback: "รอคืนเมนูก่อนหน้า",
+} as const;
+
+const controlStateLabels = {
+  hold: "หยุดไว้",
+  pending: "รอดำเนินการ",
+  leased: "กำลังเตรียมงาน",
+  mutating: "กำลังปรับที่ LINE",
+  verified: "ตรวจยืนยันแล้ว",
+  reconciliation_required: "สถานะยังไม่ชัด ต้องตรวจอีกครั้ง",
+  failed: "ทำรายการไม่สำเร็จ",
+  blocked: "ระบบหยุดไว้เพื่อความปลอดภัย",
+} as const;
+
 export function LineProviderActivationActions({
   richMenuState,
   richMenuReady,
@@ -80,8 +97,8 @@ export function LineProviderActivationActions({
   async function submitControlCommand(command: "hold" | "rollback") {
     if (!controlState) return;
     const wording = command === "hold"
-      ? "หยุดการ reconcile Rich Menu โดยไม่เปลี่ยนหรือย้อนสถานะที่ LINE ใช้อยู่ ยืนยันหรือไม่?"
-      : "คืน Rich Menu ไปยัง provider state ก่อนหน้าที่ระบบอ่านกลับและอนุมัติไว้ ยืนยันหรือไม่?";
+      ? "หยุดการตรวจและปรับ Rich Menu อัตโนมัติ โดยไม่เปลี่ยนเมนูที่ LINE ใช้อยู่ ยืนยันหรือไม่?"
+      : "คืน Rich Menu ไปเป็นเมนูก่อนหน้าที่ตรวจและอนุมัติไว้ ยืนยันหรือไม่?";
     if (!window.confirm(wording)) return;
     setBusy(true);
     setMessage(null);
@@ -103,7 +120,7 @@ export function LineProviderActivationActions({
       const payload = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) {
         if (payload.error === "provider-operation-in-progress") {
-          throw new Error("provider operation กำลังอยู่ในช่วง mutation กรุณารอ readback แล้วลองอีกครั้ง");
+          throw new Error("ระบบกำลังปรับ Rich Menu อยู่ กรุณารอให้ตรวจผลเสร็จแล้วลองอีกครั้ง");
         }
         if (payload.error === "stale-version") {
           throw new Error("สถานะเปลี่ยนจากหน้าเดิมแล้ว กรุณาโหลดหน้าใหม่");
@@ -111,8 +128,8 @@ export function LineProviderActivationActions({
         throw new Error("ยังส่งคำสั่งไม่ได้");
       }
       setMessage(command === "hold"
-        ? "หยุด reconcile แล้ว โดยไม่ได้ rollback provider"
-        : "รับคำสั่ง rollback แล้ว ระบบจะตรวจ readback ก่อนยืนยันผล");
+        ? "หยุดการปรับอัตโนมัติแล้ว โดยไม่ได้เปลี่ยนเมนูที่ LINE ใช้อยู่"
+        : "รับคำสั่งคืนเมนูก่อนหน้าแล้ว ระบบจะอ่านกลับจาก LINE ก่อนยืนยันผล");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "ยังส่งคำสั่งไม่ได้");
@@ -129,7 +146,7 @@ export function LineProviderActivationActions({
     <section className="rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.05] p-5 md:p-6">
       <h2 className="text-lg font-semibold text-white/90">เปิดใช้งาน LINE ให้ครบ</h2>
       <p className="mt-1 text-sm leading-6 text-white/60">
-        ขั้นตอนที่ต้องให้เจ้าของระบบยืนยันเองจะอยู่ตรงนี้ ไม่ต้องไปหา credential หรือเมนูหลายหน้า
+        ขั้นตอนที่มีผลกับผู้ใช้ LINE ต้องให้เจ้าของระบบยืนยันที่หน้านี้ทุกครั้ง
       </p>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -180,7 +197,7 @@ export function LineProviderActivationActions({
               onClick={() => void submitControlCommand("hold")}
               className="min-h-11 rounded-xl border border-white/10 px-4 text-sm text-white/70 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              หยุด reconcile
+              หยุดการปรับอัตโนมัติ
             </button>
             <button
               type="button"
@@ -188,14 +205,13 @@ export function LineProviderActivationActions({
               onClick={() => void submitControlCommand("rollback")}
               className="min-h-11 rounded-xl border border-amber-200/20 px-4 text-sm text-amber-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Rollback ที่อนุมัติไว้
+              คืนเมนูก่อนหน้า
             </button>
           </div>
-          <p className="mt-3 text-xs leading-5 text-white/45">
-            Control Plane: {controlState
-              ? `${controlState.desiredMode} · ${controlState.state} · v${controlState.rowVersion}`
-              : "ยังไม่พร้อม"}
-          </p>
+          <p className="mt-3 text-xs leading-5 text-white/45">สถานะการดูแลเมนู: {controlState
+            ? `${desiredModeLabels[controlState.desiredMode]} · ${controlStateLabels[controlState.state]}`
+            : "ยังไม่พร้อม"}</p>
+          {controlState ? <details className="mt-2 text-xs text-white/40"><summary className="cursor-pointer">ดูรหัสเวอร์ชันสำหรับตรวจสอบ</summary><p className="mt-1">เวอร์ชัน {controlState.rowVersion}</p></details> : null}
         </article>
 
         <article className="rounded-2xl border border-white/10 bg-black/15 p-4">
@@ -203,7 +219,7 @@ export function LineProviderActivationActions({
             <div>
               <h3 className="font-medium text-white/85">Google Drive สำหรับไฟล์ลูกค้า</h3>
               <p className="mt-1 text-xs leading-5 text-white/50">
-                ใช้สิทธิ์ drive.file แบบชั่วคราว และไม่เก็บ refresh token
+                ขอสิทธิ์เฉพาะไฟล์ที่เลือกเป็นครั้งคราว และไม่เก็บสิทธิ์ระยะยาว
               </p>
             </div>
             <span className={`rounded-full border px-2.5 py-1 text-xs ${
@@ -219,14 +235,14 @@ export function LineProviderActivationActions({
               ? pendingFileCount > 0
                 ? `มีไฟล์รอ ${pendingFileCount.toLocaleString("th-TH")} รายการ · ค่อยอนุญาต Drive ตอนประมวลผลไฟล์`
                 : "ตอนนี้ไม่มีไฟล์รอ จึงยังไม่ต้องกดอนุญาต Google Drive"
-              : "OAuth/Picker หรือโฟลเดอร์ที่อนุญาตยังตั้งค่าไม่ครบ"}
+              : "การเชื่อมต่อ Google Drive หรือโฟลเดอร์ที่อนุญาตยังตั้งค่าไม่ครบ"}
           </p>
         </article>
       </div>
 
       {!systemDeliveryReady ? (
         <p className="mt-4 text-sm leading-6 text-amber-100/80">
-          Rich Menu v3 จะเปิดได้เมื่อระบบส่ง Article Cards ฝั่ง private provider พร้อม เพื่อไม่ให้ผู้ใช้กดแล้วเจอทางตัน
+          Rich Menu v3 จะเปิดได้เมื่อระบบส่งการ์ดบทความพร้อม เพื่อไม่ให้ผู้ใช้กดแล้วเจอทางตัน
         </p>
       ) : null}
       {message ? <p role="status" className="mt-4 text-sm text-white/70">{message}</p> : null}

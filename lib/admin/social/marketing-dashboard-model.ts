@@ -199,24 +199,24 @@ export const PERIOD_LABEL: Record<MarketingPeriod, string> = {
 };
 
 export const GOAL_LABEL: Record<MarketingGoal, { label: string; description: string }> = {
-  awareness: { label: "การมองเห็น", description: "Facebook ใช้ Views · Instagram ใช้ Reach" },
-  intent: { label: "ความสนใจต่อ", description: "Facebook ใช้ Click rate · Instagram ใช้ Save + Share rate" },
-  deep: { label: "การมีส่วนร่วมเชิงลึก", description: "Facebook ใช้ Comments + Shares · Instagram ใช้ Deep engagement rate" },
+  awareness: { label: "การมองเห็น", description: "Facebook ใช้จำนวนครั้งที่ดู · Instagram ใช้จำนวนบัญชีที่เข้าถึง" },
+  intent: { label: "ความสนใจต่อ", description: "Facebook ใช้อัตราคลิก · Instagram ใช้อัตราบันทึกและแชร์" },
+  deep: { label: "การมีส่วนร่วมเชิงลึก", description: "Facebook ใช้คอมเมนต์และแชร์ · Instagram ใช้อัตราการมีส่วนร่วมเชิงลึก" },
 };
 
 export const METRIC_DEFINITIONS: MetricDefinition[] = [
-  { id: "views", label: "Views", shortLabel: "Views", unit: "count", platforms: ["facebook", "instagram"], description: "จำนวนครั้งที่ Meta รายงานว่าคอนเทนต์ถูกดู" },
-  { id: "reach", label: "Reach", shortLabel: "Reach", unit: "count", platforms: ["instagram"], description: "จำนวนบัญชีที่เข้าถึงบน Instagram" },
-  { id: "clicks", label: "Clicks", shortLabel: "Clicks", unit: "count", platforms: ["facebook"], description: "จำนวนการคลิกที่ Meta รายงานสำหรับโพสต์ Facebook" },
-  { id: "click_rate_by_view", label: "Click rate by View", shortLabel: "Click rate", unit: "percent", platforms: ["facebook"], description: "Clicks ÷ Views ใช้ดูว่าคนที่เห็นโพสต์สนใจคลิกต่อมากน้อยแค่ไหน" },
-  { id: "known_engagement_total", label: "Known Engagement", shortLabel: "Engagement", unit: "count", platforms: ["facebook", "instagram"], description: "ผลรวม engagement ที่มีองค์ประกอบครบตามแพลตฟอร์ม" },
-  { id: "known_deep_engagement_total", label: "Deep Engagement", shortLabel: "Deep engagement", unit: "count", platforms: ["facebook", "instagram"], description: "Comments + Shares และ Saves เมื่อแพลตฟอร์มรองรับ" },
-  { id: "engagement_rate_by_reach", label: "Engagement rate by Reach", shortLabel: "Engagement rate", unit: "percent", platforms: ["instagram"], description: "Known Engagement ÷ Reach บน Instagram" },
-  { id: "deep_engagement_rate_by_reach", label: "Deep engagement rate", shortLabel: "Deep rate", unit: "percent", platforms: ["instagram"], description: "Comments + Shares + Saves ÷ Reach บน Instagram" },
-  { id: "shares", label: "Shares", shortLabel: "Shares", unit: "count", platforms: ["facebook", "instagram"], description: "จำนวนครั้งที่แชร์ตามนิยามของ Meta" },
-  { id: "saves", label: "Saves", shortLabel: "Saves", unit: "count", platforms: ["instagram"], description: "จำนวนครั้งที่บันทึกโพสต์ Instagram" },
-  { id: "total_interactions", label: "Instagram Total Interactions", shortLabel: "Total interactions", unit: "count", platforms: ["instagram"], description: "Native total_interactions จาก Meta เก็บแยกจากผลรวมองค์ประกอบ" },
-  { id: "reel_average_watch_time_ms", label: "Reel average watch time", shortLabel: "Avg watch time", unit: "milliseconds", platforms: ["instagram"], description: "เวลาเฉลี่ยที่ดู Reel ตามค่าต้นทางของ Meta" },
+  { id: "views", label: "จำนวนครั้งที่ดู", shortLabel: "ครั้งที่ดู", unit: "count", platforms: ["facebook", "instagram"], description: "จำนวนครั้งที่ Meta รายงานว่าเนื้อหาถูกดู" },
+  { id: "reach", label: "บัญชีที่เข้าถึง", shortLabel: "เข้าถึง", unit: "count", platforms: ["instagram"], description: "จำนวนบัญชีที่เห็นเนื้อหาบน Instagram" },
+  { id: "clicks", label: "จำนวนคลิก", shortLabel: "คลิก", unit: "count", platforms: ["facebook"], description: "จำนวนการคลิกที่ Meta รายงานสำหรับโพสต์ Facebook" },
+  { id: "click_rate_by_view", label: "อัตราคลิกต่อการดู", shortLabel: "อัตราคลิก", unit: "percent", platforms: ["facebook"], description: "จำนวนคลิกเทียบกับจำนวนครั้งที่ดู ใช้ดูว่าคนที่เห็นโพสต์สนใจคลิกต่อมากน้อยแค่ไหน" },
+  { id: "known_engagement_total", label: "การมีส่วนร่วมที่ยืนยันได้", shortLabel: "มีส่วนร่วม", unit: "count", platforms: ["facebook", "instagram"], description: "ผลรวมการมีส่วนร่วมที่มีข้อมูลครบตามแพลตฟอร์ม" },
+  { id: "known_deep_engagement_total", label: "การมีส่วนร่วมเชิงลึก", shortLabel: "ส่วนร่วมเชิงลึก", unit: "count", platforms: ["facebook", "instagram"], description: "คอมเมนต์ แชร์ และการบันทึกเมื่อแพลตฟอร์มรองรับ" },
+  { id: "engagement_rate_by_reach", label: "อัตราการมีส่วนร่วมต่อการเข้าถึง", shortLabel: "อัตรามีส่วนร่วม", unit: "percent", platforms: ["instagram"], description: "การมีส่วนร่วมที่ยืนยันได้เทียบกับจำนวนบัญชีที่เข้าถึงบน Instagram" },
+  { id: "deep_engagement_rate_by_reach", label: "อัตราการมีส่วนร่วมเชิงลึก", shortLabel: "อัตราเชิงลึก", unit: "percent", platforms: ["instagram"], description: "คอมเมนต์ แชร์ และบันทึก เทียบกับจำนวนบัญชีที่เข้าถึงบน Instagram" },
+  { id: "shares", label: "จำนวนแชร์", shortLabel: "แชร์", unit: "count", platforms: ["facebook", "instagram"], description: "จำนวนครั้งที่แชร์ตามนิยามของ Meta" },
+  { id: "saves", label: "จำนวนบันทึก", shortLabel: "บันทึก", unit: "count", platforms: ["instagram"], description: "จำนวนครั้งที่บันทึกโพสต์ Instagram" },
+  { id: "total_interactions", label: "การมีส่วนร่วมทั้งหมดบน Instagram", shortLabel: "ส่วนร่วมทั้งหมด", unit: "count", platforms: ["instagram"], description: "ยอดรวมที่ Meta ส่งมา เก็บแยกจากผลรวมรายการย่อยเพื่อไม่แก้ค่าต้นทาง" },
+  { id: "reel_average_watch_time_ms", label: "เวลาดู Reel โดยเฉลี่ย", shortLabel: "เวลาดูเฉลี่ย", unit: "milliseconds", platforms: ["instagram"], description: "เวลาเฉลี่ยที่ดู Reel ตามค่าต้นทางของ Meta" },
 ];
 
 export function compactText(value: string, limit = 120) {
@@ -248,21 +248,21 @@ export function metricValue(post: MarketingPost, metricId: MarketingMetricId): n
 export function goalMetric(post: MarketingPost, goal: MarketingGoal): GoalMetric {
   if (goal === "awareness") {
     return post.platform === "facebook"
-      ? { label: "Views", shortLabel: "Views", unit: "count", value: post.views }
-      : { label: "Reach", shortLabel: "Reach", unit: "count", value: post.reach };
+      ? { label: "จำนวนครั้งที่ดู", shortLabel: "ครั้งที่ดู", unit: "count", value: post.views }
+      : { label: "บัญชีที่เข้าถึง", shortLabel: "เข้าถึง", unit: "count", value: post.reach };
   }
   if (goal === "intent") {
     if (post.platform === "facebook") {
-      return { label: "Click rate by View", shortLabel: "Click rate", unit: "percent", value: post.clicksPerView };
+      return { label: "อัตราคลิกต่อการดู", shortLabel: "อัตราคลิก", unit: "percent", value: post.clicksPerView };
     }
     const value = finite(post.reach) && post.reach > 0 && (finite(post.saves) || finite(post.shares))
       ? ((post.saves ?? 0) + (post.shares ?? 0)) / post.reach
       : null;
-    return { label: "Save + Share rate", shortLabel: "Save + Share rate", unit: "percent", value };
+    return { label: "อัตราบันทึกและแชร์", shortLabel: "บันทึกและแชร์", unit: "percent", value };
   }
   return post.platform === "facebook"
-    ? { label: "Comments + Shares", shortLabel: "Deep actions", unit: "count", value: post.knownDeepEngagementTotal }
-    : { label: "Deep engagement rate", shortLabel: "Deep rate", unit: "percent", value: post.knownDeepEngagementRateByReach };
+    ? { label: "คอมเมนต์และแชร์", shortLabel: "คอมเมนต์และแชร์", unit: "count", value: post.knownDeepEngagementTotal }
+    : { label: "อัตราการมีส่วนร่วมเชิงลึก", shortLabel: "อัตราเชิงลึก", unit: "percent", value: post.knownDeepEngagementRateByReach };
 }
 
 export function qualityBucket(post: MarketingPost): Exclude<MarketingQualityFilter, "all"> {
@@ -467,7 +467,7 @@ export function buildInsights(posts: MarketingPost[], goal: MarketingGoal): Mark
         tone: "warning",
         title: `${PLATFORM_LABEL[platform]}: คนเห็นเยอะ แต่ไปต่อไม่มาก`,
         detail: `${count.toLocaleString("th-TH")} โพสต์อยู่กลุ่มการมองเห็นสูง แต่ความสนใจต่อไม่เกินค่ากลางของแพลตฟอร์ม`,
-        action: "ลองปรับ Hook ท้ายโพสต์และ CTA ให้ชัดขึ้น แล้วเทียบ Click/Save/Share ในรอบถัดไป",
+        action: "ลองปรับประโยคเปิดและคำชวนท้ายโพสต์ให้ชัดขึ้น แล้วเทียบยอดคลิก บันทึก และแชร์ในรอบถัดไป",
         sampleSize: platformPosts.length,
       });
     }
@@ -480,9 +480,9 @@ export function buildInsights(posts: MarketingPost[], goal: MarketingGoal): Mark
       if (count) insights.push({
         id: `${platform}-hidden-gems`,
         tone: "positive",
-        title: `${PLATFORM_LABEL[platform]}: มี Hidden gems ที่ควรนำกลับมาใช้`,
+        title: `${PLATFORM_LABEL[platform]}: มีโพสต์ผลงานดีที่ควรนำกลับมาใช้`,
         detail: `${count.toLocaleString("th-TH")} โพสต์เข้าถึงไม่เกินค่ากลาง แต่สร้างการมีส่วนร่วมเชิงลึกระดับบน`,
-        action: "นำประเด็นเดิมไปทำ Hook ใหม่ เปลี่ยนปก หรือขยายเป็นบทความ/คอนเทนต์ชุด",
+        action: "นำประเด็นเดิมไปเขียนประโยคเปิดใหม่ เปลี่ยนปก หรือขยายเป็นบทความหรือเนื้อหาชุด",
         sampleSize: platformPosts.length,
       });
     }
@@ -498,8 +498,8 @@ export function buildInsights(posts: MarketingPost[], goal: MarketingGoal): Mark
       id: "reusable-winners",
       tone: "positive",
       title: "มีคอนเทนต์ผู้ชนะที่พร้อมนำกลับมาใช้",
-      detail: `${winners.toLocaleString("th-TH")} โพสต์อยู่กลุ่มบนของเป้าหมาย “${GOAL_LABEL[goal].label}” และไม่มี QA flag หลัก`,
-      action: "ทำภาคต่อ เปลี่ยน Format หรือใช้เป็นต้นแบบในการเขียนโพสต์รอบใหม่",
+      detail: `${winners.toLocaleString("th-TH")} โพสต์อยู่กลุ่มบนของเป้าหมาย “${GOAL_LABEL[goal].label}” และไม่มีจุดเตือนสำคัญ`,
+      action: "ทำภาคต่อ เปลี่ยนรูปแบบ หรือใช้เป็นต้นแบบในการเขียนโพสต์รอบใหม่",
       sampleSize: selectedValues.length,
     });
   }
@@ -508,8 +508,8 @@ export function buildInsights(posts: MarketingPost[], goal: MarketingGoal): Mark
     id: "quality-review",
     tone: "neutral",
     title: "มีข้อมูลที่ควรอ่านพร้อมข้อจำกัด",
-    detail: `${review.toLocaleString("th-TH")} โพสต์มีความต่างของนิยาม Reaction / Total Interactions หรือ Facebook Share QA`,
-    action: "ใช้ Views, Reach และ Clicks ได้ตามปกติ แต่ตรวจแท็บคุณภาพข้อมูลก่อนนำ metric ที่ถูก flag ไปสร้างคะแนนรวม",
+    detail: `${review.toLocaleString("th-TH")} โพสต์มีความต่างระหว่างยอดปฏิกิริยา ยอดมีส่วนร่วมทั้งหมด หรือยอดแชร์ Facebook`,
+    action: "ใช้จำนวนครั้งที่ดู จำนวนบัญชีที่เข้าถึง และจำนวนคลิกได้ตามปกติ แต่ควรตรวจแท็บคุณภาพข้อมูลก่อนนำตัวชี้วัดที่มีคำเตือนไปสร้างคะแนนรวม",
     sampleSize: posts.length,
   });
   return insights.slice(0, 4);
@@ -564,12 +564,12 @@ export function executiveSummary(posts: MarketingPost[], goal: MarketingGoal, pe
   const igDeep = instagram.map((post) => goalMetric(post, "deep").value).filter(finite);
   const reviewCount = posts.filter((post) => qualityBucket(post) === "needs_review").length;
   return [
-    `CCPun Marketing Summary — ${periodLabel}`,
+    `สรุปผลการตลาด CCPun — ${periodLabel}`,
     `โพสต์ในชุดวิเคราะห์: ${posts.length.toLocaleString("th-TH")} รายการ`,
-    `Facebook: ${facebook.length.toLocaleString("th-TH")} โพสต์ · Median Views ${Math.round(median(fbAwareness) ?? 0).toLocaleString("th-TH")} · Median Click rate ${((median(fbIntent) ?? 0) * 100).toLocaleString("th-TH", { maximumFractionDigits: 1 })}%`,
-    `Instagram: ${instagram.length.toLocaleString("th-TH")} โพสต์ · Median Reach ${Math.round(median(igAwareness) ?? 0).toLocaleString("th-TH")} · Median Deep rate ${((median(igDeep) ?? 0) * 100).toLocaleString("th-TH", { maximumFractionDigits: 1 })}%`,
+    `Facebook: ${facebook.length.toLocaleString("th-TH")} โพสต์ · ค่ากลางจำนวนครั้งที่ดู ${Math.round(median(fbAwareness) ?? 0).toLocaleString("th-TH")} · ค่ากลางอัตราคลิก ${((median(fbIntent) ?? 0) * 100).toLocaleString("th-TH", { maximumFractionDigits: 1 })}%`,
+    `Instagram: ${instagram.length.toLocaleString("th-TH")} โพสต์ · ค่ากลางบัญชีที่เข้าถึง ${Math.round(median(igAwareness) ?? 0).toLocaleString("th-TH")} · ค่ากลางอัตราการมีส่วนร่วมเชิงลึก ${((median(igDeep) ?? 0) * 100).toLocaleString("th-TH", { maximumFractionDigits: 1 })}%`,
     `เป้าหมายที่เลือก: ${GOAL_LABEL[goal].label}`,
-    `รายการที่ควรตรวจ QA: ${reviewCount.toLocaleString("th-TH")}`,
+    `รายการที่ควรตรวจคุณภาพข้อมูล: ${reviewCount.toLocaleString("th-TH")}`,
     "หมายเหตุ: ตัวเลขเป็นค่าล่าสุดของโพสต์ที่เผยแพร่ในช่วงที่เลือก ไม่ใช่ยอดที่เกิดขึ้นเฉพาะในช่วงนั้น",
   ].join("\n");
 }

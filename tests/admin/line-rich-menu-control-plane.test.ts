@@ -14,7 +14,7 @@ test("Sanity remains editorial and cannot own provider desired state", () => {
   assert.doesNotMatch(model, /desiredRichMenu/);
   assert.doesNotMatch(ui, /desiredRichMenu|Rich Menu ที่ต้องการ/);
   assert.match(schema, /journeyConfig\("lifeHealth"/);
-  assert.match(ui, /จัดลำดับ Article Cards/);
+  assert.match(ui, /จัดลำดับการ์ดบทความ/);
 });
 
 test("shared command contract uses Neon desired state, optimistic version and idempotency", () => {
@@ -72,6 +72,6 @@ test("hold does not roll back and rollback uses the approved provider reference"
   assert.match(migration, /WHEN c\.command_type='hold' THEN r\.desired_definition/);
   assert.match(migration, /approved_previous_provider_ref/);
   assert.match(reconciler, /assignDefaultLineRichMenu\(operation\.desiredProviderRef\)/);
-  assert.match(ui, /หยุด reconcile/);
-  assert.match(ui, /Rollback ที่อนุมัติไว้/);
+  assert.match(ui, /หยุดการปรับอัตโนมัติ/);
+  assert.match(ui, /คืนเมนูก่อนหน้า/);
 });

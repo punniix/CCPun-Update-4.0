@@ -133,18 +133,18 @@ export default function SocialMediaMetadataPanel() {
     <section aria-labelledby="social-media-metadata-title" className="mt-8 rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">MEDIA METADATA</p>
-          <h2 id="social-media-metadata-title" className="mt-2 text-xl font-semibold">Alt text & video poster frame</h2>
+          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">รายละเอียดสื่อ</p>
+          <h2 id="social-media-metadata-title" className="mt-2 text-xl font-semibold">คำอธิบายภาพและภาพหน้าปกวิดีโอ</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
-            แก้ metadata บน Sanity Draft เดิมเท่านั้น การบันทึกสร้าง revision ใหม่และ reset review จึงไม่สามารถเปลี่ยนสื่อหลังอนุมัติแบบเงียบ ๆ ได้
+            แก้รายละเอียดบนฉบับร่างเดิมใน Sanity เท่านั้น เมื่อบันทึก ระบบจะสร้างฉบับแก้ไขใหม่และให้ตรวจอีกครั้ง จึงเปลี่ยนสื่อหลังอนุมัติโดยไม่แจ้งไม่ได้
           </p>
         </div>
-        <span className="text-xs text-white/40">Thumbnail time ใช้หน่วยวินาที</span>
+        <span className="text-xs text-white/40">เวลาภาพหน้าปกใช้หน่วยวินาที</span>
       </div>
 
       {notice ? <p role="status" aria-live="polite" className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">{notice}</p> : null}
-      {loading ? <p className="mt-5 text-sm text-white/50">กำลังโหลด Draft media…</p> : null}
-      {loadError ? <p role="alert" className="mt-5 rounded-xl border border-amber-200/20 bg-amber-200/[0.05] px-4 py-3 text-sm text-amber-50/80">Media metadata editor ใช้ไม่ได้: {loadError}</p> : null}
+      {loading ? <p className="mt-5 text-sm text-white/50">กำลังโหลดสื่อในฉบับร่าง…</p> : null}
+      {loadError ? <p role="alert" className="mt-5 rounded-xl border border-amber-200/20 bg-amber-200/[0.05] px-4 py-3 text-sm text-amber-50/80">ตอนนี้ยังแก้รายละเอียดสื่อไม่ได้ กรุณาลองใหม่</p> : null}
 
       <div className="mt-5 space-y-4">
         {drafts.map((draft) => (
@@ -160,7 +160,7 @@ export default function SocialMediaMetadataPanel() {
                 onClick={() => void saveDraft(draft)}
                 className="min-h-11 shrink-0 rounded-xl border border-[#e0c985]/35 px-4 text-sm font-medium text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {busyId === draft.variantId ? "กำลังบันทึก…" : "Save metadata"}
+                {busyId === draft.variantId ? "กำลังบันทึก…" : "บันทึกรายละเอียด"}
               </button>
             </div>
 
@@ -175,7 +175,7 @@ export default function SocialMediaMetadataPanel() {
                       <span className="break-all">{reference.assetId}</span>
                     </div>
                     <label className="mt-3 block text-xs text-white/60">
-                      Alt text
+                      คำอธิบายภาพหรือวิดีโอ
                       <textarea
                         value={reference.altText ?? ""}
                         maxLength={2_000}
@@ -187,7 +187,7 @@ export default function SocialMediaMetadataPanel() {
                     </label>
                     {reference.mimeType === "video/mp4" ? (
                       <label className="mt-3 block text-xs text-white/60">
-                        Poster / thumbnail timestamp (seconds)
+                        เวลาของภาพหน้าปก (วินาที)
                         <input
                           type="number"
                           min="0"
@@ -209,7 +209,7 @@ export default function SocialMediaMetadataPanel() {
             </ol>
           </article>
         ))}
-        {!loading && !loadError && drafts.length === 0 ? <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/50">ยังไม่มี Social Draft ที่มี media reference</p> : null}
+        {!loading && !loadError && drafts.length === 0 ? <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/50">ยังไม่มีฉบับร่างโซเชียลที่แนบสื่อ</p> : null}
       </div>
     </section>
   );

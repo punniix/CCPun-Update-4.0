@@ -184,6 +184,6 @@ test("Health shows four-cell v3 and keeps Drive authorization on demand", () => 
   assert.match(action, /การ์ดบทความอัตโนมัติ/);
   assert.match(action, /activate-ccpun-rich-menu-v3/);
   assert.match(action, /ตอนนี้ไม่มีไฟล์รอ จึงยังไม่ต้องกดอนุญาต Google Drive/);
-  assert.match(action, /ไม่เก็บ refresh token/);
+  assert.match(action, /ไม่เก็บสิทธิ์ระยะยาว/);
   assert.doesNotMatch(action, /accessToken|clientSecret|refreshToken/);
 });

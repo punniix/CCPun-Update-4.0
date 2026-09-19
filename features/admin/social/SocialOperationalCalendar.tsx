@@ -132,15 +132,15 @@ function viewHeading(key: string, view: CalendarView) {
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    queued: "Queued",
-    processing: "Processing",
-    "native-scheduled": "Native scheduled",
-    failed: "Failed",
-    retryable: "Retryable",
-    "retry-exhausted": "Retry exhausted",
-    "needs-reconciliation": "Needs reconciliation",
-    cancelled: "Cancelled",
-    published: "Published",
+    queued: "รอส่ง",
+    processing: "กำลังส่ง",
+    "native-scheduled": "ตั้งเวลาที่แพลตฟอร์มแล้ว",
+    failed: "ไม่สำเร็จ",
+    retryable: "รอลองใหม่",
+    "retry-exhausted": "ลองครบแล้ว ต้องตรวจ",
+    "needs-reconciliation": "สถานะยังไม่ชัด ต้องตรวจอีกครั้ง",
+    cancelled: "ยกเลิกแล้ว",
+    published: "เผยแพร่แล้ว",
   };
   return labels[status] ?? status;
 }
@@ -233,7 +233,7 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
         jobStatus: "cancelled",
         leaseState: "none",
       });
-      setFeedback("ยกเลิก schedule แล้ว");
+      setFeedback("ยกเลิกเวลาที่ตั้งไว้แล้ว");
     } catch (error) {
       setFeedback(error instanceof Error ? `ยกเลิกไม่สำเร็จ: ${error.message}` : "ยกเลิกไม่สำเร็จ");
     } finally {
@@ -246,9 +246,9 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
     setFeedback(null);
     try {
       await executeSocialPublication({ publicationId: item.publicationId, expectedJobVersion: item.jobVersion });
-      setFeedback("ส่งงานให้ execution engine แล้ว รีเฟรชเพื่อดู checkpoint ล่าสุด");
+      setFeedback("ระบบรับงานแล้ว กรุณารีเฟรชเพื่อดูสถานะล่าสุด");
     } catch (error) {
-      setFeedback(error instanceof Error ? `Execute ไม่สำเร็จ: ${error.message}` : "Execute ไม่สำเร็จ");
+      setFeedback(error instanceof Error ? `ส่งงานไม่สำเร็จ: ${error.message}` : "ส่งงานไม่สำเร็จ");
     } finally {
       setBusy(false);
     }
@@ -267,29 +267,29 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => setAnchor(dateKey(new Date()))} className="min-h-11 rounded-xl border border-white/10 px-3.5 text-sm text-white/75 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">Today</button>
+              <button type="button" onClick={() => setAnchor(dateKey(new Date()))} className="min-h-11 rounded-xl border border-white/10 px-3.5 text-sm text-white/75 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">วันนี้</button>
               <button type="button" aria-label={view === "month" ? "เดือนก่อนหน้า" : "สัปดาห์ก่อนหน้า"} onClick={() => setAnchor(view === "month" ? shiftMonth(anchor, -1) : addDays(anchor, -7))} className="min-h-11 min-w-11 rounded-xl border border-white/10 text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">←</button>
               <button type="button" aria-label={view === "month" ? "เดือนถัดไป" : "สัปดาห์ถัดไป"} onClick={() => setAnchor(view === "month" ? shiftMonth(anchor, 1) : addDays(anchor, 7))} className="min-h-11 min-w-11 rounded-xl border border-white/10 text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">→</button>
               <h2 className="ml-1 text-lg font-semibold text-white">{viewHeading(anchor, view)}</h2>
             </div>
-            <p className="mt-2 text-xs text-white/45">Timezone: Asia/Bangkok (UTC+7)</p>
+            <p className="mt-2 text-xs text-white/45">เวลาไทย (UTC+7)</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <div className="inline-flex rounded-xl border border-white/10 p-1" aria-label="Calendar view">
+            <div className="inline-flex rounded-xl border border-white/10 p-1" aria-label="มุมมองปฏิทิน">
               {(["month", "week"] as const).map((option) => (
-                <button key={option} type="button" aria-pressed={view === option} onClick={() => setView(option)} className={`min-h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${view === option ? "bg-[#e0c985]/15 text-[#f4df9b]" : "text-white/60 hover:text-white"}`}>{option === "month" ? "Month" : "Week"}</button>
+                <button key={option} type="button" aria-pressed={view === option} onClick={() => setView(option)} className={`min-h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${view === option ? "bg-[#e0c985]/15 text-[#f4df9b]" : "text-white/60 hover:text-white"}`}>{option === "month" ? "เดือน" : "สัปดาห์"}</button>
               ))}
             </div>
-            <label className="sr-only" htmlFor="calendar-platform">Platform</label>
+            <label className="sr-only" htmlFor="calendar-platform">แพลตฟอร์ม</label>
             <select id="calendar-platform" value={platform} onChange={(event) => setPlatform(event.target.value)} className="min-h-11 rounded-xl border border-white/10 bg-navy-800 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
-              <option value="all">All platforms</option>
+              <option value="all">ทุกแพลตฟอร์ม</option>
               <option value="facebook">Facebook</option>
               <option value="instagram">Instagram</option>
             </select>
-            <label className="sr-only" htmlFor="calendar-status">Status</label>
+            <label className="sr-only" htmlFor="calendar-status">สถานะ</label>
             <select id="calendar-status" value={status} onChange={(event) => setStatus(event.target.value)} className="min-h-11 rounded-xl border border-white/10 bg-navy-800 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
-              <option value="all">All statuses</option>
+              <option value="all">ทุกสถานะ</option>
               {statuses.map((value) => <option key={value} value={value}>{statusLabel(value)}</option>)}
             </select>
           </div>
@@ -352,7 +352,7 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
       </div>
 
       {filtered.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/55">ไม่มี scheduled publication ที่ตรงกับ filter นี้</div>
+        <div className="mt-4 rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/55">ไม่มีโพสต์ที่ตั้งเวลาและตรงกับตัวกรองนี้</div>
       ) : null}
 
       {selected ? (
@@ -368,20 +368,20 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
             </div>
 
             <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">Scheduled</dt><dd className="mt-1 text-white/80">{selected.scheduledAt ? displayDate.format(new Date(selected.scheduledAt)) : "—"}</dd></div>
-              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">Attempts</dt><dd className="mt-1 text-white/80">{selected.attemptCount} / {selected.maxAttempts}</dd></div>
-              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">Lease</dt><dd className="mt-1 text-white/80">{selected.leaseState}</dd></div>
-              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">Last error</dt><dd className="mt-1 text-white/80">{selected.lastErrorCategory ?? "—"}</dd></div>
+              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">เวลาที่ตั้ง</dt><dd className="mt-1 text-white/80">{selected.scheduledAt ? displayDate.format(new Date(selected.scheduledAt)) : "—"}</dd></div>
+              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">จำนวนครั้ง</dt><dd className="mt-1 text-white/80">{selected.attemptCount} / {selected.maxAttempts}</dd></div>
+              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">กำลังทำงาน</dt><dd className="mt-1 text-white/80">{selected.leaseState === "active" ? "ใช่" : selected.leaseState === "expired" ? "หมดเวลา ต้องตรวจ" : "ไม่"}</dd></div>
+              <div className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/40">ปัญหาล่าสุด</dt><dd className="mt-1 text-white/80">{selected.lastErrorCategory ? "มีรายละเอียดให้ตรวจ" : "—"}</dd></div>
             </dl>
 
             {selected.capabilities.reschedule ? (
               <fieldset className="mt-5 rounded-2xl border border-white/10 p-4" disabled={busy}>
-                <legend className="px-1 text-sm font-medium text-white/80">Reschedule</legend>
+                <legend className="px-1 text-sm font-medium text-white/80">เปลี่ยนเวลา</legend>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2">
                   <label className="text-xs text-white/55">วันที่
                     <input type="date" value={formDate} onChange={(event) => setFormDate(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-navy-900 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]" />
                   </label>
-                  <label className="text-xs text-white/55">เวลา · Bangkok
+                  <label className="text-xs text-white/55">เวลาไทย
                     <input type="time" value={formTime} onChange={(event) => setFormTime(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-navy-900 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]" />
                   </label>
                 </div>
@@ -392,10 +392,10 @@ export default function SocialOperationalCalendar({ initialItems }: { initialIte
             {feedback ? <p role="status" className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70">{feedback}</p> : null}
 
             <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-              {canExecuteWithoutInteractiveMedia(selected) ? <button type="button" disabled={busy} onClick={() => void performExecute(selected)} className="min-h-11 rounded-xl border border-[#e0c985]/35 px-4 text-sm text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-50">Execute now</button> : null}
-              {selected.capabilities.cancel ? <button type="button" disabled={busy} onClick={() => void performCancel(selected)} className="min-h-11 rounded-xl border border-red-300/20 px-4 text-sm text-red-100/80 hover:bg-red-300/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-50">Cancel schedule</button> : null}
-              <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-sm text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">Open post</Link>
-              {selected.capabilities.reconcile ? <Link href="/social/queue/" className="inline-flex min-h-11 items-center rounded-xl border border-amber-200/25 px-4 text-sm text-amber-50/80 hover:bg-amber-200/[0.06] focus:outline-none focus:ring-2 focus:ring-[#e0c985]">Needs attention</Link> : null}
+              {canExecuteWithoutInteractiveMedia(selected) ? <button type="button" disabled={busy} onClick={() => void performExecute(selected)} className="min-h-11 rounded-xl border border-[#e0c985]/35 px-4 text-sm text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-50">ส่งตอนนี้</button> : null}
+              {selected.capabilities.cancel ? <button type="button" disabled={busy} onClick={() => void performCancel(selected)} className="min-h-11 rounded-xl border border-red-300/20 px-4 text-sm text-red-100/80 hover:bg-red-300/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-50">ยกเลิกเวลาที่ตั้งไว้</button> : null}
+              <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-sm text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">เปิดโพสต์</Link>
+              {selected.capabilities.reconcile ? <Link href="/social/queue/" className="inline-flex min-h-11 items-center rounded-xl border border-amber-200/25 px-4 text-sm text-amber-50/80 hover:bg-amber-200/[0.06] focus:outline-none focus:ring-2 focus:ring-[#e0c985]">สถานะยังไม่ชัด ต้องตรวจ</Link> : null}
             </div>
           </div>
         </div>

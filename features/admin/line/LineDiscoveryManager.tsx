@@ -166,7 +166,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
           return;
         }
         if (payload.error === "article-not-published") {
-          setMessage("มีบทความที่ไม่อยู่ในสถานะ Published แล้ว กรุณาโหลดค่าล่าสุดและจัดรายการใหม่");
+          setMessage("มีบทความที่ไม่ได้เผยแพร่แล้ว กรุณาโหลดข้อมูลล่าสุดและจัดรายการใหม่");
           return;
         }
         throw new Error(payload.error || "save-failed");
@@ -185,10 +185,10 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
     <section className="mt-7 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.035] p-5 md:p-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">LINE DISCOVERY</p>
-          <h2 className="mt-2 text-xl font-semibold text-white/90">จัดลำดับ Article Cards</h2>
+          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">บทความแนะนำใน LINE</p>
+          <h2 className="mt-2 text-xl font-semibold text-white/90">จัดลำดับการ์ดบทความ</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
-            ลากเพื่อเรียงบนเดสก์ท็อป หรือใช้ปุ่มขึ้น/ลงบนมือถือ การบันทึกมีผลกับข้อความถัดไปทันทีโดยไม่ต้อง deploy
+            ลากเพื่อเรียงบนคอมพิวเตอร์ หรือใช้ปุ่มขึ้น/ลงบนมือถือ เมื่อบันทึกแล้ว ข้อความครั้งถัดไปจะใช้ลำดับใหม่ทันที
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -229,7 +229,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
         <div className="min-w-0">
           <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/10 p-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 flex-1">
-              <label htmlFor="line-discovery-add" className="text-xs font-medium text-white/55">เพิ่มบทความ Published</label>
+              <label htmlFor="line-discovery-add" className="text-xs font-medium text-white/55">เพิ่มบทความที่เผยแพร่แล้ว</label>
               <select
                 id="line-discovery-add"
                 value={addSlug}
@@ -289,7 +289,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs text-[#e0c985]">#{index + 1} · {article?.category ?? "ไม่พบใน Published"}</p>
+                          <p className="text-xs text-[#e0c985]">#{index + 1} · {article?.category ?? "ไม่พบบทความที่เผยแพร่แล้ว"}</p>
                           <h3 className="mt-1 text-sm font-medium leading-6 text-white/85">
                             {article?.title ?? item.slug}
                           </h3>
@@ -302,13 +302,13 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
                             onChange={() => toggleArticle(item.slug)}
                             className="h-4 w-4 accent-[#e0c985]"
                           />
-                          Active
+                          แสดง
                         </label>
                       </div>
 
                       {!article ? (
                         <p className="mt-3 rounded-xl border border-amber-200/15 bg-amber-200/[0.05] px-3 py-2 text-xs leading-5 text-amber-100">
-                          บทความนี้ไม่อยู่ในรายการ Published/indexable แล้ว ต้องลบหรือโหลดค่าล่าสุดก่อนบันทึก
+                          บทความนี้ไม่ได้เผยแพร่หรือไม่เปิดให้เครื่องมือค้นหาเก็บแล้ว ต้องลบหรือโหลดค่าล่าสุดก่อนบันทึก
                         </p>
                       ) : null}
 
@@ -366,7 +366,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">PREVIEW</p>
-              <h3 className="mt-1 text-base font-semibold text-white/85">LINE Article Cards</h3>
+              <h3 className="mt-1 text-base font-semibold text-white/85">การ์ดบทความใน LINE</h3>
             </div>
             <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/45">
               {previewArticles.length}/{current.maxCards}
@@ -395,22 +395,22 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
             ))}
             {!previewArticles.length ? (
               <div className="flex min-h-56 w-full items-center justify-center rounded-2xl border border-dashed border-white/10 px-5 text-center text-sm leading-6 text-white/45">
-                ยังไม่มี Article Card ที่เปิดใช้งาน
+                ยังไม่มีการ์ดบทความที่เปิดใช้งาน
               </div>
             ) : null}
           </div>
-          <p className="mt-3 text-xs leading-5 text-white/40">Preview นี้ใช้ข้อมูลเดียวกับ Article Card แต่เป็นภาพจำลองใน Admin ไม่ได้ส่งข้อความหา LINE</p>
+          <p className="mt-3 text-xs leading-5 text-white/40">ตัวอย่างนี้ใช้ข้อมูลเดียวกับการ์ดบทความจริง แต่เป็นเพียงภาพจำลองในศูนย์จัดการและไม่ได้ส่งข้อความหา LINE</p>
         </aside>
       </div>
 
       {hasEmptyActive ? (
         <p className="mt-5 rounded-xl border border-amber-200/15 bg-amber-200/[0.05] px-4 py-3 text-sm text-amber-100">
-          ทุก Journey ต้องมีอย่างน้อย 1 บทความที่ Active เพื่อไม่ให้ Rich Menu กดแล้วเป็นทางตัน
+          ทุกเส้นทางต้องมีบทความที่เปิดแสดงอย่างน้อย 1 รายการ เพื่อไม่ให้ลูกค้ากดเมนูแล้วพบหน้าว่าง
         </p>
       ) : null}
       {hasUnavailable ? (
         <p className="mt-3 rounded-xl border border-amber-200/15 bg-amber-200/[0.05] px-4 py-3 text-sm text-amber-100">
-          พบรายการที่ไม่อยู่ใน Published/indexable content แล้ว กรุณาเอาออกก่อนบันทึก
+          พบรายการที่ไม่ได้เผยแพร่หรือไม่เปิดให้เครื่องมือค้นหาเก็บแล้ว กรุณาเอาออกก่อนบันทึก
         </p>
       ) : null}
 

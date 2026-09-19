@@ -157,7 +157,7 @@ export function InstagramMobileHandoff(props: {
     } catch {
       session.current = null;
       setNotice(approvalInvalidated
-        ? "Audio configuration ทำให้ revision เปลี่ยนแล้ว ต้อง Review/Approve revision ใหม่ก่อน Mobile Handoff"
+        ? "การตั้งค่าเสียงทำให้ฉบับเปลี่ยนแล้ว ต้องตรวจและอนุมัติฉบับใหม่ก่อนส่งต่อไปทำบนมือถือ"
         : "ไฟล์หรือสิทธิ์หมดอายุ กรุณากดเตรียมไฟล์บนมือถืออีกครั้ง");
     }
   }
@@ -180,7 +180,7 @@ export function InstagramMobileHandoff(props: {
       setAudioState("ready");
     } catch (error) {
       setAudioState("error");
-      setNotice(error instanceof Error ? `ค้นหา Audio ไม่สำเร็จ: ${error.message}` : "ค้นหา Audio ไม่สำเร็จ");
+      setNotice(error instanceof Error ? `ค้นหาเสียงไม่สำเร็จ: ${error.message}` : "ค้นหาเสียงไม่สำเร็จ");
     }
   }
 
@@ -222,18 +222,18 @@ export function InstagramMobileHandoff(props: {
       setVideoVolume(payload.audio.configuration.videoVolume);
       setApprovalInvalidated(true);
       setConfigState("ready");
-      setNotice("บันทึก Audio configuration แล้ว Meta revalidate audioId สำเร็จ และ revision ถูก reset เป็น Drafting; ต้อง Review/Approve ใหม่ก่อน publish");
+      setNotice("บันทึกการตั้งค่าเสียงแล้ว และ Meta ยืนยันเพลงอีกครั้งสำเร็จ งานกลับเป็นฉบับร่างและต้องตรวจอนุมัติใหม่ก่อนเผยแพร่");
     } catch (error) {
       setConfigState("error");
-      setNotice(error instanceof Error ? `บันทึก Audio ไม่สำเร็จ: ${error.message}` : "บันทึก Audio ไม่สำเร็จ");
+      setNotice(error instanceof Error ? `บันทึกเสียงไม่สำเร็จ: ${error.message}` : "บันทึกเสียงไม่สำเร็จ");
     }
   }
 
   return (
     <section id="instagram-handoff-guide" className="mt-5 border-t border-white/10 pt-5" aria-labelledby="instagram-handoff-title">
-      <h3 id="instagram-handoff-title" className="font-semibold">Instagram Direct + Mobile Handoff</h3>
+      <h3 id="instagram-handoff-title" className="font-semibold">ส่งตรงไป Instagram หรือทำต่อบนมือถือ</h3>
       <p className="mt-2 text-sm leading-6 text-white/70">
-        Mobile Handoff เป็น workflow หลักเมื่อเพลงหรือ feature ต้องจบใน Instagram app ส่วน Direct lane จะเปิดเฉพาะ capability ที่ provider และ media delivery contract รองรับครบ และจะ fail closed เมื่อไม่ชัดเจน
+        หากต้องเลือกเพลงหรือใช้ความสามารถในแอป Instagram ระบบจะส่งต่องานไปทำบนมือถือ ส่วนการส่งตรงจะเปิดเฉพาะเมื่อแพลตฟอร์มและไฟล์รองรับครบ หากยืนยันไม่ได้ระบบจะหยุดไว้
       </p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -246,8 +246,8 @@ export function InstagramMobileHandoff(props: {
           {mediaState === "running" ? "กำลังตรวจไฟล์…" : "เตรียมไฟล์บนมือถือ"}
         </button>
       </div>
-      {!props.driveOAuthClientId ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ยังไม่มี Google Drive OAuth client ID จึงเปิดไฟล์บนอุปกรณ์นี้ไม่ได้</p> : null}
-      {!approvalUsable || !props.revision ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ต้องมี Human-approved revision ปัจจุบันก่อน จึงจะเปิดหรือดาวน์โหลดไฟล์ที่ผูกกับ handoff ได้</p> : null}
+      {!props.driveOAuthClientId ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ยังตั้งค่าการเชื่อมต่อ Google Drive ไม่ครบ จึงเปิดไฟล์บนอุปกรณ์นี้ไม่ได้</p> : null}
+      {!approvalUsable || !props.revision ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ต้องมีฉบับปัจจุบันที่ผู้มีสิทธิ์อนุมัติแล้ว จึงจะเปิดหรือดาวน์โหลดไฟล์เพื่อทำต่อบนมือถือได้</p> : null}
       {!orderedReferences.length ? <p className="mt-2 text-xs leading-5 text-amber-100/80">ยังไม่มีสื่อที่อนุมัติสำหรับ Instagram ชิ้นนี้</p> : null}
 
       {orderedReferences.length ? <ol className="mt-3 space-y-2">{orderedReferences.map((reference, index) => {
@@ -255,9 +255,9 @@ export function InstagramMobileHandoff(props: {
         return <li key={`${reference.assetId}:${reference.order ?? index + 1}`} className="rounded-xl border border-white/10 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/65">
             <span>ไฟล์ {index + 1} · {asset?.name ?? reference.mimeType ?? "กำลังรอตรวจ"}</span>
-            {reference.thumbnailTimestampMs != null ? <span>Poster @ {(reference.thumbnailTimestampMs / 1_000).toFixed(1)}s</span> : null}
+            {reference.thumbnailTimestampMs != null ? <span>ภาพปกที่วินาที {(reference.thumbnailTimestampMs / 1_000).toFixed(1)}</span> : null}
           </div>
-          {reference.altText ? <p className="mt-2 text-xs leading-5 text-white/45">Alt: {reference.altText}</p> : null}
+          {reference.altText ? <p className="mt-2 text-xs leading-5 text-white/45">คำอธิบายภาพ: {reference.altText}</p> : null}
           <div className="mt-2 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => transfer(reference, "inline")} disabled={!approvalUsable || !props.revision} className="min-h-11 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">เปิดสื่อ</button>
             <button type="button" onClick={() => transfer(reference, "attachment")} disabled={!approvalUsable || !props.revision} className="min-h-11 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">ดาวน์โหลด</button>
@@ -268,19 +268,19 @@ export function InstagramMobileHandoff(props: {
       {props.format === "reel" ? <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h4 className="text-sm font-semibold text-white/90">Reel Audio</h4>
+            <h4 className="text-sm font-semibold text-white/90">เสียงสำหรับ Reel</h4>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-white/60">
-              เลือก Original audio, ค้นหาเฉพาะ Audio ที่ Meta API คืนให้บัญชีที่เชื่อมต่อ หรือเลือก Add music later in Instagram ไม่มีการอ้างว่า API เข้าถึง Music Library ทั้งหมด
+              เลือกเสียงต้นฉบับ ค้นหาเฉพาะเสียงที่ Meta ส่งให้บัญชีที่เชื่อมต่อ หรือเลือกไปเพิ่มเพลงภายหลังใน Instagram ระบบไม่ได้อ้างว่าเข้าถึงคลังเพลงทั้งหมด
             </p>
           </div>
-          <span className="text-[11px] text-white/40">Draft v{draftVersion} · {configState}</span>
+          <details className="text-[11px] text-white/40"><summary className="cursor-pointer">ดูรายละเอียดสำหรับทีมเทคนิค</summary><span>ฉบับร่าง v{draftVersion} · {configState}</span></details>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Instagram audio mode">
+        <div className="mt-4 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="วิธีเลือกเสียงสำหรับ Instagram">
           {([
-            ["original", "Original audio", "คงเสียงต้นฉบับของวิดีโอ"],
-            ["instagram-audio", "Search Instagram Audio", "ใช้ audioId ที่ Meta API รองรับ"],
-            ["add-in-app", "Add music later", "จบขั้นตอนเพลงใน Instagram app"],
+            ["original", "ใช้เสียงต้นฉบับ", "คงเสียงต้นฉบับของวิดีโอ"],
+            ["instagram-audio", "ค้นหาเสียงใน Instagram", "ใช้เฉพาะเสียงที่ Meta รองรับ"],
+            ["add-in-app", "เพิ่มเพลงภายหลัง", "ไปเลือกเพลงในแอป Instagram"],
           ] as const).map(([mode, label, detail]) => (
             <button key={mode} type="button" role="radio" aria-checked={audioMode === mode} onClick={() => setAudioMode(mode)}
               className={`min-h-20 rounded-xl border p-3 text-left focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${audioMode === mode ? "border-[#e0c985]/55 bg-[#e0c985]/[0.08]" : "border-white/10 hover:bg-white/[0.03]"}`}>
@@ -293,19 +293,19 @@ export function InstagramMobileHandoff(props: {
         {audioMode === "instagram-audio" ? <div className="mt-4">
           <div className="grid gap-2 sm:grid-cols-[10rem_1fr_auto]">
             <select value={audioType} onChange={(event) => setAudioType(event.target.value as typeof audioType)}
-              aria-label="Audio type"
+              aria-label="ประเภทเสียง"
               className="min-h-11 rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
-              <option value="music">Music</option><option value="original_sound">Original sound</option>
+              <option value="music">เพลง</option><option value="original_sound">เสียงต้นฉบับ</option>
             </select>
-            <input value={audioQuery} onChange={(event) => setAudioQuery(event.target.value)} maxLength={100} placeholder="ชื่อเพลง ศิลปิน หรือ creator"
+            <input value={audioQuery} onChange={(event) => setAudioQuery(event.target.value)} maxLength={100} placeholder="ชื่อเพลง ศิลปิน หรือผู้สร้าง"
               className="min-h-11 rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[#e0c985]" />
             <button type="button" onClick={searchAudio} disabled={audioState === "running"}
               className="min-h-11 rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">
               {audioState === "running" ? "กำลังค้นหา…" : "ค้นหา"}
             </button>
           </div>
-          {audioState === "error" ? <p className="mt-2 text-xs text-rose-200">ค้นหา Audio ไม่ได้ในขณะนี้ เลือก Add music later เพื่อใช้ Mobile Handoff ได้</p> : null}
-          {audioState === "ready" && !audioOptions.length ? <p className="mt-2 text-xs text-white/55">ไม่พบรายการที่ API คืนสำหรับ query นี้</p> : null}
+          {audioState === "error" ? <p className="mt-2 text-xs text-rose-200">ค้นหาเสียงไม่ได้ในขณะนี้ คุณยังเลือกไปเพิ่มเพลงภายหลังบนมือถือได้</p> : null}
+          {audioState === "ready" && !audioOptions.length ? <p className="mt-2 text-xs text-white/55">ไม่พบเสียงที่ตรงกับคำค้นนี้</p> : null}
 
           {audioOptions.length ? <div className="mt-3 grid gap-3 lg:grid-cols-2">{audioOptions.map((option) => {
             const selected = selectedAudio?.audioId === option.audioId;
@@ -316,44 +316,44 @@ export function InstagramMobileHandoff(props: {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium text-white/90">{option.title}</div>
-                  <div className="mt-1 truncate text-xs text-white/50">{option.artist ?? option.creator ?? "Creator not returned"}</div>
+                  <div className="mt-1 truncate text-xs text-white/50">{option.artist ?? option.creator ?? "ไม่พบชื่อผู้สร้าง"}</div>
                   <div className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-white/35">
-                    <span>{option.audioType === "music" ? "Music" : "Original sound"}</span>
+                    <span>{option.audioType === "music" ? "เพลง" : "เสียงต้นฉบับ"}</span>
                     <span>{durationLabel(option.durationMs)}</span>
-                    <span>Available via Meta now</span>
+                    <span>Meta แจ้งว่าใช้ได้ในขณะนี้</span>
                   </div>
                 </div>
               </div>
-              {option.previewUrl ? <audio className="mt-3 h-10 w-full" controls preload="none" src={option.previewUrl}>Audio preview ไม่รองรับใน browser นี้</audio> : <p className="mt-3 text-[11px] text-white/35">Meta ไม่คืน preview/download URL สำหรับรายการนี้</p>}
+              {option.previewUrl ? <audio className="mt-3 h-10 w-full" controls preload="none" src={option.previewUrl}>เบราว์เซอร์นี้ไม่รองรับการฟังตัวอย่างเสียง</audio> : <p className="mt-3 text-[11px] text-white/35">Meta ไม่มีลิงก์ให้ฟังตัวอย่างหรือดาวน์โหลดรายการนี้</p>}
               <button type="button" onClick={() => setSelectedAudio(option)} aria-pressed={selected}
                 className={`mt-3 min-h-11 w-full rounded-xl border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${selected ? "border-[#e0c985]/50 text-[#f4df9b]" : "border-white/15 text-white/75 hover:bg-white/5"}`}>
-                {selected ? "Selected" : "Select audio"}
+                {selected ? "เลือกแล้ว" : "เลือกเสียงนี้"}
               </button>
             </article>;
           })}</div> : null}
 
           {selectedAudio ? <div className="mt-3 rounded-xl border border-[#e0c985]/20 bg-[#e0c985]/[0.04] p-3 text-xs text-white/65">
-            Selected: <strong className="font-medium text-white/85">{selectedAudio.title}</strong>{selectedAudio.artist ? ` — ${selectedAudio.artist}` : selectedAudio.creator ? ` — @${selectedAudio.creator}` : ""}. audioId จะถูก revalidate ก่อนบันทึกและต้อง revalidate อีกครั้งก่อน Direct publish
+            เลือกแล้ว: <strong className="font-medium text-white/85">{selectedAudio.title}</strong>{selectedAudio.artist ? ` — ${selectedAudio.artist}` : selectedAudio.creator ? ` — @${selectedAudio.creator}` : ""} ระบบจะตรวจว่าเพลงยังใช้ได้ก่อนบันทึกและก่อนส่งตรงทุกครั้ง
           </div> : null}
         </div> : null}
 
         <fieldset className="mt-4 grid gap-3 sm:grid-cols-2" disabled={configState === "saving"}>
-          <legend className="sr-only">Audio volume configuration</legend>
-          <label className="rounded-xl border border-white/10 p-3 text-xs text-white/60">Audio volume · {audioVolume}%
+          <legend className="sr-only">ตั้งค่าความดังเสียง</legend>
+          <label className="rounded-xl border border-white/10 p-3 text-xs text-white/60">ความดังของเสียงที่เลือก · {audioVolume}%
             <input type="range" min="0" max="100" step="1" value={audioVolume} onChange={(event) => setAudioVolume(Number(event.target.value))} className="mt-2 w-full" />
           </label>
-          <label className="rounded-xl border border-white/10 p-3 text-xs text-white/60">Video volume · {videoVolume}%
+          <label className="rounded-xl border border-white/10 p-3 text-xs text-white/60">ความดังของเสียงในวิดีโอ · {videoVolume}%
             <input type="range" min="0" max="100" step="1" value={videoVolume} onChange={(event) => setVideoVolume(Number(event.target.value))} className="mt-2 w-full" />
           </label>
         </fieldset>
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-white/45">
-            {audioMode === "add-in-app" ? "Mobile Handoff lane: เลือกเพลงจริงใน Instagram app" : "Direct-capable audio config: ยังต้องมี trusted provider media URL และ provider capability ครบก่อนเปิด final mutation"}
+            {audioMode === "add-in-app" ? "ไปทำต่อบนมือถือ: เลือกเพลงจริงในแอป Instagram" : "การส่งตรงจะเปิดเมื่อไฟล์และสิทธิ์จากแพลตฟอร์มผ่านการตรวจครบแล้ว"}
           </p>
           <button type="button" onClick={saveAudioConfiguration} disabled={configState === "saving" || !draftRevision || (audioMode === "instagram-audio" && !selectedAudio)}
             className="min-h-11 shrink-0 rounded-xl border border-[#e0c985]/50 px-4 text-sm font-semibold text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">
-            {configState === "saving" ? "กำลัง revalidate…" : "Save audio configuration"}
+            {configState === "saving" ? "กำลังตรวจอีกครั้ง…" : "บันทึกการตั้งค่าเสียง"}
           </button>
         </div>
       </div> : null}

@@ -109,7 +109,7 @@ export default async function AdminContentPage({ searchParams }: AdminContentPag
           <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">เลือกงานที่จะตรวจ</p>
           <h1 className="mt-2 text-3xl font-semibold">บทความ</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            รายการนี้อ่านจากชุดข้อมูล <strong className="font-medium text-white">{result.status.dataset ?? "ที่ยังไม่ได้ตั้งค่า"}</strong> ในโหมด {lane} เท่านั้น ระบบจะหยุดหาก project หรือชุดข้อมูลไม่ตรงกัน
+            รายการนี้อ่านจากชุดข้อมูล <strong className="font-medium text-white">{result.status.dataset ?? "ที่ยังไม่ได้ตั้งค่า"}</strong> ในพื้นที่ {lane} เท่านั้น ระบบจะหยุดหากโครงการหรือชุดข้อมูลไม่ตรงกัน
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -124,7 +124,7 @@ export default async function AdminContentPage({ searchParams }: AdminContentPag
       {studioReady ? (
         <section className="mt-6 rounded-3xl border border-emerald-200/20 bg-emerald-200/[0.07] p-5 text-sm leading-6 text-white/75">
           <h2 className="font-semibold text-emerald-100">แก้ครั้งเดียว ข้อมูลอยู่ใน Sanity ชุดเดียวกัน</h2>
-          <p className="mt-2">ทุกครั้งที่พิมพ์ เพิ่มรูป หรือลบข้อมูลใน Studio ระบบจะบันทึกลงฉบับร่างอัตโนมัติ เมื่อกลับมาหน้านี้ รายการจะรีเฟรชจาก Sanity ให้เอง หน้าเว็บจริงจะเปลี่ยนเฉพาะเมื่อคุณกด Publish ใน Studio ด้วยตัวเอง</p>
+          <p className="mt-2">ทุกครั้งที่พิมพ์ เพิ่มรูป หรือลบข้อมูลใน Studio ระบบจะบันทึกลงฉบับร่างอัตโนมัติ เมื่อกลับมาหน้านี้ รายการจะรีเฟรชจาก Sanity ให้เอง หน้าเว็บจริงจะเปลี่ยนเฉพาะเมื่อคุณกดเผยแพร่ใน Studio ด้วยตัวเอง</p>
         </section>
       ) : null}
 
@@ -140,7 +140,7 @@ export default async function AdminContentPage({ searchParams }: AdminContentPag
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">แก้บทความใน Studio</div>
           <div className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", result.status.environment)}</div>
-          {studioReady && !result.status.writeReady ? <div className="mt-2 text-xs leading-5 text-white/50">ปุ่ม Apply อัตโนมัติยังปิดไว้</div> : null}
+          {studioReady && !result.status.writeReady ? <div className="mt-2 text-xs leading-5 text-white/50">การนำข้อเสนอไปใช้โดยอัตโนมัติยังปิดไว้</div> : null}
         </div>
       </section>
 
@@ -148,7 +148,7 @@ export default async function AdminContentPage({ searchParams }: AdminContentPag
         <section className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50">
           <h2 className="font-semibold">ยังอ่านบทความไม่ได้</h2>
           <p className="mt-2 text-amber-50/80">
-            {friendlyApiError(result.error)} ระบบหยุดไว้โดยไม่สลับ project หรือชุดข้อมูลให้เอง
+            {friendlyApiError(result.error)} ระบบหยุดไว้โดยไม่สลับโครงการหรือชุดข้อมูลให้เอง
           </p>
         </section>
       ) : null}

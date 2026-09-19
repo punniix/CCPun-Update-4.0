@@ -55,7 +55,7 @@ export default async function AdminReviewsPage() {
         <section className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50">
           <h2 className="font-semibold">ยังอ่านข้อเสนอไม่ได้</h2>
           <p className="mt-2 text-amber-50/80">
-            ระบบหยุดการอ่านและบันทึกไว้เพื่อความปลอดภัย และจะไม่สลับ project หรือชุดข้อมูลให้เอง
+            ระบบหยุดการอ่านและบันทึกไว้เพื่อความปลอดภัย และจะไม่สลับโครงการหรือชุดข้อมูลให้เอง
           </p>
         </section>
       ) : null}
