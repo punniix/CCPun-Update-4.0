@@ -2,7 +2,7 @@ SELECT
   EXISTS (
     SELECT 1 FROM private_line.schema_migration
     WHERE version='20260919_line_system_delivery_v1_production'
-      AND checksum='sha256:a3f22b3c32bf72bd7a55c30ce7e9324fc173f018f6a244515962958063f5ab7d'
+      AND checksum='sha256:61d1e71b9ca7a0f27e2dd99f0902a514dff7216e5bfbcbc7bd1fda9e04b47e45'
   ) AS migration_current,
   EXISTS (
     SELECT 1 FROM information_schema.columns
