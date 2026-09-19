@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "next-sanity";
+import { createClient, defineQuery } from "next-sanity";
 import { z } from "zod";
 
 import {
@@ -47,7 +47,7 @@ const baseClient = projectId && dataset
   : null;
 
 const storedItemSchema = z.object({
-  slug: z.string().min(1).max(96),
+  slug: z.string().min(1).max(96).nullable(),
   enabled: z.boolean().default(true),
 }).passthrough();
 
@@ -104,6 +104,7 @@ export const lineDiscoveryMutationSchema = z.object({
 export type LineDiscoveryMutation = z.infer<typeof lineDiscoveryMutationSchema>;
 
 export type LineDiscoveryArticleOption = {
+  id: string;
   slug: string;
   title: string;
   excerpt: string;
@@ -119,11 +120,16 @@ export type LineDiscoveryAdminModel = {
   articles: LineDiscoveryArticleOption[];
 };
 
-const configQuery = '*[_id == $id][0]{_rev,lifeHealth{maxCards,items[]{slug,enabled}},motor{maxCards,items[]{slug,enabled}},investment{maxCards,items[]{slug,enabled}}}';
+const configQuery = defineQuery(
+  '*[_id == $id][0]{_rev,lifeHealth{maxCards,items[]{enabled,"slug":article->slug.current}},motor{maxCards,items[]{enabled,"slug":article->slug.current}},investment{maxCards,items[]{enabled,"slug":article->slug.current}}}',
+);
 
-const publishedArticlesQuery = '*[_type == "article" && defined(slug.current) && coalesce(seo.noindex, false) != true] | order(coalesce(publishedAt, _updatedAt) desc) {"slug": slug.current,title,excerpt,"category": category->title,"featuredImage": select(defined(featuredImage.asset) => featuredImage.asset->url,defined(migratedFeaturedImage.src) => migratedFeaturedImage.src)}';
+const publishedArticlesQuery = defineQuery(
+  '*[_type == "article" && defined(slug.current) && coalesce(seo.noindex, false) != true] | order(coalesce(publishedAt, _updatedAt) desc) {_id,"slug": slug.current,title,excerpt,"category": category->title,"featuredImage": select(defined(featuredImage.asset) => featuredImage.asset->url,defined(migratedFeaturedImage.src) => migratedFeaturedImage.src)}',
+);
 
 const articleOptionSchema = z.object({
+  id: z.string().min(1),
   slug: z.string().min(1),
   title: z.string().min(1),
   excerpt: z.string().min(1),
@@ -168,7 +174,9 @@ function selectionFromStored(
   if (!value?.items?.length) return defaultJourney(journey);
   return {
     maxCards: value.maxCards,
-    items: value.items.map((item) => ({ slug: item.slug, enabled: item.enabled })),
+    items: value.items
+      .filter((item): item is typeof item & { slug: string } => typeof item.slug === "string" && item.slug.length > 0)
+      .map((item) => ({ slug: item.slug, enabled: item.enabled })),
   };
 }
 
@@ -224,28 +232,39 @@ export async function readLineDiscoveryAdminModel(): Promise<LineDiscoveryAdminM
   };
 }
 
-function sanityItems(items: LineDiscoveryMutation["journeys"][DiscoveryJourney]["items"]) {
+function sanityItems(
+  items: LineDiscoveryMutation["journeys"][DiscoveryJourney]["items"],
+  articleIdBySlug: Map<string, string>,
+) {
   return items.map((item, index) => ({
     _key: String(index + 1).padStart(2, "0") + "-" + item.slug.replace(/[^a-z0-9_-]/gi, "_").slice(0, 72),
-    slug: item.slug,
+    article: {
+      _type: "reference",
+      _ref: articleIdBySlug.get(item.slug)!,
+      _weak: true,
+    },
     enabled: item.enabled,
   }));
 }
 
-function toSanityFields(input: LineDiscoveryMutation, actor: string) {
+function toSanityFields(
+  input: LineDiscoveryMutation,
+  actor: string,
+  articleIdBySlug: Map<string, string>,
+) {
   return {
     version: 1,
     lifeHealth: {
       maxCards: input.journeys.life_health_policy_review.maxCards,
-      items: sanityItems(input.journeys.life_health_policy_review.items),
+      items: sanityItems(input.journeys.life_health_policy_review.items, articleIdBySlug),
     },
     motor: {
       maxCards: input.journeys.motor_quote_review.maxCards,
-      items: sanityItems(input.journeys.motor_quote_review.items),
+      items: sanityItems(input.journeys.motor_quote_review.items, articleIdBySlug),
     },
     investment: {
       maxCards: input.journeys.investment_before_you_act.maxCards,
-      items: sanityItems(input.journeys.investment_before_you_act.items),
+      items: sanityItems(input.journeys.investment_before_you_act.items, articleIdBySlug),
     },
     updatedAt: new Date().toISOString(),
     updatedBy: actor,
@@ -260,18 +279,18 @@ export async function saveLineDiscoveryCuration(input: unknown, actor: string) {
   if (!client) throw new Error("LINE_DISCOVERY_WRITE_UNAVAILABLE");
 
   const published = await listPublishedLineDiscoveryArticles();
-  const allowed = new Set(published.map((article) => article.slug));
+  const articleIdBySlug = new Map(published.map((article) => [article.slug, article.id] as const));
   for (const journey of LINE_DISCOVERY_JOURNEYS) {
     for (const item of parsed.data.journeys[journey].items) {
-      if (!allowed.has(item.slug)) throw new Error("LINE_DISCOVERY_ARTICLE_NOT_PUBLISHED");
+      if (!articleIdBySlug.has(item.slug)) throw new Error("LINE_DISCOVERY_ARTICLE_NOT_PUBLISHED");
     }
   }
 
   const current = await client.fetch<{ _rev?: string } | null>(
-    '*[_id == $id][0]{_rev}',
+    defineQuery('*[_id == $id][0]{_rev}'),
     { id: LINE_DISCOVERY_CONFIG_ID },
   );
-  const fields = toSanityFields(parsed.data, actor);
+  const fields = toSanityFields(parsed.data, actor, articleIdBySlug);
 
   try {
     if (!current?._rev) {
