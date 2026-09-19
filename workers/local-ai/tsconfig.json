@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "incremental": false
+  },
+  "include": ["src/**/*.ts", "../../lib/local-ai/**/*.ts"],
+  "exclude": ["node_modules"]
+}

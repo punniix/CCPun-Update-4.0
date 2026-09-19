@@ -12,7 +12,7 @@ The release stays additive and preserves the private boundary:
 - Sanity → editorial/approved-answer source only;
 - customer attachments → LINE content API → memory-only transfer → Google Drive customer folder;
 - business analytics → private aggregate functions only;
-- AI/MCP/n8n AI → no raw customer path.
+- Cloud AI/MCP/n8n AI → no raw customer path. The dedicated Private Local-AI Enclave is the only approved AI exception and receives encrypted envelopes through the Neon queue.
 
 ## Runtime verification
 
@@ -136,7 +136,8 @@ Deterministic repository tests prove:
 
 | Contract | Required result |
 | --- | --- |
-| AI raw customer access | 0 |
+| Cloud AI raw customer access | 0 |
+| Private Local-AI raw customer access | isolated worker memory only |
 | MCP raw customer access | 0 |
 | n8n AI customer access | 0 |
 | Generic analytics PII | 0 |

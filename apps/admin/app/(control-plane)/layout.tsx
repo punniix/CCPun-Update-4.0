@@ -43,6 +43,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
       { href: "/operations/health/", label: "Health" },
       { href: "/operations/deployments/", label: "Deployments" },
       { href: "/operations/jobs/", label: "Jobs" },
+      { href: "/operations/local-ai/", label: "AI ภายใน" },
       { href: "/operations/privacy/", label: "Privacy / Data Rights" },
       { href: "/operations/audit-log/", label: "Audit log" },
   ] },
