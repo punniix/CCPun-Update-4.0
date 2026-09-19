@@ -69,6 +69,11 @@ const nextConfig: NextConfig = {
         destination: "/tools/financial-health-check/",
         permanent: true,
       },
+      {
+        source: "/financial-advisor/:path*",
+        destination: "/",
+        permanent: true,
+      },
     ];
   },
   async headers() {

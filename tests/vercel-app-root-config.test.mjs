@@ -8,6 +8,12 @@ const EXPECTED_INSTALL_COMMAND = "cd ../.. && npm ci";
 const EXPECTED_IGNORE_COMMAND = "node ../../scripts/vercel-ignore-build.mjs";
 const APP_CONFIGS = ["apps/web/vercel.json", "apps/admin/vercel.json"];
 
+test("Web app-root owns the retired financial-advisor redirect", () => {
+  const webNextConfig = readFileSync(new URL("../apps/web/next.config.ts", import.meta.url), "utf8");
+  assert.match(webNextConfig, /source:\s*["']\/financial-advisor\/:path\*["']/);
+  assert.match(webNextConfig, /source:\s*["']\/financial-advisor\/:path\*["'][\s\S]*destination:\s*["']\/["'][\s\S]*permanent:\s*true/);
+});
+
 test("isolated Vercel app roots preserve monorepo install and affected-build routing", () => {
   for (const relativePath of APP_CONFIGS) {
     const configUrl = new URL(`../${relativePath}`, import.meta.url);
