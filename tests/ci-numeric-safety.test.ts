@@ -9,6 +9,7 @@ import {
   calcRecoveryReserveNeed,
 } from '../features/ci-planning/calculator/calculator';
 import { INITIAL_CI_FORM_DATA } from '../features/ci-planning/calculator/constants';
+import { EMPTY_CI_RECOVERY, getRecoveryPreset } from '../features/ci-planning/recovery-evidence';
 
 test('CI money formulas reject arithmetic beyond Number safe-integer precision', () => {
   assert.throws(() => calcHouseholdNeed(Number.MAX_SAFE_INTEGER, 10), RangeError);
@@ -19,11 +20,10 @@ test('CI money formulas reject arithmetic beyond Number safe-integer precision',
 
 test('Recovery Reserve rejects unsafe user-entered money even when visit counts are valid', () => {
   assert.throws(() => calcRecoveryReserveNeed({
-    treatmentVisits: 1,
-    caregiverHomeDays: 1,
-    rehabSessions: 1,
-    homeRehabSessions: 0,
-    equipmentAndHomeModification: Number.MAX_SAFE_INTEGER,
+    ...EMPTY_CI_RECOVERY,
+    mode: 'custom',
+    targetReserve: 1,
+    pulseOximeter: Number.MAX_SAFE_INTEGER,
     otherRecoveryCosts: 1,
   }), RangeError);
 });
@@ -42,11 +42,9 @@ test('large but safe CI values still calculate exactly', () => {
   input.expenses.household = 500_000_000;
   input.expenses.reserveYears = 10;
   input.expenses.recovery = {
-    treatmentVisits: 100,
-    caregiverHomeDays: 730,
-    rehabSessions: 20,
-    homeRehabSessions: 20,
-    equipmentAndHomeModification: 40_000,
+    ...getRecoveryPreset('longTerm'),
+    mode: 'custom',
+    targetReserve: 3_500_000,
     otherRecoveryCosts: 1_000_000,
   };
   const result = calculateCI(input);
