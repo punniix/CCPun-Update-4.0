@@ -65,7 +65,7 @@ test("UAT and Production migrations have capability parity and a canonical check
     assert.match(source, /CREATE ROLE ccpun_local_ai_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS/);
     assert.match(source, /REVOKE ALL PRIVILEGES ON ccpun_admin\.local_ai_identity,ccpun_admin\.local_ai_job/);
     assert.doesNotMatch(source, /GRANT (?:SELECT|INSERT|UPDATE|DELETE) ON (?:TABLE )?ccpun_admin\.local_ai_job TO ccpun_local_ai_runtime/i);
-    assert.match(source, /worker_claim_local_ai_job\(text,text,integer,boolean\).*TO ccpun_local_ai_runtime/s);
+    assert.match(source, /worker_claim_local_ai_job\(text,text,integer,boolean\)[\s\S]*TO ccpun_local_ai_runtime/);
   }
 });
 
