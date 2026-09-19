@@ -117,7 +117,7 @@ function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
       contents: [
         {
           type: "button",
-          style: "primary",
+          style: "link",
           height: "sm",
           color: "#E0C985",
           action: {
