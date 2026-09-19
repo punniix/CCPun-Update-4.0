@@ -37,6 +37,11 @@ export const LINE_DISCOVERY_CONFIG: Record<
   },
 };
 
+export type LineDiscoverySelection = {
+  maxCards: number;
+  items: Array<{ slug: string; enabled: boolean }>;
+};
+
 export type LineArticleCardSource = Pick<
   Article,
   | "slug"
@@ -146,6 +151,7 @@ function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
 export function selectLineDiscoveryArticles(
   journey: LineJourneyId,
   articles: readonly LineArticleCardSource[],
+  selection?: LineDiscoverySelection,
 ) {
   const config = LINE_DISCOVERY_CONFIG[journey];
   const bySlug = new Map(
@@ -153,17 +159,22 @@ export function selectLineDiscoveryArticles(
       .filter((article) => article.status === "published" && article.noindex !== true)
       .map((article) => [article.slug, article] as const),
   );
-  return config.articleSlugs
+  const slugs = selection
+    ? selection.items.filter((item) => item.enabled).map((item) => item.slug)
+    : config.articleSlugs;
+  const maxCards = selection?.maxCards ?? config.maxCards;
+  return slugs
     .map((slug) => bySlug.get(slug))
     .filter((article): article is LineArticleCardSource => Boolean(article))
-    .slice(0, config.maxCards);
+    .slice(0, maxCards);
 }
 
 export function buildLineArticleFlexMessage(
   journey: LineJourneyId,
   articles: readonly LineArticleCardSource[],
+  selection?: LineDiscoverySelection,
 ) {
-  const selected = selectLineDiscoveryArticles(journey, articles);
+  const selected = selectLineDiscoveryArticles(journey, articles, selection);
   if (selected.length === 0) return null;
 
   return {

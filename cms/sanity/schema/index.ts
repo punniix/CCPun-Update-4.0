@@ -19,6 +19,7 @@ import { detailsBlock } from "./objects/details-block";
 import { portableText } from "./objects/portable-text";
 import { masterContent } from "./documents/master-content";
 import { socialVariant } from "./documents/social-variant";
+import { lineDiscoveryConfig } from "./documents/line-discovery-config";
 import { socialCommentSeriesItem } from "./objects/social-comment-series-item";
 import { adminIntelligenceSchemaTypes } from "../admin/schema";
 
@@ -46,5 +47,6 @@ export const schemaTypes = [
   portableText,
   masterContent,
   socialVariant,
+  lineDiscoveryConfig,
   socialCommentSeriesItem,
 ];
