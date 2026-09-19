@@ -85,7 +85,7 @@ function BreakdownRows({ recovery: value }: { recovery: CIRecoveryCosts }) {
     ['เงินเผื่อความคลาดเคลื่อน', preview.contingency],
     ['ค่าใช้จ่ายอื่น', preview.otherRecoveryCosts],
   ];
-  const recoveryRows = recoveryRowCandidates.filter(([, amount]) => amount > 0);
+  const rows = rowCandidates.filter(([, amount]) => amount > 0);
 
   return (
     <dl className="space-y-2 text-xs">
