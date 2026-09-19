@@ -37,9 +37,6 @@ const dataClassLabels: Record<string, string> = {
 export default async function LocalAiPage() {
   await requireAdminPermission("settings:read");
   const model = await readLocalAiOperations(30);
-  const workerFresh = model.health?.workerLastSeenAt
-    ? Date.now() - new Date(model.health.workerLastSeenAt).getTime() < 90_000
-    : false;
 
   return <div>
     <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">AI ภายในของ CCPun</p>
@@ -48,7 +45,7 @@ export default async function LocalAiPage() {
 
     <div className="mt-7 grid gap-4 md:grid-cols-4">
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">ระบบ AI ภายใน</p><p className="mt-2 text-xl font-semibold">{model.status === "ready" ? "พร้อมใช้งาน" : model.status === "not-configured" ? "ยังไม่เปิดใช้งาน" : "ติดต่อระบบไม่ได้"}</p></section>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">เครื่องประมวลผล</p><p className="mt-2 text-xl font-semibold">{workerFresh && model.health?.ollamaReady ? "พร้อม" : "ยังไม่พร้อม"}</p><p className="mt-1 text-xs text-white/40">ตรวจพบล่าสุด {formatDate(model.health?.workerLastSeenAt ?? null)}</p></section>
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">เครื่องประมวลผล</p><p className="mt-2 text-xl font-semibold">{model.health?.workerFresh && model.health.ollamaReady ? "พร้อม" : "ยังไม่พร้อม"}</p><p className="mt-1 text-xs text-white/40">ตรวจพบล่าสุด {formatDate(model.health?.workerLastSeenAt ?? null)}</p></section>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">รอทำ / กำลังทำ</p><p className="mt-2 text-xl font-semibold">{model.health ? `${model.health.queued} / ${model.health.activeJobCount ?? 0}` : "—"}</p></section>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">งานที่เกี่ยวกับลูกค้า</p><p className="mt-2 text-xl font-semibold">{model.health?.privateJobs ?? "—"}</p><p className="mt-1 text-xs text-white/40">แสดงเฉพาะผลที่ผ่านการตรวจรูปแบบแล้ว</p></section>
     </div>

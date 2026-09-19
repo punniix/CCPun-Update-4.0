@@ -94,12 +94,16 @@ export async function readLocalAiOperations(limit = 30) {
     ]);
     const health = healthRowSchema.parse(healthRows[0]);
     const jobs = z.array(jobRowSchema).parse(jobRows).map(mapJob);
+    const workerLastSeenAt = iso(health.worker_last_seen_at);
+    const workerFresh = workerLastSeenAt
+      ? Date.now() - new Date(workerLastSeenAt).getTime() < 90_000
+      : false;
     return {
       status: "ready" as const, configuration,
       health: {
         queued: health.queued, leased: health.leased, succeeded: health.succeeded, failed: health.failed,
         reconciliationRequired: health.reconciliation_required, privateJobs: health.private_jobs,
-        publicSafeJobs: health.public_safe_jobs, workerLastSeenAt: iso(health.worker_last_seen_at),
+        publicSafeJobs: health.public_safe_jobs, workerLastSeenAt, workerFresh,
         workerModelName: health.worker_model_name, ollamaReady: health.ollama_ready,
         acceptingPrivateJobs: health.accepting_private_jobs, activeJobCount: health.active_job_count,
       },
