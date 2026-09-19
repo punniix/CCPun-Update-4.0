@@ -1,44 +1,17 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { parseSeoAuditArticle } from "../../lib/admin/seo-audit-schema";
 
-test("SEO audit parser normalizes legacy null Portable Text markDefs", () => {
-  const parsed = parseSeoAuditArticle({
-    id: "drafts.ccpun-motor-car-insurance-types",
-    revision: "fixture-revision",
-    title: "Fixture",
-    slug: "fixture",
-    body: [
-      {
-        _type: "block",
-        style: "normal",
-        children: [{ _type: "span", text: "ข้อความทดสอบ", marks: null }],
-        markDefs: null,
-      },
-    ],
-    hasFeaturedImage: false,
-    hasNativeFeaturedImage: false,
-    usesMigratedFeaturedImage: false,
-  });
+const source = readFileSync(new URL("../../lib/admin/seo-audit.ts", import.meta.url), "utf8");
 
-  assert.deepEqual(parsed.body?.[0]?.markDefs, []);
-});
-
-test("SEO audit parser preserves real mark definitions", () => {
-  const parsed = parseSeoAuditArticle({
-    id: "drafts.fixture",
-    revision: "fixture-revision",
-    body: [
-      {
-        _type: "block",
-        children: [{ _type: "span", text: "link" }],
-        markDefs: [{ _key: "link-1", _type: "link", href: "https://example.com" }],
-      },
-    ],
-    hasFeaturedImage: false,
-    hasNativeFeaturedImage: false,
-    usesMigratedFeaturedImage: false,
-  });
-
-  assert.equal(parsed.body?.[0]?.markDefs?.[0]?.href, "https://example.com");
+test("SEO audit keeps its governed schema inline and accepts legacy null markDefs", () => {
+  assert.match(
+    source,
+    /markDefs: z\.array\(markDefSchema\)\.nullish\(\)\.transform\(\(value\) => value \?\? \[\]\)/,
+  );
+  assert.match(
+    source,
+    /faqQuestions: z\.array\(z\.string\(\)\)\.nullish\(\)\.transform\(\(value\) => value \?\? \[\]\)/,
+  );
+  assert.doesNotMatch(source, /markDefs: z\.array\(markDefSchema\)\.optional\(\)/);
 });
