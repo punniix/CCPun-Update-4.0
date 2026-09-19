@@ -77,7 +77,7 @@ test("Research Intelligence owns keyword coverage Ubersuggest quota GEO prompt g
 test("Production Research uses snapshots while Local lanes retain provider query and sync", () => {
   assert.match(researchPage, /environment === "production-admin"/);
   assert.match(researchPage, /ข้อมูลล่าสุดพร้อมใช้/);
-  assert.match(researchPage, /หน้านี้อ่านข้อมูลที่บันทึกไว้ใน Sanity เท่านั้น/);
+  assert.match(researchPage, /หน้านี้อ่านเฉพาะผลที่บันทึกไว้/);
   assert.match(researchPage, /UbersuggestResearchForm connected=\{ubersuggest\.connected\}/);
   assert.match(researchPage, /SyncUbersuggestButton/);
   assert.match(researchPage, /localProviderLane/);
