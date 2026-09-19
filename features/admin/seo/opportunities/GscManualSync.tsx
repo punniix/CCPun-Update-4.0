@@ -22,7 +22,7 @@ const errorMessage: Record<string, string> = {
   "provider-rate-limited": "Search Console จำกัดการเรียก กรุณารอแล้วลองใหม่",
   "provider-timeout": "Search Console ตอบช้าเกินกำหนด กรุณาลองใหม่",
   "provider-invalid-response": "ข้อมูลจาก Search Console ไม่อยู่ในรูปแบบที่รองรับ",
-  "sync-in-progress": "มีการ Sync อยู่แล้ว กรุณารอให้เสร็จ",
+  "sync-in-progress": "มีการดึงข้อมูลอยู่แล้ว กรุณารอให้เสร็จ",
 };
 
 function fetchedLabel(value: string) {
@@ -55,9 +55,9 @@ function positionDelta(current: number | null, previous: number | null) {
 
 function nextCheck(row: GscDashboardRow) {
   if (!row.previous) return "ควรตรวจว่าหน้านี้ตอบสิ่งที่ผู้ใช้ต้องการจากคำค้นหรือไม่";
-  if (row.current.clicks < row.previous.clicks) return "ควรตรวจ CTR, อันดับ และเนื้อหาที่เปลี่ยนในหน้านี้";
+  if (row.current.clicks < row.previous.clicks) return "ควรตรวจอัตราการคลิก อันดับ และเนื้อหาที่เปลี่ยนในหน้านี้";
   if (row.current.impressions > row.previous.impressions && row.current.ctr < row.previous.ctr) return "คนเห็นเพิ่มแต่อัตราคลิกลดลง ควรตรวจชื่อเรื่อง คำอธิบาย และความตรงกับสิ่งที่ค้นหา";
-  if (row.current.position >= 4 && row.current.position <= 15) return "อันดับอยู่ช่วง 4–15 ควรตรวจ content gap และ internal links";
+  if (row.current.position >= 4 && row.current.position <= 15) return "อันดับอยู่ช่วง 4–15 ควรตรวจหัวข้อที่ยังขาดและลิงก์เชื่อมระหว่างบทความ";
   return "ควรตรวจว่าการเติบโตมาจากความต้องการแบบใดหรือหัวข้อย่อยใด";
 }
 
@@ -85,7 +85,7 @@ export default function GscManualSync({ defaultStartDate, defaultEndDate, laneLa
       if (!response.ok) {
         setMessage(payload?.error === "provider-not-connected"
           ? `ยังไม่ได้เชื่อม Search Console สำหรับ ${laneLabel}`
-          : errorMessage[payload?.error] ?? "Sync ไม่สำเร็จและไม่มีข้อมูลใดถูกบันทึก");
+          : errorMessage[payload?.error] ?? "ดึงข้อมูลไม่สำเร็จและไม่มีข้อมูลใดถูกบันทึก");
         setState("error");
         return;
       }
@@ -102,7 +102,7 @@ export default function GscManualSync({ defaultStartDate, defaultEndDate, laneLa
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 id="gsc-title" className="text-xl font-semibold">Google Search Console</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">ดูผลจากการค้นหาธรรมชาติเทียบกับช่วงก่อนหน้าที่ยาวเท่ากัน ระบบอ่านอย่างเดียวและไม่บันทึกลงฐานข้อมูลหรือ Sanity</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">ดูผลจากการค้นหาธรรมชาติเทียบกับช่วงก่อนหน้าที่ยาวเท่ากัน ระบบอ่านอย่างเดียวและไม่เก็บสำเนาถาวร</p>
           {result ? <p className="mt-2 text-xs leading-5 text-white/45">ดึงข้อมูลล่าสุดเมื่อ {fetchedLabel(result.fetchedAt)} · ช่วง {rangeLabel(result.dateRange)} · เทียบ {rangeLabel(result.comparisonRange)}</p> : null}
         </div>
         <div className="grid w-full min-w-0 grid-cols-2 items-end gap-3 lg:w-auto">

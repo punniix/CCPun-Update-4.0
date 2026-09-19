@@ -29,7 +29,7 @@ const kanitCritical = Kanit({
 export const metadata: Metadata = {
   metadataBase: new URL("https://admin.ccpun.com"),
   title: "ศูนย์จัดการ CCPun",
-  description: "พื้นที่ควบคุมภายในของ CCPun",
+  description: "พื้นที่สำหรับดูแลลูกค้า เนื้อหา และงานของ CCPun",
   alternates: { canonical: null },
   robots: { index: false, follow: false, nocache: true },
   icons: {

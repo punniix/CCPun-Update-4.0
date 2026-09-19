@@ -13,6 +13,15 @@ const providerStateLabel = {
   unsupported: "แพลตฟอร์มยังไม่รองรับตัวชี้วัดนี้",
 } as const;
 
+const platformLabel = { facebook: "Facebook", "facebook-group": "กลุ่ม Facebook", instagram: "Instagram", youtube: "YouTube", tiktok: "TikTok" } as const;
+const collectionModeLabel = { "manual-post-live": "ดึงข้อมูลหลังไลฟ์เมื่อสั่ง" } as const;
+const dimensionLabel = {
+  discovery: "การมองเห็น",
+  engagement: "การมีส่วนร่วม",
+  retention: "การรับชมต่อเนื่อง",
+  "business-intent": "ความสนใจทางธุรกิจ",
+} as const;
+
 export default async function PostLiveAnalyticsUatPage() {
   await requireAdminPermission("social:read");
   const runtime = getSocialOperationsRuntimeStatus();
@@ -34,14 +43,14 @@ export default async function PostLiveAnalyticsUatPage() {
         <article key={snapshot.snapshotId} className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-[#e0c985]">{snapshot.platform} · {snapshot.collectionMode}</div>
+              <div className="text-xs font-semibold tracking-wide text-[#e0c985]">{platformLabel[snapshot.platform]} · {collectionModeLabel[snapshot.collectionMode]}</div>
               <h2 className="mt-2 text-xl font-semibold">{providerStateLabel[snapshot.providerState]}</h2>
             </div>
             <span className="rounded-full bg-amber-200/10 px-3 py-1 text-xs text-amber-100">ไม่ใช่ข้อมูลทันที</span>
           </div>
           <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
             <div><dt className="text-white/45">เนื้อหาหลัก</dt><dd className="mt-1 text-white/75">{snapshot.masterContentId}</dd></div>
-            <div><dt className="text-white/45">Live จบ</dt><dd className="mt-1 text-white/75">{snapshot.liveEndedAt.slice(0, 16).replace("T", " ")} UTC</dd></div>
+            <div><dt className="text-white/45">ไลฟ์จบ</dt><dd className="mt-1 text-white/75">{snapshot.liveEndedAt.slice(0, 16).replace("T", " ")} UTC</dd></div>
             <div><dt className="text-white/45">ข้อมูล ณ</dt><dd className="mt-1 text-white/75">{snapshot.fetchedAt.slice(0, 16).replace("T", " ")} UTC</dd></div>
           </dl>
 
@@ -62,7 +71,7 @@ export default async function PostLiveAnalyticsUatPage() {
               <dl className="mt-3 space-y-3">
                 {snapshot.normalizedMetrics.map((metric) => (
                   <div key={metric.key} className="flex items-end justify-between gap-3 border-b border-white/5 pb-3">
-                    <div><dt className="text-sm text-white/70">{metric.label}</dt><dd className="mt-1 text-xs text-white/40">{metric.dimension}</dd></div>
+                    <div><dt className="text-sm text-white/70">{metric.label}</dt><dd className="mt-1 text-xs text-white/40">{dimensionLabel[metric.dimension]}</dd></div>
                     <div className="font-semibold">{metric.value.toLocaleString("th-TH")}</div>
                   </div>
                 ))}

@@ -97,7 +97,7 @@ export default async function SocialOverviewPage() {
 
       {!operationStoreAvailable ? (
         <section role="status" className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/[0.05] px-4 py-3 text-sm leading-6 text-amber-50/85">
-          ตอนนี้ยังอ่านคิวส่งโพสต์ไม่ได้ ระบบจึงไม่ใช้ข้อมูลจาก Sanity มาเดาสถานะแทน
+          ตอนนี้ยังอ่านรายการส่งโพสต์ไม่ได้ ระบบจึงไม่ใช้ฉบับร่างมาเดาสถานะแทน
         </section>
       ) : null}
 
