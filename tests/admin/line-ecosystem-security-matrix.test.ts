@@ -20,8 +20,10 @@ const privateRuntimeSources=[
   "lib/line/private-crypto.ts",
   "lib/line/safe-for-ai.ts",
   "lib/line/safe-knowledge.ts",
+  "lib/line/system-delivery.ts",
   "lib/admin/line/control-plane.ts",
   "lib/admin/line/provider.ts",
+  "apps/admin/app/api/internal/line/system-delivery/dispatch/route.ts",
   "lib/admin/line/document-media.ts",
 ].map(read).join("\n");
 
