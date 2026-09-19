@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { createClient, defineQuery } from "next-sanity";
 import { z } from "zod";
 
@@ -239,7 +240,7 @@ function sanityItems(
   articleIdBySlug: Map<string, string>,
 ) {
   return items.map((item) => ({
-    _key: "article-" + item.slug.replace(/[^a-z0-9_-]/gi, "_").slice(0, 72),
+    _key: "article-" + createHash("sha256").update(item.slug).digest("hex").slice(0, 16),
     article: {
       _type: "reference",
       _ref: articleIdBySlug.get(item.slug)!,
