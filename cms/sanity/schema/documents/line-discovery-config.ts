@@ -60,6 +60,19 @@ export const lineDiscoveryConfig = defineType({
   description: "ลำดับบทความสำหรับ Rich Menu v3 แนะนำให้จัดการจาก admin.ccpun.com > Settings > Integrations",
   fields: [
     defineField({ name: "version", title: "Version", type: "number", readOnly: true }),
+    defineField({
+      name: "desiredRichMenu",
+      title: "Rich Menu ที่ต้องการ",
+      type: "string",
+      options: {
+        list: [
+          { title: "Rich Menu v3 · 4 ช่อง", value: "v3" },
+          { title: "ไม่ให้ระบบเปลี่ยนเมนู", value: "hold" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "hold",
+    }),
     journeyConfig("lifeHealth", "ประกันชีวิต"),
     journeyConfig("motor", "ประกันรถ"),
     journeyConfig("investment", "เรื่องลงทุน"),
