@@ -106,6 +106,13 @@ const nextConfig: NextConfig = {
         destination: "/tools/financial-health-check/",
         permanent: true,
       },
+      {
+        // Historical advisor landing had no surviving page after the Vercel cutover.
+        // The homepage is the approved advisor intent owner, so keep this one-hop.
+        source: "/financial-advisor/:path*",
+        destination: "/",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
