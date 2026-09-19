@@ -67,7 +67,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 
 function BreakdownRows({ recovery: value }: { recovery: CIRecoveryCosts }) {
   const preview = calcRecoveryReserveNeed(value);
-  const rows: Array<[string, number]> = [
+  const rowCandidates: Array<[string, number]> = [
     [`ติดตามรักษา ${preview.treatmentVisits} ครั้ง × ${baht(preview.treatmentVisitUnitCost)}`, preview.visitNeed],
     [`ผู้ดูแล ${preview.caregiverHomeDays} วัน × ${baht(preview.caregiverDailyCost)}`, preview.caregiverHomeNeed],
     [`กายภาพ/ฟื้นฟู ${preview.rehabSessions} ครั้ง × ${baht(preview.rehabUnitCost)}`, preview.rehabNeed],
@@ -84,7 +84,8 @@ function BreakdownRows({ recovery: value }: { recovery: CIRecoveryCosts }) {
     ['Major Housing Reserve', preview.majorHousing],
     ['เงินเผื่อความคลาดเคลื่อน', preview.contingency],
     ['ค่าใช้จ่ายอื่น', preview.otherRecoveryCosts],
-  ].filter(([, amount]) => amount > 0);
+  ];
+  const recoveryRows = recoveryRowCandidates.filter(([, amount]) => amount > 0);
 
   return (
     <dl className="space-y-2 text-xs">
