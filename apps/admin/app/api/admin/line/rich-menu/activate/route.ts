@@ -10,6 +10,7 @@ import {
   readDefaultLineRichMenuStatus,
 } from "@/lib/admin/line/rich-menu-provider";
 import { getLineSystemDeliveryProviderReadiness } from "@/lib/admin/line/provider";
+import { readLineSystemDeliveryDatabaseReadiness } from "@/lib/admin/line/control-plane";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 
 export const runtime = "nodejs";
@@ -39,12 +40,14 @@ export async function POST(request: Request) {
 
   const readiness = getLineRichMenuProviderReadiness();
   const systemDelivery = getLineSystemDeliveryProviderReadiness();
+  const systemDeliveryDatabase = await readLineSystemDeliveryDatabaseReadiness();
   if (
     !readiness.tokenPresent
     || !readiness.providerWriteEnabled
     || !systemDelivery.enabled
     || !systemDelivery.tokenPresent
     || !systemDelivery.cryptoReady
+    || !systemDeliveryDatabase.ready
   ) {
     return NextResponse.json({ error: "rich-menu-not-ready" }, { status: 409, headers });
   }
