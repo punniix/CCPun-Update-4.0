@@ -255,10 +255,10 @@ test("Manual social routes and pages remain human-only, same-origin and provider
   }
   const client = read("features/admin/social/provider-readonly-panels.tsx");
   const tiktokPage = read("features/admin/social/tiktok-connection-page.tsx");
-  assert.match(client, /Sync Meta แบบอ่านอย่างเดียว/);
-  assert.match(client, /Sync TikTok แบบอ่านอย่างเดียว/);
-  assert.match(client, /Sync YouTube แบบอ่านอย่างเดียว/);
-  assert.match(tiktokPage, /video\.upload และ video\.publish ถูกปฏิเสธ/);
+  assert.match(client, /อ่านข้อมูล Meta/);
+  assert.match(client, /อ่านข้อมูล TikTok/);
+  assert.match(client, /อ่านข้อมูล YouTube/);
+  assert.match(tiktokPage, /ไม่อนุญาตให้อัปโหลดหรือเผยแพร่วิดีโอ/);
   assert.doesNotMatch(client, /accessToken|refreshToken|clientSecret/);
 });
 

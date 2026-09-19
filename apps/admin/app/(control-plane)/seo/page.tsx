@@ -7,7 +7,7 @@ import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { SEO_AUDIT_VERSION } from "@/lib/admin/seo-heuristics";
 import { getSeoIntelligenceRuntimeStatus } from "@/lib/admin/seo-intelligence/foundation";
 
-export const metadata: Metadata = { title: "SEO Control Center" };
+export const metadata: Metadata = { title: "ตรวจ SEO" };
 
 function scoreTone(score: number | null | undefined) {
   if (score == null) return "text-white/60";
@@ -34,14 +34,14 @@ export default async function AdminSeoPage() {
     <div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SEO CONTROL CENTER</p>
-          <h1 className="mt-2 text-3xl font-semibold">SEO Control Center</h1>
+          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">เนื้อหาและการค้นหา</p>
+          <h1 className="mt-2 text-3xl font-semibold">ตรวจ SEO</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            รวมผลตรวจ SEO กับกติกาการแก้ไขที่ปลอดภัยในที่เดียว คะแนนมาจากกฎของ CCPun ไม่ใช่คะแนนจาก Google และการเปลี่ยน URL/indexability ของหน้าที่เผยแพร่แล้วต้องผ่าน migration workflow แยกต่างหาก
+            รวมผลตรวจ SEO และข้อควรระวังไว้ในที่เดียว คะแนนมาจากกฎตรวจของ CCPun ไม่ใช่คะแนนจาก Google หากบทความเคยเผยแพร่แล้ว การเปลี่ยนที่อยู่หน้าหรือการให้เครื่องมือค้นหาเก็บหน้าต้องตรวจผลกระทบแยกก่อน
           </p>
         </div>
         <div className="flex gap-2">
-          {intelligenceReady ? <Link href="/seo/opportunities/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">ดู Opportunities UAT</Link> : null}
+          {intelligenceReady ? <Link href="/seo/opportunities/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">ดูโอกาสพัฒนาใน UAT</Link> : null}
           <Link href="/content/research/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อมูลงานวิจัย</Link>
           <Link href="/dashboard/reviews/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อเสนอที่รอตรวจ</Link>
         </div>
@@ -56,18 +56,18 @@ export default async function AdminSeoPage() {
 
       <section className="mt-6 grid gap-3 lg:grid-cols-2">
         <article className="rounded-3xl border border-emerald-200/15 bg-emerald-200/[0.04] p-5">
-          <h2 className="font-semibold text-emerald-100">แก้ผ่าน Draft ได้ตามปกติ</h2>
-          <p className="mt-2 text-sm leading-6 text-white/65">SEO Title · Meta Description · Keyword · Search Intent · Semantic Topic · รูปภาพ · Author · Sources</p>
-          <p className="mt-2 text-xs leading-5 text-white/50">Semantic Topic ใช้จัดความหมาย/Knowledge Graph และไม่ใช่คำสั่งย้าย URL</p>
+          <h2 className="font-semibold text-emerald-100">แก้ในฉบับร่างได้ตามปกติ</h2>
+          <p className="mt-2 text-sm leading-6 text-white/65">ชื่อและคำอธิบายบนผลค้นหา · คำค้น · เป้าหมายการค้นหา · หัวข้อที่เกี่ยวข้อง · รูปภาพ · ผู้เขียน · แหล่งอ้างอิง</p>
+          <p className="mt-2 text-xs leading-5 text-white/50">หัวข้อที่เกี่ยวข้องใช้ช่วยจัดความหมายของเนื้อหา และไม่เปลี่ยนที่อยู่หน้าเว็บ</p>
         </article>
         <article className="rounded-3xl border border-amber-200/20 bg-amber-200/[0.05] p-5">
-          <h2 className="font-semibold text-amber-100">Protected หลังบทความเคยเผยแพร่</h2>
-          <p className="mt-2 text-sm leading-6 text-white/65">URL Slug · หมวดที่กำหนด URL path · Canonical override · Noindex</p>
-          <p className="mt-2 text-xs leading-5 text-white/50">หากต้องเปลี่ยน ให้ทำ SEO Migration Workflow ที่ประสาน redirect + canonical + sitemap + internal links + schema + regression พร้อมกัน</p>
+          <h2 className="font-semibold text-amber-100">ต้องตรวจผลกระทบก่อนแก้ หลังเคยเผยแพร่</h2>
+          <p className="mt-2 text-sm leading-6 text-white/65">ที่อยู่หน้าเว็บ · หมวดที่กำหนดที่อยู่ · หน้าหลักของเนื้อหาซ้ำ · การซ่อนจากผลค้นหา</p>
+          <p className="mt-2 text-xs leading-5 text-white/50">หากต้องเปลี่ยน ต้องเตรียมทางส่งต่อ ที่อยู่หลัก แผนผังเว็บ ลิงก์ภายใน และข้อมูลสำหรับเครื่องมือค้นหาให้ครบ พร้อมทดสอบก่อนนำขึ้นระบบจริง</p>
         </article>
       </section>
 
-      {result.error ? <section role="alert" className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm text-amber-50">ยังอ่านข้อมูลบทความเพื่อตรวจ SEO ไม่ได้ ระบบหยุดไว้โดยไม่สลับ project หรือชุดข้อมูล</section> : null}
+      {result.error ? <section role="alert" className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm text-amber-50">ยังอ่านข้อมูลบทความเพื่อตรวจ SEO ไม่ได้ ระบบหยุดไว้โดยไม่สลับโครงการหรือชุดข้อมูล</section> : null}
 
       {result.rows.length > 0 ? (
         <section className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
@@ -105,7 +105,7 @@ export default async function AdminSeoPage() {
         </section>
       ) : null}
 
-      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-6 text-white/70">การตรวจและการสร้างข้อเสนอเป็นคนละขั้นกับการอนุมัติ ระบบจะไม่ใช้ข้อเสนอหรือเผยแพร่บทความเอง และจะยังไม่สร้าง SEO Title / Meta description อัตโนมัติจนกว่าจะตรวจ page + query ownership จาก GSC เพื่อป้องกัน keyword cannibalization</section>
+      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-6 text-white/70">การตรวจ การสร้างข้อเสนอ และการอนุมัติเป็นคนละขั้น ระบบจะไม่ใช้ข้อเสนอหรือเผยแพร่บทความเอง และจะไม่สร้างชื่อหรือคำอธิบายสำหรับผลค้นหาอัตโนมัติ จนกว่าจะยืนยันจาก Google Search Console ว่าคำค้นนั้นควรอยู่กับหน้านี้ เพื่อป้องกันหลายหน้าของ CCPun แข่งขันกันเอง</section>
     </div>
   );
 }

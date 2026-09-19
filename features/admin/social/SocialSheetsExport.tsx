@@ -13,7 +13,7 @@ export default function SocialSheetsExport() {
   const [url, setUrl] = useState<string | null>(null);
 
   async function exportSheets() {
-    if (!googleClientId) { setState("failed"); setNotice("ยังไม่ได้ตั้ง public Google OAuth client ID"); return; }
+    if (!googleClientId) { setState("failed"); setNotice("ยังตั้งค่าการเชื่อมต่อ Google ไม่ครบ กรุณาติดต่อผู้ดูแลระบบ"); return; }
     setState("running"); setNotice(""); setUrl(null);
     try {
       let session = sessionRef.current;
@@ -39,15 +39,15 @@ export default function SocialSheetsExport() {
       if (!spreadsheetUrl) throw new Error("google-export-invalid-response");
       setUrl(spreadsheetUrl);
       setState("ready");
-      setNotice(`Export สำเร็จ ${payload?.export?.sheets?.length ?? 0} ชีต · token อยู่ในหน่วยความจำของหน้านี้เท่านั้น`);
+      setNotice(`สร้างไฟล์สำเร็จ ${payload?.export?.sheets?.length ?? 0} ชีต · สิทธิ์เข้าถึงจะใช้เฉพาะในหน้านี้`);
     } catch (error) {
       setState("failed");
       const code = error instanceof Error ? error.message : "google-export-failed";
       const messages: Record<string, string> = {
-        "google-authorization-required": "สิทธิ์ Google หมดอายุ กรุณากด Export ใหม่เพื่ออนุญาตอีกครั้ง",
+        "google-authorization-required": "สิทธิ์ Google หมดอายุ กรุณากดสร้างไฟล์ใหม่เพื่ออนุญาตอีกครั้ง",
         "google-rate-limited": "Google จำกัดการเรียกชั่วคราว กรุณารอสักครู่แล้วลองใหม่",
-        "database-not-ready": "ฐานข้อมูลหรือ schema สำหรับ export ยังไม่พร้อม",
-        "export-too-large": "ข้อมูลมี stat family มากเกินขอบเขตของ Google Sheets",
+        "database-not-ready": "ฐานข้อมูลสำหรับสร้างไฟล์ยังไม่พร้อม",
+        "export-too-large": "ข้อมูลมีหลายกลุ่มเกินขอบเขตของ Google Sheets",
         "google-export-failed": "สร้าง Google Sheets ไม่สำเร็จชั่วคราว",
       };
       setNotice(messages[code] ?? "ยกเลิกหรืออนุญาต Google ไม่สำเร็จ");
@@ -58,12 +58,12 @@ export default function SocialSheetsExport() {
     <section aria-labelledby="social-sheets-export-title" className="mb-5 rounded-3xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 id="social-sheets-export-title" className="text-lg font-semibold">Google Sheets Export</h2>
-          <p className="mt-1 text-sm text-white/65">สร้างไฟล์ใหม่ใน Google Drive โดยคง Raw tabs และเพิ่ม Marketing - Posts, Coverage และ QA สำหรับวิเคราะห์ต่อได้ง่าย</p>
+          <h2 id="social-sheets-export-title" className="text-lg font-semibold">ส่งออกไป Google Sheets</h2>
+          <p className="mt-1 text-sm text-white/65">สร้างไฟล์ใหม่ใน Google Drive พร้อมชีตสรุปโพสต์ ความครอบคลุม และข้อมูลสำหรับตรวจคุณภาพ</p>
         </div>
         <button type="button" onClick={exportSheets} disabled={state === "running" || !googleClientId}
           className="min-h-11 rounded-xl bg-[#9eebce] px-4 py-2.5 text-sm font-semibold text-[#101820] hover:bg-[#b6f3dc] focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:cursor-not-allowed disabled:opacity-50">
-          {state === "running" ? "กำลัง Export…" : "Export ไป Google Sheets"}
+          {state === "running" ? "กำลังสร้างไฟล์…" : "สร้าง Google Sheets"}
         </button>
       </div>
       {notice ? <p role="status" className={`mt-3 text-sm ${state === "ready" ? "text-emerald-200" : "text-rose-200"}`}>{notice}</p> : null}

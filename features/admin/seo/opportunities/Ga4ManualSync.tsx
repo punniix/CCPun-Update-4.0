@@ -48,13 +48,13 @@ function pointDelta(current: number, previous: number | null) {
 }
 
 function nextCheck(row: Ga4DashboardRow) {
-  if (!row.previous) return "ควรตรวจ intent และ UX ของ landing page นี้";
-  if (row.current.sessions > row.previous.sessions && row.current.engagementRate < row.previous.engagementRate) return "Traffic เพิ่มแต่ engagement ลด ควรตรวจ intent, ความเร็ว และ CTA ของหน้า";
+  if (!row.previous) return "ควรตรวจว่าเนื้อหาตรงกับสิ่งที่ผู้ค้นหาต้องการ และหน้าใช้งานสะดวกหรือไม่";
+  if (row.current.sessions > row.previous.sessions && row.current.engagementRate < row.previous.engagementRate) return "ผู้เข้าชมเพิ่มแต่มีส่วนร่วมน้อยลง ควรตรวจความตรงกับสิ่งที่ค้นหา ความเร็ว และคำชวนให้ทำต่อ";
   if (row.current.sessions < row.previous.sessions) return "ควรตรวจ query ต้นทาง, อันดับ และการเปลี่ยนแปลงของหน้านี้";
-  return "ควรตรวจว่าการเติบโตมาจากเนื้อหาหรือ query กลุ่มใด";
+  return "ควรตรวจว่าการเติบโตมาจากเนื้อหาหรือกลุ่มคำค้นใด";
 }
 
-export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "Production" | "UAT" }) {
+export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "UAT" }) {
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
@@ -94,9 +94,9 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-5" aria-labelledby="ga4-title">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 id="ga4-title" className="text-xl font-semibold">GA4 · Organic Search</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">ดูคุณภาพ Session จริงของ Organic Search โดยไม่ดึงข้อมูลผู้ใช้ ไม่บันทึก DB/Sanity และไม่แก้ Analytics</p>
-          {result ? <p className="mt-2 text-xs leading-5 text-white/45">ดึงข้อมูลล่าสุดเมื่อ {fetchedLabel(result.fetchedAt)} · ช่วง {rangeLabel(result.dateRange)} · เทียบ {rangeLabel(result.comparisonRange)}{result.timeZone ? ` · Data timezone ${result.timeZone}` : ""}</p> : null}
+          <h2 id="ga4-title" className="text-xl font-semibold">GA4 · ผู้เข้าชมจากผลค้นหา</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">ดูคุณภาพการเข้าชมจากผลค้นหาโดยไม่ดึงข้อมูลส่วนบุคคล ไม่บันทึกลงฐานข้อมูลหรือ Sanity และไม่แก้การตั้งค่า Analytics</p>
+          {result ? <p className="mt-2 text-xs leading-5 text-white/45">ดึงข้อมูลล่าสุดเมื่อ {fetchedLabel(result.fetchedAt)} · ช่วง {rangeLabel(result.dateRange)} · เทียบ {rangeLabel(result.comparisonRange)}{result.timeZone ? ` · เขตเวลาข้อมูล ${result.timeZone}` : ""}</p> : null}
         </div>
         <div className="grid w-full min-w-0 grid-cols-2 items-end gap-3 lg:w-auto">
           <label className="min-w-0 text-xs text-white/60">เริ่ม
@@ -106,7 +106,7 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
             <input type="date" value={endDate} min={startDate} onChange={(event) => setEndDate(event.target.value)} className="mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white" />
           </label>
           <button type="button" onClick={sync} disabled={state === "running" || !startDate || !endDate} className="col-span-2 min-h-11 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-1 lg:w-auto">
-            {state === "running" ? "กำลัง Sync…" : "Sync GA4 แบบอ่านอย่างเดียว"}
+            {state === "running" ? "กำลังดึงข้อมูล…" : "ดึงข้อมูลจาก GA4"}
           </button>
         </div>
       </div>
@@ -118,9 +118,9 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
         <div className="mt-4 space-y-5">
           <dl className="grid overflow-hidden rounded-2xl border border-white/10 bg-black/10 sm:grid-cols-3">
             {[
-              { label: "Organic Sessions", value: result.current.sessions.toLocaleString("th-TH"), comparison: countDelta(result.current.sessions, result.comparison?.sessions ?? null) },
-              { label: "Engaged Sessions", value: result.current.engagedSessions.toLocaleString("th-TH"), comparison: countDelta(result.current.engagedSessions, result.comparison?.engagedSessions ?? null) },
-              { label: "Engagement Rate", value: `${(result.current.engagementRate * 100).toFixed(1)}%`, comparison: pointDelta(result.current.engagementRate, result.comparison?.engagementRate ?? null) },
+              { label: "การเข้าชมจากผลค้นหา", value: result.current.sessions.toLocaleString("th-TH"), comparison: countDelta(result.current.sessions, result.comparison?.sessions ?? null) },
+              { label: "การเข้าชมที่มีส่วนร่วม", value: result.current.engagedSessions.toLocaleString("th-TH"), comparison: countDelta(result.current.engagedSessions, result.comparison?.engagedSessions ?? null) },
+              { label: "อัตราการมีส่วนร่วม", value: `${(result.current.engagementRate * 100).toFixed(1)}%`, comparison: pointDelta(result.current.engagementRate, result.comparison?.engagementRate ?? null) },
             ].map((metric) => (
               <div key={metric.label} className="border-b border-white/10 p-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
                 <dt className="text-xs text-white/65">{metric.label}</dt>
@@ -133,13 +133,13 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
           {result.signals.length ? (
             <section aria-labelledby="ga4-signals-title">
               <h3 id="ga4-signals-title" className="font-semibold">การเปลี่ยนแปลงเด่นจากหน้าที่จับคู่ตรงกัน</h3>
-              <p className="mt-1 text-xs text-white/45">เรียงจากส่วนต่าง Sessions สูงสุด ไม่ใช่ข้อสรุปสาเหตุหรือคำสั่งแก้ไข</p>
+              <p className="mt-1 text-xs text-white/45">เรียงจากความต่างของจำนวนการเข้าชมสูงสุด ไม่ใช่ข้อสรุปสาเหตุหรือคำสั่งแก้ไข</p>
               <div className="mt-3 grid gap-2 lg:grid-cols-3">
                 {result.signals.map((row) => (
                   <article key={row.landingPage} className="rounded-xl border border-white/10 bg-black/10 p-3">
                     <div className="truncate text-sm text-white/85" title={row.landingPage}>{row.landingPage}</div>
-                    <div className="mt-3 text-sm font-semibold text-primary">Sessions {countDelta(row.current.sessions, row.previous?.sessions ?? null)}</div>
-                    <div className="mt-1 text-xs text-white/65">Engagement Rate {pointDelta(row.current.engagementRate, row.previous?.engagementRate ?? null)}</div>
+                    <div className="mt-3 text-sm font-semibold text-primary">การเข้าชม {countDelta(row.current.sessions, row.previous?.sessions ?? null)}</div>
+                    <div className="mt-1 text-xs text-white/65">อัตราการมีส่วนร่วม {pointDelta(row.current.engagementRate, row.previous?.engagementRate ?? null)}</div>
                     <p className="mt-2 text-xs leading-5 text-white/75">{nextCheck(row)}</p>
                   </article>
                 ))}
@@ -148,7 +148,7 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
           ) : null}
 
           <section aria-labelledby="ga4-details-title">
-            <h3 id="ga4-details-title" className="font-semibold">Top 10 Organic landing pages · เรียงตาม Sessions</h3>
+            <h3 id="ga4-details-title" className="font-semibold">10 หน้าแรกที่มีผู้เข้าชมจากผลค้นหามากที่สุด</h3>
             {topRows.length ? (
               <ol className="mt-3 divide-y divide-white/10 rounded-2xl border border-white/10 bg-black/10 px-3 sm:px-4">
                 {topRows.map((row) => {
@@ -162,15 +162,15 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
                         <span className="text-white/65">ช่วงก่อน</span><div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-white/35" style={{ width: `${previousWidth}%` }} /></div><span>{row.previous ? row.previous.sessions.toLocaleString("th-TH") : "—"}</span>
                       </div>
                       <dl className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
-                        <div><dt className="text-white/40">Sessions</dt><dd className="text-white/75">{row.current.sessions.toLocaleString("th-TH")} · {countDelta(row.current.sessions, row.previous?.sessions ?? null)}</dd></div>
-                        <div><dt className="text-white/40">Engaged Sessions</dt><dd className="text-white/75">{row.current.engagedSessions.toLocaleString("th-TH")} · {countDelta(row.current.engagedSessions, row.previous?.engagedSessions ?? null)}</dd></div>
-                        <div><dt className="text-white/40">Engagement Rate</dt><dd className="text-white/75">{(row.current.engagementRate * 100).toFixed(1)}% · {pointDelta(row.current.engagementRate, row.previous?.engagementRate ?? null)}</dd></div>
+                        <div><dt className="text-white/40">การเข้าชม</dt><dd className="text-white/75">{row.current.sessions.toLocaleString("th-TH")} · {countDelta(row.current.sessions, row.previous?.sessions ?? null)}</dd></div>
+                        <div><dt className="text-white/40">การเข้าชมที่มีส่วนร่วม</dt><dd className="text-white/75">{row.current.engagedSessions.toLocaleString("th-TH")} · {countDelta(row.current.engagedSessions, row.previous?.engagedSessions ?? null)}</dd></div>
+                        <div><dt className="text-white/40">อัตราการมีส่วนร่วม</dt><dd className="text-white/75">{(row.current.engagementRate * 100).toFixed(1)}% · {pointDelta(row.current.engagementRate, row.previous?.engagementRate ?? null)}</dd></div>
                       </dl>
                     </li>
                   );
                 })}
               </ol>
-            ) : <p className="mt-3 text-sm text-white/55">ช่วงวันที่เลือกไม่มี Organic landing page ที่นำมาแสดงได้</p>}
+            ) : <p className="mt-3 text-sm text-white/55">ช่วงวันที่เลือกไม่มีหน้าปลายทางจากผลค้นหาที่นำมาแสดงได้</p>}
           </section>
 
           {result.state === "partial" || result.truncated ? <p className="text-xs leading-5 text-amber-100/80">{result.state === "partial" ? "ช่วงเปรียบเทียบยังดึงไม่สำเร็จ" : ""}{result.state === "partial" && result.truncated ? " · " : ""}{result.truncated ? "รายละเอียดบางส่วนชนขีดจำกัดรอบนี้" : ""}</p> : null}

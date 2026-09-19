@@ -10,7 +10,7 @@ import {
   SYNTHETIC_SOCIAL_FOUNDATION,
 } from "@/lib/admin/social/foundation";
 
-export const metadata: Metadata = { title: "Distribution UAT" };
+export const metadata: Metadata = { title: "ทดสอบโครงสร้างงานโซเชียล" };
 
 const platformLabel = {
   facebook: "Facebook",
@@ -21,18 +21,18 @@ const platformLabel = {
 } as const;
 
 const modeLabel = {
-  direct: "ส่งตรงผ่าน API",
+  direct: "ส่งตรงไปยังแพลตฟอร์ม",
   "native-scheduled": "ใช้เวลานัดหมายของแพลตฟอร์ม",
   "native-finish": "รอจบงานในแอป",
-  "tiktok-draft": "ส่งเข้า TikTok Draft",
+  "tiktok-draft": "ส่งเป็นฉบับร่างใน TikTok",
   "assisted-distribution": "ช่วยเตรียมให้ผู้ใช้ยืนยัน",
 } as const;
 
 function readinessLabel(readiness: Awaited<ReturnType<typeof getSocialDatabaseReadiness>>) {
-  if (!readiness.configured) return "รอผูก Neon Secret";
+  if (!readiness.configured) return "รอตั้งค่าการเชื่อมฐานข้อมูล";
   if (!readiness.reachable) return "ยังเชื่อมต่อไม่ได้";
-  if (!readiness.migrationCurrent) return "รอใช้ schema รุ่นปัจจุบัน";
-  return "พร้อมอ่าน schema รุ่นปัจจุบัน";
+  if (!readiness.migrationCurrent) return "รอปรับโครงสร้างข้อมูลให้เป็นรุ่นปัจจุบัน";
+  return "โครงสร้างข้อมูลพร้อมใช้งาน";
 }
 
 export default async function SocialFoundationUatPage() {
@@ -48,19 +48,19 @@ export default async function SocialFoundationUatPage() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">WEBSITE 4.2 · SYNTHETIC UAT</p>
-      <h1 className="mt-2 text-3xl font-semibold">Social Data-Plane Foundation</h1>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · ใช้ข้อมูลตัวอย่าง</p>
+      <h1 className="mt-2 text-3xl font-semibold">ทดสอบโครงสร้างงานโซเชียล</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-        หน้านี้ตรวจความสัมพันธ์ระหว่าง Master Content กับชิ้นงานแต่ละช่องทางเท่านั้น ยังไม่เชื่อมบัญชีจริง ไม่อัปโหลดสื่อ และไม่โพสต์ไปยังแพลตฟอร์มใด
+        หน้านี้ตรวจความสัมพันธ์ระหว่างเนื้อหาหลักกับชิ้นงานของแต่ละช่องทางเท่านั้น ยังไม่เชื่อมบัญชีจริง ไม่อัปโหลดสื่อ และไม่ส่งโพสต์ไปยังแพลตฟอร์มใด
       </p>
 
       <section className="mt-7 grid gap-3 sm:grid-cols-3">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">โหมดข้อมูล</div>
-          <div className="mt-2 font-semibold text-emerald-200">Synthetic UAT</div>
+          <div className="mt-2 font-semibold text-emerald-200">ข้อมูลตัวอย่างสำหรับ UAT</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-          <div className="text-sm text-white/60">Operational Database</div>
+          <div className="text-sm text-white/60">ฐานข้อมูลการทำงาน</div>
           <div className="mt-2 font-semibold">{readinessLabel(database)}</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
@@ -70,9 +70,9 @@ export default async function SocialFoundationUatPage() {
       </section>
 
       <section className="mt-6 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.05] p-5">
-        <div className="text-sm text-white/55">Master Content</div>
+        <div className="text-sm text-white/55">เนื้อหาหลัก</div>
         <h2 className="mt-2 text-xl font-semibold text-[#f4df9b]">{snapshot.masterContent.title}</h2>
-        <div className="mt-2 text-sm text-white/60">{snapshot.variants.length} channel variants · fixture ผ่านการอนุมัติแล้ว</div>
+        <div className="mt-2 text-sm text-white/60">ชิ้นงานสำหรับช่องทางต่าง ๆ {snapshot.variants.length} รายการ · เป็นข้อมูลตัวอย่างที่อนุมัติแล้ว</div>
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -90,7 +90,7 @@ export default async function SocialFoundationUatPage() {
       </section>
 
       <section role="note" className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/[0.05] p-5 text-sm leading-6 text-amber-50/80">
-        ขอบเขต Phase 1: ตรวจ schema, media metadata, state machine, idempotency และ audit contract เท่านั้น OAuth, media upload/storage, webhook และคำสั่ง publish ยังปิดอยู่
+        รอบนี้ตรวจเฉพาะโครงสร้างข้อมูล รายละเอียดสื่อ ลำดับสถานะ การป้องกันงานซ้ำ และประวัติการทำงาน การเชื่อมบัญชี การอัปโหลดสื่อ การรับเหตุการณ์อัตโนมัติ และการเผยแพร่ยังปิดอยู่
       </section>
     </div>
   );

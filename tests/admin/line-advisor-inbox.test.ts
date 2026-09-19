@@ -137,7 +137,7 @@ test("deployed Admin separates Advisor Inbox from SEO Reviews", () => {
   assert.match(reviews, /requireAdminPermission\("reviews:read"\)/);
   assert.match(reviews, /ReviewDecisionControls/);
   assert.match(layout, /\/dashboard\/inbox\/[\s\S]*ลูกค้า LINE[\s\S]*advisor:read/);
-  assert.match(layout, /\/dashboard\/reviews\/[\s\S]*Reviews[\s\S]*reviews:read/);
+  assert.match(layout, /\/dashboard\/reviews\/[\s\S]*งานรอตรวจ[\s\S]*reviews:read/);
   assert.match(routes, /\["\/snt-admin\/reviews", "\/dashboard\/reviews\/"\]/);
   for (const source of [dashboard, articles, seo]) {
     assert.doesNotMatch(source, /href="\/dashboard\/inbox\/"[\s\S]{0,120}(?:ข้อเสนอ|Review inbox)/);

@@ -11,7 +11,7 @@ export default function GenerateSeoProposalButton({ articleId }: { articleId: st
 
   async function generate() {
     if (state === "running") return;
-    if (!window.confirm("สร้างข้อเสนอ Search intent จาก Research Snapshot ล่าสุดหรือไม่? ระบบจะส่งเข้าคิวให้มนุษย์ตรวจ และจะไม่ Apply หรือ Publish")) return;
+    if (!window.confirm("สร้างข้อเสนอเรื่องเป้าหมายการค้นหาจากข้อมูลล่าสุดหรือไม่? ระบบจะส่งให้ผู้มีสิทธิ์ตรวจ และจะไม่แก้หรือเผยแพร่บทความเอง")) return;
     setState("running");
     setError("");
     try {
@@ -32,7 +32,7 @@ export default function GenerateSeoProposalButton({ articleId }: { articleId: st
   return (
     <div>
       <button type="button" onClick={generate} disabled={state === "running" || state === "done"} className="min-h-11 rounded-xl border border-violet-200/20 bg-violet-200/[0.06] px-3.5 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-200/10 disabled:opacity-40">
-        {state === "running" ? "กำลังสร้าง…" : state === "done" ? "ส่งเข้าคิวแล้ว" : state === "error" ? "ลองสร้างอีกครั้ง" : "สร้างข้อเสนอ Search intent"}
+        {state === "running" ? "กำลังสร้าง…" : state === "done" ? "ส่งเข้าคิวแล้ว" : state === "error" ? "ลองสร้างอีกครั้ง" : "สร้างข้อเสนอเป้าหมายการค้นหา"}
       </button>
       {error ? <p role="alert" className="mt-2 max-w-xs text-sm leading-6 text-red-200">{error}</p> : null}
       <span role="status" aria-live="polite" className="sr-only">{state === "running" ? "กำลังสร้างข้อเสนอ" : state === "done" ? "ส่งข้อเสนอเข้าคิวตรวจแล้ว" : ""}</span>

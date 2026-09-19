@@ -11,7 +11,7 @@ const kindLabel = {
 } as const;
 
 const lifecycleLabel = {
-  registered: "ลงทะเบียน metadata แล้ว",
+  registered: "บันทึกรายละเอียดไฟล์แล้ว",
   ready: "พร้อมนำไปใช้",
   archived: "เก็บถาวร",
 } as const;
@@ -27,20 +27,20 @@ export default function MediaLibraryUatSection() {
 
   return (
     <section aria-labelledby="media-library-title">
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">WEBSITE 4.2 · PHASE 2 · SYNTHETIC UAT</p>
-      <h1 id="media-library-title" className="mt-2 text-3xl font-semibold">Media Library + Direct Upload Foundation</h1>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · ใช้ข้อมูลตัวอย่าง</p>
+      <h1 id="media-library-title" className="mt-2 text-3xl font-semibold">คลังสื่อและการอัปโหลดไฟล์</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-        หน้านี้ตรวจ asset metadata และ upload intent เท่านั้น Browser จะอัปโหลดตรงไปยัง storage provider เมื่อมี provider ที่ผ่านการอนุมัติ โดยไฟล์ขนาดใหญ่จะไม่ผ่าน Next.js
+        หน้านี้ใช้ตรวจรายละเอียดไฟล์และขั้นตอนเตรียมอัปโหลดเท่านั้น เมื่อเลือกบริการจัดเก็บและอนุมัติแล้ว เบราว์เซอร์จะส่งไฟล์ตรงไปยังบริการนั้น
       </p>
 
       <div className="mt-7 grid gap-3 sm:grid-cols-3">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-          <div className="text-sm text-white/60">Storage provider</div>
+          <div className="text-sm text-white/60">บริการจัดเก็บไฟล์</div>
           <div className="mt-2 font-semibold text-amber-200">{storage.status === "not-connected" ? "ยังไม่เชื่อม" : storage.status}</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">รูปแบบอัปโหลด</div>
-          <div className="mt-2 font-semibold">Direct upload เท่านั้น</div>
+          <div className="mt-2 font-semibold">ส่งตรงไปยังบริการจัดเก็บ</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">การอัปโหลดจริง</div>
@@ -51,28 +51,28 @@ export default function MediaLibraryUatSection() {
       <section aria-labelledby="drive-selected-file-title" className="mt-6 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.045] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <div className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">GOOGLE DRIVE · SELECTED FILE ONLY</div>
+            <div className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">GOOGLE DRIVE · เฉพาะไฟล์ที่เลือก</div>
             <h2 id="drive-selected-file-title" className="mt-2 text-xl font-semibold">ไฟล์ที่เจ้าของเลือกจาก Drive</h2>
             <p className="mt-2 text-sm leading-6 text-white/65">
-              Projection รองรับ metadata, ลิงก์เปิดไฟล์ และ preview ที่ Drive ส่งให้เท่านั้น ระบบไม่อ่านเนื้อหา ดาวน์โหลดไฟล์ หรือเก็บ token
+              ระบบใช้เฉพาะรายละเอียด ลิงก์เปิดไฟล์ และภาพตัวอย่างที่ Drive ส่งให้ โดยไม่อ่านเนื้อหา ดาวน์โหลดไฟล์ หรือเก็บสิทธิ์ระยะยาว
             </p>
           </div>
           <span className="rounded-full border border-amber-200/20 bg-amber-200/[0.06] px-3 py-1 text-xs text-amber-100">
-            รอ Manual OAuth / Picker
+            รอเจ้าของบัญชีเชื่อมต่อและเลือกไฟล์
           </span>
         </div>
 
         <div className="mt-5 rounded-2xl border border-dashed border-white/15 bg-black/10 p-4">
           <div className="text-sm font-medium text-white/80">ยังไม่ได้เลือกไฟล์</div>
           <p role="status" className="mt-2 text-sm leading-6 text-white/60">
-            ต้องตั้งค่า Google Picker และให้เจ้าของอนุญาตสิทธิ์ <code>drive.file</code> แบบชั่วคราวก่อน ปุ่มจะยังปิดเพื่อไม่สร้าง client ID, API key หรือ token สมมติ
+            ต้องตั้งค่าตัวเลือกไฟล์ของ Google และให้เจ้าของอนุญาตสิทธิ์เฉพาะไฟล์แบบชั่วคราวก่อน ปุ่มจึงยังปิดอยู่
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button type="button" disabled aria-disabled="true" className="cursor-not-allowed rounded-xl border border-white/10 px-4 py-2 text-sm text-white/40">
               เลือกไฟล์จาก Google Drive
             </button>
             <button type="button" disabled aria-disabled="true" className="cursor-not-allowed rounded-xl border border-white/10 px-4 py-2 text-sm text-white/40">
-              Refresh metadata
+              อัปเดตรายละเอียดไฟล์
             </button>
           </div>
         </div>
@@ -92,14 +92,14 @@ export default function MediaLibraryUatSection() {
               <div><dt className="text-white/55">ชนิดไฟล์</dt><dd className="mt-1 text-white/75">{asset.mimeType}</dd></div>
               <div><dt className="text-white/55">ขนาด</dt><dd className="mt-1 text-white/75">{formatBytes(asset.byteSize)}</dd></div>
               <div><dt className="text-white/55">มิติ</dt><dd className="mt-1 text-white/75">{asset.widthPx} × {asset.heightPx}</dd></div>
-              <div><dt className="text-white/55">สถานะ session</dt><dd className="mt-1 text-white/75">{snapshot.uploadSessions.find((session) => session.assetId === asset.id)?.status ?? "ยังไม่สร้าง"}</dd></div>
+              <div><dt className="text-white/55">สถานะการอัปโหลด</dt><dd className="mt-1 text-white/75">{snapshot.uploadSessions.find((session) => session.assetId === asset.id)?.status ?? "ยังไม่เริ่ม"}</dd></div>
             </dl>
           </article>
         ))}
       </div>
 
       <div role="note" className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/[0.05] p-5 text-sm leading-6 text-amber-50/80">
-        ระบบจะไม่ออก signed upload URL จนกว่าจะเลือก provider, อนุมัติค่าใช้จ่าย, ตั้งค่า UAT secret และผ่าน security review การกดหรือส่งไฟล์จริงยังไม่มีใน Phase 2 foundation นี้
+        ระบบจะไม่สร้างลิงก์อัปโหลดจนกว่าจะเลือกบริการจัดเก็บ อนุมัติค่าใช้จ่าย ตั้งค่ารหัสลับของ UAT และผ่านการตรวจความปลอดภัย รอบนี้ยังไม่มีการส่งไฟล์จริง
       </div>
     </section>
   );

@@ -40,7 +40,7 @@ export default function AdminCapabilityState({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-gold-500">CCPun Control Plane</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-gold-500">ศูนย์จัดการ CCPun</p>
       <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
       <section role="status" className="glass-card mt-6 p-5 md:p-6">
         <p className="text-sm font-semibold text-gold-400">{STATUS_LABELS[status]}</p>

@@ -5,12 +5,12 @@ import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 import { SYNTHETIC_POST_LIVE_REPORT } from "@/lib/admin/social/post-live";
 
-export const metadata: Metadata = { title: "Post-Live Analytics UAT" };
+export const metadata: Metadata = { title: "สถิติย้อนหลังหลังไลฟ์ · UAT" };
 
 const providerStateLabel = {
   available: "มีข้อมูลย้อนหลัง",
   unavailable: "ผู้ให้บริการยังส่งข้อมูลไม่ได้",
-  unsupported: "แพลตฟอร์มยังไม่รองรับ metric นี้",
+  unsupported: "แพลตฟอร์มยังไม่รองรับตัวชี้วัดนี้",
 } as const;
 
 export default async function PostLiveAnalyticsUatPage() {
@@ -21,13 +21,13 @@ export default async function PostLiveAnalyticsUatPage() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">WEBSITE 4.2 · MANUAL POST-LIVE UAT</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · ข้อมูลหลังไลฟ์</p>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold">สถิติย้อนหลังหลัง Live</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านข้อมูลหลัง Live จบเท่านั้น ไม่มี Real-time polling, background sync หรือการเรียก Provider ในรอบนี้</p>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านข้อมูลเมื่อไลฟ์จบแล้วเท่านั้น หน้านี้ไม่ติดตามแบบทันที ไม่ดึงข้อมูลเบื้องหลัง และไม่ติดต่อแพลตฟอร์มจริง</p>
         </div>
-        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
+        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับไปจัดการโพสต์</Link>
       </div>
 
       {report.snapshots.map((snapshot) => (
@@ -37,17 +37,17 @@ export default async function PostLiveAnalyticsUatPage() {
               <div className="text-xs font-semibold uppercase tracking-wide text-[#e0c985]">{snapshot.platform} · {snapshot.collectionMode}</div>
               <h2 className="mt-2 text-xl font-semibold">{providerStateLabel[snapshot.providerState]}</h2>
             </div>
-            <span className="rounded-full bg-amber-200/10 px-3 py-1 text-xs text-amber-100">Real-time ปิด</span>
+            <span className="rounded-full bg-amber-200/10 px-3 py-1 text-xs text-amber-100">ไม่ใช่ข้อมูลทันที</span>
           </div>
           <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
-            <div><dt className="text-white/45">Master Content</dt><dd className="mt-1 text-white/75">{snapshot.masterContentId}</dd></div>
+            <div><dt className="text-white/45">เนื้อหาหลัก</dt><dd className="mt-1 text-white/75">{snapshot.masterContentId}</dd></div>
             <div><dt className="text-white/45">Live จบ</dt><dd className="mt-1 text-white/75">{snapshot.liveEndedAt.slice(0, 16).replace("T", " ")} UTC</dd></div>
             <div><dt className="text-white/45">ข้อมูล ณ</dt><dd className="mt-1 text-white/75">{snapshot.fetchedAt.slice(0, 16).replace("T", " ")} UTC</dd></div>
           </dl>
 
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
             <section>
-              <h3 className="font-semibold">Native metrics จากต้นทาง</h3>
+              <h3 className="font-semibold">ตัวเลขจากแพลตฟอร์มต้นทาง</h3>
               <dl className="mt-3 space-y-3">
                 {snapshot.nativeMetrics.map((metric) => (
                   <div key={metric.key} className="flex items-end justify-between gap-3 border-b border-white/5 pb-3">
@@ -58,7 +58,7 @@ export default async function PostLiveAnalyticsUatPage() {
               </dl>
             </section>
             <section>
-              <h3 className="font-semibold">Normalized metrics สำหรับเทียบภายใน CCPun</h3>
+              <h3 className="font-semibold">ตัวเลขที่จัดรูปแบบเพื่อเปรียบเทียบใน CCPun</h3>
               <dl className="mt-3 space-y-3">
                 {snapshot.normalizedMetrics.map((metric) => (
                   <div key={metric.key} className="flex items-end justify-between gap-3 border-b border-white/5 pb-3">

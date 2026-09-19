@@ -5,7 +5,7 @@ import { getEnvironmentLabel } from "@/lib/admin/environment";
 import { safeAdminReturnPath } from "@/lib/admin/routes";
 
 export const metadata: Metadata = {
-  title: "CCPun Control Plane Login",
+  title: "เข้าสู่ศูนย์จัดการ CCPun",
   robots: { index: false, follow: false, nocache: true },
 };
 
@@ -36,9 +36,9 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
       <div className="mx-auto flex min-h-[70vh] max-w-lg items-center">
         <section className="glass-card w-full p-7 md:p-9">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#e0c985]">{environmentLabel}</p>
-          <h1 className="mt-4 text-3xl font-semibold">เข้าสู่พื้นที่ควบคุม CCPun</h1>
+          <h1 className="mt-4 text-3xl font-semibold">เข้าสู่ศูนย์จัดการ CCPun</h1>
           <p className="mt-3 text-base leading-7 text-white/70">
-            พื้นที่ควบคุมสำหรับตรวจบทความ วิเคราะห์ SEO และให้คุณอนุมัติทุกการเปลี่ยนแปลงด้วยตัวเอง
+            พื้นที่สำหรับดูแลลูกค้า เนื้อหา SEO และงานของระบบ โดยทุกการเปลี่ยนแปลงสำคัญต้องให้ผู้มีสิทธิ์ยืนยัน
           </p>
 
           {params.error ? (

@@ -6,7 +6,7 @@ import { loadSocialWorkspace, type ApprovedVariantApi, type SocialDraftApiItem }
 const platformLabel = { facebook: "Facebook", instagram: "Instagram" } as const;
 const statusLabel: Record<string, string> = {
   drafting: "กำลังร่าง", "content-review": "รอตรวจเนื้อหา", "fact-check": "รอตรวจข้อเท็จจริง",
-  "compliance-review": "รอตรวจ Compliance", "ready-for-coo": "พร้อมให้ COO ตรวจ", approved: "อนุมัติแล้ว",
+  "compliance-review": "รอตรวจข้อกำกับ", "ready-for-coo": "พร้อมให้ผู้อนุมัติตรวจ", approved: "อนุมัติแล้ว",
   queued: "รอส่ง", "native-scheduled": "นัดหมายแล้ว", "awaiting-native-finish": "รอทำต่อในแอป",
   processing: "กำลังดำเนินการ", published: "เผยแพร่แล้ว", failed: "ไม่สำเร็จ", cancelled: "ยกเลิก", superseded: "มีรุ่นใหม่แทน",
 };
@@ -28,12 +28,19 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(value));
 }
 
+function publishingModeLabel(value: string | null | undefined) {
+  if (value === "native-scheduled") return "ตั้งเวลาที่ Meta";
+  if (value === "direct") return "ส่งตรงหลังอนุมัติ";
+  if (value === "native-finish") return "ทำต่อบนมือถือ";
+  return value ?? "ยังไม่กำหนด";
+}
+
 function workspaceNotice(workspace: Workspace | null) {
   if (!workspace) return "กำลังโหลดข้อมูล…";
-  if (workspace.draftError && workspace.publicationError) return "โหลด Drafts และ Publications ไม่สำเร็จ";
-  if (workspace.draftError) return "โหลด Publications ได้ แต่ Drafts ต้องใช้สิทธิ์ Owner หรือ Sanity ยังไม่พร้อม";
-  if (workspace.publicationError) return "โหลด Drafts ได้ แต่ Publications ยังไม่พร้อม";
-  return "ข้อมูลจาก Sanity Drafts และ publication records จริง";
+  if (workspace.draftError && workspace.publicationError) return "โหลดฉบับร่างและสถานะการเผยแพร่ไม่สำเร็จ";
+  if (workspace.draftError) return "อ่านสถานะการเผยแพร่ได้ แต่ยังอ่านฉบับร่างไม่ได้หรือบัญชีนี้ไม่มีสิทธิ์";
+  if (workspace.publicationError) return "อ่านฉบับร่างได้ แต่ยังอ่านสถานะการเผยแพร่ไม่ได้";
+  return "ข้อมูลจริงจากฉบับร่างใน Sanity และรายการเผยแพร่";
 }
 
 export function SocialOverviewSummary() {
@@ -53,16 +60,16 @@ export function SocialOverviewSummary() {
 
   return <>
     <p aria-live="polite" className="mt-4 text-xs text-white/55">{workspaceNotice(workspace)}</p>
-    <section aria-label="สถานะ Social" className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+    <section aria-label="สถานะงานโซเชียล" className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
       {[
-        ["Sanity Drafts", counts.drafts], ["อยู่ระหว่าง Review", counts.review], ["Review approved", counts.approved],
-        ["พร้อม/นัดหมาย", counts.scheduled], ["Mobile handoff", counts.handoff], ["เผยแพร่แล้ว", counts.published],
+        ["ฉบับร่างใน Sanity", counts.drafts], ["อยู่ระหว่างตรวจ", counts.review], ["อนุมัติแล้ว", counts.approved],
+        ["พร้อม/นัดหมาย", counts.scheduled], ["รอทำต่อบนมือถือ", counts.handoff], ["เผยแพร่แล้ว", counts.published],
       ].map(([label, value]) => <article key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-xs text-white/65">{label}</div><div className="mt-2 text-2xl font-semibold">{Number(value).toLocaleString("th-TH")}</div></article>)}
     </section>
     <section className="mt-6 rounded-3xl border border-[#e0c985]/25 bg-[#e0c985]/[0.06] p-5">
-      <p className="text-xs text-white/65">Approved Master Content</p>
+      <p className="text-xs text-white/65">เนื้อหาหลักที่อนุมัติแล้ว</p>
       <div className="mt-2 text-2xl font-semibold text-[#f4df9b]">{workspace ? workspace.masterContentChoices.length.toLocaleString("th-TH") : "—"} รายการ</div>
-      {workspace?.masterContentChoices.length ? <ul className="mt-3 grid gap-2 text-sm text-white/75 sm:grid-cols-2">{workspace.masterContentChoices.slice(0, 4).map((item) => <li key={item.id} className="rounded-xl border border-white/10 px-3 py-2"><div className="font-medium text-white/90">{item.title}</div>{item.summary ? <p className="mt-1 line-clamp-2 text-xs text-white/55">{item.summary}</p> : null}</li>)}</ul> : <p className="mt-2 text-sm text-white/60">ยังไม่มีรายการที่ผ่าน Human Review หรือ Draft API ใช้ไม่ได้</p>}
+      {workspace?.masterContentChoices.length ? <ul className="mt-3 grid gap-2 text-sm text-white/75 sm:grid-cols-2">{workspace.masterContentChoices.slice(0, 4).map((item) => <li key={item.id} className="rounded-xl border border-white/10 px-3 py-2"><div className="font-medium text-white/90">{item.title}</div>{item.summary ? <p className="mt-1 line-clamp-2 text-xs text-white/55">{item.summary}</p> : null}</li>)}</ul> : <p className="mt-2 text-sm text-white/60">ยังไม่มีรายการที่ผู้มีสิทธิ์ตรวจและอนุมัติ หรือระบบฉบับร่างยังไม่พร้อม</p>}
     </section>
   </>;
 }
@@ -91,7 +98,7 @@ export function SocialCalendarDashboard() {
       <p aria-live="polite" className="text-xs text-white/55">{workspaceNotice(workspace)}</p>
       <label className="text-xs text-white/70">แพลตฟอร์ม<select value={platform} onChange={(event) => setPlatform(event.target.value)} className="mt-1 block min-h-11 rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white focus:border-[#e0c985] focus:outline-none"><option value="all">ทั้งหมด</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option></select></label>
     </div>
-    <section className="mt-4 grid gap-4 lg:grid-cols-2" aria-label="รายการ Content Calendar จริง">
+    <section className="mt-4 grid gap-4 lg:grid-cols-2" aria-label="รายการปฏิทินเนื้อหา">
       {items.map((item) => {
         const platformName = item.draft?.channel ?? item.approved?.platform ?? "facebook";
         const reviewStatus = item.draft?.reviewStatus ?? item.approved?.reviewStatus ?? "approved";
@@ -99,15 +106,15 @@ export function SocialCalendarDashboard() {
         return <article key={item.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="text-xs font-semibold text-[#e0c985]">{platformLabel[platformName]} · {item.draft?.format ?? item.approved?.format}</div><h2 className="mt-2 break-words font-semibold">{item.draft?.title ?? item.approved?.title}</h2></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">{statusLabel[publication?.status ?? reviewStatus] ?? publication?.status ?? reviewStatus}</span></div>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-            <div><dt className="text-white/45">Human Review</dt><dd className="mt-1 text-white/75">{statusLabel[reviewStatus] ?? reviewStatus}</dd></div>
-            <div><dt className="text-white/45">Publishing mode</dt><dd className="mt-1 text-white/75">{item.draft?.publishingMode ?? item.approved?.publishingMode}</dd></div>
-            <div><dt className="text-white/45">Scheduled time</dt><dd className="mt-1 text-white/75">{formatDate(publication?.scheduledAt)}</dd></div>
-            <div><dt className="text-white/45">Publication</dt><dd className="mt-1 text-white/75">{publication ? statusLabel[publication.status] ?? publication.status : "ยังไม่มี record"}</dd></div>
+            <div><dt className="text-white/45">การตรวจเนื้อหา</dt><dd className="mt-1 text-white/75">{statusLabel[reviewStatus] ?? reviewStatus}</dd></div>
+            <div><dt className="text-white/45">วิธีส่งโพสต์</dt><dd className="mt-1 text-white/75">{publishingModeLabel(item.draft?.publishingMode ?? item.approved?.publishingMode)}</dd></div>
+            <div><dt className="text-white/45">เวลาที่กำหนด</dt><dd className="mt-1 text-white/75">{formatDate(publication?.scheduledAt)}</dd></div>
+            <div><dt className="text-white/45">สถานะการเผยแพร่</dt><dd className="mt-1 text-white/75">{publication ? statusLabel[publication.status] ?? publication.status : "ยังไม่มีรายการ"}</dd></div>
           </dl>
-          <p className="mt-4 break-all text-xs text-white/45">Variant {item.id} · {item.draft ? "Sanity Draft" : "Approved variant"}</p>
+          <details className="mt-4 break-all text-xs text-white/45"><summary className="cursor-pointer">ดูรายละเอียดสำหรับทีมเทคนิค</summary><p className="mt-1">รหัส {item.id} · {item.draft ? "ฉบับร่างใน Sanity" : "ฉบับที่อนุมัติแล้ว"}</p></details>
         </article>;
       })}
-      {workspace && items.length === 0 ? <p className="rounded-2xl border border-white/10 p-5 text-sm text-white/65">ไม่มี Draft หรือ Publication ตามตัวกรอง</p> : null}
+      {workspace && items.length === 0 ? <p className="rounded-2xl border border-white/10 p-5 text-sm text-white/65">ไม่มีฉบับร่างหรือรายการเผยแพร่ตามตัวกรอง</p> : null}
     </section>
   </div>;
 }

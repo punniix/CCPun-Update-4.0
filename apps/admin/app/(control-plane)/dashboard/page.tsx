@@ -51,42 +51,42 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
       ) : null}
 
       <section className="mt-6 grid gap-3 md:grid-cols-2" aria-labelledby="attention-heading">
-        <h2 id="attention-heading" className="md:col-span-2 text-xl font-semibold">Needs attention</h2>
+        <h2 id="attention-heading" className="md:col-span-2 text-xl font-semibold">สิ่งที่ควรตรวจวันนี้</h2>
         <Link href="/dashboard/reviews/" className="glass-card p-5">
-          <p className="text-sm text-white/60">Review inbox</p>
-          <p className="mt-2 text-xl font-semibold text-gold-400">{pendingReviews == null ? "Unavailable" : pendingReviews === 0 ? "Healthy · 0" : `${pendingReviews} รายการ`}</p>
-          <p className="mt-2 text-sm leading-6 text-white/65">{pendingReviews == null ? "ยังอ่าน source ไม่ได้ ไม่ตีความเป็นศูนย์" : "ข้อเสนอที่รอการตัดสินใจจากผู้มีสิทธิ์"}</p>
+          <p className="text-sm text-white/60">งานรอตรวจ</p>
+          <p className="mt-2 text-xl font-semibold text-gold-400">{pendingReviews == null ? "ยังอ่านไม่ได้" : pendingReviews === 0 ? "ไม่มีงานค้าง" : `${pendingReviews} รายการ`}</p>
+          <p className="mt-2 text-sm leading-6 text-white/65">{pendingReviews == null ? "ระบบยังอ่านรายการไม่ได้ จึงไม่แสดงเป็นศูนย์" : "ข้อเสนอที่รอผู้มีสิทธิ์ตรวจและตัดสินใจ"}</p>
         </Link>
         <Link href="/operations/health/" className="glass-card p-5">
-          <p className="text-sm text-white/60">Control Plane health</p>
-          <p className={`mt-2 text-xl font-semibold ${operations.identityValid ? "text-emerald-200" : "text-amber-200"}`}>{operations.identityValid ? "Healthy" : operations.configured ? "Action required" : "Not configured"}</p>
-          <p className="mt-2 text-sm leading-6 text-white/65">ตรวจ data lane, scheduler และ provider readiness</p>
+          <p className="text-sm text-white/60">ความพร้อมของระบบ</p>
+          <p className={`mt-2 text-xl font-semibold ${operations.identityValid ? "text-emerald-200" : "text-amber-200"}`}>{operations.identityValid ? "พร้อมใช้งาน" : operations.configured ? "ต้องตรวจ" : "ยังตั้งค่าไม่ครบ"}</p>
+          <p className="mt-2 text-sm leading-6 text-white/65">ตรวจแหล่งข้อมูล คิวงาน และการเชื่อมต่อภายนอก</p>
         </Link>
       </section>
 
       <section className="mt-7 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-5 md:p-6" aria-labelledby="safety-heading">
         <h2 id="safety-heading" className="text-lg font-semibold text-[#f4df9b]">ขอบเขตปลอดภัยยังทำงานอยู่</h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-white/70">
-          พื้นที่นี้ทำงานใน <strong className="font-medium text-white">{lane}</strong> เท่านั้น ระบบจะหยุดเองหาก project หรือชุดข้อมูลไม่ตรงกับสภาพแวดล้อมนี้ และจะไม่สลับไปใช้อีกสภาพแวดล้อม
+          พื้นที่นี้ใช้ข้อมูลจาก <strong className="font-medium text-white">{lane}</strong> เท่านั้น หากเชื่อมต่อผิดชุด ระบบจะหยุดและไม่สลับไปใช้ข้อมูลชุดอื่นเอง
         </p>
       </section>
 
       <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สถานะการเชื่อมต่อ">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">ชุดข้อมูล</p><p className="mt-2 text-lg font-semibold">{status.dataset ?? "ยังไม่ได้ตั้งค่า"}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">การอ่านข้อมูล</p><p className="mt-2 text-lg font-semibold">{connectionLabel(status.readReady, "read", status.environment)}</p></article>
-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">แก้บทความใน Studio</p><p className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", status.environment)}</p>{studioReady && !status.writeReady ? <p className="mt-2 text-xs leading-5 text-white/50">ปุ่ม Apply อัตโนมัติยังปิดไว้</p> : null}</article>
+        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">แก้บทความใน Studio</p><p className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", status.environment)}</p>{studioReady && !status.writeReady ? <p className="mt-2 text-xs leading-5 text-white/50">ยังไม่นำข้อเสนอไปแก้ฉบับร่างให้อัตโนมัติ</p> : null}</article>
         <Link href="/operations/health/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">
-          <p className="text-sm text-white/60">Control Plane</p>
+          <p className="text-sm text-white/60">ระบบหลังบ้าน</p>
           <p className={`mt-2 text-lg font-semibold ${operations.identityValid ? "text-emerald-200" : operations.configured ? "text-amber-200" : "text-white/70"}`}>
-            {operations.identityValid ? "พร้อมใช้งาน" : operations.configured ? "ต้องตรวจ identity" : "ยังไม่เปิด private DB"}
+            {operations.identityValid ? "พร้อมใช้งาน" : operations.configured ? "ต้องตรวจการเชื่อมต่อ" : "ยังไม่ได้เชื่อมฐานข้อมูลส่วนตัว"}
           </p>
-          <p className="mt-2 text-xs leading-5 text-white/50">ประวัติ · ข้อเสนอ SEO · Research · System Health</p>
+          <p className="mt-2 text-xs leading-5 text-white/50">ประวัติ · ข้อเสนอ SEO · ข้อมูลประกอบ · สถานะระบบ</p>
         </Link>
       </section>
 
       {!operations.identityValid ? (
         <section className="mt-4 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-4 text-sm leading-6 text-amber-50">
-          ประวัติการทำงาน ข้อเสนอที่รอตรวจ และการบันทึก SEO audit จะทำงานแบบ fail-closed จนกว่า private Control Plane database จะผ่าน identity guard <Link href="/operations/health/" className="font-medium underline underline-offset-4">ดู System Health</Link>
+          ระบบหยุดการอ่านและบันทึกประวัติ ข้อเสนอ และผลตรวจ SEO ไว้ก่อน จนกว่าจะยืนยันได้ว่าเชื่อมต่อฐานข้อมูลส่วนตัวชุดที่ถูกต้อง <Link href="/operations/health/" className="font-medium underline underline-offset-4">ดูสถานะระบบ</Link>
         </section>
       ) : null}
 
@@ -102,10 +102,10 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
       ) : null}
 
       {status.environment === "local-production" && studioReady ? (
-        <section className="mt-6 grid gap-3 md:grid-cols-3" aria-label="เครื่องมือบทความ Production">
-          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">สร้างและแก้บทความ</h2><p className="mt-2 text-sm leading-6 text-white/70">Studio บันทึกทุกการเปลี่ยนแปลงลง Draft เดียวกันอัตโนมัติ</p></article>
-          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">Publish หรือ Schedule</h2><p className="mt-2 text-sm leading-6 text-white/70">เปิดให้เฉพาะคุณกดใน Studio หลังตรวจตัวอย่างแล้ว</p></article>
-          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">Unpublish และ Delete</h2><p className="mt-2 text-sm leading-6 text-white/70">บทความที่เผยแพร่อยู่ต้อง Unpublish ก่อน จึงลบฉบับร่างได้</p></article>
+        <section className="mt-6 grid gap-3 md:grid-cols-3" aria-label="เครื่องมือบทความในระบบจริง">
+          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">สร้างและแก้บทความ</h2><p className="mt-2 text-sm leading-6 text-white/70">Studio บันทึกทุกการเปลี่ยนแปลงไว้ในฉบับร่างเดียวกันอัตโนมัติ</p></article>
+          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">เผยแพร่หรือตั้งเวลา</h2><p className="mt-2 text-sm leading-6 text-white/70">เปิดให้เฉพาะคุณกดใน Studio หลังตรวจตัวอย่างแล้ว</p></article>
+          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">ยกเลิกการเผยแพร่หรือลบ</h2><p className="mt-2 text-sm leading-6 text-white/70">บทความที่เผยแพร่อยู่ต้องยกเลิกการเผยแพร่ก่อน จึงลบฉบับร่างได้</p></article>
         </section>
       ) : null}
 
@@ -142,7 +142,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
 
       <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-6 text-white/70">
         <h2 className="font-semibold text-white">สิ่งที่ระบบจะไม่ทำแทนคุณ</h2>
-        <p className="mt-2">AI ช่วยค้นคว้า วิเคราะห์ และสร้างข้อเสนอได้ แต่ไม่สามารถอนุมัติ เผยแพร่ ลบ หรือเปลี่ยน Production ได้</p>
+        <p className="mt-2">AI ช่วยค้นคว้า วิเคราะห์ และสร้างข้อเสนอได้ แต่ไม่สามารถอนุมัติ เผยแพร่ ลบ หรือเปลี่ยนระบบจริงได้</p>
       </section>
     </div>
   );

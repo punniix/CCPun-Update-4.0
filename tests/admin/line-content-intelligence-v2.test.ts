@@ -168,8 +168,8 @@ test("Admin conversion surface consumes aggregate v2 and does not expose Safe Kn
   assert.match(service, /admin_read_content_revenue_by_currency/);
   assert.match(service, /admin_read_safe_question_frequency/);
   assert.match(service, /admin_read_content_gap_inputs/);
-  assert.match(page, /Content gap signals/);
-  assert.match(page, /Approved question frequency/);
-  assert.match(page, /suppress \(<3 records\)/);
+  assert.match(page, /หัวข้อเนื้อหาที่ยังขาด/);
+  assert.match(page, /คำถามที่ลูกค้าถามบ่อย/);
+  assert.match(page, /ซ่อนยอดเพราะมีข้อมูลน้อยกว่า 3 รายการ/);
   assert.doesNotMatch(page, /providerMessageId|externalFileId|externalFolderId|customerCode|messageText|ciphertext|lineUserId/);
 });

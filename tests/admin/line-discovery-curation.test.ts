@@ -95,10 +95,10 @@ test("Admin curation UI supports desktop drag and mobile-accessible reorder cont
   assert.match(source, /onDragStart/);
   assert.match(source, /↑ ขึ้น/);
   assert.match(source, /↓ ลง/);
-  assert.match(source, /Active/);
+  assert.match(source, /เปิดใช้/);
   assert.match(source, /แสดงสูงสุด/);
   assert.match(source, /บันทึกแล้ว · LINE จะใช้ลำดับนี้กับการกดครั้งถัดไป/);
-  assert.match(source, /Preview นี้ใช้ข้อมูลเดียวกับ Article Card/);
+  assert.match(source, /ตัวอย่างนี้ใช้ข้อมูลเดียวกับการ์ดบทความจริง/);
 });
 
 test("Integrations owns the curation surface and Sanity schema is registered", () => {

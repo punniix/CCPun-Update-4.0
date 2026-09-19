@@ -15,7 +15,7 @@ function isPathWithin(pathname: string, href: string) {
 
 function contextualItems(item: NavigationItem): NavigationChild[] {
   const children = item.children ?? [];
-  return [{ href: item.href, label: "Overview" }, ...children.filter((child) => child.href !== item.href)];
+  return [{ href: item.href, label: "ภาพรวม" }, ...children.filter((child) => child.href !== item.href)];
 }
 
 function PrimaryModules({ items, pathname }: { items: NavigationItem[]; pathname: string }) {
@@ -54,11 +54,11 @@ function ContextNavigation({ item, pathname, onNavigate }: {
     <div
       id={`admin-context-${item.label.toLowerCase()}`}
       className="mt-5 border-t border-white/10 pt-4"
-      aria-label={`${item.label} section navigation`}
+      aria-label={`เมนูย่อย ${item.label}`}
     >
       <div className="mb-2 flex items-center justify-between px-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">{item.label}</p>
-        <span className="text-[10px] text-[#e0c985]/70">Section</span>
+        <span className="text-[10px] text-[#e0c985]/70">หมวด</span>
       </div>
       <div role="list" className="flex flex-col gap-1">
         {links.map((child) => {
@@ -113,14 +113,14 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
         className="inline-flex min-h-11 w-full touch-manipulation items-center justify-between rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white transition motion-reduce:transition-none hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-[#e0c985] lg:hidden"
         onClick={() => dialogRef.current?.showModal()}
       >
-        เมนู Control Plane
+        เมนูศูนย์จัดการ
         <span aria-hidden="true">☰</span>
       </button>
 
       <dialog
         id="admin-mobile-navigation"
         ref={dialogRef}
-        aria-label="เมนู Control Plane"
+        aria-label="เมนูศูนย์จัดการ CCPun"
         className="m-0 h-dvh max-h-none w-[min(92vw,22rem)] max-w-none bg-navy-800 p-0 text-white shadow-2xl backdrop:bg-black/70 lg:hidden"
         onClose={() => setMobileGroupHref(null)}
         onClick={(event) => {
@@ -140,8 +140,8 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
               </button>
             ) : null}
             <div className="min-w-0">
-              <strong className="block truncate text-sm text-[#f4df9b]">{mobileGroup?.label ?? "CCPun Control Plane"}</strong>
-              {mobileGroup ? <span className="text-[11px] text-white/45">Section navigation</span> : null}
+              <strong className="block truncate text-sm text-[#f4df9b]">{mobileGroup?.label ?? "ศูนย์จัดการ CCPun"}</strong>
+              {mobileGroup ? <span className="text-[11px] text-white/45">เมนูในส่วนนี้</span> : null}
             </div>
           </div>
           <button
