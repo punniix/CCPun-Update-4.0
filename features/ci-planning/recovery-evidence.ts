@@ -25,6 +25,12 @@ export const CI_RECOVERY_EVIDENCE_YEAR_FLOOR = 2023;
  * They are not medical recommendations or guaranteed market prices.
  */
 export const CI_RECOVERY_REFERENCE = {
+  legacyResearch: {
+    treatmentVisitTotal: 2_578,
+    caregiverLostIncomePerDay: 141,
+    rehabilitationPerSession: 450,
+    homeRehabAddOnPerSession: 200,
+  },
   treatmentVisit: {
     planningPerVisit: 3_000,
     observedStudyTotal: 2_578,
