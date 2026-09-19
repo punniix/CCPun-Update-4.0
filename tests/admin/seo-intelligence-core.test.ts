@@ -284,7 +284,7 @@ test("GSC manual sync is human-only, exact-origin, bounded and read-only", () =>
   assert.match(control, /type="date"/);
   assert.match(control, /กำลังดึงข้อมูล/);
   assert.match(control, /role="alert"/);
-  assert.match(control, /ไม่บันทึกลงฐานข้อมูลหรือ Sanity/);
+  assert.match(control, /ไม่เก็บสำเนาถาวร/);
   assert.match(control, /ดึงข้อมูลล่าสุดเมื่อ/);
   assert.match(control, /result\.current\.clicks/);
   assert.match(control, /result\.comparison\?\.clicks/);
@@ -362,7 +362,7 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   assert.doesNotMatch(route, /createClient|sanity|mutate|publish|console\./i);
   assert.match(control, /type="date"/);
   assert.match(control, /ผู้เข้าชมจากผลค้นหา/);
-  assert.match(control, /ไม่บันทึกลงฐานข้อมูลหรือ Sanity/);
+  assert.match(control, /ไม่เก็บสำเนาถาวร/);
   assert.match(control, /ดึงข้อมูลล่าสุดเมื่อ/);
   assert.match(control, /result\.current\.sessions/);
   assert.match(control, /result\.comparison\?\.sessions/);

@@ -175,7 +175,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
       setSource("stored");
       setMessage("บันทึกแล้ว · LINE จะใช้ลำดับนี้กับการกดครั้งถัดไป");
     } catch {
-      setMessage("ยังบันทึกไม่ได้ กรุณาตรวจ Sanity write readiness แล้วลองใหม่");
+      setMessage("ยังบันทึกไม่ได้ กรุณาตรวจว่าพื้นที่เก็บเนื้อหาพร้อมใช้งาน แล้วลองใหม่");
     } finally {
       setBusy(null);
     }
@@ -193,7 +193,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
         </div>
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/60">
-            {source === "stored" ? "ใช้ค่าที่บันทึกใน Sanity" : "ใช้ค่าเริ่มต้นจากระบบ"}
+            {source === "stored" ? "ใช้ค่าที่บันทึกไว้" : "ใช้ค่าเริ่มต้นจากระบบ"}
           </span>
           <span className={`rounded-full border px-3 py-1.5 text-xs ${
             writeReady
@@ -365,7 +365,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
         <aside className="min-w-0 rounded-2xl border border-white/10 bg-[#251818] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">PREVIEW</p>
+              <p className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">ตัวอย่างก่อนใช้จริง</p>
               <h3 className="mt-1 text-base font-semibold text-white/85">การ์ดบทความใน LINE</h3>
             </div>
             <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/45">

@@ -136,7 +136,7 @@ export default function SocialMediaMetadataPanel() {
           <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">รายละเอียดสื่อ</p>
           <h2 id="social-media-metadata-title" className="mt-2 text-xl font-semibold">คำอธิบายภาพและภาพหน้าปกวิดีโอ</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
-            แก้รายละเอียดบนฉบับร่างเดิมใน Sanity เท่านั้น เมื่อบันทึก ระบบจะสร้างฉบับแก้ไขใหม่และให้ตรวจอีกครั้ง จึงเปลี่ยนสื่อหลังอนุมัติโดยไม่แจ้งไม่ได้
+            แก้รายละเอียดบนฉบับร่างเดิมเท่านั้น เมื่อบันทึก ระบบจะสร้างฉบับแก้ไขใหม่และให้ตรวจอีกครั้ง จึงเปลี่ยนสื่อหลังอนุมัติโดยไม่แจ้งไม่ได้
           </p>
         </div>
         <span className="text-xs text-white/40">เวลาภาพหน้าปกใช้หน่วยวินาที</span>

@@ -40,7 +40,7 @@ function workspaceNotice(workspace: Workspace | null) {
   if (workspace.draftError && workspace.publicationError) return "โหลดฉบับร่างและสถานะการเผยแพร่ไม่สำเร็จ";
   if (workspace.draftError) return "อ่านสถานะการเผยแพร่ได้ แต่ยังอ่านฉบับร่างไม่ได้หรือบัญชีนี้ไม่มีสิทธิ์";
   if (workspace.publicationError) return "อ่านฉบับร่างได้ แต่ยังอ่านสถานะการเผยแพร่ไม่ได้";
-  return "ข้อมูลจริงจากฉบับร่างใน Sanity และรายการเผยแพร่";
+  return "ข้อมูลจริงจากฉบับร่างและรายการเผยแพร่";
 }
 
 export function SocialOverviewSummary() {
@@ -62,7 +62,7 @@ export function SocialOverviewSummary() {
     <p aria-live="polite" className="mt-4 text-xs text-white/55">{workspaceNotice(workspace)}</p>
     <section aria-label="สถานะงานโซเชียล" className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
       {[
-        ["ฉบับร่างใน Sanity", counts.drafts], ["อยู่ระหว่างตรวจ", counts.review], ["อนุมัติแล้ว", counts.approved],
+        ["ฉบับร่าง", counts.drafts], ["อยู่ระหว่างตรวจ", counts.review], ["อนุมัติแล้ว", counts.approved],
         ["พร้อม/นัดหมาย", counts.scheduled], ["รอทำต่อบนมือถือ", counts.handoff], ["เผยแพร่แล้ว", counts.published],
       ].map(([label, value]) => <article key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-xs text-white/65">{label}</div><div className="mt-2 text-2xl font-semibold">{Number(value).toLocaleString("th-TH")}</div></article>)}
     </section>
@@ -111,7 +111,7 @@ export function SocialCalendarDashboard() {
             <div><dt className="text-white/45">เวลาที่กำหนด</dt><dd className="mt-1 text-white/75">{formatDate(publication?.scheduledAt)}</dd></div>
             <div><dt className="text-white/45">สถานะการเผยแพร่</dt><dd className="mt-1 text-white/75">{publication ? statusLabel[publication.status] ?? publication.status : "ยังไม่มีรายการ"}</dd></div>
           </dl>
-          <details className="mt-4 break-all text-xs text-white/45"><summary className="cursor-pointer">ดูรายละเอียดสำหรับทีมเทคนิค</summary><p className="mt-1">รหัส {item.id} · {item.draft ? "ฉบับร่างใน Sanity" : "ฉบับที่อนุมัติแล้ว"}</p></details>
+          <details className="mt-4 break-all text-xs text-white/45"><summary className="cursor-pointer">ดูรายละเอียดสำหรับทีมเทคนิค</summary><p className="mt-1">รหัส {item.id} · {item.draft ? "ฉบับร่าง" : "ฉบับที่อนุมัติแล้ว"}</p></details>
         </article>;
       })}
       {workspace && items.length === 0 ? <p className="rounded-2xl border border-white/10 p-5 text-sm text-white/65">ไม่มีฉบับร่างหรือรายการเผยแพร่ตามตัวกรอง</p> : null}

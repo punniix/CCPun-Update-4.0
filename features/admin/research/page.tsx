@@ -76,7 +76,7 @@ export default async function AdminResearchPage({
       connected: snapshotReady,
       mode: "sanity-snapshot",
       detail: snapshotReady
-        ? "ระบบจริงอ่านข้อมูลคำค้นและการมองเห็นที่เตรียมไว้จาก Sanity โดยไม่เก็บสิทธิ์เชื่อมต่อ Ubersuggest ไว้บนเว็บ"
+        ? "ระบบจริงอ่านผลคำค้นและการมองเห็นที่เตรียมไว้ โดยไม่เก็บสิทธิ์เชื่อมต่อ Ubersuggest ไว้บนเว็บ"
         : "ระบบจริงยังไม่มีข้อมูล Ubersuggest รอบล่าสุด กรุณาดึงข้อมูลจากเครื่องภายในที่เชื่อมต่อไว้ก่อน",
     };
   });
@@ -219,7 +219,7 @@ export default async function AdminResearchPage({
 
         {!localProviderLane ? (
           <p className="mt-4 rounded-xl border border-sky-200/10 bg-black/10 p-3 text-sm leading-6 text-sky-100/75">
-            หน้านี้อ่านข้อมูลที่บันทึกไว้ใน Sanity เท่านั้น การดึงข้อมูลใหม่ทำจากเครื่องภายในที่เชื่อม Ubersuggest แล้ว เพื่อไม่เก็บสิทธิ์ระยะยาวไว้บนเว็บ
+            หน้านี้อ่านเฉพาะผลที่บันทึกไว้ การดึงข้อมูลใหม่ทำจากเครื่องภายในที่เชื่อม Ubersuggest แล้ว เพื่อไม่เก็บสิทธิ์ระยะยาวไว้บนเว็บ
           </p>
         ) : null}
 

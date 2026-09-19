@@ -23,7 +23,7 @@ const errorMessage: Record<string, string> = {
   "provider-rate-limited": "GA4 จำกัดการเรียก กรุณารอแล้วลองใหม่",
   "provider-timeout": "GA4 ตอบช้าเกินกำหนด กรุณาลองใหม่",
   "provider-invalid-response": "ข้อมูลจาก GA4 ไม่อยู่ในรูปแบบที่รองรับ",
-  "sync-in-progress": "มีการ Sync อยู่แล้ว กรุณารอให้เสร็จ",
+  "sync-in-progress": "มีการดึงข้อมูลอยู่แล้ว กรุณารอให้เสร็จ",
 };
 
 function fetchedLabel(value: string) {
@@ -50,7 +50,7 @@ function pointDelta(current: number, previous: number | null) {
 function nextCheck(row: Ga4DashboardRow) {
   if (!row.previous) return "ควรตรวจว่าเนื้อหาตรงกับสิ่งที่ผู้ค้นหาต้องการ และหน้าใช้งานสะดวกหรือไม่";
   if (row.current.sessions > row.previous.sessions && row.current.engagementRate < row.previous.engagementRate) return "ผู้เข้าชมเพิ่มแต่มีส่วนร่วมน้อยลง ควรตรวจความตรงกับสิ่งที่ค้นหา ความเร็ว และคำชวนให้ทำต่อ";
-  if (row.current.sessions < row.previous.sessions) return "ควรตรวจ query ต้นทาง, อันดับ และการเปลี่ยนแปลงของหน้านี้";
+  if (row.current.sessions < row.previous.sessions) return "ควรตรวจคำค้นต้นทาง อันดับ และการเปลี่ยนแปลงของหน้านี้";
   return "ควรตรวจว่าการเติบโตมาจากเนื้อหาหรือกลุ่มคำค้นใด";
 }
 
@@ -78,7 +78,7 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
       if (!response.ok) {
         setMessage(payload?.error === "provider-not-connected"
           ? `ยังไม่ได้เชื่อม GA4 สำหรับ ${laneLabel}`
-          : errorMessage[payload?.error] ?? "Sync ไม่สำเร็จและไม่มีข้อมูลใดถูกบันทึก");
+          : errorMessage[payload?.error] ?? "ดึงข้อมูลไม่สำเร็จและไม่มีข้อมูลใดถูกบันทึก");
         setState("error");
         return;
       }
@@ -95,7 +95,7 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 id="ga4-title" className="text-xl font-semibold">GA4 · ผู้เข้าชมจากผลค้นหา</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">ดูคุณภาพการเข้าชมจากผลค้นหาโดยไม่ดึงข้อมูลส่วนบุคคล ไม่บันทึกลงฐานข้อมูลหรือ Sanity และไม่แก้การตั้งค่า Analytics</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">ดูคุณภาพการเข้าชมจากผลค้นหาโดยไม่ดึงข้อมูลส่วนบุคคล ไม่เก็บสำเนาถาวร และไม่แก้การตั้งค่าการวัดผล</p>
           {result ? <p className="mt-2 text-xs leading-5 text-white/45">ดึงข้อมูลล่าสุดเมื่อ {fetchedLabel(result.fetchedAt)} · ช่วง {rangeLabel(result.dateRange)} · เทียบ {rangeLabel(result.comparisonRange)}{result.timeZone ? ` · เขตเวลาข้อมูล ${result.timeZone}` : ""}</p> : null}
         </div>
         <div className="grid w-full min-w-0 grid-cols-2 items-end gap-3 lg:w-auto">

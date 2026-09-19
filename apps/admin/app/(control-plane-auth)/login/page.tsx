@@ -63,7 +63,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
           )}
 
           <p className="mt-6 text-sm leading-6 text-white/60">
-            แม้เข้า Vercel หรือ Sanity ได้ บัญชีของคุณยังต้องอยู่ในรายชื่อผู้ใช้ของ CCPun เพื่อเปิดพื้นที่นี้
+            บัญชีของคุณต้องได้รับสิทธิ์จาก CCPun ก่อน จึงจะเปิดพื้นที่นี้ได้
           </p>
         </section>
       </div>

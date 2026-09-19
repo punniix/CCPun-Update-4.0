@@ -38,7 +38,7 @@ export default async function SocialCalendarPage() {
 
       {unavailable ? (
         <section role="status" className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/[0.05] px-4 py-3 text-sm leading-6 text-amber-50/85">
-          ตอนนี้ยังอ่านปฏิทินจากคิวจริงไม่ได้ ระบบจึงไม่ใช้ข้อมูลจาก Sanity มาเดาสถานะแทน
+          ตอนนี้ยังอ่านปฏิทินจากรายการส่งจริงไม่ได้ ระบบจึงไม่ใช้ฉบับร่างมาเดาสถานะแทน
         </section>
       ) : <SocialOperationalCalendar initialItems={items} />}
     </div>

@@ -22,7 +22,7 @@ export default async function SocialPostsPage() {
         <div>
           <h1 className="text-3xl font-semibold">โพสต์และฉบับร่าง</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            สร้างและแก้ฉบับร่างใน Sanity พร้อมดูสถานะการส่งในหน้าเดียว การบันทึกฉบับร่างไม่ถือเป็นการอนุมัติและไม่ส่งโพสต์ออกไป
+            สร้างและแก้ฉบับร่าง พร้อมดูสถานะการส่งในหน้าเดียว การบันทึกฉบับร่างไม่ถือเป็นการอนุมัติและไม่ส่งโพสต์ออกไป
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

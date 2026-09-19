@@ -267,24 +267,24 @@ export function isProductionEnvironment(environment = getAdminEnvironment()): bo
 export function getEnvironmentLabel(environment = getAdminEnvironment()): string {
   switch (environment) {
     case "development":
-      return "LOCAL DEVELOPMENT";
+      return "เครื่องนี้ · สำหรับพัฒนา";
     case "web-uat":
-      return "WEB UAT";
+      return "เว็บไซต์ทดสอบ";
     case "local-uat":
-      return "LOCAL UAT";
+      return "เครื่องนี้ · พื้นที่ทดสอบ";
     case "local-production":
-      return "LOCAL PRODUCTION DRAFT";
+      return "เครื่องนี้ · ฉบับร่างระบบจริง";
     case "lab":
-      return "LEGACY LAB — DISABLED";
+      return "พื้นที่เดิม · ปิดใช้งาน";
     case "uat":
-      return "LEGACY UAT — DISABLED";
+      return "พื้นที่ทดสอบเดิม · ปิดใช้งาน";
     case "admin-uat":
-      return "ADMIN UAT";
+      return "ศูนย์จัดการ · พื้นที่ทดสอบ";
     case "production-admin":
-      return "PRODUCTION ADMIN";
+      return "ศูนย์จัดการ · ระบบจริง";
     case "production":
-      return "PRODUCTION";
+      return "ระบบจริง";
     default:
-      return "ENVIRONMENT UNKNOWN";
+      return "ยังระบุพื้นที่ไม่ได้";
   }
 }

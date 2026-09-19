@@ -159,7 +159,7 @@ function itemFromDraft(draft: SocialDraftApiItem, approved?: ApprovedVariantApi)
     scheduledAt: toLocalDateTime(approved?.publication?.scheduledAt ?? null), caption: draft.caption, linkUrl: draft.linkUrl ?? "",
     mediaAssetId: primaryAsset(draft.mediaReferences)?.assetId ?? "", mediaReferences: draft.mediaReferences,
     commentSeriesMode: draft.commentSeriesMode, commentSeries: draft.commentSeries,
-    planReason: approved?.publication?.executionTarget ? "เตรียมวิธีส่งโพสต์ไว้แล้ว" : "ฉบับร่างใน Sanity · เมื่อแก้ไขจะเป็นฉบับใหม่และต้องอนุมัติอีกครั้ง",
+    planReason: approved?.publication?.executionTarget ? "เตรียมวิธีส่งโพสต์ไว้แล้ว" : "เมื่อแก้ไขฉบับร่าง จะต้องตรวจและอนุมัติอีกครั้ง",
     source: "draft-api", approvalRecorded: Boolean(approved?.publication),
     publicationId: approved?.publication?.publicationId ?? null,
     publicationJobVersion: approved?.publication?.jobVersion ?? null,
@@ -172,7 +172,7 @@ function emptyDraft(masterContentId = ""): SocialPostWorkspaceItem {
     format: "text-post", publishingMode: "native-scheduled", reviewStatus: "drafting", publicationStatus: null,
     scheduledAt: "", caption: "", linkUrl: "", mediaAssetId: "", mediaReferences: [],
     commentSeriesMode: "threaded", commentSeries: [],
-    planReason: "ชิ้นงานใหม่จะถูกบันทึกเป็นฉบับร่างใน Sanity", source: "new", approvalRecorded: false,
+    planReason: "ชิ้นงานใหม่จะถูกบันทึกเป็นฉบับร่าง", source: "new", approvalRecorded: false,
     publicationId: null, publicationJobVersion: null,
   };
 }
@@ -451,7 +451,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
         const errors: Record<string, string> = {
           "revision-conflict": "ฉบับร่างเปลี่ยนหลังจากเปิดหน้านี้ ระบบจึงไม่เขียนทับ กรุณาโหลดใหม่แล้วตรวจอีกครั้ง",
           "master-content-not-approved": "เนื้อหาหลักนี้ยังไม่ผ่านการตรวจ จึงสร้างฉบับร่างไม่ได้",
-          "sanity-write-not-configured": "ยังบันทึกข้อมูลลง Sanity ไม่ได้", forbidden: "เฉพาะเจ้าของระบบเท่านั้นที่สร้างหรือแก้ฉบับร่างโซเชียลได้",
+          "sanity-write-not-configured": "พื้นที่เก็บฉบับร่างยังไม่พร้อม", forbidden: "เฉพาะเจ้าของระบบเท่านั้นที่สร้างหรือแก้ฉบับร่างโซเชียลได้",
           "invalid-request": "ข้อมูลยังไม่ครบ กรุณาตรวจแพลตฟอร์ม วิธีส่งโพสต์ และลิงก์ปลายทาง",
         };
         setNotice(errors[payload?.error] ?? "บันทึกฉบับร่างไม่สำเร็จ และระบบไม่ได้เปลี่ยนข้อมูล"); return;
@@ -478,7 +478,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
         const errors: Record<string, string> = {
           "revision-conflict": "เนื้อหาเปลี่ยนหลังจากเปิดหน้านี้ กรุณาโหลดข้อมูลใหม่แล้วตรวจอีกครั้ง",
           "variant-not-approved-or-unsupported": "ชิ้นงานยังไม่ผ่านการตรวจ หรือรูปแบบนี้ยังไม่รองรับ",
-          "database-not-ready": "ฐานข้อมูลยังไม่พร้อมรับการอนุมัติ", "sanity-read-not-configured": "ยังอ่านฉบับล่าสุดจาก Sanity ไม่ได้",
+          "database-not-ready": "ฐานข้อมูลยังไม่พร้อมรับการอนุมัติ", "sanity-read-not-configured": "ยังอ่านฉบับล่าสุดไม่ได้",
           forbidden: "บัญชีนี้ไม่มีสิทธิ์อนุมัติ",
         };
         setNotice(errors[payload?.error] ?? "อนุมัติไม่สำเร็จและไม่มีการส่งโพสต์"); return;
@@ -553,7 +553,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 id="social-post-list-title" className="text-xl font-semibold">โพสต์และฉบับร่าง</h2>
-            <p className="mt-1 text-sm text-white/65">ฉบับร่างใน Sanity และสถานะการส่งล่าสุด</p>
+            <p className="mt-1 text-sm text-white/65">ฉบับร่างและสถานะการส่งล่าสุด</p>
             <p aria-live="polite" className="mt-1 text-xs text-white/55">ฉบับร่าง: {draftApiState === "loading" ? "กำลังโหลด" : draftApiState === "ready" ? "พร้อมบันทึก" : "โหลดไม่ได้/ไม่มีสิทธิ์"}{" · "}การส่งโพสต์: {publicationApiState === "loading" ? "กำลังโหลด" : publicationApiState === "ready" ? "พร้อมอ่าน" : "โหลดไม่ได้"}</p>
           </div>
           <button type="button" onClick={startNewDraft} disabled={draftApiState !== "ready" || masterChoices.length === 0} className="min-h-11 rounded-xl bg-[#e0c985] px-4 py-2.5 text-sm font-semibold text-[#17191d] hover:bg-[#ecd99b] focus:outline-none focus:ring-2 focus:ring-[#f4df9b] disabled:cursor-not-allowed disabled:opacity-40">สร้างฉบับร่างใหม่</button>
@@ -568,7 +568,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
             const selected = item.id === selectedId;
             return <button key={item.id} type="button" onClick={() => selectItem(item)} aria-pressed={selected} className={`w-full rounded-2xl border p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#e0c985] focus:ring-offset-2 focus:ring-offset-[#11151a] ${selected ? "border-[#e0c985]/60 bg-[#e0c985]/[0.08]" : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.05]"}`}>
               <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="text-xs font-semibold text-[#f4df9b]">{platformLabel[item.platform]} · {formatLabel[item.format] ?? item.format}</div><h3 className="mt-1 break-words font-semibold text-white/95">{item.title}</h3></div><span className="shrink-0 rounded-full border border-white/15 px-2.5 py-1 text-xs text-white/80">{statusLabel[displayStatus(item)] ?? displayStatus(item)}</span></div>
-              <p className="mt-2 text-xs text-white/50">{item.source === "draft-api" ? "ฉบับร่างใน Sanity" : "ฉบับที่อนุมัติแล้ว · ดูได้อย่างเดียว"}</p>
+              <p className="mt-2 text-xs text-white/50">{item.source === "draft-api" ? "ฉบับร่าง" : "ฉบับที่อนุมัติแล้ว · ดูได้อย่างเดียว"}</p>
               <dl className="mt-3 grid gap-2 text-xs text-white/70 sm:grid-cols-2"><div><dt className="text-white/55">วันและเวลา</dt><dd className="mt-0.5">{formatScheduledAt(item.scheduledAt)}</dd></div><div><dt className="text-white/55">สื่อ</dt><dd className="mt-0.5 break-all">{asset?.filename ?? "ยังไม่ได้เลือกสื่อ"}</dd></div></dl>
               <p className="mt-3 line-clamp-2 text-sm leading-6 text-white/70">{item.caption || "ยังไม่มีแคปชันในข้อมูลชุดนี้"}</p>{facebookScheduleState(item) ? <p className="mt-2 text-xs font-medium text-amber-100">Facebook: {facebookScheduleState(item)}</p> : null}
             </button>;
@@ -578,7 +578,7 @@ export default function SocialPostsWorkspace({ approvalEnabled }: { approvalEnab
       </section>
 
       <section aria-labelledby="social-post-editor-title" className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.035] p-5 xl:sticky xl:top-5 xl:self-start">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">ฉบับร่างใน SANITY</p><h2 id="social-post-editor-title" className="mt-1 text-xl font-semibold">{form.source === "new" ? "สร้างโพสต์" : "รายละเอียดโพสต์"}</h2></div><span className={`rounded-full border px-3 py-1 text-xs ${editorEnabled ? "border-emerald-200/25 bg-emerald-200/[0.06] text-emerald-100" : "border-white/15 text-white/60"}`}>{editorEnabled ? "บันทึกฉบับร่างได้" : "อ่านอย่างเดียว"}</span></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">ฉบับร่างสำหรับโซเชียล</p><h2 id="social-post-editor-title" className="mt-1 text-xl font-semibold">{form.source === "new" ? "สร้างโพสต์" : "รายละเอียดโพสต์"}</h2></div><span className={`rounded-full border px-3 py-1 text-xs ${editorEnabled ? "border-emerald-200/25 bg-emerald-200/[0.06] text-emerald-100" : "border-white/15 text-white/60"}`}>{editorEnabled ? "บันทึกฉบับร่างได้" : "อ่านอย่างเดียว"}</span></div>
         <form onSubmit={saveDraft} className="mt-5 space-y-4">
           <label className="block text-sm text-white/75">เนื้อหาหลักที่อนุมัติแล้ว<select required disabled={!editorEnabled} value={form.masterContentId} onChange={(event) => update("masterContentId", event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-white/15 bg-[#151a20] px-3 text-white focus:border-[#e0c985] focus:outline-none disabled:opacity-60"><option value="">เลือกเนื้อหาหลัก</option>{masterChoices.map((choice) => <option key={choice.id} value={choice.id}>{choice.title}</option>)}</select></label>
           <label className="block text-sm text-white/75">ชื่อชิ้นงาน<input required disabled={!editorEnabled} value={form.title} onChange={(event) => update("title", event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-white/15 bg-black/20 px-3 text-white focus:border-[#e0c985] focus:outline-none disabled:opacity-60" /></label>
