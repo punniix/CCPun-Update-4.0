@@ -115,7 +115,7 @@ test("bot always hands off personalized, suitability, recommendation, quote and 
 });
 
 test("Rich Menu and Quick Reply contracts contain only the locked discovery journeys", () => {
-  assert.deepEqual(LINE_RICH_MENU_ITEMS.map((item) => item.label), ["หาเรื่องอ่าน", "เครื่องมือ", "ประกัน", "ลงทุน", "รถ", "คุยกับปัน"]);
+  assert.deepEqual(LINE_RICH_MENU_ITEMS.map((item) => item.label), ["เรื่องน่ารู้", "ลองเช็ก", "ประกันชีวิต", "เรื่องลงทุน", "ประกันรถ", "คุยกับปั้น"]);
   assert.ok(LINE_QUICK_REPLIES.some((item) => item.journey === "motor_quote_review"));
   assert.ok(LINE_QUICK_REPLIES.some((item) => item.journey === "life_health_policy_review"));
   assert.ok(LINE_QUICK_REPLIES.some((item) => item.journey === "investment_before_you_act"));
