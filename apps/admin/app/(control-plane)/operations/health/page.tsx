@@ -18,9 +18,11 @@ import {
   readLineDocumentMediaHealth,
 } from "@/lib/admin/line/document-media";
 import { getLineMediaProviderReadiness } from "@/lib/admin/line/media-provider";
+import { getLineSystemDeliveryProviderReadiness } from "@/lib/admin/line/provider";
 import { lineRetentionModeLabel, lineTechnicalStateLabel } from "@/lib/admin/line/presentation";
 import { readLineArchiveHealth } from "@/lib/admin/line/conversation-archive";
 import { readDefaultLineRichMenuStatus } from "@/lib/admin/line/rich-menu-provider";
+import { readLineSystemDeliveryDatabaseReadiness } from "@/lib/admin/line/control-plane";
 
 export const metadata: Metadata = { title: "สถานะระบบ" };
 
@@ -66,7 +68,16 @@ export default async function AdminHealthPage() {
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
-  const [lineKeyRotation, lineOperations, lineDocumentMedia, lineDelivery, privacySafety, lineArchive, lineRichMenu] = await Promise.all([
+  const [
+    lineKeyRotation,
+    lineOperations,
+    lineDocumentMedia,
+    lineDelivery,
+    privacySafety,
+    lineArchive,
+    lineRichMenu,
+    lineSystemDeliveryDatabase,
+  ] = await Promise.all([
     readLineKeyRotationStatus(),
     readLineOperationsHealth(),
     readLineDocumentMediaHealth(),
@@ -74,9 +85,11 @@ export default async function AdminHealthPage() {
     readPrivacySafetyHealth(),
     readLineArchiveHealth(),
     readDefaultLineRichMenuStatus(),
+    readLineSystemDeliveryDatabaseReadiness(),
   ]);
   const lineProviderActivation = getLineProviderActivationReadiness();
   const lineMediaProvider = getLineMediaProviderReadiness();
+  const lineSystemDeliveryProvider = getLineSystemDeliveryProviderReadiness();
 
   const vercelEnvironment = process.env.VERCEL_ENV ?? "—";
   const gitBranch = process.env.VERCEL_GIT_COMMIT_REF ?? "—";
@@ -145,7 +158,20 @@ export default async function AdminHealthPage() {
       <div className="mt-7">
         <LineProviderActivationActions
           richMenuState={lineRichMenu.state}
-          richMenuReady={lineProviderActivation.channelTokenPresent && lineProviderActivation.richMenuWriteGateEnabled}
+          richMenuReady={
+            lineProviderActivation.channelTokenPresent
+            && lineProviderActivation.richMenuWriteGateEnabled
+            && lineSystemDeliveryProvider.enabled
+            && lineSystemDeliveryProvider.tokenPresent
+            && lineSystemDeliveryProvider.cryptoReady
+            && lineSystemDeliveryDatabase.ready
+          }
+          systemDeliveryReady={
+            lineSystemDeliveryProvider.enabled
+            && lineSystemDeliveryProvider.tokenPresent
+            && lineSystemDeliveryProvider.cryptoReady
+            && lineSystemDeliveryDatabase.ready
+          }
           driveInteractiveReady={lineProviderActivation.driveInteractiveConfigReady}
           pendingFileCount={lineDocumentMedia.state === "ready" ? lineDocumentMedia.pendingFetch + lineDocumentMedia.pendingUpload : 0}
         />
@@ -222,11 +248,24 @@ export default async function AdminHealthPage() {
           </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะไฟล์ลูกค้าไม่ได้</p>}
           <Row label="เชื่อม LINE" value={lineProviderActivation.channelTokenPresent ? "พร้อม" : "ยังไม่ได้เชื่อม"} />
           <Row label="รับไฟล์อัตโนมัติ" value={lineMediaProvider.fetchEnabled ? "เปิด" : "ปิด"} />
+          <Row
+            label="Article Cards อัตโนมัติ"
+            value={
+              lineSystemDeliveryProvider.enabled
+              && lineSystemDeliveryProvider.tokenPresent
+              && lineSystemDeliveryProvider.cryptoReady
+              && lineSystemDeliveryDatabase.ready
+                ? "พร้อม"
+                : lineSystemDeliveryDatabase.ready
+                  ? "ยังไม่เปิด provider"
+                  : "ยังไม่พร้อมที่ฐานข้อมูล"
+            }
+          />
           <Row label="ตอบลูกค้าจาก Admin" value={lineProviderActivation.outboundWriteGateEnabled ? "เปิด — ควรตรวจ" : "ปิด · ใช้ LINE OA"} />
           <Row
             label="Rich Menu"
             value={
-              lineRichMenu.state === "active_v2"
+              lineRichMenu.state === "active_v3"
                 ? "เปิดใช้งานแล้ว"
                 : lineRichMenu.state === "active_other"
                   ? "มีเมนูอื่นใช้อยู่"

@@ -3,12 +3,14 @@ import { z } from "zod";
 
 import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
 import { getAdminIdentity } from "@/lib/admin/identity";
-import { loadLineRichMenuV2Asset } from "@/lib/admin/line/rich-menu-asset";
+import { loadLineRichMenuV3Asset } from "@/lib/admin/line/rich-menu-asset";
 import {
   activateDefaultLineRichMenu,
   getLineRichMenuProviderReadiness,
   readDefaultLineRichMenuStatus,
 } from "@/lib/admin/line/rich-menu-provider";
+import { getLineSystemDeliveryProviderReadiness } from "@/lib/admin/line/provider";
+import { readLineSystemDeliveryDatabaseReadiness } from "@/lib/admin/line/control-plane";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 
 export const runtime = "nodejs";
@@ -20,7 +22,7 @@ const headers = {
 };
 
 const bodySchema = z.object({
-  confirmation: z.literal("activate-ccpun-rich-menu-v2"),
+  confirmation: z.literal("activate-ccpun-rich-menu-v3"),
 }).strict();
 
 export async function POST(request: Request) {
@@ -37,12 +39,21 @@ export async function POST(request: Request) {
   if (!body.success) return NextResponse.json({ error: "invalid-request" }, { status: 400, headers });
 
   const readiness = getLineRichMenuProviderReadiness();
-  if (!readiness.tokenPresent || !readiness.providerWriteEnabled) {
+  const systemDelivery = getLineSystemDeliveryProviderReadiness();
+  const systemDeliveryDatabase = await readLineSystemDeliveryDatabaseReadiness();
+  if (
+    !readiness.tokenPresent
+    || !readiness.providerWriteEnabled
+    || !systemDelivery.enabled
+    || !systemDelivery.tokenPresent
+    || !systemDelivery.cryptoReady
+    || !systemDeliveryDatabase.ready
+  ) {
     return NextResponse.json({ error: "rich-menu-not-ready" }, { status: 409, headers });
   }
 
   const current = await readDefaultLineRichMenuStatus();
-  if (current.state === "active_v2") {
+  if (current.state === "active_v3") {
     return NextResponse.json({ status: "already-active" }, { status: 200, headers });
   }
   if (current.state === "provider_unavailable") {
@@ -50,7 +61,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const asset = await loadLineRichMenuV2Asset();
+    const asset = await loadLineRichMenuV3Asset();
     const result = await activateDefaultLineRichMenu(asset.blob);
     if (result.ok) {
       return NextResponse.json({ status: "assigned" }, { status: 200, headers });

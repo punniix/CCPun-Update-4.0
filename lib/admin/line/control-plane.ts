@@ -88,6 +88,19 @@ const claimRowSchema = z.object({
   content_key_version: z.coerce.number().int().positive(),
 });
 
+const systemClaimRowSchema = z.object({
+  outbound_id: z.string().uuid(),
+  attempt_number: z.coerce.number().int().positive(),
+  recipient_ciphertext_b64: z.string(),
+  recipient_nonce_b64: z.string(),
+  recipient_auth_tag_b64: z.string(),
+  recipient_key_version: z.coerce.number().int().positive(),
+  content_ciphertext_b64: z.string(),
+  content_nonce_b64: z.string(),
+  content_auth_tag_b64: z.string(),
+  content_key_version: z.coerce.number().int().positive(),
+});
+
 export type LineAdvisorInboxSafeItem = {
   leadId: string;
   advisorCaseId: string | null;
@@ -472,6 +485,61 @@ export async function claimLineOutbound(
             recipient_auth_tag_b64, recipient_key_version, content_ciphertext_b64, content_nonce_b64,
             content_auth_tag_b64, content_key_version
      FROM private_line.admin_claim_line_outbound($1::jsonb)`, [JSON.stringify({ worker_digest: workerDigest, outbound_id: outboundId })],
+  ));
+  return rows[0] ?? null;
+}
+
+export async function readLineSystemDeliveryDatabaseReadiness(
+  variables: Record<string, string | undefined> = process.env,
+) {
+  const handle = await runtimeSql(variables);
+  if (!handle) return { ready: false, reason: "runtime-not-ready" as const };
+
+  try {
+    const rows = z.array(z.object({
+      claim_function: z.boolean(),
+      can_claim: z.boolean(),
+    })).length(1).parse(await handle.sql.query(
+      `SELECT
+         to_regprocedure('private_line.admin_claim_line_system_outbound(jsonb)') IS NOT NULL AS claim_function,
+         CASE
+           WHEN to_regprocedure('private_line.admin_claim_line_system_outbound(jsonb)') IS NULL THEN false
+           ELSE has_function_privilege(current_user,'private_line.admin_claim_line_system_outbound(jsonb)','EXECUTE')
+         END AS can_claim`,
+      [],
+    ));
+    const row = rows[0]!;
+    const ready = row.claim_function && row.can_claim;
+    return { ready, reason: ready ? null : "migration-not-ready" as const };
+  } catch {
+    return { ready: false, reason: "read-failed" as const };
+  }
+}
+
+export async function claimLineSystemOutbound(
+  outboundId: string,
+  workerDigest: string,
+  dispatchTokenDigest: string,
+  variables: Record<string, string | undefined> = process.env,
+) {
+  if (
+    !z.string().uuid().safeParse(outboundId).success
+    || !/^[0-9a-f]{64}$/.test(workerDigest)
+    || !/^[0-9a-f]{64}$/.test(dispatchTokenDigest)
+  ) throw new Error("LINE_SYSTEM_OUTBOUND_CLAIM_INVALID");
+
+  const handle = await runtimeSql(variables);
+  if (!handle) throw new Error("LINE_ADMIN_RUNTIME_NOT_READY");
+  const rows = z.array(systemClaimRowSchema).parse(await handle.sql.query(
+    `SELECT outbound_id::text,attempt_number,
+            recipient_ciphertext_b64,recipient_nonce_b64,recipient_auth_tag_b64,recipient_key_version,
+            content_ciphertext_b64,content_nonce_b64,content_auth_tag_b64,content_key_version
+       FROM private_line.admin_claim_line_system_outbound($1::jsonb)`,
+    [JSON.stringify({
+      worker_digest: workerDigest,
+      outbound_id: outboundId,
+      dispatch_token_digest: dispatchTokenDigest,
+    })],
   ));
   return rows[0] ?? null;
 }

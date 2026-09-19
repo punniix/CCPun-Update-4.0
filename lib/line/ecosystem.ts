@@ -91,7 +91,7 @@ export function routeLineBot(input: LineBotRoutingInput): LineBotDecision {
   return "show_content";
 }
 
-export const LINE_RICH_MENU_ITEMS = [
+export const LINE_RICH_MENU_V2_ITEMS = [
   { id: "content", label: "เรื่องน่ารู้", action: "uri", uri: "https://ccpun.com/blog/?utm_source=line&utm_medium=rich_menu&utm_campaign=rich_menu_v2&utm_content=content" },
   { id: "tools", label: "ลองเช็ก", action: "uri", uri: "https://ccpun.com/tools/?utm_source=line&utm_medium=rich_menu&utm_campaign=rich_menu_v2&utm_content=tools" },
   { id: "insurance", label: "ประกันชีวิต", action: "postback", postbackData: "journey=life_health_policy_review&stage=entry" },
@@ -120,6 +120,35 @@ export const LINE_RICH_MENU_V2 = {
     { itemId: "investment", bounds: { x: 0, y: 843, width: 833, height: 843 } },
     { itemId: "motor", bounds: { x: 833, y: 843, width: 833, height: 843 } },
     { itemId: "human", bounds: { x: 1666, y: 843, width: 834, height: 843 } },
+  ],
+  desktopFallback: LINE_RICH_MENU_V2_ITEMS,
+} as const;
+
+export const LINE_RICH_MENU_ITEMS = [
+  { id: "insurance", label: "ประกันชีวิต", action: "postback", postbackData: "journey=life_health_policy_review&stage=entry" },
+  { id: "motor", label: "ประกันรถ", action: "postback", postbackData: "journey=motor_quote_review&stage=entry" },
+  { id: "investment", label: "เรื่องลงทุน", action: "postback", postbackData: "journey=investment_before_you_act&stage=entry" },
+  { id: "human", label: "คุยกับปั้น", action: "postback", postbackData: "journey=human_handoff&stage=waiting_for_advisor" },
+] as const;
+
+export const LINE_RICH_MENU_V3 = {
+  version: "line-rich-menu-v3",
+  size: { width: 2500, height: 1686 },
+  selected: false,
+  name: "CCPun Main v3",
+  chatBarText: "เมนู CCPun",
+  image: {
+    format: "image/png",
+    width: 2500,
+    height: 1686,
+    maxBytes: 1_000_000,
+    assetKey: "ccpun-line-rich-menu-v3",
+  },
+  areas: [
+    { itemId: "insurance", bounds: { x: 0, y: 0, width: 1250, height: 843 } },
+    { itemId: "motor", bounds: { x: 1250, y: 0, width: 1250, height: 843 } },
+    { itemId: "investment", bounds: { x: 0, y: 843, width: 1250, height: 843 } },
+    { itemId: "human", bounds: { x: 1250, y: 843, width: 1250, height: 843 } },
   ],
   desktopFallback: LINE_RICH_MENU_ITEMS,
 } as const;

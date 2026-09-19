@@ -409,8 +409,10 @@ test("webhook public path has no logs, arbitrary outbound fetch, broad Admin DB 
   assert.doesNotMatch(publicPath, /\beval\s*\(/);
   assert.doesNotMatch(publicPath, /new\s+Function\s*\(/);
   assert.doesNotMatch(publicPath, /child_process|execFile|spawn\s*\(/);
-  assert.doesNotMatch(publicPath, /\bfetch\s*\(/);
-  assert.doesNotMatch(publicPath, /LINE_CHANNEL_ACCESS_TOKEN/);
+  assert.doesNotMatch(publicPath, /api\.line\.me|LINE_CHANNEL_ACCESS_TOKEN/);
+  assert.match(ingestSource, /resolveSystemDeliveryDispatchUrl/);
+  assert.match(ingestSource, /admin\.ccpun\.com\/api\/internal\/line\/system-delivery\/dispatch/);
+  assert.match(ingestSource, /url\.pathname !== "\/api\/internal\/line\/system-delivery\/dispatch\/"/);
   assert.doesNotMatch(publicPath, /NEXT_PUBLIC_LINE/);
   assert.doesNotMatch(publicPath, /CCPUN_ADMIN_DATABASE_URL|CCPUN_SOCIAL_DATABASE_URL/);
   assert.match(ingestSource, /CCPUN_LINE_INGEST_DATABASE_URL/);
