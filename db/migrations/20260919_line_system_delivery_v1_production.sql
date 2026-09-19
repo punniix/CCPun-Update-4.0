@@ -192,6 +192,85 @@ BEGIN
 END
 $ingress_enqueue_line_system_outbound$;
 
+CREATE OR REPLACE FUNCTION private_line.admin_claim_line_outbound(payload jsonb)
+RETURNS TABLE(
+  outbound_id uuid,
+  lead_id uuid,
+  attempt_number integer,
+  recipient_ciphertext_b64 text,
+  recipient_nonce_b64 text,
+  recipient_auth_tag_b64 text,
+  recipient_key_version smallint,
+  content_ciphertext_b64 text,
+  content_nonce_b64 text,
+  content_auth_tag_b64 text,
+  content_key_version smallint
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, private_line
+AS $admin_claim_line_outbound$
+DECLARE
+  v_worker text;
+  v_outbound uuid;
+BEGIN
+  IF NOT private_line.safe_json_keys_only(payload, ARRAY['worker_digest','outbound_id']::text[]) THEN
+    RAISE EXCEPTION 'unsafe claim payload';
+  END IF;
+  v_worker := payload->>'worker_digest';
+  IF v_worker IS NULL OR NOT private_line.safe_hex_digest(v_worker) THEN
+    RAISE EXCEPTION 'invalid worker digest';
+  END IF;
+
+  SELECT om.outbound_id
+  INTO v_outbound
+  FROM private_line.outbound_message om
+  WHERE om.outbound_id=NULLIF(payload->>'outbound_id','')::uuid
+    AND om.message_kind<>'system_notice'
+    AND (
+      om.status='queued'
+      OR (
+        om.status='failed'
+        AND private_line.line_delivery_retry_class(om.last_error_class)='retryable'
+      )
+    )
+    AND COALESCE(om.send_after,now())<=now()
+    AND om.attempt_count<3
+  FOR UPDATE SKIP LOCKED;
+
+  IF v_outbound IS NULL THEN
+    RETURN;
+  END IF;
+
+  UPDATE private_line.outbound_message om
+  SET status='leased',
+      lease_owner_digest=v_worker,
+      lease_expires_at=now()+interval '2 minutes',
+      attempt_count=om.attempt_count+1,
+      updated_at=now()
+  WHERE om.outbound_id=v_outbound;
+
+  RETURN QUERY
+  SELECT
+    om.outbound_id,
+    om.lead_id,
+    om.attempt_count,
+    pi.external_ref_ciphertext_b64,
+    pi.external_ref_nonce_b64,
+    pi.external_ref_auth_tag_b64,
+    pi.key_version,
+    om.content_ciphertext_b64,
+    om.content_nonce_b64,
+    om.content_auth_tag_b64,
+    om.content_key_version
+  FROM private_line.outbound_message om
+  JOIN private_line.conversation c ON c.conversation_id=om.conversation_id
+  JOIN private_line.provider_identity pi ON pi.identity_id=c.identity_id
+  WHERE om.outbound_id=v_outbound
+    AND om.lease_owner_digest=v_worker;
+END
+$admin_claim_line_outbound$;
+
 CREATE OR REPLACE FUNCTION private_line.admin_claim_line_system_outbound(payload jsonb)
 RETURNS TABLE(
   outbound_id uuid,
