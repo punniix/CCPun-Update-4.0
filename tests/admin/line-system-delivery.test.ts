@@ -41,7 +41,7 @@ test("system delivery migration is UAT/Production parity and checksum locked", (
   const productionBody = sourceBody(production);
   assert.equal(uatBody, productionBody);
   const checksum = createHash("sha256").update(uatBody).digest("hex");
-  assert.equal(checksum, "a3f22b3c32bf72bd7a55c30ce7e9324fc173f018f6a244515962958063f5ab7d");
+  assert.equal(checksum, "61d1e71b9ca7a0f27e2dd99f0902a514dff7216e5bfbcbc7bd1fda9e04b47e45");
   assert.match(uat, new RegExp(checksum));
   assert.match(production, new RegExp(checksum));
 });
