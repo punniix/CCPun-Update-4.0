@@ -9,7 +9,6 @@ import { getAdminSanityReadToken, getAdminSanityWriteToken } from "./sanity-cred
 import { buildAuditLogDocument, isRevisionConflict } from "./sanity-control";
 import { findAdminProposalResearch, insertAdminAudit } from "./operations/database";
 import { normalizeResearchKeyword } from "./research-input";
-import { parseSeoAuditArticle, type SeoAuditArticle } from "./seo-audit-schema";
 import { isArticleCanonicalAligned } from "../content/url";
 import { countGraphemes, countMatchingQuestions, isReviewDateFresh, META_DESCRIPTION_MAX, META_DESCRIPTION_MIN, SEO_AUDIT_VERSION, SEO_TITLE_MAX, SEO_TITLE_MIN, seoBodyFacts } from "./seo-heuristics";
 
@@ -24,6 +23,53 @@ function parseArticleDocumentId(value: string) {
   if (!parsed.success) throw new Error("INVALID_ARTICLE_ID");
   return parsed.data.replace(/^drafts\./, "");
 }
+
+const portableChildSchema = z.object({ text: z.string().optional() }).passthrough();
+const markDefSchema = z.object({ href: z.string().optional() }).passthrough();
+const portableBlockSchema = z.object({
+  _type: z.string().optional(),
+  style: z.string().optional(),
+  children: z.array(portableChildSchema).optional(),
+  markDefs: z.array(markDefSchema).nullish().transform((value) => value ?? []),
+}).passthrough();
+
+const auditArticleSchema = z.object({
+  id: z.string(),
+  revision: z.string(),
+  title: z.string().nullish(),
+  slug: z.string().nullish(),
+  category: z.string().nullish(),
+  categorySlug: z.string().nullish(),
+  excerpt: z.string().nullish(),
+  body: z.array(portableBlockSchema).nullish(),
+  faqCount: z.number().nullish().transform((value) => value ?? 0),
+  sourcesCount: z.number().nullish().transform((value) => value ?? 0),
+  sourceUrlsCount: z.number().nullish().transform((value) => value ?? 0),
+  faqQuestions: z.array(z.string()).nullish().transform((value) => value ?? []),
+  authorName: z.string().nullish(),
+  reviewStatus: z.string().nullish(),
+  factCheckedAt: z.string().nullish(),
+  complianceReviewedAt: z.string().nullish(),
+  featuredAlt: z.string().nullish(),
+  hasFeaturedImage: z.boolean(),
+  hasNativeFeaturedImage: z.boolean(),
+  usesMigratedFeaturedImage: z.boolean(),
+  seo: z.object({
+    title: z.string().nullish(),
+    description: z.string().nullish(),
+    focusKeyword: z.string().nullish(),
+    secondaryKeywords: z.array(z.string()).nullish(),
+    searchIntent: z.string().nullish(),
+    canonical: z.string().nullish(),
+    noindex: z.boolean().nullish(),
+  }).nullish(),
+  geo: z.object({
+    summary: z.string().nullish(),
+    keyEntities: z.array(z.string()).nullish(),
+    keyQuestions: z.array(z.string()).nullish(),
+    reviewedAt: z.string().nullish(),
+  }).nullish(),
+});
 
 export type SeoAuditSeverity = "critical" | "warning" | "opportunity";
 
@@ -64,7 +110,7 @@ function buildCheck(input: Omit<SeoAuditCheck, "passed"> & { passed: boolean }):
   return input;
 }
 
-export function auditArticleSeo(article: SeoAuditArticle): SeoAuditResult {
+export function auditArticleSeo(article: z.infer<typeof auditArticleSchema>): SeoAuditResult {
   const seo = article.seo ?? {};
   const facts = seoBodyFacts(article.body);
   const contentReadiness = summarizeContentReadiness({
@@ -242,7 +288,7 @@ export async function runSeoAudit(
   }`, { draftId, publishedId: cleanId });
 
   if (!articleRaw) throw new Error("ARTICLE_NOT_FOUND");
-  const article = parseSeoAuditArticle(articleRaw);
+  const article = auditArticleSchema.parse(articleRaw);
   const result = auditArticleSeo(article);
 
   if (persist) {
