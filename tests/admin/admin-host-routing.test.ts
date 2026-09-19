@@ -11,6 +11,7 @@ import {
   isAdminRequestBoundary,
   isAuthenticatedAdminPreviewPath,
   isExactAdminPreviewOrigin,
+  isInternalServiceApiPath,
   isKnownAdminDeploymentHost,
 } from "../../lib/admin/host-routing";
 
@@ -28,12 +29,39 @@ test("Production Admin allows only Control Plane, Auth, Studio and bootstrap rou
     "/studio/structure",
     "/api/preview/enable",
     "/api/auth/session",
+    "/api/internal/line/rich-menu/reconcile",
+    "/api/internal/line/system-delivery/dispatch/",
+    "/api/internal/local-ai/jobs/00000000-0000-4000-8000-000000000000/",
     "/_next/static/chunks/app.js",
     "/_next/image",
     "/favicon.ico",
     "/robots.txt",
   ]) {
     assert.equal(classifyProductionAdminPath(path), "allow", path);
+  }
+});
+
+test("internal service allowlist is exact and handler-authenticated", () => {
+  for (const path of [
+    "/api/internal/line/rich-menu/reconcile",
+    "/api/internal/line/rich-menu/reconcile/",
+    "/api/internal/line/system-delivery/dispatch",
+    "/api/internal/local-ai/jobs",
+    "/api/internal/local-ai/jobs/00000000-0000-4000-8000-000000000000",
+  ]) {
+    assert.equal(isInternalServiceApiPath(path), true, path);
+    assert.equal(classifyProductionAdminPath(path), "allow", path);
+  }
+  for (const path of [
+    "/api/internal",
+    "/api/internal/line",
+    "/api/internal/line/rich-menu",
+    "/api/internal/line/rich-menu/reconcile-now",
+    "/api/internal/local-ai/config",
+    "/api/internal/unknown",
+  ]) {
+    assert.equal(isInternalServiceApiPath(path), false, path);
+    assert.equal(classifyProductionAdminPath(path), "reject", path);
   }
 });
 
