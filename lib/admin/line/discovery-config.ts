@@ -121,7 +121,7 @@ export type LineDiscoveryAdminModel = {
 };
 
 const configQuery = defineQuery(
-  '*[_id == $id][0]{_rev,lifeHealth{maxCards,items[]{enabled,"slug":article->slug.current}},motor{maxCards,items[]{enabled,"slug":article->slug.current}},investment{maxCards,items[]{enabled,"slug":article->slug.current}}}',
+  '*[_id == $id][0]{_rev,lifeHealth{maxCards,items[]{_key,enabled,"slug":article->slug.current}},motor{maxCards,items[]{_key,enabled,"slug":article->slug.current}},investment{maxCards,items[]{_key,enabled,"slug":article->slug.current}}}',
 );
 
 const publishedArticlesQuery = defineQuery(
@@ -174,9 +174,11 @@ function selectionFromStored(
   if (!value?.items?.length) return defaultJourney(journey);
   return {
     maxCards: value.maxCards,
-    items: value.items
-      .filter((item): item is typeof item & { slug: string } => typeof item.slug === "string" && item.slug.length > 0)
-      .map((item) => ({ slug: item.slug, enabled: item.enabled })),
+    items: value.items.flatMap((item) =>
+      typeof item.slug === "string" && item.slug.length > 0
+        ? [{ slug: item.slug, enabled: item.enabled }]
+        : [],
+    ),
   };
 }
 
