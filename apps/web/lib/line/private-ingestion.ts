@@ -1,11 +1,18 @@
+import { createHash } from "node:crypto";
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { after } from "next/server";
 import { z } from "zod";
 import type { LinePrivateIngestEvent } from "../../../../lib/line/private-domain";
 import {
   createLineContentCrypto,
+  createLinePrivateCrypto,
   type LineContentCrypto,
   type LineEncryptedValue,
 } from "../../../../lib/line/private-crypto";
+import {
+  encodeLineSystemMessageIntent,
+  isLineArticleDiscoveryJourney,
+} from "../../../../lib/line/system-delivery";
 
 const WEB_VERCEL_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 
@@ -172,6 +179,130 @@ function privateEventPayload(event: LinePrivateIngestEvent) {
 
 type LineIngressSqlClient = NeonQueryFunction<false, false>;
 
+const systemOutboundRowSchema = z.object({
+  outcome: z.enum(["queued", "duplicate", "identity_missing"]),
+  outbound_id: z.string().uuid().nullable(),
+});
+
+function sha256Hex(...parts: string[]) {
+  const hash = createHash("sha256");
+  for (const part of parts) hash.update(part).update("\0");
+  return hash.digest("hex");
+}
+
+function resolveSystemDeliveryDispatchUrl(
+  runtime: LineIngestRuntime,
+  variables: Record<string, string | undefined>,
+) {
+  if (variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() !== "true") return null;
+
+  const configured = variables.CCPUN_LINE_SYSTEM_DELIVERY_ADMIN_URL?.trim();
+  const raw = configured || (runtime.lane === "production"
+    ? "https://admin.ccpun.com/api/internal/line/system-delivery/dispatch/"
+    : "");
+  if (!raw) return null;
+
+  try {
+    const url = new URL(raw);
+    if (
+      url.protocol !== "https:"
+      || url.username
+      || url.password
+      || url.search
+      || url.hash
+      || url.pathname !== "/api/internal/line/system-delivery/dispatch/"
+    ) return null;
+    if (runtime.lane === "production" && url.hostname !== "admin.ccpun.com") return null;
+    if (runtime.lane === "uat" && !url.hostname.endsWith(".vercel.app")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function dispatchSystemOutboundBestEffort(
+  endpoint: string,
+  outboundId: string,
+  dispatchToken: string,
+) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        redirect: "error",
+        signal: AbortSignal.timeout(8_000),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outboundId, dispatchToken }),
+      });
+      if (response.ok || response.status === 202 || response.status === 409) return;
+      if (response.status !== 503) return;
+    } catch {
+      // A queued system message remains durable for later reconciliation.
+    }
+  }
+}
+
+async function enqueueLineDiscoverySystemOutboundBestEffort(
+  sql: LineIngressSqlClient,
+  runtime: LineIngestRuntime,
+  event: LinePrivateIngestEvent,
+  outcome: LineIngestOutcome,
+  variables: Record<string, string | undefined>,
+) {
+  if (
+    variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED?.trim() !== "true"
+    || event.eventType !== "postback"
+    || !event.identity
+    || !event.postback
+    || event.postback.needsHuman
+    || !isLineArticleDiscoveryJourney(event.postback.journey)
+    || (outcome !== "accepted" && outcome !== "duplicate_event")
+  ) return;
+
+  const endpoint = resolveSystemDeliveryDispatchUrl(runtime, variables);
+  if (!endpoint) return;
+
+  try {
+    const privateCrypto = createLinePrivateCrypto(variables);
+    const contentCrypto = createLineContentCrypto(variables);
+    const journey = event.postback.journey;
+    const dispatchToken = privateCrypto.lookupDigest(
+      `${event.eventDigest}:${journey}`,
+      "system-dispatch",
+    );
+    const encrypted = contentCrypto.encrypt(
+      encodeLineSystemMessageIntent(journey),
+      "line-system-message-content",
+    );
+    const idempotencyDigest = sha256Hex("ccpun-line-system-outbound-v1", event.eventDigest, journey);
+    const dispatchTokenDigest = createHash("sha256").update(dispatchToken).digest("hex");
+
+    const rows = z.array(systemOutboundRowSchema).parse(await sql.query(
+      "SELECT outcome,outbound_id::text FROM private_line.ingress_enqueue_line_system_outbound($1::jsonb)",
+      [JSON.stringify({
+        identity_digest: event.identity.lookupDigest,
+        journey,
+        idempotency_digest: idempotencyDigest,
+        dispatch_token_digest: dispatchTokenDigest,
+        content_ciphertext_b64: encrypted.ciphertextB64,
+        content_nonce_b64: encrypted.nonceB64,
+        content_auth_tag_b64: encrypted.authTagB64,
+        content_key_version: encrypted.keyVersion,
+        created_by_digest: sha256Hex("ccpun-line-system-actor-v1", event.eventDigest),
+      })],
+    ));
+    const queued = rows[0];
+    if (!queued?.outbound_id || queued.outcome === "identity_missing") return;
+
+    after(async () => {
+      await dispatchSystemOutboundBestEffort(endpoint, queued.outbound_id!, dispatchToken);
+    });
+  } catch {
+    // System discovery is additive. Durable webhook ingestion and journey context
+    // remain authoritative even when the optional delivery path is unavailable.
+  }
+}
+
 function lineRuntimeHealthPayload(
   variables: Record<string, string | undefined>,
 ) {
@@ -333,6 +464,7 @@ export function createLinePrivateIngestor(
 
     await recordLineRuntimeHealthBestEffort(sql, variables);
     await applyLineJourneyContextBestEffort(sql, event, outcome);
+    await enqueueLineDiscoverySystemOutboundBestEffort(sql, runtime, event, outcome, variables);
 
     if (outcome === "accepted" && event.identity && rotationCrypto) {
       await rotateCurrentIdentityBestEffort(sql, event.identity.lookupDigest, rotationCrypto);
