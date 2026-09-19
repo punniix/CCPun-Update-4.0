@@ -116,7 +116,7 @@ export function readProductionChangedPaths({
   try {
     const output = execFileSyncImpl(
       "git",
-      ["diff", "--name-only", "-z", "--diff-filter=ACMRTUXB", baseRef, commitSha, "--"],
+      ["diff", "--name-only", "-z", "--diff-filter=ACDMRTUXB", baseRef, commitSha, "--"],
       {
         cwd,
         encoding: "utf8",
