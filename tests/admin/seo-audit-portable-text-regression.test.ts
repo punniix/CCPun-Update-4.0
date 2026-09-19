@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseSeoAuditArticle } from "../../lib/admin/seo-audit";
+import { parseSeoAuditArticle } from "../../lib/admin/seo-audit-schema";
 
 test("SEO audit parser normalizes legacy null Portable Text markDefs", () => {
   const parsed = parseSeoAuditArticle({
