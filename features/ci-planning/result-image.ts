@@ -109,7 +109,7 @@ export async function renderCIResultImage(
     noticeDetail: summary.imageNotice,
     actionLabel: 'เพิ่มเพื่อน LINE @ccpun',
     scopeNote: summary.recoveryReserve > 0
-      ? `Recovery Reserve ${baht(summary.recoveryReserve)} คำนวณแยกจากข้อมูล research แล้วบวก 1 ครั้งในวิธีที่เลือก; แหล่งอ้างอิงหลักปี 2025–2026`
-      : 'Recovery Reserve ยังเป็น 0; หากกรอก ระบบจะคำนวณแยกแล้วบวก 1 ครั้งในทั้งทุนตามรายจ่ายและทุนตามรายได้',
+      ? `Recovery Reserve ${baht(summary.recoveryReserve)} เป็นเงินก้อนสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต แยกจากฐานรายได้/รายจ่าย แล้วบวก 1 ครั้งในวิธีที่เลือก`
+      : 'การประเมินครั้งนี้ยังไม่ได้รวม Recovery Reserve เพิ่มจากฐานรายได้หรือรายจ่าย',
   }, logoPath, lineQrPath);
 }
