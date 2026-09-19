@@ -63,6 +63,22 @@ test("shared 4.1 Preview releases build in both survivors", () => {
   }
 });
 
+test("shared Preview branches isolate builds when native changed-path evidence is conclusive", () => {
+  const branch = "feature/line-rich-menu-control-plane-20260919";
+  const adminPaths = ["tests/admin/ecosystem-control-plane-migrations.test.ts"];
+  const webPaths = ["apps/web/lib/line/private-ingestion.ts"];
+  const mixedPaths = [...adminPaths, ...webPaths];
+
+  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch, changedPaths: adminPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch, changedPaths: adminPaths }), true);
+  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch, changedPaths: webPaths }), true);
+  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch, changedPaths: webPaths }), false);
+  for (const projectId of [web, admin]) {
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch, changedPaths: mixedPaths }), true);
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch, changedPaths: null }), true);
+  }
+});
+
 test("Production routing classifies legacy roots, isolated app roots and fail-safe changes", () => {
   const pr45Paths = [
     "AGENTS.md",

@@ -147,6 +147,11 @@ export function shouldBuild({ projectId, environment, branch, changedPaths }) {
   if (!branch) return false;
   if (projectId === WEB_PROJECT_ID && isAdminOnlyBranch(branch)) return false;
   if (projectId === ADMIN_PROJECT_ID && isWebOnlyBranch(branch)) return false;
+  const classification = classifyProductionChanges(changedPaths);
+  if (classification === "admin-only" || classification === "neutral-only") {
+    return projectId === ADMIN_PROJECT_ID;
+  }
+  if (classification === "web-only") return projectId === WEB_PROJECT_ID;
   return true;
 }
 
@@ -156,7 +161,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     projectId: process.env.VERCEL_PROJECT_ID?.trim() ?? "",
     environment,
     branch: process.env.VERCEL_GIT_COMMIT_REF?.trim() ?? "",
-    changedPaths: environment === "production" ? readProductionChangedPaths() : undefined,
+    changedPaths: readProductionChangedPaths(),
   });
 
   console.log(build ? "Vercel build routing: BUILD" : "Vercel build routing: SKIP");
