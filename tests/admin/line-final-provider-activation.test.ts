@@ -6,18 +6,18 @@ import test from "node:test";
 
 import { getLineProviderActivationReadiness } from "../../lib/admin/line/document-media";
 import { readDefaultLineRichMenuStatus } from "../../lib/admin/line/rich-menu-provider";
-import { LINE_RICH_MENU_V1 } from "../../lib/line/ecosystem";
+import { LINE_RICH_MENU_V2 } from "../../lib/line/ecosystem";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
 
-test("Rich Menu v1 PNG is deterministic, exact-size and below LINE byte limit", () => {
+test("Rich Menu v1 rollback PNG remains deterministic, exact-size and below LINE byte limit", () => {
   const file = readFileSync(path.join(root, "lib/admin/line/assets/ccpun-line-rich-menu-v1.png"));
   assert.equal(file.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
-  assert.equal(file.readUInt32BE(16), LINE_RICH_MENU_V1.image.width);
-  assert.equal(file.readUInt32BE(20), LINE_RICH_MENU_V1.image.height);
+  assert.equal(file.readUInt32BE(16), LINE_RICH_MENU_V2.image.width);
+  assert.equal(file.readUInt32BE(20), LINE_RICH_MENU_V2.image.height);
   assert.ok(file.byteLength > 0);
-  assert.ok(file.byteLength <= LINE_RICH_MENU_V1.image.maxBytes);
+  assert.ok(file.byteLength <= LINE_RICH_MENU_V2.image.maxBytes);
   assert.equal(
     createHash("sha256").update(file).digest("hex"),
     "4d8c51ff24ed0a619147a846d9d22872c67dd61c7f756c2c671393cd9b52b5a8",
@@ -26,7 +26,7 @@ test("Rich Menu v1 PNG is deterministic, exact-size and below LINE byte limit", 
 
 test("Rich Menu build script keeps Website 4.3 colors and six locked labels", () => {
   const source = read("scripts/build-line-rich-menu-asset.mjs");
-  for (const label of ["หาเรื่องอ่าน", "เครื่องมือ", "ประกัน", "ลงทุน", "รถ", "คุยกับปัน"]) {
+  for (const label of ["เรื่องน่ารู้", "ลองเช็ก", "ประกันชีวิต", "เรื่องลงทุน", "ประกันรถ", "คุยกับปั้น"]) {
     assert.match(source, new RegExp(label));
   }
   assert.match(source, /#251818/);
@@ -59,23 +59,23 @@ test("default Rich Menu status is read-only and never exposes provider id or tok
       const url = String(input);
       requestUrls.push(url);
       if (url.endsWith("/v2/bot/user/all/richmenu")) {
-        return new Response(JSON.stringify({ richMenuId: "richmenu-synthetic-v1" }), {
+        return new Response(JSON.stringify({ richMenuId: "richmenu-synthetic-v2" }), {
           status: 200,
           headers: { "content-type": "application/json" },
         });
       }
       return new Response(JSON.stringify({
-        name: LINE_RICH_MENU_V1.name,
-        chatBarText: LINE_RICH_MENU_V1.chatBarText,
-        size: LINE_RICH_MENU_V1.size,
-        areas: LINE_RICH_MENU_V1.areas.map((area) => ({ bounds: area.bounds, action: { type: "postback" } })),
+        name: LINE_RICH_MENU_V2.name,
+        chatBarText: LINE_RICH_MENU_V2.chatBarText,
+        size: LINE_RICH_MENU_V2.size,
+        areas: LINE_RICH_MENU_V2.areas.map((area) => ({ bounds: area.bounds, action: { type: "postback" } })),
       }), {
         status: 200,
         headers: { "content-type": "application/json" },
       });
     },
   );
-  assert.deepEqual(active, { state: "active_v1" });
+  assert.deepEqual(active, { state: "active_v2" });
   assert.equal(requestUrls.length, 2);
   assert.doesNotMatch(JSON.stringify(active), /richmenu-|synthetic-token/);
 });
@@ -102,15 +102,15 @@ test("Drive credential readiness recognizes the intended memory-only owner-inter
   assert.equal(incomplete.driveInteractiveConfigReady, false);
 });
 
-test("Rich Menu activation endpoint is owner-only, same-origin and accepts only fixed v1 confirmation", () => {
+test("Rich Menu activation endpoint is owner-only, same-origin and accepts only fixed v2 confirmation", () => {
   const route = read("apps/admin/app/api/admin/line/rich-menu/activate/route.ts");
   assert.match(route, /identity\.role !== "owner"/);
   assert.match(route, /settings:read/);
   assert.match(route, /isSameOriginAdminMutation/);
-  assert.match(route, /activate-ccpun-rich-menu-v1/);
+  assert.match(route, /activate-ccpun-rich-menu-v2/);
   assert.match(route, /readDefaultLineRichMenuStatus/);
   assert.match(route, /already-active/);
-  assert.match(route, /loadLineRichMenuV1Asset/);
+  assert.match(route, /loadLineRichMenuV2Asset/);
   assert.doesNotMatch(route, /CCPUN_LINE_CHANNEL_ACCESS_TOKEN|richMenuId.*NextResponse|console\./);
 });
 
