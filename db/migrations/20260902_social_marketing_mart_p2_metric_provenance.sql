@@ -1,30 +1,16 @@
 BEGIN;
 
-DO $migration_guard$
-DECLARE
-  current_checksum text;
-  prerequisite_current boolean;
-BEGIN
-  PERFORM pg_advisory_xact_lock(hashtext('ccpun_social:20260902_social_marketing_mart_p2_metric_provenance'));
-
-  SELECT EXISTS (
+SELECT pg_advisory_xact_lock(hashtext('ccpun_social:20260902_social_marketing_mart_p2_metric_provenance'));
+SELECT 1 / CASE WHEN EXISTS (
     SELECT 1 FROM ccpun_social.schema_migration
     WHERE version = '20260902_social_marketing_mart_p2_full_backfill_clean'
       AND checksum = 'sha256:1dfbe426656ada42fa59f4b0d0727a39c293534abf964690bbbe0d8c6294727f'
-  ) INTO prerequisite_current;
-  IF NOT prerequisite_current THEN
-    RAISE EXCEPTION 'CCPUN metric provenance prerequisite is not current';
-  END IF;
-
-  SELECT checksum INTO current_checksum
-  FROM ccpun_social.schema_migration
-  WHERE version = '20260902_social_marketing_mart_p2_metric_provenance';
-
-  IF current_checksum IS NOT NULL AND current_checksum <> 'sha256:5b421a7bb67798d6b45911c1b05e3f54bc9f50c0482b48857f6780e7379ef866' THEN
-    RAISE EXCEPTION 'CCPUN metric provenance migration checksum mismatch';
-  END IF;
-END
-$migration_guard$;
+  ) THEN 1 ELSE 0 END AS prerequisite_guard;
+SELECT 1 / CASE WHEN NOT EXISTS (
+  SELECT 1 FROM ccpun_social.schema_migration
+  WHERE version='20260902_social_marketing_mart_p2_metric_provenance'
+    AND checksum<>'sha256:5b421a7bb67798d6b45911c1b05e3f54bc9f50c0482b48857f6780e7379ef866'
+) THEN 1 ELSE 0 END AS checksum_guard;
 
 -- checksum-source-begin
 ALTER TABLE ccpun_social.social_metric_capability

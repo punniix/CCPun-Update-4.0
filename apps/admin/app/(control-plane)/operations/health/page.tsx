@@ -23,6 +23,7 @@ import { lineRetentionModeLabel, lineTechnicalStateLabel } from "@/lib/admin/lin
 import { readLineArchiveHealth } from "@/lib/admin/line/conversation-archive";
 import { readDefaultLineRichMenuStatus } from "@/lib/admin/line/rich-menu-provider";
 import { readLineSystemDeliveryDatabaseReadiness } from "@/lib/admin/line/control-plane";
+import { readLineRichMenuControlState } from "@/lib/admin/control-plane/provider-state";
 
 export const metadata: Metadata = { title: "สถานะระบบ" };
 
@@ -77,6 +78,7 @@ export default async function AdminHealthPage() {
     lineArchive,
     lineRichMenu,
     lineSystemDeliveryDatabase,
+    lineRichMenuControl,
   ] = await Promise.all([
     readLineKeyRotationStatus(),
     readLineOperationsHealth(),
@@ -86,6 +88,7 @@ export default async function AdminHealthPage() {
     readLineArchiveHealth(),
     readDefaultLineRichMenuStatus(),
     readLineSystemDeliveryDatabaseReadiness(),
+    readLineRichMenuControlState().catch(() => null),
   ]);
   const lineProviderActivation = getLineProviderActivationReadiness();
   const lineMediaProvider = getLineMediaProviderReadiness();
@@ -174,6 +177,12 @@ export default async function AdminHealthPage() {
           }
           driveInteractiveReady={lineProviderActivation.driveInteractiveConfigReady}
           pendingFileCount={lineDocumentMedia.state === "ready" ? lineDocumentMedia.pendingFetch + lineDocumentMedia.pendingUpload : 0}
+          controlState={lineRichMenuControl ? {
+            desiredMode: lineRichMenuControl.desiredMode,
+            state: lineRichMenuControl.state,
+            rowVersion: lineRichMenuControl.rowVersion,
+            rollbackAvailable: Boolean(lineRichMenuControl.approvedPreviousHash),
+          } : null}
         />
       </div>
 

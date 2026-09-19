@@ -1,30 +1,16 @@
 BEGIN;
 
-DO $migration_guard$
-DECLARE
-  current_checksum text;
-  prerequisite_current boolean;
-BEGIN
-  PERFORM pg_advisory_xact_lock(hashtext('ccpun_social:20260902_social_marketing_mart_p0'));
-
-  SELECT EXISTS (
+SELECT pg_advisory_xact_lock(hashtext('ccpun_social:20260902_social_marketing_mart_p0'));
+SELECT 1 / CASE WHEN EXISTS (
     SELECT 1 FROM ccpun_social.schema_migration
     WHERE version = '20260901_website_42_social_provider_native_history'
       AND checksum = 'sha256:cc4c2516ad261983d3d3997796711fb9b0290afe8625ab82fc002f4536bc549c'
-  ) INTO prerequisite_current;
-  IF NOT prerequisite_current THEN
-    RAISE EXCEPTION 'CCPUN marketing mart prerequisite is not current';
-  END IF;
-
-  SELECT checksum INTO current_checksum
-  FROM ccpun_social.schema_migration
-  WHERE version = '20260902_social_marketing_mart_p0';
-
-  IF current_checksum IS NOT NULL AND current_checksum <> 'sha256:ebd2a708c4dc6c524cf93147a3446c3c3cd92b76cb626291a6662c2b7ca878f0' THEN
-    RAISE EXCEPTION 'CCPUN marketing mart migration checksum mismatch';
-  END IF;
-END
-$migration_guard$;
+  ) THEN 1 ELSE 0 END AS prerequisite_guard;
+SELECT 1 / CASE WHEN NOT EXISTS (
+  SELECT 1 FROM ccpun_social.schema_migration
+  WHERE version='20260902_social_marketing_mart_p0'
+    AND checksum<>'sha256:ebd2a708c4dc6c524cf93147a3446c3c3cd92b76cb626291a6662c2b7ca878f0'
+) THEN 1 ELSE 0 END AS checksum_guard;
 
 -- checksum-source-begin
 CREATE TABLE IF NOT EXISTS ccpun_social.social_metric_capability (

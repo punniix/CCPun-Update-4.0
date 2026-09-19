@@ -1,7 +1,11 @@
 if (typeof window !== "undefined") throw new Error("CCPUN_RICH_MENU_PROVIDER_SERVER_ONLY");
 
+import { createHash } from "node:crypto";
+import { z } from "zod";
+
 import {
   LINE_RICH_MENU_ITEMS,
+  LINE_RICH_MENU_V2,
   LINE_RICH_MENU_V2_ITEMS,
   LINE_RICH_MENU_V3,
 } from "../../line/ecosystem";
@@ -47,10 +51,93 @@ export type LineRichMenuDefaultStatus =
   | { state: "active_other" }
   | { state: "provider_unavailable" };
 
-export async function readDefaultLineRichMenuStatus(
+const boundsSchema = z.object({
+  x: z.number().int().nonnegative(),
+  y: z.number().int().nonnegative(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+}).passthrough();
+
+const actionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("uri"), label: z.string(), uri: z.string() }).passthrough(),
+  z.object({
+    type: z.literal("postback"),
+    label: z.string(),
+    data: z.string(),
+    displayText: z.string().optional(),
+  }).passthrough(),
+  z.object({ type: z.literal("message"), label: z.string(), text: z.string() }).passthrough(),
+]);
+
+const providerDefinitionSchema = z.object({
+  size: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }).passthrough(),
+  selected: z.boolean(),
+  name: z.string(),
+  chatBarText: z.string(),
+  areas: z.array(z.object({ bounds: boundsSchema, action: actionSchema }).passthrough()),
+}).passthrough();
+
+export type LineRichMenuProviderDefinition = {
+  size: { width: number; height: number };
+  selected: boolean;
+  name: string;
+  chatBarText: string;
+  areas: Array<{
+    bounds: { x: number; y: number; width: number; height: number };
+    action:
+      | { type: "uri"; label: string; uri: string }
+      | { type: "postback"; label: string; data: string; displayText?: string }
+      | { type: "message"; label: string; text: string };
+  }>;
+};
+
+export function normalizeLineRichMenuProviderDefinition(value: unknown): LineRichMenuProviderDefinition | null {
+  const parsed = providerDefinitionSchema.safeParse(value);
+  if (!parsed.success) return null;
+  return {
+    size: { width: parsed.data.size.width, height: parsed.data.size.height },
+    selected: parsed.data.selected,
+    name: parsed.data.name,
+    chatBarText: parsed.data.chatBarText,
+    areas: parsed.data.areas.map((area) => ({
+      bounds: {
+        x: area.bounds.x,
+        y: area.bounds.y,
+        width: area.bounds.width,
+        height: area.bounds.height,
+      },
+      action: area.action.type === "uri"
+        ? { type: "uri" as const, label: area.action.label, uri: area.action.uri }
+        : area.action.type === "message"
+          ? { type: "message" as const, label: area.action.label, text: area.action.text }
+          : {
+              type: "postback" as const,
+              label: area.action.label,
+              data: area.action.data,
+              ...(area.action.displayText === undefined ? {} : { displayText: area.action.displayText }),
+            },
+    })),
+  };
+}
+
+export function lineRichMenuDefinitionHash(definition: LineRichMenuProviderDefinition) {
+  return createHash("sha256").update(JSON.stringify(definition)).digest("hex");
+}
+
+export type LineRichMenuProviderSnapshot =
+  | { state: "not_configured" | "not_assigned" | "provider_unavailable" }
+  | {
+      state: "assigned";
+      providerRef: string;
+      version: "line-rich-menu-v2" | "line-rich-menu-v3" | "provider-custom";
+      definition: LineRichMenuProviderDefinition;
+      hash: string;
+    };
+
+export async function readDefaultLineRichMenuSnapshot(
   variables: Record<string, string | undefined> = process.env,
   fetchImpl: typeof fetch = fetch,
-): Promise<LineRichMenuDefaultStatus> {
+): Promise<LineRichMenuProviderSnapshot> {
   const token = variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim();
   if (!token) return { state: "not_configured" };
 
@@ -63,68 +150,72 @@ export async function readDefaultLineRichMenuStatus(
     });
     if (current.status === 404) return { state: "not_assigned" };
     if (!current.ok) return { state: "provider_unavailable" };
-
     const currentJson = await safeProviderJson(current);
-    const richMenuId = currentJson && typeof currentJson === "object" && "richMenuId" in currentJson
+    const providerRef = currentJson && typeof currentJson === "object" && "richMenuId" in currentJson
       ? String((currentJson as { richMenuId?: unknown }).richMenuId ?? "")
       : "";
-    if (!/^richmenu-[A-Za-z0-9_-]+$/.test(richMenuId)) {
-      return { state: "provider_unavailable" };
-    }
+    if (!/^richmenu-[A-Za-z0-9_-]+$/.test(providerRef)) return { state: "provider_unavailable" };
 
-    const details = await fetchImpl(
-      `${LINE_API}/v2/bot/richmenu/${encodeURIComponent(richMenuId)}`,
-      {
-        method: "GET",
-        redirect: "error",
-        signal: AbortSignal.timeout(7_000),
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const details = await fetchImpl(`${LINE_API}/v2/bot/richmenu/${encodeURIComponent(providerRef)}`, {
+      method: "GET",
+      redirect: "error",
+      signal: AbortSignal.timeout(7_000),
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (!details.ok) return { state: "provider_unavailable" };
-    const detailJson = await safeProviderJson(details);
-    if (!detailJson || typeof detailJson !== "object") return { state: "provider_unavailable" };
-
-    const value = detailJson as {
-      name?: unknown;
-      chatBarText?: unknown;
-      size?: { width?: unknown; height?: unknown };
-      areas?: unknown;
+    const definition = normalizeLineRichMenuProviderDefinition(await safeProviderJson(details));
+    if (!definition) return { state: "provider_unavailable" };
+    const hash = lineRichMenuDefinitionHash(definition);
+    const v3Hash = lineRichMenuDefinitionHash(buildLineRichMenuProviderDefinition("line-rich-menu-v3"));
+    const v2Hash = lineRichMenuDefinitionHash(buildLineRichMenuProviderDefinition("line-rich-menu-v2"));
+    return {
+      state: "assigned",
+      providerRef,
+      version: hash === v3Hash ? "line-rich-menu-v3" : hash === v2Hash ? "line-rich-menu-v2" : "provider-custom",
+      definition,
+      hash,
     };
-    const matches =
-      value.name === LINE_RICH_MENU_V3.name
-      && value.chatBarText === LINE_RICH_MENU_V3.chatBarText
-      && value.size?.width === LINE_RICH_MENU_V3.size.width
-      && value.size?.height === LINE_RICH_MENU_V3.size.height
-      && Array.isArray(value.areas)
-      && value.areas.length === LINE_RICH_MENU_V3.areas.length;
-
-    return { state: matches ? "active_v3" : "active_other" };
   } catch {
     return { state: "provider_unavailable" };
   }
 }
 
+export async function readDefaultLineRichMenuStatus(
+  variables: Record<string, string | undefined> = process.env,
+  fetchImpl: typeof fetch = fetch,
+): Promise<LineRichMenuDefaultStatus> {
+  const snapshot = await readDefaultLineRichMenuSnapshot(variables, fetchImpl);
+  if (snapshot.state !== "assigned") return snapshot;
+  return { state: snapshot.version === "line-rich-menu-v3" ? "active_v3" : "active_other" };
+}
+
 function actionFor(item: RichMenuItem) {
   if (item.action === "uri") {
-    return { type: "uri", label: item.label, uri: item.uri };
+    return { type: "uri" as const, label: item.label, uri: item.uri };
   }
   return {
-    type: "postback",
+    type: "postback" as const,
     label: item.label,
     data: item.postbackData,
     displayText: item.label,
   };
 }
 
-export function buildLineRichMenuProviderDefinition() {
-  const itemById = new Map(LINE_RICH_MENU_ITEMS.map((item) => [item.id, item] as const));
+export function buildLineRichMenuProviderDefinition(
+  version: "line-rich-menu-v2" | "line-rich-menu-v3" = "line-rich-menu-v3",
+): LineRichMenuProviderDefinition {
+  const source = version === "line-rich-menu-v3" ? LINE_RICH_MENU_V3 : {
+    ...LINE_RICH_MENU_V3,
+    ...LINE_RICH_MENU_V2,
+  };
+  const items = version === "line-rich-menu-v3" ? LINE_RICH_MENU_ITEMS : LINE_RICH_MENU_V2_ITEMS;
+  const itemById = new Map(items.map((item) => [item.id, item] as const));
   return {
-    size: LINE_RICH_MENU_V3.size,
-    selected: LINE_RICH_MENU_V3.selected,
-    name: LINE_RICH_MENU_V3.name,
-    chatBarText: LINE_RICH_MENU_V3.chatBarText,
-    areas: LINE_RICH_MENU_V3.areas.map((area) => {
+    size: source.size,
+    selected: source.selected,
+    name: source.name,
+    chatBarText: source.chatBarText,
+    areas: source.areas.map((area) => {
       const item = itemById.get(area.itemId);
       if (!item) throw new Error("LINE_RICH_MENU_DEFINITION_INVALID");
       return {
@@ -133,6 +224,37 @@ export function buildLineRichMenuProviderDefinition() {
       };
     }),
   };
+}
+
+export async function assignDefaultLineRichMenu(
+  providerRef: string,
+  variables: Record<string, string | undefined> = process.env,
+  fetchImpl: typeof fetch = fetch,
+) {
+  const readiness = getLineRichMenuProviderReadiness(variables);
+  const token = variables.CCPUN_LINE_CHANNEL_ACCESS_TOKEN?.trim();
+  if (!readiness.tokenPresent || !readiness.providerWriteEnabled || !token) {
+    return { ok: false as const, status: "not_configured" as const };
+  }
+  if (!/^richmenu-[A-Za-z0-9_-]+$/.test(providerRef)) {
+    return { ok: false as const, status: "invalid_provider_ref" as const };
+  }
+  try {
+    const assigned = await fetchImpl(
+      `${LINE_API}/v2/bot/user/all/richmenu/${encodeURIComponent(providerRef)}`,
+      {
+        method: "POST",
+        redirect: "error",
+        signal: AbortSignal.timeout(7_000),
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    return assigned.ok
+      ? { ok: true as const, status: "assigned" as const }
+      : { ok: false as const, status: "assign_failed" as const, providerStatusCode: assigned.status };
+  } catch {
+    return { ok: false as const, status: "reconciliation_required" as const };
+  }
 }
 
 function providerHeaders(token: string, contentType = "application/json") {

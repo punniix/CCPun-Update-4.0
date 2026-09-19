@@ -57,7 +57,10 @@ export async function PUT(request: Request) {
 
   try {
     const result = await saveLineDiscoveryCuration(body, identity.actor);
-    return NextResponse.json({ status: "saved", revision: result.revision }, { headers });
+    return NextResponse.json({
+      status: "saved",
+      revision: result.revision,
+    }, { headers });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (code === "LINE_DISCOVERY_INVALID") {

@@ -16,12 +16,19 @@ export function LineProviderActivationActions({
   systemDeliveryReady,
   driveInteractiveReady,
   pendingFileCount,
+  controlState,
 }: {
   richMenuState: RichMenuState;
   richMenuReady: boolean;
   systemDeliveryReady: boolean;
   driveInteractiveReady: boolean;
   pendingFileCount: number;
+  controlState: {
+    desiredMode: "hold" | "reconcile" | "rollback";
+    state: "hold" | "pending" | "leased" | "mutating" | "verified" | "reconciliation_required" | "failed" | "blocked";
+    rowVersion: number;
+    rollbackAvailable: boolean;
+  } | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -39,7 +46,11 @@ export function LineProviderActivationActions({
       const response = await fetch("/api/admin/line/rich-menu/activate/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmation: "activate-ccpun-rich-menu-v3" }),
+        body: JSON.stringify({
+          confirmation: "activate-ccpun-rich-menu-v3",
+          expectedVersion: controlState?.rowVersion,
+          idempotencyKey: `admin:${crypto.randomUUID()}`,
+        }),
       });
       const payload = await response.json().catch(() => ({})) as {
         status?: string;
@@ -57,11 +68,7 @@ export function LineProviderActivationActions({
         }
         throw new Error("ยังเปิด Rich Menu ไม่สำเร็จ ลองใหม่อีกครั้ง");
       }
-      setMessage(
-        payload.status === "already-active"
-          ? "Rich Menu หลักเปิดใช้งานอยู่แล้ว"
-          : "เปิด Rich Menu หลักแล้ว กรุณาเช็ก @ccpun บนมือถืออีกครั้ง",
-      );
+      setMessage("รับคำสั่งแล้ว ระบบจะอ่านกลับจาก LINE และยืนยันสถานะก่อนถือว่าสำเร็จ");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "ยังเปิด Rich Menu ไม่สำเร็จ");
@@ -70,9 +77,53 @@ export function LineProviderActivationActions({
     }
   }
 
+  async function submitControlCommand(command: "hold" | "rollback") {
+    if (!controlState) return;
+    const wording = command === "hold"
+      ? "หยุดการ reconcile Rich Menu โดยไม่เปลี่ยนหรือย้อนสถานะที่ LINE ใช้อยู่ ยืนยันหรือไม่?"
+      : "คืน Rich Menu ไปยัง provider state ก่อนหน้าที่ระบบอ่านกลับและอนุมัติไว้ ยืนยันหรือไม่?";
+    if (!window.confirm(wording)) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const confirmation = command === "hold"
+        ? "hold-line-rich-menu-reconciliation"
+        : "restore-approved-previous-rich-menu";
+      const response = await fetch("/api/admin/control/commands/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resource: "line.rich_menu.default",
+          command,
+          expectedVersion: controlState.rowVersion,
+          idempotencyKey: `admin:${crypto.randomUUID()}`,
+          confirmation,
+        }),
+      });
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) {
+        if (payload.error === "provider-operation-in-progress") {
+          throw new Error("provider operation กำลังอยู่ในช่วง mutation กรุณารอ readback แล้วลองอีกครั้ง");
+        }
+        if (payload.error === "stale-version") {
+          throw new Error("สถานะเปลี่ยนจากหน้าเดิมแล้ว กรุณาโหลดหน้าใหม่");
+        }
+        throw new Error("ยังส่งคำสั่งไม่ได้");
+      }
+      setMessage(command === "hold"
+        ? "หยุด reconcile แล้ว โดยไม่ได้ rollback provider"
+        : "รับคำสั่ง rollback แล้ว ระบบจะตรวจ readback ก่อนยืนยันผล");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ยังส่งคำสั่งไม่ได้");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const richMenuActive = richMenuState === "active_v3";
   const richMenuButtonDisabled =
-    busy || richMenuActive || !richMenuReady || richMenuState === "provider_unavailable";
+    busy || richMenuActive || !richMenuReady || !controlState || richMenuState === "provider_unavailable";
 
   return (
     <section className="rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.05] p-5 md:p-6">
@@ -122,6 +173,29 @@ export function LineProviderActivationActions({
                   ? "เปลี่ยนเป็นเมนู CCPun หลัก"
                   : "เปิด Rich Menu หลัก"}
           </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy || !controlState || controlState.desiredMode === "hold"}
+              onClick={() => void submitControlCommand("hold")}
+              className="min-h-11 rounded-xl border border-white/10 px-4 text-sm text-white/70 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              หยุด reconcile
+            </button>
+            <button
+              type="button"
+              disabled={busy || !controlState?.rollbackAvailable}
+              onClick={() => void submitControlCommand("rollback")}
+              className="min-h-11 rounded-xl border border-amber-200/20 px-4 text-sm text-amber-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Rollback ที่อนุมัติไว้
+            </button>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-white/45">
+            Control Plane: {controlState
+              ? `${controlState.desiredMode} · ${controlState.state} · v${controlState.rowVersion}`
+              : "ยังไม่พร้อม"}
+          </p>
         </article>
 
         <article className="rounded-2xl border border-white/10 bg-black/15 p-4">

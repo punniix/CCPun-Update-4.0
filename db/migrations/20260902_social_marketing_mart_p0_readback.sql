@@ -10,7 +10,27 @@ SELECT
   to_regclass('ccpun_social.post_metric_status') IS NOT NULL AS metric_status_view_ok,
   to_regclass('ccpun_social.post_performance_snapshot') IS NOT NULL AS performance_view_ok,
   to_regclass('ccpun_social.post_data_quality') IS NOT NULL AS data_quality_view_ok,
-  (SELECT count(*) = 12 FROM ccpun_social.social_metric_capability WHERE provider='meta') AS meta_capability_seed_ok,
+  NOT EXISTS (
+    SELECT seed.platform, seed.metric_key
+    FROM (VALUES
+      ('facebook','reactions_total'),
+      ('facebook','comments_total'),
+      ('facebook','shares'),
+      ('facebook','reach'),
+      ('facebook','impressions'),
+      ('facebook','saves'),
+      ('instagram','likes'),
+      ('instagram','comments_total'),
+      ('instagram','shares'),
+      ('instagram','saves'),
+      ('instagram','reach'),
+      ('instagram','impressions')
+    ) AS seed(platform,metric_key)
+    EXCEPT
+    SELECT capability.platform, capability.metric_key
+    FROM ccpun_social.social_metric_capability AS capability
+    WHERE capability.provider='meta'
+  ) AS meta_capability_seed_ok,
   has_table_privilege('ccpun_social_runtime','ccpun_social.social_metric_capability','SELECT') AS runtime_capability_read_ok,
   has_table_privilege('ccpun_social_runtime','ccpun_social.social_data_quality_review','SELECT') AS runtime_qa_read_ok,
   has_table_privilege('ccpun_social_runtime','ccpun_social.marketing_content_current','SELECT') AS runtime_content_view_read_ok,
