@@ -3,10 +3,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
-import { LINE_RICH_MENU_V1 } from "../../line/ecosystem";
+import { LINE_RICH_MENU_V2 } from "../../line/ecosystem";
 
-const EXPECTED_SHA256 = "4d8c51ff24ed0a619147a846d9d22872c67dd61c7f756c2c671393cd9b52b5a8";
-const ASSET_URL = new URL("./assets/ccpun-line-rich-menu-v1.png", import.meta.url);
+const EXPECTED_SHA256 = "90a9f83019873af466c410a36ed61c9445e7f3ec736483673b5bbff6c8e63f40";
+const ASSET_URL = new URL("./assets/ccpun-line-rich-menu-v2.png", import.meta.url);
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 function pngDimension(buffer: Buffer, offset: number) {
@@ -14,9 +14,9 @@ function pngDimension(buffer: Buffer, offset: number) {
   return buffer.readUInt32BE(offset);
 }
 
-export async function loadLineRichMenuV1Asset() {
+export async function loadLineRichMenuV2Asset() {
   const bytes = await readFile(ASSET_URL);
-  if (bytes.length <= 0 || bytes.length > LINE_RICH_MENU_V1.image.maxBytes) {
+  if (bytes.length <= 0 || bytes.length > LINE_RICH_MENU_V2.image.maxBytes) {
     throw new Error("LINE_RICH_MENU_ASSET_SIZE_INVALID");
   }
   if (!bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
@@ -24,7 +24,7 @@ export async function loadLineRichMenuV1Asset() {
   }
   const width = pngDimension(bytes, 16);
   const height = pngDimension(bytes, 20);
-  if (width !== LINE_RICH_MENU_V1.image.width || height !== LINE_RICH_MENU_V1.image.height) {
+  if (width !== LINE_RICH_MENU_V2.image.width || height !== LINE_RICH_MENU_V2.image.height) {
     throw new Error("LINE_RICH_MENU_ASSET_DIMENSIONS_INVALID");
   }
   const digest = createHash("sha256").update(bytes).digest("hex");
@@ -33,7 +33,7 @@ export async function loadLineRichMenuV1Asset() {
   }
 
   return {
-    blob: new Blob([bytes], { type: LINE_RICH_MENU_V1.image.format }),
+    blob: new Blob([bytes], { type: LINE_RICH_MENU_V2.image.format }),
     sha256: digest,
     byteSize: bytes.length,
     width,
@@ -41,4 +41,4 @@ export async function loadLineRichMenuV1Asset() {
   };
 }
 
-export const LINE_RICH_MENU_V1_ASSET_SHA256 = EXPECTED_SHA256;
+export const LINE_RICH_MENU_V2_ASSET_SHA256 = EXPECTED_SHA256;
