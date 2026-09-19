@@ -6,12 +6,10 @@ const WIDTH = 2500;
 const HEIGHT = 1686;
 const ROW = 843;
 const cells = [
-  { x: 0, y: 0, w: 833, h: ROW, label: "เรื่องน่ารู้", icon: "book", fontSize: 84 },
-  { x: 833, y: 0, w: 833, h: ROW, label: "ลองเช็ก", icon: "tools", fontSize: 94 },
-  { x: 1666, y: 0, w: 834, h: ROW, label: "ประกันชีวิต", icon: "shield", fontSize: 84 },
-  { x: 0, y: ROW, w: 833, h: ROW, label: "เรื่องลงทุน", icon: "chart", fontSize: 84 },
-  { x: 833, y: ROW, w: 833, h: ROW, label: "ประกันรถ", icon: "car", fontSize: 92 },
-  { x: 1666, y: ROW, w: 834, h: ROW, label: "คุยกับปั้น", icon: "chat", fontSize: 84 },
+  { x: 0, y: 0, w: 1250, h: ROW, label: "ประกันชีวิต", icon: "shield", fontSize: 104 },
+  { x: 1250, y: 0, w: 1250, h: ROW, label: "ประกันรถ", icon: "car", fontSize: 104 },
+  { x: 0, y: ROW, w: 1250, h: ROW, label: "เรื่องลงทุน", icon: "chart", fontSize: 104 },
+  { x: 1250, y: ROW, w: 1250, h: ROW, label: "คุยกับปั้น", icon: "chat", fontSize: 104 },
 ];
 
 function esc(value) {
@@ -81,7 +79,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${
 
 const outDir = path.resolve("lib/admin/line/assets");
 await mkdir(outDir, { recursive: true });
-const outPath = path.join(outDir, "ccpun-line-rich-menu-v2.png");
+const outPath = path.join(outDir, "ccpun-line-rich-menu-v3.png");
 const png = await sharp(Buffer.from(svg))
   .png({ compressionLevel: 9, palette: true, colours: 64 })
   .toBuffer();
