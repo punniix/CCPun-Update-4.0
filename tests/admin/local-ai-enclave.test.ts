@@ -10,8 +10,9 @@ import {
   expectedDataClass,
   parseLocalAiTaskInput,
   parseLocalAiTaskOutput,
+  parseLocalAiTaskResult,
 } from "../../lib/local-ai/contracts";
-import { createLocalAiPayloadCrypto, getLocalAiCryptoStatus } from "../../lib/local-ai/crypto";
+import { createLocalAiPayloadCrypto, createLocalAiRequestFingerprint, getLocalAiCryptoStatus } from "../../lib/local-ai/crypto";
 import { isN8nLocalAiRequestAuthorized } from "../../lib/admin/local-ai/service-auth";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -86,10 +87,82 @@ test("worker and compose preserve the private model boundary", () => {
 test("Admin read model never selects encrypted envelope fields", () => {
   const database = read("lib/admin/local-ai/database.ts");
   const page = read("features/admin/operations/LocalAiPage.tsx");
+  const migration = read("db/migrations/20260920_local_ai_production_operations_v2_uat.sql");
   assert.doesNotMatch(database, /SELECT[^\n]*(?:ciphertext_b64|nonce_b64|auth_tag_b64)/i);
   assert.doesNotMatch(page, /job\.output/);
+  assert.match(page, /readLocalAiReviewQueue/);
+  assert.match(page, /requireAdminPermission\("settings:read"\)/);
+  assert.match(page, /review\.output/);
+  assert.match(page, /role="alert"/);
+  assert.match(page, /workerFresh[\s\S]*ollamaReady[\s\S]*failed24h[\s\S]*oldestQueueSeconds/);
+  assert.match(migration, /admin_read_local_ai_jobs_v2[\s\S]*j\.model_name,NULL::jsonb,j\.review_status/);
+  assert.match(migration, /admin_read_local_ai_review_queue_v2[\s\S]*data_class='public-safe'[\s\S]*status='succeeded'[\s\S]*review_status='pending'/);
+  assert.doesNotMatch(migration, /REVOKE EXECUTE ON FUNCTION ccpun_admin\.admin_(?:enqueue_local_ai_job|read_local_ai_jobs|read_local_ai_job|read_local_ai_health)\b/);
+  assert.match(database, /readLocalAiReviewQueue[\s\S]*try \{[\s\S]*catch \{[\s\S]*return \[\]/);
   assert.match(page, /ไม่แสดงข้อความต้นฉบับ กุญแจ หรือข้อมูลส่วนตัวของลูกค้า/);
   assert.doesNotMatch(page, />Control plane<|>Private worker<|>Queue \/ Active<|>Recent Local AI jobs</);
+});
+
+test("public-safe outputs require semantic validation and human review", () => {
+  const contentInput = {
+    locale: "th-TH",
+    title: "ประกันสุขภาพ",
+    body: "ข้อมูลสาธารณะสำหรับเตรียมบทความ",
+    allowedCategories: ["health", "tax"],
+  };
+  assert.equal(parseLocalAiTaskResult("content-operations", contentInput, {
+    category: "health",
+    tags: ["ประกันสุขภาพ"],
+    slugSuggestion: "health-insurance",
+    excerpt: "สรุปเนื้อหาสำหรับคนตรวจ",
+    faqCandidates: [],
+    reviewRequired: true,
+  }).success, true);
+  assert.equal(parseLocalAiTaskResult("content-operations", contentInput, {
+    category: "investment",
+    tags: ["ประกันสุขภาพ"],
+    slugSuggestion: "health-insurance",
+    excerpt: "สรุปเนื้อหาสำหรับคนตรวจ",
+    faqCandidates: [],
+    reviewRequired: true,
+  }).success, false);
+  assert.equal(parseLocalAiTaskOutput("content-operations", {
+    category: "health",
+    tags: ["ประกันสุขภาพ"],
+    slugSuggestion: "health-insurance",
+    excerpt: "สรุปเนื้อหาสำหรับคนตรวจ",
+    faqCandidates: [],
+    reviewRequired: false,
+  }).success, false);
+});
+
+test("payload-bound idempotency fingerprint is canonical and conflict-sensitive", () => {
+  const first = createLocalAiRequestFingerprint("seo-preprocessing", {
+    locale: "th-TH",
+    queries: [{ query: "ประกันสุขภาพ", page: "/health/" }],
+  });
+  const replay = createLocalAiRequestFingerprint("seo-preprocessing", {
+    queries: [{ page: "/health/", query: "ประกันสุขภาพ" }],
+    locale: "th-TH",
+  });
+  const changed = createLocalAiRequestFingerprint("seo-preprocessing", {
+    locale: "th-TH",
+    queries: [{ query: "ประกันชีวิต", page: "/life/" }],
+  });
+  assert.equal(first, replay);
+  assert.notEqual(first, changed);
+});
+
+test("rolling cutover keeps v1 diagnostics while pre-v2 review stays empty", () => {
+  const database = read("lib/admin/local-ai/database.ts");
+  const migration = read("db/migrations/20260920_local_ai_production_operations_v2_uat.sql");
+  const readback = read("db/migrations/20260920_local_ai_production_operations_v2_uat_readback.sql");
+  assert.doesNotMatch(migration, /REVOKE EXECUTE ON FUNCTION ccpun_admin\.admin_(?:enqueue_local_ai_job|read_local_ai_jobs|read_local_ai_job|read_local_ai_health)\b/);
+  assert.match(readback, /enqueue_v1_cutover_grant_ok/);
+  assert.match(readback, /jobs_v1_cutover_grant_ok/);
+  assert.match(readback, /bridge_v1_cutover_grant_ok/);
+  assert.match(readback, /health_v1_cutover_grant_ok/);
+  assert.match(database, /readLocalAiReviewQueue[\s\S]*try \{[\s\S]*catch \{[\s\S]*return \[\]/);
 });
 
 test("n8n bridge is token-gated and can enqueue only public-safe tasks", () => {
@@ -102,6 +175,15 @@ test("n8n bridge is token-gated and can enqueue only public-safe tasks", () => {
   assert.match(enqueueRoute, /z\.literal\("content-operations"\)/);
   assert.match(enqueueRoute, /z\.literal\("seo-preprocessing"\)/);
   assert.doesNotMatch(enqueueRoute, /z\.literal\("(?:line-intent|privacy-redaction)"\)/);
-  const resultRoute = read("apps/admin/app/api/internal/local-ai/jobs/[jobId]/route.ts");
-  assert.match(resultRoute, /job\.status === "succeeded" \? job\.output : null/);
+  const resultRoute = read("apps/admin/app/api/internal/local-ai/reviews/route.ts");
+  const ownerReviewRoute = read("apps/admin/app/api/admin/local-ai/review/route.ts");
+  assert.match(resultRoute, /job\.reviewStatus === "approved" \? job\.output : null/);
+  assert.match(resultRoute, /job\.dataClass !== "public-safe"/);
+  assert.match(resultRoute, /status: waiting \? "awaiting-review" : job\.status/);
+  assert.match(ownerReviewRoute, /identity\.role !== "owner"/);
+  for (const file of [
+    "apps/admin/app/api/internal/local-ai/reviews/route.ts",
+    "apps/admin/app/api/internal/local-ai/operations/health/route.ts",
+    "apps/admin/app/api/internal/local-ai/operations/incidents/route.ts",
+  ]) assert.match(read(file), /isN8nLocalAiRequestAuthorized/);
 });

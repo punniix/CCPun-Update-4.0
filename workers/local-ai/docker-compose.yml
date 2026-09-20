@@ -40,6 +40,7 @@ services:
     environment:
       OLLAMA_BASE_URL: http://ollama:11434/
       OLLAMA_MODEL: qwen3:1.7b
+      CCPUN_LOCAL_AI_PRIVATE_JOBS_ENABLED: "false"
     networks: [model_private, egress]
     mem_limit: 512m
     read_only: true

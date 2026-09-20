@@ -8,6 +8,12 @@ export const LOCAL_AI_TASK_TYPES = [
 ] as const;
 
 export const LOCAL_AI_DATA_CLASSES = ["public-safe", "customer-private"] as const;
+export const LOCAL_AI_QUEUE_CLASSES = ["urgent", "batch"] as const;
+export const LOCAL_AI_QUEUE_POLICY = {
+  urgent: { priority: 80, deadlineSeconds: 900 },
+  batch: { priority: 20, deadlineSeconds: 21_600 },
+} as const;
+export const LOCAL_AI_REVIEW_STATUSES = ["pending", "approved", "rejected"] as const;
 export const LOCAL_AI_JOB_STATUSES = [
   "queued",
   "leased",
@@ -19,10 +25,14 @@ export const LOCAL_AI_JOB_STATUSES = [
 
 export type LocalAiTaskType = (typeof LOCAL_AI_TASK_TYPES)[number];
 export type LocalAiDataClass = (typeof LOCAL_AI_DATA_CLASSES)[number];
+export type LocalAiQueueClass = (typeof LOCAL_AI_QUEUE_CLASSES)[number];
+export type LocalAiReviewStatus = (typeof LOCAL_AI_REVIEW_STATUSES)[number];
 export type LocalAiJobStatus = (typeof LOCAL_AI_JOB_STATUSES)[number];
 
 export const localAiTaskTypeSchema = z.enum(LOCAL_AI_TASK_TYPES);
 export const localAiDataClassSchema = z.enum(LOCAL_AI_DATA_CLASSES);
+export const localAiQueueClassSchema = z.enum(LOCAL_AI_QUEUE_CLASSES);
+export const localAiReviewStatusSchema = z.enum(LOCAL_AI_REVIEW_STATUSES);
 export const localAiJobStatusSchema = z.enum(LOCAL_AI_JOB_STATUSES);
 
 const lineIntentInputSchema = z.object({
@@ -42,7 +52,7 @@ const contentOperationsInputSchema = z.object({
   title: z.string().min(1).max(300),
   body: z.string().min(1).max(30_000),
   canonicalPath: z.string().startsWith("/").max(500).optional(),
-  allowedCategories: z.array(z.string().min(1).max(80)).max(50),
+  allowedCategories: z.array(z.string().min(1).max(80)).min(1).max(50),
 }).strict();
 
 const seoPreprocessingInputSchema = z.object({
@@ -120,6 +130,7 @@ const contentOperationsOutputSchema = z.object({
     question: z.string().min(1).max(300),
     answerDraft: z.string().min(1).max(1_500),
   }).strict()).max(8),
+  reviewRequired: z.literal(true),
 }).strict();
 
 const seoPreprocessingOutputSchema = z.object({
@@ -128,7 +139,7 @@ const seoPreprocessingOutputSchema = z.object({
     intent: z.enum(["informational", "commercial", "transactional", "navigational", "mixed"]),
     queries: z.array(z.string().min(1).max(300)).min(1).max(100),
     ownerCandidate: z.string().startsWith("/").max(500).nullable(),
-    reviewRequired: z.boolean(),
+    reviewRequired: z.literal(true),
   }).strict()).max(100),
 }).strict();
 
@@ -170,6 +181,46 @@ export function parseLocalAiTaskOutput(taskType: LocalAiTaskType, value: unknown
   if (taskType === "line-intent") return lineIntentOutputSchema.safeParse(value);
   if (taskType === "content-operations") return contentOperationsOutputSchema.safeParse(value);
   return seoPreprocessingOutputSchema.safeParse(value);
+}
+
+export function parseLocalAiTaskResult(taskType: LocalAiTaskType, inputValue: unknown, outputValue: unknown) {
+  if (taskType === "content-operations") {
+    const input = contentOperationsInputSchema.safeParse(inputValue);
+    if (!input.success) return input;
+    const allowed = new Set(input.data.allowedCategories);
+    return contentOperationsOutputSchema.superRefine((output, context) => {
+      if (!allowed.has(output.category)) {
+        context.addIssue({ code: "custom", message: "category is outside allowedCategories", path: ["category"] });
+      }
+    }).safeParse(outputValue);
+  }
+
+  if (taskType === "seo-preprocessing") {
+    const input = seoPreprocessingInputSchema.safeParse(inputValue);
+    if (!input.success) return input;
+    const expectedQueries = new Map<string, number>();
+    const allowedOwners = new Set<string>();
+    for (const item of input.data.queries) {
+      expectedQueries.set(item.query, (expectedQueries.get(item.query) ?? 0) + 1);
+      if (item.page) allowedOwners.add(item.page);
+    }
+    return seoPreprocessingOutputSchema.superRefine((output, context) => {
+      const actualQueries = new Map<string, number>();
+      for (const cluster of output.clusters) {
+        for (const query of cluster.queries) actualQueries.set(query, (actualQueries.get(query) ?? 0) + 1);
+        if (cluster.ownerCandidate !== null && !allowedOwners.has(cluster.ownerCandidate)) {
+          context.addIssue({ code: "custom", message: "ownerCandidate is outside input pages", path: ["clusters"] });
+        }
+      }
+      if (expectedQueries.size !== actualQueries.size || [...expectedQueries].some(([query, count]) => actualQueries.get(query) !== count)) {
+        context.addIssue({ code: "custom", message: "queries must preserve the exact input multiset", path: ["clusters"] });
+      }
+    }).safeParse(outputValue);
+  }
+
+  const input = parseLocalAiTaskInput(taskType, inputValue);
+  if (!input.success) return input;
+  return parseLocalAiTaskOutput(taskType, outputValue);
 }
 
 export type LocalAiTaskInput = {
