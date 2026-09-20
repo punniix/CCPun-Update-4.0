@@ -66,7 +66,9 @@ export function isInternalServiceApiPath(pathname: string): boolean {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   return path === "/api/internal/line/rich-menu/reconcile"
     || path === "/api/internal/line/system-delivery/dispatch"
-    || isPathOrChild(path, "/api/internal/local-ai/jobs");
+    || isPathOrChild(path, "/api/internal/local-ai/jobs")
+    || isPathOrChild(path, "/api/internal/local-ai/reviews")
+    || isPathOrChild(path, "/api/internal/local-ai/operations");
 }
 
 export function classifyProductionAdminPath(pathname: string): ProductionAdminPathDisposition {
