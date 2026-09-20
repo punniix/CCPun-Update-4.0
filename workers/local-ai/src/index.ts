@@ -59,7 +59,7 @@ const instructions: Record<LocalAiTaskType, string> = {
   "privacy-redaction": "Replace every direct or sensitive identifier with typed placeholders such as [PHONE], [EMAIL], [PERSON], [ADDRESS], [POLICY_NUMBER], [HEALTH_DETAIL]. Preserve meaning but never copy an identifier into any output field.",
   "line-intent": "Classify intent for routing. Never reproduce, summarize, quote, or explain the customer text. Return only enum values, booleans, numeric confidence, productTags, and reasonCodes allowed by the schema.",
   "content-operations": "Classify and preprocess this public editorial draft. Do not invent claims. Return category, tags, a slug, excerpt, and concise FAQ candidates.",
-  "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Preserve every query string exactly once. Return exactly one JSON object with only this shape: {\"clusters\":[{\"label\":\"short label\",\"intent\":\"informational|commercial|transactional|navigational|mixed\",\"queries\":[\"exact input query\"],\"ownerCandidate\":\"/existing-input-page-or-null\",\"reviewRequired\":true}]}. ownerCandidate must be an input page beginning with / or null; use null when uncertain. Do not add keys or prose.",
+  "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Input queries are objects; output queries must contain only their exact query text as strings, never objects. Preserve every query string exactly once. Return exactly one JSON object with only this shape: {\"clusters\":[{\"label\":\"short label\",\"intent\":\"informational|commercial|transactional|navigational|mixed\",\"queries\":[\"exact input query\"],\"ownerCandidate\":\"/existing-input-page-or-null\",\"reviewRequired\":true}]}. ownerCandidate must copy an input page beginning with / or be null; use null when uncertain. Do not add keys or prose.",
 };
 
 function sha256(value: string) {
@@ -84,7 +84,7 @@ async function infer(baseUrl: string, model: string, taskType: LocalAiTaskType, 
     signal: AbortSignal.timeout(90_000),
     body: JSON.stringify({
       model, stream: false, think: false, format: z.toJSONSchema(localAiTaskOutputSchemas[taskType]), keep_alive: "5m",
-      options: { temperature: 0.1, num_ctx: 4096 },
+      options: { temperature: 0, num_ctx: 4096 },
       messages: [
         { role: "system", content: `You are a private offline CCPun processor. ${instructions[taskType]} Output one JSON object only.` },
         { role: "user", content: JSON.stringify(payload) },
@@ -134,7 +134,10 @@ async function main() {
         if (!input.success) throw new Error("DECRYPTED_INPUT_INVALID");
         const rawOutput = await infer(config.ollamaBaseUrl, config.model, job.task_type, input.data);
         const output = parseLocalAiTaskOutput(job.task_type, rawOutput);
-        if (!output.success) throw new Error("MODEL_OUTPUT_INVALID");
+        if (!output.success) {
+          safeLog("model-output-rejected", { jobId: job.job_id, taskType: job.task_type, issues: output.error.issues.slice(0, 12).map(({ code, path }) => `${path.join(".")}:${code}`).join(",") });
+          throw new Error("MODEL_OUTPUT_INVALID");
+        }
         const serialized = JSON.stringify(output.data);
         const completed = await sql.query("SELECT ccpun_admin.worker_complete_local_ai_job($1,$2,$3,$4::jsonb,$5) AS completed", [
           job.job_id,leaseDigest,config.model,serialized,sha256(serialized),
