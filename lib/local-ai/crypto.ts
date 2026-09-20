@@ -1,4 +1,5 @@
 import {
+  createHash,
   createCipheriv,
   createDecipheriv,
   randomBytes,
@@ -14,6 +15,21 @@ export type LocalAiEncryptedPayload = {
   nonceB64: string;
   authTagB64: string;
 };
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+export function createLocalAiRequestFingerprint(taskType: LocalAiTaskType, payload: unknown) {
+  return createHash("sha256").update(`${taskType}:${canonicalJson(payload)}`, "utf8").digest("hex");
+}
 
 function decodeKey(value: string | undefined): Buffer {
   const normalized = value?.trim();
