@@ -32,6 +32,9 @@ test("Production Admin allows only Control Plane, Auth, Studio and bootstrap rou
     "/api/internal/line/rich-menu/reconcile",
     "/api/internal/line/system-delivery/dispatch/",
     "/api/internal/local-ai/jobs/00000000-0000-4000-8000-000000000000/",
+    "/api/internal/local-ai/reviews/",
+    "/api/internal/local-ai/operations/health/",
+    "/api/internal/local-ai/operations/incidents/",
     "/_next/static/chunks/app.js",
     "/_next/image",
     "/favicon.ico",
@@ -48,6 +51,9 @@ test("internal service allowlist is exact and handler-authenticated", () => {
     "/api/internal/line/system-delivery/dispatch",
     "/api/internal/local-ai/jobs",
     "/api/internal/local-ai/jobs/00000000-0000-4000-8000-000000000000",
+    "/api/internal/local-ai/reviews",
+    "/api/internal/local-ai/operations/health",
+    "/api/internal/local-ai/operations/incidents",
   ]) {
     assert.equal(isInternalServiceApiPath(path), true, path);
     assert.equal(classifyProductionAdminPath(path), "allow", path);
@@ -58,6 +64,8 @@ test("internal service allowlist is exact and handler-authenticated", () => {
     "/api/internal/line/rich-menu",
     "/api/internal/line/rich-menu/reconcile-now",
     "/api/internal/local-ai/config",
+    "/api/internal/local-ai/review",
+    "/api/internal/local-ai/operation",
     "/api/internal/unknown",
   ]) {
     assert.equal(isInternalServiceApiPath(path), false, path);
