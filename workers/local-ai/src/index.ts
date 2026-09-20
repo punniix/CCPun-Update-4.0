@@ -58,7 +58,7 @@ const instructions: Record<LocalAiTaskType, string> = {
   "privacy-redaction": "Replace every direct or sensitive identifier with typed placeholders such as [PHONE], [EMAIL], [PERSON], [ADDRESS], [POLICY_NUMBER], [HEALTH_DETAIL]. Preserve meaning but never copy an identifier into any output field.",
   "line-intent": "Classify intent for routing. Never reproduce, summarize, quote, or explain the customer text. Return only enum values, booleans, numeric confidence, productTags, and reasonCodes allowed by the schema.",
   "content-operations": "Classify and preprocess this public editorial draft. Do not invent claims. Return category, tags, a slug, excerpt, and concise FAQ candidates.",
-  "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Preserve query strings exactly only inside their assigned cluster.",
+  "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Preserve every query string exactly once. Return exactly one JSON object with only this shape: {\"clusters\":[{\"label\":\"short label\",\"intent\":\"informational|commercial|transactional|navigational|mixed\",\"queries\":[\"exact input query\"],\"ownerCandidate\":\"/existing-input-page-or-null\",\"reviewRequired\":true}]}. ownerCandidate must be an input page beginning with / or null; use null when uncertain. Do not add keys or prose.",
 };
 
 function sha256(value: string) {
