@@ -26,7 +26,7 @@ test("isolated Vercel app roots preserve monorepo install and affected-build rou
     if (relativePath === "apps/admin/vercel.json") {
       assert.deepEqual(config.crons, [
         { path: "/api/admin/social/worker", schedule: "*/5 * * * *" },
-        { path: "/api/internal/line/rich-menu/reconcile", schedule: "*/5 * * * *" },
+        { path: "/api/internal/line/rich-menu/reconcile/", schedule: "*/5 * * * *" },
       ], "Admin owns bounded Social and LINE desired-state reconciliation crons only");
     } else {
       assert.equal(Object.hasOwn(config, "crons"), false, `${relativePath} must not own Admin operational cron jobs`);

@@ -50,7 +50,7 @@ test("cron is authenticated and reconciliation is a durable single writer", () =
   assert.match(reconciler, /readDefaultLineRichMenuSnapshot/);
   assert.match(reconciler, /readback_mismatch_after_mutation/);
   assert.ok(vercel.crons?.some((cron) =>
-    cron.path === "/api/internal/line/rich-menu/reconcile"
+    cron.path === "/api/internal/line/rich-menu/reconcile/"
     && cron.schedule === "*/5 * * * *"
   ));
 });
