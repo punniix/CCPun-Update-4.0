@@ -31,6 +31,21 @@ test("Rich Menu v1 rollback PNG remains deterministic and LINE-sized", () => {
   );
 });
 
+test("Rich Menu v3 ships as a readable pre-rendered PNG", () => {
+  const file = readFileSync(path.join(root, "lib/admin/line/assets/ccpun-line-rich-menu-v3.png"));
+  const loader = read("lib/admin/line/rich-menu-asset.ts");
+  assert.equal(file.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.equal(file.readUInt32BE(16), LINE_RICH_MENU_V3.image.width);
+  assert.equal(file.readUInt32BE(20), LINE_RICH_MENU_V3.image.height);
+  assert.ok(file.byteLength <= LINE_RICH_MENU_V3.image.maxBytes);
+  assert.equal(
+    createHash("sha256").update(file).digest("hex"),
+    "60a118c686a972373e4673a41603a3ad7b54c313a99628d281258d2860642fa1",
+  );
+  assert.match(loader, /readFile\(SOURCE_V3_URL\)/);
+  assert.doesNotMatch(loader, /sharp\(Buffer\.from\(v3Svg\(\)\)\)/);
+});
+
 test("Rich Menu v3 asset script keeps Website 4.3 colors and four need-first labels", () => {
   const source = read("scripts/build-line-rich-menu-asset.mjs");
   for (const label of ["ประกันชีวิต", "ประกันรถ", "เรื่องลงทุน", "คุยกับปั้น"]) {
@@ -43,9 +58,14 @@ test("Rich Menu v3 asset script keeps Website 4.3 colors and four need-first lab
   assert.match(source, /2500/);
   assert.match(source, /1686/);
   assert.match(source, /1250/);
+  assert.match(source, /fontSize: 140/);
+  assert.match(source, /cell\.h\/2 - 150/);
+  assert.doesNotMatch(source, /font-size="34"/);
 });
 
 test("Rich Menu v3 exposes four locked journey postbacks only", () => {
+  assert.equal(LINE_RICH_MENU_V3.name, "CCPun Main v3.1");
+  assert.equal(LINE_RICH_MENU_V3.image.assetKey, "ccpun-line-rich-menu-v3-readable-1");
   assert.equal(LINE_RICH_MENU_ITEMS.length, 4);
   assert.deepEqual(
     LINE_RICH_MENU_ITEMS.map((item) => [item.id, item.label]),

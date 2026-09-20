@@ -135,14 +135,14 @@ export const LINE_RICH_MENU_V3 = {
   version: "line-rich-menu-v3",
   size: { width: 2500, height: 1686 },
   selected: false,
-  name: "CCPun Main v3",
+  name: "CCPun Main v3.1",
   chatBarText: "เมนู CCPun",
   image: {
     format: "image/png",
     width: 2500,
     height: 1686,
     maxBytes: 1_000_000,
-    assetKey: "ccpun-line-rich-menu-v3",
+    assetKey: "ccpun-line-rich-menu-v3-readable-1",
   },
   areas: [
     { itemId: "insurance", bounds: { x: 0, y: 0, width: 1250, height: 843 } },

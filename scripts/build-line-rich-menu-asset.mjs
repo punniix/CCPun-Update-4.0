@@ -6,10 +6,10 @@ const WIDTH = 2500;
 const HEIGHT = 1686;
 const ROW = 843;
 const cells = [
-  { x: 0, y: 0, w: 1250, h: ROW, label: "ประกันชีวิต", icon: "shield", fontSize: 104 },
-  { x: 1250, y: 0, w: 1250, h: ROW, label: "ประกันรถ", icon: "car", fontSize: 104 },
-  { x: 0, y: ROW, w: 1250, h: ROW, label: "เรื่องลงทุน", icon: "chart", fontSize: 104 },
-  { x: 1250, y: ROW, w: 1250, h: ROW, label: "คุยกับปั้น", icon: "chat", fontSize: 104 },
+  { x: 0, y: 0, w: 1250, h: ROW, label: "ประกันชีวิต", icon: "shield", fontSize: 140 },
+  { x: 1250, y: 0, w: 1250, h: ROW, label: "ประกันรถ", icon: "car", fontSize: 140 },
+  { x: 0, y: ROW, w: 1250, h: ROW, label: "เรื่องลงทุน", icon: "chart", fontSize: 140 },
+  { x: 1250, y: ROW, w: 1250, h: ROW, label: "คุยกับปั้น", icon: "chat", fontSize: 140 },
 ];
 
 function esc(value) {
@@ -65,13 +65,12 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${
   <rect width="${WIDTH}" height="${HEIGHT}" fill="#251818"/>
   ${cells.map((cell, index) => {
     const cx = cell.x + cell.w/2;
-    const cy = cell.y + cell.h/2 - 80;
+    const cy = cell.y + cell.h/2 - 150;
     const fill = index % 2 === 0 ? "#352727" : "#302222";
     return `<g>
       <rect x="${cell.x+8}" y="${cell.y+8}" width="${cell.w-16}" height="${cell.h-16}" rx="34" fill="${fill}" stroke="#5b4848" stroke-width="4"/>
-      <text x="${cell.x+52}" y="${cell.y+76}" fill="#e0c985" font-size="34" font-weight="700" font-family="Kanit, Thonburi, Arial, sans-serif" letter-spacing="1.5">CCPun</text>
       ${icon(cell.icon, cx, cy)}
-      <text x="${cx}" y="${cell.y+650}" text-anchor="middle" fill="#faf9f9" font-size="${cell.fontSize}" font-weight="600" font-family="Kanit, Thonburi, Arial, sans-serif">${esc(cell.label)}</text>
+      <text x="${cx}" y="${cell.y+660}" text-anchor="middle" fill="#faf9f9" font-size="${cell.fontSize}" font-weight="700" font-family="Thonburi, Noto Sans Thai, Arial, sans-serif">${esc(cell.label)}</text>
       <circle cx="${cx}" cy="${cell.y+730}" r="7" fill="#e0c985"/>
     </g>`;
   }).join("")}
