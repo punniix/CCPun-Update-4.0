@@ -140,7 +140,7 @@ function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
       type: "image",
       url: article.featuredImage.src,
       size: "full",
-      aspectRatio: "20:13",
+      aspectRatio: "1.91:1",
       aspectMode: "cover",
     };
   }

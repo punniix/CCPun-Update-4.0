@@ -100,6 +100,7 @@ test("Flex builder creates article bubbles only from selected published content"
   assert.equal(message?.contents.contents.length, 1);
   const serialized = JSON.stringify(message);
   assert.match(serialized, /อ่านต่อบน CCPun/);
+  assert.match(serialized, /"aspectRatio":"1\.91:1"/);
   assert.match(serialized, /utm_medium=flex_message/);
   assert.doesNotMatch(serialized, /line_user_id|lead_id|customer_id/);
 });
