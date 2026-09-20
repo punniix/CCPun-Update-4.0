@@ -40,6 +40,11 @@ ALTER TABLE ccpun_admin.local_ai_job ALTER COLUMN deadline_at SET NOT NULL;
 ALTER TABLE ccpun_admin.local_ai_job ALTER COLUMN next_attempt_at SET DEFAULT now();
 ALTER TABLE ccpun_admin.local_ai_job ALTER COLUMN next_attempt_at SET NOT NULL;
 ALTER TABLE ccpun_admin.local_ai_job ALTER COLUMN request_fingerprint SET NOT NULL;
+ALTER TABLE ccpun_admin.local_ai_job ALTER COLUMN max_attempts SET DEFAULT 3;
+
+UPDATE ccpun_admin.local_ai_job
+SET max_attempts=3
+WHERE status IN ('queued','leased') AND max_attempts<3;
 
 DO $constraints$
 BEGIN
