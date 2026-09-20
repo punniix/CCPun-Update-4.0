@@ -155,6 +155,8 @@ test("v2 queue migration enforces payload replay, cap, deadlines, and review sta
     assert.match(migration, /queue_class/);
     assert.match(migration, /deadline_at/);
     assert.match(migration, /next_attempt_at/);
+    assert.match(migration, /ALTER COLUMN max_attempts SET DEFAULT 3/);
+    assert.match(migration, /status IN \('queued','leased'\) AND max_attempts<3/);
     assert.match(migration, /review_status/);
     assert.match(migration, /idempotency-conflict/);
     assert.match(migration, /backpressure/);
