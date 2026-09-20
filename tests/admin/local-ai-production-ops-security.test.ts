@@ -162,6 +162,8 @@ test("v2 queue migration enforces payload replay, cap, deadlines, and review sta
     assert.match(migration, /'urgent'[\s\S]{0,160}\b80\b/);
     assert.match(migration, /'batch'[\s\S]{0,160}\b20\b/);
     assert.match(migration, /review_status[\s\S]{0,160}'pending'/);
+    assert.match(migration, /min\(created_at\) FILTER \(WHERE status='queued'\)/);
+    assert.doesNotMatch(migration, /EXTRACT\([^)]*min\(created_at\)\) FILTER/);
     assert.doesNotMatch(migration, /review_status\s*=\s*'approved'[\s\S]{0,120}WHERE\s+review_status\s+IS\s+NULL/i);
   }
 

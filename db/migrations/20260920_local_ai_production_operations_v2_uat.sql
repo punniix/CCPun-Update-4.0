@@ -212,7 +212,7 @@ WITH counts AS (
     count(*) FILTER (WHERE data_class='public-safe') AS public_safe_jobs,
     count(*) FILTER (WHERE status='succeeded' AND completed_at>=now()-interval '24 hours') AS succeeded_24h,
     count(*) FILTER (WHERE status IN ('failed','reconciliation-required') AND completed_at>=now()-interval '24 hours') AS failed_24h,
-    COALESCE(EXTRACT(epoch FROM now()-min(created_at)) FILTER (WHERE status='queued'),0)::bigint AS oldest_queue_seconds
+    COALESCE(EXTRACT(epoch FROM now()-(min(created_at) FILTER (WHERE status='queued'))),0)::bigint AS oldest_queue_seconds
   FROM ccpun_admin.local_ai_job
 ), durations AS (
   SELECT COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(epoch FROM completed_at-started_at)*1000),0)::bigint AS p50,
