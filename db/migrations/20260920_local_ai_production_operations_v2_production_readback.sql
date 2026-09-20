@@ -19,6 +19,14 @@ SELECT
   ) AS delayed_retry_present,
   EXISTS(
     SELECT 1 FROM information_schema.columns
+    WHERE table_schema='ccpun_admin' AND table_name='local_ai_job' AND column_name='max_attempts' AND column_default='3'
+  ) AS max_attempts_default_ok,
+  NOT EXISTS(
+    SELECT 1 FROM ccpun_admin.local_ai_job
+    WHERE status IN ('queued','leased') AND max_attempts<3
+  ) AS active_retry_budget_ok,
+  EXISTS(
+    SELECT 1 FROM information_schema.columns
     WHERE table_schema='ccpun_admin' AND table_name='local_ai_job' AND column_name='review_status'
   ) AS review_status_present,
   has_function_privilege('ccpun_admin_runtime','ccpun_admin.admin_enqueue_local_ai_job_v2(uuid,text,text,text,text,text,smallint,text,text,text,text)','EXECUTE') AS enqueue_v2_ok,
