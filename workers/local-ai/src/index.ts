@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import {
+  localAiTaskOutputSchemas,
   parseLocalAiTaskInput,
   parseLocalAiTaskOutput,
   type LocalAiTaskType,
@@ -82,7 +83,7 @@ async function infer(baseUrl: string, model: string, taskType: LocalAiTaskType, 
     headers: { "Content-Type": "application/json" },
     signal: AbortSignal.timeout(90_000),
     body: JSON.stringify({
-      model, stream: false, think: false, format: "json", keep_alive: "5m",
+      model, stream: false, think: false, format: z.toJSONSchema(localAiTaskOutputSchemas[taskType]), keep_alive: "5m",
       options: { temperature: 0.1, num_ctx: 4096 },
       messages: [
         { role: "system", content: `You are a private offline CCPun processor. ${instructions[taskType]} Output one JSON object only.` },
