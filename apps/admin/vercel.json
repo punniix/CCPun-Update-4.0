@@ -15,7 +15,7 @@
       "schedule": "*/5 * * * *"
     },
     {
-      "path": "/api/internal/line/rich-menu/reconcile",
+      "path": "/api/internal/line/rich-menu/reconcile/",
       "schedule": "*/5 * * * *"
     }
   ]
