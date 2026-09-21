@@ -36,7 +36,8 @@ const input = {
 const output = {
   mode: "line-card-description",
   source,
-  lineDescription: "สรุปวิธีเลือกความคุ้มครองและวงเงินให้เหมาะกับงบประมาณของครอบครัวก่อนตัดสินใจ",
+  lineTitle: "มีประกันสุขภาพแล้ว ควรเช็กวงเงินตรงไหนอีก?",
+  lineDescription: "ดูวิธีเทียบวงเงิน ความคุ้มครอง และงบประมาณ เพื่อเห็นจุดที่ควรทบทวนก่อนตัดสินใจ",
   reviewRequired: true,
 } as const;
 
@@ -45,6 +46,10 @@ test("line-card mode preserves exact Sanity identity and rejects unsafe output",
   assert.equal(parseLocalAiTaskResult("content-operations", input, {
     ...output,
     source: { ...source, revision: "different-revision" },
+  }).success, false);
+  assert.equal(parseLocalAiTaskResult("content-operations", input, {
+    ...output,
+    lineTitle: "สั้น",
   }).success, false);
   assert.equal(parseLocalAiTaskResult("content-operations", input, {
     ...output,
@@ -75,6 +80,7 @@ test("LINE card prefers the dedicated description and stays compact", () => {
     slug: "health-planning",
     title: source.title,
     excerpt: "ข้อความ excerpt ที่ไม่ควรถูกเลือกเมื่อมีคำอธิบาย LINE",
+    lineTitle: output.lineTitle,
     lineDescription: output.lineDescription,
     category: "ประกันสุขภาพ",
     categorySlug: "health-insurance",
@@ -86,6 +92,7 @@ test("LINE card prefers the dedicated description and stays compact", () => {
     maxCards: 1,
     items: [{ slug: article.slug, enabled: true }],
   }));
+  assert.match(serialized, new RegExp(output.lineTitle));
   assert.match(serialized, new RegExp(output.lineDescription));
   assert.doesNotMatch(serialized, /ข้อความ excerpt/);
   assert.match(serialized, /"size":"kilo"/);
@@ -106,11 +113,14 @@ test("Sanity field is LINE-only and guarded apply never overwrites existing text
   const applyModule = read("lib/admin/line/description-optimization.ts");
   const reviewRoute = read("apps/admin/app/api/admin/local-ai/review/route.ts");
 
-  assert.match(articleSchema, /name: "lineDescription"[\s\S]*LINE[\s\S]*ไม่ใช่คำอธิบายที่ Google/);
+  assert.match(articleSchema, /name: "lineTitle"[\s\S]*การ์ด LINE[\s\S]*ไม่กระทบชื่อบทความหรือ SEO/);
+  assert.match(articleSchema, /name: "lineDescription"[\s\S]*การ์ด LINE[\s\S]*ไม่กระทบ Google/);
   assert.match(contentRuntime, /seoDescription = raw\.seo\?\.description/);
   assert.doesNotMatch(contentRuntime, /seoDescription\s*=\s*raw\.lineDescription|seoDescription:\s*raw\.lineDescription/);
-  assert.match(applyModule, /if \(existing\) return "skipped-existing"/);
-  assert.match(applyModule, /\.ifRevisionId\(target\.revision\)\.set\(\{ lineDescription:/);
+  assert.match(applyModule, /if \(existingTitle && existingDescription\) return "skipped-existing"/);
+  assert.match(applyModule, /patch\.lineTitle = approved\.lineTitle/);
+  assert.match(applyModule, /patch\.lineDescription = approved\.lineDescription/);
+  assert.match(applyModule, /\.ifRevisionId\(target\.revision\)\.set\(patch\)/);
   assert.doesNotMatch(applyModule, /\.set(?:IfMissing)?\(\{\s*(?:seo|excerpt|body)\b/);
   assert.match(reviewRoute, /identity\.role !== "owner"/);
   assert.match(reviewRoute, /parsed\.data\.decision === "approve"[\s\S]*applyApprovedLineDescription/);
@@ -124,6 +134,7 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
     active: boolean;
     nodes: Array<{ type: string; parameters: Record<string, unknown>; credentials?: unknown }>;
   };
+  assert.match(sourceModule, /!defined\(lineTitle\).*lineTitle == ""/);
   assert.match(sourceModule, /!defined\(lineDescription\).*lineDescription == ""/);
   assert.match(sourceModule, /coalesce\(seo\.noindex, false\) != true/);
   assert.match(sourceModule, /isAdminReadDataPlaneAllowed/);
