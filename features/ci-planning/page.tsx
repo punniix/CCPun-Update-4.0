@@ -108,9 +108,8 @@ export default function CiPlanningPage() {
           description="กรอกรายได้หรือภาระที่ยังต้องดูแล แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้"
           ctaHref="#ci-calculator"
           ctaLabel="เริ่มประเมิน"
+          fullBleed
         />
-
-        <CILandingIntro />
 
         <section id="ci-calculator" aria-labelledby="ci-calculator-title" className={styles.calculatorSection}>
           <div className={styles.calculatorHeader}>
@@ -122,6 +121,8 @@ export default function CiPlanningPage() {
             <CIWizard />
           </div>
         </section>
+
+        <CILandingIntro />
 
         <section className={styles.toolStorySection} aria-labelledby="ci-reading-title">
           <div className={styles.inner}>
