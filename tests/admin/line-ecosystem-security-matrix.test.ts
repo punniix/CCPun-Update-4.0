@@ -11,9 +11,9 @@ const root=path.resolve(import.meta.dirname,"../..");
 const read=(file:string)=>readFileSync(path.join(root,file),"utf8");
 
 const privateRuntimeSources=[
-  "apps/web/lib/line/webhook-handler.ts",
+  "lib/admin/line/webhook-handler.ts",
   "apps/web/lib/line/webhook-ingress.ts",
-  "apps/web/lib/line/private-ingestion.ts",
+  "lib/admin/line/private-ingestion.ts",
   "apps/web/lib/line/safe-knowledge-runtime.ts",
   "apps/web/lib/line/safe-knowledge-metrics.ts",
   "lib/line/private-domain.ts",
@@ -93,7 +93,7 @@ test("security matrix: generic analytics PII = 0",()=>{
 
 test("security matrix: PII logs = 0 on private LINE paths",()=>{
   assert.doesNotMatch(privateRuntimeSources,/console\.(?:log|info|warn|error|debug)|logger\.(?:info|warn|error|debug)/i);
-  const webhook=read("apps/web/lib/line/webhook-handler.ts");
+  const webhook=read("lib/admin/line/webhook-handler.ts");
   assert.match(webhook,/no private content or identifiers are reflected here/);
 });
 
