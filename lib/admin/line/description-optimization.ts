@@ -37,7 +37,7 @@ export type LineDescriptionTarget = z.infer<typeof targetArticleSchema>;
 export type ApprovedLineDescription = z.infer<typeof lineCardDescriptionOutputSchema>;
 
 const missingArticlesQuery = defineQuery(
-  '*[_type == "article" && !(_id in path("drafts.**")) && !(_id in path("versions.**")) && defined(publishedAt) && defined(slug.current) && coalesce(seo.noindex, false) != true && !defined(*[_id == "drafts." + ^._id][0]._id) && ((!defined(lineTitle) || lineTitle == "") || (!defined(lineDescription) || lineDescription == ""))] | order(coalesce(publishedAt, _updatedAt) desc) [0...$limit] {"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"body": pt::text(body)}',
+  '*[_type == "article" && !(_id in path("drafts.**")) && !(_id in path("versions.**")) && defined(publishedAt) && defined(slug.current) && ($slug == null || slug.current == $slug) && coalesce(seo.noindex, false) != true && !defined(*[_id == "drafts." + ^._id][0]._id) && ((!defined(lineTitle) || lineTitle == "") || (!defined(lineDescription) || lineDescription == ""))] | order(coalesce(publishedAt, _updatedAt) desc) [0...$limit] {"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"body": pt::text(body)}',
 );
 
 const draftExistsQuery = defineQuery(
@@ -60,12 +60,29 @@ function writeClient() {
   return baseClient.withConfig({ token, perspective: "published", useCdn: false });
 }
 
-export async function listPublishedArticlesMissingLineDescription(limit = 10) {
+export async function listPublishedArticlesMissingLineDescription(limit = 10, slug?: string) {
   const client = readClient("raw");
   if (!client) throw new Error("LINE_DESCRIPTION_READ_UNAVAILABLE");
   const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 20);
-  const rows = z.array(missingArticleSchema).parse(await client.fetch(missingArticlesQuery, { limit: boundedLimit }));
+  const parsedSlug = slug === undefined
+    ? null
+    : z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(96).parse(slug);
+  const rows = z.array(missingArticleSchema).parse(await client.fetch(missingArticlesQuery, {
+    limit: boundedLimit,
+    slug: parsedSlug,
+  }));
   return rows.map((row) => ({ ...row, body: row.body.trim().slice(0, 30_000) })).filter((row) => row.body.length > 0);
+}
+
+export async function readPublishedArticleLineDescription(id: string) {
+  const parsedId = z.string().regex(/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/).max(200).safeParse(id);
+  if (!parsedId.success || parsedId.data.startsWith("drafts.") || parsedId.data.startsWith("versions.")) return null;
+  const client = readClient("raw");
+  if (!client) throw new Error("LINE_DESCRIPTION_READ_UNAVAILABLE");
+  const raw = await client.fetch(targetArticleQuery, { id: parsedId.data });
+  if (!raw) return null;
+  const article = targetArticleSchema.parse(raw);
+  return { ...article, draftActive: await hasPublishedArticleDraft(article.id) };
 }
 
 export async function hasPublishedArticleDraft(id: string) {

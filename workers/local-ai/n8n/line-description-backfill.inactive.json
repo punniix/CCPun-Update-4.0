@@ -1,8 +1,57 @@
 {
-  "name": "CCPun Local AI - Fill missing LINE descriptions",
+  "name": "CCPun — Local AI — LINE Card Copy",
   "active": false,
   "nodes": [
     {
+      "id": "7c1235a8-f563-4f6e-baa5-b57cf2549584",
+      "name": "ทดสอบด้วยบทความ critical",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        288
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "38863012-ff2b-4350-a22d-e4f745654992",
+      "name": "อ่านบทความที่ยังขาดข้อความ LINE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        384
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://admin.ccpun.com/api/internal/local-ai/line-descriptions/?limit=' + ($execution.mode === 'manual' ? '1&slug=critical-illness-insurance' : '10') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jkyOhRxVkx3ID6BB",
+          "name": "CCPun Local AI Admin Bridge"
+        }
+      }
+    },
+    {
+      "id": "9422462c-ce01-4369-b32a-a194c2ba410b",
+      "name": "ทุก 6 ชั่วโมง",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        480
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -11,45 +60,34 @@
               "hoursInterval": 6
             }
           ]
-        }
-      },
-      "id": "schedule-line-description",
-      "name": "Every 6 hours",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.4,
-      "position": [0, 0]
+        },
+        "misfirePolicy": "skip"
+      }
     },
     {
-      "parameters": {
-        "url": "https://admin.ccpun.com/api/internal/local-ai/line-descriptions/?limit=10",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "jkyOhRxVkx3ID6BB",
-          "name": "CCPun Local AI Admin Bridge"
-        }
-      },
-      "id": "get-missing-line-descriptions",
-      "name": "GET articles missing LINE description",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [240, 0]
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "items",
-        "options": {}
-      },
-      "id": "expand-articles",
-      "name": "Expand articles",
+      "id": "ba18ff72-8919-4b48-8302-ce9c0865a51e",
+      "name": "แยกรายการบทความ",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [480, 0]
+      "position": [
+        448,
+        384
+      ],
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "include": "noOtherFields",
+        "options": {}
+      }
     },
     {
+      "id": "8f95708e-0b9b-4da4-b4fd-8221aac1d240",
+      "name": "ส่งงานสร้าง LINE Card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        384
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://admin.ccpun.com/api/internal/local-ai/jobs/",
@@ -58,38 +96,766 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ { taskType: 'content-operations', idempotencyKey: 'line-card-copy:v2:' + $json.id + ':' + $json.revision, queueClass: 'batch', payload: { locale: 'th-TH', mode: 'line-card-description', title: $json.title, body: $json.body, allowedCategories: [$json.category], source: { id: $json.id, revision: $json.revision, slug: $json.slug, title: $json.title, category: $json.category } } } }}",
-        "options": {}
+        "jsonBody": "={{ { taskType: 'content-operations', idempotencyKey: 'line-card-copy:v3:' + $json.id + ':' + $json.revision, queueClass: 'batch', payload: { locale: 'th-TH', mode: 'line-card-description', title: $json.title, body: $json.body, allowedCategories: [$json.category], source: { id: $json.id, revision: $json.revision, slug: $json.slug, title: $json.title, category: $json.category } } } }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
       "credentials": {
         "httpHeaderAuth": {
           "id": "jkyOhRxVkx3ID6BB",
           "name": "CCPun Local AI Admin Bridge"
         }
+      }
+    },
+    {
+      "id": "388af0a2-ba9b-4e65-bd87-ed70330cd12f",
+      "name": "ผูกงานกับบทความ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        384
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const jobs = $input.all();\nconst sources = $('แยกรายการบทความ').all();\nreturn jobs.map((item, index) => ({ json: { jobId: item.json.jobId, enqueueStatus: item.json.status, reused: item.json.reused ?? false, queueClass: item.json.queueClass ?? 'batch', source: sources[index].json, pollCount: 0, maxPolls: 240 } }));"
+      }
+    },
+    {
+      "id": "8c56e55c-9214-4e88-87fb-fab77ca090c5",
+      "name": "เพิ่มรอบตรวจสถานะ",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        384
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "poll-count",
+              "name": "pollCount",
+              "value": "={{ ($json.pollCount ?? 0) + 1 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7ea11696-115c-4bf8-a11e-2894756373ba",
+      "name": "รวมสถานะกับบริบทบทความ",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1792,
+        320
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferLast",
+              "mergeMode": "deepMerge",
+              "overrideEmpty": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ab74f48e-ba2b-494f-bb3f-a33771b46d60",
+      "name": "รอผลหรือการอนุมัติ",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        384
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 30,
+        "unit": "seconds"
       },
-      "id": "enqueue-line-description",
-      "name": "POST content operation",
+      "webhookId": "536ce4b7-0e11-4864-bc23-6298a1eeb3d5"
+    },
+    {
+      "id": "35fd52e6-6385-4417-98a8-aab2e391a080",
+      "name": "อ่านสถานะที่ผ่าน review gate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [720, 0]
+      "position": [
+        1568,
+        384
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://admin.ccpun.com/api/internal/local-ai/reviews/?jobId=' + $json.jobId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jkyOhRxVkx3ID6BB",
+          "name": "CCPun Local AI Admin Bridge"
+        }
+      }
+    },
+    {
+      "id": "64da93be-a4b0-4a76-b479-b60847b8ed66",
+      "name": "ตัดสินสถานะรอบนี้",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        320
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return $input.all().map((item) => {\n  const data = item.json;\n  let decision = 'waiting';\n  if (data.status === 'succeeded' && data.reviewStatus === 'approved' && data.output) decision = 'approved';\n  else if (data.reviewStatus === 'rejected') decision = 'rejected';\n  else if (['failed', 'reconciliation-required', 'cancelled'].includes(data.status)) decision = 'failed';\n  else if ((data.pollCount ?? 0) >= (data.maxPolls ?? 240)) decision = 'timeout';\n  return { json: { ...data, decision } };\n});"
+      }
+    },
+    {
+      "id": "06f2c475-bd4f-40f5-bce2-83f0ed1a72cf",
+      "name": "แยกทางตามสถานะ",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2240,
+        336
+      ],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "renameOutput": true,
+              "outputKey": "approved",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "renameOutput": true,
+              "outputKey": "rejected",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "rejected",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "renameOutput": true,
+              "outputKey": "failed",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "renameOutput": true,
+              "outputKey": "timeout",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "timeout",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "renameOutput": true,
+              "outputKey": "waiting",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "waiting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none",
+          "ignoreCase": true,
+          "allMatchingOutputs": false
+        }
+      }
+    },
+    {
+      "id": "6f908e85-218a-4dd2-ba41-d5584c201dbe",
+      "name": "ผลผ่านการอนุมัติ",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        96
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": []
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8aad450f-03f8-4407-879e-ace74fe7ac0b",
+      "name": "เจ้าของไม่อนุมัติ",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        288
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "execution-status",
+              "name": "executionStatus",
+              "value": "rejected",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c6f09172-df02-4791-8a7c-b73c5d1287e2",
+      "name": "งานไม่สำเร็จ",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        480
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "execution-status",
+              "name": "executionStatus",
+              "value": "failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1e93c46-324c-4bf4-aede-b4753daa7433",
+      "name": "หมดเวลารออนุมัติ",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        672
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "execution-status",
+              "name": "executionStatus",
+              "value": "approval-timeout",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5b4f0743-5be3-4c56-92b1-d1ec39e4f237",
+      "name": "รวมผลอนุมัติกับค่าใน Sanity",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2912,
+        96
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferLast",
+              "mergeMode": "deepMerge",
+              "overrideEmpty": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "51d666fa-69c5-4bdc-81fe-2729c486a70a",
+      "name": "อ่านค่า LINE จาก Sanity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2688,
+        176
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://admin.ccpun.com/api/internal/local-ai/line-descriptions/?sourceId=' + encodeURIComponent($json.source.id) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jkyOhRxVkx3ID6BB",
+          "name": "CCPun Local AI Admin Bridge"
+        }
+      }
+    },
+    {
+      "id": "8acdb171-88d5-4fd8-845e-806e0c2e087c",
+      "name": "ตรวจว่า Sanity อัปเดตตรงกัน",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return $input.all().map((item) => {\n  const data = item.json;\n  const expected = data.output;\n  const actual = data.article;\n  const verified = Boolean(expected && actual && !actual.draftActive && actual.lineTitle === expected.lineTitle && actual.lineDescription === expected.lineDescription);\n  return { json: { ...data, verified, verificationStatus: verified ? 'sanity-updated' : 'sanity-mismatch' } };\n});"
+      }
+    },
+    {
+      "id": "b2048600-8371-4fd4-af2a-032dfa03dc01",
+      "name": "ค่าใน Sanity ตรงไหม",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3360,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.verified }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a3895345-bd21-4e8b-8f92-7292d437d0b1",
+      "name": "เสร็จสมบูรณ์",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3584,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "execution-status",
+              "name": "executionStatus",
+              "value": "done",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ec2335ad-a3b8-4ce5-a7ed-8ec28d34c41a",
+      "name": "ต้องตรวจ Sanity",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3584,
+        192
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "execution-status",
+              "name": "executionStatus",
+              "value": "sanity-verification-failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
     }
   ],
   "connections": {
-    "Every 6 hours": {
-      "main": [[{"node": "GET articles missing LINE description", "type": "main", "index": 0}]]
+    "ทดสอบด้วยบทความ critical": {
+      "main": [
+        [
+          {
+            "node": "อ่านบทความที่ยังขาดข้อความ LINE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "GET articles missing LINE description": {
-      "main": [[{"node": "Expand articles", "type": "main", "index": 0}]]
+    "อ่านบทความที่ยังขาดข้อความ LINE": {
+      "main": [
+        [
+          {
+            "node": "แยกรายการบทความ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Expand articles": {
-      "main": [[{"node": "POST content operation", "type": "main", "index": 0}]]
+    "ทุก 6 ชั่วโมง": {
+      "main": [
+        [
+          {
+            "node": "อ่านบทความที่ยังขาดข้อความ LINE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "แยกรายการบทความ": {
+      "main": [
+        [
+          {
+            "node": "ส่งงานสร้าง LINE Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ส่งงานสร้าง LINE Card": {
+      "main": [
+        [
+          {
+            "node": "ผูกงานกับบทความ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ผูกงานกับบทความ": {
+      "main": [
+        [
+          {
+            "node": "เพิ่มรอบตรวจสถานะ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เพิ่มรอบตรวจสถานะ": {
+      "main": [
+        [
+          {
+            "node": "รวมสถานะกับบริบทบทความ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "รอผลหรือการอนุมัติ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "รวมสถานะกับบริบทบทความ": {
+      "main": [
+        [
+          {
+            "node": "ตัดสินสถานะรอบนี้",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "รอผลหรือการอนุมัติ": {
+      "main": [
+        [
+          {
+            "node": "อ่านสถานะที่ผ่าน review gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อ่านสถานะที่ผ่าน review gate": {
+      "main": [
+        [
+          {
+            "node": "รวมสถานะกับบริบทบทความ",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "ตัดสินสถานะรอบนี้": {
+      "main": [
+        [
+          {
+            "node": "แยกทางตามสถานะ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "แยกทางตามสถานะ": {
+      "main": [
+        [
+          {
+            "node": "ผลผ่านการอนุมัติ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "เจ้าของไม่อนุมัติ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "งานไม่สำเร็จ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "หมดเวลารออนุมัติ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "เพิ่มรอบตรวจสถานะ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ผลผ่านการอนุมัติ": {
+      "main": [
+        [
+          {
+            "node": "รวมผลอนุมัติกับค่าใน Sanity",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "อ่านค่า LINE จาก Sanity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "รวมผลอนุมัติกับค่าใน Sanity": {
+      "main": [
+        [
+          {
+            "node": "ตรวจว่า Sanity อัปเดตตรงกัน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อ่านค่า LINE จาก Sanity": {
+      "main": [
+        [
+          {
+            "node": "รวมผลอนุมัติกับค่าใน Sanity",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "ตรวจว่า Sanity อัปเดตตรงกัน": {
+      "main": [
+        [
+          {
+            "node": "ค่าใน Sanity ตรงไหม",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ค่าใน Sanity ตรงไหม": {
+      "main": [
+        [
+          {
+            "node": "เสร็จสมบูรณ์",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ต้องตรวจ Sanity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1"
   },
   "meta": {
-    "templateCredsSetupCompleted": false
+    "templateCredsSetupCompleted": true,
+    "productionWorkflowId": "NeHFrMsfXcdnVxjU"
   },
   "tags": []
 }

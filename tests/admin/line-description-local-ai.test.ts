@@ -138,7 +138,13 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
   const route = read("apps/admin/app/api/internal/local-ai/line-descriptions/route.ts");
   const workflow = JSON.parse(read("workers/local-ai/n8n/line-description-backfill.inactive.json")) as {
     active: boolean;
-    nodes: Array<{ type: string; parameters: Record<string, unknown>; credentials?: unknown }>;
+    nodes: Array<{
+      name: string;
+      type: string;
+      parameters: Record<string, unknown>;
+      credentials?: unknown;
+    }>;
+    meta?: { productionWorkflowId?: string };
   };
   assert.match(sourceModule, /!defined\(lineTitle\).*lineTitle == ""/);
   assert.match(sourceModule, /!defined\(lineDescription\).*lineDescription == ""/);
@@ -150,8 +156,22 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
   assert.match(sourceModule, /isAdminReadDataPlaneAllowed/);
   assert.match(route, /isN8nLocalAiRequestAuthorized/);
   assert.match(route, /max\(20\)/);
+  assert.match(route, /searchParams\.get\("slug"\)/);
+  assert.match(route, /searchParams\.get\("sourceId"\)/);
+  assert.match(sourceModule, /\(\$slug == null \|\| slug\.current == \$slug\)/);
+  assert.match(sourceModule, /readPublishedArticleLineDescription/);
   assert.equal(workflow.active, false);
+  assert.equal(workflow.meta?.productionWorkflowId, "NeHFrMsfXcdnVxjU");
+  assert.equal(workflow.nodes.length, 22);
+  assert.equal(workflow.nodes.some((node) => node.type === "n8n-nodes-base.manualTrigger"), true);
+  assert.equal(workflow.nodes.some((node) => node.type === "n8n-nodes-base.scheduleTrigger"), true);
+  assert.equal(workflow.nodes.some((node) => node.type === "n8n-nodes-base.wait"), true);
+  assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("critical-illness-insurance")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("queueClass: 'batch'")), true);
+  assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("line-card-copy:v3:")), true);
+  assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("/local-ai/reviews/?jobId=")), true);
+  assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sourceId=")), true);
+  assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sanity-verification-failed")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("CCPun Local AI Admin Bridge")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("$env.")), false);
   assert.equal(workflow.nodes.filter((node) => node.type === "n8n-nodes-base.httpRequest").every((node) => node.parameters.authentication === "genericCredentialType"), true);
