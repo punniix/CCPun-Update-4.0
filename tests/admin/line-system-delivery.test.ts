@@ -72,7 +72,7 @@ test("system delivery functions preserve ingress/admin privilege separation", ()
 });
 
 test("Web ingress queues only safe encrypted intent and dispatches by one-time capability", () => {
-  const source = read("apps/web/lib/line/private-ingestion.ts");
+  const source = read("lib/admin/line/private-ingestion.ts");
   assert.match(source, /CCPUN_LINE_SYSTEM_DELIVERY_ENABLED/);
   assert.match(source, /encodeLineSystemMessageIntent/);
   assert.match(source, /line-system-message-content/);

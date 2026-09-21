@@ -58,7 +58,7 @@ test("cron is authenticated and reconciliation is a durable single writer", () =
 test("provider gates fail closed and Public Web never embeds the LINE token", () => {
   const delivery = read("lib/admin/line/provider.ts");
   const richMenu = read("lib/admin/line/rich-menu-provider.ts");
-  const ingress = read("apps/web/lib/line/private-ingestion.ts");
+  const ingress = read("lib/admin/line/private-ingestion.ts");
   assert.match(delivery, /CCPUN_LINE_SYSTEM_DELIVERY_ENABLED\?\.trim\(\) === "true"/);
   assert.match(richMenu, /CCPUN_LINE_RICH_MENU_PROVIDER_ENABLED\?\.trim\(\) === "true"/);
   assert.match(ingress, /CCPUN_LINE_SYSTEM_DELIVERY_ENABLED\?\.trim\(\) !== "true"/);

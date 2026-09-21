@@ -127,7 +127,7 @@ test("runtime verification records only safe booleans and remains ingress-only",
   assert.match(sql, /REVOKE ALL ON FUNCTION private_line\.ingress_record_line_runtime_health\(jsonb\) FROM ccpun_admin_runtime/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION private_line\.ingress_record_line_runtime_health\(jsonb\) TO ccpun_line_ingress/);
 
-  const ingress = read("apps/web/lib/line/private-ingestion.ts");
+  const ingress = read("lib/admin/line/private-ingestion.ts");
   assert.match(ingress, /recordLineRuntimeHealthBestEffort/);
   assert.match(ingress, /active_version: crypto\.keyVersion/);
   assert.match(ingress, /v1_key_present: crypto\.hasKeyVersion\(1\)/);

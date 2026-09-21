@@ -439,6 +439,40 @@ async function applyLineJourneyContextBestEffort(
   }
 }
 
+export async function probeLinePrivateIngestRuntime(
+  variables: Record<string, string | undefined> = process.env,
+) {
+  const runtime = resolveLineIngestRuntime(variables);
+  if (!runtime) return false;
+  try {
+    const sql = neon(runtime.connectionString, {
+      fetchOptions: { signal: AbortSignal.timeout(5_000) },
+    });
+    const rows = await sql.query(
+      `SELECT current_user AS role_name,
+        has_function_privilege(current_user,'private_line.ingest_line_event(jsonb)','EXECUTE') AS can_ingest,
+        has_function_privilege(current_user,'private_line.ingress_record_safe_knowledge_event(jsonb)','EXECUTE') AS can_safe_knowledge,
+        has_function_privilege(current_user,'private_line.record_safe_web_journey_event(jsonb)','EXECUTE') AS can_web_journey`,
+      [],
+    ) as Array<{
+      role_name: string;
+      can_ingest: boolean;
+      can_safe_knowledge: boolean;
+      can_web_journey: boolean;
+    }>;
+    const row = rows[0];
+    return Boolean(
+      row
+      && row.role_name === runtime.identity.runtimeRole
+      && row.can_ingest
+      && row.can_safe_knowledge
+      && row.can_web_journey
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function createLinePrivateIngestor(
   variables: Record<string, string | undefined> = process.env,
 ): LinePrivateIngestor {

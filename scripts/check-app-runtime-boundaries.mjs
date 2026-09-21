@@ -15,6 +15,7 @@ const ADMIN_ONLY_SECRET_KEYS = [
   "CCPUN_LOCAL_AI_ENCRYPTION_KEY_V1",
   "CCPUN_LOCAL_AI_DATABASE_URL",
   "CCPUN_LOCAL_AI_N8N_TOKEN",
+  "CCPUN_LINE_INGEST_DATABASE_URL",
   "CCPUN_GOOGLE_DATA_CLIENT_SECRET",
   "CCPUN_GOOGLE_DATA_REFRESH_TOKEN",
   "CCPUN_META_ACCESS_TOKEN",
@@ -183,6 +184,7 @@ assert.deepEqual(
   `Web runtime must never reference Admin-only secrets: ${describeImportPaths(webRoots, webAdminSecretLeaks)}`,
 );
 assert.equal(webExternalPackages.has("workflow"), false, "Web runtime must not depend on the Admin Workflow runtime");
+assert.equal(webExternalPackages.has("@neondatabase/serverless"), false, "Web runtime must not depend on Neon");
 
 const sharedReachable = [...webReachable].filter((file) => adminReachable.has(file)).sort();
 console.log(JSON.stringify({

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { recordLinePublicEvent } from "@/lib/admin/line/public-event-ingestion";
+import { isProductionWebServiceRequestAuthorized } from "@/lib/admin/line/web-service-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,9 @@ const headers = {
 };
 
 export async function POST(request: Request) {
+  if (!(await isProductionWebServiceRequestAuthorized(request))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401, headers });
+  }
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     return NextResponse.json({ error: "unsupported-media-type" }, { status: 415, headers });
   }
