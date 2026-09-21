@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const LINE_WEBHOOK_MAX_BYTES = 1024 * 1024;
