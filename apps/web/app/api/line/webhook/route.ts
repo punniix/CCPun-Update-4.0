@@ -1,7 +1,7 @@
 import {
   lineWebhookResponseHeaders,
 } from "../../../../lib/line/webhook-ingress";
-import { createLineWebhookPostHandler } from "../../../../lib/line/webhook-handler";
+import { createLineWebhookForwarder } from "../../../../lib/line/webhook-forwarder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,4 +31,4 @@ export function OPTIONS() {
   });
 }
 
-export const POST = createLineWebhookPostHandler();
+export const POST = createLineWebhookForwarder();
