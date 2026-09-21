@@ -53,7 +53,7 @@ export default async function LocalAiPage() {
   return <div>
     <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">AI ภายในของ CCPun</p>
     <h1 className="mt-2 text-3xl font-semibold">ผู้ช่วย AI ภายในระบบ</h1>
-    <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูสถานะงานที่ให้ AI ภายในช่วยเตรียม ผลลัพธ์ทุกชิ้นต้องผ่านคนตรวจก่อนส่งต่อ คำอธิบายการ์ด LINE จะบันทึกเมื่อคุณกดอนุมัติเท่านั้น และระบบจะไม่เผยแพร่บทความอัตโนมัติ</p>
+    <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูสถานะงานที่ให้ AI ภายในช่วยเตรียม ผลลัพธ์ทุกชิ้นต้องผ่านคนตรวจก่อนส่งต่อ หัวข้อและคำโปรยการ์ด LINE จะบันทึกเมื่อคุณกดอนุมัติเท่านั้น และระบบจะไม่เผยแพร่บทความอัตโนมัติ</p>
 
     <div className="mt-7 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">ระบบ AI ภายใน</p><p className="mt-2 text-xl font-semibold">{model.status === "ready" ? "พร้อมใช้งาน" : model.status === "not-configured" ? "ยังไม่เปิดใช้งาน" : "ติดต่อระบบไม่ได้"}</p></section>
@@ -82,14 +82,14 @@ export default async function LocalAiPage() {
     </section>
 
     <section className="mt-6 space-y-4">
-      <div><h2 className="text-xl font-semibold">ผลลัพธ์ที่รอคุณตรวจ</h2><p className="mt-1 text-sm text-white/55">งานทั่วไปจะเปิดให้ workflow อ่านผล ส่วนคำอธิบายการ์ด LINE จะบันทึกในบทความหลังคุณอนุมัติ โดยไม่แก้คำอธิบายของ Google</p></div>
+      <div><h2 className="text-xl font-semibold">ผลลัพธ์ที่รอคุณตรวจ</h2><p className="mt-1 text-sm text-white/55">งานทั่วไปจะเปิดให้ workflow อ่านผล ส่วนหัวข้อและคำโปรยการ์ด LINE จะบันทึกในบทความหลังคุณอนุมัติ โดยไม่แก้คำอธิบายของ Google</p></div>
       {reviews.map((review) => {
         const isLineDescription = "mode" in review.output && review.output.mode === "line-card-description";
         return <article key={`review-${review.jobId}`} className="rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.05] p-5 md:p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"><div><p className="text-xs text-[#e0c985]">{taskLabels[review.taskType]}</p><h3 className="mt-1 font-semibold">งาน {review.jobId.slice(0, 8).toUpperCase()}</h3></div><p className="text-xs text-white/45">ผลจากโมเดลต้องผ่านการตัดสินใจของคุณ</p></div>
         <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-2xl bg-black/25 p-4 text-xs leading-6 text-white/75">{JSON.stringify(review.output, null, 2)}</pre>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <form action="/api/admin/local-ai/review/" method="post"><input type="hidden" name="jobId" value={review.jobId} /><input type="hidden" name="decision" value="approve" /><button className="min-h-11 w-full rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100" type="submit">{isLineDescription ? "อนุมัติและบันทึกคำอธิบาย LINE" : "อนุมัติให้ workflow อ่านผล"}</button></form>
+          <form action="/api/admin/local-ai/review/" method="post"><input type="hidden" name="jobId" value={review.jobId} /><input type="hidden" name="decision" value="approve" /><button className="min-h-11 w-full rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100" type="submit">{isLineDescription ? "อนุมัติและบันทึกข้อความ LINE" : "อนุมัติให้ workflow อ่านผล"}</button></form>
           <form action="/api/admin/local-ai/review/" method="post" className="flex flex-col gap-2"><input type="hidden" name="jobId" value={review.jobId} /><input type="hidden" name="decision" value="reject" /><label className="text-xs text-white/55" htmlFor={`reason-${review.jobId}`}>เหตุผลที่ไม่ใช้ผลลัพธ์</label><textarea id={`reason-${review.jobId}`} name="reason" required maxLength={1000} className="min-h-20 rounded-xl border border-white/10 bg-black/20 p-3 text-sm" /><button className="min-h-11 rounded-xl border border-rose-300/25 bg-rose-300/10 px-4 py-2 text-sm font-semibold text-rose-100" type="submit">ปฏิเสธผลลัพธ์</button></form>
         </div>
       </article>;
