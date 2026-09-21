@@ -75,6 +75,7 @@ export type Article = {
   slug: string;
   title: string;
   excerpt: string;
+  lineDescription?: string;
   category: string;
   categorySlug?: string;
   tags?: string[];

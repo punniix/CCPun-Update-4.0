@@ -3,8 +3,10 @@ import { z } from "zod";
 
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { getAdminIdentity } from "@/lib/admin/identity";
-import { reviewLocalAiJob } from "@/lib/admin/local-ai/database";
+import { applyApprovedLineDescription } from "@/lib/admin/line/description-optimization";
+import { readLocalAiJob, reviewLocalAiJob } from "@/lib/admin/local-ai/database";
 import { evaluateAdminAction } from "@/lib/admin/policy";
+import { lineCardDescriptionOutputSchema } from "@/lib/local-ai/contracts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,8 +46,42 @@ export async function POST(request: Request) {
   if (!policy.allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   try {
-    const reviewStatus = await reviewLocalAiJob({ ...parsed.data, actor: identity.actor });
-    if (contentType.startsWith("application/json")) return NextResponse.json({ jobId: parsed.data.jobId, reviewStatus });
+    let reviewStatus: "pending" | "approved" | "rejected";
+    try {
+      reviewStatus = await reviewLocalAiJob({ ...parsed.data, actor: identity.actor });
+    } catch (error) {
+      if (!(error instanceof Error && error.message === "LOCAL_AI_REVIEW_CONFLICT" && parsed.data.decision === "approve")) throw error;
+      const existing = await readLocalAiJob(parsed.data.jobId);
+      if (existing?.reviewStatus !== "approved") throw error;
+      reviewStatus = "approved";
+    }
+
+    let applyStatus: "applied" | "already-applied" | "skipped-existing" | null = null;
+    if (parsed.data.decision === "approve" && reviewStatus === "approved") {
+      let job;
+      try {
+        job = await readLocalAiJob(parsed.data.jobId);
+      } catch {
+        return NextResponse.json({ error: "approved-result-read-failed", retryable: true, reviewStatus }, { status: 503 });
+      }
+      const lineOutput = job?.taskType === "content-operations"
+        ? lineCardDescriptionOutputSchema.safeParse(job.output)
+        : null;
+      if (lineOutput?.success) {
+        try {
+          applyStatus = (await applyApprovedLineDescription(lineOutput.data)).status;
+        } catch (error) {
+          const sourceConflict = error instanceof Error && error.message === "LINE_DESCRIPTION_SOURCE_CONFLICT";
+          return NextResponse.json({
+            error: sourceConflict ? "line-description-source-conflict" : "line-description-apply-failed",
+            retryable: !sourceConflict,
+            reviewStatus,
+          }, { status: sourceConflict ? 409 : 503 });
+        }
+      }
+    }
+
+    if (contentType.startsWith("application/json")) return NextResponse.json({ jobId: parsed.data.jobId, reviewStatus, applyStatus });
     return NextResponse.redirect(new URL("/operations/local-ai/", request.url), 303);
   } catch (error) {
     if (error instanceof Error && ["LOCAL_AI_REVIEW_CONFLICT", "LOCAL_AI_REVIEW_REASON_REQUIRED"].includes(error.message)) {

@@ -41,7 +41,7 @@ The response is `202` for a new job or `200` for an idempotent replay and contai
 
 `GET $CCPUN_ADMIN_BASE_URL/api/internal/local-ai/reviews/?jobId=<jobId>`
 
-Queued, leased, and `awaiting-review` responses include `Retry-After: 3`. Poll with a three-second wait and a bounded retry count. A completed model result stays hidden until an Admin owner approves it. Only an approved result includes the strict validated output; approval does not apply, write, send, or publish anything. Rejected jobs return `reviewStatus: rejected` and a null output. Failed responses include only a normalized error category.
+Queued, leased, and `awaiting-review` responses include `Retry-After: 3`. Poll with a three-second wait and a bounded retry count. A completed model result stays hidden until an Admin owner approves it. Only an approved result includes the strict validated output. Legacy Content/SEO approval does not apply, write, send, or publish anything; `line-card-description` is the narrow exception and writes only `lineDescription` to the exact unchanged Sanity revision after owner approval. Rejected jobs return `reviewStatus: rejected` and a null output. Failed responses include only a normalized error category.
 
 Customer-private and LINE tasks remain disabled. These endpoints accept and return public-safe Content/SEO work only; do not route customer messages, ciphertext, or encryption keys through n8n.
 
@@ -55,3 +55,9 @@ Recommended reusable sub-workflow inputs are `jobId`, `maxPolls` (default 40) an
 Both require the same Admin bridge bearer token. Neither endpoint returns prompts, input/output content, ciphertext, keys, or customer text. Alert when the worker is stale, Ollama is not ready, queue age grows, failed jobs rise, or memory/load crosses the separately configured VPS threshold.
 
 The owner-only review action is `POST /api/admin/local-ai/review/`; it uses the signed Admin session and same-origin check, not the n8n bearer token.
+
+## Inactive LINE description backfill
+
+Import `line-description-backfill.inactive.json` only when the owner is ready to configure and test it. It remains inactive after import and uses the existing `CCPun Local AI Admin Bridge` header credential against the fixed Admin origin; the file contains no secret value.
+
+The workflow asks Admin for at most 10 published, indexable articles whose `lineDescription` is still blank, expands the response, and enqueues the existing `content-operations` task as `batch`. Its idempotency key is bound to the Sanity document ID and exact revision. It never connects directly to Sanity or Ollama, and an owner still has to approve every result in Admin before the guarded Sanity patch runs.

@@ -76,7 +76,8 @@ test("worker and compose preserve the private model boundary", () => {
   assert.match(worker, /hostname !== "ollama"/);
   assert.match(worker, /MODEL_ALLOWLIST = new Set\(\["qwen3:1\.7b"\]\)/);
   assert.match(worker, /CCPUN_LOCAL_AI_PRIVATE_JOBS_ENABLED/);
-  assert.match(worker, /z\.toJSONSchema\(localAiTaskOutputSchemas\[taskType\]\)/);
+  assert.match(worker, /resolveLocalAiInferenceContract\(taskType, payload\)/);
+  assert.match(worker, /z\.toJSONSchema\(contract\.outputSchema\)/);
   assert.doesNotMatch(worker, /console\.(?:log|info|warn|error|debug)/);
   assert.doesNotMatch(compose, /ports:/);
   assert.match(compose, /model_private:\n\s+internal: true/);

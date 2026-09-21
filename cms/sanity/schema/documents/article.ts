@@ -45,6 +45,21 @@ export const article = defineType({
       validation: (Rule) => Rule.required().max(240),
     }),
     defineField({
+      name: "lineDescription",
+      title: "คำอธิบายสั้นสำหรับการ์ด LINE",
+      type: "text",
+      rows: 2,
+      group: "content",
+      description: "ใช้เฉพาะข้อความบนการ์ดใน LINE ไม่ใช่คำอธิบายที่ Google หรือหน้า Search ใช้ เว้นว่างได้หากยังไม่พร้อม",
+      validation: (Rule) => Rule.custom((value) => {
+        if (typeof value !== "string" || !value.trim()) return true;
+        const length = [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value.trim())].length;
+        return length >= 40 && length <= 90
+          ? true
+          : "กรุณาเขียนคำอธิบายสำหรับ LINE ความยาว 40–90 ตัวอักษร";
+      }),
+    }),
+    defineField({
       name: "category",
       title: "หมวดหมู่หลัก (Protected หลังเผยแพร่)",
       description: "หมวดหมู่นี้กำหนด path ของ URL จึงถูกล็อกหลังบทความมีวันเผยแพร่ ใช้ Semantic Topic สำหรับจัดความหมายโดยไม่ย้าย URL",

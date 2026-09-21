@@ -120,6 +120,7 @@ export const baseArticleSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
   excerpt: z.string().min(1).nullish(),
+  lineDescription: z.string().trim().min(1).max(90).nullish(),
   category: z.string().min(1),
   categorySlug: z.string().min(1).nullish(),
   tags: z.array(z.string()).nullish(),

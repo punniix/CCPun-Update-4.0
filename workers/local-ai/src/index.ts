@@ -4,6 +4,8 @@ import { pathToFileURL } from "node:url";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import {
+  isLineCardDescriptionInput,
+  lineCardDescriptionOutputSchema,
   localAiTaskOutputSchemas,
   parseLocalAiTaskInput,
   parseLocalAiTaskResult,
@@ -67,6 +69,15 @@ const instructions: Record<LocalAiTaskType, string> = {
   "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Input queries are objects; output queries must contain only their exact query text as strings, never objects. Preserve every query string exactly once. Return exactly one JSON object with only this shape: {\"clusters\":[{\"label\":\"short label\",\"intent\":\"informational|commercial|transactional|navigational|mixed\",\"queries\":[\"exact input query\"],\"ownerCandidate\":\"/existing-input-page-or-null\",\"reviewRequired\":true}]}. ownerCandidate must copy an input page beginning with / or be null; use null when uncertain. Do not add keys or prose.",
 };
 
+const lineCardDescriptionInstruction = "Create one concise Thai description for a LINE article card using only the supplied public article. Use 60-90 graphemes, explain the reader benefit, avoid repeating the title, direct identifiers, guarantees, absolute claims, and invented facts. Echo source exactly and return reviewRequired=true.";
+
+export function resolveLocalAiInferenceContract(taskType: LocalAiTaskType, payload: unknown) {
+  if (taskType === "content-operations" && isLineCardDescriptionInput(payload)) {
+    return { outputSchema: lineCardDescriptionOutputSchema, instruction: lineCardDescriptionInstruction };
+  }
+  return { outputSchema: localAiTaskOutputSchemas[taskType], instruction: instructions[taskType] };
+}
+
 function sha256(value: string) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -110,15 +121,16 @@ async function ollamaReady(baseUrl: string, configuredModel: string) {
 }
 
 async function infer(baseUrl: string, model: string, taskType: LocalAiTaskType, payload: unknown) {
+  const contract = resolveLocalAiInferenceContract(taskType, payload);
   const response = await fetch(new URL("api/chat", baseUrl), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: AbortSignal.timeout(90_000),
     body: JSON.stringify({
-      model, stream: false, think: false, format: z.toJSONSchema(localAiTaskOutputSchemas[taskType]), keep_alive: "5m",
+      model, stream: false, think: false, format: z.toJSONSchema(contract.outputSchema), keep_alive: "5m",
       options: { temperature: 0, num_ctx: 4096 },
       messages: [
-        { role: "system", content: `You are a private offline CCPun processor. ${instructions[taskType]} Output one JSON object only.` },
+        { role: "system", content: `You are a private offline CCPun processor. ${contract.instruction} Output one JSON object only.` },
         { role: "user", content: JSON.stringify(payload) },
       ],
     }),
