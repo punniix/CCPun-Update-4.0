@@ -1,5 +1,3 @@
-import "server-only";
-
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import {
