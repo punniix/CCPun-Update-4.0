@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 import {
+  getAdminCookieNamespace,
   getAdminGoogleOAuthCredentials,
   hasStrongAuthSecret,
   getLocalAdminCookieNamespace,
@@ -214,6 +215,12 @@ test("Production Admin accepts only the exact configured Auth.js origin", () => 
   assert.equal(isConfiguredAdminOrigin("http://admin.ccpun.com/", authUrl), false);
   assert.equal(isConfiguredAdminOrigin("not-a-url", authUrl), false);
   assert.equal(isConfiguredAdminOrigin("https://admin.ccpun.com/", undefined), false);
+});
+
+test("deployed Admin lanes use dedicated Secure Auth.js cookie namespaces", () => {
+  assert.equal(getAdminCookieNamespace("production-admin"), "__Secure-ccpun-admin.authjs");
+  assert.equal(getAdminCookieNamespace("admin-uat"), "__Secure-ccpun-admin-uat.authjs");
+  assert.notEqual(getAdminCookieNamespace("production-admin"), getAdminCookieNamespace("admin-uat"));
 });
 
 test("Local UAT and Production accept only their separate loopback ports", () => {
