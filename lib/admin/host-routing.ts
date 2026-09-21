@@ -66,6 +66,8 @@ export function isInternalServiceApiPath(pathname: string): boolean {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   return path === "/api/internal/line/rich-menu/reconcile"
     || path === "/api/internal/line/system-delivery/dispatch"
+    || path === "/api/internal/line/ingest"
+    || path === "/api/internal/line/public-event"
     || isPathOrChild(path, "/api/internal/local-ai/jobs")
     || isPathOrChild(path, "/api/internal/local-ai/reviews")
     || isPathOrChild(path, "/api/internal/local-ai/operations");
