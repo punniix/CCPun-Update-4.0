@@ -29,6 +29,7 @@ const targetArticleSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
   category: z.string().min(1),
+  lineTitle: z.string().nullable(),
   lineDescription: z.string().nullable(),
 }).strict();
 
@@ -36,11 +37,11 @@ export type LineDescriptionTarget = z.infer<typeof targetArticleSchema>;
 export type ApprovedLineDescription = z.infer<typeof lineCardDescriptionOutputSchema>;
 
 const missingArticlesQuery = defineQuery(
-  '*[_type == "article" && defined(publishedAt) && defined(slug.current) && coalesce(seo.noindex, false) != true && (!defined(lineDescription) || lineDescription == "")] | order(coalesce(publishedAt, _updatedAt) desc) [0...$limit] {"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"body": pt::text(body)}',
+  '*[_type == "article" && defined(publishedAt) && defined(slug.current) && coalesce(seo.noindex, false) != true && ((!defined(lineTitle) || lineTitle == "") || (!defined(lineDescription) || lineDescription == ""))] | order(coalesce(publishedAt, _updatedAt) desc) [0...$limit] {"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"body": pt::text(body)}',
 );
 
 const targetArticleQuery = defineQuery(
-  '*[_type == "article" && _id == $id][0]{"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"lineDescription": coalesce(lineDescription, null)}',
+  '*[_type == "article" && _id == $id][0]{"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"lineTitle": coalesce(lineTitle, null),"lineDescription": coalesce(lineDescription, null)}',
 );
 
 function readClient() {
@@ -64,9 +65,10 @@ export async function listPublishedArticlesMissingLineDescription(limit = 10) {
 }
 
 export function decideLineDescriptionApply(target: LineDescriptionTarget, approved: ApprovedLineDescription) {
-  const existing = target.lineDescription?.trim() ?? "";
-  if (existing === approved.lineDescription) return "already-applied" as const;
-  if (existing) return "skipped-existing" as const;
+  const existingTitle = target.lineTitle?.trim() ?? "";
+  const existingDescription = target.lineDescription?.trim() ?? "";
+  if (existingTitle === approved.lineTitle && existingDescription === approved.lineDescription) return "already-applied" as const;
+  if (existingTitle && existingDescription) return "skipped-existing" as const;
   if (
     target.id !== approved.source.id ||
     target.slug !== approved.source.slug ||
@@ -91,7 +93,11 @@ export async function applyApprovedLineDescription(value: unknown) {
   if (decision !== "apply") return { status: decision };
 
   try {
-    await client.patch(target.id).ifRevisionId(target.revision).set({ lineDescription: approved.lineDescription }).commit();
+    const patch: { lineTitle?: string; lineDescription?: string } = {};
+    if (!target.lineTitle?.trim()) patch.lineTitle = approved.lineTitle;
+    if (!target.lineDescription?.trim()) patch.lineDescription = approved.lineDescription;
+    if (Object.keys(patch).length === 0) return { status: "skipped-existing" as const };
+    await client.patch(target.id).ifRevisionId(target.revision).set(patch).commit();
     return { status: "applied" as const };
   } catch (error) {
     const statusCode = typeof error === "object" && error && "statusCode" in error
