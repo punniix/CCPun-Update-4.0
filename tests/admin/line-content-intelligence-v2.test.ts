@@ -151,14 +151,19 @@ test("content-gap input is deterministic from safe no-answer/source-unavailable 
   assert.doesNotMatch(fn[0], /message|transcript|customer|lead_id|conversation|cipher|document/i);
 });
 
-test("Safe Knowledge API records metrics best-effort after a valid decision", () => {
+test("Safe Knowledge API records metrics best-effort through the Admin data plane", () => {
   const route = read("apps/web/app/api/line/knowledge/route.ts");
   const metric = read("apps/web/lib/line/safe-knowledge-metrics.ts");
+  const bridge = read("apps/web/lib/line/public-event-bridge.ts");
+  const adminStore = read("lib/admin/line/public-event-ingestion.ts");
   assert.match(route, /recordSafeKnowledgeDecisionBestEffort\(body, decision\)/);
-  assert.match(metric, /ingress_record_safe_knowledge_event/);
-  assert.match(metric, /catch \{/);
-  assert.match(metric, /return false/);
-  assert.doesNotMatch(metric, /console\.|gtag|fbq|dataLayer|analytics/i);
+  assert.match(metric, /recordLinePublicEventBestEffort/);
+  assert.match(bridge, /\/api\/internal\/line\/public-event\//);
+  assert.match(bridge, /catch \{/);
+  assert.match(bridge, /return false/);
+  assert.match(adminStore, /ingress_record_safe_knowledge_event/);
+  assert.doesNotMatch([metric, bridge].join("\n"), /@neondatabase\/serverless|private_line\./);
+  assert.doesNotMatch([metric, bridge].join("\n"), /console\.|gtag|fbq|dataLayer|analytics/i);
 });
 
 test("Admin conversion surface consumes aggregate v2 and does not expose Safe Knowledge raw records", () => {
