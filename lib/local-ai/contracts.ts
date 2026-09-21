@@ -47,13 +47,42 @@ const privacyRedactionInputSchema = z.object({
   replacementStyle: z.literal("typed-placeholders"),
 }).strict();
 
-const contentOperationsInputSchema = z.object({
+const contentOperationsBaseInputSchema = z.object({
   locale: z.literal("th-TH"),
   title: z.string().min(1).max(300),
   body: z.string().min(1).max(30_000),
   canonicalPath: z.string().startsWith("/").max(500).optional(),
+});
+
+const legacyContentOperationsInputSchema = contentOperationsBaseInputSchema.extend({
   allowedCategories: z.array(z.string().min(1).max(80)).min(1).max(50),
 }).strict();
+
+export const lineCardSourceSchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/).max(200),
+  revision: z.string().regex(/^[A-Za-z0-9_-]+$/).max(200),
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(96),
+  title: z.string().min(1).max(300),
+  category: z.string().min(1).max(80),
+}).strict();
+
+export const lineCardDescriptionInputSchema = contentOperationsBaseInputSchema.extend({
+  mode: z.literal("line-card-description"),
+  source: lineCardSourceSchema,
+  allowedCategories: z.array(z.string().min(1).max(80)).length(1),
+}).strict().superRefine((input, context) => {
+  if (input.title !== input.source.title) {
+    context.addIssue({ code: "custom", message: "title must match source title", path: ["title"] });
+  }
+  if (input.allowedCategories[0] !== input.source.category) {
+    context.addIssue({ code: "custom", message: "category must match source category", path: ["allowedCategories"] });
+  }
+});
+
+const contentOperationsInputSchema = z.union([
+  lineCardDescriptionInputSchema,
+  legacyContentOperationsInputSchema,
+]);
 
 const seoPreprocessingInputSchema = z.object({
   locale: z.literal("th-TH"),
@@ -121,7 +150,7 @@ const lineIntentOutputSchema = z.object({
   ])).max(12),
 }).strict();
 
-const contentOperationsOutputSchema = z.object({
+const legacyContentOperationsOutputSchema = z.object({
   category: z.string().min(1).max(80),
   tags: z.array(z.string().min(1).max(80)).max(20),
   slugSuggestion: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(160),
@@ -132,6 +161,54 @@ const contentOperationsOutputSchema = z.object({
   }).strict()).max(8),
   reviewRequired: z.literal(true),
 }).strict();
+
+export function countGraphemes(value: string): number {
+  return [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value)].length;
+}
+
+const bannedLineDescriptionPatterns = [
+  /(?:รับประกัน|การันตี|รับรอง)(?:ผลตอบแทน|กำไร|อนุมัติ|เคลมผ่าน|ความคุ้มครอง)/u,
+  /(?:ไม่ขาดทุน|ไม่มีความเสี่ยง|ผลตอบแทนแน่นอน|อนุมัติแน่นอน|เคลมผ่านแน่นอน|คุ้มครองทุกกรณี|จ่ายแน่นอน)/u,
+] as const;
+
+export function containsBannedLineDescriptionClaim(value: string): boolean {
+  return bannedLineDescriptionPatterns.some((pattern) => pattern.test(value));
+}
+
+export const lineCardDescriptionOutputSchema = z.object({
+  mode: z.literal("line-card-description"),
+  source: lineCardSourceSchema,
+  lineTitle: z.string().trim().superRefine((value, context) => {
+    const length = countGraphemes(value);
+    if (length < 24 || length > 60) {
+      context.addIssue({ code: "custom", message: "lineTitle must contain 24-60 graphemes" });
+    }
+    if (containsDirectPersonalIdentifier(value)) {
+      context.addIssue({ code: "custom", message: "lineTitle contains a direct identifier" });
+    }
+    if (containsBannedLineDescriptionClaim(value)) {
+      context.addIssue({ code: "custom", message: "lineTitle contains a banned claim" });
+    }
+  }),
+  lineDescription: z.string().trim().superRefine((value, context) => {
+    const length = countGraphemes(value);
+    if (length < 50 || length > 90) {
+      context.addIssue({ code: "custom", message: "lineDescription must contain 50-90 graphemes" });
+    }
+    if (containsDirectPersonalIdentifier(value)) {
+      context.addIssue({ code: "custom", message: "lineDescription contains a direct identifier" });
+    }
+    if (containsBannedLineDescriptionClaim(value)) {
+      context.addIssue({ code: "custom", message: "lineDescription contains a banned claim" });
+    }
+  }),
+  reviewRequired: z.literal(true),
+}).strict();
+
+const contentOperationsOutputSchema = z.union([
+  lineCardDescriptionOutputSchema,
+  legacyContentOperationsOutputSchema,
+]);
 
 const seoPreprocessingOutputSchema = z.object({
   clusters: z.array(z.object({
@@ -187,8 +264,18 @@ export function parseLocalAiTaskResult(taskType: LocalAiTaskType, inputValue: un
   if (taskType === "content-operations") {
     const input = contentOperationsInputSchema.safeParse(inputValue);
     if (!input.success) return input;
+    const lineInput = lineCardDescriptionInputSchema.safeParse(input.data);
+    if (lineInput.success) {
+      return lineCardDescriptionOutputSchema.superRefine((output, context) => {
+        for (const key of ["id", "revision", "slug", "title", "category"] as const) {
+          if (output.source[key] !== lineInput.data.source[key]) {
+            context.addIssue({ code: "custom", message: `source ${key} must exactly match input`, path: ["source", key] });
+          }
+        }
+      }).safeParse(outputValue);
+    }
     const allowed = new Set(input.data.allowedCategories);
-    return contentOperationsOutputSchema.superRefine((output, context) => {
+    return legacyContentOperationsOutputSchema.superRefine((output, context) => {
       if (!allowed.has(output.category)) {
         context.addIssue({ code: "custom", message: "category is outside allowedCategories", path: ["category"] });
       }
@@ -221,6 +308,10 @@ export function parseLocalAiTaskResult(taskType: LocalAiTaskType, inputValue: un
   const input = parseLocalAiTaskInput(taskType, inputValue);
   if (!input.success) return input;
   return parseLocalAiTaskOutput(taskType, outputValue);
+}
+
+export function isLineCardDescriptionInput(value: unknown): value is z.infer<typeof lineCardDescriptionInputSchema> {
+  return lineCardDescriptionInputSchema.safeParse(value).success;
 }
 
 export type LocalAiTaskInput = {

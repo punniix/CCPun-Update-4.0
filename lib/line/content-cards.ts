@@ -47,6 +47,8 @@ export type LineArticleCardSource = Pick<
   | "slug"
   | "title"
   | "excerpt"
+  | "lineTitle"
+  | "lineDescription"
   | "category"
   | "categorySlug"
   | "status"
@@ -56,8 +58,10 @@ export type LineArticleCardSource = Pick<
 
 function trimCardText(value: string, max: number) {
   const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= max) return normalized;
-  return `${normalized.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
+  const graphemes = [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(normalized)]
+    .map(({ segment }) => segment);
+  if (graphemes.length <= max) return normalized;
+  return `${graphemes.slice(0, Math.max(1, max - 1)).join("").trimEnd()}…`;
 }
 
 export function buildLineArticleUrl(
@@ -85,32 +89,33 @@ function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
     },
     {
       type: "text",
-      text: trimCardText(article.title, 76),
+      text: trimCardText(article.lineTitle?.trim() || article.title, 60),
       size: "lg",
       weight: "bold",
       color: "#FAF9F9",
       wrap: true,
       margin: "md",
+      maxLines: 2,
     },
     {
       type: "text",
-      text: trimCardText(article.excerpt || article.title, 132),
+      text: trimCardText(article.lineDescription?.trim() || article.excerpt || article.title, 90),
       size: "sm",
       color: "#BAABAB",
       wrap: true,
       margin: "md",
-      maxLines: 4,
+      maxLines: 2,
     },
   ];
 
   const bubble: Record<string, unknown> = {
     type: "bubble",
-    size: "mega",
+    size: "kilo",
     body: {
       type: "box",
       layout: "vertical",
       backgroundColor: "#352727",
-      paddingAll: "20px",
+      paddingAll: "16px",
       contents: bodyContents,
     },
     footer: {

@@ -4,6 +4,8 @@ import { pathToFileURL } from "node:url";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import {
+  isLineCardDescriptionInput,
+  lineCardDescriptionOutputSchema,
   localAiTaskOutputSchemas,
   parseLocalAiTaskInput,
   parseLocalAiTaskResult,
@@ -67,6 +69,15 @@ const instructions: Record<LocalAiTaskType, string> = {
   "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Input queries are objects; output queries must contain only their exact query text as strings, never objects. Preserve every query string exactly once. Return exactly one JSON object with only this shape: {\"clusters\":[{\"label\":\"short label\",\"intent\":\"informational|commercial|transactional|navigational|mixed\",\"queries\":[\"exact input query\"],\"ownerCandidate\":\"/existing-input-page-or-null\",\"reviewRequired\":true}]}. ownerCandidate must copy an input page beginning with / or be null; use null when uncertain. Do not add keys or prose.",
 };
 
+const lineCardDescriptionInstruction = "Create Thai copy for a CCPun LINE article card using only the supplied public article. Return lineTitle 24-60 graphemes and lineDescription 50-90 graphemes. Make the headline worth tapping through concrete relevance, a useful question, trade-off, consequence, or overlooked point supported by the article; keep it natural and conversational, not sensational. The description must complete the headline by saying what the reader will understand, compare, or check, without repeating it. Avoid generic filler, clickbait, fear, urgency manipulation, direct identifiers, guarantees, absolute claims, and invented facts. Never use bait phrases such as ห้ามพลาด, ด่วน, ก่อนสาย, ความลับ, ช็อก, or รับประกัน. Echo source exactly and return reviewRequired=true.";
+
+export function resolveLocalAiInferenceContract(taskType: LocalAiTaskType, payload: unknown) {
+  if (taskType === "content-operations" && isLineCardDescriptionInput(payload)) {
+    return { outputSchema: lineCardDescriptionOutputSchema, instruction: lineCardDescriptionInstruction };
+  }
+  return { outputSchema: localAiTaskOutputSchemas[taskType], instruction: instructions[taskType] };
+}
+
 function sha256(value: string) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -110,15 +121,16 @@ async function ollamaReady(baseUrl: string, configuredModel: string) {
 }
 
 async function infer(baseUrl: string, model: string, taskType: LocalAiTaskType, payload: unknown) {
+  const contract = resolveLocalAiInferenceContract(taskType, payload);
   const response = await fetch(new URL("api/chat", baseUrl), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: AbortSignal.timeout(90_000),
     body: JSON.stringify({
-      model, stream: false, think: false, format: z.toJSONSchema(localAiTaskOutputSchemas[taskType]), keep_alive: "5m",
+      model, stream: false, think: false, format: z.toJSONSchema(contract.outputSchema), keep_alive: "5m",
       options: { temperature: 0, num_ctx: 4096 },
       messages: [
-        { role: "system", content: `You are a private offline CCPun processor. ${instructions[taskType]} Output one JSON object only.` },
+        { role: "system", content: `You are a private offline CCPun processor. ${contract.instruction} Output one JSON object only.` },
         { role: "user", content: JSON.stringify(payload) },
       ],
     }),

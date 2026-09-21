@@ -1,0 +1,95 @@
+{
+  "name": "CCPun Local AI - Fill missing LINE descriptions",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-line-description",
+      "name": "Every 6 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://admin.ccpun.com/api/internal/local-ai/line-descriptions/?limit=10",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jkyOhRxVkx3ID6BB",
+          "name": "CCPun Local AI Admin Bridge"
+        }
+      },
+      "id": "get-missing-line-descriptions",
+      "name": "GET articles missing LINE description",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "id": "expand-articles",
+      "name": "Expand articles",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://admin.ccpun.com/api/internal/local-ai/jobs/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { taskType: 'content-operations', idempotencyKey: 'line-card-copy:v2:' + $json.id + ':' + $json.revision, queueClass: 'batch', payload: { locale: 'th-TH', mode: 'line-card-description', title: $json.title, body: $json.body, allowedCategories: [$json.category], source: { id: $json.id, revision: $json.revision, slug: $json.slug, title: $json.title, category: $json.category } } } }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jkyOhRxVkx3ID6BB",
+          "name": "CCPun Local AI Admin Bridge"
+        }
+      },
+      "id": "enqueue-line-description",
+      "name": "POST content operation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [720, 0]
+    }
+  ],
+  "connections": {
+    "Every 6 hours": {
+      "main": [[{"node": "GET articles missing LINE description", "type": "main", "index": 0}]]
+    },
+    "GET articles missing LINE description": {
+      "main": [[{"node": "Expand articles", "type": "main", "index": 0}]]
+    },
+    "Expand articles": {
+      "main": [[{"node": "POST content operation", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
