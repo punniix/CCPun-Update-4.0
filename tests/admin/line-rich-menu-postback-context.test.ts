@@ -112,7 +112,7 @@ test("postback context functions stay ingress-only and accept only approved menu
 });
 
 test("web ingestion enriches context after durable ingest without failing webhook persistence", () => {
-  const source = read("apps/web/lib/line/private-ingestion.ts");
+  const source = read("lib/admin/line/private-ingestion.ts");
   assert.match(source, /ingress_apply_line_postback_context/);
   assert.match(source, /ingress_apply_line_message_context/);
   assert.match(source, /applyLineJourneyContextBestEffort/);
