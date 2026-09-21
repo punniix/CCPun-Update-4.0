@@ -32,21 +32,9 @@ GRANT EXECUTE ON FUNCTION private_line.ingress_record_safe_knowledge_event(jsonb
 GRANT EXECUTE ON FUNCTION private_line.record_safe_web_journey_event(jsonb) TO ccpun_admin_runtime;
 
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA private_line FROM ccpun_line_ingress;
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA private_line FROM ccpun_admin_runtime;
-GRANT SELECT ON TABLE
-  private_line.advisor_document_safe,
-  private_line.advisor_inbox_safe,
-  private_line.contact_permission_current_safe,
-  private_line.conversation_task_safe,
-  private_line.customer_journey_instance_safe,
-  private_line.lead_context_safe,
-  private_line.lead_stage_history_safe,
-  private_line.line_campaign_safe,
-  private_line.line_operations_safe
-TO ccpun_admin_runtime;
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260921_line_admin_ingress_boundary_v1','sha256:66ee58aa23566ddab647d6cc2ed9905575208edcc9a90a09fd30d1001c40f821')
+VALUES('20260921_line_admin_ingress_boundary_v1','sha256:81ead580ba722a69d8093530f38eab6124374203528ea965314bba269be78459')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
