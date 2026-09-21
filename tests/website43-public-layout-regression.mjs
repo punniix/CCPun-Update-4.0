@@ -87,6 +87,14 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(ci, /Recovery Reserve/);
   assert.match(toolHero, /ctaHref/);
   assert.match(toolHero, /toolHeroGradient/);
+  assert.match(toolHero, /fullBleed\?: boolean/);
+  assert.match(toolHero, /sizes=\{fullBleed \? '100vw' : '\(max-width: 639px\) 100vw, \(max-width: 1023px\) 560px, 820px'\}/);
+  assert.match(ci, /<Website43ToolHero[\s\S]*?fullBleed[\s\S]*?\/>/);
+  assert.doesNotMatch(fhc, /fullBleed/);
+  assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroImage \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/);
+  assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroGradient \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*background: linear-gradient\(90deg,[^}]*rgba\(6,11,9,\.16\) 100%\);/);
+  assert.match(css, /\.root \.toolHeroFullBleed \.primaryButton \{[^}]*width: clamp\(176px, 15\.28vw, 220px\);[^}]*min-height: 52px;/);
+  assert.match(ci, /<Website43ToolHero[\s\S]*?<section id="ci-calculator"[\s\S]*?<CILandingIntro \/>/);
 });
 
 test('Cookie Settings stays inside the visible Website 4.3 footer card at every breakpoint', () => {
