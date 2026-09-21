@@ -125,6 +125,12 @@ test("Sanity field is LINE-only and guarded apply never overwrites existing text
   assert.match(reviewRoute, /identity\.role !== "owner"/);
   assert.match(reviewRoute, /parsed\.data\.decision === "approve"[\s\S]*applyApprovedLineDescription/);
   assert.doesNotMatch(read("apps/admin/app/api/internal/local-ai/line-descriptions/route.ts"), /applyApprovedLineDescription/);
+  assert.match(reviewRoute, /line-description-draft-active/);
+  assert.match(reviewRoute, /reviewStatus: "pending"/);
+  assert.ok(
+    reviewRoute.indexOf("await hasPublishedArticleDraft") < reviewRoute.indexOf("reviewLocalAiJob({ ...parsed.data"),
+    "draft preflight must happen before owner approval is persisted",
+  );
 });
 
 test("missing-only bridge and inactive n8n workflow remain bounded and private", () => {
@@ -137,6 +143,10 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
   assert.match(sourceModule, /!defined\(lineTitle\).*lineTitle == ""/);
   assert.match(sourceModule, /!defined\(lineDescription\).*lineDescription == ""/);
   assert.match(sourceModule, /coalesce\(seo\.noindex, false\) != true/);
+  assert.match(sourceModule, /!defined\(\*\[_id == "drafts\." \+ \^\._id\]\[0\]\._id\)/);
+  assert.match(sourceModule, /readClient\("raw"\)/);
+  assert.match(sourceModule, /hasPublishedArticleDraft/);
+  assert.match(sourceModule, /status: "deferred-draft"/);
   assert.match(sourceModule, /isAdminReadDataPlaneAllowed/);
   assert.match(route, /isN8nLocalAiRequestAuthorized/);
   assert.match(route, /max\(20\)/);

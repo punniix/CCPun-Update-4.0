@@ -37,17 +37,21 @@ export type LineDescriptionTarget = z.infer<typeof targetArticleSchema>;
 export type ApprovedLineDescription = z.infer<typeof lineCardDescriptionOutputSchema>;
 
 const missingArticlesQuery = defineQuery(
-  '*[_type == "article" && defined(publishedAt) && defined(slug.current) && coalesce(seo.noindex, false) != true && ((!defined(lineTitle) || lineTitle == "") || (!defined(lineDescription) || lineDescription == ""))] | order(coalesce(publishedAt, _updatedAt) desc) [0...$limit] {"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"body": pt::text(body)}',
+  '*[_type == "article" && !(_id in path("drafts.**")) && !(_id in path("versions.**")) && defined(publishedAt) && defined(slug.current) && coalesce(seo.noindex, false) != true && !defined(*[_id == "drafts." + ^._id][0]._id) && ((!defined(lineTitle) || lineTitle == "") || (!defined(lineDescription) || lineDescription == ""))] | order(coalesce(publishedAt, _updatedAt) desc) [0...$limit] {"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"body": pt::text(body)}',
+);
+
+const draftExistsQuery = defineQuery(
+  'defined(*[_id == "drafts." + $id][0]._id)',
 );
 
 const targetArticleQuery = defineQuery(
   '*[_type == "article" && _id == $id][0]{"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"lineTitle": coalesce(lineTitle, null),"lineDescription": coalesce(lineDescription, null)}',
 );
 
-function readClient() {
+function readClient(perspective: "published" | "raw" = "published") {
   const token = getAdminSanityReadToken();
   if (!baseClient || !dataset || !token || !isAdminReadDataPlaneAllowed(dataset)) return null;
-  return baseClient.withConfig({ token, perspective: "published", useCdn: false });
+  return baseClient.withConfig({ token, perspective, useCdn: false });
 }
 
 function writeClient() {
@@ -57,11 +61,19 @@ function writeClient() {
 }
 
 export async function listPublishedArticlesMissingLineDescription(limit = 10) {
-  const client = readClient();
+  const client = readClient("raw");
   if (!client) throw new Error("LINE_DESCRIPTION_READ_UNAVAILABLE");
   const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 20);
   const rows = z.array(missingArticleSchema).parse(await client.fetch(missingArticlesQuery, { limit: boundedLimit }));
   return rows.map((row) => ({ ...row, body: row.body.trim().slice(0, 30_000) })).filter((row) => row.body.length > 0);
+}
+
+export async function hasPublishedArticleDraft(id: string) {
+  const parsedId = z.string().trim().min(1).max(200).safeParse(id);
+  if (!parsedId.success || parsedId.data.startsWith("drafts.") || parsedId.data.startsWith("versions.")) return true;
+  const client = readClient("raw");
+  if (!client) throw new Error("LINE_DESCRIPTION_READ_UNAVAILABLE");
+  return z.boolean().parse(await client.fetch(draftExistsQuery, { id: parsedId.data }));
 }
 
 export function decideLineDescriptionApply(target: LineDescriptionTarget, approved: ApprovedLineDescription) {
@@ -81,7 +93,8 @@ export function decideLineDescriptionApply(target: LineDescriptionTarget, approv
 
 export async function applyApprovedLineDescription(value: unknown) {
   const approved = lineCardDescriptionOutputSchema.parse(value);
-  if (approved.source.id.startsWith("drafts.")) throw new Error("LINE_DESCRIPTION_SOURCE_CONFLICT");
+  if (approved.source.id.startsWith("drafts.") || approved.source.id.startsWith("versions.")) throw new Error("LINE_DESCRIPTION_SOURCE_CONFLICT");
+  if (await hasPublishedArticleDraft(approved.source.id)) return { status: "deferred-draft" as const };
   const client = writeClient();
   if (!client) throw new Error("LINE_DESCRIPTION_WRITE_UNAVAILABLE");
 
@@ -97,6 +110,7 @@ export async function applyApprovedLineDescription(value: unknown) {
     if (!target.lineTitle?.trim()) patch.lineTitle = approved.lineTitle;
     if (!target.lineDescription?.trim()) patch.lineDescription = approved.lineDescription;
     if (Object.keys(patch).length === 0) return { status: "skipped-existing" as const };
+    if (await hasPublishedArticleDraft(target.id)) return { status: "deferred-draft" as const };
     await client.patch(target.id).ifRevisionId(target.revision).set(patch).commit();
     return { status: "applied" as const };
   } catch (error) {
