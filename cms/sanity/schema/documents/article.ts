@@ -45,18 +45,32 @@ export const article = defineType({
       validation: (Rule) => Rule.required().max(240),
     }),
     defineField({
-      name: "lineDescription",
-      title: "คำอธิบายสั้นสำหรับการ์ด LINE",
-      type: "text",
-      rows: 2,
+      name: "lineTitle",
+      title: "หัวข้อสำหรับการ์ด LINE",
+      type: "string",
       group: "content",
-      description: "ใช้เฉพาะข้อความบนการ์ดใน LINE ไม่ใช่คำอธิบายที่ Google หรือหน้า Search ใช้ เว้นว่างได้หากยังไม่พร้อม",
+      description: "หัวข้อเฉพาะการ์ด LINE ใช้ภาษาชวนอ่านแบบไม่ clickbait และไม่กระทบชื่อบทความหรือ SEO เว้นว่างได้หากยังไม่พร้อม",
       validation: (Rule) => Rule.custom((value) => {
         if (typeof value !== "string" || !value.trim()) return true;
         const length = [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value.trim())].length;
-        return length >= 40 && length <= 90
+        return length >= 24 && length <= 60
           ? true
-          : "กรุณาเขียนคำอธิบายสำหรับ LINE ความยาว 40–90 ตัวอักษร";
+          : "กรุณาเขียนหัวข้อสำหรับ LINE ความยาว 24–60 ตัวอักษร";
+      }),
+    }),
+    defineField({
+      name: "lineDescription",
+      title: "คำโปรยสำหรับการ์ด LINE",
+      type: "text",
+      rows: 2,
+      group: "content",
+      description: "ใช้เฉพาะคำโปรยบนการ์ด LINE ชวนให้เห็นประโยชน์ของบทความโดยไม่ซ้ำหัวข้อ และไม่กระทบ Google หรือหน้า Search",
+      validation: (Rule) => Rule.custom((value) => {
+        if (typeof value !== "string" || !value.trim()) return true;
+        const length = [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value.trim())].length;
+        return length >= 50 && length <= 90
+          ? true
+          : "กรุณาเขียนคำโปรยสำหรับ LINE ความยาว 50–90 ตัวอักษร";
       }),
     }),
     defineField({
