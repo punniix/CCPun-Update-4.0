@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createHash } from "node:crypto";
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { after } from "next/server";
