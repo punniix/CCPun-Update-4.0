@@ -47,6 +47,7 @@ export type LineArticleCardSource = Pick<
   | "slug"
   | "title"
   | "excerpt"
+  | "lineTitle"
   | "lineDescription"
   | "category"
   | "categorySlug"
@@ -88,7 +89,7 @@ function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
     },
     {
       type: "text",
-      text: trimCardText(article.title, 76),
+      text: trimCardText(article.lineTitle?.trim() || article.title, 60),
       size: "lg",
       weight: "bold",
       color: "#FAF9F9",
