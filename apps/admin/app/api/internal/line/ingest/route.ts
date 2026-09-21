@@ -10,19 +10,27 @@ function hidden(status = 404) {
   return new Response(null, { status, headers: lineWebhookResponseHeaders() });
 }
 
+function readinessStatus() {
+  try {
+    if (!process.env.LINE_CHANNEL_SECRET?.trim()) return false;
+    if (!resolveLineIngestRuntime()) return false;
+    createLinePrivateCrypto();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function GET() {
-  return hidden();
+  const ready = readinessStatus();
+  return Response.json(
+    { status: ready ? "ready" : "not-ready" },
+    { status: ready ? 200 : 503, headers: lineWebhookResponseHeaders() },
+  );
 }
 
 export function HEAD() {
-  try {
-    if (!process.env.LINE_CHANNEL_SECRET?.trim()) return hidden(503);
-    if (!resolveLineIngestRuntime()) return hidden(503);
-    createLinePrivateCrypto();
-    return hidden(204);
-  } catch {
-    return hidden(503);
-  }
+  return hidden(readinessStatus() ? 204 : 503);
 }
 
 export function OPTIONS() {
