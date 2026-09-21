@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLinePrivateCrypto, type LinePrivateCrypto } from "../../line/private-crypto";
 import { normalizeLinePrivateEvent } from "../../line/private-domain";
 import {
