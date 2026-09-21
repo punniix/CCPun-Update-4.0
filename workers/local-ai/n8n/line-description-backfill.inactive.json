@@ -58,7 +58,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ { taskType: 'content-operations', idempotencyKey: 'line-description:' + $json.id + ':' + $json.revision, queueClass: 'batch', payload: { locale: 'th-TH', mode: 'line-card-description', title: $json.title, body: $json.body, allowedCategories: [$json.category], source: { id: $json.id, revision: $json.revision, slug: $json.slug, title: $json.title, category: $json.category } } } }}",
+        "jsonBody": "={{ { taskType: 'content-operations', idempotencyKey: 'line-card-copy:v2:' + $json.id + ':' + $json.revision, queueClass: 'batch', payload: { locale: 'th-TH', mode: 'line-card-description', title: $json.title, body: $json.body, allowedCategories: [$json.category], source: { id: $json.id, revision: $json.revision, slug: $json.slug, title: $json.title, category: $json.category } } } }}",
         "options": {}
       },
       "credentials": {
