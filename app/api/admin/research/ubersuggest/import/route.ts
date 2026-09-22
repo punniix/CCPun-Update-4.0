@@ -147,7 +147,7 @@ export async function POST(request: Request) {
     changedRows: previewRows.filter((row) => row.status === "changed").length,
     existingRows: previewRows.filter((row) => row.status === "existing").length,
     duplicateRows: input.parsedCsv.duplicateRows,
-    invalidRows: input.parsedCsv.invalidRows.length,
+    invalidRows: input.parsedCsv.invalidRowCount,
   };
 
   if (input.action === "preview") {
