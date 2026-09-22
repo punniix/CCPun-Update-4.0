@@ -171,18 +171,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "research-write-not-configured" }, { status: 503 });
   }
 
-  const importable = previewRows.filter((row) => row.status !== "existing");
-  if (!importable.length) {
-    return NextResponse.json({
-      requestId: randomUUID(),
-      counts,
-      imported: 0,
-      reused: 0,
-      failed: 0,
-      skippedExisting: counts.existingRows,
-    });
-  }
-
+  // Every valid row reaches the exact CSV fingerprint dedupe. Preview-level "existing"
+  // cannot compare CPC/PD because those values intentionally stay out of the current
+  // research_snapshot schema; the fingerprint prevents identical re-imports while
+  // preserving a same-day CPC/PD change in audit history.
+  const importable = previewRows;
   const requestId = randomUUID();
   const checkedAt = new Date().toISOString();
   try {
@@ -200,7 +193,6 @@ export async function POST(request: Request) {
       imported: result.inserted,
       reused: result.reused,
       failed: result.failed,
-      skippedExisting: counts.existingRows,
       failures: result.failures,
     }, { status: result.failed ? 207 : result.inserted ? 201 : 200 });
   } catch (error) {
