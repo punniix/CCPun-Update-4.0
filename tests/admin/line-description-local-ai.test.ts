@@ -93,6 +93,7 @@ test("worker makes one length-only repair and never repairs unsafe LINE output",
   assert.equal(requests[1]?.messages.length, 4);
   assert.match(requests[1]?.messages[3]?.content ?? "", /24-60/);
   assert.match(requests[1]?.messages[3]?.content ?? "", /50-90/);
+  assert.match(requests[1]?.messages[3]?.content ?? "", /60-75/);
   assert.match(JSON.stringify(requests[0]?.format), /lineTitle/);
   assert.match(requests[0]?.messages[0]?.content ?? "", /รับประกันความคุ้มครอง/);
   assert.match(requests[0]?.messages[0]?.content ?? "", /13-digit identifier/);
@@ -232,7 +233,7 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
   );
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("queueClass: 'batch'")), true);
   assert.equal(workflowText.match(/line-card-copy:v4:/g)?.length ?? 0, 0);
-  assert.equal(workflowText.match(/line-card-copy:v6:/g)?.length ?? 0, 1);
+  assert.equal(workflowText.match(/line-card-copy:v7:/g)?.length ?? 0, 1);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("/local-ai/reviews/?jobId=")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sourceId=")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sanity-verification-failed")), true);
