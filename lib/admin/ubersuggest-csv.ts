@@ -1,7 +1,7 @@
 import { normalizeResearchKeyword, type ResearchInput } from "./research-input";
 
 export const UBERSUGGEST_CSV_MAX_BYTES = 2 * 1024 * 1024;
-export const UBERSUGGEST_CSV_MAX_ROWS = 500;
+export const UBERSUGGEST_CSV_MAX_ROWS = 200;
 
 export type UbersuggestCsvIntent = ResearchInput["intent"];
 export type UbersuggestCsvRow = {
