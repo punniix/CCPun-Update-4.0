@@ -6,7 +6,6 @@ import { z } from "zod";
 import {
   countGraphemes,
   isLineCardDescriptionInput,
-  lineCardDescriptionOutputSchema,
   localAiTaskOutputSchemas,
   parseLocalAiTaskInput,
   parseLocalAiTaskResult,
@@ -70,12 +69,14 @@ const instructions: Record<LocalAiTaskType, string> = {
   "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Input queries are objects; output queries must contain only their exact query text as strings, never objects. Preserve every query string exactly once. Return exactly one JSON object with only this shape: {\"clusters\":[{\"label\":\"short label\",\"intent\":\"informational|commercial|transactional|navigational|mixed\",\"queries\":[\"exact input query\"],\"ownerCandidate\":\"/existing-input-page-or-null\",\"reviewRequired\":true}]}. ownerCandidate must copy an input page beginning with / or be null; use null when uncertain. Do not add keys or prose.",
 };
 
-const lineCardDescriptionInstruction = "Create Thai copy for a CCPun LINE article card using only the supplied public article. Return lineTitle 24-60 graphemes and lineDescription 50-90 graphemes; target 60-75 graphemes for lineDescription so it stays safely inside the allowed range. Make the headline worth tapping through concrete relevance, a useful question, trade-off, consequence, or overlooked point supported by the article; keep it natural and conversational, not sensational. The description must complete the headline by saying what the reader will understand, compare, or check, without repeating it. Avoid generic filler, clickbait, fear, urgency manipulation, direct identifiers, guarantees, absolute claims, and invented facts. Never emit these exact substrings anywhere: รับประกันผลตอบแทน, รับประกันกำไร, รับประกันอนุมัติ, รับประกันเคลมผ่าน, รับประกันความคุ้มครอง, การันตีผลตอบแทน, การันตีกำไร, การันตีอนุมัติ, การันตีเคลมผ่าน, การันตีความคุ้มครอง, รับรองผลตอบแทน, รับรองกำไร, รับรองอนุมัติ, รับรองเคลมผ่าน, รับรองความคุ้มครอง, ไม่ขาดทุน, ไม่มีความเสี่ยง, ผลตอบแทนแน่นอน, อนุมัติแน่นอน, เคลมผ่านแน่นอน, คุ้มครองทุกกรณี, or จ่ายแน่นอน. Never include a phone number, email address, or 13-digit identifier. Never use bait phrases such as ห้ามพลาด, ด่วน, ก่อนสาย, ความลับ, or ช็อก. Echo source exactly and return reviewRequired=true.";
+const lineCardDescriptionInstruction = "Create Thai copy for a CCPun LINE article card using only the supplied public article. Return only lineTitle and lineDescription. lineTitle must contain 24-60 graphemes and lineDescription 50-90 graphemes; target 60-75 graphemes for lineDescription so it stays safely inside the allowed range. Make the headline worth tapping through concrete relevance, a useful question, trade-off, consequence, or overlooked point supported by the article; keep it natural and conversational, not sensational. The description must complete the headline by saying what the reader will understand, compare, or check, without repeating it. Avoid generic filler, clickbait, fear, urgency manipulation, direct identifiers, guarantees, absolute claims, and invented facts. Never emit these exact substrings anywhere: รับประกันผลตอบแทน, รับประกันกำไร, รับประกันอนุมัติ, รับประกันเคลมผ่าน, รับประกันความคุ้มครอง, การันตีผลตอบแทน, การันตีกำไร, การันตีอนุมัติ, การันตีเคลมผ่าน, การันตีความคุ้มครอง, รับรองผลตอบแทน, รับรองกำไร, รับรองอนุมัติ, รับรองเคลมผ่าน, รับรองความคุ้มครอง, ไม่ขาดทุน, ไม่มีความเสี่ยง, ผลตอบแทนแน่นอน, อนุมัติแน่นอน, เคลมผ่านแน่นอน, คุ้มครองทุกกรณี, or จ่ายแน่นอน. Never include a phone number, email address, or 13-digit identifier. Never use bait phrases such as ห้ามพลาด, ด่วน, ก่อนสาย, ความลับ, or ช็อก. Do not return mode, source, reviewRequired, or any other metadata; the worker attaches trusted metadata after inference.";
 
-const lineCardRepairCandidateSchema = z.object({
+const lineCardModelOutputSchema = z.object({
   lineTitle: z.string(),
   lineDescription: z.string(),
 });
+
+const lineCardRepairCandidateSchema = lineCardModelOutputSchema;
 
 function lineCardLengthRepair(payload: unknown, rawOutput: unknown, error: z.ZodError) {
   if (!isLineCardDescriptionInput(payload) || error.issues.length === 0) return null;
@@ -94,7 +95,7 @@ function lineCardLengthRepair(payload: unknown, rawOutput: unknown, error: z.Zod
 
 export function resolveLocalAiInferenceContract(taskType: LocalAiTaskType, payload: unknown) {
   if (taskType === "content-operations" && isLineCardDescriptionInput(payload)) {
-    return { outputSchema: lineCardDescriptionOutputSchema, instruction: lineCardDescriptionInstruction };
+    return { outputSchema: lineCardModelOutputSchema, instruction: lineCardDescriptionInstruction };
   }
   return { outputSchema: localAiTaskOutputSchemas[taskType], instruction: instructions[taskType] };
 }
@@ -156,7 +157,7 @@ async function infer(
   if (repair) {
     messages.push(
       { role: "assistant", content: JSON.stringify(repair.previousOutput) },
-      { role: "user", content: `The JSON shape and source are valid, but the Thai text lengths are not. lineTitle is ${repair.lineTitleLength} graphemes and must be 24-60. lineDescription is ${repair.lineDescriptionLength} graphemes and must be 50-90; rewrite it to target 60-75 graphemes. Rewrite only lineTitle and lineDescription using the supplied article, preserve source exactly, and return one JSON object.` },
+      { role: "user", content: `The copy fields are structurally valid, but the Thai text lengths are not. lineTitle is ${repair.lineTitleLength} graphemes and must be 24-60. lineDescription is ${repair.lineDescriptionLength} graphemes and must be 50-90; rewrite it to target 60-75 graphemes. Rewrite only lineTitle and lineDescription using the supplied article and return one JSON object with only those two fields.` },
     );
   }
   const response = await fetch(new URL("api/chat", baseUrl), {
@@ -175,6 +176,19 @@ async function infer(
   catch { throw new Error("MODEL_JSON_INVALID"); }
 }
 
+function composeTrustedLineCardOutput(taskType: LocalAiTaskType, payload: unknown, rawOutput: unknown) {
+  if (taskType !== "content-operations" || !isLineCardDescriptionInput(payload)) return rawOutput;
+  const copy = lineCardModelOutputSchema.safeParse(rawOutput);
+  if (!copy.success) return rawOutput;
+  return {
+    mode: "line-card-description" as const,
+    source: payload.source,
+    lineTitle: copy.data.lineTitle,
+    lineDescription: copy.data.lineDescription,
+    reviewRequired: true as const,
+  };
+}
+
 export async function inferAndValidate(
   baseUrl: string,
   model: string,
@@ -182,12 +196,12 @@ export async function inferAndValidate(
   payload: unknown,
 ) {
   let rawOutput = await infer(baseUrl, model, taskType, payload);
-  let output = parseLocalAiTaskResult(taskType, payload, rawOutput);
+  let output = parseLocalAiTaskResult(taskType, payload, composeTrustedLineCardOutput(taskType, payload, rawOutput));
   if (!output.success) {
     const repair = lineCardLengthRepair(payload, rawOutput, output.error);
     if (repair) {
       rawOutput = await infer(baseUrl, model, taskType, payload, repair);
-      output = parseLocalAiTaskResult(taskType, payload, rawOutput);
+      output = parseLocalAiTaskResult(taskType, payload, composeTrustedLineCardOutput(taskType, payload, rawOutput));
     }
   }
   return output;
