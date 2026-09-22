@@ -80,6 +80,24 @@ test("published and draft variants of the same logical category are not treated 
   assert.equal(registry.entries[0]?.description, "Draft current");
 });
 
+test("category registry preserves curated featured article order", () => {
+  const registry = buildCategoryRegistry([
+    {
+      _id: "category-health-insurance",
+      title: "ประกันสุขภาพ",
+      slug: "health-insurance",
+      status: "active",
+      featuredArticleIds: ["article-third", "article-first", "article-second"],
+    },
+  ]);
+
+  assert.deepEqual(registry.entries[0]?.featuredArticleIds, [
+    "article-third",
+    "article-first",
+    "article-second",
+  ]);
+});
+
 test("slug format, duplicate slug, route collision and canonical collision isolate only unsafe rows", () => {
   const registry = buildCategoryRegistry([
     { _id: "good", title: "ดี", slug: "good-category", status: "active" },
