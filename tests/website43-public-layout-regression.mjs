@@ -94,7 +94,7 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroImage \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/);
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroGradient \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*background: linear-gradient\(90deg,[^}]*rgba\(6,11,9,\.16\) 100%\);/);
   assert.match(css, /\.root \.toolHeroFullBleed \.primaryButton \{[^}]*width: clamp\(176px, 15\.28vw, 220px\);[^}]*min-height: 52px;/);
-  assert.match(ci, /<Website43ToolHero[\s\S]*?<section id="ci-calculator"[\s\S]*?<CILandingIntro \/>/);
+  assert.match(ci, /<Website43ToolHero[\s\S]*?<CILandingIntro \/>[\s\S]*?<section id="ci-calculator"/);
 });
 
 test('Cookie Settings stays inside the visible Website 4.3 footer card at every breakpoint', () => {
