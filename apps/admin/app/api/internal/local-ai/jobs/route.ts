@@ -30,6 +30,13 @@ export async function POST(request: Request) {
   try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: "invalid-json" }, { status: 400, headers: responseHeaders }); }
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "invalid-public-safe-job" }, { status: 400, headers: responseHeaders });
+  if (
+    parsed.data.taskType === "content-operations"
+    && "mode" in parsed.data.payload
+    && parsed.data.payload.mode === "line-card-description"
+  ) {
+    return NextResponse.json({ error: "legacy-line-card-disabled" }, { status: 410, headers: responseHeaders });
+  }
   try {
     const result = parsed.data.taskType === "content-operations"
       ? await enqueueLocalAiJob({ taskType: "content-operations", payload: parsed.data.payload, actor: "n8n", idempotencyKey: parsed.data.idempotencyKey, queueClass: parsed.data.queueClass })

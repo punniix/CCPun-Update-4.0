@@ -216,6 +216,8 @@ test("n8n bridge is token-gated and can enqueue only public-safe tasks", () => {
   assert.match(enqueueRoute, /z\.literal\("content-operations"\)/);
   assert.match(enqueueRoute, /z\.literal\("seo-preprocessing"\)/);
   assert.doesNotMatch(enqueueRoute, /z\.literal\("(?:line-intent|privacy-redaction)"\)/);
+  assert.match(enqueueRoute, /parsed\.data\.payload\.mode === "line-card-description"/);
+  assert.match(enqueueRoute, /legacy-line-card-disabled/);
   const resultRoute = read("apps/admin/app/api/internal/local-ai/reviews/route.ts");
   const ownerReviewRoute = read("apps/admin/app/api/admin/local-ai/review/route.ts");
   assert.match(resultRoute, /job\.reviewStatus === "approved" \? job\.output : null/);
