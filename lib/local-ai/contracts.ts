@@ -175,33 +175,37 @@ export function containsBannedLineDescriptionClaim(value: string): boolean {
   return bannedLineDescriptionPatterns.some((pattern) => pattern.test(value));
 }
 
+export const lineCardTitleSchema = z.string().trim().superRefine((value, context) => {
+  const length = countGraphemes(value);
+  if (length < 24 || length > 60) {
+    context.addIssue({ code: "custom", message: "lineTitle must contain 24-60 graphemes" });
+  }
+  if (containsDirectPersonalIdentifier(value)) {
+    context.addIssue({ code: "custom", message: "lineTitle contains a direct identifier" });
+  }
+  if (containsBannedLineDescriptionClaim(value)) {
+    context.addIssue({ code: "custom", message: "lineTitle contains a banned claim" });
+  }
+});
+
+export const lineCardTextDescriptionSchema = z.string().trim().superRefine((value, context) => {
+  const length = countGraphemes(value);
+  if (length < 50 || length > 90) {
+    context.addIssue({ code: "custom", message: "lineDescription must contain 50-90 graphemes" });
+  }
+  if (containsDirectPersonalIdentifier(value)) {
+    context.addIssue({ code: "custom", message: "lineDescription contains a direct identifier" });
+  }
+  if (containsBannedLineDescriptionClaim(value)) {
+    context.addIssue({ code: "custom", message: "lineDescription contains a banned claim" });
+  }
+});
+
 export const lineCardDescriptionOutputSchema = z.object({
   mode: z.literal("line-card-description"),
   source: lineCardSourceSchema,
-  lineTitle: z.string().trim().superRefine((value, context) => {
-    const length = countGraphemes(value);
-    if (length < 24 || length > 60) {
-      context.addIssue({ code: "custom", message: "lineTitle must contain 24-60 graphemes" });
-    }
-    if (containsDirectPersonalIdentifier(value)) {
-      context.addIssue({ code: "custom", message: "lineTitle contains a direct identifier" });
-    }
-    if (containsBannedLineDescriptionClaim(value)) {
-      context.addIssue({ code: "custom", message: "lineTitle contains a banned claim" });
-    }
-  }),
-  lineDescription: z.string().trim().superRefine((value, context) => {
-    const length = countGraphemes(value);
-    if (length < 50 || length > 90) {
-      context.addIssue({ code: "custom", message: "lineDescription must contain 50-90 graphemes" });
-    }
-    if (containsDirectPersonalIdentifier(value)) {
-      context.addIssue({ code: "custom", message: "lineDescription contains a direct identifier" });
-    }
-    if (containsBannedLineDescriptionClaim(value)) {
-      context.addIssue({ code: "custom", message: "lineDescription contains a banned claim" });
-    }
-  }),
+  lineTitle: lineCardTitleSchema,
+  lineDescription: lineCardTextDescriptionSchema,
   reviewRequired: z.literal(true),
 }).strict();
 
