@@ -124,9 +124,9 @@ export async function POST(request: Request) {
     if (!latest.has(key)) {
       latest.set(key, {
         keyword: row.keyword,
-        volume: row.volume,
-        difficulty: row.difficulty,
-        intent: row.intent,
+        volume: row.volume ?? null,
+        difficulty: row.difficulty ?? null,
+        intent: row.intent ?? null,
         checkedAt: row.checkedAt,
       });
     }
