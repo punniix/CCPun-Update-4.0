@@ -77,18 +77,21 @@ async function parseRequest(request: Request) {
 
 function toResearchInput(
   row: UbersuggestCsvRow,
-  meta: { location?: string; language?: string; checkedAt: string },
+  meta: { location?: string; language?: string; checkedAt: string; reportType: "keyword-ideas" | "keyword-coverage" },
 ): ResearchInput {
   return {
     keyword: row.keyword,
     provider: "ubersuggest",
-    scope: "ubersuggest:web-csv:keyword-ideas",
+    scope: `ubersuggest:web-csv:${meta.reportType}`,
     location: meta.location,
     language: meta.language,
     volume: row.volume,
     difficulty: row.difficulty,
     cpc: row.cpc,
     paidDifficulty: row.paidDifficulty,
+    sourcePosition: row.position,
+    estimatedVisits: row.estimatedVisits,
+    sourceUrl: row.url,
     intent: row.intent,
     sourceMethod: "web-csv-import",
     checkedAt: meta.checkedAt,
@@ -184,6 +187,7 @@ export async function POST(request: Request) {
         location: input.location,
         language: input.language,
         checkedAt,
+        reportType: input.parsedCsv.reportType,
       })),
       { actor: identity.actor, actorType: "human", requestId },
     );
