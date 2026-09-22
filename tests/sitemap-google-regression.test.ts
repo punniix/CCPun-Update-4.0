@@ -109,3 +109,17 @@ test("protects Google publish eligibility and sets one meaningful publication ti
   assert.match(config, /wrapGoogleSafeArticlePublishActions[\s\S]*protectProductionContentLifecycleActions/);
   assert.match(schema, /name:\s*"contentUpdatedAt"[\s\S]*readOnly:\s*true/);
 });
+
+
+test("keeps utility compliance and private error surfaces out of search ownership", () => {
+  const coreSitemap = readSource("app/sitemaps/core.xml/route.ts");
+  const cookiePolicy = readSource("app/cookie-policy/page.tsx");
+  const robotsSource = readSource("app/robots.ts");
+  const nextConfig = readSource("next.config.ts");
+
+  assert.match(coreSitemap, /https:\/\/ccpun\.com\/privacy\//);
+  assert.doesNotMatch(coreSitemap, /cookie-policy/);
+  assert.match(cookiePolicy, /robots:\s*\{\s*index:\s*false,\s*follow:\s*true\s*\}/);
+  assert.match(robotsSource, /["']\/admin-not-found\/["']/);
+  assert.match(nextConfig, /["']\/admin-not-found\/:path\*["']/);
+});
