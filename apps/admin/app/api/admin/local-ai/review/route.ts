@@ -3,10 +3,8 @@ import { z } from "zod";
 
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { getAdminIdentity } from "@/lib/admin/identity";
-import { applyApprovedLineDescription, hasPublishedArticleDraft } from "@/lib/admin/line/description-optimization";
 import { readLocalAiJob, reviewLocalAiJob } from "@/lib/admin/local-ai/database";
 import { evaluateAdminAction } from "@/lib/admin/policy";
-import { lineCardDescriptionOutputSchema } from "@/lib/local-ai/contracts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,27 +43,7 @@ export async function POST(request: Request) {
   });
   if (!policy.allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  if (parsed.data.decision === "approve") {
-    try {
-      const pendingJob = await readLocalAiJob(parsed.data.jobId);
-      const pendingLineOutput = pendingJob?.taskType === "content-operations"
-        ? lineCardDescriptionOutputSchema.safeParse(pendingJob.output)
-        : null;
-      if (pendingLineOutput?.success && await hasPublishedArticleDraft(pendingLineOutput.data.source.id)) {
-        if (contentType.startsWith("application/json")) {
-          return NextResponse.json({
-            error: "line-description-draft-active",
-            retryable: true,
-            reviewStatus: "pending",
-            applyStatus: "deferred-draft",
-          }, { status: 409 });
-        }
-        return NextResponse.redirect(new URL("/operations/local-ai/?notice=line-draft-active", request.url), 303);
-      }
-    } catch {
-      return NextResponse.json({ error: "line-description-draft-check-failed", retryable: true }, { status: 503 });
-    }
-  }
+
 
   try {
     let reviewStatus: "pending" | "approved" | "rejected";
@@ -78,30 +56,8 @@ export async function POST(request: Request) {
       reviewStatus = "approved";
     }
 
-    let applyStatus: "applied" | "already-applied" | "skipped-existing" | "deferred-draft" | null = null;
-    if (parsed.data.decision === "approve" && reviewStatus === "approved") {
-      let job;
-      try {
-        job = await readLocalAiJob(parsed.data.jobId);
-      } catch {
-        return NextResponse.json({ error: "approved-result-read-failed", retryable: true, reviewStatus }, { status: 503 });
-      }
-      const lineOutput = job?.taskType === "content-operations"
-        ? lineCardDescriptionOutputSchema.safeParse(job.output)
-        : null;
-      if (lineOutput?.success) {
-        try {
-          applyStatus = (await applyApprovedLineDescription(lineOutput.data)).status;
-        } catch (error) {
-          const sourceConflict = error instanceof Error && error.message === "LINE_DESCRIPTION_SOURCE_CONFLICT";
-          return NextResponse.json({
-            error: sourceConflict ? "line-description-source-conflict" : "line-description-apply-failed",
-            retryable: !sourceConflict,
-            reviewStatus,
-          }, { status: sourceConflict ? 409 : 503 });
-        }
-      }
-    }
+    const applyStatus = null;
+
 
     if (contentType.startsWith("application/json")) return NextResponse.json({ jobId: parsed.data.jobId, reviewStatus, applyStatus });
     return NextResponse.redirect(new URL("/operations/local-ai/", request.url), 303);

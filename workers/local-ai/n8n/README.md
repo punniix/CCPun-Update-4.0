@@ -41,7 +41,7 @@ The response is `202` for a new job or `200` for an idempotent replay and contai
 
 `GET $CCPUN_ADMIN_BASE_URL/api/internal/local-ai/reviews/?jobId=<jobId>`
 
-Queued, leased, and `awaiting-review` responses include `Retry-After: 3`. Poll with a three-second wait and a bounded retry count. A completed model result stays hidden until an Admin owner approves it. Only an approved result includes the strict validated output. Legacy Content/SEO approval does not apply, write, send, or publish anything; `line-card-description` is the narrow exception and writes `lineTitle` plus `lineDescription` to the exact unchanged Sanity revision after owner approval. Existing reviewed values are never overwritten. Rejected jobs return `reviewStatus: rejected` and a null output. Failed responses include only a normalized error category.
+Queued, leased, and awaiting-review responses include Retry-After: 3. Poll with a three-second wait and a bounded retry count. A completed model result stays hidden until an Admin owner approves it. Content/SEO approval never writes, sends, or publishes anything. Rejected jobs return reviewStatus: rejected and a null output. Failed responses include only a normalized error category.
 
 Customer-private and LINE tasks remain disabled. These endpoints accept and return public-safe Content/SEO work only; do not route customer messages, ciphertext, or encryption keys through n8n.
 
@@ -56,10 +56,8 @@ Both require the same Admin bridge bearer token. Neither endpoint returns prompt
 
 The owner-only review action is `POST /api/admin/local-ai/review/`; it uses the signed Admin session and same-origin check, not the n8n bearer token.
 
-## Inactive LINE description backfill
+## LINE card copy
 
-Import `line-description-backfill.inactive.json` only when the owner is ready to configure and test it. It remains inactive after import and uses the existing `CCPun Local AI Admin Bridge` header credential against the fixed Admin origin; the file contains no secret value.
+LINE card generation is no longer part of this encrypted queue worker. The production LINE flow is orchestrated visibly in n8n and calls the private Ollama service over the VPS-only Docker network. Sanity Studio calls the owner-only Admin bridge, n8n generates multiple candidates, n8n enforces the hard LINE length and safety contract, a second local-model step selects only among valid candidates, and Admin writes only the missing Draft LINE fields with revision guards. Publish LINE only is a separate Sanity action and never publishes pending SEO or body changes.
 
-The workflow asks Admin for at most 10 published, indexable articles whose `lineTitle` or `lineDescription` is still blank, expands the response, and enqueues the existing `content-operations` task as `batch`. Manual executions are scoped to `critical-illness-insurance` for the first production proof; scheduled executions use the bounded missing-field list. Its versioned idempotency key is bound to the Sanity document ID and exact revision, so a prompt-contract upgrade can replace an obsolete pending result without reprocessing articles whose LINE card fields are already filled.
-
-The workflow polls the review-safe endpoint without exposing output before approval. The owner approves or rejects in `https://admin.ccpun.com/operations/local-ai/`. Approval performs the guarded Sanity patch inside Admin; n8n never receives a Sanity write token. After approval, n8n reads the exact article by `sourceId`, verifies that both LINE fields match the approved output, and records a human-readable terminal state in the execution. It never connects directly to Sanity or Ollama.
+Do not enqueue mode line-card-description jobs. The strict content-operations queue contract rejects that retired payload.

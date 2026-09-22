@@ -66,23 +66,7 @@ export const lineCardSourceSchema = z.object({
   category: z.string().min(1).max(80),
 }).strict();
 
-export const lineCardDescriptionInputSchema = contentOperationsBaseInputSchema.extend({
-  mode: z.literal("line-card-description"),
-  source: lineCardSourceSchema,
-  allowedCategories: z.array(z.string().min(1).max(80)).length(1),
-}).strict().superRefine((input, context) => {
-  if (input.title !== input.source.title) {
-    context.addIssue({ code: "custom", message: "title must match source title", path: ["title"] });
-  }
-  if (input.allowedCategories[0] !== input.source.category) {
-    context.addIssue({ code: "custom", message: "category must match source category", path: ["allowedCategories"] });
-  }
-});
-
-const contentOperationsInputSchema = z.union([
-  lineCardDescriptionInputSchema,
-  legacyContentOperationsInputSchema,
-]);
+const contentOperationsInputSchema = legacyContentOperationsInputSchema;
 
 const seoPreprocessingInputSchema = z.object({
   locale: z.literal("th-TH"),
@@ -209,10 +193,7 @@ export const lineCardDescriptionOutputSchema = z.object({
   reviewRequired: z.literal(true),
 }).strict();
 
-const contentOperationsOutputSchema = z.union([
-  lineCardDescriptionOutputSchema,
-  legacyContentOperationsOutputSchema,
-]);
+const contentOperationsOutputSchema = legacyContentOperationsOutputSchema;
 
 const seoPreprocessingOutputSchema = z.object({
   clusters: z.array(z.object({
@@ -268,16 +249,6 @@ export function parseLocalAiTaskResult(taskType: LocalAiTaskType, inputValue: un
   if (taskType === "content-operations") {
     const input = contentOperationsInputSchema.safeParse(inputValue);
     if (!input.success) return input;
-    const lineInput = lineCardDescriptionInputSchema.safeParse(input.data);
-    if (lineInput.success) {
-      return lineCardDescriptionOutputSchema.superRefine((output, context) => {
-        for (const key of ["id", "revision", "slug", "title", "category"] as const) {
-          if (output.source[key] !== lineInput.data.source[key]) {
-            context.addIssue({ code: "custom", message: `source ${key} must exactly match input`, path: ["source", key] });
-          }
-        }
-      }).safeParse(outputValue);
-    }
     const allowed = new Set(input.data.allowedCategories);
     return legacyContentOperationsOutputSchema.superRefine((output, context) => {
       if (!allowed.has(output.category)) {
@@ -314,9 +285,6 @@ export function parseLocalAiTaskResult(taskType: LocalAiTaskType, inputValue: un
   return parseLocalAiTaskOutput(taskType, outputValue);
 }
 
-export function isLineCardDescriptionInput(value: unknown): value is z.infer<typeof lineCardDescriptionInputSchema> {
-  return lineCardDescriptionInputSchema.safeParse(value).success;
-}
 
 export type LocalAiTaskInput = {
   [K in LocalAiTaskType]: z.infer<(typeof localAiTaskInputSchemas)[K]>;
