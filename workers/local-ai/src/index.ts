@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import {
+  countGraphemes,
   isLineCardDescriptionInput,
   lineCardDescriptionOutputSchema,
   localAiTaskOutputSchemas,
@@ -19,7 +20,7 @@ const laneSchema = z.enum(["uat", "production"]);
 const claimSchema = z.object({
   job_id: z.string().uuid(), task_type: z.enum(["privacy-redaction", "line-intent", "content-operations", "seo-preprocessing"]),
   data_class: z.enum(["public-safe", "customer-private"]), schema_version: z.literal("local-ai-contract-v1"),
-  ciphertext_b64: z.string(), nonce_b64: z.string(), auth_tag_b64: z.string(), key_version: z.literal(1),
+  ciphertext_b64: z.string(), nonce_b64: z.string(), auth_tag_b64: z.string(), key_version: z.union([z.literal(1), z.literal(2)]),
   attempt_count: z.coerce.number().int(), max_attempts: z.coerce.number().int(),
 });
 
@@ -71,6 +72,26 @@ const instructions: Record<LocalAiTaskType, string> = {
 
 const lineCardDescriptionInstruction = "Create Thai copy for a CCPun LINE article card using only the supplied public article. Return lineTitle 24-60 graphemes and lineDescription 50-90 graphemes. Make the headline worth tapping through concrete relevance, a useful question, trade-off, consequence, or overlooked point supported by the article; keep it natural and conversational, not sensational. The description must complete the headline by saying what the reader will understand, compare, or check, without repeating it. Avoid generic filler, clickbait, fear, urgency manipulation, direct identifiers, guarantees, absolute claims, and invented facts. Never use bait phrases such as ห้ามพลาด, ด่วน, ก่อนสาย, ความลับ, ช็อก, or รับประกัน. Echo source exactly and return reviewRequired=true.";
 
+const lineCardRepairCandidateSchema = z.object({
+  lineTitle: z.string(),
+  lineDescription: z.string(),
+});
+
+function lineCardLengthRepair(payload: unknown, rawOutput: unknown, error: z.ZodError) {
+  if (!isLineCardDescriptionInput(payload) || error.issues.length === 0) return null;
+  const lengthIssuesOnly = error.issues.every(({ message, path }) =>
+    (path.length === 1 && path[0] === "lineTitle" && message === "lineTitle must contain 24-60 graphemes")
+    || (path.length === 1 && path[0] === "lineDescription" && message === "lineDescription must contain 50-90 graphemes"));
+  if (!lengthIssuesOnly) return null;
+  const candidate = lineCardRepairCandidateSchema.safeParse(rawOutput);
+  if (!candidate.success) return null;
+  return {
+    previousOutput: rawOutput,
+    lineTitleLength: countGraphemes(candidate.data.lineTitle),
+    lineDescriptionLength: countGraphemes(candidate.data.lineDescription),
+  };
+}
+
 export function resolveLocalAiInferenceContract(taskType: LocalAiTaskType, payload: unknown) {
   if (taskType === "content-operations" && isLineCardDescriptionInput(payload)) {
     return { outputSchema: lineCardDescriptionOutputSchema, instruction: lineCardDescriptionInstruction };
@@ -120,8 +141,24 @@ async function ollamaReady(baseUrl: string, configuredModel: string) {
   } catch { return false; }
 }
 
-async function infer(baseUrl: string, model: string, taskType: LocalAiTaskType, payload: unknown) {
+async function infer(
+  baseUrl: string,
+  model: string,
+  taskType: LocalAiTaskType,
+  payload: unknown,
+  repair?: { previousOutput: unknown; lineTitleLength: number; lineDescriptionLength: number },
+) {
   const contract = resolveLocalAiInferenceContract(taskType, payload);
+  const messages = [
+    { role: "system", content: `You are a private offline CCPun processor. ${contract.instruction} Output one JSON object only.` },
+    { role: "user", content: JSON.stringify(payload) },
+  ];
+  if (repair) {
+    messages.push(
+      { role: "assistant", content: JSON.stringify(repair.previousOutput) },
+      { role: "user", content: `The JSON shape and source are valid, but the Thai text lengths are not. lineTitle is ${repair.lineTitleLength} graphemes and must be 24-60. lineDescription is ${repair.lineDescriptionLength} graphemes and must be 50-90. Rewrite only lineTitle and lineDescription using the supplied article, preserve source exactly, and return one JSON object.` },
+    );
+  }
   const response = await fetch(new URL("api/chat", baseUrl), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -129,16 +166,31 @@ async function infer(baseUrl: string, model: string, taskType: LocalAiTaskType, 
     body: JSON.stringify({
       model, stream: false, think: false, format: z.toJSONSchema(contract.outputSchema), keep_alive: "5m",
       options: { temperature: 0, num_ctx: 4096 },
-      messages: [
-        { role: "system", content: `You are a private offline CCPun processor. ${contract.instruction} Output one JSON object only.` },
-        { role: "user", content: JSON.stringify(payload) },
-      ],
+      messages,
     }),
   });
   if (!response.ok) throw new Error("OLLAMA_REQUEST_FAILED");
   const body = z.object({ message: z.object({ content: z.string().min(2).max(50_000) }) }).parse(await response.json());
   try { return JSON.parse(body.message.content) as unknown; }
   catch { throw new Error("MODEL_JSON_INVALID"); }
+}
+
+export async function inferAndValidate(
+  baseUrl: string,
+  model: string,
+  taskType: LocalAiTaskType,
+  payload: unknown,
+) {
+  let rawOutput = await infer(baseUrl, model, taskType, payload);
+  let output = parseLocalAiTaskResult(taskType, payload, rawOutput);
+  if (!output.success) {
+    const repair = lineCardLengthRepair(payload, rawOutput, output.error);
+    if (repair) {
+      rawOutput = await infer(baseUrl, model, taskType, payload, repair);
+      output = parseLocalAiTaskResult(taskType, payload, rawOutput);
+    }
+  }
+  return output;
 }
 
 async function main() {
@@ -190,8 +242,7 @@ async function main() {
         });
         const input = parseLocalAiTaskInput(job.task_type, decrypted);
         if (!input.success) throw new Error("DECRYPTED_INPUT_INVALID");
-        const rawOutput = await infer(config.ollamaBaseUrl, config.model, job.task_type, input.data);
-        const output = parseLocalAiTaskResult(job.task_type, input.data, rawOutput);
+        const output = await inferAndValidate(config.ollamaBaseUrl, config.model, job.task_type, input.data);
         if (!output.success) {
           safeLog("model-output-rejected", { jobId: job.job_id, taskType: job.task_type, issues: output.error.issues.slice(0, 12).map(({ code, path }) => `${path.join(".")}:${code}`).join(",") });
           throw new Error("MODEL_OUTPUT_INVALID");
