@@ -130,7 +130,8 @@ test("hub route resolves real hubs before any legacy one-segment redirect fallba
   assert.match(categoryPage, /buildBlogTopicHubSchema\(hub, relevantIndexableArticles\)/);
   assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
   assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles\)\}/);
-  assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItems\(publishedArticles\)\}/);
+  assert.match(categoryPage, /const featuredArticles = curateFeaturedArticles\(relevantArticles\)/);
+  assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItemsInOrder\(featuredArticles\)\}/);
 });
 
 test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO nodes", () => {
