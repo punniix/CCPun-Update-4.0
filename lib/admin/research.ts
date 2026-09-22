@@ -38,8 +38,8 @@ export async function createResearchSnapshot(
   const keyword = parsed.keyword.replace(/\s+/g, " ").trim();
   const keywordKey = normalizeResearchKeyword(keyword);
   const checkedAt = parsed.checkedAt ?? new Date().toISOString();
-  const stableIdentity = parsed.sourceMethod === "web-csv-import"
-    ? [
+  const stableKey = parsed.sourceMethod === "web-csv-import"
+    ? createHash("sha256").update([
         parsed.provider,
         keywordKey,
         checkedAt.slice(0, 10),
@@ -52,9 +52,8 @@ export async function createResearchSnapshot(
         parsed.sourcePosition ?? "",
         parsed.estimatedVisits ?? "",
         parsed.sourceUrl ?? "",
-      ].join("|")
-    : `${parsed.provider}|${keywordKey}|${checkedAt.slice(0, 10)}`;
-  const stableKey = createHash("sha256").update(stableIdentity).digest("hex").slice(0, 32);
+      ].join("|")).digest("hex").slice(0, 32)
+    : createHash("sha256").update(`${parsed.provider}|${keywordKey}|${checkedAt.slice(0, 10)}`).digest("hex").slice(0, 32);
   const idempotent = parsed.provider !== "manual";
   const id = privateAdminDocumentId(idempotent ? `researchSnapshot.${stableKey}` : `researchSnapshot.${randomUUID()}`);
   const now = new Date().toISOString();
