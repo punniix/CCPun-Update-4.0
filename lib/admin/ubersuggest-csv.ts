@@ -23,6 +23,7 @@ export type UbersuggestCsvParseResult = {
   sourceRows: number;
   rows: UbersuggestCsvRow[];
   duplicateRows: number;
+  invalidRowCount: number;
   invalidRows: Array<{ row: number; reason: string }>;
 };
 
@@ -181,7 +182,8 @@ export function parseUbersuggestKeywordCsv(input: string): UbersuggestCsvParseRe
     const paidDifficulty = paidDifficultyIndex >= 0 ? parseNumber(record[paidDifficultyIndex]) : undefined;
     const position = positionIndex >= 0 ? parseNumber(record[positionIndex]) : undefined;
     const estimatedVisits = estimatedVisitsIndex >= 0 ? parseNumber(record[estimatedVisitsIndex]) : undefined;
-    const url = urlIndex >= 0 ? (record[urlIndex] ?? "").trim() || undefined : undefined;
+    const rawUrl = urlIndex >= 0 ? (record[urlIndex] ?? "").trim() : "";
+    const url = rawUrl && rawUrl.length <= 2048 && /^https?:\/\//i.test(rawUrl) ? rawUrl : undefined;
 
     if (
       [volume, difficulty, cpc, paidDifficulty, position, estimatedVisits].some((value) => Number.isNaN(value))
@@ -191,7 +193,6 @@ export function parseUbersuggestKeywordCsv(input: string): UbersuggestCsvParseRe
       || (estimatedVisits != null && estimatedVisits < 0)
       || (difficulty != null && (difficulty < 0 || difficulty > 100))
       || (paidDifficulty != null && (paidDifficulty < 0 || paidDifficulty > 100))
-      || (url != null && (url.length > 2048 || !/^https?:\/\//i.test(url)))
     ) {
       invalidRows.push({ row: rowNumber, reason: "ค่าตัวเลขในแถวนี้ไม่ถูกต้อง" });
       return;
@@ -231,6 +232,7 @@ export function parseUbersuggestKeywordCsv(input: string): UbersuggestCsvParseRe
     sourceRows: dataRows.length,
     rows: [...byKeyword.values()],
     duplicateRows,
+    invalidRowCount: invalidRows.length,
     invalidRows: invalidRows.slice(0, 30),
   };
 }
