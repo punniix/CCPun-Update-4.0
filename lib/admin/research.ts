@@ -49,6 +49,9 @@ export async function createResearchSnapshot(
         parsed.intent ?? "",
         parsed.cpc ?? "",
         parsed.paidDifficulty ?? "",
+        parsed.sourcePosition ?? "",
+        parsed.estimatedVisits ?? "",
+        parsed.sourceUrl ?? "",
       ].join("|")
     : `${parsed.provider}|${keywordKey}|${checkedAt.slice(0, 10)}`;
   const stableKey = createHash("sha256").update(stableIdentity).digest("hex").slice(0, 32);
@@ -66,6 +69,9 @@ export async function createResearchSnapshot(
       sourceMethod: parsed.sourceMethod,
       cpc: parsed.cpc,
       paidDifficulty: parsed.paidDifficulty,
+      sourcePosition: parsed.sourcePosition,
+      estimatedVisits: parsed.estimatedVisits,
+      sourceUrl: parsed.sourceUrl,
     },
     requestId: context.requestId, timestamp: now,
   });
