@@ -108,7 +108,7 @@ export default function CiPlanningPage() {
           description="กรอกรายได้หรือภาระที่ยังต้องดูแล แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้"
           ctaHref="#ci-calculator"
           ctaLabel="เริ่มประเมิน"
-          fullBleed
+          strongContrast
         />
 
         <CILandingIntro />
