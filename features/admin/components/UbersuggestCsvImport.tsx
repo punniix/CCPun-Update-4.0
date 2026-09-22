@@ -11,12 +11,16 @@ type PreviewRow = {
   difficulty?: number;
   cpc?: number;
   paidDifficulty?: number;
+  position?: number;
+  estimatedVisits?: number;
+  url?: string;
   sourceRow: number;
   status: "new" | "changed" | "existing";
 };
 
 type PreviewPayload = {
   fileName: string;
+  reportType: "keyword-ideas" | "keyword-coverage";
   counts: {
     sourceRows: number;
     validRows: number;
@@ -33,7 +37,7 @@ type PreviewPayload = {
 const errorMessages: Record<string, string> = {
   "csv-too-large": "ไฟล์ใหญ่เกิน 2 MB กรุณาแบ่งไฟล์แล้วลองใหม่",
   "csv-too-many-rows": "รองรับไม่เกิน 200 แถวต่อครั้ง กรุณาแบ่งไฟล์แล้วนำเข้าเป็นรอบ",
-  "csv-header-unsupported": "ยังอ่านหัวตารางของไฟล์นี้ไม่ได้ กรุณา Export จากหน้า Keyword Ideas ของ Ubersuggest",
+  "csv-header-unsupported": "ยังอ่านหัวตารางของไฟล์นี้ไม่ได้ กรุณาใช้รายงาน Ubersuggest ที่มีคอลัมน์ Keyword และข้อมูลคำค้น เช่น Volume, SEO Difficulty หรือ Position",
   "csv-no-valid-rows": "ไม่พบแถวคำค้นที่นำเข้าได้ในไฟล์นี้",
   "csv-invalid": "ไฟล์ CSV มีรูปแบบไม่ถูกต้องหรืออ่านไม่ได้",
   "research-read-unavailable": "ยังอ่านประวัติข้อมูลเดิมไม่ได้ จึงหยุดไว้ก่อนเพื่อป้องกันข้อมูลซ้ำ",
@@ -116,10 +120,10 @@ export default function UbersuggestCsvImport() {
     <section className="rounded-3xl border border-sky-200/15 bg-sky-200/[0.035] p-5 md:p-6">
       <div>
         <p className="text-xs font-semibold tracking-[0.12em] text-sky-200">นำเข้าจากเว็บไซต์ Ubersuggest</p>
-        <h2 className="mt-2 text-lg font-semibold">นำเข้า Keyword Ideas จากไฟล์ CSV</h2>
+        <h2 className="mt-2 text-lg font-semibold">นำเข้าข้อมูล Keyword จากไฟล์ CSV</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
-          ใช้เมื่อคุณค้นหรือกรองข้อมูลบนเว็บไซต์ Ubersuggest แล้ว Export เป็น CSV ระบบจะตรวจคำซ้ำและข้อมูลเดิมก่อนบันทึก
-          โดยยังไม่ Track keyword หรือสร้างบทความให้อัตโนมัติ
+          ใช้เมื่อคุณค้นหรือกรองข้อมูลบนเว็บไซต์ Ubersuggest แล้ว Export เป็น CSV รองรับรายงานกลุ่มคำค้น เช่น Keyword Ideas
+          และ Keywords by Traffic / Keyword Coverage โดยยังไม่ Track keyword หรือสร้างบทความให้อัตโนมัติ
         </p>
       </div>
 
@@ -149,8 +153,8 @@ export default function UbersuggestCsvImport() {
       </form>
 
       <p className="mt-3 text-xs leading-5 text-white/45">
-        รองรับ Keyword, Intent, Volume, CPC, Paid Difficulty และ SEO Difficulty จาก Ubersuggest Keyword Ideas
-        โดย Research History จะแสดง Keyword, Intent, Volume และ SEO Difficulty; CPC/PD ถูกเก็บเป็นข้อมูลอ้างอิงในประวัติการนำเข้า
+        รองรับ Keyword, Intent, Volume, CPC, Paid Difficulty, SEO Difficulty รวมถึง Position, Estimated Visits และ URL เมื่อมีในไฟล์
+        โดย Research History จะแสดงข้อมูลหลัก; CPC/PD และข้อมูลอันดับถูกเก็บเป็นข้อมูลอ้างอิงในประวัติการนำเข้า
       </p>
 
       {preview ? (
@@ -167,10 +171,10 @@ export default function UbersuggestCsvImport() {
           <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/10">
             <div className="border-b border-white/10 px-4 py-3">
               <div className="font-medium">{preview.fileName}</div>
-              <div className="mt-1 text-xs text-white/45">แสดงตัวอย่างข้อมูลที่ผ่านการตรวจแล้วก่อนบันทึก</div>
+              <div className="mt-1 text-xs text-white/45">ตรวจพบ: {preview.reportType === "keyword-coverage" ? "Keywords by Traffic / Keyword Coverage" : "Keyword Ideas"} · แสดงตัวอย่างก่อนบันทึก</div>
             </div>
             <div role="region" aria-label="ตัวอย่างข้อมูล Ubersuggest CSV" tabIndex={0} className="max-h-[460px] overflow-auto">
-              <table className="w-full min-w-[980px] text-left text-sm">
+              <table className="w-full min-w-[1280px] text-left text-sm">
                 <thead className="sticky top-0 bg-[#252025] text-xs text-white/55">
                   <tr>
                     <th className="px-4 py-3">คำค้น</th>
@@ -180,6 +184,9 @@ export default function UbersuggestCsvImport() {
                     <th className="px-4 py-3">SEO Difficulty</th>
                     <th className="px-4 py-3">CPC</th>
                     <th className="px-4 py-3">Paid Difficulty</th>
+                    <th className="px-4 py-3">Position</th>
+                    <th className="px-4 py-3">Est. Visits</th>
+                    <th className="px-4 py-3">URL</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -192,6 +199,9 @@ export default function UbersuggestCsvImport() {
                       <td className="px-4 py-3 text-white/60">{row.difficulty ?? "—"}</td>
                       <td className="px-4 py-3 text-white/60">{row.cpc ?? "—"}</td>
                       <td className="px-4 py-3 text-white/60">{row.paidDifficulty ?? "—"}</td>
+                      <td className="px-4 py-3 text-white/60">{row.position ?? "—"}</td>
+                      <td className="px-4 py-3 text-white/60">{row.estimatedVisits ?? "—"}</td>
+                      <td className="max-w-[320px] truncate px-4 py-3 text-white/60" title={row.url}>{row.url ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
