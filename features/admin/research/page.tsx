@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import ResearchSnapshotForm from "@/features/admin/components/ResearchSnapshotForm";
 import SyncUbersuggestButton from "@/features/admin/components/SyncUbersuggestButton";
 import UbersuggestResearchForm from "@/features/admin/components/UbersuggestResearchForm";
+import UbersuggestCsvImport from "@/features/admin/components/UbersuggestCsvImport";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { hasAdminPermission } from "@/lib/admin/rbac";
@@ -187,7 +188,10 @@ export default async function AdminResearchPage({
           <div className="mt-5"><UbersuggestResearchForm connected={ubersuggest.connected} writeReady={writeReady} /></div>
         ) : null}
         {!research.error && writeReady && hasAdminPermission(identity.role, "research:create") ? (
-          <div className="mt-5"><ResearchSnapshotForm /></div>
+          <>
+            <div className="mt-5"><UbersuggestCsvImport /></div>
+            <div className="mt-5"><ResearchSnapshotForm /></div>
+          </>
         ) : null}
       </section>
 
