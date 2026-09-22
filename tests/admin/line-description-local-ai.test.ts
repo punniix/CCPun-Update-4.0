@@ -41,6 +41,11 @@ const output = {
   reviewRequired: true,
 } as const;
 
+const modelOutput = {
+  lineTitle: output.lineTitle,
+  lineDescription: output.lineDescription,
+} as const;
+
 test("line-card mode preserves exact Sanity identity and rejects unsafe output", () => {
   assert.equal(parseLocalAiTaskResult("content-operations", input, output).success, true);
   assert.equal(parseLocalAiTaskResult("content-operations", input, {
@@ -65,17 +70,24 @@ test("line-card mode preserves exact Sanity identity and rejects unsafe output",
   }).success, false);
 });
 
-test("worker selects the narrow line-card schema without changing legacy content operations", () => {
-  assert.equal(resolveLocalAiInferenceContract("content-operations", input).outputSchema, lineCardDescriptionOutputSchema);
+test("worker gives the model only copy fields and keeps final LINE output contract separate", () => {
+  const contract = resolveLocalAiInferenceContract("content-operations", input);
+  assert.notEqual(contract.outputSchema, lineCardDescriptionOutputSchema);
+  assert.deepEqual(contract.outputSchema.parse({
+    ...modelOutput,
+    mode: "spoofed-mode",
+    source: { ...source, revision: "spoofed-revision" },
+    reviewRequired: false,
+  }), modelOutput);
   assert.notEqual(resolveLocalAiInferenceContract("content-operations", {
     locale: "th-TH",
     title: "หัวข้อเดิม",
     body: "เนื้อหาเดิม",
     allowedCategories: ["ประกันสุขภาพ"],
-  }).outputSchema, lineCardDescriptionOutputSchema);
+  }).outputSchema, contract.outputSchema);
 });
 
-test("worker makes one length-only repair and never repairs unsafe LINE output", async (t) => {
+test("worker makes one length-only repair, restores trusted metadata, and never repairs unsafe LINE output", async (t) => {
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
   let responses: unknown[] = [];
@@ -86,32 +98,49 @@ test("worker makes one length-only repair and never repairs unsafe LINE output",
     return Response.json({ message: { content: typeof next === "string" ? next : JSON.stringify(next) } });
   };
 
-  responses = [{ ...output, lineTitle: "สั้น", lineDescription: "สั้นเกินไป" }, output];
+  responses = [{ lineTitle: "สั้น", lineDescription: "สั้นเกินไป" }, modelOutput];
   const repaired = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input);
   assert.equal(repaired.success, true);
+  if (repaired.success) assert.deepEqual(repaired.data, output);
   assert.equal(requests.length, 2);
   assert.equal(requests[1]?.messages.length, 4);
   assert.match(requests[1]?.messages[3]?.content ?? "", /24-60/);
   assert.match(requests[1]?.messages[3]?.content ?? "", /50-90/);
   assert.match(requests[1]?.messages[3]?.content ?? "", /60-75/);
-  assert.match(JSON.stringify(requests[0]?.format), /lineTitle/);
+
+  const modelFormat = JSON.stringify(requests[0]?.format);
+  assert.match(modelFormat, /lineTitle/);
+  assert.match(modelFormat, /lineDescription/);
+  assert.doesNotMatch(modelFormat, /source|reviewRequired|mode/);
   assert.match(requests[0]?.messages[0]?.content ?? "", /รับประกันความคุ้มครอง/);
   assert.match(requests[0]?.messages[0]?.content ?? "", /13-digit identifier/);
+  assert.match(requests[0]?.messages[0]?.content ?? "", /Do not return mode, source, reviewRequired/);
+
+  requests.length = 0;
+  responses = [{
+    ...modelOutput,
+    mode: "spoofed-mode",
+    source: { ...source, revision: "spoofed-revision" },
+    reviewRequired: false,
+  }];
+  const trusted = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input);
+  assert.equal(trusted.success, true);
+  if (trusted.success) assert.deepEqual(trusted.data, output);
+  assert.equal(requests.length, 1);
 
   for (const unsafe of [
-    { ...output, source: { ...source, revision: "different-revision" } },
-    { ...output, lineDescription: "อ่านหลักการวางแผนฉบับย่อแล้วติดต่อ 0812345678 เพื่อสอบถามข้อมูลเพิ่มเติมจากทีมงาน" },
-    { ...output, lineDescription: "รับประกันผลตอบแทนและไม่มีความเสี่ยง พร้อมอ่านข้อมูลสำคัญที่ควรรู้ก่อนตัดสินใจได้ทันที" },
+    { ...modelOutput, lineDescription: "อ่านหลักการวางแผนฉบับย่อแล้วติดต่อ 0812345678 เพื่อสอบถามข้อมูลเพิ่มเติมจากทีมงาน" },
+    { ...modelOutput, lineDescription: "รับประกันผลตอบแทนและไม่มีความเสี่ยง พร้อมอ่านข้อมูลสำคัญที่ควรรู้ก่อนตัดสินใจได้ทันที" },
   ]) {
     requests.length = 0;
-    responses = [unsafe, output];
+    responses = [unsafe, modelOutput];
     const rejected = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input);
     assert.equal(rejected.success, false);
     assert.equal(requests.length, 1);
   }
 
   requests.length = 0;
-  responses = ["not-json", output];
+  responses = ["not-json", modelOutput];
   await assert.rejects(
     inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input),
     /MODEL_JSON_INVALID/,
