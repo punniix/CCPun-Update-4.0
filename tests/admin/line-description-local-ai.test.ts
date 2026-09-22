@@ -11,7 +11,7 @@ import {
   buildLineArticleFlexMessage,
   type LineArticleCardSource,
 } from "../../lib/line/content-cards";
-import { resolveLocalAiInferenceContract } from "../../workers/local-ai/src/index";
+import { inferAndValidate, resolveLocalAiInferenceContract } from "../../workers/local-ai/src/index";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -73,6 +73,47 @@ test("worker selects the narrow line-card schema without changing legacy content
     body: "เนื้อหาเดิม",
     allowedCategories: ["ประกันสุขภาพ"],
   }).outputSchema, lineCardDescriptionOutputSchema);
+});
+
+test("worker makes one length-only repair and never repairs unsafe LINE output", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  let responses: unknown[] = [];
+  const requests: Array<{ format: unknown; messages: Array<{ role: string; content: string }> }> = [];
+  globalThis.fetch = async (_input, init) => {
+    requests.push(JSON.parse(String(init?.body)) as (typeof requests)[number]);
+    const next = responses.shift();
+    return Response.json({ message: { content: typeof next === "string" ? next : JSON.stringify(next) } });
+  };
+
+  responses = [{ ...output, lineTitle: "สั้น", lineDescription: "สั้นเกินไป" }, output];
+  const repaired = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input);
+  assert.equal(repaired.success, true);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1]?.messages.length, 4);
+  assert.match(requests[1]?.messages[3]?.content ?? "", /24-60/);
+  assert.match(requests[1]?.messages[3]?.content ?? "", /50-90/);
+  assert.match(JSON.stringify(requests[0]?.format), /lineTitle/);
+
+  for (const unsafe of [
+    { ...output, source: { ...source, revision: "different-revision" } },
+    { ...output, lineDescription: "อ่านหลักการวางแผนฉบับย่อแล้วติดต่อ 0812345678 เพื่อสอบถามข้อมูลเพิ่มเติมจากทีมงาน" },
+    { ...output, lineDescription: "รับประกันผลตอบแทนและไม่มีความเสี่ยง พร้อมอ่านข้อมูลสำคัญที่ควรรู้ก่อนตัดสินใจได้ทันที" },
+  ]) {
+    requests.length = 0;
+    responses = [unsafe, output];
+    const rejected = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input);
+    assert.equal(rejected.success, false);
+    assert.equal(requests.length, 1);
+  }
+
+  requests.length = 0;
+  responses = ["not-json", output];
+  await assert.rejects(
+    inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input),
+    /MODEL_JSON_INVALID/,
+  );
+  assert.equal(requests.length, 1);
 });
 
 test("LINE card prefers the dedicated description and stays compact", () => {
@@ -144,8 +185,17 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
       parameters: Record<string, unknown>;
       credentials?: unknown;
     }>;
-    meta?: { productionWorkflowId?: string };
+    connections: Record<string, Record<string, Array<Array<{ node: string }>>>>;
   };
+  const workflowText = JSON.stringify(workflow);
+  const connectionCount = Object.values(workflow.connections).reduce(
+    (total, connectionGroups) => total + Object.values(connectionGroups).reduce(
+      (groupTotal, branches) => groupTotal + branches.reduce((branchTotal, branch) => branchTotal + branch.length, 0),
+      0,
+    ),
+    0,
+  );
+  const node = (name: string) => workflow.nodes.find((candidate) => candidate.name === name);
   assert.match(sourceModule, /!defined\(lineTitle\).*lineTitle == ""/);
   assert.match(sourceModule, /!defined\(lineDescription\).*lineDescription == ""/);
   assert.match(sourceModule, /coalesce\(seo\.noindex, false\) != true/);
@@ -161,19 +211,31 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
   assert.match(sourceModule, /\(\$slug == null \|\| slug\.current == \$slug\)/);
   assert.match(sourceModule, /readPublishedArticleLineDescription/);
   assert.equal(workflow.active, false);
-  assert.equal(workflow.meta?.productionWorkflowId, "NeHFrMsfXcdnVxjU");
-  assert.equal(workflow.nodes.length, 22);
+  assert.equal(workflow.nodes.length, 23);
+  assert.equal(connectionCount, 25);
   assert.equal(workflow.nodes.some((node) => node.type === "n8n-nodes-base.manualTrigger"), true);
   assert.equal(workflow.nodes.some((node) => node.type === "n8n-nodes-base.scheduleTrigger"), true);
   assert.equal(workflow.nodes.some((node) => node.type === "n8n-nodes-base.wait"), true);
-  assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("critical-illness-insurance")), true);
+  assert.equal(
+    node("อ่านบทความ critical สำหรับ manual")?.parameters.url,
+    "https://admin.ccpun.com/api/internal/local-ai/line-descriptions/?limit=1&slug=critical-illness-insurance",
+  );
+  assert.equal(
+    workflow.connections["ทดสอบด้วยบทความ critical"]?.main?.[0]?.[0]?.node,
+    "อ่านบทความ critical สำหรับ manual",
+  );
+  assert.equal(
+    workflow.connections["ทุก 6 ชั่วโมง"]?.main?.[0]?.[0]?.node,
+    "อ่านบทความที่ยังขาดข้อความ LINE",
+  );
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("queueClass: 'batch'")), true);
-  assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("line-card-copy:v3:")), true);
+  assert.equal(workflowText.match(/line-card-copy:v4:/g)?.length ?? 0, 0);
+  assert.equal(workflowText.match(/line-card-copy:v5:/g)?.length ?? 0, 1);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("/local-ai/reviews/?jobId=")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sourceId=")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sanity-verification-failed")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("CCPun Local AI Admin Bridge")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("$env.")), false);
   assert.equal(workflow.nodes.filter((node) => node.type === "n8n-nodes-base.httpRequest").every((node) => node.parameters.authentication === "genericCredentialType"), true);
-  assert.doesNotMatch(JSON.stringify(workflow), /api\.ollama|11434|api\.sanity|Bearer\s+[A-Za-z0-9]/i);
+  assert.doesNotMatch(workflowText, /api\.ollama|11434|api\.sanity|Bearer\s+[A-Za-z0-9]/i);
 });

@@ -22,16 +22,29 @@ test("local AI envelopes are authenticated and task-bound", () => {
   const variables = {
     CCPUN_LOCAL_AI_ACTIVE_KEY_VERSION: "1",
     CCPUN_LOCAL_AI_ENCRYPTION_KEY_V1: Buffer.alloc(32, 7).toString("base64"),
+    CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2: Buffer.alloc(32, 8).toString("base64"),
   };
   assert.deepEqual(getLocalAiCryptoStatus(variables), { ready: true, activeKeyVersion: 1 });
-  const crypto = createLocalAiPayloadCrypto(variables);
+  const v1Crypto = createLocalAiPayloadCrypto(variables);
   const jobId = "018f2f2b-90ac-7a21-bd5a-252727b10d4b";
   const input = { locale: "th-TH", text: "สนใจประกันสุขภาพ", journey: "line_inbox" } as const;
-  const encrypted = crypto.encrypt(jobId, "line-intent", input);
-  assert.notEqual(encrypted.ciphertextB64, Buffer.from(JSON.stringify(input)).toString("base64"));
-  assert.deepEqual(crypto.decrypt(jobId, "line-intent", encrypted), input);
-  assert.throws(() => crypto.decrypt(jobId, "privacy-redaction", encrypted));
+  const v1Encrypted = v1Crypto.encrypt(jobId, "line-intent", input);
+  assert.notEqual(v1Encrypted.ciphertextB64, Buffer.from(JSON.stringify(input)).toString("base64"));
+
+  const v2Crypto = createLocalAiPayloadCrypto({ ...variables, CCPUN_LOCAL_AI_ACTIVE_KEY_VERSION: "2" });
+  assert.deepEqual(v2Crypto.decrypt(jobId, "line-intent", v1Encrypted), input);
+  const v2Encrypted = v2Crypto.encrypt(jobId, "line-intent", input);
+  assert.equal(v2Encrypted.keyVersion, 2);
+  assert.deepEqual(v2Crypto.decrypt(jobId, "line-intent", v2Encrypted), input);
+  assert.deepEqual(v1Crypto.decrypt(jobId, "line-intent", v2Encrypted), input);
+  assert.throws(() => v2Crypto.decrypt(jobId, "line-intent", { ...v2Encrypted, keyVersion: 3 } as never), /LOCAL_AI_KEY_VERSION_UNAVAILABLE/);
+  assert.throws(() => v2Crypto.decrypt(jobId, "privacy-redaction", v1Encrypted));
   assert.throws(() => createLocalAiPayloadCrypto({ ...variables, CCPUN_LOCAL_AI_ENCRYPTION_KEY_V1: "invalid" }));
+  assert.throws(() => createLocalAiPayloadCrypto({ ...variables, CCPUN_LOCAL_AI_ACTIVE_KEY_VERSION: "3" }), /LOCAL_AI_ACTIVE_KEY_VERSION_INVALID/);
+  assert.throws(() => createLocalAiPayloadCrypto({
+    CCPUN_LOCAL_AI_ACTIVE_KEY_VERSION: "2",
+    CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2: variables.CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2,
+  }), /LOCAL_AI_CRYPTO_UNAVAILABLE/);
 });
 
 test("private tasks have strict inputs and non-quoting outputs", () => {
@@ -68,6 +81,33 @@ test("UAT and Production migrations have capability parity and a canonical check
     assert.doesNotMatch(source, /GRANT (?:SELECT|INSERT|UPDATE|DELETE) ON (?:TABLE )?ccpun_admin\.local_ai_job TO ccpun_local_ai_runtime/i);
     assert.match(source, /worker_claim_local_ai_job\(text,text,integer,boolean\)[\s\S]*TO ccpun_local_ai_runtime/);
   }
+});
+
+test("local AI key rotation allows only V1 and V2 without rewriting queued jobs", () => {
+  const uat = read("db/migrations/20260922_local_ai_key_rotation_v2_uat.sql");
+  const production = read("db/migrations/20260922_local_ai_key_rotation_v2_production.sql");
+  const uatReadback = read("db/migrations/20260922_local_ai_key_rotation_v2_uat_readback.sql");
+  const productionReadback = read("db/migrations/20260922_local_ai_key_rotation_v2_production_readback.sql");
+  const body = uat.split("-- checksum-source-begin\n")[1]?.split("-- checksum-source-end")[0] ?? "";
+  const checksum = `sha256:${createHash("sha256").update(body).digest("hex")}`;
+  assert.equal(uat, production);
+  assert.equal(uatReadback, productionReadback);
+  assert.match(uat, /DROP CONSTRAINT local_ai_job_key_version_check/);
+  assert.match(uat, /CHECK \(key_version IN \(1,2\)\) NOT VALID/);
+  assert.match(uat, /VALIDATE CONSTRAINT local_ai_job_key_version_v2_check/);
+  assert.doesNotMatch(uat, /UPDATE ccpun_admin\.local_ai_job/);
+  assert.match(uat, new RegExp(checksum));
+  for (const source of [uat, uatReadback]) {
+    assert.match(source, /pg_get_constraintdef\(c\.oid,false\)/);
+    assert.match(source, /regexp_replace\(lower\(pg_get_constraintdef\(c\.oid,false\)\),'\[\[:space:\]\]','','g'\)/);
+    assert.match(source, /check\(\(key_version=any\(array\[1,2\]\)\)\)/);
+    assert.doesNotMatch(source, /pg_get_constraintdef\([^\n]+\)\s+(?:LIKE|ILIKE|~)/i);
+  }
+  assert.match(uat, /=ANY\(allowed_definitions\)/);
+  assert.match(uatReadback, /=ANY\(ARRAY\[/);
+  assert.match(uat, /LOCAL_AI_KEY_VERSION_CONSTRAINT_DRIFT/);
+  assert.match(uatReadback, /key_version_constraint_exact/);
+  assert.match(uatReadback, /key_version NOT IN \(1,2\)/);
 });
 
 test("worker and compose preserve the private model boundary", () => {
