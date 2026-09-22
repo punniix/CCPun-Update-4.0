@@ -12,7 +12,7 @@ import {
 } from "@/lib/admin/research";
 import { normalizeResearchKeyword, type ResearchInput } from "@/lib/admin/research-input";
 import {
-  parseUbersuggestKeywordIdeasCsv,
+  parseUbersuggestKeywordCsv,
   UBERSUGGEST_CSV_MAX_BYTES,
   type UbersuggestCsvRow,
 } from "@/lib/admin/ubersuggest-csv";
@@ -71,7 +71,7 @@ async function parseRequest(request: Request) {
   return {
     ...parsed.data,
     fileName: file.name.slice(0, 180),
-    parsedCsv: parseUbersuggestKeywordIdeasCsv(await file.text()),
+    parsedCsv: parseUbersuggestKeywordCsv(await file.text()),
   };
 }
 
