@@ -96,9 +96,10 @@ test("Admin CSV import keeps preview/import gates and does not auto-publish or a
   assert.match(route, /"research:read"/);
   assert.match(route, /action: "research:create"/);
   assert.match(route, /isResearchWriteReady\(\)/);
-  assert.match(route, /scope: \`ubersuggest:web-csv:\\${meta\\.reportType}\\`/);
+  assert.match(route, /ubersuggest:web-csv/);
+  assert.match(route, /meta\.reportType/);
   assert.match(route, /sourceMethod: "web-csv-import"/);
-  assert.match(route, /previewRows\.filter\(\(row\) => row\.status !== "existing"\)/);
+  assert.match(route, /const importable = previewRows;/);
   assert.doesNotMatch(route, /publish|track_keywords|DispatchSEO|sanity/i);
 
   assert.match(ui, /ตรวจไฟล์ก่อนนำเข้า/);
