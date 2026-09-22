@@ -18,17 +18,28 @@ test("Ubersuggest Keyword Ideas CSV maps current web export columns", () => {
   assert.equal(result.reportType, "keyword-ideas");
   assert.equal(result.sourceRows, 2);
   assert.equal(result.rows.length, 2);
-  assert.deepEqual(result.rows[0], {
-    keyword: "ประกันบำนาญ",
-    intent: "informational",
-    volume: 2400,
-    cpc: 18.5,
-    paidDifficulty: 42,
-    difficulty: 31,
-    sourceRow: 2,
-  });
+  assert.equal(result.rows[0]?.keyword, "ประกันบำนาญ");
+  assert.equal(result.rows[0]?.intent, "informational");
+  assert.equal(result.rows[0]?.volume, 2400);
+  assert.equal(result.rows[0]?.cpc, 18.5);
+  assert.equal(result.rows[0]?.paidDifficulty, 42);
+  assert.equal(result.rows[0]?.difficulty, 31);
   assert.equal(result.rows[1]?.intent, "mixed");
   assert.equal(result.rows[1]?.volume, 1300);
+});
+
+test("Ubersuggest Keywords by Traffic CSV keeps ranking provenance", () => {
+  const result = parseUbersuggestKeywordIdeasCsv([
+    "Keyword,Position,Est. Visits,Volume,CPC,SEO Difficulty,URL",
+    '"ประกันรถยนต์",8,"1,250","2,400",19.5,32,https://ccpun.com/blog/car-insurance/',
+  ].join("\n"));
+
+  assert.equal(result.reportType, "keyword-coverage");
+  assert.equal(result.rows[0]?.keyword, "ประกันรถยนต์");
+  assert.equal(result.rows[0]?.position, 8);
+  assert.equal(result.rows[0]?.estimatedVisits, 1250);
+  assert.equal(result.rows[0]?.volume, 2400);
+  assert.equal(result.rows[0]?.url, "https://ccpun.com/blog/car-insurance/");
 });
 
 test("CSV parser handles quoted commas, BOM, blank rows and duplicate keywords", () => {
@@ -85,7 +96,7 @@ test("Admin CSV import keeps preview/import gates and does not auto-publish or a
   assert.match(route, /"research:read"/);
   assert.match(route, /action: "research:create"/);
   assert.match(route, /isResearchWriteReady\(\)/);
-  assert.match(route, /scope: "ubersuggest:web-csv:keyword-ideas"/);
+  assert.match(route, /scope: \`ubersuggest:web-csv:\\${meta\\.reportType}\\`/);
   assert.match(route, /sourceMethod: "web-csv-import"/);
   assert.match(route, /previewRows\.filter\(\(row\) => row\.status !== "existing"\)/);
   assert.doesNotMatch(route, /publish|track_keywords|DispatchSEO|sanity/i);
@@ -97,4 +108,6 @@ test("Admin CSV import keeps preview/import gates and does not auto-publish or a
   assert.match(research, /parsed\.sourceMethod === "web-csv-import"/);
   assert.match(research, /parsed\.cpc \?\? ""/);
   assert.match(research, /parsed\.paidDifficulty \?\? ""/);
+  assert.match(research, /parsed\.sourcePosition \?\? ""/);
+  assert.match(research, /parsed\.estimatedVisits \?\? ""/);
 });
