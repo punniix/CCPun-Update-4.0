@@ -232,7 +232,7 @@ test("missing-only bridge and inactive n8n workflow remain bounded and private",
   );
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("queueClass: 'batch'")), true);
   assert.equal(workflowText.match(/line-card-copy:v4:/g)?.length ?? 0, 0);
-  assert.equal(workflowText.match(/line-card-copy:v5:/g)?.length ?? 0, 1);
+  assert.equal(workflowText.match(/line-card-copy:v6:/g)?.length ?? 0, 1);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("/local-ai/reviews/?jobId=")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sourceId=")), true);
   assert.equal(workflow.nodes.some((node) => JSON.stringify(node).includes("sanity-verification-failed")), true);
