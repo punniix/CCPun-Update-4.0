@@ -101,13 +101,30 @@ function categoryWorkspace(S: StructureBuilder) {
     );
 }
 
+function blogSettingsWorkspace(S: StructureBuilder) {
+  return S.listItem()
+    .id("blog-settings")
+    .title("หน้า Blog · บทความแนะนำ")
+    .child(
+      S.document()
+        .schemaType("blogSettings")
+        .documentId("blog-settings")
+        .title("หน้า Blog · บทความแนะนำ"),
+    );
+}
+
 export function createStudioStructurePlugin(environment: AdminEnvironment) {
   return structureTool({
     structure: (S) => {
       const allowedItems = filterStudioStructureItems(S.documentTypeListItems(), environment);
       const hasArticle = allowedItems.some((item) => item.getId() === "article");
       const hasCategory = allowedItems.some((item) => item.getId() === "category");
-      const remainingItems = allowedItems.filter((item) => item.getId() !== "article" && item.getId() !== "category");
+      const hasBlogSettings = allowedItems.some((item) => item.getId() === "blogSettings");
+      const remainingItems = allowedItems.filter((item) =>
+        item.getId() !== "article" &&
+        item.getId() !== "category" &&
+        item.getId() !== "blogSettings"
+      );
 
       return S.list()
         .id("content")
@@ -115,6 +132,7 @@ export function createStudioStructurePlugin(environment: AdminEnvironment) {
         .items([
           ...(hasArticle ? [articleWorkspace(S)] : []),
           ...(hasCategory ? [categoryWorkspace(S)] : []),
+          ...(hasBlogSettings ? [blogSettingsWorkspace(S)] : []),
           ...remainingItems,
         ]);
     },

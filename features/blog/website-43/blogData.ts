@@ -52,7 +52,7 @@ export function toWebsite43ArticleItem(article: Article): Website43ArticleItem {
   };
 }
 
-export function toWebsite43ArticleItems(articles: Article[]): Website43ArticleItem[] {
+export function toWebsite43ArticleItemsInOrder(articles: readonly Article[]): Website43ArticleItem[] {
   const items: Website43ArticleItem[] = [];
 
   for (const article of articles) {
@@ -73,5 +73,10 @@ export function toWebsite43ArticleItems(articles: Article[]): Website43ArticleIt
     }
   }
 
-  return items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  return items;
+}
+
+export function toWebsite43ArticleItems(articles: Article[]): Website43ArticleItem[] {
+  return toWebsite43ArticleItemsInOrder(articles)
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 }

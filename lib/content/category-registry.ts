@@ -14,6 +14,7 @@ export type CategoryRegistryEntry = {
   description?: string;
   redirectToId?: string;
   redirectToSlug?: string;
+  featuredArticleIds?: string[];
 };
 
 export type CategoryRegistryIssueCode =
@@ -58,6 +59,7 @@ export type RawCategoryRegistryRow = {
   description?: unknown;
   redirectToId?: unknown;
   redirectToSlug?: unknown;
+  featuredArticleIds?: unknown;
 };
 
 const rawCategorySchema = z.object({
@@ -68,6 +70,7 @@ const rawCategorySchema = z.object({
   description: z.string().trim().nullish(),
   redirectToId: z.string().trim().min(1).nullish(),
   redirectToSlug: z.string().trim().min(1).nullish(),
+  featuredArticleIds: z.array(z.string().trim().min(1)).nullish(),
 });
 
 function normalizeDocumentId(id: string) {
@@ -156,6 +159,9 @@ export function buildCategoryRegistry(
         ...(row.description?.trim() ? { description: row.description.trim() } : {}),
         ...(row.redirectToId ? { redirectToId: normalizeDocumentId(row.redirectToId) } : {}),
         ...(row.redirectToSlug?.trim() ? { redirectToSlug: row.redirectToSlug.trim().toLowerCase() } : {}),
+        ...(row.featuredArticleIds?.length
+          ? { featuredArticleIds: row.featuredArticleIds.map((id) => normalizeDocumentId(id)) }
+          : {}),
       } satisfies CategoryRegistryEntry,
       isDraft: row._id.startsWith("drafts."),
     };
