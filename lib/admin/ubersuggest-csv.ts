@@ -134,7 +134,7 @@ function completeness(row: UbersuggestCsvRow) {
     .filter((value) => value !== undefined).length;
 }
 
-export function parseUbersuggestKeywordIdeasCsv(input: string): UbersuggestCsvParseResult {
+export function parseUbersuggestKeywordCsv(input: string): UbersuggestCsvParseResult {
   const records = parseCsvRecords(input);
   if (records.length < 2) throw new Error("UBERSUGGEST_CSV_EMPTY");
 
