@@ -94,6 +94,8 @@ test("worker makes one length-only repair and never repairs unsafe LINE output",
   assert.match(requests[1]?.messages[3]?.content ?? "", /24-60/);
   assert.match(requests[1]?.messages[3]?.content ?? "", /50-90/);
   assert.match(JSON.stringify(requests[0]?.format), /lineTitle/);
+  assert.match(requests[0]?.messages[0]?.content ?? "", /รับประกันความคุ้มครอง/);
+  assert.match(requests[0]?.messages[0]?.content ?? "", /13-digit identifier/);
 
   for (const unsafe of [
     { ...output, source: { ...source, revision: "different-revision" } },
