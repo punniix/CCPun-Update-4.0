@@ -89,9 +89,9 @@ export default function UbersuggestCsvImport() {
   async function importFile() {
     const formElement = formRef.current;
     if (!formElement || !preview) return;
-    const importable = preview.counts.newRows + preview.counts.changedRows;
+    const importable = preview.counts.validRows;
     if (!importable) return;
-    if (!window.confirm(`นำเข้า ${importable} คำจาก Ubersuggest เข้า ${laneLabel} หรือไม่? ระบบจะเพิ่มเฉพาะข้อมูลค้นคว้าและจะไม่แก้หรือเผยแพร่บทความเอง`)) return;
+    if (!window.confirm(`ตรวจและนำเข้า ${importable} คำจาก Ubersuggest เข้า ${laneLabel} หรือไม่? รายการที่เหมือนเดิมจะไม่ถูกสร้างซ้ำ และระบบจะไม่แก้หรือเผยแพร่บทความเอง`)) return;
 
     setState("importing");
     setMessage("");
@@ -105,7 +105,6 @@ export default function UbersuggestCsvImport() {
     const parts = [
       `เพิ่มใหม่ ${payload?.imported ?? 0}`,
       payload?.reused ? `ใช้รายการเดิม ${payload.reused}` : null,
-      payload?.skippedExisting ? `ข้ามข้อมูลเดิม ${payload.skippedExisting}` : null,
       payload?.failed ? `ไม่สำเร็จ ${payload.failed}` : null,
     ].filter(Boolean);
     setMessage(parts.join(" · "));
@@ -210,12 +209,12 @@ export default function UbersuggestCsvImport() {
             <button
               type="button"
               onClick={importFile}
-              disabled={state === "importing" || preview.counts.newRows + preview.counts.changedRows === 0}
+              disabled={state === "importing" || preview.counts.validRows === 0}
               className="min-h-11 rounded-xl bg-[#e0c985] px-4 py-2.5 text-sm font-semibold text-[#17191d] disabled:opacity-40"
             >
-              {state === "importing" ? "กำลังนำเข้า…" : `นำเข้า ${preview.counts.newRows + preview.counts.changedRows} รายการ`}
+              {state === "importing" ? "กำลังนำเข้า…" : `ตรวจและนำเข้า ${preview.counts.validRows} รายการ`}
             </button>
-            {preview.counts.newRows + preview.counts.changedRows === 0 ? <span className="text-sm text-white/55">ไฟล์นี้ไม่มีข้อมูลใหม่ที่ต้องบันทึก</span> : null}
+            {preview.counts.existingRows ? <span className="text-sm text-white/55">รายการที่เหมือนเดิมจะถูกตรวจ fingerprint และไม่สร้างซ้ำ</span> : null}
           </div>
         </div>
       ) : null}
