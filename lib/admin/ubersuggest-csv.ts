@@ -221,8 +221,7 @@ export function parseUbersuggestKeywordIdeasCsv(input: string): UbersuggestCsvPa
 
   if (!byKeyword.size) throw new Error("UBERSUGGEST_CSV_NO_VALID_ROWS");
 
-  const normalizedHeaders = headers.map(normalizeHeader);
-  const reportType = normalizedHeaders.some((header) => HEADER_ALIASES.position.includes(header) || HEADER_ALIASES.estimatedVisits.includes(header))
+  const reportType = positionIndex >= 0 || estimatedVisitsIndex >= 0
     ? "keyword-coverage"
     : "keyword-ideas";
 
