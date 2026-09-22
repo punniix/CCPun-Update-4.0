@@ -29,10 +29,13 @@ test("Studio category workspace separates Production, Optimize and never-publish
 
 test("Studio article workspace exposes the existing review workflow as filtered draft lists", () => {
   const source = read("cms/sanity/config/structure.ts");
-  for (const status of ["drafting", "content-review", "fact-check", "compliance-review", "ready-for-coo", "approved"]) {
+  for (const status of ["content-review", "ready-for-coo", "approved"]) {
     assert.match(source, new RegExp(status));
   }
   assert.match(source, /review\.status == \$reviewStatus/);
+  assert.doesNotMatch(source, /\["กำลังเขียน", "drafting"\]/);
+  assert.doesNotMatch(source, /\["กำลังตรวจข้อเท็จจริง", "fact-check"\]/);
+  assert.doesNotMatch(source, /\["กำลังตรวจข้อกำหนดและกฎหมาย", "compliance-review"\]/);
   assert.match(source, /filterStudioStructureItems/);
 });
 

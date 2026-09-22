@@ -1,10 +1,7 @@
 import { defineField, defineType } from "sanity";
 
 const reviewStatuses = [
-  { title: "กำลังเขียน", value: "drafting" },
   { title: "กำลังตรวจเนื้อหา", value: "content-review" },
-  { title: "กำลังตรวจข้อเท็จจริง", value: "fact-check" },
-  { title: "กำลังตรวจข้อกำหนดและกฎหมาย", value: "compliance-review" },
   { title: "พร้อมให้คุณอนุมัติ", value: "ready-for-coo" },
   { title: "อนุมัติเนื้อหาแล้ว", value: "approved" },
 ];
@@ -19,7 +16,7 @@ export const reviewMetadata = defineType({
       title: "สถานะการตรวจเนื้อหา",
       description: "สถานะนี้ใช้กับฉบับที่กำลังแก้เท่านั้น การเลือกอนุมัติยังไม่เปลี่ยนหน้าเว็บ ต้องยืนยันเผยแพร่อีกครั้งหลังตรวจตัวอย่าง",
       type: "string",
-      initialValue: "drafting",
+      initialValue: "content-review",
       options: { list: reviewStatuses, layout: "dropdown" },
       validation: (Rule) => Rule.required(),
     }),

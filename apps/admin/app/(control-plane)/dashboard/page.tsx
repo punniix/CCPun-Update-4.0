@@ -117,7 +117,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
           <h2 className="font-semibold text-white">ขั้นตรวจเนื้อหา</h2>
-          <p className="mt-2 text-sm leading-6 text-white/70">ใช้บอกว่างานกำลังเขียน กำลังตรวจ หรือพร้อมให้คุณอนุมัติแล้ว สถานะนี้ไม่ใช่การเผยแพร่ และเปลี่ยนหน้าเว็บสาธารณะไม่ได้</p>
+          <p className="mt-2 text-sm leading-6 text-white/70">ใช้บอกว่างานกำลังตรวจเนื้อหา พร้อมให้คุณอนุมัติ หรืออนุมัติเนื้อหาแล้ว สถานะนี้ไม่ใช่การเผยแพร่ และเปลี่ยนหน้าเว็บสาธารณะไม่ได้</p>
         </article>
       </section>
 
