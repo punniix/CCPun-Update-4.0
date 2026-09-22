@@ -87,7 +87,7 @@ test("worker gives the model only copy fields and keeps final LINE output contra
   }).outputSchema, contract.outputSchema);
 });
 
-test("worker makes one length-only repair, restores trusted metadata, and never repairs unsafe LINE output", async (t) => {
+test("worker makes up to two length-only repairs, restores trusted metadata, and never repairs unsafe LINE output", async (t) => {
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
   let responses: unknown[] = [];
@@ -98,15 +98,19 @@ test("worker makes one length-only repair, restores trusted metadata, and never 
     return Response.json({ message: { content: typeof next === "string" ? next : JSON.stringify(next) } });
   };
 
-  responses = [{ lineTitle: "สั้น", lineDescription: "สั้นเกินไป" }, modelOutput];
+  const tooShortModelOutput = { lineTitle: "สั้น", lineDescription: "สั้นเกินไป" };
+
+  responses = [tooShortModelOutput, tooShortModelOutput, modelOutput];
   const repaired = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input);
   assert.equal(repaired.success, true);
   if (repaired.success) assert.deepEqual(repaired.data, output);
-  assert.equal(requests.length, 2);
-  assert.equal(requests[1]?.messages.length, 4);
-  assert.match(requests[1]?.messages[3]?.content ?? "", /24-60/);
-  assert.match(requests[1]?.messages[3]?.content ?? "", /50-90/);
-  assert.match(requests[1]?.messages[3]?.content ?? "", /60-75/);
+  assert.equal(requests.length, 3);
+  for (const request of [requests[1], requests[2]]) {
+    assert.equal(request?.messages.length, 4);
+    assert.match(request?.messages[3]?.content ?? "", /24-60/);
+    assert.match(request?.messages[3]?.content ?? "", /50-90/);
+    assert.match(request?.messages[3]?.content ?? "", /60-75/);
+  }
 
   const modelFormat = JSON.stringify(requests[0]?.format);
   assert.match(modelFormat, /lineTitle/);
@@ -115,6 +119,12 @@ test("worker makes one length-only repair, restores trusted metadata, and never 
   assert.match(requests[0]?.messages[0]?.content ?? "", /รับประกันความคุ้มครอง/);
   assert.match(requests[0]?.messages[0]?.content ?? "", /13-digit identifier/);
   assert.match(requests[0]?.messages[0]?.content ?? "", /Do not return mode, source, reviewRequired/);
+
+  requests.length = 0;
+  responses = [tooShortModelOutput, tooShortModelOutput, tooShortModelOutput, modelOutput];
+  const exhausted = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "content-operations", input);
+  assert.equal(exhausted.success, false);
+  assert.equal(requests.length, 3);
 
   requests.length = 0;
   responses = [{

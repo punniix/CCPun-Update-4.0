@@ -77,6 +77,7 @@ const lineCardModelOutputSchema = z.object({
 });
 
 const lineCardRepairCandidateSchema = lineCardModelOutputSchema;
+const MAX_LINE_CARD_LENGTH_REPAIRS = 2;
 
 function lineCardLengthRepair(payload: unknown, rawOutput: unknown, error: z.ZodError) {
   if (!isLineCardDescriptionInput(payload) || error.issues.length === 0) return null;
@@ -197,12 +198,11 @@ export async function inferAndValidate(
 ) {
   let rawOutput = await infer(baseUrl, model, taskType, payload);
   let output = parseLocalAiTaskResult(taskType, payload, composeTrustedLineCardOutput(taskType, payload, rawOutput));
-  if (!output.success) {
+  for (let repairAttempt = 0; !output.success && repairAttempt < MAX_LINE_CARD_LENGTH_REPAIRS; repairAttempt += 1) {
     const repair = lineCardLengthRepair(payload, rawOutput, output.error);
-    if (repair) {
-      rawOutput = await infer(baseUrl, model, taskType, payload, repair);
-      output = parseLocalAiTaskResult(taskType, payload, composeTrustedLineCardOutput(taskType, payload, rawOutput));
-    }
+    if (!repair) break;
+    rawOutput = await infer(baseUrl, model, taskType, payload, repair);
+    output = parseLocalAiTaskResult(taskType, payload, composeTrustedLineCardOutput(taskType, payload, rawOutput));
   }
   return output;
 }
