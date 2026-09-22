@@ -8,6 +8,7 @@ import { getStudioPublishingOptions } from "./cms/sanity/config/publishing";
 import { createStudioStructurePlugin } from "./cms/sanity/config/structure";
 import { wrapGoogleSafeArticlePublishActions } from "./cms/sanity/policy/article-publish-action";
 import { appendArticleScheduleAction } from "./cms/sanity/policy/article-schedule-action";
+import { appendArticleLineCopyActions } from "./cms/sanity/policy/article-line-copy-action";
 import {
   filterStudioAuthProviders,
   filterStudioDocumentActions,
@@ -48,10 +49,14 @@ export const sanityStudioConfig =
         document: {
           badges: (previous, context) => context.schemaType === "article" ? [...previous, ArticleLiveBadge] : previous,
           actions: (previousActions, context) =>
-            appendArticleScheduleAction(
-              wrapGoogleSafeArticlePublishActions(
-                protectProductionContentLifecycleActions(
-                  filterStudioDocumentActions(previousActions, context.dataset, environment, context.schemaType, projectId),
+            appendArticleLineCopyActions(
+              appendArticleScheduleAction(
+                wrapGoogleSafeArticlePublishActions(
+                  protectProductionContentLifecycleActions(
+                    filterStudioDocumentActions(previousActions, context.dataset, environment, context.schemaType, projectId),
+                    environment,
+                    context.schemaType,
+                  ),
                   environment,
                   context.schemaType,
                 ),
