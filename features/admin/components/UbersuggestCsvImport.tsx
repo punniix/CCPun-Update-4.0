@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminDataLaneLabel } from "@/lib/admin/presentation";
 
@@ -59,7 +59,7 @@ export default function UbersuggestCsvImport() {
   const [state, setState] = useState<"idle" | "previewing" | "ready" | "importing" | "done" | "error">("idle");
   const [preview, setPreview] = useState<PreviewPayload | null>(null);
   const [message, setMessage] = useState("");
-  const [formElement, setFormElement] = useState<HTMLFormElement | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function send(action: "preview" | "import", form: HTMLFormElement) {
     const data = new FormData(form);
@@ -72,7 +72,6 @@ export default function UbersuggestCsvImport() {
   async function previewFile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    setFormElement(form);
     setState("previewing");
     setMessage("");
     setPreview(null);
@@ -88,6 +87,7 @@ export default function UbersuggestCsvImport() {
   }
 
   async function importFile() {
+    const formElement = formRef.current;
     if (!formElement || !preview) return;
     const importable = preview.counts.newRows + preview.counts.changedRows;
     if (!importable) return;
@@ -124,7 +124,7 @@ export default function UbersuggestCsvImport() {
         </p>
       </div>
 
-      <form ref={setFormElement} onSubmit={previewFile} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_180px_180px_auto] xl:items-end">
+      <form ref={formRef} onSubmit={previewFile} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_180px_180px_auto] xl:items-end">
         <label className="text-sm text-white/70">
           ไฟล์ CSV
           <input
