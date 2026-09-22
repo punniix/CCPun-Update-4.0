@@ -60,6 +60,10 @@ const contracts: Record<string, RouteContract> = {
     methods: ["GET", "POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:read"[\s\S]*action: "research:create"/,
     validation: { file: "app/api/admin/research/route.ts", pattern: /manualResearchInputSchema\.safeParse\(await request\.json\(\)\.catch/, },
   },
+  "app/api/admin/research/ubersuggest/import/route.ts": {
+    methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:read"[\s\S]*action: "research:create"/,
+    validation: { file: "app/api/admin/research/ubersuggest/import/route.ts", pattern: /requestSchema\.safeParse[\s\S]*parseUbersuggestKeywordIdeasCsv/, },
+  },
   "app/api/admin/research/ubersuggest/route.ts": {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:provider-query"/,
     validation: { file: "app/api/admin/research/ubersuggest/route.ts", pattern: /inputSchema\.safeParse\(await request\.json\(\)\.catch/, },
