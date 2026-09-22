@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import Link from "next/link";
 import { ArrowLeft, Cookie } from "lucide-react";
 import { Website43Footer, Website43Navbar } from "@/components/layout/website-43/Website43Shared";
@@ -9,7 +8,7 @@ import legalStyles from "@/components/layout/website-43/Website43Legal.module.cs
 export const metadata: Metadata = {
   title: "นโยบายคุกกี้ | CCPun ที่ปรึกษาทางการเงิน",
   description: "CCPun ใช้ Google Analytics และ Meta Pixel ตามตัวเลือกความยินยอม อ่านรายละเอียดผู้ให้บริการ วัตถุประสงค์ ขอบเขต และวิธีถอนความยินยอม",
-  robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
+  robots: { index: false, follow: true },
   alternates: { canonical: "https://ccpun.com/cookie-policy/" },
   openGraph: {
     title: "นโยบายคุกกี้ | CCPun ที่ปรึกษาทางการเงิน",
