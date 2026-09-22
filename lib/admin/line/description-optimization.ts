@@ -4,7 +4,6 @@ import { createClient, defineQuery } from "next-sanity";
 import { z } from "zod";
 
 import {
-  lineCardDescriptionOutputSchema,
   lineCardTextDescriptionSchema,
   lineCardTitleSchema,
 } from "../../local-ai/contracts";
@@ -57,8 +56,6 @@ const lineCopyPairSchema = z.object({
   published: lineCopyRevisionSchema.nullable(),
 }).strict();
 
-export type LineDescriptionTarget = z.infer<typeof targetArticleSchema>;
-export type ApprovedLineDescription = z.infer<typeof lineCardDescriptionOutputSchema>;
 export type DraftLineCopyTarget = z.infer<typeof draftLineCopySchema>;
 
 const missingArticlesQuery = defineQuery(
@@ -234,47 +231,4 @@ export async function hasPublishedArticleDraft(id: string) {
   const client = readClient("raw");
   if (!client) throw new Error("LINE_DESCRIPTION_READ_UNAVAILABLE");
   return z.boolean().parse(await client.fetch(draftExistsQuery, { id: logicalId }));
-}
-
-export function decideLineDescriptionApply(target: LineDescriptionTarget, approved: ApprovedLineDescription) {
-  const existingTitle = target.lineTitle?.trim() ?? "";
-  const existingDescription = target.lineDescription?.trim() ?? "";
-  if (existingTitle === approved.lineTitle && existingDescription === approved.lineDescription) return "already-applied" as const;
-  if (existingTitle && existingDescription) return "skipped-existing" as const;
-  if (
-    target.id !== approved.source.id ||
-    target.slug !== approved.source.slug ||
-    target.title !== approved.source.title ||
-    target.category !== approved.source.category ||
-    target.revision !== approved.source.revision
-  ) return "source-conflict" as const;
-  return "apply" as const;
-}
-
-export async function applyApprovedLineDescription(value: unknown) {
-  const approved = lineCardDescriptionOutputSchema.parse(value);
-  if (approved.source.id.startsWith("drafts.") || approved.source.id.startsWith("versions.")) throw new Error("LINE_DESCRIPTION_SOURCE_CONFLICT");
-  if (await hasPublishedArticleDraft(approved.source.id)) return { status: "deferred-draft" as const };
-  const client = writeClient();
-  if (!client) throw new Error("LINE_DESCRIPTION_WRITE_UNAVAILABLE");
-
-  const raw = await client.fetch(targetArticleQuery, { id: approved.source.id });
-  if (!raw) throw new Error("LINE_DESCRIPTION_SOURCE_CONFLICT");
-  const target = targetArticleSchema.parse(raw);
-  const decision = decideLineDescriptionApply(target, approved);
-  if (decision === "source-conflict") throw new Error("LINE_DESCRIPTION_SOURCE_CONFLICT");
-  if (decision !== "apply") return { status: decision };
-
-  try {
-    const patch: { lineTitle?: string; lineDescription?: string } = {};
-    if (!target.lineTitle?.trim()) patch.lineTitle = approved.lineTitle;
-    if (!target.lineDescription?.trim()) patch.lineDescription = approved.lineDescription;
-    if (Object.keys(patch).length === 0) return { status: "skipped-existing" as const };
-    if (await hasPublishedArticleDraft(target.id)) return { status: "deferred-draft" as const };
-    await client.patch(target.id).ifRevisionId(target.revision).set(patch).commit();
-    return { status: "applied" as const };
-  } catch (error) {
-    if (conflictCode(error) === 409) throw new Error("LINE_DESCRIPTION_SOURCE_CONFLICT");
-    throw new Error("LINE_DESCRIPTION_WRITE_UNAVAILABLE");
-  }
 }
