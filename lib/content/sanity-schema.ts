@@ -144,7 +144,7 @@ export const rawArticleSchema = baseArticleSchema.extend({
     accessedAt: z.string().nullish(),
   })).nullish(),
   review: z.object({
-    status: z.enum(["drafting", "content-review", "fact-check", "compliance-review", "ready-for-coo", "approved"]).optional(),
+    status: z.enum(["content-review", "ready-for-coo", "approved"]).optional(),
     contentReviewedAt: z.string().nullish(),
     factCheckedAt: z.string().nullish(),
     complianceReviewedAt: z.string().nullish(),

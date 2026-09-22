@@ -17,10 +17,7 @@ const PROPOSAL_STATUS_LABELS: Record<string, string> = {
 };
 
 const CONTENT_REVIEW_STATUS_LABELS: Record<string, string> = {
-  drafting: "กำลังเขียน",
   "content-review": "กำลังตรวจเนื้อหา",
-  "fact-check": "กำลังตรวจข้อเท็จจริง",
-  "compliance-review": "กำลังตรวจข้อกำหนดและกฎหมาย",
   "ready-for-coo": "พร้อมให้คุณอนุมัติ",
   approved: "อนุมัติเนื้อหาแล้ว",
 };

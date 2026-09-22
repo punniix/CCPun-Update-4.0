@@ -21,10 +21,7 @@ function documentList(
 
 function articleWorkspace(S: StructureBuilder) {
   const reviewLists = [
-    ["กำลังเขียน", "drafting"],
     ["กำลังตรวจเนื้อหา", "content-review"],
-    ["กำลังตรวจข้อเท็จจริง", "fact-check"],
-    ["กำลังตรวจข้อกำหนดและกฎหมาย", "compliance-review"],
     ["พร้อมให้คุณอนุมัติ", "ready-for-coo"],
     ["อนุมัติเนื้อหาแล้ว", "approved"],
   ] as const;
