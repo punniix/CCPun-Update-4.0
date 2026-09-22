@@ -22,7 +22,7 @@ const SYSTEM_DOCUMENT_TYPES = new Set([
   "publishSchedule",
 ]);
 const DRAFT_ONLY_DOCUMENT_TYPES = new Set(["masterContent", "socialVariant"]);
-const OWNER_HIDDEN_NEW_DOCUMENT_TYPES = new Set(["category", ...SYSTEM_DOCUMENT_TYPES]);
+const OWNER_HIDDEN_NEW_DOCUMENT_TYPES = new Set(["category", "blogSettings", ...SYSTEM_DOCUMENT_TYPES]);
 const OWNER_HIDDEN_STRUCTURE_DOCUMENT_TYPES = SYSTEM_DOCUMENT_TYPES;
 
 function isUatEditorialEnvironment(environment: AdminEnvironment): boolean {
