@@ -11,11 +11,14 @@ export type UbersuggestCsvRow = {
   difficulty?: number;
   cpc?: number;
   paidDifficulty?: number;
+  position?: number;
+  estimatedVisits?: number;
+  url?: string;
   sourceRow: number;
 };
 
 export type UbersuggestCsvParseResult = {
-  reportType: "keyword-ideas";
+  reportType: "keyword-ideas" | "keyword-coverage";
   headers: string[];
   sourceRows: number;
   rows: UbersuggestCsvRow[];
@@ -28,8 +31,11 @@ const HEADER_ALIASES = {
   intent: ["intent", "search intent"],
   volume: ["volume", "search volume", "monthly volume"],
   cpc: ["cpc", "cost per click"],
-  paidDifficulty: ["pd", "paid difficulty"],
-  difficulty: ["sd", "seo difficulty", "search difficulty"],
+  paidDifficulty: ["pd", "paid difficulty", "paid difficulty pd"],
+  difficulty: ["sd", "seo difficulty", "search difficulty", "seo difficulty sd"],
+  position: ["position", "pos", "rank", "ranking"],
+  estimatedVisits: ["estimated visits", "est visits", "estimated traffic", "est traffic"],
+  url: ["url", "page url", "ranking url"],
 } as const;
 
 function normalizeHeader(value: string) {
@@ -124,7 +130,7 @@ function parseIntent(value: string | undefined): UbersuggestCsvIntent | undefine
 }
 
 function completeness(row: UbersuggestCsvRow) {
-  return [row.intent, row.volume, row.difficulty, row.cpc, row.paidDifficulty]
+  return [row.intent, row.volume, row.difficulty, row.cpc, row.paidDifficulty, row.position, row.estimatedVisits, row.url]
     .filter((value) => value !== undefined).length;
 }
 
@@ -141,8 +147,11 @@ export function parseUbersuggestKeywordIdeasCsv(input: string): UbersuggestCsvPa
   const cpcIndex = findColumn(headers, HEADER_ALIASES.cpc);
   const paidDifficultyIndex = findColumn(headers, HEADER_ALIASES.paidDifficulty);
   const difficultyIndex = findColumn(headers, HEADER_ALIASES.difficulty);
+  const positionIndex = findColumn(headers, HEADER_ALIASES.position);
+  const estimatedVisitsIndex = findColumn(headers, HEADER_ALIASES.estimatedVisits);
+  const urlIndex = findColumn(headers, HEADER_ALIASES.url);
 
-  if (keywordIndex < 0 || [intentIndex, volumeIndex, cpcIndex, paidDifficultyIndex, difficultyIndex].every((index) => index < 0)) {
+  if (keywordIndex < 0 || [intentIndex, volumeIndex, cpcIndex, paidDifficultyIndex, difficultyIndex, positionIndex, estimatedVisitsIndex].every((index) => index < 0)) {
     throw new Error("UBERSUGGEST_CSV_HEADER_UNSUPPORTED");
   }
 
@@ -170,13 +179,19 @@ export function parseUbersuggestKeywordIdeasCsv(input: string): UbersuggestCsvPa
     const difficulty = difficultyIndex >= 0 ? parseNumber(record[difficultyIndex]) : undefined;
     const cpc = cpcIndex >= 0 ? parseNumber(record[cpcIndex]) : undefined;
     const paidDifficulty = paidDifficultyIndex >= 0 ? parseNumber(record[paidDifficultyIndex]) : undefined;
+    const position = positionIndex >= 0 ? parseNumber(record[positionIndex]) : undefined;
+    const estimatedVisits = estimatedVisitsIndex >= 0 ? parseNumber(record[estimatedVisitsIndex]) : undefined;
+    const url = urlIndex >= 0 ? (record[urlIndex] ?? "").trim() || undefined : undefined;
 
     if (
-      [volume, difficulty, cpc, paidDifficulty].some((value) => Number.isNaN(value))
+      [volume, difficulty, cpc, paidDifficulty, position, estimatedVisits].some((value) => Number.isNaN(value))
       || (volume != null && volume < 0)
       || (cpc != null && cpc < 0)
+      || (position != null && (!Number.isInteger(position) || position < 0))
+      || (estimatedVisits != null && estimatedVisits < 0)
       || (difficulty != null && (difficulty < 0 || difficulty > 100))
       || (paidDifficulty != null && (paidDifficulty < 0 || paidDifficulty > 100))
+      || (url != null && (url.length > 2048 || !/^https?:\/\//i.test(url)))
     ) {
       invalidRows.push({ row: rowNumber, reason: "ค่าตัวเลขในแถวนี้ไม่ถูกต้อง" });
       return;
@@ -189,6 +204,9 @@ export function parseUbersuggestKeywordIdeasCsv(input: string): UbersuggestCsvPa
       difficulty,
       cpc,
       paidDifficulty,
+      position,
+      estimatedVisits,
+      url,
       sourceRow: rowNumber,
     };
     const key = normalizeResearchKeyword(keyword);
@@ -203,8 +221,13 @@ export function parseUbersuggestKeywordIdeasCsv(input: string): UbersuggestCsvPa
 
   if (!byKeyword.size) throw new Error("UBERSUGGEST_CSV_NO_VALID_ROWS");
 
+  const normalizedHeaders = headers.map(normalizeHeader);
+  const reportType = normalizedHeaders.some((header) => HEADER_ALIASES.position.includes(header) || HEADER_ALIASES.estimatedVisits.includes(header))
+    ? "keyword-coverage"
+    : "keyword-ideas";
+
   return {
-    reportType: "keyword-ideas",
+    reportType,
     headers,
     sourceRows: dataRows.length,
     rows: [...byKeyword.values()],
