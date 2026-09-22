@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  parseUbersuggestKeywordIdeasCsv,
+  parseUbersuggestKeywordCsv,
   UBERSUGGEST_CSV_MAX_ROWS,
 } from "../../lib/admin/ubersuggest-csv";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("Ubersuggest Keyword Ideas CSV maps current web export columns", () => {
-  const result = parseUbersuggestKeywordIdeasCsv([
+  const result = parseUbersuggestKeywordCsv([
     "Keywords,Intent,Volume,CPC,PD,SEO Difficulty",
     '"ประกันบำนาญ",Informational,2400,18.50,42,31',
     '"ประกันบำนาญ ลดหย่อนภาษี","Commercial, Informational","1,300",22.4,35,28',
@@ -29,7 +29,7 @@ test("Ubersuggest Keyword Ideas CSV maps current web export columns", () => {
 });
 
 test("Ubersuggest Keywords by Traffic CSV keeps ranking provenance", () => {
-  const result = parseUbersuggestKeywordIdeasCsv([
+  const result = parseUbersuggestKeywordCsv([
     "Keyword,Position,Est. Visits,Volume,CPC,SEO Difficulty,URL",
     '"ประกันรถยนต์",8,"1,250","2,400",19.5,32,https://ccpun.com/blog/car-insurance/',
   ].join("\n"));
@@ -43,7 +43,7 @@ test("Ubersuggest Keywords by Traffic CSV keeps ranking provenance", () => {
 });
 
 test("CSV parser handles quoted commas, BOM, blank rows and duplicate keywords", () => {
-  const result = parseUbersuggestKeywordIdeasCsv([
+  const result = parseUbersuggestKeywordCsv([
     "\uFEFFKeyword,Search Intent,Search Volume,Cost per Click,Paid Difficulty,Search Difficulty",
     '"ประกันรถ, ชั้น 1",C,900,"12.75",31,22',
     "",
@@ -60,7 +60,7 @@ test("CSV parser handles quoted commas, BOM, blank rows and duplicate keywords",
 });
 
 test("CSV parser keeps valid rows while reporting invalid numeric rows", () => {
-  const result = parseUbersuggestKeywordIdeasCsv([
+  const result = parseUbersuggestKeywordCsv([
     "Keyword,Volume,CPC,PD,SD",
     "good keyword,100,10,20,30",
     "bad difficulty,100,10,20,101",
@@ -75,13 +75,13 @@ test("CSV parser keeps valid rows while reporting invalid numeric rows", () => {
 
 test("CSV parser fails closed on unsupported reports and oversized batches", () => {
   assert.throws(
-    () => parseUbersuggestKeywordIdeasCsv("URL,Traffic,Backlinks\nhttps://example.com,1,2"),
+    () => parseUbersuggestKeywordCsv("URL,Traffic,Backlinks\nhttps://example.com,1,2"),
     /UBERSUGGEST_CSV_HEADER_UNSUPPORTED/,
   );
 
   const rows = Array.from({ length: UBERSUGGEST_CSV_MAX_ROWS + 1 }, (_, index) => `keyword ${index},10,20`);
   assert.throws(
-    () => parseUbersuggestKeywordIdeasCsv(["Keyword,Volume,SD", ...rows].join("\n")),
+    () => parseUbersuggestKeywordCsv(["Keyword,Volume,SD", ...rows].join("\n")),
     /UBERSUGGEST_CSV_TOO_MANY_ROWS/,
   );
 });
