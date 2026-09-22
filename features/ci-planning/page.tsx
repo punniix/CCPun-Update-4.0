@@ -111,6 +111,8 @@ export default function CiPlanningPage() {
           fullBleed
         />
 
+        <CILandingIntro />
+
         <section id="ci-calculator" aria-labelledby="ci-calculator-title" className={styles.calculatorSection}>
           <div className={styles.calculatorHeader}>
             <p className={styles.eyebrow}>เครื่องคำนวณทุนโรคร้ายแรง</p>
@@ -121,8 +123,6 @@ export default function CiPlanningPage() {
             <CIWizard />
           </div>
         </section>
-
-        <CILandingIntro />
 
         <section className={styles.toolStorySection} aria-labelledby="ci-reading-title">
           <div className={styles.inner}>
