@@ -68,9 +68,23 @@ test("CSV parser keeps valid rows while reporting invalid numeric rows", () => {
   ].join("\n"));
 
   assert.equal(result.rows.length, 1);
+  assert.equal(result.invalidRowCount, 2);
   assert.equal(result.invalidRows.length, 2);
   assert.equal(result.invalidRows[0]?.row, 3);
   assert.equal(result.invalidRows[1]?.row, 4);
+});
+
+test("non-http ranking URLs do not discard otherwise valid keyword evidence", () => {
+  const result = parseUbersuggestKeywordCsv([
+    "Keyword,Position,Volume,URL",
+    "ประกันสุขภาพ,4,900,not-a-valid-url",
+  ].join("\n"));
+
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0]?.keyword, "ประกันสุขภาพ");
+  assert.equal(result.rows[0]?.position, 4);
+  assert.equal(result.rows[0]?.url, undefined);
+  assert.equal(result.invalidRowCount, 0);
 });
 
 test("CSV parser fails closed on unsupported reports and oversized batches", () => {
