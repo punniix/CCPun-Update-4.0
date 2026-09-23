@@ -57,7 +57,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "^3.5.0",
-    "workflow": "^4.8.8",
+    "workflow": "^4.8.9",
     "zod": "^4.3.6"
   },
   "devDependencies": {
