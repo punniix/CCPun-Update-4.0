@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { calculateCI, calcRecoveryReserveNeed } from '../features/ci-planning/calculator/calculator';
 import { INITIAL_CI_FORM_DATA } from '../features/ci-planning/calculator/constants';
 import { validateCIStep } from '../features/ci-planning/calculator/schemas';
+import { safePlanPreview } from '../features/ci-planning/components/steps/StepExpenses.model';
 import {
   buildCustomRecoveryFromTarget,
   CI_RECOVERY_EVIDENCE_YEAR_FLOOR,
@@ -52,6 +54,25 @@ test('Recovery Reserve is added once to both available methods', () => {
   assert.equal(result.calculatedNeed, 20_000 * 12 * 5 + 500_000);
   assert.equal(result.incomeBaseNeed, 50_000 * 12 * 5);
   assert.equal(result.incomeBasedNeed, 50_000 * 12 * 5 + 500_000);
+});
+
+test('in-form summary shows the income base separately from its Recovery-inclusive total', () => {
+  const expenses = structuredClone(INITIAL_CI_FORM_DATA.expenses);
+  expenses.monthlyIncome = 100_000;
+  expenses.household = 30_000;
+  expenses.recovery = getRecoveryPreset('continued');
+
+  const preview = safePlanPreview(expenses, calcRecoveryReserveNeed(expenses.recovery).reserveNeed);
+  assert.ok(preview);
+  assert.equal(preview.incomeBaseNeed, 6_000_000);
+  assert.equal(preview.incomeTotalNeed, 6_500_000);
+  assert.equal(preview.expenseTotalNeed, 2_300_000);
+
+  const summary = readFileSync('features/ci-planning/components/steps/StepExpenses.tsx', 'utf8');
+  assert.match(summary, /ทุนตามรายได้ก่อน Recovery<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeBaseNeed\)/);
+  assert.match(summary, /ทุนตามรายได้รวม<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeTotalNeed\)/);
+  const styles = readFileSync('components/layout/website-43/Website43.module.css', 'utf8');
+  assert.match(styles, /human-centered-ci-expenses[^\n]*\.text-xs[\s\S]*human-centered-ci-resources[^\n]*\.text-xs\) \{ font-size: 14px; \}/);
 });
 
 test('income-only planning adds Recovery only to income method', () => {
