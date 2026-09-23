@@ -7,9 +7,9 @@ import { sourceSlugHasPublicRouteOverride } from "./article-route-overrides";
 import {
   buildCategoryRegistry,
   emptyCategoryRegistry,
+  parseCategoryRegistryResponse,
   type CategoryRegistry,
   type CategoryRegistryContext,
-  type RawCategoryRegistryRow,
 } from "./category-registry";
 
 const categoryRegistryQuery = groq`{
@@ -28,17 +28,6 @@ const categoryRegistryQuery = groq`{
   "referencedCategoryIds": *[_type == "article" && defined(publishedAt) && defined(category._ref)].category._ref
 }`;
 
-type RawRegistryResponse = {
-  categories?: unknown;
-  routeOwnerSlugs?: unknown;
-  canonicalOwnerUrls?: unknown;
-  referencedCategoryIds?: unknown;
-};
-
-function stringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
 function reportRegistryIssue(scope: string, detail: Record<string, unknown>) {
   console.error("[sanity-category-registry]", scope, detail);
 }
@@ -53,16 +42,15 @@ export async function listCategoryRegistry(options: { includeDrafts?: boolean } 
       perspective: includeDrafts ? "drafts" : "published",
       stega: includeDrafts,
     });
-    const raw = (data ?? {}) as RawRegistryResponse;
-    const rows = Array.isArray(raw.categories) ? raw.categories as RawCategoryRegistryRow[] : [];
+    const { rows, context: parsedContext } = parseCategoryRegistryResponse(data);
     const context: CategoryRegistryContext = {
       // A Sanity source slug that has an explicit public-route override no longer
       // owns the one-segment /blog/{slug}/ fallback route. Excluding it here lets
       // the reviewed destination category claim that segment without weakening
       // collision checks for ordinary article slugs.
-      routeOwnerSlugs: stringArray(raw.routeOwnerSlugs).filter((slug) => !sourceSlugHasPublicRouteOverride(slug)),
-      canonicalOwnerUrls: stringArray(raw.canonicalOwnerUrls),
-      referencedCategoryIds: stringArray(raw.referencedCategoryIds),
+      routeOwnerSlugs: [...parsedContext.routeOwnerSlugs].filter((slug) => !sourceSlugHasPublicRouteOverride(slug)),
+      canonicalOwnerUrls: parsedContext.canonicalOwnerUrls,
+      referencedCategoryIds: parsedContext.referencedCategoryIds,
     };
     const registry = buildCategoryRegistry(rows, context);
     if (registry.issues.length) {

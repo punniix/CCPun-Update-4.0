@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { baseArticleSchema } from "../../lib/content/sanity-schema";
+import { baseArticleSchema, bodyItemSchema } from "../../lib/content/sanity-schema";
 
 const baseArticle = {
   _id: "article-live",
@@ -33,4 +33,10 @@ test("invalid LINE-only copy is isolated instead of dropping a published article
   assert.equal(parsed.lineTitle, undefined);
   assert.equal(parsed.lineDescription, undefined);
   assert.equal(parsed.slug, "article-live");
+});
+
+test("legacy null Portable Text markDefs render while malformed mark definitions stay invalid", () => {
+  const block = { _type: "block", children: [{ text: "อ่านต่อ", marks: null }], markDefs: null };
+  assert.equal(bodyItemSchema.safeParse(block).success, true);
+  assert.equal(bodyItemSchema.safeParse({ ...block, markDefs: [{ _key: "link", _type: "link", href: "javascript:alert(1)" }] }).success, false);
 });
