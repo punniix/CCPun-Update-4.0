@@ -529,7 +529,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "\nconst base=$('เตรียมงาน LINE').item.json;\nconst row=$input.first()?.json??{};\nif(row.error){\n  return [{json:{...base,replayState:'error',stage:'replay-lookup',errorCategory:'audit-store-unavailable',errorMessage:'Could not check existing LINE request'}}];\n}\nif(!row.requestKey) return [{json:{...base,replayState:'run',stage:'improve-new'}}];\nconst same=String(row.requestKey)===base.requestKey\n  &&String(row.articleId)===String(base.source.id)\n  &&String(row.articleRevision)===String(base.source.revision)\n  &&String(row.triggerSource)==='sanity:improve-existing';\nconst lineTitle=String(row.lineTitle??'').trim();\nconst lineDescription=String(row.lineDescription??'').trim();\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=v=>[...segmenter.segment(v)].length;\nconst cached=same&&row.status==='generated'\n  &&count(lineTitle)>=24&&count(lineTitle)<=60\n  &&count(lineDescription)>=50&&count(lineDescription)<=90;\nif(cached){\n  return [{json:{...base,replayState:'cached',stage:'replay-cache',lineTitle,lineDescription,errorCategory:null,errorMessage:null}}];\n}\nreturn [{json:{...base,replayState:'error',stage:'replay-conflict',errorCategory:same?'request-already-used':'idempotency-conflict',errorMessage:'LINE request key was already used; start a new request'}}];"
+        "jsCode": "\nconst base=$('เตรียมงาน LINE').item.json;\nconst row=$input.first()?.json??{};\nif(row.error){\n  return [{json:{...base,replayState:'error',stage:'replay-lookup',errorCategory:'audit-store-unavailable',errorMessage:'Could not check existing LINE request'}}];\n}\nif(!row.requestKey) return [{json:{...base,replayState:'run',stage:'improve-new'}}];\nconst same=String(row.requestKey)===base.requestKey\n  &&String(row.articleId)===String(base.source.id)\n  &&String(row.articleRevision)===String(base.source.revision)\n  &&String(row.triggerSource)===base.triggerSource;\nconst lineTitle=String(row.lineTitle??'').trim();\nconst lineDescription=String(row.lineDescription??'').trim();\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=v=>[...segmenter.segment(v)].length;\nconst cached=same&&row.status==='generated'\n  &&count(lineTitle)>=24&&count(lineTitle)<=60\n  &&count(lineDescription)>=50&&count(lineDescription)<=90;\nif(cached){\n  return [{json:{...base,replayState:'cached',stage:'replay-cache',lineTitle,lineDescription,errorCategory:null,errorMessage:null}}];\n}\nreturn [{json:{...base,replayState:'error',stage:'replay-conflict',errorCategory:same?'request-already-used':'idempotency-conflict',errorMessage:'LINE request key was already used; start a new request'}}];"
       }
     },
     {
@@ -612,9 +612,9 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const data=$('เตรียมงาน LINE').item.json;\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:{type:'object',properties:{lineTitle:{type:'string'},lineDescription:{type:'string'}},required:['lineTitle','lineDescription'],additionalProperties:false},\n    options:{temperature:0.18,num_ctx:1024,num_predict:140},\n    messages:[\n      {role:'system',content:\"Improve previously approved Thai LINE article card copy. Use ONLY the two previous LINE fields as factual source. Preserve their meaning and factual scope; do not invent facts, numbers, benefits, guarantees, claims, exclusions, or article details. Return JSON with both lineTitle and lineDescription. lineTitle must be a natural complete Thai phrase of 24-60 graphemes, target 32-45. lineDescription must be one complete natural Thai sentence of 50-90 graphemes, target 60-75. No CTA, LINE/CCPun/contact mention, clickbait, fear, urgency, absolute claims or direct identifiers. The pair must improve clarity or flow, not just reprint both previous fields.\"},\n      {role:'user',content:JSON.stringify({previousLineTitle:data.existingLineTitle,previousLineDescription:data.existingLineDescription})}\n    ]\n  };\n})() }}",
+        "jsonBody": "={{ (() => {\n  const data=$('เตรียมงาน LINE').item.json;\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:'json',\n    options:{temperature:0.12,num_ctx:1024,num_predict:140},\n    messages:[\n      {role:'system',content:\"Polish only the previously approved Thai LINE copy. Use the previous LINE DESCRIPTION as the sole factual source for the new description; keep its subjects, nouns and meaning, but make it shorter and smoother. Never introduce a new person, organization, benefit, claim, example, property or number. The title may stay unchanged if already clear. Return JSON with lineTitle (24-60 graphemes) and one complete lineDescription sentence (50-90 graphemes). No CTA, brand mention, clickbait, urgency or guarantees.\"},\n      {role:'user',content:JSON.stringify({previousLineTitle:data.existingLineTitle,previousLineDescription:data.existingLineDescription})}\n    ]\n  };\n})() }}",
         "options": {
-          "timeout": 35000,
+          "timeout": 60000,
           "response": {
             "response": {
               "responseFormat": "json"
@@ -639,9 +639,9 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const data=$('เตรียมงาน LINE').item.json;\n  const a=$('Ollama · Improve A').item.json;\n  let candidateA={};\n  try { candidateA=JSON.parse(String(a?.message?.content??'{}')); } catch {}\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:{type:'object',properties:{lineTitle:{type:'string'},lineDescription:{type:'string'}},required:['lineTitle','lineDescription'],additionalProperties:false},\n    options:{temperature:0.22,num_ctx:1024,num_predict:140},\n    messages:[\n      {role:'system',content:\"Write one alternative improvement to the previously approved Thai LINE copy. Use ONLY the previous LINE title and description as factual source; Candidate A is wording feedback, never a new source of facts. Keep the same meaning and scope. Return JSON with both fields. lineTitle 24-60 Thai graphemes, target 32-45. lineDescription 50-90 Thai graphemes, target 60-75, one complete sentence and one idea. If Candidate A was too long, be substantially shorter. No CTA, LINE/CCPun/contact mention, clickbait, fear, urgency, guarantees, absolute claims, identifiers or new facts/numbers.\"},\n      {role:'user',content:JSON.stringify({previousLineTitle:data.existingLineTitle,previousLineDescription:data.existingLineDescription,candidateA:{lineTitle:String(candidateA.lineTitle??'').slice(0,160),lineDescription:String(candidateA.lineDescription??'').slice(0,240)}})}\n    ]\n  };\n})() }}",
+        "jsonBody": "={{ (() => {\n  const data=$('เตรียมงาน LINE').item.json;\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:'json',\n    options:{temperature:0.18,num_ctx:1024,num_predict:140},\n    messages:[\n      {role:'system',content:\"Write a second concise Thai phrasing of the previously approved LINE description. This is wording polish only: preserve the old description subject and facts; do not add any new actor, organization, audience, topic, benefit, number or claim. The title can remain exactly as before. Return only JSON with lineTitle (24-60 graphemes) and one natural complete lineDescription sentence (50-90 graphemes). No CTA, brand mention, clickbait, urgency or guarantees.\"},\n      {role:'user',content:JSON.stringify({previousLineTitle:data.existingLineTitle,previousLineDescription:data.existingLineDescription})}\n    ]\n  };\n})() }}",
         "options": {
-          "timeout": 35000,
+          "timeout": 60000,
           "response": {
             "response": {
               "responseFormat": "json"
@@ -695,6 +695,21 @@
           "combinator": "and"
         },
         "options": {}
+      }
+    },
+    {
+      "id": "20b5d4f3-1cbb-4e4b-b263-483e989b94c8",
+      "name": "สรุป Replay Conflict",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        520
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst data=$json;\nconst finishedAt=new Date().toISOString();\nconst elapsedMs=Math.max(0,Date.now()-(Date.parse(data.startedAt)||Date.now()));\nreturn [{json:{...data,status:'error',stage:data.stage || 'error',finishedAt,elapsedMs,errorCategory:data.errorCategory || 'line-copy-failed',errorMessage:data.errorMessage || 'LINE copy generation failed'}}];"
       }
     }
   ],
@@ -973,7 +988,7 @@
       "main": [
         [
           {
-            "node": "สรุป Error",
+            "node": "สรุป Replay Conflict",
             "type": "main",
             "index": 0
           }
@@ -1050,6 +1065,17 @@
         [
           {
             "node": "สรุป Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สรุป Replay Conflict": {
+      "main": [
+        [
+          {
+            "node": "ตอบกลับ Sanity",
             "type": "main",
             "index": 0
           }

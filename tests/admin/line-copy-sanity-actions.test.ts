@@ -64,3 +64,15 @@ test("Improve LINE copy uses approved Published fields only and requires owner a
   assert.match(helper, /\.ifRevisionId\(target\.draft\.revision\)/);
   assert.match(helper, /\.set\(\{ lineTitle, lineDescription \}\)/);
 });
+
+test("n8n Improve replay preserves a successful result after a conflicting request", () => {
+  const workflow = JSON.parse(read("workers/local-ai/n8n/line-card-copy.direct.json"));
+  const node = (name: string) => workflow.nodes.find((item: { name: string }) => item.name === name);
+  assert.match(node("ตรวจ Replay Improve").parameters.jsCode, /String\(row\.triggerSource\)===base\.triggerSource/);
+  assert.equal(workflow.connections["สรุป Replay Conflict"].main[0][0].node, "ตอบกลับ Sanity");
+  assert.equal(workflow.connections["Replay ใช้ไม่ได้?"].main[0][0].node, "สรุป Replay Conflict");
+  for (const name of ["Ollama · Improve A", "Ollama · Improve B"]) {
+    assert.match(node(name).parameters.jsonBody, /format:'json'/);
+    assert.equal(node(name).parameters.options.timeout, 60_000);
+  }
+});
