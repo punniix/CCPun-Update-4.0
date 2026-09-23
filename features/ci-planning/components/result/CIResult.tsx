@@ -146,39 +146,34 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     />
 
     <section className="ccpun-calculator-result-panel">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-        <div>
-          <p className="ccpun-calculator-result-eyebrow">{differenceLabel}</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums">{baht(difference)}</p>
-        </div>
-        <p className="ccpun-calculator-result-body">
-          ทุนที่มีรวม {baht(result.availableResources)} จากเงินก้อนประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่คุณกรอก
-        </p>
-      </div>
+      <p className="ccpun-calculator-result-eyebrow">{differenceLabel}</p>
+      <p className="ccpun-calculator-result-difference mt-1 font-semibold tabular-nums">{baht(difference)}</p>
+      <p className="ccpun-calculator-result-body">
+        ทุนที่มีรวม {baht(result.availableResources)} จากเงินก้อนประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่คุณกรอก
+      </p>
       {result.protectedAssetsNeed > 0 ? <p className="ccpun-calculator-result-body">
         คุณเลือกเก็บสินทรัพย์สภาพคล่อง {baht(result.protectedAssetsNeed)} ไว้ ระบบจึงเพิ่มเป้าหมายทุนเท่ากับยอดนี้ 1 ครั้ง เพื่อให้เห็นส่วนขาดหลังเผื่อรักษาสินทรัพย์ก้อนเดิม
       </p> : null}
       {displayedSurplus > 0 ? <p className="ccpun-calculator-result-body">
         จำนวนที่สูงกว่าประมาณการนี้อ้างอิงเฉพาะสมมติฐานชุดนี้ ไม่ได้หมายความว่าความคุ้มครองทั้งหมดเพียงพอแล้ว
       </p> : null}
+      <details className="ccpun-calculator-result-details">
+        <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ดูที่มาของประมาณการ</summary>
+        <div className="mt-4">
+          {activeMethod === 'expense' ? <dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">
+            <div className="ccpun-calculator-result-row"><dt>ค่าใช้จ่ายครอบครัว</dt><dd>{baht(result.householdNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>ค่าเรียนบุตร</dt><dd>{baht(result.educationNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>ภาระหนี้รวม</dt><dd>{baht(result.debtNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>Recovery Reserve</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
+            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>เป้าหมายรักษาสินทรัพย์</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
+          </dl> : <dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">
+            <div className="ccpun-calculator-result-row"><dt>ทุนตามรายได้ก่อน Recovery</dt><dd>{baht(incomeBaseNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>Recovery Reserve</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
+            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>เป้าหมายรักษาสินทรัพย์</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
+          </dl>}
+        </div>
+      </details>
     </section>
-
-    <details className="ccpun-calculator-result-details">
-      <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ดูที่มาของประมาณการ</summary>
-      <div className="mt-4">
-        {activeMethod === 'expense' ? <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div><dt className="ccpun-calculator-result-eyebrow">ค่าใช้จ่ายครอบครัว</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.householdNeed)}</dd></div>
-          <div><dt className="ccpun-calculator-result-eyebrow">ค่าเรียนบุตร</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.educationNeed)}</dd></div>
-          <div><dt className="ccpun-calculator-result-eyebrow">ภาระหนี้รวม</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.debtNeed)}</dd></div>
-          <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
-          {result.protectedAssetsNeed > 0 ? <div><dt className="ccpun-calculator-result-eyebrow">เป้าหมายรักษาสินทรัพย์</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.protectedAssetsNeed)}</dd></div> : null}
-        </dl> : <dl className="grid gap-3 sm:grid-cols-2">
-          <div><dt className="ccpun-calculator-result-eyebrow">ทุนตามรายได้ก่อน Recovery</dt><dd className="mt-1 font-medium tabular-nums">{baht(incomeBaseNeed)}</dd></div>
-          <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
-          {result.protectedAssetsNeed > 0 ? <div><dt className="ccpun-calculator-result-eyebrow">เป้าหมายรักษาสินทรัพย์</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.protectedAssetsNeed)}</dd></div> : null}
-        </dl>}
-      </div>
-    </details>
 
     <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
       <p className="ccpun-calculator-result-eyebrow">เงินสำรองสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต</p>

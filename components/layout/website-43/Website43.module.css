@@ -425,12 +425,15 @@
 .calculatorStage :global(.ccpun-calculator-result-amount) small { font-size: 17px; font-weight: 500; }
 .calculatorStage :global(.ccpun-calculator-result-body) { margin: 14px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
 .calculatorStage :global(.ccpun-calculator-result-panel) { padding: 20px; border: 1px solid rgba(91,72,72,.72); border-radius: 14px; background: rgba(74,58,58,.18); }
+.calculatorStage :global(.ccpun-calculator-result-difference) { font-size: clamp(22px,5vw,30px); line-height: 1.25; }
 .calculatorStage :global(.ccpun-calculator-result-panel-title) { margin: 0; color: var(--w43-ink); font-size: 18px; font-weight: 600; line-height: 1.45; }
 .calculatorStage :global(.ccpun-calculator-result-rows) { border-block: 1px solid var(--w43-border); }
+.calculatorStage :global(.ccpun-calculator-result-breakdown) { margin: 0; border: 0; }
 .calculatorStage :global(.ccpun-calculator-result-row) { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 0; border-bottom: 1px solid rgba(91,72,72,.65); }
 .calculatorStage :global(.ccpun-calculator-result-row:last-child) { border-bottom: 0; }
 .calculatorStage :global(.ccpun-calculator-result-row) dt { color: var(--w43-muted); font-size: 14px; line-height: 1.5; }
 .calculatorStage :global(.ccpun-calculator-result-row) dd { margin: 0; color: var(--w43-ink); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.calculatorStage :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) dd { white-space: nowrap; }
 .calculatorStage :global(.ccpun-calculator-result-notice) { padding: 16px 18px; border: 1px solid rgba(91,72,72,.65); border-radius: 12px; background: rgba(37,24,24,.34); color: var(--w43-muted); font-size: 13px; line-height: 1.65; }
 .calculatorStage :global(.ccpun-calculator-result-cta) { padding: 22px; border: 1px solid var(--w43-border); border-radius: 14px; background: var(--w43-deep); text-align: center; }
 .calculatorStage :global(.ccpun-calculator-result-cta) h3 { margin: 14px 0 0; color: var(--w43-ink); font-size: 18px; font-weight: 600; }
@@ -438,7 +441,7 @@
 .calculatorStage :global(.ccpun-calculator-result-method-grid) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .calculatorStage :global(.ccpun-calculator-result-method) { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--w43-border); border-radius: 12px; background: rgba(37,24,24,.28); cursor: pointer; }
 .calculatorStage :global(.ccpun-calculator-result-method-selected) { border-color: rgba(224,201,133,.56); background: rgba(224,201,133,.07); }
-.calculatorStage :global(.ccpun-calculator-result-details) { padding-block: 14px; border-block: 1px solid var(--w43-border); }
+.calculatorStage :global(.ccpun-calculator-result-details) { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--w43-border); }
 .calculatorStage :global(.ccpun-calculator-result-details) summary { cursor: pointer; color: var(--w43-ink); font-size: 14px; font-weight: 600; }
 .calculatorStage :global(.ccpun-calculator-result) :global(.money-comparison) { padding: 2px 0; }
 .calculatorStage :global(.ccpun-calculator-result) :global(.money-comparison) dl { border-color: var(--w43-border); background: rgba(37,24,24,.28); }
@@ -776,6 +779,8 @@
   .calculatorStage :global(.ccpun-calculator-result-amount) { font-size: 38px; }
   .calculatorStage :global(.ccpun-calculator-result-row) { flex-direction: column; align-items: flex-start; gap: 4px; }
   .calculatorStage :global(.ccpun-calculator-result-row) dd { text-align: left; }
+  .calculatorStage :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 12px; }
+  .calculatorStage :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) dd { text-align: right; }
   .calculatorStage :global(.ccpun-calculator-result-method-grid) { grid-template-columns: 1fr; }
   .calculatorStage :global(.ccpun-calculator-result-cta) { padding: 20px; }
   .toolMethodGrid { grid-template-columns: 1fr; gap: 12px; }

@@ -101,6 +101,21 @@ test('tool FAQ answers keep breathing room from divider lines on mobile', () => 
   assert.match(website43Css, /\.faqDetails p \{ padding: 6px 0 34px; \}/);
 });
 
+test('CI gap and its income or expense breakdown share one card, separate from Recovery Reserve', () => {
+  const cardStart = ciResult.indexOf('<section className="ccpun-calculator-result-panel">');
+  const cardEnd = ciResult.indexOf('</section>', cardStart);
+  const card = ciResult.slice(cardStart, cardEnd);
+  assert.ok(cardStart >= 0 && cardEnd > cardStart);
+  assert.match(card, /differenceLabel[\s\S]*baht\(difference\)[\s\S]*availableResources[\s\S]*<details className="ccpun-calculator-result-details">/);
+  assert.match(card, /activeMethod === 'expense'[\s\S]*incomeBaseNeed/);
+  assert.equal((card.match(/<dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">/g) ?? []).length, 2);
+  assert.doesNotMatch(card, /lg:grid-cols-4|sm:grid-cols-2/);
+  assert.doesNotMatch(card, /sm:flex-row/);
+  assert.ok(ciResult.indexOf('aria-labelledby="ci-recovery-result-title"') > cardEnd);
+  assert.match(website43Css, /ccpun-calculator-result-details\) \{ margin-top: 18px; padding-top: 16px; border-top:/);
+  assert.match(website43Css, /ccpun-calculator-result-breakdown \.ccpun-calculator-result-row\) \{ display: grid; grid-template-columns: minmax\(0,1fr\) auto/);
+});
+
 test('mobile CI story cards loop around a centered card with swipe, arrows and paused autoplay', () => {
   const intro = read('features/ci-planning/components/CILandingIntro.tsx');
   assert.match(intro, /ChevronLeft/);
