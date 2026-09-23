@@ -30,12 +30,12 @@ export default function SocialReviewAttention() {
     <Link
       href="/social/posts/"
       className="group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition motion-reduce:transition-none hover:border-[#e0c985]/35 hover:bg-white/[0.045] focus:outline-none focus:ring-2 focus:ring-[#e0c985]"
-      aria-label={error ? "เปิด Posts เพื่อตรวจ Draft; สรุป Draft โหลดไม่สำเร็จ" : `เปิด Posts; มี ${needsReview} รายการที่ต้อง Review`}
+      aria-label={error ? "เปิดหน้าโพสต์เพื่อตรวจฉบับร่าง เนื่องจากโหลดข้อมูลสรุปไม่สำเร็จ" : `เปิดหน้าโพสต์ มี ${needsReview} รายการที่รอตรวจ`}
     >
-      <div className="text-xs text-white/45">Needs review</div>
+      <div className="text-xs text-white/45">งานที่รอตรวจ</div>
       <div className="mt-2 text-2xl font-semibold text-white">{workspace ? needsReview.toLocaleString("th-TH") : error ? "!" : "…"}</div>
-      <p className="mt-2 text-xs leading-5 text-white/55">{error ? "เปิด Posts เพื่อตรวจสถานะ Draft โดยตรง" : "Content / Fact / Compliance / COO review ที่ยังไม่ Approved"}</p>
-      <span className="mt-3 inline-flex text-xs font-medium text-[#f4df9b] group-hover:underline">Review posts →</span>
+      <p className="mt-2 text-xs leading-5 text-white/55">{error ? "เปิดหน้าโพสต์เพื่อตรวจสถานะโดยตรง" : "รวมงานตรวจเนื้อหา ข้อเท็จจริง ข้อกำกับ และงานที่รอผู้อนุมัติ"}</p>
+      <span className="mt-3 inline-flex text-xs font-medium text-[#f4df9b] group-hover:underline">ตรวจโพสต์ →</span>
     </Link>
   );
 }

@@ -70,7 +70,7 @@ function deltaText(delta: number | null, unit: MetricUnit) {
 
 function contentLabel(item: SocialAnalyticsItem) {
   const text = item.title?.trim() || item.text?.trim();
-  if (!text) return `Content ${item.platformObjectId}`;
+  if (!text) return `เนื้อหา ${item.platformObjectId}`;
   return text.length > 110 ? `${text.slice(0, 107)}…` : text;
 }
 
@@ -188,8 +188,8 @@ export default function SocialStatsDashboard({ items }: { items: SocialAnalytics
       <section aria-labelledby="social-stats-filter-title" className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 id="social-stats-filter-title" className="text-lg font-semibold">ตัวกรอง Social Stats</h2>
-            <p className="mt-1 text-sm text-white/65">กรองจาก Snapshot ที่ API ส่งกลับ โดยคงชื่อ metric ของแต่ละแพลตฟอร์ม</p>
+            <h2 id="social-stats-filter-title" className="text-lg font-semibold">ตัวกรองสถิติโซเชียล</h2>
+            <p className="mt-1 text-sm text-white/65">กรองจากข้อมูลล่าสุดที่ระบบได้รับ โดยคงชื่อตัวชี้วัดของแต่ละแพลตฟอร์ม</p>
           </div>
           <button type="button" onClick={resetFilters} className="min-h-11 rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">ล้างตัวกรอง</button>
         </div>
@@ -219,30 +219,30 @@ export default function SocialStatsDashboard({ items }: { items: SocialAnalytics
               {formats.map((value) => <option key={value} value={value}>{formatLabel[value] ?? value}</option>)}
             </select>
           </label>
-          <label className="text-xs text-white/70">Metric
+          <label className="text-xs text-white/70">ตัวชี้วัด
             <select value={metricKey} onChange={(event) => setMetricKey(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-[#151a20] px-3 text-sm text-white focus:border-[#e0c985] focus:outline-none">
               <option value="all">ทั้งหมด</option>
               {visibleMetrics.map((metric) => <option key={metric.key} value={metric.key}>{platform === "all" ? `${platformLabel[metric.platform]} · ${metric.label}` : metric.label}</option>)}
             </select>
           </label>
           <label className="text-xs text-white/70">ค้นหา
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="โพสต์หรือ metric" className="mt-1 min-h-11 w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 text-sm text-white placeholder:text-white/40 focus:border-[#e0c985] focus:outline-none" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="โพสต์หรือตัวชี้วัด" className="mt-1 min-h-11 w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 text-sm text-white placeholder:text-white/40 focus:border-[#e0c985] focus:outline-none" />
           </label>
         </div>
       </section>
 
-      <section aria-label="ภาพรวม Social Stats" className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label="ภาพรวมสถิติโซเชียล" className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-xs text-white/65">โพสต์ในผลกรอง</div>
           <div className="mt-2 text-2xl font-semibold">{filteredItems.length.toLocaleString("th-TH")}</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-          <div className="text-xs text-white/65">{selectedMetric ? platform === "all" ? `${platformLabel[selectedMetric.platform]} · ${selectedMetric.label}` : selectedMetric.label : "Metrics ที่มีฐานเทียบ"}</div>
+          <div className="text-xs text-white/65">{selectedMetric ? platform === "all" ? `${platformLabel[selectedMetric.platform]} · ${selectedMetric.label}` : selectedMetric.label : "ตัวชี้วัดที่เปรียบเทียบได้"}</div>
           <div className="mt-2 text-2xl font-semibold">
-            {selectedMetric ? selectedTotal !== null ? metricValue(selectedTotal, selectedMetric.unit) : "เลือก Platform" : comparable.toLocaleString("th-TH")}
+            {selectedMetric ? selectedTotal !== null ? metricValue(selectedTotal, selectedMetric.unit) : "เลือกแพลตฟอร์ม" : comparable.toLocaleString("th-TH")}
           </div>
           {selectedMetric && selectedTotal !== null ? <div className="mt-1 text-xs text-white/60">{deltaText(selectedDelta, selectedMetric.unit)}</div> : null}
-          {selectedMetric && selectedTotal === null ? <div className="mt-1 text-xs text-amber-100/80">ไม่รวม metric ข้ามแพลตฟอร์ม</div> : null}
+          {selectedMetric && selectedTotal === null ? <div className="mt-1 text-xs text-amber-100/80">ระบบไม่รวมตัวชี้วัดต่างแพลตฟอร์มเข้าด้วยกัน</div> : null}
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-xs text-white/65">แพลตฟอร์มในผลกรอง</div>
@@ -256,8 +256,8 @@ export default function SocialStatsDashboard({ items }: { items: SocialAnalytics
 
       <section aria-labelledby="social-trends-title" className="mt-7">
         <div>
-          <h2 id="social-trends-title" className="text-xl font-semibold">แนวโน้มเทียบ Snapshot ก่อนหน้า</h2>
-          <p className="mt-1 text-sm text-white/65">เส้นแสดงเพียงค่ารอบก่อนและรอบล่าสุดที่ API ให้มา ไม่คาดการณ์ค่าระหว่างช่วง</p>
+          <h2 id="social-trends-title" className="text-xl font-semibold">แนวโน้มเทียบข้อมูลรอบก่อน</h2>
+          <p className="mt-1 text-sm text-white/65">เส้นแสดงเพียงค่ารอบก่อนและรอบล่าสุดที่ระบบได้รับ ไม่คาดการณ์ค่าระหว่างช่วง</p>
         </div>
         {trends.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {trends.map((row) => (
@@ -270,43 +270,43 @@ export default function SocialStatsDashboard({ items }: { items: SocialAnalytics
               <p className={`text-xs ${row.metric.delta !== null && row.metric.delta > 0 ? "text-emerald-200" : row.metric.delta !== null && row.metric.delta < 0 ? "text-rose-200" : "text-white/60"}`}>{deltaText(row.metric.delta, row.metric.unit)}</p>
             </article>
           ))}
-        </div> : <p className="mt-4 rounded-2xl border border-white/10 p-5 text-sm text-white/65">ยังไม่มี Snapshot ก่อนหน้าในผลกรอง จึงยังวาดแนวโน้มไม่ได้</p>}
+        </div> : <p className="mt-4 rounded-2xl border border-white/10 p-5 text-sm text-white/65">ยังไม่มีข้อมูลรอบก่อนในผลกรอง จึงยังวาดแนวโน้มไม่ได้</p>}
       </section>
 
       <section aria-labelledby="social-top-content-title" className="mt-7">
-        <h2 id="social-top-content-title" className="text-xl font-semibold">Top content แยกตาม metric ต้นทาง</h2>
-        <p className="mt-1 text-sm text-white/65">เลือกชิ้นที่มีค่าสูงสุดภายในแพลตฟอร์มและ metric เดียวกัน จึงไม่บวก Reach, Views หรือ Engagement ข้ามชนิด</p>
+        <h2 id="social-top-content-title" className="text-xl font-semibold">เนื้อหาที่ทำผลงานดีที่สุด แยกตามตัวชี้วัด</h2>
+        <p className="mt-1 text-sm text-white/65">เลือกชิ้นที่มีค่าสูงสุดภายในแพลตฟอร์มและตัวชี้วัดเดียวกัน จึงไม่บวกยอดเข้าถึง ยอดดู หรือการมีส่วนร่วมข้ามชนิด</p>
         {topContent.length ? <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {topContent.map((row) => (
             <article key={`top:${row.platform}:${row.metric.key}`} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <div className="flex items-start gap-3">
-                {externalUrl(row.thumbnail) ? <img src={externalUrl(row.thumbnail)!} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-16 w-16 shrink-0 rounded-xl border border-white/10 object-cover" /> : <div aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-[10px] text-white/40">NO IMAGE</div>}
+                {externalUrl(row.thumbnail) ? <img src={externalUrl(row.thumbnail)!} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-16 w-16 shrink-0 rounded-xl border border-white/10 object-cover" /> : <div aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-[10px] text-white/40">ไม่มีรูป</div>}
                 <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-[#f4df9b]">{platformLabel[row.platform]} · {row.metric.label}</div><h3 className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-white/90">{contentLabel(row)}</h3>{row.publishedAt ? <p className="mt-1 text-xs text-white/50">เผยแพร่ {new Date(row.publishedAt).toLocaleString("th-TH")}</p> : null}</div>
                 <div className="text-xl font-semibold">{metricValue(row.metric.value, row.metric.unit)}</div>
               </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-white/60"><span>{row.mediaType ?? formatLabel[row.format] ?? row.format} · {deltaText(row.metric.delta, row.metric.unit)}</span>{externalUrl(row.permalink) ? <a href={externalUrl(row.permalink)!} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3 text-[#f4df9b] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">เปิดโพสต์จริง</a> : <span>ไม่มี permalink</span>}</div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-white/60"><span>{row.mediaType ?? formatLabel[row.format] ?? row.format} · {deltaText(row.metric.delta, row.metric.unit)}</span>{externalUrl(row.permalink) ? <a href={externalUrl(row.permalink)!} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3 text-[#f4df9b] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">เปิดโพสต์จริง</a> : <span>ไม่มีลิงก์โพสต์</span>}</div>
             </article>
           ))}
         </div> : <p className="mt-4 rounded-2xl border border-white/10 p-5 text-sm text-white/65">ไม่พบข้อมูลตามตัวกรอง</p>}
       </section>
 
       <section aria-labelledby="social-raw-history-title" className="mt-7">
-        <h2 id="social-raw-history-title" className="text-xl font-semibold">Raw Snapshot History</h2>
-        <p className="mt-1 text-sm text-white/65">แสดง Snapshot ล่าสุดต่อโพสต์และ delta ที่ API ส่งกลับ ไม่สร้างแถวประวัติที่ไม่มีใน response</p>
-        <div role="region" aria-label="ตาราง Raw Social Snapshot History" tabIndex={0} className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+        <h2 id="social-raw-history-title" className="text-xl font-semibold">ประวัติตัวเลขจากแพลตฟอร์ม</h2>
+        <p className="mt-1 text-sm text-white/65">แสดงข้อมูลล่าสุดและการเปลี่ยนแปลงของแต่ละโพสต์ตามที่ระบบได้รับ โดยไม่สร้างแถวประวัติที่ไม่มีอยู่จริง</p>
+        <div role="region" aria-label="ตารางประวัติสถิติโซเชียล" tabIndex={0} className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
           <table className="min-w-[1240px] w-full border-collapse text-left text-sm">
             <thead className="bg-white/[0.05] text-xs text-white/70">
               <tr>
-                <th className="px-4 py-3 font-medium">เวลา Snapshot</th>
-                <th className="px-4 py-3 font-medium">Platform</th>
-                <th className="px-4 py-3 font-medium">Format</th>
-                <th className="px-4 py-3 font-medium">Content ID</th>
-                <th className="px-4 py-3 font-medium">Content</th>
-                <th className="px-4 py-3 font-medium">Source</th>
-                <th className="px-4 py-3 font-medium">Metric</th>
+                <th className="px-4 py-3 font-medium">เวลาที่เก็บข้อมูล</th>
+                <th className="px-4 py-3 font-medium">แพลตฟอร์ม</th>
+                <th className="px-4 py-3 font-medium">รูปแบบ</th>
+                <th className="px-4 py-3 font-medium">รหัสโพสต์</th>
+                <th className="px-4 py-3 font-medium">เนื้อหา</th>
+                <th className="px-4 py-3 font-medium">แหล่งข้อมูล</th>
+                <th className="px-4 py-3 font-medium">ตัวชี้วัด</th>
                 <th className="px-4 py-3 text-right font-medium">ค่าล่าสุด</th>
                 <th className="px-4 py-3 text-right font-medium">ค่ารอบก่อน</th>
-                <th className="px-4 py-3 text-right font-medium">Delta</th>
+                <th className="px-4 py-3 text-right font-medium">เปลี่ยนแปลง</th>
               </tr>
             </thead>
             <tbody>
@@ -318,7 +318,7 @@ export default function SocialStatsDashboard({ items }: { items: SocialAnalytics
                   <td className="px-4 py-3">{formatLabel[row.format] ?? row.format}</td>
                   <td className="max-w-[240px] break-all px-4 py-3">{row.platformObjectId}</td>
                   <td className="max-w-[320px] px-4 py-3"><div className="line-clamp-2">{contentLabel(row)}</div>{externalUrl(row.permalink) ? <a href={externalUrl(row.permalink)!} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-[#f4df9b] hover:underline">เปิดโพสต์</a> : null}</td>
-                  <td className="px-4 py-3"><div>{row.source === "provider-content" ? "Provider content" : "Publication snapshot"}</div><div className="mt-0.5 text-xs text-white/50">{row.mediaType ?? "ไม่ระบุ media"}</div></td>
+                  <td className="px-4 py-3"><div>{row.source === "provider-content" ? "ข้อมูลจากแพลตฟอร์ม" : "ข้อมูลจากรายการเผยแพร่"}</div><div className="mt-0.5 text-xs text-white/50">{row.mediaType ?? "ไม่ระบุชนิดสื่อ"}</div></td>
                   <td className="px-4 py-3"><div>{row.metric.label}</div><div className="mt-0.5 text-xs text-white/50">{row.metric.key}</div></td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-white">{metricValue(row.metric.value, row.metric.unit)}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">{previous === null ? "—" : metricValue(previous, row.metric.unit)}</td>

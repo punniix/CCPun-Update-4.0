@@ -123,7 +123,7 @@ export async function readGa4Summary(): Promise<GrowthSourceResult> {
       { label: "ผู้ใช้งาน", value: Number(values[0] ?? 0).toLocaleString("th-TH") },
       { label: "เซสชัน", value: Number(values[1] ?? 0).toLocaleString("th-TH") },
       { label: "เหตุการณ์", value: Number(values[2] ?? 0).toLocaleString("th-TH") },
-    ], limitation: "เหตุการณ์หรือ CTA click เป็นสัญญาณความตั้งใจ ไม่ใช่จำนวนลูกค้า ยอดขาย หรือ lead ที่ผ่านคุณสมบัติ" };
+    ], limitation: "เหตุการณ์หรือการคลิกคำชวนให้ทำต่อเป็นเพียงสัญญาณความสนใจ ไม่ใช่จำนวนลูกค้า ยอดขาย หรือผู้สนใจที่ผ่านการคัดกรอง" };
   } catch {
     return { source: "ga4", state: "unavailable", metrics: [], limitation: "เชื่อม GA4 แล้วแต่ดึงข้อมูลรอบนี้ไม่สำเร็จ ข้อมูลแหล่งอื่นยังใช้ได้" };
   }

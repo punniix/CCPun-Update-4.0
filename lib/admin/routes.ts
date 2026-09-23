@@ -46,7 +46,7 @@ const LEGACY_PAGE_ROUTES = new Map<string, string>([
   ["/snt-admin/login", "/login/"],
   ["/snt-admin/dashboard", "/dashboard/"],
   ["/snt-admin/content", "/content/articles/"],
-  ["/snt-admin/reviews", "/dashboard/inbox/"],
+  ["/snt-admin/reviews", "/dashboard/reviews/"],
   ["/snt-admin/research", "/content/research/"],
   ["/snt-admin/ubersuggest", "/content/research/"],
   ["/snt-admin/growth", "/analytics/search/"],

@@ -1,5 +1,6 @@
 # Architecture Index
 
+- [LINE Ecosystem Activation Contract](./architecture/line-ecosystem-activation-20260918.md) — private LINE media/provider/content-intelligence/privacy activation contract and Human Gates
 - [`architecture/platform-data-architecture.md`](./architecture/platform-data-architecture.md) — runtime, environment and data ownership
 - [`architecture/repository-architecture.md`](./architecture/repository-architecture.md) — source-file ownership and dependency direction
 - [`admin-layer/environment-boundary.md`](./admin-layer/environment-boundary.md) — enforced Admin and Sanity lane controls

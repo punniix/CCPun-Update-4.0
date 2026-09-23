@@ -23,10 +23,10 @@ export default async function SocialControlPlanePage() {
   return (
     <AdminCapabilityState
       status="not-configured"
-      title="Social ยังไม่ได้ตั้งค่า"
-      description="เชื่อม Social operations หรือ Media Library ใน Settings ก่อนเริ่มเตรียมโพสต์ ปฏิทิน และการกระจายเนื้อหา"
-      source="Social operations และ Media Library"
-      action={{ href: "/settings/integrations/", label: "เปิด Integrations" }}
+      title="ยังไม่ได้ตั้งค่างานโซเชียล"
+      description="ตั้งค่าระบบโพสต์และคลังสื่อก่อนเริ่มเตรียมโพสต์ ปฏิทิน และการกระจายเนื้อหา"
+      source="ระบบโพสต์และคลังสื่อ"
+      action={{ href: "/settings/integrations/", label: "เปิดการเชื่อมต่อ" }}
     />
   );
 }

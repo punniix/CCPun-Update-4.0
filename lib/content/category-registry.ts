@@ -14,6 +14,7 @@ export type CategoryRegistryEntry = {
   description?: string;
   redirectToId?: string;
   redirectToSlug?: string;
+  featuredArticleIds?: string[];
 };
 
 export type CategoryRegistryIssueCode =
@@ -58,6 +59,7 @@ export type RawCategoryRegistryRow = {
   description?: unknown;
   redirectToId?: unknown;
   redirectToSlug?: unknown;
+  featuredArticleIds?: unknown;
 };
 
 const rawCategorySchema = z.object({
@@ -68,6 +70,7 @@ const rawCategorySchema = z.object({
   description: z.string().trim().nullish(),
   redirectToId: z.string().trim().min(1).nullish(),
   redirectToSlug: z.string().trim().min(1).nullish(),
+  featuredArticleIds: z.array(z.string().trim().min(1)).nullish(),
 });
 
 function normalizeDocumentId(id: string) {
@@ -132,7 +135,7 @@ export function buildCategoryRegistry(
 ): CategoryRegistry {
   const issuesById = new Map<string, CategoryRegistryIssue[]>();
   const claimedSlugs = new Set<string>();
-  const entries: CategoryRegistryEntry[] = [];
+  const entryCandidates = new Map<string, { entry: CategoryRegistryEntry; isDraft: boolean }>();
 
   rawRows.forEach((raw, index) => {
     const possibleSlug = typeof raw?.slug === "string" ? raw.slug.trim().toLowerCase() : "";
@@ -146,17 +149,34 @@ export function buildCategoryRegistry(
     }
 
     const row = parsed.data;
-    entries.push({
-      id: normalizeDocumentId(row._id),
-      title: row.title.trim(),
-      slug: row.slug.trim().toLowerCase(),
-      status: row.status,
-      ...(row.description?.trim() ? { description: row.description.trim() } : {}),
-      ...(row.redirectToId ? { redirectToId: normalizeDocumentId(row.redirectToId) } : {}),
-      ...(row.redirectToSlug?.trim() ? { redirectToSlug: row.redirectToSlug.trim().toLowerCase() } : {}),
-    });
+    const id = normalizeDocumentId(row._id);
+    const candidate = {
+      entry: {
+        id,
+        title: row.title.trim(),
+        slug: row.slug.trim().toLowerCase(),
+        status: row.status,
+        ...(row.description?.trim() ? { description: row.description.trim() } : {}),
+        ...(row.redirectToId ? { redirectToId: normalizeDocumentId(row.redirectToId) } : {}),
+        ...(row.redirectToSlug?.trim() ? { redirectToSlug: row.redirectToSlug.trim().toLowerCase() } : {}),
+        ...(row.featuredArticleIds?.length
+          ? { featuredArticleIds: row.featuredArticleIds.map((id) => normalizeDocumentId(id)) }
+          : {}),
+      } satisfies CategoryRegistryEntry,
+      isDraft: row._id.startsWith("drafts."),
+    };
+
+    const existing = entryCandidates.get(id);
+    if (!existing || (!existing.isDraft && candidate.isDraft)) {
+      entryCandidates.set(id, candidate);
+      // A raw Published + Draft pair is one logical Sanity document. If the
+      // selected current candidate is valid, do not keep an invalid-record
+      // issue from the superseded variant.
+      issuesById.delete(id);
+    }
   });
 
+  const entries = [...entryCandidates.values()].map(({ entry }) => entry);
   const byId = new Map(entries.map((entry) => [entry.id, entry]));
   const bySlug = new Map<string, CategoryRegistryEntry[]>();
   for (const entry of entries) {

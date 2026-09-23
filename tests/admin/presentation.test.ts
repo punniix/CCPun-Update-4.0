@@ -16,10 +16,7 @@ import {
 test("admin presentation uses friendly Thai labels and hides unknown API detail", () => {
   assert.equal(roleLabel("owner"), "เจ้าของระบบ");
   assert.equal(proposalStatusLabel("needs-human-review"), "รอคุณตรวจสอบ");
-  assert.equal(contentReviewStatusLabel("drafting"), "กำลังเขียน");
   assert.equal(contentReviewStatusLabel("content-review"), "กำลังตรวจเนื้อหา");
-  assert.equal(contentReviewStatusLabel("fact-check"), "กำลังตรวจข้อเท็จจริง");
-  assert.equal(contentReviewStatusLabel("compliance-review"), "กำลังตรวจข้อกำหนดและกฎหมาย");
   assert.equal(contentReviewStatusLabel("ready-for-coo"), "พร้อมให้คุณอนุมัติ");
   assert.equal(contentReviewStatusLabel("approved"), "อนุมัติเนื้อหาแล้ว");
   assert.equal(contentReviewStatusLabel(null), "ยังไม่มีข้อมูลการตรวจ");
@@ -76,8 +73,8 @@ test("production-capable admin surfaces do not hard-code UAT copy", () => {
 
   const socialOverview = readFileSync("features/admin/social/overview-page.tsx", "utf8");
   assert.match(socialOverview, /isSocialProviderExecutionGateEnabled\(\)/);
-  assert.match(socialOverview, /providerWriteEnabled \? "Available behind approval gate" : "Disabled"/);
-  assert.match(socialOverview, /Approved text\/link only · media remains manual/);
+  assert.match(socialOverview, /providerWriteEnabled \? "ใช้ได้หลังผู้มีสิทธิ์อนุมัติ" : "ปิดอยู่"/);
+  assert.match(socialOverview, /ส่งได้เฉพาะข้อความหรือลิงก์ที่อนุมัติแล้ว ส่วนสื่อยังทำด้วยตนเอง/);
 });
 
 test("content list separates document state from content review state", () => {

@@ -15,6 +15,7 @@ import {
   isAdminRequestBoundary,
   isAuthenticatedAdminPreviewPath,
   isExactAdminPreviewOrigin,
+  isInternalServiceApiPath,
 } from "@/lib/admin/host-routing";
 import {
   isAdminApiPath,
@@ -56,6 +57,7 @@ export default auth((request) => {
   const isStudioPage = pathname.startsWith("/studio");
   const isPreviewApi = pathname.startsWith("/api/preview");
   const isAuthApi = pathname === "/api/auth" || pathname.startsWith("/api/auth/");
+  const isInternalServiceApi = isInternalServiceApiPath(pathname);
   const isPublicBootstrapPath =
     pathname.startsWith("/_next/static/") ||
     pathname.startsWith("/_next/image") ||
@@ -117,7 +119,9 @@ export default auth((request) => {
       canonicalPreviewUrl.pathname = pathname.slice(0, -1);
       return NextResponse.rewrite(canonicalPreviewUrl);
     }
-    if (isAuthApi || isPublicBootstrapPath) return NextResponse.next();
+    // These exact service routes authenticate inside their handlers with
+    // purpose-specific bearer/capability contracts, not browser Auth.js.
+    if (isAuthApi || isPublicBootstrapPath || isInternalServiceApi) return NextResponse.next();
     if (legacyPageDestination) {
       const destination = new URL(legacyPageDestination, request.url);
       destination.search = request.nextUrl.search;

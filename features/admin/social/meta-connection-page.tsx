@@ -8,14 +8,14 @@ import { SYNTHETIC_META_CONNECTION } from "@/lib/admin/social/providers/meta/con
 import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
 import { MetaReadOnlyPanel } from "./provider-readonly-panels";
 
-export const metadata: Metadata = { title: "Meta Connection" };
+export const metadata: Metadata = { title: "การเชื่อมต่อ Meta" };
 
 const statusLabel = {
   "not-connected": "ยังไม่ได้เชื่อมต่อ",
   "reconnect-required": "ต้องเชื่อมต่อใหม่",
   "no-page": "ไม่พบ Facebook Page",
   "selection-required": "ต้องเลือก Facebook Page",
-  connected: "พร้อมตรวจสอบแบบ Read-only",
+  connected: "พร้อมอ่านข้อมูล",
 } as const;
 
 export default async function MetaConnectionUatPage() {
@@ -29,16 +29,16 @@ export default async function MetaConnectionUatPage() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">META · CONNECTION</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">การเชื่อมต่อโซเชียล</p>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Meta Connection</h1>
+          <h1 className="text-3xl font-semibold">การเชื่อมต่อ Meta</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            อ่าน Facebook Page, Instagram และ native counters ของโพสต์ล่าสุดเมื่อคุณกด Sync เท่านั้น
+            อ่าน Facebook Page, Instagram และตัวเลขของโพสต์ล่าสุดเมื่อคุณกดดึงข้อมูลเท่านั้น
           </p>
         </div>
         <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">
-          กลับ Social Operations
+          กลับไปจัดการโพสต์
         </Link>
       </div>
 
@@ -48,18 +48,18 @@ export default async function MetaConnectionUatPage() {
           <div className="mt-2 font-semibold text-emerald-200">{statusLabel[connection.status]}</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-          <div className="text-sm text-white/55">Facebook Pages</div>
+          <div className="text-sm text-white/55">Facebook Page ที่พบ</div>
           <div className="mt-2 font-semibold">{connection.pages.length}</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-          <div className="text-sm text-white/55">Provider request</div>
+          <div className="text-sm text-white/55">การอ่านข้อมูล</div>
           <div className="mt-2 font-semibold text-amber-200">{readiness.status === "manual-sync-ready" ? "กดเองเท่านั้น" : "รอตั้งค่า"}</div>
         </article>
       </section>
 
       <section className="mt-8">
-        <h2 className="text-xl font-semibold">Page ที่ค้นพบจาก Fixture</h2>
-        <p className="mt-2 text-sm text-white/60">กรณีมีหลาย Page ต้องเลือกให้ชัดเจนก่อน ระบบจะไม่เดาแทนเจ้าของ</p>
+        <h2 className="text-xl font-semibold">เพจตัวอย่างที่ระบบพบ</h2>
+        <p className="mt-2 text-sm text-white/60">หากพบหลายเพจ ต้องเลือกให้ชัดเจนก่อน ระบบจะไม่เลือกแทนเจ้าของ</p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {connection.pages.map((page) => (
             <article key={page.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
@@ -79,7 +79,8 @@ export default async function MetaConnectionUatPage() {
       </section>
 
       <section role="note" className="mt-7 rounded-3xl border border-amber-200/20 bg-amber-200/[0.05] p-5 text-sm leading-6 text-amber-50/80">
-        สิทธิ์จำลอง: {connection.grantedScopes.join(" + ")} · ไม่มี publishing scopes · ไม่มีข้อมูล credential
+        ข้อมูลตัวอย่างนี้ใช้สิทธิ์อ่านเท่านั้น ไม่มีสิทธิ์เผยแพร่ และไม่มีรหัสเชื่อมต่อจริง
+        <details className="mt-2 text-xs"><summary className="cursor-pointer">ดูสิทธิ์ตัวอย่างสำหรับทีมเทคนิค</summary><p className="mt-1">{connection.grantedScopes.join(" + ")}</p></details>
       </section></> : null}
       <MetaReadOnlyPanel ready={readiness.status === "manual-sync-ready"} analyticsReady={getSocialAnalyticsIngestionRuntimeStatus().enabled} missing={missing} />
     </div>

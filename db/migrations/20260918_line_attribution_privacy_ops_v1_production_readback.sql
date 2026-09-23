@@ -1,0 +1,16 @@
+SELECT
+ EXISTS(SELECT 1 FROM private_line.schema_migration WHERE version='20260918_line_attribution_privacy_ops_v1_production' AND checksum='sha256:4d8552c0f3a44407733a7a396a36909e4cc87c657e8d0c39a8d5e818e7f5875b') AS checksum_ok,
+ to_regclass('private_line.business_event') IS NOT NULL AS business_event_exists,
+ to_regclass('private_line.lead_revenue') IS NOT NULL AS lead_revenue_exists,
+ to_regclass('private_line.privacy_request') IS NOT NULL AS privacy_request_exists,
+ EXISTS(SELECT 1 FROM private_line.retention_policy WHERE singleton=true AND policy_mode='manual_review' AND automatic_delete_enabled=false) AS retention_manual_only,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_read_conversion_summary()','EXECUTE') AS admin_conversion_read,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_attribute_revenue(jsonb)','EXECUTE') AS admin_revenue_write,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_create_privacy_request(jsonb)','EXECUTE') AS admin_privacy_create,
+ NOT has_function_privilege('ccpun_line_ingress','private_line.admin_attribute_revenue(jsonb)','EXECUTE') AS ingress_revenue_denied,
+ NOT has_function_privilege('ccpun_line_ingress','private_line.admin_create_privacy_request(jsonb)','EXECUTE') AS ingress_privacy_denied,
+ (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_attribute_revenue(jsonb)'::regprocedure) AS public_revenue_denied,
+ (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_create_privacy_request(jsonb)'::regprocedure) AS public_privacy_denied,
+ NOT EXISTS(SELECT 1 FROM information_schema.role_table_grants g JOIN information_schema.tables t ON t.table_schema=g.table_schema AND t.table_name=g.table_name WHERE g.grantee='ccpun_admin_runtime' AND g.table_schema='private_line' AND t.table_type='BASE TABLE') AS admin_no_base_table_grants,
+ NOT EXISTS(SELECT 1 FROM information_schema.role_table_grants g JOIN information_schema.tables t ON t.table_schema=g.table_schema AND t.table_name=g.table_name WHERE g.grantee='ccpun_line_ingress' AND g.table_schema='private_line' AND t.table_type='BASE TABLE') AS ingress_no_base_table_grants,
+ NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='private_line' AND table_name='business_event' AND lower(column_name) ~ '(name|phone|email|message_text|cipher|nonce|auth_tag|income|asset|debt|health|medical)') AS business_event_no_sensitive_columns;

@@ -47,6 +47,8 @@ test("money market stays under the fixed-income family and is not exposed as a s
   assert.deepEqual(subcategoryOptions("fixed_income"), ["all", "domestic", "foreign", "domestic_foreign"]);
   assert.equal(subcategoryOptions("equity").includes("money_market"), false);
   assert.equal(subcategoryOptions("mixed").includes("money_market"), false);
+  const catalogRoute = readFileSync(resolve(process.cwd(), "apps/web/app/api/investment-allocation/catalog/route.ts"), "utf8");
+  assert.doesNotMatch(catalogRoute, /SUBCATEGORIES[^\n]*"money_market"/, "the public API must not trigger a cold specification scan");
 });
 
 

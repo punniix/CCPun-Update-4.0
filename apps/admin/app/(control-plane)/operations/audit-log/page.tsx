@@ -18,6 +18,16 @@ function statusTone(status: string) {
   return "text-white/65";
 }
 
+function statusLabel(status: string) {
+  if (["published", "validated"].includes(status)) return "เสร็จแล้ว";
+  if (["preparing", "scheduled"].includes(status)) return "รอดำเนินการ";
+  if (status === "executing") return "กำลังดำเนินการ";
+  if (status === "reconciliation-required") return "สถานะยังไม่ชัด ต้องตรวจอีกครั้ง";
+  if (status === "failed") return "ไม่สำเร็จ";
+  if (status === "stale") return "ข้อมูลเปลี่ยนแล้ว";
+  return "ต้องตรวจ";
+}
+
 export default async function AdminAuditPage() {
   await requireAdminPermission("audit:read");
   const [result, scheduler] = await Promise.all([
@@ -30,25 +40,25 @@ export default async function AdminAuditPage() {
       <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตรวจสอบย้อนหลังได้</p>
       <h1 className="mt-2 text-3xl font-semibold">ประวัติการทำงาน</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-        แยก Audit trail ของ Control Plane ออกจาก transition log ของ Article Scheduler อย่างชัดเจน เพื่อให้ตรวจย้อนหลังได้ว่าใครทำอะไร และคิวเผยแพร่เปลี่ยนสถานะเมื่อใด
+        ตรวจย้อนหลังว่าใครทำอะไรในระบบ และดูว่าคิวเผยแพร่บทความเปลี่ยนสถานะเมื่อใด
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <Link href="/operations/jobs/" className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/75 hover:bg-white/[0.05]"><span className="block text-xs text-white/40">Operations</span><strong className="mt-1 block font-medium">Jobs / queue</strong></Link>
-        <Link href="/operations/deployments/" className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/75 hover:bg-white/[0.05]"><span className="block text-xs text-white/40">Release</span><strong className="mt-1 block font-medium">Deployment history</strong></Link>
-        <Link href="/content/calendar/" className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/75 hover:bg-white/[0.05]"><span className="block text-xs text-white/40">Content</span><strong className="mt-1 block font-medium">Schedule calendar</strong></Link>
+        <Link href="/operations/jobs/" className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/75 hover:bg-white/[0.05]"><span className="block text-xs text-white/40">ระบบ</span><strong className="mt-1 block font-medium">งานเบื้องหลัง</strong></Link>
+        <Link href="/operations/deployments/" className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/75 hover:bg-white/[0.05]"><span className="block text-xs text-white/40">เวอร์ชัน</span><strong className="mt-1 block font-medium">ประวัติการนำขึ้นระบบจริง</strong></Link>
+        <Link href="/content/calendar/" className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/75 hover:bg-white/[0.05]"><span className="block text-xs text-white/40">เนื้อหา</span><strong className="mt-1 block font-medium">ปฏิทินเผยแพร่</strong></Link>
       </div>
 
       <section className="mt-7">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">Control Plane audit</p><h2 className="mt-1 text-xl font-semibold">การทำงานของผู้ใช้และระบบ</h2></div>
+          <div><p className="text-xs font-semibold tracking-[0.12em] text-white/40">ประวัติหลัก</p><h2 className="mt-1 text-xl font-semibold">การทำงานของผู้ใช้และระบบ</h2></div>
           <p className="text-xs text-white/40">{result.rows.length.toLocaleString("th-TH")} รายการที่โหลดล่าสุด</p>
         </div>
 
         {result.error ? (
           <section className="mt-4 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50">
-            <h3 className="font-semibold">ยังอ่านประวัติจากฐานข้อมูล Control Plane ไม่ได้</h3>
-            <p className="mt-2 text-amber-50/80">ระบบหยุดไว้เพื่อความปลอดภัยเมื่อ private operational database ไม่ตรง lane หรือยังไม่พร้อม และจะไม่ย้อนกลับไปใช้ Sanity operational records เก่าแทนโดยอัตโนมัติ</p>
+            <h3 className="font-semibold">ยังอ่านประวัติจากฐานข้อมูลส่วนตัวไม่ได้</h3>
+            <p className="mt-2 text-amber-50/80">ระบบหยุดไว้เพื่อความปลอดภัยเมื่อยืนยันแหล่งข้อมูลไม่ได้ และจะไม่ดึงประวัติเก่าจากระบบอื่นมาใช้แทนเอง</p>
           </section>
         ) : null}
 
@@ -74,18 +84,18 @@ export default async function AdminAuditPage() {
 
       <section className="mt-9">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">Article Scheduler log</p><h2 className="mt-1 text-xl font-semibold">การเปลี่ยนสถานะของคิวบทความ</h2></div>
-          <div className="text-right text-xs text-white/40"><div>Runtime {scheduler.runtimeEnabled ? "ON" : "OFF"} · Durable {scheduler.durableEnabled ? "ON" : "OFF"}</div><div>{scheduler.audit.length.toLocaleString("th-TH")} transitions ที่โหลดล่าสุด</div></div>
+          <div><p className="text-xs font-semibold tracking-[0.12em] text-white/40">คิวเผยแพร่บทความ</p><h2 className="mt-1 text-xl font-semibold">การเปลี่ยนสถานะของคิวบทความ</h2></div>
+          <div className="text-right text-xs text-white/40"><div>{scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"}</div><div>{scheduler.audit.length.toLocaleString("th-TH")} การเปลี่ยนแปลงล่าสุด</div></div>
         </div>
 
-        {scheduler.error ? <div className="mt-4 rounded-2xl border border-amber-200/20 bg-amber-200/[0.06] p-4 text-sm text-amber-50/90">อ่าน Scheduler log ไม่ได้: {scheduler.error}</div> : null}
-        {scheduler.status === "ready" && scheduler.audit.length === 0 ? <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-5 text-sm text-white/55">ยังไม่มี Scheduler transition record นี่เป็น healthy zero จาก `article_schedule_audit` ไม่ใช่ log ที่หาย</div> : null}
+        {scheduler.error ? <div className="mt-4 rounded-2xl border border-amber-200/20 bg-amber-200/[0.06] p-4 text-sm text-amber-50/90">ยังอ่านประวัติคิวเผยแพร่ไม่ได้ กรุณาลองใหม่หรือตรวจหน้าสถานะระบบ</div> : null}
+        {scheduler.status === "ready" && scheduler.audit.length === 0 ? <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-5 text-sm text-white/55">ยังไม่มีการเปลี่ยนแปลงของคิวในช่วงที่อ่านได้ ซึ่งเป็นสถานะปกติ</div> : null}
 
         {scheduler.audit.length > 0 ? (
-          <div role="region" aria-label="Article Scheduler transition log" tabIndex={0} className="mt-4 overflow-x-auto rounded-3xl border border-white/10 bg-white/[0.025]">
+          <div role="region" aria-label="ประวัติการเปลี่ยนสถานะคิวบทความ" tabIndex={0} className="mt-4 overflow-x-auto rounded-3xl border border-white/10 bg-white/[0.025]">
             <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wide text-white/60"><tr><th className="px-5 py-4 font-medium">เกิดขึ้นเมื่อ</th><th className="px-4 py-4 font-medium">บทความ</th><th className="px-4 py-4 font-medium">สถานะ</th><th className="px-4 py-4 font-medium">ผู้ทำ</th><th className="px-4 py-4 font-medium">เวลาที่ตั้ง</th><th className="px-5 py-4 font-medium">Generation / Version</th></tr></thead>
-              <tbody className="divide-y divide-white/5">{scheduler.audit.map((row) => <tr key={`${row.generation}:${row.row_version}`}><td className="px-5 py-4 text-white/50">{formatTimestamp(row.occurred_at)}</td><td className="px-4 py-4 font-mono text-xs text-white/60">{row.article_id}</td><td className={`px-4 py-4 font-medium ${statusTone(row.status)}`}>{row.status}{row.error_code ? <div className="mt-1 text-xs text-rose-100">{row.error_code}</div> : null}</td><td className="px-4 py-4 text-white/60">{row.actor}</td><td className="px-4 py-4 text-white/55">{formatTimestamp(row.scheduled_at)}</td><td className="px-5 py-4 font-mono text-xs text-white/45">{row.generation.slice(0, 12)}… · v{row.row_version}</td></tr>)}</tbody>
+              <thead className="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wide text-white/60"><tr><th className="px-5 py-4 font-medium">เกิดขึ้นเมื่อ</th><th className="px-4 py-4 font-medium">บทความ</th><th className="px-4 py-4 font-medium">สถานะ</th><th className="px-4 py-4 font-medium">ผู้ทำ</th><th className="px-4 py-4 font-medium">เวลาที่ตั้ง</th><th className="px-5 py-4 font-medium">รหัสรุ่น</th></tr></thead>
+              <tbody className="divide-y divide-white/5">{scheduler.audit.map((row) => <tr key={`${row.generation}:${row.row_version}`}><td className="px-5 py-4 text-white/50">{formatTimestamp(row.occurred_at)}</td><td className="px-4 py-4 font-mono text-xs text-white/60">{row.article_id}</td><td className={`px-4 py-4 font-medium ${statusTone(row.status)}`}>{statusLabel(row.status)}{row.error_code ? <details className="mt-1 text-xs text-rose-100"><summary className="cursor-pointer">ดูรหัสปัญหา</summary><p className="mt-1 font-mono">{row.error_code}</p></details> : null}</td><td className="px-4 py-4 text-white/60">{row.actor}</td><td className="px-4 py-4 text-white/55">{formatTimestamp(row.scheduled_at)}</td><td className="px-5 py-4 font-mono text-xs text-white/45">{row.generation.slice(0, 12)}… · v{row.row_version}</td></tr>)}</tbody>
             </table>
           </div>
         ) : null}

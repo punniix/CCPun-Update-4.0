@@ -1,0 +1,16 @@
+SELECT
+ current_database()='neondb' AS database_ok,
+ EXISTS(SELECT 1 FROM private_line.schema_migration WHERE version='20260918_line_private_conversation_v1_production' AND checksum='sha256:d208639906275865acb686cb0d0039e14a9feb3dcd7a2156702f45b061c34344') AS checksum_ok,
+ EXISTS(SELECT 1 FROM private_line.system_identity WHERE singleton=true AND project_id='lively-bar-43618798' AND branch_id='br-long-resonance-b3ys5xrv' AND endpoint_id='ep-broad-butterfly-b3ro7u8w' AND database_name='neondb' AND migration_version='20260917_private_line_runtime_v1_production' AND migration_checksum='sha256:f562ba174f50cf617d0e12ffd13c46e5815b069dc823ecb7c8522d7b05d6c57b') AS base_identity_unchanged,
+ to_regclass('private_line.outbound_message') IS NOT NULL AS outbound_table_exists,
+ to_regclass('private_line.lead_stage_history') IS NOT NULL AS stage_history_exists,
+ has_table_privilege('ccpun_admin_runtime','private_line.advisor_inbox_safe','SELECT') AS admin_safe_view_select,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_read_line_transcript(uuid,integer)','EXECUTE') AS admin_transcript_execute,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_enqueue_line_reply(jsonb)','EXECUTE') AS admin_enqueue_execute,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_update_lead_stage(jsonb)','EXECUTE') AS admin_stage_execute,
+ NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants g JOIN information_schema.tables t ON t.table_schema=g.table_schema AND t.table_name=g.table_name WHERE g.grantee='ccpun_admin_runtime' AND g.table_schema='private_line' AND t.table_type='BASE TABLE') AS admin_no_base_table_grants,
+ has_function_privilege('ccpun_line_ingress','private_line.ingest_line_event(jsonb)','EXECUTE') AS ingress_execute_unchanged,
+ has_function_privilege('ccpun_line_ingress','private_line.record_safe_web_journey_event(jsonb)','EXECUTE') AS ingress_safe_journey_execute,
+ NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants g JOIN information_schema.tables t ON t.table_schema=g.table_schema AND t.table_name=g.table_name WHERE g.grantee='ccpun_line_ingress' AND g.table_schema='private_line' AND t.table_type='BASE TABLE') AS ingress_no_base_table_grants,
+ NOT has_function_privilege('ccpun_line_ingress','private_line.admin_read_line_transcript(uuid,integer)','EXECUTE') AS ingress_transcript_denied,
+ NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='private_line' AND table_name='advisor_inbox_safe' AND lower(column_name) ~ '(external|provider|cipher|nonce|auth_tag|document|file|message_id|content_ciphertext|phone|email|name|income|asset|debt|health|medical)') AS safe_view_sensitive_columns_absent;

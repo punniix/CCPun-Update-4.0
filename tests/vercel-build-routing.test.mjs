@@ -63,6 +63,22 @@ test("shared 4.1 Preview releases build in both survivors", () => {
   }
 });
 
+test("shared Preview branches isolate builds when native changed-path evidence is conclusive", () => {
+  const branch = "feature/line-rich-menu-control-plane-20260919";
+  const adminPaths = ["tests/admin/ecosystem-control-plane-migrations.test.ts"];
+  const webPaths = ["apps/web/lib/line/private-ingestion.ts"];
+  const mixedPaths = [...adminPaths, ...webPaths];
+
+  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch, changedPaths: adminPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch, changedPaths: adminPaths }), true);
+  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch, changedPaths: webPaths }), true);
+  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch, changedPaths: webPaths }), false);
+  for (const projectId of [web, admin]) {
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch, changedPaths: mixedPaths }), true);
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch, changedPaths: null }), true);
+  }
+});
+
 test("Production routing classifies legacy roots, isolated app roots and fail-safe changes", () => {
   const pr45Paths = [
     "AGENTS.md",
@@ -309,6 +325,84 @@ test("Production merge commit without previous SHA still isolates Web-only share
       }).status,
       0,
       "Admin skips Web-only first-parent merge diff",
+    );
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test("Production routing observes deleted Web and Admin files", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-vercel-routing-delete-"));
+  try {
+    git(fixture, "init", "--quiet");
+    git(fixture, "config", "user.name", "CCPun Routing Test");
+    git(fixture, "config", "user.email", "routing-test@example.invalid");
+    commitFixture(fixture, "README.md", "base\n", "base");
+
+    const webAdded = commitFixture(
+      fixture,
+      "features/home/delete-me.tsx",
+      "export default null;\n",
+      "add web fixture",
+    );
+    git(fixture, "rm", "features/home/delete-me.tsx");
+    git(fixture, "commit", "-m", "delete web fixture");
+    const webDeleted = git(fixture, "rev-parse", "HEAD");
+
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: web,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: webAdded,
+        commitSha: webDeleted,
+      }).status,
+      1,
+      "Web must rebuild when a Web-only file is deleted",
+    );
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: admin,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: webAdded,
+        commitSha: webDeleted,
+      }).status,
+      0,
+      "Admin may skip a Web-only deletion",
+    );
+
+    const adminAdded = commitFixture(
+      fixture,
+      "lib/admin/delete-me.ts",
+      "export {};\n",
+      "add admin fixture",
+    );
+    git(fixture, "rm", "lib/admin/delete-me.ts");
+    git(fixture, "commit", "-m", "delete admin fixture");
+    const adminDeleted = git(fixture, "rev-parse", "HEAD");
+
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: web,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: adminAdded,
+        commitSha: adminDeleted,
+      }).status,
+      0,
+      "Web may skip an Admin-only deletion",
+    );
+    assert.equal(
+      runIgnoredBuild(fixture, {
+        projectId: admin,
+        environment: "production",
+        branch: "v4-production",
+        previousSha: adminAdded,
+        commitSha: adminDeleted,
+      }).status,
+      1,
+      "Admin must rebuild when an Admin-only file is deleted",
     );
   } finally {
     rmSync(fixture, { recursive: true, force: true });

@@ -10,26 +10,53 @@ export interface CIEducationPlan {
   yearsRemaining: number;               // จำนวนปีที่ต้องเตรียมต่อ (1-30)
 }
 
+export type CIRecoveryMode = 'none' | 'basic' | 'continued' | 'longTerm' | 'custom';
+
+/**
+ * Recovery Reserve is intentionally separated from income / recurring living
+ * expenses. Three presets give users a researched starting point; custom mode
+ * lets the user change both the headline reserve and each underlying line item.
+ */
 export interface CIRecoveryCosts {
-  treatmentVisits: number;               // จำนวนครั้งรักษา/ติดตามที่คาดว่าจะมีค่าใช้จ่ายนอกสิทธิ/เดินทาง
-  caregiverHomeDays: number;             // จำนวนวันที่ผู้ดูแลต้องหยุดงานมาดูแลที่บ้าน
-  rehabSessions: number;                 // จำนวนครั้งกายภาพ/ฟื้นฟูตาม benchmark สปสช.
-  homeRehabSessions: number;             // ใน rehabSessions เป็นบริการที่บ้านกี่ครั้ง
-  equipmentAndHomeModification: number;  // อุปกรณ์/ปรับบ้านที่ผู้ใช้กรอกเอง
-  otherRecoveryCosts: number;            // ค่าใช้จ่ายช่วงพักฟื้นอื่นที่ผู้ใช้กรอกเอง
+  mode: CIRecoveryMode;
+  targetReserve: number;
+
+  treatmentVisits: number;
+  treatmentVisitUnitCost: number;
+
+  caregiverHomeDays: number;
+  caregiverDailyCost: number;
+
+  rehabSessions: number;
+  rehabUnitCost: number;
+
+  pulseOximeter: number;
+  bloodPressureMonitor: number;
+  thermometer: number;
+  walker: number;
+  wheelchair: number;
+  showerChair: number;
+  grabRailAndSafety: number;
+  hospitalBed: number;
+  consumables: number;
+
+  homeAdaptation: number;
+  majorHousing: number;
+  contingency: number;
+  otherRecoveryCosts: number;
 }
 
 export interface StepExpensesData {
   monthlyIncome: number;                 // รายได้ต่อเดือน ใช้คำนวณทุนตามรายได้แยกจากทุนตามรายจ่าย
-  household: number;                    // ค่าใช้จ่ายครัวเรือนรวม/เดือน ไม่รวมค่างวดและการศึกษา
-  educationPlans: CIEducationPlan[];    // แผนการศึกษารายคน (ไม่มีบุตร = [])
-  mortgagePayment: number;              // ค่างวดบ้าน บาท/เดือน
-  mortgageInstallmentsRemaining: number;// จำนวนงวดบ้านที่เหลือ
-  carPayment: number;                   // ค่างวดรถ บาท/เดือน
-  carInstallmentsRemaining: number;     // จำนวนงวดรถที่เหลือ
-  otherDebtBalance: number;             // ยอดหนี้อื่นคงเหลือรวม กรอกครั้งเดียว
-  reserveYears: number;                 // ต้องการเงินสำรองกี่ปี (1-10, default 5)
-  recovery?: CIRecoveryCosts;           // Recovery Reserve แบบ source-backed; legacy callersที่ไม่มี field นี้ถือเป็น 0
+  household: number;                     // ค่าใช้จ่ายครัวเรือนรวม/เดือน ไม่รวมค่างวดและการศึกษา
+  educationPlans: CIEducationPlan[];     // แผนการศึกษารายคน (ไม่มีบุตร = [])
+  mortgagePayment: number;               // ค่างวดบ้าน บาท/เดือน
+  mortgageInstallmentsRemaining: number; // จำนวนงวดบ้านที่เหลือ
+  carPayment: number;                    // ค่างวดรถ บาท/เดือน
+  carInstallmentsRemaining: number;      // จำนวนงวดรถที่เหลือ
+  otherDebtBalance: number;              // ยอดหนี้อื่นคงเหลือรวม กรอกครั้งเดียว
+  reserveYears: number;                  // ต้องการเงินสำรองกี่ปี (1-10, default 5)
+  recovery?: CIRecoveryCosts;            // Recovery Reserve แยกจากฐานรายได้/รายจ่าย
 }
 
 // ── Step 2: Existing CI Coverage ──────────────────────────────────────────
@@ -51,37 +78,68 @@ export interface CIFormData {
 export type CIEstimationMethod = 'expense' | 'income';
 
 export interface CIResult {
-  householdMonthly: number;       // ค่าใช้จ่ายครัวเรือน/เดือน ไม่รวมการศึกษาและค่างวด
-  householdNeed: number;          // householdMonthly × 12 × reserveYears
+  householdMonthly: number;
+  householdNeed: number;
   educationPlans: CIEducationPlan[];
-  educationNeed: number;          // Σ(annualCost × yearsRemaining)
-  mortgageDebtNeed: number;       // ค่างวด × min(งวดที่เหลือ, ปีสำรอง × 12)
-  carDebtNeed: number;            // ค่างวด × min(งวดที่เหลือ, ปีสำรอง × 12)
-  otherDebtBalance: number;       // ยอดหนี้อื่นคงเหลือรวม ไม่คูณระยะเวลา
-  debtNeed: number;               // mortgageDebtNeed + carDebtNeed + otherDebtBalance
+  educationNeed: number;
+  mortgageDebtNeed: number;
+  carDebtNeed: number;
+  otherDebtBalance: number;
+  debtNeed: number;
+
+  recoveryMode: CIRecoveryMode;
+  recoveryTargetReserve: number;
+  recoveryBreakdownTotal: number;
+  recoveryUnallocated: number;
+  recoveryOverBudget: number;
+
   recoveryTreatmentVisits: number;
+  recoveryTreatmentVisitUnitCost: number;
   recoveryCaregiverHomeDays: number;
+  recoveryCaregiverDailyCost: number;
   recoveryRehabSessions: number;
-  recoveryHomeRehabSessions: number;
+  recoveryRehabUnitCost: number;
+
   recoveryVisitNeed: number;
   recoveryCaregiverHomeNeed: number;
   recoveryRehabNeed: number;
-  recoveryEquipmentAndHomeModification: number;
+
+  recoveryPulseOximeter: number;
+  recoveryBloodPressureMonitor: number;
+  recoveryThermometer: number;
+  recoveryWalker: number;
+  recoveryWheelchair: number;
+  recoveryShowerChair: number;
+  recoveryGrabRailAndSafety: number;
+  recoveryHospitalBed: number;
+  recoveryConsumables: number;
+  recoveryHomeAdaptation: number;
+  recoveryMajorHousing: number;
+  recoveryContingency: number;
   recoveryOtherCosts: number;
-  recoveryReserveNeed: number;    // Recovery Reserve แบบ source-backed; แสดงเป็นก้อนแยกแต่บวกเพิ่มในทั้ง 2 วิธี
-  expenseBaseNeed?: number;       // household + education + debt ก่อนบวก Recovery Reserve; optional เพื่อรองรับ fixture/ผล legacy
-  incomeBaseNeed?: number;        // รายได้ต่อเดือน × 12 × ปีสำรอง ก่อนบวก Recovery Reserve; optional เพื่อรองรับ fixture/ผล legacy
-  calculatedNeed: number;         // expenseBaseNeed + recoveryReserveNeed
-  existingCoverage: number;       // เงินก้อนจากประกันโรคร้ายแรงที่มี
-  liquidAssets: number;           // สินทรัพย์สภาพคล่องที่พร้อมใช้
-  availableResources: number;     // existingCoverage + liquidAssets
-  signedGap: number;              // calculatedNeed - availableResources
-  gap: number;                    // alias ของ shortfall สำหรับ UI compatibility
-  shortfall: number;              // max(signedGap, 0)
-  surplus: number;                // max(-signedGap, 0)
-  incomeBasedNeed: number;        // incomeBaseNeed + recoveryReserveNeed
-  incomeSignedGap: number;        // incomeBasedNeed - availableResources
-  incomeShortfall: number;        // max(incomeSignedGap, 0)
-  incomeSurplus: number;          // max(-incomeSignedGap, 0)
-  effectiveReserveYears: number;  // ปีสำรองที่ผู้ใช้เลือก
+
+  // Compatibility aggregates retained for existing result/share surfaces.
+  recoveryHomeRehabSessions: number;
+  recoveryEquipmentAndHomeModification: number;
+  recoveryReserveNeed: number;
+
+  expenseBaseNeed?: number;
+  incomeBaseNeed?: number;
+  calculatedNeed: number;
+
+  existingCoverage: number;
+  liquidAssets: number;
+  availableResources: number;
+
+  signedGap: number;
+  gap: number;
+  shortfall: number;
+  surplus: number;
+
+  incomeBasedNeed: number;
+  incomeSignedGap: number;
+  incomeShortfall: number;
+  incomeSurplus: number;
+
+  effectiveReserveYears: number;
 }

@@ -120,6 +120,8 @@ export const baseArticleSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
   excerpt: z.string().min(1).nullish(),
+  lineTitle: z.string().trim().min(1).max(60).nullish().catch(undefined),
+  lineDescription: z.string().trim().min(1).max(90).nullish().catch(undefined),
   category: z.string().min(1),
   categorySlug: z.string().min(1).nullish(),
   tags: z.array(z.string()).nullish(),
@@ -142,7 +144,7 @@ export const rawArticleSchema = baseArticleSchema.extend({
     accessedAt: z.string().nullish(),
   })).nullish(),
   review: z.object({
-    status: z.enum(["drafting", "content-review", "fact-check", "compliance-review", "ready-for-coo", "approved"]).optional(),
+    status: z.enum(["content-review", "ready-for-coo", "approved"]).optional(),
     contentReviewedAt: z.string().nullish(),
     factCheckedAt: z.string().nullish(),
     complianceReviewedAt: z.string().nullish(),

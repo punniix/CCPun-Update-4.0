@@ -4,7 +4,7 @@ import type { FundCatalogCategory, FundCatalogSubcategory } from "@/features/inv
 export const runtime = "nodejs";
 
 const CATEGORIES = new Set<FundCatalogCategory | "all">(["all", "equity", "mixed", "fixed_income", "alternative", "other"]);
-const SUBCATEGORIES = new Set<FundCatalogSubcategory>(["all", "domestic", "foreign", "domestic_foreign", "money_market"]);
+const SUBCATEGORIES = new Set<FundCatalogSubcategory>(["all", "domestic", "foreign", "domestic_foreign"]);
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

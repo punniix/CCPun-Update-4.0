@@ -32,7 +32,7 @@ test("Operations routes render real Deployments and Jobs readers instead of not-
 
 test("Jobs UI stays read-only and exposes no execute retry cancel controls", () => {
   const source = read("features/admin/operations/JobsPage.tsx");
-  assert.match(source, /แบบอ่านอย่างเดียว/);
-  assert.match(source, /ไม่มีปุ่ม execute \/ retry \/ cancel/);
+  assert.match(source, /หน้านี้ดูข้อมูลได้อย่างเดียว/);
+  assert.match(source, /ไม่มีปุ่มสั่งทำซ้ำหรือยกเลิกงาน/);
   assert.doesNotMatch(source, /onClick=|<form|method=/i);
 });

@@ -91,10 +91,17 @@ export function getLocalAdminOrigin(environment: AdminEnvironment): string | nul
   return host ? `http://${host}` : null;
 }
 
-export function getLocalAdminCookieNamespace(environment: AdminEnvironment): string | null {
+export function getAdminCookieNamespace(environment: AdminEnvironment): string | null {
   if (environment === "local-uat") return "ccpun-uat.authjs";
   if (environment === "local-production") return "ccpun-production.authjs";
+  if (environment === "admin-uat") return "__Secure-ccpun-admin-uat.authjs";
+  if (environment === "production-admin") return "__Secure-ccpun-admin.authjs";
   return null;
+}
+
+export function getLocalAdminCookieNamespace(environment: AdminEnvironment): string | null {
+  if (environment !== "local-uat" && environment !== "local-production") return null;
+  return getAdminCookieNamespace(environment);
 }
 
 export function isLocalAdminHost(host: string | null, environment: AdminEnvironment): boolean {

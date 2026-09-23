@@ -87,10 +87,10 @@ test("mobile handoff route is read-only, human-only, same-origin and never puts 
 
 test("mobile UI states the Instagram and music handoff limitations accurately", () => {
   const component = readFileSync(new URL("../../features/admin/social/InstagramMobileHandoff.tsx", import.meta.url), "utf8");
-  assert.match(component, /Mobile Handoff เป็น workflow หลัก/);
-  assert.match(component, /Direct lane จะเปิดเฉพาะ capability/);
-  assert.match(component, /Add music later/);
-  assert.match(component, /ต้องมี Human-approved revision/);
-  assert.match(component, /ต้อง Review\/Approve revision ใหม่ก่อน Mobile Handoff/);
-  assert.match(component, /trusted provider media URL/);
+  assert.match(component, /ส่งตรงไป Instagram หรือทำต่อบนมือถือ/);
+  assert.match(component, /การส่งตรงจะเปิดเฉพาะเมื่อแพลตฟอร์มและไฟล์รองรับครบ/);
+  assert.match(component, /เพิ่มเพลงภายหลัง/);
+  assert.match(component, /ต้องมีฉบับปัจจุบันที่ผู้มีสิทธิ์อนุมัติแล้ว/);
+  assert.match(component, /ต้องตรวจและอนุมัติฉบับใหม่ก่อนส่งต่อไปทำบนมือถือ/);
+  assert.match(component, /ไฟล์ที่ตรวจแล้ว/);
 });

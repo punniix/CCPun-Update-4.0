@@ -62,6 +62,18 @@ export function isAuthenticatedAdminPreviewPath(pathname: string): boolean {
   );
 }
 
+export function isInternalServiceApiPath(pathname: string): boolean {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return path === "/api/internal/line/rich-menu/reconcile"
+    || path === "/api/internal/line/system-delivery/dispatch"
+    || path === "/api/internal/line/ingest"
+    || path === "/api/internal/line/public-event"
+    || isPathOrChild(path, "/api/internal/local-ai/jobs")
+    || isPathOrChild(path, "/api/internal/local-ai/line-descriptions")
+    || isPathOrChild(path, "/api/internal/local-ai/reviews")
+    || isPathOrChild(path, "/api/internal/local-ai/operations");
+}
+
 export function classifyProductionAdminPath(pathname: string): ProductionAdminPathDisposition {
   const path = pathname || "/";
 
@@ -70,6 +82,7 @@ export function classifyProductionAdminPath(pathname: string): ProductionAdminPa
   if (
     isAdminPagePath(path) ||
     isAdminApiPath(path) ||
+    isInternalServiceApiPath(path) ||
     isPathOrChild(path, "/studio") ||
     isPathOrChild(path, "/api/preview") ||
     isPathOrChild(path, "/api/auth") ||

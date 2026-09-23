@@ -4,6 +4,7 @@
 // =============================================
 
 import { z } from 'zod';
+import { EMPTY_CI_RECOVERY } from '@/features/ci-planning/recovery-evidence';
 
 // ── Step 0: Expenses ──────────────────────────────────────────────────────
 
@@ -33,20 +34,51 @@ const recoveryCount = z.number()
   .int('กรุณากรอกเป็นจำนวนเต็ม')
   .min(0, 'จำนวนต้องไม่ติดลบ');
 
-const ZERO_RECOVERY = {
-  treatmentVisits: 0,
-  caregiverHomeDays: 0,
-  rehabSessions: 0,
-  homeRehabSessions: 0,
-  equipmentAndHomeModification: 0,
-  otherRecoveryCosts: 0,
-} as const;
+const recoveryMode = z.enum(['none', 'basic', 'continued', 'longTerm', 'custom']);
 
 const recoverySchema = z.object({
+  mode: recoveryMode,
+  targetReserve: nonNegativeAmount,
+
   treatmentVisits: recoveryCount.max(100, 'จำนวนครั้งรักษา/ติดตามต้องไม่เกิน 100 ครั้ง'),
+  treatmentVisitUnitCost: nonNegativeAmount,
+
   caregiverHomeDays: recoveryCount.max(730, 'จำนวนวันผู้ดูแลต้องไม่เกิน 730 วัน'),
-  rehabSessions: recoveryCount.max(20, 'benchmark กายภาพนี้รองรับไม่เกิน 20 ครั้ง'),
-  homeRehabSessions: recoveryCount.max(20, 'จำนวนครั้งบริการที่บ้านต้องไม่เกิน 20 ครั้ง'),
+  caregiverDailyCost: nonNegativeAmount,
+
+  rehabSessions: recoveryCount.max(200, 'จำนวนครั้งกายภาพต้องไม่เกิน 200 ครั้ง'),
+  rehabUnitCost: nonNegativeAmount,
+
+  pulseOximeter: nonNegativeAmount,
+  bloodPressureMonitor: nonNegativeAmount,
+  thermometer: nonNegativeAmount,
+  walker: nonNegativeAmount,
+  wheelchair: nonNegativeAmount,
+  showerChair: nonNegativeAmount,
+  grabRailAndSafety: nonNegativeAmount,
+  hospitalBed: nonNegativeAmount,
+  consumables: nonNegativeAmount,
+
+  homeAdaptation: nonNegativeAmount,
+  majorHousing: nonNegativeAmount,
+  contingency: nonNegativeAmount,
+  otherRecoveryCosts: nonNegativeAmount,
+}).superRefine((data, context) => {
+  if (data.mode !== 'none' && data.targetReserve <= 0) {
+    context.addIssue({
+      code: 'custom',
+      path: ['targetReserve'],
+      message: 'กรุณาเลือกเงินสำรองหรือกรอกจำนวนเงินที่ต้องการเผื่อ',
+    });
+  }
+});
+
+// Legacy input remains accepted so old state/fixtures fail safe during the v10 cutover.
+const legacyRecoverySchema = z.object({
+  treatmentVisits: recoveryCount.max(100),
+  caregiverHomeDays: recoveryCount.max(730),
+  rehabSessions: recoveryCount.max(20),
+  homeRehabSessions: recoveryCount.max(20),
   equipmentAndHomeModification: nonNegativeAmount,
   otherRecoveryCosts: nonNegativeAmount,
 }).superRefine((data, context) => {
@@ -73,9 +105,7 @@ const stepExpensesSchema = z.object({
     .int('จำนวนปีต้องเป็นจำนวนเต็ม')
     .min(1, 'ระยะสำรองต้องอย่างน้อย 1 ปี')
     .max(10, 'ระยะสำรองต้องไม่เกิน 10 ปี'),
-  // Legacy callers and old fixtures predate Recovery Reserve. Missing recovery
-  // must therefore be equivalent to an all-zero add-on, not a schema failure.
-  recovery: recoverySchema.default(ZERO_RECOVERY),
+  recovery: z.union([recoverySchema, legacyRecoverySchema]).default({ ...EMPTY_CI_RECOVERY }),
 }).superRefine((data, context) => {
   if (data.mortgagePayment > 0 && data.mortgageInstallmentsRemaining === 0) {
     context.addIssue({
@@ -114,14 +144,11 @@ const stepExpensesSchema = z.object({
   ].some((amount) => amount > 0);
   const hasEducationInput = data.educationPlans.length > 0;
 
-  // Recovery Reserve is an add-on to a primary income/expense basis. It cannot
-  // be the only planning basis, otherwise a research-backed component would be
-  // misrepresented as a standalone primary method.
   if (data.monthlyIncome === 0 && !expenseSideBurden && !hasEducationInput) {
     context.addIssue({
       code: 'custom',
       path: ['expenses'],
-      message: 'กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการก่อนเพิ่ม Recovery Reserve',
+      message: 'กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการก่อนคำนวณเงินก้อน',
     });
   }
 });

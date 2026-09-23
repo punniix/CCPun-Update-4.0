@@ -45,6 +45,8 @@ assert.match(nextConfig, /source:\s*["']\/living-benefits\/:path\*["']/);
 assert.match(nextConfig, /destination:\s*["']\/ci-planning\/["']/);
 assert.match(nextConfig, /source:\s*["']\/tools\/fhc\/:path\*["']/);
 assert.match(nextConfig, /destination:\s*["']\/tools\/financial-health-check\/["']/);
+assert.match(nextConfig, /source:\s*["']\/financial-advisor\/:path\*["']/);
+assert.match(nextConfig, /source:\s*["']\/financial-advisor\/:path\*["'][\s\S]*destination:\s*["']\/["'][\s\S]*permanent:\s*true/);
 assert.match(nextConfig, /SECURITY_HEADERS/);
 
 for (const legacyStaticArtifact of ['public/CNAME', 'public/.nojekyll', 'public/_headers', 'scripts/postprocess-static.mjs']) {

@@ -1,5 +1,12 @@
-import { calcDebtNeed, calcHouseholdNeed, calcIncomeBasedNeed, calcOtherDebtNeed, calcRecoveryReserveNeed } from '@/features/ci-planning/calculator/calculator';
+import {
+  calcDebtNeed,
+  calcHouseholdNeed,
+  calcIncomeBasedNeed,
+  calcOtherDebtNeed,
+  calcRecoveryReserveNeed,
+} from '@/features/ci-planning/calculator/calculator';
 import type { CIEducationPlan, CIFormData, CIRecoveryCosts } from '@/features/ci-planning/calculator/types';
+import { EMPTY_CI_RECOVERY } from '@/features/ci-planning/recovery-evidence';
 
 export type ExpenseField =
   | 'monthlyIncome'
@@ -9,9 +16,6 @@ export type ExpenseField =
   | 'carPayment'
   | 'carInstallmentsRemaining'
   | 'otherDebtBalance';
-
-export type RecoveryCountField = 'treatmentVisits' | 'caregiverHomeDays' | 'rehabSessions' | 'homeRehabSessions';
-export type RecoveryAmountField = 'equipmentAndHomeModification' | 'otherRecoveryCosts';
 
 export function baht(value: number) {
   return `${Math.round(value).toLocaleString('th-TH')} บาท`;
@@ -37,8 +41,11 @@ export function previewEducationSubtotal(plan: CIEducationPlan): number | null {
 }
 
 export function safeRecoveryPreview(recovery: CIRecoveryCosts) {
-  try { return calcRecoveryReserveNeed(recovery); }
-  catch { return { treatmentVisits: 0, caregiverHomeDays: 0, rehabSessions: 0, homeRehabSessions: 0, visitNeed: 0, caregiverHomeNeed: 0, rehabNeed: 0, equipmentAndHomeModification: Math.max(0, recovery.equipmentAndHomeModification || 0), otherRecoveryCosts: Math.max(0, recovery.otherRecoveryCosts || 0), total: 0 }; }
+  try {
+    return calcRecoveryReserveNeed(recovery);
+  } catch {
+    return calcRecoveryReserveNeed({ ...EMPTY_CI_RECOVERY });
+  }
 }
 
 export function safeAddPreview(...values: number[]) {
@@ -57,15 +64,31 @@ export function safePlanPreview(expenses: CIFormData['expenses'], recoveryReserv
       if (subtotal === null) throw new RangeError('education preview exceeds the safe integer range');
       educationNeed = safeAddPreview(educationNeed, subtotal);
     }
-    const mortgageDebtNeed = calcDebtNeed(expenses.mortgagePayment, previewInstallments(expenses.mortgageInstallmentsRemaining), reserveYears);
-    const carDebtNeed = calcDebtNeed(expenses.carPayment, previewInstallments(expenses.carInstallmentsRemaining), reserveYears);
+    const mortgageDebtNeed = calcDebtNeed(
+      expenses.mortgagePayment,
+      previewInstallments(expenses.mortgageInstallmentsRemaining),
+      reserveYears,
+    );
+    const carDebtNeed = calcDebtNeed(
+      expenses.carPayment,
+      previewInstallments(expenses.carInstallmentsRemaining),
+      reserveYears,
+    );
     const otherDebtBalance = calcOtherDebtNeed(expenses.otherDebtBalance);
     const debtNeed = safeAddPreview(mortgageDebtNeed, carDebtNeed, otherDebtBalance);
     const expenseBaseNeed = safeAddPreview(householdNeed, educationNeed, debtNeed);
     const incomeBaseNeed = calcIncomeBasedNeed(expenses.monthlyIncome, reserveYears);
     const expenseTotalNeed = expenseBaseNeed > 0 ? safeAddPreview(expenseBaseNeed, recoveryReserveNeed) : 0;
     const incomeTotalNeed = incomeBaseNeed > 0 ? safeAddPreview(incomeBaseNeed, recoveryReserveNeed) : 0;
-    return { householdNeed, educationNeed, debtNeed, expenseBaseNeed, incomeBaseNeed, expenseTotalNeed, incomeTotalNeed };
+    return {
+      householdNeed,
+      educationNeed,
+      debtNeed,
+      expenseBaseNeed,
+      incomeBaseNeed,
+      expenseTotalNeed,
+      incomeTotalNeed,
+    };
   } catch {
     return null;
   }

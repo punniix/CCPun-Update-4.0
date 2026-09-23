@@ -1,0 +1,18 @@
+SELECT
+  EXISTS(SELECT 1 FROM private_line.schema_migration WHERE version='20260918_line_conversation_archive_v1_uat' AND checksum='sha256:15d047b231bd18214f5e47ce4382033e5cd7786811006e3dfa217d0db32f8fef') AS migration_checksum_ok,
+  to_regclass('private_line.line_conversation_archive') IS NOT NULL AS archive_table_exists,
+  to_regclass('private_line.line_profile_private') IS NOT NULL AS profile_table_exists,
+  to_regclass('private_line.line_evidence_access_log') IS NOT NULL AS evidence_log_exists,
+  EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='private_line_message_archive_sync' AND NOT tgisinternal) AS archive_trigger_exists,
+  has_function_privilege('ccpun_admin_runtime','private_line.admin_read_line_archive(uuid,integer)','EXECUTE') AS admin_archive_read_ok,
+  has_function_privilege('ccpun_admin_runtime','private_line.admin_read_line_profile_source(uuid)','EXECUTE') AS admin_profile_read_ok,
+  has_function_privilege('ccpun_admin_runtime','private_line.admin_checkpoint_line_profile(jsonb)','EXECUTE') AS admin_profile_checkpoint_ok,
+  has_function_privilege('ccpun_admin_runtime','private_line.admin_import_line_oa_archive_message(jsonb)','EXECUTE') AS admin_import_ok,
+  has_function_privilege('ccpun_admin_runtime','private_line.admin_record_line_evidence_access(jsonb)','EXECUTE') AS admin_evidence_audit_ok,
+  has_function_privilege('ccpun_admin_runtime','private_line.admin_read_line_archive_health()','EXECUTE') AS admin_archive_health_ok,
+  NOT has_function_privilege('ccpun_admin_runtime','private_line.admin_enqueue_line_reply(jsonb)','EXECUTE') AS direct_reply_revoked,
+  NOT has_function_privilege('ccpun_admin_runtime','private_line.admin_claim_line_outbound(jsonb)','EXECUTE') AS direct_outbound_claim_revoked,
+  NOT has_table_privilege('ccpun_line_ingress','private_line.line_conversation_archive','SELECT') AS ingress_archive_select_denied,
+  NOT has_table_privilege('ccpun_admin_runtime','private_line.line_conversation_archive','SELECT') AS admin_archive_table_direct_denied,
+  position('content_ciphertext_b64=NULL' in replace(pg_get_functiondef('private_line.sync_line_conversation_archive()'::regprocedure),' ',''))=0 AS evidence_trigger_never_purges_archive_content,
+  (SELECT direct_admin_reply_enabled=false FROM private_line.admin_read_line_archive_health()) AS archive_read_only_mode;

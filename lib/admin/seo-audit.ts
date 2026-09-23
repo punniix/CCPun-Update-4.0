@@ -30,7 +30,7 @@ const portableBlockSchema = z.object({
   _type: z.string().optional(),
   style: z.string().optional(),
   children: z.array(portableChildSchema).optional(),
-  markDefs: z.array(markDefSchema).optional(),
+  markDefs: z.array(markDefSchema).nullish().transform((value) => value ?? []),
 }).passthrough();
 
 const auditArticleSchema = z.object({

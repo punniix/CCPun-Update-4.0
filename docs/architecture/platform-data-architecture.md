@@ -14,6 +14,7 @@ Sanity = editorial content and publishing workflow
 Neon = private operational state
 Google Drive = private long-lived documents and source media
 Auth.js = application authentication
+Hostinger VPS Local-AI Enclave = private inference worker + Ollama
 ```
 
 One durable datum has one owner. Do not mirror operational state across Sanity and Neon.
@@ -27,6 +28,7 @@ One durable datum has one owner. Do not mirror operational state across Sanity a
 | Admin Preview/UAT | Vercel `ccpun-admin` Preview | `apps/admin` | Sanity `ccb9lnw5/uat` + UAT Neon |
 | Local UAT | loopback | Admin monorepo | UAT data planes only |
 | Local Production Draft lane | loopback | Admin monorepo | separately guarded Production Draft operations |
+| Private Local-AI Enclave | existing Hostinger VPS | `workers/local-ai` | encrypted Neon job queue + private Ollama network |
 
 Both Vercel projects use the same GitHub repository and deploy independently. Do not create a third Vercel project or split the repository to add an Admin tool.
 
@@ -58,6 +60,7 @@ Legacy Sanity `auditLog`, `researchSnapshot`, `seoSuggestion` and provider snaps
 - database: `neondb`
 - Admin runtime role: `ccpun_admin_runtime`
 - Social runtime role: `ccpun_social_runtime`
+- Local-AI worker role: `ccpun_local_ai_runtime` (created `NOLOGIN` until lane activation)
 
 ### Production
 
@@ -66,18 +69,21 @@ Legacy Sanity `auditLog`, `researchSnapshot`, `seoSuggestion` and provider snaps
 - database: `neondb`
 - Admin runtime role: `ccpun_admin_runtime`
 - Social runtime role: `ccpun_social_runtime`
+- Local-AI worker role: `ccpun_local_ai_runtime` (created `NOLOGIN` until lane activation)
 
-Both runtime roles are least-privilege application roles. Owner/backfill credentials are migration-only and must not become runtime fallback credentials.
+All runtime roles are least-privilege roles. Owner/backfill credentials are migration-only and must not become runtime fallback credentials.
 
 `ccpun_admin` owns private Control Plane state such as audit events, research snapshots, SEO suggestion lifecycle and article scheduling. `ccpun_social` owns social execution/provider state, jobs, retries, sync state, media operational metadata and metrics. Neither owns Article bodies, Authors, Categories or public editorial SEO fields.
+
+`ccpun_admin` also owns the Local-AI job ledger. Inputs are AES-256-GCM envelopes; only the dedicated VPS worker can claim and decrypt them. n8n and Admin read models may consume only validated outputs and non-sensitive job metadata. The exact boundary is defined in `docs/architecture/local-ai-enclave-20260919.md`.
 
 The runtime verifies deployment/data identity and migration ledgers before privileged operations. Unknown or mismatched identities fail closed.
 
 UAT and Production may use lane-specific migration version names, so equality of ledger strings is not the parity contract. **Required runtime capabilities are the parity contract**: if Production code depends on a table, column, view or migration capability, UAT must support that capability before that feature is considered Preview-ready.
 
-As of the 2026-09-17 audit, `ccpun_admin` capabilities are aligned for current Control Plane usage, while UAT `ccpun_social` is behind Production Marketing Mart capabilities. Admin System Health exposes this explicitly as `clean-mart`, `raw-preview-fallback` or `blocked`, including the missing relations. Existing UAT can intentionally use the raw Preview fallback for current features; a future feature that depends on the clean Marketing Mart must not merge until UAT gains that capability.
+As of the 2026-09-19 promotion, UAT and Production each expose 34 `ccpun_social` relations. Table column signatures and normalized view-definition hashes match across the two projects. UAT now supports the clean Marketing Mart capability used by Production; Admin System Health must still fail closed to `raw-preview-fallback` or `blocked` if a future capability check detects drift.
 
-The existing guarded Marketing Mart migration uses a `DO $...$` block that the available Neon migration-preparation parser did not accept during the audit. The preparation failed before any schema was changed. Do not bypass that safety failure with direct UAT DDL; create/test a tool-compatible migration and use the explicit migration approval flow before applying it.
+The original guarded Marketing Mart source contained a parser-incompatible procedural block. The recovered UAT migration preserves the clean-data contract in tool-compatible SQL and was applied only after prerequisite/checksum guards and temporary-branch proof. Future changes must continue through the explicit UAT-first migration approval flow; direct unreviewed DDL remains prohibited.
 
 ## Authentication
 
@@ -151,6 +157,8 @@ Production remains stricter:
 | Authentication/session authority | Auth.js |
 | Application code and migration source | GitHub |
 | Deployment/runtime configuration | Vercel |
+| Local model weights and ephemeral inference memory | Hostinger VPS Private Local-AI Enclave |
+| Local-AI encrypted job state and validated output | Neon `ccpun_admin` |
 
 ## No-new-spend contract
 

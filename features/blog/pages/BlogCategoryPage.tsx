@@ -1,6 +1,6 @@
 import { cache } from "react";
 import Website43Blog from "@/features/blog/website-43/Website43Blog";
-import { toWebsite43ArticleItems } from "@/features/blog/website-43/blogData";
+import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/features/blog/website-43/blogData";
 import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
@@ -17,12 +17,14 @@ import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";
 import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
 import { buildBlogTopicHubSchema } from "@/lib/content/structured-data/article-schema";
 import type { Article } from "@/lib/content/types";
+import { curateFeaturedArticles } from "@/lib/content/featured-articles";
 import {
   getBlogTopicHub,
   isArticleInSemanticTopic,
   type BlogTopicHub,
 } from "@/lib/content/taxonomy";
 import { getArticlePath, getLegacyCategoryRedirectPath, isArticleCanonicalAligned } from "@/lib/content/url";
+import styles from "@/components/layout/website-43/Website43.module.css";
 
 const SITE_URL = "https://ccpun.com";
 const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/assets/blog-hub-hero-ccpun-v1.webp`;
@@ -59,6 +61,26 @@ function physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub
     title: hub?.seoTitle ?? `${category.title} | บทความและความรู้ | CCPun`,
     description: category.description ?? hub?.description ?? `รวมบทความและความรู้เรื่อง${category.title}จาก CCPun`,
   };
+}
+
+function buildTopicIntro(hub: BlogTopicHub | null) {
+  if (!hub?.intro.length) return null;
+
+  const headingId = `blog-topic-intro-${hub.slug}`;
+  return (
+    <section
+      className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}
+      aria-labelledby={headingId}
+    >
+      <div className={styles.inner}>
+        <p className={styles.eyebrow}>{hub.eyebrow}</p>
+        <h2 id={headingId} className={styles.h2}>ทำความเข้าใจ{hub.title}ก่อนตัดสินใจ</h2>
+        <div className={styles.storyCopy}>
+          {hub.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function categoryOpenGraph(category: CategoryRegistryEntry, title: string, description: string) {
@@ -173,6 +195,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
     const articles = await getArticlesForRequest(includeDrafts);
     const visibleArticles = articles.filter((article) => includeDrafts || article.status === "published");
     const relevantArticles = visibleArticles.filter((article) => articleBelongsToPhysicalCategory(article, category));
+    const featuredArticles = curateFeaturedArticles(relevantArticles, category.featuredArticleIds ?? []);
     const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);
     const hub = getBlogTopicHub(category.slug);
     const shouldIndex = !includeDrafts
@@ -186,8 +209,10 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
       <Website43Blog
         key={`${category.slug}:${initialQuery}`}
         articles={toWebsite43ArticleItems(relevantArticles)}
-        featuredArticles={toWebsite43ArticleItems(visibleArticles)}
+        featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
         activeCategorySlug={category.slug}
+        heroDescription={category.description ?? hub?.description}
+        topicContent={buildTopicIntro(hub)}
         initialQuery={initialQuery}
         categories={categoryMenu(registry, includeDrafts)}
       />
@@ -206,6 +231,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
   const articles = await getArticlesForRequest(false);
   const publishedArticles = articles.filter((article) => article.status === "published");
   const relevantArticles = publishedArticles.filter((article) => articleBelongsToHub(article, hub));
+  const featuredArticles = curateFeaturedArticles(relevantArticles);
   const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);
   const shouldIndexHub = hub.indexable && relevantIndexableArticles.length > 0;
   const schema = shouldIndexHub ? buildBlogTopicHubSchema(hub, relevantIndexableArticles) : null;
@@ -215,8 +241,10 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
     <Website43Blog
       key={`${hub.slug}:${initialQuery}`}
       articles={toWebsite43ArticleItems(relevantArticles)}
-      featuredArticles={toWebsite43ArticleItems(publishedArticles)}
+      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
       activeCategorySlug={hub.slug}
+      heroDescription={hub.description}
+      topicContent={buildTopicIntro(hub)}
       initialQuery={initialQuery}
       categories={categoryMenu(registry, includeDrafts)}
     />

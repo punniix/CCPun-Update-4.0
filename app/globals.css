@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../components";
+@source "../features";
 @import "../components/styles/public-compat.css";
 @import "../components/styles/public-motion.css";
 @import "../features/financial-health-check/styles/print.css";
