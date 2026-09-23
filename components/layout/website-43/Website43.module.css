@@ -364,7 +364,7 @@
 /* Tools */
 .toolHero { position: relative; height: 620px; overflow: hidden; background: #060b09; }
 .toolHero::after { content: ''; position: absolute; z-index: 1; right: 0; bottom: 0; left: 0; height: 170px; pointer-events: none; background: linear-gradient(180deg,rgba(6,11,9,0) 0%,rgba(6,11,9,.58) 56%,#060b09 100%); }
-.toolHeroImage { position: absolute; inset: 0 0 0 auto; width: 820px; height: 620px; object-fit: contain; }
+.toolHeroImage { position: absolute; inset: 0 0 0 auto; width: 820px; height: 620px; object-fit: contain; object-position: right center; -webkit-mask-image: linear-gradient(90deg,transparent 0%,#000 24%); mask-image: linear-gradient(90deg,transparent 0%,#000 24%); }
 .toolHeroGradient { position: absolute; top: 0; bottom: 0; left: 360px; width: 720px; background: linear-gradient(90deg,rgba(6,11,9,1) 0%,rgba(6,11,9,.96) 34%,rgba(6,11,9,.66) 58%,rgba(6,11,9,.16) 84%,rgba(6,11,9,0) 100%); }
 .toolHeroReadabilityOverlay { position: absolute; z-index: 2; inset: 0; pointer-events: none; background: linear-gradient(90deg,rgba(6,11,9,.94) 0%,rgba(6,11,9,.86) 36%,rgba(6,11,9,.56) 58%,rgba(6,11,9,.12) 82%,rgba(6,11,9,0) 100%); }
 .toolHeroCopy { position: absolute; z-index: 4; left: max(80px,calc((100vw - 1280px)/2)); top: 198px; width: 720px; }
@@ -744,7 +744,7 @@
 
   .toolHero { height: 584px; }
   .toolHero::after { height: 96px; }
-  .toolHeroImage { top: 244px; left: 0; width: 100%; height: 340px; object-fit: cover; object-position: center center; }
+  .toolHeroImage { top: 244px; left: 0; width: 100%; height: 340px; object-fit: contain; object-position: center center; }
   .toolHeroGradient { inset: 0; width: 100%; background: linear-gradient(180deg,rgba(6,11,9,1) 0px,rgba(6,11,9,1) 244px,rgba(6,11,9,.88) 268px,rgba(6,11,9,.55) 294px,rgba(6,11,9,.22) 320px,rgba(6,11,9,0) 348px); }
   .toolHeroReadabilityOverlay { background: linear-gradient(180deg,rgba(6,11,9,.92) 0px,rgba(6,11,9,.9) 244px,rgba(6,11,9,.66) 330px,rgba(6,11,9,.56) 430px,rgba(6,11,9,.74) 100%); }
   .toolHeroCopy { top: 104px; left: 24px; width: 342px; }
@@ -1238,8 +1238,7 @@
 }
 
 @media (min-width: 640px) {
-  /* ponytail: override the legacy safe-area offset only where it creates visible letterboxing. */
-  .root .toolHeroImage { top: 0; bottom: 0; height: 100%; object-fit: cover; }
+  .root .toolHeroImage { top: 0; bottom: 0; height: 100%; object-fit: contain; }
 }
 
 /* Website 4.3 motion DNA: restrained, progressive, and LCP-safe. */
