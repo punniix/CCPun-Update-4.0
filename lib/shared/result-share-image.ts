@@ -116,8 +116,7 @@ export async function renderResultShareImage(
   const resourceHeaderY = targetTotalY + 92;
   const resourceRowsY = resourceHeaderY + 59;
   const resourceTotalY = resourceRowsY + (resourceCount - 1) * 47 + 52;
-  const protectedNoteY = resourceTotalY + 43;
-  const cardBottom = summary.composition?.protectedAssetsAmount ? protectedNoteY + 36 : resourceTotalY + 44;
+  const cardBottom = resourceTotalY + 44;
   const footerY = cardBottom + 28;
   // ponytail: the CI image grows with entered rows; the FHC image keeps its existing fixed size.
   const imageHeight = summary.composition ? footerY + 230 : RESULT_SHARE_IMAGE_HEIGHT;
@@ -283,12 +282,6 @@ export async function renderResultShareImage(
     fitText(context, summary.composition.resourcesText, 350, 30, 600, 24);
     context.fillText(summary.composition.resourcesText, 984, resourceTotalY);
     context.textAlign = 'left';
-    if (summary.composition.protectedAssetsAmount) {
-      context.fillStyle = muted;
-      fitText(context, 'สินทรัพย์ยังอยู่ในทุนที่มี และเพิ่มเป้าหมายเพื่อเก็บก้อนเดิม', 888, 23, 500, 19);
-      context.fillText('สินทรัพย์ยังอยู่ในทุนที่มี และเพิ่มเป้าหมายเพื่อเก็บก้อนเดิม', 96, protectedNoteY);
-    }
-
     fillRoundedRect(context, 68, footerY, 944, 200, 22, dark);
     drawSticker('M9 3h6v6h6v6h-6v6H9v-6H3V9h6z', 64, footerY + 143, 48, -12);
     context.fillStyle = gold;

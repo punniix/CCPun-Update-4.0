@@ -260,6 +260,7 @@ for (const rawValue of ['12345', '98765', '777777']) {
 
 const imageSource = readFileSync(new URL('../features/ci-planning/result-image.ts', import.meta.url), 'utf8');
 const shareImageSource = readFileSync(new URL('../lib/shared/result-share-image.ts', import.meta.url), 'utf8');
+assert(!shareImageSource.includes('สินทรัพย์ยังอยู่ในทุนที่มี'), 'CI export must not restore the removed grey protected-assets note');
 const fhcImageSource = readFileSync(
   new URL('../features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx', import.meta.url),
   'utf8',
