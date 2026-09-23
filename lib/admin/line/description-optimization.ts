@@ -56,6 +56,11 @@ const lineCopyPairSchema = z.object({
   published: lineCopyRevisionSchema.nullable(),
 }).strict();
 
+const improvementTargetSchema = z.object({
+  draft: lineCopyRevisionSchema.nullable(),
+  published: targetArticleSchema.nullable(),
+}).strict();
+
 export type DraftLineCopyTarget = z.infer<typeof draftLineCopySchema>;
 
 const missingArticlesQuery = defineQuery(
@@ -76,6 +81,10 @@ const draftLineCopyQuery = defineQuery(
 
 const lineCopyPairQuery = defineQuery(
   '{"draft": *[_type == "article" && _id == "drafts." + $id][0]{"id": _id,"revision": _rev,"lineTitle": coalesce(lineTitle, null),"lineDescription": coalesce(lineDescription, null)},"published": *[_type == "article" && _id == $id][0]{"id": _id,"revision": _rev,"lineTitle": coalesce(lineTitle, null),"lineDescription": coalesce(lineDescription, null)}}',
+);
+
+const improvementTargetQuery = defineQuery(
+  '{"draft": *[_type == "article" && _id == "drafts." + $id][0]{"id": _id,"revision": _rev,"lineTitle": coalesce(lineTitle, null),"lineDescription": coalesce(lineDescription, null)},"published": *[_type == "article" && _id == $id][0]{"id": _id,"revision": _rev,"slug": slug.current,title,"category": category->title,"lineTitle": coalesce(lineTitle, null),"lineDescription": coalesce(lineDescription, null)}}',
 );
 
 function readClient(perspective: "published" | "raw" = "published") {
@@ -127,6 +136,56 @@ export async function readArticleDraftLineCopy(id: string) {
   const body = draft.body.trim().slice(0, 30_000);
   if (!body) return null;
   return { ...draft, body };
+}
+
+export async function readArticleLineCopyImprovementTarget(id: string) {
+  const logicalId = parsedLogicalId(id);
+  if (!logicalId) throw new Error("LINE_COPY_INVALID_REQUEST");
+  const client = readClient("raw");
+  if (!client) throw new Error("LINE_DESCRIPTION_READ_UNAVAILABLE");
+  return improvementTargetSchema.parse(await client.fetch(improvementTargetQuery, { id: logicalId }));
+}
+
+export async function applyImprovedLineCopyToDraft(input: {
+  id: string;
+  draftRevision: string;
+  publishedRevision: string;
+  lineTitle: string;
+  lineDescription: string;
+}) {
+  const logicalId = parsedLogicalId(input.id);
+  const draftRevision = revisionSchema.safeParse(input.draftRevision);
+  const publishedRevision = revisionSchema.safeParse(input.publishedRevision);
+  if (!logicalId || !draftRevision.success || !publishedRevision.success) throw new Error("LINE_COPY_INVALID_REQUEST");
+  const write = writeClient();
+  if (!write) throw new Error("LINE_DESCRIPTION_WRITE_UNAVAILABLE");
+
+  const target = await readArticleLineCopyImprovementTarget(logicalId);
+  if (!target.draft) throw new Error("LINE_COPY_DRAFT_REQUIRED");
+  if (!target.published) throw new Error("LINE_COPY_PUBLISHED_REQUIRED");
+  if (target.draft.revision !== draftRevision.data || target.published.revision !== publishedRevision.data) {
+    throw new Error("LINE_COPY_CONFLICT");
+  }
+  if (!target.published.lineTitle?.trim() || !target.published.lineDescription?.trim()) {
+    throw new Error("LINE_COPY_PUBLISHED_LINE_REQUIRED");
+  }
+
+  const lineTitle = lineCardTitleSchema.parse(input.lineTitle);
+  const lineDescription = lineCardTextDescriptionSchema.parse(input.lineDescription);
+  if (lineTitle === target.draft.lineTitle?.trim() && lineDescription === target.draft.lineDescription?.trim()) {
+    return { status: "already-current" as const, revision: target.draft.revision };
+  }
+
+  try {
+    const result = await write.patch("drafts." + logicalId)
+      .ifRevisionId(target.draft.revision)
+      .set({ lineTitle, lineDescription })
+      .commit();
+    return { status: "applied" as const, revision: result._rev };
+  } catch (error) {
+    if (conflictCode(error) === 409) throw new Error("LINE_COPY_CONFLICT");
+    throw new Error("LINE_DESCRIPTION_WRITE_UNAVAILABLE");
+  }
 }
 
 export async function applyGeneratedLineCopyToDraft(input: {

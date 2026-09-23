@@ -15,6 +15,7 @@ const errorMessages: Record<string, string> = {
   "line-copy-draft-required": "ต้องมีฉบับร่างก่อนจึงจะสร้างข้อความ LINE ได้",
   "line-copy-conflict": "บทความเปลี่ยนไประหว่างทำรายการ กรุณาโหลดฉบับล่าสุดแล้วลองใหม่",
   "line-copy-published-required": "บทความนี้ยังไม่เคยเผยแพร่ จึงยังใช้การเผยแพร่เฉพาะ LINE ไม่ได้",
+  "line-copy-published-line-required": "ต้องมี LINE Title และ LINE Description ที่เผยแพร่แล้วก่อนจึงจะปรับปรุงได้",
   "line-copy-invalid-result": "ผลจาก Local AI ยังไม่ผ่านกติกา LINE จึงไม่ได้บันทึกลงบทความ",
   "line-copy-orchestrator-unavailable": "n8n / Local AI ยังไม่พร้อม ระบบจึงไม่ได้แก้บทความ",
   "line-copy-orchestrator-timeout": "Local AI ใช้เวลานานเกินกำหนด ระบบจึงไม่ได้แก้บทความ",
@@ -183,6 +184,136 @@ export function createPublishArticleLineOnlyAction(): DocumentActionComponent {
   return PublishArticleLineOnlyAction;
 }
 
+type LineCopyProposal = {
+  draftRevision: string;
+  publishedRevision: string;
+  currentLineTitle: string;
+  currentLineDescription: string;
+  draftLineTitle: string | null;
+  draftLineDescription: string | null;
+  lineTitle: string;
+  lineDescription: string;
+  proposalToken: string;
+};
+
+export function createImproveArticleLineCopyAction(): DocumentActionComponent {
+  const ImproveArticleLineCopyAction: DocumentActionComponent = (props) => {
+    const draft = props.draft as LineArticle | null;
+    const published = props.published as LineArticle | null;
+    const sync = useSyncState(props.id, props.type);
+    const [busy, setBusy] = useState(false);
+    const [elapsed, setElapsed] = useState(0);
+    const [proposal, setProposal] = useState<LineCopyProposal | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const inFlight = useRef(false);
+
+    useEffect(() => {
+      if (!busy) {
+        setElapsed(0);
+        return;
+      }
+      const startedAt = Date.now();
+      const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1_000);
+      return () => window.clearInterval(timer);
+    }, [busy]);
+
+    if (!published?.lineTitle?.trim() || !published.lineDescription?.trim()) return null;
+    const disabled = Boolean(busy || sync.isSyncing || !draft?._rev || !published._rev || props.version || props.liveEdit);
+    const endpoint = `/api/admin/content/${encodeURIComponent(logicalId(props.id))}/line-copy/improve/`;
+
+    async function improve() {
+      if (inFlight.current || disabled || !draft?._rev || !published?._rev) return;
+      inFlight.current = true;
+      setBusy(true);
+      setError(null);
+      setProposal(null);
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "propose", draftRevision: draft._rev, publishedRevision: published._rev, requestId: crypto.randomUUID() }),
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        const result = await response.json() as LineCopyProposal & { status?: string };
+        if (result.status !== "proposed" || !result.lineTitle || !result.lineDescription || !result.draftRevision || !result.publishedRevision || !result.proposalToken) {
+          throw new Error("ระบบตอบข้อเสนอ LINE copy ไม่ครบ");
+        }
+        setProposal(result);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "ระบบยังสร้างข้อเสนอ LINE copy ไม่สำเร็จ");
+      } finally {
+        inFlight.current = false;
+        setBusy(false);
+      }
+    }
+
+    async function accept() {
+      if (inFlight.current || !proposal) return;
+      inFlight.current = true;
+      setBusy(true);
+      setError(null);
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "accept",
+            draftRevision: proposal.draftRevision,
+            publishedRevision: proposal.publishedRevision,
+            lineTitle: proposal.lineTitle,
+            lineDescription: proposal.lineDescription,
+            proposalToken: proposal.proposalToken,
+          }),
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        const result = await response.json() as { status?: string };
+        if (!["applied", "already-current"].includes(result.status ?? "")) throw new Error("ระบบตอบผล LINE copy ไม่ครบ");
+        setProposal(null);
+        props.onComplete();
+      } catch (caught) {
+        setProposal(null);
+        setError(caught instanceof Error ? caught.message : "ยังไม่ได้บันทึกข้อเสนอใน Draft");
+      } finally {
+        inFlight.current = false;
+        setBusy(false);
+      }
+    }
+
+    return {
+      label: busy ? `กำลังปรับปรุง LINE… ${elapsed} วินาที` : "Improve LINE copy",
+      title: "ปรับปรุงจาก LINE Title / Description ที่เผยแพร่แล้ว โดยไม่ส่งเนื้อหาบทความให้ Local AI",
+      disabled,
+      onHandle: () => void improve(),
+      dialog: error ? {
+        type: "dialog",
+        header: "ยังปรับปรุง LINE copy ไม่สำเร็จ",
+        content: <p role="alert">{error}</p>,
+        onClose: () => setError(null),
+      } : proposal ? {
+        type: "dialog",
+        header: "ตรวจข้อเสนอ LINE copy ก่อนบันทึก Draft",
+        content: <div>
+          <p><strong>LINE Title ปัจจุบัน:</strong> {proposal.currentLineTitle}</p>
+          <p><strong>ข้อเสนอ:</strong> {proposal.lineTitle}</p>
+          <p><strong>LINE Description ปัจจุบัน:</strong> {proposal.currentLineDescription}</p>
+          <p><strong>ข้อเสนอ:</strong> {proposal.lineDescription}</p>
+          {(proposal.draftLineTitle?.trim() !== proposal.currentLineTitle || proposal.draftLineDescription?.trim() !== proposal.currentLineDescription) &&
+            <p role="alert">Draft มี LINE copy ต่างจาก Live การยอมรับจะเขียนทับ LINE Title และ Description ใน Draft เท่านั้น</p>}
+          <p>ตรวจแล้วกดบันทึก Draft จากนั้นใช้ “Publish LINE only” แยกต่างหากเมื่อพร้อมเผยแพร่</p>
+          <button type="button" disabled={busy} onClick={() => void accept()}>ยอมรับและบันทึกใน Draft</button>
+        </div>,
+        onClose: () => setProposal(null),
+      } : null,
+    };
+  };
+  ImproveArticleLineCopyAction.displayName = "CCPunImproveArticleLineCopyAction";
+  return ImproveArticleLineCopyAction;
+}
+
 export function appendArticleLineCopyActions(
   actions: DocumentActionComponent[],
   environment: AdminEnvironment,
@@ -192,6 +323,7 @@ export function appendArticleLineCopyActions(
   return [
     ...actions,
     createGenerateArticleLineCopyAction(),
+    createImproveArticleLineCopyAction(),
     createPublishArticleLineOnlyAction(),
   ];
 }

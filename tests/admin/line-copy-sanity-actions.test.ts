@@ -41,3 +41,38 @@ test("Publish LINE only uses a revision-guarded transaction and refuses never-pu
   assert.doesNotMatch(helper.replace(/\n/g, " "), /\.set\(\{[^}]*body:/);
   assert.match(route, /line-copy-published-required/);
 });
+
+test("Improve LINE copy uses approved Published fields only and requires owner acceptance before Draft write", () => {
+  const action = read("cms/sanity/policy/article-line-copy-action.tsx");
+  const route = read("apps/admin/app/api/admin/content/[id]/line-copy/improve/route.ts");
+  const helper = read("lib/admin/line/description-optimization.ts");
+  assert.match(action, /createImproveArticleLineCopyAction\(\)/);
+  assert.match(action, /action: "propose"/);
+  assert.match(action, /ตรวจข้อเสนอ LINE copy ก่อนบันทึก Draft/);
+  assert.match(action, /action: "accept"/);
+  assert.match(action, /Publish LINE only/);
+  assert.match(route, /mode: "improve-existing"/);
+  assert.match(route, /existingLineTitle/);
+  assert.match(route, /existingLineDescription/);
+  assert.doesNotMatch(route, /draft\.body|published\.body|"body":/);
+  assert.doesNotMatch(helper.split("const improvementTargetQuery =")[1]?.split("function readClient")[0] ?? "", /pt::text\(body\)|"body"/);
+  assert.match(route, /identity\.role !== "owner"/);
+  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /signProposal\(token/);
+  assert.match(route, /timingSafeEqual/);
+  assert.match(helper, /target\.draft\.revision !== draftRevision\.data \|\| target\.published\.revision !== publishedRevision\.data/);
+  assert.match(helper, /\.ifRevisionId\(target\.draft\.revision\)/);
+  assert.match(helper, /\.set\(\{ lineTitle, lineDescription \}\)/);
+});
+
+test("n8n Improve replay preserves a successful result after a conflicting request", () => {
+  const workflow = JSON.parse(read("workers/local-ai/n8n/line-card-copy.direct.json"));
+  const node = (name: string) => workflow.nodes.find((item: { name: string }) => item.name === name);
+  assert.match(node("ตรวจ Replay Improve").parameters.jsCode, /String\(row\.triggerSource\)===base\.triggerSource/);
+  assert.equal(workflow.connections["สรุป Replay Conflict"].main[0][0].node, "ตอบกลับ Sanity");
+  assert.equal(workflow.connections["Replay ใช้ไม่ได้?"].main[0][0].node, "สรุป Replay Conflict");
+  for (const name of ["Ollama · Improve A", "Ollama · Improve B"]) {
+    assert.match(node(name).parameters.jsonBody, /format:'json'/);
+    assert.equal(node(name).parameters.options.timeout, 60_000);
+  }
+});
