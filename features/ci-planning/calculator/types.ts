@@ -63,7 +63,8 @@ export interface StepExpensesData {
 
 export interface StepExistingCIData {
   lumpSum: number;          // เงินก้อนจากประกันโรคร้ายแรงที่มี (บาท)
-  liquidAssets: number;     // สินทรัพย์สภาพคล่องที่พร้อมใช้ (บาท)
+  liquidAssets: number;     // สินทรัพย์สภาพคล่องที่มี (บาท)
+  protectLiquidAssets?: boolean; // ตั้งเป้าหมายให้ยังเหลือสินทรัพย์ก้อนนี้หลังรับมือค่าใช้จ่าย
 }
 
 // ── Full Form Data ─────────────────────────────────────────────────────────
@@ -129,6 +130,8 @@ export interface CIResult {
 
   existingCoverage: number;
   liquidAssets: number;
+  protectLiquidAssets: boolean;
+  protectedAssetsNeed: number;
   availableResources: number;
 
   signedGap: number;
