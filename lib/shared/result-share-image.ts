@@ -254,7 +254,6 @@ export async function renderResultShareImage(
     };
 
     fillRoundedRect(context, 68, 783, 944, cardBottom - 783, 22, panel);
-    drawSticker('M2 10 12 2l10 8v11H2z M9 21v-8h6v8', 65, 962, 52, 14);
     drawSticker('M3 16V9l2-4h14l2 4v7 M3 16h18 M6 16v3 M18 16v3 M6 10h12 M6 13h1 M17 13h1', 940, resourceHeaderY + 7, 50, -10);
     context.fillStyle = gold;
     context.font = '600 30px Kanit, sans-serif';
