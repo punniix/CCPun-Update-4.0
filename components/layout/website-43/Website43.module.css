@@ -395,6 +395,7 @@
 .methodBox p + p { margin-top: 12px; }
 .toolFaq { margin-top: 48px; }
 .toolFaqStandalone { margin-top: 0; }
+.toolStorySection[aria-labelledby="ci-reading-title"] .faqDetails { margin-top: 24px; }
 .faqDetails { border-block: 1px solid rgba(91,72,72,.7); }
 .faqDetails details { border-bottom: 1px solid rgba(91,72,72,.55); }
 .faqDetails details:last-child { border-bottom: 0; }
@@ -438,6 +439,14 @@
 .calculatorStage :global(.ccpun-calculator-result-cta) { padding: 22px; border: 1px solid var(--w43-border); border-radius: 14px; background: var(--w43-deep); text-align: center; }
 .calculatorStage :global(.ccpun-calculator-result-cta) h3 { margin: 14px 0 0; color: var(--w43-ink); font-size: 18px; font-weight: 600; }
 .calculatorStage :global(.ccpun-calculator-result-cta) p { margin: 6px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
+.calculatorStage :global(.ccpun-ci-result-cta) { text-align: left; }
+.calculatorStage :global(.ccpun-ci-result-cta-inner) { width: min(560px,100%); margin-inline: auto; }
+.calculatorStage :global(.ccpun-ci-result-cta) h3 { margin: 0; line-height: 1.45; }
+.calculatorStage :global(.ccpun-ci-result-cta) :global(.ccpun-ci-result-cta-copy) { margin-top: 8px; }
+.calculatorStage :global(.ccpun-ci-result-cta) :global(.ccpun-ci-result-image-actions) { margin-top: 20px; }
+.calculatorStage :global(.ccpun-ci-result-cta) :global(#ci-result-image-privacy) { margin-top: 12px; font-size: 12px; line-height: 1.55; }
+.calculatorStage :global(.ccpun-ci-result-cta) :global(#ci-result-image-status) { margin-top: 8px; font-size: 12px; line-height: 1.5; }
+.calculatorStage :global(.ccpun-ci-result-cta) :global(.ccpun-ci-result-cta-line) { margin-top: 20px; }
 .calculatorStage :global(.ccpun-calculator-result-method-grid) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .calculatorStage :global(.ccpun-calculator-result-method) { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--w43-border); border-radius: 12px; background: rgba(37,24,24,.28); cursor: pointer; }
 .calculatorStage :global(.ccpun-calculator-result-method-selected) { border-color: rgba(224,201,133,.56); background: rgba(224,201,133,.07); }
@@ -774,6 +783,7 @@
   .calculatorHeader h2 { font-size: 26px; }
   .faqDetails summary { padding: 22px 0 14px; }
   .faqDetails p { padding: 6px 0 34px; }
+  .toolStorySection[aria-labelledby="ci-reading-title"] .faqDetails { margin-top: 20px; }
   .calculatorStage :global(.ccpun-calculator-result-lead) { padding: 20px; }
   .calculatorStage :global(.ccpun-calculator-result-title) { font-size: 26px; }
   .calculatorStage :global(.ccpun-calculator-result-amount) { font-size: 38px; }

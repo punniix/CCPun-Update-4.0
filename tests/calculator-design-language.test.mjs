@@ -12,6 +12,7 @@ const ciRecoverySection = read('features/ci-planning/components/steps/RecoveryRe
 const card = read('components/ui/HumanCalculatorCard.tsx');
 const fhcWizard = read('features/financial-health-check/components/LifeCoverageWizard.tsx');
 const ciResult = read('features/ci-planning/components/result/CIResult.tsx');
+const ciImageActions = read('features/ci-planning/components/ResultImageDownloadButton.tsx');
 const website43Css = read('components/layout/website-43/Website43.module.css');
 
 test('FHC and CI use the Production Website 4.3 shell and approved Figma tool hero language', () => {
@@ -114,6 +115,18 @@ test('CI gap and its income or expense breakdown share one card, separate from R
   assert.ok(ciResult.indexOf('aria-labelledby="ci-recovery-result-title"') > cardEnd);
   assert.match(website43Css, /ccpun-calculator-result-details\) \{ margin-top: 18px; padding-top: 16px; border-top:/);
   assert.match(website43Css, /ccpun-calculator-result-breakdown \.ccpun-calculator-result-row\) \{ display: grid; grid-template-columns: minmax\(0,1fr\) auto/);
+});
+
+test('CI result actions and FAQ spacing stay aligned without changing shared FHC styles', () => {
+  assert.match(ciResult, /ccpun-calculator-result-cta ccpun-ci-result-cta/);
+  assert.match(ciResult, /<h3>อยากทบทวนตัวเลขต่อ\?<\/h3>[\s\S]*ccpun-ci-result-cta-copy[\s\S]*<ResultImageDownloadButton[\s\S]*ccpun-ci-result-cta-line/);
+  assert.match(ciImageActions, /canShareFile \? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'/);
+  assert.match(ciImageActions, /empty:sr-only/);
+  assert.doesNotMatch(ciImageActions, /min-h-5/);
+  assert.match(website43Css, /\.calculatorStage :global\(\.ccpun-ci-result-cta-inner\) \{ width: min\(560px,100%\); margin-inline: auto; \}/);
+  assert.match(website43Css, /\.toolStorySection\[aria-labelledby="ci-reading-title"\] \.faqDetails \{ margin-top: 24px; \}/);
+  assert.match(website43Css, /\.toolStorySection\[aria-labelledby="ci-reading-title"\] \.faqDetails \{ margin-top: 20px; \}/);
+  assert.match(fhcWizard, /className="ccpun-calculator-result-cta"/);
 });
 
 test('mobile CI story cards loop around a centered card with swipe, arrows and paused autoplay', () => {
