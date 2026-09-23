@@ -101,11 +101,23 @@ test('tool FAQ answers keep breathing room from divider lines on mobile', () => 
   assert.match(website43Css, /\.faqDetails p \{ padding: 6px 0 34px; \}/);
 });
 
-test('mobile CI story cards expose swipe, arrows and position cue without changing desktop grid', () => {
+test('mobile CI story cards loop around a centered card with swipe, arrows and paused autoplay', () => {
   const intro = read('features/ci-planning/components/CILandingIntro.tsx');
   assert.match(intro, /ChevronLeft/);
   assert.match(intro, /ChevronRight/);
-  assert.match(intro, /storyIndex \+ 1/);
+  assert.match(intro, /length: 9/);
+  assert.match(intro, /nearest < 3 \? nearest \+ 3 : nearest - 3/);
+  assert.match(intro, /centerStory\(node, next, 'smooth'\);\s+setStoryIndex\(next\);\s+\}, 4000\)/);
+  assert.match(intro, /isHovered \|\| isFocused \|\| hasInteracted \|\| isPageHidden \|\| reducedMotion/);
+  assert.match(intro, /setHasInteracted\(true\);\s+const next = Math\.max/);
+  assert.match(intro, /onPointerDown=\{\(\) => setHasInteracted\(true\)\}/);
+  assert.match(intro, /onWheel=\{\(event\) => \{ if \(Math\.abs\(event\.deltaX\) > Math\.abs\(event\.deltaY\)\) setHasInteracted\(true\); \}\}/);
+  assert.doesNotMatch(intro, /ciStoryAutoToggle|เล่นอัตโนมัติ|หยุดเลื่อนอัตโนมัติ/);
+  assert.doesNotMatch(website43Css, /ciStoryAutoToggle/);
+  assert.doesNotMatch(intro, /ปัดซ้าย–ขวาได้/);
   assert.match(website43Css, /scroll-snap-type: x mandatory/);
+  assert.match(website43Css, /scroll-snap-align: center/);
+  assert.match(website43Css, /ciStoryCarouselControls button:first-child \{ left:/);
+  assert.match(website43Css, /ciStoryGrid > :nth-child\(n\+4\) \{ display: none; \}/);
   assert.match(website43Css, /ciStoryCarouselControls/);
 });
