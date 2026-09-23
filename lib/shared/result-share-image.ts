@@ -201,9 +201,6 @@ export async function renderResultShareImage(
     context.fillStyle = gold;
     fitText(context, summary.primaryAmount, 944, 84, 700, 56);
     context.fillText(summary.primaryAmount, 68, 338);
-    context.fillStyle = muted;
-    fitText(context, summary.methodTitle, 944, 26, 500, 22);
-    context.fillText(summary.methodTitle, 68, 385);
     context.save();
     context.translate(0, -28);
 

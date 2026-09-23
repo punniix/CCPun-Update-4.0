@@ -312,7 +312,8 @@ assert(imageSource.includes('รายได้ต่อเดือน × 12 �
 assert(shareImageSource.includes("'image/png'"), 'result image must be encoded as PNG');
 assert(imageSource.includes('ประมาณการทุนโรคร้ายแรงที่ควรมี'), 'CI image must use the approved headline');
 assert(imageSource.includes("summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'"), 'CI export must label the selected estimation method');
-assert(shareImageSource.includes('context.fillText(summary.methodTitle, 68, 385)'), 'CI image must visibly print the selected estimation method');
+assert(!shareImageSource.includes('context.fillText(summary.methodTitle, 68, 385)'), 'CI image must not repeat the method below its amount');
+assert(shareImageSource.includes('context.fillText(summary.methodTitle, 96, 862)'), 'FHC image must keep its existing method detail');
 assert(shareImageSource.includes('ทุนสำหรับรับมือโรคร้ายแรง'), 'CI image must use the review-approved funding label');
 assert(shareImageSource.includes('drawSticker') && shareImageSource.includes("typeof Path2D === 'undefined'") && shareImageSource.includes("'#ead9a8'"), 'CI stickers must have their own surface and remain browser-safe');
 assert(shareImageSource.includes('ทุนที่มีสำหรับรับมือโรคร้ายแรง'), 'CI detail card must not keep the stale money label');

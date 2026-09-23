@@ -122,7 +122,7 @@ export async function renderCIResultImage(
 
   return renderResultShareImage({
     toolName: summary.toolName,
-    resultLabel: 'ประมาณการทุนโรคร้ายแรงที่ควรมี',
+    resultLabel: `ประมาณการทุนโรคร้ายแรงที่ควรมีจาก${summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'}`,
     primaryAmount: baht(summary.mainNeedToday),
     metrics: [
       { label: 'เงินก้อนจากประกันโรคร้ายแรง', value: baht(summary.existingCICover) },
