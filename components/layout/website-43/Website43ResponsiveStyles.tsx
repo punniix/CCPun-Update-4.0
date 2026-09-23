@@ -86,8 +86,8 @@ export function Website43ResponsiveStyles() {
 
 .${styles.toolHeroImage} {
   width: clamp(630px, calc(55.8824vw + 15.2941px), 820px);
-  object-fit: cover;
-  object-position: center center;
+  object-fit: contain;
+  object-position: right center;
 }
 .${styles.toolHeroGradient} {
   z-index: 1;
@@ -372,6 +372,12 @@ export function Website43ResponsiveStyles() {
     inset: 96px 0 auto auto;
     height: 620px;
   }
+  .${styles.toolHero}::after {
+    /* ponytail: the 70px fade reaches dark where the contained 4:3 image ends. */
+    inset: clamp(476px, calc(21vw + 246px), 548px) 0 0;
+    height: auto;
+    background: linear-gradient(180deg, rgba(6,11,9,0), #060b09 70px);
+  }
 
   .${styles.toolStorySection} {
     padding-left: var(--w43-nav-gutter);
@@ -412,10 +418,15 @@ export function Website43ResponsiveStyles() {
     padding-inline: calc(25vw + 24.5px);
   }
 
-  .${styles.toolHeroImage} {
-    inset: 80px 0 auto 0;
-    width: 100%;
-    height: 600px;
+  .${styles.root} .${styles.toolHeroImage} {
+    inset: 0 0 auto auto;
+    width: 560px;
+    height: 100%;
+  }
+  .${styles.toolHero}::after {
+    inset: auto 0 0;
+    height: 150px;
+    background: linear-gradient(180deg, rgba(6,11,9,0), #060b09 40%);
   }
 }
 
@@ -488,31 +499,31 @@ export function Website43ResponsiveStyles() {
   }
 
   .${styles.toolHero} {
-    height: 740px;
+    height: 700px;
   }
   .${styles.toolHeroImage} {
-    top: 300px;
+    top: 252px;
     right: auto;
     bottom: auto;
     left: 0;
     width: 100%;
-    height: 440px;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     object-position: center center;
-    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
-    mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 82%, transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 82%, transparent 100%);
   }
   .${styles.toolHeroGradient} {
     inset: 0;
     width: 100%;
-    height: 740px;
+    height: 700px;
     background: linear-gradient(180deg,rgb(4,6,5) 0%,rgb(4,6,5) 34%,rgba(4,6,5,.88) 37%,rgba(4,6,5,.55) 40%,rgba(4,6,5,.25) 42%,rgba(4,6,5,0) 44%,rgba(4,6,5,0) 100%);
   }
   .${styles.toolHero}::after {
     content: '';
     position: absolute;
     z-index: 2;
-    top: 505px;
+    top: 465px;
     right: 0;
     left: 0;
     height: 235px;
@@ -523,7 +534,7 @@ export function Website43ResponsiveStyles() {
     top: 0;
     left: var(--w43-hero-gutter);
     width: calc(100% - var(--w43-hero-gutter) - var(--w43-hero-gutter));
-    height: 740px;
+    height: 700px;
   }
   .${styles.toolBadge} {
     position: absolute;
@@ -550,7 +561,7 @@ export function Website43ResponsiveStyles() {
   }
   .${styles.toolHero} .${styles.primaryButton} {
     position: absolute;
-    top: 635px;
+    top: 636px;
     left: 0;
     min-width: 140px;
     margin: 0;

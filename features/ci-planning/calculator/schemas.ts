@@ -158,6 +158,7 @@ const stepExpensesSchema = z.object({
 const stepExistingCISchema = z.object({
   lumpSum: nonNegativeAmount,
   liquidAssets: nonNegativeAmount,
+  protectLiquidAssets: z.boolean().optional(),
 });
 
 // ── Step Validators (0-indexed) ───────────────────────────────────────────

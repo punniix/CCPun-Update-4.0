@@ -284,15 +284,17 @@ export function calculateCI(formData: CIFormData): CIResult {
     effectiveReserveYears,
   );
 
-  const calculatedNeed = expenseBaseNeed > 0
-    ? safeMoneyResult(expenseBaseNeed + recoveryReserveNeed, 'calculatedNeed')
-    : 0;
-  const incomeBasedNeed = incomeBaseNeed > 0
-    ? safeMoneyResult(incomeBaseNeed + recoveryReserveNeed, 'incomeBasedNeed')
-    : 0;
-
   const existingCoverage = safeMoneyInput(existingCI.lumpSum ?? 0, 'existingCoverage');
   const liquidAssets = safeMoneyInput(existingCI.liquidAssets ?? 0, 'liquidAssets');
+  const protectLiquidAssets = existingCI.protectLiquidAssets === true && liquidAssets > 0;
+  // ponytail: add the chosen asset amount to the goal once; keep resources unchanged so the gap rises once.
+  const protectedAssetsNeed = protectLiquidAssets ? liquidAssets : 0;
+  const calculatedNeed = expenseBaseNeed > 0
+    ? safeMoneyResult(safeMoneyResult(expenseBaseNeed + recoveryReserveNeed, 'calculatedNeed') + protectedAssetsNeed, 'calculatedNeed')
+    : 0;
+  const incomeBasedNeed = incomeBaseNeed > 0
+    ? safeMoneyResult(safeMoneyResult(incomeBaseNeed + recoveryReserveNeed, 'incomeBasedNeed') + protectedAssetsNeed, 'incomeBasedNeed')
+    : 0;
   const availableResources = safeMoneyResult(existingCoverage + liquidAssets, 'availableResources');
 
   const signedGap = calculatedNeed - availableResources;
@@ -358,6 +360,8 @@ export function calculateCI(formData: CIFormData): CIResult {
 
     existingCoverage,
     liquidAssets,
+    protectLiquidAssets,
+    protectedAssetsNeed,
     availableResources,
 
     signedGap,

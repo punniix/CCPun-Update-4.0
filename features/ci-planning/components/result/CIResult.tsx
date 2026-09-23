@@ -34,8 +34,8 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const hasTrackedResultViewRef = useRef(false);
 
-  const expenseBaseNeed = result.expenseBaseNeed ?? Math.max(result.calculatedNeed - result.recoveryReserveNeed, 0);
-  const incomeBaseNeed = result.incomeBaseNeed ?? Math.max(result.incomeBasedNeed - result.recoveryReserveNeed, 0);
+  const expenseBaseNeed = result.expenseBaseNeed ?? Math.max(result.calculatedNeed - result.recoveryReserveNeed - result.protectedAssetsNeed, 0);
+  const incomeBaseNeed = result.incomeBaseNeed ?? Math.max(result.incomeBasedNeed - result.recoveryReserveNeed - result.protectedAssetsNeed, 0);
 
   const availableMethods: CIEstimationMethod[] = [
     ...(expenseBaseNeed > 0 ? ['expense' as const] : []),
@@ -103,7 +103,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       </h2>
       <output className="ccpun-calculator-result-amount" aria-live="polite" aria-atomic="true">{baht(selectedNeed)}</output>
       <p className="ccpun-calculator-result-body">
-        ยอดรวมนี้ = {baht(selectedBaseNeed)} จาก{activeMethod === 'expense' ? 'รายจ่ายและภาระที่กรอก' : 'รายได้ตามช่วงเวลาที่เลือก'} + Recovery Reserve {baht(result.recoveryReserveNeed)} โดยบวก Recovery Reserve เพียง 1 ครั้ง
+        ยอดรวมนี้ = {baht(selectedBaseNeed)} จาก{activeMethod === 'expense' ? 'รายจ่ายและภาระที่กรอก' : 'รายได้ตามช่วงเวลาที่เลือก'} + Recovery Reserve {baht(result.recoveryReserveNeed)}{result.protectedAssetsNeed > 0 ? ` + เป้าหมายรักษาสินทรัพย์ ${baht(result.protectedAssetsNeed)}` : ''} โดยบวกแต่ละส่วนเพียง 1 ครั้ง
       </p>
     </section>
 
@@ -132,16 +132,17 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
         })}
       </div>
       <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">
-        ระบบแสดงสองวิธีแยกกันและไม่นำมาบวกกัน โดยแต่ละวิธีจะบวก Recovery Reserve ก้อนเดียวกัน 1 ครั้ง:
-        ฐานตามรายจ่าย + Recovery Reserve หรือฐานตามรายได้ + Recovery Reserve
+        ระบบแสดงสองวิธีแยกกันและไม่นำมาบวกกัน แต่ละวิธีเริ่มจากฐานตามรายจ่ายหรือรายได้ แล้วบวก Recovery Reserve 1 ครั้ง
+        {result.protectedAssetsNeed > 0 ? ' และเป้าหมายรักษาสินทรัพย์อีก 1 ครั้ง' : ''}
       </p>
     </fieldset> : null}
 
     <MoneyComparison
       need={selectedNeed}
       resources={result.availableResources}
-      title={`เปรียบเทียบ${methodLabel}กับทรัพยากรที่พร้อมใช้`}
+      title={`เปรียบเทียบ${methodLabel}กับทุนที่มี`}
       needLabel={methodLabel}
+      resourcesLabel="ทุนที่มี"
     />
 
     <section className="ccpun-calculator-result-panel">
@@ -151,9 +152,12 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           <p className="mt-1 text-3xl font-semibold tabular-nums">{baht(difference)}</p>
         </div>
         <p className="ccpun-calculator-result-body">
-          ทรัพยากรรวม {baht(result.availableResources)} จากเงินก้อนประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่คุณกรอก
+          ทุนที่มีรวม {baht(result.availableResources)} จากเงินก้อนประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่คุณกรอก
         </p>
       </div>
+      {result.protectedAssetsNeed > 0 ? <p className="ccpun-calculator-result-body">
+        คุณเลือกเก็บสินทรัพย์สภาพคล่อง {baht(result.protectedAssetsNeed)} ไว้ ระบบจึงเพิ่มเป้าหมายทุนเท่ากับยอดนี้ 1 ครั้ง เพื่อให้เห็นส่วนขาดหลังเผื่อรักษาสินทรัพย์ก้อนเดิม
+      </p> : null}
       {displayedSurplus > 0 ? <p className="ccpun-calculator-result-body">
         จำนวนที่สูงกว่าประมาณการนี้อ้างอิงเฉพาะสมมติฐานชุดนี้ ไม่ได้หมายความว่าความคุ้มครองทั้งหมดเพียงพอแล้ว
       </p> : null}
@@ -162,14 +166,16 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     <details className="ccpun-calculator-result-details">
       <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ดูที่มาของประมาณการ</summary>
       <div className="mt-4">
-        {activeMethod === 'expense' ? <dl className="grid gap-3 sm:grid-cols-4">
+        {activeMethod === 'expense' ? <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div><dt className="ccpun-calculator-result-eyebrow">ค่าใช้จ่ายครอบครัว</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.householdNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">ค่าเรียนบุตร</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.educationNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">ภาระหนี้รวม</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.debtNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
+          {result.protectedAssetsNeed > 0 ? <div><dt className="ccpun-calculator-result-eyebrow">เป้าหมายรักษาสินทรัพย์</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.protectedAssetsNeed)}</dd></div> : null}
         </dl> : <dl className="grid gap-3 sm:grid-cols-2">
           <div><dt className="ccpun-calculator-result-eyebrow">ทุนตามรายได้ก่อน Recovery</dt><dd className="mt-1 font-medium tabular-nums">{baht(incomeBaseNeed)}</dd></div>
           <div><dt className="ccpun-calculator-result-eyebrow">Recovery Reserve</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.recoveryReserveNeed)}</dd></div>
+          {result.protectedAssetsNeed > 0 ? <div><dt className="ccpun-calculator-result-eyebrow">เป้าหมายรักษาสินทรัพย์</dt><dd className="mt-1 font-medium tabular-nums">{baht(result.protectedAssetsNeed)}</dd></div> : null}
         </dl>}
       </div>
     </details>
@@ -249,7 +255,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     <div className="ccpun-calculator-result-cta">
       <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />
       <h3>อยากทบทวนตัวเลขต่อ?</h3>
-      <p>บันทึกภาพสรุป แล้วส่งมาคุยรายละเอียดกับ CCPun ทาง LINE OA เมื่อพร้อม</p>
+      <p>แชร์ภาพผลลัพธ์แล้วเลือกแชต LINE OA ของ CCPun หรือบันทึกภาพไว้แนบในแชตด้วยตัวเอง</p>
       <a
         href={CI_LINE_OA_URL}
         target="_blank"
@@ -264,7 +270,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
         })}
       >
         <MessageCircle className="h-5 w-5" aria-hidden="true" />
-        คุยกับ CCPun ทาง LINE OA
+        ไปที่ LINE OA เพื่อส่งภาพ
       </a>
     </div>
 

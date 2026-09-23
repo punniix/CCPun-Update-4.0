@@ -2,11 +2,13 @@ import { readFileSync } from 'node:fs';
 import {
   CI_LINE_OA_DESTINATION,
   CI_LINE_OA_URL,
+  INITIAL_CI_FORM_DATA,
 } from '../features/ci-planning/calculator/constants';
+import { calculateCI } from '../features/ci-planning/calculator/calculator';
+import { CI_RECOVERY_PRESETS } from '../features/ci-planning/recovery-evidence';
 import type { CIResult } from '../features/ci-planning/calculator/types';
 import {
   createCIResultImageSummary,
-  RESULT_IMAGE_HEIGHT,
   RESULT_IMAGE_WIDTH,
 } from '../features/ci-planning/result-image';
 
@@ -21,10 +23,49 @@ function equal(actual: unknown, expected: unknown, message: string): void {
 }
 
 equal(RESULT_IMAGE_WIDTH, 1080, 'result image width must be stable');
-equal(RESULT_IMAGE_HEIGHT, 1350, 'result image height must be stable');
 
 equal(CI_LINE_OA_URL, 'https://lin.ee/tqLCs4f', 'CI must always use the approved LINE OA URL');
 equal(CI_LINE_OA_DESTINATION, 'line_oa', 'CI analytics destination must always be direct LINE OA');
+
+const protectedCalculation = calculateCI({
+  ...INITIAL_CI_FORM_DATA,
+  expenses: { ...INITIAL_CI_FORM_DATA.expenses, household: 20_000, monthlyIncome: 20_000, reserveYears: 5 },
+  existingCI: { lumpSum: 200_000, liquidAssets: 300_000, protectLiquidAssets: true },
+});
+equal(protectedCalculation.calculatedNeed, 1_500_000, 'protected expense target must add liquid assets once');
+equal(protectedCalculation.incomeBasedNeed, 1_500_000, 'protected income target must add liquid assets once');
+equal(protectedCalculation.availableResources, 500_000, 'asset choice must not remove or duplicate resources');
+equal(protectedCalculation.shortfall, 1_000_000, 'asset choice must increase the gap by the entered asset amount once');
+const unprotectedCalculation = calculateCI({
+  ...INITIAL_CI_FORM_DATA,
+  expenses: { ...INITIAL_CI_FORM_DATA.expenses, household: 20_000, monthlyIncome: 20_000, reserveYears: 5 },
+  existingCI: { lumpSum: 200_000, liquidAssets: 300_000, protectLiquidAssets: false },
+});
+equal(protectedCalculation.shortfall - unprotectedCalculation.shortfall, 300_000, 'turning asset protection on must increase expense gap once');
+equal(protectedCalculation.incomeShortfall - unprotectedCalculation.incomeShortfall, 300_000, 'turning asset protection on must increase income gap once');
+for (const method of ['expense', 'income'] as const) {
+  const exportSummary = createCIResultImageSummary(protectedCalculation, method, 'ci_planning_v11');
+  equal(exportSummary.targetItems.reduce((sum, item) => sum + item.amount, 0), exportSummary.mainNeedToday, `${method} export target rows must reconcile`);
+  equal(exportSummary.resourceItems.reduce((sum, item) => sum + item.amount, 0), exportSummary.availableResources, `${method} export resource rows must reconcile`);
+  equal(exportSummary.shortfall, 1_000_000, `${method} export must use its own protected-asset shortfall`);
+}
+const incomeWithRecovery = calculateCI({
+  ...INITIAL_CI_FORM_DATA,
+  expenses: {
+    ...INITIAL_CI_FORM_DATA.expenses,
+    monthlyIncome: 20_000,
+    household: 10_000,
+    reserveYears: 5,
+    recovery: CI_RECOVERY_PRESETS.continued.recovery,
+  },
+  existingCI: { lumpSum: 200_000, liquidAssets: 300_000, protectLiquidAssets: true },
+});
+const incomeWithRecoverySummary = createCIResultImageSummary(incomeWithRecovery, 'income', 'ci_planning_v11');
+equal(incomeWithRecoverySummary.mainNeedToday, 2_000_000, 'income export must include recovery and protected assets once');
+equal(incomeWithRecoverySummary.shortfall, 1_500_000, 'income export gap must deduct resources once');
+equal(incomeWithRecoverySummary.targetItems.map((item) => item.amount).join(','), '1200000,500000,300000', 'income image must separate income base, Recovery Reserve, and protected assets');
+equal(incomeWithRecoverySummary.targetItems[1]?.label, 'สำรองฟื้นฟู (เผื่อฟื้นฟูต่อเนื่อง + ปรับบ้าน)', 'income image must name the selected Recovery phase');
+equal(incomeWithRecoverySummary.targetItems.reduce((sum, item) => sum + item.amount, 0), incomeWithRecoverySummary.mainNeedToday, 'income image rows must reconcile with Recovery Reserve');
 
 const result: CIResult = {
   householdMonthly: 12_345,
@@ -68,6 +109,8 @@ const result: CIResult = {
   calculatedNeed: 1_703_661,
   existingCoverage: 500_000,
   liquidAssets: 250_000,
+  protectLiquidAssets: false,
+  protectedAssetsNeed: 0,
   availableResources: 750_000,
   signedGap: 953_661,
   gap: 953_661,
@@ -98,9 +141,12 @@ const expectedKeys = [
   'liquidAssets',
   'mainNeedToday',
   'methodLabel',
+  'protectedAssetsNeed',
   'recoveryReserve',
+  'resourceItems',
   'shortfall',
   'surplus',
+  'targetItems',
   'toolName',
 ];
 equal(
@@ -120,7 +166,52 @@ equal(summary.breakdown.household, result.householdNeed, 'aggregate household ne
 equal(summary.breakdown.education, result.educationNeed, 'aggregate education need must be included');
 equal(summary.breakdown.debt, result.debtNeed, 'aggregate debt need must be included');
 equal(summary.breakdown.recovery, result.recoveryReserveNeed, 'Recovery Reserve must be included in expense breakdown');
+equal(summary.targetItems.length, 3, 'expense image must show each nonzero target category');
+equal(summary.targetItems.reduce((sum, item) => sum + item.amount, 0), summary.mainNeedToday, 'target category rows must reconcile to the estimated need');
+equal(summary.resourceItems.reduce((sum, item) => sum + item.amount, 0), summary.availableResources, 'resource rows must reconcile to available funds');
 equal(summary.recoveryReserve, result.recoveryReserveNeed, 'Recovery Reserve must be explicit in top-level image summary');
+
+const recoverySummary = createCIResultImageSummary({
+  ...result,
+  recoveryMode: 'continued',
+  recoveryReserveNeed: 500_000,
+  calculatedNeed: result.calculatedNeed + 500_000,
+  shortfall: result.shortfall + 500_000,
+}, 'expense', 'ci_planning_v6');
+equal(recoverySummary.recoveryReserve, 500_000, 'private image must include the current Recovery Reserve amount');
+equal(recoverySummary.targetItems.length, 4, 'Recovery Reserve must add one row when selected');
+equal(recoverySummary.targetItems.at(-1)?.label, 'สำรองฟื้นฟู (เผื่อฟื้นฟูต่อเนื่อง + ปรับบ้าน)', 'expense image must name the selected Recovery phase');
+
+const protectedSummary = createCIResultImageSummary({
+  ...result,
+  protectLiquidAssets: true,
+  protectedAssetsNeed: result.liquidAssets,
+  calculatedNeed: result.calculatedNeed + result.liquidAssets,
+  shortfall: result.shortfall + result.liquidAssets,
+}, 'expense', 'ci_planning_v11');
+equal(protectedSummary.targetItems.length, 4, 'asset protection must add one target category');
+equal(protectedSummary.targetItems.at(-1)?.label, 'เป้าหมายรักษาสินทรัพย์', 'image must name the protected-asset target');
+equal(protectedSummary.targetItems.reduce((sum, item) => sum + item.amount, 0), protectedSummary.mainNeedToday, 'protected target rows must reconcile');
+equal(protectedSummary.resourceItems.reduce((sum, item) => sum + item.amount, 0), protectedSummary.availableResources, 'protected assets must remain visible in resources once');
+const protectedIncomeSummary = createCIResultImageSummary({
+  ...result,
+  protectLiquidAssets: true,
+  protectedAssetsNeed: result.liquidAssets,
+  incomeBasedNeed: result.incomeBasedNeed + result.liquidAssets,
+  incomeShortfall: result.incomeShortfall + result.liquidAssets,
+}, 'income', 'ci_planning_v11');
+equal(protectedIncomeSummary.targetItems.reduce((sum, item) => sum + item.amount, 0), protectedIncomeSummary.mainNeedToday, 'income target rows must not count protected assets twice');
+const combinedSummary = createCIResultImageSummary({
+  ...result,
+  recoveryMode: 'continued',
+  recoveryReserveNeed: 500_000,
+  protectLiquidAssets: true,
+  protectedAssetsNeed: result.liquidAssets,
+  calculatedNeed: result.calculatedNeed + 500_000 + result.liquidAssets,
+  shortfall: result.shortfall + 500_000 + result.liquidAssets,
+}, 'expense', 'ci_planning_v11');
+equal(combinedSummary.targetItems.length, 5, 'Recovery and asset protection must both remain visible with multiple expense categories');
+equal(combinedSummary.targetItems.reduce((sum, item) => sum + item.amount, 0), combinedSummary.mainNeedToday, 'all target rows must reconcile when both options are selected');
 
 const incomeSummary = createCIResultImageSummary(
   result,
@@ -134,6 +225,8 @@ equal(incomeSummary.mainNeedToday, result.incomeBasedNeed, 'income export must u
 equal(incomeSummary.shortfall, result.incomeShortfall, 'income export must use the independent income shortfall');
 equal(incomeSummary.surplus, result.incomeSurplus, 'income export must use the independent income surplus');
 equal(incomeSummary.breakdown, null, 'income export must not attach the unrelated expense breakdown');
+equal(incomeSummary.targetItems.length, 1, 'income export must not show unrelated expense categories');
+equal(incomeSummary.targetItems[0]?.amount, result.incomeBasedNeed, 'income base row must match the selected method');
 
 const serializedSummary = JSON.stringify(summary);
 for (const forbiddenKey of [
@@ -167,6 +260,7 @@ for (const rawValue of ['12345', '98765', '777777']) {
 
 const imageSource = readFileSync(new URL('../features/ci-planning/result-image.ts', import.meta.url), 'utf8');
 const shareImageSource = readFileSync(new URL('../lib/shared/result-share-image.ts', import.meta.url), 'utf8');
+assert(!shareImageSource.includes('สินทรัพย์ยังอยู่ในทุนที่มี'), 'CI export must not restore the removed grey protected-assets note');
 const fhcImageSource = readFileSync(
   new URL('../features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx', import.meta.url),
   'utf8',
@@ -217,13 +311,27 @@ assert(!imageSource.includes("context.fillText('ccpun.com'"), 'result image must
 assert(!shareImageSource.includes('#16352f') && shareImageSource.includes('#352727'), 'result image must use the current warm-brown palette');
 assert(imageSource.includes('รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก'), 'income result image must state that the selected duration is in years');
 assert(shareImageSource.includes("'image/png'"), 'result image must be encoded as PNG');
+assert(imageSource.includes('ประมาณการทุนโรคร้ายแรงที่ควรมี'), 'CI image must use the approved headline');
+assert(imageSource.includes("summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'"), 'CI export must label the selected estimation method');
+assert(!shareImageSource.includes('context.fillText(summary.methodTitle, 68, 385)'), 'CI image must not repeat the method below its amount');
+assert(shareImageSource.includes('context.fillText(summary.methodTitle, 96, 862)'), 'FHC image must keep its existing method detail');
+assert(shareImageSource.includes('ทุนสำหรับรับมือโรคร้ายแรง'), 'CI image must use the review-approved funding label');
+assert(shareImageSource.includes('drawSticker') && shareImageSource.includes("typeof Path2D === 'undefined'") && shareImageSource.includes("'#ead9a8'"), 'CI stickers must have their own surface and remain browser-safe');
+assert(shareImageSource.includes('ทุนที่มีสำหรับรับมือโรคร้ายแรง'), 'CI detail card must not keep the stale money label');
+assert(!shareImageSource.includes('ที่มาของเงินที่มี'), 'CI detail card must not use the stale money label');
+assert(!shareImageSource.includes('สีทอง =') && !shareImageSource.includes('สีชมพู ='), 'CI graph must not need a color legend');
+assert(shareImageSource.includes('Math.min(resources / target, 1)'), 'CI chart must scale available resources to the target');
+assert(shareImageSource.includes('resources < target'), 'CI chart colors must distinguish shortfall and covered cases');
+assert(!shareImageSource.includes('summary.composition.differenceEquation'), 'CI image must omit the redundant gap equation');
+assert(shareImageSource.includes('summary.composition.targetItems'), 'CI image must render variable target categories');
+assert(shareImageSource.includes('summary.composition.resourceItems'), 'CI image must render variable resource categories');
+assert(resultImageButtonSource.includes('navigator.share({ files: [imageFile] })'), 'private share must use the local PNG file');
+assert(resultImageButtonSource.includes('navigator.canShare({ files: [imageFile] })'), 'native share must be capability gated');
+assert(!resultImageButtonSource.includes('fetch('), 'private result image must never upload calculator data');
 assert(imageSource.includes('renderResultShareImage'), 'CI export must use the shared result image renderer');
 assert(fhcImageSource.includes('renderResultShareImage'), 'FHC export must use the shared result image renderer');
+assert(ciResultSource.includes('ประมาณการทุนเบื้องต้น'), 'CI result page must keep its preliminary-estimate heading');
 for (const source of [ciResultSource, imageSource]) {
-  assert(
-    source.includes('ประมาณการทุนเบื้องต้น'),
-    'CI result surfaces must use the required preliminary-estimate heading',
-  );
   assert(
     source.includes('ส่วนต่างจากประมาณการ'),
     'CI result surfaces must use the preliminary-estimate difference label',
@@ -333,7 +441,8 @@ assert(
 assert(ciExpensesSurfaceSource.includes('id="ci-monthly-income"'), 'Step 1 must expose an accessible monthly-income field');
 assert(ciExistingSource.includes('id="ci-liquid-assets"'), 'Step 2 must expose a stable liquid-assets field');
 assert(ciExistingSource.includes('placeholder="เช่น 500,000"'), 'liquid-assets currency field must use a short numeric example');
-assert(ciExistingSource.includes('บ้าน รถ หรือทรัพย์สินจำเป็นที่ไม่ตั้งใจขายไม่ต้องกรอก'), 'short numeric examples must retain the asset inclusion guidance');
+assert(ciExistingSource.includes('บ้าน รถ หรือทรัพย์สินที่แปลงเป็นเงินได้ยากยังไม่รวมในช่องนี้'), 'asset field must retain the liquid-only scope');
+assert(ciExistingSource.includes('type="checkbox"') && ciExistingSource.includes('protectLiquidAssets'), 'Step 2 must offer the asset-protection choice');
 assert(ciExpensesSurfaceSource.includes('placeholder="เช่น 100,000"'), 'other-debt currency field must use a short numeric example');
 assert(ciExistingSource.includes('เงินก้อนจากประกันโรคร้ายแรงที่มี'), 'Step 2 must retain the existing CI lump-sum field');
 assert(
@@ -368,6 +477,7 @@ assert(
 );
 assert(ciResultSource.includes('result.incomeBasedNeed > 0'), 'income selector must only appear when income-derived need is positive');
 assert(ciResultSource.includes('ระบบแสดงสองวิธีแยกกันและไม่นำมาบวกกัน'), 'result must prohibit combining the two methods');
+assert(ciResultSource.includes("result.protectedAssetsNeed > 0 ? ' และเป้าหมายรักษาสินทรัพย์อีก 1 ครั้ง'"), 'result method help must explain the optional asset-protection addition');
 assert(
   resultImageButtonSource.includes('selectedMethod={activeMethod}')
     || ciResultSource.includes('selectedMethod={activeMethod}'),
