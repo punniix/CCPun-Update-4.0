@@ -45,6 +45,7 @@ export type Website43BlogClientClassNames = {
 };
 
 const FEATURED_REPEAT_COUNT = 3;
+const FEATURED_AUTOPLAY_MS = 4000;
 
 function ArticleCard({ article, classNames }: { article: Website43ArticleItem; classNames: Website43BlogClientClassNames }) {
   return (
@@ -77,10 +78,12 @@ export default function Website43BlogInteractive({
 }) {
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
   const featuredRailRef = useRef<HTMLDivElement>(null);
+  const featuredHoverRef = useRef(false);
   const featuredScrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
   const categoryButtonRef = useRef<HTMLButtonElement>(null);
   const [activeFeatured, setActiveFeatured] = useState(0);
+  const [autoplayStopped, setAutoplayStopped] = useState(false);
   const [query, setQuery] = useState(initialQuery);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
@@ -147,9 +150,21 @@ export default function Website43BlogInteractive({
   }, [featuredCount]);
 
   const scrollFeaturedTo = (index: number) => {
+    setAutoplayStopped(true);
     centerFeaturedCard(featuredCount + index, 'smooth');
     setActiveFeatured(index);
   };
+
+  useEffect(() => {
+    if (featuredCount < 2 || autoplayStopped) return;
+    // ponytail: one native-scroll timer; manual interaction stops it for this visit.
+    const timer = window.setInterval(() => {
+      const viewport = featuredScrollerRef.current?.parentElement;
+      if (!viewport || document.hidden || featuredHoverRef.current || viewport.contains(document.activeElement) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      centerFeaturedCard(featuredCount + activeFeatured + 1);
+    }, FEATURED_AUTOPLAY_MS);
+    return () => window.clearInterval(timer);
+  }, [activeFeatured, autoplayStopped, featuredCount]);
 
   const syncFeaturedDot = () => {
     const scroller = featuredScrollerRef.current;
@@ -187,8 +202,20 @@ export default function Website43BlogInteractive({
       <div className={classNames.inner}>
         <p className={classNames.eyebrow}>บทความแนะนำ</p>
       </div>
-      {featuredCount > 0 ? <div className={classNames.featuredViewport} aria-label="บทความแนะนำ">
-        <div className={classNames.featuredScroller} ref={featuredScrollerRef} onScroll={syncFeaturedDot}>
+      {featuredCount > 0 ? <div
+        className={classNames.featuredViewport}
+        aria-label="บทความแนะนำ"
+        onPointerEnter={(event) => { if (event.pointerType !== 'touch') featuredHoverRef.current = true; }}
+        onPointerLeave={() => { featuredHoverRef.current = false; }}
+      >
+        <div
+          className={classNames.featuredScroller}
+          ref={featuredScrollerRef}
+          onScroll={syncFeaturedDot}
+          onPointerDown={() => setAutoplayStopped(true)}
+          onWheel={(event) => { if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) setAutoplayStopped(true); }}
+          onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') setAutoplayStopped(true); }}
+        >
           <div className={classNames.featuredRail} ref={featuredRailRef}>
             {loopedFeaturedArticles.map((article, index) => {
               const repeatIndex = Math.floor(index / featuredCount);

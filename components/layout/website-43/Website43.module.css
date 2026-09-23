@@ -425,12 +425,15 @@
 .calculatorStage :global(.ccpun-calculator-result-amount) small { font-size: 17px; font-weight: 500; }
 .calculatorStage :global(.ccpun-calculator-result-body) { margin: 14px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
 .calculatorStage :global(.ccpun-calculator-result-panel) { padding: 20px; border: 1px solid rgba(91,72,72,.72); border-radius: 14px; background: rgba(74,58,58,.18); }
+.calculatorStage :global(.ccpun-calculator-result-difference) { font-size: clamp(22px,5vw,30px); line-height: 1.25; }
 .calculatorStage :global(.ccpun-calculator-result-panel-title) { margin: 0; color: var(--w43-ink); font-size: 18px; font-weight: 600; line-height: 1.45; }
 .calculatorStage :global(.ccpun-calculator-result-rows) { border-block: 1px solid var(--w43-border); }
+.calculatorStage :global(.ccpun-calculator-result-breakdown) { margin: 0; border: 0; }
 .calculatorStage :global(.ccpun-calculator-result-row) { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 0; border-bottom: 1px solid rgba(91,72,72,.65); }
 .calculatorStage :global(.ccpun-calculator-result-row:last-child) { border-bottom: 0; }
 .calculatorStage :global(.ccpun-calculator-result-row) dt { color: var(--w43-muted); font-size: 14px; line-height: 1.5; }
 .calculatorStage :global(.ccpun-calculator-result-row) dd { margin: 0; color: var(--w43-ink); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.calculatorStage :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) dd { white-space: nowrap; }
 .calculatorStage :global(.ccpun-calculator-result-notice) { padding: 16px 18px; border: 1px solid rgba(91,72,72,.65); border-radius: 12px; background: rgba(37,24,24,.34); color: var(--w43-muted); font-size: 13px; line-height: 1.65; }
 .calculatorStage :global(.ccpun-calculator-result-cta) { padding: 22px; border: 1px solid var(--w43-border); border-radius: 14px; background: var(--w43-deep); text-align: center; }
 .calculatorStage :global(.ccpun-calculator-result-cta) h3 { margin: 14px 0 0; color: var(--w43-ink); font-size: 18px; font-weight: 600; }
@@ -438,12 +441,14 @@
 .calculatorStage :global(.ccpun-calculator-result-method-grid) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .calculatorStage :global(.ccpun-calculator-result-method) { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--w43-border); border-radius: 12px; background: rgba(37,24,24,.28); cursor: pointer; }
 .calculatorStage :global(.ccpun-calculator-result-method-selected) { border-color: rgba(224,201,133,.56); background: rgba(224,201,133,.07); }
-.calculatorStage :global(.ccpun-calculator-result-details) { padding-block: 14px; border-block: 1px solid var(--w43-border); }
+.calculatorStage :global(.ccpun-calculator-result-details) { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--w43-border); }
 .calculatorStage :global(.ccpun-calculator-result-details) summary { cursor: pointer; color: var(--w43-ink); font-size: 14px; font-weight: 600; }
 .calculatorStage :global(.ccpun-calculator-result) :global(.money-comparison) { padding: 2px 0; }
 .calculatorStage :global(.ccpun-calculator-result) :global(.money-comparison) dl { border-color: var(--w43-border); background: rgba(37,24,24,.28); }
 .ciStoryCarouselWrap { position: relative; }
-.ciStoryGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-top: 36px; }
+.ciStoryViewport { position: relative; margin-top: 36px; }
+.ciStoryGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.ciStoryGrid > :nth-child(n+4) { display: none; }
 .ciStoryCarouselControls { display: none; }
 .ciStoryCard { overflow: hidden; border: 1px solid var(--w43-border); border-radius: 16px; background: var(--w43-surface); }
 .ciStoryCard img { width: 100%; aspect-ratio: 4/3; object-fit: cover; }
@@ -774,16 +779,22 @@
   .calculatorStage :global(.ccpun-calculator-result-amount) { font-size: 38px; }
   .calculatorStage :global(.ccpun-calculator-result-row) { flex-direction: column; align-items: flex-start; gap: 4px; }
   .calculatorStage :global(.ccpun-calculator-result-row) dd { text-align: left; }
+  .calculatorStage :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 12px; }
+  .calculatorStage :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) dd { text-align: right; }
   .calculatorStage :global(.ccpun-calculator-result-method-grid) { grid-template-columns: 1fr; }
   .calculatorStage :global(.ccpun-calculator-result-cta) { padding: 20px; }
   .toolMethodGrid { grid-template-columns: 1fr; gap: 12px; }
-  .ciStoryCarouselWrap { margin-right: -24px; }
-  .ciStoryGrid { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: 0; padding-right: 54px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .ciStoryCarouselWrap { --ci-story-card-width: min(78vw, 430px); margin-inline: -24px; }
+  .ciStoryGrid { position: relative; display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: calc(50% - min(39vw, 215px)); padding-inline: calc(50% - min(39vw, 215px)); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .ciStoryGrid > :nth-child(n+4) { display: block; }
   .ciStoryGrid::-webkit-scrollbar { display: none; }
-  .ciStoryCard { flex: 0 0 min(82vw, 310px); scroll-snap-align: start; scroll-snap-stop: always; }
-  .ciStoryCarouselControls { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-right: 24px; color: var(--w43-muted); font-size: 12px; }
-  .ciStoryCarouselControls button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--w43-border); border-radius: 999px; background: rgba(37,24,24,.28); color: var(--w43-gold); cursor: pointer; }
-  .ciStoryCarouselControls button:disabled { opacity: .35; cursor: default; }
+  .ciStoryGrid:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 2px; }
+  .ciStoryCard { flex: 0 0 var(--ci-story-card-width); scroll-snap-align: center; scroll-snap-stop: always; }
+  .ciStoryCarouselControls { position: absolute; inset: 0; display: block; pointer-events: none; }
+  .ciStoryCarouselControls button { position: absolute; top: 50%; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--w43-border); border-radius: 999px; background: rgba(37,24,24,.82); color: var(--w43-gold); cursor: pointer; pointer-events: auto; transform: translateY(-50%); }
+  .ciStoryCarouselControls button:first-child { left: calc(50% - min(39vw, 215px) + 8px); }
+  .ciStoryCarouselControls button:last-child { right: calc(50% - min(39vw, 215px) + 8px); }
+  .ciStoryCarouselControls button:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 2px; }
   .ciStoryCarouselControls svg { width: 18px; height: 18px; }
 
   .legalHeader { padding: 104px 24px 32px; }
