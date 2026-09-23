@@ -247,26 +247,28 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       </details>
     </section>
 
-    <div className="ccpun-calculator-result-cta">
-      <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />
-      <h3>อยากทบทวนตัวเลขต่อ?</h3>
-      <p>แชร์ภาพผลลัพธ์แล้วเลือกแชต LINE OA ของ CCPun หรือบันทึกภาพไว้แนบในแชตด้วยตัวเอง</p>
-      <a
-        href={CI_LINE_OA_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)"
-        className="gold-button ccpun-motion-tactile mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"
-        onClick={() => trackEvent('ci_contact_click', {
-          tool_name: 'ci_planning',
-          cta_location: 'ci_result',
-          contact_channel: 'line',
-          calculator_version: CI_ASSESSMENT_VERSION,
-        })}
-      >
-        <MessageCircle className="h-5 w-5" aria-hidden="true" />
-        ไปที่ LINE OA เพื่อส่งภาพ
-      </a>
+    <div className="ccpun-calculator-result-cta ccpun-ci-result-cta">
+      <div className="ccpun-ci-result-cta-inner">
+        <h3>อยากทบทวนตัวเลขต่อ?</h3>
+        <p className="ccpun-ci-result-cta-copy">แชร์ภาพผลลัพธ์แล้วเลือกแชต LINE OA ของ CCPun หรือบันทึกภาพไว้แนบในแชตด้วยตัวเอง</p>
+        <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />
+        <a
+          href={CI_LINE_OA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)"
+          className="gold-button ccpun-motion-tactile ccpun-ci-result-cta-line inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
+          onClick={() => trackEvent('ci_contact_click', {
+            tool_name: 'ci_planning',
+            cta_location: 'ci_result',
+            contact_channel: 'line',
+            calculator_version: CI_ASSESSMENT_VERSION,
+          })}
+        >
+          <MessageCircle className="h-5 w-5" aria-hidden="true" />
+          ไปที่ LINE OA เพื่อส่งภาพ
+        </a>
+      </div>
     </div>
 
     <p className="ccpun-calculator-result-notice">

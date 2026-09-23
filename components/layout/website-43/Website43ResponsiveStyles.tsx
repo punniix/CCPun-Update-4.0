@@ -95,7 +95,7 @@ export function Website43ResponsiveStyles() {
   width: clamp(620px, calc(29.4118vw + 296.4706px), 720px);
 }
 .${styles.toolHeroCopy} {
-  left: var(--w43-nav-gutter);
+  left: var(--w43-shell-left);
   top: 128px;
   width: clamp(700px, calc(17.6471vw + 505.8824px), 760px);
 }

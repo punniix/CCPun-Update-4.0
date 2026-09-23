@@ -94,35 +94,35 @@ export default function ResultImageDownloadButton({
         : '';
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-col gap-2 sm:flex-row">
-      <button
-        type="button"
-        onClick={handleDownload}
-        disabled={state === 'downloading' || state === 'sharing'}
-        aria-busy={state === 'downloading'}
-        aria-describedby="ci-result-image-privacy ci-result-image-status"
-        className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"
-      >
-        <Download className="h-5 w-5" aria-hidden="true" />
-        {state === 'downloading' ? 'กำลังสร้างภาพ…' : 'บันทึกภาพสรุป'}
-      </button>
-      {canShareFile ? <button
-        type="button"
-        onClick={handleShare}
-        disabled={state === 'downloading' || state === 'sharing'}
-        aria-busy={state === 'sharing'}
-        aria-describedby="ci-result-image-privacy ci-result-image-status"
-        className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"
-      >
-        <Share2 className="h-5 w-5" aria-hidden="true" />
-        {state === 'sharing' ? 'กำลังเปิด…' : 'แชร์ภาพผลลัพธ์'}
-      </button> : null}
+    <div className="ccpun-ci-result-image-actions">
+      <div className={canShareFile ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'}>
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={state === 'downloading' || state === 'sharing'}
+          aria-busy={state === 'downloading'}
+          aria-describedby="ci-result-image-privacy ci-result-image-status"
+          className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
+        >
+          <Download className="h-5 w-5" aria-hidden="true" />
+          {state === 'downloading' ? 'กำลังสร้างภาพ…' : 'บันทึกภาพสรุป'}
+        </button>
+        {canShareFile ? <button
+          type="button"
+          onClick={handleShare}
+          disabled={state === 'downloading' || state === 'sharing'}
+          aria-busy={state === 'sharing'}
+          aria-describedby="ci-result-image-privacy ci-result-image-status"
+          className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
+        >
+          <Share2 className="h-5 w-5" aria-hidden="true" />
+          {state === 'sharing' ? 'กำลังเปิด…' : 'แชร์ภาพผลลัพธ์'}
+        </button> : null}
       </div>
       <p id="ci-result-image-privacy" className="text-xs leading-relaxed text-muted-foreground">
         ภาพมีตัวเลขจากการประเมินและสร้างบนอุปกรณ์นี้ เว็บไม่อัปโหลดข้อมูลที่คุณกรอก ก่อนส่งให้ตรวจสอบผู้รับใน LINE
       </p>
-      <p id="ci-result-image-status" className="min-h-5 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
+      <p id="ci-result-image-status" className="text-xs text-muted-foreground empty:sr-only" aria-live="polite" aria-atomic="true">
         {statusMessage}
       </p>
     </div>

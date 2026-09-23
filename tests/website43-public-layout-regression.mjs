@@ -18,6 +18,7 @@ test('wide desktop Website 4.3 shells stay centered instead of pinning to the le
   assert.match(responsive, /margin-left: auto;\s*margin-right: auto;/);
   assert.match(responsive, /\.\$\{styles\.homeHeroCopy\} \{\s*left: var\(--w43-shell-left\)/);
   assert.match(responsive, /\.\$\{styles\.blogHeroCopy\} \{[\s\S]*?left: var\(--w43-shell-left\)/);
+  assert.match(responsive, /\.\$\{styles\.toolHeroCopy\} \{\s*left: var\(--w43-shell-left\);\s*top: 128px;/);
   assert.match(navbar, /width: min\(1280px, calc\(100% - var\(--w43-nav-gutter, 80px\) - var\(--w43-nav-gutter, 80px\)\)\)/);
 });
 
