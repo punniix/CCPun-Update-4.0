@@ -1,3 +1,5 @@
+import { CCPUN_VERCEL_PROJECT_IDS } from "../environment";
+
 export const ADMIN_OPERATIONS_UAT_MIGRATION_VERSION = "20260830_website_42_admin_operations_v1";
 export const ADMIN_OPERATIONS_UAT_MIGRATION_CHECKSUM = "sha256:51f16b563368488362408f323f95863ecf8f277b6b725b96189fedddf1300e4f";
 export const ADMIN_OPERATIONS_PRODUCTION_MIGRATION_VERSION = "20260913_admin_operations_production_v1";
@@ -73,8 +75,11 @@ export function resolveAdminOperationsRuntimeIdentity(input: AdminOperationsRunt
 
   if (lane === "production") {
     if (vercelEnvironment !== "production" || gitBranch !== "v4-production") return null;
-    if (productionAdminProjectId && vercelProjectId !== productionAdminProjectId) return null;
-  } else if (environment === "admin-uat" && vercelEnvironment && vercelEnvironment !== "preview") {
+    if (vercelProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction) return null;
+    if (productionAdminProjectId && productionAdminProjectId !== vercelProjectId) return null;
+  } else if (environment === "admin-uat") {
+    if (vercelEnvironment !== "preview" || vercelProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction) return null;
+  } else if (vercelEnvironment || vercelProjectId) {
     return null;
   }
 

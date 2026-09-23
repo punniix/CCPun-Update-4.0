@@ -62,6 +62,22 @@ export type RawCategoryRegistryRow = {
   featuredArticleIds?: unknown;
 };
 
+const registryResponseSchema = z.object({
+  categories: z.array(z.unknown()),
+  routeOwnerSlugs: z.array(z.string()),
+  canonicalOwnerUrls: z.array(z.string()),
+  referencedCategoryIds: z.array(z.string()),
+});
+
+export function parseCategoryRegistryResponse(value: unknown) {
+  const parsed = registryResponseSchema.parse(value);
+  return { rows: parsed.categories as RawCategoryRegistryRow[], context: {
+    routeOwnerSlugs: parsed.routeOwnerSlugs,
+    canonicalOwnerUrls: parsed.canonicalOwnerUrls,
+    referencedCategoryIds: parsed.referencedCategoryIds,
+  } };
+}
+
 const rawCategorySchema = z.object({
   _id: z.string().min(1),
   title: z.string().trim().min(1),
@@ -270,6 +286,7 @@ export function listCategoryMenuEntries(registry: CategoryRegistry, includeDraft
 }
 
 export type CategoryRouteResolution =
+  | { kind: "unavailable" }
   | { kind: "category"; category: CategoryRegistryEntry; noindex: boolean }
   | { kind: "redirect"; destinationSlug: string }
   | { kind: "hidden" }
@@ -280,6 +297,7 @@ export function resolveCategoryRoute(
   slug: string,
   options: { includeDrafts: boolean },
 ): CategoryRouteResolution {
+  if (!registry.available) return { kind: "unavailable" };
   const normalized = slug.trim().toLowerCase();
   const entry = registry.entries.find((candidate) => candidate.slug === normalized);
   if (entry) {

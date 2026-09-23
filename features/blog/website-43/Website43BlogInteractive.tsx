@@ -199,9 +199,9 @@ export default function Website43BlogInteractive({
 
   return (
     <section className={classNames.blogContent}>
-      <div className={classNames.inner}>
+      {featuredCount > 0 && <div className={classNames.inner}>
         <p className={classNames.eyebrow}>บทความแนะนำ</p>
-      </div>
+      </div>}
       {featuredCount > 0 ? <div
         className={classNames.featuredViewport}
         aria-label="บทความแนะนำ"

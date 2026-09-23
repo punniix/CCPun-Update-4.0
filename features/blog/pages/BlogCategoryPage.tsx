@@ -102,6 +102,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
   const registry = await getRegistryForRequest(includeDrafts);
   const resolution = resolveCategoryRoute(registry, slug, { includeDrafts });
+  if (resolution.kind === "unavailable") throw new Error("Category registry unavailable");
 
   if (resolution.kind === "category") {
     const category = resolution.category;
@@ -184,6 +185,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
   const registry = await getRegistryForRequest(includeDrafts);
   const resolution = resolveCategoryRoute(registry, slug, { includeDrafts });
+  if (resolution.kind === "unavailable") throw new Error("Category registry unavailable");
   const queryParams = await searchParams ?? {};
   const initialQuery = typeof queryParams.q === "string" ? queryParams.q : "";
 
