@@ -41,3 +41,26 @@ test("Publish LINE only uses a revision-guarded transaction and refuses never-pu
   assert.doesNotMatch(helper.replace(/\n/g, " "), /\.set\(\{[^}]*body:/);
   assert.match(route, /line-copy-published-required/);
 });
+
+test("Improve LINE copy uses approved Published fields only and requires owner acceptance before Draft write", () => {
+  const action = read("cms/sanity/policy/article-line-copy-action.tsx");
+  const route = read("apps/admin/app/api/admin/content/[id]/line-copy/improve/route.ts");
+  const helper = read("lib/admin/line/description-optimization.ts");
+  assert.match(action, /createImproveArticleLineCopyAction\(\)/);
+  assert.match(action, /action: "propose"/);
+  assert.match(action, /ตรวจข้อเสนอ LINE copy ก่อนบันทึก Draft/);
+  assert.match(action, /action: "accept"/);
+  assert.match(action, /Publish LINE only/);
+  assert.match(route, /mode: "improve-existing"/);
+  assert.match(route, /existingLineTitle/);
+  assert.match(route, /existingLineDescription/);
+  assert.doesNotMatch(route, /draft\.body|published\.body|"body":/);
+  assert.doesNotMatch(helper.split("const improvementTargetQuery =")[1]?.split("function readClient")[0] ?? "", /pt::text\(body\)|"body"/);
+  assert.match(route, /identity\.role !== "owner"/);
+  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /signProposal\(token/);
+  assert.match(route, /timingSafeEqual/);
+  assert.match(helper, /target\.draft\.revision !== draftRevision\.data \|\| target\.published\.revision !== publishedRevision\.data/);
+  assert.match(helper, /\.ifRevisionId\(target\.draft\.revision\)/);
+  assert.match(helper, /\.set\(\{ lineTitle, lineDescription \}\)/);
+});

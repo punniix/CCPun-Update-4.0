@@ -1,0 +1,1070 @@
+{
+  "id": "NeHFrMsfXcdnVxjU",
+  "name": "CCPun — Local AI — LINE Card Copy",
+  "active": true,
+  "nodes": [
+    {
+      "id": "0ec22f4a-8188-4ee3-a794-c72dde286b8d",
+      "name": "Sanity · Generate LINE",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        120
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ccpun-line-card-generate",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://admin.ccpun.com"
+        }
+      },
+      "webhookId": "0294e170-3ca9-4fb6-a489-0a0dcf696dd0"
+    },
+    {
+      "id": "dfa80b8a-7aa1-4e40-ab79-963f8afac9ae",
+      "name": "เตรียมงาน LINE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst input = $input.first()?.json ?? {};\nconst raw = input.body && input.headers ? input.body : input;\nconst source = raw.source ?? {};\nconst mode = raw.mode == null ? 'generate' : String(raw.mode);\nconst requestId = String(raw.requestId ?? ('manual-' + $execution.id));\nconst triggerSource = String(raw.triggerSource ?? 'manual') + (mode === 'improve-existing' ? ':improve-existing' : '');\nconst existingLineTitle = String(raw.existingLineTitle ?? '').trim();\nconst existingLineDescription = String(raw.existingLineDescription ?? '').trim();\nconst missingTitle = !existingLineTitle;\nconst missingDescription = !existingLineDescription;\nconst startedAt = new Date().toISOString();\nconst validSource = Boolean(source.id && source.revision && source.slug && source.title && source.category);\nconst valid = validSource && (\n  mode === 'improve-existing'\n    ? Boolean(existingLineTitle && existingLineDescription && !Object.hasOwn(raw, 'body'))\n    : mode === 'generate' && Boolean(raw.body)\n);\nif (!valid) {\n  return [{json:{\n    requestId, requestKey:requestId, triggerSource, mode, source,\n    status:'error', stage:'input', repairAttempt:0, startedAt,\n    finishedAt:new Date().toISOString(), elapsedMs:0,\n    missingTitle, missingDescription, errorCategory:'invalid-input',\n    errorMessage:'ข้อมูลสำหรับสร้างหรือปรับปรุง LINE ไม่ครบ',\n    lineTitle:existingLineTitle || null,\n    lineDescription:existingLineDescription || null\n  }}];\n}\nreturn [{json:{\n  requestId, requestKey:requestId, triggerSource, mode, source,\n  title:String(raw.title ?? source.title),\n  ...(mode === 'generate' ? {body:String(raw.body).slice(0, 8000)} : {}),\n  category:String(raw.category ?? source.category),\n  existingLineTitle:existingLineTitle || null,\n  existingLineDescription:existingLineDescription || null,\n  missingTitle, missingDescription,\n  status:mode === 'improve-existing' ? 'running' : (!missingTitle && !missingDescription ? 'skipped-existing' : 'running'),\n  stage:mode === 'improve-existing' ? 'improve' : (!missingTitle && !missingDescription ? 'skip' : 'generate'),\n  repairAttempt:0, startedAt\n}}];"
+      }
+    },
+    {
+      "id": "dda08f7d-a0f3-4b90-b06b-b986cc3cdb28",
+      "name": "มี LINE ครบแล้ว?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        660,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "skipped-existing",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b6007a7-1627-4f92-96c5-5b1d49ee6a27",
+      "name": "สรุป Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        40
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst data=$json;\nconst finishedAt=new Date().toISOString();\nconst elapsedMs=Math.max(0,Date.now()-(Date.parse(data.startedAt)||Date.now()));\nreturn [{json:{...data,status:'generated',stage:'done',finishedAt,elapsedMs,errorCategory:null,errorMessage:null}}];"
+      }
+    },
+    {
+      "id": "4a82234e-3221-427d-adfa-ed6a6cdc7f82",
+      "name": "สรุป Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        280
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst data=$json;\nconst finishedAt=new Date().toISOString();\nconst elapsedMs=Math.max(0,Date.now()-(Date.parse(data.startedAt)||Date.now()));\nreturn [{json:{...data,status:'error',stage:data.stage || 'error',finishedAt,elapsedMs,errorCategory:data.errorCategory || 'line-copy-failed',errorMessage:data.errorMessage || 'LINE copy generation failed'}}];"
+      }
+    },
+    {
+      "id": "3e72fa23-5383-4325-82a7-48179f945659",
+      "name": "สรุป Skip",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        -80
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst data=$json;\nconst finishedAt=new Date().toISOString();\nconst elapsedMs=Math.max(0,Date.now()-(Date.parse(data.startedAt)||Date.now()));\nreturn [{json:{...data,status:'skipped-existing',stage:'skipped',finishedAt,elapsedMs,lineTitle:data.existingLineTitle,lineDescription:data.existingLineDescription,errorCategory:null,errorMessage:null}}];"
+      }
+    },
+    {
+      "id": "7d6b83d3-1707-45aa-8ce6-3c008f566034",
+      "name": "บันทึกผล Run",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3560,
+        320
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CCPun LINE Copy Runs"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "requestKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.requestKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "requestKey": "={{ $json.requestKey }}",
+            "executionId": "={{ $execution.id }}",
+            "articleId": "={{ $json.source.id || '' }}",
+            "articleRevision": "={{ $json.source.revision || '' }}",
+            "slug": "={{ $json.source.slug || '' }}",
+            "triggerSource": "={{ $json.triggerSource || 'unknown' }}",
+            "status": "={{ $json.status }}",
+            "stage": "={{ $json.stage }}",
+            "repairAttempt": "={{ $json.repairAttempt || 0 }}",
+            "startedAt": "={{ $json.startedAt }}",
+            "finishedAt": "={{ $json.finishedAt || null }}",
+            "elapsedMs": "={{ $json.elapsedMs || null }}",
+            "missingTitle": "={{ Boolean($json.missingTitle) }}",
+            "missingDescription": "={{ Boolean($json.missingDescription) }}",
+            "errorCategory": "={{ $json.errorCategory || null }}",
+            "errorMessage": "={{ $json.errorMessage || null }}",
+            "lineTitle": "={{ $json.lineTitle || null }}",
+            "lineDescription": "={{ $json.lineDescription || null }}"
+          },
+          "matchingColumns": [
+            "requestKey"
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1f397ef2-e760-4824-8219-422b9b17ec8a",
+      "name": "ตอบกลับ Sanity",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3800,
+        40
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: $json.status, lineTitle: $json.lineTitle || undefined, lineDescription: $json.lineDescription || undefined, repairAttempt: $json.repairAttempt || 0, elapsedMs: $json.elapsedMs || 0, errorCategory: $json.errorCategory || undefined, errorMessage: $json.errorMessage || undefined } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "2d9848cd-3ea1-481c-b004-7e23eb733462",
+      "name": "Input พร้อม?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        650,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "error",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f9845366-30d1-41fa-b2b1-3736e4823930",
+      "name": "Ollama · Candidate A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        900,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const data=$('เตรียมงาน LINE').item.json;\n  const properties={}; const required=[];\n  if(data.missingTitle){properties.lineTitle={type:'string'};required.push('lineTitle');}\n  if(data.missingDescription){properties.lineDescription={type:'string'};required.push('lineDescription');}\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:{type:'object',properties,required,additionalProperties:false},\n    options:{temperature:0.15,num_ctx:2048,num_predict:150},\n    messages:[\n      {role:'system',content:'Write ONE Thai CCPun LINE card candidate. Return only JSON required by the schema. lineTitle must be a complete phrase of 24-60 Thai graphemes, target 32-45. lineDescription must be ONE complete sentence of 50-90 Thai graphemes, target 60-75, about 8-12 Thai words and only ONE idea. Keep it much shorter than a paragraph. No CTA, LINE/CCPun/contact mention, clickbait, fear, urgency, identifiers, guarantees, absolute claims or invented facts.'},\n      {role:'user',content:'Article title: '+data.title+'\\nCategory: '+data.category+'\\nExcerpt: '+data.body.slice(0,1400)}\n    ]\n  };\n})() }}",
+        "options": {
+          "timeout": 40000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d6009812-4b05-4bfc-92f0-e2c9d0ac6bd5",
+      "name": "Ollama · Candidate B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const data=$json; const a=data.candidateA||{};\n  const properties={}; const required=[];\n  if(data.missingTitle){properties.lineTitle={type:'string'};required.push('lineTitle');}\n  if(data.missingDescription){properties.lineDescription={type:'string'};required.push('lineDescription');}\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:{type:'object',properties,required,additionalProperties:false},\n    options:{temperature:0.25,num_ctx:1536,num_predict:140},\n    messages:[\n      {role:'system',content:'Write a NEW Thai LINE card candidate. Return only JSON. Use the measured previous lengths to correct size, but do not copy the previous wording. lineTitle hard range 24-60 graphemes, target 32-45. lineDescription hard range 50-90, target 60-75, ONE complete sentence, about 8-12 Thai words and one idea. If previous description was above 90, make this one dramatically shorter. No CTA, LINE/CCPun/contact mention, guarantees, absolute claims, identifiers, clickbait, fear or urgency.'},\n      {role:'user',content:'Article title: '+data.title+'\\nCategory: '+data.category+'\\nPrevious title length: '+a.titleLength+'\\nPrevious description length: '+a.descriptionLength+'\\nExcerpt: '+data.body.slice(0,650)}\n    ]\n  };\n})() }}",
+        "options": {
+          "timeout": 35000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "06f2c7a9-afcd-4c7a-999f-97b6a4651740",
+      "name": "Ollama · Candidate C",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1340,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const data=$json;\n  const b=data.candidateB||{};\n  const titleValid=Number(b.titleLength)>=24&&Number(b.titleLength)<=60;\n  const descriptionValid=Number(b.descriptionLength)>=50&&Number(b.descriptionLength)<=90&&b.doneReason==='stop';\n  const needTitle=Boolean(data.missingTitle&&!titleValid);\n  const needDescription=Boolean(data.missingDescription&&!descriptionValid);\n  const properties={}; const required=[];\n  if(needTitle){properties.lineTitle={type:'string'};required.push('lineTitle');}\n  if(needDescription){properties.lineDescription={type:'string'};required.push('lineDescription');}\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:{type:'object',properties,required,additionalProperties:false},\n    options:{temperature:0.2,num_ctx:1024,num_predict:100},\n    messages:[\n      {role:'system',content:'Rewrite ONLY the requested invalid Thai LINE field. Return only JSON required by the schema. This is a shortening/correction task, not a summary. If lineTitle is requested, write a complete natural phrase of 32-45 graphemes. If lineDescription is requested, rewrite the previous description into ONE complete sentence of 60-75 graphemes, one idea only. Remove examples, lists, filler and extra clauses. Never truncate or leave a sentence unfinished. No CTA, LINE/CCPun/contact mention, guarantees, absolute claims, identifiers, clickbait, fear or urgency.'},\n      {role:'user',content:'Article title: '+data.title+'\\nCategory: '+data.category+'\\nNeed title: '+needTitle+'\\nNeed description: '+needDescription+'\\nPrevious title length: '+b.titleLength+'\\nPrevious description length: '+b.descriptionLength+'\\nPrevious title: '+String(b.lineTitle||'')+'\\nPrevious description: '+String(b.lineDescription||'')}\n    ]\n  };\n})() }}",
+        "options": {
+          "timeout": 25000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "6ae7df1f-58bc-4ee6-a517-cbe22d083794",
+      "name": "n8n · กรอง Candidate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        80
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const base=$('เตรียมงาน LINE').item.json;\nconst responses=[\n  $('Ollama · Candidate A').item.json,\n  $('Ollama · Candidate B').item.json,\n  $('Ollama · Candidate C').item.json\n];\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=(v)=>[...segmenter.segment(String(v??'').trim())].length;\nconst clean=(v)=>String(v??'').replace(/\\\\n/g,' ').replace(/\\\\\\\"/g,'\"').replace(/\\s+/g,' ').trim();\nconst banned=['รับประกันผลตอบแทน','รับประกันกำไร','รับประกันอนุมัติ','รับประกันเคลมผ่าน','รับประกันความคุ้มครอง','การันตีผลตอบแทน','การันตีกำไร','การันตีอนุมัติ','การันตีเคลมผ่าน','การันตีความคุ้มครอง','รับรองผลตอบแทน','รับรองกำไร','รับรองอนุมัติ','รับรองเคลมผ่าน','รับรองความคุ้มครอง','ไม่ขาดทุน','ไม่มีความเสี่ยง','ผลตอบแทนแน่นอน','อนุมัติแน่นอน','เคลมผ่านแน่นอน','คุ้มครองทุกกรณี','จ่ายแน่นอน','ห้ามพลาด','ด่วน','ก่อนสาย','ความลับ','ช็อก'];\nconst marketing=['ทัก LINE','LINE Official Account','CCPun','สนใจคุย','มาวางแผน'];\nconst directIdentifier=/(?:^|\\D)0\\d{8,9}(?:\\D|$)|[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}|(?:^|\\D)\\d{13}(?:\\D|$)/i;\nconst danglingEnding=/(?:[,;:/\\-–—]|(?:\\s|^)(?:และ|หรือ|ที่|ซึ่ง|เพื่อ|โดย|กับ|จาก|ของ|ใน|ให้|ว่า|เมื่อ|เพราะ|รวมถึง|ไม่ว่าจะเป็น|ก็คือ|ดังนี้))$/u;\nconst safe=(v)=>v&&!banned.some(x=>v.includes(x))&&!marketing.some(x=>v.includes(x))&&!directIdentifier.test(v)&&!danglingEnding.test(v);\nconst uniq=(a)=>[...new Set(a.map(clean).filter(Boolean))];\n\nfunction extract(response,key){\n  if(response?.error) return '';\n  const content=String(response?.message?.content??'');\n  try{\n    const parsed=JSON.parse(content);\n    return String(parsed?.[key]??'').trim();\n  }catch{}\n  const re=new RegExp('\"'+key+'\"\\\\s*:\\\\s*\"([^\"]*)');\n  return String(content.match(re)?.[1]??'').trim();\n}\n\nconst modelTitles=[];\nconst modelDescriptions=[];\nlet modelErrors=0;\nfor(const response of responses){\n  if(response?.error){modelErrors++;continue;}\n  const title=extract(response,'lineTitle');\n  const description=extract(response,'lineDescription');\n  if(base.missingTitle&&title) modelTitles.push(title);\n  if(base.missingDescription&&description&&response?.done_reason!=='length') modelDescriptions.push(description);\n  if(!title&&!description) modelErrors++;\n}\n\nconst body=String(base.body??'');\nconst bodyLines=body.split(/\\n+/).map(clean).filter(Boolean);\nconst extractiveTitles=bodyLines.filter((value)=>{\n  const n=count(value);\n  return n>=24&&n<=60&&/[?？]$/.test(value)&&safe(value);\n});\n\nconst extractiveChunks=body\n  .split(/\\n{2,}|(?<=[?!。！？])\\s*/u)\n  .map(clean)\n  .filter(Boolean);\nconst extractiveDescriptions=extractiveChunks.filter((value)=>{\n  const n=count(value);\n  return n>=50&&n<=90&&safe(value);\n});\n\nconst allTitles=uniq([...modelTitles,...extractiveTitles]);\nconst allDescriptions=uniq([...modelDescriptions,...extractiveDescriptions]);\nconst validTitleCandidates=base.missingTitle?allTitles.filter(v=>safe(v)&&count(v)>=24&&count(v)<=60):[];\nconst validDescriptionCandidates=base.missingDescription?allDescriptions.filter(v=>safe(v)&&count(v)>=50&&count(v)<=90):[];\n\nconst titleScore=(value)=>Math.abs(count(value)-40)+(value.includes(base.category)?-5:0);\nconst descriptionScore=(value)=>Math.abs(count(value)-68)+(value.includes(base.category)?-6:0)+(value.startsWith('ดีขึ้นมาหน่อย')?15:0)+(value.startsWith('เป็นคำถาม')?10:0);\nvalidTitleCandidates.sort((a,b)=>titleScore(a)-titleScore(b));\nvalidDescriptionCandidates.sort((a,b)=>descriptionScore(a)-descriptionScore(b));\n\nconst issues=[];\nif(base.missingTitle&&!validTitleCandidates.length) issues.push('lineTitle:no-valid-candidate');\nif(base.missingDescription&&!validDescriptionCandidates.length) issues.push('lineDescription:no-valid-candidate');\n\nreturn [{json:{\n  ...base,\n  state:issues.length?'error':'select',\n  stage:'candidate-filter',\n  repairAttempt:0,\n  validTitleCandidates:validTitleCandidates.slice(0,8),\n  validDescriptionCandidates:validDescriptionCandidates.slice(0,8),\n  candidateStats:{\n    modelTitleGenerated:uniq(modelTitles).length,\n    modelDescriptionGenerated:uniq(modelDescriptions).length,\n    extractiveTitleGenerated:uniq(extractiveTitles).length,\n    extractiveDescriptionGenerated:uniq(extractiveDescriptions).length,\n    titleValid:validTitleCandidates.length,\n    descriptionValid:validDescriptionCandidates.length,\n    modelErrors\n  },\n  issues,\n  errorCategory:issues.length?'model-output-invalid':null,\n  errorMessage:issues.length?'No safe complete candidate passed the n8n LINE size contract':null\n}}];"
+      }
+    },
+    {
+      "id": "b4ea0373-6ed4-435c-b63d-3199fac32146",
+      "name": "มี Candidate ผ่าน?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1780,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.state }}",
+              "rightValue": "select",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1aafa5ba-7924-4be9-a4ee-fc2443a34edd",
+      "name": "Ollama · เลือก Candidate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2000,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const data=$json;\n  return {\n    model:'qwen3:1.7b',\n    stream:false,\n    think:false,\n    options:{temperature:0,num_ctx:1024,num_predict:24},\n    messages:[\n      {\n        role:'system',\n        content:'Choose the best already-valid Thai LINE card candidate. Never rewrite candidate text. Output only zero-based indexes: TITLE_INDEX=n and DESCRIPTION_INDEX=n as applicable. The selected pair must represent the MAIN PURPOSE of the whole article, not a narrow subsection. Prefer an overview or decision-help takeaway that still makes sense before reading the article. Penalize candidates focused on one disease, one benefit limit, waiting period, co-payment, a single example, or one subheading unless the article title itself is specifically about that topic. Prefer natural Thai, useful specificity, and low redundancy between title and description.'\n      },\n      {\n        role:'user',\n        content:JSON.stringify({\n          articleTitle:data.title,\n          category:data.category,\n          lineTitleCandidates:data.validTitleCandidates,\n          lineDescriptionCandidates:data.validDescriptionCandidates\n        })\n      }\n    ]\n  };\n})() }}",
+        "options": {
+          "timeout": 25000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "96aa6009-0748-41aa-93b5-d8ca333d1260",
+      "name": "ตรวจผล · Selector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        20
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const data=$('มี Candidate ผ่าน?').item.json;\nconst content=String($json?.message?.content??'').trim();\nconst readIndex=(pattern)=>{\n  const m=content.match(pattern);\n  return m?Number(m[1]):null;\n};\nlet titleIndex=data.missingTitle?readIndex(/TITLE_INDEX\\s*=\\s*(\\d+)/i):null;\nlet descriptionIndex=data.missingDescription?readIndex(/DESCRIPTION_INDEX\\s*=\\s*(\\d+)/i):null;\n\n// Selector is advisory. If it fails to return a valid index, n8n chooses the\n// closest-to-target candidate already sorted by the hard validator.\nif(data.missingTitle&&(!Number.isInteger(titleIndex)||!data.validTitleCandidates?.[titleIndex])) titleIndex=0;\nif(data.missingDescription&&(!Number.isInteger(descriptionIndex)||!data.validDescriptionCandidates?.[descriptionIndex])) descriptionIndex=0;\n\nconst title=data.missingTitle?data.validTitleCandidates?.[titleIndex]:data.existingLineTitle;\nconst description=data.missingDescription?data.validDescriptionCandidates?.[descriptionIndex]:data.existingLineDescription;\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=(v)=>[...segmenter.segment(String(v??'').trim())].length;\nconst valid=\n  (!data.missingTitle||(Boolean(title)&&data.validTitleCandidates.includes(title)&&count(title)>=24&&count(title)<=60)) &&\n  (!data.missingDescription||(Boolean(description)&&data.validDescriptionCandidates.includes(description)&&count(description)>=50&&count(description)<=90));\nif(!valid){\n  return [{json:{...data,state:'error',stage:'selector',errorCategory:'selector-contract-violation',errorMessage:'Selected candidate failed final n8n validation'}}];\n}\nreturn [{json:{...data,state:'success',stage:'selector',lineTitle:title,lineDescription:description,errorCategory:null,errorMessage:null}}];"
+      }
+    },
+    {
+      "id": "30257229-3273-484e-b8f3-924c76c3ac21",
+      "name": "Selector ผ่าน?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2440,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.state }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6c311cfb-c50a-4e67-b136-cfeb5df670ac",
+      "name": "n8n · วัด Candidate A",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1010,
+        80
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const base=$('เตรียมงาน LINE').item.json;\nconst response=$('Ollama · Candidate A').item.json;\nconst content=String(response?.message?.content??'');\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=(v)=>[...segmenter.segment(String(v??'').trim())].length;\nfunction extract(key){\n  try{\n    const parsed=JSON.parse(content);\n    return String(parsed?.[key]??'').trim();\n  }catch{}\n  const re=new RegExp('\"'+key+'\"\\\\s*:\\\\s*\"([^\"]*)');\n  return String(content.match(re)?.[1]??'').trim();\n}\nconst lineTitle=extract('lineTitle');\nconst lineDescription=extract('lineDescription');\nreturn [{json:{\n  ...base,\n  candidateA:{\n    lineTitle,\n    lineDescription,\n    titleLength:count(lineTitle),\n    descriptionLength:count(lineDescription),\n    parseOk:Boolean(lineTitle||lineDescription),\n    doneReason:String(response?.done_reason??'')\n  }\n}}];"
+      }
+    },
+    {
+      "id": "eab88045-ed84-48c9-a236-6768c4bbf39f",
+      "name": "n8n · วัด Candidate B",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1230,
+        80
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const data=$('n8n · วัด Candidate A').item.json;\nconst response=$('Ollama · Candidate B').item.json;\nconst content=String(response?.message?.content??'');\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=(v)=>[...segmenter.segment(String(v??'').trim())].length;\nfunction extract(key){\n  try{\n    const parsed=JSON.parse(content);\n    return String(parsed?.[key]??'').trim();\n  }catch{}\n  const re=new RegExp('\"'+key+'\"\\\\s*:\\\\s*\"([^\"]*)');\n  return String(content.match(re)?.[1]??'').trim();\n}\nconst lineTitle=extract('lineTitle');\nconst lineDescription=extract('lineDescription');\nreturn [{json:{\n  ...data,\n  candidateB:{\n    lineTitle,\n    lineDescription,\n    titleLength:count(lineTitle),\n    descriptionLength:count(lineDescription),\n    parseOk:Boolean(lineTitle||lineDescription),\n    doneReason:String(response?.done_reason??'')\n  }\n}}];"
+      }
+    },
+    {
+      "id": "0b98cd9e-488e-47eb-9fe5-d0f46a952b94",
+      "name": "ปรับปรุง LINE เดิม?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        860,
+        -240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mode }}",
+              "rightValue": "improve-existing",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "48ee38e2-704c-4b38-b454-64eb67060acd",
+      "name": "อ่านผล Improve เดิม",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1080,
+        -560
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CCPun LINE Copy Runs"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "requestKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.requestKey }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      }
+    },
+    {
+      "id": "50e52b59-80b2-49ef-986c-e9c5cc2d4646",
+      "name": "ตรวจ Replay Improve",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        -560
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst base=$('เตรียมงาน LINE').item.json;\nconst row=$input.first()?.json??{};\nif(row.error){\n  return [{json:{...base,replayState:'error',stage:'replay-lookup',errorCategory:'audit-store-unavailable',errorMessage:'Could not check existing LINE request'}}];\n}\nif(!row.requestKey) return [{json:{...base,replayState:'run',stage:'improve-new'}}];\nconst same=String(row.requestKey)===base.requestKey\n  &&String(row.articleId)===String(base.source.id)\n  &&String(row.articleRevision)===String(base.source.revision)\n  &&String(row.triggerSource)==='sanity:improve-existing';\nconst lineTitle=String(row.lineTitle??'').trim();\nconst lineDescription=String(row.lineDescription??'').trim();\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=v=>[...segmenter.segment(v)].length;\nconst cached=same&&row.status==='generated'\n  &&count(lineTitle)>=24&&count(lineTitle)<=60\n  &&count(lineDescription)>=50&&count(lineDescription)<=90;\nif(cached){\n  return [{json:{...base,replayState:'cached',stage:'replay-cache',lineTitle,lineDescription,errorCategory:null,errorMessage:null}}];\n}\nreturn [{json:{...base,replayState:'error',stage:'replay-conflict',errorCategory:same?'request-already-used':'idempotency-conflict',errorMessage:'LINE request key was already used; start a new request'}}];"
+      }
+    },
+    {
+      "id": "6195e549-2ce9-4bb5-8b0e-1f7d7ca0d6d6",
+      "name": "Replay ใช้ไม่ได้?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1520,
+        -560
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.replayState }}",
+              "rightValue": "error",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1ff5260-905f-48f5-86a8-897989d453c2",
+      "name": "มีผล Improve เดิม?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1740,
+        -560
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.replayState }}",
+              "rightValue": "cached",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "681eec15-0d67-4f96-8e63-d151c71a09dc",
+      "name": "Ollama · Improve A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1080,
+        -320
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const data=$('เตรียมงาน LINE').item.json;\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:{type:'object',properties:{lineTitle:{type:'string'},lineDescription:{type:'string'}},required:['lineTitle','lineDescription'],additionalProperties:false},\n    options:{temperature:0.18,num_ctx:1024,num_predict:140},\n    messages:[\n      {role:'system',content:\"Improve previously approved Thai LINE article card copy. Use ONLY the two previous LINE fields as factual source. Preserve their meaning and factual scope; do not invent facts, numbers, benefits, guarantees, claims, exclusions, or article details. Return JSON with both lineTitle and lineDescription. lineTitle must be a natural complete Thai phrase of 24-60 graphemes, target 32-45. lineDescription must be one complete natural Thai sentence of 50-90 graphemes, target 60-75. No CTA, LINE/CCPun/contact mention, clickbait, fear, urgency, absolute claims or direct identifiers. The pair must improve clarity or flow, not just reprint both previous fields.\"},\n      {role:'user',content:JSON.stringify({previousLineTitle:data.existingLineTitle,previousLineDescription:data.existingLineDescription})}\n    ]\n  };\n})() }}",
+        "options": {
+          "timeout": 35000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "cd0ac116-2ba1-40ac-85c6-a108660e8570",
+      "name": "Ollama · Improve B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1300,
+        -320
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const data=$('เตรียมงาน LINE').item.json;\n  const a=$('Ollama · Improve A').item.json;\n  let candidateA={};\n  try { candidateA=JSON.parse(String(a?.message?.content??'{}')); } catch {}\n  return {\n    model:'qwen3:1.7b',stream:false,think:false,\n    format:{type:'object',properties:{lineTitle:{type:'string'},lineDescription:{type:'string'}},required:['lineTitle','lineDescription'],additionalProperties:false},\n    options:{temperature:0.22,num_ctx:1024,num_predict:140},\n    messages:[\n      {role:'system',content:\"Write one alternative improvement to the previously approved Thai LINE copy. Use ONLY the previous LINE title and description as factual source; Candidate A is wording feedback, never a new source of facts. Keep the same meaning and scope. Return JSON with both fields. lineTitle 24-60 Thai graphemes, target 32-45. lineDescription 50-90 Thai graphemes, target 60-75, one complete sentence and one idea. If Candidate A was too long, be substantially shorter. No CTA, LINE/CCPun/contact mention, clickbait, fear, urgency, guarantees, absolute claims, identifiers or new facts/numbers.\"},\n      {role:'user',content:JSON.stringify({previousLineTitle:data.existingLineTitle,previousLineDescription:data.existingLineDescription,candidateA:{lineTitle:String(candidateA.lineTitle??'').slice(0,160),lineDescription:String(candidateA.lineDescription??'').slice(0,240)}})}\n    ]\n  };\n})() }}",
+        "options": {
+          "timeout": 35000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "df1e168d-d6e2-4b58-8cf0-e9533dbe6e92",
+      "name": "ตรวจผล · Improve",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -320
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst base=$('เตรียมงาน LINE').item.json;\nconst responses=[\n  $('Ollama · Improve A').item.json,\n  $('Ollama · Improve B').item.json\n];\nconst segmenter=new Intl.Segmenter('th',{granularity:'grapheme'});\nconst count=v=>[...segmenter.segment(String(v??'').trim())].length;\nconst clean=v=>String(v??'').replace(/\\s+/g,' ').trim();\nconst banned=['รับประกันผลตอบแทน','รับประกันกำไร','รับประกันอนุมัติ','รับประกันเคลมผ่าน','รับประกันความคุ้มครอง','การันตีผลตอบแทน','การันตีกำไร','การันตีอนุมัติ','การันตีเคลมผ่าน','การันตีความคุ้มครอง','รับรองผลตอบแทน','รับรองกำไร','รับรองอนุมัติ','รับรองเคลมผ่าน','รับรองความคุ้มครอง','ไม่ขาดทุน','ไม่มีความเสี่ยง','ผลตอบแทนแน่นอน','อนุมัติแน่นอน','เคลมผ่านแน่นอน','คุ้มครองทุกกรณี','จ่ายแน่นอน','ห้ามพลาด','ด่วน','ก่อนสาย','ความลับ','ช็อก','ทัก LINE','LINE Official Account','CCPun','สนใจคุย','มาวางแผน'];\nconst identifier=/(?:^|\\D)0\\d{8,9}(?:\\D|$)|[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}|(?:^|\\D)\\d{13}(?:\\D|$)/i;\nconst dangling=/(?:[,;:/\\-–—]|(?:\\s|^)(?:และ|หรือ|ที่|ซึ่ง|เพื่อ|โดย|กับ|จาก|ของ|ใน|ให้|ว่า|เมื่อ|เพราะ|รวมถึง|ดังนี้))$/u;\nconst old=base.existingLineTitle+' '+base.existingLineDescription;\nfunction valid(title,description){\n  const joined=title+' '+description;\n  const numbers=joined.match(/[0-9๐-๙]+/g)??[];\n  return count(title)>=24&&count(title)<=60\n    &&count(description)>=50&&count(description)<=90\n    &&!banned.some(x=>joined.includes(x))\n    &&!identifier.test(joined)\n    &&!dangling.test(title)&&!dangling.test(description)\n    &&numbers.every(x=>old.includes(x))\n    &&(title!==base.existingLineTitle||description!==base.existingLineDescription);\n}\nconst candidates=[];\nfor(const response of responses){\n  if(response?.error||response?.done_reason==='length') continue;\n  try{\n    const parsed=JSON.parse(String(response?.message?.content??''));\n    const lineTitle=clean(parsed.lineTitle);\n    const lineDescription=clean(parsed.lineDescription);\n    if(valid(lineTitle,lineDescription)) candidates.push({lineTitle,lineDescription});\n  }catch{}\n}\ncandidates.sort((x,y)=>\n  Math.abs(count(x.lineTitle)-40)+Math.abs(count(x.lineDescription)-68)\n  -Math.abs(count(y.lineTitle)-40)-Math.abs(count(y.lineDescription)-68)\n);\nconst best=candidates[0];\nreturn [{json:best\n  ? {...base,state:'success',stage:'improve-validated',lineTitle:best.lineTitle,lineDescription:best.lineDescription,candidateStats:{attempts:responses.length,valid:candidates.length},errorCategory:null,errorMessage:null}\n  : {...base,state:'error',stage:'improve-validation',candidateStats:{attempts:responses.length,valid:0},errorCategory:'model-output-invalid',errorMessage:'No safe complete improved LINE pair passed validation'}\n}];"
+      }
+    },
+    {
+      "id": "14de447d-9397-4ce6-a737-9d2fa21a9468",
+      "name": "Improve ผ่าน?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1740,
+        -320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.state }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Sanity · Generate LINE": {
+      "main": [
+        [
+          {
+            "node": "เตรียมงาน LINE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "มี LINE ครบแล้ว?": {
+      "main": [
+        [
+          {
+            "node": "สรุป Skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama · Candidate A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สรุป Success": {
+      "main": [
+        [
+          {
+            "node": "บันทึกผล Run",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ตอบกลับ Sanity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สรุป Error": {
+      "main": [
+        [
+          {
+            "node": "บันทึกผล Run",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ตอบกลับ Sanity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สรุป Skip": {
+      "main": [
+        [
+          {
+            "node": "บันทึกผล Run",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ตอบกลับ Sanity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เตรียมงาน LINE": {
+      "main": [
+        [
+          {
+            "node": "Input พร้อม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input พร้อม?": {
+      "main": [
+        [
+          {
+            "node": "ปรับปรุง LINE เดิม?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "สรุป Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama · Candidate C": {
+      "main": [
+        [
+          {
+            "node": "n8n · กรอง Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "n8n · กรอง Candidate": {
+      "main": [
+        [
+          {
+            "node": "มี Candidate ผ่าน?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "มี Candidate ผ่าน?": {
+      "main": [
+        [
+          {
+            "node": "Ollama · เลือก Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "สรุป Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama · เลือก Candidate": {
+      "main": [
+        [
+          {
+            "node": "ตรวจผล · Selector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ตรวจผล · Selector": {
+      "main": [
+        [
+          {
+            "node": "Selector ผ่าน?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Selector ผ่าน?": {
+      "main": [
+        [
+          {
+            "node": "สรุป Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "สรุป Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama · Candidate A": {
+      "main": [
+        [
+          {
+            "node": "n8n · วัด Candidate A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "n8n · วัด Candidate A": {
+      "main": [
+        [
+          {
+            "node": "Ollama · Candidate B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama · Candidate B": {
+      "main": [
+        [
+          {
+            "node": "n8n · วัด Candidate B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "n8n · วัด Candidate B": {
+      "main": [
+        [
+          {
+            "node": "Ollama · Candidate C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ปรับปรุง LINE เดิม?": {
+      "main": [
+        [
+          {
+            "node": "อ่านผล Improve เดิม",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "มี LINE ครบแล้ว?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อ่านผล Improve เดิม": {
+      "main": [
+        [
+          {
+            "node": "ตรวจ Replay Improve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ตรวจ Replay Improve": {
+      "main": [
+        [
+          {
+            "node": "Replay ใช้ไม่ได้?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replay ใช้ไม่ได้?": {
+      "main": [
+        [
+          {
+            "node": "สรุป Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "มีผล Improve เดิม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "มีผล Improve เดิม?": {
+      "main": [
+        [
+          {
+            "node": "สรุป Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama · Improve A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama · Improve A": {
+      "main": [
+        [
+          {
+            "node": "Ollama · Improve B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama · Improve B": {
+      "main": [
+        [
+          {
+            "node": "ตรวจผล · Improve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ตรวจผล · Improve": {
+      "main": [
+        [
+          {
+            "node": "Improve ผ่าน?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Improve ผ่าน?": {
+      "main": [
+        [
+          {
+            "node": "สรุป Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "สรุป Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": 300,
+    "binaryMode": "separate"
+  }
+}
