@@ -372,6 +372,12 @@ export function Website43ResponsiveStyles() {
     inset: 96px 0 auto auto;
     height: 620px;
   }
+  .${styles.toolHero}::after {
+    /* ponytail: the 70px fade reaches dark where the contained 4:3 image ends. */
+    inset: clamp(476px, calc(21vw + 246px), 548px) 0 0;
+    height: auto;
+    background: linear-gradient(180deg, rgba(6,11,9,0), #060b09 70px);
+  }
 
   .${styles.toolStorySection} {
     padding-left: var(--w43-nav-gutter);
@@ -416,6 +422,11 @@ export function Website43ResponsiveStyles() {
     inset: 0 0 auto auto;
     width: 560px;
     height: 100%;
+  }
+  .${styles.toolHero}::after {
+    inset: auto 0 0;
+    height: 150px;
+    background: linear-gradient(180deg, rgba(6,11,9,0), #060b09 40%);
   }
 }
 
@@ -499,8 +510,8 @@ export function Website43ResponsiveStyles() {
     height: auto;
     object-fit: contain;
     object-position: center center;
-    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
-    mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 82%, transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 20%, #000 82%, transparent 100%);
   }
   .${styles.toolHeroGradient} {
     inset: 0;

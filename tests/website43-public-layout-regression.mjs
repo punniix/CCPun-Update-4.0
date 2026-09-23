@@ -98,7 +98,10 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(css, /\.toolHeroImage \{ top: 244px;[^}]*object-fit: contain;/);
   assert.match(responsive, /\.\$\{styles\.toolHeroImage\} \{[^}]*object-fit: contain;[^}]*object-position: right center;/);
   assert.match(responsive, /\.\$\{styles\.root\} \.\$\{styles\.toolHeroImage\} \{\s*inset: 0 0 auto auto;\s*width: 560px;\s*height: 100%;/);
+  assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{[^}]*inset: clamp\(476px, calc\(21vw \+ 246px\), 548px\) 0 0;\s*height: auto;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 70px\);/);
+  assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{\s*inset: auto 0 0;\s*height: 150px;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 40%\);/);
   assert.match(responsive, /top: 252px;[^}]*height: auto;\s*object-fit: contain;\s*object-position: center center;\s*-webkit-mask-image: linear-gradient\(180deg/);
+  assert.match(responsive, /-webkit-mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);\s*mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);/);
   assert.match(responsive, /\.\$\{styles\.toolHero\} \.\$\{styles\.primaryButton\} \{\s*position: absolute;\s*top: 636px;/);
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroImage \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/);
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroGradient \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*background: linear-gradient\(90deg,[^}]*rgba\(6,11,9,\.16\) 100%\);/);
