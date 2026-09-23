@@ -413,6 +413,8 @@
 .calculatorHeader h2 { margin: 8px 0 0; font-size: 30px; line-height: 1.3; }
 .calculatorHeader p { margin: 8px 0 0; color: var(--w43-muted); font-size: 15px; }
 .calculatorStage { width: min(768px,100%); margin: 0 auto; }
+.calculatorStage :global([data-ui="human-centered-ci-expenses"] .text-xs),
+.calculatorStage :global([data-ui="human-centered-ci-resources"] .text-xs) { font-size: 14px; }
 .calculatorStage :global(.glass-card) { border-color: var(--w43-border); background: var(--w43-surface); box-shadow: none; }
 .calculatorStage :global(.gold-button) { border: 1px solid var(--w43-gold); border-radius: 12px; background: var(--w43-gold); background-image: none; color: var(--w43-deep); box-shadow: none; }
 .calculatorStage :global(.gold-button:hover) { background: var(--w43-gold-bright); box-shadow: none; transform: none; }

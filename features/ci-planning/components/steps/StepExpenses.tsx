@@ -76,7 +76,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
     || expenses.otherDebtBalance > 0;
 
   return <div className="space-y-5" data-ui="human-centered-ci-expenses">
-    <p className="text-xs leading-5 text-white/45"><span className="font-medium text-white/65">รายได้ ภาระ และระยะที่ต้องการวางแผน</span> · อย่างน้อยกรอกรายได้ หรือค่าใช้จ่ายและภาระ 1 รายการ ช่องอื่นเว้นได้</p>
+    <p className="text-xs leading-6 text-white/70"><span className="font-medium text-white/85">รายได้ ภาระ และระยะที่ต้องการวางแผน</span> · อย่างน้อยกรอกรายได้ หรือค่าใช้จ่ายและภาระ 1 รายการ ช่องอื่นเว้นได้</p>
 
     <div className="space-y-2">
       <label htmlFor="ci-monthly-income" className="text-sm font-medium text-foreground">รายได้ต่อเดือน</label>
@@ -88,7 +88,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
         error={Boolean(errors.monthlyIncome || errors.expenses)}
         aria-describedby={describedBy('ci-monthly-income-help', errors.monthlyIncome && 'ci-monthly-income-error', errors.expenses && 'ci-expenses-error')}
       />
-      <p id="ci-monthly-income-help" className="text-xs leading-5 text-white/45">กรอกเมื่อต้องการดูทุนตามรายได้ ระบบจะแสดงแยกจากทุนตามรายจ่าย</p>
+      <p id="ci-monthly-income-help" className="text-xs leading-6 text-white/70">กรอกเมื่อต้องการดูทุนตามรายได้ ระบบจะแสดงแยกจากทุนตามรายจ่าย</p>
       <FieldError id="ci-monthly-income-error" message={errors.monthlyIncome} />
     </div>
 
@@ -102,13 +102,13 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
         error={Boolean(errors.household || errors.expenses)}
         aria-describedby={describedBy('ci-household-help', errors.household && 'ci-household-error', errors.expenses && 'ci-expenses-error')}
       />
-      <p id="ci-household-help" className="text-xs leading-5 text-white/45">รวมรายจ่ายจำเป็นของคนในบ้านที่ต้องดูแลต่อ</p>
+      <p id="ci-household-help" className="text-xs leading-6 text-white/70">รวมรายจ่ายจำเป็นของคนในบ้านที่ต้องดูแลต่อ</p>
       <FieldError id="ci-household-error" message={errors.household} />
     </div>
 
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium text-foreground">ต้องการเตรียมเงินก้อนให้รองรับกี่ปี?</legend>
-      <div className="flex items-center justify-between text-xs text-white/45">
+      <div className="flex items-center justify-between text-xs text-white/70">
         <span>1 ปี</span>
         <output htmlFor="ci-reserve-years" className="text-base font-semibold tabular-nums text-primary">{reserveYears} ปี</output>
         <span>10 ปี</span>
@@ -152,13 +152,14 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       onChangeRecovery={updateRecovery}
     />
 
-    {planPreview ? <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/10 pt-4 text-xs sm:grid-cols-3 lg:grid-cols-6">
-      <div><dt className="text-white/40">ครัวเรือน</dt><dd className="mt-1 font-medium text-white/80">{baht(planPreview.householdNeed)}</dd></div>
-      <div><dt className="text-white/40">การศึกษา</dt><dd className="mt-1 font-medium text-white/80">{baht(planPreview.educationNeed)}</dd></div>
-      <div><dt className="text-white/40">ภาระหนี้รวม</dt><dd className="mt-1 font-medium text-white/80">{baht(planPreview.debtNeed)}</dd></div>
-      <div><dt className="text-white/40">Recovery Reserve</dt><dd className="mt-1 font-medium text-white/80">{baht(recoveryPreview.reserveNeed)}</dd></div>
-      <div><dt className="text-white/40">ทุนตามรายจ่ายรวม</dt><dd className="mt-1 font-semibold text-primary">{planPreview.expenseBaseNeed > 0 ? baht(planPreview.expenseTotalNeed) : '—'}</dd></div>
-      <div><dt className="text-white/40">ทุนตามรายได้รวม</dt><dd className="mt-1 font-semibold text-primary">{planPreview.incomeBaseNeed > 0 ? baht(planPreview.incomeTotalNeed) : '—'}</dd></div>
+    {planPreview ? <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-white/10 pt-4 text-sm sm:grid-cols-3 lg:grid-cols-4">
+      <div className="min-w-0"><dt className="leading-5 text-white/70">ครัวเรือน</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(planPreview.householdNeed)}</dd></div>
+      <div className="min-w-0"><dt className="leading-5 text-white/70">การศึกษา</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(planPreview.educationNeed)}</dd></div>
+      <div className="min-w-0"><dt className="leading-5 text-white/70">ภาระหนี้รวม</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(planPreview.debtNeed)}</dd></div>
+      <div className="min-w-0"><dt className="leading-5 text-white/70">ทุนตามรายได้ก่อน Recovery</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{planPreview.incomeBaseNeed > 0 ? baht(planPreview.incomeBaseNeed) : '—'}</dd></div>
+      <div className="min-w-0"><dt className="leading-5 text-white/70">Recovery Reserve</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(recoveryPreview.reserveNeed)}</dd></div>
+      <div className="min-w-0"><dt className="leading-5 text-white/70">ทุนตามรายจ่ายรวม</dt><dd className="mt-1 text-base font-semibold leading-6 text-primary tabular-nums [overflow-wrap:anywhere]">{planPreview.expenseBaseNeed > 0 ? baht(planPreview.expenseTotalNeed) : '—'}</dd></div>
+      <div className="min-w-0"><dt className="leading-5 text-white/70">ทุนตามรายได้รวม</dt><dd className="mt-1 text-base font-semibold leading-6 text-primary tabular-nums [overflow-wrap:anywhere]">{planPreview.incomeBaseNeed > 0 ? baht(planPreview.incomeTotalNeed) : '—'}</dd></div>
     </dl> : <p id="ci-preview-range-warning" role="status" className="border-t border-white/10 pt-4 text-xs leading-5 text-destructive">ตัวเลขบางส่วนสูงเกินช่วงที่เครื่องมือนี้แสดงตัวอย่างระหว่างกรอกได้ กรุณาตรวจสอบข้อมูลก่อนดำเนินการต่อ ระบบจะไม่คำนวณผลลัพธ์จากค่าที่เกินช่วงอย่างเงียบ ๆ</p>}
   </div>;
 }
