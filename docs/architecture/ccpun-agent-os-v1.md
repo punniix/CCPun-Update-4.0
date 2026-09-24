@@ -257,3 +257,60 @@ Agent OS Core is ready when:
 10. Automation has kill switches.
 11. Critical workflows retain a manual fallback.
 12. No new recurring infrastructure subscription is required for the core.
+
+
+## Private screenshot OCR lane
+
+Chat screenshot import is a deliberately narrow exception to the general public-safe n8n AI bridge.
+
+Required path:
+
+Admin owner upload → authenticated n8n webhook → VPS-local PaddleOCR → VPS-local Qwen grouping → owner review → encrypted private CRM archive.
+
+Rules:
+
+- the screenshot may transit only the self-hosted n8n private workflow and the local OCR service;
+- n8n execution input/output persistence must be disabled for this workflow;
+- the screenshot and raw OCR transcript must never be sent to Cloud AI, MCP providers or Sanity;
+- OCR image processing uses tmpfs/ephemeral files and deletes the temporary image after each request;
+- OCR concurrency is one and the OCR container is CPU/RAM bounded;
+- Local Qwen may only group exact OCR lines; it may not rewrite, summarize, infer missing text or decide customer intent;
+- inbound/outbound direction is derived from screen side plus the owner's chosen customer side;
+- every OCR result is a proposal and must be editable/confirmed by the owner before CRM write;
+- only confirmed text is encrypted into the existing private conversation archive with source manual_ocr;
+- the original screenshot is not stored in CRM by this feature.
+
+This lane does not authorize general raw-customer-data use in n8n or Cloud AI.
+
+## Owner Export Center
+
+Agent OS provides an owner-friendly export surface without adding a reporting SaaS.
+
+Supported general exports:
+
+- CRM overview;
+- CRM leads;
+- CRM follow-ups;
+- Growth Funnel;
+- Customer Insights aggregates;
+- Automation Runs.
+
+Generic exports intentionally exclude raw conversation history. A future selected-customer/private export must remain a separate high-privacy flow.
+
+CSV:
+
+- generated directly from Admin as the manual fallback;
+- UTF-8 with BOM for Excel/Numbers compatibility;
+- human-readable Thai columns;
+- does not depend on n8n or Google availability.
+
+Google Sheet:
+
+- initiated by Admin and executed as a background n8n job;
+- tracked by Agent OS Runtime Job ID;
+- contains tabs ภาพรวม and ข้อมูล;
+- freezes the header, enables a filter and auto-resizes columns;
+- uses Google Sheet timezone Asia/Bangkok and locale th_TH;
+- owner opens the resulting provider reference from Admin.
+
+All export filenames and displayed timestamps use Asia/Bangkok (UTC+7). The date suffix is derived from Bangkok local date, not the UTC calendar date.
