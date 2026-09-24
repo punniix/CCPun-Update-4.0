@@ -1,8 +1,11 @@
 import json
 import os
 import sys
+from pathlib import Path
 from PIL import Image
 from paddleocr import PaddleOCR
+
+MODEL_ROOT = Path.home() / ".paddlex" / "official_models"
 
 def side_for_box(box, width):
     if not box or len(box) < 4 or width <= 0:
@@ -34,6 +37,8 @@ def main():
         ocr_version="PP-OCRv5",
         text_detection_model_name="PP-OCRv5_mobile_det",
         text_recognition_model_name="th_PP-OCRv5_mobile_rec",
+        text_detection_model_dir=str(MODEL_ROOT / "PP-OCRv5_mobile_det"),
+        text_recognition_model_dir=str(MODEL_ROOT / "th_PP-OCRv5_mobile_rec"),
         use_doc_orientation_classify=False,
         use_doc_unwarping=False,
         use_textline_orientation=False,
