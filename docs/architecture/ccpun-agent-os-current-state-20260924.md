@@ -152,3 +152,26 @@ Current Agent OS work is additive and fail-closed:
 7. LINE OA MCP hosting/auth/read-only smoke before any write capability is enabled.
 
 Until these gates are read back, their state is `not verified`, not `failed` and not `ready`.
+
+
+## Source-only additions after the receipt baseline
+
+The Agent OS branch now also contains source-controlled foundations for:
+
+- private chat screenshot OCR through an authenticated self-hosted n8n workflow;
+- a resource-bounded PaddleOCR Thai mobile sidecar on the existing VPS;
+- owner review before encrypted manual_ocr CRM archive insertion;
+- direct owner CSV exports;
+- background Google Sheet exports through n8n;
+- Bangkok UTC+7 export naming and timestamps;
+- owner business/automation dashboard aggregates.
+
+These are not evidence of live activation.
+
+Outstanding activation evidence remains:
+
+- live n8n network path to the OCR sidecar without public exposure;
+- live OCR container resource measurements on the Hostinger VPS;
+- UAT application/readback of the OCR archive migration;
+- Google Sheets OAuth credential binding inside the live n8n workflow;
+- Agent OS Runtime migration activation before background export jobs can report durable status.
