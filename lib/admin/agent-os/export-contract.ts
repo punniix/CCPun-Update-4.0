@@ -8,7 +8,6 @@ export const EXPORT_DATASETS = [
   "crm-overview",
   "crm-leads",
   "crm-follow-ups",
-  "crm-conversations",
   "growth-funnel",
   "customer-insights",
   "automation-runs",
