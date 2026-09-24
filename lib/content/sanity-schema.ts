@@ -125,7 +125,7 @@ export const baseArticleSchema = z.object({
   category: z.string().min(1),
   categorySlug: z.string().min(1).nullish(),
   tags: z.array(z.string()).nullish(),
-  authorName: z.string().min(1),
+  authorName: z.string().min(1).nullish().transform((value) => value ?? undefined).catch(undefined),
   author: authorSchema.nullish().catch(undefined),
   publishedAt: z.string().nullish(),
   updatedAt: z.string().min(1),

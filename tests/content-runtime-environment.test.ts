@@ -60,3 +60,17 @@ test("Production content lanes cannot cross project or dataset boundaries", () =
   assert.equal(isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "production", "production", ADMIN_PROJECT_ID), false);
   assert.equal(isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "production", "production-admin", WEB_PROJECT_ID), false);
 });
+
+
+test("legacy Sanity UAT project is rejected for all active UAT lanes", () => {
+  for (const [environment, projectId] of [
+    ["web-uat", WEB_PROJECT_ID],
+    ["admin-uat", ADMIN_PROJECT_ID],
+  ] as const) {
+    assert.equal(
+      isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "uat", environment, projectId),
+      false,
+      environment,
+    );
+  }
+});
