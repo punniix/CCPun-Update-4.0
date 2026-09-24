@@ -190,6 +190,9 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(classifyProductionChanges([...workerOnlyPaths, "package.json"]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges(["docs/build.mjs"]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges(["docs/architecture.md.js"]), "mixed-or-unknown");
+  for (const malformedPath of ["docs/\0a.md", "docs/a//b.md", "docs/./a.md", "docs/a/../b.md"]) {
+    assert.equal(classifyProductionChanges([malformedPath]), "mixed-or-unknown", malformedPath);
+  }
   assert.equal(classifyProductionChanges(["apps/admin/README.md"]), "admin-only");
   assert.equal(classifyProductionChanges(["apps/web/README.md"]), "web-only");
   assert.equal(classifyProductionChanges([...docsOnlyPaths, "package.json"]), "mixed-or-unknown");
@@ -237,6 +240,9 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
       assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: workerOnlyPaths }), false);
       assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: [...workerOnlyPaths, "package-lock.json"] }), true);
       assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: ["docs/build.mjs"] }), true);
+      for (const malformedPath of ["docs/\0a.md", "docs/a//b.md", "docs/./a.md"]) {
+        assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: [malformedPath] }), true);
+      }
     }
   }
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: pr160Paths }), false);
@@ -263,6 +269,10 @@ test("unknown Projects skip while missing git diff builds both known Projects", 
     assert.equal(shouldBuild({ projectId, environment: "preview", branch: "" }), true);
     assert.equal(shouldBuild({ projectId, environment: "preview", branch: "admin/only-by-name", changedPaths: null }), true);
     assert.equal(shouldBuild({ projectId, environment: "preview", branch: "web/only-by-name", changedPaths: [] }), true);
+    for (const environment of [undefined, null, "", "unknown", "development"]) {
+      assert.equal(shouldBuild({ projectId, environment, changedPaths: ["docs/a.md"] }), true);
+      assert.equal(shouldBuild({ projectId, environment, changedPaths: ["workers/local-ai/src/index.ts"] }), true);
+    }
   }
 });
 
@@ -296,6 +306,7 @@ test("Production Ignored Build Step uses native git evidence and fails safe", ()
     for (const projectId of [web, admin]) {
       assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: base, commitSha: docsCommit }).status, 0);
       assert.equal(runIgnoredBuild(fixture, { projectId, environment: "preview", branch: "feature/docs-only", previousSha: base, commitSha: docsCommit }).status, 0);
+      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "unknown", branch: "feature/docs-only", previousSha: base, commitSha: docsCommit }).status, 1);
       assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: neutralCommit, commitSha: workerCommit }).status, 0);
       assert.equal(runIgnoredBuild(fixture, { projectId, environment: "preview", branch: "feature/local-ai-worker", previousSha: neutralCommit, commitSha: workerCommit }).status, 0);
     }

@@ -68,7 +68,7 @@ export function classifyProductionChanges(changedPaths) {
   let hasNeutralControlChange = false;
   let hasWorkerChange = false;
   for (const path of changedPaths) {
-    if (typeof path !== "string" || !path || path.startsWith("/") || path.includes("\\") || path.split("/").includes("..")) {
+    if (typeof path !== "string" || !path || path.includes("\\") || path.includes("\0") || path.split("/").some((part) => !part || part === "." || part === "..")) {
       return "mixed-or-unknown";
     }
     if (DOCS_ONLY_FILES.has(path) || (path.startsWith("docs/") && path.endsWith(".md"))) {
@@ -137,6 +137,7 @@ export function readProductionChangedPaths({
 
 export function shouldBuild({ projectId, environment, changedPaths }) {
   if (![WEB_PROJECT_ID, ADMIN_PROJECT_ID].includes(projectId)) return false;
+  if (environment !== "production" && environment !== "preview") return true;
   if (environment === "production") {
     const classification = classifyProductionChanges(changedPaths);
     if (classification === "docs-only" || classification === "worker-only") return false;
