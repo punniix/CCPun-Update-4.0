@@ -11,6 +11,18 @@ type ProposalMessage = {
   occurredAtLocal: string;
 };
 
+type OcrProposalResponse = {
+  requestId?: unknown;
+  status?: unknown;
+  messages?: Array<{
+    text?: unknown;
+    direction?: unknown;
+    confidence?: unknown;
+  }>;
+  errorCategory?: unknown;
+  error?: unknown;
+};
+
 function bangkokLocalInputNow() {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",
@@ -57,7 +69,7 @@ export function ChatScreenshotImport({ leadId }: { leadId: string }) {
         method: "POST",
         body,
       });
-      const data = await response.json();
+      const data = await response.json() as OcrProposalResponse;
       if (!response.ok || data.status !== "proposal") throw new Error(data.errorCategory || data.error || "ocr_failed");
       setRequestId(String(data.requestId));
       setMessages((Array.isArray(data.messages) ? data.messages : []).map((item: { text?: unknown; direction?: unknown; confidence?: unknown }) => ({
