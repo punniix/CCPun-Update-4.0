@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { exportDatasetSchema, exportFileName } from "@/lib/admin/agent-os/export-contract";
-import { buildOwnerExportDataset, ownerDatasetToCsv } from "@/lib/admin/agent-os/export-datasets";
+import { buildOwnerExportDataset } from "@/lib/admin/agent-os/export-datasets";
+import { ownerDatasetToCsv } from "@/lib/admin/agent-os/export-csv";
 import { getAdminIdentity } from "@/lib/admin/identity";
 
 export const runtime = "nodejs";
