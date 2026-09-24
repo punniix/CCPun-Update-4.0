@@ -60,3 +60,18 @@ test("exact-ID runtime lookup is a separate guarded least-privilege migration", 
   assert.match(readback, /direct_table_read_denied/);
   assert.match(readback, /missing_job_returns_empty/);
 });
+
+test("Agent OS write functions avoid output-column ambiguity", () => {
+  const migration = read("db/migrations/20260924_agent_os_runtime_ambiguity_fix_v3.sql");
+  const readback = read("db/migrations/20260924_agent_os_runtime_ambiguity_fix_v3_readback.sql");
+  const source = migration.split("-- checksum-source-begin\n")[1]?.split("-- checksum-source-end")[0];
+  assert.ok(source);
+  const checksum = "sha256:" + createHash("sha256").update(source).digest("hex");
+  assert.equal(migration.match(new RegExp(checksum, "g"))?.length, 2);
+  assert.match(migration, /foundation_guard/);
+  assert.match(migration, /lookup_guard/);
+  assert.doesNotMatch(source, /ON CONFLICT\(job_id,row_version\)/);
+  assert.match(source, /row_version=j\.row_version\+1/);
+  assert.match(source, /WHERE j\.job_id=v_job\.job_id/);
+  assert.match(readback, new RegExp(checksum));
+});
