@@ -255,15 +255,3 @@ export async function buildOwnerExportDataset(
   throw new Error("EXPORT_DATASET_UNSUPPORTED");
 }
 
-function csvCell(value: unknown) {
-  const text = value == null ? "" : String(value);
-  return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
-}
-
-export function ownerDatasetToCsv(dataset: OwnerExportDataset) {
-  const lines = [
-    dataset.columns.map(csvCell).join(","),
-    ...dataset.rows.map((row) => dataset.columns.map((column) => csvCell(row[column])).join(",")),
-  ];
-  return "\uFEFF" + lines.join("\r\n") + "\r\n";
-}
