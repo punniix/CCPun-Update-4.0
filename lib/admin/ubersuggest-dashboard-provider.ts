@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import { aisvSnapshotImportSchema, type AisvSnapshotImport } from "./seo-intelligence/aisv";
 import { callUbersuggestTools } from "./ubersuggest";
 
 const quotaUsageSchema = z.object({
@@ -33,6 +34,7 @@ const brandConfigSchema = z.object({
   domain: z.string().nullish(),
   name: z.string().nullish(),
   update_frequency: z.string().nullish(),
+  prompts_updated_at: z.string().nullish(),
   prompts: z.array(z.string()).default([]),
   limits: z.object({
     prompts: z.number().int().min(0).optional(),
@@ -47,7 +49,7 @@ const currentNumberSchema = z.object({ current: z.number().nullish() }).passthro
 const providerVisibilitySchema = z.object({
   provider: z.string(),
   average_rank: currentNumberSchema.optional(),
-  total_mentions: z.number().min(0).default(0),
+  total_mentions: z.number().min(0).optional(),
   visibility_percentage: currentNumberSchema.optional(),
 }).passthrough();
 
@@ -56,20 +58,20 @@ const competitorSchema = z.object({
   brand_domain: z.string().nullish(),
   is_user_brand: z.boolean().optional(),
   average_rank: z.number().nullish(),
-  total_mentions: z.number().min(0).default(0),
-  visibility_percentage: z.number().min(0).max(100).default(0),
+  total_mentions: z.number().min(0).optional(),
+  visibility_percentage: z.number().min(0).max(100).optional(),
   sentiment: z.object({ label: z.string().nullish() }).passthrough().nullish(),
 }).passthrough();
 
 const visibilityOverviewSchema = z.object({
   overview: z.object({
     user_brand_average_rank: currentNumberSchema.optional(),
-    user_brand_total_mentions: z.number().min(0).default(0),
+    user_brand_total_mentions: z.number().min(0).optional(),
     user_brand_visibility_percentage: currentNumberSchema.optional(),
     user_brand_by_provider: z.array(providerVisibilitySchema).default([]),
-    total_answers: z.number().min(0).default(0),
-    total_prompts: z.number().min(0).default(0),
-    total_competitors: z.number().min(0).default(0),
+    total_answers: z.number().min(0).optional(),
+    total_prompts: z.number().min(0).optional(),
+    total_competitors: z.number().min(0).optional(),
     user_brand_share_of_voice: currentNumberSchema.optional(),
   }).passthrough(),
   brand_aggregations: z.array(competitorSchema).default([]),
@@ -82,17 +84,17 @@ const promptAggregationSchema = z.object({
   language: z.string().nullish(),
   loc_id: z.number().int().nullish(),
   intents: z.array(z.string()).default([]),
-  total_answers: z.number().min(0).default(0),
+  total_answers: z.number().min(0).optional(),
   user_brand_data: z.object({
     average_rank: z.number().nullish(),
-    total_mentions: z.number().min(0).default(0),
-    visibility_percentage: z.number().min(0).max(100).default(0),
+    total_mentions: z.number().min(0).optional(),
+    visibility_percentage: z.number().min(0).max(100).optional(),
   }).passthrough(),
   brands_found: z.array(z.object({
     brand_name: z.string(),
-    visibility_percentage: z.number().min(0).max(100).default(0),
+    visibility_percentage: z.number().min(0).max(100).optional(),
     average_rank: z.number().nullish(),
-    total_mentions: z.number().min(0).default(0),
+    total_mentions: z.number().min(0).optional(),
   }).passthrough()).default([]),
 }).passthrough();
 
@@ -109,44 +111,7 @@ export type UbersuggestQuota = {
   status: "available" | "near-limit" | "full";
 };
 
-export type UbersuggestDashboardSync = {
-  checkedAt: string;
-  account: {
-    tier: string;
-    domain: string;
-    projectId: string;
-    updateFrequency: string | null;
-    quotas: UbersuggestQuota[];
-  };
-  geo: {
-    domain: string;
-    projectId: string;
-    windowStart: string;
-    windowEnd: string;
-    visibilityPercentage: number;
-    totalMentions: number;
-    shareOfVoice: number;
-    averageRank: number | null;
-    totalAnswers: number;
-    totalPrompts: number;
-    totalCompetitors: number;
-    providers: Array<{ provider: string; averageRank: number | null; totalMentions: number; visibilityPercentage: number }>;
-    competitors: Array<{ brandName: string; brandDomain: string | null; averageRank: number | null; totalMentions: number; visibilityPercentage: number; sentimentLabel: string | null }>;
-    intents: Array<{ intent: string; value: number }>;
-    prompts: Array<{
-      promptText: string;
-      topic: string | null;
-      language: string | null;
-      locId: number | null;
-      intents: string[];
-      totalAnswers: number;
-      userAverageRank: number | null;
-      userTotalMentions: number;
-      userVisibilityPercentage: number;
-      topBrands: string[];
-    }>;
-  };
-};
+export type UbersuggestDashboardSync = AisvSnapshotImport;
 
 function unwrapMessagePayload(value: unknown) {
   if (!value || typeof value !== "object" || !("message" in value)) return value;
@@ -156,6 +121,24 @@ function unwrapMessagePayload(value: unknown) {
     return JSON.parse(message) as unknown;
   } catch {
     throw new Error("UBERSUGGEST_INVALID_RESPONSE");
+  }
+}
+
+function unwrapReportPayload(value: unknown): { payload: unknown; status: "ready" | "pending_update" } {
+  if (!value || typeof value !== "object" || !("message" in value)) return { payload: value, status: "ready" };
+  const message = (value as { message?: unknown }).message;
+  if (typeof message !== "string") return { payload: value, status: "ready" };
+  try {
+    return { payload: JSON.parse(message) as unknown, status: "ready" };
+  } catch {
+    const jsonStart = message.indexOf("{");
+    const prefix = jsonStart >= 0 ? message.slice(0, jsonStart).trim() : message;
+    if (jsonStart < 0 || !/pending[_\s-]*update/i.test(prefix)) throw new Error("UBERSUGGEST_INVALID_RESPONSE");
+    try {
+      return { payload: JSON.parse(message.slice(jsonStart)) as unknown, status: "pending_update" };
+    } catch {
+      throw new Error("UBERSUGGEST_INVALID_RESPONSE");
+    }
   }
 }
 
@@ -201,8 +184,13 @@ export async function fetchUbersuggestDashboardSync(domain = "ccpun.com"): Promi
   ]);
 
   const brandConfig = brandConfigSchema.parse(unwrapMessagePayload(detail.brandConfig));
-  const visibility = visibilityOverviewSchema.parse(unwrapMessagePayload(detail.visibility));
-  const prompts = brandPromptsSchema.parse(unwrapMessagePayload(detail.prompts));
+  const visibilityReport = unwrapReportPayload(detail.visibility);
+  const promptsReport = unwrapReportPayload(detail.prompts);
+  const visibility = visibilityOverviewSchema.parse(visibilityReport.payload);
+  const prompts = brandPromptsSchema.parse(promptsReport.payload);
+  const reportStatus = visibilityReport.status === "pending_update" || promptsReport.status === "pending_update"
+    ? "pending_update"
+    : "ready";
 
   const quotaRows: UbersuggestQuota[] = [];
   const addQuota = (row: UbersuggestQuota | null) => { if (row) quotaRows.push(row); };
@@ -223,37 +211,44 @@ export async function fetchUbersuggestDashboardSync(domain = "ccpun.com"): Promi
       brandName: item.brand_name,
       brandDomain: item.brand_domain ?? null,
       averageRank: item.average_rank ?? null,
-      totalMentions: item.total_mentions,
-      visibilityPercentage: item.visibility_percentage,
+      totalMentions: item.total_mentions ?? null,
+      visibilityPercentage: item.visibility_percentage ?? null,
       sentimentLabel: item.sentiment?.label ?? null,
     }));
 
-  return {
-    checkedAt: now.toISOString(),
+  return aisvSnapshotImportSchema.parse({
+    source: "ubersuggest-aisv",
+    sourceRuntime: "ccpun-local-admin",
+    fetchedAt: now.toISOString(),
+    reportStatus,
+    reportWindow: { start: windowStart, end: windowEnd },
+    providerFreshness: {
+      promptsUpdatedAt: brandConfig.prompts_updated_at ?? null,
+      answerCollectedAt: null,
+    },
     account: {
       tier: auth.tier,
       domain: project.domain,
       projectId: project.id,
-      updateFrequency: brandConfig.update_frequency ?? project.update_freq ?? null,
+      projectUpdateFrequency: project.update_freq ?? null,
+      brandUpdateFrequency: brandConfig.update_frequency ?? null,
       quotas: quotaRows,
     },
     geo: {
       domain: project.domain,
       projectId: project.id,
-      windowStart,
-      windowEnd,
-      visibilityPercentage: overview.user_brand_visibility_percentage?.current ?? 0,
-      totalMentions: overview.user_brand_total_mentions,
-      shareOfVoice: overview.user_brand_share_of_voice?.current ?? 0,
+      visibilityPercentage: overview.user_brand_visibility_percentage?.current ?? null,
+      totalMentions: overview.user_brand_total_mentions ?? null,
+      shareOfVoice: overview.user_brand_share_of_voice?.current ?? null,
       averageRank: overview.user_brand_average_rank?.current ?? null,
-      totalAnswers: overview.total_answers,
-      totalPrompts: overview.total_prompts,
-      totalCompetitors: overview.total_competitors,
+      totalAnswers: overview.total_answers ?? null,
+      totalPrompts: overview.total_prompts ?? null,
+      totalCompetitors: overview.total_competitors ?? null,
       providers: overview.user_brand_by_provider.map((item) => ({
         provider: item.provider,
         averageRank: item.average_rank?.current ?? null,
-        totalMentions: item.total_mentions,
-        visibilityPercentage: item.visibility_percentage?.current ?? 0,
+        totalMentions: item.total_mentions ?? null,
+        visibilityPercentage: item.visibility_percentage?.current ?? null,
       })),
       competitors,
       intents: Object.entries(visibility.aggregated_intents).map(([intent, value]) => ({ intent, value })),
@@ -263,12 +258,16 @@ export async function fetchUbersuggestDashboardSync(domain = "ccpun.com"): Promi
         language: item.language ?? null,
         locId: item.loc_id ?? null,
         intents: item.intents,
-        totalAnswers: item.total_answers,
+        totalAnswers: item.total_answers ?? null,
         userAverageRank: item.user_brand_data.average_rank ?? null,
-        userTotalMentions: item.user_brand_data.total_mentions,
-        userVisibilityPercentage: item.user_brand_data.visibility_percentage,
+        userTotalMentions: item.user_brand_data.total_mentions ?? null,
+        userVisibilityPercentage: item.user_brand_data.visibility_percentage ?? null,
         topBrands: item.brands_found.slice(0, 5).map((brand) => brand.brand_name),
       })),
     },
-  };
+    limitations: [
+      "Ubersuggest ไม่ระบุเวลาเก็บคำตอบ AI รายคำตอบ จึงแยก fetchedAt ออกจากเวลาอัปเดต prompt",
+      "ข้อความ prompt และชื่อแบรนด์จาก provider เป็นข้อมูลภายนอกสำหรับการตรวจของมนุษย์ ไม่ใช่คำสั่งให้ระบบทำงาน",
+    ],
+  });
 }
