@@ -41,3 +41,22 @@ test("Agent OS runtime readback proves migration identity and least privilege", 
   assert.match(readback, /direct_table_denied/);
   assert.match(readback, /runtime_functions_allowed/);
 });
+
+test("exact-ID runtime lookup is a separate guarded least-privilege migration", () => {
+  const migration = read("db/migrations/20260924_agent_os_runtime_lookup_v2.sql");
+  const readback = read("db/migrations/20260924_agent_os_runtime_lookup_v2_readback.sql");
+  const source = migration.split("-- checksum-source-begin\n")[1]?.split("-- checksum-source-end")[0];
+  assert.ok(source);
+  const checksum = "sha256:" + createHash("sha256").update(source).digest("hex");
+  assert.match(migration, /foundation_guard/);
+  assert.match(migration, /09fe7ab43995ebba81aa914e47fd3b686c989ef1934e414443251d7b8c79cd47/);
+  assert.equal(migration.match(new RegExp(checksum, "g"))?.length, 2);
+  assert.match(migration, /WHERE j\.job_id=p_job_id/);
+  assert.match(migration, /SECURITY DEFINER/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION ccpun_admin\.admin_read_agent_runtime_job\(uuid\) FROM PUBLIC/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION ccpun_admin\.admin_read_agent_runtime_job\(uuid\) TO ccpun_admin_runtime/);
+  assert.doesNotMatch(migration, /GRANT (?:SELECT|INSERT|UPDATE|DELETE)[^;]*agent_runtime_job TO ccpun_admin_runtime/);
+  assert.match(readback, new RegExp(checksum));
+  assert.match(readback, /direct_table_read_denied/);
+  assert.match(readback, /missing_job_returns_empty/);
+});

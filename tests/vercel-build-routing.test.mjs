@@ -188,6 +188,8 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(classifyProductionChanges(neutralOnlyPaths), "neutral-control");
   assert.equal(classifyProductionChanges([...docsOnlyPaths, ...neutralOnlyPaths]), "neutral-control");
   assert.equal(classifyProductionChanges([...workerOnlyPaths, "package.json"]), "mixed-or-unknown");
+  assert.equal(classifyProductionChanges([...workerOnlyPaths, "scripts/vercel-ignore-build.mjs"]), "mixed-or-unknown");
+  assert.equal(classifyProductionChanges([...workerOnlyPaths, "apps/admin/next.config.ts"]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges(["docs/build.mjs"]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges(["docs/architecture.md.js"]), "mixed-or-unknown");
   for (const malformedPath of ["docs/\0a.md", "docs/a//b.md", "docs/./a.md", "docs/a/../b.md"]) {

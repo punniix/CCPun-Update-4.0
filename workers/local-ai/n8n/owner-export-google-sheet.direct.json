@@ -50,7 +50,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  expectedVersion:$json.rowVersion,\n  status:'running',\n  stage:'fetch_dataset',\n  attempt:1,\n  startedAt:$json.startedAt,\n  heartbeatAt:new Date().toISOString(),\n  n8nExecutionId:String($execution.id)\n}) }}",
+        "jsonBody": "={{ ({\n  expectedVersion:$json.rowVersion,\n  status:'running',\n  stage:'fetch-dataset',\n  attempt:1,\n  startedAt:$json.startedAt,\n  heartbeatAt:new Date().toISOString(),\n  n8nExecutionId:String($execution.id)\n}) }}",
         "options": {
           "timeout": 10000,
           "response": {
@@ -67,7 +67,8 @@
         0
       ],
       "id": "fb7dc045-6b37-4215-a36f-7d1dc6bda894",
-      "name": "Runtime · เริ่มงาน"
+      "name": "Runtime · เริ่มงาน",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -102,7 +103,8 @@
         0
       ],
       "id": "12b015e5-cf51-45a3-827e-4306c71766f9",
-      "name": "ดึงข้อมูล Export"
+      "name": "ดึงข้อมูล Export",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -130,7 +132,8 @@
       ],
       "id": "e07bb145-489b-482c-99bc-f292746a55a5",
       "name": "สร้าง Google Sheet",
-      "executeOnce": true
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -145,7 +148,8 @@
         0
       ],
       "id": "a96e7f46-9e6c-44f8-9b36-a44222197ea1",
-      "name": "เตรียมค่า Sheet"
+      "name": "เตรียมค่า Sheet",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -173,7 +177,8 @@
         -100
       ],
       "id": "f82ccca2-8068-4c3e-87a7-13ef28781a70",
-      "name": "เขียน Overview"
+      "name": "เขียน Overview",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -201,7 +206,8 @@
         -100
       ],
       "id": "324ccf4f-0755-49f8-8b3a-f0f657d9ae21",
-      "name": "เขียนข้อมูล"
+      "name": "เขียนข้อมูล",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -229,7 +235,8 @@
         -100
       ],
       "id": "51d2c379-fd11-4a61-8f1d-67b73b0ed08a",
-      "name": "จัดรูปแบบ Sheet"
+      "name": "จัดรูปแบบ Sheet",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -264,7 +271,113 @@
         -100
       ],
       "id": "191302df-37bd-4c5b-92b4-c2850c3e85a3",
-      "name": "Runtime · เสร็จแล้ว"
+      "name": "Runtime · เสร็จแล้ว",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ ({expectedVersion:Number($('เตรียม Export').first().json.rowVersion),status:'failed',stage:'start-failed',errorCategory:'runtime-start-failed',completedAt:new Date().toISOString()}) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -320,
+        420
+      ],
+      "id": "d5c01e4d-29bd-43c8-9975-5f735fe82c5c",
+      "name": "Runtime · เริ่มงานไม่สำเร็จ"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:'failed',stage:'fetch-failed',errorCategory:'export-dataset-failed',completedAt:new Date().toISOString()}) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -100,
+        420
+      ],
+      "id": "f7148ddb-8025-4f2f-98ff-27316d845cfa",
+      "name": "Runtime · ดึงข้อมูลไม่สำเร็จ"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:'reconciliation_required',stage:'sheet-outcome-unknown',errorCategory:'sheet-outcome-unknown'}) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        560,
+        420
+      ],
+      "id": "2e5b5b67-a759-4283-8d63-06bdea80aabe",
+      "name": "Runtime · ต้องตรวจผล Sheet"
     }
   ],
   "pinData": {},
@@ -299,6 +412,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Runtime · เริ่มงานไม่สำเร็จ",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -307,6 +427,13 @@
         [
           {
             "node": "สร้าง Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ดึงข้อมูลไม่สำเร็จ",
             "type": "main",
             "index": 0
           }
@@ -321,6 +448,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -329,6 +463,13 @@
         [
           {
             "node": "เขียน Overview",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
             "type": "main",
             "index": 0
           }
@@ -343,6 +484,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -354,6 +502,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -362,6 +517,25 @@
         [
           {
             "node": "Runtime · เสร็จแล้ว",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Runtime · เสร็จแล้ว": {
+      "main": [
+        null,
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
             "type": "main",
             "index": 0
           }

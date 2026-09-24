@@ -42,6 +42,34 @@ test("Google Sheet export is background n8n work with Agent OS runtime observabi
   assert.doesNotMatch(joined, /crm-conversations|raw transcript|raw_message/i);
 });
 
+test("Google Sheet failures leave a safe terminal state without persisting provider errors", () => {
+  const route = read("apps/admin/app/api/admin/exports/google-sheet/route.ts");
+  const workflow = JSON.parse(read("workers/local-ai/n8n/owner-export-google-sheet.direct.json"));
+  const nodes = new Map<string, { onError?: string; parameters: { jsonBody?: string } }>(
+    workflow.nodes.map((node: { name: string }) => [node.name, node]),
+  );
+  for (const [source, target] of [
+    ["Runtime · เริ่มงาน", "Runtime · เริ่มงานไม่สำเร็จ"],
+    ["ดึงข้อมูล Export", "Runtime · ดึงข้อมูลไม่สำเร็จ"],
+    ["สร้าง Google Sheet", "Runtime · ต้องตรวจผล Sheet"],
+    ["เตรียมค่า Sheet", "Runtime · ต้องตรวจผล Sheet"],
+    ["เขียน Overview", "Runtime · ต้องตรวจผล Sheet"],
+    ["เขียนข้อมูล", "Runtime · ต้องตรวจผล Sheet"],
+    ["จัดรูปแบบ Sheet", "Runtime · ต้องตรวจผล Sheet"],
+    ["Runtime · เสร็จแล้ว", "Runtime · ต้องตรวจผล Sheet"],
+  ]) {
+    assert.equal(nodes.get(source)?.onError, "continueErrorOutput");
+    assert.equal(workflow.connections[source].main[1][0].node, target);
+  }
+  assert.match(nodes.get("Runtime · เริ่มงานไม่สำเร็จ")?.parameters.jsonBody ?? "", /status:'failed'/);
+  assert.match(nodes.get("Runtime · ดึงข้อมูลไม่สำเร็จ")?.parameters.jsonBody ?? "", /status:'failed'/);
+  assert.match(nodes.get("Runtime · ต้องตรวจผล Sheet")?.parameters.jsonBody ?? "", /status:'reconciliation_required'/);
+  assert.match(nodes.get("Runtime · เริ่มงาน")?.parameters.jsonBody ?? "", /stage:'fetch-dataset'/);
+  assert.match(route, /status: "reconciliation_required",\s*stage: "trigger-uncertain"/);
+  assert.match(route, /if \(!response\.ok\) \{[\s\S]*?status: "failed"/);
+  assert.doesNotMatch(JSON.stringify(workflow), /error\.message|error\.description|error\.stack/);
+});
+
 test("Export dataset endpoint uses dedicated n8n auth and owner-friendly read models", () => {
   const auth = read("lib/admin/agent-os/export-service-auth.ts");
   const route = read("apps/admin/app/api/internal/agent-os/exports/route.ts");
