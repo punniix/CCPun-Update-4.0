@@ -1,0 +1,389 @@
+{
+  "name": "CCPun — Owner Export to Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ccpun-owner-export-sheet",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -980,
+        0
+      ],
+      "id": "2a77cfaf-dd5d-414c-a047-d5efc100f3ae",
+      "name": "Admin · Export Google Sheet",
+      "webhookId": "3d1ddf3b-f8cd-4799-a546-d825142c73de"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input=$input.first()?.json ?? {};\nconst raw=input.body && input.headers ? input.body : input;\nconst allowed=new Set(['crm-overview','crm-leads','crm-follow-ups','growth-funnel','customer-insights','automation-runs']);\nconst jobId=String(raw.jobId??'');\nconst rowVersion=Number(raw.rowVersion??0);\nconst dataset=String(raw.dataset??'');\nconst generatedAt=String(raw.generatedAt??'');\nconst valid=/^[0-9a-f-]{36}$/i.test(jobId)&&Number.isInteger(rowVersion)&&rowVersion>0&&allowed.has(dataset)&&Number.isFinite(Date.parse(generatedAt));\nif(!valid) throw new Error('EXPORT_INPUT_INVALID');\nreturn [{json:{\n  jobId,rowVersion,dataset,generatedAt,\n  startedAt:new Date().toISOString(),\n  correlationId:String(raw.correlationId??''),\n  requestId:String(raw.requestId??'')\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        0
+      ],
+      "id": "5405c065-c5f2-4514-ad98-52077264bb72",
+      "name": "เตรียม Export"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $json.jobId + '/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  expectedVersion:$json.rowVersion,\n  status:'running',\n  stage:'fetch_dataset',\n  attempt:1,\n  startedAt:$json.startedAt,\n  heartbeatAt:new Date().toISOString(),\n  n8nExecutionId:String($execution.id)\n}) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -540,
+        0
+      ],
+      "id": "fb7dc045-6b37-4215-a36f-7d1dc6bda894",
+      "name": "Runtime · เริ่มงาน"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/exports/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  dataset:$('เตรียม Export').item.json.dataset,\n  generatedAt:$('เตรียม Export').item.json.generatedAt\n}) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -300,
+        0
+      ],
+      "id": "12b015e5-cf51-45a3-827e-4306c71766f9",
+      "name": "ดึงข้อมูล Export"
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "title": "={{ $json.fileName }}",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "ภาพรวม"
+            },
+            {
+              "title": "ข้อมูล"
+            }
+          ]
+        },
+        "options": {
+          "locale": "th_TH"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -40,
+        0
+      ],
+      "id": "e07bb145-489b-482c-99bc-f292746a55a5",
+      "name": "สร้าง Google Sheet",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const data=$('ดึงข้อมูล Export').item.json;\nconst created=$json;\nconst spreadsheetId=String(created.spreadsheetId??'');\nif(!spreadsheetId) throw new Error('GOOGLE_SHEET_ID_MISSING');\nconst sheets=Array.isArray(created.sheets)?created.sheets:[];\nconst overviewSheetId=Number(sheets[0]?.properties?.sheetId??0);\nconst dataSheetId=Number(sheets[1]?.properties?.sheetId??1);\nconst columns=Array.isArray(data.columns)?data.columns.map(String):[];\nconst rows=Array.isArray(data.rows)?data.rows:[];\nconst overview=Array.isArray(data.overview)?data.overview:[];\nconst overviewValues=[['รายการ','ค่า'],...overview.map(x=>[String(x.label??''),x.value??''])];\nconst dataValues=[columns,...rows.map(row=>columns.map(col=>row?.[col]??''))];\nreturn [{json:{\n  spreadsheetId,\n  spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+spreadsheetId+'/edit',\n  overviewSheetId,dataSheetId,overviewValues,dataValues,\n  dataColumnCount:Math.max(1,columns.length),\n  dataRowCount:dataValues.length,\n  title:String(data.fileName??data.title??'CCPun Export')\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ],
+      "id": "a96e7f46-9e6c-44f8-9b36-a44222197ea1",
+      "name": "เตรียมค่า Sheet"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + '/values/' + encodeURIComponent(\"'ภาพรวม'!A1:B\" + $json.overviewValues.length) + '?valueInputOption=RAW' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ ({values:$json.overviewValues}) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        -100
+      ],
+      "id": "f82ccca2-8068-4c3e-87a7-13ef28781a70",
+      "name": "เขียน Overview"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $('เตรียมค่า Sheet').item.json.spreadsheetId + '/values/' + encodeURIComponent(\"'ข้อมูล'!A1\") + '?valueInputOption=RAW' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ ({values:$('เตรียมค่า Sheet').item.json.dataValues}) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        680,
+        -100
+      ],
+      "id": "324ccf4f-0755-49f8-8b3a-f0f657d9ae21",
+      "name": "เขียนข้อมูล"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $('เตรียมค่า Sheet').item.json.spreadsheetId + ':batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const s=$('เตรียมค่า Sheet').item.json;\n  return {requests:[\n    {updateSpreadsheetProperties:{properties:{timeZone:'Asia/Bangkok',locale:'th_TH'},fields:'timeZone,locale'}},\n    {updateSheetProperties:{properties:{sheetId:s.overviewSheetId,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},\n    {updateSheetProperties:{properties:{sheetId:s.dataSheetId,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},\n    {repeatCell:{range:{sheetId:s.overviewSheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:'userEnteredFormat.textFormat.bold'}},\n    {repeatCell:{range:{sheetId:s.dataSheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:'userEnteredFormat.textFormat.bold'}},\n    {setBasicFilter:{filter:{range:{sheetId:s.dataSheetId,startRowIndex:0,endRowIndex:Math.max(1,s.dataRowCount),startColumnIndex:0,endColumnIndex:s.dataColumnCount}}}},\n    {autoResizeDimensions:{dimensions:{sheetId:s.overviewSheetId,dimension:'COLUMNS',startIndex:0,endIndex:2}}},\n    {autoResizeDimensions:{dimensions:{sheetId:s.dataSheetId,dimension:'COLUMNS',startIndex:0,endIndex:s.dataColumnCount}}}\n  ]};\n})() }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        920,
+        -100
+      ],
+      "id": "51d2c379-fd11-4a61-8f1d-67b73b0ed08a",
+      "name": "จัดรูปแบบ Sheet"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').item.json.jobId + '/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const start=$('เตรียม Export').item.json;\n  const runtime=$('Runtime · เริ่มงาน').item.json;\n  const sheet=$('เตรียมค่า Sheet').item.json;\n  return {\n    expectedVersion:Number(runtime.rowVersion),\n    status:'completed',\n    stage:'done',\n    heartbeatAt:new Date().toISOString(),\n    completedAt:new Date().toISOString(),\n    providerReference:sheet.spreadsheetUrl,\n    durationMs:Math.max(0,Date.now()-Date.parse(start.startedAt))\n  };\n})() }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1160,
+        -100
+      ],
+      "id": "191302df-37bd-4c5b-92b4-c2850c3e85a3",
+      "name": "Runtime · เสร็จแล้ว"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Admin · Export Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "เตรียม Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เตรียม Export": {
+      "main": [
+        [
+          {
+            "node": "Runtime · เริ่มงาน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Runtime · เริ่มงาน": {
+      "main": [
+        [
+          {
+            "node": "ดึงข้อมูล Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ดึงข้อมูล Export": {
+      "main": [
+        [
+          {
+            "node": "สร้าง Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้าง Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "เตรียมค่า Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เตรียมค่า Sheet": {
+      "main": [
+        [
+          {
+            "node": "เขียน Overview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เขียน Overview": {
+      "main": [
+        [
+          {
+            "node": "เขียนข้อมูล",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เขียนข้อมูล": {
+      "main": [
+        [
+          {
+            "node": "จัดรูปแบบ Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "จัดรูปแบบ Sheet": {
+      "main": [
+        [
+          {
+            "node": "Runtime · เสร็จแล้ว",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "executionTimeout": 180,
+    "timezone": "Asia/Bangkok"
+  },
+  "versionId": "54476489-b97e-49f3-bf07-b535f87e90f8",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "sourceControlled": true,
+    "containsOwnerData": true,
+    "googleCredentialMustBeAttachedInLiveN8n": true
+  }
+}
