@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { baseArticleSchema, bodyItemSchema } from "../../lib/content/sanity-schema";
 
 const baseArticle = {
@@ -39,4 +40,23 @@ test("legacy null Portable Text markDefs render while malformed mark definitions
   const block = { _type: "block", children: [{ text: "อ่านต่อ", marks: null }], markDefs: null };
   assert.equal(bodyItemSchema.safeParse(block).success, true);
   assert.equal(bodyItemSchema.safeParse({ ...block, markDefs: [{ _key: "link", _type: "link", href: "javascript:alert(1)" }] }).success, false);
+});
+
+
+test("legacy drafts with no author normalize at the content boundary instead of failing schema parsing", () => {
+  const parsed = baseArticleSchema.parse({
+    ...baseArticle,
+    _id: "drafts.article-no-author",
+    _originalId: "drafts.article-no-author",
+    authorName: null,
+  });
+
+  assert.equal(parsed.authorName, undefined);
+});
+
+
+test("published content still keeps author as a hard boundary", () => {
+  const source = readFileSync(new URL("../../lib/content/sanity.ts", import.meta.url), "utf8");
+  assert.match(source, /status === "published" && !authorName/);
+  assert.match(source, /Published article is missing required author/);
 });

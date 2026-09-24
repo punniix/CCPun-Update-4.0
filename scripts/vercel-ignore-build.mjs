@@ -4,6 +4,10 @@ import { pathToFileURL } from "node:url";
 const WEB_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 const ADMIN_PROJECT_ID = "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN";
 
+const WORKER_ONLY_PREFIXES = [
+  "workers/local-ai/",
+];
+
 const ADMIN_ONLY_PREFIXES = [
   "apps/admin/",
   "app/(control-plane)/",
@@ -75,12 +79,17 @@ export function classifyProductionChanges(changedPaths) {
   let hasAdminChange = false;
   let hasWebChange = false;
   let hasNeutralChange = false;
+  let hasWorkerChange = false;
   for (const path of changedPaths) {
     if (typeof path !== "string" || !path || path.startsWith("/") || path.includes("\\") || path.split("/").includes("..")) {
       return "mixed-or-unknown";
     }
     if (NEUTRAL_FILES.has(path) || hasPrefix(path, NEUTRAL_PREFIXES)) {
       hasNeutralChange = true;
+      continue;
+    }
+    if (hasPrefix(path, WORKER_ONLY_PREFIXES)) {
+      hasWorkerChange = true;
       continue;
     }
     if (WEB_ONLY_FILES.has(path) || hasPrefix(path, WEB_ONLY_PREFIXES)) {
@@ -94,9 +103,10 @@ export function classifyProductionChanges(changedPaths) {
     return "mixed-or-unknown";
   }
 
-  if (hasAdminChange && !hasWebChange) return "admin-only";
-  if (hasWebChange && !hasAdminChange) return "web-only";
-  if (!hasAdminChange && !hasWebChange && hasNeutralChange) return "neutral-only";
+  if (hasWorkerChange && !hasAdminChange && !hasWebChange && !hasNeutralChange) return "worker-only";
+  if (hasAdminChange && !hasWebChange && !hasWorkerChange) return "admin-only";
+  if (hasWebChange && !hasAdminChange && !hasWorkerChange) return "web-only";
+  if (!hasAdminChange && !hasWebChange && !hasWorkerChange && hasNeutralChange) return "neutral-only";
   return "mixed-or-unknown";
 }
 
@@ -136,6 +146,7 @@ export function shouldBuild({ projectId, environment, branch, changedPaths }) {
   if (![WEB_PROJECT_ID, ADMIN_PROJECT_ID].includes(projectId)) return false;
   if (environment === "production") {
     const classification = classifyProductionChanges(changedPaths);
+    if (classification === "worker-only") return false;
     if (classification === "admin-only") return projectId === ADMIN_PROJECT_ID;
     if (classification === "web-only") return projectId === WEB_PROJECT_ID;
     // Production push CI promotes the exact Admin SHA after verification, so
@@ -148,6 +159,7 @@ export function shouldBuild({ projectId, environment, branch, changedPaths }) {
   if (projectId === WEB_PROJECT_ID && isAdminOnlyBranch(branch)) return false;
   if (projectId === ADMIN_PROJECT_ID && isWebOnlyBranch(branch)) return false;
   const classification = classifyProductionChanges(changedPaths);
+  if (classification === "worker-only") return false;
   if (classification === "admin-only" || classification === "neutral-only") {
     return projectId === ADMIN_PROJECT_ID;
   }
