@@ -17,6 +17,8 @@ import {
 const createResultSchema = z.object({
   outcome: z.enum(["created", "duplicate", "idempotency_conflict"]),
   job_id: z.string().uuid(),
+  correlation_id: z.string().uuid(),
+  request_id: z.string().uuid(),
   row_version: z.coerce.number().int().positive(),
 });
 
@@ -29,6 +31,7 @@ const dbJobSchema = z.object({
   job_id: z.string().uuid(),
   correlation_id: z.string().uuid(),
   request_id: z.string().uuid(),
+  payload_digest_sha256: z.string().regex(/^[0-9a-f]{64}$/),
   source: agentOsJobSchema.shape.source,
   action: agentOsJobSchema.shape.action,
   workflow_key: agentOsJobSchema.shape.workflowKey,
@@ -66,6 +69,7 @@ export async function createAgentRuntimeJob(input: {
   correlationId?: string;
   requestId?: string;
   idempotencyKey: string;
+  payloadDigestSha256: string;
   source: AgentOsJob["source"];
   action: string;
   workflowKey: string;
@@ -84,12 +88,13 @@ export async function createAgentRuntimeJob(input: {
   const requestId = input.requestId ?? randomUUID();
 
   const rows = createResultSchema.array().parse(await sql.query(
-    "SELECT outcome,job_id::text,row_version FROM ccpun_admin.admin_create_agent_runtime_job($1::jsonb)",
+    "SELECT outcome,job_id::text,correlation_id::text,request_id::text,row_version FROM ccpun_admin.admin_create_agent_runtime_job($1::jsonb)",
     [JSON.stringify({
       job_id: jobId,
       correlation_id: correlationId,
       request_id: requestId,
       idempotency_key: input.idempotencyKey,
+      payload_digest_sha256: input.payloadDigestSha256,
       source: input.source,
       action: input.action,
       workflow_key: input.workflowKey,
@@ -109,8 +114,8 @@ export async function createAgentRuntimeJob(input: {
   return {
     outcome: row.outcome,
     jobId: row.job_id,
-    correlationId,
-    requestId,
+    correlationId: row.correlation_id,
+    requestId: row.request_id,
     rowVersion: row.row_version,
   };
 }
@@ -183,6 +188,7 @@ export async function readAgentRuntimeJobs(
         jobId: row.job_id,
         correlationId: row.correlation_id,
         requestId: row.request_id,
+        payloadDigestSha256: row.payload_digest_sha256,
         source: row.source,
         action: row.action,
         workflowKey: row.workflow_key,
