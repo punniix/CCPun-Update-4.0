@@ -4,7 +4,7 @@ SELECT
   EXISTS(
     SELECT 1 FROM ccpun_admin.schema_migration
     WHERE version='20260924_agent_os_runtime_foundation_v1'
-      AND checksum='sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce'
+      AND checksum='sha256:09fe7ab43995ebba81aa914e47fd3b686c989ef1934e414443251d7b8c79cd47'
   ) AS migration_current,
   to_regclass('ccpun_admin.agent_runtime_job') IS NOT NULL AS job_table_present,
   to_regprocedure('ccpun_admin.admin_create_agent_runtime_job(jsonb)') IS NOT NULL AS create_fn_present,
