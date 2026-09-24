@@ -13,7 +13,7 @@ SELECT pg_advisory_xact_lock(hashtext('ccpun_admin:20260924_agent_os_runtime_fou
 SELECT 1 / CASE WHEN NOT EXISTS (
   SELECT 1 FROM ccpun_admin.schema_migration
   WHERE version='20260924_agent_os_runtime_foundation_v1'
-    AND checksum<>'sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b'
+    AND checksum<>'sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce'
 ) THEN 1 ELSE 0 END AS checksum_guard;
 
 -- checksum-source-begin
@@ -192,8 +192,9 @@ BEGIN
     heartbeat_at=COALESCE(NULLIF(payload->>'heartbeat_at','')::timestamptz,heartbeat_at),
     started_at=COALESCE(NULLIF(payload->>'started_at','')::timestamptz,started_at),
     completed_at=CASE
+      WHEN v_next_status IN ('completed','failed','cancelled')
+        THEN COALESCE(NULLIF(payload->>'completed_at','')::timestamptz,completed_at,now())
       WHEN payload ? 'completed_at' THEN NULLIF(payload->>'completed_at','')::timestamptz
-      WHEN v_next_status IN ('completed','failed','cancelled') THEN COALESCE(completed_at,now())
       ELSE completed_at
     END,
     n8n_execution_id=CASE WHEN payload ? 'n8n_execution_id' THEN NULLIF(payload->>'n8n_execution_id','') ELSE n8n_execution_id END,
@@ -295,7 +296,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -341,19 +342,20 @@ CREATE INDEX IF NOT EXISTS agent_runtime_job_workflow_duration_idx
   WHERE status='completed' AND duration_ms IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION ccpun_admin.admin_create_agent_runtime_job(payload jsonb)
-RETURNS TABLE(outcome text, job_id uuid, row_version bigint)
+RETURNS TABLE(outcome text, job_id uuid, correlation_id uuid, request_id uuid, row_version bigint)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, ccpun_admin
 AS $agent_create$
 DECLARE
   v_existing ccpun_admin.agent_runtime_job%ROWTYPE;
+  v_inserted ccpun_admin.agent_runtime_job%ROWTYPE;
   v_job_id uuid;
   v_idempotency text;
 BEGIN
   IF jsonb_typeof(payload) <> 'object'
     OR payload - ARRAY[
-      'job_id','correlation_id','request_id','idempotency_key','source','action','workflow_key',
+      'job_id','correlation_id','request_id','idempotency_key','payload_digest_sha256','source','action','workflow_key',
       'status','stage','queue_class','attempt','max_attempts','queued_at','started_at','heartbeat_at',
       'n8n_execution_id','provider_reference'
     ]::text[] <> '{}'::jsonb THEN
@@ -363,32 +365,15 @@ BEGIN
   v_job_id := NULLIF(payload->>'job_id','')::uuid;
   v_idempotency := payload->>'idempotency_key';
 
-  SELECT * INTO v_existing
-  FROM ccpun_admin.agent_runtime_job
-  WHERE idempotency_key=v_idempotency;
-
-  IF FOUND THEN
-    IF v_existing.job_id=v_job_id
-      AND v_existing.correlation_id=NULLIF(payload->>'correlation_id','')::uuid
-      AND v_existing.request_id=NULLIF(payload->>'request_id','')::uuid
-      AND v_existing.source=payload->>'source'
-      AND v_existing.action=payload->>'action'
-      AND v_existing.workflow_key=payload->>'workflow_key' THEN
-      RETURN QUERY SELECT 'duplicate'::text,v_existing.job_id,v_existing.row_version;
-      RETURN;
-    END IF;
-    RETURN QUERY SELECT 'idempotency_conflict'::text,v_existing.job_id,v_existing.row_version;
-    RETURN;
-  END IF;
-
   INSERT INTO ccpun_admin.agent_runtime_job(
-    job_id,correlation_id,request_id,idempotency_key,source,action,workflow_key,status,stage,
+    job_id,correlation_id,request_id,idempotency_key,payload_digest_sha256,source,action,workflow_key,status,stage,
     queue_class,attempt,max_attempts,queued_at,started_at,heartbeat_at,n8n_execution_id,provider_reference
   ) VALUES (
     v_job_id,
     NULLIF(payload->>'correlation_id','')::uuid,
     NULLIF(payload->>'request_id','')::uuid,
     v_idempotency,
+    payload->>'payload_digest_sha256',
     payload->>'source',
     payload->>'action',
     payload->>'workflow_key',
@@ -402,9 +387,36 @@ BEGIN
     NULLIF(payload->>'heartbeat_at','')::timestamptz,
     NULLIF(payload->>'n8n_execution_id',''),
     NULLIF(payload->>'provider_reference','')
-  );
+  )
+  ON CONFLICT(idempotency_key) DO NOTHING
+  RETURNING * INTO v_inserted;
 
-  RETURN QUERY SELECT 'created'::text,v_job_id,1::bigint;
+  IF FOUND THEN
+    INSERT INTO ccpun_admin.agent_runtime_job_event(job_id,row_version,status,stage,attempt,error_category)
+    VALUES(v_inserted.job_id,v_inserted.row_version,v_inserted.status,v_inserted.stage,v_inserted.attempt,v_inserted.error_category)
+    ON CONFLICT(job_id,row_version) DO NOTHING;
+
+    RETURN QUERY SELECT 'created'::text,v_inserted.job_id,v_inserted.correlation_id,v_inserted.request_id,v_inserted.row_version;
+    RETURN;
+  END IF;
+
+  SELECT * INTO v_existing
+  FROM ccpun_admin.agent_runtime_job
+  WHERE idempotency_key=v_idempotency;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'agent job idempotency winner unavailable';
+  END IF;
+
+  IF v_existing.payload_digest_sha256=payload->>'payload_digest_sha256'
+    AND v_existing.source=payload->>'source'
+    AND v_existing.action=payload->>'action'
+    AND v_existing.workflow_key=payload->>'workflow_key' THEN
+    RETURN QUERY SELECT 'duplicate'::text,v_existing.job_id,v_existing.correlation_id,v_existing.request_id,v_existing.row_version;
+    RETURN;
+  END IF;
+
+  RETURN QUERY SELECT 'idempotency_conflict'::text,v_existing.job_id,v_existing.correlation_id,v_existing.request_id,v_existing.row_version;
 END
 $agent_create$;
 
@@ -535,7 +547,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -775,7 +787,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -975,7 +987,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -1215,7 +1227,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -1455,7 +1467,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -1662,7 +1674,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -1902,7 +1914,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
@@ -2142,7 +2154,7 @@ TO ccpun_admin_runtime;
 -- checksum-source-end
 
 INSERT INTO ccpun_admin.schema_migration(version,checksum)
-VALUES('20260924_agent_os_runtime_foundation_v1','sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b')
+VALUES('20260924_agent_os_runtime_foundation_v1','sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce')
 ON CONFLICT(version) DO NOTHING;
 
 COMMIT;
