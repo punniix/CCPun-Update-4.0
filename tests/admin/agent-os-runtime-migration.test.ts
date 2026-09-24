@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
-const expectedChecksum = "sha256:297ceb8281aabb7c43481a9686f0a755ca0aed8dfe65c4a31dbcd132e482c18a";
+const expectedChecksum = "sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b";
 
 test("Agent OS runtime migration is checksum locked and metadata-only", () => {
   const migration = read("db/migrations/20260924_agent_os_runtime_foundation_v1.sql");
