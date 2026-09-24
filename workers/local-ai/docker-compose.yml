@@ -85,8 +85,6 @@ services:
     volumes:
       - ocr_models:/home/ocr/.paddlex:ro
     networks: [model_private]
-    ports:
-      - "127.0.0.1:8788:8788"
     mem_limit: 1200m
     cpus: "1.0"
     pids_limit: 96
