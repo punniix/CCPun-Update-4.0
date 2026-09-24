@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { readOperationsJobs, type OperationsJob } from "@/lib/admin/operations/jobs-read-model";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 
@@ -36,7 +37,7 @@ function jobKindLabel(job: OperationsJob) {
 
 function JobRow({ job }: { job: OperationsJob }) {
   return <tr className="border-t border-white/10 align-top">
-    <td className="px-4 py-4"><div className="text-sm font-medium text-white/90">{job.source === "article-scheduler" ? "ตั้งเวลาเผยแพร่บทความ" : job.source === "agent-os" ? "Agent OS / n8n" : "ส่งโพสต์โซเชียล"}</div><div className="mt-1 max-w-[240px] break-all text-xs text-white/40">{job.objectId}</div></td>
+    <td className="px-4 py-4"><div className="text-sm font-medium text-white/90">{job.source === "article-scheduler" ? "ตั้งเวลาเผยแพร่บทความ" : job.source === "agent-os" ? "Agent OS / n8n" : "ส่งโพสต์โซเชียล"}</div><div className="mt-1 max-w-[240px] break-all text-xs text-white/40">{job.objectId}</div>{job.source === "agent-os" ? <Link href={`/operations/jobs/${job.id}/`} className="mt-2 inline-flex text-xs text-[#e0c985] hover:underline hover:underline-offset-4">ดู Runtime →</Link> : null}</td>
     <td className="px-4 py-4"><div className="text-sm text-white/80">{jobKindLabel(job)}</div><details className="mt-1 text-xs text-white/45"><summary className="cursor-pointer">ดูรายละเอียดสำหรับตรวจสอบ</summary><p className="mt-1">{job.kind} · {job.detail}</p></details></td>
     <td className="px-4 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusTone(job.status)}`}>{jobStatusLabel(job.status)}</span>{job.locked ? <div className="mt-2 text-xs text-amber-100">ระบบกำลังทำงานถึง {formatDate(job.lockExpiresAt)}</div> : null}</td>
     <td className="px-4 py-4 text-sm text-white/60">{job.attempts ? `${job.attempts.current}/${job.attempts.max}` : "—"}</td>
