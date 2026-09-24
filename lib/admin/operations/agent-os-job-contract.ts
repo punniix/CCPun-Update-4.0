@@ -41,6 +41,7 @@ export const agentOsJobSchema = z.object({
   jobId: z.string().uuid(),
   correlationId: z.string().uuid(),
   requestId: z.string().uuid(),
+  payloadDigestSha256: z.string().regex(/^[0-9a-f]{64}$/),
   source: agentOsJobSourceSchema,
   action: safeId,
   workflowKey: safeId,
