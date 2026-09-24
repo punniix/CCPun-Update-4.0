@@ -78,8 +78,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "agent-os-runtime-not-ready" }, { status: 503, headers });
   }
 
+  let response: Response;
   try {
-    const response = await fetch(webhook, {
+    response = await fetch(webhook, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -97,14 +98,24 @@ export async function POST(request: Request) {
       signal: AbortSignal.timeout(10_000),
       cache: "no-store",
     });
-    if (!response.ok) throw new Error("N8N_EXPORT_TRIGGER_FAILED");
   } catch {
     await updateAgentRuntimeJob({
       jobId: job.jobId,
       expectedVersion: job.rowVersion,
+      status: "reconciliation_required",
+      stage: "trigger-uncertain",
+      errorCategory: "n8n-trigger-outcome-unknown",
+    }).catch(() => null);
+    return NextResponse.json({ error: "google-sheet-export-trigger-uncertain", jobId: job.jobId }, { status: 503, headers });
+  }
+
+  if (!response.ok) {
+    await updateAgentRuntimeJob({
+      jobId: job.jobId,
+      expectedVersion: job.rowVersion,
       status: "failed",
-      stage: "trigger",
-      errorCategory: "n8n-trigger-failed",
+      stage: "trigger-rejected",
+      errorCategory: "n8n-trigger-rejected",
       completedAt: new Date().toISOString(),
     }).catch(() => null);
     return NextResponse.json({ error: "google-sheet-export-trigger-failed", jobId: job.jobId }, { status: 503, headers });
