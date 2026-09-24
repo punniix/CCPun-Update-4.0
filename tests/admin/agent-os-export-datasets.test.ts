@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ownerDatasetToCsv } from "../../lib/admin/agent-os/export-datasets";
+import { ownerDatasetToCsv } from "../../lib/admin/agent-os/export-csv";
 
 test("Owner CSV export uses UTF-8 BOM and human-readable columns", () => {
   const csv = ownerDatasetToCsv({
