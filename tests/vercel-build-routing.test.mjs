@@ -41,17 +41,17 @@ function runIgnoredBuild(cwd, { projectId, environment, branch, previousSha, com
   });
 }
 
-test("Website 4.3 and its historical UX branch build only in the Web survivor", () => {
+test("Website 4.3 paths build only in Web even on historical UX branches", () => {
   for (const branch of ["ux/final-4.2", "web/website-43-homepage", "codex/website-43-accessibility"]) {
-    const input = { environment: "preview", branch };
+    const input = { environment: "preview", branch, changedPaths: ["features/home/components/Hero.tsx"] };
     assert.equal(shouldBuild({ ...input, projectId: web }), true);
     assert.equal(shouldBuild({ ...input, projectId: admin }), false);
   }
 });
 
-test("Website 4.2 and Admin-only branches build only in the Admin survivor", () => {
+test("Website 4.2 paths build only in Admin even on Admin branches", () => {
   for (const branch of ["admin/review-queue", "codex/admin-oauth", "codex/website-42-social-foundation", "codex/website-42-social-media-integration-20260829"]) {
-    const input = { environment: "preview", branch };
+    const input = { environment: "preview", branch, changedPaths: ["features/admin/reviews-page.tsx"] };
     assert.equal(shouldBuild({ ...input, projectId: web }), false);
     assert.equal(shouldBuild({ ...input, projectId: admin }), true);
   }
@@ -59,7 +59,7 @@ test("Website 4.2 and Admin-only branches build only in the Admin survivor", () 
 
 test("shared 4.1 Preview releases build in both survivors", () => {
   for (const projectId of [web, admin]) {
-    assert.equal(shouldBuild({ projectId, environment: "preview", branch: "codex/website-41-p0-security-20260827" }), true);
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch: "codex/website-41-p0-security-20260827", changedPaths: ["package.json"] }), true);
   }
 });
 
@@ -73,9 +73,14 @@ test("shared Preview branches isolate builds when native changed-path evidence i
   assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch, changedPaths: adminPaths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "preview", branch, changedPaths: webPaths }), true);
   assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch, changedPaths: webPaths }), false);
+  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch: "admin/misnamed-change", changedPaths: webPaths }), true);
+  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch: "admin/misnamed-change", changedPaths: webPaths }), false);
+  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch: "web/misnamed-change", changedPaths: adminPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch: "web/misnamed-change", changedPaths: adminPaths }), true);
   for (const projectId of [web, admin]) {
     assert.equal(shouldBuild({ projectId, environment: "preview", branch, changedPaths: mixedPaths }), true);
     assert.equal(shouldBuild({ projectId, environment: "preview", branch, changedPaths: null }), true);
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch: "admin/misnamed-change", changedPaths: ["package.json"] }), true);
   }
 });
 
@@ -110,10 +115,8 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
     "lib/admin/social/schema-capabilities.ts",
     "tests/admin/social-schema-capabilities.test.ts",
   ];
-  const localAiWorkerPaths = [
-    "workers/local-ai/src/index.ts",
-    "workers/local-ai/docker-compose.yml",
-  ];
+  const docsOnlyPaths = ["AGENTS.md", "HANDOFF.md", "README.md", "docs/architecture.md"];
+  const workerOnlyPaths = ["workers/local-ai/src/index.ts", "workers/local-ai/docker-compose.yml"];
   const neutralOnlyPaths = [
     ".github/workflows/seo-topic-hubs-ci.yml",
     "scripts/vercel-ignore-build.mjs",
@@ -180,9 +183,23 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(classifyProductionChanges(isolatedAdminPaths), "admin-only");
   assert.equal(classifyProductionChanges(isolatedWebPaths), "web-only");
   assert.equal(classifyProductionChanges(adminHardeningPaths), "admin-only");
-  assert.equal(classifyProductionChanges(localAiWorkerPaths), "worker-only");
-  assert.equal(classifyProductionChanges([...localAiWorkerPaths, "scripts/vercel-ignore-build.mjs"]), "mixed-or-unknown");
-  assert.equal(classifyProductionChanges(neutralOnlyPaths), "neutral-only");
+  assert.equal(classifyProductionChanges(docsOnlyPaths), "docs-only");
+  assert.equal(classifyProductionChanges(workerOnlyPaths), "worker-only");
+  assert.equal(classifyProductionChanges(neutralOnlyPaths), "neutral-control");
+  assert.equal(classifyProductionChanges([...docsOnlyPaths, ...neutralOnlyPaths]), "neutral-control");
+  assert.equal(classifyProductionChanges([...workerOnlyPaths, "package.json"]), "mixed-or-unknown");
+  assert.equal(classifyProductionChanges([...workerOnlyPaths, "scripts/vercel-ignore-build.mjs"]), "mixed-or-unknown");
+  assert.equal(classifyProductionChanges([...workerOnlyPaths, "apps/admin/next.config.ts"]), "mixed-or-unknown");
+  assert.equal(classifyProductionChanges(["docs/build.mjs"]), "mixed-or-unknown");
+  assert.equal(classifyProductionChanges(["docs/architecture.md.js"]), "mixed-or-unknown");
+  for (const malformedPath of ["docs/\0a.md", "docs/a//b.md", "docs/./a.md", "docs/a/../b.md"]) {
+    assert.equal(classifyProductionChanges([malformedPath]), "mixed-or-unknown", malformedPath);
+  }
+  assert.equal(classifyProductionChanges(["apps/admin/README.md"]), "admin-only");
+  assert.equal(classifyProductionChanges(["apps/web/README.md"]), "web-only");
+  assert.equal(classifyProductionChanges([...docsOnlyPaths, "package.json"]), "mixed-or-unknown");
+  assert.equal(classifyProductionChanges([...docsOnlyPaths, "apps/admin/next.config.ts"]), "admin-only");
+  assert.equal(classifyProductionChanges([...docsOnlyPaths, "apps/web/next.config.ts"]), "web-only");
   assert.equal(classifyProductionChanges(pr160Paths), "admin-only");
   assert.equal(classifyProductionChanges(friendlyMotionPaths), "web-only");
   assert.equal(classifyProductionChanges(heroPressFollowupPaths), "web-only");
@@ -216,10 +233,20 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: pr45Paths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), true);
-  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: localAiWorkerPaths }), false);
-  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: localAiWorkerPaths }), false);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: neutralOnlyPaths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: neutralOnlyPaths }), true);
+  for (const environment of ["production", "preview"]) {
+    for (const projectId of [web, admin]) {
+      const branch = environment === "production" ? "v4-production" : "feature/docs-only";
+      assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: docsOnlyPaths }), false);
+      assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: workerOnlyPaths }), false);
+      assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: [...workerOnlyPaths, "package-lock.json"] }), true);
+      assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: ["docs/build.mjs"] }), true);
+      for (const malformedPath of ["docs/\0a.md", "docs/a//b.md", "docs/./a.md"]) {
+        assert.equal(shouldBuild({ projectId, environment, branch, changedPaths: [malformedPath] }), true);
+      }
+    }
+  }
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: pr160Paths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: pr160Paths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: website43Paths }), true);
@@ -232,25 +259,23 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: friendlyMotionPaths }), false);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: heroPressFollowupPaths }), true);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: heroPressFollowupPaths }), false);
-  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch: "feature/local-ai-worker", changedPaths: localAiWorkerPaths }), false);
-  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch: "feature/local-ai-worker", changedPaths: localAiWorkerPaths }), false);
-
   for (const projectId of [web, admin]) {
-    for (const changedPaths of [
-      [...localAiWorkerPaths, "scripts/vercel-ignore-build.mjs"],
-      [...localAiWorkerPaths, "package.json"],
-      [...localAiWorkerPaths, isolatedAdminPaths[0]],
-    ]) {
-      assert.equal(shouldBuild({ projectId, environment: "preview", branch: "feature/local-ai-worker", changedPaths }), true);
-    }
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: ["middleware.ts"] }), true);
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: null }), true);
   }
 });
 
-test("unknown Projects or missing branch identity fail closed", () => {
+test("unknown Projects skip while missing git diff builds both known Projects", () => {
   assert.equal(shouldBuild({ projectId: "prj_legacy", environment: "preview", branch: "ux/final-4.2" }), false);
-  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch: "" }), false);
+  for (const projectId of [web, admin]) {
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch: "" }), true);
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch: "admin/only-by-name", changedPaths: null }), true);
+    assert.equal(shouldBuild({ projectId, environment: "preview", branch: "web/only-by-name", changedPaths: [] }), true);
+    for (const environment of [undefined, null, "", "unknown", "development"]) {
+      assert.equal(shouldBuild({ projectId, environment, changedPaths: ["docs/a.md"] }), true);
+      assert.equal(shouldBuild({ projectId, environment, changedPaths: ["workers/local-ai/src/index.ts"] }), true);
+    }
+  }
 });
 
 test("Ignored Build Step uses Vercel exit semantics", () => {
@@ -260,8 +285,8 @@ test("Ignored Build Step uses Vercel exit semantics", () => {
     branch: "ux/final-4.2",
   });
 
-  assert.equal(run(web).status, 1, "exit 1 continues the Web build");
-  assert.equal(run(admin).status, 0, "exit 0 skips the Admin build");
+  assert.equal(run(web).status, 1, "exit 1 continues the Web build without a git diff");
+  assert.equal(run(admin).status, 1, "exit 1 continues the Admin build without a git diff");
 });
 
 test("Production Ignored Build Step uses native git evidence and fails safe", () => {
@@ -271,17 +296,26 @@ test("Production Ignored Build Step uses native git evidence and fails safe", ()
     git(fixture, "config", "user.name", "CCPun Routing Test");
     git(fixture, "config", "user.email", "routing-test@example.invalid");
     const base = commitFixture(fixture, "README.md", "base\n", "base");
+    const docsCommit = commitFixture(fixture, "docs/architecture.md", "docs\n", "docs");
     const neutralCommit = commitFixture(fixture, ".github/workflows/seo-topic-hubs-ci.yml", "name: fixture\n", "neutral");
+    const workerCommit = commitFixture(fixture, "workers/local-ai/src/index.ts", "export {};\n", "worker");
     const adminCommit = commitFixture(fixture, "lib/admin/social/foundation.ts", "export {};\n", "admin");
     const webCommit = commitFixture(fixture, "features/home/page.tsx", "export default null;\n", "web");
     const isolatedWebCommit = commitFixture(fixture, "apps/web/app/page.tsx", "export default null;\n", "isolated web");
     const isolatedAdminCommit = commitFixture(fixture, "apps/admin/app/page.tsx", "export default null;\n", "isolated admin");
     const unknownCommit = commitFixture(fixture, "middleware.ts", "export {};\n", "unknown");
 
-    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: base, commitSha: neutralCommit }).status, 0);
-    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: base, commitSha: neutralCommit }).status, 1);
-    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: neutralCommit, commitSha: adminCommit }).status, 0);
-    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: neutralCommit, commitSha: adminCommit }).status, 1);
+    for (const projectId of [web, admin]) {
+      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: base, commitSha: docsCommit }).status, 0);
+      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "preview", branch: "feature/docs-only", previousSha: base, commitSha: docsCommit }).status, 0);
+      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "unknown", branch: "feature/docs-only", previousSha: base, commitSha: docsCommit }).status, 1);
+      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "production", branch: "v4-production", previousSha: neutralCommit, commitSha: workerCommit }).status, 0);
+      assert.equal(runIgnoredBuild(fixture, { projectId, environment: "preview", branch: "feature/local-ai-worker", previousSha: neutralCommit, commitSha: workerCommit }).status, 0);
+    }
+    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: docsCommit, commitSha: neutralCommit }).status, 0);
+    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: docsCommit, commitSha: neutralCommit }).status, 1);
+    assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: workerCommit, commitSha: adminCommit }).status, 0);
+    assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: workerCommit, commitSha: adminCommit }).status, 1);
     assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: adminCommit, commitSha: webCommit }).status, 1);
     assert.equal(runIgnoredBuild(fixture, { projectId: admin, environment: "production", branch: "v4-production", previousSha: adminCommit, commitSha: webCommit }).status, 0);
     assert.equal(runIgnoredBuild(fixture, { projectId: web, environment: "production", branch: "v4-production", previousSha: webCommit, commitSha: isolatedWebCommit }).status, 1);
