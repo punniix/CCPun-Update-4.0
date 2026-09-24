@@ -3,6 +3,7 @@ import "server-only";
 import { groq } from "next-sanity";
 import { sanityFetch } from "@/lib/sanity-live";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
+import { retryTransientSanityRead } from "./sanity-resilience";
 import { sourceSlugHasPublicRouteOverride } from "./article-route-overrides";
 import {
   buildCategoryRegistry,
@@ -37,11 +38,11 @@ export async function listCategoryRegistry(options: { includeDrafts?: boolean } 
   if (includeDrafts && !IS_DRAFT_PREVIEW_ALLOWED) return emptyCategoryRegistry(false);
 
   try {
-    const { data } = await sanityFetch({
+    const { data } = await retryTransientSanityRead(() => sanityFetch({
       query: categoryRegistryQuery,
       perspective: includeDrafts ? "drafts" : "published",
       stega: includeDrafts,
-    });
+    }));
     const { rows, context: parsedContext } = parseCategoryRegistryResponse(data);
     const context: CategoryRegistryContext = {
       // A Sanity source slug that has an explicit public-route override no longer
