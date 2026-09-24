@@ -50,6 +50,59 @@ services:
       model-init:
         condition: service_completed_successfully
 
+  ocr-model-init:
+    profiles: ["ocr"]
+    build:
+      context: ../..
+      dockerfile: workers/local-ai/ocr/Dockerfile
+    restart: "no"
+    command: ["python", "/app/preload.py"]
+    environment:
+      HOME: /home/ocr
+      PADDLE_PDX_MODEL_SOURCE: BOS
+    volumes:
+      - ocr_models:/home/ocr/.paddlex
+    networks: [egress]
+    mem_limit: 1400m
+    cpus: "1.0"
+    security_opt: [no-new-privileges:true]
+
+  ocr:
+    profiles: ["ocr"]
+    build:
+      context: ../..
+      dockerfile: workers/local-ai/ocr/Dockerfile
+    restart: unless-stopped
+    env_file: .env.local-ai
+    environment:
+      HOME: /home/ocr
+      PADDLE_PDX_MODEL_SOURCE: BOS
+      OCR_MAX_BYTES: "8388608"
+      OCR_MAX_SIDE: "2400"
+      OCR_TIMEOUT_SECONDS: "90"
+      OCR_MIN_SCORE: "0.35"
+    command: ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8788", "--workers", "1", "--no-access-log"]
+    volumes:
+      - ocr_models:/home/ocr/.paddlex:ro
+    networks: [model_private]
+    ports:
+      - "127.0.0.1:8788:8788"
+    mem_limit: 1200m
+    cpus: "1.0"
+    pids_limit: 96
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      ocr-model-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8788/healthz', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
 networks:
   model_private:
     internal: true
@@ -57,3 +110,4 @@ networks:
 
 volumes:
   ollama_models: {}
+  ocr_models: {}
