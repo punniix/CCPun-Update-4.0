@@ -7,7 +7,7 @@ export const calendarProjectionSchema = z.object({
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime(),
   titleRef: z.string().regex(/^[A-Za-z0-9._:-]{4,120}$/),
-  adminPath: z.string().regex(/^/[A-Za-z0-9_./-]{1,300}$/),
+  adminPath: z.string().regex(/^\/[A-Za-z0-9_.\/-]{1,300}$/),
   googleEventId: z.string().max(300).nullable(),
   rowVersion: z.number().int().positive(),
 }).strict().superRefine((value, context) => {
@@ -31,7 +31,7 @@ export function calendarEventTitle(input: Pick<CalendarProjection, "kind" | "tit
 }
 
 export function calendarDescription(adminPath: string) {
-  if (!/^/[A-Za-z0-9_./-]{1,300}$/.test(adminPath)) throw new Error("CALENDAR_ADMIN_PATH_INVALID");
+  if (!/^\/[A-Za-z0-9_.\/-]{1,300}$/.test(adminPath)) throw new Error("CALENDAR_ADMIN_PATH_INVALID");
   return `รายละเอียดอยู่ใน CCPun Admin: ${adminPath}`;
 }
 
