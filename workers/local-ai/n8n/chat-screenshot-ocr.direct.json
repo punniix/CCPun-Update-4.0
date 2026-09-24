@@ -1,0 +1,286 @@
+{
+  "name": "CCPun — Private Chat Screenshot OCR",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ccpun-chat-screenshot-ocr",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -900,
+        0
+      ],
+      "id": "7d0b4a61-a853-4e98-b57c-5016f93c6c51",
+      "name": "Admin · Chat Screenshot OCR",
+      "webhookId": "fc296296-e99b-4c26-bb5c-b2bb8f40a7a4"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item=$input.first();\nconst raw=item?.json?.body && item?.json?.headers ? item.json.body : (item?.json ?? {});\nconst binary=item?.binary?.data;\nconst requestId=String(raw.requestId ?? ('ocr-' + $execution.id));\nconst leadId=String(raw.leadId ?? '');\nconst customerSide=String(raw.customerSide ?? 'left');\nconst capturedAt=String(raw.capturedAt ?? '');\nconst uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst allowedSides=new Set(['left','right']);\nconst mime=String(binary?.mimeType ?? '').toLowerCase();\nconst allowedMime=new Set(['image/png','image/jpeg','image/webp']);\nconst fileSize=Number(binary?.fileSize ?? 0);\nconst valid=uuid.test(leadId)&&allowedSides.has(customerSide)&&binary&&allowedMime.has(mime)&&(fileSize===0||fileSize<=8*1024*1024);\nreturn [{json:{\n  requestId,leadId,customerSide,capturedAt,\n  status:valid?'running':'error',\n  stage:valid?'ocr':'input',\n  startedAt:new Date().toISOString(),\n  errorCategory:valid?null:'invalid-input'\n},binary:item.binary}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -680,
+        0
+      ],
+      "id": "fcf66210-8913-466b-98e2-a52c9979e0c3",
+      "name": "เตรียม OCR"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "running",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -470,
+        0
+      ],
+      "id": "ddf13a04-b2f1-45ab-948f-79cc358a62ae",
+      "name": "Input พร้อม?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CCPUN_OCR_BASE_URL + '/v1/ocr' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_OCR_SHARED_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $binary.data.mimeType }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -240,
+        -100
+      ],
+      "id": "89997e88-136c-44c6-990c-dc9b802b533b",
+      "name": "Local OCR · PaddleOCR"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const ocr=$json;\n  const lines=Array.isArray(ocr.lines)?ocr.lines.slice(0,300):[];\n  return {\n    model:'qwen3:1.7b',\n    stream:false,\n    think:false,\n    format:{\n      type:'object',\n      properties:{\n        groups:{\n          type:'array',\n          items:{\n            type:'object',\n            properties:{\n              lineIndexes:{type:'array',items:{type:'integer'}},\n              text:{type:'string'}\n            },\n            required:['lineIndexes','text'],\n            additionalProperties:false\n          }\n        },\n        reviewRequired:{type:'boolean'}\n      },\n      required:['groups','reviewRequired'],\n      additionalProperties:false\n    },\n    options:{temperature:0,num_ctx:4096,num_predict:1400},\n    messages:[\n      {role:'system',content:'You group OCR lines from a Thai chat screenshot into chat-message bubbles. Never rewrite, paraphrase, translate, summarize, infer missing words, names, dates, amounts or intent. Every output text must be made only by joining exact OCR line text in original order. Group only adjacent lines that visibly belong to the same bubble. Every input line index must appear exactly once. Return JSON only and reviewRequired=true.'},\n      {role:'user',content:JSON.stringify(lines.map(x=>({index:x.index,text:x.text,confidence:x.confidence,side:x.side,box:x.box})))}\n    ]\n  };\n})() }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        -100
+      ],
+      "id": "efdbd52e-f788-49a8-8fde-19cb0a97ed97",
+      "name": "Local Qwen · จัดกลุ่มแชท"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const meta=$('เตรียม OCR').item.json;\nconst ocr=$('Local OCR · PaddleOCR').item.json;\nlet parsed={};\ntry {\n  const content=$json?.message?.content;\n  parsed=typeof content==='string'?JSON.parse(content):($json??{});\n} catch {}\nconst lines=Array.isArray(ocr.lines)?ocr.lines:[];\nconst byIndex=new Map(lines.map(x=>[Number(x.index),x]));\nconst seen=new Set();\nconst messages=[];\nlet invalid=false;\nfor(const group of Array.isArray(parsed.groups)?parsed.groups:[]){\n  const indexes=Array.isArray(group.lineIndexes)?group.lineIndexes.map(Number):[];\n  if(!indexes.length){invalid=true;continue;}\n  const picked=[];\n  for(const index of indexes){\n    if(seen.has(index)||!byIndex.has(index)){invalid=true;continue;}\n    seen.add(index);picked.push(byIndex.get(index));\n  }\n  if(!picked.length) continue;\n  const exact=picked.map(x=>String(x.text)).join('\\n').trim();\n  if(String(group.text??'').trim()!==exact) invalid=true;\n  const sideCounts=picked.reduce((acc,x)=>{acc[x.side]=(acc[x.side]||0)+1;return acc;},{});\n  const side=Object.entries(sideCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]??'unknown';\n  const direction=side===meta.customerSide?'inbound':(side==='left'||side==='right'?'outbound':'unknown');\n  const confidence=picked.reduce((sum,x)=>sum+Number(x.confidence||0),0)/picked.length;\n  messages.push({lineIndexes:indexes,text:exact,side,direction,confidence:Number(confidence.toFixed(4))});\n}\nif(seen.size!==lines.length) invalid=true;\nconst finishedAt=new Date().toISOString();\nreturn [{json:{\n  requestId:meta.requestId,\n  leadId:meta.leadId,\n  capturedAt:meta.capturedAt||null,\n  imageDigestSha256:ocr.imageDigestSha256??null,\n  ocrModel:ocr.model??'PP-OCRv5/th-mobile',\n  status:invalid?'error':'proposal',\n  stage:invalid?'validation':'review',\n  reviewRequired:true,\n  messages:invalid?[]:messages,\n  lineCount:lines.length,\n  meanConfidence:Number(ocr.meanConfidence??0),\n  lowConfidenceLineCount:Number(ocr.lowConfidenceLineCount??0),\n  startedAt:meta.startedAt,\n  finishedAt,\n  elapsedMs:Math.max(0,Date.parse(finishedAt)-Date.parse(meta.startedAt)),\n  errorCategory:invalid?'local-grouping-invalid':null\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        -100
+      ],
+      "id": "ead98a02-1603-43ce-bbcf-f198b6f66f10",
+      "name": "ตรวจและสร้าง Proposal"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const data=$json;\nconst finishedAt=new Date().toISOString();\nreturn [{json:{\n  requestId:data.requestId??('ocr-' + $execution.id),\n  leadId:data.leadId??null,\n  status:'error',\n  stage:data.stage??'input',\n  reviewRequired:true,\n  messages:[],\n  errorCategory:data.errorCategory??'chat-ocr-failed',\n  startedAt:data.startedAt??finishedAt,\n  finishedAt,\n  elapsedMs:Math.max(0,Date.parse(finishedAt)-Date.parse(data.startedAt??finishedAt))\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        160
+      ],
+      "id": "4ef7f6f5-aefd-435a-8d68-9553e7438a64",
+      "name": "สรุป Error"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        510,
+        0
+      ],
+      "id": "0b1c3f55-0baf-4df2-85b9-99af2131ff87",
+      "name": "ตอบกลับ Admin"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Admin · Chat Screenshot OCR": {
+      "main": [
+        [
+          {
+            "node": "เตรียม OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เตรียม OCR": {
+      "main": [
+        [
+          {
+            "node": "Input พร้อม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input พร้อม?": {
+      "main": [
+        [
+          {
+            "node": "Local OCR · PaddleOCR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "สรุป Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Local OCR · PaddleOCR": {
+      "main": [
+        [
+          {
+            "node": "Local Qwen · จัดกลุ่มแชท",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Local Qwen · จัดกลุ่มแชท": {
+      "main": [
+        [
+          {
+            "node": "ตรวจและสร้าง Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ตรวจและสร้าง Proposal": {
+      "main": [
+        [
+          {
+            "node": "ตอบกลับ Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สรุป Error": {
+      "main": [
+        [
+          {
+            "node": "ตอบกลับ Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "executionTimeout": 120,
+    "binaryMode": "separate",
+    "timezone": "Asia/Bangkok"
+  },
+  "versionId": "da237ad6-3c13-4231-98dd-0d88755b9d23",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "sourceControlled": true,
+    "privacyLane": "customer-private",
+    "storesRawInput": false
+  }
+}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LineCaseActions } from "@/features/admin/line/LineCaseActions";
 import { LineOAHistoryImport } from "@/features/admin/line/LineOAHistoryImport";
+import { ChatScreenshotImport } from "@/features/admin/line/ChatScreenshotImport";
 import { LeadOutcomeActions } from "@/features/admin/line/LeadOutcomeActions";
 import { AdvisorCaseOperations } from "@/features/admin/line/AdvisorCaseOperations";
 import { readLineCaseDetail } from "@/lib/admin/line/control-plane";
@@ -234,6 +235,15 @@ export default async function AdvisorCasePage({
             </summary>
             <div className="mt-4">
               <LeadOutcomeActions leadId={item.leadId} />
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-white/85">
+              เพิ่มประวัติจากภาพแคปแชท
+            </summary>
+            <div className="mt-4">
+              <ChatScreenshotImport leadId={item.leadId} />
             </div>
           </details>
 
