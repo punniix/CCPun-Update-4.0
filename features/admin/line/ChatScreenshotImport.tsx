@@ -70,7 +70,14 @@ export function ChatScreenshotImport({ leadId }: { leadId: string }) {
         body,
       });
       const data = await response.json() as OcrProposalResponse;
-      if (!response.ok || data.status !== "proposal") throw new Error(data.errorCategory || data.error || "ocr_failed");
+      if (!response.ok || data.status !== "proposal") {
+        const reason = typeof data.errorCategory === "string"
+          ? data.errorCategory
+          : typeof data.error === "string"
+            ? data.error
+            : "ocr_failed";
+        throw new Error(reason);
+      }
       setRequestId(String(data.requestId));
       setMessages((Array.isArray(data.messages) ? data.messages : []).map((item: { text?: unknown; direction?: unknown; confidence?: unknown }) => ({
         text: String(item.text ?? ""),
