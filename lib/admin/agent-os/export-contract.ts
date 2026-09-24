@@ -64,7 +64,6 @@ const DATASET_FILE_LABELS: Record<ExportDataset, string> = {
   "crm-overview": "CCPun_CRM_Overview",
   "crm-leads": "CCPun_CRM_Leads",
   "crm-follow-ups": "CCPun_CRM_Followups",
-  "crm-conversations": "CCPun_CRM_Conversations",
   "growth-funnel": "CCPun_Growth_Funnel",
   "customer-insights": "CCPun_Customer_Insights",
   "automation-runs": "CCPun_Automation_Runs",
