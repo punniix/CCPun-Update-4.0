@@ -53,7 +53,9 @@ export function ExportCenter() {
         if (!response.ok) return;
         const next = await response.json() as RuntimeDetail;
         if (!stopped) setDetail(next);
-      } catch {}
+      } catch {
+        // Keep the last confirmed status visible; the next poll may recover.
+      }
     }
     void poll();
     const timer = window.setInterval(poll, 3000);
