@@ -43,10 +43,11 @@ export function ExportCenter() {
 
   useEffect(() => {
     if (!jobId || detail?.terminal) return;
+    const activeJobId = jobId;
     let stopped = false;
     async function poll() {
       try {
-        const response = await fetch("/api/admin/operations/jobs/" + encodeURIComponent(jobId) + "/", {
+        const response = await fetch("/api/admin/operations/jobs/" + encodeURIComponent(activeJobId) + "/", {
           cache: "no-store",
           headers: { Accept: "application/json" },
         });
@@ -64,10 +65,6 @@ export function ExportCenter() {
       window.clearInterval(timer);
     };
   }, [jobId, detail?.terminal]);
-
-  function downloadCsv() {
-    window.location.assign("/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset));
-  }
 
   async function createGoogleSheet() {
     setBusy(true);
@@ -112,9 +109,9 @@ export function ExportCenter() {
         </label>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <button type="button" onClick={downloadCsv} className="min-h-11 rounded-xl border border-white/10 px-4 text-sm text-white/80 transition hover:bg-white/5">
+          <a href={"/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-sm text-white/80 transition hover:bg-white/5">
             ดาวน์โหลด CSV
-          </button>
+          </a>
           <button type="button" onClick={createGoogleSheet} disabled={busy} className="min-h-11 rounded-xl bg-[#e0c985] px-4 text-sm font-medium text-[#251818] disabled:opacity-50">
             {busy ? "กำลังส่งงาน…" : "สร้าง Google Sheet"}
           </button>
