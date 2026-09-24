@@ -7,6 +7,8 @@ import { buildActionCenterSignals, summarizeActionCenter } from "@/lib/admin/age
 import { adminDataLaneLabel, connectionLabel, environmentLabel } from "@/lib/admin/presentation";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
+import { readOperationsJobs } from "@/lib/admin/operations/jobs-read-model";
+import { readConversionAnalytics } from "@/lib/admin/line/business-intelligence";
 import { getAdminSanityStatus, listSeoSuggestions } from "@/lib/admin/sanity-control";
 
 export const metadata: Metadata = { title: "เริ่มที่นี่" };
@@ -23,7 +25,8 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
     ? null
     : reviews.rows.filter((item) => item.status === "needs-human-review").length;
 
-  const advisorSummary = hasAdminPermission(identity.role, "advisor:read")
+  const canReadAdvisor = hasAdminPermission(identity.role, "advisor:read");
+  const advisorSummary = canReadAdvisor
     ? await listAdvisorInboxOperational({}).then((rows) => {
         const signals = buildActionCenterSignals(rows.map((row) => ({
           leadId: row.leadId,
@@ -38,6 +41,22 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         return summarizeActionCenter(signals);
       }).catch(() => null)
     : null;
+
+  const businessOverview = canReadAdvisor
+    ? await Promise.all([
+        readConversionAnalytics().catch(() => ({ state: "unavailable" as const, summary: null })),
+        readOperationsJobs(50).catch(() => null),
+      ]).then(([analytics, jobs]) => ({
+        leadCount: analytics.state === "ready" ? analytics.summary?.lead_count ?? null : null,
+        qualifiedCount: analytics.state === "ready" ? analytics.summary?.qualified_count ?? null : null,
+        wonCount: analytics.state === "ready" ? analytics.summary?.won_count ?? null : null,
+        revenueRecordCount: analytics.state === "ready" ? analytics.summary?.revenue_record_count ?? null : null,
+        automationAttention: jobs
+          ? jobs.jobs.filter((job) => ["failed", "reconciliation-required", "reconciliation_required"].includes(job.status)).length
+          : null,
+      }))
+    : null;
+
   const lane = adminDataLaneLabel(status.environment);
   const studioReady = isStudioDataPlaneAllowed(status.dataset ?? undefined);
   const steps = [
@@ -97,6 +116,53 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           </Link>
         ) : null}
       </section>
+
+      {canReadAdvisor ? (
+        <section className="mt-7" aria-labelledby="business-overview-heading">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 id="business-overview-heading" className="text-xl font-semibold">ภาพรวมธุรกิจ</h2>
+              <p className="mt-1 text-sm text-white/55">
+                ดูจาก CRM และเส้นทางลูกค้าที่ระบบอ่านได้จริง หากอ่านไม่ได้จะแสดง “—” แทนการเดาเป็นศูนย์
+              </p>
+            </div>
+            {hasAdminPermission(identity.role, "settings:read") ? (
+              <Link href="/analytics/exports/" className="text-sm text-[#e0c985] hover:underline hover:underline-offset-4">
+                ส่งออกข้อมูล →
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              ["Lead", businessOverview?.leadCount],
+              ["Qualified Conversation", businessOverview?.qualifiedCount],
+              ["Won", businessOverview?.wonCount],
+              ["รายการรายได้", businessOverview?.revenueRecordCount],
+              ["งานระบบที่ต้องตรวจ", businessOverview?.automationAttention],
+            ].map(([label, value]) => (
+              <article key={String(label)} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-sm text-white/55">{label}</p>
+                <p className="mt-2 text-2xl font-semibold">
+                  {typeof value === "number" ? value.toLocaleString("th-TH") : "—"}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/analytics/conversions/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
+              ดูเส้นทางลูกค้า
+            </Link>
+            <Link href="/operations/jobs/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
+              ดูงานเบื้องหลัง
+            </Link>
+            <Link href="/dashboard/inbox/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
+              ดูลูกค้า CRM
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-7 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-5 md:p-6" aria-labelledby="safety-heading">
         <h2 id="safety-heading" className="text-lg font-semibold text-[#f4df9b]">ขอบเขตปลอดภัยยังทำงานอยู่</h2>
