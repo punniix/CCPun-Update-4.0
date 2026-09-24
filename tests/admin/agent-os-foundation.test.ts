@@ -39,6 +39,7 @@ test("Agent OS generic job record contains metadata only and rejects unknown fie
     jobId: randomUUID(),
     correlationId: randomUUID(),
     requestId: randomUUID(),
+    payloadDigestSha256: "a".repeat(64),
     source: "n8n",
     action: "crm.followup.create",
     workflowKey: "crm.followup.daily",
