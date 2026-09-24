@@ -110,6 +110,10 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
     "lib/admin/social/schema-capabilities.ts",
     "tests/admin/social-schema-capabilities.test.ts",
   ];
+  const localAiWorkerPaths = [
+    "workers/local-ai/src/index.ts",
+    "workers/local-ai/docker-compose.yml",
+  ];
   const neutralOnlyPaths = [
     ".github/workflows/seo-topic-hubs-ci.yml",
     "scripts/vercel-ignore-build.mjs",
@@ -176,6 +180,8 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(classifyProductionChanges(isolatedAdminPaths), "admin-only");
   assert.equal(classifyProductionChanges(isolatedWebPaths), "web-only");
   assert.equal(classifyProductionChanges(adminHardeningPaths), "admin-only");
+  assert.equal(classifyProductionChanges(localAiWorkerPaths), "worker-only");
+  assert.equal(classifyProductionChanges([...localAiWorkerPaths, "scripts/vercel-ignore-build.mjs"]), "mixed-or-unknown");
   assert.equal(classifyProductionChanges(neutralOnlyPaths), "neutral-only");
   assert.equal(classifyProductionChanges(pr160Paths), "admin-only");
   assert.equal(classifyProductionChanges(friendlyMotionPaths), "web-only");
@@ -210,6 +216,8 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: pr45Paths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: adminHardeningPaths }), true);
+  assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: localAiWorkerPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: localAiWorkerPaths }), false);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: neutralOnlyPaths }), false);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: neutralOnlyPaths }), true);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: pr160Paths }), false);
@@ -224,7 +232,17 @@ test("Production routing classifies legacy roots, isolated app roots and fail-sa
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: friendlyMotionPaths }), false);
   assert.equal(shouldBuild({ projectId: web, environment: "production", branch: "v4-production", changedPaths: heroPressFollowupPaths }), true);
   assert.equal(shouldBuild({ projectId: admin, environment: "production", branch: "v4-production", changedPaths: heroPressFollowupPaths }), false);
+  assert.equal(shouldBuild({ projectId: web, environment: "preview", branch: "feature/local-ai-worker", changedPaths: localAiWorkerPaths }), false);
+  assert.equal(shouldBuild({ projectId: admin, environment: "preview", branch: "feature/local-ai-worker", changedPaths: localAiWorkerPaths }), false);
+
   for (const projectId of [web, admin]) {
+    for (const changedPaths of [
+      [...localAiWorkerPaths, "scripts/vercel-ignore-build.mjs"],
+      [...localAiWorkerPaths, "package.json"],
+      [...localAiWorkerPaths, isolatedAdminPaths[0]],
+    ]) {
+      assert.equal(shouldBuild({ projectId, environment: "preview", branch: "feature/local-ai-worker", changedPaths }), true);
+    }
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: ["middleware.ts"] }), true);
     assert.equal(shouldBuild({ projectId, environment: "production", branch: "v4-production", changedPaths: null }), true);
   }
