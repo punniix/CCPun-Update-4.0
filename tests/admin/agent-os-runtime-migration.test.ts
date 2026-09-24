@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
-const expectedChecksum = "sha256:a2705ea2eb0bd3e8dbb798a3ec46101753d85b87e4a5e4c596d88e100a395d1b";
+const expectedChecksum = "sha256:08c3dc4dedd0c5e47b2bec67e2a9826fb3b6b1cdf66dec24b11274b7cbb479ce";
 
 test("Agent OS runtime migration is checksum locked and metadata-only", () => {
   const migration = read("db/migrations/20260924_agent_os_runtime_foundation_v1.sql");
@@ -17,6 +17,8 @@ test("Agent OS runtime migration is checksum locked and metadata-only", () => {
   assert.match(migration, /CREATE TABLE IF NOT EXISTS ccpun_admin\.agent_runtime_job_event/);
   assert.match(migration, /n8n_execution_id text/);
   assert.match(migration, /reconciliation_required/);
+  assert.match(migration, /ON CONFLICT\(idempotency_key\) DO NOTHING/);
+  assert.match(migration, /agent_runtime_job_event/);
   assert.doesNotMatch(migration, /message_text|health_value|financial_value|ciphertext|token_value/i);
 });
 
