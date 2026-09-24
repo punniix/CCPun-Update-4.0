@@ -188,3 +188,49 @@ For each remaining task it should:
 6. stop before Production mutation unless explicitly authorized.
 
 If a live system contradicts this foundation, report the contradiction and preserve evidence before changing the architecture.
+
+
+## Addendum — Screenshot OCR and Owner Export
+
+| Capability | Status | Decision |
+| --- | --- | --- |
+| Screenshot OCR resource assessment | FOUNDATION DONE | 2 vCPU / 8 GB accepted for interactive, concurrency-one mobile OCR |
+| PaddleOCR Thai sidecar | FOUNDATION DONE / NOT ACTIVATED | Opt-in compose profile, 1 CPU, 1.2 GB RAM, tmpfs |
+| n8n private screenshot OCR workflow | FOUNDATION DONE / NOT ACTIVATED | Webhook → OCR → Local Qwen → proposal; execution persistence disabled |
+| OCR human review UI | FOUNDATION DONE | Editable text/direction/time before save |
+| Encrypted OCR CRM archive migration | FOUNDATION DONE / NOT APPLIED | UAT/Production source + readback |
+| Generic Export Center | FOUNDATION DONE | Owner-friendly datasets; raw conversations excluded |
+| CSV export | FOUNDATION DONE | Direct Admin fallback; UTF-8 BOM |
+| Google Sheet export | FOUNDATION DONE / NOT ACTIVATED | n8n background job + Runtime observability |
+| Google Sheet live OAuth binding | ACTIVATION GATE | Existing live n8n Google credential must be attached |
+| Export filename timezone | FOUNDATION DONE | Bangkok local date, UTC+7 |
+| Export dashboard/navigation | FOUNDATION DONE | Owner surface under Analytics |
+
+### Screenshot OCR E2E acceptance
+
+1. Owner uploads PNG/JPEG/WebP no larger than 8 MB from one CRM case.
+2. Admin sends the file server-to-server to the authenticated n8n webhook.
+3. The n8n OCR workflow has success/error/manual execution persistence disabled.
+4. PaddleOCR processes one image at a time, on CPU, using ephemeral tmpfs.
+5. Local Qwen groups OCR lines without changing their exact text.
+6. Every OCR line index appears exactly once in the validated proposal.
+7. Owner can correct text, direction and Bangkok UTC+7 timestamps.
+8. No CRM write occurs until owner confirmation.
+9. Confirmed text is AES-GCM encrypted before archive insertion.
+10. The CRM transcript can decrypt/display source manual_ocr content.
+11. The original screenshot is not persisted by OCR/CRM.
+12. Cloud/Sanity/MCP never receive the screenshot or raw transcript.
+
+### Export E2E acceptance
+
+1. Owner selects a human-readable dataset from Export Center.
+2. CSV downloads even when n8n/Google is unavailable.
+3. CSV starts with UTF-8 BOM and uses Thai/human-readable columns.
+4. Filename date follows Asia/Bangkok.
+5. Google Sheet request creates a Runtime Job and returns immediately.
+6. n8n obtains only the selected owner-export dataset.
+7. Sheet title date follows Asia/Bangkok.
+8. Sheet timezone is Asia/Bangkok and locale th_TH.
+9. Sheet contains ภาพรวม and ข้อมูล tabs with frozen headers/filter/auto-resize.
+10. Completed Runtime Job stores the Google Sheet URL as provider reference.
+11. Generic exports contain no raw conversation transcript.
