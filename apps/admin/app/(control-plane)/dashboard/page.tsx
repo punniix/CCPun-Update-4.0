@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
+import { hasAdminPermission } from "@/lib/admin/rbac";
+import { listAdvisorInboxOperational } from "@/lib/admin/line/advisor-workflow";
+import { buildActionCenterSignals, summarizeActionCenter } from "@/lib/admin/agent-os/action-center";
 import { adminDataLaneLabel, connectionLabel, environmentLabel } from "@/lib/admin/presentation";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
@@ -11,7 +14,7 @@ export const metadata: Metadata = { title: "เริ่มที่นี่" }
 type DashboardProps = { searchParams: Promise<{ error?: string }> };
 
 export default async function AdminDashboardPage({ searchParams }: DashboardProps) {
-  await requireAdminPermission("dashboard:read");
+  const identity = await requireAdminPermission("dashboard:read");
   const params = await searchParams;
   const status = getAdminSanityStatus();
   const operations = getAdminOperationsRuntimeStatus();
@@ -19,6 +22,22 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
   const pendingReviews = reviews.error
     ? null
     : reviews.rows.filter((item) => item.status === "needs-human-review").length;
+
+  const advisorSummary = hasAdminPermission(identity.role, "advisor:read")
+    ? await listAdvisorInboxOperational({}).then((rows) => {
+        const signals = buildActionCenterSignals(rows.map((row) => ({
+          leadId: row.leadId,
+          stage: row.stage,
+          materialReceived: row.materialReceived,
+          unreadCount: row.unreadCount,
+          followUpAt: row.followUpAt,
+          lastActivityAt: row.lastActivityAt,
+          latestMessageNeedsHuman: row.latestMessageNeedsHuman,
+          caseState: row.caseState,
+        })), new Date().toISOString());
+        return summarizeActionCenter(signals);
+      }).catch(() => null)
+    : null;
   const lane = adminDataLaneLabel(status.environment);
   const studioReady = isStudioDataPlaneAllowed(status.dataset ?? undefined);
   const steps = [
@@ -50,7 +69,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         </div>
       ) : null}
 
-      <section className="mt-6 grid gap-3 md:grid-cols-2" aria-labelledby="attention-heading">
+      <section className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-labelledby="attention-heading">
         <h2 id="attention-heading" className="md:col-span-2 text-xl font-semibold">สิ่งที่ควรตรวจวันนี้</h2>
         <Link href="/dashboard/reviews/" className="glass-card p-5">
           <p className="text-sm text-white/60">งานรอตรวจ</p>
@@ -62,6 +81,21 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           <p className={`mt-2 text-xl font-semibold ${operations.identityValid ? "text-emerald-200" : "text-amber-200"}`}>{operations.identityValid ? "พร้อมใช้งาน" : operations.configured ? "ต้องตรวจ" : "ยังตั้งค่าไม่ครบ"}</p>
           <p className="mt-2 text-sm leading-6 text-white/65">ตรวจแหล่งข้อมูล คิวงาน และการเชื่อมต่อภายนอก</p>
         </Link>
+        {hasAdminPermission(identity.role, "advisor:read") ? (
+          <Link href="/dashboard/inbox/" className="glass-card p-5">
+            <p className="text-sm text-white/60">ลูกค้าที่ควรดูวันนี้</p>
+            <p className={`mt-2 text-xl font-semibold ${advisorSummary?.urgent ? "text-rose-200" : "text-gold-400"}`}>
+              {advisorSummary == null ? "ยังอ่านไม่ได้" : advisorSummary.total === 0 ? "ไม่มีงานค้าง" : `${advisorSummary.total} เรื่อง`}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-white/65">
+              {advisorSummary == null
+                ? "ระบบจะไม่เดาว่าไม่มีงาน หากอ่าน CRM ไม่สำเร็จ"
+                : advisorSummary.total === 0
+                  ? "ยังไม่พบสัญญาณที่ต้องติดตามจากกฎปัจจุบัน"
+                  : `เร่งด่วน ${advisorSummary.urgent} · สำคัญ ${advisorSummary.high} · ปกติ ${advisorSummary.normal}`}
+            </p>
+          </Link>
+        ) : null}
       </section>
 
       <section className="mt-7 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-5 md:p-6" aria-labelledby="safety-heading">
