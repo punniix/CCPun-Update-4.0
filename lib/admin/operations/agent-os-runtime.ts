@@ -69,6 +69,35 @@ function iso(value: string | Date | null) {
   return value instanceof Date ? value.toISOString() : value;
 }
 
+function mapDbJob(row: z.infer<typeof dbJobSchema>) {
+  return {
+    jobId: row.job_id,
+    correlationId: row.correlation_id,
+    requestId: row.request_id,
+    payloadDigestSha256: row.payload_digest_sha256,
+    source: row.source,
+    action: row.action,
+    workflowKey: row.workflow_key,
+    status: row.status,
+    stage: row.stage,
+    queueClass: row.queue_class,
+    attempt: row.attempt,
+    maxAttempts: row.max_attempts,
+    queuedAt: iso(row.queued_at),
+    startedAt: iso(row.started_at),
+    heartbeatAt: iso(row.heartbeat_at),
+    completedAt: iso(row.completed_at),
+    n8nExecutionId: row.n8n_execution_id,
+    providerReference: row.provider_reference,
+    errorCategory: row.error_category,
+    durationMs: row.duration_ms,
+    queueWaitMs: row.queue_wait_ms,
+    rowVersion: row.row_version,
+    createdAt: iso(row.created_at)!,
+    updatedAt: iso(row.updated_at)!,
+  };
+}
+
 async function runtimeSql(variables: Record<string, string | undefined> = process.env) {
   const runtime = resolveAdminOperationsRuntimeIdentity(adminOperationsRuntimeInputFromEnvironment(variables));
   const connectionString = variables.CCPUN_ADMIN_DATABASE_URL?.trim();
@@ -195,35 +224,36 @@ export async function readAgentRuntimeJobs(
     ));
     return {
       state: "ready" as const,
-      jobs: rows.map((row) => ({
-        jobId: row.job_id,
-        correlationId: row.correlation_id,
-        requestId: row.request_id,
-        payloadDigestSha256: row.payload_digest_sha256,
-        source: row.source,
-        action: row.action,
-        workflowKey: row.workflow_key,
-        status: row.status,
-        stage: row.stage,
-        queueClass: row.queue_class,
-        attempt: row.attempt,
-        maxAttempts: row.max_attempts,
-        queuedAt: iso(row.queued_at),
-        startedAt: iso(row.started_at),
-        heartbeatAt: iso(row.heartbeat_at),
-        completedAt: iso(row.completed_at),
-        n8nExecutionId: row.n8n_execution_id,
-        providerReference: row.provider_reference,
-        errorCategory: row.error_category,
-        durationMs: row.duration_ms,
-        queueWaitMs: row.queue_wait_ms,
-        rowVersion: row.row_version,
-        createdAt: iso(row.created_at)!,
-        updatedAt: iso(row.updated_at)!,
-      })),
+      jobs: rows.map(mapDbJob),
     };
   } catch {
     return { state: "unavailable" as const, jobs: [] };
+  }
+}
+
+export async function readAgentRuntimeJobById(
+  jobId: string,
+  variables: Record<string, string | undefined> = process.env,
+) {
+  const parsedJobId = z.string().uuid().safeParse(jobId);
+  if (!parsedJobId.success) return { state: "invalid" as const, job: null };
+
+  const sql = await runtimeSql(variables);
+  if (!sql) return { state: "not_ready" as const, job: null };
+
+  try {
+    const rows = dbJobSchema.array().parse(await sql.query(
+      "SELECT * FROM ccpun_admin.admin_read_agent_runtime_job($1::uuid)",
+      [parsedJobId.data],
+    ));
+    return { state: "ready" as const, job: rows[0] ? mapDbJob(rows[0]) : null };
+  } catch (error) {
+    // ponytail: retain the old 200-job detail window until the additive lookup migration is applied.
+    if (error && typeof error === "object" && "code" in error && error.code === "42883") {
+      const legacy = await readAgentRuntimeJobs(200, variables);
+      return { state: legacy.state, job: legacy.jobs.find((item) => item.jobId === parsedJobId.data) ?? null };
+    }
+    return { state: "unavailable" as const, job: null };
   }
 }
 

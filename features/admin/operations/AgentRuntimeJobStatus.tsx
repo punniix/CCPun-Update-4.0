@@ -37,6 +37,18 @@ function paceLabel(pace: AgentRuntimeJobDetail["pace"]) {
   return "ระยะเวลายังอยู่ในช่วงปกติ";
 }
 
+export function completedSheetUrl(job: Pick<AgentRuntimeJobDetail["job"], "status" | "action" | "providerReference">) {
+  if (job.status !== "completed" || job.action !== "export.google_sheet" || !job.providerReference) return null;
+  try {
+    const url = new URL(job.providerReference);
+    const id = /^\/spreadsheets\/d\/([A-Za-z0-9_-]+)\/edit\/?$/.exec(url.pathname)?.[1];
+    if (url.protocol !== "https:" || url.hostname !== "docs.google.com" || url.port || url.username || url.password || !id) return null;
+    return `https://docs.google.com/spreadsheets/d/${id}/edit`;
+  } catch {
+    return null;
+  }
+}
+
 export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDetail }) {
   const [detail, setDetail] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
@@ -78,6 +90,7 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
         : Date.parse(detail.job.createdAt);
     return Math.max(0, now - started);
   }, [detail, now]);
+  const sheetUrl = completedSheetUrl(detail.job);
 
   return (
     <div className="space-y-5">
@@ -128,6 +141,12 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
             <p className="text-sm font-medium text-rose-100">รายละเอียดปัญหา</p>
             <p className="mt-1 break-all font-mono text-xs text-rose-100/70">{detail.job.errorCategory}</p>
           </div>
+        ) : null}
+
+        {sheetUrl ? (
+          <a href={sheetUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center text-sm font-medium text-[#e0c985] underline underline-offset-4 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
+            เปิด Google Sheet ที่ส่งออก
+          </a>
         ) : null}
       </section>
 

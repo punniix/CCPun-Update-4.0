@@ -3,17 +3,18 @@ import "server-only";
 import { classifyRuntimePace, jobIsTerminal } from "./agent-os-job-contract";
 import {
   readAgentRuntimeDurationBaseline,
+  readAgentRuntimeJobById,
   readAgentRuntimeJobEvents,
-  readAgentRuntimeJobs,
 } from "./agent-os-runtime";
 
 export async function readAgentRuntimeJobDetail(
   jobId: string,
   variables: Record<string, string | undefined> = process.env,
 ) {
-  const jobs = await readAgentRuntimeJobs(200, variables);
-  if (jobs.state !== "ready") return { state: jobs.state, detail: null } as const;
-  const job = jobs.jobs.find((item) => item.jobId === jobId);
+  const result = await readAgentRuntimeJobById(jobId, variables);
+  if (result.state === "invalid") return { state: "not_found" as const, detail: null };
+  if (result.state !== "ready") return { state: result.state, detail: null } as const;
+  const job = result.job;
   if (!job) return { state: "not_found" as const, detail: null };
 
   const [events, baseline] = await Promise.all([
