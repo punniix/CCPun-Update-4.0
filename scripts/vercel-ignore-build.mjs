@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 const WEB_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 const ADMIN_PROJECT_ID = "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN";
+const WORKER_ONLY_PREFIXES = ["workers/local-ai/"];
 
 const ADMIN_ONLY_PREFIXES = [
   "apps/admin/",
@@ -45,25 +46,14 @@ const WEB_ONLY_FILES = new Set([
   "components/ui/FunctionalMotion.module.css",
   "components/ui/HumanCalculatorCard.tsx",
 ]);
-const NEUTRAL_PREFIXES = ["docs/"];
-const NEUTRAL_FILES = new Set([
-  "AGENTS.md",
-  "HANDOFF.md",
-  "README.md",
+const DOCS_ONLY_FILES = new Set(["AGENTS.md", "HANDOFF.md", "README.md"]);
+const NEUTRAL_CONTROL_FILES = new Set([
   ".github/workflows/sanity-free-plan-privacy.yml",
   ".github/workflows/seo-topic-hubs-ci.yml",
   "scripts/vercel-ignore-build.mjs",
   "tests/vercel-app-root-config.test.mjs",
   "tests/vercel-build-routing.test.mjs",
 ]);
-
-function isWebOnlyBranch(branch) {
-  return branch.startsWith("ux/") || branch.startsWith("web/") || branch.includes("website-43");
-}
-
-function isAdminOnlyBranch(branch) {
-  return branch.startsWith("admin/") || branch.startsWith("codex/admin-") || branch.includes("website-42");
-}
 
 function hasPrefix(path, prefixes) {
   return prefixes.some((prefix) => path.startsWith(prefix));
@@ -74,13 +64,23 @@ export function classifyProductionChanges(changedPaths) {
 
   let hasAdminChange = false;
   let hasWebChange = false;
-  let hasNeutralChange = false;
+  let hasDocsChange = false;
+  let hasNeutralControlChange = false;
+  let hasWorkerChange = false;
   for (const path of changedPaths) {
     if (typeof path !== "string" || !path || path.startsWith("/") || path.includes("\\") || path.split("/").includes("..")) {
       return "mixed-or-unknown";
     }
-    if (NEUTRAL_FILES.has(path) || hasPrefix(path, NEUTRAL_PREFIXES)) {
-      hasNeutralChange = true;
+    if (DOCS_ONLY_FILES.has(path) || (path.startsWith("docs/") && path.endsWith(".md"))) {
+      hasDocsChange = true;
+      continue;
+    }
+    if (NEUTRAL_CONTROL_FILES.has(path)) {
+      hasNeutralControlChange = true;
+      continue;
+    }
+    if (hasPrefix(path, WORKER_ONLY_PREFIXES)) {
+      hasWorkerChange = true;
       continue;
     }
     if (WEB_ONLY_FILES.has(path) || hasPrefix(path, WEB_ONLY_PREFIXES)) {
@@ -94,9 +94,12 @@ export function classifyProductionChanges(changedPaths) {
     return "mixed-or-unknown";
   }
 
+  if (hasWorkerChange && (hasAdminChange || hasWebChange || hasNeutralControlChange)) return "mixed-or-unknown";
   if (hasAdminChange && !hasWebChange) return "admin-only";
   if (hasWebChange && !hasAdminChange) return "web-only";
-  if (!hasAdminChange && !hasWebChange && hasNeutralChange) return "neutral-only";
+  if (hasWorkerChange) return "worker-only";
+  if (hasNeutralControlChange) return "neutral-control";
+  if (hasDocsChange) return "docs-only";
   return "mixed-or-unknown";
 }
 
@@ -132,26 +135,26 @@ export function readProductionChangedPaths({
   }
 }
 
-export function shouldBuild({ projectId, environment, branch, changedPaths }) {
+export function shouldBuild({ projectId, environment, changedPaths }) {
   if (![WEB_PROJECT_ID, ADMIN_PROJECT_ID].includes(projectId)) return false;
   if (environment === "production") {
     const classification = classifyProductionChanges(changedPaths);
+    if (classification === "docs-only" || classification === "worker-only") return false;
     if (classification === "admin-only") return projectId === ADMIN_PROJECT_ID;
     if (classification === "web-only") return projectId === WEB_PROJECT_ID;
     // Production push CI promotes the exact Admin SHA after verification, so
     // neutral control-plane/test changes still need an Admin candidate. They do
     // not need a Web deployment.
-    if (classification === "neutral-only") return projectId === ADMIN_PROJECT_ID;
+    if (classification === "neutral-control") return projectId === ADMIN_PROJECT_ID;
     return true;
   }
-  if (!branch) return false;
-  if (projectId === WEB_PROJECT_ID && isAdminOnlyBranch(branch)) return false;
-  if (projectId === ADMIN_PROJECT_ID && isWebOnlyBranch(branch)) return false;
   const classification = classifyProductionChanges(changedPaths);
-  if (classification === "admin-only" || classification === "neutral-only") {
+  if (classification === "docs-only" || classification === "worker-only") return false;
+  if (classification === "admin-only" || classification === "neutral-control") {
     return projectId === ADMIN_PROJECT_ID;
   }
   if (classification === "web-only") return projectId === WEB_PROJECT_ID;
+  // ponytail: unavailable or unknown diffs build both; branch names cannot prove scope.
   return true;
 }
 
@@ -160,7 +163,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const build = shouldBuild({
     projectId: process.env.VERCEL_PROJECT_ID?.trim() ?? "",
     environment,
-    branch: process.env.VERCEL_GIT_COMMIT_REF?.trim() ?? "",
     changedPaths: readProductionChangedPaths(),
   });
 
