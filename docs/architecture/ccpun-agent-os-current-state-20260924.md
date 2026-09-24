@@ -175,3 +175,8 @@ Outstanding activation evidence remains:
 - UAT application/readback of the OCR archive migration;
 - Google Sheets OAuth credential binding inside the live n8n workflow;
 - Agent OS Runtime migration activation before background export jobs can report durable status.
+
+
+## Vercel Preview retry note
+
+The Agent OS head passed GitHub Foundation CI, Admin/Web shadow builds and the Sanity privacy boundary. One Vercel Preview attempt failed before application build with `ECONNRESET` during `npm ci`. This is classified as a transient dependency-install/network failure rather than an application compile failure. A fresh Preview run is required for final UI-preview evidence.
