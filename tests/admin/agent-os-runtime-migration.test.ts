@@ -24,7 +24,7 @@ test("Agent OS runtime migration is checksum locked and metadata-only", () => {
 
 test("Agent OS runtime role gets function access but no direct job table access", () => {
   const migration = read("db/migrations/20260924_agent_os_runtime_foundation_v1.sql");
-  assert.match(migration, /REVOKE ALL PRIVILEGES ON ccpun_admin\.agent_runtime_job FROM PUBLIC,ccpun_admin_runtime/);
+  assert.match(migration, /REVOKE ALL PRIVILEGES ON\s+ccpun_admin\.agent_runtime_job,\s*ccpun_admin\.agent_runtime_job_event\s+FROM PUBLIC,ccpun_admin_runtime/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION/);
   assert.match(migration, /admin_create_agent_runtime_job/);
   assert.match(migration, /admin_update_agent_runtime_job/);
