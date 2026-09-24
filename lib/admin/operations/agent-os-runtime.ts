@@ -27,6 +27,17 @@ const updateResultSchema = z.object({
   row_version: z.coerce.number().int().positive().nullable(),
 });
 
+const eventRowSchema = z.object({
+  event_id: z.string().uuid(),
+  job_id: z.string().uuid(),
+  row_version: z.coerce.number().int().positive(),
+  status: agentOsJobSchema.shape.status,
+  stage: agentOsJobSchema.shape.stage,
+  attempt: z.coerce.number().int().nonnegative(),
+  error_category: z.string().nullable(),
+  occurred_at: z.union([z.string(), z.date()]),
+});
+
 const dbJobSchema = z.object({
   job_id: z.string().uuid(),
   correlation_id: z.string().uuid(),
@@ -234,5 +245,40 @@ export async function readAgentRuntimeDurationBaseline(
     return runtimeDurationBaseline(rows.map((row) => row.duration_ms));
   } catch {
     return runtimeDurationBaseline([]);
+  }
+}
+
+
+export async function readAgentRuntimeJobEvents(
+  jobId: string,
+  limit = 100,
+  variables: Record<string, string | undefined> = process.env,
+) {
+  const parsedJobId = z.string().uuid().safeParse(jobId);
+  if (!parsedJobId.success) return { state: "invalid" as const, events: [] };
+
+  const sql = await runtimeSql(variables);
+  if (!sql) return { state: "not_ready" as const, events: [] };
+
+  try {
+    const rows = eventRowSchema.array().parse(await sql.query(
+      "SELECT * FROM ccpun_admin.admin_read_agent_runtime_job_events($1::uuid,$2::integer)",
+      [parsedJobId.data, Math.min(Math.max(limit, 1), 500)],
+    ));
+    return {
+      state: "ready" as const,
+      events: rows.map((row) => ({
+        eventId: row.event_id,
+        jobId: row.job_id,
+        rowVersion: row.row_version,
+        status: row.status,
+        stage: row.stage,
+        attempt: row.attempt,
+        errorCategory: row.error_category,
+        occurredAt: iso(row.occurred_at)!,
+      })),
+    };
+  } catch {
+    return { state: "unavailable" as const, events: [] };
   }
 }
