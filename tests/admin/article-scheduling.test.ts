@@ -71,3 +71,10 @@ test("queue storage has no Sanity operational writes and Workflow wiring uses an
   assert.match(read("proxy.ts"),/well-known\/workflow\//);
   assert.match(read("app/api/admin/content/[id]/schedule/route.ts"),/cancelScheduleRequestSchema\.safeParse/);
 });
+
+test("cancelled article schedules display as cancelled in calendar and audit", () => {
+  for (const page of ["content/calendar", "operations/audit-log"]) {
+    const source = readFileSync(new URL(`../../apps/admin/app/(control-plane)/${page}/page.tsx`, import.meta.url), "utf8");
+    assert.match(source, /if \(status === "cancelled"\) return "ยกเลิกแล้ว";/);
+  }
+});
