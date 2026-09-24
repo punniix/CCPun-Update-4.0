@@ -60,7 +60,7 @@ export function ChatScreenshotImport({ leadId }: { leadId: string }) {
       const data = await response.json();
       if (!response.ok || data.status !== "proposal") throw new Error(data.errorCategory || data.error || "ocr_failed");
       setRequestId(String(data.requestId));
-      setMessages((Array.isArray(data.messages) ? data.messages : []).map((item: any) => ({
+      setMessages((Array.isArray(data.messages) ? data.messages : []).map((item: { text?: unknown; direction?: unknown; confidence?: unknown }) => ({
         text: String(item.text ?? ""),
         direction: item.direction === "inbound" || item.direction === "outbound" ? item.direction : "unknown",
         confidence: Number(item.confidence ?? 0),
