@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import ResearchSnapshotForm from "@/features/admin/components/ResearchSnapshotForm";
 import SyncUbersuggestButton from "@/features/admin/components/SyncUbersuggestButton";
+import UbersuggestAisvImportForm from "@/features/admin/components/UbersuggestAisvImportForm";
 import UbersuggestResearchForm from "@/features/admin/components/UbersuggestResearchForm";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
@@ -8,6 +9,13 @@ import { hasAdminPermission } from "@/lib/admin/rbac";
 import { getResearchProviderStatus, isResearchWriteReady, listResearchSnapshots } from "@/lib/admin/research";
 import { normalizeResearchKeyword, researchOpportunityScore } from "@/lib/admin/research-input";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
+import {
+  aisvReadStateLabel,
+  aisvSourceRuntimeLabel,
+  deriveAisvReadState,
+  formatNullableMetric,
+  matchReviewedIntentOwner,
+} from "@/lib/admin/seo-intelligence/aisv";
 import { getUbersuggestConnectionStatus } from "@/lib/admin/ubersuggest";
 import {
   getUbersuggestDashboardData,
@@ -64,9 +72,13 @@ export default async function AdminResearchPage({
   const snapshotReady = Boolean(dashboard.account || dashboard.geo);
   const writeReady = isResearchWriteReady();
   const canQueryProvider = hasAdminPermission(identity.role, "research:provider-query");
+  const syncWriteReady = isUbersuggestSyncWriteReady();
   const canSync = localProviderLane
     && ubersuggest.connected
-    && isUbersuggestSyncWriteReady()
+    && syncWriteReady
+    && canQueryProvider;
+  const canImportAisv = (environment === "admin-uat" || environment === "local-uat")
+    && syncWriteReady
     && canQueryProvider;
 
   const providers = getResearchProviderStatus(ubersuggest.connected).map((provider) => {
@@ -102,9 +114,11 @@ export default async function AdminResearchPage({
   const geo = dashboard.geo;
   const accountFresh = isSnapshotFresh(account?.checkedAt, 24);
   const geoFresh = isSnapshotFresh(geo?.checkedAt, 35 * 24);
+  const aisvState = deriveAisvReadState({ error: dashboard.error, snapshot: geo });
   const promptGaps = [...(geo?.prompts ?? [])]
-    .filter((prompt) => prompt.userVisibilityPercentage === 0)
-    .sort((a, b) => b.totalAnswers - a.totalAnswers);
+    .filter((prompt) => prompt.userVisibilityPercentage === 0 && (prompt.totalAnswers ?? 0) > 0)
+    .sort((a, b) => (b.totalAnswers ?? -1) - (a.totalAnswers ?? -1));
+  const promptUnknownCount = (geo?.prompts ?? []).filter((prompt) => prompt.userVisibilityPercentage == null).length;
 
   return (
     <div>
@@ -219,15 +233,17 @@ export default async function AdminResearchPage({
 
         {!localProviderLane ? (
           <p className="mt-4 rounded-xl border border-sky-200/10 bg-black/10 p-3 text-sm leading-6 text-sky-100/75">
-            หน้านี้อ่านเฉพาะผลที่บันทึกไว้ การดึงข้อมูลใหม่ทำจากเครื่องภายในที่เชื่อม Ubersuggest แล้ว เพื่อไม่เก็บสิทธิ์ระยะยาวไว้บนเว็บ
+            หน้านี้ไม่ถือ OAuth ของ Ubersuggest บน cloud การดึงข้อมูลใหม่ต้องเกิดใน runtime ที่ได้รับสิทธิ์ แล้วนำผลสรุปที่ตรวจแล้วเข้า UAT พร้อมที่มาและเวลา
           </p>
         ) : null}
 
+        {canImportAisv ? <div className="mt-4"><UbersuggestAisvImportForm /></div> : null}
+
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">แพ็กเกจ Ubersuggest</div><div className="mt-2 text-lg font-semibold">{account?.tier ?? "ยังไม่มีข้อมูล"}</div><p className="mt-1 text-xs text-white/45">{account ? `${account.domain} · ${accountFresh ? "ข้อมูลเป็นปัจจุบัน" : "ควรดึงข้อมูลใหม่"}` : ""}</p></article>
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">การปรากฏในคำตอบ AI</div><div className="mt-2 text-2xl font-semibold">{geo ? `${geo.visibilityPercentage}%` : "—"}</div><p className="mt-1 text-xs text-white/45">{geo ? `ถูกกล่าวถึง ${geo.totalMentions} ครั้ง` : ""}</p></article>
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">สัดส่วนการถูกกล่าวถึง</div><div className="mt-2 text-2xl font-semibold">{geo ? geo.shareOfVoice : "—"}</div><p className="mt-1 text-xs text-white/45">ข้อมูลจาก Ubersuggest</p></article>
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่ยังไม่พบ CCPun</div><div className="mt-2 text-2xl font-semibold text-amber-200">{geo ? promptGaps.length : "—"}</div><p className="mt-1 text-xs text-white/45">CCPun ยังไม่ปรากฏในคำตอบ</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">การปรากฏในคำตอบ AI</div><div className="mt-2 text-2xl font-semibold">{geo ? formatNullableMetric(geo.visibilityPercentage, "%") : "—"}</div><p className="mt-1 text-xs text-white/45">{geo ? (geo.totalMentions == null ? "ไม่มีค่าจำนวน mention" : `ถูกกล่าวถึง ${geo.totalMentions} ครั้งใน sample นี้`) : ""}</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">สัดส่วนการถูกกล่าวถึง</div><div className="mt-2 text-2xl font-semibold">{geo ? formatNullableMetric(geo.shareOfVoice) : "—"}</div><p className="mt-1 text-xs text-white/45">ข้อมูลจาก Ubersuggest AISV</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่วัดได้ 0%</div><div className="mt-2 text-2xl font-semibold text-amber-200">{geo ? promptGaps.length : "—"}</div><p className="mt-1 text-xs text-white/45">นับเฉพาะ prompt ที่มีคำตอบและ provider ส่ง 0% จริง</p></article>
         </div>
 
         {account?.quotas.length ? (
@@ -243,7 +259,19 @@ export default async function AdminResearchPage({
             ))}
           </div>
         ) : <p className="mt-5 text-sm text-white/55">ยังไม่มีข้อมูลขีดจำกัดล่าสุดจาก Ubersuggest</p>}
-        {account ? <p className="mt-4 text-xs text-white/45">ดึงข้อมูลล่าสุด {formatDate(account.checkedAt)}</p> : null}
+        {geo ? (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm leading-6 text-white/60">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span>สถานะ: <strong className="text-white/80">{aisvReadStateLabel(aisvState)}</strong></span>
+              <span>แหล่ง: Ubersuggest AISV</span>
+              <span>runtime: {aisvSourceRuntimeLabel(geo.sourceRuntime ?? account?.sourceRuntime)}</span>
+            </div>
+            <p className="mt-2">ช่วงรายงาน {geo.windowStart} → {geo.windowEnd} · ดึงเข้าระบบ {formatDate(geo.fetchedAt ?? geo.checkedAt)}</p>
+            <p>อัปเดตชุด prompt: {geo.promptsUpdatedAt ?? "ไม่ทราบ"} · เวลาเก็บคำตอบ AI: {geo.answerCollectedAt ? formatDate(geo.answerCollectedAt) : "provider ไม่ได้ระบุ"}</p>
+            {promptUnknownCount > 0 ? <p className="mt-2 text-amber-100">มี {promptUnknownCount} prompt ที่ provider ไม่ได้ส่งค่า visibility จึงไม่ถูกนับเป็น 0%</p> : null}
+            {geo.limitations.length ? <ul className="mt-2 list-disc space-y-1 pl-5">{geo.limitations.map((item) => <li key={item}>{item}</li>)}</ul> : null}
+          </div>
+        ) : account ? <p className="mt-4 text-xs text-white/45">ดึงข้อมูลบัญชีล่าสุด {formatDate(account.fetchedAt ?? account.checkedAt)}</p> : null}
       </section>
 
       <section id="geo-aeo" className="scroll-mt-6 mt-6 rounded-3xl border border-violet-200/15 bg-violet-200/[0.035] p-5 md:p-6">
@@ -256,9 +284,9 @@ export default async function AdminResearchPage({
         {geo ? (
           <>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำตอบจาก AI ที่ตรวจ</div><div className="mt-2 text-xl font-semibold">{geo.totalAnswers}</div></article>
-              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่ติดตาม</div><div className="mt-2 text-xl font-semibold">{geo.totalPrompts}</div></article>
-              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คู่แข่งที่พบ</div><div className="mt-2 text-xl font-semibold">{geo.totalCompetitors}</div></article>
+              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำตอบจาก AI ที่ตรวจ</div><div className="mt-2 text-xl font-semibold">{formatNullableMetric(geo.totalAnswers)}</div></article>
+              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่ติดตาม</div><div className="mt-2 text-xl font-semibold">{formatNullableMetric(geo.totalPrompts)}</div></article>
+              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คู่แข่งที่พบ</div><div className="mt-2 text-xl font-semibold">{formatNullableMetric(geo.totalCompetitors)}</div></article>
               <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">อันดับเฉลี่ยในคำตอบ AI</div><div className="mt-2 text-xl font-semibold">{geo.averageRank ?? "—"}</div></article>
             </div>
 
@@ -269,7 +297,7 @@ export default async function AdminResearchPage({
                   {geo.providers.map((provider) => (
                     <div key={provider.provider} className="flex flex-col gap-1 rounded-xl bg-white/[0.03] px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
                       <span>{providerLabel(provider.provider)}</span>
-                      <span className="text-white/60">ปรากฏ {provider.visibilityPercentage}% · กล่าวถึง {provider.totalMentions} ครั้ง · อันดับ {provider.averageRank ?? "—"}</span>
+                      <span className="text-white/60">ปรากฏ {formatNullableMetric(provider.visibilityPercentage, "%")} · กล่าวถึง {formatNullableMetric(provider.totalMentions)} ครั้ง · อันดับ {provider.averageRank ?? "—"}</span>
                     </div>
                   ))}
                 </div>
@@ -277,27 +305,39 @@ export default async function AdminResearchPage({
               <article className="rounded-2xl border border-white/10 bg-black/10 p-4">
                 <h3 className="font-medium">เป้าหมายของคำถามที่ส่งให้ AI</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {geo.intents.map((item) => <span key={item.intent} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white/65">{item.intent}: {item.value}</span>)}
+                  {geo.intents.map((item) => <span key={item.intent} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white/65">{item.intent}: {formatNullableMetric(item.value)}</span>)}
                 </div>
               </article>
             </div>
 
             <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/10">
-              <div className="border-b border-white/10 px-4 py-3"><h3 className="font-medium">คำถามที่ยังไม่พบ CCPun</h3><p className="mt-1 text-sm leading-6 text-white/55">เรียงคำถามที่ยังไม่กล่าวถึง CCPun โดยให้คำถามที่พบคำตอบมากกว่าอยู่ก่อน</p></div>
+              <div className="border-b border-white/10 px-4 py-3"><h3 className="font-medium">คำถามที่ Ubersuggest วัด CCPun ได้ 0% ในรอบนี้</h3><p className="mt-1 text-sm leading-6 text-white/55">เป็นผลจาก sample และช่วงรายงานด้านบน ไม่ใช่ข้อสรุปว่า AI ทุกระบบไม่รู้จัก CCPun และไม่ใช้แทนสถานะบทความในเว็บไซต์</p></div>
               {promptGaps.length ? (
                 <div className="divide-y divide-white/5">
-                  {promptGaps.map((prompt) => (
-                    <article key={prompt.promptText} className="p-4">
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div><div className="flex flex-wrap gap-2 text-xs text-white/50">{prompt.topic ? <span>{prompt.topic}</span> : null}<span>{prompt.intents.join(" / ") || "ไม่ระบุเป้าหมาย"}</span><span>พบคำตอบ {prompt.totalAnswers} รายการ</span></div><h4 className="mt-2 font-medium text-white/85">{prompt.promptText}</h4><p className="mt-2 text-sm leading-6 text-white/55">แบรนด์ที่พบมาก: {prompt.topBrands.length ? prompt.topBrands.join(", ") : "ยังไม่พบแบรนด์เด่น"}</p></div>
-                        <span className="w-fit rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-xs text-amber-100">ยังไม่พบ CCPun</span>
-                      </div>
-                    </article>
-                  ))}
+                  {promptGaps.map((prompt) => {
+                    const owner = matchReviewedIntentOwner(prompt.promptText);
+                    return (
+                      <article key={prompt.promptText} className="p-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <div className="flex flex-wrap gap-2 text-xs text-white/50">{prompt.topic ? <span>{prompt.topic}</span> : null}<span>{prompt.intents.join(" / ") || "ไม่ระบุเป้าหมาย"}</span><span>พบคำตอบ {formatNullableMetric(prompt.totalAnswers)} รายการ</span></div>
+                            <h4 className="mt-2 font-medium text-white/85">{prompt.promptText}</h4>
+                            <p className="mt-2 text-sm leading-6 text-white/55">แบรนด์ที่พบมาก: {prompt.topBrands.length ? prompt.topBrands.join(", ") : "ยังไม่พบแบรนด์เด่นในข้อมูลที่คืนมา"}</p>
+                            {owner ? (
+                              <p className="mt-2 text-sm text-emerald-100/80">Intent owner ที่ review แล้ว: <a className="underline decoration-emerald-200/40 underline-offset-2" href={owner.ownerUrl}>{owner.primaryQuery}</a></p>
+                            ) : (
+                              <p className="mt-2 text-sm text-amber-100/75">ยังไม่ได้จับคู่กับ Intent Owner Registry · รอตรวจ ไม่ได้หมายความว่าเว็บไซต์ไม่มีบทความนี้</p>
+                            )}
+                          </div>
+                          <span className="w-fit rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-xs text-amber-100">วัดได้ 0% ในรอบนี้</span>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-              ) : <div className="p-5 text-sm text-white/55">ข้อมูลรอบล่าสุดยังไม่พบคำถามที่ขาด หรือยังไม่ได้ดึงข้อมูลการมองเห็นชุดใหม่</div>}
+              ) : <div className="p-5 text-sm text-white/55">ไม่มี prompt ที่เข้าเงื่อนไข “มีคำตอบและ provider ส่ง visibility = 0%” ในชุดข้อมูลนี้</div>}
             </div>
-            <p className="mt-4 text-xs text-white/45">ช่วงข้อมูล {geo.windowStart} → {geo.windowEnd} · {geoFresh ? "ข้อมูลเป็นปัจจุบัน" : "ควรดึงข้อมูลใหม่"}</p>
+            <p className="mt-4 text-xs text-white/45">ช่วงข้อมูล {geo.windowStart} → {geo.windowEnd} · สถานะ {aisvReadStateLabel(aisvState)} · {geoFresh ? "snapshot เพิ่งถูกบันทึก" : "snapshot ถูกบันทึกมานานแล้ว"}</p>
           </>
         ) : <p className="mt-4 text-sm text-white/55">ยังไม่มีข้อมูล GEO/AEO</p>}
       </section>

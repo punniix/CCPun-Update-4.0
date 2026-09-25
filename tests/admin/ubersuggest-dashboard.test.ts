@@ -56,6 +56,10 @@ test("Ubersuggest keeps account GEO in Sanity and stores audit plus research his
   assert.match(route, /research:provider-query/);
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /provider-sync-local-required/);
+  assert.match(route, /isConfiguredAdminOrigin/);
+  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /reviewed-import/);
+  assert.match(route, /uat-import-only/);
 });
 
 test("Research Intelligence owns keyword coverage Ubersuggest quota GEO prompt gaps and history", () => {
@@ -66,8 +70,8 @@ test("Research Intelligence owns keyword coverage Ubersuggest quota GEO prompt g
   assert.match(researchPage, /4 · GEO \/ AEO/);
   assert.match(researchPage, /5 · ประวัติ/);
   assert.match(researchPage, /ข้อมูล Ubersuggest และขีดจำกัดบัญชี/);
-  assert.match(researchPage, /หัวข้อที่ CCPun ยังไม่ถูกกล่าวถึง/);
-  assert.match(researchPage, /หัวข้อที่ CCPun ยังไม่ถูกกล่าวถึง/);
+  assert.match(researchPage, /คำถามที่ Ubersuggest วัด CCPun ได้ 0% ในรอบนี้/);
+  assert.match(researchPage, /ยังไม่ได้จับคู่กับ Intent Owner Registry/);
   assert.match(researchPage, /ประวัติข้อมูลและสถานะการตัดสินใจ/);
   assert.match(researchPage, /getUbersuggestDashboardData\(30\)/);
   assert.match(researchPage, /userVisibilityPercentage === 0/);
@@ -77,7 +81,8 @@ test("Research Intelligence owns keyword coverage Ubersuggest quota GEO prompt g
 test("Production Research uses snapshots while Local lanes retain provider query and sync", () => {
   assert.match(researchPage, /environment === "production-admin"/);
   assert.match(researchPage, /ข้อมูลล่าสุดพร้อมใช้/);
-  assert.match(researchPage, /หน้านี้อ่านเฉพาะผลที่บันทึกไว้/);
+  assert.match(researchPage, /ไม่ถือ OAuth ของ Ubersuggest บน cloud/);
+  assert.match(researchPage, /UbersuggestAisvImportForm/);
   assert.match(researchPage, /UbersuggestResearchForm connected=\{ubersuggest\.connected\}/);
   assert.match(researchPage, /SyncUbersuggestButton/);
   assert.match(researchPage, /localProviderLane/);

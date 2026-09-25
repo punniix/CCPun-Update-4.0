@@ -9,7 +9,7 @@ import { buildAuditLogDocument } from "./sanity-control";
 import { insertAdminAudit, isAdminOperationsWriteReady, readAdminResearch } from "./operations/database";
 import { privateAdminDocumentId } from "./suggestion-lifecycle";
 import { isUbersuggestSnapshotFresh } from "./ubersuggest-contracts";
-import type { UbersuggestDashboardSync } from "./ubersuggest-dashboard-provider";
+import type { AisvSnapshotImport } from "./seo-intelligence/aisv";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
@@ -31,6 +31,10 @@ const accountSnapshotSchema = z.object({
   domain: z.string(),
   projectId: z.string(),
   updateFrequency: z.string().nullish(),
+  projectUpdateFrequency: z.string().nullish(),
+  brandUpdateFrequency: z.string().nullish(),
+  sourceRuntime: z.string().nullish(),
+  fetchedAt: z.string().nullish(),
   quotas: z.array(quotaSchema).default([]),
   checkedAt: z.string(),
 });
@@ -38,16 +42,16 @@ const accountSnapshotSchema = z.object({
 const geoProviderSchema = z.object({
   provider: z.string(),
   averageRank: z.number().nullish(),
-  totalMentions: z.number().min(0).default(0),
-  visibilityPercentage: z.number().min(0).max(100).default(0),
+  totalMentions: z.number().min(0).nullish(),
+  visibilityPercentage: z.number().min(0).max(100).nullish(),
 });
 
 const geoCompetitorSchema = z.object({
   brandName: z.string(),
   brandDomain: z.string().nullish(),
   averageRank: z.number().nullish(),
-  totalMentions: z.number().min(0).default(0),
-  visibilityPercentage: z.number().min(0).max(100).default(0),
+  totalMentions: z.number().min(0).nullish(),
+  visibilityPercentage: z.number().min(0).max(100).nullish(),
   sentimentLabel: z.string().nullish(),
 });
 
@@ -57,10 +61,10 @@ const geoPromptSchema = z.object({
   language: z.string().nullish(),
   locId: z.number().int().nullish(),
   intents: z.array(z.string()).default([]),
-  totalAnswers: z.number().min(0).default(0),
+  totalAnswers: z.number().min(0).nullish(),
   userAverageRank: z.number().nullish(),
-  userTotalMentions: z.number().min(0).default(0),
-  userVisibilityPercentage: z.number().min(0).max(100).default(0),
+  userTotalMentions: z.number().min(0).nullish(),
+  userVisibilityPercentage: z.number().min(0).max(100).nullish(),
   topBrands: z.array(z.string()).default([]),
 });
 
@@ -70,17 +74,23 @@ const geoSnapshotSchema = z.object({
   projectId: z.string(),
   windowStart: z.string(),
   windowEnd: z.string(),
-  visibilityPercentage: z.number().min(0).max(100).default(0),
-  totalMentions: z.number().min(0).default(0),
-  shareOfVoice: z.number().min(0).default(0),
+  visibilityPercentage: z.number().min(0).max(100).nullish(),
+  totalMentions: z.number().min(0).nullish(),
+  shareOfVoice: z.number().min(0).nullish(),
   averageRank: z.number().nullish(),
-  totalAnswers: z.number().min(0).default(0),
-  totalPrompts: z.number().min(0).default(0),
-  totalCompetitors: z.number().min(0).default(0),
+  totalAnswers: z.number().min(0).nullish(),
+  totalPrompts: z.number().min(0).nullish(),
+  totalCompetitors: z.number().min(0).nullish(),
   providers: z.array(geoProviderSchema).default([]),
   competitors: z.array(geoCompetitorSchema).default([]),
-  intents: z.array(z.object({ intent: z.string(), value: z.number().min(0) })).default([]),
+  intents: z.array(z.object({ intent: z.string(), value: z.number().min(0).nullish() })).default([]),
   prompts: z.array(geoPromptSchema).default([]),
+  reportStatus: z.enum(["ready", "partial", "pending_update"]).nullish(),
+  sourceRuntime: z.string().nullish(),
+  promptsUpdatedAt: z.string().nullish(),
+  answerCollectedAt: z.string().nullish(),
+  fetchedAt: z.string().nullish(),
+  limitations: z.array(z.string()).default([]),
   checkedAt: z.string(),
 });
 
@@ -124,7 +134,7 @@ export function isSnapshotFresh(value: string | null | undefined, maxAgeHours: n
 }
 
 export async function persistUbersuggestDashboardSync(
-  input: UbersuggestDashboardSync,
+  input: AisvSnapshotImport,
   context: { actor: string; actorType: "human"; requestId: string },
 ) {
   const client = writeClient();
@@ -140,31 +150,41 @@ export async function persistUbersuggestDashboardSync(
     tier: input.account.tier,
     domain: input.account.domain,
     projectId: input.account.projectId,
-    updateFrequency: input.account.updateFrequency,
+    projectUpdateFrequency: input.account.projectUpdateFrequency,
+    brandUpdateFrequency: input.account.brandUpdateFrequency,
+    sourceRuntime: input.sourceRuntime,
+    fetchedAt: input.fetchedAt,
     quotas: input.account.quotas.map((item, index) => ({ _key: arrayKey("q", index), _type: "providerQuota", ...item })),
-    checkedAt: input.checkedAt,
+    checkedAt: input.fetchedAt,
   };
 
+  const geo = input.geo;
   const geoDocument = {
     _id: geoId,
     _type: "ubersuggestGeoSnapshot",
     provider: "ubersuggest",
-    domain: input.geo.domain,
-    projectId: input.geo.projectId,
-    windowStart: input.geo.windowStart,
-    windowEnd: input.geo.windowEnd,
-    visibilityPercentage: input.geo.visibilityPercentage,
-    totalMentions: input.geo.totalMentions,
-    shareOfVoice: input.geo.shareOfVoice,
-    averageRank: input.geo.averageRank,
-    totalAnswers: input.geo.totalAnswers,
-    totalPrompts: input.geo.totalPrompts,
-    totalCompetitors: input.geo.totalCompetitors,
-    providers: input.geo.providers.map((item, index) => ({ _key: arrayKey("p", index), _type: "ubersuggestGeoProvider", ...item })),
-    competitors: input.geo.competitors.map((item, index) => ({ _key: arrayKey("c", index), _type: "ubersuggestGeoCompetitor", ...item })),
-    intents: input.geo.intents.map((item, index) => ({ _key: arrayKey("i", index), _type: "ubersuggestGeoIntent", ...item })),
-    prompts: input.geo.prompts.map((item, index) => ({ _key: arrayKey("g", index), _type: "ubersuggestGeoPrompt", ...item })),
-    checkedAt: input.checkedAt,
+    domain: geo?.domain ?? input.account.domain,
+    projectId: geo?.projectId ?? input.account.projectId,
+    windowStart: input.reportWindow.start,
+    windowEnd: input.reportWindow.end,
+    visibilityPercentage: geo?.visibilityPercentage ?? null,
+    totalMentions: geo?.totalMentions ?? null,
+    shareOfVoice: geo?.shareOfVoice ?? null,
+    averageRank: geo?.averageRank ?? null,
+    totalAnswers: geo?.totalAnswers ?? null,
+    totalPrompts: geo?.totalPrompts ?? null,
+    totalCompetitors: geo?.totalCompetitors ?? null,
+    providers: (geo?.providers ?? []).map((item, index) => ({ _key: arrayKey("p", index), _type: "ubersuggestGeoProvider", ...item })),
+    competitors: (geo?.competitors ?? []).map((item, index) => ({ _key: arrayKey("c", index), _type: "ubersuggestGeoCompetitor", ...item })),
+    intents: (geo?.intents ?? []).map((item, index) => ({ _key: arrayKey("i", index), _type: "ubersuggestGeoIntent", ...item })),
+    prompts: (geo?.prompts ?? []).map((item, index) => ({ _key: arrayKey("g", index), _type: "ubersuggestGeoPrompt", ...item })),
+    reportStatus: input.reportStatus,
+    sourceRuntime: input.sourceRuntime,
+    promptsUpdatedAt: input.providerFreshness.promptsUpdatedAt,
+    answerCollectedAt: input.providerFreshness.answerCollectedAt,
+    fetchedAt: input.fetchedAt,
+    limitations: input.limitations,
+    checkedAt: input.fetchedAt,
   };
 
   const auditDocument = buildAuditLogDocument({
@@ -177,11 +197,13 @@ export async function persistUbersuggestDashboardSync(
     after: {
       domain: input.account.domain,
       quotaCount: input.account.quotas.length,
-      geoPrompts: input.geo.totalPrompts,
-      geoMentions: input.geo.totalMentions,
+      geoPrompts: input.geo?.totalPrompts ?? null,
+      geoMentions: input.geo?.totalMentions ?? null,
+      reportStatus: input.reportStatus,
+      sourceRuntime: input.sourceRuntime,
     },
     requestId: context.requestId,
-    timestamp: input.checkedAt,
+    timestamp: input.fetchedAt,
   });
   const intentAudit = buildAuditLogDocument({
     id: `auditLog.${randomUUID()}`,
@@ -190,15 +212,15 @@ export async function persistUbersuggestDashboardSync(
     action: "ubersuggest:sync-account-geo-intent",
     objectType: "providerSnapshot",
     objectId: accountId,
-    after: { status: "started", provider: "ubersuggest" },
+    after: { status: "started", provider: "ubersuggest", sourceRuntime: input.sourceRuntime },
     requestId: context.requestId,
-    timestamp: input.checkedAt,
+    timestamp: input.fetchedAt,
   });
 
   await insertAdminAudit(intentAudit);
   await client.transaction().create(accountDocument).create(geoDocument).commit();
   await insertAdminAudit(auditDocument);
-  return { accountId, geoId, checkedAt: input.checkedAt };
+  return { accountId, geoId, checkedAt: input.fetchedAt };
 }
 
 export async function getUbersuggestDashboardData(historyLimit = 20) {
@@ -213,6 +235,10 @@ export async function getUbersuggestDashboardData(historyLimit = 20) {
         domain,
         projectId,
         updateFrequency,
+        projectUpdateFrequency,
+        brandUpdateFrequency,
+        sourceRuntime,
+        "fetchedAt": coalesce(fetchedAt, checkedAt),
         quotas[]{key, label, limit, used, remaining, status},
         checkedAt
       },
@@ -233,6 +259,12 @@ export async function getUbersuggestDashboardData(historyLimit = 20) {
         competitors[]{brandName, brandDomain, averageRank, totalMentions, visibilityPercentage, sentimentLabel},
         intents[]{intent, value},
         prompts[]{promptText, topic, language, locId, intents, totalAnswers, userAverageRank, userTotalMentions, userVisibilityPercentage, topBrands},
+        reportStatus,
+        sourceRuntime,
+        promptsUpdatedAt,
+        answerCollectedAt,
+        "fetchedAt": coalesce(fetchedAt, checkedAt),
+        limitations,
         checkedAt
       }
     }`, { limit });
