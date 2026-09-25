@@ -11,10 +11,13 @@ const PRODUCTION_ADMIN_PROJECT_ID = process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PR
 
 export const IS_ADMIN_APPLICATION = ["local-uat", "local-production", "lab", "uat", "admin-uat", "production-admin"].includes(APP_ENVIRONMENT);
 
+const UAT_MODE = process.env.CCPUN_UAT_MODE?.trim().toLowerCase();
+
 export const IS_REVIEW_ENVIRONMENT =
   process.env.VERCEL_ENV === "preview" ||
   process.env.CCPUN_UAT_MODE === "1" ||
-  ["development", "local-uat", "local-production", "admin-uat", "production-admin"].includes(APP_ENVIRONMENT);
+  UAT_MODE === "true" ||
+  ["development", "web-uat", "local-uat", "local-production", "admin-uat", "production-admin"].includes(APP_ENVIRONMENT);
 
 const ADMIN_PROJECT_ALLOWED =
   (APP_ENVIRONMENT === "development" && !DEPLOYMENT_PROJECT_ID) ||
