@@ -90,7 +90,7 @@ const geoSnapshotSchema = z.object({
   promptsUpdatedAt: z.string().nullish(),
   answerCollectedAt: z.string().nullish(),
   fetchedAt: z.string().nullish(),
-  limitations: z.array(z.string()).default([]),
+  limitations: z.array(z.string()).nullish().transform((value) => value ?? []),
   checkedAt: z.string(),
 });
 

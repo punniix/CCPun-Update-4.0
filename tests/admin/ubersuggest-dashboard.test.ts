@@ -51,6 +51,7 @@ test("Ubersuggest keeps account GEO in Sanity and stores audit plus research his
   assert.match(snapshots, /transaction\(\)\.create\(accountDocument\)\.create\(geoDocument\)\.commit\(\)/);
   assert.match(snapshots, /insertAdminAudit\(auditDocument\)/);
   assert.match(snapshots, /readAdminResearch\(limit\)/);
+  assert.match(snapshots, /limitations: z\.array\(z\.string\(\)\)\.nullish\(\)\.transform\(\(value\) => value \?\? \[\]\)/);
   assert.doesNotMatch(snapshots, /_type == "researchSnapshot"/);
   assert.match(route, /SYNC_CACHE_HOURS = 1/);
   assert.match(route, /research:provider-query/);
