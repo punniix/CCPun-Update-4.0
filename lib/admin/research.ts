@@ -38,7 +38,22 @@ export async function createResearchSnapshot(
   const keyword = parsed.keyword.replace(/\s+/g, " ").trim();
   const keywordKey = normalizeResearchKeyword(keyword);
   const checkedAt = parsed.checkedAt ?? new Date().toISOString();
-  const stableKey = createHash("sha256").update(`${parsed.provider}|${keywordKey}|${checkedAt.slice(0, 10)}`).digest("hex").slice(0, 32);
+  const stableKey = parsed.sourceMethod === "web-csv-import"
+    ? createHash("sha256").update([
+        parsed.provider,
+        keywordKey,
+        checkedAt.slice(0, 10),
+        parsed.sourceMethod,
+        parsed.volume ?? "",
+        parsed.difficulty ?? "",
+        parsed.intent ?? "",
+        parsed.cpc ?? "",
+        parsed.paidDifficulty ?? "",
+        parsed.sourcePosition ?? "",
+        parsed.estimatedVisits ?? "",
+        parsed.sourceUrl ?? "",
+      ].join("|")).digest("hex").slice(0, 32)
+    : createHash("sha256").update(`${parsed.provider}|${keywordKey}|${checkedAt.slice(0, 10)}`).digest("hex").slice(0, 32);
   const idempotent = parsed.provider !== "manual";
   const id = privateAdminDocumentId(idempotent ? `researchSnapshot.${stableKey}` : `researchSnapshot.${randomUUID()}`);
   const now = new Date().toISOString();
@@ -46,7 +61,17 @@ export async function createResearchSnapshot(
     id: privateAdminDocumentId(idempotent ? `auditLog.research.${stableKey}` : `auditLog.${randomUUID()}`),
     actor: context.actor, actorType: context.actorType, action: "research-snapshot:create",
     objectType: "researchSnapshot", objectId: id,
-    after: { keyword, provider: parsed.provider, trustClass: "untrusted-external-data" },
+    after: {
+      keyword,
+      provider: parsed.provider,
+      trustClass: "untrusted-external-data",
+      sourceMethod: parsed.sourceMethod,
+      cpc: parsed.cpc,
+      paidDifficulty: parsed.paidDifficulty,
+      sourcePosition: parsed.sourcePosition,
+      estimatedVisits: parsed.estimatedVisits,
+      sourceUrl: parsed.sourceUrl,
+    },
     requestId: context.requestId, timestamp: now,
   });
   const result = await createAdminResearchSnapshot({
@@ -57,9 +82,47 @@ export async function createResearchSnapshot(
   return { _id: result.id, reused: result.reused };
 }
 
+export async function createResearchSnapshotsBatch(
+  inputs: ResearchInput[],
+  context: { actor: string; actorType: "human" | "ai" | "system"; requestId: string },
+) {
+  if (!inputs.length || inputs.length > 200) throw new Error("RESEARCH_BATCH_INVALID");
+  let inserted = 0;
+  let reused = 0;
+  const failures: Array<{ keyword: string; error: string }> = [];
+
+  for (let index = 0; index < inputs.length; index += 6) {
+    const chunk = inputs.slice(index, index + 6);
+    const results = await Promise.all(chunk.map(async (input) => {
+      try {
+        const saved = await createResearchSnapshot(input, context);
+        return { ok: true as const, reused: saved.reused, keyword: input.keyword };
+      } catch (error) {
+        return {
+          ok: false as const,
+          keyword: input.keyword,
+          error: error instanceof Error ? error.message : "RESEARCH_SNAPSHOT_FAILED",
+        };
+      }
+    }));
+
+    for (const result of results) {
+      if (!result.ok) {
+        failures.push({ keyword: result.keyword, error: result.error });
+      } else if (result.reused) {
+        reused += 1;
+      } else {
+        inserted += 1;
+      }
+    }
+  }
+
+  return { total: inputs.length, inserted, reused, failed: failures.length, failures: failures.slice(0, 20) };
+}
+
 export async function listResearchSnapshots(limit = 100): Promise<ResearchSnapshotList> {
   try {
-    const rows = await readAdminResearch(Math.max(1, Math.min(limit, 200)));
+    const rows = await readAdminResearch(Math.max(1, Math.min(limit, 500)));
     return rows ? { rows, error: null } : { rows: [], error: "not-configured" };
   } catch {
     return { rows: [], error: "request-failed" };
