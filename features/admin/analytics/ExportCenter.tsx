@@ -3,15 +3,29 @@
 import { useEffect, useState } from "react";
 
 const OPTIONS = [
-  ["crm-overview", "ภาพรวม CRM"],
-  ["crm-leads", "รายชื่อลูกค้า CRM"],
-  ["crm-follow-ups", "งานติดตามลูกค้า"],
-  ["growth-funnel", "Growth Funnel"],
-  ["customer-insights", "Customer Insights"],
-  ["automation-runs", "Automation Runs"],
+  ["social-performance", "Social Performance", "Social"],
+  ["seo-intelligence", "SEO Search Intelligence", "SEO"],
+  ["crm-overview", "ภาพรวม CRM", "CRM & Operations"],
+  ["crm-leads", "รายชื่อลูกค้า CRM", "CRM & Operations"],
+  ["crm-follow-ups", "งานติดตามลูกค้า", "CRM & Operations"],
+  ["growth-funnel", "Growth Funnel", "CRM & Operations"],
+  ["customer-insights", "Customer Insights", "CRM & Operations"],
+  ["automation-runs", "Automation Runs", "CRM & Operations"],
 ] as const;
 
+const GROUPS = ["Social", "SEO", "CRM & Operations"] as const;
 type Dataset = (typeof OPTIONS)[number][0];
+
+const DATASET_HELP: Record<Dataset, string> = {
+  "social-performance": "1 แถวต่อโพสต์จาก clean marketing mart พร้อม metrics, coverage และสถานะคุณภาพข้อมูล",
+  "seo-intelligence": "รวม Keyword Research และ AISV Prompt ที่บันทึกไว้แล้ว โดยไม่ยิง provider สดตอน export",
+  "crm-overview": "สรุปจำนวน Lead งานติดตาม และผลลัพธ์หลักของ CRM",
+  "crm-leads": "รายชื่อลูกค้าและสถานะการดูแลแบบ owner-friendly",
+  "crm-follow-ups": "รายการติดตามลูกค้าที่ต้องทำต่อ",
+  "growth-funnel": "สรุปเส้นทางจากการเริ่มต้นจนถึง Qualified / Won / Lost",
+  "customer-insights": "คำถามที่พบบ่อยและ Content Gap จากข้อมูลลูกค้า",
+  "automation-runs": "สถานะงานเบื้องหลังล่าสุดจาก Agent OS และระบบที่เกี่ยวข้อง",
+};
 
 type RuntimeDetail = {
   terminal: boolean;
@@ -34,7 +48,7 @@ function statusText(status: string) {
 }
 
 export function ExportCenter() {
-  const [dataset, setDataset] = useState<Dataset>("crm-overview");
+  const [dataset, setDataset] = useState<Dataset>("social-performance");
   const [jobId, setJobId] = useState<string | null>(null);
   const [runtimePath, setRuntimePath] = useState<string | null>(null);
   const [detail, setDetail] = useState<RuntimeDetail | null>(null);
@@ -104,9 +118,16 @@ export function ExportCenter() {
             }}
             className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white"
           >
-            {OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            {GROUPS.map((group) => (
+              <optgroup key={group} label={group}>
+                {OPTIONS.filter(([, , optionGroup]) => optionGroup === group).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </label>
+        <p className="mt-2 max-w-2xl text-xs leading-5 text-white/50">{DATASET_HELP[dataset]}</p>
 
         <div className="mt-5 flex flex-wrap gap-3">
           <a href={"/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-sm text-white/80 transition hover:bg-white/5">

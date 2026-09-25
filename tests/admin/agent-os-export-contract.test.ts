@@ -20,6 +20,14 @@ test("Export filename date always follows Asia/Bangkok UTC+7, not UTC date", () 
     exportFileName({ dataset: "crm-leads", format: "google-sheet", generatedAt: instant }),
     "CCPun_CRM_Leads_2026-09-25",
   );
+  assert.equal(
+    exportFileName({ dataset: "social-performance", format: "google-sheet", generatedAt: instant }),
+    "CCPun_Social_Performance_2026-09-25",
+  );
+  assert.equal(
+    exportFileName({ dataset: "seo-intelligence", format: "csv", generatedAt: instant }),
+    "CCPun_SEO_Intelligence_2026-09-25.csv",
+  );
 });
 
 test("Export display timestamps are owner-readable Bangkok time", () => {
