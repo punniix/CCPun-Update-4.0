@@ -12,6 +12,7 @@ import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 import { environmentLabel, roleLabel } from "@/lib/admin/presentation";
 import { readLineDiscoveryAdminModel } from "@/lib/admin/line/discovery-config";
+import { N8N_ADMIN_INTEGRATIONS, N8N_ADMIN_STATUS_LABEL, n8nAdminIntegrationSummary } from "@/lib/admin/n8n-integration-registry";
 import LineDiscoveryManager from "@/features/admin/line/LineDiscoveryManager";
 
 function State({ ok, yes = "พร้อม", no = "ต้องตั้งค่า" }: { ok: boolean; yes?: string; no?: string }) {
@@ -33,6 +34,7 @@ async function IntegrationsPage() {
   const youtube = getSocialProviderReadiness("youtube");
   const tiktok = getSocialProviderReadiness("tiktok");
   const lineDiscovery = await readLineDiscoveryAdminModel();
+  const n8nSummary = n8nAdminIntegrationSummary();
 
   return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">การเชื่อมต่อ</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ตรวจว่าระบบเชื่อมต่อบริการที่จำเป็นพร้อมหรือไม่ โดยไม่แสดงรหัสลับหรือข้อมูลเข้าสู่ระบบ</p>
     <div className="mt-7 grid gap-5 xl:grid-cols-2">
@@ -40,6 +42,34 @@ async function IntegrationsPage() {
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">การค้นหาและผลลัพธ์</h2><div className="mt-3"><Row label="Google Search Console" value="ดึงข้อมูลเมื่อผู้ใช้สั่ง และไม่แก้ข้อมูลต้นทาง" state={gsc.status === "manual-sync-ready"} /><Row label="Google Analytics 4" value="ดึงข้อมูลเมื่อผู้ใช้สั่ง และไม่แก้ข้อมูลต้นทาง" state={ga4.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/analytics/search/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูผลการค้นหา</Link><Link href="/seo/opportunities/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูโอกาสพัฒนา SEO</Link></div></section>
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 xl:col-span-2"><h2 className="text-lg font-semibold">บัญชีโซเชียล</h2><div className="mt-3 grid gap-x-6 md:grid-cols-3"><Row label="Meta" value="พร้อมอ่านข้อมูล Facebook Page และ Instagram" state={meta.status === "manual-sync-ready"} /><Row label="YouTube" value="พร้อมอ่านข้อมูลเมื่อผู้ใช้สั่ง" state={youtube.status === "manual-sync-ready"} /><Row label="TikTok" value="พร้อมอ่านข้อมูลเมื่อผู้ใช้สั่ง" state={tiktok.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/social/accounts/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูบัญชีที่เชื่อมต่อ</Link><Link href="/operations/health/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูภาพรวมระบบ</Link></div></section>
     </div>
+    <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">n8n Integration Registry</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">ดูว่า workflow ไหนมี owner-facing entry point ใน Admin แล้ว และ workflow ไหนควรเป็น background หรือยังต้องเชื่อมต่อ หน้านี้อ้างอิง code contract ไม่ใช่สถานะ Active/Inactive สดจาก n8n</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-white/55">
+          <span className="rounded-full border border-white/10 px-2.5 py-1">มีปุ่ม {n8nSummary["admin-trigger"]}</span>
+          <span className="rounded-full border border-amber-200/20 bg-amber-200/5 px-2.5 py-1 text-amber-50">ยังไม่มีปุ่ม {n8nSummary.unconnected}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">Background {n8nSummary.background}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">Test {n8nSummary["test-only"]}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">Legacy {n8nSummary.legacy}</span>
+        </div>
+      </div>
+      <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
+        <table className="min-w-[1050px] w-full text-left">
+          <thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">Workflow</th><th className="px-4 py-3">สถานะใน Admin</th><th className="px-4 py-3">ทางเข้า</th><th className="px-4 py-3">หน้าที่</th><th className="px-4 py-3">ควรทำต่อ</th></tr></thead>
+          <tbody>{N8N_ADMIN_INTEGRATIONS.map((item) => <tr key={item.workflowId} className="border-t border-white/10 align-top">
+            <td className="px-4 py-4"><div className="text-sm font-medium text-white/85">{item.workflowName}</div><div className="mt-1 font-mono text-[11px] text-white/35">{item.workflowId}</div>{item.sourceControlled ? <div className="mt-1 text-[11px] text-emerald-200/70">มี source artifact ใน repo</div> : null}</td>
+            <td className="px-4 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${item.status === "admin-trigger" ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : item.status === "unconnected" ? "border-amber-200/20 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/[0.04] text-white/60"}`}>{N8N_ADMIN_STATUS_LABEL[item.status]}</span></td>
+            <td className="px-4 py-4 text-sm text-white/60">{item.adminPath ? <Link href={item.adminPath} className="text-[#e0c985] hover:underline">{item.adminEntry ?? "ดูใน Admin"}</Link> : item.adminEntry ?? "—"}</td>
+            <td className="px-4 py-4 text-sm leading-6 text-white/60">{item.purpose}</td>
+            <td className="px-4 py-4 text-sm leading-6 text-white/60">{item.recommendation}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-xs leading-5 text-white/40">“ยังไม่มีปุ่มใน Admin” หมายถึงยังไม่มี owner-facing entry point ที่ชัดเจน ไม่ได้หมายความว่า workflow เสีย</p>
+    </section>
     <LineDiscoveryManager initialModel={lineDiscovery} />
   </div>;
 }

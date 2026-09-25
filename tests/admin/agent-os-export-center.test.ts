@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { N8N_ADMIN_INTEGRATIONS, n8nAdminIntegrationSummary } from "../../lib/admin/n8n-integration-registry";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 
@@ -8,10 +9,46 @@ test("Export Center is owner-facing and keeps generic raw conversations out", ()
   const contract = read("lib/admin/agent-os/export-contract.ts");
   const page = read("apps/admin/app/(control-plane)/analytics/exports/page.tsx");
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const center = read("features/admin/analytics/ExportCenter.tsx");
   assert.match(page, /ส่งออกข้อมูล/);
   assert.match(page, /settings:read/);
   assert.match(layout, /\/analytics\/exports\//);
+  assert.match(center, /social-performance/);
+  assert.match(center, /seo-intelligence/);
+  assert.match(center, /Social Performance/);
+  assert.match(center, /SEO Search Intelligence/);
   assert.doesNotMatch(contract, /crm-conversations/);
+});
+
+test("n8n Integration Registry separates Admin triggers, background jobs, unconnected workflows, tests and legacy", () => {
+  const settings = read("apps/admin/app/(control-plane)/settings/[section]/page.tsx");
+  const summary = n8nAdminIntegrationSummary();
+  assert.equal(summary["admin-trigger"], 3);
+  assert.equal(summary.unconnected, 3);
+  assert.equal(summary.background, 3);
+  assert.equal(summary["test-only"], 2);
+  assert.equal(summary.legacy, 9);
+  assert.deepEqual(
+    N8N_ADMIN_INTEGRATIONS.filter((item) => item.status === "unconnected").map((item) => item.workflowId),
+    ["HpHQEFLf7k6dKMC3", "Gn7ghA6RV8ladv56", "bwQcEsfdC0tUOgIA"],
+  );
+  assert.equal(N8N_ADMIN_INTEGRATIONS.find((item) => item.workflowId === "XOQHPkio5WzZIz0l")?.adminPath, "/analytics/exports/");
+  assert.match(settings, /n8n Integration Registry/);
+  assert.match(settings, /ยังไม่มีปุ่ม/);
+});
+
+test("Social and SEO export builders reuse stable Admin read models and preserve missing-vs-zero semantics", () => {
+  const datasets = read("lib/admin/agent-os/export-datasets.ts");
+  assert.match(datasets, /getSocialMarketingDashboard/);
+  assert.match(datasets, /listResearchSnapshots/);
+  assert.match(datasets, /getUbersuggestDashboardData/);
+  assert.match(datasets, /row\.views/);
+  assert.match(datasets, /row\.reach/);
+  assert.match(datasets, /value == null \|\| !Number\.isFinite\(value\) \? null/);
+  assert.match(datasets, /userVisibilityPercentage \?\? null/);
+  assert.match(datasets, /userAverageRank \?\? null/);
+  assert.match(datasets, /ยังไม่ได้จับคู่ \/ รอตรวจ/);
+  assert.match(datasets, /Stored Research \+ Ubersuggest AISV · export ไม่ยิง provider สด/);
 });
 
 test("CSV remains a direct owner-only fallback independent of n8n", () => {
@@ -39,6 +76,8 @@ test("Google Sheet export is background n8n work with Agent OS runtime observabi
   assert.match(joined, /frozenRowCount/);
   assert.match(joined, /setBasicFilter/);
   assert.match(joined, /autoResizeDimensions/);
+  assert.match(joined, /social-performance/);
+  assert.match(joined, /seo-intelligence/);
   assert.doesNotMatch(joined, /crm-conversations|raw transcript|raw_message/i);
 });
 

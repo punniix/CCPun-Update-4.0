@@ -5,6 +5,8 @@ export const CCPUN_UTC_OFFSET = "+07:00";
 
 export const EXPORT_FORMATS = ["csv", "google-sheet"] as const;
 export const EXPORT_DATASETS = [
+  "social-performance",
+  "seo-intelligence",
   "crm-overview",
   "crm-leads",
   "crm-follow-ups",
@@ -61,6 +63,8 @@ export function formatBangkokDateTimeWithOffset(value: string | Date | null) {
 }
 
 const DATASET_FILE_LABELS: Record<ExportDataset, string> = {
+  "social-performance": "CCPun_Social_Performance",
+  "seo-intelligence": "CCPun_SEO_Intelligence",
   "crm-overview": "CCPun_CRM_Overview",
   "crm-leads": "CCPun_CRM_Leads",
   "crm-follow-ups": "CCPun_CRM_Followups",
@@ -80,6 +84,55 @@ export function exportFileName(input: {
 }
 
 export const OWNER_FRIENDLY_EXPORT_COLUMNS = {
+  "social-performance": [
+    "วันที่เผยแพร่ (เวลาไทย)",
+    "แพลตฟอร์ม",
+    "รูปแบบ",
+    "เนื้อหา",
+    "ลิงก์โพสต์",
+    "ยอดดู",
+    "Reach",
+    "คลิก",
+    "ปฏิกิริยา",
+    "คอมเมนต์",
+    "แชร์",
+    "บันทึก",
+    "การมีส่วนร่วมที่ยืนยันได้",
+    "การมีส่วนร่วมเชิงลึก",
+    "อัตราคลิกต่อการดู (%)",
+    "อัตรามีส่วนร่วมต่อ Reach (%)",
+    "Coverage (%)",
+    "สถานะวิเคราะห์",
+    "คุณภาพข้อมูล",
+    "Snapshot ล่าสุด (เวลาไทย)",
+    "Content ID",
+    "Publication ID",
+    "Provider Object ID",
+  ],
+  "seo-intelligence": [
+    "ประเภทข้อมูล",
+    "คำค้น / Prompt",
+    "หัวข้อ / Scope",
+    "แหล่งข้อมูล",
+    "ภาษา",
+    "พื้นที่",
+    "Intent",
+    "Volume",
+    "Difficulty",
+    "SERP",
+    "คู่แข่ง / แบรนด์เด่น",
+    "AI Answers",
+    "AI Mentions",
+    "AI Visibility (%)",
+    "AI Rank",
+    "บทความเจ้าของ",
+    "สถานะจับคู่",
+    "ช่วงข้อมูลเริ่ม",
+    "ช่วงข้อมูลสิ้นสุด",
+    "ดึงเมื่อ (เวลาไทย)",
+    "สถานะข้อมูล",
+    "ข้อจำกัด",
+  ],
   "crm-leads": [
     "ชื่อลูกค้า",
     "สถานะ",
