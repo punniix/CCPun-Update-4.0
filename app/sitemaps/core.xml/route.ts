@@ -7,7 +7,6 @@ export function GET() {
     renderUrlSet([
       { loc: "https://ccpun.com/" },
       { loc: "https://ccpun.com/privacy/" },
-      { loc: "https://ccpun.com/cookie-policy/" },
     ]),
   );
 }

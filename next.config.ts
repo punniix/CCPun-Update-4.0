@@ -21,6 +21,7 @@ const ADMIN_PRIVATE_PAGE_SOURCES = [
   "/analytics/:path*",
   "/operations/:path*",
   "/settings/:path*",
+  "/admin-not-found/:path*",
 ];
 const ADMIN_PROTECTED_PREVIEW_SOURCES = IS_ADMIN_APPLICATION ? ["/blog/:path*"] : [];
 
