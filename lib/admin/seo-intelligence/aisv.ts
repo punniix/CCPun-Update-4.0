@@ -156,7 +156,7 @@ export function deriveAisvReadState(input: {
     ? Date.parse(input.snapshot.windowEnd + "T23:59:59.999Z")
     : Number.NaN;
   const now = input.now ?? Date.now();
-  const maxAge = (input.maxReportAgeDays ?? 35) * 86_400_000;
+  const maxAge = (input.maxReportAgeDays ?? 30) * 86_400_000;
   if (!Number.isFinite(end) || end > now + 86_400_000 || now - end > maxAge) return "stale";
   return "ready";
 }

@@ -89,6 +89,14 @@ test("AISV presentation states distinguish ready stale pending missing and provi
   const now = Date.parse("2026-09-24T12:00:00Z");
   assert.equal(deriveAisvReadState({ error: null, snapshot: { reportStatus: "ready", windowEnd: "2026-09-24" }, now }), "ready");
   assert.equal(deriveAisvReadState({ error: null, snapshot: { reportStatus: "ready", windowEnd: "2026-07-01" }, now }), "stale");
+  assert.equal(
+    deriveAisvReadState({
+      error: null,
+      snapshot: { reportStatus: null, windowEnd: "2026-08-25" },
+      now: Date.parse("2026-09-25T12:00:00Z"),
+    }),
+    "stale",
+  );
   assert.equal(deriveAisvReadState({ error: null, snapshot: { reportStatus: "pending_update", windowEnd: "2026-09-24" }, now }), "pending_update");
   assert.equal(deriveAisvReadState({ error: null, snapshot: null, now }), "missing");
   assert.equal(deriveAisvReadState({ error: "not-configured", snapshot: null, now }), "not-configured");

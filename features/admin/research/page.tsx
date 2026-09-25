@@ -113,7 +113,7 @@ export default async function AdminResearchPage({
   const account = dashboard.account;
   const geo = dashboard.geo;
   const accountFresh = isSnapshotFresh(account?.checkedAt, 24);
-  const geoFresh = isSnapshotFresh(geo?.checkedAt, 35 * 24);
+  const geoFresh = isSnapshotFresh(geo?.checkedAt, 30 * 24);
   const aisvState = deriveAisvReadState({ error: dashboard.error, snapshot: geo });
   const promptGaps = [...(geo?.prompts ?? [])]
     .filter((prompt) => prompt.userVisibilityPercentage === 0 && (prompt.totalAnswers ?? 0) > 0)
