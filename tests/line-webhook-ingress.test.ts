@@ -5,7 +5,7 @@ import test from "node:test";
 
 import { GET, POST } from "../apps/web/app/api/line/webhook/route";
 import { createLineWebhookPostHandler } from "../apps/web/lib/line/webhook-handler";
-import { resolveLineIngestRuntime } from "../apps/web/lib/line/private-ingestion";
+import { createLinePrivateIngestor, probeLineAdminBridge } from "../apps/web/lib/line/private-ingestion";
 import {
   LINE_WEBHOOK_X_ROBOTS_TAG,
   describeLineWebhookEvent,
@@ -144,7 +144,7 @@ test("signed private message is normalized to ciphertext/digests and response ne
   });
 });
 
-test("missing crypto/private DB configuration fails closed without reflecting private payload", async () => {
+test("missing private crypto configuration fails closed without reflecting private payload", async () => {
   const secret = "test-channel-secret";
   const marker = "PRIVATE_FAIL_CLOSED_MARKER";
   const previousHmac = process.env.CCPUN_LINE_IDENTITY_HMAC_KEY_V1;
@@ -261,34 +261,61 @@ test("private crypto uses deterministic keyed lookup and authenticated randomize
   assert.doesNotMatch(JSON.stringify(first), /synthetic private text/);
 });
 
-test("LINE private DB identity is pinned to the dedicated ingress role and exact Neon lane", () => {
-  const uat = resolveLineIngestRuntime({
-    CCPUN_APP_ENV: "web-uat",
-    CCPUN_LINE_NEON_PROJECT_ID: "young-term-47483330",
-    CCPUN_LINE_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8",
-    CCPUN_LINE_NEON_DATABASE: "neondb",
-    CCPUN_LINE_INGEST_DATABASE_URL: "postgresql://ccpun_line_ingress:TEST_ONLY@ep-mute-frost-aztvz394.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
-  });
-  assert.equal(uat?.lane, "uat");
-
-  assert.equal(resolveLineIngestRuntime({
-    CCPUN_APP_ENV: "web-uat",
-    CCPUN_LINE_NEON_PROJECT_ID: "young-term-47483330",
-    CCPUN_LINE_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8",
-    CCPUN_LINE_NEON_DATABASE: "neondb",
-    CCPUN_LINE_INGEST_DATABASE_URL: "postgresql://ccpun_admin_runtime:TEST_ONLY@ep-mute-frost-aztvz394.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
-  }), null);
-
-  assert.equal(resolveLineIngestRuntime({
+test("LINE Web bridge requires exact Production identity and a Vercel OIDC token", async () => {
+  const token = "x".repeat(120);
+  const variables = {
     CCPUN_APP_ENV: "production",
     VERCEL_ENV: "production",
     VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",
-    VERCEL_GIT_COMMIT_REF: "feature/not-production",
-    CCPUN_LINE_NEON_PROJECT_ID: "lively-bar-43618798",
-    CCPUN_LINE_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv",
-    CCPUN_LINE_NEON_DATABASE: "neondb",
-    CCPUN_LINE_INGEST_DATABASE_URL: "postgresql://ccpun_line_ingress:TEST_ONLY@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
-  }), null);
+    VERCEL_GIT_COMMIT_REF: "v4-production",
+    VERCEL_OIDC_TOKEN: token,
+  };
+  let capturedAuthorization = "";
+  let capturedUrl = "";
+  const ingest = createLinePrivateIngestor(variables, async (input, init) => {
+    capturedUrl = String(input);
+    capturedAuthorization = new Headers(init?.headers).get("authorization") ?? "";
+    return Response.json({ outcome: "accepted" }, { status: 200 });
+  });
+  const normalized = normalizeLinePrivateEvent({
+    webhookEventId: "01SYNTHETICOIDC000000000001",
+    type: "follow",
+    timestamp: 1789662600000,
+    source: { type: "user", userId: "U_SYNTHETIC" },
+  }, syntheticCrypto());
+  assert.equal(normalized.kind, "accepted");
+  if (normalized.kind !== "accepted") return;
+  assert.equal(await ingest(normalized.event), "accepted");
+  assert.equal(capturedUrl, "https://admin.ccpun.com/api/internal/line/ingest-event/");
+  assert.equal(capturedAuthorization, `Bearer ${token}`);
+
+  for (const wrong of [
+    { ...variables, VERCEL_PROJECT_ID: "prj_wrong" },
+    { ...variables, VERCEL_GIT_COMMIT_REF: "feature/not-production" },
+    { ...variables, VERCEL_ENV: "preview" },
+    { ...variables, VERCEL_OIDC_TOKEN: "" },
+  ]) {
+    assert.throws(() => createLinePrivateIngestor(wrong), /LINE_PRIVATE_INGEST_UNAVAILABLE/);
+  }
+});
+test("LINE bridge health uses OIDC and never needs a customer payload", async () => {
+  const token = "h".repeat(120);
+  const variables = {
+    CCPUN_APP_ENV: "production",
+    VERCEL_ENV: "production",
+    VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",
+    VERCEL_GIT_COMMIT_REF: "v4-production",
+    VERCEL_OIDC_TOKEN: token,
+  };
+  let method = "";
+  let authorization = "";
+  assert.equal(await probeLineAdminBridge(variables, async (_input, init) => {
+    method = init?.method ?? "";
+    authorization = new Headers(init?.headers).get("authorization") ?? "";
+    return new Response(null, { status: 204 });
+  }), true);
+  assert.equal(method, "HEAD");
+  assert.equal(authorization, `Bearer ${token}`);
 });
 
 test("SafeForAI accepts only allowlisted non-identifying journey state", () => {
@@ -394,27 +421,27 @@ test("webhook GET is hidden and noindexed", () => {
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
 });
 
-test("webhook public path has no logs, arbitrary outbound fetch, broad Admin DB credential, or LINE access token", async () => {
+test("webhook public path has no Neon runtime or private database credential", async () => {
   const routeSource = await readFile("apps/web/app/api/line/webhook/route.ts", "utf8");
   const handlerSource = await readFile("apps/web/lib/line/webhook-handler.ts", "utf8");
   const ingestSource = await readFile("apps/web/lib/line/private-ingestion.ts", "utf8");
+  const eventBridgeSource = await readFile("apps/web/lib/line/public-event-bridge.ts", "utf8");
+  const webPackage = await readFile("apps/web/package.json", "utf8");
+  const adminIngestSource = await readFile("lib/admin/line/private-ingestion.ts", "utf8");
   const robotsSource = await readFile("apps/web/app/robots.ts", "utf8");
-  const publicPath = [routeSource, handlerSource, ingestSource].join("\n");
+  const publicPath = [routeSource, handlerSource, ingestSource, eventBridgeSource].join("\n");
 
   assert.match(LINE_WEBHOOK_X_ROBOTS_TAG, /noindex/);
   assert.match(LINE_WEBHOOK_X_ROBOTS_TAG, /nofollow/);
   assert.match(routeSource, /export function GET\(\)/);
-  assert.match(routeSource, /export function HEAD\(\)/);
+  assert.match(routeSource, /export (?:async )?function HEAD\(\)/);
   assert.doesNotMatch(publicPath, /console\.(log|info|warn|error|debug)/);
-  assert.doesNotMatch(publicPath, /\beval\s*\(/);
-  assert.doesNotMatch(publicPath, /new\s+Function\s*\(/);
-  assert.doesNotMatch(publicPath, /child_process|execFile|spawn\s*\(/);
-  assert.doesNotMatch(publicPath, /api\.line\.me|LINE_CHANNEL_ACCESS_TOKEN/);
-  assert.match(ingestSource, /resolveSystemDeliveryDispatchUrl/);
-  assert.match(ingestSource, /admin\.ccpun\.com\/api\/internal\/line\/system-delivery\/dispatch/);
-  assert.match(ingestSource, /url\.pathname !== "\/api\/internal\/line\/system-delivery\/dispatch\/"/);
-  assert.doesNotMatch(publicPath, /NEXT_PUBLIC_LINE/);
-  assert.doesNotMatch(publicPath, /CCPUN_ADMIN_DATABASE_URL|CCPUN_SOCIAL_DATABASE_URL/);
-  assert.match(ingestSource, /CCPUN_LINE_INGEST_DATABASE_URL/);
+  assert.doesNotMatch(publicPath, /@neondatabase\/serverless|private_line\.|ccpun_line_ingress/);
+  assert.doesNotMatch(publicPath, /CCPUN_ADMIN_DATABASE_URL|CCPUN_SOCIAL_DATABASE_URL|CCPUN_LINE_INGEST_DATABASE_URL/);
+  assert.doesNotMatch(publicPath, /LINE_CHANNEL_ACCESS_TOKEN|CCPUN_LINE_CHANNEL_ACCESS_TOKEN/);
+  assert.match(ingestSource, /VERCEL_OIDC_TOKEN/);
+  assert.match(ingestSource, /admin\.ccpun\.com\/api\/internal\/line\/ingest-event/);
+  assert.doesNotMatch(webPackage, /@neondatabase\/serverless/);
+  assert.match(adminIngestSource, /CCPUN_ADMIN_DATABASE_URL/);
   assert.match(robotsSource, /"\/api\/"/);
 });

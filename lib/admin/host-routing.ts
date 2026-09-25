@@ -67,6 +67,8 @@ export function isInternalServiceApiPath(pathname: string): boolean {
   return path === "/api/internal/line/rich-menu/reconcile"
     || path === "/api/internal/line/system-delivery/dispatch"
     || path === "/api/internal/line/ingest"
+    || path === "/api/internal/line/ingest-event"
+    || path === "/api/internal/line/bridge-health"
     || path === "/api/internal/line/public-event"
     || isPathOrChild(path, "/api/internal/agent-os/jobs")
     || path === "/api/internal/agent-os/exports"

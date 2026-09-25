@@ -151,7 +151,7 @@ test("aggregate rotation status exposes counts only, never ciphertext or identif
 });
 
 test("web lazy rotation is explicit, V2-only, bounded, best-effort, and never logs private material", () => {
-  const source = read("apps/web/lib/line/private-ingestion.ts");
+  const source = read("lib/admin/line/private-ingestion.ts");
   assert.match(source, /CCPUN_LINE_LAZY_KEY_ROTATION_ENABLED/);
   assert.match(source, /crypto\.keyVersion !== 2/);
   assert.match(source, /hasKeyVersion\(1\)/);
@@ -186,7 +186,7 @@ test("provider paths checkpoint missing keys before any LINE network request and
 test("rotation source contains no secret values, generic scan endpoint, or provider writes", () => {
   const combined = [
     read("lib/line/private-crypto.ts"),
-    read("apps/web/lib/line/private-ingestion.ts"),
+    read("lib/admin/line/private-ingestion.ts"),
     read("db/migrations/20260918_line_key_rotation_v2_production.sql"),
   ].join("\n");
   assert.doesNotMatch(combined, /https:\/\/api\.line\.me/);

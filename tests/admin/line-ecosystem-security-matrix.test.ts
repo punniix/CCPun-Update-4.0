@@ -14,6 +14,10 @@ const privateRuntimeSources=[
   "apps/web/lib/line/webhook-handler.ts",
   "apps/web/lib/line/webhook-ingress.ts",
   "apps/web/lib/line/private-ingestion.ts",
+  "apps/web/lib/line/public-event-bridge.ts",
+  "lib/admin/line/private-ingestion.ts",
+  "lib/admin/line/web-service-auth.ts",
+  "apps/admin/app/api/internal/line/ingest-event/route.ts",
   "apps/web/lib/line/safe-knowledge-runtime.ts",
   "apps/web/lib/line/safe-knowledge-metrics.ts",
   "lib/line/private-domain.ts",
@@ -110,6 +114,11 @@ test("security matrix: public DB access = 0 and runtime roles have no raw table 
   assert.match(migrations,/REVOKE ALL ON ALL TABLES IN SCHEMA private_line FROM PUBLIC/);
   assert.match(migrations,/REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA private_line FROM ccpun_line_ingress/);
   assert.doesNotMatch(migrations,/GRANT (?:SELECT|INSERT|UPDATE|DELETE) ON (?:TABLE )?private_line\.[A-Za-z0-9_]+ TO ccpun_line_ingress/i);
+  const webPackage=read("apps/web/package.json");
+  const webIngress=read("apps/web/lib/line/private-ingestion.ts");
+  assert.doesNotMatch(webPackage,/@neondatabase\/serverless/);
+  assert.doesNotMatch(webIngress,/CCPUN_(?:ADMIN|LINE_INGEST)_DATABASE_URL|private_line\.|@neondatabase\/serverless/);
+  assert.match(webIngress,/VERCEL_OIDC_TOKEN/);
 });
 
 test("security matrix: public Drive customer files = 0",()=>{
