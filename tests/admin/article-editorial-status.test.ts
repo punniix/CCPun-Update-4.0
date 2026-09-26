@@ -27,7 +27,14 @@ test("editorial controls preview the selected draft, focus review and show UAT n
   const source = readFileSync(new URL("../../cms/sanity/policy/article-editorial-status.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   new Function("require", "exports", compiled)((id: string) => {
-    if (id === "sanity") return { useWorkspace: () => workspace, useEditState: (_id: string, type: string) => type === "category" ? { draft: null, published: category, ready: true } : { draft: article, published: { _id: "selected" }, ready: true } };
+    if (id === "sanity") return {
+      useWorkspace: () => workspace,
+      useEditState: (_id: string, type: string) => type === "category" ? { draft: null, published: category, ready: true } : { draft: article, published: { _id: "selected" }, ready: true },
+      useSyncState: () => ({ isSyncing: false }),
+      PatchEvent: { from: (patches: unknown) => patches },
+      set: (value: unknown, path: unknown) => ({ type: "set", value, path }),
+    };
+    if (id === "./article-line-copy-action") return { requestArticleLineCopy: async () => ({ status: "applied" }) };
     if (id === "./article-publication") return { publicationSummary, reviewLabels };
     if (id === "sanity/router") return { IntentLink: (props: { params: Record<string, string>; children: string }) => { params = props.params; return createElement("a", { href: "/intent" }, props.children); } };
     return require(id);
