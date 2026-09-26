@@ -117,3 +117,21 @@ test("LINE generation and publish are no longer owned by the queue review path",
   assert.match(readme, /LINE card generation is no longer part of this encrypted queue worker/);
   assert.match(readme, /Do not enqueue mode line-card-description jobs/);
 });
+
+test("every article editor exposes owner-facing LINE generation and published-only articles can bootstrap a Draft", () => {
+  const schema = read("cms/sanity/schema/documents/article.ts");
+  const editor = read("cms/sanity/policy/article-editorial-status.tsx");
+  const action = read("cms/sanity/policy/article-line-copy-action.tsx");
+  const route = read("apps/admin/app/api/admin/content/[id]/line-copy/generate/route.ts");
+  const helper = read("lib/admin/line/description-optimization.ts");
+
+  assert.match(schema, /components: \\{ input: ArticleEditorialInput \\}/);
+  assert.match(editor, /สร้างข้อความ LINE ด้วย AI/);
+  assert.match(editor, /draft=\\{draft as ArticleLineCopyDocument \\| null\\}/);
+  assert.match(editor, /published=\\{published as ArticleLineCopyDocument \\| null\\}/);
+  assert.match(editor, /หน้า Live จะไม่เปลี่ยนจนกว่าคุณจะยืนยันเผยแพร่/);
+  assert.match(action, /const source = draft \\?\\? published/);
+  assert.match(route, /readOrCreateArticleDraftLineCopy/);
+  assert.match(helper, /createIfNotExists/);
+  assert.match(helper, /_id: "drafts\\." \\+ logicalId/);
+});
