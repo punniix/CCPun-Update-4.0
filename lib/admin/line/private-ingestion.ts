@@ -13,8 +13,13 @@ import {
   encodeLineSystemMessageIntent,
   isLineArticleDiscoveryJourney,
 } from "../../line/system-delivery";
+import {
+  CCPUN_VERCEL_PROJECT_IDS,
+  resolveDeploymentIdentity,
+  type DeploymentProvider,
+} from "../../runtime/deployment-identity";
 
-const ADMIN_VERCEL_PROJECT_ID = "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN";
+const ADMIN_VERCEL_PROJECT_ID = CCPUN_VERCEL_PROJECT_IDS.admin;
 
 export const LINE_INGEST_LANES = {
   uat: {
@@ -43,6 +48,7 @@ type LineIngestIdentity = (typeof LINE_INGEST_LANES)[LineIngestLane];
 export type LineIngestRuntime = {
   lane: LineIngestLane;
   identity: LineIngestIdentity;
+  provider: DeploymentProvider;
   connectionString: string;
 };
 
@@ -63,15 +69,6 @@ const rotationCandidateSchema = z.object({
   purpose: z.enum(["line-user-id", "message-provider-id", "message-content"]),
 });
 
-function inferredEnvironment(variables: Record<string, string | undefined>) {
-  const explicit = variables.CCPUN_APP_ENV?.trim();
-  if (explicit) return explicit;
-  if (variables.VERCEL_PROJECT_ID?.trim() !== ADMIN_VERCEL_PROJECT_ID) return "unknown";
-  if (variables.VERCEL_ENV?.trim() === "production") return "production-admin";
-  if (variables.VERCEL_ENV?.trim() === "preview") return "admin-uat";
-  return "unknown";
-}
-
 function lazyRotationCrypto(
   variables: Record<string, string | undefined>,
 ): LineContentCrypto | null {
@@ -88,7 +85,9 @@ function lazyRotationCrypto(
 export function resolveLineIngestRuntime(
   variables: Record<string, string | undefined> = process.env,
 ): LineIngestRuntime | null {
-  const environment = inferredEnvironment(variables);
+  const deployment = resolveDeploymentIdentity(variables, "admin");
+  if (!deployment.valid) return null;
+  const environment = deployment.environment;
   const lane: LineIngestLane | null = environment === "production-admin"
     ? "production"
     : environment === "admin-uat"
@@ -105,13 +104,17 @@ export function resolveLineIngestRuntime(
 
   const vercelEnvironment = variables.VERCEL_ENV?.trim();
   const vercelProjectId = variables.VERCEL_PROJECT_ID?.trim();
-  const gitBranch = variables.VERCEL_GIT_COMMIT_REF?.trim();
   if (lane === "production") {
-    if (vercelEnvironment !== "production" || vercelProjectId !== ADMIN_VERCEL_PROJECT_ID || gitBranch !== "v4-production") {
-      return null;
-    }
-  } else if (vercelEnvironment || vercelProjectId) {
-    if (vercelEnvironment !== "preview" || vercelProjectId !== ADMIN_VERCEL_PROJECT_ID) return null;
+    if (deployment.provider === "local" || deployment.gitRef !== "v4-production") return null;
+    if (
+      deployment.provider === "vercel"
+      && (vercelEnvironment !== "production" || vercelProjectId !== ADMIN_VERCEL_PROJECT_ID)
+    ) return null;
+  } else if (
+    deployment.provider === "vercel"
+    && (vercelEnvironment !== "preview" || vercelProjectId !== ADMIN_VERCEL_PROJECT_ID)
+  ) {
+    return null;
   }
 
   try {
@@ -124,7 +127,7 @@ export function resolveLineIngestRuntime(
     if (decodeURIComponent(url.username) !== identity.runtimeRole || !url.password) return null;
     if (decodeURIComponent(url.pathname.slice(1)) !== identity.database) return null;
     if (url.searchParams.get("sslmode") !== "require") return null;
-    return { lane, identity, connectionString };
+    return { lane, identity, provider: deployment.provider, connectionString };
   } catch {
     return null;
   }
@@ -213,10 +216,21 @@ function resolveSystemDeliveryDispatchUrl(
       || url.pathname !== "/api/internal/line/system-delivery/dispatch/"
     ) return null;
     if (runtime.lane === "production" && url.hostname !== "admin.ccpun.com") return null;
-    if (
-      runtime.lane === "uat"
-      && !/^ccpun-admin-[a-z0-9-]+-punniixs-projects\.vercel\.app$/.test(url.hostname)
-    ) return null;
+    if (runtime.lane === "uat") {
+      if (
+        runtime.provider === "vercel"
+        && !/^ccpun-admin-[a-z0-9-]+-punniixs-projects\.vercel\.app$/.test(url.hostname)
+      ) return null;
+      if (runtime.provider === "hostinger") {
+        const adminOrigin = variables.AUTH_URL?.trim();
+        if (!adminOrigin) return null;
+        try {
+          if (new URL(adminOrigin).hostname !== url.hostname) return null;
+        } catch {
+          return null;
+        }
+      }
+    }
     return url.toString();
   } catch {
     return null;

@@ -60,6 +60,26 @@ test("private scheduler accepts only the exact Admin project role Neon and Sanit
   assert.equal(resolveArticleSchedulerLane({...variables("production"),VERCEL_GIT_COMMIT_REF:"feature/test"}),null);
   assert.equal(resolveArticleSchedulerLane({...variables("production"),CCPUN_ADMIN_DATABASE_URL:variables("uat").CCPUN_ADMIN_DATABASE_URL}),null);
 });
+
+test("private scheduler accepts an explicit Hostinger Admin identity without fake Vercel variables", () => {
+  for (const lane of ["uat", "production"] as const) {
+    const base = variables(lane);
+    const hostinger = {
+      ...base,
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      CCPUN_DEPLOYMENT_ROLE: "admin",
+      CCPUN_GIT_REF: lane === "production" ? "v4-production" : "feature/hostinger-uat",
+      VERCEL_PROJECT_ID: undefined,
+      VERCEL_ENV: undefined,
+      VERCEL_GIT_COMMIT_REF: undefined,
+    };
+    assert.equal(resolveArticleSchedulerLane(hostinger), lane);
+    assert.equal(resolveArticleSchedulerLane({ ...hostinger, CCPUN_DEPLOYMENT_ROLE: "web" }), null);
+    if (lane === "production") {
+      assert.equal(resolveArticleSchedulerLane({ ...hostinger, CCPUN_GIT_REF: "feature/wrong" }), null);
+    }
+  }
+});
 test("queue storage has no Sanity operational writes and Workflow wiring uses an absolute time", () => {
   const read=(file:string)=>readFileSync(new URL(`../../${file}`,import.meta.url),"utf8");
   assert.doesNotMatch(read("lib/admin/article-scheduling.ts"),/createOrReplace|publishSchedule|drafts\.publishSchedule/);

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
-import { resolveContentEnvironment } from "@/lib/content/sanity-lane";
 import { CONTROL_PLANE_PAGE_PREFIXES } from "@/lib/routing/private-surfaces";
+import { shouldBlockWebIndexing } from "../runtime-environment";
 
 const privatePaths = [
   "/api/",
@@ -11,11 +11,7 @@ const privatePaths = [
 ];
 
 export default function robots(): MetadataRoute.Robots {
-  const environment = resolveContentEnvironment();
-  const blockAll =
-    process.env.VERCEL_ENV === "preview" ||
-    process.env.CCPUN_UAT_MODE === "1" ||
-    environment !== "production";
+  const blockAll = shouldBlockWebIndexing();
 
   if (blockAll) {
     return {
