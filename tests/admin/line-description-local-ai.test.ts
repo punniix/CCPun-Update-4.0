@@ -125,13 +125,13 @@ test("every article editor exposes owner-facing LINE generation and published-on
   const route = read("apps/admin/app/api/admin/content/[id]/line-copy/generate/route.ts");
   const helper = read("lib/admin/line/description-optimization.ts");
 
-  assert.match(schema, /components: \\{ input: ArticleEditorialInput \\}/);
+  assert.match(schema, /components: \{ input: ArticleEditorialInput \}/);
   assert.match(editor, /สร้างข้อความ LINE ด้วย AI/);
-  assert.match(editor, /draft=\\{draft as ArticleLineCopyDocument \\| null\\}/);
-  assert.match(editor, /published=\\{published as ArticleLineCopyDocument \\| null\\}/);
+  assert.match(editor, /draft=\{draft as ArticleLineCopyDocument \| null\}/);
+  assert.match(editor, /published=\{published as ArticleLineCopyDocument \| null\}/);
   assert.match(editor, /หน้า Live จะไม่เปลี่ยนจนกว่าคุณจะยืนยันเผยแพร่/);
-  assert.match(action, /const source = draft \\?\\? published/);
+  assert.match(action, /const source = draft \?\? published/);
   assert.match(route, /readOrCreateArticleDraftLineCopy/);
   assert.match(helper, /createIfNotExists/);
-  assert.match(helper, /_id: "drafts\\." \\+ logicalId/);
+  assert.match(helper, /_id: "drafts\." \+ logicalId/);
 });
