@@ -138,6 +138,42 @@ export async function readArticleDraftLineCopy(id: string) {
   return { ...draft, body };
 }
 
+export async function readOrCreateArticleDraftLineCopy(id: string, sourceRevision: string) {
+  const logicalId = parsedLogicalId(id);
+  const revision = revisionSchema.safeParse(sourceRevision);
+  if (!logicalId || !revision.success) throw new Error("LINE_COPY_INVALID_REQUEST");
+
+  const read = readClient("raw");
+  const write = writeClient();
+  if (!read || !write) throw new Error("LINE_DESCRIPTION_WRITE_UNAVAILABLE");
+
+  const existingDraft = await readArticleDraftLineCopy(logicalId);
+  if (existingDraft) {
+    if (existingDraft.revision !== revision.data) throw new Error("LINE_COPY_CONFLICT");
+    return existingDraft;
+  }
+
+  const published = await read.getDocument<Record<string, unknown>>(logicalId);
+  if (!published || published._type !== "article" || typeof published._rev !== "string") {
+    throw new Error("LINE_COPY_DRAFT_REQUIRED");
+  }
+  if (published._rev !== revision.data) throw new Error("LINE_COPY_CONFLICT");
+
+  const copyable = Object.fromEntries(
+    Object.entries(published).filter(([key]) => !["_id", "_rev", "_createdAt", "_updatedAt", "_originalId"].includes(key)),
+  );
+
+  await write.createIfNotExists({
+    ...copyable,
+    _id: "drafts." + logicalId,
+    _type: "article",
+  } as { _id: string; _type: string; [key: string]: unknown });
+
+  const createdDraft = await readArticleDraftLineCopy(logicalId);
+  if (!createdDraft) throw new Error("LINE_COPY_DRAFT_REQUIRED");
+  return createdDraft;
+}
+
 export async function readArticleLineCopyImprovementTarget(id: string) {
   const logicalId = parsedLogicalId(id);
   if (!logicalId) throw new Error("LINE_COPY_INVALID_REQUEST");
