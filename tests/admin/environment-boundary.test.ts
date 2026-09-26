@@ -221,6 +221,77 @@ test("deployed lane identity fails closed on cross-project or missing-project mi
   assert.equal(isDeploymentProjectAllowed("local-production", PRODUCTION_ADMIN_PROJECT_ID), false);
 });
 
+test("Hostinger Admin keeps the Production and UAT data-plane guards without Vercel identity", () => {
+  const production = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_APP_ENV: "production-admin",
+  };
+  assert.equal(
+    isDeploymentProjectAllowed("production-admin", undefined, undefined, production),
+    true,
+  );
+  assert.equal(
+    isAdminSurfaceAllowed("production-admin", undefined, undefined, production),
+    true,
+  );
+  assert.equal(
+    isAdminDataPlaneAllowed(
+      "production",
+      "production-admin",
+      undefined,
+      undefined,
+      PRODUCTION_SANITY_PROJECT_ID,
+      production,
+    ),
+    true,
+  );
+
+  const uat = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_APP_ENV: "admin-uat",
+  };
+  assert.equal(
+    isAdminDataPlaneAllowed("uat", "admin-uat", undefined, undefined, UAT_SANITY_PROJECT_ID, uat),
+    true,
+  );
+  assert.equal(
+    isAdminDataPlaneAllowed(
+      "production",
+      "admin-uat",
+      undefined,
+      undefined,
+      PRODUCTION_SANITY_PROJECT_ID,
+      uat,
+    ),
+    false,
+  );
+});
+
+test("Hostinger Admin identity fails closed on role and Vercel-project conflicts", () => {
+  const wrongRole = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_APP_ENV: "production-admin",
+  };
+  assert.equal(
+    isAdminSurfaceAllowed("production-admin", undefined, undefined, wrongRole),
+    false,
+  );
+
+  const fakeVercel = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_APP_ENV: "production-admin",
+    VERCEL_PROJECT_ID: PRODUCTION_ADMIN_PROJECT_ID,
+  };
+  assert.equal(
+    isAdminSurfaceAllowed("production-admin", PRODUCTION_ADMIN_PROJECT_ID, undefined, fakeVercel),
+    false,
+  );
+});
+
 test("Local Production reads only the exact Production lane and writes fail closed by default", () => {
   delete process.env.CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES;
   assert.equal(isAdminReadDataPlaneAllowed("production", "local-production", undefined, undefined, PRODUCTION_SANITY_PROJECT_ID), true);

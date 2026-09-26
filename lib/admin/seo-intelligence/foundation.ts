@@ -1,4 +1,5 @@
 import { CCPUN_VERCEL_PROJECT_IDS, parseAdminEnvironment, type AdminEnvironment } from "../environment";
+import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 import { SYNTHETIC_MARKET_PROVIDER_FIXTURES } from "./providers/ubersuggest";
 
 export const WEBSITE_42_SEO_BRANCH = "codex/website-42-seo-observation-assembler-20260829";
@@ -271,6 +272,10 @@ export function getSyntheticSeoIntelligenceSnapshot() {
 export function isSeoIntelligenceEnabled(input: {
   flag: string | undefined;
   environment: AdminEnvironment;
+  deploymentProvider?: string | undefined;
+  deploymentRole?: string | undefined;
+  releaseId?: string | undefined;
+  gitSha?: string | undefined;
   vercelEnvironment: string | undefined;
   projectId: string | undefined;
   productionAdminProjectId: string | undefined;
@@ -278,16 +283,37 @@ export function isSeoIntelligenceEnabled(input: {
   sanityProjectId: string | undefined;
   sanityDataset: string | undefined;
 }): boolean {
-  if (input.flag !== "1" || input.projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction) return false;
+  if (input.flag !== "1") return false;
+  const deployment = resolveDeploymentIdentity({
+    CCPUN_APP_ENV: input.environment,
+    CCPUN_DEPLOYMENT_PROVIDER: input.deploymentProvider,
+    CCPUN_DEPLOYMENT_ROLE: input.deploymentRole,
+    CCPUN_RELEASE_ID: input.releaseId,
+    CCPUN_GIT_REF: input.gitBranch,
+    CCPUN_GIT_SHA: input.gitSha,
+    VERCEL_ENV: input.vercelEnvironment,
+    VERCEL_PROJECT_ID: input.projectId,
+    VERCEL_GIT_COMMIT_REF: input.gitBranch,
+    VERCEL_GIT_COMMIT_SHA: input.gitSha,
+  }, "admin");
+  if (!deployment.valid || deployment.environment !== input.environment) return false;
 
   const uatLane = input.environment === "admin-uat" &&
-    (input.gitBranch === WEBSITE_42_SEO_BRANCH || input.gitBranch === WEBSITE_42_GOOGLE_PROVIDER_BRANCH) &&
+    (deployment.provider !== "vercel" || (
+      input.projectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
+      (!input.vercelEnvironment || input.vercelEnvironment === "preview")
+    )) &&
+    (input.gitBranch === WEBSITE_42_SEO_BRANCH || input.gitBranch === WEBSITE_42_GOOGLE_PROVIDER_BRANCH || input.gitBranch?.startsWith("admin/")) &&
     input.sanityProjectId === WEBSITE_42_SEO_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_SANITY_DATASET;
 
   const productionLane = input.environment === "production-admin" &&
-    input.vercelEnvironment === "production" &&
-    input.productionAdminProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
+    deployment.provider !== "local" &&
+    (deployment.provider !== "vercel" || (
+      input.vercelEnvironment === "production" &&
+      input.projectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
+      input.productionAdminProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction
+    )) &&
     input.gitBranch === WEBSITE_42_SEO_PRODUCTION_BRANCH &&
     input.sanityProjectId === WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET;
@@ -302,10 +328,14 @@ export function getSeoIntelligenceRuntimeStatus() {
     enabled: isSeoIntelligenceEnabled({
       flag: process.env.CCPUN_SEO_INTELLIGENCE_ENABLED,
       environment,
+      deploymentProvider: process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim(),
+      deploymentRole: process.env.CCPUN_DEPLOYMENT_ROLE?.trim(),
+      releaseId: process.env.CCPUN_RELEASE_ID?.trim(),
+      gitSha: process.env.CCPUN_GIT_SHA?.trim() || process.env.VERCEL_GIT_COMMIT_SHA?.trim(),
       vercelEnvironment: process.env.VERCEL_ENV?.trim(),
       projectId: process.env.VERCEL_PROJECT_ID?.trim() || process.env.NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID?.trim(),
       productionAdminProjectId: process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim() || process.env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim(),
-      gitBranch: process.env.VERCEL_GIT_COMMIT_REF?.trim(),
+      gitBranch: process.env.CCPUN_GIT_REF?.trim() || process.env.VERCEL_GIT_COMMIT_REF?.trim(),
       sanityProjectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim(),
       sanityDataset: process.env.NEXT_PUBLIC_SANITY_DATASET?.trim(),
     }),

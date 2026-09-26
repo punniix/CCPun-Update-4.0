@@ -3,6 +3,10 @@ import {
   parseAdminEnvironment,
   type AdminEnvironment,
 } from "../environment";
+import {
+  resolveDeploymentIdentity,
+  type DeploymentProvider,
+} from "../../runtime/deployment-identity";
 
 export const SOCIAL_UAT_SANITY_PROJECT_ID = "ccb9lnw5";
 export const SOCIAL_UAT_SANITY_DATASET = "uat";
@@ -49,8 +53,10 @@ export type SocialNeonIdentity = {
 export type SocialRuntimeDescriptor = {
   lane: "uat" | "production";
   environment: "admin-uat" | "production-admin";
-  vercelEnvironment: "preview" | "production";
-  projectId: typeof CCPUN_VERCEL_PROJECT_IDS.adminProduction;
+  provider: DeploymentProvider;
+  deploymentRole: "admin";
+  vercelEnvironment?: "preview" | "production";
+  projectId: string | null;
   gitBranch: string;
   sanityProjectId: string;
   sanityDataset: "uat" | "production";
@@ -59,6 +65,10 @@ export type SocialRuntimeDescriptor = {
 
 export type SocialRuntimeInput = {
   environment: AdminEnvironment;
+  deploymentProvider?: string;
+  deploymentRole?: string;
+  releaseId?: string;
+  gitSha?: string;
   vercelEnvironment?: string;
   projectId?: string;
   productionAdminProjectId?: string;
@@ -158,11 +168,26 @@ export function resolveSocialRuntimeDescriptor(
   const sanityProjectId = trimmed(input.sanityProjectId);
   const sanityDataset = trimmed(input.sanityDataset);
   const vercelEnvironment = trimmed(input.vercelEnvironment);
+  const deployment = resolveDeploymentIdentity({
+    CCPUN_APP_ENV: input.environment,
+    CCPUN_DEPLOYMENT_PROVIDER: trimmed(input.deploymentProvider),
+    CCPUN_DEPLOYMENT_ROLE: trimmed(input.deploymentRole),
+    CCPUN_GIT_REF: gitBranch,
+    CCPUN_GIT_SHA: trimmed(input.gitSha),
+    CCPUN_RELEASE_ID: trimmed(input.releaseId),
+    VERCEL_ENV: vercelEnvironment,
+    VERCEL_PROJECT_ID: projectId,
+    VERCEL_GIT_COMMIT_REF: gitBranch,
+    VERCEL_GIT_COMMIT_SHA: trimmed(input.gitSha),
+  }, "admin");
+  if (!deployment.valid || deployment.environment !== input.environment) return null;
 
   if (input.environment === "admin-uat") {
-    if (projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
-      || (productionAdminProjectId && productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction)
-      || (vercelEnvironment && vercelEnvironment !== "preview")
+    if ((deployment.provider === "vercel" && (
+        projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
+        || (productionAdminProjectId && productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction)
+        || (vercelEnvironment && vercelEnvironment !== "preview")
+      ))
       || !isSafeUatGitBranch(gitBranch, requirements.uatBranches)
       || sanityProjectId !== SOCIAL_UAT_SANITY_PROJECT_ID
       || sanityDataset !== SOCIAL_UAT_SANITY_DATASET
@@ -173,8 +198,10 @@ export function resolveSocialRuntimeDescriptor(
     return {
       lane: "uat",
       environment: "admin-uat",
-      vercelEnvironment: "preview",
-      projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+      provider: deployment.provider,
+      deploymentRole: "admin",
+      ...(deployment.provider === "vercel" ? { vercelEnvironment: "preview" as const } : {}),
+      projectId: deployment.projectId,
       gitBranch: gitBranch!,
       sanityProjectId: SOCIAL_UAT_SANITY_PROJECT_ID,
       sanityDataset: SOCIAL_UAT_SANITY_DATASET,
@@ -183,10 +210,13 @@ export function resolveSocialRuntimeDescriptor(
   }
 
   if (input.environment !== "production-admin"
-    || vercelEnvironment !== "production"
-    || projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
-    || productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
+    || deployment.provider === "local"
     || gitBranch !== SOCIAL_PRODUCTION_BRANCH
+    || (deployment.provider === "vercel" && (
+      vercelEnvironment !== "production"
+      || projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
+      || productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
+    ))
     || sanityProjectId !== SOCIAL_PRODUCTION_SANITY_PROJECT_ID
     || sanityDataset !== SOCIAL_PRODUCTION_SANITY_DATASET) {
     return null;
@@ -197,8 +227,10 @@ export function resolveSocialRuntimeDescriptor(
   return {
     lane: "production",
     environment: "production-admin",
-    vercelEnvironment: "production",
-    projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+    provider: deployment.provider,
+    deploymentRole: "admin",
+    ...(deployment.provider === "vercel" ? { vercelEnvironment: "production" as const } : {}),
+    projectId: deployment.projectId,
     gitBranch,
     sanityProjectId: SOCIAL_PRODUCTION_SANITY_PROJECT_ID,
     sanityDataset: SOCIAL_PRODUCTION_SANITY_DATASET,
@@ -211,11 +243,15 @@ export function socialRuntimeInputFromEnvironment(
 ): SocialRuntimeInput {
   return {
     environment: parseAdminEnvironment(env.CCPUN_APP_ENV),
+    deploymentProvider: trimmed(env.CCPUN_DEPLOYMENT_PROVIDER),
+    deploymentRole: trimmed(env.CCPUN_DEPLOYMENT_ROLE),
+    releaseId: trimmed(env.CCPUN_RELEASE_ID),
+    gitSha: trimmed(env.CCPUN_GIT_SHA) || trimmed(env.VERCEL_GIT_COMMIT_SHA),
     vercelEnvironment: trimmed(env.VERCEL_ENV),
     projectId: trimmed(env.VERCEL_PROJECT_ID) || trimmed(env.NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID),
     productionAdminProjectId: trimmed(env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID)
       || trimmed(env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID),
-    gitBranch: trimmed(env.VERCEL_GIT_COMMIT_REF),
+    gitBranch: trimmed(env.CCPUN_GIT_REF) || trimmed(env.VERCEL_GIT_COMMIT_REF),
     sanityProjectId: trimmed(env.NEXT_PUBLIC_SANITY_PROJECT_ID),
     sanityDataset: trimmed(env.NEXT_PUBLIC_SANITY_DATASET),
     connectionString: trimmed(env.CCPUN_SOCIAL_DATABASE_URL),

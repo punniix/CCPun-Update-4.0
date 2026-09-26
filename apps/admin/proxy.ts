@@ -33,6 +33,7 @@ export default auth((request) => {
     userAgent: request.headers.get("user-agent"),
     pathname,
     method: request.method,
+    requestId: request.headers.get("x-request-id"),
     vercelRequestId: request.headers.get("x-vercel-id"),
     cloudflareRay: request.headers.get("cf-ray"),
   });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isAdminDataPlaneAllowed, type AdminEnvironment } from "../environment";
+import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 
 export const SCHEDULER_VERSION = "20260911_article_scheduling_v1";
 export const SCHEDULER_ROLE = "ccpun_admin_runtime";
@@ -14,9 +15,22 @@ export function resolveArticleSchedulerLane(variables: Record<string, string | u
   const lane = environment === "production-admin" ? "production" : ["admin-uat", "local-uat"].includes(environment) ? "uat" : null;
   if (!lane) return null;
   const expected = SCHEDULER_LANES[lane];
-  if (!isAdminDataPlaneAllowed(variables.NEXT_PUBLIC_SANITY_DATASET, environment, variables.VERCEL_PROJECT_ID, variables.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID, variables.NEXT_PUBLIC_SANITY_PROJECT_ID)) return null;
-  if (environment === "production-admin" && (variables.VERCEL_ENV !== "production" || variables.VERCEL_GIT_COMMIT_REF !== "v4-production")) return null;
-  if (environment === "admin-uat" && variables.VERCEL_ENV !== "preview") return null;
+  if (!isAdminDataPlaneAllowed(
+    variables.NEXT_PUBLIC_SANITY_DATASET,
+    environment,
+    variables.VERCEL_PROJECT_ID,
+    variables.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID,
+    variables.NEXT_PUBLIC_SANITY_PROJECT_ID,
+    variables,
+  )) return null;
+
+  const deployment = resolveDeploymentIdentity(variables, "admin");
+  if (!deployment.valid || deployment.environment !== environment) return null;
+  if (environment === "production-admin" && (deployment.provider === "local" || deployment.gitRef !== "v4-production")) return null;
+  if (deployment.provider === "vercel") {
+    if (environment === "production-admin" && variables.VERCEL_ENV !== "production") return null;
+    if (environment === "admin-uat" && variables.VERCEL_ENV !== "preview") return null;
+  }
   if (variables.CCPUN_NEON_PROJECT_ID !== expected.projectId || variables.CCPUN_NEON_BRANCH_ID !== expected.branchId || variables.CCPUN_NEON_DATABASE !== "neondb") return null;
   try {
     const url = new URL(variables.CCPUN_ADMIN_DATABASE_URL || "");

@@ -5,13 +5,18 @@ import { z } from "zod";
 import { getSanityReadToken } from "@/lib/content/sanity-credentials";
 import { isContentSanityLaneAllowed } from "@/lib/content/sanity-lane";
 import { resolveContentLastmod } from "@/lib/sitemap/google";
+import { resolveDeploymentIdentity } from "@/lib/runtime/deployment-identity";
 import type { Article } from "./types";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
 const token = getSanityReadToken();
 const hasSanityConfig = Boolean(projectId && dataset && isContentSanityLaneAllowed(projectId, dataset));
-const isDeployedProduction = process.env.VERCEL_ENV === "production";
+const deploymentIdentity = resolveDeploymentIdentity(process.env, "web");
+const isDeployedProduction =
+  deploymentIdentity.valid &&
+  deploymentIdentity.role === "web" &&
+  deploymentIdentity.environment === "production";
 
 const client = hasSanityConfig
   ? createClient({
