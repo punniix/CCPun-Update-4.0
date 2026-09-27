@@ -1,0 +1,7 @@
+import "server-only";
+import { neon } from "@neondatabase/serverless";
+import { z } from "zod";
+import { adminOperationsRuntimeInputFromEnvironment, resolveAdminOperationsRuntimeIdentity } from "../operations/foundation";
+export async function beginMarketingWindow(source:"gsc"|"ga4",start:string,end:string,variables:Record<string,string|undefined>){if(!resolveAdminOperationsRuntimeIdentity(adminOperationsRuntimeInputFromEnvironment(variables))||!variables.CCPUN_ADMIN_DATABASE_URL?.trim())throw new Error("MARKETING_DATABASE_NOT_READY");const rows=await neon(variables.CCPUN_ADMIN_DATABASE_URL.trim()).query("SELECT ccpun_admin.admin_begin_marketing_window($1,$2::date,$3::date) AS data",[source,start,end]);return z.object({status:z.enum(["claimed","completed","running","failed"]),batchId:z.string().uuid(),attempt:z.number().int()}).parse(rows[0]?.data);}
+
+export async function readMarketingCalendar(source:"gsc"|"ga4",variables:Record<string,string|undefined>=process.env){if(source==="gsc")return "America/Los_Angeles";if(!resolveAdminOperationsRuntimeIdentity(adminOperationsRuntimeInputFromEnvironment(variables))||!variables.CCPUN_ADMIN_DATABASE_URL?.trim())throw new Error("MARKETING_DATABASE_NOT_READY");const rows=await neon(variables.CCPUN_ADMIN_DATABASE_URL.trim()).query("SELECT ccpun_admin.admin_marketing_calendar($1) AS data",[source]);return String(rows[0]?.data??"America/Los_Angeles");}

@@ -47,7 +47,7 @@ export async function collectAnalyticsSource(source: AnalyticsSource, date = ana
     return response;
   };
   const dataset = (report: AnalyticsReport, value: Partial<AnalyticsDataset> & Pick<AnalyticsDataset, "title" | "columns" | "rows">): AnalyticsDataset => analyticsDatasetSchema.parse({ report, source, batchId: claim.batchId, collectedAt,
-    sourceAsOf: collectedAt, windowStart: null, windowEnd: null, nativeTimeZone: null, overview: [], limitations: [], truncated: false,
+    resourceScope: source === "gsc" ? variables.CCPUN_GSC_SITE_URL?.trim() ?? null : source === "ga4" ? variables.CCPUN_GA4_PROPERTY_ID?.trim() ?? null : null, sourceAsOf: collectedAt, windowStart: null, windowEnd: null, nativeTimeZone: null, overview: [], limitations: [], truncated: false,
     rawHash: analyticsHash(raw.filter((item) => item.report === report).map((item) => item.hash)), lastAttemptAt: collectedAt, lastAttemptStatus: "completed", ...value });
   let reports: AnalyticsDataset[];
   let ga4BaselineReadyBeforeDeadline = false;

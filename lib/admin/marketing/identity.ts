@@ -1,0 +1,13 @@
+import "server-only";
+import { z } from "zod";
+import { sanityFetch } from "@/lib/sanity-live";
+import { getArticleCanonical, getArticlePath } from "@/lib/content/url";
+import { normalizeMarketingUrl } from "./model";
+import { syncMarketingIdentity } from "./store";
+const article=z.object({_id:z.string().max(180),_rev:z.string(),slug:z.string(),title:z.string().max(500),category:z.string().nullish(),categorySlug:z.string().nullish(),topic:z.string().nullish(),searchIntent:z.string().nullish(),publishedAt:z.string().nullish(),canonical:z.string().nullish(),legacyUrl:z.string().nullish()});
+export async function collectMarketingIdentity(){
+ const response=await sanityFetch({query:'*[_type == "article" && defined(slug.current)][0...2001]{_id,_rev,"slug":slug.current,title,"category":category->title,"categorySlug":category->slug.current,"topic":seo.semanticTopic,searchIntent,publishedAt,"canonical":seo.canonical,legacyUrl}',perspective:"published",stega:false});const rows=z.array(article).max(2000).parse(response.data);
+ const assets=rows.map(a=>{const input={slug:a.slug,category:a.category??"",categorySlug:a.categorySlug??undefined,canonical:a.canonical??undefined};const canonicalUrl=normalizeMarketingUrl(getArticleCanonical(input));if(!canonicalUrl)throw new Error("MARKETING_CANONICAL_INVALID");const urls=[{url:canonicalUrl,method:"sanity-canonical"},{url:normalizeMarketingUrl(getArticlePath(input)),method:"site-route"},...(a.legacyUrl?[{url:normalizeMarketingUrl(a.legacyUrl),method:"sanity-legacy"}]:[])];return{assetId:"sanity:"+a._id,canonicalUrl,title:a.title,category:a.category??null,topic:a.topic??null,searchIntent:a.searchIntent??null,contentType:"article",publishedAt:a.publishedAt??null,status:"published",revision:a._rev,aliases:urls.filter((v,i)=>v.url&&urls.findIndex(x=>x.url===v.url)===i)};});
+ const tools=[{assetId:"site:ci-planning",canonicalUrl:"https://ccpun.com/ci-planning",title:"CI Planning",category:null,topic:null,searchIntent:null,contentType:"calculator",publishedAt:null,status:"published",revision:"site-route-v1",aliases:[{url:"https://ccpun.com/ci-planning",method:"site-route"}]},{assetId:"site:financial-health-check",canonicalUrl:"https://ccpun.com/tools/financial-health-check",title:"Financial Health Check",category:null,topic:null,searchIntent:null,contentType:"calculator",publishedAt:null,status:"published",revision:"site-route-v1",aliases:[{url:"https://ccpun.com/tools/financial-health-check",method:"site-route"}]}];
+ return {status:"completed",assets:await syncMarketingIdentity([...assets,...tools]),source:"published-sanity-and-verified-site-routes"};
+}

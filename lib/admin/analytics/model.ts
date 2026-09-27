@@ -2,12 +2,12 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 
 export const analyticsSourceSchema = z.enum(["gsc", "ga4", "meta", "ubersuggest"]);
-export const analyticsReportSchema = z.enum(["gsc-summary", "gsc-query-page", "ga4-summary", "ga4-organic-landing", "ga4-session-performance", "ga4-marketing-events", "social-performance", "seo-intelligence", "ubersuggest-web-keywords"]);
+export const analyticsReportSchema = z.enum(["gsc-summary", "gsc-query-page", "ga4-summary", "ga4-organic-landing", "ga4-session-performance", "ga4-marketing-events", "social-performance", "seo-intelligence", "ubersuggest-web-keywords", "gsc-daily-page", "gsc-daily-query-page", "ga4-daily-organic", "ga4-content-events"]);
 export type AnalyticsSource = z.infer<typeof analyticsSourceSchema>;
 export type AnalyticsReport = z.infer<typeof analyticsReportSchema>;
 const cell = z.union([z.string(), z.number().finite(), z.boolean(), z.null()]);
 export const analyticsDatasetSchema = z.object({
-  report: analyticsReportSchema, source: analyticsSourceSchema, title: z.string(),
+  report: analyticsReportSchema, source: analyticsSourceSchema, title: z.string(), resourceScope: z.string().max(500).nullable().optional(),
   batchId: z.string().uuid(), collectedAt: z.string().datetime(), sourceAsOf: z.string().nullable(),
   windowStart: z.string().nullable(), windowEnd: z.string().nullable(), nativeTimeZone: z.string().nullable(),
   columns: z.array(z.string()).max(100), rows: z.array(z.record(z.string(), cell)).max(50_000),

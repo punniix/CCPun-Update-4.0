@@ -280,3 +280,31 @@ test("analytics assessment permits only its exact service path", () => {
  for (const path of ["/api/internal/analytics/assessment", "/api/internal/analytics/assessment/"]) assert.equal(isInternalServiceApiPath(path), true, path);
  for (const path of ["/api/internal/analytics/assessments", "/api/internal/analytics/assessment/child", "/api/internal/analytics/assessment%2Fchild", "/api/internal/analytics/Assessment"]) assert.equal(isInternalServiceApiPath(path), false, path);
 });
+
+
+test("Marketing service routes reach bearer handlers only through four exact Admin paths", () => {
+  const paths = ["refresh", "analysis", "workspace", "actions/import"];
+  for (const suffix of paths) {
+    const path = `/api/internal/marketing/${suffix}`;
+    for (const value of [path, `${path}/`]) {
+      assert.equal(isInternalServiceApiPath(value), true, value);
+      assert.equal(classifyProductionAdminPath(value), "allow", value);
+    }
+    const handler = readFileSync(new URL(`../../apps/admin/app/api/internal/marketing/${suffix}/route.ts`, import.meta.url), "utf8");
+    assert.match(handler, /if\s*\(!isN8nExportRequestAuthorized\(request\)\)\s*return NextResponse\.json\(\{\s*error:\s*"unauthorized"\s*\},\s*\{\s*status:\s*401/);
+    assert.ok(handler.indexOf("isN8nExportRequestAuthorized(request)") < handler.indexOf("request.body"), suffix);
+  }
+  for (const path of [
+    "/api/internal/marketing", "/api/internal/marketing/", "/api/internal/marketing/actions",
+    "/api/internal/marketing/refresh/child", "/api/internal/marketing/refresh-extra",
+    "/api/internal/marketing/analysis.json", "/api/internal/marketing/workspace%2fchild",
+    "/api/internal/marketing/actions/import/child", "/api/internal/marketing/actions/import-extra",
+    "/api/internal/Marketing/analysis", "/api/internal/marketing/config", "/api/internal/marketing/../config",
+  ]) {
+    assert.equal(isInternalServiceApiPath(path), false, path);
+    assert.equal(classifyProductionAdminPath(path), "reject", path);
+  }
+  assert.equal(isAdminRequestBoundary({ environment: "production", vercelEnvironment: "production", deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.web, host: "ccpun.com" }), false);
+  assert.equal(isAdminSurfaceAllowed("production", CCPUN_VERCEL_PROJECT_IDS.web), false);
+  assert.equal(isAdminRequestBoundary({ environment: "production-admin", vercelEnvironment: "production", deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction, host: "admin.ccpun.com" }), true);
+});

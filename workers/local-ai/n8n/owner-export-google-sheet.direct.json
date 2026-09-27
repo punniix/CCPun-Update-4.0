@@ -2,111 +2,122 @@
   "name": "CCPun — Owner Export to Google Sheets",
   "nodes": [
     {
+      "id": "2a77cfaf-dd5d-414c-a047-d5efc100f3ae",
+      "name": "Admin · Export Google Sheet",
+      "webhookId": "3d1ddf3b-f8cd-4799-a546-d825142c73de",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        0
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "ccpun-owner-export-sheet",
         "authentication": "headerAuth",
-        "responseMode": "onReceived",
         "options": {}
       },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [
-        -980,
-        0
-      ],
-      "id": "2a77cfaf-dd5d-414c-a047-d5efc100f3ae",
-      "name": "Admin · Export Google Sheet",
-      "webhookId": "3d1ddf3b-f8cd-4799-a546-d825142c73de"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "VRhv6h8oTPffAkmt",
+          "name": "CCPun Production Export Webhook"
+        }
+      }
     },
     {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
-        "jsCode": "const input=$input.first()?.json ?? {};\nconst raw=input.body && input.headers ? input.body : input;\nconst allowed=new Set(['marketing-analytics','social-performance','seo-intelligence','crm-overview','crm-leads','crm-follow-ups','growth-funnel','customer-insights','automation-runs']);\nconst jobId=String(raw.jobId??'');\nconst rowVersion=Number(raw.rowVersion??0);\nconst dataset=String(raw.dataset??'');\nconst generatedAt=String(raw.generatedAt??'');\nconst view=raw.view;\nconst allowedViews=new Set(['seo-review','measurement-gaps','campaign-performance','marketing-activities']);\nconst validView=view===undefined || (dataset==='marketing-analytics' && typeof view==='string' && allowedViews.has(view));\nconst valid=/^[0-9a-f-]{36}$/i.test(jobId)&&Number.isInteger(rowVersion)&&rowVersion>0&&allowed.has(dataset)&&Number.isFinite(Date.parse(generatedAt));\nif(!valid || !validView) throw new Error('EXPORT_INPUT_INVALID');\nreturn [{json:{\n  jobId,rowVersion,dataset,generatedAt,...(view===undefined?{}:{view}),\n  startedAt:new Date().toISOString(),\n  correlationId:String(raw.correlationId??''),\n  requestId:String(raw.requestId??'')\n}}];"
-      },
+      "id": "5405c065-c5f2-4514-ad98-52077264bb72",
+      "name": "เตรียม Export",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -760,
+        -768,
         0
       ],
-      "id": "5405c065-c5f2-4514-ad98-52077264bb72",
-      "name": "เตรียม Export"
+      "parameters": {
+        "jsCode": "const input=$input.first()?.json ?? {};\nconst raw=input.body && input.headers ? input.body : input;\nconst allowed=new Set(['performance-marketing','marketing-analytics','social-performance','seo-intelligence','crm-overview','crm-leads','crm-follow-ups','growth-funnel','customer-insights','automation-runs']);\nconst jobId=String(raw.jobId??'');\nconst rowVersion=Number(raw.rowVersion??0);\nconst dataset=String(raw.dataset??'');\nconst generatedAt=String(raw.generatedAt??'');\nconst view=raw.view;\nconst allowedViews=new Set(['seo-review','measurement-gaps','campaign-performance','marketing-activities']);\nconst validView=view===undefined || (dataset==='marketing-analytics' && typeof view==='string' && allowedViews.has(view));\nconst valid=/^[0-9a-f-]{36}$/i.test(jobId)&&Number.isInteger(rowVersion)&&rowVersion>0&&allowed.has(dataset)&&Number.isFinite(Date.parse(generatedAt));\nif(!valid || !validView) throw new Error('EXPORT_INPUT_INVALID');\nreturn [{json:{\n  jobId,rowVersion,dataset,generatedAt,...(view===undefined?{}:{view}),\n  startedAt:new Date().toISOString(),\n  correlationId:String(raw.correlationId??''),\n  requestId:String(raw.requestId??'')\n}}];"
+      }
     },
     {
+      "id": "fb7dc045-6b37-4215-a36f-7d1dc6bda894",
+      "name": "Runtime · เริ่มงาน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        -544,
+        0
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $json.jobId + '/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ ({\n  expectedVersion:$json.rowVersion,\n  status:'running',\n  stage:'fetch-dataset',\n  attempt:1,\n  startedAt:$json.startedAt,\n  heartbeatAt:new Date().toISOString(),\n  n8nExecutionId:String($execution.id)\n}) }}",
         "options": {
-          "timeout": 10000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
-        }
+          },
+          "timeout": 10000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        -540,
-        0
-      ],
-      "id": "fb7dc045-6b37-4215-a36f-7d1dc6bda894",
-      "name": "Runtime · เริ่มงาน",
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2JieMmZdOqm09JsZ",
+          "name": "CCPun Production Runtime Service"
+        }
+      }
     },
     {
+      "id": "12b015e5-cf51-45a3-827e-4306c71766f9",
+      "name": "ดึงข้อมูล Export",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        -304,
+        0
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/exports/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ ({\n  dataset:$('เตรียม Export').item.json.dataset,\n  generatedAt:$('เตรียม Export').item.json.generatedAt,\n  ...($('เตรียม Export').item.json.view ? {view:$('เตรียม Export').item.json.view} : {})\n}) }}",
         "options": {
-          "timeout": 30000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
-        }
+          },
+          "timeout": 30000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        -300,
-        0
-      ],
-      "id": "12b015e5-cf51-45a3-827e-4306c71766f9",
-      "name": "ดึงข้อมูล Export",
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
     },
     {
+      "id": "e07bb145-489b-482c-99bc-f292746a55a5",
+      "name": "สร้าง Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "executeOnce": true,
+      "onError": "continueErrorOutput",
+      "position": [
+        -48,
+        0
+      ],
       "parameters": {
         "resource": "spreadsheet",
         "title": "={{ $json.fileName }}",
@@ -124,262 +135,275 @@
           "locale": "th_TH"
         }
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        -40,
-        0
-      ],
-      "id": "e07bb145-489b-482c-99bc-f292746a55a5",
-      "name": "สร้าง Google Sheet",
-      "executeOnce": true,
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      }
     },
     {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
-        "jsCode": "const data=$('ดึงข้อมูล Export').item.json;\nconst created=$input.first()?.json ?? {};\nconst spreadsheetId=String(created.spreadsheetId??'');\nif(!spreadsheetId) throw new Error('GOOGLE_SHEET_ID_MISSING');\nconst sheets=Array.isArray(created.sheets)?created.sheets:[];\nconst overviewSheetId=Number(sheets[0]?.properties?.sheetId??0);\nconst dataSheetId=Number(sheets[1]?.properties?.sheetId??1);\nconst columns=Array.isArray(data.columns)?data.columns.map(String):[];\nconst rows=Array.isArray(data.rows)?data.rows:[];\nconst overview=Array.isArray(data.overview)?data.overview:[];\nconst overviewValues=[['รายการ','ค่า'],...overview.map(x=>[String(x.label??''),x.value??''])];\nconst dataValues=[columns,...rows.map(row=>columns.map(col=>row?.[col]??''))];\nconst dataColumnCount=Math.max(1,columns.length);\nconst dataRowCount=dataValues.length;\nconst formattingBody={requests:[\n    {updateSpreadsheetProperties:{properties:{timeZone:'Asia/Bangkok',locale:'th_TH'},fields:'timeZone,locale'}},\n    {updateSheetProperties:{properties:{sheetId:overviewSheetId,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},\n    {updateSheetProperties:{properties:{sheetId:dataSheetId,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},\n    {repeatCell:{range:{sheetId:overviewSheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:'userEnteredFormat.textFormat.bold'}},\n    {repeatCell:{range:{sheetId:dataSheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:'userEnteredFormat.textFormat.bold'}},\n    {setBasicFilter:{filter:{range:{sheetId:dataSheetId,startRowIndex:0,endRowIndex:Math.max(1,dataRowCount),startColumnIndex:0,endColumnIndex:dataColumnCount}}}},\n    {autoResizeDimensions:{dimensions:{sheetId:overviewSheetId,dimension:'COLUMNS',startIndex:0,endIndex:2}}},\n    {autoResizeDimensions:{dimensions:{sheetId:dataSheetId,dimension:'COLUMNS',startIndex:0,endIndex:dataColumnCount}}}\n  ]};\nreturn [{json:{\n  spreadsheetId,\n  spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+spreadsheetId+'/edit',\n  overviewSheetId,dataSheetId,overviewValues,dataValues,\n  dataColumnCount,dataRowCount,formattingBody,\n  title:String(data.fileName??data.title??'CCPun Export')\n}}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        200,
-        0
-      ],
       "id": "a96e7f46-9e6c-44f8-9b36-a44222197ea1",
       "name": "เตรียมค่า Sheet",
-      "onError": "continueErrorOutput"
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "onError": "continueErrorOutput",
+      "position": [
+        208,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const data=$('ดึงข้อมูล Export').item.json;\nconst created=$input.first()?.json ?? {};\nconst spreadsheetId=String(created.spreadsheetId??'');\nif(!spreadsheetId) throw new Error('GOOGLE_SHEET_ID_MISSING');\nconst sheets=Array.isArray(created.sheets)?created.sheets:[];\nconst overviewSheetId=Number(sheets[0]?.properties?.sheetId??0);\nconst dataSheetId=Number(sheets[1]?.properties?.sheetId??1);\nconst columns=Array.isArray(data.columns)?data.columns.map(String):[];\nconst rows=Array.isArray(data.rows)?data.rows:[];\nconst overview=Array.isArray(data.overview)?data.overview:[];\nconst overviewValues=[['รายการ','ค่า'],...overview.map(x=>[String(x.label??''),x.value??''])];\nconst dataValues=[columns,...rows.map(row=>columns.map(col=>row?.[col]??''))];\nconst dataColumnCount=Math.max(1,columns.length);\nconst dataRowCount=dataValues.length;\nconst formattingBody={requests:[\n    {updateSpreadsheetProperties:{properties:{timeZone:'Asia/Bangkok',locale:'th_TH'},fields:'timeZone,locale'}},\n    {updateSheetProperties:{properties:{sheetId:overviewSheetId,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},\n    {updateSheetProperties:{properties:{sheetId:dataSheetId,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},\n    {repeatCell:{range:{sheetId:overviewSheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:'userEnteredFormat.textFormat.bold'}},\n    {repeatCell:{range:{sheetId:dataSheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:'userEnteredFormat.textFormat.bold'}},\n    {setBasicFilter:{filter:{range:{sheetId:dataSheetId,startRowIndex:0,endRowIndex:Math.max(1,dataRowCount),startColumnIndex:0,endColumnIndex:dataColumnCount}}}},\n    {autoResizeDimensions:{dimensions:{sheetId:overviewSheetId,dimension:'COLUMNS',startIndex:0,endIndex:2}}},\n    {autoResizeDimensions:{dimensions:{sheetId:dataSheetId,dimension:'COLUMNS',startIndex:0,endIndex:dataColumnCount}}}\n  ]};\nreturn [{json:{\n  spreadsheetId,\n  spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+spreadsheetId+'/edit',\n  overviewSheetId,dataSheetId,overviewValues,dataValues,\n  dataColumnCount,dataRowCount,formattingBody,\n  title:String(data.fileName??data.title??'CCPun Export')\n}}];"
+      }
     },
     {
+      "id": "f82ccca2-8068-4c3e-87a7-13ef28781a70",
+      "name": "เขียน Overview",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        448,
+        -96
+      ],
       "parameters": {
         "method": "PUT",
         "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + '/values/' + encodeURIComponent(\"'ภาพรวม'!A1:B\" + $json.overviewValues.length) + '?valueInputOption=RAW' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ ({values:$json.overviewValues}) }}",
         "options": {
-          "timeout": 30000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
+          },
+          "timeout": 30000
         }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        440,
-        -100
-      ],
-      "id": "f82ccca2-8068-4c3e-87a7-13ef28781a70",
-      "name": "เขียน Overview",
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      }
     },
     {
+      "id": "324ccf4f-0755-49f8-8b3a-f0f657d9ae21",
+      "name": "เขียนข้อมูล",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        688,
+        -96
+      ],
       "parameters": {
         "method": "PUT",
         "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $('เตรียมค่า Sheet').item.json.spreadsheetId + '/values/' + encodeURIComponent(\"'ข้อมูล'!A1\") + '?valueInputOption=RAW' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ ({values:$('เตรียมค่า Sheet').item.json.dataValues}) }}",
         "options": {
-          "timeout": 60000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
+          },
+          "timeout": 60000
         }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        680,
-        -100
-      ],
-      "id": "324ccf4f-0755-49f8-8b3a-f0f657d9ae21",
-      "name": "เขียนข้อมูล",
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      }
     },
     {
+      "id": "51d2c379-fd11-4a61-8f1d-67b73b0ed08a",
+      "name": "จัดรูปแบบ Sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        928,
+        -96
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $('เตรียมค่า Sheet').item.json.spreadsheetId + ':batchUpdate' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ $('เตรียมค่า Sheet').item.json.formattingBody }}",
         "options": {
-          "timeout": 30000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
+          },
+          "timeout": 30000
         }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        920,
-        -100
-      ],
-      "id": "51d2c379-fd11-4a61-8f1d-67b73b0ed08a",
-      "name": "จัดรูปแบบ Sheet",
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      }
     },
     {
+      "id": "191302df-37bd-4c5b-92b4-c2850c3e85a3",
+      "name": "Runtime · เสร็จแล้ว",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        1168,
+        -96
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').item.json.jobId + '/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ ({\n    expectedVersion:Number($('Runtime · เริ่มงาน').item.json.rowVersion),\n    status:'completed',\n    stage:'done',\n    heartbeatAt:new Date().toISOString(),\n    completedAt:new Date().toISOString(),\n    providerReference:$('เตรียมค่า Sheet').item.json.spreadsheetUrl,\n    durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').item.json.startedAt))\n  }) }}",
         "options": {
-          "timeout": 10000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
-        }
+          },
+          "timeout": 10000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        1160,
-        -100
-      ],
-      "id": "191302df-37bd-4c5b-92b4-c2850c3e85a3",
-      "name": "Runtime · เสร็จแล้ว",
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2JieMmZdOqm09JsZ",
+          "name": "CCPun Production Runtime Service"
+        }
+      }
     },
     {
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ ({expectedVersion:Number($('เตรียม Export').first().json.rowVersion),status:'failed',stage:'start-failed',errorCategory:'runtime-start-failed',completedAt:new Date().toISOString()}) }}",
-        "options": {
-          "timeout": 10000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
+      "id": "d5c01e4d-29bd-43c8-9975-5f735fe82c5c",
+      "name": "Runtime · เริ่มงานไม่สำเร็จ",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
         -320,
-        420
+        432
       ],
-      "id": "d5c01e4d-29bd-43c8-9975-5f735fe82c5c",
-      "name": "Runtime · เริ่มงานไม่สำเร็จ"
-    },
-    {
       "parameters": {
         "method": "PATCH",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:'failed',stage:'fetch-failed',errorCategory:'export-dataset-failed',completedAt:new Date().toISOString()}) }}",
+        "jsonBody": "={{ ({expectedVersion:Number($('เตรียม Export').first().json.rowVersion),status:'failed',stage:'start-failed',errorCategory:'runtime-start-failed',completedAt:new Date().toISOString()}) }}",
         "options": {
-          "timeout": 10000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
-        }
+          },
+          "timeout": 10000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2JieMmZdOqm09JsZ",
+          "name": "CCPun Production Runtime Service"
+        }
+      }
+    },
+    {
+      "id": "f7148ddb-8025-4f2f-98ff-27316d845cfa",
+      "name": "Runtime · ดึงข้อมูลไม่สำเร็จ",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        -100,
-        420
+        -96,
+        432
       ],
-      "id": "f7148ddb-8025-4f2f-98ff-27316d845cfa",
-      "name": "Runtime · ดึงข้อมูลไม่สำเร็จ"
-    },
-    {
       "parameters": {
         "method": "PATCH",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_AGENT_OS_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:'reconciliation_required',stage:'sheet-outcome-unknown',errorCategory:'sheet-outcome-unknown'}) }}",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:'failed',stage:'fetch-failed',errorCategory:'export-dataset-failed',completedAt:new Date().toISOString()}) }}",
         "options": {
-          "timeout": 10000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
-        }
+          },
+          "timeout": 10000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2JieMmZdOqm09JsZ",
+          "name": "CCPun Production Runtime Service"
+        }
+      }
+    },
+    {
+      "id": "2e5b5b67-a759-4283-8d63-06bdea80aabe",
+      "name": "Runtime · ต้องตรวจผล Sheet",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
         560,
-        420
+        432
       ],
-      "id": "2e5b5b67-a759-4283-8d63-06bdea80aabe",
-      "name": "Runtime · ต้องตรวจผล Sheet"
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:'reconciliation_required',stage:'sheet-outcome-unknown',errorCategory:'sheet-outcome-unknown'}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2JieMmZdOqm09JsZ",
+          "name": "CCPun Production Runtime Service"
+        }
+      }
     },
     {
+      "id": "53e85eb1-cc96-4c33-9b13-0d9f4de8b917",
+      "name": "Daily · เก็บข้อมูล 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -980,
+        -440
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -389,29 +413,22 @@
             }
           ]
         }
-      },
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.4,
-      "position": [
-        -980,
-        -440
-      ],
-      "id": "53e85eb1-cc96-4c33-9b13-0d9f4de8b917",
-      "name": "Daily · เก็บข้อมูล 06:00"
+      }
     },
     {
+      "id": "57477e77-37bd-4e06-92d5-c4662b12c2c3",
+      "name": "Daily · GSC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        -740,
+        -440
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -423,31 +440,31 @@
               "responseFormat": "json"
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        -740,
-        -440
-      ],
-      "id": "57477e77-37bd-4e06-92d5-c4662b12c2c3",
-      "name": "Daily · GSC",
-      "onError": "continueRegularOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
     },
     {
+      "id": "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
+      "name": "Daily · GA4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        -500,
+        -440
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -459,31 +476,31 @@
               "responseFormat": "json"
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        -500,
-        -440
-      ],
-      "id": "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
-      "name": "Daily · GA4",
-      "onError": "continueRegularOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
     },
     {
+      "id": "5b046c7e-c214-46b8-b5bd-027c512cd657",
+      "name": "Daily · META",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        -260,
+        -440
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -495,31 +512,31 @@
               "responseFormat": "json"
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        -260,
-        -440
-      ],
-      "id": "5b046c7e-c214-46b8-b5bd-027c512cd657",
-      "name": "Daily · META",
-      "onError": "continueRegularOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
     },
     {
+      "id": "dc355d89-b630-477a-8c36-740df24668b5",
+      "name": "Daily · UBERSUGGEST",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        -20,
+        -440
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -531,46 +548,47 @@
               "responseFormat": "json"
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        -20,
-        -440
-      ],
-      "id": "dc355d89-b630-477a-8c36-740df24668b5",
-      "name": "Daily · UBERSUGGEST",
-      "onError": "continueRegularOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
     },
     {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
-        "jsCode": "// ponytail: the backend owns collection, validation and retries; this branch reports source outcomes only.\nconst sources=['gsc','ga4','meta','ubersuggest'];\nconst results=sources.map(source=>{\n  const body=$('Daily · '+source.toUpperCase()).first().json;\n  const row=Array.isArray(body.results)?body.results.find(x=>x.source===source):null;\n  return {source,status:row?.status??'failed',batchId:typeof row?.batchId==='string'?row.batchId:null};\n});\nconst outcome=$('Daily · ประเมินด้วย VPS AI').first().json;\nconst assessment={state:typeof outcome.state==='string'?outcome.state:'unavailable',jobId:typeof outcome.jobId==='string'?outcome.jobId:null,reused:outcome.reused===true};\nif(results.some(row=>!['completed','duplicate'].includes(row.status))) throw new Error('ANALYTICS_DAILY_INCOMPLETE');\nif(!['queued','leased','succeeded','skipped'].includes(assessment.state)) throw new Error('ANALYTICS_ASSESSMENT_INCOMPLETE');\nreturn [{json:{collectedAt:new Date().toISOString(),results,assessment}}];"
-      },
+      "id": "7058dbdb-d225-49b9-a13d-1eb2a2cbffde",
+      "name": "Daily · ตรวจผลครบทุกต้นทาง",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         480,
         -440
       ],
-      "id": "7058dbdb-d225-49b9-a13d-1eb2a2cbffde",
-      "name": "Daily · ตรวจผลครบทุกต้นทาง"
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// ponytail: the backend owns collection, validation and retries; this branch reports source outcomes only.\nconst sources=['gsc','ga4','meta','ubersuggest'];\nconst results=sources.map(source=>{\n  const body=$('Daily · '+source.toUpperCase()).first().json;\n  const row=Array.isArray(body.results)?body.results.find(x=>x.source===source):null;\n  return {source,status:row?.status??'failed',batchId:typeof row?.batchId==='string'?row.batchId:null};\n});\nconst outcome=$('Daily · ประเมินด้วย VPS AI').first().json;\nconst assessment={state:typeof outcome.state==='string'?outcome.state:'unavailable',jobId:typeof outcome.jobId==='string'?outcome.jobId:null,reused:outcome.reused===true};\nif(results.some(row=>!['completed','duplicate'].includes(row.status))) throw new Error('ANALYTICS_DAILY_INCOMPLETE');\nif(!['queued','leased','succeeded','skipped'].includes(assessment.state)) throw new Error('ANALYTICS_ASSESSMENT_INCOMPLETE');\nreturn [{json:{collectedAt:new Date().toISOString(),results,assessment}}];"
+      },
+      "onError": "continueErrorOutput"
     },
     {
+      "id": "ee120096-a0bd-4e95-a6cd-72dd09f2c003",
+      "name": "Daily · ประเมินด้วย VPS AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        240,
+        -440
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/assessment/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -582,20 +600,1122 @@
               "responseFormat": "json"
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "7fd0e364-e83c-4ac2-9f4d-0d4d82557b3f",
+      "name": "Marketing · Workspace?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        2000
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d5fb315b-3296-4125-a9d1-9e5b1d3d9bdc",
+              "leftValue": "={{ $('เตรียม Export').item.json.dataset }}",
+              "rightValue": "performance-marketing",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "958fb280-8c40-4e21-816e-01ea027c758b",
+      "name": "Marketing · อ่านโครงสร้าง Workspace",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        240,
+        1800,
+        2100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "spreadsheetId,sheets(properties(sheetId,title,gridProperties))"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "7a5e8311-8fc5-4f63-9a81-4e3f75a1a757",
+      "name": "Marketing · อ่าน SQL Workspace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1800,
+        2200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/workspace/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "c4d3ddc8-c661-4503-8f29-b2f73b8b5370",
+      "name": "Marketing · อ่านงานมนุษย์",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2100,
+        2300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW102",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "bd7a9eec-7867-43c7-996a-e731f7dcdf72",
+      "name": "Marketing · ตรวจช่องมนุษย์",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        2400
+      ],
+      "parameters": {
+        "jsCode": "const metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst response=$input.first()?.json??{};\nconst exists=(metadata.sheets??[]).some(x=>x.properties?.title==='Action Plan');\nconst fields=['id','version','assetId','priority','actionType','description','expectedMetric','owner','status','executedAt','measurementDays','notes','hypothesis','confounderNotes','importKey'];\nconst columns=[...fields,'createdAt','updatedAt','baseline','result','absoluteChange','percentageChange','outcome','measurementStatus'];\nconst body=response.body??response;const values=Array.isArray(body.values)?body.values:[];\nconst readOk=Number(response.statusCode??200)===200&&!body.error;\nconst missingConfirmed=!exists&&[400,404].includes(Number(response.statusCode))&&!!body.error;\nlet preserve=(!readOk&&!missingConfirmed)||(exists&&(values.length>101||JSON.stringify(values[0]??[])!==JSON.stringify(columns)));\nconst rows=[];\nif(!preserve&&exists)for(const valuesRow of values.slice(1)){\n const row=Object.fromEntries(fields.map((key,i)=>[key,valuesRow[i]??'']));\n if(!String(row.description).trim()){if(String(row.id).trim())preserve=true;continue;}\n rows.push({...row,id:String(row.id).trim()||undefined,version:Number(row.version),assetId:String(row.assetId).trim()||null,executedAt:String(row.executedAt).trim()||null,measurementDays:Number(row.measurementDays)});\n}\nreturn [{json:{spreadsheetId:'1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o',rows:preserve?[]:rows,preserveActionPlan:preserve,actionExists:exists,initialValues:values,columns}}];"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "597cc5ac-1d18-4663-9dd3-c71c7f8ca6d8",
+      "name": "Marketing · นำเข้างาน CAS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2100,
+        2500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/actions/import/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({spreadsheetId:$json.spreadsheetId,rows:$json.rows}) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "35d8fa40-8131-4fc9-8eee-cae91fb7fc90",
+      "name": "Marketing · อ่านงานซ้ำก่อนเขียน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2100,
+        2600
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW102",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "87e3a8a8-e19b-4a89-8712-5f1eec2b29d3",
+      "name": "Marketing · เตรียม Atomic Refresh",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        2700
+      ],
+      "parameters": {
+        "jsCode": "const workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst prepared=$('Marketing · ตรวจช่องมนุษย์').first().json;\nconst imported=$('Marketing · นำเข้างาน CAS').first().json;\nconst latest=$input.first()?.json??{};const latestBody=latest.body??latest;\nconst latestValues=Array.isArray(latestBody.values)?latestBody.values:[];\nconst expected=['Performance Overview','Top Content','Opportunities','Content Performance','Campaign & Funnel','Action Plan','Data Notes'];\nif(workspace.spreadsheetId!=='1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o'||!Array.isArray(workspace.sheets)||JSON.stringify(workspace.sheets.map(x=>x.title))!==JSON.stringify(expected))throw new Error('MARKETING_WORKSPACE_INVALID');\nconst sameRows=JSON.stringify(prepared.initialValues)===JSON.stringify(latestValues);\nconst latestReadOk=Number(latest.statusCode??200)===200&&!latestBody.error;\nconst missingConfirmed=!prepared.actionExists&&[400,404].includes(Number(latest.statusCode))&&!!latestBody.error;\nlet preserve=prepared.preserveActionPlan||imported.preserveActionPlan!==false||imported.status!=='completed'||!sameRows||(!latestReadOk&&!missingConfirmed);\nconst actionSheet=workspace.sheets.find(x=>x.title==='Action Plan');\nconst actions=new Map(actionSheet.rows.filter(x=>x.id).map(x=>[x.id,x]));\nfor(const result of imported.results??[])if(result.id&&actions.has(result.id)&&actions.get(result.id).version!==result.version)preserve=true;\nconst sheets=new Map((metadata.sheets??[]).map(x=>[x.properties.title,x.properties]));\nconst used=new Set([...sheets.values()].map(x=>x.sheetId));\nlet nextId=91000;const requests=[];\nconst value=v=>v===null||v===undefined||v===''?{}:{userEnteredValue:typeof v==='number'&&Number.isFinite(v)?{numberValue:v}:typeof v==='boolean'?{boolValue:v}:{stringValue:String(v)}};\nconst row=(columns,data)=>({values:columns.map(column=>value(data[column]))});\nfor(const sheet of workspace.sheets){\n if(!Array.isArray(sheet.columns)||!sheet.columns.length||!Array.isArray(sheet.rows)||sheet.rows.length>5000)throw new Error('MARKETING_SHEET_INVALID');\n if(sheet.title==='Action Plan'&&preserve)continue;\n let properties=sheets.get(sheet.title);const exists=!!properties;\n if(!properties){while(used.has(nextId))nextId++;properties={sheetId:nextId++,title:sheet.title,gridProperties:{rowCount:Math.max(100,sheet.rows.length+1),columnCount:Math.max(26,sheet.columns.length)}};used.add(properties.sheetId);requests.push({addSheet:{properties}});}\n const id=properties.sheetId,grid=properties.gridProperties??{},rowCount=Math.max(grid.rowCount??100,sheet.rows.length+1),columnCount=Math.max(grid.columnCount??26,sheet.columns.length);\n requests.push({updateSheetProperties:{properties:{sheetId:id,gridProperties:{frozenRowCount:1,rowCount,columnCount}},fields:'gridProperties.frozenRowCount,gridProperties.rowCount,gridProperties.columnCount'}});\n if(sheet.title!=='Action Plan'||!exists){\n  const rows=[{values:sheet.columns.map(v=>value(v))},...sheet.rows.map(data=>row(sheet.columns,data))];\n  requests.push({updateCells:{range:{sheetId:id,startRowIndex:0,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},rows,fields:'userEnteredValue'}});\n }else{\n  const results=new Map((imported.results??[]).map(x=>[x.importKey,x]));const present=new Set();\n  for(let index=1;index<latestValues.length;index++){\n   const original=latestValues[index],key=String(original[14]??''),result=results.get(key),idValue=String(original[0]??'')||result?.id;\n   if(!idValue)continue;present.add(idValue);const action=actions.get(idValue);if(!action)continue;\n   if(!original[0]&&result?.id)requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:0},rows:[{values:[value(result.id)]}],fields:'userEnteredValue'}});\n   requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:1},rows:[{values:[value(action.version)]}],fields:'userEnteredValue'}});\n   requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:15},rows:[{values:sheet.columns.slice(15).map(column=>value(action[column]))}],fields:'userEnteredValue'}});\n  }\n  const append=sheet.rows.filter(data=>data.id&&!present.has(data.id));\n  const blankExists=latestValues.slice(1).some(valuesRow=>!String(valuesRow[0]??'')&&!String(valuesRow[5]??'').trim());\n  if(!blankExists)append.push(...sheet.rows.filter(data=>!data.id));\n  if(append.length)requests.push({appendCells:{sheetId:id,rows:append.map(data=>row(sheet.columns,data)),fields:'userEnteredValue'}});\n }\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},backgroundColor:{red:.15,green:.09,blue:.09}}},fields:'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'}});\n requests.push({setBasicFilter:{filter:{range:{sheetId:id,startRowIndex:0,endRowIndex:sheet.title==='Action Plan'?rowCount:Math.max(1,sheet.rows.length+1),startColumnIndex:0,endColumnIndex:sheet.columns.length}}}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:0,endIndex:sheet.columns.length},properties:{pixelSize:180},fields:'pixelSize'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment'}});\n if(sheet.title==='Action Plan'){\n  requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1,startColumnIndex:2,endColumnIndex:14},cell:{userEnteredFormat:{backgroundColor:{red:.37,green:.28,blue:.09}}},fields:'userEnteredFormat.backgroundColor'}});\n  requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:5,endIndex:6},properties:{pixelSize:420},fields:'pixelSize'}});\n  requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:11,endIndex:14},properties:{pixelSize:320},fields:'pixelSize'}});\n }\n if(sheet.title==='Action Plan')for(const[key,allowed]of[['priority',['high','medium','low']],['status',['backlog','planned','doing','measuring','done']],['actionType',['title','description','refresh','cta','internal_link','expansion','promotion','keyword','investigation']],['expectedMetric',['organic_sessions','search_clicks','line_clicks','calculator_complete','social_views']]])requests.push({setDataValidation:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:sheet.columns.indexOf(key),endColumnIndex:sheet.columns.indexOf(key)+1},rule:{condition:{type:'ONE_OF_LIST',values:allowed.map(userEnteredValue=>({userEnteredValue}))},strict:true,showCustomUi:true}}});\n}\nrequests.unshift({updateSpreadsheetProperties:{properties:{timeZone:'Asia/Bangkok',locale:'th_TH'},fields:'timeZone,locale'}});\nconst batchBody={requests};if(JSON.stringify(batchBody).length>8000000)throw new Error('MARKETING_WORKSPACE_TOO_LARGE');\nreturn [{json:{spreadsheetId:workspace.spreadsheetId,spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+workspace.spreadsheetId+'/edit',preserveActionPlan:!!preserve,analysisStatus:workspace.analysisStatus,sourceManifestCount:workspace.sourceManifest?.length??0,tabCount:7,batchBody}}];"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "b5e2f541-0a41-4bb6-a71d-7474ae3d44a4",
+      "name": "Marketing · เขียน 7 ชีต Atomic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2600,
+        2400
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.batchBody }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "9455e5db-064b-4fed-82de-bf4813997557",
+      "name": "Marketing · บันทึกผล Workspace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        2800,
+        2400
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').item.json.jobId + '/' }}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'reconciliation_required':'completed',stage:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'marketing-actions-review':'done',...($('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?{errorCategory:'marketing-actions-review-required'}:{}),heartbeatAt:new Date().toISOString(),completedAt:new Date().toISOString(),providerReference:$('Marketing · เตรียม Atomic Refresh').first().json.spreadsheetUrl,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2JieMmZdOqm09JsZ",
+          "name": "CCPun Production Runtime Service"
+        }
+      }
+    },
+    {
+      "id": "eab54058-324c-5851-af54-f3ba9c50742b",
+      "name": "Marketing Daily · Canonical Identity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        700,
         -440
       ],
-      "id": "ee120096-a0bd-4e95-a6cd-72dd09f2c003",
-      "name": "Daily · ประเมินด้วย VPS AI",
-      "onError": "continueRegularOutput"
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/refresh/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"operation\": \"identity\"}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "9cadbd8d-54a8-5c6e-ad00-4e15ecf94097",
+      "name": "Marketing Daily · GSC 7 วัน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        920,
+        -440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/refresh/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"operation\": \"collect\", \"source\": \"gsc\", \"lookbackDays\": 7}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "fcb1b355-1db1-5371-908f-b6e759dda959",
+      "name": "Marketing Daily · GA4 7 วัน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1140,
+        -440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/refresh/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"operation\": \"collect\", \"source\": \"ga4\", \"lookbackDays\": 7}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "8892332d-9bc7-55a0-a97e-9ce4fb1d3ba9",
+      "name": "Marketing Daily · ตรวจผล factual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -440
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Only stage metadata is emitted; source rows and customer data never enter AI orchestration.\nconst names=['Marketing Daily · Canonical Identity','Marketing Daily · GSC 7 วัน','Marketing Daily · GA4 7 วัน','Marketing Daily · วัดผลก่อน–หลัง'];\nconst stages=names.map(name=>{const body=$(name).first().json;return {stage:name,status:typeof body.status==='string'?body.status:'unavailable',errorCategory:body.error?'marketing-refresh-failed':null};});\nreturn [{json:{factsRemainAvailable:true,stages,completedAt:new Date().toISOString()}}];"
+      }
+    },
+    {
+      "id": "c9b2b7a1-6b09-57b8-b27c-c5d836c1ab34",
+      "name": "Marketing AI Weekly · เตรียม context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1580,
+        -440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"operation\": \"prepare\", \"window\": \"this_week\"}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "24001b2f-06d7-5858-be43-31e50658fd69",
+      "name": "Marketing AI Weekly · Context พร้อม?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        -440
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6b6ea9ef-d068-4576-baec-57c0795c1d67",
+              "leftValue": "={{ /^[a-f0-9-]{36}$/.test($json.analysisId || '') && /^[a-f0-9]{64}$/.test($json.inputHash || '') }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "71d52fb9-f26c-5fa8-a61b-bc69b8e1a189",
+      "name": "Marketing AI Weekly · ส่งงาน VPS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2020,
+        -440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'enqueue',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Weekly · เตรียม context').first().json.inputHash} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "2229323a-4371-50e0-a6a9-fe1b01312369",
+      "name": "Marketing AI Weekly · รับงานแล้ว?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        -440
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e844bfe7-17ff-4ff4-b7db-4fb78593ef91",
+              "leftValue": "={{ ['queued','running','ready'].includes($json.status) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "53676e36-861f-5278-92fa-e13bc882baab",
+      "name": "Marketing AI Weekly · รอ 15 วินาที",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2460,
+        -440
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 15,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "6577a977-8498-590f-964e-e987640b1258",
+      "name": "Marketing AI Weekly · อ่านสถานะ",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2680,
+        -440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'status',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "727139b0-4e39-56f2-8ecb-b99346b1572c",
+      "name": "Marketing AI Weekly · ตรวจขอบเขต retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2900,
+        -440
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst attempt=$runIndex+1;\nreturn [{json:{status,workerSucceeded:body.workerSucceeded===true,attempt,canRetry:['prepared','queued','running'].includes(status)&&attempt<8,factsRemainAvailable:true}}];"
+      }
+    },
+    {
+      "id": "e4c63c4c-4e5d-5de1-bc07-5630500b1ef5",
+      "name": "Marketing AI Weekly · Worker สำเร็จ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        -440
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "31ca17bb-752d-4723-916e-5b0d13a2bbe3",
+              "leftValue": "={{ $json.workerSucceeded === true || $json.status === 'ready' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a2792b5e-4c94-5979-8dea-81b67c5c9d2a",
+      "name": "Marketing AI Weekly · รอต่อ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3340,
+        -320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9391655f-0faa-4dda-98a5-6fdd4dea098f",
+              "leftValue": "={{ $json.canRetry === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "409d74c4-9f56-5ba4-ac48-3e88bcc94930",
+      "name": "Marketing AI Weekly · ตรวจ JSON และหลักฐาน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3340,
+        -440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'validate',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "570b720c-7e2d-5300-a2eb-cff44641a817",
+      "name": "Marketing AI Weekly · บันทึกสถานะขั้น",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3560,
+        -440
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst prepared=$('Marketing AI Weekly · เตรียม context').first().json;\nreturn [{json:{window:'this_week',analysisId:typeof prepared.analysisId==='string'?prepared.analysisId:null,status,validated:status==='ready',factsRemainAvailable:true,lastGoodPolicy:'retain-if-present',reason:body.reason==='expected-provider-lag'?body.reason:null,errorCategory:['prepared','queued','running','ready','stale','waiting'].includes(status)?null:'marketing-ai-stage-unavailable'}}];"
+      }
+    },
+    {
+      "id": "150a4f4a-cbe8-5ffd-8556-70862229b4b4",
+      "name": "Marketing AI Monthly · เตรียม context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1580,
+        -40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"operation\": \"prepare\", \"window\": \"this_month\"}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "fbd94a79-2c61-5b1c-902c-4b5c3e0bc0fa",
+      "name": "Marketing AI Monthly · Context พร้อม?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        -40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "015d6fc8-35e8-4752-9ca4-f8b061a8b604",
+              "leftValue": "={{ /^[a-f0-9-]{36}$/.test($json.analysisId || '') && /^[a-f0-9]{64}$/.test($json.inputHash || '') }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fdfad5ad-8925-5ed1-9528-1f53c524fec8",
+      "name": "Marketing AI Monthly · ส่งงาน VPS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2020,
+        -40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'enqueue',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Monthly · เตรียม context').first().json.inputHash} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "68ea197b-9475-507f-8b84-c5a3c6c0b5e8",
+      "name": "Marketing AI Monthly · รับงานแล้ว?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        -40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8c3e567c-bafe-4723-be37-3d3319c4b2bc",
+              "leftValue": "={{ ['queued','running','ready'].includes($json.status) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8135cf7a-b2fa-5caa-adbb-2101db74673f",
+      "name": "Marketing AI Monthly · รอ 15 วินาที",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2460,
+        -40
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 15,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "1a9093f2-7cf3-57c3-ba89-711ef1f59007",
+      "name": "Marketing AI Monthly · อ่านสถานะ",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2680,
+        -40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'status',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "557dabb1-4b02-5c67-9f46-63b858431d97",
+      "name": "Marketing AI Monthly · ตรวจขอบเขต retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2900,
+        -40
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst attempt=$runIndex+1;\nreturn [{json:{status,workerSucceeded:body.workerSucceeded===true,attempt,canRetry:['prepared','queued','running'].includes(status)&&attempt<8,factsRemainAvailable:true}}];"
+      }
+    },
+    {
+      "id": "7783a751-6a2d-5c63-a4ad-277853ec0b2d",
+      "name": "Marketing AI Monthly · Worker สำเร็จ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        -40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "10b0366f-2173-4c4c-8d88-fe30ef403fec",
+              "leftValue": "={{ $json.workerSucceeded === true || $json.status === 'ready' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "afd00fba-1791-5d42-9a30-4e2090979083",
+      "name": "Marketing AI Monthly · รอต่อ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3340,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8b118b1c-7e40-478b-af4f-2c05c4b1375f",
+              "leftValue": "={{ $json.canRetry === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ebf592a5-a76f-5a7e-b44e-04da15c2596b",
+      "name": "Marketing AI Monthly · ตรวจ JSON และหลักฐาน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3340,
+        -40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'validate',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "56710003-8b93-59c5-8b89-b89212133b34",
+      "name": "Marketing AI Monthly · บันทึกสถานะขั้น",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3560,
+        -40
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst prepared=$('Marketing AI Monthly · เตรียม context').first().json;\nreturn [{json:{window:'this_month',analysisId:typeof prepared.analysisId==='string'?prepared.analysisId:null,status,validated:status==='ready',factsRemainAvailable:true,lastGoodPolicy:'retain-if-present',reason:body.reason==='expected-provider-lag'?body.reason:null,errorCategory:['prepared','queued','running','ready','stale','waiting'].includes(status)?null:'marketing-ai-stage-unavailable'}}];"
+      }
+    },
+    {
+      "id": "5d0686ac-ce33-5106-9b15-e5e1345a807e",
+      "name": "Marketing Daily · สรุปการเรียนรู้",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        -40
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const factual=$('Marketing Daily · ตรวจผล factual').first().json;\nconst ai=['Marketing AI Weekly · บันทึกสถานะขั้น','Marketing AI Monthly · บันทึกสถานะขั้น'].map(name=>$(name).first().json);\nreturn [{json:{completedAt:new Date().toISOString(),factsRemainAvailable:true,stages:factual.stages,ai,status:factual.stages.some(item=>!['completed','duplicate','ready'].includes(item.status))||ai.some(item=>item.errorCategory!==null)?'needs-review':ai.some(item=>!item.validated)?'pending':'completed',reviewRequired:factual.stages.some(item=>!['completed','duplicate','ready'].includes(item.status))||ai.some(item=>item.errorCategory!==null)}}];"
+      }
+    },
+    {
+      "id": "99ccb83c-ec6e-548b-b9f5-66a51a0b9e4f",
+      "name": "Marketing Daily · วัดผลก่อน–หลัง",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1250,
+        -660
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"operation\":\"measure\"}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
     }
   ],
-  "pinData": {},
   "connections": {
     "Admin · Export Google Sheet": {
       "main": [
@@ -623,7 +1743,7 @@
       "main": [
         [
           {
-            "node": "ดึงข้อมูล Export",
+            "node": "Marketing · Workspace?",
             "type": "main",
             "index": 0
           }
@@ -822,23 +1942,628 @@
           }
         ]
       ]
+    },
+    "Marketing · Workspace?": {
+      "main": [
+        [
+          {
+            "node": "Marketing · อ่านโครงสร้าง Workspace",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ดึงข้อมูล Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · อ่านโครงสร้าง Workspace": {
+      "main": [
+        [
+          {
+            "node": "Marketing · อ่านงานมนุษย์",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · อ่าน SQL Workspace": {
+      "main": [
+        [
+          {
+            "node": "Marketing · อ่านงานซ้ำก่อนเขียน",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ดึงข้อมูลไม่สำเร็จ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · อ่านงานมนุษย์": {
+      "main": [
+        [
+          {
+            "node": "Marketing · ตรวจช่องมนุษย์",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · ตรวจช่องมนุษย์": {
+      "main": [
+        [
+          {
+            "node": "Marketing · นำเข้างาน CAS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · นำเข้างาน CAS": {
+      "main": [
+        [
+          {
+            "node": "Marketing · อ่าน SQL Workspace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · อ่านงานซ้ำก่อนเขียน": {
+      "main": [
+        [
+          {
+            "node": "Marketing · เตรียม Atomic Refresh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · เตรียม Atomic Refresh": {
+      "main": [
+        [
+          {
+            "node": "Marketing · เขียน 7 ชีต Atomic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · เขียน 7 ชีต Atomic": {
+      "main": [
+        [
+          {
+            "node": "Marketing · บันทึกผล Workspace",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · บันทึกผล Workspace": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily · ตรวจผลครบทุกต้นทาง": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · Canonical Identity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing Daily · Canonical Identity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · Canonical Identity": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · GSC 7 วัน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · GSC 7 วัน": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · GA4 7 วัน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · GA4 7 วัน": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · วัดผลก่อน–หลัง",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · เตรียม context": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · Context พร้อม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · Context พร้อม?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · ส่งงาน VPS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · ส่งงาน VPS": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · รับงานแล้ว?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · รับงานแล้ว?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · รอ 15 วินาที": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · อ่านสถานะ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · อ่านสถานะ": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · ตรวจขอบเขต retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · ตรวจขอบเขต retry": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · Worker สำเร็จ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · Worker สำเร็จ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · ตรวจ JSON และหลักฐาน",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · รอต่อ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · รอต่อ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · ตรวจ JSON และหลักฐาน": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · ตรวจผล factual": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · เตรียม context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · เตรียม context": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · Context พร้อม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · Context พร้อม?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · ส่งงาน VPS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · ส่งงาน VPS": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · รับงานแล้ว?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · รับงานแล้ว?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · รอ 15 วินาที": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · อ่านสถานะ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · อ่านสถานะ": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · ตรวจขอบเขต retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · ตรวจขอบเขต retry": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · Worker สำเร็จ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · Worker สำเร็จ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · ตรวจ JSON และหลักฐาน",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · รอต่อ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · รอต่อ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · ตรวจ JSON และหลักฐาน": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · บันทึกสถานะขั้น": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · เตรียม context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · บันทึกสถานะขั้น": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · สรุปการเรียนรู้",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · วัดผลก่อน–หลัง": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · ตรวจผล factual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
   "settings": {
-    "executionOrder": "v1",
     "saveExecutionProgress": false,
     "saveManualExecutions": false,
     "saveDataErrorExecution": "none",
     "saveDataSuccessExecution": "none",
     "executionTimeout": 600,
-    "timezone": "Asia/Bangkok"
+    "timezone": "Asia/Bangkok",
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
   },
-  "versionId": "54476489-b97e-49f3-bf07-b535f87e90f8",
-  "meta": {
-    "templateCredsSetupCompleted": false,
-    "sourceControlled": true,
-    "containsOwnerData": true,
-    "googleCredentialMustBeAttachedInLiveN8n": true
-  }
+  "active": false,
+  "nodeGroups": [
+    {
+      "id": "152beaf1-e3bd-5e21-97e7-cb2dd8ca72f4",
+      "name": "Export & Workspace",
+      "description": "Existing exports and persistent workspace share runtime outcome and safe failure paths.",
+      "nodeIds": [
+        "5405c065-c5f2-4514-ad98-52077264bb72",
+        "fb7dc045-6b37-4215-a36f-7d1dc6bda894",
+        "12b015e5-cf51-45a3-827e-4306c71766f9",
+        "e07bb145-489b-482c-99bc-f292746a55a5",
+        "a96e7f46-9e6c-44f8-9b36-a44222197ea1",
+        "f82ccca2-8068-4c3e-87a7-13ef28781a70",
+        "324ccf4f-0755-49f8-8b3a-f0f657d9ae21",
+        "51d2c379-fd11-4a61-8f1d-67b73b0ed08a",
+        "191302df-37bd-4c5b-92b4-c2850c3e85a3",
+        "d5c01e4d-29bd-43c8-9975-5f735fe82c5c",
+        "f7148ddb-8025-4f2f-98ff-27316d845cfa",
+        "2e5b5b67-a759-4283-8d63-06bdea80aabe",
+        "7fd0e364-e83c-4ac2-9f4d-0d4d82557b3f",
+        "958fb280-8c40-4e21-816e-01ea027c758b",
+        "7a5e8311-8fc5-4f63-9a81-4e3f75a1a757",
+        "c4d3ddc8-c661-4503-8f29-b2f73b8b5370",
+        "bd7a9eec-7867-43c7-996a-e731f7dcdf72",
+        "597cc5ac-1d18-4663-9dd3-c71c7f8ca6d8",
+        "35d8fa40-8131-4fc9-8eee-cae91fb7fc90",
+        "87e3a8a8-e19b-4a89-8712-5f1eec2b29d3",
+        "b5e2f541-0a41-4bb6-a71d-7474ae3d44a4",
+        "9455e5db-064b-4fed-82de-bf4813997557"
+      ]
+    },
+    {
+      "id": "267c7c95-a9bc-5044-8817-9e66c9c804b2",
+      "name": "Legacy Daily",
+      "description": "Existing source collection and daily VPS assessment.",
+      "nodeIds": [
+        "57477e77-37bd-4e06-92d5-c4662b12c2c3",
+        "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
+        "5b046c7e-c214-46b8-b5bd-027c512cd657",
+        "dc355d89-b630-477a-8c36-740df24668b5",
+        "7058dbdb-d225-49b9-a13d-1eb2a2cbffde",
+        "ee120096-a0bd-4e95-a6cd-72dd09f2c003"
+      ]
+    },
+    {
+      "id": "871bf828-73ba-5304-9ba9-2a0419102c9a",
+      "name": "Native Facts",
+      "description": "Canonical content, native daily data and deterministic measurement.",
+      "nodeIds": [
+        "eab54058-324c-5851-af54-f3ba9c50742b",
+        "9cadbd8d-54a8-5c6e-ad00-4e15ecf94097",
+        "fcb1b355-1db1-5371-908f-b6e759dda959",
+        "8892332d-9bc7-55a0-a97e-9ce4fb1d3ba9",
+        "99ccb83c-ec6e-548b-b9f5-66a51a0b9e4f"
+      ]
+    },
+    {
+      "id": "7b544b5c-7142-5e27-b5fa-ea68f34d2a75",
+      "name": "Marketing AI",
+      "description": "Bounded weekly and monthly interpretation, polling and evidence validation.",
+      "nodeIds": [
+        "c9b2b7a1-6b09-57b8-b27c-c5d836c1ab34",
+        "24001b2f-06d7-5858-be43-31e50658fd69",
+        "71d52fb9-f26c-5fa8-a61b-bc69b8e1a189",
+        "2229323a-4371-50e0-a6a9-fe1b01312369",
+        "53676e36-861f-5278-92fa-e13bc882baab",
+        "6577a977-8498-590f-964e-e987640b1258",
+        "727139b0-4e39-56f2-8ecb-b99346b1572c",
+        "e4c63c4c-4e5d-5de1-bc07-5630500b1ef5",
+        "a2792b5e-4c94-5979-8dea-81b67c5c9d2a",
+        "409d74c4-9f56-5ba4-ac48-3e88bcc94930",
+        "570b720c-7e2d-5300-a2eb-cff44641a817",
+        "150a4f4a-cbe8-5ffd-8556-70862229b4b4",
+        "fbd94a79-2c61-5b1c-902c-4b5c3e0bc0fa",
+        "fdfad5ad-8925-5ed1-9528-1f53c524fec8",
+        "68ea197b-9475-507f-8b84-c5a3c6c0b5e8",
+        "8135cf7a-b2fa-5caa-adbb-2101db74673f",
+        "1a9093f2-7cf3-57c3-ba89-711ef1f59007",
+        "557dabb1-4b02-5c67-9f46-63b858431d97",
+        "7783a751-6a2d-5c63-a4ad-277853ec0b2d",
+        "afd00fba-1791-5d42-9a30-4e2090979083",
+        "ebf592a5-a76f-5a7e-b44e-04da15c2596b",
+        "56710003-8b93-59c5-8b89-b89212133b34",
+        "5d0686ac-ce33-5106-9b15-e5e1345a807e"
+      ]
+    }
+  ]
 }

@@ -20,7 +20,9 @@ const digest = (value: string) => createHash("sha256").update(value, "utf8").dig
 // Full provenance is stored; only curated facts enter inference, never provider names or personal dimensions.
 export function buildDailyAssessmentInput(datasets: AnalyticsDataset[], date = analyticsDate()): AnalyticsReviewInput | null {
   if (!datasets.length) return null;
-  const reports = [...datasets].sort((a, b) => b.collectedAt.localeCompare(a.collectedAt)).filter((data, index, all) => all.findIndex(item => item.report === data.report) === index).sort((a, b) => a.report.localeCompare(b.report)).slice(0, 9);
+  const legacyReports = ["gsc-summary", "gsc-query-page", "ga4-summary", "ga4-organic-landing", "ga4-session-performance", "ga4-marketing-events", "social-performance", "seo-intelligence", "ubersuggest-web-keywords"] as const;
+  const reports = datasets.filter((data): data is AnalyticsDataset & { report: typeof legacyReports[number] } => legacyReports.some(report => report === data.report)).sort((a, b) => b.collectedAt.localeCompare(a.collectedAt)).filter((data, index, all) => all.findIndex(item => item.report === data.report) === index).sort((a, b) => a.report.localeCompare(b.report)).slice(0, 9);
+  if (!reports.length) return null;
   const evidence = reports.map((data, index) => ({ id: `e${index + 1}`, report: data.report, batchId: data.batchId, rawHash: data.rawHash, windowStart: data.windowStart, windowEnd: data.windowEnd, sourceAsOf: data.sourceAsOf, nativeTimeZone: data.nativeTimeZone, truncated: data.truncated }));
   type Candidate = Omit<AnalyticsReviewInput["candidates"][number], "id">;
   const pools = new Map<string, Candidate[]>(ANALYTICS_REVIEW_GROUPS.map(action => [action, []]));

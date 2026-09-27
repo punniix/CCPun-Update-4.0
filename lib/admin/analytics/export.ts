@@ -16,7 +16,8 @@ export function buildStoredMarketingExport(datasets: AnalyticsDataset[], generat
   };
 }
 
-type Cell = string | number | boolean | null;
+export type WorkbookCell = string | number | boolean | null;
+type Cell = WorkbookCell;
 export function analyticsExportStream(content: string | Uint8Array) {
   const bytes = typeof content === "string" ? new TextEncoder().encode(content) : content;
   let offset = 0;
@@ -47,6 +48,9 @@ export function marketingExportXlsx(datasets: AnalyticsDataset[], generatedAt: s
     ...datasets.map((item) => ({ name: item.report.slice(0, 31), rows: [item.columns, ...item.rows.map((row) => item.columns.map((column) => row[column] ?? null))] as Cell[][] })),
     ...analysis.map(table => ({ name: table.title, rows: [table.columns, ...table.rows.map(row => table.columns.map(column => row[column] ?? null))] as Cell[][] })),
     { name: "คำอธิบายข้อมูล", rows: [["รายงาน", "คอลัมน์", "วิธีอ่าน"], ...analysis.map(table => [table.title, "วิธีใช้", table.guidance]), ...datasets.flatMap((item) => item.columns.map((column) => [item.title, column, column.includes("(%)") ? "เปอร์เซ็นต์ 0–100; ไม่ใช่ ratio; ห้ามเฉลี่ยตรง ๆ" : /ผู้ใช้งาน|Reach/.test(column) ? "distinct ภายใน scope; ห้ามรวมข้ามรายงาน" : /CPC/.test(column) ? "สกุลเงินตามไฟล์ต้นทาง; ไม่อนุมาน THB" : "ว่าง = ไม่ทราบ; อ่านพร้อมช่วงข้อมูลและข้อจำกัดในชีตภาพรวม"]))] as Cell[][] }];
+  return workbookExportXlsx(tabs);
+}
+export function workbookExportXlsx(tabs: Array<{ name: string; rows: WorkbookCell[][] }>) {
   const names = tabs.map((tab, index) => `<sheet name="${xml(tab.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("");
   return storedZip([
     { name: "[Content_Types].xml", content: '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + tabs.map((_, index) => `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("") + '</Types>' },

@@ -6,6 +6,7 @@ export const CCPUN_UTC_OFFSET = "+07:00";
 export const EXPORT_FORMATS = ["csv", "google-sheet"] as const;
 export const EXPORT_DATASETS = [
   "marketing-analytics",
+  "performance-marketing",
   "social-performance",
   "seo-intelligence",
   "crm-overview",
@@ -70,6 +71,7 @@ export function formatBangkokDateTimeWithOffset(value: string | Date | null) {
 
 const DATASET_FILE_LABELS: Record<ExportDataset, string> = {
   "marketing-analytics": "CCPun_Marketing_Analytics",
+  "performance-marketing": "CCPun_Performance_Marketing",
   "social-performance": "CCPun_Social_Performance",
   "seo-intelligence": "CCPun_SEO_Intelligence",
   "crm-overview": "CCPun_CRM_Overview",
@@ -205,6 +207,8 @@ export type GoogleSheetPresentationSpec = {
   }>;
 };
 
+export const PERFORMANCE_MARKETING_TABS = ["Performance Overview", "Top Content", "Opportunities", "Content Performance", "Campaign & Funnel", "Action Plan", "Data Notes"] as const;
+
 export function googleSheetPresentationSpec(input: {
   dataset: ExportDataset;
   generatedAt: string | Date;
@@ -212,7 +216,7 @@ export function googleSheetPresentationSpec(input: {
   return {
     title: exportFileName({ dataset: input.dataset, format: "google-sheet", generatedAt: input.generatedAt }),
     timeZone: CCPUN_TIME_ZONE,
-    tabs: [
+    tabs: input.dataset === "performance-marketing" ? PERFORMANCE_MARKETING_TABS.map(title => ({ title, freezeHeader: true, autoFilter: true, humanReadable: true })) : [
       { title: "ภาพรวม", freezeHeader: true, autoFilter: true, humanReadable: true },
       { title: "ข้อมูล", freezeHeader: true, autoFilter: true, humanReadable: true },
     ],
