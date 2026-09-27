@@ -37,6 +37,20 @@ test("persistent workspace creates seven named tabs atomically and never removes
   assert.ok(updated.every((request: { updateCells: { range: { sheetId: number } } }) => request.updateCells.range.sheetId !== 0 && request.updateCells.range.sheetId !== 1));
 });
 
+test("Workspace completion timestamp obeys runtime terminal-state constraint during human review", () => {
+  const node = workflow.nodes.find((item: { name: string }) => item.name === "Marketing · บันทึกผล Workspace");
+  const expression = String(node.parameters.jsonBody).slice(3, -2).trim();
+  const evaluate = new Function("$", `return ${expression};`);
+  for (const preserveActionPlan of [false, true]) {
+    const payload = evaluate((name: string) => ({ first: () => ({ json: name === "Runtime · เริ่มงาน" ? { rowVersion: 2 } : name === "เตรียม Export" ? { startedAt: "2026-09-27T00:00:00Z" } : { preserveActionPlan, spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/edit` } }) }));
+    assert.equal(payload.status, preserveActionPlan ? "reconciliation_required" : "completed");
+    assert.equal(payload.completedAt !== null, payload.status === "completed");
+    assert.equal(payload.expectedVersion, 2); assert.equal(payload.providerReference, `https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
+    if (preserveActionPlan) assert.equal(payload.errorCategory, "marketing-actions-review-required");
+    else assert.ok(Number.isFinite(Date.parse(payload.completedAt)));
+  }
+});
+
 test("stable Action Plan refresh updates system values only and never rewrites human columns or existing ID", () => {
   const output = plan(), updates = output.batchBody.requests.filter((request: { updateCells?: { start?: { sheetId: number } } }) => request.updateCells?.start?.sheetId === 2);
   assert.equal(output.preserveActionPlan, false);
