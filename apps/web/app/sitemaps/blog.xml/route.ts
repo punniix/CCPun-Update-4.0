@@ -1,7 +1,7 @@
 import { listSitemapArticles } from "@/lib/content/sitemap";
-import { articleBelongsToPhysicalCategory, getCategoryCanonical } from "@/lib/content/category-registry";
+import { listPhysicalCategorySitemapEntries } from "@/lib/content/category-registry";
 import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";
-import { BLOG_TOPIC_HUBS, getBlogTopicHub, isArticleInSemanticTopic } from "@/lib/content/taxonomy";
+import { BLOG_TOPIC_HUBS, isArticleInSemanticTopic } from "@/lib/content/taxonomy";
 import { getArticleCanonical, isArticleCanonicalAligned } from "@/lib/content/url";
 import { uniqueSortedSitemapEntries as uniqueSortedEntries } from "@/lib/sitemap/google";
 import { renderUrlSet, xmlResponse } from "@/lib/sitemap/xml";
@@ -24,13 +24,7 @@ export async function GET() {
     }));
     const blogEntry = { loc: "https://ccpun.com/blog/" };
 
-    const physicalCategoryEntries = categoryRegistry.active.flatMap((category) => {
-      const hub = getBlogTopicHub(category.slug);
-      if (hub && !hub.indexable) return [];
-      const relevant = indexableArticles.filter((article) => articleBelongsToPhysicalCategory(article, category));
-      if (!relevant.length) return [];
-      return [{ loc: getCategoryCanonical(category.slug) }];
-    });
+    const physicalCategoryEntries = listPhysicalCategorySitemapEntries(categoryRegistry, indexableArticles);
 
     const hubEntries = BLOG_TOPIC_HUBS.flatMap((hub) => {
       if (!hub.indexable) return [];
