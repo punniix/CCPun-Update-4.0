@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { neonConfig } from "@neondatabase/serverless";
+import { probeLinePrivateIngestRuntime, LINE_INGEST_LANES } from "../../lib/admin/line/private-ingestion";
+import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/runtime/deployment-identity";
 
 import {
   CCPUN_VERCEL_TEAM_ID,
@@ -114,7 +117,54 @@ test("gateway preserves the existing Web transport and authenticates before prod
   assert.match(readFileSync("apps/web/lib/line/private-ingestion.ts", "utf8"), /@neondatabase\/serverless/);
   const health = readFileSync("lib/admin/line/private-ingestion.ts", "utf8");
   assert.match(health, /has_function_privilege/);
-  assert.match(health, /createLinePrivateCrypto\(\)/);
+  assert.match(health, /createLineContentCrypto\(\)/);
+});
+
+test("durable readiness accepts V2 content crypto without HMAC and fails closed on invalid keys or grants", async (context) => {
+  const lane = LINE_INGEST_LANES.production;
+  const variables: Record<string, string | undefined> = {
+    CCPUN_APP_ENV: "production-admin", VERCEL_ENV: "production",
+    VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.admin, VERCEL_GIT_COMMIT_REF: "v4-production",
+    CCPUN_NEON_PROJECT_ID: lane.projectId, CCPUN_NEON_BRANCH_ID: lane.branchId,
+    CCPUN_NEON_DATABASE: lane.database,
+    CCPUN_ADMIN_DATABASE_URL: `postgresql://${lane.runtimeRole}:synthetic@${lane.endpointId}.${lane.hostSuffix}/${lane.database}?sslmode=require`,
+    CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION: "2",
+    CCPUN_LINE_ENCRYPTION_KEY_V2: Buffer.alloc(32, 22).toString("base64"),
+    CCPUN_LINE_ENCRYPTION_KEY_V1: undefined, CCPUN_LINE_IDENTITY_HMAC_KEY_V1: undefined,
+  };
+  const original = Object.fromEntries(Object.keys(variables).map((key) => [key, process.env[key]]));
+  const originalFetch = neonConfig.fetchFunction;
+  context.after(() => {
+    for (const [key, value] of Object.entries(original)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    neonConfig.fetchFunction = originalFetch;
+  });
+  for (const [key, value] of Object.entries(variables)) {
+    if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  }
+  let queries = 0;
+  let ready = true;
+  neonConfig.fetchFunction = async (_url: RequestInfo | URL, init?: RequestInit) => {
+    queries++;
+    const body = JSON.parse(String(init?.body));
+    assert.match(body.query, /^SELECT has_function_privilege\(current_user,/);
+    assert.deepEqual(body.params, []);
+    return new Response(JSON.stringify({
+      fields: [{ name: "ready", dataTypeID: 16 }], rows: [[ready ? "t" : "f"]], rowCount: 1, command: "SELECT",
+    }));
+  };
+  assert.equal(await probeLinePrivateIngestRuntime(), true);
+  assert.equal(queries, 1);
+  ready = false;
+  assert.equal(await probeLinePrivateIngestRuntime(), false);
+  assert.equal(queries, 2);
+  for (const key of [undefined, "malformed", Buffer.alloc(31).toString("base64")]) {
+    if (key === undefined) delete process.env.CCPUN_LINE_ENCRYPTION_KEY_V2;
+    else process.env.CCPUN_LINE_ENCRYPTION_KEY_V2 = key;
+    assert.equal(await probeLinePrivateIngestRuntime(), false);
+  }
+  assert.equal(queries, 2, "invalid active keys fail before database access");
 });
 
 test("unknown legacy postback remains durable with a null context", () => {
