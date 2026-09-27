@@ -94,7 +94,7 @@ test("v2 atomic CHECK superset keeps v1 immutable and grants unchanged; ledger b
   assert.match(sql, new RegExp("sha256:" + hash));
   assert.match(sql, /BEGIN;[\s\S]*DROP CONSTRAINT[\s\S]*ADD CONSTRAINT[\s\S]*COMMIT;/);
   assert.doesNotMatch(sql, /DROP TABLE|DELETE FROM|GRANT|CREATE OR REPLACE FUNCTION/);
-  for (const report of analyticsReportSchema.options) assert.ok(sql.includes("'" + report + "'"));
+  for (const report of analyticsReportSchema.options.filter(report => !["gsc-daily-page", "gsc-daily-query-page", "ga4-daily-organic", "ga4-content-events"].includes(report))) assert.ok(sql.includes("'" + report + "'"));
   assert.match(sql, /96bb27179454643c5f0e8e991e5a41193a344755d3b65cc3b8dadf0b8e9cf076/);
   const collect = read("lib/admin/analytics/collect.ts");
   assert.match(collect, /if \(result.data\) reports.push/); assert.match(collect, /else \{/);

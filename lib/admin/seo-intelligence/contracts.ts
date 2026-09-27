@@ -6,7 +6,7 @@ const externalHttpUrl = z.string().url().refine((value) => {
   return protocol === "https:" || protocol === "http:";
 }, "Only HTTP(S) market URLs are accepted");
 
-export const gscDimensionSchema = z.enum(["query", "page", "device", "country", "searchAppearance"]);
+export const gscDimensionSchema = z.enum(["query", "page", "device", "country", "searchAppearance", "date"]);
 
 export const gscQueryInputSchema = z.object({
   siteUrl: z.string().trim().min(1).max(500),

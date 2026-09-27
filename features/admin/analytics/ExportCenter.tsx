@@ -3,9 +3,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { ExportAnalysisView } from "@/lib/admin/agent-os/export-contract";
+import { PERFORMANCE_MARKETING_TABS } from "@/lib/admin/agent-os/export-contract";
 const VIEWS: Array<[ExportAnalysisView | "", string]> = [["", "ข้อมูลรวมทุกแหล่ง (ใช้เก็บอ้างอิง)"], ["seo-review", "งานตรวจ SEO"], ["measurement-gaps", "ข้อมูลที่ต้องเชื่อม"], ["campaign-performance", "แคมเปญและหน้าเข้า"], ["marketing-activities", "กิจกรรม CI / FHC / LINE"]];
 
 const OPTIONS = [
+  ["performance-marketing", "Performance Marketing Workspace: Top Content และ Action Plan", "Dashboard รวม"],
   ["marketing-analytics", "Dashboard รวม: Google, Social และ SEO", "Dashboard รวม"],
   ["social-performance", "Social Performance", "Social"],
   ["seo-intelligence", "SEO Search Intelligence", "SEO"],
@@ -21,6 +23,7 @@ const GROUPS = ["Dashboard รวม", "Social", "SEO", "CRM & Operations"] as c
 type Dataset = (typeof OPTIONS)[number][0];
 
 const DATASET_HELP: Record<Dataset, string> = {
+  "performance-marketing": "Workspace 7 ชีต มี Top Content สัปดาห์นี้/เดือนนี้ ตัวเลขจาก SQL และหลักฐานต้นทาง Google Workspace เดิมจะอัปเดต โดยตรวจงานมนุษย์ก่อนและไม่เขียนทับรายการที่ขัดแย้ง",
   "marketing-analytics": "ใช้ชุดข้อมูลล่าสุดที่บันทึกสำเร็จของแต่ละแหล่ง พร้อมช่วงข้อมูล เวลาอัปเดต และคำอธิบายคอลัมน์ ไม่เรียก API ต้นทางตอนส่งออก",
   "social-performance": "ข้อมูลโพสต์ Meta จากชุดที่บันทึกสำเร็จล่าสุด อ่าน insights ของ 50 โพสต์ล่าสุดต่อแพลตฟอร์ม ส่วนโพสต์อื่นอาจมีเฉพาะข้อมูลประกอบ พร้อมเวลาและข้อจำกัดของแต่ละ metric",
   "seo-intelligence": "รวม Keyword Research, AISV และ CSV จากเว็บ Ubersuggest ที่บันทึกสำเร็จแล้ว พร้อมช่วงข้อมูลและวันที่ต้นทางอัปเดต",
@@ -52,9 +55,10 @@ function statusText(status: string) {
   return status;
 }
 
-export function ExportCenter() {
+export function ExportCenter({ initialDataset = "marketing-analytics", compact = false }: { initialDataset?: Dataset; compact?: boolean } = {}) {
   const [view, setView] = useState<ExportAnalysisView | "">("");
-  const [dataset, setDataset] = useState<Dataset>("marketing-analytics");
+  const [dataset, setDataset] = useState<Dataset>(initialDataset);
+  const [performanceSheet, setPerformanceSheet] = useState<(typeof PERFORMANCE_MARKETING_TABS)[number]>("Performance Overview");
   const [jobId, setJobId] = useState<string | null>(null);
   const [runtimePath, setRuntimePath] = useState<string | null>(null);
   const [detail, setDetail] = useState<RuntimeDetail | null>(null);
@@ -66,8 +70,8 @@ export function ExportCenter() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const saved = JSON.parse(window.localStorage.getItem("ccpun-owner-sheet-job") || "null") as { jobId?: unknown; runtimePath?: unknown } | null;
-        if (saved && typeof saved.jobId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(saved.jobId)) {
+        const saved = JSON.parse(window.localStorage.getItem("ccpun-owner-sheet-job") || "null") as { jobId?: unknown; runtimePath?: unknown; dataset?: unknown } | null;
+        if (saved && (!compact || saved.dataset === initialDataset) && typeof saved.jobId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(saved.jobId)) {
           setJobId(saved.jobId);
           if (typeof saved.runtimePath === "string" && saved.runtimePath.startsWith("/operations/jobs/")) setRuntimePath(saved.runtimePath);
         }
@@ -76,7 +80,7 @@ export function ExportCenter() {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [compact, initialDataset]);
 
   useEffect(() => {
     if (!jobId || detail?.terminal) return;
@@ -119,11 +123,11 @@ export function ExportCenter() {
       setJobId(String(data.jobId));
       setRuntimePath(String(data.runtimePath));
       try {
-        window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId: String(data.jobId), runtimePath: String(data.runtimePath) }));
+        window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId: String(data.jobId), runtimePath: String(data.runtimePath), dataset }));
       } catch {
         // The server job remains retrievable from Operations even without browser storage.
       }
-      setMessage("รับงานแล้ว ระบบกำลังสร้าง Google Sheet ให้");
+      setMessage(dataset === "performance-marketing" ? "รับงานแล้ว กำลังตรวจงานมนุษย์และอัปเดต Performance Workspace เดิม ดูสถานะจนเสร็จแล้วก่อนใช้ผลใหม่" : "รับงานแล้ว ระบบกำลังสร้าง Google Sheet ให้");
     } catch {
       setMessage("ยังเริ่มสร้าง Google Sheet ไม่ได้ ใช้ CSV ได้ตามปกติ");
     } finally {
@@ -164,7 +168,7 @@ export function ExportCenter() {
   return (
     <div>
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
-        <label className="block max-w-xl text-sm text-white/70">
+        {!compact ? <label className="block max-w-xl text-sm text-white/70">
           เลือกข้อมูลที่ต้องการ
           <select
             value={dataset}
@@ -185,23 +189,25 @@ export function ExportCenter() {
               </optgroup>
             ))}
           </select>
-        </label>
+        </label> : <h3 className="font-medium">Performance Marketing Workspace</h3>}
         <p className="mt-2 max-w-2xl text-xs leading-5 text-white/50">{DATASET_HELP[dataset]}</p>
 
         {dataset === "marketing-analytics" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกชุดวิเคราะห์สำหรับ CSV / Google Sheet<select value={view} onChange={event => setView(event.target.value as ExportAnalysisView | "")} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{VIEWS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/50">แต่ละชุดแยกประเภทข้อมูลเพื่อทำ Pivot ต่อได้ Excel ดาวน์โหลดทั้งสมุดงานเสมอ หากยังไม่มีรายงานแคมเปญหรือกิจกรรม ระบบจะแจ้งว่าไม่มีข้อมูลแทนศูนย์</span></label> : null}
+        {dataset === "performance-marketing" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกชีตสำหรับ CSV<select value={performanceSheet} onChange={event => setPerformanceSheet(event.target.value as typeof performanceSheet)} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{PERFORMANCE_MARKETING_TABS.map(title => <option key={title} value={title}>{title}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/60">Excel และ Google Workspace รวมทั้ง 7 ชีต งานมนุษย์นำเข้าจาก Google Workspace ผ่านการตรวจ version ก่อน refresh</span></label> : null}
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <a download href={dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv" + (view ? "&view=" + encodeURIComponent(view) : "") : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
+          <a download href={dataset === "performance-marketing" ? "/api/admin/marketing/export/?format=csv&sheet=" + encodeURIComponent(performanceSheet) : dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv" + (view ? "&view=" + encodeURIComponent(view) : "") : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
             ดาวน์โหลด CSV
           </a>
           {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel หลายชีต</a> : null}
-          <button type="button" onClick={createGoogleSheet} disabled={busy} className="min-h-11 rounded-xl bg-[#e0c985] px-4 text-sm font-medium text-[#251818] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]">
-            {busy ? "กำลังส่งงาน…" : "สร้าง Google Sheet"}
+          {dataset === "performance-marketing" ? <a download href="/api/admin/marketing/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel 7 ชีต</a> : null}
+          <button type="button" onClick={createGoogleSheet} disabled={busy || (dataset === "performance-marketing" && !!jobId && !detail?.terminal)} className="min-h-11 rounded-xl bg-[#e0c985] px-4 text-sm font-medium text-[#251818] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]">
+            {busy ? "กำลังส่งงาน…" : dataset === "performance-marketing" ? "อัปเดต Google Workspace เดิม" : "สร้าง Google Sheet"}
           </button>
         </div>
 
         <p className="mt-4 text-xs leading-5 text-white/50">
-          เวลาเก็บและสร้างไฟล์ใช้เวลาไทย (UTC+7) CSV เป็น UTF-8 เปิดใน Excel/Numbers ได้ Excel แยกชีตตามรายงานพร้อมคำอธิบาย Google Sheet มีชีตภาพรวมพร้อมวิธีอ่าน และชีตข้อมูลตามชุดที่เลือก การสร้างไฟล์ไม่ต้องรอรอบอัปเดตรายวัน ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์
+          {dataset === "performance-marketing" ? "Google Workspace ใช้ไฟล์เดิม 7 ชีต นำเข้าช่องมนุษย์ที่ตรวจแล้วก่อน refresh หาก conflict จะเก็บ Action Plan ในชีตไว้ให้ตรวจ Excel/CSV เป็นสำเนาสำหรับวิเคราะห์ ไม่ใช่การนำเข้าการแก้ไขกลับอัตโนมัติ ค่าว่างไม่ใช่ศูนย์" : "เวลาเก็บและสร้างไฟล์ใช้เวลาไทย (UTC+7) CSV เป็น UTF-8 เปิดใน Excel/Numbers ได้ Excel แยกชีตตามรายงานพร้อมคำอธิบาย Google Sheet มีชีตภาพรวมพร้อมวิธีอ่าน และชีตข้อมูลตามชุดที่เลือก การสร้างไฟล์ไม่ต้องรอรอบอัปเดตรายวัน ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์"}
         </p>
       </section>
 
@@ -211,7 +217,7 @@ export function ExportCenter() {
           <p className="mt-2 text-lg font-semibold">
             {detail ? statusText(detail.job.status) : "กำลังรับสถานะ…"}
           </p>
-          {detail?.job.errorCategory ? <p className="mt-3 text-sm text-rose-200">สร้างไฟล์ไม่สำเร็จ ลองใหม่ได้โดยใช้ข้อมูลเดิม หรือดาวน์โหลด CSV / Excel</p> : null}
+          {detail?.job.errorCategory ? <p className="mt-3 text-sm text-rose-200">{detail.job.errorCategory === "marketing-actions-review-required" ? "อัปเดตข้อมูลระบบแล้ว แต่ Action Plan มีรายการที่ต้องตรวจ จึงเก็บช่องงานของคุณในชีตไว้ แก้ข้อขัดแย้งก่อนอัปเดตรอบถัดไป" : "ยังยืนยันผลไฟล์ไม่ได้ ตรวจงานล่าสุดก่อนลองซ้ำ หรือดาวน์โหลด CSV / Excel ได้"}</p> : null}
           <div className="mt-4 flex flex-wrap gap-3">
             {detail?.job.providerReference?.startsWith("https://docs.google.com/spreadsheets/") ? (
               <a href={detail.job.providerReference} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-[#e0c985] px-4 text-sm font-medium text-[#251818] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
@@ -230,7 +236,7 @@ export function ExportCenter() {
       <Link href="/operations/jobs/" className="mt-4 inline-flex min-h-11 items-center text-sm text-[#e0c985] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">เปิดประวัติงานและไฟล์ที่สร้างไว้</Link>
       {message ? <p className="mt-4 text-sm text-white/60" role="status">{message}</p> : null}
 
-      <section className="mt-8 border-t border-white/15 pt-6" aria-labelledby="ubersuggest-import-title">
+      {!compact ? <section className="mt-8 border-t border-white/15 pt-6" aria-labelledby="ubersuggest-import-title">
         <h2 id="ubersuggest-import-title" className="text-lg font-semibold">นำเข้าไฟล์รายงานจากเว็บ Ubersuggest</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-white/70">ใช้ไฟล์ CSV ที่คุณดาวน์โหลดจากเว็บ Ubersuggest ระบบเก็บข้อมูลต้นฉบับและจัดคอลัมน์ให้อ่านง่าย การนำเข้าไม่เรียก Ubersuggest API และไม่ทำให้ข้อมูลเก่ากลายเป็นข้อมูลใหม่ โปรดระบุช่วงข้อมูลจริงจากรายงาน หากเป็นข้อมูล ณ วันเดียวให้ใส่วันเริ่มและวันสิ้นสุดเดียวกัน</p>
         <form onSubmit={importUbersuggest} className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -245,7 +251,7 @@ export function ExportCenter() {
         </form>
         {importMessage ? <p className="mt-4 text-sm leading-6 text-white/80" role="status">{importMessage}</p> : null}
         <Link href="/analytics/?report=ubersuggest-web-keywords" className="mt-3 inline-flex min-h-11 items-center text-sm text-[#e0c985] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดูรายงาน Ubersuggest ที่บันทึกไว้</Link>
-      </section>
+      </section> : null}
     </div>
   );
 }
