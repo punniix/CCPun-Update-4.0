@@ -31,12 +31,9 @@ type FilterableContentRow = {
 };
 
 const REVIEW_STATUS_RANK: Record<string, number> = {
-  drafting: 0,
-  "content-review": 1,
-  "fact-check": 2,
-  "compliance-review": 3,
-  "ready-for-coo": 4,
-  approved: 5,
+  "content-review": 0,
+  "ready-for-coo": 1,
+  approved: 2,
 };
 
 const DEFAULT_SORT: ContentSortKey = "updated-at";

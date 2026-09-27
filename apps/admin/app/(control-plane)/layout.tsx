@@ -38,6 +38,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
       { href: "/analytics/search/", label: "ผลการค้นหา" },
       { href: "/analytics/social/", label: "ผลลัพธ์โซเชียล" },
       { href: "/analytics/conversions/", label: "เส้นทางลูกค้า" },
+      { href: "/analytics/exports/", label: "ส่งออกข้อมูล", permission: "settings:read" },
   ] },
   { href: "/operations/", label: "สถานะระบบ", permission: "settings:read", children: [
       { href: "/operations/health/", label: "ภาพรวมระบบ" },

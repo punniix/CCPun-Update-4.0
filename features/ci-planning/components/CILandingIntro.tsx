@@ -29,27 +29,86 @@ const storyBeats = [
   },
 ] as const;
 
+const loopedStories = Array.from({ length: 9 }, (_, index) => storyBeats[index % storyBeats.length]);
+
+function centerStory(node: HTMLDivElement, index: number, behavior: ScrollBehavior) {
+  const card = node.querySelectorAll<HTMLElement>('article')[index];
+  if (card) node.scrollTo({ left: card.offsetLeft - (node.clientWidth - card.clientWidth) / 2, behavior });
+}
+
 export default function CILandingIntro() {
   const landingTrackedRef = useRef(false);
   const storyCarouselRef = useRef<HTMLDivElement>(null);
-  const [storyIndex, setStoryIndex] = useState(0);
+  const storyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [storyIndex, setStoryIndex] = useState(3);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [isPageHidden, setIsPageHidden] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   const scrollStories = (direction: -1 | 1) => {
     const node = storyCarouselRef.current;
-    const cards = node ? Array.from(node.querySelectorAll<HTMLElement>('article')) : [];
-    if (!node || cards.length === 0) return;
-    const next = Math.max(0, Math.min(cards.length - 1, storyIndex + direction));
-    cards[next]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    if (!node) return;
+    setHasInteracted(true);
+    const next = Math.max(1, Math.min(loopedStories.length - 2, storyIndex + direction));
+    centerStory(node, next, reducedMotion ? 'auto' : 'smooth');
     setStoryIndex(next);
   };
 
   const syncStoryIndex = () => {
     const node = storyCarouselRef.current;
-    const cards = node ? Array.from(node.querySelectorAll<HTMLElement>('article')) : [];
-    if (!node || cards.length === 0) return;
-    const nearest = cards.reduce((best, card, index) => Math.abs(card.offsetLeft - node.scrollLeft) < Math.abs(cards[best].offsetLeft - node.scrollLeft) ? index : best, 0);
+    if (!node || !isMobile) return;
+    const cards = Array.from(node.querySelectorAll<HTMLElement>('article'));
+    const center = node.scrollLeft + node.clientWidth / 2;
+    const nearest = cards.reduce((best, card, index) => Math.abs(card.offsetLeft + card.clientWidth / 2 - center) < Math.abs(cards[best].offsetLeft + cards[best].clientWidth / 2 - center) ? index : best, 0);
     setStoryIndex(nearest);
+    if (storyResetTimerRef.current) clearTimeout(storyResetTimerRef.current);
+    if (nearest < 3 || nearest > 5) {
+      // ponytail: three repeated sets make wrap-around seamless; recenter after scrolling settles.
+      storyResetTimerRef.current = setTimeout(() => {
+        centerStory(node, nearest < 3 ? nearest + 3 : nearest - 3, 'auto');
+      }, 650);
+    }
   };
+
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 639px)');
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncMedia = () => {
+      setIsMobile(mobile.matches);
+      setReducedMotion(motion.matches);
+    };
+    const syncVisibility = () => setIsPageHidden(document.hidden);
+    syncMedia();
+    syncVisibility();
+    mobile.addEventListener('change', syncMedia);
+    motion.addEventListener('change', syncMedia);
+    document.addEventListener('visibilitychange', syncVisibility);
+    return () => {
+      mobile.removeEventListener('change', syncMedia);
+      motion.removeEventListener('change', syncMedia);
+      document.removeEventListener('visibilitychange', syncVisibility);
+      if (storyResetTimerRef.current) clearTimeout(storyResetTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && storyCarouselRef.current) centerStory(storyCarouselRef.current, 3, 'auto');
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile || isHovered || isFocused || hasInteracted || isPageHidden || reducedMotion) return;
+    const timer = setTimeout(() => {
+      const node = storyCarouselRef.current;
+      if (!node) return;
+      const next = Math.min(loopedStories.length - 2, storyIndex + 1);
+      centerStory(node, next, 'smooth');
+      setStoryIndex(next);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [isMobile, isHovered, isFocused, hasInteracted, isPageHidden, reducedMotion, storyIndex]);
 
   useEffect(() => {
     const trackLanding = () => {
@@ -82,16 +141,23 @@ export default function CILandingIntro() {
           <p>ผมจึงลองแยกรายได้และภาระทีละส่วน วางตามช่วงเวลาที่ต้องรับผิดชอบจริง แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์ที่พร้อมใช้ เพื่อให้เห็นที่มาของตัวเลขชัดขึ้น</p>
         </div>
 
-        <div className={styles.ciStoryCarouselWrap}>
-          <div ref={storyCarouselRef} onScroll={syncStoryIndex} className={styles.ciStoryGrid} aria-label="ตัวอย่างภาระทางการเงินเมื่อเจอโรคร้ายแรง">
-            {storyBeats.map((beat) => (
-              <article className={styles.ciStoryCard} key={beat.title}>
+        <div
+          className={styles.ciStoryCarouselWrap}
+          onPointerEnter={(event) => { if (event.pointerType === 'mouse') setIsHovered(true); }}
+          onPointerLeave={(event) => { if (event.pointerType === 'mouse') setIsHovered(false); }}
+          onFocusCapture={() => setIsFocused(true)}
+          onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsFocused(false); }}
+        >
+          <div className={styles.ciStoryViewport}>
+            <div ref={storyCarouselRef} onScroll={syncStoryIndex} onPointerDown={() => setHasInteracted(true)} onWheel={(event) => { if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) setHasInteracted(true); }} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') setHasInteracted(true); }} tabIndex={isMobile ? 0 : -1} className={styles.ciStoryGrid} aria-label="ตัวอย่างภาระทางการเงินเมื่อเจอโรคร้ายแรง">
+            {loopedStories.map((beat, index) => (
+              <article className={styles.ciStoryCard} key={`${beat.title}-${index}`} aria-hidden={isMobile ? index !== storyIndex : index >= storyBeats.length}>
                 <Image
                   src={beat.src}
                   alt={beat.alt}
                   width={1200}
                   height={900}
-                  sizes="(max-width: 639px) 82vw, (max-width: 1023px) 46vw, 390px"
+                  sizes="(max-width: 639px) 78vw, (max-width: 1023px) 46vw, 390px"
                 />
                 <div>
                   <h3>{beat.title}</h3>
@@ -99,11 +165,11 @@ export default function CILandingIntro() {
                 </div>
               </article>
             ))}
-          </div>
-          <div className={styles.ciStoryCarouselControls} aria-label="เลื่อนการ์ดตัวอย่าง">
-            <button type="button" disabled={storyIndex === 0} onClick={() => scrollStories(-1)} aria-label="ดูการ์ดก่อนหน้า"><ChevronLeft aria-hidden="true" /></button>
-            <span aria-live="polite">{storyIndex + 1} / {storyBeats.length} · ปัดซ้าย–ขวาได้</span>
-            <button type="button" disabled={storyIndex === storyBeats.length - 1} onClick={() => scrollStories(1)} aria-label="ดูการ์ดถัดไป"><ChevronRight aria-hidden="true" /></button>
+            </div>
+            <div className={styles.ciStoryCarouselControls} aria-label="เลื่อนการ์ดตัวอย่าง">
+              <button data-ci-story-arrow type="button" onClick={() => scrollStories(-1)} aria-label="ดูการ์ดก่อนหน้า"><ChevronLeft aria-hidden="true" /></button>
+              <button data-ci-story-arrow type="button" onClick={() => scrollStories(1)} aria-label="ดูการ์ดถัดไป"><ChevronRight aria-hidden="true" /></button>
+            </div>
           </div>
         </div>
         <p className={styles.eyebrow} style={{ marginTop: 20 }}>ภาพประกอบสร้างด้วย Generative AI</p>

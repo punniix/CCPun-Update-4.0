@@ -65,10 +65,12 @@ test("runtime identity validation accepts only the exact UAT lane, resource, rol
   const valid = {
     environment: "admin-uat", projectId: "young-term-47483330", branchId: "br-crimson-mouse-az7ajkv8", database: "neondb",
     connectionString: "postgresql://ccpun_admin_runtime:secret@ep-mute-frost-aztvz394-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+    vercelEnvironment: "preview", vercelProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
   };
   assert.equal(isAdminOperationsRuntimeIdentityValid(valid), true);
   for (const changed of [
     { environment: "production-admin" }, { projectId: "other" }, { branchId: "other" }, { database: "production" },
+    { vercelEnvironment: "production" }, { vercelProjectId: "prj_other" },
     { connectionString: "postgresql://neondb_owner:secret@example.neon.tech/neondb" },
     { connectionString: "postgresql://ccpun_admin_runtime:secret@example.neon.tech/other" },
     { connectionString: "postgresql://ccpun_admin_runtime:secret@evil.example/neondb" },

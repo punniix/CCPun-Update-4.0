@@ -11,6 +11,7 @@ type Website43ToolHeroProps = {
   ctaHref: string;
   ctaLabel?: string;
   strongContrast?: boolean;
+  fullBleed?: boolean;
 };
 
 export default function Website43ToolHero({
@@ -22,9 +23,10 @@ export default function Website43ToolHero({
   ctaHref,
   ctaLabel = 'เริ่มประเมิน',
   strongContrast = false,
+  fullBleed = false,
 }: Website43ToolHeroProps) {
   return (
-    <section className={styles.toolHero} aria-labelledby="tool-hero-title">
+    <section className={fullBleed ? `${styles.toolHero} ${styles.toolHeroFullBleed}` : styles.toolHero} aria-labelledby="tool-hero-title">
       <Image
         className={styles.toolHeroImage}
         src={image}
@@ -32,7 +34,7 @@ export default function Website43ToolHero({
         aria-hidden="true"
         width={1448}
         height={1086}
-        sizes="(max-width: 639px) 100vw, (max-width: 1023px) 560px, 820px"
+        sizes={fullBleed ? '100vw' : '(max-width: 639px) 100vw, (max-width: 1023px) 560px, 820px'}
         priority
       />
       <div className={styles.toolHeroGradient} aria-hidden="true" />

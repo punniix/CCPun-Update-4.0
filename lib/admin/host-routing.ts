@@ -70,7 +70,10 @@ export function isInternalServiceApiPath(pathname: string): boolean {
     || path === "/api/internal/line/ingest-event"
     || path === "/api/internal/line/bridge-health"
     || path === "/api/internal/line/public-event"
+    || isPathOrChild(path, "/api/internal/agent-os/jobs")
+    || path === "/api/internal/agent-os/exports"
     || isPathOrChild(path, "/api/internal/local-ai/jobs")
+    || isPathOrChild(path, "/api/internal/local-ai/line-descriptions")
     || isPathOrChild(path, "/api/internal/local-ai/reviews")
     || isPathOrChild(path, "/api/internal/local-ai/operations");
 }

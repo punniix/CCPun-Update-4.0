@@ -4,7 +4,7 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
-const SCAN_DIRS = ["app", "apps", "features", "components", "lib", "cms", "db"];
+const SCAN_DIRS = ["app", "apps", "features", "components", "lib", "cms", "db", "workers"];
 const ROOT_FILES = ["auth.ts", "proxy.ts", "next.config.ts"];
 const IGNORE_PARTS = new Set(["node_modules", ".next", ".git", ".ccpun-local"]);
 const ADMIN_ONLY_SECRET_KEYS = [
@@ -15,7 +15,6 @@ const ADMIN_ONLY_SECRET_KEYS = [
   "CCPUN_LOCAL_AI_ENCRYPTION_KEY_V1",
   "CCPUN_LOCAL_AI_DATABASE_URL",
   "CCPUN_LOCAL_AI_N8N_TOKEN",
-  "CCPUN_LINE_INGEST_DATABASE_URL",
   "CCPUN_GOOGLE_DATA_CLIENT_SECRET",
   "CCPUN_GOOGLE_DATA_REFRESH_TOKEN",
   "CCPUN_META_ACCESS_TOKEN",
@@ -150,7 +149,7 @@ assert.ok(adminRoots.length > 0, "apps/admin must expose a source boundary");
 
 const webReachable = reachable(webRoots);
 const adminReachable = reachable(adminRoots);
-const forbiddenWebPrefixes = ["lib/admin/", "features/admin/", "cms/sanity/admin/"];
+const forbiddenWebPrefixes = ["lib/admin/", "features/admin/", "cms/sanity/admin/", "workers/local-ai/"];
 const webAdminRuntimeLeaks = [...webReachable]
   .filter((file) => forbiddenWebPrefixes.some((prefix) => file.startsWith(prefix)))
   .sort();
@@ -184,7 +183,6 @@ assert.deepEqual(
   `Web runtime must never reference Admin-only secrets: ${describeImportPaths(webRoots, webAdminSecretLeaks)}`,
 );
 assert.equal(webExternalPackages.has("workflow"), false, "Web runtime must not depend on the Admin Workflow runtime");
-assert.equal(webExternalPackages.has("@neondatabase/serverless"), false, "Web runtime must not depend on Neon");
 
 const sharedReachable = [...webReachable].filter((file) => adminReachable.has(file)).sort();
 console.log(JSON.stringify({

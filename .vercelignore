@@ -1,4 +1,5 @@
-qa/
+qa/*
+!qa/search-intent-owner-registry.json
 public/assets/hero-pun-laptop-mobile-v1.webp
 public/assets/hero-pun-laptop-mobile-v2.webp
 public/assets/hero-pun-laptop-mobile-v3.webp

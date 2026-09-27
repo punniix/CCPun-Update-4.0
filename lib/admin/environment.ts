@@ -1,3 +1,8 @@
+import {
+  CCPUN_VERCEL_PROJECT_IDS as RUNTIME_VERCEL_PROJECT_IDS,
+  resolveDeploymentIdentity,
+} from "../runtime/deployment-identity";
+
 export const ADMIN_ENVIRONMENTS = [
   "development",
   "web-uat",
@@ -14,8 +19,8 @@ export const ADMIN_ENVIRONMENTS = [
 export type AdminEnvironment = (typeof ADMIN_ENVIRONMENTS)[number];
 
 export const CCPUN_VERCEL_PROJECT_IDS = {
-  web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",
-  adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
+  web: RUNTIME_VERCEL_PROJECT_IDS.web,
+  adminProduction: RUNTIME_VERCEL_PROJECT_IDS.admin,
 } as const;
 
 const EXPLICIT_ENVIRONMENTS = new Set<AdminEnvironment>([
@@ -113,6 +118,12 @@ export function getAdminEnvironment(): AdminEnvironment {
   );
 }
 
+export function getAdminDeploymentIdentity(
+  variables: Record<string, string | undefined> = process.env,
+) {
+  return resolveDeploymentIdentity(variables, "admin");
+}
+
 export function resolveSanityConfigEnvironment(
   publicValue: string | undefined,
   serverValue: string | undefined,
@@ -131,7 +142,31 @@ export function isDeploymentProjectAllowed(
   environment: AdminEnvironment,
   deploymentProjectId = getDeploymentProjectId(),
   productionAdminProjectId = getProductionAdminProjectId(),
+  variables: Record<string, string | undefined> = process.env,
 ): boolean {
+  const provider = variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
+
+  if (provider === "hostinger") {
+    const role = environment === "web-uat" || environment === "production"
+      ? "web"
+      : environment === "admin-uat" || environment === "production-admin"
+        ? "admin"
+        : null;
+    if (!role || deploymentProjectId) return false;
+    const identity = resolveDeploymentIdentity({
+      ...variables,
+      CCPUN_APP_ENV: environment,
+      VERCEL_PROJECT_ID: undefined,
+    }, role);
+    return identity.valid
+      && identity.provider === "hostinger"
+      && identity.role === role
+      && identity.environment === environment;
+  }
+
+  if (provider && provider !== "vercel" && provider !== "local") return false;
+  if (provider === "vercel" && !deploymentProjectId) return false;
+
   switch (environment) {
     case "development":
       return !deploymentProjectId;
@@ -161,6 +196,7 @@ export function isAdminSurfaceAllowed(
   environment = getAdminEnvironment(),
   deploymentProjectId = getDeploymentProjectId(),
   productionAdminProjectId = getProductionAdminProjectId(),
+  variables: Record<string, string | undefined> = process.env,
 ): boolean {
   switch (environment) {
     case "development":
@@ -169,7 +205,7 @@ export function isAdminSurfaceAllowed(
     case "local-production":
     case "admin-uat":
     case "production-admin":
-      return isDeploymentProjectAllowed(environment, deploymentProjectId, productionAdminProjectId);
+      return isDeploymentProjectAllowed(environment, deploymentProjectId, productionAdminProjectId, variables);
     case "lab":
     case "uat":
       return false;
@@ -184,6 +220,7 @@ export function isSanityLaneAllowed(
   deploymentProjectId = getDeploymentProjectId(),
   productionAdminProjectId = getProductionAdminProjectId(),
   sanityProjectId = getSanityProjectId(),
+  variables: Record<string, string | undefined> = process.env,
 ): boolean {
   const expectedDataset = SANITY_DATASET_BY_ENVIRONMENT[environment];
   return Boolean(
@@ -191,7 +228,7 @@ export function isSanityLaneAllowed(
     expectedDataset &&
     expectedDataset === dataset &&
     isSanityProjectAllowed(sanityProjectId, environment) &&
-    isDeploymentProjectAllowed(environment, deploymentProjectId, productionAdminProjectId),
+    isDeploymentProjectAllowed(environment, deploymentProjectId, productionAdminProjectId, variables),
   );
 }
 
@@ -199,8 +236,9 @@ export function isAdminMutationEnvironment(
   environment = getAdminEnvironment(),
   deploymentProjectId = getDeploymentProjectId(),
   productionAdminProjectId = getProductionAdminProjectId(),
+  variables: Record<string, string | undefined> = process.env,
 ): boolean {
-  if (!isAdminSurfaceAllowed(environment, deploymentProjectId, productionAdminProjectId)) return false;
+  if (!isAdminSurfaceAllowed(environment, deploymentProjectId, productionAdminProjectId, variables)) return false;
 
   return (
     environment === "development" ||
@@ -226,10 +264,11 @@ export function isAdminReadDataPlaneAllowed(
   deploymentProjectId = getDeploymentProjectId(),
   productionAdminProjectId = getProductionAdminProjectId(),
   sanityProjectId = getSanityProjectId(),
+  variables: Record<string, string | undefined> = process.env,
 ): boolean {
   return (
-    isAdminSurfaceAllowed(environment, deploymentProjectId, productionAdminProjectId) &&
-    isSanityLaneAllowed(dataset, environment, deploymentProjectId, productionAdminProjectId, sanityProjectId)
+    isAdminSurfaceAllowed(environment, deploymentProjectId, productionAdminProjectId, variables) &&
+    isSanityLaneAllowed(dataset, environment, deploymentProjectId, productionAdminProjectId, sanityProjectId, variables)
   );
 }
 
@@ -239,10 +278,11 @@ export function isAdminDataPlaneAllowed(
   deploymentProjectId = getDeploymentProjectId(),
   productionAdminProjectId = getProductionAdminProjectId(),
   sanityProjectId = getSanityProjectId(),
+  variables: Record<string, string | undefined> = process.env,
 ): boolean {
   return (
-    isAdminMutationEnvironment(environment, deploymentProjectId, productionAdminProjectId) &&
-    isSanityLaneAllowed(dataset, environment, deploymentProjectId, productionAdminProjectId, sanityProjectId)
+    isAdminMutationEnvironment(environment, deploymentProjectId, productionAdminProjectId, variables) &&
+    isSanityLaneAllowed(dataset, environment, deploymentProjectId, productionAdminProjectId, sanityProjectId, variables)
   );
 }
 
@@ -252,11 +292,12 @@ export function isStudioDataPlaneAllowed(
   deploymentProjectId = getDeploymentProjectId(),
   productionAdminProjectId = getProductionAdminProjectId(),
   sanityProjectId = getSanityProjectId(),
+  variables: Record<string, string | undefined> = process.env,
 ): boolean {
   if (environment === "local-production" && !isLocalProductionDraftWriteEnabled(environment)) return false;
   return (
-    isAdminSurfaceAllowed(environment, deploymentProjectId, productionAdminProjectId) &&
-    isSanityLaneAllowed(dataset, environment, deploymentProjectId, productionAdminProjectId, sanityProjectId)
+    isAdminSurfaceAllowed(environment, deploymentProjectId, productionAdminProjectId, variables) &&
+    isSanityLaneAllowed(dataset, environment, deploymentProjectId, productionAdminProjectId, sanityProjectId, variables)
   );
 }
 
