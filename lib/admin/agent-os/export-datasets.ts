@@ -1,5 +1,6 @@
 import "server-only";
 import { readAnalyticsDashboard } from "../analytics/store";
+import { buildPerformanceExport } from "../analytics/performance";
 import { buildStoredMarketingExport } from "../analytics/export";
 
 import { listAdvisorInboxOperational } from "../line/advisor-workflow";
@@ -11,7 +12,7 @@ import { getUbersuggestDashboardData } from "../ubersuggest-dashboard";
 import { readConversionAnalytics } from "../line/business-intelligence";
 import { lineJourneyLabel, lineStageLabel } from "../line/presentation";
 import { readOperationsJobs } from "../operations/jobs-read-model";
-import { formatBangkokDateTime, OWNER_FRIENDLY_EXPORT_COLUMNS, type ExportDataset } from "./export-contract";
+import { formatBangkokDateTime, OWNER_FRIENDLY_EXPORT_COLUMNS, exportSelectionSchema, type ExportAnalysisView, type ExportDataset } from "./export-contract";
 
 export type OwnerExportDataset = {
   dataset: ExportDataset;
@@ -240,11 +241,19 @@ export async function buildOwnerExportDataset(
   dataset: ExportDataset,
   generatedAt = new Date().toISOString(),
   variables: Record<string, string | undefined> = process.env,
+  view?: ExportAnalysisView,
 ): Promise<OwnerExportDataset> {
+  exportSelectionSchema.parse({ dataset, ...(view === undefined ? {} : { view }) });
   if (dataset === "marketing-analytics" || dataset === "social-performance" || dataset === "seo-intelligence") {
     const data = await readAnalyticsDashboard(variables, generatedAt);
     if (data.state !== "ready") throw new Error("ANALYTICS_DATABASE_NOT_READY");
     const reports = data.datasets.filter((report) => dataset === "marketing-analytics" || report.source === (dataset === "social-performance" ? "meta" : "ubersuggest"));
+    if (view) {
+      if (!reports.length) throw new Error("ANALYTICS_NO_COMPLETED_DATA");
+      const analysis = buildPerformanceExport(reports, view, generatedAt);
+      if (!analysis.rows.length) throw new Error("ANALYTICS_NO_COMPLETED_DATA_FOR_VIEW");
+      return analysis;
+    }
     return { ...buildStoredMarketingExport(reports, generatedAt), dataset, title: dataset === "social-performance" ? "Meta · ผลงานโพสต์ที่บันทึกไว้" : dataset === "seo-intelligence" ? "SEO · Research, AISV และ Website CSV ที่บันทึกไว้" : "ข้อมูลการตลาดที่บันทึกไว้" };
   }
 

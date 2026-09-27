@@ -8,7 +8,7 @@ import { fetchMetaReadOnlyDiscovery } from "../social/providers/meta/read-only";
 import { getUbersuggestDashboardData } from "../ubersuggest-dashboard";
 import type { ResearchSnapshotList } from "../research";
 import { buildSeoIntelligenceExport } from "../agent-os/export-datasets";
-import { analyticsDatasetSchema, analyticsDate, analyticsHash, sanitizeAnalyticsRaw, shiftAnalyticsDate, type AnalyticsDataset, type AnalyticsReport, type AnalyticsSource, type RawAnalyticsPage } from "./model";
+import { fetchOptionalGa4Marketing, ga4MarketingReports, analyticsDatasetSchema, analyticsDate, analyticsHash, sanitizeAnalyticsRaw, shiftAnalyticsDate, type AnalyticsDataset, type AnalyticsReport, type AnalyticsSource, type RawAnalyticsPage } from "./model";
 import { beginAnalyticsCollection, finishAnalyticsCollection, readAnalyticsResearch } from "./store";
 
 type FetchLike = typeof fetch;
@@ -38,7 +38,7 @@ export async function collectAnalyticsSource(source: AnalyticsSource, date = ana
   };
   const capturedFetch = (report: AnalyticsReport): FetchLike => async (url, init) => {
     const response = await timedFetch(url, init);
-    if (response.ok || source === "meta") {
+    if (response.ok || source === "meta" || ga4MarketingReports.some((item) => item === report)) {
       const body = sanitizeAnalyticsRaw(await response.clone().json());
       const resource = new URL(url instanceof Request ? url.url : String(url));
       const requestMeta = { path: resource.origin + resource.pathname, parameters: sanitizeAnalyticsRaw({ ...Object.fromEntries(resource.searchParams), ...(typeof init?.body === "string" ? { query: JSON.parse(init.body) } : {}) }) };
@@ -50,6 +50,7 @@ export async function collectAnalyticsSource(source: AnalyticsSource, date = ana
     sourceAsOf: collectedAt, windowStart: null, windowEnd: null, nativeTimeZone: null, overview: [], limitations: [], truncated: false,
     rawHash: analyticsHash(raw.filter((item) => item.report === report).map((item) => item.hash)), lastAttemptAt: collectedAt, lastAttemptStatus: "completed", ...value });
   let reports: AnalyticsDataset[];
+  let ga4BaselineReadyBeforeDeadline = false;
   try {
     if (source === "gsc" || source === "ga4") {
       if (getSeoGoogleProviderReadiness(source, variables).status !== "manual-sync-ready") throw new Error("ANALYTICS_NOT_CONFIGURED");
@@ -71,6 +72,22 @@ export async function collectAnalyticsSource(source: AnalyticsSource, date = ana
         const summary = normalizeGa4Summary(await summaryResponse.json());
         reports = [dataset("ga4-summary", { title: "GA4 · ภาพรวมทุกช่องทาง", windowStart, windowEnd, nativeTimeZone: summary.timeZone, columns: ["ผู้ใช้งาน", "เซสชัน", "เหตุการณ์"], rows: [{ "ผู้ใช้งาน": summary.activeUsers, "เซสชัน": summary.sessions, "เหตุการณ์": summary.eventCount }], limitations: [...summary.limitations, "ยอดรวมทุกช่องทาง; จำนวนผู้ใช้เป็น distinct ในช่วงนี้ ห้ามรวมข้ามรายงาน; ไม่รวมวันนี้"] }),
           dataset("ga4-organic-landing", { title: "GA4 · หน้าเข้า Organic Search", windowStart, windowEnd, nativeTimeZone: detail.timeZone, columns: ["หน้าเข้า", "เซสชัน", "Engaged sessions", "Engagement rate (%)"], rows: detail.rows.map((row) => ({ "หน้าเข้า": row.landingPage, "เซสชัน": row.sessions, "Engaged sessions": row.engagedSessions, "Engagement rate (%)": row.sessions ? row.engagementRate * 100 : null })), limitations: [...detail.limitations, "เฉพาะ Organic Search; ไม่รวม landingPage ที่ (not set); ไม่ใช่ยอดทุกช่องทาง"], truncated: detail.truncated })];
+        ga4BaselineReadyBeforeDeadline = Date.now() <= deadline;
+        const optional = await fetchOptionalGa4Marketing({ propertyId: variables.CCPUN_GA4_PROPERTY_ID!.trim(), token, startDate: windowStart, endDate: windowEnd }, capturedFetch, deadline);
+        for (const result of optional) {
+          if (result.data) reports.push(dataset(result.report, { ...result.data, windowStart, windowEnd, sourceAsOf: windowEnd }));
+          else {
+            // Reject unexpected dimensions before storage too (e.g. landing-page query PII).
+            if (result.error === "invalid-response" || result.error === "time-budget") for (let index = raw.length - 1; index >= 0; index--) if (raw[index]!.report === result.report) raw.splice(index, 1);
+            for (const baseline of reports.filter((item) => item.report === "ga4-summary" || item.report === "ga4-organic-landing")) baseline.limitations.push(`รายงานเสริม ${result.report} ไม่พร้อม (${result.error}); คงรายงานสำเร็จครั้งก่อนถ้ามี ไม่แทนด้วยค่า 0`);
+          }
+        }
+        // Reserve JSONB text overhead. Optional detail must never crowd out the baseline batch.
+        if (Date.now() > deadline || Buffer.byteLength(JSON.stringify({ batchId: claim.batchId, attempt: claim.attempt, reports, raw, error: null })) > 18_000_000) {
+          reports = reports.filter((item) => !ga4MarketingReports.some((optionalReport) => optionalReport === item.report));
+          for (let index = raw.length - 1; index >= 0; index--) if (ga4MarketingReports.some((optionalReport) => optionalReport === raw[index]!.report)) raw.splice(index, 1);
+          for (const baseline of reports) baseline.limitations.push("รายงานเสริมเกินงบเวลา/payload ของรอบนี้; ไม่เก็บ raw/rows ของรายงานเสริม และคงชุดสำเร็จครั้งก่อนถ้ามี");
+        }
       }
     } else if (source === "meta") {
       const discovery = await fetchMetaReadOnlyDiscovery(variables, capturedFetch("social-performance"), { includeInsights: true, insightsBackfillLimit: 50 });
@@ -96,7 +113,7 @@ export async function collectAnalyticsSource(source: AnalyticsSource, date = ana
           limitations: [...(geo?.limitations ?? []), ...(body.dashboard.error === "not-configured" ? ["AISV เป็นแหล่งเสริมที่ยังไม่ configured; รายงานรอบนี้มีเฉพาะ stored Research ไม่ใช่ AISV ค่า 0"] : []), "อ่าน stored Research/AISV เดิม ไม่ยิง Ubersuggest ใหม่; แถว keyword และ prompt มี grain ต่างกัน; provider runtime อยู่บน Local Mac; ไม่รวม 2 คำค้นทดสอบ CSV ที่ COO อนุมัติ", ...(model.research.rows.length > 50_000 || data.rows.length > 50_000 ? ["ถึงขีดจำกัด snapshot 50,000 แถว; raw มี sentinel แถวที่ 50,001 เพื่อยืนยัน coverage ไม่ครบ"] : [])] })];
       }
     }
-    if (Date.now() > deadline) throw new Error("ANALYTICS_SOURCE_UNAVAILABLE");
+    if (Date.now() > deadline && !ga4BaselineReadyBeforeDeadline) throw new Error("ANALYTICS_SOURCE_UNAVAILABLE");
     const status = await finishAnalyticsCollection({ batchId: claim.batchId, attempt: claim.attempt, reports, raw, error: null }, variables);
     return { source, status, batchId: claim.batchId, reports: reports.length };
   } catch (error) {
