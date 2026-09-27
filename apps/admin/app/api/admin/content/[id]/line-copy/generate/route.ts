@@ -5,7 +5,7 @@ import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import {
   applyGeneratedLineCopyToDraft,
-  readArticleDraftLineCopy,
+  readOrCreateArticleDraftLineCopy,
 } from "@/lib/admin/line/description-optimization";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 
@@ -19,9 +19,14 @@ const headers = {
 };
 
 const bodySchema = z.object({
-  draftRevision: z.string().min(1).max(200),
+  sourceRevision: z.string().min(1).max(200).optional(),
+  draftRevision: z.string().min(1).max(200).optional(),
   requestId: z.string().uuid(),
-}).strict();
+}).strict().superRefine((value, context) => {
+  if (!value.sourceRevision && !value.draftRevision) {
+    context.addIssue({ code: "custom", message: "sourceRevision is required" });
+  }
+});
 
 const n8nResultSchema = z.object({
   status: z.enum(["generated", "skipped-existing", "error"]),
@@ -62,18 +67,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const id = (await params).id;
 
   try {
-    const draft = await readArticleDraftLineCopy(id);
-    if (!draft) return NextResponse.json({ error: "line-copy-draft-required" }, { status: 409, headers });
-    if (draft.revision !== parsed.data.draftRevision) {
-      return NextResponse.json({ error: "line-copy-conflict" }, { status: 409, headers });
-    }
+    const sourceRevision = parsed.data.sourceRevision ?? parsed.data.draftRevision;
+    if (!sourceRevision) return NextResponse.json({ error: "invalid-input" }, { status: 400, headers });
+    const draft = await readOrCreateArticleDraftLineCopy(id, sourceRevision);
 
     const existingTitle = draft.lineTitle?.trim() ?? "";
     const existingDescription = draft.lineDescription?.trim() ?? "";
     const missingTitle = !existingTitle;
     const missingDescription = !existingDescription;
     if (!missingTitle && !missingDescription) {
-      return NextResponse.json({ status: "skipped-existing", appliedFields: [], revision: draft.revision }, { headers });
+      return NextResponse.json({
+        status: "skipped-existing",
+        appliedFields: [],
+        revision: draft.revision,
+        lineTitle: existingTitle,
+        lineDescription: existingDescription,
+      }, { headers });
     }
 
     const token = process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
@@ -136,7 +145,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }, { status: 502, headers });
     }
     if (result.data.status === "skipped-existing") {
-      return NextResponse.json({ status: "skipped-existing", appliedFields: [], revision: draft.revision }, { headers });
+      return NextResponse.json({
+        status: "skipped-existing",
+        appliedFields: [],
+        revision: draft.revision,
+        lineTitle: existingTitle,
+        lineDescription: existingDescription,
+      }, { headers });
     }
 
     const applied = await applyGeneratedLineCopyToDraft({
@@ -151,6 +166,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       revision: applied.revision,
       repairAttempt: result.data.repairAttempt ?? 0,
       elapsedMs: result.data.elapsedMs ?? null,
+      lineTitle: result.data.lineTitle ?? existingTitle,
+      lineDescription: result.data.lineDescription ?? existingDescription,
     }, { headers });
   } catch (error) {
     return failure(error);

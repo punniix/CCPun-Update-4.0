@@ -79,6 +79,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/admin-not-found/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+      {
         source: "/:path*",
         headers: [...SECURITY_HEADERS, ...REVIEW_HEADERS],
       },

@@ -108,6 +108,47 @@ test("Production social runtime requires every immutable deployment and data ide
   }
 });
 
+test("Social runtime accepts explicit Hostinger Admin identity without Vercel project variables", () => {
+  const hostingerUat = resolveSocialRuntime({
+    ...uatEnv,
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_GIT_REF: "admin/hostinger-uat",
+    VERCEL_ENV: undefined,
+    VERCEL_PROJECT_ID: undefined,
+    CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: undefined,
+    VERCEL_GIT_COMMIT_REF: undefined,
+  }, { requireUatNeon: true });
+  assert.equal(hostingerUat?.lane, "uat");
+  assert.equal(hostingerUat?.provider, "hostinger");
+  assert.equal(hostingerUat?.projectId, null);
+
+  const hostingerProduction = resolveSocialRuntime({
+    ...productionEnv,
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_GIT_REF: SOCIAL_PRODUCTION_BRANCH,
+    VERCEL_ENV: undefined,
+    VERCEL_PROJECT_ID: undefined,
+    CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: undefined,
+    VERCEL_GIT_COMMIT_REF: undefined,
+  }, { uatBranches: [] });
+  assert.equal(hostingerProduction?.lane, "production");
+  assert.equal(hostingerProduction?.provider, "hostinger");
+  assert.equal(hostingerProduction?.projectId, null);
+
+  assert.equal(resolveSocialRuntime({
+    ...productionEnv,
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_GIT_REF: SOCIAL_PRODUCTION_BRANCH,
+    VERCEL_ENV: undefined,
+    VERCEL_PROJECT_ID: undefined,
+    CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: undefined,
+    VERCEL_GIT_COMMIT_REF: undefined,
+  }, { uatBranches: [] }), null);
+});
+
 test("Production feature gates share the boundary and provider writes remain explicit", () => {
   const enabled = {
     ...productionEnv,

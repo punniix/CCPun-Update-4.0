@@ -449,3 +449,16 @@ Production activation of real fund planning remains blocked until:
 7. Preview/UAT findings are resolved.
 
 No Production merge is included in the UAT scope.
+
+
+## 16. Current-base development refresh — 2026-09-27
+
+This draft includes Production `ef31f9e22322cc9373fa468a76c97567fd84eab3`, including current Web/Admin entrypoints, Hosting Portability, the Admin LINE gateway foundation and Research CSV import. It preserves the prior catalog/AMC/UI fixes from `7b826508`; the original PR head is an ancestor, so updating the existing PR requires no force push.
+
+The deployment-environment conflict was resolved by retaining the current `resolveDeploymentIdentity` boundary and the existing explicit `CCPUN_UAT_MODE=true` review flag. Vercel Preview alone does not bypass the current content-lane or deployment identity rules. Development must use the approved UAT lane, not Production credentials or a stale shared checkout.
+
+Use Node 24.x, install this worktree's lockfile with `npm ci`, then run `npm run check:foundation`. For the active Public Web app use `npm run build:web:shadow` and `npm run dev --workspace @ccpun/web` with the current approved UAT identity configuration. Do not symlink dependencies from another checkout or copy an `.env` from an unrelated lane.
+
+This refresh prepares ongoing development. PR #165 stays draft; the real SEC mapping/data-source ownership, compliance, Figma/accessibility and owner Preview gates in sections 14–15 still apply. No SEC/provider credentials, database writes, Production merge or activation are part of this refresh.
+
+Development regression corrected: active app builds emit `apps/*/.next/`, but the former root-only Git/ESLint ignores exposed compiled files to later lint runs. Both ignores now cover nested `.next` outputs; source lint and type checks remain unchanged. This avoids a build → foundation failure during normal development.

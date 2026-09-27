@@ -25,6 +25,7 @@ function statusLabel(status: string) {
   if (status === "reconciliation-required") return "สถานะยังไม่ชัด ต้องตรวจอีกครั้ง";
   if (status === "failed") return "ไม่สำเร็จ";
   if (status === "stale") return "ข้อมูลเปลี่ยนแล้ว";
+  if (status === "cancelled") return "ยกเลิกแล้ว";
   return "ต้องตรวจ";
 }
 

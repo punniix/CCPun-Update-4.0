@@ -12,6 +12,7 @@ const ciRecoverySection = read('features/ci-planning/components/steps/RecoveryRe
 const card = read('components/ui/HumanCalculatorCard.tsx');
 const fhcWizard = read('features/financial-health-check/components/LifeCoverageWizard.tsx');
 const ciResult = read('features/ci-planning/components/result/CIResult.tsx');
+const ciImageActions = read('features/ci-planning/components/ResultImageDownloadButton.tsx');
 const website43Css = read('components/layout/website-43/Website43.module.css');
 
 test('FHC and CI use the Production Website 4.3 shell and approved Figma tool hero language', () => {
@@ -101,11 +102,50 @@ test('tool FAQ answers keep breathing room from divider lines on mobile', () => 
   assert.match(website43Css, /\.faqDetails p \{ padding: 6px 0 34px; \}/);
 });
 
-test('mobile CI story cards expose swipe, arrows and position cue without changing desktop grid', () => {
+test('CI gap and its income or expense breakdown share one card, separate from Recovery Reserve', () => {
+  const cardStart = ciResult.indexOf('<section className="ccpun-calculator-result-panel">');
+  const cardEnd = ciResult.indexOf('</section>', cardStart);
+  const card = ciResult.slice(cardStart, cardEnd);
+  assert.ok(cardStart >= 0 && cardEnd > cardStart);
+  assert.match(card, /differenceLabel[\s\S]*baht\(difference\)[\s\S]*availableResources[\s\S]*<details className="ccpun-calculator-result-details">/);
+  assert.match(card, /activeMethod === 'expense'[\s\S]*incomeBaseNeed/);
+  assert.equal((card.match(/<dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">/g) ?? []).length, 2);
+  assert.doesNotMatch(card, /lg:grid-cols-4|sm:grid-cols-2/);
+  assert.doesNotMatch(card, /sm:flex-row/);
+  assert.ok(ciResult.indexOf('aria-labelledby="ci-recovery-result-title"') > cardEnd);
+  assert.match(website43Css, /ccpun-calculator-result-details\) \{ margin-top: 18px; padding-top: 16px; border-top:/);
+  assert.match(website43Css, /ccpun-calculator-result-breakdown \.ccpun-calculator-result-row\) \{ display: grid; grid-template-columns: minmax\(0,1fr\) auto/);
+});
+
+test('CI result actions and FAQ spacing stay aligned without changing shared FHC styles', () => {
+  assert.match(ciResult, /ccpun-calculator-result-cta ccpun-ci-result-cta/);
+  assert.match(ciResult, /<h3>อยากทบทวนตัวเลขต่อ\?<\/h3>[\s\S]*ccpun-ci-result-cta-copy[\s\S]*<ResultImageDownloadButton[\s\S]*ccpun-ci-result-cta-line/);
+  assert.match(ciImageActions, /canShareFile \? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'/);
+  assert.match(ciImageActions, /empty:sr-only/);
+  assert.doesNotMatch(ciImageActions, /min-h-5/);
+  assert.match(website43Css, /\.calculatorStage :global\(\.ccpun-ci-result-cta-inner\) \{ width: min\(560px,100%\); margin-inline: auto; \}/);
+  assert.match(website43Css, /\.toolStorySection\[aria-labelledby="ci-reading-title"\] \.faqDetails \{ margin-top: 24px; \}/);
+  assert.match(website43Css, /\.toolStorySection\[aria-labelledby="ci-reading-title"\] \.faqDetails \{ margin-top: 20px; \}/);
+  assert.match(fhcWizard, /className="ccpun-calculator-result-cta"/);
+});
+
+test('mobile CI story cards loop around a centered card with swipe, arrows and paused autoplay', () => {
   const intro = read('features/ci-planning/components/CILandingIntro.tsx');
   assert.match(intro, /ChevronLeft/);
   assert.match(intro, /ChevronRight/);
-  assert.match(intro, /storyIndex \+ 1/);
+  assert.match(intro, /length: 9/);
+  assert.match(intro, /nearest < 3 \? nearest \+ 3 : nearest - 3/);
+  assert.match(intro, /centerStory\(node, next, 'smooth'\);\s+setStoryIndex\(next\);\s+\}, 4000\)/);
+  assert.match(intro, /isHovered \|\| isFocused \|\| hasInteracted \|\| isPageHidden \|\| reducedMotion/);
+  assert.match(intro, /setHasInteracted\(true\);\s+const next = Math\.max/);
+  assert.match(intro, /onPointerDown=\{\(\) => setHasInteracted\(true\)\}/);
+  assert.match(intro, /onWheel=\{\(event\) => \{ if \(Math\.abs\(event\.deltaX\) > Math\.abs\(event\.deltaY\)\) setHasInteracted\(true\); \}\}/);
+  assert.doesNotMatch(intro, /ciStoryAutoToggle|เล่นอัตโนมัติ|หยุดเลื่อนอัตโนมัติ/);
+  assert.doesNotMatch(website43Css, /ciStoryAutoToggle/);
+  assert.doesNotMatch(intro, /ปัดซ้าย–ขวาได้/);
   assert.match(website43Css, /scroll-snap-type: x mandatory/);
+  assert.match(website43Css, /scroll-snap-align: center/);
+  assert.match(website43Css, /ciStoryCarouselControls button:first-child \{ left:/);
+  assert.match(website43Css, /ciStoryGrid > :nth-child\(n\+4\) \{ display: none; \}/);
   assert.match(website43Css, /ciStoryCarouselControls/);
 });

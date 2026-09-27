@@ -8,11 +8,12 @@ test("Sanity LINE actions stay separate from normal article publish and show ela
   const config = read("sanity.config.ts");
   const action = read("cms/sanity/policy/article-line-copy-action.tsx");
   assert.match(config, /appendArticleLineCopyActions/);
-  assert.match(action, /กำลังสร้าง LINE… \$\{elapsed\} วินาที/);
+  assert.match(action, /กำลังสร้างข้อความ LINE… \$\{elapsed\} วินาที/);
   assert.match(action, /Publish LINE only/);
   assert.match(action, /เนื้อหาและงาน SEO อื่นใน Draft จะยังไม่ถูกเผยแพร่/);
   assert.match(action, /inFlight\.current/);
-  assert.match(action, /complete \|\| !draft\?\._rev/);
+  assert.match(action, /const source = draft \?\? published/);
+  assert.match(action, /complete \|\| !source\?\._rev/);
 });
 
 test("server bridge calls n8n only from server and applies missing LINE fields with revision guard", () => {

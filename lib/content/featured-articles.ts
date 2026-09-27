@@ -3,6 +3,14 @@ import type { Article } from "./types";
 export const DEFAULT_FEATURED_ARTICLE_COUNT = 6;
 export const MAX_FEATURED_ARTICLE_COUNT = 8;
 
+export function parseBlogFeaturedArticleIds(value: unknown): string[] | null {
+  if (value == null) return [];
+  if (typeof value !== "object" || Array.isArray(value)) return null;
+  const ids = (value as { featuredArticleIds?: unknown }).featuredArticleIds;
+  if (ids == null) return [];
+  return Array.isArray(ids) && ids.every((id) => typeof id === "string" && id.trim().length > 0) ? ids : null;
+}
+
 function normalizeDocumentId(id: string) {
   return id.replace(/^drafts\./, "");
 }

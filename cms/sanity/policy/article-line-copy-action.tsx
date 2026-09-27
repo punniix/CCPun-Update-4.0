@@ -36,9 +36,35 @@ function logicalId(value: string) {
   return value.replace(/^drafts\./, "");
 }
 
+export type ArticleLineCopyResult = {
+  status?: string;
+  lineTitle?: string;
+  lineDescription?: string;
+  appliedFields?: string[];
+  revision?: string;
+};
+
+export async function requestArticleLineCopy(id: string, sourceRevision: string) {
+  const endpoint = `/api/admin/content/${encodeURIComponent(logicalId(id))}/line-copy/generate/`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ sourceRevision, requestId: crypto.randomUUID() }),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  const result = await response.json() as ArticleLineCopyResult;
+  if (!["applied", "skipped-existing"].includes(result.status ?? "")) {
+    throw new Error("ระบบตอบผล LINE copy ไม่ครบ");
+  }
+  return result;
+}
+
 export function createGenerateArticleLineCopyAction(): DocumentActionComponent {
   const GenerateArticleLineCopyAction: DocumentActionComponent = (props) => {
     const draft = props.draft as LineArticle | null;
+    const published = props.published as LineArticle | null;
     const sync = useSyncState(props.id, props.type);
     const [busy, setBusy] = useState(false);
     const [elapsed, setElapsed] = useState(0);
@@ -55,28 +81,19 @@ export function createGenerateArticleLineCopyAction(): DocumentActionComponent {
       return () => window.clearInterval(timer);
     }, [busy]);
 
-    const existingTitle = draft?.lineTitle?.trim() ?? "";
-    const existingDescription = draft?.lineDescription?.trim() ?? "";
+    const source = draft ?? published;
+    const existingTitle = source?.lineTitle?.trim() ?? "";
+    const existingDescription = source?.lineDescription?.trim() ?? "";
     const complete = Boolean(existingTitle && existingDescription);
-    const disabled = Boolean(busy || sync.isSyncing || complete || !draft?._rev || props.version || props.liveEdit);
-    const endpoint = `/api/admin/content/${encodeURIComponent(logicalId(props.id))}/line-copy/generate/`;
+    const disabled = Boolean(busy || sync.isSyncing || complete || !source?._rev || props.version || props.liveEdit);
 
     async function generate() {
-      if (inFlight.current || disabled || !draft?._rev) return;
+      if (inFlight.current || disabled || !source?._rev) return;
       inFlight.current = true;
       setBusy(true);
       setError(null);
       try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          credentials: "same-origin",
-          cache: "no-store",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ draftRevision: draft._rev, requestId: crypto.randomUUID() }),
-        });
-        if (!response.ok) throw new Error(await readError(response));
-        const result = await response.json() as { status?: string };
-        if (!["applied", "skipped-existing"].includes(result.status ?? "")) throw new Error("ระบบตอบผล LINE copy ไม่ครบ");
+        await requestArticleLineCopy(props.id, source._rev);
         props.onComplete();
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "ระบบยังทำรายการนี้ไม่สำเร็จ และยังไม่ได้แก้บทความ");
@@ -87,12 +104,14 @@ export function createGenerateArticleLineCopyAction(): DocumentActionComponent {
     }
 
     return {
-      label: busy ? `กำลังสร้าง LINE… ${elapsed} วินาที` : complete ? "LINE พร้อมแล้ว" : "Generate LINE copy",
+      label: busy ? `กำลังสร้างข้อความ LINE… ${elapsed} วินาที` : complete ? "LINE พร้อมแล้ว" : "สร้างข้อความ LINE",
       title: complete
-        ? "บทความนี้มี LINE Title และ LINE Description ครบแล้ว ระบบจะไม่สร้างซ้ำหรือเขียนทับ"
+        ? "บทความนี้มีหัวข้อและคำโปรย LINE ครบแล้ว ระบบจะไม่สร้างซ้ำหรือเขียนทับ"
         : draft
-          ? "สร้างเฉพาะ LINE Title / Description ที่ยังว่างด้วย Local AI ผ่าน n8n"
-          : "ต้องมีฉบับร่างก่อนจึงจะสร้างข้อความ LINE ได้",
+          ? "สร้างเฉพาะหัวข้อหรือคำโปรย LINE ที่ยังว่างด้วย Local AI ผ่าน n8n"
+          : published
+            ? "สร้าง Draft จากฉบับ Live แล้วเติมเฉพาะหัวข้อหรือคำโปรย LINE ที่ยังว่าง"
+            : "บันทึกบทความก่อน แล้วจึงสร้างข้อความ LINE ได้",
       disabled,
       onHandle: () => void generate(),
       dialog: error ? {

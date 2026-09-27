@@ -7,6 +7,7 @@ import {
   listCategoryMenuEntries,
   listPhysicalCategorySitemapEntries,
   loadCategoryRegistrySafe,
+  parseCategoryRegistryResponse,
   resolveCategoryRoute,
   type RawCategoryRegistryRow,
 } from "../../lib/content/category-registry";
@@ -147,6 +148,21 @@ test("one malformed category and registry request failure fail soft", async () =
   const unavailable = await loadCategoryRegistrySafe(async () => { throw new Error("Sanity unavailable"); });
   assert.equal(unavailable.available, false);
   assert.equal(unavailable.entries.length, 0);
+  assert.deepEqual(resolveCategoryRoute(unavailable, "health-insurance", { includeDrafts: false }), { kind: "unavailable" });
+});
+
+test("registry envelope must include all collision inputs before categories become available", () => {
+  const valid = {
+    categories: productionSix,
+    routeOwnerSlugs: [],
+    canonicalOwnerUrls: [],
+    referencedCategoryIds: [],
+  };
+  const parsed = parseCategoryRegistryResponse(valid);
+  assert.equal(buildCategoryRegistry(parsed.rows, parsed.context).active.length, 6);
+  for (const broken of [null, {}, { ...valid, categories: null }, { ...valid, routeOwnerSlugs: null }, { ...valid, canonicalOwnerUrls: [42] }]) {
+    assert.throws(() => parseCategoryRegistryResponse(broken));
+  }
 });
 
 test("physical category filtering is independent from semantic topic filtering", () => {

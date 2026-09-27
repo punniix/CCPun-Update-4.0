@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { curateFeaturedArticles } from "../../lib/content/featured-articles";
+import { curateFeaturedArticles, parseBlogFeaturedArticleIds } from "../../lib/content/featured-articles";
 import type { Article } from "../../lib/content/types";
 
 function article(id: string, publishedAt: string, status: Article["status"] = "published"): Article {
@@ -66,4 +66,11 @@ test("manual list can extend beyond the default count but is capped at eight", (
 
   assert.equal(result.length, 8);
   assert.deepEqual(result.map(({ id }) => id), manual.slice(0, 8));
+});
+
+test("unavailable or malformed featured settings do not fabricate a curated list", () => {
+  assert.deepEqual(parseBlogFeaturedArticleIds(null), []);
+  assert.deepEqual(parseBlogFeaturedArticleIds({ featuredArticleIds: ["article-a"] }), ["article-a"]);
+  assert.equal(parseBlogFeaturedArticleIds({ featuredArticleIds: ["article-a", null] }), null);
+  assert.equal(parseBlogFeaturedArticleIds({ featuredArticleIds: "article-a" }), null);
 });

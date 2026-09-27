@@ -60,3 +60,60 @@ test("Production content lanes cannot cross project or dataset boundaries", () =
   assert.equal(isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "production", "production", ADMIN_PROJECT_ID), false);
   assert.equal(isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "production", "production-admin", WEB_PROJECT_ID), false);
 });
+
+
+test("legacy Sanity UAT project is rejected for all active UAT lanes", () => {
+  for (const [environment, projectId] of [
+    ["web-uat", WEB_PROJECT_ID],
+    ["admin-uat", ADMIN_PROJECT_ID],
+  ] as const) {
+    assert.equal(
+      isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "uat", environment, projectId),
+      false,
+      environment,
+    );
+  }
+});
+
+test("Hostinger Web and Admin can use the same Sanity lanes without a fake Vercel project ID", () => {
+  const web = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_APP_ENV: "production",
+  };
+  assert.equal(isContentDeploymentAllowed("production", undefined, web), true);
+  assert.equal(
+    isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "production", "production", undefined, web),
+    true,
+  );
+
+  const admin = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_APP_ENV: "production-admin",
+  };
+  assert.equal(isContentDeploymentAllowed("production-admin", undefined, admin), true);
+  assert.equal(
+    isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "production", "production-admin", undefined, admin),
+    true,
+  );
+});
+
+test("Hostinger content identity fails closed on role or lane mismatch", () => {
+  const web = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_APP_ENV: "production",
+  };
+  assert.equal(isContentDeploymentAllowed("production-admin", undefined, web), false);
+  assert.equal(
+    isContentSanityLaneAllowed(PRODUCTION_PROJECT_ID, "production", "production-admin", undefined, web),
+    false,
+  );
+
+  const fakeVercel = {
+    ...web,
+    VERCEL_PROJECT_ID: WEB_PROJECT_ID,
+  };
+  assert.equal(isContentDeploymentAllowed("production", WEB_PROJECT_ID, fakeVercel), false);
+});

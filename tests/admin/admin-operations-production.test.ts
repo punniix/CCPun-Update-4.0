@@ -46,8 +46,8 @@ test("runtime identity accepts only the exact Production Admin lane", () => {
     connectionString: "postgresql://ccpun_admin_runtime:secret@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
     vercelEnvironment: "production",
     gitBranch: "v4-production",
-    vercelProjectId: "prj_admin",
-    productionAdminProjectId: "prj_admin",
+    vercelProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
+    productionAdminProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
   };
   assert.equal(isAdminOperationsRuntimeIdentityValid(valid), true);
   for (const changed of [
@@ -57,6 +57,7 @@ test("runtime identity accepts only the exact Production Admin lane", () => {
     { vercelEnvironment: "preview" },
     { gitBranch: "feature/admin" },
     { vercelProjectId: "prj_other" },
+    { vercelProjectId: undefined },
     { connectionString: "postgresql://ccpun_admin_runtime:secret@ep-mute-frost-aztvz394.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require" },
     { connectionString: "postgresql://neondb_owner:secret@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require" },
   ]) assert.equal(isAdminOperationsRuntimeIdentityValid({ ...valid, ...changed }), false);

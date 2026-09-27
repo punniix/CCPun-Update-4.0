@@ -79,6 +79,38 @@ test("SEO Intelligence retains exact Admin UAT branches and adds only the exact 
   ]) assert.equal(isSeoIntelligenceEnabled({ ...productionInput, ...change }), false, JSON.stringify(change));
 });
 
+test("SEO Intelligence accepts explicit Hostinger Admin identity without fake Vercel project variables", () => {
+  const productionInput = {
+    flag: "1",
+    environment: "production-admin" as const,
+    deploymentProvider: "hostinger",
+    deploymentRole: "admin",
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
+    gitBranch: WEBSITE_42_SEO_PRODUCTION_BRANCH,
+    sanityProjectId: WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID,
+    sanityDataset: WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET,
+  };
+  assert.equal(isSeoIntelligenceEnabled(productionInput), true);
+  assert.equal(isSeoIntelligenceEnabled({ ...productionInput, deploymentRole: "web" }), false);
+  assert.equal(isSeoIntelligenceEnabled({ ...productionInput, gitBranch: "feature/not-production" }), false);
+
+  const uatInput = {
+    flag: "1",
+    environment: "admin-uat" as const,
+    deploymentProvider: "hostinger",
+    deploymentRole: "admin",
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
+    gitBranch: "admin/hostinger-seo-uat",
+    sanityProjectId: WEBSITE_42_SEO_SANITY_PROJECT_ID,
+    sanityDataset: WEBSITE_42_SEO_SANITY_DATASET,
+  };
+  assert.equal(isSeoIntelligenceEnabled(uatInput), true);
+});
+
 test("Four deterministic detectors find intended fixtures and suppress known false positives", () => {
   const opportunities = detectSeoOpportunities(SYNTHETIC_SEO_OBSERVATIONS);
   assert.equal(opportunities.length, 4);

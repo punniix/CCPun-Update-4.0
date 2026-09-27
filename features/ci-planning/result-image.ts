@@ -1,13 +1,12 @@
 import { CI_ESTIMATION_METHOD_LABELS } from './calculator/constants';
 import type { CIEstimationMethod, CIResult } from './calculator/types';
+import { getRecoveryModeLabel } from './recovery-evidence';
 import {
-  RESULT_SHARE_IMAGE_HEIGHT,
   RESULT_SHARE_IMAGE_WIDTH,
   renderResultShareImage,
 } from '@/lib/shared/result-share-image';
 
 export const RESULT_IMAGE_WIDTH = RESULT_SHARE_IMAGE_WIDTH;
-export const RESULT_IMAGE_HEIGHT = RESULT_SHARE_IMAGE_HEIGHT;
 
 const SUMMARY_DISCLAIMER = 'ผลลัพธ์นี้เป็นประมาณการเบื้องต้นจากข้อมูลที่กรอก';
 const IMAGE_NOTICE = 'ไม่ใช่คำแนะนำเฉพาะบุคคลหรือเอกสารรับรอง';
@@ -22,8 +21,11 @@ export interface CIResultImageSummary {
   liquidAssets: number;
   availableResources: number;
   recoveryReserve: number;
+  protectedAssetsNeed: number;
   shortfall: number;
   surplus: number;
+  targetItems: readonly Readonly<{ label: string; amount: number }>[];
+  resourceItems: readonly Readonly<{ label: string; amount: number }>[];
   breakdown: Readonly<{
     household: number;
     education: number;
@@ -50,6 +52,24 @@ export function createCIResultImageSummary(
       debt: result.debtNeed,
       recovery: result.recoveryReserveNeed,
     });
+  const mainNeedToday = isIncomeMethod ? result.incomeBasedNeed : result.calculatedNeed;
+  const targetItems = (isIncomeMethod
+    ? [{ label: 'ฐานตามรายได้', amount: Math.max(mainNeedToday - result.recoveryReserveNeed - result.protectedAssetsNeed, 0) }]
+    : [
+      { label: 'ค่าใช้จ่ายครัวเรือน', amount: result.householdNeed },
+      { label: 'การศึกษา', amount: result.educationNeed },
+      { label: 'ภาระหนี้', amount: result.debtNeed },
+    ]).filter((item) => item.amount > 0);
+  if (mainNeedToday > 0 && result.recoveryReserveNeed > 0) {
+    targetItems.push({ label: `สำรองฟื้นฟู (${getRecoveryModeLabel(result.recoveryMode)})`, amount: result.recoveryReserveNeed });
+  }
+  if (mainNeedToday > 0 && result.protectedAssetsNeed > 0) {
+    targetItems.push({ label: 'เป้าหมายรักษาสินทรัพย์', amount: result.protectedAssetsNeed });
+  }
+  const resourceItems = [
+    { label: 'ประกันโรคร้ายแรง', amount: result.existingCoverage },
+    { label: 'สินทรัพย์สภาพคล่อง', amount: result.liquidAssets },
+  ].filter((item) => item.amount > 0);
 
   return Object.freeze({
     toolName: 'การวางแผนทุนโรคร้ายแรง' as const,
@@ -60,13 +80,16 @@ export function createCIResultImageSummary(
     }),
     estimationMethod,
     methodLabel: CI_ESTIMATION_METHOD_LABELS[estimationMethod],
-    mainNeedToday: isIncomeMethod ? result.incomeBasedNeed : result.calculatedNeed,
+    mainNeedToday,
     existingCICover: result.existingCoverage,
     liquidAssets: result.liquidAssets,
     availableResources: result.availableResources,
     recoveryReserve: result.recoveryReserveNeed,
+    protectedAssetsNeed: result.protectedAssetsNeed,
     shortfall: isIncomeMethod ? result.incomeShortfall : result.shortfall,
     surplus: isIncomeMethod ? result.incomeSurplus : result.surplus,
+    targetItems: Object.freeze(targetItems.map((item) => Object.freeze(item))),
+    resourceItems: Object.freeze(resourceItems.map((item) => Object.freeze(item))),
     breakdown,
     assessmentVersion,
     disclaimer: SUMMARY_DISCLAIMER,
@@ -74,8 +97,12 @@ export function createCIResultImageSummary(
   });
 }
 
+function amount(value: number): string {
+  return Math.round(value).toLocaleString('th-TH');
+}
+
 function baht(value: number): string {
-  return `${Math.round(value).toLocaleString('th-TH')} บาท`;
+  return `${amount(value)} บาท`;
 }
 
 export async function renderCIResultImage(
@@ -89,22 +116,30 @@ export async function renderCIResultImage(
       ? 'เงินและสินทรัพย์ที่มีมากกว่าประมาณการ'
       : 'ส่วนต่างจากประมาณการ';
   const differenceValue = summary.shortfall > 0 ? summary.shortfall : summary.surplus;
-  const baseNeed = Math.max(summary.mainNeedToday - summary.recoveryReserve, 0);
   const methodDetail = summary.breakdown
-    ? `ทุนตามรายจ่ายพื้นฐาน ${baht(baseNeed)} + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`
-    : `รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก = ${baht(baseNeed)}; + Recovery Reserve ${baht(summary.recoveryReserve)} = ${baht(summary.mainNeedToday)}`;
+    ? `ครัวเรือน ${baht(summary.breakdown.household)} · การศึกษา ${baht(summary.breakdown.education)} · หนี้ ${baht(summary.breakdown.debt)}`
+    : 'รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก';
 
   return renderResultShareImage({
     toolName: summary.toolName,
-    resultLabel: `ประมาณการทุนเบื้องต้น · ${summary.methodLabel}`,
+    resultLabel: `ประมาณการทุนโรคร้ายแรงที่ควรมีจาก${summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'}`,
     primaryAmount: baht(summary.mainNeedToday),
     metrics: [
       { label: 'เงินก้อนจากประกันโรคร้ายแรง', value: baht(summary.existingCICover) },
       { label: 'สินทรัพย์สภาพคล่อง', value: baht(summary.liquidAssets) },
       { label: differenceLabel, value: baht(differenceValue), emphasis: true },
     ],
-    methodTitle: `วิธีประมาณการทุนตาม${summary.methodLabel.replace('ทุนตาม', '')}`,
+    methodTitle: `ประเมินจาก${summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'}`,
     methodDetail,
+    dateLabel: `ประเมินเมื่อ ${summary.generatedDate}`,
+    composition: {
+      targetItems: summary.targetItems,
+      resourceItems: summary.resourceItems,
+      resourcesText: baht(summary.availableResources),
+      targetAmount: summary.mainNeedToday,
+      resourcesAmount: summary.availableResources,
+      protectedAssetsAmount: summary.protectedAssetsNeed,
+    },
     noticeTitle: summary.disclaimer,
     noticeDetail: summary.imageNotice,
     actionLabel: 'เพิ่มเพื่อน LINE @ccpun',

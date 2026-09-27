@@ -46,6 +46,7 @@ function statusLabel(status: string) {
   if (status === "reconciliation-required") return "สถานะยังไม่ชัด ต้องตรวจอีกครั้ง";
   if (status === "stale") return "บทความเปลี่ยนแล้ว ต้องตั้งเวลาใหม่";
   if (status === "failed") return "ไม่สำเร็จ";
+  if (status === "cancelled") return "ยกเลิกแล้ว";
   return "ต้องตรวจ";
 }
 
@@ -80,7 +81,8 @@ export default async function ContentCalendarPage() {
   const titleById = new Map(
     articles.rows.map((article) => [article.id.replace(/^drafts\./, ""), article.title || article.id]),
   );
-  const records = [...scheduler.schedules].sort((a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at));
+  // ponytail: cancelled jobs stay in Audit rather than the calendar.
+  const records = scheduler.schedules.filter((record) => record.status !== "cancelled").sort((a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at));
   const groups = new Map<string, ArticleScheduleRecord[]>();
   for (const record of records) {
     const key = dayKey(record.scheduled_at);
