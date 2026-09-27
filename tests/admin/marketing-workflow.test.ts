@@ -37,17 +37,24 @@ test("persistent workspace creates seven named tabs atomically and never removes
   assert.ok(updated.every((request: { updateCells: { range: { sheetId: number } } }) => request.updateCells.range.sheetId !== 0 && request.updateCells.range.sheetId !== 1));
 });
 
-test("Workspace completion timestamp obeys runtime terminal-state constraint during human review", () => {
+test("Workspace runtime completes only after confirmed Google HTTP200 and retains safe review status otherwise", () => {
   const node = workflow.nodes.find((item: { name: string }) => item.name === "Marketing · บันทึกผล Workspace");
   const expression = String(node.parameters.jsonBody).slice(3, -2).trim();
-  const evaluate = new Function("$", `return ${expression};`);
-  for (const preserveActionPlan of [false, true]) {
-    const payload = evaluate((name: string) => ({ first: () => ({ json: name === "Runtime · เริ่มงาน" ? { rowVersion: 2 } : name === "เตรียม Export" ? { startedAt: "2026-09-27T00:00:00Z" } : { preserveActionPlan, spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/edit` } }) }));
-    assert.equal(payload.status, preserveActionPlan ? "reconciliation_required" : "completed");
+  const evaluate = new Function("$", "$json", `return ${expression};`);
+  const writeNode=workflow.nodes.find((item: { name: string })=>item.name==="Marketing · เขียน 7 ชีต Atomic");
+  assert.equal(writeNode.parameters.options.response.response.fullResponse,true);
+  assert.equal(writeNode.parameters.options.response.response.neverError,true);
+  assert.equal(writeNode.onError,"continueErrorOutput");
+  assert.match(node.parameters.url,/first\(\)\.json\.jobId/);assert.doesNotMatch(node.parameters.url,/\.item/);
+  for (const statusCode of [200,400,undefined]) for (const preserveActionPlan of [false,true]) {
+    const payload = evaluate((name: string) => ({ first: () => ({ json: name === "Runtime · เริ่มงาน" ? { rowVersion: 2 } : name === "เตรียม Export" ? { startedAt: "2026-09-27T00:00:00Z" } : { preserveActionPlan, spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/edit` } }) }),{statusCode,body:{error:{message:"private provider response must not be retained"}}});
+    const completed=statusCode===200&&!preserveActionPlan;
+    assert.equal(payload.status,completed?"completed":"reconciliation_required");
     assert.equal(payload.completedAt !== null, payload.status === "completed");
-    assert.equal(payload.expectedVersion, 2); assert.equal(payload.providerReference, `https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
-    if (preserveActionPlan) assert.equal(payload.errorCategory, "marketing-actions-review-required");
-    else assert.ok(Number.isFinite(Date.parse(payload.completedAt)));
+    assert.equal(payload.expectedVersion, 2); assert.equal(payload.providerReference,statusCode===200?`https://docs.google.com/spreadsheets/d/${sheetId}/edit`:null);
+    if(completed)assert.ok(Number.isFinite(Date.parse(payload.completedAt)));
+    else assert.equal(payload.errorCategory,statusCode===200?"marketing-actions-review-required":`google-sheet-http-${statusCode??"unknown"}`);
+    assert.doesNotMatch(JSON.stringify(payload),/private provider response/);
   }
 });
 
