@@ -453,7 +453,7 @@ No Production merge is included in the UAT scope.
 
 ## 16. Current-base development refresh — 2026-09-27
 
-This draft includes final Production `275845a6b1f4988d40ac132e4f511007a8590129`, including current Web/Admin entrypoints, Hosting Portability, the Admin LINE gateway foundation, runtime bridge proof, Research CSV import and the latest LINE/Sanity editorial fixes. It preserves the prior catalog/AMC/UI fixes from `7b826508`; the original PR head is an ancestor, so updating the existing PR requires no force push.
+This draft includes final Production `da9f96755b43453f7bca3b27d97b813f651b98c3`, including current Web/Admin entrypoints, Hosting Portability, the Admin LINE gateway foundation, runtime bridge proof, Research CSV import and the latest LINE/Sanity editorial fixes plus the runtime-privilege health correction. It preserves the prior catalog/AMC/UI fixes from `7b826508`; the original PR head is an ancestor, so updating the existing PR requires no force push.
 
 The deployment-environment conflict was resolved by retaining the current `resolveDeploymentIdentity` boundary and the existing explicit `CCPUN_UAT_MODE=true` review flag. Vercel Preview alone does not bypass the current content-lane or deployment identity rules. Development must use the approved UAT lane, not Production credentials or a stale shared checkout.
 
