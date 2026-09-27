@@ -11,10 +11,10 @@ import { readAnalyticsDashboard } from "./store";
 
 export const ANALYTICS_REVIEW_MIGRATION_VERSION = "20260927_analytics_local_review_v3";
 export const ANALYTICS_REVIEW_MIGRATION_CHECKSUM = "sha256:df860b9218c535786bbdc3d6459e18cc76d76e6ea3b35c3d5e1ef64241b5d5ca";
-const jobSchema = z.object({ jobId: z.string().uuid(), status: localAiJobStatusSchema, reviewStatus: localAiReviewStatusSchema.nullable(), modelName: z.string().nullable(), createdAt: z.string().datetime(), completedAt: z.string().datetime().nullable(), output: analyticsReviewOutputSchema.nullable() }).strict();
+const jobSchema = z.object({ jobId: z.string().uuid(), status: localAiJobStatusSchema, reviewStatus: localAiReviewStatusSchema.nullable(), modelName: z.string().nullable(), createdAt: z.string().datetime({ offset: true }), completedAt: z.string().datetime({ offset: true }).nullable(), output: analyticsReviewOutputSchema.nullable() }).strict();
 export type AssessmentJob = z.infer<typeof jobSchema>;
 export type DailyAssessmentView = { state: "ready" | "unavailable"; latest: AssessmentJob | null; lastGood: AssessmentJob | null };
-const readSchema = z.object({ latest: jobSchema.nullable(), lastGood: jobSchema.nullable(), dayJob: jobSchema.nullable(), workerReady: z.boolean() }).strict();
+export const analyticsAssessmentReadSchema = z.object({ latest: jobSchema.nullable(), lastGood: jobSchema.nullable(), dayJob: jobSchema.nullable(), workerReady: z.boolean() }).strict();
 const digest = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
 
 // Labels and reasons come from our rules; provider queries, URLs, campaigns and raw rows never enter inference.
@@ -58,13 +58,13 @@ async function sqlClient() {
   return sql;
 }
 export async function readDailyAssessment(): Promise<DailyAssessmentView> {
-  try { const rows = await (await sqlClient()).query("SELECT ccpun_admin.admin_read_analytics_review_v3() AS data", []); const { latest, lastGood } = readSchema.parse(rows[0]?.data); return { state: "ready", latest, lastGood }; }
+  try { const rows = await (await sqlClient()).query("SELECT ccpun_admin.admin_read_analytics_review_v3() AS data", []); const { latest, lastGood } = analyticsAssessmentReadSchema.parse(rows[0]?.data); return { state: "ready", latest, lastGood }; }
   catch { return { state: "unavailable", latest: null, lastGood: null }; }
 }
 export async function enqueueDailyAssessment(date = analyticsDate()) {
   if (date !== analyticsDate()) throw new Error("ANALYTICS_REVIEW_DATE_INVALID");
   const sql = await sqlClient();
-  const current = readSchema.parse((await sql.query("SELECT ccpun_admin.admin_read_analytics_review_v3() AS data", []))[0]?.data);
+  const current = analyticsAssessmentReadSchema.parse((await sql.query("SELECT ccpun_admin.admin_read_analytics_review_v3() AS data", []))[0]?.data);
   if (current.dayJob) return { state: current.dayJob.status, jobId: current.dayJob.jobId, reused: true };
   if (!current.workerReady || !getLocalAiAdminStatus().readyToEnqueue) throw new Error("ANALYTICS_REVIEW_WORKER_NOT_READY");
   const dashboard = await readAnalyticsDashboard();

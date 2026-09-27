@@ -5,6 +5,33 @@ import { exportSelectionSchema } from "../../lib/admin/agent-os/export-contract"
 import { buildPerformanceExport } from "../../lib/admin/analytics/performance";
 import { prepareUbersuggestWebImport } from "../../lib/admin/analytics/import";
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
+test("Sheet formatting body is prepared by Code and HTTP uses a simple reference", () => {
+  const workflow = JSON.parse(read("workers/local-ai/n8n/owner-export-google-sheet.direct.json"));
+  const prepare = workflow.nodes.find((node: { name: string }) => node.name === "เตรียมค่า Sheet");
+  const formatting = workflow.nodes.find((node: { name: string }) => node.name === "จัดรูปแบบ Sheet");
+  const data = { columns: Array.from({ length: 30 }, (_, index) => `column${index}`), rows: Array.from({ length: 110 }, () => ({ column0: 0 })), overview: [] };
+  const created = { spreadsheetId: "synthetic-sheet", sheets: [{ properties: { sheetId: 47 } }, { properties: { sheetId: 83 } }] };
+  const prepared = new Function("$input", "$", prepare.parameters.jsCode)({ first: () => ({ json: created }) }, () => ({ item: { json: data } }))[0].json;
+  const body = prepared.formattingBody;
+  assert.equal(body.requests.length, 8);
+  assert.deepEqual(body.requests[0].updateSpreadsheetProperties, { properties: { timeZone: "Asia/Bangkok", locale: "th_TH" }, fields: "timeZone,locale" });
+  assert.deepEqual(body.requests[1].updateSheetProperties.properties, { sheetId: 47, gridProperties: { frozenRowCount: 1 } });
+  assert.deepEqual(body.requests[2].updateSheetProperties.properties, { sheetId: 83, gridProperties: { frozenRowCount: 1 } });
+  for (const index of [1, 2]) assert.equal(body.requests[index].updateSheetProperties.fields, "gridProperties.frozenRowCount");
+  assert.deepEqual(body.requests[5].setBasicFilter.filter.range, { sheetId: 83, startRowIndex: 0, endRowIndex: 111, startColumnIndex: 0, endColumnIndex: 30 });
+  assert.deepEqual(body.requests[7].autoResizeDimensions.dimensions, { sheetId: 83, dimension: "COLUMNS", startIndex: 0, endIndex: 30 });
+  assert.equal(formatting.parameters.jsonBody, "={{ $('เตรียมค่า Sheet').item.json.formattingBody }}");
+  assert.equal(new Function("$", "return " + formatting.parameters.jsonBody.slice(3, -2).trim())(() => ({ item: { json: prepared } })), body);
+  const completed = workflow.nodes.find((node: { name: string }) => node.name === "Runtime · เสร็จแล้ว");
+  const inputs = { "Runtime · เริ่มงาน": { rowVersion: 2 }, "เตรียมค่า Sheet": prepared, "เตรียม Export": { startedAt: new Date(Date.now() - 1_000).toISOString() } };
+  const result = new Function("$", "return " + completed.parameters.jsonBody.slice(3, -2).trim())((name: keyof typeof inputs) => ({ item: { json: inputs[name] } }));
+  assert.equal(result.expectedVersion, 2);
+  assert.equal(result.status, "completed");
+  assert.equal(result.stage, "done");
+  assert.equal(result.providerReference, prepared.spreadsheetUrl);
+  assert.ok(result.durationMs >= 1_000 && Number.isFinite(Date.parse(result.completedAt)));
+  for (const node of workflow.nodes) assert.doesNotMatch(JSON.stringify(node.parameters), /\(\(\)\s*=>/);
+});
 test("selected analysis grain survives strict Sheet contract, existing n8n handoff and RAW typed cells", () => {
   for (const view of ["seo-review", "measurement-gaps", "campaign-performance", "marketing-activities"]) assert.ok(exportSelectionSchema.safeParse({ dataset: "marketing-analytics", view }).success);
   assert.deepEqual(exportSelectionSchema.parse({ dataset: "marketing-analytics" }), { dataset: "marketing-analytics" });
