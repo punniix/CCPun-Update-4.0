@@ -144,6 +144,27 @@ test("worker proves Ollama readiness before claim and does not log raw errors", 
   assert.doesNotMatch(worker, /safeLog\([^;]*(?:JSON\.stringify\((?:payload|input|rawOutput|output\.data)|rawOutput|ciphertextB64|authTagB64)/i);
 });
 
+test("worker database queries receive a fresh timeout signal on every request", () => {
+  const worker = read("workers/local-ai/src/index.ts");
+  const expression = /const sql = ([^\n]+);/.exec(worker)?.[1];
+  assert.ok(expression);
+  const signals: AbortSignal[] = [];
+  const sql = new Function("config", "neon", `return ${expression}`)(
+    { databaseUrl: "synthetic" },
+    (_url: string, options: { fetchOptions: { signal: AbortSignal } }) => {
+      signals.push(options.fetchOptions.signal);
+      return { query: () => null };
+    },
+  );
+  sql().query();
+  sql().query();
+  assert.equal(signals.length, 2);
+  assert.notEqual(signals[0], signals[1]);
+  assert.equal(signals.every(signal => signal instanceof AbortSignal && !signal.aborted), true);
+  assert.equal([...worker.matchAll(/sql\(\)\.query\(/g)].length, 4);
+  assert.doesNotMatch(worker, /sql\.query\(/);
+});
+
 test("v2 queue migration enforces payload replay, cap, deadlines, and review state", () => {
   const files = [
     "db/migrations/20260920_local_ai_production_operations_v2_uat.sql",
