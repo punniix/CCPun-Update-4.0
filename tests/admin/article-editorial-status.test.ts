@@ -18,7 +18,12 @@ test("editorial controls preview the selected draft, focus review and show UAT n
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
   const root = createRoot(dom.window.document.getElementById("root"));
-  const article = { _id: "drafts.selected", slug: { current: "aia-vitality" }, category: { _ref: "life" }, review: { status: "drafting" } };
+  const article = { _id: "drafts.selected", _rev: "draft-rev", slug: { current: "aia-vitality" }, category: { _ref: "life" }, review: { status: "drafting" } };
+  let draft: typeof article | null = article;
+  const published = { ...article, _id: "selected", _rev: "published-rev" };
+  const requests: string[][] = [];
+  let syncing = false;
+  let changed = 0;
   let workspace = { projectId: "kyfxgjnq", dataset: "production" };
   let category: { slug?: { current: string } } = { slug: { current: "life-insurance" } };
   let focused: unknown;
@@ -29,17 +34,15 @@ test("editorial controls preview the selected draft, focus review and show UAT n
   new Function("require", "exports", compiled)((id: string) => {
     if (id === "sanity") return {
       useWorkspace: () => workspace,
-      useEditState: (_id: string, type: string) => type === "category" ? { draft: null, published: category, ready: true } : { draft: article, published: { _id: "selected" }, ready: true },
-      useSyncState: () => ({ isSyncing: false }),
-      PatchEvent: { from: (patches: unknown) => patches },
-      set: (value: unknown, path: unknown) => ({ type: "set", value, path }),
+      useEditState: (_id: string, type: string) => type === "category" ? { draft: null, published: category, ready: true } : { draft, published, ready: true },
+      useSyncState: () => ({ isSyncing: syncing }),
     };
-    if (id === "./article-line-copy-action") return { requestArticleLineCopy: async () => ({ status: "applied" }) };
+    if (id === "./article-line-copy-action") return { requestArticleLineCopy: async (id: string, revision: string) => { requests.push([id, revision]); await Promise.resolve(); return { status: "applied", lineTitle: "Generated", lineDescription: "Generated description" }; } };
     if (id === "./article-publication") return { publicationSummary, reviewLabels };
     if (id === "sanity/router") return { IntentLink: (props: { params: Record<string, string>; children: string }) => { params = props.params; return createElement("a", { href: "/intent" }, props.children); } };
     return require(id);
   }, exports);
-  const props = { value: article, renderDefault: () => null, onPathFocus: (path: unknown) => { focused = path; } } as unknown as ObjectInputProps;
+  const props = { value: article, onChange: () => { changed++; }, renderDefault: () => null, onPathFocus: (path: unknown) => { focused = path; } } as unknown as ObjectInputProps;
   const render = () => act(async () => root.render(createElement(exports.ArticleEditorialInput!, props)));
   try {
     await render();
@@ -58,6 +61,16 @@ test("editorial controls preview the selected draft, focus review and show UAT n
     assert.equal(state._searchParams.some(([key]) => key === "perspective" || key === "version"), false);
     workspace = { projectId: "ccb9lnw5", dataset: "uat" }; await render();
     assert.equal(dom.window.document.body.textContent.includes("ใน UAT"), true);
+    draft = null; await render();
+    const generate = () => dom.window.document.querySelector('section[aria-label="สร้างข้อความสำหรับ LINE Card"] button') as HTMLButtonElement;
+    assert.match(dom.window.document.body.textContent, /หน้า Live จะไม่เปลี่ยน/);
+    await act(async () => { generate().click(); generate().click(); });
+    assert.deepEqual(requests, [["selected", "published-rev"]]);
+    assert.deepEqual(focused, ["lineTitle"]);
+    assert.equal(changed, 0, "server-persisted fields must not overwrite newer Studio edits");
+    assert.match(dom.window.document.body.textContent, /บันทึกไว้ใน Draft/);
+    syncing = true; await render();
+    assert.equal(generate().disabled, true);
     category = {}; await render();
     assert.equal(dom.window.document.querySelector("a"), null);
     assert.match(dom.window.document.body.textContent, /ตรวจหมวดหมู่และ URL/);

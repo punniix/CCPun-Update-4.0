@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { probeLineBridgeFromAdmin } from "@/lib/runtime/line-bridge-probe";
 import { LineProviderActivationActions } from "@/features/admin/line/LineProviderActivationActions";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getAdminDeploymentIdentity } from "@/lib/admin/environment";
@@ -64,6 +66,7 @@ function Row({ label, value }: { label: string; value: string }) {
 export default async function AdminHealthPage() {
   await requireAdminPermission("settings:read");
 
+  const lineBridge = await probeLineBridgeFromAdmin(await headers());
   const sanity = getAdminSanityStatus();
   const operations = getAdminOperationsRuntimeStatus();
   const schedulerLane = resolveArticleSchedulerLane(process.env);
@@ -193,6 +196,11 @@ export default async function AdminHealthPage() {
         <Card title="ศูนย์จัดการที่กำลังใช้งาน" state={deploymentState}>
           <p>{deploymentState === "ok" ? "กำลังใช้เวอร์ชันจากสายงานที่ถูกต้อง" : "เวอร์ชันหรือสภาพแวดล้อมไม่ตรงตามที่คาด ต้องตรวจเพิ่มเติม"}</p>
           <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="ผู้ให้บริการ" value={provider} /><Row label="สภาพแวดล้อม" value={deploymentEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /><Row label="Region" value={region} /></div></details>
+        </Card>
+
+        <Card title="การเชื่อมต่อข้อมูล LINE" state={lineBridge.status === "ready" ? "ok" : "warning"}>
+          <p>{lineBridge.status === "ready" ? "ยืนยันการเชื่อมต่อระหว่างเว็บและศูนย์จัดการแล้ว โดยไม่ส่งข้อมูลลูกค้า" : "ยังยืนยันการเชื่อมต่อระหว่างเว็บและศูนย์จัดการไม่ได้"}</p>
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="สถานะ" value={lineBridge.status} /><Row label="Web commit" value={lineBridge.webSha ?? "—"} /></div></details>
         </Card>
 
         <Card title="เนื้อหาใน Sanity" state={sanityState}>
