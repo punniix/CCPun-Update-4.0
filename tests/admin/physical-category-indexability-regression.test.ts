@@ -29,9 +29,9 @@ test("active physical categories become sitemap-eligible from indexable content 
   assert.deepEqual(listPhysicalCategorySitemapEntries(registry, []), []);
 });
 
-test("physical category metadata and sitemap do not inherit semantic-hub indexability", () => {
+for (const appRoot of ["app", "apps/web/app"]) test(`physical category metadata and ${appRoot} sitemap do not inherit semantic-hub indexability`, () => {
   const categoryPage = source("features/blog/pages/BlogCategoryPage.tsx");
-  const sitemap = source("app/sitemaps/blog.xml/route.ts");
+  const sitemap = source(`${appRoot}/sitemaps/blog.xml/route.ts`);
 
   assert.match(
     categoryPage,
