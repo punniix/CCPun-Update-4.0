@@ -45,6 +45,31 @@ test("performance export controls target stored workspace and persistent existin
   assert.match(html, /Top Content/); assert.match(html, /Action Plan/); assert.doesNotMatch(html, /นำเข้าไฟล์รายงานจากเว็บ Ubersuggest/);
 });
 
+test("uncertain Google trigger retains the server job and resumes status checks without issuing another export", async () => {
+  const require = createRequire(import.meta.url), { JSDOM } = require("jsdom");
+  const dom = new JSDOM("<div id='root'></div>", { url: "https://admin.ccpun.com/analytics/performance/" });
+  const previous = { window: globalThis.window, document: globalThis.document, self: globalThis.self, fetch: globalThis.fetch };
+  const jobId = "00000000-0000-4000-8000-000000000009", calls: Array<{ url: string; method: string; body?: string }> = [];
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, self: dom.window, IS_REACT_ACT_ENVIRONMENT: true, fetch: async (url: string, options?: RequestInit) => {
+    calls.push({ url, method: options?.method ?? "GET", body: options?.body ? String(options.body) : undefined });
+    return options?.method === "POST" ? Response.json({ error: "google-sheet-export-trigger-uncertain", jobId }, { status: 503 }) : Response.json({ terminal: true, job: { status: "reconciliation_required", stage: "trigger-uncertain", providerReference: null, errorCategory: "n8n-trigger-outcome-unknown" } });
+  } });
+  const root = createRoot(document.getElementById("root")!);
+  try {
+    await act(async () => root.render(createElement<NonNullable<Parameters<typeof ExportCenter>[0]>>(ExportCenter, { initialDataset: "performance-marketing", compact: true })));
+    await act(async () => { await new Promise(resolve => dom.window.setTimeout(resolve, 10)); });
+    const button = [...document.querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent === "อัปเดต Google Workspace เดิม")!;
+    await act(async () => button.click());
+    assert.equal(calls.filter(call => call.method === "POST").length, 1);
+    assert.deepEqual(JSON.parse(calls.find(call => call.method === "POST")!.body!), { dataset: "performance-marketing" });
+    assert.ok(calls.some(call => call.url === `/api/admin/operations/jobs/${jobId}/`));
+    assert.deepEqual(JSON.parse(dom.window.localStorage.getItem("ccpun-owner-sheet-job")!), { jobId, runtimePath: `/operations/jobs/${jobId}/`, dataset: "performance-marketing" });
+    assert.ok([...document.querySelectorAll<HTMLAnchorElement>("a")].some(link => link.getAttribute("href")?.replace(/\/$/, "") === `/operations/jobs/${jobId}`));
+    assert.match(document.body.textContent ?? "", /เก็บ Job ID ไว้แล้ว/);
+    assert.match(document.body.textContent ?? "", /ต้องตรวจผล/);
+  } finally { await act(async () => root.unmount()); dom.window.close(); Object.assign(globalThis, previous); }
+});
+
 test("human action conflict preserves visible work and sends exact version and execution timestamp", async () => {
   const require = createRequire(import.meta.url), { JSDOM } = require("jsdom");
   const dom = new JSDOM("<div id='root'></div>"), previous = { window: globalThis.window, document: globalThis.document, FormData: globalThis.FormData, fetch: globalThis.fetch };

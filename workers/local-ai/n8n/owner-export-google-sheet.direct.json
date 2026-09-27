@@ -729,7 +729,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW102",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW105",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "options": {
@@ -761,7 +761,7 @@
         2400
       ],
       "parameters": {
-        "jsCode": "const metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst response=$input.first()?.json??{};\nconst exists=(metadata.sheets??[]).some(x=>x.properties?.title==='Action Plan');\nconst fields=['id','version','assetId','priority','actionType','description','expectedMetric','owner','status','executedAt','measurementDays','notes','hypothesis','confounderNotes','importKey'];\nconst columns=[...fields,'createdAt','updatedAt','baseline','result','absoluteChange','percentageChange','outcome','measurementStatus'];\nconst body=response.body??response;const values=Array.isArray(body.values)?body.values:[];\nconst readOk=Number(response.statusCode??200)===200&&!body.error;\nconst missingConfirmed=!exists&&[400,404].includes(Number(response.statusCode))&&!!body.error;\nlet preserve=(!readOk&&!missingConfirmed)||(exists&&(values.length>101||JSON.stringify(values[0]??[])!==JSON.stringify(columns)));\nconst rows=[];\nif(!preserve&&exists)for(const valuesRow of values.slice(1)){\n const row=Object.fromEntries(fields.map((key,i)=>[key,valuesRow[i]??'']));\n if(!String(row.description).trim()){if(String(row.id).trim())preserve=true;continue;}\n rows.push({...row,id:String(row.id).trim()||undefined,version:Number(row.version),assetId:String(row.assetId).trim()||null,executedAt:String(row.executedAt).trim()||null,measurementDays:Number(row.measurementDays)});\n}\nreturn [{json:{spreadsheetId:'1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o',rows:preserve?[]:rows,preserveActionPlan:preserve,actionExists:exists,initialValues:values,columns}}];"
+        "jsCode": "const metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst response=$input.first()?.json??{};\nconst exists=(metadata.sheets??[]).some(x=>x.properties?.title==='Action Plan');\nconst fields=['id','version','assetId','priority','actionType','description','expectedMetric','owner','status','executedAt','measurementDays','notes','hypothesis','confounderNotes','importKey'];\nconst columns=[...fields,'createdAt','updatedAt','baseline','result','absoluteChange','percentageChange','outcome','measurementStatus'];\nconst body=response.body??response;const values=Array.isArray(body.values)?body.values:[];\nconst readOk=Number(response.statusCode??200)===200&&!body.error;\nconst missingConfirmed=!exists&&[400,404].includes(Number(response.statusCode))&&!!body.error;\nlet preserve=(!readOk&&!missingConfirmed)||(exists&&(values.length>104||JSON.stringify(values[0]??[])!==JSON.stringify(columns)));\nconst rows=[];\nif(!preserve&&exists)for(const valuesRow of values.slice(1)){\n const row=Object.fromEntries(fields.map((key,i)=>[key,valuesRow[i]??'']));\n if(!String(row.description).trim()){if(String(row.id).trim())preserve=true;continue;}\n rows.push({...row,id:String(row.id).trim()||undefined,version:Number(row.version),assetId:String(row.assetId).trim()||null,executedAt:String(row.executedAt).trim()||null,measurementDays:Number(row.measurementDays)});\n}\nif(rows.length>100)preserve=true;\nreturn [{json:{spreadsheetId:'1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o',rows:preserve?[]:rows,preserveActionPlan:preserve,actionExists:exists,initialValues:values,columns}}];"
       },
       "onError": "continueErrorOutput"
     },
@@ -810,7 +810,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW102",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW105",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "options": {

@@ -61,6 +61,28 @@ test("human import is strict whitelisted and blanks/new invalid rows never becom
   assert.equal(workflow.active, false); assert.equal(workflow.settings.saveDataSuccessExecution, "none");
 });
 
+test("Action Plan accepts one hundred actions plus its three blank drafts and protects overflow", () => {
+  const realRows = Array.from({ length: 101 }, (_, index) => {
+    const id = `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+    const row = { ...action, id, importKey: `action:${id}` };
+    return columns.map(column => row[column as keyof typeof row] ?? "");
+  });
+  const drafts = Array.from({ length: 3 }, (_, index) => {
+    const row = { ...action, id: null, version: 0, description: "", importKey: `draft:abc:${index}` };
+    return columns.map(column => row[column as keyof typeof row] ?? "");
+  });
+  const parse = (values: unknown[][]) => runCode("Marketing · ตรวจช่องมนุษย์", { statusCode: 200, body: { values } }, { "Marketing · อ่านโครงสร้าง Workspace": metadata(true) });
+  const accepted = parse([columns, ...realRows.slice(0, 100), ...drafts]);
+  assert.equal(accepted.preserveActionPlan, false); assert.equal(accepted.rows.length, 100);
+  assert.ok(accepted.rows.every((row: { description: string }) => row.description));
+  for (const values of [[columns, ...realRows], [columns, ...realRows, ...drafts]]) {
+    const overflow = parse(values); assert.equal(overflow.preserveActionPlan, true); assert.deepEqual(overflow.rows, []);
+  }
+  for (const name of ["Marketing · อ่านงานมนุษย์", "Marketing · อ่านงานซ้ำก่อนเขียน"]) {
+    assert.match(workflow.nodes.find((node: { name: string }) => node.name === name).parameters.url, /A1%3AW105/);
+  }
+});
+
 test("Daily marketing uses existing credentials and bounded native-grain refresh before AI", () => {
   const dailyNames = ["Marketing Daily · Canonical Identity", "Marketing Daily · GSC 7 วัน", "Marketing Daily · GA4 7 วัน", "Marketing Daily · วัดผลก่อน–หลัง", "Marketing Daily · ตรวจผล factual"];
   for (let i = 0; i < dailyNames.length - 1; i++) assert.equal(workflow.connections[dailyNames[i]!].main[0][0].node, dailyNames[i + 1]);

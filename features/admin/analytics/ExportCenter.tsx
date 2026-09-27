@@ -111,7 +111,17 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
     setBusy(true);
     setMessage(null);
     setJobId(null);
+    setRuntimePath(null);
     setDetail(null);
+    function rememberJob(nextJobId: string, nextRuntimePath: string) {
+      setJobId(nextJobId);
+      setRuntimePath(nextRuntimePath);
+      try {
+        window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId: nextJobId, runtimePath: nextRuntimePath, dataset }));
+      } catch {
+        // The server job remains retrievable from Operations even without browser storage.
+      }
+    }
     try {
       const response = await fetch("/api/admin/exports/google-sheet/", {
         method: "POST",
@@ -119,14 +129,15 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
         body: JSON.stringify({ dataset, ...(dataset === "marketing-analytics" && view ? { view } : {}) }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "export_failed");
-      setJobId(String(data.jobId));
-      setRuntimePath(String(data.runtimePath));
-      try {
-        window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId: String(data.jobId), runtimePath: String(data.runtimePath), dataset }));
-      } catch {
-        // The server job remains retrievable from Operations even without browser storage.
+      if (!response.ok) {
+        if (data.error === "google-sheet-export-trigger-uncertain" && typeof data.jobId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.jobId)) {
+          rememberJob(data.jobId, `/operations/jobs/${data.jobId}/`);
+          setMessage("ยังยืนยันการรับงานไม่ได้ เก็บ Job ID ไว้แล้ว ตรวจสถานะงานนี้ก่อนลองซ้ำ ผลจาก Google อาจยังดำเนินการอยู่");
+          return;
+        }
+        throw new Error(data.error || "export_failed");
       }
+      rememberJob(String(data.jobId), String(data.runtimePath));
       setMessage(dataset === "performance-marketing" ? "รับงานแล้ว กำลังตรวจงานมนุษย์และอัปเดต Performance Workspace เดิม ดูสถานะจนเสร็จแล้วก่อนใช้ผลใหม่" : "รับงานแล้ว ระบบกำลังสร้าง Google Sheet ให้");
     } catch {
       setMessage("ยังเริ่มสร้าง Google Sheet ไม่ได้ ใช้ CSV ได้ตามปกติ");
