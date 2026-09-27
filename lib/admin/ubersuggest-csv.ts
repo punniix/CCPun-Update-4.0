@@ -102,9 +102,8 @@ function parseCsvRecords(input: string): string[][] {
 function parseNumber(value: string | undefined) {
   const text = value?.trim();
   if (!text || /^(?:-|—|n\/?a|null)$/i.test(text)) return undefined;
-  const normalized = text.replace(/\u00a0/g, " ").replace(/,/g, "").replace(/[^0-9.+-]/g, "");
-  if (!normalized) return undefined;
-  const number = Number(normalized);
+  if (!/^[+-]?(?:\d+(?:\.\d+)?|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\.\d+)$/.test(text)) return Number.NaN;
+  const number = Number(text.replace(/,/g, ""));
   return Number.isFinite(number) ? number : Number.NaN;
 }
 
@@ -183,7 +182,13 @@ export function parseUbersuggestKeywordCsv(input: string): UbersuggestCsvParseRe
     const position = positionIndex >= 0 ? parseNumber(record[positionIndex]) : undefined;
     const estimatedVisits = estimatedVisitsIndex >= 0 ? parseNumber(record[estimatedVisitsIndex]) : undefined;
     const rawUrl = urlIndex >= 0 ? (record[urlIndex] ?? "").trim() : "";
-    const url = rawUrl && rawUrl.length <= 2048 && /^https?:\/\//i.test(rawUrl) ? rawUrl : undefined;
+    let url: string | undefined;
+    if (rawUrl && rawUrl.length <= 2048) {
+      try {
+        const parsedUrl = new URL(rawUrl);
+        if (["https:", "http:"].includes(parsedUrl.protocol)) url = rawUrl;
+      } catch { /* Optional URL provenance never discards valid keyword metrics. */ }
+    }
 
     if (
       [volume, difficulty, cpc, paidDifficulty, position, estimatedVisits].some((value) => Number.isNaN(value))

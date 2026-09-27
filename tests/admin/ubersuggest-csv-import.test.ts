@@ -87,6 +87,21 @@ test("non-http ranking URLs do not discard otherwise valid keyword evidence", ()
   assert.equal(result.invalidRowCount, 0);
 });
 
+test("CSV parser rejects malformed metrics and ignores malformed HTTP URL provenance", () => {
+  const result = parseUbersuggestKeywordCsv([
+    "Keyword,Volume,URL",
+    "valid keyword,100,https://",
+    "unit suffix,1k,",
+    "embedded text,abc10,",
+    '"bad grouping","1,2",',
+    "infinite,Infinity,",
+  ].join("\n"));
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0]?.url, undefined);
+  assert.equal(result.invalidRowCount, 4);
+  assert.throws(() => parseUbersuggestKeywordCsv('Keyword,Volume\n"unterminated,100'), /UBERSUGGEST_CSV_INVALID/);
+});
+
 test("CSV parser fails closed on unsupported reports and oversized batches", () => {
   assert.throws(
     () => parseUbersuggestKeywordCsv("URL,Traffic,Backlinks\nhttps://example.com,1,2"),
@@ -101,7 +116,7 @@ test("CSV parser fails closed on unsupported reports and oversized batches", () 
 });
 
 test("Admin CSV import keeps preview/import gates and does not auto-publish or auto-track", () => {
-  const route = read("app/api/admin/research/ubersuggest/import/route.ts");
+  const route = read("apps/admin/app/api/admin/research/ubersuggest/import/route.ts");
   const ui = read("features/admin/components/UbersuggestCsvImport.tsx");
   const page = read("features/admin/research/page.tsx");
   const research = read("lib/admin/research.ts");
@@ -112,6 +127,9 @@ test("Admin CSV import keeps preview/import gates and does not auto-publish or a
   assert.match(route, /isResearchWriteReady\(\)/);
   assert.match(route, /ubersuggest:web-csv/);
   assert.match(route, /meta\.reportType/);
+  assert.match(route, /row\.scope !==/);
+  assert.match(route, /row\.location \?\? ""/);
+  assert.match(route, /row\.language \?\? ""/);
   assert.match(route, /sourceMethod: "web-csv-import"/);
   assert.match(route, /const importable = previewRows;/);
   assert.doesNotMatch(route, /publish|track_keywords|DispatchSEO|sanity/i);
@@ -125,4 +143,8 @@ test("Admin CSV import keeps preview/import gates and does not auto-publish or a
   assert.match(research, /parsed\.paidDifficulty \?\? ""/);
   assert.match(research, /parsed\.sourcePosition \?\? ""/);
   assert.match(research, /parsed\.estimatedVisits \?\? ""/);
+  assert.match(research, /parsed\.scope \?\? ""/);
+  assert.match(research, /parsed\.location \?\? ""/);
+  assert.match(research, /parsed\.language \?\? ""/);
+  assert.doesNotMatch(research, /error: error instanceof Error \? error\.message/);
 });

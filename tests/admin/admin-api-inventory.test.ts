@@ -60,9 +60,9 @@ const contracts: Record<string, RouteContract> = {
     methods: ["GET", "POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:read"[\s\S]*action: "research:create"/,
     validation: { file: "app/api/admin/research/route.ts", pattern: /manualResearchInputSchema\.safeParse\(await request\.json\(\)\.catch/, },
   },
-  "app/api/admin/research/ubersuggest/import/route.ts": {
+  "apps/admin/app/api/admin/research/ubersuggest/import/route.ts": {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:read"[\s\S]*action: "research:create"/,
-    validation: { file: "app/api/admin/research/ubersuggest/import/route.ts", pattern: /requestSchema\.safeParse[\s\S]*parseUbersuggestKeywordIdeasCsv/, },
+    validation: { file: "apps/admin/app/api/admin/research/ubersuggest/import/route.ts", pattern: /requestSchema\.safeParse[\s\S]*parseUbersuggestKeywordCsv/, },
   },
   "app/api/admin/research/ubersuggest/route.ts": {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:provider-query"/,
@@ -187,7 +187,7 @@ const contracts: Record<string, RouteContract> = {
 };
 
 test("every Admin API route has an explicit reviewed contract", () => {
-  assert.deepEqual(routeFiles(apiRoot).sort(), Object.keys(contracts).sort());
+  assert.deepEqual([...routeFiles(apiRoot), ...routeFiles(path.join(repositoryRoot, "apps/admin/app/api/admin/research/ubersuggest/import"))].sort(), Object.keys(contracts).sort());
 });
 
 test("Admin routes retain identity, authorization, and request validation coverage", () => {

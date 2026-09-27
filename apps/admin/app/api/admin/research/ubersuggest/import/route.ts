@@ -119,7 +119,10 @@ export async function POST(request: Request) {
 
   const latest = new Map<string, ExistingResearch>();
   for (const row of existingResult.rows) {
-    if (row.provider !== "ubersuggest") continue;
+    if (row.provider !== "ubersuggest"
+      || row.scope !== `ubersuggest:web-csv:${input.parsedCsv.reportType}`
+      || (row.location ?? "") !== (input.location ?? "")
+      || (row.language ?? "") !== (input.language ?? "")) continue;
     const key = normalizeResearchKeyword(row.keyword);
     if (!latest.has(key)) {
       latest.set(key, {

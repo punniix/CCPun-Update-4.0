@@ -38,12 +38,16 @@ export async function createResearchSnapshot(
   const keyword = parsed.keyword.replace(/\s+/g, " ").trim();
   const keywordKey = normalizeResearchKeyword(keyword);
   const checkedAt = parsed.checkedAt ?? new Date().toISOString();
+  // ponytail: CSV identity includes market and report; existing provider keys stay unchanged.
   const stableKey = parsed.sourceMethod === "web-csv-import"
     ? createHash("sha256").update([
         parsed.provider,
         keywordKey,
         checkedAt.slice(0, 10),
         parsed.sourceMethod,
+        parsed.scope ?? "",
+        parsed.location ?? "",
+        parsed.language ?? "",
         parsed.volume ?? "",
         parsed.difficulty ?? "",
         parsed.intent ?? "",
@@ -101,7 +105,9 @@ export async function createResearchSnapshotsBatch(
         return {
           ok: false as const,
           keyword: input.keyword,
-          error: error instanceof Error ? error.message : "RESEARCH_SNAPSHOT_FAILED",
+          error: error instanceof Error && error.message === "ADMIN_DATABASE_NOT_CONFIGURED"
+            ? "ADMIN_DATABASE_NOT_CONFIGURED"
+            : "RESEARCH_SNAPSHOT_FAILED",
         };
       }
     }));
