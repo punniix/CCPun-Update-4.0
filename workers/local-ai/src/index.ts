@@ -165,14 +165,14 @@ export async function inferAndValidate(
 async function main() {
   const config = loadConfiguration();
   const crypto = createLocalAiPayloadCrypto();
-  const sql = neon(config.databaseUrl, { fetchOptions: { signal: AbortSignal.timeout(10_000) } });
+  const sql = () => neon(config.databaseUrl, { fetchOptions: { signal: AbortSignal.timeout(10_000) } });
   let active = 0;
   let stopped = false;
   process.on("SIGTERM", () => { stopped = true; });
   process.on("SIGINT", () => { stopped = true; });
 
   const heartbeat = async (ready: boolean) => {
-    await sql.query("SELECT ccpun_admin.worker_report_local_ai_heartbeat($1,$2,$3,$4,$5,$6,$7::jsonb)", [
+    await sql().query("SELECT ccpun_admin.worker_report_local_ai_heartbeat($1,$2,$3,$4,$5,$6,$7::jsonb)", [
       config.workerDigest,RUNTIME_VERSION,config.model,ready,config.privateJobsEnabled,active,
       JSON.stringify({ ...readLocalAiWorkerMetrics(), analyticsReviewVersion: ANALYTICS_REVIEW_VERSION }),
     ]);
@@ -200,7 +200,7 @@ async function main() {
       }
       const leaseToken = randomBytes(32).toString("hex");
       const leaseDigest = sha256(leaseToken);
-      const rows = await sql.query("SELECT * FROM ccpun_admin.worker_claim_local_ai_job($1,$2,$3,$4)", [config.workerDigest,leaseDigest,180,config.privateJobsEnabled]);
+      const rows = await sql().query("SELECT * FROM ccpun_admin.worker_claim_local_ai_job($1,$2,$3,$4)", [config.workerDigest,leaseDigest,180,config.privateJobsEnabled]);
       if (!rows[0]) { await new Promise((resolve) => setTimeout(resolve, 2_000)); continue; }
       const job = claimSchema.parse(rows[0]);
       active = 1;
@@ -217,7 +217,7 @@ async function main() {
           throw new Error("MODEL_OUTPUT_INVALID");
         }
         const serialized = JSON.stringify(output.data);
-        const completed = await sql.query("SELECT ccpun_admin.worker_complete_local_ai_job($1,$2,$3,$4::jsonb,$5) AS completed", [
+        const completed = await sql().query("SELECT ccpun_admin.worker_complete_local_ai_job($1,$2,$3,$4::jsonb,$5) AS completed", [
           job.job_id,leaseDigest,config.model,serialized,sha256(serialized),
         ]) as Array<{ completed: boolean }>;
         if (!completed[0]?.completed) throw new Error("LEASE_COMPLETION_REJECTED");
@@ -229,7 +229,7 @@ async function main() {
           ollamaFailures += 1;
           nextOllamaProbeAt = Date.now() + localAiOllamaBackoffMs(ollamaFailures);
         }
-        await sql.query("SELECT ccpun_admin.worker_fail_local_ai_job($1,$2,$3,$4,$5) AS status", [job.job_id,leaseDigest,category,retryable,false]);
+        await sql().query("SELECT ccpun_admin.worker_fail_local_ai_job($1,$2,$3,$4,$5) AS status", [job.job_id,leaseDigest,category,retryable,false]);
         safeLog("job-failed", { jobId: job.job_id, taskType: job.task_type, category, retryable });
       } finally { active = 0; }
     } catch (error) {
