@@ -109,6 +109,23 @@ test("Google Sheet failures leave a safe terminal state without persisting provi
   assert.doesNotMatch(JSON.stringify(workflow), /error\.message|error\.description|error\.stack/);
 });
 
+test("Rejected Sheet webhook records only HTTP status, never provider body or headers", async () => {
+  const route = read("apps/admin/app/api/admin/exports/google-sheet/route.ts");
+  const rejection = route.slice(route.indexOf("  if (!response.ok) {"), route.indexOf("  return NextResponse.json({\n    status: \"accepted\""));
+  assert.ok(rejection.startsWith("  if (!response.ok) {"));
+  const run = new Function("response", "job", "updateAgentRuntimeJob", "NextResponse", "headers", `return (async () => {${rejection}})()`);
+  for (const status of [401, 404, 500]) {
+    let recorded: Record<string, unknown> | undefined;
+    const response = new Response("private-provider-body", { status, headers: { Authorization: "private-provider-header" } });
+    const result = await run(response, { jobId: "synthetic", rowVersion: 1 }, async (value: Record<string, unknown>) => { recorded = value; }, { json: (body: unknown, options: { status: number }) => ({ body, status: options.status }) }, {});
+    assert.equal(recorded?.errorCategory, `n8n-trigger-rejected-${status}`);
+    assert.equal(recorded?.status, "failed");
+    assert.match(String(recorded?.errorCategory), /^[a-z0-9][a-z0-9._:-]{0,159}$/);
+    assert.deepEqual(result, { body: { error: "google-sheet-export-trigger-failed", jobId: "synthetic" }, status: 503 });
+    assert.doesNotMatch(JSON.stringify({ recorded, result }), /private-provider|Authorization/);
+  }
+});
+
 test("Daily collection reuses the Sheets workflow and fails closed without leaking source payloads", () => {
   const workflow = JSON.parse(read("workers/local-ai/n8n/owner-export-google-sheet.direct.json"));
   const sources = ["gsc", "ga4", "meta", "ubersuggest"];

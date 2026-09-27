@@ -115,7 +115,7 @@ export async function POST(request: Request) {
       expectedVersion: job.rowVersion,
       status: "failed",
       stage: "trigger-rejected",
-      errorCategory: "n8n-trigger-rejected",
+      errorCategory: `n8n-trigger-rejected-${response.status}`,
       completedAt: new Date().toISOString(),
     }).catch(() => null);
     return NextResponse.json({ error: "google-sheet-export-trigger-failed", jobId: job.jobId }, { status: 503, headers });
