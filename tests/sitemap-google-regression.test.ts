@@ -111,15 +111,32 @@ test("protects Google publish eligibility and sets one meaningful publication ti
 });
 
 
-test("keeps utility compliance and private error surfaces out of search ownership", () => {
-  const coreSitemap = readSource("app/sitemaps/core.xml/route.ts");
-  const cookiePolicy = readSource("app/cookie-policy/page.tsx");
-  const robotsSource = readSource("app/robots.ts");
-  const nextConfig = readSource("next.config.ts");
+for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}utility compliance and private error surfaces out of search ownership`, () => {
+  const coreSitemap = readSource(`${appRoot}app/sitemaps/core.xml/route.ts`);
+  const cookiePolicy = readSource(`${appRoot}app/cookie-policy/page.tsx`);
+  const robotsSource = readSource(`${appRoot}app/robots.ts`);
+  const nextConfig = readSource(`${appRoot}next.config.ts`);
 
   assert.match(coreSitemap, /https:\/\/ccpun\.com\/privacy\//);
   assert.doesNotMatch(coreSitemap, /cookie-policy/);
   assert.match(cookiePolicy, /robots:\s*\{\s*index:\s*false,\s*follow:\s*true\s*\}/);
   assert.match(robotsSource, /["']\/admin-not-found\/["']/);
   assert.match(nextConfig, /["']\/admin-not-found\/:path\*["']/);
+  if (appRoot) {
+    assert.match(nextConfig, /source:\s*["']\/admin-not-found\/:path\*["'][\s\S]{0,120}X-Robots-Tag[\s\S]{0,60}noindex, nofollow, noarchive/);
+    assert.match(readSource("apps/admin/next.config.ts"), /source:\s*["']\/:path\*["'][\s\S]{0,120}PRIVATE_SURFACE_ROBOTS_HEADERS/);
+  }
+});
+
+
+test("active Web core sitemap and private error headers enforce the search boundary", async () => {
+  const { GET } = await import("../apps/web/app/sitemaps/core.xml/route");
+  const { default: webConfig } = await import("../apps/web/next.config");
+  const xml = await GET().text();
+  assert.match(xml, /https:\/\/ccpun\.com\/privacy\//);
+  assert.doesNotMatch(xml, /cookie-policy/);
+  const headers = await webConfig.headers!();
+  assert.deepEqual(headers.find((rule) => rule.source === "/admin-not-found/:path*")?.headers, [
+    { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+  ]);
 });
