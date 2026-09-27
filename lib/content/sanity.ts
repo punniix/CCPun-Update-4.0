@@ -97,7 +97,9 @@ function articleBase(raw: RawArticleSummary, body: ArticleBlock[] = []): Article
   const excerpt = raw.excerpt?.trim();
   const seoTitle = raw.seo?.title?.trim();
   const seoDescription = raw.seo?.description?.trim();
+  const authorName = raw.authorName?.trim();
   if (status === "published" && (!excerpt || !seoDescription)) throw new Error("Published article is missing required SEO fields");
+  if (status === "published" && !authorName) throw new Error("Published article is missing required author");
 
   return {
     id: originalId,
@@ -110,7 +112,7 @@ function articleBase(raw: RawArticleSummary, body: ArticleBlock[] = []): Article
     categorySlug: raw.categorySlug ?? undefined,
     tags: raw.tags ?? undefined,
     semanticTopic: raw.seo?.semanticTopic ?? undefined,
-    authorName: raw.authorName,
+    authorName: authorName ?? "",
     author: raw.author ? {
       name: raw.author.name,
       profileName: raw.author.profileName ?? undefined,

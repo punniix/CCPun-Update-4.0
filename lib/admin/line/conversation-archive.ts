@@ -34,7 +34,7 @@ const profileSourceSchema = z.object({
 
 const archiveRowSchema = z.object({
   archive_message_id: z.string().uuid(),
-  source_kind: z.enum(["line_webhook", "line_oa_csv"]),
+  source_kind: z.enum(["line_webhook", "line_oa_csv", "manual_ocr"]),
   direction: z.enum(["inbound", "outbound"]),
   message_type: z.string().max(32),
   status: z.enum(["active", "unsent", "imported"]),
@@ -44,7 +44,7 @@ const archiveRowSchema = z.object({
   content_nonce_b64: z.string().nullable(),
   content_auth_tag_b64: z.string().nullable(),
   content_key_version: z.coerce.number().int().positive().nullable(),
-  content_purpose: z.enum(["message-content", "line-oa-import-content"]).nullable(),
+  content_purpose: z.enum(["message-content", "line-oa-import-content", "chat-ocr-import-content"]).nullable(),
 });
 
 function iso(value: string | Date | null | undefined) {
@@ -195,7 +195,7 @@ export async function getLinePrivateProfiles(
 
 export type LineEvidenceItem = {
   id: string;
-  sourceKind: "line_webhook" | "line_oa_csv";
+  sourceKind: "line_webhook" | "line_oa_csv" | "manual_ocr";
   direction: "inbound" | "outbound";
   messageType: string;
   status: "active" | "unsent" | "imported";
@@ -376,6 +376,81 @@ export async function importLineOAChatCsv(
     else skipped += 1;
   }
   return { imported, duplicate, skipped };
+}
+
+
+export async function importChatOcrMessages(
+  input: {
+    leadId: string;
+    requestId: string;
+    messages: Array<{
+      direction: "inbound" | "outbound";
+      text: string;
+      occurredAt: string;
+    }>;
+  },
+  variables: Record<string, string | undefined> = process.env,
+) {
+  if (!z.string().uuid().safeParse(input.leadId).success) throw new Error("CHAT_OCR_IMPORT_INVALID_LEAD");
+  if (!/^[A-Za-z0-9._:-]{8,160}$/.test(input.requestId)) throw new Error("CHAT_OCR_IMPORT_INVALID_REQUEST");
+  if (!Array.isArray(input.messages) || input.messages.length < 1 || input.messages.length > 200) {
+    throw new Error("CHAT_OCR_IMPORT_INVALID_MESSAGES");
+  }
+
+  const sql = await adminSql(variables);
+  if (!sql) throw new Error("LINE_ARCHIVE_RUNTIME_NOT_READY");
+  const crypto = createLineContentCrypto(variables);
+
+  let imported = 0;
+  let duplicate = 0;
+
+  for (let index = 0; index < input.messages.length; index += 1) {
+    const message = input.messages[index]!;
+    const text = message.text.trim();
+    const occurredAt = new Date(message.occurredAt);
+    if (
+      !["inbound", "outbound"].includes(message.direction)
+      || !text
+      || text.length > 5000
+      || Number.isNaN(occurredAt.getTime())
+    ) {
+      throw new Error("CHAT_OCR_IMPORT_INVALID_MESSAGE");
+    }
+
+    const occurredIso = occurredAt.toISOString();
+    const sourceDigest = createHash("sha256")
+      .update([
+        "ccpun-chat-ocr-v1",
+        input.leadId,
+        input.requestId,
+        String(index),
+        message.direction,
+        occurredIso,
+        text,
+      ].join("\0"))
+      .digest("hex");
+    const enc = crypto.encrypt(text, "chat-ocr-import-content");
+
+    const rows = await sql.query(
+      "SELECT outcome FROM private_line.admin_import_chat_ocr_archive_message($1::jsonb)",
+      [JSON.stringify({
+        lead_id: input.leadId,
+        source_digest: sourceDigest,
+        direction: message.direction,
+        occurred_at: occurredIso,
+        content_ciphertext_b64: enc.ciphertextB64,
+        content_nonce_b64: enc.nonceB64,
+        content_auth_tag_b64: enc.authTagB64,
+        content_key_version: enc.keyVersion,
+      })],
+    ) as Array<{ outcome?: unknown }>;
+
+    if (rows[0]?.outcome === "imported") imported += 1;
+    else if (rows[0]?.outcome === "duplicate") duplicate += 1;
+    else throw new Error("CHAT_OCR_IMPORT_FAILED");
+  }
+
+  return { imported, duplicate, total: input.messages.length };
 }
 
 const archiveHealthSchema = z.object({

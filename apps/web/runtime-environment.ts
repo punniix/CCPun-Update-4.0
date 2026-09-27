@@ -1,9 +1,12 @@
 import {
-  CONTENT_VERCEL_PROJECT_IDS,
   isContentSanityLaneAllowed,
   resolveContentEnvironment,
   type ContentEnvironment,
 } from "../../lib/content/sanity-lane";
+import {
+  resolveDeploymentIdentity,
+  type DeploymentIdentity,
+} from "../../lib/runtime/deployment-identity";
 
 export type WebEnvironment = "development" | "web-uat" | "production" | "unknown";
 
@@ -15,14 +18,16 @@ export function resolveWebEnvironment(): WebEnvironment {
 }
 
 export const WEB_ENVIRONMENT = resolveWebEnvironment();
+export const WEB_DEPLOYMENT_IDENTITY = resolveDeploymentIdentity(process.env, "web");
 
 export const IS_WEB_REVIEW_ENVIRONMENT =
-  process.env.VERCEL_ENV === "preview" ||
   process.env.CCPUN_UAT_MODE === "1" ||
   WEB_ENVIRONMENT === "web-uat";
 
 export const PRODUCTION_WEB_ANALYTICS_ENABLED =
-  process.env.VERCEL_ENV === "production" &&
+  WEB_DEPLOYMENT_IDENTITY.valid &&
+  WEB_DEPLOYMENT_IDENTITY.role === "web" &&
+  WEB_DEPLOYMENT_IDENTITY.environment === "production" &&
   WEB_ENVIRONMENT === "production" &&
   process.env.CCPUN_ENABLE_PRODUCTION_ANALYTICS === "1";
 
@@ -36,6 +41,22 @@ export function isWebSanityLaneAllowed(
 }
 
 export function isWebDeploymentProject(): boolean {
-  const projectId = process.env.VERCEL_PROJECT_ID?.trim();
-  return !projectId || projectId === CONTENT_VERCEL_PROJECT_IDS.web;
+  return WEB_DEPLOYMENT_IDENTITY.valid && WEB_DEPLOYMENT_IDENTITY.role === "web";
+}
+
+export function shouldBlockWebIndexing(input: {
+  environment?: WebEnvironment;
+  deployment?: DeploymentIdentity;
+  uatMode?: string;
+} = {}): boolean {
+  const environment = input.environment ?? WEB_ENVIRONMENT;
+  const deployment = input.deployment ?? WEB_DEPLOYMENT_IDENTITY;
+  const uatMode = input.uatMode ?? process.env.CCPUN_UAT_MODE;
+  return (
+    uatMode === "1"
+    || environment !== "production"
+    || !deployment.valid
+    || deployment.role !== "web"
+    || deployment.environment !== "production"
+  );
 }

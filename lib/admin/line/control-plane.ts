@@ -71,7 +71,7 @@ const transcriptRowSchema = z.object({
   content_nonce_b64: z.string().nullable(),
   content_auth_tag_b64: z.string().nullable(),
   content_key_version: z.coerce.number().int().positive().nullable(),
-  content_purpose: z.enum(["message-content", "admin-outbound-message-content", "line-oa-import-content"]).nullable(),
+  content_purpose: z.enum(["message-content", "admin-outbound-message-content", "line-oa-import-content", "chat-ocr-import-content"]).nullable(),
 });
 
 const claimRowSchema = z.object({

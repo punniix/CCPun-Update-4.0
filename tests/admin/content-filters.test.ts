@@ -68,7 +68,7 @@ test("a case-variant query resolves to the first canonical display option", () =
 
 
 const sortableRows = [
-  { id: "draft", title: "ข. ฉบับร่าง", category: "ประกันชีวิต", tags: [], reviewStatus: "drafting", seoScore: 32, publishedAt: null, updatedAt: "2026-08-29T14:21:00.000Z", isDraft: true, hasPublished: false },
+  { id: "draft", title: "ข. ฉบับร่าง", category: "ประกันชีวิต", tags: [], reviewStatus: "content-review", seoScore: 32, publishedAt: null, updatedAt: "2026-08-29T14:21:00.000Z", isDraft: true, hasPublished: false },
   { id: "published-draft", title: "ก. เผยแพร่มีฉบับร่าง", category: "ประกันชีวิต", tags: [], reviewStatus: "ready-for-coo", seoScore: 69, publishedAt: "2026-08-03T22:29:00.000Z", updatedAt: "2026-08-29T14:22:00.000Z", isDraft: true, hasPublished: true },
   { id: "published", title: "ค. เผยแพร่แล้ว", category: "การเงินส่วนบุคคล", tags: [], reviewStatus: "approved", seoScore: 70, publishedAt: "2026-08-01T09:00:00.000Z", updatedAt: "2026-08-27T15:30:00.000Z", isDraft: false, hasPublished: true },
   { id: "missing-score", title: "ง. ไม่มีคะแนน", category: null, tags: [], reviewStatus: null, seoScore: null, publishedAt: null, updatedAt: "2026-08-20T09:00:00.000Z", isDraft: true, hasPublished: false },

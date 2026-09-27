@@ -4,7 +4,7 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
-const SCAN_DIRS = ["app", "apps", "features", "components", "lib", "cms", "db"];
+const SCAN_DIRS = ["app", "apps", "features", "components", "lib", "cms", "db", "workers"];
 const ROOT_FILES = ["auth.ts", "proxy.ts", "next.config.ts"];
 const IGNORE_PARTS = new Set(["node_modules", ".next", ".git", ".ccpun-local"]);
 const ADMIN_ONLY_SECRET_KEYS = [
@@ -149,7 +149,7 @@ assert.ok(adminRoots.length > 0, "apps/admin must expose a source boundary");
 
 const webReachable = reachable(webRoots);
 const adminReachable = reachable(adminRoots);
-const forbiddenWebPrefixes = ["lib/admin/", "features/admin/", "cms/sanity/admin/"];
+const forbiddenWebPrefixes = ["lib/admin/", "features/admin/", "cms/sanity/admin/", "workers/local-ai/"];
 const webAdminRuntimeLeaks = [...webReachable]
   .filter((file) => forbiddenWebPrefixes.some((prefix) => file.startsWith(prefix)))
   .sort();

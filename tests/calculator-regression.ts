@@ -286,6 +286,28 @@ assert.equal(liquidAssetsOffsetGap.calculatedNeed, 1_200_000, 'Primary need shou
 assert.equal(liquidAssetsOffsetGap.shortfall, 700_000, 'CI lump sum and liquid assets should offset the gap once');
 assert.equal(liquidAssetsOffsetGap.availableResources, 500_000, 'Available resources should not be counted twice');
 
+const protectedAssets = calculateCI({
+  ...INITIAL_CI_FORM_DATA,
+  expenses: {
+    ...INITIAL_CI_FORM_DATA.expenses,
+    household: 20_000,
+    monthlyIncome: 20_000,
+    reserveYears: 5,
+  },
+  existingCI: {
+    lumpSum: 200_000,
+    liquidAssets: 300_000,
+    protectLiquidAssets: true,
+  },
+});
+assert.equal(protectedAssets.protectedAssetsNeed, 300_000, 'Protection target must use the entered liquid assets once');
+assert.equal(protectedAssets.calculatedNeed, 1_500_000, 'Expense method must add the protection target once');
+assert.equal(protectedAssets.incomeBasedNeed, 1_500_000, 'Income method must add the protection target once');
+assert.equal(protectedAssets.availableResources, 500_000, 'Protection choice must not remove or duplicate existing resources');
+assert.equal(protectedAssets.shortfall, 1_000_000, 'Protected assets must increase the gap by one asset amount');
+assert.equal(protectedAssets.incomeShortfall, 1_000_000, 'Income gap must use the same single protection addition');
+assert.equal(calculateCI({ ...INITIAL_CI_FORM_DATA, existingCI: { lumpSum: 0, liquidAssets: 0, protectLiquidAssets: true } }).protectedAssetsNeed, 0, 'Zero assets must not create a protection target');
+
 assert.equal(
   calcDebtNeed(10_000, 24, 5),
   240_000,
