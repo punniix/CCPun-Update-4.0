@@ -22,6 +22,9 @@ test("stored VPS proposal keeps review state, native evidence and missing metric
   assert.match(html, /เขตเวลา ต้นทางไม่ได้ระบุ/); assert.match(html, /ข้อมูลมีการจำกัดจำนวน/); assert.match(html, /ตรวจคำค้น &lt;script&gt;/);
   assert.match(html, /Snapshot: a{64}/); assert.match(html, /Raw hash: b{64}/); assert.match(html, /href="\/operations\/local-ai\/?"/);
   assert.match(html, /ไม่เปลี่ยนตามตัวกรอง/); assert.doesNotMatch(html, /0%|<button|<script>/);
+  const v2 = { ...good, output: { ...good.output!, promptVersion: "analytics-review-v2" as const, coverage: [{ action: "seo-review" as const, prepared: 20, sent: 2, dropped: 18 }] } };
+  const current = render({ state: "ready", latest: v2, lastGood: null });
+  assert.match(current, /ข้อมูลที่โมเดลได้รับ/); assert.match(current, /เตรียม 20/); assert.match(current, /ส่งให้โมเดล 2/); assert.match(current, /ไม่ได้ส่ง 18/);
   assert.equal((render({ state: "ready", latest: good, lastGood: good }).match(/Snapshot:/g) ?? []).length, 1);
   assert.match(render({ state: "ready", latest: { ...good, reviewStatus: "approved" }, lastGood: null }), /เจ้าของตรวจทานแล้ว/);
   const rejected = render({ state: "ready", latest: { ...good, reviewStatus: "rejected" }, lastGood: null });
