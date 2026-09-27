@@ -20,7 +20,7 @@ test("stored performance views retain exact join dates, unknowns, native campaig
   const data = [gsc, ubs, campaign, activity], tables = buildPerformanceTables(data), first = tables[0]!.rows[0]!;
   assert.equal(first["ข้อมูลต้นทาง ณ"], "2026-09-24"); assert.equal(first["Ubersuggest ต้นทาง ณ"], "2026-09-23");
   assert.equal(first["Volume Ubersuggest"], 0); assert.equal(first["อันดับ Ubersuggest"], null); assert.equal(first["อันดับเฉลี่ย GSC"], 12);
-  assert.match(String(first["งานที่ควรตรวจ"]), /ข้อความผลค้นหา/); assert.match(String(first["เหตุผล / กติกา"]), /ไม่ใช่ benchmark/);
+  assert.match(String(first["งานที่ควรตรวจ"]), /ตรวจอันดับ/); assert.match(String(first["เหตุผล / กติกา"]), /ไม่ใช่ benchmark/);
   assert.equal(tables[0]!.rows[1]!["Volume Ubersuggest"], null); // No fuzzy join.
   const ambiguous = buildPerformanceTables([gsc, ubs, { ...ubs, batchId: "00000000-0000-4000-8000-000000000002" }])[0]!.rows[0]!;
   assert.equal(ambiguous["Volume Ubersuggest"], null); assert.match(String(ambiguous["การจับคู่คำค้น"]), /หลายแถว/);

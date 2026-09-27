@@ -25,9 +25,9 @@ export function buildPerformanceTables(datasets: AnalyticsDataset[]): Performanc
   for (const data of gsc) for (const row of data.rows) {
     const joined = matches.get(keyword(row["คำค้น"])), match = joined?.length === 1 ? joined[0] : undefined;
     const impressions = number(row["การแสดงผล"]), clicks = number(row["คลิก"]), position = number(row["อันดับเฉลี่ย"]);
-    const task = impressions !== null && impressions >= 100 && clicks === 0 ? "ตรวจชื่อหน้าและข้อความผลค้นหา" : position !== null && position >= 8 && position <= 20 ? "ตรวจความตรงคำค้นและเนื้อหาหน้า" : "ตรวจความเหมาะสมของหน้าเป้าหมาย";
+    const task = position !== null && position > 10 ? "ตรวจอันดับ เจตนาค้นหาและหน้าเป้าหมาย" : impressions !== null && impressions >= 100 && clicks === 0 ? "ตรวจชื่อหน้าและข้อความผลค้นหา" : position !== null && position >= 8 && position <= 20 ? "ตรวจความตรงคำค้นและเนื้อหาหน้า" : "ตรวจความเหมาะสมของหน้าเป้าหมาย";
     seoRows.push({ "คำค้น": row["คำค้น"] ?? null, "หน้าเป้าหมาย": row["หน้าเว็บ"] ?? null, "งานที่ควรตรวจ": task,
-      "เหตุผล / กติกา": task.startsWith("ตรวจชื่อ") ? "แสดงผล ≥100 และ 0 คลิกในช่วงนี้; กติกาตรวจงาน ไม่ใช่ benchmark" : task.startsWith("ตรวจความตรง") ? "อันดับเฉลี่ย GSC 8–20; กติกาตรวจงาน ไม่ใช่การคาดการณ์อันดับ" : "ตรวจเจตนาการค้นหาและความเหมาะสมของหน้า; ไม่ทำนายผลลัพธ์",
+      "เหตุผล / กติกา": task.startsWith("ตรวจอันดับ") ? "อันดับเฉลี่ยมากกว่า 10; ตรวจอันดับ เจตนาค้นหาและความตรงของหน้าก่อนทดลองข้อความ ไม่สรุปว่าชื่อหน้าเป็นสาเหตุของ 0 คลิก; กติกาตรวจงาน ไม่ใช่ benchmark" : task.startsWith("ตรวจชื่อ") ? "แสดงผล ≥100 และ 0 คลิกในช่วงนี้; ตรวจ SERP และอุปกรณ์ก่อนทดลองข้อความ ไม่ยืนยันสาเหตุหรือคาดการณ์ยอดเข้าชม" : task.startsWith("ตรวจความตรง") ? "อันดับเฉลี่ย GSC 8–20; กติกาตรวจงาน ไม่ใช่การคาดการณ์อันดับ" : "ตรวจเจตนาการค้นหาและความเหมาะสมของหน้า; ไม่ทำนายผลลัพธ์",
       "การแสดงผล GSC": impressions, "คลิก GSC": clicks, "CTR GSC (%)": number(row["CTR (%)"]), "อันดับเฉลี่ย GSC": position,
       "Intent Ubersuggest": match?.row.Intent ?? null, "Volume Ubersuggest": match?.row.Volume ?? null, "Difficulty Ubersuggest (0–100)": match?.row["Difficulty (0–100)"] ?? null, "อันดับ Ubersuggest": match?.row["อันดับ"] ?? null,
       "การจับคู่คำค้น": match ? "ตรงกันหลัง NFC/trim/case; ไม่ใช่ attribution" : joined?.length ? "หลายแถวตรงกัน; ไม่จับคู่" : "ไม่มีคำตรงกัน",
