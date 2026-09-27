@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isN8nExportRequestAuthorized } from "@/lib/admin/agent-os/export-service-auth";
 import { buildMarketingWorkspace } from "@/lib/admin/marketing/export";
 import { readMarketingAnalysis } from "@/lib/admin/marketing/analysis";
-import { readMarketingDashboard } from "@/lib/admin/marketing/store";
+import { readMarketingWorkspaceModels } from "@/lib/admin/marketing/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,9 +21,9 @@ export async function POST(request: Request) {
   } catch { return NextResponse.json({ error: "invalid-json" }, { status: 400, headers }); }
   const parsed = input.safeParse(value);
   if (!parsed.success || (parsed.data.generatedAt && Math.abs(Date.now() - Date.parse(parsed.data.generatedAt)) > 10 * 60_000)) return NextResponse.json({ error: "invalid-workspace-request" }, { status: 400, headers });
-  const cutoff = parsed.data.generatedAt ?? new Date().toISOString();
-  const [weekly, monthly, weeklyAnalysis, monthlyAnalysis] = await Promise.all([readMarketingDashboard("this_week", process.env, cutoff), readMarketingDashboard("this_month", process.env, cutoff), readMarketingAnalysis("this_week"), readMarketingAnalysis("this_month")]);
   try {
-    return NextResponse.json({ ...buildMarketingWorkspace(weekly, monthly, { this_week: weeklyAnalysis, this_month: monthlyAnalysis }), spreadsheetId: "1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o", refresh: { status: "prepared", cutoff, windows: ["this_week", "this_month"], preserveLegacyTabs: true, humanActionAuthority: "Admin/Neon" } }, { headers });
+    const [snapshot, weeklyAnalysis, monthlyAnalysis] = await Promise.all([readMarketingWorkspaceModels(parsed.data.generatedAt ?? new Date().toISOString()), readMarketingAnalysis("this_week"), readMarketingAnalysis("this_month")]);
+    const { weekly, monthly, cutoff } = snapshot;
+    return NextResponse.json({ ...buildMarketingWorkspace(weekly, monthly, { this_week: weeklyAnalysis, this_month: monthlyAnalysis }), spreadsheetId: "1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o", refresh: { status: "prepared", cutoff, requestGeneratedAt: parsed.data.generatedAt ?? null, windows: ["this_week", "this_month"], preserveLegacyTabs: true, humanActionAuthority: "Admin/Neon" } }, { headers });
   } catch { return NextResponse.json({ error: "stored-workspace-not-ready" }, { status: 503, headers }); }
 }

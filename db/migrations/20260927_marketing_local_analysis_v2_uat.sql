@@ -33,3 +33,19 @@ INSERT INTO ccpun_admin.marketing_report_manifest SELECT bid2,report,resource_sc
 INSERT INTO ccpun_admin.marketing_ga4_acquisition_daily SELECT bid2,report,resource_scope,day,source_medium,campaign,landing_page,100,100,key_events,session_key_event_rate FROM ccpun_admin.marketing_ga4_acquisition_daily WHERE batch_id=bid;
 PERFORM ccpun_admin.admin_capture_marketing_measurements();IF(SELECT baseline_value FROM ccpun_admin.marketing_action WHERE action_id=pid)<>7 OR(SELECT(observation->>'result')::numeric FROM ccpun_admin.marketing_action_measurement WHERE action_id=pid)<>7 THEN RAISE EXCEPTION 'IMMUTABLE_MEASUREMENT_FAIL';END IF;
 RAISE NOTICE 'MARKETING_MEASUREMENT_FIXTURE_PASS';END $measurement_fixture$;
+
+-- Rollback-only native fixture; no provider call or permanent synthetic data.
+DO $guard_fixture$ DECLARE d jsonb;m jsonb;r record;b1 uuid:='93000000-0000-4000-8000-000000000001';b2 uuid:='93000000-0000-4000-8000-000000000002';BEGIN
+IF ccpun_admin.marketing_coverage('gsc-daily-page','2026-09-28','2026-09-24') IS DISTINCT FROM false THEN RAISE EXCEPTION 'REVERSED_COVERAGE_MUST_BE_FALSE';END IF;
+INSERT INTO ccpun_admin.analytics_daily_batch(batch_id,source,collection_date,collection_key,status,completed_at) VALUES(b1,'gsc',current_date,'uat:marketing-guardrail-v3-1','completed',now()),(b2,'gsc',current_date,'uat:marketing-guardrail-v3-2','completed',now());
+INSERT INTO ccpun_admin.marketing_report_manifest(batch_id,report,resource_scope,period_start,period_end,source_as_of_date,source_as_of,collected_at,source_timezone,raw_sha256,complete,limitations) VALUES(b1,'gsc-daily-page','sc-domain:guardrail-fixture','2026-08-01','2026-09-20','2026-09-20','2026-09-20','2026-09-20T12:00:00Z','America/Los_Angeles',repeat('a',64),true,'[]'),(b2,'gsc-daily-page','sc-domain:guardrail-fixture','2026-09-21','2026-09-27','2026-09-27','2026-09-27','2026-09-27T12:00:00Z','America/Los_Angeles',repeat('b',64),true,'[]');
+INSERT INTO ccpun_admin.marketing_gsc_daily(batch_id,report,resource_scope,day,page,query,clicks,impressions,average_position) SELECT CASE WHEN day::date<='2026-09-20' THEN b1 ELSE b2 END,'gsc-daily-page','sc-domain:guardrail-fixture',day::date,'https://ccpun.com/guardrail-fixture','',CASE WHEN day::date>='2026-09-21' THEN 2 ELSE 1 END,100,5 FROM generate_series('2026-08-01'::date,'2026-09-27',interval '1 day') day;
+FOR r IN SELECT * FROM(VALUES('this_week','2026-09-28T00:00:00Z'::timestamptz),('this_month','2026-10-01T00:00:00Z'::timestamptz))v(window_key,cutoff) LOOP
+d:=ccpun_admin.admin_read_marketing_v2(r.window_key,r.cutoff);IF d#>>'{window,availability}'<>'no_mature_data' THEN RAISE EXCEPTION 'EXPECTED_NO_MATURE_DATA';END IF;
+FOR m IN SELECT value FROM jsonb_array_elements(d->'kpis') LOOP IF m->>'current' IS NOT NULL OR m->>'coverageStatus'='complete' OR m->>'sampleStatus'<>'insufficient_data' THEN RAISE EXCEPTION 'NO_MATURE_DATA_CANNOT_BE_ZERO_OR_COMPLETE';END IF;END LOOP;
+END LOOP;
+d:=ccpun_admin.admin_read_marketing_v2('last_week','2026-09-28T00:00:00Z');IF d#>>'{window,currentStart}'<>'2026-09-21' OR d#>>'{window,currentEnd}'<>'2026-09-24' OR d#>>'{window,previousStart}'<>'2026-09-14' OR d#>>'{window,previousEnd}'<>'2026-09-17' THEN RAISE EXCEPTION 'VALID_PRIOR_WINDOW_MISALIGNED';END IF;
+IF NOT ccpun_admin.marketing_coverage('gsc-daily-page','2026-09-14','2026-09-17') THEN RAISE EXCEPTION 'VALID_WINDOW_COVERAGE_FALSE';END IF;
+m:=ccpun_admin.marketing_metric_record('search_clicks',8,4,true,true,'fixture');IF(m->>'current')::numeric<>8 OR(m->>'previous')::numeric<>4 OR(m->>'absoluteChange')::numeric<>4 THEN RAISE EXCEPTION 'VALID_COMPARISON_ALTERED';END IF;
+IF(SELECT sum(clicks) FROM ccpun_admin.marketing_gsc_current WHERE resource_scope='sc-domain:guardrail-fixture' AND day BETWEEN '2026-09-14' AND '2026-09-17')<>4 THEN RAISE EXCEPTION 'VALID_PREVIOUS_NATIVE_FACTS_ALTERED';END IF;
+RAISE NOTICE 'MARKETING_V2_DASHBOARD_BOUNDARY_FIXTURE_PASS';END $guard_fixture$;

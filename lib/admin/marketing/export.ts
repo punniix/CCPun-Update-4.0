@@ -12,13 +12,22 @@ export type MarketingWorkspace = { version: "marketing-workspace-v1"; generatedA
 
 const numberOrBlank = (value: number | null) => value;
 const metricRow = (model: MarketingDashboard, metric: MarketingDashboard["kpis"][number]) => ({ "ช่วง": model.window.key, "ข้อมูลช่วงนี้": model.window.availability ?? "mature_data", "เริ่ม": model.window.currentStart, "สิ้นสุด": model.window.currentEnd, "ช่วงเทียบเริ่ม": model.window.previousStart, "ช่วงเทียบสิ้นสุด": model.window.previousEnd, "ตัวชี้วัด": metric.metric, "ปัจจุบัน": numberOrBlank(metric.current), "ก่อนหน้า": numberOrBlank(metric.previous), "ต่างกัน": metric.absoluteChange, "เปลี่ยนแปลง (%)": metric.percentageChange, "หน่วย": metric.unit, "ปริมาณข้อมูล": metric.sampleStatus, "เกณฑ์ปริมาณ": metric.threshold, "ประวัติ/ความครบ": metric.coverageStatus, "ความสด": metric.freshnessStatus, "หลักฐาน": metric.evidenceRef });
-const manifestKey = (model: MarketingDashboard) => JSON.stringify(model.manifest.map(item => ({ batch: item.batchId, report: item.report, hash: item.rawHash })).sort((a, b) => `${a.batch}:${a.report}`.localeCompare(`${b.batch}:${b.report}`)));
+function workspaceManifest(models: MarketingDashboard[]): MarketingManifest[] {
+  const entries = new Map<string, MarketingManifest>();
+  for (const model of models) for (const entry of model.manifest) {
+    const key = `${entry.batchId}:${entry.report}`, previous = entries.get(key);
+    if (previous && previous.rawHash !== entry.rawHash) throw new Error("MARKETING_SOURCE_MANIFEST_CHANGED");
+    if (!previous) entries.set(key, entry);
+  }
+  return [...entries.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([, entry]) => entry);
+}
 
 export function buildMarketingWorkspace(weekly: MarketingDashboard, monthly: MarketingDashboard, analyses: Partial<Record<"this_week" | "this_month", MarketingAnalysisView>> = {}): MarketingWorkspace {
   if (weekly.state !== "ready" || monthly.state !== "ready") throw new Error("MARKETING_STORED_DATA_UNAVAILABLE");
   if (weekly.window.key !== "this_week" || monthly.window.key !== "this_month") throw new Error("MARKETING_WORKSPACE_WINDOWS_INVALID");
-  if (manifestKey(weekly) !== manifestKey(monthly)) throw new Error("MARKETING_SOURCE_MANIFEST_CHANGED");
-  const models = [weekly, monthly], generatedAt = [weekly.generatedAt, monthly.generatedAt].sort().at(-1)!;
+  const cutoff = Date.parse(weekly.generatedAt);
+  if (!Number.isFinite(cutoff) || cutoff !== Date.parse(monthly.generatedAt) || weekly.window.currentEnd !== monthly.window.currentEnd) throw new Error("MARKETING_WORKSPACE_CUTOFF_CHANGED");
+  const models = [weekly, monthly], generatedAt = weekly.generatedAt, sourceManifest = workspaceManifest(models);
   const selectedAnalyses = models.flatMap(model => {
     const view = analyses[model.window.key as "this_week" | "this_month"];
     const record = view?.latest && ["ready", "stale"].includes(view.latest.status) && view.latest.output ? view.latest : view?.lastGood && ["ready", "stale"].includes(view.lastGood.status) && view.lastGood.output ? view.lastGood : null;
@@ -45,7 +54,7 @@ export function buildMarketingWorkspace(weekly: MarketingDashboard, monthly: Mar
     ...actions.map(action => ({ ...action, importKey: `action:${action.id}` })),
     ...[1, 2, 3].map(slot => ({ id: null, version: 0, assetId: null, priority: "medium", actionType: "investigation", description: "", expectedMetric: "organic_sessions", owner: "", status: "backlog", executedAt: null, measurementDays: 14, notes: "", hypothesis: "", confounderNotes: "", importKey: `draft:${draftSet}:${slot}` })),
   ];
-  return { version: "marketing-workspace-v1", generatedAt, sourceManifest: monthly.manifest, analysisStatus, actionAuthority: "Admin/Neon", sheets: [
+  return { version: "marketing-workspace-v1", generatedAt, sourceManifest, analysisStatus, actionAuthority: "Admin/Neon", sheets: [
     { title: "Performance Overview", ownership: "system", columns: overviewColumns, rows: [...models.flatMap(model => model.kpis.map(metric => metricRow(model, metric))), ...selectedAnalyses.map(({ model, record, stale }) => ({ "ช่วง": model.window.key, "เริ่ม": record.period.currentStart, "สิ้นสุด": record.period.currentEnd, "ตัวชี้วัด": "Local AI hypothesis · human review required", "AI สมมติฐาน": record.output!.summary, "AI สถานะ": stale ? "stale" : "ready", "AI ณ": record.completedAt ?? record.createdAt, "AI Model": record.modelName, "AI Prompt": record.promptVersion, "AI Input Hash": record.inputHash, "AI รอบล่าสุด": analyses[model.window.key as "this_week" | "this_month"]?.latest?.status ?? "unavailable" }))] },
     { title: "Top Content", ownership: "system", columns: ["ช่วง", "Leaderboard", "จัดอันดับตาม", "แพลตฟอร์ม", "อันดับ", "Content ID", "เนื้อหา", "หมวด", "ตัวชี้วัด", "ปัจจุบัน", "ก่อนหน้า", "ต่างกัน", "เปลี่ยนแปลง (%)", "หน่วย", "ปริมาณข้อมูล", "ประวัติ/ความครบ", "ความสด", "Mapping", "เริ่ม", "สิ้นสุด", "หลักฐาน", "AI สมมติฐาน"], rows: contentRows },
     { title: "Opportunities", ownership: "system", columns: ["ช่วง", "Opportunity ID", "ความสำคัญระบบ", "ด้าน", "Content ID", "โอกาส", "เหตุผลจากกติกา", "ขั้นถัดไป", "ความเชื่อมั่น", "หลักฐาน", "Owner/Status", "AI สมมติฐาน"], rows: [...models.flatMap(model => model.opportunities.map(item => ({ "ช่วง": model.window.key, "Opportunity ID": item.id, "ความสำคัญระบบ": item.priority, "ด้าน": item.area, "Content ID": item.assetId, "โอกาส": item.title, "เหตุผลจากกติกา": item.reason, "ขั้นถัดไป": item.recommendedAction, "ความเชื่อมั่น": item.confidence, "หลักฐาน": item.evidenceRefs.join(" | "), "Owner/Status": "จัดการใน Admin Action Plan; refresh ไม่เปลี่ยนงานมนุษย์", "AI สมมติฐาน": item.assetId ? aiAssetText(model.window.key, item.assetId) : "" }))), ...selectedAnalyses.flatMap(({ model, record, stale }) => record.output!.recommendedActions.map(finding => ({ "ช่วง": model.window.key, "Opportunity ID": `${record.analysisId}:${finding.id}`, "ความสำคัญระบบ": finding.priority, "ด้าน": "Local AI hypothesis · human review", "Content ID": finding.evidence.map(e => e.assetId).filter(Boolean).join(" | "), "โอกาส": finding.type, "เหตุผลจากกติกา": null, "ขั้นถัดไป": finding.action, "ความเชื่อมั่น": finding.confidence, "หลักฐาน": finding.evidence.map(e => e.evidenceRef).join(" | "), "Owner/Status": "มนุษย์เลือกและลงมือใน Action Plan", "AI สมมติฐาน": `${stale ? "STALE · " : ""}${record.period.currentStart}–${record.period.currentEnd}: ${finding.explanation}` })))] },
@@ -71,7 +80,7 @@ export function buildMarketingWorkspace(weekly: MarketingDashboard, monthly: Mar
         ...aiFindings(record).map(finding => ({ "หัวข้อ": "AI Evidence", "รายงาน": model.window.key, "รายละเอียด": `${finding.type}: ${finding.explanation}; action=${finding.action ?? "monitor"}; priority=${finding.priority}; confidence=${finding.confidence}; ${finding.evidence.map(e => `${e.id}/${e.assetId ?? "kpi"}: ${e.metric}=${e.current ?? "unavailable"}, previous=${e.previous ?? "unavailable"}; sample=${e.sampleStatus}; coverage=${e.coverageStatus}; freshness=${e.freshnessStatus}; ref=${e.evidenceRef}`).join(" | ")}`, "เริ่ม": record.period.currentStart, "สิ้นสุด": record.period.currentEnd })),
         ...record.output!.dataQualityNotes.map(note => ({ "หัวข้อ": "AI Data Quality", "รายงาน": model.window.key, "รายละเอียด": note })),
       ]),
-      ...monthly.manifest.map(item => ({ "หัวข้อ": "Provenance", "รายงาน": item.report, "รายละเอียด": item.limitations.join(" | "), "ต้นทาง ณ": item.sourceAsOf, "รับเข้าคลัง": item.collectedAt, "เริ่ม": item.periodStart, "สิ้นสุด": item.periodEnd, "Timezone": item.timezone, "Batch ID": item.batchId, "Raw SHA256": item.rawHash })),
+      ...sourceManifest.map(item => ({ "หัวข้อ": "Provenance", "รายงาน": item.report, "รายละเอียด": item.limitations.join(" | "), "ต้นทาง ณ": item.sourceAsOf, "รับเข้าคลัง": item.collectedAt, "เริ่ม": item.periodStart, "สิ้นสุด": item.periodEnd, "Timezone": item.timezone, "Batch ID": item.batchId, "Raw SHA256": item.rawHash })),
       ...monthly.health.map(item => ({ "หัวข้อ": "Data Health", "รายงาน": item.report, "รายละเอียด": `${item.status}; expected lag ${item.expectedLagDays}d; last error ${item.lastError ?? "none"}; ${item.limitations.join(" | ")}`, "ต้นทาง ณ": item.sourceAsOf, "รับเข้าคลัง": item.collectedAt, "เริ่ม": item.coverageStart, "สิ้นสุด": item.coverageEnd, "Timezone": item.timezone })),
       ...[...new Set(models.flatMap(model => [model.window.calendarPolicy, ...model.notes]))].map(note => ({ "หัวข้อ": "นิยาม/ข้อจำกัด", "รายงาน": "marketing-v1", "รายละเอียด": note })),
     ] },

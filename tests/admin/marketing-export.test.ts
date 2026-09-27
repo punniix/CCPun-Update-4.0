@@ -67,3 +67,27 @@ test("persisted AI is exported with exact old-period evidence, version/hash and 
   const notes = marketingWorkspaceCsv(workspace, "Data Notes"); assert.match(notes, /search_clicks=2, previous=1/); assert.match(notes, /old-evidence-reference/); assert.match(notes, /sample=low/);
   assert.equal(workspace.sheets.find(sheet => sheet.title === "Opportunities")!.rows[0]!["ความเชื่อมั่น"], "low");
 });
+
+
+test("historical window-specific manifests union without blocking stored exports", () => {
+  const weekly = model("this_week"), monthly = model("this_month");
+  const historical = { ...monthly.manifest[0]!, batchId: "00000000-0000-4000-8000-000000000000", rawHash: "d".repeat(64), periodStart: "2026-06-08", periodEnd: "2026-08-02", sourceAsOf: "2026-08-02" };
+  // This older chunk overlaps the monthly comparison (Aug1–24), but not weekly history.
+  monthly.manifest = [historical, ...monthly.manifest];
+  const first = buildMarketingWorkspace(weekly, monthly);
+  assert.equal(first.sourceManifest.length, 2); assert.deepEqual(first.sourceManifest.map(entry => entry.batchId), [historical.batchId, weekly.manifest[0]!.batchId]);
+  assert.match(marketingWorkspaceCsv(first, "Data Notes"), /2026-08-02/);
+  assert.equal(marketingWorkspaceXlsx(first).readUInt32LE(0), 0x04034b50);
+  monthly.manifest.reverse();
+  assert.deepEqual(buildMarketingWorkspace(weekly, monthly).sourceManifest, first.sourceManifest);
+  assert.equal(weekly.manifest.length, 1); assert.equal(monthly.manifest.length, 2);
+  monthly.manifest.find(entry => entry.batchId === weekly.manifest[0]!.batchId)!.rawHash = "e".repeat(64);
+  assert.throws(() => buildMarketingWorkspace(weekly, monthly), /MANIFEST_CHANGED/);
+});
+
+test("workspace refuses a changed shared cutoff or mature end even with identical provenance", () => {
+  const monthly = model("this_month"); monthly.generatedAt = "2026-09-27T12:00:01Z";
+  assert.throws(() => buildMarketingWorkspace(model("this_week"), monthly), /CUTOFF_CHANGED/);
+  monthly.generatedAt = model("this_week").generatedAt; monthly.window.currentEnd = "2026-09-23";
+  assert.throws(() => buildMarketingWorkspace(model("this_week"), monthly), /CUTOFF_CHANGED/);
+});
