@@ -49,10 +49,12 @@ test("Admin LINE service routes authenticate before parsing or persisting payloa
     assert.ok(bodyAt > authAt, file);
   }
   const verifier = readFileSync("lib/admin/line/web-service-auth.ts", "utf8");
-  assert.match(verifier, /createRemoteJWKSet/);
-  assert.match(verifier, /algorithms: \["RS256"\]/);
-  assert.match(verifier, /CCPUN_WEB_PRODUCTION_OIDC_SUBJECT/);
-  assert.match(verifier, /isProductionWebOidcClaims/);
+  assert.match(verifier, /isProductionVercelServiceTokenAuthorized\([\s\S]*"web"\)/);
+  const shared = readFileSync("lib/runtime/vercel-service-auth.ts", "utf8");
+  assert.match(shared, /createRemoteJWKSet/);
+  assert.match(shared, /algorithms: \["RS256"\]/);
+  assert.match(shared, /CCPUN_WEB_PRODUCTION_OIDC_SUBJECT/);
+  assert.match(shared, /isProductionVercelServiceClaims/);
 });
 
 import { encryptedLineEventSchema, readEncryptedLineEventBody } from "../../lib/admin/line/encrypted-ingest";
