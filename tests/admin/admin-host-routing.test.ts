@@ -100,6 +100,28 @@ test("Production Admin classifier rejects public CCPun website routes by default
   }
 });
 
+test("Daily analytics reaches its authenticated handler through an exact private route only", () => {
+  for (const path of ["/api/internal/analytics/daily", "/api/internal/analytics/daily/"]) {
+    assert.equal(isInternalServiceApiPath(path), true, path);
+    assert.equal(classifyProductionAdminPath(path), "allow", path);
+  }
+  for (const path of [
+    "/api/internal/analytics",
+    "/api/internal/analytics/",
+    "/api/internal/analytics/daily-extra",
+    "/api/internal/analytics/daily/child",
+    "/api/internal/analytics/daily.json",
+    "/api/internal/analytics/config",
+    "/api/internal/Analytics/daily",
+    "/api/internal/analytics/daily%2fchild",
+  ]) {
+    assert.equal(isInternalServiceApiPath(path), false, path);
+    assert.equal(classifyProductionAdminPath(path), "reject", path);
+  }
+  const handler = readFileSync(new URL("../../apps/admin/app/api/internal/analytics/daily/route.ts", import.meta.url), "utf8");
+  assert.match(handler, /if \(!isN8nExportRequestAuthorized\(request\)\) return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401, headers \}\)/);
+});
+
 test("authenticated Admin draft preview whitelist is narrow and article-focused", () => {
   for (const path of ["/blog", "/blog/", "/blog/life-insurance/example/", "/assets/example.webp", "/images/example.png"]) {
     assert.equal(isAuthenticatedAdminPreviewPath(path), true, path);
