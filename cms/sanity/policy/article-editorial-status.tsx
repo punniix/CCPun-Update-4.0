@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PatchEvent, set, useEditState, useSyncState, useWorkspace, type ObjectInputProps, type DocumentBadgeComponent } from "sanity";
+import { useEditState, useSyncState, useWorkspace, type ObjectInputProps, type DocumentBadgeComponent } from "sanity";
 import { IntentLink } from "sanity/router";
-import { requestArticleLineCopy, type ArticleLineCopyResult } from "./article-line-copy-action";
+import { requestArticleLineCopy } from "./article-line-copy-action";
 import { publicationSummary, reviewLabels } from "./article-publication";
 
 type ArticleLineCopyDocument = {
@@ -17,14 +17,12 @@ function ArticleLineCopyGenerator({
   draft,
   published,
   syncing,
-  onApply,
   onFocus,
 }: {
   id: string;
   draft: ArticleLineCopyDocument | null;
   published: ArticleLineCopyDocument | null;
   syncing: boolean;
-  onApply: (result: ArticleLineCopyResult) => void;
   onFocus: () => void;
 }) {
   const source = draft ?? published;
@@ -59,7 +57,6 @@ function ArticleLineCopyGenerator({
     setError(null);
     try {
       const result = await requestArticleLineCopy(id, source._rev);
-      onApply(result);
       setMessage(result.status === "skipped-existing"
         ? "ข้อความ LINE มีครบแล้ว จึงไม่ได้เขียนทับ"
         : `สร้าง${missing || "ข้อความ LINE"}แล้ว และบันทึกไว้ใน Draft`);
@@ -146,12 +143,6 @@ export function ArticleEditorialInput(props: ObjectInputProps) {
       draft={draft as ArticleLineCopyDocument | null}
       published={published as ArticleLineCopyDocument | null}
       syncing={sync.isSyncing}
-      onApply={(result) => {
-        const patches = [];
-        if (result.lineTitle) patches.push(set(result.lineTitle, ["lineTitle"]));
-        if (result.lineDescription) patches.push(set(result.lineDescription, ["lineDescription"]));
-        if (patches.length > 0) props.onChange(PatchEvent.from(patches));
-      }}
       onFocus={() => props.onPathFocus(["lineTitle"])}
     />
     {props.renderDefault(props)}

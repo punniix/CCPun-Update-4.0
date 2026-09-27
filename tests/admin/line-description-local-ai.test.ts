@@ -132,6 +132,6 @@ test("every article editor exposes owner-facing LINE generation and published-on
   assert.match(editor, /หน้า Live จะไม่เปลี่ยนจนกว่าคุณจะยืนยันเผยแพร่/);
   assert.match(action, /const source = draft \?\? published/);
   assert.match(route, /readOrCreateArticleDraftLineCopy/);
-  assert.match(helper, /createIfNotExists/);
+  assert.match(helper, /await write\.create\(/);
   assert.match(helper, /_id: "drafts\." \+ logicalId/);
 });
