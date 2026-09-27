@@ -6,6 +6,7 @@ const privatePaths = [
   "/api/",
   "/login/",
   ...CONTROL_PLANE_PAGE_PREFIXES.map((path) => `${path}/`),
+  "/admin-not-found/",
   "/snt-admin/",
   "/studio/",
 ];
