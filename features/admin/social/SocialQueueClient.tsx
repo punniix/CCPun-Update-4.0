@@ -60,15 +60,15 @@ type QueueItem = {
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    queued: "Queued",
-    processing: "Processing",
-    "native-scheduled": "Native scheduled",
-    failed: "Failed",
-    retryable: "Retryable",
-    "retry-exhausted": "Retry exhausted",
-    "needs-reconciliation": "Needs reconciliation",
-    cancelled: "Cancelled",
-    published: "Published",
+    queued: "รอส่ง",
+    processing: "กำลังส่ง",
+    "native-scheduled": "ตั้งเวลาที่แพลตฟอร์มแล้ว",
+    failed: "ไม่สำเร็จ",
+    retryable: "รอลองใหม่",
+    "retry-exhausted": "ลองครบแล้ว ต้องตรวจ",
+    "needs-reconciliation": "สถานะยังไม่ชัด ต้องตรวจอีกครั้ง",
+    cancelled: "ยกเลิกแล้ว",
+    published: "เผยแพร่แล้ว",
   };
   return labels[status] ?? status;
 }
@@ -117,9 +117,9 @@ export default function SocialQueueClient({ initialItems }: { initialItems: Queu
     setFeedback(null);
     try {
       await executeSocialPublication({ publicationId: item.publicationId, expectedJobVersion: item.jobVersion });
-      setFeedback(`${item.title}: execution engine รับงานแล้ว`);
+      setFeedback(`${item.title}: ระบบรับงานแล้ว`);
     } catch (error) {
-      setFeedback(error instanceof Error ? `${item.title}: ${error.message}` : `${item.title}: execute ไม่สำเร็จ`);
+      setFeedback(error instanceof Error ? `${item.title}: ${error.message}` : `${item.title}: ส่งงานไม่สำเร็จ`);
     } finally {
       setBusyId(null);
     }
@@ -137,9 +137,9 @@ export default function SocialQueueClient({ initialItems }: { initialItems: Queu
         jobStatus: "cancelled",
         leaseState: "none",
       });
-      setFeedback(`${item.title}: cancelled`);
+      setFeedback(`${item.title}: ยกเลิกแล้ว`);
     } catch (error) {
-      setFeedback(error instanceof Error ? `${item.title}: ${error.message}` : `${item.title}: cancel ไม่สำเร็จ`);
+      setFeedback(error instanceof Error ? `${item.title}: ${error.message}` : `${item.title}: ยกเลิกไม่สำเร็จ`);
     } finally {
       setBusyId(null);
     }
@@ -165,9 +165,9 @@ export default function SocialQueueClient({ initialItems }: { initialItems: Queu
         lastErrorCategory: null,
       });
       setSelectedId(null);
-      setFeedback(`${item.title}: rescheduled`);
+      setFeedback(`${item.title}: เปลี่ยนเวลาแล้ว`);
     } catch (error) {
-      setFeedback(error instanceof Error ? `${item.title}: ${error.message}` : `${item.title}: reschedule ไม่สำเร็จ`);
+      setFeedback(error instanceof Error ? `${item.title}: ${error.message}` : `${item.title}: เปลี่ยนเวลาไม่สำเร็จ`);
     } finally {
       setBusyId(null);
     }
@@ -178,19 +178,19 @@ export default function SocialQueueClient({ initialItems }: { initialItems: Queu
       <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Execution queue</h2>
-            <p className="mt-1 text-xs text-white/45">Neon publication/job state · Asia/Bangkok</p>
+            <h2 className="text-lg font-semibold text-white">รายการในคิว</h2>
+            <p className="mt-1 text-xs text-white/45">ข้อมูลจากคิวจริง · เวลาไทย</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <label className="sr-only" htmlFor="queue-platform">Platform</label>
+            <label className="sr-only" htmlFor="queue-platform">แพลตฟอร์ม</label>
             <select id="queue-platform" value={platform} onChange={(event) => setPlatform(event.target.value)} className="min-h-11 rounded-xl border border-white/10 bg-navy-800 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
-              <option value="all">All platforms</option>
+              <option value="all">ทุกแพลตฟอร์ม</option>
               <option value="facebook">Facebook</option>
               <option value="instagram">Instagram</option>
             </select>
-            <label className="sr-only" htmlFor="queue-status">Status</label>
+            <label className="sr-only" htmlFor="queue-status">สถานะ</label>
             <select id="queue-status" value={status} onChange={(event) => setStatus(event.target.value)} className="min-h-11 rounded-xl border border-white/10 bg-navy-800 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
-              <option value="all">All statuses</option>
+              <option value="all">ทุกสถานะ</option>
               {statuses.map((value) => <option key={value} value={value}>{statusLabel(value)}</option>)}
             </select>
           </div>
@@ -203,14 +203,14 @@ export default function SocialQueueClient({ initialItems }: { initialItems: Queu
         <table className="min-w-[1050px] w-full border-collapse text-left text-sm">
           <thead className="bg-white/[0.035] text-xs text-white/45">
             <tr>
-              <th className="px-4 py-3 font-medium">Post</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Scheduled</th>
-              <th className="px-4 py-3 font-medium">Attempts</th>
-              <th className="px-4 py-3 font-medium">Lease</th>
-              <th className="px-4 py-3 font-medium">Last error</th>
-              <th className="px-4 py-3 font-medium">Updated</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
+              <th className="px-4 py-3 font-medium">โพสต์</th>
+              <th className="px-4 py-3 font-medium">สถานะ</th>
+              <th className="px-4 py-3 font-medium">เวลาที่ตั้ง</th>
+              <th className="px-4 py-3 font-medium">จำนวนครั้ง</th>
+              <th className="px-4 py-3 font-medium">กำลังทำงาน</th>
+              <th className="px-4 py-3 font-medium">ปัญหาล่าสุด</th>
+              <th className="px-4 py-3 font-medium">อัปเดต</th>
+              <th className="px-4 py-3 font-medium">ทำต่อ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.08]">
@@ -223,23 +223,23 @@ export default function SocialQueueClient({ initialItems }: { initialItems: Queu
                     <div className="max-w-xs font-medium text-white/85">{item.title}</div>
                     <div className="mt-1 text-xs text-white/40">{item.platform} · {item.format}</div>
                     <details className="mt-2 text-[11px] text-white/35">
-                      <summary className="cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-[#e0c985]">Publication ID</summary>
+                      <summary className="cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-[#e0c985]">ดูรหัสรายการ</summary>
                       <code className="mt-1 block max-w-xs break-all">{item.publicationId}</code>
                     </details>
                   </td>
                   <td className="px-4 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs ${item.status === "needs-reconciliation" || item.status === "failed" || item.status === "retry-exhausted" ? "border-amber-200/20 bg-amber-200/[0.05] text-amber-50/80" : "border-white/10 bg-white/[0.03] text-white/70"}`}>{statusLabel(item.status)}</span></td>
                   <td className="px-4 py-4 text-xs text-white/60">{item.scheduledAt ? dateTime.format(new Date(item.scheduledAt)) : "—"}</td>
                   <td className="px-4 py-4 text-xs text-white/60">{item.attemptCount} / {item.maxAttempts}</td>
-                  <td className="px-4 py-4 text-xs text-white/60">{item.leaseState}</td>
-                  <td className="px-4 py-4 text-xs text-white/60">{item.lastErrorCategory ?? "—"}</td>
+                  <td className="px-4 py-4 text-xs text-white/60">{item.leaseState === "active" ? "ใช่" : item.leaseState === "expired" ? "หมดเวลา ต้องตรวจ" : "ไม่"}</td>
+                  <td className="px-4 py-4 text-xs text-white/60">{item.lastErrorCategory ? <details><summary className="cursor-pointer">มีรายละเอียดให้ตรวจ</summary><p className="mt-1 font-mono">{item.lastErrorCategory}</p></details> : "—"}</td>
                   <td className="px-4 py-4 text-xs text-white/50">{dateTime.format(new Date(item.updatedAt))}</td>
                   <td className="px-4 py-4">
                     <div className="flex max-w-sm flex-wrap gap-2">
-                      {canExecute ? <button type="button" disabled={busy} onClick={() => void runExecute(item)} className="min-h-11 rounded-xl border border-[#e0c985]/30 px-3 text-xs text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">{item.capabilities.retry ? "Retry" : "Execute now"}</button> : null}
-                      {item.capabilities.reschedule ? <button type="button" disabled={busy} onClick={() => openReschedule(item)} className="min-h-11 rounded-xl border border-white/10 px-3 text-xs text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">Reschedule</button> : null}
-                      {item.capabilities.cancel ? <button type="button" disabled={busy} onClick={() => void runCancel(item)} className="min-h-11 rounded-xl border border-red-300/20 px-3 text-xs text-red-100/75 hover:bg-red-300/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">Cancel</button> : null}
-                      <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 text-xs text-white/65 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">Open post</Link>
-                      {item.capabilities.reconcile ? <span className="inline-flex min-h-11 items-center rounded-xl border border-amber-200/20 px-3 text-xs text-amber-50/75">Reconcile / Needs attention</span> : null}
+                      {canExecute ? <button type="button" disabled={busy} onClick={() => void runExecute(item)} className="min-h-11 rounded-xl border border-[#e0c985]/30 px-3 text-xs text-[#f4df9b] hover:bg-[#e0c985]/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">{item.capabilities.retry ? "ลองใหม่" : "ส่งตอนนี้"}</button> : null}
+                      {item.capabilities.reschedule ? <button type="button" disabled={busy} onClick={() => openReschedule(item)} className="min-h-11 rounded-xl border border-white/10 px-3 text-xs text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">เปลี่ยนเวลา</button> : null}
+                      {item.capabilities.cancel ? <button type="button" disabled={busy} onClick={() => void runCancel(item)} className="min-h-11 rounded-xl border border-red-300/20 px-3 text-xs text-red-100/75 hover:bg-red-300/10 focus:outline-none focus:ring-2 focus:ring-[#e0c985] disabled:opacity-40">ยกเลิก</button> : null}
+                      <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 text-xs text-white/65 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">เปิดโพสต์</Link>
+                      {item.capabilities.reconcile ? <span className="inline-flex min-h-11 items-center rounded-xl border border-amber-200/20 px-3 text-xs text-amber-50/75">สถานะยังไม่ชัด ต้องตรวจ</span> : null}
                     </div>
                   </td>
                 </tr>
@@ -249,14 +249,14 @@ export default function SocialQueueClient({ initialItems }: { initialItems: Queu
         </table>
       </div>
 
-      {filtered.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/55">ไม่มี job ที่ตรงกับ filter นี้</div> : null}
+      {filtered.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/55">ไม่มีงานที่ตรงกับตัวกรองนี้</div> : null}
 
       {selected ? (
         <div role="dialog" aria-modal="true" aria-labelledby="queue-reschedule-title" className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget && !busyId) setSelectedId(null); }}>
           <div className="w-full max-w-md rounded-t-3xl border border-white/10 bg-navy-800 p-5 shadow-2xl sm:rounded-3xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">RESCHEDULE · ASIA/BANGKOK</p>
+                <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">เปลี่ยนเวลา · เวลาไทย</p>
                 <h2 id="queue-reschedule-title" className="mt-2 text-lg font-semibold text-white">{selected.title}</h2>
               </div>
               <button type="button" disabled={Boolean(busyId)} onClick={() => setSelectedId(null)} className="min-h-11 min-w-11 rounded-xl text-white/60 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">×<span className="sr-only">ปิด</span></button>

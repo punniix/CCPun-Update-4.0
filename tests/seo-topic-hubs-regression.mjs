@@ -87,6 +87,13 @@ assert.match(categoryPage, /!includeDrafts[\s\S]*category\.status === "active"/)
 assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
 assert.match(categoryPage, /activeCategorySlug=\{category\.slug\}/);
 assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
+assert.match(categoryPage, /heroDescription=\{category\.description \?\? hub\?\.description\}/);
+assert.match(categoryPage, /heroDescription=\{hub\.description\}/);
+assert.match(categoryPage, /topicContent=\{buildTopicIntro\(hub\)\}/);
+assert.match(categoryPage, /hub\.intro\.map/);
+assert.match(categoryPage, /styles\.storyCopy/);
+assert.match(blogPresentation, /heroDescription\?: string/);
+assert.match(blogPresentation, /<p>\{heroDescription\}<\/p>/);
 assert.match(categoryPage, /categories=\{categoryMenu\(registry, includeDrafts\)\}/);
 
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.

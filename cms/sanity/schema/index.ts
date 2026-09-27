@@ -1,6 +1,7 @@
 import { article } from "./documents/article";
 import { author } from "./documents/author";
 import { category } from "./documents/category";
+import { blogSettings } from "./documents/blog-settings";
 import { faqItem } from "./objects/faq-item";
 import { sourceReference } from "./objects/source-reference";
 import { reviewMetadata } from "./objects/review-metadata";
@@ -19,6 +20,7 @@ import { detailsBlock } from "./objects/details-block";
 import { portableText } from "./objects/portable-text";
 import { masterContent } from "./documents/master-content";
 import { socialVariant } from "./documents/social-variant";
+import { lineDiscoveryConfig } from "./documents/line-discovery-config";
 import { socialCommentSeriesItem } from "./objects/social-comment-series-item";
 import { adminIntelligenceSchemaTypes } from "../admin/schema";
 
@@ -27,6 +29,7 @@ export const schemaTypes = [
   article,
   author,
   category,
+  blogSettings,
   faqItem,
   sourceReference,
   reviewMetadata,
@@ -46,5 +49,6 @@ export const schemaTypes = [
   portableText,
   masterContent,
   socialVariant,
+  lineDiscoveryConfig,
   socialCommentSeriesItem,
 ];

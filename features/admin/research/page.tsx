@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import ResearchSnapshotForm from "@/features/admin/components/ResearchSnapshotForm";
 import SyncUbersuggestButton from "@/features/admin/components/SyncUbersuggestButton";
+import UbersuggestAisvImportForm from "@/features/admin/components/UbersuggestAisvImportForm";
 import UbersuggestResearchForm from "@/features/admin/components/UbersuggestResearchForm";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
@@ -8,6 +9,13 @@ import { hasAdminPermission } from "@/lib/admin/rbac";
 import { getResearchProviderStatus, isResearchWriteReady, listResearchSnapshots } from "@/lib/admin/research";
 import { normalizeResearchKeyword, researchOpportunityScore } from "@/lib/admin/research-input";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
+import {
+  aisvReadStateLabel,
+  aisvSourceRuntimeLabel,
+  deriveAisvReadState,
+  formatNullableMetric,
+  matchReviewedIntentOwner,
+} from "@/lib/admin/seo-intelligence/aisv";
 import { getUbersuggestConnectionStatus } from "@/lib/admin/ubersuggest";
 import {
   getUbersuggestDashboardData,
@@ -15,7 +23,7 @@ import {
   isUbersuggestSyncWriteReady,
 } from "@/lib/admin/ubersuggest-dashboard";
 
-export const metadata: Metadata = { title: "Research Intelligence" };
+export const metadata: Metadata = { title: "ข้อมูลประกอบการวางแผนเนื้อหา" };
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("th-TH", {
@@ -40,8 +48,8 @@ function providerLabel(value: string) {
 
 function actionLabel(covered: boolean, opportunity: number | null) {
   if (covered) return "มีบทความรองรับ";
-  if (opportunity != null && opportunity >= 70) return "Research gap · โอกาสสูง";
-  return "Research gap";
+  if (opportunity != null && opportunity >= 70) return "ยังขาดบทความ · โอกาสสูง";
+  return "ยังขาดบทความ";
 }
 
 export default async function AdminResearchPage({
@@ -64,9 +72,13 @@ export default async function AdminResearchPage({
   const snapshotReady = Boolean(dashboard.account || dashboard.geo);
   const writeReady = isResearchWriteReady();
   const canQueryProvider = hasAdminPermission(identity.role, "research:provider-query");
+  const syncWriteReady = isUbersuggestSyncWriteReady();
   const canSync = localProviderLane
     && ubersuggest.connected
-    && isUbersuggestSyncWriteReady()
+    && syncWriteReady
+    && canQueryProvider;
+  const canImportAisv = (environment === "admin-uat" || environment === "local-uat")
+    && syncWriteReady
     && canQueryProvider;
 
   const providers = getResearchProviderStatus(ubersuggest.connected).map((provider) => {
@@ -76,8 +88,8 @@ export default async function AdminResearchPage({
       connected: snapshotReady,
       mode: "sanity-snapshot",
       detail: snapshotReady
-        ? "Production Admin อ่าน Quota, Keyword Research และ GEO/AEO snapshot จาก Sanity โดยไม่เก็บ OAuth token บน Vercel"
-        : "Production Admin ยังไม่มี Ubersuggest snapshot สำหรับรอบนี้ ให้ Sync จาก Local provider lane ก่อน",
+        ? "ระบบจริงอ่านผลคำค้นและการมองเห็นที่เตรียมไว้ โดยไม่เก็บสิทธิ์เชื่อมต่อ Ubersuggest ไว้บนเว็บ"
+        : "ระบบจริงยังไม่มีข้อมูล Ubersuggest รอบล่าสุด กรุณาดึงข้อมูลจากเครื่องภายในที่เชื่อมต่อไว้ก่อน",
     };
   });
 
@@ -101,26 +113,28 @@ export default async function AdminResearchPage({
   const account = dashboard.account;
   const geo = dashboard.geo;
   const accountFresh = isSnapshotFresh(account?.checkedAt, 24);
-  const geoFresh = isSnapshotFresh(geo?.checkedAt, 35 * 24);
+  const geoFresh = isSnapshotFresh(geo?.checkedAt, 30 * 24);
+  const aisvState = deriveAisvReadState({ error: dashboard.error, snapshot: geo });
   const promptGaps = [...(geo?.prompts ?? [])]
-    .filter((prompt) => prompt.userVisibilityPercentage === 0)
-    .sort((a, b) => b.totalAnswers - a.totalAnswers);
+    .filter((prompt) => prompt.userVisibilityPercentage === 0 && (prompt.totalAnswers ?? 0) > 0)
+    .sort((a, b) => (b.totalAnswers ?? -1) - (a.totalAnswers ?? -1));
+  const promptUnknownCount = (geo?.prompts ?? []).filter((prompt) => prompt.userVisibilityPercentage == null).length;
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SEO + GEO/AEO decision workspace</p>
-      <h1 className="mt-2 text-3xl font-semibold">Research Intelligence</h1>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ข้อมูลประกอบสำหรับ SEO และ AI Search</p>
+      <h1 className="mt-2 text-3xl font-semibold">ค้นคว้าและตัดสินใจ</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-        รวม Keyword Research, Ubersuggest Quota, บทความที่รองรับ, GEO/AEO Prompt Gaps และประวัติ Research ไว้ใน workflow เดียว ข้อมูลภายนอกเป็นหลักฐานประกอบและจะไม่ถูกตีความเป็นคำสั่ง
+        รวมข้อมูลคำค้น จำนวนครั้งที่ยังใช้ Ubersuggest ได้ บทความที่มีอยู่ และหัวข้อที่ CCPun ยังไม่ปรากฏในคำตอบของ AI ข้อมูลเหล่านี้ใช้ประกอบการตัดสินใจเท่านั้น ระบบจะไม่แก้เนื้อหาให้อัตโนมัติ
       </p>
 
-      <nav aria-label="Research Intelligence workflow" className="mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+      <nav aria-label="ขั้นตอนค้นคว้าและตัดสินใจ" className="mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {[
           ["#capture", "1 · เก็บข้อมูล"],
-          ["#coverage", "2 · Match บทความ"],
+          ["#coverage", "2 · เทียบกับบทความ"],
           ["#ubersuggest-intelligence", "3 · Ubersuggest"],
           ["#geo-aeo", "4 · GEO / AEO"],
-          ["#history", "5 · History"],
+          ["#history", "5 · ประวัติ"],
         ].map(([href, label]) => (
           <a key={href} href={href} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-sm text-white/70 transition hover:border-[#e0c985]/30 hover:text-[#f4df9b]">
             {label}
@@ -130,13 +144,13 @@ export default async function AdminResearchPage({
 
       {params.provider === "connected" ? (
         <aside role="status" className="mt-6 rounded-2xl border border-emerald-200/20 bg-emerald-200/10 p-4 text-sm leading-6 text-emerald-50">
-          เชื่อมต่อ Ubersuggest แล้ว คุณเริ่มค้นคำและบันทึก Snapshot ได้
+          เชื่อมต่อ Ubersuggest แล้ว คุณเริ่มค้นคำและบันทึกชุดข้อมูลล่าสุดได้
         </aside>
       ) : null}
       {params.provider === "error" ? (
         <aside role="alert" className="mt-6 rounded-2xl border border-red-200/20 bg-red-200/10 p-4 text-sm leading-6 text-red-50">
           {productionSnapshotMode
-            ? "Production Admin ไม่เปิด OAuth Ubersuggest โดยตรง เพื่อไม่เก็บ refresh token บน Vercel ระบบยังอ่าน Snapshot ที่ Sync ไว้ได้ตามปกติ"
+            ? "ระบบจริงไม่เชื่อม Ubersuggest โดยตรง เพื่อไม่เก็บสิทธิ์ระยะยาวไว้บนเว็บ แต่ยังอ่านข้อมูลที่ดึงไว้แล้วได้ตามปกติ"
             : "เชื่อมต่อ Ubersuggest ไม่สำเร็จ ระบบไม่ได้บันทึกข้อมูลหรือแสดงผลลัพธ์ปลอม กรุณาลองใหม่"}
         </aside>
       ) : null}
@@ -147,7 +161,7 @@ export default async function AdminResearchPage({
       ) : null}
       {dashboard.error ? (
         <section role="alert" className="mt-6 rounded-2xl border border-red-200/20 bg-red-200/10 p-4 text-sm leading-6 text-red-50">
-          ยังอ่าน Ubersuggest snapshots ไม่สำเร็จ ระบบจะไม่แทนข้อมูลด้วยเลข 0 หรือข้อมูลเดา
+          ยังอ่านข้อมูลล่าสุดจาก Ubersuggest ไม่สำเร็จ ระบบจะไม่แทนด้วยเลข 0 หรือข้อมูลเดา
         </section>
       ) : null}
 
@@ -156,8 +170,8 @@ export default async function AdminResearchPage({
           const ubersuggestSnapshot = provider.id === "ubersuggest" && productionSnapshotMode;
           const statusLabel = ubersuggestSnapshot
             ? provider.connected
-              ? "Snapshot พร้อมใช้"
-              : "ยังไม่มี Snapshot"
+              ? "ข้อมูลล่าสุดพร้อมใช้"
+              : "ยังไม่มีข้อมูลล่าสุด"
             : provider.connected
               ? "พร้อมนำเข้าข้อมูล"
               : "ยังไม่เชื่อมต่อ";
@@ -177,10 +191,10 @@ export default async function AdminResearchPage({
 
       <section id="capture" className="scroll-mt-6 mt-6 rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.045] p-5 md:p-6">
         <div>
-          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">STEP 1</p>
-          <h2 className="mt-2 text-xl font-semibold">เก็บ Research ให้มีหลักฐานก่อนตัดสินใจ</h2>
+          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ขั้นที่ 1</p>
+          <h2 className="mt-2 text-xl font-semibold">เก็บข้อมูลให้มีหลักฐานก่อนตัดสินใจ</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-white/65">
-            บน Production ให้ใช้ Snapshot ที่ Sync แล้วหรือเพิ่มข้อมูลที่คุณตรวจสอบเอง ส่วน Local provider lane สามารถค้น Ubersuggest สดและบันทึก Snapshot ได้
+            บนระบบจริงให้ใช้ข้อมูลที่ดึงและตรวจไว้แล้ว หรือเพิ่มข้อมูลที่คุณตรวจสอบเอง ส่วนเครื่องภายในที่ได้รับสิทธิ์สามารถค้น Ubersuggest และบันทึกข้อมูลล่าสุดได้
           </p>
         </div>
         {canQueryProvider && !productionSnapshotMode ? (
@@ -194,13 +208,13 @@ export default async function AdminResearchPage({
       {!research.error ? (
         <section id="coverage" className="scroll-mt-6 mt-6">
           <div>
-            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">STEP 2</p>
-            <h2 className="mt-2 text-xl font-semibold">Match Research กับบทความ CCPun</h2>
-            <p className="mt-2 text-sm leading-6 text-white/60">เช็กว่า keyword ที่มีหลักฐานแล้วมี Primary/Secondary keyword owner อยู่หรือยัง ก่อนสร้างบทความใหม่</p>
+            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ขั้นที่ 2</p>
+            <h2 className="mt-2 text-xl font-semibold">เทียบข้อมูลกับบทความ CCPun</h2>
+            <p className="mt-2 text-sm leading-6 text-white/60">ตรวจว่าคำค้นที่มีหลักฐานมีบทความหลักหรือบทความรองรับอยู่แล้วหรือไม่ ก่อนสร้างบทความใหม่</p>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">Research ทั้งหมด</div><div className="mt-2 text-xl font-semibold">{rows.length}</div></article>
-            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">Research gaps</div><div className="mt-2 text-xl font-semibold text-amber-300">{gaps.length}</div></article>
+            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ข้อมูลค้นคว้าทั้งหมด</div><div className="mt-2 text-xl font-semibold">{rows.length}</div></article>
+            <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">หัวข้อที่ยังขาด</div><div className="mt-2 text-xl font-semibold text-amber-300">{gaps.length}</div></article>
             <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">มีบทความรองรับ</div><div className="mt-2 text-xl font-semibold text-emerald-300">{rows.length - gaps.length}</div></article>
             <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">โอกาสภายในสูงสุด</div><div className="mt-2 text-sm font-semibold text-white/80">{topOpportunity ? `${topOpportunity.keyword} · ${topOpportunity.opportunity}/100` : "—"}</div></article>
           </div>
@@ -210,24 +224,26 @@ export default async function AdminResearchPage({
       <section id="ubersuggest-intelligence" className="scroll-mt-6 mt-6 rounded-3xl border border-sky-200/15 bg-sky-200/[0.035] p-5 md:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-[0.12em] text-sky-200">STEP 3 · DATA PROVIDER</p>
-            <h2 className="mt-2 text-xl font-semibold">Ubersuggest Intelligence + Account Quota</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">อ่าน limit/used จากบัญชีและ project จริง ไม่ hard-code ตามชื่อแพ็กเกจ และไม่ยิง provider ซ้ำเมื่อมี Snapshot ที่ยังเหมาะกับรอบข้อมูล</p>
+            <p className="text-xs font-semibold tracking-[0.12em] text-sky-200">ขั้นที่ 3 · Ubersuggest</p>
+            <h2 className="mt-2 text-xl font-semibold">ข้อมูล Ubersuggest และขีดจำกัดบัญชี</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">อ่านจำนวนที่ใช้และเหลือจากบัญชีจริง และไม่ดึงข้อมูลซ้ำเมื่อชุดล่าสุดยังใหม่พอ</p>
           </div>
           {canSync ? <SyncUbersuggestButton /> : null}
         </div>
 
         {!localProviderLane ? (
           <p className="mt-4 rounded-xl border border-sky-200/10 bg-black/10 p-3 text-sm leading-6 text-sky-100/75">
-            Cloud Admin อ่าน Snapshot จาก Sanity เท่านั้น การ refresh provider ทำจาก Local Ubersuggest lane ที่ authenticate อยู่ เพื่อไม่ย้าย OAuth refresh token ไปเก็บบน Vercel
+            หน้านี้ไม่ถือ OAuth ของ Ubersuggest บน cloud การดึงข้อมูลใหม่ต้องเกิดใน runtime ที่ได้รับสิทธิ์ แล้วนำผลสรุปที่ตรวจแล้วเข้า UAT พร้อมที่มาและเวลา
           </p>
         ) : null}
 
+        {canImportAisv ? <div className="mt-4"><UbersuggestAisvImportForm /></div> : null}
+
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">Account</div><div className="mt-2 text-lg font-semibold">{account?.tier ?? "ยังไม่มี snapshot"}</div><p className="mt-1 text-xs text-white/45">{account ? `${account.domain} · ${accountFresh ? "สด" : "ควร Sync ใหม่"}` : ""}</p></article>
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">AI Visibility</div><div className="mt-2 text-2xl font-semibold">{geo ? `${geo.visibilityPercentage}%` : "—"}</div><p className="mt-1 text-xs text-white/45">{geo ? `${geo.totalMentions} mentions` : ""}</p></article>
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">Share of Voice</div><div className="mt-2 text-2xl font-semibold">{geo ? geo.shareOfVoice : "—"}</div><p className="mt-1 text-xs text-white/45">Ubersuggest AI Search Visibility</p></article>
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">Prompt Gaps</div><div className="mt-2 text-2xl font-semibold text-amber-200">{geo ? promptGaps.length : "—"}</div><p className="mt-1 text-xs text-white/45">CCPun visibility = 0%</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">แพ็กเกจ Ubersuggest</div><div className="mt-2 text-lg font-semibold">{account?.tier ?? "ยังไม่มีข้อมูล"}</div><p className="mt-1 text-xs text-white/45">{account ? `${account.domain} · ${accountFresh ? "ข้อมูลเป็นปัจจุบัน" : "ควรดึงข้อมูลใหม่"}` : ""}</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">การปรากฏในคำตอบ AI</div><div className="mt-2 text-2xl font-semibold">{geo ? formatNullableMetric(geo.visibilityPercentage, "%") : "—"}</div><p className="mt-1 text-xs text-white/45">{geo ? (geo.totalMentions == null ? "ไม่มีค่าจำนวน mention" : `ถูกกล่าวถึง ${geo.totalMentions} ครั้งใน sample นี้`) : ""}</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">สัดส่วนการถูกกล่าวถึง</div><div className="mt-2 text-2xl font-semibold">{geo ? formatNullableMetric(geo.shareOfVoice) : "—"}</div><p className="mt-1 text-xs text-white/45">ข้อมูลจาก Ubersuggest AISV</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่วัดได้ 0%</div><div className="mt-2 text-2xl font-semibold text-amber-200">{geo ? promptGaps.length : "—"}</div><p className="mt-1 text-xs text-white/45">นับเฉพาะ prompt ที่มีคำตอบและ provider ส่ง 0% จริง</p></article>
         </div>
 
         {account?.quotas.length ? (
@@ -242,80 +258,104 @@ export default async function AdminResearchPage({
               </article>
             ))}
           </div>
-        ) : <p className="mt-5 text-sm text-white/55">ยังไม่มี quota snapshot จาก Ubersuggest</p>}
-        {account ? <p className="mt-4 text-xs text-white/45">Sync ล่าสุด {formatDate(account.checkedAt)}</p> : null}
+        ) : <p className="mt-5 text-sm text-white/55">ยังไม่มีข้อมูลขีดจำกัดล่าสุดจาก Ubersuggest</p>}
+        {geo ? (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm leading-6 text-white/60">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span>สถานะ: <strong className="text-white/80">{aisvReadStateLabel(aisvState)}</strong></span>
+              <span>แหล่ง: Ubersuggest AISV</span>
+              <span>runtime: {aisvSourceRuntimeLabel(geo.sourceRuntime ?? account?.sourceRuntime)}</span>
+            </div>
+            <p className="mt-2">ช่วงรายงาน {geo.windowStart} → {geo.windowEnd} · ดึงเข้าระบบ {formatDate(geo.fetchedAt ?? geo.checkedAt)}</p>
+            <p>อัปเดตชุด prompt: {geo.promptsUpdatedAt ?? "ไม่ทราบ"} · เวลาเก็บคำตอบ AI: {geo.answerCollectedAt ? formatDate(geo.answerCollectedAt) : "provider ไม่ได้ระบุ"}</p>
+            {promptUnknownCount > 0 ? <p className="mt-2 text-amber-100">มี {promptUnknownCount} prompt ที่ provider ไม่ได้ส่งค่า visibility จึงไม่ถูกนับเป็น 0%</p> : null}
+            {geo.limitations.length ? <ul className="mt-2 list-disc space-y-1 pl-5">{geo.limitations.map((item) => <li key={item}>{item}</li>)}</ul> : null}
+          </div>
+        ) : account ? <p className="mt-4 text-xs text-white/45">ดึงข้อมูลบัญชีล่าสุด {formatDate(account.fetchedAt ?? account.checkedAt)}</p> : null}
       </section>
 
       <section id="geo-aeo" className="scroll-mt-6 mt-6 rounded-3xl border border-violet-200/15 bg-violet-200/[0.035] p-5 md:p-6">
         <div>
-          <p className="text-xs font-semibold tracking-[0.12em] text-violet-200">STEP 4</p>
-          <h2 className="mt-2 text-xl font-semibold">GEO / AEO — AI Search Visibility</h2>
-          <p className="mt-2 text-sm leading-6 text-white/60">ใช้ prompt, provider, competitor และ intent data จาก Ubersuggest เพื่อหา AI visibility gaps ที่ควรนำกลับไปปรับบทความหรือวาง content opportunity</p>
+          <p className="text-xs font-semibold tracking-[0.12em] text-violet-200">ขั้นที่ 4</p>
+          <h2 className="mt-2 text-xl font-semibold">การมองเห็นบน AI Search</h2>
+          <p className="mt-2 text-sm leading-6 text-white/60">ใช้คำถาม แหล่งคำตอบ คู่แข่ง และเป้าหมายการค้นหาจาก Ubersuggest เพื่อหาหัวข้อที่ CCPun ยังไม่ถูกกล่าวถึงและควรนำกลับไปปรับบทความ</p>
         </div>
 
         {geo ? (
           <>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">AI answers</div><div className="mt-2 text-xl font-semibold">{geo.totalAnswers}</div></article>
-              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">Tracked prompts</div><div className="mt-2 text-xl font-semibold">{geo.totalPrompts}</div></article>
-              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">Competitors found</div><div className="mt-2 text-xl font-semibold">{geo.totalCompetitors}</div></article>
-              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">Average AI rank</div><div className="mt-2 text-xl font-semibold">{geo.averageRank ?? "—"}</div></article>
+              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำตอบจาก AI ที่ตรวจ</div><div className="mt-2 text-xl font-semibold">{formatNullableMetric(geo.totalAnswers)}</div></article>
+              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่ติดตาม</div><div className="mt-2 text-xl font-semibold">{formatNullableMetric(geo.totalPrompts)}</div></article>
+              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คู่แข่งที่พบ</div><div className="mt-2 text-xl font-semibold">{formatNullableMetric(geo.totalCompetitors)}</div></article>
+              <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">อันดับเฉลี่ยในคำตอบ AI</div><div className="mt-2 text-xl font-semibold">{geo.averageRank ?? "—"}</div></article>
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
               <article className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                <h3 className="font-medium">Provider breakdown</h3>
+                <h3 className="font-medium">ผลแยกตามบริการ AI</h3>
                 <div className="mt-3 space-y-2">
                   {geo.providers.map((provider) => (
                     <div key={provider.provider} className="flex flex-col gap-1 rounded-xl bg-white/[0.03] px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
                       <span>{providerLabel(provider.provider)}</span>
-                      <span className="text-white/60">Visibility {provider.visibilityPercentage}% · Mentions {provider.totalMentions} · Rank {provider.averageRank ?? "—"}</span>
+                      <span className="text-white/60">ปรากฏ {formatNullableMetric(provider.visibilityPercentage, "%")} · กล่าวถึง {formatNullableMetric(provider.totalMentions)} ครั้ง · อันดับ {provider.averageRank ?? "—"}</span>
                     </div>
                   ))}
                 </div>
               </article>
               <article className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                <h3 className="font-medium">Search intents ใน AI prompts</h3>
+                <h3 className="font-medium">เป้าหมายของคำถามที่ส่งให้ AI</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {geo.intents.map((item) => <span key={item.intent} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white/65">{item.intent}: {item.value}</span>)}
+                  {geo.intents.map((item) => <span key={item.intent} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white/65">{item.intent}: {formatNullableMetric(item.value)}</span>)}
                 </div>
               </article>
             </div>
 
             <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/10">
-              <div className="border-b border-white/10 px-4 py-3"><h3 className="font-medium">AI Prompt Gaps</h3><p className="mt-1 text-sm leading-6 text-white/55">เรียง prompt ที่ CCPun ยังไม่ถูก mention โดยให้ prompt ที่มี AI answers มากกว่าอยู่ก่อน</p></div>
+              <div className="border-b border-white/10 px-4 py-3"><h3 className="font-medium">คำถามที่ Ubersuggest วัด CCPun ได้ 0% ในรอบนี้</h3><p className="mt-1 text-sm leading-6 text-white/55">เป็นผลจาก sample และช่วงรายงานด้านบน ไม่ใช่ข้อสรุปว่า AI ทุกระบบไม่รู้จัก CCPun และไม่ใช้แทนสถานะบทความในเว็บไซต์</p></div>
               {promptGaps.length ? (
                 <div className="divide-y divide-white/5">
-                  {promptGaps.map((prompt) => (
-                    <article key={prompt.promptText} className="p-4">
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div><div className="flex flex-wrap gap-2 text-xs text-white/50">{prompt.topic ? <span>{prompt.topic}</span> : null}<span>{prompt.intents.join(" / ") || "ไม่ระบุ intent"}</span><span>{prompt.totalAnswers} AI answers</span></div><h4 className="mt-2 font-medium text-white/85">{prompt.promptText}</h4><p className="mt-2 text-sm leading-6 text-white/55">Top brands: {prompt.topBrands.length ? prompt.topBrands.join(", ") : "ยังไม่พบ brand เด่น"}</p></div>
-                        <span className="w-fit rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-xs text-amber-100">CCPun visibility 0%</span>
-                      </div>
-                    </article>
-                  ))}
+                  {promptGaps.map((prompt) => {
+                    const owner = matchReviewedIntentOwner(prompt.promptText);
+                    return (
+                      <article key={prompt.promptText} className="p-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <div className="flex flex-wrap gap-2 text-xs text-white/50">{prompt.topic ? <span>{prompt.topic}</span> : null}<span>{prompt.intents.join(" / ") || "ไม่ระบุเป้าหมาย"}</span><span>พบคำตอบ {formatNullableMetric(prompt.totalAnswers)} รายการ</span></div>
+                            <h4 className="mt-2 font-medium text-white/85">{prompt.promptText}</h4>
+                            <p className="mt-2 text-sm leading-6 text-white/55">แบรนด์ที่พบมาก: {prompt.topBrands.length ? prompt.topBrands.join(", ") : "ยังไม่พบแบรนด์เด่นในข้อมูลที่คืนมา"}</p>
+                            {owner ? (
+                              <p className="mt-2 text-sm text-emerald-100/80">Intent owner ที่ review แล้ว: <a className="underline decoration-emerald-200/40 underline-offset-2" href={owner.ownerUrl}>{owner.primaryQuery}</a></p>
+                            ) : (
+                              <p className="mt-2 text-sm text-amber-100/75">ยังไม่ได้จับคู่กับ Intent Owner Registry · รอตรวจ ไม่ได้หมายความว่าเว็บไซต์ไม่มีบทความนี้</p>
+                            )}
+                          </div>
+                          <span className="w-fit rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-xs text-amber-100">วัดได้ 0% ในรอบนี้</span>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-              ) : <div className="p-5 text-sm text-white/55">ยังไม่มี prompt gap ใน snapshot ล่าสุด หรือยังไม่ได้ Sync GEO data</div>}
+              ) : <div className="p-5 text-sm text-white/55">ไม่มี prompt ที่เข้าเงื่อนไข “มีคำตอบและ provider ส่ง visibility = 0%” ในชุดข้อมูลนี้</div>}
             </div>
-            <p className="mt-4 text-xs text-white/45">ช่วงข้อมูล {geo.windowStart} → {geo.windowEnd} · {geoFresh ? "อยู่ในรอบข้อมูล" : "ควร Sync ใหม่"}</p>
+            <p className="mt-4 text-xs text-white/45">ช่วงข้อมูล {geo.windowStart} → {geo.windowEnd} · สถานะ {aisvReadStateLabel(aisvState)} · {geoFresh ? "snapshot เพิ่งถูกบันทึก" : "snapshot ถูกบันทึกมานานแล้ว"}</p>
           </>
-        ) : <p className="mt-4 text-sm text-white/55">ยังไม่มี GEO/AEO snapshot</p>}
+        ) : <p className="mt-4 text-sm text-white/55">ยังไม่มีข้อมูล GEO/AEO</p>}
       </section>
 
       {!research.error ? (
         <section id="history" className="scroll-mt-6 mt-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
           <div className="border-b border-white/10 px-5 py-4">
-            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">STEP 5</p>
-            <h2 className="mt-2 font-semibold">Research History + Decision Status</h2>
-            <p className="mt-1 text-sm leading-6 text-white/65">รวม Manual และ Ubersuggest Research ในตารางเดียว พร้อมสถานะบทความรองรับและคะแนน Opportunity ภายใน</p>
+            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ขั้นที่ 5</p>
+            <h2 className="mt-2 font-semibold">ประวัติข้อมูลและสถานะการตัดสินใจ</h2>
+            <p className="mt-1 text-sm leading-6 text-white/65">รวมข้อมูลที่กรอกเองและจาก Ubersuggest ในตารางเดียว พร้อมสถานะบทความรองรับและคะแนนโอกาสภายใน</p>
           </div>
           {rows.length ? (
             <>
               <p className="px-5 pt-4 text-sm text-white/60 md:hidden">เลื่อนตารางไปทางซ้ายหรือขวาเพื่อดูข้อมูลทั้งหมด</p>
-              <div role="region" aria-label="ตาราง Research Intelligence" tabIndex={0} className="overflow-x-auto">
+              <div role="region" aria-label="ตารางข้อมูลประกอบการตัดสินใจ" tabIndex={0} className="overflow-x-auto">
                 <table className="w-full min-w-[1280px] text-left text-sm">
                   <thead className="border-b border-white/10 bg-white/[0.03] text-xs tracking-wide text-white/55">
-                    <tr><th className="px-5 py-4">Keyword</th><th className="px-4 py-4">Decision status</th><th className="px-4 py-4">Opportunity</th><th className="px-4 py-4">Provider</th><th className="px-4 py-4">Scope</th><th className="px-4 py-4">Volume</th><th className="px-4 py-4">Difficulty</th><th className="px-4 py-4">Intent</th><th className="px-4 py-4">SERP</th><th className="px-5 py-4">ดึงข้อมูลเมื่อ</th></tr>
+                    <tr><th className="px-5 py-4">คำค้น</th><th className="px-4 py-4">สถานะ</th><th className="px-4 py-4">คะแนนโอกาส</th><th className="px-4 py-4">แหล่งข้อมูล</th><th className="px-4 py-4">ขอบเขต</th><th className="px-4 py-4">จำนวนค้นหา</th><th className="px-4 py-4">ความยาก</th><th className="px-4 py-4">เป้าหมายการค้นหา</th><th className="px-4 py-4">จำนวนผลค้นหา</th><th className="px-5 py-4">ดึงข้อมูลเมื่อ</th></tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {rows.map((row) => (
@@ -336,7 +376,7 @@ export default async function AdminResearchPage({
                 </table>
               </div>
             </>
-          ) : <div className="p-7 text-center text-sm text-white/65">ยังไม่มี Research ในชุดข้อมูลนี้</div>}
+          ) : <div className="p-7 text-center text-sm text-white/65">ยังไม่มีข้อมูลค้นคว้าในชุดข้อมูลนี้</div>}
         </section>
       ) : null}
     </div>

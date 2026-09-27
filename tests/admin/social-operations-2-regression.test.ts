@@ -7,10 +7,10 @@ const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta
 test("Admin navigation keeps seven primary modules and exposes Social contextually", () => {
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
   const nav = read("features/admin/components/AdminNavigation.tsx");
-  for (const label of ["Dashboard", "Content", "SEO", "Social", "Analytics", "Operations", "Settings"]) {
+  for (const label of ["ภาพรวม", "เนื้อหา", "SEO", "โซเชียล", "ผลลัพธ์", "สถานะระบบ", "ตั้งค่า"]) {
     assert.ok(layout.includes(`label: "${label}"`), `missing primary module ${label}`);
   }
-  assert.match(layout, /href: "\/social\/queue\/", label: "Queue"/);
+  assert.match(layout, /href: "\/social\/queue\/", label: "คิวส่งโพสต์"/);
   assert.match(nav, /<PrimaryModules items=\{items\} pathname=\{pathname\} \/>/);
   assert.match(nav, /activeItem\?\.children\?\.length \? <ContextNavigation/);
   assert.match(nav, /aria-label="กลับไปเมนูหลัก"/);
@@ -31,8 +31,8 @@ test("Calendar and Queue are operational Social surfaces rather than aliases", (
   assert.match(operationClient, /\/api\/admin\/social\/publications\/reschedule\//);
   assert.match(calendarClient, /draggable/);
   assert.match(queuePage, /SocialQueueClient/);
-  assert.match(queueClient, /Execute now|Execute Now/);
-  assert.match(queueClient, /Reschedule/);
+  assert.match(queueClient, /ส่งตอนนี้/);
+  assert.match(queueClient, /เปลี่ยนเวลา/);
   assert.doesNotMatch(postsPage, /operations-page/);
 });
 

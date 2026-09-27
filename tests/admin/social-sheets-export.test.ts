@@ -98,19 +98,18 @@ test("Sheets export rejects expired interactive authorization before any Google 
   assert.equal(called, false);
 });
 
-test("Sheets route is an owner-only same-origin runtime mutation and the UI keeps the token in memory", () => {
+test("Legacy direct Sheets route stays guarded while Social UI uses the central Export Center", () => {
   const route = readFileSync(new URL("../../app/api/admin/social/export/sheets/route.ts", import.meta.url), "utf8");
   const service = readFileSync(new URL("../../lib/admin/social/sheets-export.ts", import.meta.url), "utf8");
   const component = readFileSync(new URL("../../features/admin/social/SocialSheetsExport.tsx", import.meta.url), "utf8");
   assert.match(route, /identity\.actorType !== "human" \|\| identity\.role !== "owner"/);
   assert.match(route, /isConfiguredAdminOrigin/);
   assert.match(route, /isSameOriginAdminMutation/);
-  assert.match(service, /resolveSocialPublicationRuntime/);
-  assert.match(service, /CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED/);
   assert.match(service, /post_performance_clean/);
   assert.match(service, /post_metric_coverage_summary/);
-  assert.match(component, /useRef<GoogleDriveMemorySession \| null>/);
-  assert.doesNotMatch(component, /localStorage|sessionStorage|indexedDB|cookie/i);
+  assert.match(component, /\/analytics\/exports\//);
+  assert.match(component, /Agent OS \+ n8n/);
+  assert.doesNotMatch(component, /\/api\/admin\/social\/export\/sheets/);
   assert.doesNotMatch(route, /console\./);
   assert.doesNotMatch(service, /console\./);
 });

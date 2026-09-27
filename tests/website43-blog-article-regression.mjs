@@ -74,6 +74,7 @@ const categoryRegistryFixture = buildCategoryRegistry([
   { _id: 'motor', title: 'ประกันรถยนต์', slug: 'motor-insurance', status: 'active' },
 ]);
 mock('../lib/content/category-registry-sanity.ts', { listCategoryRegistry: async () => categoryRegistryFixture });
+mock('../lib/content/blog-featured-sanity.ts', { listBlogFeaturedArticleIds: async () => [] });
 mock('../lib/content/provider.ts', { getContentProvider: () => ({
   listArticles: async (options) => { calls.push(options); return [article, health, draft]; },
   getArticleBySlug: async (slug, options) => { calls.push(options); return [article, health, draft].find((entry) => entry.slug === slug) ?? null; },

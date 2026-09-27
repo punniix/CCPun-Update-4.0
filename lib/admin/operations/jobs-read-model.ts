@@ -6,6 +6,7 @@ import { ARTICLE_SCHEDULER_CHECKSUM, ARTICLE_SCHEDULER_MIGRATION } from "../../.
 import { getSocialDatabaseReadiness } from "../social/database";
 import { resolveSocialRuntime, SOCIAL_UAT_RUNTIME_BRANCHES } from "../social/runtime";
 import { resolveArticleSchedulerLane, SCHEDULER_LANES, SCHEDULER_ROLE, scheduleStatusSchema } from "./article-schedule-contract";
+import { readAgentRuntimeJobs } from "./agent-os-runtime";
 
 const timestamp = z.union([z.string(), z.date()]).transform((value) => new Date(value).toISOString());
 
@@ -41,7 +42,7 @@ const socialRowSchema = z.object({
 });
 
 export type OperationsJob = {
-  source: "article-scheduler" | "social-publication";
+  source: "article-scheduler" | "social-publication" | "agent-os";
   id: string;
   objectId: string;
   kind: string;
@@ -60,6 +61,7 @@ export type JobsReadModel = {
   status: "ready" | "partial" | "unavailable";
   articleScheduler: { ready: boolean; count: number; jobs: OperationsJob[]; error: string | null };
   socialPublication: { ready: boolean; count: number; jobs: OperationsJob[]; error: string | null };
+  agentOs: { ready: boolean; count: number; jobs: OperationsJob[]; error: string | null };
   jobs: OperationsJob[];
 };
 
@@ -156,24 +158,48 @@ async function readSocialJobs(limit: number, env: Record<string, string | undefi
   }));
 }
 
+async function readAgentOsJobs(limit: number, env: Record<string, string | undefined>) {
+  const model = await readAgentRuntimeJobs(limit, env);
+  if (model.state !== "ready") throw new Error(`agent-os-${model.state}`);
+  return model.jobs.map((row): OperationsJob => ({
+    source: "agent-os",
+    id: row.jobId,
+    objectId: row.correlationId,
+    kind: `${row.workflowKey} · ${row.action}`,
+    status: row.status,
+    scheduledAt: row.queuedAt,
+    updatedAt: row.updatedAt,
+    completedAt: row.completedAt,
+    attempts: { current: row.attempt, max: row.maxAttempts },
+    locked: false,
+    lockExpiresAt: null,
+    error: row.errorCategory,
+    detail: `stage ${row.stage}${row.n8nExecutionId ? ` · n8n ${row.n8nExecutionId}` : ""}`,
+  }));
+}
+
 export async function readOperationsJobs(
   limit = 30,
   env: Record<string, string | undefined> = process.env,
 ): Promise<JobsReadModel> {
   const boundedLimit = Math.max(1, Math.min(50, Math.trunc(limit)));
-  const [article, social] = await Promise.allSettled([
+  const [article, social, agentOs] = await Promise.allSettled([
     readArticleJobs(boundedLimit, env),
     readSocialJobs(boundedLimit, env),
+    readAgentOsJobs(boundedLimit, env),
   ]);
   const articleJobs = article.status === "fulfilled" ? article.value : [];
   const socialJobs = social.status === "fulfilled" ? social.value : [];
-  const jobs = [...articleJobs, ...socialJobs]
+  const agentOsJobs = agentOs.status === "fulfilled" ? agentOs.value : [];
+  const jobs = [...articleJobs, ...socialJobs, ...agentOsJobs]
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
     .slice(0, boundedLimit);
   const articleReady = article.status === "fulfilled";
   const socialReady = social.status === "fulfilled";
+  const agentOsReady = agentOs.status === "fulfilled";
+  const readyCount = [articleReady, socialReady, agentOsReady].filter(Boolean).length;
   return {
-    status: articleReady && socialReady ? "ready" : articleReady || socialReady ? "partial" : "unavailable",
+    status: readyCount === 3 ? "ready" : readyCount > 0 ? "partial" : "unavailable",
     articleScheduler: {
       ready: articleReady,
       count: articleJobs.length,
@@ -185,6 +211,12 @@ export async function readOperationsJobs(
       count: socialJobs.length,
       jobs: socialJobs,
       error: social.status === "rejected" ? String(social.reason instanceof Error ? social.reason.message : social.reason) : null,
+    },
+    agentOs: {
+      ready: agentOsReady,
+      count: agentOsJobs.length,
+      jobs: agentOsJobs,
+      error: agentOs.status === "rejected" ? String(agentOs.reason instanceof Error ? agentOs.reason.message : agentOs.reason) : null,
     },
     jobs,
   };

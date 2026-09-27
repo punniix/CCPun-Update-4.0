@@ -1,4 +1,5 @@
 import { CCPUN_VERCEL_PROJECT_IDS, parseAdminEnvironment, type AdminEnvironment } from "../environment";
+import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 import { SYNTHETIC_MARKET_PROVIDER_FIXTURES } from "./providers/ubersuggest";
 
 export const WEBSITE_42_SEO_BRANCH = "codex/website-42-seo-observation-assembler-20260829";
@@ -70,23 +71,23 @@ export type SeoOpportunity = {
 
 const PROTECTED_FIELDS = ["slug", "canonical", "noindex", "redirect", "sitemap", "robots", "publish"];
 const TYPE_EFFORT: Record<SeoOpportunityType, PriorityComponent> = {
-  "ctr-underperformance": { value: 2, reason: "ตรวจ snippet และ intent ได้โดยไม่แตะ URL" },
-  "position-4-15": { value: 3, reason: "ต้องตรวจ content gap และ internal links" },
+  "ctr-underperformance": { value: 2, reason: "ตรวจข้อความในผลค้นหาและความต้องการของผู้ค้นหาได้โดยไม่เปลี่ยน URL" },
+  "position-4-15": { value: 3, reason: "ต้องตรวจเนื้อหาที่ยังขาดและลิงก์ภายใน" },
   "content-decay": { value: 4, reason: "ต้องตรวจความสด ฤดูกาล และเนื้อหาทั้งหน้า" },
-  cannibalization: { value: 5, reason: "อาจกระทบ ownership และต้องผ่าน SEO migration review" },
+  cannibalization: { value: 5, reason: "อาจกระทบหน้าหลักของคำค้น และต้องผ่านการตรวจการย้ายข้อมูล SEO" },
 };
 const TYPE_RISK: Record<SeoOpportunityType, PriorityComponent> = {
-  "ctr-underperformance": { value: 2, reason: "เสนอได้เฉพาะ title/meta และยังไม่แก้ Draft" },
-  "position-4-15": { value: 2, reason: "คำแนะนำจำกัดอยู่ที่ content และ internal links" },
+  "ctr-underperformance": { value: 2, reason: "เสนอได้เฉพาะชื่อเรื่องและคำอธิบาย โดยยังไม่แก้ฉบับร่าง" },
+  "position-4-15": { value: 2, reason: "คำแนะนำจำกัดอยู่ที่เนื้อหาและลิงก์ภายใน" },
   "content-decay": { value: 3, reason: "YMYL ต้อง fact-check ก่อนแก้เนื้อหา" },
-  cannibalization: { value: 5, reason: "ห้าม merge, redirect, canonical หรือ delete อัตโนมัติ" },
+  cannibalization: { value: 5, reason: "ห้ามรวมหน้า เปลี่ยนเส้นทาง กำหนดหน้าหลัก หรือลบโดยอัตโนมัติ" },
 };
 
 const actionByType: Record<SeoOpportunityType, string[]> = {
-  "ctr-underperformance": ["ตรวจ Search Intent และ SERP ก่อนเสนอ SEO Title หรือ Meta Description", "คง URL และ Published content ไว้จนกว่ามนุษย์อนุมัติ"],
-  "position-4-15": ["ตรวจ content gap, heading และ internal links ที่สัมพันธ์กับ query cluster", "สร้างข้อเสนอแยกหลังมีหลักฐานเพียงพอ"],
-  "content-decay": ["ตรวจความสด แหล่งอ้างอิง และการเปลี่ยนแปลงตามฤดูกาล", "ส่ง Fact Check/Compliance หากแตะข้อเท็จจริง YMYL"],
-  cannibalization: ["กำหนด Search Intent Owner ก่อนเสนอการแก้ไข", "ใช้ protected SEO migration workflow หากต้องแตะ URL, canonical หรือ redirect"],
+  "ctr-underperformance": ["ตรวจสิ่งที่ผู้ค้นหาต้องการและหน้าผลค้นหาก่อนเสนอชื่อเรื่องหรือคำอธิบาย", "คง URL และเนื้อหาที่เผยแพร่แล้วไว้จนกว่ามนุษย์อนุมัติ"],
+  "position-4-15": ["ตรวจเนื้อหาที่ยังขาด หัวข้อ และลิงก์ภายในที่สัมพันธ์กับกลุ่มคำค้น", "สร้างข้อเสนอแยกหลังมีหลักฐานเพียงพอ"],
+  "content-decay": ["ตรวจความสด แหล่งอ้างอิง และการเปลี่ยนแปลงตามฤดูกาล", "ส่งตรวจข้อเท็จจริงและข้อกำหนด หากเกี่ยวข้องกับข้อมูลการเงินหรือสุขภาพ"],
+  cannibalization: ["กำหนดหน้าหลักของคำค้นก่อนเสนอการแก้ไข", "ใช้กระบวนการย้าย SEO ที่มีการป้องกัน หากต้องเปลี่ยน URL หน้าหลัก หรือเส้นทาง"],
 };
 
 export function isBrandedQuery(query: string): boolean {
@@ -164,9 +165,9 @@ export function detectSeoOpportunities(observations: SeoObservation[]): SeoOppor
     cannibalizedClusters.add(cluster);
     const lead = [...rows].sort((a, b) => b.impressions - a.impressions)[0]!;
     opportunities.push(createOpportunity("cannibalization", lead, [
-      { label: "URLs ที่แข่งขันกัน", value: pages.length.toString() },
-      { label: "Impressions รวม", value: rows.reduce((sum, row) => sum + row.impressions, 0).toLocaleString("th-TH") },
-      { label: "Search Intent", value: lead.searchIntent },
+      { label: "หน้าที่แข่งขันกัน", value: pages.length.toString() },
+      { label: "จำนวนครั้งที่ปรากฏรวม", value: rows.reduce((sum, row) => sum + row.impressions, 0).toLocaleString("th-TH") },
+      { label: "ความต้องการของผู้ค้นหา", value: lead.searchIntent },
     ], pages));
   }
 
@@ -260,10 +261,10 @@ export function getSyntheticSeoIntelligenceSnapshot() {
     opportunities,
     marketProviderStates: SYNTHETIC_MARKET_PROVIDER_FIXTURES,
     limitations: [
-      "ข้อมูลทั้งหมดเป็น synthetic UAT และไม่ใช่ตัวเลขของ ccpun.com",
-      "Baseline CTR เป็นกฎจำลองสำหรับทดสอบ detector ไม่ใช่ค่าเฉลี่ยจริงของ CCPun",
-      "GSC manual sync ป้อน detector เฉพาะแถวที่จับคู่ URL, keyword governance และ Search Intent ได้แบบชัดเจน; GA4 ยังเป็นผลลัพธ์อ่านอย่างเดียวแยกต่างหาก",
-      "ยังไม่มีการบันทึก opportunity, สร้าง proposal, แก้ Draft หรือเผยแพร่ Production",
+      "ข้อมูลทั้งหมดเป็นข้อมูลจำลองใน UAT และไม่ใช่ตัวเลขของ ccpun.com",
+      "อัตราคลิกอ้างอิงเป็นกฎจำลองเพื่อทดสอบการตรวจจับ ไม่ใช่ค่าเฉลี่ยจริงของ CCPun",
+      "การดึง GSC ด้วยตนเองจะตรวจเฉพาะแถวที่จับคู่ URL กติกาคำค้น และความต้องการของผู้ค้นหาได้ชัดเจน ส่วน GA4 ยังเป็นข้อมูลอ่านอย่างเดียวแยกต่างหาก",
+      "ยังไม่มีการบันทึกโอกาส สร้างข้อเสนอ แก้ฉบับร่าง หรือเผยแพร่ขึ้นระบบจริง",
     ],
   };
 }
@@ -271,6 +272,10 @@ export function getSyntheticSeoIntelligenceSnapshot() {
 export function isSeoIntelligenceEnabled(input: {
   flag: string | undefined;
   environment: AdminEnvironment;
+  deploymentProvider?: string | undefined;
+  deploymentRole?: string | undefined;
+  releaseId?: string | undefined;
+  gitSha?: string | undefined;
   vercelEnvironment: string | undefined;
   projectId: string | undefined;
   productionAdminProjectId: string | undefined;
@@ -278,16 +283,37 @@ export function isSeoIntelligenceEnabled(input: {
   sanityProjectId: string | undefined;
   sanityDataset: string | undefined;
 }): boolean {
-  if (input.flag !== "1" || input.projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction) return false;
+  if (input.flag !== "1") return false;
+  const deployment = resolveDeploymentIdentity({
+    CCPUN_APP_ENV: input.environment,
+    CCPUN_DEPLOYMENT_PROVIDER: input.deploymentProvider,
+    CCPUN_DEPLOYMENT_ROLE: input.deploymentRole,
+    CCPUN_RELEASE_ID: input.releaseId,
+    CCPUN_GIT_REF: input.gitBranch,
+    CCPUN_GIT_SHA: input.gitSha,
+    VERCEL_ENV: input.vercelEnvironment,
+    VERCEL_PROJECT_ID: input.projectId,
+    VERCEL_GIT_COMMIT_REF: input.gitBranch,
+    VERCEL_GIT_COMMIT_SHA: input.gitSha,
+  }, "admin");
+  if (!deployment.valid || deployment.environment !== input.environment) return false;
 
   const uatLane = input.environment === "admin-uat" &&
-    (input.gitBranch === WEBSITE_42_SEO_BRANCH || input.gitBranch === WEBSITE_42_GOOGLE_PROVIDER_BRANCH) &&
+    (deployment.provider !== "vercel" || (
+      input.projectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
+      (!input.vercelEnvironment || input.vercelEnvironment === "preview")
+    )) &&
+    (input.gitBranch === WEBSITE_42_SEO_BRANCH || input.gitBranch === WEBSITE_42_GOOGLE_PROVIDER_BRANCH || input.gitBranch?.startsWith("admin/")) &&
     input.sanityProjectId === WEBSITE_42_SEO_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_SANITY_DATASET;
 
   const productionLane = input.environment === "production-admin" &&
-    input.vercelEnvironment === "production" &&
-    input.productionAdminProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
+    deployment.provider !== "local" &&
+    (deployment.provider !== "vercel" || (
+      input.vercelEnvironment === "production" &&
+      input.projectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
+      input.productionAdminProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction
+    )) &&
     input.gitBranch === WEBSITE_42_SEO_PRODUCTION_BRANCH &&
     input.sanityProjectId === WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET;
@@ -302,10 +328,14 @@ export function getSeoIntelligenceRuntimeStatus() {
     enabled: isSeoIntelligenceEnabled({
       flag: process.env.CCPUN_SEO_INTELLIGENCE_ENABLED,
       environment,
+      deploymentProvider: process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim(),
+      deploymentRole: process.env.CCPUN_DEPLOYMENT_ROLE?.trim(),
+      releaseId: process.env.CCPUN_RELEASE_ID?.trim(),
+      gitSha: process.env.CCPUN_GIT_SHA?.trim() || process.env.VERCEL_GIT_COMMIT_SHA?.trim(),
       vercelEnvironment: process.env.VERCEL_ENV?.trim(),
       projectId: process.env.VERCEL_PROJECT_ID?.trim() || process.env.NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID?.trim(),
       productionAdminProjectId: process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim() || process.env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim(),
-      gitBranch: process.env.VERCEL_GIT_COMMIT_REF?.trim(),
+      gitBranch: process.env.CCPUN_GIT_REF?.trim() || process.env.VERCEL_GIT_COMMIT_REF?.trim(),
       sanityProjectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim(),
       sanityDataset: process.env.NEXT_PUBLIC_SANITY_DATASET?.trim(),
     }),

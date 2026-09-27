@@ -43,7 +43,7 @@ export type ArticleFaq = {
 };
 
 export type ArticleReview = {
-  status?: "drafting" | "content-review" | "fact-check" | "compliance-review" | "ready-for-coo" | "approved";
+  status?: "content-review" | "ready-for-coo" | "approved";
   contentReviewedAt?: string;
   factCheckedAt?: string;
   complianceReviewedAt?: string;
@@ -75,6 +75,8 @@ export type Article = {
   slug: string;
   title: string;
   excerpt: string;
+  lineTitle?: string;
+  lineDescription?: string;
   category: string;
   categorySlug?: string;
   tags?: string[];

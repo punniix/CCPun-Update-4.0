@@ -14,6 +14,7 @@ export type CategoryRegistryEntry = {
   description?: string;
   redirectToId?: string;
   redirectToSlug?: string;
+  featuredArticleIds?: string[];
 };
 
 export type CategoryRegistryIssueCode =
@@ -58,7 +59,24 @@ export type RawCategoryRegistryRow = {
   description?: unknown;
   redirectToId?: unknown;
   redirectToSlug?: unknown;
+  featuredArticleIds?: unknown;
 };
+
+const registryResponseSchema = z.object({
+  categories: z.array(z.unknown()),
+  routeOwnerSlugs: z.array(z.string()),
+  canonicalOwnerUrls: z.array(z.string()),
+  referencedCategoryIds: z.array(z.string()),
+});
+
+export function parseCategoryRegistryResponse(value: unknown) {
+  const parsed = registryResponseSchema.parse(value);
+  return { rows: parsed.categories as RawCategoryRegistryRow[], context: {
+    routeOwnerSlugs: parsed.routeOwnerSlugs,
+    canonicalOwnerUrls: parsed.canonicalOwnerUrls,
+    referencedCategoryIds: parsed.referencedCategoryIds,
+  } };
+}
 
 const rawCategorySchema = z.object({
   _id: z.string().min(1),
@@ -68,6 +86,7 @@ const rawCategorySchema = z.object({
   description: z.string().trim().nullish(),
   redirectToId: z.string().trim().min(1).nullish(),
   redirectToSlug: z.string().trim().min(1).nullish(),
+  featuredArticleIds: z.array(z.string().trim().min(1)).nullish(),
 });
 
 function normalizeDocumentId(id: string) {
@@ -132,7 +151,7 @@ export function buildCategoryRegistry(
 ): CategoryRegistry {
   const issuesById = new Map<string, CategoryRegistryIssue[]>();
   const claimedSlugs = new Set<string>();
-  const entries: CategoryRegistryEntry[] = [];
+  const entryCandidates = new Map<string, { entry: CategoryRegistryEntry; isDraft: boolean }>();
 
   rawRows.forEach((raw, index) => {
     const possibleSlug = typeof raw?.slug === "string" ? raw.slug.trim().toLowerCase() : "";
@@ -146,17 +165,34 @@ export function buildCategoryRegistry(
     }
 
     const row = parsed.data;
-    entries.push({
-      id: normalizeDocumentId(row._id),
-      title: row.title.trim(),
-      slug: row.slug.trim().toLowerCase(),
-      status: row.status,
-      ...(row.description?.trim() ? { description: row.description.trim() } : {}),
-      ...(row.redirectToId ? { redirectToId: normalizeDocumentId(row.redirectToId) } : {}),
-      ...(row.redirectToSlug?.trim() ? { redirectToSlug: row.redirectToSlug.trim().toLowerCase() } : {}),
-    });
+    const id = normalizeDocumentId(row._id);
+    const candidate = {
+      entry: {
+        id,
+        title: row.title.trim(),
+        slug: row.slug.trim().toLowerCase(),
+        status: row.status,
+        ...(row.description?.trim() ? { description: row.description.trim() } : {}),
+        ...(row.redirectToId ? { redirectToId: normalizeDocumentId(row.redirectToId) } : {}),
+        ...(row.redirectToSlug?.trim() ? { redirectToSlug: row.redirectToSlug.trim().toLowerCase() } : {}),
+        ...(row.featuredArticleIds?.length
+          ? { featuredArticleIds: row.featuredArticleIds.map((id) => normalizeDocumentId(id)) }
+          : {}),
+      } satisfies CategoryRegistryEntry,
+      isDraft: row._id.startsWith("drafts."),
+    };
+
+    const existing = entryCandidates.get(id);
+    if (!existing || (!existing.isDraft && candidate.isDraft)) {
+      entryCandidates.set(id, candidate);
+      // A raw Published + Draft pair is one logical Sanity document. If the
+      // selected current candidate is valid, do not keep an invalid-record
+      // issue from the superseded variant.
+      issuesById.delete(id);
+    }
   });
 
+  const entries = [...entryCandidates.values()].map(({ entry }) => entry);
   const byId = new Map(entries.map((entry) => [entry.id, entry]));
   const bySlug = new Map<string, CategoryRegistryEntry[]>();
   for (const entry of entries) {
@@ -250,6 +286,7 @@ export function listCategoryMenuEntries(registry: CategoryRegistry, includeDraft
 }
 
 export type CategoryRouteResolution =
+  | { kind: "unavailable" }
   | { kind: "category"; category: CategoryRegistryEntry; noindex: boolean }
   | { kind: "redirect"; destinationSlug: string }
   | { kind: "hidden" }
@@ -260,6 +297,7 @@ export function resolveCategoryRoute(
   slug: string,
   options: { includeDrafts: boolean },
 ): CategoryRouteResolution {
+  if (!registry.available) return { kind: "unavailable" };
   const normalized = slug.trim().toLowerCase();
   const entry = registry.entries.find((candidate) => candidate.slug === normalized);
   if (entry) {

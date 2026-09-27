@@ -79,6 +79,38 @@ test("SEO Intelligence retains exact Admin UAT branches and adds only the exact 
   ]) assert.equal(isSeoIntelligenceEnabled({ ...productionInput, ...change }), false, JSON.stringify(change));
 });
 
+test("SEO Intelligence accepts explicit Hostinger Admin identity without fake Vercel project variables", () => {
+  const productionInput = {
+    flag: "1",
+    environment: "production-admin" as const,
+    deploymentProvider: "hostinger",
+    deploymentRole: "admin",
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
+    gitBranch: WEBSITE_42_SEO_PRODUCTION_BRANCH,
+    sanityProjectId: WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID,
+    sanityDataset: WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET,
+  };
+  assert.equal(isSeoIntelligenceEnabled(productionInput), true);
+  assert.equal(isSeoIntelligenceEnabled({ ...productionInput, deploymentRole: "web" }), false);
+  assert.equal(isSeoIntelligenceEnabled({ ...productionInput, gitBranch: "feature/not-production" }), false);
+
+  const uatInput = {
+    flag: "1",
+    environment: "admin-uat" as const,
+    deploymentProvider: "hostinger",
+    deploymentRole: "admin",
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
+    gitBranch: "admin/hostinger-seo-uat",
+    sanityProjectId: WEBSITE_42_SEO_SANITY_PROJECT_ID,
+    sanityDataset: WEBSITE_42_SEO_SANITY_DATASET,
+  };
+  assert.equal(isSeoIntelligenceEnabled(uatInput), true);
+});
+
 test("Four deterministic detectors find intended fixtures and suppress known false positives", () => {
   const opportunities = detectSeoOpportunities(SYNTHETIC_SEO_OBSERVATIONS);
   assert.equal(opportunities.length, 4);
@@ -282,9 +314,9 @@ test("GSC manual sync is human-only, exact-origin, bounded and read-only", () =>
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /createClient|\.(?:mutate|create|patch|delete)\(|console\./i);
   assert.match(control, /type="date"/);
-  assert.match(control, /กำลัง Sync/);
+  assert.match(control, /กำลังดึงข้อมูล/);
   assert.match(control, /role="alert"/);
-  assert.match(control, /ไม่บันทึก DB\/Sanity/);
+  assert.match(control, /ไม่เก็บสำเนาถาวร/);
   assert.match(control, /ดึงข้อมูลล่าสุดเมื่อ/);
   assert.match(control, /result\.current\.clicks/);
   assert.match(control, /result\.comparison\?\.clicks/);
@@ -361,8 +393,8 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /createClient|sanity|mutate|publish|console\./i);
   assert.match(control, /type="date"/);
-  assert.match(control, /Organic landing pages/);
-  assert.match(control, /ไม่บันทึก DB\/Sanity/);
+  assert.match(control, /ผู้เข้าชมจากผลค้นหา/);
+  assert.match(control, /ไม่เก็บสำเนาถาวร/);
   assert.match(control, /ดึงข้อมูลล่าสุดเมื่อ/);
   assert.match(control, /result\.current\.sessions/);
   assert.match(control, /result\.comparison\?\.sessions/);
@@ -374,12 +406,12 @@ test("Organic Search page removes synthetic and operational telemetry", () => {
   const page = read("features/admin/seo/opportunities/page.tsx");
   const gscControl = read("features/admin/seo/opportunities/GscManualSync.tsx");
   const ga4Control = read("features/admin/seo/opportunities/Ga4ManualSync.tsx");
-  assert.match(page, /Organic Search Performance/);
-  assert.match(page, /runtime\.environment === "production-admin" \? "Production" : "UAT"/);
+  assert.match(page, /ผลลัพธ์จากการค้นหาธรรมชาติ/);
+  assert.match(page, /runtime\.environment === "production-admin" \? "ระบบจริง" : "UAT"/);
   assert.match(page, /laneLabel=\{laneLabel\}/);
   assert.doesNotMatch(page, /Performance UAT|READ-ONLY UAT/);
-  assert.match(gscControl, /Search Console สำหรับ \$\{laneLabel\}/);
-  assert.match(ga4Control, /GA4 สำหรับ \$\{laneLabel\}/);
+  assert.match(gscControl, /ยังไม่ได้เชื่อม Search Console สำหรับ \$\{laneLabel\}/);
+  assert.match(ga4Control, /ยังไม่ได้เชื่อม GA4 สำหรับ \$\{laneLabel\}/);
   assert.doesNotMatch(page, /getSyntheticSeoIntelligenceSnapshot|Market provider states|snapshot\.opportunities|Observations/);
 });
 

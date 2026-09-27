@@ -97,18 +97,22 @@ function articleBase(raw: RawArticleSummary, body: ArticleBlock[] = []): Article
   const excerpt = raw.excerpt?.trim();
   const seoTitle = raw.seo?.title?.trim();
   const seoDescription = raw.seo?.description?.trim();
+  const authorName = raw.authorName?.trim();
   if (status === "published" && (!excerpt || !seoDescription)) throw new Error("Published article is missing required SEO fields");
+  if (status === "published" && !authorName) throw new Error("Published article is missing required author");
 
   return {
     id: originalId,
     slug: raw.slug,
     title: raw.title,
     excerpt: excerpt || raw.title,
+    lineTitle: raw.lineTitle?.trim() || undefined,
+    lineDescription: raw.lineDescription?.trim() || undefined,
     category: raw.category,
     categorySlug: raw.categorySlug ?? undefined,
     tags: raw.tags ?? undefined,
     semanticTopic: raw.seo?.semanticTopic ?? undefined,
-    authorName: raw.authorName,
+    authorName: authorName ?? "",
     author: raw.author ? {
       name: raw.author.name,
       profileName: raw.author.profileName ?? undefined,
@@ -175,6 +179,8 @@ const baseProjection = groq`{
   "slug": slug.current,
   title,
   excerpt,
+  lineTitle,
+  lineDescription,
   "category": category->title,
   "categorySlug": category->slug.current,
   tags,

@@ -59,8 +59,8 @@ export default function ResearchSnapshotForm() {
         <label className="text-sm text-white/70">คำค้น<input name="keyword" required className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white" /></label>
         <div className="text-sm text-white/70">แหล่งข้อมูล<div className="mt-2 min-h-11 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white">กรอกด้วยตนเอง</div></div>
         <label className="text-sm text-white/70">เป้าหมายการค้นหา<select name="intent" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-[#171b21] px-3 py-2.5 text-white"><option value="">ยังไม่ทราบ</option><option value="informational">หาข้อมูล</option><option value="commercial">เปรียบเทียบก่อนตัดสินใจ</option><option value="transactional">พร้อมลงมือทำ</option><option value="navigational">หาเว็บไซต์เฉพาะ</option><option value="mixed">หลายเป้าหมาย</option></select></label>
-        <label className="text-sm text-white/70">ปริมาณค้นหา (Volume)<input name="volume" type="number" min="0" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white" /></label>
-        <label className="text-sm text-white/70">ความยาก (Difficulty) 0–100<input name="difficulty" type="number" min="0" max="100" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white" /></label>
+        <label className="text-sm text-white/70">จำนวนการค้นหา<input name="volume" type="number" min="0" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white" /></label>
+        <label className="text-sm text-white/70">ระดับความยาก 0–100<input name="difficulty" type="number" min="0" max="100" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white" /></label>
         <label className="text-sm text-white/70">เว็บไซต์คู่แข่ง คั่นด้วยเครื่องหมายจุลภาค<input name="competitors" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white" /></label>
       </div>
       <div className="mt-5 flex items-center gap-3">

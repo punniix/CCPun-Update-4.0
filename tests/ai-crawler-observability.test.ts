@@ -54,7 +54,10 @@ test("builds a privacy-minimal structured event for the Web project", () => {
     path: "/blog/example/",
     method: "GET",
     environment: "production",
+    provider: "vercel",
+    deployment_role: "web",
     attribution: "user_agent_unverified",
+    request_id: "sin1::abc123",
     vercel_request_id: "sin1::abc123",
     cf_ray: "ray123-BKK",
   });
@@ -62,6 +65,30 @@ test("builds a privacy-minimal structured event for the Web project", () => {
   assert.equal(Object.hasOwn(event ?? {}, "cookie"), false);
   assert.equal(Object.hasOwn(event ?? {}, "referrer"), false);
   assert.equal(Object.hasOwn(event ?? {}, "user_agent"), false);
+});
+
+test("supports provider-neutral Hostinger Web crawler identity", () => {
+  const event = buildAiCrawlerLogEvent({
+    userAgent: "OAI-SearchBot/1.0",
+    pathname: "/blog/example/",
+    method: "GET",
+    environment: "production",
+    requestId: "hostinger-request-1",
+    observedAt: "2026-09-26T00:00:00.000Z",
+    variables: {
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      CCPUN_DEPLOYMENT_ROLE: "web",
+      CCPUN_APP_ENV: "production",
+      CCPUN_RELEASE_ID: "hostinger-release-1",
+    },
+  });
+
+  assert.equal(event?.provider, "hostinger");
+  assert.equal(event?.deployment_role, "web");
+  assert.equal(event?.environment, "production");
+  assert.equal(event?.release_id, "hostinger-release-1");
+  assert.equal(event?.request_id, "hostinger-request-1");
+  assert.equal(Object.hasOwn(event ?? {}, "vercel_request_id"), false);
 });
 
 test("suppresses AI events on the Admin Vercel project and private routes", () => {

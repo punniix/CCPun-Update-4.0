@@ -85,8 +85,10 @@ test("Backfill and Sheets fail closed until provenance migration is current", ()
   assert.match(sheets, /!row\.provenance_current/);
 });
 
-test("Sheets presentation states that raw tabs remain and clean marketing tabs are added", () => {
+test("Social presentation routes exports through the central Agent OS + n8n Export Center", () => {
   const component = read("features/admin/social/SocialSheetsExport.tsx");
-  assert.match(component, /คง Raw tabs/);
-  assert.match(component, /Marketing - Posts, Coverage และ QA/);
+  assert.match(component, /Export Center/);
+  assert.match(component, /Agent OS \+ n8n/);
+  assert.match(component, /ภาพรวม/);
+  assert.match(component, /ข้อมูล/);
 });

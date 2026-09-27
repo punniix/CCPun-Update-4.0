@@ -129,10 +129,10 @@ test("manual provider persistence stays human-only, same-origin and provider-wri
   assert.match(service, /ON CONFLICT \(id\) DO NOTHING/);
   assert.match(service, /collection_mode/);
   assert.doesNotMatch(service, /video\.upload|video\.publish|setInterval|cron/);
-  assert.match(panel, /Sync และบันทึกสถิติย้อนหลัง/);
-  assert.match(panel, /Metrics overlap/);
-  assert.match(panel, /Refresh metadata/);
-  assert.match(dashboard, /ไม่รวม Views\/Reach ข้ามแพลตฟอร์ม/);
+  assert.match(panel, /ดึงและบันทึกสถิติย้อนหลัง/);
+  assert.match(panel, /เทียบข้อมูลย้อนหลัง/);
+  assert.match(panel, /อัปเดตรายละเอียด/);
+  assert.match(dashboard, /โดยไม่ต้องเปิดฐานข้อมูลเอง/);
   assert.match(dashboard, /metric\.delta/);
 });
 

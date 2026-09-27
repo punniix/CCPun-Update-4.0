@@ -144,12 +144,12 @@ test("goal metrics stay platform-specific and do not combine Facebook Reach with
   const facebook = post({ views: 400, clicks: 40, clicksPerView: 0.1, knownDeepEngagementTotal: 8 });
   const instagram = instagramPost({ reach: 250, saves: 5, shares: 10, knownDeepEngagementRateByReach: 0.06 });
 
-  assert.deepEqual(goalMetric(facebook, "awareness"), { label: "Views", shortLabel: "Views", unit: "count", value: 400 });
-  assert.deepEqual(goalMetric(facebook, "intent"), { label: "Click rate by View", shortLabel: "Click rate", unit: "percent", value: 0.1 });
-  assert.deepEqual(goalMetric(facebook, "deep"), { label: "Comments + Shares", shortLabel: "Deep actions", unit: "count", value: 8 });
-  assert.deepEqual(goalMetric(instagram, "awareness"), { label: "Reach", shortLabel: "Reach", unit: "count", value: 250 });
-  assert.deepEqual(goalMetric(instagram, "intent"), { label: "Save + Share rate", shortLabel: "Save + Share rate", unit: "percent", value: 0.06 });
-  assert.deepEqual(goalMetric(instagram, "deep"), { label: "Deep engagement rate", shortLabel: "Deep rate", unit: "percent", value: 0.06 });
+  assert.deepEqual(goalMetric(facebook, "awareness"), { label: "จำนวนครั้งที่ดู", shortLabel: "ครั้งที่ดู", unit: "count", value: 400 });
+  assert.deepEqual(goalMetric(facebook, "intent"), { label: "อัตราคลิกต่อการดู", shortLabel: "อัตราคลิก", unit: "percent", value: 0.1 });
+  assert.deepEqual(goalMetric(facebook, "deep"), { label: "คอมเมนต์และแชร์", shortLabel: "คอมเมนต์และแชร์", unit: "count", value: 8 });
+  assert.deepEqual(goalMetric(instagram, "awareness"), { label: "บัญชีที่เข้าถึง", shortLabel: "เข้าถึง", unit: "count", value: 250 });
+  assert.deepEqual(goalMetric(instagram, "intent"), { label: "อัตราบันทึกและแชร์", shortLabel: "บันทึกและแชร์", unit: "percent", value: 0.06 });
+  assert.deepEqual(goalMetric(instagram, "deep"), { label: "อัตราการมีส่วนร่วมเชิงลึก", shortLabel: "อัตราเชิงลึก", unit: "percent", value: 0.06 });
 });
 
 test("winner ranking compares within the same platform and format before raw magnitude", () => {
@@ -229,16 +229,16 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   const page = read("features/admin/social/analytics-page.tsx");
   const dashboard = read("features/admin/social/SocialMarketingDashboard.tsx");
   const visuals = read("features/admin/social/MarketingDashboardVisuals.tsx");
-  const layout = read("app/(control-plane)/layout.tsx");
+  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
 
   assert.match(page, /view === "raw"/);
   assert.match(page, /getSocialMarketingDashboard/);
   assert.match(page, /fallbackPostsFromRaw/);
-  assert.match(page, /ไม่รวม Views\/Reach ข้ามแพลตฟอร์ม/);
-  for (const label of ["ภาพรวม", "คอนเทนต์", "Benchmarks", "คุณภาพข้อมูล", "ดาวน์โหลด CSV", "Export Google Sheets", "Raw Stats"]) {
+  assert.match(page, /โดยไม่ต้องเปิดฐานข้อมูลเอง/);
+  for (const label of ["ภาพรวม", "คอนเทนต์", "เทียบกับกลุ่มเดียวกัน", "คุณภาพข้อมูล", "ดาวน์โหลด CSV", "สร้าง Google Sheets", "ข้อมูลต้นทาง"]) {
     assert.match(dashboard, new RegExp(label));
   }
-  assert.match(dashboard, /Missing ≠ 0/);
+  assert.match(dashboard, /ข้อมูลที่ขาดไม่เท่ากับศูนย์/);
   assert.match(dashboard, /ช่วงเวลาที่เลือกหมายถึง/);
   assert.match(dashboard, /เทียบกับโพสต์แบบเดียวกัน/);
   assert.match(dashboard, /เลือกได้สูงสุด 4 โพสต์/);
@@ -250,7 +250,7 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   assert.match(visuals, /onError=\{\(\) => setFailedUrl\(url\)\}/);
   assert.match(visuals, /key=\{url\}/);
   assert.doesNotMatch(dashboard + visuals, /recharts|chart\.js|echarts|highcharts|localStorage|sessionStorage/);
-  assert.match(layout, /href: "\/analytics\/social\/", label: "Social"/);
+  assert.match(layout, /href: "\/analytics\/social\/", label: "ผลลัพธ์โซเชียล"/);
 });
 
 

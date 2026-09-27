@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import {
   getAdminGoogleOAuthCredentials,
-  getLocalAdminCookieNamespace,
+  getAdminCookieNamespace,
   hasStrongAuthSecret,
   isSecureAdminAuthUrl,
 } from "@/lib/admin/auth-config";
@@ -17,7 +17,7 @@ const authSecret = process.env.AUTH_SECRET?.trim();
 const authUrl = process.env.AUTH_URL?.trim();
 const adminEnvironment = getAdminEnvironment();
 const googleCredentials = getAdminGoogleOAuthCredentials(adminEnvironment);
-const localCookieNamespace = getLocalAdminCookieNamespace(adminEnvironment);
+const adminCookieNamespace = getAdminCookieNamespace(adminEnvironment);
 
 const googleConfigured = Boolean(googleCredentials);
 const adminAuthConfigured = Boolean(
@@ -31,15 +31,15 @@ export function isAdminAuthConfigured(): boolean {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: authSecret,
   trustHost: true,
-  cookies: localCookieNamespace
+  cookies: adminCookieNamespace
     ? {
-        sessionToken: { name: `${localCookieNamespace}.session-token` },
-        callbackUrl: { name: `${localCookieNamespace}.callback-url` },
-        csrfToken: { name: `${localCookieNamespace}.csrf-token` },
-        pkceCodeVerifier: { name: `${localCookieNamespace}.pkce.code_verifier` },
-        state: { name: `${localCookieNamespace}.state` },
-        nonce: { name: `${localCookieNamespace}.nonce` },
-        webauthnChallenge: { name: `${localCookieNamespace}.challenge` },
+        sessionToken: { name: `${adminCookieNamespace}.session-token` },
+        callbackUrl: { name: `${adminCookieNamespace}.callback-url` },
+        csrfToken: { name: `${adminCookieNamespace}.csrf-token` },
+        pkceCodeVerifier: { name: `${adminCookieNamespace}.pkce.code_verifier` },
+        state: { name: `${adminCookieNamespace}.state` },
+        nonce: { name: `${adminCookieNamespace}.nonce` },
+        webauthnChallenge: { name: `${adminCookieNamespace}.challenge` },
       }
     : undefined,
   session: {

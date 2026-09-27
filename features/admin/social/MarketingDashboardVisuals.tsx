@@ -40,7 +40,7 @@ export function safeExternalUrl(value: string | null) {
 export function QualityBadge({ post }: { post: MarketingPost }) {
   const needsReview = post.dataQualityStatus === "needs_review";
   const partial = !needsReview && (post.metricCoverageRate ?? 0) < 0.8;
-  const label = needsReview ? "ควรตรวจ QA" : partial ? "ข้อมูลบางส่วน" : "พร้อมวิเคราะห์";
+  const label = needsReview ? "ควรตรวจคุณภาพข้อมูล" : partial ? "ข้อมูลบางส่วน" : "พร้อมวิเคราะห์";
   const className = needsReview
     ? "border-amber-200/20 bg-amber-200/[0.08] text-amber-100"
     : partial
@@ -59,7 +59,7 @@ export function CoverageBadge({ rate }: { rate: number | null }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-white/65">
       <Database className="h-3.5 w-3.5" aria-hidden="true" />
-      {percent === null ? "Coverage ยังไม่ครบ" : `Coverage ${percent}%`}
+      {percent === null ? "ข้อมูลยังไม่ครบ" : `ข้อมูลครบ ${percent}%`}
     </span>
   );
 }
@@ -88,7 +88,7 @@ export function PostIdentity({ post, compact = false }: { post: MarketingPost; c
         <span>{FORMAT_LABEL[post.formatStandard] ?? post.formatStandard}</span>
       </div>
       <div className={`${compact ? "mt-1 line-clamp-2 text-sm" : "mt-2 line-clamp-3 text-sm leading-6"} font-medium text-white/90`} title={post.text}>
-        {compactText(post.text || `Content ${post.providerObjectId}`, compact ? 100 : 180)}
+        {compactText(post.text || `เนื้อหา ${post.providerObjectId}`, compact ? 100 : 180)}
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-white/45">
         <span>{new Date(post.publishedAtUtc).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" })}</span>
@@ -166,16 +166,16 @@ export function BenchmarkBand({
       <div className="relative h-12">
         <div className="absolute left-0 right-0 top-5 h-2 rounded-full bg-white/[0.07]" />
         <div className="absolute top-5 h-2 rounded-full bg-[#9eebce]/35" style={{ left: position(p25), width: `calc(${position(p75)} - ${position(p25)})` }} />
-        {[{ value: p25, label: "P25" }, { value: median, label: "Median" }, { value: p75, label: "P75" }, { value: p90, label: "P90" }].map((marker) => (
+        {[{ value: p25, label: "กลุ่มล่าง 25%" }, { value: median, label: "ค่ากลาง" }, { value: p75, label: "กลุ่มบน 25%" }, { value: p90, label: "กลุ่มบน 10%" }].map((marker) => (
           <div key={marker.label} className="absolute top-1 -translate-x-1/2" style={{ left: position(marker.value) }}>
-            <div className={`mx-auto h-8 w-px ${marker.label === "Median" ? "bg-[#e0c985]" : "bg-white/30"}`} />
+            <div className={`mx-auto h-8 w-px ${marker.label === "ค่ากลาง" ? "bg-[#e0c985]" : "bg-white/30"}`} />
             <span className="mt-0.5 block whitespace-nowrap text-[9px] text-white/45">{marker.label}</span>
           </div>
         ))}
       </div>
       <div className="mt-1 grid grid-cols-3 gap-2 text-[11px] text-white/55">
         <span>ต่ำสุด {formatMarketingValue(min, unit, true)}</span>
-        <span className="text-center text-[#f4df9b]">Median {formatMarketingValue(median, unit, true)}</span>
+        <span className="text-center text-[#f4df9b]">ค่ากลาง {formatMarketingValue(median, unit, true)}</span>
         <span className="text-right">สูงสุด {formatMarketingValue(max, unit, true)}</span>
       </div>
     </div>

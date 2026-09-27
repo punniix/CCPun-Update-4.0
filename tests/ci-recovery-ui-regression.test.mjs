@@ -32,10 +32,18 @@ async function fill(id, value) {
   });
 }
 async function click(label) {
-  const button = [...document.querySelectorAll('button')].find((el) => el.textContent.trim() === label);
+  const button = [...document.querySelectorAll('button')].find((el) => el.textContent.replace(/\s+/g, ' ').trim() === label);
   assert.ok(button, label);
   await act(async () => {
     button.click();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  });
+}
+async function choose(id) {
+  const input = document.getElementById(id);
+  assert.ok(input, id);
+  await act(async () => {
+    input.click();
     await new Promise((resolve) => setTimeout(resolve, 5));
   });
 }
@@ -43,41 +51,34 @@ async function close() {
   await act(async () => root.unmount());
 }
 
-async function fillRecoveryOneVisit() {
-  const details = document.querySelector('[data-ui="ci-recovery-reserve"]');
-  assert.ok(details);
-  details.open = true;
-  await fill('ci-recovery-treatment-visits', 1);
-}
-
-test('income-only + Recovery defaults to income total and does not expose an empty expense method', async () => {
+test('income-only + basic Recovery defaults to income total and keeps expense method unavailable', async () => {
   await mount();
   try {
     await fill('ci-monthly-income', 50000);
-    await fillRecoveryOneVisit();
+    await choose('ci-recovery-choice-basic');
     await click('ถัดไป');
     await click('ดูผลคำนวณ');
 
-    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '3,002,578 บาท');
+    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '3,100,000 บาท');
     assert.match(document.querySelector('.ccpun-calculator-result-title').textContent, /ทุนตามรายได้/);
     assert.equal(document.getElementById('ci-estimation-method-expense'), null);
-    assert.equal(document.getElementById('ci-estimation-method-income'), null, 'single available method should not need a selector');
-    assert.match(document.getElementById('ci-recovery-result-title').textContent, /2,578/);
+    assert.equal(document.getElementById('ci-estimation-method-income'), null);
+    assert.match(document.getElementById('ci-recovery-result-title').textContent, /เผื่อช่วงพักฟื้น/);
   } finally { await close(); }
 });
 
-test('expense-only + Recovery defaults to expense total and does not create an income method', async () => {
+test('expense-only + basic Recovery defaults to expense total', async () => {
   await mount();
   try {
     await fill('ci-household', 20000);
-    await fillRecoveryOneVisit();
+    await choose('ci-recovery-choice-basic');
     await click('ถัดไป');
     await click('ดูผลคำนวณ');
 
-    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '1,202,578 บาท');
+    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '1,300,000 บาท');
     assert.match(document.querySelector('.ccpun-calculator-result-title').textContent, /ทุนตามรายจ่าย/);
     assert.equal(document.getElementById('ci-estimation-method-income'), null);
-    assert.match(document.getElementById('ci-recovery-result-title').textContent, /2,578/);
+    assert.match(document.getElementById('ci-recovery-result-title').textContent, /เผื่อช่วงพักฟื้น/);
   } finally { await close(); }
 });
 
@@ -86,17 +87,51 @@ test('when both bases exist, both method totals include the same Recovery exactl
   try {
     await fill('ci-monthly-income', 50000);
     await fill('ci-household', 20000);
-    await fillRecoveryOneVisit();
+    await choose('ci-recovery-choice-continued');
     await click('ถัดไป');
     await click('ดูผลคำนวณ');
 
-    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '1,202,578 บาท');
+    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '1,700,000 บาท');
     const expense = document.getElementById('ci-estimation-method-expense');
     const income = document.getElementById('ci-estimation-method-income');
     assert.ok(expense);
     assert.ok(income);
     await act(async () => income.click());
-    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '3,002,578 บาท');
-    assert.match(document.getElementById('ci-recovery-result-title').textContent, /2,578/);
+    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '3,500,000 บาท');
+    assert.match(document.getElementById('ci-recovery-result-title').textContent, /ฟื้นฟูต่อเนื่อง/);
+  } finally { await close(); }
+});
+
+test('custom reserve accepts a headline amount and lets the calculator build editable detail', async () => {
+  await mount();
+  try {
+    await fill('ci-monthly-income', 50000);
+    await choose('ci-recovery-choice-custom');
+    await fill('ci-recovery-custom-target', 800000);
+    await click('จัดตัวอย่างรายการตามยอดนี้');
+
+    assert.equal(document.getElementById('ci-recovery-custom-target').value.replace(/,/g, ''), '800000');
+    assert.ok(document.getElementById('ci-recovery-caregiver-days'));
+    assert.ok(document.getElementById('ci-recovery-majorHousing'));
+
+    await click('ถัดไป');
+    await click('ดูผลคำนวณ');
+    assert.equal(document.querySelector('.ccpun-calculator-result-amount').textContent.trim(), '3,800,000 บาท');
+    assert.match(document.getElementById('ci-recovery-result-title').textContent, /กำหนดเงินสำรองเอง/);
+  } finally { await close(); }
+});
+
+test('edit result preserves selected Recovery choice', async () => {
+  await mount();
+  try {
+    await fill('ci-household', 20000);
+    await choose('ci-recovery-choice-longTerm');
+    await click('ถัดไป');
+    await click('ดูผลคำนวณ');
+    await click('แก้ไขข้อมูล');
+
+    const selected = document.getElementById('ci-recovery-choice-longTerm');
+    assert.ok(selected);
+    assert.equal(selected.checked, true);
   } finally { await close(); }
 });

@@ -8,15 +8,16 @@ import {
 const API_VERSION = "2026-09-16";
 const PRODUCTION = { projectId: "kyfxgjnq", dataset: "production", appEnv: "local-production" } as const;
 const UAT = { projectId: "ccb9lnw5", dataset: "uat", appEnv: "local-uat" } as const;
-const PRODUCTION_CONFIRM = "CCPUN-CATEGORY-REGISTRY-PRODUCTION-5";
+const PRODUCTION_CONFIRM = "CCPUN-CATEGORY-REGISTRY-PRODUCTION-6";
 const UAT_CONFIRM = "CCPUN-CATEGORY-REGISTRY-UAT";
 
 const PRODUCTION_EXPECTED = [
-  { id: "ccpun-wp-category-1", slug: "personal-finance", title: "การเงินส่วนบุคคล", status: "active" },
-  { id: "ccpun-wp-category-4", slug: "life-insurance", title: "ประกันชีวิต", status: "active" },
-  { id: "ccpun-wp-category-127", slug: "health-insurance", title: "ประกันสุขภาพ", status: "active" },
-  { id: "ccpun-category-investment", slug: "investment", title: "การลงทุน", status: "active" },
-  { id: "ccpun-category-motor-insurance", slug: "motor-insurance", title: "ประกันรถยนต์", status: "active" },
+  { slug: "personal-finance", title: "การเงินส่วนบุคคล", status: "active" },
+  { slug: "life-insurance", title: "ประกันชีวิต", status: "active" },
+  { slug: "health-insurance", title: "ประกันสุขภาพ", status: "active" },
+  { slug: "investment", title: "การลงทุน", status: "active" },
+  { slug: "motor-insurance", title: "ประกันรถยนต์", status: "active" },
+  { slug: "critical-illness-insurance", title: "ประกันโรคร้ายแรง", status: "active" },
 ] as const;
 
 const UAT_STATUS_BY_SLUG = new Map<string, "draft" | "active">([
@@ -81,7 +82,7 @@ function assertLane(target: Target, mode: Mode, confirm: string | undefined, cli
 async function fetchProductionMotorSource() {
   const client = createClient({ projectId: PRODUCTION.projectId, dataset: PRODUCTION.dataset, apiVersion: API_VERSION, useCdn: false });
   const motor = await client.fetch<CategoryDoc | null>(
-    `*[_type == "category" && _id == "ccpun-category-motor-insurance"][0]{_id,_type,title,slug,description}`,
+    `*[_type == "category" && slug.current == "motor-insurance"][0]{_id,_type,title,slug,description}`,
   );
   if (!motor || motor.title !== "ประกันรถยนต์" || motor.slug?.current !== "motor-insurance") {
     throw new Error("Refusing UAT motor seed: exact Production motor-insurance source is unavailable");
@@ -116,9 +117,9 @@ function assertProductionIdentity(categories: CategoryDoc[]) {
     throw new Error(`Refusing Production migration: expected exactly ${PRODUCTION_EXPECTED.length} published Category documents, found ${published.length}`);
   }
   for (const expected of PRODUCTION_EXPECTED) {
-    const doc = published.find((candidate) => logicalId(candidate._id) === expected.id);
-    if (!doc || doc.title !== expected.title || doc.slug?.current !== expected.slug) {
-      throw new Error(`Refusing Production migration: identity mismatch for ${expected.id}`);
+    const doc = published.find((candidate) => candidate.slug?.current === expected.slug);
+    if (!doc || doc.title !== expected.title) {
+      throw new Error(`Refusing Production migration: identity mismatch for ${expected.slug}`);
     }
   }
 }
@@ -157,14 +158,14 @@ const categoriesForPreflight = motorSeed
 const context = await fetchCollisionContext(client);
 const statusFor = (doc: CategoryDoc): "draft" | "active" | null => {
   if (args.target === "production") {
-    return PRODUCTION_EXPECTED.some((expected) => expected.id === logicalId(doc._id)) ? "active" : doc.status ?? null;
+    return PRODUCTION_EXPECTED.some((expected) => expected.slug === doc.slug?.current) ? "active" : doc.status ?? null;
   }
   return UAT_STATUS_BY_SLUG.get(doc.slug?.current ?? "") ?? doc.status ?? null;
 };
 const registry = buildCategoryRegistry(toRegistryRows(categoriesForPreflight, statusFor), context);
 const managedIds = new Set(
   args.target === "production"
-    ? PRODUCTION_EXPECTED.map(({ id }) => id)
+    ? categoriesForPreflight.filter((doc) => PRODUCTION_EXPECTED.some((expected) => expected.slug === doc.slug?.current)).map((doc) => logicalId(doc._id))
     : categoriesForPreflight.filter((doc) => UAT_STATUS_BY_SLUG.has(doc.slug?.current ?? "")).map((doc) => logicalId(doc._id)),
 );
 const blockingIssues = registry.issues.filter((issue) => managedIds.has(logicalId(issue.id)));
@@ -176,7 +177,7 @@ const plannedPatches = rawCategories.flatMap((doc) => {
   const desired = statusFor(doc);
   if (!desired || doc.status === desired) return [];
   if (args.target === "uat" && !UAT_STATUS_BY_SLUG.has(doc.slug?.current ?? "")) return [];
-  if (args.target === "production" && !PRODUCTION_EXPECTED.some((expected) => expected.id === logicalId(doc._id))) return [];
+  if (args.target === "production" && !PRODUCTION_EXPECTED.some((expected) => expected.slug === doc.slug?.current)) return [];
   return [{ id: doc._id, from: doc.status ?? null, to: desired, beforeIdentity: snapshotIdentity(doc) }];
 });
 

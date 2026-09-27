@@ -97,7 +97,7 @@ test("Synthetic calendar stays read-only while Admin Calendar uses guarded opera
   assert.match(page, /getSocialOperationsRuntimeStatus\(\)\.enabled/);
   assert.match(page, /listSocialOperationalItems/);
   assert.match(page, /SocialOperationalCalendar/);
-  assert.match(page, /Human Approval/);
+  assert.match(page, /ยังต้องผ่านการอนุมัติตามเดิม/);
   assert.match(client, /rescheduleSocialPublication/);
   assert.match(client, /cancelSocialPublication/);
   assert.match(service, /expectedJobVersion/);

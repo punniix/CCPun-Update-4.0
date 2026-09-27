@@ -45,6 +45,35 @@ export const article = defineType({
       validation: (Rule) => Rule.required().max(240),
     }),
     defineField({
+      name: "lineTitle",
+      title: "หัวข้อสำหรับการ์ด LINE",
+      type: "string",
+      group: "content",
+      description: "หัวข้อเฉพาะการ์ด LINE ใช้ภาษาชวนอ่านแบบไม่ clickbait และไม่กระทบชื่อบทความหรือ SEO เว้นว่างได้หากยังไม่พร้อม",
+      validation: (Rule) => Rule.custom((value) => {
+        if (typeof value !== "string" || !value.trim()) return true;
+        const length = [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value.trim())].length;
+        return length >= 24 && length <= 60
+          ? true
+          : "กรุณาเขียนหัวข้อสำหรับ LINE ความยาว 24–60 ตัวอักษร";
+      }),
+    }),
+    defineField({
+      name: "lineDescription",
+      title: "คำโปรยสำหรับการ์ด LINE",
+      type: "text",
+      rows: 2,
+      group: "content",
+      description: "ใช้เฉพาะคำโปรยบนการ์ด LINE ชวนให้เห็นประโยชน์ของบทความโดยไม่ซ้ำหัวข้อ และไม่กระทบ Google หรือหน้า Search",
+      validation: (Rule) => Rule.custom((value) => {
+        if (typeof value !== "string" || !value.trim()) return true;
+        const length = [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value.trim())].length;
+        return length >= 50 && length <= 90
+          ? true
+          : "กรุณาเขียนคำโปรยสำหรับ LINE ความยาว 50–90 ตัวอักษร";
+      }),
+    }),
+    defineField({
       name: "category",
       title: "หมวดหมู่หลัก (Protected หลังเผยแพร่)",
       description: "หมวดหมู่นี้กำหนด path ของ URL จึงถูกล็อกหลังบทความมีวันเผยแพร่ ใช้ Semantic Topic สำหรับจัดความหมายโดยไม่ย้าย URL",

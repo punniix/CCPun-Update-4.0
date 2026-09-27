@@ -175,8 +175,8 @@ export default function CIWizard() {
         step={currentStep + 1}
         total={TOTAL_STEPS}
         labelledBy={`ci-step-${currentStep + 1}-title`}
-        title={currentStep === 0 ? 'ผลกระทบต่อรายได้และรายจ่าย' : 'เงินก้อนและสินทรัพย์ที่พร้อมใช้'}
-        description={currentStep === 0 ? 'เริ่มจาก 3 ข้อมูลหลัก แล้วค่อยเปิดรายละเอียดค่าเรียนหรือหนี้เมื่อมี' : 'กรอกเฉพาะเงินที่ตั้งใจนำมาใช้ในแผนนี้'}
+        title={currentStep === 0 ? 'ผลกระทบต่อรายได้และรายจ่าย' : 'เงินก้อนและสินทรัพย์ที่มี'}
+        description={currentStep === 0 ? 'เริ่มจาก 3 ข้อมูลหลัก แล้วค่อยเปิดรายละเอียดค่าเรียนหรือหนี้เมื่อมี' : 'กรอกสินทรัพย์ที่มี แล้วเลือกได้ว่าต้องการรักษาเงินก้อนนี้ไว้หรือไม่'}
         footer={footer}
       >
         {errors.calculation ? <p id="ci-calculation-error" role="alert" tabIndex={-1} className="ccpun-motion-validation rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.calculation}</p> : null}

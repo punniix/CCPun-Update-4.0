@@ -16,7 +16,7 @@ export const sanityContentModel = {
     article: {
       title: "Article",
       nativePublicationState: "Sanity draft/published document state",
-      reviewWorkflow: ["drafting", "content-review", "fact-check", "compliance-review", "ready-for-coo", "approved"],
+      reviewWorkflow: ["content-review", "ready-for-coo", "approved"],
       fieldGroups: ["content", "seo-geo", "sources-review", "publication"],
       fields: [
         { name: "title", type: "string", required: true, group: "content" },
@@ -54,7 +54,7 @@ export const sanityContentModel = {
         "Featured image requires meaningful alt text when present.",
         "FAQPage structured data may only be emitted when the same questions and answers are visible in the article UI.",
         "Sources should be stored as structured references, not pasted into presentation markup.",
-        "YMYL articles must pass the configured content/fact/compliance review gates before COO approval and publication.",
+        "YMYL review evidence remains recorded in the content/fact/compliance timestamps, while the owner-facing review workflow stays at three stages before publication.",
       ],
     },
     author: {
@@ -103,7 +103,7 @@ export const sanityContentModel = {
     },
     reviewMetadata: {
       fields: [
-        { name: "status", type: "string", options: ["drafting", "content-review", "fact-check", "compliance-review", "ready-for-coo", "approved"], required: true },
+        { name: "status", type: "string", options: ["content-review", "ready-for-coo", "approved"], required: true },
         { name: "contentReviewedAt", type: "datetime" },
         { name: "factCheckedAt", type: "datetime" },
         { name: "complianceReviewedAt", type: "datetime" },

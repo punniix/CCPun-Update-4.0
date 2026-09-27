@@ -7,7 +7,7 @@ import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations"
 import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
 import { TikTokReadOnlyPanel } from "./provider-readonly-panels";
 
-export const metadata: Metadata = { title: "TikTok Connection" };
+export const metadata: Metadata = { title: "การเชื่อมต่อ TikTok" };
 
 export default async function TikTokConnectionUatPage() {
   await requireAdminPermission("social:read");
@@ -17,13 +17,13 @@ export default async function TikTokConnectionUatPage() {
   const missing = readiness.required.filter((item) => !item.valid).map((item) => item.name);
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">WEBSITE 4.2 · READ-ONLY UAT</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · อ่านข้อมูลเท่านั้น</p>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">TikTok Connection</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">เตรียม Display API สำหรับอ่านโปรไฟล์ วิดีโอล่าสุด และสถิติย้อนหลังเมื่อคุณกดเท่านั้น</p>
+          <h1 className="text-3xl font-semibold">การเชื่อมต่อ TikTok</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านโปรไฟล์ วิดีโอล่าสุด และสถิติย้อนหลังเฉพาะเมื่อคุณกดปุ่ม</p>
         </div>
-        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับ Social Operations</Link>
+        <Link href="/social/posts/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับไปจัดการโพสต์</Link>
       </div>
       <TikTokReadOnlyPanel
         ready={readiness.status === "manual-sync-ready"}
@@ -31,7 +31,8 @@ export default async function TikTokConnectionUatPage() {
         missing={missing}
       />
       <section role="note" className="mt-7 rounded-3xl border border-amber-200/20 bg-amber-200/[0.05] p-5 text-sm leading-6 text-amber-50/80">
-        Scope ที่ยอมรับเท่านั้น: {readiness.scopes.join(" + ")} · video.upload และ video.publish ถูกปฏิเสธ
+        ระบบเชื่อมต่อแบบอ่านข้อมูลเท่านั้น ไม่อนุญาตให้อัปโหลดหรือเผยแพร่วิดีโอ
+        <details className="mt-2 text-xs"><summary className="cursor-pointer">ดูสิทธิ์สำหรับทีมเทคนิค</summary><p className="mt-1">{readiness.scopes.join(" + ")}</p></details>
       </section>
     </div>
   );

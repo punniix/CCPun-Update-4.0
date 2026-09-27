@@ -18,6 +18,7 @@ test('wide desktop Website 4.3 shells stay centered instead of pinning to the le
   assert.match(responsive, /margin-left: auto;\s*margin-right: auto;/);
   assert.match(responsive, /\.\$\{styles\.homeHeroCopy\} \{\s*left: var\(--w43-shell-left\)/);
   assert.match(responsive, /\.\$\{styles\.blogHeroCopy\} \{[\s\S]*?left: var\(--w43-shell-left\)/);
+  assert.match(responsive, /\.\$\{styles\.toolHeroCopy\} \{\s*left: var\(--w43-shell-left\);\s*top: 128px;/);
   assert.match(navbar, /width: min\(1280px, calc\(100% - var\(--w43-nav-gutter, 80px\) - var\(--w43-nav-gutter, 80px\)\)\)/);
 });
 
@@ -72,6 +73,7 @@ test('the Home LCP image is preloaded alongside the bounded critical font budget
 test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI use the new aligned tool shell', () => {
   const fhc = read('features/financial-health-check/components/ClientFHC.tsx');
   const ci = read('features/ci-planning/page.tsx');
+  const toolHero = read('components/layout/website-43/Website43ToolHero.tsx');
   assert.match(home, /Website43/);
   assert.match(blog, /Website43/);
   for (const source of [fhc, ci]) {
@@ -80,6 +82,39 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
     assert.doesNotMatch(source, /components\/layout\/ToolHero/);
     assert.doesNotMatch(source, /components\/layout\/Navbar/);
   }
+  assert.match(fhc, /functionalMotion\.scope/);
+  assert.match(fhc, /FHCPlanningContext/);
+  assert.match(ci, /functionalMotion\.scope/);
+  assert.match(ci, /Recovery Reserve/);
+  assert.match(toolHero, /ctaHref/);
+  assert.match(toolHero, /toolHeroGradient/);
+  assert.match(toolHero, /fullBleed\?: boolean/);
+  assert.match(toolHero, /sizes=\{fullBleed \? '100vw' : '\(max-width: 639px\) 100vw, \(max-width: 1023px\) 560px, 820px'\}/);
+  assert.match(ci, /<Website43ToolHero[\s\S]*?strongContrast[\s\S]*?\/>/);
+  assert.match(fhc, /<Website43ToolHero[\s\S]*?strongContrast[\s\S]*?\/>/);
+  assert.doesNotMatch(ci, /fullBleed/);
+  assert.doesNotMatch(fhc, /fullBleed/);
+  assert.match(css, /\.toolHeroImage \{[^}]*object-fit: contain;[^}]*mask-image: linear-gradient\(90deg,transparent 0%,#000 24%\);/);
+  assert.match(css, /\.root \.toolHeroImage \{[^}]*object-fit: contain;/);
+  assert.match(css, /\.toolHeroImage \{ top: 244px;[^}]*object-fit: contain;/);
+  assert.match(responsive, /\.\$\{styles\.toolHeroImage\} \{[^}]*object-fit: contain;[^}]*object-position: right center;/);
+  assert.match(responsive, /\.\$\{styles\.root\} \.\$\{styles\.toolHeroImage\} \{\s*inset: 0 0 auto auto;\s*width: 560px;\s*height: 100%;/);
+  assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{[^}]*inset: clamp\(476px, calc\(21vw \+ 246px\), 548px\) 0 0;\s*height: auto;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 70px\);/);
+  assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{\s*inset: auto 0 0;\s*height: 150px;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 40%\);/);
+  assert.match(responsive, /top: 252px;[^}]*height: auto;\s*object-fit: contain;\s*object-position: center center;\s*-webkit-mask-image: linear-gradient\(180deg/);
+  assert.match(responsive, /-webkit-mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);\s*mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);/);
+  assert.match(responsive, /\.\$\{styles\.toolHero\} \.\$\{styles\.primaryButton\} \{\s*position: absolute;\s*top: 636px;/);
+  assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroImage \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/);
+  assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroGradient \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*background: linear-gradient\(90deg,[^}]*rgba\(6,11,9,\.16\) 100%\);/);
+  assert.match(css, /\.root \.toolHeroFullBleed \.primaryButton \{[^}]*width: clamp\(176px, 15\.28vw, 220px\);[^}]*min-height: 52px;/);
+  assert.match(ci, /<Website43ToolHero[\s\S]*?<CILandingIntro \/>[\s\S]*?<section id="ci-calculator"/);
+});
+
+test('Cookie Settings stays inside the visible Website 4.3 footer card at every breakpoint', () => {
+  const footer = read('components/layout/website-43/Website43Shared.tsx');
+  assert.match(footer, /className=\{styles\.footerFull\}[\s\S]*?<CookieSettingsButton \/>/);
+  assert.match(footer, /className=\{`\$\{styles\.footerCompact\}[\s\S]*?<CookieSettingsButton \/>/);
+  assert.doesNotMatch(footer, /<\/div>\s*<CookieSettingsButton \/>\s*<\/div>\s*<\/footer>/);
 });
 
 

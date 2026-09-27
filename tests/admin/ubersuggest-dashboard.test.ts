@@ -8,7 +8,7 @@ const snapshots = readFileSync("lib/admin/ubersuggest-dashboard.ts", "utf8");
 const route = readFileSync("app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
 const routes = readFileSync("lib/admin/routes.ts", "utf8");
 const researchPage = readFileSync("features/admin/research/page.tsx", "utf8");
-const layout = readFileSync("app/(control-plane)/layout.tsx", "utf8");
+const layout = readFileSync("apps/admin/app/(control-plane)/layout.tsx", "utf8");
 const schema = readFileSync("cms/sanity/admin/schema/ubersuggest-types.ts", "utf8");
 const studioPolicy = readFileSync("cms/sanity/policy/studio-policy.ts", "utf8");
 const studioConfig = readFileSync("sanity.config.ts", "utf8");
@@ -51,33 +51,39 @@ test("Ubersuggest keeps account GEO in Sanity and stores audit plus research his
   assert.match(snapshots, /transaction\(\)\.create\(accountDocument\)\.create\(geoDocument\)\.commit\(\)/);
   assert.match(snapshots, /insertAdminAudit\(auditDocument\)/);
   assert.match(snapshots, /readAdminResearch\(limit\)/);
+  assert.match(snapshots, /limitations: z\.array\(z\.string\(\)\)\.nullish\(\)\.transform\(\(value\) => value \?\? \[\]\)/);
   assert.doesNotMatch(snapshots, /_type == "researchSnapshot"/);
   assert.match(route, /SYNC_CACHE_HOURS = 1/);
   assert.match(route, /research:provider-query/);
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /provider-sync-local-required/);
+  assert.match(route, /isConfiguredAdminOrigin/);
+  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /reviewed-import/);
+  assert.match(route, /uat-import-only/);
 });
 
 test("Research Intelligence owns keyword coverage Ubersuggest quota GEO prompt gaps and history", () => {
-  assert.match(researchPage, /Research Intelligence/);
+  assert.match(researchPage, /ค้นคว้าและตัดสินใจ/);
   assert.match(researchPage, /1 · เก็บข้อมูล/);
-  assert.match(researchPage, /2 · Match บทความ/);
+  assert.match(researchPage, /2 · เทียบกับบทความ/);
   assert.match(researchPage, /3 · Ubersuggest/);
   assert.match(researchPage, /4 · GEO \/ AEO/);
-  assert.match(researchPage, /5 · History/);
-  assert.match(researchPage, /Ubersuggest Intelligence \+ Account Quota/);
-  assert.match(researchPage, /GEO \/ AEO — AI Search Visibility/);
-  assert.match(researchPage, /AI Prompt Gaps/);
-  assert.match(researchPage, /Research History \+ Decision Status/);
+  assert.match(researchPage, /5 · ประวัติ/);
+  assert.match(researchPage, /ข้อมูล Ubersuggest และขีดจำกัดบัญชี/);
+  assert.match(researchPage, /คำถามที่ Ubersuggest วัด CCPun ได้ 0% ในรอบนี้/);
+  assert.match(researchPage, /ยังไม่ได้จับคู่กับ Intent Owner Registry/);
+  assert.match(researchPage, /ประวัติข้อมูลและสถานะการตัดสินใจ/);
   assert.match(researchPage, /getUbersuggestDashboardData\(30\)/);
   assert.match(researchPage, /userVisibilityPercentage === 0/);
-  assert.match(researchPage, /Research gap · โอกาสสูง/);
+  assert.match(researchPage, /ยังขาดบทความ · โอกาสสูง/);
 });
 
 test("Production Research uses snapshots while Local lanes retain provider query and sync", () => {
   assert.match(researchPage, /environment === "production-admin"/);
-  assert.match(researchPage, /Snapshot พร้อมใช้/);
-  assert.match(researchPage, /Cloud Admin อ่าน Snapshot จาก Sanity เท่านั้น/);
+  assert.match(researchPage, /ข้อมูลล่าสุดพร้อมใช้/);
+  assert.match(researchPage, /ไม่ถือ OAuth ของ Ubersuggest บน cloud/);
+  assert.match(researchPage, /UbersuggestAisvImportForm/);
   assert.match(researchPage, /UbersuggestResearchForm connected=\{ubersuggest\.connected\}/);
   assert.match(researchPage, /SyncUbersuggestButton/);
   assert.match(researchPage, /localProviderLane/);
@@ -85,6 +91,6 @@ test("Production Research uses snapshots while Local lanes retain provider query
 
 test("legacy Ubersuggest route maps into unified Research and navigation has one canonical research entry", () => {
   assert.match(routes, /\["\/snt-admin\/ubersuggest", "\/content\/research\/"\]/);
-  assert.match(layout, /href: "\/content\/research\/", label: "Research"/);
+  assert.match(layout, /href: "\/content\/research\/", label: "ข้อมูลประกอบ"/);
   assert.doesNotMatch(layout, /href: "\/snt-admin\/ubersuggest\/"/);
 });

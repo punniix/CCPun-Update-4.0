@@ -1,0 +1,15 @@
+SELECT
+ EXISTS(SELECT 1 FROM private_line.schema_migration WHERE version='20260918_line_private_conversation_security_v1_production' AND checksum='sha256:be2942e075f2beaca66619c72e2b28684c82ce1c950fa7bd9ba5bcda8049c534') AS security_patch_checksum_ok,
+ (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_read_line_transcript(uuid,integer)'::regprocedure) AS public_transcript_denied,
+ (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_enqueue_line_reply(jsonb)'::regprocedure) AS public_enqueue_denied,
+ (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_claim_line_outbound(jsonb)'::regprocedure) AS public_claim_denied,
+ (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_checkpoint_line_outbound(jsonb)'::regprocedure) AS public_checkpoint_denied,
+ (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_update_lead_stage(jsonb)'::regprocedure) AS public_stage_denied,
+ NOT has_function_privilege('ccpun_line_ingress','private_line.admin_read_line_transcript(uuid,integer)','EXECUTE') AS ingress_transcript_denied,
+ NOT has_function_privilege('ccpun_line_ingress','private_line.admin_enqueue_line_reply(jsonb)','EXECUTE') AS ingress_enqueue_denied,
+ NOT has_function_privilege('ccpun_line_ingress','private_line.admin_update_lead_stage(jsonb)','EXECUTE') AS ingress_stage_denied,
+ has_function_privilege('ccpun_line_ingress','private_line.record_safe_web_journey_event(jsonb)','EXECUTE') AS ingress_journey_execute,
+ NOT has_function_privilege('ccpun_admin_runtime','private_line.record_safe_web_journey_event(jsonb)','EXECUTE') AS admin_journey_write_denied,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_read_line_transcript(uuid,integer)','EXECUTE') AS admin_transcript_execute,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_enqueue_line_reply(jsonb)','EXECUTE') AS admin_enqueue_execute,
+ has_function_privilege('ccpun_admin_runtime','private_line.admin_update_lead_stage(jsonb)','EXECUTE') AS admin_stage_execute;

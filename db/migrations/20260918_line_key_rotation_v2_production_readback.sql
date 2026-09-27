@@ -1,0 +1,15 @@
+SELECT
+  EXISTS(SELECT 1 FROM private_line.schema_migration WHERE version='20260918_line_key_rotation_v2_production' AND checksum='sha256:3884446394a191afdfbde544f4b6e887fd996732d6705956ac7fc0efda7fc21d') AS key_rotation_checksum_ok,
+  has_function_privilege('ccpun_line_ingress','private_line.ingress_read_line_key_rotation_candidates(text,integer)','EXECUTE') AS ingress_candidate_read_ok,
+  has_function_privilege('ccpun_line_ingress','private_line.ingress_apply_line_key_rotation(jsonb)','EXECUTE') AS ingress_rotation_apply_ok,
+  NOT has_function_privilege('ccpun_admin_runtime','private_line.ingress_read_line_key_rotation_candidates(text,integer)','EXECUTE') AS admin_candidate_read_denied,
+  NOT has_function_privilege('ccpun_admin_runtime','private_line.ingress_apply_line_key_rotation(jsonb)','EXECUTE') AS admin_rotation_apply_denied,
+  has_function_privilege('ccpun_admin_runtime','private_line.admin_read_line_key_rotation_status()','EXECUTE') AS admin_status_read_ok,
+  NOT has_function_privilege('ccpun_line_ingress','private_line.admin_read_line_key_rotation_status()','EXECUTE') AS ingress_status_read_denied,
+  (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.ingress_read_line_key_rotation_candidates(text,integer)'::regprocedure) AS public_candidate_read_denied,
+  (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.ingress_apply_line_key_rotation(jsonb)'::regprocedure) AS public_rotation_apply_denied,
+  (SELECT NOT EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid='private_line.admin_read_line_key_rotation_status()'::regprocedure) AS public_status_read_denied,
+  position('key_unavailable' in pg_get_functiondef('private_line.admin_claim_line_outbound(jsonb)'::regprocedure)) > 0 AS outbound_retry_blocked,
+  position('key_unavailable' in pg_get_functiondef('private_line.admin_claim_line_campaign_delivery(jsonb)'::regprocedure)) > 0 AS campaign_retry_blocked,
+  NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants g JOIN information_schema.tables t ON t.table_schema=g.table_schema AND t.table_name=g.table_name WHERE g.grantee='ccpun_admin_runtime' AND g.table_schema='private_line' AND t.table_type='BASE TABLE') AS admin_no_base_table_grants,
+  NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants g JOIN information_schema.tables t ON t.table_schema=g.table_schema AND t.table_name=g.table_name WHERE g.grantee='ccpun_line_ingress' AND g.table_schema='private_line' AND t.table_type='BASE TABLE') AS ingress_no_base_table_grants;

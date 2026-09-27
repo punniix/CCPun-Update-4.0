@@ -42,10 +42,11 @@ const BLOG_CLIENT_CLASS_NAMES = {
   emptyState: styles.emptyState,
 } satisfies Website43BlogClientClassNames;
 
-export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, initialQuery = '', categories = [], topicContent, topicNavigation }: {
+export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', categories = [], topicContent, topicNavigation }: {
   articles: Website43ArticleItem[];
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
+  heroDescription?: string;
   initialQuery?: string;
   categories?: Website43BlogCategoryItem[];
   topicContent?: ReactNode;
@@ -72,7 +73,7 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
           <Website43Navbar overlay />
           <div className={styles.blogHeroCopy}>
             <h1 id="blog-title">{activeCategory.slug ? activeCategory.title : 'บทความ'}</h1>
-            <p>เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0</p>
+            <p>{heroDescription}</p>
           </div>
         </section>
 
