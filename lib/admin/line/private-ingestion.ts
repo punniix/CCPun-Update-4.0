@@ -497,7 +497,7 @@ export async function probeLinePrivateIngestRuntime() {
   const runtime = resolveLineIngestRuntime();
   if (runtime?.lane !== "production") return false;
   try {
-    createLinePrivateCrypto();
+    createLineContentCrypto();
     const sql = neon(runtime.connectionString, { fetchOptions: { signal: AbortSignal.timeout(5_000) } });
     const rows = await sql.query(
       "SELECT has_function_privilege(current_user, 'private_line.ingest_line_event(jsonb)', 'EXECUTE') AS ready",
