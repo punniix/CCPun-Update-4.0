@@ -18,6 +18,11 @@ export const EXPORT_DATASETS = [
 
 export const exportFormatSchema = z.enum(EXPORT_FORMATS);
 export const exportDatasetSchema = z.enum(EXPORT_DATASETS);
+export const EXPORT_ANALYSIS_VIEWS = ["seo-review", "measurement-gaps", "campaign-performance", "marketing-activities"] as const;
+export const exportAnalysisViewSchema = z.enum(EXPORT_ANALYSIS_VIEWS);
+export type ExportAnalysisView = z.infer<typeof exportAnalysisViewSchema>;
+export const exportSelectionSchema = z.object({ dataset: exportDatasetSchema, view: exportAnalysisViewSchema.optional() }).strict()
+  .refine(value => value.view === undefined || value.dataset === "marketing-analytics", { message: "view requires marketing-analytics", path: ["view"] });
 
 export type ExportFormat = z.infer<typeof exportFormatSchema>;
 export type ExportDataset = z.infer<typeof exportDatasetSchema>;

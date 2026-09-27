@@ -23,7 +23,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const input=$input.first()?.json ?? {};\nconst raw=input.body && input.headers ? input.body : input;\nconst allowed=new Set(['marketing-analytics','social-performance','seo-intelligence','crm-overview','crm-leads','crm-follow-ups','growth-funnel','customer-insights','automation-runs']);\nconst jobId=String(raw.jobId??'');\nconst rowVersion=Number(raw.rowVersion??0);\nconst dataset=String(raw.dataset??'');\nconst generatedAt=String(raw.generatedAt??'');\nconst valid=/^[0-9a-f-]{36}$/i.test(jobId)&&Number.isInteger(rowVersion)&&rowVersion>0&&allowed.has(dataset)&&Number.isFinite(Date.parse(generatedAt));\nif(!valid) throw new Error('EXPORT_INPUT_INVALID');\nreturn [{json:{\n  jobId,rowVersion,dataset,generatedAt,\n  startedAt:new Date().toISOString(),\n  correlationId:String(raw.correlationId??''),\n  requestId:String(raw.requestId??'')\n}}];"
+        "jsCode": "const input=$input.first()?.json ?? {};\nconst raw=input.body && input.headers ? input.body : input;\nconst allowed=new Set(['marketing-analytics','social-performance','seo-intelligence','crm-overview','crm-leads','crm-follow-ups','growth-funnel','customer-insights','automation-runs']);\nconst jobId=String(raw.jobId??'');\nconst rowVersion=Number(raw.rowVersion??0);\nconst dataset=String(raw.dataset??'');\nconst generatedAt=String(raw.generatedAt??'');\nconst view=raw.view;\nconst allowedViews=new Set(['seo-review','measurement-gaps','campaign-performance','marketing-activities']);\nconst validView=view===undefined || (dataset==='marketing-analytics' && typeof view==='string' && allowedViews.has(view));\nconst valid=/^[0-9a-f-]{36}$/i.test(jobId)&&Number.isInteger(rowVersion)&&rowVersion>0&&allowed.has(dataset)&&Number.isFinite(Date.parse(generatedAt));\nif(!valid || !validView) throw new Error('EXPORT_INPUT_INVALID');\nreturn [{json:{\n  jobId,rowVersion,dataset,generatedAt,...(view===undefined?{}:{view}),\n  startedAt:new Date().toISOString(),\n  correlationId:String(raw.correlationId??''),\n  requestId:String(raw.requestId??'')\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -37,7 +37,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $json.jobId + '/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $json.jobId + '/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -73,7 +73,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/exports/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/exports/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -86,7 +86,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  dataset:$('เตรียม Export').item.json.dataset,\n  generatedAt:$('เตรียม Export').item.json.generatedAt\n}) }}",
+        "jsonBody": "={{ ({\n  dataset:$('เตรียม Export').item.json.dataset,\n  generatedAt:$('เตรียม Export').item.json.generatedAt,\n  ...($('เตรียม Export').item.json.view ? {view:$('เตรียม Export').item.json.view} : {})\n}) }}",
         "options": {
           "timeout": 30000,
           "response": {
@@ -241,7 +241,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').item.json.jobId + '/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').item.json.jobId + '/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -277,7 +277,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -312,7 +312,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -347,7 +347,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -547,16 +547,52 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// ponytail: the backend owns collection, validation and retries; this branch reports source outcomes only.\nconst sources=['gsc','ga4','meta','ubersuggest'];\nconst results=sources.map(source=>{\n  const body=$('Daily · '+source.toUpperCase()).first().json;\n  const row=Array.isArray(body.results)?body.results.find(x=>x.source===source):null;\n  return {source,status:row?.status??'failed',batchId:typeof row?.batchId==='string'?row.batchId:null};\n});\nif(results.some(row=>!['completed','duplicate'].includes(row.status))) throw new Error('ANALYTICS_DAILY_INCOMPLETE');\nreturn [{json:{collectedAt:new Date().toISOString(),results}}];"
+        "jsCode": "// ponytail: the backend owns collection, validation and retries; this branch reports source outcomes only.\nconst sources=['gsc','ga4','meta','ubersuggest'];\nconst results=sources.map(source=>{\n  const body=$('Daily · '+source.toUpperCase()).first().json;\n  const row=Array.isArray(body.results)?body.results.find(x=>x.source===source):null;\n  return {source,status:row?.status??'failed',batchId:typeof row?.batchId==='string'?row.batchId:null};\n});\nconst outcome=$('Daily · ประเมินด้วย VPS AI').first().json;\nconst assessment={state:typeof outcome.state==='string'?outcome.state:'unavailable',jobId:typeof outcome.jobId==='string'?outcome.jobId:null,reused:outcome.reused===true};\nif(results.some(row=>!['completed','duplicate'].includes(row.status))) throw new Error('ANALYTICS_DAILY_INCOMPLETE');\nif(!['queued','leased','succeeded','skipped'].includes(assessment.state)) throw new Error('ANALYTICS_ASSESSMENT_INCOMPLETE');\nreturn [{json:{collectedAt:new Date().toISOString(),results,assessment}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        240,
+        480,
         -440
       ],
       "id": "7058dbdb-d225-49b9-a13d-1eb2a2cbffde",
       "name": "Daily · ตรวจผลครบทุกต้นทาง"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/assessment/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        -440
+      ],
+      "id": "ee120096-a0bd-4e95-a6cd-72dd09f2c003",
+      "name": "Daily · ประเมินด้วย VPS AI",
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
@@ -766,6 +802,17 @@
       ]
     },
     "Daily · UBERSUGGEST": {
+      "main": [
+        [
+          {
+            "node": "Daily · ประเมินด้วย VPS AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily · ประเมินด้วย VPS AI": {
       "main": [
         [
           {

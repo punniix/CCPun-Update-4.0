@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { cache } from "react";
+import { AnalyticsCharts } from "./AnalyticsCharts";
+import { PerformanceInsights } from "./PerformanceInsights";
+import { DailyAssessment } from "./DailyAssessment";
+import { readDailyAssessment } from "@/lib/admin/analytics/assessment";
 import { readAnalyticsDashboard } from "@/lib/admin/analytics/store";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 
@@ -7,6 +11,7 @@ const SOURCES: Record<string, string> = { gsc: "Google Search Console", ga4: "Go
 const REPORTS: Record<string, string> = {
   "gsc-summary": "ภาพรวมการค้นหา Google", "gsc-query-page": "คำค้นและหน้าที่ปรากฏบน Google",
   "ga4-summary": "ภาพรวมผู้เข้าชมเว็บ", "ga4-organic-landing": "หน้าที่เข้าจากการค้นหา",
+  "ga4-session-performance": "ผู้เข้าชมตามวัน ช่องทาง และแคมเปญ", "ga4-marketing-events": "การใช้เครื่องมือและคลิก LINE",
   "social-performance": "ผลลัพธ์โพสต์ Social", "seo-intelligence": "คำค้นและ AI Visibility",
   "ubersuggest-web-keywords": "รายงานคำค้นจากเว็บ Ubersuggest",
 };
@@ -22,7 +27,7 @@ function date(value: string | null | undefined) {
 
 export async function StoredAnalyticsDashboard({ searchParams, searchOnly = false, now }: { searchParams: Record<string, string | string[] | undefined>; searchOnly?: boolean; now: number }) {
   await requireAdminPermission("settings:read");
-  const model = await readAnalyticsDashboard();
+  const [model, assessment] = await Promise.all([readAnalyticsDashboard(), readDailyAssessment()]);
   const datasets = model.datasets.filter((item) => !searchOnly || item.source === "gsc" || item.source === "ga4");
   const source = typeof searchParams.source === "string" ? searchParams.source : "";
   const report = typeof searchParams.report === "string" ? searchParams.report : "";
@@ -62,6 +67,8 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
       <button type="submit" className={`min-h-11 self-end rounded-xl bg-[#e0c985] px-5 py-2 text-sm font-medium text-[#251818] ${focus}`}>แสดงรายงาน</button>
     </form>
     {!visible.length ? <p className="mt-6 rounded-2xl border border-white/15 p-5 text-sm leading-6 text-white/70">{datasets.length ? "ไม่มีรายงานตรงกับตัวกรองนี้ ลองเลือกทุกแหล่งและทุกช่วงข้อมูล" : "ยังไม่มีชุดข้อมูลที่บันทึกสำเร็จ เมื่ออัปเดตรอบแรกเสร็จ รายงานและไฟล์จะใช้ข้อมูลชุดเดียวกัน"}</p> : null}
+    <PerformanceInsights datasets={datasets} />
+    <DailyAssessment assessment={assessment} />
     {visible.map((item) => {
       const metrics = item.overview.length ? item.overview : item.report.endsWith("-summary") && item.rows.length === 1 ? item.columns.map((label) => ({ label, value: item.rows[0]![label] ?? "—" })) : [];
       return <section key={`${item.report}-${item.batchId}`} className="mt-7 min-w-0 rounded-2xl border border-white/15 bg-white/[0.025] p-4 md:p-6" aria-label={REPORTS[item.report] ?? item.report}>
@@ -71,7 +78,8 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
         <p className="mt-1 text-xs text-white/60">ข้อมูลต้นทาง ณ {item.sourceAsOf ? <time dateTime={item.sourceAsOf}>{date(item.sourceAsOf)}</time> : "ต้นทางไม่ได้ระบุ"} {item.sourceAsOf && /^\d{4}-\d{2}-\d{2}$/.test(item.sourceAsOf) ? "(วันที่ตามรายงานต้นทาง)" : item.sourceAsOf ? "(เวลาไทย)" : ""} · บันทึกเข้าคลัง <time dateTime={item.collectedAt}>{date(item.collectedAt)}</time> (เวลาไทย)</p>
         {item.sourceAsOf && Date.parse(item.collectedAt) - Date.parse(item.sourceAsOf) > 48 * 60 * 60 * 1000 ? <p className="mt-1 text-xs text-amber-100">ข้อมูลต้นทางเก่ากว่ารอบบันทึกเกิน 2 วัน อ่านช่วงข้อมูลประกอบก่อนวิเคราะห์</p> : null}
       </div><a href={`/api/admin/analytics/export/?report=${encodeURIComponent(item.report)}`} className={link}>ดาวน์โหลด CSV รายงานนี้</a></div>
-      {metrics.length ? <dl className="mt-5 grid gap-x-6 gap-y-4 border-y border-white/10 py-4 sm:grid-cols-2 lg:grid-cols-3">{metrics.map((metric, index) => <div key={`${metric.label}-${index}`} className="min-w-0"><dt className="text-xs leading-5 text-white/65">{metric.label}</dt><dd className="mt-1 break-words text-lg font-medium">{typeof metric.value === "number" ? metric.value.toLocaleString("th-TH", { maximumFractionDigits: 4 }) : typeof metric.value === "boolean" ? metric.value ? "ใช่" : "ไม่" : metric.value || "—"}</dd></div>)}</dl> : null}
+      {metrics.length ? <dl className="mt-5 grid gap-3 border-y border-white/10 py-4 sm:grid-cols-2 lg:grid-cols-3">{metrics.map((metric, index) => <div key={`${metric.label}-${index}`} className="min-w-0 rounded-lg bg-black/15 p-3"><dt className="text-xs leading-5 text-white/65">{metric.label}</dt><dd className="mt-1 break-words text-xl font-semibold">{typeof metric.value === "number" ? metric.value.toLocaleString("th-TH", { maximumFractionDigits: 4 }) : typeof metric.value === "boolean" ? metric.value ? "ใช่" : "ไม่" : metric.value || "—"}</dd></div>)}</dl> : null}
+      <AnalyticsCharts dataset={item} />
       <details className="mt-5"><summary className={`min-h-11 cursor-pointer py-2 text-sm text-white/80 ${focus}`}>ดูข้อมูลและความหมายของรายงาน ({item.rows.length.toLocaleString("th-TH")} แถว)</summary>
         <p className="mt-1 text-xs leading-5 text-white/60">แสดงตัวอย่างไม่เกิน 25 แถว ดาวน์โหลดไฟล์เพื่อดูทุกแถว ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์ ตัวเลขคนและ Reach ไม่ควรนำมาบวกข้ามแหล่งข้อมูล ช่วงวันของต้นทางใช้ {item.nativeTimeZone || "เขตเวลาตามต้นทาง"}</p>
         {item.rows.length ? <div className="mt-3 max-w-full overflow-x-auto rounded-xl border border-white/10" tabIndex={0} role="region" aria-label={`ตาราง ${REPORTS[item.report] ?? item.report}`}><table className="w-full text-left text-sm"><caption className="sr-only">ตัวอย่างข้อมูลที่บันทึกไว้ของรายงาน {REPORTS[item.report] ?? item.report}</caption><thead className="bg-black/20"><tr>{item.columns.map((column) => <th scope="col" key={column} className="whitespace-nowrap px-4 py-3 font-medium">{column}</th>)}</tr></thead><tbody>{item.rows.slice(0, 25).map((row, index) => <tr key={index} className="border-t border-white/10">{item.columns.map((column) => <td key={column} className="max-w-sm px-4 py-3 align-top break-words">{row[column] == null ? "—" : typeof row[column] === "boolean" ? row[column] ? "ใช่" : "ไม่" : String(row[column])}</td>)}</tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-white/65">ต้นทางส่งกลับมาโดยไม่มีแถวข้อมูล รายงานนี้ยังส่งออกคำอธิบายและสถานะได้</p>}

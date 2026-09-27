@@ -115,14 +115,15 @@ test("Daily collection reuses the Sheets workflow and fails closed without leaki
   const summary = workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง");
   const run = new Function("$", summary.parameters.jsCode);
   const good = Object.fromEntries(sources.map(source => [source, { results: [{ source, status: source === "meta" ? "duplicate" : "completed", batchId: "synthetic", rawSecret: "not-output" }] }]));
-  const evaluate = (inputs: typeof good) => run((name: string) => ({ first: () => ({ json: inputs[name.replace("Daily · ", "").toLowerCase()] }) }));
+  const assessmentName = "Daily · ประเมินด้วย VPS AI";
+  const evaluate = (inputs: typeof good) => run((name: string) => ({ first: () => ({ json: name === assessmentName ? { state: "queued", jobId: "synthetic" } : inputs[name.replace("Daily · ", "").toLowerCase()] }) }));
   assert.deepEqual(evaluate(good)[0].json.results.map((row: { source: string }) => row.source), sources);
   assert.doesNotMatch(JSON.stringify(evaluate(good)), /rawSecret|not-output/);
   for (const status of ["failed", "running", "unknown"]) {
     assert.throws(() => evaluate({ ...good, ga4: { results: [{ source: "ga4", status, batchId: "synthetic", rawSecret: "not-output" }] } }), { message: "ANALYTICS_DAILY_INCOMPLETE" });
   }
   assert.throws(() => evaluate({ ...good, ga4: { results: [] } }), { message: "ANALYTICS_DAILY_INCOMPLETE" });
-  const chain = ["Daily · เก็บข้อมูล 06:00", ...sources.map(source => "Daily · " + source.toUpperCase()), summary.name];
+  const chain = ["Daily · เก็บข้อมูล 06:00", ...sources.map(source => "Daily · " + source.toUpperCase()), assessmentName, summary.name];
   for (let i = 0; i < chain.length - 1; i++) assert.equal(workflow.connections[chain[i]].main[0][0].node, chain[i + 1]);
   assert.equal(workflow.settings.executionTimeout, 600);
 });

@@ -275,3 +275,8 @@ test("Production Admin robots policy stays noindex while CCPun web policy remain
   assert.match(robots, /disallow: "\/"/);
   assert.match(robots, /sitemap: "https:\/\/ccpun\.com\/sitemap\.xml"/);
 });
+
+test("analytics assessment permits only its exact service path", () => {
+ for (const path of ["/api/internal/analytics/assessment", "/api/internal/analytics/assessment/"]) assert.equal(isInternalServiceApiPath(path), true, path);
+ for (const path of ["/api/internal/analytics/assessments", "/api/internal/analytics/assessment/child", "/api/internal/analytics/assessment%2Fchild", "/api/internal/analytics/Assessment"]) assert.equal(isInternalServiceApiPath(path), false, path);
+});

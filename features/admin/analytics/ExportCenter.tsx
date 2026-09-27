@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import type { ExportAnalysisView } from "@/lib/admin/agent-os/export-contract";
+const VIEWS: Array<[ExportAnalysisView | "", string]> = [["", "ข้อมูลรวมทุกแหล่ง (ใช้เก็บอ้างอิง)"], ["seo-review", "งานตรวจ SEO"], ["measurement-gaps", "ข้อมูลที่ต้องเชื่อม"], ["campaign-performance", "แคมเปญและหน้าเข้า"], ["marketing-activities", "กิจกรรม CI / FHC / LINE"]];
 
 const OPTIONS = [
   ["marketing-analytics", "Dashboard รวม: Google, Social และ SEO", "Dashboard รวม"],
@@ -51,6 +53,7 @@ function statusText(status: string) {
 }
 
 export function ExportCenter() {
+  const [view, setView] = useState<ExportAnalysisView | "">("");
   const [dataset, setDataset] = useState<Dataset>("marketing-analytics");
   const [jobId, setJobId] = useState<string | null>(null);
   const [runtimePath, setRuntimePath] = useState<string | null>(null);
@@ -109,7 +112,7 @@ export function ExportCenter() {
       const response = await fetch("/api/admin/exports/google-sheet/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataset }),
+        body: JSON.stringify({ dataset, ...(dataset === "marketing-analytics" && view ? { view } : {}) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "export_failed");
@@ -167,6 +170,7 @@ export function ExportCenter() {
             value={dataset}
             onChange={(event) => {
               setDataset(event.target.value as Dataset);
+              setView("");
               setJobId(null);
               setDetail(null);
               setMessage(null);
@@ -184,8 +188,10 @@ export function ExportCenter() {
         </label>
         <p className="mt-2 max-w-2xl text-xs leading-5 text-white/50">{DATASET_HELP[dataset]}</p>
 
+        {dataset === "marketing-analytics" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกชุดวิเคราะห์สำหรับ CSV / Google Sheet<select value={view} onChange={event => setView(event.target.value as ExportAnalysisView | "")} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{VIEWS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/50">แต่ละชุดแยกประเภทข้อมูลเพื่อทำ Pivot ต่อได้ Excel ดาวน์โหลดทั้งสมุดงานเสมอ หากยังไม่มีรายงานแคมเปญหรือกิจกรรม ระบบจะแจ้งว่าไม่มีข้อมูลแทนศูนย์</span></label> : null}
+
         <div className="mt-5 flex flex-wrap gap-3">
-          <a href={dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv" : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
+          <a href={dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv" + (view ? "&view=" + encodeURIComponent(view) : "") : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
             ดาวน์โหลด CSV
           </a>
           {dataset === "marketing-analytics" ? <a href="/api/admin/analytics/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel หลายชีต</a> : null}
@@ -195,7 +201,7 @@ export function ExportCenter() {
         </div>
 
         <p className="mt-4 text-xs leading-5 text-white/50">
-          เวลาเก็บและสร้างไฟล์ใช้เวลาไทย (UTC+7) CSV เป็น UTF-8 เปิดใน Excel/Numbers ได้ Excel แยกชีตตามรายงานพร้อมคำอธิบาย Google Sheet มีชีตภาพรวมกับข้อมูลรวมที่กรองตามรายงานได้ การสร้างไฟล์ไม่ต้องรอรอบอัปเดตรายวัน ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์
+          เวลาเก็บและสร้างไฟล์ใช้เวลาไทย (UTC+7) CSV เป็น UTF-8 เปิดใน Excel/Numbers ได้ Excel แยกชีตตามรายงานพร้อมคำอธิบาย Google Sheet มีชีตภาพรวมพร้อมวิธีอ่าน และชีตข้อมูลตามชุดที่เลือก การสร้างไฟล์ไม่ต้องรอรอบอัปเดตรายวัน ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์
         </p>
       </section>
 

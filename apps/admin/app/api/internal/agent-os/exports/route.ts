@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { exportDatasetSchema, exportFileName } from "@/lib/admin/agent-os/export-contract";
+import { exportSelectionSchema, exportFileName } from "@/lib/admin/agent-os/export-contract";
 import { buildOwnerExportDataset } from "@/lib/admin/agent-os/export-datasets";
 import { isN8nExportRequestAuthorized } from "@/lib/admin/agent-os/export-service-auth";
 import { analyticsExportStream } from "@/lib/admin/analytics/export";
@@ -15,10 +15,7 @@ const headers = {
   "X-Content-Type-Options": "nosniff",
 };
 
-const bodySchema = z.object({
-  dataset: exportDatasetSchema,
-  generatedAt: z.string().datetime(),
-}).strict();
+const bodySchema = exportSelectionSchema.safeExtend({ generatedAt: z.string().datetime() });
 
 export async function POST(request: Request) {
   if (!isN8nExportRequestAuthorized(request)) {
@@ -36,14 +33,14 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "invalid-export-request" }, { status: 400, headers });
 
   try {
-    const data = await buildOwnerExportDataset(parsed.data.dataset, parsed.data.generatedAt);
+    const data = await buildOwnerExportDataset(parsed.data.dataset, parsed.data.generatedAt, undefined, parsed.data.view);
     return new NextResponse(analyticsExportStream(JSON.stringify({
       ...data,
       fileName: exportFileName({
         dataset: parsed.data.dataset,
         format: "google-sheet",
         generatedAt: parsed.data.generatedAt,
-      }),
+      }) + (parsed.data.view ? "_" + parsed.data.view : ""),
     })), { headers: { ...headers, "Content-Type": "application/json; charset=utf-8" } });
   } catch {
     return NextResponse.json({ error: "export-data-unavailable", retryable: true }, { status: 503, headers });
