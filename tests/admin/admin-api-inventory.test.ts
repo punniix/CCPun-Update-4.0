@@ -54,7 +54,7 @@ const contracts: Record<string, RouteContract> = {
   },
   "app/api/admin/providers/ubersuggest/sync/route.ts": {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:provider-query"/,
-    validation: { file: "app/api/admin/providers/ubersuggest/sync/route.ts", pattern: /export async function POST\(\)/, exception: "No request input; account selection is server-owned." },
+    validation: { file: "app/api/admin/providers/ubersuggest/sync/route.ts", pattern: /requestSchema\.safeParse\(raw\)/, exception: "Provider sync defaults to server-owned selection; reviewed AISV import accepts only strict bounded UAT JSON and exact same-origin human requests." },
   },
   "app/api/admin/research/route.ts": {
     methods: ["GET", "POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:read"[\s\S]*action: "research:create"/,

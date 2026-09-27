@@ -291,6 +291,32 @@ test("LINE private DB identity is pinned to the dedicated ingress role and exact
   }), null);
 });
 
+test("LINE private DB accepts explicit Hostinger Web production identity without fake Vercel variables", () => {
+  const runtime = resolveLineIngestRuntime({
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_APP_ENV: "production",
+    CCPUN_GIT_REF: "v4-production",
+    CCPUN_LINE_NEON_PROJECT_ID: "lively-bar-43618798",
+    CCPUN_LINE_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv",
+    CCPUN_LINE_NEON_DATABASE: "neondb",
+    CCPUN_LINE_INGEST_DATABASE_URL: "postgresql://ccpun_line_ingress:TEST_ONLY@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+  });
+  assert.equal(runtime?.lane, "production");
+  assert.equal(runtime?.provider, "hostinger");
+
+  assert.equal(resolveLineIngestRuntime({
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_APP_ENV: "production",
+    CCPUN_GIT_REF: "v4-production",
+    CCPUN_LINE_NEON_PROJECT_ID: "lively-bar-43618798",
+    CCPUN_LINE_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv",
+    CCPUN_LINE_NEON_DATABASE: "neondb",
+    CCPUN_LINE_INGEST_DATABASE_URL: "postgresql://ccpun_line_ingress:TEST_ONLY@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+  }), null);
+});
+
 test("SafeForAI accepts only allowlisted non-identifying journey state", () => {
   const safe = {
     journey: "motor_quote_review",

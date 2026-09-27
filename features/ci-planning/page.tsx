@@ -75,7 +75,7 @@ const CI_FAQS = [
   },
   {
     question: 'สินทรัพย์สภาพคล่องควรกรอกอะไรบ้าง?',
-    answer: 'กรอกเฉพาะเงินสด เงินฝาก หรือสินทรัพย์ที่พร้อมเปลี่ยนเป็นเงินเพื่อนำมาใช้ได้จริง โดยไม่รวมบ้าน รถ หรือทรัพย์สินที่ครอบครัวยังจำเป็นต้องใช้',
+    answer: 'กรอกเงินสด เงินฝาก หรือสินทรัพย์สภาพคล่องที่มี โดยไม่รวมบ้าน รถ หรือทรัพย์สินที่แปลงเป็นเงินได้ยาก หากต้องการรักษาสินทรัพย์ก้อนที่กรอกไว้ ให้เลือกตัวเลือกในขั้นเงินก้อน ระบบจะเพิ่มยอดเดียวกันเป็นเป้าหมายทุนอีกหนึ่งครั้ง',
   },
 ] as const;
 
@@ -108,8 +108,10 @@ export default function CiPlanningPage() {
           description="กรอกรายได้หรือภาระที่ยังต้องดูแล แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้"
           ctaHref="#ci-calculator"
           ctaLabel="เริ่มประเมิน"
-          fullBleed
+          strongContrast
         />
+
+        <CILandingIntro />
 
         <section id="ci-calculator" aria-labelledby="ci-calculator-title" className={styles.calculatorSection}>
           <div className={styles.calculatorHeader}>
@@ -121,8 +123,6 @@ export default function CiPlanningPage() {
             <CIWizard />
           </div>
         </section>
-
-        <CILandingIntro />
 
         <section className={styles.toolStorySection} aria-labelledby="ci-reading-title">
           <div className={styles.inner}>

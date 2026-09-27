@@ -337,11 +337,14 @@ for (const [schemaType, publicType] of [
 }
 
 const deploymentEnvironment = read('lib/deployment-environment.ts');
-assert.match(deploymentEnvironment, /VERCEL_ENV === "preview"/);
+assert.match(deploymentEnvironment, /resolveDeploymentIdentity/);
 assert.match(deploymentEnvironment, /CCPUN_UAT_MODE === "1"/);
+assert.match(deploymentEnvironment, /"web-uat"/);
 assert.match(deploymentEnvironment, /APP_ENVIRONMENT === "production-admin"/);
 assert.match(deploymentEnvironment, /IS_ADMIN_APPLICATION = \["local-uat", "local-production", "lab", "uat", "admin-uat", "production-admin"\]\.includes\(APP_ENVIRONMENT\)/);
-assert.match(deploymentEnvironment, /VERCEL_ENV === "production"/);
+assert.match(deploymentEnvironment, /DEPLOYMENT_IDENTITY\.valid/);
+assert.match(deploymentEnvironment, /DEPLOYMENT_IDENTITY\.role === "web"/);
+assert.match(deploymentEnvironment, /DEPLOYMENT_IDENTITY\.environment === "production"/);
 assert.match(deploymentEnvironment, /CCPUN_ENABLE_PRODUCTION_ANALYTICS === "1"/);
 
 const securityPolicy = read('lib/security-policy.ts');

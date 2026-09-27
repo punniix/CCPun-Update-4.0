@@ -4,9 +4,6 @@ import { pathToFileURL } from "node:url";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import {
-  countGraphemes,
-  isLineCardDescriptionInput,
-  lineCardDescriptionOutputSchema,
   localAiTaskOutputSchemas,
   parseLocalAiTaskInput,
   parseLocalAiTaskResult,
@@ -70,32 +67,8 @@ const instructions: Record<LocalAiTaskType, string> = {
   "seo-preprocessing": "Cluster these public-safe search queries by intent and likely owner page. Input queries are objects; output queries must contain only their exact query text as strings, never objects. Preserve every query string exactly once. Return exactly one JSON object with only this shape: {\"clusters\":[{\"label\":\"short label\",\"intent\":\"informational|commercial|transactional|navigational|mixed\",\"queries\":[\"exact input query\"],\"ownerCandidate\":\"/existing-input-page-or-null\",\"reviewRequired\":true}]}. ownerCandidate must copy an input page beginning with / or be null; use null when uncertain. Do not add keys or prose.",
 };
 
-const lineCardDescriptionInstruction = "Create Thai copy for a CCPun LINE article card using only the supplied public article. Return lineTitle 24-60 graphemes and lineDescription 50-90 graphemes; target 60-75 graphemes for lineDescription so it stays safely inside the allowed range. Make the headline worth tapping through concrete relevance, a useful question, trade-off, consequence, or overlooked point supported by the article; keep it natural and conversational, not sensational. The description must complete the headline by saying what the reader will understand, compare, or check, without repeating it. Avoid generic filler, clickbait, fear, urgency manipulation, direct identifiers, guarantees, absolute claims, and invented facts. Never emit these exact substrings anywhere: รับประกันผลตอบแทน, รับประกันกำไร, รับประกันอนุมัติ, รับประกันเคลมผ่าน, รับประกันความคุ้มครอง, การันตีผลตอบแทน, การันตีกำไร, การันตีอนุมัติ, การันตีเคลมผ่าน, การันตีความคุ้มครอง, รับรองผลตอบแทน, รับรองกำไร, รับรองอนุมัติ, รับรองเคลมผ่าน, รับรองความคุ้มครอง, ไม่ขาดทุน, ไม่มีความเสี่ยง, ผลตอบแทนแน่นอน, อนุมัติแน่นอน, เคลมผ่านแน่นอน, คุ้มครองทุกกรณี, or จ่ายแน่นอน. Never include a phone number, email address, or 13-digit identifier. Never use bait phrases such as ห้ามพลาด, ด่วน, ก่อนสาย, ความลับ, or ช็อก. Echo source exactly and return reviewRequired=true.";
-
-const lineCardRepairCandidateSchema = z.object({
-  lineTitle: z.string(),
-  lineDescription: z.string(),
-});
-
-function lineCardLengthRepair(payload: unknown, rawOutput: unknown, error: z.ZodError) {
-  if (!isLineCardDescriptionInput(payload) || error.issues.length === 0) return null;
-  const lengthIssuesOnly = error.issues.every(({ message, path }) =>
-    (path.length === 1 && path[0] === "lineTitle" && message === "lineTitle must contain 24-60 graphemes")
-    || (path.length === 1 && path[0] === "lineDescription" && message === "lineDescription must contain 50-90 graphemes"));
-  if (!lengthIssuesOnly) return null;
-  const candidate = lineCardRepairCandidateSchema.safeParse(rawOutput);
-  if (!candidate.success) return null;
-  return {
-    previousOutput: rawOutput,
-    lineTitleLength: countGraphemes(candidate.data.lineTitle),
-    lineDescriptionLength: countGraphemes(candidate.data.lineDescription),
-  };
-}
-
 export function resolveLocalAiInferenceContract(taskType: LocalAiTaskType, payload: unknown) {
-  if (taskType === "content-operations" && isLineCardDescriptionInput(payload)) {
-    return { outputSchema: lineCardDescriptionOutputSchema, instruction: lineCardDescriptionInstruction };
-  }
+  void payload;
   return { outputSchema: localAiTaskOutputSchemas[taskType], instruction: instructions[taskType] };
 }
 
@@ -146,19 +119,12 @@ async function infer(
   model: string,
   taskType: LocalAiTaskType,
   payload: unknown,
-  repair?: { previousOutput: unknown; lineTitleLength: number; lineDescriptionLength: number },
 ) {
   const contract = resolveLocalAiInferenceContract(taskType, payload);
   const messages = [
     { role: "system", content: `You are a private offline CCPun processor. ${contract.instruction} Output one JSON object only.` },
     { role: "user", content: JSON.stringify(payload) },
   ];
-  if (repair) {
-    messages.push(
-      { role: "assistant", content: JSON.stringify(repair.previousOutput) },
-      { role: "user", content: `The JSON shape and source are valid, but the Thai text lengths are not. lineTitle is ${repair.lineTitleLength} graphemes and must be 24-60. lineDescription is ${repair.lineDescriptionLength} graphemes and must be 50-90; rewrite it to target 60-75 graphemes. Rewrite only lineTitle and lineDescription using the supplied article, preserve source exactly, and return one JSON object.` },
-    );
-  }
   const response = await fetch(new URL("api/chat", baseUrl), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -181,16 +147,8 @@ export async function inferAndValidate(
   taskType: LocalAiTaskType,
   payload: unknown,
 ) {
-  let rawOutput = await infer(baseUrl, model, taskType, payload);
-  let output = parseLocalAiTaskResult(taskType, payload, rawOutput);
-  if (!output.success) {
-    const repair = lineCardLengthRepair(payload, rawOutput, output.error);
-    if (repair) {
-      rawOutput = await infer(baseUrl, model, taskType, payload, repair);
-      output = parseLocalAiTaskResult(taskType, payload, rawOutput);
-    }
-  }
-  return output;
+  const rawOutput = await infer(baseUrl, model, taskType, payload);
+  return parseLocalAiTaskResult(taskType, payload, rawOutput);
 }
 
 async function main() {

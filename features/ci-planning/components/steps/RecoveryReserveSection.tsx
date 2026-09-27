@@ -147,7 +147,7 @@ export default function RecoveryReserveSection({
       <div className="space-y-2">
         <p className="text-xs font-medium text-primary">เงินสำรองสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต</p>
         <h4 id="ci-recovery-title" className="text-base font-medium text-foreground">Recovery Reserve</h4>
-        <p className="text-xs leading-5 text-white/60">
+        <p className="text-xs leading-6 text-white/70">
           ก้อนนี้แยกจากรายได้ ค่าใช้จ่ายประจำ ค่าเรียน และหนี้ เลือกชุดประมาณการที่ใกล้กับสิ่งที่อยากเผื่อไว้ก่อน
           แล้วค่อยเปิดดูรายละเอียด หรือเลือกกำหนดเองเพื่อแก้รายการย่อยได้
         </p>
@@ -177,7 +177,7 @@ export default function RecoveryReserveSection({
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-foreground">{preset.title}</span>
                     <span className="mt-1 block text-2xl font-semibold tabular-nums text-primary">{baht(preset.reserve)}</span>
-                    <span className="mt-1 block text-xs leading-5 text-white/55">{preset.shortDescription}</span>
+                    <span className="mt-1 block text-xs leading-6 text-white/70">{preset.shortDescription}</span>
                   </span>
                 </label>
 
@@ -378,7 +378,7 @@ export default function RecoveryReserveSection({
           <output className="mt-1 block text-2xl font-semibold tabular-nums text-primary" aria-live="polite">
             {baht(recoveryPreview.reserveNeed)}
           </output>
-          <p className="mt-2 text-xs leading-5 text-white/60">
+          <p className="mt-2 text-xs leading-6 text-white/70">
             ระบบจะนำเงินก้อนนี้ไปบวกเพิ่มเพียง 1 ครั้งในวิธีคำนวณที่คุณใช้ โดยไม่รวมซ้ำกับรายได้ ค่าใช้จ่ายประจำ ค่าเรียน หรือหนี้
           </p>
           <button
@@ -390,7 +390,7 @@ export default function RecoveryReserveSection({
           </button>
         </div>
       ) : (
-        <p className="mt-4 text-xs leading-5 text-white/45">
+        <p className="mt-4 text-xs leading-6 text-white/70">
           ยังไม่ได้เลือกเงินสำรองก้อนนี้ หากไม่เลือก ระบบจะคำนวณเฉพาะฐานรายได้หรือรายจ่ายและภาระที่กรอก
         </p>
       )}

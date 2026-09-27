@@ -7,6 +7,7 @@ import {
   listCategoryMenuEntries,
   listPhysicalCategorySitemapEntries,
   loadCategoryRegistrySafe,
+  parseCategoryRegistryResponse,
   resolveCategoryRoute,
   type RawCategoryRegistryRow,
 } from "../../lib/content/category-registry";
@@ -80,6 +81,24 @@ test("published and draft variants of the same logical category are not treated 
   assert.equal(registry.entries[0]?.description, "Draft current");
 });
 
+test("category registry preserves curated featured article order", () => {
+  const registry = buildCategoryRegistry([
+    {
+      _id: "category-health-insurance",
+      title: "ประกันสุขภาพ",
+      slug: "health-insurance",
+      status: "active",
+      featuredArticleIds: ["article-third", "article-first", "article-second"],
+    },
+  ]);
+
+  assert.deepEqual(registry.entries[0]?.featuredArticleIds, [
+    "article-third",
+    "article-first",
+    "article-second",
+  ]);
+});
+
 test("slug format, duplicate slug, route collision and canonical collision isolate only unsafe rows", () => {
   const registry = buildCategoryRegistry([
     { _id: "good", title: "ดี", slug: "good-category", status: "active" },
@@ -129,6 +148,21 @@ test("one malformed category and registry request failure fail soft", async () =
   const unavailable = await loadCategoryRegistrySafe(async () => { throw new Error("Sanity unavailable"); });
   assert.equal(unavailable.available, false);
   assert.equal(unavailable.entries.length, 0);
+  assert.deepEqual(resolveCategoryRoute(unavailable, "health-insurance", { includeDrafts: false }), { kind: "unavailable" });
+});
+
+test("registry envelope must include all collision inputs before categories become available", () => {
+  const valid = {
+    categories: productionSix,
+    routeOwnerSlugs: [],
+    canonicalOwnerUrls: [],
+    referencedCategoryIds: [],
+  };
+  const parsed = parseCategoryRegistryResponse(valid);
+  assert.equal(buildCategoryRegistry(parsed.rows, parsed.context).active.length, 6);
+  for (const broken of [null, {}, { ...valid, categories: null }, { ...valid, routeOwnerSlugs: null }, { ...valid, canonicalOwnerUrls: [42] }]) {
+    assert.throws(() => parseCategoryRegistryResponse(broken));
+  }
 });
 
 test("physical category filtering is independent from semantic topic filtering", () => {

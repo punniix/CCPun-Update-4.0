@@ -1,4 +1,4 @@
-import { defineField, defineType } from "sanity";
+import { defineArrayMember, defineField, defineType } from "sanity";
 import { validateCategoryRegistryDocument, validateCategorySlugFormat } from "../../policy/category-registry-validation";
 
 export const category = defineType({
@@ -41,6 +41,29 @@ export const category = defineType({
       },
     }),
     defineField({ name: "description", title: "Description", type: "text", rows: 3 }),
+    defineField({
+      name: "featuredArticles",
+      title: "บทความแนะนำของหมวดหมู่นี้",
+      type: "array",
+      description: "เลือกเฉพาะบทความในหมวดนี้แล้วลากเพื่อเรียงลำดับ ระบบจะแสดงเฉพาะบทความที่เผยแพร่จริง และเติมบทความล่าสุดในหมวดอัตโนมัติหากเลือกไม่ครบ",
+      of: [
+        defineArrayMember({
+          type: "reference",
+          to: [{ type: "article" }],
+          options: {
+            disableNew: true,
+            filter: ({ document }) => {
+              const categoryId = String(document?._id ?? "").replace(/^drafts\\./, "");
+              return {
+                filter: "_type == 'article' && category._ref == $categoryId && defined(publishedAt)",
+                params: { categoryId },
+              };
+            },
+          },
+        }),
+      ],
+      validation: (Rule) => Rule.max(8).unique(),
+    }),
   ],
   validation: (Rule) => Rule.custom(validateCategoryRegistryDocument),
   preview: {

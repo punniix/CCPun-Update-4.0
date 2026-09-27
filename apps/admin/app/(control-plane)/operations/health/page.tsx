@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LineProviderActivationActions } from "@/features/admin/line/LineProviderActivationActions";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
+import { getAdminDeploymentIdentity } from "@/lib/admin/environment";
 import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
 import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
 import { resolveArticleSchedulerLane } from "@/lib/admin/operations/article-schedule-contract";
@@ -94,14 +95,16 @@ export default async function AdminHealthPage() {
   const lineMediaProvider = getLineMediaProviderReadiness();
   const lineSystemDeliveryProvider = getLineSystemDeliveryProviderReadiness();
 
-  const vercelEnvironment = process.env.VERCEL_ENV ?? "—";
-  const gitBranch = process.env.VERCEL_GIT_COMMIT_REF ?? "—";
-  const gitSha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? "—";
-  const region = process.env.VERCEL_REGION ?? "—";
+  const deployment = getAdminDeploymentIdentity();
+  const deploymentEnvironment = deployment.environment;
+  const provider = deployment.provider;
+  const gitBranch = deployment.gitRef ?? "—";
+  const gitSha = deployment.gitSha?.slice(0, 12) ?? "—";
+  const region = provider === "vercel" ? process.env.VERCEL_REGION ?? "—" : "—";
   const productionRuntime = process.env.CCPUN_APP_ENV === "production-admin";
-  const vercelState: HealthState = productionRuntime
-    ? vercelEnvironment === "production" && gitBranch === "v4-production" ? "ok" : "warning"
-    : vercelEnvironment === "preview" ? "ok" : "warning";
+  const deploymentState: HealthState = productionRuntime
+    ? deployment.valid && deploymentEnvironment === "production-admin" && gitBranch === "v4-production" ? "ok" : "warning"
+    : deployment.valid && deploymentEnvironment === "admin-uat" ? "ok" : "warning";
   const operationsState: HealthState = operations.identityValid ? "ok" : operations.configured ? "warning" : "off";
   const sanityState: HealthState = sanity.readReady ? (sanity.writeReady ? "ok" : "warning") : "warning";
   const schedulerState: HealthState = !schedulerLane
@@ -187,9 +190,9 @@ export default async function AdminHealthPage() {
       </div>
 
       <div className="mt-7 grid gap-4 xl:grid-cols-2">
-        <Card title="ศูนย์จัดการที่กำลังใช้งาน" state={vercelState}>
-          <p>{vercelState === "ok" ? "กำลังใช้เวอร์ชันจากสายงานที่ถูกต้อง" : "เวอร์ชันหรือสภาพแวดล้อมไม่ตรงตามที่คาด ต้องตรวจเพิ่มเติม"}</p>
-          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="สภาพแวดล้อม" value={vercelEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /><Row label="Region" value={region} /></div></details>
+        <Card title="ศูนย์จัดการที่กำลังใช้งาน" state={deploymentState}>
+          <p>{deploymentState === "ok" ? "กำลังใช้เวอร์ชันจากสายงานที่ถูกต้อง" : "เวอร์ชันหรือสภาพแวดล้อมไม่ตรงตามที่คาด ต้องตรวจเพิ่มเติม"}</p>
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="ผู้ให้บริการ" value={provider} /><Row label="สภาพแวดล้อม" value={deploymentEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /><Row label="Region" value={region} /></div></details>
         </Card>
 
         <Card title="เนื้อหาใน Sanity" state={sanityState}>

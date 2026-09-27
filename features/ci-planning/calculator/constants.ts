@@ -30,6 +30,7 @@ export const INITIAL_CI_FORM_DATA: CIFormData = {
   existingCI: {
     lumpSum: 0,
     liquidAssets: 0,
+    protectLiquidAssets: false,
   },
 };
 
@@ -43,4 +44,4 @@ export const CI_ESTIMATION_METHOD_LABELS: Record<CIEstimationMethod, string> = {
   income: 'ทุนตามรายได้',
 };
 
-export const CI_ASSESSMENT_VERSION = 'ci_planning_v10_recovery_choices_2026';
+export const CI_ASSESSMENT_VERSION = 'ci_planning_v11_asset_protection_2026';

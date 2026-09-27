@@ -268,6 +268,17 @@ assert.match(
   'Blog client island must preserve carousel state and live search URL behavior through native History state updates',
 );
 assert.match(
+  website43BlogInteractive,
+  /FEATURED_AUTOPLAY_MS = 4000[\s\S]*featuredCount < 2 \|\| autoplayStopped[\s\S]*setInterval\([\s\S]*document\.hidden[\s\S]*featuredHoverRef\.current[\s\S]*viewport\.contains\(document\.activeElement\)[\s\S]*prefers-reduced-motion[\s\S]*centerFeaturedCard\(featuredCount \+ activeFeatured \+ 1\)/,
+  'Featured articles should advance every four seconds without moving while hovered, focused, hidden, or in reduced-motion mode',
+);
+assert.match(
+  website43BlogInteractive,
+  /scrollFeaturedTo = \(index: number\) => \{\s*setAutoplayStopped\(true\)[\s\S]*onPointerDown=\{\(\) => setAutoplayStopped\(true\)\}/,
+  'Manual dot selection or swipe should stop featured autoplay for the current session',
+);
+assert.doesNotMatch(website43BlogInteractive, /featuredAutoplayButtonRef|เลื่อนอัตโนมัติ:/, 'Featured carousel should not render a visible autoplay toggle');
+assert.match(
   blogCategoryPage,
   /const getArticlesForRequest = cache\(\(includeDrafts: boolean\) =>[\s\S]*listArticles\(\{ includeDrafts \}\)/,
   'Blog category metadata and page render must share one request-scoped article accessor keyed by preview visibility',
