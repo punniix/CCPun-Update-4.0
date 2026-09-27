@@ -163,11 +163,16 @@ export async function readOrCreateArticleDraftLineCopy(id: string, sourceRevisio
     Object.entries(published).filter(([key]) => !["_id", "_rev", "_createdAt", "_updatedAt", "_originalId"].includes(key)),
   );
 
-  await write.createIfNotExists({
-    ...copyable,
-    _id: "drafts." + logicalId,
-    _type: "article",
-  } as { _id: string; _type: string; [key: string]: unknown });
+  try {
+    await write.create({
+      ...copyable,
+      _id: "drafts." + logicalId,
+      _type: "article",
+    } as { _id: string; _type: string; [key: string]: unknown });
+  } catch (error) {
+    if (conflictCode(error) === 409) throw new Error("LINE_COPY_CONFLICT");
+    throw new Error("LINE_DESCRIPTION_WRITE_UNAVAILABLE");
+  }
 
   const createdDraft = await readArticleDraftLineCopy(logicalId);
   if (!createdDraft) throw new Error("LINE_COPY_DRAFT_REQUIRED");

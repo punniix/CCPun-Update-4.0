@@ -77,3 +77,55 @@ test("n8n Improve replay preserves a successful result after a conflicting reque
     assert.equal(node(name).parameters.options.timeout, 60_000);
   }
 });
+
+test("published-only generation creates only a Draft and rejects revision and creation races", async () => {
+  const ts = await import("typescript");
+  const { z } = await import("zod");
+  let draft: Record<string, unknown> | null = null;
+  let creates = 0;
+  let conflict = false;
+  const published = { _id: "article-1", _type: "article", _rev: "published-rev", _createdAt: "date", _updatedAt: "date", title: "Article", body: [], lineTitle: "Existing" };
+  const target = (revision: string) => ({ id: "drafts.article-1", revision, slug: "article-1", title: "Article", category: "Health", body: "Article body", lineTitle: "Existing", lineDescription: null });
+  const client = {
+    withConfig: () => client,
+    fetch: async () => draft,
+    getDocument: async () => published,
+    create: async (document: Record<string, unknown>) => {
+      creates++;
+      if (conflict) throw { statusCode: 409 };
+      assert.equal(document._id, "drafts.article-1");
+      assert.equal(document._type, "article");
+      assert.equal(document.lineTitle, "Existing");
+      for (const key of ["_rev", "_createdAt", "_updatedAt", "_originalId"]) assert.equal(key in document, false);
+      draft = target("draft-rev");
+      return document;
+    },
+  };
+  const source = read("lib/admin/line/description-optimization.ts")
+    .replace('process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim()', '"test-project"')
+    .replace('process.env.NEXT_PUBLIC_SANITY_DATASET?.trim()', '"uat"');
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const exports: { readOrCreateArticleDraftLineCopy?: (id: string, revision: string) => Promise<Record<string, unknown>> } = {};
+  new Function("require", "exports", compiled)((id: string) => {
+    if (id === "server-only") return {};
+    if (id === "next-sanity") return { createClient: () => client, defineQuery: (query: string) => query };
+    if (id === "zod") return { z };
+    if (id === "../../local-ai/contracts") return { lineCardTextDescriptionSchema: z.string(), lineCardTitleSchema: z.string() };
+    if (id === "../environment") return { isAdminDataPlaneAllowed: () => true, isAdminReadDataPlaneAllowed: () => true };
+    if (id === "../sanity-credentials") return { getAdminSanityReadToken: () => "synthetic", getAdminSanityWriteToken: () => "synthetic" };
+    throw new Error("Unexpected dependency " + id);
+  }, exports);
+  const readOrCreate = exports.readOrCreateArticleDraftLineCopy!;
+  await assert.rejects(readOrCreate("article-1", "stale"), /LINE_COPY_CONFLICT/);
+  assert.equal(creates, 0);
+  assert.equal((await readOrCreate("article-1", "published-rev")).revision, "draft-rev");
+  assert.equal(creates, 1);
+  await assert.rejects(readOrCreate("article-1", "published-rev"), /LINE_COPY_CONFLICT/);
+  assert.equal((await readOrCreate("article-1", "draft-rev")).revision, "draft-rev");
+  assert.equal(creates, 1);
+  draft = null;
+  conflict = true;
+  await assert.rejects(readOrCreate("article-1", "published-rev"), /LINE_COPY_CONFLICT/);
+  await assert.rejects(readOrCreate("versions.release.article-1", "published-rev"), /LINE_COPY_INVALID_REQUEST/);
+  assert.doesNotMatch(read("cms/sanity/policy/article-editorial-status.tsx"), /props\.onChange|PatchEvent\.from/);
+});
