@@ -472,3 +472,12 @@ For future development, check the current Production branch and actual deploymen
 Validation on the refreshed code: Admin tests 822 passed, one existing skip, zero failures; locked Admin TypeScript passed. This documentation update introduces no runtime change. Exact-head remote CI and Preview must be read back after push.
 
 Release gates remain SEC classification/look-through/liquidity mapping and snapshot ownership, compliance review, Figma/accessibility parity, owner Preview/UAT and performance comparison. #165 remains Draft and is not authorized for Production merge.
+
+
+## Latest development baseline — 2026-09-27, PR #259
+
+The Draft now includes current Production branch `e711904c7654c8b287852887e25fd43778948997` after #258 and #259: exact Daily route allowlist, portable Admin URL fallback, stored-data graphs, performance analysis views and exports, and fail-closed preparation for the existing VPS worker’s daily assessment. This is a source integration baseline; do not infer Local-AI v3 migration, worker rollout, authenticated Daily collection or Google Sheet success from the merge. Their separate runtime gates remain pending.
+
+Continue investment development in the existing Draft branch against the current repository/runtime identity, using approved UAT credentials. Keep the fund catalog/snapshot and deterministic investment calculations separate from marketing storage and model proposals. No new dependency, n8n workflow or customer inference is required by this tool.
+
+PR #165 stays Draft, open and unmerged. Existing SEC mapping, liquidity/look-through, compliance, Figma/accessibility, owner UAT and performance gates still apply.
