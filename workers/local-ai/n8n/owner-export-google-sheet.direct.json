@@ -896,7 +896,7 @@
         "sendHeaders": false,
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'reconciliation_required':'completed',stage:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'marketing-actions-review':'done',...($('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?{errorCategory:'marketing-actions-review-required'}:{}),heartbeatAt:new Date().toISOString(),completedAt:new Date().toISOString(),providerReference:$('Marketing · เตรียม Atomic Refresh').first().json.spreadsheetUrl,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'reconciliation_required':'completed',stage:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'marketing-actions-review':'done',...($('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?{errorCategory:'marketing-actions-review-required'}:{}),heartbeatAt:new Date().toISOString(),completedAt:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?null:new Date().toISOString(),providerReference:$('Marketing · เตรียม Atomic Refresh').first().json.spreadsheetUrl,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
         "options": {
           "response": {
             "response": {
