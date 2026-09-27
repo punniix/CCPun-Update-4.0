@@ -402,7 +402,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -438,7 +438,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -474,7 +474,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -510,7 +510,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
