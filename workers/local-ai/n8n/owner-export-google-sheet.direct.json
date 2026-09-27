@@ -874,7 +874,9 @@
           "timeout": 60000,
           "response": {
             "response": {
-              "responseFormat": "json"
+              "responseFormat": "json",
+              "fullResponse": true,
+              "neverError": true
             }
           }
         }
@@ -892,11 +894,11 @@
       ],
       "parameters": {
         "method": "PATCH",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').item.json.jobId + '/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
         "sendHeaders": false,
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'reconciliation_required':'completed',stage:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?'marketing-actions-review':'done',...($('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?{errorCategory:'marketing-actions-review-required'}:{}),heartbeatAt:new Date().toISOString(),completedAt:$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan?null:new Date().toISOString(),providerReference:$('Marketing · เตรียม Atomic Refresh').first().json.spreadsheetUrl,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?'completed':'reconciliation_required',stage:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?'done':Number($json.statusCode??0)===200?'marketing-actions-review':'marketing-google-write-review',...(!(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?{errorCategory:Number($json.statusCode??0)===200?'marketing-actions-review-required':'google-sheet-http-' + (Number.isInteger(Number($json.statusCode))&&Number($json.statusCode)>=100&&Number($json.statusCode)<=599?Number($json.statusCode):'unknown')}:{}),heartbeatAt:new Date().toISOString(),completedAt:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?new Date().toISOString():null,providerReference:Number($json.statusCode??0)===200?$('Marketing · เตรียม Atomic Refresh').first().json.spreadsheetUrl:null,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
         "options": {
           "response": {
             "response": {

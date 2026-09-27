@@ -6,7 +6,7 @@ import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { buildAnalyticsInferenceView, buildAnalyticsInferenceRequest, analyticsReviewInputSchema, parseLocalAiTaskResult } from "../../lib/local-ai/contracts";
+import { buildAnalyticsInferenceView, buildAnalyticsInferenceRequest, analyticsReviewInputSchema, parseLocalAiTaskResult, marketingSnapshotSchema, marketingAnalysisInputSchema } from "../../lib/local-ai/contracts";
 import { inferAndValidate, readLocalAiInferenceMetrics } from "../../workers/local-ai/src/index";
 import type { AnalyticsDataset } from "../../lib/admin/analytics/model";
 const directory = mkdtempSync(join(tmpdir(), "ccpun-ai-full-loop-"));
@@ -73,4 +73,27 @@ test("v4 is additive, day identity differs from v1, checked checksum and no dire
  assert.match(sql,/':v2'/);assert.match(sql,/analytics-review-v2/);assert.match(sql,/admin_enqueue_analytics_review_v4/);
  assert.doesNotMatch(sql,/CREATE OR REPLACE FUNCTION ccpun_admin.admin_.*_v3/);assert.doesNotMatch(sql,/DROP|DELETE|TRUNCATE|ALTER TABLE|GRANT (?:SELECT|INSERT|UPDATE|DELETE)/);
  assert.match(sql,/v3_guard/);assert.match(sql,/REVOKE ALL ON FUNCTION[\s\S]*FROM PUBLIC/);
+});
+
+test("marketing inference has room for complete JSON within the existing context and timeout; analytics request stays unchanged", async () => {
+ const originalFetch=globalThis.fetch, originalTimeout=AbortSignal.timeout;
+ const timeouts:number[]=[], requests:Array<{options:{num_ctx:number;num_predict?:number};think:boolean;stream:boolean}>=[];
+ const snapshot=marketingSnapshotSchema.parse({promptVersion:"marketing-performance-v1",analysisType:"weekly_performance",definitionVersions:{analytics:"marketing-v2",rules:"marketing-rules-v1",identity:"marketing-identity-v1",freshness:"marketing-calendar-v2"},period:{key:"this_week",currentStart:"2026-09-21",currentEnd:"2026-09-24",previousStart:"2026-09-14",previousEnd:"2026-09-17",calendarPolicy:"Common mature date"},sourceManifest:[],sourceManifestHash:"a".repeat(64),evidence:[{id:"e1",kind:"kpi",assetId:null,label:"organic sessions",metric:"organic_sessions",current:180,previous:100,absoluteChange:80,percentageChange:80,sampleStatus:"sufficient",coverageStatus:"complete",freshnessStatus:"expected_lag",evidenceRef:"sql:organic_sessions",measurementStatus:null}],coverage:{prepared:1,sent:1,dropped:0},limitations:["No measured qualified conversations"]});
+ const marketingInput=marketingAnalysisInputSchema.parse({...snapshot,snapshotHash:createHash("sha256").update(JSON.stringify(snapshot)).digest("hex")});
+ AbortSignal.timeout=(duration:number)=>{timeouts.push(duration);return originalTimeout(duration);};
+ globalThis.fetch=async(_url,options)=>{
+  assert.ok(options?.signal instanceof AbortSignal);
+  const request=JSON.parse(String(options?.body));requests.push(request);
+  const output=requests.length===1?{summary:"การเข้าชมเพิ่มขึ้น ควรติดตามสัญญาณความตั้งใจ",insights:[{type:"win",evidenceIds:["e1"],explanation:"การเข้าชมเพิ่มขึ้น ควรตรวจเนื้อหาที่เกี่ยวข้อง",action:"monitor",priority:"medium",confidence:"medium"}],dataQualityNotes:["กิจกรรมยังไม่ใช่ลูกค้าที่ผ่านการคัดกรอง"],reviewRequired:true}:{rankedFindingIds:[input().candidates[0]!.id],reviewRequired:true};
+  return Response.json({message:{content:JSON.stringify(output)}});
+ };
+ try {
+  const marketing=await inferAndValidate("http://ollama:11434/","qwen3:1.7b","marketing-analysis",marketingInput);
+  assert.equal(marketing.success,true);
+  const analytics=await inferAndValidate("http://ollama:11434/","qwen3:1.7b","analytics-review",input());
+  assert.equal(analytics.success,true);
+  assert.deepEqual(requests.map(request=>request.options),[{temperature:0,num_ctx:4096,num_predict:768},{temperature:0,num_ctx:4096}]);
+  assert.deepEqual(timeouts,[90_000,90_000]);
+  assert.ok(requests.every(request=>request.think===false&&request.stream===false));
+ }finally{globalThis.fetch=originalFetch;AbortSignal.timeout=originalTimeout;}
 });

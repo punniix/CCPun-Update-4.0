@@ -155,7 +155,7 @@ async function infer(
   try {
     const response = await fetch(new URL("api/chat", baseUrl), {
       method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(90_000),
-      body: JSON.stringify({ model, stream: false, think: false, format, keep_alive: "5m", options: { temperature: 0, num_ctx: 4096, ...(taskType === "marketing-analysis" ? { num_predict: 384 } : {}) }, messages }),
+      body: JSON.stringify({ model, stream: false, think: false, format, keep_alive: "5m", options: { temperature: 0, num_ctx: 4096, ...(taskType === "marketing-analysis" ? { num_predict: 768 } : {}) }, messages }),
     });
     if (!response.ok) throw new Error("OLLAMA_REQUEST_FAILED");
     const body = z.object({ message: z.object({ content: z.string().min(2).max(50_000) }), prompt_eval_count: z.unknown().optional(), eval_count: z.unknown().optional(), load_duration: z.unknown().optional(), eval_duration: z.unknown().optional(), total_duration: z.unknown().optional() }).parse(await response.json());
