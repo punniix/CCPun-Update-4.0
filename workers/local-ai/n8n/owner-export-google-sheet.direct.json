@@ -2479,5 +2479,91 @@
     "binaryMode": "separate",
     "availableInMCP": true
   },
-  "active": false
+  "active": false,
+  "nodeGroups": [
+    {
+      "id": "152beaf1-e3bd-5e21-97e7-cb2dd8ca72f4",
+      "name": "Export & Workspace",
+      "description": "Existing exports and persistent workspace share runtime outcome and safe failure paths.",
+      "nodeIds": [
+        "5405c065-c5f2-4514-ad98-52077264bb72",
+        "fb7dc045-6b37-4215-a36f-7d1dc6bda894",
+        "12b015e5-cf51-45a3-827e-4306c71766f9",
+        "e07bb145-489b-482c-99bc-f292746a55a5",
+        "a96e7f46-9e6c-44f8-9b36-a44222197ea1",
+        "f82ccca2-8068-4c3e-87a7-13ef28781a70",
+        "324ccf4f-0755-49f8-8b3a-f0f657d9ae21",
+        "51d2c379-fd11-4a61-8f1d-67b73b0ed08a",
+        "191302df-37bd-4c5b-92b4-c2850c3e85a3",
+        "d5c01e4d-29bd-43c8-9975-5f735fe82c5c",
+        "f7148ddb-8025-4f2f-98ff-27316d845cfa",
+        "2e5b5b67-a759-4283-8d63-06bdea80aabe",
+        "7fd0e364-e83c-4ac2-9f4d-0d4d82557b3f",
+        "958fb280-8c40-4e21-816e-01ea027c758b",
+        "7a5e8311-8fc5-4f63-9a81-4e3f75a1a757",
+        "c4d3ddc8-c661-4503-8f29-b2f73b8b5370",
+        "bd7a9eec-7867-43c7-996a-e731f7dcdf72",
+        "597cc5ac-1d18-4663-9dd3-c71c7f8ca6d8",
+        "35d8fa40-8131-4fc9-8eee-cae91fb7fc90",
+        "87e3a8a8-e19b-4a89-8712-5f1eec2b29d3",
+        "b5e2f541-0a41-4bb6-a71d-7474ae3d44a4",
+        "9455e5db-064b-4fed-82de-bf4813997557"
+      ]
+    },
+    {
+      "id": "267c7c95-a9bc-5044-8817-9e66c9c804b2",
+      "name": "Legacy Daily",
+      "description": "Existing source collection and daily VPS assessment.",
+      "nodeIds": [
+        "57477e77-37bd-4e06-92d5-c4662b12c2c3",
+        "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
+        "5b046c7e-c214-46b8-b5bd-027c512cd657",
+        "dc355d89-b630-477a-8c36-740df24668b5",
+        "7058dbdb-d225-49b9-a13d-1eb2a2cbffde",
+        "ee120096-a0bd-4e95-a6cd-72dd09f2c003"
+      ]
+    },
+    {
+      "id": "871bf828-73ba-5304-9ba9-2a0419102c9a",
+      "name": "Native Facts",
+      "description": "Canonical content, native daily data and deterministic measurement.",
+      "nodeIds": [
+        "eab54058-324c-5851-af54-f3ba9c50742b",
+        "9cadbd8d-54a8-5c6e-ad00-4e15ecf94097",
+        "fcb1b355-1db1-5371-908f-b6e759dda959",
+        "8892332d-9bc7-55a0-a97e-9ce4fb1d3ba9",
+        "99ccb83c-ec6e-548b-b9f5-66a51a0b9e4f"
+      ]
+    },
+    {
+      "id": "7b544b5c-7142-5e27-b5fa-ea68f34d2a75",
+      "name": "Marketing AI",
+      "description": "Bounded weekly and monthly interpretation, polling and evidence validation.",
+      "nodeIds": [
+        "c9b2b7a1-6b09-57b8-b27c-c5d836c1ab34",
+        "24001b2f-06d7-5858-be43-31e50658fd69",
+        "71d52fb9-f26c-5fa8-a61b-bc69b8e1a189",
+        "2229323a-4371-50e0-a6a9-fe1b01312369",
+        "53676e36-861f-5278-92fa-e13bc882baab",
+        "6577a977-8498-590f-964e-e987640b1258",
+        "727139b0-4e39-56f2-8ecb-b99346b1572c",
+        "e4c63c4c-4e5d-5de1-bc07-5630500b1ef5",
+        "a2792b5e-4c94-5979-8dea-81b67c5c9d2a",
+        "409d74c4-9f56-5ba4-ac48-3e88bcc94930",
+        "570b720c-7e2d-5300-a2eb-cff44641a817",
+        "150a4f4a-cbe8-5ffd-8556-70862229b4b4",
+        "fbd94a79-2c61-5b1c-902c-4b5c3e0bc0fa",
+        "fdfad5ad-8925-5ed1-9528-1f53c524fec8",
+        "68ea197b-9475-507f-8b84-c5a3c6c0b5e8",
+        "8135cf7a-b2fa-5caa-adbb-2101db74673f",
+        "1a9093f2-7cf3-57c3-ba89-711ef1f59007",
+        "557dabb1-4b02-5c67-9f46-63b858431d97",
+        "7783a751-6a2d-5c63-a4ad-277853ec0b2d",
+        "afd00fba-1791-5d42-9a30-4e2090979083",
+        "ebf592a5-a76f-5a7e-b44e-04da15c2596b",
+        "56710003-8b93-59c5-8b89-b89212133b34",
+        "5d0686ac-ce33-5106-9b15-e5e1345a807e"
+      ]
+    }
+  ]
 }
