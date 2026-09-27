@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildAnalyticsInferenceView, buildAnalyticsInferenceRequest, analyticsReviewInputSchema, parseLocalAiTaskResult } from "../../lib/local-ai/contracts";
-import { inferAndValidate, readLocalAiWorkerMetrics } from "../../workers/local-ai/src/index";
+import { inferAndValidate, readLocalAiInferenceMetrics } from "../../workers/local-ai/src/index";
 import type { AnalyticsDataset } from "../../lib/admin/analytics/model";
 const directory = mkdtempSync(join(tmpdir(), "ccpun-ai-full-loop-"));
 const stub = join(directory, "empty.cjs"); writeFileSync(stub, "module.exports={};");
@@ -60,9 +60,9 @@ test("worker sends compact facts, keeps full immutable output, records only boun
  const original=globalThis.fetch;let calls=0;let selection:string[]=[];let invalidTelemetry=false;
  globalThis.fetch=async(_url,options)=>{calls++;const request=JSON.parse(String(options!.body));const view=JSON.parse(request.messages[1].content);selection=view.candidates.slice(0,5).map((row:{id:string})=>row.id);assert.equal(request.options.num_ctx,4096);assert.equal(request.think,false);assert.ok(!request.messages[1].content.includes("batchId"));return new Response(JSON.stringify({message:{content:JSON.stringify({rankedFindingIds:selection,reviewRequired:true})},prompt_eval_count:invalidTelemetry?"private@example.com":1100,eval_count:40,load_duration:1000000,eval_duration:2000000,total_duration:3000000}),{status:200});};
  try { const value=input();const result=await inferAndValidate("http://ollama:11434/","qwen3:1.7b","analytics-review",value);assert.equal(result.success,true);if(result.success&&"findings"in result.data){assert.deepEqual(result.data.findings,selection.map(id=>value.candidates.find(row=>row.id===id)));assert.equal(result.data.snapshotHash,value.snapshotHash);assert.deepEqual(result.data.coverage,value.coverage);}
- const metrics=readLocalAiWorkerMetrics().inference;assert.equal(metrics.last!.promptTokens,1100);assert.equal(metrics.last!.loadDurationMs,1);assert.equal(metrics.last!.generationDurationMs,2);assert.ok(!JSON.stringify(metrics).includes("rankedFindingIds"));
+ const metrics=readLocalAiInferenceMetrics();assert.equal(metrics.last!.promptTokens,1100);assert.equal(metrics.last!.loadDurationMs,1);assert.equal(metrics.last!.generationDurationMs,2);assert.ok(!JSON.stringify(metrics).includes("rankedFindingIds"));
  assert.equal(parseLocalAiTaskResult("analytics-review",value,{rankedFindingIds:["c99"],reviewRequired:true}).success,false);
- invalidTelemetry=true;await inferAndValidate("http://ollama:11434/","qwen3:1.7b","analytics-review",value);assert.equal(readLocalAiWorkerMetrics().inference.last!.promptTokens,null);assert.ok(!JSON.stringify(readLocalAiWorkerMetrics().inference).includes("private@example.com"));
+ invalidTelemetry=true;await inferAndValidate("http://ollama:11434/","qwen3:1.7b","analytics-review",value);assert.equal(readLocalAiInferenceMetrics().last!.promptTokens,null);assert.ok(!JSON.stringify(readLocalAiInferenceMetrics()).includes("private@example.com"));
  const before=calls;await assert.rejects(inferAndValidate("http://ollama:11434/","qwen3:1.7b","analytics-review",{...value,snapshotHash:"b".repeat(64)}),/ANALYTICS_SNAPSHOT_INVALID/);assert.equal(calls,before);
  }finally{globalThis.fetch=original;}
 });

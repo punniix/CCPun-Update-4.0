@@ -96,8 +96,11 @@ export function readLocalAiWorkerMetrics() {
     heapUsedBytes: memory.heapUsed,
     systemLoad1: loadavg()[0] ?? 0,
     uptimeSeconds: Math.floor(process.uptime()),
-    inference: { ...inferenceMetrics, last: inferenceMetrics.last ? { ...inferenceMetrics.last } : null },
   };
+}
+
+export function readLocalAiInferenceMetrics() {
+  return { ...inferenceMetrics, last: inferenceMetrics.last ? { ...inferenceMetrics.last } : null };
 }
 
 export function localAiOllamaBackoffMs(consecutiveFailures: number) {
@@ -193,7 +196,7 @@ async function main() {
   const heartbeat = async (ready: boolean) => {
     await sql().query("SELECT ccpun_admin.worker_report_local_ai_heartbeat($1,$2,$3,$4,$5,$6,$7::jsonb)", [
       config.workerDigest,RUNTIME_VERSION,config.model,ready,config.privateJobsEnabled,active,
-      JSON.stringify({ ...readLocalAiWorkerMetrics(), analyticsReviewVersion: ANALYTICS_REVIEW_VERSION }),
+      JSON.stringify({ ...readLocalAiWorkerMetrics(), inference: readLocalAiInferenceMetrics(), analyticsReviewVersion: ANALYTICS_REVIEW_VERSION }),
     ]);
   };
 
