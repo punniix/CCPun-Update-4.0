@@ -463,7 +463,7 @@ This refresh prepares ongoing development. PR #165 stays draft; the real SEC map
 
 Development regression corrected: active app builds emit `apps/*/.next/`, but the former root-only Git/ESLint ignores exposed compiled files to later lint runs. Both ignores now cover nested `.next` outputs (also merged independently into Production #254); source lint and type checks remain unchanged. This avoids a build → foundation failure during normal development.
 
-## Current Production integration — 2026-09-27
+## Earlier Production integration — 2026-09-27
 
 Draft #165 has been refreshed from Production `de8af41a008e1e5c5363a936c6ac77fc94ceaf78` (#257). This includes the current Admin gateway, editorial fixes, runtime privilege health correction, private daily analytics storage, cached Dashboard and owner CSV/Excel/Google Sheet export boundaries. The refresh retains Public Web ownership and Hosting Portability; the investment tool does not collect marketing providers, write Admin storage, or depend on n8n.
 
@@ -474,10 +474,28 @@ Validation on the refreshed code: Admin tests 822 passed, one existing skip, zer
 Release gates remain SEC classification/look-through/liquidity mapping and snapshot ownership, compliance review, Figma/accessibility parity, owner Preview/UAT and performance comparison. #165 remains Draft and is not authorized for Production merge.
 
 
-## Latest development baseline — 2026-09-27, PR #259
+## Earlier development baseline — 2026-09-27, PR #259
 
 The Draft now includes current Production branch `e711904c7654c8b287852887e25fd43778948997` after #258 and #259: exact Daily route allowlist, portable Admin URL fallback, stored-data graphs, performance analysis views and exports, and fail-closed preparation for the existing VPS worker’s daily assessment. This is a source integration baseline; do not infer Local-AI v3 migration, worker rollout, authenticated Daily collection or Google Sheet success from the merge. Their separate runtime gates remain pending.
 
 Continue investment development in the existing Draft branch against the current repository/runtime identity, using approved UAT credentials. Keep the fund catalog/snapshot and deterministic investment calculations separate from marketing storage and model proposals. No new dependency, n8n workflow or customer inference is required by this tool.
 
 PR #165 stays Draft, open and unmerged. Existing SEC mapping, liquidity/look-through, compliance, Figma/accessibility, owner UAT and performance gates still apply.
+
+## Verified worker baseline — 2026-09-27, PR #261
+
+This Draft includes Production `f933d21a34cb31d6770241f8ce8015312d579491` through #260 and #261 by a normal merge. The Admin Production deployment uses this commit. #260 retains the n8n webhook HTTP status for diagnosis; #261 creates a fresh Neon request timeout for each worker query so a long-running worker does not reuse an expired signal.
+
+Runtime evidence is separate from source integration: Local-AI v3 was applied to UAT and then Production; the existing VPS worker now runs this source; all four Daily collectors completed; the existing VPS `qwen3:1.7b` assessment succeeded on its second attempt and remains pending human review. No campaign or budget changes are automatic. The first model attempt timed out, so retry behavior remains part of operational monitoring.
+
+The earlier SEO Sheet contains 110 stored rows and its formatting was recovered. An isolated test confirmed `invalid syntax` in the n8n formatting expression. After removing the unsupported IIFEs from the existing formatting/completion nodes, one owner-approved Admin test completed end to end: job `1150df0f-8ccd-44cb-9c92-5aaeabb414c0`, execution `49533`, 53 current SEO rows, two tabs, Thai timezone, frozen headers and a 30-column filter. Both temporary QA nodes were removed immediately. These marketing runtime facts do not activate or change the investment tool.
+
+Continue investment work against the current Production branch and approved UAT identity. Keep SEC snapshots, deterministic calculations and their owners separate from marketing raw data and AI proposals. #165 remains Draft, open and unmerged; the SEC mapping, liquidity/look-through, compliance, Figma/accessibility, owner UAT and performance gates above remain required.
+
+## Current development baseline — 2026-09-27, PR #262
+
+This Draft includes Production `ebac4329d49ea585e6257218d4437d4c5ca41894` through #262 by a normal merge. The latest changes fix valid PostgreSQL timestamp offsets in the Admin assessment read model and remove unsupported IIFE syntax from the existing Google Sheet formatting/completion expressions. Strict validation, runtime identity, credential scopes, CAS and human review remain unchanged. The existing VPS worker remains on the verified #261 source because #262 does not change worker inference or database operations.
+
+End-to-end Sheet completion has actual Admin/runtime/file evidence above. The assessment backend succeeded; exact Production Dashboard display must be verified separately after this Admin release. Source merge, Preview readiness and CI cannot substitute for that live proof.
+
+No investment behavior, SEC configuration, fund-data ownership or release gate is relaxed. Use this latest baseline for further development; #165 stays Draft and must not be merged into Production without its separate remaining release approvals.
