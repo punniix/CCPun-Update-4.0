@@ -4,7 +4,8 @@ export type CsvDataset = {
 };
 
 function csvCell(value: unknown) {
-  const text = value == null ? "" : String(value);
+  const raw = value == null ? "" : String(value);
+  const text = typeof value === "string" && /^[\s\uFEFF]*[=+\-@]/.test(raw) ? "'" + raw : raw;
   return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 

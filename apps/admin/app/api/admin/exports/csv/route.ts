@@ -4,6 +4,7 @@ import { exportDatasetSchema, exportFileName } from "@/lib/admin/agent-os/export
 import { buildOwnerExportDataset } from "@/lib/admin/agent-os/export-datasets";
 import { ownerDatasetToCsv } from "@/lib/admin/agent-os/export-csv";
 import { getAdminIdentity } from "@/lib/admin/identity";
+import { analyticsExportStream } from "@/lib/admin/analytics/export";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
     const data = await buildOwnerExportDataset(dataset.data, generatedAt);
     const csv = ownerDatasetToCsv(data);
     const filename = exportFileName({ dataset: dataset.data, format: "csv", generatedAt });
-    return new NextResponse(csv, {
+    return new NextResponse(analyticsExportStream(csv), {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",

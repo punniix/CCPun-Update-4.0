@@ -1,4 +1,6 @@
 import "server-only";
+import { readAnalyticsDashboard } from "../analytics/store";
+import { buildStoredMarketingExport } from "../analytics/export";
 
 import { listAdvisorInboxOperational } from "../line/advisor-workflow";
 import { listResearchSnapshots } from "../research";
@@ -239,16 +241,11 @@ export async function buildOwnerExportDataset(
   generatedAt = new Date().toISOString(),
   variables: Record<string, string | undefined> = process.env,
 ): Promise<OwnerExportDataset> {
-  if (dataset === "social-performance") {
-    return buildSocialPerformanceExport(await getSocialMarketingDashboard(variables), generatedAt);
-  }
-
-  if (dataset === "seo-intelligence") {
-    const [research, dashboard] = await Promise.all([
-      listResearchSnapshots(200),
-      getUbersuggestDashboardData(100),
-    ]);
-    return buildSeoIntelligenceExport(research, dashboard, generatedAt);
+  if (dataset === "marketing-analytics" || dataset === "social-performance" || dataset === "seo-intelligence") {
+    const data = await readAnalyticsDashboard(variables, generatedAt);
+    if (data.state !== "ready") throw new Error("ANALYTICS_DATABASE_NOT_READY");
+    const reports = data.datasets.filter((report) => dataset === "marketing-analytics" || report.source === (dataset === "social-performance" ? "meta" : "ubersuggest"));
+    return { ...buildStoredMarketingExport(reports, generatedAt), dataset, title: dataset === "social-performance" ? "Meta · ผลงานโพสต์ที่บันทึกไว้" : dataset === "seo-intelligence" ? "SEO · Research, AISV และ Website CSV ที่บันทึกไว้" : "ข้อมูลการตลาดที่บันทึกไว้" };
   }
 
   if (dataset === "crm-leads" || dataset === "crm-follow-ups" || dataset === "crm-overview") {
@@ -444,4 +441,3 @@ export async function buildOwnerExportDataset(
 
   throw new Error("EXPORT_DATASET_UNSUPPORTED");
 }
-
