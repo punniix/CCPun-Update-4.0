@@ -462,3 +462,13 @@ Use Node 24.x, install this worktree's lockfile with `npm ci`, then run `npm run
 This refresh prepares ongoing development. PR #165 stays draft; the real SEC mapping/data-source ownership, compliance, Figma/accessibility and owner Preview gates in sections 14–15 still apply. No SEC/provider credentials, database writes, Production merge or activation are part of this refresh.
 
 Development regression corrected: active app builds emit `apps/*/.next/`, but the former root-only Git/ESLint ignores exposed compiled files to later lint runs. Both ignores now cover nested `.next` outputs (also merged independently into Production #254); source lint and type checks remain unchanged. This avoids a build → foundation failure during normal development.
+
+## Current Production integration — 2026-09-27
+
+Draft #165 has been refreshed from Production `de8af41a008e1e5c5363a936c6ac77fc94ceaf78` (#257). This includes the current Admin gateway, editorial fixes, runtime privilege health correction, private daily analytics storage, cached Dashboard and owner CSV/Excel/Google Sheet export boundaries. The refresh retains Public Web ownership and Hosting Portability; the investment tool does not collect marketing providers, write Admin storage, or depend on n8n.
+
+For future development, check the current Production branch and actual deployment identity before integration. Marketing pages and exports read the completed stored reports; provider refresh belongs to the existing n8n Daily branch. Ubersuggest native website CSV imports retain the provider update date; importing or exporting does not make old observations fresh. Keep SEC fund-data snapshot ownership separate from marketing raw data.
+
+Validation on the refreshed code: Admin tests 822 passed, one existing skip, zero failures; locked Admin TypeScript passed. This documentation update introduces no runtime change. Exact-head remote CI and Preview must be read back after push.
+
+Release gates remain SEC classification/look-through/liquidity mapping and snapshot ownership, compliance review, Figma/accessibility parity, owner Preview/UAT and performance comparison. #165 remains Draft and is not authorized for Production merge.
