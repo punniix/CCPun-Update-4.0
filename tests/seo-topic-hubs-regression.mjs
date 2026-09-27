@@ -20,6 +20,7 @@ const blogPresentation = await read('features/blog/website-43/Website43Blog.tsx'
 const blogInteractive = await read('features/blog/website-43/Website43BlogInteractive.tsx');
 const blogData = await read('features/blog/website-43/blogData.ts');
 const sitemap = await read('app/sitemaps/blog.xml/route.ts');
+const webSitemap = await read('apps/web/app/sitemaps/blog.xml/route.ts');
 
 for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
   assert.match(taxonomy, new RegExp(`slug: ["']${slug}["']`));
@@ -60,7 +61,7 @@ const overrideResolution = taxonomy.indexOf('const override = articleSlug');
 const explicitResolution = taxonomy.indexOf('const explicitTopic = semanticTopic');
 assert.ok(overrideResolution >= 0 && explicitResolution > overrideResolution, 'protected slug semantic overrides must precede editable CMS Semantic Topic');
 assert.match(taxonomy, /CATEGORY_SLUG_ALIASES\[explicitTopic\] \?\? explicitTopic/);
-for (const surface of [categoryPage, articlePresentation, blogData, schema, sitemap]) {
+for (const surface of [categoryPage, articlePresentation, blogData, schema, sitemap, webSitemap]) {
   assert.match(surface, /semanticTopic: article\.semanticTopic/);
 }
 
@@ -114,13 +115,18 @@ assert.match(schema, /"@type": "ItemList"/);
 
 // Sitemap reads the same physical registry, emits active physical categories
 // only when they own an indexable article, then dedupes semantic hub URLs.
-assert.match(sitemap, /listCategoryRegistry\(\{ includeDrafts: false \}\)/);
-assert.match(sitemap, /categoryRegistry\.active\.flatMap/);
-assert.match(sitemap, /articleBelongsToPhysicalCategory\(article, category\)/);
-assert.match(sitemap, /getCategoryCanonical\(category\.slug\)/);
-assert.match(sitemap, /if \(!hub\.indexable\) return \[\]/);
-assert.match(sitemap, /uniqueSortedEntries/);
-assert.doesNotMatch(sitemap, /\?category=|\?tag=/);
+const physicalSitemapHelper = categoryRegistry.slice(categoryRegistry.indexOf('export function listPhysicalCategorySitemapEntries'));
+assert.match(physicalSitemapHelper, /registry\.active\.flatMap/);
+assert.match(physicalSitemapHelper, /if \(!articles\.some\(\(article\) => articleBelongsToPhysicalCategory\(article, category\)\)\) return \[\]/);
+assert.match(physicalSitemapHelper, /getCategoryCanonical\(category\.slug\)/);
+for (const sitemapSource of [sitemap, webSitemap]) {
+  assert.match(sitemapSource, /listCategoryRegistry\(\{ includeDrafts: false \}\)/);
+  assert.match(sitemapSource, /article\.status === "published" && article\.noindex !== true/);
+  assert.match(sitemapSource, /listPhysicalCategorySitemapEntries\(categoryRegistry, indexableArticles\)/);
+  assert.match(sitemapSource, /if \(!hub\.indexable\) return \[\]/);
+  assert.match(sitemapSource, /uniqueSortedEntries/);
+  assert.doesNotMatch(sitemapSource, /\?category=|\?tag=/);
+}
 
 // Main Blog dropdown is injected from the server-side registry; query filters
 // remain UX state and are never canonical SEO destinations.
