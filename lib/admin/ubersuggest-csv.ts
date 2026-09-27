@@ -29,11 +29,11 @@ export type UbersuggestCsvParseResult = {
 
 const HEADER_ALIASES = {
   keyword: ["keyword", "keywords", "search term", "search terms"],
-  intent: ["intent", "search intent"],
+  intent: ["intent", "search intent", "searchintent"],
   volume: ["volume", "search volume", "monthly volume"],
   cpc: ["cpc", "cost per click"],
   paidDifficulty: ["pd", "paid difficulty", "paid difficulty pd"],
-  difficulty: ["sd", "seo difficulty", "search difficulty", "seo difficulty sd"],
+  difficulty: ["sd", "seo difficulty", "search difficulty", "seo difficulty sd", "seodifficulty"],
   position: ["position", "pos", "rank", "ranking"],
   estimatedVisits: ["estimated visits", "est visits", "estimated traffic", "est traffic"],
   url: ["url", "page url", "ranking url"],
@@ -54,7 +54,7 @@ function findColumn(headers: string[], aliases: readonly string[]) {
   return normalized.findIndex((header) => aliases.includes(header));
 }
 
-function parseCsvRecords(input: string): string[][] {
+export function parseCsvRecords(input: string): string[][] {
   if (input.includes("\0")) throw new Error("UBERSUGGEST_CSV_INVALID");
   const records: string[][] = [];
   let record: string[] = [];
@@ -134,7 +134,7 @@ function completeness(row: UbersuggestCsvRow) {
     .filter((value) => value !== undefined).length;
 }
 
-export function parseUbersuggestKeywordCsv(input: string): UbersuggestCsvParseResult {
+export function parseUbersuggestKeywordCsv(input: string, maxRows = UBERSUGGEST_CSV_MAX_ROWS): UbersuggestCsvParseResult {
   const records = parseCsvRecords(input);
   if (records.length < 2) throw new Error("UBERSUGGEST_CSV_EMPTY");
 
@@ -156,7 +156,7 @@ export function parseUbersuggestKeywordCsv(input: string): UbersuggestCsvParseRe
   }
 
   const dataRows = records.slice(1);
-  if (dataRows.length > UBERSUGGEST_CSV_MAX_ROWS) throw new Error("UBERSUGGEST_CSV_TOO_MANY_ROWS");
+  if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > 50_000 || dataRows.length > maxRows) throw new Error("UBERSUGGEST_CSV_TOO_MANY_ROWS");
 
   const byKeyword = new Map<string, UbersuggestCsvRow>();
   const invalidRows: Array<{ row: number; reason: string }> = [];

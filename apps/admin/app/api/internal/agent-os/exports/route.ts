@@ -4,6 +4,7 @@ import { z } from "zod";
 import { exportDatasetSchema, exportFileName } from "@/lib/admin/agent-os/export-contract";
 import { buildOwnerExportDataset } from "@/lib/admin/agent-os/export-datasets";
 import { isN8nExportRequestAuthorized } from "@/lib/admin/agent-os/export-service-auth";
+import { analyticsExportStream } from "@/lib/admin/analytics/export";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,14 +37,14 @@ export async function POST(request: Request) {
 
   try {
     const data = await buildOwnerExportDataset(parsed.data.dataset, parsed.data.generatedAt);
-    return NextResponse.json({
+    return new NextResponse(analyticsExportStream(JSON.stringify({
       ...data,
       fileName: exportFileName({
         dataset: parsed.data.dataset,
         format: "google-sheet",
         generatedAt: parsed.data.generatedAt,
       }),
-    }, { headers });
+    })), { headers: { ...headers, "Content-Type": "application/json; charset=utf-8" } });
   } catch {
     return NextResponse.json({ error: "export-data-unavailable", retryable: true }, { status: 503, headers });
   }

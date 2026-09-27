@@ -23,7 +23,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const input=$input.first()?.json ?? {};\nconst raw=input.body && input.headers ? input.body : input;\nconst allowed=new Set(['social-performance','seo-intelligence','crm-overview','crm-leads','crm-follow-ups','growth-funnel','customer-insights','automation-runs']);\nconst jobId=String(raw.jobId??'');\nconst rowVersion=Number(raw.rowVersion??0);\nconst dataset=String(raw.dataset??'');\nconst generatedAt=String(raw.generatedAt??'');\nconst valid=/^[0-9a-f-]{36}$/i.test(jobId)&&Number.isInteger(rowVersion)&&rowVersion>0&&allowed.has(dataset)&&Number.isFinite(Date.parse(generatedAt));\nif(!valid) throw new Error('EXPORT_INPUT_INVALID');\nreturn [{json:{\n  jobId,rowVersion,dataset,generatedAt,\n  startedAt:new Date().toISOString(),\n  correlationId:String(raw.correlationId??''),\n  requestId:String(raw.requestId??'')\n}}];"
+        "jsCode": "const input=$input.first()?.json ?? {};\nconst raw=input.body && input.headers ? input.body : input;\nconst allowed=new Set(['marketing-analytics','social-performance','seo-intelligence','crm-overview','crm-leads','crm-follow-ups','growth-funnel','customer-insights','automation-runs']);\nconst jobId=String(raw.jobId??'');\nconst rowVersion=Number(raw.rowVersion??0);\nconst dataset=String(raw.dataset??'');\nconst generatedAt=String(raw.generatedAt??'');\nconst valid=/^[0-9a-f-]{36}$/i.test(jobId)&&Number.isInteger(rowVersion)&&rowVersion>0&&allowed.has(dataset)&&Number.isFinite(Date.parse(generatedAt));\nif(!valid) throw new Error('EXPORT_INPUT_INVALID');\nreturn [{json:{\n  jobId,rowVersion,dataset,generatedAt,\n  startedAt:new Date().toISOString(),\n  correlationId:String(raw.correlationId??''),\n  requestId:String(raw.requestId??'')\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -139,7 +139,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const data=$('ดึงข้อมูล Export').item.json;\nconst created=$json;\nconst spreadsheetId=String(created.spreadsheetId??'');\nif(!spreadsheetId) throw new Error('GOOGLE_SHEET_ID_MISSING');\nconst sheets=Array.isArray(created.sheets)?created.sheets:[];\nconst overviewSheetId=Number(sheets[0]?.properties?.sheetId??0);\nconst dataSheetId=Number(sheets[1]?.properties?.sheetId??1);\nconst columns=Array.isArray(data.columns)?data.columns.map(String):[];\nconst rows=Array.isArray(data.rows)?data.rows:[];\nconst overview=Array.isArray(data.overview)?data.overview:[];\nconst overviewValues=[['รายการ','ค่า'],...overview.map(x=>[String(x.label??''),x.value??''])];\nconst dataValues=[columns,...rows.map(row=>columns.map(col=>row?.[col]??''))];\nreturn [{json:{\n  spreadsheetId,\n  spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+spreadsheetId+'/edit',\n  overviewSheetId,dataSheetId,overviewValues,dataValues,\n  dataColumnCount:Math.max(1,columns.length),\n  dataRowCount:dataValues.length,\n  title:String(data.fileName??data.title??'CCPun Export')\n}}];"
+        "jsCode": "const data=$('ดึงข้อมูล Export').item.json;\nconst created=$input.first()?.json ?? {};\nconst spreadsheetId=String(created.spreadsheetId??'');\nif(!spreadsheetId) throw new Error('GOOGLE_SHEET_ID_MISSING');\nconst sheets=Array.isArray(created.sheets)?created.sheets:[];\nconst overviewSheetId=Number(sheets[0]?.properties?.sheetId??0);\nconst dataSheetId=Number(sheets[1]?.properties?.sheetId??1);\nconst columns=Array.isArray(data.columns)?data.columns.map(String):[];\nconst rows=Array.isArray(data.rows)?data.rows:[];\nconst overview=Array.isArray(data.overview)?data.overview:[];\nconst overviewValues=[['รายการ','ค่า'],...overview.map(x=>[String(x.label??''),x.value??''])];\nconst dataValues=[columns,...rows.map(row=>columns.map(col=>row?.[col]??''))];\nreturn [{json:{\n  spreadsheetId,\n  spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+spreadsheetId+'/edit',\n  overviewSheetId,dataSheetId,overviewValues,dataValues,\n  dataColumnCount:Math.max(1,columns.length),\n  dataRowCount:dataValues.length,\n  title:String(data.fileName??data.title??'CCPun Export')\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -378,6 +378,185 @@
       ],
       "id": "2e5b5b67-a759-4283-8d63-06bdea80aabe",
       "name": "Runtime · ต้องตรวจผล Sheet"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -980,
+        -440
+      ],
+      "id": "53e85eb1-cc96-4c33-9b13-0d9f4de8b917",
+      "name": "Daily · เก็บข้อมูล 06:00"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"source\":\"gsc\"}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -740,
+        -440
+      ],
+      "id": "57477e77-37bd-4e06-92d5-c4662b12c2c3",
+      "name": "Daily · GSC",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"source\":\"ga4\"}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -500,
+        -440
+      ],
+      "id": "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
+      "name": "Daily · GA4",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"source\":\"meta\"}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -260,
+        -440
+      ],
+      "id": "5b046c7e-c214-46b8-b5bd-027c512cd657",
+      "name": "Daily · META",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CCPUN_ADMIN_BASE_URL + '/api/internal/analytics/daily/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CCPUN_EXPORT_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"source\":\"ubersuggest\"}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -20,
+        -440
+      ],
+      "id": "dc355d89-b630-477a-8c36-740df24668b5",
+      "name": "Daily · UBERSUGGEST",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// ponytail: the backend owns collection, validation and retries; this branch reports source outcomes only.\nconst sources=['gsc','ga4','meta','ubersuggest'];\nconst results=sources.map(source=>{\n  const body=$('Daily · '+source.toUpperCase()).first().json;\n  const row=Array.isArray(body.results)?body.results.find(x=>x.source===source):null;\n  return {source,status:row?.status??'failed',batchId:typeof row?.batchId==='string'?row.batchId:null};\n});\nif(results.some(row=>!['completed','duplicate'].includes(row.status))) throw new Error('ANALYTICS_DAILY_INCOMPLETE');\nreturn [{json:{collectedAt:new Date().toISOString(),results}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -440
+      ],
+      "id": "7058dbdb-d225-49b9-a13d-1eb2a2cbffde",
+      "name": "Daily · ตรวจผลครบทุกต้นทาง"
     }
   ],
   "pinData": {},
@@ -541,6 +720,61 @@
           }
         ]
       ]
+    },
+    "Daily · เก็บข้อมูล 06:00": {
+      "main": [
+        [
+          {
+            "node": "Daily · GSC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily · GSC": {
+      "main": [
+        [
+          {
+            "node": "Daily · GA4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily · GA4": {
+      "main": [
+        [
+          {
+            "node": "Daily · META",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily · META": {
+      "main": [
+        [
+          {
+            "node": "Daily · UBERSUGGEST",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily · UBERSUGGEST": {
+      "main": [
+        [
+          {
+            "node": "Daily · ตรวจผลครบทุกต้นทาง",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -550,7 +784,7 @@
     "saveManualExecutions": false,
     "saveDataErrorExecution": "none",
     "saveDataSuccessExecution": "none",
-    "executionTimeout": 180,
+    "executionTimeout": 600,
     "timezone": "Asia/Bangkok"
   },
   "versionId": "54476489-b97e-49f3-bf07-b535f87e90f8",

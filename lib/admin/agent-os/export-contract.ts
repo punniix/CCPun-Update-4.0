@@ -5,6 +5,7 @@ export const CCPUN_UTC_OFFSET = "+07:00";
 
 export const EXPORT_FORMATS = ["csv", "google-sheet"] as const;
 export const EXPORT_DATASETS = [
+  "marketing-analytics",
   "social-performance",
   "seo-intelligence",
   "crm-overview",
@@ -63,6 +64,7 @@ export function formatBangkokDateTimeWithOffset(value: string | Date | null) {
 }
 
 const DATASET_FILE_LABELS: Record<ExportDataset, string> = {
+  "marketing-analytics": "CCPun_Marketing_Analytics",
   "social-performance": "CCPun_Social_Performance",
   "seo-intelligence": "CCPun_SEO_Intelligence",
   "crm-overview": "CCPun_CRM_Overview",

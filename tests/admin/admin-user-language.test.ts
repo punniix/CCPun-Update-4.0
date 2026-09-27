@@ -38,12 +38,17 @@ test("social and search dashboards use user-facing labels", () => {
     + read("lib/admin/social/marketing-dashboard-model.ts");
   const search = read("features/admin/seo/opportunities/Ga4ManualSync.tsx")
     + read("features/admin/seo/opportunities/GscManualSync.tsx")
-    + read("apps/admin/app/(control-plane)/analytics/search/page.tsx");
+    + read("apps/admin/app/(control-plane)/analytics/search/page.tsx")
+    + read("features/admin/analytics/StoredAnalyticsDashboard.tsx");
 
   assert.match(social, /การมองเห็น/);
   assert.match(social, /ความครบถ้วน/);
   assert.doesNotMatch(social, />Awareness<|>Intent<|>Coverage<|>Quality<|>Content</);
-  assert.match(search, /จำนวนการค้นหาและระดับความยาก/);
+  assert.match(search, /การค้นหาและผู้เข้าชม/);
+  assert.match(search, /ข้อมูลต้นทาง ณ/);
+  assert.match(search, /บันทึกเข้าคลัง/);
+  assert.match(search, /ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์/);
+  assert.match(search, /ยังใช้และส่งออกชุดที่บันทึกสำเร็จล่าสุดได้/);
   assert.doesNotMatch(search, /Traffic เพิ่ม|query intent|CTR ลด|CTA ของหน้า/);
 });
 

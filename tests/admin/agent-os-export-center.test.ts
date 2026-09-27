@@ -109,6 +109,24 @@ test("Google Sheet failures leave a safe terminal state without persisting provi
   assert.doesNotMatch(JSON.stringify(workflow), /error\.message|error\.description|error\.stack/);
 });
 
+test("Daily collection reuses the Sheets workflow and fails closed without leaking source payloads", () => {
+  const workflow = JSON.parse(read("workers/local-ai/n8n/owner-export-google-sheet.direct.json"));
+  const sources = ["gsc", "ga4", "meta", "ubersuggest"];
+  const summary = workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง");
+  const run = new Function("$", summary.parameters.jsCode);
+  const good = Object.fromEntries(sources.map(source => [source, { results: [{ source, status: source === "meta" ? "duplicate" : "completed", batchId: "synthetic", rawSecret: "not-output" }] }]));
+  const evaluate = (inputs: typeof good) => run((name: string) => ({ first: () => ({ json: inputs[name.replace("Daily · ", "").toLowerCase()] }) }));
+  assert.deepEqual(evaluate(good)[0].json.results.map((row: { source: string }) => row.source), sources);
+  assert.doesNotMatch(JSON.stringify(evaluate(good)), /rawSecret|not-output/);
+  for (const status of ["failed", "running", "unknown"]) {
+    assert.throws(() => evaluate({ ...good, ga4: { results: [{ source: "ga4", status, batchId: "synthetic", rawSecret: "not-output" }] } }), { message: "ANALYTICS_DAILY_INCOMPLETE" });
+  }
+  assert.throws(() => evaluate({ ...good, ga4: { results: [] } }), { message: "ANALYTICS_DAILY_INCOMPLETE" });
+  const chain = ["Daily · เก็บข้อมูล 06:00", ...sources.map(source => "Daily · " + source.toUpperCase()), summary.name];
+  for (let i = 0; i < chain.length - 1; i++) assert.equal(workflow.connections[chain[i]].main[0][0].node, chain[i + 1]);
+  assert.equal(workflow.settings.executionTimeout, 600);
+});
+
 test("Export dataset endpoint uses dedicated n8n auth and owner-friendly read models", () => {
   const auth = read("lib/admin/agent-os/export-service-auth.ts");
   const route = read("apps/admin/app/api/internal/agent-os/exports/route.ts");
