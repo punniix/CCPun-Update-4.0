@@ -5,6 +5,7 @@ export const LOCAL_AI_TASK_TYPES = [
   "line-intent",
   "content-operations",
   "seo-preprocessing",
+  "analytics-review",
 ] as const;
 
 export const LOCAL_AI_DATA_CLASSES = ["public-safe", "customer-private"] as const;
@@ -79,11 +80,43 @@ const seoPreprocessingInputSchema = z.object({
   }).strict()).min(1).max(100),
 }).strict();
 
+
+export const ANALYTICS_REVIEW_VERSION = "analytics-review-v1" as const;
+const safeAnalyticsText = z.string().min(1).max(240).refine(value => !containsDirectPersonalIdentifier(value) && !/[?@]|https?:|bearer\s|token[=:]/i.test(value), "unsafe analytics text");
+const analyticsEvidenceSchema = z.object({
+  id: z.string().regex(/^e[0-9]{1,2}$/), report: z.enum(["gsc-summary", "gsc-query-page", "ga4-summary", "ga4-organic-landing", "ga4-session-performance", "ga4-marketing-events", "social-performance", "seo-intelligence", "ubersuggest-web-keywords"]),
+  batchId: z.string().uuid(), rawHash: z.string().regex(/^[a-f0-9]{64}$/),
+  windowStart: z.iso.date().nullable(), windowEnd: z.iso.date().nullable(), sourceAsOf: z.string().max(40).regex(/^[0-9T:.+Z -]+$/).nullable(),
+  nativeTimeZone: z.string().regex(/^[A-Za-z_]+(?:\/[A-Za-z_+-]+)*$/).max(80).nullable(), truncated: z.boolean(),
+}).strict();
+const analyticsFindingSchema = z.object({
+  id: z.string().regex(/^c[0-9]{1,2}$/), action: z.enum(["seo-review", "keyword-planning", "measurement-gap", "activity-review"]),
+  label: safeAnalyticsText, why: safeAnalyticsText, evidenceIds: z.array(z.string().regex(/^e[0-9]{1,2}$/)).max(9),
+  metrics: z.array(z.object({ name: safeAnalyticsText, value: z.number().finite().nullable() }).strict()).max(4),
+}).strict();
+const analyticsSnapshotFields = {
+  assessmentDate: z.iso.date(), promptVersion: z.literal(ANALYTICS_REVIEW_VERSION), snapshotHash: z.string().regex(/^[a-f0-9]{64}$/),
+  evidence: z.array(analyticsEvidenceSchema).min(1).max(9), limitations: z.array(safeAnalyticsText).max(8),
+};
+function analyticsReferences(value: { evidence: Array<{id:string}>; candidates?: Array<{id:string; evidenceIds:string[]}>; findings?: Array<{id:string; evidenceIds:string[]}> }, context: z.RefinementCtx) {
+  const ids = value.evidence.map(item => item.id), findings = value.candidates ?? value.findings ?? [];
+  if (new Set(ids).size !== ids.length || new Set(findings.map(item => item.id)).size !== findings.length || findings.some(item => new Set(item.evidenceIds).size !== item.evidenceIds.length || item.evidenceIds.some(id => !ids.includes(id)))) context.addIssue({ code: "custom", message: "analytics references must be unique and input-linked" });
+}
+export const analyticsReviewInputSchema = z.object({ locale: z.literal("th-TH"), ...analyticsSnapshotFields, candidates: z.array(analyticsFindingSchema).min(1).max(16) }).strict().superRefine((value, context) => {
+  analyticsReferences(value, context);
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 6000) context.addIssue({ code: "custom", message: "analytics context exceeds 6000 UTF8 bytes" });
+});
+export const analyticsReviewSelectionSchema = z.object({ rankedFindingIds: z.array(z.string().regex(/^c[0-9]{1,2}$/)).min(1).max(5), reviewRequired: z.literal(true) }).strict();
+export const analyticsReviewOutputSchema = z.object({ ...analyticsSnapshotFields, findings: z.array(analyticsFindingSchema).min(1).max(5), reviewRequired: z.literal(true) }).strict().superRefine(analyticsReferences);
+export type AnalyticsReviewInput = z.infer<typeof analyticsReviewInputSchema>;
+export type AnalyticsReviewOutput = z.infer<typeof analyticsReviewOutputSchema>;
+
 export const localAiTaskInputSchemas = {
   "privacy-redaction": privacyRedactionInputSchema,
   "line-intent": lineIntentInputSchema,
   "content-operations": contentOperationsInputSchema,
   "seo-preprocessing": seoPreprocessingInputSchema,
+  "analytics-review": analyticsReviewInputSchema,
 } as const;
 
 const piiTypeSchema = z.enum([
@@ -210,6 +243,7 @@ export const localAiTaskOutputSchemas = {
   "line-intent": lineIntentOutputSchema,
   "content-operations": contentOperationsOutputSchema,
   "seo-preprocessing": seoPreprocessingOutputSchema,
+  "analytics-review": analyticsReviewOutputSchema,
 } as const;
 
 const directIdentifierPatterns = [
@@ -240,12 +274,24 @@ export function parseLocalAiTaskOutput(taskType: LocalAiTaskType, value: unknown
       }
     }).safeParse(value);
   }
+  if (taskType === "analytics-review") return analyticsReviewOutputSchema.safeParse(value);
   if (taskType === "line-intent") return lineIntentOutputSchema.safeParse(value);
   if (taskType === "content-operations") return contentOperationsOutputSchema.safeParse(value);
   return seoPreprocessingOutputSchema.safeParse(value);
 }
 
 export function parseLocalAiTaskResult(taskType: LocalAiTaskType, inputValue: unknown, outputValue: unknown) {
+  if (taskType === "analytics-review") {
+    const input = analyticsReviewInputSchema.safeParse(inputValue);
+    if (!input.success) return input;
+    const selected = analyticsReviewSelectionSchema.superRefine((value, context) => {
+      if (new Set(value.rankedFindingIds).size !== value.rankedFindingIds.length || value.rankedFindingIds.some(id => !input.data.candidates.some(item => item.id === id))) context.addIssue({ code: "custom", message: "selection must contain unique known candidate IDs" });
+    }).safeParse(outputValue);
+    if (!selected.success) return selected;
+    const { locale, candidates, ...snapshot } = input.data;
+    void locale;
+    return analyticsReviewOutputSchema.safeParse({ ...snapshot, findings: selected.data.rankedFindingIds.map(id => candidates.find(item => item.id === id)!), reviewRequired: true });
+  }
   if (taskType === "content-operations") {
     const input = contentOperationsInputSchema.safeParse(inputValue);
     if (!input.success) return input;

@@ -1,9 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
-import { exportDatasetSchema } from "@/lib/admin/agent-os/export-contract";
+import { exportSelectionSchema } from "@/lib/admin/agent-os/export-contract";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { createAgentRuntimeJob, updateAgentRuntimeJob } from "@/lib/admin/operations/agent-os-runtime";
 
@@ -16,7 +15,7 @@ const headers = {
   "X-Content-Type-Options": "nosniff",
 };
 
-const bodySchema = z.object({ dataset: exportDatasetSchema }).strict();
+const bodySchema = exportSelectionSchema;
 
 function configuredWebhook() {
   const raw = process.env.CCPUN_N8N_EXPORT_WEBHOOK_URL?.trim();
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
   const requestId = randomUUID();
   const idempotencyKey = "export.google-sheet." + randomUUID();
   const payloadDigestSha256 = createHash("sha256")
-    .update(JSON.stringify({ dataset: parsed.data.dataset, generatedAt }))
+    .update(JSON.stringify({ ...parsed.data, generatedAt }))
     .digest("hex");
 
   let job;
@@ -92,6 +91,7 @@ export async function POST(request: Request) {
         correlationId: job.correlationId,
         requestId: job.requestId,
         dataset: parsed.data.dataset,
+        ...(parsed.data.view ? { view: parsed.data.view } : {}),
         generatedAt,
       }),
       redirect: "error",
