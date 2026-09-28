@@ -235,7 +235,7 @@ async function runAssertions(client, routeKey, viewport) {
     expect('navbar CTA revised', common.bodyText.includes('ติดต่อเรา'));
     expect('old contact name removed', !common.bodyText.includes('CCPun (ที่ปรึกษาการเงินอิสระ)'));
     expect('Facebook contact row removed', !common.bodyText.includes('Facebook:'));
-    expect('data controller name corrected', common.bodyText.includes('ชนาธิป ชิดประเสริฐ'));
+    expect('data controller name corrected', common.bodyText.includes('ชนาธิป ชิตประเสริฐ'));
   }
   if (routeKey === 'cookie') {
     const marketing = await evaluate(client, `(() => {

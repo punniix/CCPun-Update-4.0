@@ -61,7 +61,7 @@ assert.ok(profile.querySelector('a[href="/#about-ccpun"]'));
 
 const managedProfile = doc(React.createElement(Article, { article: { ...article, author: {
   name: 'CCPun',
-  profileName: 'ชนาธิป ชิดประเสริฐ',
+  profileName: 'ชนาธิป ชิตประเสริฐ',
   profileRole: 'บทบาทจาก Sanity',
   profileBio: 'คำอธิบายจาก Sanity',
   profileCtaUrl: '#about-ccpun',
@@ -74,7 +74,7 @@ const managedProfile = doc(React.createElement(Article, { article: { ...article,
     issuerUrl: 'https://www.tfpa.or.th/',
   }],
 } } }));
-assert.ok(managedProfile.body.textContent.includes('ชนาธิป ชิดประเสริฐ, AFPT™'));
+assert.ok(managedProfile.body.textContent.includes('ชนาธิป ชิตประเสริฐ, AFPT™'));
 assert.ok(managedProfile.body.textContent.includes('บทบาทจาก Sanity'));
 assert.ok(managedProfile.body.textContent.includes('คำอธิบายจาก Sanity'));
 assert.ok(!managedProfile.body.textContent.includes('AFPT260195'), 'Article author card must not repeat the credential identifier');
@@ -87,7 +87,7 @@ assert.equal(parsedQualifications.length, 1, 'malformed qualification items are 
 assert.equal(parsedQualifications[0].identifier, 'AFPT260195');
 assert.deepEqual(parseProfessionalQualifications({ not: 'an-array' }), []);
 
-assert.equal(personSchema.name, 'ชนาธิป ชิดประเสริฐ');
+assert.equal(personSchema.name, 'ชนาธิป ชิตประเสริฐ');
 assert.deepEqual(personSchema.alternateName, ['ปั้น', 'CCPun']);
 const qualificationPersonSchema = buildProfessionalQualificationPersonSchema(parsedQualifications);
 assert.equal(qualificationPersonSchema['@id'], 'https://ccpun.com/#person');
