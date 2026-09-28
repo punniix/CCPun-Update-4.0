@@ -564,6 +564,7 @@
       "name": "Daily · ตรวจผลครบทุกต้นทาง",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
+      "onError": "continueErrorOutput",
       "position": [
         480,
         -440
@@ -572,8 +573,7 @@
         "mode": "runOnceForAllItems",
         "language": "javaScript",
         "jsCode": "// ponytail: the backend owns collection, validation and retries; this branch reports source outcomes only.\nconst sources=['gsc','ga4','meta','ubersuggest'];\nconst results=sources.map(source=>{\n  const body=$('Daily · '+source.toUpperCase()).first().json;\n  const row=Array.isArray(body.results)?body.results.find(x=>x.source===source):null;\n  return {source,status:row?.status??'failed',batchId:typeof row?.batchId==='string'?row.batchId:null};\n});\nconst outcome=$('Daily · ประเมินด้วย VPS AI').first().json;\nconst assessment={state:typeof outcome.state==='string'?outcome.state:'unavailable',jobId:typeof outcome.jobId==='string'?outcome.jobId:null,reused:outcome.reused===true};\nif(results.some(row=>!['completed','duplicate'].includes(row.status))) throw new Error('ANALYTICS_DAILY_INCOMPLETE');\nif(!['queued','leased','succeeded','skipped'].includes(assessment.state)) throw new Error('ANALYTICS_ASSESSMENT_INCOMPLETE');\nreturn [{json:{collectedAt:new Date().toISOString(),results,assessment}}];"
-      },
-      "onError": "continueErrorOutput"
+      }
     },
     {
       "id": "ee120096-a0bd-4e95-a6cd-72dd09f2c003",
@@ -612,316 +612,11 @@
       }
     },
     {
-      "id": "7fd0e364-e83c-4ac2-9f4d-0d4d82557b3f",
-      "name": "Marketing · Workspace?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1800,
-        2000
-      ],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "d5fb315b-3296-4125-a9d1-9e5b1d3d9bdc",
-              "leftValue": "={{ $('เตรียม Export').item.json.dataset }}",
-              "rightValue": "performance-marketing",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "958fb280-8c40-4e21-816e-01ea027c758b",
-      "name": "Marketing · อ่านโครงสร้าง Workspace",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        1800,
-        2100
-      ],
-      "parameters": {
-        "method": "GET",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "fields",
-              "value": "spreadsheetId,sheets(properties(sheetId,title,gridProperties))"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 30000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "FyfaTTYsoIQiDzTD",
-          "name": "CC - Google Sheets account"
-        }
-      },
-      "onError": "continueErrorOutput"
-    },
-    {
-      "id": "7a5e8311-8fc5-4f63-9a81-4e3f75a1a757",
-      "name": "Marketing · อ่าน SQL Workspace",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        1800,
-        2200
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/workspace/' }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "{}",
-        "options": {
-          "timeout": 45000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "XH8Mfoa7XEeXo7dw",
-          "name": "CCPun Production Analytics Service"
-        }
-      },
-      "onError": "continueErrorOutput"
-    },
-    {
-      "id": "c4d3ddc8-c661-4503-8f29-b2f73b8b5370",
-      "name": "Marketing · อ่านงานมนุษย์",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        2100,
-        2300
-      ],
-      "parameters": {
-        "method": "GET",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW105",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "options": {
-          "timeout": 30000,
-          "response": {
-            "response": {
-              "responseFormat": "json",
-              "neverError": true,
-              "fullResponse": true
-            }
-          }
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "FyfaTTYsoIQiDzTD",
-          "name": "CC - Google Sheets account"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "id": "bd7a9eec-7867-43c7-996a-e731f7dcdf72",
-      "name": "Marketing · ตรวจช่องมนุษย์",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2100,
-        2400
-      ],
-      "parameters": {
-        "jsCode": "const metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst response=$input.first()?.json??{};\nconst exists=(metadata.sheets??[]).some(x=>x.properties?.title==='Action Plan');\nconst fields=['id','version','assetId','priority','actionType','description','expectedMetric','owner','status','executedAt','measurementDays','notes','hypothesis','confounderNotes','importKey'];\nconst columns=[...fields,'createdAt','updatedAt','baseline','result','absoluteChange','percentageChange','outcome','measurementStatus'];\nconst body=response.body??response;const values=Array.isArray(body.values)?body.values:[];\nconst readOk=Number(response.statusCode??200)===200&&!body.error;\nconst missingConfirmed=!exists&&[400,404].includes(Number(response.statusCode))&&!!body.error;\nlet preserve=(!readOk&&!missingConfirmed)||(exists&&(values.length>104||JSON.stringify(values[0]??[])!==JSON.stringify(columns)));\nconst rows=[];\nif(!preserve&&exists)for(const valuesRow of values.slice(1)){\n const row=Object.fromEntries(fields.map((key,i)=>[key,valuesRow[i]??'']));\n if(!String(row.description).trim()){if(String(row.id).trim())preserve=true;continue;}\n rows.push({...row,id:String(row.id).trim()||undefined,version:Number(row.version),assetId:String(row.assetId).trim()||null,executedAt:String(row.executedAt).trim()||null,measurementDays:Number(row.measurementDays)});\n}\nif(rows.length>100)preserve=true;\nreturn [{json:{spreadsheetId:'1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o',rows:preserve?[]:rows,preserveActionPlan:preserve,actionExists:exists,initialValues:values,columns}}];"
-      },
-      "onError": "continueErrorOutput"
-    },
-    {
-      "id": "597cc5ac-1d18-4663-9dd3-c71c7f8ca6d8",
-      "name": "Marketing · นำเข้างาน CAS",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        2100,
-        2500
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/actions/import/' }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ ({spreadsheetId:$json.spreadsheetId,rows:$json.rows}) }}",
-        "options": {
-          "timeout": 30000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "XH8Mfoa7XEeXo7dw",
-          "name": "CCPun Production Analytics Service"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "id": "35d8fa40-8131-4fc9-8eee-cae91fb7fc90",
-      "name": "Marketing · อ่านงานซ้ำก่อนเขียน",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        2100,
-        2600
-      ],
-      "parameters": {
-        "method": "GET",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW105",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "options": {
-          "timeout": 30000,
-          "response": {
-            "response": {
-              "responseFormat": "json",
-              "neverError": true,
-              "fullResponse": true
-            }
-          }
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "FyfaTTYsoIQiDzTD",
-          "name": "CC - Google Sheets account"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "id": "87e3a8a8-e19b-4a89-8712-5f1eec2b29d3",
-      "name": "Marketing · เตรียม Atomic Refresh",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2100,
-        2700
-      ],
-      "parameters": {
-        "jsCode": "const workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst prepared=$('Marketing · ตรวจช่องมนุษย์').first().json;\nconst imported=$('Marketing · นำเข้างาน CAS').first().json;\nconst latest=$input.first()?.json??{}, latestBody=latest.body??latest;\nconst latestValues=Array.isArray(latestBody.values)?latestBody.values:[];\nconst expected=['Performance Overview','Top Content','Opportunities','Content Performance','Campaign & Funnel','Action Plan','Data Notes'];\nconst systems=expected.filter(title=>title!=='Action Plan');\nif(workspace.spreadsheetId!=='1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o'||!Array.isArray(workspace.sheets)||JSON.stringify(workspace.sheets.map(x=>x.title))!==JSON.stringify(expected))throw new Error('MARKETING_WORKSPACE_INVALID');\nconst sameRows=JSON.stringify(prepared.initialValues)===JSON.stringify(latestValues);\nconst latestReadOk=Number(latest.statusCode??200)===200&&!latestBody.error;\nconst missingConfirmed=!prepared.actionExists&&[400,404].includes(Number(latest.statusCode))&&!!latestBody.error;\nlet preserve=prepared.preserveActionPlan||imported.preserveActionPlan!==false||imported.status!=='completed'||!sameRows||(!latestReadOk&&!missingConfirmed);\nconst actionSheet=workspace.sheets.find(x=>x.title==='Action Plan');\nconst actions=new Map(actionSheet.rows.filter(x=>x.id).map(x=>[x.id,x]));\nfor(const result of imported.results??[])if(result.id&&actions.has(result.id)&&actions.get(result.id).version!==result.version)preserve=true;\nconst properties=(metadata.sheets??[]).map(x=>x.properties).filter(Boolean);\nconst titles=new Map(properties.map(x=>[x.title,x]));\nif(titles.size!==properties.length)throw new Error('MARKETING_DUPLICATE_SHEET_TITLE');\nif(properties.some(x=>/^__ccpun_previous_[1-6]$/.test(x.title)))throw new Error('MARKETING_PREVIOUS_STAGE_REMAINS');\nconst used=new Set(properties.map(x=>x.sheetId));\nconst jobId=String($('เตรียม Export').first().json.jobId??'').toLowerCase();\nif(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(jobId))throw new Error('MARKETING_STAGE_JOB_ID_INVALID');\nlet hash=2166136261;for(const character of jobId){hash=Math.imul(hash^character.charCodeAt(0),16777619)>>>0;}\nconst stageBase=100000000+(hash%300000000)*6;\nconst requests=[],stages=[];\nfor(let index=0;index<systems.length;index++){\n const title=systems[index],sheet=workspace.sheets.find(x=>x.title===title);\n if(!sheet||!Array.isArray(sheet.columns)||!sheet.columns.length||!Array.isArray(sheet.rows)||sheet.rows.length>5000)throw new Error('MARKETING_SHEET_INVALID');\n const stageTitle='__ccpun_stage_'+jobId.replace(/-/g,'')+'_'+(index+1),candidateId=stageBase+index;let stage=titles.get(stageTitle);\n if(stage&&stage.sheetId!==candidateId)throw new Error('MARKETING_STAGE_ID_CHANGED');\n if(!stage){if(used.has(candidateId))throw new Error('MARKETING_STAGE_ID_COLLISION');stage={sheetId:candidateId,title:stageTitle,hidden:true,gridProperties:{rowCount:Math.max(100,sheet.rows.length+1),columnCount:Math.max(26,sheet.columns.length)}};used.add(stage.sheetId);requests.push({addSheet:{properties:stage}});}\n const rowCount=Math.max(stage.gridProperties?.rowCount??100,sheet.rows.length+1),columnCount=Math.max(stage.gridProperties?.columnCount??26,sheet.columns.length);\n requests.push({updateSheetProperties:{properties:{sheetId:stage.sheetId,hidden:true,gridProperties:{frozenRowCount:1,rowCount,columnCount}},fields:'hidden,gridProperties.frozenRowCount,gridProperties.rowCount,gridProperties.columnCount'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:columnCount},cell:{},fields:'userEnteredValue'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},backgroundColor:{red:.15,green:.09,blue:.09}}},fields:'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'}});\n requests.push({setBasicFilter:{filter:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:Math.max(1,sheet.rows.length+1),startColumnIndex:0,endColumnIndex:sheet.columns.length}}}});\n requests.push({updateDimensionProperties:{range:{sheetId:stage.sheetId,dimension:'COLUMNS',startIndex:0,endIndex:sheet.columns.length},properties:{pixelSize:180},fields:'pixelSize'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment'}});\n stages.push({title,stageTitle,stageId:stage.sheetId,canonicalId:titles.get(title)?.sheetId??null,columns:sheet.columns.length,rowCount:sheet.rows.length+1});\n}\nconst setupBody={requests};if(JSON.stringify(setupBody).length>180000)throw new Error('MARKETING_STAGE_SETUP_TOO_LARGE');\nreturn [{json:{spreadsheetId:workspace.spreadsheetId,spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+workspace.spreadsheetId+'/edit',preserveActionPlan:!!preserve,analysisStatus:workspace.analysisStatus,sourceManifestCount:workspace.sourceManifest?.length??0,tabCount:7,jobId,stages,setupBody}}];"
-      },
-      "onError": "continueErrorOutput"
-    },
-    {
-      "id": "b5e2f541-0a41-4bb6-a71d-7474ae3d44a4",
-      "name": "Marketing · เขียน 7 ชีต Atomic",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        3750,
-        2400
-      ],
-      "onError": "continueErrorOutput",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "FyfaTTYsoIQiDzTD",
-          "name": "CC - Google Sheets account"
-        }
-      },
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.batchBody }}",
-        "options": {
-          "timeout": 60000,
-          "response": {
-            "response": {
-              "responseFormat": "json",
-              "fullResponse": true,
-              "neverError": true
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": "9455e5db-064b-4fed-82de-bf4813997557",
-      "name": "Marketing · บันทึกผล Workspace",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "onError": "continueErrorOutput",
-      "position": [
-        3950,
-        2400
-      ],
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
-        "sendHeaders": false,
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?'completed':'reconciliation_required',stage:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?'done':Number($json.statusCode??0)===200?'marketing-actions-review':'marketing-google-write-review',...(!(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?{errorCategory:Number($json.statusCode??0)===200?'marketing-actions-review-required':'google-sheet-http-' + (Number.isInteger(Number($json.statusCode))&&Number($json.statusCode)>=100&&Number($json.statusCode)<=599?Number($json.statusCode):'unknown')}:{}),heartbeatAt:new Date().toISOString(),completedAt:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?new Date().toISOString():null,providerReference:Number($json.statusCode??0)===200?$('Marketing · เตรียม Commit').first().json.spreadsheetUrl:null,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          },
-          "timeout": 10000
-        },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "2JieMmZdOqm09JsZ",
-          "name": "CCPun Production Runtime Service"
-        }
-      }
-    },
-    {
-      "id": "eab54058-324c-5851-af54-f3ba9c50742b",
+      "id": "5b34b383-ece8-47ae-b253-d47833cc6ccc",
       "name": "Marketing Daily · Canonical Identity",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         700,
         -440
@@ -943,7 +638,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -952,10 +646,11 @@
       }
     },
     {
-      "id": "9cadbd8d-54a8-5c6e-ad00-4e15ecf94097",
+      "id": "32da7db3-52e6-4530-8d32-2f118809d336",
       "name": "Marketing Daily · GSC 7 วัน",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         920,
         -440
@@ -977,7 +672,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -986,10 +680,11 @@
       }
     },
     {
-      "id": "fcb1b355-1db1-5371-908f-b6e759dda959",
+      "id": "8c9f4853-efd8-411d-9ad0-c099f739ec2d",
       "name": "Marketing Daily · GA4 7 วัน",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         1140,
         -440
@@ -1011,7 +706,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1020,7 +714,7 @@
       }
     },
     {
-      "id": "8892332d-9bc7-55a0-a97e-9ce4fb1d3ba9",
+      "id": "6c6262fd-a622-41cc-b6cf-d293e985f7a3",
       "name": "Marketing Daily · ตรวจผล factual",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1035,10 +729,45 @@
       }
     },
     {
-      "id": "c9b2b7a1-6b09-57b8-b27c-c5d836c1ab34",
+      "id": "27f836ad-3d0a-44e3-9d5b-42ac928bdf64",
+      "name": "Marketing Daily · วัดผลก่อน–หลัง",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        1250,
+        -660
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"operation\":\"measure\"}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "6d266d1a-e513-45ef-9aec-da18cc434df5",
       "name": "Marketing AI Weekly · เตรียม context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         1580,
         -440
@@ -1060,7 +789,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1069,7 +797,7 @@
       }
     },
     {
-      "id": "24001b2f-06d7-5858-be43-31e50658fd69",
+      "id": "63e115d0-5021-4546-98e3-be2105a7ec80",
       "name": "Marketing AI Weekly · Context พร้อม?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1103,10 +831,11 @@
       }
     },
     {
-      "id": "71d52fb9-f26c-5fa8-a61b-bc69b8e1a189",
+      "id": "212b9882-7de1-4115-8849-6376ec55b260",
       "name": "Marketing AI Weekly · ส่งงาน VPS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         2020,
         -440
@@ -1128,7 +857,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1137,7 +865,7 @@
       }
     },
     {
-      "id": "2229323a-4371-50e0-a6a9-fe1b01312369",
+      "id": "158e7004-2ce0-43b5-b0b2-d6c2324bb63f",
       "name": "Marketing AI Weekly · รับงานแล้ว?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1171,8 +899,9 @@
       }
     },
     {
-      "id": "53676e36-861f-5278-92fa-e13bc882baab",
+      "id": "2f5abf69-bc56-4fe1-a094-f4ec91030c4b",
       "name": "Marketing AI Weekly · รอ 15 วินาที",
+      "webhookId": "e8c3eb1b-c942-477c-91f4-2e68172b31af",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
@@ -1186,10 +915,11 @@
       }
     },
     {
-      "id": "6577a977-8498-590f-964e-e987640b1258",
+      "id": "c4c21ef1-689a-4f27-872e-c5a254ca9829",
       "name": "Marketing AI Weekly · อ่านสถานะ",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         2680,
         -440
@@ -1211,7 +941,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1220,7 +949,7 @@
       }
     },
     {
-      "id": "727139b0-4e39-56f2-8ecb-b99346b1572c",
+      "id": "a40608dd-c193-4cff-9dc1-92c52eb2c6f3",
       "name": "Marketing AI Weekly · ตรวจขอบเขต retry",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1235,7 +964,7 @@
       }
     },
     {
-      "id": "e4c63c4c-4e5d-5de1-bc07-5630500b1ef5",
+      "id": "b90f96f5-5be3-4a9e-b4e3-9e3f613cf410",
       "name": "Marketing AI Weekly · Worker สำเร็จ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1269,7 +998,7 @@
       }
     },
     {
-      "id": "a2792b5e-4c94-5979-8dea-81b67c5c9d2a",
+      "id": "8ac771cb-54f3-4e8c-857b-b851edb26ee7",
       "name": "Marketing AI Weekly · รอต่อ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1303,10 +1032,11 @@
       }
     },
     {
-      "id": "409d74c4-9f56-5ba4-ac48-3e88bcc94930",
+      "id": "0201133b-2dba-4b77-af7e-5f54f67b513e",
       "name": "Marketing AI Weekly · ตรวจ JSON และหลักฐาน",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         3340,
         -440
@@ -1328,7 +1058,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1337,12 +1066,12 @@
       }
     },
     {
-      "id": "570b720c-7e2d-5300-a2eb-cff44641a817",
+      "id": "6e8d9e9a-2f39-4e5e-b960-e5ef772fd49a",
       "name": "Marketing AI Weekly · บันทึกสถานะขั้น",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3560,
+        4880,
         -440
       ],
       "parameters": {
@@ -1352,10 +1081,11 @@
       }
     },
     {
-      "id": "150a4f4a-cbe8-5ffd-8556-70862229b4b4",
+      "id": "d94d0383-7657-4665-a4ee-d2b40a0b2890",
       "name": "Marketing AI Monthly · เตรียม context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         1580,
         -40
@@ -1377,7 +1107,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1386,7 +1115,7 @@
       }
     },
     {
-      "id": "fbd94a79-2c61-5b1c-902c-4b5c3e0bc0fa",
+      "id": "576bcfaf-b312-4a37-9c73-12c8bd604fba",
       "name": "Marketing AI Monthly · Context พร้อม?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1420,10 +1149,11 @@
       }
     },
     {
-      "id": "fdfad5ad-8925-5ed1-9528-1f53c524fec8",
+      "id": "03b95383-e616-4171-b5b3-e5b5fbcf935b",
       "name": "Marketing AI Monthly · ส่งงาน VPS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         2020,
         -40
@@ -1445,7 +1175,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1454,7 +1183,7 @@
       }
     },
     {
-      "id": "68ea197b-9475-507f-8b84-c5a3c6c0b5e8",
+      "id": "4ae66b30-3857-43fc-ac70-da0443e02b90",
       "name": "Marketing AI Monthly · รับงานแล้ว?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1488,8 +1217,9 @@
       }
     },
     {
-      "id": "8135cf7a-b2fa-5caa-adbb-2101db74673f",
+      "id": "1ad84d53-a7d6-44c6-9867-c7956199498f",
       "name": "Marketing AI Monthly · รอ 15 วินาที",
+      "webhookId": "9bb13626-86b0-4812-95ca-eaf8e8d1dc6e",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
@@ -1503,10 +1233,11 @@
       }
     },
     {
-      "id": "1a9093f2-7cf3-57c3-ba89-711ef1f59007",
+      "id": "4ac8380c-7361-463c-b533-a1e2f1962df3",
       "name": "Marketing AI Monthly · อ่านสถานะ",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         2680,
         -40
@@ -1528,7 +1259,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1537,7 +1267,7 @@
       }
     },
     {
-      "id": "557dabb1-4b02-5c67-9f46-63b858431d97",
+      "id": "264c0093-f1ed-4fb8-81cc-61dce1561cf6",
       "name": "Marketing AI Monthly · ตรวจขอบเขต retry",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1552,7 +1282,7 @@
       }
     },
     {
-      "id": "7783a751-6a2d-5c63-a4ad-277853ec0b2d",
+      "id": "cdcbc625-b77e-4b39-9ee5-35741a1b7db7",
       "name": "Marketing AI Monthly · Worker สำเร็จ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1586,7 +1316,7 @@
       }
     },
     {
-      "id": "afd00fba-1791-5d42-9a30-4e2090979083",
+      "id": "b06b8af7-11b4-44ab-9b44-8f7c793a2345",
       "name": "Marketing AI Monthly · รอต่อ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1620,10 +1350,11 @@
       }
     },
     {
-      "id": "ebf592a5-a76f-5a7e-b44e-04da15c2596b",
+      "id": "e81dce22-d49a-4a73-a9e3-3c2dfe879e00",
       "name": "Marketing AI Monthly · ตรวจ JSON และหลักฐาน",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         3340,
         -40
@@ -1645,7 +1376,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1654,12 +1384,12 @@
       }
     },
     {
-      "id": "56710003-8b93-59c5-8b89-b89212133b34",
+      "id": "54a5ae89-6d36-4466-8469-b07055d68cc6",
       "name": "Marketing AI Monthly · บันทึกสถานะขั้น",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3560,
+        4880,
         -40
       ],
       "parameters": {
@@ -1669,7 +1399,7 @@
       }
     },
     {
-      "id": "5d0686ac-ce33-5106-9b15-e5e1345a807e",
+      "id": "36fe6d42-003b-41e5-b33f-574e4429b724",
       "name": "Marketing Daily · สรุปการเรียนรู้",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1684,22 +1414,96 @@
       }
     },
     {
-      "id": "99ccb83c-ec6e-548b-b9f5-66a51a0b9e4f",
-      "name": "Marketing Daily · วัดผลก่อน–หลัง",
+      "id": "b2d58e67-7500-4a62-b94b-5d213bc5a123",
+      "name": "Marketing · Workspace?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        2000
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d5fb315b-3296-4125-a9d1-9e5b1d3d9bdc",
+              "leftValue": "={{ $('เตรียม Export').item.json.dataset }}",
+              "rightValue": "performance-marketing",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0cba2a02-8e3c-43eb-ac89-94fe7d1c5e4d",
+      "name": "Marketing · อ่านโครงสร้าง Workspace",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
       "position": [
-        1250,
-        -660
+        1800,
+        2100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "spreadsheetId,sheets(properties(sheetId,title,gridProperties))"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "be20c966-deb9-4840-a7a1-52a17e67295b",
+      "name": "Marketing · อ่าน SQL Workspace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        1800,
+        2200
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/workspace/' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"operation\":\"measure\"}",
+        "jsonBody": "{}",
         "options": {
           "timeout": 45000,
           "response": {
@@ -1709,7 +1513,6 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "XH8Mfoa7XEeXo7dw",
@@ -1718,71 +1521,143 @@
       }
     },
     {
-      "id": "951d75b2-eae5-4b41-a593-d0e01d143301",
-      "name": "Marketing · เตรียม staging ที่ซ่อน",
+      "id": "3f9e7dc5-8d20-4721-b2fa-8848c1f61c28",
+      "name": "Marketing · อ่านงานมนุษย์",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
-        2350,
-        2400
+        2100,
+        2300
       ],
-      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW105",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "FyfaTTYsoIQiDzTD",
           "name": "CC - Google Sheets account"
-        }
-      },
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.setupBody }}",
-        "options": {
-          "timeout": 60000,
-          "response": {
-            "response": {
-              "responseFormat": "json",
-              "fullResponse": true,
-              "neverError": true
-            }
-          }
         }
       }
     },
     {
-      "id": "f7dd16bb-67c2-4c99-8df4-02db9aa1bc02",
-      "name": "Marketing · แบ่งข้อมูล staging",
+      "id": "9a8497a0-b4e6-4bbb-81ce-3e6a0b3d6e70",
+      "name": "Marketing · ตรวจช่องมนุษย์",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
+      "onError": "continueErrorOutput",
       "position": [
-        2550,
+        2100,
         2400
       ],
       "parameters": {
-        "jsCode": "const setup=$('Marketing · เตรียม Atomic Refresh').first().json;\nconst reply=$input.first()?.json??{};\nif(Number(reply.statusCode??0)!==200||reply.body?.error)throw new Error('MARKETING_STAGE_SETUP_HTTP_'+(Number(reply.statusCode)||'unknown'));\nconst workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst value=v=>v===null||v===undefined||v===''?{}:{userEnteredValue:typeof v==='number'&&Number.isFinite(v)?{numberValue:v}:typeof v==='boolean'?{boolValue:v}:{stringValue:String(v)}};\nconst utf8=s=>{let size=0;for(const ch of s){const n=ch.codePointAt(0);size+=n<=127?1:n<=2047?2:n<=65535?3:4;}return size;};\nconst limit=180000, items=[];\nfor(const stage of setup.stages){\n const sheet=workspace.sheets.find(x=>x.title===stage.title);\n const allRows=[{values:sheet.columns.map(value)},...sheet.rows.map(data=>({values:sheet.columns.map(column=>value(data[column]))}))];\n let start=0,rows=[];\n const body=(first,cells)=>({requests:[{updateCells:{start:{sheetId:stage.stageId,rowIndex:first,columnIndex:0},rows:cells,fields:'userEnteredValue'}}]});\n const emit=()=>{if(!rows.length)return;const batchBody=body(start,rows);if(utf8(JSON.stringify(batchBody))>limit)throw new Error('MARKETING_STAGE_CHUNK_TOO_LARGE');items.push({json:{spreadsheetId:setup.spreadsheetId,stageTitle:stage.stageTitle,chunkIndex:items.length,batchBody}});start+=rows.length;rows=[];};\n for(const row of allRows){if(utf8(JSON.stringify(body(start,[row])))>limit)throw new Error('MARKETING_STAGE_ROW_TOO_LARGE');if(rows.length&&utf8(JSON.stringify(body(start,[...rows,row])))>limit)emit();rows.push(row);}\n emit();\n}\nif(!items.length||items.length>300)throw new Error('MARKETING_STAGE_CHUNK_COUNT_INVALID');\nreturn items;"
-      },
-      "onError": "continueErrorOutput"
+        "jsCode": "const metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst response=$input.first()?.json??{};\nconst exists=(metadata.sheets??[]).some(x=>x.properties?.title==='Action Plan');\nconst fields=['id','version','assetId','priority','actionType','description','expectedMetric','owner','status','executedAt','measurementDays','notes','hypothesis','confounderNotes','importKey'];\nconst columns=[...fields,'createdAt','updatedAt','baseline','result','absoluteChange','percentageChange','outcome','measurementStatus'];\nconst body=response.body??response;const values=Array.isArray(body.values)?body.values:[];\nconst readOk=Number(response.statusCode??200)===200&&!body.error;\nconst missingConfirmed=!exists&&[400,404].includes(Number(response.statusCode))&&!!body.error;\nlet preserve=(!readOk&&!missingConfirmed)||(exists&&(values.length>104||JSON.stringify(values[0]??[])!==JSON.stringify(columns)));\nconst rows=[];\nif(!preserve&&exists)for(const valuesRow of values.slice(1)){\n const row=Object.fromEntries(fields.map((key,i)=>[key,valuesRow[i]??'']));\n if(!String(row.description).trim()){if(String(row.id).trim())preserve=true;continue;}\n rows.push({...row,id:String(row.id).trim()||undefined,version:Number(row.version),assetId:String(row.assetId).trim()||null,executedAt:String(row.executedAt).trim()||null,measurementDays:Number(row.measurementDays)});\n}\nif(rows.length>100)preserve=true;\nreturn [{json:{spreadsheetId:'1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o',rows:preserve?[]:rows,preserveActionPlan:preserve,actionExists:exists,initialValues:values,columns}}];"
+      }
     },
     {
-      "id": "c95ebfda-1213-475a-9b87-9a6502b33303",
-      "name": "Marketing · เขียน staging ทีละชุด",
+      "id": "2887760f-9585-4e4a-b39a-d0d5b501a883",
+      "name": "Marketing · นำเข้างาน CAS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
-        2750,
-        2400
+        2100,
+        2500
       ],
-      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/actions/import/' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({spreadsheetId:$json.spreadsheetId,rows:$json.rows}) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "91fab4e3-01bc-4a31-a0ae-849f701d3eec",
+      "name": "Marketing · อ่านงานซ้ำก่อนเขียน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        2100,
+        2600
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW105",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "FyfaTTYsoIQiDzTD",
           "name": "CC - Google Sheets account"
         }
-      },
+      }
+    },
+    {
+      "id": "f8de940b-9981-4a4a-a97c-d4e0ac897a8f",
+      "name": "Marketing · เตรียม Atomic Refresh",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "onError": "continueErrorOutput",
+      "position": [
+        2100,
+        2700
+      ],
+      "parameters": {
+        "jsCode": "const workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst prepared=$('Marketing · ตรวจช่องมนุษย์').first().json;\nconst imported=$('Marketing · นำเข้างาน CAS').first().json;\nconst latest=$input.first()?.json??{}, latestBody=latest.body??latest;\nconst latestValues=Array.isArray(latestBody.values)?latestBody.values:[];\nconst expected=['Performance Overview','Top Content','Opportunities','Content Performance','Campaign & Funnel','Action Plan','Data Notes'];\nconst systems=expected.filter(title=>title!=='Action Plan');\nif(workspace.spreadsheetId!=='1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o'||!Array.isArray(workspace.sheets)||JSON.stringify(workspace.sheets.map(x=>x.title))!==JSON.stringify(expected))throw new Error('MARKETING_WORKSPACE_INVALID');\nconst sameRows=JSON.stringify(prepared.initialValues)===JSON.stringify(latestValues);\nconst latestReadOk=Number(latest.statusCode??200)===200&&!latestBody.error;\nconst missingConfirmed=!prepared.actionExists&&[400,404].includes(Number(latest.statusCode))&&!!latestBody.error;\nlet preserve=prepared.preserveActionPlan||imported.preserveActionPlan!==false||imported.status!=='completed'||!sameRows||(!latestReadOk&&!missingConfirmed);\nconst actionSheet=workspace.sheets.find(x=>x.title==='Action Plan');\nconst actions=new Map(actionSheet.rows.filter(x=>x.id).map(x=>[x.id,x]));\nfor(const result of imported.results??[])if(result.id&&actions.has(result.id)&&actions.get(result.id).version!==result.version)preserve=true;\nconst properties=(metadata.sheets??[]).map(x=>x.properties).filter(Boolean);\nconst titles=new Map(properties.map(x=>[x.title,x]));\nif(titles.size!==properties.length)throw new Error('MARKETING_DUPLICATE_SHEET_TITLE');\nif(properties.some(x=>/^__ccpun_previous_[1-6]$/.test(x.title)))throw new Error('MARKETING_PREVIOUS_STAGE_REMAINS');\nconst used=new Set(properties.map(x=>x.sheetId));\nconst jobId=String($('เตรียม Export').first().json.jobId??'').toLowerCase();\nif(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(jobId))throw new Error('MARKETING_STAGE_JOB_ID_INVALID');\nlet hash=2166136261;for(const character of jobId){hash=Math.imul(hash^character.charCodeAt(0),16777619)>>>0;}\nconst stageBase=100000000+(hash%300000000)*6;\nconst requests=[],stages=[];\nfor(let index=0;index<systems.length;index++){\n const title=systems[index],sheet=workspace.sheets.find(x=>x.title===title);\n if(!sheet||!Array.isArray(sheet.columns)||!sheet.columns.length||!Array.isArray(sheet.rows)||sheet.rows.length>5000)throw new Error('MARKETING_SHEET_INVALID');\n const stageTitle='__ccpun_stage_'+jobId.replace(/-/g,'')+'_'+(index+1),candidateId=stageBase+index;let stage=titles.get(stageTitle);\n if(stage&&stage.sheetId!==candidateId)throw new Error('MARKETING_STAGE_ID_CHANGED');\n if(!stage){if(used.has(candidateId))throw new Error('MARKETING_STAGE_ID_COLLISION');stage={sheetId:candidateId,title:stageTitle,hidden:true,gridProperties:{rowCount:Math.max(100,sheet.rows.length+1),columnCount:Math.max(26,sheet.columns.length)}};used.add(stage.sheetId);requests.push({addSheet:{properties:stage}});}\n const rowCount=Math.max(stage.gridProperties?.rowCount??100,sheet.rows.length+1),columnCount=Math.max(stage.gridProperties?.columnCount??26,sheet.columns.length);\n requests.push({updateSheetProperties:{properties:{sheetId:stage.sheetId,hidden:true,gridProperties:{frozenRowCount:1,rowCount,columnCount}},fields:'hidden,gridProperties.frozenRowCount,gridProperties.rowCount,gridProperties.columnCount'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:columnCount},cell:{},fields:'userEnteredValue'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},backgroundColor:{red:.15,green:.09,blue:.09}}},fields:'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'}});\n requests.push({setBasicFilter:{filter:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:Math.max(1,sheet.rows.length+1),startColumnIndex:0,endColumnIndex:sheet.columns.length}}}});\n requests.push({updateDimensionProperties:{range:{sheetId:stage.sheetId,dimension:'COLUMNS',startIndex:0,endIndex:sheet.columns.length},properties:{pixelSize:180},fields:'pixelSize'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment'}});\n stages.push({title,stageTitle,stageId:stage.sheetId,canonicalId:titles.get(title)?.sheetId??null,columns:sheet.columns.length,rowCount:sheet.rows.length+1});\n}\nconst setupBody={requests};if(JSON.stringify(setupBody).length>180000)throw new Error('MARKETING_STAGE_SETUP_TOO_LARGE');\nreturn [{json:{spreadsheetId:workspace.spreadsheetId,spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+workspace.spreadsheetId+'/edit',preserveActionPlan:!!preserve,analysisStatus:workspace.analysisStatus,sourceManifestCount:workspace.sourceManifest?.length??0,tabCount:7,jobId,stages,setupBody}}];"
+      }
+    },
+    {
+      "id": "cf4bf1fc-cfb0-49de-b266-f870f2871925",
+      "name": "Marketing · เขียน 7 ชีต Atomic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        2600,
+        2400
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
@@ -1801,6 +1676,133 @@
             }
           }
         }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "47e632cf-de0a-4493-bbed-c2dd372d4aed",
+      "name": "Marketing · บันทึกผล Workspace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        2800,
+        2400
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/agent-os/jobs/' + $('เตรียม Export').first().json.jobId + '/' }}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?'completed':'reconciliation_required',stage:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?'done':Number($json.statusCode??0)===200?'marketing-actions-review':'marketing-google-write-review',...(!(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?{errorCategory:Number($json.statusCode??0)===200?'marketing-actions-review-required':'google-sheet-http-' + (Number.isInteger(Number($json.statusCode))&&Number($json.statusCode)>=100&&Number($json.statusCode)<=599?Number($json.statusCode):'unknown')}:{}),heartbeatAt:new Date().toISOString(),completedAt:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?new Date().toISOString():null,providerReference:Number($json.statusCode??0)===200?$('Marketing · เตรียม Commit').first().json.spreadsheetUrl:null,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2JieMmZdOqm09JsZ",
+          "name": "CCPun Production Runtime Service"
+        }
+      }
+    },
+    {
+      "id": "951d75b2-eae5-4b41-a593-d0e01d143301",
+      "name": "Marketing · เตรียม staging ที่ซ่อน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        2350,
+        2400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.setupBody }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "f7dd16bb-67c2-4c99-8df4-02db9aa1bc02",
+      "name": "Marketing · แบ่งข้อมูล staging",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "onError": "continueErrorOutput",
+      "position": [
+        2550,
+        2400
+      ],
+      "parameters": {
+        "jsCode": "const setup=$('Marketing · เตรียม Atomic Refresh').first().json;\nconst reply=$input.first()?.json??{};\nif(Number(reply.statusCode??0)!==200||reply.body?.error)throw new Error('MARKETING_STAGE_SETUP_HTTP_'+(Number(reply.statusCode)||'unknown'));\nconst workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst value=v=>v===null||v===undefined||v===''?{}:{userEnteredValue:typeof v==='number'&&Number.isFinite(v)?{numberValue:v}:typeof v==='boolean'?{boolValue:v}:{stringValue:String(v)}};\nconst utf8=s=>{let size=0;for(const ch of s){const n=ch.codePointAt(0);size+=n<=127?1:n<=2047?2:n<=65535?3:4;}return size;};\nconst limit=180000, items=[];\nfor(const stage of setup.stages){\n const sheet=workspace.sheets.find(x=>x.title===stage.title);\n const allRows=[{values:sheet.columns.map(value)},...sheet.rows.map(data=>({values:sheet.columns.map(column=>value(data[column]))}))];\n let start=0,rows=[];\n const body=(first,cells)=>({requests:[{updateCells:{start:{sheetId:stage.stageId,rowIndex:first,columnIndex:0},rows:cells,fields:'userEnteredValue'}}]});\n const emit=()=>{if(!rows.length)return;const batchBody=body(start,rows);if(utf8(JSON.stringify(batchBody))>limit)throw new Error('MARKETING_STAGE_CHUNK_TOO_LARGE');items.push({json:{spreadsheetId:setup.spreadsheetId,stageTitle:stage.stageTitle,chunkIndex:items.length,batchBody}});start+=rows.length;rows=[];};\n for(const row of allRows){if(utf8(JSON.stringify(body(start,[row])))>limit)throw new Error('MARKETING_STAGE_ROW_TOO_LARGE');if(rows.length&&utf8(JSON.stringify(body(start,[...rows,row])))>limit)emit();rows.push(row);}\n emit();\n}\nif(!items.length||items.length>300)throw new Error('MARKETING_STAGE_CHUNK_COUNT_INVALID');\nreturn items;"
+      }
+    },
+    {
+      "id": "c95ebfda-1213-475a-9b87-9a6502b33303",
+      "name": "Marketing · เขียน staging ทีละชุด",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "position": [
+        2750,
+        2400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.batchBody }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
       }
     },
     {
@@ -1808,20 +1810,21 @@
       "name": "Marketing · ตรวจผล staging",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
+      "onError": "continueErrorOutput",
       "position": [
         2950,
         2400
       ],
       "parameters": {
         "jsCode": "const responses=$input.all();const chunks=$('Marketing · แบ่งข้อมูล staging').all();\nif(!chunks.length||responses.length!==chunks.length)throw new Error('MARKETING_STAGE_RESPONSE_COUNT');\nfor(let index=0;index<responses.length;index++){\n const result=responses[index]?.json??{};\n if(Number(result.statusCode??0)!==200||result.body?.error)throw new Error('MARKETING_STAGE_HTTP_'+(Number(result.statusCode)||'unknown'));\n}\nreturn [{json:{stagedChunks:chunks.length}}];"
-      },
-      "onError": "continueErrorOutput"
+      }
     },
     {
       "id": "24eb71d3-6869-4ec1-8d88-d8cd74dcfc05",
       "name": "Marketing · อ่านโครงสร้างก่อน Commit",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
       "position": [
         3150,
         2400
@@ -1854,14 +1857,14 @@
           "id": "FyfaTTYsoIQiDzTD",
           "name": "CC - Google Sheets account"
         }
-      },
-      "onError": "continueErrorOutput"
+      }
     },
     {
       "id": "ee017376-2701-4755-ade0-567e5a44a006",
       "name": "Marketing · อ่าน Action Plan ก่อน Commit",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         3350,
         2400
@@ -1887,22 +1890,447 @@
           "id": "FyfaTTYsoIQiDzTD",
           "name": "CC - Google Sheets account"
         }
-      },
-      "onError": "continueRegularOutput"
+      }
     },
     {
       "id": "796add83-334c-4a79-975d-719489b4d907",
       "name": "Marketing · เตรียม Commit",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
+      "onError": "continueErrorOutput",
       "position": [
         3550,
         2400
       ],
       "parameters": {
         "jsCode": "const setup=$('Marketing · เตรียม Atomic Refresh').first().json;\nif(setup.jobId!==String($('เตรียม Export').first().json.jobId??'').toLowerCase())throw new Error('MARKETING_STAGE_JOB_CHANGED');\nconst workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst prepared=$('Marketing · ตรวจช่องมนุษย์').first().json;\nconst imported=$('Marketing · นำเข้างาน CAS').first().json;\nconst initial=$('Marketing · อ่านงานซ้ำก่อนเขียน').first().json;\nconst initialValues=(initial.body??initial).values??[];\nconst metadata=$('Marketing · อ่านโครงสร้างก่อน Commit').first().json;\nconst final=$input.first()?.json??{},finalBody=final.body??final;\nconst finalValues=Array.isArray(finalBody.values)?finalBody.values:[];\nconst properties=(metadata.sheets??[]).map(x=>x.properties).filter(Boolean),titles=new Map(properties.map(x=>[x.title,x]));\nif(titles.size!==properties.length)throw new Error('MARKETING_COMMIT_DUPLICATE_TITLE');\nif(properties.some(x=>/^__ccpun_previous_[1-6]$/.test(x.title)))throw new Error('MARKETING_COMMIT_PREVIOUS_REMAINS');\nconst actionWasPresent=prepared.actionExists,actionNow=titles.get('Action Plan');\nif(!actionWasPresent&&actionNow)throw new Error('MARKETING_ACTION_CREATED_CONCURRENTLY');\nif(actionWasPresent&&(!actionNow||actionNow.sheetId!==($('Marketing · อ่านโครงสร้าง Workspace').first().json.sheets??[]).find(x=>x.properties?.title==='Action Plan')?.properties.sheetId))throw new Error('MARKETING_ACTION_ID_CHANGED');\nconst finalReadOk=Number(final.statusCode??0)===200&&!finalBody.error;\nconst missingConfirmed=!actionWasPresent&&!actionNow&&[400,404].includes(Number(final.statusCode))&&!!finalBody.error;\nif(!finalReadOk&&!missingConfirmed)throw new Error('MARKETING_ACTION_FINAL_READ_UNCERTAIN');\nlet preserve=setup.preserveActionPlan||imported.preserveActionPlan!==false||imported.status!=='completed'||JSON.stringify(initialValues)!==JSON.stringify(finalValues);\nconst initialProperties=new Map(($('Marketing · อ่านโครงสร้าง Workspace').first().json.sheets??[]).map(x=>[x.properties.title,x.properties]));\nconst requests=[];\nfor(let index=0;index<setup.stages.length;index++){\n const stage=setup.stages[index],current=titles.get(stage.title),staged=titles.get(stage.stageTitle);\n if((current?.sheetId??null)!==stage.canonicalId||!staged||staged.sheetId!==stage.stageId||staged.hidden!==true)throw new Error('MARKETING_STAGE_CHANGED_BEFORE_COMMIT');\n if((initialProperties.get(stage.title)?.sheetId??null)!==stage.canonicalId)throw new Error('MARKETING_CANONICAL_CHANGED_BEFORE_COMMIT');\n if(current)requests.push({updateSheetProperties:{properties:{sheetId:current.sheetId,title:'__ccpun_previous_'+(index+1)},fields:'title'}});\n requests.push({updateSheetProperties:{properties:{sheetId:stage.stageId,title:stage.title,hidden:false},fields:'title,hidden'}});\n if(current)requests.push({deleteSheet:{sheetId:current.sheetId}});\n}\nconst sheet=workspace.sheets.find(x=>x.title==='Action Plan');\nconst value=v=>v===null||v===undefined||v===''?{}:{userEnteredValue:typeof v==='number'&&Number.isFinite(v)?{numberValue:v}:typeof v==='boolean'?{boolValue:v}:{stringValue:String(v)}};\nconst row=(columns,data)=>({values:columns.map(column=>value(data[column]))});\nif(!actionNow){\n if(!missingConfirmed)throw new Error('MARKETING_ACTION_MISSING_UNCONFIRMED');\n const used=new Set(properties.map(x=>x.sheetId));let id=91000;while(used.has(id))id++;\n const rowCount=Math.max(100,sheet.rows.length+1),columnCount=Math.max(26,sheet.columns.length);\n requests.push({addSheet:{properties:{sheetId:id,title:'Action Plan',gridProperties:{rowCount,columnCount,frozenRowCount:1}}}});\n requests.push({updateCells:{start:{sheetId:id,rowIndex:0,columnIndex:0},rows:[{values:sheet.columns.map(value)},...sheet.rows.map(data=>row(sheet.columns,data))],fields:'userEnteredValue'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},backgroundColor:{red:.15,green:.09,blue:.09}}},fields:'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'}});\n requests.push({setBasicFilter:{filter:{range:{sheetId:id,startRowIndex:0,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length}}}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:0,endIndex:sheet.columns.length},properties:{pixelSize:180},fields:'pixelSize'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1,startColumnIndex:2,endColumnIndex:14},cell:{userEnteredFormat:{backgroundColor:{red:.37,green:.28,blue:.09}}},fields:'userEnteredFormat.backgroundColor'}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:5,endIndex:6},properties:{pixelSize:420},fields:'pixelSize'}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:11,endIndex:14},properties:{pixelSize:320},fields:'pixelSize'}});\n for(const[key,allowed]of[['priority',['high','medium','low']],['status',['backlog','planned','doing','measuring','done']],['actionType',['title','description','refresh','cta','internal_link','expansion','promotion','keyword','investigation']],['expectedMetric',['organic_sessions','search_clicks','line_clicks','calculator_complete','social_views']]])requests.push({setDataValidation:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:sheet.columns.indexOf(key),endColumnIndex:sheet.columns.indexOf(key)+1},rule:{condition:{type:'ONE_OF_LIST',values:allowed.map(userEnteredValue=>({userEnteredValue}))},strict:true,showCustomUi:true}}});\n}else if(!preserve){\n const actionRequestStart=requests.length,id=actionNow.sheetId,actions=new Map(sheet.rows.filter(x=>x.id).map(x=>[x.id,x]));\n const results=new Map((imported.results??[]).map(x=>[x.importKey,x]));const present=new Set();\n for(let index=1;index<finalValues.length;index++){\n  const original=finalValues[index],key=String(original[14]??''),result=results.get(key),idValue=String(original[0]??'')||result?.id;\n  if(!idValue)continue;present.add(idValue);const action=actions.get(idValue);if(!action)continue;\n  if(action.version!==result?.version&&result?.id){preserve=true;break;}\n  if(!original[0]&&result?.id)requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:0},rows:[{values:[value(result.id)]}],fields:'userEnteredValue'}});\n  requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:1},rows:[{values:[value(action.version)]}],fields:'userEnteredValue'}});\n  requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:15},rows:[{values:sheet.columns.slice(15).map(column=>value(action[column]))}],fields:'userEnteredValue'}});\n }\n if(preserve)requests.length=actionRequestStart;\n else {\n  const append=sheet.rows.filter(data=>data.id&&!present.has(data.id));\n  const blankExists=finalValues.slice(1).some(valuesRow=>!String(valuesRow[0]??'')&&!String(valuesRow[5]??'').trim());\n  if(!blankExists)append.push(...sheet.rows.filter(data=>!data.id));\n  if(append.length)requests.push({appendCells:{sheetId:id,rows:append.map(data=>row(sheet.columns,data)),fields:'userEnteredValue'}});\n }\n}\nrequests.unshift({updateSpreadsheetProperties:{properties:{timeZone:'Asia/Bangkok',locale:'th_TH'},fields:'timeZone,locale'}});\nconst batchBody={requests};\nconst utf8=s=>{let size=0;for(const ch of s){const n=ch.codePointAt(0);size+=n<=127?1:n<=2047?2:n<=65535?3:4;}return size;};\nif(utf8(JSON.stringify(batchBody))>180000)throw new Error('MARKETING_COMMIT_TOO_LARGE');\nreturn [{json:{spreadsheetId:setup.spreadsheetId,spreadsheetUrl:setup.spreadsheetUrl,preserveActionPlan:!!preserve,analysisStatus:setup.analysisStatus,sourceManifestCount:setup.sourceManifestCount,tabCount:7,batchBody}}];"
+      }
+    },
+    {
+      "id": "2fa0590a-94d1-4070-a581-737ba43c4486",
+      "name": "Marketing AI Weekly · ต้องใช้ Cloud?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3560,
+        -760
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c72d73e0-ea14-4a9a-95b3-43ed227b5d90",
+              "leftValue": "={{ $json.status !== 'ready' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "733b1961-655e-422e-a4c0-dff058997380",
+      "name": "Marketing AI Weekly · จอง Cloud",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        3780,
+        -760
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'reserveCloud',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Weekly · เตรียม context').first().json.inputHash} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "onError": "continueErrorOutput"
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "4531ae96-69b9-4500-85a2-9a63134af048",
+      "name": "Marketing AI Weekly · จองสำเร็จ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4000,
+        -760
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "d63a9a90-e687-49e3-b979-729ce808d9f0",
+              "leftValue": "={{ $json.status === 'reserved' && $json.reused === false && /^[a-f0-9-]{36}$/.test($json.reservationId || '') && Array.isArray($json.messages) && $json.messages.length === 2 && !!$json.format }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7491cf3c-12bc-4c3c-828c-74b7f99d1d65",
+      "name": "Marketing AI Weekly · OpenAI Luna",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "onError": "continueRegularOutput",
+      "position": [
+        4220,
+        -760
+      ],
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "system",
+              "content": "={{ $json.messages[0].content }}"
+            },
+            {
+              "type": "text",
+              "role": "user",
+              "content": "={{ $json.messages[1].content }}"
+            }
+          ]
+        },
+        "options": {
+          "store": false,
+          "maxTokens": 1600,
+          "reasoning": {
+            "reasoningOptions": [
+              {
+                "effort": "low",
+                "summary": "none"
+              }
+            ]
+          },
+          "textFormat": {
+            "textOptions": [
+              {
+                "type": "json_schema",
+                "name": "marketing_interpretation",
+                "schema": "={{ JSON.stringify($json.format) }}",
+                "strict": true
+              }
+            ]
+          }
+        },
+        "simplify": false
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "LMTTQVflUrwL8HqF",
+          "name": "CCPun Marketing Model Benchmark"
+        }
+      }
+    },
+    {
+      "id": "bff8ced1-6995-4246-9c7c-25a5f3ec9328",
+      "name": "Marketing AI Weekly · เตรียมผล Cloud",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4440,
+        -760
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const response=$input.first().json;\nconst reservation=$('Marketing AI Weekly · จอง Cloud').first().json;\nconst base={analysisId:reservation.analysisId,inputHash:reservation.inputHash,reservationId:reservation.reservationId};\nif(response.error)return [{json:{operation:'failCloud',...base,reason:'api-error'}}];\nconst parts=Array.isArray(response.output)?response.output.flatMap(x=>Array.isArray(x.content)?x.content:[]):[];\nconst raw=typeof response.output_text==='string'?response.output_text:parts.find(x=>x.type==='output_text'&&typeof x.text==='string')?.text;\nconst usage=response.usage;\nif(typeof raw!=='string'||!Number.isInteger(usage?.input_tokens)||!Number.isInteger(usage?.output_tokens))return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];\ntry{return [{json:{operation:'submitCloud',...base,selection:JSON.parse(raw),usage:{inputTokens:usage.input_tokens,outputTokens:usage.output_tokens}}}];}\ncatch{return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];}"
+      }
+    },
+    {
+      "id": "04cbac3b-fa3b-4df8-8595-5a80fd52f3c9",
+      "name": "Marketing AI Weekly · บันทึกผล Cloud",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        4660,
+        -760
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "dd5ad2f3-6977-4b20-9e2c-00e3713877b1",
+      "name": "Marketing AI Monthly · ต้องใช้ Cloud?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3560,
+        260
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c72d73e1-ea14-4a9a-95b3-43ed227b5d91",
+              "leftValue": "={{ $json.status !== 'ready' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "98882e07-68af-433d-9f61-33e791be12b5",
+      "name": "Marketing AI Monthly · จอง Cloud",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        3780,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {operation:'reserveCloud',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Monthly · เตรียม context').first().json.inputHash} }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
+    },
+    {
+      "id": "a80a4371-ce05-4990-b195-d2cdf2b95f76",
+      "name": "Marketing AI Monthly · จองสำเร็จ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4000,
+        260
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "d63a9a91-e687-49e3-b979-729ce808d9f1",
+              "leftValue": "={{ $json.status === 'reserved' && $json.reused === false && /^[a-f0-9-]{36}$/.test($json.reservationId || '') && Array.isArray($json.messages) && $json.messages.length === 2 && !!$json.format }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d3c0fab6-ae6b-4291-84fe-ce847b155f8a",
+      "name": "Marketing AI Monthly · OpenAI Luna",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "onError": "continueRegularOutput",
+      "position": [
+        4220,
+        260
+      ],
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "system",
+              "content": "={{ $json.messages[0].content }}"
+            },
+            {
+              "type": "text",
+              "role": "user",
+              "content": "={{ $json.messages[1].content }}"
+            }
+          ]
+        },
+        "options": {
+          "store": false,
+          "maxTokens": 1600,
+          "reasoning": {
+            "reasoningOptions": [
+              {
+                "effort": "low",
+                "summary": "none"
+              }
+            ]
+          },
+          "textFormat": {
+            "textOptions": [
+              {
+                "type": "json_schema",
+                "name": "marketing_interpretation",
+                "schema": "={{ JSON.stringify($json.format) }}",
+                "strict": true
+              }
+            ]
+          }
+        },
+        "simplify": false
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "LMTTQVflUrwL8HqF",
+          "name": "CCPun Marketing Model Benchmark"
+        }
+      }
+    },
+    {
+      "id": "1b88ed7e-0f05-4310-98b5-cb704ca4117f",
+      "name": "Marketing AI Monthly · เตรียมผล Cloud",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4440,
+        260
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const response=$input.first().json;\nconst reservation=$('Marketing AI Monthly · จอง Cloud').first().json;\nconst base={analysisId:reservation.analysisId,inputHash:reservation.inputHash,reservationId:reservation.reservationId};\nif(response.error)return [{json:{operation:'failCloud',...base,reason:'api-error'}}];\nconst parts=Array.isArray(response.output)?response.output.flatMap(x=>Array.isArray(x.content)?x.content:[]):[];\nconst raw=typeof response.output_text==='string'?response.output_text:parts.find(x=>x.type==='output_text'&&typeof x.text==='string')?.text;\nconst usage=response.usage;\nif(typeof raw!=='string'||!Number.isInteger(usage?.input_tokens)||!Number.isInteger(usage?.output_tokens))return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];\ntry{return [{json:{operation:'submitCloud',...base,selection:JSON.parse(raw),usage:{inputTokens:usage.input_tokens,outputTokens:usage.output_tokens}}}];}\ncatch{return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];}"
+      }
+    },
+    {
+      "id": "2fc3a9fd-77c3-4bb1-90b2-18b0e9678c73",
+      "name": "Marketing AI Monthly · บันทึกผล Cloud",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
+      "position": [
+        4660,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      }
     }
   ],
   "connections": {
@@ -2132,6 +2560,344 @@
         ]
       ]
     },
+    "Daily · ตรวจผลครบทุกต้นทาง": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · Canonical Identity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing Daily · Canonical Identity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · Canonical Identity": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · GSC 7 วัน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · GSC 7 วัน": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · GA4 7 วัน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · GA4 7 วัน": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · วัดผลก่อน–หลัง",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · วัดผลก่อน–หลัง": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · ตรวจผล factual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · Context พร้อม?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · ส่งงาน VPS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · ส่งงาน VPS": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · รับงานแล้ว?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · รับงานแล้ว?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · จอง Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · รอ 15 วินาที": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · อ่านสถานะ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · อ่านสถานะ": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · ตรวจขอบเขต retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · ตรวจขอบเขต retry": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · Worker สำเร็จ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · Worker สำเร็จ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · ตรวจ JSON และหลักฐาน",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · รอต่อ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · รอต่อ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · จอง Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing Daily · ตรวจผล factual": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · เตรียม context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · เตรียม context": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · Context พร้อม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · Context พร้อม?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · ส่งงาน VPS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · ส่งงาน VPS": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · รับงานแล้ว?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · รับงานแล้ว?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · จอง Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · รอ 15 วินาที": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · อ่านสถานะ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · อ่านสถานะ": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · ตรวจขอบเขต retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · ตรวจขอบเขต retry": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · Worker สำเร็จ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · Worker สำเร็จ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · ตรวจ JSON และหลักฐาน",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · รอต่อ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · รอต่อ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · รอ 15 วินาที",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · จอง Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · บันทึกสถานะขั้น": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · เตรียม context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · บันทึกสถานะขั้น": {
+      "main": [
+        [
+          {
+            "node": "Marketing Daily · สรุปการเรียนรู้",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Marketing · Workspace?": {
       "main": [
         [
@@ -2275,61 +3041,10 @@
     },
     "Marketing · บันทึกผล Workspace": {
       "main": [
-        [],
+        null,
         [
           {
             "node": "Runtime · ต้องตรวจผล Sheet",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Daily · ตรวจผลครบทุกต้นทาง": {
-      "main": [
-        [
-          {
-            "node": "Marketing Daily · Canonical Identity",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing Daily · Canonical Identity",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing Daily · Canonical Identity": {
-      "main": [
-        [
-          {
-            "node": "Marketing Daily · GSC 7 วัน",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing Daily · GSC 7 วัน": {
-      "main": [
-        [
-          {
-            "node": "Marketing Daily · GA4 7 วัน",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing Daily · GA4 7 วัน": {
-      "main": [
-        [
-          {
-            "node": "Marketing Daily · วัดผลก่อน–หลัง",
             "type": "main",
             "index": 0
           }
@@ -2341,315 +3056,6 @@
         [
           {
             "node": "Marketing AI Weekly · Context พร้อม?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · Context พร้อม?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · ส่งงาน VPS",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · ส่งงาน VPS": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · รับงานแล้ว?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · รับงานแล้ว?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · รอ 15 วินาที",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · รอ 15 วินาที": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · อ่านสถานะ",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · อ่านสถานะ": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · ตรวจขอบเขต retry",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · ตรวจขอบเขต retry": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · Worker สำเร็จ?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · Worker สำเร็จ?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · ตรวจ JSON และหลักฐาน",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Weekly · รอต่อ?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · รอต่อ?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · รอ 15 วินาที",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · ตรวจ JSON และหลักฐาน": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing Daily · ตรวจผล factual": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Weekly · เตรียม context",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · เตรียม context": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · Context พร้อม?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · Context พร้อม?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · ส่งงาน VPS",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · ส่งงาน VPS": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · รับงานแล้ว?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · รับงานแล้ว?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · รอ 15 วินาที",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · รอ 15 วินาที": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · อ่านสถานะ",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · อ่านสถานะ": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · ตรวจขอบเขต retry",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · ตรวจขอบเขต retry": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · Worker สำเร็จ?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · Worker สำเร็จ?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · ตรวจ JSON และหลักฐาน",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Monthly · รอต่อ?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · รอต่อ?": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · รอ 15 วินาที",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · ตรวจ JSON และหลักฐาน": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Weekly · บันทึกสถานะขั้น": {
-      "main": [
-        [
-          {
-            "node": "Marketing AI Monthly · เตรียม context",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing AI Monthly · บันทึกสถานะขั้น": {
-      "main": [
-        [
-          {
-            "node": "Marketing Daily · สรุปการเรียนรู้",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Marketing Daily · วัดผลก่อน–หลัง": {
-      "main": [
-        [
-          {
-            "node": "Marketing Daily · ตรวจผล factual",
             "type": "main",
             "index": 0
           }
@@ -2774,6 +3180,188 @@
           }
         ]
       ]
+    },
+    "Marketing AI Weekly · ตรวจ JSON และหลักฐาน": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · ต้องใช้ Cloud?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · ต้องใช้ Cloud?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · จอง Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · จอง Cloud": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · จองสำเร็จ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · จองสำเร็จ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · OpenAI Luna",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · OpenAI Luna": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · เตรียมผล Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · เตรียมผล Cloud": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกผล Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Weekly · บันทึกผล Cloud": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Weekly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · ตรวจ JSON และหลักฐาน": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · ต้องใช้ Cloud?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · ต้องใช้ Cloud?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · จอง Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · จอง Cloud": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · จองสำเร็จ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · จองสำเร็จ?": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · OpenAI Luna",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · OpenAI Luna": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · เตรียมผล Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · เตรียมผล Cloud": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกผล Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing AI Monthly · บันทึกผล Cloud": {
+      "main": [
+        [
+          {
+            "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -2790,45 +3378,9 @@
   "active": false,
   "nodeGroups": [
     {
-      "id": "152beaf1-e3bd-5e21-97e7-cb2dd8ca72f4",
-      "name": "Export & Workspace",
-      "description": "Existing exports and persistent workspace share runtime outcome and safe failure paths.",
-      "nodeIds": [
-        "5405c065-c5f2-4514-ad98-52077264bb72",
-        "fb7dc045-6b37-4215-a36f-7d1dc6bda894",
-        "12b015e5-cf51-45a3-827e-4306c71766f9",
-        "e07bb145-489b-482c-99bc-f292746a55a5",
-        "a96e7f46-9e6c-44f8-9b36-a44222197ea1",
-        "f82ccca2-8068-4c3e-87a7-13ef28781a70",
-        "324ccf4f-0755-49f8-8b3a-f0f657d9ae21",
-        "51d2c379-fd11-4a61-8f1d-67b73b0ed08a",
-        "191302df-37bd-4c5b-92b4-c2850c3e85a3",
-        "d5c01e4d-29bd-43c8-9975-5f735fe82c5c",
-        "f7148ddb-8025-4f2f-98ff-27316d845cfa",
-        "2e5b5b67-a759-4283-8d63-06bdea80aabe",
-        "7fd0e364-e83c-4ac2-9f4d-0d4d82557b3f",
-        "958fb280-8c40-4e21-816e-01ea027c758b",
-        "7a5e8311-8fc5-4f63-9a81-4e3f75a1a757",
-        "c4d3ddc8-c661-4503-8f29-b2f73b8b5370",
-        "bd7a9eec-7867-43c7-996a-e731f7dcdf72",
-        "597cc5ac-1d18-4663-9dd3-c71c7f8ca6d8",
-        "35d8fa40-8131-4fc9-8eee-cae91fb7fc90",
-        "87e3a8a8-e19b-4a89-8712-5f1eec2b29d3",
-        "b5e2f541-0a41-4bb6-a71d-7474ae3d44a4",
-        "9455e5db-064b-4fed-82de-bf4813997557",
-        "951d75b2-eae5-4b41-a593-d0e01d143301",
-        "f7dd16bb-67c2-4c99-8df4-02db9aa1bc02",
-        "c95ebfda-1213-475a-9b87-9a6502b33303",
-        "eb38261d-d975-4e93-ab1f-17bb0030e004",
-        "24eb71d3-6869-4ec1-8d88-d8cd74dcfc05",
-        "ee017376-2701-4755-ade0-567e5a44a006",
-        "796add83-334c-4a79-975d-719489b4d907"
-      ]
-    },
-    {
-      "id": "267c7c95-a9bc-5044-8817-9e66c9c804b2",
-      "name": "Legacy Daily",
-      "description": "Existing source collection and daily VPS assessment.",
+      "id": "marketing-legacy-daily",
+      "name": "เดิม · Daily Collectors",
+      "description": "Existing four-source Daily collector and legacy assessment",
       "nodeIds": [
         "57477e77-37bd-4e06-92d5-c4662b12c2c3",
         "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
@@ -2839,45 +3391,15 @@
       ]
     },
     {
-      "id": "871bf828-73ba-5304-9ba9-2a0419102c9a",
-      "name": "Native Facts",
-      "description": "Canonical content, native daily data and deterministic measurement.",
+      "id": "marketing-daily-facts",
+      "name": "Marketing · Native Facts",
+      "description": "Canonical identity, native daily metrics and deterministic measurement",
       "nodeIds": [
-        "eab54058-324c-5851-af54-f3ba9c50742b",
-        "9cadbd8d-54a8-5c6e-ad00-4e15ecf94097",
-        "fcb1b355-1db1-5371-908f-b6e759dda959",
-        "8892332d-9bc7-55a0-a97e-9ce4fb1d3ba9",
-        "99ccb83c-ec6e-548b-b9f5-66a51a0b9e4f"
-      ]
-    },
-    {
-      "id": "7b544b5c-7142-5e27-b5fa-ea68f34d2a75",
-      "name": "Marketing AI",
-      "description": "Bounded weekly and monthly interpretation, polling and evidence validation.",
-      "nodeIds": [
-        "c9b2b7a1-6b09-57b8-b27c-c5d836c1ab34",
-        "24001b2f-06d7-5858-be43-31e50658fd69",
-        "71d52fb9-f26c-5fa8-a61b-bc69b8e1a189",
-        "2229323a-4371-50e0-a6a9-fe1b01312369",
-        "53676e36-861f-5278-92fa-e13bc882baab",
-        "6577a977-8498-590f-964e-e987640b1258",
-        "727139b0-4e39-56f2-8ecb-b99346b1572c",
-        "e4c63c4c-4e5d-5de1-bc07-5630500b1ef5",
-        "a2792b5e-4c94-5979-8dea-81b67c5c9d2a",
-        "409d74c4-9f56-5ba4-ac48-3e88bcc94930",
-        "570b720c-7e2d-5300-a2eb-cff44641a817",
-        "150a4f4a-cbe8-5ffd-8556-70862229b4b4",
-        "fbd94a79-2c61-5b1c-902c-4b5c3e0bc0fa",
-        "fdfad5ad-8925-5ed1-9528-1f53c524fec8",
-        "68ea197b-9475-507f-8b84-c5a3c6c0b5e8",
-        "8135cf7a-b2fa-5caa-adbb-2101db74673f",
-        "1a9093f2-7cf3-57c3-ba89-711ef1f59007",
-        "557dabb1-4b02-5c67-9f46-63b858431d97",
-        "7783a751-6a2d-5c63-a4ad-277853ec0b2d",
-        "afd00fba-1791-5d42-9a30-4e2090979083",
-        "ebf592a5-a76f-5a7e-b44e-04da15c2596b",
-        "56710003-8b93-59c5-8b89-b89212133b34",
-        "5d0686ac-ce33-5106-9b15-e5e1345a807e"
+        "5b34b383-ece8-47ae-b253-d47833cc6ccc",
+        "32da7db3-52e6-4530-8d32-2f118809d336",
+        "8c9f4853-efd8-411d-9ad0-c099f739ec2d",
+        "6c6262fd-a622-41cc-b6cf-d293e985f7a3",
+        "27f836ad-3d0a-44e3-9d5b-42ac928bdf64"
       ]
     }
   ]
