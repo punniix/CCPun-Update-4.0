@@ -215,12 +215,19 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
   for (const prefix of ["Marketing AI Weekly", "Marketing AI Monthly"]) {
     const run = new Function("$input", "$runIndex", nodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode);
     const evaluate = (status: string, attempt: number, workerSucceeded = false) => run({ first: () => ({ json: { status, workerSucceeded, rawRows: ["must not reach AI state"] } }) }, attempt - 1)[0].json;
-    assert.equal(evaluate("running", 7).canRetry, true); assert.equal(evaluate("running", 8).canRetry, false);
+    assert.equal(evaluate("running", 15).canRetry, true); assert.equal(evaluate("running", 16).canRetry, false);
     assert.equal(evaluate("failed", 1).canRetry, false); assert.equal(evaluate("unavailable", 1).canRetry, false);
     assert.equal(evaluate("running", 1, true).workerSucceeded, true); assert.doesNotMatch(JSON.stringify(evaluate("running", 1)), /rawRows/);
     assert.equal(workflow.connections[prefix + " · Worker สำเร็จ?"].main[0][0].node, prefix + " · ตรวจ JSON และหลักฐาน");
     assert.equal(workflow.connections[prefix + " · รอต่อ?"].main[0][0].node, prefix + " · รอ 15 วินาที");
-    assert.equal(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · รอ 15 วินาที").parameters.amount, 15);
+    const wait = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · รอ 15 วินาที").parameters;
+    assert.equal(wait.amount, 15); assert.equal(wait.unit, "seconds");
+    assert.equal(16 * wait.amount, 240);
+    assert.equal(workflow.connections[prefix + " · ตรวจ JSON และหลักฐาน"].main[0][0].node, prefix + " · ต้องใช้ Cloud?");
+    assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[0][0].node, prefix + " · จอง Cloud");
+    assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[1][0].node, prefix + " · บันทึกสถานะขั้น");
+    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /status !== 'ready'/);
+    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody, /operation:'reserveCloud'/);
   }
   assert.equal(workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง").onError, "continueErrorOutput");
   assert.equal(workflow.connections["Daily · ตรวจผลครบทุกต้นทาง"].main[1][0].node, dailyNames[0]);

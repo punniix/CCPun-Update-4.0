@@ -960,7 +960,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst attempt=$runIndex+1;\nreturn [{json:{status,workerSucceeded:body.workerSucceeded===true,attempt,canRetry:['prepared','queued','running'].includes(status)&&attempt<8,factsRemainAvailable:true}}];"
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst attempt=$runIndex+1;\n// ponytail: allow one local repair before the Neon-gated Cloud path.\nreturn [{json:{status,workerSucceeded:body.workerSucceeded===true,attempt,canRetry:['prepared','queued','running'].includes(status)&&attempt<16,factsRemainAvailable:true}}];"
       }
     },
     {
@@ -1278,7 +1278,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst attempt=$runIndex+1;\nreturn [{json:{status,workerSucceeded:body.workerSucceeded===true,attempt,canRetry:['prepared','queued','running'].includes(status)&&attempt<8,factsRemainAvailable:true}}];"
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst attempt=$runIndex+1;\n// ponytail: allow one local repair before the Neon-gated Cloud path.\nreturn [{json:{status,workerSucceeded:body.workerSucceeded===true,attempt,canRetry:['prepared','queued','running'].includes(status)&&attempt<16,factsRemainAvailable:true}}];"
       }
     },
     {
