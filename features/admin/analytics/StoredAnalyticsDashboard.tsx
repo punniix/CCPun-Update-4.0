@@ -54,6 +54,7 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
         return <li key={item.source} className="min-w-0"><h3 className="font-medium">{SOURCES[item.source] ?? item.source}</h3>
           <p className="mt-1 text-sm text-white/70">{saved ? `บันทึกเข้าคลังเมื่อ ${date(saved.collectedAt)}` : "ยังไม่มีข้อมูลที่บันทึกสำเร็จ"}</p>
           {item.lastAttemptAt ? <p className="mt-1 text-xs text-white/60">ลองอัปเดตล่าสุด: {date(item.lastAttemptAt)}</p> : null}
+          {item.lastAttemptDurationMs != null && item.lastAttemptStatus !== "running" ? <p className="mt-1 text-xs text-white/60">รอบล่าสุดใช้เวลา {(item.lastAttemptDurationMs / 1000).toLocaleString("th-TH", { maximumFractionDigits: 1 })} วินาที</p> : null}
           {item.lastError === "not-configured" ? <p className="mt-1 text-xs text-amber-100">ยังต้องเชื่อมต่อแหล่งข้อมูลก่อนอัปเดตได้</p> : null}
           <p className={`mt-1 text-xs leading-5 ${failed ? "text-amber-100" : "text-white/60"}`}>{failed ? saved ? "รอบล่าสุดไม่สำเร็จ ยังใช้และส่งออกชุดที่บันทึกสำเร็จล่าสุดได้" : "รอบล่าสุดไม่สำเร็จ และยังไม่มีชุดข้อมูลก่อนหน้าที่ใช้แทนได้" : item.lastAttemptStatus === "running" ? "กำลังอัปเดต ข้อมูลที่บันทึกสำเร็จก่อนหน้ายังใช้งานได้" : saved ? "ใช้ชุดที่บันทึกสำเร็จล่าสุด" : "รอรอบอัปเดตแรกหรือการเชื่อมต่อแหล่งข้อมูล"}</p>
           {saved && now - Date.parse(saved.collectedAt) > 36 * 60 * 60 * 1000 ? <p className="mt-1 text-xs text-amber-100">ไม่ได้บันทึกชุดใหม่เกิน 36 ชั่วโมงแล้ว</p> : null}
