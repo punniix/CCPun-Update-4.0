@@ -2054,7 +2054,7 @@
             "textOptions": {
               "type": "json_schema",
               "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
-              "schema": "={{ $json.format }}",
+              "schema": "={{ JSON.stringify($json.format) }}",
               "strict": true
             }
           }
@@ -2264,7 +2264,7 @@
             "textOptions": {
               "type": "json_schema",
               "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
-              "schema": "={{ $json.format }}",
+              "schema": "={{ JSON.stringify($json.format) }}",
               "strict": true
             }
           }
