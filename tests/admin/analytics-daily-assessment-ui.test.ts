@@ -18,7 +18,7 @@ test("stored VPS proposal keeps review state, native evidence and missing metric
   assert.match(html, /รอบนี้ประเมินไม่สำเร็จ/); assert.match(html, /รอบก่อนหน้าที่ประเมินสำเร็จ/);
   assert.match(html, /ข้อเสนอจากโมเดล · ยังไม่ได้ตรวจทาน/); assert.doesNotMatch(html, /qwen3:1\.7b/);
   assert.match(html, /2026-09-27T06:01:00Z/); assert.match(html, /2026-08-28/); assert.match(html, /2026-09-23/); assert.match(html, /analytics-review-v1/);
-  assert.match(html, /CPC<\/dt><dd[^>]*>ไม่มีข้อมูล/); assert.match(html, /คลิก<\/dt><dd[^>]*>0<\/dd>/); assert.match(html, /12\.5/);
+  assert.match(html, /ต้นทุนต่อคลิกโดยประมาณ<\/dt><dd[^>]*>ไม่มีข้อมูล/); assert.match(html, /คลิก<\/dt><dd[^>]*>0<\/dd>/); assert.match(html, /12\.5/);
   assert.match(html, /เขตเวลา ต้นทางไม่ได้ระบุ/); assert.match(html, /ข้อมูลมีการจำกัดจำนวน/); assert.match(html, /ตรวจคำค้น &lt;script&gt;/);
   assert.match(html, /รหัสชุดข้อมูล: a{64}/); assert.match(html, /รหัสตรวจสอบข้อมูล: b{64}/); assert.match(html, /href="\/operations\/local-ai\/?"/);
   assert.match(html, /ไม่เปลี่ยนตามตัวกรอง/); assert.doesNotMatch(html, /0%|<button|<script>/);
@@ -32,4 +32,9 @@ test("stored VPS proposal keeps review state, native evidence and missing metric
   assert.match(render({ state: "ready", latest: { ...good, status: "queued", reviewStatus: null, output: null }, lastGood: null }), /รอโมเดลประเมิน/);
   assert.match(render({ state: "ready", latest: null, lastGood: null }), /ยังไม่มีรอบประเมินที่บันทึกไว้/);
   assert.match(render({ state: "unavailable", latest: null, lastGood: null }), /ยังอ่านสถานะการประเมินไม่ได้/);
+  const unknown = render({ state: "ready", latest: { ...good, output: { ...good.output!, limitations: ["Provider quota exceeded"], findings: [{ ...good.output!.findings[0]!, why: "Unknown provider warning" }] } }, lastGood: null });
+  assert.match(unknown, /มีคำอธิบายจากต้นทางที่ยังไม่ได้แปล/);
+  assert.match(unknown, /ข้อจำกัดเดิม: Provider quota exceeded/);
+  assert.match(unknown, /คำอธิบายเดิม: Unknown provider warning/);
+  assert.doesNotMatch(unknown.split("<details")[0], /Provider quota exceeded|Unknown provider warning/);
 });

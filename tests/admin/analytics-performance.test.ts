@@ -4,6 +4,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PerformanceInsights } from "../../features/admin/analytics/PerformanceInsights";
 import type { AnalyticsDataset } from "../../lib/admin/analytics/model";
 import { buildPerformanceExport, buildPerformanceTables } from "../../lib/admin/analytics/performance";
 import { marketingExportXlsx } from "../../lib/admin/analytics/export";
@@ -39,4 +42,15 @@ test("stored performance views retain exact join dates, unknowns, native campaig
   } finally { rmSync(folder, { recursive: true, force: true }); }
   const route = readFileSync(new URL("../../apps/admin/app/api/admin/analytics/export/route.ts", import.meta.url), "utf8");
   assert.match(route, /identity.role !== "owner"/); assert.match(route, /PERFORMANCE_VIEWS.includes/); assert.match(route, /report !== null \|\| format !== "csv"/); assert.doesNotMatch(route, /fetch\(|collectAnalyticsSource/);
+});
+
+test("owner performance guidance is Thai while original source wording remains in collapsed details", () => {
+  const gsc = dataset("gsc-query-page", [{ "คำค้น": "ประกัน", "หน้าเว็บ": "/ci/", "การแสดงผล": 120, "คลิก": 0, "อันดับเฉลี่ย": 12 }]);
+  const ubs = dataset("ubersuggest-web-keywords", [{ "คำค้น": "ประกัน", Intent: "commercial", Volume: 90 }]);
+  const html = renderToStaticMarkup(createElement(PerformanceInsights, { datasets: [gsc, ubs] }));
+  assert.match(html, /เจตนาค้นหา: เปรียบเทียบก่อนซื้อ/);
+  assert.match(html, /ปริมาณค้นหาโดยประมาณ: 90/);
+  assert.match(html, /ต้นทุนต่อคลิกของคำค้นไม่ใช่ค่าโฆษณาจริง/);
+  assert.match(html, /<details[^>]*><summary[^>]*>ข้อความต้นฉบับสำหรับทีมดูแล<\/summary>[^<]*[^]*?benchmark[^]*?<\/details>/);
+  assert.match(html, /เจตนาค้นหาต้นฉบับ<\/summary>commercial<\/details>/);
 });

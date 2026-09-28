@@ -23,7 +23,7 @@ test("native bar chart ranks observed values only and preserves explicit zero wi
 
 test("mixed intent is one keyword bucket regardless of tag order and unavailable intent stays unknown", () => {
   const model = keywordChartData(dataset([{ Intent: "informational,commercial" }, { Intent: "commercial,informational" }, { Intent: "mixed" }, { Intent: "-" }, { Intent: null }]));
-  assert.deepEqual(model.intents, [{ label: "หลายเจตนา (ผสม)", value: 3 }, { label: "ไม่ระบุ Intent", value: 2 }]);
+  assert.deepEqual(model.intents, [{ label: "หลายเจตนา (ผสม)", value: 3 }, { label: "ไม่ระบุเจตนาค้นหา", value: 2 }]);
   const html = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([{ "คำค้น": "same", "หน้าเว็บ": "/one", "คลิก": 5 }, { "คำค้น": "same", "หน้าเว็บ": "/two", "คลิก": 3 }], "gsc-query-page") }));
   assert.match(html, /\/one/); assert.match(html, /\/two/);
 });
@@ -31,7 +31,7 @@ test("mixed intent is one keyword bucket regardless of tag order and unavailable
 test("rendered infographic exposes real counts and accessible SVG title, never a fake trend or unknown zero percentage", () => {
   const html = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([{ "คำค้น": "ไทย <unsafe>", "อันดับ": 3, Volume: 20, Intent: "informational" }, { "คำค้น": "unknown", "อันดับ": null, Volume: null, Intent: null }]) }));
   assert.match(html, /2 คำค้น/); assert.match(html, /role="img"/); assert.match(html, /ต้นทางระบุอันดับ 1 จาก 2/);
-  assert.match(html, /ไม่ระบุ Intent/); assert.match(html, /ไทย &lt;unsafe&gt;/); assert.match(html, /เป็นภาพ ณ ช่วงข้อมูล ไม่ใช่แนวโน้มรายวัน/);
+  assert.match(html, /ไม่ระบุเจตนาค้นหา/); assert.match(html, /ไทย &lt;unsafe&gt;/); assert.match(html, /เป็นภาพ ณ ช่วงข้อมูล ไม่ใช่แนวโน้มรายวัน/);
   const unknown = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([{ "คำค้น": "no metrics", "อันดับ": null, Volume: null, Intent: null }]) }));
   assert.match(unknown, /ยังไม่มีอันดับที่ระบุพอคำนวณสัดส่วน/); assert.doesNotMatch(unknown, /role="img"|>0%/);
   assert.equal(renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([]) })), "");
@@ -43,6 +43,9 @@ test("GA4 daily-dimension charts keep scoped session and event rows without impl
   assert.match(sessions, /google \/ organic/); assert.match(sessions, /2026-09-20/); assert.match(sessions, /report campaign/); assert.match(sessions, /\/ci-planning\//);
   assert.doesNotMatch(sessions, /3\.75|187\.5%/);
   const events = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([{ "วันที่": "2026-09-20", Event: "line_oa_click", "จำนวน event": 0 }, { "วันที่": "2026-09-21", Event: "line_oa_click", "จำนวน event": null }], "ga4-marketing-events") }));
-  assert.match(events, /line_oa_click/); assert.match(events, /2026-09-20/); assert.doesNotMatch(events, /2026-09-21/);
+  assert.match(events, /คลิก LINE ทั่วไป/); assert.match(events, /<details[^>]*><summary[^>]*>รหัสกิจกรรมต้นฉบับสำหรับทีมดูแล<\/summary>line_oa_click<\/details>/); assert.match(events, /2026-09-20/); assert.doesNotMatch(events, /2026-09-21/);
   assert.match(events, /ไม่ใช่จำนวนลูกค้าหรือยอดขายที่ยืนยันแล้ว/);
+  const social = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([{ "แพลตฟอร์ม": "Facebook", "เนื้อหา": "โพสต์ A", "ยอดดู": 12 }, { "แพลตฟอร์ม": "Instagram", "เนื้อหา": "โพสต์ B", "ยอดดู": 9 }], "social-performance") }));
+  assert.match(social, /Reach หรือยอดดูข้ามแพลตฟอร์ม เพราะวิธีนับต่างกัน/);
+  assert.equal((social.match(/ยอดสะสมของแต่ละโพสต์/g) ?? []).length, 2);
 });
