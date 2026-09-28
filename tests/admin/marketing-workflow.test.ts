@@ -227,7 +227,10 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[0][0].node, prefix + " · จอง Cloud");
     assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[1][0].node, prefix + " · บันทึกสถานะขั้น");
     assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /review_required.*failed.*rejected/);
-    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody, /reserveReview.*reserveCloud/);
+    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · รับงานแล้ว?").parameters.conditions.conditions[0].leftValue, /review_not_needed/);
+    const reserveBody = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody;
+    assert.match(reserveBody, /reserveReview.*reserveCloud/);
+    assert.match(reserveBody, /cloudStatus.*failed.*cloudMode.*review/);
     const openAi = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · OpenAI Luna");
     assert.equal(openAi.type, "@n8n/n8n-nodes-langchain.openAi");
     assert.equal(openAi.typeVersion, 2.3);
