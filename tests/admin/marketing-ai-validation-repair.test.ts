@@ -44,7 +44,7 @@ test("repair uses a distinct durable inference profile without changing model or
 test("repair migration gate blocks new jobs and status while keeping last-good reads available", () => {
   const source = readFileSync(new URL("../../lib/admin/marketing/analysis.ts", import.meta.url), "utf8");
   assert.match(source, /20260928_marketing_ai_repair_retry_v4/);
-  assert.match(source, /sha256:14f977f29d840e51d6805e6f3f73964f7e3db7550c5f57ff7779fd6561229521/);
+  assert.match(source, /sha256:41fc1d9c3fc1ea8487dbe68b5f97fccb292675766d9f38a4281f57f9d7e8f176/);
   assert.match(source, /AND \(NOT \$11::boolean OR EXISTS\(SELECT 1 FROM ccpun_admin\.schema_migration WHERE version=\$12 AND checksum=\$13\)\)/);
   for (const method of ["enqueueMarketingAnalysis", "marketingAnalysisStatus"]) {
     assert.match(source.match(new RegExp(`export async function ${method}[^\\n]+`))?.[0] ?? "", /client\(true\)/);
