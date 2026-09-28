@@ -174,9 +174,9 @@ export function aisvReadStateLabel(state: AisvReadState) {
 }
 
 export function aisvSourceRuntimeLabel(runtime: string | null | undefined) {
-  if (runtime === "ccpun-local-admin") return "CCPun Local Admin";
-  if (runtime === "chatgpt-ubersuggest-connector") return "ChatGPT Ubersuggest connector";
-  return "ไม่ทราบ runtime ที่ดึงข้อมูล";
+  if (runtime === "ccpun-local-admin") return "เก็บจากเครื่องมือภายใน CCPun";
+  if (runtime === "chatgpt-ubersuggest-connector") return "นำเข้าผ่านการเชื่อมต่อ Ubersuggest";
+  return "ยังไม่ทราบวิธีดึงข้อมูล";
 }
 
 export function formatNullableMetric(value: number | null | undefined, suffix = "") {
