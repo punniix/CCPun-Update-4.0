@@ -142,7 +142,7 @@ export function buildAnalyticsInferenceRequest(input: AnalyticsReviewInput) {
 export const MARKETING_ANALYSIS_VERSION = "marketing-performance-v1" as const;
 // Inference settings are versioned independently from deterministic facts/prompt input.
 export const MARKETING_INFERENCE_PROFILE = Object.freeze({
-  version: "marketing-qwen17-4096-768-v1", model: "qwen3:1.7b",
+  version: "marketing-qwen17-4096-768-repair-v1", model: "qwen3:1.7b",
   promptVersion: MARKETING_ANALYSIS_VERSION, numCtx: 4096, numPredict: 768,
   temperature: 0, think: false,
 } as const);

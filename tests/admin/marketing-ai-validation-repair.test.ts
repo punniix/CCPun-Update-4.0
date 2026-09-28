@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
-import { marketingAnalysisInputSchema, marketingSnapshotSchema, type MarketingAnalysisInput } from "../../lib/local-ai/contracts";
-import { inferAndValidate } from "../../workers/local-ai/src/index";
+import { MARKETING_INFERENCE_PROFILE, marketingAnalysisInputSchema, marketingSnapshotSchema, type MarketingAnalysisInput } from "../../lib/local-ai/contracts";
+import { buildLocalAiWorkerHeartbeatDetails, inferAndValidate } from "../../workers/local-ai/src/index";
 
 function input(window: "this_week" | "this_month"): MarketingAnalysisInput {
   const metrics = ["line_clicks", "calculator_complete", "organic_sessions", "search_clicks", "search_impressions", "organic_sessions", "search_clicks", "social_views"];
@@ -30,6 +30,14 @@ const corrected = (id: string) => ({
   summary: "ข้อมูลยังต้องตรวจสอบก่อนตัดสินใจ",
   insights: [{ type: "watch", evidenceIds: [id], explanation: "ควรตรวจสอบแนวโน้มควบคู่กับพฤติกรรมหลังเข้าชม", action: "monitor", priority: "low", confidence: "low" }],
   dataQualityNotes: [], reviewRequired: true,
+});
+
+test("repair uses a distinct durable inference profile without changing model or numerical policy", () => {
+  assert.deepEqual(MARKETING_INFERENCE_PROFILE, {
+    version: "marketing-qwen17-4096-768-repair-v1", model: "qwen3:1.7b", promptVersion: "marketing-performance-v1",
+    numCtx: 4096, numPredict: 768, temperature: 0, think: false,
+  });
+  assert.deepEqual(buildLocalAiWorkerHeartbeatDetails("qwen3:1.7b").marketingInferenceProfile, MARKETING_INFERENCE_PROFILE);
 });
 
 test("monthly weak-sample response gets one bounded repair without weakening grounding", async () => {
