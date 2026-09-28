@@ -33,9 +33,9 @@ const corrected = (id: string) => ({
   dataQualityNotes: [], reviewRequired: true,
 });
 
-test("v2 IDs profile stays on the local model and retains numerical policy", () => {
+test("v3 diagnosis profile stays on the local model and retains numerical policy", () => {
   assert.deepEqual(MARKETING_INFERENCE_PROFILE, {
-    version: "marketing-qwen17-4096-768-ids-v2", model: "qwen3:1.7b", promptVersion: "marketing-performance-v2",
+    version: "marketing-qwen17-4096-768-diagnosis-v3", model: "qwen3:1.7b", promptVersion: "marketing-performance-v3",
     numCtx: 4096, numPredict: 768, temperature: 0, think: false,
   });
   assert.deepEqual(buildLocalAiWorkerHeartbeatDetails("qwen3:1.7b").marketingInferenceProfile, MARKETING_INFERENCE_PROFILE);
@@ -46,7 +46,7 @@ test("repair migration gate blocks new jobs and status while keeping last-good r
   assert.match(source, /20260928_marketing_ai_repair_retry_v4/);
   assert.match(source, /sha256:27d012741dd64bbb1d5378ecb4bcd165a9e379b8046342d13019d2dec67290db/);
   assert.match(source, /AND \(NOT \$11::boolean OR EXISTS\(SELECT 1 FROM ccpun_admin\.schema_migration WHERE version=\$12 AND checksum=\$13\)\)/);
-  assert.match(source.match(/export async function enqueueMarketingAnalysis[^\n]+/)?.[0] ?? "", /client\(true,false,true\)/);
+  assert.match(source.match(/export async function enqueueMarketingAnalysis[^\n]+/)?.[0] ?? "", /client\(true,false,true,true\)/);
   assert.match(source.match(/export async function marketingAnalysisStatus[^\n]+/)?.[0] ?? "", /client\(true\)/);
   for (const method of ["readMarketingAnalysis", "validateMarketingAnalysis"]) {
     assert.doesNotMatch(source.match(new RegExp(`export async function ${method}[^\\n]+`))?.[0] ?? "", /client\(true\)/);

@@ -25,7 +25,7 @@ export function safeContentHref(value: string | null | undefined): string | null
 export const statusText: Record<string, string> = {
   fresh: "ข้อมูลล่าสุด", expected_lag: "ล่าช้าตามรอบต้นทาง", stale: "ข้อมูลเก่า", failed: "อัปเดตไม่สำเร็จ", unknown: "ยังไม่ทราบ",
   insufficient_data: "ข้อมูลยังไม่พอ", insufficient_history: "ประวัติยังไม่พอ", insufficient_sample: "ปริมาณยังไม่พอ", low: "ต่ำ", medium: "ปานกลาง", high: "สูง",
-  ready: "พร้อม", pending: "รอวิเคราะห์", running: "กำลังวิเคราะห์", unavailable: "ยังไม่พร้อม", unmapped: "ยังไม่จับคู่เนื้อหา", mapped: "จับคู่แล้ว",
+  ready: "พร้อม", pending: "รอวิเคราะห์", running: "กำลังวิเคราะห์", review_required: "รอ AI อีกชั้นตรวจ", review_not_needed: "หลักฐานยังไม่พอให้ AI ตรวจ", unavailable: "ยังไม่พร้อม", unmapped: "ยังไม่จับคู่เนื้อหา", mapped: "จับคู่แล้ว",
   improved: "เพิ่มขึ้น", declined: "ลดลง", stable: "ใกล้เคียงเดิม", new_activity: "กิจกรรมใหม่", growing: "กำลังเติบโต", declining: "กำลังลดลง",
   improved_after: "ดีขึ้นหลังทำ", declined_after: "ลดลงหลังทำ", inconclusive: "ยังสรุปไม่ได้", missing: "ไม่มีข้อมูล", partial: "ข้อมูลบางส่วน", complete: "ครบตามขอบเขต",
   sufficient: "ปริมาณผ่านเกณฑ์", backlog: "รอจัดแผน", planned: "วางแผนแล้ว", doing: "กำลังทำ", measuring: "กำลังวัดผล", done: "เสร็จแล้ว",

@@ -226,8 +226,11 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(workflow.connections[prefix + " · ตรวจ JSON และหลักฐาน"].main[0][0].node, prefix + " · ต้องใช้ Cloud?");
     assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[0][0].node, prefix + " · จอง Cloud");
     assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[1][0].node, prefix + " · บันทึกสถานะขั้น");
-    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /status !== 'ready'/);
-    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody, /operation:'reserveCloud'/);
+    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /review_required.*failed.*rejected/);
+    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody, /reserveReview.*reserveCloud/);
+    const openAi = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · OpenAI Luna");
+    assert.equal(openAi.type, "n8n-nodes-base.httpRequest");
+    assert.match(openAi.parameters.jsonBody, /store:false/);
   }
   assert.equal(workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง").onError, "continueErrorOutput");
   assert.equal(workflow.connections["Daily · ตรวจผลครบทุกต้นทาง"].main[1][0].node, dailyNames[0]);
