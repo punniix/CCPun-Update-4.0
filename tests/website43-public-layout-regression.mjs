@@ -112,9 +112,11 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
 
 test('Cookie Settings stays inside the visible Website 4.3 footer card at every breakpoint', () => {
   const footer = read('components/layout/website-43/Website43Shared.tsx');
-  assert.match(footer, /className=\{styles\.footerFull\}[\s\S]*?<CookieSettingsButton \/>/);
+  const desktop = footer.split('className={styles.footerFull}>')[1]?.split('className={`${styles.footerCompact}')[0];
+  const infoColumn = desktop?.match(/<strong>ข้อมูล<\/strong>([\s\S]*?)<\/div>/)?.[1];
+  assert.match(infoColumn, /<CookieSettingsButton \/>/);
+  assert.equal(desktop.match(/<CookieSettingsButton \/>/g)?.length, 1);
   assert.match(footer, /className=\{`\$\{styles\.footerCompact\}[\s\S]*?<CookieSettingsButton \/>/);
-  assert.doesNotMatch(footer, /<\/div>\s*<CookieSettingsButton \/>\s*<\/div>\s*<\/footer>/);
 });
 
 
