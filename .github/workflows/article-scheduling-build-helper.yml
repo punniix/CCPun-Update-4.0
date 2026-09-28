@@ -14,6 +14,7 @@ on:
       - cms/sanity/policy/article-schedul*
       - db/migrations/20260911_article_scheduling_v1.ts
       - tests/admin/article-schedul*.test.ts
+      - tests/integration/article-schedule-postgres.test.ts
       - app/api/admin/content/**/schedule/**
 
 permissions:
@@ -89,9 +90,8 @@ jobs:
         with: { node-version: 24.x, cache: npm }
       - run: npm ci
       - name: Execute canonical SQL under the restricted runtime role
-        run: node --import tsx --test tests/admin/article-schedule-postgres.test.ts
+        run: node --import tsx --test tests/integration/article-schedule-postgres.test.ts
         env:
-          CCPUN_SCHEDULER_PG_TEST: '1'
           PGHOST: 127.0.0.1
           PGDATABASE: neondb
           PGUSER: postgres

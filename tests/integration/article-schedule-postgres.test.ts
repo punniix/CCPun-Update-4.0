@@ -6,7 +6,6 @@ import { randomUUID } from "node:crypto";
 import { buildArticleSchedulerMigration, ARTICLE_SCHEDULER_CHECKSUM } from "../../db/migrations/20260911_article_scheduling_v1";
 import { PREPARE_ARTICLE_SCHEDULE, ACK_ARTICLE_DISPATCH, CANCEL_ARTICLE_SCHEDULE, CLAIM_ARTICLE_SCHEDULE, AUTHORIZE_ARTICLE_EXECUTION, FINISH_ARTICLE_SCHEDULE } from "../../lib/admin/operations/article-schedule-sql";
 
-const enabled = process.env.CCPUN_SCHEDULER_PG_TEST === "1";
 const args = ["-X","-q","-A","-t","-v","ON_ERROR_STOP=1"];
 const sql = (statement: string) => execFileSync("psql",args,{input:statement,encoding:"utf8",stdio:["pipe","pipe","pipe"],timeout:15_000}).trim();
 const literal = (value: unknown): string => value === null ? "NULL" : typeof value === "number" ? String(value) : `'${String(value).replaceAll("'","''")}'`;
@@ -15,7 +14,7 @@ function bind(statement: string, values: unknown[]) {
 }
 const query = (statement: string, values: unknown[]) => JSON.parse(sql(`SET ROLE ccpun_admin_runtime; ${bind(statement,values)};`)) as Array<Record<string, unknown>>;
 
-test("real Postgres: additive migration, least privileges, durable CAS, audit and cancellation races", {skip: !enabled}, async () => {
+test("real Postgres: additive migration, least privileges, durable CAS, audit and cancellation races", async () => {
   // Only the disposable PostgreSQL service in this CI job uses PG* credentials.
   assert.equal(process.env.PGHOST,"127.0.0.1"); assert.equal(process.env.PGDATABASE,"neondb");
   sql(`CREATE ROLE neondb_owner CREATEROLE; GRANT CREATE ON DATABASE neondb TO neondb_owner;
