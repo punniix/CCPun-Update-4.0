@@ -2022,7 +2022,6 @@
         "resource": "text",
         "operation": "response",
         "modelId": {
-          "__rl": true,
           "mode": "id",
           "value": "gpt-6-luna"
         },
@@ -2044,19 +2043,23 @@
         "options": {
           "maxTokens": "={{ $json.mode === 'review' ? 512 : 1600 }}",
           "reasoning": {
-            "reasoningOptions": {
-              "effort": "low",
-              "summary": "none"
-            }
+            "reasoningOptions": [
+              {
+                "effort": "low",
+                "summary": "none"
+              }
+            ]
           },
           "store": false,
           "textFormat": {
-            "textOptions": {
-              "type": "json_schema",
-              "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
-              "schema": "={{ $json.format }}",
-              "strict": true
-            }
+            "textOptions": [
+              {
+                "type": "json_schema",
+                "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
+                "schema": "={{ JSON.stringify($json.format) }}",
+                "strict": true
+              }
+            ]
           }
         }
       },
@@ -2232,7 +2235,6 @@
         "resource": "text",
         "operation": "response",
         "modelId": {
-          "__rl": true,
           "mode": "id",
           "value": "gpt-6-luna"
         },
@@ -2254,19 +2256,23 @@
         "options": {
           "maxTokens": "={{ $json.mode === 'review' ? 512 : 1600 }}",
           "reasoning": {
-            "reasoningOptions": {
-              "effort": "low",
-              "summary": "none"
-            }
+            "reasoningOptions": [
+              {
+                "effort": "low",
+                "summary": "none"
+              }
+            ]
           },
           "store": false,
           "textFormat": {
-            "textOptions": {
-              "type": "json_schema",
-              "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
-              "schema": "={{ $json.format }}",
-              "strict": true
-            }
+            "textOptions": [
+              {
+                "type": "json_schema",
+                "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
+                "schema": "={{ JSON.stringify($json.format) }}",
+                "strict": true
+              }
+            ]
           }
         }
       },
