@@ -12,6 +12,13 @@ export type MarketingWorkspaceSheet = { title: MarketingSheetTitle; columns: str
 export type MarketingWorkspace = { version: "marketing-workspace-v1"; generatedAt: string; sheets: MarketingWorkspaceSheet[]; sourceManifest: MarketingManifest[]; analysisStatus: "unavailable" | "ready" | "stale"; actionAuthority: "Admin/Neon" };
 
 const numberOrBlank = (value: number | null) => value;
+function definedWorkbookRows(rows: Record<string, WorkbookCell | undefined>[]): Record<string, WorkbookCell>[] {
+  return rows.map(row => {
+    const defined: Record<string, WorkbookCell> = {};
+    for (const [column, value] of Object.entries(row)) if (value !== undefined) defined[column] = value;
+    return defined;
+  });
+}
 const metricRow = (model: MarketingDashboard, metric: MarketingDashboard["kpis"][number]) => ({ "ช่วง": model.window.key, "ข้อมูลช่วงนี้": model.window.availability ?? "mature_data", "เริ่ม": model.window.currentStart, "สิ้นสุด": model.window.currentEnd, "ช่วงเทียบเริ่ม": model.window.previousStart, "ช่วงเทียบสิ้นสุด": model.window.previousEnd, "ตัวชี้วัด": metric.metric, "ปัจจุบัน": numberOrBlank(metric.current), "ก่อนหน้า": numberOrBlank(metric.previous), "ต่างกัน": metric.absoluteChange, "เปลี่ยนแปลง (%)": metric.percentageChange, "หน่วย": metric.unit, "ปริมาณข้อมูล": metric.sampleStatus, "เกณฑ์ปริมาณ": metric.threshold, "ประวัติ/ความครบ": metric.coverageStatus, "ความสด": metric.freshnessStatus, "หลักฐาน": metric.evidenceRef });
 function workspaceManifest(models: MarketingDashboard[]): MarketingManifest[] {
   const entries = new Map<string, MarketingManifest>();
@@ -66,7 +73,7 @@ export function buildMarketingWorkspace(weekly: MarketingDashboard, monthly: Mar
       ...model.funnel.steps.map(step => ({ "ช่วง": model.window.key, "เริ่ม": model.window.currentStart, "สิ้นสุด": model.window.currentEnd, "ชนิด": "activity-only", "Event": step.event, "จำนวน event": step.count, "สถานะ": step.status, "Denominator": null, "ข้อจำกัด": model.funnel.limitation })),
     ]) },
     { title: "Action Plan", ownership: "human-managed", columns: actionColumns, rows: actionRows },
-    { title: "Data Notes", ownership: "system", columns: ["หัวข้อ", "รายงาน", "รายละเอียด", "ต้นทาง ณ", "รับเข้าคลัง", "เริ่ม", "สิ้นสุด", "Timezone", "Batch ID", "Raw SHA256"], rows: [
+    { title: "Data Notes", ownership: "system", columns: ["หัวข้อ", "รายงาน", "รายละเอียด", "ต้นทาง ณ", "รับเข้าคลัง", "เริ่ม", "สิ้นสุด", "Timezone", "Batch ID", "Raw SHA256"], rows: definedWorkbookRows([
       { "หัวข้อ": "วิธีใช้", "รายงาน": "workspace", "รายละเอียด": "Top Content มี this_week/this_month ตาม SQL; Content Performance หนึ่งแถวต่อ canonical asset–window และคอลัมน์ตัวชี้วัดจาก SQL ไม่รวมคน/Reach ข้าม grain; ค่าว่างไม่ใช่ศูนย์" },
       { "หัวข้อ": "ขอบเขต", "รายงาน": "Content Performance", "รายละเอียด": "canonical assets จาก SQL (bounded 2,000) ไม่จำกัดเฉพาะ Top10; metric ที่ไม่มีข้อมูลยังว่าง ไม่รวม distinct users/reach ข้าม scope" },
       ...models.map(model => ({ "หัวข้อ": "ความพร้อมช่วง", "รายงาน": model.window.key, "รายละเอียด": model.window.availability === "no_mature_data" ? "รอข้อมูลต้นทางที่ mature สำหรับสัปดาห์/เดือนนี้ ไม่แทนด้วยช่วงก่อนหน้า; ไม่มีข้อมูลไม่ใช่ศูนย์" : model.window.calendarPolicy, "เริ่ม": model.window.currentStart, "สิ้นสุด": model.window.currentEnd })),
@@ -85,7 +92,7 @@ export function buildMarketingWorkspace(weekly: MarketingDashboard, monthly: Mar
       ...sourceManifest.map(item => ({ "หัวข้อ": "Provenance", "รายงาน": item.report, "รายละเอียด": item.limitations.join(" | "), "ต้นทาง ณ": item.sourceAsOf, "รับเข้าคลัง": item.collectedAt, "เริ่ม": item.periodStart, "สิ้นสุด": item.periodEnd, "Timezone": item.timezone, "Batch ID": item.batchId, "Raw SHA256": item.rawHash })),
       ...monthly.health.map(item => ({ "หัวข้อ": "Data Health", "รายงาน": item.report, "รายละเอียด": `${item.status}; expected lag ${item.expectedLagDays}d; last error ${item.lastError ?? "none"}; ${item.limitations.join(" | ")}`, "ต้นทาง ณ": item.sourceAsOf, "รับเข้าคลัง": item.collectedAt, "เริ่ม": item.coverageStart, "สิ้นสุด": item.coverageEnd, "Timezone": item.timezone })),
       ...[...new Set(models.flatMap(model => [model.window.calendarPolicy, ...model.notes]))].map(note => ({ "หัวข้อ": "นิยาม/ข้อจำกัด", "รายงาน": "marketing-v1", "รายละเอียด": note })),
-    ] },
+    ]) },
   ] };
 }
 

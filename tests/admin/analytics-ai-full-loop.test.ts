@@ -96,7 +96,7 @@ test("marketing inference has room for complete JSON within the existing context
   const heartbeat=buildLocalAiWorkerHeartbeatDetails("qwen3:1.7b");
   assert.equal(heartbeat.marketingInferenceProfile.numCtx,requests[0]!.options.num_ctx);
   assert.equal(heartbeat.marketingInferenceProfile.numPredict,requests[0]!.options.num_predict);
-  assert.equal(heartbeat.marketingInferenceProfile.promptVersion,marketingInput.promptVersion);
+  assert.equal(heartbeat.marketingInferenceProfile.promptVersion,"marketing-performance-v2");
   assert.equal(heartbeat.marketingInferenceProfile.model,"qwen3:1.7b");
   assert.equal(buildLocalAiWorkerHeartbeatDetails("unsupported-model").marketingInferenceProfile.model,"unsupported-model");
   assert.doesNotMatch(JSON.stringify(heartbeat),/private@example|batchId|evidenceRef/);
