@@ -4,7 +4,7 @@ import { z } from "zod";
 import { adminOperationsRuntimeInputFromEnvironment, resolveAdminOperationsRuntimeIdentity } from "../operations/foundation";
 import { analyticsDatasetSchema, analyticsSourceSchema, type AnalyticsDataset, type AnalyticsSource, type RawAnalyticsPage } from "./model";
 
-const sourceStatusSchema = z.object({ source: analyticsSourceSchema, lastAttemptAt: z.string().nullable(), lastAttemptStatus: z.string().nullable(), lastError: z.string().nullable() });
+const sourceStatusSchema = z.object({ source: analyticsSourceSchema, lastAttemptAt: z.string().nullable(), lastAttemptStatus: z.string().nullable(), lastError: z.string().nullable(), lastAttemptDurationMs: z.number().int().nonnegative().nullable().optional() });
 export type AnalyticsDashboard = { state: "ready" | "unavailable"; datasets: AnalyticsDataset[]; sources: Array<z.infer<typeof sourceStatusSchema>> };
 function sqlClient(variables: Record<string, string | undefined> = process.env) {
   if (!resolveAdminOperationsRuntimeIdentity(adminOperationsRuntimeInputFromEnvironment(variables)) || !variables.CCPUN_ADMIN_DATABASE_URL?.trim()) throw new Error("ANALYTICS_DATABASE_NOT_READY");
