@@ -99,7 +99,56 @@ expect(
 );
 expect('disallowed Sanity data plane returns no actions', studioPolicy.includes('if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) return [];'));
 
+const authorSanitySchema = read('cms/sanity/schema/documents/author.ts');
+const sanityRuntimeSchema = read('lib/content/sanity-schema.ts');
+const siteStructuredData = read('lib/seo/structured-data/site-schema.ts');
+const entityIds = read('lib/seo/structured-data/entity-ids.ts');
+const articleStructuredData = read('lib/content/structured-data/article-schema.ts');
+const homePage = read('app/page.tsx');
+const publicLayout = read('app/layout.tsx');
+
+expect(
+  'legacy Author credentials contract stays intact while professional qualifications are additive',
+  authorSanitySchema.includes('name: "credentials"')
+    && authorSanitySchema.includes('of: [defineArrayMember({ type: "string" })]')
+    && authorSanitySchema.includes('readOnly: true')
+    && authorSanitySchema.includes('deprecated:')
+    && authorSanitySchema.includes('name: "professionalQualifications"')
+    && authorSanitySchema.includes('name: "identifier"')
+    && authorSanitySchema.includes('name: "issuer"'),
+);
+expect(
+  'professional qualification runtime parsing is fail-soft and GROQ keeps Sanity array keys',
+  sanityRuntimeSchema.includes('parseProfessionalQualifications')
+    && sanityRuntimeSchema.includes('if (!Array.isArray(items)) return []')
+    && read('lib/content/sanity.ts').includes('professionalQualifications[]{\n      _key,'),
+);
+expect(
+  'Person entity has one canonical human name with aliases and Article schema references only that entity',
+  siteStructuredData.includes('"name": "ชนาธิป ชิดประเสริฐ"')
+    && siteStructuredData.includes('"alternateName": ["ปั้น", "CCPun"]')
+    && entityIds.includes('export const CCPUN_PERSON_ID = "https://ccpun.com/#person"')
+    && articleStructuredData.includes('author: { "@id": CCPUN_PERSON_ID }')
+    && !articleStructuredData.includes('name: article.authorName')
+    && publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิดประเสริฐ", url: "https://ccpun.com" }]')
+    && !publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)"'),
+);
+expect(
+  'Homepage credential enrichment is fail-soft and does not require a new public page',
+  homePage.includes('getPrimaryAuthorProfile')
+    && homePage.includes('buildProfessionalQualificationPersonSchema')
+    && homePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && !homePage.includes('/about/'),
+);
+
 const sanityContent = read('lib/content/sanity.ts');
+expect(
+  'primary Author lookup is cached and falls back cleanly when Sanity is unavailable',
+  sanityContent.includes('export const getPrimaryAuthorProfile = unstable_cache')
+    && sanityContent.includes('revalidate: 300')
+    && sanityContent.includes('return null;')
+    && sanityContent.includes('[author-profile] primary author unavailable'),
+);
 expect(
   'Sanity list query uses lightweight projection',
   sanityContent.includes('const listQuery = groq`*[_type == "article" && defined(slug.current)] | order(coalesce(publishedAt, _updatedAt) desc) ${baseProjection}`')

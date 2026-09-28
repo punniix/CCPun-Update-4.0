@@ -2,6 +2,7 @@ import type { Article } from "../types";
 import type { BlogTopicHub } from "../taxonomy";
 import { getArticleSemanticTopic } from "../taxonomy";
 import { getArticleCanonical } from "../url";
+import { CCPUN_PERSON_ID } from "@/lib/seo/structured-data/entity-ids";
 
 const SITE_URL = "https://ccpun.com";
 
@@ -44,7 +45,7 @@ export function buildArticleSchemaGraph(article: Article) {
             },
           }
         : {}),
-      author: { "@type": "Person", "@id": `${SITE_URL}/#person`, name: article.authorName },
+      author: { "@id": CCPUN_PERSON_ID },
       publisher: { "@id": `${SITE_URL}/#organization` },
     },
     {

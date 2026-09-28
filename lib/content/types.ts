@@ -49,6 +49,15 @@ export type ArticleReview = {
   complianceReviewedAt?: string;
 };
 
+export type ProfessionalQualification = {
+  _key?: string;
+  shortName: string;
+  name: string;
+  identifier?: string;
+  issuer: string;
+  issuerUrl?: string;
+};
+
 export type ArticleAuthorProfile = {
   name: string;
   profileName?: string;
@@ -56,6 +65,7 @@ export type ArticleAuthorProfile = {
   profileBio?: string;
   profileCtaLabel?: string;
   profileCtaUrl?: string;
+  professionalQualifications?: ProfessionalQualification[];
   profileAvatar?: {
     src: string;
     alt: string;

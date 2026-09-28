@@ -31,7 +31,37 @@ export const author = defineType({
             : "กรอก URL, path ภายในเว็บไซต์ หรือ anchor ที่ขึ้นต้นด้วย #",
         ),
     }),
-    defineField({ name: "credentials", title: "Credentials", type: "array", of: [defineArrayMember({ type: "string" })] }),
+    defineField({
+      name: "credentials",
+      title: "Credentials (เดิม)",
+      type: "array",
+      of: [defineArrayMember({ type: "string" })],
+      readOnly: true,
+      hidden: ({ value }) => value === undefined,
+      deprecated: { reason: "ใช้คุณวุฒิวิชาชีพด้านล่างแทน โดยเก็บ field เดิมไว้เพื่อรองรับข้อมูลเก่า" },
+    }),
+    defineField({
+      name: "professionalQualifications",
+      title: "คุณวุฒิวิชาชีพ",
+      type: "array",
+      description: "ข้อมูลคุณวุฒิวิชาชีพแบบมีโครงสร้าง เช่น AFPT™ หรือ CFP® โดยไม่เปลี่ยน field Credentials เดิม",
+      validation: (Rule) => Rule.max(10),
+      of: [
+        defineArrayMember({
+          name: "professionalQualification",
+          title: "คุณวุฒิวิชาชีพ",
+          type: "object",
+          fields: [
+            defineField({ name: "shortName", title: "ชื่อย่อที่ใช้แสดง", type: "string", validation: (Rule) => Rule.required().max(40) }),
+            defineField({ name: "name", title: "ชื่อคุณวุฒิ", type: "string", validation: (Rule) => Rule.required().max(160) }),
+            defineField({ name: "identifier", title: "เลขคุณวุฒิ / รหัส", type: "string", validation: (Rule) => Rule.max(80) }),
+            defineField({ name: "issuer", title: "หน่วยงานผู้ออกคุณวุฒิ", type: "string", validation: (Rule) => Rule.required().max(160) }),
+            defineField({ name: "issuerUrl", title: "เว็บไซต์หน่วยงาน", type: "url", validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }) }),
+          ],
+          preview: { select: { title: "shortName", subtitle: "identifier" } },
+        }),
+      ],
+    }),
     defineField({
       name: "sameAs",
       title: "Profile URLs",

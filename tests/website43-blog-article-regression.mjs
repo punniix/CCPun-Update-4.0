@@ -11,6 +11,9 @@ require.extensions['.css'] = (module) => {
   module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) };
 };
 const { toWebsite43ArticleItem } = require('../features/blog/website-43/blogData.ts');
+const { parseProfessionalQualifications } = require('../lib/content/sanity-schema.ts');
+const { buildProfessionalQualificationPersonSchema, personSchema } = require('../lib/seo/structured-data/site-schema.ts');
+const { buildArticleSchemaGraph } = require('../lib/content/structured-data/article-schema.ts');
 const Article = require('../features/blog/website-43/Website43Article.tsx').default;
 const article = {
   id: 'published-fixture', slug: 'fixture-article', category: 'ประกันชีวิต', categorySlug: 'life-insurance',
@@ -53,7 +56,50 @@ assert.ok([...rendered.querySelectorAll('button')].some((button) => button.textC
 assert.equal([...rendered.querySelectorAll('a')].filter((a) => !a.getAttribute('href') || a.getAttribute('href').startsWith('/preview/')).length, 0);
 const profile = doc(React.createElement(Article, { article: { ...article, author: { name: 'ชื่อ CMS', profileName: 'ชื่อโปรไฟล์', profileCtaUrl: '#about-ccpun' } } }));
 assert.ok(profile.body.textContent.includes('ชื่อโปรไฟล์'));
+assert.ok(profile.body.textContent.includes('ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน'), 'legacy Author data keeps the current visible role before managed qualifications are populated');
 assert.ok(profile.querySelector('a[href="/#about-ccpun"]'));
+
+const managedProfile = doc(React.createElement(Article, { article: { ...article, author: {
+  name: 'CCPun',
+  profileName: 'ชนาธิป ชิดประเสริฐ',
+  profileRole: 'บทบาทจาก Sanity',
+  profileBio: 'คำอธิบายจาก Sanity',
+  profileCtaUrl: '#about-ccpun',
+  professionalQualifications: [{
+    _key: 'afpt',
+    shortName: 'AFPT™',
+    name: 'คุณวุฒิวิชาชีพที่ปรึกษาการเงิน AFPT™',
+    identifier: 'AFPT260195',
+    issuer: 'สมาคมนักวางแผนการเงินไทย',
+    issuerUrl: 'https://www.tfpa.or.th/',
+  }],
+} } }));
+assert.ok(managedProfile.body.textContent.includes('ชนาธิป ชิดประเสริฐ, AFPT™'));
+assert.ok(managedProfile.body.textContent.includes('บทบาทจาก Sanity'));
+assert.ok(managedProfile.body.textContent.includes('คำอธิบายจาก Sanity'));
+assert.ok(!managedProfile.body.textContent.includes('AFPT260195'), 'Article author card must not repeat the credential identifier');
+
+const parsedQualifications = parseProfessionalQualifications([
+  { _key: 'valid', shortName: 'AFPT™', name: 'ที่ปรึกษาการเงิน AFPT™', identifier: 'AFPT260195', issuer: 'สมาคมนักวางแผนการเงินไทย' },
+  { _key: 'invalid', shortName: 'BROKEN' },
+]);
+assert.equal(parsedQualifications.length, 1, 'malformed qualification items are isolated instead of dropping the whole Article');
+assert.equal(parsedQualifications[0].identifier, 'AFPT260195');
+assert.deepEqual(parseProfessionalQualifications({ not: 'an-array' }), []);
+
+assert.equal(personSchema.name, 'ชนาธิป ชิดประเสริฐ');
+assert.deepEqual(personSchema.alternateName, ['ปั้น', 'CCPun']);
+const qualificationPersonSchema = buildProfessionalQualificationPersonSchema(parsedQualifications);
+assert.equal(qualificationPersonSchema['@id'], 'https://ccpun.com/#person');
+assert.equal(qualificationPersonSchema.hasCredential[0].identifier, 'AFPT260195');
+assert.equal(qualificationPersonSchema.hasCredential[0].alternateName, 'AFPT™');
+assert.equal(qualificationPersonSchema.hasCredential[0].recognizedBy.name, 'สมาคมนักวางแผนการเงินไทย');
+
+const articleSchemaGraph = buildArticleSchemaGraph(article);
+const articlePosting = articleSchemaGraph['@graph'].find((node) => node['@type'] === 'BlogPosting');
+assert.deepEqual(articlePosting.author, { '@id': 'https://ccpun.com/#person' });
+assert.equal('name' in articlePosting.author, false, 'Article JSON-LD must not create a conflicting author name');
+
 const item = toWebsite43ArticleItem(article);
 assert.match(item.meta, /2 มิ\.ย\. 2569/, 'Bangkok midnight date stays identical in SSR and hydration');
 assert.equal(item.href, '/blog/life-insurance/fixture-article/');

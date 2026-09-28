@@ -216,6 +216,9 @@
 .aboutPortrait { position: absolute; top: 0; left: 0; width: 400px; height: 526px; max-width: none; object-fit: cover; object-position: center top; border-radius: 20px; }
 .aboutCopy { margin-left: 470px; width: min(720px, calc(100% - 470px)); }
 .aboutCopy .h2 { margin-top: 20px; }
+.aboutIdentity { margin-top: 20px; }
+.aboutIdentityName { margin: 0; color: var(--w43-ink); font-size: 20px; font-weight: 600; line-height: 1.35; }
+.aboutIdentityMeta { margin: 6px 0 0; color: var(--w43-muted); font-size: 15px; line-height: 1.5; }
 .aboutParagraphs { margin-top: 36px; color: var(--w43-muted); font-size: 17px; line-height: 1.7; }
 .aboutParagraphs p { margin: 0; }
 .aboutParagraphs p + p { margin-top: 16px; }

@@ -16,11 +16,18 @@ const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   timeZone: 'Asia/Bangkok',
 });
 
+const DEFAULT_AUTHOR_ROLE = 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน';
+const DEFAULT_AUTHOR_BIO = 'ในฐานะที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน ผมเริ่มจากเป้าหมาย ความเสี่ยง และสถานการณ์ของแต่ละคน ก่อนช่วยพิจารณาทางเลือกด้านการลงทุนหรือประกันให้เหมาะกับชีวิตจริง';
+
 export default function Website43Article({ article, relatedArticles = [], preview = false }: { article: Article; relatedArticles?: Article[]; preview?: boolean }) {
+  const professionalQualifications = article.author?.professionalQualifications ?? [];
+  const managedProfile = professionalQualifications.length > 0;
+  const baseAuthorName = article.author?.profileName ?? article.author?.name ?? article.authorName ?? 'ชนาธิป ชิตประเสริฐ';
+  const qualificationSuffix = professionalQualifications.map((qualification) => qualification.shortName.trim()).filter(Boolean).join(', ');
   const author = {
-    name: article.author?.profileName ?? article.author?.name ?? article.authorName ?? 'ชนาธิป ชิตประเสริฐ',
-    role: 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน',
-    bio: 'ในฐานะที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน ผมเริ่มจากเป้าหมาย ความเสี่ยง และสถานการณ์ของแต่ละคน ก่อนช่วยพิจารณาทางเลือกด้านการลงทุนหรือประกันให้เหมาะกับชีวิตจริง',
+    name: qualificationSuffix ? `${baseAuthorName}, ${qualificationSuffix}` : baseAuthorName,
+    role: managedProfile ? article.author?.profileRole?.trim() || DEFAULT_AUTHOR_ROLE : DEFAULT_AUTHOR_ROLE,
+    bio: managedProfile ? article.author?.profileBio?.trim() || DEFAULT_AUTHOR_BIO : DEFAULT_AUTHOR_BIO,
     profileCtaLabel: article.author?.profileCtaLabel ?? 'รู้จัก CCPun เพิ่มเติม',
     profileCtaUrl: article.author?.profileCtaUrl?.startsWith('#') ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? '/#about-ccpun',
     avatar: article.author?.profileAvatar ?? { src: '/assets/pun.jpg', alt: 'ชนาธิป ชิตประเสริฐ', width: 96, height: 96 },
