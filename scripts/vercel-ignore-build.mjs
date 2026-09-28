@@ -3,7 +3,13 @@ import { pathToFileURL } from "node:url";
 
 const WEB_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 const ADMIN_PROJECT_ID = "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN";
-const WORKER_ONLY_PREFIXES = ["workers/local-ai/"];
+const BUILDLESS_PREFIXES = [
+  ".github/",
+  "db/",
+  "qa/",
+  "tests/",
+  "workers/",
+];
 
 const ADMIN_ONLY_PREFIXES = [
   "apps/admin/",
@@ -13,11 +19,8 @@ const ADMIN_ONLY_PREFIXES = [
   "app/api/admin/",
   "app/studio/",
   "cms/sanity/",
-  "db/",
   "features/admin/",
   "lib/admin/",
-  "qa/admin-",
-  "tests/admin/",
 ];
 const WEB_ONLY_PREFIXES = [
   "apps/web/",
@@ -34,7 +37,6 @@ const WEB_ONLY_PREFIXES = [
   "features/financial-health-check/",
   "features/home/",
   "public/",
-  "tests/website43-",
 ];
 const WEB_ONLY_FILES = new Set([
   "app/page.tsx",
@@ -46,13 +48,11 @@ const WEB_ONLY_FILES = new Set([
   "components/ui/FunctionalMotion.module.css",
   "components/ui/HumanCalculatorCard.tsx",
 ]);
-const DOCS_ONLY_FILES = new Set(["AGENTS.md", "HANDOFF.md", "README.md"]);
-const NEUTRAL_CONTROL_FILES = new Set([
-  ".github/workflows/sanity-free-plan-privacy.yml",
-  ".github/workflows/seo-topic-hubs-ci.yml",
+const BUILDLESS_FILES = new Set([
+  "AGENTS.md",
+  "HANDOFF.md",
+  "README.md",
   "scripts/vercel-ignore-build.mjs",
-  "tests/vercel-app-root-config.test.mjs",
-  "tests/vercel-build-routing.test.mjs",
 ]);
 
 function hasPrefix(path, prefixes) {
@@ -64,23 +64,17 @@ export function classifyProductionChanges(changedPaths) {
 
   let hasAdminChange = false;
   let hasWebChange = false;
-  let hasDocsChange = false;
-  let hasNeutralControlChange = false;
-  let hasWorkerChange = false;
+  let hasBuildlessChange = false;
   for (const path of changedPaths) {
     if (typeof path !== "string" || !path || path.includes("\\") || path.includes("\0") || path.split("/").some((part) => !part || part === "." || part === "..")) {
       return "mixed-or-unknown";
     }
-    if (DOCS_ONLY_FILES.has(path) || (path.startsWith("docs/") && path.endsWith(".md"))) {
-      hasDocsChange = true;
-      continue;
-    }
-    if (NEUTRAL_CONTROL_FILES.has(path)) {
-      hasNeutralControlChange = true;
-      continue;
-    }
-    if (hasPrefix(path, WORKER_ONLY_PREFIXES)) {
-      hasWorkerChange = true;
+    if (
+      BUILDLESS_FILES.has(path)
+      || hasPrefix(path, BUILDLESS_PREFIXES)
+      || (path.startsWith("docs/") && path.endsWith(".md"))
+    ) {
+      hasBuildlessChange = true;
       continue;
     }
     if (WEB_ONLY_FILES.has(path) || hasPrefix(path, WEB_ONLY_PREFIXES)) {
@@ -94,12 +88,10 @@ export function classifyProductionChanges(changedPaths) {
     return "mixed-or-unknown";
   }
 
-  if (hasWorkerChange && (hasAdminChange || hasWebChange || hasNeutralControlChange)) return "mixed-or-unknown";
-  if (hasAdminChange && !hasWebChange) return "admin-only";
-  if (hasWebChange && !hasAdminChange) return "web-only";
-  if (hasWorkerChange) return "worker-only";
-  if (hasNeutralControlChange) return "neutral-control";
-  if (hasDocsChange) return "docs-only";
+  if (hasAdminChange && hasWebChange) return "mixed-or-unknown";
+  if (hasAdminChange) return "admin-only";
+  if (hasWebChange) return "web-only";
+  if (hasBuildlessChange) return "buildless-only";
   return "mixed-or-unknown";
 }
 
@@ -140,18 +132,14 @@ export function shouldBuild({ projectId, environment, changedPaths }) {
   if (environment !== "production" && environment !== "preview") return true;
   if (environment === "production") {
     const classification = classifyProductionChanges(changedPaths);
-    if (classification === "docs-only" || classification === "worker-only") return false;
+    if (classification === "buildless-only") return false;
     if (classification === "admin-only") return projectId === ADMIN_PROJECT_ID;
     if (classification === "web-only") return projectId === WEB_PROJECT_ID;
-    // Production push CI promotes the exact Admin SHA after verification, so
-    // neutral control-plane/test changes still need an Admin candidate. They do
-    // not need a Web deployment.
-    if (classification === "neutral-control") return projectId === ADMIN_PROJECT_ID;
     return true;
   }
   const classification = classifyProductionChanges(changedPaths);
-  if (classification === "docs-only" || classification === "worker-only") return false;
-  if (classification === "admin-only" || classification === "neutral-control") {
+  if (classification === "buildless-only") return false;
+  if (classification === "admin-only") {
     return projectId === ADMIN_PROJECT_ID;
   }
   if (classification === "web-only") return projectId === WEB_PROJECT_ID;
