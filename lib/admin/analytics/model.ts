@@ -44,7 +44,7 @@ const ga4MarketingFields = {
 const ga4MarketingResponseSchema = z.object({
   dimensionHeaders: z.array(z.object({ name: z.string() })), metricHeaders: z.array(z.object({ name: z.string() })),
   rows: z.array(z.object({ dimensionValues: z.array(z.object({ value: z.string() })), metricValues: z.array(z.object({ value: z.string() })) })).max(10_000).default([]),
-  rowCount: z.number().int().nonnegative(),
+  rowCount: z.number().int().nonnegative().default(0),
   metadata: z.object({ timeZone: z.string().optional(), subjectToThresholding: z.boolean().optional(), dataLossFromOtherRow: z.boolean().optional(), samplingMetadatas: z.array(z.unknown()).optional() }).optional(),
 });
 export function ga4MarketingRequest(report: Ga4MarketingReport, startDate: string, endDate: string) {
