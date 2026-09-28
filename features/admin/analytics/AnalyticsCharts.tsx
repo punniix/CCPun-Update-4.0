@@ -5,6 +5,12 @@ type Bar = { label: string; value: number; detail?: string };
 const number = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 const format = (value: number) => value.toLocaleString("th-TH", { maximumFractionDigits: 2 });
 const intentNames: Record<string, string> = { informational: "หาข้อมูล", commercial: "เปรียบเทียบก่อนซื้อ", transactional: "พร้อมทำรายการ", navigational: "หาเว็บหรือแบรนด์", mixed: "หลายเจตนา (ผสม)" };
+const additionalActivityNames: Record<string, string> = {
+  ci_step_view: "ดูขั้นตอนวางแผนโรคร้ายแรง",
+  fhc_step_view: "ดูขั้นตอนตรวจสุขภาพการเงิน",
+  fhc_calculator_start: "เริ่มตรวจสุขภาพการเงิน",
+  fhc_calculator_complete: "ตรวจสุขภาพการเงินเสร็จ",
+};
 
 export function keywordChartData(dataset: Pick<AnalyticsDataset, "rows">) {
   const ranks = ["1–3", "4–10", "11–20", "21–100", "มากกว่า 100"].map((label) => ({ label, value: 0 }));
@@ -92,7 +98,8 @@ export function AnalyticsCharts({ dataset }: { dataset: AnalyticsDataset }) {
   }
   if (dataset.report === "ga4-marketing-events") {
     const activities = buildPerformanceTables([dataset]).find(table => table.view === "marketing-activities")!;
-    return <div className="mt-6 border-t border-white/10 pt-5"><Bars title="กิจกรรมจากเครื่องมือและ LINE ที่รายงานสูงสุด" unit="ครั้ง" items={nativeMetricBars({ rows: activities.rows }, "ความหมาย", "จำนวน event", "วันที่")} note="หนึ่งแท่งต่อกิจกรรมและวันที่ตามรายงาน การใช้เครื่องมือหรือคลิก LINE เป็นเพียงกิจกรรมที่อาจเกิดซ้ำ ไม่ใช่จำนวนลูกค้าหรือยอดขายที่ยืนยันแล้ว" /><details className="mt-2 text-xs text-white/60"><summary className="cursor-pointer">รหัสกิจกรรมต้นฉบับสำหรับทีมดูแล</summary>{[...new Set(dataset.rows.map(row => String(row.Event ?? "ไม่ระบุ")))].join(" · ")}</details></div>;
+    const rows = activities.rows.map(row => ({ ...row, "ความหมาย": additionalActivityNames[String(row.Event)] ?? row["ความหมาย"] }));
+    return <div className="mt-6 border-t border-white/10 pt-5"><Bars title="กิจกรรมจากเครื่องมือและ LINE ที่รายงานสูงสุด" unit="ครั้ง" items={nativeMetricBars({ rows }, "ความหมาย", "จำนวน event", "วันที่")} note="หนึ่งแท่งต่อกิจกรรมและวันที่ตามรายงาน การใช้เครื่องมือหรือคลิก LINE เป็นเพียงกิจกรรมที่อาจเกิดซ้ำ ไม่ใช่จำนวนลูกค้าหรือยอดขายที่ยืนยันแล้ว" /><details className="mt-2 text-xs text-white/60"><summary className="cursor-pointer">รหัสกิจกรรมต้นฉบับสำหรับทีมดูแล</summary>{[...new Set(dataset.rows.map(row => String(row.Event ?? "ไม่ระบุ")))].join(" · ")}</details></div>;
   }
   if (dataset.report === "social-performance") {
     const platforms = [...new Set(dataset.rows.map((row) => typeof row["แพลตฟอร์ม"] === "string" ? row["แพลตฟอร์ม"] : "ไม่ระบุแพลตฟอร์ม"))];

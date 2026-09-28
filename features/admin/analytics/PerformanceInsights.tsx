@@ -5,10 +5,10 @@ const link = "inline-flex min-h-11 items-center rounded-lg border border-white/2
 const text = (value: unknown) => value === null || value === undefined || value === "" ? "ไม่ทราบ" : String(value);
 const intentNames: Record<string, string> = { informational: "หาข้อมูล", commercial: "เปรียบเทียบก่อนซื้อ", transactional: "พร้อมทำรายการ", navigational: "หาเว็บหรือแบรนด์", mixed: "หลายเจตนา" };
 const intent = (value: unknown) => value == null || value === "" ? "ไม่ทราบ" : intentNames[String(value).toLowerCase()] ?? "เจตนาอื่นที่ต้นทางระบุ";
-const reason = (value: unknown) => text(value).replaceAll("benchmark", "เกณฑ์อ้างอิง").replaceAll("SERP", "หน้าผลการค้นหา").replaceAll("Intent/Volume", "เจตนาค้นหาและปริมาณค้นหา");
+const reason = (value: unknown) => text(value).replaceAll("ไม่ใช่ benchmark", "ไม่ใช่เกณฑ์อ้างอิง").replaceAll("benchmark", "เกณฑ์อ้างอิง").replaceAll("SERP", "หน้าผลการค้นหา").replaceAll("Intent/Volume", "เจตนาค้นหาและปริมาณค้นหา");
 const guidance: Record<string, string> = {
   "seo-review": "เรียงตามจำนวนครั้งที่ปรากฏใน Google หากยังไม่มีข้อมูล Google ใช้ปริมาณค้นหาโดยประมาณจาก Ubersuggest เพื่อวางแผนเท่านั้น ไม่ใช่จำนวนผู้เข้าชมที่คาดว่าจะได้ อันดับที่ว่างหมายถึงไม่ทราบ",
-  "measurement-gaps": "ยังคำนวณCPA/ROAS (ต้นทุนต่อผลลัพธ์และผลตอบแทนโฆษณา) ไม่ได้ จนกว่าจะมีค่าใช้จ่ายกับผลธุรกิจจริงในช่วงเวลาเดียวกัน",
+  "measurement-gaps": "ยังคำนวณ CPA/ROAS (ต้นทุนต่อผลลัพธ์และผลตอบแทนโฆษณา) ไม่ได้ จนกว่าจะมีค่าใช้จ่ายกับผลธุรกิจจริงในช่วงเวลาเดียวกัน",
   "campaign-performance": "วิเคราะห์ตามวัน ช่องทาง แคมเปญ และหน้าเข้า รวมจำนวนเซสชันได้เฉพาะแถวที่ไม่ซ้ำขอบเขต ห้ามนำอัตราเหตุการณ์สำคัญของแต่ละแถวมาหาค่าเฉลี่ยตรง ๆ และเหตุการณ์สำคัญไม่ใช่จำนวนลูกค้า",
   "marketing-activities": "วิเคราะห์ตามวัน ประเภทกิจกรรม และจำนวนครั้งที่เกิด กิจกรรมหนึ่งอย่างเกิดซ้ำได้ จึงไม่ใช่จำนวนคนที่ไม่ซ้ำกัน จำนวนลูกค้า หรือยอดขาย",
 };
