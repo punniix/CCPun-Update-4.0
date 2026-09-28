@@ -13,7 +13,7 @@ export const MARKETING_ANALYSIS_MIGRATION_CHECKSUM="sha256:eb0d7a8a1637ccde4bc17
 export const MARKETING_RETRY_MIGRATION_VERSION="20260927_marketing_retry_v3";
 export const MARKETING_RETRY_MIGRATION_CHECKSUM="sha256:e150ce6f3fecd22ff312fe5265340eb882b53044c1e6b319f5b6b6aa833a480e";
 export const MARKETING_AI_REPAIR_MIGRATION_VERSION="20260928_marketing_ai_repair_retry_v4";
-export const MARKETING_AI_REPAIR_MIGRATION_CHECKSUM="sha256:41fc1d9c3fc1ea8487dbe68b5f97fccb292675766d9f38a4281f57f9d7e8f176";
+export const MARKETING_AI_REPAIR_MIGRATION_CHECKSUM="sha256:27d012741dd64bbb1d5378ecb4bcd165a9e379b8046342d13019d2dec67290db";
 export type MarketingAnalysisRecord={analysisId:string;jobId:string|null;status:"prepared"|"queued"|"running"|"ready"|"failed"|"stale";promptVersion:typeof MARKETING_ANALYSIS_VERSION;analysisType:string;period:MarketingAnalysisInput["period"];createdAt:string;completedAt:string|null;modelName:string|null;inputHash:string;output:MarketingAnalysisOutput|null;sourceManifest:MarketingDashboard["manifest"]};
 export type MarketingAnalysisView={state:"ready"|"unavailable";latest:MarketingAnalysisRecord|null;lastGood:MarketingAnalysisRecord|null};
 export function buildMarketingAnalysisInput(data:MarketingDashboard):MarketingAnalysisInput{

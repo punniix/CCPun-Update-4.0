@@ -5,7 +5,7 @@ SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='ccpun_admin_ru
 SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM ccpun_admin.local_ai_identity WHERE singleton AND database_name='neondb' AND migration_version='20260919_local_ai_control_plane_v1' AND migration_checksum='sha256:b49fe8d024c279710eb4eb3b45b06e40ffc960a3ec57b21792c63c98514ceef6' AND ((lane='uat' AND project_id='young-term-47483330' AND branch_id='br-crimson-mouse-az7ajkv8' AND endpoint_id='ep-mute-frost-aztvz394') OR (lane='production' AND project_id='lively-bar-43618798' AND branch_id='br-long-resonance-b3ys5xrv' AND endpoint_id='ep-broad-butterfly-b3ro7u8w'))) THEN 1 ELSE 0 END AS identity_guard;
 SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM ccpun_admin.schema_migration WHERE version='20260927_marketing_retry_v3' AND checksum='sha256:e150ce6f3fecd22ff312fe5265340eb882b53044c1e6b319f5b6b6aa833a480e') THEN 1 ELSE 0 END AS prerequisite_guard;
 SELECT pg_advisory_xact_lock(hashtext('ccpun_admin:20260928_marketing_ai_repair_retry_v4'));
-SELECT 1 / CASE WHEN NOT EXISTS(SELECT 1 FROM ccpun_admin.schema_migration WHERE version='20260928_marketing_ai_repair_retry_v4' AND checksum<>'sha256:41fc1d9c3fc1ea8487dbe68b5f97fccb292675766d9f38a4281f57f9d7e8f176') THEN 1 ELSE 0 END AS checksum_guard;
+SELECT 1 / CASE WHEN NOT EXISTS(SELECT 1 FROM ccpun_admin.schema_migration WHERE version='20260928_marketing_ai_repair_retry_v4' AND checksum<>'sha256:27d012741dd64bbb1d5378ecb4bcd165a9e379b8046342d13019d2dec67290db') THEN 1 ELSE 0 END AS checksum_guard;
 -- The v3 checksum above pins the exact source of these four existing constraints.
 SELECT 1 / CASE WHEN (SELECT count(*) FROM pg_constraint WHERE conrelid='ccpun_admin.marketing_analysis_attempt'::regclass AND contype='c' AND conname IN('marketing_analysis_attempt_generation_check','marketing_analysis_attempt_provenance_check','marketing_analysis_attempt_check','marketing_analysis_attempt_check1'))=4 THEN 1 ELSE 0 END AS attempt_constraint_guard;
 -- checksum-source-begin
@@ -45,7 +45,7 @@ BEGIN
   ELSIF prior.generation=1 AND prior.provenance='worker-heartbeat-768' AND prior.profile_version='marketing-qwen17-4096-768-v1' AND prior.inference_profile=base_profile THEN
    generation:=2;remaining:=3;profile:=repair_profile;provenance_text:='worker-heartbeat-768-repair';reason_code:='marketing-profile-transition-768-repair';
   ELSIF prior.generation=2 AND prior.provenance='worker-heartbeat-768' AND prior.profile_version='marketing-qwen17-4096-768-v1' AND prior.inference_profile=base_profile AND prior.parent_failed_job_id IS NOT NULL THEN
-   SELECT * INTO parent FROM ccpun_admin.marketing_analysis_attempt WHERE analysis_id=a.analysis_id AND job_id=prior.parent_failed_job_id AND generation=1;
+   SELECT * INTO parent FROM ccpun_admin.marketing_analysis_attempt AS t WHERE t.analysis_id=a.analysis_id AND t.job_id=prior.parent_failed_job_id AND t.generation=1;
    IF NOT FOUND OR parent.provenance<>'audited-legacy-384' OR parent.profile_version<>'marketing-qwen17-4096-384-v1' THEN RAISE EXCEPTION 'MARKETING_REPAIR_LINEAGE_INVALID';END IF;
    generation:=3;remaining:=4;profile:=repair_profile;provenance_text:='worker-heartbeat-768-repair';reason_code:='marketing-profile-transition-768-repair';
   ELSE
@@ -74,5 +74,5 @@ END $enqueue$;
 REVOKE ALL ON ccpun_admin.marketing_analysis_attempt FROM PUBLIC,ccpun_admin_runtime,ccpun_local_ai_runtime;
 -- No new table or function grants. Existing owner-only API path and lineage remain authoritative.
 -- checksum-source-end
-INSERT INTO ccpun_admin.schema_migration(version,checksum) VALUES('20260928_marketing_ai_repair_retry_v4','sha256:41fc1d9c3fc1ea8487dbe68b5f97fccb292675766d9f38a4281f57f9d7e8f176') ON CONFLICT(version) DO NOTHING;
+INSERT INTO ccpun_admin.schema_migration(version,checksum) VALUES('20260928_marketing_ai_repair_retry_v4','sha256:27d012741dd64bbb1d5378ecb4bcd165a9e379b8046342d13019d2dec67290db') ON CONFLICT(version) DO NOTHING;
 COMMIT;

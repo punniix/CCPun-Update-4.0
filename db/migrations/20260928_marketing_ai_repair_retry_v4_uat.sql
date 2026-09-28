@@ -2,7 +2,7 @@
 BEGIN;
 SET LOCAL lock_timeout='5s';
 SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM ccpun_admin.local_ai_identity WHERE singleton AND lane='uat' AND project_id='young-term-47483330' AND branch_id='br-crimson-mouse-az7ajkv8') THEN 1 ELSE 0 END AS uat_only_guard;
-SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM ccpun_admin.schema_migration WHERE version='20260928_marketing_ai_repair_retry_v4' AND checksum='sha256:41fc1d9c3fc1ea8487dbe68b5f97fccb292675766d9f38a4281f57f9d7e8f176') THEN 1 ELSE 0 END AS migration_guard;
+SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM ccpun_admin.schema_migration WHERE version='20260928_marketing_ai_repair_retry_v4' AND checksum='sha256:27d012741dd64bbb1d5378ecb4bcd165a9e379b8046342d13019d2dec67290db') THEN 1 ELSE 0 END AS migration_guard;
 DO $repair_fixture$
 DECLARE a_id uuid;legacy_id uuid;base_id uuid;new_id uuid;replay_id uuid;case_no integer;used_expected integer;r jsonb;p jsonb;case_payload jsonb;
  legacy_profile jsonb:=jsonb_build_object('version','marketing-qwen17-4096-384-v1','model','qwen3:1.7b','promptVersion','marketing-performance-v1','numCtx',4096,'numPredict',384,'temperature',0,'think',false);
