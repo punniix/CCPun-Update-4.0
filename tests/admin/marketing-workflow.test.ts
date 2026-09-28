@@ -256,3 +256,25 @@ test("draft creation commits only system identity/version; the human task and im
   assert.equal(output.preserveActionPlan, false); assert.deepEqual(updates.map((request: { updateCells: { start: { columnIndex: number } } }) => request.updateCells.start.columnIndex), [0, 1, 15]);
   assert.doesNotMatch(JSON.stringify(updates), /Owner draft|Retain draft notes|draft:abcd/);
 });
+
+test("Cloud failures log bounded diagnostics without model input or provider error text", () => {
+  for (const period of ["Weekly", "Monthly"]) {
+    const prefix = `Marketing AI ${period} · `;
+    const code = nodes.get(prefix + "เตรียมผล Cloud")!.parameters.jsCode;
+    const run = new Function("$input", "$", "console", code);
+    const reservation = { analysisId: "analysis-private", inputHash: "hash-private", reservationId: "reservation-private", localOutputDigest: "digest-private", mode: "review" };
+    const lookup = () => ({ first: () => ({ json: reservation }) });
+    const logs: string[] = [];
+    const logger = { log: (message: string) => logs.push(message) };
+    const providerError = { statusCode: 429, error: { message: '429 - {"code":"rate_limit_exceeded","message":"secret-payload-marker"}' } };
+    const failed = run({ first: () => ({ json: providerError }) }, lookup, logger)[0].json;
+    assert.equal(failed.operation, "failReview");
+    assert.equal(failed.reason, "api-error");
+    assert.deepEqual(JSON.parse(logs[0]!), { event: `marketing-cloud-${period.toLowerCase()}-http`, httpStatus: 429, errorCode: "rate_limit_exceeded", incompleteReason: null });
+    assert.doesNotMatch(logs[0]!, /secret-payload-marker|analysis-private|hash-private|reservation-private|digest-private/);
+    logs.length = 0;
+    const incomplete = run({ first: () => ({ json: { status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, error: null } }) }, lookup, logger)[0].json;
+    assert.equal(incomplete.operation, "failReview");
+    assert.deepEqual(JSON.parse(logs[0]!), { event: `marketing-cloud-${period.toLowerCase()}-http`, httpStatus: null, errorCode: null, incompleteReason: "max_output_tokens" });
+  }
+});
