@@ -842,7 +842,7 @@
         2700
       ],
       "parameters": {
-        "jsCode": "const workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst prepared=$('Marketing · ตรวจช่องมนุษย์').first().json;\nconst imported=$('Marketing · นำเข้างาน CAS').first().json;\nconst latest=$input.first()?.json??{};const latestBody=latest.body??latest;\nconst latestValues=Array.isArray(latestBody.values)?latestBody.values:[];\nconst expected=['Performance Overview','Top Content','Opportunities','Content Performance','Campaign & Funnel','Action Plan','Data Notes'];\nif(workspace.spreadsheetId!=='1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o'||!Array.isArray(workspace.sheets)||JSON.stringify(workspace.sheets.map(x=>x.title))!==JSON.stringify(expected))throw new Error('MARKETING_WORKSPACE_INVALID');\nconst sameRows=JSON.stringify(prepared.initialValues)===JSON.stringify(latestValues);\nconst latestReadOk=Number(latest.statusCode??200)===200&&!latestBody.error;\nconst missingConfirmed=!prepared.actionExists&&[400,404].includes(Number(latest.statusCode))&&!!latestBody.error;\nlet preserve=prepared.preserveActionPlan||imported.preserveActionPlan!==false||imported.status!=='completed'||!sameRows||(!latestReadOk&&!missingConfirmed);\nconst actionSheet=workspace.sheets.find(x=>x.title==='Action Plan');\nconst actions=new Map(actionSheet.rows.filter(x=>x.id).map(x=>[x.id,x]));\nfor(const result of imported.results??[])if(result.id&&actions.has(result.id)&&actions.get(result.id).version!==result.version)preserve=true;\nconst sheets=new Map((metadata.sheets??[]).map(x=>[x.properties.title,x.properties]));\nconst used=new Set([...sheets.values()].map(x=>x.sheetId));\nlet nextId=91000;const requests=[];\nconst value=v=>v===null||v===undefined||v===''?{}:{userEnteredValue:typeof v==='number'&&Number.isFinite(v)?{numberValue:v}:typeof v==='boolean'?{boolValue:v}:{stringValue:String(v)}};\nconst row=(columns,data)=>({values:columns.map(column=>value(data[column]))});\nfor(const sheet of workspace.sheets){\n if(!Array.isArray(sheet.columns)||!sheet.columns.length||!Array.isArray(sheet.rows)||sheet.rows.length>5000)throw new Error('MARKETING_SHEET_INVALID');\n if(sheet.title==='Action Plan'&&preserve)continue;\n let properties=sheets.get(sheet.title);const exists=!!properties;\n if(!properties){while(used.has(nextId))nextId++;properties={sheetId:nextId++,title:sheet.title,gridProperties:{rowCount:Math.max(100,sheet.rows.length+1),columnCount:Math.max(26,sheet.columns.length)}};used.add(properties.sheetId);requests.push({addSheet:{properties}});}\n const id=properties.sheetId,grid=properties.gridProperties??{},rowCount=Math.max(grid.rowCount??100,sheet.rows.length+1),columnCount=Math.max(grid.columnCount??26,sheet.columns.length);\n requests.push({updateSheetProperties:{properties:{sheetId:id,gridProperties:{frozenRowCount:1,rowCount,columnCount}},fields:'gridProperties.frozenRowCount,gridProperties.rowCount,gridProperties.columnCount'}});\n if(sheet.title!=='Action Plan'||!exists){\n  const rows=[{values:sheet.columns.map(v=>value(v))},...sheet.rows.map(data=>row(sheet.columns,data))];\n  requests.push({updateCells:{range:{sheetId:id,startRowIndex:0,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},rows,fields:'userEnteredValue'}});\n }else{\n  const results=new Map((imported.results??[]).map(x=>[x.importKey,x]));const present=new Set();\n  for(let index=1;index<latestValues.length;index++){\n   const original=latestValues[index],key=String(original[14]??''),result=results.get(key),idValue=String(original[0]??'')||result?.id;\n   if(!idValue)continue;present.add(idValue);const action=actions.get(idValue);if(!action)continue;\n   if(!original[0]&&result?.id)requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:0},rows:[{values:[value(result.id)]}],fields:'userEnteredValue'}});\n   requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:1},rows:[{values:[value(action.version)]}],fields:'userEnteredValue'}});\n   requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:15},rows:[{values:sheet.columns.slice(15).map(column=>value(action[column]))}],fields:'userEnteredValue'}});\n  }\n  const append=sheet.rows.filter(data=>data.id&&!present.has(data.id));\n  const blankExists=latestValues.slice(1).some(valuesRow=>!String(valuesRow[0]??'')&&!String(valuesRow[5]??'').trim());\n  if(!blankExists)append.push(...sheet.rows.filter(data=>!data.id));\n  if(append.length)requests.push({appendCells:{sheetId:id,rows:append.map(data=>row(sheet.columns,data)),fields:'userEnteredValue'}});\n }\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},backgroundColor:{red:.15,green:.09,blue:.09}}},fields:'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'}});\n requests.push({setBasicFilter:{filter:{range:{sheetId:id,startRowIndex:0,endRowIndex:sheet.title==='Action Plan'?rowCount:Math.max(1,sheet.rows.length+1),startColumnIndex:0,endColumnIndex:sheet.columns.length}}}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:0,endIndex:sheet.columns.length},properties:{pixelSize:180},fields:'pixelSize'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment'}});\n if(sheet.title==='Action Plan'){\n  requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1,startColumnIndex:2,endColumnIndex:14},cell:{userEnteredFormat:{backgroundColor:{red:.37,green:.28,blue:.09}}},fields:'userEnteredFormat.backgroundColor'}});\n  requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:5,endIndex:6},properties:{pixelSize:420},fields:'pixelSize'}});\n  requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:11,endIndex:14},properties:{pixelSize:320},fields:'pixelSize'}});\n }\n if(sheet.title==='Action Plan')for(const[key,allowed]of[['priority',['high','medium','low']],['status',['backlog','planned','doing','measuring','done']],['actionType',['title','description','refresh','cta','internal_link','expansion','promotion','keyword','investigation']],['expectedMetric',['organic_sessions','search_clicks','line_clicks','calculator_complete','social_views']]])requests.push({setDataValidation:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:sheet.columns.indexOf(key),endColumnIndex:sheet.columns.indexOf(key)+1},rule:{condition:{type:'ONE_OF_LIST',values:allowed.map(userEnteredValue=>({userEnteredValue}))},strict:true,showCustomUi:true}}});\n}\nrequests.unshift({updateSpreadsheetProperties:{properties:{timeZone:'Asia/Bangkok',locale:'th_TH'},fields:'timeZone,locale'}});\nconst batchBody={requests};if(JSON.stringify(batchBody).length>8000000)throw new Error('MARKETING_WORKSPACE_TOO_LARGE');\nreturn [{json:{spreadsheetId:workspace.spreadsheetId,spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+workspace.spreadsheetId+'/edit',preserveActionPlan:!!preserve,analysisStatus:workspace.analysisStatus,sourceManifestCount:workspace.sourceManifest?.length??0,tabCount:7,batchBody}}];"
+        "jsCode": "const workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst metadata=$('Marketing · อ่านโครงสร้าง Workspace').first().json;\nconst prepared=$('Marketing · ตรวจช่องมนุษย์').first().json;\nconst imported=$('Marketing · นำเข้างาน CAS').first().json;\nconst latest=$input.first()?.json??{}, latestBody=latest.body??latest;\nconst latestValues=Array.isArray(latestBody.values)?latestBody.values:[];\nconst expected=['Performance Overview','Top Content','Opportunities','Content Performance','Campaign & Funnel','Action Plan','Data Notes'];\nconst systems=expected.filter(title=>title!=='Action Plan');\nif(workspace.spreadsheetId!=='1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o'||!Array.isArray(workspace.sheets)||JSON.stringify(workspace.sheets.map(x=>x.title))!==JSON.stringify(expected))throw new Error('MARKETING_WORKSPACE_INVALID');\nconst sameRows=JSON.stringify(prepared.initialValues)===JSON.stringify(latestValues);\nconst latestReadOk=Number(latest.statusCode??200)===200&&!latestBody.error;\nconst missingConfirmed=!prepared.actionExists&&[400,404].includes(Number(latest.statusCode))&&!!latestBody.error;\nlet preserve=prepared.preserveActionPlan||imported.preserveActionPlan!==false||imported.status!=='completed'||!sameRows||(!latestReadOk&&!missingConfirmed);\nconst actionSheet=workspace.sheets.find(x=>x.title==='Action Plan');\nconst actions=new Map(actionSheet.rows.filter(x=>x.id).map(x=>[x.id,x]));\nfor(const result of imported.results??[])if(result.id&&actions.has(result.id)&&actions.get(result.id).version!==result.version)preserve=true;\nconst properties=(metadata.sheets??[]).map(x=>x.properties).filter(Boolean);\nconst titles=new Map(properties.map(x=>[x.title,x]));\nif(titles.size!==properties.length)throw new Error('MARKETING_DUPLICATE_SHEET_TITLE');\nif(properties.some(x=>/^__ccpun_previous_[1-6]$/.test(x.title)))throw new Error('MARKETING_PREVIOUS_STAGE_REMAINS');\nconst used=new Set(properties.map(x=>x.sheetId));\nconst jobId=String($('เตรียม Export').first().json.jobId??'').toLowerCase();\nif(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(jobId))throw new Error('MARKETING_STAGE_JOB_ID_INVALID');\nlet hash=2166136261;for(const character of jobId){hash=Math.imul(hash^character.charCodeAt(0),16777619)>>>0;}\nconst stageBase=100000000+(hash%300000000)*6;\nconst requests=[],stages=[];\nfor(let index=0;index<systems.length;index++){\n const title=systems[index],sheet=workspace.sheets.find(x=>x.title===title);\n if(!sheet||!Array.isArray(sheet.columns)||!sheet.columns.length||!Array.isArray(sheet.rows)||sheet.rows.length>5000)throw new Error('MARKETING_SHEET_INVALID');\n const stageTitle='__ccpun_stage_'+jobId.replace(/-/g,'')+'_'+(index+1),candidateId=stageBase+index;let stage=titles.get(stageTitle);\n if(stage&&stage.sheetId!==candidateId)throw new Error('MARKETING_STAGE_ID_CHANGED');\n if(!stage){if(used.has(candidateId))throw new Error('MARKETING_STAGE_ID_COLLISION');stage={sheetId:candidateId,title:stageTitle,hidden:true,gridProperties:{rowCount:Math.max(100,sheet.rows.length+1),columnCount:Math.max(26,sheet.columns.length)}};used.add(stage.sheetId);requests.push({addSheet:{properties:stage}});}\n const rowCount=Math.max(stage.gridProperties?.rowCount??100,sheet.rows.length+1),columnCount=Math.max(stage.gridProperties?.columnCount??26,sheet.columns.length);\n requests.push({updateSheetProperties:{properties:{sheetId:stage.sheetId,hidden:true,gridProperties:{frozenRowCount:1,rowCount,columnCount}},fields:'hidden,gridProperties.frozenRowCount,gridProperties.rowCount,gridProperties.columnCount'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:columnCount},cell:{},fields:'userEnteredValue'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},backgroundColor:{red:.15,green:.09,blue:.09}}},fields:'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'}});\n requests.push({setBasicFilter:{filter:{range:{sheetId:stage.sheetId,startRowIndex:0,endRowIndex:Math.max(1,sheet.rows.length+1),startColumnIndex:0,endColumnIndex:sheet.columns.length}}}});\n requests.push({updateDimensionProperties:{range:{sheetId:stage.sheetId,dimension:'COLUMNS',startIndex:0,endIndex:sheet.columns.length},properties:{pixelSize:180},fields:'pixelSize'}});\n requests.push({repeatCell:{range:{sheetId:stage.sheetId,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment'}});\n stages.push({title,stageTitle,stageId:stage.sheetId,canonicalId:titles.get(title)?.sheetId??null,columns:sheet.columns.length,rowCount:sheet.rows.length+1});\n}\nconst setupBody={requests};if(JSON.stringify(setupBody).length>180000)throw new Error('MARKETING_STAGE_SETUP_TOO_LARGE');\nreturn [{json:{spreadsheetId:workspace.spreadsheetId,spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+workspace.spreadsheetId+'/edit',preserveActionPlan:!!preserve,analysisStatus:workspace.analysisStatus,sourceManifestCount:workspace.sourceManifest?.length??0,tabCount:7,jobId,stages,setupBody}}];"
       },
       "onError": "continueErrorOutput"
     },
@@ -852,7 +852,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        2600,
+        3750,
         2400
       ],
       "onError": "continueErrorOutput",
@@ -889,7 +889,7 @@
       "typeVersion": 4.5,
       "onError": "continueErrorOutput",
       "position": [
-        2800,
+        3950,
         2400
       ],
       "parameters": {
@@ -898,7 +898,7 @@
         "sendHeaders": false,
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?'completed':'reconciliation_required',stage:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?'done':Number($json.statusCode??0)===200?'marketing-actions-review':'marketing-google-write-review',...(!(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?{errorCategory:Number($json.statusCode??0)===200?'marketing-actions-review-required':'google-sheet-http-' + (Number.isInteger(Number($json.statusCode))&&Number($json.statusCode)>=100&&Number($json.statusCode)<=599?Number($json.statusCode):'unknown')}:{}),heartbeatAt:new Date().toISOString(),completedAt:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Atomic Refresh').first().json.preserveActionPlan)?new Date().toISOString():null,providerReference:Number($json.statusCode??0)===200?$('Marketing · เตรียม Atomic Refresh').first().json.spreadsheetUrl:null,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
+        "jsonBody": "={{ ({expectedVersion:Number($('Runtime · เริ่มงาน').first().json.rowVersion),status:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?'completed':'reconciliation_required',stage:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?'done':Number($json.statusCode??0)===200?'marketing-actions-review':'marketing-google-write-review',...(!(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?{errorCategory:Number($json.statusCode??0)===200?'marketing-actions-review-required':'google-sheet-http-' + (Number.isInteger(Number($json.statusCode))&&Number($json.statusCode)>=100&&Number($json.statusCode)<=599?Number($json.statusCode):'unknown')}:{}),heartbeatAt:new Date().toISOString(),completedAt:(Number($json.statusCode??0)===200&&!$('Marketing · เตรียม Commit').first().json.preserveActionPlan)?new Date().toISOString():null,providerReference:Number($json.statusCode??0)===200?$('Marketing · เตรียม Commit').first().json.spreadsheetUrl:null,durationMs:Math.max(0,Date.now()-Date.parse($('เตรียม Export').first().json.startedAt))}) }}",
         "options": {
           "response": {
             "response": {
@@ -1716,6 +1716,193 @@
           "name": "CCPun Production Analytics Service"
         }
       }
+    },
+    {
+      "id": "951d75b2-eae5-4b41-a593-d0e01d143301",
+      "name": "Marketing · เตรียม staging ที่ซ่อน",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2350,
+        2400
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.setupBody }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "f7dd16bb-67c2-4c99-8df4-02db9aa1bc02",
+      "name": "Marketing · แบ่งข้อมูล staging",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2550,
+        2400
+      ],
+      "parameters": {
+        "jsCode": "const setup=$('Marketing · เตรียม Atomic Refresh').first().json;\nconst reply=$input.first()?.json??{};\nif(Number(reply.statusCode??0)!==200||reply.body?.error)throw new Error('MARKETING_STAGE_SETUP_HTTP_'+(Number(reply.statusCode)||'unknown'));\nconst workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst value=v=>v===null||v===undefined||v===''?{}:{userEnteredValue:typeof v==='number'&&Number.isFinite(v)?{numberValue:v}:typeof v==='boolean'?{boolValue:v}:{stringValue:String(v)}};\nconst utf8=s=>{let size=0;for(const ch of s){const n=ch.codePointAt(0);size+=n<=127?1:n<=2047?2:n<=65535?3:4;}return size;};\nconst limit=180000, items=[];\nfor(const stage of setup.stages){\n const sheet=workspace.sheets.find(x=>x.title===stage.title);\n const allRows=[{values:sheet.columns.map(value)},...sheet.rows.map(data=>({values:sheet.columns.map(column=>value(data[column]))}))];\n let start=0,rows=[];\n const body=(first,cells)=>({requests:[{updateCells:{start:{sheetId:stage.stageId,rowIndex:first,columnIndex:0},rows:cells,fields:'userEnteredValue'}}]});\n const emit=()=>{if(!rows.length)return;const batchBody=body(start,rows);if(utf8(JSON.stringify(batchBody))>limit)throw new Error('MARKETING_STAGE_CHUNK_TOO_LARGE');items.push({json:{spreadsheetId:setup.spreadsheetId,stageTitle:stage.stageTitle,chunkIndex:items.length,batchBody}});start+=rows.length;rows=[];};\n for(const row of allRows){if(utf8(JSON.stringify(body(start,[row])))>limit)throw new Error('MARKETING_STAGE_ROW_TOO_LARGE');if(rows.length&&utf8(JSON.stringify(body(start,[...rows,row])))>limit)emit();rows.push(row);}\n emit();\n}\nif(!items.length||items.length>300)throw new Error('MARKETING_STAGE_CHUNK_COUNT_INVALID');\nreturn items;"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "c95ebfda-1213-475a-9b87-9a6502b33303",
+      "name": "Marketing · เขียน staging ทีละชุด",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2750,
+        2400
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + ':batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.batchBody }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "eb38261d-d975-4e93-ab1f-17bb0030e004",
+      "name": "Marketing · ตรวจผล staging",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2950,
+        2400
+      ],
+      "parameters": {
+        "jsCode": "const responses=$input.all();const chunks=$('Marketing · แบ่งข้อมูล staging').all();\nif(!chunks.length||responses.length!==chunks.length)throw new Error('MARKETING_STAGE_RESPONSE_COUNT');\nfor(let index=0;index<responses.length;index++){\n const result=responses[index]?.json??{};\n if(Number(result.statusCode??0)!==200||result.body?.error)throw new Error('MARKETING_STAGE_HTTP_'+(Number(result.statusCode)||'unknown'));\n}\nreturn [{json:{stagedChunks:chunks.length}}];"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "24eb71d3-6869-4ec1-8d88-d8cd74dcfc05",
+      "name": "Marketing · อ่านโครงสร้างก่อน Commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3150,
+        2400
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "spreadsheetId,sheets(properties(sheetId,title,hidden,gridProperties))"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "ee017376-2701-4755-ade0-567e5a44a006",
+      "name": "Marketing · อ่าน Action Plan ก่อน Commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3350,
+        2400
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o/values/%27Action%20Plan%27!A1%3AW105",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyfaTTYsoIQiDzTD",
+          "name": "CC - Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "796add83-334c-4a79-975d-719489b4d907",
+      "name": "Marketing · เตรียม Commit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3550,
+        2400
+      ],
+      "parameters": {
+        "jsCode": "const setup=$('Marketing · เตรียม Atomic Refresh').first().json;\nif(setup.jobId!==String($('เตรียม Export').first().json.jobId??'').toLowerCase())throw new Error('MARKETING_STAGE_JOB_CHANGED');\nconst workspace=$('Marketing · อ่าน SQL Workspace').first().json;\nconst prepared=$('Marketing · ตรวจช่องมนุษย์').first().json;\nconst imported=$('Marketing · นำเข้างาน CAS').first().json;\nconst initial=$('Marketing · อ่านงานซ้ำก่อนเขียน').first().json;\nconst initialValues=(initial.body??initial).values??[];\nconst metadata=$('Marketing · อ่านโครงสร้างก่อน Commit').first().json;\nconst final=$input.first()?.json??{},finalBody=final.body??final;\nconst finalValues=Array.isArray(finalBody.values)?finalBody.values:[];\nconst properties=(metadata.sheets??[]).map(x=>x.properties).filter(Boolean),titles=new Map(properties.map(x=>[x.title,x]));\nif(titles.size!==properties.length)throw new Error('MARKETING_COMMIT_DUPLICATE_TITLE');\nif(properties.some(x=>/^__ccpun_previous_[1-6]$/.test(x.title)))throw new Error('MARKETING_COMMIT_PREVIOUS_REMAINS');\nconst actionWasPresent=prepared.actionExists,actionNow=titles.get('Action Plan');\nif(!actionWasPresent&&actionNow)throw new Error('MARKETING_ACTION_CREATED_CONCURRENTLY');\nif(actionWasPresent&&(!actionNow||actionNow.sheetId!==($('Marketing · อ่านโครงสร้าง Workspace').first().json.sheets??[]).find(x=>x.properties?.title==='Action Plan')?.properties.sheetId))throw new Error('MARKETING_ACTION_ID_CHANGED');\nconst finalReadOk=Number(final.statusCode??0)===200&&!finalBody.error;\nconst missingConfirmed=!actionWasPresent&&!actionNow&&[400,404].includes(Number(final.statusCode))&&!!finalBody.error;\nif(!finalReadOk&&!missingConfirmed)throw new Error('MARKETING_ACTION_FINAL_READ_UNCERTAIN');\nlet preserve=setup.preserveActionPlan||imported.preserveActionPlan!==false||imported.status!=='completed'||JSON.stringify(initialValues)!==JSON.stringify(finalValues);\nconst initialProperties=new Map(($('Marketing · อ่านโครงสร้าง Workspace').first().json.sheets??[]).map(x=>[x.properties.title,x.properties]));\nconst requests=[];\nfor(let index=0;index<setup.stages.length;index++){\n const stage=setup.stages[index],current=titles.get(stage.title),staged=titles.get(stage.stageTitle);\n if((current?.sheetId??null)!==stage.canonicalId||!staged||staged.sheetId!==stage.stageId||staged.hidden!==true)throw new Error('MARKETING_STAGE_CHANGED_BEFORE_COMMIT');\n if((initialProperties.get(stage.title)?.sheetId??null)!==stage.canonicalId)throw new Error('MARKETING_CANONICAL_CHANGED_BEFORE_COMMIT');\n if(current)requests.push({updateSheetProperties:{properties:{sheetId:current.sheetId,title:'__ccpun_previous_'+(index+1)},fields:'title'}});\n requests.push({updateSheetProperties:{properties:{sheetId:stage.stageId,title:stage.title,hidden:false},fields:'title,hidden'}});\n if(current)requests.push({deleteSheet:{sheetId:current.sheetId}});\n}\nconst sheet=workspace.sheets.find(x=>x.title==='Action Plan');\nconst value=v=>v===null||v===undefined||v===''?{}:{userEnteredValue:typeof v==='number'&&Number.isFinite(v)?{numberValue:v}:typeof v==='boolean'?{boolValue:v}:{stringValue:String(v)}};\nconst row=(columns,data)=>({values:columns.map(column=>value(data[column]))});\nif(!actionNow){\n if(!missingConfirmed)throw new Error('MARKETING_ACTION_MISSING_UNCONFIRMED');\n const used=new Set(properties.map(x=>x.sheetId));let id=91000;while(used.has(id))id++;\n const rowCount=Math.max(100,sheet.rows.length+1),columnCount=Math.max(26,sheet.columns.length);\n requests.push({addSheet:{properties:{sheetId:id,title:'Action Plan',gridProperties:{rowCount,columnCount,frozenRowCount:1}}}});\n requests.push({updateCells:{start:{sheetId:id,rowIndex:0,columnIndex:0},rows:[{values:sheet.columns.map(value)},...sheet.rows.map(data=>row(sheet.columns,data))],fields:'userEnteredValue'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},backgroundColor:{red:.15,green:.09,blue:.09}}},fields:'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'}});\n requests.push({setBasicFilter:{filter:{range:{sheetId:id,startRowIndex:0,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length}}}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:0,endIndex:sheet.columns.length},properties:{pixelSize:180},fields:'pixelSize'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:0,endColumnIndex:sheet.columns.length},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment'}});\n requests.push({repeatCell:{range:{sheetId:id,startRowIndex:0,endRowIndex:1,startColumnIndex:2,endColumnIndex:14},cell:{userEnteredFormat:{backgroundColor:{red:.37,green:.28,blue:.09}}},fields:'userEnteredFormat.backgroundColor'}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:5,endIndex:6},properties:{pixelSize:420},fields:'pixelSize'}});\n requests.push({updateDimensionProperties:{range:{sheetId:id,dimension:'COLUMNS',startIndex:11,endIndex:14},properties:{pixelSize:320},fields:'pixelSize'}});\n for(const[key,allowed]of[['priority',['high','medium','low']],['status',['backlog','planned','doing','measuring','done']],['actionType',['title','description','refresh','cta','internal_link','expansion','promotion','keyword','investigation']],['expectedMetric',['organic_sessions','search_clicks','line_clicks','calculator_complete','social_views']]])requests.push({setDataValidation:{range:{sheetId:id,startRowIndex:1,endRowIndex:rowCount,startColumnIndex:sheet.columns.indexOf(key),endColumnIndex:sheet.columns.indexOf(key)+1},rule:{condition:{type:'ONE_OF_LIST',values:allowed.map(userEnteredValue=>({userEnteredValue}))},strict:true,showCustomUi:true}}});\n}else if(!preserve){\n const actionRequestStart=requests.length,id=actionNow.sheetId,actions=new Map(sheet.rows.filter(x=>x.id).map(x=>[x.id,x]));\n const results=new Map((imported.results??[]).map(x=>[x.importKey,x]));const present=new Set();\n for(let index=1;index<finalValues.length;index++){\n  const original=finalValues[index],key=String(original[14]??''),result=results.get(key),idValue=String(original[0]??'')||result?.id;\n  if(!idValue)continue;present.add(idValue);const action=actions.get(idValue);if(!action)continue;\n  if(action.version!==result?.version&&result?.id){preserve=true;break;}\n  if(!original[0]&&result?.id)requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:0},rows:[{values:[value(result.id)]}],fields:'userEnteredValue'}});\n  requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:1},rows:[{values:[value(action.version)]}],fields:'userEnteredValue'}});\n  requests.push({updateCells:{start:{sheetId:id,rowIndex:index,columnIndex:15},rows:[{values:sheet.columns.slice(15).map(column=>value(action[column]))}],fields:'userEnteredValue'}});\n }\n if(preserve)requests.length=actionRequestStart;\n else {\n  const append=sheet.rows.filter(data=>data.id&&!present.has(data.id));\n  const blankExists=finalValues.slice(1).some(valuesRow=>!String(valuesRow[0]??'')&&!String(valuesRow[5]??'').trim());\n  if(!blankExists)append.push(...sheet.rows.filter(data=>!data.id));\n  if(append.length)requests.push({appendCells:{sheetId:id,rows:append.map(data=>row(sheet.columns,data)),fields:'userEnteredValue'}});\n }\n}\nrequests.unshift({updateSpreadsheetProperties:{properties:{timeZone:'Asia/Bangkok',locale:'th_TH'},fields:'timeZone,locale'}});\nconst batchBody={requests};\nconst utf8=s=>{let size=0;for(const ch of s){const n=ch.codePointAt(0);size+=n<=127?1:n<=2047?2:n<=65535?3:4;}return size;};\nif(utf8(JSON.stringify(batchBody))>180000)throw new Error('MARKETING_COMMIT_TOO_LARGE');\nreturn [{json:{spreadsheetId:setup.spreadsheetId,spreadsheetUrl:setup.spreadsheetUrl,preserveActionPlan:!!preserve,analysisStatus:setup.analysisStatus,sourceManifestCount:setup.sourceManifestCount,tabCount:7,batchBody}}];"
+      },
+      "onError": "continueErrorOutput"
     }
   ],
   "connections": {
@@ -2054,7 +2241,7 @@
       "main": [
         [
           {
-            "node": "Marketing · เขียน 7 ชีต Atomic",
+            "node": "Marketing · เตรียม staging ที่ซ่อน",
             "type": "main",
             "index": 0
           }
@@ -2468,6 +2655,125 @@
           }
         ]
       ]
+    },
+    "Marketing · เตรียม staging ที่ซ่อน": {
+      "main": [
+        [
+          {
+            "node": "Marketing · แบ่งข้อมูล staging",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · แบ่งข้อมูล staging": {
+      "main": [
+        [
+          {
+            "node": "Marketing · เขียน staging ทีละชุด",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · เขียน staging ทีละชุด": {
+      "main": [
+        [
+          {
+            "node": "Marketing · ตรวจผล staging",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · ตรวจผล staging": {
+      "main": [
+        [
+          {
+            "node": "Marketing · อ่านโครงสร้างก่อน Commit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · อ่านโครงสร้างก่อน Commit": {
+      "main": [
+        [
+          {
+            "node": "Marketing · อ่าน Action Plan ก่อน Commit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · อ่าน Action Plan ก่อน Commit": {
+      "main": [
+        [
+          {
+            "node": "Marketing · เตรียม Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marketing · เตรียม Commit": {
+      "main": [
+        [
+          {
+            "node": "Marketing · เขียน 7 ชีต Atomic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Runtime · ต้องตรวจผล Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -2509,7 +2815,14 @@
         "35d8fa40-8131-4fc9-8eee-cae91fb7fc90",
         "87e3a8a8-e19b-4a89-8712-5f1eec2b29d3",
         "b5e2f541-0a41-4bb6-a71d-7474ae3d44a4",
-        "9455e5db-064b-4fed-82de-bf4813997557"
+        "9455e5db-064b-4fed-82de-bf4813997557",
+        "951d75b2-eae5-4b41-a593-d0e01d143301",
+        "f7dd16bb-67c2-4c99-8df4-02db9aa1bc02",
+        "c95ebfda-1213-475a-9b87-9a6502b33303",
+        "eb38261d-d975-4e93-ab1f-17bb0030e004",
+        "24eb71d3-6869-4ec1-8d88-d8cd74dcfc05",
+        "ee017376-2701-4755-ade0-567e5a44a006",
+        "796add83-334c-4a79-975d-719489b4d907"
       ]
     },
     {
