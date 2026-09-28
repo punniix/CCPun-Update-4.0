@@ -110,15 +110,20 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(ci, /<Website43ToolHero[\s\S]*?<CILandingIntro \/>[\s\S]*?<section id="ci-calculator"/);
 });
 
-test('Cookie Settings stays inside the visible Website 4.3 footer card at every breakpoint', () => {
+test('Footer controls and warnings stay inside the visible Website 4.3 footer card at every breakpoint', () => {
+  const css = read('components/layout/website-43/Website43.module.css');
+  assert.match(css, /\.footerColumn \.footerCookieButton \{[^}]*font-size: 13px;/, 'desktop Cookie Settings stays smaller than 14px footer links');
+  assert.match(css, /\.footerCompact \.footerCookieButton \{[^}]*font-size: 13px;/, 'compact Cookie Settings stays smaller than normal footer text');
+
   for (const path of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx']) {
     const footer = read(path);
     const desktop = footer.split('className={styles.footerFull}>')[1]?.split('className={styles.footerCompact}')[0]?.split('className={`${styles.footerCompact}')[0];
     const infoColumn = desktop?.match(/<strong>ข้อมูล<\/strong>([\s\S]*?)<\/div>/)?.[1];
-    assert.match(infoColumn, /<CookieSettingsButton \/>/, `${path}: desktop button belongs in the info column`);
-    assert.equal(desktop.match(/<CookieSettingsButton \/>/g)?.length, 1, `${path}: exactly one desktop button`);
-    assert.match(footer, /className=\{(?:styles\.footerCompact|`\$\{styles\.footerCompact\})[\s\S]*?<CookieSettingsButton \/>/, `${path}: compact footer keeps its button`);
-    assert.doesNotMatch(footer, /<\/div>\s*<CookieSettingsButton \/>\s*<\/div>\s*<\/footer>/, `${path}: no button outside both footer variants`);
+    assert.match(infoColumn, /<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: desktop button belongs in the info column`);
+    assert.equal(desktop.match(/<CookieSettingsButton\b/g)?.length, 1, `${path}: exactly one desktop button`);
+    assert.match(desktop, /footerDisclaimer[\s\S]*?footerWarnings[\s\S]*?footerCopyright/, `${path}: warnings belong in the lower desktop card`);
+    assert.match(footer, /className=\{(?:styles\.footerCompact|`\$\{styles\.footerCompact\})[\s\S]*?footerWarnings[\s\S]*?<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: compact footer keeps warnings and cookie control inside`);
+    assert.doesNotMatch(footer, /<div className=\{styles\.inner\}>\s*\{warnings \? \(/, `${path}: warnings must not sit above the footer card`);
   }
 });
 
