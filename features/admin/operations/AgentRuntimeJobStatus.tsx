@@ -5,7 +5,7 @@ import type { AgentRuntimeJobDetail } from "@/lib/admin/operations/agent-os-runt
 
 function formatDuration(ms: number | null) {
   if (ms == null || !Number.isFinite(ms)) return "—";
-  if (ms < 1000) return `${Math.round(ms)} ms`;
+  if (ms < 1000) return `${Math.round(ms)} มิลลิวินาที`;
   const seconds = Math.round(ms / 1000);
   if (seconds < 60) return `${seconds} วินาที`;
   const minutes = Math.floor(seconds / 60);
@@ -27,12 +27,12 @@ function statusLabel(status: string) {
     reconciliation_required: "ต้องตรวจผลกับระบบภายนอก",
     cancelled: "ยกเลิกแล้ว",
   };
-  return labels[status] ?? status;
+  return labels[status] ?? "กำลังตรวจสถานะ";
 }
 
 function paceLabel(pace: AgentRuntimeJobDetail["pace"]) {
   if (pace === "slower_than_usual") return "งานนี้ใช้เวลานานกว่าปกติ แต่ระบบยังรายงานสถานะอยู่";
-  if (pace === "heartbeat_stale") return "ไม่ได้รับสัญญาณสถานะตามเวลาปกติ ควรตรวจ execution";
+  if (pace === "heartbeat_stale") return "ไม่ได้รับสัญญาณสถานะตามเวลาปกติ ควรตรวจประวัติการทำงาน";
   if (pace === "unknown") return "ยังมีประวัติไม่พอสำหรับประเมินเวลาปกติ";
   return "ระยะเวลายังอยู่ในช่วงปกติ";
 }
@@ -97,9 +97,9 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">{detail.job.workflowKey}</p>
+            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">งานอัตโนมัติ</p>
             <h2 className="mt-2 text-2xl font-semibold">{statusLabel(detail.job.status)}</h2>
-            <p className="mt-2 text-sm text-white/55">ขั้นตอน: {detail.job.stage}</p>
+            <p className="mt-2 text-sm text-white/55">ดูความคืบหน้าและเวลาที่ใช้ด้านล่าง</p>
           </div>
           <div className="flex items-center gap-2 text-sm text-white/65" aria-live="polite">
             {!detail.terminal ? <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#e0c985]" aria-hidden="true" /> : null}
@@ -121,8 +121,8 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
             <p className="mt-2 text-sm font-medium">{detail.job.attempt}/{detail.job.maxAttempts}</p>
           </div>
           <div className="rounded-2xl bg-black/15 p-4">
-            <p className="text-xs text-white/45">n8n Execution</p>
-            <p className="mt-2 break-all text-sm font-medium">{detail.job.n8nExecutionId ?? "ยังไม่มี"}</p>
+            <p className="text-xs text-white/45">รอบทำงานใน n8n</p>
+            <p className="mt-2 break-all text-sm font-medium">{detail.job.n8nExecutionId ? "มีข้อมูลให้ตรวจย้อนหลัง" : "ยังไม่มี"}</p>
           </div>
         </div>
 
@@ -139,7 +139,7 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
         {detail.job.errorCategory ? (
           <div className="mt-4 rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4">
             <p className="text-sm font-medium text-rose-100">รายละเอียดปัญหา</p>
-            <p className="mt-1 break-all font-mono text-xs text-rose-100/70">{detail.job.errorCategory}</p>
+            <p className="mt-1 text-sm text-rose-100/80">งานรอบนี้ไม่สำเร็จ กรุณาตรวจประวัติการทำงานก่อนลองใหม่</p>
           </div>
         ) : null}
 
@@ -148,11 +148,15 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
             เปิด Google Sheet ที่ส่งออก
           </a>
         ) : null}
+        <details className="mt-4 text-xs text-white/55">
+          <summary className="cursor-pointer">ข้อมูลสำหรับทีมดูแลระบบ</summary>
+          <p className="mt-2 break-all">รหัสงาน: {detail.job.jobId} · ขั้นตอน: {detail.job.stage} · รอบ n8n: {detail.job.n8nExecutionId ?? "ยังไม่มี"}{detail.job.errorCategory ? ` · รหัสปัญหา: ${detail.job.errorCategory}` : ""}</p>
+        </details>
       </section>
 
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
-        <h2 className="text-lg font-semibold">Runtime timeline</h2>
-        <p className="mt-1 text-sm text-white/50">เก็บเฉพาะสถานะและ metadata ที่ปลอดภัย ไม่เก็บข้อความลูกค้า prompt หรือ secret</p>
+        <h2 className="text-lg font-semibold">ลำดับการทำงาน</h2>
+        <p className="mt-1 text-sm text-white/50">แสดงเฉพาะสถานะงาน โดยไม่แสดงข้อความลูกค้าหรือรหัสลับ</p>
 
         {detail.events.length ? (
           <ol className="mt-5 space-y-3">
@@ -162,18 +166,18 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
                 <li key={event.eventId} className="flex gap-3">
                   <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${current ? "animate-pulse bg-[#e0c985]" : "bg-white/30"}`} aria-hidden="true" />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white/85">{statusLabel(event.status)} · {event.stage}</p>
+                    <p className="text-sm font-medium text-white/85">{statusLabel(event.status)}</p>
                     <p className="mt-1 text-xs text-white/40">
                       ครั้งที่ {event.attempt} · {new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date(event.occurredAt))}
                     </p>
-                    {event.errorCategory ? <p className="mt-1 break-all font-mono text-xs text-rose-100/70">{event.errorCategory}</p> : null}
+                    {event.errorCategory ? <p className="mt-1 text-xs text-rose-100/70">พบข้อขัดข้องในขั้นนี้</p> : null}
                   </div>
                 </li>
               );
             })}
           </ol>
         ) : (
-          <p className="mt-4 text-sm text-white/45">ยังไม่มี event history ที่อ่านได้</p>
+          <p className="mt-4 text-sm text-white/45">ยังไม่มีประวัติขั้นตอนให้แสดง</p>
         )}
       </section>
     </div>

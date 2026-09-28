@@ -61,7 +61,7 @@ function nextCheck(row: GscDashboardRow) {
   return "ควรตรวจว่าการเติบโตมาจากความต้องการแบบใดหรือหัวข้อย่อยใด";
 }
 
-export default function GscManualSync({ defaultStartDate, defaultEndDate, laneLabel }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "UAT" }) {
+export default function GscManualSync({ defaultStartDate, defaultEndDate, laneLabel }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "พื้นที่ทดสอบ" }) {
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");

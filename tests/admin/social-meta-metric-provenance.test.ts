@@ -87,8 +87,8 @@ test("Backfill and Sheets fail closed until provenance migration is current", ()
 
 test("Social presentation routes exports through the central Agent OS + n8n Export Center", () => {
   const component = read("features/admin/social/SocialSheetsExport.tsx");
-  assert.match(component, /Export Center/);
-  assert.match(component, /Agent OS \+ n8n/);
+  assert.match(component, /หน้าส่งออกข้อมูล/);
+  assert.match(component, /ระบบอัตโนมัติ/);
   assert.match(component, /ภาพรวม/);
   assert.match(component, /ข้อมูล/);
 });

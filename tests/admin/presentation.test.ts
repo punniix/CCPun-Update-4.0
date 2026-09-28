@@ -5,6 +5,7 @@ import {
   adminDataLaneLabel,
   contentReviewStatusLabel,
   connectionLabel,
+  datasetLabel,
   environmentLabel,
   friendlyApiError,
   friendlyApiErrorFromPayload,
@@ -23,16 +24,18 @@ test("admin presentation uses friendly Thai labels and hides unknown API detail"
   assert.equal(contentReviewStatusLabel("future-status"), "ไม่รู้จักขั้นตรวจนี้");
   assert.equal(riskLabel("critical"), "วิกฤต — ตรวจใน Studio");
   assert.equal(connectionLabel(false, "write"), "ปิดการบันทึกไว้เพื่อความปลอดภัย");
-  assert.equal(environmentLabel("uat"), "ระบบทดสอบ UAT");
-  assert.equal(environmentLabel("admin-uat"), "ระบบหลังบ้าน UAT");
-  assert.equal(environmentLabel("local-uat"), "Local UAT บน Mac");
-  assert.equal(environmentLabel("local-production"), "Local Production บน Mac (ข้อมูลจริง)");
-  assert.equal(environmentLabel("production-admin"), "ระบบหลังบ้าน Production (ข้อมูลจริง)");
-  assert.equal(adminDataLaneLabel("production-admin"), "Production Draft (ข้อมูลจริง)");
-  assert.equal(adminDataLaneLabel("local-uat"), "UAT");
-  assert.equal(adminDataLaneLabel("local-production"), "Production Draft (ข้อมูลจริง)");
-  assert.equal(connectionLabel(true, "read", "local-production"), "อ่านข้อมูล Production ได้");
-  assert.equal(connectionLabel(true, "studio", "local-production"), "แก้ฉบับร่าง Production ใน Studio ได้");
+  assert.equal(environmentLabel("uat"), "ระบบทดสอบ");
+  assert.equal(environmentLabel("admin-uat"), "ศูนย์จัดการสำหรับทดสอบ");
+  assert.equal(environmentLabel("local-uat"), "เครื่องทดสอบบน Mac");
+  assert.equal(environmentLabel("local-production"), "เครื่อง Mac ที่ใช้ข้อมูลจริง");
+  assert.equal(environmentLabel("production-admin"), "ศูนย์จัดการที่ใช้ข้อมูลจริง");
+  assert.equal(adminDataLaneLabel("production-admin"), "ฉบับร่างในข้อมูลจริง");
+  assert.equal(adminDataLaneLabel("local-uat"), "ข้อมูลทดสอบ");
+  assert.equal(adminDataLaneLabel("local-production"), "ฉบับร่างในข้อมูลจริง");
+  assert.equal(connectionLabel(true, "read", "local-production"), "อ่านข้อมูลจริงได้");
+  assert.equal(connectionLabel(true, "studio", "local-production"), "แก้ฉบับร่างในข้อมูลจริงได้");
+  assert.equal(datasetLabel("production"), "ข้อมูลจริง");
+  assert.equal(datasetLabel("uat"), "ข้อมูลทดสอบ");
   assert.equal(connectionLabel(false, "studio", "local-production"), "ปิดการแก้ฉบับร่างไว้เพื่อความปลอดภัย");
   assert.equal(friendlyApiError("not-configured"), "การเชื่อมต่อของสภาพแวดล้อมนี้ยังตั้งค่าไม่ครบ ระบบจึงหยุดไว้เพื่อความปลอดภัย");
   assert.equal(friendlyApiError("article-not-found"), "ไม่พบบทความนี้ในสภาพแวดล้อมนี้");

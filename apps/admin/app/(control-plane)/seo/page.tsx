@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
+import { datasetLabel } from "@/lib/admin/presentation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
@@ -41,14 +42,14 @@ export default async function AdminSeoPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {intelligenceReady ? <Link href="/seo/opportunities/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">ดูโอกาสพัฒนาใน UAT</Link> : null}
+          {intelligenceReady ? <Link href="/seo/opportunities/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">ดูผลลัพธ์จากการค้นหา</Link> : null}
           <Link href="/content/research/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อมูลงานวิจัย</Link>
           <Link href="/dashboard/reviews/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อเสนอที่รอตรวจ</Link>
         </div>
       </div>
 
       <section className="mt-7 grid gap-3 sm:grid-cols-4">
-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ชุดข้อมูล</div><div className="mt-2 text-lg font-semibold">{result.status.dataset ?? "—"}</div></article>
+        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ชุดข้อมูล</div><div className="mt-2 text-lg font-semibold">{datasetLabel(result.status.dataset)}</div></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">บทความทั้งหมด</div><div className="mt-2 text-lg font-semibold">{result.rows.length}</div></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">มีผลตรวจที่บันทึก</div><div className="mt-2 text-lg font-semibold">{audited.length}</div></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">เฉลี่ยจากผลที่บันทึก</div><div className={`mt-2 text-lg font-semibold ${scoreTone(average)}`}>{average == null ? "—" : `${average}/100`}</div></article>

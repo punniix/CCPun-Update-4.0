@@ -24,10 +24,10 @@ export default async function AgentRuntimeJobPage({
       <Link href="/operations/jobs/" className="text-sm text-white/55 hover:text-white">
         ← งานเบื้องหลัง
       </Link>
-      <p className="mt-5 text-xs font-semibold tracking-[0.12em] text-[#e0c985]">AGENT OS RUNTIME</p>
+      <p className="mt-5 text-xs font-semibold tracking-[0.12em] text-[#e0c985]">สถานะงานอัตโนมัติ</p>
       <h1 className="mt-2 text-3xl font-semibold">รายละเอียดงานเบื้องหลัง</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">
-        ใช้ดูว่างานอยู่ขั้นไหน ใช้เวลานานกว่าปกติหรือไม่ และ execution ใดเป็นต้นทาง โดยไม่เปิดเผย payload ส่วนตัวใน log
+        ดูว่างานถึงขั้นไหนและใช้เวลานานกว่าปกติหรือไม่ โดยไม่แสดงข้อมูลส่วนตัวของลูกค้า
       </p>
 
       {result.state === "ready" && result.detail ? (
@@ -36,7 +36,7 @@ export default async function AgentRuntimeJobPage({
         </div>
       ) : (
         <section className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50">
-          Agent OS runtime ยังไม่พร้อมใน data lane นี้ ระบบจะไม่เดาสถานะหรือแสดงเป็นศูนย์
+          ยังอ่านสถานะงานอัตโนมัติไม่ได้ ระบบจะไม่เดาผลหรือแสดงเป็นศูนย์
         </section>
       )}
     </div>

@@ -4,7 +4,7 @@ import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { listAdvisorInboxOperational } from "@/lib/admin/line/advisor-workflow";
 import { buildActionCenterSignals, summarizeActionCenter } from "@/lib/admin/agent-os/action-center";
-import { adminDataLaneLabel, connectionLabel, environmentLabel } from "@/lib/admin/presentation";
+import { adminDataLaneLabel, connectionLabel, datasetLabel, environmentLabel } from "@/lib/admin/presentation";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
 import { readOperationsJobs } from "@/lib/admin/operations/jobs-read-model";
@@ -172,7 +172,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
       </section>
 
       <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สถานะการเชื่อมต่อ">
-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">ชุดข้อมูล</p><p className="mt-2 text-lg font-semibold">{status.dataset ?? "ยังไม่ได้ตั้งค่า"}</p></article>
+        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">ชุดข้อมูล</p><p className="mt-2 text-lg font-semibold">{datasetLabel(status.dataset)}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">การอ่านข้อมูล</p><p className="mt-2 text-lg font-semibold">{connectionLabel(status.readReady, "read", status.environment)}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">แก้บทความใน Studio</p><p className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", status.environment)}</p>{studioReady && !status.writeReady ? <p className="mt-2 text-xs leading-5 text-white/50">ยังไม่นำข้อเสนอไปแก้ฉบับร่างให้อัตโนมัติ</p> : null}</article>
         <Link href="/operations/health/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">

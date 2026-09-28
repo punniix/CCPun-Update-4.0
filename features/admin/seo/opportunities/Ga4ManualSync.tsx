@@ -54,7 +54,7 @@ function nextCheck(row: Ga4DashboardRow) {
   return "ควรตรวจว่าการเติบโตมาจากเนื้อหาหรือกลุ่มคำค้นใด";
 }
 
-export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "UAT" }) {
+export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "พื้นที่ทดสอบ" }) {
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");

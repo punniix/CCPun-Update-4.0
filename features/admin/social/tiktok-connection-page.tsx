@@ -17,7 +17,7 @@ export default async function TikTokConnectionUatPage() {
   const missing = readiness.required.filter((item) => !item.valid).map((item) => item.name);
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · อ่านข้อมูลเท่านั้น</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดลอง · อ่านข้อมูลเท่านั้น</p>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold">การเชื่อมต่อ TikTok</h1>

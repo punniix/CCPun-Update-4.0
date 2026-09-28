@@ -48,7 +48,7 @@ export default async function SocialFoundationUatPage() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · ใช้ข้อมูลตัวอย่าง</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดลอง · ใช้ข้อมูลตัวอย่าง</p>
       <h1 className="mt-2 text-3xl font-semibold">ทดสอบโครงสร้างงานโซเชียล</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
         หน้านี้ตรวจความสัมพันธ์ระหว่างเนื้อหาหลักกับชิ้นงานของแต่ละช่องทางเท่านั้น ยังไม่เชื่อมบัญชีจริง ไม่อัปโหลดสื่อ และไม่ส่งโพสต์ไปยังแพลตฟอร์มใด
@@ -57,7 +57,7 @@ export default async function SocialFoundationUatPage() {
       <section className="mt-7 grid gap-3 sm:grid-cols-3">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">โหมดข้อมูล</div>
-          <div className="mt-2 font-semibold text-emerald-200">ข้อมูลตัวอย่างสำหรับ UAT</div>
+          <div className="mt-2 font-semibold text-emerald-200">ข้อมูลตัวอย่างสำหรับทดสอบ</div>
         </article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">ฐานข้อมูลการทำงาน</div>

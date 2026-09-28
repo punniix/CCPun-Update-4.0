@@ -237,7 +237,7 @@ export default async function AdminResearchPage({
 
         {!localProviderLane ? (
           <p className="mt-4 rounded-xl border border-sky-200/10 bg-black/10 p-3 text-sm leading-6 text-sky-100/75">
-            หน้านี้ไม่ถือ OAuth ของ Ubersuggest บน cloud การดึงข้อมูลใหม่ต้องเกิดใน runtime ที่ได้รับสิทธิ์ แล้วนำผลสรุปที่ตรวจแล้วเข้า UAT พร้อมที่มาและเวลา
+            บนระบบจริง หน้านี้ไม่ดึงข้อมูลใหม่จาก Ubersuggest โดยตรง ให้ใช้รายงานที่บันทึกไว้ หรือข้อมูลที่คุณนำเข้าจากเครื่องที่เชื่อมบัญชีแล้ว พร้อมระบุที่มาและเวลา
           </p>
         ) : null}
 
@@ -247,7 +247,7 @@ export default async function AdminResearchPage({
           <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">แพ็กเกจ Ubersuggest</div><div className="mt-2 text-lg font-semibold">{account?.tier ?? "ยังไม่มีข้อมูล"}</div><p className="mt-1 text-xs text-white/45">{account ? `${account.domain} · ${accountFresh ? "ข้อมูลเป็นปัจจุบัน" : "ควรดึงข้อมูลใหม่"}` : ""}</p></article>
           <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">การปรากฏในคำตอบ AI</div><div className="mt-2 text-2xl font-semibold">{geo ? formatNullableMetric(geo.visibilityPercentage, "%") : "—"}</div><p className="mt-1 text-xs text-white/45">{geo ? (geo.totalMentions == null ? "ไม่มีค่าจำนวน mention" : `ถูกกล่าวถึง ${geo.totalMentions} ครั้งใน sample นี้`) : ""}</p></article>
           <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">สัดส่วนการถูกกล่าวถึง</div><div className="mt-2 text-2xl font-semibold">{geo ? formatNullableMetric(geo.shareOfVoice) : "—"}</div><p className="mt-1 text-xs text-white/45">ข้อมูลจาก Ubersuggest AISV</p></article>
-          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่วัดได้ 0%</div><div className="mt-2 text-2xl font-semibold text-amber-200">{geo ? promptGaps.length : "—"}</div><p className="mt-1 text-xs text-white/45">นับเฉพาะ prompt ที่มีคำตอบและ provider ส่ง 0% จริง</p></article>
+          <article className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="text-sm text-white/50">คำถามที่วัดได้ 0%</div><div className="mt-2 text-2xl font-semibold text-amber-200">{geo ? promptGaps.length : "—"}</div><p className="mt-1 text-xs text-white/45">นับเฉพาะคำถามที่มีคำตอบ และต้นทางยืนยันว่าไม่พบการปรากฏจริง</p></article>
         </div>
 
         {account?.quotas.length ? (
@@ -268,11 +268,11 @@ export default async function AdminResearchPage({
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span>สถานะ: <strong className="text-white/80">{aisvReadStateLabel(aisvState)}</strong></span>
               <span>แหล่ง: Ubersuggest AISV</span>
-              <span>runtime: {aisvSourceRuntimeLabel(geo.sourceRuntime ?? account?.sourceRuntime)}</span>
+              <span>ข้อมูลมาจาก: {aisvSourceRuntimeLabel(geo.sourceRuntime ?? account?.sourceRuntime)}</span>
             </div>
             <p className="mt-2">ช่วงรายงาน {geo.windowStart} → {geo.windowEnd} · ดึงเข้าระบบ {formatDate(geo.fetchedAt ?? geo.checkedAt)}</p>
-            <p>อัปเดตชุด prompt: {geo.promptsUpdatedAt ?? "ไม่ทราบ"} · เวลาเก็บคำตอบ AI: {geo.answerCollectedAt ? formatDate(geo.answerCollectedAt) : "provider ไม่ได้ระบุ"}</p>
-            {promptUnknownCount > 0 ? <p className="mt-2 text-amber-100">มี {promptUnknownCount} prompt ที่ provider ไม่ได้ส่งค่า visibility จึงไม่ถูกนับเป็น 0%</p> : null}
+            <p>อัปเดตชุดคำถาม: {geo.promptsUpdatedAt ?? "ไม่ทราบ"} · เวลาเก็บคำตอบ AI: {geo.answerCollectedAt ? formatDate(geo.answerCollectedAt) : "ต้นทางไม่ได้ระบุ"}</p>
+            {promptUnknownCount > 0 ? <p className="mt-2 text-amber-100">มี {promptUnknownCount} คำถามที่ต้นทางไม่ได้ส่งค่าการปรากฏ จึงไม่ถูกนับเป็น 0%</p> : null}
             {geo.limitations.length ? <ul className="mt-2 list-disc space-y-1 pl-5">{geo.limitations.map((item) => <li key={item}>{item}</li>)}</ul> : null}
           </div>
         ) : account ? <p className="mt-4 text-xs text-white/45">ดึงข้อมูลบัญชีล่าสุด {formatDate(account.fetchedAt ?? account.checkedAt)}</p> : null}
@@ -315,7 +315,7 @@ export default async function AdminResearchPage({
             </div>
 
             <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/10">
-              <div className="border-b border-white/10 px-4 py-3"><h3 className="font-medium">คำถามที่ Ubersuggest วัด CCPun ได้ 0% ในรอบนี้</h3><p className="mt-1 text-sm leading-6 text-white/55">เป็นผลจาก sample และช่วงรายงานด้านบน ไม่ใช่ข้อสรุปว่า AI ทุกระบบไม่รู้จัก CCPun และไม่ใช้แทนสถานะบทความในเว็บไซต์</p></div>
+            <div className="border-b border-white/10 px-4 py-3"><h3 className="font-medium">คำถามที่ Ubersuggest วัด CCPun ได้ 0% ในรอบนี้</h3><p className="mt-1 text-sm leading-6 text-white/55">เป็นผลจากคำถามตัวอย่างและช่วงรายงานด้านบน ไม่ใช่ข้อสรุปว่า AI ทุกระบบไม่รู้จัก CCPun และไม่ใช้แทนสถานะบทความในเว็บไซต์</p></div>
               {promptGaps.length ? (
                 <div className="divide-y divide-white/5">
                   {promptGaps.map((prompt) => {
@@ -328,9 +328,9 @@ export default async function AdminResearchPage({
                             <h4 className="mt-2 font-medium text-white/85">{prompt.promptText}</h4>
                             <p className="mt-2 text-sm leading-6 text-white/55">แบรนด์ที่พบมาก: {prompt.topBrands.length ? prompt.topBrands.join(", ") : "ยังไม่พบแบรนด์เด่นในข้อมูลที่คืนมา"}</p>
                             {owner ? (
-                              <p className="mt-2 text-sm text-emerald-100/80">Intent owner ที่ review แล้ว: <a className="underline decoration-emerald-200/40 underline-offset-2" href={owner.ownerUrl}>{owner.primaryQuery}</a></p>
+                              <p className="mt-2 text-sm text-emerald-100/80">จับคู่คำถามกับเนื้อหาที่ตรวจแล้ว: <a className="underline decoration-emerald-200/40 underline-offset-2" href={owner.ownerUrl}>{owner.primaryQuery}</a></p>
                             ) : (
-                              <p className="mt-2 text-sm text-amber-100/75">ยังไม่ได้จับคู่กับ Intent Owner Registry · รอตรวจ ไม่ได้หมายความว่าเว็บไซต์ไม่มีบทความนี้</p>
+                              <p className="mt-2 text-sm text-amber-100/75">ยังไม่ได้จับคู่คำถามกับเนื้อหา · รอตรวจ ไม่ได้หมายความว่าเว็บไซต์ไม่มีบทความนี้</p>
                             )}
                           </div>
                           <span className="w-fit rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-xs text-amber-100">วัดได้ 0% ในรอบนี้</span>
@@ -339,9 +339,9 @@ export default async function AdminResearchPage({
                     );
                   })}
                 </div>
-              ) : <div className="p-5 text-sm text-white/55">ไม่มี prompt ที่เข้าเงื่อนไข “มีคำตอบและ provider ส่ง visibility = 0%” ในชุดข้อมูลนี้</div>}
+              ) : <div className="p-5 text-sm text-white/55">ไม่มีคำถามที่เข้าเงื่อนไข “มีคำตอบและต้นทางยืนยันว่าไม่พบการปรากฏ” ในชุดข้อมูลนี้</div>}
             </div>
-            <p className="mt-4 text-xs text-white/45">ช่วงข้อมูล {geo.windowStart} → {geo.windowEnd} · สถานะ {aisvReadStateLabel(aisvState)} · {geoFresh ? "snapshot เพิ่งถูกบันทึก" : "snapshot ถูกบันทึกมานานแล้ว"}</p>
+            <p className="mt-4 text-xs text-white/45">ช่วงข้อมูล {geo.windowStart} → {geo.windowEnd} · สถานะ {aisvReadStateLabel(aisvState)} · {geoFresh ? "ข้อมูลชุดนี้เพิ่งบันทึก" : "ข้อมูลชุดนี้บันทึกมานานแล้ว"}</p>
           </>
         ) : <p className="mt-4 text-sm text-white/55">ยังไม่มีข้อมูล GEO/AEO</p>}
       </section>

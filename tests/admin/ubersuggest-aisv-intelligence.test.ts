@@ -129,8 +129,8 @@ test("AISV reviewed import is human-only same-origin UAT-only and separate from 
   assert.match(route, /isSameOriginAdminMutation/);
   assert.match(route, /environment === "admin-uat" \|\| environment === "local-uat"/);
   assert.match(route, /aisvSnapshotImportSchema/);
-  assert.match(page, /ยังไม่ได้จับคู่กับ Intent Owner Registry/);
-  assert.match(page, /provider ส่ง 0% จริง/);
+  assert.match(page, /ยังไม่ได้จับคู่คำถามกับเนื้อหา/);
+  assert.match(page, /ต้นทางยืนยันว่าไม่พบการปรากฏจริง/);
   assert.match(page, /UbersuggestAisvImportForm/);
   assert.match(provider, /\["development", "local-uat", "local-production"\]/);
   assert.doesNotMatch(provider, /admin-uat[^\n]*providerLaneAllowed/);

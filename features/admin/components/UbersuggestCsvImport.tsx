@@ -224,7 +224,7 @@ export default function UbersuggestCsvImport() {
             >
               {state === "importing" ? "กำลังนำเข้า…" : `ตรวจและนำเข้า ${preview.counts.validRows} รายการ`}
             </button>
-            {preview.counts.existingRows ? <span className="text-sm text-white/55">รายการที่เหมือนเดิมจะถูกตรวจ fingerprint และไม่สร้างซ้ำ</span> : null}
+            {preview.counts.existingRows ? <span className="text-sm text-white/55">ระบบจะตรวจรายการที่เคยนำเข้าแล้ว เพื่อไม่สร้างข้อมูลซ้ำ</span> : null}
           </div>
         </div>
       ) : null}

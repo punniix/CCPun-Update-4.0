@@ -30,7 +30,7 @@ export default async function PostLiveAnalyticsUatPage() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · ข้อมูลหลังไลฟ์</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดลอง · ข้อมูลหลังไลฟ์</p>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold">สถิติย้อนหลังหลัง Live</h1>

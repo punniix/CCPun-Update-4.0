@@ -108,7 +108,7 @@ test("Legacy direct Sheets route stays guarded while Social UI uses the central 
   assert.match(service, /post_performance_clean/);
   assert.match(service, /post_metric_coverage_summary/);
   assert.match(component, /\/analytics\/exports\//);
-  assert.match(component, /Agent OS \+ n8n/);
+  assert.match(component, /ระบบอัตโนมัติ/);
   assert.doesNotMatch(component, /\/api\/admin\/social\/export\/sheets/);
   assert.doesNotMatch(route, /console\./);
   assert.doesNotMatch(service, /console\./);

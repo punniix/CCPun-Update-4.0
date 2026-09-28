@@ -4,7 +4,7 @@ import { getStudioArticleEditHref } from "@/cms/sanity/policy/studio-policy";
 import AdminCapabilityState from "@/features/admin/components/AdminCapabilityState";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
-import { contentReviewStatusLabel } from "@/lib/admin/presentation";
+import { contentReviewStatusLabel, datasetLabel } from "@/lib/admin/presentation";
 
 export default async function ArticleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdminPermission("content:read");
@@ -15,7 +15,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
     return <AdminCapabilityState
       title="รายละเอียดบทความ"
       status={result.error === "request-failed" ? "provider-error" : "not-configured"}
-      source={`Sanity ${result.status.dataset ?? "unconfigured"}`}
+      source={`เนื้อหา · ${datasetLabel(result.status.dataset)}`}
       description="ระบบยังอ่านรายละเอียดบทความไม่ได้ จึงไม่แสดงข้อมูลแทนด้วยค่าศูนย์หรือข้อมูลจำลอง"
       action={{ href: "/content/articles/", label: "กลับหน้าบทความ" }}
     />;

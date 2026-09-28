@@ -24,7 +24,7 @@ export default function UbersuggestAisvImportForm() {
       return;
     }
 
-    if (!window.confirm("นำเข้าผล AISV ชุดนี้เข้า UAT เพื่อให้เจ้าของตรวจหรือไม่? การนำเข้าไม่แก้บทความ ไม่ publish และไม่เปลี่ยน prompt ของ Ubersuggest")) return;
+    if (!window.confirm("นำเข้าผลการปรากฏในคำตอบ AI ชุดนี้เข้าพื้นที่ทดสอบหรือไม่? การนำเข้าไม่แก้บทความ ไม่เผยแพร่ และไม่เปลี่ยนคำถามใน Ubersuggest")) return;
 
     setState("running");
     setMessage("");
@@ -41,7 +41,7 @@ export default function UbersuggestAisvImportForm() {
         return;
       }
       setState("done");
-      setMessage("นำเข้าหลักฐาน AISV เข้า UAT แล้ว");
+      setMessage("นำเข้าข้อมูลการปรากฏในคำตอบ AI เข้าพื้นที่ทดสอบแล้ว");
       form.reset();
       router.refresh();
     } catch {
@@ -52,9 +52,9 @@ export default function UbersuggestAisvImportForm() {
 
   return (
     <form onSubmit={submit} className="rounded-2xl border border-violet-200/15 bg-violet-200/[0.035] p-4">
-      <h3 className="font-medium">นำเข้าหลักฐาน AISV ที่ดึงจาก runtime ที่ได้รับสิทธิ์</h3>
+      <h3 className="font-medium">นำเข้าข้อมูลการปรากฏในคำตอบ AI ที่ตรวจแล้ว</h3>
       <p className="mt-2 text-sm leading-6 text-white/60">
-        ใช้เมื่อ Admin Preview ไม่ถือ OAuth ของ Ubersuggest เอง ข้อมูลต้องมาจาก Ubersuggest จริงและระบุ runtime, ช่วงรายงาน, เวลาดึง และข้อจำกัด ระบบจะ validate แบบ fail-closed ก่อนบันทึก
+        ใช้เมื่อคุณมีข้อมูลที่ตรวจจาก Ubersuggest แล้ว และระบุระบบที่ใช้ ช่วงรายงาน เวลาดึงข้อมูล และข้อจำกัดครบ ระบบจะตรวจรูปแบบก่อนบันทึก หากข้อมูลไม่ครบจะไม่บันทึก
       </p>
       <textarea
         name="snapshot"
@@ -70,9 +70,9 @@ export default function UbersuggestAisvImportForm() {
           disabled={state === "running"}
           className="min-h-11 rounded-xl border border-violet-200/20 bg-violet-200/10 px-4 py-2.5 text-sm font-semibold text-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {state === "running" ? "กำลังตรวจและนำเข้า…" : "ตรวจและนำเข้า UAT"}
+          {state === "running" ? "กำลังตรวจและนำเข้า…" : "ตรวจและนำเข้าพื้นที่ทดสอบ"}
         </button>
-        <span className="text-xs text-white/45">เฉพาะ UAT · ไม่ publish · ไม่แก้ provider config</span>
+        <span className="text-xs text-white/45">ใช้ทดสอบเท่านั้น · ไม่เผยแพร่และไม่แก้การเชื่อมต่อ</span>
       </div>
       {message ? <p role={state === "error" ? "alert" : "status"} className={state === "error" ? "mt-3 text-sm text-red-200" : "mt-3 text-sm text-emerald-200"}>{message}</p> : null}
     </form>
