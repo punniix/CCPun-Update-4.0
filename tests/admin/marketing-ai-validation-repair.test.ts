@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { MARKETING_INFERENCE_PROFILE, marketingAnalysisInputSchema, marketingSnapshotSchema, type MarketingAnalysisInput } from "../../lib/local-ai/contracts";
+import { MARKETING_INFERENCE_PROFILE, marketingAnalysisInputSchema, marketingAnalysisOutputSchema, marketingSnapshotSchema, type MarketingAnalysisInput } from "../../lib/local-ai/contracts";
 import { buildLocalAiWorkerHeartbeatDetails, inferAndValidate } from "../../workers/local-ai/src/index";
 
 function input(window: "this_week" | "this_month"): MarketingAnalysisInput {
@@ -67,7 +67,7 @@ test("monthly weak-sample response gets one bounded repair without weakening gro
   try {
     const result = await inferAndValidate("http://ollama:11434/", "qwen3:1.7b", "marketing-analysis", input("this_month"));
     assert.equal(result.success, true);
-    if (result.success) assert.equal(result.data.watchItems[0]?.evidence[0]?.id, "e2");
+    if (result.success) assert.equal(marketingAnalysisOutputSchema.parse(result.data).watchItems[0]?.evidence[0]?.id, "e2");
     assert.equal(requests.length, 2);
     assert.equal(requests[1]?.messages.length, 2);
     assert.match(requests[1]!.messages[0]!.content, /confidence low/);
