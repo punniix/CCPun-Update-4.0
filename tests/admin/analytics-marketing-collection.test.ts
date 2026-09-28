@@ -35,6 +35,11 @@ test("native decimals, dates, flags and session rate remain correct: 20 percent 
 test("empty native report is valid; count overflow, date, headers, query paths and wrong event family fail without zero fallback", () => {
   const empty = { ...response("ga4-marketing-events"), rows: undefined, rowCount: 0 };
   assert.deepEqual(normalizeGa4Marketing("ga4-marketing-events", empty, input.startDate, input.endDate).rows, []);
+  const emptyWithoutCount = { ...response("ga4-session-performance"), rows: undefined, rowCount: undefined };
+  const normalizedEmpty = normalizeGa4Marketing("ga4-session-performance", emptyWithoutCount, input.startDate, input.endDate);
+  assert.deepEqual(normalizedEmpty.rows, []);
+  assert.equal(normalizedEmpty.truncated, false);
+  assert.equal(normalizedEmpty.overview[0]?.value, 0);
   const mutations = [
     (raw: ReturnType<typeof response>) => { raw.rows[0]!.metricValues[0]!.value = "9007199254740992"; },
     (raw: ReturnType<typeof response>) => { raw.rows[0]!.metricValues[0]!.value = "3.1"; },
