@@ -76,6 +76,7 @@ test("professional and product terms use canonical English instead of Thai trans
     read("apps/admin/app/(control-plane)/analytics/page.tsx"),
     read("apps/admin/app/(control-plane)/operations/jobs/[jobId]/page.tsx"),
     read("apps/admin/app/(control-plane)/settings/[section]/page.tsx"),
+    read("apps/admin/app/(control-plane)/layout.tsx"),
     read("features/admin/operations/AgentRuntimeJobStatus.tsx"),
   ].join("\n");
   for (const term of ["Performance Marketing", "Top Content", "Action Plan", "Agent OS Runtime", "Workflow", "Runtime", "Sanity Studio"]) assert.match(source, new RegExp(term));
