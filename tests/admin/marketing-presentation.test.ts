@@ -4,13 +4,14 @@ import { act, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { createRequire } from "node:module";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
-import { ContentLeaderboard, MarketingTrend, MarketingAiReview } from "../../features/admin/marketing/PerformanceMarketingDashboard";
+import { ContentLeaderboard, MarketingTrend, MarketingAiReview, PerformanceMarketingDashboard } from "../../features/admin/marketing/PerformanceMarketingDashboard";
 import { ExportCenter } from "../../features/admin/analytics/ExportCenter";
 import { changeText, metricText, ownerEvidenceLabel, ownerMarketingText, safeContentHref, storedDateText } from "../../features/admin/marketing/presentation";
 import * as presentation from "../../features/admin/marketing/presentation";
-import type { MarketingAction, MarketingActionInput, MarketingLeaderboard } from "../../lib/admin/marketing/model";
+import type { MarketingAction, MarketingActionInput, MarketingDashboard, MarketingLeaderboard, MarketingMetric } from "../../lib/admin/marketing/model";
 
 test("marketing presentation distinguishes missing from zero and protects content links", () => {
   assert.equal(metricText(0), "0"); assert.equal(metricText(null), "ยังไม่มีข้อมูล");
@@ -19,7 +20,7 @@ test("marketing presentation distinguishes missing from zero and protects conten
   assert.equal(safeContentHref("/ci-planning/"), "https://ccpun.com/ci-planning/");
   assert.equal(storedDateText("invalid"), "ยังไม่ระบุ");
   assert.equal(ownerEvidenceLabel("content:search_clicks:sanity:ccpun-article-aia-senior-happy", "AIA Senior Happy"), "ข้อมูลคลิกจาก Google Search ของ “AIA Senior Happy”");
-  assert.match(ownerMarketingText("Check source freshness: gsc-daily-page"), /ตรวจข้อมูลล่าสุด/);
+  assert.match(ownerMarketingText("Check source freshness: gsc-daily-page"), /ตรวจความพร้อมของข้อมูล/);
 });
 
 test("leaderboards preserve SQL ranks, missing baselines and low sample instead of inventing winners", () => {
@@ -28,9 +29,37 @@ test("leaderboards preserve SQL ranks, missing baselines and low sample instead 
   const html = renderToStaticMarkup(createElement(ContentLeaderboard, { board }));
   assert.ok(html.indexOf("SQL first") < html.indexOf("SQL second")); assert.match(html, /SQL first &lt;unsafe&gt;/);
   assert.match(html, /ประวัติยังไม่พอ/); assert.match(html, /ยังเทียบไม่ได้/); assert.match(html, /ดูสถานะข้อมูลต้นทางด้านล่าง/);
-  assert.match(html, /จัดอันดับตาม GSC clicks ตาม SQL/); assert.match(html, /scope="row"/);
+  assert.match(html, /จัดอันดับตาม จำนวนคลิกจาก Google Search/); assert.match(html, /scope="row"/);
   assert.doesNotMatch(html, /see_source_health|content:search_clicks|200%|\blead\b|ROAS/);
   assert.match(renderToStaticMarkup(createElement(ContentLeaderboard, { board: { ...board, rows: [] } })), /ยังไม่มีเนื้อหาที่เข้าเกณฑ์/);
+});
+
+test("Production marketing facts render Thai labels while technical provenance stays in optional audit details", () => {
+  const metricCodes = ["search_average_position", "search_ctr", "social_reach", "social_interactions", "social_shares", "social_saves"];
+  const metrics: MarketingMetric[] = metricCodes.map((metric, index) => ({ metric, current: index + 1, previous: null, absoluteChange: null, percentageChange: null, sampleStatus: "insufficient_data", coverageStatus: "partial", freshnessStatus: "see_source_health", threshold: 10, unit: "native_counter", evidenceRef: `content:${metric}:asset-1` }));
+  const limitation = "Search Console may omit anonymized or low-volume queries.";
+  const scope = "Scope: hostName ccpun.com/www.ccpun.com only; blog.ccpun.com excluded explicitly";
+  const model: MarketingDashboard = {
+    state: "ready", version: "marketing-v1", generatedAt: "2026-09-28T05:00:00Z",
+    window: { key: "this_week", currentStart: "2026-09-21", currentEnd: "2026-09-24", previousStart: "2026-09-14", previousEnd: "2026-09-17", calendarPolicy: "Monday-start; provider-native dates; common mature cutoff; MTD equal elapsed days" },
+    kpis: [], contentPerformance: [{ assetId: "asset-1", title: "บทความตัวอย่าง", url: "https://ccpun.com/example", category: null, topic: null, publishedAt: null, mappingStatus: "mapped", lifecycle: "new", metrics }], campaigns: [], benchmarks: [], leaderboards: [], trend: [],
+    funnel: { mode: "activity-only", steps: [], limitation: "Behavioral events are not confirmed leads; no cohort/session sequence, so conversion/drop-off rates and downstream outcomes are unavailable" },
+    health: [{ source: "gsc", report: "gsc-daily-query-page", sourceAsOf: "2026-09-24", collectedAt: "2026-09-28T05:00:00Z", lastSuccess: "2026-09-28T05:00:00Z", lastError: null, expectedLagDays: 3, status: "expected_lag", coverageStart: "2026-09-01", coverageEnd: "2026-09-24", timezone: "America/Los_Angeles", limitations: [limitation, scope] }],
+    opportunities: [{ id: "health-1", area: "health", assetId: null, title: "Check source freshness: gsc-daily-query-page", priority: "medium", evidenceRefs: ["health:gsc-daily-query-page"], recommendedAction: "Check source freshness: gsc-daily-query-page", confidence: "low", reason: "Source is stale or latest attempt failed; qualify recommendations until current evidence is available" }],
+    actions: [], manifest: [{ batchId: "00000000-0000-4000-8000-000000000001", report: "gsc-daily-query-page", rawHash: "a".repeat(64), periodStart: "2026-09-01", periodEnd: "2026-09-24", sourceAsOf: "2026-09-24", collectedAt: "2026-09-28T05:00:00Z", timezone: "America/Los_Angeles", limitations: [limitation, scope] }], notes: ["Unknown English limitation for audit"],
+  };
+  const require = createRequire(import.meta.url), { JSDOM } = require("jsdom");
+  const document = new JSDOM(renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: {} as never }, createElement(PerformanceMarketingDashboard, { model })))).window.document;
+  const content = document.querySelector('[aria-labelledby="content-performance-title"]')?.textContent ?? "";
+  const health = document.querySelector("#data-notes table")?.textContent ?? "";
+  const opportunities = document.querySelector("#opportunities")?.textContent ?? "";
+  for (const label of ["อันดับเฉลี่ยในผลค้นหา", "อัตราคลิกจากผลค้นหา", "จำนวนบัญชีที่เห็นโพสต์", "การมีส่วนร่วมกับโพสต์", "การแชร์โพสต์", "การบันทึกโพสต์"]) assert.ok(content.includes(label), label);
+  assert.doesNotMatch(content, /search_average_position|search_ctr|social_reach|social_interactions|social_shares|social_saves/);
+  assert.match(health, /คำค้นจาก Google แยกตามหน้า|Google Search อาจไม่แสดงบางคำค้น|ไม่รวม blog\.ccpun\.com/);
+  assert.doesNotMatch(health, /gsc-daily-query-page|Search Console may|Scope: hostName/);
+  assert.match(opportunities, /ตรวจความพร้อมของข้อมูล: คำค้นจาก Google แยกตามหน้า/);
+  assert.doesNotMatch(opportunities, /gsc daily query page|gsc-daily-query-page/);
+  assert.match(document.querySelector("#data-notes details")?.textContent ?? "", /gsc-daily-query-page|Search Console may|Unknown English limitation for audit/);
 });
 
 test("daily trend breaks missing dates, retains zero and provides accessible observed-value table", () => {
