@@ -11,7 +11,7 @@ import { MARKETING_ANALYSIS_INSTRUCTION, buildMarketingInferenceRequest, marketi
 const directory=mkdtempSync(join(tmpdir(),"marketing-cloud-test-")),stub=join(directory,"stub.cjs");writeFileSync(stub,"module.exports={};");registerHooks({resolve(specifier,context,next){return specifier==="server-only"?{url:pathToFileURL(stub).href,shortCircuit:true}:next(specifier,context);}});
 
 test("OpenAI native node receives a bounded strict schema while the database keeps one cloud attempt", async () => {
-  const {MARKETING_CLOUD_MIGRATION_CHECKSUM,MARKETING_CLOUD_PROMPT_MIGRATION_CHECKSUM,MARKETING_CLOUD_PROMPT_VERSION,marketingOpenAiStrictSchema,buildMarketingCloudRequest}=await import("../../lib/admin/marketing/analysis");
+  const {MARKETING_CLOUD_MIGRATION_CHECKSUM,MARKETING_CLOUD_PROMPT_MIGRATION_CHECKSUM,MARKETING_CLOUD_TIMEOUT_MIGRATION_CHECKSUM,MARKETING_CLOUD_PROMPT_VERSION,marketingOpenAiStrictSchema,buildMarketingCloudRequest}=await import("../../lib/admin/marketing/analysis");
   const schema = marketingOpenAiStrictSchema(z.toJSONSchema(marketingInterpretationSelectionSchema)) as Record<string, unknown>;
   const visit = (node: unknown) => {
     if (!node || typeof node !== "object") return;
@@ -39,6 +39,10 @@ test("OpenAI native node receives a bounded strict schema while the database kee
   assert.equal(MARKETING_CLOUD_PROMPT_MIGRATION_CHECKSUM,`sha256:${createHash("sha256").update(promptBody).digest("hex")}`);
   assert.match(promptSql,/cloud_prompt_digest text/);
   assert.match(promptSql,/status<>'ready' OR cloud_prompt_digest IS NOT NULL/);
+  const timeoutSql=readFileSync("db/migrations/20260928_marketing_cloud_timeout_v3.sql","utf8");
+  const timeoutBody=timeoutSql.split("-- checksum-source-begin\n")[1]!.split("-- checksum-source-end")[0]!;
+  assert.equal(MARKETING_CLOUD_TIMEOUT_MIGRATION_CHECKSUM,`sha256:${createHash("sha256").update(timeoutBody).digest("hex")}`);
+  assert.equal((timeoutBody.match(/c\.reserved_at<now\(\)-interval '30 minutes'/g)??[]).length,2);
   const snapshot=marketingSnapshotSchema.parse({promptVersion:"marketing-performance-v1",analysisType:"weekly_performance",definitionVersions:{analytics:"marketing-v2",rules:"marketing-rules-v1",identity:"marketing-identity-v1",freshness:"marketing-calendar-v2"},period:{key:"this_week",currentStart:"2026-09-21",currentEnd:"2026-09-24",previousStart:"2026-09-14",previousEnd:"2026-09-17",calendarPolicy:"Common mature native date"},sourceManifest:[],sourceManifestHash:"a".repeat(64),evidence:[{id:"e1",kind:"kpi",assetId:null,label:"คลิกจาก Google",metric:"search_clicks",current:3,previous:0,absoluteChange:3,percentageChange:null,sampleStatus:"low",coverageStatus:"complete",freshnessStatus:"expected_lag",evidenceRef:"sql:search_clicks",measurementStatus:null}],coverage:{prepared:1,sent:1,dropped:0},limitations:["Qualified conversations are unavailable"]});
   const context=marketingAnalysisInputSchema.parse({...snapshot,snapshotHash:"b".repeat(64)});
   const local=buildMarketingInferenceRequest(context),cloud=buildMarketingCloudRequest(context);
