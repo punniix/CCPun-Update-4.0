@@ -539,7 +539,7 @@
 .footerBrandText { margin-top: 10px; color: var(--w43-muted); font-size: 14px; line-height: 1.5; }
 .footerColumn strong { color: var(--w43-gold); font-size: 14px; }
 .footerColumn a { display: block; margin-top: 8px; color: var(--w43-muted); font-size: 14px; }
-.root .footerColumn .footerCookieButton { display: flex; min-height: 0; margin-top: 8px; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 14px; line-height: 1.5; cursor: pointer; }
+.root .footerColumn .footerCookieButton { display: flex; min-height: 0; margin-top: 8px; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 13px; line-height: 1.5; cursor: pointer; }
 .footerRule { width: min(890px,100%); height: 1px; margin-top: 28px; background: var(--w43-border); }
 .footerDisclaimer { max-width: 890px; margin: 28px 0 0; color: var(--w43-muted); font-size: 14px; }
 .footerCopyright { margin: 24px 0 0; color: var(--w43-muted); font-size: 14px; }
@@ -648,7 +648,7 @@
   .footerFull { display: none; }
   .footerWarnings { width: 100%; margin-top: 0; font-size: 14px; }
   .footerCompact { display: flex; flex-direction: column; gap: 20px; }
-  .root .footerCompact .footerCookieButton { min-height: 44px; align-self: flex-start; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 14px; line-height: 1.45; cursor: pointer; }
+  .root .footerCompact .footerCookieButton { min-height: 44px; align-self: flex-start; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 13px; line-height: 1.45; cursor: pointer; }
   .notFoundFooterCompact { gap: 16px; }
   .footerCompact.notFoundFooterCompact nav { line-height: 20px; }
   .notFoundFooterWrap { height: 169px; }

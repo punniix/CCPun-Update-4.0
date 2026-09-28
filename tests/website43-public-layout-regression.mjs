@@ -111,6 +111,10 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
 });
 
 test('Footer controls and warnings stay inside the visible Website 4.3 footer card at every breakpoint', () => {
+  const css = read('components/layout/website-43/Website43.module.css');
+  assert.match(css, /\.footerColumn \.footerCookieButton \{[^}]*font-size: 13px;/, 'desktop Cookie Settings stays smaller than 14px footer links');
+  assert.match(css, /\.footerCompact \.footerCookieButton \{[^}]*font-size: 13px;/, 'compact Cookie Settings stays smaller than normal footer text');
+
   for (const path of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx']) {
     const footer = read(path);
     const desktop = footer.split('className={styles.footerFull}>')[1]?.split('className={styles.footerCompact}')[0]?.split('className={`${styles.footerCompact}')[0];
