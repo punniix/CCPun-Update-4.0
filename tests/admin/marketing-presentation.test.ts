@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import { buildMarketingWorkspace, marketingWorkspaceCsv, marketingWorkspaceXlsx } from "../../lib/admin/marketing/export";
 import { ContentLeaderboard, MarketingTrend, MarketingAiReview, PerformanceMarketingDashboard } from "../../features/admin/marketing/PerformanceMarketingDashboard";
 import { ExportCenter } from "../../features/admin/analytics/ExportCenter";
 import { changeText, metricText, ownerEvidenceLabel, ownerMarketingText, safeContentHref, storedDateText } from "../../features/admin/marketing/presentation";
@@ -124,9 +125,28 @@ test("AI panel retains validated old result during a pending run and states actu
   const window = { key: "this_week" as const, currentStart: "2026-09-21", currentEnd: "2026-09-24", previousStart: "2026-09-14", previousEnd: "2026-09-17", calendarPolicy: "Native calendar" };
   const record: import("../../lib/admin/marketing/analysis").MarketingAnalysisRecord = { analysisId: "00000000-0000-4000-8000-000000000003", jobId: null, status: "stale", promptVersion: "marketing-performance-v1", analysisType: "weekly_performance", period: { ...window, currentStart: "2026-09-14", currentEnd: "2026-09-17" }, sourceManifest: [], createdAt: "2026-09-18T00:00:00Z", completedAt: "2026-09-18T00:01:00Z", modelName: "VPS test model", inputHash: "a".repeat(64), output: { promptVersion: "marketing-performance-v1", analysisType: "weekly_performance", definitionVersions: { analytics: "marketing-v2", rules: "marketing-rules-v1", identity: "marketing-identity-v1", freshness: "marketing-calendar-v2" }, period: { ...window, currentStart: "2026-09-14", currentEnd: "2026-09-17" }, sourceManifest: [], sourceManifestHash: "b".repeat(64), snapshotHash: "c".repeat(64), coverage: { prepared: 1, sent: 1, dropped: 0 }, summary: "สมมติฐานจากข้อมูลเก่า ควรตรวจเพิ่มเติมก่อนลงมือ", wins: [], risks: [], opportunities: [], recommendedActions: [], watchItems: [], dataQualityNotes: ["ข้อมูลเก่าและปริมาณน้อย"], reviewRequired: true } };
   const html = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "ready", latest: { ...record, analysisId: "00000000-0000-4000-8000-000000000004", status: "queued", output: null }, lastGood: record } }));
-  assert.match(html, /รอคิววิเคราะห์/); assert.match(html, /ผลครั้งก่อน · โปรดดูวันที่/); assert.match(html, /2026-09-14.*2026-09-17/); assert.match(html, /สมมติฐานจากข้อมูลเก่า/); assert.match(html, /a{64}/); assert.doesNotMatch(html, /ผลนี้ใช้ข้อมูล 2026-09-21/);
+  assert.match(html, /รอคิววิเคราะห์/); assert.match(html, /ผลครั้งก่อน · โปรดดูวันที่/); assert.match(html, /2026-09-14.*2026-09-17/); assert.match(html, /อ่านตัวเลขและช่วงข้อมูล/); assert.doesNotMatch(html, /สมมติฐานจากข้อมูลเก่า/); assert.match(html, /a{64}/); assert.doesNotMatch(html, /ผลนี้ใช้ข้อมูล 2026-09-21/);
   const cloud = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "ready", latest: { ...record, inferenceProvider: "openai", modelName: "gpt-6-luna" }, lastGood: null } }));
   assert.match(cloud, /ระบบ AI สำรอง/); assert.doesNotMatch(cloud, /gpt-6-luna|สมมติฐานจากโมเดล VPS/);
   const unavailable = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "unavailable", latest: null, lastGood: null } }));
   assert.match(unavailable, /ตัวเลข อันดับ และแผนงานยังใช้งานได้/); assert.doesNotMatch(unavailable, /สมมติฐานจากข้อมูลเก่า/);
+});
+
+test("v1 unsupported AI prose stays in audit JSON and never reaches Admin, CSV, or Excel", () => {
+  const unsupported = "มีการเปลี่ยนแปลงในความพร้อมของผู้ใช้จากข้อมูล Google";
+  const window = { key: "this_week" as const, currentStart: "2026-09-21", currentEnd: "2026-09-24", previousStart: "2026-09-14", previousEnd: "2026-09-17", calendarPolicy: "Native calendar" };
+  const evidence = { id: "e1", kind: "kpi" as const, assetId: null, label: "คลิกปุ่ม LINE", metric: "line_clicks", current: 2, previous: null, absoluteChange: null, percentageChange: null, sampleStatus: "low" as const, coverageStatus: "insufficient_history", freshnessStatus: "expected_lag" as const, evidenceRef: "kpi:line_clicks", measurementStatus: null };
+  const finding = { id: "i1", type: "watch" as const, explanation: unsupported, action: "monitor" as const, priority: "low" as const, confidence: "low" as const, evidence: [evidence] };
+  const output: import("../../lib/local-ai/contracts").MarketingAnalysisOutput = { promptVersion: "marketing-performance-v1", analysisType: "weekly_performance", definitionVersions: { analytics: "marketing-v2", rules: "marketing-rules-v1", identity: "marketing-identity-v1", freshness: "marketing-calendar-v2" }, period: window, sourceManifest: [], sourceManifestHash: "b".repeat(64), snapshotHash: "c".repeat(64), coverage: { prepared: 1, sent: 1, dropped: 0 }, summary: unsupported, wins: [], risks: [], opportunities: [], recommendedActions: [finding], watchItems: [finding], dataQualityNotes: [unsupported], reviewRequired: true };
+  const record: import("../../lib/admin/marketing/analysis").MarketingAnalysisRecord = { analysisId: "00000000-0000-4000-8000-000000000003", jobId: null, status: "ready", promptVersion: output.promptVersion, analysisType: output.analysisType, period: window, sourceManifest: [], createdAt: "2026-09-25T00:00:00Z", completedAt: "2026-09-25T00:01:00Z", modelName: "VPS test model", inputHash: "a".repeat(64), output };
+  const analysis: import("../../lib/admin/marketing/analysis").MarketingAnalysisView = { state: "ready", latest: record, lastGood: null };
+  const stored = JSON.stringify(output);
+  const html = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis }));
+  const model = (key: "this_week" | "this_month"): MarketingDashboard => ({ state: "ready", version: "marketing-v1", generatedAt: "2026-09-25T12:00:00Z", window: { ...window, key, currentStart: key === "this_month" ? "2026-09-01" : window.currentStart }, kpis: [], contentPerformance: [], campaigns: [], benchmarks: [], leaderboards: [], trend: [], funnel: { mode: "activity-only", steps: [], limitation: "No cohort" }, health: [], opportunities: [], actions: [], manifest: [], notes: [] });
+  const workbook = buildMarketingWorkspace(model("this_week"), model("this_month"), { this_week: analysis });
+  const csv = workbook.sheets.map(sheet => marketingWorkspaceCsv(workbook, sheet.title)).join("\n"), xlsx = marketingWorkspaceXlsx(workbook).toString("utf8");
+  for (const delivered of [html, csv, xlsx]) { assert.doesNotMatch(delivered, /มีการเปลี่ยนแปลงในความพร้อมของผู้ใช้/); assert.match(delivered, /อ่านตัวเลขและช่วงข้อมูล/); }
+  assert.doesNotMatch(html, /e1 ·/); assert.match(csv, /e1/); assert.match(csv, /สมมติฐานที่ต้องตรวจทาน/); assert.doesNotMatch(csv, /hypothesis · human review/);
+  assert.match(html, /คลิกไป LINE: 2/); assert.match(csv, /line_clicks=2, previous=unavailable/);
+  assert.equal(JSON.stringify(output), stored);
 });
