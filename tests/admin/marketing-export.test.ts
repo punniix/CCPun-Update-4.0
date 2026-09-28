@@ -69,7 +69,7 @@ test("persisted AI is exported with exact old-period evidence, version/hash and 
   const cloudWorkspace = buildMarketingWorkspace(weekly, monthly, { this_week: { state: "ready", latest: { ...record, inferenceProvider: "openai", modelName: "gpt-6-luna" }, lastGood: null } });
   const cloudOverview = cloudWorkspace.sheets.find(sheet => sheet.title === "Performance Overview")!.rows.find(row => row["AI สมมติฐาน"]);
   assert.equal(cloudOverview?.["AI Model"], "OpenAI API / gpt-6-luna");
-  assert.match(String(cloudOverview?.["ตัวชี้วัด"]), /OpenAI API hypothesis/);
+  assert.match(String(cloudOverview?.["ตัวชี้วัด"]), /OpenAI API · สมมติฐานที่ต้องตรวจทาน/);
   assert.match(marketingWorkspaceCsv(cloudWorkspace, "Data Notes"), /provider=OpenAI API; model=gpt-6-luna/);
 });
 
