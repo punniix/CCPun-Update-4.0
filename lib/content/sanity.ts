@@ -302,10 +302,35 @@ const primaryAuthorQuery = groq`*[_type == "author" && name == "CCPun"][0]{
   })
 }`;
 
+const PRIMARY_AUTHOR_FETCH_TIMEOUT_MS = 2000;
+
+function settleWithin<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function readPrimaryAuthorProfile(): Promise<NonNullable<Article["author"]> | null> {
   try {
-    const { data } = await sanityFetch({ query: primaryAuthorQuery, perspective: "published", stega: false });
-    const parsed = authorSchema.safeParse(data);
+    const result = await settleWithin(
+      sanityFetch({ query: primaryAuthorQuery, perspective: "published", stega: false }),
+      PRIMARY_AUTHOR_FETCH_TIMEOUT_MS,
+    );
+    if (!result) {
+      console.error("[author-profile] primary author timed out");
+      return null;
+    }
+    const parsed = authorSchema.safeParse(result.data);
     if (!parsed.success) return null;
     return toArticleAuthorProfile(parsed.data) ?? null;
   } catch (error) {
