@@ -22,7 +22,7 @@ test("admin presentation uses friendly Thai labels and hides unknown API detail"
   assert.equal(contentReviewStatusLabel("approved"), "อนุมัติเนื้อหาแล้ว");
   assert.equal(contentReviewStatusLabel(null), "ยังไม่มีข้อมูลการตรวจ");
   assert.equal(contentReviewStatusLabel("future-status"), "ไม่รู้จักขั้นตรวจนี้");
-  assert.equal(riskLabel("critical"), "วิกฤต — ตรวจใน Studio");
+  assert.equal(riskLabel("critical"), "วิกฤต — ตรวจใน Sanity Studio");
   assert.equal(connectionLabel(false, "write"), "ปิดการบันทึกไว้เพื่อความปลอดภัย");
   assert.equal(environmentLabel("uat"), "UAT");
   assert.equal(environmentLabel("admin-uat"), "Admin UAT");
