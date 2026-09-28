@@ -6,7 +6,7 @@ import test from "node:test";
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
 
-test("Admin navigation and entry screens use ordinary Thai", () => {
+test("Admin navigation and entry screens keep Thai UI with canonical English product terms", () => {
   const navigation = read("apps/admin/app/(control-plane)/layout.tsx")
     + read("features/admin/components/AdminNavigation.tsx");
   const entry = read("apps/admin/app/(control-plane-auth)/login/page.tsx")
@@ -20,6 +20,7 @@ test("Admin navigation and entry screens use ordinary Thai", () => {
   assert.match(entry, /ศูนย์จัดการ CCPun/);
   assert.doesNotMatch(entry, /Admin Control Plane/);
   assert.doesNotMatch(entry, /PRODUCTION ADMIN|Vercel หรือ Sanity/);
+  assert.match(navigation, /Sanity Studio/);
   assert.match(read("lib/admin/environment.ts"), /ศูนย์จัดการ · ระบบจริง/);
   assert.doesNotMatch(read("lib/admin/environment.ts"), /return "PRODUCTION ADMIN"/);
 });
@@ -67,4 +68,16 @@ test("technical identifiers are secondary details, not primary instructions", ()
   assert.match(settings, /รายละเอียดสำหรับทีมเทคนิค/);
   assert.match(connections, /ดูรายละเอียดสิทธิ์สำหรับทีมเทคนิค/);
   assert.match(connections, /รหัสสิทธิ์/);
+});
+
+
+test("professional and product terms use canonical English instead of Thai transliteration", () => {
+  const source = [
+    read("apps/admin/app/(control-plane)/analytics/page.tsx"),
+    read("apps/admin/app/(control-plane)/operations/jobs/[jobId]/page.tsx"),
+    read("apps/admin/app/(control-plane)/settings/[section]/page.tsx"),
+    read("features/admin/operations/AgentRuntimeJobStatus.tsx"),
+  ].join("\n");
+  for (const term of ["Performance Marketing", "Top Content", "Action Plan", "Agent OS Runtime", "Workflow", "Runtime", "Sanity Studio"]) assert.match(source, new RegExp(term));
+  assert.doesNotMatch(source, /เวิร์กโฟลว์|รันไทม์|ดีพลอย|คอมมิต|ดาต้าเซ็ต|สตูดิโอ/);
 });
