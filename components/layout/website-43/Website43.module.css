@@ -531,12 +531,15 @@
 
 /* Footer */
 .footerWrap { padding: 40px 80px 80px; background: var(--w43-bg); }
-.footerWarnings { width: min(900px,100%); margin: 0 0 20px; color: var(--w43-muted); font-size: 14px; line-height: 1.55; }
+.footerWarnings { width: min(890px,100%); margin: 18px 0 0; color: var(--w43-muted); font-size: 13px; line-height: 1.55; }
+.footerWarnings p { margin: 0; }
+.footerWarnings p + p { margin-top: 2px; }
 .footerFull { width: min(1280px,100%); min-height: 410px; padding: 40px; border: 1px solid var(--w43-border); border-radius: 16px; background: var(--w43-deep); }
 .footerTop { display: grid; grid-template-columns: 300px 150px 150px 150px; gap: 48px; min-height: 170px; }
 .footerBrandText { margin-top: 10px; color: var(--w43-muted); font-size: 14px; line-height: 1.5; }
 .footerColumn strong { color: var(--w43-gold); font-size: 14px; }
 .footerColumn a { display: block; margin-top: 8px; color: var(--w43-muted); font-size: 14px; }
+.root .footerColumn .footerCookieButton { display: flex; min-height: 0; margin-top: 8px; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 13px; line-height: 1.5; cursor: pointer; }
 .footerRule { width: min(890px,100%); height: 1px; margin-top: 28px; background: var(--w43-border); }
 .footerDisclaimer { max-width: 890px; margin: 28px 0 0; color: var(--w43-muted); font-size: 14px; }
 .footerCopyright { margin: 24px 0 0; color: var(--w43-muted); font-size: 14px; }
@@ -643,8 +646,9 @@
 
   .footerWrap { padding: 40px; background: var(--w43-deep); }
   .footerFull { display: none; }
-  .footerWarnings { width: 100%; }
+  .footerWarnings { width: 100%; margin-top: 0; font-size: 13px; }
   .footerCompact { display: flex; flex-direction: column; gap: 20px; }
+  .root .footerCompact .footerCookieButton { min-height: 44px; align-self: flex-start; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 13px; line-height: 1.45; cursor: pointer; }
   .notFoundFooterCompact { gap: 16px; }
   .footerCompact.notFoundFooterCompact nav { line-height: 20px; }
   .notFoundFooterWrap { height: 169px; }
@@ -832,7 +836,7 @@
   .blogRecovery { width: min(342px, 100%); }
 
   .footerWrap { padding: 24px; }
-  .footerWarnings { font-size: 14px; }
+  .footerWarnings { font-size: 13px; }
   .footerCompact { gap: 16px; }
   .footerCompact.notFoundFooterCompact nav { line-height: 1.7; }
   .notFoundFooterWrap { height: 137px; }

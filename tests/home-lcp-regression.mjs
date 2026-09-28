@@ -19,5 +19,5 @@ assert.match(home, /homeFaqs as faqs/);
 assert.doesNotMatch(home, /\/preview\//);
 const shared = readFileSync(new URL("../components/layout/website-43/Website43Shared.tsx", import.meta.url), "utf8");
 assert.match(shared, /import CookieSettingsButton from '@\/components\/layout\/CookieSettingsButton'/);
-assert.match(shared, /<CookieSettingsButton \/>/, "Home must preserve consent reopening outside responsive footer variants");
+assert.match(shared, /<CookieSettingsButton\b/, "Home must preserve consent reopening in the responsive footer variants");
 console.log("PASS: approved Home responsive LCP and FAQ composition contract");
