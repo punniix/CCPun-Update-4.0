@@ -26,7 +26,7 @@ export default function Website43Home({ authorProfile = null }: { authorProfile?
   const professionalQualifications = authorProfile?.professionalQualifications ?? [];
   const primaryQualification = professionalQualifications[0];
   const qualificationSuffix = professionalQualifications.map((qualification) => qualification.shortName.trim()).filter(Boolean).join(', ');
-  const profileName = authorProfile?.profileName?.trim() || 'ชนาธิป ชิดประเสริฐ';
+  const profileName = authorProfile?.profileName?.trim() || 'ชนาธิป ชิตประเสริฐ';
   const profileRole = authorProfile?.profileRole?.trim() || DEFAULT_AUTHOR_ROLE;
   const displayName = qualificationSuffix ? `${profileName}, ${qualificationSuffix}` : profileName;
   const qualificationIdentifier = primaryQualification?.identifier?.trim();

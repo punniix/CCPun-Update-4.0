@@ -127,14 +127,14 @@ expect(
 );
 expect(
   'Person entity has one canonical human name with aliases and Article schema references only that entity',
-  siteStructuredData.includes('"name": "ชนาธิป ชิดประเสริฐ"')
+  siteStructuredData.includes('"name": "ชนาธิป ชิตประเสริฐ"')
     && siteStructuredData.includes('"alternateName": ["ปั้น", "CCPun"]')
     && entityIds.includes('export const CCPUN_PERSON_ID = "https://ccpun.com/#person"')
     && articleStructuredData.includes('author: { "@id": CCPUN_PERSON_ID }')
     && !articleStructuredData.includes('name: article.authorName')
-    && publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิดประเสริฐ", url: "https://ccpun.com" }]')
+    && publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
     && !publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)"')
-    && webPublicLayout.includes('authors: [{ name: "ชนาธิป ชิดประเสริฐ", url: "https://ccpun.com" }]')
+    && webPublicLayout.includes('authors: [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
     && !webPublicLayout.includes('authors: [{ name: "ปั้น (CCPun)"'),
 );
 expect(

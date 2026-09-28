@@ -236,7 +236,7 @@ export default function PrivacyPage() {
             <address className="not-italic space-y-2 text-foreground">
               <p>
                 <span className="text-muted-foreground">ชื่อ:</span>{" "}
-                ชนาธิป ชิดประเสริฐ
+                ชนาธิป ชิตประเสริฐ
               </p>
               <p>
                 <span className="text-muted-foreground">อีเมล:</span>{" "}
