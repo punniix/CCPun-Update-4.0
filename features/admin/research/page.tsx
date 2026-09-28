@@ -267,7 +267,7 @@ export default async function AdminResearchPage({
           <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm leading-6 text-white/60">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span>สถานะ: <strong className="text-white/80">{aisvReadStateLabel(aisvState)}</strong></span>
-              <span>แหล่ง: Ubersuggest AISV</span>
+              <span>แหล่ง: รายงานการปรากฏในคำตอบ AI จาก Ubersuggest</span>
               <span>ข้อมูลมาจาก: {aisvSourceRuntimeLabel(geo.sourceRuntime ?? account?.sourceRuntime)}</span>
             </div>
             <p className="mt-2">ช่วงรายงาน {geo.windowStart} → {geo.windowEnd} · ดึงเข้าระบบ {formatDate(geo.fetchedAt ?? geo.checkedAt)}</p>
