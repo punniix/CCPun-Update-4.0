@@ -2,6 +2,16 @@ import "server-only";
 import { z } from "zod";
 import { fetchGscSearchAnalytics } from "../seo-intelligence/providers/gsc";
 import { shiftAnalyticsDate, ga4MarketingRequest, normalizeGa4Marketing, type AnalyticsDataset, type AnalyticsReport } from "../analytics/model";
+export function planMarketingBackfill(source:"gsc"|"ga4",cursorEnd:string,providerEnd:string,now=new Date()) {
+ const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Bangkok",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
+ const date=new Date(`${today}T00:00:00Z`);
+ const floor=source==="ga4"?shiftAnalyticsDate(today,-1095):(()=>{const month=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()-16,1));const last=new Date(Date.UTC(month.getUTCFullYear(),month.getUTCMonth()+1,0)).getUTCDate();return new Date(Date.UTC(month.getUTCFullYear(),month.getUTCMonth(),Math.min(date.getUTCDate(),last))).toISOString().slice(0,10);})();
+ if(!z.iso.date().safeParse(cursorEnd).success||cursorEnd>providerEnd)throw new Error("INVALID_MARKETING_BACKFILL_CURSOR");
+ const limitKind=source==="gsc"?"provider-retention" as const:"current-system-guard" as const;
+ if(cursorEnd<floor)return{source,status:"limit-reached" as const,earliestAllowedStart:floor,limitKind,window:null,nextEnd:null};
+ const start=shiftAnalyticsDate(cursorEnd,-55)<floor?floor:shiftAnalyticsDate(cursorEnd,-55);
+ return{source,status:"ready" as const,earliestAllowedStart:floor,limitKind,window:{start,end:cursorEnd},nextEnd:start>floor?shiftAnalyticsDate(start,-1):null};
+}
 const definitions = {
   "ga4-daily-organic": { dimensions: ["date", "landingPage"], metrics: ["sessions", "engagedSessions"], columns: ["วันที่", "หน้าเข้า", "เซสชัน", "Engaged sessions"] },
   "ga4-content-events": { dimensions: ["date", "eventName", "pagePath"], metrics: ["eventCount"], columns: ["วันที่", "Event", "หน้าเว็บ", "จำนวน event"] },
