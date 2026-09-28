@@ -7,12 +7,6 @@ SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM ccpun_admin.schema_migration WHERE ver
 SELECT pg_advisory_xact_lock(hashtext('ccpun_admin:20260928_marketing_cloud_review_retry_v7'));
 SELECT 1 / CASE WHEN NOT EXISTS(SELECT 1 FROM ccpun_admin.schema_migration WHERE version='20260928_marketing_cloud_review_retry_v7') THEN 1 ELSE 0 END AS not_already_applied_guard;
 -- checksum-source-begin
-ALTER TABLE ccpun_admin.marketing_cloud_attempt
-  DROP CONSTRAINT marketing_cloud_attempt_cloud_prompt_version_v6_check;
-ALTER TABLE ccpun_admin.marketing_cloud_attempt
-  ADD CONSTRAINT marketing_cloud_attempt_cloud_prompt_version_v7_check
-  CHECK(cloud_prompt_version IN('marketing-performance-cloud-v1','marketing-performance-cloud-v2','marketing-performance-cloud-v3','marketing-performance-review-v1','marketing-performance-review-v2'));
-
 CREATE TABLE ccpun_admin.marketing_cloud_retry_audit (
   analysis_id uuid PRIMARY KEY REFERENCES ccpun_admin.marketing_analysis(analysis_id),
   previous_reservation_id uuid NOT NULL UNIQUE,
@@ -26,8 +20,7 @@ CREATE TABLE ccpun_admin.marketing_cloud_retry_audit (
   previous_cloud_prompt_digest text NOT NULL CHECK(previous_cloud_prompt_digest~'^[a-f0-9]{64}$'),
   previous_local_output_digest text NOT NULL CHECK(previous_local_output_digest~'^[a-f0-9]{64}$'),
   retry_reservation_id uuid NOT NULL UNIQUE,
-  retry_cloud_prompt_version text NOT NULL CHECK(retry_cloud_prompt_version='marketing-performance-review-v2'),
-  retry_cloud_prompt_digest text NOT NULL CHECK(retry_cloud_prompt_digest~'^[a-f0-9]{64}$'),
+  retry_transport_version text NOT NULL CHECK(retry_transport_version='n8n-native-openai-v1'),
   retried_at timestamptz NOT NULL DEFAULT now()
 );
 REVOKE ALL ON ccpun_admin.marketing_cloud_retry_audit FROM PUBLIC,ccpun_admin_runtime,ccpun_local_ai_runtime;
@@ -37,14 +30,16 @@ DECLARE a ccpun_admin.marketing_analysis;j ccpun_admin.local_ai_job;c ccpun_admi
 BEGIN
  SELECT * INTO a FROM ccpun_admin.marketing_analysis WHERE analysis_id=p_id AND input_hash=p_hash FOR UPDATE;
  SELECT * INTO j FROM ccpun_admin.local_ai_job WHERE job_id=a.job_id;
- IF a.analysis_id IS NULL OR j.job_id IS NULL OR a.prompt_version<>'marketing-performance-v3' OR a.validation_status<>'validated' OR j.status<>'succeeded' OR j.output_digest IS DISTINCT FROM a.output_digest OR p_local_digest IS DISTINCT FROM a.output_digest OR p_local_digest IS NULL OR p_local_digest!~'^[a-f0-9]{64}$' OR p_prompt_version<>'marketing-performance-review-v2' OR p_prompt_digest IS NULL OR p_prompt_digest!~'^[a-f0-9]{64}$' THEN RAISE EXCEPTION 'MARKETING_REVIEW_IDENTITY_INVALID';END IF;
+ IF a.analysis_id IS NULL OR j.job_id IS NULL OR a.prompt_version<>'marketing-performance-v3' OR a.validation_status<>'validated' OR j.status<>'succeeded' OR j.output_digest IS DISTINCT FROM a.output_digest OR p_local_digest IS DISTINCT FROM a.output_digest OR p_local_digest IS NULL OR p_local_digest!~'^[a-f0-9]{64}$' OR p_prompt_version<>'marketing-performance-review-v1' OR p_prompt_digest IS NULL OR p_prompt_digest!~'^[a-f0-9]{64}$' THEN RAISE EXCEPTION 'MARKETING_REVIEW_IDENTITY_INVALID';END IF;
  IF NOT ccpun_admin.marketing_v3_review_eligible(a) THEN RETURN jsonb_build_object('analysisId',p_id,'status','not-needed','mode','review','reused',false);END IF;
  SELECT * INTO c FROM ccpun_admin.marketing_cloud_attempt WHERE analysis_id=p_id FOR UPDATE;
  IF FOUND THEN
-  IF c.mode='review' AND c.status='failed' AND c.failure_code='api-error' AND c.cloud_prompt_version='marketing-performance-review-v1' AND c.local_output_digest=p_local_digest AND NOT EXISTS(SELECT 1 FROM ccpun_admin.marketing_cloud_retry_audit r WHERE r.analysis_id=p_id) THEN
-   INSERT INTO ccpun_admin.marketing_cloud_retry_audit(analysis_id,previous_reservation_id,previous_provider,previous_model,previous_status,previous_failure_code,previous_reserved_at,previous_completed_at,previous_cloud_prompt_version,previous_cloud_prompt_digest,previous_local_output_digest,retry_reservation_id,retry_cloud_prompt_version,retry_cloud_prompt_digest)
-   VALUES(c.analysis_id,c.reservation_id,c.provider,c.model,c.status,c.failure_code,c.reserved_at,c.completed_at,c.cloud_prompt_version,c.cloud_prompt_digest,c.local_output_digest,p_reservation,p_prompt_version,p_prompt_digest);
-   UPDATE ccpun_admin.marketing_cloud_attempt SET reservation_id=p_reservation,status='reserved',reserved_at=now(),completed_at=NULL,output_json=NULL,output_digest=NULL,input_tokens=NULL,output_tokens=NULL,failure_code=NULL,cloud_prompt_version=p_prompt_version,cloud_prompt_digest=p_prompt_digest,local_output_digest=p_local_digest WHERE analysis_id=p_id AND reservation_id=c.reservation_id AND status='failed';
+  IF c.mode='review' AND c.status='failed' AND c.failure_code='api-error' AND c.cloud_prompt_version='marketing-performance-review-v1' AND c.cloud_prompt_digest=p_prompt_digest AND c.local_output_digest=p_local_digest AND NOT EXISTS(SELECT 1 FROM ccpun_admin.marketing_cloud_retry_audit r WHERE r.analysis_id=p_id) THEN
+   INSERT INTO ccpun_admin.marketing_cloud_retry_audit(analysis_id,previous_reservation_id,previous_provider,previous_model,previous_status,previous_failure_code,previous_reserved_at,previous_completed_at,previous_cloud_prompt_version,previous_cloud_prompt_digest,previous_local_output_digest,retry_reservation_id,retry_transport_version)
+   VALUES(c.analysis_id,c.reservation_id,c.provider,c.model,c.status,c.failure_code,c.reserved_at,c.completed_at,c.cloud_prompt_version,c.cloud_prompt_digest,c.local_output_digest,p_reservation,'n8n-native-openai-v1');
+   UPDATE ccpun_admin.marketing_cloud_attempt
+      SET reservation_id=p_reservation,status='reserved',reserved_at=now(),completed_at=NULL,output_json=NULL,output_digest=NULL,input_tokens=NULL,output_tokens=NULL,failure_code=NULL
+    WHERE analysis_id=p_id AND reservation_id=c.reservation_id AND status='failed';
    IF NOT FOUND THEN RAISE EXCEPTION 'MARKETING_REVIEW_RETRY_CONCURRENT_CHANGE';END IF;
    RETURN jsonb_build_object('analysisId',p_id,'inputHash',p_hash,'reservationId',p_reservation,'localOutputDigest',p_local_digest,'status','reserved','mode','review','reused',false,'retry',true,'attemptCount',2);
   END IF;
@@ -57,5 +52,5 @@ END $reserve_review$;
 REVOKE ALL ON FUNCTION ccpun_admin.admin_reserve_marketing_cloud_review_v1(uuid,text,uuid,text,text,text) FROM PUBLIC,ccpun_local_ai_runtime;
 GRANT EXECUTE ON FUNCTION ccpun_admin.admin_reserve_marketing_cloud_review_v1(uuid,text,uuid,text,text,text) TO ccpun_admin_runtime;
 -- checksum-source-end
-INSERT INTO ccpun_admin.schema_migration(version,checksum) VALUES('20260928_marketing_cloud_review_retry_v7','sha256:51f29555b46e49c8b30a8b7ccd6aba0c73e32f93618307bafba41283237f8478');
+INSERT INTO ccpun_admin.schema_migration(version,checksum) VALUES('20260928_marketing_cloud_review_retry_v7','sha256:d9499a69612d230e87ce606f4121fc0ff94b26748b8e935e051c561404078dcc');
 COMMIT;
