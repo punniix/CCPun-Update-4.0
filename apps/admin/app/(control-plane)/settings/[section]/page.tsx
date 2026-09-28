@@ -45,20 +45,20 @@ async function IntegrationsPage() {
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">งานอัตโนมัติที่เชื่อมกับศูนย์จัดการ</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">ดูว่างานอัตโนมัติใดมีปุ่มให้กดในศูนย์จัดการ งานใดทำงานเบื้องหลัง และงานใดยังไม่มีทางเข้า รายการนี้บอกการเชื่อมต่อที่ออกแบบไว้ ยังไม่ใช่สถานะการทำงานล่าสุดจาก n8n</p>
+          <h2 className="text-lg font-semibold">n8n Workflow Integration</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">ดูว่า Workflow ไหนมีปุ่มให้กดใน Admin แล้ว Workflow ไหนทำงานแบบ Background หรือยังไม่ได้เชื่อม รายการนี้อ้างอิง Integration contract และยังไม่ใช่สถานะ Active/Inactive ล่าสุดจาก n8n</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-white/55">
           <span className="rounded-full border border-white/10 px-2.5 py-1">มีปุ่ม {n8nSummary["admin-trigger"]}</span>
           <span className="rounded-full border border-amber-200/20 bg-amber-200/5 px-2.5 py-1 text-amber-50">ยังไม่มีปุ่ม {n8nSummary.unconnected}</span>
-          <span className="rounded-full border border-white/10 px-2.5 py-1">ทำงานเบื้องหลัง {n8nSummary.background}</span>
-          <span className="rounded-full border border-white/10 px-2.5 py-1">ใช้ทดสอบ {n8nSummary["test-only"]}</span>
-          <span className="rounded-full border border-white/10 px-2.5 py-1">ระบบเดิม {n8nSummary.legacy}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">Background {n8nSummary.background}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">Test only {n8nSummary["test-only"]}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">Legacy {n8nSummary.legacy}</span>
         </div>
       </div>
       <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
         <table className="min-w-[1050px] w-full text-left">
-          <thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">งานอัตโนมัติ</th><th className="px-4 py-3">สถานะการเชื่อมต่อ</th><th className="px-4 py-3">ทางเข้า</th><th className="px-4 py-3">หน้าที่</th><th className="px-4 py-3">ควรทำต่อ</th></tr></thead>
+          <thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">Workflow</th><th className="px-4 py-3">สถานะการเชื่อมต่อ</th><th className="px-4 py-3">ทางเข้า</th><th className="px-4 py-3">หน้าที่</th><th className="px-4 py-3">ควรทำต่อ</th></tr></thead>
           <tbody>{N8N_ADMIN_INTEGRATIONS.map((item) => <tr key={item.workflowId} className="border-t border-white/10 align-top">
             <td className="px-4 py-4"><div className="text-sm font-medium text-white/85">{item.workflowName}</div><details className="mt-1 text-xs text-white/45"><summary className="cursor-pointer">รหัสสำหรับตรวจสอบ</summary><code>{item.workflowId}</code></details>{item.sourceControlled ? <div className="mt-1 text-[11px] text-emerald-200/70">มีไฟล์ต้นฉบับให้ตรวจสอบ</div> : null}</td>
             <td className="px-4 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${item.status === "admin-trigger" ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : item.status === "unconnected" ? "border-amber-200/20 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/[0.04] text-white/60"}`}>{N8N_ADMIN_STATUS_LABEL[item.status]}</span></td>
@@ -68,7 +68,7 @@ async function IntegrationsPage() {
           </tr>)}</tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs leading-5 text-white/40">“ยังไม่มีปุ่ม” หมายถึงยังไม่มีทางเข้าให้กดจากหน้านี้ ไม่ได้แปลว่างานอัตโนมัติเสีย</p>
+      <p className="mt-3 text-xs leading-5 text-white/40">“ยังไม่มีปุ่ม” หมายถึงยังไม่มีทางเข้าให้กดจากหน้านี้ ไม่ได้แปลว่า Workflow เสีย</p>
     </section>
     <LineDiscoveryManager initialModel={lineDiscovery} />
   </div>;
@@ -90,7 +90,7 @@ async function SystemPage() {
   const operations = getAdminOperationsRuntimeStatus();
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
   return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">ข้อมูลระบบ</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูว่าระบบกำลังใช้ข้อมูลชุดใดและพร้อมทำงานหรือไม่ หน้านี้ดูข้อมูลได้อย่างเดียวและไม่แสดงรหัสลับ</p>
-    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div><Row label="เนื้อหาใน Sanity" value={sanity.readReady ? "พร้อมอ่านข้อมูล" : "ยังอ่านข้อมูลไม่ได้"} state={sanity.readReady} /><Row label="ฐานข้อมูลส่วนตัว" value={operations.identityValid ? "เชื่อมต่อชุดที่ถูกต้อง" : "ยังยืนยันการเชื่อมต่อไม่ได้"} state={operations.identityValid} /><Row label="การตั้งเวลาเผยแพร่" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} state={scheduler.effectiveEnabled} /></div><details className="mt-5 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm text-white/75">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">สภาพแวดล้อม</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">ผู้ให้บริการ</p><p className="mt-1 text-sm text-white/85">{deployment.provider}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{deployment.gitRef ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{deployment.gitSha ?? "—"}</p></div></div><div className="mt-5 text-xs text-white/55">Sanity: {sanity.projectId ?? "—"}/{sanity.dataset ?? "—"} · Database: {operations.projectId ?? "—"}/{operations.branchId ?? "—"} · Scheduler runtime {scheduler.runtimeEnabled ? "ON" : "OFF"}, durable {scheduler.durableEnabled ? "ON" : "OFF"}</div></details><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิดภาพรวมระบบ</Link></section>
+    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div><Row label="เนื้อหาใน Sanity" value={sanity.readReady ? "พร้อมอ่านข้อมูล" : "ยังอ่านข้อมูลไม่ได้"} state={sanity.readReady} /><Row label="ฐานข้อมูลส่วนตัว" value={operations.identityValid ? "เชื่อมต่อชุดที่ถูกต้อง" : "ยังยืนยันการเชื่อมต่อไม่ได้"} state={operations.identityValid} /><Row label="การตั้งเวลาเผยแพร่" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} state={scheduler.effectiveEnabled} /></div><details className="mt-5 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm text-white/75">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">Environment</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">Provider</p><p className="mt-1 text-sm text-white/85">{deployment.provider}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{deployment.gitRef ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{deployment.gitSha ?? "—"}</p></div></div><div className="mt-5 text-xs text-white/55">Sanity: {sanity.projectId ?? "—"}/{sanity.dataset ?? "—"} · Database: {operations.projectId ?? "—"}/{operations.branchId ?? "—"} · Scheduler runtime {scheduler.runtimeEnabled ? "ON" : "OFF"}, durable {scheduler.durableEnabled ? "ON" : "OFF"}</div></details><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิดภาพรวมระบบ</Link></section>
   </div>;
 }
 
