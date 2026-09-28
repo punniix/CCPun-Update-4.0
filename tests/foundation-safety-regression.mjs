@@ -105,7 +105,9 @@ const siteStructuredData = read('lib/seo/structured-data/site-schema.ts');
 const entityIds = read('lib/seo/structured-data/entity-ids.ts');
 const articleStructuredData = read('lib/content/structured-data/article-schema.ts');
 const homePage = read('app/page.tsx');
+const webHomePage = read('apps/web/app/page.tsx');
 const publicLayout = read('app/layout.tsx');
+const webPublicLayout = read('apps/web/app/layout.tsx');
 
 expect(
   'legacy Author credentials contract stays intact while professional qualifications are additive',
@@ -131,14 +133,20 @@ expect(
     && articleStructuredData.includes('author: { "@id": CCPUN_PERSON_ID }')
     && !articleStructuredData.includes('name: article.authorName')
     && publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิดประเสริฐ", url: "https://ccpun.com" }]')
-    && !publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)"'),
+    && !publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)"')
+    && webPublicLayout.includes('authors: [{ name: "ชนาธิป ชิดประเสริฐ", url: "https://ccpun.com" }]')
+    && !webPublicLayout.includes('authors: [{ name: "ปั้น (CCPun)"'),
 );
 expect(
   'Homepage credential enrichment is fail-soft and does not require a new public page',
   homePage.includes('getPrimaryAuthorProfile')
     && homePage.includes('buildProfessionalQualificationPersonSchema')
     && homePage.includes('<Website43Home authorProfile={authorProfile} />')
-    && !homePage.includes('/about/'),
+    && webHomePage.includes('getPrimaryAuthorProfile')
+    && webHomePage.includes('buildProfessionalQualificationPersonSchema')
+    && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && !homePage.includes('/about/')
+    && !webHomePage.includes('/about/'),
 );
 
 const sanityContent = read('lib/content/sanity.ts');
