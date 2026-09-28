@@ -45,6 +45,7 @@ export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
               <Link href={`${HOME}#about-ccpun`}>เกี่ยวกับ Pun</Link>
               <Link href={`${BASE}/privacy`}>Privacy</Link>
               <Link href={`${BASE}/cookie-policy`}>Cookie</Link>
+              <CookieSettingsButton />
             </div>
           </div>
           <div className={styles.footerRule} />
@@ -62,8 +63,8 @@ export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
             <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
           </nav>
           <p>ข้อมูลเพื่อความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล</p>
+          <CookieSettingsButton />
         </div>
-        <CookieSettingsButton />
       </div>
     </footer>
   );
