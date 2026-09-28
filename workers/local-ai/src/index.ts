@@ -8,6 +8,7 @@ import {
   localAiTaskTypeSchema,
   ANALYTICS_REVIEW_VERSION,
   MARKETING_ANALYSIS_VERSION,
+  MARKETING_INFERENCE_PROFILE,
   MARKETING_ANALYSIS_INSTRUCTION,
   marketingAnalysisInputSchema,
   marketingInterpretationSelectionSchema,
@@ -109,6 +110,15 @@ export function readLocalAiInferenceMetrics() {
   return { ...inferenceMetrics, last: inferenceMetrics.last ? { ...inferenceMetrics.last } : null };
 }
 
+export function buildLocalAiWorkerHeartbeatDetails(model: string) {
+  return {
+    ...readLocalAiWorkerMetrics(), inference: readLocalAiInferenceMetrics(),
+    analyticsReviewVersion: ANALYTICS_REVIEW_VERSION,
+    marketingAnalysisVersion: MARKETING_ANALYSIS_VERSION,
+    marketingInferenceProfile: { ...MARKETING_INFERENCE_PROFILE, model },
+  };
+}
+
 export function localAiOllamaBackoffMs(consecutiveFailures: number) {
   return Math.min(30_000, 1_000 * (2 ** Math.max(0, Math.min(consecutiveFailures - 1, 5))));
 }
@@ -155,7 +165,7 @@ async function infer(
   try {
     const response = await fetch(new URL("api/chat", baseUrl), {
       method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(90_000),
-      body: JSON.stringify({ model, stream: false, think: false, format, keep_alive: "5m", options: { temperature: 0, num_ctx: 4096, ...(taskType === "marketing-analysis" ? { num_predict: 768 } : {}) }, messages }),
+      body: JSON.stringify({ model, stream: false, think: false, format, keep_alive: "5m", options: { temperature: 0, num_ctx: 4096, ...(taskType === "marketing-analysis" ? { num_ctx: MARKETING_INFERENCE_PROFILE.numCtx, num_predict: MARKETING_INFERENCE_PROFILE.numPredict, temperature: MARKETING_INFERENCE_PROFILE.temperature } : {}) }, messages }),
     });
     if (!response.ok) throw new Error("OLLAMA_REQUEST_FAILED");
     const body = z.object({ message: z.object({ content: z.string().min(2).max(50_000) }), prompt_eval_count: z.unknown().optional(), eval_count: z.unknown().optional(), load_duration: z.unknown().optional(), eval_duration: z.unknown().optional(), total_duration: z.unknown().optional() }).parse(await response.json());
@@ -208,7 +218,7 @@ async function main() {
   const heartbeat = async (ready: boolean) => {
     await sql().query("SELECT ccpun_admin.worker_report_local_ai_heartbeat($1,$2,$3,$4,$5,$6,$7::jsonb)", [
       config.workerDigest,RUNTIME_VERSION,config.model,ready,config.privateJobsEnabled,active,
-      JSON.stringify({ ...readLocalAiWorkerMetrics(), inference: readLocalAiInferenceMetrics(), analyticsReviewVersion: ANALYTICS_REVIEW_VERSION, marketingAnalysisVersion: MARKETING_ANALYSIS_VERSION }),
+      JSON.stringify(buildLocalAiWorkerHeartbeatDetails(config.model)),
     ]);
   };
 

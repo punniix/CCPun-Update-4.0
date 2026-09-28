@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildAnalyticsInferenceView, buildAnalyticsInferenceRequest, analyticsReviewInputSchema, parseLocalAiTaskResult, marketingSnapshotSchema, marketingAnalysisInputSchema } from "../../lib/local-ai/contracts";
-import { inferAndValidate, readLocalAiInferenceMetrics } from "../../workers/local-ai/src/index";
+import { inferAndValidate, readLocalAiInferenceMetrics, buildLocalAiWorkerHeartbeatDetails } from "../../workers/local-ai/src/index";
 import type { AnalyticsDataset } from "../../lib/admin/analytics/model";
 const directory = mkdtempSync(join(tmpdir(), "ccpun-ai-full-loop-"));
 const stub = join(directory, "empty.cjs"); writeFileSync(stub, "module.exports={};");
@@ -93,6 +93,13 @@ test("marketing inference has room for complete JSON within the existing context
   const analytics=await inferAndValidate("http://ollama:11434/","qwen3:1.7b","analytics-review",input());
   assert.equal(analytics.success,true);
   assert.deepEqual(requests.map(request=>request.options),[{temperature:0,num_ctx:4096,num_predict:768},{temperature:0,num_ctx:4096}]);
+  const heartbeat=buildLocalAiWorkerHeartbeatDetails("qwen3:1.7b");
+  assert.equal(heartbeat.marketingInferenceProfile.numCtx,requests[0]!.options.num_ctx);
+  assert.equal(heartbeat.marketingInferenceProfile.numPredict,requests[0]!.options.num_predict);
+  assert.equal(heartbeat.marketingInferenceProfile.promptVersion,marketingInput.promptVersion);
+  assert.equal(heartbeat.marketingInferenceProfile.model,"qwen3:1.7b");
+  assert.equal(buildLocalAiWorkerHeartbeatDetails("unsupported-model").marketingInferenceProfile.model,"unsupported-model");
+  assert.doesNotMatch(JSON.stringify(heartbeat),/private@example|batchId|evidenceRef/);
   assert.deepEqual(timeouts,[90_000,90_000]);
   assert.ok(requests.every(request=>request.think===false&&request.stream===false));
  }finally{globalThis.fetch=originalFetch;AbortSignal.timeout=originalTimeout;}
