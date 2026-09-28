@@ -236,7 +236,7 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(openAi.parameters.resource, "text");
     assert.equal(openAi.parameters.operation, "response");
     assert.equal(openAi.parameters.modelId.value, "gpt-6-luna");
-    assert.equal(openAi.parameters.simplify, false);
+    assert.equal(openAi.parameters.simplify, true);
     assert.equal(openAi.parameters.options.store, false);
     assert.equal(openAi.parameters.options.reasoning.reasoningOptions.effort, "low");
     assert.match(openAi.parameters.options.maxTokens, /512.*1600/);
