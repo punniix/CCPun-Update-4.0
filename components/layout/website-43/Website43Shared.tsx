@@ -17,14 +17,6 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
   return (
     <footer className={`${styles.footerWrap} ${notFound ? styles.notFoundFooterWrap : ''}`}>
       <div className={styles.inner}>
-        {warnings ? (
-          <div className={styles.footerWarnings}>
-            <p>คำเตือน: การลงทุนมีความเสี่ยง ผู้ลงทุนควรทำความเข้าใจลักษณะสินค้า เงื่อนไขผลตอบแทน และความเสี่ยงก่อนตัดสินใจลงทุน</p>
-            <p>ผลการดำเนินงานในอดีต มิได้เป็นสิ่งยืนยันถึงผลการดำเนินงานในอนาคต</p>
-            <p>ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก ควรศึกษาความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ</p>
-          </div>
-        ) : null}
-
         <div className={styles.footerFull}>
           <div className={styles.footerTop}>
             <div>
@@ -47,11 +39,18 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
               <Link href={`${HOME}#about-ccpun`}>เกี่ยวกับ Pun</Link>
               <Link href={`${BASE}/privacy`}>Privacy</Link>
               <Link href={`${BASE}/cookie-policy`}>Cookie</Link>
-              <CookieSettingsButton />
+              <CookieSettingsButton className={styles.footerCookieButton} />
             </div>
           </div>
           <div className={styles.footerRule} />
           <p className={styles.footerDisclaimer}>ข้อมูลบนเว็บไซต์มีวัตถุประสงค์เพื่อให้ความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล</p>
+          {warnings ? (
+            <div className={styles.footerWarnings}>
+              <p>คำเตือน: การลงทุนมีความเสี่ยง ผู้ลงทุนควรทำความเข้าใจลักษณะสินค้า เงื่อนไขผลตอบแทน และความเสี่ยงก่อนตัดสินใจลงทุน</p>
+              <p>ผลการดำเนินงานในอดีต มิได้เป็นสิ่งยืนยันถึงผลการดำเนินงานในอนาคต</p>
+              <p>ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก ควรศึกษาความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ</p>
+            </div>
+          ) : null}
           <p className={styles.footerCopyright}>© 2026 CCPUN · ที่ปรึกษาทางการเงิน และผู้วางแผนการลงทุน</p>
         </div>
 
@@ -72,8 +71,15 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
               <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
             </nav>
             <p>ข้อมูลเพื่อความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล</p>
+            {warnings ? (
+              <div className={styles.footerWarnings}>
+                <p>คำเตือน: การลงทุนมีความเสี่ยง ผู้ลงทุนควรทำความเข้าใจลักษณะสินค้า เงื่อนไขผลตอบแทน และความเสี่ยงก่อนตัดสินใจลงทุน</p>
+                <p>ผลการดำเนินงานในอดีต มิได้เป็นสิ่งยืนยันถึงผลการดำเนินงานในอนาคต</p>
+                <p>ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก ควรศึกษาความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ</p>
+              </div>
+            ) : null}
           </>}
-          <CookieSettingsButton />
+          <CookieSettingsButton className={styles.footerCookieButton} />
         </div>
       </div>
     </footer>
