@@ -1955,7 +1955,7 @@
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {operation:$json.status==='review_required'?'reserveReview':'reserveCloud',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Weekly · เตรียม context').first().json.inputHash} }}",
+        "jsonBody": "={{ {operation:($json.status==='review_required'||($json.status==='failed'&&$json.workerSucceeded===true&&$json.cloudStatus==='failed'))?'reserveReview':'reserveCloud',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Weekly · เตรียม context').first().json.inputHash} }}",
         "options": {
           "timeout": 45000,
           "response": {
@@ -2165,7 +2165,7 @@
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {operation:$json.status==='review_required'?'reserveReview':'reserveCloud',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Monthly · เตรียม context').first().json.inputHash} }}",
+        "jsonBody": "={{ {operation:($json.status==='review_required'||($json.status==='failed'&&$json.workerSucceeded===true&&$json.cloudStatus==='failed'))?'reserveReview':'reserveCloud',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Monthly · เตรียม context').first().json.inputHash} }}",
         "options": {
           "timeout": 45000,
           "response": {
@@ -2656,7 +2656,7 @@
         ],
         [
           {
-            "node": "Marketing AI Weekly · จอง Cloud",
+            "node": "Marketing AI Weekly · อ่านสถานะ",
             "type": "main",
             "index": 0
           }
@@ -2794,7 +2794,7 @@
         ],
         [
           {
-            "node": "Marketing AI Monthly · จอง Cloud",
+            "node": "Marketing AI Monthly · อ่านสถานะ",
             "type": "main",
             "index": 0
           }
