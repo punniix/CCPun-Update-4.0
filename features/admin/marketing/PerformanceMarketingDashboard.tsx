@@ -1,13 +1,12 @@
 import Link from "next/link";
 import type { MarketingAnalysisView } from "@/lib/admin/marketing/analysis";
-import type { MarketingDashboard, MarketingLeaderboard, MarketingMetric, MarketingWindow } from "@/lib/admin/marketing/model";
+import { marketingMetricLabels, type MarketingDashboard, type MarketingLeaderboard, type MarketingMetric, type MarketingWindow } from "@/lib/admin/marketing/model";
 import { ExportCenter } from "@/features/admin/analytics/ExportCenter";
 import { ActionPlan } from "./ActionPlan";
 import { changeText, labelStatus, metricText, safeContentHref, storedDateText } from "./presentation";
 
 export const WINDOW_LABELS: Record<MarketingWindow, string> = { this_week: "สัปดาห์นี้", last_week: "สัปดาห์ก่อน", this_month: "เดือนนี้", last_month: "เดือนก่อน", rolling_7: "ย้อนหลัง 7 วัน", rolling_28: "ย้อนหลัง 28 วัน" };
-const metricLabels: Record<string, string> = { organic_sessions: "เซสชันจาก Organic", search_clicks: "คลิกจาก Google", search_impressions: "การแสดงผล Google", line_clicks: "คลิก LINE · intent", calculator_complete: "ทำเครื่องมือเสร็จ · intent", calculator_start: "เริ่มใช้เครื่องมือ", social_views: "ยอดดูตามแพลตฟอร์ม", sessions: "เซสชัน", qualified_conversations: "บทสนทนาที่มีคุณภาพ" };
-const labelMetric = (metric: string) => metricLabels[metric] ?? metric;
+const labelMetric = (metric: string) => marketingMetricLabels[metric] ?? metric;
 const link = "inline-flex min-h-11 items-center rounded-lg border border-white/20 px-4 py-2 text-sm text-[#e0c985] hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]";
 const section = "mt-10 min-w-0 border-t border-white/15 pt-6";
 
