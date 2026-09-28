@@ -1077,7 +1077,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst prepared=$('Marketing AI Weekly · เตรียม context').first().json;\nreturn [{json:{window:'this_week',analysisId:typeof prepared.analysisId==='string'?prepared.analysisId:null,status,validated:status==='ready',factsRemainAvailable:true,lastGoodPolicy:'retain-if-present',reason:body.reason==='expected-provider-lag'?body.reason:null,errorCategory:['prepared','queued','running','ready','stale','waiting'].includes(status)?null:'marketing-ai-stage-unavailable'}}];"
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst prepared=$('Marketing AI Weekly · เตรียม context').first().json;\nreturn [{json:{window:'this_week',analysisId:typeof prepared.analysisId==='string'?prepared.analysisId:null,status,validated:status==='ready',factsRemainAvailable:true,lastGoodPolicy:'retain-if-present',reason:body.reason==='expected-provider-lag'?body.reason:null,errorCategory:['prepared','queued','running','ready','stale','waiting','review_required','review_not_needed','reserved'].includes(status)?null:'marketing-ai-stage-unavailable'}}];"
       }
     },
     {
@@ -1395,7 +1395,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst prepared=$('Marketing AI Monthly · เตรียม context').first().json;\nreturn [{json:{window:'this_month',analysisId:typeof prepared.analysisId==='string'?prepared.analysisId:null,status,validated:status==='ready',factsRemainAvailable:true,lastGoodPolicy:'retain-if-present',reason:body.reason==='expected-provider-lag'?body.reason:null,errorCategory:['prepared','queued','running','ready','stale','waiting'].includes(status)?null:'marketing-ai-stage-unavailable'}}];"
+        "jsCode": "const body=$input.first().json;\nconst status=typeof body.status==='string'?body.status:'unavailable';\nconst prepared=$('Marketing AI Monthly · เตรียม context').first().json;\nreturn [{json:{window:'this_month',analysisId:typeof prepared.analysisId==='string'?prepared.analysisId:null,status,validated:status==='ready',factsRemainAvailable:true,lastGoodPolicy:'retain-if-present',reason:body.reason==='expected-provider-lag'?body.reason:null,errorCategory:['prepared','queued','running','ready','stale','waiting','review_required','review_not_needed','reserved'].includes(status)?null:'marketing-ai-stage-unavailable'}}];"
       }
     },
     {
@@ -1926,7 +1926,7 @@
           "conditions": [
             {
               "id": "c72d73e0-ea14-4a9a-95b3-43ed227b5d90",
-              "leftValue": "={{ $json.status !== 'ready' }}",
+              "leftValue": "={{ ['review_required','failed','rejected'].includes($json.status) }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -1955,7 +1955,7 @@
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {operation:'reserveCloud',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Weekly · เตรียม context').first().json.inputHash} }}",
+        "jsonBody": "={{ {operation:$json.status==='review_required'?'reserveReview':'reserveCloud',analysisId:$('Marketing AI Weekly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Weekly · เตรียม context').first().json.inputHash} }}",
         "options": {
           "timeout": 45000,
           "response": {
@@ -2011,57 +2011,34 @@
     {
       "id": "7491cf3c-12bc-4c3c-828c-74b7f99d1d65",
       "name": "Marketing AI Weekly · OpenAI Luna",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.3,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
       "onError": "continueRegularOutput",
       "position": [
         4220,
         -760
       ],
       "parameters": {
-        "resource": "text",
-        "operation": "response",
-        "modelId": {
-          "mode": "id",
-          "value": "gpt-6-luna"
-        },
-        "responses": {
-          "values": [
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "type": "text",
-              "role": "system",
-              "content": "={{ $json.messages[0].content }}"
-            },
-            {
-              "type": "text",
-              "role": "user",
-              "content": "={{ $json.messages[1].content }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({model:$json.model||'gpt-6-luna',reasoning:{effort:'low'},input:$json.messages,text:{format:{type:'json_schema',name:$json.mode==='review'?'marketing_review_verdict':'marketing_interpretation',strict:true,schema:$json.format}},max_output_tokens:$json.mode==='review'?300:1600,store:false}) }}",
         "options": {
-          "store": false,
-          "maxTokens": 1600,
-          "reasoning": {
-            "reasoningOptions": [
-              {
-                "effort": "low",
-                "summary": "none"
-              }
-            ]
-          },
-          "textFormat": {
-            "textOptions": [
-              {
-                "type": "json_schema",
-                "name": "marketing_interpretation",
-                "schema": "={{ JSON.stringify($json.format) }}",
-                "strict": true
-              }
-            ]
-          }
-        },
-        "simplify": false
+          "timeout": 120000
+        }
       },
       "credentials": {
         "openAiApi": {
@@ -2082,7 +2059,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const response=$input.first().json;\nconst reservation=$('Marketing AI Weekly · จอง Cloud').first().json;\nconst base={analysisId:reservation.analysisId,inputHash:reservation.inputHash,reservationId:reservation.reservationId};\nif(response.error)return [{json:{operation:'failCloud',...base,reason:'api-error'}}];\nconst parts=Array.isArray(response.output)?response.output.flatMap(x=>Array.isArray(x.content)?x.content:[]):[];\nconst raw=typeof response.output_text==='string'?response.output_text:parts.find(x=>x.type==='output_text'&&typeof x.text==='string')?.text;\nconst usage=response.usage;\nif(typeof raw!=='string'||!Number.isInteger(usage?.input_tokens)||!Number.isInteger(usage?.output_tokens))return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];\ntry{return [{json:{operation:'submitCloud',...base,selection:JSON.parse(raw),usage:{inputTokens:usage.input_tokens,outputTokens:usage.output_tokens}}}];}\ncatch{return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];}"
+        "jsCode": "const response=$input.first().json;\nconst reservation=$('Marketing AI Weekly · จอง Cloud').first().json;\nconst review=reservation.mode==='review';\nconst base={analysisId:reservation.analysisId,inputHash:reservation.inputHash,reservationId:reservation.reservationId,...(review?{localOutputDigest:reservation.localOutputDigest}:{})};\nconst fail=reason=>[{json:{operation:review?'failReview':'failCloud',...base,reason}}];\nif(response.error||response.statusCode>=400||response.status!=='completed')return fail('api-error');\nconst parts=Array.isArray(response.output)?response.output.flatMap(x=>Array.isArray(x.content)?x.content:[]):[];\nconst raw=typeof response.output_text==='string'?response.output_text:parts.find(x=>x.type==='output_text'&&typeof x.text==='string')?.text;\nconst usage=response.usage;\nif(typeof raw!=='string'||!Number.isInteger(usage?.input_tokens)||!Number.isInteger(usage?.output_tokens)||response.store!==false)return fail('model-output-invalid');\ntry{const parsed=JSON.parse(raw);return [{json:{operation:review?'submitReview':'submitCloud',...base,...(review?{verdict:parsed}:{selection:parsed}),usage:{inputTokens:usage.input_tokens,outputTokens:usage.output_tokens}}}];}\ncatch{return fail('model-output-invalid');}"
       }
     },
     {
@@ -2139,7 +2116,7 @@
           "conditions": [
             {
               "id": "c72d73e1-ea14-4a9a-95b3-43ed227b5d91",
-              "leftValue": "={{ $json.status !== 'ready' }}",
+              "leftValue": "={{ ['review_required','failed','rejected'].includes($json.status) }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -2168,7 +2145,7 @@
         "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/analysis/' }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {operation:'reserveCloud',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Monthly · เตรียม context').first().json.inputHash} }}",
+        "jsonBody": "={{ {operation:$json.status==='review_required'?'reserveReview':'reserveCloud',analysisId:$('Marketing AI Monthly · เตรียม context').first().json.analysisId,inputHash:$('Marketing AI Monthly · เตรียม context').first().json.inputHash} }}",
         "options": {
           "timeout": 45000,
           "response": {
@@ -2224,57 +2201,34 @@
     {
       "id": "d3c0fab6-ae6b-4291-84fe-ce847b155f8a",
       "name": "Marketing AI Monthly · OpenAI Luna",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.3,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
       "onError": "continueRegularOutput",
       "position": [
         4220,
         260
       ],
       "parameters": {
-        "resource": "text",
-        "operation": "response",
-        "modelId": {
-          "mode": "id",
-          "value": "gpt-6-luna"
-        },
-        "responses": {
-          "values": [
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "type": "text",
-              "role": "system",
-              "content": "={{ $json.messages[0].content }}"
-            },
-            {
-              "type": "text",
-              "role": "user",
-              "content": "={{ $json.messages[1].content }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({model:$json.model||'gpt-6-luna',reasoning:{effort:'low'},input:$json.messages,text:{format:{type:'json_schema',name:$json.mode==='review'?'marketing_review_verdict':'marketing_interpretation',strict:true,schema:$json.format}},max_output_tokens:$json.mode==='review'?300:1600,store:false}) }}",
         "options": {
-          "store": false,
-          "maxTokens": 1600,
-          "reasoning": {
-            "reasoningOptions": [
-              {
-                "effort": "low",
-                "summary": "none"
-              }
-            ]
-          },
-          "textFormat": {
-            "textOptions": [
-              {
-                "type": "json_schema",
-                "name": "marketing_interpretation",
-                "schema": "={{ JSON.stringify($json.format) }}",
-                "strict": true
-              }
-            ]
-          }
-        },
-        "simplify": false
+          "timeout": 120000
+        }
       },
       "credentials": {
         "openAiApi": {
@@ -2295,7 +2249,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const response=$input.first().json;\nconst reservation=$('Marketing AI Monthly · จอง Cloud').first().json;\nconst base={analysisId:reservation.analysisId,inputHash:reservation.inputHash,reservationId:reservation.reservationId};\nif(response.error)return [{json:{operation:'failCloud',...base,reason:'api-error'}}];\nconst parts=Array.isArray(response.output)?response.output.flatMap(x=>Array.isArray(x.content)?x.content:[]):[];\nconst raw=typeof response.output_text==='string'?response.output_text:parts.find(x=>x.type==='output_text'&&typeof x.text==='string')?.text;\nconst usage=response.usage;\nif(typeof raw!=='string'||!Number.isInteger(usage?.input_tokens)||!Number.isInteger(usage?.output_tokens))return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];\ntry{return [{json:{operation:'submitCloud',...base,selection:JSON.parse(raw),usage:{inputTokens:usage.input_tokens,outputTokens:usage.output_tokens}}}];}\ncatch{return [{json:{operation:'failCloud',...base,reason:'model-output-invalid'}}];}"
+        "jsCode": "const response=$input.first().json;\nconst reservation=$('Marketing AI Monthly · จอง Cloud').first().json;\nconst review=reservation.mode==='review';\nconst base={analysisId:reservation.analysisId,inputHash:reservation.inputHash,reservationId:reservation.reservationId,...(review?{localOutputDigest:reservation.localOutputDigest}:{})};\nconst fail=reason=>[{json:{operation:review?'failReview':'failCloud',...base,reason}}];\nif(response.error||response.statusCode>=400||response.status!=='completed')return fail('api-error');\nconst parts=Array.isArray(response.output)?response.output.flatMap(x=>Array.isArray(x.content)?x.content:[]):[];\nconst raw=typeof response.output_text==='string'?response.output_text:parts.find(x=>x.type==='output_text'&&typeof x.text==='string')?.text;\nconst usage=response.usage;\nif(typeof raw!=='string'||!Number.isInteger(usage?.input_tokens)||!Number.isInteger(usage?.output_tokens)||response.store!==false)return fail('model-output-invalid');\ntry{const parsed=JSON.parse(raw);return [{json:{operation:review?'submitReview':'submitCloud',...base,...(review?{verdict:parsed}:{selection:parsed}),usage:{inputTokens:usage.input_tokens,outputTokens:usage.output_tokens}}}];}\ncatch{return fail('model-output-invalid');}"
       }
     },
     {
