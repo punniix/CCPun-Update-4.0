@@ -166,6 +166,27 @@ export default function CiPlanningPage() {
             <p className={styles.toolDisclaimer}>
               ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลและสมมติฐานที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล และไม่ยืนยันว่าจำนวนเงินจะเพียงพอในทุกกรณี โปรดศึกษารายละเอียดความคุ้มครอง เงื่อนไข และข้อยกเว้นของกรมธรรม์ก่อนตัดสินใจทำประกันภัย และประกันไม่ใช่เงินฝาก
             </p>
+
+            <div className={styles.toolProjectRecognition}>
+              <p className={styles.toolProjectRecognitionCopy}>อ่านเบื้องหลังการพัฒนา CI Planning บน TorYod</p>
+              <a
+                className={styles.toolProjectRecognitionLink}
+                href="https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning"
+                target="_blank"
+                rel="noopener"
+                aria-label="ดูโปรเจกต์ CCPun's CI Planning บน TorYod (เปิดในแท็บใหม่)"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- TorYod badge is a vendor-hosted SVG that must remain external. */}
+                <img
+                  src="https://www.toryod.co/badge/35d2877e-e97a-45ee-a6df-aefa5e09e2b3"
+                  alt="Featured on TorYod"
+                  width="240"
+                  height="54"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </a>
+            </div>
           </div>
         </section>
       </main>

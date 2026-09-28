@@ -110,6 +110,19 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(ci, /<Website43ToolHero[\s\S]*?<CILandingIntro \/>[\s\S]*?<section id="ci-calculator"/);
 });
 
+test('CI Planning keeps the TorYod project badge as secondary proof near the end of the tool page', () => {
+  const ci = read('features/ci-planning/page.tsx');
+  const toryodProjectUrl = 'https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning';
+
+  assert.equal(ci.split(toryodProjectUrl).length - 1, 1, 'TorYod project link appears exactly once');
+  assert.doesNotMatch(ci.split('<section id="ci-calculator"')[0], /toryod\.co/i, 'TorYod must not compete with the hero or primary calculator CTA');
+  assert.match(ci, /toolDisclaimer[\s\S]*?toolProjectRecognition[\s\S]*?toryod\.co\/projects\//, 'TorYod proof stays after the tool disclaimer');
+  assert.match(ci, /target="_blank"[\s\S]*?rel="noopener"/);
+  assert.match(ci, /width="240"[\s\S]*?height="54"[\s\S]*?loading="lazy"/);
+  assert.match(css, /\.toolProjectRecognitionLink img \{[^}]*height: 48px;/);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*?\.toolProjectRecognitionLink img \{ height: 44px; \}/);
+});
+
 test('Footer controls and warnings stay inside the visible Website 4.3 footer card at every breakpoint', () => {
   const css = read('components/layout/website-43/Website43.module.css');
   assert.match(css, /\.footerColumn \.footerCookieButton \{[^}]*font-size: 13px;/, 'desktop Cookie Settings stays smaller than 14px footer links');
