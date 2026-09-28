@@ -51,6 +51,8 @@ test("Agent OS runtime UI uses real stage history instead of fake percentage pro
   assert.match(component, /baseline\.p90Ms/);
   assert.match(component, /heartbeat_stale/);
   assert.match(component, /n8nExecutionId/);
+  assert.match(component, /Agent OS/);
+  assert.match(component, /n8n Execution/);
   assert.match(component, /target="_blank" rel="noopener noreferrer"/);
   assert.doesNotMatch(component, /progress.*%|Math\.min\(100|setProgress/i);
 });
