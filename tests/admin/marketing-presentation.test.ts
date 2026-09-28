@@ -147,9 +147,9 @@ test("AI panel retains validated old result during a pending run and states actu
   const html = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "ready", latest: { ...record, analysisId: "00000000-0000-4000-8000-000000000004", status: "queued", output: null }, lastGood: record } }));
   assert.match(html, /รอคิววิเคราะห์/); assert.match(html, /ผลครั้งก่อน · โปรดดูวันที่/); assert.match(html, /2026-09-14.*2026-09-17/); assert.match(html, /อ่านตัวเลขและช่วงข้อมูล/); assert.doesNotMatch(html, /สมมติฐานจากข้อมูลเก่า/); assert.match(html, /a{64}/); assert.doesNotMatch(html, /ผลนี้ใช้ข้อมูล 2026-09-21/);
   const cloud = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "ready", latest: { ...record, inferenceProvider: "openai", modelName: "gpt-6-luna" }, lastGood: null } }));
-  assert.match(cloud, /ระบบ AI สำรอง/); assert.doesNotMatch(cloud, /gpt-6-luna|สมมติฐานจากโมเดล VPS/);
+  assert.match(cloud, /OpenAI/); assert.doesNotMatch(cloud, /gpt-6-luna|สมมติฐานจากโมเดล VPS/);
   const unavailable = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "unavailable", latest: null, lastGood: null } }));
-  assert.match(unavailable, /ตัวเลข อันดับ และแผนงานยังใช้งานได้/); assert.doesNotMatch(unavailable, /สมมติฐานจากข้อมูลเก่า/);
+  assert.match(unavailable, /ตัวเลข อันดับ และ Action Plan ยังใช้งานได้/); assert.doesNotMatch(unavailable, /สมมติฐานจากข้อมูลเก่า/);
 });
 
 test("v1 unsupported AI prose stays in audit JSON and never reaches Admin, CSV, or Excel", () => {
