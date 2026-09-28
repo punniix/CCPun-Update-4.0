@@ -219,6 +219,7 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(evaluate("failed", 1).canRetry, false); assert.equal(evaluate("unavailable", 1).canRetry, false);
     assert.equal(evaluate("running", 1, true).workerSucceeded, true); assert.doesNotMatch(JSON.stringify(evaluate("running", 1)), /rawRows/);
     assert.equal(workflow.connections[prefix + " · Worker สำเร็จ?"].main[0][0].node, prefix + " · ตรวจ JSON และหลักฐาน");
+    assert.equal(workflow.connections[prefix + " · รับงานแล้ว?"].main[1][0].node, prefix + " · อ่านสถานะ");
     assert.equal(workflow.connections[prefix + " · รอต่อ?"].main[0][0].node, prefix + " · รอ 15 วินาที");
     const wait = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · รอ 15 วินาที").parameters;
     assert.equal(wait.amount, 15); assert.equal(wait.unit, "seconds");
@@ -227,7 +228,8 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[0][0].node, prefix + " · จอง Cloud");
     assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[1][0].node, prefix + " · บันทึกสถานะขั้น");
     assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /review_required.*failed.*rejected/);
-    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody, /reserveReview.*reserveCloud/);
+    const cloudReservationBody = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody;
+    assert.match(cloudReservationBody, /review_required.*failed.*workerSucceeded.*cloudStatus.*reserveReview.*reserveCloud/);
     const openAi = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · OpenAI Luna");
     assert.equal(openAi.type, "@n8n/n8n-nodes-langchain.openAi");
     assert.equal(openAi.typeVersion, 2.3);
