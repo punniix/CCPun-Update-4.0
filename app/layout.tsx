@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   title: IS_ADMIN_APPLICATION ? "CCPun Control Plane" : "CCPun | ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
   description: IS_ADMIN_APPLICATION ? "พื้นที่ควบคุมภายในของ CCPun" : "ไม่แน่ใจว่าควรลงทุนหรือทำประกันแบบไหน? CCPun ที่ปรึกษาทางการเงิน ช่วยดูเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี ก่อนค่อยเลือกทางที่เหมาะกับชีวิตคุณ",
   keywords: IS_ADMIN_APPLICATION ? undefined : ["ที่ปรึกษาการเงิน", "กองทุนรวม", "ประกันชีวิต", "วางแผนภาษี", "RMF", "SSF", "ThaiESG", "AIA", "Finnomena", "PhillipCapital"],
-  authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)", url: "https://ccpun.com" }],
+  authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิดประเสริฐ", url: "https://ccpun.com" }],
   openGraph: IS_ADMIN_APPLICATION ? null : {
     title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
     description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",

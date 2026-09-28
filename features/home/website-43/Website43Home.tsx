@@ -5,6 +5,9 @@ import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { HomeFooter, HomeSectionHeading } from './Website43HomeStatic';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
+import type { ArticleAuthorProfile } from '@/lib/content/types';
+
+const DEFAULT_AUTHOR_ROLE = 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน';
 
 const pains = [
   ['/assets/website-43/icon-protection-gap.svg', 'ไม่แน่ใจว่ามีประกันเพียงพอหรือยัง', 'มีความคุ้มครองอยู่ แต่ไม่แน่ใจว่าที่มีอยู่นั้น เพียงพอหรือไม่ ต้องเตรียมหรือปรับเพิ่มลดอย่างไร'],
@@ -19,7 +22,16 @@ const steps = [
   ['04', 'เลือกทางที่เหมาะ', 'ค่อยเลือกว่าจะปรับ เพิ่ม ลด หรือยังไม่ต้องทำอะไร'],
 ] as const;
 
-export default function Website43Home() {
+export default function Website43Home({ authorProfile = null }: { authorProfile?: ArticleAuthorProfile | null }) {
+  const professionalQualifications = authorProfile?.professionalQualifications ?? [];
+  const primaryQualification = professionalQualifications[0];
+  const qualificationSuffix = professionalQualifications.map((qualification) => qualification.shortName.trim()).filter(Boolean).join(', ');
+  const profileName = authorProfile?.profileName?.trim() || 'ชนาธิป ชิดประเสริฐ';
+  const profileRole = authorProfile?.profileRole?.trim() || DEFAULT_AUTHOR_ROLE;
+  const displayName = qualificationSuffix ? `${profileName}, ${qualificationSuffix}` : profileName;
+  const qualificationIdentifier = primaryQualification?.identifier?.trim();
+  const showManagedIdentity = professionalQualifications.length > 0;
+
   return (
     <div className={styles.root}>
       <main id="main-content" tabIndex={-1}>
@@ -49,6 +61,10 @@ export default function Website43Home() {
 
         <section id="about-ccpun" className={styles.about}><div className={styles.aboutInner}><div className={styles.aboutCopy}>
           <p className={styles.eyebrow}>รู้จักที่ปรึกษาทางการเงิน CCPun</p><h2 className={styles.h2}>จากคนที่โฟกัสแต่เรื่องการลงทุน สู่ที่ปรึกษาทางการเงินแบบครบลูป</h2>
+          {showManagedIdentity ? <div className={styles.aboutIdentity}>
+            <p className={styles.aboutIdentityName}>{displayName}</p>
+            <p className={styles.aboutIdentityMeta}>{profileRole}{qualificationIdentifier ? ` · เลขคุณวุฒิ ${qualificationIdentifier}` : ''}</p>
+          </div> : null}
           <div className={styles.aboutPortraitStage}><Image className={styles.aboutPortrait} src="/assets/website-43/about-pun.png" alt="CCPun" width={400} height={526} sizes="(max-width: 639px) 318px, (max-width: 1023px) 260px, 400px" /></div>
           <div className={styles.aboutParagraphs}><p>จากคนที่โฟกัสแต่เพียงเรื่องการลงทุน จนเจอเหตุไม่คาดฝัน และสูญเสียในครอบครัวในเวลาต่อมา ผมจึงเริ่มเห็นความสำคัญของประกันชีวิต และกลับมาจัดแผนการเงินใหม่จากระดับรากฐาน</p><p>และเลือกเดินต่อในบทบาทตัวแทนประกันชีวิต นายหน้าประกันวินาศภัย และผู้วางแผนการลงทุน เพื่อช่วยเหลือผู้คนให้มีฐานการเงินที่ดีขึ้น</p><p>โดยนำประสบการณ์ด้านการเงินและการลงทุนจากการทำงานกว่า 5 ปี มาแนะนำ และช่วยตัดสินใจเลือกผลิตภัณฑ์ทางการเงินที่ตอบโจทย์เฉพาะบุคคล เพื่อสร้างทั้งความมั่นคงและความมั่งคั่งได้ในระยะสั้น กลางและยาว</p></div>
           <div className={styles.advisorNote}>เป้าหมายไม่ใช่การเลือกเพียงแค่ผลิตภัณฑ์ใดผลิตภัณฑ์หนึ่ง แต่วางองค์รวม และเลือกสิ่งที่ดีที่สุด เหมาะสม ตอบโจทย์กับลูกค้าที่สุด</div>

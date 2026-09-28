@@ -1,9 +1,10 @@
 import "server-only";
 
 import { createClient, groq } from "next-sanity";
+import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import type { Article, ArticleBlock, ContentProvider } from "./types";
-import { baseArticleSchema, bodyItemSchema, faqItemSchema, parseRenderableBodyItems, parseRenderableFaqItems, rawArticleSchema, type PortableBodyItem, type RawArticle, type RawArticleSummary } from './sanity-schema';
+import { authorSchema, baseArticleSchema, bodyItemSchema, faqItemSchema, parseProfessionalQualifications, parseRenderableBodyItems, parseRenderableFaqItems, rawArticleSchema, type PortableBodyItem, type RawArticle, type RawArticleSummary } from './sanity-schema';
 import { sanityFetch } from "@/lib/sanity-live";
 import { getSanityReadToken } from "@/lib/content/sanity-credentials";
 import { isContentSanityLaneAllowed } from "@/lib/content/sanity-lane";
@@ -91,6 +92,21 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
   return result;
 }
 
+function toArticleAuthorProfile(author: RawArticleSummary["author"]): Article["author"] {
+  if (!author) return undefined;
+  const professionalQualifications = parseProfessionalQualifications(author.professionalQualifications);
+  return {
+    name: author.name,
+    profileName: author.profileName ?? undefined,
+    profileRole: author.profileRole ?? undefined,
+    profileBio: author.profileBio ?? undefined,
+    profileCtaLabel: author.profileCtaLabel ?? undefined,
+    profileCtaUrl: author.profileCtaUrl ?? undefined,
+    profileAvatar: author.profileAvatar ?? undefined,
+    ...(professionalQualifications.length ? { professionalQualifications } : {}),
+  };
+}
+
 function articleBase(raw: RawArticleSummary, body: ArticleBlock[] = []): Article {
   const originalId = raw._originalId ?? raw._id;
   const status = originalId.startsWith("drafts.") ? "draft" : "published";
@@ -113,15 +129,7 @@ function articleBase(raw: RawArticleSummary, body: ArticleBlock[] = []): Article
     tags: raw.tags ?? undefined,
     semanticTopic: raw.seo?.semanticTopic ?? undefined,
     authorName: authorName ?? "",
-    author: raw.author ? {
-      name: raw.author.name,
-      profileName: raw.author.profileName ?? undefined,
-      profileRole: raw.author.profileRole ?? undefined,
-      profileBio: raw.author.profileBio ?? undefined,
-      profileCtaLabel: raw.author.profileCtaLabel ?? undefined,
-      profileCtaUrl: raw.author.profileCtaUrl ?? undefined,
-      profileAvatar: raw.author.profileAvatar ?? undefined,
-    } : undefined,
+    author: toArticleAuthorProfile(raw.author),
     status,
     publishedAt: raw.publishedAt ?? undefined,
     updatedAt: raw.updatedAt,
@@ -192,6 +200,14 @@ const baseProjection = groq`{
     profileBio,
     profileCtaLabel,
     profileCtaUrl,
+    professionalQualifications[]{
+      _key,
+      shortName,
+      name,
+      identifier,
+      issuer,
+      issuerUrl
+    },
     "profileAvatar": select(defined(profileAvatar.asset) => {
       "src": profileAvatar.asset->url,
       "width": profileAvatar.asset->metadata.dimensions.width,
@@ -262,6 +278,72 @@ const articleProjection = groq`{
 
 const listQuery = groq`*[_type == "article" && defined(slug.current)] | order(coalesce(publishedAt, _updatedAt) desc) ${baseProjection}`;
 const bySlugQuery = groq`*[_type == "article" && slug.current == $slug][0] ${articleProjection}`;
+
+const primaryAuthorQuery = groq`*[_type == "author" && name == "CCPun"][0]{
+  name,
+  profileName,
+  profileRole,
+  profileBio,
+  profileCtaLabel,
+  profileCtaUrl,
+  professionalQualifications[]{
+    _key,
+    shortName,
+    name,
+    identifier,
+    issuer,
+    issuerUrl
+  },
+  "profileAvatar": select(defined(profileAvatar.asset) => {
+    "src": profileAvatar.asset->url,
+    "width": profileAvatar.asset->metadata.dimensions.width,
+    "height": profileAvatar.asset->metadata.dimensions.height,
+    "alt": profileAvatar.alt
+  })
+}`;
+
+const PRIMARY_AUTHOR_FETCH_TIMEOUT_MS = 2000;
+
+function settleWithin<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function readPrimaryAuthorProfile(): Promise<NonNullable<Article["author"]> | null> {
+  try {
+    const result = await settleWithin(
+      sanityFetch({ query: primaryAuthorQuery, perspective: "published", stega: false }),
+      PRIMARY_AUTHOR_FETCH_TIMEOUT_MS,
+    );
+    if (!result) {
+      console.error("[author-profile] primary author timed out");
+      return null;
+    }
+    const parsed = authorSchema.safeParse(result.data);
+    if (!parsed.success) return null;
+    return toArticleAuthorProfile(parsed.data) ?? null;
+  } catch (error) {
+    console.error("[author-profile] primary author unavailable", { type: error instanceof Error ? error.name : "unknown" });
+    return null;
+  }
+}
+
+export const getPrimaryAuthorProfile = unstable_cache(
+  readPrimaryAuthorProfile,
+  ["ccpun-primary-author-profile-v1", projectId ?? "unconfigured", dataset ?? "unconfigured"],
+  { revalidate: 300, tags: ["ccpun-primary-author"] },
+);
 
 function configuredClient(includeDrafts: boolean) {
   if (!client) throw new Error("Sanity is not configured");

@@ -80,6 +80,23 @@ export const bodyItemSchema = z.union([
 ]);
 export const faqItemSchema = z.object({ question: z.string().min(1), answer: z.string().min(1) });
 
+export const professionalQualificationSchema = z.object({
+  _key: z.string().min(1).nullish().transform((value) => value ?? undefined).catch(undefined),
+  shortName: z.string().trim().min(1).max(40),
+  name: z.string().trim().min(1).max(160),
+  identifier: z.string().trim().min(1).max(80).nullish().transform((value) => value ?? undefined).catch(undefined),
+  issuer: z.string().trim().min(1).max(160),
+  issuerUrl: z.string().url().nullish().transform((value) => value ?? undefined).catch(undefined),
+});
+
+export function parseProfessionalQualifications(items: unknown) {
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item) => {
+    const parsed = professionalQualificationSchema.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
 export const authorSchema = z.object({
   name: z.string().min(1),
   profileName: z.string().min(1).nullish().catch(undefined),
@@ -87,6 +104,7 @@ export const authorSchema = z.object({
   profileBio: z.string().min(1).nullish().catch(undefined),
   profileCtaLabel: z.string().min(1).nullish().catch(undefined),
   profileCtaUrl: z.string().refine((value) => /^(https?:\/\/|\/(?!\/)|#)/.test(value)).nullish().catch(undefined),
+  professionalQualifications: z.array(z.unknown()).nullish().catch(undefined),
   profileAvatar: z.object({
     src: z.string().min(1),
     alt: z.string().min(1),

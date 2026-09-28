@@ -1,11 +1,15 @@
+import type { ProfessionalQualification } from "@/lib/content/types";
+import { CCPUN_PERSON_ID } from "./entity-ids";
+
 // CCPun — Structured Data (Schema.org JSON-LD)
 
 export const personSchema = {
   "@type": "Person",
-  "@id": "https://ccpun.com/#person",
-  "name": "ปั้น",
+  "@id": CCPUN_PERSON_ID,
+  "name": "ชนาธิป ชิดประเสริฐ",
+  "alternateName": ["ปั้น", "CCPun"],
   "jobTitle": "ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
-  "description": "ปั้นเป็นที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน ช่วยลูกค้าดูเป้าหมาย ระยะเวลา ความเสี่ยง และสถานการณ์ปัจจุบัน ก่อนพิจารณาทางเลือกด้านการลงทุนหรือประกันตามขอบเขตบริการ",
+  "description": "ชนาธิป ชิดประเสริฐ (ปั้น) เป็นที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน ช่วยลูกค้าดูเป้าหมาย ระยะเวลา ความเสี่ยง และสถานการณ์ปัจจุบัน ก่อนพิจารณาทางเลือกด้านการลงทุนหรือประกันตามขอบเขตบริการ",
   "telephone": "+66633438513",
   "url": "https://ccpun.com",
   "knowsAbout": ["การวางแผนการลงทุน", "กองทุนรวม", "RMF", "Thai ESG", "ประกันชีวิต", "ประกันสุขภาพ", "ประกันโรคร้ายแรง", "ประกันวินาศภัย"],
@@ -37,6 +41,36 @@ export const personSchema = {
     "https://www.facebook.com/profile.php?id=61585953063887",
   ],
 };
+
+export function buildProfessionalQualificationPersonSchema(qualifications: readonly ProfessionalQualification[]) {
+  const hasCredential = qualifications.flatMap((qualification) => {
+    const shortName = qualification.shortName.trim();
+    const name = qualification.name.trim();
+    const issuer = qualification.issuer.trim();
+    if (!shortName || !name || !issuer) return [];
+
+    return [{
+      "@type": "EducationalOccupationalCredential",
+      name,
+      alternateName: shortName,
+      credentialCategory: "คุณวุฒิวิชาชีพ",
+      ...(qualification.identifier?.trim() ? { identifier: qualification.identifier.trim() } : {}),
+      recognizedBy: {
+        "@type": "Organization",
+        name: issuer,
+        ...(qualification.issuerUrl?.trim() ? { url: qualification.issuerUrl.trim() } : {}),
+      },
+    }];
+  });
+
+  if (!hasCredential.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": CCPUN_PERSON_ID,
+    hasCredential,
+  };
+}
 
 export const websiteSchema = {
   "@type": "WebSite",
@@ -87,7 +121,7 @@ export const financialServiceSchema = {
     "contactType": "customer service",
     "availableLanguage": "Thai",
   },
-  "founder": { "@id": "https://ccpun.com/#person" },
+  "founder": { "@id": CCPUN_PERSON_ID },
   "hasOfferCatalog": {
     "@type": "OfferCatalog",
     "name": "บริการที่ปรึกษาการเงิน CCPun",
