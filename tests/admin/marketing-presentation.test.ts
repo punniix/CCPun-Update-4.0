@@ -22,6 +22,7 @@ test("marketing presentation distinguishes missing from zero and protects conten
   assert.equal(storedDateText("invalid"), "ยังไม่ระบุ");
   assert.equal(ownerEvidenceLabel("content:search_clicks:sanity:ccpun-article-aia-senior-happy", "AIA Senior Happy"), "ข้อมูลคลิกจาก Google Search ของ “AIA Senior Happy”");
   assert.match(ownerMarketingText("Check source freshness: gsc-daily-page"), /ตรวจความพร้อมของข้อมูล/);
+  assert.equal(presentation.labelStatus("observed_repeatable_event_count"), "นับกิจกรรมที่เกิดซ้ำได้จากข้อมูลต้นทาง");
 });
 
 test("leaderboards preserve SQL ranks, missing baselines and low sample instead of inventing winners", () => {

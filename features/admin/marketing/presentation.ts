@@ -30,7 +30,7 @@ export const statusText: Record<string, string> = {
   improved_after: "ดีขึ้นหลังทำ", declined_after: "ลดลงหลังทำ", inconclusive: "ยังสรุปไม่ได้", missing: "ไม่มีข้อมูล", partial: "ข้อมูลบางส่วน", complete: "ครบตามขอบเขต",
   sufficient: "ปริมาณผ่านเกณฑ์", backlog: "รอจัดแผน", planned: "วางแผนแล้ว", doing: "กำลังทำ", measuring: "กำลังวัดผล", done: "เสร็จแล้ว",
   new: "ใหม่", mature: "เติบโตเต็มช่วง", evergreen: "ทำผลงานต่อเนื่อง", refresh_candidate: "ควรตรวจเพื่ออัปเดต", retired: "เลิกใช้งาน", observed: "ต้นทางรายงาน", tracking_unavailable: "ยังไม่มี tracking พร้อมใช้",
-  see_source_health: "ดูสถานะข้อมูลต้นทางด้านล่าง", queued: "รอคิววิเคราะห์", repeatable_event_count: "นับกิจกรรมที่อาจเกิดซ้ำ", native_snapshot_not_period_activity: "ยอดสะสม ณ วันที่เก็บข้อมูล", investigation: "ตรวจหาสาเหตุ",
+  see_source_health: "ดูสถานะข้อมูลต้นทางด้านล่าง", queued: "รอคิววิเคราะห์", repeatable_event_count: "นับกิจกรรมที่อาจเกิดซ้ำ", observed_repeatable_event_count: "นับกิจกรรมที่เกิดซ้ำได้จากข้อมูลต้นทาง", native_snapshot_not_period_activity: "ยอดสะสม ณ วันที่เก็บข้อมูล", investigation: "ตรวจหาสาเหตุ",
   win: "ผลที่ดีขึ้น", risk: "จุดที่ควรระวัง", opportunity: "โอกาส", watch: "สิ่งที่ควรติดตาม", learning: "สิ่งที่ได้เรียนรู้", monitor: "ติดตามต่อ", title: "ปรับชื่อเรื่อง", description: "ปรับคำอธิบาย", refresh: "อัปเดตเนื้อหา", cta: "ปรับปุ่มชวนติดต่อ", internal_link: "เพิ่มลิงก์ภายใน", expansion: "ขยายเนื้อหา", promotion: "ประชาสัมพันธ์", keyword: "ปรับคำค้นเป้าหมาย",
 };
 
