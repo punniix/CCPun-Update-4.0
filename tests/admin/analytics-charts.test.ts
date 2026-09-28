@@ -45,6 +45,14 @@ test("GA4 daily-dimension charts keep scoped session and event rows without impl
   const events = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([{ "วันที่": "2026-09-20", Event: "line_oa_click", "จำนวน event": 0 }, { "วันที่": "2026-09-21", Event: "line_oa_click", "จำนวน event": null }], "ga4-marketing-events") }));
   assert.match(events, /คลิก LINE ทั่วไป/); assert.match(events, /<details[^>]*><summary[^>]*>รหัสกิจกรรมต้นฉบับสำหรับทีมดูแล<\/summary>line_oa_click<\/details>/); assert.match(events, /2026-09-20/); assert.doesNotMatch(events, /2026-09-21/);
   assert.match(events, /ไม่ใช่จำนวนลูกค้าหรือยอดขายที่ยืนยันแล้ว/);
+  const actualCodes = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([
+    { "วันที่": "2026-09-20", Event: "fhc_calculator_start", "จำนวน event": 4 },
+    { "วันที่": "2026-09-20", Event: "fhc_calculator_complete", "จำนวน event": 3 },
+    { "วันที่": "2026-09-20", Event: "fhc_step_view", "จำนวน event": 2 },
+    { "วันที่": "2026-09-20", Event: "ci_step_view", "จำนวน event": 1 },
+  ], "ga4-marketing-events") }));
+  for (const name of ["เริ่มตรวจสุขภาพการเงิน", "ตรวจสุขภาพการเงินเสร็จ", "ดูขั้นตอนตรวจสุขภาพการเงิน", "ดูขั้นตอนวางแผนโรคร้ายแรง"]) assert.match(actualCodes, new RegExp(name));
+  assert.equal((actualCodes.match(/กิจกรรมอื่น; ต้องตรวจนิยามก่อนใช้/g) ?? []).length, 0);
   const social = renderToStaticMarkup(createElement(AnalyticsCharts, { dataset: dataset([{ "แพลตฟอร์ม": "Facebook", "เนื้อหา": "โพสต์ A", "ยอดดู": 12 }, { "แพลตฟอร์ม": "Instagram", "เนื้อหา": "โพสต์ B", "ยอดดู": 9 }], "social-performance") }));
   assert.match(social, /Reach หรือยอดดูข้ามแพลตฟอร์ม เพราะวิธีนับต่างกัน/);
   assert.equal((social.match(/ยอดสะสมของแต่ละโพสต์/g) ?? []).length, 2);

@@ -51,6 +51,9 @@ test("owner performance guidance is Thai while original source wording remains i
   assert.match(html, /เจตนาค้นหา: เปรียบเทียบก่อนซื้อ/);
   assert.match(html, /ปริมาณค้นหาโดยประมาณ: 90/);
   assert.match(html, /ต้นทุนต่อคลิกของคำค้นไม่ใช่ค่าโฆษณาจริง/);
+  assert.match(html, /ยังคำนวณ CPA\/ROAS/);
+  assert.doesNotMatch(html.split("<details")[0], /ยังคำนวณCPA\/ROAS/);
+  assert.match(html, /ไม่ใช่เกณฑ์อ้างอิง/);
   assert.match(html, /<details[^>]*><summary[^>]*>ข้อความต้นฉบับสำหรับทีมดูแล<\/summary>[^<]*[^]*?benchmark[^]*?<\/details>/);
   assert.match(html, /เจตนาค้นหาต้นฉบับ<\/summary>commercial<\/details>/);
 });
