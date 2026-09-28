@@ -229,8 +229,20 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /review_required.*failed.*rejected/);
     assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody, /reserveReview.*reserveCloud/);
     const openAi = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · OpenAI Luna");
-    assert.equal(openAi.type, "n8n-nodes-base.httpRequest");
-    assert.match(openAi.parameters.jsonBody, /store:false/);
+    assert.equal(openAi.type, "@n8n/n8n-nodes-langchain.openAi");
+    assert.equal(openAi.typeVersion, 2.3);
+    assert.equal(openAi.parameters.resource, "text");
+    assert.equal(openAi.parameters.operation, "response");
+    assert.equal(openAi.parameters.modelId.value, "gpt-6-luna");
+    assert.equal(openAi.parameters.simplify, false);
+    assert.equal(openAi.parameters.options.store, false);
+    assert.equal(openAi.parameters.options.reasoning.reasoningOptions.effort, "low");
+    assert.match(openAi.parameters.options.maxTokens, /512.*1600/);
+    assert.equal(openAi.parameters.options.textFormat.textOptions.type, "json_schema");
+    assert.equal(openAi.parameters.options.textFormat.textOptions.strict, true);
+    assert.equal(openAi.credentials.openAiApi.name, "CCPun Marketing Model Benchmark");
+    assert.equal(openAi.onError, "continueRegularOutput");
+    assert.doesNotMatch(JSON.stringify(openAi.parameters), /api\.openai\.com\/v1\/responses|httpRequest/);
   }
   assert.equal(workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง").onError, "continueErrorOutput");
   assert.equal(workflow.connections["Daily · ตรวจผลครบทุกต้นทาง"].main[1][0].node, dailyNames[0]);

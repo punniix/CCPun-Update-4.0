@@ -2011,33 +2011,53 @@
     {
       "id": "7491cf3c-12bc-4c3c-828c-74b7f99d1d65",
       "name": "Marketing AI Weekly · OpenAI Luna",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
       "onError": "continueRegularOutput",
       "position": [
         4220,
         -760
       ],
       "parameters": {
-        "method": "POST",
-        "url": "https://api.openai.com/v1/responses",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "openAiApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "responses": {
+          "values": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "type": "text",
+              "role": "system",
+              "content": "={{ $json.messages[0].content }}"
+            },
+            {
+              "type": "text",
+              "role": "user",
+              "content": "={{ $json.messages[1].content }}"
             }
           ]
         },
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({model:$json.model||'gpt-6-luna',reasoning:{effort:'low'},input:$json.messages,text:{format:{type:'json_schema',name:$json.mode==='review'?'marketing_review_verdict':'marketing_interpretation',strict:true,schema:$json.format}},max_output_tokens:$json.mode==='review'?300:1600,store:false}) }}",
+        "simplify": false,
         "options": {
-          "timeout": 120000
+          "maxTokens": "={{ $json.mode === 'review' ? 512 : 1600 }}",
+          "reasoning": {
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
+              "schema": "={{ $json.format }}",
+              "strict": true
+            }
+          }
         }
       },
       "credentials": {
@@ -2201,33 +2221,53 @@
     {
       "id": "d3c0fab6-ae6b-4291-84fe-ce847b155f8a",
       "name": "Marketing AI Monthly · OpenAI Luna",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
       "onError": "continueRegularOutput",
       "position": [
         4220,
         260
       ],
       "parameters": {
-        "method": "POST",
-        "url": "https://api.openai.com/v1/responses",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "openAiApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "responses": {
+          "values": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "type": "text",
+              "role": "system",
+              "content": "={{ $json.messages[0].content }}"
+            },
+            {
+              "type": "text",
+              "role": "user",
+              "content": "={{ $json.messages[1].content }}"
             }
           ]
         },
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({model:$json.model||'gpt-6-luna',reasoning:{effort:'low'},input:$json.messages,text:{format:{type:'json_schema',name:$json.mode==='review'?'marketing_review_verdict':'marketing_interpretation',strict:true,schema:$json.format}},max_output_tokens:$json.mode==='review'?300:1600,store:false}) }}",
+        "simplify": false,
         "options": {
-          "timeout": 120000
+          "maxTokens": "={{ $json.mode === 'review' ? 512 : 1600 }}",
+          "reasoning": {
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
+              "schema": "={{ $json.format }}",
+              "strict": true
+            }
+          }
         }
       },
       "credentials": {
