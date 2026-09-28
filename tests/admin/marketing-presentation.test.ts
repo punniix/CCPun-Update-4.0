@@ -10,7 +10,7 @@ import ts from "typescript";
 import { buildMarketingWorkspace, marketingWorkspaceCsv, marketingWorkspaceXlsx } from "../../lib/admin/marketing/export";
 import { ContentLeaderboard, MarketingTrend, MarketingAiReview, PerformanceMarketingDashboard } from "../../features/admin/marketing/PerformanceMarketingDashboard";
 import { ExportCenter } from "../../features/admin/analytics/ExportCenter";
-import { changeText, metricText, ownerEvidenceLabel, ownerMarketingText, safeContentHref, storedDateText } from "../../features/admin/marketing/presentation";
+import { changeText, metricText, ownerContentCategoryLabel, ownerContentTitle, ownerEvidenceLabel, ownerMarketingText, safeContentHref, storedDateText } from "../../features/admin/marketing/presentation";
 import * as presentation from "../../features/admin/marketing/presentation";
 import type { MarketingAction, MarketingActionInput, MarketingDashboard, MarketingLeaderboard, MarketingMetric } from "../../lib/admin/marketing/model";
 
@@ -35,6 +35,21 @@ test("leaderboards preserve SQL ranks, missing baselines and low sample instead 
   assert.match(renderToStaticMarkup(createElement(ContentLeaderboard, { board: { ...board, rows: [] } })), /ยังไม่มีเนื้อหาที่เข้าเกณฑ์/);
 });
 
+test("marketing content labels explain known category and Meta codes while retaining original values in collapsed details", () => {
+  assert.equal(ownerContentCategoryLabel("health-insurance"), "ประกันสุขภาพ");
+  assert.equal(ownerContentCategoryLabel("non-life-insurance"), "ประกันวินาศภัย");
+  assert.equal(ownerContentCategoryLabel("mobile_status_update"), "โพสต์ข้อความ");
+  assert.equal(ownerContentCategoryLabel("future_meta_type"), "ยังไม่มีชื่อหมวดที่ยืนยัน");
+  assert.equal(ownerContentTitle("123", "social:facebook:123"), "โพสต์ Facebook (ยังไม่มีชื่อเรื่อง)");
+  assert.equal(ownerContentTitle("ชื่อเรื่องเดิม", "social:facebook:123"), "ชื่อเรื่องเดิม");
+  const board: MarketingLeaderboard = { id: "social", title: "Top Facebook published posts · snapshot views", metric: "social_views", basis: "Posts published in selected period", platform: "Facebook", rows: [{ rank: 1, assetId: "social:facebook:123", title: "123", url: null, category: "added_photos", lifecycle: "new", mappingStatus: "mapped", publishedAt: null, metric: "social_views", current: 10, previous: null, absoluteChange: null, percentageChange: null, sampleStatus: "low", coverageStatus: "partial", freshnessStatus: "see_source_health", threshold: 10, unit: "views", evidenceRef: "social:facebook:123" }] };
+  const html = renderToStaticMarkup(createElement(ContentLeaderboard, { board }));
+  assert.match(html, /โพสต์ Facebook \(ยังไม่มีชื่อเรื่อง\)/);
+  assert.match(html, /โพสต์รูปภาพ/);
+  assert.doesNotMatch(html.split("<details")[0], /added_photos|โพสต์Facebook/);
+  assert.match(html, /<details[^>]*><summary[^>]*>ชื่อหมวดต้นทาง<\/summary><code[^>]*>added_photos<\/code><\/details>/);
+});
+
 test("Production marketing facts render Thai labels while technical provenance stays in optional audit details", () => {
   const metricCodes = ["search_average_position", "search_ctr", "social_reach", "social_interactions", "social_shares", "social_saves"];
   const metrics: MarketingMetric[] = metricCodes.map((metric, index) => ({ metric, current: index + 1, previous: null, absoluteChange: null, percentageChange: null, sampleStatus: "insufficient_data", coverageStatus: "partial", freshnessStatus: "see_source_health", threshold: 10, unit: "native_counter", evidenceRef: `content:${metric}:asset-1` }));
@@ -43,7 +58,7 @@ test("Production marketing facts render Thai labels while technical provenance s
   const model: MarketingDashboard = {
     state: "ready", version: "marketing-v1", generatedAt: "2026-09-28T05:00:00Z",
     window: { key: "this_week", currentStart: "2026-09-21", currentEnd: "2026-09-24", previousStart: "2026-09-14", previousEnd: "2026-09-17", calendarPolicy: "Monday-start; provider-native dates; common mature cutoff; MTD equal elapsed days" },
-    kpis: [], contentPerformance: [{ assetId: "asset-1", title: "บทความตัวอย่าง", url: "https://ccpun.com/example", category: null, topic: null, publishedAt: null, mappingStatus: "mapped", lifecycle: "new", metrics }], campaigns: [], benchmarks: [], leaderboards: [], trend: [],
+    kpis: [], contentPerformance: [{ assetId: "asset-1", title: "บทความตัวอย่าง", url: "https://ccpun.com/example", category: "health-insurance", topic: null, publishedAt: null, mappingStatus: "mapped", lifecycle: "new", metrics }], campaigns: [], benchmarks: [], leaderboards: [], trend: [],
     funnel: { mode: "activity-only", steps: [], limitation: "Behavioral events are not confirmed leads; no cohort/session sequence, so conversion/drop-off rates and downstream outcomes are unavailable" },
     health: [{ source: "gsc", report: "gsc-daily-query-page", sourceAsOf: "2026-09-24", collectedAt: "2026-09-28T05:00:00Z", lastSuccess: "2026-09-28T05:00:00Z", lastError: null, expectedLagDays: 3, status: "expected_lag", coverageStart: "2026-09-01", coverageEnd: "2026-09-24", timezone: "America/Los_Angeles", limitations: [limitation, scope] }],
     opportunities: [{ id: "health-1", area: "health", assetId: null, title: "Check source freshness: gsc-daily-query-page", priority: "medium", evidenceRefs: ["health:gsc-daily-query-page"], recommendedAction: "Check source freshness: gsc-daily-query-page", confidence: "low", reason: "Source is stale or latest attempt failed; qualify recommendations until current evidence is available" }],
@@ -55,6 +70,10 @@ test("Production marketing facts render Thai labels while technical provenance s
   const health = document.querySelector("#data-notes table")?.textContent ?? "";
   const opportunities = document.querySelector("#opportunities")?.textContent ?? "";
   for (const label of ["อันดับเฉลี่ยในผลค้นหา", "อัตราคลิกจากผลค้นหา", "จำนวนบัญชีที่เห็นโพสต์", "การมีส่วนร่วมกับโพสต์", "การแชร์โพสต์", "การบันทึกโพสต์"]) assert.ok(content.includes(label), label);
+  assert.match(document.querySelector('[aria-labelledby="content-performance-title"] tbody th p')?.textContent ?? "", /ประกันสุขภาพ · ยังไม่มีหัวข้อ/);
+  const categoryDetails = document.querySelector('[aria-labelledby="content-performance-title"] tbody th details');
+  assert.equal(categoryDetails?.hasAttribute("open"), false);
+  assert.match(categoryDetails?.textContent ?? "", /หมวด: health-insurance/);
   assert.doesNotMatch(content, /search_average_position|search_ctr|social_reach|social_interactions|social_shares|social_saves/);
   assert.match(health, /คำค้นจาก Google แยกตามหน้า|Google Search อาจไม่แสดงบางคำค้น|ไม่รวม blog\.ccpun\.com/);
   assert.doesNotMatch(health, /gsc-daily-query-page|Search Console may|Scope: hostName/);

@@ -51,7 +51,19 @@ export function ownerUnitLabel(value?: string): string {
 
 export function ownerContentTitle(title: string, assetId: string, platform?: string | null): string {
   // ponytail: providers sometimes return only an opaque post ID; label the asset without inventing a title.
-  return title === assetId.split(":").at(-1) ? `โพสต์${platform || assetId.split(":")[1] || "โซเชียล"} (ยังไม่มีชื่อเรื่อง)` : title;
+  const source = (platform || assetId.split(":")[1] || "โซเชียล").toLowerCase();
+  const sourceLabel = source === "facebook" ? "Facebook" : source === "instagram" ? "Instagram" : platform || assetId.split(":")[1] || "โซเชียล";
+  return title === assetId.split(":").at(-1) ? `โพสต์ ${sourceLabel} (ยังไม่มีชื่อเรื่อง)` : title;
+}
+
+export function ownerContentCategoryLabel(value: string | null): string {
+  if (!value) return "ยังไม่มีหมวด";
+  const labels: Record<string, string> = {
+    "personal-finance": "การเงินส่วนบุคคล", "life-insurance": "ประกันชีวิต", "health-insurance": "ประกันสุขภาพ",
+    "critical-illness-insurance": "ประกันโรคร้ายแรง", investment: "การลงทุน", "non-life-insurance": "ประกันวินาศภัย",
+    added_photos: "โพสต์รูปภาพ", mobile_status_update: "โพสต์ข้อความ",
+  };
+  return labels[value] ?? (/^[a-z0-9]+(?:[-_][a-z0-9]+)+$/.test(value) ? "ยังไม่มีชื่อหมวดที่ยืนยัน" : value);
 }
 
 export function ownerEventLabel(value: string): string {
