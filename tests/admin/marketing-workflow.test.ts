@@ -241,6 +241,7 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(openAi.parameters.options.reasoning.reasoningOptions.effort, "low");
     assert.match(openAi.parameters.options.maxTokens, /512.*1600/);
     assert.equal(openAi.parameters.options.textFormat.textOptions.type, "json_schema");
+    assert.equal(openAi.parameters.options.textFormat.textOptions.schema, "={{ JSON.stringify($json.format) }}");
     assert.equal(openAi.parameters.options.textFormat.textOptions.strict, true);
     assert.equal(openAi.credentials.openAiApi.name, "CCPun Marketing Model Benchmark");
     assert.equal(openAi.onError, "continueRegularOutput");
