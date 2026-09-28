@@ -37,10 +37,12 @@ export const statusText: Record<string, string> = {
 export const labelStatus = (value: string) => statusText[value] ?? value;
 
 const metricLabels: Record<string, string> = {
-  organic_sessions: "การเข้าชมจาก Google", search_clicks: "คลิกจาก Google Search", search_impressions: "การแสดงใน Google Search", line_clicks: "คลิกไป LINE", calculator_complete: "คำนวณจนเสร็จ", social_views: "ยอดดูโพสต์",
+  organic_sessions: "การเข้าชมจาก Google", search_clicks: "คลิกจาก Google Search", search_impressions: "การแสดงใน Google Search", search_ctr: "อัตราคลิกจากผลค้นหา", search_average_position: "อันดับเฉลี่ยในผลค้นหา",
+  line_clicks: "คลิกไป LINE", calculator_start: "เริ่มใช้เครื่องมือคำนวณ", calculator_complete: "คำนวณจนเสร็จ", sessions: "การเข้าชมเว็บไซต์", qualified_conversations: "บทสนทนาที่มีคุณภาพ",
+  social_views: "ยอดดูโพสต์", social_reach: "จำนวนบัญชีที่เห็นโพสต์", social_interactions: "การมีส่วนร่วมกับโพสต์", social_shares: "การแชร์โพสต์", social_saves: "การบันทึกโพสต์",
 };
 
-export const ownerMetricLabel = (value: string) => metricLabels[value] ?? value;
+export const ownerMetricLabel = (value: string) => metricLabels[value] ?? "ตัวชี้วัดที่ยังไม่มีชื่อภาษาไทย";
 
 export function ownerUnitLabel(value?: string): string {
   const units: Record<string, string> = { sessions: "ครั้ง", clicks: "คลิก", impressions: "ครั้ง", percent: "%", position: "อันดับ", views: "ครั้ง", events: "ครั้ง", native_reach: "บัญชี", native_counter: "ครั้ง" };
@@ -63,6 +65,7 @@ export function ownerLeaderboardTitle(value: string): string {
 }
 
 export function ownerLeaderboardBasis(value: string): string {
+  if (value === "GSC clicks ตาม SQL") return "จำนวนคลิกจาก Google Search";
   if (value.includes("descending; URL tie-break")) return "เรียงตามยอดจริงของช่วงที่เลือก หากยอดเท่ากันใช้ที่อยู่หน้าเว็บช่วยเรียง";
   if (value.startsWith("Posts published in selected period")) return "โพสต์ที่เผยแพร่ในช่วงนี้ เรียงตามยอดดูสะสมล่าสุด ไม่ใช่ยอดดูเฉพาะช่วงนี้";
   if (value.startsWith("Valid comparable period change")) return "เรียงตามจำนวนที่เปลี่ยนไปเมื่อเทียบช่วงก่อน โดยใช้เฉพาะข้อมูลที่มากพอ";
@@ -80,10 +83,10 @@ export function ownerEvidenceLabel(value: string, contentTitle?: string): string
 
 export function ownerReportLabel(value: string): string {
   const reports: Record<string, string> = {
-    "ga4-daily-organic": "การเข้าชมจาก Google", "gsc-daily-page": "ผลค้นหาจาก Google", "ga4-content-events": "กิจกรรมบนเว็บไซต์", "ga4-session-performance": "แคมเปญและการเข้าชม", "ga4-marketing-events": "กิจกรรมการตลาดบนเว็บไซต์",
+    "ga4-daily-organic": "การเข้าชมจาก Google", "gsc-daily-page": "ผลค้นหาจาก Google แยกตามหน้า", "gsc-daily-query-page": "คำค้นจาก Google แยกตามหน้า", "ga4-content-events": "กิจกรรมบนเว็บไซต์", "ga4-session-performance": "แคมเปญและการเข้าชม", "ga4-marketing-events": "กิจกรรมการตลาดบนเว็บไซต์",
     "gsc-summary": "ภาพรวมการค้นหาจาก Google", "gsc-query-page": "คำค้นและหน้าเว็บบน Google", "ga4-summary": "ภาพรวมการเข้าชมเว็บไซต์", "ga4-organic-landing": "หน้าเว็บที่เข้าจาก Google", "social-performance": "ผลลัพธ์โพสต์โซเชียล", "seo-intelligence": "คำค้นและการปรากฏในคำตอบ AI", "ubersuggest-web-keywords": "คำค้นจาก Ubersuggest",
   };
-  return reports[value] ?? value.replaceAll("-", " ");
+  return reports[value] ?? "รายงานต้นทางที่ยังไม่มีชื่อภาษาไทย";
 }
 
 export function ownerSourceLabel(value: string): string {
@@ -97,7 +100,7 @@ export function ownerTimezoneLabel(value: string | null): string {
 
 export function ownerMarketingText(value: string): string {
   if (value.startsWith("Investigate material decline: ")) return `ตรวจการลดลงของ${ownerMetricLabel(value.slice(30))}`;
-  if (value.startsWith("Check source freshness: ")) return `ตรวจข้อมูลล่าสุดของ${ownerReportLabel(value.slice(24))}`;
+  if (value.startsWith("Check source freshness: ")) return `ตรวจความพร้อมของข้อมูล: ${ownerReportLabel(value.slice(24))}`;
   const known: Record<string, string> = {
     investigation: "ตรวจหาสาเหตุ",
     "Comparable covered periods exceed minimum volumes; decline is an observation, not a causal conclusion": "ตัวเลขลดลงเมื่อเทียบสองช่วงที่มีข้อมูลเพียงพอ แต่ยังบอกสาเหตุไม่ได้",
@@ -116,6 +119,20 @@ export function ownerMarketingText(value: string): string {
     "Marketing analytical store unavailable; existing analytics exports remain available.": "ยังอ่านข้อมูลการตลาดไม่ได้ แต่ไฟล์วิเคราะห์เดิมยังใช้งานได้",
     "Marketing stored snapshot unavailable; no source API refresh attempted.": "ยังอ่านข้อมูลการตลาดที่บันทึกไว้ไม่ได้",
     "GSC clicks ตาม SQL": "จำนวนคลิกจาก Google Search",
+    "Search Console may omit anonymized or low-volume queries.": "Google Search อาจไม่แสดงบางคำค้นที่มีผู้ใช้น้อยหรือปกปิดตัวตน",
+    "Reached the bounded 50,000-row manual-sync limit; Search Console does not guarantee every possible query row.": "รายงานนี้อ่านได้สูงสุด 50,000 แถวต่อรอบ และ Google Search อาจไม่ส่งทุกคำค้นกลับมา",
+    "Final web data; page-only totals and query diagnostics are separate grains; no summation of overlapping report windows": "ข้อมูลค้นหาที่ Google ยืนยันแล้ว: ยอดแยกตามหน้าและยอดแยกตามคำค้นเป็นคนละชุด ห้ามบวกเข้าด้วยกันหรือบวกช่วงวันที่ซ้ำกัน",
+    "Scope: hostName ccpun.com/www.ccpun.com only; blog.ccpun.com excluded explicitly": "นับเฉพาะ ccpun.com และ www.ccpun.com ไม่รวม blog.ccpun.com",
+    "Daily native dates; no distinct-user summation; behavioral events are not confirmed leads; page event attribution is event location, not cohort conversion": "ใช้วันที่ตามต้นทาง ไม่บวกจำนวนผู้ใช้ที่อาจซ้ำกัน กิจกรรมบนเว็บยังไม่ใช่ลูกค้าที่ติดต่อจริง และหน้าเว็บที่เกิดกิจกรรมไม่ใช่หลักฐานว่าหน้านั้นสร้างการติดต่อ",
+    "Scope: hostName ccpun.com/www.ccpun.com only; blog excluded. Native day × sessionSourceMedium × campaign × landing page; no event-to-session or business attribution inferred.": "นับเฉพาะ ccpun.com และ www.ccpun.com ไม่รวมบล็อก แยกข้อมูลตามวัน ช่องทาง แคมเปญ และหน้าแรกที่เข้าชม ยังระบุไม่ได้ว่ากิจกรรมหรือผลธุรกิจเกิดจากการเข้าชมครั้งใด",
+    "GA4 thresholded report": "Google Analytics จำกัดรายละเอียดบางส่วนเพื่อปกป้องความเป็นส่วนตัว",
+    "GA4 other-row loss": "Google Analytics รวมบางรายการที่มีปริมาณน้อยไว้ในกลุ่มอื่น",
+    "GA4 sampled report": "Google Analytics ใช้ข้อมูลตัวอย่างในรายงานนี้",
+    "GA4 sampled this report": "Google Analytics ใช้ข้อมูลตัวอย่างในรายงานนี้",
+    "GA4 applied data thresholding": "Google Analytics จำกัดรายละเอียดบางส่วนเพื่อปกป้องความเป็นส่วนตัว",
+    "GA4 grouped low-volume rows into (other)": "Google Analytics รวมบางรายการที่มีปริมาณน้อยไว้ในกลุ่มอื่น",
+    "GA4 reports may differ from the UI because of reporting identity and processing time": "ตัวเลข Google Analytics อาจต่างจากหน้ารายงานของ Google เพราะวิธีนับผู้ใช้และเวลาประมวลผลต่างกัน",
+    "Reached the bounded 10,000-row manual-sync limit": "รายงานนี้อ่านได้สูงสุด 10,000 แถวต่อรอบ",
   };
-  return known[value] ?? value;
+  return known[value] ?? (/[A-Za-z]/.test(value) ? "มีข้อจำกัดจากต้นทางที่ต้องให้ทีมดูแลตรวจรายละเอียด" : value);
 }
