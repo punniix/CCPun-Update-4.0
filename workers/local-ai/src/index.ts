@@ -13,7 +13,6 @@ import {
   MARKETING_ANALYSIS_INSTRUCTION,
   marketingAnalysisInputSchema,
   marketingInterpretationSelectionSchema,
-  marketingV2SelectionSchema,
   buildMarketingInferenceRequest,
   analyticsReviewSelectionSchema,
   analyticsReviewInputSchema,
@@ -163,7 +162,7 @@ async function infer(
   // A rejected response is never copied back to the model. A shorter, stricter
   // system instruction reuses the identical bounded facts and JSON schema.
   const messages = marketingRepair ? [{ role: "system", content: taskType === "marketing-analysis" && marketingAnalysisInputSchema.parse(payload).promptVersion === MARKETING_ANALYSIS_VERSION ? MARKETING_V2_REPAIR_INSTRUCTION : MARKETING_VALIDATION_REPAIR_INSTRUCTION }, initialMessages[1]!] : initialMessages;
-  const format = analyticsRequest?.format ?? z.toJSONSchema(taskType === "marketing-analysis" && marketingAnalysisInputSchema.parse(payload).promptVersion === MARKETING_ANALYSIS_VERSION ? marketingV2SelectionSchema : contract.outputSchema);
+  const format = analyticsRequest?.format ?? z.toJSONSchema(contract.outputSchema);
   const promptBytes = marketingRepair || !analyticsRequest ? Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(format)) : analyticsRequest.promptBytes;
   if (["analytics-review", "marketing-analysis"].includes(taskType) && promptBytes > 6000) throw new Error("ANALYTICS_REVIEW_CONTEXT_EXCEEDED");
   const started = Date.now();
