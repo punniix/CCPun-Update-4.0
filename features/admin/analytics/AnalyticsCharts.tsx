@@ -1,4 +1,5 @@
 import type { AnalyticsDataset } from "@/lib/admin/analytics/model";
+import { buildPerformanceTables } from "@/lib/admin/analytics/performance";
 
 type Bar = { label: string; value: number; detail?: string };
 const number = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
@@ -15,7 +16,7 @@ export function keywordChartData(dataset: Pick<AnalyticsDataset, "rows">) {
     else ranks[rank <= 3 ? 0 : rank <= 10 ? 1 : rank <= 20 ? 2 : rank <= 100 ? 3 : 4]!.value++;
     const raw = typeof row.Intent === "string" ? row.Intent.trim() : "";
     const parts = [...new Set(raw.split(/[,/|;]/).map((part) => part.trim().toLowerCase()).filter(Boolean))];
-    const label = parts.length > 1 ? intentNames.mixed! : !raw || ["-", "unknown", "n/a"].includes(raw.toLowerCase()) ? "ไม่ระบุ Intent" : intentNames[raw.toLowerCase()] ?? raw;
+    const label = parts.length > 1 ? intentNames.mixed! : !raw || ["-", "unknown", "n/a"].includes(raw.toLowerCase()) ? "ไม่ระบุเจตนาค้นหา" : intentNames[raw.toLowerCase()] ?? "เจตนาอื่นที่ต้นทางระบุ";
     intents.set(label, (intents.get(label) ?? 0) + 1);
   }
   const top = dataset.rows.flatMap((row) => {
@@ -23,7 +24,7 @@ export function keywordChartData(dataset: Pick<AnalyticsDataset, "rows">) {
     return volume == null || typeof row["คำค้น"] !== "string" || !row["คำค้น"].trim() ? [] : [{ label: row["คำค้น"], value: volume }];
   }).sort((a, b) => b.value - a.value).slice(0, 10);
   const groups = [...intents].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
-  const visibleIntents = groups.length <= 6 ? groups : [...groups.slice(0, 5), { label: "Intent กลุ่มอื่น", value: groups.slice(5).reduce((total, item) => total + item.value, 0) }];
+  const visibleIntents = groups.length <= 6 ? groups : [...groups.slice(0, 5), { label: "เจตนาค้นหากลุ่มอื่น", value: groups.slice(5).reduce((total, item) => total + item.value, 0) }];
   return { ranks, unknownRank, ranked: dataset.rows.length - unknownRank, topTen: ranks[0]!.value + ranks[1]!.value, intents: visibleIntents, top, unknownVolume: dataset.rows.filter((row) => number(row.Volume) == null).length, zeroVolume: dataset.rows.filter((row) => number(row.Volume) === 0).length };
 }
 
@@ -76,9 +77,10 @@ export function AnalyticsCharts({ dataset }: { dataset: AnalyticsDataset }) {
             <div className="mt-3 flex h-4 overflow-hidden rounded-sm bg-white/10" aria-hidden="true">{data.intents.map((item, index) => <span key={item.label} className="h-full border-r border-[#251818] bg-[#e0c985]" style={{ width: `${item.value / dataset.rows.length * 100}%`, opacity: 1 - index * .11 }} />)}</div>
             <ul className="mt-3 space-y-2 text-sm">{data.intents.map((item) => <li key={item.label} className="flex justify-between gap-3"><span className="min-w-0 break-words">{item.label}</span><span className="shrink-0 text-white/80">{format(item.value)} · {format(item.value / dataset.rows.length * 100)}%</span></li>)}</ul>
             <p className="mt-3 text-xs leading-5 text-white/60">จัดกลุ่มตามเจตนาค้นหาที่รายงานระบุ หนึ่งคำค้นนับครั้งเดียว; คำค้นที่มีหลายเจตนาค้นหา รวมในกลุ่มผสม ไม่มีข้อมูลแสดงเป็น “ไม่ระบุ”</p>
+            <details className="mt-2 text-xs text-white/60"><summary className="cursor-pointer">ค่าเจตนาค้นหาต้นฉบับสำหรับทีมดูแล</summary>{[...new Set(dataset.rows.map(row => String(row.Intent ?? "ไม่ระบุ")))].join(" · ")}</details>
           </figure>
         </div>
-        <div className="min-w-0"><Bars title="คำค้นที่มีปริมาณค้นหาที่รายงานสูงสุด" unit="Volume" items={data.top} note="10 คำค้นสูงสุดตาม Volume ที่ Ubersuggest รายงาน เป็นค่าประมาณ ไม่ใช่จำนวนคลิกหรือผู้เข้าชมที่เกิดขึ้นจริง" /><p className="mt-3 text-xs leading-5 text-white/60">ปริมาณค้นหาเท่ากับศูนย์ {format(data.zeroVolume)} คำค้น · ไม่ระบุปริมาณค้นหา {format(data.unknownVolume)} คำค้น · ไม่เติมศูนย์แทนข้อมูลที่ไม่ทราบ</p></div>
+        <div className="min-w-0"><Bars title="คำค้นที่มีปริมาณค้นหาที่รายงานสูงสุด" unit="การค้นหาโดยประมาณ" items={data.top} note="10 คำค้นสูงสุดตามปริมาณค้นหาที่ Ubersuggest รายงาน เป็นค่าประมาณ ไม่ใช่จำนวนคลิกหรือผู้เข้าชมที่เกิดขึ้นจริง" /><p className="mt-3 text-xs leading-5 text-white/60">ปริมาณค้นหาเท่ากับศูนย์ {format(data.zeroVolume)} คำค้น · ไม่ระบุปริมาณค้นหา {format(data.unknownVolume)} คำค้น · ไม่เติมศูนย์แทนข้อมูลที่ไม่ทราบ</p></div>
       </div>
     </div>;
   }
@@ -86,14 +88,17 @@ export function AnalyticsCharts({ dataset }: { dataset: AnalyticsDataset }) {
   if (dataset.report === "ga4-organic-landing") return <div className="mt-6 border-t border-white/10 pt-5"><Bars title="หน้าเว็บที่เข้าจากการค้นหามากที่สุด" unit="เซสชัน" items={nativeMetricBars(dataset, "หน้าเข้า", "เซสชัน")} /></div>;
   if (dataset.report === "ga4-session-performance") {
     const rows = dataset.rows.map((row) => ({ ...row, "รายละเอียดกราฟ": [row["วันที่"], row["แคมเปญ"], row["หน้าเข้า"]].filter((value) => typeof value === "string" && value.trim()).join(" · ") }));
-    return <div className="mt-6 border-t border-white/10 pt-5"><Bars title="ช่องทางและแคมเปญที่มีเซสชันสูงสุดตามวันที่รายงาน" unit="เซสชัน" items={nativeMetricBars({ rows }, "แหล่งทราฟฟิก / Medium", "เซสชัน", "รายละเอียดกราฟ")} note="หนึ่งแท่งต่อวัน–ช่องทาง–แคมเปญ–หน้าเข้า ตามแถวที่ต้นทางรายงาน ไม่รวมข้ามแถว และไม่ตีความ Key events ว่าเป็นจำนวนลูกค้า" /></div>;
+    return <div className="mt-6 border-t border-white/10 pt-5"><Bars title="ช่องทางและแคมเปญที่มีเซสชันสูงสุดตามวันที่รายงาน" unit="เซสชัน" items={nativeMetricBars({ rows }, "แหล่งทราฟฟิก / Medium", "เซสชัน", "รายละเอียดกราฟ")} note="หนึ่งแท่งต่อวัน–ช่องทาง–แคมเปญ–หน้าเข้า ตามแถวที่ต้นทางรายงาน ไม่รวมข้ามแถว และไม่ตีความเหตุการณ์สำคัญว่าเป็นจำนวนลูกค้า" /></div>;
   }
-  if (dataset.report === "ga4-marketing-events") return <div className="mt-6 border-t border-white/10 pt-5"><Bars title="เหตุการณ์จากเครื่องมือและ LINE ที่รายงานสูงสุด" unit="event" items={nativeMetricBars(dataset, "Event", "จำนวน event", "วันที่")} note="หนึ่งแท่งต่อ event–วันที่ตามรายงาน การคลิก LINE หรือ event ไม่ใช่จำนวนลูกค้าหรือยอดขายที่ยืนยันแล้ว" /></div>;
+  if (dataset.report === "ga4-marketing-events") {
+    const activities = buildPerformanceTables([dataset]).find(table => table.view === "marketing-activities")!;
+    return <div className="mt-6 border-t border-white/10 pt-5"><Bars title="กิจกรรมจากเครื่องมือและ LINE ที่รายงานสูงสุด" unit="ครั้ง" items={nativeMetricBars({ rows: activities.rows }, "ความหมาย", "จำนวน event", "วันที่")} note="หนึ่งแท่งต่อกิจกรรมและวันที่ตามรายงาน การใช้เครื่องมือหรือคลิก LINE เป็นเพียงกิจกรรมที่อาจเกิดซ้ำ ไม่ใช่จำนวนลูกค้าหรือยอดขายที่ยืนยันแล้ว" /><details className="mt-2 text-xs text-white/60"><summary className="cursor-pointer">รหัสกิจกรรมต้นฉบับสำหรับทีมดูแล</summary>{[...new Set(dataset.rows.map(row => String(row.Event ?? "ไม่ระบุ")))].join(" · ")}</details></div>;
+  }
   if (dataset.report === "social-performance") {
     const platforms = [...new Set(dataset.rows.map((row) => typeof row["แพลตฟอร์ม"] === "string" ? row["แพลตฟอร์ม"] : "ไม่ระบุแพลตฟอร์ม"))];
     return <div className="mt-6 grid min-w-0 gap-6 border-t border-white/10 pt-5 lg:grid-cols-2">{platforms.map((platform) => {
-      const rows = dataset.rows.filter((row) => (row["แพลตฟอร์ม"] ?? "ไม่ระบุแพลตฟอร์ม") === platform).map((row) => ({ ...row, "ชื่อกราฟ": typeof row["เนื้อหา"] === "string" && row["เนื้อหา"].trim() ? row["เนื้อหา"].slice(0, 100) : String(row["Provider Object ID"] ?? "โพสต์ไม่มีชื่อ") }));
-      return <Bars key={platform} title={`โพสต์ยอดดูสูงสุด · ${platform}`} unit="ยอดดู" items={nativeMetricBars({ rows }, "ชื่อกราฟ", "ยอดดู")} note="Snapshot สะสมต่อโพสต์ แยกแพลตฟอร์ม; ไม่ใช่ยอดรายวัน และไม่รวม Reach หรือยอดดูข้ามแพลตฟอร์ม" />;
+      const rows = dataset.rows.filter((row) => (row["แพลตฟอร์ม"] ?? "ไม่ระบุแพลตฟอร์ม") === platform).map((row, index) => ({ ...row, "ชื่อกราฟ": typeof row["เนื้อหา"] === "string" && row["เนื้อหา"].trim() ? row["เนื้อหา"].slice(0, 100) : `โพสต์ไม่มีชื่อ · รายการที่ ${index + 1}` }));
+      return <Bars key={platform} title={`โพสต์ยอดดูสูงสุด · ${platform}`} unit="ยอดดู" items={nativeMetricBars({ rows }, "ชื่อกราฟ", "ยอดดู")} note="ยอดสะสมของแต่ละโพสต์ ณ วันที่เก็บข้อมูล แยกตามแพลตฟอร์ม ไม่ใช่ยอดรายวัน และห้ามรวม Reach หรือยอดดูข้ามแพลตฟอร์ม เพราะวิธีนับต่างกัน" />;
     })}</div>;
   }
   return null;
