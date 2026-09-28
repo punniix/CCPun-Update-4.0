@@ -46,7 +46,7 @@ test("Runtime detail falls back to latest 200 only when lookup function is missi
 
 test("Agent OS runtime UI uses real stage history instead of fake percentage progress", () => {
   const component = read("features/admin/operations/AgentRuntimeJobStatus.tsx");
-  assert.match(component, /Runtime timeline/);
+  assert.match(component, /ลำดับการทำงาน/);
   assert.match(component, /baseline\.p50Ms/);
   assert.match(component, /baseline\.p90Ms/);
   assert.match(component, /heartbeat_stale/);

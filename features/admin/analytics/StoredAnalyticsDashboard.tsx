@@ -12,7 +12,7 @@ const REPORTS: Record<string, string> = {
   "gsc-summary": "ภาพรวมการค้นหา Google", "gsc-query-page": "คำค้นและหน้าที่ปรากฏบน Google",
   "ga4-summary": "ภาพรวมผู้เข้าชมเว็บ", "ga4-organic-landing": "หน้าที่เข้าจากการค้นหา",
   "ga4-session-performance": "ผู้เข้าชมตามวัน ช่องทาง และแคมเปญ", "ga4-marketing-events": "การใช้เครื่องมือและคลิก LINE",
-  "social-performance": "ผลลัพธ์โพสต์ Social", "seo-intelligence": "คำค้นและ AI Visibility",
+  "social-performance": "ผลลัพธ์โพสต์โซเชียล", "seo-intelligence": "คำค้นและการปรากฏในคำตอบ AI",
   "ubersuggest-web-keywords": "รายงานคำค้นจากเว็บ Ubersuggest",
 };
 // ponytail: resolve the server clock once per request, never during client hydration.
@@ -40,8 +40,8 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
   return <div className="min-w-0">
     <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ข้อมูลสำหรับตัดสินใจ</p>
     <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div>
-      <h1 className="text-3xl font-semibold leading-snug">{searchOnly ? "การค้นหาและผู้เข้าชม" : "Dashboard รวม"}</h1>
-      <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านข้อมูลที่บันทึกไว้จากรอบอัปเดตรายวัน เปิดหน้านี้หรือดาวน์โหลดไฟล์ได้โดยไม่ต้องเรียก API ต้นทางใหม่ แต่ละรายงานแสดงช่วงข้อมูลและเวลาที่บันทึกของตัวเอง</p>
+      <h1 className="text-3xl font-semibold leading-snug">{searchOnly ? "การค้นหาและผู้เข้าชม" : "ภาพรวมข้อมูล"}</h1>
+      <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านข้อมูลที่บันทึกไว้จากรอบอัปเดตรายวัน เปิดหน้านี้หรือดาวน์โหลดไฟล์ได้โดยไม่ต้องขอข้อมูลจากต้นทางใหม่ แต่ละรายงานแสดงช่วงข้อมูลและเวลาที่บันทึกของตัวเอง</p>
     </div><Link href="/analytics/exports/" className={link}>ส่งออก CSV / Excel / Google Sheet</Link></div>
 
     <section className="mt-7 border-y border-white/15 py-5" aria-label="สถานะการอัปเดตแต่ละแหล่ง">
@@ -81,7 +81,7 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
       {metrics.length ? <dl className="mt-5 grid gap-3 border-y border-white/10 py-4 sm:grid-cols-2 lg:grid-cols-3">{metrics.map((metric, index) => <div key={`${metric.label}-${index}`} className="min-w-0 rounded-lg bg-black/15 p-3"><dt className="text-xs leading-5 text-white/65">{metric.label}</dt><dd className="mt-1 break-words text-xl font-semibold">{typeof metric.value === "number" ? metric.value.toLocaleString("th-TH", { maximumFractionDigits: 4 }) : typeof metric.value === "boolean" ? metric.value ? "ใช่" : "ไม่" : metric.value || "—"}</dd></div>)}</dl> : null}
       <AnalyticsCharts dataset={item} />
       <details className="mt-5"><summary className={`min-h-11 cursor-pointer py-2 text-sm text-white/80 ${focus}`}>ดูข้อมูลและความหมายของรายงาน ({item.rows.length.toLocaleString("th-TH")} แถว)</summary>
-        <p className="mt-1 text-xs leading-5 text-white/60">แสดงตัวอย่างไม่เกิน 25 แถว ดาวน์โหลดไฟล์เพื่อดูทุกแถว ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์ ตัวเลขคนและ Reach ไม่ควรนำมาบวกข้ามแหล่งข้อมูล ช่วงวันของต้นทางใช้ {item.nativeTimeZone || "เขตเวลาตามต้นทาง"}</p>
+        <p className="mt-1 text-xs leading-5 text-white/60">แสดงตัวอย่างไม่เกิน 25 แถว ดาวน์โหลดไฟล์เพื่อดูทุกแถว ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์ จำนวนผู้ใช้และการเข้าถึงอาจซ้ำกัน จึงไม่ควรบวกข้ามแหล่งข้อมูล ช่วงวันของต้นทางใช้ {item.nativeTimeZone || "เขตเวลาตามต้นทาง"}</p>
         {item.rows.length ? <div className="mt-3 max-w-full overflow-x-auto rounded-xl border border-white/10" tabIndex={0} role="region" aria-label={`ตาราง ${REPORTS[item.report] ?? item.report}`}><table className="w-full text-left text-sm"><caption className="sr-only">ตัวอย่างข้อมูลที่บันทึกไว้ของรายงาน {REPORTS[item.report] ?? item.report}</caption><thead className="bg-black/20"><tr>{item.columns.map((column) => <th scope="col" key={column} className="whitespace-nowrap px-4 py-3 font-medium">{column}</th>)}</tr></thead><tbody>{item.rows.slice(0, 25).map((row, index) => <tr key={index} className="border-t border-white/10">{item.columns.map((column) => <td key={column} className="max-w-sm px-4 py-3 align-top break-words">{row[column] == null ? "—" : typeof row[column] === "boolean" ? row[column] ? "ใช่" : "ไม่" : String(row[column])}</td>)}</tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-white/65">ต้นทางส่งกลับมาโดยไม่มีแถวข้อมูล รายงานนี้ยังส่งออกคำอธิบายและสถานะได้</p>}
       </details>
       {item.truncated ? <p className="mt-3 text-sm text-amber-100">ข้อมูลบางส่วนถูกจำกัดจำนวนจากการเก็บข้อมูล ไม่ใช่ข้อมูลทั้งหมดของต้นทาง</p> : null}

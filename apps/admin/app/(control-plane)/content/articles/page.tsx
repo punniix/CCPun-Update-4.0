@@ -8,7 +8,7 @@ import {
   type ContentSortKey,
   type ContentSortOrder,
 } from "@/lib/admin/content-filters";
-import { adminDataLaneLabel, connectionLabel, contentReviewStatusLabel, friendlyApiError } from "@/lib/admin/presentation";
+import { adminDataLaneLabel, connectionLabel, contentReviewStatusLabel, datasetLabel, friendlyApiError } from "@/lib/admin/presentation";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
@@ -109,7 +109,7 @@ export default async function AdminContentPage({ searchParams }: AdminContentPag
           <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">เลือกงานที่จะตรวจ</p>
           <h1 className="mt-2 text-3xl font-semibold">บทความ</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
-            รายการนี้อ่านจากชุดข้อมูล <strong className="font-medium text-white">{result.status.dataset ?? "ที่ยังไม่ได้ตั้งค่า"}</strong> ในพื้นที่ {lane} เท่านั้น ระบบจะหยุดหากโครงการหรือชุดข้อมูลไม่ตรงกัน
+            รายการนี้อ่านจากชุดข้อมูล <strong className="font-medium text-white">{datasetLabel(result.status.dataset)}</strong> ในพื้นที่ {lane} เท่านั้น ระบบจะหยุดหากโครงการหรือชุดข้อมูลไม่ตรงกัน
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -131,7 +131,7 @@ export default async function AdminContentPage({ searchParams }: AdminContentPag
       <section className="mt-7 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">ชุดข้อมูล</div>
-          <div className="mt-2 text-lg font-semibold">{result.status.dataset ?? "—"}</div>
+          <div className="mt-2 text-lg font-semibold">{datasetLabel(result.status.dataset)}</div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">การอ่านข้อมูล</div>

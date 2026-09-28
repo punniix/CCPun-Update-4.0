@@ -5,9 +5,9 @@ export default function SocialSheetsExport() {
     <section aria-labelledby="social-sheets-export-title" className="mb-5 rounded-3xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 id="social-sheets-export-title" className="text-lg font-semibold">ส่งออก Social / SEO</h2>
+          <h2 id="social-sheets-export-title" className="text-lg font-semibold">ส่งออกข้อมูลโซเชียลและการค้นหา</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-white/65">
-            ใช้ Export Center กลางเพื่อดาวน์โหลด CSV หรือสร้าง Google Sheet ผ่าน Agent OS + n8n โดยใช้ข้อมูล Social clean mart และ SEO Search Intelligence ชุดเดียวกับหน้า Admin
+            ใช้หน้าส่งออกข้อมูลเพื่อดาวน์โหลด CSV หรือสร้าง Google Sheet ผ่านระบบอัตโนมัติ โดยใช้ข้อมูล Social clean mart และ SEO Search Intelligence ชุดเดียวกับหน้า Admin
           </p>
         </div>
         <Link
@@ -18,7 +18,7 @@ export default function SocialSheetsExport() {
         </Link>
       </div>
       <p className="mt-3 text-xs leading-5 text-white/45">
-        Google Sheet จะสร้างเป็นแท็บ “ภาพรวม” และ “ข้อมูล” พร้อม filter, header ค้าง และคอลัมน์ที่เอาไป pivot/วิเคราะห์ต่อได้
+        Google Sheet จะสร้างเป็นแท็บ “ภาพรวม” และ “ข้อมูล” พร้อมตัวกรองและหัวตารางที่เลื่อนตาม และคอลัมน์ที่เอาไป pivot/วิเคราะห์ต่อได้
       </p>
     </section>
   );

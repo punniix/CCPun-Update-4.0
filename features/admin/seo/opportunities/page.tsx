@@ -17,7 +17,7 @@ export default async function SeoOpportunitiesPage() {
   await requireAdminPermission("seo:read");
   const runtime = getSeoIntelligenceRuntimeStatus();
   if (!runtime.enabled) notFound();
-  const laneLabel = runtime.environment === "production-admin" ? "ระบบจริง" : "UAT";
+  const laneLabel = runtime.environment === "production-admin" ? "ระบบจริง" : "พื้นที่ทดสอบ";
 
   return (
     <div>

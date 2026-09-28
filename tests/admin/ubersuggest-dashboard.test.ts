@@ -72,7 +72,7 @@ test("Research Intelligence owns keyword coverage Ubersuggest quota GEO prompt g
   assert.match(researchPage, /5 · ประวัติ/);
   assert.match(researchPage, /ข้อมูล Ubersuggest และขีดจำกัดบัญชี/);
   assert.match(researchPage, /คำถามที่ Ubersuggest วัด CCPun ได้ 0% ในรอบนี้/);
-  assert.match(researchPage, /ยังไม่ได้จับคู่กับ Intent Owner Registry/);
+  assert.match(researchPage, /ยังไม่ได้จับคู่คำถามกับเนื้อหา/);
   assert.match(researchPage, /ประวัติข้อมูลและสถานะการตัดสินใจ/);
   assert.match(researchPage, /getUbersuggestDashboardData\(30\)/);
   assert.match(researchPage, /userVisibilityPercentage === 0/);
@@ -82,7 +82,7 @@ test("Research Intelligence owns keyword coverage Ubersuggest quota GEO prompt g
 test("Production Research uses snapshots while Local lanes retain provider query and sync", () => {
   assert.match(researchPage, /environment === "production-admin"/);
   assert.match(researchPage, /ข้อมูลล่าสุดพร้อมใช้/);
-  assert.match(researchPage, /ไม่ถือ OAuth ของ Ubersuggest บน cloud/);
+  assert.match(researchPage, /ไม่ดึงข้อมูลใหม่จาก Ubersuggest โดยตรง/);
   assert.match(researchPage, /UbersuggestAisvImportForm/);
   assert.match(researchPage, /UbersuggestResearchForm connected=\{ubersuggest\.connected\}/);
   assert.match(researchPage, /SyncUbersuggestButton/);

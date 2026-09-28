@@ -61,7 +61,7 @@ export default async function LocalAiPage() {
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">รอทำ / กำลังทำ</p><p className="mt-2 text-xl font-semibold">{model.health ? `${model.health.queued} / ${model.health.activeJobCount ?? 0}` : "—"}</p></section>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">งานที่เกี่ยวกับลูกค้า</p><p className="mt-2 text-xl font-semibold">{model.health?.privateJobs ?? "—"}</p><p className="mt-1 text-xs text-white/40">แสดงเฉพาะผลที่ผ่านการตรวจรูปแบบแล้ว</p></section>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">รอคนตรวจ</p><p className="mt-2 text-xl font-semibold">{model.health?.pendingReview ?? "—"}</p><p className="mt-1 text-xs text-white/40">AI ไม่มีสิทธิ์อนุมัติเอง</p></section>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">เวลาประมวลผล P95</p><p className="mt-2 text-xl font-semibold">{model.health ? `${Math.round(model.health.durationP95Ms / 1000)} วินาที` : "—"}</p><p className="mt-1 text-xs text-white/40">จากงาน 24 ชั่วโมงล่าสุด</p></section>
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/55">งานส่วนใหญ่เสร็จภายใน</p><p className="mt-2 text-xl font-semibold">{model.health ? `${Math.round(model.health.durationP95Ms / 1000)} วินาที` : "—"}</p><p className="mt-1 text-xs text-white/40">ประมาณ 95% ของงานใน 24 ชั่วโมงล่าสุด</p></section>
     </div>
 
     <section className="mt-5 rounded-2xl border border-[#e0c985]/20 bg-[#e0c985]/[0.06] p-4 text-sm leading-6 text-white/70">
@@ -71,9 +71,9 @@ export default async function LocalAiPage() {
     {model.error ? <p className="mt-5 rounded-2xl border border-rose-300/15 bg-rose-300/[0.04] p-4 text-sm text-rose-100">ขณะนี้ยังเชื่อมต่อระบบ AI ภายในไม่ได้ กรุณาลองใหม่อีกครั้งหรือตรวจหน้าภาพรวมระบบ</p> : null}
 
     {incidents.length ? <section role="alert" className="mt-5 border-l-4 border-rose-400 bg-rose-950/45 px-5 py-4 text-rose-50">
-      <h2 className="font-semibold">Local AI ต้องตรวจสอบ</h2>
+      <h2 className="font-semibold">ระบบ AI ภายในต้องตรวจสอบ</h2>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">{incidents.map((incident) => <li key={incident}>{incident}</li>)}</ul>
-      <p className="mt-3 text-xs text-rose-100/70">พัก workflow ที่เกี่ยวข้องและตรวจ health/incident metadata ก่อนส่งงานใหม่ ห้ามคัดลอก prompt หรือข้อมูลลูกค้าไปในรายงานเหตุขัดข้อง</p>
+      <p className="mt-3 text-xs text-rose-100/70">หยุดส่งงานใหม่ผ่านขั้นตอนที่มีปัญหาและให้ทีมดูแลตรวจรายละเอียดเหตุขัดข้อง ห้ามคัดลอกคำสั่ง AI หรือข้อมูลลูกค้าไปในรายงานเหตุขัดข้อง</p>
     </section> : null}
 
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
@@ -82,14 +82,14 @@ export default async function LocalAiPage() {
     </section>
 
     <section className="mt-6 space-y-4">
-      <div><h2 className="text-xl font-semibold">ผลลัพธ์ที่รอคุณตรวจ</h2><p className="mt-1 text-sm text-white/55">งานทั่วไปจะเปิดให้ workflow อ่านผล ส่วนหัวข้อและคำโปรยการ์ด LINE จะบันทึกในบทความหลังคุณอนุมัติ โดยไม่แก้คำอธิบายของ Google</p></div>
+      <div><h2 className="text-xl font-semibold">ผลลัพธ์ที่รอคุณตรวจ</h2><p className="mt-1 text-sm text-white/55">งานทั่วไปจะส่งผลให้ขั้นตอนถัดไปใช้ ส่วนหัวข้อและคำโปรยการ์ด LINE จะบันทึกในบทความหลังคุณอนุมัติ โดยไม่แก้คำอธิบายของ Google</p></div>
       {reviews.map((review) => {
         const isLineDescription = "mode" in review.output && review.output.mode === "line-card-description";
         return <article key={`review-${review.jobId}`} className="rounded-3xl border border-[#e0c985]/20 bg-[#e0c985]/[0.05] p-5 md:p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"><div><p className="text-xs text-[#e0c985]">{taskLabels[review.taskType]}</p><h3 className="mt-1 font-semibold">งาน {review.jobId.slice(0, 8).toUpperCase()}</h3></div><p className="text-xs text-white/45">ผลจากโมเดลต้องผ่านการตัดสินใจของคุณ</p></div>
         <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-2xl bg-black/25 p-4 text-xs leading-6 text-white/75">{JSON.stringify(review.output, null, 2)}</pre>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <form action="/api/admin/local-ai/review/" method="post"><input type="hidden" name="jobId" value={review.jobId} /><input type="hidden" name="decision" value="approve" /><button className="min-h-11 w-full rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100" type="submit">{isLineDescription ? "อนุมัติและบันทึกข้อความ LINE" : "อนุมัติให้ workflow อ่านผล"}</button></form>
+          <form action="/api/admin/local-ai/review/" method="post"><input type="hidden" name="jobId" value={review.jobId} /><input type="hidden" name="decision" value="approve" /><button className="min-h-11 w-full rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100" type="submit">{isLineDescription ? "อนุมัติและบันทึกข้อความ LINE" : "อนุมัติให้ขั้นตอนถัดไปใช้ผล"}</button></form>
           <form action="/api/admin/local-ai/review/" method="post" className="flex flex-col gap-2"><input type="hidden" name="jobId" value={review.jobId} /><input type="hidden" name="decision" value="reject" /><label className="text-xs text-white/55" htmlFor={`reason-${review.jobId}`}>เหตุผลที่ไม่ใช้ผลลัพธ์</label><textarea id={`reason-${review.jobId}`} name="reason" required maxLength={1000} className="min-h-20 rounded-xl border border-white/10 bg-black/20 p-3 text-sm" /><button className="min-h-11 rounded-xl border border-rose-300/25 bg-rose-300/10 px-4 py-2 text-sm font-semibold text-rose-100" type="submit">ปฏิเสธผลลัพธ์</button></form>
         </div>
       </article>;

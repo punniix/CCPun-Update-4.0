@@ -45,22 +45,22 @@ async function IntegrationsPage() {
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">n8n Integration Registry</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">ดูว่า workflow ไหนมี owner-facing entry point ใน Admin แล้ว และ workflow ไหนควรเป็น background หรือยังต้องเชื่อมต่อ หน้านี้อ้างอิง code contract ไม่ใช่สถานะ Active/Inactive สดจาก n8n</p>
+          <h2 className="text-lg font-semibold">งานอัตโนมัติที่เชื่อมกับศูนย์จัดการ</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">ดูว่างานอัตโนมัติใดมีปุ่มให้กดในศูนย์จัดการ งานใดทำงานเบื้องหลัง และงานใดยังไม่มีทางเข้า รายการนี้บอกการเชื่อมต่อที่ออกแบบไว้ ยังไม่ใช่สถานะการทำงานล่าสุดจาก n8n</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-white/55">
           <span className="rounded-full border border-white/10 px-2.5 py-1">มีปุ่ม {n8nSummary["admin-trigger"]}</span>
           <span className="rounded-full border border-amber-200/20 bg-amber-200/5 px-2.5 py-1 text-amber-50">ยังไม่มีปุ่ม {n8nSummary.unconnected}</span>
-          <span className="rounded-full border border-white/10 px-2.5 py-1">Background {n8nSummary.background}</span>
-          <span className="rounded-full border border-white/10 px-2.5 py-1">Test {n8nSummary["test-only"]}</span>
-          <span className="rounded-full border border-white/10 px-2.5 py-1">Legacy {n8nSummary.legacy}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">ทำงานเบื้องหลัง {n8nSummary.background}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">ใช้ทดสอบ {n8nSummary["test-only"]}</span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1">ระบบเดิม {n8nSummary.legacy}</span>
         </div>
       </div>
       <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
         <table className="min-w-[1050px] w-full text-left">
-          <thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">Workflow</th><th className="px-4 py-3">สถานะใน Admin</th><th className="px-4 py-3">ทางเข้า</th><th className="px-4 py-3">หน้าที่</th><th className="px-4 py-3">ควรทำต่อ</th></tr></thead>
+          <thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">งานอัตโนมัติ</th><th className="px-4 py-3">สถานะการเชื่อมต่อ</th><th className="px-4 py-3">ทางเข้า</th><th className="px-4 py-3">หน้าที่</th><th className="px-4 py-3">ควรทำต่อ</th></tr></thead>
           <tbody>{N8N_ADMIN_INTEGRATIONS.map((item) => <tr key={item.workflowId} className="border-t border-white/10 align-top">
-            <td className="px-4 py-4"><div className="text-sm font-medium text-white/85">{item.workflowName}</div><div className="mt-1 font-mono text-[11px] text-white/35">{item.workflowId}</div>{item.sourceControlled ? <div className="mt-1 text-[11px] text-emerald-200/70">มี source artifact ใน repo</div> : null}</td>
+            <td className="px-4 py-4"><div className="text-sm font-medium text-white/85">{item.workflowName}</div><details className="mt-1 text-xs text-white/45"><summary className="cursor-pointer">รหัสสำหรับตรวจสอบ</summary><code>{item.workflowId}</code></details>{item.sourceControlled ? <div className="mt-1 text-[11px] text-emerald-200/70">มีไฟล์ต้นฉบับให้ตรวจสอบ</div> : null}</td>
             <td className="px-4 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${item.status === "admin-trigger" ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : item.status === "unconnected" ? "border-amber-200/20 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/[0.04] text-white/60"}`}>{N8N_ADMIN_STATUS_LABEL[item.status]}</span></td>
             <td className="px-4 py-4 text-sm text-white/60">{item.adminPath ? <Link href={item.adminPath} className="text-[#e0c985] hover:underline">{item.adminEntry ?? "ดูใน Admin"}</Link> : item.adminEntry ?? "—"}</td>
             <td className="px-4 py-4 text-sm leading-6 text-white/60">{item.purpose}</td>
@@ -68,7 +68,7 @@ async function IntegrationsPage() {
           </tr>)}</tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs leading-5 text-white/40">“ยังไม่มีปุ่มใน Admin” หมายถึงยังไม่มี owner-facing entry point ที่ชัดเจน ไม่ได้หมายความว่า workflow เสีย</p>
+      <p className="mt-3 text-xs leading-5 text-white/40">“ยังไม่มีปุ่ม” หมายถึงยังไม่มีทางเข้าให้กดจากหน้านี้ ไม่ได้แปลว่างานอัตโนมัติเสีย</p>
     </section>
     <LineDiscoveryManager initialModel={lineDiscovery} />
   </div>;

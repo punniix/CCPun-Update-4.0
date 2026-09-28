@@ -99,21 +99,21 @@ export function connectionLabel(
   kind: "read" | "write" | "studio",
   environment = process.env.NEXT_PUBLIC_CCPUN_APP_ENV,
 ): string {
-  const lane = environment === "local-production" || environment === "production-admin" ? "Production" : "UAT";
-  if (kind === "studio") return ready ? `แก้ฉบับร่าง ${lane} ใน Studio ได้` : "ปิดการแก้ฉบับร่างไว้เพื่อความปลอดภัย";
-  if (ready) return kind === "read" ? `อ่านข้อมูล ${lane} ได้` : `บันทึกฉบับร่าง ${lane} ได้`;
+  const lane = environment === "local-production" || environment === "production-admin" ? "จริง" : "ทดสอบ";
+  if (kind === "studio") return ready ? `แก้ฉบับร่างในข้อมูล${lane}ได้` : "ปิดการแก้ฉบับร่างไว้เพื่อความปลอดภัย";
+  if (ready) return kind === "read" ? `อ่านข้อมูล${lane}ได้` : `บันทึกฉบับร่างในข้อมูล${lane}ได้`;
   return kind === "read" ? "ยังอ่านข้อมูลไม่ได้" : "ปิดการบันทึกไว้เพื่อความปลอดภัย";
 }
 
 export function environmentLabel(environment: string): string {
   if (environment === "development") return "เครื่องทดสอบภายใน";
-  if (environment === "local-uat") return "Local UAT บน Mac";
-  if (environment === "local-production") return "Local Production บน Mac (ข้อมูลจริง)";
+  if (environment === "local-uat") return "เครื่องทดสอบบน Mac";
+  if (environment === "local-production") return "เครื่อง Mac ที่ใช้ข้อมูลจริง";
   if (environment === "lab") return "ห้องทดลองหลัก";
-  if (environment === "uat") return "ระบบทดสอบ UAT";
-  if (environment === "admin-uat") return "ระบบหลังบ้าน UAT";
-  if (environment === "production-admin") return "ระบบหลังบ้าน Production (ข้อมูลจริง)";
-  if (environment === "production") return "ระบบจริง Production";
+  if (environment === "uat") return "ระบบทดสอบ";
+  if (environment === "admin-uat") return "ศูนย์จัดการสำหรับทดสอบ";
+  if (environment === "production-admin") return "ศูนย์จัดการที่ใช้ข้อมูลจริง";
+  if (environment === "production") return "ระบบจริง";
   return "ยังยืนยันสภาพแวดล้อมไม่ได้";
 }
 
@@ -121,8 +121,12 @@ export function adminDataLaneLabel(
   environment = process.env.NEXT_PUBLIC_CCPUN_APP_ENV,
 ): string {
   return environment === "production-admin" || environment === "local-production"
-    ? "Production Draft (ข้อมูลจริง)"
-    : "UAT";
+    ? "ฉบับร่างในข้อมูลจริง"
+    : "ข้อมูลทดสอบ";
+}
+
+export function datasetLabel(dataset: string | null | undefined): string {
+  return dataset === "production" ? "ข้อมูลจริง" : dataset === "uat" ? "ข้อมูลทดสอบ" : dataset ? "ชุดข้อมูลที่ยังไม่รู้จัก" : "ยังไม่ได้ตั้งค่า";
 }
 
 export function friendlyApiError(code: unknown): string {

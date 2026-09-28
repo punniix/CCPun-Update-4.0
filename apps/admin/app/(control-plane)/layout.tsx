@@ -113,7 +113,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
             {environment === "production-admin" || environment === "local-production" ? (
               <><strong className="font-medium text-[#f4df9b]">ระบบจริง · ใช้ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น และใช้ข้อมูลจริงตามสิทธิ์ที่กำหนด" : "การแก้ฉบับร่างและการอนุมัติต้องให้ผู้มีสิทธิ์เป็นคนยืนยัน"} ระบบจะส่งโพสต์ได้เฉพาะรายการที่ตรวจและอนุมัติแล้วเท่านั้น</>
             ) : (
-              <><strong className="font-medium text-[#f4df9b]">พื้นที่ทดสอบ UAT:</strong> ใช้ตรวจขั้นตอนก่อนนำขึ้นระบบจริง การส่งข้อมูลไปบริการภายนอกยังปิดไว้จนกว่าผู้มีสิทธิ์จะยืนยัน</>
+              <><strong className="font-medium text-[#f4df9b]">พื้นที่ทดสอบ:</strong> ใช้ตรวจขั้นตอนก่อนนำขึ้นระบบจริง การส่งข้อมูลไปบริการภายนอกยังปิดไว้จนกว่าผู้มีสิทธิ์จะยืนยัน</>
             )}
           </div>
         </aside>

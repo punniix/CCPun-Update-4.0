@@ -44,7 +44,7 @@ export default function MediaLibraryUatSection() {
 
   return (
     <section aria-labelledby="media-library-title">
-      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดสอบ UAT · ใช้ข้อมูลตัวอย่าง</p>
+      <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">พื้นที่ทดลอง · ใช้ข้อมูลตัวอย่าง</p>
       <h1 id="media-library-title" className="mt-2 text-3xl font-semibold">คลังสื่อและการอัปโหลดไฟล์</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
         หน้านี้ใช้ตรวจรายละเอียดไฟล์และขั้นตอนเตรียมอัปโหลดเท่านั้น เมื่อเลือกบริการจัดเก็บและอนุมัติแล้ว เบราว์เซอร์จะส่งไฟล์ตรงไปยังบริการนั้น

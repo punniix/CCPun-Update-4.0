@@ -75,10 +75,10 @@ export function AnalyticsCharts({ dataset }: { dataset: AnalyticsDataset }) {
           <figure className="mt-6 border-t border-white/10 pt-4"><figcaption className="font-medium">ผู้ค้นหาต้องการอะไร</figcaption>
             <div className="mt-3 flex h-4 overflow-hidden rounded-sm bg-white/10" aria-hidden="true">{data.intents.map((item, index) => <span key={item.label} className="h-full border-r border-[#251818] bg-[#e0c985]" style={{ width: `${item.value / dataset.rows.length * 100}%`, opacity: 1 - index * .11 }} />)}</div>
             <ul className="mt-3 space-y-2 text-sm">{data.intents.map((item) => <li key={item.label} className="flex justify-between gap-3"><span className="min-w-0 break-words">{item.label}</span><span className="shrink-0 text-white/80">{format(item.value)} · {format(item.value / dataset.rows.length * 100)}%</span></li>)}</ul>
-            <p className="mt-3 text-xs leading-5 text-white/60">จัดกลุ่มตาม Intent ที่รายงานระบุ หนึ่งคำค้นนับครั้งเดียว; คำค้นที่มีหลาย Intent รวมในกลุ่มผสม ไม่มีข้อมูลแสดงเป็น “ไม่ระบุ”</p>
+            <p className="mt-3 text-xs leading-5 text-white/60">จัดกลุ่มตามเจตนาค้นหาที่รายงานระบุ หนึ่งคำค้นนับครั้งเดียว; คำค้นที่มีหลายเจตนาค้นหา รวมในกลุ่มผสม ไม่มีข้อมูลแสดงเป็น “ไม่ระบุ”</p>
           </figure>
         </div>
-        <div className="min-w-0"><Bars title="คำค้นที่มีปริมาณค้นหาที่รายงานสูงสุด" unit="Volume" items={data.top} note="10 คำค้นสูงสุดตาม Volume ที่ Ubersuggest รายงาน เป็นค่าประมาณ ไม่ใช่จำนวนคลิกหรือผู้เข้าชมที่เกิดขึ้นจริง" /><p className="mt-3 text-xs leading-5 text-white/60">Volume เท่ากับศูนย์ {format(data.zeroVolume)} คำค้น · ไม่ระบุ Volume {format(data.unknownVolume)} คำค้น · ไม่เติมศูนย์แทนข้อมูลที่ไม่ทราบ</p></div>
+        <div className="min-w-0"><Bars title="คำค้นที่มีปริมาณค้นหาที่รายงานสูงสุด" unit="Volume" items={data.top} note="10 คำค้นสูงสุดตาม Volume ที่ Ubersuggest รายงาน เป็นค่าประมาณ ไม่ใช่จำนวนคลิกหรือผู้เข้าชมที่เกิดขึ้นจริง" /><p className="mt-3 text-xs leading-5 text-white/60">ปริมาณค้นหาเท่ากับศูนย์ {format(data.zeroVolume)} คำค้น · ไม่ระบุปริมาณค้นหา {format(data.unknownVolume)} คำค้น · ไม่เติมศูนย์แทนข้อมูลที่ไม่ทราบ</p></div>
       </div>
     </div>;
   }

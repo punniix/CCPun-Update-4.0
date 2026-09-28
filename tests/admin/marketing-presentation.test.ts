@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { ContentLeaderboard, MarketingTrend, MarketingAiReview } from "../../features/admin/marketing/PerformanceMarketingDashboard";
 import { ExportCenter } from "../../features/admin/analytics/ExportCenter";
-import { changeText, metricText, safeContentHref, storedDateText } from "../../features/admin/marketing/presentation";
+import { changeText, metricText, ownerEvidenceLabel, ownerMarketingText, safeContentHref, storedDateText } from "../../features/admin/marketing/presentation";
 import * as presentation from "../../features/admin/marketing/presentation";
 import type { MarketingAction, MarketingActionInput, MarketingLeaderboard } from "../../lib/admin/marketing/model";
 
@@ -18,16 +18,18 @@ test("marketing presentation distinguishes missing from zero and protects conten
   assert.equal(safeContentHref("javascript:alert(1)"), null); assert.equal(safeContentHref("https://user:secret@ccpun.com/"), null);
   assert.equal(safeContentHref("/ci-planning/"), "https://ccpun.com/ci-planning/");
   assert.equal(storedDateText("invalid"), "ยังไม่ระบุ");
+  assert.equal(ownerEvidenceLabel("content:search_clicks:sanity:ccpun-article-aia-senior-happy", "AIA Senior Happy"), "ข้อมูลคลิกจาก Google Search ของ “AIA Senior Happy”");
+  assert.match(ownerMarketingText("Check source freshness: gsc-daily-page"), /ตรวจข้อมูลล่าสุด/);
 });
 
 test("leaderboards preserve SQL ranks, missing baselines and low sample instead of inventing winners", () => {
-  const base = { metric: "search_clicks", previous: null, absoluteChange: null, percentageChange: null, sampleStatus: "low" as const, coverageStatus: "insufficient_history" as const, freshnessStatus: "stale", threshold: 20, unit: "คลิก", evidenceRef: "source-1", url: null, category: null, lifecycle: "unknown", mappingStatus: "unmapped" as const, publishedAt: null };
+  const base = { metric: "search_clicks", previous: null, absoluteChange: null, percentageChange: null, sampleStatus: "low" as const, coverageStatus: "insufficient_history" as const, freshnessStatus: "see_source_health", threshold: 20, unit: "คลิก", evidenceRef: "content:search_clicks:sanity:ccpun-article-aia-senior-happy", url: null, category: null, lifecycle: "unknown", mappingStatus: "unmapped" as const, publishedAt: null };
   const board: MarketingLeaderboard = { id: "search", title: "Top Search", metric: "search_clicks", basis: "GSC clicks ตาม SQL", platform: null, rows: [{ ...base, rank: 1, assetId: "one", title: "SQL first <unsafe>", current: 1 }, { ...base, rank: 2, assetId: "two", title: "SQL second", current: 100 }] };
   const html = renderToStaticMarkup(createElement(ContentLeaderboard, { board }));
   assert.ok(html.indexOf("SQL first") < html.indexOf("SQL second")); assert.match(html, /SQL first &lt;unsafe&gt;/);
-  assert.match(html, /ประวัติยังไม่พอ/); assert.match(html, /ยังเทียบไม่ได้/); assert.match(html, /ข้อมูลเก่า/);
+  assert.match(html, /ประวัติยังไม่พอ/); assert.match(html, /ยังเทียบไม่ได้/); assert.match(html, /ดูสถานะข้อมูลต้นทางด้านล่าง/);
   assert.match(html, /จัดอันดับตาม GSC clicks ตาม SQL/); assert.match(html, /scope="row"/);
-  assert.doesNotMatch(html, /200%|\blead\b|ROAS/);
+  assert.doesNotMatch(html, /see_source_health|content:search_clicks|200%|\blead\b|ROAS/);
   assert.match(renderToStaticMarkup(createElement(ContentLeaderboard, { board: { ...board, rows: [] } })), /ยังไม่มีเนื้อหาที่เข้าเกณฑ์/);
 });
 
@@ -40,7 +42,7 @@ test("daily trend breaks missing dates, retains zero and provides accessible obs
 
 test("performance export controls target stored workspace and persistent existing job endpoint", () => {
   const html = renderToStaticMarkup(createElement<NonNullable<Parameters<typeof ExportCenter>[0]>>(ExportCenter, { initialDataset: "performance-marketing", compact: true }));
-  assert.match(html, /อัปเดต Google Workspace เดิม/); assert.match(html, /\/api\/admin\/marketing\/export\/\?format=csv/);
+  assert.match(html, /อัปเดต Google Sheet เดิม/); assert.match(html, /\/api\/admin\/marketing\/export\/\?format=csv/);
   assert.match(html, /\/api\/admin\/marketing\/export\/\?format=xlsx/); assert.match(html, /download=""/);
   assert.match(html, /Top Content/); assert.match(html, /Action Plan/); assert.doesNotMatch(html, /นำเข้าไฟล์รายงานจากเว็บ Ubersuggest/);
 });
@@ -58,7 +60,7 @@ test("uncertain Google trigger retains the server job and resumes status checks 
   try {
     await act(async () => root.render(createElement<NonNullable<Parameters<typeof ExportCenter>[0]>>(ExportCenter, { initialDataset: "performance-marketing", compact: true })));
     await act(async () => { await new Promise(resolve => dom.window.setTimeout(resolve, 10)); });
-    const button = [...document.querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent === "อัปเดต Google Workspace เดิม")!;
+    const button = [...document.querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent === "อัปเดต Google Sheet เดิม")!;
     await act(async () => button.click());
     assert.equal(calls.filter(call => call.method === "POST").length, 1);
     assert.deepEqual(JSON.parse(calls.find(call => call.method === "POST")!.body!), { dataset: "performance-marketing" });
@@ -93,9 +95,9 @@ test("AI panel retains validated old result during a pending run and states actu
   const window = { key: "this_week" as const, currentStart: "2026-09-21", currentEnd: "2026-09-24", previousStart: "2026-09-14", previousEnd: "2026-09-17", calendarPolicy: "Native calendar" };
   const record: import("../../lib/admin/marketing/analysis").MarketingAnalysisRecord = { analysisId: "00000000-0000-4000-8000-000000000003", jobId: null, status: "stale", promptVersion: "marketing-performance-v1", analysisType: "weekly_performance", period: { ...window, currentStart: "2026-09-14", currentEnd: "2026-09-17" }, sourceManifest: [], createdAt: "2026-09-18T00:00:00Z", completedAt: "2026-09-18T00:01:00Z", modelName: "VPS test model", inputHash: "a".repeat(64), output: { promptVersion: "marketing-performance-v1", analysisType: "weekly_performance", definitionVersions: { analytics: "marketing-v2", rules: "marketing-rules-v1", identity: "marketing-identity-v1", freshness: "marketing-calendar-v2" }, period: { ...window, currentStart: "2026-09-14", currentEnd: "2026-09-17" }, sourceManifest: [], sourceManifestHash: "b".repeat(64), snapshotHash: "c".repeat(64), coverage: { prepared: 1, sent: 1, dropped: 0 }, summary: "สมมติฐานจากข้อมูลเก่า ควรตรวจเพิ่มเติมก่อนลงมือ", wins: [], risks: [], opportunities: [], recommendedActions: [], watchItems: [], dataQualityNotes: ["ข้อมูลเก่าและปริมาณน้อย"], reviewRequired: true } };
   const html = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "ready", latest: { ...record, analysisId: "00000000-0000-4000-8000-000000000004", status: "queued", output: null }, lastGood: record } }));
-  assert.match(html, /queued/); assert.match(html, /stale · ผลครั้งก่อน/); assert.match(html, /2026-09-14.*2026-09-17/); assert.match(html, /VPS test model/); assert.match(html, /สมมติฐานจากข้อมูลเก่า/); assert.match(html, /a{64}/); assert.doesNotMatch(html, /ผลนี้ใช้ข้อมูล 2026-09-21/);
+  assert.match(html, /รอคิววิเคราะห์/); assert.match(html, /ผลครั้งก่อน · โปรดดูวันที่/); assert.match(html, /2026-09-14.*2026-09-17/); assert.match(html, /สมมติฐานจากข้อมูลเก่า/); assert.match(html, /a{64}/); assert.doesNotMatch(html, /ผลนี้ใช้ข้อมูล 2026-09-21/);
   const cloud = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "ready", latest: { ...record, inferenceProvider: "openai", modelName: "gpt-6-luna" }, lastGood: null } }));
-  assert.match(cloud, /OpenAI API.*gpt-6-luna/); assert.doesNotMatch(cloud, /สมมติฐานจากโมเดล VPS/);
+  assert.match(cloud, /ระบบ AI สำรอง/); assert.doesNotMatch(cloud, /gpt-6-luna|สมมติฐานจากโมเดล VPS/);
   const unavailable = renderToStaticMarkup(createElement(MarketingAiReview, { model: { window, manifest: [] }, analysis: { state: "unavailable", latest: null, lastGood: null } }));
-  assert.match(unavailable, /ตัวเลข อันดับ และ Action Plan ยังใช้งานได้/); assert.doesNotMatch(unavailable, /สมมติฐานจากข้อมูลเก่า/);
+  assert.match(unavailable, /ตัวเลข อันดับ และแผนงานยังใช้งานได้/); assert.doesNotMatch(unavailable, /สมมติฐานจากข้อมูลเก่า/);
 });

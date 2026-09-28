@@ -3,7 +3,7 @@ import Link from "next/link";
 import ApproveSuggestionButton from "@/features/admin/components/ApproveSuggestionButton";
 import ApplySuggestionButton from "@/features/admin/components/ApplySuggestionButton";
 import ReviewDecisionControls from "@/features/admin/components/ReviewDecisionControls";
-import { connectionLabel, proposalStatusLabel, proposalTypeLabel, riskLabel } from "@/lib/admin/presentation";
+import { connectionLabel, datasetLabel, proposalStatusLabel, proposalTypeLabel, riskLabel } from "@/lib/admin/presentation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { listSeoSuggestions } from "@/lib/admin/sanity-control";
@@ -39,7 +39,7 @@ export default async function AdminReviewsPage() {
       <section className="mt-7 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">ชุดข้อมูล</div>
-          <div className="mt-2 text-lg font-semibold">{result.status.dataset ?? "—"}</div>
+          <div className="mt-2 text-lg font-semibold">{datasetLabel(result.status.dataset)}</div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <div className="text-sm text-white/60">ข้อเสนอที่รอตรวจ</div>

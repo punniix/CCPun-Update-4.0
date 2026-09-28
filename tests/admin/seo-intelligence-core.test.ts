@@ -407,7 +407,7 @@ test("Organic Search page removes synthetic and operational telemetry", () => {
   const gscControl = read("features/admin/seo/opportunities/GscManualSync.tsx");
   const ga4Control = read("features/admin/seo/opportunities/Ga4ManualSync.tsx");
   assert.match(page, /ผลลัพธ์จากการค้นหาธรรมชาติ/);
-  assert.match(page, /runtime\.environment === "production-admin" \? "ระบบจริง" : "UAT"/);
+  assert.match(page, /runtime\.environment === "production-admin" \? "ระบบจริง" : "พื้นที่ทดสอบ"/);
   assert.match(page, /laneLabel=\{laneLabel\}/);
   assert.doesNotMatch(page, /Performance UAT|READ-ONLY UAT/);
   assert.match(gscControl, /ยังไม่ได้เชื่อม Search Console สำหรับ \$\{laneLabel\}/);
