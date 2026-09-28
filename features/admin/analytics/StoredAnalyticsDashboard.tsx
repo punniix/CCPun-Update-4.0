@@ -11,7 +11,9 @@ import { requireAdminPermission } from "@/lib/admin/require-permission";
 const SOURCES: Record<string, string> = { gsc: "Google Search Console", ga4: "Google Analytics 4", meta: "Facebook / Instagram", ubersuggest: "Ubersuggest" };
 const REPORTS: Record<string, string> = {
   "gsc-summary": "ภาพรวมการค้นหา Google", "gsc-query-page": "คำค้นและหน้าที่ปรากฏบน Google",
+  "gsc-daily-page": "จำนวนคลิกตามหน้าเว็บในแต่ละวัน", "gsc-daily-query-page": "คำค้นและหน้าเว็บในแต่ละวัน",
   "ga4-summary": "ภาพรวมผู้เข้าชมเว็บ", "ga4-organic-landing": "หน้าที่เข้าจากการค้นหา",
+  "ga4-daily-organic": "ผู้เข้าชมจากการค้นหาในแต่ละวัน", "ga4-content-events": "กิจกรรมบนหน้าเว็บในแต่ละวัน",
   "ga4-session-performance": "ผู้เข้าชมตามวัน ช่องทาง และแคมเปญ", "ga4-marketing-events": "การใช้เครื่องมือและคลิก LINE",
   "social-performance": "ผลลัพธ์โพสต์โซเชียล", "seo-intelligence": "คำค้นและการปรากฏในคำตอบ AI",
   "ubersuggest-web-keywords": "รายงานคำค้นจากเว็บ Ubersuggest",
@@ -87,7 +89,8 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
         {item.rows.length ? <div className="mt-3 max-w-full overflow-x-auto rounded-xl border border-white/10" tabIndex={0} role="region" aria-label={`ตาราง ${REPORTS[item.report] ?? item.report}`}><table className="w-full text-left text-sm"><caption className="sr-only">ตัวอย่างข้อมูลที่บันทึกไว้ของรายงาน {REPORTS[item.report] ?? item.report}</caption><thead className="bg-black/20"><tr>{item.columns.map((column) => <th scope="col" key={column} className="whitespace-nowrap px-4 py-3 font-medium">{column}</th>)}</tr></thead><tbody>{item.rows.slice(0, 25).map((row, index) => <tr key={index} className="border-t border-white/10">{item.columns.map((column) => <td key={column} className="max-w-sm px-4 py-3 align-top break-words">{row[column] == null ? "—" : typeof row[column] === "boolean" ? row[column] ? "ใช่" : "ไม่" : String(row[column])}</td>)}</tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-white/65">ต้นทางส่งกลับมาโดยไม่มีแถวข้อมูล รายงานนี้ยังส่งออกคำอธิบายและสถานะได้</p>}
       </details>
       {item.truncated ? <p className="mt-3 text-sm text-amber-100">ข้อมูลบางส่วนถูกจำกัดจำนวนจากการเก็บข้อมูล ไม่ใช่ข้อมูลทั้งหมดของต้นทาง</p> : null}
-      {item.limitations.length ? <><ul className="mt-3 space-y-1 text-xs leading-5 text-white/65">{item.limitations.map((note, index) => <li key={index}>{ownerAnalyticsLimitation(item.report, note)}</li>)}</ul>{item.report === "seo-intelligence" ? <details className="mt-3 text-xs text-white/50"><summary className="min-h-11 cursor-pointer py-2">ข้อความต้นฉบับสำหรับทีมดูแล</summary><ul className="mt-1 list-disc space-y-1 pl-4">{item.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul></details> : null}</> : null}
+      {item.limitations.length ? <ul className="mt-3 space-y-1 text-xs leading-5 text-white/65">{item.limitations.map((note, index) => <li key={index}>{ownerAnalyticsLimitation(item.report, note)}</li>)}</ul> : null}
+      <details className="mt-3 text-xs text-white/50"><summary className="min-h-11 cursor-pointer py-2">ข้อความต้นฉบับสำหรับทีมดูแล</summary><p className="mt-1">รหัสรายงาน: {item.report}</p>{item.limitations.length ? <ul className="mt-1 list-disc space-y-1 pl-4">{item.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul> : null}</details>
     </section>;
     })}
   </div>;

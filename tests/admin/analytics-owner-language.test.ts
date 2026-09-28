@@ -18,10 +18,30 @@ test("Analytics explains the Production AISV summary while retaining exact store
   assert.match(ownerAnalyticsLimitation("seo-intelligence", limitation), /ไม่ดึง Ubersuggest ใหม่.*ข้อมูลสองชนิดนับคนละแบบ.*เครื่องภายใน CCPun/);
   assert.doesNotMatch(ownerAnalyticsLimitation("seo-intelligence", limitation), /stored|keyword|prompt|grain|runtime|Local Mac/);
   assert.equal(ownerAnalyticsOverviewLabel("gsc-summary", "AISV Runtime"), "AISV Runtime");
-  assert.equal(ownerAnalyticsLimitation("gsc-summary", limitation), limitation);
+  assert.match(ownerAnalyticsLimitation("gsc-summary", limitation), /เปิดข้อความต้นฉบับ/);
   const page = readFileSync(new URL("../../features/admin/analytics/StoredAnalyticsDashboard.tsx", import.meta.url), "utf8");
   assert.match(page, /ownerAnalyticsOverviewLabel\(item\.report, metric\.label\)/);
   assert.match(page, /ownerAnalyticsOverviewValue\(item\.report, metric\.label, metric\.value\)/);
   assert.match(page, /ownerAnalyticsLimitation\(item\.report, note\)/);
   assert.match(page, /ข้อความต้นฉบับสำหรับทีมดูแล/);
+});
+
+test("Analytics gives source report codes and stored limitations an owner-readable display", () => {
+  const page = readFileSync(new URL("../../features/admin/analytics/StoredAnalyticsDashboard.tsx", import.meta.url), "utf8");
+  for (const report of ["ga4-content-events", "ga4-daily-organic", "gsc-daily-page", "gsc-daily-query-page"]) {
+    assert.match(page, new RegExp(`"${report}": "[ก-๙]`));
+  }
+  assert.match(page, /รหัสรายงาน: \{item\.report\}/);
+  assert.equal(ownerAnalyticsOverviewLabel("ga4-session-performance", "Grain"), "ข้อมูลหนึ่งแถวแยกตาม");
+  assert.equal(ownerAnalyticsOverviewValue("ga4-content-events", "Grain", "วัน × event name"), "วัน × ชื่อกิจกรรม");
+  assert.equal(ownerAnalyticsOverviewValue("ubersuggest-web-keywords", "ประเภทไฟล์", "keyword-coverage"), "รายงานคำค้น");
+  assert.match(ownerAnalyticsLimitation("ga4-summary", "Unexpected provider limitation"), /ยังไม่ได้แปล.*ก่อนใช้ตัวเลขนี้ตัดสินใจ/);
+  for (const [report, note] of [
+    ["ga4-content-events", "Scope: hostName ccpun.com/www.ccpun.com only; blog.ccpun.com excluded explicitly"],
+    ["gsc-daily-page", "Final web data; page-only totals and query diagnostics are separate grains; no summation of overlapping report windows"],
+    ["social-performance", "Provider response pages และ insight period/end_time เก็บใน raw ก่อน normalize"],
+  ]) {
+    assert.match(ownerAnalyticsLimitation(report, note), /[ก-๙]/);
+    assert.doesNotMatch(ownerAnalyticsLimitation(report, note), /Scope:|Final web data|Provider response/);
+  }
 });
