@@ -284,11 +284,21 @@ test("Cloud failures log bounded diagnostics without model input or provider err
     const failed = run({ first: () => ({ json: providerError }) }, lookup, logger)[0].json;
     assert.equal(failed.operation, "failReview");
     assert.equal(failed.reason, "api-error");
-    assert.deepEqual(JSON.parse(logs[0]!), { event: `marketing-cloud-${period.toLowerCase()}-http`, httpStatus: 429, errorCode: "rate_limit_exceeded", incompleteReason: null });
+    assert.deepEqual(JSON.parse(logs[0]!), { event: `marketing-cloud-${period.toLowerCase()}-native`, httpStatus: 429, errorCode: "rate_limit_exceeded", shape: "error" });
     assert.doesNotMatch(logs[0]!, /secret-payload-marker|analysis-private|hash-private|reservation-private|digest-private/);
     logs.length = 0;
-    const incomplete = run({ first: () => ({ json: { status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, error: null } }) }, lookup, logger)[0].json;
-    assert.equal(incomplete.operation, "failReview");
-    assert.deepEqual(JSON.parse(logs[0]!), { event: `marketing-cloud-${period.toLowerCase()}-http`, httpStatus: null, errorCode: null, incompleteReason: "max_output_tokens" });
+    const nativeSuccess = run({ first: () => ({ json: { output: { approved: true, reasonCode: "supported" }, usage: { input_tokens: 12, output_tokens: 5 } } }) }, lookup, logger)[0].json;
+    assert.equal(nativeSuccess.operation, "submitReview");
+    assert.deepEqual(nativeSuccess.verdict, { approved: true, reasonCode: "supported" });
+    assert.deepEqual(nativeSuccess.usage, { inputTokens: 12, outputTokens: 5 });
+    const simplifiedText = run({ first: () => ({ json: { text: JSON.stringify({ approved: false, reasonCode: "overclaim" }) } }) }, lookup, logger)[0].json;
+    assert.equal(simplifiedText.operation, "submitReview");
+    assert.deepEqual(simplifiedText.verdict, { approved: false, reasonCode: "overclaim" });
+    assert.deepEqual(simplifiedText.usage, { inputTokens: 0, outputTokens: 0 });
+    logs.length = 0;
+    const unknown = run({ first: () => ({ json: { status: "completed" } }) }, lookup, logger)[0].json;
+    assert.equal(unknown.operation, "failReview");
+    assert.equal(unknown.reason, "model-output-invalid");
+    assert.deepEqual(JSON.parse(logs[0]!), { event: `marketing-cloud-${period.toLowerCase()}-native`, httpStatus: null, errorCode: null, shape: "unrecognized" });
   }
 });
