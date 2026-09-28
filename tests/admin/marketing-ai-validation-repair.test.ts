@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { MARKETING_INFERENCE_PROFILE, marketingAnalysisInputSchema, marketingSnapshotSchema, type MarketingAnalysisInput } from "../../lib/local-ai/contracts";
 import { buildLocalAiWorkerHeartbeatDetails, inferAndValidate } from "../../workers/local-ai/src/index";
@@ -38,6 +39,19 @@ test("repair uses a distinct durable inference profile without changing model or
     numCtx: 4096, numPredict: 768, temperature: 0, think: false,
   });
   assert.deepEqual(buildLocalAiWorkerHeartbeatDetails("qwen3:1.7b").marketingInferenceProfile, MARKETING_INFERENCE_PROFILE);
+});
+
+test("repair migration gate blocks new jobs and status while keeping last-good reads available", () => {
+  const source = readFileSync(new URL("../../lib/admin/marketing/analysis.ts", import.meta.url), "utf8");
+  assert.match(source, /20260928_marketing_ai_repair_retry_v4/);
+  assert.match(source, /sha256:14f977f29d840e51d6805e6f3f73964f7e3db7550c5f57ff7779fd6561229521/);
+  assert.match(source, /AND \(NOT \$11::boolean OR EXISTS\(SELECT 1 FROM ccpun_admin\.schema_migration WHERE version=\$12 AND checksum=\$13\)\)/);
+  for (const method of ["enqueueMarketingAnalysis", "marketingAnalysisStatus"]) {
+    assert.match(source.match(new RegExp(`export async function ${method}[^\\n]+`))?.[0] ?? "", /client\(true\)/);
+  }
+  for (const method of ["prepareMarketingAnalysis", "readMarketingAnalysis", "validateMarketingAnalysis"]) {
+    assert.doesNotMatch(source.match(new RegExp(`export async function ${method}[^\\n]+`))?.[0] ?? "", /client\(true\)/);
+  }
 });
 
 test("monthly weak-sample response gets one bounded repair without weakening grounding", async () => {
