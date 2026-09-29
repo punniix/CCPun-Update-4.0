@@ -1,0 +1,49 @@
+name: CCPun Hostinger Migration Readiness
+
+on:
+  pull_request:
+    branches: [v4-production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccpun-hostinger-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-hostinger-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Hostinger migration regression
+        run: npm run test:hostinger
+      - name: Hostinger Web environment gate
+        run: npm run check:hostinger
+        env:
+          CCPUN_DEPLOYMENT_PROVIDER: hostinger
+          CCPUN_DEPLOYMENT_ROLE: web
+          CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          CCPUN_UAT_MODE: "1"
+      - name: Typecheck Web shadow
+        run: npm run typecheck:web:shadow
+      - name: Build Web shadow as Hostinger
+        run: npm run build:web:shadow
+        env:
+          CCPUN_DEPLOYMENT_PROVIDER: hostinger
+          CCPUN_DEPLOYMENT_ROLE: web
+          CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          CCPUN_UAT_MODE: "1"
