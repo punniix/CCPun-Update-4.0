@@ -515,6 +515,7 @@ assert(
 );
 assert(!llmsSource.includes('LINE OpenChat:'), 'llms.txt must not expose the stale LINE OpenChat CTA');
 assert(!llmsSource.includes('- โทรศัพท์:'), 'llms.txt must not expose a phone CTA');
+assert(!llmsSource.includes('](https://blog.ccpun.com/'), 'llms.txt must not advertise the legacy WordPress host as a crawl destination');
 assert(ciLlmsLine.includes('หนี้อื่นคงเหลือ'), 'CI llms entry must document other remaining debt');
 assert(!ciPageSource.includes('3 ล้านบาท'), 'CI page must not present a fixed 3M floor');
 assert(!ciPageSource.includes('bit.ly'), 'CI page must use direct LINE only');

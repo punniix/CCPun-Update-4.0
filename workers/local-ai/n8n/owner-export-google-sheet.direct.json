@@ -88,7 +88,7 @@
         "sendHeaders": false,
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  dataset:$('เตรียม Export').item.json.dataset,\n  generatedAt:$('เตรียม Export').item.json.generatedAt,\n  ...($('เตรียม Export').item.json.view ? {view:$('เตรียม Export').item.json.view} : {})\n}) }}",
+        "jsonBody": "={{ ({\n  dataset:$('เตรียม Export').item.json.dataset,\n  generatedAt:$('เตรียม Export').item.json.generatedAt,\n  ...($('เตรียม Export').item.json.correlationId ? {correlationId:$('เตรียม Export').item.json.correlationId} : {}),\n  ...($('เตรียม Export').item.json.view ? {view:$('เตรียม Export').item.json.view} : {})\n}) }}",
         "options": {
           "response": {
             "response": {
@@ -1503,7 +1503,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{}",
+        "jsonBody": "={{ ({generatedAt:$('เตรียม Export').first().json.generatedAt,...($('เตรียม Export').first().json.correlationId?{correlationId:$('เตรียม Export').first().json.correlationId}:{})}) }}",
         "options": {
           "timeout": 45000,
           "response": {
@@ -2022,6 +2022,7 @@
         "resource": "text",
         "operation": "response",
         "modelId": {
+          "__rl": true,
           "mode": "id",
           "value": "gpt-6-luna"
         },
@@ -2043,23 +2044,19 @@
         "options": {
           "maxTokens": "={{ $json.mode === 'review' ? 512 : 1600 }}",
           "reasoning": {
-            "reasoningOptions": [
-              {
-                "effort": "low",
-                "summary": "none"
-              }
-            ]
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
           },
           "store": false,
           "textFormat": {
-            "textOptions": [
-              {
-                "type": "json_schema",
-                "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
-                "schema": "={{ JSON.stringify($json.format) }}",
-                "strict": true
-              }
-            ]
+            "textOptions": {
+              "type": "json_schema",
+              "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
+              "schema": "={{ JSON.stringify($json.format) }}",
+              "strict": true
+            }
           }
         }
       },
@@ -2235,6 +2232,7 @@
         "resource": "text",
         "operation": "response",
         "modelId": {
+          "__rl": true,
           "mode": "id",
           "value": "gpt-6-luna"
         },
@@ -2256,23 +2254,19 @@
         "options": {
           "maxTokens": "={{ $json.mode === 'review' ? 512 : 1600 }}",
           "reasoning": {
-            "reasoningOptions": [
-              {
-                "effort": "low",
-                "summary": "none"
-              }
-            ]
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
           },
           "store": false,
           "textFormat": {
-            "textOptions": [
-              {
-                "type": "json_schema",
-                "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
-                "schema": "={{ JSON.stringify($json.format) }}",
-                "strict": true
-              }
-            ]
+            "textOptions": {
+              "type": "json_schema",
+              "name": "={{ $json.mode === 'review' ? 'marketing_review_verdict' : 'marketing_interpretation' }}",
+              "schema": "={{ JSON.stringify($json.format) }}",
+              "strict": true
+            }
           }
         }
       },
@@ -3378,29 +3372,52 @@
   "active": false,
   "nodeGroups": [
     {
-      "id": "marketing-legacy-daily",
-      "name": "เดิม · Daily Collectors",
-      "description": "Existing four-source Daily collector and legacy assessment",
+      "id": "marketing-ai-weekly",
+      "name": "Weekly AI",
       "nodeIds": [
-        "57477e77-37bd-4e06-92d5-c4662b12c2c3",
-        "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
-        "5b046c7e-c214-46b8-b5bd-027c512cd657",
-        "dc355d89-b630-477a-8c36-740df24668b5",
-        "7058dbdb-d225-49b9-a13d-1eb2a2cbffde",
-        "ee120096-a0bd-4e95-a6cd-72dd09f2c003"
-      ]
+        "6d266d1a-e513-45ef-9aec-da18cc434df5",
+        "63e115d0-5021-4546-98e3-be2105a7ec80",
+        "212b9882-7de1-4115-8849-6376ec55b260",
+        "158e7004-2ce0-43b5-b0b2-d6c2324bb63f",
+        "2f5abf69-bc56-4fe1-a094-f4ec91030c4b",
+        "c4c21ef1-689a-4f27-872e-c5a254ca9829",
+        "a40608dd-c193-4cff-9dc1-92c52eb2c6f3",
+        "b90f96f5-5be3-4a9e-b4e3-9e3f613cf410",
+        "8ac771cb-54f3-4e8c-857b-b851edb26ee7",
+        "0201133b-2dba-4b77-af7e-5f54f67b513e",
+        "6e8d9e9a-2f39-4e5e-b960-e5ef772fd49a",
+        "2fa0590a-94d1-4070-a581-737ba43c4486",
+        "733b1961-655e-422e-a4c0-dff058997380",
+        "4531ae96-69b9-4500-85a2-9a63134af048",
+        "7491cf3c-12bc-4c3c-828c-74b7f99d1d65",
+        "bff8ced1-6995-4246-9c7c-25a5f3ec9328",
+        "04cbac3b-fa3b-4df8-8595-5a80fd52f3c9"
+      ],
+      "description": "Weekly local inference, bounded polling, evidence validation and optional native OpenAI review"
     },
     {
-      "id": "marketing-daily-facts",
-      "name": "Marketing · Native Facts",
-      "description": "Canonical identity, native daily metrics and deterministic measurement",
+      "id": "marketing-ai-monthly",
+      "name": "Monthly AI",
       "nodeIds": [
-        "5b34b383-ece8-47ae-b253-d47833cc6ccc",
-        "32da7db3-52e6-4530-8d32-2f118809d336",
-        "8c9f4853-efd8-411d-9ad0-c099f739ec2d",
-        "6c6262fd-a622-41cc-b6cf-d293e985f7a3",
-        "27f836ad-3d0a-44e3-9d5b-42ac928bdf64"
-      ]
+        "d94d0383-7657-4665-a4ee-d2b40a0b2890",
+        "576bcfaf-b312-4a37-9c73-12c8bd604fba",
+        "03b95383-e616-4171-b5b3-e5b5fbcf935b",
+        "4ae66b30-3857-43fc-ac70-da0443e02b90",
+        "1ad84d53-a7d6-44c6-9867-c7956199498f",
+        "4ac8380c-7361-463c-b533-a1e2f1962df3",
+        "264c0093-f1ed-4fb8-81cc-61dce1561cf6",
+        "cdcbc625-b77e-4b39-9ee5-35741a1b7db7",
+        "b06b8af7-11b4-44ab-9b44-8f7c793a2345",
+        "e81dce22-d49a-4a73-a9e3-3c2dfe879e00",
+        "54a5ae89-6d36-4466-8469-b07055d68cc6",
+        "dd5ad2f3-6977-4b20-9e2c-00e3713877b1",
+        "98882e07-68af-433d-9f61-33e791be12b5",
+        "a80a4371-ce05-4990-b195-d2cdf2b95f76",
+        "d3c0fab6-ae6b-4291-84fe-ce847b155f8a",
+        "1b88ed7e-0f05-4310-98b5-cb704ca4117f",
+        "2fc3a9fd-77c3-4bb1-90b2-18b0e9678c73"
+      ],
+      "description": "Monthly local inference, bounded polling, evidence validation and optional native OpenAI review"
     }
   ]
 }

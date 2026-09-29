@@ -265,17 +265,23 @@ test("package dry-run is explicit and never loads an env file", async () => {
   assert.doesNotMatch(command, /env-file|kyfxgjnq|production/);
 });
 
-test("WordPress preparation and Draft import use the shared taxonomy API and preserve source provenance", async () => {
+test("WordPress published preparation pins frozen redirect ownership while Draft import keeps shared taxonomy normalization", async () => {
   const [preparer, importer] = await Promise.all([
     readFile(path.join(root, "scripts/prepare-wordpress-published-migration.mjs"), "utf8"),
     readFile(path.join(root, "scripts/import-wordpress-drafts-to-sanity.mjs"), "utf8"),
   ]);
-  for (const source of [preparer, importer]) {
-    assert.match(source, /normalizeArticleTaxonomy/);
-    assert.match(source, /sourceCategories/);
-    assert.match(source, /sourceTags/);
-  }
-  assert.match(preparer, /'life-insurance': 'ccpun-wp-category-4'/);
-  assert.doesNotMatch(preparer, /ccpun-category-(?:health-insurance|critical-illness)/);
-  assert.match(importer, /tags: taxonomy\.tags/);
+  assert.match(preparer, /legacyUrlLedger/);
+  assert.match(preparer, /ledgerById/);
+  assert.doesNotMatch(preparer, /ACTIVE_ARTICLE_CATEGORIES/);
+  assert.doesNotMatch(preparer, /normalizeArticleTaxonomy/);
+  assert.match(preparer, /sourceCategories/);
+  assert.match(preparer, /sourceTags/);
+  assert.match(preparer, /ccpun-category-life-insurance/);
+  assert.match(preparer, /ccpun-wp-category-127/);
+  assert.match(preparer, /ccpun-category-critical-illness/);
+  assert.match(preparer, /ccpun-prod-mirror-author-ccpun/);
+  assert.match(importer, /normalizeArticleTaxonomy/);
+  assert.match(importer, /sourceCategories/);
+  assert.match(importer, /sourceTags/);
+  assert.match(importer, /tags: taxonomy.tags/);
 });

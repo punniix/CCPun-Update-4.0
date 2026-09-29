@@ -126,8 +126,10 @@ test("Rejected Sheet webhook records only HTTP status, never provider body or he
   }
 });
 
-test("Daily collection reuses the Sheets workflow and fails closed without leaking source payloads", () => {
+test("Combined Owner Export + Daily workflow keeps both roots and fails closed without leaking source payloads", () => {
   const workflow = JSON.parse(read("workers/local-ai/n8n/owner-export-google-sheet.direct.json"));
+  assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Daily · เก็บข้อมูล 06:00"), true);
+  assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Admin · Export Google Sheet"), true);
   const sources = ["gsc", "ga4", "meta", "ubersuggest"];
   const summary = workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง");
   const run = new Function("$", summary.parameters.jsCode);

@@ -9,6 +9,16 @@ Required n8n environment variables:
 
 Admin must also set `CCPUN_LOCAL_AI_N8N_ENABLED=true`. Keep it false until UAT worker health is green.
 
+## Marketing export and scheduled analysis workflow
+
+The existing production workflow XOQHPkio5WzZIz0l remains the single n8n workflow for both Owner Google Sheet export and scheduled Marketing collection/AI. Source control intentionally keeps the same combined 77-node graph instead of creating a second workflow.
+
+- Admin · Export Google Sheet is the authenticated webhook root for owner exports.
+- Daily · เก็บข้อมูล 06:00 is the single scheduled root for collection, canonical identity refresh, deterministic measurement, Weekly AI, Monthly AI and learning summary.
+- These roots are execution-independent inside one workflow. Keep exactly one Schedule Trigger to avoid duplicate daily collection.
+- Do not create a duplicate Daily/AI workflow. Any refactor must update this existing workflow ID and preserve the webhook path, credentials, schedule, idempotency and Agent Runtime Job callbacks.
+- Google Sheets native nodes are preferred where they preserve behavior. Spreadsheet creation is already native. Exact-range Action Plan reads plus metadata/batchUpdate/staging/atomic commit remain HTTP Request nodes because the native Sheets row operations do not expose equivalent transaction and CAS behavior.
+
 ## Public-safe enqueue
 
 `POST $CCPUN_ADMIN_BASE_URL/api/internal/local-ai/jobs/`

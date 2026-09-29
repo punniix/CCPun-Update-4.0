@@ -214,8 +214,11 @@ assert.match(legacyArticles, /id: "legacy-wp-aia-health-happy-describe"[\s\S]*?c
 assert.match(legacyArticles, /id: "legacy-wp-aia-health-ci-hero-guide"[\s\S]*?categorySlug: "life-insurance"/);
 assert.match(legacyArticles, /id: "legacy-wp-critical-illness-insurance"[\s\S]*?categorySlug: "life-insurance"/);
 assert.match(legacyArticles, /id: "legacy-wp-financial-pyramid"[\s\S]*?categorySlug: "personal-finance"/);
-assert.match(publishedWordPressPreparer, /'life-insurance': 'ccpun-wp-category-4'/);
-assert.doesNotMatch(publishedWordPressPreparer, /ccpun-category-(?:health-insurance|critical-illness)/);
+assert.match(publishedWordPressPreparer, /legacyUrlLedger/);
+assert.match(publishedWordPressPreparer, /ccpun-category-life-insurance/);
+assert.match(publishedWordPressPreparer, /ccpun-wp-category-127/);
+assert.match(publishedWordPressPreparer, /ccpun-category-critical-illness/);
+assert.match(publishedWordPressPreparer, /ccpun-prod-mirror-author-ccpun/);
 
 const fhcPage = read('features/financial-health-check/page.tsx');
 const fhcDescription = fhcPage.match(/const FHC_DESCRIPTION = '([^']+)'/)?.[1] ?? '';

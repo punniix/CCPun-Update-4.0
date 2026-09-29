@@ -5,6 +5,7 @@ import { PERFORMANCE_MARKETING_TABS } from "../../lib/admin/agent-os/export-cont
 
 const workflow = JSON.parse(readFileSync(new URL("../../workers/local-ai/n8n/owner-export-google-sheet.direct.json", import.meta.url), "utf8"));
 const nodes = new Map<string, { parameters: { jsCode: string } }>(workflow.nodes.map((node: { name: string }) => [node.name, node]));
+const dailyNodes = new Map<string, { parameters: Record<string, unknown>; type?: string; typeVersion?: number; credentials?: Record<string, { name?: string }>; onError?: string }>(workflow.nodes.map((node: { name: string }) => [node.name, node]));
 const sheetId = "1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o";
 const jobA = "00000000-0000-4000-8000-0000000000a1";
 const jobB = "00000000-0000-4000-8000-0000000000b2";
@@ -213,7 +214,7 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
   const body = workflow.nodes.find((node: { name: string }) => node.name === dailyNames[1]).parameters.jsonBody;
   assert.deepEqual(JSON.parse(body), { operation: "collect", source: "gsc", lookbackDays: 7 });
   for (const prefix of ["Marketing AI Weekly", "Marketing AI Monthly"]) {
-    const run = new Function("$input", "$runIndex", nodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode);
+    const run = new Function("$input", "$runIndex", String(dailyNodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode));
     const evaluate = (status: string, attempt: number, workerSucceeded = false) => run({ first: () => ({ json: { status, workerSucceeded, rawRows: ["must not reach AI state"] } }) }, attempt - 1)[0].json;
     assert.equal(evaluate("running", 15).canRetry, true); assert.equal(evaluate("running", 16).canRetry, false);
     assert.equal(evaluate("failed", 1).canRetry, false); assert.equal(evaluate("unavailable", 1).canRetry, false);
@@ -238,17 +239,19 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(openAi.parameters.modelId.value, "gpt-6-luna");
     assert.equal(openAi.parameters.simplify, false);
     assert.equal(openAi.parameters.options.store, false);
-    assert.equal(openAi.parameters.options.reasoning.reasoningOptions[0].effort, "low");
+    assert.equal(openAi.parameters.options.reasoning.reasoningOptions.effort, "low");
     assert.match(openAi.parameters.options.maxTokens, /512.*1600/);
-    assert.equal(openAi.parameters.options.textFormat.textOptions[0].type, "json_schema");
-    assert.equal(openAi.parameters.options.textFormat.textOptions[0].strict, true);
-    assert.match(openAi.parameters.options.textFormat.textOptions[0].schema, /JSON\.stringify\(\$json\.format\)/);
+    assert.equal(openAi.parameters.options.textFormat.textOptions.type, "json_schema");
+    assert.equal(openAi.parameters.options.textFormat.textOptions.strict, true);
+    assert.match(openAi.parameters.options.textFormat.textOptions.schema, /JSON\.stringify\(\$json\.format\)/);
     assert.equal(openAi.credentials.openAiApi.name, "CCPun Marketing Model Benchmark");
     assert.equal(openAi.onError, "continueRegularOutput");
     assert.doesNotMatch(JSON.stringify(openAi.parameters), /api\.openai\.com\/v1\/responses|httpRequest/);
   }
   assert.equal(workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง").onError, "continueErrorOutput");
   assert.equal(workflow.connections["Daily · ตรวจผลครบทุกต้นทาง"].main[1][0].node, dailyNames[0]);
+  assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Daily · เก็บข้อมูล 06:00"), true);
+  assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Admin · Export Google Sheet"), true);
 });
 
 test("draft creation commits only system identity/version; the human task and import key survive", () => {
@@ -275,7 +278,7 @@ test("draft creation commits only system identity/version; the human task and im
 test("Cloud failures log bounded diagnostics without model input or provider error text", () => {
   for (const period of ["Weekly", "Monthly"]) {
     const prefix = `Marketing AI ${period} · `;
-    const code = nodes.get(prefix + "เตรียมผล Cloud")!.parameters.jsCode;
+    const code = String(dailyNodes.get(prefix + "เตรียมผล Cloud")!.parameters.jsCode);
     const run = new Function("$input", "$", "console", code);
     const reservation = { analysisId: "analysis-private", inputHash: "hash-private", reservationId: "reservation-private", localOutputDigest: "digest-private", mode: "review" };
     const lookup = () => ({ first: () => ({ json: reservation }) });
