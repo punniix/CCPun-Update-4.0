@@ -263,13 +263,14 @@ async function buildOwnerExportDatasetBase(
     const data = await readAnalyticsDashboard(variables, generatedAt);
     if (data.state !== "ready") throw new Error("ANALYTICS_DATABASE_NOT_READY");
     const reports = data.datasets.filter((report) => dataset === "marketing-analytics" || report.source === (dataset === "social-performance" ? "meta" : "ubersuggest"));
-    if (view) {
+    if (dataset === "marketing-analytics") {
       if (!reports.length) throw new Error("ANALYTICS_NO_COMPLETED_DATA");
-      const analysis = buildPerformanceExport(reports, view, generatedAt);
+      const analysis = buildPerformanceExport(reports, view ?? "tracking-overview", generatedAt);
       if (!analysis.rows.length) throw new Error("ANALYTICS_NO_COMPLETED_DATA_FOR_VIEW");
       return analysis;
     }
-    return { ...buildStoredMarketingExport(reports, generatedAt), dataset, title: dataset === "social-performance" ? "Meta · ผลงานโพสต์ที่บันทึกไว้" : dataset === "seo-intelligence" ? "SEO · Research, AISV และ Website CSV ที่บันทึกไว้" : "ข้อมูลการตลาดที่บันทึกไว้" };
+    if (view) throw new Error("EXPORT_VIEW_REQUIRES_MARKETING_ANALYTICS");
+    return { ...buildStoredMarketingExport(reports, generatedAt), dataset, title: dataset === "social-performance" ? "Meta · ผลงานโพสต์ที่บันทึกไว้" : "SEO · Research, AISV และ Website CSV ที่บันทึกไว้" };
   }
 
   if (dataset === "crm-leads" || dataset === "crm-follow-ups" || dataset === "crm-overview") {

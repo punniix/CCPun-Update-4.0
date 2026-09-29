@@ -1,6 +1,7 @@
 import type { AnalyticsDataset } from "./model";
 import type { OwnerExportDataset } from "../agent-os/export-datasets";
 import { buildAnalyticsExportLineage } from "./lineage";
+import { buildContentPerformanceRows, buildMarketingTrackingOverview, CONTENT_PERFORMANCE_COLUMNS, TRACKING_OVERVIEW_COLUMNS } from "./tracking-overview";
 
 type Row = AnalyticsDataset["rows"][number];
 import { EXPORT_ANALYSIS_VIEWS } from "../agent-os/export-contract";
@@ -49,7 +50,13 @@ export function buildPerformanceTables(datasets: AnalyticsDataset[]): Performanc
     ["ช่วงเวลาและขอบเขต", "ต้องตรวจแยกแต่ละแหล่ง", "อ่านวันที่/เขตเวลาแต่ละรายงาน; ห้ามใช้ GSC clicks กับ GA4 sessions เป็น funnel เดียว"],
   ];
   const seoColumns = ["คำค้น", "หน้าเป้าหมาย", "งานที่ควรตรวจ", "เหตุผล / กติกา", "การแสดงผล GSC", "คลิก GSC", "CTR GSC (%)", "อันดับเฉลี่ย GSC", "Intent Ubersuggest", "Volume Ubersuggest", "Difficulty Ubersuggest (0–100)", "อันดับ Ubersuggest", "การจับคู่คำค้น", "Ubersuggest ต้นทาง ณ", "Ubersuggest ช่วงเริ่ม", "Ubersuggest ช่วงสิ้นสุด", "Ubersuggest เขตเวลา", "Ubersuggest Batch ID", "Ubersuggest Raw SHA256", "Ubersuggest เก็บ ณ (UTC)", "Ubersuggest ข้อจำกัด", ...metaColumns];
+  const trackingRows = buildMarketingTrackingOverview(datasets);
+  const contentRows = buildContentPerformanceRows(datasets);
+  const keywordRows = seoRows.map((row) => Object.fromEntries(["คำค้น", "หน้าเป้าหมาย", "คลิก GSC", "การแสดงผล GSC", "CTR GSC (%)", "อันดับเฉลี่ย GSC", "Intent Ubersuggest", "Volume Ubersuggest", "Difficulty Ubersuggest (0–100)", "อันดับ Ubersuggest", "การจับคู่คำค้น", ...metaColumns].map((column) => [column, row[column] ?? null])));
   return [
+    { view: "tracking-overview", title: "Marketing Tracking Overview", columns: [...TRACKING_OVERVIEW_COLUMNS], rows: trackingRows, guidance: "หนึ่งแถว = หนึ่งสิ่งที่ติดตาม × หนึ่ง Metric ใช้ Filter/Pivot ต่อได้ทันที โดยแยก Content, Keyword, Traffic และ Activity ชัดเจน" },
+    { view: "content-performance", title: "Content Performance", columns: [...CONTENT_PERFORMANCE_COLUMNS], rows: contentRows, guidance: "ดูโพสต์ Social และหน้าเว็บในตารางเดียว โดยไม่รวม Reach/Views ข้ามแพลตฟอร์มเป็นยอดเดียว" },
+    { view: "keyword-performance", title: "Keyword Performance", columns: ["คำค้น", "หน้าเป้าหมาย", "คลิก GSC", "การแสดงผล GSC", "CTR GSC (%)", "อันดับเฉลี่ย GSC", "Intent Ubersuggest", "Volume Ubersuggest", "Difficulty Ubersuggest (0–100)", "อันดับ Ubersuggest", "การจับคู่คำค้น", ...metaColumns], rows: keywordRows, guidance: "ดู Keyword ที่ติด พร้อม Clicks, Impressions, CTR, Average Position และบริบท Ubersuggest ในแถวเดียว" },
     { view: "seo-review", title: "งานตรวจ SEO", columns: seoColumns, rows: seoRows, guidance: "เรียงตามการแสดงผล GSC; หากไม่มี GSC ใช้ Volume ต้นทางเพื่อวางแผน ไม่ใช่จำนวนผู้เข้าชมที่คาดการณ์ อันดับที่ว่างคือไม่ทราบ" },
     { view: "measurement-gaps", title: "ข้อมูลที่ต้องเชื่อม", columns: ["ข้อมูล", "สถานะ", "ขั้นตอนต่อไป"], rows: gaps.map(([field, status, next]) => ({ "ข้อมูล": field!, "สถานะ": status!, "ขั้นตอนต่อไป": next! })), guidance: "ยังคำนวณ CPA/ROAS ไม่ได้จนมีค่าใช้จ่ายและผลธุรกิจจริงที่เทียบช่วงเวลาเดียวกัน" },
     { view: "campaign-performance", title: "แคมเปญและหน้าเข้า", columns: [...new Set(campaigns.flatMap(data => data.columns)), ...metaColumns], rows: campaigns.flatMap(data => data.rows.map(row => ({ ...row, ...metadata(data) }))), guidance: "Pivot วันที่ → แหล่งทราฟฟิก / Medium → แคมเปญ → หน้าเข้า; รวมเซสชันได้เฉพาะแถวไม่ซ้ำขอบเขต ห้ามเฉลี่ย Session key event rate ตรง ๆ; Key events ไม่ใช่ lead" },

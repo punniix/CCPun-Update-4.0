@@ -19,7 +19,7 @@ export const EXPORT_DATASETS = [
 
 export const exportFormatSchema = z.enum(EXPORT_FORMATS);
 export const exportDatasetSchema = z.enum(EXPORT_DATASETS);
-export const EXPORT_ANALYSIS_VIEWS = ["seo-review", "measurement-gaps", "campaign-performance", "marketing-activities"] as const;
+export const EXPORT_ANALYSIS_VIEWS = ["tracking-overview", "content-performance", "keyword-performance", "seo-review", "measurement-gaps", "campaign-performance", "marketing-activities"] as const;
 export const exportAnalysisViewSchema = z.enum(EXPORT_ANALYSIS_VIEWS);
 export type ExportAnalysisView = z.infer<typeof exportAnalysisViewSchema>;
 export const exportSelectionSchema = z.object({ dataset: exportDatasetSchema, view: exportAnalysisViewSchema.optional() }).strict()
@@ -70,7 +70,7 @@ export function formatBangkokDateTimeWithOffset(value: string | Date | null) {
 }
 
 const DATASET_FILE_LABELS: Record<ExportDataset, string> = {
-  "marketing-analytics": "CCPun_Marketing_Analytics",
+  "marketing-analytics": "CCPun_Marketing_Tracking",
   "performance-marketing": "CCPun_Performance_Marketing",
   "social-performance": "CCPun_Social_Performance",
   "seo-intelligence": "CCPun_SEO_Intelligence",
