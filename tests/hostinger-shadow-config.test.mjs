@@ -47,8 +47,10 @@ function runReadiness(extraEnv) {
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
     CCPUN_DEPLOYMENT_ROLE: "web",
     CCPUN_APP_ENV: "production",
+    NEXT_PUBLIC_CCPUN_APP_ENV: "production",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
     NEXT_PUBLIC_SANITY_DATASET: "production",
+    CCPUN_UAT_MODE: "0",
     CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1",
     ...extraEnv,
   };
@@ -70,5 +72,43 @@ test("Hostinger Web readiness accepts only the explicit production identity", ()
 
   const accidentalUat = runReadiness({ CCPUN_UAT_MODE: "1" });
   assert.notEqual(accidentalUat.status, 0);
-  assert.match(accidentalUat.stdout, /Production Web must not set CCPUN_UAT_MODE=1/);
+  assert.match(accidentalUat.stdout, /CCPUN_UAT_MODE=.*expected.*0/);
+
+  const publicEnvMismatch = runReadiness({ NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat" });
+  assert.notEqual(publicEnvMismatch.status, 0);
+  assert.match(publicEnvMismatch.stdout, /NEXT_PUBLIC_CCPUN_APP_ENV=.*expected.*production/);
+});
+
+test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejects an indexable UAT mode", () => {
+  const uat = runReadiness({
+    CCPUN_APP_ENV: "web-uat",
+    NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+    NEXT_PUBLIC_SANITY_DATASET: "uat",
+    CCPUN_UAT_MODE: "1",
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+  });
+  assert.equal(uat.status, 0, uat.stderr || uat.stdout);
+  assert.match(uat.stdout, /"status": "ready"/);
+
+  const unsafeUat = runReadiness({
+    CCPUN_APP_ENV: "web-uat",
+    NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+    NEXT_PUBLIC_SANITY_DATASET: "uat",
+    CCPUN_UAT_MODE: "0",
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+  });
+  assert.notEqual(unsafeUat.status, 0);
+  assert.match(unsafeUat.stdout, /CCPUN_UAT_MODE=.*expected.*1/);
+});
+
+test("Hostinger parity gate treats Shadow noindex as a safety requirement instead of a production-parity failure", () => {
+  const parity = read("scripts/hostinger-seo-parity.mjs");
+  assert.match(parity, /const targetMode = arg\("--target-mode"\) \?\? "shadow"/);
+  assert.match(parity, /SHADOW_ROBOTS_DIRECTIVES = \["noindex", "nofollow", "noarchive"\]/);
+  assert.match(parity, /compare\(`\$\{path\}:content`, contentFingerprint\(sourceFp\), contentFingerprint\(targetFp\)\)/);
+  assert.match(parity, /assertShadowRobotsHeader\(`\$\{path\}:shadow-x-robots-tag`, targetFp\.xRobotsTag\)/);
+  assert.match(parity, /assertShadowRobotsTxt\(targetRules\)/);
+  assert.match(parity, /ai-crawler:\$\{bot\}:\$\{path\}:shadow-x-robots-tag/);
 });
