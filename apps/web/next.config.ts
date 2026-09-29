@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
-import { SECURITY_HEADERS } from "../../lib/security-policy";
+import { buildNextSecurityHeaders } from "../next-security-headers.mjs";
 import {
   IS_WEB_REVIEW_ENVIRONMENT,
   WEB_ENVIRONMENT,
@@ -13,6 +13,11 @@ const REVIEW_HEADERS = IS_WEB_REVIEW_ENVIRONMENT
 const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
 const SANITY_LANE_ALLOWED = isWebSanityLaneAllowed(SANITY_PROJECT_ID, SANITY_DATASET);
+const SECURITY_HEADERS = buildNextSecurityHeaders({
+  isReviewEnvironment: IS_WEB_REVIEW_ENVIRONMENT,
+  sanityProjectId: SANITY_PROJECT_ID ?? "",
+  appEnvironment: WEB_ENVIRONMENT,
+});
 
 const nextConfig: NextConfig = {
   env: {
