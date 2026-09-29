@@ -7,8 +7,9 @@ function arg(name) {
 
 const sourceBase = arg("--source");
 const targetBase = arg("--target");
-if (!sourceBase || !targetBase) {
-  console.error("Usage: node scripts/hostinger-seo-parity.mjs --source https://ccpun.com --target https://shadow.example");
+const targetMode = arg("--target-mode") ?? "shadow";
+if (!sourceBase || !targetBase || !["shadow", "production"].includes(targetMode)) {
+  console.error("Usage: node scripts/hostinger-seo-parity.mjs --source https://ccpun.com --target https://shadow.example [--target-mode shadow|production]");
   process.exit(2);
 }
 
@@ -28,6 +29,7 @@ const CRITICAL_PATHS = [
 ];
 
 const AI_BOTS = ["OAI-SearchBot/1.0", "Claude-SearchBot/1.0", "PerplexityBot/1.0"];
+const SHADOW_ROBOTS_DIRECTIVES = ["noindex", "nofollow", "noarchive"];
 const failures = [];
 const observations = [];
 
@@ -94,12 +96,43 @@ function htmlFingerprint(result) {
   };
 }
 
+function contentFingerprint(fingerprint) {
+  return {
+    status: fingerprint.status,
+    redirectStatuses: fingerprint.redirectStatuses,
+    title: fingerprint.title,
+    canonical: fingerprint.canonical,
+    h1: fingerprint.h1,
+    schemaTypes: fingerprint.schemaTypes,
+  };
+}
+
+function robotsDirectiveSet(value = "") {
+  return new Set(value.toLowerCase().split(",").map((part) => part.trim()).filter(Boolean));
+}
+
+function assertShadowRobotsHeader(name, value) {
+  const directives = robotsDirectiveSet(value);
+  const missing = SHADOW_ROBOTS_DIRECTIVES.filter((directive) => !directives.has(directive));
+  if (missing.length) failures.push({ name, expected: SHADOW_ROBOTS_DIRECTIVES, target: value, missing });
+}
+
 function xmlLocs(body) {
   return [...body.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)].map((m) => m[1].trim()).sort();
 }
 
 function robotsRules(body) {
   return body.split(/\r?\n/).map((line) => line.replace(/#.*/, "").trim()).filter(Boolean).sort();
+}
+
+function assertShadowRobotsTxt(rules) {
+  const normalized = rules.map((rule) => rule.toLowerCase().replace(/\s+/g, " "));
+  if (!normalized.includes("user-agent: *") || !normalized.includes("disallow: /")) {
+    failures.push({ name: "/robots.txt:shadow-block", expected: ["User-agent: *", "Disallow: /"], target: rules });
+  }
+  if (normalized.some((rule) => rule.startsWith("sitemap:"))) {
+    failures.push({ name: "/robots.txt:shadow-sitemap", expected: "no sitemap directive on shadow", target: rules });
+  }
 }
 
 function compare(name, source, target) {
@@ -112,23 +145,42 @@ for (const path of CRITICAL_PATHS) {
   const [source, target] = await Promise.all([trace(join(sourceBase, path)), trace(join(targetBase, path))]);
   if (path === "/robots.txt") {
     compare(`${path}:status`, source.response.status, target.response.status);
-    compare(`${path}:rules`, robotsRules(source.body), robotsRules(target.body));
+    const sourceRules = robotsRules(source.body);
+    const targetRules = robotsRules(target.body);
+    if (targetMode === "shadow") assertShadowRobotsTxt(targetRules);
+    else compare(`${path}:rules`, sourceRules, targetRules);
   } else if (path.endsWith(".xml")) {
     compare(`${path}:status`, source.response.status, target.response.status);
     compare(`${path}:locs`, xmlLocs(source.body), xmlLocs(target.body));
   } else {
     const sourceFp = htmlFingerprint(source);
     const targetFp = htmlFingerprint(target);
-    compare(`${path}:html`, sourceFp, targetFp);
+    compare(`${path}:content`, contentFingerprint(sourceFp), contentFingerprint(targetFp));
+    if (targetMode === "shadow") {
+      assertShadowRobotsHeader(`${path}:shadow-x-robots-tag`, targetFp.xRobotsTag);
+    } else {
+      compare(`${path}:robots`, sourceFp.robots, targetFp.robots);
+      compare(`${path}:x-robots-tag`, sourceFp.xRobotsTag, targetFp.xRobotsTag);
+    }
   }
-  observations.push({ path, sourceStatus: source.response.status, targetStatus: target.response.status });
+  observations.push({
+    path,
+    sourceStatus: source.response.status,
+    targetStatus: target.response.status,
+    targetXRobotsTag: target.response.headers.get("x-robots-tag") ?? "",
+  });
 }
 
 for (const bot of AI_BOTS) {
   for (const path of ["/", "/blog/personal-finance/financial-pyramid/"]) {
     const target = await trace(join(targetBase, path), bot);
-    if (target.response.status >= 400 || /noindex/i.test(target.response.headers.get("x-robots-tag") ?? "")) {
-      failures.push({ name: `ai-crawler:${bot}:${path}`, targetStatus: target.response.status, xRobotsTag: target.response.headers.get("x-robots-tag") });
+    const xRobotsTag = target.response.headers.get("x-robots-tag") ?? "";
+    if (target.response.status >= 400) {
+      failures.push({ name: `ai-crawler:${bot}:${path}`, targetStatus: target.response.status, xRobotsTag });
+    } else if (targetMode === "shadow") {
+      assertShadowRobotsHeader(`ai-crawler:${bot}:${path}:shadow-x-robots-tag`, xRobotsTag);
+    } else if (/noindex/i.test(xRobotsTag)) {
+      failures.push({ name: `ai-crawler:${bot}:${path}:production-indexability`, targetStatus: target.response.status, xRobotsTag });
     }
   }
 }
@@ -137,6 +189,7 @@ console.log(JSON.stringify({
   status: failures.length ? "blocked" : "parity-ok",
   source: sourceBase,
   target: targetBase,
+  targetMode,
   checkedPaths: CRITICAL_PATHS.length,
   aiBots: AI_BOTS,
   observations,
