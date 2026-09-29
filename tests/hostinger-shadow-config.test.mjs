@@ -156,17 +156,17 @@ test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejec
   assert.match(unsafeUat.stdout, /CCPUN_UAT_MODE=.*expected.*1/);
 });
 
-test("Hostinger standalone packaging preserves public assets through Next static fallback rewrites", () => {
+test("Hostinger standalone packaging traces and preserves public assets", () => {
   const buildProvider = read("apps/web/scripts/build-provider.mjs");
   const web = read("apps/web/next.config.ts");
-  assert.match(buildProvider, /\.next\/static\/ccpun-public/);
-  assert.match(buildProvider, /\.next\/static\/ccpun-public\/llms\.txt/);
-  assert.match(buildProvider, /\.next\/static\/ccpun-public\/\.well-known\/security\.txt/);
-  assert.match(buildProvider, /\.next\/static\/ccpun-public\/favicon\.ico/);
-  assert.match(web, /HOSTINGER_PUBLIC_FALLBACK/);
-  assert.match(web, /source: "\/assets\/:path\*"/);
-  assert.match(web, /source: "\/llms\.txt"/);
-  assert.match(web, /source: "\/\.well-known\/:path\*"/);
+  assert.match(web, /outputFileTracingIncludes/);
+  assert.match(web, /"public\/\*\*\/\*"/);
+  assert.match(web, /"\.\.\/\.\.\/public\/\*\*\/\*"/);
+  assert.doesNotMatch(web, /HOSTINGER_PUBLIC_FALLBACK/);
+  assert.doesNotMatch(buildProvider, /\.next\/static\/ccpun-public/);
+  assert.match(buildProvider, /"public\/llms\.txt"/);
+  assert.match(buildProvider, /"public\/\.well-known\/security\.txt"/);
+  assert.match(buildProvider, /"public\/favicon\.ico"/);
 });
 
 test("Hostinger parity gate separates UAT Shadow checks from full production-content candidate parity", () => {
