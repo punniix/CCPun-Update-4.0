@@ -38,8 +38,13 @@ if (role === "web") {
   requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", production ? "kyfxgjnq" : "ccb9lnw5");
   requireExact("NEXT_PUBLIC_SANITY_DATASET", production ? "production" : "uat");
   requireExact("CCPUN_UAT_MODE", production ? "0" : "1");
-  if (production && env.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "1") {
-    warnings.push("CCPUN_ENABLE_PRODUCTION_ANALYTICS is not 1; production analytics would stay disabled");
+  if (production) {
+    requireExact("CCPUN_GIT_REF", "v4-production");
+    requirePresent("CCPUN_GIT_SHA");
+    requirePresent("CCPUN_RELEASE_ID");
+    if (env.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "1") {
+      warnings.push("CCPUN_ENABLE_PRODUCTION_ANALYTICS is not 1; production analytics would stay disabled");
+    }
   }
 } else if (role === "admin") {
   if (!["production-admin", "admin-uat"].includes(appEnv ?? "")) {
@@ -66,6 +71,11 @@ const result = {
   provider,
   role,
   environment: appEnv,
+  release: {
+    gitRef: env.CCPUN_GIT_REF?.trim() || null,
+    gitSha: env.CCPUN_GIT_SHA?.trim() || null,
+    releaseId: env.CCPUN_RELEASE_ID?.trim() || null,
+  },
   failures,
   warnings,
 };

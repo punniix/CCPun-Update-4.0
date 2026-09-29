@@ -52,6 +52,9 @@ function runReadiness(extraEnv) {
     NEXT_PUBLIC_SANITY_DATASET: "production",
     CCPUN_UAT_MODE: "0",
     CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1",
+    CCPUN_GIT_REF: "v4-production",
+    CCPUN_GIT_SHA: "5fc13ac7f18c4200b02d09c4a812869c2c0b57af",
+    CCPUN_RELEASE_ID: "hostinger-web-5fc13ac7",
     ...extraEnv,
   };
   return spawnSync(process.execPath, ["scripts/check-hostinger-readiness.mjs"], {
@@ -65,6 +68,7 @@ test("Hostinger Web readiness accepts only the explicit production identity", ()
   const ok = runReadiness({});
   assert.equal(ok.status, 0, ok.stderr || ok.stdout);
   assert.match(ok.stdout, /"status": "ready"/);
+  assert.match(ok.stdout, /"gitRef": "v4-production"/);
 
   const fakeVercel = runReadiness({ VERCEL_PROJECT_ID: "prj_fake" });
   assert.notEqual(fakeVercel.status, 0);
@@ -77,6 +81,15 @@ test("Hostinger Web readiness accepts only the explicit production identity", ()
   const publicEnvMismatch = runReadiness({ NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat" });
   assert.notEqual(publicEnvMismatch.status, 0);
   assert.match(publicEnvMismatch.stdout, /NEXT_PUBLIC_CCPUN_APP_ENV=.*expected.*production/);
+
+  for (const [key, value] of [
+    ["CCPUN_GIT_REF", "wrong-branch"],
+    ["CCPUN_GIT_SHA", ""],
+    ["CCPUN_RELEASE_ID", ""],
+  ]) {
+    const result = runReadiness({ [key]: value });
+    assert.notEqual(result.status, 0, `${key} must block an uncertified production release`);
+  }
 });
 
 test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejects an indexable UAT mode", () => {
@@ -87,6 +100,9 @@ test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejec
     NEXT_PUBLIC_SANITY_DATASET: "uat",
     CCPUN_UAT_MODE: "1",
     CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_GIT_REF: "",
+    CCPUN_GIT_SHA: "",
+    CCPUN_RELEASE_ID: "",
   });
   assert.equal(uat.status, 0, uat.stderr || uat.stdout);
   assert.match(uat.stdout, /"status": "ready"/);
@@ -98,6 +114,9 @@ test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejec
     NEXT_PUBLIC_SANITY_DATASET: "uat",
     CCPUN_UAT_MODE: "0",
     CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_GIT_REF: "",
+    CCPUN_GIT_SHA: "",
+    CCPUN_RELEASE_ID: "",
   });
   assert.notEqual(unsafeUat.status, 0);
   assert.match(unsafeUat.stdout, /CCPUN_UAT_MODE=.*expected.*1/);
