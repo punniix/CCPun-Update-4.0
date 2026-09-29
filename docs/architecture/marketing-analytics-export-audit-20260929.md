@@ -10,12 +10,7 @@ The deterministic file-export boundary is correct and remains unchanged in princ
 - Google Sheets is asynchronous orchestration through n8n.
 - Provider collection and AI analysis belong to n8n + canonical Admin/Neon stores, not CSV generation.
 
-The former 77-node `CCPun — Owner Export to Google Sheets` source graph contained two disconnected roots with no execution edge between them. Source control now prepares two graphs:
-
-1. `owner-export-google-sheet.direct.json` — 30-node Owner Export component. The existing production workflow ID `XOQHPkio5WzZIz0l` must keep its webhook identity when an approved cutover happens.
-2. `marketing-daily-ai.direct.json` — 47-node Daily collection + Weekly AI + Monthly AI + learning component. It is inactive source only and has no approved live workflow ID yet.
-
-Weekly and Monthly AI remain together because the execution graph has a real dependency chain: Daily factual checks → Weekly analysis → Monthly analysis → learning summary. Splitting them now would require a new durable handoff/idempotency contract and would increase failure surface.
+The existing 77-node CCPun — Owner Export to Google Sheets workflow intentionally remains one workflow. It contains two disconnected execution roots inside the same graph: Owner Export webhook and Daily schedule. The owner explicitly prefers one workflow, so source control keeps the 77-node graph together. Weekly and Monthly AI remain on the Daily dependency chain. No second Daily/AI workflow is created.
 
 ## End-to-end dependency map
 
@@ -74,7 +69,7 @@ Admin Dashboard / stored workspace
 
 | Dataset | Source of truth | Refresh mechanism | n8n responsibility | Admin file route | Direct / async | Freshness / quality | Owner output | Legacy / duplicate notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `performance-marketing` | Neon marketing native facts + `admin_read_marketing_v3`; persisted validated analysis | Scheduled GSC/GA4 native collection, identity sync, measurements | `marketing-daily-ai.direct.json` is the prepared source boundary; current live cutover is intentionally not performed | `/api/admin/marketing/export/?format=csv&sheet=...` and `?format=xlsx` | CSV/XLSX direct; Google Sheet async | Common mature cutoff, equal-duration comparison, source health, Data Quality Gate, manifest hash, traffic anomaly check | 7 tabs: Performance Overview, Top Content, Opportunities, Content Performance, Campaign & Funnel, Action Plan, Data Notes | Owner Google Sheet remains on existing central webhook; no second active export workflow is created |
+| `performance-marketing` | Neon marketing native facts + `admin_read_marketing_v3`; persisted validated analysis | Scheduled GSC/GA4 native collection, identity sync, measurements | existing workflow XOQHPkio5WzZIz0l; Daily/AI remains in the same graph | `/api/admin/marketing/export/?format=csv&sheet=...` and `?format=xlsx` | CSV/XLSX direct; Google Sheet async | Common mature cutoff, equal-duration comparison, source health, Data Quality Gate, manifest hash, traffic anomaly check | 7 tabs: Performance Overview, Top Content, Opportunities, Content Performance, Campaign & Funnel, Action Plan, Data Notes | Owner Google Sheet remains on existing central webhook; no second active export workflow is created |
 | `marketing-analytics` | Stored Analytics datasets from Neon `readAnalyticsDashboard()` | Daily provider collection | Daily collector component; Google Sheet publication uses Owner Export | `/api/admin/analytics/export/?format=csv|xlsx` plus optional analysis view | direct files; async Sheet | dataset source-as-of / collected-at / batch hash; Analytics export lineage and invalid-window checks | stored raw/report exports plus `seo-review`, `measurement-gaps`, `campaign-performance`, `marketing-activities` | no provider request during export |
 | `social-performance` | Stored `social-performance` Analytics report; canonical Social mart remains richer evidence source for Performance Marketing | Daily Meta collection | Daily collector; Owner Export for Sheet | `/api/admin/exports/csv/?dataset=social-performance` | direct CSV; async Sheet | native snapshot semantics; source timestamp; owner lineage; social quality columns | stored Meta post-performance export | legacy `POST /api/admin/social/export/sheets/` still exists; current Social UI points to Export Center. Do not delete until production usage is independently proven zero |
 | `seo-intelligence` | Stored Analytics SEO report assembled from stored Research + AISV/Ubersuggest evidence | stored Research/AISV refresh and Daily Ubersuggest collection where applicable | Daily collector for stored analytics; Owner Export for Sheet | `/api/admin/exports/csv/?dataset=seo-intelligence` | direct CSV; async Sheet | source window/timestamp/hash; migration scope warning; no live provider call from export | keyword research + AISV rows | `buildSeoIntelligenceExport()` is a collection-time transformer, not a second active file-export path |
@@ -140,7 +135,7 @@ Point-in-time CRM/business/operations datasets use generation time as their read
 1. `POST /api/admin/social/export/sheets/` + `lib/admin/social/sheets-export.ts` remains a guarded legacy direct-Google implementation. Current Social UI uses Export Center. Code-level current caller is absent, but removal is **not** approved until production usage is proven zero.
 2. `buildSocialPerformanceExport()` has no current Export Center caller. It is not treated as an active export route. Keep it until the Social legacy cleanup is approved because it may still be useful as a migration/read-model transformer.
 3. CSV/XLSX is intentionally **not** routed through n8n. Adding n8n to deterministic file generation would create a duplicate failure domain without adding source freshness.
-4. The prepared n8n source split removes the accidental coupling between Owner Export and scheduled Marketing collection/AI. It does not create a second active Owner Export path.
+4. The single n8n workflow keeps Owner Export and Daily/AI as independent roots inside one graph. No duplicate workflow or second schedule is introduced.
 
 ## Acceptance status before deployment
 
@@ -163,25 +158,25 @@ Point-in-time CRM/business/operations datasets use generation time as their read
 
 ## Local verification receipt
 
-- Admin TypeScript: **PASS** — npx tsc -p apps/admin/tsconfig.json --noEmit --incremental false.
-- Marketing / Analytics / Export / Social / workflow regressions: **115 / 115 PASS**.
+- Admin TypeScript: **PASS** — `npx tsc -p apps/admin/tsconfig.json --noEmit --incremental false`.
+- Marketing / Analytics / Export / Social / workflow / SEO / taxonomy regressions: **131 / 131 PASS**.
 - Vercel build-routing regressions: **11 / 11 PASS**.
-- Final local total: **126 / 126 tests PASS**.
-- git diff --check: **PASS** before checkpoint.
-- n8n source split preservation: **77 original nodes = 30 Owner Export + 47 Daily/AI**, **105 / 105 connections preserved**, **45 credential bindings preserved**.
-- Only two existing n8n node definitions intentionally changed: ดึงข้อมูล Export and Marketing · อ่าน SQL Workspace, both only to pass an existing Agent Runtime correlation ID into export lineage. Their credential and error-policy bindings are unchanged.
-- Both source graphs remain active: false; no live n8n workflow was created, published or activated by this work.
-- No Admin deployment, Production DB migration, Production n8n mutation or merge was performed.
+- Standalone Search Intent, result-actions, SEO topic-hub, WordPress migration parity and Vercel-native regressions: **PASS**.
+- `git diff --check`: **PASS** before integration commit.
+- n8n remains one existing **77-node** workflow with one Owner Export webhook root and one 06:00 Daily schedule root; no duplicate workflow is created.
+- n8n draft-only changes: correlation lineage on `ดึงข้อมูล Export` and `Marketing · อ่าน SQL Workspace`; native OpenAI v2.3 parameter normalization on Weekly/Monthly OpenAI nodes; credentials and connections are unchanged.
+- n8n active version is still the previous Production version; the newer draft is not published until the Production release gate.
+- Neon UAT migrations `20260929_marketing_export_integrity_v3` and `20260929_marketing_traffic_quality_v1` are applied and read back with expected checksums, mature comparable windows, Social caption/identity semantics and least-privilege grants.
+- Sanity Production read-only verification confirms the five migrated article owners/categories are published on current CCPun URLs. The historical UAT-only WordPress preparer now pins final URLs to the frozen legacy ledger and UAT references to the current UAT dataset.
+- No Admin Production deployment, Production Neon migration, n8n publish or Production merge has occurred at this receipt point.
 
 ## Pre-deploy gates
 
-No Production action should occur until an owner-approved release turn. At that point the sequence is:
-
-1. Re-run full local/Admin tests and `git diff --check`.
-2. Apply additive migrations in a disposable/UAT database lane and read back checksums/functions/least privilege.
-3. Create the dedicated Daily/AI workflow **inactive**, bind the existing credentials, validate schedule/settings/node graph, and execute bounded manual tests.
-4. Verify the existing live `XOQHPkio5WzZIz0l` workflow still owns `ccpun-owner-export-sheet` before changing its graph.
-5. Coordinate the n8n cutover so the existing 06:00 schedule is never removed before its replacement exists and is verified.
-6. Deploy Admin preview/UAT and validate Dashboard + CSV + XLSX + Google Sheet against the same stored facts.
-7. Validate Production wiring, SHA, runtime output and Agent Runtime Job correlation.
-8. Only then consider merge / Production migration / Production workflow publish.
+1. Re-run local/Admin/SEO tests and `git diff --check`.
+2. Confirm Neon UAT migration readback, checksums and runtime least privilege.
+3. Confirm the existing n8n workflow draft has 77 nodes, one Schedule Trigger, the original webhook identity and existing credential bindings; do not create another workflow.
+4. Push the integration branch and require GitHub CI plus Vercel Preview readiness before merge.
+5. Apply the backward-compatible Production Neon migrations only after pre-merge checks are green.
+6. Merge to `v4-production`, wait for exact-SHA Web/Admin Production deployments, then verify public SEO surfaces and Admin runtime health.
+7. Publish the verified draft of the existing n8n workflow only after the new Admin routes are live; confirm exactly one schedule remains and run bounded E2E checks.
+8. Perform post-Production Neon/n8n/Vercel/Sanity/read-only SEO readback, then clean worktrees while preserving PR #165.

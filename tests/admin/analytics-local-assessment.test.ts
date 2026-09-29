@@ -56,7 +56,7 @@ test("atomic narrow SQL preserves old task/review gates and scopes latest/last-g
  assert.match(sql,/REVOKE ALL ON FUNCTION[\s\S]*FROM PUBLIC/);assert.match(sql,/TO ccpun_admin_runtime/);assert.doesNotMatch(sql,/GRANT (?:SELECT|INSERT|UPDATE|DELETE)/);
 });
 test("existing Daily workflow enqueues an opaque VPS assessment before source failure checking without losing either error", () => {
- const w=JSON.parse(readFileSync(new URL("../../workers/local-ai/n8n/marketing-daily-ai.direct.json",import.meta.url),"utf8"));
+ const w=JSON.parse(readFileSync(new URL("../../workers/local-ai/n8n/owner-export-google-sheet.direct.json",import.meta.url),"utf8"));
  const name="Daily · ประเมินด้วย VPS AI", checker="Daily · ตรวจผลครบทุกต้นทาง";
  assert.equal(w.connections["Daily · UBERSUGGEST"].main[0][0].node,name);
  assert.equal(w.connections[name].main[0][0].node,checker);

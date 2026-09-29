@@ -155,15 +155,12 @@ test("Google Sheet lineage accepts a real pipeline correlation ID while direct f
   assert.match(marketingWorkspaceCsv(workspace, "Performance Overview"), new RegExp(correlationId));
 });
 
-test("Owner Export and Daily AI source graphs are isolated 30/47-node components", () => {
-  const owner = JSON.parse(readFileSync("workers/local-ai/n8n/owner-export-google-sheet.direct.json", "utf8"));
-  const daily = JSON.parse(readFileSync("workers/local-ai/n8n/marketing-daily-ai.direct.json", "utf8"));
-  assert.equal(owner.nodes.length, 30);
-  assert.equal(daily.nodes.length, 47);
-  assert.equal(owner.nodes.some((node: { name: string }) => node.name === "Admin · Export Google Sheet"), true);
-  assert.equal(owner.nodes.some((node: { name: string }) => node.name === "Daily · เก็บข้อมูล 06:00"), false);
-  assert.equal(daily.nodes.some((node: { name: string }) => node.name === "Daily · เก็บข้อมูล 06:00"), true);
-  assert.equal(daily.nodes.some((node: { name: string }) => node.name === "Admin · Export Google Sheet"), false);
-  assert.equal(owner.settings.availableInMCP, true);
-  assert.equal(daily.settings.availableInMCP, false);
+test("Owner Export and Daily AI remain one 77-node source workflow with two independent roots", () => {
+  const workflow = JSON.parse(readFileSync("workers/local-ai/n8n/owner-export-google-sheet.direct.json", "utf8"));
+  assert.equal(workflow.nodes.length, 77);
+  assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Admin · Export Google Sheet"), true);
+  assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Daily · เก็บข้อมูล 06:00"), true);
+  assert.equal(workflow.settings.availableInMCP, true);
+  assert.equal(workflow.settings.timezone, "Asia/Bangkok");
+  assert.equal(workflow.nodes.filter((node: { type: string }) => node.type === "n8n-nodes-base.scheduleTrigger").length, 1);
 });

@@ -4,7 +4,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import sharp from 'sharp';
-import { ACTIVE_ARTICLE_CATEGORIES, normalizeArticleTaxonomy } from '../lib/content/taxonomy.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const homepageRoot = path.resolve(here, '..');
@@ -20,6 +19,7 @@ const ndjsonPath = path.resolve(process.argv[4] || defaultNdjson);
 let source;
 
 const hash = (value, length = 16) => createHash('sha256').update(String(value)).digest('hex').slice(0, length);
+const legacyUrlLedger = JSON.parse(await readFile(new URL('../qa/legacy-url-ledger.json', import.meta.url), 'utf8'));
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const safeFilename = (value) => {
   let decoded = value;
@@ -27,25 +27,54 @@ const safeFilename = (value) => {
   const cleaned = decoded.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
   return cleaned || `asset-${hash(value, 10)}`;
 };
-const activeCategoryBySlug = new Map(ACTIVE_ARTICLE_CATEGORIES.map((category) => [category.slug, category]));
-const categoryDocumentIds = {
-  'personal-finance': 'ccpun-wp-category-1',
-  'life-insurance': 'ccpun-wp-category-4',
-  investment: 'ccpun-category-investment',
-};
-export function normalizeWordPressTaxonomy({ categoryTitle, categorySlug, tags }) {
-  const normalized = normalizeArticleTaxonomy({ categoryTitle, categorySlug, tags });
-  const category = normalized.categorySlug ? activeCategoryBySlug.get(normalized.categorySlug) : null;
-  const documentId = normalized.categorySlug ? categoryDocumentIds[normalized.categorySlug] : null;
-  if (!category || !documentId) throw new Error(`Refusing migration preparation: unknown WordPress category ${categorySlug || categoryTitle || 'missing'}`);
-  return { category: { ...category, documentId }, tags: normalized.tags };
+const reviewedCategories = new Map([
+  ['personal-finance', { title: 'การเงินส่วนบุคคล', slug: 'personal-finance', documentId: 'ccpun-category-personal-finance' }],
+  ['life-insurance', { title: 'ประกันชีวิต', slug: 'life-insurance', documentId: 'ccpun-category-life-insurance' }],
+  ['health-insurance', { title: 'ประกันสุขภาพ', slug: 'health-insurance', documentId: 'ccpun-wp-category-127' }],
+  ['critical-illness-insurance', { title: 'ประกันโรคร้ายแรง', slug: 'critical-illness-insurance', documentId: 'ccpun-category-critical-illness' }],
+]);
+const ledgerById = new Map(legacyUrlLedger.mappings.map((mapping) => [mapping.id, mapping]));
+
+function normalizeMigrationTags(tags = []) {
+  const seen = new Set();
+  const output = [];
+  for (const value of tags) {
+    const tag = clean(value);
+    const key = tag.toLowerCase();
+    if (!tag || seen.has(key)) continue;
+    seen.add(key);
+    output.push(tag);
+  }
+  return output;
 }
+
+export function normalizeWordPressTaxonomy({ categoryTitle, categorySlug, tags }) {
+  const category = reviewedCategories.get(String(categorySlug ?? '').trim().toLowerCase()) ?? null;
+  if (!category) throw new Error(`Refusing migration preparation: unknown WordPress category ${categorySlug || categoryTitle || 'missing'}`);
+  return { category: { ...category }, tags: normalizeMigrationTags(tags) };
+}
+
+function migrationRoute({ wpId, sourceCategory, sourceCategorySlug, ledgerId }) {
+  const mapping = ledgerById.get(ledgerId);
+  if (!mapping || mapping.state !== 'live' || mapping.sourceStatus !== 301 || mapping.destinationStatus !== 200) {
+    throw new Error(`Refusing migration preparation: invalid frozen legacy mapping ${ledgerId}`);
+  }
+  const source = new URL(mapping.source);
+  const destination = new URL(mapping.destination);
+  if (source.origin !== 'https://blog.ccpun.com' || destination.origin !== 'https://ccpun.com' || source.search || source.hash || destination.search || destination.hash) {
+    throw new Error(`Refusing migration preparation: unsafe frozen legacy mapping ${ledgerId}`);
+  }
+  const category = normalizeWordPressTaxonomy({ categoryTitle: sourceCategory, categorySlug: sourceCategorySlug, tags: [] }).category;
+  const sourceSlug = source.pathname.split('/').filter(Boolean)[0] ?? '';
+  return { wpId, sourceCategory, sourceCategorySlug, ledgerId, sourceSlug, destination: destination.href, category };
+}
+
 const migrationRoutes = {
-  'aia-vitality': { wpId: 413, sourceCategory: 'ประกันชีวิต', sourceCategorySlug: 'life-insurance', category: normalizeWordPressTaxonomy({ categoryTitle: 'ประกันชีวิต', categorySlug: 'life-insurance', tags: [] }).category },
-  'aia-health-ci-hero-guide': { wpId: 359, sourceCategory: 'ประกันสุขภาพและโรคร้ายแรง', sourceCategorySlug: 'health-insurance', category: normalizeWordPressTaxonomy({ categoryTitle: 'ประกันสุขภาพและโรคร้ายแรง', categorySlug: 'health-insurance', tags: [] }).category },
-  'aia-health-happy-describe': { wpId: 196, sourceCategory: 'ประกันสุขภาพและโรคร้ายแรง', sourceCategorySlug: 'health-insurance', category: normalizeWordPressTaxonomy({ categoryTitle: 'ประกันสุขภาพและโรคร้ายแรง', categorySlug: 'health-insurance', tags: [] }).category },
-  'critical-illness-insurance': { wpId: 233, sourceCategory: 'ประกันสุขภาพและโรคร้ายแรง', sourceCategorySlug: 'critical-illness', category: normalizeWordPressTaxonomy({ categoryTitle: 'ประกันสุขภาพและโรคร้ายแรง', categorySlug: 'critical-illness', tags: [] }).category },
-  'financial-pyramid': { wpId: 95, sourceCategory: 'การเงินส่วนบุคคล', sourceCategorySlug: 'personal-finance', category: normalizeWordPressTaxonomy({ categoryTitle: 'การเงินส่วนบุคคล', categorySlug: 'personal-finance', tags: [] }).category },
+  'aia-vitality': migrationRoute({ wpId: 413, sourceCategory: 'ประกันชีวิต', sourceCategorySlug: 'life-insurance', ledgerId: 'aia-vitality' }),
+  'aia-health-ci-hero-guide': migrationRoute({ wpId: 359, sourceCategory: 'ประกันสุขภาพและโรคร้ายแรง', sourceCategorySlug: 'health-insurance', ledgerId: 'aia-health-ci-hero' }),
+  'aia-health-happy-describe': migrationRoute({ wpId: 196, sourceCategory: 'ประกันสุขภาพและโรคร้ายแรง', sourceCategorySlug: 'health-insurance', ledgerId: 'aia-health-happy' }),
+  'critical-illness-insurance': migrationRoute({ wpId: 233, sourceCategory: 'ประกันสุขภาพและโรคร้ายแรง', sourceCategorySlug: 'critical-illness-insurance', ledgerId: 'critical-illness-insurance' }),
+  'financial-pyramid': migrationRoute({ wpId: 95, sourceCategory: 'การเงินส่วนบุคคล', sourceCategorySlug: 'personal-finance', ledgerId: 'financial-pyramid' }),
 };
 if (isMain) {
   source = JSON.parse(await readFile(inputPath, 'utf8'));
@@ -55,7 +84,7 @@ if (isMain) {
   const slugs = new Set(source.posts.map((post) => post.slug));
   if (source.posts.length !== Object.keys(migrationRoutes).length || slugs.size !== Object.keys(migrationRoutes).length || source.posts.some((post) => {
     const expected = migrationRoutes[post.slug];
-    return !expected || post.wpId !== expected.wpId || post.category !== expected.sourceCategory;
+    return !expected || expected.sourceSlug !== post.slug || post.wpId !== expected.wpId || post.category !== expected.sourceCategory;
   })) {
     throw new Error('Refusing migration preparation: published WordPress inventory mismatch');
   }
@@ -73,7 +102,7 @@ export function rewriteHref(input) {
     if (url.hostname !== 'blog.ccpun.com') return url.href;
     const pathname = url.pathname.replace(/\/+$/, '') || '/';
     const slug = pathname.split('/').filter(Boolean)[0];
-    if (migrationRoutes[slug]) return `https://ccpun.com/blog/${migrationRoutes[slug].category.slug}/${slug}/${url.search}${url.hash}`;
+    if (migrationRoutes[slug]) { const destination = new URL(migrationRoutes[slug].destination); destination.search = url.search; destination.hash = url.hash; return destination.href; }
     return url.href;
   } catch {
     return '';
@@ -335,7 +364,7 @@ for (const post of source.posts) {
     excerpt: post.excerpt,
     category: { _type: 'reference', _ref: category.documentId, _weak: true },
     tags,
-    author: { _type: 'reference', _ref: 'ccpun-wp-author-1', _weak: true },
+    author: { _type: 'reference', _ref: 'ccpun-prod-mirror-author-ccpun' },
     ...(featured ? {
       migratedFeaturedImage: {
         _type: 'migratedImage',
@@ -392,7 +421,7 @@ for (const post of source.posts) {
     wpId: post.wpId,
     slug: post.slug,
     oldUrl: post.sourceUrl,
-    newUrl: `https://ccpun.com/blog/${category.slug}/${post.slug}/`,
+    newUrl: route.destination,
     sourceTextLength: post.contentTextLength,
     bodyBlocks: body.length,
     copiedAssets: [...imageMap.values()],
@@ -401,28 +430,7 @@ for (const post of source.posts) {
   });
 }
 
-const categoryDocs = [...new Map(preparedPosts.map((post) => {
-  const category = migrationRoutes[post.slug].category;
-  return [category.documentId, {
-    _id: `drafts.${category.documentId}`,
-    _type: 'category',
-    title: category.title,
-    slug: { _type: 'slug', current: category.slug },
-    description: 'Imported from the existing CCPun WordPress taxonomy.',
-  }];
-})).values()];
-
-const supportDocs = [
-  {
-    _id: 'drafts.ccpun-wp-author-1',
-    _type: 'author',
-    name: 'CCPun',
-    slug: { _type: 'slug', current: 'ccpun' },
-    bio: 'ที่ปรึกษาทางการเงินของ CCPun',
-  },
-  ...categoryDocs,
-];
-const documents = [...supportDocs, ...preparedPosts.map((post) => post.article)];
+const documents = preparedPosts.map((post) => post.article);
 if (documents.some((document) => !document._id.startsWith('drafts.'))) throw new Error('Prepared migration contains non-draft document IDs');
 
 const prepared = {
@@ -438,7 +446,7 @@ await writeFile(ndjsonPath, `${documents.map((document) => JSON.stringify(docume
 console.log(JSON.stringify({
   ok: true,
   posts: preparedPosts.length,
-  supportDocs: supportDocs.length,
+  supportDocs: 0,
   documents: documents.length,
   totalAssets: preparedPosts.reduce((sum, post) => sum + post.copiedAssets.length, 0),
   mappings: preparedPosts.map((post) => ({ slug: post.slug, oldUrl: post.oldUrl, newUrl: post.newUrl, blocks: post.bodyBlocks, assets: post.copiedAssets.length })),

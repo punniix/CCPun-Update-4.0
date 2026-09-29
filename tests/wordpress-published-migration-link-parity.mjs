@@ -109,20 +109,26 @@ try {
   const prepared = JSON.parse(await readFile(output, 'utf8'));
   assert.deepEqual(prepared.mappings.map(({ slug, newUrl }) => [slug, newUrl]), [
     ['aia-vitality', 'https://ccpun.com/blog/life-insurance/aia-vitality/'],
-    ['aia-health-ci-hero-guide', 'https://ccpun.com/blog/life-insurance/aia-health-ci-hero-guide/'],
-    ['critical-illness-insurance', 'https://ccpun.com/blog/life-insurance/critical-illness-insurance/'],
-    ['aia-health-happy-describe', 'https://ccpun.com/blog/life-insurance/aia-health-happy-describe/'],
+    ['aia-health-ci-hero-guide', 'https://ccpun.com/blog/health-insurance/aia-health-ci-hero-guide/'],
+    ['critical-illness-insurance', 'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/'],
+    ['aia-health-happy-describe', 'https://ccpun.com/blog/health-insurance/aia-health-happy-describe/'],
     ['financial-pyramid', 'https://ccpun.com/blog/personal-finance/financial-pyramid/'],
   ]);
-  const categories = new Map(prepared.documents.filter((document) => document._type === 'category').map((document) => [document._id, document.slug.current]));
+  const expectedCategoryRefs = new Map([
+    ['aia-vitality', 'ccpun-category-life-insurance'],
+    ['aia-health-ci-hero-guide', 'ccpun-wp-category-127'],
+    ['critical-illness-insurance', 'ccpun-category-critical-illness'],
+    ['aia-health-happy-describe', 'ccpun-wp-category-127'],
+    ['financial-pyramid', 'ccpun-category-personal-finance'],
+  ]);
   for (const article of prepared.documents.filter((document) => document._type === 'article')) {
-    const mapping = prepared.mappings.find(({ slug }) => slug === article.slug.current);
-    assert.equal(mapping.newUrl, `https://ccpun.com/blog/${categories.get(`drafts.${article.category._ref}`)}/${article.slug.current}/`);
+    assert.equal(article.category._ref, expectedCategoryRefs.get(article.slug.current));
+    assert.equal(article.author._ref, 'ccpun-prod-mirror-author-ccpun');
   }
   const vitality = prepared.documents.find((document) => document.slug?.current === 'aia-vitality');
   const hrefs = vitality.body.flatMap((block) => block.markDefs || []).map((mark) => mark.href);
   assert.deepEqual(hrefs, [
-    'https://ccpun.com/blog/life-insurance/critical-illness-insurance/?utm=wp#compare',
+    'https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/?utm=wp#compare',
     'https://blog.ccpun.com/not-migrated/?x=1#keep',
     'https://example.com/path?x=1#keep',
   ]);

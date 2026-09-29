@@ -1,6 +1,6 @@
 # Performance Marketing operations
 
-Neon owns historical facts, current provider revisions, deterministic comparisons and action measurements. The live n8n workflow `XOQHPkio5WzZIz0l` is still the current combined runtime until an approved cutover, but source control now isolates its 30-node Owner Export graph from a prepared 47-node `marketing-daily-ai.direct.json` scheduled collection/analysis graph. Admin `/analytics/performance/`, CSV/XLSX and the existing Google workspace use the same stored definitions. Exports never call source APIs. The source split is pre-deploy only and must not be interpreted as a live workflow change.
+Neon owns historical facts, current provider revisions, deterministic comparisons and action measurements. The existing n8n workflow XOQHPkio5WzZIz0l remains the single 77-node runtime and source-controlled workflow. It has two independent roots inside one graph: the Owner Export webhook and the 06:00 Asia/Bangkok Daily collection/AI schedule. No duplicate Daily/AI workflow is created. Admin /analytics/performance/, CSV/XLSX and the existing Google workspace use the same stored definitions. Exports never call source APIs.
 
 ## Data and reuse
 
@@ -34,6 +34,6 @@ Runnable checks: `npm run test:admin`; exact local TypeScript for root/Admin/wor
 
 ## Rollout and rollback
 
-Apply frozen additive migrations to UAT first, read back ledger/privileges and rollback-fixture isolation, then Production only after owner approval. Before touching the live combined n8n workflow, create the dedicated Daily/AI workflow inactive, retain existing credentials/settings, validate its 06:00 Asia/Bangkok schedule and graph, and prove bounded manual execution. Only then update the existing `XOQHPkio5WzZIz0l` graph to owner-only and activate the replacement schedule as a coordinated cutover. Merge/deploy/Production migration are separate gates; verify Admin custom-domain SHA and runtime output before declaring completion. Record source earliest observed date, omissions/truncation and coverage; collection since platform inception requires provider evidence.
+Apply frozen additive migrations to UAT first, read back ledger/privileges and rollback-fixture isolation, then Production after the release gate passes. Before updating the live n8n workflow, validate the full existing 77-node graph, existing credentials, single 06:00 Asia/Bangkok schedule, webhook identity and bounded manual-test behavior. Update and publish only workflow XOQHPkio5WzZIz0l after Admin/DB compatibility gates pass; never add a second scheduled workflow. Merge/deploy/Production migration remain separate gates, with exact SHA/runtime verification after Production.
 
 Rollback restores captured prior workflow graph, known-good Admin deployment and worker SHA. Leave additive tables and immutable history in place; do not DROP facts/actions/analysis. Stop new AI enqueue if unhealthy while factual reads/exports retain their last success. Restoring Production requires the owner's authorized rollback scope.
