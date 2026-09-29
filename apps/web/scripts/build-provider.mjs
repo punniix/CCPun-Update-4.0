@@ -100,6 +100,11 @@ function stageStandaloneRuntime() {
     throw new Error(`Hostinger standalone entry file is missing: ${serverFile}`);
   }
 
+  // Hostinger drops the standalone public/ directory while publishing. Mirror
+  // public assets into .next/static, which Hostinger preserves, and let the
+  // Hostinger-only rewrites in next.config.ts keep the original public URLs.
+  replaceDirectory(resolve(webRoot, "public"), resolve(webRoot, ".next/static/ccpun-public"));
+
   replaceDirectory(resolve(webRoot, "public"), resolve(runtimeRoot, "public"));
   replaceDirectory(resolve(webRoot, ".next/static"), resolve(runtimeRoot, ".next/static"));
 
@@ -112,11 +117,6 @@ function stageStandaloneRuntime() {
     replaceDirectory(resolve(runtimeRoot, "public"), resolve(standaloneRoot, "public"));
   }
 
-  // Hostinger's Next.js preset publishes the .next output directory. Keep a
-  // second copy of public/ inside that published root so the runtime still has
-  // public assets after Hostinger stages the standalone server.
-  replaceDirectory(resolve(webRoot, "public"), resolve(webRoot, ".next/public"));
-
   for (const required of [
     "server.js",
     "node_modules/next/package.json",
@@ -124,9 +124,9 @@ function stageStandaloneRuntime() {
     ".next/static",
     "public/llms.txt",
     "public/.well-known/security.txt",
-    "../public/llms.txt",
-    "../public/.well-known/security.txt",
-    "../public/favicon.ico",
+    ".next/static/ccpun-public/llms.txt",
+    ".next/static/ccpun-public/.well-known/security.txt",
+    ".next/static/ccpun-public/favicon.ico",
   ]) {
     const absolute = resolve(standaloneRoot, required);
     if (!existsSync(absolute)) {
