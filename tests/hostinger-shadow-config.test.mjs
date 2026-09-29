@@ -39,13 +39,14 @@ test("shared shadow security policy preserves production HTTPS and review Sanity
   assert.match(reviewCsp, /https:\/\/ccb9lnw5\.api\.sanity\.io/);
 });
 
-function runReadiness(extraEnv) {
+function runReadiness(extraEnv = {}) {
   const env = {
     PATH: process.env.PATH,
     HOME: process.env.HOME,
     NODE_ENV: "production",
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
     CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_RELEASE_STAGE: "live",
     CCPUN_APP_ENV: "production",
     NEXT_PUBLIC_CCPUN_APP_ENV: "production",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
@@ -64,36 +65,63 @@ function runReadiness(extraEnv) {
   });
 }
 
-test("Hostinger Web readiness accepts only the explicit production identity", () => {
-  const ok = runReadiness({});
+test("Hostinger Web readiness accepts only the explicit live production identity", () => {
+  const ok = runReadiness();
   assert.equal(ok.status, 0, ok.stderr || ok.stdout);
   assert.match(ok.stdout, /"status": "ready"/);
+  assert.match(ok.stdout, /"releaseStage": "live"/);
   assert.match(ok.stdout, /"gitRef": "v4-production"/);
 
   const fakeVercel = runReadiness({ VERCEL_PROJECT_ID: "prj_fake" });
   assert.notEqual(fakeVercel.status, 0);
   assert.match(fakeVercel.stdout, /VERCEL_PROJECT_ID must be unset/);
 
-  const accidentalUat = runReadiness({ CCPUN_UAT_MODE: "1" });
-  assert.notEqual(accidentalUat.status, 0);
-  assert.match(accidentalUat.stdout, /CCPUN_UAT_MODE=.*expected.*0/);
-
-  const publicEnvMismatch = runReadiness({ NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat" });
-  assert.notEqual(publicEnvMismatch.status, 0);
-  assert.match(publicEnvMismatch.stdout, /NEXT_PUBLIC_CCPUN_APP_ENV=.*expected.*production/);
-
   for (const [key, value] of [
+    ["CCPUN_UAT_MODE", "1"],
+    ["CCPUN_ENABLE_PRODUCTION_ANALYTICS", "0"],
     ["CCPUN_GIT_REF", "wrong-branch"],
     ["CCPUN_GIT_SHA", ""],
     ["CCPUN_RELEASE_ID", ""],
   ]) {
     const result = runReadiness({ [key]: value });
-    assert.notEqual(result.status, 0, `${key} must block an uncertified production release`);
+    assert.notEqual(result.status, 0, `${key} must block an uncertified live release`);
   }
+});
+
+test("Hostinger production candidate uses Production Sanity while remaining noindex and analytics-off", () => {
+  const candidate = runReadiness({
+    CCPUN_RELEASE_STAGE: "candidate",
+    CCPUN_UAT_MODE: "1",
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_GIT_REF: "prep/hostinger-migration-readiness-20260929",
+    CCPUN_GIT_SHA: "candidate-sha",
+    CCPUN_RELEASE_ID: "hostinger-candidate-candidate-sha",
+  });
+  assert.equal(candidate.status, 0, candidate.stderr || candidate.stdout);
+  assert.match(candidate.stdout, /"releaseStage": "candidate"/);
+
+  const indexableCandidate = runReadiness({
+    CCPUN_RELEASE_STAGE: "candidate",
+    CCPUN_UAT_MODE: "0",
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_GIT_REF: "prep/hostinger-migration-readiness-20260929",
+  });
+  assert.notEqual(indexableCandidate.status, 0);
+  assert.match(indexableCandidate.stdout, /CCPUN_UAT_MODE=.*expected.*1/);
+
+  const trackedCandidate = runReadiness({
+    CCPUN_RELEASE_STAGE: "candidate",
+    CCPUN_UAT_MODE: "1",
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1",
+    CCPUN_GIT_REF: "prep/hostinger-migration-readiness-20260929",
+  });
+  assert.notEqual(trackedCandidate.status, 0);
+  assert.match(trackedCandidate.stdout, /CCPUN_ENABLE_PRODUCTION_ANALYTICS=.*expected.*0/);
 });
 
 test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejects an indexable UAT mode", () => {
   const uat = runReadiness({
+    CCPUN_RELEASE_STAGE: "shadow",
     CCPUN_APP_ENV: "web-uat",
     NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
@@ -108,6 +136,7 @@ test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejec
   assert.match(uat.stdout, /"status": "ready"/);
 
   const unsafeUat = runReadiness({
+    CCPUN_RELEASE_STAGE: "shadow",
     CCPUN_APP_ENV: "web-uat",
     NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
@@ -122,12 +151,13 @@ test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejec
   assert.match(unsafeUat.stdout, /CCPUN_UAT_MODE=.*expected.*1/);
 });
 
-test("Hostinger parity gate treats Shadow noindex as a safety requirement instead of a production-parity failure", () => {
+test("Hostinger parity gate separates UAT Shadow checks from full production-content candidate parity", () => {
   const parity = read("scripts/hostinger-seo-parity.mjs");
-  assert.match(parity, /const targetMode = arg\("--target-mode"\) \?\? "shadow"/);
-  assert.match(parity, /SHADOW_ROBOTS_DIRECTIVES = \["noindex", "nofollow", "noarchive"\]/);
-  assert.match(parity, /compare\(`\$\{path\}:content`, contentFingerprint\(sourceFp\), contentFingerprint\(targetFp\)\)/);
-  assert.match(parity, /assertShadowRobotsHeader\(`\$\{path\}:shadow-x-robots-tag`, targetFp\.xRobotsTag\)/);
-  assert.match(parity, /assertShadowRobotsTxt\(targetRules\)/);
-  assert.match(parity, /ai-crawler:\$\{bot\}:\$\{path\}:shadow-x-robots-tag/);
+  assert.match(parity, /\["shadow", "candidate", "production"\]/);
+  assert.match(parity, /blockedTarget = targetMode === "shadow" \|\| targetMode === "candidate"/);
+  assert.match(parity, /fullContentParity = targetMode === "candidate" \|\| targetMode === "production"/);
+  assert.match(parity, /path !== "\/sitemaps\/blog\.xml"/);
+  assert.match(parity, /BLOCKED_ROBOTS_DIRECTIVES = \["noindex", "nofollow", "noarchive"\]/);
+  assert.match(parity, /assertBlockedRobotsTxt\(targetRules\)/);
+  assert.match(parity, /aiRepresentativePaths = fullContentParity/);
 });
