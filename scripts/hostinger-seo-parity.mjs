@@ -8,28 +8,40 @@ function arg(name) {
 const sourceBase = arg("--source");
 const targetBase = arg("--target");
 const targetMode = arg("--target-mode") ?? "shadow";
-if (!sourceBase || !targetBase || !["shadow", "production"].includes(targetMode)) {
-  console.error("Usage: node scripts/hostinger-seo-parity.mjs --source https://ccpun.com --target https://shadow.example [--target-mode shadow|production]");
+if (!sourceBase || !targetBase || !["shadow", "candidate", "production"].includes(targetMode)) {
+  console.error("Usage: node scripts/hostinger-seo-parity.mjs --source https://ccpun.com --target https://shadow.example [--target-mode shadow|candidate|production]");
   process.exit(2);
 }
 
-const CRITICAL_PATHS = [
+const STATIC_HTML_PATHS = [
   "/",
   "/blog/",
   "/ci-planning/",
   "/tools/financial-health-check/",
   "/privacy/",
+];
+
+const PRODUCTION_CONTENT_PATHS = [
   "/blog/personal-finance/financial-pyramid/",
   "/blog/health-insurance/aia-health-happy-describe/",
-  "/robots.txt",
+];
+
+const SITEMAP_PATHS = [
   "/sitemap.xml",
   "/sitemaps/core.xml",
   "/sitemaps/tools.xml",
   "/sitemaps/blog.xml",
 ];
 
+const blockedTarget = targetMode === "shadow" || targetMode === "candidate";
+const fullContentParity = targetMode === "candidate" || targetMode === "production";
+const checkedHtmlPaths = fullContentParity
+  ? [...STATIC_HTML_PATHS, ...PRODUCTION_CONTENT_PATHS]
+  : STATIC_HTML_PATHS;
+const CRITICAL_PATHS = [...checkedHtmlPaths, "/robots.txt", ...SITEMAP_PATHS];
+
 const AI_BOTS = ["OAI-SearchBot/1.0", "Claude-SearchBot/1.0", "PerplexityBot/1.0"];
-const SHADOW_ROBOTS_DIRECTIVES = ["noindex", "nofollow", "noarchive"];
+const BLOCKED_ROBOTS_DIRECTIVES = ["noindex", "nofollow", "noarchive"];
 const failures = [];
 const observations = [];
 
@@ -111,10 +123,10 @@ function robotsDirectiveSet(value = "") {
   return new Set(value.toLowerCase().split(",").map((part) => part.trim()).filter(Boolean));
 }
 
-function assertShadowRobotsHeader(name, value) {
+function assertBlockedRobotsHeader(name, value) {
   const directives = robotsDirectiveSet(value);
-  const missing = SHADOW_ROBOTS_DIRECTIVES.filter((directive) => !directives.has(directive));
-  if (missing.length) failures.push({ name, expected: SHADOW_ROBOTS_DIRECTIVES, target: value, missing });
+  const missing = BLOCKED_ROBOTS_DIRECTIVES.filter((directive) => !directives.has(directive));
+  if (missing.length) failures.push({ name, expected: BLOCKED_ROBOTS_DIRECTIVES, target: value, missing });
 }
 
 function xmlLocs(body) {
@@ -125,14 +137,19 @@ function robotsRules(body) {
   return body.split(/\r?\n/).map((line) => line.replace(/#.*/, "").trim()).filter(Boolean).sort();
 }
 
-function assertShadowRobotsTxt(rules) {
+function assertBlockedRobotsTxt(rules) {
   const normalized = rules.map((rule) => rule.toLowerCase().replace(/\s+/g, " "));
   if (!normalized.includes("user-agent: *") || !normalized.includes("disallow: /")) {
-    failures.push({ name: "/robots.txt:shadow-block", expected: ["User-agent: *", "Disallow: /"], target: rules });
+    failures.push({ name: "/robots.txt:block-all", expected: ["User-agent: *", "Disallow: /"], target: rules });
   }
   if (normalized.some((rule) => rule.startsWith("sitemap:"))) {
-    failures.push({ name: "/robots.txt:shadow-sitemap", expected: "no sitemap directive on shadow", target: rules });
+    failures.push({ name: "/robots.txt:blocked-sitemap", expected: "no sitemap directive on blocked target", target: rules });
   }
+}
+
+function assertCanonicalSitemapLocs(path, locs) {
+  const invalid = locs.filter((loc) => !loc.startsWith("https://ccpun.com/"));
+  if (invalid.length) failures.push({ name: `${path}:canonical-host`, expected: "https://ccpun.com/*", target: invalid });
 }
 
 function compare(name, source, target) {
@@ -143,26 +160,35 @@ function compare(name, source, target) {
 
 for (const path of CRITICAL_PATHS) {
   const [source, target] = await Promise.all([trace(join(sourceBase, path)), trace(join(targetBase, path))]);
+
   if (path === "/robots.txt") {
     compare(`${path}:status`, source.response.status, target.response.status);
     const sourceRules = robotsRules(source.body);
     const targetRules = robotsRules(target.body);
-    if (targetMode === "shadow") assertShadowRobotsTxt(targetRules);
+    if (blockedTarget) assertBlockedRobotsTxt(targetRules);
     else compare(`${path}:rules`, sourceRules, targetRules);
   } else if (path.endsWith(".xml")) {
     compare(`${path}:status`, source.response.status, target.response.status);
-    compare(`${path}:locs`, xmlLocs(source.body), xmlLocs(target.body));
+    const sourceLocs = xmlLocs(source.body);
+    const targetLocs = xmlLocs(target.body);
+    assertCanonicalSitemapLocs(path, targetLocs);
+
+    if (fullContentParity || path !== "/sitemaps/blog.xml") {
+      compare(`${path}:locs`, sourceLocs, targetLocs);
+    }
   } else {
     const sourceFp = htmlFingerprint(source);
     const targetFp = htmlFingerprint(target);
     compare(`${path}:content`, contentFingerprint(sourceFp), contentFingerprint(targetFp));
-    if (targetMode === "shadow") {
-      assertShadowRobotsHeader(`${path}:shadow-x-robots-tag`, targetFp.xRobotsTag);
+
+    if (blockedTarget) {
+      assertBlockedRobotsHeader(`${path}:blocked-x-robots-tag`, targetFp.xRobotsTag);
     } else {
       compare(`${path}:robots`, sourceFp.robots, targetFp.robots);
       compare(`${path}:x-robots-tag`, sourceFp.xRobotsTag, targetFp.xRobotsTag);
     }
   }
+
   observations.push({
     path,
     sourceStatus: source.response.status,
@@ -171,14 +197,18 @@ for (const path of CRITICAL_PATHS) {
   });
 }
 
+const aiRepresentativePaths = fullContentParity
+  ? ["/", "/blog/personal-finance/financial-pyramid/"]
+  : ["/", "/ci-planning/"];
+
 for (const bot of AI_BOTS) {
-  for (const path of ["/", "/blog/personal-finance/financial-pyramid/"]) {
+  for (const path of aiRepresentativePaths) {
     const target = await trace(join(targetBase, path), bot);
     const xRobotsTag = target.response.headers.get("x-robots-tag") ?? "";
     if (target.response.status >= 400) {
       failures.push({ name: `ai-crawler:${bot}:${path}`, targetStatus: target.response.status, xRobotsTag });
-    } else if (targetMode === "shadow") {
-      assertShadowRobotsHeader(`ai-crawler:${bot}:${path}:shadow-x-robots-tag`, xRobotsTag);
+    } else if (blockedTarget) {
+      assertBlockedRobotsHeader(`ai-crawler:${bot}:${path}:blocked-x-robots-tag`, xRobotsTag);
     } else if (/noindex/i.test(xRobotsTag)) {
       failures.push({ name: `ai-crawler:${bot}:${path}:production-indexability`, targetStatus: target.response.status, xRobotsTag });
     }
@@ -190,6 +220,8 @@ console.log(JSON.stringify({
   source: sourceBase,
   target: targetBase,
   targetMode,
+  blockedTarget,
+  fullContentParity,
   checkedPaths: CRITICAL_PATHS.length,
   aiBots: AI_BOTS,
   observations,
