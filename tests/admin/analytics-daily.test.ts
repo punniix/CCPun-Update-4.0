@@ -77,9 +77,11 @@ test("cached reads/exports have no provider calls; daily auth is dedicated servi
   const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
   assert.doesNotMatch(read("lib/admin/analytics/store.ts"), /getGoogleDataAccessToken|fetchGsc|fetchGa4|graph.facebook.com/);
   assert.doesNotMatch(read("apps/admin/app/api/admin/analytics/export/route.ts"), /collectAnalyticsSource|fetch\(/);
-  const ownerBuilder = read("lib/admin/agent-os/export-datasets.ts").split("export async function buildOwnerExportDataset")[1]!;
+  const ownerBuilderSource = read("lib/admin/agent-os/export-datasets.ts");
+  const ownerBuilder = ownerBuilderSource.split("async function buildOwnerExportDatasetBase")[1]!.split("function exportMetricSemantics")[0]!;
   assert.match(ownerBuilder, /dataset === "marketing-analytics" \|\| dataset === "social-performance" \|\| dataset === "seo-intelligence"/);
   assert.doesNotMatch(ownerBuilder, /getSocialMarketingDashboard|listResearchSnapshots|getUbersuggestDashboardData/);
+  assert.match(ownerBuilderSource.split("export async function buildOwnerExportDataset")[1]!, /attachOwnerExportLineage\(data, view, lineageContext\.pipelineCorrelationId \?\? null\)/);
   assert.match(read("apps/admin/app/api/internal/analytics/daily/route.ts"), /isN8nExportRequestAuthorized/);
   const sql = read("db/migrations/20260927_analytics_daily_raw_v1.sql");
   assert.match(sql, /REVOKE ALL ON ccpun_admin.analytics_daily_batch,ccpun_admin.analytics_raw_page,ccpun_admin.analytics_completed_report FROM PUBLIC,ccpun_admin_runtime/);

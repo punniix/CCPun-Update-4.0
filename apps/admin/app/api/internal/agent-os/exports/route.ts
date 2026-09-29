@@ -15,7 +15,7 @@ const headers = {
   "X-Content-Type-Options": "nosniff",
 };
 
-const bodySchema = exportSelectionSchema.safeExtend({ generatedAt: z.string().datetime() });
+const bodySchema = exportSelectionSchema.safeExtend({ generatedAt: z.string().datetime(), correlationId: z.string().uuid().optional() });
 
 export async function POST(request: Request) {
   if (!isN8nExportRequestAuthorized(request)) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "invalid-export-request" }, { status: 400, headers });
 
   try {
-    const data = await buildOwnerExportDataset(parsed.data.dataset, parsed.data.generatedAt, undefined, parsed.data.view);
+    const data = await buildOwnerExportDataset(parsed.data.dataset, parsed.data.generatedAt, undefined, parsed.data.view, { pipelineCorrelationId: parsed.data.correlationId ?? null });
     return new NextResponse(analyticsExportStream(JSON.stringify({
       ...data,
       fileName: exportFileName({

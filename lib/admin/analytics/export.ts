@@ -2,12 +2,14 @@ import type { AnalyticsDataset } from "./model";
 import { buildPerformanceTables } from "./performance";
 import { formatBangkokDateTime } from "../agent-os/export-contract";
 import type { OwnerExportDataset } from "../agent-os/export-datasets";
+import { buildAnalyticsExportLineage } from "./lineage";
 
 export function buildStoredMarketingExport(datasets: AnalyticsDataset[], generatedAt: string): OwnerExportDataset {
   if (!datasets.length) throw new Error("ANALYTICS_NO_COMPLETED_DATA");
   const metadata = ["รายงาน", "แหล่งข้อมูล", "ช่วงข้อมูลเริ่ม", "ช่วงข้อมูลสิ้นสุด", "ข้อมูลต้นทาง ณ", "เก็บข้อมูล ณ (เวลาไทย)", "เขตเวลาต้นทาง", "Batch ID", "Raw SHA256", "ข้อจำกัด"];
   const columns = [...metadata, ...new Set(datasets.flatMap((data) => data.columns).filter((column) => !metadata.includes(column)))];
-  return { dataset: "marketing-analytics", title: "ข้อมูลการตลาดที่บันทึกไว้", generatedAt, timeZone: "Asia/Bangkok", columns,
+  const lineage = buildAnalyticsExportLineage(datasets, generatedAt);
+  return { dataset: "marketing-analytics", title: "ข้อมูลการตลาดที่บันทึกไว้", generatedAt, timeZone: "Asia/Bangkok", columns, lineage,
     rows: datasets.flatMap((data) => data.rows.map((row) => ({ ...row, "รายงาน": data.title, "แหล่งข้อมูล": data.source, "ช่วงข้อมูลเริ่ม": data.windowStart, "ช่วงข้อมูลสิ้นสุด": data.windowEnd,
       "ข้อมูลต้นทาง ณ": data.sourceAsOf, "เก็บข้อมูล ณ (เวลาไทย)": formatBangkokDateTime(data.collectedAt), "เขตเวลาต้นทาง": data.nativeTimeZone, "Batch ID": data.batchId, "Raw SHA256": data.rawHash, "ข้อจำกัด": [...data.limitations, ...(data.truncated ? ["ข้อมูลถูกจำกัดจำนวนแถว"] : [])].join(" | ") }))),
     overview: [{ label: "สร้างไฟล์เมื่อ (เวลาไทย)", value: formatBangkokDateTime(generatedAt) }, { label: "แหล่งข้อมูล", value: "Completed private batches · ไม่มีการเรียก provider ตอน export" },

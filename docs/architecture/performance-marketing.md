@@ -1,6 +1,6 @@
 # Performance Marketing operations
 
-Neon owns historical facts, current provider revisions, deterministic comparisons and action measurements. Existing n8n workflow `XOQHPkio5WzZIz0l` orchestrates collection, measurement, bounded VPS interpretation and publication. Admin `/analytics/performance/`, CSV/XLSX and the existing Google workspace use the same SQL definitions. Exports never call source APIs.
+Neon owns historical facts, current provider revisions, deterministic comparisons and action measurements. The live n8n workflow `XOQHPkio5WzZIz0l` is still the current combined runtime until an approved cutover, but source control now isolates its 30-node Owner Export graph from a prepared 47-node `marketing-daily-ai.direct.json` scheduled collection/analysis graph. Admin `/analytics/performance/`, CSV/XLSX and the existing Google workspace use the same stored definitions. Exports never call source APIs. The source split is pre-deploy only and must not be interpreted as a live workflow change.
 
 ## Data and reuse
 
@@ -10,7 +10,7 @@ GSC page totals and query/page details remain separate. GA4 organic acquisition,
 
 Historical GSC/GA4 collection uses the existing authenticated `/api/internal/marketing/refresh` route with `{ "operation": "backfill", "source": "gsc" | "ga4", "cursorEnd": "YYYY-MM-DD" }`. Each call writes at most one 56-day native-grain window and returns `nextEnd` for the next n8n call. Persist that cursor in the existing orchestration and stop on `backfillStatus` other than `continue`; `needs-review` means a provider report was omitted, truncated or failed, and `already-collected` requires manifest readback before choosing a new cursor. Never infer completeness from a successful HTTP status alone. GSC `earliestAllowedStart` is its rolling 16-month retention floor; GA4's is the current CCPun 1095-day database guard, not a claim about when tracking began. The actual first provider row and each report's gaps must be verified after backfill. Social, Ubersuggest and AI Visibility need their own native historical evidence; an older post date or CSV snapshot is not an older daily performance measurement.
 
-Rules enforce minimum current/previous volume, complete coverage, internal CTR benchmark cohorts and source freshness. Business-calendar week/month labels use the common provider-mature cutoff; incomplete new calendar windows wait. Lifecycle needs sufficient historical coverage. CI/FHC/LINE actions are repeatable behavior, not confirmed leads or a cohort conversion funnel.
+Rules enforce minimum current/previous volume, complete coverage, internal CTR benchmark cohorts and source freshness. Business-calendar week/month labels use the common provider-mature cutoff; if the requested calendar period is not mature, the read model uses the latest mature equal-duration comparable period and labels that fallback explicitly. Search scope is separated into current `ccpun.com`, legacy `blog.ccpun.com`, and combined evidence so a combined decline is not presented as a current-domain decline. Lifecycle needs sufficient historical coverage. CI Planning and FHC are shown as separate Landing / Start / Complete event-count summaries while retaining raw event evidence; these are repeatable behaviors, not confirmed leads or a distinct-user cohort funnel.
 
 ## Human action and learning
 
@@ -24,7 +24,7 @@ Google Action Plan imports only a strict human-field whitelist. Stable IDs/impor
 
 The existing VPS `qwen3:1.7b` worker returns Thai JSON summary and up to three interpretations with exact evidence IDs, priority, low/medium confidence and optional recommended action. The server resolves numerical evidence; numeric/currency/causal prose, unknown IDs, modified metrics, unsupported wins and unmeasured learning are rejected. Model/prompt/input hash/manifests and validation persist in Neon. AI failure preserves deterministic facts and last-good interpretation. AI cannot change campaigns, spend, publication or human decisions.
 
-n8n exposes identity → native collect → deterministic measure → prepare → enqueue → bounded status polling → schema/evidence validate → publish. A heartbeat must prove the new task version before enqueue. Private jobs stay disabled. Runtime and execution metadata remain observable without retaining raw n8n execution payloads.
+The prepared Daily/AI n8n graph exposes identity → native collect → deterministic measure → prepare → enqueue → bounded status polling → schema/evidence validate → persisted analysis. A heartbeat must prove the task version before enqueue. Private jobs stay disabled. The separate Owner Export graph publishes deterministic stored output to Google Sheets. Runtime and execution metadata remain observable without retaining raw n8n execution payloads.
 
 ## Output and verification
 
@@ -34,6 +34,6 @@ Runnable checks: `npm run test:admin`; exact local TypeScript for root/Admin/wor
 
 ## Rollout and rollback
 
-Apply frozen additive migrations to UAT first, read back ledger/privileges and rollback-fixture isolation, then Production. Merge the checked PR; verify Admin custom-domain SHA. Pin/recreate only the existing worker; retain Ollama/n8n/OCR/proxy and credential references. Update/publish only the existing workflow after source readiness, then bounded Daily/backfill and exports. Record source earliest observed date, omissions/truncation and coverage; collection since platform inception requires provider evidence.
+Apply frozen additive migrations to UAT first, read back ledger/privileges and rollback-fixture isolation, then Production only after owner approval. Before touching the live combined n8n workflow, create the dedicated Daily/AI workflow inactive, retain existing credentials/settings, validate its 06:00 Asia/Bangkok schedule and graph, and prove bounded manual execution. Only then update the existing `XOQHPkio5WzZIz0l` graph to owner-only and activate the replacement schedule as a coordinated cutover. Merge/deploy/Production migration are separate gates; verify Admin custom-domain SHA and runtime output before declaring completion. Record source earliest observed date, omissions/truncation and coverage; collection since platform inception requires provider evidence.
 
 Rollback restores captured prior workflow graph, known-good Admin deployment and worker SHA. Leave additive tables and immutable history in place; do not DROP facts/actions/analysis. Stop new AI enqueue if unhealthy while factual reads/exports retain their last success. Restoring Production requires the owner's authorized rollback scope.

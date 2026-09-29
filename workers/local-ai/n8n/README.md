@@ -9,6 +9,19 @@ Required n8n environment variables:
 
 Admin must also set `CCPUN_LOCAL_AI_N8N_ENABLED=true`. Keep it false until UAT worker health is green.
 
+## Marketing export and scheduled analysis workflows
+
+The Marketing system is source-controlled as two independent n8n graphs because they have different triggers, owners and failure domains:
+
+- `owner-export-google-sheet.direct.json` — **CCPun — Owner Export to Google Sheets**. This remains the source snapshot for the existing production workflow `XOQHPkio5WzZIz0l`. It contains only the authenticated Admin webhook and Google Sheets export/update graph. Keep the webhook path `ccpun-owner-export-sheet`, credentials, spreadsheet preservation/CAS behavior and Agent Runtime Job callbacks when applying an update.
+- `marketing-daily-ai.direct.json` — **CCPun — Marketing Daily + AI**. This contains the 06:00 Asia/Bangkok scheduled collection, canonical identity refresh, native GSC/GA4 facts, deterministic action measurement, Weekly Local AI + bounded Cloud review, Monthly Local AI + bounded Cloud review and learning summary. It remains inactive in source control until a dedicated live n8n workflow is created and validated.
+
+The split is architectural, not cosmetic. The former combined graph had two disconnected roots with no edges between them: the Owner Export component had 30 nodes and the Daily/AI component had 47 nodes. Keeping them in one live workflow made an export-only edit share publish/version/failure surface with the daily analytics pipeline without any execution dependency.
+
+Do **not** split Weekly and Monthly AI into separate workflows yet. They form one dependency chain: Daily facts → Weekly analysis → Monthly analysis → learning summary. A future split needs an explicit durable handoff/idempotency contract first.
+
+For a future approved release, do not remove the existing 06:00 schedule from the live combined workflow until a dedicated Daily/AI workflow exists, is inactive, has the expected credentials/schedule/settings, and has passed readback. Only then update the existing `XOQHPkio5WzZIz0l` graph to owner-only and activate the Daily/AI workflow as a coordinated cutover.
+
 ## Public-safe enqueue
 
 `POST $CCPUN_ADMIN_BASE_URL/api/internal/local-ai/jobs/`

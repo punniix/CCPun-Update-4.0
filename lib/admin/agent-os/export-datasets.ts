@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { readAnalyticsDashboard } from "../analytics/store";
 import { buildPerformanceExport } from "../analytics/performance";
 import { buildStoredMarketingExport } from "../analytics/export";
@@ -14,6 +15,19 @@ import { lineJourneyLabel, lineStageLabel } from "../line/presentation";
 import { readOperationsJobs } from "../operations/jobs-read-model";
 import { formatBangkokDateTime, OWNER_FRIENDLY_EXPORT_COLUMNS, exportSelectionSchema, type ExportAnalysisView, type ExportDataset } from "./export-contract";
 
+export type OwnerExportLineage = {
+  generatedAt: string;
+  cutoff: string;
+  sourceDataAvailableThrough: string | null;
+  dataQualityStatus: "ready" | "blocked_by_data_quality" | "insufficient_data" | "stale";
+  sourceManifestHash: string;
+  modelSchemaVersion: string;
+  analysisVersion: string | null;
+  aiAnalysisId: string | null;
+  pipelineCorrelationId: string | null;
+  metricSemantics: Array<"period_activity" | "lifetime_snapshot" | "point_in_time_snapshot">;
+  limitations: string[];
+};
 export type OwnerExportDataset = {
   dataset: ExportDataset;
   title: string;
@@ -22,6 +36,7 @@ export type OwnerExportDataset = {
   columns: string[];
   rows: Array<Record<string, string | number | boolean | null>>;
   overview: Array<{ label: string; value: string | number }>;
+  lineage?: OwnerExportLineage;
 };
 
 function yesNo(value: boolean) {
@@ -237,7 +252,7 @@ export function buildSeoIntelligenceExport(
     };
 }
 
-export async function buildOwnerExportDataset(
+async function buildOwnerExportDatasetBase(
   dataset: ExportDataset,
   generatedAt = new Date().toISOString(),
   variables: Record<string, string | undefined> = process.env,
@@ -449,4 +464,67 @@ export async function buildOwnerExportDataset(
   }
 
   throw new Error("EXPORT_DATASET_UNSUPPORTED");
+}
+
+
+function exportMetricSemantics(dataset: ExportDataset): OwnerExportLineage["metricSemantics"] {
+  if (dataset === "social-performance") return ["lifetime_snapshot"];
+  if (["crm-overview","crm-leads","crm-follow-ups","customer-insights","automation-runs"].includes(dataset)) return ["point_in_time_snapshot"];
+  if (dataset === "marketing-analytics" || dataset === "seo-intelligence") return ["period_activity","point_in_time_snapshot"];
+  return ["period_activity"];
+}
+
+function attachOwnerExportLineage(data: OwnerExportDataset, view?: ExportAnalysisView, pipelineCorrelationId: string | null = null): OwnerExportDataset {
+  if (data.lineage) {
+    const lineage = { ...data.lineage, pipelineCorrelationId: pipelineCorrelationId ?? data.lineage.pipelineCorrelationId };
+    return { ...data, lineage, overview: pipelineCorrelationId ? [...data.overview, { label: "Pipeline Correlation ID", value: pipelineCorrelationId }] : data.overview };
+  }
+  const sourceManifestHash = createHash("sha256").update(JSON.stringify({
+    dataset: data.dataset,
+    columns: data.columns,
+    rows: data.rows,
+    overview: data.overview,
+  })).digest("hex");
+  const lineage: OwnerExportLineage = {
+    generatedAt: data.generatedAt,
+    cutoff: data.generatedAt,
+    sourceDataAvailableThrough: data.generatedAt,
+    dataQualityStatus: data.rows.length ? "ready" : "insufficient_data",
+    sourceManifestHash,
+    modelSchemaVersion: "owner-export-v2",
+    analysisVersion: view ?? null,
+    aiAnalysisId: null,
+    pipelineCorrelationId,
+    metricSemantics: exportMetricSemantics(data.dataset),
+    limitations: [
+      "Deterministic export from stored Admin/Neon read models; no provider refresh occurs during file generation.",
+      ...(data.dataset === "social-performance" ? ["Social provider counters are snapshots and must not be interpreted as activity inside an arbitrary reporting period."] : []),
+      ...(data.dataset === "seo-intelligence" ? ["Current-domain, legacy blog, and combined SEO scopes must remain distinguishable when URLs span both hosts."] : []),
+    ],
+  };
+  return {
+    ...data,
+    lineage,
+    overview: [
+      ...data.overview,
+      { label: "Data Quality", value: lineage.dataQualityStatus },
+      { label: "Generated At", value: lineage.generatedAt },
+      { label: "Source Manifest SHA256", value: lineage.sourceManifestHash },
+      { label: "Schema", value: lineage.modelSchemaVersion },
+      { label: "Metric Semantics", value: lineage.metricSemantics.join(" | ") },
+      { label: "Limitations", value: lineage.limitations.join(" | ") },
+    ],
+  };
+}
+
+export async function buildOwnerExportDataset(
+  dataset: ExportDataset,
+  generatedAt = new Date().toISOString(),
+  variables: Record<string, string | undefined> = process.env,
+  view?: ExportAnalysisView,
+  lineageContext: { pipelineCorrelationId?: string | null } = {},
+): Promise<OwnerExportDataset> {
+  // Source contract: Analytics-backed datasets are still read from readAnalyticsDashboard(variables, generatedAt) inside the deterministic base builder; this wrapper adds provenance only.
+  const data = await buildOwnerExportDatasetBase(dataset, generatedAt, variables, view);
+  return attachOwnerExportLineage(data, view, lineageContext.pipelineCorrelationId ?? null);
 }

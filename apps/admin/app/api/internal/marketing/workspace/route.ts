@@ -8,7 +8,7 @@ import { readMarketingWorkspaceModels } from "@/lib/admin/marketing/store";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow, noarchive", "X-Content-Type-Options": "nosniff" };
-const input = z.object({ generatedAt: z.iso.datetime().optional() }).strict();
+const input = z.object({ generatedAt: z.iso.datetime().optional(), correlationId: z.string().uuid().optional() }).strict();
 
 export async function POST(request: Request) {
   if (!isN8nExportRequestAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401, headers });
@@ -24,6 +24,6 @@ export async function POST(request: Request) {
   try {
     const [snapshot, weeklyAnalysis, monthlyAnalysis] = await Promise.all([readMarketingWorkspaceModels(parsed.data.generatedAt ?? new Date().toISOString()), readMarketingAnalysis("this_week"), readMarketingAnalysis("this_month")]);
     const { weekly, monthly, cutoff } = snapshot;
-    return NextResponse.json({ ...buildMarketingWorkspace(weekly, monthly, { this_week: weeklyAnalysis, this_month: monthlyAnalysis }), spreadsheetId: "1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o", refresh: { status: "prepared", cutoff, requestGeneratedAt: parsed.data.generatedAt ?? null, windows: ["this_week", "this_month"], preserveLegacyTabs: true, humanActionAuthority: "Admin/Neon" } }, { headers });
+    return NextResponse.json({ ...buildMarketingWorkspace(weekly, monthly, { this_week: weeklyAnalysis, this_month: monthlyAnalysis }, { pipelineCorrelationId: parsed.data.correlationId ?? null }), spreadsheetId: "1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o", refresh: { status: "prepared", cutoff, requestGeneratedAt: parsed.data.generatedAt ?? null, windows: ["this_week", "this_month"], preserveLegacyTabs: true, humanActionAuthority: "Admin/Neon" } }, { headers });
   } catch { return NextResponse.json({ error: "stored-workspace-not-ready" }, { status: 503, headers }); }
 }

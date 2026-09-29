@@ -4,7 +4,9 @@ import { readFileSync } from "node:fs";
 import { PERFORMANCE_MARKETING_TABS } from "../../lib/admin/agent-os/export-contract";
 
 const workflow = JSON.parse(readFileSync(new URL("../../workers/local-ai/n8n/owner-export-google-sheet.direct.json", import.meta.url), "utf8"));
+const dailyWorkflow = JSON.parse(readFileSync(new URL("../../workers/local-ai/n8n/marketing-daily-ai.direct.json", import.meta.url), "utf8"));
 const nodes = new Map<string, { parameters: { jsCode: string } }>(workflow.nodes.map((node: { name: string }) => [node.name, node]));
+const dailyNodes = new Map<string, { parameters: Record<string, unknown>; type?: string; typeVersion?: number; credentials?: Record<string, { name?: string }>; onError?: string }>(dailyWorkflow.nodes.map((node: { name: string }) => [node.name, node]));
 const sheetId = "1zpXXHuQ152wSZXdHb0yFJPVcdQiGOHvz4Yhxrmjdo-o";
 const jobA = "00000000-0000-4000-8000-0000000000a1";
 const jobB = "00000000-0000-4000-8000-0000000000b2";
@@ -209,28 +211,28 @@ test("Action Plan accepts one hundred actions plus its three blank drafts and pr
 
 test("Daily marketing uses existing credentials and bounded native-grain refresh before AI", () => {
   const dailyNames = ["Marketing Daily · Canonical Identity", "Marketing Daily · GSC 7 วัน", "Marketing Daily · GA4 7 วัน", "Marketing Daily · วัดผลก่อน–หลัง", "Marketing Daily · ตรวจผล factual"];
-  for (let i = 0; i < dailyNames.length - 1; i++) assert.equal(workflow.connections[dailyNames[i]!].main[0][0].node, dailyNames[i + 1]);
-  const body = workflow.nodes.find((node: { name: string }) => node.name === dailyNames[1]).parameters.jsonBody;
+  for (let i = 0; i < dailyNames.length - 1; i++) assert.equal(dailyWorkflow.connections[dailyNames[i]!].main[0][0].node, dailyNames[i + 1]);
+  const body = dailyWorkflow.nodes.find((node: { name: string }) => node.name === dailyNames[1]).parameters.jsonBody;
   assert.deepEqual(JSON.parse(body), { operation: "collect", source: "gsc", lookbackDays: 7 });
   for (const prefix of ["Marketing AI Weekly", "Marketing AI Monthly"]) {
-    const run = new Function("$input", "$runIndex", nodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode);
+    const run = new Function("$input", "$runIndex", dailyNodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode);
     const evaluate = (status: string, attempt: number, workerSucceeded = false) => run({ first: () => ({ json: { status, workerSucceeded, rawRows: ["must not reach AI state"] } }) }, attempt - 1)[0].json;
     assert.equal(evaluate("running", 15).canRetry, true); assert.equal(evaluate("running", 16).canRetry, false);
     assert.equal(evaluate("failed", 1).canRetry, false); assert.equal(evaluate("unavailable", 1).canRetry, false);
     assert.equal(evaluate("running", 1, true).workerSucceeded, true); assert.doesNotMatch(JSON.stringify(evaluate("running", 1)), /rawRows/);
-    assert.equal(workflow.connections[prefix + " · Worker สำเร็จ?"].main[0][0].node, prefix + " · ตรวจ JSON และหลักฐาน");
-    assert.equal(workflow.connections[prefix + " · รับงานแล้ว?"].main[1][0].node, prefix + " · อ่านสถานะ");
-    assert.equal(workflow.connections[prefix + " · รอต่อ?"].main[0][0].node, prefix + " · รอ 15 วินาที");
-    const wait = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · รอ 15 วินาที").parameters;
+    assert.equal(dailyWorkflow.connections[prefix + " · Worker สำเร็จ?"].main[0][0].node, prefix + " · ตรวจ JSON และหลักฐาน");
+    assert.equal(dailyWorkflow.connections[prefix + " · รับงานแล้ว?"].main[1][0].node, prefix + " · อ่านสถานะ");
+    assert.equal(dailyWorkflow.connections[prefix + " · รอต่อ?"].main[0][0].node, prefix + " · รอ 15 วินาที");
+    const wait = dailyWorkflow.nodes.find((node: { name: string }) => node.name === prefix + " · รอ 15 วินาที").parameters;
     assert.equal(wait.amount, 15); assert.equal(wait.unit, "seconds");
     assert.equal(16 * wait.amount, 240);
-    assert.equal(workflow.connections[prefix + " · ตรวจ JSON และหลักฐาน"].main[0][0].node, prefix + " · ต้องใช้ Cloud?");
-    assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[0][0].node, prefix + " · จอง Cloud");
-    assert.equal(workflow.connections[prefix + " · ต้องใช้ Cloud?"].main[1][0].node, prefix + " · บันทึกสถานะขั้น");
-    assert.match(workflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /review_required.*failed.*rejected/);
-    const cloudReservationBody = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody;
+    assert.equal(dailyWorkflow.connections[prefix + " · ตรวจ JSON และหลักฐาน"].main[0][0].node, prefix + " · ต้องใช้ Cloud?");
+    assert.equal(dailyWorkflow.connections[prefix + " · ต้องใช้ Cloud?"].main[0][0].node, prefix + " · จอง Cloud");
+    assert.equal(dailyWorkflow.connections[prefix + " · ต้องใช้ Cloud?"].main[1][0].node, prefix + " · บันทึกสถานะขั้น");
+    assert.match(dailyWorkflow.nodes.find((node: { name: string }) => node.name === prefix + " · ต้องใช้ Cloud?").parameters.conditions.conditions[0].leftValue, /review_required.*failed.*rejected/);
+    const cloudReservationBody = dailyWorkflow.nodes.find((node: { name: string }) => node.name === prefix + " · จอง Cloud").parameters.jsonBody;
     assert.match(cloudReservationBody, /review_required.*failed.*workerSucceeded.*cloudStatus.*reserveReview.*reserveCloud/);
-    const openAi = workflow.nodes.find((node: { name: string }) => node.name === prefix + " · OpenAI Luna");
+    const openAi = dailyWorkflow.nodes.find((node: { name: string }) => node.name === prefix + " · OpenAI Luna");
     assert.equal(openAi.type, "@n8n/n8n-nodes-langchain.openAi");
     assert.equal(openAi.typeVersion, 2.3);
     assert.equal(openAi.parameters.resource, "text");
@@ -247,8 +249,9 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
     assert.equal(openAi.onError, "continueRegularOutput");
     assert.doesNotMatch(JSON.stringify(openAi.parameters), /api\.openai\.com\/v1\/responses|httpRequest/);
   }
-  assert.equal(workflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง").onError, "continueErrorOutput");
-  assert.equal(workflow.connections["Daily · ตรวจผลครบทุกต้นทาง"].main[1][0].node, dailyNames[0]);
+  assert.equal(dailyWorkflow.nodes.find((node: { name: string }) => node.name === "Daily · ตรวจผลครบทุกต้นทาง").onError, "continueErrorOutput");
+  assert.equal(dailyWorkflow.connections["Daily · ตรวจผลครบทุกต้นทาง"].main[1][0].node, dailyNames[0]);
+  assert.equal(workflow.nodes.some((node: { name: string }) => node.name.startsWith("Daily ·") || node.name.startsWith("Marketing AI ")), false);
 });
 
 test("draft creation commits only system identity/version; the human task and import key survive", () => {
@@ -275,7 +278,7 @@ test("draft creation commits only system identity/version; the human task and im
 test("Cloud failures log bounded diagnostics without model input or provider error text", () => {
   for (const period of ["Weekly", "Monthly"]) {
     const prefix = `Marketing AI ${period} · `;
-    const code = nodes.get(prefix + "เตรียมผล Cloud")!.parameters.jsCode;
+    const code = String(dailyNodes.get(prefix + "เตรียมผล Cloud")!.parameters.jsCode);
     const run = new Function("$input", "$", "console", code);
     const reservation = { analysisId: "analysis-private", inputHash: "hash-private", reservationId: "reservation-private", localOutputDigest: "digest-private", mode: "review" };
     const lookup = () => ({ first: () => ({ json: reservation }) });
