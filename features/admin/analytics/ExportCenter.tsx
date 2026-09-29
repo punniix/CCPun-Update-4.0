@@ -4,11 +4,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { ExportAnalysisView } from "@/lib/admin/agent-os/export-contract";
 import { PERFORMANCE_MARKETING_TABS } from "@/lib/admin/agent-os/export-contract";
-const VIEWS: Array<[ExportAnalysisView | "", string]> = [["", "ข้อมูลรวมทุกแหล่ง (ใช้เก็บอ้างอิง)"], ["seo-review", "งานตรวจ SEO"], ["measurement-gaps", "ข้อมูลที่ต้องเชื่อม"], ["campaign-performance", "แคมเปญและหน้าเข้า"], ["marketing-activities", "กิจกรรม CI / FHC / LINE"]];
+const VIEWS: Array<[ExportAnalysisView, string]> = [["tracking-overview", "All Marketing Stats · รวมทุกสถิติพร้อมวิเคราะห์"], ["content-performance", "Content Performance · Views / Reach / Search / Sessions"], ["keyword-performance", "Keyword Performance · อันดับ / Clicks / Impressions"], ["seo-review", "SEO Review · งานที่ควรตรวจ"], ["campaign-performance", "Traffic & Campaigns · ช่องทาง / แคมเปญ / หน้าเข้า"], ["marketing-activities", "Activities · CI / FHC / LINE"], ["measurement-gaps", "Measurement Gaps · ข้อมูลที่ยังขาด"]];
 
 const OPTIONS = [
-  ["performance-marketing", "ผลการตลาด: อันดับเนื้อหาและแผนงาน", "Dashboard รวม"],
-  ["marketing-analytics", "Dashboard รวม: Google, Social และ SEO", "Dashboard รวม"],
+  ["performance-marketing", "Performance Marketing · อันดับเนื้อหาและแผนงาน", "Marketing & Analytics"],
+  ["marketing-analytics", "Marketing Tracking · Content, Keyword, Traffic", "Marketing & Analytics"],
   ["social-performance", "Social Performance", "Social"],
   ["seo-intelligence", "SEO Search Intelligence", "SEO"],
   ["crm-overview", "ภาพรวม CRM", "CRM & Operations"],
@@ -19,12 +19,12 @@ const OPTIONS = [
   ["automation-runs", "Automation Runs", "CRM & Operations"],
 ] as const;
 
-const GROUPS = ["Dashboard รวม", "Social", "SEO", "CRM & Operations"] as const;
+const GROUPS = ["Marketing & Analytics", "Social", "SEO", "CRM & Operations"] as const;
 type Dataset = (typeof OPTIONS)[number][0];
 
 const DATASET_HELP: Record<Dataset, string> = {
   "performance-marketing": "ไฟล์ 7 ชีต มีอันดับเนื้อหาสัปดาห์นี้และเดือนนี้ พร้อมตัวเลขและที่มาที่ตรวจสอบได้ ระบบจะอัปเดต Google Sheet เดิม โดยตรวจงานที่คุณกรอกก่อนและไม่เขียนทับรายการที่ขัดแย้ง",
-  "marketing-analytics": "ใช้ชุดข้อมูลล่าสุดที่บันทึกสำเร็จของแต่ละแหล่ง พร้อมช่วงข้อมูล เวลาอัปเดต และคำอธิบายคอลัมน์ ไม่ดึงข้อมูลจากต้นทางใหม่ตอนส่งออก",
+  "marketing-analytics": "ไฟล์สำหรับทำ Marketing จริง: ดูว่า track อะไร คอนเทนต์ไหนได้ Views/Reach/Clicks เท่าไร Keyword ไหนติดอันดับ Traffic มาจากไหน และ Activity ใดเกิดขึ้น พร้อมช่วงข้อมูลและที่มา",
   "social-performance": "ข้อมูลโพสต์ Facebook และ Instagram จากชุดที่บันทึกสำเร็จล่าสุด แสดงผลลัพธ์ของ 50 โพสต์ล่าสุดต่อแพลตฟอร์ม ส่วนโพสต์อื่นอาจมีเฉพาะข้อมูลประกอบ พร้อมเวลาและข้อจำกัดของแต่ละตัวเลข",
   "seo-intelligence": "รวม Keyword Research, AISV และ CSV จากเว็บ Ubersuggest ที่บันทึกสำเร็จแล้ว พร้อมช่วงข้อมูลและวันที่ต้นทางอัปเดต",
   "crm-overview": "สรุปจำนวน Lead งานติดตาม และผลลัพธ์หลักของ CRM",
@@ -56,7 +56,7 @@ function statusText(status: string) {
 }
 
 export function ExportCenter({ initialDataset = "marketing-analytics", compact = false }: { initialDataset?: Dataset; compact?: boolean } = {}) {
-  const [view, setView] = useState<ExportAnalysisView | "">("");
+  const [view, setView] = useState<ExportAnalysisView>("tracking-overview");
   const [dataset, setDataset] = useState<Dataset>(initialDataset);
   const [performanceSheet, setPerformanceSheet] = useState<(typeof PERFORMANCE_MARKETING_TABS)[number]>("Performance Overview");
   const [jobId, setJobId] = useState<string | null>(null);
@@ -185,7 +185,7 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
             value={dataset}
             onChange={(event) => {
               setDataset(event.target.value as Dataset);
-              setView("");
+              setView("tracking-overview");
               setJobId(null);
               setDetail(null);
               setMessage(null);
@@ -203,14 +203,15 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
         </label> : <h3 className="font-medium">ไฟล์วิเคราะห์ผลการตลาด</h3>}
         <p className="mt-2 max-w-2xl text-xs leading-5 text-white/50">{DATASET_HELP[dataset]}</p>
 
-        {dataset === "marketing-analytics" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกชุดวิเคราะห์สำหรับ CSV / Google Sheet<select value={view} onChange={event => setView(event.target.value as ExportAnalysisView | "")} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{VIEWS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/50">แต่ละชุดแยกประเภทข้อมูลเพื่อทำ Pivot ต่อได้ Excel ดาวน์โหลดทั้งสมุดงานเสมอ หากยังไม่มีรายงานแคมเปญหรือกิจกรรม ระบบจะแจ้งว่าไม่มีข้อมูลแทนศูนย์</span></label> : null}
+        {dataset === "marketing-analytics" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกมุมข้อมูลสำหรับ CSV / Google Sheet<select value={view} onChange={event => setView(event.target.value as ExportAnalysisView)} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{VIEWS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/50">All Marketing Stats คือไฟล์รวมทุกสถิติแบบอ่านง่ายและเอาไป Pivot/BI ต่อได้ ส่วน Content และ Keyword ใช้ดูรายละเอียดเฉพาะด้าน Excel รวมทุกมุม Marketing ไว้ในไฟล์เดียว และ Raw Archive แยกไว้สำหรับตรวจระบบเท่านั้น</span></label> : null}
         {dataset === "performance-marketing" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกชีตสำหรับ CSV<select value={performanceSheet} onChange={event => setPerformanceSheet(event.target.value as typeof performanceSheet)} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{PERFORMANCE_MARKETING_TABS.map(title => <option key={title} value={title}>{title}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/60">ไฟล์ Excel และ Google Sheet มีข้อมูลครบทั้ง 7 ชีต ระบบตรวจงานที่คุณแก้ใน Google Sheet ก่อนอัปเดต เพื่อไม่เขียนทับงานของคุณ</span></label> : null}
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <a download href={dataset === "performance-marketing" ? "/api/admin/marketing/export/?format=csv&sheet=" + encodeURIComponent(performanceSheet) : dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv" + (view ? "&view=" + encodeURIComponent(view) : "") : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
+          <a download href={dataset === "performance-marketing" ? "/api/admin/marketing/export/?format=csv&sheet=" + encodeURIComponent(performanceSheet) : dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv&view=" + encodeURIComponent(view) : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
             ดาวน์โหลด CSV
           </a>
-          {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel หลายชีต</a> : null}
+          {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel สำหรับวิเคราะห์</a> : null}
+          {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=csv&raw=1" className="inline-flex min-h-11 items-center text-xs text-white/45 underline underline-offset-4 hover:text-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">Raw Archive · สำหรับตรวจสอบระบบ</a> : null}
           {dataset === "performance-marketing" ? <a download href="/api/admin/marketing/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel 7 ชีต</a> : null}
           <button type="button" onClick={createGoogleSheet} disabled={busy || (dataset === "performance-marketing" && !!jobId && !detail?.terminal)} className="min-h-11 rounded-xl bg-[#e0c985] px-4 text-sm font-medium text-[#251818] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]">
             {busy ? "กำลังส่งงาน…" : dataset === "performance-marketing" ? "อัปเดต Google Sheet เดิม" : "สร้าง Google Sheet"}
@@ -218,7 +219,7 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
         </div>
 
         <p className="mt-4 text-xs leading-5 text-white/50">
-          {dataset === "performance-marketing" ? "Google Sheets ใช้ไฟล์เดิม 7 ชีต และรักษางานที่คุณกรอกไว้ หากข้อมูลขัดแย้ง ระบบจะให้ตรวจแผนงานก่อน ส่วน Excel/CSV เป็นไฟล์สำหรับวิเคราะห์ ไม่ใช่การนำเข้าการแก้ไขกลับอัตโนมัติ ค่าว่างไม่ใช่ศูนย์" : "เวลาเก็บและสร้างไฟล์ใช้เวลาไทย (UTC+7) CSV เป็น UTF-8 เปิดใน Excel/Numbers ได้ Excel แยกชีตตามรายงานพร้อมคำอธิบาย Google Sheet มีชีตภาพรวมพร้อมวิธีอ่าน และชีตข้อมูลตามชุดที่เลือก การสร้างไฟล์ไม่ต้องรอรอบอัปเดตรายวัน ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์"}
+          {dataset === "performance-marketing" ? "Google Sheets ใช้ไฟล์เดิม 7 ชีต และรักษางานที่คุณกรอกไว้ หากข้อมูลขัดแย้ง ระบบจะให้ตรวจแผนงานก่อน ส่วน Excel/CSV เป็นไฟล์สำหรับวิเคราะห์ ไม่ใช่การนำเข้าการแก้ไขกลับอัตโนมัติ ค่าว่างไม่ใช่ศูนย์" : "เวลาเก็บและสร้างไฟล์ใช้เวลาไทย (UTC+7) Marketing Tracking ใช้ข้อมูลล่าสุดที่บันทึกไว้โดยไม่ยิง provider ใหม่ CSV/Google Sheet เป็นข้อมูลพร้อมวิเคราะห์ ส่วน Excel รวม Tracking, Content, Keyword, Traffic, Activities และ Raw Archive แยกท้ายไฟล์ ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์"}
         </p>
       </section>
 

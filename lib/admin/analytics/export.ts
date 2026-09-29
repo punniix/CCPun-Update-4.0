@@ -45,12 +45,34 @@ export function storedZip(files: Array<{ name: string; content: string }>) {
 }
 export function marketingExportXlsx(datasets: AnalyticsDataset[], generatedAt: string) {
   const data = buildStoredMarketingExport(datasets, generatedAt);
-  const analysis = buildPerformanceTables(datasets).filter(table => table.rows.length);
-  const tabs = [{ name: "ภาพรวม", rows: [["รายการ", "รายละเอียด"], ...data.overview.map((item) => [item.label, item.value])] as Cell[][] },
-    ...datasets.map((item) => ({ name: item.report.slice(0, 31), rows: [item.columns, ...item.rows.map((row) => item.columns.map((column) => row[column] ?? null))] as Cell[][] })),
-    ...analysis.map(table => ({ name: table.title, rows: [table.columns, ...table.rows.map(row => table.columns.map(column => row[column] ?? null))] as Cell[][] })),
-    { name: "คำอธิบายข้อมูล", rows: [["รายงาน", "คอลัมน์", "วิธีอ่าน"], ...analysis.map(table => [table.title, "วิธีใช้", table.guidance]), ...datasets.flatMap((item) => item.columns.map((column) => [item.title, column, column.includes("(%)") ? "เปอร์เซ็นต์ 0–100; ไม่ใช่ ratio; ห้ามเฉลี่ยตรง ๆ" : /ผู้ใช้งาน|Reach/.test(column) ? "distinct ภายใน scope; ห้ามรวมข้ามรายงาน" : /CPC/.test(column) ? "สกุลเงินตามไฟล์ต้นทาง; ไม่อนุมาน THB" : "ว่าง = ไม่ทราบ; อ่านพร้อมช่วงข้อมูลและข้อจำกัดในชีตภาพรวม"]))] as Cell[][] }];
-  return workbookExportXlsx(tabs);
+  const analysis = buildPerformanceTables(datasets);
+  const overviewRows: Cell[][] = [["รายการ", "รายละเอียด"], ["วิธีใช้", "ชีตต้น ๆ เป็นข้อมูลสำหรับ Marketing; ชีต Raw ใช้ trace/audit ระบบเท่านั้น"], ...data.overview.map((item) => [item.label, item.value])];
+  const analysisTabs = analysis.map((table) => ({
+    name: table.title.slice(0, 31),
+    rows: [table.columns, ...table.rows.map((row) => table.columns.map((column) => row[column] ?? null))] as Cell[][],
+  }));
+  const explanationRows: Cell[][] = [
+    ["รายงาน", "คอลัมน์", "วิธีอ่าน"],
+    ...analysis.map((table) => [table.title, "วิธีใช้", table.guidance]),
+    ...datasets.flatMap((item) => item.columns.map((column) => [
+      "Raw · " + item.title,
+      column,
+      column.includes("(%)") ? "เปอร์เซ็นต์ 0–100; ไม่ใช่ ratio; ห้ามเฉลี่ยตรง ๆ"
+        : /ผู้ใช้งาน|Reach/.test(column) ? "distinct ภายใน scope; ห้ามรวมข้ามรายงาน"
+          : /CPC/.test(column) ? "สกุลเงินตามไฟล์ต้นทาง; ไม่อนุมาน THB"
+            : "Raw Archive: ใช้อ้างอิงระบบ; ว่าง = ไม่ทราบ",
+    ])),
+  ];
+  const rawTabs = datasets.map((item) => ({
+    name: ("Raw · " + item.report).slice(0, 31),
+    rows: [item.columns, ...item.rows.map((row) => item.columns.map((column) => row[column] ?? null))] as Cell[][],
+  }));
+  return workbookExportXlsx([
+    { name: "ภาพรวม", rows: overviewRows },
+    ...analysisTabs,
+    { name: "คำอธิบายข้อมูล", rows: explanationRows },
+    ...rawTabs,
+  ]);
 }
 export function workbookExportXlsx(tabs: Array<{ name: string; rows: WorkbookCell[][] }>) {
   const names = tabs.map((tab, index) => `<sheet name="${xml(tab.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("");
