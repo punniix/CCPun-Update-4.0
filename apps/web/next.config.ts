@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import path from "node:path";
 type WebEnvironment = "development" | "web-uat" | "production" | "unknown";
 const WEB_VERCEL_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
+const IS_HOSTINGER_DEPLOYMENT =
+  process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
 
 function parseWebEnvironment(value: string | undefined): WebEnvironment {
   const normalized = value?.trim().toLowerCase();
@@ -113,6 +115,12 @@ const SECURITY_HEADERS = buildNextSecurityHeaders({
 });
 
 const nextConfig: NextConfig = {
+  ...(IS_HOSTINGER_DEPLOYMENT
+    ? {
+        output: "standalone" as const,
+        outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
+      }
+    : {}),
   env: {
     NEXT_PUBLIC_CCPUN_APP_ENV: WEB_ENVIRONMENT === "unknown" ? "" : WEB_ENVIRONMENT,
   },
