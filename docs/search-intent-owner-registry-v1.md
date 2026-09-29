@@ -71,7 +71,7 @@ Search-intent ownership does not imply URL migration. The registry stores the cu
 
 AIA Health CI Hero remains:
 
-- owner: `https://ccpun.com/blog/life-insurance/aia-health-ci-hero-guide/`
+- owner: `https://ccpun.com/blog/health-insurance/aia-health-ci-hero-guide/`
 - Semantic Topic: `health-insurance`
 - product meaning: Health / medical-expense insurance, not critical-illness lump-sum insurance
 

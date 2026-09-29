@@ -8,7 +8,7 @@
 - [Financial Health Check](https://ccpun.com/tools/financial-health-check/): เครื่องมือ Research Preview เพื่อประเมินส่วนต่างทุนประกันชีวิตจากภาระครอบครัวและทรัพยากรที่ตั้งใจใช้
 - [CI Planning](https://ccpun.com/ci-planning/): เครื่องมือ Research Preview สำหรับประมาณการเบื้องต้น เปรียบเทียบรายได้หรือรายจ่ายกับเงินก้อนจากประกันโรคร้ายแรง สินทรัพย์สภาพคล่อง และหนี้อื่นคงเหลือ
 - [บทความ CCPun](https://ccpun.com/blog/): ศูนย์รวมบทความใหม่บน Website 4.0 โดยหน้า Draft จะไม่เปิดต่อสาธารณะและไม่รวมใน sitemap
-- [คลังบทความเดิม](https://blog.ccpun.com/): บทความที่ยังคงให้บริการบน WordPress ระหว่างช่วง migration
+- URL บทความเดิมจาก `blog.ccpun.com` คงไว้เพื่อ redirect ไปยังบทความ canonical ปัจจุบันบน `https://ccpun.com/blog/` และไม่ใช่แหล่งเนื้อหาหลักสำหรับการอ้างอิงใหม่
 
 ## ติดต่อ
 
