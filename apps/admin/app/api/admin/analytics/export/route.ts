@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   if (model.state !== "ready" || !datasets.length) return NextResponse.json({ error: "no-completed-data" }, { status: 503, headers });
   const now = new Date().toISOString();
   const fileLabels: Partial<Record<PerformanceView, string>> = {
-    "tracking-overview": "Marketing_Tracking",
+    "tracking-overview": "Marketing_All_Stats",
     "content-performance": "Content_Performance",
     "keyword-performance": "Keyword_Performance",
     "seo-review": "SEO_Review",

@@ -7,7 +7,7 @@ const intentNames: Record<string, string> = { informational: "หาข้อม
 const intent = (value: unknown) => value == null || value === "" ? "ไม่ทราบ" : intentNames[String(value).toLowerCase()] ?? "เจตนาอื่นที่ต้นทางระบุ";
 const reason = (value: unknown) => text(value).replaceAll("ไม่ใช่ benchmark", "ไม่ใช่เกณฑ์อ้างอิง").replaceAll("benchmark", "เกณฑ์อ้างอิง").replaceAll("SERP", "หน้าผลการค้นหา").replaceAll("Intent/Volume", "เจตนาค้นหาและปริมาณค้นหา");
 const guidance: Record<string, string> = {
-  "tracking-overview": "รวมสิ่งที่ระบบติดตามเป็นตารางเดียว แยก Content, Keyword, Traffic และ Activity เพื่อกรองหรือทำ Pivot ต่อได้",
+  "tracking-overview": "รวมทุกสถิติ Marketing ที่ระบบติดตามใน schema เดียว แยก Content, Keyword, Traffic และ Activity เพื่อ Filter/Pivot ต่อได้ทันที",
   "content-performance": "ดูผลงานโพสต์และหน้าเว็บ พร้อม Views, Reach, Clicks, Search และ Organic Sessions โดยไม่รวม metric ต่างแพลตฟอร์มเป็นยอดเดียว",
   "keyword-performance": "ดูคำค้นที่ติด พร้อม Clicks, Impressions, CTR, Average Position และบริบทจาก Ubersuggest",
   "seo-review": "เรียงตามจำนวนครั้งที่ปรากฏใน Google หากยังไม่มีข้อมูล Google ใช้ปริมาณค้นหาโดยประมาณจาก Ubersuggest เพื่อวางแผนเท่านั้น ไม่ใช่จำนวนผู้เข้าชมที่คาดว่าจะได้ อันดับที่ว่างหมายถึงไม่ทราบ",

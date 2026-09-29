@@ -100,7 +100,7 @@ const activity = dataset("ga4-marketing-events", [{
 
 const all = [social, gscQuery, ubersuggest, gscPage, ga4Organic, campaign, activity];
 
-test("Marketing Tracking Overview is long-form owner working data, not a sparse raw union", () => {
+test("All Marketing Stats is normalized owner working data, not a sparse raw union", () => {
   const rows = buildMarketingTrackingOverview(all);
   assert.ok(rows.length > 10);
   assert.ok(rows.some((row) => row["ประเภทที่ติดตาม"] === "Content" && row["รายการ"] === "ประกันรถน้ำท่วม คุ้มครองแบบไหน" && row.Metric === "Views" && row["ค่า"] === 1200));
