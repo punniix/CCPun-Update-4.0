@@ -12,6 +12,9 @@ test("shadow app configs keep security headers provider-safe", () => {
   assert.doesNotMatch(web, /from "\.\.\/next-security-headers\.mjs"/);
   assert.match(web, /function buildNextSecurityHeaders/);
   assert.match(web, /Content-Security-Policy/);
+  assert.doesNotMatch(web, /runtime-environment/);
+  assert.match(web, /WEB_VERCEL_PROJECT_ID/);
+  assert.match(web, /function isWebSanityLaneAllowed/);
   assert.match(admin, /from "\.\.\/next-security-headers\.mjs"/);
   assert.doesNotMatch(web, /\.\.\/\.\.\/lib\/security-policy/);
   assert.doesNotMatch(admin, /\.\.\/\.\.\/lib\/security-policy/);

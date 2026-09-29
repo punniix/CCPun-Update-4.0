@@ -1,10 +1,54 @@
 import type { NextConfig } from "next";
 import path from "node:path";
-import {
-  IS_WEB_REVIEW_ENVIRONMENT,
-  WEB_ENVIRONMENT,
-  isWebSanityLaneAllowed,
-} from "./runtime-environment";
+type WebEnvironment = "development" | "web-uat" | "production" | "unknown";
+const WEB_VERCEL_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
+
+function parseWebEnvironment(value: string | undefined): WebEnvironment {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "development" || normalized === "web-uat" || normalized === "production"
+    ? normalized
+    : "unknown";
+}
+
+function resolveWebEnvironment(): WebEnvironment {
+  const explicit = process.env.CCPUN_APP_ENV?.trim();
+  if (explicit) return parseWebEnvironment(explicit);
+
+  const vercelEnvironment = process.env.VERCEL_ENV?.trim().toLowerCase();
+  const deploymentProjectId = process.env.VERCEL_PROJECT_ID?.trim();
+  if (vercelEnvironment === "production" && deploymentProjectId === WEB_VERCEL_PROJECT_ID) return "production";
+  if (vercelEnvironment === "preview" && deploymentProjectId === WEB_VERCEL_PROJECT_ID) return "web-uat";
+  if (!deploymentProjectId) return "development";
+  return "unknown";
+}
+
+const WEB_ENVIRONMENT = resolveWebEnvironment();
+const IS_WEB_REVIEW_ENVIRONMENT =
+  process.env.CCPUN_UAT_MODE === "1" ||
+  WEB_ENVIRONMENT === "web-uat";
+
+function isWebSanityLaneAllowed(
+  projectId: string | undefined,
+  dataset: string | undefined,
+  environment: WebEnvironment = WEB_ENVIRONMENT,
+): boolean {
+  const expected = environment === "production"
+    ? { projectId: "kyfxgjnq", dataset: "production" }
+    : environment === "development" || environment === "web-uat"
+      ? { projectId: "ccb9lnw5", dataset: "uat" }
+      : null;
+  if (!expected || projectId?.trim() !== expected.projectId || dataset?.trim() !== expected.dataset) return false;
+
+  const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
+  const role = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
+  const deploymentProjectId = process.env.VERCEL_PROJECT_ID?.trim();
+
+  if (provider === "hostinger") return role === "web" && !deploymentProjectId;
+  if (provider === "local") return environment === "development" && !deploymentProjectId;
+  if (provider && provider !== "vercel") return false;
+  if (deploymentProjectId) return deploymentProjectId === WEB_VERCEL_PROJECT_ID;
+  return environment === "development";
+}
 
 function buildNextSecurityHeaders({
   isReviewEnvironment = false,
