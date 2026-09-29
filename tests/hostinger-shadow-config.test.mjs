@@ -6,10 +6,12 @@ import { buildNextSecurityHeaders } from "../apps/next-security-headers.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("shadow app configs use an explicit ESM-safe shared security helper", () => {
+test("shadow app configs keep security headers provider-safe", () => {
   const web = read("apps/web/next.config.ts");
   const admin = read("apps/admin/next.config.ts");
-  assert.match(web, /from "\.\.\/next-security-headers\.mjs"/);
+  assert.doesNotMatch(web, /from "\.\.\/next-security-headers\.mjs"/);
+  assert.match(web, /function buildNextSecurityHeaders/);
+  assert.match(web, /Content-Security-Policy/);
   assert.match(admin, /from "\.\.\/next-security-headers\.mjs"/);
   assert.doesNotMatch(web, /\.\.\/\.\.\/lib\/security-policy/);
   assert.doesNotMatch(admin, /\.\.\/\.\.\/lib\/security-policy/);
