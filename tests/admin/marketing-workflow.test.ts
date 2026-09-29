@@ -214,7 +214,7 @@ test("Daily marketing uses existing credentials and bounded native-grain refresh
   const body = workflow.nodes.find((node: { name: string }) => node.name === dailyNames[1]).parameters.jsonBody;
   assert.deepEqual(JSON.parse(body), { operation: "collect", source: "gsc", lookbackDays: 7 });
   for (const prefix of ["Marketing AI Weekly", "Marketing AI Monthly"]) {
-    const run = new Function("$input", "$runIndex", dailyNodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode);
+    const run = new Function("$input", "$runIndex", String(dailyNodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode));
     const evaluate = (status: string, attempt: number, workerSucceeded = false) => run({ first: () => ({ json: { status, workerSucceeded, rawRows: ["must not reach AI state"] } }) }, attempt - 1)[0].json;
     assert.equal(evaluate("running", 15).canRetry, true); assert.equal(evaluate("running", 16).canRetry, false);
     assert.equal(evaluate("failed", 1).canRetry, false); assert.equal(evaluate("unavailable", 1).canRetry, false);
