@@ -88,18 +88,29 @@ npm run qa:hostinger:parity -- \
   --target https://<hostinger-shadow-host>
 ```
 
-The parity check blocks on differences in:
+Shadow mode is the default. It requires content/route parity while deliberately enforcing UAT indexing safety:
 
-- HTTP status and redirect chain;
-- canonical URL;
-- meta robots and X-Robots-Tag;
-- title and H1;
-- JSON-LD schema type set;
-- robots.txt rules;
-- sitemap URL membership for the root, core, tools and blog sitemaps;
-- accessibility for OAI-SearchBot, Claude-SearchBot and PerplexityBot on representative public pages.
+- HTTP status and redirect-chain parity;
+- canonical URL parity;
+- title and H1 parity;
+- JSON-LD schema type parity;
+- sitemap URL membership parity for root, core, tools and blog sitemaps;
+- `X-Robots-Tag` on Shadow contains `noindex, nofollow, noarchive`;
+- Shadow `robots.txt` blocks all crawlers and does not advertise a sitemap;
+- OAI-SearchBot, Claude-SearchBot and PerplexityBot can reach representative Shadow pages without HTTP errors while receiving the same Shadow noindex protection.
 
-After parity passes, re-run PageSpeed/Ubersuggest against the Hostinger shadow. Mobile LCP is a critical gate because the current baseline is already about 2.4 s.
+For the final production candidate after UAT protection is removed, run:
+
+```bash
+npm run qa:hostinger:parity -- \
+  --source https://ccpun.com \
+  --target https://<hostinger-production-candidate> \
+  --target-mode production
+```
+
+Production mode additionally requires meta robots, X-Robots-Tag and robots.txt parity with the current Vercel production site.
+
+After Shadow parity passes, re-run PageSpeed/Ubersuggest against the Hostinger shadow. Mobile LCP is a critical gate because the current baseline is already about 2.4 s.
 
 ## Why Admin is not in the first cutover
 
