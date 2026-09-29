@@ -174,7 +174,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
       <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สถานะการเชื่อมต่อ">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">ชุดข้อมูล</p><p className="mt-2 text-lg font-semibold">{datasetLabel(status.dataset)}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">การอ่านข้อมูล</p><p className="mt-2 text-lg font-semibold">{connectionLabel(status.readReady, "read", status.environment)}</p></article>
-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">แก้บทความใน Studio</p><p className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", status.environment)}</p>{studioReady && !status.writeReady ? <p className="mt-2 text-xs leading-5 text-white/50">ยังไม่นำข้อเสนอไปแก้ฉบับร่างให้อัตโนมัติ</p> : null}</article>
+        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">แก้บทความใน Sanity Studio</p><p className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", status.environment)}</p>{studioReady && !status.writeReady ? <p className="mt-2 text-xs leading-5 text-white/50">ยังไม่นำข้อเสนอไปแก้ฉบับร่างให้อัตโนมัติ</p> : null}</article>
         <Link href="/operations/health/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">
           <p className="text-sm text-white/60">ระบบหลังบ้าน</p>
           <p className={`mt-2 text-lg font-semibold ${operations.identityValid ? "text-emerald-200" : operations.configured ? "text-amber-200" : "text-white/70"}`}>
@@ -203,8 +203,8 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
 
       {status.environment === "local-production" && studioReady ? (
         <section className="mt-6 grid gap-3 md:grid-cols-3" aria-label="เครื่องมือบทความในระบบจริง">
-          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">สร้างและแก้บทความ</h2><p className="mt-2 text-sm leading-6 text-white/70">Studio บันทึกทุกการเปลี่ยนแปลงไว้ในฉบับร่างเดียวกันอัตโนมัติ</p></article>
-          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">เผยแพร่หรือตั้งเวลา</h2><p className="mt-2 text-sm leading-6 text-white/70">เปิดให้เฉพาะคุณกดใน Studio หลังตรวจตัวอย่างแล้ว</p></article>
+          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">สร้างและแก้บทความ</h2><p className="mt-2 text-sm leading-6 text-white/70">Sanity Studio บันทึกทุกการเปลี่ยนแปลงไว้ในฉบับร่างเดียวกันอัตโนมัติ</p></article>
+          <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">เผยแพร่หรือตั้งเวลา</h2><p className="mt-2 text-sm leading-6 text-white/70">เปิดให้เฉพาะคุณกดใน Sanity Studio หลังตรวจตัวอย่างแล้ว</p></article>
           <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="font-semibold">ยกเลิกการเผยแพร่หรือลบ</h2><p className="mt-2 text-sm leading-6 text-white/70">บทความที่เผยแพร่อยู่ต้องยกเลิกการเผยแพร่ก่อน จึงลบฉบับร่างได้</p></article>
         </section>
       ) : null}

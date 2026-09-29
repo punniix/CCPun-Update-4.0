@@ -33,7 +33,7 @@ test("n8n Integration Registry separates Admin triggers, background jobs, unconn
     ["HpHQEFLf7k6dKMC3", "Gn7ghA6RV8ladv56", "bwQcEsfdC0tUOgIA"],
   );
   assert.equal(N8N_ADMIN_INTEGRATIONS.find((item) => item.workflowId === "XOQHPkio5WzZIz0l")?.adminPath, "/analytics/exports/");
-  assert.match(settings, /งานอัตโนมัติที่เชื่อมกับศูนย์จัดการ/);
+  assert.match(settings, /n8n Workflow Integration/);
   assert.match(settings, /ยังไม่มีปุ่ม/);
 });
 

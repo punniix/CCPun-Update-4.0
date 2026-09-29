@@ -92,7 +92,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {hasAdminPermission(role, "advisor:read") ? <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">ลูกค้า LINE</Link> : null}
-            <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 px-3.5 py-2 text-xs font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
+            <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 px-3.5 py-2 text-xs font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">Sanity Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
             <div className="text-right">
               <div className="text-white/80">{identityLabel}</div>
               <div className="text-xs text-white/55">สิทธิ์: {roleLabel(role)}</div>
@@ -111,9 +111,9 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
           <AdminNavigation items={navItems} />
           <div className="mt-4 rounded-2xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-4 text-sm leading-6 text-white/70 lg:mt-6">
             {environment === "production-admin" || environment === "local-production" ? (
-              <><strong className="font-medium text-[#f4df9b]">ระบบจริง · ใช้ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น และใช้ข้อมูลจริงตามสิทธิ์ที่กำหนด" : "การแก้ฉบับร่างและการอนุมัติต้องให้ผู้มีสิทธิ์เป็นคนยืนยัน"} ระบบจะส่งโพสต์ได้เฉพาะรายการที่ตรวจและอนุมัติแล้วเท่านั้น</>
+              <><strong className="font-medium text-[#f4df9b]">Production · ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น และใช้ข้อมูลจริงตามสิทธิ์ที่กำหนด" : "การแก้ฉบับร่างและการอนุมัติต้องให้ผู้มีสิทธิ์เป็นคนยืนยัน"} ระบบจะส่งโพสต์ได้เฉพาะรายการที่ตรวจและอนุมัติแล้วเท่านั้น</>
             ) : (
-              <><strong className="font-medium text-[#f4df9b]">พื้นที่ทดสอบ:</strong> ใช้ตรวจขั้นตอนก่อนนำขึ้นระบบจริง การส่งข้อมูลไปบริการภายนอกยังปิดไว้จนกว่าผู้มีสิทธิ์จะยืนยัน</>
+              <><strong className="font-medium text-[#f4df9b]">UAT:</strong> ใช้ตรวจขั้นตอนก่อนนำขึ้นระบบจริง การส่งข้อมูลไปบริการภายนอกยังปิดไว้จนกว่าผู้มีสิทธิ์จะยืนยัน</>
             )}
           </div>
         </aside>

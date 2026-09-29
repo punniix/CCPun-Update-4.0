@@ -37,7 +37,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
         <div><dt className="text-white/50">อัปเดตล่าสุด</dt><dd className="mt-1 text-white/85">{new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(article.updatedAt))}</dd></div>
       </dl>
       <div className="mt-6 flex flex-wrap gap-2">
-        <Link href={getStudioArticleEditHref(article.id)} target="_blank" rel="noopener noreferrer" className="gold-button inline-flex min-h-11 items-center px-5 py-3 text-sm">แก้ใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
+        <Link href={getStudioArticleEditHref(article.id)} target="_blank" rel="noopener noreferrer" className="gold-button inline-flex min-h-11 items-center px-5 py-3 text-sm">แก้ใน Sanity Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
         <Link href={`/seo/audits/${encodeURIComponent(article.id)}/`} className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูผลตรวจ SEO</Link>
         <Link href="/content/articles/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">กลับหน้าบทความ</Link>
       </div>

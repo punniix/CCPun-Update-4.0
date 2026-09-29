@@ -97,7 +97,7 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">งานอัตโนมัติ</p>
+            <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">Agent OS</p>
             <h2 className="mt-2 text-2xl font-semibold">{statusLabel(detail.job.status)}</h2>
             <p className="mt-2 text-sm text-white/55">ดูความคืบหน้าและเวลาที่ใช้ด้านล่าง</p>
           </div>
@@ -121,7 +121,7 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
             <p className="mt-2 text-sm font-medium">{detail.job.attempt}/{detail.job.maxAttempts}</p>
           </div>
           <div className="rounded-2xl bg-black/15 p-4">
-            <p className="text-xs text-white/45">รอบทำงานใน n8n</p>
+            <p className="text-xs text-white/45">n8n Execution</p>
             <p className="mt-2 break-all text-sm font-medium">{detail.job.n8nExecutionId ? "มีข้อมูลให้ตรวจย้อนหลัง" : "ยังไม่มี"}</p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
         ) : null}
         <details className="mt-4 text-xs text-white/55">
           <summary className="cursor-pointer">ข้อมูลสำหรับทีมดูแลระบบ</summary>
-          <p className="mt-2 break-all">รหัสงาน: {detail.job.jobId} · ขั้นตอน: {detail.job.stage} · รอบ n8n: {detail.job.n8nExecutionId ?? "ยังไม่มี"}{detail.job.errorCategory ? ` · รหัสปัญหา: ${detail.job.errorCategory}` : ""}</p>
+          <p className="mt-2 break-all">Job ID: {detail.job.jobId} · Stage: {detail.job.stage} · n8n Execution: {detail.job.n8nExecutionId ?? "ยังไม่มี"}{detail.job.errorCategory ? ` · Error category: ${detail.job.errorCategory}` : ""}</p>
         </details>
       </section>
 

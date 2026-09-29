@@ -25,8 +25,8 @@ const CONTENT_REVIEW_STATUS_LABELS: Record<string, string> = {
 const RISK_LABELS: Record<string, string> = {
   low: "ต่ำ",
   medium: "ปานกลาง",
-  high: "สูง — ตรวจใน Studio",
-  critical: "วิกฤต — ตรวจใน Studio",
+  high: "สูง — ตรวจใน Sanity Studio",
+  critical: "วิกฤต — ตรวจใน Sanity Studio",
 };
 
 const PROPOSAL_TYPE_LABELS: Record<string, string> = {
@@ -50,14 +50,14 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   "write-token-required": "การเชื่อมต่อสำหรับบันทึกฉบับร่างยังไม่พร้อม",
   "suggestion-stale": "ฉบับร่างเปลี่ยนหลังจากอนุมัติข้อเสนอนี้ กรุณาตรวจ SEO และสร้างข้อเสนอใหม่",
   "suggestion-conflict": "บทความหรือข้อเสนอเปลี่ยนไปแล้ว กรุณาโหลดหน้าใหม่และตรวจอีกครั้ง",
-  "risk-too-high": "ข้อเสนอนี้มีความเสี่ยงสูง ต้องตรวจและแก้ด้วยตนเองใน Studio",
-  "manual-apply-required": "รายการนี้ต้องตรวจและแก้ด้วยตนเองใน Studio",
+  "risk-too-high": "ข้อเสนอนี้มีความเสี่ยงสูง ต้องตรวจและแก้ด้วยตนเองใน Sanity Studio",
+  "manual-apply-required": "รายการนี้ต้องตรวจและแก้ด้วยตนเองใน Sanity Studio",
   "target-draft-not-found": "ไม่พบฉบับร่างที่เกี่ยวข้องในสภาพแวดล้อมนี้",
   "suggestion-not-found": "ไม่พบข้อเสนอนี้ อาจมีการเปลี่ยนแปลงไปแล้ว",
   "not-found": "ไม่พบข้อมูลที่ต้องการ อาจมีการเปลี่ยนแปลงไปแล้ว",
   "article-not-found": "ไม่พบบทความนี้ในสภาพแวดล้อมนี้",
   "audit-failed": "ยังตรวจ SEO ไม่สำเร็จ กรุณาลองอีกครั้ง",
-  "audit-draft-required": "บทความนี้ยังไม่มีฉบับร่าง กรุณาเปิด Studio เพื่อเริ่มฉบับร่างก่อนตรวจ SEO",
+  "audit-draft-required": "บทความนี้ยังไม่มีฉบับร่าง กรุณาเปิด Sanity Studio เพื่อเริ่ม Draftก่อนตรวจ SEO",
   "audit-stale": "บทความเปลี่ยนไประหว่างการตรวจ กรุณาลองตรวจ SEO ใหม่อีกครั้ง",
   "proposal-source-stale": "บทความเปลี่ยนไประหว่างสร้างข้อเสนอ กรุณาลองสร้างข้อเสนอใหม่อีกครั้ง",
   "proposal-generation-failed": "ยังสร้างข้อเสนอไม่สำเร็จ กรุณาลองอีกครั้ง",
@@ -99,21 +99,21 @@ export function connectionLabel(
   kind: "read" | "write" | "studio",
   environment = process.env.NEXT_PUBLIC_CCPUN_APP_ENV,
 ): string {
-  const lane = environment === "local-production" || environment === "production-admin" ? "จริง" : "ทดสอบ";
-  if (kind === "studio") return ready ? `แก้ฉบับร่างในข้อมูล${lane}ได้` : "ปิดการแก้ฉบับร่างไว้เพื่อความปลอดภัย";
-  if (ready) return kind === "read" ? `อ่านข้อมูล${lane}ได้` : `บันทึกฉบับร่างในข้อมูล${lane}ได้`;
+  const lane = environment === "local-production" || environment === "production-admin" ? "Production" : "UAT";
+  if (kind === "studio") return ready ? `แก้ Draft ใน Sanity Studio (${lane}) ได้` : "ปิดการแก้ Draft ไว้เพื่อความปลอดภัย";
+  if (ready) return kind === "read" ? `อ่านข้อมูล ${lane} ได้` : `บันทึก Draft ใน ${lane} ได้`;
   return kind === "read" ? "ยังอ่านข้อมูลไม่ได้" : "ปิดการบันทึกไว้เพื่อความปลอดภัย";
 }
 
 export function environmentLabel(environment: string): string {
-  if (environment === "development") return "เครื่องทดสอบภายใน";
-  if (environment === "local-uat") return "เครื่องทดสอบบน Mac";
-  if (environment === "local-production") return "เครื่อง Mac ที่ใช้ข้อมูลจริง";
-  if (environment === "lab") return "ห้องทดลองหลัก";
-  if (environment === "uat") return "ระบบทดสอบ";
-  if (environment === "admin-uat") return "ศูนย์จัดการสำหรับทดสอบ";
-  if (environment === "production-admin") return "ศูนย์จัดการที่ใช้ข้อมูลจริง";
-  if (environment === "production") return "ระบบจริง";
+  if (environment === "development") return "Development";
+  if (environment === "local-uat") return "Local UAT";
+  if (environment === "local-production") return "Local Production";
+  if (environment === "lab") return "Lab";
+  if (environment === "uat") return "UAT";
+  if (environment === "admin-uat") return "Admin UAT";
+  if (environment === "production-admin") return "Production Admin";
+  if (environment === "production") return "Production";
   return "ยังยืนยันสภาพแวดล้อมไม่ได้";
 }
 
@@ -121,12 +121,12 @@ export function adminDataLaneLabel(
   environment = process.env.NEXT_PUBLIC_CCPUN_APP_ENV,
 ): string {
   return environment === "production-admin" || environment === "local-production"
-    ? "ฉบับร่างในข้อมูลจริง"
-    : "ข้อมูลทดสอบ";
+    ? "Production Draft"
+    : "UAT";
 }
 
 export function datasetLabel(dataset: string | null | undefined): string {
-  return dataset === "production" ? "ข้อมูลจริง" : dataset === "uat" ? "ข้อมูลทดสอบ" : dataset ? "ชุดข้อมูลที่ยังไม่รู้จัก" : "ยังไม่ได้ตั้งค่า";
+  return dataset === "production" ? "Production" : dataset === "uat" ? "UAT" : dataset ? "Unknown Dataset" : "ยังไม่ได้ตั้งค่า";
 }
 
 export function friendlyApiError(code: unknown): string {

@@ -2,15 +2,15 @@ import { aisvSourceRuntimeLabel } from "@/lib/admin/seo-intelligence/aisv";
 
 const seoOverviewLabels: Record<string, string> = {
   "Keyword Research ที่บันทึกไว้": "คำค้นที่บันทึกไว้",
-  "AISV Prompt": "คำถามที่ติดตามการปรากฏในคำตอบ AI",
-  "สถานะ AISV": "สถานะข้อมูลการปรากฏในคำตอบ AI",
-  "AI Visibility": "สัดส่วนคำตอบ AI ที่มี CCPun",
-  "AI Mentions": "ครั้งที่กล่าวถึง CCPun ในคำตอบ AI",
-  "AI Answers": "คำตอบ AI ที่ตรวจ",
-  "ช่วงรายงาน AISV": "ช่วงรายงานการปรากฏในคำตอบ AI",
-  "Research ล่าสุด": "ข้อมูลคำค้นล่าสุด",
-  "AISV Runtime": "วิธีเก็บข้อมูลการปรากฏในคำตอบ AI",
-  "ขอบเขตไฟล์": "ขอบเขตข้อมูล",
+  "AISV Prompt": "AISV Prompt",
+  "สถานะ AISV": "AISV Status",
+  "AI Visibility": "AI Visibility",
+  "AI Mentions": "AI Mentions",
+  "AI Answers": "AI Answers",
+  "ช่วงรายงาน AISV": "AISV Report Window",
+  "Research ล่าสุด": "Latest Research",
+  "AISV Runtime": "AISV Runtime",
+  "ขอบเขตไฟล์": "Export Scope",
 };
 
 const seoLimitations: Record<string, string> = {
@@ -20,13 +20,13 @@ const seoLimitations: Record<string, string> = {
 };
 
 const overviewLabels: Record<string, string> = {
-  Grain: "ข้อมูลหนึ่งแถวแยกตาม",
-  "Engaged sessions": "เซสชันที่มีส่วนร่วม",
-  "Key events": "เหตุการณ์สำคัญที่ตั้งค่าไว้",
-  "Session key event rate (%)": "สัดส่วนเซสชันที่มีเหตุการณ์สำคัญ (%)",
-  "Total interactions": "ปฏิสัมพันธ์ทั้งหมด",
-  "Volume Ubersuggest": "ปริมาณค้นหาโดยประมาณ",
-  "Insights ล่าสุดต่อแพลตฟอร์ม": "โพสต์ที่มีสถิติล่าสุดต่อแพลตฟอร์ม",
+  Grain: "Grain",
+  "Engaged sessions": "Engaged sessions",
+  "Key events": "Key events",
+  "Session key event rate (%)": "Session key event rate (%)",
+  "Total interactions": "Total interactions",
+  "Volume Ubersuggest": "Ubersuggest Volume",
+  "Insights ล่าสุดต่อแพลตฟอร์ม": "Latest Insights ต่อแพลตฟอร์ม",
 };
 
 // ponytail: translate only the source notes we actually store; preserve every original below the report.
@@ -60,12 +60,12 @@ export function ownerAnalyticsOverviewLabel(report: string, label: string): stri
 }
 
 export function ownerAnalyticsOverviewValue(report: string, label: string, value: string | number | boolean): string | number | boolean {
-  if (label === "Grain" && value === "วัน × event name") return "วัน × ชื่อกิจกรรม";
-  if (label === "Grain" && value === "วัน × source/medium × campaign × landing page") return "วัน × ช่องทาง × แคมเปญ × หน้าเข้า";
-  if (report === "ubersuggest-web-keywords" && label === "ประเภทไฟล์" && value === "keyword-coverage") return "รายงานคำค้น";
+  if (label === "Grain" && value === "วัน × event name") return "วัน × event name";
+  if (label === "Grain" && value === "วัน × source/medium × campaign × landing page") return "วัน × source/medium × campaign × landing page";
+  if (report === "ubersuggest-web-keywords" && label === "ประเภทไฟล์" && value === "keyword-coverage") return "Keyword Coverage";
   if (report !== "seo-intelligence") return value;
   if (label === "AISV Runtime") return aisvSourceRuntimeLabel(typeof value === "string" ? value : null);
-  if (label === "ขอบเขตไฟล์" && value === "Stored Research + Ubersuggest AISV · export ไม่ยิง provider สด") return "ข้อมูลคำค้นที่บันทึกไว้และผลการปรากฏในคำตอบ AI จาก Ubersuggest โดยไม่ดึงข้อมูลใหม่ตอนส่งออก";
+  if (label === "ขอบเขตไฟล์" && value === "Stored Research + Ubersuggest AISV · export ไม่ยิง provider สด") return "Stored Research + Ubersuggest AISV · Export ไม่เรียก Provider ใหม่";
   return value;
 }
 
