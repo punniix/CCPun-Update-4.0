@@ -31,10 +31,13 @@ if (role === "web") {
   if (!["production", "web-uat"].includes(appEnv ?? "")) {
     failures.push("Web Hostinger lane must be production or web-uat");
   }
+  if (appEnv === "production" || appEnv === "web-uat") {
+    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", appEnv);
+  }
   const production = appEnv === "production";
   requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", production ? "kyfxgjnq" : "ccb9lnw5");
   requireExact("NEXT_PUBLIC_SANITY_DATASET", production ? "production" : "uat");
-  if (production && env.CCPUN_UAT_MODE === "1") failures.push("Production Web must not set CCPUN_UAT_MODE=1");
+  requireExact("CCPUN_UAT_MODE", production ? "0" : "1");
   if (production && env.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "1") {
     warnings.push("CCPUN_ENABLE_PRODUCTION_ANALYTICS is not 1; production analytics would stay disabled");
   }
