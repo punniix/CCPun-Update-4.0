@@ -22,6 +22,7 @@ function forbidPresent(key) {
 const provider = env.CCPUN_DEPLOYMENT_PROVIDER?.trim();
 const role = env.CCPUN_DEPLOYMENT_ROLE?.trim();
 const appEnv = env.CCPUN_APP_ENV?.trim();
+const releaseStage = env.CCPUN_RELEASE_STAGE?.trim();
 
 requireExact("CCPUN_DEPLOYMENT_PROVIDER", "hostinger");
 forbidPresent("VERCEL_PROJECT_ID");
@@ -31,19 +32,33 @@ if (role === "web") {
   if (!["production", "web-uat"].includes(appEnv ?? "")) {
     failures.push("Web Hostinger lane must be production or web-uat");
   }
-  if (appEnv === "production" || appEnv === "web-uat") {
-    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", appEnv);
+
+  if (appEnv === "web-uat") {
+    requireExact("CCPUN_RELEASE_STAGE", "shadow");
+    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", "web-uat");
+    requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", "ccb9lnw5");
+    requireExact("NEXT_PUBLIC_SANITY_DATASET", "uat");
+    requireExact("CCPUN_UAT_MODE", "1");
+    requireExact("CCPUN_ENABLE_PRODUCTION_ANALYTICS", "0");
   }
-  const production = appEnv === "production";
-  requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", production ? "kyfxgjnq" : "ccb9lnw5");
-  requireExact("NEXT_PUBLIC_SANITY_DATASET", production ? "production" : "uat");
-  requireExact("CCPUN_UAT_MODE", production ? "0" : "1");
-  if (production) {
-    requireExact("CCPUN_GIT_REF", "v4-production");
+
+  if (appEnv === "production") {
+    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", "production");
+    requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", "kyfxgjnq");
+    requireExact("NEXT_PUBLIC_SANITY_DATASET", "production");
+    requirePresent("CCPUN_GIT_REF");
     requirePresent("CCPUN_GIT_SHA");
     requirePresent("CCPUN_RELEASE_ID");
-    if (env.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "1") {
-      warnings.push("CCPUN_ENABLE_PRODUCTION_ANALYTICS is not 1; production analytics would stay disabled");
+
+    if (releaseStage === "candidate") {
+      requireExact("CCPUN_UAT_MODE", "1");
+      requireExact("CCPUN_ENABLE_PRODUCTION_ANALYTICS", "0");
+    } else if (releaseStage === "live") {
+      requireExact("CCPUN_UAT_MODE", "0");
+      requireExact("CCPUN_ENABLE_PRODUCTION_ANALYTICS", "1");
+      requireExact("CCPUN_GIT_REF", "v4-production");
+    } else {
+      failures.push("Production Web Hostinger lane must set CCPUN_RELEASE_STAGE=candidate or live");
     }
   }
 } else if (role === "admin") {
@@ -71,6 +86,7 @@ const result = {
   provider,
   role,
   environment: appEnv,
+  releaseStage: releaseStage || null,
   release: {
     gitRef: env.CCPUN_GIT_REF?.trim() || null,
     gitSha: env.CCPUN_GIT_SHA?.trim() || null,
