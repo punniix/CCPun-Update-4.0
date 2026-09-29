@@ -84,7 +84,7 @@ async function materializePublicDirectory() {
   if (!existsSync(extractedPublic)) {
     throw new Error("GitHub source archive did not contain public assets.");
   }
-  cpSync(extractedPublic, webPublic, { recursive: true });
+  replaceDirectory(extractedPublic, webPublic);
   rmSync(tempRoot, { recursive: true, force: true });
 }
 

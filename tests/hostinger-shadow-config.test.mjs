@@ -164,6 +164,7 @@ test("Hostinger standalone packaging traces and preserves public assets", () => 
   assert.match(web, /"\.\.\/\.\.\/public\/\*\*\/\*"/);
   assert.doesNotMatch(web, /HOSTINGER_PUBLIC_FALLBACK/);
   assert.doesNotMatch(buildProvider, /\.next\/static\/ccpun-public/);
+  assert.match(buildProvider, /replaceDirectory\(extractedPublic, webPublic\)/);
   assert.match(buildProvider, /"public\/llms\.txt"/);
   assert.match(buildProvider, /"public\/\.well-known\/security\.txt"/);
   assert.match(buildProvider, /"public\/favicon\.ico"/);
