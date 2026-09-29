@@ -92,13 +92,29 @@ const campaign = dataset("ga4-session-performance", [{
   "Session key event rate (%)": 6.67,
 }], "ga4", "GA4 · ช่องทาง แคมเปญ และหน้าเข้า");
 
+const gscDailyQuery = dataset("gsc-daily-query-page", [{
+  "วันที่": "2026-09-28",
+  "หน้าเว็บ": "https://ccpun.com/blog/health-insurance/aia-health-happy-describe/",
+  "คำค้น": "ประกันสุขภาพ",
+  "คลิก": 4,
+  "การแสดงผล": 100,
+  "CTR (%)": 4,
+  "อันดับเฉลี่ย": 7,
+}], "gsc", "GSC · รายวันคำค้นต่อหน้า");
+
+const contentEvent = dataset("ga4-content-events", [{
+  "วันที่": "2026-09-28",
+  Event: "ci_result_view",
+  "หน้าเว็บ": "/ci-planning",
+  "จำนวน event": 11,
+}], "ga4", "GA4 · Intent activity รายวันต่อหน้า");
 const activity = dataset("ga4-marketing-events", [{
   "วันที่": "2026-09-28",
   Event: "ci_calculator_complete",
   "จำนวน event": 5,
 }], "ga4", "GA4 · Events ของ CI / FHC / LINE");
 
-const all = [social, gscQuery, ubersuggest, gscPage, ga4Organic, campaign, activity];
+const all = [social, gscQuery, gscDailyQuery, ubersuggest, gscPage, ga4Organic, campaign, contentEvent, activity];
 
 test("All Marketing Stats is normalized owner working data, not a sparse raw union", () => {
   const rows = buildMarketingTrackingOverview(all);
@@ -107,6 +123,8 @@ test("All Marketing Stats is normalized owner working data, not a sparse raw uni
   assert.ok(rows.some((row) => row["ประเภทที่ติดตาม"] === "Keyword" && row["รายการ"] === "ประกันสุขภาพ" && row.Metric === "Average Position" && row["ค่า"] === 7.5));
   assert.ok(rows.some((row) => row["ประเภทที่ติดตาม"] === "Traffic" && row.Metric === "Sessions" && row["ค่า"] === 30));
   assert.ok(rows.some((row) => row["ประเภทที่ติดตาม"] === "Activity" && row["รายการ"] === "ci_calculator_complete" && row["ค่า"] === 5));
+  assert.ok(rows.some((row) => row["ประเภทที่ติดตาม"] === "Keyword" && row["ระดับข้อมูล"] === "Keyword × Page × Day" && row["วันที่"] === "2026-09-28" && row["ค่า"] === 4));
+  assert.ok(rows.some((row) => row["ประเภทที่ติดตาม"] === "Content Activity" && row["ระดับข้อมูล"] === "Event × Page × Day" && row["รายการ"] === "ci_result_view" && row["ค่า"] === 11));
   assert.ok(rows.every((row) => Object.hasOwn(row, "ข้อมูลต้นทางถึง") && Object.hasOwn(row, "คุณภาพข้อมูล") && Object.hasOwn(row, "Batch ID")));
 });
 

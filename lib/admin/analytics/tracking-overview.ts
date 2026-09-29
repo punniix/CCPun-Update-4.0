@@ -4,7 +4,7 @@ type Cell = string | number | boolean | null;
 type Row = Record<string, Cell>;
 
 export const TRACKING_OVERVIEW_COLUMNS = [
-  "ประเภทที่ติดตาม", "แพลตฟอร์ม / แหล่งข้อมูล", "รายงานต้นทาง", "รายการ", "ID อ้างอิง",
+  "ประเภทที่ติดตาม", "แพลตฟอร์ม / แหล่งข้อมูล", "รายงานต้นทาง", "ระดับข้อมูล", "รายการ", "ID อ้างอิง",
   "URL / หน้าเป้าหมาย", "วันที่", "Metric", "ค่า", "หน่วย", "บริบท", "Metric semantics",
   "ช่วงข้อมูลเริ่ม", "ช่วงข้อมูลสิ้นสุด", "ข้อมูลต้นทางถึง", "คุณภาพข้อมูล", "Batch ID", "ข้อจำกัด",
 ] as const;
@@ -27,6 +27,24 @@ function status(data: AnalyticsDataset) {
 }
 function limits(data: AnalyticsDataset) {
   return [...data.limitations, ...(data.truncated ? ["จำนวนแถวถูกจำกัด"] : [])].join(" | ");
+}
+function grain(data: AnalyticsDataset) {
+  const labels: Partial<Record<AnalyticsDataset["report"], string>> = {
+    "ga4-summary": "Summary",
+    "gsc-summary": "Summary",
+    "social-performance": "Content snapshot",
+    "gsc-query-page": "Keyword × Page · period",
+    "gsc-daily-query-page": "Keyword × Page × Day",
+    "gsc-daily-page": "Page × Day",
+    "ubersuggest-web-keywords": "Keyword snapshot",
+    "seo-intelligence": "Keyword / Prompt snapshot",
+    "ga4-daily-organic": "Page × Day",
+    "ga4-organic-landing": "Landing Page · period",
+    "ga4-session-performance": "Source / Campaign / Page × Day",
+    "ga4-marketing-events": "Event × Day",
+    "ga4-content-events": "Event × Page × Day",
+  };
+  return labels[data.report] ?? "Report row";
 }
 function semantics(data: AnalyticsDataset) {
   if (data.report === "social-performance") return "lifetime_snapshot";
@@ -57,6 +75,7 @@ function pushMetric(rows: Row[], data: AnalyticsDataset, input: {
     "ประเภทที่ติดตาม": input.track,
     "แพลตฟอร์ม / แหล่งข้อมูล": input.source,
     "รายงานต้นทาง": data.title,
+    "ระดับข้อมูล": grain(data),
     "รายการ": input.item,
     "ID อ้างอิง": input.id ?? null,
     "URL / หน้าเป้าหมาย": input.url ?? null,
@@ -77,8 +96,6 @@ function pushMetric(rows: Row[], data: AnalyticsDataset, input: {
 
 export function buildMarketingTrackingOverview(datasets: AnalyticsDataset[]) {
   const rows: Row[] = [];
-  const hasMarketingEvents = datasets.some((data) => data.report === "ga4-marketing-events");
-
   for (const data of datasets) {
     for (const row of data.rows) {
       if (data.report === "social-performance") {
@@ -129,6 +146,21 @@ export function buildMarketingTrackingOverview(datasets: AnalyticsDataset[]) {
         continue;
       }
 
+      if (data.report === "gsc-daily-query-page") {
+        const common = {
+          track: "Keyword",
+          source: "Google Search",
+          item: text(row["คำค้น"]),
+          url: normalizeUrl(row["หน้าเว็บ"]),
+          date: text(row["วันที่"]),
+          context: "Daily keyword × page performance",
+        };
+        for (const [metric, key, unit] of [
+          ["Clicks", "คลิก", "clicks"], ["Impressions", "การแสดงผล", "impressions"],
+          ["CTR", "CTR (%)", "%"], ["Average Position", "อันดับเฉลี่ย", "position"],
+        ] as const) pushMetric(rows, data, { ...common, metric, value: number(row[key]), unit });
+        continue;
+      }
       if (data.report === "gsc-daily-page") {
         const url = normalizeUrl(row["หน้าเว็บ"]);
         const common = { track: "Content", source: "Google Search", item: url, url, date: text(row["วันที่"]), context: "Daily page performance" };
@@ -162,11 +194,13 @@ export function buildMarketingTrackingOverview(datasets: AnalyticsDataset[]) {
         continue;
       }
 
-      if (data.report === "ga4-marketing-events" || (data.report === "ga4-content-events" && !hasMarketingEvents)) {
+      if (data.report === "ga4-marketing-events" || data.report === "ga4-content-events") {
         const event = text(row.Event) ?? "Event";
         pushMetric(rows, data, {
-          track: "Activity", source: "GA4", item: event, url: normalizeUrl(row["หน้าเว็บ"]), date: text(row["วันที่"]),
-          metric: "Event Count", value: number(row["จำนวน event"]), unit: "events", context: event,
+          track: data.report === "ga4-content-events" ? "Content Activity" : "Activity",
+          source: "GA4", item: event, url: normalizeUrl(row["หน้าเว็บ"]), date: text(row["วันที่"]),
+          metric: "Event Count", value: number(row["จำนวน event"]), unit: "events",
+          context: data.report === "ga4-content-events" ? "Event ต่อหน้า" : event,
         });
         continue;
       }
@@ -202,7 +236,7 @@ export function buildMarketingTrackingOverview(datasets: AnalyticsDataset[]) {
     }
   }
 
-  const order: Record<string, number> = { Overview: 0, Content: 1, Keyword: 2, "Keyword / AI Search": 3, Traffic: 4, Activity: 5 };
+  const order: Record<string, number> = { Overview: 0, Content: 1, "Content Activity": 2, Keyword: 3, "Keyword / AI Search": 4, Traffic: 5, Activity: 6 };
   rows.sort((a, b) => (order[String(a["ประเภทที่ติดตาม"])] ?? 99) - (order[String(b["ประเภทที่ติดตาม"])] ?? 99)
     || String(a["รายการ"] ?? "").localeCompare(String(b["รายการ"] ?? ""), "th")
     || String(a.Metric ?? "").localeCompare(String(b.Metric ?? ""), "en"));
