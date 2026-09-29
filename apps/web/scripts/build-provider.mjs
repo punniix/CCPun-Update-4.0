@@ -21,9 +21,13 @@ function run(command, args, cwd = webRoot) {
 
 function removePath(path) {
   try {
-    lstatSync(path);
-    rmSync(path, { recursive: true, force: true });
-  } catch {}
+    const stat = lstatSync(path);
+    rmSync(path, stat.isSymbolicLink()
+      ? { force: true }
+      : { recursive: true, force: true });
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
 }
 
 function replaceDirectory(source, destination) {
