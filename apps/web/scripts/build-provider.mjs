@@ -108,6 +108,11 @@ function stageStandaloneRuntime() {
     replaceDirectory(resolve(runtimeRoot, "public"), resolve(standaloneRoot, "public"));
   }
 
+  // Hostinger's Next.js preset publishes the .next output directory. Keep a
+  // second copy of public/ inside that published root so the runtime still has
+  // public assets after Hostinger stages the standalone server.
+  replaceDirectory(resolve(webRoot, "public"), resolve(webRoot, ".next/public"));
+
   for (const required of [
     "server.js",
     "node_modules/next/package.json",
@@ -115,6 +120,9 @@ function stageStandaloneRuntime() {
     ".next/static",
     "public/llms.txt",
     "public/.well-known/security.txt",
+    "../public/llms.txt",
+    "../public/.well-known/security.txt",
+    "../public/favicon.ico",
   ]) {
     const absolute = resolve(standaloneRoot, required);
     if (!existsSync(absolute)) {
