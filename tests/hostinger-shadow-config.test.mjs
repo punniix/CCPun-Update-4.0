@@ -156,6 +156,14 @@ test("Hostinger Web readiness accepts the explicit Shadow UAT identity and rejec
   assert.match(unsafeUat.stdout, /CCPUN_UAT_MODE=.*expected.*1/);
 });
 
+test("Hostinger standalone packaging preserves public assets inside the published Next output", () => {
+  const buildProvider = read("apps/web/scripts/build-provider.mjs");
+  assert.match(buildProvider, /resolve\(webRoot, "\.next\/public"\)/);
+  assert.match(buildProvider, /"\.\.\/public\/llms\.txt"/);
+  assert.match(buildProvider, /"\.\.\/public\/\.well-known\/security\.txt"/);
+  assert.match(buildProvider, /"\.\.\/public\/favicon\.ico"/);
+});
+
 test("Hostinger parity gate separates UAT Shadow checks from full production-content candidate parity", () => {
   const parity = read("scripts/hostinger-seo-parity.mjs");
   assert.match(parity, /\["shadow", "candidate", "production"\]/);
