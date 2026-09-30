@@ -28,8 +28,22 @@ import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
 import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, safeAdminCapabilityReturnPath } from "@/lib/admin/capability-profile";
 import { SECURITY_HEADERS } from "@/lib/security-policy";
 import type { AdminRole } from "@/lib/admin/rbac";
+import { nativeWorkflowTransportDisposition } from "@/lib/admin/workflow-transport-boundary";
+
+function nativeWorkflowResponse(request: NextRequest) {
+  const disposition = nativeWorkflowTransportDisposition(request);
+  if (disposition === "unrelated") return null;
+  if (disposition === "allow") return NextResponse.next();
+  return new NextResponse("Not Found", { status: 404, headers: {
+    ...Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+    "Cache-Control": "private, no-store",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
+  } });
+}
 
 export function adminProxy(request: NextRequest & { auth?: { user?: { role?: AdminRole | null } } | null }) {
+  const workflowResponse = nativeWorkflowResponse(request);
+  if (workflowResponse) return workflowResponse;
   const { pathname } = request.nextUrl;
   const capabilityProfile = getAdminCapabilityProfile();
   const landingPath = adminCapabilityLandingPath(capabilityProfile);
@@ -41,7 +55,8 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
       "X-Robots-Tag": "noindex, nofollow, noarchive",
     } });
   }
-  // Full-profile Workflow retains its own signed transport authentication.
+  // Preserve Vercel's full-profile transport. Native Postgres requests must
+  // pass the separate raw-request fence and private network perimeter.
   if (capabilityProfile === "full" && pathname.startsWith("/.well-known/workflow/")) return NextResponse.next();
   if (capabilityProfile === "editorial") {
     // Auth.js may rewrite request.url to AUTH_URL. Validate the actual ingress
@@ -203,7 +218,14 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
   return NextResponse.next();
 }
 
-export default auth(adminProxy);
+const authenticatedAdminProxy = auth(adminProxy);
+
+export default function proxy(...args: Parameters<typeof authenticatedAdminProxy>) {
+  // Auth.js can rewrite URL to AUTH_URL. Native Workflow must be classified
+  // before that wrapper and without reading its body or a browser session.
+  const workflowResponse = nativeWorkflowResponse(args[0]);
+  return workflowResponse ?? authenticatedAdminProxy(...args);
+}
 
 export const config = {
   matcher: [
@@ -227,7 +249,8 @@ export const config = {
     "/studio/:path*",
     "/api/preview/:path*",
     "/api/auth/:path*",
-    // Workflow's signed internal transport does not use a browser Auth.js session.
+    // Vercel transport does not use a browser Auth.js session. Native transport
+    // is constrained by the outer request fence and a private ingress perimeter.
     // The owner-facing API matchers above remain unchanged.
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },
