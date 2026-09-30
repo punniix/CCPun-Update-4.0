@@ -53,6 +53,7 @@
     "@modelcontextprotocol/client": "^2.0.0",
     "@neondatabase/serverless": "^1.1.0",
     "@sanity/client": "^7.26.2",
+    "@workflow/world-postgres": "4.3.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",
     "next": "16.3.6",
