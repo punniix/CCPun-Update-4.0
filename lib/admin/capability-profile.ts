@@ -1,4 +1,5 @@
 import { LEGACY_ADMIN_API_PREFIX, LEGACY_ADMIN_PAGE_PREFIX, legacyAdminPageDestination, safeAdminReturnPath } from "./routes";
+import { resolveDeploymentIdentity } from "../runtime/deployment-identity";
 
 export type AdminCapabilityProfile = "full" | "editorial" | "disabled";
 
@@ -28,6 +29,7 @@ export function isAdminCapabilityPathAllowed(pathname: string, profile = getAdmi
   if (profile !== "editorial") return false;
   let path = normalizedPath(pathname);
   if (!path) return false;
+  if (path === "/api/internal/line/system-delivery/dispatch") return isAdminLineSystemDeliveryAllowed(profile);
   if (path === LEGACY_ADMIN_API_PREFIX || path.startsWith(`${LEGACY_ADMIN_API_PREFIX}/`)) path = `/api/admin${path.slice(LEGACY_ADMIN_API_PREFIX.length)}`;
   if (path === LEGACY_ADMIN_PAGE_PREFIX || path.startsWith(`${LEGACY_ADMIN_PAGE_PREFIX}/`)) {
     const destination = legacyAdminPageDestination(path);
@@ -44,6 +46,17 @@ export function isAdminCapabilityPathAllowed(pathname: string, profile = getAdmi
   if (new RegExp(`^/(?:content/articles|seo/audits)/${id}$`).test(path)) return true;
   if (["/api/admin/content", "/api/admin/seo/suggestions", "/api/admin/seo/providers/readiness", "/api/admin/seo/opportunities", "/api/admin/research", "/api/admin/research/ubersuggest", "/api/admin/research/ubersuggest/import", "/api/admin/reviews"].includes(path)) return true;
   return new RegExp(`^/api/admin/(?:content/${id}/preview|seo/audit/${id}(?:/proposals)?|reviews/${id}/(?:approve|edit|reject|apply))$`).test(path);
+}
+
+// Only the existing sessionless, one-use capability endpoint can cross the
+// editorial boundary. Its provider/DB authentication remains in the handler.
+export function isAdminLineSystemDeliveryAllowed(profile = getAdminCapabilityProfile(), variables: Record<string, string | undefined> = process.env): boolean {
+  if (profile === "full") return true;
+  if (profile !== "editorial" || variables.CCPUN_LINE_SYSTEM_DELIVERY_ENABLED !== "true") return false;
+  const identity = resolveDeploymentIdentity(variables, "admin");
+  return identity.valid && identity.provider === "hostinger" && identity.role === "admin"
+    && (identity.environment === "admin-uat"
+      || (identity.environment === "production-admin" && identity.gitRef === "v4-production"));
 }
 
 export function adminCapabilityLandingPath(profile = getAdminCapabilityProfile()): string {

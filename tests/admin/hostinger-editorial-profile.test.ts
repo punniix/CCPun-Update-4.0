@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, safeAdminCapabilityReturnPath } from "../../lib/admin/capability-profile";
+import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, isAdminLineSystemDeliveryAllowed, safeAdminCapabilityReturnPath } from "../../lib/admin/capability-profile";
 
 test("editorial profile is pinned by its build marker and invalid/mismatched profiles fail closed", () => {
   assert.equal(getAdminCapabilityProfile({}), "full");
@@ -29,10 +29,10 @@ test("editorial login landing and callback validation cannot escape its allowed 
   for (const value of ["/operations/", "/content/calendar/", "https://evil.example/content/", "//evil.example/content/", "/studio/#bad", "/content/articles/%2e%2e/calendar/"]) assert.equal(safeAdminCapabilityReturnPath(value, "editorial"), null, value);
 });
 
-function child(script: string, profile = "editorial", conditions: string[] = []) {
+function child(script: string, profile = "editorial", conditions: string[] = [], variables: Record<string, string | undefined> = {}) {
   const result = spawnSync(process.execPath, [...conditions, "--import", "tsx", "-e", script], {
     encoding: "utf8", timeout: 15000,
-    env: { PATH: process.env.PATH, NODE_ENV: "production", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat", AUTH_URL: "https://candidate.example", CCPUN_ADMIN_CAPABILITY_PROFILE: profile },
+    env: { PATH: process.env.PATH, NODE_ENV: "production", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat", AUTH_URL: "https://candidate.example", CCPUN_ADMIN_CAPABILITY_PROFILE: profile, ...variables },
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   return JSON.parse(result.stdout);
@@ -51,9 +51,32 @@ test("native candidate proxy denies unsupported APIs before internal/alias exemp
   assert.equal(values[8].location, "https://candidate.example/content/articles/");
 });
 
+test("editorial native delivery requires the exact existing flag and valid Admin Hostinger lane/ref", () => {
+  const base = { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat", CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "true", CCPUN_GIT_REF: "codex/candidate" };
+  assert.equal(isAdminLineSystemDeliveryAllowed("editorial", base), true);
+  assert.equal(isAdminLineSystemDeliveryAllowed("editorial", { ...base, CCPUN_APP_ENV: "production-admin", CCPUN_GIT_REF: "v4-production" }), true);
+  for (const patch of [{ CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: undefined }, { CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "false" }, { CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "TRUE" }, { CCPUN_DEPLOYMENT_PROVIDER: "vercel" }, { CCPUN_DEPLOYMENT_PROVIDER: "local" }, { CCPUN_DEPLOYMENT_ROLE: "web" }, { CCPUN_APP_ENV: "production" }, { CCPUN_APP_ENV: "development" }, { CCPUN_APP_ENV: "production-admin" }, { VERCEL_PROJECT_ID: "conflicting-project" }]) {
+    assert.equal(isAdminLineSystemDeliveryAllowed("editorial", { ...base, ...patch }), false, JSON.stringify(patch));
+  }
+  assert.equal(isAdminLineSystemDeliveryAllowed("disabled", base), false);
+  assert.equal(isAdminLineSystemDeliveryAllowed("full", {}), true);
+  const values = child(`const {NextRequest}=require('next/server');const {adminProxy}=require('./apps/admin/proxy.ts');console.log(JSON.stringify(['/api/internal/line/system-delivery/dispatch/','/api/internal/line/system-delivery/dispatch','/api/internal/line/system-delivery/other/','/api/internal/line/system-delivery%2fdispatch/'].map(path=>{const req=new NextRequest('https://candidate.example'+path,{method:'POST',headers:{host:'candidate.example'}});req.auth=null;return adminProxy(req).status;})));`, "editorial", [], { CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "true" });
+  assert.deepEqual(values, [200, 200, 404, 404]);
+});
+
+test("native delivery handler denies before body/provider and preserves capability contract when explicitly eligible", () => {
+  const script = `const Module=require('node:module');const load=Module._load;let calls=0,reads=0;Module._load=function(name,...args){if(name==='server-only')return{};if(name==='@/lib/admin/line/provider')return{async sendLineSystemOutboundByCapability(){calls++;return{ok:true}}};return load.call(this,name,...args)};const route=require('./apps/admin/app/api/internal/line/system-delivery/dispatch/route.ts');(async()=>{const req=new Request('https://candidate.example/api/internal/line/system-delivery/dispatch/',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({outboundId:'11111111-1111-4111-8111-111111111111',dispatchToken:'a'.repeat(64)})});const text=req.text.bind(req);req.text=()=>{reads++;return text()};const res=await route.POST(req);console.log(JSON.stringify({status:res.status,body:await res.json(),calls,reads,get:route.GET().status}));})();`;
+  for (const [profile, vars] of [["editorial", {}], ["disabled", { CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "true" }], ["editorial", { CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "true", CCPUN_APP_ENV: "production-admin", CCPUN_GIT_REF: "feature" }]] as const) {
+    assert.deepEqual(child(script, profile, [], vars), { status: 404, body: { error: "not-found" }, calls: 0, reads: 0, get: 404 });
+  }
+  for (const [profile, vars] of [["editorial", { CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "true" }], ["full", {}]] as const) {
+    assert.deepEqual(child(script, profile, [], vars), { status: 200, body: { status: "sent" }, calls: 1, reads: 1, get: 404 });
+  }
+});
+
 test("editorial ingress rejects raw and forwarded unknown hosts even after Auth.js rewrites the URL", () => {
-  const values = child(`const {NextRequest}=require('next/server');const {adminProxy}=require('./apps/admin/proxy.ts');console.log(JSON.stringify([['evil.example',null],['candidate.example','evil.example'],['candidate.example','candidate.example'],['candidate.example',null]].map(([host,forwarded])=>{const req=new NextRequest('https://candidate.example/content/articles/',{headers:{host,...(forwarded?{'x-forwarded-host':forwarded}:{})}});req.auth=null;return adminProxy(req).status;})));`);
-  assert.deepEqual(values, [404, 404, 307, 307]);
+  const values = child(`const {NextRequest}=require('next/server');const {adminProxy}=require('./apps/admin/proxy.ts');console.log(JSON.stringify([['evil.example',null],['candidate.example','evil.example'],['candidate.example','candidate.example'],['candidate.example',null],['evil.example','candidate.example'],['candidate.example','candidate.example, evil.example'],[null,null]].map(([host,forwarded])=>{const req=new NextRequest('https://candidate.example/content/articles/',{headers:{...(host?{host}:{}),...(forwarded?{'x-forwarded-host':forwarded}:{})}});req.auth=null;return adminProxy(req).status;})));`);
+  assert.deepEqual(values, [404, 404, 307, 307, 404, 404, 404]);
 });
 
 test("schedule handlers independently deny editorial before identity, body, params or Workflow start", () => {
