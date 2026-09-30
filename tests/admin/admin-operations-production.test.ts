@@ -87,7 +87,10 @@ test("owner-facing Admin surfaces health and explicit SEO re-audit", () => {
   const button = read("features/admin/components/RunSeoAuditButton.tsx");
   assert.match(layout, /\/operations\/health\//);
   assert.match(layout, /permission: "settings:read"/);
-  assert.match(health, /Vercel Runtime/);
+  assert.match(health, /สถานะเวอร์ชันระบบ/);
+  assert.match(health, /getAdminDeploymentIdentity/);
+  assert.match(health, /ยังไม่ใช่ผลตรวจเว็บสาธารณะ HTTPS/);
+  assert.doesNotMatch(health, /Vercel Runtime|process\.env\.VERCEL_/);
   assert.match(health, /Control Plane Operations/);
   assert.match(audit, /ฐานข้อมูล Control Plane/);
   assert.match(button, /ตรวจ SEO อีกครั้ง/);

@@ -8,7 +8,7 @@ import { listAdminArticles } from "@/lib/admin/sanity-control";
 
 export const metadata: Metadata = { title: "ภาพรวมการเติบโต" };
 
-const sourceLabels = { gsc: "Google Search Console", ga4: "Google Analytics 4", vercel: "Vercel Health" } as const;
+const sourceLabels = { gsc: "Google Search Console", ga4: "Google Analytics 4", runtime: "สถานะเวอร์ชันระบบ" } as const;
 
 export default async function GrowthDashboardPage() {
   await requireAdminPermission("dashboard:read");
@@ -27,7 +27,7 @@ export default async function GrowthDashboardPage() {
 
     <section className="mt-7 grid gap-4 xl:grid-cols-3" aria-label="สถานะแหล่งข้อมูล">
       {sources.map((source) => <article key={source.source} className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-        <div className="flex items-start justify-between gap-3"><h2 className="font-semibold">{sourceLabels[source.source]}</h2><span className={`rounded-full px-2.5 py-1 text-xs ${source.state === "ready" ? "bg-emerald-300/10 text-emerald-200" : source.state === "unavailable" ? "bg-red-300/10 text-red-200" : "bg-white/5 text-white/60"}`}>{source.state === "ready" ? "อ่านข้อมูลได้" : source.state === "unavailable" ? "ดึงข้อมูลไม่สำเร็จ" : "ยังไม่เชื่อมต่อ"}</span></div>
+        <div className="flex items-start justify-between gap-3"><h2 className="font-semibold">{sourceLabels[source.source]}</h2><span className={`rounded-full px-2.5 py-1 text-xs ${source.state === "ready" ? "bg-emerald-300/10 text-emerald-200" : source.state === "unavailable" ? "bg-red-300/10 text-red-200" : "bg-white/5 text-white/60"}`}>{source.state === "ready" ? "อ่านข้อมูลได้" : source.state === "unavailable" ? "ดึงข้อมูลไม่สำเร็จ" : source.state === "partial" ? "ข้อมูลบางส่วน" : "ยังไม่เชื่อมต่อ"}</span></div>
         {source.dateRange ? <p className="mt-2 text-xs text-white/50">ช่วงข้อมูล: {source.dateRange}</p> : null}
         {source.fetchedAt ? <p className="mt-1 text-xs text-white/50">อัปเดตล่าสุด: {new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(source.fetchedAt))}</p> : null}
         <p className="mt-1 text-xs text-white/50">เปรียบเทียบ: {source.comparison ?? "ยังไม่มีข้อมูลช่วงก่อนหน้า"}</p>

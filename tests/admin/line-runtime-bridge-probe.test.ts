@@ -148,9 +148,13 @@ test("Admin sends its verified own token to fixed Web target with finite timeout
   assert.equal((await probeLineBridgeFromAdmin(adminHeaders, variables("admin"), { verifyToken, fetch: (async () => Response.json({ status: "ready" }, { status: 503 })) as typeof fetch })).status, "invalid-response");
 });
 
-test("owner-only SSR health check and private Node endpoint do not alter ingress or fallback", () => {
+test("owner-only queue health removes SSR Vercel probe while private Node endpoint remains isolated", () => {
   const page = readFileSync("apps/admin/app/(control-plane)/operations/health/page.tsx", "utf8");
-  assert.ok(page.indexOf('requireAdminPermission("settings:read")') < page.indexOf('probeLineBridgeFromAdmin(await headers())'));
+  assert.doesNotMatch(page, /probeLineBridgeFromAdmin|line-bridge-probe/);
+  const queueRead = page.indexOf("readLineDeliveryHealth(),");
+  assert.ok(queueRead > page.indexOf('requireAdminPermission("settings:read")'));
+  assert.match(page, /readLineSystemDeliveryDatabaseReadiness/);
+  assert.match(page, /ข้อมูลและคิว LINE/);
   const route = readFileSync("apps/web/app/api/internal/line/bridge-probe/route.ts", "utf8");
   assert.match(route, /runtime = "nodejs"/);
   assert.match(route, /private, no-cache, no-store/);

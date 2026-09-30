@@ -26,7 +26,19 @@ const allowed = new Set(["PATH", "NODE_ENV", "NODE_TEST_CONTEXT", "TZ", "LANG", 
   "CCPUN_GIT_SHA", "CCPUN_GIT_REF", "CCPUN_RELEASE_ID", "NEXT_PUBLIC_CCPUN_GIT_SHA", "NEXT_PUBLIC_CCPUN_GIT_REF", "NEXT_PUBLIC_CCPUN_RELEASE_ID",
   "NEXT_PUBLIC_SANITY_PROJECT_ID", "NEXT_PUBLIC_SANITY_DATASET", "CCPUN_NEON_PROJECT_ID", "CCPUN_NEON_BRANCH_ID", "CCPUN_NEON_DATABASE",
   "CCPUN_ADMIN_DATABASE_URL", "CCPUN_ARTICLE_SCHEDULING_ENABLED", "CCPUN_NATIVE_WORKFLOW_ENABLED"]);
-function deny(code: string): never { throw new Error(code); }
+type GuardCode = "TARGET_DENIED" | "AMBIENT_ENV_DENIED" | "ENV_FILE_DENIED" | "UAT_BINDING_DENIED"
+  | "DSN_POLICY_DENIED" | "SOURCE_DENIED" | "DURABLE_IDENTITY_DENIED" | "FIXTURE_ARGUMENT_DENIED"
+  | "FIXTURE_CLAIM_DENIED" | "OWNERSHIP_DENIED" | "FIXTURE_STATE_DENIED" | "CMS_WRITE_DENIED"
+  | "FIXTURE_EXECUTION_DENIED" | "CHILD_FAILED" | "CLOCK_DENIED" | "DUE_TIMEOUT";
+class UatGuardError extends Error {
+  constructor(readonly code: GuardCode) { super(code); }
+}
+// Only this harness's closed literal codes may reach output. Never forward a
+// provider/parser/assertion error's message, stack, connection or actual value.
+function diagnosticCode(error: unknown): GuardCode | "UNCLASSIFIED" {
+  return error instanceof UatGuardError ? error.code : "UNCLASSIFIED";
+}
+function deny(code: GuardCode): never { throw new UatGuardError(code); }
 function preflight() {
   if (!enabled || process.platform !== "linux" || process.versions.node.split(".")[0] !== "24") deny("TARGET_DENIED");
   if (Object.keys(process.env).some((key) => !allowed.has(key))
@@ -114,7 +126,7 @@ async function child() {
 }
 async function runChildMode() {
   try { console.log(`NATIVE_UAT_RESULT=${JSON.stringify(await child())}`); }
-  catch { console.log('NATIVE_UAT_RESULT={"failed":true}'); process.exitCode = 1; }
+  catch (error) { console.log(`NATIVE_UAT_RESULT=${JSON.stringify({ failed: true, code: diagnosticCode(error) })}`); process.exitCode = 1; }
 }
 if (worker) void runChildMode();
 
@@ -194,7 +206,7 @@ test("actual Hostinger UAT native registration/CAS/due/cancel and restarted clai
     assert.equal((await store.read(owned[3].articleId))?.status, "cancelled");
     assert.equal((await store.read(owned[4].articleId))?.status, "scheduled");
     phase = "verified"; verified = true; save();
-  } catch { throw new Error(`NATIVE_NEON_UAT_FAILED phase=${phase}`); }
+  } catch (error) { throw new Error(`NATIVE_NEON_UAT_FAILED phase=${phase} code=${diagnosticCode(error)}`); }
   finally {
     phase = "cleanup";
     if (store) for (const entry of owned) {

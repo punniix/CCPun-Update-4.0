@@ -168,6 +168,17 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
       if (disposition === "reject") {
         const authenticatedPreviewSurface = Boolean(role) && isAuthenticatedAdminPreviewPath(pathname);
         if (!authenticatedPreviewSurface) {
+          const identity = resolveDeploymentIdentity(process.env, "admin");
+          if (identity.valid && identity.provider === "hostinger" && identity.role === "admin"
+            && ["admin-uat", "production-admin"].includes(identity.environment)) {
+            // Auth.js replaced the request origin with AUTH_URL. Rewriting to
+            // that origin can proxy externally instead of rendering locally.
+            return new NextResponse("Not Found", { status: 404, headers: {
+              ...Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+              "Cache-Control": "private, no-store",
+              "X-Robots-Tag": "noindex, nofollow, noarchive",
+            } });
+          }
           return NextResponse.rewrite(new URL(`${ADMIN_NOT_FOUND_PATH}/`, request.url), { status: 404 });
         }
       }
