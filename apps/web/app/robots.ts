@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { CONTROL_PLANE_PAGE_PREFIXES } from "@/lib/routing/private-surfaces";
 import { shouldBlockWebIndexing } from "../runtime-environment";
 
+export const dynamic = "force-dynamic";
+
 const privatePaths = [
   "/api/",
   "/login/",

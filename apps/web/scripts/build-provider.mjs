@@ -1,4 +1,4 @@
-import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -22,9 +22,8 @@ function run(command, args, cwd = webRoot) {
 function removePath(path) {
   try {
     const stat = lstatSync(path);
-    rmSync(path, stat.isSymbolicLink()
-      ? { force: true }
-      : { recursive: true, force: true });
+    if (stat.isSymbolicLink()) unlinkSync(path);
+    else rmSync(path, { recursive: true, force: true });
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
@@ -36,7 +35,8 @@ function replaceDirectory(source, destination) {
   }
   removePath(destination);
   mkdirSync(dirname(destination), { recursive: true });
-  cpSync(source, destination, { recursive: true });
+  // ponytail: publish real files; the tracked public symlink cannot survive a root-only runtime upload.
+  cpSync(source, destination, { recursive: true, dereference: true });
 }
 
 async function materializePublicDirectory() {
@@ -48,7 +48,7 @@ async function materializePublicDirectory() {
   removePath(webPublic);
 
   if (existsSync(repoPublic)) {
-    cpSync(repoPublic, webPublic, { recursive: true });
+    replaceDirectory(repoPublic, webPublic);
     return;
   }
 
@@ -88,8 +88,8 @@ async function materializePublicDirectory() {
   rmSync(tempRoot, { recursive: true, force: true });
 }
 
-function stageStandaloneRuntime() {
-  const standaloneRoot = resolve(webRoot, ".next/standalone");
+export function stageStandaloneRuntime(root = webRoot) {
+  const standaloneRoot = resolve(root, ".next/standalone");
   const nestedRuntimeRoot = resolve(standaloneRoot, "apps/web");
   const runtimeRoot = existsSync(resolve(nestedRuntimeRoot, "server.js"))
     ? nestedRuntimeRoot
@@ -103,11 +103,11 @@ function stageStandaloneRuntime() {
   // Hostinger may omit standalone public/ files from the published runtime.
   // Mirror the same assets into .next/static, which Hostinger reliably retains,
   // while Hostinger-only rewrites preserve the original public URLs.
-  replaceDirectory(resolve(webRoot, "public"), resolve(webRoot, ".next/static/ccpun-public"));
+  replaceDirectory(resolve(root, "public"), resolve(root, ".next/static/ccpun-public"));
   // Keep public assets in the standalone runtime. next.config.ts also traces
   // them explicitly so Hostinger's publisher retains these files.
-  replaceDirectory(resolve(webRoot, "public"), resolve(runtimeRoot, "public"));
-  replaceDirectory(resolve(webRoot, ".next/static"), resolve(runtimeRoot, ".next/static"));
+  replaceDirectory(resolve(root, "public"), resolve(runtimeRoot, "public"));
+  replaceDirectory(resolve(root, ".next/static"), resolve(runtimeRoot, ".next/static"));
 
   if (runtimeRoot !== standaloneRoot) {
     cpSync(serverFile, resolve(standaloneRoot, "server.js"));
@@ -139,12 +139,8 @@ function stageStandaloneRuntime() {
   console.log(`Hostinger standalone runtime ready at ${standaloneRoot}`);
 }
 
-if (isHostinger) {
-  await materializePublicDirectory();
-}
-
-run(process.platform === "win32" ? "next.cmd" : "next", ["build", "--webpack"]);
-
-if (isHostinger) {
-  stageStandaloneRuntime();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (isHostinger) await materializePublicDirectory();
+  run(process.platform === "win32" ? "next.cmd" : "next", ["build", "--webpack"]);
+  if (isHostinger) stageStandaloneRuntime();
 }
