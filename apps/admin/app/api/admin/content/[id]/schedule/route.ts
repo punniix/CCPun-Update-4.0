@@ -7,6 +7,7 @@ import { acknowledgeArticleSchedule, cancelArticleSchedule, getArticleScheduleSt
 import { ArticleScheduleError, articleIdSchema, cancelScheduleRequestSchema, scheduleRequestSchema as bodySchema, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
 import { bangkokLocalDateTimeToIso } from "@/cms/sanity/policy/article-scheduling";
 import { scheduledArticlePublicationWorkflow } from "@/lib/admin/article-publication-workflow";
+import { getAdminCapabilityProfile } from "@/lib/admin/capability-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ function failure(error: unknown) {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (getAdminCapabilityProfile() !== "full") return NextResponse.json({ error: "not-found" }, { status: 404, headers });
   const identity = await requireScheduleIdentity();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
   const parsed = articleIdSchema.safeParse((await params).id);
@@ -32,6 +34,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (getAdminCapabilityProfile() !== "full") return NextResponse.json({ error: "not-found" }, { status: 404, headers });
   const identity = await requireScheduleIdentity();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
   if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
@@ -56,6 +59,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (getAdminCapabilityProfile() !== "full") return NextResponse.json({ error: "not-found" }, { status: 404, headers });
   const identity = await requireScheduleIdentity();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
   if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });

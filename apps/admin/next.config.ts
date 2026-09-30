@@ -3,6 +3,11 @@ import path from "node:path";
 import { withWorkflow } from "workflow/next";
 import { buildNextSecurityHeaders } from "../next-security-headers.mjs";
 import { getAdminEnvironment, isSanityLaneAllowed } from "../../lib/admin/environment";
+import { getAdminCapabilityProfile } from "../../lib/admin/capability-profile";
+
+const CAPABILITY_PROFILE = getAdminCapabilityProfile();
+const IS_HOSTINGER = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
+if (IS_HOSTINGER && CAPABILITY_PROFILE !== "editorial") throw new Error("Hostinger Admin requires the explicit editorial capability profile.");
 
 const PRIVATE_SURFACE_ROBOTS_HEADERS = [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }];
 const PRIVATE_ADMIN_API_HEADERS = [
@@ -33,7 +38,15 @@ const LOCAL_DIST_DIR = ADMIN_ENVIRONMENT === "local-uat"
 
 const nextConfig: NextConfig = {
   distDir: LOCAL_DIST_DIR,
+  ...(IS_HOSTINGER ? {
+    output: "standalone" as const,
+    outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
+    outputFileTracingIncludes: { "/**/*": ["public/**/*", "../../public/**/*"] },
+    // Private candidate responses must not lose noindex on automatic 308s.
+    skipTrailingSlashRedirect: true,
+  } : {}),
   env: {
+    NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: CAPABILITY_PROFILE,
     NEXT_PUBLIC_CCPUN_APP_ENV: ADMIN_ENVIRONMENT === "unknown" ? "" : ADMIN_ENVIRONMENT,
     NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID?.trim() ?? "",
     NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID:
@@ -87,6 +100,11 @@ const nextConfig: NextConfig = {
     return {
       beforeFiles: [
         { source: "/api/snt-admin/:path*", destination: "/api/admin/:path*" },
+        ...(IS_HOSTINGER ? [
+          { source: "/assets/:path*", destination: "/_next/static/ccpun-public/assets/:path*" },
+          { source: "/favicon.ico", destination: "/_next/static/ccpun-public/favicon.ico" },
+          { source: "/favicon.png", destination: "/_next/static/ccpun-public/favicon.png" },
+        ] : []),
       ],
     };
   },
@@ -124,4 +142,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withWorkflow(nextConfig);
+// Editorial delivery has no durable scheduler and mounts no SDK HTTP handler.
+export default CAPABILITY_PROFILE === "editorial" ? nextConfig : withWorkflow(nextConfig);

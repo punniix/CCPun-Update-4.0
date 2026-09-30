@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/auth";
 import {
   isConfiguredAdminOrigin,
@@ -25,9 +25,24 @@ import {
   safeAdminReturnPath,
 } from "@/lib/admin/routes";
 import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
+import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, safeAdminCapabilityReturnPath } from "@/lib/admin/capability-profile";
+import { SECURITY_HEADERS } from "@/lib/security-policy";
+import type { AdminRole } from "@/lib/admin/rbac";
 
-export default auth((request) => {
+export function adminProxy(request: NextRequest & { auth?: { user?: { role?: AdminRole | null } } | null }) {
   const { pathname } = request.nextUrl;
+  const capabilityProfile = getAdminCapabilityProfile();
+  const landingPath = adminCapabilityLandingPath(capabilityProfile);
+  // This must precede internal-service exemptions, aliases and browser auth.
+  if (!isAdminCapabilityPathAllowed(pathname, capabilityProfile)) {
+    return new NextResponse("Not Found", { status: 404, headers: {
+      ...Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+      "Cache-Control": "private, no-store",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+    } });
+  }
+  // Full-profile Workflow retains its own signed transport authentication.
+  if (capabilityProfile === "full" && pathname.startsWith("/.well-known/workflow/")) return NextResponse.next();
 
   observeAiCrawlerRequest({
     userAgent: request.headers.get("user-agent"),
@@ -98,7 +113,7 @@ export default auth((request) => {
       const disposition = classifyProductionAdminPath(pathname);
       if (disposition === "entry") {
         return NextResponse.redirect(
-          new URL(role ? "/dashboard/" : "/login/", request.url),
+          new URL(role ? landingPath : "/login/", request.url),
         );
       }
       if (disposition === "reject") {
@@ -132,11 +147,11 @@ export default auth((request) => {
         return NextResponse.redirect(loginUrl);
       }
       return NextResponse.redirect(role && legacyPageDestination === "/login/"
-        ? new URL("/dashboard/", request.url)
+        ? new URL(landingPath, request.url)
         : destination);
     }
     if (isLoginPage) {
-      if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
+      if (role) return NextResponse.redirect(new URL(landingPath, request.url));
       return NextResponse.next();
     }
     if (!role) {
@@ -144,7 +159,7 @@ export default auth((request) => {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
       }
       const loginUrl = new URL("/login/", request.url);
-      const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+      const callbackUrl = capabilityProfile === "full" ? safeAdminReturnPath(`${pathname}${request.nextUrl.search}`) : safeAdminCapabilityReturnPath(`${pathname}${request.nextUrl.search}`, capabilityProfile);
       if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
       return NextResponse.redirect(loginUrl);
     }
@@ -161,7 +176,7 @@ export default auth((request) => {
   }
 
   if (isLoginPage) {
-    if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
+    if (role) return NextResponse.redirect(new URL(landingPath, request.url));
     return NextResponse.next();
   }
 
@@ -170,19 +185,23 @@ export default auth((request) => {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const loginUrl = new URL("/login/", request.url);
-    const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+    const callbackUrl = capabilityProfile === "full" ? safeAdminReturnPath(`${pathname}${request.nextUrl.search}`) : safeAdminCapabilityReturnPath(`${pathname}${request.nextUrl.search}`, capabilityProfile);
     if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
+
+export default auth(adminProxy);
 
 export const config = {
   matcher: [
     // Root must always reach the environment/project boundary so a dedicated
     // Admin application can never fall through to the public homepage.
     "/",
+    // Native candidate domains and unknown APIs also reach the profile fence.
+    "/:path*",
     "/login/:path*",
     "/dashboard/:path*",
     "/content/:path*",
