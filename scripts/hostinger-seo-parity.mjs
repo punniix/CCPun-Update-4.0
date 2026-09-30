@@ -137,7 +137,7 @@ export async function runParity({ source, target, targetMode = 'shadow', timeout
   const failures = [], observations = [], cache = new Map(), sourceOrigin = new URL(source).origin, targetOrigin = new URL(target).origin;
   const fail = (name, details = {}) => failures.push({ ...details, name });
   const compare = (name, a, b) => { if (!equal(a, b)) fail(name, { source: a, target: b }); };
-  const publicResult = ({ body, ...result }) => result;
+  const publicResult = (response) => Object.fromEntries(Object.entries(response).filter(([key]) => key !== 'body'));
   async function request(base, path, ua) {
     const url = new URL(path, base).href, key = `${url}|${ua || ''}`;
     if (!cache.has(key)) cache.set(key, trace(url, { fetcher, timeoutMs, ...(ua ? { userAgent: ua } : {}) }));
