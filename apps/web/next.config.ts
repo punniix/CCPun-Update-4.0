@@ -119,6 +119,9 @@ const nextConfig: NextConfig = {
   ...(IS_HOSTINGER_DEPLOYMENT
     ? {
         output: "standalone" as const,
+        // Next's configured 308 redirects discard response headers. Hostinger
+        // performs the same normalization in proxy.ts, where headers survive.
+        skipTrailingSlashRedirect: true,
         outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
         outputFileTracingIncludes: {
           "/**/*": ["public/**/*", "../../public/**/*"],
@@ -185,6 +188,7 @@ const nextConfig: NextConfig = {
     };
   },
   async redirects() {
+    if (IS_HOSTINGER_DEPLOYMENT) return [];
     return [
       {
         source: "/living-benefits/:path*",
