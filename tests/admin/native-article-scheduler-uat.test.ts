@@ -112,10 +112,11 @@ async function child() {
     return { executed, publishedCalls, unrelatedObserved };
   } finally { await clock.close(); }
 }
-if (worker) {
+async function runChildMode() {
   try { console.log(`NATIVE_UAT_RESULT=${JSON.stringify(await child())}`); }
   catch { console.log('NATIVE_UAT_RESULT={"failed":true}'); process.exitCode = 1; }
 }
+if (worker) void runChildMode();
 
 test("actual Hostinger UAT native registration/CAS/due/cancel and restarted claim exclusion", { skip: !enabled || Boolean(worker), timeout: 240_000 }, async () => {
   let phase = "preflight"; let store: NativeScheduleStore | undefined;
