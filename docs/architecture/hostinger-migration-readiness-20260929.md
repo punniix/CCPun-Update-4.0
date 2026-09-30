@@ -1,8 +1,12 @@
-# Hostinger migration readiness — 2026-09-29
+# Hostinger full public-Web migration readiness — revised 2026-09-30
 
 ## Decision boundary
 
-Prepare Hostinger before purchase, but do not change DNS or production hosting yet. The first safe cutover target is the public Web app only. Admin remains on Vercel until the Article Scheduler runtime has an approved self-hosted execution path.
+Current COO instruction (2026-09-30): prepare a complete migration of `ccpun.com` to Hostinger, keep `admin.ccpun.com` on Vercel, and do not change DNS yet. This replaces the earlier limited Shadow-first plan. Preparation and candidate verification are authorized; this document does not authorize public DNS cutover, Production merge, Admin mutation, customer messages, credential copying, or purchases.
+
+The complete public-Web scope includes rendered pages, static assets, image optimization, API/server routes, LINE ingress and continuation/delivery, public Sanity reads, calculators/exports, consent and tracking, SEO/AEO/GEO, custom-domain TLS, release identity, restart and recovery. A final architecture that silently keeps public Web functions on Vercel is not this migration. Sanity, Neon, LINE and existing external business providers remain their current data/service planes.
+
+Status: **NOT READY — pre-DNS remediation in progress**. The 2026-09-30 audit found actual runtime failures despite the earlier parity checker passing. The audit's observations and the current task's fresh evidence take precedence over old readiness claims. Parent task: `hostinger-pre-dns-readiness-20260930`.
 
 The desired migration is infrastructure-only:
 
@@ -13,6 +17,8 @@ The desired migration is infrastructure-only:
 - compare Vercel and Hostinger before DNS changes.
 
 ## Baseline captured before migration
+
+The following figures are historical snapshots from 2026-09-29, not measurements of the fixed candidate or fresh cutover evidence.
 
 Ubersuggest production crawl on 2026-09-29:
 
@@ -162,6 +168,8 @@ After Shadow parity passes, re-run PageSpeed/Ubersuggest against the Hostinger s
 
 ## Why Admin is not in the first cutover
 
+`admin.ccpun.com`, its Vercel project/aliases/environment, owner authentication, Article Scheduler, Studio, Sanity write/publish controls and customer archive remain on their existing Production lane. No Admin migration is part of this task. Cross-host Web/Admin integration must still work; an unchanged Admin is not evidence that a new Hostinger caller is trusted.
+
 The current Article Scheduler uses `workflow` / `withWorkflow()`. On non-Vercel hosting the SDK defaults to a local filesystem World unless explicitly configured. The official self-hosted Postgres World is available, but self-hosted Workflow handler endpoints must be authenticated or protected at the network layer.
 
 Do not move Admin production merely by setting `WORKFLOW_TARGET_WORLD=local`. That is forbidden for a deployed Hostinger lane.
@@ -173,16 +181,46 @@ Admin becomes eligible for Hostinger only after one of these paths is completed 
 
 Until then, moving public Web first keeps SEO/AEO/GEO risk isolated from Admin runtime work.
 
-## Cutover order
+## Pre-DNS execution order
 
-1. Keep PR #311 unmerged while Shadow UAT is being validated.
-2. Deploy `apps/web` to the Hostinger Shadow hostname with UAT Sanity, `CCPUN_RELEASE_STAGE=shadow`, indexing blocked and analytics off.
-3. Run Shadow readiness/parity plus runtime smoke tests. Do not require UAT article membership to equal Production.
-4. Reconfigure the same Hostinger app as a Production Candidate using Production Sanity, `CCPUN_RELEASE_STAGE=candidate`, `CCPUN_UAT_MODE=1` and analytics off.
-5. Run full candidate parity, Ubersuggest crawl and PageSpeed against the temporary Hostinger hostname.
-6. Freeze URL/content/schema changes and merge only after the candidate gates pass.
-7. Redeploy the exact merged `v4-production` SHA and repeat the candidate parity check while indexing is still blocked.
-8. Connect/cut over `ccpun.com` only after all P0 gates pass, then switch the Hostinger lane to `CCPUN_RELEASE_STAGE=live`, `CCPUN_UAT_MODE=0` and analytics on.
-9. Verify canonical/robots/sitemap behavior on the custom domain, then remove the Hostinger preview/temporary domain once the custom domain is stable.
-10. Monitor GSC, crawl errors, rankings, Core Web Vitals and AI crawler logs after cutover.
-11. Keep Admin on Vercel until its separate runtime gate passes.
+PR #311 is already merged as `3bba7c662c539f0aecb6677b5cfc9020ef6740db`; the former instruction to leave it unmerged is historical. Start fixes from freshly verified Production source, on isolated `codex/hostinger-pre-dns-20260930`. Preserve all unrelated dirty work, PR #165 and the original checkout.
+
+1. Record fresh GitHub, Hostinger, Vercel, Sanity/Neon lane metadata and authoritative DNS identities. Preserve the currently working Vercel public Web/aliases as recovery targets. Do not edit DNS, Admin or Production content.
+2. Fix public-directory materialization and standalone staging, repeat-build failure, cached candidate robots and any proven source header defect. Include runnable regressions against the observed failures. Do not weaken assertions or fabricate branch/SHA values to open a gate.
+3. Review the exact changed paths, run required repository checks and build the Web standalone output. Install from the lockfile in this worktree; do not borrow another worktree's dependencies. Freeze release provenance and create a reviewed branch artifact.
+4. Deploy the reviewed artifact only to the existing temporary Hostinger candidate. Preserve candidate noindex, analytics off and read-only published Production content. Update identity using the real branch/SHA and verify completed build plus actual running behavior. A queued job is not completion.
+5. Rerun the corrected checker and independent browser/HTTP probes over all sitemap pages, emitted HTML/JSON-LD, legacy/slash redirects, XML/TXT/security files, public images, optimized images, CSS/JS/fonts, 404s, private routes and crawler groups. Check effective response headers, not source intent. Diagnose any CDN overrides before certifying the candidate.
+6. Verify the native Hostinger LINE business path with an isolated, correctly identified UAT lane and least-privilege UAT credentials configured through the owner/provider's secure mechanism. Test non-empty signed events, denied signatures, dedup/redelivery, postback context, encryption, database ingestion, continuation/delivery capability, retry/restart and no-send behavior. Keep Production credentials out of Shadow/UAT and do not contact customers. Separately prove Web/Admin integration and health diagnostics; the existing Vercel-only diagnostic must not be relabeled as tested on Hostinger.
+7. Verify content freshness using isolated UAT revisions and controlled cache behavior: update/publish, next page/article/category/sitemap read, cache expiry/purge and rollback to the original UAT test state. Production remains read-only. Confirm representative published Production snapshots separately; a snapshot match alone is not freshness proof.
+8. Complete browser QA for Home, Blog/category/articles, FHC and CI: mobile/desktop, keyboard, calculator boundaries, result/export, CTA destinations, controlled synthetic conversion sink, consent enable/revoke and duplicate-event prevention. Keep candidate live tracking off; prepare the exact existing production tracking IDs securely and verify continuity without leaking calculator or customer data.
+9. Prepare the custom `ccpun.com` and `www` Hostinger mapping without altering public DNS. Resolve the separate existing Hostinger `ccpun.com` website identity; never delete it merely to bypass a domain collision. Obtain a supported pre-provisioning TLS method and exact certified target/records. Validate both hostnames with proper SNI and hostname certificate verification against that target. Temporary-host SSL and a guessed CDN IP do not satisfy this gate.
+10. Rehearse candidate restart and recovery using a pinned source/lockfile/release manifest and a verified Hostinger-supported restoration/redeployment path. Keep two known-good releases with checksums; demonstrate restoring the older release then the current release. Prepare the guarded two-record Cloudflare DNS rollback separately; a written rollback is not a executed rehearsal.
+11. After assets are healthy, measure at least five paired cold and warm browser runs per representative route against current Vercel. Record environment/network profile, distribution/median, TTFB, actual image LCP element, CLS and errors. Broken-image LCP results cannot count as improvement. Address regressions before signing this gate.
+12. Integrate all gate evidence for one exact artifact. If source changes, refresh the affected checks. Obtain review/authorization for any required Production merge; then build the exact merged `v4-production` SHA on Hostinger with indexing and analytics still blocked, and repeat the relevant candidate checks. The real Production ref is needed by the existing native LINE runtime policy.
+13. Declare **READY FOR DNS** only after every mandatory gate below is CONFIRMED, prerequisites are securely configured and rollback is executable. Leave public DNS unchanged and hand the exact target/release/record diff to the COO for the separate cutover decision.
+
+## Mandatory pre-DNS acceptance gates
+
+| Gate | Required evidence |
+| --- | --- |
+| Release identity | GitHub SHA, reviewed source, completed Hostinger build and actual runtime agree; correct provider/role/lane; no spoofed Vercel identity |
+| Public runtime | All emitted public asset/image/font requests in the defined full crawl succeed; real pages and errors render; no EEXIST on repeated build |
+| SEO/AEO/GEO | Full recursive sitemap/content/metadata/schema/redirect parity; correct crawler-group semantics; candidate noindex and private boundary; release checker negative fixtures pass |
+| Security | Effective CSP/security headers, protected Admin/Draft/private routes, relevant dependency reachability and denied auth/input probes |
+| Native LINE | Positive isolated signed business E2E, signature-denied and dedup/retry/restart evidence; final least-privilege secure configuration; existing Admin collaboration proven |
+| Content | Published-only reads and isolated revision-to-page/sitemap freshness with cache behavior documented |
+| Tools/conversion/privacy | FHC/CI calculations and exports, CTA/controlled conversion path, consent revoke/enable, event mapping/duplication/privacy and prepared production IDs |
+| Custom domain/TLS | Exact Hostinger apex/www mapping, certified target, valid certificates and verified SNI preflight before traffic moves |
+| Reliability/recovery | Candidate process restart and pinned restoration actually rehearsed; Vercel recovery target retained; DNS rollback values read back |
+| Performance | Healthy-image paired warm/cold route measurements meet reviewed baseline with disclosed limits |
+| Scope preservation | Admin, Production content/data, other domains, PR #165 and authoritative DNS retain their approved state |
+
+Any BLOCKED, PARTIAL or NOT VERIFIED mandatory gate means **NOT READY**. Record the missing evidence, consequence, next owner and exact action; do not waive a gate because the provider normally issues SSL after DNS. If this plan cannot pre-provision TLS with the current platform, return that concrete provider dependency to the COO instead of switching traffic experimentally.
+
+## After separate DNS authorization
+
+The future release must coordinate final live stage/indexing/analytics, domain routing and public DNS so the live custom domain is not accidentally left noindex or with tracking disabled. Changing a stage while the temporary host is public must not leave an indexable duplicate. This coordination is a future reviewed release action, not authorized by this preparation document.
+
+Only then: apply the exact approved apex/www record diff while preserving NS/Admin/mail/verification/CAA records; verify custom-domain TLS, complete public business/SEO/consent behavior and exact artifact identity; use the prepared rollback if acceptance fails. Retain Vercel public-Web recovery until the agreed observation window passes. Do not cancel Vercel or remove existing aliases by implication. Monitor GSC, crawl errors, CWV, analytics continuity and actual crawler logs with separately authorized follow-up.
+
+Admin remains on Vercel throughout. A later Admin migration requires its own exact scope, durable scheduler execution design and authorization.
