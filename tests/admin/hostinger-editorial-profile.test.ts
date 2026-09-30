@@ -51,6 +51,11 @@ test("native candidate proxy denies unsupported APIs before internal/alias exemp
   assert.equal(values[8].location, "https://candidate.example/content/articles/");
 });
 
+test("editorial ingress rejects raw and forwarded unknown hosts even after Auth.js rewrites the URL", () => {
+  const values = child(`const {NextRequest}=require('next/server');const {adminProxy}=require('./apps/admin/proxy.ts');console.log(JSON.stringify([['evil.example',null],['candidate.example','evil.example'],['candidate.example','candidate.example'],['candidate.example',null]].map(([host,forwarded])=>{const req=new NextRequest('https://candidate.example/content/articles/',{headers:{host,...(forwarded?{'x-forwarded-host':forwarded}:{})}});req.auth=null;return adminProxy(req).status;})));`);
+  assert.deepEqual(values, [404, 404, 307, 307]);
+});
+
 test("schedule handlers independently deny editorial before identity, body, params or Workflow start", () => {
   const result = child(`
     const Module=require('node:module');const load=Module._load;let starts=0;

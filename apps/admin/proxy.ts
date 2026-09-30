@@ -43,6 +43,16 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
   }
   // Full-profile Workflow retains its own signed transport authentication.
   if (capabilityProfile === "full" && pathname.startsWith("/.well-known/workflow/")) return NextResponse.next();
+  if (capabilityProfile === "editorial") {
+    // Auth.js may rewrite request.url to AUTH_URL. Validate the actual ingress
+    // Host too, so that rewrite cannot authorize an unknown request hostname.
+    let configuredHost: string;
+    try { configuredHost = new URL(process.env.AUTH_URL ?? "").host.toLowerCase(); }
+    catch { return new NextResponse("Not Found", { status: 404 }); }
+    const host = request.headers.get("host")?.trim().toLowerCase();
+    const forwardedHost = request.headers.get("x-forwarded-host")?.trim().toLowerCase();
+    if (host !== configuredHost || (forwardedHost && forwardedHost !== configuredHost)) return new NextResponse("Not Found", { status: 404 });
+  }
 
   observeAiCrawlerRequest({
     userAgent: request.headers.get("user-agent"),
