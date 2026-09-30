@@ -107,7 +107,9 @@ async function readArticleJobs(limit: number, env: Record<string, string | undef
       locked: row.status === "executing" && !leaseExpired,
       lockExpiresAt: row.lease_expires_at,
       error: leaseExpired ? "EXECUTION_OUTCOME_UNKNOWN" : row.error_code,
-      detail: row.workflow_run_id ? `workflow ${row.workflow_run_id}` : "ยังไม่มี workflow run",
+      detail: row.workflow_run_id === `native-neon:${row.generation}`
+        ? `Native Neon · ${row.generation}`
+        : row.workflow_run_id ? `workflow ${row.workflow_run_id}` : "ยังไม่มี dispatch receipt",
     };
   });
 }

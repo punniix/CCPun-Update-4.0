@@ -1,13 +1,15 @@
 import type { NextConfig } from "next";
 import path from "node:path";
-import { withWorkflow } from "workflow/next";
+import { createRequire } from "node:module";
+import { validateNativeNeonBuild } from "./scripts/build-provider.mjs";
 import { buildNextSecurityHeaders } from "../next-security-headers.mjs";
 import { getAdminEnvironment, isSanityLaneAllowed } from "../../lib/admin/environment";
 import { getAdminCapabilityProfile } from "../../lib/admin/capability-profile";
 
 const CAPABILITY_PROFILE = getAdminCapabilityProfile();
 const IS_HOSTINGER = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
-if (IS_HOSTINGER && CAPABILITY_PROFILE !== "editorial") throw new Error("Hostinger Admin requires the explicit editorial capability profile.");
+const NATIVE_NEON_BUILD = validateNativeNeonBuild();
+if (IS_HOSTINGER && CAPABILITY_PROFILE !== "editorial" && !NATIVE_NEON_BUILD) throw new Error("Hostinger full Admin requires the sealed native UAT build lane.");
 
 const PRIVATE_SURFACE_ROBOTS_HEADERS = [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }];
 const PRIVATE_ADMIN_API_HEADERS = [
@@ -46,6 +48,7 @@ const nextConfig: NextConfig = {
     skipTrailingSlashRedirect: true,
   } : {}),
   env: {
+    ...(NATIVE_NEON_BUILD?.publicValues ?? {}),
     NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: CAPABILITY_PROFILE,
     NEXT_PUBLIC_CCPUN_APP_ENV: ADMIN_ENVIRONMENT === "unknown" ? "" : ADMIN_ENVIRONMENT,
     NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID?.trim() ?? "",
@@ -142,5 +145,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Editorial delivery has no durable scheduler and mounts no SDK HTTP handler.
-export default CAPABILITY_PROFILE === "editorial" ? nextConfig : withWorkflow(nextConfig);
+// Native Neon uses the existing durable registration/claim store and mounts
+// no SDK handler. Require the retained legacy wrapper only in its old lane.
+const configured = CAPABILITY_PROFILE === "editorial" || NATIVE_NEON_BUILD
+  ? nextConfig
+  : createRequire(import.meta.url)("workflow/next").withWorkflow(nextConfig);
+export default configured;

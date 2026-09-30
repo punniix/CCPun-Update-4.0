@@ -3,8 +3,8 @@ import "server-only";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import { ARTICLE_SCHEDULER_CHECKSUM, ARTICLE_SCHEDULER_MIGRATION } from "../../../db/migrations/20260911_article_scheduling_v1";
-import { ArticleScheduleError, resolveArticleSchedulerLane, SCHEDULER_LANES, SCHEDULER_ROLE, scheduleRowSchema, type ArticleScheduleRow, type ScheduleStatus } from "./article-schedule-contract";
-import { ACK_ARTICLE_DISPATCH, AUTHORIZE_ARTICLE_EXECUTION, CANCEL_ARTICLE_SCHEDULE, CLAIM_ARTICLE_SCHEDULE, FAIL_ARTICLE_DISPATCH, FINISH_ARTICLE_SCHEDULE, PREPARE_ARTICLE_SCHEDULE } from "./article-schedule-sql";
+import { ArticleScheduleError, articleIdSchema, resolveArticleSchedulerLane, SCHEDULER_LANES, SCHEDULER_ROLE, scheduleRowSchema, type ArticleScheduleRow, type ScheduleStatus } from "./article-schedule-contract";
+import { ACK_ARTICLE_DISPATCH, ACK_NATIVE_ARTICLE_DISPATCH, READ_NATIVE_DUE_ARTICLE_SCHEDULES, AUTHORIZE_ARTICLE_EXECUTION, CANCEL_ARTICLE_SCHEDULE, CLAIM_ARTICLE_SCHEDULE, FAIL_ARTICLE_DISPATCH, FINISH_ARTICLE_SCHEDULE, PREPARE_ARTICLE_SCHEDULE } from "./article-schedule-sql";
 
 export type ScheduleStore = {
   mode: "publish" | "validate-only";
@@ -19,7 +19,12 @@ export type ScheduleStore = {
   finish(row: ArticleScheduleRow, status: ScheduleStatus, errorCode?: string, transactionId?: string): Promise<void>;
 };
 
-export async function openArticleScheduleStore(): Promise<ScheduleStore> {
+export type NativeScheduleStore = ScheduleStore & {
+  registerNative(articleId: string, generation: string): Promise<ArticleScheduleRow | null>;
+  listNativeDue(limit: number): Promise<{ articleId: string; generation: string }[]>;
+};
+
+export async function openArticleScheduleStore(): Promise<NativeScheduleStore> {
   const lane = resolveArticleSchedulerLane();
   if (!lane) throw new ArticleScheduleError("not-ready");
   const expected = SCHEDULER_LANES[lane];
@@ -54,6 +59,14 @@ export async function openArticleScheduleStore(): Promise<ScheduleStore> {
     read: (articleId) => one("SELECT * FROM ccpun_admin.article_schedule WHERE article_id=$1", [articleId]),
     prepare: (input) => one(PREPARE_ARTICLE_SCHEDULE, [input.articleId,input.generation,input.draftRevision,input.publishedRevision,input.scheduledAt,input.actor,input.expectedGeneration,input.expectedVersion]),
     acknowledge: (articleId,generation,runId) => one(ACK_ARTICLE_DISPATCH, [articleId,generation,runId]),
+    registerNative: (articleId,generation) => one(ACK_NATIVE_ARTICLE_DISPATCH, [articleId,generation]),
+    async listNativeDue(limit) {
+      if (!identity.enabled || process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "1") return [];
+      const bounded = z.number().int().min(1).max(10).parse(limit);
+      const rows = z.array(z.object({ article_id: articleIdSchema, generation: z.string().uuid() }).strict()).max(bounded)
+        .parse(await query(READ_NATIVE_DUE_ARTICLE_SCHEDULES, [bounded]));
+      return rows.map((row) => ({ articleId: row.article_id, generation: row.generation }));
+    },
     async failDispatch(articleId,generation) { await one(FAIL_ARTICLE_DISPATCH, [articleId,generation]); },
     cancel: (articleId,generation,version,actor) => one(CANCEL_ARTICLE_SCHEDULE, [articleId,generation,version,actor]),
     claim: (articleId,generation,executionId) => one(CLAIM_ARTICLE_SCHEDULE, [articleId,generation,executionId]),

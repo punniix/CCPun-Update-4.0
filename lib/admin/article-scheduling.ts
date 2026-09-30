@@ -69,6 +69,19 @@ export async function acknowledgeArticleSchedule(articleId: string, generation: 
 export async function markScheduleStartFailed(articleId: string, generation: string) {
   await (await openArticleScheduleStore()).failDispatch(articleId, generation);
 }
+export async function registerNativeArticleSchedule(articleId: string, generation: string) {
+  articleIdSchema.parse(articleId);
+  z.string().uuid().parse(generation);
+  const store = await openArticleScheduleStore();
+  if (!store.enabled) throw new ArticleScheduleError("not-ready");
+  const row = await store.registerNative(articleId, generation);
+  if (!row) throw new ArticleScheduleError("conflict");
+  return scheduleView(row);
+}
+
+export async function listNativeDueArticleSchedules() {
+  return (await openArticleScheduleStore()).listNativeDue(10);
+}
 export async function cancelArticleSchedule(articleId: string, generation: string, version: number, actor: string) {
   articleIdSchema.parse(articleId);
   // Cancellation remains available with feature activation disabled and with no Draft present.

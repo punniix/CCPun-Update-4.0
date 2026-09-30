@@ -1,6 +1,7 @@
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, unlinkSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const adminRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -23,6 +24,86 @@ export function installAdminMonorepoDependencies(root = adminRoot, run = spawnSy
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`Hostinger Admin monorepo dependency install failed (exit ${result.status ?? "unknown"}).`);
 }
+// No provider connection is created here. This seal accepts only the UAT
+// native build lane; full Production remains closed until separate acceptance.
+/** @param {string} root @param {Record<string, string | undefined>} variables */
+export function validateNativeNeonBuild(root = adminRoot, variables = process.env, run = spawnSync) {
+  if (variables.CCPUN_ARTICLE_SCHEDULER_BACKEND !== "native-neon"
+    && variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND !== "native-neon") return null;
+  const deny = () => { throw new Error("NATIVE_NEON_UAT_BUILD_DENIED"); };
+  if (variables.CCPUN_DEPLOYMENT_PROVIDER !== "hostinger" || variables.CCPUN_DEPLOYMENT_ROLE !== "admin"
+    || variables.CCPUN_APP_ENV !== "admin-uat" || variables.CCPUN_ADMIN_CAPABILITY_PROFILE !== "full"
+    || variables.CCPUN_ARTICLE_SCHEDULER_BACKEND !== "native-neon"
+    || variables.NEXT_PUBLIC_SANITY_PROJECT_ID !== "ccb9lnw5" || variables.NEXT_PUBLIC_SANITY_DATASET !== "uat"
+    || variables.CCPUN_NEON_PROJECT_ID !== "young-term-47483330"
+    || variables.CCPUN_NEON_BRANCH_ID !== "br-crimson-mouse-az7ajkv8" || variables.CCPUN_NEON_DATABASE !== "neondb"
+    || (variables.NEXT_PUBLIC_CCPUN_APP_ENV !== undefined && variables.NEXT_PUBLIC_CCPUN_APP_ENV !== "admin-uat")
+    || variables.VERCEL_PROJECT_ID || variables.VERCEL_DEPLOYMENT_ID
+    || ![undefined, "0"].includes(variables.CCPUN_ARTICLE_SCHEDULING_ENABLED)
+    || ![undefined, "0"].includes(variables.CCPUN_NATIVE_WORKFLOW_ENABLED)
+    || !/^[a-f0-9]{40}$/.test(variables.CCPUN_GIT_SHA ?? "")
+    || !/^[a-zA-Z0-9._/-]{1,128}$/.test(variables.CCPUN_GIT_REF ?? "")
+    || !/^[a-zA-Z0-9._-]{1,128}$/.test(variables.CCPUN_RELEASE_ID ?? "")) deny();
+  const repository = resolve(root, "../..");
+  const git = (args) => {
+    const result = run("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    if (result.error || result.status !== 0 || typeof result.stdout !== "string") deny();
+    return result.stdout.trim();
+  };
+  const sha = git(["rev-parse", "HEAD"]);
+  const checkedOutRef = git(["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (variables.CCPUN_GIT_REF === "HEAD" || (checkedOutRef !== "HEAD" && checkedOutRef !== variables.CCPUN_GIT_REF)) deny();
+  if (sha !== variables.CCPUN_GIT_SHA || git(["rev-parse", "--verify", `${variables.CCPUN_GIT_REF}^{commit}`]) !== sha
+    || git(["status", "--porcelain", "--untracked-files=no"])) deny();
+  // The new runtime must be committed as well: a clean tracked diff alone
+  // cannot attest an untracked implementation left in the build workspace.
+  git(["ls-files", "--error-unmatch", "package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs",
+    "apps/admin/instrumentation.ts", "lib/admin/article-schedule-clock.ts", "lib/admin/article-scheduling.ts",
+    "lib/admin/operations/article-schedule-sql.ts", "lib/admin/operations/article-schedule-store.ts",
+    "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts"]);
+  const publicValues = {
+    NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+    NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+    NEXT_PUBLIC_CCPUN_GIT_SHA: sha,
+    NEXT_PUBLIC_CCPUN_GIT_REF: variables.CCPUN_GIT_REF,
+    NEXT_PUBLIC_CCPUN_RELEASE_ID: variables.CCPUN_RELEASE_ID,
+  };
+  for (const [key, value] of Object.entries(publicValues)) {
+    if (variables[key] !== undefined && variables[key] !== value) deny();
+  }
+  return { schemaVersion: 1, provider: "hostinger", role: "admin", environment: "admin-uat",
+    capabilityProfile: "full", schedulerBackend: "native-neon", gitSha: sha, gitRef: variables.CCPUN_GIT_REF,
+    releaseId: variables.CCPUN_RELEASE_ID, lockSha256: createHash("sha256").update(readFileSync(resolve(repository, "package-lock.json"))).digest("hex"),
+    sanityProjectId: "ccb9lnw5", sanityDataset: "uat", neonProjectId: "young-term-47483330",
+    neonBranchId: "br-crimson-mouse-az7ajkv8", neonDatabase: "neondb", productionReady: false, publicValues };
+}
+
+export function sealNativeNeonRuntime(root, seal) {
+  if (!seal) return;
+  const standalone = resolve(root, ".next/standalone");
+  const paths = JSON.parse(readFileSync(resolve(standalone, ".next/server/app-paths-manifest.json"), "utf8"));
+  if (Object.keys(paths).some((path) => path === "/.well-known/workflow" || path.startsWith("/.well-known/workflow/"))) {
+    throw new Error("NATIVE_NEON_SDK_ROUTE_PRESENT");
+  }
+  const visit = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const item = resolve(directory, entry.name);
+      if (/^\.env|\.(?:pem|p12|pfx|key)$/i.test(entry.name)
+        || entry.name === "ccpun-native-workflow-world.cjs") throw new Error("NATIVE_NEON_RUNTIME_INPUT_DENIED");
+      if (entry.isSymbolicLink()) {
+        const target = relative(standalone, realpathSync(item));
+        if (target === ".." || target.startsWith("../") || isAbsolute(target)) throw new Error("NATIVE_NEON_RUNTIME_LINK_DENIED");
+      } else if (entry.isDirectory()) visit(item);
+    }
+  };
+  visit(standalone);
+  const { publicValues, ...manifest } = seal;
+  void publicValues;
+  writeFileSync(resolve(standalone, "ccpun-native-admin-manifest.json"), JSON.stringify({ ...manifest,
+    nodeVersion: process.version, platform: process.platform, architecture: process.arch,
+    buildId: readFileSync(resolve(standalone, ".next/BUILD_ID"), "utf8").trim() }, null, 2) + "\n", { mode: 0o600 });
+}
+
 function replaceDirectory(source, destination) {
   if (!existsSync(source)) throw new Error(`Required Admin build input is missing: ${source}`);
   try {
@@ -54,16 +135,21 @@ export function stageAdminStandaloneRuntime(root = adminRoot) {
   for (const required of ["server.js", "node_modules/next/package.json", ".next/BUILD_ID", ".next/static", "public/favicon.ico", ".next/static/ccpun-public/favicon.ico"]) {
     if (!existsSync(resolve(standalone, required))) throw new Error(`Admin standalone runtime is incomplete: ${required}`);
   }
-  console.log(`Hostinger editorial Admin runtime ready at ${standalone}`);
+  console.log("Hostinger Admin standalone runtime staged.");
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const hostinger = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
-  if (hostinger && process.env.CCPUN_ADMIN_CAPABILITY_PROFILE?.trim().toLowerCase() !== "editorial") throw new Error("Hostinger Admin requires editorial profile.");
+  const nativeSeal = validateNativeNeonBuild();
+  if (hostinger && process.env.CCPUN_ADMIN_CAPABILITY_PROFILE?.trim().toLowerCase() !== "editorial" && !nativeSeal) throw new Error("Hostinger full Admin build is not approved outside the sealed native UAT lane.");
   if (hostinger) installAdminMonorepoDependencies();
+  const buildEnvironment = { ...process.env, ...(nativeSeal?.publicValues ?? {}), ...(nativeSeal ? { CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" } : {}) };
   const nextBin = resolve(adminRoot, "../../node_modules/next/dist/bin/next");
-  const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: process.env, stdio: "inherit" });
+  const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
-  if (hostinger) stageAdminStandaloneRuntime();
+  if (hostinger) {
+    stageAdminStandaloneRuntime();
+    sealNativeNeonRuntime(adminRoot, nativeSeal ? validateNativeNeonBuild(adminRoot, buildEnvironment) : null);
+  }
 }
