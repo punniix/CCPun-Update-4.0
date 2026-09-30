@@ -43,7 +43,11 @@
     "build:web:shadow": "npm run build --workspace @ccpun/web",
     "build:admin:shadow": "npm run build --workspace @ccpun/admin",
     "typecheck:web:shadow": "tsc -p apps/web/tsconfig.json --noEmit --incremental false",
-    "typecheck:admin:shadow": "tsc -p apps/admin/tsconfig.json --noEmit --incremental false"
+    "typecheck:admin:shadow": "tsc -p apps/admin/tsconfig.json --noEmit --incremental false",
+    "check:hostinger": "node scripts/check-hostinger-readiness.mjs",
+    "qa:hostinger:parity": "node scripts/hostinger-seo-parity.mjs",
+    "test:hostinger": "node --test tests/hostinger-shadow-config.test.mjs",
+    "build:hostinger": "node scripts/build-provider.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.0.0",

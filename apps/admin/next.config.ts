@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { withWorkflow } from "workflow/next";
-import { SECURITY_HEADERS } from "../../lib/security-policy";
+import { buildNextSecurityHeaders } from "../next-security-headers.mjs";
 import { getAdminEnvironment, isSanityLaneAllowed } from "../../lib/admin/environment";
 
 const PRIVATE_SURFACE_ROBOTS_HEADERS = [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }];
@@ -20,6 +20,11 @@ const USE_REAL_DRAFT_PREVIEW_RUNTIME = [
   "admin-uat",
   "production-admin",
 ].includes(ADMIN_ENVIRONMENT);
+const SECURITY_HEADERS = buildNextSecurityHeaders({
+  isReviewEnvironment: USE_REAL_DRAFT_PREVIEW_RUNTIME,
+  sanityProjectId: SANITY_PROJECT_ID ?? "",
+  appEnvironment: ADMIN_ENVIRONMENT,
+});
 const LOCAL_DIST_DIR = ADMIN_ENVIRONMENT === "local-uat"
   ? ".ccpun-local/next-uat"
   : ADMIN_ENVIRONMENT === "local-production"

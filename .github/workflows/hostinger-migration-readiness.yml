@@ -1,0 +1,68 @@
+name: CCPun Hostinger Migration Readiness
+
+on:
+  pull_request:
+    branches: [v4-production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccpun-hostinger-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-hostinger-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Hostinger migration regression
+        run: npm run test:hostinger
+      - name: Hostinger Web Shadow UAT environment gate
+        run: npm run check:hostinger
+        env:
+          CCPUN_DEPLOYMENT_PROVIDER: hostinger
+          CCPUN_DEPLOYMENT_ROLE: web
+          CCPUN_RELEASE_STAGE: shadow
+          CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          CCPUN_UAT_MODE: "1"
+          CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0"
+      - name: Hostinger Web production-candidate environment gate
+        run: npm run check:hostinger
+        env:
+          CCPUN_DEPLOYMENT_PROVIDER: hostinger
+          CCPUN_DEPLOYMENT_ROLE: web
+          CCPUN_RELEASE_STAGE: candidate
+          CCPUN_APP_ENV: production
+          NEXT_PUBLIC_CCPUN_APP_ENV: production
+          NEXT_PUBLIC_SANITY_PROJECT_ID: kyfxgjnq
+          NEXT_PUBLIC_SANITY_DATASET: production
+          CCPUN_UAT_MODE: "1"
+          CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0"
+          CCPUN_GIT_REF: ${{ github.head_ref || github.ref_name }}
+          CCPUN_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CCPUN_RELEASE_ID: hostinger-candidate-${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Typecheck Web shadow
+        run: npm run typecheck:web:shadow
+      - name: Build Web shadow as Hostinger
+        run: npm run build:web:shadow
+        env:
+          CCPUN_DEPLOYMENT_PROVIDER: hostinger
+          CCPUN_DEPLOYMENT_ROLE: web
+          CCPUN_RELEASE_STAGE: shadow
+          CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
+          NEXT_PUBLIC_SANITY_DATASET: uat
+          CCPUN_UAT_MODE: "1"
+          CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0"
