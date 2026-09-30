@@ -163,7 +163,9 @@ test("growth UI exposes freshness, comparison, loading, empty, and error states 
   assert.match(growth, /query\(previousStartDate, previousEndDate\)\.catch/);
   assert.match(growth, /report\(previousStartDate, previousEndDate\)\.catch/);
   assert.match(growth, /ดึงช่วงก่อนหน้าไม่สำเร็จ/);
-  assert.match(growth, /ยังไม่มี baseline ที่เทียบกันได้จาก deployment API/);
+  assert.match(growth, /source: "runtime", state: "partial"/);
+  assert.match(growth, /อ่านเวอร์ชันของศูนย์จัดการที่กำลังรัน ยังไม่ใช่ผลตรวจ deployment ของเว็บสาธารณะ HTTPS หรือ Core Web Vitals/);
+  assert.match(growthPage, /ข้อมูลบางส่วน/);
   assert.match(growthPage, /ยังไม่เชื่อมต่อ/);
   assert.match(growthPage, /ดึงข้อมูลไม่สำเร็จ/);
   assert.match(growthLoading, /role="status"/);

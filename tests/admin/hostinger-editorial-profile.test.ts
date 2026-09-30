@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, isAdminLineSystemDeliveryAllowed, safeAdminCapabilityReturnPath } from "../../lib/admin/capability-profile";
+import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 
 test("editorial profile is pinned by its build marker and invalid/mismatched profiles fail closed", () => {
   assert.equal(getAdminCapabilityProfile({}), "full");
@@ -108,7 +109,14 @@ test("native public-page rejection returns a private 404 without external rewrit
   assert.match(native[0].cache, /private, no-store/);
   assert.match(native[0].csp, /default-src/);
   assert.equal(native[1].rewrite, null);
-  const legacy = child(script, "full", [], { CCPUN_DEPLOYMENT_PROVIDER: "vercel" });
+  const invalidLegacy = child(script, "full", [], { CCPUN_DEPLOYMENT_PROVIDER: "vercel" });
+  assert.equal(invalidLegacy[0].status, 404);
+  assert.equal(invalidLegacy[0].rewrite, null);
+  assert.equal(invalidLegacy[1].status, 404);
+  const legacy = child(script, "full", [], {
+    CCPUN_DEPLOYMENT_PROVIDER: "vercel", VERCEL_ENV: "preview",
+    VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+  });
   assert.equal(legacy[0].status, 404);
   assert.equal(legacy[0].rewrite, "https://candidate.example/admin-not-found/");
   assert.equal(legacy[1].status, 200);
