@@ -9,6 +9,7 @@ import {
   resolveAdminOperationsRuntimeIdentity,
 } from "../operations/foundation";
 import type { LineRichMenuProviderDefinition } from "../line/rich-menu-provider";
+import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 
 export const LINE_RICH_MENU_RESOURCE_KEY = "line.rich_menu.default";
 
@@ -147,12 +148,26 @@ export async function submitLineRichMenuCommand(input: {
 export async function claimLineRichMenuOperation(
   variables: Record<string, string | undefined> = process.env,
 ) {
+  let workerIdentity = `${variables.VERCEL_DEPLOYMENT_ID ?? "local"}:${variables.VERCEL_REGION ?? "unknown"}`;
+  if (variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger") {
+    const deployment = resolveDeploymentIdentity(variables, "admin");
+    const gitSha = deployment.gitSha;
+    if (!deployment.valid || deployment.provider !== "hostinger"
+      || !["admin-uat", "production-admin"].includes(deployment.environment)
+      || !variables.CCPUN_GIT_REF?.trim() || !variables.CCPUN_RELEASE_ID?.trim()
+      || !variables.CCPUN_GIT_SHA?.trim() || !gitSha || !/^[0-9a-f]{40}$/i.test(gitSha)
+      || (deployment.environment === "production-admin" && deployment.gitRef !== "v4-production")) {
+      throw new Error("CONTROL_PLANE_WORKER_IDENTITY_INVALID");
+    }
+    workerIdentity = JSON.stringify([deployment.provider, deployment.role, deployment.environment,
+      deployment.gitRef, gitSha.toLowerCase(), deployment.releaseId]);
+  }
   const sql = await controlSql(variables);
   if (!sql) return null;
   const leaseToken = randomBytes(32).toString("hex");
   const leaseTokenDigest = createHash("sha256").update(leaseToken).digest("hex");
   const workerDigest = createHash("sha256")
-    .update(`${variables.VERCEL_DEPLOYMENT_ID ?? "local"}:${variables.VERCEL_REGION ?? "unknown"}`)
+    .update(workerIdentity)
     .digest("hex");
   const rows = operationRowSchema.array().parse(await sql.query(
     "SELECT * FROM ccpun_admin.admin_claim_provider_operation($1::jsonb)",

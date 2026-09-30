@@ -3,6 +3,7 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
+import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 import {
   adminOperationsRuntimeInputFromEnvironment,
   resolveAdminOperationsRuntimeIdentity,
@@ -584,5 +585,20 @@ export async function updateLineLeadStage(input: {
 }
 
 export function lineWorkerDigest(outboundId: string, variables: Record<string, string | undefined> = process.env) {
+  if (variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger") {
+    const deployment = resolveDeploymentIdentity(variables, "admin");
+    const gitSha = deployment.gitSha;
+    if (!deployment.valid || deployment.provider !== "hostinger"
+      || !["admin-uat", "production-admin"].includes(deployment.environment)
+      || !variables.CCPUN_GIT_REF?.trim() || !variables.CCPUN_RELEASE_ID?.trim()
+      || !variables.CCPUN_GIT_SHA?.trim() || !gitSha || !/^[0-9a-f]{40}$/i.test(gitSha)
+      || (deployment.environment === "production-admin" && deployment.gitRef !== "v4-production")) {
+      throw new Error("LINE_WORKER_IDENTITY_INVALID");
+    }
+    return digest("ccpun-line-outbound-worker-v1", outboundId, JSON.stringify([
+      deployment.provider, deployment.role, deployment.environment,
+      deployment.gitRef, gitSha.toLowerCase(), deployment.releaseId,
+    ]));
+  }
   return digest("ccpun-line-outbound-worker-v1", outboundId, variables.VERCEL_DEPLOYMENT_ID?.trim() ?? "local");
 }
