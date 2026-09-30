@@ -9,7 +9,7 @@ import { getAdminCapabilityProfile } from "../../lib/admin/capability-profile";
 const CAPABILITY_PROFILE = getAdminCapabilityProfile();
 const IS_HOSTINGER = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
 const NATIVE_NEON_BUILD = validateNativeNeonBuild();
-if (IS_HOSTINGER && CAPABILITY_PROFILE !== "editorial" && !NATIVE_NEON_BUILD) throw new Error("Hostinger full Admin requires the sealed native UAT build lane.");
+if (IS_HOSTINGER && CAPABILITY_PROFILE !== "editorial" && !NATIVE_NEON_BUILD) throw new Error("Hostinger full Admin requires a sealed native Admin build lane.");
 
 const PRIVATE_SURFACE_ROBOTS_HEADERS = [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }];
 const PRIVATE_ADMIN_API_HEADERS = [
@@ -145,8 +145,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Native Neon uses the existing durable registration/claim store and mounts
-// no SDK handler. Require the retained legacy wrapper only in its old lane.
+// Native UAT and scheduling-disabled Production mount no SDK handler.
+// Require the retained legacy wrapper only in its old lane.
 const configured = CAPABILITY_PROFILE === "editorial" || NATIVE_NEON_BUILD
   ? nextConfig
   : createRequire(import.meta.url)("workflow/next").withWorkflow(nextConfig);
