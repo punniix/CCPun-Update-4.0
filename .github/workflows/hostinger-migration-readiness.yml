@@ -49,7 +49,18 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Real isolated World storage and queue recovery
-        run: node --import tsx --test tests/admin/native-workflow-world-linux.test.ts
+        # Runner tooling variables never reach the strict lab process. These
+        # are only public fixture/provenance inputs; no HOME or provider keys.
+        run: |
+          env -i \
+            PATH="$PATH" NODE_ENV=test \
+            CCPUN_NATIVE_WORLD_LINUX_LAB="$CCPUN_NATIVE_WORLD_LINUX_LAB" \
+            CCPUN_LAB_DATABASE_PORT="$CCPUN_LAB_DATABASE_PORT" \
+            CCPUN_LAB_GIT_SHA="$CCPUN_LAB_GIT_SHA" \
+            CCPUN_LAB_GIT_REF="$CCPUN_LAB_GIT_REF" \
+            CCPUN_LAB_CONNECTION="$CCPUN_LAB_CONNECTION" \
+            WORKFLOW_TARGET_WORLD="$WORKFLOW_TARGET_WORLD" \
+            node --import tsx --test tests/admin/native-workflow-world-linux.test.ts
         env:
           CCPUN_NATIVE_WORLD_LINUX_LAB: "1"
           CCPUN_LAB_DATABASE_PORT: ${{ job.services.postgres.ports[5432] }}

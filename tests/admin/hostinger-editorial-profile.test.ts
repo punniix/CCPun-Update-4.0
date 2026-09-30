@@ -79,6 +79,26 @@ test("editorial ingress rejects raw and forwarded unknown hosts even after Auth.
   assert.deepEqual(values, [404, 404, 307, 307, 404, 404, 404]);
 });
 
+test("native full Production pins canonical auth origin and rejects raw/forwarded host aliases", () => {
+  const variables = { CCPUN_APP_ENV: "production-admin", NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin", NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", NEXT_PUBLIC_SANITY_DATASET: "production", AUTH_URL: "https://admin.ccpun.com" };
+  const script = `const {NextRequest}=require('next/server');const {adminProxy}=require('./apps/admin/proxy.ts');console.log(JSON.stringify([['admin.ccpun.com',null],['admin.ccpun.com','admin.ccpun.com'],['evil.example',null],['ccpun-admin-prod.vercel.app',null],['admin.ccpun.com','evil.example'],['admin.ccpun.com','admin.ccpun.com, admin.ccpun.com'],['admin.ccpun.com',''],['admin.ccpun.com, evil.example',null],[null,null]].map(([host,forwarded])=>{const req=new NextRequest('https://admin.ccpun.com/content/articles/',{headers:{...(host?{host}:{}),...(forwarded!==null?{'x-forwarded-host':forwarded}:{})}});req.auth={user:{role:'owner'}};const res=adminProxy(req);return{status:res.status,robots:res.headers.get('x-robots-tag'),cache:res.headers.get('cache-control')};})));`;
+  const values = child(script, "full", [], variables);
+  assert.deepEqual(values.map((value: { status: number }) => value.status), [200, 200, 404, 404, 404, 404, 404, 404, 404]);
+  for (const denied of values.slice(2)) { assert.match(denied.robots, /noindex/); assert.match(denied.cache, /no-store/); }
+  for (const authUrl of ["https://evil.example", "https://admin.ccpun.com/", "https://admin.ccpun.com:444", "http://admin.ccpun.com", "https://admin.ccpun.com?fixture=1"]) {
+    const results = child(script, "full", [], { ...variables, AUTH_URL: authUrl });
+    assert.ok(results.every((value: { status: number }) => value.status === 404), authUrl);
+  }
+});
+
+test("native full host fence runs before Auth.js while nonnative browser auth remains unchanged", () => {
+  const script = `const Module=require('node:module');const load=Module._load;let calls=0;Module._load=function(name,...args){if(name==='@/auth')return{auth(){return()=>{calls++;return new Response('mock-auth',{status:218})}}};return load.call(this,name,...args)};const {NextRequest}=require('next/server');const {default:proxy}=require('./apps/admin/proxy.ts');const cases=[['admin.ccpun.com',null],['evil.example',null],['ccpun-admin-prod.vercel.app',null],['admin.ccpun.com','evil.example'],['admin.ccpun.com','admin.ccpun.com, admin.ccpun.com']];const statuses=cases.map(([host,forwarded])=>proxy(new NextRequest('https://admin.ccpun.com/api/auth/session',{headers:{host,...(forwarded?{'x-forwarded-host':forwarded}:{})}}),{}).status);console.log(JSON.stringify({statuses,calls}));`;
+  const variables = { CCPUN_APP_ENV: "production-admin", AUTH_URL: "https://admin.ccpun.com" };
+  assert.deepEqual(child(script, "full", [], variables), { statuses: [218, 404, 404, 404, 404], calls: 1 });
+  assert.deepEqual(child(script, "full", [], { ...variables, CCPUN_DEPLOYMENT_PROVIDER: "vercel" }), { statuses: [218, 218, 218, 218, 218], calls: 5 });
+  assert.deepEqual(child(script, "full", [], { ...variables, CCPUN_DEPLOYMENT_ROLE: "web" }), { statuses: [404, 404, 404, 404, 404], calls: 0 });
+});
+
 test("schedule handlers independently deny editorial before identity, body, params or Workflow start", () => {
   const result = child(`
     const Module=require('node:module');const load=Module._load;let starts=0;

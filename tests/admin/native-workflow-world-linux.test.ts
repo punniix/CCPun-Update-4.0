@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { fork, execFileSync, type ChildProcess } from "node:child_process";
+import { fork, execFileSync, spawnSync, type ChildProcess } from "node:child_process";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
@@ -17,6 +17,20 @@ const req = createRequire(path.join(root, "package.json"));
 const fixtureConnection = (port: string) => `postgresql://ccpun_workflow_lab:ccpun-workflow-lab-only@127.0.0.1:${port}/ccpun_workflow_lab`;
 const allowed = new Set(["CCPUN_NATIVE_WORLD_LINUX_LAB", "CCPUN_LAB_DATABASE_PORT", "CCPUN_LAB_GIT_SHA", "CCPUN_LAB_GIT_REF", "CCPUN_LAB_CONNECTION", "WORKFLOW_TARGET_WORLD", "WORKFLOW_LOCAL_BASE_URL", "WORKFLOW_JSON_MODE", "PORT"]);
 type Variables = Record<string, string | undefined>;
+type LabStage = "target" | "source" | "dependency" | "database" | "migration" | "receiver" | "executor" | "crash-recovery" | "delay-ack" | "close";
+let stage: LabStage = "target";
+const failureCodes = new Set(["LAB_NOT_OPTED_IN", "LAB_REQUIRES_REAL_LINUX", "LAB_REQUIRES_NODE24", "LAB_REQUIRES_LINUX_X64",
+  "LAB_AMBIENT_CONFIG_DENIED", "LAB_PORT_INVALID", "LAB_DATABASE_IDENTITY_MISMATCH", "LAB_WORLD_MISMATCH", "LAB_SHA_REQUIRED", "LAB_REF_REQUIRED",
+  "LAB_DOTENV_PRESENT", "LAB_SOURCE_MISMATCH", "LAB_SOURCE_DIRTY", "LAB_REF_MISMATCH", "LAB_DATABASE_NOT_EMPTY",
+  "DELAY_NOT_DURABLY_STORED", "COMMITTED_JOB_LOST_AFTER_CRASH", "DELAY_DELIVERED_EARLY", "LAB_GRACEFUL_CLOSE_TIMEOUT", "LAB_WORKER_EXITED",
+  "LAB_TIMEOUT_START", "LAB_TIMEOUT_ENQUEUE", "LAB_TIMEOUT_ACTIVE_EXECUTOR", "LAB_TIMEOUT_RECOVERED_ACTIVE_RUN", "LAB_TIMEOUT_DURABLE_DELAY", "LAB_TIMEOUT_ACKNOWLEDGED_JOB"]);
+export function safeLabFailure(at: LabStage, error: unknown) {
+  // Emit only source-owned constants. Raw errors, assertion values, endpoint
+  // details and environment key names never reach CI output.
+  const firstLine = error instanceof Error ? error.message.split("\n")[0] : "";
+  const code = failureCodes.has(firstLine) ? firstLine : "UNCLASSIFIED";
+  return `NATIVE_WORLD_LINUX_LAB_FAILED stage=${at} code=${code}`;
+}
 
 export function validateLab(variables: Variables, platform: string, nodeMajor: number) {
   // Before dependency import, Pool or World construction (eager LISTEN).
@@ -39,9 +53,11 @@ export function validateLab(variables: Variables, platform: string, nodeMajor: n
 }
 
 function preflight() {
+  stage = "target";
   const config = validateLab(process.env, process.platform, Number(process.versions.node.split(".")[0]));
   assert.equal(process.arch, "x64", "LAB_REQUIRES_LINUX_X64");
   for (const directory of [root, process.cwd()]) assert.ok(!readdirSync(directory).some((file) => /^\.env(?:\.|$)/.test(file)), "LAB_DOTENV_PRESENT");
+  stage = "source";
   const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
   assert.equal(git("rev-parse", "HEAD"), process.env.CCPUN_LAB_GIT_SHA, "LAB_SOURCE_MISMATCH");
   assert.equal(git("status", "--porcelain", "--untracked-files=no"), "", "LAB_SOURCE_DIRTY");
@@ -108,6 +124,7 @@ async function until(predicate: () => boolean | Promise<boolean>, label: string,
 
 async function realLab() {
   const config = preflight();
+  stage = "dependency";
   const { PgPool, createWorld, packageRoot } = modules();
   const pool = new PgPool({ ...config, max: 4 });
   let world: LabWorld | undefined;
@@ -118,16 +135,19 @@ async function realLab() {
   const server = createServer();
   let receiverHost = "";
   try {
+    stage = "database";
     const identity = await databaseIdentity(pool);
     assert.equal((await pool.query("SELECT count(*) AS count FROM information_schema.schemata WHERE schema_name IN ('workflow','workflow_drizzle','graphile_worker')")).rows[0].count, "0", "LAB_DATABASE_NOT_EMPTY");
     assert.equal((await pool.query("SELECT count(*) AS count FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog','information_schema')")).rows[0].count, "0", "LAB_DATABASE_NOT_EMPTY");
     // One migration owner, exact package SQL; no CLI/dotenv/default URL.
+    stage = "migration";
     const { drizzle } = req("drizzle-orm/node-postgres") as { drizzle(pool: Pool): unknown };
     const { migrate } = req("drizzle-orm/node-postgres/migrator") as { migrate(db: unknown, config: Record<string, string>): Promise<void> };
     await migrate(drizzle(pool), { migrationsFolder: path.join(packageRoot, "src/drizzle/migrations"), migrationsSchema: "workflow_drizzle", migrationsTable: "workflow_migrations" });
     const { makeWorkerUtils } = req("graphile-worker") as { makeWorkerUtils(config: { pgPool: Pool }): Promise<{ migrate(): Promise<void>; release(): Promise<void> }> };
     const utils = await makeWorkerUtils({ pgPool: pool });
     try { await utils.migrate(); } finally { await utils.release(); }
+    stage = "receiver";
     world = createWorld({ pool, namespace, jobPrefix, queueConcurrency: 1 });
     assert.equal(typeof world.getEncryptionKeyForRun, "undefined", "Layer1 must not claim encrypted production storage");
     const receiver = world.createQueueHandler(`__${namespace}_wkf_workflow_`, async (input) => {
@@ -181,6 +201,7 @@ async function realLab() {
       child!.send({ action: "enqueue", id, delaySeconds });
       await until(() => messages.some((item) => item.event === "enqueued" && item.id === id), "ENQUEUE");
     };
+    stage = "executor";
     await start();
     await enqueue("ready");
     await until(() => delivered.includes("ready"), "ACTIVE_EXECUTOR");
@@ -195,6 +216,7 @@ async function realLab() {
     assert.ok(created.run);
     const runId = created.run.runId;
     assert.equal((await world.runs.get(runId)).status, "pending");
+    stage = "crash-recovery";
     const crashed = child!;
     const stopped = new Promise<void>((resolve) => crashed.once("exit", () => resolve()));
     crashed.kill("SIGKILL"); // Exact owned lab child; retain database and queue.
@@ -206,11 +228,13 @@ async function realLab() {
     await enqueue("restarted");
     await until(() => delivered.includes("restarted") && delivered.includes(runId), "RECOVERED_ACTIVE_RUN");
     assert.equal((await world.runs.get(runId)).status, "completed");
+    stage = "delay-ack";
     await until(() => delivered.includes("delayed"), "DURABLE_DELAY");
     assert.equal(delayedReceipts.length, 1);
     assert.ok(delayedReceipts[0] >= due, "DELAY_DELIVERED_EARLY");
     await until(async () => (await pending()).length === 0, "ACKNOWLEDGED_JOB");
     assert.equal(delivered.filter((id) => id === "delayed").length, 1);
+    stage = "close";
     const graceful = child!;
     const exited = new Promise<void>((resolve) => graceful.once("exit", () => resolve()));
     graceful.send({ action: "stop" });
@@ -247,8 +271,22 @@ if (process.argv.includes("--lab-worker")) {
     assert.throws(() => validateLab(variables, "darwin", 24));
     assert.throws(() => validateLab(variables, "linux", 22));
   });
+  test("clean CI launch drops inherited tooling and safe failure codes never replay payloads", () => {
+    // Exercise env -i with synthetic ambient tokens, not a real runner token.
+    const launch = spawnSync("env", ["-i", "PATH=" + (process.env.PATH ?? ""), "NODE_ENV=test", "CCPUN_NATIVE_WORLD_LINUX_LAB=1",
+      process.execPath, "-e", "console.log(JSON.stringify(Object.keys(process.env).sort()))"], {
+      encoding: "utf8", env: { PATH: process.env.PATH, NODE_ENV: "test", AZURE_HTTP_USER_AGENT: "SYNTHETIC_ONLY", ACTIONS_RUNTIME_TOKEN: "SYNTHETIC_ONLY", DATABASE_URL: "SYNTHETIC_ONLY" },
+    });
+    assert.equal(launch.status, 0);
+    // macOS may inject its text-encoding key after exec; the real lab is Linux.
+    const keys = (JSON.parse(launch.stdout) as string[]).filter((key) => !(process.platform === "darwin" && key === "__CF_USER_TEXT_ENCODING"));
+    assert.deepEqual(keys, ["CCPUN_NATIVE_WORLD_LINUX_LAB", "NODE_ENV", "PATH"]);
+    assert.equal(safeLabFailure("target", new Error("LAB_AMBIENT_CONFIG_DENIED")), "NATIVE_WORLD_LINUX_LAB_FAILED stage=target code=LAB_AMBIENT_CONFIG_DENIED");
+    assert.equal(safeLabFailure("source", new Error("LAB_SHA_REQUIRED\nSYNTHETIC_PRIVATE_PAYLOAD")), "NATIVE_WORLD_LINUX_LAB_FAILED stage=source code=LAB_SHA_REQUIRED");
+    assert.equal(safeLabFailure("database", new Error("SYNTHETIC_PRIVATE_ENDPOINT_PASSWORD")), "NATIVE_WORLD_LINUX_LAB_FAILED stage=database code=UNCLASSIFIED");
+  });
   test("real Linux PostgreSQL migrations, active delivery, crash/restart recovery and graceful close (Layer1 only)",
     { skip: process.env.CCPUN_NATIVE_WORLD_LINUX_LAB !== "1", timeout: 90_000 }, async () => {
-      try { await realLab(); } catch { throw new Error("NATIVE_WORLD_LINUX_LAB_FAILED (no connection/error payload replay)"); }
+      try { await realLab(); } catch (error) { throw new Error(safeLabFailure(stage, error)); }
     });
 }
