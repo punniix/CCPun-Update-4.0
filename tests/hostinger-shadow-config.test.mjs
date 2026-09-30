@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildNextSecurityHeaders } from "../apps/next-security-headers.mjs";
+import { blockedRobotsErrors, runParity } from "../scripts/hostinger-seo-parity.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -175,13 +176,16 @@ test("Hostinger standalone packaging traces and preserves public assets", () => 
   assert.match(buildProvider, /"\.next\/static\/ccpun-public\/\.well-known\/security\.txt"/);
 });
 
-test("Hostinger parity gate separates UAT Shadow checks from full production-content candidate parity", () => {
-  const parity = read("scripts/hostinger-seo-parity.mjs");
-  assert.match(parity, /\["shadow", "candidate", "production"\]/);
-  assert.match(parity, /blockedTarget = targetMode === "shadow" \|\| targetMode === "candidate"/);
-  assert.match(parity, /fullContentParity = targetMode === "candidate" \|\| targetMode === "production"/);
-  assert.match(parity, /path !== "\/sitemaps\/blog\.xml"/);
-  assert.match(parity, /BLOCKED_ROBOTS_DIRECTIVES = \["noindex", "nofollow", "noarchive"\]/);
-  assert.match(parity, /assertBlockedRobotsTxt\(targetRules\)/);
-  assert.match(parity, /aiRepresentativePaths = fullContentParity/);
+test("Hostinger parity gate keeps mode boundaries and fails closed on missing runtime or incorrectly grouped robots", async () => {
+  const unavailable = async () => new Response("missing", { status: 404 });
+  for (const targetMode of ["shadow", "candidate", "production"]) {
+    const result = await runParity({ source: "https://source.example", target: "https://target.example", targetMode, fetcher: unavailable });
+    assert.equal(result.blockedTarget, targetMode !== "production");
+    assert.equal(result.fullContentParity, targetMode !== "shadow");
+    assert.equal(result.status, "blocked");
+    assert.ok(result.failures.length > 0);
+  }
+  await assert.rejects(() => runParity({ source: "https://source.example", target: "https://target.example", targetMode: "unknown", fetcher: unavailable }), /invalid mode/);
+  assert.deepEqual(blockedRobotsErrors("User-agent: *\nDisallow: /\n"), []);
+  assert.ok(blockedRobotsErrors("User-agent: Googlebot\nDisallow: /\n\nUser-agent: *\nAllow: /\n").length > 0);
 });
