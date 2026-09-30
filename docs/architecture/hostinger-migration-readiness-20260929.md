@@ -4,6 +4,8 @@
 
 Current COO instruction (2026-09-30): migrate both `ccpun.com` and `admin.ccpun.com` to Hostinger, with Admin's article-production and SEO workflow as the highest priority. This supersedes the earlier instruction to keep Admin hosting on Vercel. Preparation and related implementation/candidate verification are authorized. The earlier boundary to leave DNS unchanged remains active: prepare and verify both systems before any separately approved traffic switch. Production content publication, Production merge, customer messages, credential copying and purchases are not implied.
 
+Latest COO fallback: move all remaining Admin systems if they can be migrated safely; otherwise deliver article publication and SEO/GEO/AEO first. Do not let CRM, marketing, diagnostics or scheduler portability block a proven native editorial delivery. Report exactly which capabilities migrate and which remain with their current owner/provider. This is a staged delivery, not a claim that the entire Admin is migrated.
+
 The complete public-Web scope includes rendered pages, static assets, image optimization, API/server routes, LINE ingress and continuation/delivery, public Sanity reads, calculators/exports, consent and tracking, SEO/AEO/GEO, custom-domain TLS, release identity, restart and recovery. Admin scope includes owner login/session/authorization, Studio/editorial workflows, SEO controls/reviews/Preview, publication and durable scheduling, operational queue/audit/private archive and its server APIs. A final architecture that silently keeps Web/Admin functions or scheduler execution on Vercel is not this migration. Sanity, Neon, LINE and existing external business providers remain their current data/service planes.
 
 Status: **NOT READY — pre-DNS remediation in progress**. The 2026-09-30 audit found actual runtime failures despite the earlier parity checker passing. The audit's observations and the current task's fresh evidence take precedence over old readiness claims. Parent task: `hostinger-pre-dns-readiness-20260930`.
@@ -182,6 +184,18 @@ The highest-priority acceptance flow is:
 
 These are migration preservation tests, not permission to publish Production articles. Current SEO/article capabilities are the source of truth; first identify a missing migration behavior before writing a feature.
 
+### Delivery waves
+
+| Wave | Scope and readiness |
+| --- | --- |
+| 1 — Articles + SEO/GEO/AEO | Hostinger owner-authenticated editorial Admin: Draft editing/save/reopen, review/source/SEO controls, private Preview and guarded **manual** publication; published Web canonical/sitemap/schema/FAQ/image/source correctness and freshness. Actual existing GEO/answer-first/FAQ/source controls are validated, not replaced with speculative tools |
+| 2 — Durable scheduled publishing | Only after compatible durable World/worker/transport, job ownership, retry/dedup/cancel/reschedule/restart and rollback are proven. Preserve the existing Vercel scheduler executor until then; no legacy n8n activation by assumption |
+| 3 — Other Admin operations | Migrate LINE/CRM/private archive, operational diagnostics, marketing, analytics and integrations per real prerequisite and least-privilege tests. Any backend endpoint essential to current public-Web/LINE behavior is a dependency of that cutover even if its UI is deferred |
+
+Wave 1 can be built independently because the current Studio manual publish action writes through its guarded Sanity client and does not require Workflow `start()`/`sleep()`. A safe editorial-only Hostinger build requires an explicit **server** capability profile, not hidden navigation: unsupported routes/APIs fail closed, scheduling is disabled before any workflow starts, and Workflow SDK handlers are not mounted in that build. Prove `/.well-known/workflow/*` unavailable and absence of local World execution. Do not deploy an unprotected/default-local workflow runtime merely because the scheduling button is hidden.
+
+A staged Admin DNS switch still needs certified domain/TLS, secure owner auth, content safety and an explicit operational continuity plan. Do not assume the old Vercel deployment alias supports owner login after the custom domain moves, or proxy private APIs invisibly. Verify retained access, scheduled-job owner and required service endpoints before declaring that wave READY FOR DNS. If those continuity conditions cannot be proved, deliver the tested editorial candidate and state the precise cutover dependency.
+
 ## Durable scheduler and service trust
 
 The current Article Scheduler uses `workflow` / `withWorkflow()`. On non-Vercel hosting the SDK defaults to a local filesystem World unless explicitly configured. The official self-hosted Postgres World is available, but self-hosted Workflow handler endpoints must be authenticated or protected at the network layer.
@@ -217,7 +231,7 @@ PR #311 is already merged as `3bba7c662c539f0aecb6677b5cfc9020ef6740db`; the for
 10. Rehearse Web/Admin process and worker restart/recovery using pinned source/lockfile/release manifests and supported restoration/redeployment paths. Keep two known-good releases with checksums; demonstrate restoration and continuation of durable jobs. Extend the existing guarded Cloudflare rollback to the exact Admin record as well as apex/www; preserve all unrelated records. A written rollback is not an executed rehearsal.
 11. After assets are healthy, measure at least five paired cold and warm browser runs per representative route against current Vercel. Record environment/network profile, distribution/median, TTFB, actual image LCP element, CLS and errors. Broken-image LCP results cannot count as improvement. Address regressions before signing this gate.
 12. Integrate all gate evidence for one exact artifact. If source changes, refresh the affected checks. Obtain review/authorization for any required Production merge; then build the exact merged `v4-production` SHA on Hostinger with indexing and analytics still blocked, and repeat the relevant candidate checks. The real Production ref is needed by the existing native LINE runtime policy.
-13. Declare **READY FOR DNS** only after every mandatory gate below is CONFIRMED, prerequisites are securely configured and rollback is executable. Leave public DNS unchanged and hand the exact target/release/record diff to the COO for the separate cutover decision.
+13. Declare **READY FOR DNS — exact named wave** only after every applicable mandatory gate below is CONFIRMED, prerequisites are securely configured and rollback is executable. Explicitly list deferred capabilities and their verified continuity/owner; a deferred feature is not a passed test. The complete migration still requires all gates. Leave public DNS unchanged and hand the exact target/release/record diff to the COO for the separate cutover decision.
 
 ## Mandatory pre-DNS acceptance gates
 
@@ -228,7 +242,7 @@ PR #311 is already merged as `3bba7c662c539f0aecb6677b5cfc9020ef6740db`; the for
 | SEO/AEO/GEO | Full recursive sitemap/content/metadata/schema/redirect parity; correct crawler-group semantics; candidate noindex and private boundary; release checker negative fixtures pass |
 | Security | Effective CSP/security headers, protected Admin/Draft/private routes, relevant dependency reachability and denied auth/input probes |
 | Native LINE/service trust | Positive isolated signed business E2E, signature-denied and dedup/retry/restart evidence; final least-privilege configuration and actual Hostinger Web/Admin caller trust |
-| Admin articles/SEO — highest priority | Owner login/session, Draft edit/save/reopen, SEO review/Preview, safe publication, durable scheduler/reschedule/cancel/retry/restart and article page/category/sitemap/schema/cache correctness |
+| Admin articles/SEO — highest priority | Wave 1 owner login/session, Draft edit/save/reopen, SEO/GEO/AEO review/Preview, safe manual publication and article page/category/sitemap/schema/cache correctness. Wave 2 additionally requires durable scheduler/reschedule/cancel/retry/restart |
 | Content | Published-only Web reads and private Draft boundary; isolated revision-to-page/sitemap freshness with cache behavior documented |
 | Tools/conversion/privacy | FHC/CI calculations and exports, CTA/controlled conversion path, consent revoke/enable, event mapping/duplication/privacy and prepared production IDs |
 | Custom domain/TLS | Exact Hostinger apex/www/Admin mappings, certified targets, valid certificates and verified SNI preflight before traffic moves |
@@ -236,7 +250,7 @@ PR #311 is already merged as `3bba7c662c539f0aecb6677b5cfc9020ef6740db`; the for
 | Performance | Healthy-image paired warm/cold route measurements meet reviewed baseline with disclosed limits |
 | Scope preservation | Existing Vercel deployments, Production content/data, other domains, PR #165 and authoritative DNS retain their approved state during preparation |
 
-Any BLOCKED, PARTIAL or NOT VERIFIED mandatory gate means **NOT READY**. Record the missing evidence, consequence, next owner and exact action; do not waive a gate because the provider normally issues SSL after DNS. If this plan cannot pre-provision TLS with the current platform, return that concrete provider dependency to the COO instead of switching traffic experimentally.
+Any BLOCKED, PARTIAL or NOT VERIFIED mandatory gate for the declared wave means **NOT READY for that wave**. Out-of-wave capabilities may be deferred only under the COO's explicit fallback and a verified continuity plan; they cannot be reported as migrated. Record missing evidence, consequence, next owner and exact action; do not waive domain/TLS because the provider normally issues SSL after DNS. If this plan cannot pre-provision TLS with the current platform, return that concrete provider dependency to the COO instead of switching traffic experimentally.
 
 ## After separate DNS authorization
 
