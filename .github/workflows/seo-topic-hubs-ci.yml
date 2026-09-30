@@ -220,38 +220,3 @@ jobs:
           NEXT_PUBLIC_CCPUN_APP_ENV: development
           NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
           NEXT_PUBLIC_SANITY_DATASET: uat
-
-  promote-admin:
-    name: Promote Admin after verified push
-    needs: verify
-    if: github.event_name == 'push' && github.ref == 'refs/heads/v4-production'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout verified commit
-        uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Use Node 24
-        uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 24
-
-      - name: Require Vercel promotion credential
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        shell: bash
-        run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo 'VERCEL_TOKEN repository secret is required for automated Admin promotion.' >&2
-            exit 1
-          fi
-
-      - name: Promote exact Admin deployment for verified commit
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          CCPUN_ADMIN_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
-          VERCEL_TEAM_ID: team_GbcO71LS2dLHwiBV6Cs39Kax
-          GITHUB_SHA: ${{ github.sha }}
-        run: node scripts/promote-admin-after-ci.mjs
