@@ -3,7 +3,35 @@ import { lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, w
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { stageAdminStandaloneRuntime } from "../apps/admin/scripts/build-provider.mjs";
+import { installAdminMonorepoDependencies, stageAdminStandaloneRuntime } from "../apps/admin/scripts/build-provider.mjs";
+
+test("Hostinger Admin replaces the selected workspace install with the exact complete root lock before Next", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-admin-install-"));
+  const admin = join(fixture, "apps/admin");
+  mkdirSync(admin, { recursive: true });
+  let calls = 0;
+  const run = (command, args, options) => {
+    calls++;
+    assert.match(command, /^npm(?:\.cmd)?$/);
+    assert.deepEqual(args, ["ci", "--ignore-scripts", "--include=dev", "--include=optional", "--workspaces", "--include-workspace-root", "--no-audit", "--no-fund"]);
+    assert.equal(options.cwd, fixture);
+    assert.equal(options.env.CCPUN_ADMIN_CAPABILITY_PROFILE, "editorial");
+    assert.equal(options.env.npm_config_workspace, undefined);
+    assert.equal(options.env.NPM_CONFIG_PREFIX, undefined);
+    return { status: 0 };
+  };
+  try {
+    assert.throws(() => installAdminMonorepoDependencies(admin, run, {}), /complete monorepo/);
+    writeFileSync(join(fixture, "package.json"), JSON.stringify({ workspaces: ["apps/*"] }));
+    writeFileSync(join(fixture, "package-lock.json"), "{}");
+    installAdminMonorepoDependencies(admin, run, { CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial", npm_config_workspace: "@ccpun/admin", NPM_CONFIG_PREFIX: admin });
+    assert.equal(calls, 1);
+    assert.throws(() => installAdminMonorepoDependencies(admin, () => ({ status: 1 }), {}), /dependency install failed/);
+    writeFileSync(join(fixture, "package.json"), "{}");
+    assert.throws(() => installAdminMonorepoDependencies(admin, run, {}), /workspace manifest/);
+    assert.equal(calls, 1);
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
 
 test("editorial Admin staging is repeatable and retains assets after publication without its source tree", () => {
   const fixture = mkdtempSync(join(tmpdir(), "ccpun-admin-package-"));

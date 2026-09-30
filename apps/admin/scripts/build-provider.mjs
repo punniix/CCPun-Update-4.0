@@ -1,9 +1,28 @@
-import { cpSync, existsSync, lstatSync, mkdirSync, rmSync, unlinkSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const adminRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+export function installAdminMonorepoDependencies(root = adminRoot, run = spawnSync, variables = process.env) {
+  const repository = resolve(root, "../..");
+  const manifest = resolve(repository, "package.json");
+  const lock = resolve(repository, "package-lock.json");
+  if (!existsSync(manifest) || !existsSync(lock)) throw new Error("Hostinger Admin build requires the complete monorepo root package.json and package-lock.json.");
+  const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+  if (!Array.isArray(pkg.workspaces) || !pkg.workspaces.includes("apps/*")) throw new Error("Hostinger Admin build requires the repository workspace manifest.");
+  // Hostinger initially installs the selected Admin workspace only. Its shared
+  // source imports root Sanity/auth/Workflow packages even in editorial mode.
+  // Clear inherited workspace selection so npm installs the root lock exactly.
+  const env = { ...variables };
+  for (const key of Object.keys(env)) {
+    if (/^npm_config_(?:workspace|workspaces|include_workspace_root|prefix|local_prefix)$/i.test(key)) delete env[key];
+  }
+  const result = run(process.platform === "win32" ? "npm.cmd" : "npm", ["ci", "--ignore-scripts", "--include=dev", "--include=optional", "--workspaces", "--include-workspace-root", "--no-audit", "--no-fund"], { cwd: repository, env, stdio: "inherit" });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`Hostinger Admin monorepo dependency install failed (exit ${result.status ?? "unknown"}).`);
+}
 function replaceDirectory(source, destination) {
   if (!existsSync(source)) throw new Error(`Required Admin build input is missing: ${source}`);
   try {
@@ -41,6 +60,7 @@ export function stageAdminStandaloneRuntime(root = adminRoot) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const hostinger = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
   if (hostinger && process.env.CCPUN_ADMIN_CAPABILITY_PROFILE?.trim().toLowerCase() !== "editorial") throw new Error("Hostinger Admin requires editorial profile.");
+  if (hostinger) installAdminMonorepoDependencies();
   const nextBin = resolve(adminRoot, "../../node_modules/next/dist/bin/next");
   const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: process.env, stdio: "inherit" });
   if (result.error) throw result.error;
