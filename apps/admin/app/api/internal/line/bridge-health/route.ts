@@ -14,6 +14,9 @@ const headers = {
 };
 
 export async function HEAD(request: Request) {
+  if (process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger") {
+    return new NextResponse(null, { status: 404, headers });
+  }
   if (!(await isProductionWebServiceRequestAuthorized(request))) {
     return new NextResponse(null, { status: 401, headers });
   }
@@ -24,6 +27,9 @@ export async function HEAD(request: Request) {
 }
 
 export async function GET(request: Request) {
+  if (process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger") {
+    return new NextResponse(null, { status: 404, headers });
+  }
   if (!(await isProductionWebServiceRequestAuthorized(request))) {
     return NextResponse.json({ status: "unauthorized" }, { status: 401, headers });
   }

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createLocalJWKSet, exportJWK, generateKeyPair, jwtVerify, SignJWT } from "jose";
@@ -163,4 +164,71 @@ test("owner-only queue health removes SSR Vercel probe while private Node endpoi
     const source = readFileSync(path, "utf8");
     assert.doesNotMatch(source, /VERCEL_OIDC_TOKEN|console\.|private-ingestion|neon|sanity|process\.env\.[A-Z_]*TOKEN/);
   }
+});
+
+test("native legacy endpoints return private 404 before verifier, fetch or data access while Vercel auth remains required", () => {
+  const script = `
+    const Module=require('node:module'),load=Module._load;
+    const counts={verify:0,fetch:0,data:0,body:0};
+    global.fetch=async()=>{counts.fetch++;return Response.json({fixture:true});};
+    async function authorized(req){
+      counts.verify++;
+      if(!req.headers.get('authorization'))return false;
+      await fetch('https://oidc.vercel.com/synthetic-fixture');return true;
+    }
+    Module._load=function(name,...args){
+      if(name==='@/lib/runtime/line-bridge-probe')return{probeLineBridgeFromWeb:async(req)=>({status:await authorized(req)?'ready':'unauthorized',webSha:null})};
+      if(name==='@/lib/admin/line/web-service-auth')return{isProductionWebServiceRequestAuthorized:authorized};
+      if(name==='@/lib/admin/line/private-ingestion')return{
+        probeLinePrivateIngestRuntime:async()=>{counts.data++;return true;},
+        resolveLineIngestRuntime:()=>{counts.data++;return{lane:'production'};},
+        createLinePrivateIngestor:()=>{counts.data++;return async()=>{counts.data++;return'inserted';};}
+      };
+      if(name==='@/lib/admin/line/encrypted-ingest')return{
+        encryptedLineEventSchema:{safeParse:()=>({success:true,data:{}})},
+        readEncryptedLineEventBody:async()=>{counts.body++;return'{}';}
+      };
+      return load.call(this,name,...args);
+    };
+    const web=require('./apps/web/app/api/internal/line/bridge-probe/route.ts');
+    const health=require('./apps/admin/app/api/internal/line/bridge-health/route.ts');
+    const ingest=require('./apps/admin/app/api/internal/line/ingest-event/route.ts');
+    const cases=[[web.GET,'GET'],[health.GET,'GET'],[health.HEAD,'HEAD'],[ingest.POST,'POST']];
+    async function run(provider,bearer){
+      if(provider===null)delete process.env.CCPUN_DEPLOYMENT_PROVIDER;
+      else process.env.CCPUN_DEPLOYMENT_PROVIDER=provider;
+      const rows=[];
+      for(const[handler,method]of cases){
+        for(const key of Object.keys(counts))counts[key]=0;
+        const req=new Request('https://fixture.invalid/api/internal/line/fixture/',{
+          method,headers:{...(bearer?{authorization:'Bearer '+ 'x'.repeat(160)}:{}),'content-type':'application/json'},
+          ...(method==='POST'?{body:'{}'}:{})
+        });
+        const res=await handler(req);
+        rows.push({status:res.status,cache:res.headers.get('cache-control'),robots:res.headers.get('x-robots-tag'),empty:(await res.text())==='',counts:{...counts}});
+      }
+      return rows;
+    }
+    (async()=>console.log(JSON.stringify({native:await run('hostinger',true),normalized:await run(' HOSTINGER ',true),vercelDenied:await run('vercel',false),inferredDenied:await run(null,false),vercelAllowed:await run('vercel',true)})))().catch(()=>process.exit(1));
+  `;
+  const child = spawnSync(process.execPath, ["--import", "tsx", "-e", script], {
+    encoding: "utf8", timeout: 15000,
+    env: { PATH: process.env.PATH, NODE_ENV: "test", NEXT_TELEMETRY_DISABLED: "1" },
+  });
+  assert.equal(child.status, 0, "isolated public route fixture must complete");
+  const rows = JSON.parse(child.stdout) as Record<string, Array<{
+    status: number; cache: string; robots: string; empty: boolean;
+    counts: { verify: number; fetch: number; data: number; body: number };
+  }>>;
+  for (const lane of ["native", "normalized"]) for (const row of rows[lane]!) {
+    assert.equal(row.status, 404); assert.equal(row.empty, true);
+    assert.match(row.cache, /private.*no-store/); assert.match(row.robots, /noindex, nofollow, noarchive/);
+    assert.deepEqual(row.counts, { verify: 0, fetch: 0, data: 0, body: 0 });
+  }
+  for (const lane of ["vercelDenied", "inferredDenied"]) for (const row of rows[lane]!) {
+    assert.equal(row.status, 401);
+    assert.deepEqual(row.counts, { verify: 1, fetch: 0, data: 0, body: 0 });
+  }
+  assert.deepEqual(rows.vercelAllowed!.map((row) => row.status), [200, 200, 204, 200]);
+  assert.ok(rows.vercelAllowed!.every((row) => row.counts.verify === 1 && row.counts.fetch === 1));
 });
