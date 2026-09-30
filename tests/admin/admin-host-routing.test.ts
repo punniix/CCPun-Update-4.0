@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
@@ -82,6 +83,79 @@ test("internal service allowlist is exact and handler-authenticated", () => {
     assert.equal(isInternalServiceApiPath(path), false, path);
     assert.equal(classifyProductionAdminPath(path), "reject", path);
   }
+});
+
+test("social cron reaches only its exact bearer handler while native host and editorial fences remain closed", () => {
+  for (const path of ["/api/admin/social/worker", "/api/admin/social/worker/"]) {
+    assert.equal(isInternalServiceApiPath(path), true, path);
+    assert.equal(classifyProductionAdminPath(path), "allow", path);
+  }
+  for (const path of [
+    "/api/admin/social", "/api/admin/social/worker-extra", "/api/admin/social/worker/child",
+    "/api/admin/social/Worker", "/api/admin/social/worker%2fchild", "/api/admin/social%2fworker",
+    "/api/snt-admin/social/worker", "/api/internal/social/worker",
+  ]) assert.equal(isInternalServiceApiPath(path), false, path);
+
+  // Isolated fixture: actual proxy and handler, with auth/worker imports mocked.
+  // No database, provider, browser session, inherited credentials or network.
+  const result = spawnSync(process.execPath, ["--import", "tsx", "-e", `
+    const Module=require('node:module');const load=Module._load;let workerCalls=0;
+    Module._load=function(name,...args){
+      if(name==='server-only')return{};
+      if(name==='@/auth')return{auth(fn){return fn}};
+      if(name==='@/lib/admin/social/worker')return{async runSocialWorker(){workerCalls++;return{fixture:true}}};
+      return load.call(this,name,...args);
+    };
+    const {NextRequest}=require('next/server');
+    const {adminProxy}=require('./apps/admin/proxy.ts');
+    const route=require('./apps/admin/app/api/admin/social/worker/route.ts');
+    function proxy(path,host='candidate.example',forwarded){
+      const req=new NextRequest('https://candidate.example'+path,{headers:{host,...(forwarded?{'x-forwarded-host':forwarded}:{})}});req.auth=null;
+      const res=adminProxy(req);return{status:res.status,next:res.headers.get('x-middleware-next'),robots:res.headers.get('x-robots-tag'),csp:res.headers.get('content-security-policy')};
+    }
+    (async()=>{
+      const allowed=proxy('/api/admin/social/worker/');
+      const bare=proxy('/api/admin/social/worker');
+      const hostDenied=proxy('/api/admin/social/worker/','evil.example');
+      const forwardedDenied=proxy('/api/admin/social/worker/','candidate.example','evil.example');
+      const adjacent=proxy('/api/admin/social/worker-extra');
+      const request=authorization=>new Request('https://candidate.example/api/admin/social/worker/',{headers:authorization?{authorization}:{}});
+      const missing=await route.GET(request());
+      process.env.CRON_SECRET='ccpun-cron-fixture-only';
+      const denied=[];
+      for(const value of [undefined,'Bearer wrong','bearer ccpun-cron-fixture-only','Bearer ccpun-cron-fixture-only-extra'])denied.push((await route.GET(request(value))).status);
+      const beforeAuthorized=workerCalls;
+      const authorized=await route.GET(request('Bearer ccpun-cron-fixture-only'));
+      process.env.CCPUN_ADMIN_CAPABILITY_PROFILE='editorial';process.env.NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE='editorial';
+      console.log(JSON.stringify({allowed,bare,hostDenied,forwardedDenied,adjacent,missing:missing.status,denied,beforeAuthorized,authorized:authorized.status,workerCalls,editorial:proxy('/api/admin/social/worker/')}));
+    })().catch(()=>process.exit(1));
+  `], {
+    cwd: new URL("../../", import.meta.url), encoding: "utf8", timeout: 15000,
+    env: {
+      PATH: "/usr/local/bin:/usr/bin:/bin", NODE_ENV: "production", AUTH_URL: "https://candidate.example",
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat",
+      NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
+      CCPUN_ADMIN_CAPABILITY_PROFILE: "full", NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+      CCPUN_GIT_SHA: "a".repeat(40), CCPUN_GIT_REF: "codex/cron-fixture", CCPUN_RELEASE_ID: "cron-fixture",
+    },
+  });
+  assert.equal(result.status, 0, "isolated social cron fixture failed");
+  const values = JSON.parse(result.stdout);
+  for (const allowed of [values.allowed, values.bare]) {
+    assert.equal(allowed.status, 200);
+    assert.equal(allowed.next, "1");
+  }
+  for (const denied of [values.hostDenied, values.forwardedDenied, values.editorial]) {
+    assert.equal(denied.status, 404);
+    assert.match(denied.robots, /noindex/);
+    assert.ok(denied.csp);
+  }
+  assert.equal(values.adjacent.status, 401);
+  assert.equal(values.missing, 503);
+  assert.deepEqual(values.denied, [401, 401, 401, 401]);
+  assert.equal(values.beforeAuthorized, 0);
+  assert.equal(values.authorized, 200);
+  assert.equal(values.workerCalls, 1);
 });
 
 test("Production Admin classifier rejects public CCPun website routes by default", () => {
