@@ -198,6 +198,14 @@ These are migration preservation tests, not permission to publish Production art
 
 Wave 1 can be built independently because the current Studio manual publish action writes through its guarded Sanity client and does not require Workflow `start()`/`sleep()`. A safe editorial-only Hostinger build requires an explicit **server** capability profile, not hidden navigation: unsupported routes/APIs fail closed, scheduling is disabled before any workflow starts, and Workflow SDK handlers are not mounted in that build. Prove `/.well-known/workflow/*` unavailable and absence of local World execution. Do not deploy an unprotected/default-local workflow runtime merely because the scheduling button is hidden.
 
+### Operator and article acceptance constraints verified on 2026-09-30
+
+Production-read preparation is an authorized observation scope, **not an enforced read-only Studio profile**. The current editorial CMS lane accepts the actual Hostinger Production identity on a feature ref; Studio can write using the operator's separate Sanity session even without a server write token. Do not enter Studio or edit/publish Production documents under a read-only acceptance task. Production operations foundation and native LINE dispatch separately require genuine `v4-production` provenance; never relabel a feature artifact to pass them.
+
+The current isolated UAT Studio policy suppresses publish/unpublish/delete. UAT can prove authorized synthetic draft editing, validation and private Preview, but cannot prove the existing manual publication action without a separately reviewed bounded test policy. Final native Production publication/freshness requires an approved Production artifact and exact publication/canary authority. Preserve these acceptance limits instead of reporting mocked publication as live proof.
+
+Owner login and private Preview require protected operator entry of the existing Auth.js configuration and a lane-correct draft-read token after validated TLS. Values stay out of chat, Git and command arguments. The real callback is `https://admin.ccpun.com/api/auth/callback/google`. With public DNS still on Vercel, normal browser OAuth returns to Vercel; pre-DNS acceptance needs a supported operator-only origin pin throughout the browser flow with valid TLS, or an independently configured isolated HTTPS UAT origin/client. Login-page reachability alone is insufficient.
+
 A staged Admin DNS switch still needs certified domain/TLS, secure owner auth, content safety and an explicit operational continuity plan. Do not assume the old Vercel deployment alias supports owner login after the custom domain moves, or proxy private APIs invisibly. Verify retained access, scheduled-job owner and required service endpoints before declaring that wave READY FOR DNS. If those continuity conditions cannot be proved, deliver the tested editorial candidate and state the precise cutover dependency.
 
 ## Durable scheduler and service trust
