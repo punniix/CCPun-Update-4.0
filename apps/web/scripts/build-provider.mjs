@@ -100,6 +100,10 @@ function stageStandaloneRuntime() {
     throw new Error(`Hostinger standalone entry file is missing: ${serverFile}`);
   }
 
+  // Hostinger may omit standalone public/ files from the published runtime.
+  // Mirror the same assets into .next/static, which Hostinger reliably retains,
+  // while Hostinger-only rewrites preserve the original public URLs.
+  replaceDirectory(resolve(webRoot, "public"), resolve(webRoot, ".next/static/ccpun-public"));
   // Keep public assets in the standalone runtime. next.config.ts also traces
   // them explicitly so Hostinger's publisher retains these files.
   replaceDirectory(resolve(webRoot, "public"), resolve(runtimeRoot, "public"));
@@ -122,6 +126,9 @@ function stageStandaloneRuntime() {
     "public/llms.txt",
     "public/.well-known/security.txt",
     "public/favicon.ico",
+    ".next/static/ccpun-public/llms.txt",
+    ".next/static/ccpun-public/.well-known/security.txt",
+    ".next/static/ccpun-public/favicon.ico",
   ]) {
     const absolute = resolve(standaloneRoot, required);
     if (!existsSync(absolute)) {

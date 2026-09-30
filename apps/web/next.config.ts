@@ -4,6 +4,7 @@ type WebEnvironment = "development" | "web-uat" | "production" | "unknown";
 const WEB_VERCEL_PROJECT_ID = "prj_dxwjITkd0av5QiJQv2snUlIASUWu";
 const IS_HOSTINGER_DEPLOYMENT =
   process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
+const HOSTINGER_PUBLIC_FALLBACK = "/_next/static/ccpun-public";
 
 function parseWebEnvironment(value: string | undefined): WebEnvironment {
   const normalized = value?.trim().toLowerCase();
@@ -165,6 +166,23 @@ const nextConfig: NextConfig = {
           ]
         : []),
     ],
+  },
+  async rewrites() {
+    if (!IS_HOSTINGER_DEPLOYMENT) return [];
+
+    return {
+      beforeFiles: [
+        { source: "/assets/:path*", destination: HOSTINGER_PUBLIC_FALLBACK + "/assets/:path*" },
+        { source: "/.well-known/:path*", destination: HOSTINGER_PUBLIC_FALLBACK + "/.well-known/:path*" },
+        { source: "/favicon.ico", destination: HOSTINGER_PUBLIC_FALLBACK + "/favicon.ico" },
+        { source: "/favicon.png", destination: HOSTINGER_PUBLIC_FALLBACK + "/favicon.png" },
+        { source: "/llms.txt", destination: HOSTINGER_PUBLIC_FALLBACK + "/llms.txt" },
+        { source: "/nav-config.json", destination: HOSTINGER_PUBLIC_FALLBACK + "/nav-config.json" },
+        { source: "/og-image-20260610.webp", destination: HOSTINGER_PUBLIC_FALLBACK + "/og-image-20260610.webp" },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
   },
   async redirects() {
     return [

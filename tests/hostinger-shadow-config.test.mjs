@@ -162,12 +162,17 @@ test("Hostinger standalone packaging traces and preserves public assets", () => 
   assert.match(web, /outputFileTracingIncludes/);
   assert.match(web, /"public\/\*\*\/\*"/);
   assert.match(web, /"\.\.\/\.\.\/public\/\*\*\/\*"/);
-  assert.doesNotMatch(web, /HOSTINGER_PUBLIC_FALLBACK/);
-  assert.doesNotMatch(buildProvider, /\.next\/static\/ccpun-public/);
+  assert.match(web, /HOSTINGER_PUBLIC_FALLBACK/);
+  assert.match(web, /source: "\/assets\/:path\*"/);
+  assert.match(web, /source: "\/llms\.txt"/);
+  assert.match(web, /source: "\/\.well-known\/:path\*"/);
+  assert.match(buildProvider, /\.next\/static\/ccpun-public/);
   assert.match(buildProvider, /replaceDirectory\(extractedPublic, webPublic\)/);
   assert.match(buildProvider, /"public\/llms\.txt"/);
   assert.match(buildProvider, /"public\/\.well-known\/security\.txt"/);
   assert.match(buildProvider, /"public\/favicon\.ico"/);
+  assert.match(buildProvider, /"\.next\/static\/ccpun-public\/llms\.txt"/);
+  assert.match(buildProvider, /"\.next\/static\/ccpun-public\/\.well-known\/security\.txt"/);
 });
 
 test("Hostinger parity gate separates UAT Shadow checks from full production-content candidate parity", () => {
