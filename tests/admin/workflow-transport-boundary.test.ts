@@ -36,12 +36,13 @@ test("native queue accepts only exact configured loopback flow/step, with valid 
 });
 
 test("host/metadata cannot grant public Workflow ingress; forwarded and browser requests are denied", () => {
-  for (const headers of [
+  const headerFixtures: Record<string, string>[] = [
     { host: "admin.ccpun.com" }, { host: "localhost:3101" }, { host: "127.0.0.1:3102" },
     { origin: "http://127.0.0.1:3101" }, { origin: "null" }, { forwarded: "for=127.0.0.1" },
     { "x-forwarded-host": "127.0.0.1:3101" }, { "x-forwarded-for": "127.0.0.1" },
     { "x-forwarded-proto": "http" }, { "x-forwarded-port": "3101" },
-  ]) assert.equal(nativeWorkflowTransportDisposition(request(undefined, undefined, headers), variables, "full"), "deny");
+  ];
+  for (const headers of headerFixtures) assert.equal(nativeWorkflowTransportDisposition(request(undefined, undefined, headers), variables, "full"), "deny");
   const forged = request(`https://admin.ccpun.com${path}`, "POST", { "x-vqs-queue-name": "workflow", "x-vqs-queue-id": "fixture", "x-vqs-queue-attempt": "1" });
   assert.equal(nativeWorkflowTransportDisposition(forged, variables, "full"), "deny");
   assert.equal(nativeWorkflowTransportDisposition({ ...request(), headers: new Headers() }, variables, "full"), "deny");
