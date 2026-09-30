@@ -206,10 +206,7 @@ The current Article Scheduler uses `workflow` / `withWorkflow()`. On non-Vercel 
 
 Do not move Admin production merely by setting `WORKFLOW_TARGET_WORLD=local`. That is forbidden for a deployed Hostinger lane.
 
-Admin becomes eligible for the planned Hostinger cutover only after one of these paths is completed and tested:
-
-1. move Article Scheduler execution to the approved n8n orchestration path; or
-2. configure the official Postgres World, durable storage, worker startup and authenticated/private `/.well-known/workflow/*` transport.
+Wave 2 scheduling becomes eligible only after a compatible official Postgres World, durable storage, worker startup and authenticated/private `/.well-known/workflow/*` transport are completed and tested. Wave 1 editorial readiness is independent when scheduling and Workflow handlers are disabled as described above. Replacing the scheduler with n8n would require a separate reviewed design and exact authorization; no legacy publisher is an approved default.
 
 The preferred first investigation preserves the existing Workflow pipeline using a compatible durable Postgres World and a proven worker/transport lifecycle. The official reference implementation is not authenticated by default. Hostinger Cloud's support for an HTTP Node app does not itself prove persistent idle worker execution or private execution-route protection. If the Cloud process model cannot meet those requirements, evaluate a bounded worker on the existing Hostinger VPS after current resource and security evidence. Never use local filesystem World in a deployed lane, silently activate a legacy n8n publisher, or purchase infrastructure by implication.
 
@@ -218,6 +215,14 @@ Both Hostinger runtimes also need provider-neutral Web/Admin service trust. Exis
 ### Hostinger Admin identity
 
 Use explicit `CCPUN_DEPLOYMENT_PROVIDER=hostinger`, `CCPUN_DEPLOYMENT_ROLE=admin` and the actual Admin lane: `admin-uat` with UAT Sanity for isolated tests, then `production-admin` with the exact approved Production project/dataset for release. Preserve the approved `admin.ccpun.com` owner-auth URL/callback/session contract. Do not copy Production secrets into UAT, set fake Vercel variables, or claim an Admin HTTP 200 certifies login/Studio/scheduler.
+
+### Cloudflare option authorized by the COO
+
+The COO explicitly permits using the existing Cloudflare account where needed. Preserve the current authoritative nameservers and the earlier no-traffic-switch boundary. At 2026-09-30 04:58:42 UTC, read-only Cloudflare API evidence showed an active Universal edge certificate for `ccpun.com` and `*.ccpun.com`, and zone encryption mode `full`. Apex/www/Admin records remain DNS-only on Vercel, so this edge certificate is not proof of Hostinger origin TLS.
+
+Prefer a publicly trusted origin certificate obtained through [DNS-01 validation](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) if Hostinger confirms a supported secure import/renewal path for the actual Node website. DNS-01 validates a TXT challenge without requiring a traffic A/CNAME switch; exact validation-record writes and key handling must be reviewed before execution. [Cloudflare Origin CA](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/) is an alternative only if Hostinger supports its installation and the final path uses Cloudflare proxy with certificate-verifying Full (strict). It does not provide browser-trusted direct origin TLS. Do not use Flexible SSL, disable certificate validation, or change zone-wide encryption/cache rules affecting `blog.ccpun.com` or other services. Current authorization does not silently waive the existing DNS boundary or create an unsupported certificate-import feature.
+
+Hostinger has been asked to confirm both options for the existing real `ccpun.com` destination. No certificates, private keys, proxy settings, rules or DNS records have been changed. If proxying becomes necessary, prepare exact hostname-scoped rules and preserve private Admin/API/LINE cache and Host/origin trust behavior; verify before traffic switches.
 
 ## Pre-DNS execution order
 
