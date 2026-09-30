@@ -19,7 +19,7 @@ const repository = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const enabled = process.env.CCPUN_NATIVE_ARTICLE_SCHEDULER_UAT_TEST === "1";
 const worker = process.env.CCPUN_NATIVE_ARTICLE_SCHEDULER_UAT_WORKER;
 const actor = "native-neon-fixture@example.invalid";
-const allowed = new Set(["PATH", "NODE_ENV", "TZ", "LANG", "LC_ALL", "TMPDIR",
+const allowed = new Set(["PATH", "NODE_ENV", "NODE_TEST_CONTEXT", "TZ", "LANG", "LC_ALL", "TMPDIR",
   "CCPUN_NATIVE_ARTICLE_SCHEDULER_UAT_TEST", "CCPUN_NATIVE_ARTICLE_SCHEDULER_UAT_WORKER",
   "CCPUN_DEPLOYMENT_PROVIDER", "CCPUN_DEPLOYMENT_ROLE", "CCPUN_APP_ENV", "CCPUN_ADMIN_CAPABILITY_PROFILE",
   "NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE", "CCPUN_ARTICLE_SCHEDULER_BACKEND", "NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND",
@@ -29,7 +29,8 @@ const allowed = new Set(["PATH", "NODE_ENV", "TZ", "LANG", "LC_ALL", "TMPDIR",
 function deny(code: string): never { throw new Error(code); }
 function preflight() {
   if (!enabled || process.platform !== "linux" || process.versions.node.split(".")[0] !== "24") deny("TARGET_DENIED");
-  if (Object.keys(process.env).some((key) => !allowed.has(key))) deny("AMBIENT_ENV_DENIED");
+  if (Object.keys(process.env).some((key) => !allowed.has(key))
+    || ![undefined, "child-v8"].includes(process.env.NODE_TEST_CONTEXT)) deny("AMBIENT_ENV_DENIED");
   for (const directory of new Set([repository, process.cwd()])) {
     if (readdirSync(directory).some((name) => /^\.env/i.test(name))) deny("ENV_FILE_DENIED");
   }
@@ -123,7 +124,9 @@ test("actual Hostinger UAT native registration/CAS/due/cancel and restarted clai
   const save = () => { if (ledgerPath) writeFileSync(ledgerPath, JSON.stringify({ version: 1, sourceSha: process.env.CCPUN_GIT_SHA,
     lane: "uat", mode: "validate-only", phase, verified, cleanupIncomplete, owned, generationLedger: Object.fromEntries(generationLedger) }, null, 2) + "\n", { mode: 0o600 }); };
   const runChild = (mode: "claim" | "scan", fixtures: Owned[]) => {
-    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => allowed.has(key)));
+    // Node --test injects this exact marker (Node24 runner.js). Raw worker
+    // children must not inherit its binary test-report serialization context.
+    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => allowed.has(key) && key !== "NODE_TEST_CONTEXT"));
     const result = spawnSync(process.execPath, ["--conditions=react-server", "--import", "tsx", fileURLToPath(import.meta.url), JSON.stringify(fixtures)],
       { cwd: repository, env: { ...env, NODE_ENV: "test", CCPUN_NATIVE_ARTICLE_SCHEDULER_UAT_WORKER: mode }, encoding: "utf8", timeout: 60_000 });
     const line = result.stdout?.split("\n").find((value) => value.startsWith("NATIVE_UAT_RESULT="));
