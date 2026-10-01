@@ -1,6 +1,40 @@
 import type { DocumentActionComponent } from "sanity";
 import { isStudioDataPlaneAllowed, type AdminEnvironment } from "../../../lib/admin/environment";
 
+// This public identity only selects Studio's browser configuration. Server
+// permissions always use the existing authenticated deployment/data-plane guard.
+export function isStudioConfigurationAllowed(
+  dataset: string | undefined,
+  environment: AdminEnvironment,
+  projectId: string | undefined,
+  publicValues?: Record<string, string | undefined>,
+  serverRuntime = typeof process !== "undefined" && process.release?.name === "node",
+): boolean {
+  if (serverRuntime) return isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId);
+  // Keep literal accesses so Next seals nonsecret values into browser bundles.
+  const provider = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER : process.env.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER;
+  const role = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE : process.env.NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE;
+  const vercelProject = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID : process.env.NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID;
+  const productionProject = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID : process.env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID;
+  if (provider === undefined && role === undefined) {
+    return isStudioDataPlaneAllowed(dataset, environment, vercelProject, productionProject, projectId, {});
+  }
+  const profile = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE : process.env.NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE;
+  const backend = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND : process.env.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND;
+  const sha = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_GIT_SHA : process.env.NEXT_PUBLIC_CCPUN_GIT_SHA;
+  const ref = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_GIT_REF : process.env.NEXT_PUBLIC_CCPUN_GIT_REF;
+  const release = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_RELEASE_ID : process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID;
+  if (provider !== "hostinger" || role !== "admin" || vercelProject || productionProject || profile !== "full"
+    || !sha || !/^[a-f0-9]{40}$/.test(sha) || !ref || !/^[a-zA-Z0-9._/-]{1,128}$/.test(ref)
+    || !release || !/^[a-zA-Z0-9._-]{1,128}$/.test(release)
+    || (environment !== "production-admin" && environment !== "admin-uat")
+    || (environment === "production-admin" ? ref !== "v4-production" || backend !== "disabled" : backend !== "native-neon")) return false;
+  return isStudioDataPlaneAllowed(dataset, environment, "", "", projectId, {
+    CCPUN_DEPLOYMENT_PROVIDER: provider, CCPUN_DEPLOYMENT_ROLE: role, CCPUN_APP_ENV: environment,
+    CCPUN_GIT_SHA: sha, CCPUN_GIT_REF: ref, CCPUN_RELEASE_ID: release,
+  });
+}
+
 const BLOCKED_NON_PRODUCTION_ACTIONS = new Set(["delete", "publish", "unpublish", "unpublishVersion"]);
 const BLOCKED_PRODUCTION_ADMIN_ACTIONS = new Set(["delete", "unpublish", "unpublishVersion"]);
 const BLOCKED_PRODUCTION_ADMIN_ARTICLE_ACTIONS = new Set(["unpublishVersion"]);
@@ -48,7 +82,7 @@ export function filterStudioAuthProviders<T extends StudioAuthProvider>(
   environment: AdminEnvironment,
   projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
 ): T[] {
-  if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) return [];
+  if (!isStudioConfigurationAllowed(dataset, environment, projectId)) return [];
   return providers.filter(({ name }) => name === "google");
 }
 
@@ -59,7 +93,7 @@ export function filterStudioDocumentActions<T extends { action?: string }>(
   schemaType?: string,
   projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
 ): T[] {
-  if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) return [];
+  if (!isStudioConfigurationAllowed(dataset, environment, projectId)) return [];
   if (schemaType && SYSTEM_DOCUMENT_TYPES.has(schemaType)) return [];
   if (schemaType && DRAFT_ONLY_DOCUMENT_TYPES.has(schemaType) && !isDraftOnlyEditorialEnvironment(environment)) return [];
   if (environment === "local-production") {
@@ -137,7 +171,7 @@ export function filterStudioNewDocumentOptions<T extends StudioNewDocumentOption
   environment: AdminEnvironment,
   projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
 ): T[] {
-  if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) return [];
+  if (!isStudioConfigurationAllowed(dataset, environment, projectId)) return [];
   if (environment === "local-production") return options.filter(({ templateId }) => templateId === "article");
   return options.filter(({ templateId }) =>
     !OWNER_HIDDEN_NEW_DOCUMENT_TYPES.has(templateId) &&

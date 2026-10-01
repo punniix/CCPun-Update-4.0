@@ -14,23 +14,28 @@ import {
   filterStudioDocumentActions,
   filterStudioNewDocumentOptions,
   protectProductionContentLifecycleActions,
+  isStudioConfigurationAllowed,
 } from "./cms/sanity/policy/studio-policy";
 import { isStudioDataPlaneAllowed, resolveSanityConfigEnvironment } from "./lib/admin/environment";
 import { getAdminCapabilityProfile } from "./lib/admin/capability-profile";
 
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID ?? process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
 const dataset = process.env.SANITY_STUDIO_DATASET ?? process.env.NEXT_PUBLIC_SANITY_DATASET;
+const serverRuntime = typeof process !== "undefined" && process.release?.name === "node";
 const environment = resolveSanityConfigEnvironment(
   process.env.NEXT_PUBLIC_CCPUN_APP_ENV,
   process.env.CCPUN_APP_ENV,
-  typeof process !== "undefined" && process.release?.name === "node",
+  serverRuntime,
 );
+const studioAllowed = serverRuntime
+  ? isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)
+  : isStudioConfigurationAllowed(dataset, environment, projectId);
 const isProductionCms = dataset === "production";
 const studioName = isProductionCms ? "ccpun-website-production-cms" : "ccpun-website-uat-cms";
 const studioTitle = isProductionCms ? "CCPun Website Production CMS" : "CCPun Website UAT CMS";
 
 export const sanityStudioConfig =
-  projectId && dataset && isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)
+  projectId && dataset && studioAllowed
     ? defineConfig({
         name: studioName,
         title: studioTitle,
