@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createHash, generateKeyPairSync } from "node:crypto";
+import { createHash, createPublicKey, generateKeyPairSync } from "node:crypto";
 import { createRequire } from "node:module";
 import { encryptGoogleData, migrationAccess, migrationOwnerMetadata, selectGoogleData } from "../../lib/admin/migrations/google-data-transfer";
 import type { GoogleDataMigrationConfig } from "../../lib/admin/migrations/google-data-public-config";
@@ -47,9 +47,25 @@ function fixture() {
 }
 const privateKey = pair.privateKey.export({ type: "pkcs8", format: "pem" });
 
-test("route is disabled until reviewed public pins exist", () => {
-  assert.equal(googleDataMigrationConfig.enabled, false);
-  assert.throws(() => migrationAccess(request(), identity, googleDataMigrationConfig, vars, NOW));
+test("explicit disabled export always denies even with complete reviewed public pins", () => {
+  assert.throws(() => migrationAccess(request(), identity, { ...googleDataMigrationConfig, enabled: false }, vars, NOW));
+  assert.throws(() => migrationAccess(request(), identity, { ...config, enabled: false }, vars, NOW));
+});
+test("release public pins are canonical and explicit activation requires a finite deadline", () => {
+  const release: GoogleDataMigrationConfig = googleDataMigrationConfig;
+  assert.equal(typeof release.enabled, "boolean");
+  assert.ok(Number.isSafeInteger(release.expiresAt) && release.expiresAt >= 0);
+  if (release.enabled || release.recipientPublicKeyPem) {
+    assert.match(release.ownerActorSha256, /^[a-f0-9]{64}$/);
+    assert.match(release.transferId, /^[a-f0-9]{32}$/);
+    assert.match(release.recipientFingerprint, /^[a-f0-9]{64}$/);
+    const key = createPublicKey(release.recipientPublicKeyPem);
+    assert.equal(key.asymmetricKeyType, "rsa");
+    assert.equal(key.asymmetricKeyDetails?.modulusLength, 3072);
+    assert.equal(key.export({ type: "spki", format: "pem" }).toString(), release.recipientPublicKeyPem);
+    assert.equal(createHash("sha256").update(key.export({ type: "spki", format: "der" })).digest("hex"), release.recipientFingerprint);
+  }
+  if (release.enabled) assert.ok(release.expiresAt > 0);
 });
 for (const [name, change] of Object.entries({
   missing: null, editor: { ...identity, role: "editor" }, machine: { ...identity, actorType: "service" },
@@ -81,7 +97,7 @@ test("metadata discovery is GET-only and independent of disabled export/key/time
   assert.deepEqual(Object.keys(result).sort(), ["deploymentHost", "exporterSha", "ownerActorSha256", "sourceProjectId", "sourceRef"]);
   assert.equal(result.ownerActorSha256, config.ownerActorSha256);
   assert.ok(!JSON.stringify(result).includes(fakeOwner));
-  assert.equal(googleDataMigrationConfig.enabled, false);
+  assert.throws(() => migrationAccess(request(), identity, { ...googleDataMigrationConfig, enabled: false }, vars, NOW));
   assert.throws(() => migrationOwnerMetadata(request(), identity, vars));
   assert.throws(() => migrationOwnerMetadata(request("", "GET"), { ...identity, actor: " " }, vars));
 });
