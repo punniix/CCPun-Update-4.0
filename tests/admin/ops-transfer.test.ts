@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { readFileSync, constants } from "node:fs";
+import { createLineContentCrypto, createLinePrivateCrypto } from "../../lib/line/private-crypto";
 import { OPS_FIELDS, OPS_FLAGS, opsAccess, selectOps, encryptOps } from "../../lib/admin/migrations/ops-transfer";
 
 const require = createRequire(import.meta.url);
@@ -91,7 +92,7 @@ test("one fixed Ops roundtrip preserves original historical keys, selected flags
   assert.equal(pairedOpens, 1); assert.equal(checked.CONSTRUCTOR, undefined);
   assert.deepEqual(Object.keys(OPS_FIELDS).sort(), [...recipient.CAPABILITIES].sort());
   assert.deepEqual(Object.keys(OPS_FLAGS).sort(), Object.keys(consumer.FLAG_GROUPS).sort());
-  const allowed = new Set([...Object.values(OPS_FIELDS).flat(), "CCPUN_LINE_ENCRYPTION_KEY_V2", "CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2", ...Object.keys(OPS_FLAGS)]);
+  const allowed = new Set([...Object.values(OPS_FIELDS).flat(), "CCPUN_LINE_IDENTITY_HMAC_KEY_V1", "CCPUN_LINE_ENCRYPTION_KEY_V1", "CCPUN_LINE_ENCRYPTION_KEY_V2", "CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2", ...Object.keys(OPS_FLAGS)]);
   const fixed = new Proxy(variables, { ownKeys: () => assert.fail("ENV_ENUMERATION"), get: (target, key) => {
     assert.ok(typeof key === "string" && allowed.has(key)); return target[key]; } });
   const selection = selectOps(fixed);
@@ -150,7 +151,36 @@ test("one fixed Ops roundtrip preserves original historical keys, selected flags
     assert.throws(() => opsAccess(request(), actor, variables, config, now));
   for (const setting of [{ ...config, enabled: false }, { ...config, profileExpiresAt: config.preparedAt + 86401 }, { ...config, profileExpiresAt: now }])
     assert.throws(() => opsAccess(request(), identity, variables, setting, now));
-  assert.throws(() => selectOps({ ...variables, CCPUN_LINE_ENCRYPTION_KEY_V1: undefined }));
+  const contentOnly = { ...variables, CCPUN_LINE_ENCRYPTION_KEY_V1: undefined,
+    CCPUN_LINE_IDENTITY_HMAC_KEY_V1: undefined, LINE_CHANNEL_SECRET: undefined };
+  const v2Selection = selectOps(contentOnly);
+  assert.deepEqual(Object.keys(v2Selection.sections.lineCrypto).sort(),
+    ["CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION", "CCPUN_LINE_ENCRYPTION_KEY_V2"].sort());
+  const v2Pack = recipient.pack(v2Selection);
+  const v2Env = consumer.prepare(v2Pack, manifest, expected, Object.keys(v2Pack.sections));
+  assert.equal(v2Env.CCPUN_LINE_ENCRYPTION_KEY_V2, variables.CCPUN_LINE_ENCRYPTION_KEY_V2);
+  assert.equal(v2Env.CCPUN_LINE_MEDIA_FETCH_ENABLED, "true");
+  assert.equal("CCPUN_LINE_ENCRYPTION_KEY_V1" in v2Env, false);
+  assert.equal("CCPUN_LINE_IDENTITY_HMAC_KEY_V1" in v2Env, false);
+  assert.equal("LINE_CHANNEL_SECRET" in v2Env, false);
+  const v2Crypto = createLineContentCrypto(contentOnly);
+  assert.equal(v2Crypto.decrypt(v2Crypto.encrypt("FAKE_PROVIDER_ID", "message-provider-id"), "message-provider-id"), "FAKE_PROVIDER_ID");
+  assert.throws(() => createLinePrivateCrypto(contentOnly));
+  const withOriginalV1 = selectOps({ ...contentOnly, CCPUN_LINE_ENCRYPTION_KEY_V1: variables.CCPUN_LINE_ENCRYPTION_KEY_V1 });
+  assert.equal(withOriginalV1.sections.lineCrypto.CCPUN_LINE_ENCRYPTION_KEY_V1, variables.CCPUN_LINE_ENCRYPTION_KEY_V1);
+  const historicalV1 = createLineContentCrypto({ ...variables, CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION: "1" })
+    .encrypt("FAKE_HISTORICAL_RECORD", "line-user-id");
+  const retainedPack = recipient.pack(withOriginalV1);
+  const retainedEnv = consumer.prepare(retainedPack, manifest, expected, Object.keys(retainedPack.sections));
+  assert.equal(createLineContentCrypto(retainedEnv).decrypt(historicalV1, "line-user-id"), "FAKE_HISTORICAL_RECORD");
+  const v1Only = selectOps({ ...contentOnly, CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION: "1",
+    CCPUN_LINE_ENCRYPTION_KEY_V1: variables.CCPUN_LINE_ENCRYPTION_KEY_V1, CCPUN_LINE_ENCRYPTION_KEY_V2: undefined });
+  assert.equal(recipient.pack(v1Only).sections.lineCrypto.CCPUN_LINE_ENCRYPTION_KEY_V1, variables.CCPUN_LINE_ENCRYPTION_KEY_V1);
+  assert.throws(() => selectOps({ ...contentOnly, CCPUN_LINE_ENCRYPTION_KEY_V2: undefined }));
+  assert.throws(() => selectOps({ ...contentOnly, LINE_CHANNEL_SECRET: "FAKE_INGRESS_WITHOUT_HMAC" }));
+  const invalidIngress = { ...v2Pack, sections: { ...v2Pack.sections, lineIngress: { LINE_CHANNEL_SECRET: "FAKE_INGRESS_WITHOUT_HMAC" } } };
+  assert.throws(() => recipient.pack({ sections: invalidIngress.sections, activation: invalidIngress.activation }));
+  assert.throws(() => consumer.prepare(invalidIngress, manifest, expected, Object.keys(invalidIngress.sections)));
   const ownerSource = readFileSync(new URL("../../lib/admin/migrations/google-data-transfer.ts", import.meta.url), "utf8");
   assert.match(ownerSource, /request.method === "POST"/); assert.ok(!ownerSource.includes("new Request"));
 });

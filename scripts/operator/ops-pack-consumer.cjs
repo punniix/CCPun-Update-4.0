@@ -14,7 +14,7 @@ const FIELDS = Object.freeze({
  googleData:['reuseLoginOAuthClient','CCPUN_GOOGLE_DATA_REFRESH_TOKEN','CCPUN_GSC_SITE_URL','CCPUN_GA4_PROPERTY_ID'],
  socialWorker:['CCPUN_SOCIAL_DATABASE_URL','CCPUN_META_ACCESS_TOKEN','CCPUN_META_GRAPH_VERSION','CCPUN_META_GRANTED_SCOPES','CCPUN_META_PAGE_ID'],
  cronAuth:['CRON_SECRET'],
- lineCrypto:['CCPUN_LINE_IDENTITY_HMAC_KEY_V1','CCPUN_LINE_ENCRYPTION_KEY_V1','CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION'],
+ lineCrypto:['CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION'],
  lineIngress:['LINE_CHANNEL_SECRET'],
  lineRichMenu:['CCPUN_LINE_CHANNEL_ACCESS_TOKEN'],
 });
@@ -67,7 +67,7 @@ function base64(value,min,exact){text(value);if(value.length%4!==0||! /^[A-Za-z0
 function validateSection(name,v,e){
  if(!Object.hasOwn(FIELDS,name))deny('OPS_CAPABILITY_DENIED');const fields=FIELDS[name];
  object(v);
- const extra=name==='googleData'?(v.reuseLoginOAuthClient===true?['refreshTokenClientId']:v.reuseLoginOAuthClient===false?['CCPUN_GOOGLE_DATA_CLIENT_ID','CCPUN_GOOGLE_DATA_CLIENT_SECRET']:[]):name==='lineCrypto'&&Object.hasOwn(v,'CCPUN_LINE_ENCRYPTION_KEY_V2')?['CCPUN_LINE_ENCRYPTION_KEY_V2']:name==='localAiCrypto'&&Object.hasOwn(v,'CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2')?['CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2']:[];
+ const extra=name==='googleData'?(v.reuseLoginOAuthClient===true?['refreshTokenClientId']:v.reuseLoginOAuthClient===false?['CCPUN_GOOGLE_DATA_CLIENT_ID','CCPUN_GOOGLE_DATA_CLIENT_SECRET']:[]):name==='lineCrypto'?['CCPUN_LINE_IDENTITY_HMAC_KEY_V1','CCPUN_LINE_ENCRYPTION_KEY_V1','CCPUN_LINE_ENCRYPTION_KEY_V2'].filter(key=>Object.hasOwn(v,key)):name==='localAiCrypto'&&Object.hasOwn(v,'CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2')?['CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2']:[];
  keys(v,[...fields,...extra]);for(const [key,x] of Object.entries(v))if(key!=='reuseLoginOAuthClient')text(x);
  if(name==='driveInteractive'){if(!/^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(v.NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_OAUTH_CLIENT_ID)||!/^[1-9]\d{1,29}$/.test(v.NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_APP_ID)||!['CCPUN_GOOGLE_DRIVE_ADMIN_ROOT_FOLDER_ID','CCPUN_GOOGLE_DRIVE_MEDIA_ROOT_FOLDER_ID'].every(k=>/^[A-Za-z0-9_-]{10,200}$/.test(v[k])))deny('OPS_DRIVE_CONFIG_DENIED');}
  if(name==='agentCallbacks'||name==='exportCallbacks'||name==='localAiCallbacks')text(Object.values(v)[0],43);
@@ -83,8 +83,9 @@ function validateSection(name,v,e){
  }
  if(name==='localAiCrypto'){base64(v.CCPUN_LOCAL_AI_ENCRYPTION_KEY_V1,32,32);if(extra.length)base64(v.CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2,32,32);if(!['1','2'].includes(v.CCPUN_LOCAL_AI_ACTIVE_KEY_VERSION)||(v.CCPUN_LOCAL_AI_ACTIVE_KEY_VERSION==='2'&&!extra.length))deny('OPS_LOCAL_AI_ACTIVE_KEY_DENIED');}
  if(name==='lineCrypto'){
-  base64(v.CCPUN_LINE_IDENTITY_HMAC_KEY_V1,32);base64(v.CCPUN_LINE_ENCRYPTION_KEY_V1,32,32);if(extra.length)base64(v.CCPUN_LINE_ENCRYPTION_KEY_V2,32,32);
-  if(!['1','2'].includes(v.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION)||(v.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION==='2'&&!extra.length))deny('OPS_LINE_ACTIVE_KEY_DENIED');
+  if(Object.hasOwn(v,'CCPUN_LINE_IDENTITY_HMAC_KEY_V1'))base64(v.CCPUN_LINE_IDENTITY_HMAC_KEY_V1,32);
+  for(const key of ['CCPUN_LINE_ENCRYPTION_KEY_V1','CCPUN_LINE_ENCRYPTION_KEY_V2'])if(Object.hasOwn(v,key))base64(v[key],32,32);
+  if(!['1','2'].includes(v.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION)||!Object.hasOwn(v,'CCPUN_LINE_ENCRYPTION_KEY_V'+v.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION))deny('OPS_LINE_ACTIVE_KEY_DENIED');
  }
 }
 function validate(pack,manifest,expected){
@@ -96,6 +97,7 @@ function validate(pack,manifest,expected){
  if(!Object.keys(pack.sections).length)deny('OPS_EMPTY_PACK_DENIED');
  for(const [name,values] of Object.entries(pack.sections))validateSection(name,values,e);
  if((pack.sections.lineIngress||pack.sections.lineRichMenu)&&!pack.sections.lineCrypto)deny('OPS_LINE_DEPENDENCY_DENIED');
+ if(pack.sections.lineIngress&&!pack.sections.lineCrypto.CCPUN_LINE_IDENTITY_HMAC_KEY_V1)deny('OPS_LINE_INGRESS_HMAC_DENIED');
  return true;
 }
 function prepare(pack,manifest,expected,selected=[],loginOAuth){

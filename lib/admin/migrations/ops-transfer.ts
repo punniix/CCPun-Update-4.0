@@ -10,7 +10,7 @@ export const OPS_FIELDS = {
   socialWorker: ["CCPUN_SOCIAL_DATABASE_URL", "CCPUN_META_ACCESS_TOKEN", "CCPUN_META_GRAPH_VERSION", "CCPUN_META_GRANTED_SCOPES", "CCPUN_META_PAGE_ID"],
   agentCallbacks: ["CCPUN_AGENT_OS_N8N_TOKEN"], exportCallbacks: ["CCPUN_EXPORT_N8N_TOKEN"],
   googleSheetTrigger: ["CCPUN_N8N_EXPORT_WEBHOOK_URL", "CCPUN_N8N_EXPORT_WEBHOOK_TOKEN"],
-  lineCrypto: ["CCPUN_LINE_IDENTITY_HMAC_KEY_V1", "CCPUN_LINE_ENCRYPTION_KEY_V1", "CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION"],
+  lineCrypto: ["CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION"],
   lineIngress: ["LINE_CHANNEL_SECRET"], lineRichMenu: ["CCPUN_LINE_CHANNEL_ACCESS_TOKEN"],
   driveInteractive: ["NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_OAUTH_CLIENT_ID", "NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_PICKER_API_KEY", "NEXT_PUBLIC_CCPUN_GOOGLE_DRIVE_APP_ID", "CCPUN_GOOGLE_DRIVE_ADMIN_ROOT_FOLDER_ID", "CCPUN_GOOGLE_DRIVE_MEDIA_ROOT_FOLDER_ID"],
 } as const;
@@ -34,8 +34,9 @@ function text(value: unknown): asserts value is string {
 export function selectOps(variables: Variables) {
   const sections: Record<string, Record<string, string>> = {};
   for (const [name, fields] of Object.entries(OPS_FIELDS)) {
-    const names: readonly string[] = ["lineCrypto", "localAiCrypto"].includes(name) && variables[name === "lineCrypto" ? "CCPUN_LINE_ENCRYPTION_KEY_V2" : "CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2"]
-      ? [...fields, name === "lineCrypto" ? "CCPUN_LINE_ENCRYPTION_KEY_V2" : "CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2"] : fields;
+    const names: readonly string[] = name === "lineCrypto"
+      ? [...fields, ...["CCPUN_LINE_IDENTITY_HMAC_KEY_V1", "CCPUN_LINE_ENCRYPTION_KEY_V1", "CCPUN_LINE_ENCRYPTION_KEY_V2"].filter(key => variables[key] !== undefined && variables[key] !== "")]
+      : name === "localAiCrypto" && variables.CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2 ? [...fields, "CCPUN_LOCAL_AI_ENCRYPTION_KEY_V2"] : fields;
     const values = names.map(key => [key, variables[key]] as const);
     if (!values.some(([, value]) => value !== undefined && value !== "")) continue;
     for (const [, value] of values) text(value);
@@ -49,7 +50,8 @@ export function selectOps(variables: Variables) {
   demand(Object.keys(sections).length > 0);
   if (sections.lineIngress || sections.lineRichMenu) demand(sections.lineCrypto);
   if (sections.lineCrypto) demand(["1", "2"].includes(sections.lineCrypto.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION)
-    && (sections.lineCrypto.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION !== "2" || sections.lineCrypto.CCPUN_LINE_ENCRYPTION_KEY_V2));
+    && sections.lineCrypto["CCPUN_LINE_ENCRYPTION_KEY_V" + sections.lineCrypto.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION]);
+  if (sections.lineIngress) demand(sections.lineCrypto?.CCPUN_LINE_IDENTITY_HMAC_KEY_V1);
   return { sections, activation };
 }
 export function opsAccess(request: Request, identity: Identity, variables: Variables, config: OpsTransferConfig, now: number) {

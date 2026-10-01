@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { runInNewContext } from "node:vm";
-import { createLineContentCrypto } from "../../lib/line/private-crypto";
+import { createLineContentCrypto, createLinePrivateCrypto } from "../../lib/line/private-crypto";
 import { migrationOwnerMetadata } from "../../lib/admin/migrations/google-data-transfer";
 
 const dependency = createRequire(process.env.CCPUN_TEST_DEPENDENCY_ROOT
@@ -59,6 +59,7 @@ function mapper(variables: Variables, rows: Aggregate[] = [documents, deliveries
   runInNewContext(compile(source("lib/admin/migrations/ops-readiness.ts")), {
     exports: exported, process: { env: variables }, URL, Promise, Number,
     require: (name: string) => {
+      if (name === "../../line/private-crypto") return { createLinePrivateCrypto };
       if (name === "../line/document-media") return { getLineProviderActivationReadiness: activation, readLineDocumentMediaHealth: read(0) };
       if (name === "../line/provider") return { getLineSystemDeliveryProviderReadiness: delivery };
       if (name === "../line/media-provider") return { getLineMediaProviderReadiness: media };
@@ -75,6 +76,7 @@ function mapper(variables: Variables, rows: Aggregate[] = [documents, deliveries
 test("fixed capability metadata projects booleans only and separates queue/read/write gates", () => {
   const value = mapper(env).opsCapabilityMetadata(env);
   for (const section of Object.values(value)) for (const v of Object.values(section as object)) assert.equal(typeof v, "boolean");
+  assert.equal(value.line.ingressCryptoReady, false);
   assert.equal(value.line.activeV2, true); assert.equal(value.line.v2Configured, true); assert.equal(value.line.contentCryptoReady, true);
   assert.equal(value.social.queueEnabled, true); assert.equal(value.social.providerWritesEnabled, false);
   assert.equal(value.drive.interactiveConfigured, true); assert.equal(value.drive.persistentCredentialExpected, false);
