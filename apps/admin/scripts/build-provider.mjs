@@ -75,6 +75,8 @@ export function validateNativeNeonBuild(root = adminRoot, variables = process.en
     "lib/admin/operations/article-schedule-sql.ts", "lib/admin/operations/article-schedule-store.ts",
     "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts"]);
   const publicValues = {
+    NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "admin",
     NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: lane.backend,
     NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
     NEXT_PUBLIC_CCPUN_GIT_SHA: sha,

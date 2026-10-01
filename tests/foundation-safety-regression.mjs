@@ -97,7 +97,19 @@ expect(
   studioPolicy.includes('function wasEverPublished')
     && studioPolicy.includes('if (wasEverPublished(props)) return null;'),
 );
-expect('disallowed Sanity data plane returns no actions', studioPolicy.includes('if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) return [];'));
+expect(
+  'disallowed Sanity data plane returns no actions',
+  studioPolicy.includes('export function isStudioConfigurationAllowed(')
+    && studioPolicy.includes('if (serverRuntime) return isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId);')
+    && studioPolicy.includes('if (provider === undefined && role === undefined)')
+    && studioPolicy.includes('provider !== "hostinger" || role !== "admin" || vercelProject || productionProject || profile !== "full"')
+    && studioPolicy.includes('ref !== "v4-production" || backend !== "disabled" : backend !== "native-neon")) return false;')
+    && ['filterStudioAuthProviders', 'filterStudioDocumentActions', 'filterStudioNewDocumentOptions'].every((name) =>
+      /\): T\[\] \{\s*if \(!isStudioConfigurationAllowed\(dataset, environment, projectId\)\) return \[\];/.test(
+        studioPolicy.split(`export function ${name}`)[1]?.split('\nexport function ')[0] ?? '',
+      ),
+    ),
+);
 
 const authorSanitySchema = read('cms/sanity/schema/documents/author.ts');
 const sanityRuntimeSchema = read('lib/content/sanity-schema.ts');
