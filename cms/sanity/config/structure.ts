@@ -1,4 +1,5 @@
-import { structureTool, type StructureBuilder } from "sanity/structure";
+import { map } from "rxjs";
+import { structureTool, type StructureBuilder, type StructureResolverContext } from "sanity/structure";
 import { filterStudioStructureItems } from "../policy/studio-policy";
 import type { AdminEnvironment } from "../../../lib/admin/environment";
 
@@ -20,7 +21,7 @@ function documentList(
     .defaultOrdering([{ field: "_updatedAt", direction: "desc" }]);
 }
 
-function articleWorkspace(S: StructureBuilder) {
+function articleWorkspace(S: StructureBuilder, context: StructureResolverContext) {
   const reviewLists = [
     ["กำลังตรวจเนื้อหา", "content-review"],
     ["พร้อมให้คุณอนุมัติ", "ready-for-coo"],
@@ -33,12 +34,25 @@ function articleWorkspace(S: StructureBuilder) {
     .child(
       S.list()
         .id("article-status-workspace")
-        .title("บทความ · แยกตามสถานะ")
+        .title("บทความ · มุมเผยแพร่และร่าง")
         .items([
           S.listItem()
             .id("articles-production")
             .title("เผยแพร่แล้ว")
-            .child(documentList(S, "article", "articles-production", "เผยแพร่แล้ว · ไม่มีร่างแก้ไข", `_type == "article" && !(coalesce(_originalId, _id) in path("drafts.**")) && !(coalesce(_originalId, _id) in path("versions.**")) && defined(publishedAt)`)),
+            .child(() => context.documentStore.listenQuery({
+              // Resolve published membership independently of the working-copy perspective.
+              fetch: `*[_type == "article" && defined(publishedAt)] | order(publishedAt desc, _id asc) { _id, title }`,
+              // Observe canonical changes only; Draft saves do not change Published membership.
+              listen: `*[_type == "article" && !(_id in path("drafts.**")) && !(_id in path("versions.**"))]`,
+            }, {}, { perspective: "published", tag: "studio-published-articles" }).pipe(
+              map((articles: { _id: string; title?: string }[]) => S.list()
+                .id("articles-production")
+                .title("เผยแพร่แล้ว · รวมบทความที่มีร่างแก้ไข")
+                .items(articles.map((article) => S.documentListItem()
+                  .id(article._id)
+                  .title(article.title || "บทความไม่มีชื่อ")
+                  .schemaType("article")))),
+            )),
           S.listItem()
             .id("articles-optimize")
             .title("แก้ไขรอเผยแพร่")
@@ -116,7 +130,7 @@ function blogSettingsWorkspace(S: StructureBuilder) {
 
 export function createStudioStructurePlugin(environment: AdminEnvironment) {
   return structureTool({
-    structure: (S) => {
+    structure: (S, context) => {
       const allowedItems = filterStudioStructureItems(S.documentTypeListItems(), environment);
       const hasArticle = allowedItems.some((item) => item.getId() === "article");
       const hasCategory = allowedItems.some((item) => item.getId() === "category");
@@ -136,7 +150,7 @@ export function createStudioStructurePlugin(environment: AdminEnvironment) {
         .id("content")
         .title("เนื้อหา")
         .items([
-          ...(hasArticle ? [articleWorkspace(S)] : []),
+          ...(hasArticle ? [articleWorkspace(S, context)] : []),
           ...(supportItems.length ? [S.listItem().id("support-data").title("ข้อมูลประกอบ")
             .child(S.list().id("support-data-list").title("ข้อมูลประกอบ").items(supportItems))] : []),
           ...(otherChannels.length ? [S.listItem().id("other-channels").title("ช่องทางอื่น")
