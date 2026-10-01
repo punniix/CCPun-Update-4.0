@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth, isAdminAuthConfigured, signIn } from "@/auth";
 import { getEnvironmentLabel } from "@/lib/admin/environment";
-import { safeAdminReturnPath } from "@/lib/admin/routes";
+import { adminCapabilityLandingPath, getAdminCapabilityProfile, safeAdminCapabilityReturnPath } from "@/lib/admin/capability-profile";
 
 export const metadata: Metadata = {
   title: "เข้าสู่ศูนย์จัดการ CCPun",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 function safeCallbackUrl(value: string | undefined): string {
-  return safeAdminReturnPath(value) ?? "/dashboard/";
+  return safeAdminCapabilityReturnPath(value) ?? adminCapabilityLandingPath();
 }
 
 type LoginPageProps = {
@@ -19,7 +19,7 @@ type LoginPageProps = {
 
 export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
   const session = await auth();
-  if (session?.user?.role) redirect("/dashboard/");
+  if (session?.user?.role) redirect(adminCapabilityLandingPath());
 
   const params = await searchParams;
   const callbackUrl = safeCallbackUrl(params.callbackUrl);
@@ -38,7 +38,9 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#e0c985]">{environmentLabel}</p>
           <h1 className="mt-4 text-3xl font-semibold">เข้าสู่ศูนย์จัดการ CCPun</h1>
           <p className="mt-3 text-base leading-7 text-white/70">
-            พื้นที่สำหรับดูแลลูกค้า เนื้อหา SEO และงานของระบบ โดยทุกการเปลี่ยนแปลงสำคัญต้องให้ผู้มีสิทธิ์ยืนยัน
+            {getAdminCapabilityProfile() === "editorial"
+              ? "พื้นที่สำหรับจัดการบทความ ตรวจ SEO และเตรียมงานก่อนเผยแพร่ โดยให้ผู้มีสิทธิ์ตรวจและยืนยัน"
+              : "พื้นที่สำหรับดูแลลูกค้า เนื้อหา SEO และงานของระบบ โดยทุกการเปลี่ยนแปลงสำคัญต้องให้ผู้มีสิทธิ์ยืนยัน"}
           </p>
 
           {params.error ? (

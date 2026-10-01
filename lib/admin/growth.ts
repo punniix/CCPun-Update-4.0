@@ -1,13 +1,14 @@
 import "server-only";
 
 import { z } from "zod";
+import { getAdminDeploymentIdentity, isAdminReadDataPlaneAllowed } from "./environment";
 import { formatGrowthComparison } from "./growth-comparison";
 import { getGoogleDataAccessToken } from "./seo-intelligence/google-data-auth";
 import { getSeoGoogleProviderReadiness } from "./seo-intelligence/provider-readiness";
 
 export type GrowthSourceResult = {
-  source: "gsc" | "ga4" | "vercel";
-  state: "ready" | "not-connected" | "unavailable";
+  source: "gsc" | "ga4" | "runtime";
+  state: "ready" | "not-connected" | "unavailable" | "partial";
   fetchedAt?: string;
   dateRange?: string;
   comparison?: string;
@@ -31,7 +32,6 @@ const ga4Schema = z.object({
   rows: z.array(z.object({ metricValues: z.array(z.object({ value: z.string() })).default([]) }).passthrough()).default([]),
   totals: z.array(z.object({ metricValues: z.array(z.object({ value: z.string() })).default([]) }).passthrough()).default([]),
 }).passthrough();
-const vercelSchema = z.object({ deployments: z.array(z.object({ state: z.string().nullish(), readyState: z.string().nullish(), created: z.number().nullish() }).passthrough()).default([]) }).passthrough();
 
 function gscTotals(data: z.infer<typeof gscSchema>) {
   const clicks = data.rows.reduce((sum, row) => sum + row.clicks, 0);
@@ -129,27 +129,24 @@ export async function readGa4Summary(): Promise<GrowthSourceResult> {
   }
 }
 
-export async function readVercelHealth(): Promise<GrowthSourceResult> {
-  const token = process.env.CCPUN_VERCEL_READ_TOKEN?.trim();
-  const projectId = process.env.CCPUN_VERCEL_PUBLIC_PROJECT_ID?.trim();
-  const teamId = process.env.CCPUN_VERCEL_TEAM_ID?.trim();
-  if (!token || !projectId) return { source: "vercel", state: "not-connected", metrics: [], limitation: "ยังไม่ได้อนุมัติ token แบบอ่านอย่างเดียวสำหรับโปรเจกต์เว็บไซต์จริง" };
-  try {
-    const query = new URLSearchParams({ projectId, limit: "10" });
-    if (teamId) query.set("teamId", teamId);
-    const raw = await providerFetch(`https://api.vercel.com/v6/deployments?${query}`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = vercelSchema.parse(raw);
-    const latest = data.deployments[0];
-    const ready = data.deployments.filter((item) => (item.readyState ?? item.state) === "READY").length;
-    return { source: "vercel", state: "ready", fetchedAt: new Date().toISOString(), comparison: "ยังไม่มี baseline ที่เทียบกันได้จาก deployment API", metrics: [
-      { label: "สถานะ deployment ล่าสุด", value: latest?.readyState ?? latest?.state ?? "ไม่ทราบ" },
-      { label: "READY ใน 10 รายการล่าสุด", value: `${ready}/${data.deployments.length}` },
-    ], limitation: "แสดงเฉพาะข้อมูลที่แผนและ API ปัจจุบันเปิดให้ ไม่สร้าง Core Web Vitals หรือ runtime metrics ขึ้นเอง" };
-  } catch {
-    return { source: "vercel", state: "unavailable", metrics: [], limitation: "เชื่อม Vercel แล้วแต่ดึงข้อมูลรอบนี้ไม่สำเร็จ ข้อมูลแหล่งอื่นยังใช้ได้" };
+export async function readRuntimeHealth(): Promise<GrowthSourceResult> {
+  const deployment = getAdminDeploymentIdentity();
+  if (deployment.provider !== "hostinger" || !deployment.valid || deployment.role !== "admin"
+    || !["admin-uat", "production-admin"].includes(deployment.environment)
+    || !deployment.gitSha || !/^[a-f0-9]{40}$/i.test(deployment.gitSha)
+    || !deployment.gitRef
+    || !isAdminReadDataPlaneAllowed(process.env.NEXT_PUBLIC_SANITY_DATASET?.trim())
+    || (deployment.environment === "production-admin" && deployment.gitRef !== "v4-production")) {
+    return { source: "runtime", state: "unavailable", metrics: [], limitation: "ยังยืนยันเวอร์ชันและสภาพแวดล้อมของศูนย์จัดการบน Hostinger ไม่ได้" };
   }
+  return { source: "runtime", state: "partial", fetchedAt: new Date().toISOString(), metrics: [
+    { label: "ผู้ให้บริการ", value: deployment.provider },
+    { label: "สภาพแวดล้อม", value: deployment.environment },
+    { label: "สายงาน", value: deployment.gitRef },
+    { label: "Commit", value: deployment.gitSha.slice(0, 12) },
+  ], limitation: "อ่านเวอร์ชันของศูนย์จัดการที่กำลังรัน ยังไม่ใช่ผลตรวจ deployment ของเว็บสาธารณะ HTTPS หรือ Core Web Vitals" };
 }
 
 export async function readGrowthSources() {
-  return Promise.all([readGscSummary(), readGa4Summary(), readVercelHealth()]);
+  return Promise.all([readGscSummary(), readGa4Summary(), readRuntimeHealth()]);
 }

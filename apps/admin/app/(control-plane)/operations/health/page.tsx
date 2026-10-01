@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { probeLineBridgeFromAdmin } from "@/lib/runtime/line-bridge-probe";
 import { LineProviderActivationActions } from "@/features/admin/line/LineProviderActivationActions";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getAdminDeploymentIdentity } from "@/lib/admin/environment";
@@ -66,7 +64,7 @@ function Row({ label, value }: { label: string; value: string }) {
 export default async function AdminHealthPage() {
   await requireAdminPermission("settings:read");
 
-  const lineBridge = await probeLineBridgeFromAdmin(await headers());
+  const deployment = getAdminDeploymentIdentity();
   const sanity = getAdminSanityStatus();
   const operations = getAdminOperationsRuntimeStatus();
   const schedulerLane = resolveArticleSchedulerLane(process.env);
@@ -98,12 +96,10 @@ export default async function AdminHealthPage() {
   const lineMediaProvider = getLineMediaProviderReadiness();
   const lineSystemDeliveryProvider = getLineSystemDeliveryProviderReadiness();
 
-  const deployment = getAdminDeploymentIdentity();
   const deploymentEnvironment = deployment.environment;
   const provider = deployment.provider;
   const gitBranch = deployment.gitRef ?? "—";
   const gitSha = deployment.gitSha?.slice(0, 12) ?? "—";
-  const region = provider === "vercel" ? process.env.VERCEL_REGION ?? "—" : "—";
   const productionRuntime = process.env.CCPUN_APP_ENV === "production-admin";
   const deploymentState: HealthState = productionRuntime
     ? deployment.valid && deploymentEnvironment === "production-admin" && gitBranch === "v4-production" ? "ok" : "warning"
@@ -195,12 +191,17 @@ export default async function AdminHealthPage() {
       <div className="mt-7 grid gap-4 xl:grid-cols-2">
         <Card title="ศูนย์จัดการที่กำลังใช้งาน" state={deploymentState}>
           <p>{deploymentState === "ok" ? "กำลังใช้เวอร์ชันจากสายงานที่ถูกต้อง" : "เวอร์ชันหรือสภาพแวดล้อมไม่ตรงตามที่คาด ต้องตรวจเพิ่มเติม"}</p>
-          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="ผู้ให้บริการ" value={provider} /><Row label="สภาพแวดล้อม" value={deploymentEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /><Row label="Region" value={region} /></div></details>
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="ผู้ให้บริการ" value={provider} /><Row label="สภาพแวดล้อม" value={deploymentEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /></div></details>
         </Card>
 
-        <Card title="การเชื่อมต่อข้อมูล LINE" state={lineBridge.status === "ready" ? "ok" : "warning"}>
-          <p>{lineBridge.status === "ready" ? "ยืนยันการเชื่อมต่อระหว่างเว็บและศูนย์จัดการแล้ว โดยไม่ส่งข้อมูลลูกค้า" : "ยังยืนยันการเชื่อมต่อระหว่างเว็บและศูนย์จัดการไม่ได้"}</p>
-          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="สถานะ" value={lineBridge.status} /><Row label="Web commit" value={lineBridge.webSha ?? "—"} /></div></details>
+        <Card title="ข้อมูลและคิว LINE" state={
+          deployment.valid && provider === "hostinger" && lineSystemDeliveryDatabase.ready && lineDelivery.state === "ready"
+            ? "ok" : "warning"
+        }>
+          <Row label="ฐานข้อมูลและสิทธิ์คิว" value={lineSystemDeliveryDatabase.ready ? "อ่านความพร้อมได้" : "ยังยืนยันไม่ได้"} />
+          <Row label="สถานะคิว" value={lineDelivery.state === "ready" ? "อ่านสถานะได้" : "ยังอ่านสถานะไม่ได้"} />
+          <Row label="รายงานจากเว็บล่าสุด" value={lineDocumentMedia.state === "ready" ? lineDocumentMedia.webRuntimeLastReportedAt ?? "ยังไม่มีรายงาน" : "ยังอ่านรายงานไม่ได้"} />
+          <p className="pt-2 text-white/50">แสดงผลการอ่านฐานข้อมูลและคิว การรับข้อความและส่งงานครบวงจรต้องยืนยันจากหลักฐานทดสอบแยก</p>
         </Card>
 
         <Card title="เนื้อหาใน Sanity" state={sanityState}>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { sendLineSystemOutboundByCapability } from "@/lib/admin/line/provider";
+import { isAdminLineSystemDeliveryAllowed } from "@/lib/admin/capability-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,9 @@ const bodySchema = z.object({
 }).strict();
 
 export async function POST(request: Request) {
+  if (!isAdminLineSystemDeliveryAllowed()) {
+    return NextResponse.json({ error: "not-found" }, { status: 404, headers });
+  }
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     return NextResponse.json({ error: "unsupported-media-type" }, { status: 415, headers });
   }

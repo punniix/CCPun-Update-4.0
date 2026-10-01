@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getAdminDeploymentIdentity } from "@/lib/admin/environment";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
 import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
@@ -13,7 +14,7 @@ import {
 
 export const metadata: Metadata = { title: "System Health" };
 
-type HealthState = "ok" | "warning" | "off";
+type HealthState = "ok" | "warning" | "off" | "partial";
 
 function badge(state: HealthState) {
   const style = state === "ok"
@@ -21,7 +22,7 @@ function badge(state: HealthState) {
     : state === "warning"
       ? "border-amber-200/20 bg-amber-200/10 text-amber-50"
       : "border-white/10 bg-white/[0.04] text-white/60";
-  const label = state === "ok" ? "พร้อม" : state === "warning" ? "ต้องตรวจ" : "ยังไม่เปิด";
+  const label = state === "ok" ? "พร้อม" : state === "warning" ? "ต้องตรวจ" : state === "partial" ? "ข้อมูลบางส่วน" : "ยังไม่เปิด";
   return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${style}`}>{label}</span>;
 }
 
@@ -60,14 +61,12 @@ export default async function AdminHealthPage() {
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
 
-  const vercelEnvironment = process.env.VERCEL_ENV ?? "—";
-  const gitBranch = process.env.VERCEL_GIT_COMMIT_REF ?? "—";
-  const gitSha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? "—";
-  const region = process.env.VERCEL_REGION ?? "—";
-  const productionRuntime = process.env.CCPUN_APP_ENV === "production-admin";
-  const vercelState: HealthState = productionRuntime
-    ? vercelEnvironment === "production" && gitBranch === "v4-production" ? "ok" : "warning"
-    : vercelEnvironment === "preview" ? "ok" : "warning";
+  const deployment = getAdminDeploymentIdentity();
+  const runtimeState: HealthState = deployment.valid && deployment.provider === "hostinger"
+    && deployment.role === "admin" && ["admin-uat", "production-admin"].includes(deployment.environment)
+    && deployment.gitSha && /^[a-f0-9]{40}$/i.test(deployment.gitSha) && deployment.gitRef
+    && (deployment.environment !== "production-admin" || deployment.gitRef === "v4-production")
+      ? "partial" : "warning";
   const operationsState: HealthState = operations.identityValid ? "ok" : operations.configured ? "warning" : "off";
   const sanityState: HealthState = sanity.readReady ? (sanity.writeReady ? "ok" : "warning") : "warning";
   const schedulerState: HealthState = !schedulerLane
@@ -98,12 +97,12 @@ export default async function AdminHealthPage() {
       </p>
 
       <div className="mt-7 grid gap-4 xl:grid-cols-2">
-        <Card title="Vercel Runtime" state={vercelState}>
-          <Row label="Environment" value={vercelEnvironment} />
-          <Row label="Git branch" value={gitBranch} />
-          <Row label="Commit" value={gitSha} />
-          <Row label="Region" value={region} />
-          <p className="pt-2 text-white/50">หน้านี้ตอบจาก deployment ปัจจุบันโดยตรง จึงใช้ตรวจ branch / commit / runtime lane ได้โดยไม่ต้องให้ Admin ถือ Vercel API token</p>
+        <Card title="สถานะเวอร์ชันระบบ" state={runtimeState}>
+          <Row label="ผู้ให้บริการ" value={deployment.provider} />
+          <Row label="สภาพแวดล้อม" value={deployment.environment} />
+          <Row label="Git branch" value={deployment.gitRef ?? "—"} />
+          <Row label="Commit" value={deployment.gitSha?.slice(0, 12) ?? "—"} />
+          <p className="pt-2 text-white/50">แสดงข้อมูลเวอร์ชันของศูนย์จัดการที่กำลังรัน ยังไม่ใช่ผลตรวจเว็บสาธารณะ HTTPS หรือการส่งงานครบวงจร</p>
         </Card>
 
         <Card title="Sanity Editorial Data" state={sanityState}>

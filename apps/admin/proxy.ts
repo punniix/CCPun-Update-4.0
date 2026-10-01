@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/auth";
 import {
   isConfiguredAdminOrigin,
   isLocalAdminHost,
   isSameOriginAdminMutation,
+  isSecureAdminAuthUrl,
 } from "@/lib/admin/auth-config";
 import {
   getAdminEnvironment,
@@ -25,9 +26,72 @@ import {
   safeAdminReturnPath,
 } from "@/lib/admin/routes";
 import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
+import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, safeAdminCapabilityReturnPath } from "@/lib/admin/capability-profile";
+import { SECURITY_HEADERS } from "@/lib/security-policy";
+import type { AdminRole } from "@/lib/admin/rbac";
+import { nativeWorkflowTransportDisposition } from "@/lib/admin/workflow-transport-boundary";
+import { resolveDeploymentIdentity } from "@/lib/runtime/deployment-identity";
 
-export default auth((request) => {
+function nativeFullAdminHostResponse(request: NextRequest) {
+  if (process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() !== "hostinger"
+    || getAdminCapabilityProfile() !== "full") return null;
+  const identity = resolveDeploymentIdentity(process.env, "admin");
+  const authUrl = process.env.AUTH_URL?.trim();
+  const allowedLane = identity.environment === "admin-uat" || identity.environment === "production-admin";
+  const configuredHost = isSecureAdminAuthUrl(authUrl) ? new URL(authUrl!).host.toLowerCase() : null;
+  const host = request.headers.get("host")?.trim().toLowerCase();
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  if (identity.valid && identity.provider === "hostinger" && identity.role === "admin" && allowedLane
+    && (identity.environment !== "production-admin" || authUrl === "https://admin.ccpun.com")
+    && configuredHost && host === configuredHost
+    && (forwardedHost === null || forwardedHost.trim().toLowerCase() === configuredHost)) return null;
+  return new NextResponse("Not Found", { status: 404, headers: {
+    ...Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+    "Cache-Control": "private, no-store",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
+  } });
+}
+
+function nativeWorkflowResponse(request: NextRequest) {
+  const disposition = nativeWorkflowTransportDisposition(request);
+  if (disposition === "unrelated") return null;
+  if (disposition === "allow") return NextResponse.next();
+  return new NextResponse("Not Found", { status: 404, headers: {
+    ...Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+    "Cache-Control": "private, no-store",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
+  } });
+}
+
+export function adminProxy(request: NextRequest & { auth?: { user?: { role?: AdminRole | null } } | null }) {
+  const workflowResponse = nativeWorkflowResponse(request);
+  if (workflowResponse) return workflowResponse;
+  const hostResponse = nativeFullAdminHostResponse(request);
+  if (hostResponse) return hostResponse;
   const { pathname } = request.nextUrl;
+  const capabilityProfile = getAdminCapabilityProfile();
+  const landingPath = adminCapabilityLandingPath(capabilityProfile);
+  // This must precede internal-service exemptions, aliases and browser auth.
+  if (!isAdminCapabilityPathAllowed(pathname, capabilityProfile)) {
+    return new NextResponse("Not Found", { status: 404, headers: {
+      ...Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+      "Cache-Control": "private, no-store",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+    } });
+  }
+  // Preserve Vercel's full-profile transport. Native Postgres requests must
+  // pass the separate raw-request fence and private network perimeter.
+  if (capabilityProfile === "full" && pathname.startsWith("/.well-known/workflow/")) return NextResponse.next();
+  if (capabilityProfile === "editorial") {
+    // Auth.js may rewrite request.url to AUTH_URL. Validate the actual ingress
+    // Host too, so that rewrite cannot authorize an unknown request hostname.
+    let configuredHost: string;
+    try { configuredHost = new URL(process.env.AUTH_URL ?? "").host.toLowerCase(); }
+    catch { return new NextResponse("Not Found", { status: 404 }); }
+    const host = request.headers.get("host")?.trim().toLowerCase();
+    const forwardedHost = request.headers.get("x-forwarded-host")?.trim().toLowerCase();
+    if (host !== configuredHost || (forwardedHost && forwardedHost !== configuredHost)) return new NextResponse("Not Found", { status: 404 });
+  }
 
   observeAiCrawlerRequest({
     userAgent: request.headers.get("user-agent"),
@@ -98,12 +162,23 @@ export default auth((request) => {
       const disposition = classifyProductionAdminPath(pathname);
       if (disposition === "entry") {
         return NextResponse.redirect(
-          new URL(role ? "/dashboard/" : "/login/", request.url),
+          new URL(role ? landingPath : "/login/", request.url),
         );
       }
       if (disposition === "reject") {
         const authenticatedPreviewSurface = Boolean(role) && isAuthenticatedAdminPreviewPath(pathname);
         if (!authenticatedPreviewSurface) {
+          const identity = resolveDeploymentIdentity(process.env, "admin");
+          if (identity.valid && identity.provider === "hostinger" && identity.role === "admin"
+            && ["admin-uat", "production-admin"].includes(identity.environment)) {
+            // Auth.js replaced the request origin with AUTH_URL. Rewriting to
+            // that origin can proxy externally instead of rendering locally.
+            return new NextResponse("Not Found", { status: 404, headers: {
+              ...Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+              "Cache-Control": "private, no-store",
+              "X-Robots-Tag": "noindex, nofollow, noarchive",
+            } });
+          }
           return NextResponse.rewrite(new URL(`${ADMIN_NOT_FOUND_PATH}/`, request.url), { status: 404 });
         }
       }
@@ -132,11 +207,11 @@ export default auth((request) => {
         return NextResponse.redirect(loginUrl);
       }
       return NextResponse.redirect(role && legacyPageDestination === "/login/"
-        ? new URL("/dashboard/", request.url)
+        ? new URL(landingPath, request.url)
         : destination);
     }
     if (isLoginPage) {
-      if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
+      if (role) return NextResponse.redirect(new URL(landingPath, request.url));
       return NextResponse.next();
     }
     if (!role) {
@@ -144,7 +219,7 @@ export default auth((request) => {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
       }
       const loginUrl = new URL("/login/", request.url);
-      const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+      const callbackUrl = capabilityProfile === "full" ? safeAdminReturnPath(`${pathname}${request.nextUrl.search}`) : safeAdminCapabilityReturnPath(`${pathname}${request.nextUrl.search}`, capabilityProfile);
       if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
       return NextResponse.redirect(loginUrl);
     }
@@ -161,7 +236,7 @@ export default auth((request) => {
   }
 
   if (isLoginPage) {
-    if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
+    if (role) return NextResponse.redirect(new URL(landingPath, request.url));
     return NextResponse.next();
   }
 
@@ -170,19 +245,32 @@ export default auth((request) => {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const loginUrl = new URL("/login/", request.url);
-    const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+    const callbackUrl = capabilityProfile === "full" ? safeAdminReturnPath(`${pathname}${request.nextUrl.search}`) : safeAdminCapabilityReturnPath(`${pathname}${request.nextUrl.search}`, capabilityProfile);
     if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
+
+const authenticatedAdminProxy = auth(adminProxy);
+
+export default function proxy(...args: Parameters<typeof authenticatedAdminProxy>) {
+  // Auth.js can rewrite URL to AUTH_URL. Native Workflow must be classified
+  // before that wrapper and without reading its body or a browser session.
+  const workflowResponse = nativeWorkflowResponse(args[0]);
+  if (workflowResponse) return workflowResponse;
+  const hostResponse = nativeFullAdminHostResponse(args[0]);
+  return hostResponse ?? authenticatedAdminProxy(...args);
+}
 
 export const config = {
   matcher: [
     // Root must always reach the environment/project boundary so a dedicated
     // Admin application can never fall through to the public homepage.
     "/",
+    // Native candidate domains and unknown APIs also reach the profile fence.
+    "/:path*",
     "/login/:path*",
     "/dashboard/:path*",
     "/content/:path*",
@@ -198,7 +286,8 @@ export const config = {
     "/studio/:path*",
     "/api/preview/:path*",
     "/api/auth/:path*",
-    // Workflow's signed internal transport does not use a browser Auth.js session.
+    // Vercel transport does not use a browser Auth.js session. Native transport
+    // is constrained by the outer request fence and a private ingress perimeter.
     // The owner-facing API matchers above remain unchanged.
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },

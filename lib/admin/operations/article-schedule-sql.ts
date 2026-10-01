@@ -38,6 +38,22 @@ export const FAIL_ARTICLE_DISPATCH = audited(`
   WHERE article_id=$1 AND generation=$2::uuid AND status='preparing'
   RETURNING *`, "'workflow-dispatch'");
 
+// A genuine durable native registration receipt, never an SDK run ID.
+export const ACK_NATIVE_ARTICLE_DISPATCH = audited(`
+  UPDATE ccpun_admin.article_schedule SET status='scheduled',
+    workflow_run_id='native-neon:'||generation::text,
+    row_version=row_version+1,updated_at=clock_timestamp()
+  WHERE article_id=$1 AND generation=$2::uuid AND status='preparing'
+    AND EXISTS (SELECT 1 FROM ccpun_admin.article_scheduler_identity WHERE singleton=true AND enabled=true)
+  RETURNING *`, "'native-neon-registration'");
+
+export const READ_NATIVE_DUE_ARTICLE_SCHEDULES = `
+  SELECT article_id,generation FROM ccpun_admin.article_schedule
+  WHERE status='scheduled' AND scheduled_at<=clock_timestamp()
+    AND workflow_run_id='native-neon:'||generation::text
+    AND EXISTS (SELECT 1 FROM ccpun_admin.article_scheduler_identity WHERE singleton=true AND enabled=true)
+  ORDER BY scheduled_at,article_id LIMIT $1`;
+
 export const CANCEL_ARTICLE_SCHEDULE = audited(`
   UPDATE ccpun_admin.article_schedule SET status='cancelled',row_version=row_version+1,
     updated_at=clock_timestamp(),completed_at=clock_timestamp(),error_code=NULL

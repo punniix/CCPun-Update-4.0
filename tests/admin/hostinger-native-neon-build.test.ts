@@ -1,0 +1,168 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import test from "node:test";
+import { build } from "esbuild";
+import { sealNativeNeonRuntime, validateNativeNeonBuild } from "../../apps/admin/scripts/build-provider.mjs";
+import { getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
+
+// Prepared for actual Hostinger execution. No application DB/CMS/provider is
+// contacted; fake Git/artifact/config fixtures belong only to this suite.
+const source = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+const tracked = ["package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs",
+  "apps/admin/instrumentation.ts", "lib/admin/article-schedule-clock.ts", "lib/admin/article-scheduling.ts",
+  "lib/admin/operations/article-schedule-sql.ts", "lib/admin/operations/article-schedule-store.ts",
+  "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts"];
+function put(path: string, value: string) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); }
+function fixture() {
+  const root = mkdtempSync(join(tmpdir(), "ccpun-native-build-fixture-"));
+  const git = (...args: string[]) => {
+    const result = spawnSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    assert.equal(result.status, 0, "fixture Git operation failed"); return result.stdout.trim();
+  };
+  git("init", "--initial-branch=fixture-native-neon");
+  git("config", "user.name", "Synthetic Fixture"); git("config", "user.email", "fixture@example.invalid");
+  for (const path of tracked) put(join(root, path), path === "package-lock.json" ? '{"lockfileVersion":3}\n' : "// fixture\n");
+  put(join(root, "apps/admin/scripts/build-provider.mjs"), source("apps/admin/scripts/build-provider.mjs"));
+  put(join(root, "apps/admin/next.config.ts"), source("apps/admin/next.config.ts"));
+  put(join(root, "apps/next-security-headers.mjs"), "export function buildNextSecurityHeaders(){return [];}\n");
+  git("add", "."); git("commit", "-m", "Synthetic native build fixture");
+  const values: Record<string, string | undefined> = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat",
+    CCPUN_ADMIN_CAPABILITY_PROFILE: "full", CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
+    CCPUN_NEON_PROJECT_ID: "young-term-47483330", CCPUN_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8", CCPUN_NEON_DATABASE: "neondb",
+    CCPUN_GIT_SHA: git("rev-parse", "HEAD"), CCPUN_GIT_REF: "fixture-native-neon", CCPUN_RELEASE_ID: "fixture-release",
+    CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
+  };
+  return { root, admin: join(root, "apps/admin"), git, values, close: () => rmSync(root, { recursive: true, force: true }) };
+}
+function productionValues(f: ReturnType<typeof fixture>): Record<string, string | undefined> {
+  return { ...f.values, CCPUN_APP_ENV: "production-admin", NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin",
+    CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled", NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", NEXT_PUBLIC_SANITY_DATASET: "production",
+    CCPUN_NEON_PROJECT_ID: "lively-bar-43618798", CCPUN_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv",
+    CCPUN_GIT_REF: "v4-production", AUTH_URL: "https://admin.ccpun.com" };
+}
+
+test("seal binds committed source, exact ref and root lock rather than declared provenance", () => {
+  const f = fixture(); try {
+    const seal = validateNativeNeonBuild(f.admin, f.values);
+    assert.ok(seal); assert.equal(seal.gitSha, f.values.CCPUN_GIT_SHA); assert.equal(seal.productionReady, false);
+    assert.equal(seal.lockSha256, createHash("sha256").update(readFileSync(join(f.root, "package-lock.json"))).digest("hex"));
+    for (const change of [
+      { CCPUN_GIT_SHA: "a".repeat(40) }, { CCPUN_GIT_REF: "unknown-ref" }, { CCPUN_RELEASE_ID: undefined },
+      { CCPUN_APP_ENV: "production-admin" }, { CCPUN_DEPLOYMENT_ROLE: "web" }, { CCPUN_DEPLOYMENT_PROVIDER: "vercel" },
+      { CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" }, { NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq" },
+      { CCPUN_NEON_PROJECT_ID: "wrong" }, { CCPUN_NEON_BRANCH_ID: "wrong" }, { CCPUN_NEON_DATABASE: "wrong" },
+      { NEXT_PUBLIC_SANITY_DATASET: "production" }, { NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin" },
+      { NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40) }, { NEXT_PUBLIC_CCPUN_RELEASE_ID: "spoofed" },
+      { NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" }, { CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" },
+      { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" }, { VERCEL_PROJECT_ID: "conflicting" },
+    ]) assert.throws(() => validateNativeNeonBuild(f.admin, { ...f.values, ...change }), /UAT_BUILD_DENIED/);
+    put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"tampered":true}\n');
+    assert.throws(() => validateNativeNeonBuild(f.admin, f.values), /UAT_BUILD_DENIED/);
+    f.git("checkout", "--", "package-lock.json");
+    f.git("rm", "--cached", "lib/admin/article-schedule-clock.ts"); f.git("commit", "-m", "Remove required tracked runtime");
+    assert.throws(() => validateNativeNeonBuild(f.admin, { ...f.values, CCPUN_GIT_SHA: f.git("rev-parse", "HEAD") }), /UAT_BUILD_DENIED/);
+  } finally { f.close(); }
+});
+
+test("native config omits Workflow for UAT and sealed manual Production while active or unsealed builds stay denied", async () => {
+  const f = fixture(); try {
+    // A fake SDK throws if loaded, independently detecting an accidental wrapper.
+    put(join(f.root, "node_modules/workflow/package.json"), '{"exports":{"./next":"./next.cjs"}}');
+    put(join(f.root, "node_modules/workflow/next.cjs"), 'throw new Error("SDK_WRAPPER_WAS_LOADED");');
+    const stub = join(f.root, "config-stub.mjs");
+    put(stub, 'export function getAdminEnvironment(){return process.env.CCPUN_APP_ENV;} export function isSanityLaneAllowed(){return true;} export function getAdminCapabilityProfile(){return process.env.CCPUN_ADMIN_CAPABILITY_PROFILE;}');
+    const entry = join(f.admin, "next.config.compiled.mjs");
+    await build({ entryPoints: [join(f.admin, "next.config.ts")], outfile: entry, bundle: true, platform: "node", format: "esm", target: "node24",
+      external: ["./scripts/build-provider.mjs", "../next-security-headers.mjs"],
+      plugins: [{ name: "synthetic-config-dependencies", setup(build) {
+        build.onResolve({ filter: /^\.\.\/\.\.\/lib\/admin\/(?:environment|capability-profile)$/ }, () => ({ path: stub }));
+      } }] });
+    const run = (values: Record<string, string | undefined>) => spawnSync(process.execPath,
+      ["--input-type=module", "-e", 'const {default:c}=await import("./next.config.compiled.mjs"); if(c.output!=="standalone"||(process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND&&c.env.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND!==process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND))process.exit(9);'],
+      { cwd: f.admin, env: { PATH: process.env.PATH, NODE_ENV: "test", ...values }, encoding: "utf8" });
+    assert.equal(run(f.values).status, 0, "native config must not load SDK or application data clients");
+    const editorial = { ...f.values, CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial", CCPUN_ARTICLE_SCHEDULER_BACKEND: undefined };
+    assert.equal(run(editorial).status, 0, "existing editorial wrapper omission remains intact");
+    const legacy = run({ ...f.values, CCPUN_DEPLOYMENT_PROVIDER: "vercel", CCPUN_ARTICLE_SCHEDULER_BACKEND: undefined });
+    assert.notEqual(legacy.status, 0); assert.match(legacy.stderr, /SDK_WRAPPER_WAS_LOADED/);
+    const active = run({ ...f.values, CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" });
+    assert.notEqual(active.status, 0); assert.match(active.stderr, /NATIVE_NEON_UAT_BUILD_DENIED/);
+    const production = run({ ...f.values, CCPUN_APP_ENV: "production-admin" });
+    assert.notEqual(production.status, 0); assert.match(production.stderr, /NATIVE_NEON_UAT_BUILD_DENIED/);
+    f.git("checkout", "-b", "v4-production");
+    assert.equal(run(productionValues(f)).status, 0, "sealed manual Production must not load SDK or data clients");
+    for (const change of [{ CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" }, { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" }, { AUTH_URL: "https://evil.example" }]) {
+      const invalid = run({ ...productionValues(f), ...change });
+      assert.notEqual(invalid.status, 0); assert.match(invalid.stderr, /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+    }
+  } finally { f.close(); }
+});
+
+test("manual Production seal binds the real lane/ref and permanently disabled scheduler without claiming readiness", () => {
+  const f = fixture(); try {
+    f.git("checkout", "-b", "v4-production");
+    const values = productionValues(f);
+    const seal = validateNativeNeonBuild(f.admin, values);
+    assert.ok(seal); assert.equal(seal.environment, "production-admin");
+    assert.equal(seal.schedulerBackend, "disabled"); assert.equal(seal.productionReady, false);
+    assert.equal(seal.sanityProjectId, "kyfxgjnq"); assert.equal(seal.sanityDataset, "production");
+    assert.equal(seal.neonProjectId, "lively-bar-43618798"); assert.equal(seal.neonBranchId, "br-long-resonance-b3ys5xrv");
+    assert.equal(seal.gitRef, "v4-production"); assert.equal(seal.gitSha, values.CCPUN_GIT_SHA);
+    const bound = { ...values, ...seal.publicValues };
+    assert.equal(getArticleScheduleBackend(bound), "disabled");
+    assert.equal(getArticleScheduleBackend({ ...bound, CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" }), "disabled");
+    for (const change of [
+      { CCPUN_APP_ENV: "admin-uat" }, { NEXT_PUBLIC_CCPUN_APP_ENV: undefined }, { NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat" },
+      { CCPUN_DEPLOYMENT_PROVIDER: "vercel" }, { CCPUN_DEPLOYMENT_ROLE: "web" }, { CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" },
+      { CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon" }, { NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon" },
+      { NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: undefined }, { NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5" }, { NEXT_PUBLIC_SANITY_DATASET: "uat" },
+      { CCPUN_NEON_PROJECT_ID: "young-term-47483330" }, { CCPUN_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8" }, { CCPUN_NEON_DATABASE: "wrong" },
+      { CCPUN_GIT_REF: "fixture-native-neon" }, { CCPUN_GIT_SHA: "a".repeat(40) }, { CCPUN_RELEASE_ID: undefined },
+      { AUTH_URL: undefined }, { AUTH_URL: "http://admin.ccpun.com" }, { AUTH_URL: "https://admin.ccpun.com/" },
+      { CCPUN_ARTICLE_SCHEDULING_ENABLED: undefined }, { CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" },
+      { CCPUN_NATIVE_WORKFLOW_ENABLED: undefined }, { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" }, { VERCEL_PROJECT_ID: "conflicting" },
+      { NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40) }, { NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" },
+    ]) assert.throws(() => validateNativeNeonBuild(f.admin, { ...values, ...change }), /PRODUCTION_BUILD_DENIED/);
+    const runtime = join(f.admin, ".next/standalone");
+    put(join(runtime, ".next/server/app-paths-manifest.json"), '{}'); put(join(runtime, ".next/BUILD_ID"), "manual-fixture-build");
+    sealNativeNeonRuntime(f.admin, seal);
+    const manifest = JSON.parse(readFileSync(join(runtime, "ccpun-native-admin-manifest.json"), "utf8"));
+    assert.equal(manifest.environment, "production-admin"); assert.equal(manifest.schedulerBackend, "disabled");
+    assert.equal(manifest.productionReady, false); assert.equal("publicValues" in manifest, false);
+    put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"tampered":true}\n');
+    assert.throws(() => validateNativeNeonBuild(f.admin, values), /PRODUCTION_BUILD_DENIED/);
+  } finally { f.close(); }
+});
+
+test("native standalone seal permits internal workspace links and denies escapes, credentials and SDK mounts", () => {
+  const f = fixture(); try {
+    const seal = validateNativeNeonBuild(f.admin, f.values); assert.ok(seal);
+    const runtime = join(f.admin, ".next/standalone");
+    put(join(runtime, ".next/server/app-paths-manifest.json"), '{}'); put(join(runtime, ".next/BUILD_ID"), "fixture-build");
+    put(join(runtime, "packages/shared/index.js"), "module.exports={}"); mkdirSync(join(runtime, "node_modules"));
+    symlinkSync("../packages/shared", join(runtime, "node_modules/shared")); sealNativeNeonRuntime(f.admin, seal);
+    const manifest = JSON.parse(readFileSync(join(runtime, "ccpun-native-admin-manifest.json"), "utf8"));
+    assert.equal(manifest.gitSha, f.values.CCPUN_GIT_SHA); assert.equal(manifest.schedulerBackend, "native-neon");
+    assert.equal(manifest.productionReady, false); assert.equal("publicValues" in manifest, false);
+    symlinkSync(f.root, join(runtime, "escape")); assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /LINK_DENIED/); rmSync(join(runtime, "escape"));
+    put(join(runtime, ".env.fixture"), "SYNTHETIC_ONLY"); assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /INPUT_DENIED/); rmSync(join(runtime, ".env.fixture"));
+    put(join(runtime, ".next/server/app-paths-manifest.json"), '{"/.well-known/workflow/v1/flow/route":"fake.js"}');
+    assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /SDK_ROUTE_PRESENT/);
+  } finally { f.close(); }
+});
+
+// instrumentation native build branch returns before importing the clock/data
+// modules. Runtime/due-row/restart proof must be executed on Hostinger next.
+test("compiled native build seal and startup remain separate from execution activation", () => {
+  const instrumentation = source("apps/admin/instrumentation.ts");
+  assert.ok(instrumentation.indexOf('process.env.NEXT_PHASE === "phase-production-build"') < instrumentation.indexOf('import("../../lib/admin/article-schedule-clock")'));
+  assert.match(instrumentation, /NATIVE_SCHEDULE_BUILD_ACTIVATION_DENIED/);
+  assert.match(instrumentation, /CCPUN_ARTICLE_SCHEDULING_ENABLED/);
+});

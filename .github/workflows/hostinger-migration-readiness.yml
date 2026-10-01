@@ -4,6 +4,15 @@ on:
   pull_request:
     branches: [v4-production]
   workflow_dispatch:
+    inputs:
+      export_web_uat_artifact:
+        description: Export a restorable Web UAT standalone archive (no deployment)
+        type: boolean
+        default: false
+      run_native_world_linux_lab:
+        description: Run isolated Linux PostgreSQL storage/queue lab (not Full Admin acceptance)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,11 +22,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  native-world-linux-lab:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_native_world_linux_lab
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ccpun_workflow_lab
+          POSTGRES_USER: ccpun_workflow_lab
+          # Public disposable CI fixture; never a provider credential.
+          POSTGRES_PASSWORD: ccpun-workflow-lab-only
+        ports:
+          - "127.0.0.1::5432"
+        options: >-
+          --health-cmd "pg_isready -U ccpun_workflow_lab -d ccpun_workflow_lab"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Real isolated World storage and queue recovery
+        # Runner tooling variables never reach the strict lab process. These
+        # are only public fixture/provenance inputs; no HOME or provider keys.
+        run: |
+          env -i \
+            PATH="$PATH" NODE_ENV=test \
+            CCPUN_NATIVE_WORLD_LINUX_LAB="$CCPUN_NATIVE_WORLD_LINUX_LAB" \
+            CCPUN_LAB_DATABASE_PORT="$CCPUN_LAB_DATABASE_PORT" \
+            CCPUN_LAB_GIT_SHA="$CCPUN_LAB_GIT_SHA" \
+            CCPUN_LAB_GIT_REF="$CCPUN_LAB_GIT_REF" \
+            CCPUN_LAB_CONNECTION="$CCPUN_LAB_CONNECTION" \
+            WORKFLOW_TARGET_WORLD="$WORKFLOW_TARGET_WORLD" \
+            node --import tsx --test tests/admin/native-workflow-world-linux.test.ts
+        env:
+          CCPUN_NATIVE_WORLD_LINUX_LAB: "1"
+          CCPUN_LAB_DATABASE_PORT: ${{ job.services.postgres.ports[5432] }}
+          CCPUN_LAB_GIT_SHA: ${{ github.sha }}
+          CCPUN_LAB_GIT_REF: ${{ github.ref_name }}
+          CCPUN_LAB_CONNECTION: postgresql://ccpun_workflow_lab:ccpun-workflow-lab-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/ccpun_workflow_lab
+          WORKFLOW_TARGET_WORLD: "@workflow/world-postgres"
   web-hostinger-shadow:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
@@ -66,3 +123,17 @@ jobs:
           NEXT_PUBLIC_SANITY_DATASET: uat
           CCPUN_UAT_MODE: "1"
           CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0"
+          CCPUN_EXPORT_STANDALONE: ${{ github.event_name == 'workflow_dispatch' && inputs.export_web_uat_artifact && '1' || '0' }}
+          CCPUN_GIT_REF: ${{ github.ref_name }}
+          CCPUN_GIT_SHA: ${{ github.sha }}
+      - name: Archive verified Web UAT standalone runtime
+        if: github.event_name == 'workflow_dispatch' && inputs.export_web_uat_artifact
+        run: node apps/web/scripts/build-provider.mjs --archive-standalone /tmp/ccpun-native-web-artifact
+      - name: Retain Web UAT archive and provenance
+        if: github.event_name == 'workflow_dispatch' && inputs.export_web_uat_artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: hostinger-web-uat-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/ccpun-native-web-artifact/
+          if-no-files-found: error
+          retention-days: 7

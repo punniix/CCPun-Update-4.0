@@ -16,6 +16,7 @@ import {
   protectProductionContentLifecycleActions,
 } from "./cms/sanity/policy/studio-policy";
 import { isStudioDataPlaneAllowed, resolveSanityConfigEnvironment } from "./lib/admin/environment";
+import { getAdminCapabilityProfile } from "./lib/admin/capability-profile";
 
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID ?? process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
 const dataset = process.env.SANITY_STUDIO_DATASET ?? process.env.NEXT_PUBLIC_SANITY_DATASET;
@@ -48,10 +49,8 @@ export const sanityStudioConfig =
         schema: { types: schemaTypes },
         document: {
           badges: (previous, context) => context.schemaType === "article" ? [...previous, ArticleLiveBadge] : previous,
-          actions: (previousActions, context) =>
-            appendArticleLineCopyActions(
-              appendArticleScheduleAction(
-                wrapGoogleSafeArticlePublishActions(
+          actions: (previousActions, context) => {
+            const editorialActions = wrapGoogleSafeArticlePublishActions(
                   protectProductionContentLifecycleActions(
                     filterStudioDocumentActions(previousActions, context.dataset, environment, context.schemaType, projectId),
                     environment,
@@ -59,13 +58,13 @@ export const sanityStudioConfig =
                   ),
                   environment,
                   context.schemaType,
-                ),
-                environment,
-                context.schemaType,
-              ),
-              environment,
-              context.schemaType,
-            ),
+                );
+            if (getAdminCapabilityProfile() !== "full") return editorialActions;
+            return appendArticleLineCopyActions(
+              appendArticleScheduleAction(editorialActions, environment, context.schemaType),
+              environment, context.schemaType,
+            );
+          },
           newDocumentOptions: (previousOptions) => filterStudioNewDocumentOptions(previousOptions, dataset, environment, projectId),
         },
       })

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { start } from "workflow/api";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
-import { acknowledgeArticleSchedule, cancelArticleSchedule, getArticleScheduleState, markScheduleStartFailed, prepareArticleSchedule } from "@/lib/admin/article-scheduling";
+import { acknowledgeArticleSchedule, cancelArticleSchedule, getArticleScheduleState, markScheduleStartFailed, prepareArticleSchedule, registerNativeArticleSchedule } from "@/lib/admin/article-scheduling";
 import { ArticleScheduleError, articleIdSchema, cancelScheduleRequestSchema, scheduleRequestSchema as bodySchema, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
 import { bangkokLocalDateTimeToIso } from "@/cms/sanity/policy/article-scheduling";
-import { scheduledArticlePublicationWorkflow } from "@/lib/admin/article-publication-workflow";
+import { getAdminCapabilityProfile } from "@/lib/admin/capability-profile";
+import { getArticleScheduleBackend } from "@/lib/admin/article-schedule-clock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +23,7 @@ function failure(error: unknown) {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (getAdminCapabilityProfile() !== "full") return NextResponse.json({ error: "not-found" }, { status: 404, headers });
   const identity = await requireScheduleIdentity();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
   const parsed = articleIdSchema.safeParse((await params).id);
@@ -32,6 +33,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (getAdminCapabilityProfile() !== "full") return NextResponse.json({ error: "not-found" }, { status: 404, headers });
   const identity = await requireScheduleIdentity();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
   if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
@@ -40,13 +42,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!id.success || !parsed.success) return failure(new ArticleScheduleError("invalid-request"));
   const scheduledAt = bangkokLocalDateTimeToIso(parsed.data.scheduledLocal);
   if (!scheduledAt) return failure(new ArticleScheduleError("invalid-request"));
+  const backend = getArticleScheduleBackend();
+  if (backend === "disabled") return failure(new ArticleScheduleError("not-ready"));
   try {
     const prepared = await prepareArticleSchedule({ ...parsed.data, articleId: id.data, scheduledAt, actor: identity.actor });
     if (!prepared.dispatch) return NextResponse.json({ schedule: scheduleView(prepared.row) }, { status: prepared.row.status === "preparing" ? 202 : 200, headers });
     try {
-      // The framework integration statically discovers this server-side start call.
-      const run = await start(scheduledArticlePublicationWorkflow, [{ articleId: id.data, generation: prepared.row.generation, scheduledAt }]);
-      const schedule = await acknowledgeArticleSchedule(id.data, prepared.row.generation, run.runId);
+      let schedule;
+      if (backend === "native-neon") {
+        schedule = await registerNativeArticleSchedule(id.data, prepared.row.generation);
+      } else {
+        // Only the retained legacy lane loads the SDK's eager runtime imports.
+        const { start } = await import("workflow/api");
+        const { scheduledArticlePublicationWorkflow } = await import("@/lib/admin/article-publication-workflow");
+        const run = await start(scheduledArticlePublicationWorkflow, [{ articleId: id.data, generation: prepared.row.generation, scheduledAt }]);
+        schedule = await acknowledgeArticleSchedule(id.data, prepared.row.generation, run.runId);
+      }
       return NextResponse.json({ schedule }, { status: 201, headers });
     } catch {
       try { await markScheduleStartFailed(id.data, prepared.row.generation); } catch { /* An unacknowledged preparing row is never executable. */ }
@@ -56,6 +67,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (getAdminCapabilityProfile() !== "full") return NextResponse.json({ error: "not-found" }, { status: 404, headers });
   const identity = await requireScheduleIdentity();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
   if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });

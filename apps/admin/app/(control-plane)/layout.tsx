@@ -7,6 +7,7 @@ import AdminNavigation from "@/features/admin/components/AdminNavigation";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { environmentLabel, roleLabel } from "@/lib/admin/presentation";
 import { hasAdminPermission, type AdminPermission, type AdminRole } from "@/lib/admin/rbac";
+import { getAdminCapabilityProfile, isAdminCapabilityPathAllowed } from "@/lib/admin/capability-profile";
 
 export const metadata: Metadata = {
   title: { default: "ศูนย์จัดการ CCPun", template: "%s | ศูนย์จัดการ CCPun" },
@@ -63,14 +64,17 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
 
   const environment = getAdminEnvironment();
   const currentEnvironmentLabel = environmentLabel(environment);
+  const capabilityProfile = getAdminCapabilityProfile();
   const navItems = NAV_ITEMS
     .filter((item) => hasAdminPermission(role, item.permission))
-    .map((item) => ({
-      ...item,
-      children: item.children
-        ?.filter((child) => !child.permission || hasAdminPermission(role, child.permission))
-        .map(({ href, label }) => ({ href, label })),
-    }));
+    .flatMap((item) => {
+      const children = item.children
+        ?.filter((child) => (!child.permission || hasAdminPermission(role, child.permission)) && isAdminCapabilityPathAllowed(child.href, capabilityProfile))
+        .map(({ href, label }) => ({ href, label }));
+      if (isAdminCapabilityPathAllowed(item.href, capabilityProfile)) return [{ ...item, children }];
+      // Reviews remains available even while its dashboard parent is disabled.
+      return (children ?? []).map((child) => ({ ...child, permission: item.permission, children: undefined }));
+    });
   const identityLabel = session?.user?.email ?? session?.user?.name ?? "Admin";
 
   async function logout() {
@@ -91,7 +95,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
             <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">{currentEnvironmentLabel}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            {hasAdminPermission(role, "advisor:read") ? <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">ลูกค้า LINE</Link> : null}
+            {hasAdminPermission(role, "advisor:read") && isAdminCapabilityPathAllowed("/dashboard/inbox/", capabilityProfile) ? <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">ลูกค้า LINE</Link> : null}
             <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 px-3.5 py-2 text-xs font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">Sanity Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
             <div className="text-right">
               <div className="text-white/80">{identityLabel}</div>
@@ -110,7 +114,9 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
         <aside className="min-w-0 border-b border-white/10 px-4 py-4 lg:min-h-[calc(100vh-81px)] lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <AdminNavigation items={navItems} />
           <div className="mt-4 rounded-2xl border border-[#e0c985]/20 bg-[#e0c985]/[0.07] p-4 text-sm leading-6 text-white/70 lg:mt-6">
-            {environment === "production-admin" || environment === "local-production" ? (
+            {capabilityProfile === "editorial" && (environment === "production-admin" || environment === "local-production") ? (
+              <><strong className="font-medium text-[#f4df9b]">บทความและ SEO · ข้อมูลจริง:</strong> การแก้ฉบับร่างและการเผยแพร่ต้องให้ผู้มีสิทธิ์ตรวจและยืนยัน</>
+            ) : environment === "production-admin" || environment === "local-production" ? (
               <><strong className="font-medium text-[#f4df9b]">Production · ข้อมูลจริง:</strong> {environment === "local-production" ? "เปิดจาก Mac เครื่องนี้เท่านั้น และใช้ข้อมูลจริงตามสิทธิ์ที่กำหนด" : "การแก้ฉบับร่างและการอนุมัติต้องให้ผู้มีสิทธิ์เป็นคนยืนยัน"} ระบบจะส่งโพสต์ได้เฉพาะรายการที่ตรวจและอนุมัติแล้วเท่านั้น</>
             ) : (
               <><strong className="font-medium text-[#f4df9b]">UAT:</strong> ใช้ตรวจขั้นตอนก่อนนำขึ้นระบบจริง การส่งข้อมูลไปบริการภายนอกยังปิดไว้จนกว่าผู้มีสิทธิ์จะยืนยัน</>
