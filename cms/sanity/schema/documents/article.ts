@@ -143,7 +143,7 @@ export const article = defineType({
     prepare: ({ title, id, originalId, publishedAt, reviewStatus, media }) => {
       const draft = String(originalId ?? id ?? "").startsWith("drafts.");
       const publicationLabel = draft
-        ? publishedAt ? "เผยแพร่แล้ว · มีฉบับร่างแก้ไข" : "ฉบับร่างใหม่"
+        ? publishedAt ? "ฉบับร่างแก้ไข · รอเผยแพร่" : "ฉบับร่างใหม่"
         : publishedAt ? "เผยแพร่แล้ว · ฉบับ Live" : "ยังไม่เผยแพร่";
       const reviewLabel = reviewLabels[reviewStatus] || "ยังไม่ได้ระบุขั้นตรวจ";
       return { title: title?.trim() || "บทความใหม่", subtitle: `${publicationLabel} · ${reviewLabel}`, media };
