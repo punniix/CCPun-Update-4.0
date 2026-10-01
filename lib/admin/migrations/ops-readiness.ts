@@ -1,3 +1,4 @@
+import { createLinePrivateCrypto } from "../../line/private-crypto";
 import { getLineProviderActivationReadiness, readLineDocumentMediaHealth } from "../line/document-media";
 import { getLineMediaProviderReadiness } from "../line/media-provider";
 import { getLineSystemDeliveryProviderReadiness } from "../line/provider";
@@ -15,6 +16,8 @@ export function opsCapabilityMetadata(variables: Variables = process.env) {
   const delivery = getLineSystemDeliveryProviderReadiness(variables);
   const media = getLineMediaProviderReadiness(variables);
   const activeVersion = text(variables.CCPUN_LINE_ACTIVE_ENCRYPTION_KEY_VERSION);
+  let ingressCryptoReady = false;
+  try { createLinePrivateCrypto(variables); ingressCryptoReady = true; } catch { /* Ingress lookup requires the original HMAC; content-only crypto does not. */ }
   let webhookConfigured = false;
   try {
     const url = new URL(text(variables.CCPUN_N8N_EXPORT_WEBHOOK_URL));
@@ -32,6 +35,7 @@ export function opsCapabilityMetadata(variables: Variables = process.env) {
       aggregateVerified: false,
     },
     line: {
+      ingressCryptoReady,
       webhookSecretPresent: present(variables.LINE_CHANNEL_SECRET),
       channelTokenPresent: activation.channelTokenPresent,
       identityHmacV1Present: present(variables.CCPUN_LINE_IDENTITY_HMAC_KEY_V1),

@@ -8,7 +8,7 @@ const fs = require('node:fs'); // eslint-disable-line @typescript-eslint/no-requ
 const TARGET_SHA = 'bc76ef4f771311abe068a0c2df1e6ac1451826f2';
 const LOCK = '96a9011823170ed2953e12b300d6ec039df81de9b548f0848af370a5bb8783cf';
 const PROJECT = 'prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN';
-const CONSUMER_SHA = '58552593e60783f3dc9d45a29828ed6fdef5bde2e93ae360b32bef9f90c0a2ca';
+const CONSUMER_SHA = '2c85972322cf8c6b67c4d0d7f09537fab66f10121802452e9163ce3dfbee21ce';
 let consumer;
 const CAPABILITIES = Object.freeze(['cronAuth','socialWorker','agentCallbacks','exportCallbacks','googleSheetTrigger','lineCrypto','lineIngress','lineRichMenu','driveInteractive','localAiCrypto','localAiCallbacks']);
 const PRIVATE_DIR = '/private-ops-transfer';
@@ -79,6 +79,7 @@ function pack(values) {
   consumer.activation(values.activation);
   for(const [flag,group] of Object.entries(consumer.FLAG_GROUPS))if(values.activation[flag])demand(values.sections[group]);
   if(values.sections.lineIngress||values.sections.lineRichMenu)demand(values.sections.lineCrypto);
+  if(values.sections.lineIngress)demand(values.sections.lineCrypto.CCPUN_LINE_IDENTITY_HMAC_KEY_V1);
   return {schemaVersion:1,...consumer.FIXED,gitSha:TARGET_SHA,lockSha256:LOCK,sections:values.sections,activation:values.activation};
 }
 
