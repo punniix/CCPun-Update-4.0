@@ -43,3 +43,8 @@ export function migrationOwnerMetadata(request: Request, identity: Identity, var
   requireCondition(request.method === "GET");
   return ownerDeployment(request, identity, variables);
 }
+
+export function migrationOwnerPost(request: Request, identity: Identity, variables: Variables) {
+  requireCondition(request.method === "POST");
+  return ownerDeployment(request, identity, variables);
+}
