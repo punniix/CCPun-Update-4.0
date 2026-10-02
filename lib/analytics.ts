@@ -32,11 +32,11 @@ export const CCPUN_SITE_VERSION = '4.0';
 
 const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   site_version: new Set(['4.0']),
-  tool_name: new Set(['ci_planning', 'fhc']),
+  tool_name: new Set(['ci_planning', 'fhc', 'investment_allocation']),
   step_name: new Set(['risk_assessment', 'expenses', 'existing_ci', 'risk_handling']),
   contact_channel: new Set(['facebook_inbox', 'line']),
-  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article']),
-  surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog']),
+  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'investment_allocation_builder', 'investment_allocation_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article']),
+  surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'investment_allocation', 'blog']),
   calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
   utm_source: /^[a-z0-9][a-z0-9_-]{0,63}$/,
@@ -71,6 +71,7 @@ export function getCIPlanningPageVersion(): string {
 export function resolveEventMapping(eventName: string, params: SafeParams): { ga: string[]; meta: MetaMode; metaName?: string } {
   const ci = params.tool_name === 'ci_planning';
   const fhc = params.tool_name === 'fhc';
+  const investmentAllocation = params.tool_name === 'investment_allocation';
   if (eventName === 'cta_click' && params.contact_channel === 'line') return { ga: [], meta: 'none' };
   if (eventName === 'line_oa_click' && params.contact_channel === 'line') return { ga: ['line_oa_click'], meta: 'none' };
   if (eventName === 'ci_landing_view' && ci) return { ga: ['ci_landing_view'], meta: 'none' };
@@ -87,6 +88,11 @@ export function resolveEventMapping(eventName: string, params: SafeParams): { ga
   if ((eventName === 'fhc_calculator_complete' || eventName === 'fhc_complete' || eventName === 'tool_complete') && fhc) return { ga: ['fhc_complete'], meta: 'custom', metaName: 'CompleteFHC' };
   if (eventName === 'fhc_result_view' && fhc) return { ga: ['fhc_result_view'], meta: 'none' };
   if (eventName === 'fhc_contact_click' && fhc) return { ga: ['fhc_contact_click'], meta: 'standard', metaName: 'Contact' };
+  if (eventName === 'ia_tool_start' && investmentAllocation) return { ga: ['investment_allocation_start'], meta: 'none' };
+  if (eventName === 'ia_step_view' && investmentAllocation) return { ga: ['investment_allocation_step_view'], meta: 'none' };
+  if (eventName === 'ia_result_view' && investmentAllocation) return { ga: ['investment_allocation_result_view'], meta: 'none' };
+  if (eventName === 'ia_save_local' && investmentAllocation) return { ga: ['investment_allocation_save_local'], meta: 'none' };
+  if (eventName === 'ia_contact_click' && investmentAllocation) return { ga: ['investment_allocation_contact_click'], meta: 'none' };
   return { ga: [eventName], meta: 'none' };
 }
 

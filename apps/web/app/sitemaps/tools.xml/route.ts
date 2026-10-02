@@ -7,6 +7,7 @@ export function GET() {
     renderUrlSet([
       { loc: "https://ccpun.com/ci-planning/" },
       { loc: "https://ccpun.com/tools/financial-health-check/" },
+      { loc: "https://ccpun.com/tools/investment-allocation/" },
     ]),
   );
 }
