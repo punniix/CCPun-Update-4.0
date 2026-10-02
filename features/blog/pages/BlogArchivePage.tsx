@@ -8,6 +8,8 @@ import { listCategoryMenuEntries } from "@/lib/content/category-registry";
 import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";
 import { listBlogFeaturedArticleIds } from "@/lib/content/blog-featured-sanity";
 import { curateFeaturedArticles } from "@/lib/content/featured-articles";
+import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
+import { buildBlogArchiveSchema } from "@/lib/content/structured-data/article-schema";
 
 const BLOG_TITLE = "บทความการเงิน การลงทุน และการวางแผนอนาคต | CCPun";
 const BLOG_DESCRIPTION = "เคล็ดลับการเงิน การลงทุน ประกัน และการวางแผนอนาคตจาก CCPun Financial Advisor";
@@ -53,12 +55,16 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
   const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === "all" || article.category === legacyCategory)
     && (!legacyTag || legacyTag === "all" || article.tags?.includes(legacyTag)));
   const featuredArticles = manualFeaturedArticleIds === null ? [] : curateFeaturedArticles(articles, manualFeaturedArticleIds);
+  const schema = !includeDrafts ? buildBlogArchiveSchema(articles, { title: BLOG_TITLE, description: BLOG_DESCRIPTION }) : null;
 
-  return <Website43Blog
+  return <>
+    {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
+    <Website43Blog
     key={`all:${legacyCategory}:${legacyTag}`}
     articles={toWebsite43ArticleItems(visibleArticles)}
     featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
     initialQuery={query}
-    categories={categories}
-  />;
+      categories={categories}
+    />
+  </>;
 }
