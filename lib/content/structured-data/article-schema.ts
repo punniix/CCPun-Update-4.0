@@ -1,7 +1,7 @@
 import type { Article } from "../types";
 import type { BlogTopicHub } from "../taxonomy";
 import { getArticleSemanticTopic } from "../taxonomy";
-import { getArticleCanonical } from "../url";
+import { getArticleCanonical, isArticleCanonicalAligned } from "../url";
 import { CCPUN_PERSON_ID } from "@/lib/seo/structured-data/entity-ids";
 
 const SITE_URL = "https://ccpun.com";
@@ -68,6 +68,56 @@ export function buildArticleSchemaGraph(article: Article) {
         "@type": "Question",
         name: item.question,
         acceptedAnswer: { "@type": "Answer", text: item.answer },
+      })),
+    });
+  }
+
+  return { "@context": "https://schema.org", "@graph": graph };
+}
+
+
+export function buildBlogArchiveSchema(
+  articles: Article[],
+  copy: { title: string; description: string },
+) {
+  const blogUrl = `${SITE_URL}/blog/`;
+  const publishedArticles = articles.filter(
+    (article) => article.status === "published"
+      && article.noindex !== true
+      && isArticleCanonicalAligned(article),
+  );
+  const graph: Record<string, unknown>[] = [
+    {
+      "@type": "CollectionPage",
+      "@id": `${blogUrl}#collection`,
+      url: blogUrl,
+      name: copy.title,
+      headline: copy.title,
+      description: copy.description,
+      isPartOf: { "@id": `${SITE_URL}/#website` },
+      ...(publishedArticles.length ? { mainEntity: { "@id": `${blogUrl}#articles` } } : {}),
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${blogUrl}#breadcrumb`,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "หน้าแรก", item: `${SITE_URL}/` },
+        { "@type": "ListItem", position: 2, name: "บทความ", item: blogUrl },
+      ],
+    },
+  ];
+
+  if (publishedArticles.length) {
+    graph.push({
+      "@type": "ItemList",
+      "@id": `${blogUrl}#articles`,
+      name: "บทความ CCPun",
+      numberOfItems: publishedArticles.length,
+      itemListElement: publishedArticles.map((article, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: article.title,
+        url: getArticleCanonical(article),
       })),
     });
   }
