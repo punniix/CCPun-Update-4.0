@@ -56,6 +56,18 @@ export const BLOG_TOPIC_HUBS = [
     },
   },
   {
+    slug: "motor-insurance",
+    title: "ประกันรถยนต์",
+    seoTitle: "ประกันรถยนต์ | เลือกความคุ้มครองและวางแผนความเสี่ยง | CCPun",
+    description: "รวมบทความประกันรถยนต์ ตั้งแต่ประเภทความคุ้มครอง พ.ร.บ. การเลือกชั้นประกัน การเคลม และการเทียบความเสี่ยงที่พร้อมรับเอง",
+    eyebrow: "Motor Insurance",
+    intro: [
+      "ประกันรถยนต์ไม่ได้ต่างกันแค่ราคาเบี้ย แต่ต่างกันที่ความเสี่ยงส่วนไหนที่บริษัทรับไว้ และส่วนไหนที่เจ้าของรถยังต้องรับเองเมื่อเกิดเหตุ",
+      "หมวดนี้รวบรวมพื้นฐานตั้งแต่ประเภทประกัน ความคุ้มครองรถเราและบุคคลภายนอก ไปจนถึงเรื่องซ่อม เคลม ต่ออายุ และประเด็นที่ควรเทียบก่อนเลือกแผน",
+    ],
+    indexable: true,
+  },
+  {
     slug: "investment",
     title: "การลงทุน",
     seoTitle: "การลงทุน | วางแผนลงทุนตามเป้าหมาย | CCPun",
@@ -96,6 +108,7 @@ const LEGACY_CATEGORY_SLUG_BY_TITLE: Record<string, string> = {
   "ประกันสุขภาพ": "health-insurance",
   "การลงทุน": "investment",
   "ประกันโรคร้ายแรง": "critical-illness-insurance",
+  "ประกันรถยนต์": "motor-insurance",
 };
 
 const hubBySlug = new Map<string, BlogTopicHub>(BLOG_TOPIC_HUBS.map((hub) => [hub.slug, hub] as const));
@@ -119,6 +132,7 @@ const TOPIC_SLUG_BY_TAG: Record<string, BlogTopicSlug> = {
   "ประกันชีวิต": "life-insurance",
   "ประกันสุขภาพ": "health-insurance",
   "ประกันโรคร้ายแรง": "critical-illness-insurance",
+  "ประกันรถยนต์": "motor-insurance",
 };
 
 // Protected semantic identity is independent from editor metadata. Health Happy
