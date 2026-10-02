@@ -22,7 +22,7 @@ const blogData = await read('features/blog/website-43/blogData.ts');
 const sitemap = await read('app/sitemaps/blog.xml/route.ts');
 const webSitemap = await read('apps/web/app/sitemaps/blog.xml/route.ts');
 
-for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'investment']) {
+for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'motor-insurance', 'investment']) {
   assert.match(taxonomy, new RegExp(`slug: ["']${slug}["']`));
 }
 assert.match(taxonomy, /slug: "investment"[\s\S]*?indexable: false/);
@@ -32,6 +32,7 @@ assert.match(taxonomy, /"critical-illness-insurance": "critical-illness-insuranc
 assert.match(taxonomy, /"what-is-critical-illness-insurance": "critical-illness-insurance"/);
 assert.match(taxonomy, /"aia-vitality": "life-insurance"/);
 assert.match(taxonomy, /"critical-illness": "critical-illness-insurance"/);
+assert.match(taxonomy, /"ประกันรถยนต์": "motor-insurance"/);
 
 // Physical categories are no longer enumerated in taxonomy/presentation. Sanity
 // Category Registry owns public physical category activation and URL availability.
