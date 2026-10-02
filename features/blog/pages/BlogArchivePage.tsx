@@ -60,10 +60,10 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
   return <>
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
     <Website43Blog
-    key={`all:${legacyCategory}:${legacyTag}`}
-    articles={toWebsite43ArticleItems(visibleArticles)}
-    featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
-    initialQuery={query}
+      key={`all:${legacyCategory}:${legacyTag}`}
+      articles={toWebsite43ArticleItems(visibleArticles)}
+      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
+      initialQuery={query}
       categories={categories}
     />
   </>;
