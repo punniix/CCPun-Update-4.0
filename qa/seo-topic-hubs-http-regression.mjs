@@ -77,6 +77,16 @@ const hubCases = [
     ],
   },
   {
+    path: '/blog/motor-insurance/',
+    canonical: 'https://ccpun.com/blog/motor-insurance/',
+    index: true,
+    mustContain: [
+      '/blog/motor-insurance/car-insurance-types/',
+      '"@type":"CollectionPage"',
+      '"@type":"ItemList"',
+    ],
+  },
+  {
     path: '/blog/investment/',
     canonical: 'https://ccpun.com/blog/investment/',
     index: false,
@@ -102,6 +112,7 @@ const canonicalArticles = [
   ['/blog/health-insurance/aia-health-ci-hero-guide/', 'https://ccpun.com/blog/health-insurance/aia-health-ci-hero-guide/', '/blog/health-insurance/', 'ประกันสุขภาพ'],
   ['/blog/life-insurance/aia-vitality/', 'https://ccpun.com/blog/life-insurance/aia-vitality/', '/blog/life-insurance/', 'ประกันชีวิต'],
   ['/blog/personal-finance/financial-pyramid/', 'https://ccpun.com/blog/personal-finance/financial-pyramid/', '/blog/personal-finance/', 'การเงินส่วนบุคคล'],
+  ['/blog/motor-insurance/car-insurance-types/', 'https://ccpun.com/blog/motor-insurance/car-insurance-types/', '/blog/motor-insurance/', 'ประกันรถยนต์'],
 ];
 
 for (const [path, canonical, topicPath, articleSection] of canonicalArticles) {
@@ -173,6 +184,7 @@ for (const loc of [
   'https://ccpun.com/blog/life-insurance/',
   'https://ccpun.com/blog/health-insurance/',
   'https://ccpun.com/blog/critical-illness-insurance/',
+  'https://ccpun.com/blog/motor-insurance/',
   ...canonicalArticles.map(([, canonical]) => canonical),
   criticalCutoverLive ? criticalFinalCanonical : criticalOldCanonical,
 ]) {
