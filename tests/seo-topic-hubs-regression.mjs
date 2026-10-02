@@ -113,6 +113,9 @@ assert.match(schema, /item: sectionUrl/);
 assert.doesNotMatch(schema, /\/blog\/\?category=/);
 assert.match(schema, /"@type": "CollectionPage"/);
 assert.match(schema, /"@type": "ItemList"/);
+assert.match(schema, /export function buildBlogArchiveSchema/);
+assert.match(blogPage, /buildBlogArchiveSchema\(articles/);
+assert.match(blogPage, /serializeJsonLd\(schema\)/);
 
 // Sitemap reads the same physical registry, emits active physical categories
 // only when they own an indexable article, then dedupes semantic hub URLs.
