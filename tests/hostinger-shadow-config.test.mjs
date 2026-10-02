@@ -75,6 +75,15 @@ function runReadiness(extraEnv = {}) {
   });
 }
 
+test("Hostinger root build delegates to the Web workspace without changing non-Hostinger builds", () => {
+  const rootPackage = JSON.parse(read("package.json"));
+  const router = read("scripts/build-root.mjs");
+  assert.equal(rootPackage.scripts.build, "node scripts/build-root.mjs");
+  assert.match(router, /provider === "hostinger" && role === "web"/);
+  assert.match(router, /\["run", "build", "--workspace", "@ccpun\/web"\]/);
+  assert.match(router, /\? "next\.cmd" : "next"/);
+});
+
 test("Hostinger Web readiness accepts only the explicit live production identity", () => {
   const ok = runReadiness();
   assert.equal(ok.status, 0, ok.stderr || ok.stdout);
