@@ -176,6 +176,8 @@ const blog = await request('/blog/');
 assertStatus(blog.response.status, 200, '/blog/');
 assert.ok(!blog.text.includes('aria-label="หัวข้อบทความหลัก"'), '/blog/ must not render the removed topic-navigation section');
 assert.ok(!blog.text.includes('เลือกหัวข้อที่ต้องการอ่าน'), '/blog/ must not render the removed topic-navigation heading');
+assertContains(blog.text, '"@type":"CollectionPage"', '/blog/ JSON-LD');
+assertContains(blog.text, '"@type":"ItemList"', '/blog/ JSON-LD');
 
 const sitemap = await request('/sitemaps/blog.xml');
 assertStatus(sitemap.response.status, 200, '/sitemaps/blog.xml');
