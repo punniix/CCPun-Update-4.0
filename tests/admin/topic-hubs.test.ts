@@ -36,16 +36,18 @@ function source(relativePath: string) {
   return readFileSync(new URL(`../../${relativePath}`, import.meta.url), "utf8");
 }
 
-test("Phase 1 exposes five real topic hubs while investment remains non-indexable", () => {
+test("Phase 1 exposes six real topic hubs while investment remains non-indexable", () => {
   assert.deepEqual(BLOG_TOPIC_HUBS.map(({ slug }) => slug), [
     "personal-finance",
     "life-insurance",
     "health-insurance",
     "critical-illness-insurance",
+    "motor-insurance",
     "investment",
   ]);
   assert.equal(getBlogTopicHub("health-insurance")?.indexable, true);
   assert.equal(getBlogTopicHub("critical-illness-insurance")?.indexable, true);
+  assert.equal(getBlogTopicHub("motor-insurance")?.indexable, true);
   assert.equal(getBlogTopicHub("critical-illness"), null);
   assert.equal(getBlogTopicHub("investment")?.indexable, false);
   assert.equal(getBlogTopicHub("unknown"), null);
