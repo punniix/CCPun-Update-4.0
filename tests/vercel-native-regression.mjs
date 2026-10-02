@@ -5,7 +5,12 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 
 const packageJson = JSON.parse(read('package.json'));
 assert.equal(packageJson.version, '4.1.0');
-assert.equal(packageJson.scripts.build, 'next build');
+assert.equal(packageJson.scripts.build, 'node scripts/build-root.mjs');
+const rootBuild = read('scripts/build-root.mjs');
+assert.match(rootBuild, /provider === "hostinger" && role === "web"/);
+assert.match(rootBuild, /\["run", "build", "--workspace", "@ccpun\/web"\]/);
+assert.match(rootBuild, /\? "next\.cmd" : "next"/);
+assert.match(rootBuild, /const args = hostingerWeb[\s\S]*?: \["build"\]/);
 assert.equal(packageJson.scripts.start, 'next start');
 assert.match(packageJson.scripts['local:uat'], /CCPUN_APP_ENV=local-uat/);
 assert.match(packageJson.scripts['local:uat'], /NEXT_PUBLIC_SANITY_PROJECT_ID=ccb9lnw5/);
