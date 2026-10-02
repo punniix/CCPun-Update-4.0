@@ -65,7 +65,7 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
             alt=""
             width={1774}
             height={887}
-            sizes="(max-width: 639px) 100vw, 56vw"
+            sizes="(max-width: 639px) 100vw, 60vw"
             loading="eager"
             fetchPriority="high"
           />

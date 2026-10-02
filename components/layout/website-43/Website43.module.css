@@ -1190,10 +1190,14 @@
 /* Website 4.3 Blog hero responsive seam guard */
 .blogHeroImage {
   inset: 0 -1px 0 auto;
-  width: max(810px, 56vw);
+  width: max(860px, 60vw);
   height: 100%;
   object-fit: cover;
   object-position: center center;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.18) 5%, rgba(0,0,0,.62) 11%, #000 20%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.18) 5%, rgba(0,0,0,.62) 11%, #000 20%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 .blogHeroGradient {
   inset: 0;
@@ -1202,12 +1206,12 @@
   background: linear-gradient(
     90deg,
     rgba(14,10,10,1) 0%,
-    rgba(14,10,10,.995) 32%,
-    rgba(14,10,10,.96) 42%,
-    rgba(14,10,10,.82) 52%,
-    rgba(14,10,10,.52) 62%,
-    rgba(14,10,10,.20) 72%,
-    rgba(14,10,10,0) 84%
+    rgba(14,10,10,.998) 34%,
+    rgba(14,10,10,.97) 44%,
+    rgba(14,10,10,.86) 54%,
+    rgba(14,10,10,.60) 65%,
+    rgba(14,10,10,.28) 76%,
+    rgba(14,10,10,0) 90%
   );
 }
 
@@ -1243,6 +1247,8 @@
     width: 100%;
     height: 244px;
     object-position: center center;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   .blogHeroGradient {
     inset: 0;
