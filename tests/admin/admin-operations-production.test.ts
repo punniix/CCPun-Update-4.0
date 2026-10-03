@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import type { DeploymentReadModel } from "../../lib/admin/operations/deployment-read-model";
 import {
   ADMIN_OPERATIONS_PRODUCTION_MIGRATION_CHECKSUM,
   ADMIN_OPERATIONS_PRODUCTION_MIGRATION_VERSION,
@@ -94,4 +96,86 @@ test("owner-facing Admin surfaces health and explicit SEO re-audit", () => {
   assert.match(health, /Control Plane Operations/);
   assert.match(audit, /ฐานข้อมูล Control Plane/);
   assert.match(button, /ตรวจ SEO อีกครั้ง/);
+});
+
+const deploymentSha = "a".repeat(40);
+const githubRoot = "https://api.github.com/repos/punniix/CCPun-Update-4.0";
+const checkUrl = `${githubRoot}/commits/${deploymentSha}/check-runs?per_page=100`;
+const hostingerRelease = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat",
+  CCPUN_GIT_SHA: deploymentSha, CCPUN_GIT_REF: "v4-production", CCPUN_RELEASE_ID: "synthetic-uat-release",
+};
+
+function deploymentProbe(host: string, env: Record<string, string | undefined>, responses: Record<string, unknown> = {}) {
+  const script = `
+    const Module=require('node:module'); const load=Module._load;
+    Module._load=function(name,...args){if(name==='server-only')return {};return load.call(this,name,...args)};
+    const responses=${JSON.stringify(responses)}; const calls=[];
+    global.fetch=async(url)=>{
+      calls.push(url);
+      if(!Object.hasOwn(responses,url))throw Error('UNEXPECTED_NETWORK');
+      const data=responses[url]; const status=typeof data==='number'?data:200;
+      return {ok:status===200,status,async json(){return data}};
+    };
+    require('./lib/admin/operations/deployment-read-model.ts').readAdminDeployments(${JSON.stringify(host)},${JSON.stringify(env)})
+      .then(model=>process.stdout.write(JSON.stringify({model,calls}))).catch(()=>process.exit(1));
+  `;
+  const result = spawnSync(process.execPath, ["--import", "tsx", "-e", script], {
+    cwd: new URL("../../", import.meta.url), encoding: "utf8", env: { PATH: process.env.PATH, NODE_ENV: "test" },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout) as { model: DeploymentReadModel; calls: string[] };
+}
+
+const githubCheck = (change: Record<string, unknown> = {}) => ({
+  name: "verify", head_sha: deploymentSha, status: "completed", conclusion: "success",
+  completed_at: "2026-10-03T04:31:38Z", app: { slug: "github-actions" }, ...change,
+});
+
+test("Hostinger reads exact-SHA GitHub checks without treating CI or Vercel records as deployment proof", () => {
+  const { model, calls } = deploymentProbe("admin-test.ccpun.com", hostingerRelease, {
+    [checkUrl]: { check_runs: [githubCheck(), githubCheck({ head_sha: "b".repeat(40) }), githubCheck({ app: { slug: "vercel" } })] },
+  });
+  assert.deepEqual(calls, [checkUrl]);
+  assert.equal(model.provider, "hostinger"); assert.equal(model.environment, "admin-uat");
+  assert.equal(model.canonicalHost, "admin-test.ccpun.com"); assert.equal(model.canonicalHostMatched, true);
+  assert.equal(model.gitSha, deploymentSha); assert.equal(model.releaseId, "synthetic-uat-release");
+  assert.equal(model.runtimeIdentityValid, true); assert.equal(model.status, "partial");
+  assert.equal(model.vercelEnvironment, null); assert.equal(model.exactShaProduction, null);
+  assert.deepEqual(model.history, []); assert.equal(model.githubChecks.length, 1);
+  assert.equal(model.githubChecks[0].state, "success");
+  const production = deploymentProbe("admin.ccpun.com", { ...hostingerRelease, CCPUN_APP_ENV: "production-admin" }, { [checkUrl]: { check_runs: [] } });
+  assert.equal(production.model.canonicalHost, "admin.ccpun.com"); assert.equal(production.model.status, "partial");
+});
+
+test("Hostinger fails closed on invalid release identity and preserves incomplete or failed external checks", () => {
+  for (const changed of [
+    { CCPUN_DEPLOYMENT_ROLE: "web" }, { CCPUN_GIT_SHA: "invalid" }, { CCPUN_RELEASE_ID: undefined },
+    { VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" }, { NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40) },
+  ]) {
+    const { model, calls } = deploymentProbe("admin-test.ccpun.com", { ...hostingerRelease, ...changed });
+    assert.equal(model.status, "unavailable"); assert.deepEqual(calls, []);
+  }
+  const unavailable = deploymentProbe("admin-test.ccpun.com", hostingerRelease, { [checkUrl]: 403 });
+  assert.equal(unavailable.model.status, "partial"); assert.equal(unavailable.model.error, "github-403");
+  assert.deepEqual(unavailable.model.githubChecks, []);
+  const failed = deploymentProbe("admin-test.ccpun.com", hostingerRelease, { [checkUrl]: {
+    check_runs: [githubCheck({ conclusion: "failure" }), githubCheck({ name: "admin-shadow", status: "queued", conclusion: null, completed_at: null })],
+  } });
+  assert.equal(failed.model.status, "partial");
+  assert.deepEqual(failed.model.githubChecks.map((check) => check.state), ["failure", "queued"]);
+});
+
+test("Vercel migration fallback retains matching Production deployment evidence", () => {
+  const statusesUrl = `${githubRoot}/deployments/123/statuses`;
+  const { model, calls } = deploymentProbe("admin.ccpun.com", {
+    VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", VERCEL_ENV: "production",
+    VERCEL_GIT_COMMIT_SHA: deploymentSha, VERCEL_GIT_COMMIT_REF: "v4-production",
+  }, {
+    [`${githubRoot}/deployments?per_page=40`]: [{ id: 123, environment: "Production – ccpun-admin", sha: deploymentSha, ref: "v4-production", created_at: "2026-10-03T04:31:38Z", statuses_url: statusesUrl }],
+    [statusesUrl]: [{ state: "success", created_at: "2026-10-03T04:31:38Z" }],
+  });
+  assert.deepEqual(calls, [`${githubRoot}/deployments?per_page=40`, statusesUrl]);
+  assert.equal(model.provider, "vercel"); assert.equal(model.status, "ready");
+  assert.equal(model.exactShaProduction?.id, 123); assert.deepEqual(model.githubChecks, []);
 });

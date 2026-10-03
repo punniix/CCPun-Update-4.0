@@ -71,6 +71,27 @@ test("seal binds committed source, exact ref and root lock rather than declared 
   } finally { f.close(); }
 });
 
+test("source denial reports only fixed SHA, ref and dirty-tree reasons while preserving the gate", () => {
+  const f = fixture(); try {
+    assert.ok(validateNativeNeonBuild(f.admin, f.values));
+    assert.throws(() => validateNativeNeonBuild(f.admin, { ...f.values, CCPUN_GIT_SHA: "a".repeat(40) }),
+      { message: "NATIVE_NEON_UAT_BUILD_DENIED:SHA_MISMATCH" });
+    f.git("branch", "fixture-stale-ref");
+    put(join(f.root, "fixture-source.ts"), "// new committed source\n");
+    f.git("add", "fixture-source.ts"); f.git("commit", "-m", "Advance synthetic source");
+    f.git("checkout", "--detach");
+    const values = { ...f.values, CCPUN_GIT_SHA: f.git("rev-parse", "HEAD") };
+    for (const ref of ["fixture-stale-ref", "fixture-missing-ref"]) {
+      assert.throws(() => validateNativeNeonBuild(f.admin, { ...values, CCPUN_GIT_REF: ref }),
+        { message: "NATIVE_NEON_UAT_BUILD_DENIED:REF_RESOLUTION_MISMATCH" });
+    }
+    assert.ok(validateNativeNeonBuild(f.admin, values), "detached source with the exact real ref remains accepted");
+    put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"tampered":true}\n');
+    assert.throws(() => validateNativeNeonBuild(f.admin, values),
+      { message: "NATIVE_NEON_UAT_BUILD_DENIED:TRACKED_DIRTY" });
+  } finally { f.close(); }
+});
+
 test("native config omits Workflow for UAT and sealed manual Production while active or unsealed builds stay denied", async () => {
   const f = fixture(); try {
     // A fake SDK throws if loaded, independently detecting an accidental wrapper.

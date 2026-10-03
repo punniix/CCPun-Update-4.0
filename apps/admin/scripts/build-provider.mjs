@@ -32,7 +32,7 @@ export function validateNativeNeonBuild(root = adminRoot, variables = process.en
     || variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND === "disabled";
   if (!production && variables.CCPUN_ARTICLE_SCHEDULER_BACKEND !== "native-neon"
     && variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND !== "native-neon") return null;
-  const deny = () => { throw new Error(production ? "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED" : "NATIVE_NEON_UAT_BUILD_DENIED"); };
+  const deny = (reason = "") => { throw new Error(`${production ? "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED" : "NATIVE_NEON_UAT_BUILD_DENIED"}${reason ? `:${reason}` : ""}`); };
   const lane = production ? {
     environment: "production-admin", backend: "disabled", sanityProjectId: "kyfxgjnq", sanityDataset: "production",
     neonProjectId: "lively-bar-43618798", neonBranchId: "br-long-resonance-b3ys5xrv",
@@ -58,16 +58,19 @@ export function validateNativeNeonBuild(root = adminRoot, variables = process.en
     || variables.CCPUN_GIT_REF !== "v4-production" || variables.AUTH_URL !== "https://admin.ccpun.com"
     || variables.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "0" || variables.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0")) deny();
   const repository = resolve(root, "../..");
-  const git = (args) => {
+  const git = (args, failureReason = "") => {
     const result = run("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    if (result.error || result.status !== 0 || typeof result.stdout !== "string") deny();
+    if (result.error || result.status !== 0 || typeof result.stdout !== "string") deny(failureReason);
     return result.stdout.trim();
   };
   const sha = git(["rev-parse", "HEAD"]);
   const checkedOutRef = git(["rev-parse", "--abbrev-ref", "HEAD"]);
   if (variables.CCPUN_GIT_REF === "HEAD" || (checkedOutRef !== "HEAD" && checkedOutRef !== variables.CCPUN_GIT_REF)) deny();
-  if (sha !== variables.CCPUN_GIT_SHA || git(["rev-parse", "--verify", `${variables.CCPUN_GIT_REF}^{commit}`]) !== sha
-    || git(["status", "--porcelain", "--untracked-files=no"])) deny();
+  // Fixed reason codes distinguish source failures without logging Git output,
+  // environment values or changed paths. Every original predicate still denies.
+  if (sha !== variables.CCPUN_GIT_SHA) deny("SHA_MISMATCH");
+  if (git(["rev-parse", "--verify", `${variables.CCPUN_GIT_REF}^{commit}`], "REF_RESOLUTION_MISMATCH") !== sha) deny("REF_RESOLUTION_MISMATCH");
+  if (git(["status", "--porcelain", "--untracked-files=no"])) deny("TRACKED_DIRTY");
   // The new runtime must be committed as well: a clean tracked diff alone
   // cannot attest an untracked implementation left in the build workspace.
   git(["ls-files", "--error-unmatch", "package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs",
