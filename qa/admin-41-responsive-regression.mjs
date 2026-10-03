@@ -19,12 +19,25 @@ if (!preview) throw new Error("ADMIN_PREVIEW_URL is required");
 if (!["empty", "actionable"].includes(reviewExpectation)) {
   throw new Error("ADMIN_REVIEW_EXPECTATION must be empty or actionable");
 }
-const baseUrl = new URL(preview);
-if (baseUrl.protocol !== "https:" || !baseUrl.hostname.endsWith(".vercel.app")) {
-  throw new Error("ADMIN_PREVIEW_URL must be an HTTPS Vercel Preview");
+let baseUrl;
+try { baseUrl = new URL(preview); }
+catch { throw new Error("Invalid Admin UAT target; URL details redacted"); }
+const remote = baseUrl.protocol === "https:" && !baseUrl.port
+  && (baseUrl.hostname === "admin-test.ccpun.com" || baseUrl.hostname.endsWith(".vercel.app"));
+if (!remote
+  || baseUrl.username || baseUrl.password || baseUrl.search || baseUrl.hash || baseUrl.pathname !== "/") {
+  throw new Error("Admin QA requires a canonical UAT or HTTPS Preview target");
 }
-if (["ccpun-admin.vercel.app", "ccpun-admin-prod.vercel.app"].includes(baseUrl.hostname)) {
+if (process.env.VERCEL_ENV === "production"
+  || (process.env.CCPUN_UAT_MODE !== undefined && process.env.CCPUN_UAT_MODE !== "1")
+  || [process.env.CCPUN_APP_ENV, process.env.NEXT_PUBLIC_CCPUN_APP_ENV].some((value) => value?.includes("production"))
+  || baseUrl.hostname.includes("-git-v4-production-")
+  || ["ccpun-admin.vercel.app", "ccpun-admin-prod.vercel.app", "ccpun-admin-punniixs-projects.vercel.app"].includes(baseUrl.hostname)) {
   throw new Error("Production Admin is not a responsive QA target");
+}
+if (process.argv.includes("--check-target")) {
+  console.log("ADMIN_UAT_TARGET_OK");
+  process.exit(0);
 }
 
 class CDPClient {
