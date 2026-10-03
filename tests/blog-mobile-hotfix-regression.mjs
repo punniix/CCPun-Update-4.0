@@ -34,8 +34,8 @@ assert.match(
 );
 assert.match(
   website43Styles,
-  /\.blogHeroGradient\s*\{[\s\S]*?background:\s*\n\s*linear-gradient\(\s*\n\s*180deg,[\s\S]*?rgba\(37,24,24,1\) 22%[\s\S]*?\),\s*\n\s*linear-gradient\(\s*\n\s*90deg,/,
-  'Blog desktop hero must keep the top fade layered over the horizontal blend so the top-right photo edge cannot reappear',
+  /\.blogHeroGradient\s*\{[\s\S]*?background:\s*\n\s*linear-gradient\(\s*\n\s*180deg,[\s\S]*?rgba\(37,24,24,1\) 0%[\s\S]*?rgba\(37,24,24,\.88\) 8%[\s\S]*?rgba\(37,24,24,0\) 48%[\s\S]*?\),\s*\n\s*linear-gradient\(\s*\n\s*90deg,/,
+  'Blog desktop hero must keep a continuous top fade layered over the horizontal blend so the top-right photo edge cannot reappear',
 );
 assert.match(
   website43Styles,
