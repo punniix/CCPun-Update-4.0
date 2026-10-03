@@ -4,7 +4,55 @@ import { createClient } from '@sanity/client';
 import { LEGACY_ARTICLES as LEGACY_FIXTURES, mergeLegacyArticles } from '../lib/content/legacy.ts';
 
 const CDP_HTTP = 'http://127.0.0.1:9222';
-const BASE_URL = process.env.UAT_BASE_URL || 'http://localhost:3001';
+// Preflight every entry path before CDP, filesystem output or Sanity secret creation.
+function validateUatTarget() {
+  const parse = (value, origin) => {
+    try { return new URL(value, origin); }
+    catch { throw new Error('Invalid Blog UAT URL; details redacted'); }
+  };
+  const base = parse(process.env.UAT_BASE_URL || 'http://localhost:3001');
+  const local = ['localhost', '127.0.0.1'].includes(base.hostname);
+  const remote = base.protocol === 'https:' && !base.port
+    && (base.hostname === 'test.ccpun.com' || base.hostname.endsWith('.vercel.app'));
+  if (!(remote || (local && ['http:', 'https:'].includes(base.protocol)))
+    || base.username || base.password || base.search || base.hash || base.pathname !== '/') {
+    throw new Error('Blog QA requires a canonical UAT, local or HTTPS Preview target');
+  }
+  if (process.env.CCPUN_UAT_MODE !== '1' || process.env.VERCEL_ENV === 'production'
+    || [process.env.CCPUN_APP_ENV, process.env.NEXT_PUBLIC_CCPUN_APP_ENV]
+      .some((value) => value !== undefined && !['web-uat', 'local-uat'].includes(value))
+    || base.hostname.includes('-git-v4-production-')
+    || ['ccpun-web.vercel.app', 'ccpun.vercel.app', 'ccpun-web-punniixs-projects.vercel.app'].includes(base.hostname)) {
+    throw new Error('Production is not a Blog UAT QA target');
+  }
+  for (const [keys, expected] of [
+    [['SANITY_API_PROJECT_ID', 'NEXT_PUBLIC_SANITY_PROJECT_ID'], 'ccb9lnw5'],
+    [['SANITY_API_DATASET', 'NEXT_PUBLIC_SANITY_DATASET'], 'uat'],
+  ]) {
+    if (!keys.some((key) => process.env[key] === expected)
+      || keys.some((key) => process.env[key] !== undefined && process.env[key] !== expected)) {
+      throw new Error('Blog QA requires the exact isolated Sanity UAT lane');
+    }
+  }
+  if (process.env.BLOG_UAT_PREVIEW_URL) {
+    const supplied = parse(process.env.BLOG_UAT_PREVIEW_URL);
+    const redirect = supplied.searchParams.get('sanity-preview-pathname');
+    const destination = redirect ? parse(redirect, base) : base;
+    if (supplied.origin !== base.origin || supplied.username || supplied.password || supplied.hash
+      || !['/api/preview/enable', '/api/preview/enable/'].includes(supplied.pathname)
+      || new Set(supplied.searchParams.keys()).size !== [...supplied.searchParams].length
+      || !supplied.searchParams.get('sanity-preview-secret') || destination.origin !== base.origin
+      || destination.username || destination.password || destination.hash) {
+      throw new Error('Supplied Blog UAT preview URL is not valid for this target; details redacted');
+    }
+  }
+  return base.origin;
+}
+const BASE_URL = validateUatTarget();
+if (process.argv.includes('--check-target')) {
+  console.log('BLOG_UAT_TARGET_OK');
+  process.exit(0);
+}
 const OUTPUT_DIR = path.resolve('qa/blog-uat');
 const ARTICLE_PATH = '/blog/uat-article-system/';
 const VIEWPORTS = [
@@ -33,11 +81,6 @@ async function createSecurePreviewUrl() {
   const dataset = process.env.SANITY_API_DATASET || process.env.NEXT_PUBLIC_SANITY_DATASET;
   const token = process.env.SANITY_API_WRITE_TOKEN;
   if (!projectId || !dataset || !token) throw new Error('Sanity UAT env is required for secure Draft Mode QA');
-
-  const base = new URL(BASE_URL);
-  if (process.env.VERCEL_ENV === 'production' || !(base.hostname === 'localhost' || base.hostname === '127.0.0.1' || base.hostname.endsWith('.vercel.app'))) {
-    throw new Error(`Refusing Draft Mode QA outside localhost or Vercel Preview: ${base.hostname}`);
-  }
 
   // ponytail: use Sanity's installed secret generator; replace only if it gains a public package export.
   let secret;
@@ -252,7 +295,8 @@ try {
   }
   report.normalMode = { checks: normalChecks, state: normalState };
 
-  await navigate(client, await createSecurePreviewUrl());
+  try { await navigate(client, await createSecurePreviewUrl()); }
+  catch { throw new Error('Sanity secure preview navigation failed; request details redacted'); }
 
   for (const viewport of VIEWPORTS) {
     await setViewport(client, viewport);

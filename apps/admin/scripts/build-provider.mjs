@@ -25,16 +25,17 @@ export function installAdminMonorepoDependencies(root = adminRoot, run = spawnSy
   if (result.status !== 0) throw new Error(`Hostinger Admin monorepo dependency install failed (exit ${result.status ?? "unknown"}).`);
 }
 // No provider connection is created here. Production manual authoring is
-// compiled with scheduling disabled; this seal never claims live readiness.
+// compiled with publication execution disabled; this seal never claims live readiness.
 /** @param {string} root @param {Record<string, string | undefined>} variables */
-export function validateNativeNeonBuild(root = adminRoot, variables = process.env, run = spawnSync) {
-  const production = variables.CCPUN_ARTICLE_SCHEDULER_BACKEND === "disabled"
+export function validateNativeNeonSource(root = adminRoot, variables = process.env, run = spawnSync) {
+  if (![variables.CCPUN_ARTICLE_SCHEDULER_BACKEND, variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND]
+    .some((backend) => backend === "native-neon" || backend === "disabled")) return null;
+  const production = variables.CCPUN_APP_ENV === "production-admin"
+    || variables.CCPUN_ARTICLE_SCHEDULER_BACKEND === "disabled"
     || variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND === "disabled";
-  if (!production && variables.CCPUN_ARTICLE_SCHEDULER_BACKEND !== "native-neon"
-    && variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND !== "native-neon") return null;
   const deny = (reason = "") => { throw new Error(`${production ? "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED" : "NATIVE_NEON_UAT_BUILD_DENIED"}${reason ? `:${reason}` : ""}`); };
   const lane = production ? {
-    environment: "production-admin", backend: "disabled", sanityProjectId: "kyfxgjnq", sanityDataset: "production",
+    environment: "production-admin", backend: variables.CCPUN_ARTICLE_SCHEDULER_BACKEND === "native-neon" ? "native-neon" : "disabled", sanityProjectId: "kyfxgjnq", sanityDataset: "production",
     neonProjectId: "lively-bar-43618798", neonBranchId: "br-long-resonance-b3ys5xrv",
   } : {
     environment: "admin-uat", backend: "native-neon", sanityProjectId: "ccb9lnw5", sanityDataset: "uat",
@@ -48,15 +49,14 @@ export function validateNativeNeonBuild(root = adminRoot, variables = process.en
     || variables.CCPUN_NEON_BRANCH_ID !== lane.neonBranchId || variables.CCPUN_NEON_DATABASE !== "neondb"
     || (variables.NEXT_PUBLIC_CCPUN_APP_ENV !== undefined && variables.NEXT_PUBLIC_CCPUN_APP_ENV !== lane.environment)
     || variables.VERCEL_PROJECT_ID || variables.VERCEL_DEPLOYMENT_ID
-    || ![undefined, "0"].includes(variables.CCPUN_ARTICLE_SCHEDULING_ENABLED)
     || ![undefined, "0"].includes(variables.CCPUN_NATIVE_WORKFLOW_ENABLED)
     || !/^[a-f0-9]{40}$/.test(variables.CCPUN_GIT_SHA ?? "")
     || !/^[a-zA-Z0-9._/-]{1,128}$/.test(variables.CCPUN_GIT_REF ?? "")
     || !/^[a-zA-Z0-9._-]{1,128}$/.test(variables.CCPUN_RELEASE_ID ?? "")) deny();
   if (production && (variables.NEXT_PUBLIC_CCPUN_APP_ENV !== "production-admin"
-    || variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND !== "disabled"
+    || variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND !== lane.backend
     || variables.CCPUN_GIT_REF !== "v4-production" || variables.AUTH_URL !== "https://admin.ccpun.com"
-    || variables.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "0" || variables.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0")) deny();
+    || variables.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0")) deny();
   const repository = resolve(root, "../..");
   const git = (args, failureReason = "") => {
     const result = run("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -76,7 +76,7 @@ export function validateNativeNeonBuild(root = adminRoot, variables = process.en
   git(["ls-files", "--error-unmatch", "package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs",
     "apps/admin/instrumentation.ts", "lib/admin/article-schedule-clock.ts", "lib/admin/article-scheduling.ts",
     "lib/admin/operations/article-schedule-sql.ts", "lib/admin/operations/article-schedule-store.ts",
-    "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts"]);
+    "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts", "scripts/article-schedule-worker.ts"]);
   const publicValues = {
     NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
     NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "admin",
@@ -94,6 +94,22 @@ export function validateNativeNeonBuild(root = adminRoot, variables = process.en
     releaseId: variables.CCPUN_RELEASE_ID, lockSha256: createHash("sha256").update(readFileSync(resolve(repository, "package-lock.json"))).digest("hex"),
     sanityProjectId: lane.sanityProjectId, sanityDataset: lane.sanityDataset, neonProjectId: lane.neonProjectId,
     neonBranchId: lane.neonBranchId, neonDatabase: "neondb", productionReady: false, publicValues };
+}
+
+/** Build activation remains off; source provenance is reusable by the private worker.
+ * @param {string} root @param {Record<string, string | undefined>} variables */
+export function validateNativeNeonBuild(root = adminRoot, variables = process.env, run = spawnSync) {
+  const seal = validateNativeNeonSource(root, variables, run);
+  if (seal && (![undefined, "0", "1"].includes(variables.CCPUN_ARTICLE_SCHEDULING_ENABLED)
+    || variables.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED !== "0"
+    || variables.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0"
+    || ![undefined, "cloud"].includes(variables.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE)
+    || (seal.environment === "production-admin" && (variables.CCPUN_ARTICLE_SCHEDULING_ENABLED === undefined
+      || (seal.schedulerBackend === "disabled" && variables.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "0"))))) {
+    throw new Error(seal.environment === "production-admin" ? "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED" : "NATIVE_NEON_UAT_BUILD_DENIED");
+  }
+  return seal ? { ...seal, articleScheduleProducerEnabled: variables.CCPUN_ARTICLE_SCHEDULING_ENABLED === "1",
+    articleScheduleExecutorEnabled: false, executionPlane: "cloud" } : null;
 }
 
 export function sealNativeNeonRuntime(root, seal) {
@@ -161,7 +177,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const nativeSeal = validateNativeNeonBuild();
   if (hostinger && process.env.CCPUN_ADMIN_CAPABILITY_PROFILE?.trim().toLowerCase() !== "editorial" && !nativeSeal) throw new Error("Hostinger full Admin build requires a sealed native Admin lane.");
   if (hostinger) installAdminMonorepoDependencies();
-  const buildEnvironment = { ...process.env, ...(nativeSeal?.publicValues ?? {}), ...(nativeSeal ? { CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" } : {}) };
+  const buildEnvironment = { ...process.env, ...(nativeSeal?.publicValues ?? {}), ...(nativeSeal ? { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" } : {}) };
   const nextBin = resolve(adminRoot, "../../node_modules/next/dist/bin/next");
   const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
   if (result.error) throw result.error;

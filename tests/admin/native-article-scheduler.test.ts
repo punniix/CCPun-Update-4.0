@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { createNativeArticleScheduleClock, getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
+import { build } from "esbuild";
+import { createNativeArticleScheduleClock, getArticleScheduleBackend, isArticleScheduleExecutionEnabled } from "../../lib/admin/article-schedule-clock";
 import { SCHEDULER_LANES } from "../../lib/admin/operations/article-schedule-contract";
 import { ACK_NATIVE_ARTICLE_DISPATCH, READ_NATIVE_DUE_ARTICLE_SCHEDULES } from "../../lib/admin/operations/article-schedule-sql";
+import { ARTICLE_SCHEDULER_CHECKSUM, ARTICLE_SCHEDULER_MIGRATION } from "../../db/migrations/20260911_article_scheduling_v1";
 
 // Execute this synthetic suite on the authorized Hostinger lab, alongside the
 // unchanged article-schedule-executor suite. No ambient DB/CMS connection is
@@ -40,6 +46,51 @@ test("native registration requires sealed Hostinger full identity and the existi
   assert.equal(getArticleScheduleBackend({ ...values, CCPUN_ARTICLE_SCHEDULING_ENABLED: "0" }), "native-neon");
   assert.equal(getArticleScheduleBackend({ CCPUN_DEPLOYMENT_PROVIDER: "vercel" }), "workflow");
   assert.equal(getArticleScheduleBackend({ CCPUN_DEPLOYMENT_PROVIDER: "hostinger" }), "disabled");
+});
+
+test("native execution requires the explicit private VPS plane independently of Cloud producer activation", () => {
+  const producer = { ...variables(), CCPUN_ARTICLE_SCHEDULING_ENABLED: "1", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" };
+  assert.equal(getArticleScheduleBackend(producer), "native-neon");
+  assert.equal(isArticleScheduleExecutionEnabled(producer), false);
+  const worker = { ...producer, CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" };
+  assert.equal(isArticleScheduleExecutionEnabled(worker), true);
+  for (const change of [{ CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "cloud" }, { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0" },
+    { CCPUN_ARTICLE_SCHEDULING_ENABLED: "0" }, { NEXT_RUNTIME: "nodejs" }, { NEXT_PHASE: "phase-production-build" },
+    { CCPUN_NATIVE_WORKFLOW_ENABLED: undefined }, { CCPUN_GIT_SHA: "b".repeat(40) }, { CCPUN_NEON_BRANCH_ID: "wrong" }]) {
+    assert.equal(isArticleScheduleExecutionEnabled({ ...worker, ...change }), false);
+  }
+  assert.equal(isArticleScheduleExecutionEnabled({ CCPUN_DEPLOYMENT_PROVIDER: "vercel", CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" }), true);
+});
+
+test("Cloud store still prepares and cancels but does not query due, claim or authorize execution", async () => {
+  const root = mkdtempSync(join(tmpdir(), "ccpun-cloud-store-fixture-"));
+  try {
+    const lane = SCHEDULER_LANES.uat;
+    const identity = { database_name: "neondb", role_name: "ccpun_admin_runtime", lane: "uat", project_id: lane.projectId,
+      branch_id: lane.branchId, endpoint_id: lane.endpointId, sanity_project_id: lane.sanityProjectId, sanity_dataset: lane.dataset,
+      mode: lane.mode, enabled: true, migration_version: ARTICLE_SCHEDULER_MIGRATION, migration_checksum: ARTICLE_SCHEDULER_CHECKSUM };
+    const output = join(root, "store.mjs");
+    await build({ entryPoints: [fileURLToPath(new URL("../../lib/admin/operations/article-schedule-store.ts", import.meta.url))], outfile: output,
+      bundle: true, platform: "node", format: "esm", target: "node24",
+      plugins: [{ name: "synthetic-neon-only", setup(builder) {
+        builder.onResolve({ filter: /^server-only$/ }, () => ({ path: "server-only", namespace: "fixture" }));
+        builder.onResolve({ filter: /^@neondatabase\/serverless$/ }, () => ({ path: "neon", namespace: "fixture" }));
+        builder.onLoad({ filter: /.*/, namespace: "fixture" }, (args) => ({ contents: args.path === "server-only" ? "export {};"
+          : `export const neon=()=>({query:async(statement)=>{if(statement.includes('current_database()'))return[${JSON.stringify(identity)}];globalThis.fixtureQueries++;return[];}});`, loader: "js" }));
+      } }] });
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      import assert from 'node:assert/strict';
+      const {openArticleScheduleStore}=await import(process.argv[1]);globalThis.fixtureQueries=0;
+      const store=await openArticleScheduleStore();assert.equal(store.enabled,true);
+      assert.deepEqual(await store.listNativeDue(10),[]);assert.equal(await store.claim('fixture','generation','execution'),null);
+      assert.equal(await store.authorize({}),false);assert.equal(globalThis.fixtureQueries,0);
+      await store.prepare({});await store.cancel('fixture','generation',1,'owner');assert.equal(globalThis.fixtureQueries,2);
+      process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED='0';await store.cancel('fixture','generation',1,'owner');assert.equal(globalThis.fixtureQueries,3);
+      process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED='1';process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE='vps';process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED='1';
+      await store.claim('fixture','generation','execution');assert.equal(globalThis.fixtureQueries,4);
+      `, output], { env: { PATH: process.env.PATH, NODE_ENV: "test", ...variables(), CCPUN_ARTICLE_SCHEDULING_ENABLED: "1", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" }, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 test("production registration cannot use a feature ref, UAT data or a mismatched compiled release", () => {

@@ -81,7 +81,7 @@ test("native validator emits only fixed provider/role markers and rejects confli
       CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "production-admin",
       NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin", CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
       CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled", NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled",
-      CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0", AUTH_URL: "https://admin.ccpun.com",
+      CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0", AUTH_URL: "https://admin.ccpun.com",
       NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", NEXT_PUBLIC_SANITY_DATASET: "production",
       CCPUN_NEON_PROJECT_ID: "lively-bar-43618798", CCPUN_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv", CCPUN_NEON_DATABASE: "neondb",
       CCPUN_GIT_SHA: SHA, CCPUN_GIT_REF: "v4-production", CCPUN_RELEASE_ID: "native-admin-test",
