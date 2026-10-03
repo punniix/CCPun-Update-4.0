@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -18,7 +18,7 @@ const tracked = ["package-lock.json", "apps/admin/next.config.ts", "apps/admin/s
   "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts"];
 function put(path: string, value: string) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); }
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), "ccpun-native-build-fixture-"));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "ccpun-native-build-fixture-")));
   const git = (...args: string[]) => {
     const result = spawnSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
     assert.equal(result.status, 0, "fixture Git operation failed"); return result.stdout.trim();
@@ -151,7 +151,7 @@ test("native standalone seal permits internal workspace links and denies escapes
     const manifest = JSON.parse(readFileSync(join(runtime, "ccpun-native-admin-manifest.json"), "utf8"));
     assert.equal(manifest.gitSha, f.values.CCPUN_GIT_SHA); assert.equal(manifest.schedulerBackend, "native-neon");
     assert.equal(manifest.productionReady, false); assert.equal("publicValues" in manifest, false);
-    symlinkSync(f.root, join(runtime, "escape")); assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /LINK_DENIED/); rmSync(join(runtime, "escape"));
+    symlinkSync(f.root, join(runtime, "escape")); assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /LINK_DENIED/); unlinkSync(join(runtime, "escape"));
     put(join(runtime, ".env.fixture"), "SYNTHETIC_ONLY"); assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /INPUT_DENIED/); rmSync(join(runtime, ".env.fixture"));
     put(join(runtime, ".next/server/app-paths-manifest.json"), '{"/.well-known/workflow/v1/flow/route":"fake.js"}');
     assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /SDK_ROUTE_PRESENT/);
