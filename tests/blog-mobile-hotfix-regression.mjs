@@ -34,6 +34,11 @@ assert.match(
 );
 assert.match(
   website43Styles,
+  /\.blogHeroGradient\s*\{[\s\S]*?background:\s*\n\s*linear-gradient\(\s*\n\s*180deg,[\s\S]*?rgba\(37,24,24,1\) 22%[\s\S]*?\),\s*\n\s*linear-gradient\(\s*\n\s*90deg,/,
+  'Blog desktop hero must keep the top fade layered over the horizontal blend so the top-right photo edge cannot reappear',
+);
+assert.match(
+  website43Styles,
   /@media \(max-width: 639px\)[\s\S]*?\.blogHeroImage\s*\{[\s\S]*?-webkit-mask-image:\s*none;[\s\S]*?mask-image:\s*none;/,
   'Blog mobile hero must disable the desktop horizontal mask',
 );
