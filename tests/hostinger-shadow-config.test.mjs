@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -75,13 +75,38 @@ function runReadiness(extraEnv = {}) {
   });
 }
 
-test("Hostinger root build delegates to the Web workspace without changing non-Hostinger builds", () => {
+test("Hostinger root build routes both workspaces and preserves native builds and child failures", { skip: process.platform === "win32" }, () => {
   const rootPackage = JSON.parse(read("package.json"));
-  const router = read("scripts/build-root.mjs");
   assert.equal(rootPackage.scripts.build, "node scripts/build-root.mjs");
-  assert.match(router, /provider === "hostinger" && role === "web"/);
-  assert.match(router, /\["run", "build", "--workspace", "@ccpun\/web"\]/);
-  assert.match(router, /\? "next\.cmd" : "next"/);
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-root-build-"));
+  try {
+    mkdirSync(join(fixture, "scripts"));
+    writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    for (const command of ["npm", "next"]) {
+      const executable = join(fixture, command);
+      writeFileSync(executable, `#!${process.execPath}\nconsole.log(JSON.stringify({ command: ${JSON.stringify(command)}, args: process.argv.slice(2), cwd: process.cwd() })); process.exit(Number(process.env.FIXTURE_EXIT ?? 0));\n`);
+      chmodSync(executable, 0o755);
+    }
+    for (const [provider, role, command, args] of [
+      ["hostinger", "web", "npm", ["run", "build", "--workspace", "@ccpun/web"]],
+      [" HOSTINGER ", " ADMIN ", "npm", ["run", "build", "--workspace", "@ccpun/admin"]],
+      ["vercel", "admin", "next", ["build"]],
+      ["local", "web", "next", ["build"]],
+      ["", "", "next", ["build"]],
+      ["hostinger", "unknown", "next", ["build"]],
+    ]) {
+      for (const exitCode of [0, 7]) {
+        const result = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+          cwd: tmpdir(), encoding: "utf8",
+          env: { PATH: fixture, CCPUN_DEPLOYMENT_PROVIDER: provider, CCPUN_DEPLOYMENT_ROLE: role, FIXTURE_EXIT: String(exitCode) },
+        });
+        assert.equal(result.status, exitCode, result.stderr);
+        const invocation = JSON.parse(result.stdout.trim().split("\n").at(-1));
+        assert.deepEqual({ command: invocation.command, args: invocation.args }, { command, args });
+        assert.equal(invocation.cwd, realpathSync(fixture));
+      }
+    }
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
 test("Hostinger Web readiness accepts only the explicit live production identity", () => {
