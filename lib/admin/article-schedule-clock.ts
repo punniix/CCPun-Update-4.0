@@ -24,6 +24,20 @@ export function getArticleScheduleBackend(variables?: Variables): "workflow" | "
   return "native-neon";
 }
 
+export function isArticleScheduleExecutionEnabled(variables?: Variables): boolean {
+  const values = variables ?? process.env;
+  if (values.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "1") return false;
+  const backend = getArticleScheduleBackend(variables);
+  // Retain the existing SDK executor during the controlled consumer transfer.
+  if (backend === "workflow") return true;
+  return backend === "native-neon"
+    && values.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE === "vps"
+    && values.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED === "1"
+    && values.CCPUN_NATIVE_WORKFLOW_ENABLED === "0"
+    && !values.NEXT_RUNTIME
+    && values.NEXT_PHASE !== "phase-production-build";
+}
+
 type DueSchedule = { articleId: string; generation: string };
 type ClockDependencies = {
   enabled(): boolean;
@@ -68,12 +82,12 @@ let nativeClock: ReturnType<typeof createNativeArticleScheduleClock> | undefined
 let starting: Promise<typeof nativeClock> | undefined;
 export async function startNativeArticleScheduleClock() {
   if (getArticleScheduleBackend() !== "native-neon") throw new Error("NATIVE_SCHEDULE_BACKEND_DENIED");
-  if (process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "1") return undefined;
+  if (!isArticleScheduleExecutionEnabled()) return undefined;
   if (nativeClock) return nativeClock;
   return starting ??= (async () => {
     const scheduling = await import("./article-scheduling");
     nativeClock = createNativeArticleScheduleClock({
-      enabled: () => getArticleScheduleBackend() === "native-neon" && process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED === "1",
+      enabled: () => getArticleScheduleBackend() === "native-neon" && isArticleScheduleExecutionEnabled(),
       listDue: scheduling.listNativeDueArticleSchedules,
       execute: scheduling.runScheduledArticlePublication,
     });

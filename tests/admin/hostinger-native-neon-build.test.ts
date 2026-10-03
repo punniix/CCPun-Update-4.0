@@ -4,10 +4,12 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { build } from "esbuild";
-import { sealNativeNeonRuntime, validateNativeNeonBuild } from "../../apps/admin/scripts/build-provider.mjs";
+import { sealNativeNeonRuntime, validateNativeNeonBuild, validateNativeNeonSource } from "../../apps/admin/scripts/build-provider.mjs";
 import { getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
+import { startArticleScheduleWorker } from "../../scripts/article-schedule-worker";
 
 // Prepared for actual Hostinger execution. No application DB/CMS/provider is
 // contacted; fake Git/artifact/config fixtures belong only to this suite.
@@ -15,7 +17,7 @@ const source = (path: string) => readFileSync(new URL(`../../${path}`, import.me
 const tracked = ["package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs",
   "apps/admin/instrumentation.ts", "lib/admin/article-schedule-clock.ts", "lib/admin/article-scheduling.ts",
   "lib/admin/operations/article-schedule-sql.ts", "lib/admin/operations/article-schedule-store.ts",
-  "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts"];
+  "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts", "scripts/article-schedule-worker.ts"];
 function put(path: string, value: string) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); }
 function fixture() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "ccpun-native-build-fixture-")));
@@ -36,7 +38,7 @@ function fixture() {
     NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
     CCPUN_NEON_PROJECT_ID: "young-term-47483330", CCPUN_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8", CCPUN_NEON_DATABASE: "neondb",
     CCPUN_GIT_SHA: git("rev-parse", "HEAD"), CCPUN_GIT_REF: "fixture-native-neon", CCPUN_RELEASE_ID: "fixture-release",
-    CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
+    CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
   };
   return { root, admin: join(root, "apps/admin"), git, values, close: () => rmSync(root, { recursive: true, force: true }) };
 }
@@ -60,15 +62,49 @@ test("seal binds committed source, exact ref and root lock rather than declared 
       { CCPUN_NEON_PROJECT_ID: "wrong" }, { CCPUN_NEON_BRANCH_ID: "wrong" }, { CCPUN_NEON_DATABASE: "wrong" },
       { NEXT_PUBLIC_SANITY_DATASET: "production" }, { NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin" },
       { NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40) }, { NEXT_PUBLIC_CCPUN_RELEASE_ID: "spoofed" },
-      { NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" }, { CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" },
+      { NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" }, { CCPUN_ARTICLE_SCHEDULING_ENABLED: "invalid" },
       { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" }, { VERCEL_PROJECT_ID: "conflicting" },
-    ]) assert.throws(() => validateNativeNeonBuild(f.admin, { ...f.values, ...change }), /UAT_BUILD_DENIED/);
+      { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" }, { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: undefined },
+      { CCPUN_NATIVE_WORKFLOW_ENABLED: undefined }, { CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps" },
+    ]) assert.throws(() => validateNativeNeonBuild(f.admin, { ...f.values, ...change }),
+      change.CCPUN_APP_ENV === "production-admin" ? /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/ : /NATIVE_NEON_UAT_BUILD_DENIED/);
     put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"tampered":true}\n');
     assert.throws(() => validateNativeNeonBuild(f.admin, f.values), /UAT_BUILD_DENIED/);
     f.git("checkout", "--", "package-lock.json");
     f.git("rm", "--cached", "lib/admin/article-schedule-clock.ts"); f.git("commit", "-m", "Remove required tracked runtime");
     assert.throws(() => validateNativeNeonBuild(f.admin, { ...f.values, CCPUN_GIT_SHA: f.git("rev-parse", "HEAD") }), /UAT_BUILD_DENIED/);
   } finally { f.close(); }
+});
+
+test("Production native producer builds with both executors off and source validation keeps real Git gates", () => {
+  const f = fixture(); try {
+    f.git("branch", "v4-production"); f.git("checkout", "v4-production");
+    const values: Record<string, string | undefined> = { ...productionValues(f), CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+      NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0" };
+    const seal = validateNativeNeonBuild(f.admin, values);
+    assert.ok(seal); assert.equal(seal.environment, "production-admin"); assert.equal(seal.schedulerBackend, "native-neon");
+    assert.equal(seal.gitRef, "v4-production"); assert.equal(seal.productionReady, false);
+    const producer = validateNativeNeonBuild(f.admin, { ...values, CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" });
+    assert.equal(producer?.articleScheduleProducerEnabled, true); assert.equal(producer?.articleScheduleExecutorEnabled, false);
+    assert.equal(producer?.executionPlane, "cloud");
+    const worker = { ...values, ...seal.publicValues, CCPUN_ARTICLE_SCHEDULING_ENABLED: "1",
+      CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" };
+    assert.throws(() => validateNativeNeonBuild(f.admin, worker), /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+    assert.equal(validateNativeNeonSource(f.admin, worker)?.gitSha, values.CCPUN_GIT_SHA);
+    for (const change of [{ CCPUN_GIT_SHA: "b".repeat(40) }, { CCPUN_GIT_REF: "feature/incorrect" },
+      { NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5" }, { CCPUN_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8" },
+      { AUTH_URL: "https://admin-test.ccpun.com" }, { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" },
+      { NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled" }]) {
+      assert.throws(() => validateNativeNeonSource(f.admin, { ...worker, ...change }), /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+    }
+    put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"tampered":true}\n');
+    assert.throws(() => validateNativeNeonSource(f.admin, worker), { message: "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED:TRACKED_DIRTY" });
+  } finally { f.close(); }
+});
+
+test("editorial fallback without a native selector remains outside the full seal", () => {
+  assert.equal(validateNativeNeonBuild(undefined, { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_APP_ENV: "production-admin",
+    CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" }), null);
 });
 
 test("source denial reports only fixed SHA, ref and dirty-tree reasons while preserving the gate", () => {
@@ -113,10 +149,11 @@ test("native config omits Workflow for UAT and sealed manual Production while ac
     assert.equal(run(editorial).status, 0, "existing editorial wrapper omission remains intact");
     const legacy = run({ ...f.values, CCPUN_DEPLOYMENT_PROVIDER: "vercel", CCPUN_ARTICLE_SCHEDULER_BACKEND: undefined });
     assert.notEqual(legacy.status, 0); assert.match(legacy.stderr, /SDK_WRAPPER_WAS_LOADED/);
-    const active = run({ ...f.values, CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" });
+    assert.equal(run({ ...f.values, CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" }).status, 0, "Cloud producer must compile without SDK execution");
+    const active = run({ ...f.values, CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" });
     assert.notEqual(active.status, 0); assert.match(active.stderr, /NATIVE_NEON_UAT_BUILD_DENIED/);
     const production = run({ ...f.values, CCPUN_APP_ENV: "production-admin" });
-    assert.notEqual(production.status, 0); assert.match(production.stderr, /NATIVE_NEON_UAT_BUILD_DENIED/);
+    assert.notEqual(production.status, 0); assert.match(production.stderr, /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
     f.git("checkout", "-b", "v4-production");
     assert.equal(run(productionValues(f)).status, 0, "sealed manual Production must not load SDK or data clients");
     for (const change of [{ CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" }, { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" }, { AUTH_URL: "https://evil.example" }]) {
@@ -179,11 +216,42 @@ test("native standalone seal permits internal workspace links and denies escapes
   } finally { f.close(); }
 });
 
-// instrumentation native build branch returns before importing the clock/data
-// modules. Runtime/due-row/restart proof must be executed on Hostinger next.
-test("compiled native build seal and startup remain separate from execution activation", () => {
-  const instrumentation = source("apps/admin/instrumentation.ts");
-  assert.ok(instrumentation.indexOf('process.env.NEXT_PHASE === "phase-production-build"') < instrumentation.indexOf('import("../../lib/admin/article-schedule-clock")'));
-  assert.match(instrumentation, /NATIVE_SCHEDULE_BUILD_ACTIVATION_DENIED/);
-  assert.match(instrumentation, /CCPUN_ARTICLE_SCHEDULING_ENABLED/);
+test("Cloud startup accepts producer activation without a timer and rejects private executor activation", async () => {
+  const root = mkdtempSync(join(tmpdir(), "ccpun-cloud-clock-fixture-"));
+  try {
+    const entry = join(root, "instrumentation.mjs");
+    await build({ entryPoints: [fileURLToPath(new URL("../../apps/admin/instrumentation.ts", import.meta.url))], outfile: entry,
+      bundle: true, platform: "node", format: "esm", target: "node24" });
+    const run = (values: Record<string, string | undefined>) => spawnSync(process.execPath, ["--input-type=module", "-e",
+      'globalThis.setInterval=()=>{throw new Error("CLOUD_TIMER_STARTED")}; const {register}=await import(process.argv[1]); await register();', entry],
+      { env: { PATH: process.env.PATH, NODE_ENV: "test", NEXT_RUNTIME: "nodejs", CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+        CCPUN_NATIVE_WORKFLOW_ENABLED: "0", ...values }, encoding: "utf8" });
+    assert.equal(run({ CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" }).status, 0);
+    assert.equal(run({ CCPUN_ARTICLE_SCHEDULING_ENABLED: "1", NEXT_PHASE: "phase-production-build" }).status, 0);
+    for (const values of [{ CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" }, { CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps" },
+      { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "invalid" }]) {
+      assert.notEqual(run(values).status, 0);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("private runner validates actual source before starting and never starts for Cloud or bad source", async () => {
+  const f = fixture(); try {
+    const seal = validateNativeNeonBuild(f.admin, f.values); assert.ok(seal);
+    const worker = { ...f.values, ...seal.publicValues,
+      CCPUN_ADMIN_DATABASE_URL: "postgresql://ccpun_admin_runtime:FIXTURE_ONLY@ep-mute-frost-aztvz394.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+      CCPUN_ARTICLE_SCHEDULING_ENABLED: "1", CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" };
+    let starts = 0;
+    const dependencies = { validateSource: () => validateNativeNeonSource(f.admin, worker),
+      startClock: async () => { starts++; return { close: async () => {} }; } };
+    for (const change of [{ CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: undefined }, { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0" },
+      { NEXT_RUNTIME: "nodejs" }, { NEXT_PHASE: "phase-production-build" }, { CCPUN_NEON_BRANCH_ID: "wrong" }]) {
+      await assert.rejects(startArticleScheduleWorker({ ...worker, ...change }, dependencies), /WORKER_ACTIVATION_DENIED/);
+    }
+    assert.equal(starts, 0);
+    put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"tampered":true}\n');
+    await assert.rejects(startArticleScheduleWorker(worker, dependencies), /TRACKED_DIRTY/); assert.equal(starts, 0);
+    f.git("checkout", "--", "package-lock.json");
+    await startArticleScheduleWorker(worker, dependencies); assert.equal(starts, 1);
+  } finally { f.close(); }
 });

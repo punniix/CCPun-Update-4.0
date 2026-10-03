@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ARTICLE_SCHEDULER_CHECKSUM, ARTICLE_SCHEDULER_MIGRATION } from "../../../db/migrations/20260911_article_scheduling_v1";
 import { ArticleScheduleError, articleIdSchema, resolveArticleSchedulerLane, SCHEDULER_LANES, SCHEDULER_ROLE, scheduleRowSchema, type ArticleScheduleRow, type ScheduleStatus } from "./article-schedule-contract";
 import { ACK_ARTICLE_DISPATCH, ACK_NATIVE_ARTICLE_DISPATCH, READ_NATIVE_DUE_ARTICLE_SCHEDULES, AUTHORIZE_ARTICLE_EXECUTION, CANCEL_ARTICLE_SCHEDULE, CLAIM_ARTICLE_SCHEDULE, FAIL_ARTICLE_DISPATCH, FINISH_ARTICLE_SCHEDULE, PREPARE_ARTICLE_SCHEDULE } from "./article-schedule-sql";
+import { getArticleScheduleBackend, isArticleScheduleExecutionEnabled } from "../article-schedule-clock";
 
 export type ScheduleStore = {
   mode: "publish" | "validate-only";
@@ -61,7 +62,7 @@ export async function openArticleScheduleStore(): Promise<NativeScheduleStore> {
     acknowledge: (articleId,generation,runId) => one(ACK_ARTICLE_DISPATCH, [articleId,generation,runId]),
     registerNative: (articleId,generation) => one(ACK_NATIVE_ARTICLE_DISPATCH, [articleId,generation]),
     async listNativeDue(limit) {
-      if (!identity.enabled || process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "1") return [];
+      if (!identity.enabled || getArticleScheduleBackend() !== "native-neon" || !isArticleScheduleExecutionEnabled()) return [];
       const bounded = z.number().int().min(1).max(10).parse(limit);
       const rows = z.array(z.object({ article_id: articleIdSchema, generation: z.string().uuid() }).strict()).max(bounded)
         .parse(await query(READ_NATIVE_DUE_ARTICLE_SCHEDULES, [bounded]));
@@ -69,10 +70,12 @@ export async function openArticleScheduleStore(): Promise<NativeScheduleStore> {
     },
     async failDispatch(articleId,generation) { await one(FAIL_ARTICLE_DISPATCH, [articleId,generation]); },
     cancel: (articleId,generation,version,actor) => one(CANCEL_ARTICLE_SCHEDULE, [articleId,generation,version,actor]),
-    claim: (articleId,generation,executionId) => one(CLAIM_ARTICLE_SCHEDULE, [articleId,generation,executionId]),
+    claim: (articleId,generation,executionId) => isArticleScheduleExecutionEnabled()
+      ? one(CLAIM_ARTICLE_SCHEDULE, [articleId,generation,executionId]) : Promise.resolve(null),
     async authorize(row) {
+      if (!isArticleScheduleExecutionEnabled()) return false;
       const rows = z.array(z.object({ allowed: z.boolean() })).length(1).parse(await query(AUTHORIZE_ARTICLE_EXECUTION, [row.article_id,row.generation,row.execution_id]));
-      return rows[0].allowed && process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED === "1";
+      return rows[0].allowed && isArticleScheduleExecutionEnabled();
     },
     async finish(row,status,errorCode,transactionId) {
       const result = await one(FINISH_ARTICLE_SCHEDULE, [row.article_id,row.generation,row.execution_id,status,errorCode ?? null,transactionId ?? null]);
