@@ -129,3 +129,177 @@ test("published-only generation creates only a Draft and rejects revision and cr
   await assert.rejects(readOrCreate("versions.release.article-1", "published-rev"), /LINE_COPY_INVALID_REQUEST/);
   assert.doesNotMatch(read("cms/sanity/policy/article-editorial-status.tsx"), /props\.onChange|PatchEvent\.from/);
 });
+
+const uatBridgeEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
+  CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat",
+  NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
+  CCPUN_LOCAL_AI_N8N_TOKEN: "synthetic-uat-" + "u".repeat(50),
+  CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: "https://n8n.srv908107.hstgr.cloud/webhook/uat-line-copy",
+};
+const productionBridgeEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
+  CCPUN_APP_ENV: "production-admin", CCPUN_LOCAL_AI_N8N_TOKEN: "synthetic-production-" + "p".repeat(50),
+};
+
+async function loadBridge() {
+  const ts = await import("typescript");
+  const crypto = await import("node:crypto");
+  const compile = (source: string) => ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const identity: Record<string, unknown> = {};
+  new Function("exports", compile(read("lib/runtime/deployment-identity.ts")))(identity);
+  const bridge: Record<string, unknown> = {};
+  new Function("require", "exports", compile(read("lib/admin/local-ai/service-auth.ts")))((id: string) => {
+    if (id === "node:crypto") return crypto;
+    if (id === "../environment") return {
+      getAdminDeploymentIdentity: (env: Record<string, string | undefined>) =>
+        (identity.resolveDeploymentIdentity as (env: Record<string, string | undefined>, role: string) => unknown)(env, "admin"),
+    };
+    throw new Error("Unexpected bridge dependency " + id);
+  }, bridge);
+  return bridge as { resolveLineCopyN8nBridge: (env: Record<string, string | undefined>) => { lane: string; token?: string; webhookUrl?: URL } | null };
+}
+
+async function loadLineRoute(name: "generate" | "improve", env: Record<string, string | undefined>) {
+  const ts = await import("typescript");
+  const { z } = await import("zod");
+  const crypto = await import("node:crypto");
+  const bridge = await loadBridge();
+  const state = {
+    owner: true, origin: true, reads: 0, writes: 0,
+    draft: { revision: "draft-rev", title: "Article", body: "Draft body", category: "Health", slug: "article-1", lineTitle: "", lineDescription: "" },
+    calls: [] as { url: string; options: RequestInit }[],
+  };
+  const target = () => ({ draft: state.draft, published: { ...state.draft, revision: "published-rev", lineTitle: "Published title", lineDescription: "Published description" } });
+  const exports: { POST?: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response> } = {};
+  const compiled = ts.transpileModule(read(`apps/admin/app/api/admin/content/[id]/line-copy/${name}/route.ts`), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  new Function("require", "exports", "process", "fetch", compiled)((id: string) => {
+    if (id === "node:crypto") return crypto;
+    if (id === "zod") return { z };
+    if (id === "next/server") return { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } };
+    if (id === "@/lib/admin/auth-config") return { isSameOriginAdminMutation: () => state.origin };
+    if (id === "@/lib/admin/identity") return { getAdminIdentity: async () => state.owner ? { actorType: "human", role: "owner" } : null };
+    if (id === "@/lib/admin/rbac") return { hasAdminPermission: () => true };
+    if (id === "@/lib/admin/local-ai/service-auth") return bridge;
+    if (id === "@/lib/local-ai/contracts") return { lineCardTitleSchema: z.string().min(1), lineCardTextDescriptionSchema: z.string().min(1) };
+    if (id === "@/lib/admin/line/description-optimization") return {
+      readOrCreateArticleDraftLineCopy: async () => { state.reads++; return state.draft; },
+      readArticleLineCopyImprovementTarget: async () => { state.reads++; return target(); },
+      applyGeneratedLineCopyToDraft: async () => { state.writes++; return { status: "applied", revision: "next-rev", appliedFields: ["lineTitle", "lineDescription"] }; },
+      applyImprovedLineCopyToDraft: async () => { state.writes++; return { status: "applied", revision: "next-rev" }; },
+    };
+    throw new Error("Unexpected route dependency " + id);
+  }, exports, { env }, async (url: URL, options: RequestInit) => {
+    state.calls.push({ url: url.href, options });
+    return Response.json({ status: "generated", lineTitle: "Proposal title", lineDescription: "Proposal description" });
+  });
+  const invoke = (body: unknown) => exports.POST!(new Request("https://admin-test.ccpun.com/api/admin/content/article-1/line-copy/" + name, {
+    method: "POST", headers: { "Content-Type": "application/json", Origin: "https://admin-test.ccpun.com" }, body: JSON.stringify(body),
+  }), { params: Promise.resolve({ id: "article-1" }) });
+  return { state, invoke };
+}
+const generateInput = { sourceRevision: "published-rev", requestId: "11111111-1111-4111-8111-111111111111" };
+const proposeInput = { action: "propose", draftRevision: "draft-rev", publishedRevision: "published-rev", requestId: generateInput.requestId };
+const acceptInput = { action: "accept", draftRevision: "draft-rev", publishedRevision: "published-rev", lineTitle: "Proposal title", lineDescription: "Proposal description", proposalToken: "x".repeat(43) };
+
+test("UAT bridge requires a pure matching identity, Sanity lane and canonical explicit webhook", async () => {
+  const { resolveLineCopyN8nBridge: resolve } = await loadBridge();
+  assert.equal(resolve(uatBridgeEnv)?.webhookUrl?.href, uatBridgeEnv.CCPUN_LOCAL_AI_N8N_WEBHOOK_URL);
+  assert.equal(resolve({ ...uatBridgeEnv, NEXT_PUBLIC_CCPUN_APP_ENV: undefined })?.lane, "admin-uat");
+  for (const delta of [
+    { CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: undefined }, { CCPUN_LOCAL_AI_N8N_TOKEN: "short" },
+    { NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq" }, { NEXT_PUBLIC_SANITY_DATASET: "production" },
+    { NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin" }, { CCPUN_APP_ENV: "unknown" },
+    { NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "vercel" }, { NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "web" },
+    { CCPUN_DEPLOYMENT_ROLE: "web" }, { VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" },
+  ]) assert.equal(resolve({ ...uatBridgeEnv, ...delta }), null);
+  for (const url of [
+    "http://n8n.example/webhook/uat", "https://user:pass@n8n.example/webhook/uat",
+    "https://n8n.example/webhook/uat?x=1", "https://n8n.example/webhook/uat#x",
+    "https://n8n.example/webhook/uat?", "https://n8n.example/webhook/uat#",
+    "https://n8n.example/webhook/ccpun-line-card-generate", "https://n8n.example/webhook/CCPUN-LINE-CARD-GENERATE", "https://n8n.example/webhook/ccpun-line-card-generate/",
+    "https://n8n.example/webhook/%63cpun-line-card-generate", "https://n8n.example/webhook%2fccpun-line-card-generate",
+    "https://n8n.example/webhook/%2563cpun-line-card-generate", "https://n8n.example/webhook/uat/../ccpun-line-card-generate",
+    "https://n8n.example/webhook/uat/", "https://n8n.example/webhook/uat\\bad", "https://n8n.example:443/webhook/uat",
+  ]) assert.equal(resolve({ ...uatBridgeEnv, CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: url }), null, url);
+  const preview = { ...uatBridgeEnv, CCPUN_DEPLOYMENT_PROVIDER: "vercel", VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", VERCEL_ENV: "preview" };
+  assert.equal(resolve(preview)?.lane, "admin-uat");
+  assert.equal(resolve({ ...preview, VERCEL_ENV: "production" }), null);
+  assert.equal(resolve(productionBridgeEnv)?.lane, "production-admin");
+  assert.equal(resolve({}) , null);
+});
+
+test("blocked UAT Generate/Improve cannot read, create a Draft, apply or call n8n", async () => {
+  for (const delta of [
+    { CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: undefined }, { CCPUN_LOCAL_AI_N8N_TOKEN: undefined },
+    { CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: "https://n8n.srv908107.hstgr.cloud/webhook/ccpun-line-card-generate" },
+    { NEXT_PUBLIC_SANITY_DATASET: "production" }, { NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin" },
+    { CCPUN_APP_ENV: "unknown" }, { CCPUN_DEPLOYMENT_ROLE: "web" },
+    { NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "vercel" }, { NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "web" },
+    { CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: uatBridgeEnv.CCPUN_LOCAL_AI_N8N_WEBHOOK_URL + "?" },
+    { CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: uatBridgeEnv.CCPUN_LOCAL_AI_N8N_WEBHOOK_URL + "#" },
+  ]) {
+    for (const [name, body] of [["generate", generateInput], ["improve", proposeInput], ["improve", acceptInput]] as const) {
+      const route = await loadLineRoute(name, { ...uatBridgeEnv, ...delta });
+      assert.equal((await route.invoke(body)).status, 503);
+      assert.deepEqual([route.state.reads, route.state.writes, route.state.calls.length], [0, 0, 0]);
+    }
+  }
+});
+
+test("owner, origin and input rejection retain priority over unavailable bridge", async () => {
+  for (const name of ["generate", "improve"] as const) {
+    const route = await loadLineRoute(name, {});
+    route.state.owner = false;
+    assert.equal((await route.invoke({})).status, 403);
+    route.state.owner = true; route.state.origin = false;
+    assert.equal((await route.invoke({})).status, 403);
+    route.state.origin = true;
+    assert.equal((await route.invoke({})).status, 400);
+    assert.deepEqual([route.state.reads, route.state.writes, route.state.calls.length], [0, 0, 0]);
+  }
+});
+
+test("configured UAT uses only exact explicit URL/token, denies redirects and retains manual acceptance", async () => {
+  for (const name of ["generate", "improve"] as const) {
+    const route = await loadLineRoute(name, uatBridgeEnv);
+    const response = await route.invoke(name === "generate" ? generateInput : proposeInput);
+    assert.equal(response.status, 200);
+    const call = route.state.calls[0];
+    assert.equal(call.url, uatBridgeEnv.CCPUN_LOCAL_AI_N8N_WEBHOOK_URL);
+    assert.equal((call.options.headers as Record<string, string>).Authorization, "Bearer " + uatBridgeEnv.CCPUN_LOCAL_AI_N8N_TOKEN);
+    assert.equal(call.options.redirect, "error");
+    if (name === "improve") {
+      assert.equal(route.state.writes, 0);
+      assert.equal(JSON.parse(call.options.body as string).body, undefined);
+      const proposal = await response.json();
+      assert.equal((await route.invoke(acceptInput)).status, 400);
+      assert.equal(route.state.writes, 0);
+      assert.equal((await route.invoke({ ...acceptInput, proposalToken: proposal.proposalToken })).status, 200);
+      assert.equal(route.state.writes, 1);
+      assert.equal(route.state.calls.length, 1);
+    }
+  }
+});
+
+test("Production keeps legacy default/custom-base webhook, skipped generation and token-only HMAC acceptance", async () => {
+  for (const base of [undefined, "https://other-n8n.example/ignored-prefix/"]) {
+    for (const name of ["generate", "improve"] as const) {
+      const route = await loadLineRoute(name, { ...productionBridgeEnv, CCPUN_LOCAL_AI_N8N_BASE_URL: base });
+      const response = await route.invoke(name === "generate" ? generateInput : proposeInput);
+      assert.equal(response.status, 200);
+      assert.equal(route.state.calls[0].url, (base ? "https://other-n8n.example" : "https://n8n.srv908107.hstgr.cloud") + "/webhook/ccpun-line-card-generate");
+      assert.equal(route.state.calls[0].options.redirect, undefined);
+      if (name === "improve") {
+        const proposal = await response.json();
+        const accept = await loadLineRoute("improve", { ...productionBridgeEnv, CCPUN_LOCAL_AI_N8N_BASE_URL: "invalid" });
+        assert.equal((await accept.invoke({ ...acceptInput, proposalToken: proposal.proposalToken })).status, 200);
+        assert.deepEqual([accept.state.reads, accept.state.writes, accept.state.calls.length], [0, 1, 0]);
+      }
+    }
+  }
+  const skipped = await loadLineRoute("generate", { ...productionBridgeEnv, CCPUN_LOCAL_AI_N8N_TOKEN: undefined });
+  skipped.state.draft.lineTitle = "Existing"; skipped.state.draft.lineDescription = "Existing description";
+  assert.equal((await (await skipped.invoke(generateInput)).json()).status, "skipped-existing");
+  assert.deepEqual([skipped.state.reads, skipped.state.writes, skipped.state.calls.length], [1, 0, 0]);
+});
