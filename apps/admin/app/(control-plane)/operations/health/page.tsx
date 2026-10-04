@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../../../../../lib/runtime/hostinger-production-release.mjs";
 import type { Metadata } from "next";
 import { LineProviderActivationActions } from "@/features/admin/line/LineProviderActivationActions";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
@@ -102,7 +103,7 @@ export default async function AdminHealthPage() {
   const gitSha = deployment.gitSha?.slice(0, 12) ?? "—";
   const productionRuntime = process.env.CCPUN_APP_ENV === "production-admin";
   const deploymentState: HealthState = productionRuntime
-    ? deployment.valid && deploymentEnvironment === "production-admin" && gitBranch === "v4-production" ? "ok" : "warning"
+    ? deployment.valid && deploymentEnvironment === "production-admin" && (gitBranch === "v4-production" || isPinnedCloudProductionRelease(process.env)) ? "ok" : "warning"
     : deployment.valid && deploymentEnvironment === "admin-uat" ? "ok" : "warning";
   const operationsState: HealthState = operations.identityValid ? "ok" : operations.configured ? "warning" : "off";
   const sanityState: HealthState = sanity.readReady ? (sanity.writeReady ? "ok" : "warning") : "warning";

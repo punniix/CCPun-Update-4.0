@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../runtime/hostinger-production-release.mjs";
 import "server-only";
 
 import { z } from "zod";
@@ -136,7 +137,7 @@ export async function readRuntimeHealth(): Promise<GrowthSourceResult> {
     || !deployment.gitSha || !/^[a-f0-9]{40}$/i.test(deployment.gitSha)
     || !deployment.gitRef
     || !isAdminReadDataPlaneAllowed(process.env.NEXT_PUBLIC_SANITY_DATASET?.trim())
-    || (deployment.environment === "production-admin" && deployment.gitRef !== "v4-production")) {
+    || (deployment.environment === "production-admin" && (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease(process.env)))) {
     return { source: "runtime", state: "unavailable", metrics: [], limitation: "ยังยืนยันเวอร์ชันและสภาพแวดล้อมของศูนย์จัดการบน Hostinger ไม่ได้" };
   }
   return { source: "runtime", state: "partial", fetchedAt: new Date().toISOString(), metrics: [

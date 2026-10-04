@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import { z } from "zod";
 import { isAdminDataPlaneAllowed, type AdminEnvironment } from "../environment";
 import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
@@ -26,7 +27,7 @@ export function resolveArticleSchedulerLane(variables: Record<string, string | u
 
   const deployment = resolveDeploymentIdentity(variables, "admin");
   if (!deployment.valid || deployment.environment !== environment) return null;
-  if (environment === "production-admin" && (deployment.provider === "local" || deployment.gitRef !== "v4-production")) return null;
+  if (environment === "production-admin" && (deployment.provider === "local" || (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease(variables)))) return null;
   if (deployment.provider === "vercel") {
     if (environment === "production-admin" && variables.VERCEL_ENV !== "production") return null;
     if (environment === "admin-uat" && variables.VERCEL_ENV !== "preview") return null;
