@@ -32,6 +32,11 @@ const SECURITY_HEADERS = buildNextSecurityHeaders({
   sanityProjectId: SANITY_PROJECT_ID ?? "",
   appEnvironment: ADMIN_ENVIRONMENT,
 });
+const STUDIO_SECURITY_HEADERS = SECURITY_HEADERS
+  .filter(({ key }) => key !== "X-Frame-Options")
+  .map(({ key, value }) => key === "Content-Security-Policy"
+    ? { key, value: value.replace("frame-ancestors 'self'", "frame-ancestors 'self' https://www.sanity.io") }
+    : { key, value });
 const LOCAL_DIST_DIR = ADMIN_ENVIRONMENT === "local-uat"
   ? ".ccpun-local/next-uat"
   : ADMIN_ENVIRONMENT === "local-production"
@@ -114,8 +119,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:path*",
+        source: "/:path((?!studio(?:/|$)).*)",
         headers: [...SECURITY_HEADERS, ...PRIVATE_SURFACE_ROBOTS_HEADERS],
+      },
+      {
+        source: "/studio/:path*",
+        headers: [
+          ...STUDIO_SECURITY_HEADERS,
+          ...PRIVATE_SURFACE_ROBOTS_HEADERS,
+          { key: "Cache-Control", value: "private, no-cache, no-store, max-age=0, must-revalidate" },
+        ],
       },
       {
         source: "/blog/:path*",

@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { metadata as studioMetadata, viewport } from "next-sanity/studio";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { getAdminEnvironment, isStudioDataPlaneAllowed } from "@/lib/admin/environment";
-import { requireAdminPermission } from "@/lib/admin/require-permission";
 import StudioClient from "./studio-client";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +12,6 @@ export const metadata = {
 export { viewport };
 
 export default async function StudioPage() {
-  await requireAdminPermission("draft:apply");
   const environment = getAdminEnvironment();
   const projectId = process.env.SANITY_STUDIO_PROJECT_ID ?? process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset = process.env.SANITY_STUDIO_DATASET ?? process.env.NEXT_PUBLIC_SANITY_DATASET;

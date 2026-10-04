@@ -158,6 +158,14 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
       return NextResponse.next({ status: 404 });
     }
 
+    // Sanity Dashboard embeds the deployed Studio cross-site. The Studio shell
+    // therefore cannot depend on the CCPun Auth.js cookie (which is intentionally
+    // same-site). Content access and mutations remain protected by Sanity's own
+    // Google/project membership auth plus the environment/data-plane guard.
+    if (isDeployedAdmin && isStudioPage && ["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+      return NextResponse.next();
+    }
+
     if (isDedicatedAdmin) {
       const disposition = classifyProductionAdminPath(pathname);
       if (disposition === "entry") {

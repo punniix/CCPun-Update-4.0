@@ -104,12 +104,13 @@ assert.doesNotMatch(ownerPreviewRoute, /searchParams\.get\(["'](?:redirect|url|p
 const studioPage = read('app/studio/[[...tool]]/page.tsx');
 assert.match(studioPage, /IS_REVIEW_ENVIRONMENT/);
 assert.match(studioPage, /StudioClient/);
-assert.match(studioPage, /requireAdminPermission\("draft:apply"\)/);
+assert.doesNotMatch(studioPage, /requireAdminPermission\("draft:apply"\)/);
 const studioClient = read('app/studio/[[...tool]]/studio-client.tsx');
 assert.match(studioClient, /import \{ Studio \} from "sanity"/);
 assert.match(studioClient, /<Studio config=\{sanityStudioConfig\}/);
 
 const proxy = read('proxy.ts');
+assert.match(proxy, /Sanity Dashboard embeds the deployed Studio cross-site/);
 assert.match(proxy, /["']\/studio\/:path\*["']/);
 assert.match(proxy, /["']\/api\/preview\/:path\*["']/);
 assert.match(proxy, /isStudioPage/);
@@ -384,10 +385,12 @@ assert.match(robotsRoute, /disallow: "\/"/);
 
 assert.match(nextConfig, /X-Robots-Tag/);
 assert.match(nextConfig, /noindex, nofollow, noarchive/);
-assert.match(nextConfig, /source:\s*["']\/:path\*["'],\s*headers:\s*\[\.\.\.SECURITY_HEADERS, \.\.\.REVIEW_HEADERS\]/);
+assert.match(nextConfig, /source:\s*["']\/:path\(\(\?!studio/);
+assert.match(nextConfig, /STUDIO_SECURITY_HEADERS/);
+assert.match(nextConfig, /frame-ancestors 'self' https:\/\/www\.sanity\.io/);
 assert.match(nextConfig, /source:\s*["']\/snt-admin\/:path\*["'],\s*headers:\s*PRIVATE_SURFACE_ROBOTS_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/api\/admin\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
-assert.match(nextConfig, /source:\s*["']\/studio\/:path\*["'],\s*headers:\s*PRIVATE_SURFACE_ROBOTS_HEADERS/);
+assert.match(nextConfig, /source:\s*["']\/studio\/:path\*["'][\s\S]*STUDIO_SECURITY_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/api\/snt-admin\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/api\/preview\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
 assert.match(nextConfig, /Cache-Control["'], value: ["']private, no-cache, no-store, max-age=0, must-revalidate/);
