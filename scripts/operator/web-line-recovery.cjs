@@ -3,7 +3,9 @@
 // An explicit mode is an application guard, NOT owner/provider/security approval.
 // Original public capsule SHA256: 3b49c79ea955ba5ba20cd9412e3559091f0ab12ae4e472da2f8de24b1da0d9ca.
 // No deployment, outbound HTTP, provider calls, package imports, or Cloud writes.
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Native standalone CommonJS operator, without a package loader.
 const crypto = require('node:crypto');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Native standalone CommonJS operator, without a package loader.
 const fs = require('node:fs');
 const PROJECT = 'prj_dxwjITkd0av5QiJQv2snUlIASUWu';
 const TEAM = 'team_GbcO71LS2dLHwiBV6Cs39Kax';

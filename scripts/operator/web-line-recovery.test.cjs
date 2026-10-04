@@ -1,10 +1,15 @@
 'use strict';
 // Original 36 synthetic checks plus seven necessary recovery guard checks.
 // Synthetic fixtures only. No live env, auth, HTTP, DB, files/claims or deployment.
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Standalone Node synthetic check for the CommonJS operator.
 const assert=require('node:assert/strict');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Standalone Node synthetic check for the CommonJS operator.
 const crypto=require('node:crypto');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Standalone Node synthetic check for the CommonJS operator.
 const fs=require('node:fs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Standalone Node synthetic check for the CommonJS operator.
 const {Readable}=require('node:stream');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Standalone Node synthetic check for the CommonJS operator.
 const api=require('./web-line-recovery.cjs');
 const now=1900000000000;
 const pair=crypto.generateKeyPairSync('rsa',{modulusLength:3072});
