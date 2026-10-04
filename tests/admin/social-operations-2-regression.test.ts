@@ -40,31 +40,36 @@ test("reschedule and cancel mutate only the latest publication job with CAS", ()
   const service = read("lib/admin/social/operations-service.ts");
   const latestJobJoin = /JOIN LATERAL \(\s*SELECT \* FROM ccpun_social\.social_publication_job\s*WHERE publication_id=publication\.id ORDER BY created_at DESC,id DESC LIMIT 1(?: FOR UPDATE)?\s*\) AS job ON true/g;
   const matches = service.match(latestJobJoin) ?? [];
-  assert.ok(matches.length >= 4, `expected latest-job selection for reads + both mutations, got ${matches.length}`);
-  assert.ok((service.match(/LIMIT 1 FOR UPDATE/g) ?? []).length >= 2, "both amendment mutations must row-lock the latest job");
-  assert.ok((service.match(/FOR UPDATE OF publication/g) ?? []).length >= 2, "both amendment mutations must lock publication state");
+  assert.ok(matches.length >= 2, `expected latest-job selection for operational reads + shared mutation, got ${matches.length}`);
+  assert.match(service, /LIMIT 1 FOR UPDATE/, "shared amendment statement row-locks latest job");
+  assert.match(service, /locked_publication AS MATERIALIZED[\s\S]*?FOR UPDATE/, "publication fence precedes latest-job selection");
   assert.match(service, /job\.version=\$2/);
   assert.match(service, /version=version\+1/);
-  assert.match(service, /ON CONFLICT DO NOTHING RETURNING 1/);
+  assert.match(service, /FROM amended_job RETURNING 1/);
+  assert.doesNotMatch(service, /ON CONFLICT|SELECT id AS audit_id/);
+  assert.match(service, /mutatePublication\("reschedule"/);
+  assert.match(service, /mutatePublication\("cancel"/);
   assert.match(service, /SOCIAL_OPERATION_CAS_CONFLICT/);
 });
 
 test("Social audit writes use INSERT-only privileges and preserve consumed CTE results", () => {
   for (const [file, count, consumed] of [
     ["execution-store.ts", 6, false],
-    ["operations-service.ts", 2, true],
+    ["operations-service.ts", 1, true],
     ["publishing-store.ts", 2, false],
   ] as const) {
     const source = read(`lib/admin/social/${file}`);
-    const inserts = source.match(/INSERT INTO ccpun_social\.social_execution_audit[\s\S]*?ON CONFLICT(?: \([^)]+\))? DO NOTHING(?: RETURNING [^\n`]+)?/g) ?? [];
+    const inserts = source.match(consumed
+      ? /INSERT INTO ccpun_social\.social_execution_audit[\s\S]*?FROM amended_job RETURNING 1/g
+      : /INSERT INTO ccpun_social\.social_execution_audit[\s\S]*?ON CONFLICT(?: \([^)]+\))? DO NOTHING(?: RETURNING [^\n`]+)?/g) ?? [];
     assert.equal(inserts.length, count, `${file}: audit write coverage`);
     for (const sql of inserts) {
       assert.match(sql, /\(id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome\)/);
       assert.doesNotMatch(sql, /ON CONFLICT \(/);
-      if (consumed) assert.match(sql, /ON CONFLICT DO NOTHING RETURNING 1$/);
+      if (consumed) { assert.match(sql, /FROM amended_job RETURNING 1$/); assert.doesNotMatch(sql, /ON CONFLICT/); }
       else assert.doesNotMatch(sql, /RETURNING/);
     }
-    if (consumed) assert.equal((source.match(/WHERE EXISTS \(SELECT 1 FROM audit\)/g) ?? []).length, 2);
+    if (consumed) assert.match(source, /FROM amended_job CROSS JOIN audit/);
   }
 });
 
