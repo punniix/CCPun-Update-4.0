@@ -227,7 +227,7 @@ async function claimExecution(sql: SqlLike, input: {
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $7,'human',$8,'publication:execute','publication',$1,$9,'allowed'
-       FROM claimed_publication ON CONFLICT (id) DO NOTHING RETURNING id
+       FROM claimed_publication ON CONFLICT DO NOTHING
      )
      SELECT job_id,version,attempt_count,max_attempts,lock_owner,lock_expires_at
      FROM claimed_job WHERE EXISTS (SELECT 1 FROM claimed_publication)`,
@@ -255,7 +255,7 @@ async function checkpointMainPost(sql: SqlLike, input: {
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $6,'human',$7,'publication:checkpoint','publication',$1,$8,'succeeded'
-       FROM checkpointed ON CONFLICT (id) DO NOTHING RETURNING id
+       FROM checkpointed ON CONFLICT DO NOTHING
      )
      SELECT publication_id FROM checkpointed`,
     [input.publicationId, input.jobId, input.claimedVersion, input.workerId, input.platformObjectId,
@@ -301,7 +301,7 @@ async function checkpointComment(sql: SqlLike, input: {
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $7,'human',$8,'comment:publish','comment',$5,$9,'succeeded'
-       FROM checkpointed ON CONFLICT (id) DO NOTHING RETURNING id
+       FROM checkpointed ON CONFLICT DO NOTHING
      )
      SELECT comment_id FROM checkpointed`,
     [input.publicationId, input.jobId, input.claimedVersion, input.workerId, input.commentId,
@@ -340,7 +340,7 @@ async function finishExecution(sql: SqlLike, input: {
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $8,'human',$9,'publication:execute','publication',$1,$10,'succeeded'
-       FROM completed_publication ON CONFLICT (id) DO NOTHING RETURNING id
+       FROM completed_publication ON CONFLICT DO NOTHING
      )
      SELECT publication_id FROM completed_publication`,
     [input.publicationId, input.jobId, input.claimedVersion, input.workerId, input.status,
@@ -371,7 +371,7 @@ async function failExecution(sql: SqlLike, input: {
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $7,'human',$8,'publication:execute','publication',$1,$9,'failed'
-       FROM failed_publication ON CONFLICT (id) DO NOTHING RETURNING id
+       FROM failed_publication ON CONFLICT DO NOTHING
      )
      SELECT publication_id FROM failed_publication`,
     [input.publicationId, input.jobId, input.claimedVersion, input.workerId, input.category, input.requestId,
@@ -385,7 +385,7 @@ async function recordDenied(sql: SqlLike, publicationId: string, actorRef: strin
      INSERT INTO ccpun_social.social_execution_audit
        (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
      VALUES ($1,'human',$2,'publication:execute','publication',$3,$4,'denied')
-     ON CONFLICT (id) DO NOTHING`,
+     ON CONFLICT DO NOTHING`,
     [`audit:${requestId}:denied`, actorRef, publicationId, requestId],
   );
 }

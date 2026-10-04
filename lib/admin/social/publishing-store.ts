@@ -396,7 +396,7 @@ export async function approveSocialPublication(input: {
          INSERT INTO ccpun_social.social_execution_audit
            (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
          SELECT $10,'human',$7,'publication:amend','publication',$1,$9,'succeeded'
-         FROM amended_job ON CONFLICT (id) DO NOTHING RETURNING id
+         FROM amended_job ON CONFLICT DO NOTHING
        )
        SELECT publication_id,job_id FROM amended_publication CROSS JOIN amended_job`,
       [existing.publication_id, existing.job_id, existing.job_version, plan.publicationStatus,
@@ -475,7 +475,7 @@ export async function approveSocialPublication(input: {
        (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $1,'human',$2,'publication:approve','publication',$3,$4,'succeeded'
        FROM ccpun_social.social_publication WHERE id=$3
-       ON CONFLICT (id) DO NOTHING`,
+       ON CONFLICT DO NOTHING`,
       [`audit:${input.requestId}`, actorRef, publicationId, input.requestId],
     ),
   ], { isolationLevel: "Serializable" });
