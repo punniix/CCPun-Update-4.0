@@ -1,0 +1,221 @@
+name: LINE recovery — manual temporary Production capsule
+
+# Source preparation only. A dispatch is a separate Production action requiring
+# current owner approval, reviewed receiver and VERIFIED WAF/pause/job fences.
+# Unknown raw API metadata shapes HOLD; native connector wrappers are not proof.
+on:
+  workflow_dispatch:
+    inputs:
+      public_packet:
+        description: 'PUBLIC JSON only: reviewedSha, approvalExpiresAt, policy, cloudBaselineSha256, fences'
+        required: true
+        type: string
+      approval:
+        description: 'Owner action-time approval; this text alone does not grant permission'
+        required: true
+        default: 'HOLD'
+        type: string
+
+permissions:
+  contents: read
+concurrency:
+  group: ccpun-web-line-recovery-once
+  cancel-in-progress: false
+
+jobs:
+  recovery:
+    if: github.repository == 'punniix/CCPun-Update-4.0' && github.ref == 'refs/heads/v4-production' && inputs.approval == 'APPROVE_TEMPORARY_LINE_RECOVERY_PUBLIC_SIGNED_ENDPOINT'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TELEMETRY_DISABLED: '1'
+      VERCEL_CLI_USE_NATIVE_BINARY: '0'
+      NO_UPDATE_NOTIFIER: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+      - name: Synthetic packet contract
+        run: node --test scripts/operator/web-line-recovery-workflow.test.mjs
+      - name: Install disposable CLI with exact top-package pins before expiry
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import crypto from 'node:crypto';
+          const r=await fetch('https://registry.npmjs.org/vercel/-/vercel-59.11.7.tgz',{redirect:'error',signal:AbortSignal.timeout(20000)});if(!r.ok) throw Error('HOLD_PUBLIC_CLI_FETCH');
+          const chunks=[];let size=0;for await(const chunk of r.body){size+=chunk.length;if(size>3000000) throw Error('HOLD_PUBLIC_CLI_SIZE');chunks.push(chunk);}
+          const b=Buffer.concat(chunks);
+          if('sha512-'+crypto.createHash('sha512').update(b).digest('base64')!=='sha512-C+L/JKmlGDypKGcTU/atckydeK/AKa/7fKwUbvcwveguV1QPlY8beiIGgbwkdbb80bbIpPFHRQYrhi5XPAmCBA==') throw Error('HOLD_PUBLIC_CLI_INTEGRITY');
+          fs.writeFileSync(process.env.RUNNER_TEMP+'/line-cli-public.tgz',b,{flag:'wx',mode:0o600});
+          NODE
+          # Partial toolchain pin: official top tarball + audited files are pinned.
+          # Resolved transitive dependencies are NOT deterministically locked.
+          npm install --prefix "$RUNNER_TEMP/line-cli" --no-save --package-lock=false --ignore-scripts --omit=optional "$RUNNER_TEMP/line-cli-public.tgz" > "$RUNNER_TEMP/line-cli-install-public.log" 2>&1 || { echo 'HOLD_CLI_INSTALL'; exit 1; }
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'; import crypto from 'node:crypto';
+          const root=process.env.RUNNER_TEMP+'/line-cli/node_modules/vercel';
+          const pins={'dist/index.js':'0c3e99a1b7e25f04f528bf80ac996d6475e02bb91c1be776a8eceb7d32de1107','dist/commands/deploy/index.js':'cc101b662fc43cb7cee74f54ae7bb5c045d9860887ae64dda977467a680ac72b'};
+          if(JSON.parse(fs.readFileSync(root+'/package.json')).version!=='59.11.7') throw Error('HOLD_CLI_VERSION');
+          for(const [name,pin] of Object.entries(pins)) if(crypto.createHash('sha256').update(fs.readFileSync(root+'/'+name)).digest('hex')!==pin) throw Error('HOLD_CLI_BYTES');
+          console.log('CLI_PUBLIC_BYTES_VERIFIED');
+          NODE
+      - name: Create capsule deployment and expose PUBLIC receipt
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PUBLIC_PACKET: ${{ inputs.public_packet }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
+          import {createRequire} from 'node:module'; import {spawn} from 'node:child_process';
+          const require=createRequire(import.meta.url);
+          const op=require(process.cwd()+'/scripts/operator/web-line-recovery.cjs');
+          // CONTRACT_START — pure guards shared by the synthetic check below.
+          const PROJECT='prj_dxwjITkd0av5QiJQv2snUlIASUWu',TEAM='team_GbcO71LS2dLHwiBV6Cs39Kax';
+          const HOLD=()=>{throw Error('HOLD_PUBLIC_CONTRACT');};
+          function packetGuard(p,sha,now){
+            if(!p||Object.keys(p).sort().join(',')!=='approvalExpiresAt,cloudBaselineSha256,fences,policy,reviewedSha'||p.reviewedSha!==sha||!/^[a-f0-9]{40}$/.test(sha)||!/^[a-f0-9]{64}$/.test(p.cloudBaselineSha256)||!Number.isSafeInteger(p.approvalExpiresAt)||p.approvalExpiresAt<=now||p.approvalExpiresAt-now>900000) HOLD();
+            if(!p.fences||Object.keys(p.fences).sort().join(',')!=='cronJobsEmpty,gitDisconnected,observedAt,wafDenyExceptRecovery,workflowJobsEmpty'||!Number.isSafeInteger(p.fences.observedAt)||now-p.fences.observedAt<0||now-p.fences.observedAt>300000||['cronJobsEmpty','gitDisconnected','wafDenyExceptRecovery','workflowJobsEmpty'].some(k=>p.fences[k]!==true)) HOLD();
+          }
+          function dispatchDeadline(p,c,sha,now){
+            packetGuard(p,sha,now);
+            if(!Number.isSafeInteger(c?.expiresAt)||c.expiresAt-now<120000||p.approvalExpiresAt-now<120000) HOLD();
+            // Reserve5s for local forced termination and60s for signed invocation.
+            return Math.min(now+180000,p.approvalExpiresAt-5000,c.expiresAt-60000);
+          }
+          function projectGuard(p){
+            // Raw REST schema only; never normalize an absent owner/link/root.
+            if(p?.id!==PROJECT||p.accountId!==TEAM||p.link!==null||!Object.hasOwn(p,'rootDirectory')||!(p.rootDirectory===null||p.rootDirectory==='apps/web')||p.nodeVersion!=='24.x') HOLD();
+          }
+          function deploymentGuard(d,origin,nonce){
+            if(!/^dpl_[A-Za-z0-9]{8,128}$/.test(d?.id)||d.projectId!==PROJECT||d.target!=='production'||d.readyState!=='READY'||d.url!==origin.slice(8)||d.aliasAssigned!==false||!Array.isArray(d.alias)||d.alias.length!==0||d.meta?.ccpunRecoveryNonce!==nonce||!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) HOLD();
+          }
+          function aliasGuard(a,domain){if(a?.alias!==domain||typeof a.deploymentId!=='string'||!/^dpl_[A-Za-z0-9]{8,128}$/.test(a.deploymentId)) HOLD(); return a.deploymentId;}
+          function domainsGuard(d){
+            if(!Array.isArray(d?.domains)||d.pagination?.next!==null||d.domains.some(x=>typeof x?.name!=='string')) HOLD();
+            const names=d.domains.map(x=>x.name).sort();
+            if(JSON.stringify(names)!==JSON.stringify(['ccpun-web-git-v4-production-punniixs-projects.vercel.app','ccpun-web-punniixs-projects.vercel.app'])) HOLD();
+            return d.domains.map(x=>({name:x.name,gitBranch:x.gitBranch??null,redirect:x.redirect??null,redirectStatusCode:x.redirectStatusCode??null,customEnvironmentId:x.customEnvironmentId??null})).sort((a,b)=>a.name.localeCompare(b.name));
+          }
+          // CONTRACT_END
+          const sha=process.env.GITHUB_SHA,token=process.env.VERCEL_TOKEN;
+          let deploymentId=null,nonce=null,config=null,before=null,domainsBefore=null,cleanupVerified=false,deferCleanup=false;
+          const tmp=process.env.RUNNER_TEMP,work=path.join(tmp,'line-public-artifact'),global=path.join(tmp,'line-public-cli-config');
+          const cli=path.join(tmp,'line-cli/node_modules/vercel/dist/vc.js');
+          const pauseRestoreNotice=()=>console.log('OWNER_MUST_RESTORE_AND_VERIFY_PROJECT_PAUSED_BEFORE_REMOVING_WAF_FENCE');
+          const headers={Authorization:'Bearer '+token};
+          async function api(route,method='GET'){
+            const r=await fetch('https://api.vercel.com'+route+(route.includes('?')?'&':'?')+'teamId='+TEAM,{method,headers,redirect:'error',signal:AbortSignal.timeout(20000)});
+            if(!r.ok) throw Error('HOLD_PROVIDER_HTTP');
+            if(method==='DELETE') return true;
+            return await r.json(); // RAM only; never emit provider bodies/errors.
+          }
+          async function aliases(){const out={}; for(const domain of ['ccpun.com','www.ccpun.com']) out[domain]=aliasGuard(await api('/v4/aliases/'+domain),domain); return out;}
+          async function domains(){return domainsGuard(await api('/v9/projects/'+PROJECT+'/domains?limit=100'));}
+          async function project(){const p=await api('/v9/projects/'+PROJECT);projectGuard(p);return p;}
+          async function child(args,deadline){
+            return await new Promise((resolve,reject)=>{
+              const remaining=deadline-Date.now();if(!Number.isSafeInteger(deadline)||remaining<=0){reject(Error('HOLD_CLI_DEADLINE'));return;}
+              const cp=spawn(process.execPath,[cli,...args,'--global-config',global],{cwd:work,env:{...process.env,PUBLIC_PACKET:undefined},stdio:['ignore','pipe','pipe']});
+              let out='',tooLarge=false,killTimer;const stop=()=>{cp.kill('SIGTERM');killTimer=setTimeout(()=>cp.kill('SIGKILL'),2000);};const timer=setTimeout(stop,remaining);
+              cp.stdout.on('data',b=>{out+=b.toString();if(out.length>65536){tooLarge=true;stop();}});
+              cp.stderr.on('data',()=>{}); // No CLI logs, header/error bodies, or debug output.
+              cp.on('error',()=>{clearTimeout(timer);clearTimeout(killTimer);reject(Error('HOLD_CLI_START'));});
+              cp.on('exit',code=>{clearTimeout(timer);clearTimeout(killTimer);!tooLarge?resolve({out,code}):reject(Error('HOLD_CLI_RESULT'));});
+            });
+          }
+          try{
+            if(typeof token!=='string'||token.length<20) HOLD();
+            const p=JSON.parse(process.env.PUBLIC_PACKET);packetGuard(p,sha,Date.now());
+            if(crypto.createHash('sha256').update(fs.readFileSync('scripts/operator/web-line-recovery.cjs')).digest('hex')!=='0ad615f6f88b3e6bf8128e453a39124804f01dd281189b6e270075e6c5c1e157') HOLD();
+            if(p.policy?.originalReleaseSha!=='c28c45e8ad848e60a907506d353ab8c88ceab70d'||p.policy.originalDeploymentId!=='dpl_2WZUjLvjsASCSs5T6b9n2aWj8Cu3'||p.policy.reviewedArtifactSha256!=='0ad615f6f88b3e6bf8128e453a39124804f01dd281189b6e270075e6c5c1e157') HOLD();
+            const proj=await project();before=await aliases();domainsBefore=await domains();
+            // Prove raw ownership/schema on the known original BEFORE creation.
+            // Historical alias arrays are deliberately not current routing proof.
+            const original=await api('/v13/deployments/'+p.policy.originalDeploymentId);
+            if(original.id!==p.policy.originalDeploymentId||original.projectId!==PROJECT||original.target!=='production'||original.readyState!=='READY'||original.meta?.githubCommitSha!==p.policy.originalReleaseSha||original.meta?.githubCommitRef!=='v4-production'||!Array.isArray(original.alias)) HOLD();
+            // No unpause, WAF, cron, Git, protection or project-setting mutations.
+            // These fences are explicit fresh OWNER observations, not API proof.
+            fs.mkdirSync(work,{mode:0o700});fs.mkdirSync(global,{mode:0o700});
+            config=op.activatePolicy(p.policy);nonce=config.nonce;
+            for(const [name,value] of Object.entries(op.artifactFiles(config,Date.now(),op.RECOVERY_MODE))){
+              const file=path.join(work,name);fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});fs.writeFileSync(file,value,{flag:'wx',mode:0o600});
+            }
+            // Existing apps/web root is respected without changing provider config.
+            if(proj.rootDirectory==='apps/web') fs.mkdirSync(path.join(work,'apps/web'),{recursive:true,mode:0o700});
+            // Revalidate after ALL preflight REST awaits, immediately at dispatch.
+            const deadline=dispatchDeadline(p,config,sha,Date.now());
+            const result=await child(['deploy','--prebuilt','--prod','--skip-domain','--non-interactive','--no-wait','--team',TEAM,'--meta','ccpunRecoveryNonce='+nonce],deadline);
+            // Exact published59.11.7 non-interactive JSON envelope; no log scraping.
+            const created=JSON.parse(result.out);const origin=created.deployment?.url;
+            if(!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)||!/^dpl_[A-Za-z0-9]{8,128}$/.test(created.deployment?.id)) HOLD();
+            const first=await api('/v13/deployments/'+created.deployment.id);
+            if(!/^dpl_[A-Za-z0-9]{8,128}$/.test(first.id)||first.projectId!==PROJECT||first.meta?.ccpunRecoveryNonce!==nonce) HOLD();
+            deploymentId=first.id; // Cleanup only this exact proven owned deployment.
+            if(result.code!==0||created.status!=='ok') HOLD();
+            let d=first;
+            for(let i=0;d.readyState!=='READY'&&i<30;i++){if(['ERROR','CANCELED'].includes(d.readyState)||Date.now()>=config.expiresAt) HOLD();await new Promise(r=>setTimeout(r,3000));d=await api('/v13/deployments/'+deploymentId);}
+            deploymentGuard(d,origin,nonce);await project();if(JSON.stringify(await aliases())!==JSON.stringify(before)||JSON.stringify(await domains())!==JSON.stringify(domainsBefore)) HOLD();
+            packetGuard(p,sha,Date.now());if(Date.now()>=config.expiresAt-60000) HOLD();
+            // Public receipt only. Receiver validates config/recipient/hash before
+            // signing its <=60s request, then accepts one encrypted capsule in RAM.
+            const receipt={deploymentId,origin,config,cloudBaselineSha256:p.cloudBaselineSha256,reviewedSha:sha};
+            fs.mkdirSync(path.join(tmp,'line-public-receipt'),{mode:0o700});
+            fs.writeFileSync(path.join(tmp,'line-public-receipt/receipt.json'),JSON.stringify(receipt),{flag:'wx',mode:0o600});
+            console.log('CCPUN_LINE_RECOVERY_PUBLIC_RECEIPT '+JSON.stringify(receipt));
+            // Never fetch /recovery here; no capsule, plaintext, SQL or Cloud PUT.
+            deferCleanup=true; // Publish public artifact before expiry-wait/cleanup.
+          }catch{console.log('HOLD_RECOVERY_NO_SECRET_OUTPUT');process.exitCode=1;}
+          finally{
+            if(deploymentId&&!deferCleanup){
+              try{
+                const d=await api('/v13/deployments/'+deploymentId);
+                if(d.id!==deploymentId||d.projectId!==PROJECT||d.meta?.ccpunRecoveryNonce!==nonce||!Array.isArray(d.alias)||d.alias.length!==0) HOLD();
+                await api('/v13/deployments/'+deploymentId,'DELETE');
+                const r=await fetch('https://api.vercel.com/v13/deployments/'+deploymentId+'?teamId='+TEAM,{headers,redirect:'error',signal:AbortSignal.timeout(20000)});
+                if(r.status!==404&&r.status!==410) HOLD();cleanupVerified=true;
+              }catch{console.log('HOLD_OWNED_DEPLOYMENT_CLEANUP_UNVERIFIED');process.exitCode=1;}
+            }
+            if(fs.existsSync(path.join(global,'auth.json'))){console.log('HOLD_UNEXPECTED_AUTH_FILE');process.exitCode=1;}
+            console.log(deferCleanup?'OWNED_DEPLOYMENT_CLEANUP_PENDING':cleanupVerified?'OWNED_DEPLOYMENT_REMOVAL_VERIFIED':'NO_VERIFIED_OWNED_DEPLOYMENT_REMOVAL');pauseRestoreNotice();
+          }
+          NODE
+      - name: Publish PUBLIC receipt immediately for the separate RAM receiver
+        uses: actions/upload-artifact@v4
+        with:
+          name: line-recovery-public-${{ github.run_id }}
+          path: ${{ runner.temp }}/line-public-receipt/receipt.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Expire session and remove ONLY its proven deployment
+        if: always()
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file=process.env.RUNNER_TEMP+'/line-public-receipt/receipt.json';
+          if(!fs.existsSync(file)){console.log('NO_PUBLISHED_RECEIPT_OWNER_MUST_CHECK_UNCERTAIN_CREATION');process.exit(1);}
+          try{
+            const r=JSON.parse(fs.readFileSync(file,'utf8'));
+            const id=r.deploymentId,nonce=r.config?.nonce,expiry=r.config?.expiresAt;
+            if(!/^dpl_[A-Za-z0-9]{8,128}$/.test(id)||!/^[a-f0-9]{64}$/.test(nonce)||!Number.isSafeInteger(expiry)||expiry>Date.now()+600000) throw Error();
+            const base='https://api.vercel.com/v13/deployments/'+id+'?teamId=team_GbcO71LS2dLHwiBV6Cs39Kax';
+            const headers={Authorization:'Bearer '+process.env.VERCEL_TOKEN};
+            while(Date.now()<expiry) await new Promise(resolve=>setTimeout(resolve,Math.min(1000,expiry-Date.now())));
+            // Create a fresh deadline for EACH request AFTER the expiry wait.
+            const request=(method='GET')=>fetch(base,{method,headers,redirect:'error',signal:AbortSignal.timeout(20000)});
+            const get=await request();if(!get.ok) throw Error();const d=await get.json();
+            if(d.id!==id||d.projectId!=='prj_dxwjITkd0av5QiJQv2snUlIASUWu'||d.meta?.ccpunRecoveryNonce!==nonce||!Array.isArray(d.alias)||d.alias.length!==0) throw Error();
+            const remove=await request('DELETE');if(!remove.ok) throw Error();
+            const verify=await request();if(verify.status!==404&&verify.status!==410) throw Error();
+            console.log('OWNED_DEPLOYMENT_REMOVAL_VERIFIED');
+          }catch{console.log('HOLD_OWNED_DEPLOYMENT_CLEANUP_UNVERIFIED');process.exitCode=1;}
+          console.log('OWNER_MUST_RESTORE_AND_VERIFY_PROJECT_PAUSED_BEFORE_REMOVING_WAF_FENCE');
+          NODE
