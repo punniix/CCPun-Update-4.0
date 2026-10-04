@@ -24,11 +24,14 @@ export function isStudioConfigurationAllowed(
   const sha = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_GIT_SHA : process.env.NEXT_PUBLIC_CCPUN_GIT_SHA;
   const ref = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_GIT_REF : process.env.NEXT_PUBLIC_CCPUN_GIT_REF;
   const release = publicValues ? publicValues.NEXT_PUBLIC_CCPUN_RELEASE_ID : process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID;
+  const productionRefAllowed = Boolean(
+    sha && ref && (ref === "v4-production" || ref === `codex/hostinger-release-production-${sha}`),
+  );
   if (provider !== "hostinger" || role !== "admin" || vercelProject || productionProject || profile !== "full"
     || !sha || !/^[a-f0-9]{40}$/.test(sha) || !ref || !/^[a-zA-Z0-9._/-]{1,128}$/.test(ref)
     || !release || !/^[a-zA-Z0-9._-]{1,128}$/.test(release)
     || (environment !== "production-admin" && environment !== "admin-uat")
-    || (environment === "production-admin" ? ref !== "v4-production" || backend !== "disabled" : backend !== "native-neon")) return false;
+    || (environment === "production-admin" ? !productionRefAllowed || backend !== "disabled" : backend !== "native-neon")) return false;
   return isStudioDataPlaneAllowed(dataset, environment, "", "", projectId, {
     CCPUN_DEPLOYMENT_PROVIDER: provider, CCPUN_DEPLOYMENT_ROLE: role, CCPUN_APP_ENV: environment,
     CCPUN_GIT_SHA: sha, CCPUN_GIT_REF: ref, CCPUN_RELEASE_ID: release,
