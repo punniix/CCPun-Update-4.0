@@ -124,7 +124,7 @@ for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}util
   assert.match(nextConfig, /["']\/admin-not-found\/:path\*["']/);
   if (appRoot) {
     assert.match(nextConfig, /source:\s*["']\/admin-not-found\/:path\*["'][\s\S]{0,120}X-Robots-Tag[\s\S]{0,60}noindex, nofollow, noarchive/);
-    assert.match(readSource("apps/admin/next.config.ts"), /source:\s*["']\/:path\*["'][\s\S]{0,120}PRIVATE_SURFACE_ROBOTS_HEADERS/);
+    assert.match(readSource("apps/admin/next.config.ts"), /source:\s*["']\/:path\(\(\?!studio[\s\S]{0,220}PRIVATE_SURFACE_ROBOTS_HEADERS/);
   }
 });
 

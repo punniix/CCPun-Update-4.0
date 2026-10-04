@@ -12,6 +12,11 @@ const PRIVATE_ADMIN_API_HEADERS = [
   ...PRIVATE_SURFACE_ROBOTS_HEADERS,
   { key: "Cache-Control", value: "private, no-cache, no-store, max-age=0, must-revalidate" },
 ];
+const STUDIO_SECURITY_HEADERS = SECURITY_HEADERS
+  .filter(({ key }) => key !== "X-Frame-Options")
+  .map(({ key, value }) => key === "Content-Security-Policy"
+    ? { key, value: value.replace("frame-ancestors 'self'", "frame-ancestors 'self' https://www.sanity.io") }
+    : { key, value });
 const ADMIN_PRIVATE_PAGE_SOURCES = [
   "/login/:path*",
   "/dashboard/:path*",
@@ -127,7 +132,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:path*",
+        source: "/:path((?!studio(?:/|$)).*)",
         headers: [...SECURITY_HEADERS, ...REVIEW_HEADERS],
       },
       {
@@ -144,7 +149,11 @@ const nextConfig: NextConfig = {
       })),
       {
         source: "/studio/:path*",
-        headers: PRIVATE_SURFACE_ROBOTS_HEADERS,
+        headers: [
+          ...STUDIO_SECURITY_HEADERS,
+          ...PRIVATE_SURFACE_ROBOTS_HEADERS,
+          { key: "Cache-Control", value: "private, no-cache, no-store, max-age=0, must-revalidate" },
+        ],
       },
       {
         source: "/api/admin/:path*",
