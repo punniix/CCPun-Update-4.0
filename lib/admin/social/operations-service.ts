@@ -186,8 +186,8 @@ export async function listSocialOperationalItems(input: {
 }
 
 export const SOCIAL_OPERATION_RECEIPT_VERSION = "20261004_social_operation_receipts_v1";
-export const SOCIAL_OPERATION_RECEIPT_CHECKSUM = "sha256:361b035bf36ee32a439cb30b0fa5924acecff0bedc4d81360ee506e6b6c10981";
-export const SOCIAL_OPERATION_RECEIPT_TRIGGER_MD5 = "9bd649549b7c7f2c4aae49eb5d253e48";
+export const SOCIAL_OPERATION_RECEIPT_CHECKSUM = "sha256:1917b07e95bd84bf8e908a54dbaf80eefbe17ee1071b637d1ec7685b1f2940b3";
+export const SOCIAL_OPERATION_RECEIPT_TRIGGER_MD5 = "dabc72200ce5b7c8da41ff1207fbadff";
 
 const savedResultSchema = z.discriminatedUnion("state", [
   z.strictObject({ state: z.literal("rescheduled"), publicationId: boundedId, jobId: boundedId,

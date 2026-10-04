@@ -48,6 +48,9 @@ test("receipt migration checksum and actual invoker body hash match amendment re
   assert.match(migration, /count_new>128/); assert.match(migration, /SOCIAL_RECEIPT_IMMUTABLE/);
   assert.match(migration, /GRANT UPDATE \(mutation_receipts\)/);
   assert.doesNotMatch(migration, /CREATE TABLE|SECURITY DEFINER|GRANT SELECT/);
+  // PL/pgSQL reads IF up to the first THEN at depth zero: SQL CASE must be grouped.
+  assert.doesNotMatch(body, /IS DISTINCT FROM CASE WHEN/);
+  assert.equal(body.match(/IS DISTINCT FROM \(CASE WHEN/g)?.length, 4);
   const readback = read("db/migrations/20261004_social_operation_receipts_v1_readback.sql");
   const bound = api.SOCIAL_OPERATION_RECEIPT_READINESS_SQL.replace("$1", "'" + api.SOCIAL_OPERATION_RECEIPT_VERSION + "'")
     .replace("$2", "'" + api.SOCIAL_OPERATION_RECEIPT_CHECKSUM + "'").replace("$3", "'" + api.SOCIAL_OPERATION_RECEIPT_TRIGGER_MD5 + "'");

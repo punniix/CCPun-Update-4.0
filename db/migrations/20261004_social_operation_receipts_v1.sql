@@ -32,7 +32,7 @@ BEGIN
   THEN RAISE EXCEPTION 'SOCIAL_OPERATION_RECEIPT_PRIVILEGE_OR_FK_MISMATCH'; END IF;
   SELECT checksum INTO current_checksum FROM ccpun_social.schema_migration
     WHERE version='20261004_social_operation_receipts_v1';
-  IF current_checksum IS NOT NULL AND current_checksum<>'sha256:361b035bf36ee32a439cb30b0fa5924acecff0bedc4d81360ee506e6b6c10981'
+  IF current_checksum IS NOT NULL AND current_checksum<>'sha256:1917b07e95bd84bf8e908a54dbaf80eefbe17ee1071b637d1ec7685b1f2940b3'
   THEN RAISE EXCEPTION 'SOCIAL_OPERATION_RECEIPT_CHECKSUM_MISMATCH'; END IF;
   IF current_checksum IS NULL AND (EXISTS (SELECT 1 FROM pg_attribute
     WHERE attrelid='ccpun_social.social_publication_job'::regclass AND attname='mutation_receipts' AND NOT attisdropped)
@@ -41,7 +41,7 @@ BEGIN
   IF current_checksum IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_proc
     WHERE oid=to_regprocedure('ccpun_social.guard_social_operation_receipts()')
       AND NOT prosecdef AND provolatile='v' AND proconfig=ARRAY['search_path=pg_catalog']::text[]
-      AND md5(prosrc)='9bd649549b7c7f2c4aae49eb5d253e48')
+      AND md5(prosrc)='dabc72200ce5b7c8da41ff1207fbadff')
   THEN RAISE EXCEPTION 'SOCIAL_OPERATION_RECEIPT_TRIGGER_DRIFT'; END IF;
   IF current_checksum IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_trigger
     WHERE tgrelid='ccpun_social.social_publication_job'::regclass AND tgname='social_operation_receipts_guard'
@@ -106,9 +106,9 @@ BEGIN
     OR jsonb_typeof(receipt->'payload') IS DISTINCT FROM 'object' OR jsonb_typeof(receipt->'result') IS DISTINCT FROM 'object'
   THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='SOCIAL_RECEIPT_INVALID'; END IF;
   IF (SELECT array_agg(key ORDER BY key) FROM jsonb_object_keys(receipt->'payload') AS key)
-      IS DISTINCT FROM CASE WHEN receipt->>'action'='reschedule'
+      IS DISTINCT FROM (CASE WHEN receipt->>'action'='reschedule'
         THEN ARRAY['expectedJobVersion','idempotencyKey','publicationId','scheduledAt']::text[]
-        ELSE ARRAY['expectedJobVersion','idempotencyKey','publicationId']::text[] END
+        ELSE ARRAY['expectedJobVersion','idempotencyKey','publicationId']::text[] END)
     OR receipt#>'{payload,publicationId}' IS DISTINCT FROM to_jsonb(NEW.publication_id)
     OR receipt#>'{payload,idempotencyKey}' IS DISTINCT FROM receipt->'idempotencyKey'
     OR jsonb_typeof(receipt#>'{payload,expectedJobVersion}') IS DISTINCT FROM 'number'
@@ -116,15 +116,15 @@ BEGIN
     OR (receipt#>>'{payload,expectedJobVersion}')::bigint<>OLD.version
     OR NEW.version<>OLD.version+1
     OR (SELECT array_agg(key ORDER BY key) FROM jsonb_object_keys(receipt->'result') AS key)
-      IS DISTINCT FROM CASE WHEN receipt->>'action'='reschedule'
+      IS DISTINCT FROM (CASE WHEN receipt->>'action'='reschedule'
         THEN ARRAY['jobId','jobVersion','publicationId','scheduledAt','state']::text[]
-        ELSE ARRAY['jobId','jobVersion','publicationId','state']::text[] END
+        ELSE ARRAY['jobId','jobVersion','publicationId','state']::text[] END)
     OR receipt#>'{result,publicationId}' IS DISTINCT FROM to_jsonb(NEW.publication_id)
     OR receipt#>'{result,jobId}' IS DISTINCT FROM to_jsonb(NEW.id)
     OR receipt#>'{result,jobVersion}' IS DISTINCT FROM to_jsonb(NEW.version)
     OR receipt#>'{result,state}' IS DISTINCT FROM to_jsonb(CASE WHEN receipt->>'action'='reschedule' THEN 'rescheduled'::text ELSE 'cancelled'::text END)
     OR NEW.publication_id IS DISTINCT FROM OLD.publication_id OR NEW.id IS DISTINCT FROM OLD.id
-    OR NEW.status IS DISTINCT FROM CASE WHEN receipt->>'action'='reschedule' THEN 'queued' ELSE 'cancelled' END
+    OR NEW.status IS DISTINCT FROM (CASE WHEN receipt->>'action'='reschedule' THEN 'queued' ELSE 'cancelled' END)
   THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='SOCIAL_RECEIPT_BINDING_INVALID'; END IF;
 
   -- VOLATILE + READ COMMITTED: acquire the publication fence, then take a
@@ -135,7 +135,7 @@ BEGIN
   SELECT id INTO latest_job FROM ccpun_social.social_publication_job
     WHERE publication_id=NEW.publication_id ORDER BY created_at DESC,id DESC LIMIT 1;
   IF latest_job IS DISTINCT FROM NEW.id
-    OR publication_state.status IS DISTINCT FROM CASE WHEN receipt->>'action'='reschedule' THEN 'approved' ELSE 'cancelled' END
+    OR publication_state.status IS DISTINCT FROM (CASE WHEN receipt->>'action'='reschedule' THEN 'approved' ELSE 'cancelled' END)
   THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='SOCIAL_RECEIPT_LATEST_JOB_CONFLICT'; END IF;
   IF receipt->>'action'='reschedule' AND (
     jsonb_typeof(receipt#>'{payload,scheduledAt}') IS DISTINCT FROM 'string'
@@ -156,5 +156,5 @@ GRANT UPDATE (mutation_receipts) ON ccpun_social.social_publication_job TO ccpun
 -- checksum-source-end
 
 INSERT INTO ccpun_social.schema_migration(version,checksum)
-VALUES('20261004_social_operation_receipts_v1','sha256:361b035bf36ee32a439cb30b0fa5924acecff0bedc4d81360ee506e6b6c10981') ON CONFLICT(version) DO NOTHING;
+VALUES('20261004_social_operation_receipts_v1','sha256:1917b07e95bd84bf8e908a54dbaf80eefbe17ee1071b637d1ec7685b1f2940b3') ON CONFLICT(version) DO NOTHING;
 COMMIT;
