@@ -85,7 +85,7 @@ test("internal service allowlist is exact and handler-authenticated", () => {
   }
 });
 
-test("social cron reaches only its exact bearer handler while native host and editorial fences remain closed", () => {
+test("retired social HTTP worker preserves bearer, native host and editorial fences without executing", () => {
   for (const path of ["/api/admin/social/worker", "/api/admin/social/worker/"]) {
     assert.equal(isInternalServiceApiPath(path), true, path);
     assert.equal(classifyProductionAdminPath(path), "allow", path);
@@ -126,8 +126,10 @@ test("social cron reaches only its exact bearer handler while native host and ed
       for(const value of [undefined,'Bearer wrong','bearer ccpun-cron-fixture-only','Bearer ccpun-cron-fixture-only-extra'])denied.push((await route.GET(request(value))).status);
       const beforeAuthorized=workerCalls;
       const authorized=await route.GET(request('Bearer ccpun-cron-fixture-only'));
+      const authorizedError=(await authorized.json()).error;
+      const authorizedCache=authorized.headers.get('cache-control');
       process.env.CCPUN_ADMIN_CAPABILITY_PROFILE='editorial';process.env.NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE='editorial';
-      console.log(JSON.stringify({allowed,bare,hostDenied,forwardedDenied,adjacent,missing:missing.status,denied,beforeAuthorized,authorized:authorized.status,workerCalls,editorial:proxy('/api/admin/social/worker/')}));
+      console.log(JSON.stringify({allowed,bare,hostDenied,forwardedDenied,adjacent,missing:missing.status,denied,beforeAuthorized,authorized:authorized.status,authorizedError,authorizedCache,workerCalls,editorial:proxy('/api/admin/social/worker/')}));
     })().catch(()=>process.exit(1));
   `], {
     cwd: new URL("../../", import.meta.url), encoding: "utf8", timeout: 15000,
@@ -154,8 +156,10 @@ test("social cron reaches only its exact bearer handler while native host and ed
   assert.equal(values.missing, 503);
   assert.deepEqual(values.denied, [401, 401, 401, 401]);
   assert.equal(values.beforeAuthorized, 0);
-  assert.equal(values.authorized, 200);
-  assert.equal(values.workerCalls, 1);
+  assert.equal(values.authorized, 503);
+  assert.equal(values.authorizedError, "social-worker-unavailable");
+  assert.equal(values.authorizedCache, "no-store");
+  assert.equal(values.workerCalls, 0);
 });
 
 test("Production Admin classifier rejects public CCPun website routes by default", () => {
