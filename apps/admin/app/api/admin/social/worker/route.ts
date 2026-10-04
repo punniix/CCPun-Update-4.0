@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { runSocialWorker } from "@/lib/admin/social/worker";
 
 export const dynamic = "force-dynamic";
 
@@ -18,18 +17,10 @@ export async function GET(request: Request) {
     });
   }
 
-  try {
-    const result = await runSocialWorker();
-    return NextResponse.json({ result }, { headers: { "Cache-Control": "no-store" } });
-  } catch (error) {
-    const code = error instanceof Error ? error.message : "SOCIAL_WORKER_FAILED";
-    const unavailable = code === "SOCIAL_OPERATIONS_NOT_CONFIGURED"
-      || code === "SOCIAL_OPERATIONS_DATABASE_NOT_READY"
-      || code === "SOCIAL_PROVIDER_WRITES_NOT_CONFIGURED"
-      || code === "SOCIAL_PROVIDER_WRITES_IDENTITY_MISMATCH";
-    return NextResponse.json({ error: unavailable ? "social-worker-unavailable" : "social-worker-failed" }, {
-      status: unavailable ? 503 : 500,
-      headers: { "Cache-Control": "no-store" },
-    });
-  }
+  // Execution belongs to the guarded private VPS CLI:
+  // scripts/admin-background-worker.ts social. HTTP is never a worker invoker.
+  return NextResponse.json({ error: "social-worker-unavailable" }, {
+    status: 503,
+    headers: { "Cache-Control": "no-store" },
+  });
 }
