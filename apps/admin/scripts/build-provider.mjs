@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../../lib/runtime/hostinger-production-release.mjs";
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
@@ -28,6 +29,11 @@ export function installAdminMonorepoDependencies(root = adminRoot, run = spawnSy
 // compiled with publication execution disabled; this seal never claims live readiness.
 /** @param {string} root @param {Record<string, string | undefined>} variables */
 export function validateNativeNeonSource(root = adminRoot, variables = process.env, run = spawnSync) {
+  return validateNativeNeonSourceInternal(root, variables, run, false);
+}
+
+/** @param {string} root @param {Record<string, string | undefined>} variables */
+function validateNativeNeonSourceInternal(root, variables, run, allowCloudRelease) {
   if (![variables.CCPUN_ARTICLE_SCHEDULER_BACKEND, variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND]
     .some((backend) => backend === "native-neon" || backend === "disabled")) return null;
   const production = variables.CCPUN_APP_ENV === "production-admin"
@@ -55,7 +61,7 @@ export function validateNativeNeonSource(root = adminRoot, variables = process.e
     || !/^[a-zA-Z0-9._-]{1,128}$/.test(variables.CCPUN_RELEASE_ID ?? "")) deny();
   if (production && (variables.NEXT_PUBLIC_CCPUN_APP_ENV !== "production-admin"
     || variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND !== lane.backend
-    || variables.CCPUN_GIT_REF !== "v4-production" || variables.AUTH_URL !== "https://admin.ccpun.com"
+    || (variables.CCPUN_GIT_REF !== "v4-production" && !(allowCloudRelease && isPinnedCloudProductionRelease(variables, variables, false))) || variables.AUTH_URL !== "https://admin.ccpun.com"
     || variables.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0")) deny();
   const repository = resolve(root, "../..");
   const git = (args, failureReason = "") => {
@@ -73,7 +79,7 @@ export function validateNativeNeonSource(root = adminRoot, variables = process.e
   if (git(["status", "--porcelain", "--untracked-files=no"])) deny("TRACKED_DIRTY");
   // The new runtime must be committed as well: a clean tracked diff alone
   // cannot attest an untracked implementation left in the build workspace.
-  git(["ls-files", "--error-unmatch", "package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs",
+  git(["ls-files", "--error-unmatch", "package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs", "lib/runtime/hostinger-production-release.mjs",
     "apps/admin/instrumentation.ts", "lib/admin/article-schedule-clock.ts", "lib/admin/article-scheduling.ts",
     "lib/admin/operations/article-schedule-sql.ts", "lib/admin/operations/article-schedule-store.ts",
     "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts", "scripts/article-schedule-worker.ts"]);
@@ -99,7 +105,7 @@ export function validateNativeNeonSource(root = adminRoot, variables = process.e
 /** Build activation remains off; source provenance is reusable by the private worker.
  * @param {string} root @param {Record<string, string | undefined>} variables */
 export function validateNativeNeonBuild(root = adminRoot, variables = process.env, run = spawnSync) {
-  const seal = validateNativeNeonSource(root, variables, run);
+  const seal = validateNativeNeonSourceInternal(root, variables, run, true);
   if (seal && (![undefined, "0", "1"].includes(variables.CCPUN_ARTICLE_SCHEDULING_ENABLED)
     || variables.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED !== "0"
     || variables.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0"

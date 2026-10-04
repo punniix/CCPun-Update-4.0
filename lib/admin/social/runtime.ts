@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import {
   CCPUN_VERCEL_PROJECT_IDS,
   parseAdminEnvironment,
@@ -65,6 +66,7 @@ export type SocialRuntimeDescriptor = {
 
 export type SocialRuntimeInput = {
   environment: AdminEnvironment;
+  releaseVariables?: Record<string, string | undefined>;
   deploymentProvider?: string;
   deploymentRole?: string;
   releaseId?: string;
@@ -211,7 +213,8 @@ export function resolveSocialRuntimeDescriptor(
 
   if (input.environment !== "production-admin"
     || deployment.provider === "local"
-    || gitBranch !== SOCIAL_PRODUCTION_BRANCH
+    || !gitBranch
+    || (gitBranch !== SOCIAL_PRODUCTION_BRANCH && !isPinnedCloudProductionRelease({ ...(input.releaseVariables ?? process.env), CCPUN_APP_ENV: input.environment, CCPUN_DEPLOYMENT_PROVIDER: deployment.provider, CCPUN_DEPLOYMENT_ROLE: deployment.role, CCPUN_GIT_SHA: deployment.gitSha ?? undefined, CCPUN_GIT_REF: gitBranch, CCPUN_RELEASE_ID: deployment.releaseId ?? undefined }))
     || (deployment.provider === "vercel" && (
       vercelEnvironment !== "production"
       || projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
@@ -243,6 +246,7 @@ export function socialRuntimeInputFromEnvironment(
 ): SocialRuntimeInput {
   return {
     environment: parseAdminEnvironment(env.CCPUN_APP_ENV),
+    releaseVariables: env,
     deploymentProvider: trimmed(env.CCPUN_DEPLOYMENT_PROVIDER),
     deploymentRole: trimmed(env.CCPUN_DEPLOYMENT_ROLE),
     releaseId: trimmed(env.CCPUN_RELEASE_ID),

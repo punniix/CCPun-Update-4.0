@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import "server-only";
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -156,7 +157,7 @@ export async function claimLineRichMenuOperation(
       || !["admin-uat", "production-admin"].includes(deployment.environment)
       || !variables.CCPUN_GIT_REF?.trim() || !variables.CCPUN_RELEASE_ID?.trim()
       || !variables.CCPUN_GIT_SHA?.trim() || !gitSha || !/^[0-9a-f]{40}$/i.test(gitSha)
-      || (deployment.environment === "production-admin" && deployment.gitRef !== "v4-production")) {
+      || (deployment.environment === "production-admin" && (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease(variables)))) {
       throw new Error("CONTROL_PLANE_WORKER_IDENTITY_INVALID");
     }
     workerIdentity = JSON.stringify([deployment.provider, deployment.role, deployment.environment,
