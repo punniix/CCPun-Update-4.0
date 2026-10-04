@@ -317,6 +317,68 @@ test("LINE private DB accepts explicit Hostinger Web production identity without
   }), null);
 });
 
+const pinnedWebProduction = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production",
+  CCPUN_GIT_SHA: "cb0d93fe91a54c79ff9bf6ba0ed9ebe2b155fa77",
+  CCPUN_GIT_REF: "codex/hostinger-release-production-cb0d93fe91a54c79ff9bf6ba0ed9ebe2b155fa77",
+  NEXT_PUBLIC_CCPUN_APP_ENV: "production", NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
+  NEXT_PUBLIC_SANITY_DATASET: "production", CCPUN_UAT_MODE: "0",
+  CCPUN_LINE_NEON_PROJECT_ID: "lively-bar-43618798", CCPUN_LINE_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv",
+  CCPUN_LINE_NEON_DATABASE: "neondb",
+  CCPUN_LINE_INGEST_DATABASE_URL: "postgresql://ccpun_line_ingress:TEST_ONLY@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+};
+
+test("Hostinger pinned Web Production LINE identity accepts exact explicit release metadata only", () => {
+  const runtime = resolveLineIngestRuntime(pinnedWebProduction);
+  assert.equal(runtime?.lane, "production");
+  assert.equal(runtime?.provider, "hostinger");
+  assert.equal(runtime?.identity.runtimeRole, "ccpun_line_ingress");
+  assert.equal(resolveLineIngestRuntime({ ...pinnedWebProduction,
+    NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "hostinger", NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "web",
+  })?.lane, "production");
+  assert.equal(resolveLineIngestRuntime({ ...pinnedWebProduction,
+    CCPUN_LINE_INGEST_DATABASE_URL: pinnedWebProduction.CCPUN_LINE_INGEST_DATABASE_URL.replace("ep-broad-butterfly-b3ro7u8w.", "ep-broad-butterfly-b3ro7u8w-pooler."),
+  })?.lane, "production");
+});
+
+test("pinned Web LINE identity rejects malformed, fallback-only, cross-lane and unsafe DB metadata", () => {
+  for (const patch of [
+    { CCPUN_GIT_SHA: undefined }, { CCPUN_GIT_SHA: "A".repeat(40) }, { CCPUN_GIT_SHA: "a".repeat(39) },
+    { CCPUN_GIT_SHA: "g".repeat(40) }, { CCPUN_GIT_REF: undefined }, { CCPUN_GIT_REF: "feature/not-production" },
+    { CCPUN_GIT_REF: "codex/hostinger-release-production-" + "a".repeat(40) },
+    { CCPUN_GIT_REF: pinnedWebProduction.CCPUN_GIT_REF + "/" },
+    { CCPUN_GIT_SHA: undefined, VERCEL_GIT_COMMIT_SHA: pinnedWebProduction.CCPUN_GIT_SHA },
+    { CCPUN_GIT_REF: undefined, VERCEL_GIT_COMMIT_REF: pinnedWebProduction.CCPUN_GIT_REF },
+    { CCPUN_DEPLOYMENT_PROVIDER: "local" }, { CCPUN_DEPLOYMENT_ROLE: "admin" }, { CCPUN_APP_ENV: "web-uat" },
+    { CCPUN_DEPLOYMENT_PROVIDER: "vercel", VERCEL_ENV: "production", VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu" },
+    { VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu" },
+    { NEXT_PUBLIC_CCPUN_APP_ENV: undefined }, { NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat" },
+    { NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5" }, { NEXT_PUBLIC_SANITY_DATASET: "uat" },
+    { CCPUN_UAT_MODE: undefined }, { CCPUN_UAT_MODE: "1" },
+    { NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "vercel" }, { NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "admin" },
+    { CCPUN_LINE_NEON_PROJECT_ID: "young-term-47483330" }, { CCPUN_LINE_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8" },
+    { CCPUN_LINE_NEON_DATABASE: "other" },
+    { CCPUN_LINE_INGEST_DATABASE_URL: pinnedWebProduction.CCPUN_LINE_INGEST_DATABASE_URL.replace("ccpun_line_ingress", "ccpun_admin_runtime") },
+    { CCPUN_LINE_INGEST_DATABASE_URL: pinnedWebProduction.CCPUN_LINE_INGEST_DATABASE_URL.replace("sslmode=require", "sslmode=prefer") },
+    { CCPUN_LINE_INGEST_DATABASE_URL: pinnedWebProduction.CCPUN_LINE_INGEST_DATABASE_URL.replace("ep-broad-butterfly-b3ro7u8w", "ep-mute-frost-aztvz394") },
+  ]) assert.equal(resolveLineIngestRuntime({ ...pinnedWebProduction, ...patch }), null);
+});
+
+test("legacy v4 Web LINE acceptance retains its existing provider and Neon contracts", () => {
+  const legacy = { ...pinnedWebProduction, CCPUN_GIT_REF: "v4-production", CCPUN_GIT_SHA: undefined,
+    NEXT_PUBLIC_CCPUN_APP_ENV: undefined, NEXT_PUBLIC_SANITY_PROJECT_ID: undefined,
+    NEXT_PUBLIC_SANITY_DATASET: undefined, CCPUN_UAT_MODE: undefined,
+  };
+  assert.equal(resolveLineIngestRuntime(legacy)?.provider, "hostinger");
+  assert.equal(resolveLineIngestRuntime({ ...legacy, CCPUN_DEPLOYMENT_PROVIDER: "vercel",
+    VERCEL_ENV: "production", VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",
+  })?.provider, "vercel");
+  assert.equal(resolveLineIngestRuntime({ ...legacy, CCPUN_DEPLOYMENT_PROVIDER: "local" }), null);
+  assert.equal(resolveLineIngestRuntime({ ...legacy, CCPUN_DEPLOYMENT_PROVIDER: "vercel",
+    VERCEL_ENV: "preview", VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",
+  }), null);
+});
+
 test("SafeForAI accepts only allowlisted non-identifying journey state", () => {
   const safe = {
     journey: "motor_quote_review",

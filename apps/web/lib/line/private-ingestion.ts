@@ -105,7 +105,23 @@ export function resolveLineIngestRuntime(
   const vercelEnvironment = variables.VERCEL_ENV?.trim();
   const vercelProjectId = variables.VERCEL_PROJECT_ID?.trim();
   if (lane === "production") {
-    if (deployment.provider === "local" || deployment.gitRef !== "v4-production") return null;
+    const explicitSha = variables.CCPUN_GIT_SHA?.trim();
+    // This validates configured identity only; reviewed Git/provider source proof
+    // and live LINE acceptance are separate release gates.
+    const hostingerPinnedRelease = deployment.provider === "hostinger"
+      && deployment.role === "web" && environment === "production"
+      && !!explicitSha && /^[a-f0-9]{40}$/.test(explicitSha)
+      && variables.CCPUN_GIT_REF?.trim() === `codex/hostinger-release-production-${explicitSha}`
+      && variables.NEXT_PUBLIC_CCPUN_APP_ENV?.trim() === "production"
+      && variables.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim() === "kyfxgjnq"
+      && variables.NEXT_PUBLIC_SANITY_DATASET?.trim() === "production"
+      && variables.CCPUN_UAT_MODE?.trim() === "0"
+      && (variables.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER === undefined
+        || variables.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER.trim() === "hostinger")
+      && (variables.NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE === undefined
+        || variables.NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE.trim() === "web");
+    if (deployment.provider === "local"
+      || (deployment.gitRef !== "v4-production" && !hostingerPinnedRelease)) return null;
     if (
       deployment.provider === "vercel"
       && (vercelEnvironment !== "production" || vercelProjectId !== WEB_VERCEL_PROJECT_ID)
