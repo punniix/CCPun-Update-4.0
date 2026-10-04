@@ -132,6 +132,65 @@ test("Hostinger Web readiness accepts only the explicit live production identity
   }
 });
 
+test("Hostinger Web live readiness preserves a truthful SHA-matching pinned release identity", () => {
+  const sha = "215990493dbcc61bf23c187d8288c17809907d17";
+  const ref = `codex/hostinger-release-production-${sha}`;
+  const result = runReadiness({ CCPUN_GIT_REF: ref, CCPUN_GIT_SHA: sha });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const receipt = JSON.parse(result.stdout);
+  assert.equal(receipt.status, "ready");
+  assert.equal(receipt.releaseStage, "live");
+  assert.equal(receipt.release.gitRef, ref);
+  assert.equal(receipt.release.gitSha, sha);
+});
+
+test("Hostinger Web live readiness denies malformed and mismatched pinned release metadata", () => {
+  const sha = "215990493dbcc61bf23c187d8288c17809907d17";
+  const prefix = "codex/hostinger-release-production-";
+  for (const [ref, configuredSha] of [
+    [`${prefix}${sha}`, "0".repeat(40)],
+    [`${prefix}${sha.slice(1)}`, sha.slice(1)],
+    [`${prefix}${sha}0`, `${sha}0`],
+    [`${prefix}${sha.toUpperCase()}`, sha.toUpperCase()],
+    [`${prefix}${"g".repeat(40)}`, "g".repeat(40)],
+    [`${prefix}${sha}`, ""],
+    [prefix, sha],
+    [`refs/heads/${prefix}${sha}`, sha],
+    [`${prefix}${sha}/extra`, sha],
+    [`codex/hostinger-release-uat-${sha}`, sha],
+    [`v4-production-${sha}`, sha],
+  ]) {
+    const result = runReadiness({ CCPUN_GIT_REF: ref, CCPUN_GIT_SHA: configuredSha });
+    assert.notEqual(result.status, 0, `${ref} must fail with SHA ${configuredSha}`);
+    assert.equal(JSON.parse(result.stdout).status, "blocked");
+  }
+});
+
+test("pinned Web release refs do not bypass existing Production identity or live policy", () => {
+  const sha = "215990493dbcc61bf23c187d8288c17809907d17";
+  const pinned = { CCPUN_GIT_REF: `codex/hostinger-release-production-${sha}`, CCPUN_GIT_SHA: sha };
+  for (const [key, value] of [
+    ["CCPUN_DEPLOYMENT_PROVIDER", "vercel"],
+    ["CCPUN_DEPLOYMENT_PROVIDER", "local"],
+    ["CCPUN_DEPLOYMENT_ROLE", "admin"],
+    ["CCPUN_DEPLOYMENT_ROLE", "unknown"],
+    ["CCPUN_APP_ENV", "web-uat"],
+    ["NEXT_PUBLIC_CCPUN_APP_ENV", "web-uat"],
+    ["NEXT_PUBLIC_SANITY_PROJECT_ID", "ccb9lnw5"],
+    ["NEXT_PUBLIC_SANITY_DATASET", "uat"],
+    ["CCPUN_RELEASE_STAGE", "shadow"],
+    ["CCPUN_UAT_MODE", "1"],
+    ["CCPUN_ENABLE_PRODUCTION_ANALYTICS", "0"],
+    ["CCPUN_RELEASE_ID", ""],
+    ["VERCEL_PROJECT_ID", "prj_fake"],
+    ["VERCEL_ENV", "production"],
+  ]) {
+    const result = runReadiness({ ...pinned, [key]: value });
+    assert.notEqual(result.status, 0, `${key} must retain its existing denial`);
+    assert.equal(JSON.parse(result.stdout).status, "blocked");
+  }
+});
+
 test("Hostinger production candidate uses Production Sanity while remaining noindex and analytics-off", () => {
   const candidate = runReadiness({
     CCPUN_RELEASE_STAGE: "candidate",

@@ -56,7 +56,15 @@ if (role === "web") {
     } else if (releaseStage === "live") {
       requireExact("CCPUN_UAT_MODE", "0");
       requireExact("CCPUN_ENABLE_PRODUCTION_ANALYTICS", "1");
-      requireExact("CCPUN_GIT_REF", "v4-production");
+      const gitRef = env.CCPUN_GIT_REF?.trim();
+      const gitSha = env.CCPUN_GIT_SHA?.trim() ?? "";
+      // Policy acceptance only; provider checkout and live SHA still require verification.
+      if (gitRef !== "v4-production" && (
+        !/^[a-f0-9]{40}$/.test(gitSha)
+        || gitRef !== `codex/hostinger-release-production-${gitSha}`
+      )) {
+        failures.push("CCPUN_GIT_REF must be v4-production or an exact SHA-matching pinned Production release ref");
+      }
     } else {
       failures.push("Production Web Hostinger lane must set CCPUN_RELEASE_STAGE=candidate or live");
     }
