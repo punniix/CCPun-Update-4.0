@@ -176,9 +176,10 @@ try{
       ('20260901_website_42_social_publication_execution_v1','sha256:9c9a95c3f29d0c912b6b0c226fea873569809f49ebc8f1a66ab32699bde85bba'),
       ('20260901_website_42_social_comment_execution_v1','sha256:c9a5512469d8894ccbdebf5c051d7471aef1f9d59973b6a71f5d0f2b7618155d'))) AS migrations_ok,
     EXISTS(SELECT 1 FROM pg_roles WHERE rolname=current_user AND rolcanlogin AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolinherit AND NOT rolreplication AND NOT rolbypassrls AND NOT EXISTS(SELECT 1 FROM pg_auth_members WHERE member=pg_roles.oid)) AS restricted,
-    (SELECT count(*) FROM ccpun_social.social_publication)+(SELECT count(*) FROM ccpun_social.social_publication_job)+(SELECT count(*) FROM ccpun_social.social_comment_item)+(SELECT count(*) FROM ccpun_social.social_execution_audit) AS operational_rows`;
+    has_table_privilege(current_user,'ccpun_social.social_execution_audit','INSERT') AND NOT has_table_privilege(current_user,'ccpun_social.social_execution_audit','SELECT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS audit_append_only,
+    (SELECT count(*) FROM ccpun_social.social_publication)+(SELECT count(*) FROM ccpun_social.social_publication_job)+(SELECT count(*) FROM ccpun_social.social_comment_item) AS operational_rows`;
   const [rows]=await sql.transaction([sql.query(query,['lively-bar-43618798','br-long-resonance-b3ys5xrv','ep-broad-butterfly-b3ro7u8w'])],{readOnly:true,isolationLevel:'RepeatableRead',fetchOptions:{signal:AbortSignal.timeout(10000),redirect:'error'}});
-  demand(rows.length===1&&rows[0].role_ok===true&&rows[0].identity_ok===true&&rows[0].migrations_ok===true&&rows[0].restricted===true);
+  demand(rows.length===1&&rows[0].role_ok===true&&rows[0].identity_ok===true&&rows[0].migrations_ok===true&&rows[0].restricted===true&&rows[0].audit_append_only===true);
   const count=Number(rows[0].operational_rows);demand(Number.isSafeInteger(count)&&count>=0);
   let metaIdentityVerified=false,metaPermissionsVerified=false;
   try{const page=await get(`https://graph.facebook.com/${packet.social.CCPUN_META_GRAPH_VERSION}/${packet.social.CCPUN_META_PAGE_ID}?fields=id`,packet.social.CCPUN_META_ACCESS_TOKEN);metaIdentityVerified=page.id===packet.social.CCPUN_META_PAGE_ID;}catch{}
@@ -364,11 +365,29 @@ if(denied!==7)process.exit(1);else process.stdout.write('PURE_CONSUMER_PASS');""
             # Exercise the actual production SQL/call fragment, with no SDK/network.
             fragment=NODE[NODE.index('  const query='):NODE.index('  demand(rows.length')]
             code="""import assert from 'node:assert/strict';
-const sql={query(q,parameters){assert.match(q,/^SELECT /);assert.doesNotMatch(q,/\\b(UPDATE|INSERT|DELETE|CREATE|ALTER|DROP|TRUNCATE)\\b/i);assert.deepEqual(parameters,['lively-bar-43618798','br-long-resonance-b3ys5xrv','ep-broad-butterfly-b3ro7u8w']);return {q,parameters};},async transaction(queries,options){assert.equal(queries.length,1);assert.equal(options.readOnly,true);assert.equal(options.isolationLevel,'RepeatableRead');assert.equal(options.isolationMode,undefined);assert.equal(options.fetchOptions.redirect,'error');assert.ok(options.fetchOptions.signal instanceof AbortSignal);return [[{}]];}};
+const sql={query(q,parameters){assert.match(q,/^SELECT /);assert.doesNotMatch(q.replace(/'(?:''|[^'])*'/g,"''"),/\\b(UPDATE|INSERT|DELETE|CREATE|ALTER|DROP|TRUNCATE)\\b/i);assert.deepEqual(parameters,['lively-bar-43618798','br-long-resonance-b3ys5xrv','ep-broad-butterfly-b3ro7u8w']);assert.doesNotMatch(q,/\\b(?:FROM|JOIN)\\s+ccpun_social\\.social_execution_audit\\b/i);assert.ok(q.includes("has_table_privilege(current_user,'ccpun_social.social_execution_audit','INSERT') AND NOT has_table_privilege(current_user,'ccpun_social.social_execution_audit','SELECT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS audit_append_only"));assert.deepEqual([...q.matchAll(/\\(SELECT count\\(\\*\\) FROM ccpun_social\\.([a-z_]+)\\)/g)].map(x=>x[1]),['social_publication','social_publication_job','social_comment_item']);return {q,parameters};},async transaction(queries,options){assert.equal(queries.length,1);assert.equal(options.readOnly,true);assert.equal(options.isolationLevel,'RepeatableRead');assert.equal(options.isolationMode,undefined);assert.equal(options.fetchOptions.redirect,'error');assert.ok(options.fetchOptions.signal instanceof AbortSignal);return [[{}]];}};
 """+fragment+"process.stdout.write('NEON_READONLY_MOCK_PASS');"
             result=node_check(code)
             self.assertEqual(result.returncode,0)
             self.assertEqual(result.stdout,b'NEON_READONLY_MOCK_PASS')
+        def test_actual_neon_append_only_validation(self):
+            validation=NODE[NODE.index('  demand(rows.length'):NODE.index('  let metaIdentityVerified=')]
+            code="""import assert from 'node:assert/strict';
+const demand=x=>{if(!x)throw Error('HOLD');};
+function validate(rows){
+"""+validation+"""return count;}
+const good={role_ok:true,identity_ok:true,migrations_ok:true,restricted:true,audit_append_only:true,operational_rows:'0'};
+assert.equal(validate([good]),0);
+for(const key of ['role_ok','identity_ok','migrations_ok','restricted','audit_append_only']){
+  for(const value of [false,undefined])assert.throws(()=>validate([{...good,[key]:value}]),/HOLD/);
+}
+for(const value of [-1,'not-a-count',0.5])assert.throws(()=>validate([{...good,operational_rows:value}]),/HOLD/);
+assert.throws(()=>validate([]),/HOLD/);assert.throws(()=>validate([good,good]),/HOLD/);
+process.stdout.write('NEON_APPEND_ONLY_VALIDATION_PASS');
+"""
+            result=node_check(code)
+            self.assertEqual(result.returncode,0)
+            self.assertEqual(result.stdout,b'NEON_APPEND_ONLY_VALIDATION_PASS')
         def test_actual_meta_fixed_get_and_error_redaction(self):
             getter=NODE[NODE.index('const get='):NODE.index('try{\n  wipeEnv();')]
             probe=NODE[NODE.index('  let metaIdentityVerified='):NODE.index('  for(const key of fields)')]
@@ -470,6 +489,7 @@ def main():
     elif len(sys.argv)==6 and sys.argv[1]=='--owner-approved-readonly':
         result=run_readonly(*sys.argv[2:])
         print(json.dumps({**result,'sanity':'SANITY_SCHEMA_HOLD','metaExpiry':'META_EXPIRY_HOLD',
+            'operationalRowsScope':'publication+publication_job+comment_item','auditRowsMeasured':False,
             'businessWritesExecuted':False},separators=(',',':')))
     else:
         raise Hold()
