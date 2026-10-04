@@ -94,7 +94,23 @@ function ownedFromArgument(): Owned[] {
   }
   return parsed as Owned[];
 }
+function createReadOnlyPollClock(listDue: () => Promise<{ articleId: string; generation: string }[]>) {
+  return createNativeArticleScheduleClock({
+    enabled: () => true,
+    listDue,
+    execute: async () => deny("FIXTURE_EXECUTION_DENIED"),
+  });
+}
 async function child() {
+  if (worker === "poll") {
+    const store = await open();
+    const clock = createReadOnlyPollClock(() => store.listNativeDue(10));
+    try {
+      const tick = await clock.tick();
+      if (tick.failed !== tick.attempted) deny("FIXTURE_EXECUTION_DENIED");
+      return { polled: true, dueObserved: tick.attempted > 0, executionPathBlocked: true };
+    } finally { await clock.close(); }
+  }
   const owned = ownedFromArgument(); const store = await open();
   if (worker === "claim") {
     if (owned.length !== 1 || !owned[0].executionId) deny("FIXTURE_ARGUMENT_DENIED");
@@ -131,6 +147,13 @@ async function runChildMode() {
   catch (error) { console.log(`NATIVE_UAT_RESULT=${JSON.stringify({ failed: true, code: diagnosticCode(error) })}`); process.exitCode = 1; }
 }
 if (worker) void runChildMode();
+
+test("read-only scheduler poll observes due work without a writable executor", async () => {
+  const clock = createReadOnlyPollClock(async () => [{ articleId: "synthetic", generation: "00000000-0000-4000-8000-000000000000" }]);
+  const tick = await clock.tick();
+  await clock.close();
+  assert.deepEqual(tick, { attempted: 1, failed: 1 });
+});
 
 test("actual Hostinger UAT native registration/CAS/due/cancel and restarted claim exclusion", { skip: !enabled || Boolean(worker), timeout: 240_000 }, async () => {
   let phase = "preflight"; let store: NativeScheduleStore | undefined;
