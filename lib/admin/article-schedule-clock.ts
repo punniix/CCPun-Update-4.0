@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../runtime/hostinger-production-release.mjs";
 import { getAdminCapabilityProfile } from "./capability-profile";
 import { resolveDeploymentIdentity } from "../runtime/deployment-identity";
 import { resolveArticleSchedulerLane } from "./operations/article-schedule-contract";
@@ -18,7 +19,7 @@ export function getArticleScheduleBackend(variables?: Variables): "workflow" | "
     || !sourceSha || !/^[a-f0-9]{40}$/.test(sourceSha) || values.CCPUN_GIT_SHA !== sourceSha
     || !sourceRef || !/^[a-zA-Z0-9._/-]{1,128}$/.test(sourceRef) || values.CCPUN_GIT_REF !== sourceRef
     || !release || !/^[a-zA-Z0-9._-]{1,128}$/.test(release) || values.CCPUN_RELEASE_ID !== release
-    || (identity.environment !== "admin-uat" && !(identity.environment === "production-admin" && sourceRef === "v4-production"))
+    || (identity.environment !== "admin-uat" && !(identity.environment === "production-admin" && (sourceRef === "v4-production" || isPinnedCloudProductionRelease(values))))
     || !resolveArticleSchedulerLane(values)
     || values.CCPUN_NATIVE_WORKFLOW_ENABLED === "1") return "disabled";
   return "native-neon";

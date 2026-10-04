@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import { CCPUN_VERCEL_PROJECT_IDS } from "../environment";
 import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 
@@ -43,6 +44,7 @@ export const ADMIN_OPERATIONS_MIGRATION_VERSION = ADMIN_OPERATIONS_IDENTITY.migr
 export const ADMIN_OPERATIONS_MIGRATION_CHECKSUM = ADMIN_OPERATIONS_IDENTITY.migrationChecksum;
 
 export type AdminOperationsRuntimeIdentity = {
+  releaseVariables?: Record<string, string | undefined>;
   environment: string | undefined;
   projectId: string | undefined;
   branchId: string | undefined;
@@ -92,7 +94,7 @@ export function resolveAdminOperationsRuntimeIdentity(input: AdminOperationsRunt
   if (!deployment.valid || deployment.environment !== environment) return null;
 
   if (lane === "production") {
-    if (deployment.provider === "local" || deployment.gitRef !== "v4-production") return null;
+    if (deployment.provider === "local" || (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease({ ...(input.releaseVariables ?? process.env), CCPUN_APP_ENV: environment, CCPUN_DEPLOYMENT_PROVIDER: deployment.provider, CCPUN_DEPLOYMENT_ROLE: deployment.role, CCPUN_GIT_SHA: deployment.gitSha ?? undefined, CCPUN_GIT_REF: deployment.gitRef ?? undefined, CCPUN_RELEASE_ID: deployment.releaseId ?? undefined }))) return null;
     if (deployment.provider === "vercel") {
       if (vercelEnvironment !== "production") return null;
       if (vercelProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction) return null;
@@ -131,6 +133,7 @@ export function adminOperationsRuntimeInputFromEnvironment(
 ): AdminOperationsRuntimeIdentity {
   return {
     environment: variables.CCPUN_APP_ENV?.trim(),
+    releaseVariables: variables,
     projectId: variables.CCPUN_NEON_PROJECT_ID?.trim(),
     branchId: variables.CCPUN_NEON_BRANCH_ID?.trim(),
     database: variables.CCPUN_NEON_DATABASE?.trim(),

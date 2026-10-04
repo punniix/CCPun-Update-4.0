@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import "server-only";
 
 import { z } from "zod";
@@ -108,7 +109,7 @@ export async function readAdminDeployments(
   const runtimeIdentityValid = identity.valid
     && ["production-admin", "admin-uat"].includes(identity.environment)
     && Boolean(gitSha && identity.gitRef && /^[a-zA-Z0-9._/-]{1,128}$/.test(identity.gitRef))
-    && (identity.environment !== "production-admin" || identity.gitRef === "v4-production")
+    && (identity.environment !== "production-admin" || (identity.gitRef === "v4-production" || isPinnedCloudProductionRelease(env)))
     && (identity.provider !== "hostinger" || Boolean(env.CCPUN_RELEASE_ID?.trim()
       && /^[a-zA-Z0-9._-]{1,128}$/.test(env.CCPUN_RELEASE_ID.trim())))
     && Object.entries({

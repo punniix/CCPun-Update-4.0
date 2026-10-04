@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import { createHash } from "node:crypto";
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { after } from "next/server";
@@ -105,7 +106,7 @@ export function resolveLineIngestRuntime(
   const vercelEnvironment = variables.VERCEL_ENV?.trim();
   const vercelProjectId = variables.VERCEL_PROJECT_ID?.trim();
   if (lane === "production") {
-    if (deployment.provider === "local" || deployment.gitRef !== "v4-production") return null;
+    if (deployment.provider === "local" || (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease(variables))) return null;
     if (
       deployment.provider === "vercel"
       && (vercelEnvironment !== "production" || vercelProjectId !== ADMIN_VERCEL_PROJECT_ID)

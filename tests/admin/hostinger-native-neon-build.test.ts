@@ -14,7 +14,7 @@ import { startArticleScheduleWorker } from "../../scripts/article-schedule-worke
 // Prepared for actual Hostinger execution. No application DB/CMS/provider is
 // contacted; fake Git/artifact/config fixtures belong only to this suite.
 const source = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
-const tracked = ["package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs",
+const tracked = ["package-lock.json", "apps/admin/next.config.ts", "apps/admin/scripts/build-provider.mjs", "lib/runtime/hostinger-production-release.mjs",
   "apps/admin/instrumentation.ts", "lib/admin/article-schedule-clock.ts", "lib/admin/article-scheduling.ts",
   "lib/admin/operations/article-schedule-sql.ts", "lib/admin/operations/article-schedule-store.ts",
   "lib/admin/operations/jobs-read-model.ts", "apps/admin/app/api/admin/content/[id]/schedule/route.ts", "scripts/article-schedule-worker.ts"];
@@ -30,6 +30,7 @@ function fixture() {
   for (const path of tracked) put(join(root, path), path === "package-lock.json" ? '{"lockfileVersion":3}\n' : "// fixture\n");
   put(join(root, "apps/admin/scripts/build-provider.mjs"), source("apps/admin/scripts/build-provider.mjs"));
   put(join(root, "apps/admin/next.config.ts"), source("apps/admin/next.config.ts"));
+  put(join(root, "lib/runtime/hostinger-production-release.mjs"), source("lib/runtime/hostinger-production-release.mjs"));
   put(join(root, "apps/next-security-headers.mjs"), "export function buildNextSecurityHeaders(){return [];}\n");
   git("add", "."); git("commit", "-m", "Synthetic native build fixture");
   const values: Record<string, string | undefined> = {
@@ -253,5 +254,54 @@ test("private runner validates actual source before starting and never starts fo
     await assert.rejects(startArticleScheduleWorker(worker, dependencies), /TRACKED_DIRTY/); assert.equal(starts, 0);
     f.git("checkout", "--", "package-lock.json");
     await startArticleScheduleWorker(worker, dependencies); assert.equal(starts, 1);
+  } finally { f.close(); }
+});
+
+
+test("Cloud pinned Production ref builds from real Git while both private CLI source validation remains strict", async () => {
+  const f = fixture(); try {
+    const sha = f.git("rev-parse", "HEAD"), ref = `codex/hostinger-release-production-${sha}`;
+    f.git("checkout", "-b", ref);
+    const values = { ...productionValues(f), CCPUN_GIT_REF: ref };
+    const seal = validateNativeNeonBuild(f.admin, values);
+    assert.ok(seal); assert.equal(seal.gitSha, sha); assert.equal(seal.gitRef, ref);
+    assert.equal(seal.articleScheduleExecutorEnabled, false); assert.equal(seal.productionReady, false);
+    assert.equal(seal.publicValues.NEXT_PUBLIC_CCPUN_GIT_REF, ref);
+    assert.throws(() => validateNativeNeonSource(f.admin, values), /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+    await assert.rejects(startArticleScheduleWorker({ ...values, ...seal.publicValues,
+      CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+      CCPUN_ARTICLE_SCHEDULING_ENABLED: "1", CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" }), /NATIVE_SCHEDULE_WORKER_ACTIVATION_DENIED/);
+    for (const change of [
+      { CCPUN_GIT_REF: `codex/hostinger-release-production-${"b".repeat(40)}` },
+      { CCPUN_GIT_REF: `codex/hostinger-release-uat-${sha}` }, { CCPUN_GIT_REF: "feature/production" },
+      { CCPUN_GIT_SHA: "b".repeat(40) }, { CCPUN_APP_ENV: "admin-uat" },
+      { CCPUN_DEPLOYMENT_PROVIDER: "vercel" }, { CCPUN_DEPLOYMENT_ROLE: "web" },
+      { CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" }, { NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5" },
+      { CCPUN_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8" }, { AUTH_URL: "https://admin-test.ccpun.com" },
+      { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" }, { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" },
+      { CCPUN_BACKGROUND_WORKER_ENABLED: "1" }, { CCPUN_BACKGROUND_EXECUTION_PLANE: "vps" },
+      { CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps" }, { CCPUN_RELEASE_ID: undefined },
+      { NEXT_PUBLIC_CCPUN_GIT_REF: "v4-production" }, { NEXT_PUBLIC_CCPUN_RELEASE_ID: "wrong-release" },
+    ]) assert.throws(() => validateNativeNeonBuild(f.admin, { ...values, ...change }), /BUILD_DENIED/);
+    put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"changed":true}\n');
+    assert.throws(() => validateNativeNeonBuild(f.admin, values), { message: "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED:TRACKED_DIRTY" });
+  } finally { f.close(); }
+});
+
+
+test("pinned Cloud ref must be a real refs/heads branch, never only a tag in detached source", () => {
+  const f = fixture(); try {
+    const sha = f.git("rev-parse", "HEAD"), ref = `codex/hostinger-release-production-${sha}`;
+    f.git("checkout", "-b", ref);
+    const values = { ...productionValues(f), CCPUN_GIT_REF: ref };
+    assert.ok(validateNativeNeonBuild(f.admin, values));
+    f.git("checkout", "--detach");
+    assert.ok(validateNativeNeonBuild(f.admin, values), "detached checkout still requires the exact real branch");
+    f.git("branch", "-D", ref); f.git("tag", ref);
+    assert.equal(f.git("rev-parse", "--verify", `${ref}^{commit}`), sha, "a tag could satisfy the former unqualified lookup");
+    assert.throws(() => validateNativeNeonBuild(f.admin, values), { message: "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED:REF_RESOLUTION_MISMATCH" });
+    f.git("tag", "-d", ref);
+    assert.throws(() => validateNativeNeonBuild(f.admin, values), { message: "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED:REF_RESOLUTION_MISMATCH" });
+    assert.throws(() => validateNativeNeonSource(f.admin, values), /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
   } finally { f.close(); }
 });
