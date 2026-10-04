@@ -42,6 +42,18 @@ test("actual browser bundle admits sealed native Studio and retains auth/editori
   assert.equal(policy.isStudioConfigurationAllowed("uat", "production-admin", "ccb9lnw5"), false);
 });
 
+test("exact SHA-pinned Hostinger Production Studio ref is accepted and near-misses fail closed", async () => {
+  const policy = await browser(native);
+  const pinned = { ...native, NEXT_PUBLIC_CCPUN_GIT_REF: `codex/hostinger-release-production-${SHA}` };
+  assert.equal(policy.isStudioConfigurationAllowed("production", "production-admin", "kyfxgjnq", pinned, false), true);
+  assert.equal(policy.isStudioConfigurationAllowed("production", "production-admin", "kyfxgjnq", {
+    ...pinned, NEXT_PUBLIC_CCPUN_GIT_REF: `codex/hostinger-release-production-${"b".repeat(40)}`,
+  }, false), false);
+  assert.equal(policy.isStudioConfigurationAllowed("production", "production-admin", "kyfxgjnq", {
+    ...pinned, NEXT_PUBLIC_CCPUN_GIT_REF: "codex/hostinger-release-production",
+  }, false), false);
+});
+
 test("native browser markers fail closed without falling back to valid Vercel IDs", async () => {
   const policy = await browser(native);
   const mutations = [
