@@ -266,7 +266,7 @@ export async function rescheduleSocialPublication(input: {
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $6,'human',$4,'publication:reschedule','publication',$1,$5,'succeeded'
-       FROM amended_publication CROSS JOIN amended_job ON CONFLICT (id) DO NOTHING RETURNING id
+       FROM amended_publication CROSS JOIN amended_job ON CONFLICT DO NOTHING RETURNING 1
      )
      SELECT amended_publication.id AS publication_id,amended_publication.status AS publication_status,
        amended_publication.scheduled_at,amended_job.id AS job_id,amended_job.status AS job_status,
@@ -327,7 +327,7 @@ export async function cancelSocialPublication(input: {
        INSERT INTO ccpun_social.social_execution_audit
          (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
        SELECT $3,'human',$4,'publication:cancel','publication',$1,$5,'succeeded'
-       FROM cancelled_publication CROSS JOIN cancelled_job ON CONFLICT (id) DO NOTHING RETURNING id
+       FROM cancelled_publication CROSS JOIN cancelled_job ON CONFLICT DO NOTHING RETURNING 1
      )
      SELECT cancelled_publication.id AS publication_id,cancelled_publication.status AS publication_status,
        cancelled_publication.scheduled_at,cancelled_job.id AS job_id,cancelled_job.status AS job_status,
