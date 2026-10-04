@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { createNativeArticleScheduleClock, getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
+import { createNativeArticleScheduleClock, getArticleScheduleBackend, isArticleScheduleExecutionEnabled } from "../../lib/admin/article-schedule-clock";
 import { resolveArticleSchedulerLane, type ArticleScheduleRow } from "../../lib/admin/operations/article-schedule-contract";
 import type { NativeScheduleStore } from "../../lib/admin/operations/article-schedule-store";
 import { executeArticleSchedule } from "../../lib/admin/article-schedule-executor";
@@ -25,7 +25,8 @@ const allowed = new Set(["PATH", "NODE_ENV", "NODE_TEST_CONTEXT", "TZ", "LANG", 
   "NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE", "CCPUN_ARTICLE_SCHEDULER_BACKEND", "NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND",
   "CCPUN_GIT_SHA", "CCPUN_GIT_REF", "CCPUN_RELEASE_ID", "NEXT_PUBLIC_CCPUN_GIT_SHA", "NEXT_PUBLIC_CCPUN_GIT_REF", "NEXT_PUBLIC_CCPUN_RELEASE_ID",
   "NEXT_PUBLIC_SANITY_PROJECT_ID", "NEXT_PUBLIC_SANITY_DATASET", "CCPUN_NEON_PROJECT_ID", "CCPUN_NEON_BRANCH_ID", "CCPUN_NEON_DATABASE",
-  "CCPUN_ADMIN_DATABASE_URL", "CCPUN_ARTICLE_SCHEDULING_ENABLED", "CCPUN_NATIVE_WORKFLOW_ENABLED"]);
+  "CCPUN_ADMIN_DATABASE_URL", "CCPUN_ARTICLE_SCHEDULING_ENABLED", "CCPUN_NATIVE_WORKFLOW_ENABLED",
+  "CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE", "CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED"]);
 type GuardCode = "TARGET_DENIED" | "AMBIENT_ENV_DENIED" | "ENV_FILE_DENIED" | "UAT_BINDING_DENIED"
   | "DSN_POLICY_DENIED" | "SOURCE_DENIED" | "DURABLE_IDENTITY_DENIED" | "FIXTURE_ARGUMENT_DENIED"
   | "FIXTURE_CLAIM_DENIED" | "OWNERSHIP_DENIED" | "FIXTURE_STATE_DENIED" | "CMS_WRITE_DENIED"
@@ -48,7 +49,8 @@ function preflight() {
   }
   if (process.env.CCPUN_APP_ENV !== "admin-uat" || resolveArticleSchedulerLane() !== "uat"
     || getArticleScheduleBackend() !== "native-neon" || process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED !== "1"
-    || ![undefined, "0"].includes(process.env.CCPUN_NATIVE_WORKFLOW_ENABLED)) deny("UAT_BINDING_DENIED");
+    || process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE !== "vps" || process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED !== "1"
+    || process.env.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0" || !isArticleScheduleExecutionEnabled()) deny("UAT_BINDING_DENIED");
   // Existing resolver plus stricter URI policy: no duplicate or unexpected
   // options, pooling host allowed, no credentials/default connection fallback.
   const url = new URL(process.env.CCPUN_ADMIN_DATABASE_URL!);
