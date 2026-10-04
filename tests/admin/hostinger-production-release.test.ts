@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isPinnedCloudProductionRelease } from "../../lib/runtime/hostinger-production-release.mjs";
+import { isSeoIntelligenceEnabled } from "../../lib/admin/seo-intelligence/foundation";
 import { resolveSocialRuntime } from "../../lib/admin/social/runtime";
 import { validateBackgroundWorker } from "../../scripts/admin-background-worker";
 import { resolveArticleSchedulerLane } from "../../lib/admin/operations/article-schedule-contract";
@@ -50,6 +51,16 @@ test("actual runtime producer/read lane accepts compiled pinned Cloud identity w
     assert.equal(resolveAdminOperationsRuntimeIdentity(adminOperationsRuntimeInputFromEnvironment(v))?.lane, "production");
     const social = { ...v, CCPUN_NEON_ENDPOINT_ID: "ep-broad-butterfly-b3ro7u8w", CCPUN_SOCIAL_DATABASE_URL: v.CCPUN_ADMIN_DATABASE_URL!.replace("ccpun_admin_runtime", "ccpun_social_runtime") };
     assert.equal(resolveSocialRuntime(social)?.lane, "production");
+    const seo = { releaseVariables: v, flag: "1", environment: "production-admin" as const, deploymentProvider: "hostinger", deploymentRole: "admin", releaseId: v.CCPUN_RELEASE_ID, gitSha: v.CCPUN_GIT_SHA,
+      vercelEnvironment: undefined, projectId: undefined, productionAdminProjectId: undefined, gitBranch: v.CCPUN_GIT_REF, sanityProjectId: "kyfxgjnq", sanityDataset: "production" };
+    assert.equal(isSeoIntelligenceEnabled(seo), true);
+    assert.equal(isSeoIntelligenceEnabled({ ...seo, flag: "0" }), false);
+    assert.equal(isSeoIntelligenceEnabled({ ...seo, deploymentProvider: "vercel" }), false);
+    assert.equal(isSeoIntelligenceEnabled({ ...seo, sanityDataset: "uat" }), false);
+    assert.equal(isSeoIntelligenceEnabled({ ...seo, environment: "admin-uat" }), false);
+    assert.equal(isSeoIntelligenceEnabled({ ...seo, releaseVariables: { ...v, NEXT_PUBLIC_CCPUN_GIT_REF: "v4-production" } }), false);
+    assert.equal(isSeoIntelligenceEnabled({ ...seo, releaseVariables: { ...v, CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps" } }), false);
+    assert.equal(isSeoIntelligenceEnabled({ ...seo, releaseVariables: { ...v, CCPUN_BACKGROUND_WORKER_ENABLED: "1" } }), false);
     assert.equal(resolveSocialRuntime({ ...social, CCPUN_BACKGROUND_WORKER_ENABLED: "1" }), null);
     assert.equal(resolveAdminOperationsRuntimeIdentity(adminOperationsRuntimeInputFromEnvironment({ ...v, CCPUN_BACKGROUND_WORKER_ENABLED: "1" })), null);
     assert.equal(resolveArticleSchedulerLane({ ...v, CCPUN_ADMIN_DATABASE_URL: v.CCPUN_ADMIN_DATABASE_URL!.replace("ccpun_admin_runtime", "neondb_owner") }), null);

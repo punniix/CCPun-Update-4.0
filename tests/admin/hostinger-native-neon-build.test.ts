@@ -287,3 +287,21 @@ test("Cloud pinned Production ref builds from real Git while both private CLI so
     assert.throws(() => validateNativeNeonBuild(f.admin, values), { message: "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED:TRACKED_DIRTY" });
   } finally { f.close(); }
 });
+
+
+test("pinned Cloud ref must be a real refs/heads branch, never only a tag in detached source", () => {
+  const f = fixture(); try {
+    const sha = f.git("rev-parse", "HEAD"), ref = `codex/hostinger-release-production-${sha}`;
+    f.git("checkout", "-b", ref);
+    const values = { ...productionValues(f), CCPUN_GIT_REF: ref };
+    assert.ok(validateNativeNeonBuild(f.admin, values));
+    f.git("checkout", "--detach");
+    assert.ok(validateNativeNeonBuild(f.admin, values), "detached checkout still requires the exact real branch");
+    f.git("branch", "-D", ref); f.git("tag", ref);
+    assert.equal(f.git("rev-parse", "--verify", `${ref}^{commit}`), sha, "a tag could satisfy the former unqualified lookup");
+    assert.throws(() => validateNativeNeonBuild(f.admin, values), { message: "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED:REF_RESOLUTION_MISMATCH" });
+    f.git("tag", "-d", ref);
+    assert.throws(() => validateNativeNeonBuild(f.admin, values), { message: "NATIVE_ADMIN_PRODUCTION_BUILD_DENIED:REF_RESOLUTION_MISMATCH" });
+    assert.throws(() => validateNativeNeonSource(f.admin, values), /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+  } finally { f.close(); }
+});

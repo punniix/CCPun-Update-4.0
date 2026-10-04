@@ -59,9 +59,10 @@ function validateNativeNeonSourceInternal(root, variables, run, allowCloudReleas
     || !/^[a-f0-9]{40}$/.test(variables.CCPUN_GIT_SHA ?? "")
     || !/^[a-zA-Z0-9._/-]{1,128}$/.test(variables.CCPUN_GIT_REF ?? "")
     || !/^[a-zA-Z0-9._-]{1,128}$/.test(variables.CCPUN_RELEASE_ID ?? "")) deny();
+  const pinnedCloudRelease = allowCloudRelease && isPinnedCloudProductionRelease(variables, variables, false);
   if (production && (variables.NEXT_PUBLIC_CCPUN_APP_ENV !== "production-admin"
     || variables.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND !== lane.backend
-    || (variables.CCPUN_GIT_REF !== "v4-production" && !(allowCloudRelease && isPinnedCloudProductionRelease(variables, variables, false))) || variables.AUTH_URL !== "https://admin.ccpun.com"
+    || (variables.CCPUN_GIT_REF !== "v4-production" && !pinnedCloudRelease) || variables.AUTH_URL !== "https://admin.ccpun.com"
     || variables.CCPUN_NATIVE_WORKFLOW_ENABLED !== "0")) deny();
   const repository = resolve(root, "../..");
   const git = (args, failureReason = "") => {
@@ -75,7 +76,8 @@ function validateNativeNeonSourceInternal(root, variables, run, allowCloudReleas
   // Fixed reason codes distinguish source failures without logging Git output,
   // environment values or changed paths. Every original predicate still denies.
   if (sha !== variables.CCPUN_GIT_SHA) deny("SHA_MISMATCH");
-  if (git(["rev-parse", "--verify", `${variables.CCPUN_GIT_REF}^{commit}`], "REF_RESOLUTION_MISMATCH") !== sha) deny("REF_RESOLUTION_MISMATCH");
+  const sourceRef = pinnedCloudRelease ? `refs/heads/${variables.CCPUN_GIT_REF}` : variables.CCPUN_GIT_REF;
+  if (git(["rev-parse", "--verify", `${sourceRef}^{commit}`], "REF_RESOLUTION_MISMATCH") !== sha) deny("REF_RESOLUTION_MISMATCH");
   if (git(["status", "--porcelain", "--untracked-files=no"])) deny("TRACKED_DIRTY");
   // The new runtime must be committed as well: a clean tracked diff alone
   // cannot attest an untracked implementation left in the build workspace.

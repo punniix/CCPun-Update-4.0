@@ -1,3 +1,4 @@
+import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import { CCPUN_VERCEL_PROJECT_IDS, parseAdminEnvironment, type AdminEnvironment } from "../environment";
 import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 import { SYNTHETIC_MARKET_PROVIDER_FIXTURES } from "./providers/ubersuggest";
@@ -270,6 +271,7 @@ export function getSyntheticSeoIntelligenceSnapshot() {
 }
 
 export function isSeoIntelligenceEnabled(input: {
+  releaseVariables?: Record<string, string | undefined>;
   flag: string | undefined;
   environment: AdminEnvironment;
   deploymentProvider?: string | undefined;
@@ -314,7 +316,7 @@ export function isSeoIntelligenceEnabled(input: {
       input.projectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
       input.productionAdminProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction
     )) &&
-    input.gitBranch === WEBSITE_42_SEO_PRODUCTION_BRANCH &&
+    (input.gitBranch === WEBSITE_42_SEO_PRODUCTION_BRANCH || isPinnedCloudProductionRelease({ ...(input.releaseVariables ?? process.env), CCPUN_APP_ENV: input.environment, CCPUN_DEPLOYMENT_PROVIDER: deployment.provider, CCPUN_DEPLOYMENT_ROLE: deployment.role, CCPUN_GIT_SHA: deployment.gitSha ?? undefined, CCPUN_GIT_REF: input.gitBranch, CCPUN_RELEASE_ID: deployment.releaseId ?? undefined })) &&
     input.sanityProjectId === WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET;
 
@@ -326,6 +328,7 @@ export function getSeoIntelligenceRuntimeStatus() {
   return {
     environment,
     enabled: isSeoIntelligenceEnabled({
+      releaseVariables: process.env,
       flag: process.env.CCPUN_SEO_INTELLIGENCE_ENABLED,
       environment,
       deploymentProvider: process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim(),
