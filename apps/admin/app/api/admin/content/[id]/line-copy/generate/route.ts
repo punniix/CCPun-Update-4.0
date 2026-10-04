@@ -8,6 +8,7 @@ import {
   readOrCreateArticleDraftLineCopy,
 } from "@/lib/admin/line/description-optimization";
 import { hasAdminPermission } from "@/lib/admin/rbac";
+import { resolveLineCopyN8nBridge } from "@/lib/admin/local-ai/service-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +65,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "invalid-input" }, { status: 400, headers });
+  const bridge = resolveLineCopyN8nBridge(process.env);
+  if (!bridge) return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
   const id = (await params).id;
 
   try {
@@ -85,14 +88,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }, { headers });
     }
 
-    const token = process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
+    const token = bridge.lane === "admin-uat" ? bridge.token : process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
     if (!token || token.length < 43) {
       return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
     }
     const baseUrl = process.env.CCPUN_LOCAL_AI_N8N_BASE_URL?.trim() || "https://n8n.srv908107.hstgr.cloud";
     let webhookUrl: URL;
     try {
-      webhookUrl = new URL("/webhook/ccpun-line-card-generate", baseUrl);
+      webhookUrl = bridge.lane === "admin-uat" ? bridge.webhookUrl : new URL("/webhook/ccpun-line-card-generate", baseUrl);
     } catch {
       return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
     }
@@ -104,6 +107,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     try {
       response = await fetch(webhookUrl, {
         method: "POST",
+        ...(bridge.lane === "admin-uat" ? { redirect: "error" as const } : {}),
         headers: {
           Authorization: "Bearer " + token,
           "Content-Type": "application/json",
