@@ -191,6 +191,43 @@ finally{clearTimeout(lifetime);wipeEnv();}
 '''
 
 
+# Fixed planning-only SQL; no caller SQL, business IDs, audit reads or execution.
+AUDIT_INSERT_PLANNING_QUERY = """EXPLAIN (ANALYZE FALSE, COSTS OFF, FORMAT JSON)
+INSERT INTO ccpun_social.social_execution_audit
+  (id,actor_type,actor_ref,action,object_type,object_id,request_ref,outcome)
+SELECT 'audit:private-social-planning-only','system','private-social-planning-only',
+  'publication:reschedule','publication','private-social-planning-only',
+  'private-social-planning-only','denied'
+WHERE FALSE ON CONFLICT DO NOTHING RETURNING 1"""
+
+
+def node_program(audit_insert_planning=False):
+    require(type(audit_insert_planning) is bool)
+    if not audit_insert_planning:
+        return NODE
+    transaction = "  const [rows]=await sql.transaction([sql.query(query,['lively-bar-43618798','br-long-resonance-b3ys5xrv','ep-broad-butterfly-b3ro7u8w'])],{readOnly:true,isolationLevel:'RepeatableRead',fetchOptions:{signal:AbortSignal.timeout(10000),redirect:'error'}});"
+    require(NODE.count(transaction) == 1)
+    changed = transaction.replace('const [rows]', 'const [rows,auditPlanningRows]').replace(
+        "])],{readOnly:true", "]),sql.query(auditPlanningQuery,[])],{readOnly:true")
+    program = NODE.replace(transaction, '  const auditPlanningQuery=' + json.dumps(AUDIT_INSERT_PLANNING_QUERY) + ';\n' + changed)
+    validation = """  demand(Array.isArray(auditPlanningRows)&&auditPlanningRows.length===1);
+  exact(auditPlanningRows[0],['QUERY PLAN']);
+  const planned=auditPlanningRows[0]['QUERY PLAN'];
+  demand(Array.isArray(planned)&&planned.length===1&&Buffer.byteLength(JSON.stringify(planned))<=16384);
+  exact(planned[0],['Plan']);
+  const plan=planned[0].Plan;
+  demand(plan&&plan['Node Type']==='ModifyTable'&&plan.Operation==='Insert'&&plan['Relation Name']==='social_execution_audit'&&plan['Conflict Resolution']==='NOTHING'&&Array.isArray(plan.Plans)&&plan.Plans.length===1);
+  const input=plan.Plans[0];
+  demand(input&&input['Node Type']==='Result'&&input['One-Time Filter']==='false'&&!input.Plans&&!Object.hasOwn(plan,'Actual Rows')&&!Object.hasOwn(input,'Actual Rows'));
+"""
+    anchor = '  let metaIdentityVerified=false,metaPermissionsVerified=false;'
+    require(program.count(anchor) == 1)
+    program = program.replace(anchor, validation + anchor)
+    result = 'metaIdentityVerified,metaPermissionsVerified,operationalRows:count}'
+    require(program.count(result) == 1)
+    return program.replace(result, 'metaIdentityVerified,metaPermissionsVerified,operationalRows:count,auditInsertPlanningVerified:true}')
+
+
 def docker_command(source, config, name):
     # All arguments/environment are PUBLIC. No inherited environment, mounts of
     # private packs, published ports, auto-restart, worker command or Docker logs.
@@ -204,8 +241,8 @@ def docker_command(source, config, name):
         '--entrypoint=/bin/sh', IMAGE, '-s', '--', json.dumps(config, separators=(',', ':'))]
 
 
-def bootstrap():
-    return ("umask 077\ncat > /tmp/preflight.mjs <<'CCPUN_PUBLIC_NODE_END'\n" + NODE +
+def bootstrap(audit_insert_planning=False):
+    return ("umask 077\ncat > /tmp/preflight.mjs <<'CCPUN_PUBLIC_NODE_END'\n" + node_program(audit_insert_planning) +
         "\nCCPUN_PUBLIC_NODE_END\nexec /usr/local/bin/node --conditions=react-server /tmp/preflight.mjs \"$1\"\n").encode()
 
 
@@ -251,11 +288,12 @@ def cleanup(name, run=subprocess.run):
     require(check.returncode == 0 and check.stdout == b'')
 
 
-def exchange(child, private_reader):
+def exchange(child, private_reader, audit_insert_planning=False):
     private = None
     try:
         deadline = time.monotonic() + 45
-        write_all(child.stdin, bootstrap(), deadline)
+        require(type(audit_insert_planning) is bool)
+        write_all(child.stdin, bootstrap(audit_insert_planning), deadline)
         require(read_line(child.stdout, deadline) == b'SOCIAL_PREFLIGHT_READY_V1')
         # Never call the retained-pack reader before the trusted source READY.
         private = bytearray(json.dumps(private_reader(), separators=(',', ':')).encode())
@@ -264,8 +302,11 @@ def exchange(child, private_reader):
         child.stdin.close()
         line = read_line(child.stdout, deadline)
         result = parse(line)
-        require(set(result) == set(RESULT_KEYS) and all(type(result[k]) is bool for k in RESULT_KEYS[:-1])
+        keys = (*RESULT_KEYS, 'auditInsertPlanningVerified') if audit_insert_planning else RESULT_KEYS
+        require(set(result) == set(keys) and all(type(result[k]) is bool for k in RESULT_KEYS[:-1])
             and type(result['operationalRows']) is int and result['operationalRows'] >= 0)
+        if audit_insert_planning:
+            require(result['auditInsertPlanningVerified'] is True)
         require(child.wait(timeout=max(1, deadline-time.monotonic())) == 0)
         require(child.stdout.read(1) == b'')
         return result
@@ -277,7 +318,7 @@ def exchange(child, private_reader):
             child.wait(timeout=5)
 
 
-def run_readonly(source, sha, lock, manifest_path):
+def run_readonly(source, sha, lock, manifest_path, audit_insert_planning=False):
     require(sys.platform == 'linux' and os.getuid() == os.getgid() == 0 and sys.flags.isolated)
     require(re.fullmatch('[a-f0-9]{40}', sha) and re.fullmatch('[a-f0-9]{64}', lock))
     require(source == '/opt/ccpun-workers/releases/' + sha and os.path.realpath(source) == source)
@@ -304,7 +345,7 @@ def run_readonly(source, sha, lock, manifest_path):
         child = subprocess.Popen(docker_command(source, config, name), stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0,
             env={'PATH': '/usr/bin:/bin', 'HOME': '/nonexistent', 'LANG': 'C'})
-        return exchange(child, private_reader)
+        return exchange(child, private_reader, True) if audit_insert_planning else exchange(child, private_reader)
     finally:
         cleanup(name)
 
@@ -370,6 +411,48 @@ const sql={query(q,parameters){assert.match(q,/^SELECT /);assert.doesNotMatch(q.
             result=node_check(code)
             self.assertEqual(result.returncode,0)
             self.assertEqual(result.stdout,b'NEON_READONLY_MOCK_PASS')
+        def test_planning_program_preserves_default_and_bounded_shape(self):
+            self.assertIs(node_program(False),NODE)
+            optional=node_program(True)
+            self.assertEqual(optional.count(AUDIT_INSERT_PLANNING_QUERY.splitlines()[0]),1)
+            self.assertIn('WHERE FALSE ON CONFLICT DO NOTHING RETURNING 1',optional)
+            self.assertNotIn('SET ROLE',optional)
+            self.assertNotIn('ON CONFLICT (',AUDIT_INSERT_PLANNING_QUERY)
+            self.assertNotIn('FROM ',AUDIT_INSERT_PLANNING_QUERY)
+            self.assertEqual(node_check(optional,('--check',)).returncode,0)
+            with self.assertRaises(Hold):node_program('true')
+        def test_actual_optional_transaction_and_plan_validation(self):
+            program=node_program(True)
+            fragment=program[program.index('  const query='):program.index('  let metaIdentityVerified=')]
+            code="""import assert from 'node:assert/strict';
+const demand=x=>{if(!x)throw Error('HOLD');};
+"""+NODE[NODE.index('const exact='):NODE.index('const off=')]+"const expectedQuery="+json.dumps(AUDIT_INSERT_PLANNING_QUERY)+""";
+const good={Plan:{'Node Type':'ModifyTable',Operation:'Insert','Relation Name':'social_execution_audit','Conflict Resolution':'NOTHING',Plans:[{'Node Type':'Result','One-Time Filter':'false'}]}};
+async function check(planning){const sql={query(q,params){return {q,params};},async transaction(queries,options){assert.equal(queries.length,2);assert.match(queries[0].q,/^SELECT /);assert.equal(queries[1].q,expectedQuery);assert.deepEqual(queries[1].params,[]);assert.equal(options.readOnly,true);assert.equal(options.isolationLevel,'RepeatableRead');assert.equal(options.fetchOptions.redirect,'error');assert.ok(options.fetchOptions.signal instanceof AbortSignal);return [[{role_ok:true,identity_ok:true,migrations_ok:true,restricted:true,audit_append_only:true,operational_rows:'0'}],planning];}};
+"""+fragment+"""return true;}
+assert.equal(await check([{'QUERY PLAN':[good]}]),true);
+for(const bad of [[],[{'QUERY PLAN':[]}],[{'QUERY PLAN':[good],extra:true}],[{'QUERY PLAN':[{...good,'Execution Time':0}]}],
+ [{'QUERY PLAN':[{Plan:{...good.Plan,Operation:'Delete'}}]}],[{'QUERY PLAN':[{Plan:{...good.Plan,'Relation Name':'other'}}]}],
+ [{'QUERY PLAN':[{Plan:{...good.Plan,'Actual Rows':0}}]}],[{'QUERY PLAN':[{Plan:{...good.Plan,Plans:[{'Node Type':'Result','One-Time Filter':'true'}]}}]}],
+ [{'QUERY PLAN':[{Plan:{...good.Plan,extra:'x'.repeat(16384)}}]}]])await assert.rejects(()=>check(bad));
+process.stdout.write('AUDIT_PLANNING_MOCK_PASS');
+"""
+            result=node_check(code)
+            self.assertEqual(result.returncode,0)
+            self.assertEqual(result.stdout,b'AUDIT_PLANNING_MOCK_PASS')
+        def test_optional_cli_rejects_flags_before_input(self):
+            original_argv=sys.argv
+            original_run=globals()['run_readonly']
+            calls=[]
+            globals()['run_readonly']=lambda *args,**kwargs:calls.append((args,kwargs)) or {}
+            try:
+                base=['operator','--owner-approved-readonly','/public/source','a'*40,'b'*64,MANIFEST_PATH]
+                for argv in [base+['--unknown'],base+['--audit-insert-planning','extra'],base[:2]+['--audit-insert-planning']+base[2:],['operator','--audit-insert-planning']]:
+                    sys.argv=argv
+                    with self.assertRaises(Hold):main()
+                self.assertEqual(calls,[])
+            finally:
+                sys.argv=original_argv;globals()['run_readonly']=original_run
         def test_actual_neon_append_only_validation(self):
             validation=NODE[NODE.index('  demand(rows.length'):NODE.index('  let metaIdentityVerified=')]
             code="""import assert from 'node:assert/strict';
@@ -460,6 +543,24 @@ sys.stdout.write(json.dumps(result)+'\\n');sys.stdout.flush()
             def reader():calls.append(True);return dict(schemaVersion=1,credentialSource=ORIGINAL,social=dict.fromkeys(FIELDS,'FAKE_ONLY'))
             self.assertEqual(exchange(child,reader)['operationalRows'],0)
             self.assertEqual(calls,[True])
+        def test_optional_exchange_requires_verified_boolean_only(self):
+            for flag in [True,False,None,'true']:
+                result={k:True for k in RESULT_KEYS[:-1]};result['operationalRows']=0
+                if flag is not None:result['auditInsertPlanningVerified']=flag
+                script="""import sys,json
+while True:
+ line=sys.stdin.buffer.readline()
+ if not line:sys.exit(1)
+ if line.startswith(b'exec /usr/local/bin/node '):break
+sys.stdout.write('SOCIAL_PREFLIGHT_READY_V1\\n');sys.stdout.flush()
+sys.stdin.buffer.read()
+sys.stdout.write("""+repr(json.dumps(result)+'\n')+""");sys.stdout.flush()
+"""
+                child=subprocess.Popen([sys.executable,'-I','-c',script],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,bufsize=0,env=sterile)
+                reader=lambda:dict(schemaVersion=1,credentialSource=ORIGINAL,social=dict.fromkeys(FIELDS,'FAKE_ONLY'))
+                if flag is True:self.assertIs(exchange(child,reader,True)['auditInsertPlanningVerified'],True)
+                else:
+                    with self.assertRaises(Hold):exchange(child,reader,True)
         def test_source_denied_never_reads_private(self):
             calls=[]
             child=subprocess.Popen([sys.executable,'-I','-c',"import sys;sys.stdout.write('SOCIAL_PREFLIGHT_HOLD\\n');sys.stdout.flush()"],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,bufsize=0,env={'PATH':'/usr/bin:/bin'})
@@ -486,8 +587,10 @@ sys.stdout.write(json.dumps(result)+'\\n');sys.stdout.flush()
 def main():
     if len(sys.argv)==3 and sys.argv[1]=='--self-test':
         print(json.dumps({'selfTestsPassed':self_test(sys.argv[2]),'networkExecuted':False,'privatePacksRead':False}))
-    elif len(sys.argv)==6 and sys.argv[1]=='--owner-approved-readonly':
-        result=run_readonly(*sys.argv[2:])
+    elif (len(sys.argv)==6 or (len(sys.argv)==7 and sys.argv[-1]=='--audit-insert-planning')) and sys.argv[1]=='--owner-approved-readonly':
+        # All flags/argument arity are resolved before public or private input.
+        require(all(not value.startswith('--') for value in sys.argv[2:6]))
+        result=run_readonly(*sys.argv[2:6],audit_insert_planning=len(sys.argv)==7)
         print(json.dumps({**result,'sanity':'SANITY_SCHEMA_HOLD','metaExpiry':'META_EXPIRY_HOLD',
             'operationalRowsScope':'publication+publication_job+comment_item','auditRowsMeasured':False,
             'businessWritesExecuted':False},separators=(',',':')))
