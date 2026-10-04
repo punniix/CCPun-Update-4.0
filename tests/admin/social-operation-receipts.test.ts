@@ -52,6 +52,10 @@ test("receipt migration checksum and actual invoker body hash match amendment re
   const bound = api.SOCIAL_OPERATION_RECEIPT_READINESS_SQL.replace("$1", "'" + api.SOCIAL_OPERATION_RECEIPT_VERSION + "'")
     .replace("$2", "'" + api.SOCIAL_OPERATION_RECEIPT_CHECKSUM + "'").replace("$3", "'" + api.SOCIAL_OPERATION_RECEIPT_TRIGGER_MD5 + "'");
   assert.ok(readback.includes(bound));
+  for (const statement of [api.SOCIAL_OPERATION_RECEIPT_READINESS_SQL, readback]) {
+    assert.ok(statement.includes("NOT has_any_column_privilege(current_user,'ccpun_social.social_execution_audit','UPDATE,REFERENCES')"));
+  }
+  assert.ok(migration.includes("OR has_any_column_privilege('ccpun_social_runtime','ccpun_social.social_execution_audit','UPDATE,REFERENCES')"));
 
 });
 

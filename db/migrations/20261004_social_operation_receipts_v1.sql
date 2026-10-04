@@ -27,6 +27,7 @@ BEGIN
     AND c.confkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid=c.confrelid AND attname='id')]::smallint[])
     OR NOT has_table_privilege('ccpun_social_runtime','ccpun_social.social_execution_audit','INSERT')
     OR has_any_column_privilege('ccpun_social_runtime','ccpun_social.social_execution_audit','SELECT')
+    OR has_any_column_privilege('ccpun_social_runtime','ccpun_social.social_execution_audit','UPDATE,REFERENCES')
     OR has_table_privilege('ccpun_social_runtime','ccpun_social.social_execution_audit','UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
   THEN RAISE EXCEPTION 'SOCIAL_OPERATION_RECEIPT_PRIVILEGE_OR_FK_MISMATCH'; END IF;
   SELECT checksum INTO current_checksum FROM ccpun_social.schema_migration

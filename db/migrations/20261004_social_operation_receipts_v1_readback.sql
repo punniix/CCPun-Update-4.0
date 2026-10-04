@@ -32,6 +32,7 @@ SELECT
     AND NOT has_table_privilege(current_user,'ccpun_social.social_publication_job','UPDATE') AS receipt_grant_current,
   has_table_privilege(current_user,'ccpun_social.social_execution_audit','INSERT')
     AND NOT has_any_column_privilege(current_user,'ccpun_social.social_execution_audit','SELECT')
+    AND NOT has_any_column_privilege(current_user,'ccpun_social.social_execution_audit','UPDATE,REFERENCES')
     AND NOT has_table_privilege(current_user,'ccpun_social.social_execution_audit','UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
     AS audit_append_only;
 

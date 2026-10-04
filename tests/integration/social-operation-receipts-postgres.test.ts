@@ -164,6 +164,16 @@ test("real PostgreSQL: receipts, INSERT-only audit, concurrency and whole-statem
   const insert = promisify(execFile)("psql", [...args, "-c", "INSERT INTO ccpun_social.social_publication_job(id,publication_id,status,version,attempt_count) VALUES('fk-fence-new','fk-fence','queued',1,0)"], { env: { ...process.env, PGAPPNAME: "social-receipt-fixture-insert" }, timeout: 15_000 });
   await waitForLock("social-receipt-fixture-insert"); await fence.commit(); await insert;
 
+  seed("column-privileges"); const privilegeBefore = snapshot("column-privileges");
+  for (const privilege of ["UPDATE(actor_ref)", "REFERENCES(id)"]) {
+    ownerSql("GRANT " + privilege + " ON ccpun_social.social_execution_audit TO ccpun_social_runtime");
+    await assert.rejects(api.cancelSocialPublication({ mutation: { publicationId: "column-privileges", expectedJobVersion: 1,
+      idempotencyKey: "column-privilege-01" }, actor, env }), /RECEIPTS_NOT_READY/);
+    assert.equal(snapshot("column-privileges"), privilegeBefore, "column-level privilege drift denies before mutation");
+    assert.throws(() => ownerSql(migration), "migration guard must also reject column-level unsafe grants");
+    ownerSql("REVOKE " + privilege + " ON ccpun_social.social_execution_audit FROM ccpun_social_runtime");
+  }
+
   seed("capacity");
   for (let version = 1; version <= 128; version++) {
     await api.cancelSocialPublication({ mutation: { publicationId: "capacity", expectedJobVersion: version,
