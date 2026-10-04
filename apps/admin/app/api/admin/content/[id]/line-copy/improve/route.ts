@@ -10,6 +10,7 @@ import {
   readArticleLineCopyImprovementTarget,
 } from "@/lib/admin/line/description-optimization";
 import { hasAdminPermission } from "@/lib/admin/rbac";
+import { resolveLineCopyN8nBridge } from "@/lib/admin/local-ai/service-auth";
 import { lineCardTextDescriptionSchema, lineCardTitleSchema } from "@/lib/local-ai/contracts";
 
 export const runtime = "nodejs";
@@ -81,11 +82,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "invalid-input" }, { status: 400, headers });
+  const bridge = resolveLineCopyN8nBridge(process.env);
+  if (!bridge) return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
   const id = (await params).id;
 
   try {
     if (parsed.data.action === "accept") {
-      const token = process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
+      const token = bridge.lane === "admin-uat" ? bridge.token : process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
       if (!token || token.length < 43) return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
       const expected = signProposal(token, { id, ...parsed.data });
       if (!timingSafeEqual(Buffer.from(expected), Buffer.from(parsed.data.proposalToken))) {
@@ -107,14 +110,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "line-copy-published-line-required" }, { status: 409, headers });
     }
 
-    const token = process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
+    const token = bridge.lane === "admin-uat" ? bridge.token : process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
     if (!token || token.length < 43) {
       return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
     }
     const baseUrl = process.env.CCPUN_LOCAL_AI_N8N_BASE_URL?.trim() || "https://n8n.srv908107.hstgr.cloud";
     let webhookUrl: URL;
     try {
-      webhookUrl = new URL("/webhook/ccpun-line-card-generate", baseUrl);
+      webhookUrl = bridge.lane === "admin-uat" ? bridge.webhookUrl : new URL("/webhook/ccpun-line-card-generate", baseUrl);
     } catch {
       return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
     }
@@ -126,6 +129,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     try {
       response = await fetch(webhookUrl, {
         method: "POST",
+        ...(bridge.lane === "admin-uat" ? { redirect: "error" as const } : {}),
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "improve-existing",
