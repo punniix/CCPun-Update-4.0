@@ -2,7 +2,22 @@
 
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Car, HeartPulse, House, RefreshCcw, ShieldCheck, Users, WalletCards } from 'lucide-react';
+import {
+  BriefcaseBusiness,
+  Building2,
+  Car,
+  ChefHat,
+  HeartPulse,
+  House,
+  Landmark,
+  Laptop,
+  Palette,
+  RefreshCcw,
+  ShieldCheck,
+  Store,
+  Users,
+  WalletCards,
+} from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import { MONEY_STORY_CHARACTERS } from '../characters';
 import { getMoneyStoryEvent } from '../events';
@@ -45,6 +60,17 @@ const protectionIcons: Record<ProtectionType, React.ReactNode> = {
   life: <Users size={14} />,
   motor: <Car size={14} />,
   home: <House size={14} />,
+};
+
+const characterIcons: Record<string, React.ReactNode> = {
+  gam: <ChefHat size={18} />,
+  ton: <BriefcaseBusiness size={18} />,
+  meen: <Palette size={18} />,
+  nut: <Building2 size={18} />,
+  fon: <Users size={18} />,
+  win: <Laptop size={18} />,
+  ploy: <Store size={18} />,
+  poom: <Landmark size={18} />,
 };
 
 function Meter({
@@ -404,32 +430,55 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                   aria-pressed={selected}
                   onClick={() => setSelectedCharacterId(profile.id)}
                 >
-                  <span className={styles.characterPickAvatar} aria-hidden="true">
-                    {profile.name.slice(0, 1)}
+                  <span
+                    className={styles.characterPickAvatar}
+                    data-character={profile.id}
+                    aria-hidden="true"
+                  >
+                    <span>{profile.name.slice(0, 1)}</span>
+                    <i>{characterIcons[profile.id]}</i>
                   </span>
                   <span className={styles.characterPickCopy}>
                     <strong>{profile.name}</strong>
                     <span>{profile.role}</span>
-                    <small>{profile.trait}</small>
+                    <em>{profile.archetype}</em>
+                    <small>{profile.challenge}</small>
                   </span>
                   <span className={styles.characterPickMeta}>
-                    รายได้ {money.format(profile.baseIncome)}/เดือน
+                    <b>รายได้ {money.format(profile.baseIncome)}</b>
+                    <b>ภาระ {money.format(profile.fixedExpenses)}</b>
                   </span>
                 </button>
               );
             })}
           </div>
 
+          <p className={styles.mobileSwipeHint}>เลื่อนไปด้านข้างเพื่อดูชีวิตอื่น</p>
+
           {selectedCharacter ? (
             <div className={styles.selectedLifePreview}>
-              <strong>
-                เลือก {selectedCharacter.name} · {selectedCharacter.role}
-              </strong>
-              <span>
-                เงินสด {money.format(selectedCharacter.startingCash)} · พอร์ต{' '}
-                {money.format(selectedCharacter.startingInvestments)} · เป้าหมายแรก{' '}
-                {money.format(selectedCharacter.goal.targetNetPosition)} บาท
-              </span>
+              <div className={styles.selectedLifeTop}>
+                <span
+                  className={styles.selectedLifeAvatar}
+                  data-character={selectedCharacter.id}
+                  aria-hidden="true"
+                >
+                  {selectedCharacter.name.slice(0, 1)}
+                </span>
+                <div>
+                  <strong>
+                    {selectedCharacter.name} · {selectedCharacter.role}
+                  </strong>
+                  <em>{selectedCharacter.archetype}</em>
+                </div>
+              </div>
+              <p>{selectedCharacter.challenge}</p>
+              <div className={styles.selectedLifeStats}>
+                <span><small>เงินสดเริ่มต้น</small><b>{money.format(selectedCharacter.startingCash)}</b></span>
+                <span><small>พอร์ตลงทุน</small><b>{money.format(selectedCharacter.startingInvestments)}</b></span>
+                <span><small>ภาระประจำ</small><b>{money.format(selectedCharacter.fixedExpenses)}/ด.</b></span>
+                <span><small>เป้าหมายแรก</small><b>{money.format(selectedCharacter.goal.targetNetPosition)}</b></span>
+              </div>
             </div>
           ) : null}
 
