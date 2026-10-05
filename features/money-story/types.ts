@@ -27,6 +27,8 @@ export type CharacterProfile = {
   id: string;
   name: string;
   role: string;
+  archetype: string;
+  challenge: string;
   story: string;
   trait: string;
   baseIncome: number;
