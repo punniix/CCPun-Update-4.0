@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Car,
@@ -12,7 +12,7 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, type EventParams } from '@/lib/analytics';
 import { MONEY_STORY_CHARACTERS } from '../characters';
 import { getMoneyStoryEvent } from '../events';
 import {
@@ -45,8 +45,17 @@ import {
 } from '../config';
 import type { EventOption, GameState, ProtectionType } from '../types';
 import styles from '../MoneyStory.module.css';
+import { getConsentData } from '@/lib/cookie-consent';
 
 const money = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 });
+
+function trackMoneyStoryEvent(eventName: string, params: EventParams = {}) {
+  trackEvent(eventName, {
+    ...params,
+    tool_name: 'money_story',
+    surface_group: 'money_story',
+  });
+}
 
 const protectionIcons: Record<ProtectionType, React.ReactNode> = {
   health: <HeartPulse size={14} />,
@@ -350,6 +359,37 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     lastChoiceImpact: string[];
   }>>([]);
   const rootRef = useRef<HTMLDivElement>(null);
+  const landingTrackedRef = useRef(false);
+  const resultTrackedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const trackLanding = () => {
+      if (landingTrackedRef.current || !getConsentData()?.analytics) return;
+      landingTrackedRef.current = true;
+      trackMoneyStoryEvent('money_story_landing_view');
+    };
+
+    trackLanding();
+    window.addEventListener('ccpun:consent', trackLanding);
+    return () => window.removeEventListener('ccpun:consent', trackLanding);
+  }, []);
+
+  useEffect(() => {
+    if (!game || game.status === 'active') return;
+
+    const trackResult = () => {
+      if (!getConsentData()?.analytics) return;
+      const resultKey = game.seed + ':' + game.status;
+      if (resultTrackedRef.current === resultKey) return;
+      resultTrackedRef.current = resultKey;
+      trackMoneyStoryEvent('money_story_result_view');
+    };
+
+    trackResult();
+    window.addEventListener('ccpun:consent', trackResult);
+    return () => window.removeEventListener('ccpun:consent', trackResult);
+  }, [game]);
+
 
   const character = game ? characterFor(game) : null;
   const bars = game ? statusBars(game) : null;
@@ -401,7 +441,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     setUndoStack((stack) => stack.slice(0, -1));
     setGame(previous.game);
     setLastChoiceImpact(previous.lastChoiceImpact);
-    trackEvent('money_story_undo');
+    trackMoneyStoryEvent('money_story_undo');
     focusGame();
   };
 
@@ -411,8 +451,8 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     setShareStatus('');
     setLastChoiceImpact([]);
     setUndoStack([]);
-    trackEvent('money_story_start');
-    trackEvent('money_story_character_generated');
+    trackMoneyStoryEvent('money_story_start');
+    trackMoneyStoryEvent('money_story_character_generated');
     focusGame();
   };
 
@@ -426,7 +466,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
       next.currentEventId &&
       getMoneyStoryEvent(next.currentEventId)?.category === 'crisis'
     ) {
-      trackEvent('money_story_crisis');
+      trackMoneyStoryEvent('money_story_crisis');
     }
   };
 
@@ -440,14 +480,14 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
     commitGame(next);
     focusGame();
-    trackEvent('money_story_choice');
+    trackMoneyStoryEvent('money_story_choice');
 
-    if (option?.effect.borrow) trackEvent('money_story_borrow');
+    if (option?.effect.borrow) trackMoneyStoryEvent('money_story_borrow');
     if (option?.effect.investmentDelta || option?.effect.investmentPercent) {
-      trackEvent('money_story_invest');
+      trackMoneyStoryEvent('money_story_invest');
     }
     if (option?.effect.addProtection) {
-      trackEvent('money_story_protection');
+      trackMoneyStoryEvent('money_story_protection');
     }
   };
 
@@ -458,15 +498,15 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     const next = completeMonth(game);
     commitGame(next);
     focusGame();
-    trackEvent('money_story_month_complete', { step_number: previousMonth });
+    trackMoneyStoryEvent('money_story_month_complete', { step_number: previousMonth });
 
-    if (next.status === 'win') trackEvent('money_story_win');
-    if (next.status === 'survive') trackEvent('money_story_survive');
-    if (next.status === 'lose') trackEvent('money_story_lose');
+    if (next.status === 'win') trackMoneyStoryEvent('money_story_win');
+    if (next.status === 'survive') trackMoneyStoryEvent('money_story_survive');
+    if (next.status === 'lose') trackMoneyStoryEvent('money_story_lose');
   };
 
   const returnToCharacterSelection = () => {
-    trackEvent('money_story_character_reselect');
+    trackMoneyStoryEvent('money_story_character_reselect');
     setGame(null);
     setSelectedCharacterId(null);
     setShareStatus('');
@@ -476,7 +516,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   };
 
   const replay = () => {
-    trackEvent('money_story_replay');
+    trackMoneyStoryEvent('money_story_replay');
     returnToCharacterSelection();
   };
 
@@ -517,7 +557,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
         );
         setShareStatus('คัดลอกลิงก์แล้ว');
       }
-      trackEvent('money_story_share');
+      trackMoneyStoryEvent('money_story_share');
     } catch {
       setShareStatus('ยังแชร์ไม่ได้ในเบราว์เซอร์นี้');
     }
@@ -857,7 +897,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
             <Link
               className={styles.secondary}
               href={MONEY_STORY_PYRAMID_URL}
-              onClick={() => trackEvent('money_story_financial_pyramid_click')}
+              onClick={() => trackMoneyStoryEvent('money_story_financial_pyramid_click')}
             >
               พีระมิดทางการเงินคืออะไร?
             </Link>
@@ -879,7 +919,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
               href={MONEY_STORY_LINE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackEvent('money_story_line_click')}
+              onClick={() => trackMoneyStoryEvent('money_story_line_click')}
             >
               เพิ่มเพื่อน LINE เพื่อคุยต่อ
             </a>
@@ -1007,7 +1047,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     className={styles.recoveryChoice}
                     onClick={() => {
                       commitGame(coverShortfallWithInvestments(game));
-                      trackEvent('money_story_recovery_investment');
+                      trackMoneyStoryEvent('money_story_recovery_investment');
                     }}
                   >
                     <strong>ใช้เงินลงทุนก่อน</strong>
@@ -1025,7 +1065,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     className={styles.recoveryChoice}
                     onClick={() => {
                       commitGame(coverShortfallWithExtraIncome(game));
-                      trackEvent('money_story_recovery_income');
+                      trackMoneyStoryEvent('money_story_recovery_income');
                     }}
                   >
                     <strong>รับงานเสริมเร่งด่วน</strong>
@@ -1043,7 +1083,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     className={styles.recoveryChoice}
                     onClick={() => {
                       commitGame(coverShortfallWithExpenseCut(game));
-                      trackEvent('money_story_recovery_expense_cut');
+                      trackMoneyStoryEvent('money_story_recovery_expense_cut');
                     }}
                   >
                     <strong>ลดค่าใช้จ่ายชั่วคราว</strong>
@@ -1061,7 +1101,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     className={styles.recoveryChoice}
                     onClick={() => {
                       commitGame(coverShortfallWithDebtRestructure(game));
-                      trackEvent('money_story_recovery_debt');
+                      trackMoneyStoryEvent('money_story_recovery_debt');
                     }}
                   >
                     <strong>ขอปรับค่างวด</strong>
@@ -1081,7 +1121,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     className={styles.recoveryChoice}
                     onClick={() => {
                       commitGame(coverShortfallWithLoan(game));
-                      trackEvent('money_story_borrow');
+                      trackMoneyStoryEvent('money_story_borrow');
                     }}
                   >
                     <strong>
@@ -1110,7 +1150,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       className={styles.danger}
                       onClick={() => {
                         commitGame(declareUnableToContinue(game));
-                        trackEvent('money_story_lose');
+                        trackMoneyStoryEvent('money_story_lose');
                       }}
                     >
                       จบรอบนี้
