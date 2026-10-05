@@ -2,6 +2,7 @@ import {
   CCPUN_VERCEL_PROJECT_IDS,
   resolveDeploymentIdentity,
 } from "../runtime/deployment-identity";
+import { getDeploymentLaneByEnvironment } from "../runtime/deployment-contract";
 
 export const CONTENT_VERCEL_PROJECT_IDS = CCPUN_VERCEL_PROJECT_IDS;
 
@@ -112,7 +113,10 @@ export function isContentSanityLaneAllowed(
   deploymentProjectId = process.env.VERCEL_PROJECT_ID?.trim(),
   variables: Record<string, string | undefined> = process.env,
 ): boolean {
-  const expected = SANITY_LANE_BY_ENVIRONMENT[environment];
+  const deployedLane = getDeploymentLaneByEnvironment(environment);
+  const expected = deployedLane
+    ? { projectId: deployedLane.sanityProjectId, dataset: deployedLane.sanityDataset }
+    : SANITY_LANE_BY_ENVIRONMENT[environment];
   return Boolean(
     expected &&
     projectId?.trim() === expected.projectId &&
