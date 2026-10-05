@@ -23,7 +23,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
   {
     id: 'ton',
     name: 'ต้น',
-    role: 'First Jobber',
+    role: 'พนักงานช่วงเริ่มทำงาน',
     story: 'เริ่มทำงานได้ไม่นาน มีเงินเก็บก้อนแรกและอยากให้ปลายปีเห็นความคืบหน้าชัดขึ้น',
     trait: 'ภาระยังไม่สูง แต่มีหนี้ก้อนเล็กติดมาด้วย',
     baseIncome: 28000,
@@ -65,7 +65,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     name: 'นัท',
     role: 'พนักงานบริษัท',
     story: 'รายได้ค่อนข้างนิ่ง มีรถและเงินลงทุน แต่มีภาระผ่อนที่ต้องเดินต่อทุกเดือน',
-    trait: 'ฐานเริ่มดี แต่พื้นที่ขยับถูกกินด้วยภาระประจำ',
+    trait: 'ฐานเริ่มดี แต่ภาระประจำทำให้เงินเหลือต่อเดือนไม่มาก',
     baseIncome: 52000,
     incomeStability: 'stable',
     startingCash: 90000,
@@ -113,7 +113,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     id: 'win',
     name: 'วิน',
     role: 'ผู้จัดการสายเทค',
-    story: 'รายได้สูงขึ้นเร็ว แต่ค่าใช้ชีวิต บ้าน รถ และภาระประจำโตตามมาด้วย',
+    story: 'รายได้สูงขึ้นเร็ว แต่ค่าใช้จ่าย บ้าน รถ และภาระประจำโตตามมาด้วย',
     trait: 'ตัวเลขรายได้ดูสบาย แต่ความคล่องตัวไม่ได้สูงอย่างที่คิด',
     baseIncome: 110000,
     incomeStability: 'stable',
@@ -184,7 +184,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     startingDebts: [
       { id: 'poom-assets', label: 'ภาระทรัพย์สิน', principalRemaining: 780000, monthlyRate: 0.006, monthlyPayment: 35000, remainingMonths: 36 },
     ],
-    goal: { label: 'รักษาและต่อยอดฐานเงินสุทธิให้ถึง 1,650,000 บาท', targetNetPosition: 1650000 },
+    goal: { label: 'รักษาเงินสุทธิและเพิ่มให้ถึง 1,650,000 บาท', targetNetPosition: 1650000 },
   },
 ];
 

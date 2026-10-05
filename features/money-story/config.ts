@@ -12,8 +12,8 @@ export const PROTECTION_CATALOG: Record<ProtectionType, {
   deductible: number;
 }> = {
   health: { label: 'สุขภาพ', monthlyPremium: 1200, coverageRate: 0.8, maxBenefit: 120000, deductible: 3000 },
-  critical: { label: 'เงินก้อนโรคร้ายแรง', monthlyPremium: 900, coverageRate: 1, maxBenefit: 120000, deductible: 0 },
-  life: { label: 'คนข้างหลัง', monthlyPremium: 650, coverageRate: 1, maxBenefit: 300000, deductible: 0 },
+  critical: { label: 'เงินก้อนเมื่อเจ็บป่วยรุนแรง', monthlyPremium: 900, coverageRate: 1, maxBenefit: 120000, deductible: 0 },
+  life: { label: 'ครอบครัว/คนที่พึ่งรายได้', monthlyPremium: 650, coverageRate: 1, maxBenefit: 300000, deductible: 0 },
   motor: { label: 'รถ', monthlyPremium: 850, coverageRate: 0.85, maxBenefit: 120000, deductible: 3000 },
   home: { label: 'บ้านและทรัพย์สิน', monthlyPremium: 500, coverageRate: 0.8, maxBenefit: 180000, deductible: 5000 },
 };
