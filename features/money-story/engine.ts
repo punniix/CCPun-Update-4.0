@@ -897,10 +897,34 @@ export function statusBars(state: GameState): StatusBars {
   const netPosition =
     state.cash + state.investments - totalDebt(state);
 
-  const goal = clamp(
-    (Math.max(0, netPosition) / Math.max(1, character.goal.targetNetPosition)) * 100,
+  const goalProgressPercent =
+    (Math.max(0, netPosition) / Math.max(1, character.goal.targetNetPosition)) * 100;
+  const goal = clamp(goalProgressPercent, 0, 100);
+  const milestoneStep = goalProgressPercent < 100 ? 25 : 50;
+  const goalPreviousMilestonePercent =
+    goalProgressPercent < 100
+      ? Math.floor(goalProgressPercent / milestoneStep) * milestoneStep
+      : Math.floor(goalProgressPercent / milestoneStep) * milestoneStep;
+  const goalNextMilestonePercent =
+    Math.max(
+      milestoneStep,
+      goalPreviousMilestonePercent + milestoneStep,
+    );
+  const goalSegmentRange = Math.max(
+    1,
+    goalNextMilestonePercent - goalPreviousMilestonePercent,
+  );
+  const goalSegmentProgress = clamp(
+    ((goalProgressPercent - goalPreviousMilestonePercent) / goalSegmentRange) * 100,
     0,
     100,
+  );
+  const goalNextMilestoneAmount = roundBaht(
+    character.goal.targetNetPosition * (goalNextMilestonePercent / 100),
+  );
+  const goalRemainingToNext = Math.max(
+    0,
+    goalNextMilestoneAmount - netPosition,
   );
 
   const label = (value: number) =>
@@ -912,12 +936,20 @@ export function statusBars(state: GameState): StatusBars {
     liquidity,
     flexibility,
     goal,
+    goalProgressPercent,
+    goalSegmentProgress,
+    goalPreviousMilestonePercent,
+    goalNextMilestonePercent,
+    goalNextMilestoneAmount,
+    goalRemainingToNext,
     liquidityLabel: label(liquidity),
     flexibilityLabel: label(flexibility),
     goalLabel:
-      goal >= 100 ? 'ถึงเป้าหมาย' :
-      goal >= 65 ? 'ใกล้ขึ้นมาก' :
-      goal >= 35 ? 'กำลังสร้าง' : 'เพิ่งเริ่ม',
+      goalProgressPercent >= 200 ? 'ไปไกลกว่าเป้า' :
+      goalProgressPercent >= 150 ? 'ต่อยอดหลังถึงเป้า' :
+      goalProgressPercent >= 100 ? 'เกินเป้าแล้ว' :
+      goalProgressPercent >= 65 ? 'ใกล้ขึ้นมาก' :
+      goalProgressPercent >= 35 ? 'กำลังสร้าง' : 'เพิ่งเริ่ม',
     netPosition: roundBaht(netPosition),
     projectedMonthlyFlexibility: roundBaht(projected),
   };

@@ -179,3 +179,21 @@ test('protection preview shows how much a protection can reduce out-of-pocket co
     preview.withoutProtection - preview.withProtection,
   );
 });
+
+
+test('goal journey continues beyond 100 percent with a next milestone', () => {
+  let state = createGame('goal-beyond-100', 'gam');
+  state = {
+    ...state,
+    cash: 82500,
+    investments: 0,
+    debts: [],
+  };
+
+  const bars = statusBars(state);
+  assert.equal(Math.round(bars.goalProgressPercent), 150);
+  assert.equal(bars.goalPreviousMilestonePercent, 150);
+  assert.equal(bars.goalNextMilestonePercent, 200);
+  assert.equal(bars.goalNextMilestoneAmount, 110000);
+  assert.equal(bars.goalRemainingToNext, 27500);
+});

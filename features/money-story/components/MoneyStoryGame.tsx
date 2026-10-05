@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Car, HeartPulse, House, RefreshCcw, ShieldCheck, Users, WalletCards } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
+import { MONEY_STORY_CHARACTERS } from '../characters';
 import { getMoneyStoryEvent } from '../events';
 import {
   amortizedPayment,
@@ -212,6 +213,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
 
 export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolean }) {
   const [game, setGame] = useState<GameState | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState('');
   const [lastChoiceImpact, setLastChoiceImpact] = useState<string[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -239,8 +241,8 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
   const focusGame = () => requestAnimationFrame(() => rootRef.current?.focus());
 
-  const start = () => {
-    const next = createGame();
+  const start = (characterId?: string) => {
+    const next = createGame(undefined, characterId);
     setGame(next);
     setShareStatus('');
     setLastChoiceImpact([]);
@@ -300,7 +302,11 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
   const replay = () => {
     trackEvent('money_story_replay');
-    start();
+    setGame(null);
+    setSelectedCharacterId(null);
+    setShareStatus('');
+    setLastChoiceImpact([]);
+    focusGame();
   };
 
   const shareText = useMemo(() => {
@@ -315,7 +321,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
           : 'เจอเดือนที่ไปต่อไม่ไหว';
 
     return (
-      'Money Story: รอบนี้ผมสุ่มได้ชีวิตของ “' +
+      'Money Story: รอบนี้ผมเล่นชีวิตของ “' +
       character.name +
       '” และ' +
       result +
@@ -368,21 +374,82 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   };
 
   if (!game) {
+    const selectedCharacter = selectedCharacterId
+      ? MONEY_STORY_CHARACTERS.find((item) => item.id === selectedCharacterId)
+      : null;
+
     return (
       <div className={styles.shell} ref={rootRef}>
         <div className={styles.start}>
           <div className={styles.startIcon} aria-hidden="true">
             <WalletCards />
           </div>
-          <h2>สุ่มหนึ่งชีวิต แล้วลองอยู่กับมัน 12 เดือน</h2>
+          <h2>เลือกชีวิตที่อยากลอง แล้วอยู่กับมัน 12 เดือน</h2>
           <p>
-            คุณจะได้รับชีวิตสมมติ 1 แบบ แล้วตัดสินใจตลอด 12 เดือนว่าจะใช้
-            เก็บ ลงทุน เพิ่มความคุ้มครอง หรือกู้เมื่อมีเหตุการณ์เข้ามา
-            ตัวละครและตัวเลขทั้งหมดเป็นสมมติ
+            แต่ละชีวิตเริ่มต้นไม่เหมือนกัน ทั้งรายได้ เงินสด พอร์ต ภาระ
+            และคนที่ต้องดูแล คุณเลือกเองได้ หรือให้เกมสุ่มให้ก็ได้
           </p>
-          <button type="button" className={styles.primary} onClick={start}>
-            สุ่มชีวิตเริ่มเกม
-          </button>
+
+          <div className={styles.characterPicker} aria-label="เลือกตัวละคร">
+            {MONEY_STORY_CHARACTERS.map((profile) => {
+              const selected = selectedCharacterId === profile.id;
+              return (
+                <button
+                  type="button"
+                  key={profile.id}
+                  className={
+                    styles.characterPickCard +
+                    (selected ? ' ' + styles.characterPickSelected : '')
+                  }
+                  aria-pressed={selected}
+                  onClick={() => setSelectedCharacterId(profile.id)}
+                >
+                  <span className={styles.characterPickAvatar} aria-hidden="true">
+                    {profile.name.slice(0, 1)}
+                  </span>
+                  <span className={styles.characterPickCopy}>
+                    <strong>{profile.name}</strong>
+                    <span>{profile.role}</span>
+                    <small>{profile.trait}</small>
+                  </span>
+                  <span className={styles.characterPickMeta}>
+                    รายได้ {money.format(profile.baseIncome)}/เดือน
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedCharacter ? (
+            <div className={styles.selectedLifePreview}>
+              <strong>
+                เลือก {selectedCharacter.name} · {selectedCharacter.role}
+              </strong>
+              <span>
+                เงินสด {money.format(selectedCharacter.startingCash)} · พอร์ต{' '}
+                {money.format(selectedCharacter.startingInvestments)} · เป้าหมายแรก{' '}
+                {money.format(selectedCharacter.goal.targetNetPosition)} บาท
+              </span>
+            </div>
+          ) : null}
+
+          <div className={styles.startActions}>
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={!selectedCharacterId}
+              onClick={() => start(selectedCharacterId ?? undefined)}
+            >
+              เริ่มชีวิตที่เลือก
+            </button>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => start()}
+            >
+              สุ่มให้ฉัน
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -451,7 +518,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
           <div className={styles.resultActions}>
             <button type="button" className={styles.primary} onClick={replay}>
-              <RefreshCcw size={16} /> สุ่มชีวิตใหม่
+              <RefreshCcw size={16} /> เลือกชีวิตใหม่
             </button>
             <button type="button" className={styles.secondary} onClick={share}>
               แชร์ Money Story
@@ -874,24 +941,43 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
           </div>
 
           <div className={styles.sidebarSection}>
-            <Meter
-              label="เป้าหมาย"
-              value={bars.goal}
-              status={bars.goalLabel}
-              detail={
-                <>
-                  <span>
-                    ฐานะสุทธิ {money.format(bars.netPosition)} /{' '}
-                    {money.format(character.goal.targetNetPosition)} บาท
-                  </span>
-                  <small>
-                    เงินสด {money.format(game.cash)} + พอร์ต{' '}
-                    {money.format(game.investments)} − หนี้{' '}
-                    {money.format(totalDebt(game))}
-                  </small>
-                </>
-              }
-            />
+            <div className={styles.goalJourney}>
+              <div className={styles.goalJourneyHeader}>
+                <strong>เส้นทางเป้าหมาย</strong>
+                <span>{bars.goalLabel}</span>
+              </div>
+              <div className={styles.goalScore}>
+                <strong>{Math.round(bars.goalProgressPercent)}%</strong>
+                <span>
+                  ฐานะสุทธิ {money.format(bars.netPosition)} บาท
+                </span>
+              </div>
+              <div
+                className={styles.goalJourneyTrack}
+                role="progressbar"
+                aria-label="ความคืบหน้าสู่หมุดหมายถัดไป"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(bars.goalSegmentProgress)}
+              >
+                <div
+                  className={styles.goalJourneyFill}
+                  style={{ width: bars.goalSegmentProgress + '%' }}
+                />
+              </div>
+              <div className={styles.goalMilestoneLine}>
+                <span>{bars.goalPreviousMilestonePercent}%</span>
+                <strong>{bars.goalNextMilestonePercent}%</strong>
+              </div>
+              <p className={styles.goalNext}>
+                หมุดหมายถัดไป {money.format(bars.goalNextMilestoneAmount)} บาท
+                {' · '}อีก {money.format(bars.goalRemainingToNext)} บาท
+              </p>
+              <small className={styles.goalFormula}>
+                100% คือเป้าหมายแรก ไม่ใช่จุดจบ · หลังจากนั้นเกมจะต่อหมุดหมาย
+                150%, 200% และต่อไป
+              </small>
+            </div>
           </div>
 
           <div className={styles.sidebarSection + ' ' + styles.protections}>
