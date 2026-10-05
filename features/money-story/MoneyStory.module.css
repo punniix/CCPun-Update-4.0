@@ -10,8 +10,6 @@
 .kicker{margin:0;color:var(--ms-gold);font-size:14px;font-weight:600;letter-spacing:.03em}
 .title{margin:12px 0 0;font-size:clamp(42px,8vw,78px);line-height:.98;letter-spacing:-.03em;font-weight:700}
 .subtitle{margin:18px 0 0;max-width:680px;color:var(--ms-muted);font-size:clamp(17px,2.5vw,21px);line-height:1.55}
-.heroMeta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
-.pill{border:1px solid rgba(224,201,133,.38);border-radius:999px;padding:7px 11px;color:var(--ms-gold-hi);font-size:13px}
 .gameSection{padding:28px 16px 64px}
 .shell{min-height:520px;border:1px solid var(--ms-border);border-radius:18px;overflow:hidden;background:rgba(37,24,24,.48);box-shadow:0 18px 60px rgba(20,8,8,.18)}
 .start{padding:48px 28px;text-align:center}
