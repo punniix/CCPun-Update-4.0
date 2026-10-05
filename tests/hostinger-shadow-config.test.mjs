@@ -109,6 +109,77 @@ test("Hostinger root build routes both workspaces and preserves native builds an
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
+
+test("v4-production root build self-identifies the Hostinger Web production lane when hPanel env is empty", { skip: process.platform === "win32" }, () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-root-prod-build-"));
+  try {
+    mkdirSync(join(fixture, "scripts"));
+    writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+
+    const npm = join(fixture, "npm");
+    writeFileSync(npm, `#!${process.execPath}
+console.log(JSON.stringify({
+  command: "npm",
+  args: process.argv.slice(2),
+  env: {
+    provider: process.env.CCPUN_DEPLOYMENT_PROVIDER,
+    role: process.env.CCPUN_DEPLOYMENT_ROLE,
+    appEnv: process.env.CCPUN_APP_ENV,
+    publicAppEnv: process.env.NEXT_PUBLIC_CCPUN_APP_ENV,
+    projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+    dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+    uat: process.env.CCPUN_UAT_MODE,
+    analytics: process.env.CCPUN_ENABLE_PRODUCTION_ANALYTICS,
+    gitRef: process.env.CCPUN_GIT_REF,
+    gitSha: process.env.CCPUN_GIT_SHA,
+    releaseId: process.env.CCPUN_RELEASE_ID,
+    stage: process.env.CCPUN_RELEASE_STAGE,
+  },
+}));
+`);
+    chmodSync(npm, 0o755);
+
+    for (const args of [
+      ["init", "-b", "v4-production"],
+      ["config", "user.email", "fixture@example.invalid"],
+      ["config", "user.name", "Fixture"],
+      ["add", "."],
+      ["commit", "-m", "fixture"],
+    ]) {
+      const git = spawnSync("git", args, { cwd: fixture, encoding: "utf8" });
+      assert.equal(git.status, 0, git.stderr);
+    }
+    const sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: fixture, encoding: "utf8" }).stdout.trim();
+
+    const result = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+      cwd: fixture,
+      encoding: "utf8",
+      env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, HOME: process.env.HOME },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Hostinger Production build identity inferred from v4-production/);
+    const invocation = JSON.parse(result.stdout.trim().split("\n").at(-1));
+    assert.deepEqual(invocation.args, ["run", "build", "--workspace", "@ccpun/web"]);
+    assert.deepEqual(invocation.env, {
+      provider: "hostinger",
+      role: "web",
+      appEnv: "production",
+      publicAppEnv: "production",
+      projectId: "kyfxgjnq",
+      dataset: "production",
+      uat: "0",
+      analytics: "1",
+      gitRef: "v4-production",
+      gitSha: sha,
+      releaseId: `hostinger-web-prod-${sha.slice(0, 12)}`,
+      stage: "live",
+    });
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
 test("Hostinger Web readiness accepts only the explicit live production identity", () => {
   const ok = runReadiness();
   assert.equal(ok.status, 0, ok.stderr || ok.stdout);

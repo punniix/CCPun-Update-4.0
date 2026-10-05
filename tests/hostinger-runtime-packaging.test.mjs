@@ -33,3 +33,47 @@ test("repeated standalone staging materializes public symlinks into an independe
     assert.equal(existsSync(join(standalone, ".next/static/chunk.js")), true);
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
+
+
+test("standalone Web runtime carries only the safe Hostinger lane identity it was built with", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-hostinger-runtime-env-"));
+  const web = join(fixture, "apps/web");
+  const standalone = join(web, ".next/standalone");
+  const nested = join(standalone, "apps/web");
+  const put = (path, value) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); };
+  try {
+    for (const path of ["llms.txt", ".well-known/security.txt", "favicon.ico"]) put(join(fixture, "public", path), path);
+    mkdirSync(web, { recursive: true });
+    symlinkSync("../../public", join(web, "public"));
+    put(join(nested, "server.js"), "console.log(process.env.CCPUN_APP_ENV);\n");
+    put(join(nested, "package.json"), "{}");
+    put(join(nested, ".next/BUILD_ID"), "build");
+    put(join(standalone, "node_modules/next/package.json"), "{}");
+    put(join(web, ".next/static/chunk.js"), "chunk");
+
+    stageStandaloneRuntime(web, {
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      CCPUN_DEPLOYMENT_ROLE: "web",
+      CCPUN_RELEASE_STAGE: "live",
+      CCPUN_APP_ENV: "production",
+      NEXT_PUBLIC_CCPUN_APP_ENV: "production",
+      NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
+      NEXT_PUBLIC_SANITY_DATASET: "production",
+      CCPUN_UAT_MODE: "0",
+      CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1",
+      CCPUN_GIT_REF: "v4-production",
+      CCPUN_GIT_SHA: "a".repeat(40),
+      CCPUN_RELEASE_ID: "hostinger-web-prod-aaaaaaaaaaaa",
+      CCPUN_PRIVATE_SECRET: "must-not-ship",
+    });
+
+    const server = readFileSync(join(standalone, "server.js"), "utf8");
+    assert.match(server, /CCPUN_RUNTIME_ENV_BOOTSTRAP/);
+    assert.match(server, /CCPUN_APP_ENV.*production/);
+    assert.match(server, /NEXT_PUBLIC_SANITY_PROJECT_ID.*kyfxgjnq/);
+    assert.match(server, /CCPUN_ENABLE_PRODUCTION_ANALYTICS.*1/);
+    assert.doesNotMatch(server, /CCPUN_PRIVATE_SECRET|must-not-ship/);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
