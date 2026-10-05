@@ -10,12 +10,13 @@ export const PROTECTION_CATALOG: Record<ProtectionType, {
   coverageRate: number;
   maxBenefit: number;
   deductible: number;
+  exampleCost: number;
 }> = {
-  health: { label: 'สุขภาพ', monthlyPremium: 1200, coverageRate: 0.8, maxBenefit: 120000, deductible: 3000 },
-  critical: { label: 'เงินก้อนเมื่อเจ็บป่วยรุนแรง', monthlyPremium: 900, coverageRate: 1, maxBenefit: 120000, deductible: 0 },
-  life: { label: 'ครอบครัว/คนที่พึ่งรายได้', monthlyPremium: 650, coverageRate: 1, maxBenefit: 300000, deductible: 0 },
-  motor: { label: 'รถ', monthlyPremium: 850, coverageRate: 0.85, maxBenefit: 120000, deductible: 3000 },
-  home: { label: 'บ้านและทรัพย์สิน', monthlyPremium: 500, coverageRate: 0.8, maxBenefit: 180000, deductible: 5000 },
+  health: { label: 'สุขภาพ', monthlyPremium: 1200, coverageRate: 0.8, maxBenefit: 120000, deductible: 3000, exampleCost: 72000 },
+  critical: { label: 'เงินก้อนเมื่อเจ็บป่วยรุนแรง', monthlyPremium: 900, coverageRate: 1, maxBenefit: 120000, deductible: 0, exampleCost: 110000 },
+  life: { label: 'ครอบครัว/คนที่พึ่งรายได้', monthlyPremium: 650, coverageRate: 1, maxBenefit: 300000, deductible: 0, exampleCost: 260000 },
+  motor: { label: 'รถ', monthlyPremium: 850, coverageRate: 0.85, maxBenefit: 120000, deductible: 3000, exampleCost: 95000 },
+  home: { label: 'บ้านและทรัพย์สิน', monthlyPremium: 500, coverageRate: 0.8, maxBenefit: 180000, deductible: 5000, exampleCost: 85000 },
 };
 
 export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {

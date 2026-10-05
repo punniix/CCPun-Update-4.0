@@ -276,7 +276,7 @@ function protectionOffer(
     id: 'protect-' + type,
     category: 'calm',
     title,
-    text: 'เพิ่มความคุ้มครอง ' + item.label + ' ในเกมโดยมีเบี้ยจำลอง ' + item.monthlyPremium.toLocaleString('th-TH') + ' บาทต่อเดือน และเริ่มมีผลตั้งแต่เดือนถัดไป',
+    text: 'ลองดูว่าความคุ้มครอง ' + item.label + ' จะช่วยลดเงินที่ต้องจ่ายเองในเหตุการณ์จำลองได้แค่ไหน',
     weight: 2.6,
     repeat: false,
     requirements: { ...requirements, missingProtection: type },
