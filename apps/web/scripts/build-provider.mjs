@@ -199,7 +199,37 @@ async function materializePublicDirectory() {
   rmSync(tempRoot, { recursive: true, force: true });
 }
 
-export function stageStandaloneRuntime(root = webRoot) {
+const RUNTIME_ENV_KEYS = [
+  "CCPUN_DEPLOYMENT_PROVIDER",
+  "CCPUN_DEPLOYMENT_ROLE",
+  "CCPUN_RELEASE_STAGE",
+  "CCPUN_APP_ENV",
+  "NEXT_PUBLIC_CCPUN_APP_ENV",
+  "NEXT_PUBLIC_SANITY_PROJECT_ID",
+  "NEXT_PUBLIC_SANITY_DATASET",
+  "CCPUN_UAT_MODE",
+  "CCPUN_ENABLE_PRODUCTION_ANALYTICS",
+  "CCPUN_GIT_REF",
+  "CCPUN_GIT_SHA",
+  "CCPUN_RELEASE_ID",
+];
+
+function injectStandaloneRuntimeEnvironment(serverFile, variables) {
+  if (variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() !== "hostinger"
+    || variables.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== "web") return;
+
+  const values = Object.fromEntries(
+    RUNTIME_ENV_KEYS.map((key) => [key, variables[key]?.trim()]).filter(([, value]) => Boolean(value)),
+  );
+  if (!values.CCPUN_APP_ENV || !values.NEXT_PUBLIC_CCPUN_APP_ENV) return;
+
+  const source = readFileSync(serverFile, "utf8");
+  const marker = "// CCPUN_RUNTIME_ENV_BOOTSTRAP";
+  const bootstrap = `${marker}\nconst __ccpunRuntimeEnv = ${JSON.stringify(values)};\nfor (const [key, value] of Object.entries(__ccpunRuntimeEnv)) {\n  if (!process.env[key]) process.env[key] = value;\n}\n`;
+  writeFileSync(serverFile, `${bootstrap}${source}`);
+}
+
+export function stageStandaloneRuntime(root = webRoot, variables = process.env) {
   const standaloneRoot = resolve(root, ".next/standalone");
   const nestedRuntimeRoot = resolve(standaloneRoot, "apps/web");
   const runtimeRoot = existsSync(resolve(nestedRuntimeRoot, "server.js"))
@@ -228,6 +258,8 @@ export function stageStandaloneRuntime(root = webRoot) {
     replaceDirectory(resolve(runtimeRoot, ".next"), resolve(standaloneRoot, ".next"));
     replaceDirectory(resolve(runtimeRoot, "public"), resolve(standaloneRoot, "public"));
   }
+
+  injectStandaloneRuntimeEnvironment(resolve(standaloneRoot, "server.js"), variables);
 
   for (const required of [
     "server.js",
