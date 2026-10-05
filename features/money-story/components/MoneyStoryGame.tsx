@@ -410,7 +410,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
           : 'เจอเดือนที่ไปต่อไม่ไหว';
 
     return (
-      'Money Story: รอบนี้ผมเล่นชีวิตของ “' +
+      'Money Story: รอบนี้ได้เล่นชีวิตของ “' +
       character.name +
       '” และ' +
       result +
@@ -775,7 +775,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
           {game.pendingShortfall ? (
             <div className={styles.card + ' ' + styles.shortfall}>
-              <span className={styles.category}>ช่วงกู้สถานการณ์</span>
+              <span className={styles.category}>ช่วงแก้สถานการณ์</span>
               <h2 className={styles.eventTitle}>
                 ยังขาดอีก {money.format(game.pendingShortfall.amount)} บาท
               </h2>
@@ -850,7 +850,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                   >
                     <strong>ขอปรับค่างวด</strong>
                     <span>
-                      เลื่อนภาระเดือนนี้ได้ประมาณ{' '}
+                      ลดค่างวดที่ต้องจ่ายเดือนนี้ได้ประมาณ{' '}
                       {money.format(debtRestructureQuote.immediateRelief)} บาท ·
                       ค่างวดถัดไปประมาณ{' '}
                       {money.format(debtRestructureQuote.nextMonthlyBefore)} →{' '}
@@ -877,7 +877,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       ค่างวดประมาณ {money.format(loanQuote.monthlyPayment)} บาท/เดือน ×{' '}
                       {loanQuote.termMonths} เดือน
                       {loanQuote.partial
-                        ? ' · เงินก้อนนี้ยังปิดยอดขาดไม่หมด ต้องใช้วิธีอื่นร่วมด้วย'
+                        ? ' · เงินกู้นี้ยังไม่พอปิดส่วนที่ขาด ต้องใช้วิธีอื่นร่วมด้วย'
                         : ' · ช่วยผ่านเดือนนี้ แต่เพิ่มภาระเดือนถัดไป'}
                     </span>
                   </button>
@@ -886,8 +886,8 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                 {!canRecover ? (
                   <>
                     <p className={styles.recoveryExhausted}>
-                      ทางเลือกกู้สถานการณ์ที่ชีวิตนี้มีถูกใช้หมดแล้ว
-                      ถ้ายังปิดยอดที่ขาดไม่ได้ รอบนี้จึงไปต่อไม่ไหว
+                      ลองใช้ทางเลือกฉุกเฉินที่มีครบแล้ว
+                      หากยังปิดส่วนที่ขาดไม่ได้ รอบนี้จึงไปต่อไม่ไหว
                     </p>
                     <button
                       type="button"

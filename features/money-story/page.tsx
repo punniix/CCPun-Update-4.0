@@ -7,7 +7,7 @@ import { MONEY_STORY_DISCLAIMER, MONEY_STORY_PYRAMID_URL } from './config';
 import styles from './MoneyStory.module.css';
 
 const DESCRIPTION =
-  'เกมจำลองชีวิตการเงิน 12 เดือน สุ่มชีวิตสมมติแล้วลองตัดสินใจเรื่องเงินสด การลงทุน ความคุ้มครอง และการกู้ เมื่อชีวิตมีเรื่องไม่คาดคิดเข้ามา';
+  'เกมจำลองชีวิตการเงิน 12 เดือน เลือกหรือสุ่มชีวิตสมมติ แล้วลองตัดสินใจเรื่องเงินสด การลงทุน ความคุ้มครอง และการกู้ เมื่อชีวิตมีเรื่องไม่คาดคิดเข้ามา';
 
 export const metadata: Metadata = {
   title: 'Money Story | เกมจำลองชีวิตการเงิน 12 เดือน | CCPun',
