@@ -355,14 +355,19 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     if (next.status === 'lose') trackEvent('money_story_lose');
   };
 
-  const replay = () => {
-    trackEvent('money_story_replay');
+  const returnToCharacterSelection = () => {
+    trackEvent('money_story_character_reselect');
     setGame(null);
     setSelectedCharacterId(null);
     setShareStatus('');
     setLastChoiceImpact([]);
     setUndoStack([]);
     focusGame();
+  };
+
+  const replay = () => {
+    trackEvent('money_story_replay');
+    returnToCharacterSelection();
   };
 
   const shareText = useMemo(() => {
@@ -679,6 +684,13 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
             <br />
             {character.goal.label}
           </p>
+          <button
+            type="button"
+            className={styles.changeCharacterButton}
+            onClick={returnToCharacterSelection}
+          >
+            กลับไปเลือกตัวละคร
+          </button>
         </aside>
 
         <section className={styles.center} aria-live="polite">
