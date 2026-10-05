@@ -436,12 +436,16 @@ function applyEffect(state: GameState, effect: EventEffect) {
   }
 
   if (effect.incomeModifier) {
+    const throughMonth = effect.incomeModifier.throughEnd
+      ? MONEY_STORY_TOTAL_MONTHS
+      : next.currentMonth + (effect.incomeModifier.months ?? 1);
+
     next.modifiers = [
       ...next.modifiers,
       {
         kind: 'income',
         amount: effect.incomeModifier.percent,
-        throughMonth: next.currentMonth + effect.incomeModifier.months,
+        throughMonth,
         label: effect.incomeModifier.label,
       },
     ];
