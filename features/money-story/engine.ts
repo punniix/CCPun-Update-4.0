@@ -579,7 +579,7 @@ export function quoteShortfallLoan(state: GameState): LoanQuote {
     canBorrow,
     partial: canBorrow && principal < desiredPrincipal,
     reason: alreadyUsed
-      ? 'ใช้ทางเลือกกู้ในรอบกู้สถานการณ์นี้ไปแล้ว'
+      ? 'ใช้ทางเลือกกู้ในช่วงแก้สถานการณ์นี้ไปแล้ว'
       : canBorrow
         ? undefined
         : 'ภาระเดิมสูงจนเกมไม่เปิดหนี้ก้อนใหม่เพิ่ม',
@@ -724,7 +724,7 @@ export function coverShortfallWithExtraIncome(state: GameState): GameState {
         kind: 'income',
         amount: quote.ongoingPercent,
         throughMonth: state.currentMonth + quote.months,
-        label: 'รายได้เสริมจากช่วงกู้สถานการณ์',
+        label: 'รายได้เสริมจากช่วงแก้สถานการณ์',
       },
     ],
   };
