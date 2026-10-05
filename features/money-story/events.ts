@@ -55,18 +55,128 @@ const everyday = spendEvents('everyday', [
   ['weekend-cafe', 'คาเฟ่เปิดใหม่สามร้านในรัศมีเดียวกัน', 'วันหยุดกำลังเสนอแพ็กเกจทดสอบให้ครบ', 2100],
 ] as const);
 
-const household = spendEvents('household', [
-  ['repair-small', 'ของใช้ในบ้านขอซ่อม', 'อุปกรณ์ชิ้นหนึ่งเริ่มทำงานไม่เต็มที่', 2800],
-  ['electric', 'ค่าไฟเดือนนี้สูงกว่าปกติ', 'อากาศร้อนและเครื่องใช้ไฟฟ้าทำงานหนักขึ้น', 2200],
-  ['internet', 'แพ็กเกจเน็ตบ้านหมดโปร', 'ราคาใหม่สูงกว่าเดิมเล็กน้อย', 900],
-  ['cleaning', 'งานบ้านกองจนต้องเลือก', 'จะซื้อเวลา หรือจัดการเอง', 1800],
-  ['appliance', 'เครื่องใช้ไฟฟ้าหมดอายุพร้อมกัน', 'จังหวะชีวิตเลือกมาได้พอดี', 5200],
-  ['maintenance', 'ซ่อมเล็กก่อนกลายเป็นซ่อมใหญ่', 'มีรายการบำรุงรักษาที่เลื่อนได้ไม่นาน', 3500],
-  ['moving-box', 'บ้านอยากได้พื้นที่เพิ่ม', 'ของเริ่มเยอะจนต้องจัดหรือซื้อชั้นเพิ่ม', 1600],
-  ['utility-deposit', 'มีค่าใช้จ่ายบ้านที่ไม่ได้นัดไว้', 'เป็นเงินก้อนเล็กแต่ต้องจ่ายเดือนนี้', 3000],
-  ['laundry', 'เครื่องซักผ้าส่งเสียงเหมือนมีความเห็น', 'ยังใช้ได้ แต่เริ่มมีสัญญาณว่าควรดูแล', 2400],
-  ['internet-backup', 'วันสำคัญเน็ตล่มพอดี', 'ต้องเลือกใช้เน็ตสำรองหรือเลื่อนงาน', 1200],
-] as const);
+const household: MoneyEvent[] = [
+  {
+    id: 'household-repair-small',
+    category: 'household',
+    title: 'ของใช้ในบ้านเริ่มมีปัญหา',
+    text: 'ยังใช้ต่อได้ แต่ควรจัดการก่อนจะเสียหนักกว่าเดิม',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'repair', label: 'ซ่อมตอนนี้', outcomeText: 'แก้ให้จบตอนนี้ด้วยค่าใช้จ่ายที่สูงกว่า', effect: { cashDelta: -2800 } },
+      { id: 'patch', label: 'แก้เฉพาะจุดก่อน', outcomeText: 'ลดเงินที่ต้องจ่ายวันนี้ แต่ยังต้องเผื่อซ่อมต่อ', effect: { cashDelta: -1100 } },
+    ],
+  },
+  {
+    id: 'household-electric',
+    category: 'household',
+    title: 'ค่าไฟเดือนนี้สูงกว่าปกติ',
+    text: 'อากาศร้อนและเครื่องใช้ไฟฟ้าทำงานหนักขึ้น',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'pay', label: 'จ่ายตามบิล', outcomeText: 'รับค่าใช้จ่ายที่สูงขึ้นในเดือนนี้', effect: { cashDelta: -2200 } },
+      { id: 'cut', label: 'ลดการใช้ไฟเดือนนี้', outcomeText: 'ลดค่าใช้จ่ายส่วนเพิ่มลงได้บางส่วน', effect: { cashDelta: -1200 } },
+    ],
+  },
+  {
+    id: 'household-internet',
+    category: 'household',
+    title: 'แพ็กเกจเน็ตบ้านหมดโปร',
+    text: 'ราคาใหม่สูงกว่าเดิม และต้องเลือกว่าจะใช้ต่อหรือปรับแพ็กเกจ',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'keep', label: 'ใช้แพ็กเกจเดิมต่อ', outcomeText: 'จ่ายเพิ่มเพื่อคงบริการเดิม', effect: { cashDelta: -900 } },
+      { id: 'downgrade', label: 'ลดแพ็กเกจ', outcomeText: 'ลดค่าใช้จ่ายลง แลกกับบริการที่น้อยลง', effect: { cashDelta: -400 } },
+    ],
+  },
+  {
+    id: 'household-cleaning',
+    category: 'household',
+    title: 'งานบ้านกองจนต้องเลือก',
+    text: 'จะจ่ายเพื่อประหยัดเวลา หรือใช้เวลาจัดการเอง',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'hire', label: 'จ้างคนช่วย', outcomeText: 'เสียเงิน แต่ได้เวลาและแรงกลับมา', effect: { cashDelta: -1800 } },
+      { id: 'self', label: 'จัดการเอง', outcomeText: 'ไม่เสียเงินเพิ่ม แต่ใช้เวลาและแรงของตัวเอง', effect: {} },
+    ],
+  },
+  {
+    id: 'household-appliance',
+    category: 'household',
+    title: 'เครื่องใช้ไฟฟ้าหลายชิ้นเริ่มหมดอายุ',
+    text: 'บางชิ้นควรเปลี่ยน บางชิ้นยังพอซ่อมเพื่อยืดอายุได้',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'replace', label: 'เปลี่ยนชิ้นที่จำเป็น', outcomeText: 'จ่ายมากกว่าเพื่อจบปัญหาหลัก', effect: { cashDelta: -5200 } },
+      { id: 'repair', label: 'ซ่อมและยืดอายุ', outcomeText: 'ลดเงินก้อนที่ต้องจ่ายวันนี้', effect: { cashDelta: -2200 } },
+    ],
+  },
+  {
+    id: 'household-maintenance',
+    category: 'household',
+    title: 'มีรายการบำรุงรักษาที่ควรทำ',
+    text: 'เลื่อนได้ไม่นาน เพราะปล่อยไว้อาจกลายเป็นค่าใช้จ่ายก้อนใหญ่กว่าเดิม',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'repair', label: 'จัดการให้เรียบร้อย', outcomeText: 'จ่ายตอนนี้เพื่อปิดรายการที่ต้องซ่อม', effect: { cashDelta: -3500 } },
+      { id: 'essential', label: 'ทำเฉพาะส่วนจำเป็น', outcomeText: 'ลดค่าใช้จ่ายวันนี้ แต่ยังเหลืองานบางส่วนไว้', effect: { cashDelta: -1400 } },
+    ],
+  },
+  {
+    id: 'household-moving-box',
+    category: 'household',
+    title: 'พื้นที่ในบ้านเริ่มไม่พอ',
+    text: 'ของเยอะขึ้น จึงต้องเลือกระหว่างซื้อพื้นที่เก็บเพิ่มกับจัดของใหม่',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'storage', label: 'ซื้อชั้นเก็บของเพิ่ม', outcomeText: 'ใช้เงินเพื่อเพิ่มพื้นที่จัดเก็บ', effect: { cashDelta: -1600 } },
+      { id: 'declutter', label: 'จัดของที่มีใหม่', outcomeText: 'ยังไม่เสียเงินเพิ่ม', effect: {} },
+    ],
+  },
+  {
+    id: 'household-utility-deposit',
+    category: 'household',
+    title: 'มีค่าใช้จ่ายบ้านที่ต้องจ่ายเดือนนี้',
+    text: 'เป็นเงินก้อนที่ไม่ได้อยู่ในแผน แต่เลี่ยงไม่ได้',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'pay', label: 'จ่ายเต็มเดือนนี้', outcomeText: 'ปิดค่าใช้จ่ายก้อนนี้ทันที', effect: { cashDelta: -3000 } },
+      { id: 'split', label: 'แบ่งจ่าย 2 เดือน', outcomeText: 'ลดเงินก้อนวันนี้ แต่มีภาระต่ออีกเดือน', effect: { cashDelta: -1500, expenseModifier: { amount: 1500, months: 1, label: 'ค่าใช้จ่ายบ้านค้างจ่าย' } } },
+    ],
+  },
+  {
+    id: 'household-laundry',
+    category: 'household',
+    title: 'เครื่องซักผ้าเริ่มมีอาการ',
+    text: 'ยังใช้งานได้ แต่มีสัญญาณว่าควรซ่อมก่อนจะเสียหนัก',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'repair', label: 'เรียกช่างซ่อม', outcomeText: 'จ่ายเพื่อแก้ปัญหาตอนนี้', effect: { cashDelta: -2400 } },
+      { id: 'basic', label: 'ซ่อมเฉพาะจุด', outcomeText: 'ลดค่าใช้จ่ายลง แต่ยังไม่ได้แก้ทุกจุด', effect: { cashDelta: -900 } },
+    ],
+  },
+  {
+    id: 'household-internet-backup',
+    category: 'household',
+    title: 'วันสำคัญเน็ตล่ม',
+    text: 'ต้องเลือกหาทางเชื่อมต่อสำรอง หรือย้ายไปทำงานที่อื่น',
+    weight: 5,
+    cooldown: 2,
+    options: [
+      { id: 'backup', label: 'ซื้อเน็ตสำรอง', outcomeText: 'จ่ายเพิ่มเพื่อให้งานเดินต่อได้ทันที', effect: { cashDelta: -1200 } },
+      { id: 'relocate', label: 'ย้ายไปทำงานที่อื่น', outcomeText: 'เสียค่าเดินทางและค่าใช้สถานที่น้อยกว่า', effect: { cashDelta: -400 } },
+    ],
+  },
+];
 
 const work: MoneyEvent[] = [
   {
@@ -218,7 +328,7 @@ const family: MoneyEvent[] = [
   { id: 'family-school', category: 'family', title: 'มีค่าใช้จ่ายของคนในครอบครัวเพิ่ม', text: 'ภาระที่ต้องดูแลเพิ่มขึ้นในเดือนนี้', weight: 3, requirements: { dependents: true }, options: [{ id: 'pay', label: 'ดูแลตามแผน', outcomeText: 'เงินสดลดลง', effect: { cashDelta: -7000 } }, { id: 'spread', label: 'แบ่งจ่ายหลายเดือน', outcomeText: 'ลดเงินก้อนวันนี้ แต่เพิ่มภาระชั่วคราว', effect: { cashDelta: -2500, expenseModifier: { amount: 1800, months: 3, label: 'ค่าใช้จ่ายครอบครัว' } } }] },
   { id: 'family-activity', category: 'family', title: 'กิจกรรมพิเศษของครอบครัว', text: 'เป็นความสุขที่มีต้นทุนและเลือกขนาดได้', weight: 4, requirements: { dependents: true }, options: [{ id: 'full', label: 'จัดเต็ม', outcomeText: 'ใช้เงินกับประสบการณ์ร่วมกัน', effect: { cashDelta: -6500 } }, { id: 'simple', label: 'เอาแบบเรียบง่าย', outcomeText: 'ยังได้ใช้เวลาด้วยกันแต่ลดงบ', effect: { cashDelta: -2200 } }] },
   { id: 'family-support', category: 'family', title: 'คนในบ้านต้องการความช่วยเหลือ', text: 'มีค่าใช้จ่ายที่ไม่ได้อยู่ในแผนเดิม', weight: 2, sensitive: true, requirements: { dependents: true }, options: [{ id: 'help', label: 'ช่วยค่าใช้จ่าย', outcomeText: 'เงินสดลดลงเพื่อรับภาระครอบครัว', effect: { cashDelta: -18000 } }] },
-  { id: 'family-income-loss', category: 'family', title: 'รายได้หลักของครอบครัวหยุดลง', text: 'ครอบครัวยังมีค่าใช้จ่ายต่อเนื่อง แม้รายได้ส่วนหนึ่งหายไป', weight: 1, sensitive: true, requirements: { dependents: true, minMonth: 5 }, options: [{ id: 'respond', label: 'ใช้แผนที่มี', outcomeText: 'ความคุ้มครองคนข้างหลังที่เข้าเงื่อนไขจำลองช่วยลดผลกระทบ', effect: { cost: { amount: 160000, protectionType: 'life' }, incomeModifier: { percent: -0.22, months: 3, label: 'รายได้ครอบครัวลด' } } }] },
+  { id: 'family-income-loss', category: 'family', title: 'ผู้หารายได้หลักของครอบครัวจากไป', text: 'รายได้ก้อนสำคัญของครอบครัวหายไป ขณะที่ค่าใช้จ่ายจำเป็นยังเดินต่อ', weight: 1, sensitive: true, requirements: { dependents: true, minMonth: 5 }, options: [{ id: 'respond', label: 'ใช้แผนที่เตรียมไว้', outcomeText: 'ความคุ้มครองชีวิตที่เข้าเงื่อนไขช่วยเป็นเงินก้อนลดผลกระทบต่อครอบครัวตามกติกาเกม', effect: { cost: { amount: 160000, protectionType: 'life' }, incomeModifier: { percent: -0.22, months: 3, label: 'รายได้ครอบครัวลด' } } }] },
   { id: 'family-parent', category: 'family', title: 'มีค่าใช้จ่ายดูแลผู้ใหญ่ในบ้าน', text: 'เป็นค่าใช้จ่ายจำเป็นที่เกิดขึ้นช่วงนี้', weight: 2, sensitive: true, requirements: { dependents: true }, options: [{ id: 'care', label: 'จัดการค่าใช้จ่าย', outcomeText: 'มีภาระเพิ่มชั่วคราว', effect: { cashDelta: -12000 } }] },
   { id: 'family-help', category: 'family', title: 'ครอบครัวช่วยแบ่งภาระบางส่วน', text: 'เดือนนี้มีคนช่วยรับค่าใช้จ่ายบางก้อน', weight: 2, requirements: { dependents: true }, options: [{ id: 'accept', label: 'รับความช่วยเหลือ', outcomeText: 'เงินสดเพิ่มขึ้นเล็กน้อย', effect: { cashDelta: 6000 } }] },
 ];
@@ -272,16 +382,31 @@ function protectionOffer(
   requirements: MoneyEvent['requirements'] = {},
 ): MoneyEvent {
   const item = PROTECTION_CATALOG[type];
+  const lumpSum = type === 'critical' || type === 'life';
+  const text =
+    type === 'critical'
+      ? 'ลองดูว่าเงินก้อนเมื่อเจ็บป่วยรุนแรงช่วยพยุงเงินสดระหว่างรักษาและพักงานได้อย่างไร'
+      : type === 'life'
+        ? 'ลองดูว่าความคุ้มครองชีวิตช่วยให้ครอบครัวมีเงินก้อนรับภาระต่อ หากผู้หารายได้หลักจากไป'
+        : 'ลองดูว่าความคุ้มครอง ' + item.label + ' ช่วยลดค่าใช้จ่ายที่ต้องรับเองในเหตุการณ์จำลองได้แค่ไหน';
+
   return {
     id: 'protect-' + type,
     category: 'calm',
     title,
-    text: 'ลองดูว่าความคุ้มครอง ' + item.label + ' จะช่วยลดเงินที่ต้องจ่ายเองในเหตุการณ์จำลองได้แค่ไหน',
+    text,
     weight: 2.6,
     repeat: false,
     requirements: { ...requirements, missingProtection: type },
     options: [
-      { id: 'buy', label: 'เพิ่มความคุ้มครอง', outcomeText: 'มีเบี้ยรายเดือนเพิ่ม และความคุ้มครองเริ่มเดือนถัดไป', effect: { addProtection: type } },
+      {
+        id: 'buy',
+        label: 'เพิ่มความคุ้มครอง',
+        outcomeText: lumpSum
+          ? 'มีเบี้ยรายเดือนเพิ่ม และเริ่มมีสิทธิรับเงินก้อนตามกติกาเกมตั้งแต่เดือนถัดไป'
+          : 'มีเบี้ยรายเดือนเพิ่ม และความคุ้มครองเริ่มเดือนถัดไป',
+        effect: { addProtection: type },
+      },
       { id: 'skip', label: 'ยังไม่เพิ่ม', outcomeText: 'ยังคงแผนเดิม', effect: {} },
     ],
   };

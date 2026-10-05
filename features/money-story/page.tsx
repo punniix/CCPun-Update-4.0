@@ -81,7 +81,7 @@ export default function MoneyStoryPage() {
               </div>
             </div>
             <p className={styles.disclaimer}>
-              พีระมิดในเกมเป็นเพียงภาพสรุปเล็กๆ ถ้าอยากเข้าใจแนวคิดเต็ม อ่านต่อที่{' '}
+              ถ้าอยากเข้าใจหลักการวางฐานการเงินให้เป็นลำดับ อ่านต่อที่{' '}
               <Link href={MONEY_STORY_PYRAMID_URL}>พีระมิดทางการเงิน</Link>
             </p>
             <p className={styles.disclaimer}>{MONEY_STORY_DISCLAIMER}</p>

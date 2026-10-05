@@ -116,6 +116,10 @@ function percentLabel(value: number) {
   return (Number.isInteger(percent) ? percent.toFixed(0) : percent.toFixed(1)) + '%';
 }
 
+function isLumpSumProtection(type?: ProtectionType) {
+  return type === 'critical' || type === 'life';
+}
+
 function optionImpactLines(option: EventOption, game: GameState) {
   const effect = option.effect;
   const lines: string[] = [];
@@ -209,25 +213,42 @@ function optionImpactLines(option: EventOption, game: GameState) {
   }
 
   if (effect.addProtection) {
-    const protection = PROTECTION_CATALOG[effect.addProtection];
-    const preview = protectionBenefitPreview(game, effect.addProtection);
+    const protectionType = effect.addProtection;
+    const protection = PROTECTION_CATALOG[protectionType];
+    const preview = protectionBenefitPreview(game, protectionType);
     lines.push(
       'เบี้ย ' +
         money.format(protection.monthlyPremium) +
         ' บาท/เดือน · เริ่มคุ้มครองเดือนถัดไป',
     );
-    lines.push(
-      'ตัวอย่างในเกม: ถ้าเกิดภาระ ' +
-        money.format(preview.grossCost) +
-        ' บาท',
-    );
-    lines.push(
-      'ไม่มีความคุ้มครองนี้ จ่ายเอง ' +
-        money.format(preview.withoutProtection) +
-        ' บาท → มีความคุ้มครอง จ่ายเองประมาณ ' +
-        money.format(preview.withProtection) +
-        ' บาท',
-    );
+
+    if (isLumpSumProtection(protectionType)) {
+      lines.push(
+        'ตัวอย่างในเกม: ถ้าเกิดเหตุที่เข้าเงื่อนไขและมีผลกระทบทางการเงิน ' +
+          money.format(preview.grossCost) +
+          ' บาท',
+      );
+      lines.push(
+        'ความคุ้มครองนี้ช่วยเป็นเงินก้อนประมาณ ' +
+          money.format(preview.protectionBenefit) +
+          ' บาท · เหลือภาระที่ต้องรับเองประมาณ ' +
+          money.format(preview.withProtection) +
+          ' บาท',
+      );
+    } else {
+      lines.push(
+        'ตัวอย่างในเกม: ถ้าเกิดค่าใช้จ่าย ' +
+          money.format(preview.grossCost) +
+          ' บาท',
+      );
+      lines.push(
+        'ไม่มีความคุ้มครองนี้ จ่ายเอง ' +
+          money.format(preview.withoutProtection) +
+          ' บาท → มีความคุ้มครอง จ่ายเองประมาณ ' +
+          money.format(preview.withProtection) +
+          ' บาท',
+      );
+    }
   }
 
   if (lines.length === 0) {
@@ -256,6 +277,13 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   const resolvedEvent = game?.lastResolution
     ? getMoneyStoryEvent(game.lastResolution.eventId)
     : undefined;
+  const resolvedOption = game?.lastResolution && resolvedEvent
+    ? resolvedEvent.options.find(
+        (option) => option.id === game.lastResolution?.optionId,
+      )
+    : undefined;
+  const resolvedProtectionType = resolvedOption?.effect.cost?.protectionType;
+  const resolvedUsesLumpSum = isLumpSumProtection(resolvedProtectionType);
   const loanQuote = game?.pendingShortfall
     ? quoteShortfallLoan(game)
     : null;
@@ -972,25 +1000,39 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
               {game.lastResolution.grossCost !== undefined ? (
                 <div className={styles.resultNumbers}>
                   <div className={styles.numberBox}>
-                    <small>ค่าใช้จ่ายจากเหตุการณ์</small>
+                    <small>
+                      {resolvedUsesLumpSum
+                        ? 'ผลกระทบทางการเงิน'
+                        : 'ค่าใช้จ่ายจากเหตุการณ์'}
+                    </small>
                     <strong>
                       {money.format(game.lastResolution.grossCost)} บาท
                     </strong>
                   </div>
+                  {!resolvedUsesLumpSum ? (
+                    <div className={styles.numberBox}>
+                      <small>สิทธิ/สวัสดิการช่วย</small>
+                      <strong>
+                        {money.format(game.lastResolution.existingBenefit ?? 0)} บาท
+                      </strong>
+                    </div>
+                  ) : null}
                   <div className={styles.numberBox}>
-                    <small>สิทธิ/สวัสดิการช่วย</small>
-                    <strong>
-                      {money.format(game.lastResolution.existingBenefit ?? 0)} บาท
-                    </strong>
-                  </div>
-                  <div className={styles.numberBox}>
-                    <small>ความคุ้มครองช่วย</small>
+                    <small>
+                      {resolvedUsesLumpSum
+                        ? 'เงินก้อนจากความคุ้มครอง'
+                        : 'ความคุ้มครองช่วย'}
+                    </small>
                     <strong>
                       {money.format(game.lastResolution.protectionBenefit ?? 0)} บาท
                     </strong>
                   </div>
                   <div className={styles.numberBox}>
-                    <small>เงินที่ต้องจ่ายเอง</small>
+                    <small>
+                      {resolvedUsesLumpSum
+                        ? 'ภาระที่ยังต้องรับเอง'
+                        : 'เงินที่ต้องจ่ายเอง'}
+                    </small>
                     <strong>
                       {money.format(game.lastResolution.outOfPocket ?? 0)} บาท
                     </strong>
