@@ -32,11 +32,11 @@ export const CCPUN_SITE_VERSION = '4.0';
 
 const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   site_version: new Set(['4.0']),
-  tool_name: new Set(['ci_planning', 'fhc']),
+  tool_name: new Set(['ci_planning', 'fhc', 'money_story']),
   step_name: new Set(['risk_assessment', 'expenses', 'existing_ci', 'risk_handling']),
   contact_channel: new Set(['facebook_inbox', 'line']),
   cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article']),
-  surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog']),
+  surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog', 'money_story']),
   calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
   utm_source: /^[a-z0-9][a-z0-9_-]{0,63}$/,
