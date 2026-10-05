@@ -11,3 +11,4 @@
 - LINE CTA sends no result code or game state.
 - Analytics events must avoid raw financial state.
 - Balance and 3–5 minute playtime are hypotheses until human playtesting.
+- Shortfalls enter a recovery phase before game over: players can combine available investments, bounded emergency borrowing, extra income, temporary expense cuts and debt restructuring; loss is only offered after viable recovery actions are exhausted.

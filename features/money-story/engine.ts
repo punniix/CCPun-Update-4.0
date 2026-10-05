@@ -1,7 +1,7 @@
 import { MONEY_STORY_CHARACTERS, getMoneyStoryCharacter } from './characters';
 import { MONEY_STORY_EVENTS, getMoneyStoryEvent } from './events';
 import { MONEY_STORY_TOTAL_MONTHS, PROTECTION_CATALOG } from './config';
-import type { CharacterProfile, Debt, EventEffect, GameState, LoanQuote, MoneyEvent, StatusBars } from './types';
+import type { CharacterProfile, Debt, EventEffect, GameState, LoanQuote, MoneyEvent, RecoveryActionId, StatusBars } from './types';
 
 function hashSeed(input: string): number {
   let h = 2166136261;
@@ -262,7 +262,7 @@ export function beginMonth(state: GameState): GameState {
   if (cash < 0) {
     return {
       ...next,
-      pendingShortfall: { amount: Math.abs(cash), resume: 'event' },
+      pendingShortfall: { amount: Math.abs(cash), resume: 'event', usedActions: [] },
     };
   }
 
@@ -483,6 +483,7 @@ export function resolveEventChoice(
       pendingShortfall: {
         amount: Math.abs(next.cash),
         resume: 'month-end',
+        usedActions: [],
       },
     };
   }
@@ -490,23 +491,52 @@ export function resolveEventChoice(
   return next;
 }
 
+function recoveryActionUsed(state: GameState, action: RecoveryActionId) {
+  return Boolean(state.pendingShortfall?.usedActions?.includes(action));
+}
+
+function withRecoveryAction(state: GameState, action: RecoveryActionId): GameState {
+  if (!state.pendingShortfall) return state;
+  const used = state.pendingShortfall.usedActions ?? [];
+  return {
+    ...state,
+    pendingShortfall: {
+      ...state.pendingShortfall,
+      usedActions: used.includes(action) ? used : [...used, action],
+    },
+  };
+}
+
 export function quoteShortfallLoan(state: GameState): LoanQuote {
   const needed = Math.max(0, Math.abs(Math.min(0, state.cash)));
-  const principal = Math.ceil(Math.max(5000, needed + 3000) / 5000) * 5000;
+  const desiredPrincipal = Math.ceil(Math.max(5000, needed + 3000) / 5000) * 5000;
   const monthlyRate = 0.0075;
   const termMonths = 12;
-  const monthlyPayment = amortizedPayment(principal, monthlyRate, termMonths);
   const character = characterFor(state);
-
-  const recurring =
+  const recurringBeforeLoan =
     state.fixedExpenses +
     currentPremiums(state, state.currentMonth + 1) +
-    currentDebtPayments(state, state.currentMonth + 1) +
-    monthlyPayment;
+    currentDebtPayments(state, state.currentMonth + 1);
 
-  const canBorrow =
-    principal <= character.baseIncome * 6 &&
-    recurring <= character.baseIncome * 0.95;
+  const maxPrincipalByIncome = Math.floor((character.baseIncome * 8) / 5000) * 5000;
+  const maxRecurring = character.baseIncome * 1.2;
+  let maxAffordablePrincipal = 0;
+
+  for (let principal = 5000; principal <= maxPrincipalByIncome; principal += 5000) {
+    const payment = amortizedPayment(principal, monthlyRate, termMonths);
+    if (recurringBeforeLoan + payment <= maxRecurring) {
+      maxAffordablePrincipal = principal;
+    } else {
+      break;
+    }
+  }
+
+  const alreadyUsed = recoveryActionUsed(state, 'loan');
+  const principal = Math.min(desiredPrincipal, maxAffordablePrincipal);
+  const monthlyPayment = principal > 0
+    ? amortizedPayment(principal, monthlyRate, termMonths)
+    : 0;
+  const canBorrow = !alreadyUsed && principal >= 5000;
 
   return {
     principal,
@@ -514,9 +544,76 @@ export function quoteShortfallLoan(state: GameState): LoanQuote {
     monthlyRate,
     termMonths,
     canBorrow,
-    reason: canBorrow
-      ? undefined
-      : 'ภาระรายเดือนตามกติกาเกมจะสูงจนแทบไม่เหลือพื้นที่รับค่าใช้จ่ายอื่น',
+    partial: canBorrow && principal < desiredPrincipal,
+    reason: alreadyUsed
+      ? 'ใช้ทางเลือกกู้ในรอบกู้สถานการณ์นี้ไปแล้ว'
+      : canBorrow
+        ? undefined
+        : 'ภาระเดิมสูงจนเกมไม่เปิดหนี้ก้อนใหม่เพิ่ม',
+  };
+}
+
+export function quoteRecoveryExtraIncome(state: GameState) {
+  const character = characterFor(state);
+  const multiplier =
+    character.incomeStability === 'business' ? 0.24 :
+    character.incomeStability === 'variable' ? 0.22 : 0.18;
+  const immediate = Math.min(
+    Math.max(6000, Math.round(character.baseIncome * multiplier / 1000) * 1000),
+    30000,
+  );
+  const ongoingPercent =
+    character.incomeStability === 'stable' ? 0.08 : 0.12;
+
+  return {
+    available: Boolean(state.pendingShortfall) && !recoveryActionUsed(state, 'extra-income'),
+    immediate,
+    ongoingPercent,
+    months: 2,
+  };
+}
+
+export function quoteRecoveryExpenseCut(state: GameState) {
+  const immediate = Math.max(
+    3000,
+    Math.round(state.fixedExpenses * 0.18 / 500) * 500,
+  );
+  const monthlyReduction = Math.max(
+    1000,
+    Math.round(state.fixedExpenses * 0.1 / 500) * 500,
+  );
+
+  return {
+    available: Boolean(state.pendingShortfall) && !recoveryActionUsed(state, 'expense-cut'),
+    immediate,
+    monthlyReduction,
+    months: 2,
+  };
+}
+
+export function quoteRecoveryDebtRestructure(state: GameState) {
+  const active = state.debts.filter(
+    (debt) => debt.principalRemaining > 0 && debt.remainingMonths > 0,
+  );
+  const currentPayment =
+    state.monthLedger?.debtPayments ??
+    currentDebtPayments(state, state.currentMonth);
+  const immediateRelief = Math.max(
+    0,
+    Math.round(currentPayment * 0.35 / 500) * 500,
+  );
+  const nextMonthlyBefore = currentDebtPayments(state, state.currentMonth + 1);
+  const nextMonthlyAfter = Math.round(nextMonthlyBefore * 0.72);
+
+  return {
+    available:
+      Boolean(state.pendingShortfall) &&
+      !recoveryActionUsed(state, 'debt-restructure') &&
+      active.length > 0 &&
+      immediateRelief >= 1000,
+    immediateRelief,
+    nextMonthlyBefore,
+    nextMonthlyAfter,
   };
 }
 
@@ -538,7 +635,7 @@ export function coverShortfallWithInvestments(state: GameState): GameState {
   const needed = Math.abs(Math.min(0, state.cash));
   const sell = Math.min(needed, state.investments);
 
-  let next: GameState = {
+  const next: GameState = {
     ...state,
     cash: state.cash + sell,
     investments: state.investments - sell,
@@ -561,14 +658,143 @@ export function coverShortfallWithLoan(state: GameState): GameState {
   const quote = quoteShortfallLoan(state);
   if (!quote.canBorrow) return state;
 
-  const next = addDebt(state, {
+  let next = addDebt(state, {
     principal: quote.principal,
     monthlyRate: quote.monthlyRate,
     termMonths: quote.termMonths,
     label: 'เงินกู้ฉุกเฉินในเกม',
   });
+  next = withRecoveryAction(next, 'loan');
 
-  return next.cash >= 0 ? resumeAfterShortfall(next) : next;
+  if (next.cash >= 0) return resumeAfterShortfall(next);
+
+  return {
+    ...next,
+    pendingShortfall: {
+      ...next.pendingShortfall!,
+      amount: Math.abs(next.cash),
+    },
+  };
+}
+
+export function coverShortfallWithExtraIncome(state: GameState): GameState {
+  if (!state.pendingShortfall) return state;
+  const quote = quoteRecoveryExtraIncome(state);
+  if (!quote.available) return state;
+
+  let next: GameState = {
+    ...state,
+    cash: state.cash + quote.immediate,
+    modifiers: [
+      ...state.modifiers,
+      {
+        kind: 'income',
+        amount: quote.ongoingPercent,
+        throughMonth: state.currentMonth + quote.months,
+        label: 'รายได้เสริมจากช่วงกู้สถานการณ์',
+      },
+    ],
+  };
+  next = withRecoveryAction(next, 'extra-income');
+
+  if (next.cash >= 0) return resumeAfterShortfall(next);
+  return {
+    ...next,
+    pendingShortfall: {
+      ...next.pendingShortfall!,
+      amount: Math.abs(next.cash),
+    },
+  };
+}
+
+export function coverShortfallWithExpenseCut(state: GameState): GameState {
+  if (!state.pendingShortfall) return state;
+  const quote = quoteRecoveryExpenseCut(state);
+  if (!quote.available) return state;
+
+  const relief = Math.min(quote.immediate, Math.abs(Math.min(0, state.cash)));
+  let next: GameState = {
+    ...state,
+    cash: state.cash + relief,
+    modifiers: [
+      ...state.modifiers,
+      {
+        kind: 'expense',
+        amount: -quote.monthlyReduction,
+        throughMonth: state.currentMonth + quote.months,
+        label: 'ลดค่าใช้จ่ายชั่วคราว',
+      },
+    ],
+  };
+  next = withRecoveryAction(next, 'expense-cut');
+
+  if (next.cash >= 0) return resumeAfterShortfall(next);
+  return {
+    ...next,
+    pendingShortfall: {
+      ...next.pendingShortfall!,
+      amount: Math.abs(next.cash),
+    },
+  };
+}
+
+export function coverShortfallWithDebtRestructure(state: GameState): GameState {
+  if (!state.pendingShortfall) return state;
+  const quote = quoteRecoveryDebtRestructure(state);
+  if (!quote.available) return state;
+
+  const relief = Math.min(
+    quote.immediateRelief,
+    Math.abs(Math.min(0, state.cash)),
+  );
+  const activeIndex = state.debts.findIndex(
+    (debt) => debt.principalRemaining > 0 && debt.remainingMonths > 0,
+  );
+
+  const debts = state.debts.map((debt, index) => {
+    if (debt.principalRemaining <= 0 || debt.remainingMonths <= 0) return debt;
+    return {
+      ...debt,
+      principalRemaining:
+        index === activeIndex ? debt.principalRemaining + relief : debt.principalRemaining,
+      monthlyPayment: Math.max(500, Math.round(debt.monthlyPayment * 0.72)),
+      remainingMonths: debt.remainingMonths + 6,
+    };
+  });
+
+  let next: GameState = {
+    ...state,
+    cash: state.cash + relief,
+    debts,
+    monthLedger: state.monthLedger
+      ? {
+          ...state.monthLedger,
+          debtPayments: Math.max(0, state.monthLedger.debtPayments - relief),
+          netBeforeEvent: state.monthLedger.netBeforeEvent + relief,
+        }
+      : state.monthLedger,
+  };
+  next = withRecoveryAction(next, 'debt-restructure');
+
+  if (next.cash >= 0) return resumeAfterShortfall(next);
+  return {
+    ...next,
+    pendingShortfall: {
+      ...next.pendingShortfall!,
+      amount: Math.abs(next.cash),
+    },
+  };
+}
+
+export function hasRecoveryOption(state: GameState) {
+  if (!state.pendingShortfall) return false;
+  return Boolean(
+    state.investments > 0 ||
+    quoteShortfallLoan(state).canBorrow ||
+    quoteRecoveryExtraIncome(state).available ||
+    quoteRecoveryExpenseCut(state).available ||
+    quoteRecoveryDebtRestructure(state).available
+  );
 }
 
 export function declareUnableToContinue(state: GameState): GameState {
