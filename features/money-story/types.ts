@@ -160,6 +160,12 @@ export type StatusBars = {
   liquidity: number;
   flexibility: number;
   goal: number;
+  goalProgressPercent: number;
+  goalSegmentProgress: number;
+  goalPreviousMilestonePercent: number;
+  goalNextMilestonePercent: number;
+  goalNextMilestoneAmount: number;
+  goalRemainingToNext: number;
   liquidityLabel: string;
   flexibilityLabel: string;
   goalLabel: string;
