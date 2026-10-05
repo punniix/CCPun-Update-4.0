@@ -7,6 +7,10 @@ import {
   resolveDeploymentIdentity,
   type DeploymentIdentity,
 } from "../../lib/runtime/deployment-identity";
+import {
+  deploymentContractFailures,
+  getDeploymentLaneByEnvironment,
+} from "../../lib/runtime/deployment-contract";
 
 export type WebEnvironment = "development" | "web-uat" | "production" | "unknown";
 
@@ -20,11 +24,18 @@ export function resolveWebEnvironment(): WebEnvironment {
 export const WEB_ENVIRONMENT = resolveWebEnvironment();
 export const WEB_DEPLOYMENT_IDENTITY = resolveDeploymentIdentity(process.env, "web");
 
+const WEB_DEPLOYMENT_LANE = getDeploymentLaneByEnvironment(WEB_ENVIRONMENT);
+export const WEB_DEPLOYMENT_CONTRACT_FAILURES = WEB_DEPLOYMENT_LANE
+  ? deploymentContractFailures(WEB_DEPLOYMENT_LANE, process.env)
+  : [];
+export const WEB_DEPLOYMENT_CONTRACT_VALID = WEB_DEPLOYMENT_CONTRACT_FAILURES.length === 0;
+
 export const IS_WEB_REVIEW_ENVIRONMENT =
   process.env.CCPUN_UAT_MODE === "1" ||
   WEB_ENVIRONMENT === "web-uat";
 
 export const PRODUCTION_WEB_ANALYTICS_ENABLED =
+  WEB_DEPLOYMENT_CONTRACT_VALID &&
   WEB_DEPLOYMENT_IDENTITY.valid &&
   WEB_DEPLOYMENT_IDENTITY.role === "web" &&
   WEB_DEPLOYMENT_IDENTITY.environment === "production" &&
@@ -54,6 +65,7 @@ export function shouldBlockWebIndexing(input: {
   const uatMode = input.uatMode ?? process.env.CCPUN_UAT_MODE;
   return (
     uatMode === "1"
+    || !WEB_DEPLOYMENT_CONTRACT_VALID
     || environment !== "production"
     || !deployment.valid
     || deployment.role !== "web"

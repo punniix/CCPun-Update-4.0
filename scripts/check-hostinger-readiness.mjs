@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const deploymentContract = JSON.parse(readFileSync(resolve("lib/runtime/deployment-lanes.json"), "utf8"));
+const webProductionLane = deploymentContract.lanes["web-production"];
+const webUatLane = deploymentContract.lanes["web-uat"];
 
 const args = new Set(process.argv.slice(2));
 const strict = args.has("--strict");
@@ -35,17 +41,17 @@ if (role === "web") {
 
   if (appEnv === "web-uat") {
     requireExact("CCPUN_RELEASE_STAGE", "shadow");
-    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", "web-uat");
-    requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", "ccb9lnw5");
-    requireExact("NEXT_PUBLIC_SANITY_DATASET", "uat");
-    requireExact("CCPUN_UAT_MODE", "1");
-    requireExact("CCPUN_ENABLE_PRODUCTION_ANALYTICS", "0");
+    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", webUatLane.publicEnvironment);
+    requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", webUatLane.sanityProjectId);
+    requireExact("NEXT_PUBLIC_SANITY_DATASET", webUatLane.sanityDataset);
+    requireExact("CCPUN_UAT_MODE", webUatLane.uatMode);
+    requireExact("CCPUN_ENABLE_PRODUCTION_ANALYTICS", webUatLane.productionAnalytics);
   }
 
   if (appEnv === "production") {
-    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", "production");
-    requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", "kyfxgjnq");
-    requireExact("NEXT_PUBLIC_SANITY_DATASET", "production");
+    requireExact("NEXT_PUBLIC_CCPUN_APP_ENV", webProductionLane.publicEnvironment);
+    requireExact("NEXT_PUBLIC_SANITY_PROJECT_ID", webProductionLane.sanityProjectId);
+    requireExact("NEXT_PUBLIC_SANITY_DATASET", webProductionLane.sanityDataset);
     requirePresent("CCPUN_GIT_REF");
     requirePresent("CCPUN_GIT_SHA");
     requirePresent("CCPUN_RELEASE_ID");

@@ -5,6 +5,7 @@ import {
   resolveContentEnvironment,
 } from "./content/sanity-lane";
 import { resolveDeploymentIdentity } from "./runtime/deployment-identity";
+import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "./runtime/deployment-contract";
 
 const APP_ENVIRONMENT = resolveContentEnvironment();
 const DEPLOYMENT_PROJECT_ID = process.env.VERCEL_PROJECT_ID?.trim();
@@ -21,6 +22,12 @@ const DEPLOYMENT_IDENTITY = resolveDeploymentIdentity(
   process.env,
   APP_ENVIRONMENT === "admin-uat" || APP_ENVIRONMENT === "production-admin" ? "admin" : undefined,
 );
+
+const ACTIVE_DEPLOYMENT_LANE = getDeploymentLaneByEnvironment(APP_ENVIRONMENT);
+export const DEPLOYMENT_CONTRACT_FAILURES = ACTIVE_DEPLOYMENT_LANE
+  ? deploymentContractFailures(ACTIVE_DEPLOYMENT_LANE, process.env)
+  : [];
+export const IS_DEPLOYMENT_CONTRACT_VALID = DEPLOYMENT_CONTRACT_FAILURES.length === 0;
 
 const ADMIN_PROJECT_ALLOWED =
   isContentDeploymentAllowed(APP_ENVIRONMENT, DEPLOYMENT_PROJECT_ID, process.env) &&
@@ -45,6 +52,7 @@ function isAdminReadDataPlaneAllowed(dataset = process.env.NEXT_PUBLIC_SANITY_DA
 export const IS_DRAFT_PREVIEW_ALLOWED = isAdminReadDataPlaneAllowed();
 
 export const PRODUCTION_ANALYTICS_ENABLED =
+  IS_DEPLOYMENT_CONTRACT_VALID &&
   DEPLOYMENT_IDENTITY.valid &&
   DEPLOYMENT_IDENTITY.role === "web" &&
   DEPLOYMENT_IDENTITY.environment === "production" &&

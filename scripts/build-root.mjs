@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const deploymentContract = JSON.parse(
+  readFileSync(resolve(repositoryRoot, "lib/runtime/deployment-lanes.json"), "utf8"),
+);
+const webProductionLane = deploymentContract.lanes["web-production"];
 
 function gitValue(args) {
   const result = spawnSync("git", args, {
@@ -23,15 +28,15 @@ function applyHostingerProductionFallback() {
   if (!/^[0-9a-f]{40}$/i.test(sha)) return;
 
   const defaults = {
-    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
-    CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_DEPLOYMENT_PROVIDER: webProductionLane.provider,
+    CCPUN_DEPLOYMENT_ROLE: webProductionLane.role,
     CCPUN_RELEASE_STAGE: "live",
-    CCPUN_APP_ENV: "production",
-    NEXT_PUBLIC_CCPUN_APP_ENV: "production",
-    NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
-    NEXT_PUBLIC_SANITY_DATASET: "production",
-    CCPUN_UAT_MODE: "0",
-    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1",
+    CCPUN_APP_ENV: webProductionLane.environment,
+    NEXT_PUBLIC_CCPUN_APP_ENV: webProductionLane.publicEnvironment,
+    NEXT_PUBLIC_SANITY_PROJECT_ID: webProductionLane.sanityProjectId,
+    NEXT_PUBLIC_SANITY_DATASET: webProductionLane.sanityDataset,
+    CCPUN_UAT_MODE: webProductionLane.uatMode,
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: webProductionLane.productionAnalytics,
     CCPUN_GIT_REF: "v4-production",
     CCPUN_GIT_SHA: sha,
     CCPUN_RELEASE_ID: `hostinger-web-prod-${sha.slice(0, 12)}`,
