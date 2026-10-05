@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { DEPLOYMENT_LANES } from "../lib/runtime/deployment-lanes.mjs";
 
-const deploymentContract = JSON.parse(readFileSync(resolve("lib/runtime/deployment-lanes.json"), "utf8"));
-const webProductionLane = deploymentContract.lanes["web-production"];
-const webUatLane = deploymentContract.lanes["web-uat"];
+const webProductionLane = DEPLOYMENT_LANES["web-production"];
+const webUatLane = DEPLOYMENT_LANES["web-uat"];
 
 const args = new Set(process.argv.slice(2));
 const strict = args.has("--strict");

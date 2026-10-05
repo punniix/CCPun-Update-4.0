@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  DEPLOYMENT_CONTRACT,
+  DEPLOYMENT_LANES,
+} from "../lib/runtime/deployment-lanes.mjs";
 
-const contract = JSON.parse(readFileSync(resolve("lib/runtime/deployment-lanes.json"), "utf8"));
+const contract = DEPLOYMENT_CONTRACT;
 const failures = [];
 const lanes = Object.entries(contract.lanes ?? {});
 

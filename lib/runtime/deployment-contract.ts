@@ -1,12 +1,40 @@
-import deploymentContract from "@/lib/runtime/deployment-lanes.json";
+import {
+  DEPLOYMENT_CONTRACT as RAW_DEPLOYMENT_CONTRACT,
+  DEPLOYMENT_LANES as RAW_DEPLOYMENT_LANES,
+} from "./deployment-lanes.mjs";
 
-export type DeploymentLaneId = keyof typeof deploymentContract.lanes;
-export type DeploymentLane = (typeof deploymentContract.lanes)[DeploymentLaneId];
+export type DeploymentLaneId =
+  | "web-production"
+  | "web-uat"
+  | "admin-production"
+  | "admin-uat";
 
-export const DEPLOYMENT_CONTRACT = deploymentContract;
-export const DEPLOYMENT_LANES = deploymentContract.lanes;
+export type DeploymentLane = {
+  domain: string;
+  provider: "hostinger" | "vercel";
+  role: "web" | "admin";
+  environment: "production" | "web-uat" | "production-admin" | "admin-uat";
+  publicEnvironment: "production" | "web-uat" | "production-admin" | "admin-uat";
+  sanityProjectId: string;
+  sanityDataset: "production" | "uat";
+  uatMode: "0" | "1";
+  productionAnalytics: "0" | "1";
+  indexable: boolean;
+  nodeMajor: number;
+  workspace: "@ccpun/web" | "@ccpun/admin";
+  buildCommand?: string;
+  rootDirectory?: string;
+  outputDirectory?: string;
+  vercelProjectId?: string;
+};
 
-const DEPLOYED_ENVIRONMENTS = new Set(
+export const DEPLOYMENT_LANES = RAW_DEPLOYMENT_LANES as Record<DeploymentLaneId, DeploymentLane>;
+export const DEPLOYMENT_CONTRACT = RAW_DEPLOYMENT_CONTRACT as {
+  version: number;
+  lanes: Record<DeploymentLaneId, DeploymentLane>;
+};
+
+const DEPLOYED_ENVIRONMENTS = new Set<string>(
   Object.values(DEPLOYMENT_LANES).map((lane) => lane.environment),
 );
 

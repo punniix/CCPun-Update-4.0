@@ -83,7 +83,7 @@ test("Hostinger root build routes both workspaces and preserves native builds an
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
-    writeFileSync(join(fixture, "lib/runtime/deployment-lanes.json"), read("lib/runtime/deployment-lanes.json"));
+    writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
     for (const command of ["npm", "next"]) {
       const executable = join(fixture, command);
       writeFileSync(executable, `#!${process.execPath}\nconsole.log(JSON.stringify({ command: ${JSON.stringify(command)}, args: process.argv.slice(2), cwd: process.cwd() })); process.exit(Number(process.env.FIXTURE_EXIT ?? 0));\n`);
@@ -118,7 +118,7 @@ test("v4-production root build self-identifies the Hostinger Web production lane
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
-    writeFileSync(join(fixture, "lib/runtime/deployment-lanes.json"), read("lib/runtime/deployment-lanes.json"));
+    writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
     writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
 
     const npm = join(fixture, "npm");

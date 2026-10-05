@@ -11,7 +11,7 @@ Status: locked for current providers. Provider migration is deliberately out of 
 | Admin Production | admin.ccpun.com | Vercel | production-admin | kyfxgjnq/production | blocked | off |
 | Admin UAT | admin-test.ccpun.com | Vercel | admin-uat | ccb9lnw5/uat | blocked | off |
 
-The machine-readable source of truth is lib/runtime/deployment-lanes.json.
+The machine-readable source of truth is lib/runtime/deployment-lanes.mjs.
 
 ## Locked Web Hostinger build shape
 

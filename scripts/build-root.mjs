@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const deploymentContract = JSON.parse(
-  readFileSync(resolve(repositoryRoot, "lib/runtime/deployment-lanes.json"), "utf8"),
+const { DEPLOYMENT_LANES } = await import(
+  new URL("../lib/runtime/deployment-lanes.mjs", import.meta.url)
 );
-const webProductionLane = deploymentContract.lanes["web-production"];
+const webProductionLane = DEPLOYMENT_LANES["web-production"];
 
 function gitValue(args) {
   const result = spawnSync("git", args, {
