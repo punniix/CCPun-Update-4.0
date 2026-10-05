@@ -546,7 +546,8 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
               </div>
               <p className={styles.netFormula}>
                 ฐานะสุทธิ = เงินพร้อมใช้ + พอร์ตลงทุน − หนี้คงเหลือ
-                โดยพอร์ตลงทุนไม่ถือเป็นเงินพร้อมใช้จนกว่าจะขาย
+                แต่เส้นทางเป้าหมายจะกันเงินสำรอง 3 เดือนออกก่อน
+                และนับเฉพาะเงินสดส่วนเกิน + พอร์ต − หนี้
               </p>
             </div>
 
@@ -998,7 +999,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
               <div className={styles.goalScore}>
                 <strong>{Math.round(bars.goalProgressPercent)}%</strong>
                 <span>
-                  ฐานะสุทธิ {money.format(bars.netPosition)} บาท
+                  เงินสำหรับเป้าหมาย {money.format(bars.goalPosition)} บาท
                 </span>
               </div>
               <div
@@ -1022,9 +1023,19 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                 หมุดหมายถัดไป {money.format(bars.goalNextMilestoneAmount)} บาท
                 {' · '}อีก {money.format(bars.goalRemainingToNext)} บาท
               </p>
+              <div className={styles.goalReserveNote}>
+                <span>
+                  กันเงินสำรอง 3 เดือน {money.format(bars.cashReserveTarget)} บาท
+                </span>
+                <small>
+                  ตอนนี้กันได้ {money.format(bars.cashReserveAllocated)} บาท
+                  {' · '}เงินสดส่วนเกินที่นับเข้าเป้าหมาย{' '}
+                  {money.format(bars.cashAboveReserve)} บาท
+                </small>
+              </div>
               <small className={styles.goalFormula}>
-                100% คือเป้าหมายแรก ไม่ใช่จุดจบ · หลังจากนั้นเกมจะต่อหมุดหมาย
-                150%, 200% และต่อไป
+                เป้าหมาย = พอร์ตลงทุน + เงินสดส่วนที่เกินเงินสำรอง − หนี้
+                {' · '}100% คือเป้าหมายแรก ไม่ใช่จุดจบ
               </small>
             </div>
           </div>

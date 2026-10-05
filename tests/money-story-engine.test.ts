@@ -6,6 +6,7 @@ import {
   coverShortfallWithExpenseCut,
   coverShortfallWithExtraIncome,
   coverShortfallWithLoan,
+  completeMonth,
   createGame,
   eventEligible,
   quoteRecoveryDebtRestructure,
@@ -185,7 +186,7 @@ test('goal journey continues beyond 100 percent with a next milestone', () => {
   let state = createGame('goal-beyond-100', 'gam');
   state = {
     ...state,
-    cash: 82500,
+    cash: 120000,
     investments: 0,
     debts: [],
   };
@@ -215,4 +216,53 @@ test('skill course raises income for the rest of the 12-month run', () => {
   assert.equal(skill?.kind, 'income');
   assert.equal(skill?.amount, 0.08);
   assert.equal(skill?.throughMonth, 12);
+});
+
+
+test('emergency reserve is excluded from goal money', () => {
+  let state = createGame('reserve-not-goal', 'gam');
+  state = {
+    ...state,
+    cash: 37500,
+    investments: 0,
+    debts: [],
+  };
+
+  let bars = statusBars(state);
+  assert.equal(bars.cashReserveTarget, 37500);
+  assert.equal(bars.cashReserveAllocated, 37500);
+  assert.equal(bars.cashAboveReserve, 0);
+  assert.equal(bars.goalPosition, 0);
+  assert.equal(Math.round(bars.goalProgressPercent), 0);
+
+  state = {
+    ...state,
+    cash: 47500,
+  };
+  bars = statusBars(state);
+  assert.equal(bars.cashAboveReserve, 10000);
+  assert.equal(bars.goalPosition, 10000);
+});
+
+
+test('year-end result uses goal money after reserve, not total net worth', () => {
+  let state = createGame('reserve-win-rule', 'gam');
+  state = {
+    ...state,
+    currentMonth: 12,
+    monthStarted: true,
+    currentEventId: undefined,
+    pendingShortfall: undefined,
+    cash: 55000,
+    investments: 0,
+    debts: [],
+  };
+
+  const bars = statusBars(state);
+  assert.equal(bars.netPosition, 55000);
+  assert.equal(bars.cashReserveTarget, 37500);
+  assert.equal(bars.goalPosition, 17500);
+
+  state = completeMonth(state);
+  assert.equal(state.status, 'survive');
 });

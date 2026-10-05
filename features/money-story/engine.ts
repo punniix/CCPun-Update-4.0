@@ -839,6 +839,33 @@ export function declareUnableToContinue(state: GameState): GameState {
   };
 }
 
+function financialPyramidGoalMetrics(state: GameState) {
+  const reserveMonth = state.currentMonth + 1;
+  const recurring =
+    state.fixedExpenses +
+    currentPremiums(state, reserveMonth) +
+    currentDebtPayments(state, reserveMonth);
+  const cashReserveTarget = roundBaht(Math.max(0, recurring) * 3);
+  const cashReserveAllocated = Math.min(
+    Math.max(0, state.cash),
+    cashReserveTarget,
+  );
+  const cashAboveReserve = Math.max(
+    0,
+    state.cash - cashReserveTarget,
+  );
+  const goalPosition =
+    cashAboveReserve + state.investments - totalDebt(state);
+
+  return {
+    recurring: Math.max(1, recurring),
+    cashReserveTarget,
+    cashReserveAllocated,
+    cashAboveReserve,
+    goalPosition: roundBaht(goalPosition),
+  };
+}
+
 export function completeMonth(state: GameState): GameState {
   if (
     state.status !== 'active' ||
@@ -851,14 +878,14 @@ export function completeMonth(state: GameState): GameState {
 
   if (state.currentMonth >= MONEY_STORY_TOTAL_MONTHS) {
     const character = characterFor(state);
-    const netPosition = state.cash + state.investments - totalDebt(state);
+    const { goalPosition } = financialPyramidGoalMetrics(state);
 
-    if (netPosition >= character.goal.targetNetPosition) {
+    if (goalPosition >= character.goal.targetNetPosition) {
       return {
         ...state,
         status: 'win',
         outcomeReason:
-          'ผ่านครบ 12 เดือนและไปถึงเป้าหมายของชีวิตนี้',
+          'ผ่านครบ 12 เดือนและมีเงินสำหรับเป้าหมายถึงหมุดหมายแรก หลังกันเงินสำรองแล้ว',
       };
     }
 
@@ -866,7 +893,7 @@ export function completeMonth(state: GameState): GameState {
       ...state,
       status: 'survive',
       outcomeReason:
-        'ผ่านครบ 12 เดือน แต่ฐานเงินสุทธิยังไม่ถึงเป้าหมายของชีวิตนี้',
+        'ผ่านครบ 12 เดือน แต่เงินสำหรับเป้าหมายหลังกันเงินสำรองยังไม่ถึงหมุดหมายแรก',
     };
   }
 
@@ -881,12 +908,16 @@ export function completeMonth(state: GameState): GameState {
 
 export function statusBars(state: GameState): StatusBars {
   const character = characterFor(state);
-  const debtPayments = currentDebtPayments(state, state.currentMonth + 1);
-  const premiums = currentPremiums(state, state.currentMonth + 1);
-  const recurring = Math.max(1, state.fixedExpenses + debtPayments + premiums);
+  const {
+    recurring,
+    cashReserveTarget,
+    cashReserveAllocated,
+    cashAboveReserve,
+    goalPosition,
+  } = financialPyramidGoalMetrics(state);
 
   const liquidity = clamp(
-    (Math.max(0, state.cash) / (recurring * 3)) * 100,
+    (Math.max(0, state.cash) / cashReserveTarget) * 100,
     0,
     100,
   );
@@ -902,7 +933,7 @@ export function statusBars(state: GameState): StatusBars {
     state.cash + state.investments - totalDebt(state);
 
   const goalProgressPercent =
-    (Math.max(0, netPosition) / Math.max(1, character.goal.targetNetPosition)) * 100;
+    (Math.max(0, goalPosition) / Math.max(1, character.goal.targetNetPosition)) * 100;
   const goal = clamp(goalProgressPercent, 0, 100);
   const milestoneStep = goalProgressPercent < 100 ? 25 : 50;
   const goalPreviousMilestonePercent =
@@ -928,7 +959,7 @@ export function statusBars(state: GameState): StatusBars {
   );
   const goalRemainingToNext = Math.max(
     0,
-    goalNextMilestoneAmount - netPosition,
+    goalNextMilestoneAmount - goalPosition,
   );
 
   const label = (value: number) =>
@@ -946,6 +977,10 @@ export function statusBars(state: GameState): StatusBars {
     goalNextMilestonePercent,
     goalNextMilestoneAmount,
     goalRemainingToNext,
+    cashReserveTarget,
+    cashReserveAllocated,
+    cashAboveReserve,
+    goalPosition,
     liquidityLabel: label(liquidity),
     flexibilityLabel: label(flexibility),
     goalLabel:
