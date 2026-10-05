@@ -21,6 +21,7 @@ test('event library is much larger than one 12-month run', () => {
   const categories = new Set(MONEY_STORY_EVENTS.map((event) => event.category));
   for (const category of [
     'everyday',
+    'household',
     'work',
     'health',
     'motor',
@@ -265,4 +266,50 @@ test('year-end result uses goal money after reserve, not total net worth', () =>
 
   state = completeMonth(state);
   assert.equal(state.status, 'survive');
+});
+
+
+test('household essentials do not reuse discretionary shopping labels', () => {
+  const forbidden = new Set(['จัดเต็ม', 'ลดงบ', 'ยังไม่เอา', 'ผ่านก่อน']);
+  const householdEvents = MONEY_STORY_EVENTS.filter(
+    (event) => event.category === 'household',
+  );
+
+  assert.ok(householdEvents.length >= 10);
+  for (const event of householdEvents) {
+    for (const option of event.options) {
+      assert.equal(
+        forbidden.has(option.label),
+        false,
+        event.id + ' should use a household-specific choice label',
+      );
+    }
+  }
+});
+
+test('life protection events describe a death-related income shock, not job loss', () => {
+  const event = MONEY_STORY_EVENTS.find(
+    (item) => item.id === 'family-income-loss',
+  )!;
+
+  assert.match(event.title, /จากไป/);
+  assert.equal(event.options[0].effect.cost?.protectionType, 'life');
+  assert.doesNotMatch(event.options[0].outcomeText, /คนข้างหลัง/);
+  assert.match(event.options[0].outcomeText, /เงินก้อน/);
+});
+
+test('lump-sum protection offers explain cash support instead of reimbursement', () => {
+  const critical = MONEY_STORY_EVENTS.find(
+    (item) => item.id === 'protect-critical',
+  )!;
+  const life = MONEY_STORY_EVENTS.find(
+    (item) => item.id === 'protect-life',
+  )!;
+  const health = MONEY_STORY_EVENTS.find(
+    (item) => item.id === 'protect-health',
+  )!;
+
+  assert.match(critical.text, /เงินก้อน/);
+  assert.match(life.text, /เงินก้อน/);
+  assert.match(health.text, /ลดค่าใช้จ่าย/);
 });
