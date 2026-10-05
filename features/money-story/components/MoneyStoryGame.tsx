@@ -10,10 +10,17 @@ import {
   beginMonth,
   characterFor,
   completeMonth,
+  coverShortfallWithDebtRestructure,
+  coverShortfallWithExpenseCut,
+  coverShortfallWithExtraIncome,
   coverShortfallWithInvestments,
   coverShortfallWithLoan,
   createGame,
   declareUnableToContinue,
+  hasRecoveryOption,
+  quoteRecoveryDebtRestructure,
+  quoteRecoveryExpenseCut,
+  quoteRecoveryExtraIncome,
   quoteShortfallLoan,
   resolveEventChoice,
   statusBars,
@@ -205,6 +212,15 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     : undefined;
   const loanQuote = game?.pendingShortfall
     ? quoteShortfallLoan(game)
+    : null;
+  const extraIncomeQuote = game?.pendingShortfall
+    ? quoteRecoveryExtraIncome(game)
+    : null;
+  const expenseCutQuote = game?.pendingShortfall
+    ? quoteRecoveryExpenseCut(game)
+    : null;
+  const debtRestructureQuote = game?.pendingShortfall
+    ? quoteRecoveryDebtRestructure(game)
     : null;
 
   const focusGame = () => requestAnimationFrame(() => rootRef.current?.focus());
@@ -468,6 +484,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   const canSellInvestments = Boolean(
     game.pendingShortfall && game.investments > 0,
   );
+  const canRecover = hasRecoveryOption(game);
 
   return (
     <div
@@ -538,75 +555,131 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
           {game.pendingShortfall ? (
             <div className={styles.card + ' ' + styles.shortfall}>
-              <span className={styles.category}>
-                เงินไม่พอกับภาระที่ถึงกำหนด
-              </span>
+              <span className={styles.category}>ช่วงกู้สถานการณ์</span>
               <h2 className={styles.eventTitle}>
-                ขาดอีก {money.format(game.pendingShortfall.amount)} บาท
+                ยังขาดอีก {money.format(game.pendingShortfall.amount)} บาท
               </h2>
               <p className={styles.eventText}>
-                เกมยังไม่จบทันที คุณยังใช้เงินลงทุนหรือกู้เพื่อผ่านเดือนนี้ได้
-                หากภาระใหม่ยังอยู่ในเกณฑ์ของเกม
+                เกมยังไม่จบตรงนี้ คุณใช้หลายวิธีร่วมกันได้
+                ทุกครั้งที่เลือก ระบบจะคำนวณยอดที่ยังขาดใหม่
               </p>
 
               <div className={styles.shortfallActions}>
                 {canSellInvestments ? (
                   <button
                     type="button"
-                    className={styles.secondary}
-                    onClick={() =>
-                      setGame(coverShortfallWithInvestments(game))
-                    }
-                  >
-                    ขายเงินลงทุน {money.format(
-                      Math.min(game.pendingShortfall.amount, game.investments),
-                    )} บาทเพื่อเติมส่วนที่ขาด
-                  </button>
-                ) : null}
-
-                {loanQuote ? (
-                  <>
-                    <div className={styles.loanPreview}>
-                      <strong>
-                        ถ้ากู้ในเกม {money.format(loanQuote.principal)} บาท
-                      </strong>
-                      <br />
-                      ค่างวดจำลองประมาณ{' '}
-                      {money.format(loanQuote.monthlyPayment)} บาท/เดือน · 12
-                      เดือน
-                      <br />
-                      เงินกู้ช่วยวันนี้ แต่ลดความคล่องตัวในเดือนต่อๆ ไป
-                    </div>
-
-                    <button
-                      type="button"
-                      className={styles.secondary}
-                      disabled={!loanQuote.canBorrow}
-                      onClick={() => {
-                        setGame(coverShortfallWithLoan(game));
-                        trackEvent('money_story_borrow');
-                      }}
-                    >
-                      กู้เพื่อไปต่อ
-                    </button>
-
-                    {!loanQuote.canBorrow ? (
-                      <p className={styles.muted}>{loanQuote.reason}</p>
-                    ) : null}
-                  </>
-                ) : null}
-
-                {!canSellInvestments && !loanQuote?.canBorrow ? (
-                  <button
-                    type="button"
-                    className={styles.danger}
+                    className={styles.recoveryChoice}
                     onClick={() => {
-                      setGame(declareUnableToContinue(game));
-                      trackEvent('money_story_lose');
+                      setGame(coverShortfallWithInvestments(game));
+                      trackEvent('money_story_recovery_investment');
                     }}
                   >
-                    ยอมรับว่ารอบนี้ไปต่อไม่ไหว
+                    <strong>ใช้เงินลงทุนก่อน</strong>
+                    <span>
+                      ขาย {money.format(
+                        Math.min(game.pendingShortfall.amount, game.investments),
+                      )} บาท เพื่อเติมส่วนที่ขาด
+                    </span>
                   </button>
+                ) : null}
+
+                {extraIncomeQuote?.available ? (
+                  <button
+                    type="button"
+                    className={styles.recoveryChoice}
+                    onClick={() => {
+                      setGame(coverShortfallWithExtraIncome(game));
+                      trackEvent('money_story_recovery_income');
+                    }}
+                  >
+                    <strong>รับงานเสริมเร่งด่วน</strong>
+                    <span>
+                      เงินสด +{money.format(extraIncomeQuote.immediate)} บาทวันนี้ ·
+                      รายได้ +{percentLabel(extraIncomeQuote.ongoingPercent)} อีก{' '}
+                      {extraIncomeQuote.months} เดือน
+                    </span>
+                  </button>
+                ) : null}
+
+                {expenseCutQuote?.available ? (
+                  <button
+                    type="button"
+                    className={styles.recoveryChoice}
+                    onClick={() => {
+                      setGame(coverShortfallWithExpenseCut(game));
+                      trackEvent('money_story_recovery_expense_cut');
+                    }}
+                  >
+                    <strong>ลดค่าใช้จ่ายชั่วคราว</strong>
+                    <span>
+                      ช่วยเดือนนี้ได้สูงสุด {money.format(expenseCutQuote.immediate)} บาท ·
+                      ลดรายจ่าย {money.format(expenseCutQuote.monthlyReduction)} บาท/เดือน
+                      อีก {expenseCutQuote.months} เดือน
+                    </span>
+                  </button>
+                ) : null}
+
+                {debtRestructureQuote?.available ? (
+                  <button
+                    type="button"
+                    className={styles.recoveryChoice}
+                    onClick={() => {
+                      setGame(coverShortfallWithDebtRestructure(game));
+                      trackEvent('money_story_recovery_debt');
+                    }}
+                  >
+                    <strong>ขอปรับค่างวด</strong>
+                    <span>
+                      เลื่อนภาระเดือนนี้ได้ประมาณ{' '}
+                      {money.format(debtRestructureQuote.immediateRelief)} บาท ·
+                      ค่างวดถัดไปประมาณ{' '}
+                      {money.format(debtRestructureQuote.nextMonthlyBefore)} →{' '}
+                      {money.format(debtRestructureQuote.nextMonthlyAfter)} บาท/เดือน
+                    </span>
+                  </button>
+                ) : null}
+
+                {loanQuote?.canBorrow ? (
+                  <button
+                    type="button"
+                    className={styles.recoveryChoice}
+                    onClick={() => {
+                      setGame(coverShortfallWithLoan(game));
+                      trackEvent('money_story_borrow');
+                    }}
+                  >
+                    <strong>
+                      {loanQuote.partial
+                        ? 'กู้ได้สูงสุด ' + money.format(loanQuote.principal) + ' บาท'
+                        : 'กู้ ' + money.format(loanQuote.principal) + ' บาท'}
+                    </strong>
+                    <span>
+                      ค่างวดประมาณ {money.format(loanQuote.monthlyPayment)} บาท/เดือน ×{' '}
+                      {loanQuote.termMonths} เดือน
+                      {loanQuote.partial
+                        ? ' · เงินก้อนนี้ยังปิดยอดขาดไม่หมด ต้องใช้วิธีอื่นร่วมด้วย'
+                        : ' · ช่วยผ่านเดือนนี้ แต่เพิ่มภาระเดือนถัดไป'}
+                    </span>
+                  </button>
+                ) : null}
+
+                {!canRecover ? (
+                  <>
+                    <p className={styles.recoveryExhausted}>
+                      ทางเลือกกู้สถานการณ์ที่ชีวิตนี้มีถูกใช้หมดแล้ว
+                      ถ้ายังปิดยอดที่ขาดไม่ได้ รอบนี้จึงไปต่อไม่ไหว
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.danger}
+                      onClick={() => {
+                        setGame(declareUnableToContinue(game));
+                        trackEvent('money_story_lose');
+                      }}
+                    >
+                      จบรอบนี้
+                    </button>
+                  </>
                 ) : null}
               </div>
             </div>

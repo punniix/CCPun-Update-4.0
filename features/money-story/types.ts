@@ -2,6 +2,7 @@ export type IncomeStability = 'stable' | 'variable' | 'business';
 export type ProtectionType = 'health' | 'critical' | 'life' | 'motor' | 'home';
 export type EventCategory = 'everyday' | 'work' | 'household' | 'health' | 'motor' | 'home' | 'family' | 'market' | 'crisis' | 'calm';
 export type GameStatus = 'active' | 'win' | 'survive' | 'lose';
+export type RecoveryActionId = 'extra-income' | 'expense-cut' | 'debt-restructure' | 'loan';
 
 export type ProtectionHolding = {
   type: ProtectionType;
@@ -128,6 +129,7 @@ export type HistoryEntry = {
 export type PendingShortfall = {
   amount: number;
   resume: 'event' | 'month-end';
+  usedActions?: RecoveryActionId[];
 };
 
 export type GameState = {
@@ -171,5 +173,6 @@ export type LoanQuote = {
   monthlyRate: number;
   termMonths: number;
   canBorrow: boolean;
+  partial: boolean;
   reason?: string;
 };
