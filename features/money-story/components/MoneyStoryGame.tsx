@@ -22,6 +22,7 @@ import {
   quoteRecoveryExpenseCut,
   quoteRecoveryExtraIncome,
   quoteShortfallLoan,
+  protectionBenefitPreview,
   resolveEventChoice,
   statusBars,
   totalDebt,
@@ -54,7 +55,7 @@ function Meter({
   label: string;
   value: number;
   status: string;
-  detail: string;
+  detail: React.ReactNode;
 }) {
   return (
     <div>
@@ -77,7 +78,7 @@ function Meter({
       </div>
       <div className={styles.valueLine}>
         <span>{Math.round(value)} / 100</span>
-        <span>{detail}</span>
+        <div className={styles.meterDetail}>{detail}</div>
       </div>
     </div>
   );
@@ -182,10 +183,23 @@ function optionImpactLines(option: EventOption, game: GameState) {
 
   if (effect.addProtection) {
     const protection = PROTECTION_CATALOG[effect.addProtection];
+    const preview = protectionBenefitPreview(game, effect.addProtection);
     lines.push(
       'เบี้ย ' +
         money.format(protection.monthlyPremium) +
         ' บาท/เดือน · เริ่มคุ้มครองเดือนถัดไป',
+    );
+    lines.push(
+      'ตัวอย่างในเกม: ถ้าเกิดภาระ ' +
+        money.format(preview.grossCost) +
+        ' บาท',
+    );
+    lines.push(
+      'ไม่มีความคุ้มครองนี้ จ่ายเอง ' +
+        money.format(preview.withoutProtection) +
+        ' บาท → มีความคุ้มครอง จ่ายเองประมาณ ' +
+        money.format(preview.withProtection) +
+        ' บาท',
     );
   }
 
@@ -410,10 +424,14 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                   <strong>{money.format(totalDebt(game))} บาท</strong>
                 </div>
                 <div className={styles.numberBox}>
-                  <small>เงินสุทธิในเกม</small>
+                  <small>ฐานะสุทธิ</small>
                   <strong>{money.format(bars.netPosition)} บาท</strong>
                 </div>
               </div>
+              <p className={styles.netFormula}>
+                ฐานะสุทธิ = เงินพร้อมใช้ + พอร์ตลงทุน − หนี้คงเหลือ
+                โดยพอร์ตลงทุนไม่ถือเป็นเงินพร้อมใช้จนกว่าจะขาย
+              </p>
             </div>
 
             <div className={styles.card}>
@@ -526,7 +544,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
               ) : null}
             </div>
             <div className={styles.muted}>
-              เงินสด {money.format(Math.max(0, game.cash))} · ลงทุน{' '}
+              เงินสดพร้อมใช้ {money.format(Math.max(0, game.cash))} · พอร์ตลงทุน{' '}
               {money.format(game.investments)}
             </div>
           </div>
@@ -822,90 +840,106 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
         </section>
 
         <aside className={styles.side + ' ' + styles.sideRight}>
-          <div className={styles.meters}>
+          <div className={styles.sidebarSection}>
             <Meter
               label="เงินพร้อมรับมือ"
               value={bars.liquidity}
               status={bars.liquidityLabel}
-              detail={'เงินสดพร้อมใช้ ' + money.format(Math.max(0, game.cash)) + ' บาท'}
+              detail={
+                <>
+                  <span>เงินสดพร้อมใช้ {money.format(Math.max(0, game.cash))} บาท</span>
+                  <small>
+                    พอร์ตลงทุน {money.format(game.investments)} บาท ไม่รวมในบาร์นี้
+                  </small>
+                </>
+              }
             />
+          </div>
+
+          <div className={styles.sidebarSection}>
             <Meter
               label="ความคล่องตัว"
               value={bars.flexibility}
               status={bars.flexibilityLabel}
               detail={
-                'เหลือหลังภาระประจำ ' +
-                money.format(bars.projectedMonthlyFlexibility) +
-                ' บาท/เดือน'
+                <>
+                  <span>
+                    เหลือหลังภาระประจำ{' '}
+                    {money.format(bars.projectedMonthlyFlexibility)} บาท/เดือน
+                  </span>
+                  <small>วัดจากรายได้เทียบกับภาระประจำของเดือนถัดไป</small>
+                </>
               }
             />
+          </div>
+
+          <div className={styles.sidebarSection}>
             <Meter
               label="เป้าหมาย"
               value={bars.goal}
               status={bars.goalLabel}
               detail={
-                'เงินสุทธิ ' +
-                money.format(bars.netPosition) +
-                ' / ' +
-                money.format(character.goal.targetNetPosition) +
-                ' บาท'
+                <>
+                  <span>
+                    ฐานะสุทธิ {money.format(bars.netPosition)} /{' '}
+                    {money.format(character.goal.targetNetPosition)} บาท
+                  </span>
+                  <small>
+                    เงินสด {money.format(game.cash)} + พอร์ต{' '}
+                    {money.format(game.investments)} − หนี้{' '}
+                    {money.format(totalDebt(game))}
+                  </small>
+                </>
               }
             />
           </div>
 
-          <div className={styles.protections}>
-            <h3>ความคุ้มครองที่มีในเกม</h3>
-            <div className={styles.shields}>
+          <div className={styles.sidebarSection + ' ' + styles.protections}>
+            <div className={styles.sidebarHeading}>
+              <h3>ความคุ้มครอง</h3>
+            </div>
+            <div className={styles.coverageList}>
               {protectionTypes.map((type) => {
-                const active = game.protections.some(
-                  (protection) =>
-                    protection.type === type &&
-                    protection.activeFromMonth <= game.currentMonth,
+                const holding = game.protections.find(
+                  (protection) => protection.type === type,
                 );
-                const pending = game.protections.some(
-                  (protection) =>
-                    protection.type === type &&
-                    protection.activeFromMonth > game.currentMonth,
+                const active = Boolean(
+                  holding && holding.activeFromMonth <= game.currentMonth,
                 );
+                const pending = Boolean(
+                  holding && holding.activeFromMonth > game.currentMonth,
+                );
+                const catalog = PROTECTION_CATALOG[type];
+
+                if (!holding) {
+                  return (
+                    <div className={styles.coverageMissing} key={type}>
+                      <span>{protectionIcons[type]} {catalog.label}</span>
+                      <small>ยังไม่มี</small>
+                    </div>
+                  );
+                }
 
                 return (
-                  <span
-                    key={type}
-                    className={
-                      styles.shield + (active ? ' ' + styles.shieldActive : '')
-                    }
-                  >
-                    {protectionIcons[type]}
-                    {PROTECTION_CATALOG[type].label}
-                    {pending ? ' · เดือนหน้า' : ''}
-                  </span>
+                  <div className={styles.coverageItem} key={type}>
+                    <div className={styles.coverageTitle}>
+                      <span>{protectionIcons[type]} {catalog.label}</span>
+                      <strong>{pending ? 'เริ่มเดือนหน้า' : active ? 'มีผลแล้ว' : 'รอเริ่ม'}</strong>
+                    </div>
+                    <small>
+                      ช่วยตามกติกาเกมสูงสุด {money.format(catalog.maxBenefit)} บาท
+                      {catalog.coverageRate < 1
+                        ? ' · ' + percentLabel(catalog.coverageRate) + ' ของส่วนที่เข้าเกณฑ์'
+                        : ''}
+                    </small>
+                    <small>
+                      {holding.source === 'existing'
+                        ? 'ความคุ้มครองที่มีอยู่แล้ว'
+                        : 'เบี้ย ' + money.format(holding.monthlyPremium) + ' บาท/เดือน'}
+                    </small>
+                  </div>
                 );
               })}
-            </div>
-          </div>
-
-          <div className={styles.pyramid}>
-            <h3>ภาพรวมโครงสร้างการเงิน</h3>
-            <div
-              className={styles.pyramidStack}
-              aria-label="ภาพสรุปพีระมิดทางการเงิน"
-            >
-              <div
-                className={styles.pyramidLayer}
-                data-on={bars.goal >= 55}
-              />
-              <div
-                className={styles.pyramidLayer}
-                data-on={game.investments > 0}
-              />
-              <div
-                className={styles.pyramidLayer}
-                data-on={game.protections.length >= 2}
-              />
-              <div
-                className={styles.pyramidLayer}
-                data-on={bars.liquidity >= 35}
-              />
             </div>
           </div>
         </aside>

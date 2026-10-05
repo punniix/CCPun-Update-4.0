@@ -307,6 +307,35 @@ function addDebt(
   };
 }
 
+export function protectionBenefitPreview(
+  state: GameState,
+  type: keyof typeof PROTECTION_CATALOG,
+) {
+  const catalog = PROTECTION_CATALOG[type];
+  const grossCost = catalog.exampleCost;
+  const existingBenefit =
+    type === 'health' ? Math.min(grossCost, state.healthBenefitCap) : 0;
+  const withoutProtection = Math.max(0, grossCost - existingBenefit);
+  const afterDeductible = Math.max(0, withoutProtection - catalog.deductible);
+  const protectionBenefit = Math.min(
+    catalog.maxBenefit,
+    roundBaht(afterDeductible * catalog.coverageRate),
+  );
+  const withProtection = Math.max(
+    0,
+    withoutProtection - protectionBenefit,
+  );
+
+  return {
+    grossCost,
+    existingBenefit,
+    protectionBenefit,
+    withoutProtection,
+    withProtection,
+    savings: Math.max(0, withoutProtection - withProtection),
+  };
+}
+
 function applyCost(state: GameState, amount: number, protectionType?: string) {
   let remaining = amount;
   let existingBenefit = 0;

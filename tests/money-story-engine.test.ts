@@ -10,6 +10,7 @@ import {
   eventEligible,
   quoteRecoveryDebtRestructure,
   quoteShortfallLoan,
+  protectionBenefitPreview,
   resolveEventChoice,
   statusBars,
 } from '../features/money-story/engine';
@@ -164,4 +165,17 @@ test('the 121,126 baht shortfall can be rescued by combining loan, extra income 
   assert.equal(state.pendingShortfall, undefined);
   assert.equal(state.status, 'active');
   assert.ok(state.cash >= 0);
+});
+
+
+test('protection preview shows how much a protection can reduce out-of-pocket cost', () => {
+  const state = createGame('protection-preview', 'gam');
+  const preview = protectionBenefitPreview(state, 'health');
+
+  assert.equal(preview.grossCost, 72000);
+  assert.ok(preview.withProtection < preview.withoutProtection);
+  assert.equal(
+    preview.savings,
+    preview.withoutProtection - preview.withProtection,
+  );
 });
