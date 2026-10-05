@@ -42,7 +42,7 @@ const everyday = spendEvents('everyday', [
   ['shipping', 'ซื้อเพิ่มอีก 900 เพื่อประหยัดค่าส่ง 40', 'ตะกร้ากำลังเสนอแผนการเงินที่มั่นใจมาก', 900],
   ['coffee-machine', 'ไปซื้อกาแฟ ได้เครื่องชง', 'ตั้งใจซื้อกาแฟแก้วเดียว แต่เครื่องชงดูเหมือนจะรู้จักเราเป็นการส่วนตัว', 4200],
   ['subscription', 'ทดลองฟรีที่จริงจังกับเรา', 'แอปที่เคยทดลองฟรีกำลังต่ออายุแบบเต็มราคา', 1290],
-  ['flash-sale', 'Flash Sale เหลืออีก 07:59 นาที', 'ของที่เล็งมานานลดราคา และนาฬิกาก็กำลังเร่งการตัดสินใจ', 3500],
+  ['flash-sale', 'Flash Sale ใกล้หมดเวลา', 'ของที่เล็งมานานลดราคา และความเร่งรีบกำลังช่วยตัดสินใจแทนเรา', 3500],
   ['friend-trip', 'ทริปนี้ต้องไปแล้วไหม', 'เพื่อนเปิดกรุ๊ปเที่ยวสุดสัปดาห์ และทุกคนตอบเร็วมาก', 6500],
   ['wedding-season', 'เดือนแห่งซอง', 'ปฏิทินดูเหมือนจะมีงานแต่งมากกว่าวันหยุด', 3200],
   ['delivery-week', 'สัปดาห์ที่แอปส่งอาหารจำชื่อเราได้', 'สะดวกมาก จนยอดรวมเริ่มสะดวกเกินไป', 1800],
@@ -94,7 +94,7 @@ const work: MoneyEvent[] = [
   {
     id: 'work-raise',
     category: 'work',
-    title: 'ปรับรายได้',
+    title: 'รายได้ฐานเพิ่มขึ้น',
     text: 'ผลงานช่วงที่ผ่านมาเปลี่ยนรายได้ในอีกหลายเดือน',
     weight: 3,
     requirements: { minMonth: 4 },
@@ -197,7 +197,7 @@ const health: MoneyEvent[] = [
 const motor: MoneyEvent[] = [
   { id: 'motor-air', category: 'motor', title: 'รถยังวิ่งได้ แต่แอร์เลือกลาออกก่อน', text: 'เป็นค่าบำรุงรักษาปกติ ไม่ใช่อุบัติเหตุ', weight: 4, requirements: { hasCar: true }, options: [{ id: 'fix', label: 'ซ่อมเลย', outcomeText: 'จ่ายค่าซ่อมเองตามปกติ', effect: { cashDelta: -6500 } }, { id: 'basic', label: 'ซ่อมเท่าที่จำเป็น', outcomeText: 'ลดค่าใช้จ่ายลง', effect: { cashDelta: -3500 } }] },
   { id: 'motor-tire', category: 'motor', title: 'ยางถึงรอบเปลี่ยน', text: 'ค่าใช้จ่ายดูธรรมดา แต่เลี่ยงนานไม่ค่อยดี', weight: 4, requirements: { hasCar: true }, options: [{ id: 'replace', label: 'เปลี่ยนชุดที่เหมาะสม', outcomeText: 'จ่ายค่าบำรุงรักษา', effect: { cashDelta: -12000 } }, { id: 'budget', label: 'เลือกทางประหยัด', outcomeText: 'ลดค่าใช้จ่ายแต่ยังจัดการเรื่องจำเป็น', effect: { cashDelta: -7500 } }] },
-  { id: 'motor-battery', category: 'motor', title: 'แบตรถหมดแบบไม่ส่ง calendar invite', text: 'ต้องแก้ก่อนเดินทางต่อ', weight: 4, requirements: { hasCar: true }, options: [{ id: 'replace', label: 'เปลี่ยนแบต', outcomeText: 'จ่ายค่าบำรุงรักษา', effect: { cashDelta: -3800 } }] },
+  { id: 'motor-battery', category: 'motor', title: 'แบตรถหมดแบบไม่ได้นัดหมาย', text: 'ต้องแก้ก่อนเดินทางต่อ', weight: 4, requirements: { hasCar: true }, options: [{ id: 'replace', label: 'เปลี่ยนแบต', outcomeText: 'จ่ายค่าบำรุงรักษา', effect: { cashDelta: -3800 } }] },
   { id: 'motor-minor-accident', category: 'motor', title: 'เกิดอุบัติเหตุรถเล็กน้อย', text: 'มีความเสียหายที่ต้องรับผิดชอบตามสถานการณ์', weight: 2, sensitive: true, requirements: { hasCar: true }, options: [{ id: 'handle', label: 'จัดการความเสียหาย', outcomeText: 'ความคุ้มครองรถช่วยเฉพาะส่วนที่เข้าเงื่อนไขจำลอง', effect: { cost: { amount: 32000, protectionType: 'motor' } } }] },
   { id: 'motor-accident', category: 'motor', title: 'เกิดอุบัติเหตุรถที่มีความเสียหายสูง', text: 'เหตุการณ์นี้มีค่าใช้จ่ายก้อนใหญ่และต้องจัดการอย่างจริงจัง', weight: 1, sensitive: true, requirements: { hasCar: true, minMonth: 3 }, options: [{ id: 'handle', label: 'จัดการความเสียหาย', outcomeText: 'ใช้ความคุ้มครองรถที่เข้าเงื่อนไขก่อนส่วนที่ต้องจ่ายเอง', effect: { cost: { amount: 95000, protectionType: 'motor' } } }] },
   { id: 'motor-parking', category: 'motor', title: 'ค่าจอดรถขึ้นราคา', text: 'รายจ่ายเล็กๆ กำลังขอเป็นสมาชิกประจำ', weight: 3, requirements: { hasCar: true }, options: [{ id: 'pay', label: 'จ่ายตามเดิม', outcomeText: 'ค่าใช้จ่ายเพิ่มหลายเดือน', effect: { expenseModifier: { amount: 900, months: 4, label: 'ค่าจอดรถเพิ่ม' } } }, { id: 'switch', label: 'เปลี่ยนที่จอด', outcomeText: 'มีค่าใช้จ่ายย้ายครั้งเดียว', effect: { cashDelta: -1200 } }] },
@@ -211,7 +211,7 @@ const home: MoneyEvent[] = [
   { id: 'home-electrical', category: 'home', title: 'ระบบไฟในบ้านต้องซ่อม', text: 'เป็นรายการที่ควรจัดการเพื่อความปลอดภัย', weight: 2, requirements: { hasHome: true }, options: [{ id: 'repair', label: 'ซ่อม', outcomeText: 'จ่ายค่าซ่อมเอง', effect: { cashDelta: -14000 } }] },
   { id: 'home-security', category: 'home', title: 'อยากเพิ่มความปลอดภัยให้บ้าน', text: 'เป็นค่าใช้จ่ายที่เลือกได้ ไม่ใช่เหตุฉุกเฉิน', weight: 2, requirements: { hasHome: true }, options: [{ id: 'do', label: 'ติดตั้ง', outcomeText: 'จ่ายเพื่อปรับบ้าน', effect: { cashDelta: -8000 } }, { id: 'later', label: 'ไว้ก่อน', outcomeText: 'ไม่เพิ่มค่าใช้จ่ายเดือนนี้', effect: {} }] },
   { id: 'home-fee', category: 'home', title: 'มีค่าดูแลทรัพย์สินประจำปี', text: 'ไม่ได้เกิดทุกเดือน แต่เดือนนี้ถึงรอบ', weight: 3, requirements: { hasHome: true }, options: [{ id: 'pay', label: 'จ่าย', outcomeText: 'เงินสดลดตามค่าใช้จ่าย', effect: { cashDelta: -6000 } }] },
-  { id: 'home-appliance', category: 'home', title: 'เครื่องใช้ชิ้นใหญ่ในบ้านเสีย', text: 'ต้องเลือกซ่อมหรือเปลี่ยน', weight: 3, requirements: { hasHome: true }, options: [{ id: 'repair', label: 'ซ่อม', outcomeText: 'ใช้เงินน้อยกว่า', effect: { cashDelta: -5500 } }, { id: 'replace', label: 'เปลี่ยนใหม่', outcomeText: 'จ่ายมากกว่าแต่จบปัญหา', effect: { cashDelta: -15000 } }] },
+  { id: 'home-appliance', category: 'home', title: 'เครื่องใช้ชิ้นใหญ่ในบ้านเสีย', text: 'ต้องเลือกซ่อมหรือเปลี่ยน', weight: 3, requirements: { hasHome: true }, options: [{ id: 'repair', label: 'ซ่อม', outcomeText: 'ซ่อมเรียบร้อยและใช้เงินน้อยกว่าการเปลี่ยนใหม่', effect: { cashDelta: -5500 } }, { id: 'replace', label: 'เปลี่ยนใหม่', outcomeText: 'เปลี่ยนใหม่และจบค่าใช้จ่ายก้อนนี้', effect: { cashDelta: -15000 } }] },
 ];
 
 const family: MoneyEvent[] = [

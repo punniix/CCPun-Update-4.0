@@ -34,24 +34,24 @@ export default function MoneyStoryPage() {
         <section className={styles.hero}>
           <div className={styles.heroInner}>
             <p className={styles.kicker}>
-              CCPun Play · Interactive Financial Experience
+              CCPun Play · เกมจำลองการเงินแบบโต้ตอบ
             </p>
             <h1 className={styles.title}>Money Story</h1>
             <p className={styles.subtitle}>
-              เกมจำลองชีวิตการเงิน 12 เดือน คุณไม่เลือกจุดเริ่มต้น
-              แต่เลือกได้ว่าจะจัดการเงินยังไงเมื่อชีวิตมีเรื่องเข้ามา
+              เกมจำลองชีวิตการเงิน 12 เดือน คุณเลือกจุดเริ่มต้นไม่ได้
+              แต่เลือกได้ว่าจะจัดการเงินอย่างไรเมื่อเรื่องไม่คาดคิดเข้ามา
             </p>
             <div className={styles.heroMeta}>
               <span className={styles.pill}>12 เดือน</span>
               <span className={styles.pill}>ชีวิตสมมติ</span>
               <span className={styles.pill}>เล่นซ้ำได้</span>
-              <span className={styles.pill}>Touch · Mouse · Keyboard</span>
+              <span className={styles.pill}>มือถือ · เมาส์ · คีย์บอร์ด</span>
             </div>
           </div>
         </section>
 
         <section className={styles.gameSection} aria-label="เกม Money Story">
-          <MoneyStoryGame />
+          <MoneyStoryGame showSeed={IS_REVIEW_ENVIRONMENT} />
         </section>
 
         <section
@@ -81,8 +81,8 @@ export default function MoneyStoryPage() {
               <div className={styles.explainCard}>
                 <strong>การกู้</strong>
                 <p>
-                  เพิ่มเงินในมือวันนี้ แต่ดึงพื้นที่ของรายได้ในเดือนถัดๆ
-                  ไปมาใช้ก่อน
+                  เพิ่มเงินในมือวันนี้ แต่ทำให้เดือนถัดไปมีค่างวดเพิ่ม
+                  และเงินเหลือน้อยลง
                 </p>
               </div>
             </div>

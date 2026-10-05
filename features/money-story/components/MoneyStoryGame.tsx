@@ -76,43 +76,132 @@ function Meter({
   );
 }
 
-function optionHint(option: EventOption) {
-  if (option.effect.borrow) {
-    const loan = option.effect.borrow;
-    return (
-      'ได้เงิน ' +
-      money.format(loan.principal) +
-      ' บาท · ค่างวดจำลองประมาณ ' +
-      money.format(amortizedPayment(loan.principal, loan.monthlyRate, loan.termMonths)) +
-      ' บาท/เดือน'
-    );
-  }
-
-  if (option.effect.addProtection) {
-    const protection = PROTECTION_CATALOG[option.effect.addProtection];
-    return (
-      'เบี้ยจำลอง ' +
-      money.format(protection.monthlyPremium) +
-      ' บาท/เดือน · เริ่มคุ้มครองเดือนถัดไป'
-    );
-  }
-
-  if (option.effect.investmentDelta && option.effect.investmentDelta > 0) {
-    return 'ย้ายเงินสด ' + money.format(option.effect.investmentDelta) + ' บาทไปลงทุน';
-  }
-
-  return option.description;
+function percentLabel(value: number) {
+  const percent = Math.abs(value * 100);
+  return (Number.isInteger(percent) ? percent.toFixed(0) : percent.toFixed(1)) + '%';
 }
 
-export default function MoneyStoryGame() {
+function optionImpactLines(option: EventOption, game: GameState) {
+  const effect = option.effect;
+  const lines: string[] = [];
+  const borrowed = effect.borrow?.principal ?? 0;
+  const cashDelta = effect.cashDelta ?? 0;
+  const cashBeforeTransfers = Math.max(0, game.cash + borrowed + cashDelta);
+  let cashAfterTransfers = cashBeforeTransfers;
+
+  if (effect.borrow) {
+    const loan = effect.borrow;
+    lines.push(
+      'ได้เงิน ' +
+        money.format(loan.principal) +
+        ' บาท · ค่างวดประมาณ ' +
+        money.format(amortizedPayment(loan.principal, loan.monthlyRate, loan.termMonths)) +
+        ' บาท/เดือน × ' +
+        loan.termMonths +
+        ' เดือน',
+    );
+  }
+
+  if (cashDelta !== 0) {
+    lines.push(
+      'เงินสด ' +
+        (cashDelta > 0 ? '+' : '-') +
+        money.format(Math.abs(cashDelta)) +
+        ' บาท',
+    );
+  }
+
+  if (effect.investmentDelta) {
+    if (effect.investmentDelta > 0) {
+      const transfer = Math.min(effect.investmentDelta, cashAfterTransfers);
+      cashAfterTransfers -= transfer;
+      lines.push('ย้ายเงินสด ' + money.format(transfer) + ' บาทไปลงทุน');
+    } else {
+      const reduction = Math.min(game.investments, Math.abs(effect.investmentDelta));
+      lines.push('เงินลงทุน -' + money.format(reduction) + ' บาท');
+    }
+  }
+
+  if (effect.investmentPercent !== undefined) {
+    const before = game.investments;
+    const after = Math.max(0, Math.round(before * (1 + effect.investmentPercent)));
+    const sign =
+      effect.investmentPercent > 0 ? '+' : effect.investmentPercent < 0 ? '-' : '';
+    lines.push(
+      'เงินลงทุน ' +
+        sign +
+        percentLabel(effect.investmentPercent) +
+        ' · ' +
+        money.format(before) +
+        ' → ' +
+        money.format(after) +
+        ' บาท',
+    );
+  }
+
+  if (effect.incomeModifier) {
+    lines.push(
+      'รายได้ ' +
+        (effect.incomeModifier.percent > 0 ? '+' : '-') +
+        percentLabel(effect.incomeModifier.percent) +
+        ' × ' +
+        effect.incomeModifier.months +
+        ' เดือน',
+    );
+  }
+
+  if (effect.expenseModifier) {
+    lines.push(
+      'ค่าใช้จ่าย +' +
+        money.format(effect.expenseModifier.amount) +
+        ' บาท/เดือน × ' +
+        effect.expenseModifier.months +
+        ' เดือน',
+    );
+  }
+
+  if (effect.cost) {
+    lines.push(
+      'ค่าใช้จ่ายจากเหตุการณ์ ' +
+        money.format(effect.cost.amount) +
+        ' บาท · ระบบจะใช้สิทธิ/ความคุ้มครองที่มี ก่อนคำนวณเงินที่ต้องจ่ายเอง',
+    );
+  }
+
+  if (effect.debtPrincipalReduction) {
+    const payment = Math.min(effect.debtPrincipalReduction, cashAfterTransfers);
+    lines.push('จ่ายเพิ่ม ' + money.format(payment) + ' บาทเพื่อลดเงินต้น');
+  }
+
+  if (effect.addProtection) {
+    const protection = PROTECTION_CATALOG[effect.addProtection];
+    lines.push(
+      'เบี้ย ' +
+        money.format(protection.monthlyPremium) +
+        ' บาท/เดือน · เริ่มคุ้มครองเดือนถัดไป',
+    );
+  }
+
+  if (lines.length === 0) {
+    lines.push('ไม่มีผลกระทบทางการเงินทันที');
+  }
+
+  return lines;
+}
+
+export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolean }) {
   const [game, setGame] = useState<GameState | null>(null);
   const [shareStatus, setShareStatus] = useState('');
+  const [lastChoiceImpact, setLastChoiceImpact] = useState<string[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const character = game ? characterFor(game) : null;
   const bars = game ? statusBars(game) : null;
   const event = game?.currentEventId
     ? getMoneyStoryEvent(game.currentEventId)
+    : undefined;
+  const resolvedEvent = game?.lastResolution
+    ? getMoneyStoryEvent(game.lastResolution.eventId)
     : undefined;
   const loanQuote = game?.pendingShortfall
     ? quoteShortfallLoan(game)
@@ -124,6 +213,7 @@ export default function MoneyStoryGame() {
     const next = createGame();
     setGame(next);
     setShareStatus('');
+    setLastChoiceImpact([]);
     trackEvent('money_story_start');
     trackEvent('money_story_character_generated');
     focusGame();
@@ -148,6 +238,7 @@ export default function MoneyStoryGame() {
 
     const currentEvent = getMoneyStoryEvent(game.currentEventId ?? '');
     const option = currentEvent?.options.find((item) => item.id === optionId);
+    if (option) setLastChoiceImpact(optionImpactLines(option, game));
     const next = resolveEventChoice(game, optionId);
 
     setGame(next);
@@ -255,12 +346,12 @@ export default function MoneyStoryGame() {
           </div>
           <h2>สุ่มหนึ่งชีวิต แล้วลองอยู่กับมัน 12 เดือน</h2>
           <p>
-            คุณไม่เลือกจุดเริ่มต้น แต่เลือกได้ว่าจะใช้ เก็บ ลงทุน
-            เพิ่มความคุ้มครอง หรือกู้เมื่อชีวิตมีเรื่องเข้ามา
-            เกมใช้ตัวละครและตัวเลขสมมติทั้งหมด
+            คุณจะได้รับชีวิตสมมติ 1 แบบ แล้วตัดสินใจตลอด 12 เดือนว่าจะใช้
+            เก็บ ลงทุน เพิ่มความคุ้มครอง หรือกู้เมื่อมีเหตุการณ์เข้ามา
+            ตัวละครและตัวเลขทั้งหมดเป็นสมมติ
           </p>
           <button type="button" className={styles.primary} onClick={start}>
-            สุ่มชีวิตของฉัน
+            สุ่มชีวิตเริ่มเกม
           </button>
         </div>
       </div>
@@ -303,7 +394,7 @@ export default function MoneyStoryGame() {
                   <strong>{money.format(totalDebt(game))} บาท</strong>
                 </div>
                 <div className={styles.numberBox}>
-                  <small>ฐานเงินสุทธิในเกม</small>
+                  <small>เงินสุทธิในเกม</small>
                   <strong>{money.format(bars.netPosition)} บาท</strong>
                 </div>
               </div>
@@ -411,9 +502,11 @@ export default function MoneyStoryGame() {
               <div className={styles.monthNum}>
                 เดือน {game.currentMonth} / 12
               </div>
-              <div className={styles.seed}>
-                รอบจำลอง {game.seed.slice(-6).toUpperCase()}
-              </div>
+              {showSeed ? (
+                <div className={styles.seed}>
+                  รอบจำลอง {game.seed.slice(-6).toUpperCase()}
+                </div>
+              ) : null}
             </div>
             <div className={styles.muted}>
               เงินสด {money.format(Math.max(0, game.cash))} · ลงทุน{' '}
@@ -425,11 +518,11 @@ export default function MoneyStoryGame() {
             <div className={styles.card}>
               <span className={styles.category}>เริ่มเดือนใหม่</span>
               <h2 className={styles.eventTitle}>
-                รายได้จะเข้า แล้วภาระประจำจะเดินก่อน
+                รับรายได้ แล้วหักค่าใช้จ่ายประจำ
               </h2>
               <p className={styles.eventText}>
-                เกมจะหักค่าใช้ชีวิต ค่างวด และเบี้ยที่มีอยู่
-                จากนั้นสุ่มเหตุการณ์ของเดือนนี้
+                ระบบจะคำนวณค่าใช้จ่ายประจำ ค่างวดหนี้ และเบี้ยความคุ้มครองก่อน
+                แล้วจึงสุ่มเหตุการณ์ประจำเดือน
               </p>
               <div className={styles.choices}>
                 <button
@@ -452,8 +545,8 @@ export default function MoneyStoryGame() {
                 ขาดอีก {money.format(game.pendingShortfall.amount)} บาท
               </h2>
               <p className={styles.eventText}>
-                เกมยังไม่จบทันที คุณใช้เงินลงทุนหรือกู้เพื่อประคองรอบนี้ได้
-                ถ้ายังมีทางเลือกที่รับไหว
+                เกมยังไม่จบทันที คุณยังใช้เงินลงทุนหรือกู้เพื่อผ่านเดือนนี้ได้
+                หากภาระใหม่ยังอยู่ในเกณฑ์ของเกม
               </p>
 
               <div className={styles.shortfallActions}>
@@ -465,7 +558,9 @@ export default function MoneyStoryGame() {
                       setGame(coverShortfallWithInvestments(game))
                     }
                   >
-                    ขายเงินลงทุนเท่าที่ขาด
+                    ขายเงินลงทุน {money.format(
+                      Math.min(game.pendingShortfall.amount, game.investments),
+                    )} บาทเพื่อเติมส่วนที่ขาด
                   </button>
                 ) : null}
 
@@ -525,13 +620,6 @@ export default function MoneyStoryGame() {
               <h2 className={styles.eventTitle}>{event.title}</h2>
               <p className={styles.eventText}>{event.text}</p>
 
-              {event.sensitive ? (
-                <div className={styles.sensitive}>
-                  เหตุการณ์นี้ใช้โทนตรงไปตรงมาและไม่มีมุก
-                  เพราะเกี่ยวกับผลกระทบที่อ่อนไหว
-                </div>
-              ) : null}
-
               {game.monthLedger ? (
                 <div className={styles.ledger}>
                   <div>
@@ -539,13 +627,13 @@ export default function MoneyStoryGame() {
                     <strong>+{money.format(game.monthLedger.income)}</strong>
                   </div>
                   <div>
-                    <span>ค่าใช้ชีวิต</span>
+                    <span>ค่าใช้จ่ายประจำ</span>
                     <strong>
                       -{money.format(game.monthLedger.fixedExpenses)}
                     </strong>
                   </div>
                   <div>
-                    <span>หนี้ที่จ่าย</span>
+                    <span>ค่างวดหนี้</span>
                     <strong>-{money.format(game.monthLedger.debtPayments)}</strong>
                   </div>
                   <div>
@@ -557,11 +645,25 @@ export default function MoneyStoryGame() {
                 </div>
               ) : null}
 
-              <div className={styles.choices}>
-                {event.options.slice(0, 3).map((option, index) => {
-                  const hint = optionHint(option);
-
-                  return (
+              {event.options.length === 1 ? (
+                <div className={styles.acknowledgement}>
+                  <div className={styles.eventImpact}>
+                    {optionImpactLines(event.options[0], game).map((line) => (
+                      <span key={line}>{line}</span>
+                    ))}
+                  </div>
+                  <button
+                    data-money-choice
+                    type="button"
+                    className={styles.primary}
+                    onClick={() => choose(event.options[0].id)}
+                  >
+                    รับทราบและไปต่อ
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.choices}>
+                  {event.options.slice(0, 3).map((option, index) => (
                     <button
                       key={option.id}
                       data-money-choice
@@ -571,11 +673,14 @@ export default function MoneyStoryGame() {
                     >
                       <span className={styles.key}>{index + 1}</span>
                       <strong>{option.label}</strong>
-                      {hint ? <span>{hint}</span> : null}
+                      <span className={styles.choiceOutcome}>{option.outcomeText}</span>
+                      {optionImpactLines(option, game).map((line) => (
+                        <span className={styles.choiceImpact} key={line}>{line}</span>
+                      ))}
                     </button>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -583,33 +688,44 @@ export default function MoneyStoryGame() {
           !game.pendingShortfall &&
           !event ? (
             <div className={styles.card}>
-              <span className={styles.category}>ผลของการตัดสินใจ</span>
+              <span className={styles.category}>
+                {resolvedEvent?.options.length === 1
+                  ? 'ผลของเหตุการณ์'
+                  : 'ผลของการตัดสินใจ'}
+              </span>
               <h2 className={styles.eventTitle}>
                 {game.lastResolution.summary}
               </h2>
+              {lastChoiceImpact.length ? (
+                <div className={styles.eventImpact}>
+                  {lastChoiceImpact.map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
+                </div>
+              ) : null}
 
               {game.lastResolution.grossCost !== undefined ? (
                 <div className={styles.resultNumbers}>
                   <div className={styles.numberBox}>
-                    <small>ผลกระทบทางการเงินรวม</small>
+                    <small>ค่าใช้จ่ายจากเหตุการณ์</small>
                     <strong>
                       {money.format(game.lastResolution.grossCost)} บาท
                     </strong>
                   </div>
                   <div className={styles.numberBox}>
-                    <small>สิทธิ/สวัสดิการจำลองช่วย</small>
+                    <small>สิทธิ/สวัสดิการช่วย</small>
                     <strong>
                       {money.format(game.lastResolution.existingBenefit ?? 0)} บาท
                     </strong>
                   </div>
                   <div className={styles.numberBox}>
-                    <small>ความคุ้มครองจำลองช่วย</small>
+                    <small>ความคุ้มครองช่วย</small>
                     <strong>
                       {money.format(game.lastResolution.protectionBenefit ?? 0)} บาท
                     </strong>
                   </div>
                   <div className={styles.numberBox}>
-                    <small>จ่ายเอง</small>
+                    <small>เงินที่ต้องจ่ายเอง</small>
                     <strong>
                       {money.format(game.lastResolution.outOfPocket ?? 0)} บาท
                     </strong>
@@ -638,26 +754,34 @@ export default function MoneyStoryGame() {
               label="เงินพร้อมรับมือ"
               value={bars.liquidity}
               status={bars.liquidityLabel}
-              detail={money.format(Math.max(0, game.cash)) + ' บาท'}
+              detail={'เงินสดพร้อมใช้ ' + money.format(Math.max(0, game.cash)) + ' บาท'}
             />
             <Meter
               label="ความคล่องตัว"
               value={bars.flexibility}
               status={bars.flexibilityLabel}
               detail={
-                money.format(bars.projectedMonthlyFlexibility) + ' บาท/เดือน'
+                'เหลือหลังภาระประจำ ' +
+                money.format(bars.projectedMonthlyFlexibility) +
+                ' บาท/เดือน'
               }
             />
             <Meter
               label="เป้าหมาย"
               value={bars.goal}
               status={bars.goalLabel}
-              detail={money.format(bars.netPosition) + ' บาทสุทธิ'}
+              detail={
+                'เงินสุทธิ ' +
+                money.format(bars.netPosition) +
+                ' / ' +
+                money.format(character.goal.targetNetPosition) +
+                ' บาท'
+              }
             />
           </div>
 
           <div className={styles.protections}>
-            <h3>โล่ความคุ้มครองในเกม</h3>
+            <h3>ความคุ้มครองที่มีในเกม</h3>
             <div className={styles.shields}>
               {protectionTypes.map((type) => {
                 const active = game.protections.some(
@@ -688,7 +812,7 @@ export default function MoneyStoryGame() {
           </div>
 
           <div className={styles.pyramid}>
-            <h3>โครงสร้างการเงิน · กิมมิคสรุป</h3>
+            <h3>ภาพรวมโครงสร้างการเงิน</h3>
             <div
               className={styles.pyramidStack}
               aria-label="ภาพสรุปพีระมิดทางการเงิน"
