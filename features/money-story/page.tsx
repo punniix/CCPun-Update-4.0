@@ -38,15 +38,9 @@ export default function MoneyStoryPage() {
             </p>
             <h1 className={styles.title}>Money Story</h1>
             <p className={styles.subtitle}>
-              เกมจำลองชีวิตการเงิน 12 เดือน คุณเลือกจุดเริ่มต้นไม่ได้
-              แต่เลือกได้ว่าจะจัดการเงินอย่างไรเมื่อเรื่องไม่คาดคิดเข้ามา
+              เกมจำลองชีวิตการเงิน 12 เดือน เลือกชีวิตที่อยากลอง
+              แล้วตัดสินใจว่าจะจัดการเงินอย่างไรเมื่อเรื่องไม่คาดคิดเข้ามา
             </p>
-            <div className={styles.heroMeta}>
-              <span className={styles.pill}>12 เดือน</span>
-              <span className={styles.pill}>ชีวิตสมมติ</span>
-              <span className={styles.pill}>เล่นซ้ำได้</span>
-              <span className={styles.pill}>มือถือ · เมาส์ · คีย์บอร์ด</span>
-            </div>
           </div>
         </section>
 
