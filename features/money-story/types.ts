@@ -60,7 +60,12 @@ export type EventEffect = {
   cashDelta?: number;
   investmentDelta?: number;
   investmentPercent?: number;
-  incomeModifier?: { percent: number; months: number; label: string };
+  incomeModifier?: {
+    percent: number;
+    months?: number;
+    throughEnd?: boolean;
+    label: string;
+  };
   expenseModifier?: { amount: number; months: number; label: string };
   addProtection?: ProtectionType;
   debtPrincipalReduction?: number;

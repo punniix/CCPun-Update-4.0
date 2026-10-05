@@ -179,9 +179,9 @@ function optionImpactLines(option: EventOption, game: GameState) {
       'รายได้ ' +
         (effect.incomeModifier.percent > 0 ? '+' : '-') +
         percentLabel(effect.incomeModifier.percent) +
-        ' × ' +
-        effect.incomeModifier.months +
-        ' เดือน',
+        (effect.incomeModifier.throughEnd
+          ? ' ตั้งแต่เดือนหน้าไปจนจบเกม'
+          : ' × ' + (effect.incomeModifier.months ?? 1) + ' เดือน'),
     );
   }
 

@@ -197,3 +197,22 @@ test('goal journey continues beyond 100 percent with a next milestone', () => {
   assert.equal(bars.goalNextMilestoneAmount, 110000);
   assert.equal(bars.goalRemainingToNext, 27500);
 });
+
+
+test('skill course raises income for the rest of the 12-month run', () => {
+  let state = createGame('persistent-skill', 'ton');
+  state = {
+    ...state,
+    currentMonth: 3,
+    monthStarted: true,
+    currentEventId: 'work-new-skill',
+  };
+
+  state = resolveEventChoice(state, 'pay');
+
+  const skill = state.modifiers.find((modifier) => modifier.label === 'ทักษะใหม่');
+  assert.ok(skill);
+  assert.equal(skill?.kind, 'income');
+  assert.equal(skill?.amount, 0.08);
+  assert.equal(skill?.throughMonth, 12);
+});
