@@ -3,18 +3,12 @@
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  BriefcaseBusiness,
-  Building2,
   Car,
-  ChefHat,
   HeartPulse,
   House,
-  Landmark,
-  Laptop,
-  Palette,
   RefreshCcw,
   ShieldCheck,
-  Store,
+  Undo2,
   Users,
   WalletCards,
 } from 'lucide-react';
@@ -62,16 +56,22 @@ const protectionIcons: Record<ProtectionType, React.ReactNode> = {
   home: <House size={14} />,
 };
 
-const characterIcons: Record<string, React.ReactNode> = {
-  gam: <ChefHat size={18} />,
-  ton: <BriefcaseBusiness size={18} />,
-  meen: <Palette size={18} />,
-  nut: <Building2 size={18} />,
-  fon: <Users size={18} />,
-  win: <Laptop size={18} />,
-  ploy: <Store size={18} />,
-  poom: <Landmark size={18} />,
-};
+function CharacterPortrait({
+  id,
+  className,
+}: {
+  id: string;
+  className: string;
+}) {
+  return (
+    <span
+      className={className + ' ' + styles.characterPortrait}
+      data-character={id}
+      aria-hidden="true"
+    />
+  );
+}
+
 
 function Meter({
   label,
@@ -242,6 +242,10 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState('');
   const [lastChoiceImpact, setLastChoiceImpact] = useState<string[]>([]);
+  const [undoStack, setUndoStack] = useState<Array<{
+    game: GameState;
+    lastChoiceImpact: string[];
+  }>>([]);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const character = game ? characterFor(game) : null;
@@ -267,11 +271,36 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
   const focusGame = () => requestAnimationFrame(() => rootRef.current?.focus());
 
+  const commitGame = (next: GameState) => {
+    if (!game || next === game) {
+      setGame(next);
+      return;
+    }
+
+    setUndoStack((stack) => [
+      ...stack.slice(-11),
+      { game, lastChoiceImpact },
+    ]);
+    setGame(next);
+  };
+
+  const undo = () => {
+    const previous = undoStack.at(-1);
+    if (!previous) return;
+
+    setUndoStack((stack) => stack.slice(0, -1));
+    setGame(previous.game);
+    setLastChoiceImpact(previous.lastChoiceImpact);
+    trackEvent('money_story_undo');
+    focusGame();
+  };
+
   const start = (characterId?: string) => {
     const next = createGame(undefined, characterId);
     setGame(next);
     setShareStatus('');
     setLastChoiceImpact([]);
+    setUndoStack([]);
     trackEvent('money_story_start');
     trackEvent('money_story_character_generated');
     focusGame();
@@ -280,7 +309,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   const begin = () => {
     if (!game) return;
     const next = beginMonth(game);
-    setGame(next);
+    commitGame(next);
     focusGame();
 
     if (
@@ -299,7 +328,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     if (option) setLastChoiceImpact(optionImpactLines(option, game));
     const next = resolveEventChoice(game, optionId);
 
-    setGame(next);
+    commitGame(next);
     focusGame();
     trackEvent('money_story_choice');
 
@@ -317,7 +346,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
     const previousMonth = game.currentMonth;
     const next = completeMonth(game);
-    setGame(next);
+    commitGame(next);
     focusGame();
     trackEvent('money_story_month_complete', { step_number: previousMonth });
 
@@ -332,6 +361,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     setSelectedCharacterId(null);
     setShareStatus('');
     setLastChoiceImpact([]);
+    setUndoStack([]);
     focusGame();
   };
 
@@ -430,14 +460,10 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                   aria-pressed={selected}
                   onClick={() => setSelectedCharacterId(profile.id)}
                 >
-                  <span
+                  <CharacterPortrait
+                    id={profile.id}
                     className={styles.characterPickAvatar}
-                    data-character={profile.id}
-                    aria-hidden="true"
-                  >
-                    <span>{profile.name.slice(0, 1)}</span>
-                    <i>{characterIcons[profile.id]}</i>
-                  </span>
+                  />
                   <span className={styles.characterPickCopy}>
                     <strong>{profile.name}</strong>
                     <span>{profile.role}</span>
@@ -458,13 +484,10 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
           {selectedCharacter ? (
             <div className={styles.selectedLifePreview}>
               <div className={styles.selectedLifeTop}>
-                <span
+                <CharacterPortrait
+                  id={selectedCharacter.id}
                   className={styles.selectedLifeAvatar}
-                  data-character={selectedCharacter.id}
-                  aria-hidden="true"
-                >
-                  {selectedCharacter.name.slice(0, 1)}
-                </span>
+                />
                 <div>
                   <strong>
                     {selectedCharacter.name} · {selectedCharacter.role}
@@ -518,6 +541,10 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
       <div className={styles.shell} ref={rootRef}>
         <div className={styles.result}>
           <div className={styles.resultHero}>
+            <CharacterPortrait
+              id={character.id}
+              className={styles.resultPortrait}
+            />
             <p className={styles.kicker}>ผลลัพธ์ · {character.name}</p>
             <h2>{resultTitle}</h2>
             <p>{game.outcomeReason}</p>
@@ -567,6 +594,11 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
           </div>
 
           <div className={styles.resultActions}>
+            {undoStack.length ? (
+              <button type="button" className={styles.secondary} onClick={undo}>
+                <Undo2 size={16} /> ย้อนกลับ
+              </button>
+            ) : null}
             <button type="button" className={styles.primary} onClick={replay}>
               <RefreshCcw size={16} /> เลือกชีวิตใหม่
             </button>
@@ -631,9 +663,10 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
       <div className={styles.game}>
         <aside className={styles.side + ' ' + styles.sideLeft}>
           <div className={styles.characterTop}>
-            <div className={styles.characterBadge} aria-hidden="true">
-              {character.name.slice(0, 1)}
-            </div>
+            <CharacterPortrait
+              id={character.id}
+              className={styles.characterBadge}
+            />
             <div>
               <div className={styles.characterName}>{character.name}</div>
               <p className={styles.characterRole}>{character.role}</p>
@@ -660,9 +693,21 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                 </div>
               ) : null}
             </div>
-            <div className={styles.muted}>
-              เงินสดพร้อมใช้ {money.format(Math.max(0, game.cash))} · พอร์ตลงทุน{' '}
-              {money.format(game.investments)}
+            <div className={styles.monthStatus}>
+              <div className={styles.muted}>
+                เงินสดพร้อมใช้ {money.format(Math.max(0, game.cash))} · พอร์ตลงทุน{' '}
+                {money.format(game.investments)}
+              </div>
+              <button
+                type="button"
+                className={styles.undoButton}
+                onClick={undo}
+                disabled={undoStack.length === 0}
+                aria-label="ย้อนกลับการตัดสินใจล่าสุด"
+              >
+                <Undo2 size={14} />
+                ย้อนกลับ
+              </button>
             </div>
           </div>
 
@@ -705,7 +750,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     type="button"
                     className={styles.recoveryChoice}
                     onClick={() => {
-                      setGame(coverShortfallWithInvestments(game));
+                      commitGame(coverShortfallWithInvestments(game));
                       trackEvent('money_story_recovery_investment');
                     }}
                   >
@@ -723,7 +768,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     type="button"
                     className={styles.recoveryChoice}
                     onClick={() => {
-                      setGame(coverShortfallWithExtraIncome(game));
+                      commitGame(coverShortfallWithExtraIncome(game));
                       trackEvent('money_story_recovery_income');
                     }}
                   >
@@ -741,7 +786,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     type="button"
                     className={styles.recoveryChoice}
                     onClick={() => {
-                      setGame(coverShortfallWithExpenseCut(game));
+                      commitGame(coverShortfallWithExpenseCut(game));
                       trackEvent('money_story_recovery_expense_cut');
                     }}
                   >
@@ -759,7 +804,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     type="button"
                     className={styles.recoveryChoice}
                     onClick={() => {
-                      setGame(coverShortfallWithDebtRestructure(game));
+                      commitGame(coverShortfallWithDebtRestructure(game));
                       trackEvent('money_story_recovery_debt');
                     }}
                   >
@@ -779,7 +824,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     type="button"
                     className={styles.recoveryChoice}
                     onClick={() => {
-                      setGame(coverShortfallWithLoan(game));
+                      commitGame(coverShortfallWithLoan(game));
                       trackEvent('money_story_borrow');
                     }}
                   >
@@ -808,7 +853,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       type="button"
                       className={styles.danger}
                       onClick={() => {
-                        setGame(declareUnableToContinue(game));
+                        commitGame(declareUnableToContinue(game));
                         trackEvent('money_story_lose');
                       }}
                     >
