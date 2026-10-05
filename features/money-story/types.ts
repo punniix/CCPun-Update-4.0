@@ -173,6 +173,10 @@ export type StatusBars = {
   goalNextMilestonePercent: number;
   goalNextMilestoneAmount: number;
   goalRemainingToNext: number;
+  cashReserveTarget: number;
+  cashReserveAllocated: number;
+  cashAboveReserve: number;
+  goalPosition: number;
   liquidityLabel: string;
   flexibilityLabel: string;
   goalLabel: string;

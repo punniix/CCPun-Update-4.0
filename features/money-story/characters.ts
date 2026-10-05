@@ -20,7 +20,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     hasHome: false,
     existingProtections: [],
     startingDebts: [],
-    goal: { label: 'สร้างฐานเงินสุทธิให้ถึง 55,000 บาท', targetNetPosition: 55000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 55,000 บาท', targetNetPosition: 55000 },
   },
   {
     id: 'ton',
@@ -43,7 +43,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     startingDebts: [
       { id: 'ton-existing', label: 'หนี้เดิม', principalRemaining: 18000, monthlyRate: 0.006, monthlyPayment: 1800, remainingMonths: 12 },
     ],
-    goal: { label: 'สร้างฐานเงินสุทธิให้ถึง 135,000 บาท', targetNetPosition: 135000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 135,000 บาท', targetNetPosition: 135000 },
   },
   {
     id: 'meen',
@@ -64,7 +64,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     hasHome: false,
     existingProtections: [{ type: 'health', monthlyPremium: 900 }],
     startingDebts: [],
-    goal: { label: 'สร้างฐานเงินสุทธิให้ถึง 250,000 บาท', targetNetPosition: 250000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 250,000 บาท', targetNetPosition: 250000 },
   },
   {
     id: 'nut',
@@ -90,7 +90,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     startingDebts: [
       { id: 'nut-car', label: 'ภาระรถ', principalRemaining: 140000, monthlyRate: 0.005, monthlyPayment: 7000, remainingMonths: 24 },
     ],
-    goal: { label: 'สร้างฐานเงินสุทธิให้ถึง 190,000 บาท', targetNetPosition: 190000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 190,000 บาท', targetNetPosition: 190000 },
   },
   {
     id: 'fon',
@@ -117,7 +117,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     startingDebts: [
       { id: 'fon-debt', label: 'ภาระเดิม', principalRemaining: 90000, monthlyRate: 0.006, monthlyPayment: 6000, remainingMonths: 18 },
     ],
-    goal: { label: 'สร้างฐานเงินสุทธิให้ถึง 350,000 บาท', targetNetPosition: 350000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 350,000 บาท', targetNetPosition: 350000 },
   },
   {
     id: 'win',
@@ -144,7 +144,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     startingDebts: [
       { id: 'win-home', label: 'ภาระบ้านและรถ', principalRemaining: 360000, monthlyRate: 0.006, monthlyPayment: 18000, remainingMonths: 30 },
     ],
-    goal: { label: 'สร้างฐานเงินสุทธิให้ถึง 450,000 บาท', targetNetPosition: 450000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 450,000 บาท', targetNetPosition: 450000 },
   },
   {
     id: 'ploy',
@@ -171,7 +171,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     startingDebts: [
       { id: 'ploy-business', label: 'ภาระธุรกิจและทรัพย์สิน', principalRemaining: 520000, monthlyRate: 0.007, monthlyPayment: 28000, remainingMonths: 30 },
     ],
-    goal: { label: 'สร้างฐานเงินสุทธิให้ถึง 780,000 บาท', targetNetPosition: 780000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 780,000 บาท', targetNetPosition: 780000 },
   },
   {
     id: 'poom',
@@ -200,7 +200,7 @@ export const MONEY_STORY_CHARACTERS: CharacterProfile[] = [
     startingDebts: [
       { id: 'poom-assets', label: 'ภาระทรัพย์สิน', principalRemaining: 780000, monthlyRate: 0.006, monthlyPayment: 35000, remainingMonths: 36 },
     ],
-    goal: { label: 'รักษาเงินสุทธิและเพิ่มให้ถึง 1,650,000 บาท', targetNetPosition: 1650000 },
+    goal: { label: 'สร้างเงินสำหรับเป้าหมายให้ถึง 1,650,000 บาท', targetNetPosition: 1650000 },
   },
 ];
 
