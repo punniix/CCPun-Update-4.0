@@ -31,6 +31,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
             </div>
             <div className={styles.footerColumn}>
               <strong>เครื่องมือ</strong>
+              <Link href={`${BASE}/play/money-story`}>Money Story</Link>
               <Link href={`${BASE}/tools/financial-health-check`}>Financial Health Check</Link>
               <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
             </div>
@@ -65,7 +66,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
             {warnings ? <Website43Brand /> : null}
             <p>วางแผนการเงินจากชีวิตจริง เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</p>
             <nav aria-label="เมนูส่วนท้าย">
-              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/tools/financial-health-check`}>FHC</Link> · <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/play/money-story`}>Money Story</Link> · <Link href={`${BASE}/tools/financial-health-check`}>FHC</Link> · <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
             </nav>
             <nav aria-label="นโยบาย">
               <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
