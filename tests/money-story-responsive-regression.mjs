@@ -15,7 +15,8 @@ test("Money Story month header keeps balances structured instead of a fragile in
 test("Money Story mobile HUD puts undo on row one and balances on their own row", () => {
   assert.match(styles, /\.monthStatus\{display:contents\}/);
   assert.match(styles, /\.balanceSummary\{grid-column:1\/-1;grid-row:2;display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(styles, /\.undoButton\{grid-column:2;grid-row:1;min-height:36px\}/);
+  assert.match(styles, /\.undoButton\{grid-column:2;grid-row:1;min-height:44px\}/);
+  assert.match(styles, /\.changeCharacterButton\{margin-top:10px;min-height:44px\}/);
   assert.match(styles, /white-space:nowrap/);
 });
 
