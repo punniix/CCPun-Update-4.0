@@ -28,7 +28,7 @@ if (webProd.outputDirectory !== "apps/web/.next" || webProd.rootDirectory !== ".
 if (webProd.sanityProjectId !== "kyfxgjnq" || webProd.sanityDataset !== "production" || webProd.productionAnalytics !== "1" || webProd.uatMode !== "0") failures.push("Web Production data/analytics contract drift");
 
 if (webUat.domain !== "test.ccpun.com" || webUat.provider !== "hostinger" || webUat.indexable) failures.push("Web UAT contract drift");
-if (webUat.outputDirectory !== "apps/web/.next" || webUat.sanityProjectId !== "ccb9lnw5" || webUat.sanityDataset !== "uat" || webUat.productionAnalytics !== "0" || webUat.uatMode !== "1") failures.push("Web UAT isolation contract drift");
+if (webUat.rootDirectory !== "apps/web" || webUat.outputDirectory !== ".next/standalone" || webUat.entryFile !== ".next/standalone/server.js" || webUat.sanityProjectId !== "ccb9lnw5" || webUat.sanityDataset !== "uat" || webUat.productionAnalytics !== "0" || webUat.uatMode !== "1") failures.push("Web UAT isolation/build contract drift");
 
 for (const [id, lane] of [["admin-production", adminProd], ["admin-uat", adminUat]]) {
   if (lane.provider !== "hostinger") failures.push(id + ": current provider must be Hostinger");

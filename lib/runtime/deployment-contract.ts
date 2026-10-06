@@ -25,6 +25,7 @@ export type DeploymentLane = {
   buildCommand?: string;
   rootDirectory?: string;
   outputDirectory?: string;
+  entryFile?: string;
   vercelProjectId?: string;
 };
 

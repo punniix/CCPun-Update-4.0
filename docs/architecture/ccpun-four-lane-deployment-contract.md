@@ -13,13 +13,16 @@ Status: **provider placement re-baselined 2026-10-06**. This contract locks lane
 
 The machine-readable source of truth is `lib/runtime/deployment-lanes.mjs`. Current release observations are recorded separately in `docs/architecture/ccpun-runtime-baseline-20261006.md`.
 
-## Locked Web Hostinger build shape
+## Locked Web Hostinger build shapes
 
-The merged Web contract uses Node 24, repository root `./`, build command `npm run build`, workspace `@ccpun/web`, and output directory `apps/web/.next`.
+Both Web lanes use Node 24 and the reviewed `@ccpun/web` source, but current Hostinger packaging differs by lane:
+
+- Web Production: repository root `./`, build `npm run build`, output `apps/web/.next`.
+- Web UAT: root `apps/web`, build `npm run build`, output `.next/standalone`, entry `.next/standalone/server.js`.
+
+Phase 1 verified that this UAT packaging serves the same reviewed application behavior while retaining Sanity UAT, noindex and analytics-off boundaries. Do not infer that provider packaging must be byte-identical to call the source/runtime lane current.
 
 Production must never silently become a local lane. A deployed lane without its approved Sanity identity is an error rather than an empty local-content fallback.
-
-The 2026-10-06 baseline records that Web UAT is still running an older packaging/release shape. That drift belongs to Phase 1; Phase 0 records it without redeploying UAT.
 
 ## Admin placement boundary
 
