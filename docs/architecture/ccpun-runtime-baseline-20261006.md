@@ -9,7 +9,7 @@ This document records the live runtime state observed after Production merge `b7
 | Lane | Domain | Current provider | App lane | Content lane | Indexing | Observed release state |
 | --- | --- | --- | --- | --- | --- | --- |
 | Web Production | `ccpun.com` | Hostinger | `production` | Sanity `kyfxgjnq/production` | indexable | Hostinger current deployment at `b77a6c62` |
-| Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | Phase 1 accepted runtime at `2a4c168f` |
+| Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | Phase 2 accepted UAT runtime at `c3d8baf0` |
 | Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | Sanity Production + Production Neon | blocked | Hostinger-served live Admin; exact current source ref was not reconfigured in Phase 0 |
 | Admin UAT | `admin-test.ccpun.com` | Hostinger | `admin-uat` | Sanity UAT + UAT Neon | blocked | Hostinger current deployment at `3162cd26` |
 
@@ -28,9 +28,9 @@ Production Git baseline:
 - PR #360 four-lane deployment contract merged as `6f7b7489`
 - PR #361 Money Story responsive typography merged as `b77a6c62`
 - Hostinger Web Production pinned release branch currently points to `b77a6c62`
-- Web UAT pinned release branch was advanced to `2a4c168f07a961c9fc9d530c1417d5f2237fc1c8` during Phase 1.
+- Web UAT pinned release branch currently points to accepted Phase 2 runtime `c3d8baf03281064f3d4e64943370f16d35c385af`.
 
-Phase 1 restored Web UAT source/runtime parity with the current Production baseline while preserving the isolated UAT data/indexing contract. The UAT deployment remains a separately packaged Hostinger standalone runtime, so parity means reviewed source and public behavior parity—not identical provider packaging.
+Phase 1 restored Web UAT source/runtime parity with the current Production baseline. Phase 2 keeps that isolated UAT contract while applying the Money Story responsive HUD fix. The UAT deployment remains a separately packaged Hostinger standalone runtime, so parity means reviewed source and public behavior parity—not identical provider packaging.
 
 ## Known configuration drift to resolve after Phase 0
 
@@ -52,8 +52,14 @@ Current scope:
 ### Phase 1 — Restore Web UAT parity — completed 2026-10-06
 Accepted UAT release: `2a4c168f07a961c9fc9d530c1417d5f2237fc1c8`. Verified live: Hostinger deployment Completed, Money Story 200, current responsive typography markers present, Sanity UAT CSP (`ccb9lnw5`), `X-Robots-Tag: noindex, nofollow, noarchive`, block-all robots, Production GTM absent, and Shadow parity passed with zero failures after making the parity gate honor isolated UAT Blog membership.
 
-### Phase 2 — Money Story UX/UI
-Apply the owner's next Money Story UX/UI fixes only after Phase 1 gives a trustworthy UAT baseline. Promote an exact reviewed SHA rather than rebuilding from a stale branch.
+### Phase 2 — Money Story UX/UI — UAT accepted 2026-10-06
+Accepted UAT runtime: `c3d8baf03281064f3d4e64943370f16d35c385af`.
+
+Final responsive QA covered 320×568, 375×812, 393×852, 430×932, 768×1024, 1024×768, 1280×800 and 1440×900. The mobile month/status HUD keeps month/seed and Undo on the first row and cash/investment in two balanced cells below; Undo and the character-return control retain 44px mobile touch targets. The 1024px landscape layout uses the tablet two-column shell instead of squeezing the desktop shell.
+
+Character-selection cards now use a stable content row plus bottom-pinned income/expense row. Desktop/tablet `รายได้ / ภาระ` row delta is 0px within each row, mobile carousel cards are equal-height at all audited widths, and selected-character stat values align within each row. Automated play-throughs reached the Result screen at all eight viewports with zero horizontal-overflow screens; choice targets were at least 48px and observed recovery targets were about 79px. Result recap, timeline and actions had no overflow.
+
+Final gates: Foundation PASS, Architecture 19/19, Money Story engine 16/16, responsive regression 4/4, UAT target preflight 46 checks, Hostinger UAT readiness `ready`, and Shadow parity `parity-ok` with zero failures across 8 checked paths. Live UAT retains `noindex, nofollow, noarchive`, block-all `robots.txt`, Sanity UAT `ccb9lnw5`, and Production analytics off. Production remains pinned at `b77a6c62` until the accepted SHA is promoted through the Production release gate.
 
 ### Phase 3 — Admin lane hardening
 Reconcile exact Hostinger Admin Production/UAT build, runtime, scheduler/worker and release identities. Do not infer completion from HTTP 200 alone.

@@ -990,9 +990,15 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
               ) : null}
             </div>
             <div className={styles.monthStatus}>
-              <div className={styles.muted}>
-                เงินสดพร้อมใช้ {money.format(Math.max(0, game.cash))} · พอร์ตลงทุน{' '}
-                {money.format(game.investments)}
+              <div className={styles.balanceSummary} aria-label="สถานะเงินปัจจุบัน">
+                <span>
+                  <small>เงินสดพร้อมใช้</small>
+                  <strong>{money.format(Math.max(0, game.cash))}</strong>
+                </span>
+                <span>
+                  <small>พอร์ตลงทุน</small>
+                  <strong>{money.format(game.investments)}</strong>
+                </span>
               </div>
               <button
                 type="button"
