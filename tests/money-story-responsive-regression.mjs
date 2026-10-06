@@ -20,6 +20,12 @@ test("Money Story mobile HUD puts undo on row one and balances on their own row"
   assert.match(styles, /white-space:nowrap/);
 });
 
+test("Money Story keeps character-card detail rows aligned across uneven copy", () => {
+  assert.match(styles, /\.characterPickCard\{[^}]*grid-template-rows:minmax\(0,1fr\) auto[^}]*height:100%/);
+  assert.match(styles, /\.characterPickMeta\{grid-column:1\/-1;grid-row:2;align-self:end/);
+  assert.match(styles, /\.selectedLifeStats span\{display:grid;grid-template-rows:minmax\(0,1fr\) auto/);
+});
+
 test("Money Story keeps the two-column tablet layout through 1120px", () => {
   assert.match(styles, /@media \(max-width:1120px\)\{/);
   assert.doesNotMatch(styles, /@media \(max-width:980px\)\{/);
