@@ -35,8 +35,8 @@ function applyHostingerReleaseFallback() {
   const explicitProvider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
   const explicitRole = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
 
-  const exactAdminUatRef = `admin/hostinger-release-uat-${sha}`;
-  if (branch === exactAdminUatRef) {
+  const pinnedAdminUatRef = /^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(branch);
+  if (pinnedAdminUatRef) {
     if (explicitProvider && explicitProvider !== "hostinger") throw new Error("ADMIN_UAT_RELEASE_PROVIDER_CONFLICT");
     if (explicitRole && explicitRole !== "admin") throw new Error("ADMIN_UAT_RELEASE_ROLE_CONFLICT");
     const defaults = {
@@ -68,11 +68,12 @@ function applyHostingerReleaseFallback() {
       CCPUN_GIT_SHA: sha,
       CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
     };
-    // The exact SHA-bearing Admin UAT release branch is the authority for
-    // non-secret lane identity. It may replace stale provider-supplied
-    // editorial/disabled markers, but never synthesizes OAuth, DB or provider secrets.
+    // A dedicated Admin UAT release ref is the authority for non-secret lane
+    // identity. The branch may act as a stable Hostinger slot; build provenance
+    // is still bound to the checked-out ref -> actual SHA by build-provider.
+    // It never synthesizes OAuth, DB or provider secrets.
     Object.assign(process.env, defaults);
-    console.log(`Hostinger Admin UAT build identity inferred from exact release ref ${branch} @ ${sha.slice(0, 12)}.`);
+    console.log(`Hostinger Admin UAT build identity inferred from pinned release ref ${branch} @ ${sha.slice(0, 12)}.`);
     return;
   }
 

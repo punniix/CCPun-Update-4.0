@@ -301,7 +301,7 @@ console.log(JSON.stringify({
   }
 });
 
-test("exact pinned Admin UAT root build self-identifies full native-neon without inventing secrets", { skip: process.platform === "win32" }, () => {
+test("pinned Admin UAT release slot self-identifies full native-neon and binds the actual checked-out SHA without inventing secrets", { skip: process.platform === "win32" }, () => {
   const fixture = mkdtempSync(join(tmpdir(), "ccpun-root-admin-uat-build-"));
   try {
     mkdirSync(join(fixture, "scripts"));
@@ -316,13 +316,13 @@ test("exact pinned Admin UAT root build self-identifies full native-neon without
       const git = spawnSync("git", args, { cwd: fixture, encoding: "utf8" }); assert.equal(git.status, 0, git.stderr);
     }
     const sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: fixture, encoding: "utf8" }).stdout.trim();
-    const branch = `admin/hostinger-release-uat-${sha}`;
+    const branch = `admin/hostinger-release-uat-${"1".repeat(40)}`;
     assert.equal(spawnSync("git", ["branch", "-m", branch], { cwd: fixture }).status, 0);
     const result = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
       cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, HOME: process.env.HOME },
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /Hostinger Admin UAT build identity inferred from exact release ref/);
+    assert.match(result.stdout, /Hostinger Admin UAT build identity inferred from pinned release ref/);
     const invocation = JSON.parse(result.stdout.trim().split("\n").at(-1));
     assert.deepEqual(invocation.args, ["run", "build", "--workspace", "@ccpun/admin"]);
     assert.deepEqual(invocation.env, {
@@ -357,7 +357,7 @@ test("exact pinned Admin UAT root build self-identifies full native-neon without
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
-test("Hostinger Admin readiness certifies only full native-neon exact lanes without echoing database secrets", () => {
+test("Hostinger Admin readiness certifies only full native-neon pinned lanes without echoing database secrets", () => {
   for (const environment of ["admin-uat", "production-admin"]) {
     const ok = runAdminReadiness(environment);
     assert.equal(ok.status, 0, ok.stderr || ok.stdout);

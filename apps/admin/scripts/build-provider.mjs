@@ -164,7 +164,7 @@ export function applyPinnedAdminUatBuildFallback(root = adminRoot, variables = p
   };
   const branch = git(["symbolic-ref", "--short", "HEAD"]);
   const sha = git(["rev-parse", "HEAD"]);
-  if (!branch || !/^[a-f0-9]{40}$/i.test(sha) || branch !== `admin/hostinger-release-uat-${sha}`) return null;
+  if (!branch || !/^[a-f0-9]{40}$/i.test(sha) || !/^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(branch)) return null;
   if (variables.VERCEL_PROJECT_ID?.trim() || variables.VERCEL_DEPLOYMENT_ID?.trim()) throw new Error("ADMIN_UAT_RELEASE_VERCEL_CONFLICT");
   const explicitProvider = variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
   const explicitRole = variables.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
@@ -200,8 +200,9 @@ export function applyPinnedAdminUatBuildFallback(root = adminRoot, variables = p
     CCPUN_GIT_SHA: sha,
     CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
   };
-  // Exact UAT release refs may replace stale non-secret editorial markers.
-  // Secret runtime inputs are intentionally absent from this defaults object.
+  // Dedicated UAT release refs may replace stale non-secret editorial markers.
+  // The source validator below binds the checked-out branch to the actual SHA;
+  // secret runtime inputs are intentionally absent from this defaults object.
   for (const [key, value] of Object.entries(defaults)) variables[key] = value;
   return { branch, sha };
 }

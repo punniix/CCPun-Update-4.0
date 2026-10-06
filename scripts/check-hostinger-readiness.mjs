@@ -148,8 +148,8 @@ if (role === "web") {
       }
     } else {
       requireExact("CCPUN_RELEASE_STAGE", "shadow");
-      if (gitRef !== `admin/hostinger-release-uat-${gitSha}`) {
-        failures.push("Admin UAT CCPUN_GIT_REF must be the exact SHA-matching pinned Admin UAT release ref");
+      if (!/^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(gitRef)) {
+        failures.push("Admin UAT CCPUN_GIT_REF must be a dedicated pinned Admin UAT release ref");
       }
     }
   }
