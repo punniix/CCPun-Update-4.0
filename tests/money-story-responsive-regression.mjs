@@ -23,6 +23,7 @@ test("Money Story mobile HUD puts undo on row one and balances on their own row"
 test("Money Story keeps character-card detail rows aligned across uneven copy", () => {
   assert.match(styles, /\.characterPickCard\{[^}]*grid-template-rows:minmax\(0,1fr\) auto[^}]*height:100%/);
   assert.match(styles, /\.characterPickMeta\{grid-column:1\/-1;grid-row:2;align-self:end/);
+  assert.match(styles, /\.characterPickCard\{flex:0 0 146px;grid-template-columns:46px 1fr;height:auto;align-self:stretch/);
   assert.match(styles, /\.selectedLifeStats span\{display:grid;grid-template-rows:minmax\(0,1fr\) auto/);
 });
 
