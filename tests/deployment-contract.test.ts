@@ -54,33 +54,45 @@ test("Web UAT can never enable Production content or analytics", () => {
   }), []);
 });
 
-test("Admin lanes remain pinned to the existing Vercel project until a separate migration", () => {
+test("Admin lanes reflect the current Hostinger placement and reject stale Vercel identity", () => {
   const production = getDeploymentLaneByEnvironment("production-admin")!;
   const uat = getDeploymentLaneByEnvironment("admin-uat")!;
-  assert.equal(production.provider, "vercel");
-  assert.equal(uat.provider, "vercel");
+  assert.equal(production.provider, "hostinger");
+  assert.equal(uat.provider, "hostinger");
   assert.equal(production.indexable, false);
   assert.equal(uat.indexable, false);
 
-  assert.deepEqual(deploymentContractFailures(production, {
+  const productionEnv = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
     CCPUN_APP_ENV: "production-admin",
     NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
     NEXT_PUBLIC_SANITY_DATASET: "production",
     CCPUN_UAT_MODE: "0",
     CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+  };
+  assert.deepEqual(deploymentContractFailures(production, productionEnv), []);
+  assert.notDeepEqual(deploymentContractFailures(production, {
+    ...productionEnv,
+    CCPUN_DEPLOYMENT_PROVIDER: "vercel",
     VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
     VERCEL_ENV: "production",
   }), []);
 
-  assert.deepEqual(deploymentContractFailures(uat, {
+  const uatEnv = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
     CCPUN_APP_ENV: "admin-uat",
     NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
     NEXT_PUBLIC_SANITY_DATASET: "uat",
     CCPUN_UAT_MODE: "1",
     CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+  };
+  assert.deepEqual(deploymentContractFailures(uat, uatEnv), []);
+  assert.notDeepEqual(deploymentContractFailures(uat, {
+    ...uatEnv,
     VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-    VERCEL_ENV: "preview",
   }), []);
 });

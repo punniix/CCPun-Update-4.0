@@ -1,5 +1,18 @@
 # Current Work Pointer
 
+## Runtime baseline update — 2026-10-06
+
+Current merged Production baseline is `b77a6c62` (PR #361, Money Story responsive typography), following PR #360 four-lane contract merge `6f7b7489`.
+
+The current read-only runtime/provider baseline is:
+- [`architecture/ccpun-runtime-baseline-20261006.md`](./architecture/ccpun-runtime-baseline-20261006.md)
+- [`architecture/ccpun-four-lane-deployment-contract.md`](./architecture/ccpun-four-lane-deployment-contract.md)
+
+Observed current placement is Hostinger for all four canonical hosts: `ccpun.com`, `test.ccpun.com`, `admin.ccpun.com`, and `admin-test.ccpun.com`. Web UAT remains behind Production at the recorded baseline and must be reconciled before the next Money Story UX/UI iteration. Vercel retirement is a later, separate gate.
+
+The material below is historical task context unless a newer receipt/live read-back confirms it.
+
+
 Mutable task status is intentionally not duplicated in this repository.
 
 Use, in order:
