@@ -1,5 +1,8 @@
 # Hosting portability foundation
 
+> **Provider-placement note (2026-10-06):** the original foundation was written while Vercel still served Production. Current provider placement is Hostinger for all four canonical hosts; see [`ccpun-runtime-baseline-20261006.md`](./ccpun-runtime-baseline-20261006.md). The provider-neutral identity/fail-closed design remains applicable.
+
+
 CCPun separates deployment **provider** from application **environment** and **role**.
 
 ## Identity contract

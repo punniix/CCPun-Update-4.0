@@ -1,14 +1,11 @@
 #!/usr/bin/env node
-import {
-  DEPLOYMENT_CONTRACT,
-  DEPLOYMENT_LANES,
-} from "../lib/runtime/deployment-lanes.mjs";
+import { DEPLOYMENT_CONTRACT } from "../lib/runtime/deployment-lanes.mjs";
 
 const contract = DEPLOYMENT_CONTRACT;
 const failures = [];
 const lanes = Object.entries(contract.lanes ?? {});
 
-if (contract.version !== 1) failures.push("deployment contract version must be 1");
+if (contract.version !== 2) failures.push("deployment contract version must be 2");
 if (lanes.length !== 4) failures.push("expected exactly 4 deployment lanes, got " + lanes.length);
 
 const domains = new Set();
@@ -34,9 +31,9 @@ if (webUat.domain !== "test.ccpun.com" || webUat.provider !== "hostinger" || web
 if (webUat.outputDirectory !== "apps/web/.next" || webUat.sanityProjectId !== "ccb9lnw5" || webUat.sanityDataset !== "uat" || webUat.productionAnalytics !== "0" || webUat.uatMode !== "1") failures.push("Web UAT isolation contract drift");
 
 for (const [id, lane] of [["admin-production", adminProd], ["admin-uat", adminUat]]) {
-  if (lane.provider !== "vercel") failures.push(id + ": provider migration is not approved yet");
+  if (lane.provider !== "hostinger") failures.push(id + ": current provider must be Hostinger");
   if (lane.indexable) failures.push(id + ": Admin must never be indexable");
-  if (lane.vercelProjectId !== "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN") failures.push(id + ": Admin Vercel project drift");
+  if ("vercelProjectId" in lane) failures.push(id + ": stale Vercel project identity must not be part of the current lane contract");
 }
 if (adminProd.domain !== "admin.ccpun.com" || adminProd.sanityProjectId !== "kyfxgjnq" || adminProd.sanityDataset !== "production") failures.push("Admin Production contract drift");
 if (adminUat.domain !== "admin-test.ccpun.com" || adminUat.sanityProjectId !== "ccb9lnw5" || adminUat.sanityDataset !== "uat") failures.push("Admin UAT contract drift");

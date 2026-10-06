@@ -1,6 +1,8 @@
 # CCPun Platform Data Architecture
 
-Last read-only verification: 2026-09-17.
+Last provider-placement re-baseline: 2026-10-06. Data-ownership rules remain authoritative; current runtime placement is defined by `ccpun-runtime-baseline-20261006.md`.
+
+> **Runtime placement update:** the Vercel runtime rows below were the 2026-09-17 baseline and are retained for historical migration context. Current canonical host placement is Hostinger for Web Production/UAT and Admin Production/UAT. Use [`ccpun-runtime-baseline-20261006.md`](./ccpun-runtime-baseline-20261006.md) plus `lib/runtime/deployment-lanes.mjs` for current provider identity. Data ownership, authentication and least-privilege rules in this document remain in force.
 
 This is the canonical data/runtime ownership map after the Web/Admin Vercel cutover. The current operating constraint is **no additional infrastructure spend**: keep the existing Vercel projects, Sanity Free resources and Neon projects unless a separately approved migration proves a new resource is required.
 
