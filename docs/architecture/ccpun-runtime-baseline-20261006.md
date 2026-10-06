@@ -9,7 +9,7 @@ This document records the live runtime state observed after Production merge `b7
 | Lane | Domain | Current provider | App lane | Content lane | Indexing | Observed release state |
 | --- | --- | --- | --- | --- | --- | --- |
 | Web Production | `ccpun.com` | Hostinger | `production` | Sanity `kyfxgjnq/production` | indexable | Hostinger current deployment at `b77a6c62` |
-| Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | Phase 1 accepted runtime at `c7b46fd1` |
+| Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | Phase 1 accepted runtime at `2a4c168f` |
 | Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | Sanity Production + Production Neon | blocked | Hostinger-served live Admin; exact current source ref was not reconfigured in Phase 0 |
 | Admin UAT | `admin-test.ccpun.com` | Hostinger | `admin-uat` | Sanity UAT + UAT Neon | blocked | Hostinger current deployment at `3162cd26` |
 
@@ -28,7 +28,7 @@ Production Git baseline:
 - PR #360 four-lane deployment contract merged as `6f7b7489`
 - PR #361 Money Story responsive typography merged as `b77a6c62`
 - Hostinger Web Production pinned release branch currently points to `b77a6c62`
-- Web UAT pinned release branch was advanced to `c7b46fd1f4cf0a28d838ec7c54d3ede2cd4727bb` during Phase 1.
+- Web UAT pinned release branch was advanced to `2a4c168f07a961c9fc9d530c1417d5f2237fc1c8` during Phase 1.
 
 Phase 1 restored Web UAT source/runtime parity with the current Production baseline while preserving the isolated UAT data/indexing contract. The UAT deployment remains a separately packaged Hostinger standalone runtime, so parity means reviewed source and public behavior parity—not identical provider packaging.
 
@@ -50,7 +50,7 @@ Current scope:
 - no merge to Production, no deploy, no DNS/provider mutation, no data mutation.
 
 ### Phase 1 — Restore Web UAT parity — completed 2026-10-06
-Accepted UAT release: `c7b46fd1f4cf0a28d838ec7c54d3ede2cd4727bb`. Verified live: Hostinger deployment Completed, Money Story 200, current responsive typography markers present, Sanity UAT CSP (`ccb9lnw5`), `X-Robots-Tag: noindex, nofollow, noarchive`, block-all robots, Production GTM absent, and Shadow parity passed with zero failures after making the parity gate honor isolated UAT Blog membership.
+Accepted UAT release: `2a4c168f07a961c9fc9d530c1417d5f2237fc1c8`. Verified live: Hostinger deployment Completed, Money Story 200, current responsive typography markers present, Sanity UAT CSP (`ccb9lnw5`), `X-Robots-Tag: noindex, nofollow, noarchive`, block-all robots, Production GTM absent, and Shadow parity passed with zero failures after making the parity gate honor isolated UAT Blog membership.
 
 ### Phase 2 — Money Story UX/UI
 Apply the owner's next Money Story UX/UI fixes only after Phase 1 gives a trustworthy UAT baseline. Promote an exact reviewed SHA rather than rebuilding from a stale branch.
