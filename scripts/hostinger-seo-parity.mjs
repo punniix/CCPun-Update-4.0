@@ -25,6 +25,14 @@ function schemaTypes(value, types = new Set()) {
   return [...types].sort();
 }
 
+export function shadowSchemaTypes(path, value) {
+  const types = schemaTypes(value);
+  // Shadow uses isolated UAT editorial data, so the Blog archive can legitimately
+  // have zero published cards while Production has an ItemList. Keep structural
+  // schema parity strict everywhere else and ignore only this content-dependent type.
+  return path === '/blog/' ? types.filter((type) => type !== 'ItemList') : types;
+}
+
 export function parseRobots(body) {
   const groups = [], sitemaps = []; let group;
   for (const line of body.replace(/^\uFEFF/, '').split(/\r?\n/)) {
@@ -202,7 +210,7 @@ export async function runParity({ source, target, targetMode = 'shadow', timeout
       fp.assets.forEach((reference) => addAsset(lane, reference, path));
     }
     for (const field of ['title', 'canonicals', 'h1', ...(fullContentParity ? ['schema', 'text'] : [])]) compare(`${path}:${field}`, sourceFp[field], targetFp[field]);
-    if (!fullContentParity) compare(`${path}:schema-types`, schemaTypes(sourceFp.schema), schemaTypes(targetFp.schema));
+    if (!fullContentParity) compare(`${path}:schema-types`, shadowSchemaTypes(path, sourceFp.schema), shadowSchemaTypes(path, targetFp.schema));
     if (!blockedTarget) { compare(`${path}:robots`, sourceFp.robots, targetFp.robots); compare(`${path}:x-robots-tag`, a.headers?.['x-robots-tag'], b.headers?.['x-robots-tag']); }
     const sourceCsp = a.headers?.['content-security-policy'], targetCsp = b.headers?.['content-security-policy'];
     if (sourceCsp?.includes('default-src') && !targetCsp?.includes('default-src')) fail(`${path}:csp-policy-lost`, { source: sourceCsp, target: targetCsp });
@@ -227,7 +235,7 @@ export async function runParity({ source, target, targetMode = 'shadow', timeout
     if (a.status !== 200 || b.status !== 200) fail(`ai-crawler:${ua}:${path}:status`, { source: a.status, target: b.status });
     const sourceFp = htmlFingerprint(a.body || ''), targetFp = htmlFingerprint(b.body || '');
     for (const key of ['title', 'canonicals', 'h1', ...(fullContentParity ? ['schema'] : [])]) compare(`ai-crawler:${ua}:${path}:${key}`, sourceFp[key], targetFp[key]);
-    if (!fullContentParity) compare(`ai-crawler:${ua}:${path}:schema-types`, schemaTypes(sourceFp.schema), schemaTypes(targetFp.schema));
+    if (!fullContentParity) compare(`ai-crawler:${ua}:${path}:schema-types`, shadowSchemaTypes(path, sourceFp.schema), shadowSchemaTypes(path, targetFp.schema));
     if (targetFp.placeholder || targetFp.schema.includes('__INVALID_JSON_LD__')) fail(`ai-crawler:${ua}:${path}:challenge-or-schema`);
     if (!blockedTarget && /noindex/i.test(b.headers?.['x-robots-tag'] || '')) fail(`ai-crawler:${ua}:${path}:production-indexability`);
     observations.push({ kind: 'simulated-ai-user-agent', userAgent: ua, path, source: publicResult(a), target: publicResult(b) });

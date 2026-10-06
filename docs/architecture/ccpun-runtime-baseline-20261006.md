@@ -9,7 +9,7 @@ This document records the live runtime state observed after Production merge `b7
 | Lane | Domain | Current provider | App lane | Content lane | Indexing | Observed release state |
 | --- | --- | --- | --- | --- | --- | --- |
 | Web Production | `ccpun.com` | Hostinger | `production` | Sanity `kyfxgjnq/production` | indexable | Hostinger current deployment at `b77a6c62` |
-| Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | Hostinger current deployment at `e57cb60` |
+| Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | Phase 1 accepted runtime at `c7b46fd1` |
 | Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | Sanity Production + Production Neon | blocked | Hostinger-served live Admin; exact current source ref was not reconfigured in Phase 0 |
 | Admin UAT | `admin-test.ccpun.com` | Hostinger | `admin-uat` | Sanity UAT + UAT Neon | blocked | Hostinger current deployment at `3162cd26` |
 
@@ -28,13 +28,13 @@ Production Git baseline:
 - PR #360 four-lane deployment contract merged as `6f7b7489`
 - PR #361 Money Story responsive typography merged as `b77a6c62`
 - Hostinger Web Production pinned release branch currently points to `b77a6c62`
-- Web UAT pinned release branch currently points to `e57cb60`
+- Web UAT pinned release branch was advanced to `c7b46fd1f4cf0a28d838ec7c54d3ede2cd4727bb` during Phase 1.
 
-The Web UAT lane is therefore intentionally recorded as **behind Production** at this baseline. Restoring UAT parity is Phase 1; Phase 0 does not redeploy it.
+Phase 1 restored Web UAT source/runtime parity with the current Production baseline while preserving the isolated UAT data/indexing contract. The UAT deployment remains a separately packaged Hostinger standalone runtime, so parity means reviewed source and public behavior parity—not identical provider packaging.
 
 ## Known configuration drift to resolve after Phase 0
 
-1. Web UAT still uses the older Hostinger packaging shape observed as root `apps/web`, output `.next/standalone`, and no hPanel environment variables shown, while the merged four-lane Web contract describes repository root `./` and `apps/web/.next`.
+1. Web UAT uses the Hostinger standalone packaging shape: root `apps/web`, output `.next/standalone`, entry `.next/standalone/server.js`. Phase 1 records this as the current UAT build contract rather than pretending it matches Production packaging.
 2. Admin Production/UAT are live on Hostinger, while the first merged four-lane contract still named Vercel. Contract version 2 corrects provider placement only; deeper Admin runtime hardening remains a later phase.
 3. Historical architecture documents still contain Vercel-era provider placement. They remain useful for history and rollback context, but current placement must be read from this baseline plus `lib/runtime/deployment-lanes.mjs`.
 4. The primary local migration worktree predates the current Production baseline and contains unrelated uncommitted SEO post-publish work. It must not be used as the base for new Money Story or deployment work.
@@ -49,8 +49,8 @@ Current scope:
 - mark older provider-placement statements as superseded where needed;
 - no merge to Production, no deploy, no DNS/provider mutation, no data mutation.
 
-### Phase 1 — Restore Web UAT parity
-Start from current Production, preserve `test.ccpun.com` as Sanity UAT + noindex + analytics off, and align its build/release contract before new UX work.
+### Phase 1 — Restore Web UAT parity — completed 2026-10-06
+Accepted UAT release: `c7b46fd1f4cf0a28d838ec7c54d3ede2cd4727bb`. Verified live: Hostinger deployment Completed, Money Story 200, current responsive typography markers present, Sanity UAT CSP (`ccb9lnw5`), `X-Robots-Tag: noindex, nofollow, noarchive`, block-all robots, Production GTM absent, and Shadow parity passed with zero failures after making the parity gate honor isolated UAT Blog membership.
 
 ### Phase 2 — Money Story UX/UI
 Apply the owner's next Money Story UX/UI fixes only after Phase 1 gives a trustworthy UAT baseline. Promote an exact reviewed SHA rather than rebuilding from a stale branch.

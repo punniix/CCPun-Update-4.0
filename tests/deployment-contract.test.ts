@@ -42,6 +42,9 @@ test("Web Production rejects UAT, local, Vercel and wrong Sanity identity", () =
 test("Web UAT can never enable Production content or analytics", () => {
   const lane = getDeploymentLaneByEnvironment("web-uat")!;
   assert.equal(lane.indexable, false);
+  assert.equal(lane.rootDirectory, "apps/web");
+  assert.equal(lane.outputDirectory, ".next/standalone");
+  assert.equal(lane.entryFile, ".next/standalone/server.js");
   assert.deepEqual(deploymentContractFailures(lane, {
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
     CCPUN_DEPLOYMENT_ROLE: "web",

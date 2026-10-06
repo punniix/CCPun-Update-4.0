@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { buildNextSecurityHeaders } from "../apps/next-security-headers.mjs";
-import { blockedRobotsErrors, runParity } from "../scripts/hostinger-seo-parity.mjs";
+import { blockedRobotsErrors, runParity, shadowSchemaTypes } from "../scripts/hostinger-seo-parity.mjs";
 import { archiveStandaloneRuntime, captureStandaloneProvenance, sealStandaloneProvenance } from "../apps/web/scripts/build-provider.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -419,6 +419,12 @@ test("Hostinger standalone packaging traces and preserves public assets", () => 
   assert.match(buildProvider, /"public\/favicon\.ico"/);
   assert.match(buildProvider, /"\.next\/static\/ccpun-public\/llms\.txt"/);
   assert.match(buildProvider, /"\.next\/static\/ccpun-public\/\.well-known\/security\.txt"/);
+});
+
+test("shadow schema parity ignores only content-dependent Blog ItemList", () => {
+  const schema = [{ "@type": "WebSite" }, { "@type": "ItemList" }, { "@type": "BreadcrumbList" }];
+  assert.deepEqual(shadowSchemaTypes("/blog/", schema), ["BreadcrumbList", "WebSite"]);
+  assert.deepEqual(shadowSchemaTypes("/", schema), ["BreadcrumbList", "ItemList", "WebSite"]);
 });
 
 test("Hostinger parity gate keeps mode boundaries and fails closed on missing runtime or incorrectly grouped robots", async () => {
