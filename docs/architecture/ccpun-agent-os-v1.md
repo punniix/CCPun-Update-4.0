@@ -4,6 +4,8 @@ Status: foundation contract
 Baseline: `v4-production` at `a5e86d951283551fa9f124f3d844697af9b04872`  
 Date: 2026-09-24 Asia/Bangkok
 
+> **Provider placement update (2026-10-07):** Agent OS ownership rules remain applicable, but Vercel-era deployment references below are superseded by `ccpun-runtime-baseline-20261007.md`. Canonical Web/Admin runtime is Hostinger; Vercel is rollback/history compatibility only.
+
 ## Objective
 
 Turn the existing CCPun stack into one operating system without adding paid infrastructure by default. Agent OS v1 coordinates Marketing, CRM, Admin, n8n, Local AI, optional sanitized Cloud AI, LINE, Google services, GitHub/Vercel and human actions while preserving the existing data-ownership and privacy boundaries.
@@ -37,7 +39,7 @@ This is a consolidation and orchestration project, not a platform rewrite.
 | Detailed n8n execution history | n8n |
 | Local inference | Hostinger VPS / Ollama |
 | Code, tests and migrations | GitHub |
-| Deployment | Vercel |
+| Deployment | Hostinger Cloud Startup for Web/Admin; Hostinger VPS for private compute/workers; GitHub owns release history |
 | Human control | `admin.ccpun.com` |
 | Personal quick input | Admin and future Apple Shortcut |
 | LINE customer runtime | Existing LINE API/Webhook + private CRM |
@@ -53,7 +55,7 @@ This is a consolidation and orchestration project, not a platform rewrite.
 - Social Marketing Mart.
 - Local-AI job/enclave contracts.
 - n8n LINE Card workflow and Admin bridge.
-- GitHub/Vercel CI and Preview/Production lanes.
+- GitHub CI/release history plus Hostinger Web/Admin UAT/Production lanes; retained Vercel compatibility is rollback-only.
 
 ## Cross-system runtime job contract
 

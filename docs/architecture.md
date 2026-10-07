@@ -3,13 +3,14 @@
 - [`architecture/ccpun-runtime-baseline-20261007.md`](./architecture/ccpun-runtime-baseline-20261007.md) — current observed four-host runtime/provider baseline and migration state
 - [`architecture/private-execution-ownership-20261007.md`](./architecture/private-execution-ownership-20261007.md) — exclusive private-VPS execution authority and dormant activation contract
 - [`architecture/vercel-retirement-audit-20261007.md`](./architecture/vercel-retirement-audit-20261007.md) — current Vercel zero-live-dependency audit and rollback inventory
+- [`architecture/vps-filesystem-audit-20261007.md`](./architecture/vps-filesystem-audit-20261007.md) — read-only VPS storage/runtime inventory and Phase 2 cleanup boundary
 - [`architecture/ccpun-four-lane-deployment-contract.md`](./architecture/ccpun-four-lane-deployment-contract.md) — machine-enforced four-lane identity/data/indexing contract
 - [LINE Ecosystem Activation Contract](./architecture/line-ecosystem-activation-20260918.md) — private LINE media/provider/content-intelligence/privacy activation contract and Human Gates
 - [`architecture/platform-data-architecture.md`](./architecture/platform-data-architecture.md) — runtime, environment and data ownership
 - [`architecture/repository-architecture.md`](./architecture/repository-architecture.md) — source-file ownership and dependency direction
 - [`admin-layer/environment-boundary.md`](./admin-layer/environment-boundary.md) — enforced Admin and Sanity lane controls
 
-Current task state and approval authority do not belong in this index.
+Current task state and approval authority do not belong in this index. For provider-placement questions, live read-back and `ccpun-runtime-baseline-20261007.md` outrank dated migration plans and receipts; historical Vercel-era documents must not be used as current runtime authority.
 
 ## Admin Control Plane routing
 

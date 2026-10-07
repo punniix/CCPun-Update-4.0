@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { DEPLOYMENT_CONTRACT } from "../lib/runtime/deployment-lanes.mjs";
 
 const contract = DEPLOYMENT_CONTRACT;
@@ -37,6 +38,24 @@ for (const [id, lane] of [["admin-production", adminProd], ["admin-uat", adminUa
 }
 if (adminProd.domain !== "admin.ccpun.com" || adminProd.sanityProjectId !== "kyfxgjnq" || adminProd.sanityDataset !== "production") failures.push("Admin Production contract drift");
 if (adminUat.domain !== "admin-test.ccpun.com" || adminUat.sanityProjectId !== "ccb9lnw5" || adminUat.sanityDataset !== "uat") failures.push("Admin UAT contract drift");
+
+const authoritativeDocs = [
+  "../docs/architecture/hosting-portability-foundation.md",
+  "../docs/architecture/platform-data-architecture.md",
+  "../docs/architecture/ccpun-four-lane-deployment-contract.md",
+  "../docs/architecture/ccpun-runtime-baseline-20261007.md",
+];
+const staleAuthorityPhrases = [
+  "Vercel remains the production provider",
+  "| Deployment/runtime configuration | Vercel |",
+  "Admin Vercel Preview/UAT",
+];
+for (const relativePath of authoritativeDocs) {
+  const content = readFileSync(new URL(relativePath, import.meta.url), "utf8");
+  for (const phrase of staleAuthorityPhrases) {
+    if (content.includes(phrase)) failures.push(`${relativePath}: stale provider authority phrase: ${phrase}`);
+  }
+}
 
 if (failures.length) {
   console.error(JSON.stringify({status:"blocked", failures}, null, 2));
