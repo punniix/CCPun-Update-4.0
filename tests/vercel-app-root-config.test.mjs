@@ -23,14 +23,11 @@ test("isolated Vercel app roots preserve monorepo install and affected-build rou
     assert.equal(config.installCommand, EXPECTED_INSTALL_COMMAND, `${relativePath} must install the repository workspace`);
     assert.equal(config.ignoreCommand, EXPECTED_IGNORE_COMMAND, relativePath);
 
-    if (relativePath === "apps/admin/vercel.json") {
-      assert.deepEqual(config.crons, [
-        { path: "/api/admin/social/worker", schedule: "*/5 * * * *" },
-        { path: "/api/internal/line/rich-menu/reconcile/", schedule: "*/5 * * * *" },
-      ], "Admin owns bounded Social and LINE desired-state reconciliation crons only");
-    } else {
-      assert.equal(Object.hasOwn(config, "crons"), false, `${relativePath} must not own Admin operational cron jobs`);
-    }
+    assert.equal(
+      Object.hasOwn(config, "crons"),
+      false,
+      `${relativePath} must not own autonomous operational cron jobs after Hostinger cutover`,
+    );
 
     const scriptPath = resolve(dirname(configPath), "../../scripts/vercel-ignore-build.mjs");
     assert.equal(existsSync(scriptPath), true, `${relativePath} must resolve the shared ignore script`);
