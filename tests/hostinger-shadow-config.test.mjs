@@ -318,7 +318,7 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
     writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
     const npm = join(fixture, "npm");
-    writeFileSync(npm, `#!${process.execPath}\nconsole.log(JSON.stringify({args:process.argv.slice(2),env:{provider:process.env.CCPUN_DEPLOYMENT_PROVIDER,role:process.env.CCPUN_DEPLOYMENT_ROLE,appEnv:process.env.CCPUN_APP_ENV,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,producer:process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED,executor:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED,plane:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE,nativeWorkflow:process.env.CCPUN_NATIVE_WORKFLOW_ENABLED,social:process.env.CCPUN_SOCIAL_ENABLED,socialMode:process.env.CCPUN_SOCIAL_DATA_MODE,socialOps:process.env.CCPUN_SOCIAL_OPERATIONS_ENABLED,socialReads:process.env.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,socialWrites:process.env.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,socialAnalytics:process.env.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,project:process.env.CCPUN_NEON_PROJECT_ID,branch:process.env.CCPUN_NEON_BRANCH_ID,endpoint:process.env.CCPUN_NEON_ENDPOINT_ID,database:process.env.CCPUN_NEON_DATABASE,authUrl:process.env.AUTH_URL,gitRef:process.env.CCPUN_GIT_REF,gitSha:process.env.CCPUN_GIT_SHA,dbUrl:process.env.CCPUN_ADMIN_DATABASE_URL}}));`);
+    writeFileSync(npm, `#!${process.execPath}\nconsole.log(JSON.stringify({args:process.argv.slice(2),env:{provider:process.env.CCPUN_DEPLOYMENT_PROVIDER,role:process.env.CCPUN_DEPLOYMENT_ROLE,appEnv:process.env.CCPUN_APP_ENV,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,producer:process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED,executor:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED,plane:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE,nativeWorkflow:process.env.CCPUN_NATIVE_WORKFLOW_ENABLED,social:process.env.CCPUN_SOCIAL_ENABLED,socialMode:process.env.CCPUN_SOCIAL_DATA_MODE,socialOps:process.env.CCPUN_SOCIAL_OPERATIONS_ENABLED,socialReads:process.env.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,socialWrites:process.env.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,socialAnalytics:process.env.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,project:process.env.CCPUN_NEON_PROJECT_ID,branch:process.env.CCPUN_NEON_BRANCH_ID,endpoint:process.env.CCPUN_NEON_ENDPOINT_ID,database:process.env.CCPUN_NEON_DATABASE,authUrl:process.env.AUTH_URL,gitRef:process.env.CCPUN_GIT_REF,gitSha:process.env.CCPUN_GIT_SHA,publicGitRef:process.env.NEXT_PUBLIC_CCPUN_GIT_REF,publicGitSha:process.env.NEXT_PUBLIC_CCPUN_GIT_SHA,publicReleaseId:process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID,releaseId:process.env.CCPUN_RELEASE_ID,dbUrl:process.env.CCPUN_ADMIN_DATABASE_URL}}));`);
     chmodSync(npm, 0o755);
     for (const args of [["init", "-b", "phase3-fixture"], ["config", "user.email", "fixture@example.invalid"], ["config", "user.name", "Fixture"], ["add", "."], ["commit", "-m", "fixture"]]) {
       const git = spawnSync("git", args, { cwd: fixture, encoding: "utf8" }); assert.equal(git.status, 0, git.stderr);
@@ -339,8 +339,39 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
       social: "1", socialMode: "synthetic", socialOps: "1", socialReads: "0", socialWrites: "0", socialAnalytics: "0",
       project: "young-term-47483330", branch: "br-crimson-mouse-az7ajkv8", endpoint: "ep-mute-frost-aztvz394", database: "neondb",
       authUrl: "https://admin-test.ccpun.com", gitRef: branch, gitSha: sha,
+      publicGitRef: branch, publicGitSha: sha,
+      publicReleaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+      releaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
     });
     assert.equal(invocation.env.dbUrl, undefined, "release bootstrap must never synthesize the Admin database secret");
+
+    assert.equal(spawnSync("git", ["checkout", "--detach"], { cwd: fixture }).status, 0);
+    const detached = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+      cwd: fixture,
+      encoding: "utf8",
+      env: {
+        PATH: `${fixture}:${process.env.PATH ?? ""}`,
+        HOME: process.env.HOME,
+        CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+        CCPUN_DEPLOYMENT_ROLE: "admin",
+        CCPUN_GIT_REF: branch,
+        CCPUN_GIT_SHA: "a".repeat(40),
+        CCPUN_RELEASE_ID: "stale-release",
+        NEXT_PUBLIC_CCPUN_GIT_REF: branch,
+        NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40),
+        NEXT_PUBLIC_CCPUN_RELEASE_ID: "stale-public-release",
+      },
+    });
+    assert.equal(detached.status, 0, detached.stderr);
+    const detachedEnv = JSON.parse(detached.stdout.trim().split("\n").at(-1)).env;
+    assert.equal(detachedEnv.gitRef, branch);
+    assert.equal(detachedEnv.gitSha, sha);
+    assert.equal(detachedEnv.publicGitRef, branch);
+    assert.equal(detachedEnv.publicGitSha, sha);
+    assert.equal(detachedEnv.releaseId, `hostinger-admin-uat-${sha.slice(0, 12)}`);
+    assert.equal(detachedEnv.publicReleaseId, `hostinger-admin-uat-${sha.slice(0, 12)}`);
+
+    assert.equal(spawnSync("git", ["checkout", branch], { cwd: fixture }).status, 0);
     const legacyEditorial = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
       cwd: fixture, encoding: "utf8", env: {
         PATH: `${fixture}:${process.env.PATH ?? ""}`, HOME: process.env.HOME,

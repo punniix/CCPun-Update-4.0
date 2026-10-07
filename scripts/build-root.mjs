@@ -28,15 +28,21 @@ function fillMissing(defaults) {
 function applyHostingerReleaseFallback() {
   if (process.env.VERCEL_PROJECT_ID?.trim()) return;
 
-  const branch = gitValue(["symbolic-ref", "--short", "HEAD"]);
+  const symbolicBranch = gitValue(["symbolic-ref", "--short", "HEAD"]);
   const sha = gitValue(["rev-parse", "HEAD"]);
-  if (!branch || !/^[0-9a-f]{40}$/i.test(sha)) return;
+  if (!/^[0-9a-f]{40}$/i.test(sha)) return;
 
   const explicitProvider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
   const explicitRole = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
+  const configuredRef = process.env.CCPUN_GIT_REF?.trim() ?? "";
+  const adminUatRefPattern = /^admin\/hostinger-release-uat-[a-f0-9]{40}$/;
+  const adminUatRef = adminUatRefPattern.test(symbolicBranch)
+    ? symbolicBranch
+    : adminUatRefPattern.test(configuredRef)
+      ? configuredRef
+      : "";
 
-  const pinnedAdminUatRef = /^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(branch);
-  if (pinnedAdminUatRef) {
+  if (adminUatRef) {
     if (explicitProvider && explicitProvider !== "hostinger") throw new Error("ADMIN_UAT_RELEASE_PROVIDER_CONFLICT");
     if (explicitRole && explicitRole !== "admin") throw new Error("ADMIN_UAT_RELEASE_ROLE_CONFLICT");
     const defaults = {
@@ -70,20 +76,25 @@ function applyHostingerReleaseFallback() {
       CCPUN_NEON_ENDPOINT_ID: "ep-mute-frost-aztvz394",
       CCPUN_NEON_DATABASE: "neondb",
       AUTH_URL: "https://admin-test.ccpun.com",
-      CCPUN_GIT_REF: branch,
+      CCPUN_GIT_REF: adminUatRef,
       CCPUN_GIT_SHA: sha,
       CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+      NEXT_PUBLIC_CCPUN_GIT_REF: adminUatRef,
+      NEXT_PUBLIC_CCPUN_GIT_SHA: sha,
+      NEXT_PUBLIC_CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
     };
     // A dedicated Admin UAT release ref is the authority for non-secret lane
     // identity. The branch may act as a stable Hostinger slot; build provenance
     // is still bound to the checked-out ref -> actual SHA by build-provider.
     // It never synthesizes OAuth, DB or provider secrets.
     Object.assign(process.env, defaults);
-    console.log(`Hostinger Admin UAT build identity inferred from pinned release ref ${branch} @ ${sha.slice(0, 12)}.`);
+    console.log(`Hostinger Admin UAT build identity inferred from pinned release ref ${adminUatRef} @ ${sha.slice(0, 12)}.`);
     return;
   }
 
   if (explicitProvider) return;
+  const branch = symbolicBranch;
+  if (!branch) return;
   const isProduction = branch === "v4-production";
   const isPinnedUat = branch.startsWith("codex/hostinger-release-uat-");
   if (!isProduction && !isPinnedUat) return;
