@@ -1,6 +1,6 @@
 # Private Execution Ownership — 2026-10-07
 
-Status: **P0 EXCLUSIVE-AUTHORITY CONTRACT CLOSED / AUTONOMOUS ACTIVATION DORMANT**
+Status: **P0 EXCLUSIVE-AUTHORITY CONTRACT CLOSED / PHASE 3 PRIVATE LIFECYCLE ACTIVE / PRODUCTION PROVIDER EXECUTION HELD**
 
 ## Decision
 
@@ -66,15 +66,17 @@ Observed 2026-10-07:
 - Admin Production System read-back: Hostinger `production-admin`, scheduler runtime OFF, durable ON.
 - Vercel Production runtime logs: no old Social/Rich-Menu cron-route calls in the latest 24-hour window.
 - n8n discovery: no Article Scheduler or Rich Menu workflow; legacy Article Publish/Social Post workflows inactive.
-- direct VPS process read-back shows n8n, Local AI worker, OCR and Ollama, but no `article-schedule-worker` or `admin-background-worker` process;
-- direct VPS systemd service/timer and cron searches show no CCPun Article/Social/LINE autonomous worker owner;
-- two migration-era Admin containers still run on the VPS, but they are browser-runtime residue and are not authorized background executors. They are tracked separately in `vps-filesystem-audit-20261007.md`.
+- Phase 2 retired the migration-era VPS Admin containers after canonical Hostinger lane smoke proof;
+- Phase 3 installed systemd lifecycle ownership for Article Scheduler and the Social/LINE background entry points;
+- Article Scheduler UAT is enabled and active and recovered automatically after forced container termination;
+- Production Article/Social/LINE units are installed against exact release `99661d64...` but are disabled/held for Phase 4;
+- n8n, Local AI, OCR and Ollama remain active and are not execution owners for these three workloads.
 
-P0 acceptance is therefore **exclusive authority with activation dormant**. Direct host evidence now confirms that the authorized private CLI plane exists as a policy boundary but Article/Social/LINE autonomous worker activation has not occurred.
+P0/Phase 3 acceptance is therefore **exclusive authority with the private lifecycle proven, while Production provider execution remains held**. See `phase3-private-worker-activation-20261007.md`.
 
-## Later activation gate
+## Phase 4 activation gate
 
-A future activation must separately prove:
+Production activation must separately prove:
 
 1. exact reviewed release SHA/lock on the private worker;
 2. one service/timer owner per workload;
