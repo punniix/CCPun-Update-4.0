@@ -121,14 +121,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async rewrites() {
-    return {
-      beforeFiles: [
-        // ponytail: one method-preserving adapter keeps delayed jobs and OAuth callbacks alive during migration.
-        { source: "/api/snt-admin/:path*", destination: "/api/admin/:path*" },
-      ],
-    };
-  },
   async headers() {
     return [
       {
@@ -157,10 +149,6 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/admin/:path*",
-        headers: PRIVATE_ADMIN_API_HEADERS,
-      },
-      {
-        source: "/api/snt-admin/:path*",
         headers: PRIVATE_ADMIN_API_HEADERS,
       },
       {

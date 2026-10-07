@@ -1,15 +1,15 @@
 # Vercel Retirement Audit — 2026-10-07
 
-Status: **ZERO LIVE DEPENDENCY OBSERVED / ROLLBACK ASSETS RETAINED**
+Status: **ZERO LIVE DEPENDENCY / BOTH PROJECTS PAUSED / PERMANENT DELETION REQUIRES VERCEL UI CONFIRMATION**
 
-This audit separates live dependency from recoverable rollback state. It is not authorization to delete projects, domains, secrets or historical deployments.
+This audit separates live dependency from residual provider state. Phase 5 has paused both projects; permanent project deletion remains an irreversible Vercel UI confirmation that the connected tool cannot perform.
 
 ## Projects
 
 | Role | Project | Project ID | Vercel live flag | Current classification |
 | --- | --- | --- | --- | --- |
-| Web | `ccpun-web` | `prj_dxwjITkd0av5QiJQv2snUlIASUWu` | false | rollback-only |
-| Admin | `ccpun-admin` | `prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN` | false | rollback-only |
+| Web | `ccpun-web` | `prj_dxwjITkd0av5QiJQv2snUlIASUWu` | false | paused / delete-confirmation pending |
+| Admin | `ccpun-admin` | `prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN` | false | paused / delete-confirmation pending |
 
 Canonical `ccpun.com` and `admin.ccpun.com` live HTTP read-back is Hostinger.
 
@@ -43,17 +43,11 @@ This makes stale Vercel cron credentials incapable of executing Social or LINE R
 
 No canonical host is served by Vercel and no Production runtime activity was observed in the current 24-hour window.
 
-### Rollback-only assets
+### Paused residual assets
 
-Retain until a separately approved destructive-retirement gate:
+Phase 5 paused both Vercel projects after the Hostinger runtime and private execution plane were accepted. The projects remain in Vercel only because permanent deletion is an irreversible UI-confirmed action that the connected tool cannot execute.
 
-- Vercel projects `ccpun-web` and `ccpun-admin`;
-- Vercel app/default aliases and old deployments;
-- project environment variables/secrets, including historical LINE/Admin/cron/provider values;
-- project-domain attachments still recorded by the Vercel control plane;
-- last known rollback-candidate deployments.
-
-Their existence is not evidence that DNS/live traffic is using Vercel.
+Residual inventory includes project aliases/deployments, environment variables/secrets and project-domain attachments recorded by Vercel. Their existence is not evidence that DNS/live traffic is using Vercel.
 
 ### Emergency recovery only
 
@@ -85,12 +79,7 @@ No webhook is inferred to exist or not exist from that permission failure.
 
 ## Destructive-retirement gate
 
-Do not remove project domains, secrets, aliases or projects merely because live traffic is zero.
+Runtime prerequisites are now satisfied: private workers are accepted, live dependency is zero, active caller inventory is clean, and both projects are paused. The remaining destructive action is Vercel project deletion itself.
 
-A later destructive retirement may proceed only after:
-
-1. the chosen rollback observation window;
-2. provider/callback inventory outside the inaccessible webhook API is reconciled;
-3. private-worker activation (if required) is independently accepted;
-4. owner explicitly approves loss of the Vercel rollback path.
+The connected Vercel tool exposes deletion only as `requires_user_action`: it can open the Delete Project section but cannot click the irreversible confirmation on the owner's behalf. Therefore permanent deletion of `ccpun-web` and `ccpun-admin` remains an explicit owner UI action, not an unfinished runtime dependency.
 

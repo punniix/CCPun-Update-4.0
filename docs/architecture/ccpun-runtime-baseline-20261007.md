@@ -1,6 +1,6 @@
 # CCPun Runtime Baseline — 2026-10-07
 
-Status: **CURRENT OBSERVED BASELINE / P0 ARCHITECTURE CLOSURE**
+Status: **CURRENT OBSERVED BASELINE / PHASE 5 FINAL RUNTIME CLOSURE**
 
 This document supersedes `ccpun-runtime-baseline-20261006.md` for current runtime placement and migration status. It records observed state; it does not by itself authorize provider writes, autonomous background execution, destructive Vercel retirement, DNS changes or data mutation.
 
@@ -18,12 +18,12 @@ If live evidence contradicts this baseline, stop and re-baseline before infrastr
 
 ## Git and live release split
 
-Current source state after P0 closure:
+Current source/runtime split before the Phase 5 merge:
 
-- Phase 4 branch base: `origin/v4-production = 90a4dc8fcc3a45d085eb9bea1655a16bf6b032fd` after the Phase 3 private-worker closure.
-- the source branch includes the Hostinger architecture SSOT, VPS cleanup inventory and Phase 3 private-worker lifecycle receipt.
-- **Live Production remains separately pinned to** `78713868605e3bda0f2ecdd3bf8a2e18411b2e70` where provider read-back still reports that release.
-- source advancement does **not** imply live promotion; promotion remains a separate release gate.
+- `origin/v4-production = 3530597a20c31c7787b16a888c2bc78629ab1ba8` after the Phase 4 operational-acceptance closure.
+- Hostinger Web Production and Admin Production deployment settings both pin `codex/hostinger-release-production-26658e389348a4e7b1fffaa362531a3ece3cbbff`.
+- `git diff 26658e38..3530597a` contains architecture/documentation receipts and `scripts/check-deployment-contract.mjs`, with no Web/Admin application runtime source delta.
+- Phase 5 therefore does not manufacture a Production redeploy solely to move a governance SHA. Future application promotion still requires branch/ref/SHA/release identity to move together.
 
 That distinction is deliberate: source governance and live promotion are separate authorities.
 
@@ -31,9 +31,9 @@ That distinction is deliberate: source governance and live promotion are separat
 
 | Lane | Domain | Provider | App lane | Data lane | Indexing | Observed release |
 | --- | --- | --- | --- | --- | --- | --- |
-| Web Production | `ccpun.com` | Hostinger | `production` | Sanity `kyfxgjnq/production` | indexable | `78713868605e3bda0f2ecdd3bf8a2e18411b2e70` |
+| Web Production | `ccpun.com` | Hostinger | `production` | Sanity `kyfxgjnq/production` | indexable | configured release branch `26658e38` |
 | Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | `73f21285fdd70070db546c23e013387fbcb832f2` |
-| Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | Sanity Production + Neon Production | blocked | `78713868605e3bda0f2ecdd3bf8a2e18411b2e70` |
+| Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | Sanity Production + Neon Production | blocked | configured release branch `26658e38` |
 | Admin UAT | `admin-test.ccpun.com` | Hostinger | `admin-uat` | Sanity UAT + Neon UAT | blocked | `73f21285fdd70070db546c23e013387fbcb832f2` |
 
 Observed live evidence on 2026-10-07:
@@ -58,8 +58,9 @@ Phase 3 installed systemd-owned private-worker lifecycle units. Phase 4 accepted
 - Phase 1 — Web UAT parity: **closed**
 - Phase 2 — Money Story responsive UX/UI acceptance: **closed**
 - Phase 3 — Admin UAT/runtime hardening: **closed**
-- Security Production Promotion — patched release `78713868` on Web/Admin Production: **closed**
+- Security Production Promotion — historical patched release `78713868`: **closed**
 - P0 Architecture Closure 2026-10-07 — current SSOT + exclusive execution authority + Vercel live-dependency audit: **closed and merged in `26658e38`**
+- Phase 5 — legacy route retirement + security residual classification + Vercel pause: **closed when the Phase 5 receipt merges**
 
 ## Background execution ownership
 
@@ -99,10 +100,9 @@ See `vercel-retirement-audit-20261007.md`.
 
 These are not P0 blockers:
 
-1. **Recoverable Vercel asset deletion:** custom-domain attachments, env/secrets, old deployments and projects may be removed only after the chosen rollback observation window and explicit destructive-retirement approval.
-2. **Provider/business write decisions:** Social provider writes remain intentionally OFF until an approved real publication exists; LINE actual mutation continues to require an approved durable Control Plane command. These are business-policy gates, not execution-plane blockers.
-3. **Legacy `/snt-admin/*` compatibility removal:** only after callback, delayed retry and job callers are proven canonical.
-4. **Security Phase 2:** npm audit still reports a separate Sanity/next-sanity transitive cluster even though Hostinger's deployed scanner is clear.
+1. **Irreversible Vercel project deletion:** both projects are paused and `live:false`; deletion itself requires owner confirmation in the Vercel UI and is not a runtime-migration blocker.
+2. **Provider/business write decisions:** Social provider writes remain intentionally OFF until an approved real publication exists; LINE actual mutation continues to require an approved durable Control Plane command. These are business-policy gates, not migration blockers.
+3. **Upstream dependency advisories:** the directly patchable `http-cache-semantics` finding is closed at `4.3.0`; remaining Sanity/next-sanity and Next ESLint glob findings have no compatible patched current-line resolution in the npm audit report and remain documented upstream debt with 0 critical findings.
 
-Private-worker activation and Phase 4 operational acceptance are closed.
+Legacy `/snt-admin/*` compatibility, private-worker activation and Phase 4 operational acceptance are closed. See `phase5-final-closure-20261007.md`.
 

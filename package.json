@@ -112,7 +112,8 @@
     "undici": "7.29.1",
     "devalue": "5.9.3",
     "dompurify": "3.4.16",
-    "source-map-js": "1.2.2"
+    "source-map-js": "1.2.2",
+    "http-cache-semantics": "4.3.0"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,

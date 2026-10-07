@@ -47,5 +47,5 @@ console.log(JSON.stringify({
   autonomousCloudExecutors: 0,
   vercelOperationalCrons: 0,
   authorizedExecutionPlane: "private-vps-cli-only",
-  activationState: "dormant-until-explicitly-enabled",
+  activationState: "production-accepted-private-vps",
 }));

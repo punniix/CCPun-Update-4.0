@@ -107,7 +107,6 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
-        { source: "/api/snt-admin/:path*", destination: "/api/admin/:path*" },
         ...(IS_HOSTINGER ? [
           { source: "/assets/:path*", destination: "/_next/static/ccpun-public/assets/:path*" },
           { source: "/favicon.ico", destination: "/_next/static/ccpun-public/favicon.ico" },
@@ -136,10 +135,6 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/admin/:path*",
-        headers: PRIVATE_ADMIN_API_HEADERS,
-      },
-      {
-        source: "/api/snt-admin/:path*",
         headers: PRIVATE_ADMIN_API_HEADERS,
       },
       {

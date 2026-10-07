@@ -89,8 +89,8 @@ test("Production Research uses snapshots while Local lanes retain provider query
   assert.match(researchPage, /localProviderLane/);
 });
 
-test("legacy Ubersuggest route maps into unified Research and navigation has one canonical research entry", () => {
-  assert.match(routes, /\["\/snt-admin\/ubersuggest", "\/content\/research\/"\]/);
+test("legacy Ubersuggest alias is retired and navigation has one canonical Research entry", () => {
+  assert.doesNotMatch(routes, /\/snt-admin\/ubersuggest/);
   assert.match(layout, /href: "\/content\/research\/", label: "ข้อมูลประกอบ"/);
   assert.doesNotMatch(layout, /href: "\/snt-admin\/ubersuggest\/"/);
 });

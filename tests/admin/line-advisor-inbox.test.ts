@@ -119,7 +119,7 @@ test("advisor:read is owner-only in Phase 3A", () => {
   }
 });
 
-test("deployed Admin separates Advisor Inbox from SEO Reviews", () => {
+test("deployed Admin separates Advisor Inbox from SEO Reviews with canonical routes only", () => {
   const inbox = read("apps/admin/app/(control-plane)/dashboard/inbox/page.tsx");
   const reviews = read("apps/admin/app/(control-plane)/dashboard/reviews/page.tsx");
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
@@ -138,7 +138,8 @@ test("deployed Admin separates Advisor Inbox from SEO Reviews", () => {
   assert.match(reviews, /ReviewDecisionControls/);
   assert.match(layout, /\/dashboard\/inbox\/[\s\S]*ลูกค้า LINE[\s\S]*advisor:read/);
   assert.match(layout, /\/dashboard\/reviews\/[\s\S]*งานรอตรวจ[\s\S]*reviews:read/);
-  assert.match(routes, /\["\/snt-admin\/reviews", "\/dashboard\/reviews\/"\]/);
+  assert.doesNotMatch(routes, /\/snt-admin\/reviews/);
+  assert.match(routes, /ADMIN_PAGE_PREFIXES = CONTROL_PLANE_PAGE_PREFIXES/);
   for (const source of [dashboard, articles, seo]) {
     assert.doesNotMatch(source, /href="\/dashboard\/inbox\/"[\s\S]{0,120}(?:ข้อเสนอ|Review inbox)/);
   }

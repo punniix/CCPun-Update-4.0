@@ -5,8 +5,8 @@ import test from "node:test";
 import { classifyProductionAdminPath } from "../../lib/admin/host-routing";
 import {
   isAdminApiPath,
+  isAdminPagePath,
   isCanonicalAdminPagePath,
-  legacyAdminPageDestination,
   safeAdminReturnPath,
 } from "../../lib/admin/routes";
 
@@ -44,17 +44,19 @@ test("canonical Control Plane routes exist without an active snt-admin route tre
   }
 });
 
-test("legacy pages redirect through an explicit map while legacy APIs stay method-preserving adapters", () => {
-  assert.equal(legacyAdminPageDestination("/snt-admin/dashboard/"), "/dashboard/");
-  assert.equal(legacyAdminPageDestination("/snt-admin/distribution/operations/"), "/social/posts/");
-  assert.equal(legacyAdminPageDestination("/snt-admin/seo/article-1/"), "/seo/audits/article-1/");
-  assert.equal(isAdminApiPath("/api/snt-admin/reviews/1/approve"), true);
+test("legacy snt-admin compatibility is retired and canonical routes remain authoritative", () => {
+  for (const pathname of ["/snt-admin", "/snt-admin/dashboard/", "/snt-admin/distribution/operations/", "/snt-admin/seo/article-1/"]) {
+    assert.equal(isAdminPagePath(pathname), false, pathname);
+    assert.equal(classifyProductionAdminPath(pathname), "reject", pathname);
+  }
+  assert.equal(isAdminApiPath("/api/snt-admin/reviews/1/approve"), false);
+  assert.equal(classifyProductionAdminPath("/api/snt-admin/reviews/1/approve"), "reject");
   assert.equal(isAdminApiPath("/api/admin/reviews/1/approve"), true);
 
-  const config = read("next.config.ts");
-  assert.match(config, /beforeFiles:\s*\[[\s\S]*source: "\/api\/snt-admin\/:path\*", destination: "\/api\/admin\/:path\*"/);
-  assert.match(config, /method-preserving adapter keeps delayed jobs and OAuth callbacks alive during migration/);
-  assert.doesNotMatch(config, /source: "\/api\/snt-admin\/:path\*"[\s\S]{0,120}permanent:/);
+  for (const config of [read("next.config.ts"), read("apps/admin/next.config.ts")]) {
+    assert.doesNotMatch(config, /source: "\/api\/snt-admin\/:path\*"/);
+    assert.doesNotMatch(config, /destination: "\/api\/admin\/:path\*"/);
+  }
 });
 
 test("Admin root, return URL and unauthenticated API boundaries fail safely", () => {
@@ -90,10 +92,9 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
   assert.match(proxy, /if \(isProductionEnvironment\(\) \|\| !adminSurfaceAllowed\) \{\s*return new NextResponse\("Not Found", \{ status: 404 \}\)/);
 });
 
-test("active Admin runtime references snt-admin only in explicit compatibility adapters", () => {
+test("active Admin runtime references snt-admin only in deny-only privacy and proxy fences", () => {
   const allowed = new Set([
     "app/robots.ts",
-    "lib/admin/routes.ts",
     "next.config.ts",
     "proxy.ts",
   ]);
