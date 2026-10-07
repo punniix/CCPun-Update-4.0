@@ -3,7 +3,8 @@
 - [`architecture/ccpun-runtime-baseline-20261007.md`](./architecture/ccpun-runtime-baseline-20261007.md) — current observed four-host runtime/provider baseline and migration state
 - [`architecture/private-execution-ownership-20261007.md`](./architecture/private-execution-ownership-20261007.md) — exclusive private-VPS execution authority and accepted Production execution ownership
 - [`architecture/vercel-retirement-audit-20261007.md`](./architecture/vercel-retirement-audit-20261007.md) — current Vercel zero-live-dependency audit and rollback inventory
-- [`architecture/vercel-final-retirement-20261008.md`](./architecture/vercel-final-retirement-20261008.md) — paused/non-live project hardening, canonical-domain detachment and owner-only delete boundary
+- [`architecture/vercel-final-retirement-20261008.md`](./architecture/vercel-final-retirement-20261008.md) — permanent Vercel project deletion and canonical-domain detachment receipt
+- [`architecture/final-security-historical-cleanup-20261008.md`](./architecture/final-security-historical-cleanup-20261008.md) — final dead-path, branch, VPS and dependency-security cleanup receipt
 - [`architecture/vps-filesystem-audit-20261007.md`](./architecture/vps-filesystem-audit-20261007.md) — read-only VPS storage/runtime inventory and Phase 2 cleanup boundary
 - [`architecture/phase3-private-worker-activation-20261007.md`](./architecture/phase3-private-worker-activation-20261007.md) — Phase 3 supervised private-worker activation receipt and Phase 4 Production hold boundary
 - [`architecture/phase4-operational-acceptance-20261007.md`](./architecture/phase4-operational-acceptance-20261007.md) — Production private-worker canary, cadence, restart and single-owner acceptance receipt

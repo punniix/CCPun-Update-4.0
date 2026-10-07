@@ -49,23 +49,15 @@ Phase 5 first paused both Vercel projects after the Hostinger runtime and privat
 
 Phase C removed the stale canonical project-domain attachments (`ccpun.com`, `www.ccpun.com`, `admin.ccpun.com`) and disabled Preview deployments plus automatic custom-domain assignment before deletion. Those project-owned `.vercel.app` aliases, historical deployments and project environment variables/secrets were then removed with permanent project deletion.
 
-### Emergency recovery only
+### Source cleanup after deletion
 
-`.github/workflows/line-key-recovery-once.yml`:
+After both Vercel projects were permanently deleted, the Vercel-only operational recovery/audit artifacts were removed from source:
 
-- manual `workflow_dispatch` only;
-- no schedule;
-- exact action-time approval string required;
-- intended as temporary emergency capsule recovery.
+- `.github/workflows/line-key-recovery-once.yml`;
+- `.github/workflows/vercel-monorepo-migration-audit.yml`;
+- `scripts/operator/web-line-recovery.cjs` and its dedicated tests.
 
-It remains a rollback tool, not a steady-state dependency.
-
-### Audit/test compatibility
-
-- `.github/workflows/vercel-monorepo-migration-audit.yml`: old migration branch + manual dispatch, no schedule;
-- `apps/web/vercel.json` and `apps/admin/vercel.json`: compatibility/build-routing metadata; Admin no longer contains operational crons;
-- Vercel identity/service-auth adapters and tests: retained while rollback compatibility remains supported;
-- Vercel-specific regression tests: historical/rollback compatibility, not provider placement authority.
+`apps/web/vercel.json`, `apps/admin/vercel.json` and provider-neutral Vercel identity tests may remain as inert compatibility/build metadata or fail-closed regression coverage; they own no project, domain, cron or live runtime.
 
 ### Historical documentation
 
