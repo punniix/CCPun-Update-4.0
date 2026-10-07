@@ -21,7 +21,6 @@ import {
   isAdminApiPath,
   isAdminPagePath,
   ADMIN_NOT_FOUND_PATH,
-  legacyAdminPageDestination,
   safeAdminReturnPath,
 } from "@/lib/admin/routes";
 import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
@@ -53,7 +52,6 @@ export default auth((request) => {
   });
   const isAdminPage = isAdminPagePath(pathname);
   const isAdminApi = isAdminApiPath(pathname);
-  const legacyPageDestination = legacyAdminPageDestination(pathname);
   const isStudioPage = pathname.startsWith("/studio");
   const isPreviewApi = pathname.startsWith("/api/preview");
   const isAuthApi = pathname === "/api/auth" || pathname.startsWith("/api/auth/");
@@ -130,18 +128,6 @@ export default auth((request) => {
     // These exact service routes authenticate inside their handlers with
     // purpose-specific bearer/capability contracts, not browser Auth.js.
     if (isAuthApi || isPublicBootstrapPath || isInternalServiceApi) return NextResponse.next();
-    if (legacyPageDestination) {
-      const destination = new URL(legacyPageDestination, request.url);
-      destination.search = request.nextUrl.search;
-      if (!role && legacyPageDestination !== "/login/") {
-        const loginUrl = new URL("/login/", request.url);
-        loginUrl.searchParams.set("callbackUrl", `${legacyPageDestination}${request.nextUrl.search}`);
-        return NextResponse.redirect(loginUrl);
-      }
-      return NextResponse.redirect(role && legacyPageDestination === "/login/"
-        ? new URL("/dashboard/", request.url)
-        : destination);
-    }
     if (isLoginPage) {
       if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
       return NextResponse.next();

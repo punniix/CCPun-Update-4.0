@@ -391,7 +391,7 @@ assert.match(nextConfig, /frame-ancestors 'self' https:\/\/www\.sanity\.io/);
 assert.match(nextConfig, /source:\s*["']\/snt-admin\/:path\*["'],\s*headers:\s*PRIVATE_SURFACE_ROBOTS_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/api\/admin\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
 assert.match(nextConfig, /source:\s*["']\/studio\/:path\*["'][\s\S]*STUDIO_SECURITY_HEADERS/);
-assert.match(nextConfig, /source:\s*["']\/api\/snt-admin\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
+assert.doesNotMatch(nextConfig, /source:\s*["']\/api\/snt-admin\/:path\*["']/);
 assert.match(nextConfig, /source:\s*["']\/api\/preview\/:path\*["'],\s*headers:\s*PRIVATE_ADMIN_API_HEADERS/);
 assert.match(nextConfig, /Cache-Control["'], value: ["']private, no-cache, no-store, max-age=0, must-revalidate/);
 assert.match(nextConfig, /PRIVATE_SURFACE_ROBOTS_HEADERS = \[\{ key: ["']X-Robots-Tag["'], value: ["']noindex, nofollow, noarchive["'] \}\]/);

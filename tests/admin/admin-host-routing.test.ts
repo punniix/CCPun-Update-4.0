@@ -23,7 +23,6 @@ test("Production Admin root is an explicit Control Plane entry route", () => {
 
 test("Production Admin allows only Control Plane, Auth, Studio and bootstrap routes", () => {
   for (const path of [
-    "/snt-admin",
     "/dashboard/",
     "/api/admin/seo/audit/article-1",
     "/studio",
@@ -46,6 +45,9 @@ test("Production Admin allows only Control Plane, Auth, Studio and bootstrap rou
     "/robots.txt",
   ]) {
     assert.equal(classifyProductionAdminPath(path), "allow", path);
+  }
+  for (const path of ["/snt-admin", "/snt-admin/dashboard", "/api/snt-admin/seo/audit/article-1"]) {
+    assert.equal(classifyProductionAdminPath(path), "reject", path);
   }
 });
 

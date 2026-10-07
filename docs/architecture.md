@@ -6,6 +6,7 @@
 - [`architecture/vps-filesystem-audit-20261007.md`](./architecture/vps-filesystem-audit-20261007.md) — read-only VPS storage/runtime inventory and Phase 2 cleanup boundary
 - [`architecture/phase3-private-worker-activation-20261007.md`](./architecture/phase3-private-worker-activation-20261007.md) — Phase 3 supervised private-worker activation receipt and Phase 4 Production hold boundary
 - [`architecture/phase4-operational-acceptance-20261007.md`](./architecture/phase4-operational-acceptance-20261007.md) — Production private-worker canary, cadence, restart and single-owner acceptance receipt
+- [`architecture/phase5-final-closure-20261007.md`](./architecture/phase5-final-closure-20261007.md) — final legacy/security/Vercel-retirement closure and remaining irreversible owner action
 - [`architecture/ccpun-four-lane-deployment-contract.md`](./architecture/ccpun-four-lane-deployment-contract.md) — machine-enforced four-lane identity/data/indexing contract
 - [LINE Ecosystem Activation Contract](./architecture/line-ecosystem-activation-20260918.md) — private LINE media/provider/content-intelligence/privacy activation contract and Human Gates
 - [`architecture/platform-data-architecture.md`](./architecture/platform-data-architecture.md) — runtime, environment and data ownership
@@ -29,14 +30,14 @@ The Admin application is a separate host-scoped control plane. Its canonical own
 - `/studio/` as the integrated Sanity destination
 - `/api/admin/*` as the canonical Admin API namespace
 
-`lib/admin/routes.ts` owns canonical detection, same-origin return-path validation and the explicit legacy page map. `proxy.ts` enforces host and authentication boundaries: the Admin host root resolves to Login or Dashboard, protected deep links return only to validated Admin/Studio paths, unauthenticated APIs return JSON `401`, and unknown Admin-host pages use the branded `404`. Public Production returns `404` for canonical or legacy Admin surfaces, Studio and Draft Preview.
+`lib/admin/routes.ts` owns canonical detection and same-origin return-path validation. `proxy.ts` enforces host and authentication boundaries: the Admin host root resolves to Login or Dashboard, protected deep links return only to validated Admin/Studio paths, unauthenticated APIs return JSON `401`, and unknown Admin-host pages use the branded `404`. Public Production returns `404` for Admin surfaces, Studio and Draft Preview.
 
 ## Legacy compatibility boundary
 
-Legacy page GETs under `/snt-admin/*` may temporarily redirect through the explicit route map. State-changing requests and provider callbacks under `/api/snt-admin/*` must never use an HTTP redirect: `next.config.ts` contains one method/body-preserving `beforeFiles` rewrite to the same `/api/admin/*` route handler. New navigation, auth redirects, internal fetchers, tests and jobs use canonical routes. Compatibility can be removed only after provider callback configuration, scheduled jobs, delayed retries and monitoring have been verified against canonical URLs. Historical docs, logs and audit values retain their original strings.
+Active `/snt-admin/*` and `/api/snt-admin/*` compatibility is retired in Phase 5 after repository, VPS and n8n caller read-back found no live consumer. No legacy page redirect map or method-preserving API rewrite remains. Legacy strings may remain only in deny/privacy proxy or robots fences and in historical evidence; they are not routable aliases.
 
 ## Data and deployment ownership
 
 Routing does not change data ownership. Editorial content remains in the approved Sanity lane; operational audit, review, SEO, Social and scheduler state remains in its existing guarded operational store; provider credentials remain environment-owned and are never returned to clients. SEO, Social and Operations pages expose only current sources available to their existing services and show explicit unavailable, disconnected, stale or partial states instead of inventing data.
 
-Admin deployment is Git-traceable: build and Preview use one reviewed branch commit, Production follows a reviewed merge to `v4-production`, and provider read-back must match the exact commit SHA. Roll back by restoring the previous application deployment or reverting the exact route-migration merge while keeping the API compatibility adapter until dependent callbacks/jobs are verified. Never restore a stale database snapshot, truncate operational queues, delete audit history or replay a publisher as part of an application rollback; durable jobs require separate reconciliation or cancellation.
+Admin deployment is Git-traceable: build and Preview use one reviewed branch commit, Production follows a reviewed merge to `v4-production`, and provider read-back must match the exact promoted commit SHA. Roll back by restoring the previous application deployment or reverting the exact release change; the retired `/snt-admin/*` compatibility adapter must not be resurrected as part of rollback. Never restore a stale database snapshot, truncate operational queues, delete audit history or replay a publisher as part of an application rollback; durable jobs require separate reconciliation or cancellation.
