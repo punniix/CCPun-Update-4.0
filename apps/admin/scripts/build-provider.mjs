@@ -141,6 +141,55 @@ export function sealNativeNeonRuntime(root, seal) {
   visit(standalone);
   const { publicValues, ...manifest } = seal;
   void publicValues;
+
+  if (seal.environment === "admin-uat") {
+    const serverPath = resolve(standalone, "server.js");
+    if (!existsSync(serverPath)) throw new Error("NATIVE_NEON_UAT_RUNTIME_ENTRY_MISSING");
+    const runtimeIdentity = {
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      CCPUN_DEPLOYMENT_ROLE: "admin",
+      CCPUN_RELEASE_STAGE: "shadow",
+      CCPUN_APP_ENV: "admin-uat",
+      NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat",
+      NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "admin",
+      NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+      NEXT_PUBLIC_SANITY_DATASET: "uat",
+      CCPUN_UAT_MODE: "1",
+      CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+      CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+      NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+      CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+      NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+      CCPUN_ARTICLE_SCHEDULING_ENABLED: "1",
+      CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "cloud",
+      CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0",
+      CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
+      CCPUN_BACKGROUND_EXECUTION_PLANE: "cloud",
+      CCPUN_BACKGROUND_WORKER_ENABLED: "0",
+      CCPUN_NEON_PROJECT_ID: seal.neonProjectId,
+      CCPUN_NEON_BRANCH_ID: seal.neonBranchId,
+      CCPUN_NEON_DATABASE: seal.neonDatabase,
+      AUTH_URL: "https://admin-test.ccpun.com",
+      CCPUN_GIT_REF: seal.gitRef,
+      CCPUN_GIT_SHA: seal.gitSha,
+      CCPUN_RELEASE_ID: seal.releaseId,
+      NEXT_PUBLIC_CCPUN_GIT_REF: seal.gitRef,
+      NEXT_PUBLIC_CCPUN_GIT_SHA: seal.gitSha,
+      NEXT_PUBLIC_CCPUN_RELEASE_ID: seal.releaseId,
+      CCPUN_SOCIAL_ENABLED: "1",
+      CCPUN_SOCIAL_DATA_MODE: "synthetic",
+      CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
+      CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "0",
+      CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "0",
+      CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED: "0",
+    };
+    const prelude = `/* CCPun sealed Admin UAT runtime identity */\nObject.assign(process.env,${JSON.stringify(runtimeIdentity)});\n`;
+    const server = readFileSync(serverPath, "utf8");
+    if (server.includes("CCPun sealed Admin UAT runtime identity")) throw new Error("NATIVE_NEON_UAT_RUNTIME_ALREADY_SEALED");
+    writeFileSync(serverPath, prelude + server, { mode: 0o600 });
+  }
+
   writeFileSync(resolve(standalone, "ccpun-native-admin-manifest.json"), JSON.stringify({ ...manifest,
     nodeVersion: process.version, platform: process.platform, architecture: process.arch,
     buildId: readFileSync(resolve(standalone, ".next/BUILD_ID"), "utf8").trim() }, null, 2) + "\n", { mode: 0o600 });
