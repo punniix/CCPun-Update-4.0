@@ -90,9 +90,9 @@ Current audit evidence:
 - both `ccpun-web` and `ccpun-admin` report `live: false`;
 - Vercel Production runtime-log queries for the latest 24 hours returned zero rows for both projects;
 - targeted 24-hour queries returned no calls to the old Social worker or LINE Rich Menu reconcile paths;
-- both projects are paused/non-live; Preview deployments and automatic custom-domain assignment are disabled;
-- canonical Vercel domain attachments (`ccpun.com`, `www.ccpun.com`, `admin.ccpun.com`) are removed; only Vercel-owned `.vercel.app` aliases remain;
-- historical deployments and project environment variables still exist only inside the paused projects pending owner-confirmed project deletion;
+- canonical Vercel domain attachments (`ccpun.com`, `www.ccpun.com`, `admin.ccpun.com`) were removed before project deletion;
+- on 2026-10-08 both `ccpun-web` and `ccpun-admin` were permanently deleted by the owner;
+- Vercel team read-back now returns zero projects and direct lookups for both retired projects return `404 not_found`;
 - emergency LINE recovery remains a manual, action-time-approved workflow, not a scheduled dependency;
 - the legacy Vercel migration audit workflow is manual/old-branch scoped, not a Production scheduler.
 
@@ -102,7 +102,7 @@ See `vercel-retirement-audit-20261007.md`.
 
 These are not P0 blockers:
 
-1. **Irreversible Vercel project deletion:** both projects are paused/non-live, Preview deployment creation is disabled and canonical custom domains are detached. Deletion itself still requires owner confirmation in the Vercel UI and is not a runtime-migration blocker.
+1. **Vercel retirement:** closed; both legacy Vercel projects are permanently deleted.
 2. **Provider/business write decisions:** Social provider writes remain intentionally OFF until an approved real publication exists; LINE actual mutation continues to require an approved durable Control Plane command. These are business-policy gates, not migration blockers.
 3. **Upstream dependency advisories:** the directly patchable `http-cache-semantics` finding is closed at `4.3.0`; remaining Sanity/next-sanity and Next ESLint glob findings have no compatible patched current-line resolution in the npm audit report and remain documented upstream debt with 0 critical findings.
 
