@@ -36,7 +36,7 @@ function fixture(defect = '', mode = 'candidate') {
       headers['content-type'] = broken === 'image-mime' ? 'text/html' : 'image/png';
       return new Response('image-bytes', { status: broken === 'image' ? 400 : 200, headers });
     }
-    const legacy = [['/living-benefits', '/ci-planning/'], ['/tools/fhc', '/tools/financial-health-check/'], ['/financial-advisor', '/']].find(([prefix]) => path.startsWith(prefix));
+    const legacy = [['/blog/personal-finance/personal-income-tax-calculation-2569', '/blog/personal-finance/personal-income-tax-calculation/'], ['/living-benefits', '/ci-planning/'], ['/tools/fhc', '/tools/financial-health-check/'], ['/financial-advisor', '/']].find(([prefix]) => path.startsWith(prefix));
     if (legacy || (path !== '/' && !path.endsWith('/'))) {
       const destination = legacy?.[1] || `${path}/`;
       headers.location = broken === 'host-escape' && path === '/blog' ? source + '/blog/' : broken === 'redirect' && path === '/blog' ? '/privacy/' : destination;

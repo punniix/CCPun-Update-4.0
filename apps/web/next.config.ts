@@ -191,6 +191,11 @@ const nextConfig: NextConfig = {
     if (IS_HOSTINGER_DEPLOYMENT) return [];
     return [
       {
+        source: "/blog/personal-finance/personal-income-tax-calculation-2569/:path*",
+        destination: "/blog/personal-finance/personal-income-tax-calculation/",
+        permanent: true,
+      },
+      {
         source: "/living-benefits/:path*",
         destination: "/ci-planning/",
         permanent: true,
