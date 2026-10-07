@@ -1,40 +1,41 @@
 # CCPun Platform Data Architecture
 
-Last provider-placement re-baseline: 2026-10-06. Data-ownership rules remain authoritative; current runtime placement is defined by `ccpun-runtime-baseline-20261006.md`.
+Last provider-placement re-baseline: 2026-10-07. Data-ownership rules remain authoritative; current runtime placement and release observations are defined by [`ccpun-runtime-baseline-20261007.md`](./ccpun-runtime-baseline-20261007.md).
 
-> **Runtime placement update:** the Vercel runtime rows below were the 2026-09-17 baseline and are retained for historical migration context. Current canonical host placement is Hostinger for Web Production/UAT and Admin Production/UAT. Use [`ccpun-runtime-baseline-20261006.md`](./ccpun-runtime-baseline-20261006.md) plus `lib/runtime/deployment-lanes.mjs` for current provider identity. Data ownership, authentication and least-privilege rules in this document remain in force.
+> **Current runtime placement:** the four canonical browser-facing lanes are Hostinger lanes. Hostinger Cloud Startup is the application/front-plane owner for Web and Admin; the Hostinger VPS is the automation/private-compute plane for n8n, Local AI/Ollama, OCR and approved private workers. Vercel is rollback/history compatibility only and is not a required runtime dependency. `lib/runtime/deployment-lanes.mjs` is the machine-readable lane authority.
 
-This is the canonical data/runtime ownership map after the Web/Admin Vercel cutover. The current operating constraint is **no additional infrastructure spend**: keep the existing Vercel projects, Sanity Free resources and Neon projects unless a separately approved migration proves a new resource is required.
+This is the canonical data/runtime ownership map after the Web/Admin Vercel retirement. The current operating constraint is **no unnecessary additional infrastructure spend**: reuse the approved Hostinger, Sanity and Neon resources unless a separately approved migration proves a new resource is required.
 
 ## Mental model
 
 ```text
-GitHub = code, tests and migration source
-Vercel Web = public runtime
-Vercel Admin = private Control Plane runtime
+GitHub = code, tests, migrations and release history
+Hostinger Cloud Startup = browser-facing Web/Admin application plane
+Hostinger VPS = n8n + Local AI/Ollama + OCR + approved private workers
 Sanity = editorial content and publishing workflow
 Neon = private operational state
 Google Drive = private long-lived documents and source media
 Auth.js = application authentication
-Hostinger VPS Local-AI Enclave = private inference worker + Ollama
+Vercel = rollback/history compatibility only; no required live dependency
 ```
 
 One durable datum has one owner. Do not mirror operational state across Sanity and Neon.
 
 ## Runtime topology
 
-| Surface | Runtime | Source root | Data plane |
+| Surface | Runtime owner | Source root | Data plane |
 |---|---|---|---|
-| Public Web Production | Vercel `ccpun-web` (`prj_dxwjITkd0av5QiJQv2snUlIASUWu`) | `apps/web` | published Sanity `kyfxgjnq/production` reads |
-| Admin Production | Vercel `ccpun-admin` (`prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN`) | `apps/admin` | authenticated Sanity Production + Production Neon |
-| Admin Preview/UAT | Vercel `ccpun-admin` Preview | `apps/admin` | Sanity `ccb9lnw5/uat` + UAT Neon |
+| Public Web Production (`ccpun.com`) | Hostinger Cloud Startup | `apps/web` | published Sanity `kyfxgjnq/production` reads |
+| Public Web UAT (`test.ccpun.com`) | Hostinger Cloud Startup | `apps/web` | Sanity `ccb9lnw5/uat` |
+| Admin Production (`admin.ccpun.com`) | Hostinger Cloud Startup | `apps/admin` | authenticated Sanity Production + Production Neon |
+| Admin UAT (`admin-test.ccpun.com`) | Hostinger Cloud Startup | `apps/admin` | Sanity `ccb9lnw5/uat` + UAT Neon |
 | Local UAT | loopback | Admin monorepo | UAT data planes only |
 | Local Production Draft lane | loopback | Admin monorepo | separately guarded Production Draft operations |
-| Private Local-AI Enclave | existing Hostinger VPS | `workers/local-ai` | encrypted Neon job queue + private Ollama network |
+| Private Local-AI / worker plane | Hostinger VPS | `workers/local-ai` plus reviewed worker entry points | encrypted Neon job queue + private Ollama/OCR/n8n paths |
 
-Both Vercel projects use the same GitHub repository and deploy independently. Do not create a third Vercel project or split the repository to add an Admin tool.
+The retained Vercel projects are not runtime owners. They may remain as bounded rollback evidence until destructive retirement is separately approved. Do not create a new Vercel project or reintroduce Vercel as a dependency to add an Admin feature.
 
-Public Web is considered stable after the 2026-09-17 runtime cutover. Admin development should not change public behavior unless a genuinely shared contract requires it; shared changes still require Web regression coverage.
+Web and Admin share one repository but deploy as separate Hostinger application roles. Shared changes require regression coverage for every affected role.
 
 ## Sanity steady state
 
@@ -95,42 +96,46 @@ Neon Auth is not an application runtime dependency. Existing empty Neon Auth tab
 
 ## Runtime authority
 
-`lib/admin/environment.ts` owns the fail-closed Vercel/Sanity environment boundary. Admin social runtime adds exact Neon identity checks.
+`lib/runtime/deployment-lanes.mjs`, `lib/runtime/deployment-identity.ts` and the Admin environment/data-plane guards own the fail-closed provider/lane boundary. Hostinger identity is explicit; stale Vercel project variables must never be used to make a Hostinger lane valid. Admin operational runtimes additionally require exact Neon identity checks.
 
 Meaningful lanes:
 
 | Environment | Meaning |
 |---|---|
-| `production-admin` | private Admin Production |
-| `admin-uat` | Admin Vercel Preview/UAT |
+| `production-admin` | Hostinger Admin Production |
+| `admin-uat` | Hostinger Admin UAT |
 | `local-production` | loopback Production Draft lane |
 | `local-uat` | loopback UAT lane |
-| `production` | public Web Production |
-| `web-uat` / `development` | bounded Web/development compatibility lanes |
+| `production` | Hostinger public Web Production |
+| `web-uat` | Hostinger Web UAT |
+| `development` | bounded local/development compatibility lane |
 | `lab` / `uat` | legacy compatibility labels that fail closed |
 
-### Admin Preview authorization
+### Admin UAT authorization
 
-New Admin feature branches use the `admin/*` convention and must also match the immutable UAT data plane:
+A deployed Admin UAT runtime must match the approved Hostinger Admin role and immutable UAT data plane:
 
-- branch starts with `admin/` (historical module-specific branches may remain as explicit compatibility entries only);
-- exact Admin Vercel project;
-- Preview environment when Vercel environment is supplied;
+- `CCPUN_DEPLOYMENT_PROVIDER=hostinger`;
+- `CCPUN_DEPLOYMENT_ROLE=admin`;
+- `CCPUN_APP_ENV=admin-uat`;
+- exact reviewed Git ref/SHA for that UAT release;
 - exact Sanity `ccb9lnw5/uat`;
-- exact UAT Neon identity and least-privilege role when Neon is required.
+- exact UAT Neon identity and least-privilege role when Neon is required;
+- no fake `VERCEL_PROJECT_ID` or `VERCEL_ENV`.
 
-`v4-production`, unrelated branch prefixes and wrong Vercel/Sanity/Neon identities fail closed. Future branches such as `admin/openquok-*` therefore work without adding a branch-specific allowlist entry, while old branch names do not become a permanent authorization model.
+Local feature branches remain local until explicitly packaged into the Admin UAT lane. Wrong provider/role/Sanity/Neon identities fail closed.
 
 ### Admin Production authorization
 
 Production remains stricter:
 
+- `CCPUN_DEPLOYMENT_PROVIDER=hostinger`;
+- `CCPUN_DEPLOYMENT_ROLE=admin`;
 - `CCPUN_APP_ENV=production-admin`;
-- `VERCEL_ENV=production`;
-- exact Admin Vercel project identity;
-- Git branch exactly `v4-production`;
+- Git ref exactly `v4-production` and exact reviewed release SHA;
 - Sanity exactly `kyfxgjnq/production`;
-- exact configured Production Neon identity/runtime role.
+- exact configured Production Neon identity/runtime role;
+- no Vercel project/environment identity in the accepted Hostinger runtime.
 
 ## Credential contract
 
@@ -140,7 +145,7 @@ Production remains stricter:
 - Owner/backfill DB credentials never become runtime fallbacks.
 - Credential values do not appear in source, reports or logs.
 - Runtime code must not discover or select a higher-privilege credential automatically.
-- Do not bulk-rename or delete Vercel variables without a consumer inventory.
+- Do not bulk-rename or delete provider variables, including retained Vercel rollback variables, without a consumer inventory.
 
 ## Data ownership
 
@@ -158,7 +163,7 @@ Production remains stricter:
 | Long-lived source media | Google Drive |
 | Authentication/session authority | Auth.js |
 | Application code and migration source | GitHub |
-| Deployment/runtime configuration | Vercel |
+| Deployment/runtime configuration | Hostinger for canonical Web/Admin; VPS service configuration for private workers; Vercel retained only as rollback/history compatibility |
 | Local model weights and ephemeral inference memory | Hostinger VPS Private Local-AI Enclave |
 | Local-AI encrypted job state and validated output | Neon `ccpun_admin` |
 
@@ -166,13 +171,13 @@ Production remains stricter:
 
 Normal Admin feature development must reuse the current resources. Do not automatically provision:
 
-- another Vercel project;
+- another hosting project/service when the approved Hostinger lane can carry the feature safely;
 - another Sanity project/dataset for each feature;
 - another Neon project/branch for each PR;
 - another auth service;
-- another queue/worker/storage service when current Vercel/Neon/Workflow/Drive capabilities suffice.
+- another queue/worker/storage service when current Hostinger VPS, n8n, Neon and Drive capabilities suffice.
 
-Admin Preview branches share the existing UAT data planes. Synthetic or namespaced test records should be used when parallel work could collide.
+Admin UAT releases share the existing UAT data planes. Synthetic or namespaced test records should be used when parallel work could collide.
 
 ## Extension contract
 

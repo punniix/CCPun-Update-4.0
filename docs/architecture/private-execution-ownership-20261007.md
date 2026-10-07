@@ -66,11 +66,11 @@ Observed 2026-10-07:
 - Admin Production System read-back: Hostinger `production-admin`, scheduler runtime OFF, durable ON.
 - Vercel Production runtime logs: no old Social/Rich-Menu cron-route calls in the latest 24-hour window.
 - n8n discovery: no Article Scheduler or Rich Menu workflow; legacy Article Publish/Social Post workflows inactive.
-- Hostinger VPS Docker Manager: n8n/Traefik, Local-AI and OCR workloads visible; no dedicated CCPun Article/Social/Rich-Menu worker application visible.
+- direct VPS process read-back shows n8n, Local AI worker, OCR and Ollama, but no `article-schedule-worker` or `admin-background-worker` process;
+- direct VPS systemd service/timer and cron searches show no CCPun Article/Social/LINE autonomous worker owner;
+- two migration-era Admin containers still run on the VPS, but they are browser-runtime residue and are not authorized background executors. They are tracked separately in `vps-filesystem-audit-20261007.md`.
 
-Direct host process/systemd/crontab read-back was not established in this audit session, so this document intentionally does **not** say an autonomous worker is running.
-
-P0 acceptance is therefore **exclusive authority with activation dormant**. That is safer than claiming a nonexistent executor and prevents double execution.
+P0 acceptance is therefore **exclusive authority with activation dormant**. Direct host evidence now confirms that the authorized private CLI plane exists as a policy boundary but Article/Social/LINE autonomous worker activation has not occurred.
 
 ## Later activation gate
 

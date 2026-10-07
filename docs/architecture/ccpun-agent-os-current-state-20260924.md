@@ -4,6 +4,8 @@ Date: 2026-09-24 Asia/Bangkok
 Branch baseline: `v4-production` at `a5e86d951283551fa9f124f3d844697af9b04872`  
 Agent OS work branch: `admin/agent-os-foundation-20260924`
 
+> **HISTORICAL RECEIPT:** provider/runtime statements in this 2026-09-24 snapshot are superseded by `ccpun-runtime-baseline-20261007.md`, `private-execution-ownership-20261007.md` and `vercel-retirement-audit-20261007.md`. In particular, the Vercel projects below are no longer canonical live runtime owners.
+
 This receipt is read-only evidence. It does not authorize Production data mutation, provider writes, environment changes, migration apply, merge or deploy.
 
 ## Verified Git / Vercel state

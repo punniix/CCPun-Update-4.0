@@ -18,14 +18,14 @@ If live evidence contradicts this baseline, stop and re-baseline before infrastr
 
 ## Git and live release split
 
-Repository state observed while this P0 closure branch was created:
+Current source state after P0 closure:
 
-- `origin/v4-production = 7f6c4425c5d27580c202927637304cdae97246ef`
-- that branch already includes PR #367, the evergreen income-tax URL change.
-- **Live Production is intentionally still pinned to** `78713868605e3bda0f2ecdd3bf8a2e18411b2e70` through `codex/hostinger-release-production-78713868605e3bda0f2ecdd3bf8a2e18411b2e70`.
-- This P0 architecture closure does **not** imply promotion of newer `v4-production` commits.
+- `origin/v4-production = 26658e389348a4e7b1fffaa362531a3ece3cbbff` (`Merge P0 Hostinger architecture closure`).
+- the source branch includes the evergreen income-tax URL change and the P0 execution/Vercel-retirement hardening.
+- **Live Production remains separately pinned to** `78713868605e3bda0f2ecdd3bf8a2e18411b2e70` where provider read-back still reports that release.
+- source advancement does **not** imply live promotion; promotion remains a separate release gate.
 
-That distinction is deliberate: source governance and live promotion remain separate gates.
+That distinction is deliberate: source governance and live promotion are separate authorities.
 
 ## Current four lanes
 
@@ -46,6 +46,12 @@ Observed live evidence on 2026-10-07:
 - Admin Production showed **Scheduler runtime OFF / durable ON**;
 - Hostinger vulnerability views showed zero findings for Web Production and no vulnerabilities found for Admin Production after the security promotion.
 
+### VPS residual read-back added after P0
+
+A read-only VPS audit on 2026-10-07 found two still-running migration-era Admin containers: one Production container still has a Traefik `Host(admin.ccpun.com)` route and one UAT container is bound only to `127.0.0.1:3103`. Hostinger hPanel separately exposes `admin.ccpun.com` as a Web App, and the public Admin response differs from the direct VPS-origin response, so these VPS containers are classified as **residual/cleanup candidates**, not current placement authority. They must not be stopped or deleted until the Phase 2 origin/callback gate proves no remaining consumer.
+
+The same VPS audit found no Article Scheduler, Social or LINE background worker process, systemd service/timer or cron entry. n8n, Local AI, OCR and Ollama remain active. See `vps-filesystem-audit-20261007.md`.
+
 ## Completed migration phases
 
 - Phase 0 — four-lane re-baseline / provider SSOT: **closed**
@@ -53,7 +59,7 @@ Observed live evidence on 2026-10-07:
 - Phase 2 — Money Story responsive UX/UI acceptance: **closed**
 - Phase 3 — Admin UAT/runtime hardening: **closed**
 - Security Production Promotion — patched release `78713868` on Web/Admin Production: **closed**
-- P0 Architecture Closure 2026-10-07 — current SSOT + exclusive execution authority + Vercel live-dependency audit: **closed when the corresponding source/tests merge**
+- P0 Architecture Closure 2026-10-07 — current SSOT + exclusive execution authority + Vercel live-dependency audit: **closed and merged in `26658e38`**
 
 ## Background execution ownership
 

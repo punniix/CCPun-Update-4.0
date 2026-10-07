@@ -1,6 +1,6 @@
 # Hosting portability foundation
 
-> **Provider-placement note (2026-10-06):** the original foundation was written while Vercel still served Production. Current provider placement is Hostinger for all four canonical hosts; see [`ccpun-runtime-baseline-20261006.md`](./ccpun-runtime-baseline-20261006.md). The provider-neutral identity/fail-closed design remains applicable.
+> **Provider-placement note (2026-10-07):** this foundation predates the Hostinger cutover. Current placement and release authority are defined by [`ccpun-runtime-baseline-20261007.md`](./ccpun-runtime-baseline-20261007.md) and `lib/runtime/deployment-lanes.mjs`. All four canonical lanes are Hostinger lanes; the provider-neutral identity/fail-closed design below remains applicable.
 
 
 CCPun separates deployment **provider** from application **environment** and **role**.
@@ -20,9 +20,9 @@ Server-side runtime identity uses these CCPun variables:
 
 No new `NEXT_PUBLIC_*` identity variable is required. Identity checks that protect Admin, Sanity, Neon, LINE, Social, or scheduler mutations must remain server-side.
 
-Vercel remains the production provider. Existing `VERCEL_*` system variables are adapted into the same identity contract. Hostinger must never imitate Vercel by setting a fake `VERCEL_PROJECT_ID`.
+Hostinger is the current provider for the canonical Web/Admin lanes. `VERCEL_*` identity remains only as bounded rollback/test compatibility and must not be required for accepted Hostinger runtime. Hostinger must never imitate Vercel by setting a fake `VERCEL_PROJECT_ID`.
 
-A future Hostinger Web production runtime is expected to provide at least:
+Current Hostinger Web Production provides at least:
 
 ```
 CCPUN_DEPLOYMENT_PROVIDER=hostinger
@@ -43,4 +43,4 @@ Phase 1 does not change DNS, domains, Sanity/Neon data, OAuth, production cron o
 
 ## Rollback
 
-The foundation has no external-state migration. Rollback is a code revert to the prior Vercel-specific identity path; Vercel, Sanity, Neon, DNS, and scheduled-job ownership remain unchanged.
+The provider-neutral identity layer has no independent data migration. Normal application rollback is Hostinger release N -> Hostinger release N-1 while preserving the same Sanity/Neon lane. Retained Vercel projects are recoverable rollback assets only; reactivating them is an explicit emergency recovery decision, not the steady-state rollback mechanism and not a required runtime dependency.

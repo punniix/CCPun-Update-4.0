@@ -1,6 +1,6 @@
 # CCPun 4-Lane Deployment Contract
 
-Status: **provider placement re-baselined 2026-10-06**. This contract locks lane identity and data/indexing boundaries. It does not by itself certify that all migration/retirement work is complete.
+Status: **P0 provider placement closed 2026-10-07**. This contract locks lane identity and data/indexing boundaries. Operational worker activation and destructive rollback-asset cleanup remain separate post-P0 work.
 
 ## Canonical lanes
 
@@ -11,7 +11,7 @@ Status: **provider placement re-baselined 2026-10-06**. This contract locks lane
 | Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | `kyfxgjnq/production` | blocked | off |
 | Admin UAT | `admin-test.ccpun.com` | Hostinger | `admin-uat` | `ccb9lnw5/uat` | blocked | off |
 
-The machine-readable source of truth is `lib/runtime/deployment-lanes.mjs`. Current release observations are recorded separately in `docs/architecture/ccpun-runtime-baseline-20261006.md`.
+The machine-readable source of truth is `lib/runtime/deployment-lanes.mjs`. Current release observations are recorded separately in `docs/architecture/ccpun-runtime-baseline-20261007.md`.
 
 ## Locked Web Hostinger build shapes
 
@@ -24,18 +24,13 @@ Phase 1 verified that this UAT packaging serves the same reviewed application be
 
 Production must never silently become a local lane. A deployed lane without its approved Sanity identity is an error rather than an empty local-content fallback.
 
-## Admin placement boundary
+## Front-plane placement boundary
 
-Both canonical Admin hosts are currently Hostinger-served. This contract therefore rejects stale Vercel project identity as the current Admin lane identity.
+All four canonical browser-facing hosts belong to the Hostinger application/front plane. Web/Admin application runtime is a Cloud Startup responsibility; the VPS is the automation/private-compute plane and must not become the steady-state browser-facing Web/Admin owner.
 
-This provider placement statement does **not** certify:
-- Article Scheduler execution ownership;
-- background worker/cron completion;
-- provider-neutral Web/Admin trust;
-- Vercel retirement;
-- exact Cloud Startup versus VPS placement for every private/background component.
+Residual Web/Admin containers or routes on the VPS are migration residue, not provider-placement authority. They may be retired only after current Cloud Startup origin/read-back and dependent callback checks prove they are unused.
 
-Those remain separate acceptance items.
+This placement statement does **not** activate Article Scheduler, Social or LINE provider execution. Private worker activation remains a separate post-P0 acceptance gate.
 
 ## Fail-closed behavior
 
@@ -50,4 +45,4 @@ Those remain separate acceptance items.
 
 Any change to domain, provider, Sanity project/dataset, indexing policy, analytics policy, workspace, Node major, build command, root directory, or Web output directory must update the contract and pass the architecture/Hostinger tests before merge.
 
-Vercel retirement remains a later migration phase. Updating current provider placement is not permission to delete Vercel projects, credentials, callbacks, cron jobs or rollback deployments.
+Vercel is retired from required runtime and autonomous execution. Recoverable Vercel projects, credentials, aliases and deployments may remain as rollback/history assets until a separately approved destructive-retirement gate; their existence must not be interpreted as current runtime ownership.
