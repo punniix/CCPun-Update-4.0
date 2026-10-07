@@ -20,8 +20,8 @@ If live evidence contradicts this baseline, stop and re-baseline before infrastr
 
 Current source state after P0 closure:
 
-- `origin/v4-production = 99661d64bbb0cd1aeb87b645a3928006878cf98e` after the Phase 0–1 architecture/VPS inventory closure.
-- the source branch includes the evergreen income-tax URL change, P0 execution/Vercel-retirement hardening, final Hostinger architecture SSOT and VPS cleanup inventory.
+- Phase 4 branch base: `origin/v4-production = 90a4dc8fcc3a45d085eb9bea1655a16bf6b032fd` after the Phase 3 private-worker closure.
+- the source branch includes the Hostinger architecture SSOT, VPS cleanup inventory and Phase 3 private-worker lifecycle receipt.
 - **Live Production remains separately pinned to** `78713868605e3bda0f2ecdd3bf8a2e18411b2e70` where provider read-back still reports that release.
 - source advancement does **not** imply live promotion; promotion remains a separate release gate.
 
@@ -50,7 +50,7 @@ Observed live evidence on 2026-10-07:
 
 Phase 2 proved the canonical Hostinger application lanes remained healthy without the two migration-era VPS Admin containers, then retired those containers and the obsolete migration build trees. VPS disk use fell from about 64 GB / 66% to about 22 GB / 23% before the later worker-release selection cleanup.
 
-Phase 3 then installed systemd-owned private-worker lifecycle units. Article Scheduler UAT is enabled and active on the VPS and passed bounded startup, graceful stop and forced-restart recovery. Production Article/Social/LINE units are installed against exact release `99661d64...` but remain disabled/held for Phase 4 provider acceptance. n8n, Local AI, OCR and Ollama remain active. See `vps-filesystem-audit-20261007.md` and `phase3-private-worker-activation-20261007.md`.
+Phase 3 installed systemd-owned private-worker lifecycle units. Phase 4 accepted Production execution: Article Scheduler Production is active/enabled and passed forced-restart recovery; Social and LINE Rich Menu five-minute timers are active/enabled and passed both manual and automatic canaries. The exact Production worker code remains the reviewed `99661d64...` candidate. Social provider writes remain intentionally OFF; LINE mutation remains durable-command gated. n8n, Local AI, OCR and Ollama remain active. See `phase3-private-worker-activation-20261007.md` and `phase4-operational-acceptance-20261007.md`.
 
 ## Completed migration phases
 
@@ -63,7 +63,7 @@ Phase 3 then installed systemd-owned private-worker lifecycle units. Article Sch
 
 ## Background execution ownership
 
-Current safety state is intentionally **dormant, single-authority** rather than “a worker must always be running”.
+Current safety state is **active, single-authority on the private VPS**, with per-workload provider-write policy still enforced.
 
 - Hostinger Admin Cloud is a producer/control plane only. Build/runtime seals keep Article Scheduler executor, native Workflow execution and generic Admin background worker **OFF**.
 - Article execution is authorized only through `scripts/article-schedule-worker.ts` in a reviewed private VPS execution environment.
@@ -72,9 +72,11 @@ Current safety state is intentionally **dormant, single-authority** rather than 
 - P0 retires the old LINE Rich Menu HTTP executor as well; authenticated calls remain fail-closed and cannot invoke provider mutation.
 - `apps/admin/vercel.json` owns no operational cron after P0.
 - n8n discovery found no CCPun Article Scheduler or Rich Menu workflow. Legacy `CCPun — article-publish` and `CCPun — social-post` are inactive.
-- Phase 3 activated the supervised Article Scheduler UAT worker on the private VPS. Production Article/Social/LINE lifecycle units are installed but remain disabled until Phase 4 canary/provider gates.
+- Article Scheduler UAT and Production are active under systemd on the VPS.
+- Social and LINE Rich Menu Production timers are active on a five-minute cadence; Social writes remain disabled by policy and LINE provider mutation remains Control-Plane-command gated.
+- Phase 4 canaries observed zero Article schedules, zero Social publication jobs and LINE Rich Menu durable state `verified`; no synthetic provider mutation was manufactured for acceptance.
 
-The resulting invariant is: **zero autonomous Cloud/Vercel executors; the private VPS is the only authorized autonomous execution plane. Production provider execution remains separately gated.**
+The resulting invariant is: **zero autonomous Cloud/Vercel executors; the private VPS is the only authorized autonomous execution plane, while business/provider write gates remain independent.**
 
 See `private-execution-ownership-20261007.md`.
 
@@ -97,9 +99,10 @@ See `vercel-retirement-audit-20261007.md`.
 
 These are not P0 blockers:
 
-1. **Phase 4 operational acceptance:** Production Article/Social/LINE units are installed but held. Activate one workload at a time, prove canary/provider receipts, retry/lease/idempotency and no second executor; Phase 3 does not turn Production provider writes on.
-2. **Recoverable Vercel asset deletion:** custom-domain attachments, env/secrets, old deployments and projects may be removed only after the chosen rollback observation window and explicit destructive-retirement approval.
-3. **Provider/LINE Human Gates:** provider authorizations, callback read-backs and final real-provider canaries remain separate.
-4. **Legacy `/snt-admin/*` compatibility removal:** only after callback, delayed retry and job callers are proven canonical.
-5. **Security Phase 2:** npm audit still reports a separate Sanity/next-sanity transitive cluster even though Hostinger's deployed scanner is clear.
+1. **Recoverable Vercel asset deletion:** custom-domain attachments, env/secrets, old deployments and projects may be removed only after the chosen rollback observation window and explicit destructive-retirement approval.
+2. **Provider/business write decisions:** Social provider writes remain intentionally OFF until an approved real publication exists; LINE actual mutation continues to require an approved durable Control Plane command. These are business-policy gates, not execution-plane blockers.
+3. **Legacy `/snt-admin/*` compatibility removal:** only after callback, delayed retry and job callers are proven canonical.
+4. **Security Phase 2:** npm audit still reports a separate Sanity/next-sanity transitive cluster even though Hostinger's deployed scanner is clear.
+
+Private-worker activation and Phase 4 operational acceptance are closed.
 

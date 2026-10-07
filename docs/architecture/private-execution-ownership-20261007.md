@@ -1,6 +1,6 @@
 # Private Execution Ownership — 2026-10-07
 
-Status: **P0 EXCLUSIVE-AUTHORITY CONTRACT CLOSED / PHASE 3 PRIVATE LIFECYCLE ACTIVE / PRODUCTION PROVIDER EXECUTION HELD**
+Status: **PHASE 4 ACCEPTED / PRIVATE VPS IS THE ACTIVE SINGLE EXECUTION OWNER**
 
 ## Decision
 
@@ -69,22 +69,24 @@ Observed 2026-10-07:
 - Phase 2 retired the migration-era VPS Admin containers after canonical Hostinger lane smoke proof;
 - Phase 3 installed systemd lifecycle ownership for Article Scheduler and the Social/LINE background entry points;
 - Article Scheduler UAT is enabled and active and recovered automatically after forced container termination;
-- Production Article/Social/LINE units are installed against exact release `99661d64...` but are disabled/held for Phase 4;
+- Production Article Scheduler is active/enabled against exact release `99661d64...` and recovered after a forced container termination;
+- Social and LINE Rich Menu Production timers are active/enabled and passed manual plus automatic canaries;
+- Social provider writes remain intentionally OFF; LINE mutation remains durable-command gated;
 - n8n, Local AI, OCR and Ollama remain active and are not execution owners for these three workloads.
 
-P0/Phase 3 acceptance is therefore **exclusive authority with the private lifecycle proven, while Production provider execution remains held**. See `phase3-private-worker-activation-20261007.md`.
+Phase 4 acceptance is therefore **exclusive active ownership on the private VPS with independent provider-write policy preserved**. See `phase4-operational-acceptance-20261007.md`.
 
-## Phase 4 activation gate
+## Accepted activation evidence
 
-Production activation must separately prove:
+Production acceptance proved:
 
 1. exact reviewed release SHA/lock on the private worker;
 2. one service/timer owner per workload;
 3. required VPS execution flags and no Vercel identity;
 4. restart/redeploy behavior;
 5. bounded retry/lease/idempotency behavior;
-6. synthetic canary first, then owner-approved real-provider canary;
-7. receipts showing no second executor.
+6. bounded manual and scheduled canaries without manufacturing unnecessary provider-side mutations;
+7. receipts showing no second executor and no unresolved queue created by cutover.
 
 Never “test failover” by enabling the old Vercel cron and the VPS worker at the same time.
 
