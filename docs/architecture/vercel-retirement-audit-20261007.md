@@ -1,6 +1,6 @@
 # Vercel Retirement Audit — 2026-10-07
 
-Status: **ZERO LIVE DEPENDENCY / BOTH PROJECTS PAUSED / PERMANENT DELETION REQUIRES VERCEL UI CONFIRMATION**
+Status: **ZERO LIVE DEPENDENCY / BOTH PROJECTS PAUSED / CANONICAL DOMAINS DETACHED / PERMANENT DELETION REQUIRES VERCEL UI CONFIRMATION**
 
 This audit separates live dependency from residual provider state. Phase 5 has paused both projects; permanent project deletion remains an irreversible Vercel UI confirmation that the connected tool cannot perform.
 
@@ -47,7 +47,7 @@ No canonical host is served by Vercel and no Production runtime activity was obs
 
 Phase 5 paused both Vercel projects after the Hostinger runtime and private execution plane were accepted. The projects remain in Vercel only because permanent deletion is an irreversible UI-confirmed action that the connected tool cannot execute.
 
-Residual inventory includes project aliases/deployments, environment variables/secrets and project-domain attachments recorded by Vercel. Their existence is not evidence that DNS/live traffic is using Vercel.
+Phase C removed the stale canonical project-domain attachments (`ccpun.com`, `www.ccpun.com`, `admin.ccpun.com`) and disabled Preview deployments plus automatic custom-domain assignment on both projects. Residual inventory is now limited to Vercel-owned `.vercel.app` aliases, historical deployments and project environment variables/secrets. Their existence is not evidence that DNS/live traffic is using Vercel.
 
 ### Emergency recovery only
 
@@ -79,7 +79,7 @@ No webhook is inferred to exist or not exist from that permission failure.
 
 ## Destructive-retirement gate
 
-Runtime prerequisites are now satisfied: private workers are accepted, live dependency is zero, active caller inventory is clean, and both projects are paused. The remaining destructive action is Vercel project deletion itself.
+Runtime prerequisites are now satisfied: private workers are accepted, live dependency is zero, active caller inventory is clean, both projects are paused/non-live, Preview deployments are disabled, automatic custom-domain assignment is disabled, and canonical custom domains are detached. The remaining destructive action is Vercel project deletion itself.
 
 The connected Vercel tool exposes deletion only as `requires_user_action`: it can open the Delete Project section but cannot click the irreversible confirmation on the owner's behalf. Therefore permanent deletion of `ccpun-web` and `ccpun-admin` remains an explicit owner UI action, not an unfinished runtime dependency.
 
