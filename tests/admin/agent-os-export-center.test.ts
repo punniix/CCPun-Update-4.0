@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { resolveGoogleSheetExportRuntime } from "../../lib/admin/agent-os/export-runtime";
 import { N8N_ADMIN_INTEGRATIONS, n8nAdminIntegrationSummary } from "../../lib/admin/n8n-integration-registry";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
@@ -61,10 +62,14 @@ test("CSV remains a direct owner-only fallback independent of n8n", () => {
 
 test("Google Sheet export is background n8n work with Agent OS runtime observability", () => {
   const route = read("apps/admin/app/api/admin/exports/google-sheet/route.ts");
+  const runtime = read("lib/admin/agent-os/export-runtime.ts");
   const workflow = JSON.parse(read("workers/local-ai/n8n/owner-export-google-sheet.direct.json"));
   assert.match(route, /createAgentRuntimeJob/);
-  assert.match(route, /CCPUN_N8N_EXPORT_WEBHOOK_URL/);
-  assert.match(route, /CCPUN_EXPORT_GOOGLE_SHEET_ENABLED/);
+  assert.match(route, /resolveGoogleSheetExportRuntime/);
+  assert.match(runtime, /CCPUN_N8N_EXPORT_WEBHOOK_URL/);
+  assert.match(runtime, /CCPUN_EXPORT_GOOGLE_SHEET_ENABLED/);
+  assert.match(runtime, /CCPUN_EXPORT_GOOGLE_SHEET_UAT_ENABLED/);
+  assert.match(runtime, /ccpun-owner-export-sheet-uat/);
   assert.equal(workflow.active, false);
   assert.equal(workflow.settings.timezone, "Asia/Bangkok");
   assert.equal(workflow.settings.saveDataSuccessExecution, "none");
@@ -79,6 +84,45 @@ test("Google Sheet export is background n8n work with Agent OS runtime observabi
   assert.match(joined, /social-performance/);
   assert.match(joined, /seo-intelligence/);
   assert.doesNotMatch(joined, /crm-conversations|raw transcript|raw_message/i);
+});
+
+test("Admin UAT Google Sheet export fails closed unless an isolated UAT webhook is explicitly enabled", () => {
+  const common = {
+    CCPUN_EXPORT_GOOGLE_SHEET_ENABLED: "true",
+    CCPUN_N8N_EXPORT_WEBHOOK_TOKEN: "x".repeat(43),
+  };
+  assert.deepEqual(
+    resolveGoogleSheetExportRuntime({
+      ...common,
+      CCPUN_APP_ENV: "admin-uat",
+      CCPUN_N8N_EXPORT_WEBHOOK_URL: "https://n8n.example.com/webhook/ccpun-owner-export-sheet",
+    }),
+    { ready: false, reason: "uat-disabled" },
+  );
+  assert.deepEqual(
+    resolveGoogleSheetExportRuntime({
+      ...common,
+      CCPUN_APP_ENV: "admin-uat",
+      CCPUN_EXPORT_GOOGLE_SHEET_UAT_ENABLED: "true",
+      CCPUN_N8N_EXPORT_WEBHOOK_URL: "https://n8n.example.com/webhook/ccpun-owner-export-sheet",
+    }),
+    { ready: false, reason: "uat-webhook-not-isolated" },
+  );
+  const isolated = resolveGoogleSheetExportRuntime({
+    ...common,
+    CCPUN_APP_ENV: "admin-uat",
+    CCPUN_EXPORT_GOOGLE_SHEET_UAT_ENABLED: "true",
+    CCPUN_N8N_EXPORT_WEBHOOK_URL: "https://n8n.example.com/webhook/ccpun-owner-export-sheet-uat",
+  });
+  assert.equal(isolated.ready, true);
+  if (isolated.ready) assert.equal(isolated.webhook.pathname, "/webhook/ccpun-owner-export-sheet-uat");
+
+  const production = resolveGoogleSheetExportRuntime({
+    ...common,
+    CCPUN_APP_ENV: "production-admin",
+    CCPUN_N8N_EXPORT_WEBHOOK_URL: "https://n8n.example.com/webhook/ccpun-owner-export-sheet",
+  });
+  assert.equal(production.ready, true);
 });
 
 test("Google Sheet failures leave a safe terminal state without persisting provider errors", () => {

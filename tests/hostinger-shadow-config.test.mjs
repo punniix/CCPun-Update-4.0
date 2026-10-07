@@ -75,6 +75,58 @@ function runReadiness(extraEnv = {}) {
   });
 }
 
+function runAdminReadiness(environment = "admin-uat", extraEnv = {}) {
+  const production = environment === "production-admin";
+  const sha = "a".repeat(40);
+  const endpointId = production ? "ep-broad-butterfly-b3ro7u8w" : "ep-mute-frost-aztvz394";
+  const hostSuffix = production ? "c-4.ap-southeast-1.aws.neon.tech" : "c-3.ap-southeast-1.aws.neon.tech";
+  const env = {
+    PATH: process.env.PATH,
+    HOME: process.env.HOME,
+    NODE_ENV: "production",
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_RELEASE_STAGE: production ? "live" : "shadow",
+    CCPUN_APP_ENV: environment,
+    NEXT_PUBLIC_CCPUN_APP_ENV: environment,
+    NEXT_PUBLIC_SANITY_PROJECT_ID: production ? "kyfxgjnq" : "ccb9lnw5",
+    NEXT_PUBLIC_SANITY_DATASET: production ? "production" : "uat",
+    CCPUN_UAT_MODE: production ? "0" : "1",
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+    NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+    CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+    NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+    CCPUN_ARTICLE_SCHEDULING_ENABLED: "1",
+    CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "cloud",
+    CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0",
+    CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
+    CCPUN_BACKGROUND_EXECUTION_PLANE: "cloud",
+    CCPUN_BACKGROUND_WORKER_ENABLED: "0",
+    ...(production ? {} : {
+      CCPUN_SOCIAL_ENABLED: "1",
+      CCPUN_SOCIAL_DATA_MODE: "synthetic",
+      CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
+      CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "0",
+      CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "0",
+      CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED: "0",
+    }),
+    AUTH_URL: production ? "https://admin.ccpun.com" : "https://admin-test.ccpun.com",
+    CCPUN_NEON_PROJECT_ID: production ? "lively-bar-43618798" : "young-term-47483330",
+    CCPUN_NEON_BRANCH_ID: production ? "br-long-resonance-b3ys5xrv" : "br-crimson-mouse-az7ajkv8",
+    CCPUN_NEON_ENDPOINT_ID: endpointId,
+    CCPUN_NEON_DATABASE: "neondb",
+    CCPUN_ADMIN_DATABASE_URL: `postgresql://ccpun_admin_runtime:FIXTURE_ONLY@${endpointId}.${hostSuffix}/neondb?sslmode=require`,
+    CCPUN_GIT_REF: production ? "v4-production" : `admin/hostinger-release-uat-${sha}`,
+    CCPUN_GIT_SHA: sha,
+    CCPUN_RELEASE_ID: `hostinger-admin-${production ? "prod" : "uat"}-${sha.slice(0, 12)}`,
+    ...extraEnv,
+  };
+  return spawnSync(process.execPath, ["scripts/check-hostinger-readiness.mjs"], {
+    cwd: new URL("..", import.meta.url), env, encoding: "utf8",
+  });
+}
+
 test("Hostinger root build routes both workspaces and preserves native builds and child failures", { skip: process.platform === "win32" }, () => {
   const rootPackage = JSON.parse(read("package.json"));
   assert.equal(rootPackage.scripts.build, "node scripts/build-root.mjs");
@@ -254,6 +306,128 @@ console.log(JSON.stringify({
     });
   } finally {
     rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test("pinned Admin UAT release slot self-identifies full native-neon and binds the actual checked-out SHA without inventing secrets", { skip: process.platform === "win32" }, () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-root-admin-uat-build-"));
+  try {
+    mkdirSync(join(fixture, "scripts"));
+    mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
+    writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
+    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+    const npm = join(fixture, "npm");
+    writeFileSync(npm, `#!${process.execPath}\nconsole.log(JSON.stringify({args:process.argv.slice(2),env:{provider:process.env.CCPUN_DEPLOYMENT_PROVIDER,role:process.env.CCPUN_DEPLOYMENT_ROLE,appEnv:process.env.CCPUN_APP_ENV,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,producer:process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED,executor:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED,plane:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE,nativeWorkflow:process.env.CCPUN_NATIVE_WORKFLOW_ENABLED,social:process.env.CCPUN_SOCIAL_ENABLED,socialMode:process.env.CCPUN_SOCIAL_DATA_MODE,socialOps:process.env.CCPUN_SOCIAL_OPERATIONS_ENABLED,socialReads:process.env.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,socialWrites:process.env.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,socialAnalytics:process.env.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,project:process.env.CCPUN_NEON_PROJECT_ID,branch:process.env.CCPUN_NEON_BRANCH_ID,endpoint:process.env.CCPUN_NEON_ENDPOINT_ID,database:process.env.CCPUN_NEON_DATABASE,authUrl:process.env.AUTH_URL,gitRef:process.env.CCPUN_GIT_REF,gitSha:process.env.CCPUN_GIT_SHA,publicGitRef:process.env.NEXT_PUBLIC_CCPUN_GIT_REF,publicGitSha:process.env.NEXT_PUBLIC_CCPUN_GIT_SHA,publicReleaseId:process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID,releaseId:process.env.CCPUN_RELEASE_ID,dbUrl:process.env.CCPUN_ADMIN_DATABASE_URL}}));`);
+    chmodSync(npm, 0o755);
+    for (const args of [["init", "-b", "phase3-fixture"], ["config", "user.email", "fixture@example.invalid"], ["config", "user.name", "Fixture"], ["add", "."], ["commit", "-m", "fixture"]]) {
+      const git = spawnSync("git", args, { cwd: fixture, encoding: "utf8" }); assert.equal(git.status, 0, git.stderr);
+    }
+    const sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: fixture, encoding: "utf8" }).stdout.trim();
+    const branch = `admin/hostinger-release-uat-${"1".repeat(40)}`;
+    assert.equal(spawnSync("git", ["branch", "-m", branch], { cwd: fixture }).status, 0);
+    const result = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+      cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, HOME: process.env.HOME },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Hostinger Admin UAT build identity inferred from pinned release ref/);
+    const invocation = JSON.parse(result.stdout.trim().split("\n").at(-1));
+    assert.deepEqual(invocation.args, ["run", "build", "--workspace", "@ccpun/admin"]);
+    assert.deepEqual(invocation.env, {
+      provider: "hostinger", role: "admin", appEnv: "admin-uat", profile: "full", backend: "native-neon",
+      producer: "1", executor: "0", plane: "cloud", nativeWorkflow: "0",
+      social: "1", socialMode: "synthetic", socialOps: "1", socialReads: "0", socialWrites: "0", socialAnalytics: "0",
+      project: "young-term-47483330", branch: "br-crimson-mouse-az7ajkv8", endpoint: "ep-mute-frost-aztvz394", database: "neondb",
+      authUrl: "https://admin-test.ccpun.com", gitRef: branch, gitSha: sha,
+      publicGitRef: branch, publicGitSha: sha,
+      publicReleaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+      releaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+    });
+    assert.equal(invocation.env.dbUrl, undefined, "release bootstrap must never synthesize the Admin database secret");
+
+    assert.equal(spawnSync("git", ["checkout", "--detach"], { cwd: fixture }).status, 0);
+    const detached = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+      cwd: fixture,
+      encoding: "utf8",
+      env: {
+        PATH: `${fixture}:${process.env.PATH ?? ""}`,
+        HOME: process.env.HOME,
+        CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+        CCPUN_DEPLOYMENT_ROLE: "admin",
+        CCPUN_GIT_REF: branch,
+        CCPUN_GIT_SHA: "a".repeat(40),
+        CCPUN_RELEASE_ID: "stale-release",
+        NEXT_PUBLIC_CCPUN_GIT_REF: branch,
+        NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40),
+        NEXT_PUBLIC_CCPUN_RELEASE_ID: "stale-public-release",
+      },
+    });
+    assert.equal(detached.status, 0, detached.stderr);
+    const detachedEnv = JSON.parse(detached.stdout.trim().split("\n").at(-1)).env;
+    assert.equal(detachedEnv.gitRef, branch);
+    assert.equal(detachedEnv.gitSha, sha);
+    assert.equal(detachedEnv.publicGitRef, branch);
+    assert.equal(detachedEnv.publicGitSha, sha);
+    assert.equal(detachedEnv.releaseId, `hostinger-admin-uat-${sha.slice(0, 12)}`);
+    assert.equal(detachedEnv.publicReleaseId, `hostinger-admin-uat-${sha.slice(0, 12)}`);
+
+    assert.equal(spawnSync("git", ["checkout", branch], { cwd: fixture }).status, 0);
+    const legacyEditorial = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+      cwd: fixture, encoding: "utf8", env: {
+        PATH: `${fixture}:${process.env.PATH ?? ""}`, HOME: process.env.HOME,
+        CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
+        CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial", NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial",
+        CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled", NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled",
+      },
+    });
+    assert.equal(legacyEditorial.status, 0, legacyEditorial.stderr);
+    const promoted = JSON.parse(legacyEditorial.stdout.trim().split("\n").at(-1)).env;
+    assert.equal(promoted.profile, "full");
+    assert.equal(promoted.backend, "native-neon");
+    for (const conflict of [
+      { CCPUN_DEPLOYMENT_PROVIDER: "vercel" },
+      { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web" },
+    ]) {
+      const denied = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+        cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, HOME: process.env.HOME, ...conflict },
+      });
+      assert.notEqual(denied.status, 0);
+      assert.match(denied.stderr, /ADMIN_UAT_RELEASE_(?:PROVIDER|ROLE)_CONFLICT/);
+    }
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
+
+test("Hostinger Admin readiness certifies only full native-neon pinned lanes without echoing database secrets", () => {
+  for (const environment of ["admin-uat", "production-admin"]) {
+    const ok = runAdminReadiness(environment);
+    assert.equal(ok.status, 0, ok.stderr || ok.stdout);
+    const receipt = JSON.parse(ok.stdout);
+    assert.equal(receipt.status, "ready");
+    assert.deepEqual(receipt.warnings, []);
+    assert.doesNotMatch(ok.stdout, /FIXTURE_ONLY/);
+  }
+  for (const [key, value] of [
+    ["CCPUN_ADMIN_CAPABILITY_PROFILE", "editorial"],
+    ["NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE", "editorial"],
+    ["CCPUN_ARTICLE_SCHEDULER_BACKEND", "disabled"],
+    ["CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED", "1"],
+    ["CCPUN_BACKGROUND_WORKER_ENABLED", "1"],
+    ["CCPUN_NATIVE_WORKFLOW_ENABLED", "1"],
+    ["CCPUN_SOCIAL_ENABLED", "0"],
+    ["CCPUN_SOCIAL_DATA_MODE", "live"],
+    ["CCPUN_SOCIAL_OPERATIONS_ENABLED", "0"],
+    ["CCPUN_SOCIAL_PROVIDER_READS_ENABLED", "1"],
+    ["CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED", "1"],
+    ["CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED", "1"],
+    ["CCPUN_NEON_BRANCH_ID", "wrong"],
+    ["AUTH_URL", "https://admin.ccpun.com"],
+    ["CCPUN_GIT_REF", "admin/hostinger-release-uat-wrong"],
+    ["CCPUN_ADMIN_DATABASE_URL", "postgresql://ccpun_admin_runtime:SECRET_SHOULD_NOT_LEAK@evil.example/neondb?sslmode=require"],
+  ]) {
+    const blocked = runAdminReadiness("admin-uat", { [key]: value });
+    assert.notEqual(blocked.status, 0, `${key} must fail closed`);
+    assert.equal(JSON.parse(blocked.stdout).status, "blocked");
+    assert.doesNotMatch(blocked.stdout, /FIXTURE_ONLY|SECRET_SHOULD_NOT_LEAK/);
   }
 });
 

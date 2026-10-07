@@ -141,6 +141,55 @@ export function sealNativeNeonRuntime(root, seal) {
   visit(standalone);
   const { publicValues, ...manifest } = seal;
   void publicValues;
+
+  if (seal.environment === "admin-uat") {
+    const serverPath = resolve(standalone, "server.js");
+    if (!existsSync(serverPath)) throw new Error("NATIVE_NEON_UAT_RUNTIME_ENTRY_MISSING");
+    const runtimeIdentity = {
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      CCPUN_DEPLOYMENT_ROLE: "admin",
+      CCPUN_RELEASE_STAGE: "shadow",
+      CCPUN_APP_ENV: "admin-uat",
+      NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat",
+      NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "admin",
+      NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+      NEXT_PUBLIC_SANITY_DATASET: "uat",
+      CCPUN_UAT_MODE: "1",
+      CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+      CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+      NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+      CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+      NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+      CCPUN_ARTICLE_SCHEDULING_ENABLED: "1",
+      CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "cloud",
+      CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0",
+      CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
+      CCPUN_BACKGROUND_EXECUTION_PLANE: "cloud",
+      CCPUN_BACKGROUND_WORKER_ENABLED: "0",
+      CCPUN_NEON_PROJECT_ID: seal.neonProjectId,
+      CCPUN_NEON_BRANCH_ID: seal.neonBranchId,
+      CCPUN_NEON_DATABASE: seal.neonDatabase,
+      AUTH_URL: "https://admin-test.ccpun.com",
+      CCPUN_GIT_REF: seal.gitRef,
+      CCPUN_GIT_SHA: seal.gitSha,
+      CCPUN_RELEASE_ID: seal.releaseId,
+      NEXT_PUBLIC_CCPUN_GIT_REF: seal.gitRef,
+      NEXT_PUBLIC_CCPUN_GIT_SHA: seal.gitSha,
+      NEXT_PUBLIC_CCPUN_RELEASE_ID: seal.releaseId,
+      CCPUN_SOCIAL_ENABLED: "1",
+      CCPUN_SOCIAL_DATA_MODE: "synthetic",
+      CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
+      CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "0",
+      CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "0",
+      CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED: "0",
+    };
+    const prelude = `/* CCPun sealed Admin UAT runtime identity */\nObject.assign(process.env,${JSON.stringify(runtimeIdentity)});\n`;
+    const server = readFileSync(serverPath, "utf8");
+    if (server.includes("CCPun sealed Admin UAT runtime identity")) throw new Error("NATIVE_NEON_UAT_RUNTIME_ALREADY_SEALED");
+    writeFileSync(serverPath, prelude + server, { mode: 0o600 });
+  }
+
   writeFileSync(resolve(standalone, "ccpun-native-admin-manifest.json"), JSON.stringify({ ...manifest,
     nodeVersion: process.version, platform: process.platform, architecture: process.arch,
     buildId: readFileSync(resolve(standalone, ".next/BUILD_ID"), "utf8").trim() }, null, 2) + "\n", { mode: 0o600 });
@@ -154,6 +203,57 @@ function replaceDirectory(source, destination) {
   } catch (error) { if (error?.code !== "ENOENT") throw error; }
   mkdirSync(dirname(destination), { recursive: true });
   cpSync(source, destination, { recursive: true, dereference: true });
+}
+
+export function applyPinnedAdminUatBuildFallback(root = adminRoot, variables = process.env, run = spawnSync) {
+  const repository = resolve(root, "../..");
+  const git = (args) => {
+    const result = run("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    return result.error || result.status !== 0 || typeof result.stdout !== "string" ? "" : result.stdout.trim();
+  };
+  const branch = git(["symbolic-ref", "--short", "HEAD"]);
+  const sha = git(["rev-parse", "HEAD"]);
+  if (!branch || !/^[a-f0-9]{40}$/i.test(sha) || !/^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(branch)) return null;
+  if (variables.VERCEL_PROJECT_ID?.trim() || variables.VERCEL_DEPLOYMENT_ID?.trim()) throw new Error("ADMIN_UAT_RELEASE_VERCEL_CONFLICT");
+  const explicitProvider = variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
+  const explicitRole = variables.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
+  if (explicitProvider && explicitProvider !== "hostinger") throw new Error("ADMIN_UAT_RELEASE_PROVIDER_CONFLICT");
+  if (explicitRole && explicitRole !== "admin") throw new Error("ADMIN_UAT_RELEASE_ROLE_CONFLICT");
+
+  const defaults = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_RELEASE_STAGE: "shadow",
+    CCPUN_APP_ENV: "admin-uat",
+    NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+    NEXT_PUBLIC_SANITY_DATASET: "uat",
+    CCPUN_UAT_MODE: "1",
+    CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+    NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+    CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+    NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon",
+    CCPUN_ARTICLE_SCHEDULING_ENABLED: "1",
+    CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "cloud",
+    CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0",
+    CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
+    CCPUN_BACKGROUND_EXECUTION_PLANE: "cloud",
+    CCPUN_BACKGROUND_WORKER_ENABLED: "0",
+    CCPUN_NEON_PROJECT_ID: "young-term-47483330",
+    CCPUN_NEON_BRANCH_ID: "br-crimson-mouse-az7ajkv8",
+    CCPUN_NEON_ENDPOINT_ID: "ep-mute-frost-aztvz394",
+    CCPUN_NEON_DATABASE: "neondb",
+    AUTH_URL: "https://admin-test.ccpun.com",
+    CCPUN_GIT_REF: branch,
+    CCPUN_GIT_SHA: sha,
+    CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+  };
+  // Dedicated UAT release refs may replace stale non-secret editorial markers.
+  // The source validator below binds the checked-out branch to the actual SHA;
+  // secret runtime inputs are intentionally absent from this defaults object.
+  for (const [key, value] of Object.entries(defaults)) variables[key] = value;
+  return { branch, sha };
 }
 
 export function stageAdminStandaloneRuntime(root = adminRoot) {
@@ -181,6 +281,8 @@ export function stageAdminStandaloneRuntime(root = adminRoot) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const inferredAdminUat = applyPinnedAdminUatBuildFallback();
+  if (inferredAdminUat) console.log(`Hostinger Admin UAT build identity inferred from exact release ref ${inferredAdminUat.branch} @ ${inferredAdminUat.sha.slice(0, 12)}.`);
   const hostinger = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
   const nativeSeal = validateNativeNeonBuild();
   if (hostinger && process.env.CCPUN_ADMIN_CAPABILITY_PROFILE?.trim().toLowerCase() !== "editorial" && !nativeSeal) throw new Error("Hostinger full Admin build requires a sealed native Admin lane.");

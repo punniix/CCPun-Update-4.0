@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { build } from "esbuild";
 import { sealNativeNeonRuntime, validateNativeNeonBuild, validateNativeNeonSource } from "../../apps/admin/scripts/build-provider.mjs";
+import { applyHostingerAdminUatSafeRuntimeFlags } from "../../apps/admin/instrumentation";
 import { getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
 import { startArticleScheduleWorker } from "../../scripts/article-schedule-worker";
 
@@ -205,16 +206,91 @@ test("native standalone seal permits internal workspace links and denies escapes
     const seal = validateNativeNeonBuild(f.admin, f.values); assert.ok(seal);
     const runtime = join(f.admin, ".next/standalone");
     put(join(runtime, ".next/server/app-paths-manifest.json"), '{}'); put(join(runtime, ".next/BUILD_ID"), "fixture-build");
+    put(join(runtime, "server.js"), 'console.log(JSON.stringify({sha:process.env.CCPUN_GIT_SHA,ref:process.env.CCPUN_GIT_REF,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,social:process.env.CCPUN_SOCIAL_ENABLED,socialWrites:process.env.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,secret:process.env.AUTH_SECRET}))\n');
     put(join(runtime, "packages/shared/index.js"), "module.exports={}"); mkdirSync(join(runtime, "node_modules"));
     symlinkSync("../packages/shared", join(runtime, "node_modules/shared")); sealNativeNeonRuntime(f.admin, seal);
     const manifest = JSON.parse(readFileSync(join(runtime, "ccpun-native-admin-manifest.json"), "utf8"));
     assert.equal(manifest.gitSha, f.values.CCPUN_GIT_SHA); assert.equal(manifest.schedulerBackend, "native-neon");
     assert.equal(manifest.productionReady, false); assert.equal("publicValues" in manifest, false);
+    const sealedServer = readFileSync(join(runtime, "server.js"), "utf8");
+    assert.match(sealedServer, /^\/\* CCPun sealed Admin UAT runtime identity \*\//);
+    const runtimeProof = spawnSync(process.execPath, [join(runtime, "server.js")], {
+      env: {
+        PATH: process.env.PATH,
+        NODE_ENV: "test",
+        CCPUN_GIT_SHA: "stale-sha",
+        CCPUN_GIT_REF: "stale-ref",
+        CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial",
+        CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled",
+        CCPUN_SOCIAL_ENABLED: "0",
+        CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1",
+        AUTH_SECRET: "SECRET_MUST_STAY",
+      },
+      encoding: "utf8",
+    });
+    assert.equal(runtimeProof.status, 0, runtimeProof.stderr);
+    assert.deepEqual(JSON.parse(runtimeProof.stdout.trim()), {
+      sha: f.values.CCPUN_GIT_SHA,
+      ref: f.values.CCPUN_GIT_REF,
+      profile: "full",
+      backend: "native-neon",
+      social: "1",
+      socialWrites: "0",
+      secret: "SECRET_MUST_STAY",
+    });
     symlinkSync(f.root, join(runtime, "escape")); assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /LINK_DENIED/); unlinkSync(join(runtime, "escape"));
     put(join(runtime, ".env.fixture"), "SYNTHETIC_ONLY"); assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /INPUT_DENIED/); rmSync(join(runtime, ".env.fixture"));
     put(join(runtime, ".next/server/app-paths-manifest.json"), '{"/.well-known/workflow/v1/flow/route":"fake.js"}');
     assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /SDK_ROUTE_PRESENT/);
   } finally { f.close(); }
+});
+
+test("exact Hostinger Admin UAT artifact seals synthetic Social operations and keeps providers isolated", () => {
+  const sha = "9".repeat(40);
+  const compiled = {
+    provider: "hostinger",
+    role: "admin",
+    environment: "admin-uat",
+    profile: "full",
+    schedulerBackend: "native-neon",
+    gitSha: sha,
+    gitRef: `admin/hostinger-release-uat-${"1".repeat(40)}`,
+    releaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+  };
+  const variables: Record<string, string | undefined> = {
+    NEXT_RUNTIME: "nodejs",
+    CCPUN_SOCIAL_ENABLED: "0",
+    CCPUN_SOCIAL_DATA_MODE: "live",
+    CCPUN_SOCIAL_OPERATIONS_ENABLED: "0",
+    CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "1",
+    CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1",
+    CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED: "1",
+    AUTH_SECRET: "SECRET_MUST_STAY",
+  };
+  assert.equal(applyHostingerAdminUatSafeRuntimeFlags(variables, compiled), true);
+  assert.deepEqual({
+    social: variables.CCPUN_SOCIAL_ENABLED,
+    mode: variables.CCPUN_SOCIAL_DATA_MODE,
+    operations: variables.CCPUN_SOCIAL_OPERATIONS_ENABLED,
+    reads: variables.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,
+    writes: variables.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,
+    analytics: variables.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,
+  }, { social: "1", mode: "synthetic", operations: "1", reads: "0", writes: "0", analytics: "0" });
+  assert.equal(variables.AUTH_SECRET, "SECRET_MUST_STAY");
+
+  for (const invalid of [
+    { ...compiled, provider: "vercel" },
+    { ...compiled, environment: "production-admin" },
+    { ...compiled, profile: "editorial" },
+    { ...compiled, schedulerBackend: "disabled" },
+    { ...compiled, gitSha: "invalid" },
+    { ...compiled, gitRef: "feature/not-uat" },
+    { ...compiled, releaseId: "wrong-release" },
+  ]) {
+    const denied = { NEXT_RUNTIME: "nodejs", CCPUN_SOCIAL_ENABLED: "unchanged" };
+    assert.equal(applyHostingerAdminUatSafeRuntimeFlags(denied, invalid), false);
+    assert.equal(denied.CCPUN_SOCIAL_ENABLED, "unchanged");
+  }
 });
 
 test("Cloud startup accepts producer activation without a timer and rejects private executor activation", async () => {

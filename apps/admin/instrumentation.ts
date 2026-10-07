@@ -1,6 +1,64 @@
 let registration: Promise<void> | undefined;
 
+type CompiledAdminUatIdentity = {
+  provider?: string;
+  role?: string;
+  environment?: string;
+  profile?: string;
+  schedulerBackend?: string;
+  gitSha?: string;
+  gitRef?: string;
+  releaseId?: string;
+};
+
+function compiledAdminUatIdentity(): CompiledAdminUatIdentity {
+  return {
+    provider: process.env.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER,
+    role: process.env.NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE,
+    environment: process.env.NEXT_PUBLIC_CCPUN_APP_ENV,
+    profile: process.env.NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE,
+    schedulerBackend: process.env.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND,
+    gitSha: process.env.NEXT_PUBLIC_CCPUN_GIT_SHA,
+    gitRef: process.env.NEXT_PUBLIC_CCPUN_GIT_REF,
+    releaseId: process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID,
+  };
+}
+
+export function applyHostingerAdminUatSafeRuntimeFlags(
+  variables: Record<string, string | undefined> = process.env,
+  compiled: CompiledAdminUatIdentity = compiledAdminUatIdentity(),
+) {
+  const sha = compiled.gitSha?.trim() ?? "";
+  const ref = compiled.gitRef?.trim() ?? "";
+  if (
+    variables.NEXT_RUNTIME !== "nodejs"
+    || compiled.provider !== "hostinger"
+    || compiled.role !== "admin"
+    || compiled.environment !== "admin-uat"
+    || compiled.profile !== "full"
+    || compiled.schedulerBackend !== "native-neon"
+    || !/^[a-f0-9]{40}$/.test(sha)
+    || !/^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(ref)
+    || compiled.releaseId !== `hostinger-admin-uat-${sha.slice(0, 12)}`
+  ) return false;
+
+  // UAT Social workspace is synthetic and provider-isolated by artifact policy.
+  // These are non-secret safety flags only; OAuth/provider/database credentials
+  // remain external runtime inputs and are never synthesized here.
+  Object.assign(variables, {
+    CCPUN_SOCIAL_ENABLED: "1",
+    CCPUN_SOCIAL_DATA_MODE: "synthetic",
+    CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
+    CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "0",
+    CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "0",
+    CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED: "0",
+  });
+  return true;
+}
+
 export async function register() {
+  applyHostingerAdminUatSafeRuntimeFlags();
+
   if (process.env.NEXT_RUNTIME === "nodejs"
     && (process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND === "native-neon"
       || process.env.NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND === "native-neon")) {
