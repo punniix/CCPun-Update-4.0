@@ -1,6 +1,6 @@
 # CCPun Runtime Baseline — 2026-10-07
 
-Status: **CURRENT OBSERVED BASELINE / PHASE 5 FINAL RUNTIME CLOSURE**
+Status: **CURRENT OBSERVED BASELINE / MIGRATION FULLY CLOSED**
 
 This document supersedes `ccpun-runtime-baseline-20261006.md` for current runtime placement and migration status. It records observed state; it does not by itself authorize provider writes, autonomous background execution, destructive Vercel retirement, DNS changes or data mutation.
 
@@ -60,7 +60,8 @@ Phase 3 installed systemd-owned private-worker lifecycle units. Phase 4 accepted
 - Phase 3 — Admin UAT/runtime hardening: **closed**
 - Security Production Promotion — historical patched release `78713868`: **closed**
 - P0 Architecture Closure 2026-10-07 — current SSOT + exclusive execution authority + Vercel live-dependency audit: **closed and merged in `26658e38`**
-- Phase 5 — legacy route retirement + security residual classification + Vercel pause: **closed when the Phase 5 receipt merges**
+- Phase 5 — legacy route retirement + security residual classification + Vercel retirement: **closed**
+- Final Security/Historical Cleanup 2026-10-08 — dead Vercel source paths removed, merged migration branches pruned, residual advisories documented: **closed when `final-security-historical-cleanup-20261008.md` merges**
 
 ## Background execution ownership
 
@@ -93,18 +94,20 @@ Current audit evidence:
 - canonical Vercel domain attachments (`ccpun.com`, `www.ccpun.com`, `admin.ccpun.com`) were removed before project deletion;
 - on 2026-10-08 both `ccpun-web` and `ccpun-admin` were permanently deleted by the owner;
 - Vercel team read-back now returns zero projects and direct lookups for both retired projects return `404 not_found`;
-- emergency LINE recovery remains a manual, action-time-approved workflow, not a scheduled dependency;
-- the legacy Vercel migration audit workflow is manual/old-branch scoped, not a Production scheduler.
+- the former Vercel LINE recovery workflow/operator and legacy Vercel migration audit workflow are removed from source after permanent project deletion;
+- the execution-ownership contract asserts those Vercel operational artifacts remain absent.
 
 See `vercel-retirement-audit-20261007.md`.
 
-## Work intentionally left after P0
+## Post-migration upkeep
 
-These are not P0 blockers:
+There is no open Vercel-to-Hostinger migration task.
 
-1. **Vercel retirement:** closed; both legacy Vercel projects are permanently deleted.
-2. **Provider/business write decisions:** Social provider writes remain intentionally OFF until an approved real publication exists; LINE actual mutation continues to require an approved durable Control Plane command. These are business-policy gates, not migration blockers.
-3. **Upstream dependency advisories:** the directly patchable `http-cache-semantics` finding is closed at `4.3.0`; remaining Sanity/next-sanity and Next ESLint glob findings have no compatible patched current-line resolution in the npm audit report and remain documented upstream debt with 0 critical findings.
+Routine upkeep only:
 
-Legacy `/snt-admin/*` compatibility, private-worker activation and Phase 4 operational acceptance are closed. See `phase5-final-closure-20261007.md`.
+1. **Provider/business write decisions:** Social provider writes remain intentionally OFF until an approved real publication exists; LINE actual mutation continues to require an approved durable Control Plane command. These are business-policy gates, not migration blockers.
+2. **Upstream dependency advisories:** the directly patchable `http-cache-semantics` finding is closed at `4.3.0`; remaining Sanity/next-sanity and Next ESLint glob findings have no compatible patched current-line resolution in the npm audit report and remain documented upstream debt with 0 critical findings.
+3. **Release hygiene:** preserve only the current and immediate rollback Hostinger release refs for active lanes; ordinary feature/release branches follow normal repository lifecycle.
+
+Legacy `/snt-admin/*` compatibility, private-worker activation, Phase 4 operational acceptance, Vercel retirement and final historical cleanup are closed. See `phase5-final-closure-20261007.md`, `vercel-final-retirement-20261008.md` and `final-security-historical-cleanup-20261008.md`.
 

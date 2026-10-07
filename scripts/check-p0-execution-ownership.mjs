@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -9,8 +9,13 @@ const richMenuHttp = read("apps/admin/app/api/internal/line/rich-menu/reconcile/
 const privateBackground = read("scripts/admin-background-worker.ts");
 const privateArticle = read("scripts/article-schedule-worker.ts");
 const adminBuild = read("apps/admin/scripts/build-provider.mjs");
-const lineRecovery = read(".github/workflows/line-key-recovery-once.yml");
-const vercelAudit = read(".github/workflows/vercel-monorepo-migration-audit.yml");
+const retiredVercelArtifacts = [
+  ".github/workflows/line-key-recovery-once.yml",
+  ".github/workflows/vercel-monorepo-migration-audit.yml",
+  "scripts/operator/web-line-recovery.cjs",
+  "scripts/operator/web-line-recovery.test.cjs",
+  "scripts/operator/web-line-recovery-workflow.test.mjs",
+];
 
 assert.equal(Object.hasOwn(adminVercel, "crons"), false, "Vercel Admin must not own operational crons");
 
@@ -35,12 +40,9 @@ for (const expected of [
   /CCPUN_BACKGROUND_WORKER_ENABLED:\s*"0"/,
 ]) assert.match(adminBuild, expected);
 
-assert.match(lineRecovery, /workflow_dispatch:/);
-assert.doesNotMatch(lineRecovery, /\nschedule:/);
-assert.match(lineRecovery, /inputs\.approval == 'APPROVE_TEMPORARY_LINE_RECOVERY_PUBLIC_SIGNED_ENDPOINT'/);
-
-assert.match(vercelAudit, /workflow_dispatch:/);
-assert.doesNotMatch(vercelAudit, /\nschedule:/);
+for (const path of retiredVercelArtifacts) {
+  assert.equal(existsSync(new URL(`../${path}`, import.meta.url)), false, `${path} must stay retired after permanent Vercel deletion`);
+}
 
 console.log(JSON.stringify({
   status: "locked",
