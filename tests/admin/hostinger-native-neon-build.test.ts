@@ -217,6 +217,7 @@ test("native standalone seal permits internal workspace links and denies escapes
     const runtimeProof = spawnSync(process.execPath, [join(runtime, "server.js")], {
       env: {
         PATH: process.env.PATH,
+        NODE_ENV: "test",
         CCPUN_GIT_SHA: "stale-sha",
         CCPUN_GIT_REF: "stale-ref",
         CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial",
