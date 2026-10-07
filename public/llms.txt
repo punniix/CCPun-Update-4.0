@@ -28,6 +28,7 @@
 
 - [พีระมิดทางการเงิน](https://ccpun.com/blog/personal-finance/financial-pyramid/): กรอบจัดลำดับสภาพคล่อง การบริหารความเสี่ยง การออม และการลงทุน
 - [ลดหย่อนภาษี 2569](https://ccpun.com/blog/personal-finance/tax-deduction/): สิทธิลดหย่อนภาษีสำหรับปีภาษี 2569 และวงเงินที่ควรตรวจสอบร่วมกัน
+- [วิธีคำนวณภาษีเงินได้บุคคลธรรมดา](https://ccpun.com/blog/personal-finance/personal-income-tax-calculation/): ขั้นตอนตั้งแต่แยกประเภทเงินได้ หักค่าใช้จ่ายและค่าลดหย่อน ไปจนถึงคำนวณภาษีแบบขั้นบันได
 - [ประกันโรคร้ายแรงคืออะไร](https://ccpun.com/blog/critical-illness-insurance/what-is-critical-illness-insurance/): ความแตกต่างระหว่างเงินก้อนโรคร้ายแรงกับประกันสุขภาพ และแนวทางประเมินความคุ้มครอง
 - [ประเภทประกันรถยนต์](https://ccpun.com/blog/motor-insurance/car-insurance-types/): ภาพรวมประกันชั้น 1, 2+, 2, 3+ และ 3
 

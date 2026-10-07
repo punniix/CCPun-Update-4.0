@@ -10,7 +10,7 @@ const BLOCKED_DIRECTIVES = ['noindex', 'nofollow', 'noarchive'];
 const STATIC_PATHS = ['/', '/blog/', '/ci-planning/', '/tools/financial-health-check/', '/privacy/', '/cookie-policy/'];
 const CONTENT_PATHS = ['/blog/personal-finance/financial-pyramid/', '/blog/health-insurance/aia-health-happy-describe/'];
 const NOT_FOUND_PATHS = ['/__ccpun_migration_missing__/', '/blog/personal-finance/__ccpun_migration_missing__/'];
-const LEGACY_PATHS = ['/living-benefits/', '/living-benefits/nested/', '/tools/fhc/', '/tools/fhc/nested/', '/financial-advisor/', '/financial-advisor/nested/'];
+const LEGACY_PATHS = ['/blog/personal-finance/personal-income-tax-calculation-2569/', '/living-benefits/', '/living-benefits/nested/', '/tools/fhc/', '/tools/fhc/nested/', '/financial-advisor/', '/financial-advisor/nested/'];
 const PRIVATE_PATHS = ['/api/', '/login/', '/dashboard/', '/snt-admin/', '/studio/'];
 const clean = (value = '') => value.replace(/\s+/g, ' ').trim();
 const stable = (value) => Array.isArray(value) ? value.map(stable)

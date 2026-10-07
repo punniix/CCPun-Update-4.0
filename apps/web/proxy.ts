@@ -18,6 +18,7 @@ export function hostingerRedirectUrl(request: Request): URL | null {
     }
   }
   for (const [prefix, destination] of [
+    ["/blog/personal-finance/personal-income-tax-calculation-2569", "/blog/personal-finance/personal-income-tax-calculation/"],
     ["/living-benefits", "/ci-planning/"],
     ["/tools/fhc", "/tools/financial-health-check/"],
     ["/financial-advisor", "/"],

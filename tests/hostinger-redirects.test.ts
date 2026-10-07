@@ -7,7 +7,7 @@ function inspect(provider: "hostinger" | "vercel", review: boolean) {
     const {default:proxy, hostingerRedirectUrl, config:proxyConfig}=require('./apps/web/proxy.ts');
     const {default:config}=require('./apps/web/next.config.ts');
     (async()=>{
-      const paths=['/ci-planning?from=a%26b','/living-benefits/old/?q=x%2Fy','/tools/fhc/','/financial-advisor/','/financial-advisor-extra/','/unknown-route','/unknown-route/','/api/line/webhook','/api/line/webhook/','/login/','/dashboard/','/robots.txt','/sitemap.xml','/llms.txt','/.well-known/security.txt','/.well-known/extensionless','/_next/image/?url=%2Ffavicon.png&w=32&q=75','/_next/static/font.woff2','/favicon.png/?q=1'];
+      const paths=['/ci-planning?from=a%26b','/blog/personal-finance/personal-income-tax-calculation-2569/','/living-benefits/old/?q=x%2Fy','/tools/fhc/','/financial-advisor/','/financial-advisor-extra/','/unknown-route','/unknown-route/','/api/line/webhook','/api/line/webhook/','/login/','/dashboard/','/robots.txt','/sitemap.xml','/llms.txt','/.well-known/security.txt','/.well-known/extensionless','/_next/image/?url=%2Ffavicon.png&w=32&q=75','/_next/static/font.woff2','/favicon.png/?q=1'];
       const observations=paths.map(path=>{
         const req=new Request('https://candidate.example'+path);
         const response=proxy(req);
@@ -43,6 +43,7 @@ test("Hostinger redirects preserve URL and query semantics with complete candida
   assert.deepEqual(runtime.redirects, []);
   const expected: Record<string, string> = {
     "/ci-planning?from=a%26b": "/ci-planning/?from=a%26b",
+    "/blog/personal-finance/personal-income-tax-calculation-2569/": "/blog/personal-finance/personal-income-tax-calculation/",
     "/living-benefits/old/?q=x%2Fy": "/ci-planning/?q=x%2Fy",
     "/tools/fhc/": "/tools/financial-health-check/",
     "/financial-advisor/": "/",
@@ -79,6 +80,7 @@ test("Vercel proxy stays observational and its configured redirect contract is u
     assert.equal(observation.location, null);
   }
   assert.deepEqual(runtime.redirects, [
+    { source: "/blog/personal-finance/personal-income-tax-calculation-2569/:path*", destination: "/blog/personal-finance/personal-income-tax-calculation/", permanent: true },
     { source: "/living-benefits/:path*", destination: "/ci-planning/", permanent: true },
     { source: "/tools/fhc/:path*", destination: "/tools/financial-health-check/", permanent: true },
     { source: "/financial-advisor/:path*", destination: "/", permanent: true },
