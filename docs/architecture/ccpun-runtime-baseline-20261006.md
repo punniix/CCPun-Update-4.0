@@ -1,8 +1,10 @@
 # CCPun Runtime Baseline — 2026-10-06
 
-Status: **CURRENT OBSERVED BASELINE / READ-ONLY RECONCILIATION**
+Status: **SUPERSEDED / HISTORICAL SNAPSHOT**
 
-This document records the live runtime state observed after Production merge `b77a6c62` and is the current provider-placement reference for Phase 0. It does not authorize deployment, DNS changes, provider retirement, data mutation, or secret changes.
+> Superseded by [`ccpun-runtime-baseline-20261007.md`](./ccpun-runtime-baseline-20261007.md). Use this file only for the 2026-10-06 audit trail.
+
+This document records the live runtime state observed after Production merge `b77a6c62` and was the provider-placement reference for the original Phase 0. It does not authorize deployment, DNS changes, provider retirement, data mutation, or secret changes.
 
 ## Current four lanes
 

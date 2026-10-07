@@ -8,15 +8,5 @@
       "ux/**": false,
       "**/*website-43*": false
     }
-  },
-  "crons": [
-    {
-      "path": "/api/admin/social/worker",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/internal/line/rich-menu/reconcile/",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  }
 }

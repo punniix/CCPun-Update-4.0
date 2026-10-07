@@ -1,6 +1,8 @@
 # แผนย้าย Production Web + Admin เต็มระบบไป Hostinger — 2026-09-30
 
-**สถานะ: แผนปฏิบัติและ handoff; Production migration ยังไม่สำเร็จ / NOT READY FOR CUTOVER.** เป้าหมายล่าสุดของ COO คือ `ccpun.com`, `www.ccpun.com`, `admin.ccpun.com` และ execution ทุกส่วนที่เคยอยู่บน Vercel ต้องทำงานโดยไม่พึ่ง Vercel 100% เมื่อปิดงาน ไม่ใช่จบที่ editorial candidate หรือย้าย DNS แล้วถือว่าเสร็จ
+> **HISTORICAL MIGRATION PLAN:** สถานะ runtime ปัจจุบันให้ยึด [`ccpun-runtime-baseline-20261007.md`](./ccpun-runtime-baseline-20261007.md), [`private-execution-ownership-20261007.md`](./private-execution-ownership-20261007.md) และ [`vercel-retirement-audit-20261007.md`](./vercel-retirement-audit-20261007.md). ข้อความด้านล่างที่อธิบาย Vercel cron/provider placement เป็นหลักฐานและแผน ณ วันที่เขียน ไม่ใช่ current runtime contract.
+
+**สถานะ ณ วันที่เอกสารเดิมถูกเขียน: แผนปฏิบัติและ handoff; Production migration ยังไม่สำเร็จ / NOT READY FOR CUTOVER.** เป้าหมายล่าสุดของ COO คือ `ccpun.com`, `www.ccpun.com`, `admin.ccpun.com` และ execution ทุกส่วนที่เคยอยู่บน Vercel ต้องทำงานโดยไม่พึ่ง Vercel 100% เมื่อปิดงาน ไม่ใช่จบที่ editorial candidate หรือย้าย DNS แล้วถือว่าเสร็จ
 
 Receipt เดิม: `hostinger-pre-dns-readiness-20260930`. ส่วนภาษาไทยนี้เป็นแผนปัจจุบันและแทนที่ข้อสรุปเก่าเรื่องเก็บ Admin/operations/scheduler บน Vercelหรือเกษียณเฉพาะ Web. ภาคประวัติท้ายไฟล์เก็บไว้เพื่อ audit เท่านั้น แผนนี้ไม่สั่งรันคำสั่ง provider, เปิด credentials, publish, DNS, merge หรือซื้อบริการในรอบเขียนแผน; owner/parent ดำเนินงานตาม task และ gate ที่ระบุ โดยไม่ขออนุมัติงานที่ได้รับอนุญาตซ้ำ
 

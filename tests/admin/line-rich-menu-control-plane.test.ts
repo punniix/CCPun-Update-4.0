@@ -37,22 +37,25 @@ test("shared command contract uses Neon desired state, optimistic version and id
   assert.match(migration, /REVOKE ALL PRIVILEGES ON ccpun_admin\.control_resource/);
 });
 
-test("cron is authenticated and reconciliation is a durable single writer", () => {
+test("LINE reconciliation is durable but autonomous execution is private-VPS only", () => {
   const route = read("apps/admin/app/api/internal/line/rich-menu/reconcile/route.ts");
   const reconciler = read("lib/admin/line/rich-menu-reconciler.ts");
+  const worker = read("scripts/admin-background-worker.ts");
   const vercel = JSON.parse(read("apps/admin/vercel.json")) as { crons?: Array<{ path: string; schedule: string }> };
   assert.match(route, /export async function GET\(request: Request\)/);
   assert.match(route, /CRON_SECRET/);
   assert.match(route, /authorization/);
+  assert.match(route, /rich-menu-reconciler-unavailable/);
+  assert.doesNotMatch(route, /reconcileDesiredLineRichMenu/);
+  assert.equal(Object.hasOwn(vercel, "crons"), false);
+  assert.match(worker, /CCPUN_BACKGROUND_EXECUTION_PLANE !== "vps"/);
+  assert.match(worker, /CCPUN_BACKGROUND_WORKER_ENABLED !== "1"/);
+  assert.match(worker, /line-rich-menu/);
   assert.match(reconciler, /claimLineRichMenuOperation/);
   assert.match(reconciler, /beginLineRichMenuMutation/);
   assert.match(reconciler, /checkpointLineRichMenuOperation/);
   assert.match(reconciler, /readDefaultLineRichMenuSnapshot/);
   assert.match(reconciler, /readback_mismatch_after_mutation/);
-  assert.ok(vercel.crons?.some((cron) =>
-    cron.path === "/api/internal/line/rich-menu/reconcile/"
-    && cron.schedule === "*/5 * * * *"
-  ));
 });
 
 test("provider gates fail closed and Public Web never embeds the LINE token", () => {
