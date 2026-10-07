@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
 import { exportSelectionSchema } from "@/lib/admin/agent-os/export-contract";
+import { resolveGoogleSheetExportRuntime } from "@/lib/admin/agent-os/export-runtime";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { createAgentRuntimeJob, updateAgentRuntimeJob } from "@/lib/admin/operations/agent-os-runtime";
 
@@ -17,17 +18,6 @@ const headers = {
 
 const bodySchema = exportSelectionSchema;
 
-function configuredWebhook() {
-  const raw = process.env.CCPUN_N8N_EXPORT_WEBHOOK_URL?.trim();
-  if (!raw) return null;
-  try {
-    const url = new URL(raw);
-    return url.protocol === "https:" && !url.username && !url.password ? url : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(request: Request) {
   const identity = await getAdminIdentity();
   if (!identity) return NextResponse.json({ error: "unauthorized" }, { status: 401, headers });
@@ -35,8 +25,14 @@ export async function POST(request: Request) {
   if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) {
     return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
   }
-  if (process.env.CCPUN_EXPORT_GOOGLE_SHEET_ENABLED?.trim() !== "true") {
-    return NextResponse.json({ error: "google-sheet-export-disabled" }, { status: 503, headers });
+  const exportRuntime = resolveGoogleSheetExportRuntime(process.env);
+  if (!exportRuntime.ready) {
+    const error = exportRuntime.reason === "uat-disabled" || exportRuntime.reason === "uat-webhook-not-isolated"
+      ? "google-sheet-export-uat-isolated"
+      : exportRuntime.reason === "not-configured"
+        ? "google-sheet-export-not-configured"
+        : "google-sheet-export-disabled";
+    return NextResponse.json({ error }, { status: 503, headers });
   }
 
   let value: unknown;
@@ -45,11 +41,7 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(value);
   if (!parsed.success) return NextResponse.json({ error: "invalid-export-request" }, { status: 400, headers });
 
-  const webhook = configuredWebhook();
-  const token = process.env.CCPUN_N8N_EXPORT_WEBHOOK_TOKEN?.trim();
-  if (!webhook || !token || token.length < 43) {
-    return NextResponse.json({ error: "google-sheet-export-not-configured" }, { status: 503, headers });
-  }
+  const { webhook, token } = exportRuntime;
 
   const generatedAt = new Date().toISOString();
   const correlationId = randomUUID();
