@@ -103,6 +103,14 @@ function runAdminReadiness(environment = "admin-uat", extraEnv = {}) {
     CCPUN_NATIVE_WORKFLOW_ENABLED: "0",
     CCPUN_BACKGROUND_EXECUTION_PLANE: "cloud",
     CCPUN_BACKGROUND_WORKER_ENABLED: "0",
+    ...(production ? {} : {
+      CCPUN_SOCIAL_ENABLED: "1",
+      CCPUN_SOCIAL_DATA_MODE: "synthetic",
+      CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
+      CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "0",
+      CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "0",
+      CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED: "0",
+    }),
     AUTH_URL: production ? "https://admin.ccpun.com" : "https://admin-test.ccpun.com",
     CCPUN_NEON_PROJECT_ID: production ? "lively-bar-43618798" : "young-term-47483330",
     CCPUN_NEON_BRANCH_ID: production ? "br-long-resonance-b3ys5xrv" : "br-crimson-mouse-az7ajkv8",
@@ -310,7 +318,7 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
     writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
     const npm = join(fixture, "npm");
-    writeFileSync(npm, `#!${process.execPath}\nconsole.log(JSON.stringify({args:process.argv.slice(2),env:{provider:process.env.CCPUN_DEPLOYMENT_PROVIDER,role:process.env.CCPUN_DEPLOYMENT_ROLE,appEnv:process.env.CCPUN_APP_ENV,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,producer:process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED,executor:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED,plane:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE,nativeWorkflow:process.env.CCPUN_NATIVE_WORKFLOW_ENABLED,project:process.env.CCPUN_NEON_PROJECT_ID,branch:process.env.CCPUN_NEON_BRANCH_ID,endpoint:process.env.CCPUN_NEON_ENDPOINT_ID,database:process.env.CCPUN_NEON_DATABASE,authUrl:process.env.AUTH_URL,gitRef:process.env.CCPUN_GIT_REF,gitSha:process.env.CCPUN_GIT_SHA,dbUrl:process.env.CCPUN_ADMIN_DATABASE_URL}}));`);
+    writeFileSync(npm, `#!${process.execPath}\nconsole.log(JSON.stringify({args:process.argv.slice(2),env:{provider:process.env.CCPUN_DEPLOYMENT_PROVIDER,role:process.env.CCPUN_DEPLOYMENT_ROLE,appEnv:process.env.CCPUN_APP_ENV,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,producer:process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED,executor:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED,plane:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE,nativeWorkflow:process.env.CCPUN_NATIVE_WORKFLOW_ENABLED,social:process.env.CCPUN_SOCIAL_ENABLED,socialMode:process.env.CCPUN_SOCIAL_DATA_MODE,socialOps:process.env.CCPUN_SOCIAL_OPERATIONS_ENABLED,socialReads:process.env.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,socialWrites:process.env.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,socialAnalytics:process.env.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,project:process.env.CCPUN_NEON_PROJECT_ID,branch:process.env.CCPUN_NEON_BRANCH_ID,endpoint:process.env.CCPUN_NEON_ENDPOINT_ID,database:process.env.CCPUN_NEON_DATABASE,authUrl:process.env.AUTH_URL,gitRef:process.env.CCPUN_GIT_REF,gitSha:process.env.CCPUN_GIT_SHA,dbUrl:process.env.CCPUN_ADMIN_DATABASE_URL}}));`);
     chmodSync(npm, 0o755);
     for (const args of [["init", "-b", "phase3-fixture"], ["config", "user.email", "fixture@example.invalid"], ["config", "user.name", "Fixture"], ["add", "."], ["commit", "-m", "fixture"]]) {
       const git = spawnSync("git", args, { cwd: fixture, encoding: "utf8" }); assert.equal(git.status, 0, git.stderr);
@@ -327,8 +335,9 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
     assert.deepEqual(invocation.args, ["run", "build", "--workspace", "@ccpun/admin"]);
     assert.deepEqual(invocation.env, {
       provider: "hostinger", role: "admin", appEnv: "admin-uat", profile: "full", backend: "native-neon",
-      producer: "1", executor: "0", plane: "cloud", nativeWorkflow: "0", project: "young-term-47483330",
-      branch: "br-crimson-mouse-az7ajkv8", endpoint: "ep-mute-frost-aztvz394", database: "neondb",
+      producer: "1", executor: "0", plane: "cloud", nativeWorkflow: "0",
+      social: "1", socialMode: "synthetic", socialOps: "1", socialReads: "0", socialWrites: "0", socialAnalytics: "0",
+      project: "young-term-47483330", branch: "br-crimson-mouse-az7ajkv8", endpoint: "ep-mute-frost-aztvz394", database: "neondb",
       authUrl: "https://admin-test.ccpun.com", gitRef: branch, gitSha: sha,
     });
     assert.equal(invocation.env.dbUrl, undefined, "release bootstrap must never synthesize the Admin database secret");
@@ -373,6 +382,12 @@ test("Hostinger Admin readiness certifies only full native-neon pinned lanes wit
     ["CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED", "1"],
     ["CCPUN_BACKGROUND_WORKER_ENABLED", "1"],
     ["CCPUN_NATIVE_WORKFLOW_ENABLED", "1"],
+    ["CCPUN_SOCIAL_ENABLED", "0"],
+    ["CCPUN_SOCIAL_DATA_MODE", "live"],
+    ["CCPUN_SOCIAL_OPERATIONS_ENABLED", "0"],
+    ["CCPUN_SOCIAL_PROVIDER_READS_ENABLED", "1"],
+    ["CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED", "1"],
+    ["CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED", "1"],
     ["CCPUN_NEON_BRANCH_ID", "wrong"],
     ["AUTH_URL", "https://admin.ccpun.com"],
     ["CCPUN_GIT_REF", "admin/hostinger-release-uat-wrong"],

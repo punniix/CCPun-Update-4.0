@@ -148,6 +148,12 @@ if (role === "web") {
       }
     } else {
       requireExact("CCPUN_RELEASE_STAGE", "shadow");
+      requireExact("CCPUN_SOCIAL_ENABLED", "1");
+      requireExact("CCPUN_SOCIAL_DATA_MODE", "synthetic");
+      requireExact("CCPUN_SOCIAL_OPERATIONS_ENABLED", "1");
+      requireExact("CCPUN_SOCIAL_PROVIDER_READS_ENABLED", "0");
+      requireExact("CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED", "0");
+      requireExact("CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED", "0");
       if (!/^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(gitRef)) {
         failures.push("Admin UAT CCPUN_GIT_REF must be a dedicated pinned Admin UAT release ref");
       }

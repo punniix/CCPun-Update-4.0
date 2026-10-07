@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { build } from "esbuild";
 import { sealNativeNeonRuntime, validateNativeNeonBuild, validateNativeNeonSource } from "../../apps/admin/scripts/build-provider.mjs";
+import { applyHostingerAdminUatSafeRuntimeFlags } from "../../apps/admin/instrumentation";
 import { getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
 import { startArticleScheduleWorker } from "../../scripts/article-schedule-worker";
 
@@ -215,6 +216,54 @@ test("native standalone seal permits internal workspace links and denies escapes
     put(join(runtime, ".next/server/app-paths-manifest.json"), '{"/.well-known/workflow/v1/flow/route":"fake.js"}');
     assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /SDK_ROUTE_PRESENT/);
   } finally { f.close(); }
+});
+
+test("exact Hostinger Admin UAT artifact seals synthetic Social operations and keeps providers isolated", () => {
+  const sha = "9".repeat(40);
+  const compiled = {
+    provider: "hostinger",
+    role: "admin",
+    environment: "admin-uat",
+    profile: "full",
+    schedulerBackend: "native-neon",
+    gitSha: sha,
+    gitRef: `admin/hostinger-release-uat-${"1".repeat(40)}`,
+    releaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+  };
+  const variables: Record<string, string | undefined> = {
+    NEXT_RUNTIME: "nodejs",
+    CCPUN_SOCIAL_ENABLED: "0",
+    CCPUN_SOCIAL_DATA_MODE: "live",
+    CCPUN_SOCIAL_OPERATIONS_ENABLED: "0",
+    CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "1",
+    CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1",
+    CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED: "1",
+    AUTH_SECRET: "SECRET_MUST_STAY",
+  };
+  assert.equal(applyHostingerAdminUatSafeRuntimeFlags(variables, compiled), true);
+  assert.deepEqual({
+    social: variables.CCPUN_SOCIAL_ENABLED,
+    mode: variables.CCPUN_SOCIAL_DATA_MODE,
+    operations: variables.CCPUN_SOCIAL_OPERATIONS_ENABLED,
+    reads: variables.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,
+    writes: variables.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,
+    analytics: variables.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,
+  }, { social: "1", mode: "synthetic", operations: "1", reads: "0", writes: "0", analytics: "0" });
+  assert.equal(variables.AUTH_SECRET, "SECRET_MUST_STAY");
+
+  for (const invalid of [
+    { ...compiled, provider: "vercel" },
+    { ...compiled, environment: "production-admin" },
+    { ...compiled, profile: "editorial" },
+    { ...compiled, schedulerBackend: "disabled" },
+    { ...compiled, gitSha: "invalid" },
+    { ...compiled, gitRef: "feature/not-uat" },
+    { ...compiled, releaseId: "wrong-release" },
+  ]) {
+    const denied = { NEXT_RUNTIME: "nodejs", CCPUN_SOCIAL_ENABLED: "unchanged" };
+    assert.equal(applyHostingerAdminUatSafeRuntimeFlags(denied, invalid), false);
+    assert.equal(denied.CCPUN_SOCIAL_ENABLED, "unchanged");
+  }
 });
 
 test("Cloud startup accepts producer activation without a timer and rejects private executor activation", async () => {
