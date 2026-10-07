@@ -42,8 +42,27 @@ test('one function/noalias/token environment and exact owned cleanup are retaine
 });
 test('every inline Node block parses without running auth/API/runtime code',()=>{
  const blocks=[...text.matchAll(/          node --input-type=module <<'NODE'\n([\s\S]*?)          NODE/g)].map(m=>m[1].split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n'));
- assert.equal(blocks.length,4);
+ assert.equal(blocks.length,5);
  for(const input of blocks){const r=spawnSync(process.execPath,['--input-type=module','--check'],{input,encoding:'utf8'});assert.equal(r.status,0,'inline source syntax');}
+});
+test('default audit projects only metadata and cannot enter recovery or mutate',()=>{
+ const job=text.split('  audit:')[1].split('  recovery:')[0];
+ assert.match(text,/default: audit/);assert.match(job,/inputs\.mode == 'audit'/);
+ assert.match(text,/inputs\.mode == 'recover' && inputs\.approval == 'APPROVE_TEMPORARY_LINE_RECOVERY_PUBLIC_SIGNED_ENDPOINT'/);
+ assert.match(job,/method:'GET'/);assert.doesNotMatch(job,/method:'(?:POST|PUT|PATCH|DELETE)'|\/env|activatePolicy|artifactFiles|spawn\(|npm install|--prod|secrets\.(?!VERCEL_TOKEN)/);
+ const block=job.split('// AUDIT_CONTRACT_START')[1].split('\n').slice(1).join('\n').split('// AUDIT_CONTRACT_END')[0];
+ const c={};vm.runInNewContext(block+'this.audit={projectAudit,deploymentAudit,aliasAudit,domainsAudit};',c);
+ const canary='FAKE_SECRET_CANARY_NEVER_EMIT';
+ const p={...project,env:[{value:canary}],protectionBypass:canary,creator:{email:canary}};
+ const d={id:'dpl_2WZUjLvjsASCSs5T6b9n2aWj8Cu3',projectId:project.id,target:'production',readyState:'READY',meta:{githubCommitSha:'c28c45e8ad848e60a907506d353ab8c88ceab70d',githubCommitRef:'v4-production',private:canary},alias:[]};
+ const a={alias:'ccpun.com',projectId:project.id,deploymentId:'dpl_OFFLINE123456',deployment:{id:'dpl_OFFLINE123456',meta:{private:canary}},protectionBypass:canary};
+ const report=[c.audit.projectAudit(p),c.audit.deploymentAudit(d),c.audit.aliasAudit(a,'ccpun.com'),c.audit.domainsAudit({domains:[{name:canary}],pagination:{next:canary}})];
+ assert.doesNotMatch(JSON.stringify(report),new RegExp(canary));
+ assert.equal(report[0].accountId.matches,true);assert.equal(report[2].deploymentId,'dpl_OFFLINE123456');
+ assert.equal(c.audit.projectAudit({}).link.type,'absent');assert.equal(c.audit.projectAudit({result:p}).id.matches,false);
+ assert.equal(c.audit.aliasAudit({alias:'ccpun.com',deployment:{id:'dpl_OFFLINE123456'}},'ccpun.com').deploymentId,null);
+ assert.match(job,/if\(!r\.ok\).*httpStatus:r\.status,available:false,unknown:'HTTP_NOT_OK'/);
+ assert.match(job,/readyForRecovery:false/);assert.equal((job.match(/=await get\(/g)||[]).length,5);
 });
 test('dispatch revalidates expired permission/fences and reserves both lifetimes',()=>{
  const p={reviewedSha:sha,approvalExpiresAt:now+600000,cloudBaselineSha256:'c'.repeat(64),policy:{},fences:{observedAt:now,cronJobsEmpty:true,workflowJobsEmpty:true,gitDisconnected:true,wafDenyExceptRecovery:true}};

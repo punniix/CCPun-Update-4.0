@@ -1,4 +1,4 @@
-name: LINE recovery — manual temporary Production capsule
+name: LINE recovery — metadata audit or approved temporary capsule
 
 # Source preparation only. A dispatch is a separate Production action requiring
 # current owner approval, reviewed receiver and VERIFIED WAF/pause/job fences.
@@ -6,9 +6,18 @@ name: LINE recovery — manual temporary Production capsule
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'Default reads metadata only; recovery needs separate action-time approval'
+        required: true
+        default: audit
+        type: choice
+        options:
+          - audit
+          - recover
       public_packet:
         description: 'PUBLIC JSON only: reviewedSha, approvalExpiresAt, policy, cloudBaselineSha256, fences'
-        required: true
+        required: false
+        default: '{}'
         type: string
       approval:
         description: 'Owner action-time approval; this text alone does not grant permission'
@@ -23,8 +32,59 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  audit:
+    if: github.repository == 'punniix/CCPun-Update-4.0' && github.ref == 'refs/heads/v4-production' && inputs.mode == 'audit'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+      - name: Synthetic packet and audit contract
+        run: node --test scripts/operator/web-line-recovery-workflow.test.mjs
+      - name: Read fixed RAW metadata; no recovery or provider mutation
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          // AUDIT_CONTRACT_START — whitelist projections, never raw API output.
+          const PROJECT='prj_dxwjITkd0av5QiJQv2snUlIASUWu',TEAM='team_GbcO71LS2dLHwiBV6Cs39Kax';
+          const ORIGINAL='dpl_2WZUjLvjsASCSs5T6b9n2aWj8Cu3',SOURCE='c28c45e8ad848e60a907506d353ab8c88ceab70d';
+          const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+          const field=(x,k,expected)=>({present:object(x)&&Object.hasOwn(x,k),type:!object(x)||!Object.hasOwn(x,k)?'absent':x[k]===null?'null':Array.isArray(x[k])?'array':typeof x[k],matches:object(x)&&Object.hasOwn(x,k)&&x[k]===expected});
+          const publicId=x=>typeof x==='string'&&/^dpl_[A-Za-z0-9]{8,128}$/.test(x)?x:null;
+          function projectAudit(p){return {id:field(p,'id',PROJECT),accountId:field(p,'accountId',TEAM),link:field(p,'link',null),rootDirectory:field(p,'rootDirectory',null),rootDirectoryAppsWeb:object(p)&&p.rootDirectory==='apps/web',nodeVersion:field(p,'nodeVersion','24.x'),live:field(p,'live',false)};}
+          function deploymentAudit(d){return {id:field(d,'id',ORIGINAL),projectId:field(d,'projectId',PROJECT),target:field(d,'target','production'),readyState:field(d,'readyState','READY'),gitSha:field(d?.meta,'githubCommitSha',SOURCE),gitRef:field(d?.meta,'githubCommitRef','v4-production'),aliasArray:object(d)&&Array.isArray(d.alias)};}
+          function aliasAudit(a,domain){return {alias:field(a,'alias',domain),projectId:field(a,'projectId',PROJECT),deploymentIdPresent:object(a)&&Object.hasOwn(a,'deploymentId'),deploymentId:publicId(a?.deploymentId),nestedDeploymentId:publicId(a?.deployment?.id)};}
+          function domainsAudit(d){const rows=object(d)&&Array.isArray(d.domains)?d.domains:null;return {domainsArray:rows!==null,count:rows?.length??null,exactExpectedNames:rows!==null&&JSON.stringify(rows.map(x=>x?.name).sort())===JSON.stringify(['ccpun-web-git-v4-production-punniixs-projects.vercel.app','ccpun-web-punniixs-projects.vercel.app']),paginationNext:field(d?.pagination,'next',null)};}
+          // AUDIT_CONTRACT_END
+          const token=process.env.VERCEL_TOKEN;
+          async function get(route,project){
+            if(typeof token!=='string'||token.length<20||/[\x00-\x20\x7f]/.test(token)) return {httpStatus:null,available:false,unknown:'AUTH_UNAVAILABLE'};
+            try{
+              const r=await fetch('https://api.vercel.com'+route+(route.includes('?')?'&':'?')+'teamId='+TEAM,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(20000)});
+              if(!r.ok){await r.body?.cancel();return {httpStatus:r.status,available:false,unknown:'HTTP_NOT_OK'};} //404 is unknown, never normalized to absence.
+              let size=0,parts=[];for await(const b of r.body){size+=b.length;if(size>1048576)throw Error();parts.push(b);}
+              const raw=Buffer.concat(parts);let body;try{body=JSON.parse(raw.toString('utf8'));}finally{raw.fill(0);for(const b of parts)b.fill(0);}
+              if(!object(body))return {httpStatus:r.status,available:false,unknown:'RAW_OBJECT_UNRECOGNIZED'};
+              return {httpStatus:r.status,available:true,checks:project(body)};
+            }catch{return {httpStatus:null,available:false,unknown:'READ_UNVERIFIED'};}
+          }
+          const report={mode:'audit',reviewedSha:process.env.GITHUB_SHA,readyForRecovery:false};
+          report.project=await get('/v9/projects/'+PROJECT,projectAudit);
+          report.originalDeployment=await get('/v13/deployments/'+ORIGINAL,deploymentAudit);
+          report.domains=await get('/v9/projects/'+PROJECT+'/domains?limit=100',domainsAudit);
+          report.apexAlias=await get('/v4/aliases/ccpun.com',a=>aliasAudit(a,'ccpun.com'));
+          report.wwwAlias=await get('/v4/aliases/www.ccpun.com',a=>aliasAudit(a,'www.ccpun.com'));
+          console.log('CCPUN_LINE_RAW_METADATA_AUDIT '+JSON.stringify(report));
+          NODE
   recovery:
-    if: github.repository == 'punniix/CCPun-Update-4.0' && github.ref == 'refs/heads/v4-production' && inputs.approval == 'APPROVE_TEMPORARY_LINE_RECOVERY_PUBLIC_SIGNED_ENDPOINT'
+    if: github.repository == 'punniix/CCPun-Update-4.0' && github.ref == 'refs/heads/v4-production' && inputs.mode == 'recover' && inputs.approval == 'APPROVE_TEMPORARY_LINE_RECOVERY_PUBLIC_SIGNED_ENDPOINT'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
