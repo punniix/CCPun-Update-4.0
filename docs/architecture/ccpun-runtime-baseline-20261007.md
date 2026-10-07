@@ -18,23 +18,23 @@ If live evidence contradicts this baseline, stop and re-baseline before infrastr
 
 ## Git and live release split
 
-Current source/runtime split before the Phase 5 merge:
+Current source/runtime state after Phase A/B:
 
-- `origin/v4-production = 3530597a20c31c7787b16a888c2bc78629ab1ba8` after the Phase 4 operational-acceptance closure.
-- Hostinger Web Production and Admin Production deployment settings both pin `codex/hostinger-release-production-26658e389348a4e7b1fffaa362531a3ece3cbbff`.
-- `git diff 26658e38..3530597a` contains architecture/documentation receipts and `scripts/check-deployment-contract.mjs`, with no Web/Admin application runtime source delta.
-- Phase 5 therefore does not manufacture a Production redeploy solely to move a governance SHA. Future application promotion still requires branch/ref/SHA/release identity to move together.
+- `origin/v4-production = a8ef55a6e3b4adc2553beda2cc04b89f13528c17` (`Merge Phase 5 migration closure`).
+- Hostinger Web Production and Admin Production are both `Current` on `codex/hostinger-release-production-a8ef55a6e3b4adc2553beda2cc04b89f13528c17` with matching `CCPUN_GIT_REF`, `CCPUN_GIT_SHA` and release identity.
+- Admin UAT is aligned to `admin/hostinger-release-uat-a8ef55a6e3b4adc2553beda2cc04b89f13528c17`.
+- Web UAT remains on the accepted `73f21285...` UAT release; its UAT Sanity/noindex/analytics-off boundary was re-verified in Phase B.
 
-That distinction is deliberate: source governance and live promotion are separate authorities.
+Source governance and live promotion remain separate authorities, but Production alignment is now closed.
 
 ## Current four lanes
 
 | Lane | Domain | Provider | App lane | Data lane | Indexing | Observed release |
 | --- | --- | --- | --- | --- | --- | --- |
-| Web Production | `ccpun.com` | Hostinger | `production` | Sanity `kyfxgjnq/production` | indexable | configured release branch `26658e38` |
+| Web Production | `ccpun.com` | Hostinger | `production` | Sanity `kyfxgjnq/production` | indexable | `a8ef55a6e3b4adc2553beda2cc04b89f13528c17` |
 | Web UAT | `test.ccpun.com` | Hostinger | `web-uat` | Sanity `ccb9lnw5/uat` | blocked | `73f21285fdd70070db546c23e013387fbcb832f2` |
-| Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | Sanity Production + Neon Production | blocked | configured release branch `26658e38` |
-| Admin UAT | `admin-test.ccpun.com` | Hostinger | `admin-uat` | Sanity UAT + Neon UAT | blocked | `73f21285fdd70070db546c23e013387fbcb832f2` |
+| Admin Production | `admin.ccpun.com` | Hostinger | `production-admin` | Sanity Production + Neon Production | blocked | `a8ef55a6e3b4adc2553beda2cc04b89f13528c17` |
+| Admin UAT | `admin-test.ccpun.com` | Hostinger | `admin-uat` | Sanity UAT + Neon UAT | blocked | `a8ef55a6e3b4adc2553beda2cc04b89f13528c17` |
 
 Observed live evidence on 2026-10-07:
 
@@ -90,7 +90,9 @@ Current audit evidence:
 - both `ccpun-web` and `ccpun-admin` report `live: false`;
 - Vercel Production runtime-log queries for the latest 24 hours returned zero rows for both projects;
 - targeted 24-hour queries returned no calls to the old Social worker or LINE Rich Menu reconcile paths;
-- project domains, old deployments and environment variables still exist and are retained as rollback assets;
+- both projects are paused/non-live; Preview deployments and automatic custom-domain assignment are disabled;
+- canonical Vercel domain attachments (`ccpun.com`, `www.ccpun.com`, `admin.ccpun.com`) are removed; only Vercel-owned `.vercel.app` aliases remain;
+- historical deployments and project environment variables still exist only inside the paused projects pending owner-confirmed project deletion;
 - emergency LINE recovery remains a manual, action-time-approved workflow, not a scheduled dependency;
 - the legacy Vercel migration audit workflow is manual/old-branch scoped, not a Production scheduler.
 
@@ -100,7 +102,7 @@ See `vercel-retirement-audit-20261007.md`.
 
 These are not P0 blockers:
 
-1. **Irreversible Vercel project deletion:** both projects are paused and `live:false`; deletion itself requires owner confirmation in the Vercel UI and is not a runtime-migration blocker.
+1. **Irreversible Vercel project deletion:** both projects are paused/non-live, Preview deployment creation is disabled and canonical custom domains are detached. Deletion itself still requires owner confirmation in the Vercel UI and is not a runtime-migration blocker.
 2. **Provider/business write decisions:** Social provider writes remain intentionally OFF until an approved real publication exists; LINE actual mutation continues to require an approved durable Control Plane command. These are business-policy gates, not migration blockers.
 3. **Upstream dependency advisories:** the directly patchable `http-cache-semantics` finding is closed at `4.3.0`; remaining Sanity/next-sanity and Next ESLint glob findings have no compatible patched current-line resolution in the npm audit report and remain documented upstream debt with 0 critical findings.
 
