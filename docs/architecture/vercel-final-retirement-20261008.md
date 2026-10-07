@@ -1,6 +1,6 @@
 # Vercel Final Retirement Receipt — 2026-10-08
 
-Status: **PROVIDER RETIREMENT SEALED / PROJECT DELETE CONFIRMATION LEFT TO OWNER**
+Status: **FULLY DELETED / VERCEL PROVIDER RETIREMENT COMPLETE**
 
 This receipt records the final non-destructive and custom-domain retirement of the two legacy Vercel projects after Hostinger release alignment and full runtime verification.
 
@@ -9,7 +9,7 @@ This receipt records the final non-destructive and custom-domain retirement of t
 - `ccpun-web` — `prj_dxwjITkd0av5QiJQv2snUlIASUWu`
 - `ccpun-admin` — `prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN`
 
-Both projects report `live: false` and are paused.
+Before deletion, both projects reported `live: false` and were paused.
 
 Phase C additionally set both projects to:
 
@@ -42,7 +42,7 @@ Removing the Vercel domain attachments did not require or change DNS.
 
 ## Deployment / Git retirement
 
-Both projects are paused and non-live. Preview deployment creation is disabled and automatic custom-domain assignment is disabled.
+Before deletion, both projects were paused/non-live with Preview deployment creation and automatic custom-domain assignment disabled.
 
 The Vercel Git settings no longer expose an active repository/deploy-hook path for the retired Web project. The projects are not accepted deployment owners regardless: current Web/Admin release authority is Hostinger.
 
@@ -50,33 +50,30 @@ Historical Vercel deployments remain stored as audit/history objects until proje
 
 ## Environment variables
 
-Vercel still stores historical project environment-variable metadata/secrets inside the paused projects. They are no longer execution dependencies and cannot affect canonical Hostinger runtime while the projects are paused/non-live and canonical domains are detached.
+Before deletion, Vercel still stored historical project environment-variable metadata/secrets inside the paused projects. They were no longer execution dependencies and could not affect canonical Hostinger runtime while the projects were paused/non-live and canonical domains were detached.
 
-The connected Vercel control surface exposes edit/list operations but no supported bulk project-environment deletion action. Permanent project deletion will remove the residual project-scoped state in one irreversible operation.
+Before deletion, the connected Vercel control surface exposed edit/list operations but no supported bulk project-environment deletion action. The owner then completed permanent project deletion, which removed the remaining project-scoped Vercel state.
 
-## Irreversible deletion boundary
+## Irreversible deletion completed
 
-The Vercel deletion endpoint is exposed to ChatGPT only as `requires_user_action`.
+The owner completed the irreversible Vercel deletion confirmation for both retired projects on 2026-10-08.
 
-Therefore ChatGPT can prepare the Delete Project section but cannot click the final irreversible confirmation for the owner.
+Post-delete provider read-back confirms:
 
-The only remaining Vercel-side action is the owner's explicit deletion confirmation for:
-
-1. `ccpun-web`
-2. `ccpun-admin`
-
-This confirmation is not a runtime migration blocker.
+- Vercel project list for the team returns zero projects;
+- direct project lookups for both `ccpun-web` and `ccpun-admin` return `404 not_found`;
+- canonical Hostinger hosts remain healthy after deletion.
 
 ## Acceptance
 
 Vercel final retirement is operationally sealed because:
 
-1. both projects are paused and `live:false`;
-2. Preview deployments and automatic custom-domain assignment are disabled;
+1. both projects were paused and `live:false` before deletion;
+2. Preview deployments and automatic custom-domain assignment were disabled before deletion;
 3. all canonical custom-domain attachments are removed from Vercel;
 4. canonical HTTP service remains healthy on Hostinger after detachment;
 5. Vercel owns no operational cron/background executor;
-6. residual deployments/envs are isolated inside paused projects;
-7. project deletion is reduced to an explicit owner-only irreversible confirmation.
+6. residual deployments/envs were isolated inside paused projects before deletion and were removed with project deletion;
+7. both legacy Vercel projects are permanently deleted.
 
-At this point Vercel has no canonical serving or execution authority for CCPun.
+At this point Vercel has no remaining CCPun project, canonical serving authority, or execution authority.
