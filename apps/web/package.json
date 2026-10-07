@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@neondatabase/serverless": "^1.1.0",
     "@sanity/client": "^7.26.2",
     "clsx": "^2.1.1",
@@ -20,7 +20,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sanity": "^6.13.1",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "styled-components": "^6.1.19",
     "tailwind-merge": "^3.5.0",
     "workflow": "^4.8.9",

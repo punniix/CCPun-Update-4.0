@@ -50,7 +50,7 @@
     "build:hostinger": "node scripts/build-provider.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@neondatabase/serverless": "^1.1.0",
     "@sanity/client": "^7.26.2",
     "@workflow/world-postgres": "4.3.5",
@@ -98,7 +98,7 @@
       "adm-zip": "0.6.1"
     },
     "@vercel/frameworks": {
-      "smol-toml": "1.8.0"
+      "smol-toml": "1.9.0"
     },
     "@workflow/world-local": {
       "undici": "7.29.1"
@@ -111,7 +111,8 @@
     },
     "undici": "7.29.1",
     "devalue": "5.9.3",
-    "dompurify": "3.4.16"
+    "dompurify": "3.4.16",
+    "source-map-js": "1.2.2"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
