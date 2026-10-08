@@ -41,6 +41,26 @@ test('monorepo audit starts from the actual apps/web and apps/admin entrypoints'
   assert.deepEqual(report.unassignedRoutes, []);
 });
 
+
+test('Web legal and not-found routes share canonical feature implementations', () => {
+  const pages = [
+    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage.tsx'],
+    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage.tsx'],
+    ['not-found.tsx', 'features/public-pages/NotFoundPage.tsx'],
+  ];
+  for (const [route, shared] of pages) {
+    const specifier = '@/' + shared.replace(/\.tsx$/, '');
+    const wrapper = 'export { metadata, default } from "' + specifier + '";\n';
+    for (const prefix of ['app/', 'apps/web/app/']) {
+      const routeSource = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
+      assert.equal(routeSource, wrapper, prefix + route + ' must not duplicate shared implementation');
+    }
+    const sharedSource = readFileSync(new URL('../' + shared, import.meta.url), 'utf8');
+    assert.match(sharedSource, /export const metadata:/);
+    assert.match(sharedSource, /export default function /);
+  }
+});
+
 test('legacy root mirrors are compatibility debt, never justification to create more duplicate route files', async () => {
   const report = await audit({log:false});
   assert.deepEqual(baselinedMirrors.canonicalWorkspaces,['apps/web','apps/admin']);

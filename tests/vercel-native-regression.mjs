@@ -237,8 +237,8 @@ const fhcLanding = read('features/financial-health-check/components/FHCLandingIn
 assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('app/cookie-policy/page.tsx');
-const privacyPolicy = read('app/privacy/page.tsx');
+const cookiePolicy = read('features/legal/pages/CookiePolicyPage.tsx');
+const privacyPolicy = read('features/legal/pages/PrivacyPage.tsx');
 const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);
