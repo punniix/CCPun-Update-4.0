@@ -1,17 +1,15 @@
 -- Install with an owner credential, only after UAT migration review.
 -- No UAT or Production provider/API credential is stored in this migration.
 BEGIN;
-DO $$
-BEGIN
-  IF current_database() <> 'neondb' OR NOT EXISTS (
-    SELECT 1 FROM ccpun_admin.system_identity
-    WHERE singleton = true
-      AND (project_id, branch_id) IN (
-        ('young-term-47483330','br-crimson-mouse-az7ajkv8'),
-        ('lively-bar-43618798','br-long-resonance-b3ys5xrv')
-      )
-  ) THEN RAISE EXCEPTION 'SEO_POST_PUBLISH_DATABASE_IDENTITY_MISMATCH'; END IF;
-END $$;
+-- Single-statement identity gate, compatible with Neon migration tooling.
+-- Zero denominator deliberately prevents modifications on an unrecognized branch.
+SELECT 1 / (CASE WHEN current_database()='neondb' AND EXISTS (
+  SELECT 1 FROM ccpun_admin.system_identity WHERE singleton=true
+    AND (project_id,branch_id) IN (
+      ('young-term-47483330','br-crimson-mouse-az7ajkv8'),
+      ('lively-bar-43618798','br-long-resonance-b3ys5xrv')
+    )
+) THEN 1 ELSE 0 END) AS source_identity_accepted;
 
 CREATE TABLE IF NOT EXISTS ccpun_admin.seo_post_publish_job (
   job_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -39,13 +37,12 @@ CREATE INDEX IF NOT EXISTS seo_post_publish_eligible_v1
  ON ccpun_admin.seo_post_publish_job(next_attempt_at, created_at)
  WHERE state = 'queued';
 REVOKE ALL ON ccpun_admin.seo_post_publish_job FROM PUBLIC;
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ccpun_admin_runtime')
-  THEN RAISE EXCEPTION 'SEO_POST_PUBLISH_ADMIN_RUNTIME_ROLE_MISSING'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ccpun_seo_post_publish_worker')
-  THEN CREATE ROLE ccpun_seo_post_publish_worker NOLOGIN; END IF;
-END $$;
+-- Preflight confirms the original Admin runtime role exists. The worker role
+-- is created NOLOGIN and can be made a scoped LOGIN only by the owner.
+SELECT 1 / (CASE WHEN EXISTS (SELECT 1 FROM pg_roles
+  WHERE rolname='ccpun_admin_runtime') THEN 1 ELSE 0 END)
+  AS admin_runtime_role_accepted;
+CREATE ROLE ccpun_seo_post_publish_worker NOLOGIN;
 GRANT USAGE ON SCHEMA ccpun_admin TO ccpun_seo_post_publish_worker;
 GRANT SELECT, INSERT ON ccpun_admin.seo_post_publish_job TO ccpun_admin_runtime;
 GRANT UPDATE(owner_approved) ON ccpun_admin.seo_post_publish_job TO ccpun_admin_runtime;
