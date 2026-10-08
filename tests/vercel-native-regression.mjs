@@ -153,7 +153,7 @@ assert.match(sanityProvider, /category->slug\.current/);
 const provider = read('lib/content/provider.ts');
 assert.match(provider, /hasSanityConfig \? sanityContentProvider : localContentProvider/);
 
-const blogSitemap = read('app/sitemaps/blog.xml/route.ts');
+const blogSitemap = read('lib/sitemap/routes/blog.ts');
 assert.match(blogSitemap, /includeDrafts:\s*false/);
 assert.match(blogSitemap, /getArticleCanonical/);
 assert.match(blogSitemap, /filter\(isArticleCanonicalAligned\)/);
@@ -501,10 +501,10 @@ const publicDiscoverySurface = [
   read('components/layout/website-43/Website43Navbar.tsx'),
   read('lib/nav-config.json'),
   read('public/nav-config.json'),
-  read('app/sitemap.xml/route.ts'),
-  read('app/sitemaps/core.xml/route.ts'),
-  read('app/sitemaps/tools.xml/route.ts'),
-  read('app/sitemaps/blog.xml/route.ts'),
+  read('lib/sitemap/routes/index.ts'),
+  read('lib/sitemap/routes/core.ts'),
+  read('lib/sitemap/routes/tools.ts'),
+  read('lib/sitemap/routes/blog.ts'),
 ].join('\n');
 assert.doesNotMatch(publicDiscoverySurface, /\/snt-admin\//, 'Admin routes must stay out of public navigation and sitemaps');
 

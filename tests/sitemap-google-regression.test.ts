@@ -112,7 +112,9 @@ test("protects Google publish eligibility and sets one meaningful publication ti
 
 
 for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}utility compliance and private error surfaces out of search ownership`, () => {
-  const coreSitemap = readSource(`${appRoot}app/sitemaps/core.xml/route.ts`);
+  const coreWrapper = readSource(appRoot + "app/sitemaps/core.xml/route.ts");
+  const coreSitemap = readSource("lib/sitemap/routes/core.ts");
+  assert.match(coreWrapper, /export \{ GET \} from ["']@\/lib\/sitemap\/routes\/core["']/);
   const cookieRoute = readSource(`${appRoot}app/cookie-policy/page.tsx`);
   assert.match(cookieRoute, /export \{ metadata, default \} from ["']@\/features\/legal\/pages\/CookiePolicyPage["']/);
   const cookiePolicy = readSource("features/legal/pages/CookiePolicyPage.tsx");
@@ -141,4 +143,30 @@ test("active Web core sitemap and private error headers enforce the search bound
   assert.deepEqual(headers.find((rule) => rule.source === "/admin-not-found/:path*")?.headers, [
     { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
   ]);
+});
+
+test("preserves static sitemap XML responses for legacy and canonical Web routes", async () => {
+  const routeSpecs = [
+    ["sitemap.xml/route", ["https://ccpun.com/sitemaps/core.xml", "https://ccpun.com/sitemaps/tools.xml", "https://ccpun.com/sitemaps/blog.xml"]],
+    ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/"]],
+    ["sitemaps/tools.xml/route", ["https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/"]],
+  ] as const;
+  const legacyIndex = await import("../app/sitemap.xml/route");
+  const webIndex = await import("../apps/web/app/sitemap.xml/route");
+  const legacyCore = await import("../app/sitemaps/core.xml/route");
+  const webCore = await import("../apps/web/app/sitemaps/core.xml/route");
+  const legacyTools = await import("../app/sitemaps/tools.xml/route");
+  const webTools = await import("../apps/web/app/sitemaps/tools.xml/route");
+  const handlers = [[legacyIndex, webIndex], [legacyCore, webCore], [legacyTools, webTools]];
+  for (let index = 0; index < routeSpecs.length; index++) {
+    const [path, urls] = routeSpecs[index];
+    const [legacy, web] = handlers[index];
+    const [legacyResponse, webResponse] = [legacy.GET(), web.GET()];
+    assert.equal(legacyResponse.headers.get("content-type"), webResponse.headers.get("content-type"), path);
+    const legacyXml = await legacyResponse.text();
+    const webXml = await webResponse.text();
+    assert.equal(legacyXml, webXml, path + " legacy and canonical output diverged");
+    for (const url of urls) assert.ok(webXml.includes(url), path + " missing " + url);
+    assert.doesNotMatch(webXml, /https:\/\/admin\.ccpun\.com/);
+  }
 });

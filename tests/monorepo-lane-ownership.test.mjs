@@ -68,3 +68,23 @@ test('legacy root mirrors are compatibility debt, never justification to create 
   const newPairs = report.compatibilityMirrors.filter(({legacy,canonical}) => !approved.has([legacy,canonical].join('\0')));
   assert.deepEqual(newPairs,[], 'New duplicate root routes require replacing the clone with an owned feature or documented exception');
 });
+
+test('Web sitemap routes have exactly one implementation but keep both route entrypoints', () => {
+  const routes = [
+    ['sitemap.xml/route.ts', 'index', 'force-static'],
+    ['sitemaps/core.xml/route.ts', 'core', 'force-static'],
+    ['sitemaps/tools.xml/route.ts', 'tools', 'force-static'],
+    ['sitemaps/blog.xml/route.ts', 'blog', 'force-dynamic'],
+  ];
+  for (const [route, moduleName, dynamic] of routes) {
+    const expected = 'export const dynamic = "' + dynamic + '";\n'
+      + 'export { GET } from "@/lib/sitemap/routes/' + moduleName + '";\n';
+    for (const prefix of ['app/', 'apps/web/app/']) {
+      const source = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
+      assert.equal(source, expected, prefix + route + ' must retain Next runtime config and shared implementation');
+    }
+    const implementation = readFileSync(new URL('../lib/sitemap/routes/' + moduleName + '.ts', import.meta.url), 'utf8');
+    assert.match(implementation, /export (async )?function GET\(/);
+    assert.doesNotMatch(implementation, /export const dynamic/);
+  }
+});

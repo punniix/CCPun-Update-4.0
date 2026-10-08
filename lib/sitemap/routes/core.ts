@@ -1,0 +1,10 @@
+import { renderUrlSet, xmlResponse } from "@/lib/sitemap/xml";
+
+export function GET() {
+  return xmlResponse(
+    renderUrlSet([
+      { loc: "https://ccpun.com/" },
+      { loc: "https://ccpun.com/privacy/" },
+    ]),
+  );
+}

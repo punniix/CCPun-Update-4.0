@@ -29,3 +29,16 @@ Other 101 preexisting route-path pairs remain. Thirty historically differed and 
 No UX Improvement branch/worktree, Draft Investment Allocation PR #165, main WIP, Sanity/Neon, SEO canonical/sitemap/robots, content, assets, Hosting runtime, DNS or release identity was altered as part of this source change.
 
 Validate with Architecture Test, legal content regression and Web/Admin shadow CI. Promote to the four Hostinger lanes only as a separately approved SHA-pinned release after parity and rollback checks; do not replace Web UAT UX with this housekeeping branch.
+
+## P2.2 follow-up: Four Sitemap XML route implementations
+
+A follow-up source-only pass consolidates the four public sitemap handlers from identical legacy and canonical Web copies into:
+
+- lib/sitemap/routes/index.ts: sitemap index
+- lib/sitemap/routes/core.ts: core static URLs
+- lib/sitemap/routes/tools.ts: tool URLs
+- lib/sitemap/routes/blog.ts: published-only articles, Category Registry, indexable semantic hubs and 503 fallback
+
+Both app/.../route.ts and apps/web/app/.../route.ts keep exact route paths and explicit Next.js route-segment dynamic exports (force-static for index/core/tools and force-dynamic for blog). They re-export the same GET function. Existing URL and response semantics, Sanity eligibility checks and fail-closed behavior remain unchanged. No external writes or provider configuration changes.
+
+Tests include exact wrapper/dynamic export contracts, identical legacy/canonical XML responses for static routes, SEO category and draft checks, search boundary checks and cross-lane runtime import guards. This is not permission to delete any route entrypoint, remove cache, update Web UAT UX, merge PR #165, or deploy current Hostinger Production. Production remains pinned to the previously approved release until separately reviewed and promoted.
