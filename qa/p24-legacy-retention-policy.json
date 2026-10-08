@@ -1,0 +1,57 @@
+{
+  "purpose": "P2.4 retained compatibility/historical Vercel files after confirmed Hostinger cutover; not live deploy or cron ownership",
+  "authority": "docs/architecture/ccpun-four-lane-deployment-contract.md",
+  "retained": [
+    {
+      "path": "vercel.json",
+      "group": "historical-build-compat",
+      "reason": "Still referenced by Vercel-native tests and can be used for non-live legacy build routing; not a production deployment pointer."
+    },
+    {
+      "path": "apps/web/vercel.json",
+      "group": "historical-app-root-preview",
+      "reason": "Shadow routing and Vercel-era app-root regression consumer; not Hostinger runtime."
+    },
+    {
+      "path": "apps/admin/vercel.json",
+      "group": "historical-app-root-preview",
+      "reason": "Admin legacy tests read this file; no operational crons permitted."
+    },
+    {
+      "path": ".vercelignore",
+      "group": "historical-build-filter",
+      "reason": "Does not alter Hostinger build; retained to reproduce historical build behavior."
+    },
+    {
+      "path": "scripts/vercel-ignore-build.mjs",
+      "group": "historical-build-gate",
+      "reason": "Used by root and app-level Vercel configs and by legacy routing tests; cannot delete in isolation."
+    },
+    {
+      "path": "lib/runtime/vercel-service-auth.ts",
+      "group": "compatibility-security-code",
+      "reason": "Retain old signature/auth handling until import/dependency removal has explicit per-consumer proof."
+    },
+    {
+      "path": "docs/architecture/vercel-monorepo-migration-20260917.md",
+      "group": "historical-audit-receipt",
+      "reason": "Dated Vercel-era migration description, superseded by the four-lane authority."
+    },
+    {
+      "path": "docs/architecture/vercel-final-retirement-20261008.md",
+      "group": "historical-retirement-receipt",
+      "reason": "Evidence of retired service; not an active instruction to re-enable Vercel."
+    },
+    {
+      "path": "qa/legacy-url-ledger.json",
+      "group": "seo-rollback-evidence",
+      "reason": "Legacy URL/redirect proof required for search parity and rollback; not removable."
+    }
+  ],
+  "prohibitions": [
+    "No active Vercel crons or provider executors",
+    "Do not change four Hostinger lane domains/identities",
+    "Do not delete legacy route entrypoints or public blog-migration media",
+    "Do not rewrite archive docs as present-day runtime authority"
+  ]
+}
