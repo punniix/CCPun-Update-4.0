@@ -12,19 +12,19 @@
     "@neondatabase/serverless": "^1.1.0",
     "@sanity/client": "^7.26.2",
     "clsx": "^2.1.1",
-    "jose": "^6.2.9",
+    "jose": "^6.2.12",
     "lucide-react": "^0.575.0",
     "next": "16.3.8",
     "next-auth": "5.0.0-beta.32",
-    "next-sanity": "^13.3.3",
+    "next-sanity": "^13.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sanity": "^6.13.1",
     "sharp": "^0.35.5",
     "styled-components": "^6.1.19",
     "tailwind-merge": "^3.5.0",
-    "workflow": "^4.8.9",
-    "zod": "^4.3.6"
+    "workflow": "^4.8.12",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
