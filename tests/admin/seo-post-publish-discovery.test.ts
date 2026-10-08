@@ -52,7 +52,10 @@ test("owner publish queues the supported discovery pipeline without using the ge
   const runner = read("lib/admin/seo-intelligence/post-publish-runner.ts");
   assert.match(action, /publishApprovedArticle[\s\S]*\/api\/admin\/seo\/post-publish\//);
   assert.match(route, /identity\.role !== "owner"/);
-  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /isPostPublishAdminOriginAllowed/);
+  const originPolicy = read("lib/admin/seo-intelligence/post-publish-origin.ts");
+  assert.match(originPolicy, /isSameOriginAdminMutation/);
+  assert.match(originPolicy, /x-forwarded-host/);
   assert.match(route, /getAdminEnvironment\(\) !== "production-admin"/);
   assert.match(route, /enqueuePublishedSeoArticle/);
   assert.doesNotMatch(route, /after\(async \(\) =>/);
