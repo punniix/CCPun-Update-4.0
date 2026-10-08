@@ -148,7 +148,7 @@ test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO
 });
 
 test("Blog sitemap exposes useful indexable hub nodes while archive omits topic navigation", () => {
-  const sitemap = source("app/sitemaps/blog.xml/route.ts");
+  const sitemap = source("lib/sitemap/routes/blog.ts");
   const blogPage = source("features/blog/pages/BlogArchivePage.tsx");
   const blogPresentation = source("features/blog/website-43/Website43Blog.tsx");
   const blogData = source("features/blog/website-43/blogData.ts");
