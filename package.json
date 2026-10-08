@@ -14,7 +14,7 @@
     "build": "node scripts/build-root.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test:architecture": "node scripts/check-deployment-contract.mjs && node scripts/check-repository-architecture.mjs && node scripts/check-app-runtime-boundaries.mjs && node scripts/check-p0-execution-ownership.mjs && node --import tsx --test tests/content-runtime-environment.test.ts tests/deployment-identity.test.ts tests/deployment-contract.test.ts",
+    "test:architecture": "node scripts/check-deployment-contract.mjs && node scripts/check-repository-architecture.mjs && node scripts/check-app-runtime-boundaries.mjs && node scripts/check-p0-execution-ownership.mjs && node --test tests/monorepo-lane-ownership.test.mjs && node --import tsx --test tests/content-runtime-environment.test.ts tests/deployment-identity.test.ts tests/deployment-contract.test.ts",
     "audit:public-css": "node scripts/audit-public-css-usage.mjs",
     "audit:public-assets": "node scripts/audit-public-assets.mjs",
     "audit:public-architecture": "node scripts/audit-public-architecture.mjs",

@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 const ROOT = process.cwd();
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
-const SCAN_DIRS = ['app', 'features', 'components', 'lib', 'cms', 'db'];
+const SCAN_DIRS = ['app', 'apps', 'features', 'components', 'lib', 'cms', 'db', 'workers'];
 const ROOT_FILES = ['auth.ts', 'proxy.ts', 'next.config.ts'];
 const IGNORE_PARTS = new Set(['node_modules', '.next', '.git', '.ccpun-local']);
 
@@ -55,32 +55,22 @@ async function resolveLocal(fromFile, specifier) {
   return null;
 }
 
+// The browser-facing apps own their routes. Root app/ is a legacy compatibility
+// tree, not the production Web/Admin entrypoint in the four Hostinger lanes.
 function isWebEntry(file) {
-  return file === 'app/page.tsx'
-    || file === 'app/not-found.tsx'
-    || file === 'app/robots.ts'
-    || file.startsWith('app/blog/')
-    || file.startsWith('app/ci-planning/')
-    || file.startsWith('app/cookie-policy/')
-    || file.startsWith('app/privacy/')
-    || file.startsWith('app/sitemap.xml/')
-    || file.startsWith('app/sitemaps/')
-    || file.startsWith('app/tools/');
+  return file.startsWith('apps/web/app/')
+    || ['apps/web/proxy.ts', 'apps/web/next.config.ts', 'apps/web/runtime-environment.ts'].includes(file);
 }
 
 function isAdminEntry(file) {
-  return file === 'auth.ts'
-    || file.startsWith('app/(control-plane)/')
-    || file.startsWith('app/(control-plane-auth)/')
-    || file.startsWith('app/(control-plane-error)/')
-    || file.startsWith('app/api/admin/')
-    || file.startsWith('app/api/auth/')
-    || file.startsWith('app/api/preview/')
-    || file.startsWith('app/studio/');
+  return file.startsWith('apps/admin/app/')
+    || ['apps/admin/proxy.ts', 'apps/admin/next.config.ts', 'auth.ts'].includes(file);
 }
 
 function isRouteLike(file) {
-  return file.startsWith('app/') && /\/(?:page|route|layout|loading|error|not-found|robots)\.(?:ts|tsx|js|jsx)$/.test(`/${file}`);
+  return (file.startsWith('app/') || file.startsWith('apps/web/app/') || file.startsWith('apps/admin/app/'))
+    && ['page', 'route', 'layout', 'loading', 'error', 'not-found', 'robots', 'sitemap', 'manifest']
+      .some((name) => ['.ts', '.tsx', '.js', '.jsx'].some((ext) => file.endsWith('/' + name + ext)));
 }
 
 function externalPackage(specifier) {
@@ -89,7 +79,7 @@ function externalPackage(specifier) {
   return specifier.split('/')[0];
 }
 
-async function main() {
+async function main({ log = true } = {}) {
   const absoluteFiles = [];
   for (const dir of SCAN_DIRS) await walk(path.join(ROOT, dir), absoluteFiles);
   for (const file of ROOT_FILES) if (await exists(path.join(ROOT, file))) absoluteFiles.push(path.join(ROOT, file));
@@ -147,8 +137,24 @@ async function main() {
   const webOnly = [...web].filter((file) => !admin.has(file)).sort();
   const adminOnly = [...admin].filter((file) => !web.has(file)).sort();
   const boundaryEntrypoints = ['app/layout.tsx', 'proxy.ts', 'next.config.ts'].filter((file) => sourceByFile.has(file));
-  const assigned = new Set([...web, ...admin, ...boundaryEntrypoints]);
+  const legacyCompatibilityRoutes = files.filter((file) => file.startsWith('app/') && isRouteLike(file)).sort();
+  const assigned = new Set([...web, ...admin, ...boundaryEntrypoints, ...legacyCompatibilityRoutes]);
   const unassignedRoutes = files.filter((file) => isRouteLike(file) && !assigned.has(file)).sort();
+  const compatibilityMirrors = files.filter((file) => file.startsWith('app/')).flatMap((legacy) =>
+    ['web', 'admin'].flatMap((lane) => {
+      const canonical = 'apps/' + lane + '/' + legacy;
+      return sourceByFile.has(canonical)
+        ? [{ legacy, canonical, lane, identical: sourceByFile.get(legacy) === sourceByFile.get(canonical) }]
+        : [];
+    }),
+  ).sort((a, b) => a.legacy.localeCompare(b.legacy) || a.lane.localeCompare(b.lane));
+
+  // Never treat source paths shared through @/ as extra copies to remove.
+  // These are actual forbidden cross-workspace imports, not matching filenames.
+  const crossWorkspaceImports = {
+    webToAdmin: [...web].filter((file) => file.startsWith('apps/admin/')).sort(),
+    adminToWeb: [...admin].filter((file) => file.startsWith('apps/web/')).sort(),
+  };
 
   const envOwners = new Map();
   const dependencyOwners = new Map();
@@ -161,6 +167,7 @@ async function main() {
     if (web.has(file)) return 'web';
     if (admin.has(file)) return 'admin';
     if (boundaryEntrypoints.includes(file)) return 'boundary';
+    if (file.startsWith('app/')) return 'legacy-compatibility';
     return 'unassigned';
   }
   for (const file of files) {
@@ -185,7 +192,7 @@ async function main() {
   const report = {
     generatedAt: new Date().toISOString(),
     sourceFiles: files.length,
-    roots: { web: webRoots, admin: adminRoots, boundary: boundaryEntrypoints },
+    roots: { web: webRoots, admin: adminRoots, legacyCompatibility: legacyCompatibilityRoutes, boundary: boundaryEntrypoints },
     counts: {
       webReachable: web.size,
       adminReachable: admin.size,
@@ -193,7 +200,14 @@ async function main() {
       adminOnly: adminOnly.length,
       shared: shared.length,
       unassignedRoutes: unassignedRoutes.length,
+      legacyCompatibilityRoutes: legacyCompatibilityRoutes.length,
+      compatibilityMirrors: compatibilityMirrors.length,
+      identicalCompatibilityMirrors: compatibilityMirrors.filter((row) => row.identical).length,
+      webToAdminImports: crossWorkspaceImports.webToAdmin.length,
+      adminToWebImports: crossWorkspaceImports.adminToWeb.length,
     },
+    compatibilityMirrors,
+    crossWorkspaceImports,
     sharedRuntimeFiles: shared,
     sharedImporters,
     unassignedRoutes,
@@ -201,9 +215,11 @@ async function main() {
     dependencies,
   };
 
-  console.log('CCPUN_MONOREPO_BOUNDARY_AUDIT_START');
-  console.log(JSON.stringify(report, null, 2));
-  console.log('CCPUN_MONOREPO_BOUNDARY_AUDIT_END');
+  if (log) {
+    console.log('CCPUN_MONOREPO_BOUNDARY_AUDIT_START');
+    console.log(JSON.stringify(report, null, 2));
+    console.log('CCPUN_MONOREPO_BOUNDARY_AUDIT_END');
+  }
 
   const output = process.env.CCPUN_MONOREPO_AUDIT_OUTPUT?.trim();
   if (output) await writeFile(path.resolve(output), `${JSON.stringify(report, null, 2)}\n`);

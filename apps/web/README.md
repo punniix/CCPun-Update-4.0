@@ -1,14 +1,11 @@
-# CCPun Public Web
+# CCPun Public Web — Hostinger
 
-This app root is the Vercel survivor for `ccpun.com` and `www.ccpun.com`.
+The canonical Public Web source root is `apps/web`, shared by two independently configured Hostinger lanes: `ccpun.com` (Production) and `test.ccpun.com` (UAT). Source of truth for the four lanes is `lib/runtime/deployment-lanes.mjs`.
 
-## Deployment ownership
+Production currently builds from repository root `./` and publishes `apps/web/.next`; Web UAT builds from `apps/web` and publishes `.next/standalone` with its explicit entrypoint. Do **not** make one lane's build/output path match the other merely for folder symmetry.
 
-- Web-owned runtime and Web-only support changes should build `ccpun-web` and skip `ccpun-admin` in Production.
-- Admin-owned changes should not rebuild this project.
-- Shared or unknown repository changes intentionally remain fail-safe and may build both projects.
-- Preview branch suppression is defined in `apps/web/vercel.json`; Production changed-path routing is owned by `scripts/vercel-ignore-build.mjs`.
+Shared implementations are imported from root `features/`, `components/` and `lib/`; shared public assets live under `public/`. `apps/web/public` points to `../../public` in source and the Hostinger build materializes them in the runtime artifact.
 
-## Production isolation proof
+The root `app/` directory is retained for legacy/compatibility until its consumers and rollback requirements are explicitly audited. Do not add new duplicate route implementations there. Audit with `node scripts/audit-monorepo-boundaries.mjs` and run `npm run test:architecture` before promotion.
 
-This non-runtime Web-owned file was added on 2026-09-17 as a live Production routing probe after the shared-root classifier fix. Its merge is expected to create a `ccpun-web` Production deployment without creating a `ccpun-admin` Production deployment candidate.
+Pinned Production release refs must derive from reviewed `v4-production` commits and use matching Git SHA/release identity, not a moving release pointer. See `docs/architecture/p1-four-lane-source-ownership-20261008.md` and `docs/architecture/ccpun-four-lane-deployment-contract.md`.
