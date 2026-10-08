@@ -80,6 +80,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Import isolated Post-Publish Worker on Node 24 without starting an executor
+        run: node --conditions=react-server --import tsx --input-type=module -e "await import('./scripts/seo-post-publish-worker.ts')"
+      - name: Post-Publish SEO durable and URL policy regression
+        run: node --import tsx --test tests/admin/seo-post-publish-durable.test.ts tests/admin/seo-post-publish-discovery.test.ts
       - name: Hostinger migration regression
         run: npm run test:hostinger
       - name: Hostinger Web Shadow UAT environment gate

@@ -45,14 +45,13 @@ Sanity `ccb9lnw5/uat` and `ccb9lnw5/recovery` remain private during the current 
 
 ## Google Search Console
 
-Purpose: actual CCPUN organic-search observations for the read-only SEO Opportunity Engine.
+Purpose: actual CCPUN organic-search observations plus the owner-approved post-publish sitemap discovery signal. Search Analytics and URL Inspection remain observation-only.
 
-1. In Google Cloud, use a UAT provider project/client and enable **Google Search Console API**.
-2. Configure an OAuth web client only after the exact CCPUN provider callback exists.
-3. Request only `https://www.googleapis.com/auth/webmasters.readonly`.
-4. Sign in as an account that already has access to the intended Search Console property.
-5. Select the property exactly as it appears in Search Console. A Domain property is formatted like `sc-domain:ccpun.com`; a URL-prefix property must retain its exact scheme and trailing slash.
-6. Run a manual sync first. The UI must state that Search Analytics returns top rows and does not guarantee every possible query row.
+1. Existing Search Analytics / URL Inspection remain on the scoped read-only grant: `https://www.googleapis.com/auth/webmasters.readonly`.
+2. Do not upgrade the existing read token. The optional sitemap writer uses a separate owner-authorized OAuth client and refresh token on the private VPS only.
+3. After accepted UAT migration, provision CCPUN_GSC_SITEMAP_CLIENT_ID, CCPUN_GSC_SITEMAP_CLIENT_SECRET and CCPUN_GSC_SITEMAP_REFRESH_TOKEN on VPS, then explicitly accept CCPUN_GSC_SITEMAP_WRITE_ENABLED=1 for a guarded single canary.
+4. Write permission applies only to submitting the known blog sitemap on property sc-domain:ccpun.com. It is not the Google Indexing API or a per-URL request.
+5. See docs/architecture/seo-post-publish-vps-20261008.md for current ownership, retry, receipts and rollback gates.
 
 Current temporary UAT names are `CCPUN_GSC_ACCESS_TOKEN` and `CCPUN_GSC_SITE_URL`. They are server-only and branch-scoped. They are not the permanent refreshable connection design and must not be copied to Production.
 

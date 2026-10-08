@@ -18,6 +18,7 @@ test("SEO Google provider readiness validates resource identifiers and never exp
   assert.equal(gsc.refreshableConnectionReady, true);
   assert.equal(JSON.stringify(gsc).includes("redacted"), false);
   assert.equal(gsc.scope, "https://www.googleapis.com/auth/webmasters.readonly");
+  assert.match(gsc.limitation, /independent owner-authorized write credential/);
 
   const ga4 = getSeoGoogleProviderReadiness("ga4", {
     CCPUN_GOOGLE_DATA_CLIENT_ID: "redacted-client",
