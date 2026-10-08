@@ -54,6 +54,19 @@ export function createGoogleSafeArticlePublishAction(originalAction: DocumentAct
           setIsPublishing(true);
           try {
             await publishApprovedArticle(client, draft, published);
+            if (process.env.NEXT_PUBLIC_CCPUN_POST_PUBLISH_SEO_ENABLED === "1") try {
+              const queued = await fetch("/api/admin/seo/post-publish/", {
+                method: "POST", credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ articleId: draft._id.slice(7) }),
+              });
+              if (!queued.ok || queued.status !== 202) {
+                console.warn("SEO_POST_PUBLISH_QUEUE_PENDING_RECONCILIATION");
+              }
+            } catch {
+              // Publication stays authoritative; the VPS sweeper recovers a missed callback.
+              console.warn("SEO_POST_PUBLISH_QUEUE_PENDING_RECONCILIATION");
+            }
             props.onComplete();
           } catch {
             setError("ไม่สามารถยืนยันผลได้ อาจมีผู้อื่นแก้ไขบทความหรือสิทธิ์ไม่เพียงพอ");

@@ -55,6 +55,8 @@ export function getSeoGoogleProviderReadiness(
     scope: config.scope,
     refreshableConnectionReady: oauthReady,
     callbackPath: null,
-    limitation: "Owner-authorized offline access is refreshed server-side. Sync remains manual, read-only and non-persistent.",
+    limitation: provider === "gsc"
+      ? "Search Analytics and URL Inspection use read-only OAuth. Optional Sitemap Submission uses an independent owner-authorized write credential on the private VPS; this connection never gains write privileges."
+      : "Owner-authorized offline access is refreshed server-side. GA4 sync remains manual, read-only and non-persistent.",
   };
 }
