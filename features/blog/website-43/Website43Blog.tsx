@@ -40,14 +40,17 @@ const BLOG_CLIENT_CLASS_NAMES = {
   h2: styles.h2,
   articleGrid: styles.articleGrid,
   emptyState: styles.emptyState,
+  pagination: styles.pagination,
+  resultCount: styles.resultCount,
 } satisfies Website43BlogClientClassNames;
 
-export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', categories = [], topicContent, topicNavigation }: {
+export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation }: {
   articles: Website43ArticleItem[];
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
   heroDescription?: string;
   initialQuery?: string;
+  initialPage?: string;
   categories?: Website43BlogCategoryItem[];
   topicContent?: ReactNode;
   topicNavigation?: ReactNode;
@@ -83,6 +86,7 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
           featuredArticles={featuredArticles}
           activeCategorySlug={activeCategorySlug}
           initialQuery={initialQuery}
+          initialPage={initialPage}
           categories={blogCategories}
           classNames={BLOG_CLIENT_CLASS_NAMES}
         />

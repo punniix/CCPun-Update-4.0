@@ -127,3 +127,5 @@
     animation: none;
   }
 }
+
+[data-ui="human-centered-ci-expenses"] > h3, [data-ui="human-centered-calculator-card"] h3 { word-break: normal; overflow-wrap: normal; text-wrap: balance; }

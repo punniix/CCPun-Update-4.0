@@ -1418,3 +1418,33 @@
   .root .toolHeroFullBleed .toolHeroGradient { background: linear-gradient(180deg,rgba(6,11,9,.97) 0%,rgba(6,11,9,.92) 31%,rgba(6,11,9,.56) 50%,rgba(6,11,9,.24) 68%,rgba(6,11,9,.72) 100%); }
   .root .toolHeroFullBleed .primaryButton { margin: 0; }
 }
+
+/* UAT audit: preserve the visual system while making changing content fit. */
+.articleCardBody { flex: 1; }
+.articleMeta { margin-top: auto; }
+.carouselDotButton { width: 32px; height: 44px; padding: 0; background: transparent; position: relative; }
+.carouselDotButton::after { content: ''; display: block; width: 9px; height: 9px; margin: auto; border-radius: 99px; background: var(--w43-border); }
+.carouselDotButtonActive { width: 44px; background: transparent; }
+.carouselDotButtonActive::after { width: 30px; background: var(--w43-gold); }
+.carouselDotButton:hover, .carouselDotButton:focus-visible { background: transparent; }
+.carouselDotButton:hover::after, .carouselDotButton:focus-visible::after { background: var(--w43-gold-bright); }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 32px; }
+.pagination a, .pagination button { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; padding: 8px 12px; border: 1px solid var(--w43-border); border-radius: 12px; background: transparent; color: var(--w43-ink); cursor: pointer; }
+.pagination a[aria-current='page'] { color: var(--w43-deep); background: var(--w43-gold); border-color: var(--w43-gold); }
+.pagination button:disabled { opacity: .45; cursor: default; }
+.resultCount, .tableHint { color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
+.imageDetailLink, .gameEntry { color: var(--w43-gold); font-size: 14px; line-height: 1.6; }
+.imageDetailLink { display: inline-flex; min-height: 44px; align-items: center; text-decoration: underline !important; }
+.partners { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.articleHeader > .inner { width: min(1028px,100%); }
+@media (min-width:640px) and (max-width:1023px) {
+  .heroActions .outlineButton { width: 160px; white-space: nowrap; }
+  .voices { grid-template-columns: minmax(0,1fr) 1px minmax(0,1fr); gap: 24px; }
+  .journey { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .partners { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width:639px) {
+  .partners { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .pagination a { display: none; }
+  .pagination { flex-wrap: nowrap; }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getConsentData, saveConsent } from '@/lib/cookie-consent';
 
@@ -8,6 +8,7 @@ import { CategoryRow } from './CookieConsentPreferences';
 
 // ─── Main Component ───────────────────────────────────────────────
 export default function CookieConsent() {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [performance, setPerformance] = useState(false);
@@ -34,6 +35,41 @@ export default function CookieConsent() {
     window.addEventListener('ccpun:openCookieSettings', handleReopen);
     return () => window.removeEventListener('ccpun:openCookieSettings', handleReopen);
   }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const inerted: Array<{ node: HTMLElement; value: boolean }> = [];
+    let branch: HTMLElement = dialog;
+    while (branch.parentElement && branch.parentElement !== document.documentElement) {
+      for (const sibling of Array.from(branch.parentElement.children)) {
+        if (sibling !== branch && sibling instanceof window.HTMLElement && !['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName)) {
+          inerted.push({ node: sibling, value: sibling.inert });
+          sibling.inert = true;
+        }
+      }
+      branch = branch.parentElement;
+    }
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialog.focus();
+    const containFocus = (event: FocusEvent) => {
+      if (!dialog.contains(event.target as Node)) dialog.focus();
+    };
+    document.addEventListener('focusin', containFocus);
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      for (const { node, value } of inerted) node.inert = value;
+      document.body.style.overflow = oldOverflow;
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible) dialogRef.current?.focus({ preventScroll: true });
+  }, [visible, showPanel]);
 
   function handleAcceptAll() {
     saveConsent({
@@ -69,9 +105,24 @@ export default function CookieConsent() {
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          if (showPanel) setShowPanel(false); else setVisible(false);
+        }
+        if (event.key === 'Tab') {
+          const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]')).filter(node => node.getClientRects().length > 0);
+          const first = controls[0], last = controls.at(-1);
+          if (!first) { event.preventDefault(); return; }
+          if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first.focus(); }
+        }
+      }}
       role="dialog"
-      aria-labelledby="cookie-title"
-      aria-describedby="cookie-desc"
+      aria-labelledby={showPanel ? "cookie-settings-title" : "cookie-title"}
+      aria-describedby={showPanel ? undefined : "cookie-desc"}
       aria-modal="true"
       className="fixed bottom-0 left-0 right-0 z-[70] px-4 pb-4 sm:px-6 sm:pb-6"
       style={{ animation: 'cookieBannerUp 0.35s ease both' }}
@@ -80,11 +131,14 @@ export default function CookieConsent() {
         className="max-w-3xl mx-auto"
         style={{
           background:
-            'linear-gradient(135deg, rgba(20,25,35,0.98) 0%, rgba(15,20,28,0.98) 100%)',
+            'linear-gradient(135deg, rgba(74,58,58,0.98) 0%, rgba(37,24,24,0.98) 100%)',
           border: '1px solid rgba(220,190,130,0.25)',
           borderRadius: '1rem',
           boxShadow: '0 -4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)',
           overflow: 'hidden',
+          maxHeight: 'calc(100dvh - 2rem)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* ─── Banner หลัก (ซ่อนเมื่อเปิด Panel) ─── */}
@@ -147,6 +201,8 @@ export default function CookieConsent() {
             id="cookie-preference-panel"
             style={{
               padding: '1.25rem 1.5rem 1.5rem',
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
               animation: 'cookiePanelDown 0.25s ease both',
             }}
           >

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Website43ArticleItem } from './blogData';
+import { BLOG_PAGE_SIZE, blogPage, blogPageHref } from './BlogNavigation';
 
 export type Website43BlogCategoryItem = {
   slug: string | null;
@@ -42,6 +43,8 @@ export type Website43BlogClientClassNames = {
   h2: string;
   articleGrid: string;
   emptyState: string;
+  pagination: string;
+  resultCount: string;
 };
 
 const FEATURED_REPEAT_COUNT = 3;
@@ -66,6 +69,7 @@ export default function Website43BlogInteractive({
   featuredArticles,
   activeCategorySlug = null,
   initialQuery = '',
+  initialPage = '1',
   categories,
   classNames,
 }: {
@@ -73,6 +77,7 @@ export default function Website43BlogInteractive({
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
   initialQuery?: string;
+  initialPage?: string;
   categories: Website43BlogCategoryItem[];
   classNames: Website43BlogClientClassNames;
 }) {
@@ -85,6 +90,8 @@ export default function Website43BlogInteractive({
   const [activeFeatured, setActiveFeatured] = useState(0);
   const [autoplayStopped, setAutoplayStopped] = useState(false);
   const [query, setQuery] = useState(initialQuery);
+  const [requestedPage, setRequestedPage] = useState(initialPage);
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
   const featuredSource = featuredArticles ?? articles;
@@ -105,13 +112,30 @@ export default function Website43BlogInteractive({
   }, [articles, query]);
 
   useEffect(() => {
-    const syncQuery = () => setQuery(new URLSearchParams(window.location.search).get('q') ?? '');
+    const syncQuery = () => {
+      const params = new URLSearchParams(window.location.search);
+      setQuery(params.get('q') ?? '');
+      setRequestedPage(params.get('page') ?? '1');
+    };
     // A cached App Router entry can remount after popstate has already fired.
     // Read the restored URL once on mount as well as on subsequent history changes.
     syncQuery();
     window.addEventListener('popstate', syncQuery);
     return () => window.removeEventListener('popstate', syncQuery);
   }, []);
+
+  const { page, pages } = blogPage(requestedPage, filteredArticles.length);
+  const pageArticles = filteredArticles.slice((page - 1) * BLOG_PAGE_SIZE, page * BLOG_PAGE_SIZE);
+  const selectPage = (next: number) => {
+    const href = blogPageHref(window.location.href, next);
+    window.history.pushState(null, '', href);
+    setRequestedPage(String(next));
+    listHeadingRef.current?.focus({ preventScroll: true });
+    listHeadingRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  };
+  const rememberListing = () => {
+    try { sessionStorage.setItem('ccpun:blog-return', window.location.pathname + window.location.search); } catch { /* Storage is optional. */ }
+  };
 
   const centerFeaturedCard = (cardIndex: number, behavior: ScrollBehavior = 'smooth') => {
     const scroller = featuredScrollerRef.current;
@@ -198,7 +222,7 @@ export default function Website43BlogInteractive({
   };
 
   return (
-    <section className={classNames.blogContent}>
+    <section onClick={rememberListing} className={classNames.blogContent}>
       {featuredCount > 0 && <div className={classNames.inner}>
         <p className={classNames.eyebrow}>บทความแนะนำ</p>
       </div>}
@@ -259,7 +283,9 @@ export default function Website43BlogInteractive({
             onChange={(event) => {
               const value = event.target.value;
               setQuery(value);
+              setRequestedPage('1');
               const url = new URL(window.location.href);
+              url.searchParams.delete('page');
               if (value.trim()) url.searchParams.set('q', value); else url.searchParams.delete('q');
               const nativeReplaceState = window.history.replaceState;
               nativeReplaceState.call(window.history, null, '', `${url.pathname}${url.search}${url.hash}`);
@@ -302,15 +328,22 @@ export default function Website43BlogInteractive({
           </div>
         </div>
         <div className={classNames.articleListHeading}>
-          <h2 className={classNames.h2}>{activeCategory.slug ? `บทความ${activeCategory.title}` : 'บทความทั้งหมด'}</h2>
+          <h2 ref={listHeadingRef} tabIndex={-1} style={{ scrollMarginTop: 96 }} className={classNames.h2}>{activeCategory.slug ? `บทความ${activeCategory.title}` : 'บทความทั้งหมด'}</h2>
         </div>
+        <p className={classNames.resultCount} role="status">{filteredArticles.length} บทความ{filteredArticles.length > 0 ? ` · แสดง ${(page - 1) * BLOG_PAGE_SIZE + 1}–${Math.min(page * BLOG_PAGE_SIZE, filteredArticles.length)}` : ''}</p>
         {filteredArticles.length ? (
-          <div className={classNames.articleGrid}>
-            {filteredArticles.map((article) => <ArticleCard article={article} classNames={classNames} key={article.href} />)}
+          <div className={classNames.articleGrid} onClick={rememberListing}>
+            {pageArticles.map((article) => <ArticleCard article={article} classNames={classNames} key={article.href} />)}
           </div>
         ) : (
           <div className={classNames.emptyState}>ไม่พบบทความที่ตรงกับคำค้นหรือหมวดหมู่ที่เลือก</div>
         )}
+        {pages > 1 && <nav className={classNames.pagination} aria-label="หน้าบทความ">
+          <button type="button" disabled={page === 1} onClick={() => selectPage(page - 1)}>ก่อนหน้า</button>
+          <span>หน้า {page} / {pages}</span>
+          {Array.from({ length: pages }, (_, i) => i + 1).filter(n => n === 1 || n === pages || Math.abs(n - page) <= 1).map(n => <a key={n} href={blogPageHref(`/blog/${activeCategorySlug ? activeCategorySlug + '/' : ''}?q=${encodeURIComponent(query)}`, n)} aria-current={n === page ? 'page' : undefined} onClick={e => { e.preventDefault(); selectPage(n); }}>{n}</a>)}
+          <button type="button" disabled={page === pages} onClick={() => selectPage(page + 1)}>ถัดไป</button>
+        </nav>}
       </div>
     </section>
   );

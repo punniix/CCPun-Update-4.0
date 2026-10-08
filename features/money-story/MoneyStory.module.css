@@ -113,3 +113,10 @@
 @media (prefers-reduced-motion:reduce){.meterFill,.goalJourneyFill,.primary,.secondary,.choice,.recoveryChoice,.danger{transition:none!important}}
 
 @media (max-width:420px){.resultNumbers{grid-template-columns:1fr}.resultCompare{align-items:flex-start;justify-content:flex-start}.sideRight{grid-template-columns:1fr}.sidebarSection:last-child{grid-column:auto}.coverageList{grid-template-columns:1fr}.monthTop{gap:8px 10px}.balanceSummary{gap:6px}.balanceSummary span{padding:7px 8px}.balanceSummary small{font-size:9.5px}.balanceSummary strong{font-size:12.5px}.undoButton{padding-inline:9px}.card{padding-left:15px;padding-right:15px}.eventTitle{font-size:25px}.characterPickCard{flex-basis:146px}}
+
+/* Shared chrome inherits CCPun tokens from the page root. */
+.eventTitle { overflow-wrap: normal; word-break: normal; text-wrap: balance; }
+.balanceSummary small { font-size: 12px; }
+.balanceSummary strong { font-size: 14px; }
+@media (min-width:681px) and (max-width:1120px) { .sideRight > .sidebarSection { padding-top: 16px; } }
+@media (max-width:680px) { .sideRight { grid-template-columns: 1fr; } .coverageList { grid-template-columns: 1fr; } .balanceSummary small { font-size: 12px; } .balanceSummary strong { font-size: 14px; } }

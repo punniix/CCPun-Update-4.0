@@ -235,3 +235,5 @@
   .navOverlay { top: 20px; width: calc(100% - var(--w43-nav-gutter, 24px) - var(--w43-nav-gutter, 24px)); }
   .notFoundNavBand { height: 104px; padding-bottom: 28px; }
 }
+
+.navLinks a[aria-current='page'], .navToolsButton[data-active='true'], .mobileMenu a[aria-current='page'], .mobileTools > button[data-active='true'] { color: var(--w43-gold); text-decoration: underline; text-decoration-color: var(--w43-gold); text-underline-offset: 8px; }

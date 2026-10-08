@@ -2,6 +2,7 @@ import Image from 'next/image';
 import type { ReactNode } from 'react';
 import type { ArticleBlock, ArticleRichText } from '@/lib/content/types';
 import styles from '@/components/layout/website-43/Website43.module.css';
+import { ArticleTableAccess } from './ArticleDetailAccess';
 
 function richContent(content: ArticleRichText) {
   const segments = content.segments?.length ? content.segments : [{ text: content.text }];
@@ -42,6 +43,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return (
         <figure className={styles.articleInlineFigure} key={key}>
           <Image src={item.src} alt={item.alt} width={item.width} height={item.height} sizes="(max-width: 767px) calc(100vw - 48px), 720px" loading="lazy" />
+          <a href={item.src} target="_blank" rel="noopener noreferrer" className={styles.imageDetailLink}>ดูภาพขนาดใหญ่ <span className="sr-only">(เปิดในแท็บใหม่)</span></a>
           {(item.caption || item.credit) && <figcaption>{item.caption}{item.caption && item.credit ? ' · ' : ''}{item.credit ? `เครดิต: ${item.credit}` : ''}</figcaption>}
         </figure>
       );
@@ -70,12 +72,12 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
     }
     if (item.type === 'table') {
       return (
-        <div className={styles.articleTableWrap} key={key}>
+        <ArticleTableAccess key={key}>
           <table className={styles.articleTable}>
             {item.headers.length > 0 && <thead><tr>{item.headers.map((header, cellIndex) => <th key={`${key}-header-${cellIndex}`}>{header}</th>)}</tr></thead>}
             <tbody>{item.rows.map((row, rowIndex) => <tr key={`${key}-row-${rowIndex}`}>{row.map((cell, cellIndex) => <td key={`${key}-${rowIndex}-${cellIndex}`}>{cell}</td>)}</tr>)}</tbody>
           </table>
-        </div>
+        </ArticleTableAccess>
       );
     }
     if (item.type === 'divider') return <hr className={styles.articleDivider} key={key} />;

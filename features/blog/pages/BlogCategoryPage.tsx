@@ -214,6 +214,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
         heroDescription={category.description ?? hub?.description}
         topicContent={buildTopicIntro(hub)}
         initialQuery={initialQuery}
+        initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
         categories={categoryMenu(registry, includeDrafts)}
       />
     </>;
@@ -246,6 +247,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
       heroDescription={hub.description}
       topicContent={buildTopicIntro(hub)}
       initialQuery={initialQuery}
+        initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
       categories={categoryMenu(registry, includeDrafts)}
     />
   </>;

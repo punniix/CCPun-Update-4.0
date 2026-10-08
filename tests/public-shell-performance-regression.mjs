@@ -203,9 +203,10 @@ assert.doesNotMatch(
 );
 assert.match(
   website43ResponsiveStyles,
-  /\.\$\{styles\.homeHero\}\s*\{[\s\S]*height:\s*clamp\(740px,[\s\S]*760px\)/,
-  'Mobile Home hero must interpolate between the 390 canonical and 600 transition reference instead of locking one height',
+  /\.\$\{styles\.homeHero\}\s*\{\s*height:\s*auto;\s*min-height:\s*780px;/,
+  'Mobile Home hero must expand with its text instead of clipping the proof line at a fixed height',
 );
+assert.match(website43ResponsiveStyles, /\.\$\{styles\.homeHeroCopy\}\s*\{\s*position:\s*relative;[\s\S]*padding-bottom:\s*28px;/, 'Mobile hero copy must contribute its complete height including proof to hero sizing');
 assert.match(
   website43ResponsiveStyles,
   /\.\$\{styles\.homeHeroPicture\}\s*\{[\s\S]*contain:\s*layout paint/,

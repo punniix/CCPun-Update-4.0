@@ -59,7 +59,7 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} role="alert" tabIndex={-1} className="text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <p id={id} role="alert" tabIndex={-1} className="text-sm text-[#ffb4b4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       {message}
     </p>
   );
@@ -155,7 +155,7 @@ export default function RecoveryReserveSection({
 
       <fieldset className="mt-5 space-y-3">
         <legend className="sr-only">เลือก Recovery Reserve</legend>
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid items-start gap-3 lg:grid-cols-2">
           {PRESET_ORDER.map((mode) => {
             const preset = CI_RECOVERY_PRESETS[mode];
             const isSelected = selected === mode;
@@ -182,7 +182,7 @@ export default function RecoveryReserveSection({
                 </label>
 
                 <details className="mt-3 border-t border-white/10 pt-3">
-                  <summary className="cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     ดูรายละเอียดการคำนวณ
                   </summary>
                   <div className="mt-3 space-y-3">
@@ -200,7 +200,7 @@ export default function RecoveryReserveSection({
             );
           })}
 
-          <article className={`rounded-2xl border p-4 transition-colors ${selected === 'custom' ? 'border-primary/60 bg-primary/[0.08]' : 'border-white/10 bg-white/[0.02]'}`}>
+          <article className={`lg:col-span-2 rounded-2xl border p-4 transition-colors ${selected === 'custom' ? 'border-primary/60 bg-primary/[0.08]' : 'border-white/10 bg-white/[0.02]'}`}>
             <label htmlFor="ci-recovery-choice-custom" className="flex min-h-11 cursor-pointer items-start gap-3">
               <input
                 id="ci-recovery-choice-custom"
@@ -220,7 +220,7 @@ export default function RecoveryReserveSection({
             </label>
 
             <div className="mt-4 space-y-2">
-              <label htmlFor="ci-recovery-custom-target" className="text-xs text-white/65">เงินสำรองที่อยากเผื่อ</label>
+              <label htmlFor="ci-recovery-custom-target" className="block min-h-10 text-xs text-white/65">เงินสำรองที่อยากเผื่อ</label>
               <CurrencyInput
                 id="ci-recovery-custom-target"
                 value={selected === 'custom' ? recovery.targetReserve : 0}
@@ -242,7 +242,7 @@ export default function RecoveryReserveSection({
 
             {selected === 'custom' ? (
               <details className="mt-3 border-t border-white/10 pt-3">
-                <summary className="cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   ดูและแก้ไขรายการย่อย
                 </summary>
                 <div className="mt-4 space-y-5">
@@ -261,7 +261,7 @@ export default function RecoveryReserveSection({
                       </p>
                     ) : null}
                     {recoveryPreview.overBudget > 0 ? (
-                      <p className="mt-2 text-xs leading-5 text-destructive">
+                      <p className="mt-2 text-xs leading-5 text-[#ffb4b4]">
                         รายละเอียดที่ปรับสูงกว่าเงินก้อนที่ตั้งไว้ <strong>{baht(recoveryPreview.overBudget)}</strong>
                       </p>
                     ) : null}
@@ -269,9 +269,9 @@ export default function RecoveryReserveSection({
 
                   <section className="space-y-4" aria-labelledby="ci-recovery-custom-services">
                     <h5 id="ci-recovery-custom-services" className="text-sm font-medium text-foreground">การติดตาม การดูแล และการฟื้นฟู</h5>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-treatment-visits" className="text-xs text-white/65">ติดตามรักษา · จำนวนครั้ง</label>
+                        <label htmlFor="ci-recovery-treatment-visits" className="block min-h-10 text-xs text-white/65">ติดตามรักษา · จำนวนครั้ง</label>
                         <input
                           id="ci-recovery-treatment-visits"
                           type="number"
@@ -285,12 +285,12 @@ export default function RecoveryReserveSection({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-treatment-rate" className="text-xs text-white/65">ประมาณต่อครั้ง</label>
+                        <label htmlFor="ci-recovery-treatment-rate" className="block min-h-10 text-xs text-white/65">ประมาณต่อครั้ง</label>
                         <CurrencyInput id="ci-recovery-treatment-rate" value={recovery.treatmentVisitUnitCost} onChange={(value) => updateCustomNumber('treatmentVisitUnitCost', value)} />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-caregiver-days" className="text-xs text-white/65">ผู้ดูแล · จำนวนวัน</label>
+                        <label htmlFor="ci-recovery-caregiver-days" className="block min-h-10 text-xs text-white/65">ผู้ดูแล · จำนวนวัน</label>
                         <input
                           id="ci-recovery-caregiver-days"
                           type="number"
@@ -304,12 +304,12 @@ export default function RecoveryReserveSection({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-caregiver-rate" className="text-xs text-white/65">ประมาณต่อวัน</label>
+                        <label htmlFor="ci-recovery-caregiver-rate" className="block min-h-10 text-xs text-white/65">ประมาณต่อวัน</label>
                         <CurrencyInput id="ci-recovery-caregiver-rate" value={recovery.caregiverDailyCost} onChange={(value) => updateCustomNumber('caregiverDailyCost', value)} />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-rehab-sessions" className="text-xs text-white/65">กายภาพ/ฟื้นฟู · จำนวนครั้ง</label>
+                        <label htmlFor="ci-recovery-rehab-sessions" className="block min-h-10 text-xs text-white/65">กายภาพ/ฟื้นฟู · จำนวนครั้ง</label>
                         <input
                           id="ci-recovery-rehab-sessions"
                           type="number"
@@ -323,7 +323,7 @@ export default function RecoveryReserveSection({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-rehab-rate" className="text-xs text-white/65">ประมาณต่อครั้ง</label>
+                        <label htmlFor="ci-recovery-rehab-rate" className="block min-h-10 text-xs text-white/65">ประมาณต่อครั้ง</label>
                         <CurrencyInput id="ci-recovery-rehab-rate" value={recovery.rehabUnitCost} onChange={(value) => updateCustomNumber('rehabUnitCost', value)} />
                       </div>
                     </div>
@@ -331,17 +331,17 @@ export default function RecoveryReserveSection({
 
                   <section className="space-y-3 border-t border-white/10 pt-4" aria-labelledby="ci-recovery-custom-items">
                     <h5 id="ci-recovery-custom-items" className="text-sm font-medium text-foreground">อุปกรณ์ บ้าน และเงินเผื่อ</h5>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
                       {AMOUNT_FIELDS.map(({ field, label, help }) => (
                         <div key={field} className="space-y-2">
-                          <label htmlFor={`ci-recovery-${field}`} className="text-xs text-white/65">{label}</label>
+                          <label htmlFor={`ci-recovery-${field}`} className="block min-h-10 text-xs text-white/65">{label}</label>
                           <CurrencyInput
                             id={`ci-recovery-${field}`}
                             value={recovery[field]}
                             onChange={(value) => updateCustomAmount(field, value)}
                             showZero
                           />
-                          {help ? <p className="text-[11px] leading-4 text-white/45">{help}</p> : null}
+                          {help ? <p className="text-[11px] leading-4 text-muted-foreground">{help}</p> : null}
                         </div>
                       ))}
                     </div>
@@ -396,7 +396,7 @@ export default function RecoveryReserveSection({
       )}
 
       <details className="mt-4 border-t border-white/10 pt-4">
-        <summary className="cursor-pointer text-xs font-medium text-white/60 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-white/60 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           ที่มาของตัวเลขประมาณการ
         </summary>
         <div className="mt-3 space-y-3 text-xs leading-5 text-white/50">

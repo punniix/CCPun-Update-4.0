@@ -20,7 +20,7 @@ function MoneyField({ id, label, help, value, onChange, error }: { id: keyof Lif
   return <div className="space-y-2">
     <label htmlFor={id} className="text-sm font-medium text-foreground">{label}</label>
     <CurrencyInput id={id} value={value} onChange={onChange} placeholder="เช่น 30,000" error={error} aria-describedby={describedBy} />
-    {help && <p id={helpId} className="text-xs leading-5 text-white/45">{help}</p>}
+    {help && <p id={helpId} className="text-xs leading-5 text-muted-foreground">{help}</p>}
   </div>;
 }
 
@@ -149,6 +149,10 @@ export default function LifeCoverageWizard() {
       <p className="ccpun-calculator-result-body">ส่วนต่างระหว่างภาระที่คุณกรอก กับทุนประกันชีวิตและสินทรัพย์ที่ตั้งใจใช้ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ</p>
     </div>
 
+    <dl className="mb-5 grid grid-cols-2 gap-3 border-y border-white/10 py-4 text-sm" aria-label="ข้อมูลที่ใช้ประเมิน">
+      <div><dt className="text-muted-foreground">ค่าใช้จ่ายครอบครัวต่อเดือน</dt><dd>{formatLifeCoverageMoney(values.householdMonthly)} บาท</dd></div>
+      <div><dt className="text-muted-foreground">ช่วงเวลาที่เลือก</dt><dd>{values.supportYears} ปี</dd></div>
+    </dl>
     <MoneyComparison need={result.need} resources={result.resources} title="ภาระที่ต้องดูแลเทียบกับทรัพยากรที่พร้อมใช้" needLabel="ภาระตามข้อมูลที่กรอก" />
 
     <dl className="ccpun-calculator-result-rows">
@@ -175,12 +179,12 @@ export default function LifeCoverageWizard() {
   return <section ref={viewRef} className="ccpun-motion-step-view" data-motion-phase={motionPhase}>
     <form noValidate onSubmit={(event) => { event.preventDefault(); next(); }}>
       <HumanCalculatorCard step={step} total={2} labelledBy={`fhc-step-${step}-title`} title={step === 1 ? 'ภาระที่ต้องดูแล' : 'ทรัพยากรที่พร้อมใช้'} description={step === 1 ? 'เริ่มจาก 3 ข้อมูลหลัก ส่วนทุนการศึกษาบุตรเพิ่มได้เมื่อมี' : 'กรอกเฉพาะเงินก้อนที่ตั้งใจนำมาใช้ในแผนนี้'} footer={footer}>
-        {error ? <p id="life-calculator-error" role="alert" className="ccpun-motion-validation rounded-xl border border-destructive/35 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">{error}</p> : null}
+        {error ? <p id="life-calculator-error" role="alert" className="ccpun-motion-validation rounded-xl border border-destructive/35 bg-destructive/10 px-3 py-2.5 text-sm text-[#ffb4b4]">{error}</p> : null}
         {step === 1 ? <>
           <MoneyField id="householdMonthly" label="ค่าใช้จ่ายครัวเรือนต่อเดือน" help="กรอกหลังหักรายได้อื่นที่ยังมีอยู่แล้ว" value={values.householdMonthly} onChange={(value) => updateValue('householdMonthly', value)} error={errorField === 'householdMonthly'} />
-          <fieldset className="space-y-2"><legend className="text-sm font-medium text-foreground">จำนวนปีที่ต้องการให้เงินก้อนรองรับ</legend><div className="flex items-center justify-between text-xs text-white/45"><span>1 ปี</span><output htmlFor="supportYears" className="text-base font-semibold tabular-nums text-primary">{values.supportYears} ปี</output><span>20 ปี</span></div><input id="supportYears" type="range" min="1" max="20" step="1" value={values.supportYears} onChange={(event) => updateValue('supportYears', Number(event.target.value))} aria-invalid={errorField === 'supportYears' || undefined} aria-describedby={errorField === 'supportYears' ? 'supportYears-help life-calculator-error' : 'supportYears-help'} aria-label="จำนวนปีที่ต้องการให้เงินก้อนรองรับ" className="min-h-11 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><p id="supportYears-help" className="text-xs leading-5 text-white/45">ปรับได้ 1–20 ปี</p></fieldset>
+          <fieldset className="space-y-2"><legend className="text-sm font-medium text-foreground">จำนวนปีที่ต้องการให้เงินก้อนรองรับ</legend><div className="flex items-center justify-between text-xs text-muted-foreground"><span>1 ปี</span><output htmlFor="supportYears" className="text-base font-semibold tabular-nums text-primary">{values.supportYears} ปี</output><span>20 ปี</span></div><input id="supportYears" type="range" min="1" max="20" step="1" value={values.supportYears} onChange={(event) => updateValue('supportYears', Number(event.target.value))} aria-invalid={errorField === 'supportYears' || undefined} aria-describedby={errorField === 'supportYears' ? 'supportYears-help life-calculator-error' : 'supportYears-help'} aria-label="จำนวนปีที่ต้องการให้เงินก้อนรองรับ" className="min-h-11 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><p id="supportYears-help" className="text-xs leading-5 text-muted-foreground">ปรับได้ 1–20 ปี</p></fieldset>
           <MoneyField id="debt" label="หนี้คงเหลือทั้งหมด (ถ้ามี)" help="รวมบ้าน รถ บัตรเครดิต และสินเชื่อที่ต้องการให้เงินก้อนนี้รองรับ" value={values.debt} onChange={(value) => updateValue('debt', value)} error={errorField === 'debt'} />
-          <details open={educationOpen} className="group border-t border-white/10 pt-4"><summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">เพิ่มทุนการศึกษาบุตร (ถ้ามี)</summary><div className="mt-4"><MoneyField id="education" label="ทุนการศึกษารวมที่ต้องการเตรียม" help="รวมค่าเล่าเรียนและค่าใช้จ่ายที่ตั้งใจดูแล" value={values.education} onChange={(value) => updateValue('education', value)} error={errorField === 'education'} /></div></details>
+          <details open={educationOpen} className="group border-t border-white/10 pt-4"><summary className="min-h-11 py-3 cursor-pointer text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">เพิ่มทุนการศึกษาบุตร (ถ้ามี)</summary><div className="mt-4"><MoneyField id="education" label="ทุนการศึกษารวมที่ต้องการเตรียม" help="รวมค่าเล่าเรียนและค่าใช้จ่ายที่ตั้งใจดูแล" value={values.education} onChange={(value) => updateValue('education', value)} error={errorField === 'education'} /></div></details>
         </> : <>
           <MoneyField id="existingLifeCoverage" label="ทุนประกันชีวิตที่มีอยู่" help="กรอกเฉพาะทุนที่ตั้งใจให้ครอบครัวใช้ตามแผนนี้" value={values.existingLifeCoverage} onChange={(value) => updateValue('existingLifeCoverage', value)} error={errorField === 'existingLifeCoverage'} />
           <MoneyField id="liquidAssets" label="สินทรัพย์สภาพคล่องที่ตั้งใจใช้" help="ไม่หักเงินสำรองฉุกเฉินโดยอัตโนมัติ เพื่อไม่ให้นับเงินก้อนเดียวซ้ำ" value={values.liquidAssets} onChange={(value) => updateValue('liquidAssets', value)} error={errorField === 'liquidAssets'} />

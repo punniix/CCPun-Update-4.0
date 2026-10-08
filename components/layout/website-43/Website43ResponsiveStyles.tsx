@@ -48,7 +48,7 @@ export function Website43ResponsiveStyles() {
 .${styles.legalBody} > .${styles.inner},
 .${styles.footerWrap} > .${styles.inner} {
   width: var(--w43-shell-width);
-  max-width: none;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -61,8 +61,8 @@ export function Website43ResponsiveStyles() {
 }
 
 .${styles.about} {
-  padding-left: var(--w43-hero-gutter);
-  padding-right: var(--w43-hero-gutter);
+  padding-left: var(--w43-content-gutter);
+  padding-right: var(--w43-content-gutter);
 }
 
 .${styles.homeHeroCopy} {
@@ -120,7 +120,7 @@ export function Website43ResponsiveStyles() {
 }
 .${styles.legalGrid} {
   width: min(988px, calc(100vw - 112px));
-  max-width: none;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -449,7 +449,8 @@ export function Website43ResponsiveStyles() {
   }
 
   .${styles.homeHero} {
-    height: clamp(740px, calc(9.52381vw + 702.857px), 760px);
+    height: auto;
+    min-height: 780px;
     isolation: isolate;
   }
   .${styles.homeHeroPicture} {
@@ -473,7 +474,12 @@ export function Website43ResponsiveStyles() {
     display: none;
   }
   .${styles.homeHeroCopy} {
-    top: clamp(104px, calc(3.80952vw + 89.1429px), 112px);
+    position: relative;
+    top: 0;
+    left: 0;
+    margin-inline: var(--w43-hero-gutter);
+    padding-top: clamp(104px, calc(3.80952vw + 89.1429px), 112px);
+    padding-bottom: 28px;
   }
   .${styles.homeHeroBody} {
     margin-top: clamp(326px, calc(1.90476vw + 318.571px), 330px);

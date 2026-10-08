@@ -21,7 +21,7 @@ interface StepProps {
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
-  return <p id={id} role="alert" tabIndex={-1} className="text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{message}</p>;
+  return <p id={id} role="alert" tabIndex={-1} className="text-sm text-[#ffb4b4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{message}</p>;
 }
 
 export default function StepExpenses({ data, updateData, errors }: StepProps) {
@@ -129,7 +129,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       <FieldError id="ci-reserve-years-error" message={errors.reserveYears} />
     </fieldset>
 
-    {errors.expenses && <p id="ci-expenses-error" role="alert" tabIndex={-1} className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.expenses}</p>}
+    {errors.expenses && <p id="ci-expenses-error" role="alert" tabIndex={-1} className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-[#ffb4b4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.expenses}</p>}
 
     <ExpenseObligationsSection
       open={hasAdvancedData}
@@ -145,6 +145,11 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       handleInstallments={handleInstallments}
     />
 
+    {planPreview && <aside className="sticky top-24 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-background p-4 text-sm" aria-label="ยอดประมาณการปัจจุบัน">
+      {planPreview.expenseBaseNeed > 0 && <span>ทุนตามรายจ่ายรวม <strong className="tabular-nums text-primary">{baht(planPreview.expenseTotalNeed)}</strong></span>}
+      {planPreview.incomeBaseNeed > 0 && <span>ทุนตามรายได้รวม <strong className="tabular-nums text-primary">{baht(planPreview.incomeTotalNeed)}</strong></span>}
+      <a href="#ci-plan-preview" className="inline-flex min-h-11 items-center text-primary underline underline-offset-4">ดูยอดแยก</a>
+    </aside>}
     <RecoveryReserveSection
       recovery={recovery}
       errors={errors}
@@ -152,7 +157,7 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       onChangeRecovery={updateRecovery}
     />
 
-    {planPreview ? <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-white/10 pt-4 text-sm sm:grid-cols-3 lg:grid-cols-4">
+    {planPreview ? <dl id="ci-plan-preview" style={{ scrollMarginTop: 96 }} className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-white/10 pt-4 text-sm sm:grid-cols-3 lg:grid-cols-4">
       <div className="min-w-0"><dt className="leading-5 text-white/70">ครัวเรือน</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(planPreview.householdNeed)}</dd></div>
       <div className="min-w-0"><dt className="leading-5 text-white/70">การศึกษา</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(planPreview.educationNeed)}</dd></div>
       <div className="min-w-0"><dt className="leading-5 text-white/70">ภาระหนี้รวม</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(planPreview.debtNeed)}</dd></div>
@@ -160,6 +165,6 @@ export default function StepExpenses({ data, updateData, errors }: StepProps) {
       <div className="min-w-0"><dt className="leading-5 text-white/70">Recovery Reserve</dt><dd className="mt-1 text-base font-medium leading-6 text-white/90 tabular-nums [overflow-wrap:anywhere]">{baht(recoveryPreview.reserveNeed)}</dd></div>
       <div className="min-w-0"><dt className="leading-5 text-white/70">ทุนตามรายจ่ายรวม</dt><dd className="mt-1 text-base font-semibold leading-6 text-primary tabular-nums [overflow-wrap:anywhere]">{planPreview.expenseBaseNeed > 0 ? baht(planPreview.expenseTotalNeed) : '—'}</dd></div>
       <div className="min-w-0"><dt className="leading-5 text-white/70">ทุนตามรายได้รวม</dt><dd className="mt-1 text-base font-semibold leading-6 text-primary tabular-nums [overflow-wrap:anywhere]">{planPreview.incomeBaseNeed > 0 ? baht(planPreview.incomeTotalNeed) : '—'}</dd></div>
-    </dl> : <p id="ci-preview-range-warning" role="status" className="border-t border-white/10 pt-4 text-xs leading-5 text-destructive">ตัวเลขบางส่วนสูงเกินช่วงที่เครื่องมือนี้แสดงตัวอย่างระหว่างกรอกได้ กรุณาตรวจสอบข้อมูลก่อนดำเนินการต่อ ระบบจะไม่คำนวณผลลัพธ์จากค่าที่เกินช่วงอย่างเงียบ ๆ</p>}
+    </dl> : <p id="ci-preview-range-warning" role="status" className="border-t border-white/10 pt-4 text-xs leading-5 text-[#ffb4b4]">ตัวเลขบางส่วนสูงเกินช่วงที่เครื่องมือนี้แสดงตัวอย่างระหว่างกรอกได้ กรุณาตรวจสอบข้อมูลก่อนดำเนินการต่อ ระบบจะไม่คำนวณผลลัพธ์จากค่าที่เกินช่วงอย่างเงียบ ๆ</p>}
   </div>;
 }

@@ -7,6 +7,7 @@ import styles from '@/components/layout/website-43/Website43.module.css';
 import { SectionHeading, Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 import Website43ArticleToc from './Website43ArticleToc';
+import BlogReturnLink from './BlogReturnLink';
 import { renderWebsite43ArticleBody } from './Website43ArticleBody';
 
 const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
@@ -66,6 +67,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
             <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
               <Link href="/">หน้าแรก</Link> <span>›</span> <Link href={`${BASE}/blog`}>บทความ</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
+            <BlogReturnLink />
             <h1 className={styles.articleHeadline}>{article.title}</h1>
             <div className={styles.articleMetaRow}>
               <p className={styles.articleHeaderMeta}>
