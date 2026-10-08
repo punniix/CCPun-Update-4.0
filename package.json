@@ -15,7 +15,7 @@
     "start": "next start",
     "lint": "eslint",
     "worker:seo-post-publish": "node --conditions=react-server --import tsx scripts/seo-post-publish-worker.ts",
-    "test:architecture": "node scripts/check-deployment-contract.mjs && node scripts/check-repository-architecture.mjs && node scripts/check-app-runtime-boundaries.mjs && node scripts/check-p0-execution-ownership.mjs && node --test tests/monorepo-lane-ownership.test.mjs && node --import tsx --test tests/content-runtime-environment.test.ts tests/deployment-identity.test.ts tests/deployment-contract.test.ts",
+    "test:architecture": "node scripts/check-deployment-contract.mjs && node scripts/check-repository-architecture.mjs && node scripts/sync-public-nav-config.mjs --check && node scripts/check-p2-source-config-closeout.mjs && node scripts/check-app-runtime-boundaries.mjs && node scripts/check-p0-execution-ownership.mjs && node --test tests/monorepo-lane-ownership.test.mjs && node --import tsx --test tests/content-runtime-environment.test.ts tests/deployment-identity.test.ts tests/deployment-contract.test.ts",
     "audit:public-css": "node scripts/audit-public-css-usage.mjs",
     "audit:public-assets": "node scripts/audit-public-assets.mjs",
     "audit:public-architecture": "node scripts/audit-public-architecture.mjs",
@@ -48,7 +48,10 @@
     "check:hostinger": "node scripts/check-hostinger-readiness.mjs",
     "qa:hostinger:parity": "node scripts/hostinger-seo-parity.mjs",
     "test:hostinger": "node --test tests/hostinger-shadow-config.test.mjs",
-    "build:hostinger": "node scripts/build-provider.mjs"
+    "build:hostinger": "node scripts/build-provider.mjs",
+    "nav:check": "node scripts/sync-public-nav-config.mjs --check",
+    "nav:sync:write": "node scripts/sync-public-nav-config.mjs --write",
+    "audit:p2-closeout": "node scripts/check-p2-source-config-closeout.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.3.1",

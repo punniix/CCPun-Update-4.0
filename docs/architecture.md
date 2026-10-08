@@ -11,6 +11,8 @@
 - [`architecture/phase4-operational-acceptance-20261007.md`](./architecture/phase4-operational-acceptance-20261007.md) — Production private-worker canary, cadence, restart and single-owner acceptance receipt
 - [`architecture/phase5-final-closure-20261007.md`](./architecture/phase5-final-closure-20261007.md) — final legacy/security/Vercel-retirement closure and remaining irreversible owner action
 - [`architecture/ccpun-four-lane-deployment-contract.md`](./architecture/ccpun-four-lane-deployment-contract.md) — machine-enforced four-lane identity/data/indexing contract
+- [`architecture/p2-source-config-legacy-closeout-20261008.md`](./architecture/p2-source-config-legacy-closeout-20261008.md) — P2.2–P2.4 source/config cleanup classification and non-destructive CI closure
+- [`architecture/post-publish-seo-owner-resume-20261008.md`](./architecture/post-publish-seo-owner-resume-20261008.md) — paused owner checklist for Post-Publish SEO credential/worker/Admin activation
 - [Durable Post-Publish SEO and VPS Worker Contract](./architecture/seo-post-publish-vps-20261008.md) — reviewed source architecture, activation gated
 - [LINE Ecosystem Activation Contract](./architecture/line-ecosystem-activation-20260918.md) — private LINE media/provider/content-intelligence/privacy activation contract and Human Gates
 - [`architecture/platform-data-architecture.md`](./architecture/platform-data-architecture.md) — runtime, environment and data ownership
