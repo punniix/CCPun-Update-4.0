@@ -1,3 +1,5 @@
+> **Hostinger 4-lane current-source note (2026-10-08):** This document contains historical Vercel/monolith guidance. For current browser-facing runtime, `apps/web` owns both Web lanes and `apps/admin` owns both Admin lanes; root `app/` is a compatibility tree. Before changing source layout or deployment use `docs/architecture/p1-four-lane-source-ownership-20261008.md`, `docs/architecture/ccpun-four-lane-deployment-contract.md`, and `lib/runtime/deployment-lanes.mjs`. Do not follow any older instruction here to deploy from root `app/` or Vercel.
+
 # CCPun Repository Architecture
 
 This document is the source of truth for source-file ownership. The goal is predictable placement and safe change boundaries, not a large number of folders. Existing public URLs, persisted Sanity names, analytics events, consent behavior, calculator results, and environment guards are contracts.
