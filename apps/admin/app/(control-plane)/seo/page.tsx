@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
+import PostPublishUatMockButton from "@/features/admin/components/PostPublishUatMockButton";
+import { isUatPostPublishMockAllowed } from "@/lib/admin/seo-intelligence/post-publish-uat-policy";
 import { datasetLabel } from "@/lib/admin/presentation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
@@ -47,6 +49,8 @@ export default async function AdminSeoPage() {
           <Link href="/dashboard/reviews/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อเสนอที่รอตรวจ</Link>
         </div>
       </div>
+
+      {isUatPostPublishMockAllowed(process.env) ? <PostPublishUatMockButton /> : null}
 
       <section className="mt-7 grid gap-3 sm:grid-cols-4">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ชุดข้อมูล</div><div className="mt-2 text-lg font-semibold">{datasetLabel(result.status.dataset)}</div></article>
