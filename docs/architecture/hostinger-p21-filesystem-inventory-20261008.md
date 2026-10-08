@@ -1,6 +1,6 @@
 # P2.1 Hostinger Cloud Startup Filesystem Inventory — 2026-10-08
 
-Status: **READ-ONLY AUDIT COMPLETE WITH DEEP CACHE LIMITATION**. No Hostinger filesystem deletion, rename, move, upload, deploy or settings mutation was performed for this audit.
+Status: **READ-ONLY P2.1 FOUR-LANE AND SHARED-CACHE INVENTORY CLOSED**. No Hostinger filesystem deletion, rename, move, upload, deploy or settings mutation was performed for this audit.
 
 ## Scope and evidence
 
@@ -19,7 +19,7 @@ All four deployments have separate site-scoped `hbuilds` directories. `current` 
 
 | Lane | `versions/` (active runtime) | Active-version inodes | `last-source/` | Source inodes | `logs/` | Log inodes | `config/` |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Web Production | 117.31 MiB | 3,355 | 36.11 MiB | 1,859 | 77.14 KiB | 21 | 901.05 KiB |
+| Web Production | 117.52 MiB | 3,366 | 36.11 MiB | 1,859 | 77.14 KiB | 21 | 901.05 KiB |
 | Web UAT | 299.33 MiB | 3,832 | 237.84 KiB | 65 | 74.18 KiB | 21 | 727.33 KiB |
 | Admin Production | 2.52 GiB | 109,068 | 36.11 MiB | 1,859 | 106.38 KiB | 21 | 911.39 KiB |
 | Admin UAT | 2.52 GiB | 109,045 | 36.14 MiB | 1,857 | 114.38 KiB | 21 | 913.48 KiB |
@@ -45,6 +45,27 @@ These are **active runtime artifact constituents**, not confirmed stale copies. 
 - `hbuilds/config/` is Hostinger-managed and may contain sensitive environment/settings material. Only its folder size/inode count was inspected; contents were not read or copied.
 - Build history in hPanel may have more entries than the single version in the filesystem; historical deployment records are **not** evidence of stale on-disk version directories.
 
+## Supplemental plan-wide inventory — shared npm cache
+
+The **Access all files of Cloud Startup Hosting** browser shows exactly four site directories under `domains/`. Its recursive size assessment reported:
+
+| Site directory | Provider-reported size | Inodes |
+| --- | ---: | ---: |
+| `domains/admin.ccpun.com` | 2.55 GiB | 110,959 |
+| `domains/admin-test.ccpun.com` | 2.55 GiB | 110,934 |
+| `domains/ccpun.com` | 154.6 MiB | 5,257 |
+| `domains/test.ccpun.com` | 300.36 MiB | 3,929 |
+
+These counts are a **separate path-level view** of the same site deployments. Do **not** sum the domain sizes again with their `hbuilds/versions` footprints; that would double-count storage.
+
+The plan-wide shared `~/.npm/_cacache/` is **3.86 GiB (14,835 inodes)**, directly measured via the provider's recursive File Manager size assessment. This NPM download/content-addressable cache is **not a fifth website or a stale version directory**. It is the largest independently classified *potential cleanup candidate*, distinct from the active runtime artifacts.
+
+The adjacent `~/.npm/_logs/` showed eleven recent debug files (individual files on the order of bytes to ~477 KiB); the whole-plan `~/.logs/` appeared empty in the File Manager. There is no evidence of a large hidden log backlog in either location.
+
+**Retention/cleanup decision:** Keep the shared cache for now. Its 3.86 GiB is the *measured occupied footprint*, not a confirmed amount that can safely or fully be reclaimed. An optional dedicated maintenance operation may use a supported scoped `npm cache` CLI on the provider's hosting account **only after** confirming no Build or Redeploy is running, verifying cache ownership, and documenting before/after space plus rebuild/rollback behavior. Re-download time, network dependency and provider-managed behavior must be accepted; never manually remove `hbuilds/current`, `versions`, or app `node_modules`. Do not run this maintenance as a hidden side effect of an architecture audit.
+
+The rough sum of the four site directory measurements plus the shared NPM cache remains below the plan-wide displayed **10.8 GiB**. Remaining differences may reflect provider accounting, rounding, other home directories or usage not visible in this inventory; **do not label the difference as reclaimable files**.
+
 ## Classification for follow-on work
 
 | Group | Outcome | Action |
@@ -57,11 +78,12 @@ These are **active runtime artifact constituents**, not confirmed stale copies. 
 | `public_html/.htaccess`, marker file | HOSTING CONFIG | Keep |
 | Build logs | HISTORICAL / TINY | Leave to provider retention; no useful space recovery |
 | Retained historical version directories | **NONE CONFIRMED** | Zero verified safe-to-delete directories |
-| Standalone build/cache subtrees | PARTIALLY INSPECTED | Detailed byte attribution limited by File Manager intermittently returning 403; do not infer deletability |
+| Shared `~/.npm/_cacache/` | 3.86 GiB measured; REGENERABLE CACHE, NOT APPROVED FOR DELETION | Conditional cleanup candidate only after build/ownership and rollback checks |
+| Standalone runtime/build subtrees | PARTIALLY INSPECTED | File Manager intermittently returned 403 for nested paths; do not infer deletability |
 
 ## P2.1 closeout and P2.2 guardrails
 
-**No confirmed safe deletion target and no defensible reclaimable-space estimate** beyond the tiny historical log total, whose provider retention behavior remains unverified.
+**No confirmed safe-to-delete active/runtime directory.** Historical Hostinger build logs total only 372.08 KiB. The shared npm cache is **3.86 GiB of potential cache-maintenance scope**, but actual recoverable bytes and provider-supported purge safety were **not** validated and it has **not** been removed.
 
 P2.1 records a read-only four-lane inventory. Before implementing P2.2 source deduplication or runtime packaging optimization, preserve:
 
@@ -71,4 +93,4 @@ P2.1 records a read-only four-lane inventory. Before implementing P2.2 source de
 4. Provider-managed runtime/config/build directories; no destructive cleanup in hPanel.
 5. Git/main local WIP and any separate active UX/Investment worktrees.
 
-**Open limitation:** A deeper file- and cache-level assessment, and a reconciliation of the plan-wide 10.8 GiB figure, needs a supported read-only filesystem interface or provider usage breakdown. Some nested File Manager directories intermittently returned HTTP 403; those were recorded as **unverified**, not empty. Do not assert cache-free runtime or zero orphan files.
+**Remaining precision limitation (not a P2.1 blocker):** The major plan-level npm cache is measured, but full per-file runtime classification and byte-level reconciliation to the plan's 10.8 GiB total still require a provider-supported read-only filesystem interface or disk usage report. Some nested File Manager directories intermittently returned HTTP 403; these were recorded as **unverified**, not empty. Do not assert zero orphan files, guaranteed 3.86 GiB savings or proven rollback from deployment history.
