@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isConfiguredAdminOrigin, isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { hasAdminPermission } from "@/lib/admin/rbac";
@@ -22,8 +22,7 @@ async function ownerIdentity() {
 export async function POST(request: Request) {
   const access = await ownerIdentity();
   if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status, headers });
-  if (!isConfiguredAdminOrigin(request.url, process.env.AUTH_URL)
-    || !isSameOriginAdminMutation(request.url, request.headers.get("origin"))) {
+  if (!isPostPublishAdminOriginAllowed(request, process.env, getAdminEnvironment())) {
     return NextResponse.json({ error: "forbidden-origin" }, { status: 403, headers });
   }
   if (getAdminEnvironment() !== "production-admin") {
@@ -47,7 +46,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const access = await ownerIdentity();
   if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status, headers });
-  if (!isConfiguredAdminOrigin(request.url, process.env.AUTH_URL)) {
+  if (!isPostPublishAdminOriginAllowed(request, process.env, getAdminEnvironment())) {
     return NextResponse.json({ error: "forbidden-origin" }, { status: 403, headers });
   }
   const id = articleIdSchema.safeParse(new URL(request.url).searchParams.get("articleId"));
