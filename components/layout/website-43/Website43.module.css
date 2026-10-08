@@ -421,7 +421,8 @@
 .fhcContextSection { padding-top: 48px; }
 .calculatorSection { padding: 32px 80px 64px; background: var(--w43-bg); }
 .calculatorHeader { width: min(768px,100%); margin: 0 auto 28px; text-align: center; }
-.calculatorHeader h2 { margin: 8px 0 0; font-size: 30px; line-height: 1.3; }
+.calculatorHeader h2 { margin: 8px 0 0; font-size: 30px; line-height: 1.3; text-wrap: balance; }
+.calculatorWord { white-space: nowrap; }
 .calculatorHeader p { margin: 8px 0 0; color: var(--w43-muted); font-size: 15px; }
 .calculatorStage { width: min(768px,100%); margin: 0 auto; }
 .calculatorStage :global([data-ui="human-centered-ci-expenses"] .text-xs),

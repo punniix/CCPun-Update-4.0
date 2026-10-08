@@ -332,7 +332,7 @@ export default function Website43BlogInteractive({
         </div>
         <p className={classNames.resultCount} role="status">{filteredArticles.length} บทความ{filteredArticles.length > 0 ? ` · แสดง ${(page - 1) * BLOG_PAGE_SIZE + 1}–${Math.min(page * BLOG_PAGE_SIZE, filteredArticles.length)}` : ''}</p>
         {filteredArticles.length ? (
-          <div className={classNames.articleGrid} onClick={rememberListing}>
+          <div className={classNames.articleGrid}>
             {pageArticles.map((article) => <ArticleCard article={article} classNames={classNames} key={article.href} />)}
           </div>
         ) : (
