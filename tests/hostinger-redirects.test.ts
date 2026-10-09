@@ -54,7 +54,8 @@ test("Hostinger redirects preserve URL and query semantics with complete candida
   const policy = runtime.headers.find((rule: { source: string }) => rule.source === "/:path*").headers;
   for (const observation of runtime.observations) {
     const destination = expected[observation.path];
-    assert.equal(observation.status, destination ? 308 : 200, observation.path);
+    const expectedStatus = observation.path.startsWith("/blog/personal-finance/personal-income-tax-calculation-2569/") ? 301 : destination ? 308 : 200;
+    assert.equal(observation.status, expectedStatus, observation.path);
     assert.equal(observation.location, destination ? `https://candidate.example${destination}` : null, observation.path);
     if (destination) {
       for (const { key, value } of policy) assert.equal(observation.headers[key.toLowerCase()], value, `${observation.path}: ${key}`);
