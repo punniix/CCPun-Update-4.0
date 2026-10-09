@@ -289,7 +289,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (hostinger) installAdminMonorepoDependencies();
   const buildEnvironment = { ...process.env, ...(nativeSeal?.publicValues ?? {}), ...(nativeSeal ? { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" } : {}) };
   const nextBin = resolve(adminRoot, "../../node_modules/next/dist/bin/next");
-  const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
+  // Hostinger Cloud instances without native SWC support compile Next config through a WASM fallback.
+  // Preload the existing tsx resolver for extensionless TypeScript imports in next.config.compiled.js.
+  const nextArgs = [...(hostinger ? ["--import", "tsx"] : []), nextBin, "build", ...(hostinger ? ["--webpack"] : [])];
+  const result = spawnSync(process.execPath, nextArgs, { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (hostinger) {
