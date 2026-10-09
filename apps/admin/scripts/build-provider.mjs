@@ -280,6 +280,10 @@ export function stageAdminStandaloneRuntime(root = adminRoot) {
   console.log("Hostinger Admin standalone runtime staged.");
 }
 
+function runEsbuild(bin, args, cwd, env) {
+  return spawnSync(bin, args, { cwd, env, stdio: "inherit" });
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const inferredAdminUat = applyPinnedAdminUatBuildFallback();
   if (inferredAdminUat) console.log(`Hostinger Admin UAT build identity inferred from exact release ref ${inferredAdminUat.branch} @ ${inferredAdminUat.sha.slice(0, 12)}.`);
@@ -289,10 +293,20 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (hostinger) installAdminMonorepoDependencies();
   const buildEnvironment = { ...process.env, ...(nativeSeal?.publicValues ?? {}), ...(nativeSeal ? { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" } : {}) };
   const nextBin = resolve(adminRoot, "../../node_modules/next/dist/bin/next");
-  // Hostinger Cloud instances without native SWC support compile Next config through a WASM fallback.
-  // Preload the existing tsx resolver for extensionless TypeScript imports in next.config.compiled.js.
-  const nextArgs = [...(hostinger ? ["--import", "tsx"] : []), nextBin, "build", ...(hostinger ? ["--webpack"] : [])];
-  const result = spawnSync(process.execPath, nextArgs, { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
+  // Older Hostinger Cloud build images may lack GLIBC_2.29, preventing native SWC from
+  // loading next.config.ts. Prebundle only on the explicitly opted-in candidate lane;
+  // all existing release provenance and native-Neon fail-closed guards run first.
+  if (hostinger && process.env.CCPUN_HOSTINGER_CONFIG_PREBUNDLE === "1") {
+    const repositoryRoot = resolve(adminRoot, "../..");
+    const esbuildBin = resolve(repositoryRoot, "node_modules/esbuild/bin/esbuild");
+    const compiled = runEsbuild(esbuildBin, [
+      "apps/admin/next.config.ts", "--bundle", "--platform=node", "--format=esm",
+      "--packages=external", "--external:./scripts/build-provider.mjs",
+      "--outfile=apps/admin/next.config.mjs",
+    ], repositoryRoot, buildEnvironment);
+    if (compiled.error || compiled.status !== 0) throw new Error("HOSTINGER_ADMIN_CONFIG_PREBUNDLE_FAILED");
+  }
+  const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (hostinger) {
