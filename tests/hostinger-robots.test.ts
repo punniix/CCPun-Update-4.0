@@ -6,7 +6,7 @@ test("candidate robots evaluates runtime flags and denies every crawler while li
   for (const candidate of [true, false]) {
     const result = spawnSync(process.execPath, ["--import", "tsx", "-e", "const {default:robots, dynamic}=require('./apps/web/app/robots.ts'); console.log(JSON.stringify({dynamic, robots:robots()}));"], {
       encoding: "utf8",
-      env: { PATH: process.env.PATH, NODE_ENV: "production", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production", CCPUN_GIT_REF: "v4-production", CCPUN_UAT_MODE: candidate ? "1" : "0" },
+      env: { PATH: process.env.PATH, NODE_ENV: "production", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production", NEXT_PUBLIC_CCPUN_APP_ENV: "production", NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", NEXT_PUBLIC_SANITY_DATASET: "production", CCPUN_GIT_REF: "v4-production", CCPUN_GIT_SHA: "291958db193d0d337d70cc5f80d0eb9366f87fa5", CCPUN_RELEASE_ID: "cloud4-robots-test", CCPUN_RELEASE_STAGE: candidate ? "candidate" : "live", CCPUN_ENABLE_PRODUCTION_ANALYTICS: candidate ? "0" : "1", CCPUN_UAT_MODE: candidate ? "1" : "0" },
     });
     assert.equal(result.status, 0, result.stderr);
     const value = JSON.parse(result.stdout);
