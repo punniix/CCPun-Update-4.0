@@ -47,7 +47,11 @@ export default function proxy(request: Request & { nextUrl: URL }) {
   if (process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger") {
     const destination = hostingerRedirectUrl(request);
     if (destination) {
-      const response = NextResponse.redirect(destination, 308);
+      // Preserve the existing public 301 for the retired income-tax article URL.
+      // Other Hostinger normalizations retain the established 308 behavior.
+      const legacyTaxPath = "/blog/personal-finance/personal-income-tax-calculation-2569";
+      const status = pathname === legacyTaxPath || pathname.startsWith(legacyTaxPath + "/") ? 301 : 308;
+      const response = NextResponse.redirect(destination, status);
       for (const { key, value } of SECURITY_HEADERS) response.headers.set(key, value);
       if (IS_REVIEW_ENVIRONMENT) response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
       return response;
