@@ -289,6 +289,18 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (hostinger) installAdminMonorepoDependencies();
   const buildEnvironment = { ...process.env, ...(nativeSeal?.publicValues ?? {}), ...(nativeSeal ? { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" } : {}) };
   const nextBin = resolve(adminRoot, "../../node_modules/next/dist/bin/next");
+  // Build images without native SWC support cannot always compile Next config TS
+  // imports. An opt-in candidate prebundles configuration after provenance guards.
+  if (hostinger && process.env.CCPUN_HOSTINGER_CONFIG_PREBUNDLE === "1") {
+    const repositoryRoot = resolve(adminRoot, "../..");
+    const esbuildBin = resolve(repositoryRoot, "node_modules/esbuild/bin/esbuild");
+    const compiled = spawnSync(esbuildBin, [
+      "apps/admin/next.config.ts", "--bundle", "--platform=node", "--format=esm",
+      "--packages=external", "--external:./scripts/build-provider.mjs",
+      "--outfile=apps/admin/next.config.mjs",
+    ], { cwd: repositoryRoot, env: buildEnvironment, stdio: "inherit" });
+    if (compiled.error || compiled.status !== 0) throw new Error("HOSTINGER_ADMIN_CONFIG_PREBUNDLE_FAILED");
+  }
   const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
