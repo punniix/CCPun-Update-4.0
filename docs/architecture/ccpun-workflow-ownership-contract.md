@@ -52,3 +52,34 @@ Do not treat enabled workflow status as proof of working integration. A workflow
 - Keep Production and operational workers unchanged until separate accepted UAT evidence and explicit approval.
 - Do not automatically publish content, send customer messages, run private data experiments, or rotate service secrets during design work.
 - This public contract contains only architectural rules. Detailed integration inventory, configuration evidence and security findings remain in a private owner-held handoff, not this repository.
+
+## Owner decision — n8n-first OCR orchestration & node-level observability (2026-10-10)
+
+**Locked objective:** Admin serves Input / Output / owner Review. n8n is the mandatory workflow orchestrator for EVERY OCR request; the Private VPS owns only the OCR/Local AI computation which must be started from an n8n Node. Admin must not start OCR compute directly or silently bypass n8n if a workflow is unavailable.
+
+**Why n8n is mandatory:** the owner wants a visible, node-by-node workflow, showing progress, timing, execution history, retries, and understandable error localization. A single opaque Next.js OCR API call fails this product requirement even if it processes correctly.
+
+### Visible n8n workflow steps (logical Nodes)
+1. Receive authenticated job trigger from the Admin server; reference only, not raw image.
+2. Validate job environment, scope, request identity, idempotency and data classification.
+3. Claim the canonical Neon job (through a narrow authenticated API).
+4. Invoke Private OCR on the VPS with short-lived scoped file handle via n8n HTTP Request Node. Image bytes stay in private temporary encrypted staging, not in n8n node payload.
+5. Poll/wait for OCR completion with bounded timeout; record per-stage duration, attempts, classification and worker version.
+6. Validate output status/quality and branch on low confidence / failure. Raw OCR text remains in protected encrypted storage; n8n sees only safe result metadata.
+7. Record durable job status and safe error receipts via authenticated callback; mark AWAITING_REVIEW when ready.
+8. Admin reads owner-authorized private results, displays/edits text and receives human approval. CRM write happens only after approval via audited private API.
+9. n8n marks completion or safe reconciliation outcome with correlation and execution references; stale retries cannot duplicate CRM writes.
+
+### Observable diagnostics, without private leakage
+- Each n8n Node has a descriptive name, responsibility, expected input/output schema and explicit failure branch.
+- Show per-job jobId/correlationId, workflow version, n8n execution ID, stage, state, timestamp, duration, attempts, HTTP status, normalized error category and retry outcome.
+- n8n execution data/history may be retained only when ALL node inputs and outputs are proven scrubbed of sensitive payloads, secrets and raw private OCR data. Apply short retention and access control. Otherwise use safe metadata receipts in Neon and keep raw n8n executions unavailable.
+- Never log screenshot bytes, transcript text, customer identifier, health/financial data, signed download capability URLs or credentials. Use opaque references that cannot be reused after expiry.
+- Treat upstream HTTP 401/403/429/5xx and timed-out OCR Node as actual failed/degraded states, never an n8n green Succeeded without a verified success receipt.
+
+### Failure and security gates
+- If n8n is down, the job remains QUEUED/DEGRADED in Neon; Admin displays the problem but NEVER executes OCR directly.
+- Keep Production/UAT n8n webhooks, credentials and private staging isolated.
+- Require an approved short-lived private transfer/staging mechanism before implementing; the Admin may perform secure input validation/staging, but no OCR processing.
+- UAT acceptance must show the exact n8n Node execution path and readable safe logs across success, bad input, 401, worker crash, timeout, duplicate submission, retry and human approval.
+- Current CCPun Private Chat Screenshot OCR workflow stays inactive until UAT acceptance. No existing Production pipeline is changed by this planning correction.
