@@ -200,6 +200,25 @@ const publishedSeoObservationArticlesQuery = groq`*[_type == "article" && define
   "updatedAt": coalesce(contentUpdatedAt, _updatedAt)
 }`;
 
+// UAT-only fail-closed diagnostics. Never log error.message, stack, URLs, tokens or data rows.
+function observeUatReadFailure(operation: "articles" | "reviews", stage: string, error: unknown) {
+  if (getAdminEnvironment() !== "admin-uat") return;
+  const detail = error && typeof error === "object" ? error as Record<string, unknown> : {};
+  const httpStatus = [detail.statusCode, detail.status].find(
+    (value): value is number => typeof value === "number" && value >= 100 && value <= 599,
+  ) ?? null;
+  const classification = error instanceof z.ZodError ? "schema"
+    : error instanceof Error && error.message === "ADMIN_DATABASE_IDENTITY_MISMATCH" ? "database-identity"
+    : error instanceof Error && error.message === "ADMIN_DATABASE_NOT_CONFIGURED" ? "database-not-configured"
+    : httpStatus ? "http-response"
+    : error instanceof TypeError ? "network-or-type"
+    : "other";
+  console.error("[ccpun-admin-uat-read]", JSON.stringify({
+    operation, stage, classification, upstreamStatus: httpStatus,
+    zodIssueCodes: error instanceof z.ZodError ? [...new Set(error.issues.map((issue) => issue.code))].slice(0, 5) : [],
+  }));
+}
+
 export async function listAdminArticles(): Promise<AdminContentResult> {
   const status = getAdminSanityStatus();
   if (!status.configured) return { status, rows: [], error: "not-configured" };
@@ -209,8 +228,14 @@ export async function listAdminArticles(): Promise<AdminContentResult> {
 
   try {
     const [rows, publishedIds] = await Promise.all([
-      client.fetch(articleIndexQuery),
-      requireReadClient("published")!.fetch(publishedArticleIdsQuery),
+      client.fetch(articleIndexQuery).catch((error: unknown) => {
+        observeUatReadFailure("articles", "sanity-drafts", error);
+        throw error;
+      }),
+      requireReadClient("published")!.fetch(publishedArticleIdsQuery).catch((error: unknown) => {
+        observeUatReadFailure("articles", "sanity-published", error);
+        throw error;
+      }),
     ]);
     const publishedIdSet = new Set(z.array(z.string()).parse(publishedIds));
     const parsedRows = z.array(articleRowSchema).parse(rows);
@@ -223,7 +248,8 @@ export async function listAdminArticles(): Promise<AdminContentResult> {
       })),
       error: null,
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof z.ZodError) observeUatReadFailure("articles", "schema", error);
     return { status, rows: [], error: "request-failed" };
   }
 }
@@ -301,9 +327,11 @@ export async function listSeoSuggestions(): Promise<AdminReviewResult> {
   const client = requireReadClient();
   if (!client) return { status, rows: [], error: "read-token-required" };
 
+  let stage = "neon-suggestions";
   try {
     const stored = await readSeoSuggestions();
     if (!stored) return { status, rows: [], error: "not-configured" };
+    stage = "sanity-article-revisions";
     const ids = [...new Set(stored.map((row) => row.target_document_id.replace(/^drafts\./, "")))];
     const targets = await client.withConfig({ perspective: "raw" }).fetch(
       groq`*[_type == "article" && (_id in $ids || _id in $draftIds)]{
@@ -312,6 +340,7 @@ export async function listSeoSuggestions(): Promise<AdminReviewResult> {
       { ids, draftIds: ids.map((id) => `drafts.${id}`) },
     ) as Array<{ id: string; title?: string; revision: string; isDraft: boolean }>;
     const targetById = new Map(targets.sort((a, b) => Number(b.isDraft) - Number(a.isDraft)).map((target) => [target.id, target]));
+    stage = "review-row-validation";
     const rows = stored.map((row) => {
       const mapped = mapSuggestionRow(row);
       const target = targetById.get(mapped.articleId ?? "");
@@ -323,7 +352,8 @@ export async function listSeoSuggestions(): Promise<AdminReviewResult> {
         .filter((row) => row.status === "reconciliation-required" || isCompatibleReviewSuggestion(row)),
       error: null,
     };
-  } catch {
+  } catch (error) {
+    observeUatReadFailure("reviews", stage, error);
     return { status, rows: [], error: "request-failed" };
   }
 }
