@@ -1,0 +1,261 @@
+{
+  "name": "CCPun UAT - Operations Monitor - Safe Receipt Canary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "ca2f2a27-b961-4995-ab17-dc4764660a85",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: {\n  monitorVersion: 'local-ai-operations-monitor-v1',\n  thresholds: {\n    workerStaleSeconds: 120,\n    ramPercent: 85,\n    diskPercent: 85,\n    queueOldestSeconds: 300,\n    jobDurationSeconds: 180,\n    failureRatePercent: 20,\n    failureRateMinimumJobs: 5,\n  },\n} };"
+      },
+      "id": "e8ddc7ae-b943-4387-aa9a-9e04946db7bf",
+      "name": "Prepare Monitor Cycle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://admin.ccpun.com/api/internal/local-ai/operations/health/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "d01f508f-920b-469d-8fda-edbd109399b6",
+      "name": "Read Operations Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jkyOhRxVkx3ID6BB",
+          "name": "CCPun Local AI Admin Bridge"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const request = $('Prepare Monitor Cycle').item.json;\nconst response = $json;\nconst statusCode = Number(response.statusCode ?? 0);\nconst unauthorized = statusCode === 401 || statusCode === 403;\nconst body = response.body ?? {};\nconst health = body.health ?? {};\nconst retryAfterSeconds = Number(response.headers?.['retry-after'] ?? 0) || null;\nconst incidentCategories = [];\nif (unauthorized) incidentCategories.push('upstream-unauthorized');\nif (statusCode !== 200 || body.status !== 'ready') incidentCategories.push('health-unavailable');\nif (statusCode === 200 && health.workerFresh !== true) incidentCategories.push('worker-stale');\nif (statusCode === 200 && health.ollamaReady !== true) incidentCategories.push('ollama-not-ready');\nif (statusCode === 200 && health.acceptingPrivateJobs !== false) incidentCategories.push('private-jobs-gate-invalid');\nif (statusCode === 200 && Number(health.oldestQueueSeconds ?? 0) > request.thresholds.queueOldestSeconds) incidentCategories.push('queue-oldest-high');\nif (statusCode === 200 && Number(health.durationP95Ms ?? 0) > request.thresholds.jobDurationSeconds * 1000) incidentCategories.push('job-duration-high');\nif (statusCode === 200 && Number(health.failed24h ?? 0) > 0) incidentCategories.push('failed-jobs-present');\nif (statusCode === 200 && Number(health.queued ?? 0) + Number(health.leased ?? 0) >= 25) incidentCategories.push('active-queue-cap-reached');\nreturn { json: {\n  outcome: unauthorized ? 'failed' : incidentCategories.length ? 'attention-required' : 'healthy',\n  monitorVersion: request.monitorVersion,\n  incidentNeeded: incidentCategories.length > 0,\n  incidentCategories,\n  retryAfterSeconds,\n  health: statusCode === 200 ? {\n    queued: Number(health.queued ?? 0),\n    leased: Number(health.leased ?? 0),\n    pendingReview: Number(health.pendingReview ?? 0),\n    succeeded24h: Number(health.succeeded24h ?? 0),\n    failed24h: Number(health.failed24h ?? 0),\n    oldestQueueSeconds: Number(health.oldestQueueSeconds ?? 0),\n    durationP50Ms: Number(health.durationP50Ms ?? 0),\n    durationP95Ms: Number(health.durationP95Ms ?? 0),\n    workerFresh: health.workerFresh === true,\n    ollamaReady: health.ollamaReady === true,\n    acceptingPrivateJobs: health.acceptingPrivateJobs === true,\n  } : null,\n  errorCategory: statusCode === 200 ? null : (body.error ?? 'local-ai-unavailable'),\n} };"
+      },
+      "id": "cc9193c4-83a8-4b25-93ff-da0237348850",
+      "name": "Assess Operations Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "654e7903-0fe6-4290-8034-18e6a98e365a",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.incidentNeeded }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a699fe5d-b29a-4fa6-a65f-6b447840d93f",
+      "name": "Has Operations Incident?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://admin.ccpun.com/api/internal/local-ai/operations/incidents/?limit=25",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "15de14f4-98be-423a-8305-7e6ab32c2a12",
+      "name": "Read Operations Incidents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        -96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jkyOhRxVkx3ID6BB",
+          "name": "CCPun Local AI Admin Bridge"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const assessment = $('Assess Operations Health').item.json;\nconst response = $json;\nconst body = response.body ?? {};\nconst incidents = Array.isArray(body.incidents) ? body.incidents.map((item) => ({\n  jobId: item.jobId,\n  taskType: item.taskType,\n  status: item.status,\n  queueClass: item.queueClass,\n  attempts: item.attempts,\n  errorCategory: item.errorCategory ?? null,\n  updatedAt: item.updatedAt,\n})) : [];\nreturn { json: {\n  ...assessment,\n  incidents,\n  incidentReadError: response.statusCode !== undefined && Number(response.statusCode) !== 200\n    ? (body.error ?? 'incident-read-unavailable')\n    : null,\n} };"
+      },
+      "id": "28e5378e-15cb-4054-a5c1-d4d72c79c5b8",
+      "name": "Return Monitor Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Prepare Monitor Cycle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Monitor Cycle": {
+      "main": [
+        [
+          {
+            "node": "Read Operations Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Operations Health": {
+      "main": [
+        [
+          {
+            "node": "Assess Operations Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assess Operations Health": {
+      "main": [
+        [
+          {
+            "node": "Has Operations Incident?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Operations Incident?": {
+      "main": [
+        [
+          {
+            "node": "Read Operations Incidents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Monitor Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Operations Incidents": {
+      "main": [
+        [
+          {
+            "node": "Return Monitor Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "executionTimeout": 60,
+    "timezone": "Asia/Bangkok",
+    "availableInMCP": false
+  },
+  "versionId": "568ddb41-f05d-44bc-ad1d-f4720334cd5b",
+  "meta": {
+    "instanceId": "aa6ec68cce13e9bcbc1309a4c801cc584b2c233a67a224d74b77c8c053f78890"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
