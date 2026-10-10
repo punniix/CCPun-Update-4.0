@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
 import PostPublishUatMockButton from "@/features/admin/components/PostPublishUatMockButton";
+import UatSeoN8nCanary from "@/features/admin/components/UatSeoN8nCanary";
+import { resolveUatFabricConfig } from "@/lib/admin/n8n/uat-fabric-policy";
+import { getAdminEnvironment } from "@/lib/admin/environment";
+import { getAdminIdentity } from "@/lib/admin/identity";
 import { isUatPostPublishMockAllowed } from "@/lib/admin/seo-intelligence/post-publish-uat-policy";
 import { datasetLabel } from "@/lib/admin/presentation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
@@ -27,6 +31,7 @@ function formatAuditDate(value: string | null | undefined) {
 
 export default async function AdminSeoPage() {
   await requireAdminPermission("seo:read");
+  const identity = await getAdminIdentity();
   const result = await listAdminArticles();
   const audited = result.rows.filter((row) => row.seoScore != null && row.seoAuditVersion === SEO_AUDIT_VERSION);
   const average = audited.length ? Math.round(audited.reduce((sum, row) => sum + (row.seoScore ?? 0), 0) / audited.length) : null;
@@ -51,6 +56,7 @@ export default async function AdminSeoPage() {
       </div>
 
       {isUatPostPublishMockAllowed(process.env) ? <PostPublishUatMockButton /> : null}
+      {getAdminEnvironment() === "admin-uat" && identity?.role === "owner" ? <UatSeoN8nCanary enabled={resolveUatFabricConfig(process.env).ready} /> : null}
 
       <section className="mt-7 grid gap-3 sm:grid-cols-4">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ชุดข้อมูล</div><div className="mt-2 text-lg font-semibold">{datasetLabel(result.status.dataset)}</div></article>
