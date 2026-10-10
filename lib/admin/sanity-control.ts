@@ -30,6 +30,7 @@ import {
   getApplyableFieldPath,
   isHumanReviewActor,
   isCompatibleReviewSuggestion,
+  indexSuggestionTargets,
   privateAdminDocumentId,
   storedFieldValue,
 } from "./suggestion-lifecycle";
@@ -339,7 +340,7 @@ export async function listSeoSuggestions(): Promise<AdminReviewResult> {
       }`,
       { ids, draftIds: ids.map((id) => `drafts.${id}`) },
     ) as Array<{ id: string; title?: string; revision: string; isDraft: boolean }>;
-    const targetById = new Map(targets.sort((a, b) => Number(b.isDraft) - Number(a.isDraft)).map((target) => [target.id, target]));
+    const targetById = indexSuggestionTargets(targets);
     stage = "review-row-validation";
     const rows = stored.map((row) => {
       const mapped = mapSuggestionRow(row);

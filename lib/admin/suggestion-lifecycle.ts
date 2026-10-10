@@ -41,6 +41,17 @@ export function isStaleSuggestionRevision(targetRevision: string | null | undefi
   return !targetRevision || !currentRevision || targetRevision !== currentRevision;
 }
 
+// Sanity raw/drafts perspectives can return "drafts.<id>" while Neon stores
+// the normalized article ID. Prefer the current draft over a published copy.
+export function indexSuggestionTargets<T extends { id: string; isDraft: boolean }>(targets: readonly T[]) {
+  const index = new Map<string, T>();
+  for (const target of [...targets].sort((a, b) => Number(b.isDraft) - Number(a.isDraft))) {
+    const id = target.id.replace(/^drafts\./, "");
+    if (!index.has(id)) index.set(id, target);
+  }
+  return index;
+}
+
 export function isCompatibleReviewSuggestion(input: {
   status?: string | null;
   targetRevision?: string | null;

@@ -11,6 +11,7 @@ import {
   isHumanReviewActor,
   isAppliedSuggestionReplay,
   isCompatibleReviewSuggestion,
+  indexSuggestionTargets,
   privateAdminDocumentId,
   isStaleSuggestionRevision,
 } from "../../lib/admin/suggestion-lifecycle";
@@ -72,6 +73,29 @@ test("review queue contains only current proposals with complete approval contro
     approvedTargetId: "article-1",
     approvedTargetRevision: "rev-1",
     targetCurrentRevision: "rev-2",
+  }), false);
+});
+
+test("review target lookup normalizes drafts IDs and prefers current draft revisions", () => {
+  const rows = [
+    { id: "article-1", isDraft: false, revision: "published-rev" },
+    { id: "drafts.article-1", isDraft: true, revision: "draft-rev" },
+    { id: "drafts.article-2", isDraft: true, revision: "rev-2" },
+  ];
+  const result = indexSuggestionTargets(rows);
+  assert.equal(result.size, 2);
+  assert.equal(result.get("article-1")?.revision, "draft-rev");
+  assert.equal(result.get("article-2")?.revision, "rev-2");
+  assert.equal(result.has("drafts.article-1"), false);
+  assert.equal(isCompatibleReviewSuggestion({
+    status: "needs-human-review",
+    targetRevision: "rev-2",
+    targetCurrentRevision: result.get("article-2")?.revision,
+  }), true);
+  assert.equal(isCompatibleReviewSuggestion({
+    status: "needs-human-review",
+    targetRevision: "old-rev",
+    targetCurrentRevision: result.get("article-2")?.revision,
   }), false);
 });
 
