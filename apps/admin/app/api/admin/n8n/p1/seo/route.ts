@@ -2,7 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminIdentity } from "@/lib/admin/identity";
-import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
+import { getAdminEnvironment } from "@/lib/admin/environment";
 import { resolveUatFabricConfig } from "@/lib/admin/n8n/uat-fabric-policy";
 import { readScopedUatAck } from "@/lib/admin/n8n/uat-receipt";
 import { createAgentRuntimeJob, updateAgentRuntimeJob } from "@/lib/admin/operations/agent-os-runtime";
@@ -14,7 +15,7 @@ export async function POST(request:Request){
  const identity=await getAdminIdentity();
  if(!identity)return NextResponse.json({error:"unauthorized"},{status:401,headers});
  if(identity.role!=="owner")return NextResponse.json({error:"forbidden"},{status:403,headers});
- if(!isSameOriginAdminMutation(request.url,request.headers.get("origin")))return NextResponse.json({error:"invalid-origin"},{status:403,headers});
+ if(!isPostPublishAdminOriginAllowed(request,process.env,getAdminEnvironment()))return NextResponse.json({error:"invalid-origin"},{status:403,headers});
  const config=resolveUatFabricConfig(process.env);
  if(!config.ready || !config.endpoint.pathname.includes("seo-clustering"))return NextResponse.json({error:"uat-fabric-unavailable"},{status:503,headers});
  if(!request.headers.get("content-type")?.startsWith("application/json"))return NextResponse.json({error:"unsupported-media-type"},{status:415,headers});
