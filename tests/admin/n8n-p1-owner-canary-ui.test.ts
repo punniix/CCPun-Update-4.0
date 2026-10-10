@@ -11,6 +11,6 @@ test("P1 SEO pilot UI is UAT-only, owner-only and fail-closed",()=>{
  assert.match(client,/"idempotency-key": idempotencyKey\.current/);
  assert.match(client,/crypto\.randomUUID\(\)/);
  assert.match(client,/receipt\.status === "duplicate"/);
- assert.match(client,/ยังไม่ใช่ผลวิเคราะห์สำเร็จ/);
+ assert.match(client,/ยังไม่ใช่งานเสร็จ/);
  assert.doesNotMatch(client,/\/api\/admin\/seo\/suggestions\/|publishArticle|customerId|rawTranscript/);
 });

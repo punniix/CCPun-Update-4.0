@@ -13,7 +13,7 @@ test("scoped bearer is minted only on durable job and never returned in UI recei
  assert.match(dispatch,/secret:config\.token/);
  assert.match(dispatch,/body:JSON\.stringify\(\{jobId:job\.jobId,correlationId,environment:"admin-uat",keywords:parsed\.data\.keywords,callbackCapability\}\)/);
  assert.doesNotMatch(dispatch,/return NextResponse\.json\(\{[^\n]*callbackCapability/);
- assert.match(dispatch,/status:"waiting_external",stage:"n8n-received"/);
+ assert.match(dispatch,/status:"waiting_external",stage:"n8n-dispatching"/);
 });
 
 test("callback must authenticate against limited HMAC capability and exact persisted job identity",()=>{
@@ -23,8 +23,8 @@ test("callback must authenticate against limited HMAC capability and exact persi
  assert.match(callback,/CCPUN_N8N_P1_UAT_TOKEN/);
  assert.doesNotMatch(callback,/CCPUN_AGENT_OS_N8N_ENABLED|isN8nAgentOsRequestAuthorized/);
  assert.match(callback,/job\.correlationId !== parsed\.data\.correlationId/);
- assert.match(callback,/job\.n8nExecutionId !== parsed\.data\.n8nExecutionId/);
- assert.match(callback,/job\.status !== "waiting_external" \|\| job\.stage !== "n8n-received"/);
+ assert.match(callback,/job\.n8nExecutionId && job\.n8nExecutionId !== parsed\.data\.n8nExecutionId/);
+ assert.match(callback,/job\.status !== "waiting_external" \|\| \(job\.stage !== "n8n-dispatching" && job\.stage !== "n8n-received"\)/);
  assert.match(callback,/expectedVersion:job\.rowVersion/);
  assert.match(callback,/clusterCount: z\.number\(\)\.int\(\)\.min\(1\)\.max\(8\)/);
  assert.match(callback,/providerWrites: z\.literal\(false\)/);

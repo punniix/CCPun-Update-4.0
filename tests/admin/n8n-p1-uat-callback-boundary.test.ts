@@ -12,7 +12,7 @@ test("P1 SEO callback is UAT-only, credentialed, metadata-only and revision-boun
  assert.match(route,/providerWrites: z\.literal\(false\)/);
  assert.match(route,/job\.workflowKey !== parsed\.data\.workflowKey/);
  assert.match(route,/job\.correlationId !== parsed\.data\.correlationId/);
- assert.match(route,/job\.n8nExecutionId !== parsed\.data\.n8nExecutionId/);
+ assert.match(route,/job\.n8nExecutionId && job\.n8nExecutionId !== parsed\.data\.n8nExecutionId/);
  assert.match(route,/expectedVersion:job\.rowVersion/);
  assert.match(route,/job\.status !== "waiting_external"/);
  assert.match(route,/stale-callback/);

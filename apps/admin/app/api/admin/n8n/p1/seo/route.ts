@@ -5,7 +5,6 @@ import { getAdminIdentity } from "@/lib/admin/identity";
 import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { resolveUatFabricConfig } from "@/lib/admin/n8n/uat-fabric-policy";
-import { readScopedUatAck } from "@/lib/admin/n8n/uat-receipt";
 import { issueScopedUatCapability } from "@/lib/admin/n8n/uat-callback-capability";
 import { createAgentRuntimeJob, updateAgentRuntimeJob } from "@/lib/admin/operations/agent-os-runtime";
 export const runtime="nodejs";
@@ -35,15 +34,18 @@ export async function POST(request:Request){
  if(job.outcome==="duplicate")return NextResponse.json({status:"duplicate",jobId:job.jobId,jobPath:`/operations/jobs/${job.jobId}/`},{status:200,headers});
  const callbackCapability=issueScopedUatCapability({jobId:job.jobId,correlationId:job.correlationId,secret:config.token});
  if(!callbackCapability){await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"failed",stage:"capability-unavailable",errorCategory:"uat-callback-auth-not-ready"}).catch(()=>null);return NextResponse.json({error:"uat-callback-auth-unavailable"},{status:503,headers})}
+ // Persist the outbound waiting state before calling the asynchronously responding webhook.
+ const dispatchState=await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"waiting_external",stage:"n8n-dispatching",startedAt:new Date().toISOString()}).catch(()=>null);
+ if(dispatchState?.outcome!=="updated" || dispatchState.rowVersion===null)return NextResponse.json({error:"job-status-unverified",jobId:job.jobId},{status:503,headers});
  try{
   const response=await fetch(config.endpoint,{method:"POST",headers:{Authorization:`Bearer ${config.token}`,"Content-Type":"application/json"},body:JSON.stringify({jobId:job.jobId,correlationId,environment:"admin-uat",keywords:parsed.data.keywords,callbackCapability}),redirect:"error",cache:"no-store",signal:AbortSignal.timeout(8000)});
-  if(!response.ok){await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"failed",stage:"trigger-rejected",errorCategory:`n8n-http-${response.status}`}).catch(()=>null);return NextResponse.json({error:"trigger-rejected",jobId:job.jobId},{status:503,headers})}
-  const ack=readScopedUatAck(await response.json().catch(()=>null),{jobId:job.jobId,correlationId});
-  if(!ack){await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"reconciliation_required",stage:"receipt-unverified",errorCategory:"n8n-ack-invalid"}).catch(()=>null);return NextResponse.json({error:"receipt-unverified",jobId:job.jobId},{status:503,headers})}
-  // A webhook receipt only confirms n8n received the job. It is not proof
-  // that SEO analysis or a provider operation has finished.
-  const persisted=await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"waiting_external",stage:"n8n-received",n8nExecutionId:ack.n8nExecutionId,startedAt:new Date().toISOString()}).catch(()=>null);
-  if(persisted?.outcome!=="updated")return NextResponse.json({error:"job-status-unverified",jobId:job.jobId},{status:503,headers});
-  return NextResponse.json({status:"accepted",jobId:job.jobId,jobPath:`/operations/jobs/${job.jobId}/`},{status:202,headers});
- }catch{await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"reconciliation_required",stage:"trigger-uncertain",errorCategory:"n8n-trigger-unknown"}).catch(()=>null);return NextResponse.json({error:"trigger-uncertain",jobId:job.jobId},{status:503,headers})}
+  if(!response.ok){
+   const definite=response.status>=400 && response.status<500;
+   await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:dispatchState.rowVersion,status:definite?"failed":"reconciliation_required",stage:definite?"trigger-rejected":"trigger-uncertain",errorCategory:`n8n-http-${response.status}`}).catch(()=>null);
+   return NextResponse.json({error:"trigger-rejected",jobId:job.jobId},{status:503,headers});
+  }
+  // The webhook responds immediately; 2xx is transport acceptance ONLY.
+  // The signed callback is the sole authority to mark the Job completed.
+  return NextResponse.json({status:"queued",jobId:job.jobId,jobPath:`/operations/jobs/${job.jobId}/`},{status:202,headers});
+ }catch{await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:dispatchState.rowVersion,status:"reconciliation_required",stage:"trigger-uncertain",errorCategory:"n8n-trigger-unknown"}).catch(()=>null);return NextResponse.json({error:"trigger-uncertain",jobId:job.jobId},{status:503,headers})}
 }

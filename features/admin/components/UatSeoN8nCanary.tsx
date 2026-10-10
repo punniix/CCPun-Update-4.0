@@ -26,7 +26,7 @@ export default function UatSeoN8nCanary({ enabled }: { enabled: boolean }) {
         body: JSON.stringify({ keywords: items }),
       });
       const receipt = await response.json().catch(() => ({})) as Receipt;
-      setResult(response.ok && (receipt.status === "accepted" || receipt.status === "duplicate") && receipt.jobId
+      setResult(response.ok && (receipt.status === "queued" || receipt.status === "duplicate") && receipt.jobId
         ? receipt : { error: receipt.error ?? `HTTP ${response.status}` });
     } catch {
       setResult({ error: "เชื่อมต่อไม่ได้ โปรดลองซ้ำโดยใช้คำค้นเดิม ระบบจะใช้เลขคำขอเดิมเพื่อป้องกันงานซ้ำ" });
@@ -41,6 +41,6 @@ export default function UatSeoN8nCanary({ enabled }: { enabled: boolean }) {
     <textarea id="seo-uat-keywords" value={keywords} onChange={(event) => { setKeywords(event.target.value); idempotencyKey.current = null; setResult(null); }} disabled={!enabled || busy} rows={3} maxLength={760}
       placeholder="ประกันสุขภาพ, วางแผนภาษี" className="mt-2 w-full rounded-xl border border-white/20 bg-[#251818] px-4 py-3 text-sm text-white placeholder:text-white/40 disabled:opacity-50" />
     <button type="button" disabled={!enabled || busy} onClick={start} className="mt-3 min-h-11 rounded-xl bg-[#e0c985] px-4 py-2.5 text-sm font-semibold text-[#352727] disabled:cursor-not-allowed disabled:opacity-40">{busy ? "กำลังส่งคำขอ…" : "เริ่มงานบน UAT"}</button>
-    {result ? <div role="status" className="mt-3 break-words text-sm text-white/80">{result.error ? `ยังไม่รับงาน: ${result.error}` : <>{result.status === "duplicate" ? "รับคำขอนี้ไว้แล้ว" : "n8n รับคำขอแล้ว (ยังไม่ใช่ผลวิเคราะห์สำเร็จ)"}{result.jobPath && /^\/operations\/jobs\/[0-9a-f-]{36}\/$/.test(result.jobPath) ? <> · <a href={result.jobPath} className="text-[#e0c985] underline underline-offset-4">ดูสถานะงาน</a></> : null}</>}</div> : null}
+    {result ? <div role="status" className="mt-3 break-words text-sm text-white/80">{result.error ? `ยังไม่รับงาน: ${result.error}` : <>{result.status === "duplicate" ? "รับคำขอนี้ไว้แล้ว" : "บันทึกคำขอแล้ว กำลังรอผลจาก n8n (ยังไม่ใช่งานเสร็จ)"}{result.jobPath && /^\/operations\/jobs\/[0-9a-f-]{36}\/$/.test(result.jobPath) ? <> · <a href={result.jobPath} className="text-[#e0c985] underline underline-offset-4">ดูสถานะงาน</a></> : null}</>}</div> : null}
   </section>;
 }

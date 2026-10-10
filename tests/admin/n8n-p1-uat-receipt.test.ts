@@ -15,13 +15,14 @@ test('UAT receipt is bound to both UUIDs and an actual n8n execution',()=>{
   assert.equal(readScopedUatAck({...receipt,n8nExecutionId:'0'},expected),null);
   assert.equal(readScopedUatAck({...receipt,customerName:'sensitive'},expected),null);
 });
-test('Admin only returns accepted after durable waiting_external receipt update',()=>{
+test('UAT ingress marks a durable waiting job before asynchronous n8n dispatch',()=>{
   const route=readFileSync(new URL('../../apps/admin/app/api/admin/n8n/p1/seo/route.ts',import.meta.url),'utf8');
   assert.match(route,/idempotency-key-required/);
   assert.match(route,/idempotency_conflict/);
   assert.match(route,/job\.outcome==="duplicate"/);
-  assert.match(route,/status:"waiting_external",stage:"n8n-received"/);
-  assert.match(route,/persisted\?\.outcome!=="updated"/);
-  assert.match(route,/receipt-unverified/);
-  assert.doesNotMatch(route,/status:"completed"/);
+  assert.match(route,/status:"waiting_external",stage:"n8n-dispatching"/);
+  assert.match(route,/dispatchState\?\.outcome!=="updated"/);
+  assert.match(route,/expectedVersion:dispatchState\.rowVersion/);
+  assert.match(route,/status:"queued"/);
+  assert.doesNotMatch(route,/readScopedUatAck|n8nExecutionId:ack|status:"completed"/);
 });

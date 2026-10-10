@@ -54,13 +54,14 @@ export async function POST(request: Request) {
     if (result.state !== "ready") return NextResponse.json({error:"job-unavailable"},{status:503,headers:{...headers,"Retry-After":"10"}});
     const job=result.job;
     if (!job || job.workflowKey !== parsed.data.workflowKey || job.source !== "admin"
-      || job.correlationId !== parsed.data.correlationId || job.n8nExecutionId !== parsed.data.n8nExecutionId) {
+      || job.correlationId !== parsed.data.correlationId
+      || (job.n8nExecutionId && job.n8nExecutionId !== parsed.data.n8nExecutionId)) {
       return NextResponse.json({error:"unmatched-job"},{status:403,headers});
     }
     if (job.status === "completed" && job.stage === "seo.uat.synthetic-verified") {
       return NextResponse.json({status:"duplicate",jobId:job.jobId},{status:200,headers});
     }
-    if (job.status !== "waiting_external" || job.stage !== "n8n-received") {
+    if (job.status !== "waiting_external" || (job.stage !== "n8n-dispatching" && job.stage !== "n8n-received")) {
       return NextResponse.json({error:"state-conflict"},{status:409,headers});
     }
     const done=await updateAgentRuntimeJob({
