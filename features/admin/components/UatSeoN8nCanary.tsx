@@ -13,7 +13,7 @@ export default function UatSeoN8nCanary({ enabled }: { enabled: boolean }) {
   async function start() {
     if (busy || !enabled) return;
     const items = keywords.split(/[,\n]+/).map((item) => item.trim()).filter(Boolean);
-    if (!items.length || items.length > 8 || items.some((item) => item.length < 2 || item.length > 90 || !/^[\p{L}\p{N} ._-]+$/u.test(item))) {
+    if (!items.length || items.length > 8 || items.some((item) => item.length < 2 || item.length > 90 || !/^[\p{L}\p{M}\p{N} ._-]+$/u.test(item))) {
       setResult({ error: "กรอกคำค้นสาธารณะ 1–8 รายการ ความยาวรายการละ 2–90 ตัวอักษร" });
       return;
     }

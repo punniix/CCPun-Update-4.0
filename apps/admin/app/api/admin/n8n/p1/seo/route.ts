@@ -9,7 +9,7 @@ import { createAgentRuntimeJob, updateAgentRuntimeJob } from "@/lib/admin/operat
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const headers={"Cache-Control":"private, no-store","X-Robots-Tag":"noindex, nofollow, noarchive"};
-const input=z.object({keywords:z.array(z.string().trim().min(2).max(90).regex(/^[\p{L}\p{N} ._-]+$/u)).min(1).max(8)}).strict();
+const input=z.object({keywords:z.array(z.string().trim().min(2).max(90).regex(/^[\p{L}\p{M}\p{N} ._-]+$/u)).min(1).max(8)}).strict();
 export async function POST(request:Request){
  const identity=await getAdminIdentity();
  if(!identity)return NextResponse.json({error:"unauthorized"},{status:401,headers});
