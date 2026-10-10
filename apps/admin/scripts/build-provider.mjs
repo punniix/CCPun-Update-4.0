@@ -72,7 +72,10 @@ function validateNativeNeonSourceInternal(root, variables, run, allowCloudReleas
   };
   const sha = git(["rev-parse", "HEAD"]);
   const checkedOutRef = git(["rev-parse", "--abbrev-ref", "HEAD"]);
-  if (variables.CCPUN_GIT_REF === "HEAD" || (checkedOutRef !== "HEAD" && checkedOutRef !== variables.CCPUN_GIT_REF)) deny();
+  if (variables.CCPUN_GIT_REF === "HEAD" || (checkedOutRef !== "HEAD" && checkedOutRef !== variables.CCPUN_GIT_REF)) {
+    if (!production) console.error("[ccpun-admin-uat-build-ref-check]", JSON.stringify({ checkedOutRef, expectedRef: variables.CCPUN_GIT_REF }));
+    deny("CHECKOUT_REF_MISMATCH");
+  }
   // Fixed reason codes distinguish source failures without logging Git output,
   // environment values or changed paths. Every original predicate still denies.
   if (sha !== variables.CCPUN_GIT_SHA) deny("SHA_MISMATCH");
