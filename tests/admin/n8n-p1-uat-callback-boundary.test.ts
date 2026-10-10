@@ -5,7 +5,9 @@ const route=readFileSync(new URL("../../apps/admin/app/api/internal/n8n/p1/seo/c
 test("P1 SEO callback is UAT-only, credentialed, metadata-only and revision-bound",()=>{
  assert.match(route,/getAdminEnvironment\(\) !== "admin-uat"/);
  assert.match(route,/CCPUN_N8N_P1_UAT_ENABLED !== "true"/);
- assert.match(route,/isN8nAgentOsRequestAuthorized/);
+ assert.match(route,/verifyScopedUatCapability/);
+ assert.match(route,/CCPUN_N8N_P1_UAT_TOKEN/);
+ assert.doesNotMatch(route,/isN8nAgentOsRequestAuthorized/);
  assert.match(route,/workflowKey: z\.literal\("seo\.cluster\.uat"\)/);
  assert.match(route,/providerWrites: z\.literal\(false\)/);
  assert.match(route,/job\.workflowKey !== parsed\.data\.workflowKey/);

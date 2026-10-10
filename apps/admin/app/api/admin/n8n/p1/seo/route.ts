@@ -6,6 +6,7 @@ import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/po
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { resolveUatFabricConfig } from "@/lib/admin/n8n/uat-fabric-policy";
 import { readScopedUatAck } from "@/lib/admin/n8n/uat-receipt";
+import { issueScopedUatCapability } from "@/lib/admin/n8n/uat-callback-capability";
 import { createAgentRuntimeJob, updateAgentRuntimeJob } from "@/lib/admin/operations/agent-os-runtime";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -32,8 +33,10 @@ export async function POST(request:Request){
  catch{return NextResponse.json({error:"job-unavailable"},{status:503,headers})}
  if(job.outcome==="idempotency_conflict")return NextResponse.json({error:"idempotency-conflict"},{status:409,headers});
  if(job.outcome==="duplicate")return NextResponse.json({status:"duplicate",jobId:job.jobId,jobPath:`/operations/jobs/${job.jobId}/`},{status:200,headers});
+ const callbackCapability=issueScopedUatCapability({jobId:job.jobId,correlationId:job.correlationId,secret:config.token});
+ if(!callbackCapability){await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"failed",stage:"capability-unavailable",errorCategory:"uat-callback-auth-not-ready"}).catch(()=>null);return NextResponse.json({error:"uat-callback-auth-unavailable"},{status:503,headers})}
  try{
-  const response=await fetch(config.endpoint,{method:"POST",headers:{Authorization:`Bearer ${config.token}`,"Content-Type":"application/json"},body:JSON.stringify({jobId:job.jobId,correlationId,environment:"admin-uat",keywords:parsed.data.keywords}),redirect:"error",cache:"no-store",signal:AbortSignal.timeout(8000)});
+  const response=await fetch(config.endpoint,{method:"POST",headers:{Authorization:`Bearer ${config.token}`,"Content-Type":"application/json"},body:JSON.stringify({jobId:job.jobId,correlationId,environment:"admin-uat",keywords:parsed.data.keywords,callbackCapability}),redirect:"error",cache:"no-store",signal:AbortSignal.timeout(8000)});
   if(!response.ok){await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"failed",stage:"trigger-rejected",errorCategory:`n8n-http-${response.status}`}).catch(()=>null);return NextResponse.json({error:"trigger-rejected",jobId:job.jobId},{status:503,headers})}
   const ack=readScopedUatAck(await response.json().catch(()=>null),{jobId:job.jobId,correlationId});
   if(!ack){await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"reconciliation_required",stage:"receipt-unverified",errorCategory:"n8n-ack-invalid"}).catch(()=>null);return NextResponse.json({error:"receipt-unverified",jobId:job.jobId},{status:503,headers})}
