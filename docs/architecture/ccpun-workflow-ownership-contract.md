@@ -1,3 +1,7 @@
+# OWNER DECISION OVERRIDE — CCPun Routine-first n8n, 2026-10-10
+
+Target design: every CCPun routine/background/scheduled task is n8n-orchestrated with visible named nodes and safe execution telemetry. Admin handles input, output, validation, authentication and human approval, not hidden background workflow execution. Private compute and narrowly scoped provider executors perform work requested by n8n. Existing production private timers stay the accepted single-owner runtime until a controlled, tested, one-by-one handoff to n8n scheduling; no parallel schedulers. See the Routine-first section at the end for observability and security constraints.
+
 # CCPun Workflow Ownership Contract — Phase 0
 
 Status: design contract for a future isolated UAT implementation. No application, automation or production behavior is changed by this document.
@@ -83,3 +87,15 @@ Do not treat enabled workflow status as proof of working integration. A workflow
 - Require an approved short-lived private transfer/staging mechanism before implementing; the Admin may perform secure input validation/staging, but no OCR processing.
 - UAT acceptance must show the exact n8n Node execution path and readable safe logs across success, bad input, 401, worker crash, timeout, duplicate submission, retry and human approval.
 - Current CCPun Private Chat Screenshot OCR workflow stays inactive until UAT acceptance. No existing Production pipeline is changed by this planning correction.
+
+## Routine-first n8n target contract (owner clarified 2026-10-10)
+
+- All routine work belongs to an n8n orchestration workflow: OCR, Local AI, content scheduling, approved social publication, LINE Rich Menu reconciliation, customer follow-up, exports, reporting, metrics collection, monitoring and scheduled backup coordination.
+- Each workflow shall expose comprehensible named nodes, execution identifiers, per-node timing, sanitized inputs/outputs, retry/error branches and a verified final provider receipt. Unauthorized or failed upstream responses may never be reported as healthy success.
+- Admin is the input/output, status summary and human-approval control surface. It must not host shadow schedulers or perform OCR inference in API handlers.
+- Private VPS remains the processor for OCR and sensitive Local AI. Routine execution is dispatched by n8n using scoped job references and a restricted gateway, not raw customer data transported through n8n.
+- Real-time authentication, signed third-party webhook verification, synchronous CRM mutations and human approvals remain protected server APIs. Their event-driven routine follow-ups enter n8n asynchronously, and realtime security boundaries stay operational when n8n is unavailable.
+- Production private Article Scheduler, Social and LINE Rich Menu timers are the current single-executor baseline, not an exemption from the target routine-first design. They must be replaced only through a tested isolated UAT workflow and exclusive cutover; never schedule the same side effect from both VPS and n8n.
+- Execution history may contain only allowlisted safe metadata. Raw screenshots, customer chat, health/financial data, credentials and signed private download links stay out of n8n logs and cloud sinks.
+- n8n outages leave queued routine work visible and retryable through the durable job ledger; do not silently invoke a hidden Admin/VPS alternative coordinator.
+- No automatic Production code changes, credential rotation, published content changes or executor cutover are authorized by this documentation.
