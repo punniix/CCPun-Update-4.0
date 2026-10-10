@@ -7,6 +7,7 @@ import styles from '@/components/layout/website-43/Website43.module.css';
 import { SectionHeading, Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 import Website43ArticleToc from './Website43ArticleToc';
+import HealthHappyCountdown from '@/features/campaigns/health-happy/HealthHappyCountdown';
 import BlogReturnLink from './BlogReturnLink';
 import { renderWebsite43ArticleBody } from './Website43ArticleBody';
 
@@ -78,7 +79,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
           </div>
         </header>
 
-        <section className={styles.articleReadingWrap}>
+        {article.slug === 'aia-health-happy-describe' && <HealthHappyCountdown placement="article" />}
+        <section className={styles.articleReadingWrap} id={article.slug === 'aia-health-happy-describe' ? 'health-happy-details' : undefined}>
           <div className={styles.articleReadingGrid}>
             {headings.length > 0 && (
               <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">

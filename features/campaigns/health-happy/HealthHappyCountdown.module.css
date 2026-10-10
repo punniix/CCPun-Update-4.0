@@ -1,0 +1,54 @@
+/* CCPun Website 4.3: reuse the original gold/outline button primitives. */
+.outside { padding: 16px 24px; background: #251818; }
+.frame {
+  isolation: isolate; position: relative; overflow: hidden; width: min(1280px,100%); margin-inline: auto;
+  display: grid; grid-template-columns: minmax(0,1.15fr) minmax(305px,1.15fr) minmax(205px,.70fr);
+  align-items: center; column-gap: clamp(14px,2vw,32px); padding: 18px 24px;
+  border: 1px solid #5b4848; border-left: 4px solid #c8102e; border-radius: 16px;
+  background: #352727; color: #faf9f9;
+}
+.frame::before {
+  position: absolute; z-index: -1; inset: 0; content: ''; opacity: .085;
+  background: url('/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png') center right / cover no-repeat;
+  pointer-events: none;
+}
+.info { min-width: 0; }
+.brandLine { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; line-height: 1.2; }
+.brandAia { color: #f04c68; font-size: 20px; font-weight: 700; }
+.brandName { font-size: clamp(19px,2vw,25px); font-weight: 700; letter-spacing: .01em; }
+.headline { margin: 6px 0 0; color: #faf9f9; font-size: 13px; line-height: 1.5; }
+.date { margin: 4px 0 0; color: #e0c985; font-size: clamp(23px,2.4vw,30px); font-weight: 700; line-height: 1.35; }
+.date span { white-space: nowrap; }
+.timer {
+  display: flex; align-items: center; justify-content: center; min-width: 0; padding: 14px 12px;
+  border: 1px solid #e0c985; border-radius: 12px; background: rgba(37,24,24,.83);
+  font-variant-numeric: tabular-nums;
+}
+.timePart { display: flex; align-items: center; min-width: 0; flex: 1 1 0; }
+.timePart:first-child { flex: 1.1 1 0; }
+.timeUnit { display: flex; flex-direction: column; align-items: center; min-width: 0; flex: 1; }
+.numeral { color: #ebd9a2; font-size: clamp(25px,2.6vw,38px); font-weight: 600; line-height: 1.15; }
+.colon { color: #ebd9a2; font-size: 27px; font-weight: 600; transform: translateY(-7px); }
+.timeLabel { color: #baabab; font-size: 9px; letter-spacing: .06em; line-height: 1.5; }
+.actions { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.actions a { width: 100%; min-width: 0; min-height: 44px; padding-inline: 12px; text-align: center; font-size: 12px; white-space: normal; }
+@media (min-width: 1101px) { .frame { min-height: 150px; } }
+@media (max-width: 1100px) {
+  .frame { grid-template-columns: minmax(0,1fr) minmax(300px,1fr); row-gap: 12px; }
+  .actions { grid-column: 1 / -1; flex-direction: row; }
+  .actions a { flex: 1; }
+}
+@media (max-width: 650px) {
+  .outside { padding: 12px 16px; }
+  .frame { grid-template-columns: minmax(0,1fr); gap: 10px; padding: 15px; border-radius: 14px; }
+  .brandAia { font-size: 17px; }
+  .brandName { font-size: 20px; }
+  .headline { font-size: 12px; margin-top: 3px; }
+  .date { font-size: 26px; margin-top: 3px; }
+  .timer { padding: 9px 8px; }
+  .numeral { font-size: clamp(24px,8vw,35px); }
+  .timeLabel { font-size: 8px; }
+  .colon { font-size: 23px; }
+  .actions { grid-column: auto; display: grid; grid-template-columns: 1fr; gap: 7px; }
+  .actions a { min-height: 44px; }
+}

@@ -6,6 +6,7 @@ import { Website43Navbar } from '@/components/layout/website-43/Website43Shared'
 import { HomeFooter, HomeSectionHeading } from './Website43HomeStatic';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 import type { ArticleAuthorProfile } from '@/lib/content/types';
+import HealthHappyCountdown from '@/features/campaigns/health-happy/HealthHappyCountdown';
 
 const DEFAULT_AUTHOR_ROLE = 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน';
 
@@ -46,6 +47,8 @@ export default function Website43Home({ authorProfile = null }: { authorProfile?
             <p className={styles.heroProof}>5+ ปี · 3 ใบอนุญาต · 6 พาร์ทเนอร์/แพลตฟอร์ม</p>
           </div>
         </section>
+
+        <HealthHappyCountdown placement="home" />
 
         <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}><div className={styles.inner}>
           <HomeSectionHeading eyebrow="โจทย์ที่พบบ่อย" title="ถ้าเรื่องเงินยังเป็นเรื่องที่คุณกังวล" description="เริ่มจากปัญหาที่เจอ ดูแผนการเงินในภาพรวม และหาผลิตภัณฑ์ที่เหมาะสม" />
