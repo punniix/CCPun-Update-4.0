@@ -8,7 +8,7 @@ const read = (file) => readFileSync(resolve(root, file), 'utf8');
 const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {
-  assert.equal(inventory.pairs.length, 64);
+  assert.equal(inventory.pairs.length, 65);
   for (const { legacy, canonical, wrapper, status } of inventory.pairs) {
     assert.equal(status, 'migrated', legacy);
     assert.equal(read(legacy), wrapper, legacy);

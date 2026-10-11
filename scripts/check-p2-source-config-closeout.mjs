@@ -11,7 +11,7 @@ const retention = JSON.parse(read("qa/p24-legacy-retention-policy.json"));
 // The P2 inventory is frozen historical evidence; current delegations have explicit owners.
 const migration = JSON.parse(read("qa/root-runtime-owner-migration.json"));
 const migratedOwners = new Map(migration.pairs.map(item => [item.legacy, item]));
-assert.equal(migratedOwners.size, 64, "canonical delegation inventory must remain explicit");
+assert.equal(migratedOwners.size, 65, "canonical delegation inventory must remain explicit");
 const verifiedDelegations = new Set();
 
 assert.deepEqual(manifest.summary, {
