@@ -191,12 +191,11 @@
 .homeHeroBottomGradient { display: none; }
 .homeHeroCopy { position: absolute; z-index: 5; top: 196px; left: max(80px, calc((100vw - 1280px) / 2)); width: 760px; }
 .homeHeroCopy .eyebrow { font-size: 15px; line-height: 22px; }
-.homeHeroTitle { min-height: 180px; margin: 22px 0 0; font-size: 44px; font-weight: 700; line-height: 60px; }
+.homeHeroTitle { margin: 22px 0 0; font-size: 44px; font-weight: 700; line-height: 1.4; text-wrap: balance; }
 .homeHeroTitle .homeHeroWord { white-space: nowrap; }
-.homeHeroBody { width: 610px; margin: 20px 0 0; color: rgba(247,245,242,.92); font-size: 18px; line-height: 26px; }
-.heroActions { display: flex; gap: 12px; margin-top: 20px; }
-.heroActions .primaryButton { width: 220px; }
-.heroActions .outlineButton { width: 160px; }
+.homeHeroBody { max-width: 610px; margin: 20px 0 0; color: rgba(247,245,242,.92); font-size: 18px; line-height: 1.6; }
+.heroActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: min(452px, 100%); margin-top: 24px; }
+.heroActions .primaryButton, .heroActions .outlineButton { width: 100%; min-height: 52px; padding: 12px 16px; font-size: 14px; line-height: 1.5; }
 .heroProof { margin: 20px 0 0; color: var(--w43-gold); font-size: 14px; font-weight: 600; line-height: 20px; }
 
 .threeCols { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-top: 20px; }
@@ -577,9 +576,7 @@
   .homeHeroCopy .eyebrow { font-size: 14px; line-height: 20px; }
   .homeHeroTitle { min-height: 0; width: min(490px, 100%); margin-top: 16px; font-size: 38px; line-height: 48px; }
   .homeHeroBody { width: 440px; margin-top: 24px; font-size: 16px; line-height: 23px; }
-  .heroActions { margin-top: 23px; }
-  .heroActions .primaryButton { width: 176px; min-height: 48px; }
-  .heroActions .outlineButton { width: 116px; min-height: 48px; }
+  .heroActions { width: min(364px, 100%); margin-top: 24px; }
   .heroProof { margin-top: 20px; font-size: 12px; }
   .threeCols { gap: 12px; }
   .editorialCard { min-height: 239px; padding: 20px; }
@@ -688,8 +685,8 @@
   .homeHeroCopy .eyebrow { line-height: 20px; }
   .homeHeroTitle { width: 100%; margin-top: 16px; font-size: 30px; line-height: 39px; }
   .homeHeroBody { width: 100%; margin: 326px 0 0; overflow-wrap: normal; word-break: normal; line-break: auto; font-size: 14px; line-height: 1.5; }
-  .heroActions { margin-top: 8px; }
-  .heroActions .primaryButton, .heroActions .outlineButton { width:calc((100% - 12px) / 2); padding:0 8px; white-space:nowrap; }
+  .heroActions { width: 100%; margin-top: 16px; }
+  .heroActions .primaryButton, .heroActions .outlineButton { min-height: 52px; padding: 12px 8px; white-space: nowrap; }
   .heroProof { width: 100%; margin-top: 12px; font-size: 12px; }
   .threeCols { grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
   .editorialCard { min-height: 0; padding: 12px 0; }
@@ -699,8 +696,8 @@
 
   .about { min-height: 0; padding: 24px; }
   .aboutInner { min-height: 0; }
-  .aboutPortraitStage { position: relative; top: auto; left: auto; width: 318px; height: 318px; margin-top: 16px; }
-  .aboutPortrait { top: 0; width: 318px; height: 418px; }
+  .aboutPortraitStage { position: relative; top: auto; left: auto; width: min(318px, 100%); height: auto; aspect-ratio: 1; margin-top: 16px; }
+  .aboutPortrait { top: 0; width: 100%; height: auto; }
   .aboutCopy { width: 100%; margin: 0; display: flex; flex-direction: column; }
   .aboutCopy .aboutPortraitStage { order: 3; }
   .aboutParagraphs { order: 4; margin-top: 16px; font-size: 16px; }
@@ -1441,7 +1438,7 @@
 .partners { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .articleHeader > .inner { width: min(1028px,100%); }
 @media (min-width:640px) and (max-width:1023px) {
-  .heroActions .outlineButton { width: 160px; white-space: nowrap; }
+  .heroActions .primaryButton, .heroActions .outlineButton { min-height: 52px; white-space: nowrap; }
   .voices { grid-template-columns: minmax(0,1fr) 1px minmax(0,1fr); gap: 24px; }
   .journey { grid-template-columns: repeat(4,minmax(0,1fr)); }
   .partners { grid-template-columns: repeat(3,minmax(0,1fr)); }

@@ -27,6 +27,18 @@ test('public navigation, footer and Money Story expose 44px targets without chan
   assert.match(read('components/layout/website-43/Website43Navbar.tsx'), /href=\{HOME\} className=\{styles\.brandLink\}/);
 });
 
+test('Home hero uses one sizing rule for both CTA destinations at every breakpoint', () => {
+  const source = readFileSync(new URL('../components/layout/website-43/Website43.module.css', import.meta.url), 'utf8');
+  const rules = [...source.matchAll(/([^{}]+)\{([^{}]+)\}/g)];
+  const actionRules = rules.filter(([, selector]) => selector.includes('.heroActions .'));
+  assert.ok(actionRules.length >= 3);
+  for (const [, selector, declarations] of actionRules) {
+    assert.ok(selector.includes('.primaryButton') && selector.includes('.outlineButton'), 'no breakpoint may size only one Hero CTA');
+    assert.match(declarations, /min-height: 52px/);
+  }
+  assert.match(source, /\.heroActions \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+});
+
 test('native cookie controls retain consent choices and the 28px visual track inside a 44px hit area', () => {
   const { transpileModule, ModuleKind } = createRequire(import.meta.url)('typescript') as typeof import('typescript');
   const source = readFileSync(new URL('../features/analytics/components/CookieConsentPreferences.tsx', import.meta.url), 'utf8');
