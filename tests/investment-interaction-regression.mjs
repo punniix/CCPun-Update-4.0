@@ -9,7 +9,8 @@ const single = source('SingleFundBuilder');
 const portfolio = source('PortfolioBuilder');
 
 function functionSource(text, name) {
-  const start = text.indexOf(`  async function ${name}(`);
+  const asyncStart = text.indexOf(`  async function ${name}(`);
+  const start = asyncStart >= 0 ? asyncStart : text.indexOf(`  function ${name}(`);
   const end = text.indexOf('\n  }\n', start) + 4;
   assert.ok(start >= 0 && end > start, name);
   return stripTypeScriptTypes(text.slice(start, end));
@@ -33,6 +34,31 @@ function runtime(text, name) {
   const respond = (index, data, ok = true) => pending[index]({ ok, status: ok ? 200 : 503, json: async () => data });
   return { state, context, invoke, respond };
 }
+
+test('single starts once on its first category progression and sends only categorical context', () => {
+  const events = [];
+  const catalogLoads = [];
+  const context = {
+    startedRef: { current: false }, query: 'private search',
+    trackEvent: (name, params) => events.push({ name, params }),
+    loadAmcs: () => {}, loadCatalog: (filters) => catalogLoads.push(filters),
+  };
+  for (const key of ['Category', 'Subcategory', 'AmcId', 'SelectedFund', 'Detail', 'SaveStatus']) {
+    context[`set${key}`] = () => {};
+  }
+  const chooseCategory = runInNewContext(`${functionSource(single, 'chooseCategory')}\nchooseCategory;`, context);
+  assert.equal(events.length, 0, 'rendering the handler cannot count as a start');
+  for (const category of ['equity', 'mixed', 'all']) chooseCategory(category);
+  assert.equal(events[0].name, 'ia_tool_start', 'start precedes the first step');
+  const starts = events.filter(({ name }) => name === 'ia_tool_start');
+  assert.equal(starts.length, 1, 'changing category must not start another tool session');
+  assert.deepEqual(JSON.parse(JSON.stringify(starts[0].params)), {
+    tool_name: 'investment_allocation', cta_location: 'investment_allocation_builder', surface_group: 'investment_allocation',
+  });
+  assert.equal(events.filter(({ name }) => name === 'ia_step_view').length, 3);
+  assert.equal(catalogLoads.length, 3, 'tracking must preserve catalog progression');
+  assert.equal(JSON.stringify(events).includes('private search'), false);
+});
 
 test('catalog keeps the latest filter and ignores older response/finally', async () => {
   const run = runtime(single, 'loadCatalog');

@@ -60,6 +60,7 @@ export default function SingleFundBuilder() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
+  const startedRef = useRef(false);
   const catalogRequest = useRef(0);
   const detailRequest = useRef(0);
 
@@ -133,6 +134,10 @@ export default function SingleFundBuilder() {
   }
 
   function chooseCategory(next: FundCatalogCategory | "all") {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackEvent("ia_tool_start", { tool_name: "investment_allocation", cta_location: "investment_allocation_builder", surface_group: "investment_allocation" });
+    }
     setCategory(next);
     setSubcategory("all");
     setAmcId("all");
