@@ -54,9 +54,10 @@ function localImports(file, source) {
 export const graph = new Map();
 for (const file of runtimeFiles) graph.set(file, localImports(file, sourceByFile.get(file)));
 
-const appEntryPattern = /^app\/(?:.*\/)?(?:page|layout|route|loading|error|not-found|default|template|manifest|robots|sitemap|opengraph-image|twitter-image|icon|apple-icon)\.(?:js|jsx|mjs|ts|tsx)$/;
+// Hostinger apps own runtime routes; root app/ remains a compatibility mirror.
+const appEntryPattern = /^apps\/(?:web|admin)\/app\/(?:.*\/)?(?:page|layout|route|loading|error|not-found|default|template|manifest|robots|sitemap|opengraph-image|twitter-image|icon|apple-icon)\.(?:js|jsx|mjs|ts|tsx)$/;
 export const entryFiles = runtimeFiles.filter((file) => appEntryPattern.test(file));
-for (const rootEntry of ['proxy.ts', 'auth.ts']) {
+for (const rootEntry of ['apps/web/proxy.ts', 'apps/admin/proxy.ts']) {
   if (runtimeFileSet.has(rootEntry)) entryFiles.push(rootEntry);
 }
 
@@ -84,15 +85,16 @@ export const reachable = walkReachable(entryFiles);
 export const reachableSources = sourcesFor(reachable);
 
 const publicExcludedEntryPrefixes = [
-  'app/(control-plane',
-  'app/api/',
-  'app/studio/',
-  'app/login/',
-  'app/.well-known/workflow/',
+  'apps/web/app/(control-plane',
+  'apps/web/app/api/',
+  'apps/web/app/studio/',
+  'apps/web/app/login/',
+  'apps/web/app/.well-known/workflow/',
 ];
 
 export function isPublicPageEntry(file) {
-  return appEntryPattern.test(file) && !publicExcludedEntryPrefixes.some((prefix) => file.startsWith(prefix));
+  return file.startsWith('apps/web/app/') && appEntryPattern.test(file)
+    && !publicExcludedEntryPrefixes.some((prefix) => file.startsWith(prefix));
 }
 
 // Public page reachability deliberately excludes Proxy/Auth/Admin/Studio/API roots.
