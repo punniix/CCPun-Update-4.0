@@ -9,7 +9,7 @@ const researchRoute = readFileSync(new URL("../../apps/admin/app/api/admin/resea
 const growth = readFileSync(new URL("../../lib/admin/growth.ts", import.meta.url), "utf8");
 const growthPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8")
   + readFileSync(new URL("../../features/admin/analytics/StoredAnalyticsDashboard.tsx", import.meta.url), "utf8");
-const growthLoading = readFileSync(new URL("../../app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
+const growthLoading = readFileSync(new URL("../../apps/admin/app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
 const research = readFileSync(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
 const geoPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 const researchPage = readFileSync(new URL("../../features/admin/research/page.tsx", import.meta.url), "utf8");
