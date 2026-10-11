@@ -65,7 +65,7 @@ export default function Website43Home({ authorProfile = null }: { authorProfile?
             <p className={styles.aboutIdentityName}>{displayName}</p>
             <p className={styles.aboutIdentityMeta}>{profileRole}{qualificationIdentifier ? ` · เลขคุณวุฒิ ${qualificationIdentifier}` : ''}</p>
           </div> : null}
-          <div className={styles.aboutPortraitStage}><Image className={styles.aboutPortrait} src="/assets/website-43/about-pun.png" alt="CCPun" width={400} height={526} sizes="(max-width: 639px) 318px, (max-width: 1023px) 260px, 400px" /></div>
+          <div className={styles.aboutPortraitStage}><Image className={styles.aboutPortrait} src="/assets/ccpun.webp" alt="CCPun" width={400} height={526} sizes="(max-width: 639px) 318px, (max-width: 1023px) 260px, 400px" /></div>
           <div className={styles.aboutParagraphs}><p>จากคนที่โฟกัสแต่เพียงเรื่องการลงทุน จนเจอเหตุไม่คาดฝัน และสูญเสียในครอบครัวในเวลาต่อมา ผมจึงเริ่มเห็นความสำคัญของประกันชีวิต และกลับมาจัดแผนการเงินใหม่จากระดับรากฐาน</p><p>และเลือกเดินต่อในบทบาทตัวแทนประกันชีวิต นายหน้าประกันวินาศภัย และผู้วางแผนการลงทุน เพื่อช่วยเหลือผู้คนให้มีฐานการเงินที่ดีขึ้น</p><p>โดยนำประสบการณ์ด้านการเงินและการลงทุนจากการทำงานกว่า 5 ปี มาแนะนำ และช่วยตัดสินใจเลือกผลิตภัณฑ์ทางการเงินที่ตอบโจทย์เฉพาะบุคคล เพื่อสร้างทั้งความมั่นคงและความมั่งคั่งได้ในระยะสั้น กลางและยาว</p></div>
           <div className={styles.advisorNote}>เป้าหมายไม่ใช่การเลือกเพียงแค่ผลิตภัณฑ์ใดผลิตภัณฑ์หนึ่ง แต่วางองค์รวม และเลือกสิ่งที่ดีที่สุด เหมาะสม ตอบโจทย์กับลูกค้าที่สุด</div>
         </div></div></section>
