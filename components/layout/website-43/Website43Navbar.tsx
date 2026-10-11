@@ -6,6 +6,12 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './Website43Navbar.module.css';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
 
+const toolLinks = [
+  { href: `${BASE}/play/money-story`, label: 'Money Story (Beta)' },
+  { href: `${BASE}/tools/financial-health-check`, label: 'ตรวจสุขภาพการเงิน (Beta)' },
+  { href: `${BASE}/ci-planning`, label: 'วางแผนเงินก้อนโรคร้ายแรง' },
+];
+
 function Website43NavbarBrand() {
   return (
     <span className={styles.brand} aria-label="CCPUN">
@@ -17,7 +23,7 @@ function Website43NavbarBrand() {
 export function Website43Navbar({ overlay = false, notFound = false, responsiveOverlay = false }: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean }) {
   const pathname = usePathname()?.replace(/\/$/, '');
   const blogCurrent = pathname === `${BASE}/blog` ? 'page' : pathname?.startsWith(`${BASE}/blog/`) ? 'location' : undefined;
-  const toolsCurrent = pathname === `${BASE}/tools/financial-health-check` || pathname === `${BASE}/ci-planning` || pathname === `${BASE}/play/money-story`;
+  const toolsCurrent = toolLinks.some(({ href }) => pathname === href);
   const [open, setOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
@@ -61,9 +67,9 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
           </button>
           {toolsOpen ? (
             <div id="home-tools-navigation" className={styles.navDropdown}>
-              <Link href={`${BASE}/play/money-story`} aria-current={pathname === `${BASE}/play/money-story` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />Money Story (Beta)</Link>
-              <Link href={`${BASE}/tools/financial-health-check`} aria-current={pathname === `${BASE}/tools/financial-health-check` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />ตรวจสุขภาพการเงิน (Beta)</Link>
-              <Link href={`${BASE}/ci-planning`} aria-current={pathname === `${BASE}/ci-planning` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />วางแผนเงินก้อนโรคร้ายแรง</Link>
+              {toolLinks.map(({ href, label }) => (
+                <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />{label}</Link>
+              ))}
             </div>
           ) : null}
         </div>
@@ -82,9 +88,9 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
             </button>
             {mobileToolsOpen ? (
               <div className={styles.mobileSubmenu}>
-                <Link href={`${BASE}/play/money-story`} aria-current={pathname === `${BASE}/play/money-story` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>Money Story (Beta)</Link>
-                <Link href={`${BASE}/tools/financial-health-check`} aria-current={pathname === `${BASE}/tools/financial-health-check` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>ตรวจสุขภาพการเงิน (Beta)</Link>
-                <Link href={`${BASE}/ci-planning`} aria-current={pathname === `${BASE}/ci-planning` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>วางแผนเงินก้อนโรคร้ายแรง</Link>
+                {toolLinks.map(({ href, label }) => (
+                  <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>{label}</Link>
+                ))}
               </div>
             ) : null}
           </div>

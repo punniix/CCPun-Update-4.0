@@ -85,6 +85,9 @@ const orphanContextualOverrides = [...globalClassOwners.entries()].filter(([, ow
 const moduleCssPath = 'components/layout/website-43/Website43.module.css';
 const moduleCss = readFileSync(moduleCssPath, 'utf8');
 const moduleClasses = extractClasses(moduleCss);
+const globalModuleClasses = new Set(
+  [...moduleCss.matchAll(/:global\(([^)]+)\)/g)].flatMap(([, selector]) => extractClasses(selector)),
+);
 const moduleImporters = [];
 for (const [file, source] of reachableSources) {
   const importPattern = /import\s+([A-Za-z_$][\w$]*)\s+from\s+['"][^'"]*Website43\.module\.css['"]/g;
@@ -104,7 +107,7 @@ function hasModuleUsage(className) {
     const bracket = new RegExp(`${alias}\\s*\\[\\s*['"]${escaped}['"]\\s*\\]`);
     if (dot.test(source) || bracket.test(source)) return true;
   }
-  return hasLiteralReachableUsage(className);
+  return globalModuleClasses.has(className) && hasLiteralReachableUsage(className);
 }
 
 const moduleUnused = dynamicModuleAccess.length === 0

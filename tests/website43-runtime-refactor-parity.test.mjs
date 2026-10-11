@@ -1,0 +1,139 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const postcss = require('postcss');
+const ts = require('typescript');
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+// Production baseline: ede3513af5b7ba5181885718663d6dc4edaa2250. Captured once; shallow CI needs no Git history.
+const baseline = {
+  "activeCss": "aa2c97c25232f2fbc30e6a5b456e829a27c0a8504ed0ee3bd38543b8b3cfb923",
+  "responsiveCss": "57706f7a78a134699bf6fbe5b97452347c26b17c3b6ec2d101604f5384924310",
+  "navbarCss": "f73888211aa36e60d00fb564b417e9cdcded8c4d6f7dc94b8cedafb98388d752",
+  "navbarDom": "c9b2e505355783f485fc1609ffd769dc21700ec7a3ebd712e34b48fa1c7654ed",
+  "footerDom": "db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b"
+};
+const directory = 'components/layout/website-43/';
+const after = (file) => readFileSync(directory + file, 'utf8');
+const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
+
+// Compare ordered selectors/declarations/media ancestry, ignoring only proven inactive selectors.
+function stylesheetRules(source, responsive = false) {
+  const css = responsive
+    ? [...source.matchAll(/String\.raw`([\s\S]*?)`/g)].map(([, body]) => body.replace(/\$\{styles\.(\w+)\}/g, 'W43REF_$1')).join('\n')
+    : source;
+  const ast = postcss.parse(css);
+  const records = [];
+  ast.walkRules((rule) => {
+    const selectors = postcss.list.comma(rule.selector).filter((selector) => ![...selector.matchAll(/\.([\w-]+)/g)].some(([, name]) => inactive.has(name.replace(/^W43REF_/, ''))));
+    if (!selectors.length) return;
+    const media = rule.parent.type === 'atrule' ? rule.parent.params : '';
+    if (responsive && media === '(max-width: 1023px)' && selectors.join(', ') === '.W43REF_toolHero .W43REF_primaryButton') return;
+    if (responsive && media === '(max-width: 639px)' && selectors[0] === '.W43REF_section' && rule.nodes.every((d) => ['padding-left', 'padding-right'].includes(d.prop) && d.value === 'var(--w43-content-gutter)')) return;
+    const ancestry = [];
+    for (let parent = rule.parent; parent.type !== 'root'; parent = parent.parent) ancestry.unshift([parent.name, parent.params]);
+    records.push([selectors, rule.nodes.filter((n) => n.type === 'decl').map((n) => [n.prop, n.value, Boolean(n.important)]), ancestry]);
+  });
+  return records;
+}
+
+
+const styles = new Proxy({}, { get: (_, property) => String(property) });
+function component(source, name, pathname, state = []) {
+  const hooks = state === null ? React : { ...React, useState: (initial) => [state.length ? state.shift() : initial, () => {}] };
+  const dependencies = (id) => {
+    if (id.endsWith('.module.css')) return { __esModule: true, default: styles };
+    if (id === 'next/link') return { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) };
+    if (id === 'next/navigation') return { usePathname: () => pathname };
+    if (id === 'react') return hooks;
+    if (id === './constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
+    if (id === './Website43Navbar') return {};
+    if (id.includes('CookieSettingsButton')) return { __esModule: true, default: (props) => React.createElement('button', props, 'Cookie settings') };
+    return require(id);
+  };
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
+  const compiledModule = { exports: {} };
+  new Function('require', 'module', 'exports', compiled)(dependencies, compiledModule, compiledModule.exports);
+  return compiledModule.exports[name];
+}
+
+
+const fingerprint = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const navbarSnapshots = (source) => {
+  const snapshots = [];
+  for (const pathname of ['/', '/blog/', '/blog/personal-finance/example/', '/play/money-story/', '/tools/financial-health-check/', '/ci-planning/']) {
+    for (const props of [{}, { overlay: true }, { notFound: true }, { responsiveOverlay: true }]) {
+      for (const state of [[false, false, false], [false, true, false], [true, false, false], [true, false, true]]) {
+        snapshots.push(renderToStaticMarkup(React.createElement(component(source, 'Website43Navbar', pathname, [...state]), props)));
+      }
+    }
+  }
+  return snapshots;
+};
+const footerSnapshots = (source) => {
+  const snapshots = [];
+  for (const warnings of [false, true]) for (const notFound of [false, true]) snapshots.push(renderToStaticMarkup(React.createElement(component(source, 'Website43Footer', '/'), { warnings, notFound })));
+  return snapshots;
+};
+test('active stylesheet declarations and media order preserve the Production baseline', () => {
+  assert.equal(fingerprint(stylesheetRules(after('Website43.module.css'))), baseline.activeCss);
+  assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), baseline.responsiveCss);
+  assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar styling is unchanged');
+  assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);
+  for (const name of inactive) assert.doesNotMatch(after('Website43.module.css'), new RegExp(`\\.${name}\\b`), `inactive module class ${name}`);
+});
+
+test('96 navbar disclosure states preserve DOM, labels, links, aria and tracking attributes', () => {
+  assert.equal(fingerprint(navbarSnapshots(after('Website43Navbar.tsx'))), baseline.navbarDom);
+});
+
+test('four full/compact footer variants preserve DOM', () => {
+  assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))), baseline.footerDom);
+});
+
+test('native navbar clicks and Escape keep existing disclosure and focus behavior', async () => {
+  const { JSDOM } = require('jsdom');
+  const dom = new JSDOM('<div id="root"></div>', { url: 'https://ccpun.com/' });
+  const original = new Map();
+  for (const name of ['window', 'self', 'document', 'Element', 'HTMLElement', 'Event', 'KeyboardEvent', 'MouseEvent']) {
+    original.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
+    Object.defineProperty(globalThis, name, { configurable: true, value: dom.window[name] });
+  }
+  const previousActEnvironment = globalThis.IS_REACT_ACT_ENVIRONMENT;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const { createRoot } = require('react-dom/client');
+  const root = createRoot(document.getElementById('root'));
+  try {
+    await React.act(() => root.render(React.createElement(component(after('Website43Navbar.tsx'), 'Website43Navbar', '/play/money-story/', null))));
+    const click = async (selector) => { await React.act(() => document.querySelector(selector).click()); };
+    const escape = async () => { await React.act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))); };
+    await click('.navToolsButton');
+    assert.equal(document.querySelectorAll('#home-tools-navigation a').length, 3);
+    assert.equal(document.querySelector('#home-tools-navigation a').getAttribute('aria-current'), 'page');
+    await escape();
+    assert.equal(document.querySelector('#home-tools-navigation'), null);
+    assert.equal(document.activeElement, document.querySelector('.navToolsButton'));
+    await click('.hamburger');
+    await click('.mobileTools > button');
+    assert.equal(document.querySelectorAll('.mobileSubmenu a').length, 3);
+    document.querySelector('.mobileSubmenu a').addEventListener('click', (event) => event.preventDefault());
+    await click('.mobileSubmenu a');
+    assert.equal(document.querySelector('#mobile-navigation'), null);
+    await click('.hamburger');
+    await escape();
+    assert.equal(document.querySelector('#mobile-navigation'), null);
+    assert.equal(document.activeElement, document.querySelector('.hamburger'));
+  } finally {
+    await React.act(() => root.unmount());
+    dom.window.close();
+    for (const [name, descriptor] of original) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else delete globalThis[name];
+    }
+    globalThis.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+  }
+});
