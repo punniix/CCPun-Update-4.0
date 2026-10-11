@@ -78,6 +78,7 @@ export function isInternalServiceApiPath(pathname: string): boolean {
     || path === "/api/internal/marketing/workspace"
     || path === "/api/internal/marketing/actions/import"
     || isPathOrChild(path, "/api/internal/agent-os/jobs")
+    || path === "/api/internal/n8n/p1/seo/callback"
     || path === "/api/internal/agent-os/exports"
     || isPathOrChild(path, "/api/internal/local-ai/jobs")
     || isPathOrChild(path, "/api/internal/local-ai/line-descriptions")

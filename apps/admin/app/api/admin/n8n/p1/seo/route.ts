@@ -35,7 +35,7 @@ export async function POST(request:Request){
  const callbackCapability=issueScopedUatCapability({jobId:job.jobId,correlationId:job.correlationId,secret:config.token});
  if(!callbackCapability){await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"failed",stage:"capability-unavailable",errorCategory:"uat-callback-auth-not-ready"}).catch(()=>null);return NextResponse.json({error:"uat-callback-auth-unavailable"},{status:503,headers})}
  // Persist the outbound waiting state before calling the asynchronously responding webhook.
- const dispatchState=await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"waiting_external",stage:"n8n-dispatching",startedAt:new Date().toISOString()}).catch(()=>null);
+ const dispatchState=await updateAgentRuntimeJob({jobId:job.jobId,expectedVersion:job.rowVersion,status:"waiting_external",stage:"n8n-dispatching",attempt:1,startedAt:new Date().toISOString()}).catch(()=>null);
  if(dispatchState?.outcome!=="updated" || dispatchState.rowVersion===null)return NextResponse.json({error:"job-status-unverified",jobId:job.jobId},{status:503,headers});
  try{
   const response=await fetch(config.endpoint,{method:"POST",headers:{Authorization:`Bearer ${config.token}`,"Content-Type":"application/json"},body:JSON.stringify({jobId:job.jobId,correlationId,environment:"admin-uat",keywords:parsed.data.keywords,callbackCapability}),redirect:"error",cache:"no-store",signal:AbortSignal.timeout(8000)});
