@@ -8,8 +8,8 @@ test("SEO Control Center keeps semantic topic separate from protected published 
     readFileSync("cms/sanity/schema/objects/seo-metadata.ts", "utf8"),
   ].join("\n");
   const input = readFileSync("cms/sanity/components/SeoScoreInput.tsx", "utf8");
-  const adminPage = readFileSync("app/(control-plane)/seo/page.tsx", "utf8");
-  const detailPage = readFileSync("app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
+  const adminPage = readFileSync("apps/admin/app/(control-plane)/seo/page.tsx", "utf8");
+  const detailPage = readFileSync("apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
   const contract = readFileSync("docs/seo-control-center-v1.md", "utf8");
 
   assert.match(schema, /BLOG_TOPIC_HUBS/);
@@ -30,9 +30,9 @@ test("SEO Control Center keeps semantic topic separate from protected published 
   assert.match(input, /Semantic Topic แยกจาก URL จริง/);
   assert.doesNotMatch(input, /Google Preview|สถานะ SEO ที่ควรตรวจ|useFormValue|const checks/);
 
-  assert.match(adminPage, /SEO Control Center/);
-  assert.match(adminPage, /แก้ผ่าน Draft ได้ตามปกติ/);
-  assert.match(adminPage, /Protected หลังบทความเคยเผยแพร่/);
+  assert.match(adminPage, /ตรวจ SEO/);
+  assert.match(adminPage, /แก้ในฉบับร่างได้ตามปกติ/);
+  assert.match(adminPage, /ต้องตรวจผลกระทบก่อนแก้ หลังเคยเผยแพร่/);
   assert.match(detailPage, /คะแนนคำนวณสดจากฉบับปัจจุบัน/);
   assert.match(detailPage, /ความพร้อมก่อนทำงานจริง/);
 

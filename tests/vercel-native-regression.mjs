@@ -101,11 +101,11 @@ assert.match(ownerPreviewRoute, /row\.isDraft/);
 assert.match(ownerPreviewRoute, /draftMode\(\)\)\.enable\(\)/);
 assert.doesNotMatch(ownerPreviewRoute, /searchParams\.get\(["'](?:redirect|url|path)["']\)/);
 
-const studioPage = read('app/studio/[[...tool]]/page.tsx');
+const studioPage = read('apps/admin/app/studio/[[...tool]]/page.tsx');
 assert.match(studioPage, /IS_REVIEW_ENVIRONMENT/);
 assert.match(studioPage, /StudioClient/);
 assert.doesNotMatch(studioPage, /requireAdminPermission\("draft:apply"\)/);
-const studioClient = read('app/studio/[[...tool]]/studio-client.tsx');
+const studioClient = read('apps/admin/app/studio/[[...tool]]/studio-client.tsx');
 assert.match(studioClient, /import \{ Studio \} from "sanity"/);
 assert.match(studioClient, /<Studio config=\{sanityStudioConfig\}/);
 
@@ -480,8 +480,8 @@ for (const contractCheck of [
   assert.match(trackingQa, new RegExp(contractCheck));
 }
 
-const adminLoginPage = read('app/(control-plane-auth)/login/page.tsx');
-const protectedAdminLayout = read('app/(control-plane)/layout.tsx');
+const adminLoginPage = read('apps/admin/app/(control-plane-auth)/login/page.tsx');
+const protectedAdminLayout = read('apps/admin/app/(control-plane)/layout.tsx');
 for (const adminSurface of [adminLoginPage, protectedAdminLayout]) {
   assert.match(adminSurface, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false,\s*nocache:\s*true\s*\}/);
 }
@@ -490,9 +490,9 @@ assert.match(protectedAdminLayout, /<main id="main-content"/);
 assert.doesNotMatch(protectedAdminLayout, /admin-skip-link/);
 
 for (const tablePage of [
-  read('app/(control-plane)/content/articles/page.tsx'),
-  read('app/(control-plane)/seo/page.tsx'),
-  read('app/(control-plane)/operations/audit-log/page.tsx'),
+  read('apps/admin/app/(control-plane)/content/articles/page.tsx'),
+  read('apps/admin/app/(control-plane)/seo/page.tsx'),
+  read('apps/admin/app/(control-plane)/operations/audit-log/page.tsx'),
 ]) {
   assert.match(tablePage, /text-white\/60 xl:hidden/);
 }
@@ -508,8 +508,8 @@ const publicDiscoverySurface = [
 ].join('\n');
 assert.doesNotMatch(publicDiscoverySurface, /\/snt-admin\//, 'Admin routes must stay out of public navigation and sitemaps');
 
-const reviewPage = read('app/(control-plane)/dashboard/inbox/page.tsx');
-const seoPage = read('app/(control-plane)/seo/page.tsx');
+const reviewPage = read('apps/admin/app/(control-plane)/dashboard/reviews/page.tsx');
+const seoPage = read('apps/admin/app/(control-plane)/seo/page.tsx');
 assert.match(reviewPage, /\/studio\/structure\/article;/, 'Review preview must use the working Studio structure route');
 assert.match(seoPage, /\/studio\/structure\/article;/, 'SEO Studio action must use the working Studio structure route');
 assert.doesNotMatch(reviewPage, /\/studio\/intent\/edit\//, 'Review preview must not use the trailing-slash-broken Studio intent route');

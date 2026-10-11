@@ -8,11 +8,18 @@ const read = (file) => readFileSync(resolve(root, file), 'utf8');
 const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {
-  assert.equal(inventory.pairs.length, 47);
+  assert.equal(inventory.pairs.length, 64);
   for (const { legacy, canonical, wrapper, status } of inventory.pairs) {
     assert.equal(status, 'migrated', legacy);
     assert.equal(read(legacy), wrapper, legacy);
     assert.equal(existsSync(resolve(root, canonical)), true, canonical);
+    const implementation = read(canonical);
+    const namedReexports = [...implementation.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
+    const wrapperExports = [...wrapper.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
+    for (const name of ['default', 'metadata']) {
+      const exported = name === 'default' ? /export default\b/.test(implementation) : /export const metadata\b/.test(implementation);
+      if (exported || namedReexports.includes(name)) assert.ok(wrapperExports.includes(name), `${legacy}: missing ${name} export`);
+    }
     assert.match(wrapper, new RegExp(`from "@/${canonical.replace(/\.[^.]+$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), legacy);
     // Keep Next's statically analysed route configuration literal in the entry file.
     for (const match of read(canonical).matchAll(/export const (dynamic|dynamicParams|revalidate|fetchCache|runtime|preferredRegion|maxDuration|experimental_ppr)\s*=\s*([^;]+);/g)) {

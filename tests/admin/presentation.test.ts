@@ -48,11 +48,11 @@ test("admin presentation uses friendly Thai labels and hides unknown API detail"
 });
 
 test("production-capable admin surfaces do not hard-code UAT copy", () => {
-  const dashboard = readFileSync("app/(control-plane)/dashboard/page.tsx", "utf8");
-  const login = readFileSync("app/(control-plane-auth)/login/page.tsx", "utf8");
-  const audit = readFileSync("app/(control-plane)/operations/audit-log/page.tsx", "utf8");
+  const dashboard = readFileSync("apps/admin/app/(control-plane)/dashboard/page.tsx", "utf8");
+  const login = readFileSync("apps/admin/app/(control-plane-auth)/login/page.tsx", "utf8");
+  const audit = readFileSync("apps/admin/app/(control-plane)/operations/audit-log/page.tsx", "utf8");
 
-  assert.match(dashboard, /พื้นที่นี้ทำงานใน/);
+  assert.match(dashboard, /พื้นที่นี้ใช้ข้อมูลจาก/);
   assert.match(dashboard, /\{lane\}/);
   assert.doesNotMatch(dashboard, /status\.environment === "local-production" \? "production" : "uat"/);
   assert.doesNotMatch(login, /พื้นที่ทดสอบ/);
@@ -81,7 +81,7 @@ test("production-capable admin surfaces do not hard-code UAT copy", () => {
 });
 
 test("content list separates document state from content review state", () => {
-  const contentPage = readFileSync("app/(control-plane)/content/articles/page.tsx", "utf8");
+  const contentPage = readFileSync("apps/admin/app/(control-plane)/content/articles/page.tsx", "utf8");
   const sanityControl = readFileSync("lib/admin/sanity-control.ts", "utf8");
   assert.match(contentPage, /สถานะเอกสาร/);
   assert.match(contentPage, /ขั้นตรวจเนื้อหา/);

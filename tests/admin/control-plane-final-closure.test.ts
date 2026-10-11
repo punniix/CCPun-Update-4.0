@@ -28,25 +28,25 @@ test("Article Scheduler read model verifies immutable identity and is read-only"
 });
 
 test("Content Calendar reads durable scheduler records instead of showing a placeholder", () => {
-  const source = read("app/(control-plane)/content/calendar/page.tsx");
+  const source = read("apps/admin/app/(control-plane)/content/calendar/page.tsx");
   assert.match(source, /readArticleSchedulerModel/);
-  assert.match(source, /Durable switch/);
-  assert.match(source, /healthy zero/);
+  assert.match(source, /scheduler\.status === "ready"/);
+  assert.match(source, /scheduler\.status === "ready" && records\.length === 0/);
   assert.doesNotMatch(source, /AdminCapabilityState/);
 });
 
 test("Health separates runtime and durable Article Scheduler switches", () => {
-  const source = read("app/(control-plane)/operations/health/page.tsx");
+  const source = read("apps/admin/app/(control-plane)/operations/health/page.tsx");
   assert.match(source, /Runtime switch/);
-  assert.match(source, /Durable Neon switch/);
-  assert.match(source, /Effective scheduling/);
+  assert.match(source, /Durable switch/);
+  assert.match(source, /รับคิวใหม่/);
   assert.match(source, /scheduler\.effectiveEnabled/);
 });
 
 test("Audit page exposes Scheduler transitions plus links to operational logs", () => {
-  const source = read("app/(control-plane)/operations/audit-log/page.tsx");
-  assert.match(source, /Article Scheduler log/);
-  assert.match(source, /article_schedule_audit/);
+  const source = read("apps/admin/app/(control-plane)/operations/audit-log/page.tsx");
+  assert.match(source, /คิวเผยแพร่บทความ/);
+  assert.match(source, /scheduler\.audit\.map/);
   assert.match(source, /\/operations\/jobs\//);
   assert.match(source, /\/operations\/deployments\//);
   assert.match(source, /\/content\/calendar\//);
@@ -54,7 +54,7 @@ test("Audit page exposes Scheduler transitions plus links to operational logs", 
 
 
 test("Control Plane navigation exposes only implemented workspaces", () => {
-  const layout = read("app/(control-plane)/layout.tsx");
+  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
   for (const deadEnd of [
     "/seo/keywords/",
     "/seo/internal-links/",
@@ -64,7 +64,13 @@ test("Control Plane navigation exposes only implemented workspaces", () => {
     "/analytics/website/",
     "/analytics/conversions/",
   ]) {
+    if (deadEnd === "/analytics/conversions/") {
+      // This formerly-placeholder URL now has an actual canonical conversion dashboard.
+      assert.match(read("apps/admin/app/(control-plane)/analytics/conversions/page.tsx"), /readConversionAnalytics\(\)/);
+      assert.match(layout, /href: "\/analytics\/conversions\/"/);
+    } else {
     assert.doesNotMatch(layout, new RegExp(deadEnd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    }
   }
   for (const live of ["/seo/opportunities/", "/seo/audits/", "/social/posts/", "/social/calendar/", "/social/queue/", "/analytics/search/", "/analytics/social/"]) {
     assert.match(layout, new RegExp(live.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -84,7 +90,7 @@ test("legacy placeholder routes redirect into canonical live workspaces", () => 
 });
 
 test("Settings child routes are real read-only diagnostics rather than capability placeholders", () => {
-  const settings = read("app/(control-plane)/settings/[section]/page.tsx");
+  const settings = read("apps/admin/app/(control-plane)/settings/[section]/page.tsx");
   assert.match(settings, /getSeoGoogleProviderReadiness/);
   assert.match(settings, /getSocialProviderReadiness/);
   assert.match(settings, /ADMIN_PERMISSIONS/);
