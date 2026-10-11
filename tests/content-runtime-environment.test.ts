@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import {
   CONTENT_VERCEL_PROJECT_IDS,
   isContentDeploymentAllowed,
@@ -11,6 +13,25 @@ const WEB_PROJECT_ID = CONTENT_VERCEL_PROJECT_IDS.web;
 const ADMIN_PROJECT_ID = CONTENT_VERCEL_PROJECT_IDS.admin;
 const UAT_PROJECT_ID = "ccb9lnw5";
 const PRODUCTION_PROJECT_ID = "kyfxgjnq";
+
+test("review flag preserves legacy true normalization while Production index eligibility stays explicit", () => {
+  const source = readFileSync(new URL("../lib/deployment-environment.ts", import.meta.url), "utf8");
+  const normalization = source.match(/const UAT_MODE = [^\n]+;/)?.[0];
+  const decision = source.match(/export const IS_REVIEW_ENVIRONMENT =[^;]+;/)?.[0].replace("export ", "");
+  assert.ok(normalization && decision);
+  const review = (environment: string, flag?: string): boolean => runInNewContext(`${normalization}\n${decision}\nIS_REVIEW_ENVIRONMENT;`, { APP_ENVIRONMENT: environment, process: { env: { CCPUN_UAT_MODE: flag } } });
+  for (const flag of ["1", "true", " TRUE "]) assert.equal(review("production", flag), true, flag);
+  for (const flag of [undefined, "0", "false"]) assert.equal(review("production", flag), false, String(flag));
+  for (const environment of ["web-uat", "local-uat", "admin-uat", "production-admin"]) assert.equal(review(environment, "false"), true, environment);
+  const page = readFileSync(new URL("../features/investment-allocation/page.tsx", import.meta.url), "utf8");
+  const robots = page.match(/robots: ([^\n]+),/)?.[1];
+  assert.ok(robots);
+  const indexable = (environment: string, flag: string | undefined, enabled: boolean): boolean => runInNewContext(`(${robots}).index;`, { IS_REVIEW_ENVIRONMENT: review(environment, flag), INVESTMENT_ALLOCATION_ENABLED: enabled });
+  assert.equal(indexable("production", undefined, true), true);
+  assert.equal(indexable("production", undefined, false), false);
+  for (const flag of ["1", "true", " TRUE "]) assert.equal(indexable("production", flag, true), false);
+  assert.equal(indexable("web-uat", "false", true), false);
+});
 
 test("Vercel Preview resolves to the isolated UAT lane for each application", () => {
   assert.equal(resolveContentEnvironment(undefined, "preview", WEB_PROJECT_ID), "web-uat");
