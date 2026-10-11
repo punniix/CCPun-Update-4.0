@@ -24,7 +24,8 @@
     "apps/admin/app/api/admin/content/[id]/schedule/route.ts": "8edd6a93de04326e0647dd7bf32e4b31713e3dbe1cd01a0fdbd41a0eb4179956",
     "apps/admin/app/api/auth/[...nextauth]/route.ts": "0b366a48ac9e46bc330456c133b46c166385c68d0bc6f089a8626d062409a647",
     "apps/admin/app/studio/[[...tool]]/page.tsx": "bb22ff7dd6728538db6110f2bbea67eda44b2ab43b901ea80a2634c2ef6ef777",
-    "apps/admin/app/studio/[[...tool]]/studio-client.tsx": "9fe2dc903d385dabc696866c2d999873c9ee4dd36ce9a8cdf5776ecb4c0690aa"
+    "apps/admin/app/studio/[[...tool]]/studio-client.tsx": "9fe2dc903d385dabc696866c2d999873c9ee4dd36ce9a8cdf5776ecb4c0690aa",
+    "apps/admin/app/(control-plane)/analytics/search/loading.tsx": "b251720cb5b0d6f9c2e89cfc9b181cb76d4c127234442e6c7a6bd82c18784524"
   },
   "protected": {
     "auth.ts": "e40a4b7eec67ef580c0cc7685497258342cc1c02a5cdc256c1a81097910ad8a9",
