@@ -19,11 +19,7 @@ const excludedBlogAssetPrefixes = ['public/assets/blog-migration/'];
 const excludedBlogAssets = new Set(['public/assets/blog-hub-hero-ccpun-v1.webp']);
 
 // Browser/protocol ownership can exist without a literal source reference.
-const implicitlyOwnedAssets = new Set([
-  'public/favicon.ico',
-  // Retain the original portrait URL for cached pages and image-optimizer requests.
-  'public/assets/pun.webp',
-]);
+const implicitlyOwnedAssets = new Set(['public/favicon.ico']);
 
 const auditedAssets = trackedFiles
   .filter((file) => file.startsWith('public/') && assetExtensions.has(extname(file).toLowerCase()))
