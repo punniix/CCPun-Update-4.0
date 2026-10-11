@@ -153,7 +153,7 @@ test("runtime and executable scripts never create Sanity operational document ty
       else if (/\.(?:ts|tsx|mjs|js)$/.test(name)) files.push(child);
     }
   };
-  for (const directory of ["lib/", "app/", "scripts/"]) walk(directory);
+  for (const directory of ["lib/", "app/", "apps/admin/app/", "apps/web/app/", "scripts/"]) walk(directory);
   const forbidden = /_type\s*:\s*["'](?:auditLog|researchSnapshot|seoSuggestion)["']/;
   for (const file of files) assert.doesNotMatch(read(file), forbidden, file);
 });
