@@ -31,6 +31,32 @@ assert.deepEqual(resolveEventMapping('fhc_result_view', fhcSafe), { ga: ['fhc_re
 assert.deepEqual(resolveEventMapping('fhc_contact_click', fhcSafe), { ga: ['fhc_contact_click'], meta: 'standard', metaName: 'Contact' }, 'FHC contact must use Meta Contact');
 assert.ok(!resolveEventMapping('tool_complete', fhcSafe).ga.some((event) => event.startsWith('tool_')), 'legacy FHC calls must not emit tool_* events');
 
+const investmentAllocationSafe = sanitizeEventParams({
+  site_version: '4.0',
+  tool_name: 'investment_allocation',
+  step_number: 2,
+  cta_location: 'investment_allocation_builder',
+  surface_group: 'investment_allocation',
+  contact_channel: 'line',
+  investment_amount: 500000,
+  fund_id: 'UAT-MIXED-01',
+  selected_weight_percent: 40,
+  plan_id: 'sensitive-plan-id',
+});
+assert.deepEqual(investmentAllocationSafe, {
+  site_version: '4.0',
+  tool_name: 'investment_allocation',
+  contact_channel: 'line',
+  cta_location: 'investment_allocation_builder',
+  surface_group: 'investment_allocation',
+  step_number: 2,
+}, 'investment allocation analytics must discard amounts, fund identifiers, weights and plan identifiers');
+assert.deepEqual(resolveEventMapping('ia_tool_start', investmentAllocationSafe), { ga: ['investment_allocation_start'], meta: 'none' }, 'investment allocation start must stay GA-only');
+assert.deepEqual(resolveEventMapping('ia_step_view', investmentAllocationSafe), { ga: ['investment_allocation_step_view'], meta: 'none' }, 'investment allocation step views must stay GA-only');
+assert.deepEqual(resolveEventMapping('ia_result_view', investmentAllocationSafe), { ga: ['investment_allocation_result_view'], meta: 'none' }, 'investment allocation result view must stay GA-only');
+assert.deepEqual(resolveEventMapping('ia_save_local', investmentAllocationSafe), { ga: ['investment_allocation_save_local'], meta: 'none' }, 'local save analytics must stay GA-only');
+assert.deepEqual(resolveEventMapping('ia_contact_click', investmentAllocationSafe), { ga: ['investment_allocation_contact_click'], meta: 'none' }, 'investment handoff analytics must not emit financial context or Meta events');
+
 assert.deepEqual(getGAAttribution(), { traffic_source: 'direct' }, 'provider attribution must remain safe outside a browser');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: true, social: true }), null, 'semantic event layer must remain off by default');
 process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'true';
