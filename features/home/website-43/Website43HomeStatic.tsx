@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import CookieSettingsButton from '@/components/layout/CookieSettingsButton';
 import styles from '@/components/layout/website-43/Website43.module.css';
-import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from '@/components/layout/website-43/constants';
+import navigation from '@/lib/nav-config.json';
+import { INVESTMENT_ALLOCATION_ENABLED } from '@/lib/runtime/investment-availability';
+import { INVESTMENT_TOOL_LINK, WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from '@/components/layout/website-43/constants';
 
 function HomeBrand() {
   return (
@@ -12,6 +14,7 @@ function HomeBrand() {
 }
 
 export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
+  const toolLinks = [...navigation.tools, ...(INVESTMENT_ALLOCATION_ENABLED ? [INVESTMENT_TOOL_LINK] : [])];
   return (
     <footer className={styles.footerWrap}>
       <div className={styles.inner}>
@@ -29,8 +32,7 @@ export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
             </div>
             <div className={styles.footerColumn}>
               <strong>เครื่องมือ</strong>
-              <Link href={`${BASE}/tools/financial-health-check`}>Financial Health Check</Link>
-              <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+              {toolLinks.map(({ href, label }) => <Link key={href} href={`${BASE}${href.replace(/\/$/, '')}`}>{label}</Link>)}
             </div>
             <div className={styles.footerColumn}>
               <strong>ข้อมูล</strong>
@@ -56,7 +58,8 @@ export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
           {warnings ? <HomeBrand /> : <HomeBrand />}
           <p>วางแผนการเงินจากชีวิตจริง เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</p>
           <nav aria-label="เมนูส่วนท้าย">
-            <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/tools/financial-health-check`}>FHC</Link> · <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+            <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link>
+            {toolLinks.map(({ href, label }) => <span key={href}> · <Link href={`${BASE}${href.replace(/\/$/, '')}`}>{label}</Link></span>)}
           </nav>
           <nav aria-label="นโยบาย">
             <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
