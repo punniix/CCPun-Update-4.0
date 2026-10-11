@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 import { IS_ADMIN_APPLICATION, IS_REVIEW_ENVIRONMENT } from "./lib/deployment-environment";
 import { SECURITY_HEADERS } from "./lib/security-policy";
+import { TAX_SLUG_MIGRATION, WEB_REDIRECTS } from "./lib/runtime/web-build-config.mjs";
 import { getAdminEnvironment, isSanityLaneAllowed } from "./lib/admin/environment";
 
 const REVIEW_HEADERS = IS_REVIEW_ENVIRONMENT
@@ -101,25 +102,9 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
-    return [
-      {
-        source: "/living-benefits/:path*",
-        destination: "/ci-planning/",
-        permanent: true,
-      },
-      {
-        source: "/tools/fhc/:path*",
-        destination: "/tools/financial-health-check/",
-        permanent: true,
-      },
-      {
-        // Historical advisor landing had no surviving page after the Vercel cutover.
-        // The homepage is the approved advisor intent owner, so keep this one-hop.
-        source: "/financial-advisor/:path*",
-        destination: "/",
-        permanent: true,
-      },
-    ];
+    // The root fallback predates the Web-only tax migration; preserve its three redirects.
+    return WEB_REDIRECTS.filter(({ prefix }) => prefix !== TAX_SLUG_MIGRATION)
+      .map(({ prefix, destination }) => ({ source: `${prefix}/:path*`, destination, permanent: true }));
   },
   async headers() {
     return [
