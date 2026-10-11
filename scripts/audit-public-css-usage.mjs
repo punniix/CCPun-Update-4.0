@@ -33,30 +33,30 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-const globalsSource = readFileSync('app/globals.css', 'utf8');
+const globalsSource = readFileSync('components/styles/global-foundation.css', 'utf8');
 const globalStylesheets = [
   { path: 'components/styles/public-compat.css', role: 'base' },
   { path: 'components/styles/public-motion.css', role: 'base' },
   { path: 'features/financial-health-check/styles/print.css', role: 'contextual' },
 ];
 const requiredGlobalImports = [
-  '@import "../components/styles/public-compat.css";',
-  '@import "../components/styles/public-motion.css";',
-  '@import "../features/financial-health-check/styles/print.css";',
+  '@import "./public-compat.css";',
+  '@import "./public-motion.css";',
+  '@import "../../features/financial-health-check/styles/print.css";',
 ];
 const requiredTailwindSources = [
-  '@source "../components";',
-  '@source "../features";',
+  '@source "../../components";',
+  '@source "../../features";',
 ];
 
 for (const requiredImport of requiredGlobalImports) {
   if (!globalsSource.includes(requiredImport)) {
-    throw new Error(`app/globals.css must keep explicit style ownership import: ${requiredImport}`);
+    throw new Error(`components/styles/global-foundation.css must keep explicit style ownership import: ${requiredImport}`);
   }
 }
 for (const requiredSource of requiredTailwindSources) {
   if (!globalsSource.includes(requiredSource)) {
-    throw new Error(`app/globals.css must keep shared Tailwind source coverage: ${requiredSource}`);
+    throw new Error(`components/styles/global-foundation.css must keep shared Tailwind source coverage: ${requiredSource}`);
   }
 }
 if (trackedFileSet.has('app/components.css') || globalsSource.includes('./components.css')) {
@@ -120,7 +120,7 @@ const retiredResponsiveOwners = [
   'components/layout/website-43/Website43TransitionStyles.tsx',
 ];
 const unexpectedStyleOwners = styleOwnerFiles.filter((file) => file !== canonicalResponsiveOwner);
-const layoutSource = readFileSync('app/layout.tsx', 'utf8');
+const layoutSource = readFileSync('apps/web/app/layout.tsx', 'utf8');
 
 console.log('PUBLIC_STYLE_OWNERSHIP_AUDIT');
 console.log(`runtime_files=${runtimeFiles.length}`);
@@ -168,5 +168,5 @@ for (const retiredOwner of retiredResponsiveOwners) {
   if (trackedFileSet.has(retiredOwner)) throw new Error(`Retired responsive patch owner must stay removed: ${retiredOwner}`);
 }
 if (!layoutSource.includes('Website43ResponsiveStyles') || retiredResponsiveOwners.some((file) => layoutSource.includes(file.split('/').at(-1).replace('.tsx', '')))) {
-  throw new Error('app/layout.tsx must mount only Website43ResponsiveStyles for Website 4.3 responsive runtime CSS.');
+  throw new Error('apps/web/app/layout.tsx must mount only Website43ResponsiveStyles for Website 4.3 responsive runtime CSS.');
 }
