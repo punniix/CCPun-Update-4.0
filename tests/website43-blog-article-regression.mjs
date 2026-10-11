@@ -161,7 +161,7 @@ assert.equal((await category.generateMetadata({ params: Promise.resolve({ catego
 await articleRoute.generateMetadata({ params: Promise.resolve({ category: 'life-insurance', slug: article.slug }) });
 assert.ok(calls.length > 0 && calls.every((call) => call.includeDrafts === false), 'stale draft cookie cannot cross public Production read gate');
 const shared = readFileSync(new URL('../components/layout/website-43/Website43Shared.tsx', import.meta.url), 'utf8');
-const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8');
+const layout = readFileSync(new URL('../apps/web/app/layout.tsx', import.meta.url), 'utf8');
 const articleStyles = readFileSync(new URL('../components/layout/website-43/Website43.module.css', import.meta.url), 'utf8');
 assert.ok(!shared.includes('Website43ResponsiveStyles'), 'static responsive CSS must not hydrate with the shared navbar');
 assert.ok(layout.includes('<Website43ResponsiveStyles />'), 'canonical responsive CSS must remain server-rendered in the public shell');

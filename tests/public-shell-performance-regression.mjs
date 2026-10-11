@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+// Intentional legacy mixed-host shell contract retained for the root fallback build.
 const layout = read('app/layout.tsx');
+const webLayout = read('apps/web/app/layout.tsx');
+assert.doesNotMatch(webLayout, /draftMode|DraftPreviewRuntime|sanity-preview-live/, 'Canonical public Web shell must not import Admin draft/preview runtime');
+assert.match(webLayout, /PRODUCTION_WEB_ANALYTICS_ENABLED/, 'Canonical Web shell retains its sealed production analytics gate');
+assert.match(webLayout, /IS_WEB_REVIEW_ENVIRONMENT/, 'Canonical Web shell retains review noindex metadata');
 const nextConfig = read('next.config.ts');
 const draftPreviewRuntime = read('components/preview/DraftPreviewRuntime.tsx');
 const draftPreviewRuntimeNoop = read('components/preview/DraftPreviewRuntimeNoop.tsx');

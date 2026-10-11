@@ -11,7 +11,7 @@ const navbar = read('components/layout/website-43/Website43Navbar.module.css');
 const css = read('components/layout/website-43/Website43.module.css');
 const article = read('features/blog/website-43/Website43Article.tsx');
 const articleToc = read('features/blog/website-43/Website43ArticleToc.tsx');
-const layout = read('app/layout.tsx');
+const layout = read('apps/web/app/layout.tsx');
 const home = read('features/home/website-43/Website43Home.tsx');
 const blog = read('features/blog/website-43/Website43Blog.tsx');
 
