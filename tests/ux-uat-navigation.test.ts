@@ -19,12 +19,51 @@ test('public navigation, footer and Money Story expose 44px targets without chan
   }
   for (const [source, selector] of [[navCss, '.brandLink'], [navCss, '.mobileSubmenu a'], [sharedCss, '.mobileSubmenu a'],
     [sharedCss, '.footerColumn a'], [sharedCss, '.root .footerColumn .footerCookieButton'], [sharedCss, '.footerCompact nav a'], [sharedCss, '.gameEntry a']]) {
-    assert.match(rule(source, selector), /min-height: 44px/, selector);
+    const minimumHeight = Number(rule(source, selector).match(/min-height: (\d+)px/)?.[1]);
+    assert.ok(minimumHeight >= 44, selector + ': touch target must be at least 44px');
   }
   assert.match(rule(sharedCss, '.footerCompact nav a'), /min-width: 44px/);
   assert.match(rule(navCss, '.brandLink:focus-visible'), /outline: 2px solid/);
   assert.match(sharedCss, /\.root :is\(a, button, input, select, textarea, summary\):focus-visible \{ outline: 2px solid/);
   assert.match(read('components/layout/website-43/Website43Navbar.tsx'), /href=\{HOME\} className=\{styles\.brandLink\}/);
+});
+
+test('Desktop, tablet and mobile tools expose the same ordered links and readable glass surface', () => {
+  const require = createRequire(import.meta.url);
+  const { transpileModule, ModuleKind } = require('typescript') as typeof import('typescript');
+  const { JSDOM } = require('jsdom');
+  const read = (path: string) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const source = read('components/layout/website-43/Website43Navbar.tsx');
+  const css = read('components/layout/website-43/Website43Navbar.module.css');
+  const loaded = { exports: {} as { Website43Navbar: (props: Record<string, never>) => React.ReactNode } };
+  runInNewContext(transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
+    module: loaded, exports: loaded.exports, require: (name: string) => {
+      if (name === 'react/jsx-runtime') return require(name);
+      if (name === 'react') return { useState: () => [true, () => {}], useEffect: () => {}, useRef: () => ({ current: null }) };
+      if (name === 'next/link') return { default: 'a' };
+      if (name === 'next/navigation') return { usePathname: () => '/play/money-story/' };
+      if (name === './constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
+      assert.equal(name, './Website43Navbar.module.css');
+      return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
+    },
+  });
+  const dom = new JSDOM(renderToStaticMarkup(loaded.exports.Website43Navbar({})));
+  const expected = [
+    ['/play/money-story', 'Money Story (Beta)'],
+    ['/tools/financial-health-check', 'ตรวจสุขภาพการเงิน (Beta)'],
+    ['/ci-planning', 'วางแผนเงินก้อนโรคร้ายแรง'],
+  ];
+  for (const selector of ['.navDropdown', '.mobileSubmenu']) {
+    const links = [...dom.window.document.querySelectorAll(selector + ' a')] as HTMLAnchorElement[];
+    assert.deepEqual(links.map(link => [link.getAttribute('href'), link.textContent]), expected);
+    assert.equal(links.filter(link => link.getAttribute('aria-current') === 'page').length, 1);
+    assert.ok(links.every(link => link.querySelector('span[aria-hidden="true"]')), 'matching visual marker on both menus');
+  }
+  assert.match(css, /\.navDropdown, \.mobileMenu \{[^}]*background-color: rgba\(37,24,24,\.9\);[^}]*backdrop-filter: blur\(20px\);/);
+  assert.match(css, /\.navDropdown a, \.mobileSubmenu a \{[^}]*min-height: 48px;[^}]*color: var\(--w43-ink\);/);
+  assert.match(css, /\.mobileMenu \{[^}]*max-height: calc\(100dvh - 112px\);[^}]*overflow-y: auto;/);
+  assert.match(css, /\.navDropdown a:focus-visible, \.mobileSubmenu a:focus-visible \{[^}]*outline: 2px solid var\(--w43-gold-bright\);/);
+  dom.window.close();
 });
 
 test('Home hero uses one sizing rule for both CTA destinations at every breakpoint', () => {

@@ -45,6 +45,33 @@ test('article TOC keeps H2 links navigable and lets users collapse or expand nes
   assert.match(css, /\.tocToggle\[aria-expanded="true"\] \.tocChevron \{ transform: rotate\(180deg\); \}/);
 });
 
+test('native mobile TOC keeps its outer separators when closed or open with a 54px summary target', () => {
+  const require = createRequire(import.meta.url);
+  const { parse } = require('postcss');
+  const { JSDOM } = require('jsdom');
+  const rules = [];
+  parse(css).walkRules((rule) => {
+    if (rule.selectors.some((selector) => ['.tocMobile', '.tocMobile summary', '.tocMobileList'].includes(selector))) {
+      rules.push(rule.toString());
+    }
+  });
+  const borderColour = css.match(/--w43-border:\s*([^;]+);/)[1];
+  // jsdom does not resolve custom properties in border shorthands.
+  const mobileCss = rules.join('\n').replaceAll('var(--w43-border)', borderColour);
+  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>หัวข้อเนื้อหา</summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
+  const details = dom.window.document.querySelector('details');
+  for (const open of [false, true]) {
+    details.open = open;
+    const frame = dom.window.getComputedStyle(details);
+    assert.equal(frame.borderTopWidth, '1px');
+    assert.equal(frame.borderBottomWidth, '1px');
+    assert.equal(frame.marginBottom, '26px');
+    assert.equal(dom.window.getComputedStyle(details.querySelector('summary')).minHeight, '54px');
+  }
+  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>หัวข้อเนื้อหา<\/summary>/);
+  dom.window.close();
+});
+
 test('Home and Article vertical rhythm use the reviewed public spacing', () => {
   assert.match(css, /section\[data-uat-section="home-learning"\] \{ padding-bottom: 40px; \}/);
   assert.match(css, /section\[data-uat-section="home-faq"\] \{ padding-top: 40px; \}/);

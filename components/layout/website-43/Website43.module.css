@@ -1003,7 +1003,7 @@
 }
 
 @media (max-width: 639px) {
-  .tocMobile { padding: 0; overflow: hidden; }
+  .tocMobile { padding: 0; border-bottom: 1px solid var(--w43-border); overflow: hidden; }
   .tocMobile summary {
     min-height: 54px;
     display: flex;
