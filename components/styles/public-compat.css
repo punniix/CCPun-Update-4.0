@@ -101,29 +101,4 @@
     @apply w-20 h-1 mx-auto rounded-full;
     background: linear-gradient(90deg, transparent, hsl(42,50%,55%), transparent);
   }
-
-  .hero-dark-overlay {
-    background: linear-gradient(
-      180deg,
-      rgba(10, 12, 18, 0.55) 0%,
-      rgba(10, 12, 18, 0.65) 50%,
-      rgba(10, 12, 18, 0.70) 100%
-    );
-  }
-
-  .hero-gold-accent {
-    background:
-      radial-gradient(ellipse at 30% 20%, rgba(220, 190, 130, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 70% 80%, rgba(220, 190, 130, 0.05) 0%, transparent 50%);
-  }
-
-  .hero-grid-pattern {
-    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0);
-    background-size: 40px 40px;
-  }
-
-  .scroll-indicator {
-    @apply absolute bottom-8 left-1/2 -translate-x-1/2;
-    animation: none;
-  }
 }
