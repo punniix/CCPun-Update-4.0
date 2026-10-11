@@ -28,7 +28,7 @@ type Props = {
 export default function ExpenseObligationsSection({ open: hasAdvancedData, educationPlans, expenses, errors, planPreview, handleAddEducationPlan, handleEducationPlan, handleEducationYears, handleRemoveEducationPlan, handleExpense, handleInstallments }: Props) {
   return (
 <details open={hasAdvancedData} className="group border-t border-white/10 pt-4">
-      <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">เพิ่มภาระอื่น: ค่าเรียนและหนี้ (ถ้ามี)</summary>
+      <summary className="min-h-11 py-3 cursor-pointer text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">เพิ่มภาระอื่น: ค่าเรียนและหนี้ (ถ้ามี)</summary>
       <div className="mt-5 space-y-7">
         <section aria-labelledby="ci-education-title">
           <div className="flex items-end justify-between gap-3"><div><h4 id="ci-education-title" className="text-sm font-medium text-foreground">แผนการศึกษาบุตร</h4><p className="mt-1 text-xs leading-5 text-white/45">เพิ่มแยกเป็นรายคนได้</p></div><button type="button" onClick={handleAddEducationPlan} className="glass-button inline-flex min-h-10 items-center gap-2 px-3 text-sm"><Plus className="h-4 w-4" aria-hidden="true" />เพิ่มบุตร</button></div>

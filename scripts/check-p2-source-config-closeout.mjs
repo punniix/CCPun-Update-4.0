@@ -39,7 +39,7 @@ assert.equal(matched.size, allowlist.size, "P2.2 inventory must classify every o
 
 const storedNav = read("lib/nav-config.json");
 assert.equal(storedNav, read("public/nav-config.json"), "P2.3 public navigation mirror drift");
-assert.deepEqual(JSON.parse(storedNav).tools.map(x => x.href), ["/tools/financial-health-check/", "/ci-planning/"], "P2.3 canonical navigation route contract");
+assert.deepEqual(JSON.parse(storedNav).tools.map(x => x.href), ["/play/money-story/", "/tools/financial-health-check/", "/ci-planning/"], "P2.3 canonical navigation route contract");
 
 for (const item of retention.retained) {
   assert.ok(existsSync(path.join(root, item.path)), "P2.4 removed protected historical/compatibility evidence " + item.path);

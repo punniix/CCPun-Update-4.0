@@ -47,7 +47,11 @@ export default function proxy(request: Request & { nextUrl: URL }) {
   if (process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger") {
     const destination = hostingerRedirectUrl(request);
     if (destination) {
-      const response = NextResponse.redirect(destination, 308);
+      // Preserve the original 301 contract for the published tax URL migration.
+      // Other Hostinger redirects retain their existing 308 semantics.
+      const isTaxSlugMigration = pathname === "/blog/personal-finance/personal-income-tax-calculation-2569"
+        || pathname.startsWith("/blog/personal-finance/personal-income-tax-calculation-2569/");
+      const response = NextResponse.redirect(destination, isTaxSlugMigration ? 301 : 308);
       for (const { key, value } of SECURITY_HEADERS) response.headers.set(key, value);
       if (IS_REVIEW_ENVIRONMENT) response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
       return response;

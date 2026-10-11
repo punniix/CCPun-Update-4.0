@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import styles from './Website43Navbar.module.css';
+import navigation from '@/lib/nav-config.json';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
+
+const toolLinks = navigation.tools.map(({ href, label }) => ({ href: `${BASE}${href.replace(/\/$/, '')}`, label }));
 
 function Website43NavbarBrand() {
   return (
@@ -17,7 +20,7 @@ function Website43NavbarBrand() {
 export function Website43Navbar({ overlay = false, notFound = false, responsiveOverlay = false }: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean }) {
   const pathname = usePathname()?.replace(/\/$/, '');
   const blogCurrent = pathname === `${BASE}/blog` ? 'page' : pathname?.startsWith(`${BASE}/blog/`) ? 'location' : undefined;
-  const toolsCurrent = pathname === `${BASE}/tools/financial-health-check` || pathname === `${BASE}/ci-planning` || pathname === `${BASE}/play/money-story`;
+  const toolsCurrent = toolLinks.some(({ href }) => pathname === href);
   const [open, setOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
@@ -50,7 +53,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
         setOpen(false); setToolsOpen(false); setMobileToolsOpen(false);
       }
     }}>
-      <Link href={HOME} aria-label="CCPUN หน้าแรก"><Website43NavbarBrand /></Link>
+      <Link href={HOME} className={styles.brandLink} aria-label="CCPUN หน้าแรก"><Website43NavbarBrand /></Link>
       <div className={styles.navSpacer} />
       <nav className={styles.navLinks} aria-label="เมนูหลัก">
         <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>หน้าแรก</Link>
@@ -61,9 +64,9 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
           </button>
           {toolsOpen ? (
             <div id="home-tools-navigation" className={styles.navDropdown}>
-              <Link href={`${BASE}/play/money-story`} aria-current={pathname === `${BASE}/play/money-story` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />Money Story (Beta)</Link>
-              <Link href={`${BASE}/tools/financial-health-check`} aria-current={pathname === `${BASE}/tools/financial-health-check` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />ตรวจสุขภาพการเงิน (Beta)</Link>
-              <Link href={`${BASE}/ci-planning`} aria-current={pathname === `${BASE}/ci-planning` ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />วางแผนเงินก้อนโรคร้ายแรง</Link>
+              {toolLinks.map(({ href, label }) => (
+                <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />{label}</Link>
+              ))}
             </div>
           ) : null}
         </div>
@@ -82,9 +85,9 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
             </button>
             {mobileToolsOpen ? (
               <div className={styles.mobileSubmenu}>
-                <Link href={`${BASE}/play/money-story`} aria-current={pathname === `${BASE}/play/money-story` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>Money Story (Beta)</Link>
-                <Link href={`${BASE}/tools/financial-health-check`} aria-current={pathname === `${BASE}/tools/financial-health-check` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>ตรวจสุขภาพการเงิน (Beta)</Link>
-                <Link href={`${BASE}/ci-planning`} aria-current={pathname === `${BASE}/ci-planning` ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>วางแผนเงินก้อนโรคร้ายแรง</Link>
+                {toolLinks.map(({ href, label }) => (
+                  <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}><span aria-hidden="true" />{label}</Link>
+                ))}
               </div>
             ) : null}
           </div>

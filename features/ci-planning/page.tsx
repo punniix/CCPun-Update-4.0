@@ -116,7 +116,7 @@ export default function CiPlanningPage() {
         <section id="ci-calculator" aria-labelledby="ci-calculator-title" className={styles.calculatorSection}>
           <div className={styles.calculatorHeader}>
             <p className={styles.eyebrow}>เครื่องคำนวณทุนโรคร้ายแรง</p>
-            <h2 id="ci-calculator-title">2 ขั้นตอน เพื่อเห็นส่วนต่างที่ต้องเตรียม</h2>
+            <h2 id="ci-calculator-title">2 ขั้นตอน เพื่อเห็นส่วนต่างที่<span className={styles.calculatorWord}>ต้องเตรียม</span></h2>
             <p>เริ่มจากรายได้และภาระที่ยังต้องดูแล แล้วค่อยเทียบกับเงินก้อนและสินทรัพย์ที่พร้อมใช้</p>
           </div>
           <div className={styles.calculatorStage}>

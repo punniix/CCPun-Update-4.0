@@ -1,5 +1,6 @@
 {
   "tools": [
+    { "label": "Money Story (Beta)", "href": "/play/money-story/" },
     { "label": "ตรวจสุขภาพการเงิน (Beta)", "href": "/tools/financial-health-check/" },
     { "label": "วางแผนเงินก้อนโรคร้ายแรง", "href": "/ci-planning/" }
   ]

@@ -506,6 +506,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   };
 
   const returnToCharacterSelection = () => {
+    if (game?.status === 'active' && (game.currentMonth > 1 || game.history.length > 0) && !window.confirm('กลับไปเลือกตัวละครจะเริ่มรอบใหม่ ต้องการเริ่มใหม่หรือไม่?')) return;
     trackMoneyStoryEvent('money_story_character_reselect');
     setGame(null);
     setSelectedCharacterId(null);
@@ -854,6 +855,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
             <div className={styles.card}>
               <h3>ถ้าเล่นอีกรอบ</h3>
+              {importantDecisions[0] && <p className={styles.emptyResultNote}>ลองทบทวนเดือน {importantDecisions[0].month} ที่เลือก “{importantDecisions[0].choice}” แล้วเปรียบเทียบวิธีอื่นในรอบถัดไป เหตุการณ์แต่ละรอบอาจต่างกัน</p>}
               {watchItems.length ? (
                 <ul className={styles.watchList}>
                   {watchItems.slice(0, 3).map((item) => (

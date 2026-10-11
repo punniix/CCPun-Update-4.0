@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getContentProvider } from "@/lib/content/provider";
-import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
+import { IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import {
   articleBelongsToPhysicalCategory,
   getCategoryCanonical,
@@ -113,7 +113,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
     );
     const copy = physicalCategoryCopy(category, hub);
     const canonical = getCategoryCanonical(category.slug);
-    const shouldIndex = !includeDrafts
+    const shouldIndex = !IS_REVIEW_ENVIRONMENT && !includeDrafts
       && category.status === "active"
       && relevantIndexableArticles.length > 0;
 
@@ -152,7 +152,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const relevantIndexableArticles = articles.filter(
     (article) => articleBelongsToHub(article, hub) && isPublicIndexableArticle(article),
   );
-  const shouldIndexHub = !includeDrafts && hub.indexable && relevantIndexableArticles.length > 0;
+  const shouldIndexHub = !IS_REVIEW_ENVIRONMENT && !includeDrafts && hub.indexable && relevantIndexableArticles.length > 0;
   const canonical = `${SITE_URL}/blog/${hub.slug}/`;
 
   return {
@@ -214,6 +214,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
         heroDescription={category.description ?? hub?.description}
         topicContent={buildTopicIntro(hub)}
         initialQuery={initialQuery}
+        initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
         categories={categoryMenu(registry, includeDrafts)}
       />
     </>;
@@ -246,6 +247,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
       heroDescription={hub.description}
       topicContent={buildTopicIntro(hub)}
       initialQuery={initialQuery}
+        initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
       categories={categoryMenu(registry, includeDrafts)}
     />
   </>;
