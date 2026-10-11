@@ -98,7 +98,9 @@ for (const hub of hubCases) {
   const { response, text } = await request(hub.path);
   assertStatus(response.status, 200, hub.path);
   assertCanonical(text, hub.canonical, hub.path);
-  assertRobots(text, { index: hub.index, follow: true }, hub.path);
+  // Local Production read mode is a protected review lane, even for eligible hubs.
+  // Production index eligibility is exercised separately by the metadata VM tests.
+  assertRobots(text, { index: false, follow: true }, hub.path);
   assertContains(text, 'href="/"', `${hub.path} visible breadcrumb`);
   assertContains(text, 'href="/blog/"', `${hub.path} visible breadcrumb`);
   for (const value of hub.mustContain) assertContains(text, value, hub.path);
