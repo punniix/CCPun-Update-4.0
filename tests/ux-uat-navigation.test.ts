@@ -67,27 +67,36 @@ test('Desktop, tablet, mobile and Footer use canonical tools and readable glass 
     assert.equal(links.filter(link => link.getAttribute('aria-current') === 'page').length, 1);
     assert.ok(links.every(link => link.querySelector('span[aria-hidden="true"]')), 'matching visual marker on both menus');
   }
-  const footer = { exports: {} as { Website43Footer: (props: { warnings?: boolean; notFound?: boolean }) => React.ReactNode } };
-  runInNewContext(transpileModule(read('components/layout/website-43/Website43Shared.tsx'), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
-    module: footer, exports: footer.exports, require: (name: string) => {
-      if (name === 'react/jsx-runtime') return require(name);
-      if (name === 'next/link') return { default: 'a' };
-      if (name === '@/lib/nav-config.json') return { default: navigation };
-      if (name === '@/components/layout/CookieSettingsButton') return { default: () => React.createElement('button', null, 'Cookie settings') };
-      if (name === './Website43Navbar') return loaded.exports;
-      if (name === './constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
-      assert.equal(name, './Website43.module.css');
-      return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
-    },
-  });
-  for (const warnings of [false, true]) {
-    const footerDom = new JSDOM(renderToStaticMarkup(footer.exports.Website43Footer({ warnings })));
-    const toolsColumn = [...footerDom.window.document.querySelectorAll('.footerColumn')].find(column => column.querySelector('strong')?.textContent === 'เครื่องมือ')!;
-    const links = (nodes: Iterable<HTMLAnchorElement>) => [...nodes].map(link => [link.getAttribute('href'), link.textContent]);
-    assert.deepEqual(links(toolsColumn.querySelectorAll('a')), expected);
-    const compactTools = [...footerDom.window.document.querySelectorAll('.footerCompact nav[aria-label="เมนูส่วนท้าย"] a')].filter(link => expected.some(([href]) => link.getAttribute('href') === href)) as HTMLAnchorElement[];
-    assert.deepEqual(links(compactTools), expected);
-    footerDom.window.close();
+  for (const [footerPath, exportName] of [
+    ['components/layout/website-43/Website43Shared.tsx', 'Website43Footer'],
+    ['features/home/website-43/Website43HomeStatic.tsx', 'HomeFooter'],
+  ]) {
+    const footer = { exports: {} as Record<string, (props: { warnings?: boolean; notFound?: boolean }) => React.ReactNode> };
+    runInNewContext(transpileModule(read(footerPath), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
+      module: footer, exports: footer.exports, require: (name: string) => {
+        if (name === 'react/jsx-runtime') return require(name);
+        if (name === 'next/link') return { default: 'a' };
+        if (name === '@/lib/nav-config.json') return { default: navigation };
+        if (name === '@/components/layout/CookieSettingsButton') return { default: (props: { className?: string }) => React.createElement('button', { className: props.className }, 'Cookie settings') };
+        if (name === './Website43Navbar') return loaded.exports;
+        if (name === './constants' || name === '@/components/layout/website-43/constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
+        assert.ok(['./Website43.module.css', '@/components/layout/website-43/Website43.module.css'].includes(name), name);
+        return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
+      },
+    });
+    for (const warnings of [false, true]) {
+      const footerDom = new JSDOM(renderToStaticMarkup(footer.exports[exportName]({ warnings })));
+      const toolsColumn = [...footerDom.window.document.querySelectorAll('.footerColumn')].find(column => column.querySelector('strong')?.textContent === 'เครื่องมือ')!;
+      const links = (nodes: Iterable<HTMLAnchorElement>) => [...nodes].map(link => [link.getAttribute('href'), link.textContent]);
+      assert.deepEqual(links(toolsColumn.querySelectorAll('a')), expected);
+      const compactLinks = footerDom.window.document.querySelectorAll('.footerCompact nav[aria-label="เมนูส่วนท้าย"] a') as NodeListOf<HTMLAnchorElement>;
+      assert.deepEqual(links(compactLinks), [['/', 'หน้าแรก'], ['/blog', 'บทความ'], ...expected], exportName + ': no hidden/extra tools in compact navigation');
+      assert.equal(footerDom.window.document.querySelectorAll('.footerCookieButton').length, 2, exportName + ': cookie controls retained');
+      assert.equal(footerDom.window.document.querySelectorAll('.footerWarnings').length, warnings ? 2 : 0, exportName + ': warnings retained in both layouts');
+      assert.match(footerDom.window.document.querySelector('.footerDisclaimer')!.textContent!, /ไม่ใช่คำแนะนำเฉพาะบุคคล/);
+      if (exportName === 'HomeFooter') assert.equal(footerDom.window.document.querySelectorAll('[aria-label="CCPUN"]').length, 2, 'HomeBrand retained');
+      footerDom.window.close();
+    }
   }
   const contactLinks = [...dom.window.document.querySelectorAll('a[data-analytics-location]')] as HTMLAnchorElement[];
   assert.deepEqual(contactLinks.map(link => [link.getAttribute('href'), link.getAttribute('data-analytics-location')]), [
