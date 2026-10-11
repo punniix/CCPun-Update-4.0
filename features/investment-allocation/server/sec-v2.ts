@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { unstable_cache } from "next/cache";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
+import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "@/lib/runtime/deployment-contract";
 import { normalizeLiquidity } from "../domain/calculation";
 import { categoryFromPolicy, matchesGeography } from "../domain/catalog";
 import type {
@@ -463,7 +464,11 @@ export async function listFundCatalog(options: {
       message: results.length ? null : "ไม่พบกองทุนที่ตรงกับตัวกรองนี้",
     };
   } catch (error) {
-    if (IS_REVIEW_ENVIRONMENT) {
+    const diagnosticLane = getDeploymentLaneByEnvironment(process.env.CCPUN_APP_ENV);
+    if (diagnosticLane?.role === "web" && diagnosticLane.environment === "web-uat"
+      && deploymentContractFailures(diagnosticLane, process.env).length === 0) {
+      // Only the sealed public Web UAT lane may diagnose. Review flags alone
+      // never authorize logging on Production, Admin or local-production.
       // Diagnostic metadata only. Never emit the query, URL, credentials,
       // response body, error message or stack to provider logs.
       const failure = error instanceof Error ? error : null;
@@ -471,7 +476,7 @@ export async function listFundCatalog(options: {
       const reason = status ? "http" : failure?.message === "sec_invalid_envelope" ? "invalid_envelope"
         : failure?.name === "TimeoutError" ? "timeout" : failure?.name === "AbortError" ? "abort"
           : failure?.name === "SyntaxError" ? "invalid_json" : "unknown";
-      console.warn("ccpun_sec_catalog_unavailable", { reason, httpStatus: status ? Number(status) : null });
+      console.warn("ccpun_sec_catalog_unavailable", JSON.stringify({ reason, httpStatus: status ? Number(status) : null }));
     }
     return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, amcId, fetchedAt, message: "โหลดข้อมูลกองทุนไม่สำเร็จชั่วคราว" };
   }

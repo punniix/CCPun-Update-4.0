@@ -15,8 +15,9 @@ import {
   subcategoryOptions,
 } from "../features/investment-allocation/domain/catalog";
 import type { FundCatalogItem } from "../features/investment-allocation/domain/types";
+import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../lib/runtime/deployment-contract";
 
-function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error } = {}) {
+function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error; env?: Record<string, string | undefined> } = {}) {
   const adapter = readFileSync(resolve(process.cwd(), "features/investment-allocation/server/sec-v2.ts"), "utf8");
   const executable = stripTypeScriptTypes(adapter, { mode: "transform" })
     .replace(/^import [\s\S]*?;\n/gm, "").replace(/export /g, "");
@@ -26,10 +27,21 @@ function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null
   const warnings: unknown[][] = [];
   const api = runInNewContext(`${executable}\n({listFundCatalog, listFundAmcs, getFundDetail, searchPlanningFunds});`, {
     Date, Buffer, URL, URLSearchParams, AbortSignal, Error, createHash, categoryFromPolicy, matchesGeography,
+    deploymentContractFailures, getDeploymentLaneByEnvironment,
     console: { warn: (...args: unknown[]) => warnings.push(args) },
     IS_REVIEW_ENVIRONMENT: options.review ?? false, UAT_SYNTHETIC_FUNDS: [], searchDemoFunds: () => [],
     normalizeLiquidity: () => "unknown",
-    process: { env: { SEC_API_PRIMARY_KEY: options.key === undefined ? "synthetic-test-key" : options.key } },
+    process: { env: {
+      SEC_API_PRIMARY_KEY: options.key === undefined ? "synthetic-test-key" : options.key,
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web",
+      CCPUN_APP_ENV: options.review ? "web-uat" : "production",
+      NEXT_PUBLIC_CCPUN_APP_ENV: options.review ? "web-uat" : "production",
+      NEXT_PUBLIC_SANITY_PROJECT_ID: options.review ? "ccb9lnw5" : "kyfxgjnq",
+      NEXT_PUBLIC_SANITY_DATASET: options.review ? "uat" : "production",
+      CCPUN_UAT_MODE: options.review ? "1" : "0",
+      CCPUN_ENABLE_PRODUCTION_ANALYTICS: options.review ? "0" : "1",
+      ...options.env,
+    } },
     fetch: async (url: string, init: RequestInit) => {
       const parsed = new URL(url);
       requests.push({ url: parsed, init });
@@ -117,7 +129,7 @@ test("catalog diagnostics are review-only, allowlisted and redact all search/key
       const result = await adapter.api.listFundCatalog({ query: privateText, amcId: "private-amc" });
       assert.equal(result.state, "unavailable");
       assert.deepEqual(JSON.parse(JSON.stringify(adapter.warnings)), review
-        ? [["ccpun_sec_catalog_unavailable", { reason: "http", httpStatus: status }]] : []);
+        ? [["ccpun_sec_catalog_unavailable", JSON.stringify({ reason: "http", httpStatus: status })]] : []);
       assert.equal(JSON.stringify(adapter.warnings).includes("private"), false);
       assert.equal("reason" in result, false, "diagnostics must not alter the public catalog contract");
     }
@@ -135,15 +147,43 @@ test("catalog diagnostics are review-only, allowlisted and redact all search/key
       const adapter = secAdapter(() => ({}), { review, error });
       assert.equal((await adapter.api.listFundCatalog({ query: privateText })).state, "unavailable");
       assert.deepEqual(JSON.parse(JSON.stringify(adapter.warnings)), review
-        ? [["ccpun_sec_catalog_unavailable", { reason, httpStatus: null }]] : []);
+        ? [["ccpun_sec_catalog_unavailable", JSON.stringify({ reason, httpStatus: null })]] : []);
     }
   }
   const malformed = secAdapter(() => null, { review: true });
   await malformed.api.listFundCatalog({ query: privateText });
-  assert.deepEqual(JSON.parse(JSON.stringify(malformed.warnings)), [["ccpun_sec_catalog_unavailable", { reason: "invalid_envelope", httpStatus: null }]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(malformed.warnings)), [["ccpun_sec_catalog_unavailable", JSON.stringify({ reason: "invalid_envelope", httpStatus: null })]]);
   const good = secAdapter(() => ({ items: Array.from({ length: 8 }, (_, i) => secProfile(i + 1)) }), { review: true });
   assert.equal((await good.api.listFundCatalog({ query: privateText })).state, "fresh");
   assert.deepEqual(good.warnings, []);
+});
+
+test("diagnostics require the sealed Web UAT lane; Production-labelled lanes and review overrides stay silent", async () => {
+  for (const environment of ["production", "production-admin", "local-production", "admin-uat", "local-uat", "development", "unknown"]) {
+    for (const flag of ["0", "1", "true", " TRUE "]) {
+      const adapter = secAdapter(() => ({}), { fail: true, review: true, env: {
+        CCPUN_APP_ENV: environment, NEXT_PUBLIC_CCPUN_APP_ENV: environment, CCPUN_UAT_MODE: flag,
+        CCPUN_DEPLOYMENT_ROLE: environment.includes("admin") ? "admin" : "web",
+        NEXT_PUBLIC_SANITY_PROJECT_ID: environment.includes("production") ? "kyfxgjnq" : "ccb9lnw5",
+        NEXT_PUBLIC_SANITY_DATASET: environment.includes("production") ? "production" : "uat",
+      } });
+      assert.equal((await adapter.api.listFundCatalog({ query: "private-test-query" })).state, "unavailable");
+      assert.deepEqual(adapter.warnings, [], `${environment} / review flag ${flag} must stay silent`);
+    }
+  }
+  for (const override of [
+    { CCPUN_DEPLOYMENT_ROLE: "admin" }, { CCPUN_DEPLOYMENT_PROVIDER: "local" },
+    { NEXT_PUBLIC_CCPUN_APP_ENV: "production" }, { NEXT_PUBLIC_SANITY_DATASET: "production" },
+    { CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1" }, { CCPUN_UAT_MODE: "0" },
+    { VERCEL_PROJECT_ID: "unrecognized-project" },
+  ]) {
+    const adapter = secAdapter(() => ({}), { fail: true, review: true, env: override });
+    await adapter.api.listFundCatalog({});
+    assert.deepEqual(adapter.warnings, [], "a contradictory Web UAT identity cannot authorize diagnostics");
+  }
+  const webUat = secAdapter(() => ({}), { fail: true, review: true });
+  await webUat.api.listFundCatalog({});
+  assert.deepEqual(JSON.parse(JSON.stringify(webUat.warnings)), [["ccpun_sec_catalog_unavailable", JSON.stringify({ reason: "http", httpStatus: 503 })]]);
 });
 
 test("project detail projection preserves all existing consumed facts and public source dates", async () => {
