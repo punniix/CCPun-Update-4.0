@@ -8,6 +8,11 @@ const read = (file) => readFileSync(path.join(root, file), "utf8");
 const manifest = JSON.parse(read("qa/p2-source-mirror-inventory.json"));
 const baseline = JSON.parse(read("qa/monorepo-compatibility-mirrors.json"));
 const retention = JSON.parse(read("qa/p24-legacy-retention-policy.json"));
+// The P2 inventory is frozen historical evidence; current delegations have explicit owners.
+const migration = JSON.parse(read("qa/root-runtime-owner-migration.json"));
+const migratedOwners = new Map(migration.pairs.map(item => [item.legacy, item]));
+assert.equal(migratedOwners.size, 47, "canonical delegation inventory must remain explicit");
+const verifiedDelegations = new Set();
 
 assert.deepEqual(manifest.summary, {
   pairs: 104, identical: 74, divergent: 30, sharedRouteHandlers: 7,
@@ -23,6 +28,19 @@ for (const item of manifest.pairs) {
   assert.match(item.legacy, /^app\//);
   assert.ok(item.canonical === "apps/" + item.lane + "/" + item.legacy, "not canonical lane ownership");
   assert.ok(existsSync(path.join(root, item.legacy)) && existsSync(path.join(root, item.canonical)), "deleted live/rollback entrypoint");
+  const owner = migratedOwners.get(item.legacy);
+  if (owner && owner.canonical === item.canonical) {
+    assert.equal(owner.status, "migrated", "unfinished canonical delegation: " + item.legacy);
+    assert.equal(owner.canonical, item.canonical, "canonical delegation changed lane owner");
+    assert.equal(read(item.legacy), owner.wrapper, "canonical entry wrapper drift: " + item.legacy);
+    for (const config of read(item.canonical).matchAll(/export const (dynamic|dynamicParams|revalidate|fetchCache|runtime|preferredRegion|maxDuration|experimental_ppr)\s*=\s*([^;]+);/g)) {
+      assert.ok(owner.wrapper.includes(`export const ${config[1]} = ${config[2]};`), "static Next route config drift: " + item.legacy);
+    }
+    assert.ok(owner.wrapper.includes(`from "@/${item.canonical.replace(/\.[^.]+$/, "")}"`), "wrapper must import its declared owner");
+    assert.ok(["shared-handler-routing-wrapper", "identical-compatibility-retained", "divergent-compatibility-retained"].includes(item.classification));
+    verifiedDelegations.add(item.legacy);
+    continue;
+  }
   const identical = read(item.legacy) === read(item.canonical);
   assert.equal(identical, item.identical, "existing mirror unexpectedly diverged: " + pairKey);
   const category = item.classification;
@@ -36,6 +54,7 @@ for (const item of manifest.pairs) {
   }
 }
 assert.equal(matched.size, allowlist.size, "P2.2 inventory must classify every original pair");
+assert.equal(verifiedDelegations.size, migratedOwners.size, "every new delegation must belong to the grandfathered compatibility inventory");
 
 const storedNav = read("lib/nav-config.json");
 assert.equal(storedNav, read("public/nav-config.json"), "P2.3 public navigation mirror drift");
