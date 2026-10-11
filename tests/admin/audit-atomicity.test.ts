@@ -11,7 +11,7 @@ const seoAuditRoute = readFileSync(new URL("../../apps/admin/app/api/admin/seo/a
 const proposalRoute = readFileSync(new URL("../../apps/admin/app/api/admin/seo/audit/[id]/proposals/route.ts", import.meta.url), "utf8");
 const sanityControl = readFileSync(new URL("../../lib/admin/sanity-control.ts", import.meta.url), "utf8");
 const studioScore = readFileSync(new URL("../../cms/sanity/components/SeoScoreInput.tsx", import.meta.url), "utf8");
-const seoDetailPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const seoDetailPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 
 test("research and audit records use Neon while Article audit snapshots keep exact Sanity revisions", () => {
   const operations = readFileSync(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");
@@ -53,5 +53,5 @@ test("automatic metadata stays blocked while fresh research may propose search i
   assert.doesNotMatch(seoProposalService, /type: "seo-title"|type: "meta-description"|type: "primary-keyword"/);
   assert.match(proposalRoute, /focusKeyword: contextData\.focusKeyword/);
   assert.match(proposalRoute, /evidence: proposal\.evidence/);
-  assert.match(seoDetailPage, /Search intent เท่านั้น/);
+  assert.match(seoDetailPage, /เรื่องเป้าหมายการค้นหาเฉพาะเมื่อมีคำค้นหลัก/);
 });

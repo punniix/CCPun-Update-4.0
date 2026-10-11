@@ -98,7 +98,7 @@ test("human edit and reject decisions are validated, authorized, revision-guarde
   const control = read("lib/admin/sanity-control.ts");
   const editRoute = read("apps/admin/app/api/admin/reviews/[id]/edit/route.ts");
   const rejectRoute = read("apps/admin/app/api/admin/reviews/[id]/reject/route.ts");
-  const page = read("app/(control-plane)/dashboard/inbox/page.tsx");
+  const page = read("apps/admin/app/(control-plane)/dashboard/reviews/page.tsx");
   const schema = read("cms/sanity/admin/schema/admin-types.ts");
 
   assert.match(control, /reviewDecisionSchema = z\.discriminatedUnion/);

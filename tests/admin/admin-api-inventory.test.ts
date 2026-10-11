@@ -28,9 +28,9 @@ const contracts: Record<string, RouteContract> = {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"draft:apply"/,
     validation: { file: "apps/admin/app/api/admin/content/[id]/preview/route.ts", pattern: /articleIdSchema\.safeParse/, },
   },
-  "app/api/admin/content/[id]/schedule/route.ts": {
+  "apps/admin/app/api/admin/content/[id]/schedule/route.ts": {
     methods: ["GET", "POST", "DELETE"], identity: /getAdminIdentity\(\)/, authorization: /"content:schedule"/,
-    validation: { file: "app/api/admin/content/[id]/schedule/route.ts", pattern: /bodySchema\.safeParse\(await request\.json\(\)\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },
+    validation: { file: "apps/admin/app/api/admin/content/[id]/schedule/route.ts", pattern: /bodySchema\.safeParse\(await request\.json\(\)\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },
   },
   "apps/admin/app/api/admin/content/route.ts": {
     methods: ["GET"], identity: /getAdminIdentity\(\)/, authorization: /"content:read"/,
@@ -52,9 +52,9 @@ const contracts: Record<string, RouteContract> = {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /identity\.actorType !== "human" \|\| identity\.role !== "owner"/,
     validation: { file: "apps/admin/app/api/admin/providers/ubersuggest/connect/route.ts", pattern: /export async function POST\(\)/, exception: "No request body; provider state is generated server-side." },
   },
-  "app/api/admin/providers/ubersuggest/sync/route.ts": {
+  "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts": {
     methods: ["POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:provider-query"/,
-    validation: { file: "app/api/admin/providers/ubersuggest/sync/route.ts", pattern: /requestSchema\.safeParse\(raw\)/, exception: "Provider sync defaults to server-owned selection; reviewed AISV import accepts only strict bounded UAT JSON and exact same-origin human requests." },
+    validation: { file: "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts", pattern: /requestSchema\.safeParse\(raw\)/, exception: "Provider sync defaults to server-owned selection; reviewed AISV import accepts only strict bounded UAT JSON and exact same-origin human requests." },
   },
   "apps/admin/app/api/admin/research/route.ts": {
     methods: ["GET", "POST"], identity: /getAdminIdentity\(\)/, authorization: /"research:read"[\s\S]*action: "research:create"/,
@@ -186,8 +186,10 @@ const contracts: Record<string, RouteContract> = {
   },
 };
 
-// This frozen legacy API surface is a rollback contract; migrated implementations are read from canonical owners.
-const migratedOwners = new Map(JSON.parse(read("qa/root-runtime-owner-migration.json")).pairs.map((pair: {legacy: string; canonical: string}) => [pair.legacy, pair.canonical]));
+// The frozen legacy API ledger enumerates URLs; current implementation security
+// contracts are always checked at their actual dedicated Admin runtime owner.
+// Root adapters (including pending historical fallbacks) are verified separately.
+const migratedOwners = new Map(JSON.parse(read("qa/p2-source-mirror-inventory.json")).pairs.filter((pair: {lane: string}) => pair.lane === "admin").map((pair: {legacy: string; canonical: string}) => [pair.legacy, pair.canonical]));
 
 test("every legacy Admin API route retains its explicit reviewed contract at the implementation owner", () => {
   assert.deepEqual([...routeFiles(apiRoot).map((file) => migratedOwners.get(file) ?? file), ...routeFiles(path.join(repositoryRoot, "apps/admin/app/api/admin/research/ubersuggest/import"))].sort(), Object.keys(contracts).sort());

@@ -6,7 +6,7 @@ const schema = readFileSync(new URL("../../cms/sanity/schema/objects/seo-metadat
 const sanityContent = readFileSync(new URL("../../lib/content/sanity.ts", import.meta.url), "utf8");
 const articleType = readFileSync(new URL("../../lib/content/types.ts", import.meta.url), "utf8");
 const articleRoute = readFileSync(new URL("../../features/blog/pages/ArticlePage.tsx", import.meta.url), "utf8");
-const adminPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const adminPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 
 test("SEO governance includes keyword cluster and dedicated social fields", () => {
   for (const field of ["keywordCluster", "ogTitle", "ogDescription", "ogImage"]) {
@@ -25,7 +25,7 @@ test("public social metadata keeps current SEO and featured-image fallbacks", ()
 
 test("Admin renders separate SERP and social previews without changing URLs", () => {
   assert.match(adminPage, /ตัวอย่างผลค้นหา/);
-  assert.match(adminPage, /ตัวอย่างแชร์ Social/);
+  assert.match(adminPage, /ตัวอย่างเมื่อแชร์บนโซเชียล/);
   assert.match(adminPage, /getArticleCanonical|canonical/);
   assert.doesNotMatch(adminPage, /redirect|permanentRedirect/);
 });

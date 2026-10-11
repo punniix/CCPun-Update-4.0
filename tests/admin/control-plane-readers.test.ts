@@ -28,7 +28,7 @@ test("Operations Jobs read model is SELECT-only and verifies both durable data-p
 });
 
 test("Operations routes render real Deployments and Jobs readers instead of not-configured placeholders", () => {
-  const route = read("app/(control-plane)/operations/[section]/page.tsx");
+  const route = read("apps/admin/app/(control-plane)/operations/[section]/page.tsx");
   assert.match(route, /AdminDeploymentsPage/);
   assert.match(route, /AdminJobsPage/);
   assert.doesNotMatch(route, /not-configured|ยังไม่มี server-side deployment reader|ยังไม่มี read adapter รวม/);

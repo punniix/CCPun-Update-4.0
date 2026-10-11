@@ -85,7 +85,7 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
   assert.match(proxy, /type: "host", value: "localhost"/);
   assert.match(proxy, /type: "host", value: "ccpun-admin\(\?:-\.\+\)\?\\\\\.vercel\\\\\.app"/);
   assert.match(proxy, /if \(isAdminNotFoundPage\) \{\s*return NextResponse\.next\(\{ status: 404 \}\)/);
-  assert.match(proxy, /disposition === "entry"[\s\S]*role \? "\/dashboard\/" : "\/login\/"/);
+  assert.match(proxy, /disposition === "entry"[\s\S]*role \? landingPath : "\/login\/"/);
   assert.match(proxy, /if \(pathname\.startsWith\("\/api\/"\)\) \{\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401 \}\)/);
   assert.match(proxy, /if \(isAdminApi \|\| isPreviewApi\) \{\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401 \}\)/);
   assert.doesNotMatch(proxy, /pathname\.startsWith\("\/api\/"\)[\s\S]{0,180}NextResponse\.redirect/);
