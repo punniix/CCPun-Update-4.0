@@ -17,14 +17,6 @@ export function Website43ResponsiveStyles() {
   --w43-shell-left: max(var(--w43-nav-gutter), calc((100vw - 1280px) / 2));
 }
 
-.${styles.navBand} {
-  padding-left: var(--w43-nav-gutter);
-  padding-right: var(--w43-nav-gutter);
-}
-.${styles.navOverlay} {
-  width: min(1280px, calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter)));
-}
-
 .${styles.section},
 .${styles.sectionDeep},
 .${styles.blogContent},
@@ -133,15 +125,6 @@ export function Website43ResponsiveStyles() {
     --w43-shell-width: 100%;
   }
 
-  .${styles.navBand},
-  .${styles.responsiveOverlayBand} {
-    padding-left: var(--w43-nav-gutter);
-    padding-right: var(--w43-nav-gutter);
-  }
-  .${styles.navOverlay} {
-    width: calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter));
-  }
-
   .${styles.section} > .${styles.inner},
   .${styles.sectionDeep} > .${styles.inner},
   .${styles.blogContent} > .${styles.inner},
@@ -212,16 +195,6 @@ export function Website43ResponsiveStyles() {
     --w43-hero-gutter: clamp(24px, calc(11.4286vw - 20.5714px), 48px);
     --w43-mobile-reading-width: min(calc(100vw - 48px), clamp(342px, calc(77.1429vw + 41.1429px), 504px));
     --w43-shell-width: var(--w43-mobile-reading-width);
-  }
-
-  .${styles.navBand},
-  .${styles.responsiveOverlayBand} {
-    padding-left: var(--w43-nav-gutter);
-    padding-right: var(--w43-nav-gutter);
-  }
-  .${styles.navOverlay} {
-    top: 20px;
-    width: calc(100% - var(--w43-nav-gutter) - var(--w43-nav-gutter));
   }
 
   .${styles.section},
