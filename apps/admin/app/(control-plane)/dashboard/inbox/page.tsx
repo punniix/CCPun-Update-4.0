@@ -11,6 +11,7 @@ import {
   lineMessageStatusLabel,
   lineMessageTypeLabel,
   lineStageLabel,
+  resolveInboxListRows,
 } from "@/lib/admin/line/presentation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getLinePrivateProfiles, type LinePrivateProfile } from "@/lib/admin/line/conversation-archive";
@@ -43,7 +44,8 @@ export default async function AdvisorInboxPage({
 }) {
   await requireAdminPermission("advisor:read");
   const params = await searchParams;
-  const stageParam = typeof params.stage === "string" ? params.stage : "";
+  const requestedStage = typeof params.stage === "string" ? params.stage : "";
+  const stageParam = LINE_ADVISOR_INBOX_STAGES.includes(requestedStage as (typeof LINE_ADVISOR_INBOX_STAGES)[number]) ? requestedStage : "";
   const filters: AdvisorInboxFilters = {};
 
   if (LINE_ADVISOR_INBOX_STAGES.includes(stageParam as (typeof LINE_ADVISOR_INBOX_STAGES)[number])) {
@@ -62,10 +64,21 @@ export default async function AdvisorInboxPage({
     }
   }
 
-  const displayRows = filteredRows ?? model.rows;
-  const privateProfiles = model.unavailableReason
+  const list = resolveInboxListRows<LineAdvisorInboxSafeItem | Awaited<ReturnType<typeof listAdvisorInboxOperational>>[number]>({
+    baseRows: model.rows,
+    unavailable: Boolean(model.unavailableReason),
+    filterRequested: Boolean(filters.stage),
+    filteredRows,
+    filterFailed: filterUnavailable,
+  });
+  const displayRows = list.rows;
+  let profileUnavailable = false;
+  const privateProfiles = list.state !== "ready"
     ? new Map<string, LinePrivateProfile | null>()
-    : await getLinePrivateProfiles(displayRows.map((row) => row.leadId));
+    : await getLinePrivateProfiles(displayRows.map((row) => row.leadId)).catch(() => {
+        profileUnavailable = true;
+        return new Map<string, LinePrivateProfile | null>();
+      });
 
   const newCount = model.aggregate.stageCounts.New;
   const activeCount =
@@ -98,13 +111,7 @@ export default async function AdvisorInboxPage({
         </div>
       </div>
 
-      <section
-        className="mt-6 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/85"
-        aria-label="วิธีใช้งาน"
-      >
-        <strong className="font-medium text-sky-100">ใช้งานง่าย ๆ:</strong>{" "}
-        อ่านประวัติและจดสิ่งที่อยากจำที่นี่ แต่คุยกับลูกค้าใน LINE OA ที่เดิม
-      </section>
+      <p className="mt-4 text-sm leading-6 text-white/60">เลือกเคสเพื่ออ่านประวัติ จดโน้ต และตั้งวันติดตาม คุยกับลูกค้าใน LINE OA ตามเดิม</p>
 
       <form
         method="get"
@@ -118,7 +125,7 @@ export default async function AdvisorInboxPage({
             defaultValue={stageParam}
             className="mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white"
           >
-            <option value="">ลูกค้าทั้งหมด</option>
+            <option value="">รายการล่าสุดทุกสถานะ</option>
             {LINE_ADVISOR_INBOX_STAGES.map((stage) => (
               <option key={stage} value={stage}>{lineStageLabel(stage)}</option>
             ))}
@@ -129,13 +136,18 @@ export default async function AdvisorInboxPage({
         </button>
       </form>
 
-      {filterUnavailable ? (
-        <p role="alert" className="mt-3 text-sm text-amber-200/80">
-          ตอนนี้กรองรายการไม่ได้ จึงแสดงลูกค้าทั้งหมดแทน
-        </p>
-      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2" aria-label="เลือกสถานะที่ใช้บ่อย">
+        {[["", "รายการล่าสุด"], ["New", "ลูกค้าใหม่"], ["Expert Review", "รอตรวจข้อมูล"], ["Quote", "ดูใบเสนอราคา"]].map(([stage, label]) => (
+          <Link key={stage} href={stage ? `/dashboard/inbox/?stage=${encodeURIComponent(stage)}` : "/dashboard/inbox/"}
+            aria-current={stageParam === stage ? "page" : undefined}
+            className={`inline-flex min-h-11 items-center rounded-xl border px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985] ${stageParam === stage ? "border-[#e0c985]/30 bg-[#e0c985]/10 text-[#f4df9b]" : "border-white/10 text-white/65 hover:bg-white/5"}`}>
+            {label}
+          </Link>
+        ))}
+      </div>
 
-      <section className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สรุปลูกค้า">
+      <p className="mt-6 text-xs leading-5 text-white/55">สรุปจากรายการล่าสุดที่อ่านได้สูงสุด 50 รายการ ไม่ใช่ยอดลูกค้าหรืองานค้างทั้งหมด</p>
+      <section className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สรุปลูกค้าจากรายการล่าสุด">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <p className="text-sm text-white/60">ลูกค้าใหม่</p>
           <p className="mt-2 text-2xl font-semibold">{model.unavailableReason ? "—" : newCount}</p>
@@ -154,30 +166,31 @@ export default async function AdvisorInboxPage({
         </article>
       </section>
 
-      {model.unavailableReason ? (
+      {list.state === "unavailable" ? (
         <section
           role="alert"
           className="mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50"
         >
-          <h2 className="font-semibold">ตอนนี้ยังเปิดรายชื่อลูกค้าไม่ได้</h2>
+          <h2 className="font-semibold">{filterUnavailable ? "ยังอ่านรายการตามสถานะที่เลือกไม่ได้" : "ตอนนี้ยังเปิดรายชื่อลูกค้าไม่ได้"}</h2>
           <p className="mt-2 text-amber-50/80">
-            ข้อมูลยังอยู่ครบ ระบบหยุดไว้ก่อนเพื่อไม่ให้ดึงข้อมูลผิดชุด ลองเปิดใหม่อีกครั้งในอีกสักครู่
+            {filterUnavailable ? "ไม่แสดงรายการสถานะอื่นแทน ลองโหลดใหม่หรือกลับไปดูรายการล่าสุด" : "ระบบยังยืนยันข้อมูลที่อ่านไม่ได้ จึงไม่แสดงเป็นศูนย์ ลองโหลดใหม่หรือตรวจสถานะระบบ"}
           </p>
         </section>
       ) : null}
 
-      {!model.unavailableReason && displayRows.length === 0 ? (
+      {list.state === "empty" ? (
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-7 text-center">
-          <h2 className="text-lg font-semibold">ยังไม่มีลูกค้าในรายการนี้</h2>
+          <h2 className="text-lg font-semibold">{filters.stage ? "ไม่พบรายการตามสถานะที่เลือก" : "ยังไม่มีรายการจากข้อมูลล่าสุดที่อ่านได้"}</h2>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/65">
-            เมื่อลูกค้าทัก LINE เข้ามา รายการจะขึ้นที่นี่อัตโนมัติ
+            {filters.stage ? "ลองเลือกสถานะอื่นหรือกลับไปดูรายการล่าสุด" : "หากเพิ่งมีลูกค้าทัก LINE ให้ตรวจการรับข้อความและการบันทึกก่อน ไม่ใช่หลักฐานว่าไม่มีลูกค้า"}
           </p>
         </section>
       ) : null}
 
-      {!model.unavailableReason && displayRows.length > 0 ? (
+      {profileUnavailable ? <p role="status" className="mt-4 text-sm text-amber-100">ยังอ่านชื่อโปรไฟล์ไม่ได้ จะแสดงรหัสลูกค้าเพื่อให้เปิดเคสต่อได้</p> : null}
+      {list.state === "ready" ? (
         <section className="mt-6 space-y-4" aria-label="รายชื่อลูกค้า">
-          {filters.stage ? <p className="text-xs text-white/45">พบ {displayRows.length.toLocaleString("th-TH")} รายการ</p> : null}
+          <p className="text-xs text-white/55">แสดง {displayRows.length.toLocaleString("th-TH")} รายการ{filters.stage ? `ตามสถานะที่เลือก · สูงสุด 100 รายการ` : "ล่าสุด · สูงสุด 50 รายการ"}</p>
 
           {displayRows.map((item) => {
             const displayName = privateProfiles.get(item.leadId)?.displayName;
@@ -200,7 +213,7 @@ export default async function AdvisorInboxPage({
                     <h2 className="mt-3 text-lg font-semibold text-white/90">
                       <Link
                         href={`/dashboard/inbox/${item.leadId}/`}
-                        className="hover:text-white hover:underline hover:underline-offset-4"
+                        className="inline-flex min-h-11 items-center hover:text-white hover:underline hover:underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"
                       >
                         {customerLabel(item, displayName)}
                       </Link>
@@ -228,12 +241,12 @@ export default async function AdvisorInboxPage({
                     ) : null}
                   </div>
 
-                  <div className="rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4">
+                  <Link href={`/dashboard/inbox/${item.leadId}/`} className="rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4 transition hover:border-[#e0c985]/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
                     <p className="text-xs font-medium text-[#e0c985]">เปิดเคสนี้</p>
                     <p className="mt-2 text-sm text-white/75">
                       ดูประวัติการคุย เอกสาร โน้ต วันติดตาม และหลักฐานการสนทนา
                     </p>
-                  </div>
+                  </Link>
                 </div>
               </article>
             );

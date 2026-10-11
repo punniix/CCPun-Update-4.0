@@ -10,10 +10,20 @@ import {
   lineMessageStatusLabel,
   lineStageLabel,
   lineTechnicalStateLabel,
+  resolveInboxListRows,
 } from "../../lib/admin/line/presentation";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
+
+test("a failed requested inbox filter never shows unfiltered rows or a false empty result", () => {
+  const baseRows = [{ id: "synthetic-other-stage" }];
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: true, filteredRows: null, filterFailed: true }), { state: "unavailable", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: true, filteredRows: null, filterFailed: false }), { state: "unavailable", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: true, filterRequested: false, filteredRows: null, filterFailed: false }), { state: "unavailable", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: true, filteredRows: [], filterFailed: false }), { state: "empty", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: false, filteredRows: null, filterFailed: false }), { state: "ready", rows: baseRows });
+});
 
 test("raw LINE states are translated into plain Thai before display", () => {
   assert.equal(lineStageLabel("New"), "ลูกค้าใหม่");

@@ -218,3 +218,17 @@ export function formatFileSize(bytes: number | null | undefined) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
 }
+
+export function resolveInboxListRows<T>(input: {
+  baseRows: T[];
+  unavailable: boolean;
+  filterRequested: boolean;
+  filteredRows: T[] | null;
+  filterFailed: boolean;
+}) {
+  if (input.unavailable || (input.filterRequested && (input.filterFailed || input.filteredRows === null))) {
+    return { state: "unavailable" as const, rows: [] as T[] };
+  }
+  const rows = input.filterRequested ? input.filteredRows! : input.baseRows;
+  return { state: rows.length ? "ready" as const : "empty" as const, rows };
+}

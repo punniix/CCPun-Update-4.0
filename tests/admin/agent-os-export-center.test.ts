@@ -204,6 +204,10 @@ test("Dashboard shows aggregates without weakening advisor permission boundary",
   const dashboard = read("apps/admin/app/(control-plane)/dashboard/page.tsx");
   assert.match(dashboard, /canReadAdvisor/);
   assert.match(dashboard, /Qualified Conversation/);
-  assert.match(dashboard, /automationAttention/);
   assert.match(dashboard, /hasAdminPermission\(identity\.role, "advisor:read"\)/);
+  assert.match(dashboard, /canReadAdvisor\s*\? await listAdvisorInboxOperational/);
+  assert.match(dashboard, /hasAdminPermission\(identity\.role, "settings:read"\)/);
+  assert.match(dashboard, /canReadOperations \? await readOperationsJobs\(50\)/);
+  assert.match(dashboard, /\["failed", "reconciliation-required", "reconciliation_required"\]\.includes\(job\.status\)/);
+  assert.match(dashboard, /ไม่ใช่งานค้างทั้งหมด/);
 });

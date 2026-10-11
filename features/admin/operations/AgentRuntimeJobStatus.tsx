@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { AgentRuntimeJobDetail } from "@/lib/admin/operations/agent-os-runtime-detail";
+import { ownerJobStatusLabel as statusLabel, safeN8nExecutionId } from "./job-copy";
 
 function formatDuration(ms: number | null) {
   if (ms == null || !Number.isFinite(ms)) return "—";
@@ -11,23 +12,6 @@ function formatDuration(ms: number | null) {
   const minutes = Math.floor(seconds / 60);
   const remain = seconds % 60;
   return `${minutes} นาที ${remain} วินาที`;
-}
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    queued: "รอคิว",
-    running: "กำลังทำงาน",
-    waiting_external: "กำลังรอระบบภายนอก",
-    waiting_ai: "กำลังรอ AI",
-    validating: "กำลังตรวจผล",
-    awaiting_review: "รอคุณตรวจ",
-    retrying: "กำลังลองใหม่",
-    completed: "เสร็จแล้ว",
-    failed: "ไม่สำเร็จ",
-    reconciliation_required: "ต้องตรวจผลกับระบบภายนอก",
-    cancelled: "ยกเลิกแล้ว",
-  };
-  return labels[status] ?? "กำลังตรวจสถานะ";
 }
 
 function paceLabel(pace: AgentRuntimeJobDetail["pace"]) {
@@ -157,7 +141,7 @@ export function AgentRuntimeJobStatus({ initial, canReconcileTimeout = false }: 
           </div>
           <div className="rounded-2xl bg-black/15 p-4">
             <p className="text-xs text-white/45">n8n Execution</p>
-            <p className="mt-2 break-all text-sm font-medium">{detail.job.n8nExecutionId ? "มีข้อมูลให้ตรวจย้อนหลัง" : "ยังไม่มี"}</p>
+            <p className="mt-2 break-all text-sm font-medium">{safeN8nExecutionId(detail.job.n8nExecutionId) ?? "ยังไม่มีหมายเลขยืนยัน"}</p>
           </div>
         </div>
 
