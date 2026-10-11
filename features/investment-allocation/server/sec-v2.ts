@@ -427,6 +427,26 @@ function latestDate(values: Array<string | null | undefined>): string | null {
 
 export async function getFundDetail(projectId: string, requestedClassName?: string | null): Promise<FundDetailResponse> {
   const fetchedAt = new Date().toISOString();
+  // Synthetic detail is confined to explicit Web UAT lanes, never a live-data fallback.
+  if (IS_REVIEW_ENVIRONMENT && ["web-uat", "local-uat"].includes(process.env.CCPUN_APP_ENV ?? "")) {
+    const demo = UAT_SYNTHETIC_FUNDS.find((fund) => fund.projectId === projectId);
+    if (demo) {
+      const className = demo.className;
+      const selectedClassName = !requestedClassName || requestedClassName === className ? className : null;
+      return {
+        source: "uat_synthetic", state: "demo",
+        fund: demoCatalogItems().find((fund) => fund.projectId === projectId) ?? null,
+        classes: className ? [{ name: className, detail: "ชนิดหน่วยตัวอย่างสำหรับ UAT", description: null, taxIncentiveType: null, isin: null }] : [],
+        selectedClassName, specifications: [],
+        risk: demo.riskSpectrum ? { level: demo.riskSpectrum as FundRiskFact["level"], rawCode: `RS${demo.riskSpectrum}`, description: "ข้อมูลตัวอย่าง UAT", sourceDate: demo.provenance.sourceDate, lastUpdated: null } : null,
+        assetAllocation: demo.assetAllocation.map((row) => ({ name: row.label, percentNav: row.percent, sourceDate: row.sourceDate, lastUpdated: null })),
+        dealing: selectedClassName ? { className: selectedClassName, subscriptionPeriod: null, subscriptionPeriodOther: null, redemptionPeriod: null, redemptionPeriodOther: null, settlementPeriod: demo.liquidity.rawText, settlementBucket: demo.liquidity.normalized, sourceDate: demo.liquidity.sourceDate, lastUpdated: null } : null,
+        dataDate: demo.provenance.sourceDate, fetchedAt,
+        warnings: [...demo.provenance.notes], snapshotIds: demo.provenance.snapshotIds,
+        endpointStates: { profile: "ok", risk: demo.riskSpectrum ? "ok" : "empty", allocation: demo.assetAllocation.length ? "ok" : "empty", dealing: demo.liquidity.rawText ? "ok" : "empty" },
+      };
+    }
+  }
   const key = getSubscriptionKey();
   if (!key || !/^M\d{4}_\d{4}$/.test(projectId)) {
     return { source: "unavailable", state: "unavailable", fund: null, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt, warnings: ["ข้อมูลรายละเอียดกองทุนยังไม่พร้อมใช้งาน"], endpointStates: {} };

@@ -78,7 +78,8 @@ export default function PortfolioBuilder() {
   const [planId, setPlanId] = useState<string | null>(null);
   const startedRef = useRef(false);
 
-  const amount = Number(investmentAmount.replace(/,/g, "")) || 0;
+  const parsedAmount = Number(investmentAmount.replace(/,/g, ""));
+  const amount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 0;
   const constructionTotal = allocationTotal(construction);
   const selectedTotal = allocationTotal(selectedFunds.map((selected) => ({ key: selected.fund.id, percent: selected.weightPercent })));
   const targetTotal = allocationTotal(target);
@@ -119,7 +120,7 @@ export default function PortfolioBuilder() {
     setStep(next);
     trackEvent("ia_step_view", { tool_name: "investment_allocation", step_number: next, cta_location: next === 4 ? "investment_allocation_result" : "investment_allocation_builder", surface_group: "investment_allocation" });
     if (next === 4) trackEvent("ia_result_view", { tool_name: "investment_allocation", cta_location: "investment_allocation_result", surface_group: "investment_allocation" });
-    window.setTimeout(() => document.getElementById("investment-allocation-builder")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    window.setTimeout(() => document.getElementById("investment-allocation-builder")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }), 0);
   }
 
   async function searchFunds(event: FormEvent) {
@@ -130,6 +131,7 @@ export default function PortfolioBuilder() {
     setSearchState(null);
     try {
       const response = await fetch(`/api/investment-allocation/funds/?q=${encodeURIComponent(trimmed)}`, { method: "GET", headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error(`funds_${response.status}`);
       const data = await response.json() as FundSearchResponse;
       setSearchState(data);
     } catch {
@@ -183,6 +185,7 @@ export default function PortfolioBuilder() {
       "",
       "กองที่เลือกเอง:",
       ...payload.selected_funds.map((fund) => `- ${fund.fund_name}: ${fund.selected_weight_percent}%`),
+      ...payload.selected_funds.map((fund) => `  ชนิดหน่วย: ${fund.class_name ?? "ยังไม่ระบุ"} · ${fund.provenance?.source === "uat_synthetic" ? "ข้อมูลสังเคราะห์ UAT" : "ข้อมูลจาก ก.ล.ต."} · วันที่ข้อมูล: ${fund.provenance?.sourceDate ?? "ยังไม่ระบุ"} · ตรวจเมื่อ: ${fund.provenance?.fetchedAt ?? "ยังไม่ระบุ"}`),
       "",
       "สัดส่วนสินทรัพย์จากกองที่เลือก:",
       ...payload.effective_allocation.filter((row) => row.percent > 0).map((row) => `- ${EFFECTIVE_LABELS[row.key]}: ${row.percent}%`),
@@ -369,6 +372,7 @@ function ResultView({ result, onEdit, onSave, onHandoff, saveStatus }: { result:
       <div className={styles.liquidityGrid}>{result.liquiditySummary.map((row) => <div className={styles.liquidityCard} key={row.bucket}><strong>{row.bucket}</strong><span>{row.percent}% · {formatMoney(row.amount)} บาท</span></div>)}</div>
     </div>
 
+    <div className={styles.resultPanel}><h3>ข้อมูลที่ใช้ในแผนนี้</h3><ul className={styles.warningList}>{result.selectedFunds.map(({ fund }) => <li key={fund.id}>{fund.name} · ชนิดหน่วย {fund.className ?? "ยังไม่ระบุ"} · {fund.provenance.source === "uat_synthetic" ? "ข้อมูลสังเคราะห์ UAT" : "ข้อมูลจาก ก.ล.ต."} · วันที่ข้อมูล {fund.provenance.sourceDate ?? "ยังไม่ระบุ"} · ตรวจเมื่อ {fund.provenance.fetchedAt}</li>)}</ul><p>วันที่ข้อมูลแต่ละกองอาจต่างกัน การตรวจล่าสุดไม่ได้ทำให้ข้อมูลต้นทางใหม่ขึ้น เครื่องมือนี้ไม่ใช้เปรียบเทียบผลตอบแทน ค่าธรรมเนียม สกุลเงิน หรือการป้องกันความเสี่ยงค่าเงินที่ยังมีข้อมูลไม่ครบ</p></div>
     <div className={styles.resultPanel}><h3>ข้อควรรู้ก่อนนำผลไปใช้</h3><ul className={styles.warningList}>{result.warnings.map((warning) => <li key={warning}>{WARNING_LABELS[warning]}</li>)}</ul></div>
 
     <div className={styles.resultPanel}><h3>ให้ Pun ช่วยดูต่อ</h3><p>คุณสามารถปรับพอร์ตต่อ บันทึกไว้ในอุปกรณ์ หรือคัดลอกสรุปเพื่อส่งให้ Pun ดูต่อได้</p><div className={styles.resultActions}><button className={styles.ghost} type="button" onClick={onEdit}>ปรับพอร์ตต่อ</button><button className={styles.secondary} type="button" onClick={onSave}>บันทึกในอุปกรณ์นี้</button><button className={styles.primary} type="button" onClick={onHandoff}>คัดลอกสรุป + ส่งให้ Pun ช่วยดู</button></div>{saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}</div>

@@ -181,6 +181,7 @@ export function createAdvisorHandoffPayload(planId: string, result: InvestmentPl
       fund_name: selected.fund.name,
       selected_weight_percent: selected.weightPercent,
       selection_source: "customer",
+      provenance: selected.fund.provenance,
     })),
     effective_allocation: result.effectiveAllocation,
     risk_distribution: result.riskDistribution,

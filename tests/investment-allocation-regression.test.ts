@@ -181,6 +181,8 @@ test("advisor handoff preserves customer provenance and methodology without gene
   assert.equal(payload.methodology_version, "investment_allocation_v1");
   assert.equal(payload.selected_funds[0]?.selection_source, "customer");
   assert.equal(payload.selected_funds[0]?.selected_weight_percent, 100);
+  assert.deepEqual(payload.selected_funds[0]?.provenance, fund("uat-mixed-01").provenance);
+  assert.equal(payload.selected_funds[0]?.class_name, "UAT-MIX-A");
   assert.ok(payload.sec_snapshot_ids.every((id) => id.startsWith("uat-synthetic:")));
   assert.ok(payload.warnings.includes("demo_data"));
 });

@@ -116,6 +116,7 @@ export type AdvisorHandoffPayload = {
     fund_name: string;
     selected_weight_percent: number;
     selection_source: "customer";
+    provenance?: FundProvenance;
   }>;
   effective_allocation: EffectiveAllocationRow[];
   risk_distribution: RiskDistributionRow[];
@@ -228,7 +229,7 @@ export type FundDealingFact = {
 };
 
 export type FundDetailResponse = {
-  source: "sec_v2" | "unavailable";
+  source: FundSource | "unavailable";
   state: DataState;
   fund: FundCatalogItem | null;
   classes: FundClassOption[];
@@ -241,4 +242,5 @@ export type FundDetailResponse = {
   fetchedAt: string;
   warnings: string[];
   endpointStates: Record<string, "ok" | "empty" | "unavailable">;
+  snapshotIds?: string[];
 };

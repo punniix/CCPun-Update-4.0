@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import {
   equitySubcategoryLabel,
@@ -60,8 +60,13 @@ export default function SingleFundBuilder() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
+  const catalogRequest = useRef(0);
+  const detailRequest = useRef(0);
 
-  const amount = Number(investmentAmount.replace(/,/g, "")) || 0;
+  useEffect(() => () => { catalogRequest.current++; detailRequest.current++; }, []);
+
+  const parsedAmount = Number(investmentAmount.replace(/,/g, ""));
+  const amount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 0;
   const options = useMemo(() => category ? subcategoryOptions(category) : ["all"] as FundCatalogSubcategory[], [category]);
   const allocationTotal = rawAllocationTotal(detail);
   const selectedAmcName = amcId === "all" ? "ทุก บลจ." : amcs?.items.find((item) => item.id === amcId)?.nameTh ?? "บลจ. ที่เลือก";
@@ -90,7 +95,17 @@ export default function SingleFundBuilder() {
     cursor?: string | null;
     append?: boolean;
   }) {
+    const request = ++catalogRequest.current;
     const append = Boolean(filters.append);
+    if (!append) {
+      detailRequest.current++;
+      setSelectedFund(null);
+      setDetail(null);
+      setDetailLoading(false);
+      setSaveStatus(null);
+      setPlanId(null);
+    }
+    setCatalogAppending(append);
     if (append) setCatalogAppending(true);
     else {
       setCatalogLoading(true);
@@ -104,12 +119,16 @@ export default function SingleFundBuilder() {
       const response = await fetch(`/api/investment-allocation/catalog/?${params.toString()}`, { headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`catalog_${response.status}`);
       const data = await response.json() as FundCatalogResponse;
+      if (request !== catalogRequest.current) return;
       setCatalog((current) => append && current ? { ...data, items: [...current.items, ...data.items] } : data);
     } catch {
+      if (request !== catalogRequest.current) return;
       setCatalog({ source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query: filters.query, category: filters.category, subcategory: filters.subcategory, amcId: filters.amcId === "all" ? null : filters.amcId, fetchedAt: new Date().toISOString(), message: "โหลดรายชื่อกองทุนไม่สำเร็จชั่วคราว" });
     } finally {
-      setCatalogLoading(false);
-      setCatalogAppending(false);
+      if (request === catalogRequest.current) {
+        setCatalogLoading(false);
+        setCatalogAppending(false);
+      }
     }
   }
 
@@ -154,23 +173,29 @@ export default function SingleFundBuilder() {
   }
 
   async function fetchDetail(fund: FundCatalogItem, className?: string | null) {
+    const request = ++detailRequest.current;
     setSelectedFund(fund);
     setDetail(null);
     setDetailLoading(true);
     setSaveStatus(null);
+    setPlanId(null);
     try {
       const params = new URLSearchParams({ proj_id: fund.projectId });
       if (className) params.set("class_name", className);
       const response = await fetch(`/api/investment-allocation/detail/?${params.toString()}`, { headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`detail_${response.status}`);
       const data = await response.json() as FundDetailResponse;
+      if (request !== detailRequest.current) return;
       setDetail(data);
       trackEvent("ia_result_view", { tool_name: "investment_allocation", cta_location: "investment_allocation_result", surface_group: "investment_allocation" });
-      window.setTimeout(() => document.getElementById("single-fund-result")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+      window.setTimeout(() => {
+        if (request === detailRequest.current) document.getElementById("single-fund-result")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      }, 0);
     } catch {
+      if (request !== detailRequest.current) return;
       setDetail({ source: "unavailable", state: "unavailable", fund, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt: new Date().toISOString(), warnings: ["โหลดรายละเอียดกองทุนไม่สำเร็จชั่วคราว"], endpointStates: {} });
     } finally {
-      setDetailLoading(false);
+      if (request === detailRequest.current) setDetailLoading(false);
     }
   }
 
@@ -182,7 +207,7 @@ export default function SingleFundBuilder() {
   }
 
   function buildHandoff() {
-    if (!selectedFund || !detail) return null;
+    if (!selectedFund || !detail || detail.fund?.projectId !== selectedFund.projectId || detail.state === "unavailable" || amount <= 0 || (detail.classes.length > 0 && !detail.selectedClassName)) return null;
     return {
       schema_version: 1,
       journey_mode: "single_fund" as const,
@@ -199,6 +224,7 @@ export default function SingleFundBuilder() {
       asset_allocation: detail.assetAllocation,
       dealing: detail.dealing,
       sec_data_date: detail.dataDate,
+      provenance: { source: detail.source, state: detail.state, fetched_at: detail.fetchedAt, endpoint_states: detail.endpointStates, snapshot_ids: detail.snapshotIds ?? [], warnings: detail.warnings },
       created_at: new Date().toISOString(),
     };
   }
@@ -227,11 +253,13 @@ export default function SingleFundBuilder() {
       detail.selectedClassName ? `ชนิดหน่วยลงทุน: ${detail.selectedClassName}` : "",
       detail.risk?.level ? `ระดับความเสี่ยง: ${detail.risk.level} จาก 1–8` : "ระดับความเสี่ยง: ยังไม่มีข้อมูล",
       "",
-      "สัดส่วนสินทรัพย์ตามข้อมูลจาก ก.ล.ต.:",
+      detail.source === "uat_synthetic" ? "สัดส่วนสินทรัพย์จากข้อมูลสังเคราะห์ UAT (ไม่ใช่ข้อมูลกองทุนจริง):" : "สัดส่วนสินทรัพย์ตามข้อมูลจาก ก.ล.ต.:",
       ...allocationLines,
       "",
       detail.dealing?.settlementPeriod ? `เงื่อนไขรับเงินหลังขายคืน: ${detail.dealing.settlementPeriod}` : "เงื่อนไขรับเงินหลังขายคืน: ยังไม่มีข้อมูล",
       detail.dataDate ? `ข้อมูล ณ วันที่: ${detail.dataDate}` : "",
+      `ตรวจข้อมูลเมื่อ: ${detail.fetchedAt}`,
+      ...detail.warnings.map((warning) => `ข้อจำกัด: ${warning}`),
       "",
       "ลูกค้าเป็นผู้เลือกกองเอง ต้องการให้ Pun ช่วยดูต่อ",
     ].filter(Boolean);
@@ -261,7 +289,7 @@ export default function SingleFundBuilder() {
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel} htmlFor="single-investment-amount">เงินที่ต้องการลงทุน</label>
             <div className={styles.moneyInputWrap}>
-              <input id="single-investment-amount" inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => setInvestmentAmount(event.target.value)} placeholder="เช่น 500000" />
+              <input id="single-investment-amount" inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => { setInvestmentAmount(event.target.value); setSaveStatus(null); setPlanId(null); }} placeholder="เช่น 500000" />
               <span>บาท</span>
             </div>
             <p className={styles.fieldHint}>จำนวนเงินนี้ใช้แสดงภาพว่าแต่ละสัดส่วนคิดเป็นเงินประมาณเท่าไร และไม่ถูกส่งไปใช้วิเคราะห์พฤติกรรมการใช้งาน</p>
@@ -271,12 +299,12 @@ export default function SingleFundBuilder() {
             <span className={styles.fieldLabel}>1. เลือกประเภทกองที่สนใจ</span>
             <div className={styles.categoryGrid}>
               {CATEGORIES.map((item) => (
-                <button key={item} className={styles.categoryCard} data-active={category === item} type="button" onClick={() => chooseCategory(item)}>
+                <button key={item} className={styles.categoryCard} data-active={category === item} aria-pressed={category === item} type="button" onClick={() => chooseCategory(item)}>
                   <strong>{FUND_CATEGORY_LABELS[item]}</strong>
                   <span>{FUND_CATEGORY_DESCRIPTIONS[item]}</span>
                 </button>
               ))}
-              <button className={styles.categoryCard} data-active={category === "all"} type="button" onClick={() => chooseCategory("all")}>
+              <button className={styles.categoryCard} data-active={category === "all"} aria-pressed={category === "all"} type="button" onClick={() => chooseCategory("all")}>
                 <strong>ดูกองทุนทุกประเภท</strong>
                 <span>ถ้ายังไม่แน่ใจว่าควรเริ่มดูจากหมวดไหน สามารถเปิดดูทั้งหมดได้</span>
               </button>
@@ -290,7 +318,7 @@ export default function SingleFundBuilder() {
                   <span className={styles.fieldLabel}>2. เลือกพื้นที่ลงทุน</span>
                   <div className={styles.filterChips} role="group" aria-label="ขอบเขตกองทุน">
                     {options.map((option) => (
-                      <button key={option} className={styles.filterChip} data-active={subcategory === option} type="button" onClick={() => chooseSubcategory(option)}>
+                      <button key={option} className={styles.filterChip} data-active={subcategory === option} aria-pressed={subcategory === option} type="button" onClick={() => chooseSubcategory(option)}>
                         {subcategoryLabel(category, option)}
                       </button>
                     ))}
@@ -397,7 +425,8 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
   saveStatus: string | null;
 }) {
   const riskLevel = detail.risk?.level;
-  const classRequired = detail.classes.length > 1 && !detail.selectedClassName;
+  const classRequired = detail.classes.length > 0 && !detail.selectedClassName;
+  const handoffDisabled = amount <= 0 || detail.state === "unavailable" || classRequired || detail.fund?.projectId !== fund.projectId;
 
   return (
     <div id="single-fund-result" className={styles.singleResult}>
@@ -407,7 +436,7 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
           <h2>{fund.nameTh}</h2>
           <p>{fund.abbreviation} · {fund.amcNameTh}</p>
         </div>
-        <span className={styles.dataBadge}>ข้อมูลจาก ก.ล.ต.</span>
+        <span className={styles.dataBadge}>{detail.source === "uat_synthetic" ? "ข้อมูลตัวอย่าง UAT" : detail.source === "sec_v2" ? "ข้อมูลจาก ก.ล.ต." : "ข้อมูลยังไม่พร้อม"}</span>
       </div>
 
       {detail.classes.length > 1 ? (
@@ -416,7 +445,7 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
           <p>กองเดียวกันอาจมีหลายชนิดหน่วยลงทุนและเงื่อนไขซื้อขายต่างกัน เลือกชนิดหน่วยที่คุณสนใจก่อนดูเงื่อนไขขายคืนและการรับเงิน</p>
           <div className={styles.classGrid}>
             {detail.classes.map((item) => (
-              <button className={styles.classCard} data-active={detail.selectedClassName === item.name} key={item.name} type="button" onClick={() => onClassChange(item.name)}>
+              <button className={styles.classCard} data-active={detail.selectedClassName === item.name} aria-pressed={detail.selectedClassName === item.name} key={item.name} type="button" onClick={() => onClassChange(item.name)}>
                 <strong>{item.name}</strong>
                 <span>{item.detail ?? item.description ?? "ยังไม่มีรายละเอียดเพิ่มเติมสำหรับชนิดหน่วยนี้"}</span>
               </button>
@@ -440,12 +469,13 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
             <div><dt>รับเงินหลังขายคืน</dt><dd>{detail.dealing.settlementPeriod ?? "ไม่ระบุ"}</dd></div>
           </dl> : <p>ยังไม่มีข้อมูลเงื่อนไขซื้อและขายคืนที่แสดงได้ในตอนนี้</p>}
           <p className={styles.provenance}>ข้อมูลนี้เป็นเงื่อนไขที่กองทุนรายงานไว้ ไม่ใช่การรับประกันวันที่เงินจริงเข้าบัญชี</p>
+          <p className={styles.provenance}>วันที่ข้อมูลเงื่อนไข: {formatDate(detail.dealing?.sourceDate ?? null)}</p>
         </section>
       </div>
 
       <section className={styles.resultPanel}>
         <h3>เงินก้อนนี้ถูกนำไปลงทุนในอะไรบ้าง</h3>
-        <p>แสดงสัดส่วนสินทรัพย์ตามข้อมูลล่าสุดที่กองทุนรายงานต่อ ก.ล.ต. โดยคงตัวเลขตามต้นทางและไม่ปรับให้รวมเป็น 100% เอง</p>
+        <p>{detail.source === "uat_synthetic" ? "แสดงสัดส่วนสินทรัพย์จากข้อมูลสังเคราะห์สำหรับทดสอบ UAT เท่านั้น" : "แสดงสัดส่วนสินทรัพย์ตามข้อมูลที่กองทุนรายงานต่อ ก.ล.ต."} โดยคงตัวเลขตามต้นทางและไม่ปรับให้รวมเป็น 100% เอง</p>
         {detail.assetAllocation.length ? <div className={styles.assetFactList}>{detail.assetAllocation.map((row, index) => {
           const equivalent = amount > 0 ? amount * row.percentNav / 100 : 0;
           return <div className={styles.assetFactRow} key={`${row.name}-${index}`}>
@@ -454,7 +484,9 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
           </div>;
         })}</div> : <p>ยังไม่มีข้อมูลสัดส่วนสินทรัพย์ที่แสดงได้ในตอนนี้</p>}
         <p className={styles.allocationTotalRaw}>รวมตามข้อมูลที่รายงาน: <strong>{allocationTotal}%</strong></p>
-        <p className={styles.provenance}>ข้อมูล ณ วันที่ {formatDate(detail.dataDate)} · ตรวจข้อมูลล่าสุด {formatDate(detail.fetchedAt)}</p>
+        <p className={styles.provenance}>วันที่ข้อมูลล่าสุดที่พบ {formatDate(detail.dataDate)} · ตรวจข้อมูลเมื่อ {formatDate(detail.fetchedAt)} · วันที่ข้อมูลแต่ละส่วนอาจต่างกัน การตรวจล่าสุดไม่ได้ทำให้ข้อมูลต้นทางใหม่ขึ้น</p>
+        {detail.source === "uat_synthetic" ? <p className={styles.statusNotice}>ข้อมูลสังเคราะห์สำหรับทดสอบเท่านั้น ไม่ใช่ข้อมูลกองทุนจริงจาก ก.ล.ต.</p> : null}
+        <p className={styles.provenance}>ชนิดหน่วยลงทุน: {detail.selectedClassName ?? "ยังไม่ระบุ"} · ข้อมูลนี้ไม่ใช้เปรียบเทียบผลตอบแทน ค่าธรรมเนียม สกุลเงิน หรือการป้องกันความเสี่ยงค่าเงินซึ่งยังไม่มีข้อมูลที่ตรวจสอบได้ครบ</p>
       </section>
 
       {detail.specifications.length || fund.masterFund ? <section className={styles.resultPanel}>
@@ -471,9 +503,10 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
         <h3>ให้ Pun ช่วยดูต่อ</h3>
         <p>ระบบไม่ได้ตัดสินว่ากองนี้ “ดี” หรือ “เหมาะ” แต่ช่วยส่งข้อมูลที่คุณเลือกเองให้คุยต่อได้โดยไม่ต้องเริ่มใหม่</p>
         <div className={styles.resultActions}>
-          <button className={styles.secondary} type="button" onClick={onSave}>บันทึกในอุปกรณ์นี้</button>
-          <button className={styles.primary} type="button" onClick={onHandoff}>คัดลอกสรุป + ส่งให้ Pun ช่วยดู</button>
+          <button className={styles.secondary} type="button" disabled={handoffDisabled} onClick={onSave}>บันทึกในอุปกรณ์นี้</button>
+          <button className={styles.primary} type="button" disabled={handoffDisabled} onClick={onHandoff}>คัดลอกสรุป + ส่งให้ Pun ช่วยดู</button>
         </div>
+        {amount <= 0 ? <p className={styles.validation} role="status">กรอกจำนวนเงินที่มากกว่า 0 ก่อนบันทึกหรือคัดลอกสรุป</p> : null}
         {saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}
       </section>
     </div>
