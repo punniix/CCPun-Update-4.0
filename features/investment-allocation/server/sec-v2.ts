@@ -1,4 +1,6 @@
 import "server-only";
+import { createHash } from "node:crypto";
+import { unstable_cache } from "next/cache";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { normalizeLiquidity } from "../domain/calculation";
 import { categoryFromPolicy, matchesGeography } from "../domain/catalog";
@@ -25,6 +27,7 @@ const SEC_HEADER = "Ocp-Apim-Subscription-Key";
 const SEC_PAGE_SIZE = 100;
 const CATALOG_PAGE_SIZE = 20;
 const SEC_REVALIDATE_SECONDS = 60 * 60 * 6;
+const SEC_CACHE_MAX_BYTES = 1024 * 1024;
 const ACTIVE_STATUSES = ["Registered", "IPO"] as const;
 
 type SecEnvelope = {
@@ -172,18 +175,72 @@ function normalizeSettlementBucket(raw: string | null) {
   return normalizeLiquidity(raw);
 }
 
-async function secGet(path: string, key: string, revalidate = SEC_REVALIDATE_SECONDS): Promise<SecEnvelope> {
+// Keep original row positions: catalog cursors refer to upstream offsets, including
+// rows rejected by later validation. Only public fields consumed below are stored.
+const SEC_PUBLIC_FIELDS = [
+  "proj_id", "proj_abbr_name", "proj_name_th", "proj_name_en", "unique_id",
+  "comp_name_th", "comp_name_en", "fund_status", "policy_desc", "invest_country_flag",
+  "management_style", "feederfund_master_fund", "feederfund_country", "last_upd_date",
+  "fund_class_name", "fund_class_detail", "fund_class_description",
+  "fund_class_tax_incentive_type", "fund_class_isin_code", "spec_code", "spec_desc",
+  "risk_spectrum", "risk_spectrum_desc", "start_date", "end_date", "prospectus_type",
+  "asset_name", "asset_ratio", "type", "period", "redemp_period_oth", "settlement_period",
+] as const;
+
+class UncachedSecEnvelope extends Error {
+  constructor(readonly envelope: SecEnvelope) {
+    super("sec_projection_exceeds_cache_budget");
+  }
+}
+
+async function readSecEnvelope(path: string, key: string): Promise<SecEnvelope> {
   const response = await fetch(`${SEC_BASE_URL}${path}`, {
     method: "GET",
     headers: { [SEC_HEADER]: key, Accept: "application/json" },
-    next: { revalidate },
+    cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`sec_http_${response.status}`);
   const body: unknown = await response.json();
   const envelope = asRecord(body);
   if (!envelope) throw new Error("sec_invalid_envelope");
-  return envelope as SecEnvelope;
+  return {
+    items: asItems(envelope).map((value) => {
+      const row = asRecord(value);
+      if (!row) return null;
+      return Object.fromEntries(SEC_PUBLIC_FIELDS.flatMap((field) => {
+        const value = row[field];
+        return typeof value === "string" || typeof value === "number" || value === null ? [[field, value]] : [];
+      }));
+    }),
+    next_cursor: asString(envelope.next_cursor),
+    page_size: asNumber(envelope.page_size),
+  };
+}
+
+async function secGet(path: string, key: string, revalidate = SEC_REVALIDATE_SECONDS): Promise<SecEnvelope> {
+  const params = new URL(path, SEC_BASE_URL).searchParams;
+  const projectInfo = params.get("project_info");
+  // Free text is transient input. Persist neither it nor its returned search page.
+  if ((projectInfo && !/^M\d{4}_\d{4}$/.test(projectInfo)) || params.has("company_info")) {
+    return readSecEnvelope(path, key);
+  }
+  const identity = createHash("sha256").update(path).digest("hex");
+  const cached = unstable_cache(async () => {
+    const envelope = await readSecEnvelope(path, key);
+    if (Buffer.byteLength(JSON.stringify(envelope), "utf8") > SEC_CACHE_MAX_BYTES) {
+      // Throwing avoids persisting oversized entries; return the already-fetched
+      // projection outside the cache without truncation or a second API request.
+      throw new UncachedSecEnvelope(envelope);
+    }
+    return envelope;
+  }, ["ccpun-sec-public-envelope-v1", identity], { revalidate });
+  try {
+    return await cached();
+  } catch (error) {
+    if (error instanceof UncachedSecEnvelope) return error.envelope;
+    throw error;
+  }
 }
 
 function encodeCatalogCursor(cursor: CatalogCursor): string {
