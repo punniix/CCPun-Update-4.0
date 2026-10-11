@@ -43,7 +43,8 @@ test('Desktop, tablet, mobile and Footer use canonical tools and readable glass 
     { href: '/tools/financial-health-check/', label: 'ตรวจสุขภาพการเงิน (Beta)' },
     { href: '/ci-planning/', label: 'วางแผนเงินก้อนโรคร้ายแรง' },
   ]);
-  const loaded = { exports: {} as { Website43Navbar: (props: Record<string, never>) => React.ReactNode } };
+  const investmentLink = { href: '/tools/investment-allocation/', label: 'วางแผนกองทุน (Beta)' };
+  const loaded = { exports: {} as { Website43Navbar: (props: { investmentEnabled?: boolean }) => React.ReactNode } };
   runInNewContext(transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
     module: loaded, exports: loaded.exports, require: (name: string) => {
       if (name === 'react/jsx-runtime') return require(name);
@@ -51,16 +52,18 @@ test('Desktop, tablet, mobile and Footer use canonical tools and readable glass 
       if (name === 'next/link') return { default: 'a' };
       if (name === '@/lib/nav-config.json') return { default: navigation };
       if (name === 'next/navigation') return { usePathname: () => '/play/money-story/' };
-      if (name === './constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
+      if (name === './constants') return { INVESTMENT_TOOL_LINK: investmentLink, WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
       assert.equal(name, './Website43Navbar.module.css');
       return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
     },
   });
-  const dom = new JSDOM(renderToStaticMarkup(loaded.exports.Website43Navbar({})));
+  for (const investmentEnabled of [false, true]) {
+  const dom = new JSDOM(renderToStaticMarkup(loaded.exports.Website43Navbar({ investmentEnabled })));
   const expected = [
     ['/play/money-story', 'Money Story (Beta)'],
     ['/tools/financial-health-check', 'ตรวจสุขภาพการเงิน (Beta)'],
     ['/ci-planning', 'วางแผนเงินก้อนโรคร้ายแรง'],
+    ...(investmentEnabled ? [['/tools/investment-allocation', 'วางแผนกองทุน (Beta)']] : []),
   ];
   for (const selector of ['.navDropdown', '.mobileSubmenu']) {
     const links = [...dom.window.document.querySelectorAll(selector + ' a')] as HTMLAnchorElement[];
@@ -80,7 +83,8 @@ test('Desktop, tablet, mobile and Footer use canonical tools and readable glass 
         if (name === '@/lib/nav-config.json') return { default: navigation };
         if (name === '@/components/layout/CookieSettingsButton') return { default: (props: { className?: string }) => React.createElement('button', { className: props.className }, 'Cookie settings') };
         if (name === './Website43Navbar') return loaded.exports;
-        if (name === './constants' || name === '@/components/layout/website-43/constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
+        if (name === '@/lib/runtime/investment-availability') return { INVESTMENT_ALLOCATION_ENABLED: investmentEnabled };
+        if (name === './constants' || name === '@/components/layout/website-43/constants') return { INVESTMENT_TOOL_LINK: investmentLink, WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
         assert.ok(['./Website43.module.css', '@/components/layout/website-43/Website43.module.css'].includes(name), name);
         return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
       },
@@ -111,6 +115,7 @@ test('Desktop, tablet, mobile and Footer use canonical tools and readable glass 
   assert.match(css, /\.mobileMenu \{[^}]*max-height: calc\(100dvh - 112px\);[^}]*overflow-y: auto;/);
   assert.match(css, /\.navDropdown a:focus-visible, \.mobileSubmenu a:focus-visible \{[^}]*outline: 2px solid var\(--w43-gold-bright\);/);
   dom.window.close();
+  }
 });
 
 test('Home hero uses one sizing rule for both CTA destinations at every breakpoint', () => {

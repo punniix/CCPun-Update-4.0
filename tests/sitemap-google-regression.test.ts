@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire, Module } from "node:module";
 import test from "node:test";
 import type { SanityClient } from "sanity";
 import { articlePublishBlock, publishApprovedArticle, type PublishableArticle } from "../cms/sanity/policy/article-publication";
@@ -145,28 +146,61 @@ test("active Web core sitemap and private error headers enforce the search bound
   ]);
 });
 
-test("preserves static sitemap XML responses for legacy and canonical Web routes", async () => {
-  const routeSpecs = [
-    ["sitemap.xml/route", ["https://ccpun.com/sitemaps/core.xml", "https://ccpun.com/sitemaps/tools.xml", "https://ccpun.com/sitemaps/blog.xml"]],
-    ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/"]],
-    ["sitemaps/tools.xml/route", ["https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/"]],
-  ] as const;
+test("preserves static sitemap XML responses for legacy and canonical Web routes with either availability state", async () => {
+  // Plain Node has no Next server resolver. Mock only the decision module,
+  // retain its production server-only marker and run both actual route wrappers.
+  const require = createRequire(import.meta.url);
+  const availabilityPath = require.resolve("../lib/runtime/investment-availability.ts");
+  assert.match(readSource("lib/runtime/investment-availability.ts"), /^import "server-only";/m);
+  const toolsPaths = [
+    "../lib/sitemap/routes/tools.ts",
+    "../app/sitemaps/tools.xml/route.ts",
+    "../apps/web/app/sitemaps/tools.xml/route.ts",
+  ].map((path) => require.resolve(path));
+  const scopedPaths = [availabilityPath, ...toolsPaths];
+  const originalModules = scopedPaths.map((path) => require.cache[path]);
   const legacyIndex = await import("../app/sitemap.xml/route");
   const webIndex = await import("../apps/web/app/sitemap.xml/route");
   const legacyCore = await import("../app/sitemaps/core.xml/route");
   const webCore = await import("../apps/web/app/sitemaps/core.xml/route");
-  const legacyTools = await import("../app/sitemaps/tools.xml/route");
-  const webTools = await import("../apps/web/app/sitemaps/tools.xml/route");
-  const handlers = [[legacyIndex, webIndex], [legacyCore, webCore], [legacyTools, webTools]];
-  for (let index = 0; index < routeSpecs.length; index++) {
-    const [path, urls] = routeSpecs[index];
-    const [legacy, web] = handlers[index];
-    const [legacyResponse, webResponse] = [legacy.GET(), web.GET()];
-    assert.equal(legacyResponse.headers.get("content-type"), webResponse.headers.get("content-type"), path);
-    const legacyXml = await legacyResponse.text();
-    const webXml = await webResponse.text();
-    assert.equal(legacyXml, webXml, path + " legacy and canonical output diverged");
-    for (const url of urls) assert.ok(webXml.includes(url), path + " missing " + url);
-    assert.doesNotMatch(webXml, /https:\/\/admin\.ccpun\.com/);
+  try {
+    for (const available of [false, true]) {
+      const mock = new Module(availabilityPath);
+      mock.exports = { INVESTMENT_ALLOCATION_ENABLED: available };
+      require.cache[availabilityPath] = mock;
+      for (const path of toolsPaths) delete require.cache[path];
+      const legacyTools = require("../app/sitemaps/tools.xml/route.ts") as { GET: () => Response };
+      const webTools = require("../apps/web/app/sitemaps/tools.xml/route.ts") as { GET: () => Response };
+      const routeSpecs = [
+        ["sitemap.xml/route", ["https://ccpun.com/sitemaps/core.xml", "https://ccpun.com/sitemaps/tools.xml", "https://ccpun.com/sitemaps/blog.xml"]],
+        ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/"]],
+        ["sitemaps/tools.xml/route", ["https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/", ...(available ? ["https://ccpun.com/tools/investment-allocation/"] : [])]],
+      ] as const;
+      const handlers = [[legacyIndex, webIndex], [legacyCore, webCore], [legacyTools, webTools]];
+      for (let index = 0; index < routeSpecs.length; index++) {
+        const [path, urls] = routeSpecs[index];
+        const [legacy, web] = handlers[index];
+        const [legacyResponse, webResponse] = [legacy.GET(), web.GET()];
+        assert.equal(legacyResponse.headers.get("content-type"), webResponse.headers.get("content-type"), path);
+        assert.equal(webResponse.headers.get("content-type"), "application/xml; charset=utf-8");
+        assert.equal(legacyResponse.headers.get("cache-control"), webResponse.headers.get("cache-control"), path);
+        const legacyXml = await legacyResponse.text();
+        const webXml = await webResponse.text();
+        assert.equal(legacyXml, webXml, path + " legacy and canonical output diverged");
+        for (const url of urls) assert.ok(webXml.includes(url), path + " missing " + url);
+        assert.doesNotMatch(webXml, /https:\/\/admin\.ccpun\.com/);
+        if (index === 2) {
+          const expected = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            + urls.map((url) => `<url><loc>${url}</loc></url>`).join("") + "</urlset>";
+          assert.equal(webXml, expected, `tools XML snapshot, availability=${available}`);
+        }
+      }
+    }
+  } finally {
+    for (let index = 0; index < scopedPaths.length; index++) {
+      const original = originalModules[index];
+      if (original) require.cache[scopedPaths[index]] = original;
+      else delete require.cache[scopedPaths[index]];
+    }
   }
 });

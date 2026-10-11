@@ -5,9 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import styles from './Website43Navbar.module.css';
 import navigation from '@/lib/nav-config.json';
-import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
-
-const toolLinks = navigation.tools.map(({ href, label }) => ({ href: `${BASE}${href.replace(/\/$/, '')}`, label }));
+import { INVESTMENT_TOOL_LINK, WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
 
 function Website43NavbarBrand() {
   return (
@@ -17,7 +15,8 @@ function Website43NavbarBrand() {
   );
 }
 
-export function Website43Navbar({ overlay = false, notFound = false, responsiveOverlay = false }: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean }) {
+export function Website43Navbar({ overlay = false, notFound = false, responsiveOverlay = false, investmentEnabled = false }: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean; investmentEnabled?: boolean }) {
+  const toolLinks = [...navigation.tools, ...(investmentEnabled ? [INVESTMENT_TOOL_LINK] : [])].map(({ href, label }) => ({ href: `${BASE}${href.replace(/\/$/, '')}`, label }));
   const pathname = usePathname()?.replace(/\/$/, '');
   const blogCurrent = pathname === `${BASE}/blog` ? 'page' : pathname?.startsWith(`${BASE}/blog/`) ? 'location' : undefined;
   const toolsCurrent = toolLinks.some(({ href }) => pathname === href);

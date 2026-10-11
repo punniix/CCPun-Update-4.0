@@ -2,7 +2,8 @@ import Link from 'next/link';
 import CookieSettingsButton from '@/components/layout/CookieSettingsButton';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import navigation from '@/lib/nav-config.json';
-import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from '@/components/layout/website-43/constants';
+import { INVESTMENT_ALLOCATION_ENABLED } from '@/lib/runtime/investment-availability';
+import { INVESTMENT_TOOL_LINK, WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from '@/components/layout/website-43/constants';
 
 function HomeBrand() {
   return (
@@ -13,7 +14,7 @@ function HomeBrand() {
 }
 
 export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
-  const toolLinks = navigation.tools;
+  const toolLinks = [...navigation.tools, ...(INVESTMENT_ALLOCATION_ENABLED ? [INVESTMENT_TOOL_LINK] : [])];
   return (
     <footer className={styles.footerWrap}>
       <div className={styles.inner}>
