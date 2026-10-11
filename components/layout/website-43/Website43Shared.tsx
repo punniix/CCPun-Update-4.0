@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import CookieSettingsButton from '@/components/layout/CookieSettingsButton';
 import styles from './Website43.module.css';
+import navigation from '@/lib/nav-config.json';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
 
 export { Website43Navbar } from './Website43Navbar';
@@ -31,9 +32,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
             </div>
             <div className={styles.footerColumn}>
               <strong>เครื่องมือ</strong>
-              <Link href={`${BASE}/play/money-story`}>Money Story</Link>
-              <Link href={`${BASE}/tools/financial-health-check`}>Financial Health Check</Link>
-              <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+              {navigation.tools.map(({ href, label }) => <Link key={href} href={`${BASE}${href.replace(/\/$/, '')}`}>{label}</Link>)}
             </div>
             <div className={styles.footerColumn}>
               <strong>ข้อมูล</strong>
@@ -66,7 +65,8 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
             {warnings ? <Website43Brand /> : null}
             <p>วางแผนการเงินจากชีวิตจริง เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</p>
             <nav aria-label="เมนูส่วนท้าย">
-              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/play/money-story`}>Money Story</Link> · <Link href={`${BASE}/tools/financial-health-check`}>FHC</Link> · <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link>
+              {navigation.tools.map(({ href, label }) => <span key={href}> · <Link href={`${BASE}${href.replace(/\/$/, '')}`}>{label}</Link></span>)}
             </nav>
             <nav aria-label="นโยบาย">
               <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>

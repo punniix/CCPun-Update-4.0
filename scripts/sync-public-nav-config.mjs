@@ -17,7 +17,7 @@ for (const entry of config.tools) {
   assert.equal(typeof entry.label, "string");
   assert.ok(entry.label.trim().length > 0, "navigation label is required");
   assert.equal(typeof entry.href, "string");
-  assert.match(entry.href, /^\/(?:tools\/[a-z0-9-]+|ci-planning)\/$/, "navigation link must be a known public route");
+  assert.match(entry.href, /^\/(?:tools\/[a-z0-9-]+|play\/money-story|ci-planning)\/$/, "navigation link must be a known public route");
   assert.ok(!slugs.has(entry.href), "duplicate navigation path");
   slugs.add(entry.href);
 }

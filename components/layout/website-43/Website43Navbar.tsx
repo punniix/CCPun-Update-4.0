@@ -4,13 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import styles from './Website43Navbar.module.css';
+import navigation from '@/lib/nav-config.json';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
 
-const toolLinks = [
-  { href: `${BASE}/play/money-story`, label: 'Money Story (Beta)' },
-  { href: `${BASE}/tools/financial-health-check`, label: 'ตรวจสุขภาพการเงิน (Beta)' },
-  { href: `${BASE}/ci-planning`, label: 'วางแผนเงินก้อนโรคร้ายแรง' },
-];
+const toolLinks = navigation.tools.map(({ href, label }) => ({ href: `${BASE}${href.replace(/\/$/, '')}`, label }));
 
 function Website43NavbarBrand() {
   return (

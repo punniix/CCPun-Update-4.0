@@ -28,19 +28,27 @@ test('public navigation, footer and Money Story expose 44px targets without chan
   assert.match(read('components/layout/website-43/Website43Navbar.tsx'), /href=\{HOME\} className=\{styles\.brandLink\}/);
 });
 
-test('Desktop, tablet and mobile tools expose the same ordered links and readable glass surface', () => {
+test('Desktop, tablet, mobile and Footer use canonical tools and readable glass surface', () => {
   const require = createRequire(import.meta.url);
   const { transpileModule, ModuleKind } = require('typescript') as typeof import('typescript');
   const { JSDOM } = require('jsdom');
   const read = (path: string) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
   const source = read('components/layout/website-43/Website43Navbar.tsx');
   const css = read('components/layout/website-43/Website43Navbar.module.css');
+  const navigation = JSON.parse(read('lib/nav-config.json'));
+  assert.equal(read('public/nav-config.json'), read('lib/nav-config.json'));
+  assert.deepEqual(navigation.tools, [
+    { href: '/play/money-story/', label: 'Money Story (Beta)' },
+    { href: '/tools/financial-health-check/', label: 'ตรวจสุขภาพการเงิน (Beta)' },
+    { href: '/ci-planning/', label: 'วางแผนเงินก้อนโรคร้ายแรง' },
+  ]);
   const loaded = { exports: {} as { Website43Navbar: (props: Record<string, never>) => React.ReactNode } };
   runInNewContext(transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
     module: loaded, exports: loaded.exports, require: (name: string) => {
       if (name === 'react/jsx-runtime') return require(name);
       if (name === 'react') return { useState: () => [true, () => {}], useEffect: () => {}, useRef: () => ({ current: null }) };
       if (name === 'next/link') return { default: 'a' };
+      if (name === '@/lib/nav-config.json') return { default: navigation };
       if (name === 'next/navigation') return { usePathname: () => '/play/money-story/' };
       if (name === './constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
       assert.equal(name, './Website43Navbar.module.css');
@@ -59,6 +67,32 @@ test('Desktop, tablet and mobile tools expose the same ordered links and readabl
     assert.equal(links.filter(link => link.getAttribute('aria-current') === 'page').length, 1);
     assert.ok(links.every(link => link.querySelector('span[aria-hidden="true"]')), 'matching visual marker on both menus');
   }
+  const footer = { exports: {} as { Website43Footer: (props: { warnings?: boolean; notFound?: boolean }) => React.ReactNode } };
+  runInNewContext(transpileModule(read('components/layout/website-43/Website43Shared.tsx'), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
+    module: footer, exports: footer.exports, require: (name: string) => {
+      if (name === 'react/jsx-runtime') return require(name);
+      if (name === 'next/link') return { default: 'a' };
+      if (name === '@/lib/nav-config.json') return { default: navigation };
+      if (name === '@/components/layout/CookieSettingsButton') return { default: () => React.createElement('button', null, 'Cookie settings') };
+      if (name === './Website43Navbar') return loaded.exports;
+      if (name === './constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
+      assert.equal(name, './Website43.module.css');
+      return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
+    },
+  });
+  for (const warnings of [false, true]) {
+    const footerDom = new JSDOM(renderToStaticMarkup(footer.exports.Website43Footer({ warnings })));
+    const toolsColumn = [...footerDom.window.document.querySelectorAll('.footerColumn')].find(column => column.querySelector('strong')?.textContent === 'เครื่องมือ')!;
+    const links = (nodes: Iterable<HTMLAnchorElement>) => [...nodes].map(link => [link.getAttribute('href'), link.textContent]);
+    assert.deepEqual(links(toolsColumn.querySelectorAll('a')), expected);
+    const compactTools = [...footerDom.window.document.querySelectorAll('.footerCompact nav[aria-label="เมนูส่วนท้าย"] a')].filter(link => expected.some(([href]) => link.getAttribute('href') === href)) as HTMLAnchorElement[];
+    assert.deepEqual(links(compactTools), expected);
+    footerDom.window.close();
+  }
+  const contactLinks = [...dom.window.document.querySelectorAll('a[data-analytics-location]')] as HTMLAnchorElement[];
+  assert.deepEqual(contactLinks.map(link => [link.getAttribute('href'), link.getAttribute('data-analytics-location')]), [
+    ['https://lin.ee/tqLCs4f', 'navbar'], ['https://lin.ee/tqLCs4f', 'navbar_mobile'],
+  ]);
   assert.match(css, /\.navDropdown, \.mobileMenu \{[^}]*background-color: rgba\(37,24,24,\.9\);[^}]*backdrop-filter: blur\(20px\);/);
   assert.match(css, /\.navDropdown a, \.mobileSubmenu a \{[^}]*min-height: 48px;[^}]*color: var\(--w43-ink\);/);
   assert.match(css, /\.mobileMenu \{[^}]*max-height: calc\(100dvh - 112px\);[^}]*overflow-y: auto;/);
