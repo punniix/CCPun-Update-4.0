@@ -462,7 +462,17 @@ export async function listFundCatalog(options: {
       fetchedAt,
       message: results.length ? null : "ไม่พบกองทุนที่ตรงกับตัวกรองนี้",
     };
-  } catch {
+  } catch (error) {
+    if (IS_REVIEW_ENVIRONMENT) {
+      // Diagnostic metadata only. Never emit the query, URL, credentials,
+      // response body, error message or stack to provider logs.
+      const failure = error instanceof Error ? error : null;
+      const status = failure?.message.match(/^sec_http_([1-5][0-9]{2})$/)?.[1];
+      const reason = status ? "http" : failure?.message === "sec_invalid_envelope" ? "invalid_envelope"
+        : failure?.name === "TimeoutError" ? "timeout" : failure?.name === "AbortError" ? "abort"
+          : failure?.name === "SyntaxError" ? "invalid_json" : "unknown";
+      console.warn("ccpun_sec_catalog_unavailable", { reason, httpStatus: status ? Number(status) : null });
+    }
     return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, amcId, fetchedAt, message: "โหลดข้อมูลกองทุนไม่สำเร็จชั่วคราว" };
   }
 }

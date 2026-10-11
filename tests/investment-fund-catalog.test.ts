@@ -16,22 +16,25 @@ import {
 } from "../features/investment-allocation/domain/catalog";
 import type { FundCatalogItem } from "../features/investment-allocation/domain/types";
 
-function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean } = {}) {
+function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error } = {}) {
   const adapter = readFileSync(resolve(process.cwd(), "features/investment-allocation/server/sec-v2.ts"), "utf8");
   const executable = stripTypeScriptTypes(adapter, { mode: "transform" })
     .replace(/^import [\s\S]*?;\n/gm, "").replace(/export /g, "");
   const entries = new Map<string, unknown>();
   const cacheCalls: Array<{ parts: string[]; args: unknown[]; ttl: number; bytes?: number }> = [];
   const requests: Array<{ url: URL; init: RequestInit }> = [];
+  const warnings: unknown[][] = [];
   const api = runInNewContext(`${executable}\n({listFundCatalog, listFundAmcs, getFundDetail, searchPlanningFunds});`, {
-    Date, Buffer, URL, URLSearchParams, AbortSignal, createHash, categoryFromPolicy, matchesGeography,
-    IS_REVIEW_ENVIRONMENT: false, UAT_SYNTHETIC_FUNDS: [], searchDemoFunds: () => [],
+    Date, Buffer, URL, URLSearchParams, AbortSignal, Error, createHash, categoryFromPolicy, matchesGeography,
+    console: { warn: (...args: unknown[]) => warnings.push(args) },
+    IS_REVIEW_ENVIRONMENT: options.review ?? false, UAT_SYNTHETIC_FUNDS: [], searchDemoFunds: () => [],
     normalizeLiquidity: () => "unknown",
     process: { env: { SEC_API_PRIMARY_KEY: options.key === undefined ? "synthetic-test-key" : options.key } },
     fetch: async (url: string, init: RequestInit) => {
       const parsed = new URL(url);
       requests.push({ url: parsed, init });
-      return { ok: !options.fail, status: options.fail ? 503 : 200, json: async () => reply(parsed) };
+      if (options.error) throw options.error;
+      return { ok: !options.fail, status: options.status ?? (options.fail ? 503 : 200), json: async () => reply(parsed) };
     },
     unstable_cache: (read: () => Promise<unknown>, parts: string[], config: { revalidate: number }) => async (...args: unknown[]) => {
       const call = { parts: [...parts], args, ttl: config.revalidate, bytes: undefined as number | undefined };
@@ -44,7 +47,7 @@ function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null
       return value;
     },
   });
-  return { api, entries, cacheCalls, requests };
+  return { api, entries, cacheCalls, requests, warnings };
 }
 
 function secProfile(index: number, extra: Record<string, unknown> = {}) {
@@ -104,6 +107,43 @@ test("free text and AMC search inputs are not retained in persistent cache; upst
   assert.equal((await noKey.api.listFundCatalog({})).source, "unavailable");
   assert.equal(noKey.cacheCalls.length, 0);
   assert.equal(noKey.requests.length, 0);
+});
+
+test("catalog diagnostics are review-only, allowlisted and redact all search/key/error details", async () => {
+  const privateText = "private-customer-query https://private.invalid/?token=secret headers=secret stack=secret";
+  for (const status of [401, 403, 404, 429, 503]) {
+    for (const review of [false, true]) {
+      const adapter = secAdapter(() => ({}), { fail: true, status, review, key: "private-synthetic-key" });
+      const result = await adapter.api.listFundCatalog({ query: privateText, amcId: "private-amc" });
+      assert.equal(result.state, "unavailable");
+      assert.deepEqual(JSON.parse(JSON.stringify(adapter.warnings)), review
+        ? [["ccpun_sec_catalog_unavailable", { reason: "http", httpStatus: status }]] : []);
+      assert.equal(JSON.stringify(adapter.warnings).includes("private"), false);
+      assert.equal("reason" in result, false, "diagnostics must not alter the public catalog contract");
+    }
+  }
+  const cases: Array<[Error, string]> = [
+    [Object.assign(new Error(privateText), { name: "TimeoutError" }), "timeout"],
+    [Object.assign(new Error(privateText), { name: "AbortError" }), "abort"],
+    [Object.assign(new Error(privateText), { name: "SyntaxError" }), "invalid_json"],
+    [Object.assign(new Error(privateText), { name: privateText }), "unknown"],
+    [new Error("sec_http_503 " + privateText), "unknown"],
+    [new Error("sec_http_999"), "unknown"],
+  ];
+  for (const [error, reason] of cases) {
+    for (const review of [false, true]) {
+      const adapter = secAdapter(() => ({}), { review, error });
+      assert.equal((await adapter.api.listFundCatalog({ query: privateText })).state, "unavailable");
+      assert.deepEqual(JSON.parse(JSON.stringify(adapter.warnings)), review
+        ? [["ccpun_sec_catalog_unavailable", { reason, httpStatus: null }]] : []);
+    }
+  }
+  const malformed = secAdapter(() => null, { review: true });
+  await malformed.api.listFundCatalog({ query: privateText });
+  assert.deepEqual(JSON.parse(JSON.stringify(malformed.warnings)), [["ccpun_sec_catalog_unavailable", { reason: "invalid_envelope", httpStatus: null }]]);
+  const good = secAdapter(() => ({ items: Array.from({ length: 8 }, (_, i) => secProfile(i + 1)) }), { review: true });
+  assert.equal((await good.api.listFundCatalog({ query: privateText })).state, "fresh");
+  assert.deepEqual(good.warnings, []);
 });
 
 test("project detail projection preserves all existing consumed facts and public source dates", async () => {
