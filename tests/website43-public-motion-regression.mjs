@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const read = (path) => readFileSync(path, 'utf8');
 
 const css = read('components/layout/website-43/Website43.module.css');
+const navbarCss = read('components/layout/website-43/Website43Navbar.module.css');
 const functionalCss = read('components/ui/FunctionalMotion.module.css');
 const home = read('features/home/website-43/Website43Home.tsx');
 const blog = read('features/blog/website-43/Website43Blog.tsx');
@@ -101,18 +102,23 @@ test('functional stylesheet is owned by the Website 4.3 tool shells rather than 
   }
 });
 
-test('FAQ article details TOC and menus keep their short feedback motion', () => {
+test('FAQ article details TOC and category menus keep short feedback; navigation glass stays in its owner', () => {
   assert.match(css, /@keyframes w43DisclosureIn/);
   assert.match(css, /\.faqItem\[open\] \.faqAnswer/);
   assert.match(css, /\.tocSublist:not\(\[hidden\]\)/);
   assert.match(css, /animation: w43DisclosureIn \.18s/);
-  assert.match(css, /\.navDropdown, \.mobileMenu, \.mobileSubmenu, \.categoryMenuPanel/);
+  assert.match(css, /\.categoryMenuPanel \{\s*transition: opacity \.18s cubic-bezier\(\.2,0,0,1\), translate \.18s cubic-bezier\(\.2,0,0,1\)/);
+  assert.doesNotMatch(css, /\.navDropdown|\.mobileMenu|\.mobileSubmenu/);
+  assert.match(navbarCss, /\.navDropdown, \.mobileMenu \{[\s\S]*?backdrop-filter: blur\(20px\)/);
+  assert.match(navbarCss, /\.navDropdown, \.mobileMenu \{[\s\S]*?background-color: rgba\(37,24,24,\.9\)/);
+  assert.match(navbarCss, /\.navDropdown a, \.mobileSubmenu a/);
+  assert.doesNotMatch(navbarCss, /animation-timeline|w43Reveal|w43DisclosureIn/);
   assert.match(css, /@starting-style/);
   assert.match(css, /translate: 0 -6px/);
 });
 
 test('functional motion never introduces 3D, looping, or layout-resizing animation', () => {
-  const allMotionCss = `${css}\n${functionalCss}`;
+  const allMotionCss = `${css}\n${navbarCss}\n${functionalCss}`;
   assert.doesNotMatch(allMotionCss, /rotateX|rotateY|perspective|animation-iteration-count:\s*infinite|animation[^;]*\binfinite\b/);
   assert.doesNotMatch(functionalCss, /transition[^;]*(?:height|width|max-height|min-height|top|left|right|bottom|margin|padding)/);
 });
