@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { INVESTMENT_ALLOCATION_ENABLED } from "./server/availability";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { Website43Footer, Website43Navbar } from "@/components/layout/website-43/Website43Shared";
 import websiteStyles from "@/components/layout/website-43/Website43.module.css";
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
   title: "เครื่องมือวางแผนกองทุน | เลือกกองเอง ดูข้อมูลจาก ก.ล.ต. | CCPun",
   description: DESCRIPTION,
   alternates: { canonical: URL, languages: { "th-TH": URL, "x-default": URL } },
-  robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
+  robots: !INVESTMENT_ALLOCATION_ENABLED || IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
   openGraph: { title: "CCPun เครื่องมือวางแผนกองทุน", description: DESCRIPTION, url: URL, siteName: "CCPun Financial Advisor", locale: "th_TH", type: "website" },
   twitter: { card: "summary", title: "CCPun เครื่องมือวางแผนกองทุน", description: DESCRIPTION },
 };
@@ -30,6 +32,7 @@ const schema = {
 };
 
 export default function InvestmentAllocationPage() {
+  if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
   return (
     <main className={`${websiteStyles.root} ${motionStyles.scope}`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />

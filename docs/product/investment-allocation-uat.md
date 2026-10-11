@@ -499,3 +499,14 @@ This Draft includes Production `ebac4329d49ea585e6257218d4437d4c5ca41894` throug
 End-to-end Sheet completion has actual Admin/runtime/file evidence above. The assessment backend succeeded; exact Production Dashboard display must be verified separately after this Admin release. Source merge, Preview readiness and CI cannot substitute for that live proof.
 
 No investment behavior, SEC configuration, fund-data ownership or release gate is relaxed. Use this latest baseline for further development; #165 stays Draft and must not be merged into Production without its separate remaining release approvals.
+
+
+## 2026-10-11: Default-closed availability and shared navigation alignment
+
+The unfinished investment tool is closed in every lane unless the server-only, non-secret `CCPUN_INVESTMENT_ALLOCATION_ENABLED` is exactly `1`. Missing, false-like, and whitespace-padded values stay closed. An owner must first verify the finished release before enabling it and rebuilding the Web application; this change does not enable or deploy the tool.
+
+One availability decision controls the server Navbar wrapper, both Footer layouts, the direct tool page, all four investment API handlers, and the tools sitemap. Closed requests return 404 before validating inputs or importing the SEC service. Enabled requests retain existing validation and service response handling. This is an availability gate, not authentication or a replacement for SEC key restrictions. No existing tracking/consent event or provider configuration changes.
+
+Desktop/mobile tool menus use one ordered local list. Their shared 48px items, opaque brown glass, visible keyboard focus, and mobile internal scroll match the current UX menu contract. The investment label is explicitly Beta when enabled. This branch has no Money Story route; it does not expose a dead link or merge the full UX branch. Full common UX integration and live responsive acceptance remain pending separately. Investment primary actions are 52px and auxiliary fund actions/number controls meet 44px touch targets; the Thai hero heading uses 1.25 line height.
+
+Run `node --test tests/investment-availability.test.mjs` for the five native regression checks. They execute the actual API bodies with synthetic service stubs, verify disabled API import/call counts remain zero, exercise the actual tools sitemap body, execute the pre-JSX page guard, and inspect the navigation/footer wiring. They are also imported by the existing fund-catalog test, so `test:foundation-contracts` runs them. No provider, SEC, cloud model, or analytics traffic is sent. Native gate checks do not substitute for Next build, deployment, browser rendering, or real analytics receipt evidence.

@@ -1,4 +1,4 @@
-import { listFundCatalog } from "@/features/investment-allocation/server/sec-v2";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/features/investment-allocation/server/availability";
 import type { FundCatalogCategory, FundCatalogSubcategory } from "@/features/investment-allocation/domain/types";
 
 export const runtime = "nodejs";
@@ -7,6 +7,9 @@ const CATEGORIES = new Set<FundCatalogCategory | "all">(["all", "equity", "mixed
 const SUBCATEGORIES = new Set<FundCatalogSubcategory>(["all", "domestic", "foreign", "domestic_foreign"]);
 
 export async function GET(request: Request) {
+  if (!INVESTMENT_ALLOCATION_ENABLED) {
+    return Response.json({ error: "not_found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") ?? "").trim();
   const categoryRaw = url.searchParams.get("category") ?? "all";
@@ -21,6 +24,7 @@ export async function GET(request: Request) {
   if (amcId && !/^[A-Za-z0-9_-]{1,64}$/.test(amcId)) return Response.json({ error: "amc_invalid" }, { status: 400 });
   if (cursor && cursor.length > 2000) return Response.json({ error: "cursor_invalid" }, { status: 400 });
 
+  const { listFundCatalog } = await import("@/features/investment-allocation/server/sec-v2");
   const result = await listFundCatalog({
     query,
     category: categoryRaw as FundCatalogCategory | "all",

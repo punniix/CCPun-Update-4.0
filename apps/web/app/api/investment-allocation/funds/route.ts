@@ -1,8 +1,11 @@
-import { searchPlanningFunds } from "@/features/investment-allocation/server/sec-v2";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/features/investment-allocation/server/availability";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  if (!INVESTMENT_ALLOCATION_ENABLED) {
+    return Response.json({ error: "not_found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim() ?? "";
   if (!query) {
@@ -11,6 +14,7 @@ export async function GET(request: Request) {
   if (query.length > 120) {
     return Response.json({ error: "query_too_long" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
+  const { searchPlanningFunds } = await import("@/features/investment-allocation/server/sec-v2");
   const result = await searchPlanningFunds(query);
   return Response.json(result, {
     status: 200,

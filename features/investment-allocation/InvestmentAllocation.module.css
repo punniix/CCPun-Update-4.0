@@ -6,12 +6,12 @@
 }
 .heroInner { width: min(1120px, 100%); margin: 0 auto; }
 .badge { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 10px; border: 1px solid rgba(224,201,133,.38); border-radius: 999px; color: var(--w43-gold); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
-.hero h1 { max-width: 820px; margin: 18px 0 0; color: var(--w43-ink); font-size: clamp(34px, 6vw, 62px); font-weight: 600; line-height: 1.08; }
+.hero h1 { max-width: 820px; margin: 18px 0 0; color: var(--w43-ink); font-size: clamp(30px, 4.5vw, 52px); font-weight: 600; line-height: 1.25; }
 .hero h1 span { color: var(--w43-gold); }
 .heroLead { max-width: 720px; margin: 20px 0 0; color: var(--w43-muted); font-size: 17px; line-height: 1.7; }
 .heroProof { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
 .heroProof span { padding: 7px 10px; border: 1px solid var(--w43-border); border-radius: 999px; background: rgba(74,58,58,.32); color: var(--w43-muted); font-size: 12px; }
-.heroAction { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; margin-top: 28px; padding: 0 18px; border: 1px solid var(--w43-gold); border-radius: 12px; background: var(--w43-gold); color: var(--w43-deep); font-weight: 600; }
+.heroAction { display: inline-flex; min-height: 52px; align-items: center; justify-content: center; margin-top: 28px; padding: 0 18px; border: 1px solid var(--w43-gold); border-radius: 12px; background: var(--w43-gold); color: var(--w43-deep); font-weight: 600; }
 
 .shell { padding: 24px 24px 64px; background: var(--w43-bg); }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; width: min(1120px, 100%); margin: 0 auto; }
@@ -41,7 +41,7 @@
 .allocationName small { display: block; margin-top: 3px; color: var(--w43-muted); font-size: 11px; line-height: 1.4; }
 .allocationControls { display: grid; grid-template-columns: minmax(76px, .7fr) minmax(118px, 1.3fr); gap: 8px; min-width: 0; }
 .percentWrap, .amountWrap { position: relative; min-width: 0; }
-.percentInput, .amountInput { width: 100%; min-height: 42px; border: 1px solid var(--w43-border); border-radius: 9px; background: var(--w43-deep); color: var(--w43-ink); font-variant-numeric: tabular-nums; text-align: right; outline: none; }
+.percentInput, .amountInput { width: 100%; min-height: 44px; border: 1px solid var(--w43-border); border-radius: 9px; background: var(--w43-deep); color: var(--w43-ink); font-variant-numeric: tabular-nums; text-align: right; outline: none; }
 .percentInput { padding: 0 29px 0 9px; }
 .amountInput { padding: 0 38px 0 8px; }
 .amountInput:disabled { cursor: not-allowed; opacity: .45; }
@@ -57,7 +57,7 @@
 .validation[data-error="true"] { color: #f0b7ad; }
 
 .actions { display: flex; flex-direction: column-reverse; gap: 10px; margin-top: 24px; }
-.primary, .secondary, .ghost, .smallButton { min-height: 48px; border-radius: 12px; font: inherit; font-weight: 600; cursor: pointer; }
+.primary, .secondary, .ghost, .smallButton { min-height: 52px; border-radius: 12px; font: inherit; font-weight: 600; cursor: pointer; }
 .primary { border: 1px solid var(--w43-gold); background: var(--w43-gold); color: var(--w43-deep); }
 .primary:disabled { cursor: not-allowed; opacity: .42; }
 .secondary { border: 1px solid var(--w43-gold); background: transparent; color: var(--w43-gold); }
@@ -81,7 +81,7 @@
 .sourceBadge { flex: 0 0 auto; padding: 4px 7px; border: 1px solid rgba(224,201,133,.35); border-radius: 999px; color: var(--w43-gold); font-size: 10px; font-weight: 600; }
 .fundFacts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .fundFacts span { padding: 5px 7px; border-radius: 7px; background: rgba(255,255,255,.045); color: var(--w43-muted); font-size: 11px; }
-.fundCard button { min-height: 40px; margin-top: 12px; padding: 0 12px; border: 1px solid var(--w43-border); border-radius: 9px; background: transparent; color: var(--w43-ink); cursor: pointer; }
+.fundCard button { min-height: 44px; margin-top: 12px; padding: 0 12px; border: 1px solid var(--w43-border); border-radius: 9px; background: transparent; color: var(--w43-ink); cursor: pointer; }
 .fundCard button[data-primary="true"] { border-color: var(--w43-gold); color: var(--w43-gold); }
 .selectedControl { display: grid; grid-template-columns: minmax(0,1fr) 88px; gap: 10px; align-items: end; margin-top: 10px; }
 .selectedControl label { color: var(--w43-muted); font-size: 11px; }

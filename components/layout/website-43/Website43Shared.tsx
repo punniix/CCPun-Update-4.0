@@ -3,7 +3,12 @@ import CookieSettingsButton from '@/components/layout/CookieSettingsButton';
 import styles from './Website43.module.css';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
 
-export { Website43Navbar } from './Website43Navbar';
+import { INVESTMENT_ALLOCATION_ENABLED } from '@/features/investment-allocation/server/availability';
+import { Website43Navbar as ClientNavbar } from './Website43Navbar';
+
+export function Website43Navbar(props: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean }) {
+  return <ClientNavbar {...props} investmentEnabled={INVESTMENT_ALLOCATION_ENABLED} />;
+}
 
 export function Website43Brand() {
   return (
@@ -41,7 +46,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
               <strong>เครื่องมือ</strong>
               <Link href={`${BASE}/tools/financial-health-check`}>Financial Health Check</Link>
               <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
-              <Link href={`${BASE}/tools/investment-allocation`}>วางแผนกองทุน</Link>
+              {INVESTMENT_ALLOCATION_ENABLED ? <Link href={`${BASE}/tools/investment-allocation`}>วางแผนกองทุน (Beta)</Link> : null}
             </div>
             <div className={styles.footerColumn}>
               <strong>ข้อมูล</strong>
@@ -67,7 +72,7 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
             {warnings ? <Website43Brand /> : null}
             <p>วางแผนการเงินจากชีวิตจริง เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</p>
             <nav aria-label="เมนูส่วนท้าย">
-              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/tools/financial-health-check`}>ตรวจสุขภาพการเงิน</Link> · <Link href={`${BASE}/ci-planning`}>วางแผนเงินก้อนโรคร้ายแรง</Link> · <Link href={`${BASE}/tools/investment-allocation`}>วางแผนกองทุน</Link>
+              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/tools/financial-health-check`}>ตรวจสุขภาพการเงิน</Link> · <Link href={`${BASE}/ci-planning`}>วางแผนเงินก้อนโรคร้ายแรง</Link> {INVESTMENT_ALLOCATION_ENABLED ? <> · <Link href={`${BASE}/tools/investment-allocation`}>วางแผนกองทุน (Beta)</Link></> : null}
             </nav>
             <nav aria-label="นโยบาย">
               <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
