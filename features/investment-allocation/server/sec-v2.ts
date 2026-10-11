@@ -194,6 +194,19 @@ class UncachedSecEnvelope extends Error {
   }
 }
 
+class InvalidSecJson extends Error {
+  readonly httpStatus: number | null;
+  readonly contentType: "json" | "html" | "text" | "other" | "missing";
+
+  constructor(status: number, contentType: string | null, readonly emptyBody: boolean) {
+    super("sec_invalid_json");
+    this.httpStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : null;
+    const mime = contentType?.split(";", 1)[0]?.trim().toLowerCase();
+    this.contentType = !mime ? "missing" : mime === "application/json" || mime.endsWith("+json") ? "json"
+      : mime === "text/html" ? "html" : mime === "text/plain" ? "text" : "other";
+  }
+}
+
 async function readSecEnvelope(path: string, key: string): Promise<SecEnvelope> {
   const response = await fetch(`${SEC_BASE_URL}${path}`, {
     method: "GET",
@@ -202,7 +215,14 @@ async function readSecEnvelope(path: string, key: string): Promise<SecEnvelope> 
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`sec_http_${response.status}`);
-  const body: unknown = await response.json();
+  const text = await response.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    // Retain only fixed diagnostic metadata, never the body or parser error.
+    throw new InvalidSecJson(response.status, response.headers.get("content-type"), text.length === 0);
+  }
   const envelope = asRecord(body);
   if (!envelope) throw new Error("sec_invalid_envelope");
   return {
@@ -475,8 +495,12 @@ export async function listFundCatalog(options: {
       const status = failure?.message.match(/^sec_http_([1-5][0-9]{2})$/)?.[1];
       const reason = status ? "http" : failure?.message === "sec_invalid_envelope" ? "invalid_envelope"
         : failure?.name === "TimeoutError" ? "timeout" : failure?.name === "AbortError" ? "abort"
-          : failure?.name === "SyntaxError" ? "invalid_json" : "unknown";
-      console.warn("ccpun_sec_catalog_unavailable", JSON.stringify({ reason, httpStatus: status ? Number(status) : null }));
+          : error instanceof InvalidSecJson || failure?.name === "SyntaxError" ? "invalid_json" : "unknown";
+      console.warn("ccpun_sec_catalog_unavailable", JSON.stringify({
+        reason,
+        httpStatus: error instanceof InvalidSecJson ? error.httpStatus : status ? Number(status) : null,
+        ...(error instanceof InvalidSecJson ? { contentType: error.contentType, emptyBody: error.emptyBody } : {}),
+      }));
     }
     return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, amcId, fetchedAt, message: "โหลดข้อมูลกองทุนไม่สำเร็จชั่วคราว" };
   }

@@ -17,7 +17,7 @@ import {
 import type { FundCatalogItem } from "../features/investment-allocation/domain/types";
 import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../lib/runtime/deployment-contract";
 
-function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error; env?: Record<string, string | undefined> } = {}) {
+function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error; env?: Record<string, string | undefined>; response?: () => Response } = {}) {
   const adapter = readFileSync(resolve(process.cwd(), "features/investment-allocation/server/sec-v2.ts"), "utf8");
   const executable = stripTypeScriptTypes(adapter, { mode: "transform" })
     .replace(/^import [\s\S]*?;\n/gm, "").replace(/export /g, "");
@@ -46,7 +46,8 @@ function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null
       const parsed = new URL(url);
       requests.push({ url: parsed, init });
       if (options.error) throw options.error;
-      return { ok: !options.fail, status: options.status ?? (options.fail ? 503 : 200), json: async () => reply(parsed) };
+      return options.response?.() ?? { ok: !options.fail, status: options.status ?? (options.fail ? 503 : 200),
+        text: async () => JSON.stringify(reply(parsed)), headers: { get: () => "application/json" } };
     },
     unstable_cache: (read: () => Promise<unknown>, parts: string[], config: { revalidate: number }) => async (...args: unknown[]) => {
       const call = { parts: [...parts], args, ttl: config.revalidate, bytes: undefined as number | undefined };
@@ -184,6 +185,65 @@ test("diagnostics require the sealed Web UAT lane; Production-labelled lanes and
   const webUat = secAdapter(() => ({}), { fail: true, review: true });
   await webUat.api.listFundCatalog({});
   assert.deepEqual(JSON.parse(JSON.stringify(webUat.warnings)), [["ccpun_sec_catalog_unavailable", JSON.stringify({ reason: "http", httpStatus: 503 })]]);
+});
+
+test("native response text parsing preserves JSON UTF-8 and BOM semantics without extra fetches", async () => {
+  const envelope = { items: Array.from({ length: 8 }, (_, i) => secProfile(i + 1, { proj_name_th: "ข้อมูลกองทุน ภาษาไทย" })) };
+  for (const prefix of ["", "\uFEFF"]) {
+    const bytes = new TextEncoder().encode(prefix + JSON.stringify(envelope));
+    const nativeJson = await new Response(bytes).json();
+    assert.deepEqual(JSON.parse(await new Response(bytes).text()), nativeJson);
+    const adapter = secAdapter(() => null, { review: true, response: () => new Response(bytes) });
+    const expected = secAdapter(() => nativeJson, { review: true });
+    const result = await adapter.api.listFundCatalog({ query: "synthetic-query" });
+    const baseline = await expected.api.listFundCatalog({ query: "synthetic-query" });
+    delete result.fetchedAt;
+    delete baseline.fetchedAt;
+    assert.deepEqual(JSON.parse(JSON.stringify(result)), JSON.parse(JSON.stringify(baseline)));
+    assert.equal(adapter.requests.length, expected.requests.length, "JSON decoding must preserve upstream request count");
+    assert.deepEqual(adapter.warnings, []);
+  }
+});
+
+test("invalid native JSON yields only bounded response metadata; empty and whitespace remain unavailable", async () => {
+  const privateText = "private-body-token-url-key-stack";
+  const cases: Array<[number, string | null, string | null, string, boolean]> = [
+    [200, "text/html; private=" + privateText, "<html>" + privateText + "</html>", "html", false],
+    [204, null, null, "missing", true],
+    [200, null, "", "missing", true],
+    [200, "application/json", " \n\t", "json", false],
+    [202, "Application/JSON; charset=utf-8", privateText, "json", false],
+    [200, "application/problem+json", privateText, "json", false],
+    [200, "text/plain", privateText, "text", false],
+    [200, "application/octet-stream; private=" + privateText, privateText, "other", false],
+  ];
+  for (const [status, mime, body, contentType, emptyBody] of cases) {
+    const adapter = secAdapter(() => null, { review: true, key: privateText,
+      response: () => new Response(body === null ? null : new TextEncoder().encode(body), {
+        status, headers: mime === null ? {} : { "content-type": mime },
+      }) });
+    const result = await adapter.api.listFundCatalog({ query: privateText });
+    assert.equal(result.state, "unavailable");
+    assert.equal(result.items.length, 0);
+    assert.equal(adapter.requests.length, 1, "parsing failure must not retry or advance the upstream status");
+    assert.equal(adapter.entries.size, 0);
+    assert.deepEqual(JSON.parse(JSON.stringify(adapter.warnings)), [["ccpun_sec_catalog_unavailable",
+      JSON.stringify({ reason: "invalid_json", httpStatus: status, contentType, emptyBody })]]);
+    assert.equal(JSON.stringify(adapter.warnings).includes(privateText), false);
+    for (const field of ["reason", "httpStatus", "contentType", "emptyBody"]) assert.equal(field in result, false);
+  }
+});
+
+test("response parsing metadata stays silent on every non-Web-UAT lane even with review overrides", async () => {
+  for (const environment of ["production", "production-admin", "local-production", "admin-uat", "local-uat", "development", "unknown"]) {
+    for (const flag of ["0", "1", "true", " TRUE "]) {
+      const adapter = secAdapter(() => null, { review: true,
+        response: () => new Response(null, { status: 204 }),
+        env: { CCPUN_APP_ENV: environment, NEXT_PUBLIC_CCPUN_APP_ENV: environment, CCPUN_UAT_MODE: flag } });
+      assert.equal((await adapter.api.listFundCatalog({ query: "private-query" })).state, "unavailable");
+      assert.deepEqual(adapter.warnings, [], `${environment} / ${flag} cannot emit parsing metadata`);
+    }
+  }
 });
 
 test("project detail projection preserves all existing consumed facts and public source dates", async () => {
