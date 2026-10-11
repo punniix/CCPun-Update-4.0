@@ -17,7 +17,7 @@ import {
 import type { FundCatalogItem } from "../features/investment-allocation/domain/types";
 import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../lib/runtime/deployment-contract";
 
-function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error; env?: Record<string, string | undefined>; response?: () => Response } = {}) {
+function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error; env?: Record<string, string | undefined>; response?: (url: URL) => Response } = {}) {
   const adapter = readFileSync(resolve(process.cwd(), "features/investment-allocation/server/sec-v2.ts"), "utf8");
   const executable = stripTypeScriptTypes(adapter, { mode: "transform" })
     .replace(/^import [\s\S]*?;\n/gm, "").replace(/export /g, "");
@@ -46,7 +46,7 @@ function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null
       const parsed = new URL(url);
       requests.push({ url: parsed, init });
       if (options.error) throw options.error;
-      return options.response?.() ?? { ok: !options.fail, status: options.status ?? (options.fail ? 503 : 200),
+      return options.response?.(parsed) ?? { ok: !options.fail, status: options.status ?? (options.fail ? 503 : 200),
         text: async () => JSON.stringify(reply(parsed)), headers: { get: () => "application/json" } };
     },
     unstable_cache: (read: () => Promise<unknown>, parts: string[], config: { revalidate: number }) => async (...args: unknown[]) => {
@@ -209,7 +209,6 @@ test("invalid native JSON yields only bounded response metadata; empty and white
   const privateText = "private-body-token-url-key-stack";
   const cases: Array<[number, string | null, string | null, string, boolean]> = [
     [200, "text/html; private=" + privateText, "<html>" + privateText + "</html>", "html", false],
-    [204, null, null, "missing", true],
     [200, null, "", "missing", true],
     [200, "application/json", " \n\t", "json", false],
     [202, "Application/JSON; charset=utf-8", privateText, "json", false],
@@ -238,12 +237,67 @@ test("response parsing metadata stays silent on every non-Web-UAT lane even with
   for (const environment of ["production", "production-admin", "local-production", "admin-uat", "local-uat", "development", "unknown"]) {
     for (const flag of ["0", "1", "true", " TRUE "]) {
       const adapter = secAdapter(() => null, { review: true,
-        response: () => new Response(null, { status: 204 }),
+        response: () => new Response(new Uint8Array(), { status: 200 }),
         env: { CCPUN_APP_ENV: environment, NEXT_PUBLIC_CCPUN_APP_ENV: environment, CCPUN_UAT_MODE: flag } });
       assert.equal((await adapter.api.listFundCatalog({ query: "private-query" })).state, "unavailable");
       assert.deepEqual(adapter.warnings, [], `${environment} / ${flag} cannot emit parsing metadata`);
     }
   }
+});
+
+test("HTTP 204 advances catalog status without discarding real Registered or IPO results", async () => {
+  for (const populatedStatus of ["Registered", "IPO", null]) {
+    const adapter = secAdapter(() => null, { review: true, response: (url) => {
+      const status = url.searchParams.get("fund_status");
+      if (status === populatedStatus) return Response.json({ items: [secProfile(1, { fund_status: status })] });
+      const response = new Response(null, { status: 204 });
+      response.text = async () => { throw new Error("204 must not attempt JSON decoding"); };
+      return response;
+    } });
+    const result = await adapter.api.listFundCatalog({ query: "synthetic-query" });
+    assert.equal(result.source, "sec_v2");
+    assert.equal(result.state, populatedStatus ? "fresh" : "unavailable");
+    assert.equal(result.message, populatedStatus ? null : "ไม่พบกองทุนที่ตรงกับตัวกรองนี้");
+    assert.deepEqual(Array.from(result.items, (row: FundCatalogItem) => row.projectId), populatedStatus ? ["M0001_2567"] : []);
+    assert.equal(result.nextCursor, null);
+    assert.equal(result.hasMore, false);
+    assert.deepEqual(adapter.requests.map(({ url }) => url.searchParams.get("fund_status")), ["Registered", "IPO"]);
+    assert.deepEqual(adapter.warnings, []);
+  }
+});
+
+test("a later malformed or failed response still marks the catalog unavailable rather than inventing an empty page", async () => {
+  for (const status of [200, 205, 401, 403, 429, 503]) {
+    const adapter = secAdapter(() => null, { review: true, response: (url) => url.searchParams.get("fund_status") === "Registered"
+      ? Response.json({ items: [secProfile(1)] })
+      : new Response(null, { status }) });
+    const result = await adapter.api.listFundCatalog({ query: "synthetic-query" });
+    assert.equal(result.source, "unavailable");
+    assert.equal(result.state, "unavailable");
+    assert.equal(result.items.length, 0);
+    assert.equal(adapter.requests.length, 2);
+    const diagnostic = JSON.parse(adapter.warnings[0][1] as string);
+    assert.equal(diagnostic.reason, status < 300 ? "invalid_json" : "http");
+    assert.equal(diagnostic.httpStatus, status);
+  }
+});
+
+test("HTTP 204 detail endpoints remain empty facts and cannot fabricate an available fund", async () => {
+  const adapter = secAdapter(() => null, { review: true, response: () => new Response(null, { status: 204 }) });
+  const detail = await adapter.api.getFundDetail("M0001_2567");
+  assert.equal(detail.state, "partial");
+  assert.equal(detail.fund, null);
+  assert.equal(detail.selectedClassName, null);
+  for (const field of ["classes", "specifications", "assetAllocation"]) assert.equal(detail[field].length, 0);
+  assert.equal(detail.risk, null);
+  assert.equal(detail.dealing, null);
+  assert.deepEqual(Object.values(detail.endpointStates), ["empty", "empty", "empty", "empty", "empty"]);
+  assert.equal(adapter.requests.length, 5);
+  assert.deepEqual(adapter.warnings, []);
+  const baseline = await secAdapter(() => ({ items: [], next_cursor: null, page_size: null }), { review: true }).api.getFundDetail("M0001_2567");
+  delete detail.fetchedAt;
+  delete baseline.fetchedAt;
+  assert.deepEqual(JSON.parse(JSON.stringify(detail)), JSON.parse(JSON.stringify(baseline)), "204 must preserve the existing valid-empty detail contract");
 });
 
 test("project detail projection preserves all existing consumed facts and public source dates", async () => {

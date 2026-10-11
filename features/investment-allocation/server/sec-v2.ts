@@ -215,6 +215,7 @@ async function readSecEnvelope(path: string, key: string): Promise<SecEnvelope> 
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`sec_http_${response.status}`);
+  if (response.status === 204) return { items: [], next_cursor: null, page_size: null };
   const text = await response.text();
   let body: unknown;
   try {
