@@ -148,7 +148,7 @@
   border: 0; border-radius: 10px; background: transparent; color: var(--w43-ink); font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .mobileSubmenu { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 6px 12px; }
-.mobileSubmenu a { min-height: 42px; padding-left: 16px; color: var(--w43-muted); font-weight: 500; position: relative; }
+.mobileSubmenu a { min-height: 44px; padding-left: 16px; color: var(--w43-muted); font-weight: 500; position: relative; }
 .mobileSubmenu a::before { content: ''; width: 5px; height: 5px; margin-right: 9px; border-radius: 999px; background: var(--w43-gold); opacity: .7; }
 
 .mobileMenu > a:last-child { margin-top: 6px; background: var(--w43-gold); color: var(--w43-deep); }
@@ -547,8 +547,9 @@
 .footerTop { display: grid; grid-template-columns: 300px 150px 150px 150px; gap: 48px; min-height: 170px; }
 .footerBrandText { margin-top: 10px; color: var(--w43-muted); font-size: 14px; line-height: 1.5; }
 .footerColumn strong { color: var(--w43-gold); font-size: 14px; }
-.footerColumn a { display: block; margin-top: 8px; color: var(--w43-muted); font-size: 14px; }
-.root .footerColumn .footerCookieButton { display: flex; min-height: 0; margin-top: 8px; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 13px; line-height: 1.5; cursor: pointer; }
+.footerColumn a { display: flex; min-height: 44px; align-items: center; margin-top: 8px; color: var(--w43-muted); font-size: 14px; }
+.root .footerColumn .footerCookieButton { display: flex; min-height: 44px; align-items: center; margin-top: 8px; padding: 0; border: 0; background: transparent; color: var(--w43-muted); font-size: 13px; line-height: 1.5; cursor: pointer; }
+.footerCompact nav a { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; }
 .footerRule { width: min(890px,100%); height: 1px; margin-top: 28px; background: var(--w43-border); }
 .footerDisclaimer { max-width: 890px; margin: 28px 0 0; color: var(--w43-muted); font-size: 14px; }
 .footerCopyright { margin: 24px 0 0; color: var(--w43-muted); font-size: 14px; }
@@ -1435,6 +1436,7 @@
 .pagination button:disabled { opacity: .45; cursor: default; }
 .resultCount, .tableHint { color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
 .imageDetailLink, .gameEntry { color: var(--w43-gold); font-size: 14px; line-height: 1.6; }
+.gameEntry a { display: inline-flex; min-height: 44px; align-items: center; }
 .imageDetailLink { display: inline-flex; min-height: 44px; align-items: center; text-decoration: underline !important; }
 .partners { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .articleHeader > .inner { width: min(1028px,100%); }

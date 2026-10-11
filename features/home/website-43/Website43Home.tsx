@@ -6,7 +6,7 @@ import { Website43Navbar } from '@/components/layout/website-43/Website43Shared'
 import { HomeFooter, HomeSectionHeading } from './Website43HomeStatic';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 import type { ArticleAuthorProfile } from '@/lib/content/types';
-import HealthHappyCountdown from '@/features/campaigns/health-happy/HealthHappyCountdown';
+import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountdown';
 
 const DEFAULT_AUTHOR_ROLE = 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน';
 

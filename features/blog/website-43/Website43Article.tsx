@@ -7,7 +7,7 @@ import styles from '@/components/layout/website-43/Website43.module.css';
 import { SectionHeading, Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 import Website43ArticleToc from './Website43ArticleToc';
-import HealthHappyCountdown from '@/features/campaigns/health-happy/HealthHappyCountdown';
+import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountdown';
 import BlogReturnLink from './BlogReturnLink';
 import { renderWebsite43ArticleBody } from './Website43ArticleBody';
 

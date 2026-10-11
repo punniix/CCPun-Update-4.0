@@ -50,7 +50,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
         setOpen(false); setToolsOpen(false); setMobileToolsOpen(false);
       }
     }}>
-      <Link href={HOME} aria-label="CCPUN หน้าแรก"><Website43NavbarBrand /></Link>
+      <Link href={HOME} className={styles.brandLink} aria-label="CCPUN หน้าแรก"><Website43NavbarBrand /></Link>
       <div className={styles.navSpacer} />
       <nav className={styles.navLinks} aria-label="เมนูหลัก">
         <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>หน้าแรก</Link>

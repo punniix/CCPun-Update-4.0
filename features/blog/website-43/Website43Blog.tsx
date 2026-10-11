@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import type { Website43ArticleItem } from './blogData';
-import HealthHappyCountdown from '@/features/campaigns/health-happy/HealthHappyCountdown';
+import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountdown';
 import Website43BlogInteractive, {
   type Website43BlogCategoryItem,
   type Website43BlogClientClassNames,

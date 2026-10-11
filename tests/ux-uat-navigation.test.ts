@@ -1,9 +1,81 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { runInNewContext } from 'node:vm';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import Blog, { type Website43BlogClientClassNames } from '../features/blog/website-43/Website43BlogInteractive';
 import { BLOG_PAGE_SIZE, blogPage, blogPageHref, safeBlogReturn } from '../features/blog/website-43/BlogNavigation';
+
+test('public navigation, footer and Money Story expose 44px targets without changing links', () => {
+  const read = (file: string) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const navCss = read('components/layout/website-43/Website43Navbar.module.css');
+  const sharedCss = read('components/layout/website-43/Website43.module.css');
+  function rule(source: string, selector: string) {
+    const start = source.indexOf(selector + ' {');
+    assert.ok(start >= 0, selector);
+    return source.slice(start, source.indexOf('}', start));
+  }
+  for (const [source, selector] of [[navCss, '.brandLink'], [navCss, '.mobileSubmenu a'], [sharedCss, '.mobileSubmenu a'],
+    [sharedCss, '.footerColumn a'], [sharedCss, '.root .footerColumn .footerCookieButton'], [sharedCss, '.footerCompact nav a'], [sharedCss, '.gameEntry a']]) {
+    assert.match(rule(source, selector), /min-height: 44px/, selector);
+  }
+  assert.match(rule(sharedCss, '.footerCompact nav a'), /min-width: 44px/);
+  assert.match(rule(navCss, '.brandLink:focus-visible'), /outline: 2px solid/);
+  assert.match(sharedCss, /\.root :is\(a, button, input, select, textarea, summary\):focus-visible \{ outline: 2px solid/);
+  assert.match(read('components/layout/website-43/Website43Navbar.tsx'), /href=\{HOME\} className=\{styles\.brandLink\}/);
+});
+
+test('native cookie controls retain consent choices and the 28px visual track inside a 44px hit area', () => {
+  const { transpileModule, ModuleKind } = createRequire(import.meta.url)('typescript') as typeof import('typescript');
+  const source = readFileSync(new URL('../features/analytics/components/CookieConsentPreferences.tsx', import.meta.url), 'utf8');
+  const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  type Element = { type: unknown; props: { children?: unknown; className?: string; style?: Record<string, unknown>; type?: string; role?: string; 'aria-checked'?: boolean; 'aria-expanded'?: boolean; 'aria-controls'?: string; onClick?: () => void; id?: string } };
+  const states: unknown[] = []; let index = 0;
+  const loaded = { exports: {} as { CategoryRow: (props: unknown) => unknown } };
+  runInNewContext(compiled, { module: loaded, exports: loaded.exports, require: (name: string) => {
+    if (name === 'react/jsx-runtime') {
+      const jsx = (type: unknown, props: unknown) => typeof type === 'function' ? type(props) : { type, props };
+      return { jsx, jsxs: jsx };
+    }
+    assert.equal(name, 'react');
+    return { useState: (value: unknown) => { const slot = index++; if (!(slot in states)) states[slot] = value;
+      return [states[slot], (next: unknown) => { states[slot] = typeof next === 'function' ? next(states[slot]) : next; }]; } };
+  } });
+  const elements = (node: unknown): Element[] => {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!node || typeof node !== 'object' || !('props' in node)) return [];
+    const element = node as Element;
+    return [element, ...elements(element.props.children)];
+  };
+  const changed: boolean[] = [];
+  const render = (checked: boolean, alwaysActive = false) => { index = 0; return elements(loaded.exports.CategoryRow({ label: 'Synthetic category', description: 'Synthetic detail', checked,
+    onChange: (value: boolean) => changed.push(value), alwaysActive, toggleId: 'synthetic-choice' })); };
+  let tree = render(false);
+  for (const button of tree.filter(element => element.type === 'button')) {
+    assert.equal(button.props.type, 'button', 'native Enter/Space activation must remain available');
+    assert.equal(button.props.style?.minWidth, '44px');
+    assert.equal(button.props.style?.minHeight, '44px');
+    assert.match(button.props.className!, /focus-visible:outline-2/);
+  }
+  const toggle = tree.find(element => element.props.role === 'switch')!;
+  assert.equal(toggle.props['aria-checked'], false);
+  const track = elements(toggle).find(element => element.type === 'span' && element.props.style?.height === '1.75rem');
+  assert.ok(track, 'visual track stays 28px at the default font size');
+  toggle.props.onClick!();
+  assert.deepEqual(changed, [true]);
+  tree = render(true);
+  tree.find(element => element.props.role === 'switch')!.props.onClick!();
+  assert.deepEqual(changed, [true, false]);
+  const expand = tree.find(element => element.props['aria-expanded'] === false)!;
+  assert.equal(expand.props['aria-controls'], 'desc-synthetic-choice');
+  expand.props.onClick!();
+  tree = render(false);
+  assert.ok(tree.some(element => element.props.id === 'desc-synthetic-choice'));
+  assert.equal(tree.find(element => element.type === 'button' && element.props['aria-expanded'] === true)?.props['aria-controls'], 'desc-synthetic-choice');
+  assert.equal(render(true, true).some(element => element.props.role === 'switch'), false, 'always-active category must not become optional');
+});
 test('six cards per page without hiding remainder, fixtures 0/6/7/12/13', () => {
   for (const total of [0, 6, 7, 12, 13]) {
     const items = Array.from({ length: total }, (_, i) => i);

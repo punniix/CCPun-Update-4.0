@@ -1,6 +1,8 @@
 .brand { font-size: 24px; font-weight: 700; line-height: 1; white-space: nowrap; }
 .brandCc { color: #faf7f2; }
 .brandPun { color: #e3bf57; }
+.brandLink { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; }
+.brandLink:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 3px; }
 
 .navBand {
   position: relative;
@@ -203,7 +205,7 @@
   cursor: pointer;
 }
 .mobileSubmenu { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 6px 12px; }
-.mobileSubmenu a { min-height: 42px; padding-left: 16px; color: var(--w43-muted); font-weight: 500; position: relative; }
+.mobileSubmenu a { min-height: 44px; padding-left: 16px; color: var(--w43-muted); font-weight: 500; position: relative; }
 .mobileSubmenu a::before { content: ''; width: 5px; height: 5px; margin-right: 9px; border-radius: 999px; background: var(--w43-gold); opacity: .7; }
 .mobileMenu > a:last-child { margin-top: 6px; background: var(--w43-gold); color: var(--w43-deep); }
 
