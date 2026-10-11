@@ -10,22 +10,24 @@ const postcss = require('postcss');
 const ts = require('typescript');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
-// UX/UAT 3d66f02768082f6e0abb79c49810de2f437e4189 before owner cleanup.
+// UX/UAT 3d909613 before the approved unified-footer revision.
+// Footer hashes retain its original desktop DOM; CSS hashes retain every non-footer rule.
 // Frozen active CSS/DOM outputs require no Git history or network in CI.
 const baseline = {
-  "activeCss": "34cd82ea3fdc02beacd4bbb293ed42eb1ba511ce45d1e09edc45d227a77e1524",
-  "responsiveCss": "95a7e1133e46365fb0ab868f7a1df9c101ea3f67a9a3c78217273a4be896554d",
+  "activeCss": "0f419a117a99aad692302e9a099d3b48240c0567393993c3062f71ff684e98b4",
+  "responsiveCss": "3cd8efc41eec452c51c3fee2e874a6d3b3c7e06ab8fe573c503e90a5d9474c47",
   "navbarCss": "7861f222dd4c06e9261b50d7c0a92f4a8ce06c4ada69a0a6f19dcee0befb4d82",
   "navbarDomOff": "e0e96baf8e7bc3de1e06632b3ae6262f7b4b9e65740ae01246e657bdc23c566b",
   "navbarDomOn": "f2a1baf3334dce55b449c7bed10f5b802f352acde11e3137999f7b9644d9cd4c",
-  "footerDomOff": "f26afdb4c15043a51a430e4e46823df55b7e4145c4608ee74e431f7f32f8f8ec",
-  "footerDomOn": "4cc579223ab1623dd31f7bd89c08e14e163f3283a0ad6f44d2b3c5d7e10837db"
+  "footerDomOff": "194a94f48d87c887966470a039725bbf06925bbdc648d2d6f56f8f8f486fdf10",
+  "footerDomOn": "4216da5e34c0d40f7e811c02c78c94c128c392e1ff79fb79a0b9af958dd59893"
 };
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
 const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
 
-// Compare ordered selectors/declarations/media ancestry, ignoring only proven inactive selectors.
+// Preserve non-footer styling. The approved footer revision has dedicated layout
+// and hierarchy checks; its desktop content remains covered by the DOM baseline.
 function stylesheetRules(source, responsive = false) {
   const css = responsive
     ? [...source.matchAll(/String\.raw`([\s\S]*?)`/g)].map(([, body]) => body.replace(/\$\{styles\.(\w+)\}/g, 'W43REF_$1')).join('\n')
@@ -33,7 +35,10 @@ function stylesheetRules(source, responsive = false) {
   const ast = postcss.parse(css);
   const records = [];
   ast.walkRules((rule) => {
-    const selectors = postcss.list.comma(rule.selector).filter((selector) => ![...selector.matchAll(/\.([\w-]+)/g)].some(([, name]) => inactive.has(name.replace(/^W43REF_/, ''))));
+    const selectors = postcss.list.comma(rule.selector).filter((selector) => ![...selector.matchAll(/\.([\w-]+)/g)].some(([, name]) => {
+      const owner = name.replace(/^W43REF_/, '');
+      return inactive.has(owner) || /^(?:footer|notFoundFooter)/.test(owner);
+    }));
     if (!selectors.length) return;
     const ancestry = [];
     for (let parent = rule.parent; parent.type !== 'root'; parent = parent.parent) ancestry.unshift([parent.name, parent.params]);
@@ -83,7 +88,13 @@ const navbarSnapshots = (source, investmentEnabled = false) => {
 const footerSnapshots = (source, investmentEnabled = false) => {
   enabled = investmentEnabled;
   const snapshots = [];
-  for (const warnings of [false, true]) for (const notFound of [false, true]) snapshots.push(renderToStaticMarkup(React.createElement(component(source, 'Website43Footer', '/'), { warnings, notFound })));
+  for (const warnings of [false, true]) for (const notFound of [false, true]) {
+    const { JSDOM } = require('jsdom');
+    const dom = new JSDOM(renderToStaticMarkup(React.createElement(component(source, 'Website43Footer', '/'), { warnings, notFound })));
+    dom.window.document.querySelector('.footerCompact')?.remove();
+    snapshots.push(dom.window.document.querySelector('footer').outerHTML);
+    dom.window.close();
+  }
   return snapshots;
 };
 test('active stylesheet declarations and media order preserve the current UX/UAT baseline', () => {
@@ -99,7 +110,8 @@ test('navbar disclosure states preserve current UX DOM, labels, links, aria and 
   if (investmentCapable) assert.equal(fingerprint(navbarSnapshots(after('Website43Navbar.tsx'), true)), baseline.navbarDomOn);
 });
 
-test('all full/compact footer variants preserve current UX DOM with Beta off/on', () => {
+test('unified footer preserves original desktop content with Beta off/on including 404', () => {
+  assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
   assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))), baseline.footerDomOff);
   if (investmentCapable) assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'), true)), baseline.footerDomOn);
 });

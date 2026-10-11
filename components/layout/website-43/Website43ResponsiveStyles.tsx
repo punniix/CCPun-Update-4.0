@@ -587,7 +587,7 @@ export function Website43ResponsiveStyles() {
     width: 100%;
   }
   .${styles.notFoundFooterWrap} {
-    height: clamp(137px, calc(11.9048vw + 90.5714px), 162px);
+    height: auto;
     padding-top: 24px;
     padding-right: var(--w43-hero-gutter);
     padding-bottom: 24px;
