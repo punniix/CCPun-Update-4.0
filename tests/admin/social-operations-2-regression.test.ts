@@ -6,13 +6,15 @@ import { runInNewContext } from "node:vm";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-test("mobile submenu Back restores focus to the opened group after it mounts again", () => {
+test("mobile group entry/Back/close focus only their newly mounted controls", () => {
   const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
   const compiled = transpileModule(read("features/admin/components/AdminNavigation.tsx"), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
   const slots: unknown[] = []; let index = 0;
   const effects: Array<() => void> = [];
+  const frames: Array<() => void> = [];
   const loaded = { exports: {} as { default: (props: unknown) => unknown } };
   runInNewContext(compiled, { module: loaded, exports: loaded.exports,
+    requestAnimationFrame: (fn: () => void) => frames.push(fn),
     require: (name: string) => {
       if (name === "next/link") return { default: "a" };
       if (name === "next/navigation") return { usePathname: () => "/social/" };
@@ -23,7 +25,11 @@ test("mobile submenu Back restores focus to the opened group after it mounts aga
         useState: (value: unknown) => { const slot = index++; if (!(slot in slots)) slots[slot] = value;
           return [slots[slot], (next: unknown) => { slots[slot] = next; }]; } };
     } });
-  type Element = { type: unknown; props: { children?: unknown; ref?: (node: unknown) => void; onClick?: () => void; "aria-label"?: string; "aria-expanded"?: boolean } };
+  type Element = { type: unknown; props: { children?: unknown; ref?: ((node: unknown) => void) | { current: unknown }; onClick?: () => void; onClose?: () => void; "aria-label"?: string; "aria-expanded"?: boolean; "aria-haspopup"?: string } };
+  const attachRef = (element: Element, node: unknown) => {
+    if (typeof element.props.ref === "function") element.props.ref(node);
+    else if (element.props.ref) element.props.ref.current = node;
+  };
   function elements(node: unknown): Element[] {
     if (Array.isArray(node)) return node.flatMap(elements);
     if (!node || typeof node !== "object" || !("props" in node)) return [];
@@ -35,21 +41,52 @@ test("mobile submenu Back restores focus to the opened group after it mounts aga
   let focused = "";
   const render = () => { index = 0; effects.length = 0; return elements(loaded.exports.default({ items })); };
   let tree = render();
+  const trigger = tree.find(element => element.props["aria-haspopup"] === "dialog")!;
+  attachRef(trigger, { focus: () => { focused = "trigger"; } });
+  const dialog = tree.find(element => element.type === "dialog")!;
+  let closes = 0;
+  attachRef(dialog, { close: () => { closes++; } });
   const groups = tree.filter(element => element.type === "button" && element.props["aria-expanded"] === false);
   assert.equal(groups.length, 2);
-  groups.forEach((button, n) => button.props.ref?.({ focus: () => { focused = items[n].href; } }));
+  groups.forEach((button, n) => attachRef(button, { focus: () => { focused = items[n].href; } }));
   groups[1].props.onClick!();
-  groups.forEach(button => button.props.ref?.(null));
+  groups.forEach(button => attachRef(button, null));
   tree = render();
   const back = tree.find(element => element.props["aria-label"] === "กลับไปเมนูหลัก");
   assert.ok(back);
+  assert.equal(focused, "", "entry focus must wait for Back to mount");
+  attachRef(back, { focus: () => { focused = "back"; } });
+  effects.forEach(fn => fn());
+  assert.equal(focused, "back", "opening a group must not leave focus on BODY");
   back.props.onClick!();
+  attachRef(back, null);
+  focused = "";
   tree = render();
   const remounted = tree.filter(element => element.type === "button" && element.props["aria-expanded"] === false);
-  remounted.forEach((button, n) => button.props.ref?.({ focus: () => { focused = items[n].href; } }));
+  remounted.forEach((button, n) => attachRef(button, { focus: () => { focused = items[n].href; } }));
   assert.equal(focused, "", "focus must wait for the group buttons to remount");
   effects.forEach(fn => fn());
   assert.equal(focused, "/seo/", "Back must restore the selected group, not the first group or dialog trigger");
+  focused = "external";
+  effects.forEach(fn => fn());
+  assert.equal(focused, "external", "consumed Back focus must not be reused");
+  for (const nativeClose of [false, true]) {
+    remounted[0].props.onClick!();
+    tree = render();
+    const nextBack = tree.find(element => element.props["aria-label"] === "กลับไปเมนูหลัก")!;
+    attachRef(nextBack, { focus: () => { focused = "back"; } });
+    effects.forEach(fn => fn());
+    assert.equal(focused, "back");
+    if (!nativeClose) tree.find(element => element.type === "button" && element.props.children === "ปิด")!.props.onClick!();
+    // Native Escape/dialog.close emits onClose; browser rendering is verified separately.
+    tree.find(element => element.type === "dialog")!.props.onClose!();
+    attachRef(nextBack, null);
+    render();
+    effects.forEach(fn => fn());
+    frames.splice(0).forEach(fn => fn());
+    assert.equal(focused, "trigger", "Close/Escape must restore the dialog trigger, not a stale group");
+  }
+  assert.equal(closes, 1);
 });
 
 test("Admin navigation keeps seven primary modules and exposes Social contextually", () => {

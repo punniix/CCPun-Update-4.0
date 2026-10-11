@@ -92,9 +92,14 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const groupButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const returnFocusHref = useRef<string | null>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
   const [mobileGroupHref, setMobileGroupHref] = useState<string | null>(null);
 
   useEffect(() => {
+    if (mobileGroupHref !== null) {
+      backButtonRef.current?.focus();
+      return;
+    }
     if (mobileGroupHref !== null || !returnFocusHref.current) return;
     groupButtonRefs.current.get(returnFocusHref.current)?.focus();
     returnFocusHref.current = null;
@@ -107,9 +112,9 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
   const mobileGroup = items.find((item) => item.href === mobileGroupHref) ?? null;
 
   function closeDialog() {
+    returnFocusHref.current = null;
     dialogRef.current?.close();
     setMobileGroupHref(null);
-    requestAnimationFrame(() => triggerRef.current?.focus());
   }
 
   return (
@@ -131,7 +136,11 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
         ref={dialogRef}
         aria-label="เมนูศูนย์จัดการ CCPun"
         className="m-0 h-dvh max-h-none w-[min(92vw,22rem)] max-w-none bg-navy-800 p-0 text-white shadow-2xl backdrop:bg-black/70 lg:hidden"
-        onClose={() => setMobileGroupHref(null)}
+        onClose={() => {
+          returnFocusHref.current = null;
+          setMobileGroupHref(null);
+          requestAnimationFrame(() => triggerRef.current?.focus());
+        }}
         onClick={(event) => {
           if (event.target === event.currentTarget) closeDialog();
         }}
@@ -140,6 +149,7 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
           <div className="flex min-w-0 items-center gap-2">
             {mobileGroup ? (
               <button
+                ref={backButtonRef}
                 type="button"
                 onClick={() => {
                   returnFocusHref.current = mobileGroupHref;
