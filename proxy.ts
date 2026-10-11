@@ -1,3 +1,4 @@
+import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, safeAdminCapabilityReturnPath } from "@/lib/admin/capability-profile";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
@@ -37,6 +38,8 @@ export default auth((request) => {
   });
 
   const environment = getAdminEnvironment();
+  const capabilityProfile = getAdminCapabilityProfile();
+  const landingPath = adminCapabilityLandingPath(capabilityProfile);
   const adminSurfaceAllowed = isAdminSurfaceAllowed(environment);
   const isProductionAdmin = environment === "production-admin";
   const isAdminUat = environment === "admin-uat";
@@ -69,6 +72,16 @@ export default auth((request) => {
     (isAdminApi || isPreviewApi) &&
     !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
     !isSameOriginAdminMutation(request.url, request.headers.get("origin"));
+
+  // Mixed root builds keep public Web routes, while private Admin surfaces use
+  // the same capability allowlist as the dedicated Admin entry.
+  if ((isAdminBoundaryRequest || isAdminPage || isAdminApi || isStudioPage || isPreviewApi || isAuthApi)
+    && !isAdminCapabilityPathAllowed(pathname, capabilityProfile)) {
+    return new NextResponse("Not Found", { status: 404, headers: {
+      "Cache-Control": "private, no-store",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+    } });
+  }
 
   if (isAdminBoundaryRequest) {
     if (!adminSurfaceAllowed) {
@@ -103,7 +116,7 @@ export default auth((request) => {
       const disposition = classifyProductionAdminPath(pathname);
       if (disposition === "entry") {
         return NextResponse.redirect(
-          new URL(role ? "/dashboard/" : "/login/", request.url),
+          new URL(role ? landingPath : "/login/", request.url),
         );
       }
       if (disposition === "reject") {
@@ -129,7 +142,7 @@ export default auth((request) => {
     // purpose-specific bearer/capability contracts, not browser Auth.js.
     if (isAuthApi || isPublicBootstrapPath || isInternalServiceApi) return NextResponse.next();
     if (isLoginPage) {
-      if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
+      if (role) return NextResponse.redirect(new URL(landingPath, request.url));
       return NextResponse.next();
     }
     if (!role) {
@@ -137,7 +150,7 @@ export default auth((request) => {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
       }
       const loginUrl = new URL("/login/", request.url);
-      const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+      const callbackUrl = capabilityProfile === "full" ? safeAdminReturnPath(`${pathname}${request.nextUrl.search}`) : safeAdminCapabilityReturnPath(`${pathname}${request.nextUrl.search}`, capabilityProfile);
       if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
       return NextResponse.redirect(loginUrl);
     }
@@ -154,7 +167,7 @@ export default auth((request) => {
   }
 
   if (isLoginPage) {
-    if (role) return NextResponse.redirect(new URL("/dashboard/", request.url));
+    if (role) return NextResponse.redirect(new URL(landingPath, request.url));
     return NextResponse.next();
   }
 
@@ -163,7 +176,7 @@ export default auth((request) => {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const loginUrl = new URL("/login/", request.url);
-    const callbackUrl = safeAdminReturnPath(`${pathname}${request.nextUrl.search}`);
+    const callbackUrl = capabilityProfile === "full" ? safeAdminReturnPath(`${pathname}${request.nextUrl.search}`) : safeAdminCapabilityReturnPath(`${pathname}${request.nextUrl.search}`, capabilityProfile);
     if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl);
     return NextResponse.redirect(loginUrl);
   }

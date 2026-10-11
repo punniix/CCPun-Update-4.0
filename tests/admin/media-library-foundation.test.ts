@@ -281,7 +281,7 @@ test("Distribution Overview owns the root route while the Media Library presenta
   const page = read("features/admin/social/page.tsx");
   const mediaSection = read("features/admin/media/MediaLibraryUatSection.tsx");
   const route = read("app/(control-plane)/social/page.tsx");
-  const navigation = read("app/(control-plane)/layout.tsx");
+  const navigation = read("apps/admin/app/(control-plane)/layout.tsx");
   assert.match(page, /getMediaLibraryRuntimeStatus/);
   assert.match(page, /MediaLibraryUatSection/);
   assert.doesNotMatch(mediaSection, /text-white\/45/);

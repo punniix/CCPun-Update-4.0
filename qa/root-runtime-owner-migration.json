@@ -329,6 +329,142 @@
       "baselineSha256": "4a398712e8c7eb60ed5842214a16949e4ee25908d131aba16f3263f414609b56",
       "wrapper": "export { default } from \"@/apps/web/app/page\";\n",
       "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/page.tsx",
+      "baselineSha256": "f01831858ee4e9f60bab614f534059ae6fd5b597c3a31de44539e4b25ca7e9eb",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/analytics/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/search/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/search/page.tsx",
+      "baselineSha256": "64c1ae77512d77c6b35d5be8e7af07900f35f84e7d19cfb60ca1d4d5bb1162c4",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/analytics/search/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/content/articles/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/articles/page.tsx",
+      "baselineSha256": "214336b7fd0a235c656f568e87bf8c857e83107fcea897e05200d810fa5499f4",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/content/articles/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/content/calendar/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/calendar/page.tsx",
+      "baselineSha256": "b6549899b688ddf253db6b19ea66cb4ca0b883134832ee4f53027ff6b6c65e33",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/content/calendar/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/dashboard/inbox/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx",
+      "baselineSha256": "738969d2561c8423d836c6d67d68b10f9fbd18c94ac23496b81434baa7ead397",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/dashboard/inbox/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/dashboard/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/dashboard/page.tsx",
+      "baselineSha256": "37befdaf0463df564652bb819066691e85977e1d7ef5beab653dabc326ba6d5b",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/dashboard/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/error.tsx",
+      "canonical": "apps/admin/app/(control-plane)/error.tsx",
+      "baselineSha256": "aaa0787ffe60547e3f5b1cfd6829245adc1b3623dfed015ad93a1e6b37c86e07",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "\"use client\";\n\nexport { default } from \"@/apps/admin/app/(control-plane)/error\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/layout.tsx",
+      "canonical": "apps/admin/app/(control-plane)/layout.tsx",
+      "baselineSha256": "6e61507f21ce1c6662f8639c84fc2ca3dc83c20f3ce149512b1c965cedf81603",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/layout\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/not-found.tsx",
+      "canonical": "apps/admin/app/(control-plane)/not-found.tsx",
+      "baselineSha256": "7f69abdc536be4344b5ccb3013aa57e45bdd38e722ab5485cb5adec5fab149a1",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/not-found\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/operations/audit-log/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/audit-log/page.tsx",
+      "baselineSha256": "ae7aa7339e949c92899d0042dfa98abeaa40cdeeae7ac37eb6d3a7f72b800ae4",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/operations/audit-log/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/operations/health/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/health/page.tsx",
+      "baselineSha256": "ac2100578d75dcb11ba315338e71362913342c5149d8c1bc237e3aa7ba4c07f0",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/operations/health/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/seo/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/page.tsx",
+      "baselineSha256": "b0c77dde785d1a9a06bd29f7771db7471faf0abf2cc92904ecfe4ccdd716abe4",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/seo/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/settings/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/settings/page.tsx",
+      "baselineSha256": "251d60183bca41129c5122718a8b54cbd5285095b46e446d52c79a149d0d636e",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/settings/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/social/posts/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/posts/page.tsx",
+      "baselineSha256": "ce9576e651144eaf7d1b7a23fa219a926f3d703e6d5cc418e9cb997551f8d8c3",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { metadata, default } from \"@/apps/admin/app/(control-plane)/social/posts/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane-auth)/login/page.tsx",
+      "canonical": "apps/admin/app/(control-plane-auth)/login/page.tsx",
+      "baselineSha256": "bbf3440452ec1e0724c740ceb9dc99cbaab7a51c5b917e9e12e856c0a69c0219",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane-auth)/login/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane-error)/admin-not-found/page.tsx",
+      "canonical": "apps/admin/app/(control-plane-error)/admin-not-found/page.tsx",
+      "baselineSha256": "d4b6aaf09e456a552d9efc7c8be85735800347c10045ea21f38489615e7e6638",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane-error)/admin-not-found/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/providers/ubersuggest/sync/route.ts",
+      "canonical": "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts",
+      "baselineSha256": "66fea0470172d9f4e500e43b6b1f3077ca5d0dd69c8979d68e7710a8987d19ee",
+      "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/providers/ubersuggest/sync/route\";\n",
+      "status": "migrated"
     }
   ],
   "dynamicPathApproval": "Current COO approval relayed by parent /root on 2026-10-11, bounded to the prepared twelve-path patch; no other rejected path authorized."
