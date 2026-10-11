@@ -30,7 +30,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
     bio: managedProfile ? article.author?.profileBio?.trim() || DEFAULT_AUTHOR_BIO : DEFAULT_AUTHOR_BIO,
     profileCtaLabel: article.author?.profileCtaLabel ?? 'รู้จัก CCPun เพิ่มเติม',
     profileCtaUrl: article.author?.profileCtaUrl?.startsWith('#') ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? '/#about-ccpun',
-    avatar: article.author?.profileAvatar ?? { src: '/assets/pun.jpg', alt: 'ชนาธิป ชิตประเสริฐ', width: 96, height: 96 },
+    avatar: article.author?.profileAvatar ?? { src: '/assets/ccpun.webp', alt: 'ชนาธิป ชิตประเสริฐ', width: 96, height: 96 },
   };
   const semanticTopic = getArticleSemanticTopic({
     articleSlug: article.slug,
