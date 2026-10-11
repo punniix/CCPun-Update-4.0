@@ -2,10 +2,6 @@
  * Shared Public Web motion primitives.
  * Keep named animations here; feature-specific motion belongs with its feature.
  */
-@keyframes glass-reflect {
-  0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  50%       { transform: translateX(100%) translateY(100%) rotate(45deg); }
-}
 
 @keyframes float {
   0%, 100% { transform: translateY(0) translateX(0); }
@@ -44,28 +40,9 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
-@keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
 @keyframes hero-fade-up {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes accent-bar-in {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
-@keyframes fhcUnlockFadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fhcBarGrow {
-  from { width: 0; }
 }
 
 .hero-badge    { animation: hero-fade-up 0.4s ease both; }
