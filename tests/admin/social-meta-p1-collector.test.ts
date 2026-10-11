@@ -157,7 +157,7 @@ test("Analytics ingestion keeps P1 Insights bounded while historical Meta metada
   assert.match(source, /function transientThumbnailIdentity[\s\S]*new URL\(value\)\.pathname/);
   assert.match(source, /transientThumbnailIdentity\(content\.thumbnailUrl\)/);
   assert.doesNotMatch(source, /fetchMetaReadOnlyDiscovery\(env, fetcher, \{ since: null, includeInsights: false \}\)/);
-  assert.doesNotMatch(read("app/api/admin/social/providers/meta/discovery/route.ts"), /includeInsights/);
+  assert.doesNotMatch(read("apps/admin/app/api/admin/social/providers/meta/discovery/route.ts"), /includeInsights/);
 });
 
 test("Metric schemas preserve Reel watch-time native milliseconds", () => {

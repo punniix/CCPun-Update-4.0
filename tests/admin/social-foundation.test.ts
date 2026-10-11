@@ -176,7 +176,7 @@ test("Migration checksum covers the reviewed DDL and operational constraints", (
 });
 
 test("Social API is authenticated, owner-scoped, exact-origin and read-only", () => {
-  const route = read("app/api/admin/social/foundation/route.ts");
+  const route = read("apps/admin/app/api/admin/social/foundation/route.ts");
   const page = read("app/(control-plane)/social/page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);

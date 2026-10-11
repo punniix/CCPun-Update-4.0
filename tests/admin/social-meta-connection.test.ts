@@ -40,7 +40,7 @@ test("Multiple Pages require explicit selection and stale authorization requires
 
 test("Synthetic Meta connection and GET route stay UAT-only and read-only", () => {
   assert.equal(SYNTHETIC_META_CONNECTION.mode, "synthetic-uat");
-  const route = read("app/api/admin/social/providers/meta/connection/route.ts");
+  const route = read("apps/admin/app/api/admin/social/providers/meta/connection/route.ts");
   const page = read("features/admin/social/meta-connection-page.tsx");
   const entry = read("app/(control-plane)/social/accounts/meta/page.tsx");
   const connections = read("features/admin/social/connections-page.tsx");
