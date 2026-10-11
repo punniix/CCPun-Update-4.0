@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type NavigationChild = { href: string; label: string };
 type NavigationItem = { href: string; label: string; children?: NavigationChild[] };
@@ -90,7 +90,15 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const groupButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const returnFocusHref = useRef<string | null>(null);
   const [mobileGroupHref, setMobileGroupHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mobileGroupHref !== null || !returnFocusHref.current) return;
+    groupButtonRefs.current.get(returnFocusHref.current)?.focus();
+    returnFocusHref.current = null;
+  }, [mobileGroupHref]);
 
   const activeItem = useMemo(
     () => items.find((item) => isPathWithin(pathname, item.href)) ?? null,
@@ -133,7 +141,10 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
             {mobileGroup ? (
               <button
                 type="button"
-                onClick={() => setMobileGroupHref(null)}
+                onClick={() => {
+                  returnFocusHref.current = mobileGroupHref;
+                  setMobileGroupHref(null);
+                }}
                 className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg text-sm text-white/75 transition motion-reduce:transition-none hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]"
                 aria-label="กลับไปเมนูหลัก"
               >
@@ -179,6 +190,10 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
                 return (
                   <button
                     key={item.href}
+                    ref={(button) => {
+                      if (button) groupButtonRefs.current.set(item.href, button);
+                      else groupButtonRefs.current.delete(item.href);
+                    }}
                     type="button"
                     aria-expanded={false}
                     onClick={() => setMobileGroupHref(item.href)}

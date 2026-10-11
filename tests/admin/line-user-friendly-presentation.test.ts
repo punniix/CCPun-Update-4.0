@@ -54,6 +54,13 @@ test("daily customer case keeps only follow-up and notes from CRM-style operatio
   assert.match(operations, /ติดตามลูกค้า/);
   assert.match(operations, /โน้ตของเรา/);
   assert.match(operations, /ตั้งวันติดตาม/);
+  assert.match(operations.match(/<input[\s\S]*?\/>/)?.[0] ?? "", /min-h-11/);
+  const buttons = operations.match(/<button[\s\S]*?<\/button>/g) ?? [];
+  assert.equal(buttons.length, 2);
+  for (const button of buttons) {
+    assert.match(button, /min-h-11/);
+    assert.match(button, /focus-visible:outline-2/);
+  }
   assert.doesNotMatch(operations, /Priority|Case state|Assigned advisor|Add safe tag|tagAdd|assignedAdvisor|caseState/);
 });
 

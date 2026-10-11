@@ -61,12 +61,12 @@ export function AdvisorCaseOperations({
             <input
               name="follow"
               type="datetime-local"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm text-white"
+              className="mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"
             />
           </label>
           <button
             disabled={busy}
-            className="mt-2 min-h-10 rounded-xl border border-white/10 px-3 text-sm text-white/75 disabled:opacity-40"
+            className="mt-2 min-h-11 rounded-xl border border-white/10 px-3 text-sm text-white/75 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"
           >
             ตั้งวันติดตาม
           </button>
@@ -96,7 +96,7 @@ export function AdvisorCaseOperations({
           ).then((saved) => {
             if (saved) setNote("");
           })}
-          className="mt-2 min-h-10 rounded-xl bg-white px-4 text-sm font-medium text-black disabled:opacity-40"
+          className="mt-2 min-h-11 rounded-xl bg-white px-4 text-sm font-medium text-black disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"
         >
           บันทึกโน้ต
         </button>

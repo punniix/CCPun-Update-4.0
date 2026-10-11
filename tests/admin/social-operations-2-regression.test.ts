@@ -1,8 +1,56 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+
+test("mobile submenu Back restores focus to the opened group after it mounts again", () => {
+  const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
+  const compiled = transpileModule(read("features/admin/components/AdminNavigation.tsx"), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  const slots: unknown[] = []; let index = 0;
+  const effects: Array<() => void> = [];
+  const loaded = { exports: {} as { default: (props: unknown) => unknown } };
+  runInNewContext(compiled, { module: loaded, exports: loaded.exports,
+    require: (name: string) => {
+      if (name === "next/link") return { default: "a" };
+      if (name === "next/navigation") return { usePathname: () => "/social/" };
+      if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) };
+      assert.equal(name, "react");
+      return { useMemo: (fn: () => unknown) => fn(), useEffect: (fn: () => void) => effects.push(fn),
+        useRef: (value: unknown) => { const slot = index++; return slots[slot] ??= { current: value }; },
+        useState: (value: unknown) => { const slot = index++; if (!(slot in slots)) slots[slot] = value;
+          return [slots[slot], (next: unknown) => { slots[slot] = next; }]; } };
+    } });
+  type Element = { type: unknown; props: { children?: unknown; ref?: (node: unknown) => void; onClick?: () => void; "aria-label"?: string; "aria-expanded"?: boolean } };
+  function elements(node: unknown): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!node || typeof node !== "object" || !("props" in node)) return [];
+    const element = node as Element;
+    return [element, ...elements(element.props.children)];
+  }
+  const items = [{ href: "/social/", label: "โซเชียล", children: [{ href: "/social/queue/", label: "คิว" }] },
+    { href: "/seo/", label: "SEO", children: [{ href: "/seo/audit/", label: "ตรวจ" }] }];
+  let focused = "";
+  const render = () => { index = 0; effects.length = 0; return elements(loaded.exports.default({ items })); };
+  let tree = render();
+  const groups = tree.filter(element => element.type === "button" && element.props["aria-expanded"] === false);
+  assert.equal(groups.length, 2);
+  groups.forEach((button, n) => button.props.ref?.({ focus: () => { focused = items[n].href; } }));
+  groups[1].props.onClick!();
+  groups.forEach(button => button.props.ref?.(null));
+  tree = render();
+  const back = tree.find(element => element.props["aria-label"] === "กลับไปเมนูหลัก");
+  assert.ok(back);
+  back.props.onClick!();
+  tree = render();
+  const remounted = tree.filter(element => element.type === "button" && element.props["aria-expanded"] === false);
+  remounted.forEach((button, n) => button.props.ref?.({ focus: () => { focused = items[n].href; } }));
+  assert.equal(focused, "", "focus must wait for the group buttons to remount");
+  effects.forEach(fn => fn());
+  assert.equal(focused, "/seo/", "Back must restore the selected group, not the first group or dialog trigger");
+});
 
 test("Admin navigation keeps seven primary modules and exposes Social contextually", () => {
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");

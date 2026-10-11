@@ -71,7 +71,7 @@ test("VPS scheduling keeps Local AI concurrency one and detects heavy collisions
   assert.deepEqual(collisions, [{ left: "local-ai.seo", right: "social.backfill" }]);
 });
 
-test("Cloud routing never accepts raw conversation or secrets", () => {
+test("Cloud routing permanently denies private facts even with sanitization and opt-in", () => {
   assert.deepEqual(
     evaluateCloudEligibility({
       dataClass: "raw_conversation",
@@ -81,24 +81,20 @@ test("Cloud routing never accepts raw conversation or secrets", () => {
     }),
     { allowed: false, reason: "raw_conversation_prohibited" },
   );
-  assert.equal(
-    evaluateCloudEligibility({
-      dataClass: "health_sensitive",
-      sanitized: true,
-      allowlisted: true,
-      explicitWorkflowOptIn: true,
-    }).allowed,
-    true,
-  );
-  assert.equal(
-    evaluateCloudEligibility({
-      dataClass: "health_sensitive",
-      sanitized: true,
-      allowlisted: true,
-      explicitWorkflowOptIn: false,
-    }).allowed,
-    false,
-  );
+  for (const dataClass of ["customer_personal", "financial_sensitive", "health_sensitive", "raw_conversation", "secret"] as const) {
+    for (const sanitized of [false, true]) for (const allowlisted of [false, true]) for (const explicitWorkflowOptIn of [false, true]) {
+      assert.equal(evaluateCloudEligibility({ dataClass, sanitized, allowlisted, explicitWorkflowOptIn }).allowed, false);
+    }
+  }
+  const flags = { sanitized: true, allowlisted: true, explicitWorkflowOptIn: true };
+  for (const dataClass of ["unknown", "", undefined, null]) {
+    for (const sanitized of [false, true]) for (const allowlisted of [false, true]) for (const explicitWorkflowOptIn of [false, true]) {
+      assert.deepEqual(evaluateCloudEligibility({ dataClass, sanitized, allowlisted, explicitWorkflowOptIn } as unknown as Parameters<typeof evaluateCloudEligibility>[0]), { allowed: false, reason: "unknown_data_class" });
+    }
+  }
+  assert.equal(evaluateCloudEligibility({ ...flags, dataClass: "public_safe" }).allowed, true);
+  assert.equal(evaluateCloudEligibility({ ...flags, dataClass: "internal_safe" }).allowed, true);
+  assert.equal(evaluateCloudEligibility({ ...flags, dataClass: "internal_safe", allowlisted: false }).allowed, false);
 });
 
 test("Cloud payload is allowlist-first and rejects direct identifiers", () => {
@@ -116,4 +112,23 @@ test("Cloud payload is allowlist-first and rejects direct identifiers", () => {
     ),
     false,
   );
+  const valid = { topic: "health_coverage", count: 28, qualified_rate: 0.4 };
+  const allowed = ["topic", "count", "qualified_rate"];
+  for (const boundary of [{ ...valid, count: 0, qualified_rate: 0 }, { ...valid, count: Number.MAX_SAFE_INTEGER, qualified_rate: 1 }]) {
+    assert.equal(cloudPayloadUsesOnlyAllowedKeys(boundary, allowed), true);
+  }
+  for (const payload of [
+    { ...valid, topic: { email: "PRIVATE_CANARY" } }, { ...valid, topic: "PRIVATE_CANARY" },
+    { ...valid, count: { health: "PRIVATE_CANARY" } }, { ...valid, qualified_rate: ["PRIVATE_CANARY"] },
+    { ...valid, notes: "PRIVATE_CANARY" }, { ...valid, count: NaN }, { ...valid, count: Infinity },
+    { ...valid, count: -1 }, { ...valid, count: 1.5 }, { ...valid, count: Number.MAX_SAFE_INTEGER + 1 },
+    { ...valid, qualified_rate: -0.1 }, { ...valid, qualified_rate: 1.1 }, { ...valid, qualified_rate: Infinity }, { ...valid, qualified_rate: NaN },
+    { topic: "health_coverage" }, { topic: "health_coverage", count: 28 }, {}, [], null,
+    Object.create({ ...valid }), { ...valid, [Symbol("private")]: "PRIVATE_CANARY" },
+  ]) assert.equal(cloudPayloadUsesOnlyAllowedKeys(payload, [...allowed, "notes"]), false);
+  assert.equal(cloudPayloadUsesOnlyAllowedKeys(valid, ["topic", "count"]), false);
+  let getterRead = false;
+  const accessor = { ...valid, get topic() { getterRead = true; return "health_coverage"; } };
+  assert.equal(cloudPayloadUsesOnlyAllowedKeys(accessor, allowed), false);
+  assert.equal(getterRead, false);
 });
