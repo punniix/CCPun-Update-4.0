@@ -39,6 +39,39 @@ test('Home hero uses one sizing rule for both CTA destinations at every breakpoi
   assert.match(source, /\.heroActions \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
+test('Legal body and native Cookie tables stay readable and allow long identifiers to fit at portrait and landscape widths', () => {
+  const source = readFileSync(new URL('../components/layout/website-43/Website43Legal.module.css', import.meta.url), 'utf8');
+  const { parse } = createRequire(import.meta.url)('postcss') as typeof import('postcss');
+  const sheet = parse(source);
+  function declarations(selector: string, width: number) {
+    const values: Record<string, string> = {};
+    sheet.walkRules((rule) => {
+      if (!rule.selectors.includes(selector)) return;
+      if (rule.parent?.type === 'atrule') {
+        const media = rule.parent as import('postcss').AtRule;
+        if (media.name !== 'media') return;
+        const max = Number(media.params.match(/max-width:\s*(\d+)px/)?.[1] ?? Infinity);
+        if (width > max || /prefers-/.test(media.params)) return;
+      }
+      rule.walkDecls((declaration) => { values[declaration.prop] = declaration.value; });
+    });
+    return values;
+  }
+  for (const width of [320, 390, 667, 844, 932, 1024, 1440]) {
+    for (const selector of ['.content p', '.content li', '.content address', '.content td', '.content th']) {
+      assert.equal(declarations(selector, width)['font-size'], '16px');
+      assert.equal(declarations(selector, width)['line-height'], '1.7');
+    }
+    const table = declarations('.content table', width);
+    assert.equal(table.width, '100%');
+    assert.equal(table['table-layout'], 'fixed');
+    assert.notEqual(table.display, 'block');
+    assert.equal(declarations('.content td', width)['overflow-wrap'], 'anywhere');
+    assert.equal(declarations('.content td:first-child', width).width, '40%');
+    assert.equal(declarations('.content a', width)['overflow-wrap'], 'anywhere');
+  }
+});
+
 test('native cookie controls retain consent choices and the 28px visual track inside a 44px hit area', () => {
   const { transpileModule, ModuleKind } = createRequire(import.meta.url)('typescript') as typeof import('typescript');
   const source = readFileSync(new URL('../features/analytics/components/CookieConsentPreferences.tsx', import.meta.url), 'utf8');

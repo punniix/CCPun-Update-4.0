@@ -166,7 +166,7 @@
 .reading { width: min(720px, 100%); }
 
 .eyebrow { margin: 0; color: var(--w43-gold); font-size: 14px; font-weight: 600; line-height: 1.45; }
-.h2 { margin: 20px 0 0; max-width: 900px; font-size: 38px; font-weight: 700; line-height: 1.18; }
+.h2 { margin: 20px 0 0; max-width: 900px; font-size: 38px; font-weight: 700; line-height: 1.4; }
 .lead { margin: 20px 0 0; max-width: 820px; color: var(--w43-muted); font-size: 17px; line-height: 1.5; }
 
 .primaryButton, .outlineButton {
@@ -344,7 +344,7 @@
 .prose :is(p, li, h2, h3, blockquote) a:hover { color: var(--w43-gold-bright); }
 .prose :is(p, li, h2, h3, blockquote) a:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 3px; }
 .prose > p:first-child { color: rgba(250,249,249,.9); font-size: 19px; line-height: 1.75; }
-.prose h2 { margin: 46px 0 14px; padding-top: 26px; border-top: 1px solid rgba(91,72,72,.62); color: var(--w43-ink); font-size: 30px; line-height: 1.28; }
+.prose h2 { margin: 46px 0 14px; padding-top: 26px; border-top: 1px solid rgba(91,72,72,.62); color: var(--w43-ink); font-size: 30px; line-height: 1.4; }
 .prose h3 { margin: 30px 0 10px; color: var(--w43-ink); font-size: 21px; line-height: 1.4; }
 .prose p { margin: 0 0 18px; }
 .prose ol, .prose ul { margin: 0 0 20px; padding-inline-start: 1.5em; list-style-position: outside; }
@@ -673,7 +673,7 @@
   .sectionTopLarge, .sectionBottomLarge { padding-top: 24px; padding-bottom: 24px; }
   .trustSection { padding: 24px; }
   .eyebrow { font-size: 14px; }
-  .h2 { margin-top: 16px; font-size: 28px; line-height: 1.25; font-weight: 600; }
+  .h2 { margin-top: 16px; font-size: 28px; line-height: 1.4; font-weight: 600; }
   .lead { margin-top: 16px; font-size: 16px; line-height: 1.45; }
 
   .homeHero { height: 740px; }
@@ -856,26 +856,33 @@
 .articleInlineFigure img { display: block; width: 100%; height: auto; border-radius: 14px; }
 .articleInlineFigure figcaption { margin-top: 8px; color: var(--w43-muted); font-size: 13px; line-height: 1.5; text-align: center; }
 .articleTableWrap { width: 100%; margin: 28px 0; overflow-x: auto; border: 1px solid var(--w43-border); border-radius: 14px; }
-.articleTable { width: 100%; min-width: 560px; border-collapse: collapse; color: var(--w43-muted); font-size: 14px; line-height: 1.55; }
+.articleTableWrap:focus-visible { outline: 2px solid var(--w43-gold-bright); outline-offset: 3px; }
+.articleTable { width: 100%; min-width: 560px; border-collapse: separate; border-spacing: 0; color: var(--w43-muted); font-size: 16px; line-height: 1.65; }
 .articleTable th, .articleTable td { padding: 12px 14px; border-bottom: 1px solid var(--w43-border); border-right: 1px solid var(--w43-border); text-align: left; vertical-align: top; }
 .articleTable th:last-child, .articleTable td:last-child { border-right: 0; }
 .articleTable tr:last-child td { border-bottom: 0; }
 .articleTable th { background: var(--w43-surface); color: var(--w43-ink); font-weight: 600; }
+@media (max-width: 639px) {
+  .articleTableWrap[data-wide-table='true'] .articleTable { table-layout: fixed; }
+  .articleTableWrap[data-wide-table='true'] .articleTable :is(th, td):first-child { position: sticky; left: 0; width: 144px; z-index: 1; background: var(--w43-bg); }
+  .articleTableWrap[data-wide-table='true'] .articleTable th:first-child { background: var(--w43-surface); }
+}
 .articleDivider { margin: 36px 0; border: 0; border-top: 1px solid var(--w43-border); }
+.prose > .articleDivider + h2 { margin-top: 24px; padding-top: 0; border-top: 0; }
 .articleCallout { margin: 28px 0; padding: 20px; border: 1px solid var(--w43-border); border-radius: 14px; background: var(--w43-surface); }
 .articleCallout strong { display: block; margin-bottom: 8px; color: var(--w43-gold); }
 .articleCallout p { margin: 0; }
 .articleSources { margin: 20px 0 0; padding-inline-start: 1.35em; list-style: disc outside; color: var(--w43-muted); font-size: 15px; line-height: 1.7; }
 .articleSources li { display: list-item; }
-.articleSources a { color: var(--w43-gold) !important; overflow-wrap: anywhere; }
+.articleSources a { color: var(--w43-gold) !important; overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 4px; }
 
 /* Website 4.3 article TOC hierarchy */
 .tocList, .tocMobileList { display: flex; flex-direction: column; gap: 2px; }
 .tocGroup { min-width: 0; }
 .tocGroupRow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px; align-items: start; }
 .tocToggle {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   margin: 1px 0 0;
@@ -895,9 +902,10 @@
 .tocToggle:focus-visible { color: var(--w43-gold-bright); outline: 1px solid rgba(224,201,133,.35); outline-offset: 1px; }
 .tocPrimary {
   display: grid !important;
+  min-height: 44px;
   grid-template-columns: 5px minmax(0,1fr);
   gap: 9px;
-  align-items: start;
+  align-items: center;
   margin: 0 !important;
   padding: 6px 0 !important;
   border-radius: 0;
@@ -910,7 +918,7 @@
 .tocPrimary > span {
   width: 4px;
   height: 4px;
-  margin-top: .55em;
+  margin-top: 0;
   border-radius: 999px;
   background: var(--w43-gold);
   box-shadow: none;
@@ -928,7 +936,9 @@
   border-left: 1px solid rgba(224,201,133,.2);
 }
 .tocSecondary {
-  display: block !important;
+  display: flex !important;
+  align-items: center;
+  min-height: 44px;
   margin: 0 !important;
   padding: 5px 0 !important;
   border-radius: 0;
@@ -1419,9 +1429,10 @@
 }
 
 /* UAT audit: preserve the visual system while making changing content fit. */
+.articleCard { display: flex; flex-direction: column; }
 .articleCardBody { flex: 1; }
 .articleMeta { margin-top: auto; }
-.carouselDotButton { width: 32px; height: 44px; padding: 0; background: transparent; position: relative; }
+.carouselDotButton { width: 44px; height: 44px; padding: 0; background: transparent; position: relative; }
 .carouselDotButton::after { content: ''; display: block; width: 9px; height: 9px; margin: auto; border-radius: 99px; background: var(--w43-border); }
 .carouselDotButtonActive { width: 44px; background: transparent; }
 .carouselDotButtonActive::after { width: 30px; background: var(--w43-gold); }

@@ -6,6 +6,29 @@ import { createRequire } from "node:module";
 const component = readFileSync(new URL("../features/money-story/components/MoneyStoryGame.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../features/money-story/MoneyStory.module.css", import.meta.url), "utf8");
 
+
+const { parse } = createRequire(import.meta.url)("postcss");
+const sheet = parse(styles);
+function declarationsAt(selector, width) {
+  const result = {};
+  function visit(container) {
+    for (const node of container.nodes ?? []) {
+      if (node.type === "atrule") {
+        if (node.name !== "media" || /hover|pointer|prefers-/.test(node.params)) continue;
+        const min = Number(node.params.match(/min-width:\s*(\d+)px/)?.[1] ?? 0);
+        const max = Number(node.params.match(/max-width:\s*(\d+)px/)?.[1] ?? Infinity);
+        if (width >= min && width <= max) visit(node);
+      } else if (node.type === "rule" && node.selector.split(",").map((item) => item.trim()).includes(selector)) {
+        for (const declaration of node.nodes) {
+          if (declaration.type === "decl") result[declaration.prop] = declaration.value;
+        }
+      }
+    }
+  }
+  visit(sheet);
+  return result;
+}
+
 test("Money Story month header keeps balances structured instead of a fragile inline sentence", () => {
   assert.match(component, /className=\{styles\.balanceSummary\}/);
   assert.match(component, /<small>เงินสดพร้อมใช้<\/small>/);
@@ -55,28 +78,7 @@ test("Money Story character choices keep readable roles and square portraits at 
 
 
 test("Money Story center-column headers allocate balances a separate row at tablet and narrow desktop widths", () => {
-  const { parse } = createRequire(import.meta.url)("postcss");
-  const sheet = parse(styles);
-  function declarationsAt(selector, width) {
-    const result = {};
-    function visit(container) {
-      for (const node of container.nodes ?? []) {
-        if (node.type === "atrule") {
-          if (node.name !== "media" || /hover|pointer|prefers-/.test(node.params)) continue;
-          const min = Number(node.params.match(/min-width:\s*(\d+)px/)?.[1] ?? 0);
-          const max = Number(node.params.match(/max-width:\s*(\d+)px/)?.[1] ?? Infinity);
-          if (width >= min && width <= max) visit(node);
-        } else if (node.type === "rule" && node.selector.split(",").map((item) => item.trim()).includes(selector)) {
-          for (const declaration of node.nodes) {
-            if (declaration.type === "decl") result[declaration.prop] = declaration.value;
-          }
-        }
-      }
-    }
-    visit(sheet);
-    return result;
-  }
-  for (const width of [320, 390, 680, 681, 820, 1120, 1121, 1439]) {
+  for (const width of [320, 390, 667, 680, 681, 820, 844, 932, 1024, 1120, 1121, 1439]) {
     assert.equal(declarationsAt(".monthStatus", width).display, "contents", String(width));
     const balance = declarationsAt(".balanceSummary", width);
     assert.equal(balance["grid-column"], "1/-1", String(width));
@@ -87,4 +89,24 @@ test("Money Story center-column headers allocate balances a separate row at tabl
     assert.equal(declarationsAt(".balanceSummary strong", width)["font-size"], "16px");
   }
   assert.equal(declarationsAt(".monthStatus", 1440).display, "flex");
+});
+
+
+test("Money Story cards keep readable body text and 52px actions while using a compact spacing rhythm", () => {
+  for (const width of [320, 390, 667, 680, 820, 844, 932, 1024, 1121, 1440]) {
+    assert.equal(declarationsAt(".card", width).padding, width <= 680 ? "16px" : "20px");
+    assert.equal(declarationsAt(".eventTitle", width)["font-size"], width <= 680 ? "24px" : "28px");
+    assert.equal(declarationsAt(".eventText", width)["font-size"], "16px");
+    assert.equal(declarationsAt(".eventText", width)["line-height"], "1.6");
+    assert.equal(declarationsAt(".choices", width)["margin-top"], "16px");
+    assert.equal(declarationsAt(".acknowledgement", width)["margin-top"], "16px");
+    assert.equal(declarationsAt(".shortfallActions", width)["margin-top"], "16px");
+    assert.equal(declarationsAt(".primary", width)["min-height"], "52px");
+    assert.equal(declarationsAt(".recoveryChoice", width)["min-height"], "52px");
+    assert.equal(declarationsAt(".recoveryChoice span", width)["font-size"], "14px");
+    assert.equal(declarationsAt(".card>h3", width).margin, "0");
+    assert.equal(declarationsAt(".resultSnapshot", width).padding, "16px");
+    assert.equal(declarationsAt(".resultHero h2", width)["font-size"], width <= 680 ? "28px" : "32px");
+  }
+  assert.doesNotMatch(styles, /line-clamp|max-height:\s*\d+px/);
 });

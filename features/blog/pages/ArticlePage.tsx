@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { draftMode } from "next/headers";
-import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
+import { IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import Website43Article from "@/features/blog/website-43/Website43Article";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   if (category !== finalCategory || slug !== finalSlug) return { robots: { index: false, follow: true } };
   const canonical = includeDrafts ? null : getArticleCanonical(article);
   const isDraft = includeDrafts || article.status !== "published";
-  const noindex = isDraft || article.noindex === true || !isArticleCanonicalAligned(article);
+  const noindex = IS_REVIEW_ENVIRONMENT || isDraft || article.noindex === true || !isArticleCanonicalAligned(article);
 
   return {
     title: article.seoTitle,

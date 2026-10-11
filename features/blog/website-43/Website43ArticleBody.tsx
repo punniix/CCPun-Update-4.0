@@ -71,10 +71,11 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return <details className={styles.articleDetails} key={key}><summary>{item.summary}</summary><p>{item.text}</p></details>;
     }
     if (item.type === 'table') {
+      const columnCount = item.rows.reduce((count, row) => Math.max(count, row.length), item.headers.length);
       return (
-        <ArticleTableAccess key={key}>
+        <ArticleTableAccess key={key} stickyFirstColumn={columnCount >= 3}>
           <table className={styles.articleTable}>
-            {item.headers.length > 0 && <thead><tr>{item.headers.map((header, cellIndex) => <th key={`${key}-header-${cellIndex}`}>{header}</th>)}</tr></thead>}
+            {item.headers.length > 0 && <thead><tr>{item.headers.map((header, cellIndex) => <th scope="col" key={`${key}-header-${cellIndex}`}>{header}</th>)}</tr></thead>}
             <tbody>{item.rows.map((row, rowIndex) => <tr key={`${key}-row-${rowIndex}`}>{row.map((cell, cellIndex) => <td key={`${key}-${rowIndex}-${cellIndex}`}>{cell}</td>)}</tr>)}</tbody>
           </table>
         </ArticleTableAccess>

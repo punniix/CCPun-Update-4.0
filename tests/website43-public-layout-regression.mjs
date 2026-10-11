@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { runInNewContext } from 'node:vm';
 
 const read = (path) => readFileSync(path, 'utf8');
 
@@ -49,6 +51,39 @@ test('Home and Article vertical rhythm use the reviewed public spacing', () => {
   assert.match(css, /\.articleHeader \{ padding: 56px 80px 34px;/);
   assert.match(css, /\.articleReadingWrap \{ padding: 38px 80px 72px;/);
   assert.match(css, /\.articleMetaRow \{[\s\S]*?border-top: 1px solid/);
+});
+
+test('Thai reading headings, explicit dividers and content links retain a clear reading rhythm', () => {
+  const require = createRequire(import.meta.url);
+  const { parse } = require('postcss');
+  const legalCss = read('components/layout/website-43/Website43Legal.module.css');
+  const sheet = parse(css + '\n' + legalCss);
+  const values = (selector) => {
+    const result = {};
+    sheet.walkRules((rule) => {
+      if (!rule.selectors.includes(selector)) return;
+      rule.walkDecls((declaration) => { result[declaration.prop] = declaration.value; });
+    });
+    return result;
+  };
+  for (const selector of ['.h2', '.prose h2']) {
+    sheet.walkRules((rule) => {
+      if (!rule.selectors.includes(selector)) return;
+      rule.walkDecls('line-height', (declaration) => assert.equal(declaration.value, '1.4'));
+    });
+    assert.equal(values(selector)['line-height'], '1.4');
+    assert.equal(values(selector).height, undefined, 'multiline headings grow with their content');
+  }
+  const dividerHeading = values('.prose > .articleDivider + h2');
+  assert.equal(dividerHeading['border-top'], '0', 'an explicit CMS divider supplies the only separator');
+  assert.equal(dividerHeading['padding-top'], '0');
+  assert.equal(dividerHeading['margin-top'], '24px');
+  assert.match(article, /<article className=\{styles\.prose\}>\{renderWebsite43ArticleBody/);
+  for (const selector of ['.articleSources a', '.content a']) {
+    assert.equal(values(selector)['text-decoration'], 'underline', 'content links do not rely only on colour');
+    assert.equal(values(selector)['text-underline-offset'], '4px');
+  }
+  assert.equal(values('.root a')['text-decoration'], 'none', 'navigation and button styling stays scoped');
 });
 
 test('article metadata hides redundant updated date when publish and update calendar dates match', () => {
@@ -103,11 +138,72 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{\s*inset: auto 0 0;\s*height: 150px;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 40%\);/);
   assert.match(responsive, /top: 252px;[^}]*height: auto;\s*object-fit: contain;\s*object-position: center center;\s*-webkit-mask-image: linear-gradient\(180deg/);
   assert.match(responsive, /-webkit-mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);\s*mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);/);
-  assert.match(responsive, /\.\$\{styles\.toolHero\} \.\$\{styles\.primaryButton\} \{\s*position: absolute;\s*top: 636px;/);
+  assert.doesNotMatch(responsive, /top: (?:548|636)px/);
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroImage \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/);
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroGradient \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*background: linear-gradient\(90deg,[^}]*rgba\(6,11,9,\.16\) 100%\);/);
   assert.match(css, /\.root \.toolHeroFullBleed \.primaryButton \{[^}]*width: clamp\(176px, 15\.28vw, 220px\);[^}]*min-height: 52px;/);
   assert.match(ci, /<Website43ToolHero[\s\S]*?<CILandingIntro \/>[\s\S]*?<section id="ci-calculator"/);
+});
+
+test('Tool heroes keep text and CTA in native flow at portrait, landscape and tablet sizes', () => {
+  const require = createRequire(import.meta.url);
+  const { transpileModule, ModuleKind } = require('typescript');
+  const exports = {};
+  runInNewContext(transpileModule(responsive, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
+    exports,
+    require: (name) => {
+      if (name === 'react/jsx-runtime') return require(name);
+      assert.equal(name, './Website43.module.css');
+      return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
+    },
+  });
+  const { parse } = require('postcss');
+  const sheet = parse(css + '\n' + exports.Website43ResponsiveStyles().props.children);
+  function declarations(selectors, width, height) {
+    const values = {};
+    const ranks = {};
+    sheet.walkRules((rule) => {
+      const matching = rule.selectors.filter((selector) => selectors.includes(selector));
+      if (!matching.length) return;
+      for (let parent = rule.parent; parent?.type !== 'root'; parent = parent.parent) {
+        if (parent.type !== 'atrule' || parent.name !== 'media') continue;
+        const query = parent.params;
+        if (/hover|pointer|prefers-/.test(query)) return;
+        for (const [axis, size] of [['width', width], ['height', height]]) {
+          const min = Number(query.match(new RegExp('min-' + axis + ':\\s*(\\d+)px'))?.[1] ?? 0);
+          const max = Number(query.match(new RegExp('max-' + axis + ':\\s*(\\d+)px'))?.[1] ?? Infinity);
+          if (size < min || size > max) return;
+        }
+        if (/orientation: landscape/.test(query) && width <= height) return;
+      }
+      const specificity = Math.max(...matching.map((selector) => (selector.match(/\./g) ?? []).length));
+      rule.walkDecls((declaration) => {
+        const rank = specificity + (declaration.important ? 100 : 0);
+        if (rank < (ranks[declaration.prop] ?? -1)) return;
+        ranks[declaration.prop] = rank;
+        values[declaration.prop] = declaration.value;
+      });
+    });
+    return values;
+  }
+  for (const [width, height] of [[320, 700], [390, 844], [667, 375], [844, 390], [932, 430], [820, 1180]]) {
+    const hero = declarations(['.toolHero'], width, height);
+    assert.equal(hero.height, 'auto');
+    assert.equal(hero['min-height'], width > height && height <= 500 ? '0' : width <= 639 ? '700px' : '600px');
+    const copy = declarations(['.toolHeroCopy'], width, height);
+    assert.equal(copy.position, 'relative');
+    assert.equal(copy.height, 'auto');
+    for (const selector of ['.toolBadge', '.toolTitle', '.toolDescription']) {
+      assert.equal(declarations([selector], width, height).position, 'static');
+    }
+    assert.equal(declarations(['.toolDescription'], width, height)['font-size'], '16px');
+    const action = declarations(['.primaryButton', '.toolHero .primaryButton', '.root .toolHero .primaryButton'], width, height);
+    assert.equal(action.position, 'static');
+    assert.equal(action['min-height'], '52px');
+    assert.equal(action['margin-top'], '24px');
+  }
+  assert.notEqual(declarations(['.toolHero'], 1440, 900).height, 'auto');
+  assert.equal(declarations(['.toolHeroCopy'], 1440, 900).position, 'absolute');
 });
 
 test('CI Planning keeps the TorYod project badge as secondary proof near the end of the tool page', () => {
@@ -207,5 +303,6 @@ test('Privacy and Cookie Policy use the Production Website 4.3 shell while prese
   assert.match(legalCss, /border: 1px solid var\(--w43-border\)/);
   assert.match(legalCss, /color: var\(--w43-gold-bright\)/);
   assert.match(legalCss, /@media \(max-width: 640px\)/);
-  assert.match(legalCss, /overflow-x: auto/);
+  assert.match(legalCss, /\.content table \{\s*width: 100%;\s*table-layout: fixed;/);
+  assert.match(legalCss, /\.content td,\s*\.content th \{\s*overflow-wrap: anywhere;/);
 });

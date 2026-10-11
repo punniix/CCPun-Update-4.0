@@ -132,8 +132,8 @@
 .content address,
 .content td,
 .content th {
-  font-size: 15px;
-  line-height: 1.72;
+  font-size: 16px;
+  line-height: 1.7;
 }
 
 .content :global(.text-foreground) {
@@ -147,6 +147,12 @@
 .content :global(.text-primary),
 .content a {
   color: var(--w43-gold-bright) !important;
+  overflow-wrap: anywhere;
+}
+
+.content a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .content :global(.bg-primary) {
@@ -166,7 +172,17 @@
 
 .content table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
+}
+
+.content td,
+.content th {
+  overflow-wrap: anywhere;
+}
+
+.content td:first-child {
+  width: 40%;
 }
 
 .content tbody tr + tr {
@@ -237,21 +253,6 @@
 
   .content h2 {
     font-size: 20px;
-  }
-
-  .content p,
-  .content li,
-  .content address,
-  .content td,
-  .content th {
-    font-size: 14px;
-  }
-
-  .content table {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .policyCard {

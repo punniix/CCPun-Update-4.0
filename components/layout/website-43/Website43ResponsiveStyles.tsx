@@ -431,6 +431,37 @@ export function Website43ResponsiveStyles() {
 }
 
 @media (max-width: 1023px) {
+  .${styles.toolHero} {
+    height: auto;
+    min-height: 600px;
+  }
+  .${styles.toolHeroCopy} {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    margin-inline: var(--w43-hero-gutter);
+    padding-top: 104px;
+    padding-bottom: 32px;
+  }
+  .${styles.toolBadge}, .${styles.toolTitle}, .${styles.toolDescription} {
+    position: static;
+  }
+  .${styles.toolDescription} {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .${styles.toolHeroGradient} {
+    height: 100%;
+  }
+  .${styles.root} .${styles.toolHero} .${styles.primaryButton} {
+    position: static;
+    width: 176px;
+    min-width: 176px;
+    min-height: 52px;
+    margin-top: 24px;
+  }
   .${styles.notFound} {
     height: auto;
     padding-top: 72px;
@@ -505,7 +536,8 @@ export function Website43ResponsiveStyles() {
   }
 
   .${styles.toolHero} {
-    height: 700px;
+    height: auto;
+    min-height: 700px;
   }
   .${styles.toolHeroImage} {
     top: 252px;
@@ -522,14 +554,15 @@ export function Website43ResponsiveStyles() {
   .${styles.toolHeroGradient} {
     inset: 0;
     width: 100%;
-    height: 700px;
+    height: 100%;
     background: linear-gradient(180deg,rgb(4,6,5) 0%,rgb(4,6,5) 34%,rgba(4,6,5,.88) 37%,rgba(4,6,5,.55) 40%,rgba(4,6,5,.25) 42%,rgba(4,6,5,0) 44%,rgba(4,6,5,0) 100%);
   }
   .${styles.toolHero}::after {
     content: '';
     position: absolute;
     z-index: 2;
-    top: 465px;
+    top: auto;
+    bottom: 0;
     right: 0;
     left: 0;
     height: 235px;
@@ -537,40 +570,28 @@ export function Website43ResponsiveStyles() {
     background: linear-gradient(180deg,rgba(4,5,4,.1) 0%,rgba(4,5,4,.34) 22%,rgba(4,5,4,.58) 52%,rgba(4,5,4,.7) 78%,rgba(4,5,4,.74) 100%);
   }
   .${styles.toolHeroCopy} {
+    position: relative;
     top: 0;
-    left: var(--w43-hero-gutter);
-    width: calc(100% - var(--w43-hero-gutter) - var(--w43-hero-gutter));
-    height: 700px;
+    left: 0;
+    width: auto;
+    height: auto;
   }
   .${styles.toolBadge} {
-    position: absolute;
-    top: 104px;
-    left: 0;
+    position: static;
   }
   .${styles.toolTitle} {
-    position: absolute;
-    top: 164px;
-    left: 0;
+    position: static;
     width: 100%;
-    margin: 0;
+    margin: 20px 0 0;
     font-size: 30px;
     line-height: 39px;
   }
   .${styles.toolDescription} {
-    position: absolute;
-    top: 548px;
-    left: 0;
+    position: static;
     width: 100%;
-    margin: 0;
-    font-size: 15px;
+    margin: 240px 0 0;
+    font-size: 16px;
     line-height: 1.6;
-  }
-  .${styles.toolHero} .${styles.primaryButton} {
-    position: absolute;
-    top: 636px;
-    left: 0;
-    min-width: 140px;
-    margin: 0;
   }
 
   .${styles.notFound} {
@@ -598,6 +619,14 @@ export function Website43ResponsiveStyles() {
     padding-right: var(--w43-hero-gutter);
     padding-bottom: 24px;
     padding-left: var(--w43-hero-gutter);
+  }
+}
+@media (max-width: 1023px) and (max-height: 500px) and (orientation: landscape) {
+  .${styles.toolHero} {
+    min-height: 0;
+  }
+  .${styles.toolDescription} {
+    margin-top: 24px;
   }
 }
 `;
