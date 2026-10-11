@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const read = (path) => readFileSync(path, 'utf8');
 
 const css = read('components/layout/website-43/Website43.module.css');
+const navbarCss = read('components/layout/website-43/Website43Navbar.module.css');
 const functionalCss = read('components/ui/FunctionalMotion.module.css');
 const home = read('features/home/website-43/Website43Home.tsx');
 const blog = read('features/blog/website-43/Website43Blog.tsx');
@@ -106,7 +107,10 @@ test('FAQ article details TOC and menus keep their short feedback motion', () =>
   assert.match(css, /\.faqItem\[open\] \.faqAnswer/);
   assert.match(css, /\.tocSublist:not\(\[hidden\]\)/);
   assert.match(css, /animation: w43DisclosureIn \.18s/);
-  assert.match(css, /\.navDropdown, \.mobileMenu, \.mobileSubmenu, \.categoryMenuPanel/);
+  assert.match(css, /\.categoryMenuPanel \{\s*transition: opacity \.18s/);
+  assert.match(navbarCss, /\.navChevron \{[^}]*transition: transform \.18s ease/);
+  assert.match(navbarCss, /\.navDropdown a \{[^}]*transition: background \.15s ease, color \.15s ease/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.root \*, \.root \*::before, \.root \*::after \{ transition: none !important; animation: none !important/);
   assert.match(css, /@starting-style/);
   assert.match(css, /translate: 0 -6px/);
 });
