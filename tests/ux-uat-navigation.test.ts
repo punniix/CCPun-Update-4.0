@@ -17,11 +17,12 @@ test('public navigation, footer and Money Story expose 44px targets without chan
     assert.ok(start >= 0, selector);
     return source.slice(start, source.indexOf('}', start));
   }
-  for (const [source, selector] of [[navCss, '.brandLink'], [navCss, '.mobileSubmenu a'], [sharedCss, '.mobileSubmenu a'],
+  for (const [source, selector] of [[navCss, '.brandLink'], [navCss, '.mobileSubmenu a'],
     [sharedCss, '.footerColumn a'], [sharedCss, '.root .footerColumn .footerCookieButton'], [sharedCss, '.footerCompact nav a'], [sharedCss, '.gameEntry a']]) {
     const minimumHeight = Number(rule(source, selector).match(/min-height: (\d+)px/)?.[1]);
     assert.ok(minimumHeight >= 44, selector + ': touch target must be at least 44px');
   }
+  assert.doesNotMatch(sharedCss, /\.mobileSubmenu\b/, 'mobile submenu styling belongs only to the Navbar module');
   assert.match(rule(sharedCss, '.footerCompact nav a'), /min-width: 44px/);
   assert.match(rule(navCss, '.brandLink:focus-visible'), /outline: 2px solid/);
   assert.match(sharedCss, /\.root :is\(a, button, input, select, textarea, summary\):focus-visible \{ outline: 2px solid/);
