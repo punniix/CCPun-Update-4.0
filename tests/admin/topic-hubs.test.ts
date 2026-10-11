@@ -128,7 +128,7 @@ test("hub route resolves real hubs before any legacy one-segment redirect fallba
   assert.ok(legacyFallback > hubLookup, "topic hubs must be resolved before legacy redirect fallback");
   assert.match(categoryPage, /alternates:\s*\{ canonical \}/);
   assert.match(categoryPage, /const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled/);
-  assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
+  assert.match(categoryPage, /const shouldIndexHub = !IS_REVIEW_ENVIRONMENT && !includeDrafts && hub\.indexable && relevantIndexableArticles\.length > 0;/);
   assert.match(categoryPage, /buildBlogTopicHubSchema\(hub, relevantIndexableArticles\)/);
   assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
   assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles\)\}/);
