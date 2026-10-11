@@ -3,6 +3,8 @@ import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
 import { SECURITY_HEADERS } from "@/lib/security-policy";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 
+const TAX_SLUG_MIGRATION = "/blog/personal-finance/personal-income-tax-calculation-2569";
+
 export function hostingerRedirectUrl(request: Request): URL | null {
   const url = new URL(request.url);
   const pathname = url.pathname;
@@ -18,7 +20,7 @@ export function hostingerRedirectUrl(request: Request): URL | null {
     }
   }
   for (const [prefix, destination] of [
-    ["/blog/personal-finance/personal-income-tax-calculation-2569", "/blog/personal-finance/personal-income-tax-calculation/"],
+    [TAX_SLUG_MIGRATION, "/blog/personal-finance/personal-income-tax-calculation/"],
     ["/living-benefits", "/ci-planning/"],
     ["/tools/fhc", "/tools/financial-health-check/"],
     ["/financial-advisor", "/"],
@@ -47,7 +49,11 @@ export default function proxy(request: Request & { nextUrl: URL }) {
   if (process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger") {
     const destination = hostingerRedirectUrl(request);
     if (destination) {
-      const response = NextResponse.redirect(destination, 308);
+      // Preserve the original 301 contract for the published tax URL migration.
+      // Other Hostinger redirects retain their existing 308 semantics.
+      const isTaxSlugMigration = pathname === TAX_SLUG_MIGRATION
+        || pathname.startsWith(`${TAX_SLUG_MIGRATION}/`);
+      const response = NextResponse.redirect(destination, isTaxSlugMigration ? 301 : 308);
       for (const { key, value } of SECURITY_HEADERS) response.headers.set(key, value);
       if (IS_REVIEW_ENVIRONMENT) response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
       return response;
