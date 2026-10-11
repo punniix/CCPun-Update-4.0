@@ -498,7 +498,7 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
         <h3>ข้อมูลเพิ่มเติมเกี่ยวกับกองทุน</h3>
         <div className={styles.specList}>
           {fund.masterFund ? <span>กองทุนหลักที่ลงทุนต่อ: {fund.masterFund}{fund.feederCountry ? ` · ${fund.feederCountry}` : ""}</span> : null}
-          {detail.specifications.map((spec) => <span key={`${spec.className}-${spec.code}`}>{spec.description}</span>)}
+          {[...new Set(detail.specifications.map((spec) => spec.description))].map((description) => <span key={description}>{description}</span>)}
         </div>
       </section> : null}
 

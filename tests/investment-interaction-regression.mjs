@@ -22,12 +22,13 @@ function runtime(text, name) {
   const context = {
     URLSearchParams, Date, Boolean,
     catalogRequest: { current: 0 }, detailRequest: { current: 0 },
+    searchRequest: { current: 0 }, detailRequests: { current: new Map() }, selectedIds: { current: new Set() },
     trackEvent: () => { state.events = (state.events || 0) + 1; },
     document: { getElementById: () => null },
     window: { setTimeout: (callback) => callback(), matchMedia: () => ({ matches: true }) },
     fetch: () => new Promise((resolve) => pending.push(resolve)),
   };
-  for (const key of ['Catalog', 'CatalogLoading', 'CatalogAppending', 'SelectedFund', 'Detail', 'DetailLoading', 'SaveStatus', 'PlanId', 'Searching', 'SearchState']) {
+  for (const key of ['Catalog', 'CatalogLoading', 'CatalogAppending', 'SelectedFund', 'Detail', 'DetailLoading', 'SaveStatus', 'PlanId', 'Searching', 'SearchState', 'SelectedFunds', 'SelectedDetails']) {
     context[`set${key}`] = (value) => { state[key] = typeof value === 'function' ? value(state[key]) : value; };
   }
   const invoke = runInNewContext(`${functionSource(text, name)}\n${name};`, context);
@@ -152,4 +153,105 @@ test('portfolio HTTP errors become an unavailable result instead of parsed error
   assert.equal(run.state.SearchState.state, 'unavailable');
   assert.equal(run.state.SearchState.funds.length, 0);
   assert.equal(run.state.Searching, false);
+});
+
+test('portfolio search ignores old results and old finally while the later search is loading', async () => {
+  const run = runtime(portfolio, 'searchFunds');
+  run.context.query = 'old';
+  const old = run.invoke({ preventDefault() {} });
+  run.context.query = 'latest';
+  const latest = run.invoke({ preventDefault() {} });
+  run.respond(0, { funds: [{ id: 'old' }] });
+  await old;
+  assert.equal(run.state.SearchState, null);
+  assert.equal(run.state.Searching, true);
+  run.respond(1, { funds: [{ id: 'latest' }] });
+  await latest;
+  assert.equal(run.state.SearchState.funds[0].id, 'latest');
+  assert.equal(run.state.Searching, false);
+});
+
+function portfolioDetailRuntime() {
+  const state = { SelectedFunds: [{ fund: { id: 'a', projectId: 'A' }, weightPercent: 60 }, { fund: { id: 'b', projectId: 'B' }, weightPercent: 40 }], SelectedDetails: {} };
+  const pending = [];
+  const requests = [];
+  const context = {
+    URLSearchParams, Map, Set,
+    detailRequests: { current: new Map() }, selectedIds: { current: new Set(['a', 'b']) },
+    setSaveStatus: () => {},
+    setSelectedDetails: (update) => { state.SelectedDetails = update(state.SelectedDetails); },
+    setSelectedFunds: (update) => { state.SelectedFunds = update(state.SelectedFunds); },
+    planningFundFromDetail: (fund, detail, selectedClass) => {
+      if (detail.fund.projectId !== fund.projectId || (selectedClass && detail.selectedClassName !== selectedClass)) throw Error('identity');
+      return { ...fund, className: selectedClass, riskSpectrum: detail.risk }; // Mapper has separate actual-module tests.
+    },
+    fetch: (url) => { requests.push(url); return new Promise(resolve => pending.push(resolve)); },
+  };
+  const load = runInNewContext(`${functionSource(portfolio, 'loadSelectedDetail')}\nloadSelectedDetail;`, context);
+  const remove = runInNewContext(`${functionSource(portfolio, 'removeFund')}\nremoveFund;`, context);
+  const respond = (index, projectId, selectedClassName, ok = true) => pending[index]({ ok, status: ok ? 200 : 503, json: async () => ({ fund: { projectId }, selectedClassName, risk: index + 1 }) });
+  return { state, context, requests, load, remove, respond };
+}
+
+test('portfolio independent project and class requests preserve weights and reject stale class responses', async () => {
+  const run = portfolioDetailRuntime();
+  const old = run.load({ id: 'a', projectId: 'A' }, 'class-old');
+  const other = run.load({ id: 'b', projectId: 'B' }, 'class-B');
+  const latest = run.load({ id: 'a', projectId: 'A' }, 'class-new');
+  assert.match(run.requests[2], /class_name=class-new/);
+  run.respond(1, 'B', 'class-B'); await other;
+  run.respond(2, 'A', 'class-new'); await latest;
+  run.respond(0, 'A', 'class-old'); await old;
+  assert.deepEqual(run.state.SelectedFunds.map(row => row.weightPercent), [60, 40]);
+  assert.equal(run.state.SelectedFunds[0].fund.className, 'class-new');
+  assert.equal(run.state.SelectedFunds[1].fund.className, 'class-B');
+  assert.equal(run.state.SelectedDetails.a.requestedClass, 'class-new');
+});
+
+test('removal invalidates pending detail and failures or identity mismatch cannot create selected facts', async () => {
+  const run = portfolioDetailRuntime();
+  const removed = run.load({ id: 'a', projectId: 'A' }, null);
+  run.remove('a'); run.respond(0, 'A', null); await removed;
+  assert.equal(run.state.SelectedFunds.length, 1);
+  assert.equal(run.state.SelectedDetails.a, undefined);
+  const mismatch = run.load({ id: 'b', projectId: 'B' }, 'class-B');
+  run.respond(1, 'OTHER', 'class-B'); await mismatch;
+  assert.equal(run.state.SelectedDetails.b.state, 'unavailable');
+  assert.equal(run.state.SelectedFunds[0].fund.className, undefined);
+  const failed = run.load({ id: 'b', projectId: 'B' }, 'class-B');
+  run.respond(2, 'B', 'class-B', false); await failed;
+  assert.equal(run.state.SelectedDetails.b.state, 'unavailable');
+  assert.equal(run.state.SelectedFunds[0].fund.riskSpectrum, undefined);
+});
+
+test('single display removes only identical repeated specification labels, retaining exact distinct labels in source order', () => {
+  const expression = single.match(/\{(\[\.\.\.new Set\(detail\.specifications\.map\(\(spec\) => spec\.description\)\)\])\.map/)?.[1];
+  assert.ok(expression);
+  const descriptions = ['Same', 'Distinct', 'Same', 'Same '];
+  const detail = { specifications: descriptions.map((description, index) => ({ description, code: index, className: 'A' })) };
+  assert.deepEqual(Array.from(runInNewContext(expression, { detail, Set })), ['Same', 'Distinct', 'Same ']);
+  assert.equal(detail.specifications.length, 4, 'source facts and provenance are not deduplicated');
+});
+
+
+test('rapid add is unique and remove/re-add invalidates an earlier detail for the same project', async () => {
+  const run = portfolioDetailRuntime();
+  run.state.SelectedFunds = [];
+  run.context.selectedIds.current.clear();
+  run.context.loadSelectedDetail = run.load;
+  const add = runInNewContext(`${functionSource(portfolio, 'addFund')}\naddFund;`, run.context);
+  const fund = { id: 'a', projectId: 'A', constructionBucket: 'equity' };
+  add(fund); add(fund);
+  assert.equal(run.state.SelectedFunds.length, 1);
+  assert.equal(run.requests.length, 1, 'rapid duplicate clicks create one request');
+  run.remove('a'); add(fund);
+  assert.equal(run.requests.length, 2);
+  run.respond(1, 'A', null);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(run.state.SelectedDetails.a.state, 'ready');
+  assert.equal(run.state.SelectedFunds[0].fund.riskSpectrum, 2);
+  run.respond(0, 'A', null);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(run.state.SelectedFunds.length, 1);
+  assert.equal(run.state.SelectedFunds[0].fund.riskSpectrum, 2, 'removed instance cannot replace re-added facts');
 });

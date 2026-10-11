@@ -1,9 +1,10 @@
 'use client';
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { allocationTotal, calculatePlan, constructionCoverageMatches, createAdvisorHandoffPayload, isAllocationComplete, percentForAmount } from "./domain/calculation";
-import type { AllocationRow, AssetBucket, ConstructionBucket, FundSearchResponse, InvestmentPlanResult, PlanningFund, SelectedFund } from "./domain/types";
+import { planningFundFromDetail } from "./domain/detail-to-planning";
+import type { AllocationRow, AssetBucket, ConstructionBucket, FundDetailResponse, FundSearchResponse, InvestmentPlanResult, PlanningFund, SelectedFund } from "./domain/types";
 import styles from "./InvestmentAllocation.module.css";
 
 const CONSTRUCTION_LABELS: Record<ConstructionBucket, string> = {
@@ -77,6 +78,20 @@ export default function PortfolioBuilder() {
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const searchRequest = useRef(0);
+  const detailRequests = useRef(new Map<string, number>());
+  const selectedIds = useRef(new Set<string>());
+  const [selectedDetails, setSelectedDetails] = useState<Record<string, {
+    state: "loading" | "ready" | "unavailable";
+    detail: FundDetailResponse | null;
+    requestedClass: string | null;
+  }>>({});
+
+  useEffect(() => () => {
+    searchRequest.current++;
+    for (const [id, generation] of detailRequests.current) detailRequests.current.set(id, generation + 1);
+    selectedIds.current.clear();
+  }, []);
 
   const parsedAmount = Number(investmentAmount.replace(/,/g, ""));
   const amount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 0;
@@ -84,7 +99,11 @@ export default function PortfolioBuilder() {
   const selectedTotal = allocationTotal(selectedFunds.map((selected) => ({ key: selected.fund.id, percent: selected.weightPercent })));
   const targetTotal = allocationTotal(target);
   const constructionValid = amount > 0 && isAllocationComplete(construction);
-  const selectedValid = selectedFunds.length > 0 && isAllocationComplete(selectedFunds.map((selected) => ({ key: selected.fund.id, percent: selected.weightPercent }))) && constructionCoverageMatches(construction, selectedFunds);
+  const detailsReady = selectedFunds.every(({ fund }) =>
+    selectedDetails[fund.id]?.state === "ready" &&
+    (!selectedDetails[fund.id].detail?.classes.length || Boolean(fund.className))
+  );
+  const selectedValid = selectedFunds.length > 0 && detailsReady && isAllocationComplete(selectedFunds.map((selected) => ({ key: selected.fund.id, percent: selected.weightPercent }))) && constructionCoverageMatches(construction, selectedFunds);
   const targetValid = targetTotal === 0 || isAllocationComplete(target);
 
   const result = useMemo(() => {
@@ -127,23 +146,49 @@ export default function PortfolioBuilder() {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
+    const request = ++searchRequest.current;
     setSearching(true);
     setSearchState(null);
     try {
       const response = await fetch(`/api/investment-allocation/funds/?q=${encodeURIComponent(trimmed)}`, { method: "GET", headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`funds_${response.status}`);
       const data = await response.json() as FundSearchResponse;
+      if (request !== searchRequest.current) return;
       setSearchState(data);
     } catch {
-      setSearchState({ mode: "uat_demo", state: "unavailable", query: trimmed, funds: [], message: "ค้นหาไม่สำเร็จชั่วคราว ลองใหม่อีกครั้ง", fetchedAt: new Date().toISOString() });
+      if (request !== searchRequest.current) return;
+      setSearchState({ mode: "sec_live", state: "unavailable", query: trimmed, funds: [], message: "ค้นหาไม่สำเร็จชั่วคราว ลองใหม่อีกครั้ง", fetchedAt: new Date().toISOString() });
     } finally {
-      setSearching(false);
+      if (request === searchRequest.current) setSearching(false);
     }
   }
 
   function addFund(fund: PlanningFund) {
-    if (!fund.constructionBucket) return;
+    if (!fund.constructionBucket || selectedIds.current.has(fund.id)) return;
+    selectedIds.current.add(fund.id);
     setSelectedFunds((current) => current.some((selected) => selected.fund.id === fund.id) ? current : [...current, { fund, weightPercent: 0, selectionSource: "customer" }]);
+    void loadSelectedDetail(fund, null);
+  }
+
+  async function loadSelectedDetail(fund: PlanningFund, requestedClass: string | null) {
+    const request = (detailRequests.current.get(fund.id) ?? 0) + 1;
+    detailRequests.current.set(fund.id, request);
+    setSaveStatus(null);
+    setSelectedDetails((current) => ({ ...current, [fund.id]: { state: "loading", detail: current[fund.id]?.detail ?? null, requestedClass } }));
+    try {
+      const params = new URLSearchParams({ proj_id: fund.projectId });
+      if (requestedClass) params.set("class_name", requestedClass);
+      const response = await fetch(`/api/investment-allocation/detail/?${params}`, { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error(`detail_${response.status}`);
+      const detail = await response.json() as FundDetailResponse;
+      if (detailRequests.current.get(fund.id) !== request || !selectedIds.current.has(fund.id)) return;
+      const hydrated = planningFundFromDetail(fund, detail, requestedClass);
+      setSelectedFunds((current) => current.map((selected) => selected.fund.id === fund.id ? { ...selected, fund: hydrated } : selected));
+      setSelectedDetails((current) => ({ ...current, [fund.id]: { state: "ready", detail, requestedClass } }));
+    } catch {
+      if (detailRequests.current.get(fund.id) !== request || !selectedIds.current.has(fund.id)) return;
+      setSelectedDetails((current) => ({ ...current, [fund.id]: { state: "unavailable", detail: current[fund.id]?.detail ?? null, requestedClass } }));
+    }
   }
 
   function updateSelectedWeight(id: string, weightPercent: number) {
@@ -151,7 +196,10 @@ export default function PortfolioBuilder() {
   }
 
   function removeFund(id: string) {
+    selectedIds.current.delete(id);
+    detailRequests.current.set(id, (detailRequests.current.get(id) ?? 0) + 1);
     setSelectedFunds((current) => current.filter((selected) => selected.fund.id !== id));
+    setSelectedDetails((current) => { const next = { ...current }; delete next[id]; return next; });
   }
 
   function ensurePlanId(): string {
@@ -282,6 +330,49 @@ export default function PortfolioBuilder() {
                   <div className={styles.selectedList}>
                     {selectedFunds.map((selected) => <article className={styles.fundCard} key={selected.fund.id}>
                       <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{selected.fund.name}</strong><small>{selected.fund.constructionBucket ? CONSTRUCTION_LABELS[selected.fund.constructionBucket] : "ยังไม่ระบุประเภท"}</small></div><span className={styles.sourceBadge}>คุณเลือกเอง</span></div>
+                      {selectedDetails[selected.fund.id]?.state === "loading" ? (
+                        <p className={styles.provenance} role="status">กำลังโหลดข้อมูลกองและชนิดหน่วยที่เลือก</p>
+                      ) : null}
+                      {selectedDetails[selected.fund.id]?.state === "unavailable" ? (
+                        <div className={styles.statusNotice} role="status">
+                          โหลดรายละเอียดไม่สำเร็จ ยังนำกองนี้ไปสรุปแผนไม่ได้
+                          <button className={styles.smallButton} type="button" onClick={() => void loadSelectedDetail(selected.fund, selectedDetails[selected.fund.id].requestedClass)}>ลองโหลดอีกครั้ง</button>
+                        </div>
+                      ) : null}
+                      {selectedDetails[selected.fund.id]?.detail?.classes.length ? (
+                        <label className={styles.fieldGroup}>
+                          <span className={styles.fieldLabel}>ชนิดหน่วยลงทุน</span>
+                          <select
+                            className={styles.amcSelect}
+                            aria-label={`ชนิดหน่วย ${selected.fund.name}`}
+                            value={selectedDetails[selected.fund.id].requestedClass ?? ""}
+                            disabled={selectedDetails[selected.fund.id].state === "loading"}
+                            onChange={(event) => void loadSelectedDetail(selected.fund, event.target.value || null)}
+                          >
+                            <option value="">เลือกชนิดหน่วยด้วยตัวคุณเอง</option>
+                            {[...new Map(selectedDetails[selected.fund.id].detail!.classes.map(row => [row.name, row])).values()].map(row => (
+                              <option key={row.name} value={row.name}>{row.name}{row.description ? ` · ${row.description}` : ""}</option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      {selectedDetails[selected.fund.id]?.state === "ready" ? (
+                        <>
+                          <div className={styles.fundFacts}>
+                            <span>ความเสี่ยงระดับ {selected.fund.riskSpectrum ?? "ยังไม่มีข้อมูล"}</span>
+                            <span>{selected.fund.liquidity.rawText ?? "ยังไม่มีข้อมูลรับเงินสำหรับชนิดหน่วยที่เลือก"}</span>
+                          </div>
+                          <details>
+                            <summary className={styles.smallButton}>ดูสัดส่วนที่กองรายงานและวันที่ข้อมูล</summary>
+                            <ul className={styles.warningList}>
+                              {selectedDetails[selected.fund.id].detail!.assetAllocation.map((row, index) => (
+                                <li key={index}>{row.name}: {row.percentNav}% · วันที่ข้อมูล {row.sourceDate ?? "ยังไม่ระบุ"}</li>
+                              ))}
+                            </ul>
+                            {selected.fund.provenance.notes.map((note, index) => <p className={styles.provenance} key={index}>{note}</p>)}
+                          </details>
+                        </>
+                      ) : null}
                       <div className={styles.selectedControl}>
                         <label><span>สัดส่วนในพอร์ต</span><div className={styles.percentWrap}><span>%</span><input className={styles.percentInput} type="number" min="0" max="100" step="1" aria-label={`สัดส่วน ${selected.fund.name}`} value={selected.weightPercent || ""} onChange={(event) => updateSelectedWeight(selected.fund.id, safePercent(event.target.value))} /></div></label>
                         <button type="button" onClick={() => removeFund(selected.fund.id)}>เอาออก</button>

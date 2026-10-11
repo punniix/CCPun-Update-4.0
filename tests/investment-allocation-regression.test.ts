@@ -11,7 +11,8 @@ import {
   percentForAmount,
 } from "../features/investment-allocation/domain/calculation";
 import { UAT_SYNTHETIC_FUNDS } from "../features/investment-allocation/server/demo-funds";
-import type { AllocationRow, AssetBucket, ConstructionBucket, SelectedFund } from "../features/investment-allocation/domain/types";
+import { planningFundFromDetail } from "../features/investment-allocation/domain/detail-to-planning";
+import type { AllocationRow, AssetBucket, ConstructionBucket, FundDetailResponse, PlanningFund, SelectedFund } from "../features/investment-allocation/domain/types";
 
 function fund(id: string) {
   const match = UAT_SYNTHETIC_FUNDS.find((row) => row.id === id);
@@ -22,6 +23,64 @@ function fund(id: string) {
 function selected(id: string, weightPercent: number): SelectedFund {
   return { fund: fund(id), weightPercent, selectionSource: "customer" };
 }
+
+function liveDetail(): { fund: PlanningFund; detail: FundDetailResponse } {
+  const original = fund("uat-mixed-01");
+  const live: PlanningFund = { ...original, projectId: "M0001_2567", className: null, assetAllocation: [], provenance: { ...original.provenance, source: "sec_v2", snapshotIds: [], state: "partial" } };
+  return { fund: live, detail: {
+    source: "sec_v2", state: "fresh",
+    fund: { projectId: live.projectId, amcId: "EXAMPLE", amcNameTh: "ตัวอย่าง", amcNameEn: null, nameTh: live.name, nameEn: null, abbreviation: live.shortName, fundStatus: "Registered", policyDesc: "ผสม", category: "mixed", investCountryFlag: "3", managementStyle: null, masterFund: null, feederCountry: null, lastUpdated: "2026-08-31" },
+    classes: [{ name: "A", detail: null, description: null, taxIncentiveType: null, isin: null }, { name: "Z", detail: null, description: null, taxIncentiveType: null, isin: null }],
+    selectedClassName: "A", specifications: [], risk: { level: 5, rawCode: "RS5", description: null, sourceDate: "2026-08-31", lastUpdated: null },
+    assetAllocation: [{ name: "ตราสารทุน", percentNav: 60, sourceDate: "2026-08-31", lastUpdated: null }, { name: "เงินฝาก", percentNav: 20, sourceDate: "2026-08-31", lastUpdated: null }, { name: "unknown label", percentNav: 20, sourceDate: "2026-08-31", lastUpdated: null }],
+    dealing: { className: "A", subscriptionPeriod: null, subscriptionPeriodOther: null, redemptionPeriod: null, redemptionPeriodOther: null, settlementPeriod: "T+2", settlementBucket: "T+2", sourceDate: "2026-08-31", lastUpdated: null },
+    dataDate: "2026-08-31", fetchedAt: "2026-10-11T00:00:00Z", warnings: [], endpointStates: { profile: "ok", allocation: "ok", risk: "ok", dealing: "ok" },
+  } };
+}
+
+test("selected live detail preserves verified exposure, risk/class liquidity and unrecognized coverage without normalization", () => {
+  const { fund, detail } = liveDetail();
+  const hydrated = planningFundFromDetail(fund, detail, "A");
+  assert.equal(hydrated.className, "A");
+  assert.equal(hydrated.riskSpectrum, 5);
+  assert.equal(hydrated.liquidity.normalized, "T+2");
+  assert.deepEqual(hydrated.assetAllocation.map(row => [row.asset, row.percent]), [["equity", 60], ["cash", 20]]);
+  const result = calculatePlan({ investmentAmount: 100_000, fundConstructionAllocation: [{ key: "mixed", percent: 100 }], targetAssetAllocation: [{ key: "equity", percent: 100 }], selectedFunds: [{ fund: hydrated, weightPercent: 100, selectionSource: "customer" }] });
+  assert.equal(result.effectiveAllocation.find(row => row.key === "unknown")?.percent, 20);
+  assert.equal(result.targetDelta.every(row => !row.conclusive), true);
+  assert.equal(hydrated.provenance.sourceDate, "2026-08-31");
+  assert.equal(hydrated.provenance.fetchedAt, "2026-10-11T00:00:00Z");
+  assert.equal(detail.assetAllocation.length, 3, "raw reported facts remain intact for display");
+});
+
+test("selected detail never auto-selects a share class or accepts mismatched project/source/class", () => {
+  const { fund, detail } = liveDetail();
+  const pendingChoice = planningFundFromDetail(fund, detail, null);
+  assert.equal(pendingChoice.className, null, "server main/sole class choice cannot substitute for customer choice");
+  assert.equal(pendingChoice.liquidity.normalized, "unknown");
+  assert.throws(() => planningFundFromDetail(fund, detail, "Z"), /class_mismatch/);
+  assert.throws(() => planningFundFromDetail({ ...fund, projectId: "OTHER" }, detail, "A"), /identity_unavailable/);
+  assert.throws(() => planningFundFromDetail(fund, { ...detail, source: "uat_synthetic" }, "A"), /identity_unavailable/);
+});
+
+test("negative or over-100 raw allocation stays fully unknown while independently supported risk and liquidity remain factual", () => {
+  const { fund, detail } = liveDetail();
+  for (const raw of [[65.97, 31.99, 2.6, -0.56], [101, 0, 0, 0]]) {
+    const reported = { ...detail, assetAllocation: ["หุ้นกู้", "พันธบัตร", "เงินฝาก", "อื่นๆ"].map((name, i) => ({ name, percentNav: raw[i], sourceDate: "2026-09-11", lastUpdated: null })) };
+    const hydrated = planningFundFromDetail(fund, reported, "A");
+    assert.deepEqual(hydrated.assetAllocation, []);
+    assert.equal(hydrated.riskSpectrum, 5);
+    assert.equal(hydrated.liquidity.normalized, "T+2");
+    assert.equal(reported.assetAllocation[3].percentNav, raw[3]);
+    assert.match(hydrated.provenance.notes.join(" "), /ไม่ปรับสัดส่วนต้นทาง/);
+  }
+});
+
+test("only verified exact SEC asset labels map; incidental or prototype names cannot become exposure", () => {
+  const { fund, detail } = liveDetail();
+  const reported = { ...detail, assetAllocation: ["หุ้นกู้", "พันธบัตร", "toString", "ตราสารทุนอื่น"].map(name => ({ name, percentNav: 25, sourceDate: null, lastUpdated: null })) };
+  assert.deepEqual(planningFundFromDetail(fund, reported, "A").assetAllocation.map(row => row.asset), ["fixed_income", "fixed_income"]);
+});
 
 const target505015: AllocationRow<Exclude<AssetBucket, "unknown">>[] = [
   { key: "equity", percent: 50 },
