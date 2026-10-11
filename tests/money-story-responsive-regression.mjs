@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createRequire } from "node:module";
 
 const component = readFileSync(new URL("../features/money-story/components/MoneyStoryGame.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../features/money-story/MoneyStory.module.css", import.meta.url), "utf8");
@@ -50,4 +51,40 @@ test("Money Story character choices keep readable roles and square portraits at 
   assert.match(styles, /\.characterPickCopy span\{font-size:14px;white-space:normal;line-height:1\.5/);
   assert.doesNotMatch(styles, /font-size:(?:9\.5|10|10\.5|11|11\.5)px/);
   assert.match(styles, /background-size:400% 200%/);
+});
+
+
+test("Money Story center-column headers allocate balances a separate row at tablet and narrow desktop widths", () => {
+  const { parse } = createRequire(import.meta.url)("postcss");
+  const sheet = parse(styles);
+  function declarationsAt(selector, width) {
+    const result = {};
+    function visit(container) {
+      for (const node of container.nodes ?? []) {
+        if (node.type === "atrule") {
+          if (node.name !== "media" || /hover|pointer|prefers-/.test(node.params)) continue;
+          const min = Number(node.params.match(/min-width:\s*(\d+)px/)?.[1] ?? 0);
+          const max = Number(node.params.match(/max-width:\s*(\d+)px/)?.[1] ?? Infinity);
+          if (width >= min && width <= max) visit(node);
+        } else if (node.type === "rule" && node.selector.split(",").map((item) => item.trim()).includes(selector)) {
+          for (const declaration of node.nodes) {
+            if (declaration.type === "decl") result[declaration.prop] = declaration.value;
+          }
+        }
+      }
+    }
+    visit(sheet);
+    return result;
+  }
+  for (const width of [320, 390, 680, 681, 820, 1120, 1121, 1439]) {
+    assert.equal(declarationsAt(".monthStatus", width).display, "contents", String(width));
+    const balance = declarationsAt(".balanceSummary", width);
+    assert.equal(balance["grid-column"], "1/-1", String(width));
+    assert.equal(balance["grid-row"], "2", String(width));
+    assert.equal(declarationsAt(".balanceSummary span", width)["white-space"], "normal");
+    assert.equal(declarationsAt(".undoButton", width)["grid-row"], "1");
+    assert.equal(declarationsAt(".balanceSummary small", width)["font-size"], "14px");
+    assert.equal(declarationsAt(".balanceSummary strong", width)["font-size"], "16px");
+  }
+  assert.equal(declarationsAt(".monthStatus", 1440).display, "flex");
 });
