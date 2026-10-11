@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import styles from '@/components/layout/website-43/Website43.module.css';
 
 type TocHeading = {
@@ -15,6 +15,8 @@ export type TocGroup = {
 };
 
 export default function Website43ArticleToc({ groups }: { groups: TocGroup[] }) {
+  // Desktop and mobile TOCs render together; each instance needs separate ARIA targets.
+  const instanceId = useId();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const toggleGroup = (id: string) => {
@@ -31,7 +33,7 @@ export default function Website43ArticleToc({ groups }: { groups: TocGroup[] }) 
       {groups.map((group) => {
         const hasChildren = group.children.length > 0;
         const isExpanded = expanded.has(group.primary.id);
-        const sublistId = `toc-children-${group.primary.id}`;
+        const sublistId = `${instanceId}-toc-children-${group.primary.id}`;
 
         return (
           <div className={styles.tocGroup} key={group.primary.id}>
