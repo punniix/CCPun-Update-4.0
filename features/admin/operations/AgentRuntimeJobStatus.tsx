@@ -49,9 +49,11 @@ export function completedSheetUrl(job: Pick<AgentRuntimeJobDetail["job"], "statu
   }
 }
 
-export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDetail }) {
+export function AgentRuntimeJobStatus({ initial, canReconcileTimeout = false }: { initial: AgentRuntimeJobDetail; canReconcileTimeout?: boolean }) {
   const [detail, setDetail] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileError, setReconcileError] = useState("");
 
   useEffect(() => {
     if (detail.terminal) return;
@@ -91,6 +93,39 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
     return Math.max(0, now - started);
   }, [detail, now]);
   const sheetUrl = completedSheetUrl(detail.job);
+  const timeoutEligible = canReconcileTimeout && detail.job.source === "admin"
+    && detail.job.action === "seo.cluster.uat" && detail.job.workflowKey === "seo.cluster.uat"
+    && detail.job.status === "waiting_external" && ["n8n-dispatching", "n8n-received"].includes(detail.job.stage)
+    && Boolean(detail.job.startedAt) && now - Date.parse(detail.job.startedAt!) > 601_000;
+
+  async function reconcileTimeout() {
+    setReconciling(true);
+    setReconcileError("");
+    try {
+      const path = `/api/admin/operations/jobs/${detail.job.jobId}/`;
+      const response = await fetch(path, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reconcile-seo-callback-timeout", expectedVersion: detail.job.rowVersion }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { error?: string } | null;
+        setReconcileError(result?.error === "stale-version"
+          ? "สถานะงานเปลี่ยนแล้ว กรุณาโหลดหน้าใหม่ก่อนดำเนินการ"
+          : result?.error === "not-reconcilable"
+            ? "งานนี้ยังไม่เข้าเงื่อนไขตรวจผลหลังหมดเวลา"
+            : "ยังบันทึกสถานะไม่ได้ กรุณาตรวจสถานะงานอีกครั้ง");
+        return;
+      }
+      const refreshed = await fetch(path, { cache: "no-store", headers: { Accept: "application/json" } });
+      if (!refreshed.ok) throw new Error("refresh-unavailable");
+      setDetail(await refreshed.json() as AgentRuntimeJobDetail);
+    } catch {
+      setReconcileError("ยังยืนยันสถานะล่าสุดไม่ได้ กรุณาโหลดหน้าใหม่เพื่อตรวจผล");
+    } finally {
+      setReconciling(false);
+    }
+  }
+
 
   return (
     <div className="space-y-5">
@@ -142,6 +177,17 @@ export function AgentRuntimeJobStatus({ initial }: { initial: AgentRuntimeJobDet
             <p className="mt-1 text-sm text-rose-100/80">งานรอบนี้ไม่สำเร็จ กรุณาตรวจประวัติการทำงานก่อนลองใหม่</p>
           </div>
         ) : null}
+
+        {timeoutEligible ? (
+          <div className="mt-4">
+            <p className="text-sm leading-6 text-white/60">งานนี้รอผลเกินกำหนด คุณสามารถย้ายไปสถานะต้องตรวจผลก่อนตัดสินใจดำเนินการต่อ</p>
+            <button type="button" onClick={reconcileTimeout} disabled={reconciling}
+              className="mt-3 min-h-11 rounded-xl border border-[#e0c985]/35 px-4 py-2 text-sm font-medium text-[#e0c985] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
+              {reconciling ? "กำลังบันทึกสถานะ…" : "ย้ายงานหมดเวลาไปสถานะต้องตรวจผล"}
+            </button>
+          </div>
+        ) : null}
+        {reconcileError ? <p role="alert" className="mt-3 text-sm text-rose-100">{reconcileError}</p> : null}
 
         {sheetUrl ? (
           <a href={sheetUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center text-sm font-medium text-[#e0c985] underline underline-offset-4 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">

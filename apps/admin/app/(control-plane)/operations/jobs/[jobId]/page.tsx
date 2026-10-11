@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AgentRuntimeJobStatus } from "@/features/admin/operations/AgentRuntimeJobStatus";
 import { readAgentRuntimeJobDetail } from "@/lib/admin/operations/agent-os-runtime-detail";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
+import { getAdminEnvironment } from "@/lib/admin/environment";
 
 export const metadata: Metadata = { title: "รายละเอียดงาน Agent OS" };
 
@@ -13,7 +14,9 @@ export default async function AgentRuntimeJobPage({
 }: {
   params: Promise<{ jobId: string }>;
 }) {
-  await requireAdminPermission("settings:read");
+  const identity = await requireAdminPermission("settings:read");
+  const canReconcileTimeout = identity.role === "owner" && getAdminEnvironment() === "admin-uat"
+    && process.env.CCPUN_N8N_P1_UAT_ENABLED === "true";
   const { jobId } = await params;
   const result = await readAgentRuntimeJobDetail(jobId);
 
@@ -32,7 +35,7 @@ export default async function AgentRuntimeJobPage({
 
       {result.state === "ready" && result.detail ? (
         <div className="mt-6">
-          <AgentRuntimeJobStatus initial={result.detail} />
+          <AgentRuntimeJobStatus initial={result.detail} canReconcileTimeout={canReconcileTimeout} />
         </div>
       ) : (
         <section className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50">

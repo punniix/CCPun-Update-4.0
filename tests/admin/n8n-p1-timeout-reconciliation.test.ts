@@ -104,3 +104,64 @@ test("owner timeout reconciliation executes the route, preserves CAS and never r
   assert.equal(unavailable.response.headers.get("Retry-After"), "5");
   assert.equal(unavailable.stored.status, "waiting_external");
 });
+
+
+test("existing job UI exposes explicit owner timeout action and reports stale versions without retry", async () => {
+  const component = readFileSync(new URL("../../features/admin/operations/AgentRuntimeJobStatus.tsx", import.meta.url), "utf8");
+  const ui = transpileModule(component, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  type Element = { type: string; props: { children?: unknown; onClick?: () => Promise<void> } };
+  function buttons(node: unknown): Element[] {
+    if (Array.isArray(node)) return node.flatMap(buttons);
+    if (!node || typeof node !== "object" || !("props" in node)) return [];
+    const element = node as Element;
+    return [...(element.type === "button" ? [element] : []), ...buttons(element.props.children)];
+  }
+  async function fixture(permission: boolean, age: number, status = 200) {
+    const initial = { job: { ...initialJob, startedAt: new Date(now - age).toISOString(), attempt: 1, maxAttempts: 2,
+      queuedAt: initialJob.startedAt, createdAt: initialJob.startedAt, n8nExecutionId: null, providerReference: null, errorCategory: null },
+      terminal: false, elapsedMs: age, pace: "unknown", baseline: { sampleSize: 0 }, events: [] };
+    const states: unknown[] = []; let index = 0;
+    const calls: Array<{ path: string; options?: RequestInit }> = [];
+    const loaded = { exports: {} as { AgentRuntimeJobStatus: (props: unknown) => unknown } };
+    runInNewContext(ui, {
+      exports: loaded.exports, module: loaded, Date: { now: () => now, parse: Date.parse },
+      fetch: async (path: string, options?: RequestInit) => {
+        calls.push({ path, options });
+        return options?.method === "PATCH"
+          ? Response.json(status === 200 ? { status: "reconciliation_required" } : { error: "stale-version" }, { status })
+          : Response.json({ ...initial, terminal: true, job: { ...initial.job, status: "reconciliation_required", rowVersion: 3 } });
+      },
+      require: (name: string) => {
+        if (name === "react/jsx-runtime") return {
+          jsx: (type: string, props: unknown) => ({ type, props }), jsxs: (type: string, props: unknown) => ({ type, props }),
+        };
+        assert.equal(name, "react");
+        return { useEffect: () => {}, useMemo: (value: () => unknown) => value(),
+          useState: (value: unknown) => {
+            const slot = index++;
+            states[slot] = typeof value === "function" ? (value as () => unknown)() : value;
+            return [states[slot], (next: unknown) => { states[slot] = next; }];
+          } };
+      },
+    });
+    const tree = loaded.exports.AgentRuntimeJobStatus({ initial, canReconcileTimeout: permission });
+    return { actions: buttons(tree), states, calls };
+  }
+  assert.equal((await fixture(false, 601_001)).actions.length, 0);
+  assert.equal((await fixture(true, 601_000)).actions.length, 0);
+  const success = await fixture(true, 601_001);
+  assert.equal(success.actions.length, 1);
+  await success.actions[0].props.onClick!();
+  assert.equal(success.calls.length, 2);
+  assert.equal(success.calls[0].path, `/api/admin/operations/jobs/${jobId}/`);
+  assert.equal(success.calls[0].options?.method, "PATCH");
+  assert.deepEqual(JSON.parse(success.calls[0].options?.body as string), { action: "reconcile-seo-callback-timeout", expectedVersion: 2 });
+  assert.equal((success.states[0] as { job: { status: string } }).job.status, "reconciliation_required");
+  assert.equal(success.states[2], false);
+  const stale = await fixture(true, 601_001, 409);
+  await stale.actions[0].props.onClick!();
+  assert.equal(stale.calls.length, 1, "stale action must not automatically retry");
+  assert.match(stale.states[3] as string, /สถานะงานเปลี่ยนแล้ว/);
+  assert.equal((stale.states[0] as { job: { status: string } }).job.status, "waiting_external");
+  assert.equal(stale.states[2], false);
+});
