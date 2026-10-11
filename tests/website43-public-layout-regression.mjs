@@ -182,8 +182,8 @@ test('Blog category filter is a compact publication-style dropdown with stable l
 });
 
 test('Privacy and Cookie Policy use the Production Website 4.3 shell while preserving legal and SEO contracts', () => {
-  const privacy = read('app/privacy/page.tsx');
-  const cookiePolicy = read('app/cookie-policy/page.tsx');
+  const privacy = read('features/legal/pages/PrivacyPage.tsx');
+  const cookiePolicy = read('features/legal/pages/CookiePolicyPage.tsx');
   const legalCss = read('components/layout/website-43/Website43Legal.module.css');
 
   for (const source of [privacy, cookiePolicy]) {

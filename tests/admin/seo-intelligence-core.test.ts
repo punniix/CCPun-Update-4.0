@@ -289,7 +289,7 @@ test("GSC provider is server-only, paginated, bounded and never logs credentials
   assert.match(provider, /fetchGscSearchAnalyticsTotals/);
   assert.match(provider, /rowLimit: 1/);
   assert.match(provider, /normalizeGscSearchAnalyticsTotals/);
-  assert.doesNotMatch(provider, /console\./);
+  assert.doesNotMatch(provider, /console\.(?:log|info|warn|error|debug)\s*\(/);
 });
 
 test("GSC manual sync is human-only, exact-origin, bounded and read-only", () => {

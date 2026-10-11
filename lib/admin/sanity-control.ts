@@ -128,6 +128,7 @@ const publishedSeoObservationArticleSchema = z.object({
   secondaryKeywords: z.array(z.string()).nullish(),
   searchIntent: z.string().nullish(),
   noindex: z.boolean().nullish(),
+  canonical: z.string().nullish(),
   publishedAt: z.string().nullish(),
   updatedAt: z.string().datetime(),
 });
@@ -194,8 +195,9 @@ const publishedSeoObservationArticlesQuery = groq`*[_type == "article" && define
   "secondaryKeywords": seo.secondaryKeywords,
   "searchIntent": seo.searchIntent,
   "noindex": seo.noindex,
+  "canonical": seo.canonical,
   publishedAt,
-  "updatedAt": _updatedAt
+  "updatedAt": coalesce(contentUpdatedAt, _updatedAt)
 }`;
 
 export async function listAdminArticles(): Promise<AdminContentResult> {
@@ -240,6 +242,55 @@ export async function listPublishedSeoObservationArticles(): Promise<{
     };
   } catch {
     return { rows: [], error: "request-failed" };
+  }
+}
+
+export async function listRecentPublishedSeoObservationArticles(since: string): Promise<PublishedSeoObservationArticle[]> {
+  const client = requireReadClient("published");
+  if (!client || !Number.isFinite(Date.parse(since))) throw new Error("SEO_POST_PUBLISH_SANITY_NOT_READY");
+  try {
+    const rows: unknown = await client.fetch(
+      groq`*[_type == "article" && !(_id in path("drafts.**"))
+        && defined(slug.current) && dateTime(coalesce(contentUpdatedAt, _updatedAt)) >= dateTime($since)]
+        | order(_updatedAt desc)[0...40] {
+          "id": _id, "slug": slug.current, "category": category->title,
+          "categorySlug": category->slug.current, "focusKeyword": seo.focusKeyword,
+          "secondaryKeywords": seo.secondaryKeywords, "searchIntent": seo.searchIntent,
+          "noindex": seo.noindex, "canonical": seo.canonical, publishedAt,
+          "updatedAt": coalesce(contentUpdatedAt, _updatedAt)
+        }`,
+      { since },
+    );
+    return publishedSeoObservationArticleSchema.array().max(40).parse(rows);
+  } catch {
+    throw new Error("SEO_POST_PUBLISH_SANITY_SCAN_FAILED");
+  }
+}
+
+export async function getPublishedSeoObservationArticle(articleId: string): Promise<PublishedSeoObservationArticle | null> {
+  const client = requireReadClient("published");
+  if (!client) return null;
+  const cleanId = articleId.replace(/^drafts\./, "");
+  try {
+    const row = await client.fetch(
+      groq`*[_type == "article" && _id == $articleId][0] {
+        "id": _id,
+        "slug": slug.current,
+        "category": category->title,
+        "categorySlug": category->slug.current,
+        "focusKeyword": seo.focusKeyword,
+        "secondaryKeywords": seo.secondaryKeywords,
+        "searchIntent": seo.searchIntent,
+        "noindex": seo.noindex,
+        "canonical": seo.canonical,
+        publishedAt,
+        "updatedAt": coalesce(contentUpdatedAt, _updatedAt)
+      }`,
+      { articleId: cleanId },
+    );
+    return row ? publishedSeoObservationArticleSchema.parse(row) : null;
+  } catch {
+    return null;
   }
 }
 

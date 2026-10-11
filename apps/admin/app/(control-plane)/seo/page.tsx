@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
+import PostPublishOwnerRecheckButton from "@/features/admin/components/PostPublishOwnerRecheckButton";
+import { getAdminEnvironment } from "@/lib/admin/environment";
 import { datasetLabel } from "@/lib/admin/presentation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
@@ -24,7 +26,10 @@ function formatAuditDate(value: string | null | undefined) {
 }
 
 export default async function AdminSeoPage() {
-  await requireAdminPermission("seo:read");
+  const identity = await requireAdminPermission("seo:read");
+  const ownerRecheckReady = identity.role === "owner"
+    && getAdminEnvironment() === "production-admin"
+    && process.env.CCPUN_SEO_POST_PUBLISH_QUEUE_ENABLED === "1";
   const result = await listAdminArticles();
   const audited = result.rows.filter((row) => row.seoScore != null && row.seoAuditVersion === SEO_AUDIT_VERSION);
   const average = audited.length ? Math.round(audited.reduce((sum, row) => sum + (row.seoScore ?? 0), 0) / audited.length) : null;
@@ -89,6 +94,7 @@ export default async function AdminSeoPage() {
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
                         <Link href={`/seo/audits/${encodeURIComponent(article.id)}/`} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-sm font-medium text-white/70 hover:bg-white/5">ดูรายละเอียด</Link>
+                        {ownerRecheckReady && !article.isDraft ? <PostPublishOwnerRecheckButton articleId={article.id} /> : null}
                         {article.isDraft && result.status.writeReady ? (
                           <RunSeoAuditButton articleId={article.id} hasPreviousAudit={article.seoScore != null} />
                         ) : !article.isDraft && studioReady ? (
