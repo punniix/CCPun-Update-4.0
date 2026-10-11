@@ -74,3 +74,12 @@ Execution-only local dependency invocation uses `NODE_PATH=../ccpun-ux-uat-20261
 Compared all 22 modified runtime source paths between combined baseline `467c1323f2cf755a713aa747dfce27168ee4faf7` and Admin UAT `05ea8e53d22a1bdc4e3d36b2c31c603e6070ddf8`: their pre-change contents are byte-identical, including root proxy, canonical/root Ubersuggest routes and the three layouts. Adapters resolve the target branch's own canonical owners. Do not copy canonical Admin page bodies from the combined lane.
 
 Four frozen `canonicalPreserved` proof entries differ in the target Admin lane: `apps/admin/app/(control-plane)/dashboard/inbox/page.tsx`, `dashboard/page.tsx`, `layout.tsx`, and `seo/page.tsx`. Freeze those exact target originals before port and update only those four proof hashes to the target baseline; do not rewrite their source. The target's other existing canonical differences and `apps/admin/proxy.ts` redirect308 behavior must remain. This writer does not perform the port or deploy. Production is unchanged by this partial.
+
+
+### Final small loading-owner consolidation (2026-10-12)
+
+Read-only closeout found that the historical 20 simple-entry pairs actually included one 270-byte loading component body, alongside 19 already-thin feature adapters. Root `app/(control-plane)/analytics/search/loading.tsx` now forwards the default export from its canonical Admin entry; the canonical 270-byte component and its polite status accessibility/UI are unchanged and frozen in the existing parity proof. No new helper or component was introduced. The CI owner count is now **65**, with all original 64 mappings and assertions retained.
+
+Count pairs by both legacy and canonical target: **104 = 65 migrated + 19 existing thin-adapter pairs + seven shared-handler routing pairs + 13 remaining divergent pairs (eight unapplied literal-path migrations + five intentional mixed-lane pairs)**. Root home is already delegated to Web, while its separate Admin mirror pair remains intentionally different; counting only legacy paths would incorrectly omit that retained pair. Root fallback stays necessary because the existing build dispatcher still selects native root Next outside explicit Hostinger app lanes.
+
+The loading edit has no analytics/event/auth/provider code. Parent owns exact-source CI/build and UAT release verification; no pending-eight source path, Production, provider, dependency, credential or other writer source was touched.

@@ -465,6 +465,14 @@
       "migrationBaseline": "467c1323f2cf755a713aa747dfce27168ee4faf7",
       "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/providers/ubersuggest/sync/route\";\n",
       "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/search/loading.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/search/loading.tsx",
+      "baselineSha256": "b251720cb5b0d6f9c2e89cfc9b181cb76d4c127234442e6c7a6bd82c18784524",
+      "migrationBaseline": "ab1dffbc44b9e04db6295815cbb65fab9c2215a1",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/analytics/search/loading\";\n",
+      "status": "migrated"
     }
   ],
   "dynamicPathApproval": "Current COO approval relayed by parent /root on 2026-10-11, bounded to the prepared twelve-path patch; no other rejected path authorized."
