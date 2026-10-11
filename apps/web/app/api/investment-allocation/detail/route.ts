@@ -1,4 +1,4 @@
-import { INVESTMENT_ALLOCATION_ENABLED } from "@/features/investment-allocation/server/availability";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 
 export const runtime = "nodejs";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { INVESTMENT_ALLOCATION_ENABLED } from "./server/availability";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { Website43Footer, Website43Navbar } from "@/components/layout/website-43/Website43Shared";
 import websiteStyles from "@/components/layout/website-43/Website43.module.css";

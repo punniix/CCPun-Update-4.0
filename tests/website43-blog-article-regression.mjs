@@ -11,7 +11,7 @@ require.extensions['.css'] = (module) => {
   module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) };
 };
 // Plain Node SSR has no Next server-only resolver; availability is tested separately.
-const availabilityPath = require.resolve('../features/investment-allocation/server/availability.ts');
+const availabilityPath = require.resolve('../lib/runtime/investment-availability.ts');
 require.cache[availabilityPath] = { exports: { INVESTMENT_ALLOCATION_ENABLED: false } };
 const { toWebsite43ArticleItem } = require('../features/blog/website-43/blogData.ts');
 const { parseProfessionalQualifications } = require('../lib/content/sanity-schema.ts');

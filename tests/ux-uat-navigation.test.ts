@@ -78,7 +78,7 @@ test('Desktop, tablet, mobile and Footer use canonical tools and readable glass 
       if (name === '@/lib/nav-config.json') return { default: navigation };
       if (name === '@/components/layout/CookieSettingsButton') return { default: () => React.createElement('button', null, 'Cookie settings') };
       if (name === './Website43Navbar') return loaded.exports;
-      if (name === '@/features/investment-allocation/server/availability') return { INVESTMENT_ALLOCATION_ENABLED: investmentEnabled };
+      if (name === '@/lib/runtime/investment-availability') return { INVESTMENT_ALLOCATION_ENABLED: investmentEnabled };
       if (name === './constants') return { INVESTMENT_TOOL_LINK: investmentLink, WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
       assert.equal(name, './Website43.module.css');
       return { default: new Proxy({}, { get: (_target, key) => String(key) }) };

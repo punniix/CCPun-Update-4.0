@@ -1,4 +1,4 @@
-import { INVESTMENT_ALLOCATION_ENABLED } from "@/features/investment-allocation/server/availability";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import type { FundCatalogCategory, FundCatalogSubcategory } from "@/features/investment-allocation/domain/types";
 
 export const runtime = "nodejs";

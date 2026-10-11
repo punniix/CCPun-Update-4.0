@@ -166,9 +166,9 @@ assert.match(
   /import \{ Website43Navbar as ClientNavbar \} from '\.\/Website43Navbar';/,
   'Shared Website 4.3 API must delegate only the interactive navbar to its client island',
 );
-assert.match(website43Shared, /import \{ INVESTMENT_ALLOCATION_ENABLED \} from '@\/features\/investment-allocation\/server\/availability';/);
+assert.match(website43Shared, /import \{ INVESTMENT_ALLOCATION_ENABLED \} from '@\/lib\/runtime\/investment-availability';/);
 assert.match(website43Shared, /export function Website43Navbar\(props:[^\n]+\) \{\s*return <ClientNavbar \{\.\.\.props\} investmentEnabled=\{INVESTMENT_ALLOCATION_ENABLED\} \/>;\s*\}/, 'server wrapper must pass only the availability boolean into the client island');
-assert.doesNotMatch(website43Navbar, /server\/availability|process\.env\.CCPUN_INVESTMENT_ALLOCATION_ENABLED/, 'client navbar must not own the server availability decision');
+assert.doesNotMatch(website43Navbar, /lib\/runtime\/investment-availability|server\/availability|process\.env\.CCPUN_INVESTMENT_ALLOCATION_ENABLED/, 'client navbar must not own the server availability decision');
 assert.match(
   website43Navbar,
   /^['\"]use client['\"];?/m,

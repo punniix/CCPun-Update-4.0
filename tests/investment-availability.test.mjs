@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm';
 import test from 'node:test';
 
 const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
-const flagSource = source('features/investment-allocation/server/availability.ts')
+const flagSource = source('lib/runtime/investment-availability.ts')
   .replace(/^import "server-only";\n/m, '').replace('export const ', 'const ');
 const enabled = (value) => runInNewContext(`${flagSource}\nINVESTMENT_ALLOCATION_ENABLED;`, {
   process: { env: { CCPUN_INVESTMENT_ALLOCATION_ENABLED: value } },

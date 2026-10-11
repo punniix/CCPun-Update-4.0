@@ -3,7 +3,7 @@ import CookieSettingsButton from '@/components/layout/CookieSettingsButton';
 import styles from './Website43.module.css';
 import navigation from '@/lib/nav-config.json';
 import { INVESTMENT_TOOL_LINK, WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
-import { INVESTMENT_ALLOCATION_ENABLED } from '@/features/investment-allocation/server/availability';
+import { INVESTMENT_ALLOCATION_ENABLED } from '@/lib/runtime/investment-availability';
 import { Website43Navbar as ClientNavbar } from './Website43Navbar';
 
 export function Website43Navbar(props: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean }) {

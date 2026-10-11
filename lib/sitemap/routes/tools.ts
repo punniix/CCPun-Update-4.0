@@ -1,5 +1,5 @@
 import { renderUrlSet, xmlResponse } from "@/lib/sitemap/xml";
-import { INVESTMENT_ALLOCATION_ENABLED } from "@/features/investment-allocation/server/availability";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 
 export function GET() {
   return xmlResponse(
