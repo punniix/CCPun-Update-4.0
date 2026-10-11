@@ -8,10 +8,13 @@ const EXPECTED_INSTALL_COMMAND = "cd ../.. && npm ci";
 const EXPECTED_IGNORE_COMMAND = "node ../../scripts/vercel-ignore-build.mjs";
 const APP_CONFIGS = ["apps/web/vercel.json", "apps/admin/vercel.json"];
 
-test("Web app-root owns the retired financial-advisor redirect", () => {
+test("Web app-root delegates redirects to the same source as its Hostinger proxy", async () => {
+  const { WEB_REDIRECTS } = await import('../lib/runtime/web-build-config.mjs');
   const webNextConfig = readFileSync(new URL("../apps/web/next.config.ts", import.meta.url), "utf8");
-  assert.match(webNextConfig, /source:\s*["']\/financial-advisor\/:path\*["']/);
-  assert.match(webNextConfig, /source:\s*["']\/financial-advisor\/:path\*["'][\s\S]*destination:\s*["']\/["'][\s\S]*permanent:\s*true/);
+  const webProxy = readFileSync(new URL("../apps/web/proxy.ts", import.meta.url), "utf8");
+  assert.deepEqual(WEB_REDIRECTS.find(({ prefix }) => prefix === "/financial-advisor"), { prefix: "/financial-advisor", destination: "/" });
+  assert.match(webNextConfig, /WEB_REDIRECTS\.map\(\(\{ prefix, destination \}\) => \(\{[\s\S]*source: `\$\{prefix\}\/:path\*`,[\s\S]*destination,[\s\S]*permanent: true/);
+  assert.match(webProxy, /for \(const \{ prefix, destination \} of WEB_REDIRECTS\)/);
 });
 
 test("isolated Vercel app roots preserve monorepo install and affected-build routing", () => {
