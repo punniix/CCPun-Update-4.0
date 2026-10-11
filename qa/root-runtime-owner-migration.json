@@ -1,0 +1,335 @@
+{
+  "baseline": "3d90961371a538fe9c7ee8e8f309085ab904850f",
+  "pairs": [
+    {
+      "legacy": "app/(control-plane)/analytics/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/[section]/page.tsx",
+      "baselineSha256": "5099f25b97e1b01cb32ff3540158fc4c511ddf5fb13158963d20b110e2af34c5",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/analytics/[section]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/content/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/page.tsx",
+      "baselineSha256": "53ca87e9c5c30b23c86fd2cc957653d7d43b3b193105647d7cde0208c4824517",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/content/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/operations/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/page.tsx",
+      "baselineSha256": "d54941a048a80289563b722f5730f42dab31ae26ca1110833ca1a0f2e5dedb00",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/operations/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/seo/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/[section]/page.tsx",
+      "baselineSha256": "1b0ca5a8d9cad964f3cabf0d5f22cdf590929b53862e215453afa03022c567c2",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/seo/[section]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/seo/audits/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/audits/page.tsx",
+      "baselineSha256": "8405947c213dd8292e8f222b3a6cd4e993269d89727a678c28dfc063042cc3f7",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/seo/audits/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/social/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/[section]/page.tsx",
+      "baselineSha256": "ef6ae70411d51c559e9299f8504c0e07946704ee2c985e1ef7d4a6810667f6aa",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/social/[section]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/social/posts/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/posts/[id]/page.tsx",
+      "baselineSha256": "dc803f83af1ac8bb5f58b0d32143cf899205a9b1d749df7717e51f68b432b021",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/social/posts/[id]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/content/[id]/preview/route.ts",
+      "canonical": "apps/admin/app/api/admin/content/[id]/preview/route.ts",
+      "baselineSha256": "8dff8efee4a779bc3cac3bbb757e77d452fe8d355ac7cbdf57fe89c738a41ef8",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/content/[id]/preview/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/content/route.ts",
+      "canonical": "apps/admin/app/api/admin/content/route.ts",
+      "baselineSha256": "21f068bd8fc05526a2ee34d84bdf55b95312ef345593e7a481939aa5a5b39260",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/content/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/media/route.ts",
+      "canonical": "apps/admin/app/api/admin/media/route.ts",
+      "baselineSha256": "8f0e75db7815ef6c77a7a0e743266821ab4848a481f5a88ec5a9ca2895e633d9",
+      "wrapper": "export { GET, POST } from \"@/apps/admin/app/api/admin/media/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/media/upload-intents/route.ts",
+      "canonical": "apps/admin/app/api/admin/media/upload-intents/route.ts",
+      "baselineSha256": "4fc543ff42cc1824116eb36329665a06243874c801e6a6cf541abdfc05905fcc",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/media/upload-intents/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/providers/ubersuggest/callback/route.ts",
+      "canonical": "apps/admin/app/api/admin/providers/ubersuggest/callback/route.ts",
+      "baselineSha256": "1ce5dcee09910e6494ebed16816bfc1e84077efad25bff6979cfcd3c123ace63",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/providers/ubersuggest/callback/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/providers/ubersuggest/connect/route.ts",
+      "canonical": "apps/admin/app/api/admin/providers/ubersuggest/connect/route.ts",
+      "baselineSha256": "ab582ce6836337bd287782450b08b989a62a80a6aad50d2886abfe0cf7a712c8",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/providers/ubersuggest/connect/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/research/route.ts",
+      "canonical": "apps/admin/app/api/admin/research/route.ts",
+      "baselineSha256": "54c1d9242d8783f7ef0097890224ed29b6cb2df0c752456af651ab344973397a",
+      "wrapper": "export { GET, POST } from \"@/apps/admin/app/api/admin/research/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/research/ubersuggest/route.ts",
+      "canonical": "apps/admin/app/api/admin/research/ubersuggest/route.ts",
+      "baselineSha256": "04f45536f4b4b6a44868951306ad870b2445b0572eaa68c48d0b2f14a897b7d4",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/research/ubersuggest/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/apply/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/apply/route.ts",
+      "baselineSha256": "9f733cb72146545df3df4aef6dff89aad2f34745b8fea0687d692b018097ee86",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/reviews/[id]/apply/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/approve/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/approve/route.ts",
+      "baselineSha256": "08ff08124ae6f943d06f643578b53eae515e3801b7fe234e61405d88c16fa440",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/reviews/[id]/approve/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/edit/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/edit/route.ts",
+      "baselineSha256": "a67cf0a8df2fcfaca6619c97d22af84e854acef225b2edc1810faa037ca26fc7",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/reviews/[id]/edit/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/reject/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/reject/route.ts",
+      "baselineSha256": "2093f5a5a3eeec7bb6dfe1984fe6dbd494ef936a887ad6d9d5c707648a6bd7ab",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/reviews/[id]/reject/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/reviews/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/route.ts",
+      "baselineSha256": "fbf03e24dde002aab38c25480a002ba0f51e55e1efdb5638b342d824de862eb4",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/reviews/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/seo/audit/[id]/proposals/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/audit/[id]/proposals/route.ts",
+      "baselineSha256": "5d675c7b35a41e6160e883f068568657c003c1f61eccd12dfe858d81e3b7b365",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/seo/audit/[id]/proposals/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/seo/audit/[id]/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/audit/[id]/route.ts",
+      "baselineSha256": "9cb2b7b2b2e72a17cbe975b031bd8847bb35c98079eee8e03ca657a5f1b85be0",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/seo/audit/[id]/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/seo/opportunities/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/opportunities/route.ts",
+      "baselineSha256": "925fe518673af4439f209f00ccff2f738af5c981091fbd62cc88fa7f93ee9ce5",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/seo/opportunities/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/seo/opportunities/sync/ga4/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts",
+      "baselineSha256": "fb2b8914578046cc4c862b29d146adeae3aebee64a7cf8fe957a57fd36f18124",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/seo/opportunities/sync/ga4/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/seo/opportunities/sync/gsc/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/opportunities/sync/gsc/route.ts",
+      "baselineSha256": "578e312b09bb047d1c3c846988a6bab455b31fbcaa66a6aeb7bf692f08c8f070",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/seo/opportunities/sync/gsc/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/seo/providers/readiness/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/providers/readiness/route.ts",
+      "baselineSha256": "1102ab55920dbb2bedbf18ddb2cfb3c0fdc5f9c8748b38be4d99c0fd61378d06",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/seo/providers/readiness/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/seo/suggestions/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/suggestions/route.ts",
+      "baselineSha256": "2770170fbe52790506c9b11fd1645482a770d2c18b08581cfb790fa37cdab898",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/seo/suggestions/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/session/route.ts",
+      "canonical": "apps/admin/app/api/admin/session/route.ts",
+      "baselineSha256": "8da8cd83ec227467321752921d26f605da88ef2820fcf167b286b1e44214a670",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/session/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/analytics/backfill/meta-insights/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/analytics/backfill/meta-insights/route.ts",
+      "baselineSha256": "4012de4e8eb46df67b262371f70937cc47926e590e1baa2fbf976579a8a16f06",
+      "wrapper": "export const maxDuration = 60;\nexport { POST } from \"@/apps/admin/app/api/admin/social/analytics/backfill/meta-insights/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/analytics/post-live/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/analytics/post-live/route.ts",
+      "baselineSha256": "158584c088b349a977006bd179444027748faf7722e6cc46db9c29e66e8262f2",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/social/analytics/post-live/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/analytics/sync/[provider]/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/analytics/sync/[provider]/route.ts",
+      "baselineSha256": "97b8ab3e179d63ce99c06f9f6c4995b354512796da416cbcdd42bb82a9e88cfa",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/analytics/sync/[provider]/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/drafts/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/drafts/route.ts",
+      "baselineSha256": "14a78d80e389ab100f3abf2b68ebdbb8bedf27775d76d0c4419da0a24f36710b",
+      "wrapper": "export { GET, POST } from \"@/apps/admin/app/api/admin/social/drafts/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/export/sheets/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/export/sheets/route.ts",
+      "baselineSha256": "f014fe9a30ad0b67f8a6d9fcea8cd19e17679acc2c98a19a63111a2f0a5e3f96",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/export/sheets/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/foundation/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/foundation/route.ts",
+      "baselineSha256": "24fda791df1e20589aad1f1e1fa5f9bfddc5c26f2dc83f8e19d8aaa4be09c70b",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/social/foundation/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/operations/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/operations/route.ts",
+      "baselineSha256": "a2a2b2ff23413d3b5e3966359a23a149638bf799243f77cde4191f300e2bf917",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/social/operations/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/audio/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/audio/route.ts",
+      "baselineSha256": "cc49e86d1bf82bf4bbea0ba72284ca81070100ba1393f49badd5a40df5e51b36",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/providers/meta/audio/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/capabilities/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/capabilities/route.ts",
+      "baselineSha256": "5f6e88a71412297b6cdf7f2f4a71d3e2a363b0eddecf8b9a8489c2444b646151",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/providers/meta/capabilities/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/connection/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/connection/route.ts",
+      "baselineSha256": "fcb537621ef7743716104a3dab7f9290e70357a5a9e0f98b26c82bf931cf0909",
+      "wrapper": "export { GET } from \"@/apps/admin/app/api/admin/social/providers/meta/connection/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/discovery/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/discovery/route.ts",
+      "baselineSha256": "76f4082eafd04f7f7cc712f069dc4d5e95527822614ba23159425f9a55d8f72c",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/providers/meta/discovery/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/handoff/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/handoff/route.ts",
+      "baselineSha256": "3418c05f81b4f0bb68f6a6fdef7c254aadc53bce76fa081e534576a182e8ac4f",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/providers/meta/handoff/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/providers/tiktok/discovery/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/tiktok/discovery/route.ts",
+      "baselineSha256": "431d2f12f22e40b09aff30cf33b9cc2cdc7fb10abebda473be8b8c554715886b",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/providers/tiktok/discovery/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/providers/youtube/discovery/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/youtube/discovery/route.ts",
+      "baselineSha256": "afd8e072ea92cf62b52d8f38d37ed6416869edf9a385dedfe25353f4e26c771c",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/providers/youtube/discovery/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/publications/execute/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/publications/execute/route.ts",
+      "baselineSha256": "cc2d2a1bcb590cb141ffee49d697905ea60af4214c7aa2549d31aa9fefdb83be",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/admin/social/publications/execute/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/social/publications/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/publications/route.ts",
+      "baselineSha256": "fb4a5caff77cf853c022651027f285cfb1f326c94305ceef2fc47734baf2b41e",
+      "wrapper": "export { GET, POST } from \"@/apps/admin/app/api/admin/social/publications/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/preview/disable/route.ts",
+      "canonical": "apps/admin/app/api/preview/disable/route.ts",
+      "baselineSha256": "5c54af529fa927c8a12065f70fbe2b59926c365b3997d29b6627b4472c987b4d",
+      "wrapper": "export { POST } from \"@/apps/admin/app/api/preview/disable/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/preview/enable/route.ts",
+      "canonical": "apps/admin/app/api/preview/enable/route.ts",
+      "baselineSha256": "04202620cc6315f2ed6ad499fed6e60cf268cb98212e6543390d607177d3229a",
+      "wrapper": "export const dynamic = \"force-dynamic\";\nexport { GET } from \"@/apps/admin/app/api/preview/enable/route\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/page.tsx",
+      "canonical": "apps/web/app/page.tsx",
+      "baselineSha256": "4a398712e8c7eb60ed5842214a16949e4ee25908d131aba16f3263f414609b56",
+      "wrapper": "export { default } from \"@/apps/web/app/page\";\n",
+      "status": "migrated"
+    }
+  ],
+  "dynamicPathApproval": "Current COO approval relayed by parent /root on 2026-10-11, bounded to the prepared twelve-path patch; no other rejected path authorized."
+}

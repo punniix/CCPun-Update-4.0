@@ -5,7 +5,7 @@ import test from "node:test";
 
 const ubersuggest = readFileSync(new URL("../../lib/admin/ubersuggest.ts", import.meta.url), "utf8");
 const ubersuggestContracts = readFileSync(new URL("../../lib/admin/ubersuggest-contracts.ts", import.meta.url), "utf8");
-const researchRoute = readFileSync(new URL("../../app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
+const researchRoute = readFileSync(new URL("../../apps/admin/app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
 const growth = readFileSync(new URL("../../lib/admin/growth.ts", import.meta.url), "utf8");
 const growthPage = readFileSync(new URL("../../app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8");
 const growthLoading = readFileSync(new URL("../../app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
