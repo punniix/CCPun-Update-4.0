@@ -18,6 +18,7 @@ const areas = [
   ['home', ['features/home/']],
   ['ci-planning', ['features/ci-planning/']],
   ['financial-health-check', ['features/financial-health-check/']],
+  ['money-story', ['features/money-story/']],
   ['analytics', ['features/analytics/']],
   ['website-43-shared', ['components/layout/website-43/']],
   ['layout-shared', ['components/layout/']],
@@ -64,9 +65,13 @@ const testFiles = trackedFiles.filter((file) => file.startsWith('tests/') && ['.
 const testSources = testFiles.map((file) => [file, readFileSync(file, 'utf8')]);
 
 function testsReferencing(file) {
+  // ponytail: basename refs are hints; resolve test imports before any deletion.
   const basename = file.split('/').at(-1);
   return testSources
-    .filter(([, source]) => source.includes(file) || (basename && (source.includes(`'${'${basename}'}'`) || source.includes(`"${'${basename}'}"`))))
+    .filter(([, source]) => source.includes(file) || (basename && (
+      source.includes(`'${basename}'`) || source.includes(`"${basename}"`)
+      || source.includes(`/${basename}'`) || source.includes(`/${basename}"`)
+    )))
     .map(([testFile]) => testFile);
 }
 
@@ -103,7 +108,7 @@ for (const [area] of areas) {
 }
 
 const unclassifiedPublic = [...publicReachable]
-  .filter((file) => !file.startsWith('app/') && areaFor(file) === null)
+  .filter((file) => !file.startsWith('apps/web/app/') && areaFor(file) === null)
   .sort();
 
 function importSpecifiers(source) {
