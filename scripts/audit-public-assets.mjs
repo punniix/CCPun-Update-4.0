@@ -19,7 +19,13 @@ const excludedBlogAssetPrefixes = ['public/assets/blog-migration/'];
 const excludedBlogAssets = new Set(['public/assets/blog-hub-hero-ccpun-v1.webp']);
 
 // Browser/protocol ownership can exist without a literal source reference.
-const implicitlyOwnedAssets = new Set(['public/favicon.ico']);
+const implicitlyOwnedAssets = new Set([
+  'public/favicon.ico',
+  // Keep the legacy alias and previous published URLs until CMS/cache references are audited.
+  'public/assets/pun.webp',
+  'public/assets/pun.jpg',
+  'public/assets/website-43/about-pun.png',
+]);
 
 const auditedAssets = trackedFiles
   .filter((file) => file.startsWith('public/') && assetExtensions.has(extname(file).toLowerCase()))
