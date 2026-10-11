@@ -18,12 +18,12 @@ test('public navigation, footer and Money Story expose 44px targets without chan
     return source.slice(start, source.indexOf('}', start));
   }
   for (const [source, selector] of [[navCss, '.brandLink'], [navCss, '.mobileSubmenu a'],
-    [sharedCss, '.footerColumn a'], [sharedCss, '.root .footerColumn .footerCookieButton'], [sharedCss, '.footerCompact nav a'], [sharedCss, '.gameEntry a']]) {
+    [sharedCss, '.footerColumn a'], [sharedCss, '.root .footerColumn .footerCookieButton'], [sharedCss, '.gameEntry a']]) {
     const minimumHeight = Number(rule(source, selector).match(/min-height: (\d+)px/)?.[1]);
     assert.ok(minimumHeight >= 44, selector + ': touch target must be at least 44px');
   }
   assert.doesNotMatch(sharedCss, /\.mobileSubmenu\b/, 'mobile submenu styling belongs only to the Navbar module');
-  assert.match(rule(sharedCss, '.footerCompact nav a'), /min-width: 44px/);
+  assert.doesNotMatch(sharedCss, /\.footerCompact\b/, 'footer grouping must not change at a breakpoint');
   assert.match(rule(navCss, '.brandLink:focus-visible'), /outline: 2px solid/);
   assert.match(sharedCss, /\.root :is\(a, button, input, select, textarea, summary\):focus-visible \{ outline: 2px solid/);
   assert.match(read('components/layout/website-43/Website43Navbar.tsx'), /href=\{HOME\} className=\{styles\.brandLink\}/);
@@ -89,17 +89,20 @@ test('Desktop, tablet, mobile and Footer use canonical tools and readable glass 
         return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
       },
     });
-    for (const warnings of [false, true]) {
-      const footerDom = new JSDOM(renderToStaticMarkup(footer.exports[exportName]({ warnings })));
+    for (const warnings of [false, true]) for (const notFound of [false, true]) {
+      const footerDom = new JSDOM(renderToStaticMarkup(footer.exports[exportName]({ warnings, notFound })));
       const toolsColumn = [...footerDom.window.document.querySelectorAll('.footerColumn')].find(column => column.querySelector('strong')?.textContent === 'เครื่องมือ')!;
       const links = (nodes: Iterable<HTMLAnchorElement>) => [...nodes].map(link => [link.getAttribute('href'), link.textContent]);
       assert.deepEqual(links(toolsColumn.querySelectorAll('a')), expected);
-      const compactLinks = footerDom.window.document.querySelectorAll('.footerCompact nav[aria-label="เมนูส่วนท้าย"] a') as NodeListOf<HTMLAnchorElement>;
-      assert.deepEqual(links(compactLinks), [['/', 'หน้าแรก'], ['/blog', 'บทความ'], ...expected], exportName + ': no hidden/extra tools in compact navigation');
-      assert.equal(footerDom.window.document.querySelectorAll('.footerCookieButton').length, 2, exportName + ': cookie controls retained');
-      assert.equal(footerDom.window.document.querySelectorAll('.footerWarnings').length, warnings ? 2 : 0, exportName + ': warnings retained in both layouts');
+      assert.equal(footerDom.window.document.querySelectorAll('.footerCompact').length, 0, exportName + ': one information hierarchy at every breakpoint');
+      assert.deepEqual([...footerDom.window.document.querySelectorAll('.footerColumn strong')].map(node => node.textContent), ['สำรวจ', 'เครื่องมือ', 'ข้อมูล']);
+      assert.equal(footerDom.window.document.querySelectorAll('.footerCookieButton').length, 1, exportName + ': one cookie control retained');
+      assert.equal(footerDom.window.document.querySelectorAll('.footerWarnings').length, warnings ? 1 : 0, exportName + ': warnings retained once');
+      assert.equal(footerDom.window.document.querySelectorAll('footer').length, 1, exportName + ': one footer landmark');
+      for (const href of ['/privacy', '/cookie-policy', '/#about-ccpun']) assert.equal(footerDom.window.document.querySelectorAll(`a[href="${href}"]`).length, 1, `${exportName}: ${href} retained including 404`);
+      assert.equal(footerDom.window.document.querySelectorAll('.footerCopyright').length, 1, exportName + ': copyright retained including 404');
       assert.match(footerDom.window.document.querySelector('.footerDisclaimer')!.textContent!, /ไม่ใช่คำแนะนำเฉพาะบุคคล/);
-      if (exportName === 'HomeFooter') assert.equal(footerDom.window.document.querySelectorAll('[aria-label="CCPUN"]').length, 2, 'HomeBrand retained');
+      if (exportName === 'HomeFooter') assert.equal(footerDom.window.document.querySelectorAll('[aria-label="CCPUN"]').length, 1, 'HomeBrand retained once');
       footerDom.window.close();
     }
   }

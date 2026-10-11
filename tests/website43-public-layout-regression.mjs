@@ -248,17 +248,21 @@ test('CI Planning keeps the TorYod project badge as secondary proof near the end
 
 test('Footer controls and warnings stay inside the visible Website 4.3 footer card at every breakpoint', () => {
   const css = read('components/layout/website-43/Website43.module.css');
-  assert.match(css, /\.footerColumn \.footerCookieButton \{[^}]*font-size: 13px;/, 'desktop Cookie Settings stays smaller than 14px footer links');
-  assert.match(css, /\.footerCompact \.footerCookieButton \{[^}]*font-size: 13px;/, 'compact Cookie Settings stays smaller than normal footer text');
+  assert.match(css, /\.footerColumn \.footerCookieButton \{[^}]*min-height: 44px;[^}]*font-size: 13px;/, 'one responsive Cookie Settings control retains its touch target and secondary text size');
+  assert.doesNotMatch(css, /\.footerCompact|\.footerFull \{[^}]*display: none/, 'the grouped footer remains visible at every width');
+  assert.match(css, /\.footerTop \{[^}]*minmax\(0,1\.5fr\) repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.footerTop \{[^}]*repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.footerTop \{[^}]*repeat\(2,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css, /\.notFoundFooterWrap \{[^}]*height: \d+px/, '404 footer grows with the same legal and navigation content');
 
   for (const path of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx']) {
     const footer = read(path);
-    const desktop = footer.split('className={styles.footerFull}>')[1]?.split('className={styles.footerCompact}')[0]?.split('className={`${styles.footerCompact}')[0];
+    const desktop = footer.split('className={styles.footerFull}>')[1];
     const infoColumn = desktop?.match(/<strong>ข้อมูล<\/strong>([\s\S]*?)<\/div>/)?.[1];
     assert.match(infoColumn, /<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: desktop button belongs in the info column`);
     assert.equal(desktop.match(/<CookieSettingsButton\b/g)?.length, 1, `${path}: exactly one desktop button`);
     assert.match(desktop, /footerDisclaimer[\s\S]*?footerWarnings[\s\S]*?footerCopyright/, `${path}: warnings belong in the lower desktop card`);
-    assert.match(footer, /className=\{(?:styles\.footerCompact|`\$\{styles\.footerCompact\})[\s\S]*?footerWarnings[\s\S]*?<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: compact footer keeps warnings and cookie control inside`);
+    assert.doesNotMatch(footer, /styles\.footerCompact/, `${path}: duplicate compact content is removed`);
     assert.doesNotMatch(footer, /<div className=\{styles\.inner\}>\s*\{warnings \? \(/, `${path}: warnings must not sit above the footer card`);
   }
 });

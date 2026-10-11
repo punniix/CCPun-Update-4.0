@@ -124,7 +124,7 @@ test('page blocks rendering before its JSX; shared server gate supplies both nav
   const shared = source('components/layout/website-43/Website43Shared.tsx');
   assert.match(shared, /investmentEnabled=\{INVESTMENT_ALLOCATION_ENABLED\}/);
   assert.match(shared, /const toolLinks = \[\.\.\.navigation\.tools, \.\.\.\(INVESTMENT_ALLOCATION_ENABLED \? \[INVESTMENT_TOOL_LINK\] : \[\]\)\]/);
-  assert.equal((shared.match(/toolLinks\.map/g) || []).length, 2, 'both footer layouts use the gated list');
+  assert.equal((shared.match(/toolLinks\.map/g) || []).length, 1, 'one responsive footer uses the gated list');
   const navbar = source('components/layout/website-43/Website43Navbar.tsx');
   assert.match(navbar, /investmentEnabled = false/);
   assert.match(navbar, /\.\.\.\(investmentEnabled \? \[INVESTMENT_TOOL_LINK\] : \[\]\)/);

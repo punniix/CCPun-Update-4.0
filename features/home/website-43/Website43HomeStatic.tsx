@@ -54,26 +54,6 @@ export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
           <p className={styles.footerCopyright}>© 2026 CCPUN · ที่ปรึกษาทางการเงิน และผู้วางแผนการลงทุน</p>
         </div>
 
-        <div className={styles.footerCompact}>
-          {warnings ? <HomeBrand /> : <HomeBrand />}
-          <p>วางแผนการเงินจากชีวิตจริง เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</p>
-          <nav aria-label="เมนูส่วนท้าย">
-            <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link>
-            {toolLinks.map(({ href, label }) => <span key={href}> · <Link href={`${BASE}${href.replace(/\/$/, '')}`}>{label}</Link></span>)}
-          </nav>
-          <nav aria-label="นโยบาย">
-            <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
-          </nav>
-          <p>ข้อมูลเพื่อความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล</p>
-          {warnings ? (
-            <div className={styles.footerWarnings}>
-              <p>คำเตือน: การลงทุนมีความเสี่ยง ผู้ลงทุนควรทำความเข้าใจลักษณะสินค้า เงื่อนไขผลตอบแทน และความเสี่ยงก่อนตัดสินใจลงทุน</p>
-              <p>ผลการดำเนินงานในอดีต มิได้เป็นสิ่งยืนยันถึงผลการดำเนินงานในอนาคต</p>
-              <p>ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก ควรศึกษาความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ</p>
-            </div>
-          ) : null}
-          <CookieSettingsButton className={styles.footerCookieButton} />
-        </div>
       </div>
     </footer>
   );
