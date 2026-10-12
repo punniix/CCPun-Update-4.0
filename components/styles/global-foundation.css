@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @source "../../components";
 @source "../../features";
+@source not "../../qa";
+@source not "../../tests";
+@source not "../../docs";
+@source not "../../scripts";
 @import "./public-compat.css";
 @import "./public-motion.css";
 @import "../../features/financial-health-check/styles/print.css";
