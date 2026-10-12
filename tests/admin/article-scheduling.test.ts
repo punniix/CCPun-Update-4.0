@@ -1,6 +1,6 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { articleScheduleBlock, bangkokLocalDateTimeToIso, getScheduleDelaySeconds } from "../../cms/sanity/policy/article-scheduling";
 import type { PublishableArticle } from "../../cms/sanity/policy/article-publication";
@@ -81,7 +81,7 @@ test("private scheduler accepts an explicit Hostinger Admin identity without fak
   }
 });
 test("queue storage has no Sanity operational writes and Workflow wiring uses an absolute time", () => {
-  const read=(file:string)=>readFileSync(new URL(`../../${file}`,import.meta.url),"utf8");
+  const read=(file:string)=>readPhase1Source(file);
   assert.doesNotMatch(read("lib/admin/article-scheduling.ts"),/createOrReplace|publishSchedule|drafts\.publishSchedule/);
   assert.match(read("lib/admin/operations/article-schedule-store.ts"),/process\.env\.CCPUN_ADMIN_DATABASE_URL/);
   assert.doesNotMatch(read("lib/admin/operations/article-schedule-store.ts"),/process\.env\.(?:CCPUN_SOCIAL_DATABASE_URL|DATABASE_URL)/);
@@ -94,7 +94,7 @@ test("queue storage has no Sanity operational writes and Workflow wiring uses an
 
 test("cancelled article schedules display as cancelled in calendar and audit", () => {
   for (const page of ["content/calendar", "operations/audit-log"]) {
-    const source = readFileSync(new URL(`../../apps/admin/app/(control-plane)/${page}/page.tsx`, import.meta.url), "utf8");
+    const source = readPhase1Source(`apps/admin/app/(control-plane)/${page}/page.tsx`);
     assert.match(source, /if \(status === "cancelled"\) return "ยกเลิกแล้ว";/);
   }
 });

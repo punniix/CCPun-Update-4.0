@@ -1,3 +1,4 @@
+import { buildSiteRootMetadata } from "@/lib/seo/root-metadata";
 import { CRITICAL_FOUNDATION_CSS } from "@/components/styles/critical-foundation";
 import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
@@ -26,37 +27,7 @@ const kanitCritical = Kanit({
   preload: true,
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://ccpun.com"),
-  title: "CCPun | ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
-  description: "ไม่แน่ใจว่าควรลงทุนหรือทำประกันแบบไหน? CCPun ที่ปรึกษาทางการเงิน ช่วยดูเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี ก่อนค่อยเลือกทางที่เหมาะกับชีวิตคุณ",
-  keywords: ["ที่ปรึกษาการเงิน", "กองทุนรวม", "ประกันชีวิต", "วางแผนภาษี", "RMF", "SSF", "ThaiESG", "AIA", "Finnomena", "PhillipCapital"],
-  authors: [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }],
-  openGraph: {
-    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
-    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
-    url: "https://ccpun.com",
-    siteName: "CCPun Financial Advisor",
-    images: [{ url: "https://ccpun.com/og-image-20260610.webp?v=68ae8d8", width: 1200, height: 630, alt: "CCPun ที่ปรึกษาการเงิน" }],
-    locale: "th_TH",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
-    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
-    images: ["https://ccpun.com/og-image-20260610.webp?v=68ae8d8"],
-  },
-  alternates: {
-    canonical: "https://ccpun.com/",
-    languages: { "th-TH": "https://ccpun.com/", "x-default": "https://ccpun.com/" },
-  },
-  robots: IS_WEB_REVIEW_ENVIRONMENT ? { index: false, follow: false, nocache: true } : undefined,
-  icons: {
-    icon: { url: "/favicon.png", type: "image/png" },
-    apple: "/favicon.png",
-  },
-};
+export const metadata: Metadata = buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

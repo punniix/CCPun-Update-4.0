@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -48,9 +49,9 @@ test("admin presentation uses friendly Thai labels and hides unknown API detail"
 });
 
 test("production-capable admin surfaces do not hard-code UAT copy", () => {
-  const dashboard = readFileSync("apps/admin/app/(control-plane)/dashboard/page.tsx", "utf8");
-  const login = readFileSync("apps/admin/app/(control-plane-auth)/login/page.tsx", "utf8");
-  const audit = readFileSync("apps/admin/app/(control-plane)/operations/audit-log/page.tsx", "utf8");
+  const dashboard = readPhase1Source("apps/admin/app/(control-plane)/dashboard/page.tsx");
+  const login = readPhase1Source("apps/admin/app/(control-plane-auth)/login/page.tsx");
+  const audit = readPhase1Source("apps/admin/app/(control-plane)/operations/audit-log/page.tsx");
 
   assert.match(dashboard, /พื้นที่นี้ใช้ข้อมูลจาก/);
   assert.match(dashboard, /\{lane\}/);
@@ -81,7 +82,7 @@ test("production-capable admin surfaces do not hard-code UAT copy", () => {
 });
 
 test("content list separates document state from content review state", () => {
-  const contentPage = readFileSync("apps/admin/app/(control-plane)/content/articles/page.tsx", "utf8");
+  const contentPage = readPhase1Source("apps/admin/app/(control-plane)/content/articles/page.tsx");
   const sanityControl = readFileSync("lib/admin/sanity-control.ts", "utf8");
   assert.match(contentPage, /สถานะเอกสาร/);
   assert.match(contentPage, /ขั้นตรวจเนื้อหา/);

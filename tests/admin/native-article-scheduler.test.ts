@@ -1,5 +1,6 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -163,7 +164,7 @@ test("native SQL registration and scan preserve CAS/audit and never take over SD
 });
 
 test("Admin native branch loads no SDK until the explicit retained legacy branch", () => {
-  const route = readFileSync(new URL("../../apps/admin/app/api/admin/content/[id]/schedule/route.ts", import.meta.url), "utf8");
+  const route = readPhase1Source(new URL("../../apps/admin/app/api/admin/content/[id]/schedule/route.ts", import.meta.url));
   assert.doesNotMatch(route, /^import .*from ["']workflow\/api["']/m);
   assert.ok(route.indexOf('if (backend === "native-neon")') < route.indexOf('await import("workflow/api")'));
   assert.match(route, /registerNativeArticleSchedule/);
