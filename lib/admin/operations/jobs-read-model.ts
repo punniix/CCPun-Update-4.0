@@ -55,6 +55,10 @@ export type OperationsJob = {
   lockExpiresAt: string | null;
   error: string | null;
   detail: string;
+  stage?: string;
+  n8nExecutionId?: string | null;
+  durationMs?: number | null;
+  queueWaitMs?: number | null;
 };
 
 export type JobsReadModel = {
@@ -176,7 +180,11 @@ async function readAgentOsJobs(limit: number, env: Record<string, string | undef
     locked: false,
     lockExpiresAt: null,
     error: row.errorCategory,
-    detail: `stage ${row.stage}${row.n8nExecutionId ? ` · n8n ${row.n8nExecutionId}` : ""}`,
+    stage: row.stage,
+    n8nExecutionId: row.n8nExecutionId && /^[1-9][0-9]{0,19}$/.test(row.n8nExecutionId) ? row.n8nExecutionId : null,
+    durationMs: row.durationMs,
+    queueWaitMs: row.queueWaitMs,
+    detail: `stage ${row.stage}`,
   }));
 }
 

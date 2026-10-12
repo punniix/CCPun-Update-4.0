@@ -86,26 +86,30 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     <div className="min-h-screen overflow-x-hidden bg-navy-900 text-white">
       <AdminDataRefresh />
       <header className="border-b border-white/10 bg-navy-800/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-          <div className="flex items-center gap-4">
-            <div>
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 lg:px-8">
+          <div className="flex min-w-0 items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ศูนย์จัดการ CCPun</p>
               <p className="mt-1 text-sm text-white/60">พื้นที่ตรวจและเตรียมงานก่อนเผยแพร่</p>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">{currentEnvironmentLabel}</span>
+            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">{currentEnvironmentLabel}</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {hasAdminPermission(role, "advisor:read") && isAdminCapabilityPathAllowed("/dashboard/inbox/", capabilityProfile) ? <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">ลูกค้า LINE</Link> : null}
-            <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 px-3.5 py-2 text-xs font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">Sanity Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
-            <div className="text-right">
-              <div className="text-white/80">{identityLabel}</div>
-              <div className="text-xs text-white/55">สิทธิ์: {roleLabel(role)}</div>
+          <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between xl:gap-6">
+            <div role="group" aria-label="เครื่องมือศูนย์จัดการ" className="flex shrink-0 flex-wrap items-center gap-2">
+              {hasAdminPermission(role, "advisor:read") && isAdminCapabilityPathAllowed("/dashboard/inbox/", capabilityProfile) ? <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">ลูกค้า LINE</Link> : null}
+              <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 px-3.5 py-2 text-xs font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">Sanity Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
             </div>
-            {session?.user ? (
-              <form action={logout}>
-                <button type="submit" className="min-h-11 rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">ออกจากระบบ</button>
-              </form>
-            ) : null}
+            <div role="group" aria-label="บัญชีที่เข้าสู่ระบบ" className="flex min-w-0 items-center gap-3 xl:flex-1">
+              <div className="min-w-0 flex-1 text-sm xl:text-right">
+                <div className="text-white/80 [overflow-wrap:anywhere]">{identityLabel}</div>
+                <div className="text-xs text-white/55">สิทธิ์: {roleLabel(role)}</div>
+              </div>
+              {session?.user ? (
+                <form action={logout} className="shrink-0">
+                  <button type="submit" className="min-h-11 rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">ออกจากระบบ</button>
+                </form>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>

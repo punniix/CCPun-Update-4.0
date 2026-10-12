@@ -85,7 +85,7 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
   assert.match(proxy, /type: "host", value: "localhost"/);
   assert.match(proxy, /type: "host", value: "ccpun-admin\(\?:-\.\+\)\?\\\\\.vercel\\\\\.app"/);
   assert.match(proxy, /if \(isAdminNotFoundPage\) \{\s*return NextResponse\.next\(\{ status: 404 \}\)/);
-  assert.match(proxy, /disposition === "entry"[\s\S]*role \? "\/dashboard\/" : "\/login\/"/);
+  assert.match(proxy, /disposition === "entry"[\s\S]*role \? landingPath : "\/login\/"/);
   assert.match(proxy, /if \(pathname\.startsWith\("\/api\/"\)\) \{\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401 \}\)/);
   assert.match(proxy, /if \(isAdminApi \|\| isPreviewApi\) \{\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401 \}\)/);
   assert.doesNotMatch(proxy, /pathname\.startsWith\("\/api\/"\)[\s\S]{0,180}NextResponse\.redirect/);
@@ -95,15 +95,24 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
 test("active Admin runtime references snt-admin only in deny-only privacy and proxy fences", () => {
   const allowed = new Set([
     "app/robots.ts",
+    "apps/admin/app/robots.ts",
+    "apps/web/app/robots.ts",
+    "apps/admin/proxy.ts",
     "next.config.ts",
     "proxy.ts",
   ]);
   const files = [
     ...sourceFiles("app"),
+    ...sourceFiles("apps/admin/app"),
+    ...sourceFiles("apps/web/app"),
     ...sourceFiles("features/admin"),
     ...sourceFiles("lib/admin"),
     ...sourceFiles("cms/sanity/policy"),
     "auth.ts",
+    "apps/admin/next.config.ts",
+    "apps/web/next.config.ts",
+    "apps/admin/proxy.ts",
+    "apps/web/proxy.ts",
     "next.config.ts",
     "proxy.ts",
   ];

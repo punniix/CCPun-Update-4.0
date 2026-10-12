@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function AnalyticsIndexPage() {
-  redirect("/analytics/search/");
-}
+export { default, metadata } from "@/apps/admin/app/(control-plane)/analytics/page";

@@ -83,18 +83,19 @@ test("Production legacy backfill is dry-run by default and exact-source guarded"
 });
 
 test("owner-facing Admin surfaces health and explicit SEO re-audit", () => {
-  const layout = read("app/(control-plane)/layout.tsx");
-  const health = read("app/(control-plane)/operations/health/page.tsx");
-  const audit = read("app/(control-plane)/operations/audit-log/page.tsx");
+  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const health = read("apps/admin/app/(control-plane)/operations/health/page.tsx");
+  const audit = read("apps/admin/app/(control-plane)/operations/audit-log/page.tsx");
+  const runtime = read("lib/admin/growth.ts");
   const button = read("features/admin/components/RunSeoAuditButton.tsx");
   assert.match(layout, /\/operations\/health\//);
   assert.match(layout, /permission: "settings:read"/);
-  assert.match(health, /สถานะเวอร์ชันระบบ/);
+  assert.match(health, /ศูนย์จัดการที่กำลังใช้งาน/);
   assert.match(health, /getAdminDeploymentIdentity/);
-  assert.match(health, /ยังไม่ใช่ผลตรวจเว็บสาธารณะ HTTPS/);
+  assert.match(runtime, /ยังไม่ใช่ผลตรวจ deployment ของเว็บสาธารณะ HTTPS/);
   assert.doesNotMatch(health, /Vercel Runtime|process\.env\.VERCEL_/);
-  assert.match(health, /Control Plane Operations/);
-  assert.match(audit, /ฐานข้อมูล Control Plane/);
+  assert.match(health, /ข้อมูลส่วนตัวและประวัติการทำงาน/);
+  assert.match(audit, /ฐานข้อมูลส่วนตัว/);
   assert.match(button, /ตรวจ SEO อีกครั้ง/);
 });
 

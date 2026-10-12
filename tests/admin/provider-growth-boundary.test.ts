@@ -5,12 +5,13 @@ import test from "node:test";
 
 const ubersuggest = readFileSync(new URL("../../lib/admin/ubersuggest.ts", import.meta.url), "utf8");
 const ubersuggestContracts = readFileSync(new URL("../../lib/admin/ubersuggest-contracts.ts", import.meta.url), "utf8");
-const researchRoute = readFileSync(new URL("../../app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
+const researchRoute = readFileSync(new URL("../../apps/admin/app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
 const growth = readFileSync(new URL("../../lib/admin/growth.ts", import.meta.url), "utf8");
-const growthPage = readFileSync(new URL("../../app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8");
-const growthLoading = readFileSync(new URL("../../app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
+const growthPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8")
+  + readFileSync(new URL("../../features/admin/analytics/StoredAnalyticsDashboard.tsx", import.meta.url), "utf8");
+const growthLoading = readFileSync(new URL("../../apps/admin/app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
 const research = readFileSync(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
-const geoPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const geoPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 const researchPage = readFileSync(new URL("../../features/admin/research/page.tsx", import.meta.url), "utf8");
 const researchForm = readFileSync(new URL("../../features/admin/components/UbersuggestResearchForm.tsx", import.meta.url), "utf8");
 
@@ -158,16 +159,16 @@ test("SEO detail tolerates an unavailable proposal database and opens the exact 
 
 test("growth UI exposes freshness, comparison, loading, empty, and error states without fake metrics", () => {
   assert.match(growthPage, /ช่วงข้อมูล:/);
-  assert.match(growthPage, /อัปเดตล่าสุด:/);
-  assert.match(growthPage, /เปรียบเทียบ: \{source\.comparison/);
+  assert.match(growthPage, /item\.sourceAsOf/);
+  assert.match(growth, /comparison:/);
   assert.match(growth, /query\(previousStartDate, previousEndDate\)\.catch/);
   assert.match(growth, /report\(previousStartDate, previousEndDate\)\.catch/);
   assert.match(growth, /ดึงช่วงก่อนหน้าไม่สำเร็จ/);
   assert.match(growth, /source: "runtime", state: "partial"/);
   assert.match(growth, /อ่านเวอร์ชันของศูนย์จัดการที่กำลังรัน ยังไม่ใช่ผลตรวจ deployment ของเว็บสาธารณะ HTTPS หรือ Core Web Vitals/);
   assert.match(growthPage, /ข้อมูลบางส่วน/);
-  assert.match(growthPage, /ยังไม่เชื่อมต่อ/);
-  assert.match(growthPage, /ดึงข้อมูลไม่สำเร็จ/);
+  assert.match(growthPage, /ยังไม่มีข้อมูลที่บันทึกสำเร็จ/);
+  assert.match(growthPage, /รอบล่าสุดไม่สำเร็จ/);
   assert.match(growthLoading, /role="status"/);
   assert.match(growthLoading, /aria-live="polite"/);
   assert.doesNotMatch(growthPage, /mock|fake/i);

@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, extname, join, normalize } from 'node:path';
 
-export const trackedFiles = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
+export const trackedFiles = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { encoding: 'utf8' })
   .split('\0')
   .filter(Boolean);
 export const trackedFileSet = new Set(trackedFiles);
@@ -54,9 +54,9 @@ function localImports(file, source) {
 export const graph = new Map();
 for (const file of runtimeFiles) graph.set(file, localImports(file, sourceByFile.get(file)));
 
-const appEntryPattern = /^app\/(?:.*\/)?(?:page|layout|route|loading|error|not-found|default|template|manifest|robots|sitemap|opengraph-image|twitter-image|icon|apple-icon)\.(?:js|jsx|mjs|ts|tsx)$/;
+const appEntryPattern = /^apps\/(?:web|admin)\/app\/(?:.*\/)?(?:page|layout|route|loading|error|not-found|default|template|manifest|robots|sitemap|opengraph-image|twitter-image|icon|apple-icon)\.(?:js|jsx|mjs|ts|tsx)$/;
 export const entryFiles = runtimeFiles.filter((file) => appEntryPattern.test(file));
-for (const rootEntry of ['proxy.ts', 'auth.ts']) {
+for (const rootEntry of ['apps/web/proxy.ts', 'apps/admin/proxy.ts', 'auth.ts']) {
   if (runtimeFileSet.has(rootEntry)) entryFiles.push(rootEntry);
 }
 
@@ -84,15 +84,13 @@ export const reachable = walkReachable(entryFiles);
 export const reachableSources = sourcesFor(reachable);
 
 const publicExcludedEntryPrefixes = [
-  'app/(control-plane',
-  'app/api/',
-  'app/studio/',
-  'app/login/',
-  'app/.well-known/workflow/',
+  'apps/web/app/api/',
+  'apps/web/app/.well-known/workflow/',
 ];
 
 export function isPublicPageEntry(file) {
-  return appEntryPattern.test(file) && !publicExcludedEntryPrefixes.some((prefix) => file.startsWith(prefix));
+  return file.startsWith('apps/web/app/') && appEntryPattern.test(file)
+    && !publicExcludedEntryPrefixes.some((prefix) => file.startsWith(prefix));
 }
 
 // Public page reachability deliberately excludes Proxy/Auth/Admin/Studio/API roots.

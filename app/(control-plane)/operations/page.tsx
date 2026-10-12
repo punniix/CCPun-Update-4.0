@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function OperationsIndexPage() {
-  redirect("/operations/health/");
-}
+export { default } from "@/apps/admin/app/(control-plane)/operations/page";

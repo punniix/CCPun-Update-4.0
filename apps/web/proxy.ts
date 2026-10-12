@@ -3,6 +3,8 @@ import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
 import { SECURITY_HEADERS } from "@/lib/security-policy";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 
+import { WEB_REDIRECTS } from "../../lib/runtime/web-build-config.mjs";
+
 export function hostingerRedirectUrl(request: Request): URL | null {
   const url = new URL(request.url);
   const pathname = url.pathname;
@@ -17,12 +19,7 @@ export function hostingerRedirectUrl(request: Request): URL | null {
       return url;
     }
   }
-  for (const [prefix, destination] of [
-    ["/blog/personal-finance/personal-income-tax-calculation-2569", "/blog/personal-finance/personal-income-tax-calculation/"],
-    ["/living-benefits", "/ci-planning/"],
-    ["/tools/fhc", "/tools/financial-health-check/"],
-    ["/financial-advisor", "/"],
-  ]) {
+  for (const { prefix, destination } of WEB_REDIRECTS) {
     if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
       url.pathname = destination;
       return url;

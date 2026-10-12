@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 import { z } from "zod";
+import * as jobCopy from "../../features/admin/operations/job-copy";
 import { isPostPublishAdminOriginAllowed } from "../../lib/admin/seo-intelligence/post-publish-origin";
 
 const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
@@ -132,6 +133,7 @@ test("existing job UI exposes explicit owner timeout action and reports stale ve
           : Response.json({ ...initial, terminal: true, job: { ...initial.job, status: "reconciliation_required", rowVersion: 3 } });
       },
       require: (name: string) => {
+        if (name === "./job-copy") return jobCopy;
         if (name === "react/jsx-runtime") return {
           jsx: (type: string, props: unknown) => ({ type, props }), jsxs: (type: string, props: unknown) => ({ type, props }),
         };

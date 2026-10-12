@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type NavigationChild = { href: string; label: string };
 type NavigationItem = { href: string; label: string; children?: NavigationChild[] };
@@ -13,9 +13,9 @@ function isPathWithin(pathname: string, href: string) {
   return pathname.startsWith(normalized);
 }
 
-function contextualItems(item: NavigationItem): NavigationChild[] {
+function contextualItems(item: NavigationItem, includeOverview: boolean): NavigationChild[] {
   const children = item.children ?? [];
-  return [{ href: item.href, label: "ภาพรวม" }, ...children.filter((child) => child.href !== item.href)];
+  return [...(includeOverview ? [{ href: item.href, label: item.href === "/dashboard/" ? "วันนี้" : "ภาพรวม" }] : []), ...children.filter((child) => child.href !== item.href)];
 }
 
 function PrimaryModules({ items, pathname }: { items: NavigationItem[]; pathname: string }) {
@@ -36,7 +36,7 @@ function PrimaryModules({ items, pathname }: { items: NavigationItem[]; pathname
                 : "border-transparent text-white/65 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
             }`}
           >
-            {item.label}
+            {item.href === "/dashboard/" ? "วันนี้" : item.label}
           </Link>
         );
       })}
@@ -44,12 +44,13 @@ function PrimaryModules({ items, pathname }: { items: NavigationItem[]; pathname
   );
 }
 
-function ContextNavigation({ item, pathname, onNavigate }: {
+function ContextNavigation({ item, pathname, onNavigate, includeOverview = true }: {
   item: NavigationItem;
   pathname: string;
   onNavigate?: () => void;
+  includeOverview?: boolean;
 }) {
-  const links = contextualItems(item);
+  const links = contextualItems(item, includeOverview);
   return (
     <div
       id={`admin-context-${item.label.toLowerCase()}`}
@@ -60,7 +61,7 @@ function ContextNavigation({ item, pathname, onNavigate }: {
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">{item.label}</p>
         <span className="text-[10px] text-[#e0c985]/70">หมวด</span>
       </div>
-      <div role="list" className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         {links.map((child) => {
           const exactOverview = child.href === item.href;
           const active = exactOverview ? pathname === child.href : isPathWithin(pathname, child.href);
@@ -89,7 +90,20 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const groupButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const returnFocusHref = useRef<string | null>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
   const [mobileGroupHref, setMobileGroupHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mobileGroupHref !== null) {
+      backButtonRef.current?.focus();
+      return;
+    }
+    if (mobileGroupHref !== null || !returnFocusHref.current) return;
+    groupButtonRefs.current.get(returnFocusHref.current)?.focus();
+    returnFocusHref.current = null;
+  }, [mobileGroupHref]);
 
   const activeItem = useMemo(
     () => items.find((item) => isPathWithin(pathname, item.href)) ?? null,
@@ -98,9 +112,9 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
   const mobileGroup = items.find((item) => item.href === mobileGroupHref) ?? null;
 
   function closeDialog() {
+    returnFocusHref.current = null;
     dialogRef.current?.close();
     setMobileGroupHref(null);
-    requestAnimationFrame(() => triggerRef.current?.focus());
   }
 
   return (
@@ -122,7 +136,11 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
         ref={dialogRef}
         aria-label="เมนูศูนย์จัดการ CCPun"
         className="m-0 h-dvh max-h-none w-[min(92vw,22rem)] max-w-none bg-navy-800 p-0 text-white shadow-2xl backdrop:bg-black/70 lg:hidden"
-        onClose={() => setMobileGroupHref(null)}
+        onClose={() => {
+          returnFocusHref.current = null;
+          setMobileGroupHref(null);
+          requestAnimationFrame(() => triggerRef.current?.focus());
+        }}
         onClick={(event) => {
           if (event.target === event.currentTarget) closeDialog();
         }}
@@ -131,8 +149,12 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
           <div className="flex min-w-0 items-center gap-2">
             {mobileGroup ? (
               <button
+                ref={backButtonRef}
                 type="button"
-                onClick={() => setMobileGroupHref(null)}
+                onClick={() => {
+                  returnFocusHref.current = mobileGroupHref;
+                  setMobileGroupHref(null);
+                }}
                 className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg text-sm text-white/75 transition motion-reduce:transition-none hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]"
                 aria-label="กลับไปเมนูหลัก"
               >
@@ -171,19 +193,23 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
                       aria-current={pathname === item.href ? "page" : undefined}
                       className={`flex min-h-11 touch-manipulation items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${active ? "border-[#e0c985]/35 bg-[#e0c985]/[0.09] text-[#f4df9b]" : "border-transparent text-white/70"}`}
                     >
-                      {item.label}
+                      {item.href === "/dashboard/" ? "วันนี้" : item.label}
                     </Link>
                   );
                 }
                 return (
                   <button
                     key={item.href}
+                    ref={(button) => {
+                      if (button) groupButtonRefs.current.set(item.href, button);
+                      else groupButtonRefs.current.delete(item.href);
+                    }}
                     type="button"
                     aria-expanded={false}
                     onClick={() => setMobileGroupHref(item.href)}
                     className={`flex min-h-11 touch-manipulation items-center justify-between rounded-xl border px-3.5 py-2.5 text-left text-sm font-medium transition motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${active ? "border-[#e0c985]/35 bg-[#e0c985]/[0.09] text-[#f4df9b]" : "border-transparent text-white/70 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"}`}
                   >
-                    <span>{item.label}</span>
+                    <span>{item.href === "/dashboard/" ? "วันนี้" : item.label}</span>
                     <span aria-hidden="true" className="text-white/35">→</span>
                   </button>
                 );
@@ -195,7 +221,7 @@ export default function AdminNavigation({ items }: { items: NavigationItem[] }) 
 
       <nav aria-label="เมนูหน้าควบคุม" className="hidden lg:block">
         <PrimaryModules items={items} pathname={pathname} />
-        {activeItem?.children?.length ? <ContextNavigation item={activeItem} pathname={pathname} /> : null}
+        {activeItem?.children?.length ? <ContextNavigation item={activeItem} pathname={pathname} includeOverview={false} /> : null}
       </nav>
     </>
   );

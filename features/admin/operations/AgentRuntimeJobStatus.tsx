@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { AgentRuntimeJobDetail } from "@/lib/admin/operations/agent-os-runtime-detail";
+import { ownerJobStatusLabel as statusLabel, safeN8nExecutionId } from "./job-copy";
 
 function formatDuration(ms: number | null) {
   if (ms == null || !Number.isFinite(ms)) return "—";
@@ -11,23 +12,6 @@ function formatDuration(ms: number | null) {
   const minutes = Math.floor(seconds / 60);
   const remain = seconds % 60;
   return `${minutes} นาที ${remain} วินาที`;
-}
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    queued: "รอคิว",
-    running: "กำลังทำงาน",
-    waiting_external: "กำลังรอระบบภายนอก",
-    waiting_ai: "กำลังรอ AI",
-    validating: "กำลังตรวจผล",
-    awaiting_review: "รอคุณตรวจ",
-    retrying: "กำลังลองใหม่",
-    completed: "เสร็จแล้ว",
-    failed: "ไม่สำเร็จ",
-    reconciliation_required: "ต้องตรวจผลกับระบบภายนอก",
-    cancelled: "ยกเลิกแล้ว",
-  };
-  return labels[status] ?? "กำลังตรวจสถานะ";
 }
 
 function paceLabel(pace: AgentRuntimeJobDetail["pace"]) {
@@ -54,6 +38,8 @@ export function AgentRuntimeJobStatus({ initial, canReconcileTimeout = false }: 
   const [now, setNow] = useState(() => Date.now());
   const [reconciling, setReconciling] = useState(false);
   const [reconcileError, setReconcileError] = useState("");
+  const [pollDegraded, setPollDegraded] = useState(false);
+  const [lastSuccessfulReadAt, setLastSuccessfulReadAt] = useState(initial.serverNow);
 
   useEffect(() => {
     if (detail.terminal) return;
@@ -70,11 +56,15 @@ export function AgentRuntimeJobStatus({ initial, canReconcileTimeout = false }: 
           cache: "no-store",
           headers: { Accept: "application/json" },
         });
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("status-unavailable");
         const next = await response.json() as AgentRuntimeJobDetail;
-        if (!stopped) setDetail(next);
+        if (!stopped) {
+          setDetail(next);
+          setLastSuccessfulReadAt(new Date(Date.now()).toISOString());
+          setPollDegraded(false);
+        }
       } catch {
-        // Keep the last confirmed state visible; the next poll may recover.
+        if (!stopped) setPollDegraded(true);
       }
     }, 3000);
     return () => {
@@ -119,6 +109,8 @@ export function AgentRuntimeJobStatus({ initial, canReconcileTimeout = false }: 
       const refreshed = await fetch(path, { cache: "no-store", headers: { Accept: "application/json" } });
       if (!refreshed.ok) throw new Error("refresh-unavailable");
       setDetail(await refreshed.json() as AgentRuntimeJobDetail);
+      setLastSuccessfulReadAt(new Date(Date.now()).toISOString());
+      setPollDegraded(false);
     } catch {
       setReconcileError("ยังยืนยันสถานะล่าสุดไม่ได้ กรุณาโหลดหน้าใหม่เพื่อตรวจผล");
     } finally {
@@ -137,10 +129,15 @@ export function AgentRuntimeJobStatus({ initial, canReconcileTimeout = false }: 
             <p className="mt-2 text-sm text-white/55">ดูความคืบหน้าและเวลาที่ใช้ด้านล่าง</p>
           </div>
           <div className="flex items-center gap-2 text-sm text-white/65" aria-live="polite">
-            {!detail.terminal ? <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#e0c985]" aria-hidden="true" /> : null}
+            {!detail.terminal && !pollDegraded ? <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#e0c985]" aria-hidden="true" /> : null}
             <span>{formatDuration(elapsed)}</span>
           </div>
         </div>
+
+        <p className="mt-3 text-xs text-white/55">อ่านสถานะสำเร็จล่าสุด: {lastSuccessfulReadAt && Number.isFinite(Date.parse(lastSuccessfulReadAt))
+          ? new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date(lastSuccessfulReadAt))
+          : "ยังไม่มีเวลาอ่านที่ยืนยัน"}</p>
+        {pollDegraded ? <p role="status" className="mt-3 rounded-xl border border-amber-200/20 bg-amber-200/10 p-3 text-sm leading-6 text-amber-50">ยังอ่านสถานะล่าสุดไม่ได้ กำลังแสดงสถานะที่ยืนยันครั้งก่อน ระบบจะตรวจใหม่โดยไม่ส่งงานซ้ำ</p> : null}
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl bg-black/15 p-4">
@@ -157,7 +154,7 @@ export function AgentRuntimeJobStatus({ initial, canReconcileTimeout = false }: 
           </div>
           <div className="rounded-2xl bg-black/15 p-4">
             <p className="text-xs text-white/45">n8n Execution</p>
-            <p className="mt-2 break-all text-sm font-medium">{detail.job.n8nExecutionId ? "มีข้อมูลให้ตรวจย้อนหลัง" : "ยังไม่มี"}</p>
+            <p className="mt-2 break-all text-sm font-medium">{safeN8nExecutionId(detail.job.n8nExecutionId) ?? "ยังไม่มีหมายเลขยืนยัน"}</p>
           </div>
         </div>
 

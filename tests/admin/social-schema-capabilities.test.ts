@@ -52,12 +52,12 @@ test("Capability versions match the reviewed repository migrations", () => {
 
 test("System Health reads schema capability status without exposing credentials or mutating the database", () => {
   const database = read("lib/admin/social/database.ts");
-  const health = read("app/(control-plane)/operations/health/page.tsx");
+  const health = read("features/admin/social/page.tsx");
   assert.match(database, /getSocialDatabaseCapabilityStatus/);
   for (const relation of SOCIAL_MARKETING_REQUIRED_RELATIONS) assert.match(database, new RegExp(relation));
   assert.doesNotMatch(database, /console\./);
   assert.doesNotMatch(database, /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);
-  assert.match(health, /Social Schema Capabilities/);
-  assert.match(health, /raw-preview-fallback/);
+  assert.match(health, /readinessLabel\(database\)/);
+  assert.match(database, /resolveSocialMarketingCapabilityMode/);
   assert.doesNotMatch(health, /CCPUN_SOCIAL_DATABASE_URL/);
 });

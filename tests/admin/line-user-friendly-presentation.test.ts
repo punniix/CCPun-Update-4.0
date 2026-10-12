@@ -10,10 +10,20 @@ import {
   lineMessageStatusLabel,
   lineStageLabel,
   lineTechnicalStateLabel,
+  resolveInboxListRows,
 } from "../../lib/admin/line/presentation";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
+
+test("a failed requested inbox filter never shows unfiltered rows or a false empty result", () => {
+  const baseRows = [{ id: "synthetic-other-stage" }];
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: true, filteredRows: null, filterFailed: true }), { state: "unavailable", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: true, filteredRows: null, filterFailed: false }), { state: "unavailable", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: true, filterRequested: false, filteredRows: null, filterFailed: false }), { state: "unavailable", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: true, filteredRows: [], filterFailed: false }), { state: "empty", rows: [] });
+  assert.deepEqual(resolveInboxListRows({ baseRows, unavailable: false, filterRequested: false, filteredRows: null, filterFailed: false }), { state: "ready", rows: baseRows });
+});
 
 test("raw LINE states are translated into plain Thai before display", () => {
   assert.equal(lineStageLabel("New"), "ลูกค้าใหม่");
@@ -44,6 +54,13 @@ test("daily customer case keeps only follow-up and notes from CRM-style operatio
   assert.match(operations, /ติดตามลูกค้า/);
   assert.match(operations, /โน้ตของเรา/);
   assert.match(operations, /ตั้งวันติดตาม/);
+  assert.match(operations.match(/<input[\s\S]*?\/>/)?.[0] ?? "", /min-h-11/);
+  const buttons = operations.match(/<button[\s\S]*?<\/button>/g) ?? [];
+  assert.equal(buttons.length, 2);
+  for (const button of buttons) {
+    assert.match(button, /min-h-11/);
+    assert.match(button, /focus-visible:outline-2/);
+  }
   assert.doesNotMatch(operations, /Priority|Case state|Assigned advisor|Add safe tag|tagAdd|assignedAdvisor|caseState/);
 });
 

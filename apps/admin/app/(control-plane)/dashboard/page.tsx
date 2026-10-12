@@ -11,7 +11,7 @@ import { readOperationsJobs } from "@/lib/admin/operations/jobs-read-model";
 import { readConversionAnalytics } from "@/lib/admin/line/business-intelligence";
 import { getAdminSanityStatus, listSeoSuggestions } from "@/lib/admin/sanity-control";
 
-export const metadata: Metadata = { title: "เริ่มที่นี่" };
+export const metadata: Metadata = { title: "วันนี้" };
 
 type DashboardProps = { searchParams: Promise<{ error?: string }> };
 
@@ -20,8 +20,10 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
   const params = await searchParams;
   const status = getAdminSanityStatus();
   const operations = getAdminOperationsRuntimeStatus();
-  const reviews = await listSeoSuggestions();
-  const pendingReviews = reviews.error
+  const canReadReviews = hasAdminPermission(identity.role, "reviews:read");
+  const canReadOperations = hasAdminPermission(identity.role, "settings:read");
+  const reviews = canReadReviews ? await listSeoSuggestions() : null;
+  const pendingReviews = !reviews || reviews.error
     ? null
     : reviews.rows.filter((item) => item.status === "needs-human-review").length;
 
@@ -38,22 +40,22 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           latestMessageNeedsHuman: row.latestMessageNeedsHuman,
           caseState: row.caseState,
         })), new Date().toISOString());
-        return summarizeActionCenter(signals);
+        return { ...summarizeActionCenter(signals),
+          needsHuman: signals.filter((signal) => signal.kind === "human_handoff" || signal.kind === "new_lead_unread").length,
+          followUps: signals.filter((signal) => signal.kind === "follow_up_overdue" || signal.kind === "follow_up_today").length,
+          signals: signals.slice(0, 3),
+        };
       }).catch(() => null)
     : null;
 
+  const jobs = canReadOperations ? await readOperationsJobs(50).catch(() => null) : null;
+  const attentionJobs = jobs?.jobs.filter((job) => ["failed", "reconciliation-required", "reconciliation_required"].includes(job.status)) ?? [];
   const businessOverview = canReadAdvisor
-    ? await Promise.all([
-        readConversionAnalytics().catch(() => ({ state: "unavailable" as const, summary: null })),
-        readOperationsJobs(50).catch(() => null),
-      ]).then(([analytics, jobs]) => ({
+    ? await readConversionAnalytics().catch(() => ({ state: "unavailable" as const, summary: null })).then((analytics) => ({
         leadCount: analytics.state === "ready" ? analytics.summary?.lead_count ?? null : null,
         qualifiedCount: analytics.state === "ready" ? analytics.summary?.qualified_count ?? null : null,
         wonCount: analytics.state === "ready" ? analytics.summary?.won_count ?? null : null,
         revenueRecordCount: analytics.state === "ready" ? analytics.summary?.revenue_record_count ?? null : null,
-        automationAttention: jobs
-          ? jobs.jobs.filter((job) => ["failed", "reconciliation-required", "reconciliation_required"].includes(job.status)).length
-          : null,
       }))
     : null;
 
@@ -74,7 +76,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ภาพรวมสำหรับเจ้าของระบบ</p>
           <h1 className="mt-2 text-3xl font-semibold">วันนี้มีอะไรที่ต้องจัดการ?</h1>
           <p className="mt-2 max-w-3xl text-base leading-7 text-white/70">
-            ใช้หน้านี้เป็นทางเข้าเพื่อเลือกบทความ ตรวจ SEO และตัดสินใจด้วยตัวคุณเอง ระบบช่วยเตรียมงานได้ แต่คุณเป็นผู้ตัดสินใจทุกครั้ง
+            เริ่มจากลูกค้าที่ต้องดูต่อ งานที่รอตรวจ วันติดตาม และปัญหาของงานเบื้องหลัง แล้วเปิดงานที่ต้องการจัดการ
           </p>
         </div>
         <span className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70">
@@ -88,33 +90,34 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         </div>
       ) : null}
 
-      <section className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-labelledby="attention-heading">
-        <h2 id="attention-heading" className="md:col-span-2 text-xl font-semibold">สิ่งที่ควรตรวจวันนี้</h2>
-        <Link href="/dashboard/reviews/" className="glass-card p-5">
-          <p className="text-sm text-white/60">งานรอตรวจ</p>
-          <p className="mt-2 text-xl font-semibold text-gold-400">{pendingReviews == null ? "ยังอ่านไม่ได้" : pendingReviews === 0 ? "ไม่มีงานค้าง" : `${pendingReviews} รายการ`}</p>
-          <p className="mt-2 text-sm leading-6 text-white/65">{pendingReviews == null ? "ระบบยังอ่านรายการไม่ได้ จึงไม่แสดงเป็นศูนย์" : "ข้อเสนอที่รอผู้มีสิทธิ์ตรวจและตัดสินใจ"}</p>
-        </Link>
-        <Link href="/operations/health/" className="glass-card p-5">
-          <p className="text-sm text-white/60">ความพร้อมของระบบ</p>
-          <p className={`mt-2 text-xl font-semibold ${operations.identityValid ? "text-emerald-200" : "text-amber-200"}`}>{operations.identityValid ? "พร้อมใช้งาน" : operations.configured ? "ต้องตรวจ" : "ยังตั้งค่าไม่ครบ"}</p>
-          <p className="mt-2 text-sm leading-6 text-white/65">ตรวจแหล่งข้อมูล คิวงาน และการเชื่อมต่อภายนอก</p>
-        </Link>
-        {hasAdminPermission(identity.role, "advisor:read") ? (
-          <Link href="/dashboard/inbox/" className="glass-card p-5">
-            <p className="text-sm text-white/60">ลูกค้าที่ควรดูวันนี้</p>
-            <p className={`mt-2 text-xl font-semibold ${advisorSummary?.urgent ? "text-rose-200" : "text-gold-400"}`}>
-              {advisorSummary == null ? "ยังอ่านไม่ได้" : advisorSummary.total === 0 ? "ไม่มีงานค้าง" : `${advisorSummary.total} เรื่อง`}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-white/65">
-              {advisorSummary == null
-                ? "ระบบจะไม่เดาว่าไม่มีงาน หากอ่าน CRM ไม่สำเร็จ"
-                : advisorSummary.total === 0
-                  ? "ยังไม่พบสัญญาณที่ต้องติดตามจากกฎปัจจุบัน"
-                  : `เร่งด่วน ${advisorSummary.urgent} · สำคัญ ${advisorSummary.high} · ปกติ ${advisorSummary.normal}`}
-            </p>
-          </Link>
-        ) : null}
+      <section className="mt-6" aria-labelledby="attention-heading">
+        <h2 id="attention-heading" className="text-xl font-semibold">เลือกงานถัดไป</h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {canReadAdvisor ? <Link href="/dashboard/inbox/" className="rounded-2xl border border-[#e0c985]/25 bg-[#e0c985]/[0.06] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
+            <p className="text-sm text-white/70">ลูกค้าที่ต้องดูต่อ</p>
+            <p className="mt-2 text-xl font-semibold text-[#f4df9b]">{advisorSummary == null ? "ยังอ่านไม่ได้" : advisorSummary.needsHuman ? `${advisorSummary.needsHuman} สัญญาณ` : "ยังไม่พบในรายการล่าสุด"}</p>
+            <p className="mt-2 text-sm leading-6 text-white/65">ข้อความรอคนดูและลูกค้าใหม่ที่ยังไม่ได้อ่าน · เปิด CRM เพื่อเลือกเคส</p>
+          </Link> : null}
+          {canReadReviews ? <Link href="/dashboard/reviews/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
+            <p className="text-sm text-white/70">ข้อเสนอ SEO รอตรวจ</p>
+            <p className="mt-2 text-xl font-semibold">{pendingReviews == null ? "ยังอ่านไม่ได้" : pendingReviews === 0 ? "ยังไม่พบในรายการที่อ่านได้" : `${pendingReviews} รายการ`}</p>
+            <p className="mt-2 text-sm leading-6 text-white/65">เปิดข้อเสนอเพื่ออ่านเหตุผลและตัดสินใจ การตรวจนี้ยังไม่ใช่การเผยแพร่</p>
+          </Link> : null}
+          {canReadAdvisor ? <Link href="/dashboard/inbox/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
+            <p className="text-sm text-white/70">ถึงวันติดตาม</p>
+            <p className="mt-2 text-xl font-semibold">{advisorSummary == null ? "ยังอ่านไม่ได้" : advisorSummary.followUps ? `${advisorSummary.followUps} สัญญาณ` : "ยังไม่พบในรายการล่าสุด"}</p>
+            <p className="mt-2 text-sm leading-6 text-white/65">วันติดตามวันนี้หรือที่เลยกำหนดจากเคสที่อ่านได้ · ยังไม่ส่งข้อความแทนคุณ</p>
+          </Link> : null}
+          {canReadOperations ? <Link href="/operations/jobs/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
+            <p className="text-sm text-white/70">งานเบื้องหลังที่ต้องตรวจ</p>
+            <p className="mt-2 text-xl font-semibold text-amber-100">{!jobs || jobs.status === "unavailable" ? "ยังอ่านไม่ได้" : attentionJobs.length ? `${attentionJobs.length} รายการล่าสุด` : jobs.status === "partial" ? "อ่านได้บางแหล่ง" : "ยังไม่พบในรายการล่าสุด"}</p>
+            <p className="mt-2 text-sm leading-6 text-white/65">งานไม่สำเร็จหรือผลยังไม่ชัด ให้ตรวจประวัติก่อนลองใหม่</p>
+          </Link> : null}
+        </div>
+        <p className="mt-3 text-xs leading-5 text-white/55">สัญญาณลูกค้ามาจากรายการล่าสุดสูงสุด 100 รายการ งานระบบมาจากรายการล่าสุดสูงสุด 50 รายการ ไม่ใช่งานค้างทั้งหมด{jobs?.status === "partial" ? " · แหล่งงานบางส่วนยังอ่านไม่ได้" : ""}</p>
+        {advisorSummary?.signals.length ? <ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 px-4">
+          {advisorSummary.signals.map((signal) => <li key={`${signal.leadId}:${signal.kind}`}><Link href={`/dashboard/inbox/${signal.leadId}/`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"><span className="text-white/75">{signal.reason}</span><span className="text-[#e0c985]">เปิดเคส →</span></Link></li>)}
+        </ul> : null}
       </section>
 
       {canReadAdvisor ? (
@@ -139,7 +142,6 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
               ["Qualified Conversation", businessOverview?.qualifiedCount],
               ["Won", businessOverview?.wonCount],
               ["รายการรายได้", businessOverview?.revenueRecordCount],
-              ["งานระบบที่ต้องตรวจ", businessOverview?.automationAttention],
             ].map(([label, value]) => (
               <article key={String(label)} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
                 <p className="text-sm text-white/55">{label}</p>
@@ -154,9 +156,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
             <Link href="/analytics/conversions/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
               ดูเส้นทางลูกค้า
             </Link>
-            <Link href="/operations/jobs/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
-              ดูงานเบื้องหลัง
-            </Link>
+            {canReadOperations ? <Link href="/operations/jobs/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">ดูงานเบื้องหลัง</Link> : null}
             <Link href="/dashboard/inbox/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
               ดูลูกค้า CRM
             </Link>
@@ -171,7 +171,9 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         </p>
       </section>
 
-      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สถานะการเชื่อมต่อ">
+      <details className="mt-6 rounded-2xl border border-white/10 p-4">
+      <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-white/75 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">แหล่งข้อมูลและสถานะการเชื่อมต่อ</summary>
+      <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สถานะการเชื่อมต่อ">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">ชุดข้อมูล</p><p className="mt-2 text-lg font-semibold">{datasetLabel(status.dataset)}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">การอ่านข้อมูล</p><p className="mt-2 text-lg font-semibold">{connectionLabel(status.readReady, "read", status.environment)}</p></article>
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm text-white/60">แก้บทความใน Sanity Studio</p><p className="mt-2 text-lg font-semibold">{connectionLabel(studioReady, "studio", status.environment)}</p>{studioReady && !status.writeReady ? <p className="mt-2 text-xs leading-5 text-white/50">ยังไม่นำข้อเสนอไปแก้ฉบับร่างให้อัตโนมัติ</p> : null}</article>
@@ -183,6 +185,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           <p className="mt-2 text-xs leading-5 text-white/50">ประวัติ · ข้อเสนอ SEO · ข้อมูลประกอบ · สถานะระบบ</p>
         </Link>
       </section>
+      </details>
 
       {!operations.identityValid ? (
         <section className="mt-4 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-4 text-sm leading-6 text-amber-50">
@@ -209,7 +212,9 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         </section>
       ) : null}
 
-      <section className="mt-6 grid gap-3 lg:grid-cols-2" aria-label="คู่มืออ่านสถานะ">
+      <details className="mt-8 rounded-2xl border border-white/10 p-4">
+      <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-white/75 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">คู่มือบทความและ SEO</summary>
+      <section className="mt-4 grid gap-3 lg:grid-cols-2" aria-label="คู่มืออ่านสถานะ">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
           <h2 className="font-semibold text-white">สถานะเอกสาร</h2>
           <p className="mt-2 text-sm leading-6 text-white/70"><strong className="font-medium text-amber-100">ฉบับร่าง — ยังไม่เผยแพร่</strong> คือคนภายนอกยังไม่เห็นบทความนี้</p>
@@ -239,6 +244,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           })}
         </div>
       </section>
+      </details>
 
       <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-6 text-white/70">
         <h2 className="font-semibold text-white">สิ่งที่ระบบจะไม่ทำแทนคุณ</h2>

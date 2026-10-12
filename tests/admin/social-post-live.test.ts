@@ -69,7 +69,7 @@ test("synthetic Post-Live runtime is UAT-only and fails closed in Production", (
 });
 
 test("Post-Live preview route is authenticated, exact-origin and GET-only", () => {
-  const route = read("app/api/admin/social/analytics/post-live/route.ts");
+  const route = read("apps/admin/app/api/admin/social/analytics/post-live/route.ts");
   const page = read("features/admin/social/post-live-page.tsx");
   const entry = read("app/(control-plane)/analytics/social/post-live/page.tsx");
   const analytics = read("features/admin/social/analytics-page.tsx");
