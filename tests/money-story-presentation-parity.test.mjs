@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import test from 'node:test';
 import { createRequire } from 'node:module';
 
@@ -16,10 +17,10 @@ const stateWrites = [];
 const cache = new Map();
 
 // No browser, provider scripts, or network: execute the real JSX and pure engine.
-function load(path) {
-  if (cache.has(path)) return cache.get(path);
+function load(path, sources = new Map(), modules = cache) {
+  if (modules.has(path)) return modules.get(path);
   const exports = {};
-  cache.set(path, exports);
+  modules.set(path, exports);
   const require = (id) => {
     if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'fragment' };
     if (id === 'react') return {
@@ -39,11 +40,11 @@ function load(path) {
     if (id === '@/lib/cookie-consent') return { getConsentData: () => ({ analytics: true }) };
     if (id.startsWith('.')) {
       const target = resolve(dirname(path), id);
-      return load(existsSync(target + '.tsx') ? target + '.tsx' : target + '.ts');
+      return load(existsSync(target + '.tsx') ? target + '.tsx' : target + '.ts', sources, modules);
     }
     throw new Error('Unexpected import: ' + id);
   };
-  new Function('exports', 'require', 'requestAnimationFrame', ts.transpileModule(readFileSync(path, 'utf8'), {
+  new Function('exports', 'require', 'requestAnimationFrame', ts.transpileModule(sources.get(path) ?? readFileSync(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText)(exports, require, (callback) => callback());
   return exports;
@@ -59,13 +60,13 @@ function expand(value) {
   if (typeof value.type === 'function') return expand(value.type(value.props));
   return { ...value, props: { ...value.props, children: expand(value.props.children) } };
 }
-function render(values) {
+function render(values, component = Game) {
   hookValues = values;
   hookIndex = 0;
   effects.length = 0;
   events.length = 0;
   stateWrites.length = 0;
-  return expand(Game({ showSeed: true }));
+  return expand(component({ showSeed: true }));
 }
 function digest(tree) {
   return createHash('sha256').update(JSON.stringify(tree, (key, value) => {
@@ -143,4 +144,42 @@ test('selection and result buttons retain original state owner and analytics pay
   find(' เลือกชีวิตใหม่').props.onClick();
   assert.deepEqual(events.slice(-2).map((event) => event.name), ['money_story_replay', 'money_story_character_reselect']);
   assert.deepEqual(stateWrites.slice(-5), [[0, null], [1, null], [2, ''], [3, []], [4, []]]);
+});
+
+// Original own-UAT controller executes only as an output fixture, never as a current-source reader.
+const phase2 = JSON.parse(readFileSync('qa/phase2-css-delivery-parity.json', 'utf8'));
+const OriginalGame = load(gamePath, new Map([[gamePath, gunzipSync(Buffer.from(phase2.moneyOriginalControllerGzip, 'base64')).toString()]]), new Map()).default;
+const sidebarCases = [
+  ...characters.map(character => engine.createGame('phase2-sidebar-parity', character.id)),
+  ...['health', 'critical', 'life', 'motor', 'home'].flatMap(type =>
+    [0, 1, 2].flatMap(activeFromMonth => ['existing', 'purchased'].map(source => ({
+      ...state, protections: [{ type, source, activeFromMonth, monthlyPremium: 1234 }],
+    })))),
+  ...[-1000, 0, 0.5, 1e6, 1e9].map(amount => ({ ...state, cash: amount, investments: amount })),
+];
+test('actual extracted status sidebar preserves all characters, coverage timings and goal/meter clamps', () => {
+  for (const [index, game] of sidebarCases.entries()) {
+    assert.equal(digest(render([game])), digest(render([game], OriginalGame)), 'sidebar state ' + index);
+  }
+});
+
+test('active controller buttons keep callback state writes and analytics after sidebar extraction', () => {
+  let activeTrace;
+  for (const original of [false, true]) {
+    const tree = render([state], original ? OriginalGame : Game);
+    const begin = elements(tree).find(element => element.type === 'button' && text(element) === 'เริ่มเดือน 1');
+    begin.props.onClick();
+    const trace = { states: structuredClone(stateWrites), events: structuredClone(events) };
+    if (original) assert.deepEqual(trace, activeTrace);
+    else activeTrace = trace;
+  }
+});
+
+
+test('all library event impact branches preserve original render output and required presentation dependencies', () => {
+  const month = engine.beginMonth(state);
+  for (const event of eventLibrary) {
+    const game = { ...month, currentEventId: event.id, pendingShortfall: undefined };
+    assert.equal(digest(render([game])), digest(render([game], OriginalGame)), event.id);
+  }
 });

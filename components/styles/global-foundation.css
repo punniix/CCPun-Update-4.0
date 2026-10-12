@@ -1,4 +1,17 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../../app";
+@source "../../apps";
+@source "../../lib";
+@source "../../cms";
+@source "../../db";
+@source "../../types";
+@source "../../workers";
+@source "../../auth.ts";
+@source "../../proxy.ts";
+@source "../../next.config.ts";
+@source "../../sanity.config.ts";
+@source "../../sanity.cli.ts";
+@source "../../public/nav-config.json";
 @source "../../components";
 @source "../../features";
 @import "./public-compat.css";
