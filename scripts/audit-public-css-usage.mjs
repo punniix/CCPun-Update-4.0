@@ -49,20 +49,18 @@ const requiredTailwindSources = [
   '@source "../../features";',
 ];
 
-// Explicit Tailwind inputs keep review fixtures out while covering current route imports.
-if (!globalsSource.includes('@import "tailwindcss" source(none);')) {
-  throw new Error('Tailwind auto-discovery must not consume historical review/test snapshots.');
+// Next builds each app from its own directory; preserve automatic app discovery.
+// Shared render owners stay explicit, while historical fixtures never become CSS.
+if (!globalsSource.startsWith('@import "tailwindcss";')) {
+  throw new Error('Preserve Tailwind native app-directory discovery.');
 }
-const tailwindSources = [...globalsSource.matchAll(/@source "([^"\n]+)";/g)]
-  .map(([, path]) => path.replace(/^\.\.\/\.\.\//, ''));
-for (const file of reachable) {
-  if (!tailwindSources.some((owner) => file === owner || file.startsWith(owner + '/'))) {
-    throw new Error(`Runtime source is outside explicit Tailwind coverage: ${file}`);
-  }
+const positiveSources = [...globalsSource.matchAll(/@source "([^"\n]+)";/g)].map(([, owner]) => owner);
+if (JSON.stringify(positiveSources) !== JSON.stringify(['../../components', '../../features'])) {
+  throw new Error('Only the original shared render owners may extend native app CSS discovery.');
 }
-for (const owner of tailwindSources) {
-  if (/^(?:qa|tests|docs|scripts)(?:\/|$)/.test(owner)) {
-    throw new Error(`Historical source cannot own runtime Tailwind inputs: ${owner}`);
+for (const directory of ['qa', 'tests', 'docs', 'scripts']) {
+  if (!globalsSource.includes(`@source not "../../${directory}";`)) {
+    throw new Error(`Historical CSS discovery must exclude ${directory}`);
   }
 }
 
