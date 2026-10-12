@@ -23,6 +23,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Retained legacy compatibility regression, not an active deployment owner.
       - name: Verify app-root Vercel config
         run: node --test tests/vercel-app-root-config.test.mjs
       - name: LINE webhook privacy and crawler contracts
@@ -32,11 +33,15 @@ jobs:
       - name: Build Web shadow
         run: npm run build:web:shadow
         env:
-          CCPUN_APP_ENV: development
-          NEXT_PUBLIC_CCPUN_APP_ENV: development
+          CCPUN_DEPLOYMENT_PROVIDER: hostinger
+          CCPUN_DEPLOYMENT_ROLE: web
+          CCPUN_RELEASE_STAGE: shadow
+          CCPUN_APP_ENV: web-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: web-uat
+          CCPUN_UAT_MODE: "1"
+          CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0"
           NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
           NEXT_PUBLIC_SANITY_DATASET: uat
-          VERCEL_ENV: preview
 
   admin-shadow:
     runs-on: ubuntu-latest
@@ -48,33 +53,38 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Full local compatibility build; native-Neon acceptance has separate gates.
       - name: Typecheck Admin shadow
         run: npm run typecheck:admin:shadow
         env:
-          CCPUN_APP_ENV: admin-uat
-          NEXT_PUBLIC_CCPUN_APP_ENV: admin-uat
-          VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
-          CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
-          NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          CCPUN_DEPLOYMENT_PROVIDER: local
+          CCPUN_DEPLOYMENT_ROLE: admin
+          CCPUN_APP_ENV: local-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: local-uat
+          CCPUN_ADMIN_CAPABILITY_PROFILE: full
+          NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: full
+          CCPUN_UAT_MODE: "1"
+          CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0"
           NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
           NEXT_PUBLIC_SANITY_DATASET: uat
           SANITY_STUDIO_PROJECT_ID: ccb9lnw5
           SANITY_STUDIO_DATASET: uat
           AUTH_URL: http://127.0.0.1:3100
           CCPUN_ADMIN_OWNER_EMAILS: owner@example.invalid
-          VERCEL_ENV: preview
       - name: Build Admin shadow
         run: npm run build:admin:shadow
         env:
-          CCPUN_APP_ENV: admin-uat
-          NEXT_PUBLIC_CCPUN_APP_ENV: admin-uat
-          VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
-          CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
-          NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN
+          CCPUN_DEPLOYMENT_PROVIDER: local
+          CCPUN_DEPLOYMENT_ROLE: admin
+          CCPUN_APP_ENV: local-uat
+          NEXT_PUBLIC_CCPUN_APP_ENV: local-uat
+          CCPUN_ADMIN_CAPABILITY_PROFILE: full
+          NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: full
+          CCPUN_UAT_MODE: "1"
+          CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0"
           NEXT_PUBLIC_SANITY_PROJECT_ID: ccb9lnw5
           NEXT_PUBLIC_SANITY_DATASET: uat
           SANITY_STUDIO_PROJECT_ID: ccb9lnw5
           SANITY_STUDIO_DATASET: uat
           AUTH_URL: http://127.0.0.1:3100
           CCPUN_ADMIN_OWNER_EMAILS: owner@example.invalid
-          VERCEL_ENV: preview
