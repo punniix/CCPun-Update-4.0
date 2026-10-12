@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -350,7 +351,7 @@ test("Web Preview and unknown public hosts do not become an Admin boundary", () 
 });
 
 test("Production Admin robots policy stays noindex while CCPun web policy remains separate", () => {
-  const robots = readFileSync(new URL("../../app/robots.ts", import.meta.url), "utf8");
+  const robots = readPhase1Source(new URL("../../app/robots.ts", import.meta.url));
   assert.match(robots, /getAdminEnvironment\(\) === "production-admin"/);
   assert.match(robots, /disallow: "\/"/);
   assert.match(robots, /sitemap: "https:\/\/ccpun\.com\/sitemap\.xml"/);

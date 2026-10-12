@@ -1,28 +1,21 @@
+import { Row } from "@/features/admin/components/ReadinessRows";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { ADMIN_PERMISSIONS, hasAdminPermission, type AdminRole } from "@/lib/admin/rbac";
-import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
-import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
-import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
+import { readAdminSettingsReadiness } from "@/lib/admin/operations/settings-readiness";
 import { getSeoGoogleProviderReadiness } from "@/lib/admin/seo-intelligence/provider-readiness";
 import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
 
-function State({ ok, yes = "พร้อม", no = "ต้องตั้งค่า" }: { ok: boolean; yes?: string; no?: string }) {
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${ok ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-amber-200/20 bg-amber-200/10 text-amber-50"}`}>{ok ? yes : no}</span>;
-}
 
-function Row({ label, value, state }: { label: string; value: string; state?: boolean }) {
-  return <div className="flex min-h-12 items-center justify-between gap-4 border-t border-white/10 py-3 first:border-t-0"><div><p className="text-sm font-medium text-white/85">{label}</p><p className="mt-1 text-xs text-white/45">{value}</p></div>{state === undefined ? null : <State ok={state} />}</div>;
-}
+
+
 
 async function IntegrationsPage() {
-  const sanity = getAdminSanityStatus();
-  const operations = getAdminOperationsRuntimeStatus();
-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+  const { sanity, operations, scheduler } = await readAdminSettingsReadiness();
   const social = getSocialOperationsRuntimeStatus();
   const gsc = getSeoGoogleProviderReadiness("gsc");
   const ga4 = getSeoGoogleProviderReadiness("ga4");
@@ -50,9 +43,7 @@ async function AccessPage() {
 }
 
 async function SystemPage() {
-  const sanity = getAdminSanityStatus();
-  const operations = getAdminOperationsRuntimeStatus();
-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+  const { sanity, operations, scheduler } = await readAdminSettingsReadiness();
   return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · SYSTEM</p><h1 className="mt-2 text-3xl font-semibold">System</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">Runtime identity แบบอ่านอย่างเดียวจาก deployment ปัจจุบัน ไม่แสดง secret และไม่อนุญาตแก้ Production configuration จากหน้าเว็บ</p>
     <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">App environment</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">Vercel</p><p className="mt-1 text-sm text-white/85">{process.env.VERCEL_ENV ?? "—"}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{process.env.VERCEL_GIT_COMMIT_REF ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{process.env.VERCEL_GIT_COMMIT_SHA ?? "—"}</p></div></div><div className="mt-5"><Row label="Sanity data lane" value={`${sanity.projectId ?? "—"}/${sanity.dataset ?? "—"}`} state={sanity.readReady} /><Row label="Operational database identity" value={`${operations.projectId ?? "—"} / ${operations.branchId ?? "—"}`} state={operations.identityValid} /><Row label="Scheduler effective state" value={`runtime ${scheduler.runtimeEnabled ? "ON" : "OFF"} · durable ${scheduler.durableEnabled ? "ON" : "OFF"}`} state={scheduler.effectiveEnabled} /></div><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิด System Health</Link></section>
   </div>;

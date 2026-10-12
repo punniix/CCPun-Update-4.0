@@ -1,13 +1,11 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import test from "node:test";
 import { ADMIN_ROLES, hasAdminPermission } from "../../lib/admin/rbac";
 import { ADMIN_OPERATIONS_LANES, resolveAdminOperationsRuntimeIdentity } from "../../lib/admin/operations/foundation";
 
-const root = path.resolve(import.meta.dirname, "../..");
-const read = (file: string) => readFileSync(path.join(root, file), "utf8");
+const read = (file: string) => readPhase1Source(file);
 const checksum = "99519369562761cfb4cb95fe7d6e14f5d0a158ba31b116200d729eb865a451e0";
 
 function checksumSource(sql: string) {

@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -11,7 +12,7 @@ const seoAuditRoute = readFileSync(new URL("../../apps/admin/app/api/admin/seo/a
 const proposalRoute = readFileSync(new URL("../../apps/admin/app/api/admin/seo/audit/[id]/proposals/route.ts", import.meta.url), "utf8");
 const sanityControl = readFileSync(new URL("../../lib/admin/sanity-control.ts", import.meta.url), "utf8");
 const studioScore = readFileSync(new URL("../../cms/sanity/components/SeoScoreInput.tsx", import.meta.url), "utf8");
-const seoDetailPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const seoDetailPage = readPhase1Source(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url));
 
 test("research and audit records use Neon while Article audit snapshots keep exact Sanity revisions", () => {
   const operations = readFileSync(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");

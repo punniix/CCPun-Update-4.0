@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test, { afterEach } from "node:test";
@@ -20,14 +21,14 @@ const PRODUCTION_SANITY_PROJECT_ID = "kyfxgjnq";
 const originalProjectId = process.env.VERCEL_PROJECT_ID;
 const originalProductionAdminProjectId = process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID;
 const originalLocalProductionDraftWrites = process.env.CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES;
-const studioPage = readFileSync(new URL("../../app/studio/[[...tool]]/page.tsx", import.meta.url), "utf8");
-const studioClient = readFileSync(new URL("../../app/studio/[[...tool]]/studio-client.tsx", import.meta.url), "utf8");
+const studioPage = readPhase1Source(new URL("../../app/studio/[[...tool]]/page.tsx", import.meta.url));
+const studioClient = readPhase1Source(new URL("../../app/studio/[[...tool]]/studio-client.tsx", import.meta.url));
 const studioConfig = readFileSync(new URL("../../sanity.config.ts", import.meta.url), "utf8");
 const studioStructure = readFileSync(new URL("../../cms/sanity/config/structure.ts", import.meta.url), "utf8");
 const masterContentSchema = readFileSync(new URL("../../cms/sanity/schema/documents/master-content.ts", import.meta.url), "utf8");
 const socialVariantSchema = readFileSync(new URL("../../cms/sanity/schema/documents/social-variant.ts", import.meta.url), "utf8");
 const adminDataRefresh = readFileSync(new URL("../../features/admin/components/AdminDataRefresh.tsx", import.meta.url), "utf8");
-const adminContentPage = readFileSync(new URL("../../app/(control-plane)/content/articles/page.tsx", import.meta.url), "utf8");
+const adminContentPage = readPhase1Source(new URL("../../app/(control-plane)/content/articles/page.tsx", import.meta.url));
 
 afterEach(() => {
   if (originalProjectId === undefined) delete process.env.VERCEL_PROJECT_ID;

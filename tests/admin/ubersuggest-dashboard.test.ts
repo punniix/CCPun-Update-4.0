@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -5,10 +6,10 @@ import test from "node:test";
 const provider = readFileSync("lib/admin/ubersuggest.ts", "utf8");
 const normalized = readFileSync("lib/admin/ubersuggest-dashboard-provider.ts", "utf8");
 const snapshots = readFileSync("lib/admin/ubersuggest-dashboard.ts", "utf8");
-const route = readFileSync("app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
+const route = readPhase1Source("app/api/admin/providers/ubersuggest/sync/route.ts");
 const routes = readFileSync("lib/admin/routes.ts", "utf8");
 const researchPage = readFileSync("features/admin/research/page.tsx", "utf8");
-const layout = readFileSync("apps/admin/app/(control-plane)/layout.tsx", "utf8");
+const layout = readPhase1Source("apps/admin/app/(control-plane)/layout.tsx");
 const schema = readFileSync("cms/sanity/admin/schema/ubersuggest-types.ts", "utf8");
 const studioPolicy = readFileSync("cms/sanity/policy/studio-policy.ts", "utf8");
 const studioConfig = readFileSync("sanity.config.ts", "utf8");

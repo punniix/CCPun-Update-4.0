@@ -1,0 +1,19 @@
+--- a/app/api/admin/content/[id]/schedule/route.ts
++++ b/app/api/admin/content/[id]/schedule/route.ts
+@@ -1,6 +1,6 @@
+-import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure, articleScheduleResponseHeaders as headers } from "@/lib/admin/article-schedule-handler";
+ import { NextResponse } from "next/server";
+ import { start } from "workflow/api";
++import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure, articleScheduleResponseHeaders as headers } from "@/lib/admin/article-schedule-handler";
+ import { acknowledgeArticleSchedule, markScheduleStartFailed, prepareArticleSchedule } from "@/lib/admin/article-scheduling";
+ import { ArticleScheduleError, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+ import { scheduledArticlePublicationWorkflow } from "@/lib/admin/article-publication-workflow";
+--- a/apps/admin/app/api/admin/content/[id]/schedule/route.ts
++++ b/apps/admin/app/api/admin/content/[id]/schedule/route.ts
+@@ -1,5 +1,5 @@
++import { NextResponse } from "next/server";
+ import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure, articleScheduleResponseHeaders as headers } from "@/lib/admin/article-schedule-handler";
+-import { NextResponse } from "next/server";
+ import { acknowledgeArticleSchedule, markScheduleStartFailed, prepareArticleSchedule, registerNativeArticleSchedule } from "@/lib/admin/article-scheduling";
+ import { ArticleScheduleError, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+ import { getAdminCapabilityProfile } from "@/lib/admin/capability-profile";

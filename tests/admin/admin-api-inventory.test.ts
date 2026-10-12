@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -10,7 +11,7 @@ const owners = new Map<string, string>(
   (JSON.parse(readFileSync(path.join(repositoryRoot, "qa/root-runtime-owner-migration.json"), "utf8")).pairs as Array<{ legacy: string; canonical: string }>)
     .map(({ legacy, canonical }) => [legacy, canonical]),
 );
-const read = (relativePath: string) => readFileSync(path.join(repositoryRoot, owners.get(relativePath) ?? relativePath), "utf8");
+const read = (relativePath: string) => readPhase1Source(owners.get(relativePath) ?? relativePath);
 
 function routeFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

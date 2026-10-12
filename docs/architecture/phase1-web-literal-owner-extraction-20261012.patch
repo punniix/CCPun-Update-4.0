@@ -1,0 +1,712 @@
+--- a/app/(control-plane)/seo/audits/[id]/page.tsx
++++ b/app/(control-plane)/seo/audits/[id]/page.tsx
+@@ -1,164 +1,17 @@
+-import type { Metadata } from "next";
+-import Image from "next/image";
+-import Link from "next/link";
+-import GenerateSeoProposalButton from "@/features/admin/components/GenerateSeoProposalButton";
+-import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
+-import { requireAdminPermission } from "@/lib/admin/require-permission";
+-import { getSeoProposalContext, runSeoAudit } from "@/lib/admin/seo-audit";
+-import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
+-import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
+-import { buildDeterministicSeoProposals } from "@/lib/admin/seo-proposals";
+-import { getStudioArticleEditHref } from "@/cms/sanity/policy/studio-policy";
+-
+-export const metadata: Metadata = { title: "รายละเอียดผลตรวจ SEO" };
+-
+-type PageProps = { params: Promise<{ id: string }> };
+-
+-function badgeClass(severity: string) {
+-  if (severity === "critical") return "bg-red-300/10 text-red-200";
+-  if (severity === "warning") return "bg-amber-300/10 text-amber-200";
+-  return "bg-sky-300/10 text-sky-200";
+-}
+-
+-export default async function SeoAuditDetailPage({ params }: PageProps) {
+-  await requireAdminPermission("seo:read");
+-  const { id } = await params;
+-  const [audit, article] = await Promise.all([runSeoAudit(id, false), getSeoProposalContext(id)]);
+-  const failed = audit.checks.filter((check) => !check.passed);
+-  const readiness = audit.contentReadiness;
+-  const geoAudit = audit.geoAudit;
+-  const studioHref = getStudioArticleEditHref(id);
+-  const status = getAdminSanityStatus();
+-  const studioReady = isStudioDataPlaneAllowed(status.dataset ?? undefined);
+-  const isDraft = audit.articleId.startsWith("drafts.");
+-  const safeProposals = buildDeterministicSeoProposals({
+-    focusKeyword: article.focusKeyword,
+-    currentSearchIntent: article.searchIntent,
+-    research: article.research,
+-    now: audit.auditedAt,
+-  });
+-  const serpTitle = article.seoTitle?.trim() || article.title || "ยังไม่มีชื่อ";
+-  const serpDescription = article.seoDescription?.trim() || "ยังไม่มี Meta description";
+-  const socialTitle = article.ogTitle?.trim() || serpTitle;
+-  const socialDescription = article.ogDescription?.trim() || serpDescription;
+-  const canonical = article.canonical?.trim() || (article.categorySlug && article.slug ? `https://ccpun.com/blog/${article.categorySlug}/${article.slug}/` : "https://ccpun.com/blog/");
+-
+-  return (
+-    <div>
+-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+-        <div>
+-          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ผลตรวจที่อธิบายเหตุผลได้</p>
+-          <h1 className="mt-2 text-3xl font-semibold">{article.title || "รายละเอียดผลตรวจ SEO"}</h1>
+-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">{audit.summary}</p>
+-        </div>
+-        <div className="flex flex-wrap gap-2">
+-          <Link href="/seo/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับหน้าตรวจ SEO</Link>
+-          {studioReady ? <Link href={studioHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm font-medium text-[#f4df9b] hover:bg-[#e0c985]/15">เปิดแก้ใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : null}
+-          {status.writeReady && isDraft ? <RunSeoAuditButton articleId={id} /> : null}
+-          {status.writeReady && isDraft && safeProposals.length ? <GenerateSeoProposalButton articleId={id} /> : null}
+-        </div>
+-      </div>
+-
+-      <section role="status" className="mt-6 rounded-2xl border border-sky-200/20 bg-sky-200/[0.06] p-4 text-sm leading-6 text-sky-100">
+-        <h2 className="font-semibold">คะแนนคำนวณสดจากฉบับปัจจุบัน</h2>
+-        <p className="mt-1 text-sky-100/75">ผลนี้ยังไม่ได้บันทึกเป็นผลตรวจ SEO และไม่แทนผลตรวจล่าสุดที่บันทึกไว้</p>
+-      </section>
+-
+-      <section className="mt-7 grid gap-3 sm:grid-cols-5">
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">คะแนนคำนวณสด</div><div className="mt-2 text-2xl font-semibold">{audit.score}/100</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ผ่าน</div><div className="mt-2 text-2xl font-semibold text-emerald-300">{audit.passedChecks}</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ต้องแก้ด่วน</div><div className="mt-2 text-2xl font-semibold text-red-300">{audit.criticalIssues}</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">คำเตือน</div><div className="mt-2 text-2xl font-semibold text-amber-300">{audit.warnings}</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">โอกาสปรับปรุง</div><div className="mt-2 text-2xl font-semibold text-sky-300">{audit.opportunities}</div></article>
+-      </section>
+-
+-      <section className="mt-6 grid gap-4 lg:grid-cols-2">
+-        <article className="rounded-3xl border border-white/10 bg-white/[0.025] p-5">
+-          <h2 className="text-lg font-semibold">ตัวอย่างผลค้นหา</h2>
+-          <div className="mt-4 rounded-2xl bg-white p-4 text-[#202124]">
+-            <p className="truncate text-sm text-[#202124]">{canonical}</p>
+-            <p className="mt-1 text-xl text-[#1a0dab]">{serpTitle}</p>
+-            <p className="mt-1 text-sm leading-5 text-[#4d5156]">{serpDescription}</p>
+-          </div>
+-        </article>
+-        <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
+-          {article.socialImage ? <Image src={article.socialImage} alt="" width={1200} height={630} className="aspect-[1.91/1] w-full object-cover" /> : <div className="aspect-[1.91/1] bg-white/5" />}
+-          <div className="p-5">
+-            <h2 className="text-lg font-semibold">ตัวอย่างแชร์ Social</h2>
+-            <p className="mt-3 font-semibold text-white/90">{socialTitle}</p>
+-            <p className="mt-1 text-sm leading-6 text-white/60">{socialDescription}</p>
+-          </div>
+-        </article>
+-      </section>
+-
+-      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.025] p-5">
+-        <h2 className="text-lg font-semibold">ความพร้อมก่อนทำงานจริง</h2>
+-        <p className="mt-2 text-sm leading-6 text-white/65">ส่วนนี้เป็นรายการตรวจสำหรับคนทำงาน ไม่รวมในคะแนน SEO และไม่รับประกันอันดับหรือการอ้างอิงจาก AI</p>
+-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">ลิงก์ภายในบทความ</div>
+-            <div className="mt-2 font-semibold">{readiness.internalLinks} ลิงก์</div>
+-            <p className={`mt-1 text-sm ${readiness.legacyInternalLinks ? "text-amber-200" : "text-emerald-200"}`}>{readiness.legacyInternalLinks ? `${readiness.legacyInternalLinks} ลิงก์ยังผ่าน URL เก่า` : "ไม่พบลิงก์ URL เก่า"}</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">แหล่งอ้างอิง / FAQ</div>
+-            <div className="mt-2 font-semibold">{readiness.sourcesCount} แหล่ง · {readiness.faqCount} คำถาม</div>
+-            <p className="mt-1 text-sm text-white/60">เพิ่มเองในแท็บตรวจสอบและ SEO / การค้นหา</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">Fact-check / Compliance</div>
+-            <div className="mt-2 font-semibold">{Number(readiness.factChecked) + Number(readiness.complianceReviewed)}/2 ขั้น</div>
+-            <p className={`mt-1 text-sm ${readiness.factChecked && readiness.complianceReviewed ? "text-emerald-200" : "text-amber-200"}`}>{readiness.factChecked && readiness.complianceReviewed ? "บันทึกครบแล้ว" : "ยังต้องบันทึกวันที่ตรวจ"}</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">ความครบถ้วนข้อมูล GEO / AI Search</div>
+-            <div className="mt-2 font-semibold">{readiness.geoCompleted}/{readiness.geoTotal} ช่อง</div>
+-            <p className="mt-1 text-sm text-white/60">สรุป · Entities · คำถาม · วันที่ตรวจ</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">รูปภาพจาก WordPress</div>
+-            <div className="mt-2 font-semibold">{readiness.migratedImages} รูปในเนื้อหา</div>
+-            <p className="mt-1 text-sm text-white/60">{readiness.usesMigratedFeaturedImage && !readiness.hasNativeFeaturedImage ? "หน้าปกเดิมยังแสดงได้; เปลี่ยนเป็นรูป Sanity เมื่อต้องการแก้" : "หน้าปกใช้รูปที่แก้ใน Sanity ได้"}</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">CTA เก่าจาก Facebook</div>
+-            <div className="mt-2 font-semibold">{readiness.legacyFacebookCtas} จุด</div>
+-            <p className={`mt-1 text-sm ${readiness.legacyFacebookCtas ? "text-amber-200" : "text-emerald-200"}`}>{readiness.legacyFacebookCtas ? "ควรตรวจและเปลี่ยนเป็น LINE OA ใน Studio" : "ไม่พบ CTA เก่า"}</p>
+-          </article>
+-        </div>
+-      </section>
+-
+-      <section className="mt-6 rounded-3xl border border-violet-200/15 bg-violet-200/[0.04] p-5">
+-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+-          <div><h2 className="text-lg font-semibold">ตรวจ GEO / AI Search</h2><p className="mt-1 text-sm leading-6 text-white/65">ผ่าน {geoAudit.passedChecks}/{geoAudit.totalChecks} ข้อ เป็นรายการตรวจภายใน ไม่ใช่คะแนนหรือการรับประกันว่า AI จะอ้างอิง</p></div>
+-          <span className="text-xs text-white/50">คำนวณจากฉบับปัจจุบัน</span>
+-        </div>
+-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+-          {geoAudit.checks.map((check) => <article key={check.id} className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-white/85">{check.label}</h3><p className="mt-1 text-sm leading-6 text-white/60">{check.detail}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${check.passed ? "bg-emerald-300/10 text-emerald-200" : check.required ? "bg-amber-300/10 text-amber-200" : "bg-sky-300/10 text-sky-200"}`}>{check.passed ? "ผ่าน" : check.required ? "ควรแก้" : "แนะนำ"}</span></div></article>)}
+-        </div>
+-      </section>
+-
+-      <p className="mt-5 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/80">ระบบสร้างข้อเสนอ Search intent เท่านั้น เมื่อมี Primary keyword และ Research Snapshot จากแหล่งที่รองรับภายใน 30 วัน ข้อเสนอยังต้องให้มนุษย์ตรวจ ส่วน SEO Title และ Meta description จะไม่ถูกสร้างอัตโนมัติจนกว่าจะมีหลักฐาน GSC ownership ที่เพียงพอ</p>
+-
+-      <section className="mt-6 space-y-3">
+-        {audit.checks.map((check) => (
+-          <article key={check.id} className={`rounded-2xl border p-4 ${check.passed ? "border-emerald-300/10 bg-emerald-300/[0.025]" : "border-white/10 bg-white/[0.03]"}`}>
+-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+-              <div>
+-                <div className="flex flex-wrap items-center gap-2">
+-                  <span className={`rounded-full px-2.5 py-1 text-xs ${check.passed ? "bg-emerald-300/10 text-emerald-200" : badgeClass(check.severity)}`}>{check.passed ? "ผ่าน" : check.severity === "critical" ? "ต้องแก้ด่วน" : check.severity === "warning" ? "คำเตือน" : "โอกาสปรับปรุง"}</span>
+-                  <span className="text-xs text-white/55">น้ำหนัก {check.weight}</span>
+-                </div>
+-                <h2 className="mt-2 font-semibold text-white/85">{check.label}</h2>
+-                <p className="mt-1 text-sm leading-6 text-white/65">{check.detail}</p>
+-              </div>
+-              {!check.passed ? <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/60">ตรวจและแก้ใน Studio</span> : null}
+-            </div>
+-          </article>
+-        ))}
+-      </section>
+-
+-      {failed.length ? <p className="mt-5 text-sm leading-6 text-white/65">ผลตรวจมาจากกฎที่อธิบายได้ คุณยังต้องตรวจและอนุมัติก่อนนำข้อเสนอไปใช้กับฉบับร่าง</p> : null}
+-    </div>
+-  );
+-}
++import type { Metadata } from "next";
++import { SeoAuditDetailPage as SeoAuditDetailPageOwner } from "@/features/admin/components/SeoAuditDetailPage";
++
++export const metadata: Metadata = { title: "รายละเอียดผลตรวจ SEO" };
++
++export default async function SeoAuditDetailPage(props: { params: Promise<{ id: string }> }) {
++  return SeoAuditDetailPageOwner(props, {
++    emptyDescription: "ยังไม่มี Meta description",
++    socialHeading: "ตัวอย่างแชร์ Social",
++    referencesHeading: "แหล่งอ้างอิง / FAQ",
++    complianceHeading: "Fact-check / Compliance",
++    factCheckHint: "สรุป · Entities · คำถาม · วันที่ตรวจ",
++    legacyCtaHeading: "CTA เก่าจาก Facebook",
++    noLegacyCta: "ไม่พบ CTA เก่า",
++    proposalBoundary: "ระบบสร้างข้อเสนอ Search intent เท่านั้น เมื่อมี Primary keyword และ Research Snapshot จากแหล่งที่รองรับภายใน 30 วัน ข้อเสนอยังต้องให้มนุษย์ตรวจ ส่วน SEO Title และ Meta description จะไม่ถูกสร้างอัตโนมัติจนกว่าจะมีหลักฐาน GSC ownership ที่เพียงพอ",
++  });
++}
+--- a/apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx
++++ b/apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx
+@@ -1,164 +1,17 @@
+-import type { Metadata } from "next";
+-import Image from "next/image";
+-import Link from "next/link";
+-import GenerateSeoProposalButton from "@/features/admin/components/GenerateSeoProposalButton";
+-import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
+-import { requireAdminPermission } from "@/lib/admin/require-permission";
+-import { getSeoProposalContext, runSeoAudit } from "@/lib/admin/seo-audit";
+-import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
+-import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
+-import { buildDeterministicSeoProposals } from "@/lib/admin/seo-proposals";
+-import { getStudioArticleEditHref } from "@/cms/sanity/policy/studio-policy";
+-
+-export const metadata: Metadata = { title: "รายละเอียดผลตรวจ SEO" };
+-
+-type PageProps = { params: Promise<{ id: string }> };
+-
+-function badgeClass(severity: string) {
+-  if (severity === "critical") return "bg-red-300/10 text-red-200";
+-  if (severity === "warning") return "bg-amber-300/10 text-amber-200";
+-  return "bg-sky-300/10 text-sky-200";
+-}
+-
+-export default async function SeoAuditDetailPage({ params }: PageProps) {
+-  await requireAdminPermission("seo:read");
+-  const { id } = await params;
+-  const [audit, article] = await Promise.all([runSeoAudit(id, false), getSeoProposalContext(id)]);
+-  const failed = audit.checks.filter((check) => !check.passed);
+-  const readiness = audit.contentReadiness;
+-  const geoAudit = audit.geoAudit;
+-  const studioHref = getStudioArticleEditHref(id);
+-  const status = getAdminSanityStatus();
+-  const studioReady = isStudioDataPlaneAllowed(status.dataset ?? undefined);
+-  const isDraft = audit.articleId.startsWith("drafts.");
+-  const safeProposals = buildDeterministicSeoProposals({
+-    focusKeyword: article.focusKeyword,
+-    currentSearchIntent: article.searchIntent,
+-    research: article.research,
+-    now: audit.auditedAt,
+-  });
+-  const serpTitle = article.seoTitle?.trim() || article.title || "ยังไม่มีชื่อ";
+-  const serpDescription = article.seoDescription?.trim() || "ยังไม่มีคำอธิบายสำหรับผลค้นหา";
+-  const socialTitle = article.ogTitle?.trim() || serpTitle;
+-  const socialDescription = article.ogDescription?.trim() || serpDescription;
+-  const canonical = article.canonical?.trim() || (article.categorySlug && article.slug ? `https://ccpun.com/blog/${article.categorySlug}/${article.slug}/` : "https://ccpun.com/blog/");
+-
+-  return (
+-    <div>
+-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+-        <div>
+-          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ผลตรวจที่อธิบายเหตุผลได้</p>
+-          <h1 className="mt-2 text-3xl font-semibold">{article.title || "รายละเอียดผลตรวจ SEO"}</h1>
+-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">{audit.summary}</p>
+-        </div>
+-        <div className="flex flex-wrap gap-2">
+-          <Link href="/seo/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับหน้าตรวจ SEO</Link>
+-          {studioReady ? <Link href={studioHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm font-medium text-[#f4df9b] hover:bg-[#e0c985]/15">เปิดแก้ใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : null}
+-          {status.writeReady && isDraft ? <RunSeoAuditButton articleId={id} /> : null}
+-          {status.writeReady && isDraft && safeProposals.length ? <GenerateSeoProposalButton articleId={id} /> : null}
+-        </div>
+-      </div>
+-
+-      <section role="status" className="mt-6 rounded-2xl border border-sky-200/20 bg-sky-200/[0.06] p-4 text-sm leading-6 text-sky-100">
+-        <h2 className="font-semibold">คะแนนคำนวณสดจากฉบับปัจจุบัน</h2>
+-        <p className="mt-1 text-sky-100/75">ผลนี้ยังไม่ได้บันทึกเป็นผลตรวจ SEO และไม่แทนผลตรวจล่าสุดที่บันทึกไว้</p>
+-      </section>
+-
+-      <section className="mt-7 grid gap-3 sm:grid-cols-5">
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">คะแนนคำนวณสด</div><div className="mt-2 text-2xl font-semibold">{audit.score}/100</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ผ่าน</div><div className="mt-2 text-2xl font-semibold text-emerald-300">{audit.passedChecks}</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">ต้องแก้ด่วน</div><div className="mt-2 text-2xl font-semibold text-red-300">{audit.criticalIssues}</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">คำเตือน</div><div className="mt-2 text-2xl font-semibold text-amber-300">{audit.warnings}</div></article>
+-        <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-sm text-white/60">โอกาสปรับปรุง</div><div className="mt-2 text-2xl font-semibold text-sky-300">{audit.opportunities}</div></article>
+-      </section>
+-
+-      <section className="mt-6 grid gap-4 lg:grid-cols-2">
+-        <article className="rounded-3xl border border-white/10 bg-white/[0.025] p-5">
+-          <h2 className="text-lg font-semibold">ตัวอย่างผลค้นหา</h2>
+-          <div className="mt-4 rounded-2xl bg-white p-4 text-[#202124]">
+-            <p className="truncate text-sm text-[#202124]">{canonical}</p>
+-            <p className="mt-1 text-xl text-[#1a0dab]">{serpTitle}</p>
+-            <p className="mt-1 text-sm leading-5 text-[#4d5156]">{serpDescription}</p>
+-          </div>
+-        </article>
+-        <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
+-          {article.socialImage ? <Image src={article.socialImage} alt="" width={1200} height={630} className="aspect-[1.91/1] w-full object-cover" /> : <div className="aspect-[1.91/1] bg-white/5" />}
+-          <div className="p-5">
+-            <h2 className="text-lg font-semibold">ตัวอย่างเมื่อแชร์บนโซเชียล</h2>
+-            <p className="mt-3 font-semibold text-white/90">{socialTitle}</p>
+-            <p className="mt-1 text-sm leading-6 text-white/60">{socialDescription}</p>
+-          </div>
+-        </article>
+-      </section>
+-
+-      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.025] p-5">
+-        <h2 className="text-lg font-semibold">ความพร้อมก่อนทำงานจริง</h2>
+-        <p className="mt-2 text-sm leading-6 text-white/65">ส่วนนี้เป็นรายการตรวจสำหรับคนทำงาน ไม่รวมในคะแนน SEO และไม่รับประกันอันดับหรือการอ้างอิงจาก AI</p>
+-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">ลิงก์ภายในบทความ</div>
+-            <div className="mt-2 font-semibold">{readiness.internalLinks} ลิงก์</div>
+-            <p className={`mt-1 text-sm ${readiness.legacyInternalLinks ? "text-amber-200" : "text-emerald-200"}`}>{readiness.legacyInternalLinks ? `${readiness.legacyInternalLinks} ลิงก์ยังผ่าน URL เก่า` : "ไม่พบลิงก์ URL เก่า"}</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">แหล่งอ้างอิง / คำถามที่พบบ่อย</div>
+-            <div className="mt-2 font-semibold">{readiness.sourcesCount} แหล่ง · {readiness.faqCount} คำถาม</div>
+-            <p className="mt-1 text-sm text-white/60">เพิ่มเองในแท็บตรวจสอบและ SEO / การค้นหา</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">ตรวจข้อเท็จจริง / ข้อกำกับ</div>
+-            <div className="mt-2 font-semibold">{Number(readiness.factChecked) + Number(readiness.complianceReviewed)}/2 ขั้น</div>
+-            <p className={`mt-1 text-sm ${readiness.factChecked && readiness.complianceReviewed ? "text-emerald-200" : "text-amber-200"}`}>{readiness.factChecked && readiness.complianceReviewed ? "บันทึกครบแล้ว" : "ยังต้องบันทึกวันที่ตรวจ"}</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">ความครบถ้วนข้อมูล GEO / AI Search</div>
+-            <div className="mt-2 font-semibold">{readiness.geoCompleted}/{readiness.geoTotal} ช่อง</div>
+-            <p className="mt-1 text-sm text-white/60">สรุป · สิ่งสำคัญที่กล่าวถึง · คำถาม · วันที่ตรวจ</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">รูปภาพจาก WordPress</div>
+-            <div className="mt-2 font-semibold">{readiness.migratedImages} รูปในเนื้อหา</div>
+-            <p className="mt-1 text-sm text-white/60">{readiness.usesMigratedFeaturedImage && !readiness.hasNativeFeaturedImage ? "หน้าปกเดิมยังแสดงได้; เปลี่ยนเป็นรูป Sanity เมื่อต้องการแก้" : "หน้าปกใช้รูปที่แก้ใน Sanity ได้"}</p>
+-          </article>
+-          <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+-            <div className="text-sm text-white/55">คำชวนให้ทำต่อแบบเก่าจาก Facebook</div>
+-            <div className="mt-2 font-semibold">{readiness.legacyFacebookCtas} จุด</div>
+-            <p className={`mt-1 text-sm ${readiness.legacyFacebookCtas ? "text-amber-200" : "text-emerald-200"}`}>{readiness.legacyFacebookCtas ? "ควรตรวจและเปลี่ยนเป็น LINE OA ใน Studio" : "ไม่พบคำชวนแบบเก่า"}</p>
+-          </article>
+-        </div>
+-      </section>
+-
+-      <section className="mt-6 rounded-3xl border border-violet-200/15 bg-violet-200/[0.04] p-5">
+-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+-          <div><h2 className="text-lg font-semibold">ตรวจ GEO / AI Search</h2><p className="mt-1 text-sm leading-6 text-white/65">ผ่าน {geoAudit.passedChecks}/{geoAudit.totalChecks} ข้อ เป็นรายการตรวจภายใน ไม่ใช่คะแนนหรือการรับประกันว่า AI จะอ้างอิง</p></div>
+-          <span className="text-xs text-white/50">คำนวณจากฉบับปัจจุบัน</span>
+-        </div>
+-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+-          {geoAudit.checks.map((check) => <article key={check.id} className="rounded-2xl border border-white/10 bg-black/10 p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-white/85">{check.label}</h3><p className="mt-1 text-sm leading-6 text-white/60">{check.detail}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${check.passed ? "bg-emerald-300/10 text-emerald-200" : check.required ? "bg-amber-300/10 text-amber-200" : "bg-sky-300/10 text-sky-200"}`}>{check.passed ? "ผ่าน" : check.required ? "ควรแก้" : "แนะนำ"}</span></div></article>)}
+-        </div>
+-      </section>
+-
+-      <p className="mt-5 rounded-2xl border border-sky-200/15 bg-sky-200/[0.05] p-4 text-sm leading-6 text-sky-100/80">ระบบสร้างข้อเสนอเรื่องเป้าหมายการค้นหาเฉพาะเมื่อมีคำค้นหลักและข้อมูลประกอบจากแหล่งที่รองรับภายใน 30 วัน ข้อเสนอยังต้องให้ผู้มีสิทธิ์ตรวจ และระบบจะไม่สร้างชื่อหรือคำอธิบายสำหรับผลค้นหาอัตโนมัติ จนกว่าจะยืนยันได้ว่าคำค้นนั้นควรอยู่กับหน้านี้</p>
+-
+-      <section className="mt-6 space-y-3">
+-        {audit.checks.map((check) => (
+-          <article key={check.id} className={`rounded-2xl border p-4 ${check.passed ? "border-emerald-300/10 bg-emerald-300/[0.025]" : "border-white/10 bg-white/[0.03]"}`}>
+-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+-              <div>
+-                <div className="flex flex-wrap items-center gap-2">
+-                  <span className={`rounded-full px-2.5 py-1 text-xs ${check.passed ? "bg-emerald-300/10 text-emerald-200" : badgeClass(check.severity)}`}>{check.passed ? "ผ่าน" : check.severity === "critical" ? "ต้องแก้ด่วน" : check.severity === "warning" ? "คำเตือน" : "โอกาสปรับปรุง"}</span>
+-                  <span className="text-xs text-white/55">น้ำหนัก {check.weight}</span>
+-                </div>
+-                <h2 className="mt-2 font-semibold text-white/85">{check.label}</h2>
+-                <p className="mt-1 text-sm leading-6 text-white/65">{check.detail}</p>
+-              </div>
+-              {!check.passed ? <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/60">ตรวจและแก้ใน Studio</span> : null}
+-            </div>
+-          </article>
+-        ))}
+-      </section>
+-
+-      {failed.length ? <p className="mt-5 text-sm leading-6 text-white/65">ผลตรวจมาจากกฎที่อธิบายได้ คุณยังต้องตรวจและอนุมัติก่อนนำข้อเสนอไปใช้กับฉบับร่าง</p> : null}
+-    </div>
+-  );
+-}
++import type { Metadata } from "next";
++import { SeoAuditDetailPage as SeoAuditDetailPageOwner } from "@/features/admin/components/SeoAuditDetailPage";
++
++export const metadata: Metadata = { title: "รายละเอียดผลตรวจ SEO" };
++
++export default async function SeoAuditDetailPage(props: { params: Promise<{ id: string }> }) {
++  return SeoAuditDetailPageOwner(props, {
++    emptyDescription: "ยังไม่มีคำอธิบายสำหรับผลค้นหา",
++    socialHeading: "ตัวอย่างเมื่อแชร์บนโซเชียล",
++    referencesHeading: "แหล่งอ้างอิง / คำถามที่พบบ่อย",
++    complianceHeading: "ตรวจข้อเท็จจริง / ข้อกำกับ",
++    factCheckHint: "สรุป · สิ่งสำคัญที่กล่าวถึง · คำถาม · วันที่ตรวจ",
++    legacyCtaHeading: "คำชวนให้ทำต่อแบบเก่าจาก Facebook",
++    noLegacyCta: "ไม่พบคำชวนแบบเก่า",
++    proposalBoundary: "ระบบสร้างข้อเสนอเรื่องเป้าหมายการค้นหาเฉพาะเมื่อมีคำค้นหลักและข้อมูลประกอบจากแหล่งที่รองรับภายใน 30 วัน ข้อเสนอยังต้องให้ผู้มีสิทธิ์ตรวจ และระบบจะไม่สร้างชื่อหรือคำอธิบายสำหรับผลค้นหาอัตโนมัติ จนกว่าจะยืนยันได้ว่าคำค้นนั้นควรอยู่กับหน้านี้",
++  });
++}
+--- a/app/(control-plane)/settings/[section]/page.tsx
++++ b/app/(control-plane)/settings/[section]/page.tsx
+@@ -1,68 +1,65 @@
+-import Link from "next/link";
+-import { notFound } from "next/navigation";
+-import { auth } from "@/auth";
+-import { requireAdminPermission } from "@/lib/admin/require-permission";
+-import { getAdminEnvironment } from "@/lib/admin/environment";
+-import { ADMIN_PERMISSIONS, hasAdminPermission, type AdminRole } from "@/lib/admin/rbac";
+-import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
+-import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
+-import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
+-import { getSeoGoogleProviderReadiness } from "@/lib/admin/seo-intelligence/provider-readiness";
+-import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
+-import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
+-
+-function State({ ok, yes = "พร้อม", no = "ต้องตั้งค่า" }: { ok: boolean; yes?: string; no?: string }) {
+-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${ok ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-amber-200/20 bg-amber-200/10 text-amber-50"}`}>{ok ? yes : no}</span>;
+-}
+-
+-function Row({ label, value, state }: { label: string; value: string; state?: boolean }) {
+-  return <div className="flex min-h-12 items-center justify-between gap-4 border-t border-white/10 py-3 first:border-t-0"><div><p className="text-sm font-medium text-white/85">{label}</p><p className="mt-1 text-xs text-white/45">{value}</p></div>{state === undefined ? null : <State ok={state} />}</div>;
+-}
+-
+-async function IntegrationsPage() {
+-  const sanity = getAdminSanityStatus();
+-  const operations = getAdminOperationsRuntimeStatus();
+-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+-  const social = getSocialOperationsRuntimeStatus();
+-  const gsc = getSeoGoogleProviderReadiness("gsc");
+-  const ga4 = getSeoGoogleProviderReadiness("ga4");
+-  const meta = getSocialProviderReadiness("meta");
+-  const youtube = getSocialProviderReadiness("youtube");
+-  const tiktok = getSocialProviderReadiness("tiktok");
+-
+-  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · READINESS</p><h1 className="mt-2 text-3xl font-semibold">Integrations</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">แสดง readiness จาก server configuration โดยไม่เปิดเผย token, client secret หรือ connection string</p>
+-    <div className="mt-7 grid gap-5 xl:grid-cols-2">
+-      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">Core data plane</h2><div className="mt-3"><Row label="Sanity Production" value={`${sanity.projectId ?? "—"} / ${sanity.dataset ?? "—"}`} state={sanity.readReady} /><Row label="Control Plane database" value={`${operations.lane ?? "unknown"} · identity ${operations.identityValid ? "verified" : "not verified"}`} state={operations.identityValid} /><Row label="Article Scheduler" value={`runtime ${scheduler.runtimeEnabled ? "ON" : "OFF"} · durable ${scheduler.durableEnabled ? "ON" : "OFF"}`} state={scheduler.effectiveEnabled} /><Row label="Social operations" value={social.environment ?? "not configured"} state={social.enabled} /></div></section>
+-      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">Search & Analytics</h2><div className="mt-3"><Row label="Google Search Console" value="Manual read-only sync" state={gsc.status === "manual-sync-ready"} /><Row label="Google Analytics 4" value="Manual read-only sync" state={ga4.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/analytics/search/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">Search performance</Link><Link href="/seo/opportunities/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">SEO opportunities</Link></div></section>
+-      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 xl:col-span-2"><h2 className="text-lg font-semibold">Social providers</h2><div className="mt-3 grid gap-x-6 md:grid-cols-3"><Row label="Meta" value="Pages + Instagram read-only readiness" state={meta.status === "manual-sync-ready"} /><Row label="YouTube" value="Read-only readiness" state={youtube.status === "manual-sync-ready"} /><Row label="TikTok" value="Read-only readiness" state={tiktok.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/social/accounts/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">Provider accounts</Link><Link href="/operations/health/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">System Health</Link></div></section>
+-    </div>
+-  </div>;
+-}
+-
+-async function AccessPage() {
+-  const session = await auth();
+-  const role = (session?.user?.role ?? null) as AdminRole | null;
+-  const permissions = ADMIN_PERMISSIONS.filter((permission) => hasAdminPermission(role, permission));
+-  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · ACCESS</p><h1 className="mt-2 text-3xl font-semibold">Access</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านจาก Google-authenticated session และ server-side RBAC จริง หน้านี้ไม่มีฟังก์ชันเพิ่มผู้ใช้หรือแก้ allowlist</p>
+-    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><dl className="grid gap-5 sm:grid-cols-3"><div><dt className="text-xs text-white/45">บัญชี</dt><dd className="mt-1 break-all text-sm text-white/85">{session?.user?.email ?? "—"}</dd></div><div><dt className="text-xs text-white/45">Role</dt><dd className="mt-1 text-sm text-white/85">{role ?? "—"}</dd></div><div><dt className="text-xs text-white/45">Environment</dt><dd className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</dd></div></dl></section>
+-    <section className="mt-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><h2 className="text-lg font-semibold">Effective permissions</h2><div className="mt-4 flex flex-wrap gap-2">{permissions.map((permission) => <span key={permission} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-xs text-white/65">{permission}</span>)}</div></section>
+-  </div>;
+-}
+-
+-async function SystemPage() {
+-  const sanity = getAdminSanityStatus();
+-  const operations = getAdminOperationsRuntimeStatus();
+-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+-  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · SYSTEM</p><h1 className="mt-2 text-3xl font-semibold">System</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">Runtime identity แบบอ่านอย่างเดียวจาก deployment ปัจจุบัน ไม่แสดง secret และไม่อนุญาตแก้ Production configuration จากหน้าเว็บ</p>
+-    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">App environment</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">Vercel</p><p className="mt-1 text-sm text-white/85">{process.env.VERCEL_ENV ?? "—"}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{process.env.VERCEL_GIT_COMMIT_REF ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{process.env.VERCEL_GIT_COMMIT_SHA ?? "—"}</p></div></div><div className="mt-5"><Row label="Sanity data lane" value={`${sanity.projectId ?? "—"}/${sanity.dataset ?? "—"}`} state={sanity.readReady} /><Row label="Operational database identity" value={`${operations.projectId ?? "—"} / ${operations.branchId ?? "—"}`} state={operations.identityValid} /><Row label="Scheduler effective state" value={`runtime ${scheduler.runtimeEnabled ? "ON" : "OFF"} · durable ${scheduler.durableEnabled ? "ON" : "OFF"}`} state={scheduler.effectiveEnabled} /></div><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิด System Health</Link></section>
+-  </div>;
+-}
+-
+-export default async function SettingsSectionPage({ params }: { params: Promise<{ section: string }> }) {
+-  await requireAdminPermission("settings:read");
+-  const { section } = await params;
+-  if (section === "integrations") return <IntegrationsPage />;
+-  if (section === "access") return <AccessPage />;
+-  if (section === "system") return <SystemPage />;
+-  notFound();
+-}
++import { Row } from "@/features/admin/components/ReadinessRows";
++import Link from "next/link";
++import { notFound } from "next/navigation";
++import { auth } from "@/auth";
++import { requireAdminPermission } from "@/lib/admin/require-permission";
++import { getAdminEnvironment } from "@/lib/admin/environment";
++import { ADMIN_PERMISSIONS, hasAdminPermission, type AdminRole } from "@/lib/admin/rbac";
++import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
++import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
++import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
++import { getSeoGoogleProviderReadiness } from "@/lib/admin/seo-intelligence/provider-readiness";
++import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
++import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
++
++
++
++
++
++async function IntegrationsPage() {
++  const sanity = getAdminSanityStatus();
++  const operations = getAdminOperationsRuntimeStatus();
++  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
++  const social = getSocialOperationsRuntimeStatus();
++  const gsc = getSeoGoogleProviderReadiness("gsc");
++  const ga4 = getSeoGoogleProviderReadiness("ga4");
++  const meta = getSocialProviderReadiness("meta");
++  const youtube = getSocialProviderReadiness("youtube");
++  const tiktok = getSocialProviderReadiness("tiktok");
++
++  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · READINESS</p><h1 className="mt-2 text-3xl font-semibold">Integrations</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">แสดง readiness จาก server configuration โดยไม่เปิดเผย token, client secret หรือ connection string</p>
++    <div className="mt-7 grid gap-5 xl:grid-cols-2">
++      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">Core data plane</h2><div className="mt-3"><Row label="Sanity Production" value={`${sanity.projectId ?? "—"} / ${sanity.dataset ?? "—"}`} state={sanity.readReady} /><Row label="Control Plane database" value={`${operations.lane ?? "unknown"} · identity ${operations.identityValid ? "verified" : "not verified"}`} state={operations.identityValid} /><Row label="Article Scheduler" value={`runtime ${scheduler.runtimeEnabled ? "ON" : "OFF"} · durable ${scheduler.durableEnabled ? "ON" : "OFF"}`} state={scheduler.effectiveEnabled} /><Row label="Social operations" value={social.environment ?? "not configured"} state={social.enabled} /></div></section>
++      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">Search & Analytics</h2><div className="mt-3"><Row label="Google Search Console" value="Manual read-only sync" state={gsc.status === "manual-sync-ready"} /><Row label="Google Analytics 4" value="Manual read-only sync" state={ga4.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/analytics/search/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">Search performance</Link><Link href="/seo/opportunities/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">SEO opportunities</Link></div></section>
++      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 xl:col-span-2"><h2 className="text-lg font-semibold">Social providers</h2><div className="mt-3 grid gap-x-6 md:grid-cols-3"><Row label="Meta" value="Pages + Instagram read-only readiness" state={meta.status === "manual-sync-ready"} /><Row label="YouTube" value="Read-only readiness" state={youtube.status === "manual-sync-ready"} /><Row label="TikTok" value="Read-only readiness" state={tiktok.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/social/accounts/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">Provider accounts</Link><Link href="/operations/health/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">System Health</Link></div></section>
++    </div>
++  </div>;
++}
++
++async function AccessPage() {
++  const session = await auth();
++  const role = (session?.user?.role ?? null) as AdminRole | null;
++  const permissions = ADMIN_PERMISSIONS.filter((permission) => hasAdminPermission(role, permission));
++  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · ACCESS</p><h1 className="mt-2 text-3xl font-semibold">Access</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">อ่านจาก Google-authenticated session และ server-side RBAC จริง หน้านี้ไม่มีฟังก์ชันเพิ่มผู้ใช้หรือแก้ allowlist</p>
++    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><dl className="grid gap-5 sm:grid-cols-3"><div><dt className="text-xs text-white/45">บัญชี</dt><dd className="mt-1 break-all text-sm text-white/85">{session?.user?.email ?? "—"}</dd></div><div><dt className="text-xs text-white/45">Role</dt><dd className="mt-1 text-sm text-white/85">{role ?? "—"}</dd></div><div><dt className="text-xs text-white/45">Environment</dt><dd className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</dd></div></dl></section>
++    <section className="mt-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><h2 className="text-lg font-semibold">Effective permissions</h2><div className="mt-4 flex flex-wrap gap-2">{permissions.map((permission) => <span key={permission} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-xs text-white/65">{permission}</span>)}</div></section>
++  </div>;
++}
++
++async function SystemPage() {
++  const sanity = getAdminSanityStatus();
++  const operations = getAdminOperationsRuntimeStatus();
++  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
++  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">SETTINGS · SYSTEM</p><h1 className="mt-2 text-3xl font-semibold">System</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">Runtime identity แบบอ่านอย่างเดียวจาก deployment ปัจจุบัน ไม่แสดง secret และไม่อนุญาตแก้ Production configuration จากหน้าเว็บ</p>
++    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">App environment</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">Vercel</p><p className="mt-1 text-sm text-white/85">{process.env.VERCEL_ENV ?? "—"}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{process.env.VERCEL_GIT_COMMIT_REF ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{process.env.VERCEL_GIT_COMMIT_SHA ?? "—"}</p></div></div><div className="mt-5"><Row label="Sanity data lane" value={`${sanity.projectId ?? "—"}/${sanity.dataset ?? "—"}`} state={sanity.readReady} /><Row label="Operational database identity" value={`${operations.projectId ?? "—"} / ${operations.branchId ?? "—"}`} state={operations.identityValid} /><Row label="Scheduler effective state" value={`runtime ${scheduler.runtimeEnabled ? "ON" : "OFF"} · durable ${scheduler.durableEnabled ? "ON" : "OFF"}`} state={scheduler.effectiveEnabled} /></div><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิด System Health</Link></section>
++  </div>;
++}
++
++export default async function SettingsSectionPage({ params }: { params: Promise<{ section: string }> }) {
++  await requireAdminPermission("settings:read");
++  const { section } = await params;
++  if (section === "integrations") return <IntegrationsPage />;
++  if (section === "access") return <AccessPage />;
++  if (section === "system") return <SystemPage />;
++  notFound();
++}
+--- a/apps/admin/app/(control-plane)/settings/[section]/page.tsx
++++ b/apps/admin/app/(control-plane)/settings/[section]/page.tsx
+@@ -1,104 +1,101 @@
+-import Link from "next/link";
+-import { notFound } from "next/navigation";
+-import { auth } from "@/auth";
+-import { requireAdminPermission } from "@/lib/admin/require-permission";
+-import { getAdminDeploymentIdentity, getAdminEnvironment } from "@/lib/admin/environment";
+-import { ADMIN_PERMISSIONS, hasAdminPermission, type AdminRole } from "@/lib/admin/rbac";
+-import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
+-import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
+-import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
+-import { getSeoGoogleProviderReadiness } from "@/lib/admin/seo-intelligence/provider-readiness";
+-import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
+-import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
+-import { environmentLabel, roleLabel } from "@/lib/admin/presentation";
+-import { readLineDiscoveryAdminModel } from "@/lib/admin/line/discovery-config";
+-import { N8N_ADMIN_INTEGRATIONS, N8N_ADMIN_STATUS_LABEL, n8nAdminIntegrationSummary } from "@/lib/admin/n8n-integration-registry";
+-import LineDiscoveryManager from "@/features/admin/line/LineDiscoveryManager";
+-
+-function State({ ok, yes = "พร้อม", no = "ต้องตั้งค่า" }: { ok: boolean; yes?: string; no?: string }) {
+-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${ok ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-amber-200/20 bg-amber-200/10 text-amber-50"}`}>{ok ? yes : no}</span>;
+-}
+-
+-function Row({ label, value, state }: { label: string; value: string; state?: boolean }) {
+-  return <div className="flex min-h-12 items-center justify-between gap-4 border-t border-white/10 py-3 first:border-t-0"><div><p className="text-sm font-medium text-white/85">{label}</p><p className="mt-1 text-xs text-white/45">{value}</p></div>{state === undefined ? null : <State ok={state} />}</div>;
+-}
+-
+-async function IntegrationsPage() {
+-  const sanity = getAdminSanityStatus();
+-  const operations = getAdminOperationsRuntimeStatus();
+-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+-  const social = getSocialOperationsRuntimeStatus();
+-  const gsc = getSeoGoogleProviderReadiness("gsc");
+-  const ga4 = getSeoGoogleProviderReadiness("ga4");
+-  const meta = getSocialProviderReadiness("meta");
+-  const youtube = getSocialProviderReadiness("youtube");
+-  const tiktok = getSocialProviderReadiness("tiktok");
+-  const lineDiscovery = await readLineDiscoveryAdminModel();
+-  const n8nSummary = n8nAdminIntegrationSummary();
+-
+-  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">การเชื่อมต่อ</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ตรวจว่าระบบเชื่อมต่อบริการที่จำเป็นพร้อมหรือไม่ โดยไม่แสดงรหัสลับหรือข้อมูลเข้าสู่ระบบ</p>
+-    <div className="mt-7 grid gap-5 xl:grid-cols-2">
+-      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">ข้อมูลหลักของระบบ</h2><div className="mt-3"><Row label="เนื้อหาใน Sanity" value={sanity.readReady ? "อ่านข้อมูลได้" : "ยังอ่านข้อมูลไม่ได้"} state={sanity.readReady} /><Row label="ข้อมูลส่วนตัวและประวัติ" value={operations.identityValid ? "เชื่อมต่อฐานข้อมูลชุดที่ถูกต้อง" : "ยังยืนยันการเชื่อมต่อไม่ได้"} state={operations.identityValid} /><Row label="การตั้งเวลาเผยแพร่บทความ" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} state={scheduler.effectiveEnabled} /><Row label="งานโซเชียล" value={social.enabled ? "พร้อมใช้งาน" : "ยังไม่เปิดใช้งาน"} state={social.enabled} /></div></section>
+-      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">การค้นหาและผลลัพธ์</h2><div className="mt-3"><Row label="Google Search Console" value="ดึงข้อมูลเมื่อผู้ใช้สั่ง และไม่แก้ข้อมูลต้นทาง" state={gsc.status === "manual-sync-ready"} /><Row label="Google Analytics 4" value="ดึงข้อมูลเมื่อผู้ใช้สั่ง และไม่แก้ข้อมูลต้นทาง" state={ga4.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/analytics/search/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูผลการค้นหา</Link><Link href="/seo/opportunities/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูโอกาสพัฒนา SEO</Link></div></section>
+-      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 xl:col-span-2"><h2 className="text-lg font-semibold">บัญชีโซเชียล</h2><div className="mt-3 grid gap-x-6 md:grid-cols-3"><Row label="Meta" value="พร้อมอ่านข้อมูล Facebook Page และ Instagram" state={meta.status === "manual-sync-ready"} /><Row label="YouTube" value="พร้อมอ่านข้อมูลเมื่อผู้ใช้สั่ง" state={youtube.status === "manual-sync-ready"} /><Row label="TikTok" value="พร้อมอ่านข้อมูลเมื่อผู้ใช้สั่ง" state={tiktok.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/social/accounts/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูบัญชีที่เชื่อมต่อ</Link><Link href="/operations/health/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูภาพรวมระบบ</Link></div></section>
+-    </div>
+-    <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
+-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+-        <div>
+-          <h2 className="text-lg font-semibold">n8n Workflow Integration</h2>
+-          <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">ดูว่า Workflow ไหนมีปุ่มให้กดใน Admin แล้ว Workflow ไหนทำงานแบบ Background หรือยังไม่ได้เชื่อม รายการนี้อ้างอิง Integration contract และยังไม่ใช่สถานะ Active/Inactive ล่าสุดจาก n8n</p>
+-        </div>
+-        <div className="flex flex-wrap gap-2 text-xs text-white/55">
+-          <span className="rounded-full border border-white/10 px-2.5 py-1">มีปุ่ม {n8nSummary["admin-trigger"]}</span>
+-          <span className="rounded-full border border-amber-200/20 bg-amber-200/5 px-2.5 py-1 text-amber-50">ยังไม่มีปุ่ม {n8nSummary.unconnected}</span>
+-          <span className="rounded-full border border-white/10 px-2.5 py-1">Background {n8nSummary.background}</span>
+-          <span className="rounded-full border border-white/10 px-2.5 py-1">Test only {n8nSummary["test-only"]}</span>
+-          <span className="rounded-full border border-white/10 px-2.5 py-1">Legacy {n8nSummary.legacy}</span>
+-        </div>
+-      </div>
+-      <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
+-        <table className="min-w-[1050px] w-full text-left">
+-          <thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">Workflow</th><th className="px-4 py-3">สถานะการเชื่อมต่อ</th><th className="px-4 py-3">ทางเข้า</th><th className="px-4 py-3">หน้าที่</th><th className="px-4 py-3">ควรทำต่อ</th></tr></thead>
+-          <tbody>{N8N_ADMIN_INTEGRATIONS.map((item) => <tr key={item.workflowId} className="border-t border-white/10 align-top">
+-            <td className="px-4 py-4"><div className="text-sm font-medium text-white/85">{item.workflowName}</div><details className="mt-1 text-xs text-white/45"><summary className="cursor-pointer">รหัสสำหรับตรวจสอบ</summary><code>{item.workflowId}</code></details>{item.sourceControlled ? <div className="mt-1 text-[11px] text-emerald-200/70">มีไฟล์ต้นฉบับให้ตรวจสอบ</div> : null}</td>
+-            <td className="px-4 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${item.status === "admin-trigger" ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : item.status === "unconnected" ? "border-amber-200/20 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/[0.04] text-white/60"}`}>{N8N_ADMIN_STATUS_LABEL[item.status]}</span></td>
+-            <td className="px-4 py-4 text-sm text-white/60">{item.adminPath ? <Link href={item.adminPath} className="text-[#e0c985] hover:underline">{item.adminEntry ?? "ดูใน Admin"}</Link> : item.adminEntry ?? "—"}</td>
+-            <td className="px-4 py-4 text-sm leading-6 text-white/60">{item.purpose}</td>
+-            <td className="px-4 py-4 text-sm leading-6 text-white/60">{item.recommendation}</td>
+-          </tr>)}</tbody>
+-        </table>
+-      </div>
+-      <p className="mt-3 text-xs leading-5 text-white/40">“ยังไม่มีปุ่ม” หมายถึงยังไม่มีทางเข้าให้กดจากหน้านี้ ไม่ได้แปลว่า Workflow เสีย</p>
+-    </section>
+-    <LineDiscoveryManager initialModel={lineDiscovery} />
+-  </div>;
+-}
+-
+-async function AccessPage() {
+-  const session = await auth();
+-  const role = (session?.user?.role ?? null) as AdminRole | null;
+-  const permissions = ADMIN_PERMISSIONS.filter((permission) => hasAdminPermission(role, permission));
+-  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">สิทธิ์ผู้ใช้</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูบัญชีและขอบเขตงานที่เปิดให้ใช้ หน้านี้ดูข้อมูลได้อย่างเดียว หากต้องเปลี่ยนสิทธิ์ให้เจ้าของระบบเป็นผู้ดำเนินการ</p>
+-    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><dl className="grid gap-5 sm:grid-cols-3"><div><dt className="text-xs text-white/45">บัญชี</dt><dd className="mt-1 break-all text-sm text-white/85">{session?.user?.email ?? "—"}</dd></div><div><dt className="text-xs text-white/45">บทบาท</dt><dd className="mt-1 text-sm text-white/85">{role ? roleLabel(role) : "—"}</dd></div><div><dt className="text-xs text-white/45">ระบบที่กำลังใช้</dt><dd className="mt-1 text-sm text-white/85">{environmentLabel(getAdminEnvironment())}</dd></div></dl></section>
+-    <section className="mt-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><h2 className="text-lg font-semibold">สิทธิ์ที่ใช้งานได้</h2><p className="mt-2 text-sm text-white/60">เปิดใช้ {permissions.length.toLocaleString("th-TH")} สิทธิ์ตามบทบาทปัจจุบัน</p><details className="mt-4 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm text-white/75">ดูรหัสสิทธิ์สำหรับตรวจสอบ</summary><div className="mt-4 flex flex-wrap gap-2">{permissions.map((permission) => <span key={permission} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-xs text-white/65">{permission}</span>)}</div></details></section>
+-  </div>;
+-}
+-
+-async function SystemPage() {
+-  const deployment = getAdminDeploymentIdentity();
+-  const sanity = getAdminSanityStatus();
+-  const operations = getAdminOperationsRuntimeStatus();
+-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+-  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">ข้อมูลระบบ</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูว่าระบบกำลังใช้ข้อมูลชุดใดและพร้อมทำงานหรือไม่ หน้านี้ดูข้อมูลได้อย่างเดียวและไม่แสดงรหัสลับ</p>
+-    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div><Row label="เนื้อหาใน Sanity" value={sanity.readReady ? "พร้อมอ่านข้อมูล" : "ยังอ่านข้อมูลไม่ได้"} state={sanity.readReady} /><Row label="ฐานข้อมูลส่วนตัว" value={operations.identityValid ? "เชื่อมต่อชุดที่ถูกต้อง" : "ยังยืนยันการเชื่อมต่อไม่ได้"} state={operations.identityValid} /><Row label="การตั้งเวลาเผยแพร่" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} state={scheduler.effectiveEnabled} /></div><details className="mt-5 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm text-white/75">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">Environment</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">Provider</p><p className="mt-1 text-sm text-white/85">{deployment.provider}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{deployment.gitRef ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{deployment.gitSha ?? "—"}</p></div></div><div className="mt-5 text-xs text-white/55">Sanity: {sanity.projectId ?? "—"}/{sanity.dataset ?? "—"} · Database: {operations.projectId ?? "—"}/{operations.branchId ?? "—"} · Scheduler runtime {scheduler.runtimeEnabled ? "ON" : "OFF"}, durable {scheduler.durableEnabled ? "ON" : "OFF"}</div></details><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิดภาพรวมระบบ</Link></section>
+-  </div>;
+-}
+-
+-export default async function SettingsSectionPage({ params }: { params: Promise<{ section: string }> }) {
+-  await requireAdminPermission("settings:read");
+-  const { section } = await params;
+-  if (section === "integrations") return <IntegrationsPage />;
+-  if (section === "access") return <AccessPage />;
+-  if (section === "system") return <SystemPage />;
+-  notFound();
+-}
++import { Row } from "@/features/admin/components/ReadinessRows";
++import Link from "next/link";
++import { notFound } from "next/navigation";
++import { auth } from "@/auth";
++import { requireAdminPermission } from "@/lib/admin/require-permission";
++import { getAdminDeploymentIdentity, getAdminEnvironment } from "@/lib/admin/environment";
++import { ADMIN_PERMISSIONS, hasAdminPermission, type AdminRole } from "@/lib/admin/rbac";
++import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
++import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
++import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
++import { getSeoGoogleProviderReadiness } from "@/lib/admin/seo-intelligence/provider-readiness";
++import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
++import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
++import { environmentLabel, roleLabel } from "@/lib/admin/presentation";
++import { readLineDiscoveryAdminModel } from "@/lib/admin/line/discovery-config";
++import { N8N_ADMIN_INTEGRATIONS, N8N_ADMIN_STATUS_LABEL, n8nAdminIntegrationSummary } from "@/lib/admin/n8n-integration-registry";
++import LineDiscoveryManager from "@/features/admin/line/LineDiscoveryManager";
++
++
++
++
++
++async function IntegrationsPage() {
++  const sanity = getAdminSanityStatus();
++  const operations = getAdminOperationsRuntimeStatus();
++  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
++  const social = getSocialOperationsRuntimeStatus();
++  const gsc = getSeoGoogleProviderReadiness("gsc");
++  const ga4 = getSeoGoogleProviderReadiness("ga4");
++  const meta = getSocialProviderReadiness("meta");
++  const youtube = getSocialProviderReadiness("youtube");
++  const tiktok = getSocialProviderReadiness("tiktok");
++  const lineDiscovery = await readLineDiscoveryAdminModel();
++  const n8nSummary = n8nAdminIntegrationSummary();
++
++  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">การเชื่อมต่อ</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ตรวจว่าระบบเชื่อมต่อบริการที่จำเป็นพร้อมหรือไม่ โดยไม่แสดงรหัสลับหรือข้อมูลเข้าสู่ระบบ</p>
++    <div className="mt-7 grid gap-5 xl:grid-cols-2">
++      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">ข้อมูลหลักของระบบ</h2><div className="mt-3"><Row label="เนื้อหาใน Sanity" value={sanity.readReady ? "อ่านข้อมูลได้" : "ยังอ่านข้อมูลไม่ได้"} state={sanity.readReady} /><Row label="ข้อมูลส่วนตัวและประวัติ" value={operations.identityValid ? "เชื่อมต่อฐานข้อมูลชุดที่ถูกต้อง" : "ยังยืนยันการเชื่อมต่อไม่ได้"} state={operations.identityValid} /><Row label="การตั้งเวลาเผยแพร่บทความ" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} state={scheduler.effectiveEnabled} /><Row label="งานโซเชียล" value={social.enabled ? "พร้อมใช้งาน" : "ยังไม่เปิดใช้งาน"} state={social.enabled} /></div></section>
++      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><h2 className="text-lg font-semibold">การค้นหาและผลลัพธ์</h2><div className="mt-3"><Row label="Google Search Console" value="ดึงข้อมูลเมื่อผู้ใช้สั่ง และไม่แก้ข้อมูลต้นทาง" state={gsc.status === "manual-sync-ready"} /><Row label="Google Analytics 4" value="ดึงข้อมูลเมื่อผู้ใช้สั่ง และไม่แก้ข้อมูลต้นทาง" state={ga4.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/analytics/search/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูผลการค้นหา</Link><Link href="/seo/opportunities/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูโอกาสพัฒนา SEO</Link></div></section>
++      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 xl:col-span-2"><h2 className="text-lg font-semibold">บัญชีโซเชียล</h2><div className="mt-3 grid gap-x-6 md:grid-cols-3"><Row label="Meta" value="พร้อมอ่านข้อมูล Facebook Page และ Instagram" state={meta.status === "manual-sync-ready"} /><Row label="YouTube" value="พร้อมอ่านข้อมูลเมื่อผู้ใช้สั่ง" state={youtube.status === "manual-sync-ready"} /><Row label="TikTok" value="พร้อมอ่านข้อมูลเมื่อผู้ใช้สั่ง" state={tiktok.status === "manual-sync-ready"} /></div><div className="mt-4 flex flex-wrap gap-2"><Link href="/social/accounts/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูบัญชีที่เชื่อมต่อ</Link><Link href="/operations/health/" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">ดูภาพรวมระบบ</Link></div></section>
++    </div>
++    <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
++      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
++        <div>
++          <h2 className="text-lg font-semibold">n8n Workflow Integration</h2>
++          <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">ดูว่า Workflow ไหนมีปุ่มให้กดใน Admin แล้ว Workflow ไหนทำงานแบบ Background หรือยังไม่ได้เชื่อม รายการนี้อ้างอิง Integration contract และยังไม่ใช่สถานะ Active/Inactive ล่าสุดจาก n8n</p>
++        </div>
++        <div className="flex flex-wrap gap-2 text-xs text-white/55">
++          <span className="rounded-full border border-white/10 px-2.5 py-1">มีปุ่ม {n8nSummary["admin-trigger"]}</span>
++          <span className="rounded-full border border-amber-200/20 bg-amber-200/5 px-2.5 py-1 text-amber-50">ยังไม่มีปุ่ม {n8nSummary.unconnected}</span>
++          <span className="rounded-full border border-white/10 px-2.5 py-1">Background {n8nSummary.background}</span>
++          <span className="rounded-full border border-white/10 px-2.5 py-1">Test only {n8nSummary["test-only"]}</span>
++          <span className="rounded-full border border-white/10 px-2.5 py-1">Legacy {n8nSummary.legacy}</span>
++        </div>
++      </div>
++      <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
++        <table className="min-w-[1050px] w-full text-left">
++          <thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">Workflow</th><th className="px-4 py-3">สถานะการเชื่อมต่อ</th><th className="px-4 py-3">ทางเข้า</th><th className="px-4 py-3">หน้าที่</th><th className="px-4 py-3">ควรทำต่อ</th></tr></thead>
++          <tbody>{N8N_ADMIN_INTEGRATIONS.map((item) => <tr key={item.workflowId} className="border-t border-white/10 align-top">
++            <td className="px-4 py-4"><div className="text-sm font-medium text-white/85">{item.workflowName}</div><details className="mt-1 text-xs text-white/45"><summary className="cursor-pointer">รหัสสำหรับตรวจสอบ</summary><code>{item.workflowId}</code></details>{item.sourceControlled ? <div className="mt-1 text-[11px] text-emerald-200/70">มีไฟล์ต้นฉบับให้ตรวจสอบ</div> : null}</td>
++            <td className="px-4 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${item.status === "admin-trigger" ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : item.status === "unconnected" ? "border-amber-200/20 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/[0.04] text-white/60"}`}>{N8N_ADMIN_STATUS_LABEL[item.status]}</span></td>
++            <td className="px-4 py-4 text-sm text-white/60">{item.adminPath ? <Link href={item.adminPath} className="text-[#e0c985] hover:underline">{item.adminEntry ?? "ดูใน Admin"}</Link> : item.adminEntry ?? "—"}</td>
++            <td className="px-4 py-4 text-sm leading-6 text-white/60">{item.purpose}</td>
++            <td className="px-4 py-4 text-sm leading-6 text-white/60">{item.recommendation}</td>
++          </tr>)}</tbody>
++        </table>
++      </div>
++      <p className="mt-3 text-xs leading-5 text-white/40">“ยังไม่มีปุ่ม” หมายถึงยังไม่มีทางเข้าให้กดจากหน้านี้ ไม่ได้แปลว่า Workflow เสีย</p>
++    </section>
++    <LineDiscoveryManager initialModel={lineDiscovery} />
++  </div>;
++}
++
++async function AccessPage() {
++  const session = await auth();
++  const role = (session?.user?.role ?? null) as AdminRole | null;
++  const permissions = ADMIN_PERMISSIONS.filter((permission) => hasAdminPermission(role, permission));
++  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">สิทธิ์ผู้ใช้</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูบัญชีและขอบเขตงานที่เปิดให้ใช้ หน้านี้ดูข้อมูลได้อย่างเดียว หากต้องเปลี่ยนสิทธิ์ให้เจ้าของระบบเป็นผู้ดำเนินการ</p>
++    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><dl className="grid gap-5 sm:grid-cols-3"><div><dt className="text-xs text-white/45">บัญชี</dt><dd className="mt-1 break-all text-sm text-white/85">{session?.user?.email ?? "—"}</dd></div><div><dt className="text-xs text-white/45">บทบาท</dt><dd className="mt-1 text-sm text-white/85">{role ? roleLabel(role) : "—"}</dd></div><div><dt className="text-xs text-white/45">ระบบที่กำลังใช้</dt><dd className="mt-1 text-sm text-white/85">{environmentLabel(getAdminEnvironment())}</dd></div></dl></section>
++    <section className="mt-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><h2 className="text-lg font-semibold">สิทธิ์ที่ใช้งานได้</h2><p className="mt-2 text-sm text-white/60">เปิดใช้ {permissions.length.toLocaleString("th-TH")} สิทธิ์ตามบทบาทปัจจุบัน</p><details className="mt-4 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm text-white/75">ดูรหัสสิทธิ์สำหรับตรวจสอบ</summary><div className="mt-4 flex flex-wrap gap-2">{permissions.map((permission) => <span key={permission} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-xs text-white/65">{permission}</span>)}</div></details></section>
++  </div>;
++}
++
++async function SystemPage() {
++  const deployment = getAdminDeploymentIdentity();
++  const sanity = getAdminSanityStatus();
++  const operations = getAdminOperationsRuntimeStatus();
++  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
++  return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">ข้อมูลระบบ</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูว่าระบบกำลังใช้ข้อมูลชุดใดและพร้อมทำงานหรือไม่ หน้านี้ดูข้อมูลได้อย่างเดียวและไม่แสดงรหัสลับ</p>
++    <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div><Row label="เนื้อหาใน Sanity" value={sanity.readReady ? "พร้อมอ่านข้อมูล" : "ยังอ่านข้อมูลไม่ได้"} state={sanity.readReady} /><Row label="ฐานข้อมูลส่วนตัว" value={operations.identityValid ? "เชื่อมต่อชุดที่ถูกต้อง" : "ยังยืนยันการเชื่อมต่อไม่ได้"} state={operations.identityValid} /><Row label="การตั้งเวลาเผยแพร่" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} state={scheduler.effectiveEnabled} /></div><details className="mt-5 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm text-white/75">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">Environment</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">Provider</p><p className="mt-1 text-sm text-white/85">{deployment.provider}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{deployment.gitRef ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{deployment.gitSha ?? "—"}</p></div></div><div className="mt-5 text-xs text-white/55">Sanity: {sanity.projectId ?? "—"}/{sanity.dataset ?? "—"} · Database: {operations.projectId ?? "—"}/{operations.branchId ?? "—"} · Scheduler runtime {scheduler.runtimeEnabled ? "ON" : "OFF"}, durable {scheduler.durableEnabled ? "ON" : "OFF"}</div></details><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิดภาพรวมระบบ</Link></section>
++  </div>;
++}
++
++export default async function SettingsSectionPage({ params }: { params: Promise<{ section: string }> }) {
++  await requireAdminPermission("settings:read");
++  const { section } = await params;
++  if (section === "integrations") return <IntegrationsPage />;
++  if (section === "access") return <AccessPage />;
++  if (section === "system") return <SystemPage />;
++  notFound();
++}

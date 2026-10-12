@@ -1,3 +1,4 @@
+import StudioUnavailableView from "@/features/admin/components/StudioUnavailableView";
 import { notFound } from "next/navigation";
 import { metadata as studioMetadata, viewport } from "next-sanity/studio";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
@@ -18,12 +19,7 @@ export default async function StudioPage() {
   if (!IS_REVIEW_ENVIRONMENT) notFound();
   if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) notFound();
   if (!projectId || !dataset) {
-    return (
-      <main style={{ minHeight: "100vh", padding: "3rem", fontFamily: "system-ui", background: "#251818", color: "#faf9f9" }}>
-        <h1>ยังเปิด Sanity Studio ไม่ได้</h1>
-        <p>กรุณาให้ผู้ดูแลตั้งค่าโครงการและชุดข้อมูล Sanity สำหรับพื้นที่ทดสอบ UAT ให้ครบ</p>
-      </main>
-    );
+    return <StudioUnavailableView title="ยังเปิด Sanity Studio ไม่ได้" description="กรุณาให้ผู้ดูแลตั้งค่าโครงการและชุดข้อมูล Sanity สำหรับพื้นที่ทดสอบ UAT ให้ครบ" />;
   }
 
   return <StudioClient />;
