@@ -54,5 +54,6 @@
   "criticalCssSha256": "577096749764481408b823a1135d361535d7bae18f56e5a4dbad36c0a3e00666",
   "criticalCssBytes": 2538,
   "ubersuggestReconciledOwnerSha256": "66fea0470172d9f4e500e43b6b1f3077ca5d0dd69c8979d68e7710a8987d19ee",
-  "rootProxyOriginalSha256": "2ed3fe64336891998de66f5de07c8a39d89414dc5143b558c09a520ed353ec0a"
+  "rootProxyOriginalSha256": "2ed3fe64336891998de66f5de07c8a39d89414dc5143b558c09a520ed353ec0a",
+  "approvedUatOnlyEightBaseline": "53b91a542db1df993681630478779825597bad25"
 }
