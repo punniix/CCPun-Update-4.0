@@ -16,7 +16,10 @@ const proof = JSON.parse(read('qa/production-code-only-parity.json'));
 test('code-only release preserves its own Production canonical owners, UI, tracking, SEO and auth sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
-    if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
+    if (file === 'lib/admin/agent-os/privacy-routing.ts') {
+      // Intentional strict privacy contract adoption; current source is the reviewed UAT policy.
+      assert.equal(sha(readFileSync(resolve(root, file), 'utf8')), '227a394bccab9f0a65d83a273375f8fcc310bb9a0378dcf5d8e3663cc1a91691', file);
+    } else if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);
