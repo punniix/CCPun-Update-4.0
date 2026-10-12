@@ -132,3 +132,16 @@ test("Cloud payload is allowlist-first and rejects direct identifiers", () => {
   assert.equal(cloudPayloadUsesOnlyAllowedKeys(accessor, allowed), false);
   assert.equal(getterRead, false);
 });
+
+test("Strict safe-class decisions keep flag independence and caller allowlists cannot widen aggregate fields", () => {
+  for (const sanitized of [false, true]) for (const allowlisted of [false, true]) for (const explicitWorkflowOptIn of [false, true]) {
+    assert.equal(evaluateCloudEligibility({ dataClass: "public_safe", sanitized, allowlisted, explicitWorkflowOptIn }).allowed, true);
+    assert.equal(evaluateCloudEligibility({ dataClass: "internal_safe", sanitized, allowlisted, explicitWorkflowOptIn }).allowed, allowlisted);
+  }
+  const valid = { topic: "health_coverage", count: 28, qualified_rate: 0.4 };
+  const allowed = ["topic", "count", "qualified_rate"];
+  assert.equal(cloudPayloadUsesOnlyAllowedKeys(Object.freeze({ ...valid }), allowed), true);
+  for (const payload of [{ ...valid, name: "SYNTHETIC_PRIVATE_CANARY" }, { ...valid, payload: { email: "SYNTHETIC_PRIVATE_CANARY" } }]) {
+    assert.equal(cloudPayloadUsesOnlyAllowedKeys(payload, [...allowed, "name", "payload", "email"]), false);
+  }
+});
