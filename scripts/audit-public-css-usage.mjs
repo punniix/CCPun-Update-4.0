@@ -49,6 +49,21 @@ const requiredTailwindSources = [
   '@source "../../features";',
 ];
 
+// Next builds each app from its own directory; preserve automatic app discovery.
+// Shared render owners stay explicit, while historical fixtures never become CSS.
+if (!globalsSource.startsWith('@import "tailwindcss";')) {
+  throw new Error('Preserve Tailwind native app-directory discovery.');
+}
+const positiveSources = [...globalsSource.matchAll(/@source "([^"\n]+)";/g)].map(([, owner]) => owner);
+if (JSON.stringify(positiveSources) !== JSON.stringify(['../../components', '../../features'])) {
+  throw new Error('Only the original shared render owners may extend native app CSS discovery.');
+}
+for (const directory of ['qa', 'tests', 'docs', 'scripts']) {
+  if (!globalsSource.includes(`@source not "../../${directory}";`)) {
+    throw new Error(`Historical CSS discovery must exclude ${directory}`);
+  }
+}
+
 for (const requiredImport of requiredGlobalImports) {
   if (!globalsSource.includes(requiredImport)) {
     throw new Error(`components/styles/global-foundation.css must keep explicit style ownership import: ${requiredImport}`);

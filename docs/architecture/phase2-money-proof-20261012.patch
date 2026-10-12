@@ -1,0 +1,101 @@
+--- /dev/null
++++ b/qa/phase2-source-proof.mjs
+@@ -0,0 +1,78 @@
++import assert from 'node:assert/strict';
++import { createHash } from 'node:crypto';
++import { readFileSync } from 'node:fs';
++import { gunzipSync } from 'node:zlib';
++import ts from 'typescript';
++
++const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
++const sha = source => createHash('sha256').update(source).digest('hex');
++const controllerPath = 'features/money-story/components/MoneyStoryGame.tsx';
++const ownerPath = 'features/money-story/components/MoneyStoryStatusSidebar.tsx';
++const parse = (path, source) => ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
++const statementName = node => ts.isVariableStatement(node) ? node.declarationList.declarations[0].name.getText() : node.name?.getText();
++const find = (tree, predicate) => {
++  let found;
++  const visit = node => { if (predicate(node)) found ??= node; ts.forEachChild(node, visit); };
++  visit(tree);
++  assert(found, 'Missing actual implementation node');
++  return found;
++};
++function structure(node, options = {}) {
++  if (options.ignoreExport && node.kind === ts.SyntaxKind.ExportKeyword) return null;
++  if (ts.isJsxText(node) && !node.text.trim()) return null;
++  if (options.omitProtectionTypes && ts.isVariableStatement(node) && statementName(node) === 'protectionTypes') return null;
++  if (options.sidebar && ts.isJsxSelfClosingElement(node) && node.tagName.getText() === 'MoneyStoryStatusSidebar') return structure(options.sidebar);
++  const children = [];
++  ts.forEachChild(node, child => { const value = structure(child, options); if (value !== null) children.push(value); });
++  return [node.kind, ts.isVariableDeclarationList(node) ? node.flags : null, typeof node.text === 'string' ? node.text : null, children];
++}
++function imports(tree) {
++  return tree.statements.filter(ts.isImportDeclaration).map(node => ({
++    module: node.moduleSpecifier.text,
++    typeOnly: Boolean(node.importClause?.isTypeOnly),
++    names: node.importClause?.namedBindings?.elements?.map(item => item.name.text) ?? [],
++  }));
++}
++
++// Explicit admission to the OLD protected-manifest assertion. No original source
++// is returned; current-source readers continue reading current implementations.
++export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readCurrent = read) {
++  assert.equal(file, controllerPath, 'Only the reviewed Money Story composition is admitted');
++  const proof = JSON.parse(read('qa/phase2-css-delivery-parity.json'));
++  const composition = proof.moneyComposition;
++  assert.equal(composition.controller, controllerPath);
++  assert.equal(composition.owner, ownerPath);
++  const current = readCurrent(file), owner = readCurrent(ownerPath);
++  assert.equal(sha(current), composition.controllerSha256, 'Unreviewed controller composition');
++  assert.equal(sha(owner), composition.ownerSha256, 'Unreviewed current sidebar body');
++  const original = gunzipSync(Buffer.from(proof.moneyOriginalControllerGzip, 'base64')).toString();
++  assert.equal(sha(original), expectedBaselineDigest, 'Original f703 output fixture must match the unchanged protected manifest');
++  assert.equal(sha(original), composition.baselineSha256);
++  assert.equal(sha(readCurrent(composition.test)), composition.outputTestSha256, 'Actual output/action test drift');
++  const oldTree = parse(file, original), currentTree = parse(file, current), ownerTree = parse(ownerPath, owner);
++  const expectedImports = imports(oldTree).map(item => ({ ...item, names: item.names.filter(name => !['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users', 'PROTECTION_CATALOG'].includes(name)) }));
++  expectedImports.push({ module: './MoneyStoryStatusSidebar', typeOnly: false, names: ['money', 'MoneyStoryStatusSidebar', 'percentLabel'] });
++  assert.deepEqual(imports(currentTree), expectedImports, 'Only presentation bindings may move');
++  assert.doesNotMatch(owner, /\b(?:useState|useEffect|trackEvent|trackMoneyStoryEvent|setGame)\b/);
++  assert(!imports(ownerTree).some(item => item.module.includes('MoneyStoryGame')), 'No owner/controller cycle');
++  const oldFunction = find(oldTree, node => ts.isFunctionDeclaration(node) && node.name?.text === 'MoneyStoryGame');
++  const ownerFunction = find(ownerTree, node => ts.isFunctionDeclaration(node) && node.name?.text === 'MoneyStoryStatusSidebar');
++  const ownerReturn = find(ownerFunction, node => ts.isReturnStatement(node)).expression;
++  const returnedAside = ts.isParenthesizedExpression(ownerReturn) ? ownerReturn.expression : ownerReturn;
++  const sidebarCall = find(currentTree, node => ts.isJsxSelfClosingElement(node) && node.tagName.getText() === 'MoneyStoryStatusSidebar');
++  assert.equal(sidebarCall.getText(), '<MoneyStoryStatusSidebar game={game} bars={bars} />');
++  const oldTypes = find(oldFunction, node => ts.isVariableStatement(node) && statementName(node) === 'protectionTypes');
++  const currentTypes = find(ownerFunction, node => ts.isVariableStatement(node) && statementName(node) === 'protectionTypes');
++  assert.deepEqual(structure(currentTypes), structure(oldTypes));
++  for (const name of ['money', 'protectionIcons', 'Meter', 'percentLabel']) {
++    const oldNode = oldTree.statements.find(node => statementName(node) === name);
++    const newNode = ownerTree.statements.find(node => statementName(node) === name);
++    assert(oldNode && newNode, name);
++    assert.deepEqual(structure(newNode, { ignoreExport: true }), structure(oldNode), name + ': moved helper body');
++  }
++  const moved = new Set(['money', 'protectionIcons', 'Meter', 'percentLabel']);
++  const keep = node => !ts.isImportDeclaration(node) && !moved.has(statementName(node));
++  assert.deepEqual(currentTree.statements.filter(keep).map(node => structure(node, { sidebar: returnedAside })),
++    oldTree.statements.filter(keep).map(node => structure(node, { omitProtectionTypes: true })), 'Remaining controller logic and expanded CURRENT sidebar must match f703');
++  return true;
++}
+--- a/tests/production-code-only-parity.test.mjs
++++ b/tests/production-code-only-parity.test.mjs
+@@ -4,6 +4,7 @@
+ import { resolve } from 'node:path';
+ import test from 'node:test';
+ import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
++import { assertPhase2MoneyComposition } from '../qa/phase2-source-proof.mjs';
+
+ const root = resolve(import.meta.dirname, '..');
+ const read = file => readFileSync(resolve(root, file), 'utf8');
+@@ -13,7 +14,8 @@
+ test('code-only release preserves its own Production canonical owners, UI, tracking, SEO and auth sources', () => {
+   assert.equal(Object.keys(proof.canonical).length, 48);
+   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
+-    assert.equal(sha(productionBaselineSource(file)), digest, file);
++    if (file === 'features/money-story/components/MoneyStoryGame.tsx') assertPhase2MoneyComposition(file, digest);
++    else assert.equal(sha(productionBaselineSource(file)), digest, file);
+   }
+   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation', 'lib/runtime/investment-availability.ts']) {
+     assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
