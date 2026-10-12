@@ -5,12 +5,13 @@ import { resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import test from 'node:test';
 import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 const require = createRequire(import.meta.url);
 const postcss = require('postcss');
 const tailwind = require('@tailwindcss/postcss');
 const ts = require('typescript');
-import { assertPhase2FoundationSource, phase2FoundationPath } from '../qa/phase2-css-source-contract.mjs';
-import { reachable, runtimeFiles, sourceByFile, trackedFiles } from '../scripts/lib/public-reachability.mjs';
+import { assertPhase2FoundationSource, phase2FoundationPath, phase2RuntimeCssSources, phase2ExcludedCssSources } from '../qa/phase2-css-source-contract.mjs';
+import { runtimeFiles, sourceByFile, trackedFiles } from '../scripts/lib/public-reachability.mjs';
 
 const read = file => readFileSync(file, 'utf8');
 const sha = source => createHash('sha256').update(source).digest('hex');
@@ -22,15 +23,14 @@ const baselineCss = gunzipSync(Buffer.from(proof.compiledCssGzip, 'base64')).toS
 assert.equal(sha(proof.foundationSource), '16be3e70110eb57339671d20a877cb7a1f8026675ce0eecca47794d6efeafece');
 assert.equal(sha(baselineCss), 'da206b6086ac07799bcb3da29241743c115da43f31cf5f62342b0a3339cc8916');
 
-test('Tailwind inputs cover every current app dependency and exclude historical fixtures', () => {
+test('Tailwind preserves native automatic scanning and shared roots, excluding historical fixtures', () => {
   assert.equal(assertPhase2FoundationSource(phase2FoundationPath, proof.foundationSha256), true);
-  assert.match(source, /^@import "tailwindcss" source\(none\);/);
-  const owners = [...source.matchAll(/@source "([^"\n]+)";/g)].map(([, owner]) => resolve('components/styles', owner));
-  for (const entry of reachable) assert(owners.some(owner => resolve(entry) === owner || resolve(entry).startsWith(owner + '/')), entry);
-  for (const historical of ['qa', 'tests', 'scripts', 'docs']) {
-    assert(!owners.some(owner => resolve(historical) === owner || resolve(historical).startsWith(owner + '/')), historical);
-  }
-  // Only scanner ownership changes; stylesheet imports and every declared style stay exact.
+  assert.match(source, /^@import "tailwindcss";/);
+  const owners = [...source.matchAll(/@source "([^"\n]+)";/g)].map(([, owner]) => owner);
+  assert.deepEqual(owners, phase2RuntimeCssSources);
+  const excluded = [...source.matchAll(/@source not "([^"\n]+)";/g)].map(([, owner]) => owner);
+  assert.deepEqual(excluded, phase2ExcludedCssSources);
+  assert.deepEqual(Object.keys(proof.nativeContexts), ['apps/admin', 'apps/web']);
   const fromPublicImports = value => value.slice(value.indexOf('@import "./public-compat.css";'));
   assert.equal(fromPublicImports(source), fromPublicImports(proof.foundationSource));
 });
@@ -142,8 +142,46 @@ test('foundation admission rejects declaration/import/registry drift, wrong base
   assert.throws(() => assertPhase2FoundationSource(file, '0'.repeat(64)));
   const wrong = structuredClone(proof); wrong.baseline = 'a'.repeat(40);
   assert.throws(() => assertPhase2FoundationSource(file, expected, { proof: wrong }));
-  for (const candidate of [source + '\nbody { color: red; }\n', source.replace('@source "../../apps";\n', ''), source.replace('@import "./public-compat.css";', '@import "./public-motion.css";')]) {
+  for (const candidate of [source + '\nbody { color: red; }\n', source.replace('@source not "../../qa";\n', ''), source.replace('@import "./public-compat.css";', '@import "./public-motion.css";')]) {
     assert.notEqual(candidate, source);
     assert.throws(() => assertPhase2FoundationSource(file, expected, { read: path => path === file ? candidate : read(path) }));
+  }
+});
+
+// Native Next invokes PostCSS from each app cwd. Fresh processes prevent scanner
+// context caches from making cross-app input expansion appear equivalent.
+const nativeCssAnchors = {
+  "apps/admin": {
+    "unminified": "11a4e79a810424439d562d4a3aa5278b28161f41a471efaefa2df6b910f22e62",
+    "minified": "6dee118f827d2a56c58adadc377356cc5fc84b02f1d18a7698641118f7307a72"
+  },
+  "apps/web": {
+    "unminified": "1d5148b98e3907895ebde725867007a583ff369a9ed72f3e4113301c39acd9bb",
+    "minified": "eb539bd13e98d9c73a513dfbe84f53713d35d20f870145e0a15d3fb7386f6b5e"
+  }
+};
+const nativeCompiler = "const fs=require('node:fs');const input=JSON.parse(fs.readFileSync(0,'utf8'));const p=require(input.postcss),tw=require(input.tailwind);(async()=>{const out=await p([tw({optimize:input.minify?{minify:true}:false})]).process(input.source,{from:input.from});process.stdout.write(out.css);})().catch(e=>{process.stderr.write(e.message);process.exitCode=1});";
+function compileNative(sourceText, context, minify) {
+  const result = spawnSync(process.execPath, ['-e', nativeCompiler], {
+    cwd: resolve(context), encoding: 'utf8', maxBuffer: 2 * 1024 * 1024,
+    input: JSON.stringify({ source: sourceText, from: resolve(file), minify,
+      postcss: require.resolve('postcss'), tailwind: require.resolve('@tailwindcss/postcss') }),
+  });
+  assert.equal(result.status, 0, result.stderr || 'native CSS subprocess failed');
+  return result.stdout;
+}
+test('fresh app-context CSS is exactly original in unminified and minified native pipelines', () => {
+  for (const [context, modes] of Object.entries(proof.nativeContexts)) {
+    const frozen = gunzipSync(Buffer.from(modes.unminified.cssGzip, 'base64')).toString();
+    assert.equal(sha(frozen), nativeCssAnchors[context].unminified);
+    for (const minify of [false, true]) {
+      const mode = minify ? 'minified' : 'unminified';
+      assert.equal(modes[mode].sha256, nativeCssAnchors[context][mode]);
+      const original = compileNative(proof.foundationSource, context, minify);
+      assert.equal(sha(original), modes[mode].sha256, context + ': own original baseline');
+      assert.equal(Buffer.byteLength(original), modes[mode].bytes);
+      const current = compileNative(source, context, minify);
+      assert.equal(current, original, context + ': exact native CSS including rule/atRule order');
+    }
   }
 });
