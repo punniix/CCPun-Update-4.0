@@ -17,7 +17,10 @@ const req = createRequire(path.join(root, "package.json"));
 const fixtureConnection = (port: string) => `postgresql://ccpun_workflow_lab:ccpun-workflow-lab-only@127.0.0.1:${port}/ccpun_workflow_lab`;
 const allowed = new Set(["CCPUN_NATIVE_WORLD_LINUX_LAB", "CCPUN_LAB_DATABASE_PORT", "CCPUN_LAB_GIT_SHA", "CCPUN_LAB_GIT_REF", "CCPUN_LAB_CONNECTION", "WORKFLOW_TARGET_WORLD", "WORKFLOW_LOCAL_BASE_URL", "WORKFLOW_JSON_MODE", "PORT"]);
 type Variables = Record<string, string | undefined>;
-type LabStage = "target" | "source" | "dependency" | "database" | "migration" | "receiver" | "executor" | "crash-recovery" | "delay-ack" | "close";
+const executorStages = ["executor-worker-start", "executor-ready-enqueue", "executor-ready-delivery", "executor-delayed-enqueue",
+  "executor-delayed-read", "executor-delayed-due", "executor-run-create", "executor-run-created-result", "executor-run-read"] as const;
+type LabStage = "target" | "source" | "dependency" | "database" | "migration" | "receiver" | "executor" | "crash-recovery" | "delay-ack" | "close" | typeof executorStages[number];
+const labStages = new Set<string>(["target", "source", "dependency", "database", "migration", "receiver", "executor", "crash-recovery", "delay-ack", "close", ...executorStages]);
 let stage: LabStage = "target";
 const failureCodes = new Set(["LAB_NOT_OPTED_IN", "LAB_REQUIRES_REAL_LINUX", "LAB_REQUIRES_NODE24", "LAB_REQUIRES_LINUX_X64",
   "LAB_AMBIENT_CONFIG_DENIED", "LAB_PORT_INVALID", "LAB_DATABASE_IDENTITY_MISMATCH", "LAB_WORLD_MISMATCH", "LAB_SHA_REQUIRED", "LAB_REF_REQUIRED",
@@ -29,7 +32,8 @@ export function safeLabFailure(at: LabStage, error: unknown) {
   // details and environment key names never reach CI output.
   const firstLine = error instanceof Error ? error.message.split("\n")[0] : "";
   const code = failureCodes.has(firstLine) ? firstLine : "UNCLASSIFIED";
-  return `NATIVE_WORLD_LINUX_LAB_FAILED stage=${at} code=${code}`;
+  const safeStage = labStages.has(at) ? at : "unclassified-stage";
+  return `NATIVE_WORLD_LINUX_LAB_FAILED stage=${safeStage} code=${code}`;
 }
 
 export function validateLab(variables: Variables, platform: string, nodeMajor: number) {
@@ -201,20 +205,28 @@ async function realLab() {
       child!.send({ action: "enqueue", id, delaySeconds });
       await until(() => messages.some((item) => item.event === "enqueued" && item.id === id), "ENQUEUE");
     };
-    stage = "executor";
+    stage = "executor-worker-start";
     await start();
+    stage = "executor-ready-enqueue";
     await enqueue("ready");
+    stage = "executor-ready-delivery";
     await until(() => delivered.includes("ready"), "ACTIVE_EXECUTOR");
+    stage = "executor-delayed-enqueue";
     await enqueue("delayed", 8);
     const pending = async () => (await pool.query("SELECT id, run_at FROM graphile_worker.jobs WHERE payload->>'id' = $1", ["delayed"])).rows;
+    stage = "executor-delayed-read";
     const before = await pending();
     assert.equal(before.length, 1, "DELAY_NOT_DURABLY_STORED");
+    stage = "executor-delayed-due";
     const due = new Date(String(before[0].run_at)).getTime();
     assert.ok(due > Date.now());
+    stage = "executor-run-create";
     const created = await world.events.create(null, { eventType: "run_created", specVersion: world.specVersion,
       eventData: { deploymentId: "postgres", workflowName: "ccpunLabRecovered", input: "SYNTHETIC_NOOP" } });
+    stage = "executor-run-created-result";
     assert.ok(created.run);
     const runId = created.run.runId;
+    stage = "executor-run-read";
     assert.equal((await world.runs.get(runId)).status, "pending");
     stage = "crash-recovery";
     const crashed = child!;
@@ -284,6 +296,14 @@ if (process.argv.includes("--lab-worker")) {
     assert.equal(safeLabFailure("target", new Error("LAB_AMBIENT_CONFIG_DENIED")), "NATIVE_WORLD_LINUX_LAB_FAILED stage=target code=LAB_AMBIENT_CONFIG_DENIED");
     assert.equal(safeLabFailure("source", new Error("LAB_SHA_REQUIRED\nSYNTHETIC_PRIVATE_PAYLOAD")), "NATIVE_WORLD_LINUX_LAB_FAILED stage=source code=LAB_SHA_REQUIRED");
     assert.equal(safeLabFailure("database", new Error("SYNTHETIC_PRIVATE_ENDPOINT_PASSWORD")), "NATIVE_WORLD_LINUX_LAB_FAILED stage=database code=UNCLASSIFIED");
+  });
+  test("executor diagnostics use only fixed stage enums and never replay unknown stages or exception details", () => {
+    for (const diagnosticStage of executorStages) {
+      assert.equal(safeLabFailure(diagnosticStage, new Error("SYNTHETIC_PRIVATE_SQL_PAYLOAD")),
+        `NATIVE_WORLD_LINUX_LAB_FAILED stage=${diagnosticStage} code=UNCLASSIFIED`);
+    }
+    assert.equal(safeLabFailure("SYNTHETIC_PRIVATE_STAGE" as LabStage, new Error("SYNTHETIC_PRIVATE_SQL_PAYLOAD")),
+      "NATIVE_WORLD_LINUX_LAB_FAILED stage=unclassified-stage code=UNCLASSIFIED");
   });
   test("real Linux PostgreSQL migrations, active delivery, crash/restart recovery and graceful close (Layer1 only)",
     { skip: process.env.CCPUN_NATIVE_WORLD_LINUX_LAB !== "1", timeout: 90_000 }, async () => {
