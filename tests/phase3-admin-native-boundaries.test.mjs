@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { assertPhase3AdminNativeBoundaries, phase3AdminNativeEntries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 
@@ -340,4 +341,34 @@ test('actual root and canonical scheduler handlers deny invalid deployment befor
     assert.equal(result.trace.includes('sdk-start'), false); controls++;
   }
   assert.equal(denied, 14); assert.equal(controls, 2);
+});
+
+test('retired provider label preserves complete actual native Deployments markup and permission traces', async () => {
+  const file = 'features/admin/operations/DeploymentsPage.tsx';
+  const current = readFileSync(file, 'utf8');
+  const nativeLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : "ยังไม่ยืนยันผู้ให้บริการ";';
+  const oldLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : model.provider === "vercel" ? "Vercel" : "ยังไม่ยืนยันผู้ให้บริการ";';
+  assert.equal(current.split(nativeLabel).length, 2);
+  const original = current.replace(nativeLabel, oldLabel);
+  assert.equal(sha(original), '3664b01ea11471d9c4d421adf82c206704ac7859b4503acc0e2a9e44bfd3271e');
+  for (const provider of ['hostinger', 'local', 'unknown']) {
+    const outputs = [];
+    for (const source of [original, current]) {
+      const trace = [];
+      const model = { provider, status: 'ready', exactShaProduction: null, environment: 'production-admin',
+        canonicalHost: 'admin.ccpun.com', requestHost: 'admin.ccpun.com', gitBranch: 'native-fixture',
+        gitSha: 'a'.repeat(40), releaseId: 'native-fixture', canonicalHostMatched: true,
+        runtimeIdentityValid: true, error: null, history: [], githubChecks: [], source: 'synthetic' };
+      const mocks = new Map([
+        ['next/headers', { headers: async () => { trace.push(['headers']); return new Headers({ host: 'admin.ccpun.com' }); } }],
+        ['@/lib/admin/require-permission', { requireAdminPermission: async permission => { trace.push(['permission', permission]); } }],
+        ['@/lib/admin/operations/deployment-read-model', { readAdminDeployments: async host => { trace.push(['model', host]); return model; } }],
+      ]);
+      const page = loadFixtureModule(file, { sources: new Map([[file, source]]), mocks, globals: globals({}) });
+      outputs.push({ html: renderToStaticMarkup(await page.default()), trace });
+    }
+    assert.deepEqual(outputs[1], outputs[0], provider);
+    assert.match(outputs[1].html, provider === 'hostinger' ? /Hostinger Cloud Startup/ : /ยังไม่ยืนยันผู้ให้บริการ/);
+    assert.doesNotMatch(outputs[1].html, /Vercel/);
+  }
 });

@@ -18,7 +18,14 @@ const proof = JSON.parse(read('qa/production-code-only-parity.json'));
 test('code-only release preserves its own Production canonical owners, UI, tracking, SEO and auth sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
-    if (file === 'lib/admin/agent-os/privacy-routing.ts') {
+    if (file === 'features/admin/operations/DeploymentsPage.tsx') {
+      assert.equal(digest, '3664b01ea11471d9c4d421adf82c206704ac7859b4503acc0e2a9e44bfd3271e', 'own original UI identity');
+      const actual = readFileSync(resolve(root, file), 'utf8');
+      const nativeLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : "ยังไม่ยืนยันผู้ให้บริการ";';
+      const retiredLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : model.provider === "vercel" ? "Vercel" : "ยังไม่ยืนยันผู้ให้บริการ";';
+      assert.equal(actual.split(nativeLabel).length, 2);
+      assert.equal(sha(actual.replace(nativeLabel, retiredLabel)), digest, 'whole page changes only unreachable provider label');
+    } else if (file === 'lib/admin/agent-os/privacy-routing.ts') {
       // Intentional strict privacy contract adoption; current source is the reviewed UAT policy.
       assert.equal(sha(readFileSync(resolve(root, file), 'utf8')), '227a394bccab9f0a65d83a273375f8fcc310bb9a0378dcf5d8e3663cc1a91691', file);
     } else if (file === 'scripts/build-provider.mjs') {

@@ -88,9 +88,6 @@ test("selected-file verification is split from synthetic GET and accepts only th
   assert.equal(isMediaLibraryEnabled({
     flag: "1",
     environment: "production-admin",
-    vercelEnvironment: productionEnv.VERCEL_ENV,
-    projectId: productionEnv.VERCEL_PROJECT_ID,
-    productionAdminProjectId: productionEnv.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID,
     gitBranch: productionEnv.CCPUN_GIT_REF,
     sanityProjectId: productionEnv.NEXT_PUBLIC_SANITY_PROJECT_ID,
     sanityDataset: productionEnv.NEXT_PUBLIC_SANITY_DATASET,
