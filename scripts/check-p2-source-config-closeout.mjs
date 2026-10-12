@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -14,6 +15,11 @@ assert.deepEqual(manifest.summary, {
 }, "P2.2 inventory must be updated intentionally if the grandfathered source contract changes");
 const allowlist = new Set(baseline.existingPairs.map(([a,b]) => JSON.stringify([a,b])));
 assert.equal(manifest.pairs.length, allowlist.size);
+const migrations = JSON.parse(read("qa/root-runtime-owner-migration.json")).pairs;
+assert.equal(migrations.length, 48, "Only the verified Production adapters are permitted");
+const migrated = new Map(migrations.map(item => [JSON.stringify([item.legacy, item.canonical]), item]));
+assert.equal(migrated.size, 48, "duplicate migrated pair");
+for (const key of migrated.keys()) assert.ok(allowlist.has(key), "unregistered migrated owner");
 const matched = new Set();
 for (const item of manifest.pairs) {
   const pairKey = JSON.stringify([item.legacy, item.canonical]);
@@ -23,6 +29,13 @@ for (const item of manifest.pairs) {
   assert.match(item.legacy, /^app\//);
   assert.ok(item.canonical === "apps/" + item.lane + "/" + item.legacy, "not canonical lane ownership");
   assert.ok(existsSync(path.join(root, item.legacy)) && existsSync(path.join(root, item.canonical)), "deleted live/rollback entrypoint");
+  const migration = migrated.get(pairKey);
+  if (migration) {
+    assert.equal(item.identical, true, "Only identical grandfathered bodies may migrate");
+    assert.equal(read(item.legacy), migration.wrapper, "migrated root adapter drift");
+    assert.equal(createHash("sha256").update(read(item.canonical)).digest("hex"), migration.baselineSha256, "canonical migrated implementation drift");
+    continue;
+  }
   const identical = read(item.legacy) === read(item.canonical);
   assert.equal(identical, item.identical, "existing mirror unexpectedly diverged: " + pairKey);
   const category = item.classification;

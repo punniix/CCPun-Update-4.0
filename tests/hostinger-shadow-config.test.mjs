@@ -14,13 +14,12 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 test("shadow app configs keep security headers provider-safe", () => {
   const web = read("apps/web/next.config.ts");
   const admin = read("apps/admin/next.config.ts");
-  assert.doesNotMatch(web, /from "\.\.\/next-security-headers\.mjs"/);
-  assert.match(web, /function buildNextSecurityHeaders/);
-  assert.match(web, /Content-Security-Policy/);
+  assert.match(web, /from "\.\.\/\.\.\/lib\/runtime\/security-headers\.mjs"/);
+  assert.match(web, /from "\.\.\/\.\.\/lib\/runtime\/web-build-config\.mjs"/);
+  assert.doesNotMatch(web, /function buildNextSecurityHeaders/);
   assert.doesNotMatch(web, /runtime-environment/);
-  assert.match(web, /WEB_VERCEL_PROJECT_ID/);
-  assert.match(web, /function isWebSanityLaneAllowed/);
   assert.match(admin, /from "\.\.\/next-security-headers\.mjs"/);
+  assert.match(read("apps/next-security-headers.mjs"), /export \{ buildNextSecurityHeaders, shouldEnforceHttps \}/);
   assert.doesNotMatch(web, /\.\.\/\.\.\/lib\/security-policy/);
   assert.doesNotMatch(admin, /\.\.\/\.\.\/lib\/security-policy/);
 });
