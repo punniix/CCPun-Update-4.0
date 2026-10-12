@@ -28,7 +28,7 @@ const currentHashes = {
   "lib/admin/host-routing.ts": "d51321ba5ef0061f503e8661b4f8c2d5b8102796b006920096885bffcbf728ab",
   "apps/admin/proxy.ts": "f423de344e00e1219ddb5e2699b4cadf5e6fa8b5d42ce403e371084b3081a7fc",
   "lib/admin/social/runtime.ts": "876ebdfb186af7f23d176c53139505ce846b9907fbd953fb77064fe1e562ee74",
-  "lib/admin/line/private-ingestion.ts": "6aa21d9a0fd1c1d62fc7dd5ce0a9a0b3660c3ab19e54bec1c03704e71ab722d7",
+  "lib/admin/line/private-ingestion.ts": "315f9e8397090fdae56374a3d8bde1015de8e6db3ee2fd717766a5d690577678",
   "lib/admin/migrations/google-data-transfer.ts": "476566d3d3092ae17b1dddc76b51cf8131c74f90dae14bf7ffbb51fb838ae789",
   "lib/admin/operations/foundation.ts": "e15f973b4044a224d6a452f69f0a719e777504287198cff1916e7c0b80221e41",
   "lib/admin/seo-intelligence/foundation.ts": "dde8360a4e711fae0e765df2b1ca4528cdc216e48c6a7b595299012e1034bd8e",
@@ -37,7 +37,7 @@ const currentHashes = {
 };
 const outputEvidence = {
   "file": "tests/phase3-admin-native-boundaries.test.mjs",
-  "sha256": "37f9e8e2bc090cd4fa373ebffbf9a0a72fa73ee099af72b88a30defe31501c99"
+  "sha256": "bd3e1410f5631569ba9288aa894114d42be95e679aa73acd720edce1ca3c07e1"
 };
 export const phase3AdminNativeEntries = Object.freeze(Object.keys(originalHashes));
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -61,7 +61,11 @@ export function assertPhase3AdminNativeBoundaries(file, originalDigest, {
   }
   const privatePath = 'lib/admin/line/private-ingestion.ts';
   const privateBody = source => source.slice(source.indexOf('function privateEventPayload('));
-  assert.equal(privateBody(read(privatePath)), privateBody(proof.baselineSources[privatePath]), 'all native HMAC/SQL/encryption/write bodies remain exact');
+  const actualPrivateBody = privateBody(read(privatePath));
+  const nativeDispatch = '    if (runtime.lane === "uat") {\n      if (runtime.provider === "hostinger") {';
+  const retiredDispatch = '    if (runtime.lane === "uat") {\n      if (\n        runtime.provider === "vercel"\n        && !/^ccpun-admin-[a-z0-9-]+-punniixs-projects\\.vercel\\.app$/.test(url.hostname)\n      ) return null;\n      if (runtime.provider === "hostinger") {';
+  assert.equal(actualPrivateBody.split(nativeDispatch).length, 2, 'one exact native dispatch boundary');
+  assert.equal(actualPrivateBody.replace(nativeDispatch, retiredDispatch), privateBody(proof.baselineSources[privatePath]), 'native HMAC/SQL/encryption/write body changes only unreachable retired hostname rejection');
   for (const path of phase3AdminNativeEntries.slice(0, 2)) {
     const source = read(path);
     assert(!/web-service|private-ingestion|encrypted-ingest|process\.env|request\./.test(source));
