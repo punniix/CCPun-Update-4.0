@@ -5,7 +5,7 @@ import test from "node:test";
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("draft preview uses the shared registry-safe category slug contract behind the preview gate", () => {
-  const route = read("app/api/admin/content/[id]/preview/route.ts");
+  const route = read("apps/admin/app/api/admin/content/[id]/preview/route.ts");
   const page = read("features/blog/pages/ArticlePage.tsx");
   const url = read("lib/content/url.ts");
   assert.match(route, /getArticlePreviewCategorySlug/);
@@ -72,10 +72,10 @@ test("Control Plane navigation exposes only implemented workspaces", () => {
 });
 
 test("legacy placeholder routes redirect into canonical live workspaces", () => {
-  const seo = read("app/(control-plane)/seo/[section]/page.tsx");
-  const analytics = read("app/(control-plane)/analytics/[section]/page.tsx");
-  const social = read("app/(control-plane)/social/[section]/page.tsx");
-  const postDetail = read("app/(control-plane)/social/posts/[id]/page.tsx");
+  const seo = read("apps/admin/app/(control-plane)/seo/[section]/page.tsx");
+  const analytics = read("apps/admin/app/(control-plane)/analytics/[section]/page.tsx");
+  const social = read("apps/admin/app/(control-plane)/social/[section]/page.tsx");
+  const postDetail = read("apps/admin/app/(control-plane)/social/posts/[id]/page.tsx");
   assert.match(seo, /keywords: "\/content\/research\/"/);
   assert.match(seo, /"internal-links": "\/seo\/audits\/"/);
   assert.match(analytics, /website: "\/analytics\/search\/"/);

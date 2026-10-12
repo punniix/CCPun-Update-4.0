@@ -131,7 +131,7 @@ test("Comment Series waits for the main post and rejects unsafe thread graphs", 
 });
 
 test("Social operations API is authenticated, exact-origin and GET-only", () => {
-  const route = read("app/api/admin/social/operations/route.ts");
+  const route = read("apps/admin/app/api/admin/social/operations/route.ts");
   const page = read("app/(control-plane)/social/posts/page.tsx");
   const layout = read("app/(control-plane)/layout.tsx");
   const distribution = read("features/admin/social/page.tsx");

@@ -47,12 +47,12 @@ assert.doesNotMatch(nextConfig, /output:\s*["']export["']/);
 assert.doesNotMatch(nextConfig, /unoptimized:\s*true/);
 assert.match(nextConfig, /APP_ENVIRONMENT === ["']local-uat["'][\s\S]*["']\.ccpun-local\/next-uat["']/);
 assert.match(nextConfig, /APP_ENVIRONMENT === ["']local-production["'][\s\S]*["']\.ccpun-local\/next-production["']/);
-assert.match(nextConfig, /source:\s*["']\/living-benefits\/:path\*["']/);
-assert.match(nextConfig, /destination:\s*["']\/ci-planning\/["']/);
-assert.match(nextConfig, /source:\s*["']\/tools\/fhc\/:path\*["']/);
-assert.match(nextConfig, /destination:\s*["']\/tools\/financial-health-check\/["']/);
-assert.match(nextConfig, /source:\s*["']\/financial-advisor\/:path\*["']/);
-assert.match(nextConfig, /source:\s*["']\/financial-advisor\/:path\*["'][\s\S]*destination:\s*["']\/["'][\s\S]*permanent:\s*true/);
+assert.match(nextConfig, /WEB_REDIRECTS\.filter\(\(\{ prefix \}\) => prefix !== TAX_SLUG_MIGRATION\)/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /destination:\s*["']\/ci-planning\/["']/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /prefix:\s*["']\/tools\/fhc["']/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /destination:\s*["']\/tools\/financial-health-check\/["']/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /prefix: ["']\/financial-advisor["'], destination: ["']\/["']/);
+assert.match(nextConfig, /source: `\$\{prefix\}\/:path\*`, destination, permanent: true/);
 assert.match(nextConfig, /SECURITY_HEADERS/);
 
 for (const legacyStaticArtifact of ['public/CNAME', 'public/.nojekyll', 'public/_headers', 'scripts/postprocess-static.mjs']) {
@@ -71,8 +71,8 @@ for (const requiredRoute of [
   'features/blog/pages/BlogCategoryPage.tsx',
   'features/blog/pages/ArticlePage.tsx',
   'lib/content/url.ts',
-  'app/api/preview/enable/route.ts',
-  'app/api/admin/content/[id]/preview/route.ts',
+  'apps/admin/app/api/preview/enable/route.ts',
+  'apps/admin/app/api/admin/content/[id]/preview/route.ts',
   'app/studio/[[...tool]]/page.tsx',
   'app/studio/[[...tool]]/studio-client.tsx',
   'sanity.config.ts',
@@ -90,12 +90,12 @@ for (const requiredRoute of [
   assert.equal(existsSync(new URL(`../${requiredRoute}`, import.meta.url)), true, `missing ${requiredRoute}`);
 }
 
-const previewRoute = read('app/api/preview/enable/route.ts');
+const previewRoute = read('apps/admin/app/api/preview/enable/route.ts');
 assert.match(previewRoute, /defineEnableDraftMode/);
 assert.match(previewRoute, /IS_DRAFT_PREVIEW_ALLOWED/);
 assert.match(previewRoute, /getAdminSanityReadToken/);
 assert.doesNotMatch(previewRoute, /draft\.enable\(\)/);
-const ownerPreviewRoute = read('app/api/admin/content/[id]/preview/route.ts');
+const ownerPreviewRoute = read('apps/admin/app/api/admin/content/[id]/preview/route.ts');
 assert.match(ownerPreviewRoute, /hasAdminPermission\(identity\.role, "draft:apply"\)/);
 assert.match(ownerPreviewRoute, /row\.isDraft/);
 assert.match(ownerPreviewRoute, /draftMode\(\)\)\.enable\(\)/);
@@ -119,7 +119,7 @@ assert.match(proxy, /isProductionEnvironment\(\)/);
 assert.match(proxy, /new NextResponse\(["']Not Found["'], \{ status: 404 \}\)/);
 assert.match(previewRoute, /getAdminIdentity/);
 assert.match(previewRoute, /hasAdminPermission\(identity\.role, ["']draft:apply["']\)/);
-const disablePreviewRoute = read('app/api/preview/disable/route.ts');
+const disablePreviewRoute = read('apps/admin/app/api/preview/disable/route.ts');
 assert.match(disablePreviewRoute, /getAdminIdentity/);
 assert.match(disablePreviewRoute, /hasAdminPermission\(identity\.role, ["']draft:apply["']\)/);
 
@@ -357,25 +357,25 @@ assert.match(deploymentEnvironment, /DEPLOYMENT_IDENTITY\.role === "web"/);
 assert.match(deploymentEnvironment, /DEPLOYMENT_IDENTITY\.environment === "production"/);
 assert.match(deploymentEnvironment, /CCPUN_ENABLE_PRODUCTION_ANALYTICS === "1"/);
 
-const securityPolicy = read('lib/security-policy.ts');
-assert.match(securityPolicy, /import \{ IS_REVIEW_ENVIRONMENT \} from ["']\.\/deployment-environment["']/);
-assert.match(
-  securityPolicy,
-  /const SANITY_REVIEW_SCRIPT_SOURCES = IS_REVIEW_ENVIRONMENT\s*\?\s*["'] https:\/\/core\.sanity-cdn\.com["']\s*:\s*["']["']/,
-);
-assert.match(securityPolicy, /const SANITY_PROJECT_ID = process\.env\.NEXT_PUBLIC_SANITY_PROJECT_ID \?\? ["']["']/);
+const securityRuntime = read('lib/security-policy.ts');
+const securityPolicy = read('lib/runtime/security-headers.mjs');
+assert.match(securityRuntime, /import \{ IS_REVIEW_ENVIRONMENT \} from ["']\.\/deployment-environment["']/);
+assert.match(securityRuntime, /buildNextSecurityHeaders\(\{[\s\S]*isReviewEnvironment: IS_REVIEW_ENVIRONMENT,[\s\S]*sanityProjectId: process\.env\.NEXT_PUBLIC_SANITY_PROJECT_ID \?\? ["']["']/);
+assert.match(securityRuntime, /export \{ shouldEnforceHttps \} from ["']\.\/runtime\/security-headers\.mjs["']/);
+assert.match(securityPolicy, /const sanityReviewScriptSources = isReviewEnvironment\s*\?\s*["'] https:\/\/core\.sanity-cdn\.com["']\s*:\s*["']["']/);
+assert.match(securityPolicy, /sanityProjectId = ["']["']/);
 assert.match(securityPolicy, /\/\^\[a-z0-9\]\+\$\//);
-assert.match(securityPolicy, /https:\/\/\$\{SANITY_PROJECT_ID\}\.api\.sanity\.io/);
-assert.match(securityPolicy, /wss:\/\/\$\{SANITY_PROJECT_ID\}\.api\.sanity\.io/);
-assert.match(securityPolicy, /script-src[^`]*\$\{SANITY_REVIEW_SCRIPT_SOURCES\}/);
-assert.match(securityPolicy, /environment !== ["']local-uat["']/);
-assert.match(securityPolicy, /ENFORCE_HTTPS \? \[["']upgrade-insecure-requests["']\] : \[\]/);
-assert.match(securityPolicy, /connect-src[^`]*\$\{SANITY_CONNECT_SOURCES\}[^`]*\$\{SANITY_REVIEW_CONNECT_SOURCES\}/);
+assert.match(securityPolicy, /https:\/\/\$\{sanityProjectId\}\.api\.sanity\.io/);
+assert.match(securityPolicy, /wss:\/\/\$\{sanityProjectId\}\.api\.sanity\.io/);
+assert.match(securityPolicy, /script-src[^`]*\$\{sanityReviewScriptSources\}/);
+assert.match(securityPolicy, /appEnvironment !== ["']local-uat["']/);
+assert.match(securityPolicy, /enforceHttps \? \[["']upgrade-insecure-requests["']\] : \[\]/);
+assert.match(securityPolicy, /connect-src[^`]*\$\{sanityConnectSources\}[^`]*\$\{sanityReviewConnectSources\}/);
 assert.equal((securityPolicy.match(/core\.sanity-cdn\.com/g) ?? []).length, 1);
 assert.equal((securityPolicy.match(/https:\/\/\*\.sanity-cdn\.com/g) ?? []).length, 1);
 assert.equal((securityPolicy.match(/https:\/\/sanity-cdn\.com/g) ?? []).length, 1);
 assert.doesNotMatch(securityPolicy, /\*\.api\.sanity\.io/);
-assert.match(securityPolicy, /IS_DEVELOPMENT \? ["'] 'unsafe-eval'["'] : ["']["']/);
+assert.match(securityPolicy, /isDevelopment \? ["'] 'unsafe-eval'["'] : ["']["']/);
 
 assert.match(studioPage, /["']darkreader-lock["']:\s*["']true["']/);
 

@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function ContentIndexPage() {
-  redirect("/content/articles/");
-}
+export { default } from "@/apps/admin/app/(control-plane)/content/page";
