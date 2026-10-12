@@ -4,15 +4,16 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-test("Deployments reader uses neutral runtime identity with separate Hostinger and retained Vercel evidence without a token", () => {
+test("Deployments reader uses neutral runtime identity with Hostinger checks and no retired Vercel evidence or token", () => {
   const source = read("lib/admin/operations/deployment-read-model.ts");
   assert.match(source, /resolveDeploymentIdentity\(env, "admin"\)/);
   assert.match(source, /identity\.provider === "hostinger"/);
   assert.match(source, /admin-test\.ccpun\.com/);
   assert.match(source, /check-runs\?per_page=100/);
-  assert.match(source, /identity\.provider === "vercel"/);
-  assert.match(source, /Production – ccpun-admin/);
-  assert.match(source, /statuses_url/);
+  assert.match(source, /!runtimeIdentityValid \|\| identity\.provider !== "hostinger"/);
+  assert.doesNotMatch(source, /identity\.provider === "vercel"/);
+  assert.doesNotMatch(source, /Production – ccpun-admin/);
+  assert.doesNotMatch(source, /statuses_url/);
   assert.match(source, /admin\.ccpun\.com/);
   assert.doesNotMatch(source, /VERCEL_TOKEN|Authorization:\s*[`'\"]/i);
 });

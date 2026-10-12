@@ -110,7 +110,7 @@ test("owner-only queue health removes SSR Vercel probe while private Node endpoi
   }
 });
 
-test("native and retired legacy endpoints return private404 before verifier, fetch or data access", () => {
+test("native and retired legacy endpoints deny access before verifier, fetch or data access", () => {
   const script = `
     const Module=require('node:module'),load=Module._load;
     const counts={verify:0,fetch:0,data:0,body:0};
@@ -169,10 +169,10 @@ test("native and retired legacy endpoints return private404 before verifier, fet
     assert.match(row.cache, /private.*no-store/); assert.match(row.robots, /noindex, nofollow, noarchive/);
     assert.deepEqual(row.counts, { verify: 0, fetch: 0, data: 0, body: 0 });
   }
-  for (const lane of ["vercelDenied", "inferredDenied"]) for (const row of rows[lane]!) {
-    assert.equal(row.status, 404);
+  for (const lane of ["vercelDenied", "inferredDenied"]) for (const [index, row] of rows[lane]!.entries()) {
+    assert.equal(row.status, index === 0 ? 401 : 404);
     assert.deepEqual(row.counts, { verify: 0, fetch: 0, data: 0, body: 0 });
   }
-  assert.deepEqual(rows.vercelAllowed!.map((row) => row.status), [404, 404, 404, 404]);
+  assert.deepEqual(rows.vercelAllowed!.map((row) => row.status), [401, 404, 404, 404]);
   assert.ok(rows.vercelAllowed!.every((row) => row.counts.verify === 0 && row.counts.fetch === 0 && row.counts.data === 0 && row.counts.body === 0));
 });

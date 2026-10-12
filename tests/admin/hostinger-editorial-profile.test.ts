@@ -119,8 +119,8 @@ test("native public-page rejection returns a private 404 without external rewrit
     VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
   });
   assert.equal(legacy[0].status, 404);
-  assert.equal(legacy[0].rewrite, "https://candidate.example/admin-not-found/");
-  assert.equal(legacy[1].status, 200);
+  assert.equal(legacy[0].rewrite, null);
+  assert.equal(legacy[1].status, 404);
 });
 
 test("schedule handlers independently deny editorial before identity, body, params or Workflow start", () => {
