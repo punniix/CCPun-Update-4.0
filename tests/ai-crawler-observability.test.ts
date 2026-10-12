@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   AI_CRAWLER_DEFINITIONS,
-  CCPUN_WEB_VERCEL_PROJECT_ID,
   buildAiCrawlerLogEvent,
   classifyAiCrawler,
   isTrackablePublicPath,
@@ -32,14 +31,13 @@ test("tracks public content and metadata paths but excludes private and asset pa
   }
 });
 
-test("builds a privacy-minimal structured event for the Web project", () => {
+test("builds a privacy-minimal structured event for the native Web runtime", () => {
   const event = buildAiCrawlerLogEvent({
     userAgent: "ChatGPT-User/1.0",
     pathname: "/blog/example/",
     method: "get",
-    projectId: CCPUN_WEB_VERCEL_PROJECT_ID,
-    environment: "production",
-    vercelRequestId: "sin1::abc123",
+    variables: { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production" },
+    requestId: "native-request-123",
     cloudflareRay: "ray123-BKK",
     observedAt: "2026-09-03T10:30:00.000Z",
   });
@@ -54,11 +52,10 @@ test("builds a privacy-minimal structured event for the Web project", () => {
     path: "/blog/example/",
     method: "GET",
     environment: "production",
-    provider: "vercel",
+    provider: "hostinger",
     deployment_role: "web",
     attribution: "user_agent_unverified",
-    request_id: "sin1::abc123",
-    vercel_request_id: "sin1::abc123",
+    request_id: "native-request-123",
     cf_ray: "ray123-BKK",
   });
   assert.equal(Object.hasOwn(event ?? {}, "ip"), false);
@@ -72,7 +69,6 @@ test("supports provider-neutral Hostinger Web crawler identity", () => {
     userAgent: "OAI-SearchBot/1.0",
     pathname: "/blog/example/",
     method: "GET",
-    environment: "production",
     requestId: "hostinger-request-1",
     observedAt: "2026-09-26T00:00:00.000Z",
     variables: {
@@ -91,16 +87,15 @@ test("supports provider-neutral Hostinger Web crawler identity", () => {
   assert.equal(Object.hasOwn(event ?? {}, "vercel_request_id"), false);
 });
 
-test("suppresses AI events on the Admin Vercel project and private routes", () => {
+test("suppresses AI events on the Admin runtime, retired providers and private routes", () => {
   const base = {
     userAgent: "OAI-SearchBot/1.0",
     method: "GET",
-    environment: "production",
     observedAt: "2026-09-03T10:30:00.000Z",
   };
 
-  assert.equal(buildAiCrawlerLogEvent({ ...base, pathname: "/blog/example/", projectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" }), null);
-  assert.equal(buildAiCrawlerLogEvent({ ...base, pathname: "/dashboard/", projectId: CCPUN_WEB_VERCEL_PROJECT_ID }), null);
+  assert.equal(buildAiCrawlerLogEvent({ ...base, pathname: "/blog/example/", variables: { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "production-admin" } }), null);
+  assert.equal(buildAiCrawlerLogEvent({ ...base, pathname: "/dashboard/", variables: { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production" } }), null);
 });
 
 test("emits one searchable AI_CRAWL line only for recognized traffic", () => {
@@ -111,16 +106,14 @@ test("emits one searchable AI_CRAWL line only for recognized traffic", () => {
     userAgent: "PerplexityBot/1.0",
     pathname: "/blog/example/",
     method: "GET",
-    projectId: CCPUN_WEB_VERCEL_PROJECT_ID,
-    environment: "preview",
+    variables: { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production" },
     observedAt: "2026-09-03T10:30:00.000Z",
   }, write);
   observeAiCrawlerRequest({
     userAgent: "Mozilla/5.0 Chrome/140.0",
     pathname: "/blog/example/",
     method: "GET",
-    projectId: CCPUN_WEB_VERCEL_PROJECT_ID,
-    environment: "preview",
+    variables: { CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production" },
     observedAt: "2026-09-03T10:30:00.000Z",
   }, write);
 

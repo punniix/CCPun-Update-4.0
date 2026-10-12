@@ -23,9 +23,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Retained legacy compatibility regression, not an active deployment owner.
-      - name: Verify app-root Vercel config
-        run: node --test tests/vercel-app-root-config.test.mjs
+      - name: Verify native app-root contract
+        run: node --test tests/hostinger-native-app-contract.test.mjs
       - name: LINE webhook privacy and crawler contracts
         run: node --import tsx --test tests/line-webhook-ingress.test.ts
       - name: Typecheck Web shadow
@@ -53,7 +52,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Full local compatibility build; native-Neon acceptance has separate gates.
+      # Full local build; sealed native-Neon acceptance has separate gates.
       - name: Typecheck Admin shadow
         run: npm run typecheck:admin:shadow
         env:

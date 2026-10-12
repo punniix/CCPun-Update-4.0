@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
 import { assertPhase2MoneyComposition } from '../qa/phase2-source-proof.mjs';
+import { assertNativeProviderRetirement } from '../qa/phase3-native-provider-proof.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const read = file => readFileSync(resolve(root, file), 'utf8');
@@ -15,6 +16,7 @@ test('code-only release preserves its own Production canonical owners, UI, track
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
     if (file === 'features/money-story/components/MoneyStoryGame.tsx') assertPhase2MoneyComposition(file, digest);
+    else if (['lib/runtime/deployment-identity.ts', 'lib/content/sanity-lane.ts', 'lib/deployment-environment.ts', 'proxy.ts', 'lib/runtime/deployment-contract.ts'].includes(file)) assertNativeProviderRetirement(file, digest);
     else assert.equal(sha(productionBaselineSource(file)), digest, file);
   }
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation', 'lib/runtime/investment-availability.ts']) {

@@ -14,12 +14,10 @@ import {
   isLineArticleDiscoveryJourney,
 } from "../../../../lib/line/system-delivery";
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   resolveDeploymentIdentity,
   type DeploymentProvider,
 } from "../../../../lib/runtime/deployment-identity";
 
-const WEB_VERCEL_PROJECT_ID = CCPUN_VERCEL_PROJECT_IDS.web;
 
 export const LINE_INGEST_LANES = {
   uat: {
@@ -102,8 +100,6 @@ export function resolveLineIngestRuntime(
   if (variables.CCPUN_LINE_NEON_BRANCH_ID?.trim() !== identity.branchId) return null;
   if (variables.CCPUN_LINE_NEON_DATABASE?.trim() !== identity.database) return null;
 
-  const vercelEnvironment = variables.VERCEL_ENV?.trim();
-  const vercelProjectId = variables.VERCEL_PROJECT_ID?.trim();
   if (lane === "production") {
     const explicitSha = variables.CCPUN_GIT_SHA?.trim();
     // This validates configured identity only; reviewed Git/provider source proof
@@ -122,15 +118,6 @@ export function resolveLineIngestRuntime(
         || variables.NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE.trim() === "web");
     if (deployment.provider === "local"
       || (deployment.gitRef !== "v4-production" && !hostingerPinnedRelease)) return null;
-    if (
-      deployment.provider === "vercel"
-      && (vercelEnvironment !== "production" || vercelProjectId !== WEB_VERCEL_PROJECT_ID)
-    ) return null;
-  } else if (
-    deployment.provider === "vercel"
-    && (vercelEnvironment !== "preview" || vercelProjectId !== WEB_VERCEL_PROJECT_ID)
-  ) {
-    return null;
   }
 
   try {
@@ -233,10 +220,6 @@ function resolveSystemDeliveryDispatchUrl(
     ) return null;
     if (runtime.lane === "production" && url.hostname !== "admin.ccpun.com") return null;
     if (runtime.lane === "uat") {
-      if (
-        runtime.provider === "vercel"
-        && !/^ccpun-admin-[a-z0-9-]+-punniixs-projects\.vercel\.app$/.test(url.hostname)
-      ) return null;
       if (runtime.provider === "hostinger") {
         const adminOrigin = variables.AUTH_URL?.trim();
         if (!adminOrigin) return null;
