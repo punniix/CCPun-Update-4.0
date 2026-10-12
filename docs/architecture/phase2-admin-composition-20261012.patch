@@ -1,0 +1,127 @@
+--- /dev/null
++++ b/qa/phase2-admin-modularity-proof.mjs
+@@ -0,0 +1,93 @@
++import assert from 'node:assert/strict';
++import { createHash } from 'node:crypto';
++import { readFileSync } from 'node:fs';
++import { createRequire } from 'node:module';
++import path from 'node:path';
++const require = createRequire(import.meta.url);
++const ts = require('typescript');
++const baseline = '70c0778c3a2fc3d5674ebf262ac78789fb92a77c';
++export const phase2AdminEntries = Object.freeze([
++  'features/admin/social/SocialMarketingDashboard.tsx',
++  'features/admin/social/SocialPostsWorkspace.tsx',
++  'features/admin/social/MarketingDashboardVisuals.tsx',
++  'lib/admin/social/marketing-dashboard-model.ts',
++]);
++const owners = [
++  'features/admin/social/MarketingDashboardOverview.tsx',
++  'features/admin/social/social-post-workspace-model.ts',
++  'lib/admin/social/marketing-dashboard-metrics.ts',
++];
++const digest = value => createHash('sha256').update(value).digest('hex');
++const sameKeys = (a, b) => assert.deepEqual([...a].sort(), [...b].sort());
++function tree(file, source) { return ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX); }
++
++// This assertion checks actual current source. It never substitutes a frozen
++// source string or old digest for the release being tested.
++export function assertPhase2AdminComposition(file, expectedBaselineHash, {
++  proof = JSON.parse(readFileSync(new URL('./phase2-admin-modularity.json', import.meta.url), 'utf8')),
++  read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8'),
++} = {}) {
++  assert.ok(phase2AdminEntries.includes(file), 'unreviewed Phase 2 admission');
++  assert.equal(proof.baseline, baseline, 'own Production baseline');
++  sameKeys(proof.entries, phase2AdminEntries);
++  sameKeys(proof.owners, owners);
++  sameKeys(Object.keys(proof.baselineSources), phase2AdminEntries);
++  sameKeys(Object.keys(proof.baselineHashes), phase2AdminEntries);
++  sameKeys(Object.keys(proof.currentHashes), [...phase2AdminEntries, ...owners]);
++  for (const entry of phase2AdminEntries) assert.equal(digest(proof.baselineSources[entry]), proof.baselineHashes[entry], entry + ': frozen original');
++  assert.equal(proof.baselineHashes[file], expectedBaselineHash, file + ': original protected expectation');
++  const current = new Map();
++  for (const [entry, hash] of Object.entries(proof.currentHashes)) {
++    const source = read(entry);
++    assert.equal(digest(source), hash, entry + ': current source');
++    current.set(entry, source);
++  }
++  assert.equal(proof.outputEvidence.file, 'tests/phase2-admin-modularity.test.mjs');
++  assert.equal(digest(read(proof.outputEvidence.file)), proof.outputEvidence.sha256, 'registered output assertions');
++  const declarations = new Map();
++  const graph = new Map();
++  for (const [entry, source] of current) {
++    const parsed = tree(entry, source);
++    const edges = [];
++    for (const statement of parsed.statements) {
++      if (statement.name && statement.body) {
++        const name = statement.name.text;
++        const body = statement.getText(parsed).replace(/^export /, '');
++        if (declarations.has(name)) assert.equal(declarations.get(name), body, name + ': conflicting duplicate declaration');
++        declarations.set(name, body);
++      }
++      if (!ts.isImportDeclaration(statement) && !ts.isExportDeclaration(statement)) continue;
++      if (statement.isTypeOnly || statement.importClause?.isTypeOnly || !statement.moduleSpecifier) continue;
++      const bindings = statement.importClause?.namedBindings ?? statement.exportClause;
++      if (bindings?.elements?.length && bindings.elements.every(element => element.isTypeOnly)) continue;
++      const id = statement.moduleSpecifier.text;
++      if (!id.startsWith('.') && !id.startsWith('@/')) continue;
++      const stem = path.posix.normalize(id.startsWith('@/') ? id.slice(2) : path.posix.join(path.posix.dirname(entry), id));
++      const target = [stem, stem + '.ts', stem + '.tsx'].find(candidate => current.has(candidate));
++      if (target) edges.push(target);
++    }
++    graph.set(entry, edges);
++  }
++  for (const entry of phase2AdminEntries) {
++    const parsed = tree(entry, proof.baselineSources[entry]);
++    for (const statement of parsed.statements) if (statement.name && statement.body) {
++      assert.equal(declarations.get(statement.name.text), statement.getText(parsed).replace(/^export /, ''), statement.name.text + ': original signature/body');
++    }
++  }
++  for (const owner of owners) {
++    for (const statement of tree(owner, current.get(owner)).statements) {
++      assert.ok(ts.isImportDeclaration(statement) || ts.isFunctionDeclaration(statement) || ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement)
++        || (ts.isExpressionStatement(statement) && ts.isStringLiteral(statement.expression) && statement.expression.text === 'use client'), owner + ': no new module side effects');
++      if (owner !== owners[0] && ts.isImportDeclaration(statement)) assert.equal(statement.importClause?.isTypeOnly, true, owner + ': types-only boundary');
++    }
++  }
++  const reached = new Set();
++  function walk(entry, stack = []) {
++    assert.ok(!stack.includes(entry), entry + ': runtime import cycle');
++    reached.add(entry);
++    for (const next of graph.get(entry) ?? []) walk(next, [...stack, entry]);
++  }
++  for (const entry of phase2AdminEntries) walk(entry);
++  for (const owner of owners) assert.ok(reached.has(owner), owner + ': actual runtime owner reachability');
++  return true;
++}
+--- a/tests/production-code-only-parity.test.mjs
++++ b/tests/production-code-only-parity.test.mjs
+@@ -4,6 +4,7 @@
+ import { resolve } from 'node:path';
+ import test from 'node:test';
+ import { productionBaselineSource, productionBaselineBytes } from '../qa/phase1-source-proof.mjs';
++import { assertPhase2AdminComposition, phase2AdminEntries } from '../qa/phase2-admin-modularity-proof.mjs';
+ 
+ const root = resolve(import.meta.dirname, '..');
+ const read = file => productionBaselineSource(file);
+@@ -13,7 +14,8 @@
+ test('code-only release preserves its own Production canonical owners, UI, tracking, SEO and auth sources', () => {
+   assert.equal(Object.keys(proof.canonical).length, 48);
+   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
+-    assert.equal(sha(productionBaselineBytes(file)), digest, file);
++    if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
++    else assert.equal(sha(productionBaselineBytes(file)), digest, file);
+   }
+   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation', 'lib/runtime/investment-availability.ts']) {
+     assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
+--- a/package.json
++++ b/package.json
+@@ -21,7 +21,7 @@
+     "audit:public-architecture": "node scripts/audit-public-architecture.mjs",
+     "test:vercel": "npm run audit:public-css && npm run audit:public-assets && npm run audit:public-architecture && node --import tsx --test tests/ci-recovery-reserve-regression.test.ts && node tests/vercel-native-regression.mjs && node tests/public-shell-performance-regression.mjs && node tests/blog-mobile-hotfix-regression.mjs && node --test tests/website43-public-layout-regression.mjs && node --test tests/website43-public-motion-regression.mjs && node --test tests/vercel-build-routing.test.mjs && node --import tsx --test tests/ai-crawler-observability.test.ts && node --import tsx tests/analytics-regression.ts && node --import tsx tests/analytics-component-regression.mjs",
+     "test:search-intent-owners": "node tests/search-intent-owner-regression.mjs",
+-    "test:foundation-contracts": "node tests/foundation-safety-regression.mjs && node tests/search-intent-owner-regression.mjs && node --test tests/root-runtime-owner-migration.test.mjs tests/production-code-only-parity.test.mjs tests/web-foundation-config-parity.test.mjs && node --test tests/phase1-source-ownership.test.mjs tests/phase1-admin-api-parity.test.mjs tests/phase1-admin-boundary-parity.test.mjs tests/phase1-source-reader.test.mjs tests/phase1-composition-proof.test.mjs",
++    "test:foundation-contracts": "node tests/foundation-safety-regression.mjs && node tests/search-intent-owner-regression.mjs && node --test tests/root-runtime-owner-migration.test.mjs tests/production-code-only-parity.test.mjs tests/web-foundation-config-parity.test.mjs && node --test tests/phase1-source-ownership.test.mjs tests/phase1-admin-api-parity.test.mjs tests/phase1-admin-boundary-parity.test.mjs tests/phase1-source-reader.test.mjs tests/phase1-composition-proof.test.mjs tests/phase2-admin-modularity.test.mjs",
+     "check:foundation": "npm run lint && npx tsc --noEmit --incremental false && npm run test:architecture && npm run test:foundation-contracts && npm run test:vercel && npm run test:admin",
+     "qa:legacy-urls": "node qa/legacy-url-regression.mjs",
+     "qa:site": "node qa/uat-text-responsive-check.mjs",
