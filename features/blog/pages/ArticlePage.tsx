@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
 import { getContentProvider } from "@/lib/content/provider";
+import { getUatTaxTableFixture } from "@/lib/content/uat-tax-table-fixture";
 import { buildArticleSchemaGraph } from "@/lib/content/structured-data/article-schema";
 import {
   getArticleCanonical,
@@ -26,10 +27,11 @@ const getArticleBySlugForRequest = cache((slug: string, includeDrafts: boolean) 
 
 export async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }): Promise<Metadata> {
   const { category, slug } = await params;
-  const { isEnabled } = await draftMode();
+  const fixture = getUatTaxTableFixture(category, slug);
+  const { isEnabled } = fixture ? { isEnabled: false } : await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
   const sourceSlug = getArticleSourceSlugForRoute(slug);
-  const article = await getArticleBySlugForRequest(sourceSlug, includeDrafts);
+  const article = fixture ?? await getArticleBySlugForRequest(sourceSlug, includeDrafts);
   if (!article || (!includeDrafts && article.status !== "published")) {
     return {
       title: "ไม่พบหน้า | CCPun",
@@ -42,9 +44,9 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const finalPath = includeDrafts ? getArticlePreviewPath(article) : getArticlePath(article);
   const finalSlug = finalPath.split("/").filter(Boolean).at(-1);
   if (category !== finalCategory || slug !== finalSlug) return { robots: { index: false, follow: true } };
-  const canonical = includeDrafts ? null : getArticleCanonical(article);
+  const canonical = fixture || includeDrafts ? null : getArticleCanonical(article);
   const isDraft = includeDrafts || article.status !== "published";
-  const noindex = IS_REVIEW_ENVIRONMENT || isDraft || article.noindex === true || !isArticleCanonicalAligned(article);
+  const noindex = Boolean(fixture) || IS_REVIEW_ENVIRONMENT || isDraft || article.noindex === true || !isArticleCanonicalAligned(article);
 
   return {
     title: article.seoTitle,
@@ -71,6 +73,8 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
 
 export default async function ArticlePage({ params }: { params: Promise<{ category: string; slug: string }> }) {
   const { category, slug } = await params;
+  const fixture = getUatTaxTableFixture(category, slug);
+  if (fixture) return <Website43Article preview={false} article={fixture} relatedArticles={[]} />;
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
   const movedPath = getMovedArticleRedirectPath(category, slug);
