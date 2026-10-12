@@ -725,3 +725,62 @@ test("native archive upload is manual opt-in UAT and does not add provider crede
   assert.match(workflow, /if-no-files-found: error/);
   assert.doesNotMatch(workflow, /secrets\.|ssh |scp |hostinger.*deploy|VERCEL_TOKEN/);
 });
+
+test("Hostinger CLI alias uses the canonical Web workspace with its cwd and child exit status", { skip: process.platform === "win32" }, () => {
+  const rootPackage = JSON.parse(read("package.json"));
+  assert.equal(rootPackage.scripts["build:hostinger"], "npm run build --workspace @ccpun/web");
+  assert.equal(JSON.parse(read("apps/web/package.json")).scripts.build, "node scripts/build-provider.mjs");
+  assert.equal(existsSync(new URL("../scripts/build-provider.mjs", import.meta.url)), false);
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-hostinger-alias-"));
+  try {
+    const web = join(fixture, "apps/web");
+    mkdirSync(web, { recursive: true });
+    writeFileSync(join(fixture, "package.json"), JSON.stringify({ private: true, workspaces: ["apps/*"], scripts: { "build:hostinger": rootPackage.scripts["build:hostinger"] } }));
+    writeFileSync(join(web, "package.json"), JSON.stringify({ name: "@ccpun/web", scripts: { build: "node probe.mjs" } }));
+    writeFileSync(join(web, "probe.mjs"), 'console.log("CCPUN_ALIAS_PROBE=" + JSON.stringify({ cwd: process.cwd(), args: process.argv.slice(2) })); process.exit(Number(process.env.CCPUN_FIXTURE_EXIT));\n');
+    for (const exitCode of [0, 7]) {
+      // Real npm workspace dispatch; fixture child has no build/provider/network calls.
+      const result = spawnSync("npm", ["run", "build:hostinger"], { cwd: fixture, encoding: "utf8", env: {
+        PATH: process.env.PATH, CCPUN_FIXTURE_EXIT: String(exitCode), npm_config_cache: join(fixture, "cache"), npm_config_update_notifier: "false",
+      } });
+      assert.equal(result.error, undefined);
+      assert.equal(result.status, exitCode, result.stderr);
+      const output = result.stdout.split("\n").find((line) => line.startsWith("CCPUN_ALIAS_PROBE="));
+      assert.ok(output, result.stdout);
+      assert.deepEqual(JSON.parse(output.slice("CCPUN_ALIAS_PROBE=".length)), { cwd: realpathSync(web), args: [] });
+    }
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
+
+test("shadow CI builds explicit native Web and full local Admin while retaining legacy regression separately", () => {
+  const workflow = read(".github/workflows/monorepo-shadow-ci.yml");
+  assert.match(workflow, /^name: CCPun Monorepo Shadow CI/m);
+  assert.match(workflow, /^  web-shadow:/m);
+  assert.match(workflow, /^  admin-shadow:/m);
+  assert.match(workflow, /node-version: 24/);
+  assert.match(workflow, /name: Verify app-root Vercel config\s+run: node --test tests\/vercel-app-root-config\.test\.mjs/);
+  assert.match(workflow, /name: Build Web shadow\s+run: npm run build:web:shadow/);
+  assert.match(workflow, /name: Typecheck Admin shadow\s+run: npm run typecheck:admin:shadow/);
+  assert.match(workflow, /name: Build Admin shadow\s+run: npm run build:admin:shadow/);
+  const stepEnvironment = (step) => {
+    const block = workflow.split(`      - name: ${step}\n`)[1]?.split(/\n      - /)[0];
+    assert.ok(block, step);
+    return Object.fromEntries([...block.matchAll(/^          ([A-Z_]+): (.+)$/gm)].map(([, key, value]) => [key, value.replace(/^"|"$/g, "")]));
+  };
+  assert.deepEqual(stepEnvironment("Build Web shadow"), {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_RELEASE_STAGE: "shadow",
+    CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat", CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
+  });
+  const localAdmin = {
+    CCPUN_DEPLOYMENT_PROVIDER: "local", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "local-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "local-uat",
+    CCPUN_ADMIN_CAPABILITY_PROFILE: "full", NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full", CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat", SANITY_STUDIO_PROJECT_ID: "ccb9lnw5", SANITY_STUDIO_DATASET: "uat",
+    AUTH_URL: "http://127.0.0.1:3100", CCPUN_ADMIN_OWNER_EMAILS: "owner@example.invalid",
+  };
+  assert.deepEqual(stepEnvironment("Typecheck Admin shadow"), localAdmin);
+  assert.deepEqual(stepEnvironment("Build Admin shadow"), localAdmin);
+  assert.doesNotMatch(workflow, /VERCEL_[A-Z_]+:|CCPUN_ARTICLE_SCHEDULER_BACKEND:|secrets\.|ssh |scp |(?:hostinger|vercel)\s+deploy|workflow_dispatch:[\s\S]*?inputs:/);
+  assert.equal(JSON.parse(read("package.json")).scripts["build:web:shadow"], "npm run build --workspace @ccpun/web");
+  assert.equal(JSON.parse(read("package.json")).scripts["build:admin:shadow"], "npm run build --workspace @ccpun/admin");
+});
