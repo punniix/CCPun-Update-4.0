@@ -168,5 +168,6 @@ test("Admin native branch loads no SDK until the explicit retained legacy branch
   assert.ok(route.indexOf('if (backend === "native-neon")') < route.indexOf('await import("workflow/api")'));
   assert.match(route, /registerNativeArticleSchedule/);
   assert.match(route, /await import\("@\/lib\/admin\/article-publication-workflow"\)/);
-  assert.match(route, /cancelArticleSchedule/);
+  assert.match(route, /return deleteArticleScheduleResponse\(request, context\)/);
+  assert.match(readFileSync(new URL("../../lib/admin/article-schedule-handler.ts", import.meta.url), "utf8"), /cancelArticleSchedule/);
 });

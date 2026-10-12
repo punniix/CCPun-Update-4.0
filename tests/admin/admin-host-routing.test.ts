@@ -350,7 +350,9 @@ test("Web Preview and unknown public hosts do not become an Admin boundary", () 
 });
 
 test("Production Admin robots policy stays noindex while CCPun web policy remains separate", () => {
-  const robots = readFileSync(new URL("../../app/robots.ts", import.meta.url), "utf8");
+  const entry = readFileSync(new URL("../../app/robots.ts", import.meta.url), "utf8");
+  assert.match(entry, /return robotsPolicy\(IS_REVIEW_ENVIRONMENT \|\| getAdminEnvironment\(\) === "production-admin", privatePaths\)/);
+  const robots = entry + readFileSync(new URL("../../lib/routing/robots-policy.ts", import.meta.url), "utf8");
   assert.match(robots, /getAdminEnvironment\(\) === "production-admin"/);
   assert.match(robots, /disallow: "\/"/);
   assert.match(robots, /sitemap: "https:\/\/ccpun\.com\/sitemap\.xml"/);

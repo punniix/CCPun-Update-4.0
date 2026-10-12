@@ -1,0 +1,223 @@
+diff --git a/app/api/admin/content/[id]/schedule/route.ts b/app/api/admin/content/[id]/schedule/route.ts
+index 72fdd4cc..c2fef6a0 100644
+--- a/app/api/admin/content/[id]/schedule/route.ts
++++ b/app/api/admin/content/[id]/schedule/route.ts
+@@ -3,6 +3,3 @@ import { start } from "workflow/api";
+-import { getAdminIdentity } from "@/lib/admin/identity";
+-import { hasAdminPermission } from "@/lib/admin/rbac";
+-import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+-import { acknowledgeArticleSchedule, cancelArticleSchedule, getArticleScheduleState, markScheduleStartFailed, prepareArticleSchedule } from "@/lib/admin/article-scheduling";
+-import { ArticleScheduleError, articleIdSchema, cancelScheduleRequestSchema, scheduleRequestSchema as bodySchema, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+-import { bangkokLocalDateTimeToIso } from "@/cms/sanity/policy/article-scheduling";
++import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure, articleScheduleResponseHeaders as headers } from "@/lib/admin/article-schedule-handler";
++import { acknowledgeArticleSchedule, markScheduleStartFailed, prepareArticleSchedule } from "@/lib/admin/article-scheduling";
++import { ArticleScheduleError, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+@@ -10,0 +8 @@ import { scheduledArticlePublicationWorkflow } from "@/lib/admin/article-publica
++
+@@ -13,11 +10,0 @@ export const dynamic = "force-dynamic";
+-const headers = { "Cache-Control": "private, no-store" };
+-async function requireScheduleIdentity() {
+-  const identity = await getAdminIdentity();
+-  if (!identity || identity.actorType !== "human" || identity.role !== "owner" || !hasAdminPermission(identity.role, "content:schedule")) return null;
+-  return identity;
+-}
+-function failure(error: unknown) {
+-  const code = error instanceof ArticleScheduleError ? error.code : "not-ready";
+-  const status = code === "conflict" || code === "article-not-ready" ? 409 : code === "invalid-request" ? 400 : code === "dispatch-failed" ? 502 : 503;
+-  return NextResponse.json({ error: code }, { status, headers });
+-}
+@@ -25,7 +12,2 @@ function failure(error: unknown) {
+-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+-  const identity = await requireScheduleIdentity();
+-  if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
+-  const parsed = articleIdSchema.safeParse((await params).id);
+-  if (!parsed.success) return failure(new ArticleScheduleError("invalid-request"));
+-  try { return NextResponse.json(await getArticleScheduleState(parsed.data), { headers }); }
+-  catch (error) { return failure(error); }
++export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
++  return getArticleScheduleResponse(request, context);
+@@ -35,8 +17,3 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
+-  const identity = await requireScheduleIdentity();
+-  if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
+-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
+-  const id = articleIdSchema.safeParse((await params).id);
+-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+-  if (!id.success || !parsed.success) return failure(new ArticleScheduleError("invalid-request"));
+-  const scheduledAt = bangkokLocalDateTimeToIso(parsed.data.scheduledLocal);
+-  if (!scheduledAt) return failure(new ArticleScheduleError("invalid-request"));
++  const validated = await readArticleSchedulePostRequest(request, { params });
++  if (!validated.ok) return validated.response;
++  const { identity, id, parsed, scheduledAt } = validated;
+@@ -58,10 +35,3 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
+-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+-  const identity = await requireScheduleIdentity();
+-  if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
+-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
+-  const id = articleIdSchema.safeParse((await params).id);
+-  const parsed = cancelScheduleRequestSchema.safeParse(await request.json().catch(() => null));
+-  if (!id.success || !parsed.success) return failure(new ArticleScheduleError("invalid-request"));
+-  try {
+-    return NextResponse.json({ schedule: await cancelArticleSchedule(id.data, parsed.data.expectedGeneration, parsed.data.expectedVersion, identity.actor) }, { headers });
+-  } catch (error) { return failure(error); }
++
++export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
++  return deleteArticleScheduleResponse(request, context);
+diff --git a/app/studio/[[...tool]]/page.tsx b/app/studio/[[...tool]]/page.tsx
+index c94d4fe8..6a733524 100644
+--- a/app/studio/[[...tool]]/page.tsx
++++ b/app/studio/[[...tool]]/page.tsx
+@@ -0,0 +1 @@
++import StudioUnavailableView from "@/features/admin/components/StudioUnavailableView";
+@@ -21,6 +22 @@ export default async function StudioPage() {
+-    return (
+-      <main style={{ minHeight: "100vh", padding: "3rem", fontFamily: "system-ui", background: "#251818", color: "#faf9f9" }}>
+-        <h1>Sanity Studio is not configured</h1>
+-        <p>Set the public Sanity project and dataset variables for this UAT environment.</p>
+-      </main>
+-    );
++    return <StudioUnavailableView title="Sanity Studio is not configured" description="Set the public Sanity project and dataset variables for this UAT environment." />;
+diff --git a/app/studio/[[...tool]]/studio-client.tsx b/app/studio/[[...tool]]/studio-client.tsx
+index 273c5c90..74acb321 100644
+--- a/app/studio/[[...tool]]/studio-client.tsx
++++ b/app/studio/[[...tool]]/studio-client.tsx
+@@ -3,13 +3 @@
+-import "@sanity/ui/styles.css";
+-import { Studio } from "sanity";
+-import { sanityStudioConfig } from "../../../sanity.config";
+-
+-export default function StudioClient() {
+-  if (!sanityStudioConfig) return null;
+-
+-  return (
+-    <div id="sanity" style={{ height: "100vh", maxHeight: "100dvh", overflow: "auto" }}>
+-      <Studio config={sanityStudioConfig} unstable_globalStyles />
+-    </div>
+-  );
+-}
++export { default } from "@/apps/admin/app/studio/[[...tool]]/studio-client";
+diff --git a/apps/admin/app/api/admin/content/[id]/schedule/route.ts b/apps/admin/app/api/admin/content/[id]/schedule/route.ts
+index cd7a4cdc..b9d227ae 100644
+--- a/apps/admin/app/api/admin/content/[id]/schedule/route.ts
++++ b/apps/admin/app/api/admin/content/[id]/schedule/route.ts
+@@ -2,6 +2,3 @@ import { NextResponse } from "next/server";
+-import { getAdminIdentity } from "@/lib/admin/identity";
+-import { hasAdminPermission } from "@/lib/admin/rbac";
+-import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+-import { acknowledgeArticleSchedule, cancelArticleSchedule, getArticleScheduleState, markScheduleStartFailed, prepareArticleSchedule, registerNativeArticleSchedule } from "@/lib/admin/article-scheduling";
+-import { ArticleScheduleError, articleIdSchema, cancelScheduleRequestSchema, scheduleRequestSchema as bodySchema, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+-import { bangkokLocalDateTimeToIso } from "@/cms/sanity/policy/article-scheduling";
++import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure, articleScheduleResponseHeaders as headers } from "@/lib/admin/article-schedule-handler";
++import { acknowledgeArticleSchedule, markScheduleStartFailed, prepareArticleSchedule, registerNativeArticleSchedule } from "@/lib/admin/article-scheduling";
++import { ArticleScheduleError, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+@@ -10,0 +8 @@ import { getArticleScheduleBackend } from "@/lib/admin/article-schedule-clock";
++
+@@ -13,11 +10,0 @@ export const dynamic = "force-dynamic";
+-const headers = { "Cache-Control": "private, no-store" };
+-async function requireScheduleIdentity() {
+-  const identity = await getAdminIdentity();
+-  if (!identity || identity.actorType !== "human" || identity.role !== "owner" || !hasAdminPermission(identity.role, "content:schedule")) return null;
+-  return identity;
+-}
+-function failure(error: unknown) {
+-  const code = error instanceof ArticleScheduleError ? error.code : "not-ready";
+-  const status = code === "conflict" || code === "article-not-ready" ? 409 : code === "invalid-request" ? 400 : code === "dispatch-failed" ? 502 : 503;
+-  return NextResponse.json({ error: code }, { status, headers });
+-}
+@@ -25 +12 @@ function failure(error: unknown) {
+-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
++export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+@@ -27,6 +14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
+-  const identity = await requireScheduleIdentity();
+-  if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
+-  const parsed = articleIdSchema.safeParse((await params).id);
+-  if (!parsed.success) return failure(new ArticleScheduleError("invalid-request"));
+-  try { return NextResponse.json(await getArticleScheduleState(parsed.data), { headers }); }
+-  catch (error) { return failure(error); }
++  return getArticleScheduleResponse(request, context);
+@@ -37,8 +19,3 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
+-  const identity = await requireScheduleIdentity();
+-  if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
+-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
+-  const id = articleIdSchema.safeParse((await params).id);
+-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+-  if (!id.success || !parsed.success) return failure(new ArticleScheduleError("invalid-request"));
+-  const scheduledAt = bangkokLocalDateTimeToIso(parsed.data.scheduledLocal);
+-  if (!scheduledAt) return failure(new ArticleScheduleError("invalid-request"));
++  const validated = await readArticleSchedulePostRequest(request, { params });
++  if (!validated.ok) return validated.response;
++  const { identity, id, parsed, scheduledAt } = validated;
+@@ -69 +46,2 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
+-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
++
++export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+@@ -71,9 +49 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
+-  const identity = await requireScheduleIdentity();
+-  if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
+-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
+-  const id = articleIdSchema.safeParse((await params).id);
+-  const parsed = cancelScheduleRequestSchema.safeParse(await request.json().catch(() => null));
+-  if (!id.success || !parsed.success) return failure(new ArticleScheduleError("invalid-request"));
+-  try {
+-    return NextResponse.json({ schedule: await cancelArticleSchedule(id.data, parsed.data.expectedGeneration, parsed.data.expectedVersion, identity.actor) }, { headers });
+-  } catch (error) { return failure(error); }
++  return deleteArticleScheduleResponse(request, context);
+diff --git a/apps/admin/app/api/auth/[...nextauth]/route.ts b/apps/admin/app/api/auth/[...nextauth]/route.ts
+index 7028dc83..0e677afb 100644
+--- a/apps/admin/app/api/auth/[...nextauth]/route.ts
++++ b/apps/admin/app/api/auth/[...nextauth]/route.ts
+@@ -3,20 +3 @@ import { handlers } from "@/auth";
+-import { getAdminCookieNamespace } from "@/lib/admin/auth-config";
+-import {
+-  buildAdminAuthDiagnostic,
+-  shouldObserveAdminAuthExchange,
+-} from "@/lib/admin/auth-diagnostics";
+-import { getAdminEnvironment } from "@/lib/admin/environment";
+-
+-function observe(request: NextRequest, response?: Response | null, error?: unknown) {
+-  if (!shouldObserveAdminAuthExchange(request, response, error)) return;
+-  const environment = getAdminEnvironment();
+-  const diagnostic = buildAdminAuthDiagnostic({
+-    request,
+-    response,
+-    error,
+-    environment,
+-    authUrl: process.env.AUTH_URL,
+-    cookieNamespace: getAdminCookieNamespace(environment),
+-  });
+-  console.warn("[admin-auth-diagnostic]", diagnostic);
+-}
++import { observeAdminAuthHandler } from "@/lib/admin/auth-route-observer";
+@@ -25,8 +6 @@ export async function GET(request: NextRequest) {
+-  try {
+-    const response = await handlers.GET(request);
+-    observe(request, response);
+-    return response;
+-  } catch (error) {
+-    observe(request, null, error);
+-    throw error;
+-  }
++  return observeAdminAuthHandler(request, (input) => handlers.GET(input));
+@@ -36,8 +10 @@ export async function POST(request: NextRequest) {
+-  try {
+-    const response = await handlers.POST(request);
+-    observe(request, response);
+-    return response;
+-  } catch (error) {
+-    observe(request, null, error);
+-    throw error;
+-  }
++  return observeAdminAuthHandler(request, (input) => handlers.POST(input));
+diff --git a/apps/admin/app/studio/[[...tool]]/page.tsx b/apps/admin/app/studio/[[...tool]]/page.tsx
+index d4b01d3f..043dde13 100644
+--- a/apps/admin/app/studio/[[...tool]]/page.tsx
++++ b/apps/admin/app/studio/[[...tool]]/page.tsx
+@@ -0,0 +1 @@
++import StudioUnavailableView from "@/features/admin/components/StudioUnavailableView";
+@@ -21,6 +22 @@ export default async function StudioPage() {
+-    return (
+-      <main style={{ minHeight: "100vh", padding: "3rem", fontFamily: "system-ui", background: "#251818", color: "#faf9f9" }}>
+-        <h1>ยังเปิด Sanity Studio ไม่ได้</h1>
+-        <p>กรุณาให้ผู้ดูแลตั้งค่าโครงการและชุดข้อมูล Sanity สำหรับพื้นที่ทดสอบ UAT ให้ครบ</p>
+-      </main>
+-    );
++    return <StudioUnavailableView title="ยังเปิด Sanity Studio ไม่ได้" description="กรุณาให้ผู้ดูแลตั้งค่าโครงการและชุดข้อมูล Sanity สำหรับพื้นที่ทดสอบ UAT ให้ครบ" />;

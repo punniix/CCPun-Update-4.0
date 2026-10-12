@@ -1,0 +1,579 @@
+{
+  "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+  "scope": "Phase1 only: actual paired source ownership, preserving both original contracts",
+  "pairs": [
+    {
+      "legacy": "app/(control-plane)/analytics/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/analytics/page.tsx": "dc56f0ca94aad3e59a0860130061496474104f272bb4868ad398bffaeca669b3",
+        "apps/admin/app/(control-plane)/analytics/page.tsx": "f01831858ee4e9f60bab614f534059ae6fd5b597c3a31de44539e4b25ca7e9eb"
+      },
+      "owners": [
+        "app/(control-plane)/analytics/page.tsx",
+        "features/admin/analytics/StoredAnalyticsDashboard.tsx"
+      ],
+      "status": "retained-intentional-contract",
+      "reason": "Legacy redirect and canonical stored analytics dashboard are different contracts, already have distinct owners.",
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/search/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/search/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/analytics/search/page.tsx": "9eeb21e94a1d40841b8847d5816caad9198c63ce26369afd598df8fb76a24b98",
+        "apps/admin/app/(control-plane)/analytics/search/page.tsx": "64c1ae77512d77c6b35d5be8e7af07900f35f84e7d19cfb60ca1d4d5bb1162c4"
+      },
+      "owners": [
+        "app/(control-plane)/analytics/search/page.tsx",
+        "features/admin/analytics/StoredAnalyticsDashboard.tsx"
+      ],
+      "status": "retained-intentional-contract",
+      "reason": "Legacy research opportunity reads and canonical stored search analytics differ; no shared query/render body to extract without changing behavior.",
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/content/articles/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/articles/[id]/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/content/articles/[id]/page.tsx": "70b3c9847370e827444b92695b4575ae8bdda879cf3f22a5a9d25495faf7547a",
+        "apps/admin/app/(control-plane)/content/articles/[id]/page.tsx": "a81cf9f3177ae82250e8d964d305789a31f947e6a28b6f3f8f74f1ab1ee0fd71"
+      },
+      "owners": [
+        "features/admin/components/ArticleDetailPage.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "literalGateAuthority": "No literal source write yet; prepare exact patch and get bounded review before any rejected path is touched",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/content/articles/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/articles/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/content/articles/page.tsx": "1e599759030415a30fe574e68f8f153f6a4c0a6879fc01e0972a8ebccfcbaa71",
+        "apps/admin/app/(control-plane)/content/articles/page.tsx": "214336b7fd0a235c656f568e87bf8c857e83107fcea897e05200d810fa5499f4"
+      },
+      "owners": [
+        "features/admin/components/ContentArticlesPage.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/content/calendar/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/calendar/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/content/calendar/page.tsx": "3c3b4cbe15d2298dcd1af6c4e0dd7b895cfd9637c4bd7c4fdbfe03c955f3b83d",
+        "apps/admin/app/(control-plane)/content/calendar/page.tsx": "b6549899b688ddf253db6b19ea66cb4ca0b883134832ee4f53027ff6b6c65e33"
+      },
+      "owners": [
+        "features/admin/components/ContentCalendarPage.tsx",
+        "lib/admin/operations/page-presentation.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/dashboard/inbox/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/dashboard/inbox/page.tsx": "cf2cb7306e05e8707e291f67a200e9413b4f44fe064f9cfa24e57fa761e974bf",
+        "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx": "738969d2561c8423d836c6d67d68b10f9fbd18c94ac23496b81434baa7ead397"
+      },
+      "owners": [
+        "features/admin/components/SeoReviewInboxPage.tsx",
+        "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx"
+      ],
+      "status": "separate-domain-owners-output-proven",
+      "reason": "Legacy review shares canonical dashboard/reviews body; canonical LINE customer inbox stays byteexact and private.",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/dashboard/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/dashboard/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/dashboard/page.tsx": "6b71c2706a88a8e4f8343690a931f3406978e369e63fff87f4f3340cb5ebaef1",
+        "apps/admin/app/(control-plane)/dashboard/page.tsx": "37befdaf0463df564652bb819066691e85977e1d7ef5beab653dabc326ba6d5b"
+      },
+      "owners": [
+        "lib/admin/dashboard-summary.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/error.tsx",
+      "canonical": "apps/admin/app/(control-plane)/error.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/error.tsx": "dee1e38433e1b5f5e9d7c986cde16a5ae533c38241895f6c4bab9e7fb08c1044",
+        "apps/admin/app/(control-plane)/error.tsx": "aaa0787ffe60547e3f5b1cfd6829245adc1b3623dfed015ad93a1e6b37c86e07"
+      },
+      "owners": [
+        "features/admin/components/AdminErrorView.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/layout.tsx",
+      "canonical": "apps/admin/app/(control-plane)/layout.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/layout.tsx": "874661d87fe02441a781075f4f7826a8fa3a9ce4376d50cf4bdca1332f98a198",
+        "apps/admin/app/(control-plane)/layout.tsx": "6e61507f21ce1c6662f8639c84fc2ca3dc83c20f3ce149512b1c965cedf81603"
+      },
+      "owners": [
+        "features/admin/components/AdminProtectedChrome.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/not-found.tsx",
+      "canonical": "apps/admin/app/(control-plane)/not-found.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/not-found.tsx": "2c5f829232c85d25d1a71adc4df7edfae1fae203987f657ea203a65da6e6211a",
+        "apps/admin/app/(control-plane)/not-found.tsx": "7f69abdc536be4344b5ccb3013aa57e45bdd38e722ab5485cb5adec5fab149a1"
+      },
+      "owners": [
+        "features/admin/components/AdminNotFoundView.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/operations/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/[section]/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/operations/[section]/page.tsx": "a9ed4632f6f7ff8be7259b27c0444534edeb9454928ab78ae0b723bc2b6f7a51",
+        "apps/admin/app/(control-plane)/operations/[section]/page.tsx": "d56e18221277af82b6a96671970c483f3477e4c9b0e94367d49cff971d3e7f1f"
+      },
+      "owners": [
+        "features/admin/operations/DeploymentsPage",
+        "features/admin/operations/JobsPage",
+        "features/admin/operations/LocalAiPage"
+      ],
+      "status": "retained-thin-policy-adapters",
+      "literalGateAuthority": "No literal source write yet; prepare exact patch and get bounded review before any rejected path is touched",
+      "reason": "Both entries dispatch to existing Deployments/Jobs owners; only canonical permits Local AI. Shared body already owned; retaining selectors avoids policy adoption.",
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/operations/audit-log/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/audit-log/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/operations/audit-log/page.tsx": "958ac98d7f8e7dab885b636475e9e228d9b80fd4ac6c36caaec2d4225e15e2c4",
+        "apps/admin/app/(control-plane)/operations/audit-log/page.tsx": "ae7aa7339e949c92899d0042dfa98abeaa40cdeeae7ac37eb6d3a7f72b800ae4"
+      },
+      "owners": [
+        "features/admin/components/AuditLogPage.tsx",
+        "lib/admin/operations/page-presentation.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/operations/health/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/health/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/operations/health/page.tsx": "bb1b3470757ac3c3d5627afa13b4bef331c8fbe1d6debc9352735011600430b5",
+        "apps/admin/app/(control-plane)/operations/health/page.tsx": "ac2100578d75dcb11ba315338e71362913342c5149d8c1bc237e3aa7ba4c07f0"
+      },
+      "owners": [
+        "features/admin/components/HealthStatus.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/seo/audits/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/seo/audits/[id]/page.tsx": "336bfc7817d71158e1f6f6ba1532fe14a44979ad3240fc1a0603f8f95aae3205",
+        "apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx": "b09a8058aa309e691c145e5859c53b93d0163ac2cfcb58caa5f00ab3305fca45"
+      },
+      "owners": [
+        "features/admin/components/SeoAuditDetailPage.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "literalGateAuthority": "No literal source write yet; prepare exact patch and get bounded review before any rejected path is touched",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/seo/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/seo/page.tsx": "a54979a9f9bec50f8c4d53c171096bb12892069c431fa2ede78be2e96c3f9ed8",
+        "apps/admin/app/(control-plane)/seo/page.tsx": "b0c77dde785d1a9a06bd29f7771db7471faf0abf2cc92904ecfe4ccdd716abe4"
+      },
+      "owners": [
+        "features/admin/components/SeoOverviewPage.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/settings/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/settings/[section]/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/settings/[section]/page.tsx": "d25da00c55b33acce2994a75cb16b481c7afb95b25ecbf040bd36c055451d782",
+        "apps/admin/app/(control-plane)/settings/[section]/page.tsx": "345978324503c1fc5c574f1c9e7df40d262106fc1ca8848fdbf40e6196cd8416"
+      },
+      "owners": [
+        "features/admin/components/ReadinessRows.tsx",
+        "lib/admin/operations/settings-readiness.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "literalGateAuthority": "No literal source write yet; prepare exact patch and get bounded review before any rejected path is touched",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/settings/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/settings/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/settings/page.tsx": "f3eab21047c59397aab6e66d49296c058e5e9134fc301cd73530bf39fcce0248",
+        "apps/admin/app/(control-plane)/settings/page.tsx": "251d60183bca41129c5122718a8b54cbd5285095b46e446d52c79a149d0d636e"
+      },
+      "owners": [
+        "features/admin/components/SettingsIndexPage.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane)/social/posts/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/posts/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane)/social/posts/page.tsx": "00e5804932168aa283d80f78c4ebb8f9c90662a8e4c87f606f82c5b0913ff116",
+        "apps/admin/app/(control-plane)/social/posts/page.tsx": "ce9576e651144eaf7d1b7a23fa219a926f3d703e6d5cc418e9cb997551f8d8c3"
+      },
+      "owners": [
+        "features/admin/social/operations-page.tsx",
+        "features/admin/social/posts-page.tsx"
+      ],
+      "status": "retained-intentional-contract",
+      "reason": "Both entries are already thin exports to distinct real operation/workspace owners; no further wrapper is needed.",
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane-auth)/login/page.tsx",
+      "canonical": "apps/admin/app/(control-plane-auth)/login/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane-auth)/login/page.tsx": "c84703d99432e26afab34aced8f4d5ed1fbd40563b9795d5b8f2b42bfdd7b05f",
+        "apps/admin/app/(control-plane-auth)/login/page.tsx": "bbf3440452ec1e0724c740ceb9dc99cbaab7a51c5b917e9e12e856c0a69c0219"
+      },
+      "owners": [
+        "features/admin/components/AdminLoginView.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/(control-plane-error)/admin-not-found/page.tsx",
+      "canonical": "apps/admin/app/(control-plane-error)/admin-not-found/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/(control-plane-error)/admin-not-found/page.tsx": "36cfafc94558793dd5b7cf8109ca0d31e566cbaff890cd58234edec423286f71",
+        "apps/admin/app/(control-plane-error)/admin-not-found/page.tsx": "d4b6aaf09e456a552d9efc7c8be85735800347c10045ea21f38489615e7e6638"
+      },
+      "owners": [
+        "features/admin/components/AdminNotFoundView.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/api/admin/content/[id]/schedule/route.ts",
+      "canonical": "apps/admin/app/api/admin/content/[id]/schedule/route.ts",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/api/admin/content/[id]/schedule/route.ts": "29ce6d65d56caa7f4e48738b49a1679004bdd4676207215dfc8def3b15579ebe",
+        "apps/admin/app/api/admin/content/[id]/schedule/route.ts": "8edd6a93de04326e0647dd7bf32e4b31713e3dbe1cd01a0fdbd41a0eb4179956"
+      },
+      "owners": [
+        "lib/admin/article-schedule-handler.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "literalGateAuthority": "Bounded parent approval for current COO Phase1 and the exact6 phase1-admin-literal-source-owners-20261012.patch paths only",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/api/admin/providers/ubersuggest/sync/route.ts",
+      "canonical": "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/api/admin/providers/ubersuggest/sync/route.ts": "66fea0470172d9f4e500e43b6b1f3077ca5d0dd69c8979d68e7710a8987d19ee",
+        "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts": "c784141b7fc828fc969b50e4895e70827a47daa7f0f12576a5ebad8053faf04a"
+      },
+      "owners": [
+        "lib/admin/ubersuggest-sync.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/api/auth/[...nextauth]/route.ts",
+      "canonical": "apps/admin/app/api/auth/[...nextauth]/route.ts",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/api/auth/[...nextauth]/route.ts": "c3e8185d66af3fe7019dd236a463365cce7e1e8dcaea2a7c3b8f0b103e930ce4",
+        "apps/admin/app/api/auth/[...nextauth]/route.ts": "0b366a48ac9e46bc330456c133b46c166385c68d0bc6f089a8626d062409a647"
+      },
+      "owners": [
+        "auth.ts",
+        "lib/admin/auth-route-observer.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "literalGateAuthority": "Bounded parent approval for current COO Phase1 and the exact6 phase1-admin-literal-source-owners-20261012.patch paths only",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "reason": "Direct root handlers remain identical; canonical observation shares existing handlers with exact receiver/Response/Error contracts.",
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/layout.tsx",
+      "canonical": "apps/admin/app/layout.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/layout.tsx": "ab668fc2aa5402f21f2e20fcf8b811e5168e00d97bbc4e4d0535120fa88ca23b",
+        "apps/admin/app/layout.tsx": "2f20ff3dbb5e6bc346f90fd3b975d4a006c909fffa493aa18434a5994c57ace6"
+      },
+      "owners": [
+        "lib/seo/root-metadata.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "reason": "Web root metadata/layout can share its Web counterpart; Admin root retains disabled tracking and private noindex composition, so this particular pair remains intentionally distinct.",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/layout.tsx",
+      "canonical": "apps/web/app/layout.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/layout.tsx": "ab668fc2aa5402f21f2e20fcf8b811e5168e00d97bbc4e4d0535120fa88ca23b",
+        "apps/web/app/layout.tsx": "926820a1263ca1b215396cb37dbeda57186f63c38d505d9be4e3dfd9fe19fcc0"
+      },
+      "owners": [
+        "lib/seo/root-metadata.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/page.tsx",
+      "canonical": "apps/admin/app/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/page.tsx": "814c4f422df23d52812e47838606bfd339417cf7e80ead1854af453e8c8cfec9",
+        "apps/admin/app/page.tsx": "b4352ac3b2a9fc1518b1f7cf147fd9e402a3ec3a2f6b3d6600e2d920df1ff047"
+      },
+      "owners": [
+        "apps/web/app/page.tsx",
+        "apps/admin/app/page.tsx"
+      ],
+      "status": "retained-intentional-contract",
+      "reason": "Public Web home and authenticated Admin entry redirect differ; public entry is already a thin export.",
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/robots.ts",
+      "canonical": "apps/admin/app/robots.ts",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/robots.ts": "74e54b7903c74a31fa1cf660f9b5be3192fde797642f1031c529d61b38bc2d3a",
+        "apps/admin/app/robots.ts": "37e4041965df6a482f555c03a808d274dedd871bcd49bf82254101365d405407"
+      },
+      "owners": [
+        "lib/routing/robots-policy.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/robots.ts",
+      "canonical": "apps/web/app/robots.ts",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/robots.ts": "74e54b7903c74a31fa1cf660f9b5be3192fde797642f1031c529d61b38bc2d3a",
+        "apps/web/app/robots.ts": "724472c3b407074ddc36aec722c16a29e932810db53d0cb5a309fb2e4f63fbe0"
+      },
+      "owners": [
+        "lib/routing/robots-policy.ts"
+      ],
+      "status": "shared-owner-output-proven",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/studio/[[...tool]]/page.tsx",
+      "canonical": "apps/admin/app/studio/[[...tool]]/page.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/studio/[[...tool]]/page.tsx": "cf50a71dba5b080ea1cadd7c62c825f743dad070a56d8ebd9acc2254b7c95ae0",
+        "apps/admin/app/studio/[[...tool]]/page.tsx": "bb22ff7dd6728538db6110f2bbea67eda44b2ab43b901ea80a2634c2ef6ef777"
+      },
+      "owners": [
+        "features/admin/components/StudioUnavailableView.tsx"
+      ],
+      "status": "shared-owner-output-proven",
+      "literalGateAuthority": "Bounded parent approval for current COO Phase1 and the exact6 phase1-admin-literal-source-owners-20261012.patch paths only",
+      "proofFiles": [
+        "tests/phase1-source-ownership.test.mjs",
+        "tests/phase1-admin-api-parity.test.mjs",
+        "tests/phase1-admin-boundary-parity.test.mjs"
+      ],
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    },
+    {
+      "legacy": "app/studio/[[...tool]]/studio-client.tsx",
+      "canonical": "apps/admin/app/studio/[[...tool]]/studio-client.tsx",
+      "baseline": "c354cb4e12f20686d8384b5ba8d4e36714ef3b32",
+      "baselineSha256": {
+        "app/studio/[[...tool]]/studio-client.tsx": "b29ee66e15c255db8267e1d62ded84edc07f79b84bf76902d05e9df669e21866",
+        "apps/admin/app/studio/[[...tool]]/studio-client.tsx": "9fe2dc903d385dabc696866c2d999873c9ee4dd36ce9a8cdf5776ecb4c0690aa"
+      },
+      "owners": [
+        "apps/admin/app/studio/[[...tool]]/studio-client.tsx"
+      ],
+      "status": "canonical-owner-output-proven",
+      "literalGateAuthority": "Bounded parent approval for current COO Phase1 and the exact6 phase1-admin-literal-source-owners-20261012.patch paths only",
+      "reason": "Only original canonical Studio client owns SDK/config/CSS; root remains client boundary plus direct default export.",
+      "authority": "Current COO Phase1 complete-course instruction; parent bounded API6/UI6 and review-domain scope decisions."
+    }
+  ],
+  "additionalSharedRoute": {
+    "entry": "apps/admin/app/(control-plane)/dashboard/reviews/page.tsx",
+    "owner": "features/admin/components/SeoReviewInboxPage.tsx",
+    "reason": "Existing actual duplicate SEO-review body of root dashboard/inbox, approved within Phase1; canonical LINE inbox untouched."
+  }
+}

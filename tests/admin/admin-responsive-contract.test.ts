@@ -1,9 +1,11 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const readSource = (relativePath: string) =>
-  readFileSync(new URL(`../../${relativePath}`, import.meta.url), "utf8");
+  readCurrentSource(new URL(`../../${relativePath}`, import.meta.url), "utf8");
 
 test("Admin layout contains wide content without widening the mobile viewport", () => {
   const layout = readSource("app/(control-plane)/layout.tsx");
@@ -34,3 +36,7 @@ test("Research workflow links keep a 44px mobile touch target", () => {
 
   assert.match(research, /<a key=\{href\} href=\{href\} className="[^"]*\bmin-h-11\b[^"]*\bitems-center\b/);
 });
+
+function readCurrentSource(file: string | URL, _encoding: "utf8"): string {
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : file);
+}

@@ -1,10 +1,12 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("admin distinguishes saved current, saved stale, and unsaved live SEO results", () => {
-  const contentPage = readFileSync("app/(control-plane)/content/articles/page.tsx", "utf8");
-  const detailPage = readFileSync("app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
+  const contentPage = readCurrentSource("app/(control-plane)/content/articles/page.tsx", "utf8");
+  const detailPage = readCurrentSource("app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
 
   assert.match(contentPage, /article\.seoAuditVersion === SEO_AUDIT_VERSION/);
   assert.match(contentPage, /ผลที่บันทึกแล้ว · ใช้กฎตรวจเวอร์ชันปัจจุบัน/);
@@ -15,3 +17,7 @@ test("admin distinguishes saved current, saved stale, and unsaved live SEO resul
   assert.match(detailPage, /runSeoAudit\(id, false\)/);
   assert.doesNotMatch(detailPage, /runSeoAudit\(id, true\)/);
 });
+
+function readCurrentSource(file: string | URL, _encoding: "utf8"): string {
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : file);
+}

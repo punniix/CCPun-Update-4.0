@@ -1,3 +1,4 @@
+import StudioUnavailableView from "@/features/admin/components/StudioUnavailableView";
 import { notFound } from "next/navigation";
 import { metadata as studioMetadata, viewport } from "next-sanity/studio";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
@@ -18,12 +19,7 @@ export default async function StudioPage() {
   if (!IS_REVIEW_ENVIRONMENT) notFound();
   if (!isStudioDataPlaneAllowed(dataset, environment, undefined, undefined, projectId)) notFound();
   if (!projectId || !dataset) {
-    return (
-      <main style={{ minHeight: "100vh", padding: "3rem", fontFamily: "system-ui", background: "#251818", color: "#faf9f9" }}>
-        <h1>Sanity Studio is not configured</h1>
-        <p>Set the public Sanity project and dataset variables for this UAT environment.</p>
-      </main>
-    );
+    return <StudioUnavailableView title="Sanity Studio is not configured" description="Set the public Sanity project and dataset variables for this UAT environment." />;
   }
 
   return <StudioClient />;

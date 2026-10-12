@@ -1,5 +1,8 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import test, { afterEach } from "node:test";
 import {
   filterStudioAuthProviders,
@@ -20,14 +23,14 @@ const PRODUCTION_SANITY_PROJECT_ID = "kyfxgjnq";
 const originalProjectId = process.env.VERCEL_PROJECT_ID;
 const originalProductionAdminProjectId = process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID;
 const originalLocalProductionDraftWrites = process.env.CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES;
-const studioPage = readFileSync(new URL("../../app/studio/[[...tool]]/page.tsx", import.meta.url), "utf8");
-const studioClient = readFileSync(new URL("../../app/studio/[[...tool]]/studio-client.tsx", import.meta.url), "utf8");
-const studioConfig = readFileSync(new URL("../../sanity.config.ts", import.meta.url), "utf8");
-const studioStructure = readFileSync(new URL("../../cms/sanity/config/structure.ts", import.meta.url), "utf8");
-const masterContentSchema = readFileSync(new URL("../../cms/sanity/schema/documents/master-content.ts", import.meta.url), "utf8");
-const socialVariantSchema = readFileSync(new URL("../../cms/sanity/schema/documents/social-variant.ts", import.meta.url), "utf8");
-const adminDataRefresh = readFileSync(new URL("../../features/admin/components/AdminDataRefresh.tsx", import.meta.url), "utf8");
-const adminContentPage = readFileSync(new URL("../../app/(control-plane)/content/articles/page.tsx", import.meta.url), "utf8");
+const studioPage = readCurrentSource(new URL("../../app/studio/[[...tool]]/page.tsx", import.meta.url), "utf8");
+const studioClient = readCurrentSource(new URL("../../app/studio/[[...tool]]/studio-client.tsx", import.meta.url), "utf8");
+const studioConfig = readCurrentSource(new URL("../../sanity.config.ts", import.meta.url), "utf8");
+const studioStructure = readCurrentSource(new URL("../../cms/sanity/config/structure.ts", import.meta.url), "utf8");
+const masterContentSchema = readCurrentSource(new URL("../../cms/sanity/schema/documents/master-content.ts", import.meta.url), "utf8");
+const socialVariantSchema = readCurrentSource(new URL("../../cms/sanity/schema/documents/social-variant.ts", import.meta.url), "utf8");
+const adminDataRefresh = readCurrentSource(new URL("../../features/admin/components/AdminDataRefresh.tsx", import.meta.url), "utf8");
+const adminContentPage = readCurrentSource(new URL("../../app/(control-plane)/content/articles/page.tsx", import.meta.url), "utf8");
 
 afterEach(() => {
   if (originalProjectId === undefined) delete process.env.VERCEL_PROJECT_ID;
@@ -235,7 +238,7 @@ test("Studio keeps owner content, surfaces the category registry, and hides syst
   assert.match(masterContentSchema, /title: "Master Content \(Draft only\)"/);
   assert.match(socialVariantSchema, /title: "Social Channel Variant \(Draft only\)"/);
 
-  const schemaSource = readFileSync(new URL("../../cms/sanity/schema/documents/article.ts", import.meta.url), "utf8");
+  const schemaSource = readCurrentSource(new URL("../../cms/sanity/schema/documents/article.ts", import.meta.url), "utf8");
   assert.match(schemaSource, /to: \[\{ type: "category" \}\]/);
   assert.match(schemaSource, /disableNew: true/);
   assert.match(schemaSource, /filter: "status == 'active'"/);
@@ -266,3 +269,7 @@ test("Admin returns to the same Sanity data after owner editing", () => {
   assert.equal(getStudioArticleEditHref("drafts.article/with space"), "/studio/intent/edit/id=article%2Fwith%20space;type=article");
   assert.doesNotMatch(adminContentPage, /sanity\.io\/manage|\/manage\/project|\/manage\/organization/);
 });
+
+function readCurrentSource(file: string | URL, _encoding: "utf8"): string {
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : file);
+}

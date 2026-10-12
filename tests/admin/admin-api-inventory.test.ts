@@ -34,7 +34,7 @@ const contracts: Record<string, RouteContract> = {
   },
   "app/api/admin/content/[id]/schedule/route.ts": {
     methods: ["GET", "POST", "DELETE"], identity: /getAdminIdentity\(\)/, authorization: /"content:schedule"/,
-    validation: { file: "app/api/admin/content/[id]/schedule/route.ts", pattern: /bodySchema\.safeParse\(await request\.json\(\)\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },
+    validation: { file: "lib/admin/article-schedule-handler.ts", pattern: /bodySchema\.safeParse\(await request\.json\(\)\.catch/, exception: "Owner-only GET reads one deterministic schedule; POST validates Bangkok datetime JSON; DELETE cancels server-owned schedule state. Same-origin mutation protection is enforced centrally by the Admin proxy." },
   },
   "app/api/admin/content/route.ts": {
     methods: ["GET"], identity: /getAdminIdentity\(\)/, authorization: /"content:read"/,
@@ -198,8 +198,15 @@ test("Admin routes retain identity, authorization, and request validation covera
   for (const [route, contract] of Object.entries(contracts)) {
     const source = read(route);
     assert.deepEqual([...source.matchAll(/export async function (GET|POST|DELETE)/g)].map((match) => match[1]), contract.methods, route);
-    assert.match(source, contract.identity, `${route}: identity`);
-    assert.match(source, contract.authorization, `${route}: authorization`);
+    let guardedSource = source;
+    if (route === "app/api/admin/content/[id]/schedule/route.ts") {
+      assert.match(source, /readArticleSchedulePostRequest\(request, \{ params \}\)/);
+      assert.match(source, /return getArticleScheduleResponse\(request, context\)/);
+      assert.match(source, /return deleteArticleScheduleResponse\(request, context\)/);
+      guardedSource += read("lib/admin/article-schedule-handler.ts");
+    }
+    assert.match(guardedSource, contract.identity, `${route}: identity`);
+    assert.match(guardedSource, contract.authorization, `${route}: authorization`);
     assert.match(read(contract.validation.file), contract.validation.pattern, `${route}: validation${contract.validation.exception ? ` (${contract.validation.exception})` : ""}`);
   }
 });

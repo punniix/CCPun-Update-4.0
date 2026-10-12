@@ -1,9 +1,11 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { safeAuditJson } from "../../lib/admin/audit-sanitizer";
 
-const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+const read = (path: string) => readCurrentSource(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("audit before/after keeps only approved fields and drops credential-shaped data", () => {
   const serialized = safeAuditJson({
@@ -125,4 +127,15 @@ test("Admin APIs do not expose internal authorization reasons", () => {
     "apps/admin/app/api/admin/seo/audit/[id]/proposals/route.ts",
     "apps/admin/app/api/admin/research/route.ts",
   ]) assert.doesNotMatch(read(route), /reason: (?:policy\.reason|error\.message)/);
+});
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}
+
+test("Phase1 source assertions follow the actual SeoReviewInboxPage entry binding", () => {
+  const entry = readCurrentSource("app/(control-plane)/dashboard/inbox/page.tsx", "utf8");
+  assert.match(entry, /from "@\/features\/admin\/components\/SeoReviewInboxPage"/);
+  assert.match(entry, /return AdminReviewsPageOwner\(/);
 });
