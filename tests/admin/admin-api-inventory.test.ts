@@ -1,6 +1,5 @@
 import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import { isAbsolute, relative } from "node:path";
-import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
