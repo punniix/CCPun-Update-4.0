@@ -8,7 +8,7 @@ import postcss from 'postcss';
 import tailwind from '@tailwindcss/postcss';
 import ts from 'typescript';
 import { assertPhase2MoneyComposition } from '../qa/phase2-source-proof.mjs';
-import { reachable, runtimeFiles, sourceByFile, trackedFiles } from '../scripts/lib/public-reachability.mjs';
+import { runtimeFiles, sourceByFile, trackedFiles } from '../scripts/lib/public-reachability.mjs';
 
 const read = file => readFileSync(file, 'utf8');
 const sha = source => createHash('sha256').update(source).digest('hex');
@@ -20,10 +20,11 @@ const baselineCss = gunzipSync(Buffer.from(proof.compiledCssGzip, 'base64')).toS
 assert.equal(sha(proof.foundationSource), '16be3e70110eb57339671d20a877cb7a1f8026675ce0eecca47794d6efeafece');
 assert.equal(sha(baselineCss), 'a40fdcb573796224ace6b570721e44f5e38508f7b793ca192f307e8fd155a1bd');
 
-test('Tailwind inputs cover every current app dependency and exclude historical fixtures', () => {
-  assert.match(source, /^@import "tailwindcss" source\(none\);/);
+test('Tailwind preserves automatic native app discovery and excludes only historical fixtures', () => {
+  assert.match(source, /^@import "tailwindcss";/);
   const owners = [...source.matchAll(/@source "([^"\n]+)";/g)].map(([, owner]) => resolve('components/styles', owner));
-  for (const entry of reachable) assert(owners.some(owner => resolve(entry) === owner || resolve(entry).startsWith(owner + '/')), entry);
+  assert.deepEqual(owners, [resolve('components'), resolve('features')]);
+  for (const directory of ['qa', 'tests', 'docs', 'scripts']) assert(source.includes(`@source not "../../${directory}";`));
   for (const historical of ['qa', 'tests', 'scripts', 'docs']) {
     assert(!owners.some(owner => resolve(historical) === owner || resolve(historical).startsWith(owner + '/')), historical);
   }
@@ -108,7 +109,7 @@ test('the actual Tailwind compiler preserves runtime declarations and cascade or
 
   assert(Buffer.byteLength(compiled.css) <= proof.compiledBytes, 'ownership must not increase compiled CSS');
   for (const message of compiled.messages.filter(message => message.type === 'dir-dependency')) {
-    assert(!/\/(?:qa|tests|docs|scripts)(?:\/|$)/.test(message.dir), message.dir);
+    assert(!['qa', 'tests', 'docs', 'scripts'].some(directory => message.dir === resolve(directory) || message.dir.startsWith(resolve(directory) + '/')), message.dir);
   }
 });
 
@@ -147,4 +148,16 @@ test('Money composition admission rejects changed logic, unreachable owners, mut
   }
   assert.throws(() => assertPhase2MoneyComposition(composition.controller, baseline,
     tamper(composition.test, read(composition.test).replace('assert.deepEqual', 'console.log'))));
+});
+
+
+test('actual Next Web compiler context preserves the original complete CSS output and payload budget', async () => {
+  assert.equal(proof.nativeWeb.context, 'apps/web');
+  assert.equal(proof.nativeWeb.foundationSha256, sha(proof.foundationSource));
+  const original = gunzipSync(Buffer.from(proof.nativeWeb.compiledCssGzip, 'base64')).toString();
+  assert.equal(sha(original), '8ef2b65a4b29c8b1e562fdcf16434a4104de01c537fdc5ddd5996506eaf5a22d');
+  const candidate = await postcss([tailwind({ base: resolve('apps/web'), optimize: false })]).process(source, { from: resolve(file) });
+  // This matches the app build driver's cwd. Root standalone sizes cannot certify it.
+  assert.equal(candidate.css, original, 'All rules, selectors, at-rules, declarations and order stay exact in the native app context');
+  assert.equal(Buffer.byteLength(candidate.css), proof.nativeWeb.compiledBytes);
 });
