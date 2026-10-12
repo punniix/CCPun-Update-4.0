@@ -384,6 +384,15 @@
       "migrationBaseline": "341aeefafdc8fee1b5e8dab013db70c535aa73ac",
       "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/analytics/search/loading\";\n",
       "status": "migrated"
+    },
+    {
+      "legacy": "app/studio/[[...tool]]/studio-client.tsx",
+      "canonical": "apps/admin/app/studio/[[...tool]]/studio-client.tsx",
+      "baselineSha256": "9fe2dc903d385dabc696866c2d999873c9ee4dd36ce9a8cdf5776ecb4c0690aa",
+      "migrationBaseline": "7ee7c337473dc6b0ba5fa3d0ab87955ac0fbc40f",
+      "wrapper": "\"use client\";\n\nexport { default } from \"@/apps/admin/app/studio/[[...tool]]/studio-client\";\n",
+      "status": "migrated",
+      "semanticBaseline": "same resolved sanity.config module; use client, default identity, null guard and styles verified in phase1 boundary fixtures"
     }
   ]
 }

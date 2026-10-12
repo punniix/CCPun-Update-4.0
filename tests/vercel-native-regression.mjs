@@ -1,7 +1,8 @@
+import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 
-const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path) => readPhase1Source(path);
 
 const packageJson = JSON.parse(read('package.json'));
 assert.equal(packageJson.version, '4.1.0');
@@ -413,10 +414,11 @@ assert.match(rootLayout, /<html lang="th"/);
 assert.match(rootLayout, /PRODUCTION_ANALYTICS_ENABLED/);
 assert.match(rootLayout, /const GTM_ID = PRODUCTION_ANALYTICS_ENABLED \? "GTM-5DKMGSK3" : ""/);
 assert.match(rootLayout, /<ClientWidgets gaId=\{GA_ID\} gtmId=\{GTM_ID\} metaPixelId=\{META_PIXEL_ID\} \/>/);
-assert.match(rootLayout, /robots: IS_ADMIN_APPLICATION \|\| IS_REVIEW_ENVIRONMENT/);
-assert.match(rootLayout, /openGraph: IS_ADMIN_APPLICATION \? null/);
-assert.match(rootLayout, /twitter: IS_ADMIN_APPLICATION \? null/);
-assert.match(rootLayout, /alternates: IS_ADMIN_APPLICATION \? \{ canonical: null \}/);
+assert.match(rootLayout, /buildSiteRootMetadata\(\{ admin: IS_ADMIN_APPLICATION, review: IS_REVIEW_ENVIRONMENT \}\)/);
+assert.match(rootLayout, /robots: admin \|\| review/);
+assert.match(rootLayout, /openGraph: admin \? null/);
+assert.match(rootLayout, /twitter: admin \? null/);
+assert.match(rootLayout, /alternates: admin \? \{ canonical: null \}/);
 assert.match(rootLayout, /!IS_ADMIN_APPLICATION \? <script type="application\/ld\+json"/);
 assert.doesNotMatch(rootLayout, /import\s+DraftPreviewRuntime\s+from\s+["']@\/components\/preview\/DraftPreviewRuntime["']/);
 assert.match(rootLayout, /if \(IS_DRAFT_PREVIEW_ALLOWED\) \{[\s\S]*await import\(["']@\/components\/preview\/DraftPreviewRuntime["']\)/);
