@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 export const phase2FoundationPath = 'components/styles/global-foundation.css';
 const ownBaseline = '70c0778c3a2fc3d5674ebf262ac78789fb92a77c';
-export const phase2RuntimeCssSources = ["../../components", "../../features", "../../app", "../../apps", "../../lib", "../../cms", "../../db", "../../types", "../../workers", "../../auth.ts", "../../proxy.ts", "../../next.config.ts", "../../sanity.config.ts", "../../sanity.cli.ts", "../../public/nav-config.json"];
+export const phase2RuntimeCssSources = ["../../components", "../../features"];
+export const phase2ExcludedCssSources = ["../../qa", "../../tests", "../../docs", "../../scripts"];
 const digest = value => createHash('sha256').update(value).digest('hex');
 // Assert actual current stylesheet ownership. No historical source is returned
 // to a reader, and declarations/style imports remain byte-exact.
@@ -16,8 +17,7 @@ export function assertPhase2FoundationSource(file, expectedOriginalDigest, {
   assert.equal(digest(proof.foundationSource), expectedOriginalDigest);
   assert.equal(proof.foundationSha256, expectedOriginalDigest);
   assert.ok(proof.foundationSource.startsWith('@import "tailwindcss";\n@source "../../components";\n@source "../../features";\n'));
-  const expected = proof.foundationSource.replace('@import "tailwindcss";', '@import "tailwindcss" source(none);')
-    .replace('@source "../../features";\n', '@source "../../features";\n' + phase2RuntimeCssSources.slice(2).map(owner => '@source "' + owner + '";\n').join(''));
-  assert.equal(read(file), expected, 'exact source directive registry and all remaining declarations/import order');
+  const expected = proof.foundationSource.replace('@source "../../features";\n', '@source "../../features";\n' + phase2ExcludedCssSources.map(owner => '@source not "' + owner + '";\n').join(''));
+  assert.equal(read(file), expected, 'exact native automatic scanning, shared roots, historical exclusions and remaining declarations/import order');
   return true;
 }
