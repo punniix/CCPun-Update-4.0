@@ -101,7 +101,7 @@ test("native full host fence runs before Auth.js while nonnative browser auth re
   assert.deepEqual(child(script, "full", [], { ...variables, CCPUN_DEPLOYMENT_ROLE: "web" }), { statuses: [404, 404, 404, 404, 404], calls: 0 });
 });
 
-test("native public-page rejection returns a private 404 without external rewrite while authenticated preview and Vercel rendering remain", () => {
+test("native public-page rejection retains authenticated preview and rejects retired Vercel rendering without external rewrite", () => {
   const script = `const {NextRequest}=require('next/server');const {adminProxy}=require('./apps/admin/proxy.ts');const cases=[['/blog/',null,'candidate.example'],['/blog/health-insurance/article/','owner','candidate.example'],['/content/articles/',null,'candidate.example'],['/blog/',null,'evil.example'],['/.well-known/workflow/v1/flow',null,'candidate.example']];console.log(JSON.stringify(cases.map(([path,role,host])=>{const req=new NextRequest('https://candidate.example'+path,{headers:{host}});req.auth=role?{user:{role}}:null;const res=adminProxy(req);return{status:res.status,rewrite:res.headers.get('x-middleware-rewrite'),robots:res.headers.get('x-robots-tag'),cache:res.headers.get('cache-control'),csp:res.headers.get('content-security-policy')};})));`;
   const native = child(script, "full");
   assert.deepEqual(native.map((value: { status: number }) => value.status), [404, 200, 307, 404, 404]);
@@ -119,8 +119,8 @@ test("native public-page rejection returns a private 404 without external rewrit
     VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
   });
   assert.equal(legacy[0].status, 404);
-  assert.equal(legacy[0].rewrite, "https://candidate.example/admin-not-found/");
-  assert.equal(legacy[1].status, 200);
+  assert.equal(legacy[0].rewrite, null);
+  assert.equal(legacy[1].status, 404);
 });
 
 test("schedule handlers independently deny editorial before identity, body, params or Workflow start", () => {
