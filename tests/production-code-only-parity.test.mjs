@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource, productionBaselineBytes } from '../qa/phase1-source-proof.mjs';
+import { assertPhase3AdminContracts, phase3AdminEntries } from '../qa/phase3-admin-contracts-proof.mjs';
 import { assertPhase2AdminComposition, phase2AdminEntries } from '../qa/phase2-admin-modularity-proof.mjs';
 import { assertPhase2FoundationSource, phase2FoundationPath } from '../qa/phase2-css-source-contract.mjs';
 
@@ -15,7 +16,8 @@ const proof = JSON.parse(read('qa/production-code-only-parity.json'));
 test('code-only release preserves its own Production canonical owners, UI, tracking, SEO and auth sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
-    if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
+    if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
+    else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);
   }
