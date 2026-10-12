@@ -1,3 +1,6 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -6,7 +9,7 @@ import test from "node:test";
 
 const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
 const apiRoot = path.join(repositoryRoot, "app/api/admin");
-const read = (relativePath: string) => readFileSync(path.join(repositoryRoot, relativePath), "utf8");
+const read = (relativePath: string) => readCurrentSource(path.join(repositoryRoot, relativePath), "utf8");
 
 function routeFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -214,3 +217,8 @@ test("proxy applies exact same-origin protection to every Admin mutation", () =>
   assert.match(proxy, /"\/api\/admin\/:path\*"/);
   assert.match(proxy, /"\/api\/snt-admin\/:path\*"/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

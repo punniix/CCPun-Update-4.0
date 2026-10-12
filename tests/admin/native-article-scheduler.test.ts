@@ -1,3 +1,6 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -163,10 +166,15 @@ test("native SQL registration and scan preserve CAS/audit and never take over SD
 });
 
 test("Admin native branch loads no SDK until the explicit retained legacy branch", () => {
-  const route = readFileSync(new URL("../../apps/admin/app/api/admin/content/[id]/schedule/route.ts", import.meta.url), "utf8");
+  const route = readCurrentSource(new URL("../../apps/admin/app/api/admin/content/[id]/schedule/route.ts", import.meta.url), "utf8");
   assert.doesNotMatch(route, /^import .*from ["']workflow\/api["']/m);
   assert.ok(route.indexOf('if (backend === "native-neon")') < route.indexOf('await import("workflow/api")'));
   assert.match(route, /registerNativeArticleSchedule/);
   assert.match(route, /await import\("@\/lib\/admin\/article-publication-workflow"\)/);
   assert.match(route, /cancelArticleSchedule/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

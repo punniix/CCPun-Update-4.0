@@ -1,19 +1,21 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const provider = readFileSync("lib/admin/ubersuggest.ts", "utf8");
-const normalized = readFileSync("lib/admin/ubersuggest-dashboard-provider.ts", "utf8");
-const snapshots = readFileSync("lib/admin/ubersuggest-dashboard.ts", "utf8");
-const route = readFileSync("apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
-const routes = readFileSync("lib/admin/routes.ts", "utf8");
-const researchPage = readFileSync("features/admin/research/page.tsx", "utf8");
-const layout = readFileSync("apps/admin/app/(control-plane)/layout.tsx", "utf8");
-const schema = readFileSync("cms/sanity/admin/schema/ubersuggest-types.ts", "utf8");
-const studioPolicy = readFileSync("cms/sanity/policy/studio-policy.ts", "utf8");
-const studioConfig = readFileSync("sanity.config.ts", "utf8");
-const schemaIndex = readFileSync("cms/sanity/schema/index.ts", "utf8");
-const adminSchemaIndex = readFileSync("cms/sanity/admin/schema/index.ts", "utf8");
+const provider = readCurrentSource("lib/admin/ubersuggest.ts", "utf8");
+const normalized = readCurrentSource("lib/admin/ubersuggest-dashboard-provider.ts", "utf8");
+const snapshots = readCurrentSource("lib/admin/ubersuggest-dashboard.ts", "utf8");
+const route = readCurrentSource("apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
+const routes = readCurrentSource("lib/admin/routes.ts", "utf8");
+const researchPage = readCurrentSource("features/admin/research/page.tsx", "utf8");
+const layout = readCurrentSource("apps/admin/app/(control-plane)/layout.tsx", "utf8");
+const schema = readCurrentSource("cms/sanity/admin/schema/ubersuggest-types.ts", "utf8");
+const studioPolicy = readCurrentSource("cms/sanity/policy/studio-policy.ts", "utf8");
+const studioConfig = readCurrentSource("sanity.config.ts", "utf8");
+const schemaIndex = readCurrentSource("cms/sanity/schema/index.ts", "utf8");
+const adminSchemaIndex = readCurrentSource("cms/sanity/admin/schema/index.ts", "utf8");
 
 test("Ubersuggest provider remains local-authenticated and quota-conscious", () => {
   assert.match(provider, /\["development", "local-uat", "local-production"\]/);
@@ -94,3 +96,8 @@ test("legacy Ubersuggest alias is retired and navigation has one canonical Resea
   assert.match(layout, /href: "\/content\/research\/", label: "ข้อมูลประกอบ"/);
   assert.doesNotMatch(layout, /href: "\/snt-admin\/ubersuggest\/"/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

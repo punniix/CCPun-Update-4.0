@@ -1,5 +1,7 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   adminDataLaneLabel,
@@ -48,9 +50,9 @@ test("admin presentation uses friendly Thai labels and hides unknown API detail"
 });
 
 test("production-capable admin surfaces do not hard-code UAT copy", () => {
-  const dashboard = readFileSync("apps/admin/app/(control-plane)/dashboard/page.tsx", "utf8");
-  const login = readFileSync("apps/admin/app/(control-plane-auth)/login/page.tsx", "utf8");
-  const audit = readFileSync("apps/admin/app/(control-plane)/operations/audit-log/page.tsx", "utf8");
+  const dashboard = readCurrentSource("apps/admin/app/(control-plane)/dashboard/page.tsx", "utf8");
+  const login = readCurrentSource("apps/admin/app/(control-plane-auth)/login/page.tsx", "utf8");
+  const audit = readCurrentSource("apps/admin/app/(control-plane)/operations/audit-log/page.tsx", "utf8");
 
   assert.match(dashboard, /พื้นที่นี้ใช้ข้อมูลจาก/);
   assert.match(dashboard, /\{lane\}/);
@@ -70,19 +72,19 @@ test("production-capable admin surfaces do not hard-code UAT copy", () => {
     "features/admin/social/provider-readonly-panels.tsx",
     "features/admin/social/SocialSheetsExport.tsx",
   ]) {
-    const source = readFileSync(path, "utf8");
+    const source = readCurrentSource(path, "utf8");
     assert.doesNotMatch(source, /Sanity UAT|Neon UAT|ฐานข้อมูล UAT|SANITY UAT|LIVE UAT|HISTORICAL SOCIAL UAT/);
   }
 
-  const socialOverview = readFileSync("features/admin/social/overview-page.tsx", "utf8");
+  const socialOverview = readCurrentSource("features/admin/social/overview-page.tsx", "utf8");
   assert.match(socialOverview, /isSocialProviderExecutionGateEnabled\(\)/);
   assert.match(socialOverview, /providerWriteEnabled \? "ใช้ได้หลังผู้มีสิทธิ์อนุมัติ" : "ปิดอยู่"/);
   assert.match(socialOverview, /ส่งได้เฉพาะข้อความหรือลิงก์ที่อนุมัติแล้ว ส่วนสื่อยังทำด้วยตนเอง/);
 });
 
 test("content list separates document state from content review state", () => {
-  const contentPage = readFileSync("apps/admin/app/(control-plane)/content/articles/page.tsx", "utf8");
-  const sanityControl = readFileSync("lib/admin/sanity-control.ts", "utf8");
+  const contentPage = readCurrentSource("apps/admin/app/(control-plane)/content/articles/page.tsx", "utf8");
+  const sanityControl = readCurrentSource("lib/admin/sanity-control.ts", "utf8");
   assert.match(contentPage, /สถานะเอกสาร/);
   assert.match(contentPage, /ขั้นตรวจเนื้อหา/);
   assert.match(contentPage, /เผยแพร่แล้ว · มีฉบับร่างแก้ไข/);
@@ -94,3 +96,8 @@ test("content list separates document state from content review state", () => {
   assert.match(sanityControl, /hasPublished/);
   assert.doesNotMatch(contentPage, /ฉบับร่าง ·/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

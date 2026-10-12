@@ -1,16 +1,18 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("SEO Control Center keeps semantic topic separate from protected published URL fields", () => {
   const schema = [
-    readFileSync("cms/sanity/schema/documents/article.ts", "utf8"),
-    readFileSync("cms/sanity/schema/objects/seo-metadata.ts", "utf8"),
+    readCurrentSource("cms/sanity/schema/documents/article.ts", "utf8"),
+    readCurrentSource("cms/sanity/schema/objects/seo-metadata.ts", "utf8"),
   ].join("\n");
-  const input = readFileSync("cms/sanity/components/SeoScoreInput.tsx", "utf8");
-  const adminPage = readFileSync("apps/admin/app/(control-plane)/seo/page.tsx", "utf8");
-  const detailPage = readFileSync("apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
-  const contract = readFileSync("docs/seo-control-center-v1.md", "utf8");
+  const input = readCurrentSource("cms/sanity/components/SeoScoreInput.tsx", "utf8");
+  const adminPage = readCurrentSource("apps/admin/app/(control-plane)/seo/page.tsx", "utf8");
+  const detailPage = readCurrentSource("apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
+  const contract = readCurrentSource("docs/seo-control-center-v1.md", "utf8");
 
   assert.match(schema, /BLOG_TOPIC_HUBS/);
   assert.match(schema, /name: "semanticTopic"/);
@@ -40,3 +42,8 @@ test("SEO Control Center keeps semantic topic separate from protected published 
   assert.match(contract, /Control Plane เป็นแหล่งเดียวสำหรับการคำนวณ audit และ readiness/);
   assert.match(contract, /AIA Health CI Hero remains semantically Health insurance/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

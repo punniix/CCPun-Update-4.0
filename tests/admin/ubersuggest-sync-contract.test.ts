@@ -70,7 +70,7 @@ async function loadFixture(entry: string, state: FixtureState) {
     export const isExactAdminPreviewOrigin = () => false;
     export const isAuthenticatedAdminPreviewPath = () => false;
     export const isInternalServiceApiPath = path => path.startsWith('/api/internal/');`;
-  const realAliases = new Set(["auth-config", "rbac", "capability-profile", "routes", "auth-diagnostics", "seo-intelligence/aisv", "operations/article-schedule-contract"].map(name => `@/lib/admin/${name}`));
+  const realAliases = new Set(["auth-config", "rbac", "capability-profile", "routes", "auth-diagnostics", "ubersuggest-sync", "article-schedule-handler", "auth-route-observer", "seo-intelligence/aisv", "operations/article-schedule-contract"].map(name => `@/lib/admin/${name}`));
   const result = await build({ entryPoints: [resolve(root, entry)], bundle: true, write: false, format: "esm", platform: "node", nodePaths: (process.env.NODE_PATH ?? "").split(":"), plugins: [{ name: "fixture-boundaries", setup(builder) {
     builder.onResolve({ filter: /^(?:@\/|next\/server$|workflow\/api$)/ }, (args) => {
       if (args.path === "workflow/api") return { path: "sdk", namespace: "sdk" };

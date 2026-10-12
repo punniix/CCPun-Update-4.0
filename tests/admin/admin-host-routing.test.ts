@@ -1,6 +1,8 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   CCPUN_VERCEL_PROJECT_IDS,
@@ -198,7 +200,7 @@ test("Daily analytics reaches its authenticated handler through an exact private
     assert.equal(isInternalServiceApiPath(path), false, path);
     assert.equal(classifyProductionAdminPath(path), "reject", path);
   }
-  const handler = readFileSync(new URL("../../apps/admin/app/api/internal/analytics/daily/route.ts", import.meta.url), "utf8");
+  const handler = readCurrentSource(new URL("../../apps/admin/app/api/internal/analytics/daily/route.ts", import.meta.url), "utf8");
   assert.match(handler, /if \(!isN8nExportRequestAuthorized\(request\)\) return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401, headers \}\)/);
 });
 
@@ -350,7 +352,7 @@ test("Web Preview and unknown public hosts do not become an Admin boundary", () 
 });
 
 test("Production Admin robots policy stays noindex while CCPun web policy remains separate", () => {
-  const robots = readFileSync(new URL("../../app/robots.ts", import.meta.url), "utf8");
+  const robots = readCurrentSource(new URL("../../app/robots.ts", import.meta.url), "utf8");
   assert.match(robots, /getAdminEnvironment\(\) === "production-admin"/);
   assert.match(robots, /disallow: "\/"/);
   assert.match(robots, /sitemap: "https:\/\/ccpun\.com\/sitemap\.xml"/);
@@ -370,7 +372,7 @@ test("Marketing service routes reach bearer handlers only through four exact Adm
       assert.equal(isInternalServiceApiPath(value), true, value);
       assert.equal(classifyProductionAdminPath(value), "allow", value);
     }
-    const handler = readFileSync(new URL(`../../apps/admin/app/api/internal/marketing/${suffix}/route.ts`, import.meta.url), "utf8");
+    const handler = readCurrentSource(new URL(`../../apps/admin/app/api/internal/marketing/${suffix}/route.ts`, import.meta.url), "utf8");
     assert.match(handler, /if\s*\(!isN8nExportRequestAuthorized\(request\)\)\s*return NextResponse\.json\(\{\s*error:\s*"unauthorized"\s*\},\s*\{\s*status:\s*401/);
     assert.ok(handler.indexOf("isN8nExportRequestAuthorized(request)") < handler.indexOf("request.body"), suffix);
   }
@@ -388,3 +390,8 @@ test("Marketing service routes reach bearer handlers only through four exact Adm
   assert.equal(isAdminSurfaceAllowed("production", CCPUN_VERCEL_PROJECT_IDS.web), false);
   assert.equal(isAdminRequestBoundary({ environment: "production-admin", vercelEnvironment: "production", deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction, host: "admin.ccpun.com" }), true);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

@@ -10,6 +10,7 @@ import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundati
 import { readOperationsJobs } from "@/lib/admin/operations/jobs-read-model";
 import { readConversionAnalytics } from "@/lib/admin/line/business-intelligence";
 import { getAdminSanityStatus, listSeoSuggestions } from "@/lib/admin/sanity-control";
+import { editorialDashboardSteps } from "@/lib/admin/dashboard-summary";
 
 export const metadata: Metadata = { title: "วันนี้" };
 
@@ -61,13 +62,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
 
   const lane = adminDataLaneLabel(status.environment);
   const studioReady = isStudioDataPlaneAllowed(status.dataset ?? undefined);
-  const steps = [
-    ["1", "เลือกหรือสร้างบทความ", "/content/articles/", `เลือกบทความจาก ${lane} หรือสร้างฉบับร่างใหม่`],
-    ["2", "ตรวจ SEO", "/seo/", "ดูผลตรวจที่บันทึกไว้และเหตุผลจากกฎที่อธิบายได้"],
-    ["3", "ตรวจข้อเสนอ", "/dashboard/reviews/", "คุณเป็นคนตัดสินใจว่าจะอนุมัติหรือไม่"],
-    ["4", "นำไปใช้กับฉบับร่าง", "/dashboard/reviews/", `แก้เฉพาะฉบับร่าง ${lane} และไม่เผยแพร่`],
-    ["5", status.environment === "local-production" ? "เปิดตัวอย่างและเผยแพร่" : "เปิดตัวอย่าง", "/studio/", studioReady ? "ตรวจหน้าจริงอีกครั้งใน Studio แล้วคุณจึงเลือก Publish หรือ Schedule เอง" : "Studio ปิดอยู่ในโหมดอ่านอย่างเดียว"],
-  ] as const;
+  const steps = editorialDashboardSteps(lane, status.environment, studioReady, "/dashboard/reviews/");
 
   return (
     <div>
