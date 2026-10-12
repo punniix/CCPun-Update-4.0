@@ -48,9 +48,9 @@ function variables(lane: "uat" | "production") {
     NEXT_PUBLIC_SANITY_PROJECT_ID:p.sanityProjectId,NEXT_PUBLIC_SANITY_DATASET:p.dataset,CCPUN_NEON_PROJECT_ID:p.projectId,CCPUN_NEON_BRANCH_ID:p.branchId,CCPUN_NEON_DATABASE:"neondb",
     CCPUN_ADMIN_DATABASE_URL:`postgresql://ccpun_admin_runtime:TEST_ONLY@${p.endpointId}.${p.hostSuffix}/neondb?sslmode=require` };
 }
-test("private scheduler accepts only the exact Admin project role Neon and Sanity lane", () => {
+test("retired platform IDs never authorize the private scheduler even with exact Neon and Sanity metadata", () => {
   for (const lane of ["uat","production"] as const) {
-    const v=variables(lane); assert.equal(resolveArticleSchedulerLane(v),lane);
+    const v=variables(lane); assert.equal(resolveArticleSchedulerLane(v),null);
     for (const [key,value] of [["VERCEL_PROJECT_ID","prj_other"],["NEXT_PUBLIC_SANITY_PROJECT_ID","wrong"],["CCPUN_NEON_BRANCH_ID","wrong"],["CCPUN_NEON_DATABASE","postgres"],["CCPUN_APP_ENV","production"]]) assert.equal(resolveArticleSchedulerLane({...v,[key]:value}),null,key);
     assert.equal(resolveArticleSchedulerLane({...v,CCPUN_ADMIN_DATABASE_URL:v.CCPUN_ADMIN_DATABASE_URL.replace("ccpun_admin_runtime","ccpun_social_runtime")}),null);
     assert.equal(resolveArticleSchedulerLane({...v,CCPUN_ADMIN_DATABASE_URL:v.CCPUN_ADMIN_DATABASE_URL.replace("ccpun_admin_runtime","neondb_owner")}),null);

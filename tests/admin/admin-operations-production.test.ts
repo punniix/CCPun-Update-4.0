@@ -41,15 +41,16 @@ test("Production Admin operations readback verifies scheduler coexistence", () =
 
 test("runtime identity accepts only the exact Production Admin lane", () => {
   const valid = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
     environment: "production-admin",
     projectId: "lively-bar-43618798",
     branchId: "br-long-resonance-b3ys5xrv",
     database: "neondb",
     connectionString: "postgresql://ccpun_admin_runtime:secret@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
-    vercelEnvironment: "production",
+    vercelEnvironment: undefined,
     gitBranch: "v4-production",
-    vercelProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-    productionAdminProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
+    vercelProjectId: undefined,
+    productionAdminProjectId: undefined,
   };
   assert.equal(isAdminOperationsRuntimeIdentityValid(valid), true);
   for (const changed of [
@@ -59,7 +60,7 @@ test("runtime identity accepts only the exact Production Admin lane", () => {
     { vercelEnvironment: "preview" },
     { gitBranch: "feature/admin" },
     { vercelProjectId: "prj_other" },
-    { vercelProjectId: undefined },
+    { deploymentRole: "web" },
     { connectionString: "postgresql://ccpun_admin_runtime:secret@ep-mute-frost-aztvz394.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require" },
     { connectionString: "postgresql://neondb_owner:secret@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require" },
   ]) assert.equal(isAdminOperationsRuntimeIdentityValid({ ...valid, ...changed }), false);
@@ -167,7 +168,7 @@ test("Hostinger fails closed on invalid release identity and preserves incomplet
   assert.deepEqual(failed.model.githubChecks.map((check) => check.state), ["failure", "queued"]);
 });
 
-test("Vercel migration fallback retains matching Production deployment evidence", () => {
+test("retired Vercel metadata cannot initiate deployment/status fetches or claim a native release", () => {
   const statusesUrl = `${githubRoot}/deployments/123/statuses`;
   const { model, calls } = deploymentProbe("admin.ccpun.com", {
     VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", VERCEL_ENV: "production",
@@ -176,7 +177,8 @@ test("Vercel migration fallback retains matching Production deployment evidence"
     [`${githubRoot}/deployments?per_page=40`]: [{ id: 123, environment: "Production – ccpun-admin", sha: deploymentSha, ref: "v4-production", created_at: "2026-10-03T04:31:38Z", statuses_url: statusesUrl }],
     [statusesUrl]: [{ state: "success", created_at: "2026-10-03T04:31:38Z" }],
   });
-  assert.deepEqual(calls, [`${githubRoot}/deployments?per_page=40`, statusesUrl]);
-  assert.equal(model.provider, "vercel"); assert.equal(model.status, "ready");
-  assert.equal(model.exactShaProduction?.id, 123); assert.deepEqual(model.githubChecks, []);
+  assert.deepEqual(calls, []);
+  assert.notEqual(model.provider, "hostinger"); assert.equal(model.status, "unavailable");
+  assert.equal(model.exactShaProduction, null); assert.deepEqual(model.githubChecks, []);
+  assert.equal(model.runtimeIdentityValid, false);
 });

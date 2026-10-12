@@ -1,8 +1,9 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, isAdminLineSystemDeliveryAllowed, safeAdminCapabilityReturnPath } from "../../lib/admin/capability-profile";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 
 test("editorial profile is pinned by its build marker and invalid/mismatched profiles fail closed", () => {
   assert.equal(getAdminCapabilityProfile({}), "full");

@@ -3,61 +3,39 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { neonConfig } from "@neondatabase/serverless";
 import { probeLinePrivateIngestRuntime, LINE_INGEST_LANES } from "../../lib/admin/line/private-ingestion";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/runtime/deployment-identity";
 
-import {
-  CCPUN_VERCEL_TEAM_ID,
-  CCPUN_VERCEL_TEAM_SLUG,
-  CCPUN_WEB_PRODUCTION_OIDC_SUBJECT,
-  CCPUN_WEB_PROJECT_ID,
-  CCPUN_WEB_PROJECT_NAME,
-  isProductionWebOidcClaims,
-} from "../../lib/admin/line/web-service-identity";
+import { POST as retiredIngest } from "../../apps/admin/app/api/internal/line/ingest-event/route";
+import { GET as retiredBridge } from "../../apps/admin/app/api/internal/line/bridge-health/route";
 
-const valid = {
-  iss: `https://oidc.vercel.com/${CCPUN_VERCEL_TEAM_SLUG}`,
-  aud: `https://vercel.com/${CCPUN_VERCEL_TEAM_SLUG}`,
-  sub: CCPUN_WEB_PRODUCTION_OIDC_SUBJECT,
-  owner: CCPUN_VERCEL_TEAM_SLUG,
-  owner_id: CCPUN_VERCEL_TEAM_ID,
-  project: CCPUN_WEB_PROJECT_NAME,
-  project_id: CCPUN_WEB_PROJECT_ID,
-  environment: "production",
-};
+const valid = { iss: "https://oidc.vercel.com/retired-team", aud: "https://vercel.com/retired-team",
+  sub: "retired-production-web", owner: "retired-team", owner_id: "team_retired",
+  project: "ccpun-web", project_id: "prj_retired", environment: "production" };
 
-test("Web service OIDC claims require the exact CCPun Web Production identity", () => {
-  assert.equal(isProductionWebOidcClaims(valid), true);
-  for (const [key, value] of [
-    ["aud", "https://vercel.com/wrong-team"],
-    ["project_id", "prj_wrong"],
-    ["project", "ccpun-admin"],
-    ["owner_id", "team_wrong"],
-    ["owner", "wrong-team"],
-    ["environment", "preview"],
-    ["sub", "owner:wrong"],
-  ] as const) {
-    assert.equal(isProductionWebOidcClaims({ ...valid, [key]: value }), false, key);
+test("retired Web OIDC identity and every former positive/negative claim receive private404", async () => {
+  for (const claims of [valid, ...[
+    ["aud", "https://vercel.com/wrong-team"], ["project_id", "prj_wrong"],
+    ["project", "ccpun-admin"], ["owner_id", "team_wrong"], ["owner", "wrong-team"],
+    ["environment", "preview"], ["sub", "owner:wrong"],
+  ].map(([key, value]) => ({ ...valid, [key]: value }))]) {
+    const request = new Request("https://admin.ccpun.com/api/internal/line/ingest-event/", {
+      method: "POST", headers: { authorization: "Bearer " + JSON.stringify(claims) }, body: "private synthetic" });
+    assert.equal((await retiredIngest()).status, 404);
+    assert.equal((await retiredBridge()).status, 404);
+    assert.equal(request.method, "POST");
   }
 });
 
-test("Admin LINE service routes authenticate before parsing or persisting payloads", () => {
-  for (const file of [
-    "apps/admin/app/api/internal/line/ingest-event/route.ts",
-
-  ]) {
+test("retired LINE routes deny before any auth, body, SDK, network or persistence imports", () => {
+  for (const file of ["apps/admin/app/api/internal/line/ingest-event/route.ts", "apps/admin/app/api/internal/line/bridge-health/route.ts"]) {
     const source = readFileSync(file, "utf8");
-    const authAt = source.indexOf("isProductionWebServiceRequestAuthorized(request)");
-    const bodyAt = source.indexOf("readEncryptedLineEventBody(request)");
-    assert.ok(authAt >= 0, file);
-    assert.ok(bodyAt > authAt, file);
+    assert.match(source, /status: 404, headers/);
+    assert.doesNotMatch(source, /isProductionWebServiceRequestAuthorized|readEncryptedLineEventBody/);
+    assert.doesNotMatch(source, /resolveLineIngestRuntime|createLinePrivateIngestor|probeLinePrivateIngestRuntime/);
+    assert.doesNotMatch(source, /createRemoteJWKSet/);
+    assert.doesNotMatch(source, /algorithms: \["RS256"\]/);
+    assert.doesNotMatch(source, /CCPUN_WEB_PRODUCTION_OIDC_SUBJECT/);
+    assert.doesNotMatch(source, /isProductionVercelServiceClaims/);
   }
-  const verifier = readFileSync("lib/admin/line/web-service-auth.ts", "utf8");
-  assert.match(verifier, /isProductionVercelServiceTokenAuthorized\([\s\S]*"web"\)/);
-  const shared = readFileSync("lib/runtime/vercel-service-auth.ts", "utf8");
-  assert.match(shared, /createRemoteJWKSet/);
-  assert.match(shared, /algorithms: \["RS256"\]/);
-  assert.match(shared, /CCPUN_WEB_PRODUCTION_OIDC_SUBJECT/);
-  assert.match(shared, /isProductionVercelServiceClaims/);
 });
 
 import { encryptedLineEventSchema, readEncryptedLineEventBody } from "../../lib/admin/line/encrypted-ingest";
@@ -111,8 +89,9 @@ test("encrypted gateway bounds streamed bytes, including absent Content-Length",
 
 test("gateway preserves the existing Web transport and authenticates before production lane/body checks", () => {
   const source = readFileSync("apps/admin/app/api/internal/line/ingest-event/route.ts", "utf8");
-  assert.match(source, /resolveLineIngestRuntime\(\)\?\.lane !== "production"/);
-  assert.ok(source.indexOf("isProductionWebServiceRequestAuthorized(request)") < source.indexOf("resolveLineIngestRuntime()?.lane"));
+  assert.doesNotMatch(source, /resolveLineIngestRuntime\(\)\?\.lane !== "production"/);
+  assert.equal(source.indexOf("isProductionWebServiceRequestAuthorized(request)"), -1);
+  assert.match(source, /status: 404, headers/);
   assert.match(readFileSync("apps/web/lib/line/private-ingestion.ts", "utf8"), /resolveDeploymentIdentity/);
   assert.match(readFileSync("apps/web/lib/line/private-ingestion.ts", "utf8"), /@neondatabase\/serverless/);
   const health = readFileSync("lib/admin/line/private-ingestion.ts", "utf8");
@@ -123,8 +102,8 @@ test("gateway preserves the existing Web transport and authenticates before prod
 test("durable readiness accepts V2 content crypto without HMAC and fails closed on invalid keys or grants", async (context) => {
   const lane = LINE_INGEST_LANES.production;
   const variables: Record<string, string | undefined> = {
-    CCPUN_APP_ENV: "production-admin", VERCEL_ENV: "production",
-    VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.admin, VERCEL_GIT_COMMIT_REF: "v4-production",
+    CCPUN_APP_ENV: "production-admin", CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_GIT_REF: "v4-production",
     CCPUN_NEON_PROJECT_ID: lane.projectId, CCPUN_NEON_BRANCH_ID: lane.branchId,
     CCPUN_NEON_DATABASE: lane.database,
     CCPUN_ADMIN_DATABASE_URL: `postgresql://${lane.runtimeRole}:synthetic@${lane.endpointId}.${lane.hostSuffix}/${lane.database}?sslmode=require`,

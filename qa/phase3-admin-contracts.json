@@ -1,0 +1,25 @@
+{
+  "baseline": "3eefd7e5fbb801bab0f8991e9333790136e77df9",
+  "originalSources": {
+    "lib/admin/agent-os/service-auth.ts": "import { createHash, timingSafeEqual } from \"node:crypto\";\n\nexport function isN8nAgentOsRequestAuthorized(\n  request: Request,\n  variables: Record<string, string | undefined> = process.env,\n) {\n  if (variables.CCPUN_AGENT_OS_N8N_ENABLED?.trim() !== \"true\") return false;\n  const expected = variables.CCPUN_AGENT_OS_N8N_TOKEN?.trim();\n  const authorization = request.headers.get(\"authorization\")?.trim();\n  if (!expected || expected.length < 43 || !authorization?.startsWith(\"Bearer \")) return false;\n\n  const supplied = authorization.slice(7).trim();\n  const expectedDigest = createHash(\"sha256\").update(expected).digest();\n  const suppliedDigest = createHash(\"sha256\").update(supplied).digest();\n  return timingSafeEqual(expectedDigest, suppliedDigest);\n}\n",
+    "lib/admin/agent-os/export-service-auth.ts": "import { createHash, timingSafeEqual } from \"node:crypto\";\n\nexport function isN8nExportRequestAuthorized(\n  request: Request,\n  variables: Record<string, string | undefined> = process.env,\n) {\n  if (variables.CCPUN_EXPORT_N8N_ENABLED?.trim() !== \"true\") return false;\n  const expected = variables.CCPUN_EXPORT_N8N_TOKEN?.trim();\n  const header = request.headers.get(\"authorization\")?.trim();\n  if (!expected || expected.length < 43 || !header?.startsWith(\"Bearer \")) return false;\n  const supplied = header.slice(7).trim();\n  return timingSafeEqual(\n    createHash(\"sha256\").update(expected).digest(),\n    createHash(\"sha256\").update(supplied).digest(),\n  );\n}\n"
+  },
+  "originalHashes": {
+    "lib/admin/agent-os/service-auth.ts": "2af0cba04816f1630e70b62e6c091102c30194cd841b2e8b15c43c005b0ecdf7",
+    "lib/admin/agent-os/export-service-auth.ts": "a20b419ceb94f23fae2f69a95213035f7c15483408abc911236a3fc1d4e7d4b6",
+    "lib/admin/media/google-drive-foundation.ts": "0dcccfef9bf68014941d4a4906b1378984879921d0e00774d39acf63f9ff1a6e"
+  },
+  "driveFixtureBody": "export const SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID = \"synthetic_ccpun_root_20260828\";\nexport const SYNTHETIC_GOOGLE_DRIVE_FILE_ID = \"synthetic_media_file_20260828\";\nexport const SYNTHETIC_GOOGLE_DRIVE_ITEMS: readonly GoogleDriveNormalizedItem[] = Object.freeze([\n  {\n    id: SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID,\n    mimeType: GOOGLE_DRIVE_FOLDER_MIME_TYPE,\n    parents: [\"synthetic_owner_my_drive_20260828\"],\n    trashed: false,\n    shortcutDetails: null,\n  },\n  {\n    id: \"synthetic_ccpun_media_folder_20260828\",\n    mimeType: GOOGLE_DRIVE_FOLDER_MIME_TYPE,\n    parents: [SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID],\n    trashed: false,\n    shortcutDetails: null,\n  },\n  {\n    id: SYNTHETIC_GOOGLE_DRIVE_FILE_ID,\n    mimeType: \"video/mp4\",\n    parents: [\"synthetic_ccpun_media_folder_20260828\"],\n    trashed: false,\n    shortcutDetails: null,\n  },\n]);\n",
+  "currentHashes": {
+    "lib/admin/agent-os/service-auth.ts": "46c853238eb84635cf6883f66d195bf87eaf6439ec9239f7f3b6d640fd1d475f",
+    "lib/admin/agent-os/export-service-auth.ts": "5f8da5c0e34b706e096d95692098e9c3af7e55336e00eac96e631f1a6697d45b",
+    "lib/admin/media/google-drive-foundation.ts": "380f5eea690f1a63c5c7be03715995f6073090d0dc41f9808ad1c2e69b878aae",
+    "lib/admin/agent-os/constant-time-bearer.ts": "b04a155dca7fe55d9afa9070c0e519f1940c81d5807e285ea893f2eb47a58115",
+    "tests/admin/google-drive-fixtures.ts": "75e9906f50991d7500bb1e00eda27532faab4f6a1f3c5c3c443352c8bd95a0c2"
+  },
+  "outputEvidence": {
+    "file": "tests/phase3-admin-contracts.test.mjs",
+    "sha256": "eb900ef660f75b557b1af4040e8ccfa3157f071fcbab6f9bd22e588ddb5c47f9"
+  },
+  "driveFixtureSeparator": "\n"
+}
