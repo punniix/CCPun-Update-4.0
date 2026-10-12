@@ -1,8 +1,9 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   isAdminDataPlaneAllowed,
   isAdminReadDataPlaneAllowed,
   isAdminMutationEnvironment,
@@ -47,14 +48,14 @@ test("legacy Lab and UAT deployments fail closed after Legacy Freeze", () => {
   assert.equal(isAdminDataPlaneAllowed("uat", "uat", LAB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
 });
 
-test("Admin survivor Preview has a dedicated UAT lane without Production access", () => {
+test("retired Admin Preview cannot open a UAT or Production data lane", () => {
   assert.equal(parseAdminEnvironment("ADMIN-UAT"), "admin-uat");
   assert.equal(isSanityProjectAllowed(UAT_SANITY_PROJECT_ID, "admin-uat"), true);
-  assert.equal(isDeploymentProjectAllowed("admin-uat", PRODUCTION_ADMIN_PROJECT_ID), true);
-  assert.equal(isAdminSurfaceAllowed("admin-uat", PRODUCTION_ADMIN_PROJECT_ID), true);
+  assert.equal(isDeploymentProjectAllowed("admin-uat", PRODUCTION_ADMIN_PROJECT_ID), false);
+  assert.equal(isAdminSurfaceAllowed("admin-uat", PRODUCTION_ADMIN_PROJECT_ID), false);
   assert.equal(
     isAdminDataPlaneAllowed("uat", "admin-uat", PRODUCTION_ADMIN_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID),
-    true,
+    false,
   );
   assert.equal(
     isAdminDataPlaneAllowed(
@@ -70,9 +71,9 @@ test("Admin survivor Preview has a dedicated UAT lane without Production access"
   assert.equal(isAdminDataPlaneAllowed("uat", "admin-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
 });
 
-test("only the exact Admin Vercel Preview may infer admin-uat when the explicit lane is absent", () => {
-  assert.equal(resolveAdminEnvironment(undefined, "preview", PRODUCTION_ADMIN_PROJECT_ID), "admin-uat");
-  assert.equal(resolveAdminEnvironment("", "PREVIEW", PRODUCTION_ADMIN_PROJECT_ID), "admin-uat");
+test("retired platform metadata never infers an application lane", () => {
+  assert.equal(resolveAdminEnvironment(undefined, "preview", PRODUCTION_ADMIN_PROJECT_ID), "unknown");
+  assert.equal(resolveAdminEnvironment("", "PREVIEW", PRODUCTION_ADMIN_PROJECT_ID), "unknown");
 
   assert.equal(resolveAdminEnvironment(undefined, "preview", WEB_PROJECT_ID), "unknown");
   assert.equal(resolveAdminEnvironment(undefined, "preview", "prj_unapproved"), "unknown");
@@ -85,16 +86,16 @@ test("only the exact Admin Vercel Preview may infer admin-uat when the explicit 
   assert.equal(resolveAdminEnvironment("production-admin", "preview", WEB_PROJECT_ID), "production-admin");
 });
 
-test("inferred Admin Preview stays pinned to the exact Sanity UAT lane", () => {
+test("retired inferred Preview stays denied for both Sanity datasets", () => {
   const environment = resolveAdminEnvironment(undefined, "preview", PRODUCTION_ADMIN_PROJECT_ID);
-  assert.equal(environment, "admin-uat");
+  assert.equal(environment, "unknown");
   assert.equal(
     isSanityLaneAllowed("uat", environment, PRODUCTION_ADMIN_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID),
-    true,
+    false,
   );
   assert.equal(
     isAdminDataPlaneAllowed("uat", environment, PRODUCTION_ADMIN_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID),
-    true,
+    false,
   );
   assert.equal(
     isSanityLaneAllowed(
@@ -118,10 +119,10 @@ test("inferred Admin Preview stays pinned to the exact Sanity UAT lane", () => {
   );
 });
 
-test("each deployed application lane accepts only its approved Vercel project and Sanity lane", () => {
+test("retired platform project identities cannot select deployed Sanity lanes", () => {
   assert.equal(isSanityLaneAllowed("uat", "development", undefined, undefined, UAT_SANITY_PROJECT_ID), true);
   assert.equal(isSanityLaneAllowed("uat", "development", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
-  assert.equal(isSanityLaneAllowed("uat", "web-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), true);
+  assert.equal(isSanityLaneAllowed("uat", "web-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(isSanityLaneAllowed("uat", "web-uat", LAB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(isSanityLaneAllowed("uat", "lab", LAB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(isSanityLaneAllowed("uat", "uat", UAT_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
@@ -133,11 +134,11 @@ test("each deployed application lane accepts only its approved Vercel project an
       PRODUCTION_ADMIN_PROJECT_ID,
       PRODUCTION_SANITY_PROJECT_ID,
     ),
-    true,
+    false,
   );
   assert.equal(
     isSanityLaneAllowed("production", "production", WEB_PROJECT_ID, undefined, PRODUCTION_SANITY_PROJECT_ID),
-    true,
+    false,
   );
   assert.equal(isSanityLaneAllowed("production", "lab", LAB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(
@@ -160,7 +161,7 @@ test("public Web Preview, Web UAT and Production cannot mount Admin clients or S
   assert.equal(isAdminReadDataPlaneAllowed("uat", "development", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
 
   assert.equal(isAdminSurfaceAllowed("web-uat", WEB_PROJECT_ID), false);
-  assert.equal(isSanityLaneAllowed("uat", "web-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), true);
+  assert.equal(isSanityLaneAllowed("uat", "web-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(isAdminReadDataPlaneAllowed("uat", "web-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(isAdminDataPlaneAllowed("uat", "web-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
   assert.equal(isStudioDataPlaneAllowed("uat", "web-uat", WEB_PROJECT_ID, undefined, UAT_SANITY_PROJECT_ID), false);
@@ -177,7 +178,7 @@ test("public Web Preview, Web UAT and Production cannot mount Admin clients or S
       PRODUCTION_ADMIN_PROJECT_ID,
       PRODUCTION_SANITY_PROJECT_ID,
     ),
-    true,
+    false,
   );
   assert.equal(
     isStudioDataPlaneAllowed(
@@ -187,7 +188,7 @@ test("public Web Preview, Web UAT and Production cannot mount Admin clients or S
       PRODUCTION_ADMIN_PROJECT_ID,
       PRODUCTION_SANITY_PROJECT_ID,
     ),
-    true,
+    false,
   );
   assert.equal(isAdminDataPlaneAllowed("uat", "unknown"), false);
   assert.equal(isAdminMutationEnvironment("production", WEB_PROJECT_ID), false);
@@ -195,11 +196,11 @@ test("public Web Preview, Web UAT and Production cannot mount Admin clients or S
 });
 
 test("deployed lane identity fails closed on cross-project or missing-project mismatches", () => {
-  assert.equal(isDeploymentProjectAllowed("production", WEB_PROJECT_ID), true);
+  assert.equal(isDeploymentProjectAllowed("production", WEB_PROJECT_ID), false);
   assert.equal(isDeploymentProjectAllowed("production", PRODUCTION_ADMIN_PROJECT_ID), false);
   assert.equal(isDeploymentProjectAllowed("production", undefined), false);
 
-  assert.equal(isDeploymentProjectAllowed("web-uat", WEB_PROJECT_ID), true);
+  assert.equal(isDeploymentProjectAllowed("web-uat", WEB_PROJECT_ID), false);
   assert.equal(isDeploymentProjectAllowed("web-uat", UAT_PROJECT_ID), false);
   assert.equal(isDeploymentProjectAllowed("web-uat", undefined), false);
 
@@ -313,7 +314,7 @@ test("Local Production Draft mode requires one explicit exact flag", () => {
   delete process.env.CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES;
 });
 
-test("production-admin requires both the immutable Admin project ID and the configured expected ID", () => {
+test("retired platform IDs cannot authorize production-admin", () => {
   assert.equal(isDeploymentProjectAllowed("production-admin", undefined, PRODUCTION_ADMIN_PROJECT_ID), false);
   assert.equal(
     isDeploymentProjectAllowed("production-admin", WEB_PROJECT_ID, PRODUCTION_ADMIN_PROJECT_ID),
@@ -325,7 +326,7 @@ test("production-admin requires both the immutable Admin project ID and the conf
   );
   assert.equal(
     isDeploymentProjectAllowed("production-admin", PRODUCTION_ADMIN_PROJECT_ID, PRODUCTION_ADMIN_PROJECT_ID),
-    true,
+    false,
   );
   assert.equal(
     isAdminDataPlaneAllowed(
@@ -349,7 +350,7 @@ test("production-admin requires both the immutable Admin project ID and the conf
   );
   assert.equal(
     isAdminMutationEnvironment("production-admin", PRODUCTION_ADMIN_PROJECT_ID, PRODUCTION_ADMIN_PROJECT_ID),
-    true,
+    false,
   );
   assert.equal(
     isAdminMutationEnvironment("production-admin", WEB_PROJECT_ID, PRODUCTION_ADMIN_PROJECT_ID),
