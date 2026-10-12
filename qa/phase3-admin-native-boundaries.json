@@ -41,7 +41,7 @@
     "lib/admin/host-routing.ts": "d51321ba5ef0061f503e8661b4f8c2d5b8102796b006920096885bffcbf728ab",
     "apps/admin/proxy.ts": "f423de344e00e1219ddb5e2699b4cadf5e6fa8b5d42ce403e371084b3081a7fc",
     "lib/admin/social/runtime.ts": "876ebdfb186af7f23d176c53139505ce846b9907fbd953fb77064fe1e562ee74",
-    "lib/admin/line/private-ingestion.ts": "6aa21d9a0fd1c1d62fc7dd5ce0a9a0b3660c3ab19e54bec1c03704e71ab722d7",
+    "lib/admin/line/private-ingestion.ts": "315f9e8397090fdae56374a3d8bde1015de8e6db3ee2fd717766a5d690577678",
     "lib/admin/migrations/google-data-transfer.ts": "476566d3d3092ae17b1dddc76b51cf8131c74f90dae14bf7ffbb51fb838ae789",
     "lib/admin/operations/foundation.ts": "e15f973b4044a224d6a452f69f0a719e777504287198cff1916e7c0b80221e41",
     "lib/admin/seo-intelligence/foundation.ts": "dde8360a4e711fae0e765df2b1ca4528cdc216e48c6a7b595299012e1034bd8e",
@@ -51,6 +51,6 @@
   "evidenceHash": null,
   "outputEvidence": {
     "file": "tests/phase3-admin-native-boundaries.test.mjs",
-    "sha256": "8259e29f60126ee9f1e3513a2d47b212e8b3c9416c8d0e476a05ffa189c0e224"
+    "sha256": "c2fabd03bf29696c0611e88b1744f9132eb1fdb441e70b14f529ec0f526fa521"
   }
 }
