@@ -8,7 +8,7 @@ const { build } = createRequire(import.meta.url)("esbuild") as typeof import("es
 const root = resolve(import.meta.dirname, "../..");
 
 // Execute real route bodies, real strict AISV schema, RBAC, origin and capability
-// helpers. Only authentication/environment/provider/persistence edges are fixtures.
+// helpers. Only authentication/environment/provider/persistence/backend/SDK edges are fixtures.
 interface FixtureState {
   identity: { actor: string; actorType: string; role: string } | null;
   policyAllowed: boolean;
@@ -22,10 +22,17 @@ interface FixtureState {
   writeError: string;
   authResponse: Response;
   authError?: Error;
+  backend?: "disabled" | "native-neon" | "workflow";
+  preparedCalls?: number;
+  nativeCalls?: number;
+  sdkCalls?: number;
+  sdkLoads?: number;
+  sdkError?: boolean;
+  failedStarts?: number;
 }
 interface FixtureExports {
-  GET(request: Request): Promise<Response>;
-  POST(request: Request): Promise<Response>;
+  GET(request: Request, context?: { params: Promise<{ id: string }> }): Promise<Response>;
+  POST(request: Request, context?: { params: Promise<{ id: string }> }): Promise<Response>;
   default(request: unknown): Response;
 }
 async function loadFixture(entry: string, state: FixtureState) {
@@ -33,7 +40,7 @@ async function loadFixture(entry: string, state: FixtureState) {
   (globalThis as unknown as Record<string, unknown>)[key] = state;
   const mocks = `const s = globalThis[${JSON.stringify(key)}];
     export class NextResponse extends Response {
-      static json(body, options) { return new NextResponse(JSON.stringify(body), { ...options, headers: { 'content-type': 'application/json' } }); }
+      static json(body, options) { return new NextResponse(JSON.stringify(body), { ...options, headers: { ...Object.fromEntries(new Headers(options?.headers)), 'content-type': 'application/json' } }); }
       static next(options) { return new NextResponse(null, { ...options, headers: { 'x-fixture-next': '1' } }); }
       static redirect(url) { return new NextResponse(null, { status: 307, headers: { location: String(url) } }); }
       static rewrite(url, options) { return new NextResponse(null, { ...options, headers: { 'x-fixture-rewrite': String(url) } }); }
@@ -47,6 +54,14 @@ async function loadFixture(entry: string, state: FixtureState) {
     export const getUbersuggestDashboardData = async () => s.cache;
     export const isSnapshotFresh = checkedAt => checkedAt === 'fresh';
     export const persistUbersuggestDashboardSync = async (value, audit) => { s.persisted.push({ value, audit }); if (s.writeError) throw new Error(s.writeError); return { accountId: 'fixture-account', geoId: 'fixture-geo', checkedAt: 'fixture-time' }; };
+    export const getArticleScheduleBackend = () => s.backend;
+    export const getArticleScheduleState = async () => ({ schedule: null });
+    export const prepareArticleSchedule = async () => { s.preparedCalls++; return { dispatch: true, row: { generation: 'fixture-generation' } }; };
+    export const registerNativeArticleSchedule = async () => { s.nativeCalls++; return { status: 'scheduled', mode: 'validate-only' }; };
+    export const acknowledgeArticleSchedule = async () => ({ status: 'scheduled', mode: 'legacy-fixture' });
+    export const cancelArticleSchedule = async () => ({ status: 'cancelled' });
+    export const markScheduleStartFailed = async () => { s.failedStarts++; };
+    export const scheduledArticlePublicationWorkflow = () => {};
     export const auth = fn => fn;
     export const handlers = { GET: async () => { if (s.authError) throw s.authError; return s.authResponse; }, POST: async () => { if (s.authError) throw s.authError; return s.authResponse; } };
     export const observeAiCrawlerRequest = () => {};
@@ -55,12 +70,15 @@ async function loadFixture(entry: string, state: FixtureState) {
     export const isExactAdminPreviewOrigin = () => false;
     export const isAuthenticatedAdminPreviewPath = () => false;
     export const isInternalServiceApiPath = path => path.startsWith('/api/internal/');`;
-  const realAliases = new Set(["auth-config", "rbac", "capability-profile", "routes", "auth-diagnostics", "seo-intelligence/aisv"].map(name => `@/lib/admin/${name}`));
+  const realAliases = new Set(["auth-config", "rbac", "capability-profile", "routes", "auth-diagnostics", "seo-intelligence/aisv", "operations/article-schedule-contract"].map(name => `@/lib/admin/${name}`));
   const result = await build({ entryPoints: [resolve(root, entry)], bundle: true, write: false, format: "esm", platform: "node", nodePaths: (process.env.NODE_PATH ?? "").split(":"), plugins: [{ name: "fixture-boundaries", setup(builder) {
-    builder.onResolve({ filter: /^(?:@\/|next\/server$)/ }, (args) => realAliases.has(args.path)
-      ? { path: resolve(root, args.path.slice(2) + ".ts") }
-      : { path: "fixture", namespace: "fixture" });
+    builder.onResolve({ filter: /^(?:@\/|next\/server$|workflow\/api$)/ }, (args) => {
+      if (args.path === "workflow/api") return { path: "sdk", namespace: "sdk" };
+      if (realAliases.has(args.path) || args.path.startsWith("@/apps/admin/app/") || args.path === "@/cms/sanity/policy/article-scheduling") return { path: resolve(root, args.path.slice(2) + ".ts") };
+      return { path: "fixture", namespace: "fixture" };
+    });
     builder.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ contents: mocks, loader: "js" }));
+    builder.onLoad({ filter: /.*/, namespace: "sdk" }, () => ({ contents: `const s = globalThis[${JSON.stringify(key)}]; s.sdkLoads++; export const start = async () => { s.sdkCalls++; if (s.sdkError) throw new Error('fixture-private-sdk-error'); return { runId: 'fixture-run' }; };`, loader: "js" }));
   } }] });
   const exports = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString("base64")}`);
   return { exports: exports as FixtureExports, close() { delete (globalThis as unknown as Record<string, unknown>)[key]; } };
@@ -121,8 +139,8 @@ test("canonical Ubersuggest POST distinguishes reviewed imports from provider ex
   } finally { if (previousAuthUrl === undefined) delete process.env.AUTH_URL; else process.env.AUTH_URL = previousAuthUrl; }
 });
 
-test("canonical Auth.js wrappers preserve status/cookies and rethrow errors without logging private payloads", async () => {
-  const state = initialState(); const fixture = await loadFixture("apps/admin/app/api/auth/[...nextauth]/route.ts", state);
+test("root Auth.js adapter preserves canonical status/cookies and rethrows errors without logging private payloads", async () => {
+  const state = initialState(); const fixture = await loadFixture("app/api/auth/[...nextauth]/route.ts", state);
   const warnings: unknown[] = []; const warn = console.warn; console.warn = (...args) => { warnings.push(args); };
   try {
     const req = new Request("https://admin-test.ccpun.com/api/auth/callback/google?code=fixture-private-code", { headers: { cookie: "fixture-private-cookie=fixture-private-value" } });
@@ -154,4 +172,41 @@ test("mixed root proxy preserves public Web routes and applies Admin capability/
     assert.equal(fixture.exports.default(req("/api/admin/content/")).status, 404);
     assert.equal(fixture.exports.default(req("/", "ccpun.com")).headers.get("x-fixture-next"), "1");
   } finally { fixture.close(); for (const [key, value] of Object.entries(before)) if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+});
+
+test("UAT root schedule adapter keeps native, disabled, legacy, identity, origin and strict-input boundaries", async (t) => {
+  const variables = { AUTH_URL: "https://admin-test.ccpun.com", CCPUN_ADMIN_CAPABILITY_PROFILE: "full", NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full" };
+  const before = Object.fromEntries(Object.keys(variables).map(key => [key, process.env[key]])); Object.assign(process.env, variables);
+  const body = { scheduledLocal: "2026-10-12T16:00", draftRevision: "fixture-revision", publishedRevision: null, expectedGeneration: null, expectedVersion: 0, requestId: randomUUID() };
+  const cases = [
+    { name: "native-neon schedules without importing the SDK", backend: "native-neon", status: 201, prepares: 1, native: 1, sdk: 0 },
+    { name: "disabled backend never prepares or imports SDK", backend: "disabled", status: 503, prepares: 0, native: 0, sdk: 0 },
+    { name: "retained legacy backend uses only the mocked SDK", backend: "workflow", status: 201, prepares: 1, native: 0, sdk: 1 },
+    { name: "legacy dispatch failure is redacted and marks preparing row failed", backend: "workflow", sdkError: true, status: 502, prepares: 1, native: 0, sdk: 1 },
+    { name: "editorial capability denies before preparation", backend: "native-neon", profile: "editorial", status: 404, prepares: 0, native: 0, sdk: 0 },
+    { name: "missing identity denied", backend: "native-neon", identity: null, status: 403, prepares: 0, native: 0, sdk: 0 },
+    { name: "service actor denied", backend: "native-neon", identity: { actor: "fixture-service", actorType: "agent", role: "owner" }, status: 403, prepares: 0, native: 0, sdk: 0 },
+    { name: "viewer denied", backend: "native-neon", identity: { actor: "fixture-viewer", actorType: "human", role: "viewer" }, status: 403, prepares: 0, native: 0, sdk: 0 },
+    { name: "foreign origin denied", backend: "native-neon", origin: "https://foreign.example", status: 403, prepares: 0, native: 0, sdk: 0 },
+    { name: "unknown request field denied", backend: "native-neon", body: { ...body, credential: "fixture-forbidden" }, status: 400, prepares: 0, native: 0, sdk: 0 },
+    { name: "draft-prefixed article ID denied", backend: "native-neon", id: "drafts.fixture", status: 400, prepares: 0, native: 0, sdk: 0 },
+    { name: "impossible Bangkok date denied", backend: "native-neon", body: { ...body, scheduledLocal: "2026-02-31T16:00" }, status: 400, prepares: 0, native: 0, sdk: 0 },
+  ] as const;
+  try {
+    for (const c of cases) await t.test(c.name, async () => {
+      process.env.CCPUN_ADMIN_CAPABILITY_PROFILE = process.env.NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE = "profile" in c ? c.profile : "full";
+      const state: FixtureState = { ...initialState(), ...c, preparedCalls: 0, nativeCalls: 0, sdkCalls: 0, sdkLoads: 0, failedStarts: 0 };
+      const fixture = await loadFixture("app/api/admin/content/[id]/schedule/route.ts", state);
+      try {
+        const input = "body" in c ? c.body : body;
+        const req = new Request("https://admin-test.ccpun.com/api/admin/content/fixture/schedule/", { method: "POST", headers: { origin: "origin" in c ? c.origin : variables.AUTH_URL, "content-type": "application/json" }, body: JSON.stringify(input) });
+        const response = await fixture.exports.POST(req, { params: Promise.resolve({ id: "id" in c ? c.id : "fixture-article" }) });
+        assert.equal(response.status, c.status);
+        assert.equal(response.headers.get("cache-control"), "private, no-store");
+        assert.equal(state.preparedCalls, c.prepares); assert.equal(state.nativeCalls, c.native); assert.equal(state.sdkCalls, c.sdk); assert.equal(state.sdkLoads, c.sdk);
+        assert.equal(state.failedStarts, "sdkError" in c ? 1 : 0);
+        assert.doesNotMatch(JSON.stringify(await response.json()), /fixture-private-sdk-error|fixture-forbidden/);
+      } finally { fixture.close(); }
+    });
+  } finally { for (const [key, value] of Object.entries(before)) if (value === undefined) delete process.env[key]; else process.env[key] = value; }
 });

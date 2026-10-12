@@ -8,7 +8,7 @@ const read = (file) => readFileSync(resolve(root, file), 'utf8');
 const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {
-  assert.equal(inventory.pairs.length, 65);
+  assert.equal(inventory.pairs.length, 73);
   for (const { legacy, canonical, wrapper, status } of inventory.pairs) {
     assert.equal(status, 'migrated', legacy);
     assert.equal(read(legacy), wrapper, legacy);
@@ -16,8 +16,8 @@ test('root compatibility routes delegate implementations to their canonical app 
     const implementation = read(canonical);
     const namedReexports = [...implementation.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
     const wrapperExports = [...wrapper.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
-    for (const name of ['default', 'metadata']) {
-      const exported = name === 'default' ? /export default\b/.test(implementation) : /export const metadata\b/.test(implementation);
+    for (const name of ['default', 'metadata', 'viewport', 'generateMetadata', 'generateViewport', 'generateStaticParams', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']) {
+      const exported = name === 'default' ? /export default\b/.test(implementation) : new RegExp(`export (?:const|(?:async )?function) ${name}\\b`).test(implementation);
       if (exported || namedReexports.includes(name)) assert.ok(wrapperExports.includes(name), `${legacy}: missing ${name} export`);
     }
     assert.match(wrapper, new RegExp(`from "@/${canonical.replace(/\.[^.]+$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), legacy);
