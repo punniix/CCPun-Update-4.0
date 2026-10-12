@@ -4,15 +4,15 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-test("Deployments reader uses neutral runtime identity with separate Hostinger and retained Vercel evidence without a token", () => {
+test("Deployments reader uses native release identity and exact-SHA GitHub checks without vendor history or a token", () => {
   const source = read("lib/admin/operations/deployment-read-model.ts");
   assert.match(source, /resolveDeploymentIdentity\(env, "admin"\)/);
   assert.match(source, /identity\.provider === "hostinger"/);
   assert.match(source, /admin-test\.ccpun\.com/);
   assert.match(source, /check-runs\?per_page=100/);
-  assert.match(source, /identity\.provider === "vercel"/);
-  assert.match(source, /Production – ccpun-admin/);
-  assert.match(source, /statuses_url/);
+  assert.doesNotMatch(source, /identity\.provider === "vercel"|Production – ccpun-admin|statuses_url/);
+  assert.match(source, /check\.head_sha === gitSha && check\.app\.slug === "github-actions"/);
+  assert.match(source, /latestProduction: null, exactShaProduction: null, history: \[\]/);
   assert.match(source, /admin\.ccpun\.com/);
   assert.doesNotMatch(source, /VERCEL_TOKEN|Authorization:\s*[`'\"]/i);
 });
