@@ -213,7 +213,8 @@ async function realLab() {
     await until(() => delivered.includes("ready"), "ACTIVE_EXECUTOR");
     stage = "executor-delayed-enqueue";
     await enqueue("delayed", 8);
-    const pending = async () => (await pool.query("SELECT id, run_at FROM graphile_worker.jobs WHERE payload->>'id' = $1", ["delayed"])).rows;
+    // Graphile 0.16.6 public jobs view omits payload; pinned World 4.3.5 uses idempotencyKey as jobKey.
+    const pending = async () => (await pool.query("SELECT id, run_at FROM graphile_worker.jobs WHERE key = $1", ["ccpun-lab-delayed"])).rows;
     stage = "executor-delayed-read";
     const before = await pending();
     assert.equal(before.length, 1, "DELAY_NOT_DURABLY_STORED");
