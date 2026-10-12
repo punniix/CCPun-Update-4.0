@@ -37,7 +37,7 @@ const currentHashes = {
 };
 const outputEvidence = {
   "file": "tests/phase3-admin-native-boundaries.test.mjs",
-  "sha256": "eab38acf59f60eed4ec15d28247251f737ef6d2c88c038ef5438e4c90605a7e0"
+  "sha256": "37f9e8e2bc090cd4fa373ebffbf9a0a72fa73ee099af72b88a30defe31501c99"
 };
 export const phase3AdminNativeEntries = Object.freeze(Object.keys(originalHashes));
 const sha = value => createHash('sha256').update(value).digest('hex');

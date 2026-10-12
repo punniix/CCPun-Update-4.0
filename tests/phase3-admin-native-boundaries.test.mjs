@@ -6,7 +6,11 @@ import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { assertPhase3AdminNativeBoundaries, phase3AdminNativeEntries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 
 const proof = JSON.parse(readFileSync('qa/phase3-admin-native-boundaries.json', 'utf8'));
-const sources = new Map(Object.entries(proof.baselineSources));
+// Own original native behavior executes its complete before dependency graph.
+const commonBefore = JSON.parse(readFileSync('qa/phase3-native-provider-parity.json', 'utf8'));
+assert.equal(commonBefore.baselineSha, '70ed4ab00fe9533c88ca5bd3342134195ee70341');
+assert.equal(proof.baseline, '3eefd7e5fbb801bab0f8991e9333790136e77df9');
+const sources = new Map([...Object.entries(commonBefore.baselineSources), ...Object.entries(proof.baselineSources)]);
 const sha = text => createHash('sha256').update(text).digest('hex');
 const globals = env => ({ process: { env }, console: { log() {}, error() {}, warn() {} } });
 function load(file, env, old = false, mocks = new Map()) {
