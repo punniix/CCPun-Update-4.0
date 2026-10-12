@@ -48,7 +48,7 @@
     "check:hostinger": "node scripts/check-hostinger-readiness.mjs",
     "qa:hostinger:parity": "node scripts/hostinger-seo-parity.mjs",
     "test:hostinger": "node --test tests/hostinger-shadow-config.test.mjs",
-    "build:hostinger": "node scripts/build-provider.mjs",
+    "build:hostinger": "npm run build --workspace @ccpun/web",
     "nav:check": "node scripts/sync-public-nav-config.mjs --check",
     "nav:sync:write": "node scripts/sync-public-nav-config.mjs --write",
     "audit:p2-closeout": "node scripts/check-p2-source-config-closeout.mjs"
