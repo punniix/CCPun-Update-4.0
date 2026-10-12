@@ -1,6 +1,6 @@
-import fs from 'node:fs';
+import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 
-const read = (path) => fs.readFileSync(path, 'utf8');
+const read = (path) => readPhase1Source(path);
 const failures = [];
 
 function expect(name, pass, detail = '') {
@@ -146,10 +146,12 @@ expect(
     && entityIds.includes('export const CCPUN_PERSON_ID = "https://ccpun.com/#person"')
     && articleStructuredData.includes('author: { "@id": CCPUN_PERSON_ID }')
     && !articleStructuredData.includes('name: article.authorName')
-    && publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
-    && !publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)"')
-    && webPublicLayout.includes('authors: [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
-    && !webPublicLayout.includes('authors: [{ name: "ปั้น (CCPun)"'),
+    && publicLayout.includes('buildSiteRootMetadata({ admin: IS_ADMIN_APPLICATION, review: IS_REVIEW_ENVIRONMENT })')
+    && publicLayout.includes('authors: admin ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
+    && !publicLayout.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"')
+    && webPublicLayout.includes('buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT })')
+    && webPublicLayout.includes('authors: admin ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
+    && !webPublicLayout.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"'),
 );
 expect(
   'Homepage credential enrichment is fail-soft and does not require a new public page',

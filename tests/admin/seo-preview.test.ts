@@ -1,12 +1,14 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const schema = readFileSync(new URL("../../cms/sanity/schema/objects/seo-metadata.ts", import.meta.url), "utf8");
-const sanityContent = readFileSync(new URL("../../lib/content/sanity.ts", import.meta.url), "utf8");
-const articleType = readFileSync(new URL("../../lib/content/types.ts", import.meta.url), "utf8");
-const articleRoute = readFileSync(new URL("../../features/blog/pages/ArticlePage.tsx", import.meta.url), "utf8");
-const adminPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const schema = readCurrentSource(new URL("../../cms/sanity/schema/objects/seo-metadata.ts", import.meta.url), "utf8");
+const sanityContent = readCurrentSource(new URL("../../lib/content/sanity.ts", import.meta.url), "utf8");
+const articleType = readCurrentSource(new URL("../../lib/content/types.ts", import.meta.url), "utf8");
+const articleRoute = readCurrentSource(new URL("../../features/blog/pages/ArticlePage.tsx", import.meta.url), "utf8");
+const adminPage = readCurrentSource(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 
 test("SEO governance includes keyword cluster and dedicated social fields", () => {
   for (const field of ["keywordCluster", "ogTitle", "ogDescription", "ogImage"]) {
@@ -29,3 +31,7 @@ test("Admin renders separate SERP and social previews without changing URLs", ()
   assert.match(adminPage, /getArticleCanonical|canonical/);
   assert.doesNotMatch(adminPage, /redirect|permanentRedirect/);
 });
+
+function readCurrentSource(file: string | URL, _encoding: "utf8"): string {
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : file);
+}
