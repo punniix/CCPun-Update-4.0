@@ -15,12 +15,9 @@ import {
   isLineArticleDiscoveryJourney,
 } from "../../line/system-delivery";
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   resolveDeploymentIdentity,
   type DeploymentProvider,
 } from "../../runtime/deployment-identity";
-
-const ADMIN_VERCEL_PROJECT_ID = CCPUN_VERCEL_PROJECT_IDS.admin;
 
 export const LINE_INGEST_LANES = {
   uat: {
@@ -87,7 +84,7 @@ export function resolveLineIngestRuntime(
   variables: Record<string, string | undefined> = process.env,
 ): LineIngestRuntime | null {
   const deployment = resolveDeploymentIdentity(variables, "admin");
-  if (!deployment.valid) return null;
+  if (!deployment.valid || !["hostinger", "local"].includes(deployment.provider)) return null;
   const environment = deployment.environment;
   const lane: LineIngestLane | null = environment === "production-admin"
     ? "production"
@@ -103,19 +100,8 @@ export function resolveLineIngestRuntime(
   if (variables.CCPUN_NEON_BRANCH_ID?.trim() !== identity.branchId) return null;
   if (variables.CCPUN_NEON_DATABASE?.trim() !== identity.database) return null;
 
-  const vercelEnvironment = variables.VERCEL_ENV?.trim();
-  const vercelProjectId = variables.VERCEL_PROJECT_ID?.trim();
   if (lane === "production") {
     if (deployment.provider === "local" || (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease(variables))) return null;
-    if (
-      deployment.provider === "vercel"
-      && (vercelEnvironment !== "production" || vercelProjectId !== ADMIN_VERCEL_PROJECT_ID)
-    ) return null;
-  } else if (
-    deployment.provider === "vercel"
-    && (vercelEnvironment !== "preview" || vercelProjectId !== ADMIN_VERCEL_PROJECT_ID)
-  ) {
-    return null;
   }
 
   try {

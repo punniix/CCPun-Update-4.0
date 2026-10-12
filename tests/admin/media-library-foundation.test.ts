@@ -1,8 +1,9 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import {
   getMediaStorageProviderState,
   isGoogleDriveSelectedFileVerificationEnabled,
@@ -29,9 +30,10 @@ import {
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 const enabledInput = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
   flag: "1",
   environment: "admin-uat" as const,
-  projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+  projectId: undefined,
   gitBranch: WEBSITE_42_MEDIA_LIBRARY_BRANCH,
   sanityProjectId: WEBSITE_42_MEDIA_SANITY_PROJECT_ID,
   sanityDataset: WEBSITE_42_MEDIA_SANITY_DATASET,
@@ -58,22 +60,22 @@ test("Media Library requires the exact Admin UAT branch and data plane", () => {
 
 test("selected-file verification is split from synthetic GET and accepts only the centralized UAT or Production runtime", () => {
   const uatEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
     CCPUN_MEDIA_LIBRARY_ENABLED: "1",
     CCPUN_APP_ENV: "admin-uat",
-    VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    VERCEL_GIT_COMMIT_REF: WEBSITE_42_MEDIA_LIBRARY_BRANCH,
+
+    CCPUN_GIT_REF: WEBSITE_42_MEDIA_LIBRARY_BRANCH,
     NEXT_PUBLIC_SANITY_PROJECT_ID: WEBSITE_42_MEDIA_SANITY_PROJECT_ID,
     NEXT_PUBLIC_SANITY_DATASET: WEBSITE_42_MEDIA_SANITY_DATASET,
   };
   assert.equal(isGoogleDriveSelectedFileVerificationEnabled(uatEnv), true);
 
   const productionEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
     CCPUN_MEDIA_LIBRARY_ENABLED: "1",
     CCPUN_APP_ENV: "production-admin",
-    VERCEL_ENV: "production",
-    VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    VERCEL_GIT_COMMIT_REF: "v4-production",
+
+    CCPUN_GIT_REF: "v4-production",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
     NEXT_PUBLIC_SANITY_DATASET: "production",
     CCPUN_NEON_PROJECT_ID: "production-project-id",
@@ -89,7 +91,7 @@ test("selected-file verification is split from synthetic GET and accepts only th
     vercelEnvironment: productionEnv.VERCEL_ENV,
     projectId: productionEnv.VERCEL_PROJECT_ID,
     productionAdminProjectId: productionEnv.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID,
-    gitBranch: productionEnv.VERCEL_GIT_COMMIT_REF,
+    gitBranch: productionEnv.CCPUN_GIT_REF,
     sanityProjectId: productionEnv.NEXT_PUBLIC_SANITY_PROJECT_ID,
     sanityDataset: productionEnv.NEXT_PUBLIC_SANITY_DATASET,
     connectionString: productionEnv.CCPUN_SOCIAL_DATABASE_URL,
@@ -102,7 +104,7 @@ test("selected-file verification is split from synthetic GET and accepts only th
     { CCPUN_MEDIA_LIBRARY_ENABLED: "0" },
     { VERCEL_ENV: "preview" },
     { VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web },
-    { VERCEL_GIT_COMMIT_REF: WEBSITE_42_MEDIA_LIBRARY_BRANCH },
+    { CCPUN_GIT_REF: WEBSITE_42_MEDIA_LIBRARY_BRANCH },
     { NEXT_PUBLIC_SANITY_PROJECT_ID: WEBSITE_42_MEDIA_SANITY_PROJECT_ID },
     { NEXT_PUBLIC_SANITY_DATASET: WEBSITE_42_MEDIA_SANITY_DATASET },
     { CCPUN_NEON_ENDPOINT_ID: "" },

@@ -1,6 +1,0 @@
-export {
-  CCPUN_VERCEL_TEAM_SLUG, CCPUN_VERCEL_TEAM_ID,
-  CCPUN_WEB_PROJECT_ID, CCPUN_WEB_PROJECT_NAME,
-  CCPUN_WEB_PRODUCTION_OIDC_SUBJECT, CCPUN_WEB_OIDC_AUDIENCE,
-  isProductionWebOidcClaims,
-} from "../../runtime/vercel-service-auth";
