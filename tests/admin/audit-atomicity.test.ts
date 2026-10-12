@@ -1,20 +1,22 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const researchService = readFileSync(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
-const seoAuditService = readFileSync(new URL("../../lib/admin/seo-audit.ts", import.meta.url), "utf8");
-const seoProposalService = readFileSync(new URL("../../lib/admin/seo-proposals.ts", import.meta.url), "utf8");
-const contentReadinessService = readFileSync(new URL("../../lib/admin/content-readiness.ts", import.meta.url), "utf8");
-const researchRoute = readFileSync(new URL("../../apps/admin/app/api/admin/research/route.ts", import.meta.url), "utf8");
-const seoAuditRoute = readFileSync(new URL("../../apps/admin/app/api/admin/seo/audit/[id]/route.ts", import.meta.url), "utf8");
-const proposalRoute = readFileSync(new URL("../../apps/admin/app/api/admin/seo/audit/[id]/proposals/route.ts", import.meta.url), "utf8");
-const sanityControl = readFileSync(new URL("../../lib/admin/sanity-control.ts", import.meta.url), "utf8");
-const studioScore = readFileSync(new URL("../../cms/sanity/components/SeoScoreInput.tsx", import.meta.url), "utf8");
-const seoDetailPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const researchService = readCurrentSource(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
+const seoAuditService = readCurrentSource(new URL("../../lib/admin/seo-audit.ts", import.meta.url), "utf8");
+const seoProposalService = readCurrentSource(new URL("../../lib/admin/seo-proposals.ts", import.meta.url), "utf8");
+const contentReadinessService = readCurrentSource(new URL("../../lib/admin/content-readiness.ts", import.meta.url), "utf8");
+const researchRoute = readCurrentSource(new URL("../../apps/admin/app/api/admin/research/route.ts", import.meta.url), "utf8");
+const seoAuditRoute = readCurrentSource(new URL("../../apps/admin/app/api/admin/seo/audit/[id]/route.ts", import.meta.url), "utf8");
+const proposalRoute = readCurrentSource(new URL("../../apps/admin/app/api/admin/seo/audit/[id]/proposals/route.ts", import.meta.url), "utf8");
+const sanityControl = readCurrentSource(new URL("../../lib/admin/sanity-control.ts", import.meta.url), "utf8");
+const studioScore = readCurrentSource(new URL("../../cms/sanity/components/SeoScoreInput.tsx", import.meta.url), "utf8");
+const seoDetailPage = readCurrentSource(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
 
 test("research and audit records use Neon while Article audit snapshots keep exact Sanity revisions", () => {
-  const operations = readFileSync(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");
+  const operations = readCurrentSource(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");
   assert.match(researchService, /createAdminResearchSnapshot/);
   assert.match(operations, /WITH inserted AS[\s\S]*ccpun_admin\.research_snapshot[\s\S]*ccpun_admin\.audit_log/);
   assert.match(seoAuditService, /patch\(targetId\)\.ifRevisionId\(article\.revision\)/);
@@ -55,3 +57,8 @@ test("automatic metadata stays blocked while fresh research may propose search i
   assert.match(proposalRoute, /evidence: proposal\.evidence/);
   assert.match(seoDetailPage, /เรื่องเป้าหมายการค้นหาเฉพาะเมื่อมีคำค้นหลัก/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

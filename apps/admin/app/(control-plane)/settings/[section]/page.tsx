@@ -1,12 +1,11 @@
+import { Row } from "@/features/admin/components/ReadinessRows";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getAdminDeploymentIdentity, getAdminEnvironment } from "@/lib/admin/environment";
 import { ADMIN_PERMISSIONS, hasAdminPermission, type AdminRole } from "@/lib/admin/rbac";
-import { getAdminSanityStatus } from "@/lib/admin/sanity-control";
-import { getAdminOperationsRuntimeStatus } from "@/lib/admin/operations/foundation";
-import { readArticleSchedulerModel } from "@/lib/admin/operations/article-scheduler-read-model";
+import { readAdminSettingsReadiness } from "@/lib/admin/operations/settings-readiness";
 import { getSeoGoogleProviderReadiness } from "@/lib/admin/seo-intelligence/provider-readiness";
 import { getSocialProviderReadiness } from "@/lib/admin/social/provider-readonly";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
@@ -15,18 +14,12 @@ import { readLineDiscoveryAdminModel } from "@/lib/admin/line/discovery-config";
 import { N8N_ADMIN_INTEGRATIONS, N8N_ADMIN_STATUS_LABEL, n8nAdminIntegrationSummary } from "@/lib/admin/n8n-integration-registry";
 import LineDiscoveryManager from "@/features/admin/line/LineDiscoveryManager";
 
-function State({ ok, yes = "พร้อม", no = "ต้องตั้งค่า" }: { ok: boolean; yes?: string; no?: string }) {
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${ok ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-amber-200/20 bg-amber-200/10 text-amber-50"}`}>{ok ? yes : no}</span>;
-}
 
-function Row({ label, value, state }: { label: string; value: string; state?: boolean }) {
-  return <div className="flex min-h-12 items-center justify-between gap-4 border-t border-white/10 py-3 first:border-t-0"><div><p className="text-sm font-medium text-white/85">{label}</p><p className="mt-1 text-xs text-white/45">{value}</p></div>{state === undefined ? null : <State ok={state} />}</div>;
-}
+
+
 
 async function IntegrationsPage() {
-  const sanity = getAdminSanityStatus();
-  const operations = getAdminOperationsRuntimeStatus();
-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+  const { sanity, operations, scheduler } = await readAdminSettingsReadiness();
   const social = getSocialOperationsRuntimeStatus();
   const gsc = getSeoGoogleProviderReadiness("gsc");
   const ga4 = getSeoGoogleProviderReadiness("ga4");
@@ -86,9 +79,7 @@ async function AccessPage() {
 
 async function SystemPage() {
   const deployment = getAdminDeploymentIdentity();
-  const sanity = getAdminSanityStatus();
-  const operations = getAdminOperationsRuntimeStatus();
-  const scheduler = await readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 });
+  const { sanity, operations, scheduler } = await readAdminSettingsReadiness();
   return <div><p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ตั้งค่า</p><h1 className="mt-2 text-3xl font-semibold">ข้อมูลระบบ</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">ดูว่าระบบกำลังใช้ข้อมูลชุดใดและพร้อมทำงานหรือไม่ หน้านี้ดูข้อมูลได้อย่างเดียวและไม่แสดงรหัสลับ</p>
     <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6"><div><Row label="เนื้อหาใน Sanity" value={sanity.readReady ? "พร้อมอ่านข้อมูล" : "ยังอ่านข้อมูลไม่ได้"} state={sanity.readReady} /><Row label="ฐานข้อมูลส่วนตัว" value={operations.identityValid ? "เชื่อมต่อชุดที่ถูกต้อง" : "ยังยืนยันการเชื่อมต่อไม่ได้"} state={operations.identityValid} /><Row label="การตั้งเวลาเผยแพร่" value={scheduler.effectiveEnabled ? "พร้อมรับคิวใหม่" : "ยังไม่รับคิวใหม่"} state={scheduler.effectiveEnabled} /></div><details className="mt-5 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm text-white/75">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div><p className="text-xs text-white/45">Environment</p><p className="mt-1 text-sm text-white/85">{getAdminEnvironment()}</p></div><div><p className="text-xs text-white/45">Provider</p><p className="mt-1 text-sm text-white/85">{deployment.provider}</p></div><div><p className="text-xs text-white/45">Git branch</p><p className="mt-1 text-sm text-white/85">{deployment.gitRef ?? "—"}</p></div><div><p className="text-xs text-white/45">Commit</p><p className="mt-1 break-all font-mono text-xs text-white/85">{deployment.gitSha ?? "—"}</p></div></div><div className="mt-5 text-xs text-white/55">Sanity: {sanity.projectId ?? "—"}/{sanity.dataset ?? "—"} · Database: {operations.projectId ?? "—"}/{operations.branchId ?? "—"} · Scheduler runtime {scheduler.runtimeEnabled ? "ON" : "OFF"}, durable {scheduler.durableEnabled ? "ON" : "OFF"}</div></details><Link href="/operations/health/" className="gold-button mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm">เปิดภาพรวมระบบ</Link></section>
   </div>;

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 
-const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const readEntry = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path) => readPhase1Source(path, { read: readEntry });
 
 const packageJson = JSON.parse(read('package.json'));
 assert.equal(packageJson.version, '4.1.0');
@@ -482,6 +484,9 @@ for (const contractCheck of [
 
 const adminLoginPage = read('apps/admin/app/(control-plane-auth)/login/page.tsx');
 const protectedAdminLayout = read('apps/admin/app/(control-plane)/layout.tsx');
+const protectedAdminLayoutEntry = readEntry('apps/admin/app/(control-plane)/layout.tsx');
+assert.match(protectedAdminLayoutEntry, /import \{ AdminProtectedChrome \} from "@\/features\/admin\/components\/AdminProtectedChrome"/);
+assert.match(protectedAdminLayoutEntry, /return <AdminProtectedChrome[\s\S]*?>\{children\}<\/AdminProtectedChrome>/);
 for (const adminSurface of [adminLoginPage, protectedAdminLayout]) {
   assert.match(adminSurface, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false,\s*nocache:\s*true\s*\}/);
 }

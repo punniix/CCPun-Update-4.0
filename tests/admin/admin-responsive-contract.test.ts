@@ -1,27 +1,38 @@
-import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 
 const readSource = (relativePath: string) =>
-  readFileSync(new URL(`../../${relativePath}`, import.meta.url), "utf8");
+  readCurrentSource(new URL(`../../${relativePath}`, import.meta.url), "utf8");
 
 test("header separates tools from a wrapping long account label and preserves permissions/logout", async () => {
   const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
-  const compiled = transpileModule(readSource("apps/admin/app/(control-plane)/layout.tsx"), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  const compiled = transpileModule(readFileSync(new URL("../../apps/admin/app/(control-plane)/layout.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
   type Element = { type: unknown; props: { children?: unknown; className?: string; href?: string; action?: () => Promise<void>; target?: string; rel?: string; "aria-label"?: string } };
   const elements = (node: unknown): Element[] => {
     if (Array.isArray(node)) return node.flatMap(elements);
     if (!node || typeof node !== "object" || !("props" in node)) return [];
     const element = node as Element;
+    if (typeof element.type === "function") return elements(element.type(element.props));
     return [element, ...elements(element.props.children)];
   };
   const identity = "synthetic-long-account-".repeat(10) + "@example.invalid";
   for (const advisorAllowed of [true, false]) {
     const signOutCalls: unknown[] = [];
     const loaded = { exports: {} as { default: (props: unknown) => Promise<unknown> } };
-    runInNewContext(compiled, { module: loaded, exports: loaded.exports, require: (name: string) => {
+    const fixtureRequire = (name: string): unknown => {
+      if (name === "@/features/admin/components/AdminProtectedChrome") {
+        const owner = { exports: {} };
+        const source = readFileSync(new URL("../../features/admin/components/AdminProtectedChrome.tsx", import.meta.url), "utf8");
+        const ownerCode = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+        runInNewContext(ownerCode, { module: owner, exports: owner.exports, require: fixtureRequire });
+        return owner.exports;
+      }
       if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) };
       if (name === "next/link") return { default: "a" };
       if (name === "next/navigation") return { redirect: () => assert.fail("authenticated fixture must not redirect") };
@@ -32,7 +43,8 @@ test("header separates tools from a wrapping long account label and preserves pe
       if (name.endsWith("/capability-profile")) return { getAdminCapabilityProfile: () => "full", isAdminCapabilityPathAllowed: () => true };
       if (name.endsWith("/AdminNavigation") || name.endsWith("/AdminDataRefresh")) return { default: () => null };
       assert.fail("Unexpected dependency " + name);
-    } });
+    };
+    runInNewContext(compiled, { module: loaded, exports: loaded.exports, require: fixtureRequire });
     const tree = elements(await loaded.exports.default({ children: "synthetic-content" }));
     const header = tree.find(element => element.type === "header")!;
     const headerNodes = elements(header);
@@ -87,3 +99,8 @@ test("Research workflow links keep a 44px mobile touch target", () => {
 
   assert.match(research, /<a key=\{href\} href=\{href\} className="[^"]*\bmin-h-11\b[^"]*\bitems-center\b/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

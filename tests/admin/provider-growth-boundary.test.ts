@@ -1,19 +1,21 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const ubersuggest = readFileSync(new URL("../../lib/admin/ubersuggest.ts", import.meta.url), "utf8");
-const ubersuggestContracts = readFileSync(new URL("../../lib/admin/ubersuggest-contracts.ts", import.meta.url), "utf8");
-const researchRoute = readFileSync(new URL("../../apps/admin/app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
-const growth = readFileSync(new URL("../../lib/admin/growth.ts", import.meta.url), "utf8");
-const growthPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8")
-  + readFileSync(new URL("../../features/admin/analytics/StoredAnalyticsDashboard.tsx", import.meta.url), "utf8");
-const growthLoading = readFileSync(new URL("../../apps/admin/app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
-const research = readFileSync(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
-const geoPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
-const researchPage = readFileSync(new URL("../../features/admin/research/page.tsx", import.meta.url), "utf8");
-const researchForm = readFileSync(new URL("../../features/admin/components/UbersuggestResearchForm.tsx", import.meta.url), "utf8");
+const ubersuggest = readCurrentSource(new URL("../../lib/admin/ubersuggest.ts", import.meta.url), "utf8");
+const ubersuggestContracts = readCurrentSource(new URL("../../lib/admin/ubersuggest-contracts.ts", import.meta.url), "utf8");
+const researchRoute = readCurrentSource(new URL("../../apps/admin/app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
+const growth = readCurrentSource(new URL("../../lib/admin/growth.ts", import.meta.url), "utf8");
+const growthPage = readCurrentSource(new URL("../../apps/admin/app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8")
+  + readCurrentSource(new URL("../../features/admin/analytics/StoredAnalyticsDashboard.tsx", import.meta.url), "utf8");
+const growthLoading = readCurrentSource(new URL("../../apps/admin/app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
+const research = readCurrentSource(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
+const geoPage = readCurrentSource(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const researchPage = readCurrentSource(new URL("../../features/admin/research/page.tsx", import.meta.url), "utf8");
+const researchForm = readCurrentSource(new URL("../../features/admin/components/UbersuggestResearchForm.tsx", import.meta.url), "utf8");
 
 test("Ubersuggest credentials stay local and OAuth uses state plus PKCE", () => {
   assert.match(ubersuggest, /\.ccpun-local/);
@@ -60,7 +62,7 @@ test("provider retries reuse fresh Neon snapshots without credential fallback", 
   assert.match(researchRoute, /Retry-After/);
   assert.match(research, /findAdminResearchSnapshot/);
   assert.match(research, /update\(`\$\{parsed\.provider\}\|\$\{keywordKey\}\|\$\{checkedAt\.slice\(0, 10\)\}`\)/);
-  const operations = readFileSync(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");
+  const operations = readCurrentSource(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");
   assert.match(operations, /process\.env\.CCPUN_ADMIN_DATABASE_URL/);
   assert.doesNotMatch(operations, /SANITY_[A-Z0-9_]*TOKEN/);
 });
@@ -139,14 +141,14 @@ test("Admin growth removes Vercel monitoring in every lane and keeps native runt
   assert.equal(values.fetchCount, 0);
   assert.doesNotMatch(growth, /readVercelHealth|CCPUN_VERCEL_READ_TOKEN|CCPUN_VERCEL_PUBLIC_PROJECT_ID|CCPUN_VERCEL_TEAM_ID|api\.vercel\.com/);
   assert.doesNotMatch(growthPage, /Vercel Health/);
-  const health = readFileSync(new URL("../../apps/admin/app/(control-plane)/operations/health/page.tsx", import.meta.url), "utf8");
+  const health = readCurrentSource(new URL("../../apps/admin/app/(control-plane)/operations/health/page.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(health, /probeLineBridgeFromAdmin|line-bridge-probe|Vercel Health|process\.env\.VERCEL_/);
   assert.match(health, /readLineSystemDeliveryDatabaseReadiness/);
   assert.match(health, /readLineDeliveryHealth/);
 });
 
 test("SEO detail tolerates an unavailable proposal database and opens the exact Studio document", () => {
-  const operations = readFileSync(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");
+  const operations = readCurrentSource(new URL("../../lib/admin/operations/database.ts", import.meta.url), "utf8");
   const proposalRead = operations.slice(
     operations.indexOf("export async function findAdminProposalResearch"),
     operations.indexOf("export async function createAdminResearchSnapshot"),
@@ -173,3 +175,8 @@ test("growth UI exposes freshness, comparison, loading, empty, and error states 
   assert.match(growthLoading, /aria-live="polite"/);
   assert.doesNotMatch(growthPage, /mock|fake/i);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

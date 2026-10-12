@@ -1,8 +1,10 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+const read = (path: string) => readCurrentSource(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("draft preview uses the shared registry-safe category slug contract behind the preview gate", () => {
   const route = read("apps/admin/app/api/admin/content/[id]/preview/route.ts");
@@ -97,3 +99,8 @@ test("Settings child routes are real read-only diagnostics rather than capabilit
   assert.match(settings, /readArticleSchedulerModel/);
   assert.doesNotMatch(settings, /AdminCapabilityState|status="partial"|status="not-configured"/);
 });
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}

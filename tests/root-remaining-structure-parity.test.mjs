@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
 import test from 'node:test';
 
-const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+const read = (file) => productionBaselineSource(file);
 const hash = (source) => createHash('sha256').update(source).digest('hex');
 const baseline = JSON.parse(read('qa/root-remaining-structure-parity.json'));
 
