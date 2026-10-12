@@ -39,3 +39,31 @@ test('frozen composition projection rejects entry, owner and original-fixture ta
   files.set('lib/reviewed.ts', 'CURRENT_OWNER'); proof.baselineSources['app/reviewed.ts'] = 'INCORRECT_ORIGINAL';
   assert.throws(() => project('app/reviewed.ts'), /original Production fixture drift/);
 });
+
+test('every frozen entry has a registered original-output fixture and every sealed owner is actually reachable', () => {
+  const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const proof = JSON.parse(read('qa/phase1-source-ownership.json'));
+  const originalApi = JSON.parse(read('qa/phase1-admin-api-parity.json')).originalSources;
+  const packageScripts = JSON.parse(read('package.json')).scripts;
+  function assertCoverage(candidate) {
+    assert.deepEqual(Object.keys(candidate.outputCoverage).sort(), Object.keys(candidate.compositions).sort(), 'no admitted entry may lack output coverage');
+    for (const [entry, coverage] of Object.entries(candidate.outputCoverage)) {
+      assert.ok(packageScripts['test:foundation-contracts'].includes(coverage.test), entry + ': output test must be registered in CI');
+      const testSource = read(coverage.test);
+      if (coverage.fixture === 'qa/phase1-admin-api-parity.json') assert.equal(originalApi[entry], candidate.baselineSources[entry], entry + ': actual original API/boundary fixture');
+      else assert.equal(coverage.fixture, 'qa/phase1-source-ownership.json', entry + ': reviewed source fixture');
+      if (coverage.case.startsWith(entry + ':')) {
+        assert.ok(candidate.sharedPages.some(page => page.root === entry || page.canonical === entry), entry + ': actual shared-page execution loop');
+        assert.ok(testSource.includes('for (const page of proof.sharedPages)') && testSource.includes('for (const file of [page.root, page.canonical])'));
+      } else assert.ok(testSource.includes(coverage.case), entry + ': actual named output case');
+    }
+  }
+  assertCoverage(proof);
+  const missing = structuredClone(proof); delete missing.outputCoverage[Object.keys(missing.compositions)[0]];
+  assert.throws(() => assertCoverage(missing), /no admitted entry may lack output coverage/);
+  const reached = new Set();
+  for (const entry of Object.keys(proof.compositions)) readPhase1Source(entry, { read: file => { reached.add(file); return read(file); } });
+  assert.deepEqual(Object.keys(proof.owners).filter(owner => !reached.has(owner)), [], 'only actual current runtime imports may cover sealed owners');
+  assert.equal(Object.keys(proof.compositions).length, 45);
+  assert.equal(Object.keys(proof.owners).length, 24); // 23 new owners + existing canonical Studio client.
+});

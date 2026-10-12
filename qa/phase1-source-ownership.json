@@ -837,5 +837,232 @@
       "owner": "canonical Studio client default owner",
       "reason": "Semantic adapter: identical body except relative config import; module/config/default identity tested."
     }
-  ]
+  ],
+  "outputCoverage": {
+    "app/(control-plane)/content/articles/[id]/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "app/(control-plane)/content/articles/[id]/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/content/articles/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "app/(control-plane)/content/articles/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/content/calendar/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "app/(control-plane)/content/calendar/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/dashboard/inbox/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "app/(control-plane)/dashboard/inbox/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/dashboard/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Dashboard retains guarded editorial read order, review counts, advisor limits and workflow targets",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/error.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "error/reset and both NotFound layouts keep exact markup and private-error suppression",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/(control-plane)/layout.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "protected Chrome retains each role/capability/lane navigation, identity, logout action and safety copy",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/not-found.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "error/reset and both NotFound layouts keep exact markup and private-error suppression",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/(control-plane)/operations/audit-log/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "app/(control-plane)/operations/audit-log/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/operations/health/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Health retains per-lane reads, partial/ready/warning/off cards and safe activation props",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/seo/audits/[id]/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "app/(control-plane)/seo/audits/[id]/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/seo/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "app/(control-plane)/seo/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/settings/[section]/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Settings retains the original three-read sequence, private read-only views and source errors per lane",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane)/settings/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Settings index retains route data, URL ordering, guard and complete markup",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/(control-plane-auth)/login/page.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "login presentation, metadata, sanitized returns, redirects and synthetic Google action remain identical per lane",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/(control-plane-error)/admin-not-found/page.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "error/reset and both NotFound layouts keep exact markup and private-error suppression",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/api/admin/content/[id]/schedule/route.ts": {
+      "test": "tests/phase1-admin-api-parity.test.mjs",
+      "case": "schedule handlers retain both lane contracts, validation/capability order, eager/lazy dispatch and all private errors",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/api/admin/providers/ubersuggest/sync/route.ts": {
+      "test": "tests/phase1-admin-api-parity.test.mjs",
+      "case": "both Ubersuggest routes preserve responses, identity/origin/import fences, cache and in-flight request provenance",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/layout.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "root and Web keep their original complete metadata and layout/first-paint/tracking composition",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "app/robots.ts": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "three robots entries preserve exact predicates, ordered private exceptions and indexing output",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/studio/[[...tool]]/page.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "Studio preserves guard order, per-lane configuration errors, metadata/CSS and actual client export ownership",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "app/studio/[[...tool]]/studio-client.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "Studio preserves guard order, per-lane configuration errors, metadata/CSS and actual client export ownership",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/(control-plane)/content/articles/[id]/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "apps/admin/app/(control-plane)/content/articles/[id]/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/content/articles/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "apps/admin/app/(control-plane)/content/articles/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/content/calendar/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "apps/admin/app/(control-plane)/content/calendar/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/dashboard/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Dashboard retains guarded editorial read order, review counts, advisor limits and workflow targets",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/dashboard/reviews/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "apps/admin/app/(control-plane)/dashboard/reviews/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/error.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "error/reset and both NotFound layouts keep exact markup and private-error suppression",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/(control-plane)/layout.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "protected Chrome retains each role/capability/lane navigation, identity, logout action and safety copy",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/not-found.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "error/reset and both NotFound layouts keep exact markup and private-error suppression",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/(control-plane)/operations/audit-log/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "apps/admin/app/(control-plane)/operations/audit-log/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/operations/health/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Health retains per-lane reads, partial/ready/warning/off cards and safe activation props",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/seo/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "apps/admin/app/(control-plane)/seo/page.tsx: original Production DOM, metadata, read order, write/read gates and failure outcomes",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/settings/[section]/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Settings retains the original three-read sequence, private read-only views and source errors per lane",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane)/settings/page.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "Settings index retains route data, URL ordering, guard and complete markup",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/admin/app/(control-plane-auth)/login/page.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "login presentation, metadata, sanitized returns, redirects and synthetic Google action remain identical per lane",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/(control-plane-error)/admin-not-found/page.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "error/reset and both NotFound layouts keep exact markup and private-error suppression",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/api/admin/content/[id]/schedule/route.ts": {
+      "test": "tests/phase1-admin-api-parity.test.mjs",
+      "case": "schedule handlers retain both lane contracts, validation/capability order, eager/lazy dispatch and all private errors",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts": {
+      "test": "tests/phase1-admin-api-parity.test.mjs",
+      "case": "both Ubersuggest routes preserve responses, identity/origin/import fences, cache and in-flight request provenance",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/api/auth/[...nextauth]/route.ts": {
+      "test": "tests/phase1-admin-api-parity.test.mjs",
+      "case": "auth keeps direct legacy handler identities, canonical receivers, responses/errors and redacted observation",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/robots.ts": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "three robots entries preserve exact predicates, ordered private exceptions and indexing output",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/admin/app/studio/[[...tool]]/page.tsx": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "Studio preserves guard order, per-lane configuration errors, metadata/CSS and actual client export ownership",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    },
+    "apps/web/app/layout.tsx": {
+      "test": "tests/phase1-source-ownership.test.mjs",
+      "case": "root and Web keep their original complete metadata and layout/first-paint/tracking composition",
+      "fixture": "qa/phase1-source-ownership.json"
+    },
+    "apps/web/app/robots.ts": {
+      "test": "tests/phase1-admin-boundary-parity.test.mjs",
+      "case": "three robots entries preserve exact predicates, ordered private exceptions and indexing output",
+      "fixture": "qa/phase1-admin-api-parity.json"
+    }
+  }
 }
