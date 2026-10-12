@@ -1,3 +1,4 @@
+import { assertPhase3AdminNativeBoundaries, phase3AdminNativeEntries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -30,7 +31,8 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
       assert.equal(sha(readFileSync('apps/admin/scripts/build-provider.mjs')), 'e69bcb852a0b4c3dc78c5f06eb96bed78014d74a8c899d05c0c96702069abdd3', 'own native SWC builder unchanged');
       assert.equal(scripts['test:hostinger'], 'node --test tests/hostinger-shadow-config.test.mjs');
       assert.equal(sha(readFileSync('tests/hostinger-shadow-config.test.mjs')), '361a2e85907145b763e6b2611e3a4092957f6f2c76ae8af23da1c2664a96ef32', 'registered real npm workspace cwd and exit0/7 assertions');
-    } else if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
+    } else if (phase3AdminNativeEntries.includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true, file);
+    else if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);

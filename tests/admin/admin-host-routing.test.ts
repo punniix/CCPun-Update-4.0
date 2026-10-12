@@ -1,11 +1,12 @@
 import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import { isAbsolute, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   isAdminSurfaceAllowed,
   resolveAdminEnvironment,
 } from "../../lib/admin/environment";
@@ -228,8 +229,8 @@ test("Admin Preview uses the deployed Admin route policy while Web Preview canno
     "preview",
     CCPUN_VERCEL_PROJECT_IDS.adminProduction,
   );
-  assert.equal(adminPreview, "admin-uat");
-  assert.equal(isAdminSurfaceAllowed(adminPreview, CCPUN_VERCEL_PROJECT_IDS.adminProduction), true);
+  assert.equal(adminPreview, "unknown");
+  assert.equal(isAdminSurfaceAllowed(adminPreview, CCPUN_VERCEL_PROJECT_IDS.adminProduction), false);
   assert.equal(classifyProductionAdminPath("/"), "entry");
   assert.equal(classifyProductionAdminPath("/dashboard/"), "allow");
   assert.equal(classifyProductionAdminPath("/api/admin/session/"), "allow");
@@ -244,17 +245,13 @@ test("exact Admin Preview aliases may use their generated same-project origin wi
   assert.equal(
     isExactAdminPreviewOrigin({
       environment: "admin-uat",
-      vercelEnvironment: "preview",
-      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
       host: "ccpun-admin-13wutidr7-punniixs-projects.vercel.app",
     }),
-    true,
+    false,
   );
   assert.equal(
     isExactAdminPreviewOrigin({
       environment: "production-admin",
-      vercelEnvironment: "production",
-      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
       host: "admin.ccpun.com",
     }),
     false,
@@ -262,8 +259,6 @@ test("exact Admin Preview aliases may use their generated same-project origin wi
   assert.equal(
     isExactAdminPreviewOrigin({
       environment: "admin-uat",
-      vercelEnvironment: "preview",
-      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.web,
       host: "ccpun-admin-attacker.vercel.app",
     }),
     false,
@@ -271,8 +266,6 @@ test("exact Admin Preview aliases may use their generated same-project origin wi
   assert.equal(
     isExactAdminPreviewOrigin({
       environment: "admin-uat",
-      vercelEnvironment: "preview",
-      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
       host: "ccpun-web-preview-punniixs-projects.vercel.app",
     }),
     false,
@@ -284,8 +277,6 @@ test("local UAT remains a dedicated Admin boundary", () => {
   assert.equal(
     isAdminRequestBoundary({
       environment: "local-uat",
-      vercelEnvironment: undefined,
-      deploymentProjectId: undefined,
       host: "localhost:3000",
     }),
     true,
@@ -300,8 +291,6 @@ test("local Production read lane keeps the public website root outside the dedic
   assert.equal(
     isAdminRequestBoundary({
       environment: "local-production",
-      vercelEnvironment: undefined,
-      deploymentProjectId: undefined,
       host: "127.0.0.1:3000",
     }),
     false,
@@ -313,23 +302,19 @@ test("Admin deployment identity and known hosts enter a deny-only boundary even 
     assert.equal(
       isAdminRequestBoundary({
         environment,
-        vercelEnvironment: "preview",
-        deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
         host: "ccpun-admin-test-punniixs-projects.vercel.app",
       }),
-      true,
+      false,
     );
     assert.equal(isAdminSurfaceAllowed(environment, CCPUN_VERCEL_PROJECT_IDS.adminProduction), false);
   }
 
   assert.equal(isKnownAdminDeploymentHost("admin.ccpun.com"), true);
-  assert.equal(isKnownAdminDeploymentHost("ccpun-admin.vercel.app"), true);
-  assert.equal(isKnownAdminDeploymentHost("ccpun-admin-preview-team.vercel.app"), true);
+  assert.equal(isKnownAdminDeploymentHost("ccpun-admin.vercel.app"), false);
+  assert.equal(isKnownAdminDeploymentHost("ccpun-admin-preview-team.vercel.app"), false);
   assert.equal(
     isAdminRequestBoundary({
       environment: "unknown",
-      vercelEnvironment: undefined,
-      deploymentProjectId: undefined,
       host: "admin.ccpun.com",
     }),
     true,
@@ -341,8 +326,6 @@ test("Web Preview and unknown public hosts do not become an Admin boundary", () 
   assert.equal(
     isAdminRequestBoundary({
       environment: "unknown",
-      vercelEnvironment: "preview",
-      deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.web,
       host: "ccpun-web-preview-punniixs-projects.vercel.app",
     }),
     false,
@@ -386,9 +369,9 @@ test("Marketing service routes reach bearer handlers only through four exact Adm
     assert.equal(isInternalServiceApiPath(path), false, path);
     assert.equal(classifyProductionAdminPath(path), "reject", path);
   }
-  assert.equal(isAdminRequestBoundary({ environment: "production", vercelEnvironment: "production", deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.web, host: "ccpun.com" }), false);
+  assert.equal(isAdminRequestBoundary({ environment: "production", host: "ccpun.com" }), false);
   assert.equal(isAdminSurfaceAllowed("production", CCPUN_VERCEL_PROJECT_IDS.web), false);
-  assert.equal(isAdminRequestBoundary({ environment: "production-admin", vercelEnvironment: "production", deploymentProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction, host: "admin.ccpun.com" }), true);
+  assert.equal(isAdminRequestBoundary({ environment: "production-admin", host: "admin.ccpun.com" }), true);
 });
 
 function readCurrentSource(file: string | URL, encoding: "utf8"): string {
