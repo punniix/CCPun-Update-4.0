@@ -31,7 +31,8 @@ function imports(tree) {
     module: node.moduleSpecifier.text,
     typeOnly: Boolean(node.importClause?.isTypeOnly),
     default: node.importClause?.name?.text ?? null,
-    names: node.importClause?.namedBindings?.elements?.map(item => item.name.text) ?? [],
+    namespace: node.importClause?.namedBindings && ts.isNamespaceImport(node.importClause.namedBindings) ? node.importClause.namedBindings.name.text : null,
+    bindings: node.importClause?.namedBindings?.elements?.map(item => [item.propertyName?.text ?? item.name.text, item.name.text, Boolean(item.isTypeOnly)]) ?? [],
   }));
 }
 
@@ -52,8 +53,8 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
   assert.equal(composition.test, 'tests/money-story-presentation-parity.test.mjs');
   assert.equal(sha(readCurrent(composition.test)), composition.outputTestSha256, 'Actual output/action test drift');
   const oldTree = parse(file, original), currentTree = parse(file, current), ownerTree = parse(ownerPath, owner);
-  const expectedImports = imports(oldTree).map(item => ({ ...item, names: item.names.filter(name => !['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users', 'PROTECTION_CATALOG'].includes(name)) }));
-  expectedImports.push({ module: './MoneyStoryStatusSidebar', typeOnly: false, default: null, names: ['money', 'MoneyStoryStatusSidebar', 'percentLabel'] });
+  const expectedImports = imports(oldTree).map(item => ({ ...item, bindings: item.bindings.filter(([imported, local]) => !['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users'].includes(imported) || imported !== local) }));
+  expectedImports.push({ module: './MoneyStoryStatusSidebar', typeOnly: false, default: null, namespace: null, bindings: ['money', 'MoneyStoryStatusSidebar', 'percentLabel'].map(name => [name, name, false]) });
   assert.deepEqual(imports(currentTree), expectedImports, 'Only presentation bindings may move');
   assert.doesNotMatch(owner, /\b(?:useState|useEffect|trackEvent|trackMoneyStoryEvent|setGame)\b/);
   assert(!imports(ownerTree).some(item => item.module.includes('MoneyStoryGame')), 'No owner/controller cycle');
@@ -64,11 +65,11 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
     assert(node.importClause?.namedBindings?.elements?.every(item => !item.propertyName) ?? true, 'No presentation import alias may change its original binding');
   }
   assert.deepEqual(imports(ownerTree), [
-    { module: 'lucide-react', typeOnly: false, default: null, names: ['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users'] },
-    { module: '../config', typeOnly: false, default: null, names: ['PROTECTION_CATALOG'] },
-    { module: '../engine', typeOnly: true, default: null, names: ['statusBars'] },
-    { module: '../types', typeOnly: true, default: null, names: ['GameState', 'ProtectionType'] },
-    { module: '../MoneyStory.module.css', typeOnly: false, default: 'styles', names: [] },
+    { module: 'lucide-react', typeOnly: false, default: null, namespace: null, bindings: ['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users'].map(name => [name, name, false]) },
+    { module: '../config', typeOnly: false, default: null, namespace: null, bindings: ['PROTECTION_CATALOG'].map(name => [name, name, false]) },
+    { module: '../engine', typeOnly: true, default: null, namespace: null, bindings: ['statusBars'].map(name => [name, name, false]) },
+    { module: '../types', typeOnly: true, default: null, namespace: null, bindings: ['GameState', 'ProtectionType'].map(name => [name, name, false]) },
+    { module: '../MoneyStory.module.css', typeOnly: false, default: 'styles', namespace: null, bindings: [] },
   ], 'Only original presentation dependencies and type-only state contracts belong to the sidebar');
   assert.deepEqual(ownerTree.statements.filter(node => !ts.isImportDeclaration(node)).map(statementName),
     ['money', 'protectionIcons', 'Meter', 'percentLabel', 'MoneyStoryStatusSidebarProps', 'MoneyStoryStatusSidebar'],

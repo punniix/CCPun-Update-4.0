@@ -23,10 +23,10 @@
   "moneyComposition": {
     "controller": "features/money-story/components/MoneyStoryGame.tsx",
     "owner": "features/money-story/components/MoneyStoryStatusSidebar.tsx",
-    "controllerSha256": "2d83e46896423cdb56597895d931a99b23387ad7cd3031a7acdbceda3bf6974d",
+    "controllerSha256": "f73e87abe477e97ac4bf56ad52996762493229df87a5f03cd04ab45fcbd80edb",
     "ownerSha256": "6ec4b01b4930d5b14d95073a168e2d87e982ae611edb4945d0ff8accf301ec9b",
     "baselineSha256": "a735e9063b36d15b9215463ab05a8b359e9f70ec25389456e376552aafdf2997",
     "test": "tests/money-story-presentation-parity.test.mjs",
-    "outputTestSha256": "e5a000ae0b7b44b07ae148958bbaa66836a6f94f35b49598cd1d4a679d837c05"
+    "outputTestSha256": "34463e2f262320af00ac1df9bdf03cc92e90bdd3996aadd6651e0ab8ba32365d"
   }
 }

@@ -27,6 +27,7 @@ import {
 } from '../engine';
 import {
   EVENT_CATEGORY_LABELS,
+  PROTECTION_CATALOG,
 } from '../config';
 import type { EventOption, GameState, ProtectionType } from '../types';
 import styles from '../MoneyStory.module.css';

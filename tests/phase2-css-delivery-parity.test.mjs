@@ -131,6 +131,9 @@ test('Money composition admission rejects changed logic, unreachable owners, mut
   };
   for (const [file, source] of [
     [composition.controller, current.replace('game.currentMonth === 12', 'game.currentMonth === 11')],
+    [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  coverShortfallWithExtraIncome as coverShortfallWithExpenseCut,')],
+    [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  type coverShortfallWithExpenseCut,')],
+    [composition.controller, current.replace('  PROTECTION_CATALOG,\n', '')],
     [composition.controller, current.replace('<MoneyStoryStatusSidebar game={game} bars={bars} />', '<div />')],
     [composition.owner, owner.replace('  return (\n        <aside', '  game.cash = 0;\n  return (\n        <aside')],
     [composition.owner, owner + '\nglobalThis.phase2Mutation = true;\n'],

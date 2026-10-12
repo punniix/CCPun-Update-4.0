@@ -174,3 +174,12 @@ test('active controller buttons keep callback state writes and analytics after s
     else activeTrace = trace;
   }
 });
+
+
+test('all library event impact branches preserve original render output and required presentation dependencies', () => {
+  const month = engine.beginMonth(state);
+  for (const event of eventLibrary) {
+    const game = { ...month, currentEventId: event.id, pendingShortfall: undefined };
+    assert.equal(digest(render([game])), digest(render([game], OriginalGame)), event.id);
+  }
+});
