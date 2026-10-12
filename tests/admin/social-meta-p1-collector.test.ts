@@ -3,7 +3,6 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import { WEBSITE_42_SOCIAL_PROVIDER_BRANCH } from "../../lib/admin/social/provider-readonly";
 import { normalizeMetaAnalytics } from "../../lib/admin/social/provider-adapters";
 import { fetchMetaInsights } from "../../lib/admin/social/providers/meta/insights-read";
@@ -13,10 +12,11 @@ const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta
 const version = "20260902_social_marketing_mart_p1_meta_insights";
 const checksum = "sha256:7bdc2c2b80b59d7364d92ec88dd66ccd5472390291bf0bc3ba82ec424718f671";
 const lane = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "1",
   CCPUN_APP_ENV: "admin-uat",
-  VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-  VERCEL_GIT_COMMIT_REF: WEBSITE_42_SOCIAL_PROVIDER_BRANCH,
+
+  CCPUN_GIT_REF: WEBSITE_42_SOCIAL_PROVIDER_BRANCH,
   NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
   NEXT_PUBLIC_SANITY_DATASET: "uat",
   CCPUN_META_ACCESS_TOKEN: "meta-system-token",

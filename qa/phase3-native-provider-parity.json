@@ -44,19 +44,19 @@
     "tests/hostinger-shadow-config.test.mjs": "361a2e85907145b763e6b2611e3a4092957f6f2c76ae8af23da1c2664a96ef32"
   },
   "currentHashes": {
-    "lib/runtime/deployment-identity.ts": "b4ebbdf2af148382ff0a87da1f86781f600c2c6b7fa2962dbf9e92170cd9f5f6",
+    "lib/runtime/deployment-identity.ts": "d9b606d8064d1f4b5b72d7f20594519bc2524c925bbfff9228875f78083a2fa9",
     "lib/runtime/deployment-contract.ts": "6e21e4a338f4c6e19fe0e3288536d346026bfc00830e2a3878a24f9b3b253f05",
     "lib/runtime/deployment-lanes.mjs": "860cf5bffe676837a0b39569592d379d6902632056a4cb03b30eaca443a4dbc9",
     "lib/runtime/web-build-config.mjs": "e57e0309ca08eb828f49fe9bf7d878d719ac07dcf44a14f9d00fefc49fa06867",
-    "lib/content/sanity-lane.ts": "8818fe01c3756b34e6cdaf2cf2fc4f6172f3eecb34e2a9cab35e91508b04120a",
+    "lib/content/sanity-lane.ts": "dde4086c7598aae795ab10f9273758e53544d468a5ebe4811e226cc47e3456ef",
     "lib/deployment-environment.ts": "c80458f09dcd398b91a59e29bae88a16e49f3e997a3cf41daae346d34cda931a",
     "apps/web/lib/line/private-ingestion.ts": "bb522a733920c92291d1d105312a84e04dfb4bbb2d3dc89db94755ce5272a282",
     "lib/observability/ai-crawler.ts": "0b3720c424f4ac4b14642ffdb2d5c4fb6bc31cdb97a6ce95039cbc7fc74e1258",
     "lib/runtime/line-bridge-probe.ts": "00aa193816f1fbef363882184fc2a2874ec5bd431d0c09c3597f8cb7cb7f3b82",
     "proxy.ts": "c39fee661df6235e976de34d66353fd605e75cca6043a7eb63792e2a0a3b2a9a",
-    "lib/admin/environment.ts": "9beb717b5ba3cceac622599ea99e319aa0beeda3abc767046b3990eaf650e1e2",
+    "lib/admin/environment.ts": "c6070628a06b0c2b16cbf4b76b6ae58ed51189156f92e1986ceb436e4713869b",
     "lib/admin/auth-config.ts": "dd477bda3f77ebbd2f67958957cebc82e18f4c2034f1d5cff57158bb0a919336",
-    "lib/admin/host-routing.ts": "0ce80660f482ac57666f7f28193719ff1b4cc6f265b6fd602c50797f8844dcda",
+    "lib/admin/host-routing.ts": "d51321ba5ef0061f503e8661b4f8c2d5b8102796b006920096885bffcbf728ab",
     "lib/admin/routes.ts": "1bc056bb09e249466d7623776fcbf884bd58f51052ead30b80a91c9409c5f119",
     "lib/routing/private-surfaces.ts": "a619d96a7eee1067118584e9d9e782d2747d892c9108d21bd080220fb8d846c0",
     "apps/web/scripts/build-provider.mjs": "90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd",
@@ -74,7 +74,7 @@
   ],
   "outputTestHashes": {
     "tests/phase3-native-provider-parity.test.mjs": "034fc4094ed729c7696f36bba36955f417bfc183d3b61fcb651b7504eb382c89",
-    "tests/hostinger-native-app-contract.test.mjs": "c71ce01c13e1aa773f0cee5325e6ae860104dbbd8dec56260969f21d3ff7352f",
+    "tests/hostinger-native-app-contract.test.mjs": "41edd506167307164c31c48e38054f8ae64447c98afc054a80846b96e98ec44f",
     "tests/hostinger-shadow-config.test.mjs": "2b865e4bf79ea0ea541107641a8de56039630b0cc72dfabb304afcc48b1cbe7c"
   }
 }

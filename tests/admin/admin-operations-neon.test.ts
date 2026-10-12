@@ -63,9 +63,10 @@ test("runtime operational records use only CCPUN_ADMIN_DATABASE_URL", () => {
 
 test("runtime identity validation accepts only the exact UAT lane, resource, role and database", () => {
   const valid = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
     environment: "admin-uat", projectId: "young-term-47483330", branchId: "br-crimson-mouse-az7ajkv8", database: "neondb",
     connectionString: "postgresql://ccpun_admin_runtime:secret@ep-mute-frost-aztvz394-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
-    vercelEnvironment: "preview", vercelProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
+    vercelEnvironment: undefined, vercelProjectId: undefined,
   };
   assert.equal(isAdminOperationsRuntimeIdentityValid(valid), true);
   for (const changed of [

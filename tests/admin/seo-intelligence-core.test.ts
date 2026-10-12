@@ -1,7 +1,8 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import {
   ga4QueryInputSchema,
   gscQueryInputSchema,
@@ -31,10 +32,11 @@ import {
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 const enabledInput = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
   flag: "1",
   environment: "admin-uat" as const,
-  vercelEnvironment: "preview",
-  projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+  vercelEnvironment: undefined,
+  projectId: undefined,
   productionAdminProjectId: undefined,
   gitBranch: WEBSITE_42_SEO_BRANCH,
   sanityProjectId: WEBSITE_42_SEO_SANITY_PROJECT_ID,
@@ -55,11 +57,12 @@ test("SEO Intelligence retains exact Admin UAT branches and adds only the exact 
   ]) assert.equal(isSeoIntelligenceEnabled({ ...enabledInput, ...change }), false, JSON.stringify(change));
 
   const productionInput = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
     flag: "1",
     environment: "production-admin" as const,
-    vercelEnvironment: "production",
-    projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    productionAdminProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
     gitBranch: WEBSITE_42_SEO_PRODUCTION_BRANCH,
     sanityProjectId: WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID,
     sanityDataset: WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET,
@@ -69,10 +72,10 @@ test("SEO Intelligence retains exact Admin UAT branches and adds only the exact 
     { flag: "true" },
     { environment: "admin-uat" as const },
     { vercelEnvironment: "preview" },
-    { vercelEnvironment: undefined },
+    { deploymentProvider: "vercel" },
     { projectId: CCPUN_VERCEL_PROJECT_IDS.web },
     { productionAdminProjectId: CCPUN_VERCEL_PROJECT_IDS.web },
-    { productionAdminProjectId: undefined },
+    { deploymentRole: "web" },
     { gitBranch: WEBSITE_42_GOOGLE_PROVIDER_BRANCH },
     { sanityProjectId: WEBSITE_42_SEO_SANITY_PROJECT_ID },
     { sanityDataset: WEBSITE_42_SEO_SANITY_DATASET },

@@ -43,7 +43,7 @@ jobs:
       - name: Foundation safety contracts
         run: npm run test:foundation-contracts
 
-      - name: Vercel and public runtime contracts
+      - name: Public runtime contracts
         run: npm run test:public
 
       - name: Admin Social authoring and workspace contracts
