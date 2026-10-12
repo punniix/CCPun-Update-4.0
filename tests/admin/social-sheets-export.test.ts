@@ -99,7 +99,7 @@ test("Sheets export rejects expired interactive authorization before any Google 
 });
 
 test("Legacy direct Sheets route stays guarded while Social UI uses the central Export Center", () => {
-  const route = readFileSync(new URL("../../app/api/admin/social/export/sheets/route.ts", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../../apps/admin/app/api/admin/social/export/sheets/route.ts", import.meta.url), "utf8");
   const service = readFileSync(new URL("../../lib/admin/social/sheets-export.ts", import.meta.url), "utf8");
   const component = readFileSync(new URL("../../features/admin/social/SocialSheetsExport.tsx", import.meta.url), "utf8");
   assert.match(route, /identity\.actorType !== "human" \|\| identity\.role !== "owner"/);

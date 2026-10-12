@@ -1,6 +1,6 @@
+import { resolveWebEnvironment } from "../../lib/runtime/web-build-config.mjs";
 import {
   isContentSanityLaneAllowed,
-  resolveContentEnvironment,
   type ContentEnvironment,
 } from "../../lib/content/sanity-lane";
 import {
@@ -13,13 +13,7 @@ import {
 } from "../../lib/runtime/deployment-contract";
 
 export type WebEnvironment = "development" | "web-uat" | "production" | "unknown";
-
-export function resolveWebEnvironment(): WebEnvironment {
-  const environment = resolveContentEnvironment();
-  return environment === "development" || environment === "web-uat" || environment === "production"
-    ? environment
-    : "unknown";
-}
+export { resolveWebEnvironment } from "../../lib/runtime/web-build-config.mjs";
 
 export const WEB_ENVIRONMENT = resolveWebEnvironment();
 export const WEB_DEPLOYMENT_IDENTITY = resolveDeploymentIdentity(process.env, "web");

@@ -33,20 +33,22 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-const globalsSource = readFileSync('app/globals.css', 'utf8');
+const globalsEntry = readFileSync('app/globals.css', 'utf8');
+if (!globalsEntry.includes('@import "../components/styles/global-foundation.css";')) throw new Error('Root global CSS must forward the foundation owner');
+const globalsSource = readFileSync('components/styles/global-foundation.css', 'utf8');
 const globalStylesheets = [
   { path: 'components/styles/public-compat.css', role: 'base' },
   { path: 'components/styles/public-motion.css', role: 'base' },
   { path: 'features/financial-health-check/styles/print.css', role: 'contextual' },
 ];
 const requiredGlobalImports = [
-  '@import "../components/styles/public-compat.css";',
-  '@import "../components/styles/public-motion.css";',
-  '@import "../features/financial-health-check/styles/print.css";',
+  '@import "./public-compat.css";',
+  '@import "./public-motion.css";',
+  '@import "../../features/financial-health-check/styles/print.css";',
 ];
 const requiredTailwindSources = [
-  '@source "../components";',
-  '@source "../features";',
+  '@source "../../components";',
+  '@source "../../features";',
 ];
 
 for (const requiredImport of requiredGlobalImports) {
