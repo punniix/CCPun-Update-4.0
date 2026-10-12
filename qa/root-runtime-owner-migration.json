@@ -473,6 +473,70 @@
       "migrationBaseline": "ab1dffbc44b9e04db6295815cbb65fab9c2215a1",
       "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/analytics/search/loading\";\n",
       "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/content/articles/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/articles/[id]/page.tsx",
+      "baselineSha256": "a81cf9f3177ae82250e8d964d305789a31f947e6a28b6f3f8f74f1ab1ee0fd71",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/content/articles/[id]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/operations/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/[section]/page.tsx",
+      "baselineSha256": "d56e18221277af82b6a96671970c483f3477e4c9b0e94367d49cff971d3e7f1f",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/operations/[section]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/seo/audits/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx",
+      "baselineSha256": "b09a8058aa309e691c145e5859c53b93d0163ac2cfcb58caa5f00ab3305fca45",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "export { default, metadata } from \"@/apps/admin/app/(control-plane)/seo/audits/[id]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/(control-plane)/settings/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/settings/[section]/page.tsx",
+      "baselineSha256": "345978324503c1fc5c574f1c9e7df40d262106fc1ca8848fdbf40e6196cd8416",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "export { default } from \"@/apps/admin/app/(control-plane)/settings/[section]/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/studio/[[...tool]]/page.tsx",
+      "canonical": "apps/admin/app/studio/[[...tool]]/page.tsx",
+      "baselineSha256": "bb22ff7dd6728538db6110f2bbea67eda44b2ab43b901ea80a2634c2ef6ef777",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "export { default, metadata, viewport } from \"@/apps/admin/app/studio/[[...tool]]/page\";\nexport const dynamic = \"force-dynamic\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/studio/[[...tool]]/studio-client.tsx",
+      "canonical": "apps/admin/app/studio/[[...tool]]/studio-client.tsx",
+      "baselineSha256": "9fe2dc903d385dabc696866c2d999873c9ee4dd36ce9a8cdf5776ecb4c0690aa",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "\"use client\";\n\nexport { default } from \"@/apps/admin/app/studio/[[...tool]]/studio-client\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/admin/content/[id]/schedule/route.ts",
+      "canonical": "apps/admin/app/api/admin/content/[id]/schedule/route.ts",
+      "baselineSha256": "8edd6a93de04326e0647dd7bf32e4b31713e3dbe1cd01a0fdbd41a0eb4179956",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "export { GET, POST, DELETE } from \"@/apps/admin/app/api/admin/content/[id]/schedule/route\";\nexport const runtime = \"nodejs\";\nexport const dynamic = \"force-dynamic\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/api/auth/[...nextauth]/route.ts",
+      "canonical": "apps/admin/app/api/auth/[...nextauth]/route.ts",
+      "baselineSha256": "0b366a48ac9e46bc330456c133b46c166385c68d0bc6f089a8626d062409a647",
+      "migrationBaseline": "53b91a542db1df993681630478779825597bad25",
+      "wrapper": "export { GET, POST } from \"@/apps/admin/app/api/auth/[...nextauth]/route\";\n",
+      "status": "migrated"
     }
   ],
   "dynamicPathApproval": "Current COO approval relayed by parent /root on 2026-10-11, bounded to the prepared twelve-path patch; no other rejected path authorized."

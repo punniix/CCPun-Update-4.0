@@ -55,5 +55,6 @@
   "criticalCssBytes": 2538,
   "ubersuggestReconciledOwnerSha256": "66fea0470172d9f4e500e43b6b1f3077ca5d0dd69c8979d68e7710a8987d19ee",
   "rootProxyOriginalSha256": "2ed3fe64336891998de66f5de07c8a39d89414dc5143b558c09a520ed353ec0a",
-  "portBaseline": "05ea8e53d22a1bdc4e3d36b2c31c603e6070ddf8"
+  "portBaseline": "05ea8e53d22a1bdc4e3d36b2c31c603e6070ddf8",
+  "approvedUatOnlyEightBaseline": "53b91a542db1df993681630478779825597bad25"
 }
