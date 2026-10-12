@@ -1,8 +1,3 @@
-export const CCPUN_VERCEL_PROJECT_IDS = {
-  web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",
-  admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-} as const;
-
 export const DEPLOYMENT_PROVIDERS = ["hostinger", "local", "unknown"] as const;
 export const DEPLOYMENT_ROLES = ["web", "admin", "unknown"] as const;
 export const DEPLOYMENT_ENVIRONMENTS = [

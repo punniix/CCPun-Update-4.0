@@ -6,7 +6,11 @@ import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { assertPhase3AdminNativeBoundaries, phase3AdminNativeEntries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 
 const proof = JSON.parse(readFileSync('qa/phase3-admin-native-boundaries.json', 'utf8'));
-const sources = new Map(Object.entries(proof.baselineSources));
+// Original dc72 behavior uses its complete core graph, not retired callers mixed with a new identity resolver.
+const commonBefore = JSON.parse(readFileSync("qa/phase3-native-provider-parity.json", "utf8"));
+assert.equal(commonBefore.baselineSha, "5ba6efb7562f8c133c6c3cc0887c8bd159493187");
+assert.equal(proof.baseline, "dc72d520b20b62061f03ce207b36eeaac65be869");
+const sources = new Map([...Object.entries(commonBefore.baselineSources), ...Object.entries(proof.baselineSources)]);
 const sha = text => createHash('sha256').update(text).digest('hex');
 const globals = env => ({ process: { env }, console: { log() {}, error() {}, warn() {} } });
 function load(file, env, old = false, mocks = new Map()) {
@@ -279,4 +283,61 @@ test('native proof retains original protections and rejects tampering or additio
   const file = 'lib/admin/line/private-ingestion.ts'; const altered = readFileSync(file, 'utf8') + '\n// tamper';
   const resealed = structuredClone(proof); resealed.currentHashes[file] = sha(altered);
   assert.throws(() => assertPhase3AdminNativeBoundaries(file, proof.originalHashes[file], { proof: resealed, read: p => p === file ? altered : readFileSync(p, 'utf8') }));
+});
+
+
+test('actual root and canonical scheduler handlers deny invalid deployment before SQL construction or SDK start', async () => {
+  const routes = ['app/api/admin/content/[id]/schedule/route.ts', 'apps/admin/app/api/admin/content/[id]/schedule/route.ts'];
+  const lane = load('lib/admin/operations/article-schedule-contract.ts', {}).SCHEDULER_LANES.production;
+  const base = { ...native('production-admin'), CCPUN_ADMIN_CAPABILITY_PROFILE: 'full', NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: 'full',
+    CCPUN_NEON_PROJECT_ID: lane.projectId, CCPUN_NEON_BRANCH_ID: lane.branchId, CCPUN_NEON_DATABASE: 'neondb',
+    NEXT_PUBLIC_SANITY_PROJECT_ID: lane.sanityProjectId, NEXT_PUBLIC_SANITY_DATASET: lane.dataset,
+    CCPUN_ADMIN_DATABASE_URL: 'postgresql://ccpun_admin_runtime:synthetic@' + lane.endpointId + '.' + lane.hostSuffix + '/neondb?sslmode=require' };
+  const cases = [
+    { WORKFLOW_TARGET_WORLD: 'vercel' }, { WORKFLOW_TARGET_WORLD: '@workflow/world-vercel' },
+    { WORKFLOW_TARGET_WORLD: ' vercel ' }, { WORKFLOW_TARGET_WORLD: ' @workflow/world-vercel ' },
+    { VERCEL_DEPLOYMENT_ID: 'synthetic-retired-deployment' }, { CCPUN_DEPLOYMENT_PROVIDER: 'vercel' }, { CCPUN_DEPLOYMENT_ROLE: 'web' },
+  ];
+  const body = { scheduledLocal: '2026-10-13T15:30', draftRevision: 'draft-1', publishedRevision: null,
+    expectedGeneration: null, expectedVersion: 0, requestId: '11111111-1111-4111-8111-111111111111' };
+  let denied = 0, controls = 0;
+  async function observe(route, env) {
+    const trace = [];
+    const mocks = new Map([
+      ['next/server', { NextResponse: FixtureResponse }],
+      ['@/lib/admin/identity', { async getAdminIdentity() { trace.push('identity'); return { actorType: 'human', actor: 'synthetic-owner@example.invalid', role: 'owner' }; } }],
+      ['@/lib/admin/rbac', { hasAdminPermission(role, permission) { trace.push('permission'); return role === 'owner' && permission === 'content:schedule'; },
+        getAdminRoleForEmail() { trace.push('owner-role'); return 'owner'; } }],
+      ['@/lib/admin/auth-config', { isSameOriginAdminMutation(url, origin) { trace.push('origin'); return new URL(url).origin === origin; } }],
+      ['@neondatabase/serverless', { neon() { trace.push('sql-constructor'); throw new Error('SYNTHETIC_SQL_BOUNDARY'); } }],
+      ['next-sanity', { createClient() { trace.push('sanity-client'); throw new Error('SYNTHETIC_SANITY_BOUNDARY'); }, groq(strings) { return strings.join(''); } }],
+      ['workflow/api', { async start() { trace.push('sdk-start'); throw new Error('SYNTHETIC_SDK_BOUNDARY'); } }],
+      ['workflow', { FatalError: class extends Error {}, async sleep() { trace.push('sdk-sleep'); throw new Error('SYNTHETIC_SDK_BOUNDARY'); } }],
+    ]);
+    const handler = load(route, env, false, mocks);
+    const request = new Request('https://admin.ccpun.com/api/admin/content/article-fixture/schedule/', {
+      method: 'POST', headers: { origin: 'https://admin.ccpun.com', 'content-type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const result = await handler.POST(request, { params: Promise.resolve({ id: 'article-fixture' }) });
+    return { status: result.status, body: await result.json(), headers: Object.fromEntries(result.headers), trace };
+  }
+  for (const route of routes) {
+    for (const change of cases) {
+      const result = await observe(route, { ...base, ...change });
+      assert.equal(result.status, 503); assert.deepEqual(result.body, { error: 'not-ready' });
+      assert.equal(result.headers['cache-control'], 'private, no-store');
+      // Canonical wrong-role identity is rejected by its unchanged backend gate before preparation.
+      const earlyCanonicalWrongRole = route.startsWith('apps/') && change.CCPUN_DEPLOYMENT_ROLE === 'web';
+      assert.deepEqual(result.trace, earlyCanonicalWrongRole ? ['identity', 'permission', 'origin'] : ['identity', 'permission', 'origin', 'owner-role'], route + JSON.stringify(change));
+      assert.equal(result.trace.some(value => /sql|sdk|sanity/.test(value)), false); denied++;
+    }
+    const env = { ...base, CCPUN_ARTICLE_SCHEDULER_BACKEND: 'native-neon', NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: 'native-neon',
+      NEXT_PUBLIC_CCPUN_GIT_SHA: base.CCPUN_GIT_SHA, NEXT_PUBLIC_CCPUN_GIT_REF: base.CCPUN_GIT_REF,
+      NEXT_PUBLIC_CCPUN_RELEASE_ID: base.CCPUN_RELEASE_ID, CCPUN_NATIVE_WORKFLOW_ENABLED: '0' };
+    const result = await observe(route, env);
+    assert.equal(result.status, 503); assert.deepEqual(result.body, { error: 'not-ready' });
+    assert.deepEqual(result.trace, ['identity', 'permission', 'origin', 'owner-role', 'sql-constructor']);
+    assert.equal(result.trace.includes('sdk-start'), false); controls++;
+  }
+  assert.equal(denied, 14); assert.equal(controls, 2);
 });

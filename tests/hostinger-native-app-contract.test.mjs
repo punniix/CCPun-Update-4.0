@@ -164,3 +164,10 @@ test('canonical Web CLI denies unsupported inputs before child execution, public
     }
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
+
+
+test('retired private verifier and operative project-ID exports are absent', () => {
+  assert.equal(existsSync(new URL('../lib/runtime/vercel-service-auth.ts', import.meta.url)), false);
+  assert.doesNotMatch(read('lib/runtime/deployment-identity.ts'), /export\s+const\s+CCPUN_VERCEL_PROJECT_IDS/);
+  assert.doesNotMatch(read('lib/content/sanity-lane.ts'), /CONTENT_VERCEL_PROJECT_IDS/);
+});

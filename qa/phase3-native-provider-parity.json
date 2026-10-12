@@ -48,11 +48,11 @@
     "scripts/build-root.mjs": "d144777697510d24e5297b0597656fa56ac98881e33b34e9f0a59d3dedcf1522"
   },
   "currentHashes": {
-    "lib/runtime/deployment-identity.ts": "b4ebbdf2af148382ff0a87da1f86781f600c2c6b7fa2962dbf9e92170cd9f5f6",
+    "lib/runtime/deployment-identity.ts": "d9b606d8064d1f4b5b72d7f20594519bc2524c925bbfff9228875f78083a2fa9",
     "lib/runtime/deployment-contract.ts": "6e21e4a338f4c6e19fe0e3288536d346026bfc00830e2a3878a24f9b3b253f05",
     "lib/runtime/deployment-lanes.mjs": "860cf5bffe676837a0b39569592d379d6902632056a4cb03b30eaca443a4dbc9",
     "lib/runtime/web-build-config.mjs": "e57e0309ca08eb828f49fe9bf7d878d719ac07dcf44a14f9d00fefc49fa06867",
-    "lib/content/sanity-lane.ts": "8818fe01c3756b34e6cdaf2cf2fc4f6172f3eecb34e2a9cab35e91508b04120a",
+    "lib/content/sanity-lane.ts": "dde4086c7598aae795ab10f9273758e53544d468a5ebe4811e226cc47e3456ef",
     "lib/deployment-environment.ts": "c80458f09dcd398b91a59e29bae88a16e49f3e997a3cf41daae346d34cda931a",
     "apps/web/lib/line/private-ingestion.ts": "bb522a733920c92291d1d105312a84e04dfb4bbb2d3dc89db94755ce5272a282",
     "lib/observability/ai-crawler.ts": "0b3720c424f4ac4b14642ffdb2d5c4fb6bc31cdb97a6ce95039cbc7fc74e1258",
@@ -78,7 +78,7 @@
   ],
   "outputTestHashes": {
     "tests/phase3-native-provider-parity.test.mjs": "10a21672ec471797e5ec3573c4d8222edaf171697286dcef349c463b1ae44cbf",
-    "tests/hostinger-native-app-contract.test.mjs": "89d59b1ab787487f8228db703ab0118ebee6c45fdf7a38ee86d91282439526ac",
+    "tests/hostinger-native-app-contract.test.mjs": "6a5d764737b95b1c6669390b860f5ba7a26f044a823a206bce2e00c55ace6222",
     "tests/hostinger-shadow-config.test.mjs": "2b865e4bf79ea0ea541107641a8de56039630b0cc72dfabb304afcc48b1cbe7c"
   }
 }

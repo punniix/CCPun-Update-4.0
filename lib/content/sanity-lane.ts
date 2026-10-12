@@ -3,9 +3,6 @@ import {
 } from "../runtime/deployment-identity";
 import { getDeploymentLaneByEnvironment } from "../runtime/deployment-contract";
 
-// Temporary test/consumer bridge, removed when the paired Admin graph retires its imports.
-export { CCPUN_VERCEL_PROJECT_IDS as CONTENT_VERCEL_PROJECT_IDS } from "../runtime/deployment-identity";
-
 export const CONTENT_ENVIRONMENTS = [
   "development",
   "web-uat",
