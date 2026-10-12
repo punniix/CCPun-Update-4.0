@@ -1,5 +1,4 @@
 import {
-  CONTENT_VERCEL_PROJECT_IDS,
   isContentDeploymentAllowed,
   isContentSanityLaneAllowed,
   resolveContentEnvironment,
@@ -9,8 +8,6 @@ import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "./ru
 
 const APP_ENVIRONMENT = resolveContentEnvironment();
 const DEPLOYMENT_PROJECT_ID = process.env.VERCEL_PROJECT_ID?.trim();
-const PRODUCTION_ADMIN_PROJECT_ID = process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim()
-  || process.env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim();
 
 export const IS_ADMIN_APPLICATION = ["local-uat", "local-production", "lab", "uat", "admin-uat", "production-admin"].includes(APP_ENVIRONMENT);
 
@@ -30,10 +27,7 @@ export const DEPLOYMENT_CONTRACT_FAILURES = ACTIVE_DEPLOYMENT_LANE
 export const IS_DEPLOYMENT_CONTRACT_VALID = DEPLOYMENT_CONTRACT_FAILURES.length === 0;
 
 const ADMIN_PROJECT_ALLOWED =
-  isContentDeploymentAllowed(APP_ENVIRONMENT, DEPLOYMENT_PROJECT_ID, process.env) &&
-  (DEPLOYMENT_IDENTITY.provider !== "vercel"
-    || APP_ENVIRONMENT !== "production-admin"
-    || PRODUCTION_ADMIN_PROJECT_ID === CONTENT_VERCEL_PROJECT_IDS.admin);
+  isContentDeploymentAllowed(APP_ENVIRONMENT, DEPLOYMENT_PROJECT_ID, process.env);
 
 function isAdminReadDataPlaneAllowed(dataset = process.env.NEXT_PUBLIC_SANITY_DATASET): boolean {
   return Boolean(

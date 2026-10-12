@@ -60,15 +60,14 @@ const storedNav = read("lib/nav-config.json");
 assert.equal(storedNav, read("public/nav-config.json"), "P2.3 public navigation mirror drift");
 assert.deepEqual(JSON.parse(storedNav).tools.map(x => x.href), ["/play/money-story/", "/tools/financial-health-check/", "/ci-planning/"], "P2.3 canonical navigation route contract");
 
+const retiredProviderArtifacts = new Set(["vercel.json", "apps/web/vercel.json", "apps/admin/vercel.json", "scripts/vercel-ignore-build.mjs", "lib/runtime/vercel-service-auth.ts"]);
 for (const item of retention.retained) {
-  assert.ok(existsSync(path.join(root, item.path)), "P2.4 removed protected historical/compatibility evidence " + item.path);
+  if (retiredProviderArtifacts.has(item.path)) assert.equal(existsSync(path.join(root, item.path)), false, "retired provider configuration must not reactivate: " + item.path);
+  else assert.ok(existsSync(path.join(root, item.path)), "P2.4 removed protected historical/compatibility evidence " + item.path);
   assert.ok(typeof item.reason === "string" && item.reason.length > 30);
 }
 for (const file of ["vercel.json", "apps/web/vercel.json", "apps/admin/vercel.json"]) {
-  const config = JSON.parse(read(file));
-  assert.equal(config.crons, undefined, "Vercel operational cron must not reappear: " + file);
-  assert.equal(config.functions, undefined, "Vercel autonomous functions must not be silently re-enabled");
-  assert.ok(typeof config.ignoreCommand === "string" && config.ignoreCommand.includes("vercel-ignore-build.mjs"));
+  assert.equal(existsSync(path.join(root, file)), false, "retired provider configuration, cron and autonomous functions must not reactivate: " + file);
 }
 assert.equal(retention.authority, "docs/architecture/ccpun-four-lane-deployment-contract.md");
 assert.match(read(retention.authority), /Hostinger/);
