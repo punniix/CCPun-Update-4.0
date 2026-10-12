@@ -47,7 +47,7 @@
     "check:hostinger": "node scripts/check-hostinger-readiness.mjs",
     "qa:hostinger:parity": "node scripts/hostinger-seo-parity.mjs",
     "test:hostinger": "node --test tests/hostinger-shadow-config.test.mjs",
-    "build:hostinger": "node scripts/build-provider.mjs"
+    "build:hostinger": "npm run build --workspace @ccpun/web"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.3.1",
