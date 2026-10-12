@@ -17,6 +17,180 @@ const owners = [
   'features/admin/social/social-post-workspace-model.ts',
   'lib/admin/social/marketing-dashboard-metrics.ts',
 ];
+const overviewImportContract = [
+  {
+    "module": "react",
+    "typeOnly": false,
+    "defaultBinding": null,
+    "namespaceBinding": null,
+    "namedBindings": [
+      {
+        "imported": "useMemo",
+        "local": "useMemo",
+        "typeOnly": false
+      }
+    ]
+  },
+  {
+    "module": "lucide-react",
+    "typeOnly": false,
+    "defaultBinding": null,
+    "namespaceBinding": null,
+    "namedBindings": [
+      {
+        "imported": "AlertTriangle",
+        "local": "AlertTriangle",
+        "typeOnly": false
+      },
+      {
+        "imported": "Lightbulb",
+        "local": "Lightbulb",
+        "typeOnly": false
+      },
+      {
+        "imported": "Sparkles",
+        "local": "Sparkles",
+        "typeOnly": false
+      },
+      {
+        "imported": "Target",
+        "local": "Target",
+        "typeOnly": false
+      }
+    ]
+  },
+  {
+    "module": "@/lib/admin/social/marketing-dashboard-model",
+    "typeOnly": false,
+    "defaultBinding": null,
+    "namespaceBinding": null,
+    "namedBindings": [
+      {
+        "imported": "FORMAT_LABEL",
+        "local": "FORMAT_LABEL",
+        "typeOnly": false
+      },
+      {
+        "imported": "GOAL_LABEL",
+        "local": "GOAL_LABEL",
+        "typeOnly": false
+      },
+      {
+        "imported": "PLATFORM_LABEL",
+        "local": "PLATFORM_LABEL",
+        "typeOnly": false
+      },
+      {
+        "imported": "buildFormatBenchmarks",
+        "local": "buildFormatBenchmarks",
+        "typeOnly": false
+      },
+      {
+        "imported": "buildInsights",
+        "local": "buildInsights",
+        "typeOnly": false
+      },
+      {
+        "imported": "buildTimeSlots",
+        "local": "buildTimeSlots",
+        "typeOnly": false
+      },
+      {
+        "imported": "buildWeeklySeries",
+        "local": "buildWeeklySeries",
+        "typeOnly": false
+      },
+      {
+        "imported": "buildWinners",
+        "local": "buildWinners",
+        "typeOnly": false
+      },
+      {
+        "imported": "metricSummary",
+        "local": "metricSummary",
+        "typeOnly": false
+      },
+      {
+        "imported": "FormatBenchmark",
+        "local": "FormatBenchmark",
+        "typeOnly": true
+      },
+      {
+        "imported": "MarketingGoal",
+        "local": "MarketingGoal",
+        "typeOnly": true
+      },
+      {
+        "imported": "MarketingInsight",
+        "local": "MarketingInsight",
+        "typeOnly": true
+      },
+      {
+        "imported": "MarketingMetricUnit",
+        "local": "MarketingMetricUnit",
+        "typeOnly": true
+      },
+      {
+        "imported": "MarketingPlatform",
+        "local": "MarketingPlatform",
+        "typeOnly": true
+      },
+      {
+        "imported": "MarketingPost",
+        "local": "MarketingPost",
+        "typeOnly": true
+      }
+    ]
+  },
+  {
+    "module": "./MarketingDashboardVisuals",
+    "typeOnly": false,
+    "defaultBinding": null,
+    "namespaceBinding": null,
+    "namedBindings": [
+      {
+        "imported": "CoverageBadge",
+        "local": "CoverageBadge",
+        "typeOnly": false
+      },
+      {
+        "imported": "PostIdentity",
+        "local": "PostIdentity",
+        "typeOnly": false
+      },
+      {
+        "imported": "PostThumbnail",
+        "local": "PostThumbnail",
+        "typeOnly": false
+      },
+      {
+        "imported": "QualityBadge",
+        "local": "QualityBadge",
+        "typeOnly": false
+      },
+      {
+        "imported": "WeeklyMedianChart",
+        "local": "WeeklyMedianChart",
+        "typeOnly": false
+      },
+      {
+        "imported": "formatMarketingValue",
+        "local": "formatMarketingValue",
+        "typeOnly": false
+      }
+    ]
+  }
+];
+function importContract(statement) {
+  const clause = statement.importClause;
+  const bindings = clause?.namedBindings;
+  return { module: statement.moduleSpecifier.text, typeOnly: Boolean(clause?.isTypeOnly),
+    defaultBinding: clause?.name?.text ?? null,
+    namespaceBinding: bindings && ts.isNamespaceImport(bindings) ? bindings.name.text : null,
+    namedBindings: bindings && ts.isNamedImports(bindings) ? bindings.elements.map(element => ({
+      imported: element.propertyName?.text ?? element.name.text, local: element.name.text, typeOnly: Boolean(element.isTypeOnly),
+    })) : [] };
+}
 const digest = value => createHash('sha256').update(value).digest('hex');
 const sameKeys = (a, b) => assert.deepEqual([...a].sort(), [...b].sort());
 function tree(file, source) { return ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX); }
@@ -75,10 +249,15 @@ export function assertPhase2AdminComposition(file, expectedBaselineHash, {
     }
   }
   for (const owner of owners) {
-    for (const statement of tree(owner, current.get(owner)).statements) {
+    const ownerTree = tree(owner, current.get(owner));
+    if (owner === owners[0]) assert.deepEqual(ownerTree.statements.filter(ts.isImportDeclaration).map(importContract), overviewImportContract, owner + ": exact reviewed import contract");
+    for (const statement of ownerTree.statements) {
       assert.ok(ts.isImportDeclaration(statement) || ts.isFunctionDeclaration(statement) || ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement)
         || (ts.isExpressionStatement(statement) && ts.isStringLiteral(statement.expression) && statement.expression.text === 'use client'), owner + ': no new module side effects');
-      if (owner !== owners[0] && ts.isImportDeclaration(statement)) assert.equal(statement.importClause?.isTypeOnly, true, owner + ': types-only boundary');
+      if (ts.isImportDeclaration(statement)) {
+        assert.ok(statement.importClause, owner + ": side-effect-only imports denied");
+        if (owner !== owners[0]) assert.equal(statement.importClause.isTypeOnly, true, owner + ": types-only boundary");
+      }
     }
   }
   const reached = new Set();

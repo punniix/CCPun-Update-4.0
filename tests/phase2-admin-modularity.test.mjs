@@ -85,6 +85,16 @@ test('current composition admission fails closed for altered entry/owner/body/ba
   const sideEffect = read(workspaceModel) + '\nglobalThis.__fixtureSideEffect = true;\n';
   const sideEffectProof = structuredClone(proof); sideEffectProof.currentHashes[workspaceModel] = digest(sideEffect);
   assert.throws(() => check(sideEffectProof, new Map([[workspaceModel, sideEffect]])), /no new module side effects/);
+  for (const addedImport of ["import '@/lib/admin/social/execution-store';", "import { executeSocialPublication } from '@/lib/admin/social/execution-store';", "import 'react';"]) {
+    const injected = read(overview) + '\n' + addedImport + '\n';
+    const injectedProof = structuredClone(proof); injectedProof.currentHashes[overview] = digest(injected);
+    assert.throws(() => check(injectedProof, new Map([[overview, injected]])), /exact reviewed import contract/);
+  }
+  for (const change of [source => source.replace('{ useMemo }', '{ useMemo as otherMemo }'), source => source.replace('{ useMemo }', '{ type useMemo }')]) {
+    const injected = change(read(overview));
+    const injectedProof = structuredClone(proof); injectedProof.currentHashes[overview] = digest(injected);
+    assert.throws(() => check(injectedProof, new Map([[overview, injected]])), /exact reviewed import contract/);
+  }
   const detached = read(dashboard).replace('import { OverviewTab } from "./MarketingDashboardOverview";', '');
   const detachedProof = structuredClone(proof); detachedProof.currentHashes[dashboard] = digest(detached);
   assert.throws(() => check(detachedProof, new Map([[dashboard, detached]])), /actual runtime owner reachability/);
