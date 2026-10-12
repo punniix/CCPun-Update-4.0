@@ -49,6 +49,23 @@ const requiredTailwindSources = [
   '@source "../../features";',
 ];
 
+// Explicit Tailwind inputs keep review fixtures out while covering current route imports.
+if (!globalsSource.includes('@import "tailwindcss" source(none);')) {
+  throw new Error('Tailwind auto-discovery must not consume historical review/test snapshots.');
+}
+const tailwindSources = [...globalsSource.matchAll(/@source "([^"\n]+)";/g)]
+  .map(([, path]) => path.replace(/^\.\.\/\.\.\//, ''));
+for (const file of reachable) {
+  if (!tailwindSources.some((owner) => file === owner || file.startsWith(owner + '/'))) {
+    throw new Error(`Runtime source is outside explicit Tailwind coverage: ${file}`);
+  }
+}
+for (const owner of tailwindSources) {
+  if (/^(?:qa|tests|docs|scripts)(?:\/|$)/.test(owner)) {
+    throw new Error(`Historical source cannot own runtime Tailwind inputs: ${owner}`);
+  }
+}
+
 for (const requiredImport of requiredGlobalImports) {
   if (!globalsSource.includes(requiredImport)) {
     throw new Error(`components/styles/global-foundation.css must keep explicit style ownership import: ${requiredImport}`);

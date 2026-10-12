@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
+import { assertPhase2MoneyComposition } from '../qa/phase2-source-proof.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const read = file => readFileSync(resolve(root, file), 'utf8');
@@ -13,7 +14,8 @@ const proof = JSON.parse(read('qa/production-code-only-parity.json'));
 test('code-only release preserves its own Production canonical owners, UI, tracking, SEO and auth sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
-    assert.equal(sha(productionBaselineSource(file)), digest, file);
+    if (file === 'features/money-story/components/MoneyStoryGame.tsx') assertPhase2MoneyComposition(file, digest);
+    else assert.equal(sha(productionBaselineSource(file)), digest, file);
   }
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation', 'lib/runtime/investment-availability.ts']) {
     assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
