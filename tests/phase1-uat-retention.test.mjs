@@ -23,7 +23,14 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
   for (const file of root) assert.equal(sha(readFileSync(file)), proof.protected[file], file + ': root source must stay byte exact');
   assert.equal(Object.keys(proof.protected).length, 764);
   for (const [file, digest] of Object.entries(proof.protected)) {
-    if (file === 'scripts/build-provider.mjs') {
+    if (file === 'features/admin/operations/DeploymentsPage.tsx') {
+      assert.equal(digest, '3664b01ea11471d9c4d421adf82c206704ac7859b4503acc0e2a9e44bfd3271e', 'own original UI identity');
+      const actual = readFileSync(file, 'utf8');
+      const nativeLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : "ยังไม่ยืนยันผู้ให้บริการ";';
+      const retiredLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : model.provider === "vercel" ? "Vercel" : "ยังไม่ยืนยันผู้ให้บริการ";';
+      assert.equal(actual.split(nativeLabel).length, 2);
+      assert.equal(sha(actual.replace(nativeLabel, retiredLabel)), digest, 'whole page changes only unreachable provider label');
+    } else if (file === 'scripts/build-provider.mjs') {
       assert.equal(digest, '2368b223e7fb9d8ccbae5f9c44340621346307363766e1a7fe2f8bce0cdc96f9', 'own frozen legacy builder identity');
       assert.equal(existsSync(file), false, 'duplicate legacy dispatcher is retired');
       const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts;

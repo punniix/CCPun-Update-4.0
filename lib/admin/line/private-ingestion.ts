@@ -204,10 +204,6 @@ function resolveSystemDeliveryDispatchUrl(
     ) return null;
     if (runtime.lane === "production" && url.hostname !== "admin.ccpun.com") return null;
     if (runtime.lane === "uat") {
-      if (
-        runtime.provider === "vercel"
-        && !/^ccpun-admin-[a-z0-9-]+-punniixs-projects\.vercel\.app$/.test(url.hostname)
-      ) return null;
       if (runtime.provider === "hostinger") {
         const adminOrigin = variables.AUTH_URL?.trim();
         if (!adminOrigin) return null;

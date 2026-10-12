@@ -160,12 +160,12 @@ test("Production feature gates share the boundary and provider writes remain exp
   assert.equal(isSocialProviderExecutionGateEnabled(enabled), false);
   assert.equal(isSocialProviderExecutionGateEnabled({ ...enabled, CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1" }), true);
 
+  const nativeIdentity = { deploymentProvider: enabled.CCPUN_DEPLOYMENT_PROVIDER, deploymentRole: enabled.CCPUN_DEPLOYMENT_ROLE };
   assert.equal(isSocialFoundationEnabled({
     flag: enabled.CCPUN_SOCIAL_ENABLED,
     dataMode: enabled.CCPUN_SOCIAL_DATA_MODE,
     environment: "production-admin",
-    deploymentProvider: enabled.CCPUN_DEPLOYMENT_PROVIDER,
-    deploymentRole: enabled.CCPUN_DEPLOYMENT_ROLE,
+    ...nativeIdentity,
     vercelEnvironment: undefined,
     projectId: undefined,
     productionAdminProjectId: undefined,
@@ -181,8 +181,7 @@ test("Production feature gates share the boundary and provider writes remain exp
   assert.equal(isSocialOperationsEnabled({
     flag: enabled.CCPUN_SOCIAL_OPERATIONS_ENABLED,
     environment: "production-admin",
-    deploymentProvider: enabled.CCPUN_DEPLOYMENT_PROVIDER,
-    deploymentRole: enabled.CCPUN_DEPLOYMENT_ROLE,
+    ...nativeIdentity,
     vercelEnvironment: undefined,
     projectId: undefined,
     productionAdminProjectId: undefined,
@@ -199,7 +198,7 @@ test("Production feature gates share the boundary and provider writes remain exp
     flag: "1",
     dataMode: "synthetic",
     environment: "admin-uat",
-    deploymentProvider: "hostinger", deploymentRole: "admin",
+    ...nativeIdentity,
     vercelEnvironment: undefined, projectId: undefined,
     gitBranch: WEBSITE_42_SOCIAL_BRANCH,
     sanityProjectId: SOCIAL_UAT_SANITY_PROJECT_ID,
