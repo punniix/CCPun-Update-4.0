@@ -1,7 +1,7 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { DeploymentReadModel } from "../../lib/admin/operations/deployment-read-model";
 import {
@@ -10,7 +10,7 @@ import {
   isAdminOperationsRuntimeIdentityValid,
 } from "../../lib/admin/operations/foundation";
 
-const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+const read = (path: string) => readPhase1Source(path);
 
 test("Production Admin operations migration is checksum locked and preserves scheduler grants", () => {
   const migration = read("db/migrations/20260913_admin_operations_production_v1.sql");

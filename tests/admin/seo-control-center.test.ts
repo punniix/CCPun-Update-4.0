@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -8,8 +9,8 @@ test("SEO Control Center keeps semantic topic separate from protected published 
     readFileSync("cms/sanity/schema/objects/seo-metadata.ts", "utf8"),
   ].join("\n");
   const input = readFileSync("cms/sanity/components/SeoScoreInput.tsx", "utf8");
-  const adminPage = readFileSync("apps/admin/app/(control-plane)/seo/page.tsx", "utf8");
-  const detailPage = readFileSync("apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
+  const adminPage = readPhase1Source("apps/admin/app/(control-plane)/seo/page.tsx");
+  const detailPage = readPhase1Source("apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx");
   const contract = readFileSync("docs/seo-control-center-v1.md", "utf8");
 
   assert.match(schema, /BLOG_TOPIC_HUBS/);
