@@ -1,7 +1,7 @@
 // Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
 const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import {
   isAdminDataPlaneAllowed,
@@ -30,7 +30,8 @@ const retiredPublisher = readFileSync(new URL("../../scripts/publish-wordpress-m
 const publishedDraftImporter = readFileSync(new URL("../../scripts/import-wordpress-published-to-sanity.mjs", import.meta.url), "utf8");
 const draftImporter = readFileSync(new URL("../../scripts/import-wordpress-drafts-to-sanity.mjs", import.meta.url), "utf8");
 const draftSeeder = readFileSync(new URL("../../scripts/create-sanity-uat-draft.mjs", import.meta.url), "utf8");
-const survivorGuard = readFileSync(new URL("../../scripts/guard-survivor-deploy.mjs", import.meta.url), "utf8");
+const survivorGuardPath = new URL("../../scripts/guard-survivor-deploy.mjs", import.meta.url);
+const nativeBuildEntry = readFileSync(new URL("../../scripts/build-root.mjs", import.meta.url), "utf8");
 const proxySource = readFileSync(new URL("../../proxy.ts", import.meta.url), "utf8");
 const studioConfig = readFileSync(new URL("../../sanity.config.ts", import.meta.url), "utf8");
 const studioCli = readFileSync(new URL("../../sanity.cli.ts", import.meta.url), "utf8");
@@ -399,13 +400,14 @@ test("Admin proxy uses the project-aware surface guard", () => {
   assert.match(proxySource, /status: 404/);
 });
 
-test("survivor deploy guard allows only immutable survivor IDs and rejects every unknown project", () => {
-  assert.match(survivorGuard, /project\.projectId/);
-  assert.match(survivorGuard, new RegExp(WEB_PROJECT_ID));
-  assert.match(survivorGuard, new RegExp(PRODUCTION_ADMIN_PROJECT_ID));
-  assert.match(survivorGuard, /unapproved Vercel project ID/);
-  assert.doesNotMatch(survivorGuard, /LEGACY_PROJECT_IDS|LEGACY-FROZEN/);
-  assert.doesNotMatch(survivorGuard, /project\.projectName/);
+test("retired survivor deploy entry is absent and native build denies retired provider authority", () => {
+  assert.equal(existsSync(survivorGuardPath), false);
+  assert.equal(packageJson.scripts["guard:survivor"], undefined);
+  assert.equal(packageJson.scripts["build:survivor"], undefined);
+  assert.match(nativeBuildEntry, /UNSUPPORTED_PROVIDER_METADATA/);
+  assert.match(nativeBuildEntry, /UNSUPPORTED_BUILD_PROVIDER/);
+  assert.doesNotMatch(nativeBuildEntry, /LEGACY_PROJECT_IDS|LEGACY-FROZEN/);
+  assert.doesNotMatch(nativeBuildEntry, /project\.projectName/);
 });
 
 test("Local Production launch scripts pin the exact project, dataset, host, and Draft switch", () => {
