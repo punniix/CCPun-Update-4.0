@@ -41,7 +41,7 @@ test("Native dispatcher rejects retired provider and missing Admin role before b
     { patch: { CCPUN_DEPLOYMENT_PROVIDER: "hostinger" }, code: "HOSTINGER_BUILD_ROLE_REQUIRED" },
   ]) {
     const result = spawnSync(process.execPath, ["scripts/build-root.mjs"], {
-      encoding: "utf8", env: { PATH: "/usr/local/bin:/usr/bin:/bin", ...patch },
+      encoding: "utf8", env: { NODE_ENV: "test", PATH: "/usr/local/bin:/usr/bin:/bin", ...patch },
     });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, new RegExp(code));
@@ -56,7 +56,7 @@ test("Native dispatcher rejects retired workflow targets and deployment metadata
     { VERCEL_DEPLOYMENT_ID: "retired-fixture-only" },
   ]) {
     const result = spawnSync(process.execPath, ["scripts/build-root.mjs"], {
-      encoding: "utf8", env: { PATH: "/usr/local/bin:/usr/bin:/bin", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", ...patch },
+      encoding: "utf8", env: { NODE_ENV: "test", PATH: "/usr/local/bin:/usr/bin:/bin", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", ...patch },
     });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /UNSUPPORTED_WORKFLOW_WORLD|UNSUPPORTED_PROVIDER_METADATA/);
