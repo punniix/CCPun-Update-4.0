@@ -1,0 +1,355 @@
+{
+  "projectId": "ccb9lnw5",
+  "dataset": "uat",
+  "document": {
+    "_createdAt": "2026-10-11T09:22:28Z",
+    "_id": "uat-ux-tax-table-20261011",
+    "_rev": "ZyCtDHZ6hF8ekrdxXOF4DQ",
+    "_type": "article",
+    "_updatedAt": "2026-10-11T09:39:03Z",
+    "author": {
+      "_ref": "uat-author-ccpun",
+      "_type": "reference"
+    },
+    "body": [
+      {
+        "_key": "qa-notice",
+        "_type": "block",
+        "children": [
+          {
+            "_key": "qa-notice-text",
+            "_type": "span",
+            "marks": [],
+            "text": "บทความนี้ใช้ทดสอบหน้าจอ UAT เท่านั้น ไม่ใช่บทความเผยแพร่ใหม่ ข้อมูลตารางคัดลอกจากหน้า Production เพื่อเปรียบเทียบการแสดงผล โดยไม่แก้ข้อความหรือวงเงิน"
+          }
+        ],
+        "markDefs": [],
+        "style": "normal"
+      },
+      {
+        "_key": "qa-inline-reference",
+        "_type": "block",
+        "children": [
+          {
+            "_key": "qa-inline-label",
+            "_type": "span",
+            "marks": [],
+            "text": "ตัวอย่างลิงก์อ้างอิงในเนื้อหา: อ่านรายละเอียดของ "
+          },
+          {
+            "_key": "qa-inline-claim",
+            "_type": "span",
+            "marks": [
+              "qa-rd-personal"
+            ],
+            "text": "ค่าลดหย่อนส่วนตัว"
+          },
+          {
+            "_key": "qa-inline-context",
+            "_type": "span",
+            "marks": [],
+            "text": " ในประมวลรัษฎากร มาตรา 47(1)(ก) บนเว็บไซต์กรมสรรพากร ลิงก์นี้ประกอบเฉพาะรายการดังกล่าว ไม่ใช่การรับรองทุกเงื่อนไขในตาราง"
+          }
+        ],
+        "markDefs": [
+          {
+            "_key": "qa-rd-personal",
+            "_type": "link",
+            "href": "https://www.rd.go.th/5937.html",
+            "openInNewTab": true
+          }
+        ],
+        "style": "normal"
+      },
+      {
+        "_key": "qa-table-heading",
+        "_type": "block",
+        "children": [
+          {
+            "_key": "qa-table-heading-text",
+            "_type": "span",
+            "marks": [],
+            "text": "ตารางทดสอบรายการ วงเงิน และเงื่อนไข"
+          }
+        ],
+        "markDefs": [],
+        "style": "h2"
+      },
+      {
+        "_key": "qa-tax-table",
+        "_type": "simpleTable",
+        "headers": [
+          "รายการ",
+          "วงเงินหลัก",
+          "เงื่อนไขสำคัญ"
+        ],
+        "rows": [
+          {
+            "_key": "qa-row-0",
+            "_type": "tableRow",
+            "cells": [
+              "ค่าลดหย่อนส่วนตัว",
+              "60,000 บาท",
+              "ผู้มีเงินได้"
+            ]
+          },
+          {
+            "_key": "qa-row-1",
+            "_type": "tableRow",
+            "cells": [
+              "คู่สมรสไม่มีเงินได้",
+              "60,000 บาท",
+              "คู่สมรสโดยชอบด้วยกฎหมายและไม่มีเงินได้"
+            ]
+          },
+          {
+            "_key": "qa-row-2",
+            "_type": "tableRow",
+            "cells": [
+              "บุตร",
+              "30,000 บาท/คน",
+              "บุตรคนที่ 2 เป็นต้นไปที่เป็นบุตรชอบด้วยกฎหมายและเกิดตั้งแต่ปี 2561 ใช้สิทธิรวม 60,000 บาท/คนเมื่อเข้าเงื่อนไข"
+            ]
+          },
+          {
+            "_key": "qa-row-3",
+            "_type": "tableRow",
+            "cells": [
+              "ค่าฝากครรภ์และคลอดบุตร",
+              "ตามจริง สูงสุด 60,000 บาท/ครรภ์",
+              "ต้องเป็นค่าใช้จ่ายที่เข้าเกณฑ์และมีหลักฐานตามที่กรมสรรพากรกำหนด"
+            ]
+          },
+          {
+            "_key": "qa-row-4",
+            "_type": "tableRow",
+            "cells": [
+              "อุปการะบิดามารดา",
+              "30,000 บาท/คน",
+              "อายุ 60 ปีขึ้นไป รายได้ไม่เกิน 30,000 บาท/ปี"
+            ]
+          },
+          {
+            "_key": "qa-row-5",
+            "_type": "tableRow",
+            "cells": [
+              "อุปการะคนพิการ/ทุพพลภาพ",
+              "60,000 บาท/คน",
+              "ผู้ที่นำมาใช้สิทธิมีเงินได้พึงประเมินไม่เกิน 30,000 บาท/ปี และมีหลักฐานตามเกณฑ์"
+            ]
+          },
+          {
+            "_key": "qa-row-6",
+            "_type": "tableRow",
+            "cells": [
+              "ประกันชีวิต",
+              "ตามจริง สูงสุด 100,000 บาท",
+              "กรมธรรม์ตั้งแต่ 10 ปีขึ้นไปและเข้าเงื่อนไขกรมสรรพากร"
+            ]
+          },
+          {
+            "_key": "qa-row-7",
+            "_type": "tableRow",
+            "cells": [
+              "ประกันชีวิตคู่สมรสไม่มีเงินได้",
+              "ตามจริง สูงสุด 10,000 บาท",
+              "ความเป็นคู่สมรสต้องมีอยู่ตลอดปีภาษี และกรมธรรม์ต้องเข้าเงื่อนไข"
+            ]
+          },
+          {
+            "_key": "qa-row-8",
+            "_type": "tableRow",
+            "cells": [
+              "ประกันสุขภาพตนเอง",
+              "ตามจริง สูงสุด 25,000 บาท",
+              "รวมกับประกันชีวิตแล้วไม่เกิน 100,000 บาท"
+            ]
+          },
+          {
+            "_key": "qa-row-9",
+            "_type": "tableRow",
+            "cells": [
+              "ประกันสุขภาพบิดามารดา",
+              "ตามจริง สูงสุด 15,000 บาท",
+              "บิดามารดามีเงินได้พึงประเมินไม่เกิน 30,000 บาท/ปี; สิทธินี้ไม่ได้กำหนดว่าต้องอายุ 60 ปีขึ้นไป"
+            ]
+          },
+          {
+            "_key": "qa-row-10",
+            "_type": "tableRow",
+            "cells": [
+              "ประกันชีวิตแบบบำนาญ",
+              "สิทธิส่วนเพิ่ม: ไม่เกิน 15% ของเงินได้พึงประเมิน สูงสุด 200,000 บาท",
+              "ใช้วงเงินประกันชีวิตปกติก่อน แล้วส่วนเพิ่มนับรวมกับกลุ่มออมเพื่อเกษียณไม่เกิน 500,000 บาท"
+            ]
+          },
+          {
+            "_key": "qa-row-11",
+            "_type": "tableRow",
+            "cells": [
+              "RMF",
+              "ไม่เกิน 30% ของเงินได้พึงประเมิน สูงสุด 500,000 บาท",
+              "นับรวมกลุ่มออมเพื่อเกษียณไม่เกิน 500,000 บาท"
+            ]
+          },
+          {
+            "_key": "qa-row-12",
+            "_type": "tableRow",
+            "cells": [
+              "PVD / กบข. / กอช. / กองทุนสงเคราะห์ครู",
+              "ตามสิทธิของแต่ละรายการ",
+              "เมื่อนับรวมกับ RMF และส่วนเพิ่มของประกันบำนาญ ต้องพิจารณาเพดานรวม 500,000 บาท"
+            ]
+          },
+          {
+            "_key": "qa-row-13",
+            "_type": "tableRow",
+            "cells": [
+              "Thai ESG",
+              "ไม่เกิน 30% ของเงินได้พึงประเมิน สูงสุด 300,000 บาท",
+              "ซื้อปี 2567–2569 ถืออย่างน้อย 5 ปีตามเกณฑ์ และเป็นวงเงินแยกจากเพดานออมเกษียณ 500,000 บาท"
+            ]
+          },
+          {
+            "_key": "qa-row-14",
+            "_type": "tableRow",
+            "cells": [
+              "ดอกเบี้ยกู้ซื้อ/สร้างที่อยู่อาศัย",
+              "ตามจริง สูงสุด 100,000 บาท",
+              "เงินกู้และหลักประกันต้องเข้าเงื่อนไข"
+            ]
+          },
+          {
+            "_key": "qa-row-15",
+            "_type": "tableRow",
+            "cells": [
+              "สร้างบ้านใหม่",
+              "10,000 บาทต่อค่าก่อสร้างทุก 1,000,000 บาท สูงสุด 100,000 บาท",
+              "บ้านใหม่ไม่เกิน 1 หลัง ผู้รับจ้างจด VAT; สัญญาและเริ่มก่อสร้าง 9 เม.ย. 2567–31 ธ.ค. 2568 และใช้สิทธิในปีที่ก่อสร้างเสร็จ"
+            ]
+          },
+          {
+            "_key": "qa-row-16",
+            "_type": "tableRow",
+            "cells": [
+              "เงินสมทบประกันสังคม",
+              "ตามที่จ่ายจริงตามกฎหมาย",
+              "ใช้ตามจำนวนที่จ่ายจริงในปีภาษี"
+            ]
+          },
+          {
+            "_key": "qa-row-17",
+            "_type": "tableRow",
+            "cells": [
+              "เงินบริจาค",
+              "ตามประเภทและเพดานที่กำหนด",
+              "ตั้งแต่ 1 ม.ค. 2569 การบริจาคให้วัดและหน่วยรับบริจาคตามประกาศที่เกี่ยวข้องต้องผ่าน e-Donation เพื่อใช้สิทธิภาษี"
+            ]
+          },
+          {
+            "_key": "qa-row-18",
+            "_type": "tableRow",
+            "cells": [
+              "บริจาคพรรคการเมือง",
+              "ตามจริง สูงสุด 10,000 บาท",
+              "บุคคลธรรมดาสัญชาติไทยและเข้าเงื่อนไข"
+            ]
+          },
+          {
+            "_key": "qa-row-19",
+            "_type": "tableRow",
+            "cells": [
+              "Solar Rooftop",
+              "ตามจริง สูงสุด 200,000 บาท",
+              "1 ระบบ 1 ครั้ง เชื่อมโครงข่ายสำเร็จ มี e-Tax Invoice และเข้าเงื่อนไขช่วง 3 มี.ค. 2569–31 ธ.ค. 2571"
+            ]
+          },
+          {
+            "_key": "qa-row-20",
+            "_type": "tableRow",
+            "cells": [
+              "ซื้องานศิลปะด้านทัศนศิลป์",
+              "ตามจริง สูงสุด 100,000 บาท",
+              "ซื้อในช่วง 1 ม.ค. 2568–31 ธ.ค. 2570 และงาน ศิลปิน ผู้ขาย รวมถึงหลักฐานต้องเข้าเกณฑ์"
+            ]
+          }
+        ]
+      },
+      {
+        "_key": "qa-after-table",
+        "_type": "block",
+        "children": [
+          {
+            "_key": "qa-after-table-text",
+            "_type": "span",
+            "marks": [],
+            "text": "ทดสอบอ่านเงื่อนไขโดยเลื่อนตารางแนวนอน แล้วเลื่อนหน้าขึ้นลงต่อ ตรวจชื่อรายการ หัวคอลัมน์ ขนาดตัวอักษร และโฟกัสคีย์บอร์ด"
+          }
+        ],
+        "markDefs": [],
+        "style": "normal"
+      }
+    ],
+    "category": {
+      "_ref": "ccpun-category-personal-finance",
+      "_type": "reference"
+    },
+    "excerpt": "บทความทดสอบ UX/UI เฉพาะ UAT สำหรับตารางยาว 21 รายการ ข้อความยาว และการอ่านบนมือถือทั้งแนวตั้งและแนวนอน",
+    "publishedAt": "2026-10-11T09:00:00.000Z",
+    "seo": {
+      "_type": "seoMetadata",
+      "description": "บทความทดสอบหน้าจอเฉพาะ UAT ห้าม index ใช้ตรวจตารางยาว การเลื่อน และข้อความบนมือถือ",
+      "noindex": true,
+      "title": "UAT · ทดสอบตารางบทความ"
+    },
+    "slug": {
+      "_type": "slug",
+      "current": "uat-ux-tax-table-20261011"
+    },
+    "title": "UAT · ทดสอบการอ่านตารางลดหย่อนภาษีบนมือถือ"
+  },
+  "publicDisplay": [
+    {
+      "_id": "ccpun-category-personal-finance",
+      "_rev": "QemagYEAVW6d9yUvw5AIb9",
+      "_type": "category",
+      "bio": null,
+      "name": null,
+      "professionalQualifications": null,
+      "profileAvatar": null,
+      "profileBio": null,
+      "profileCtaLabel": null,
+      "profileCtaUrl": null,
+      "profileName": null,
+      "profileRole": null,
+      "slug": {
+        "_type": "slug",
+        "current": "personal-finance"
+      },
+      "title": "การเงินส่วนบุคคล"
+    },
+    {
+      "_id": "uat-author-ccpun",
+      "_rev": "OBCDQJ8hm7FfwOrWo8MLYt",
+      "_type": "author",
+      "bio": "Test author for CCPun Website Admin & Intelligence Layer UAT only.",
+      "name": "CCPun UAT Author",
+      "professionalQualifications": null,
+      "profileAvatar": null,
+      "profileBio": null,
+      "profileCtaLabel": null,
+      "profileCtaUrl": null,
+      "profileName": null,
+      "profileRole": null,
+      "slug": {
+        "_type": "slug",
+        "current": "ccpun-uat-author"
+      },
+      "title": null
+    }
+  ],
+  "sourceBaseline": "5698142e696ba57d0a25a4ab3ce4888fc8c25004",
+  "originalArticlePageSource": "import { cache } from \"react\";\nimport { draftMode } from \"next/headers\";\nimport { IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT } from \"@/lib/deployment-environment\";\nimport Website43Article from \"@/features/blog/website-43/Website43Article\";\nimport type { Metadata } from \"next\";\nimport { notFound, permanentRedirect, redirect } from \"next/navigation\";\nimport { serializeJsonLd } from \"@/lib/content/structured-data/serialize-json-ld\";\nimport { getContentProvider } from \"@/lib/content/provider\";\nimport { buildArticleSchemaGraph } from \"@/lib/content/structured-data/article-schema\";\nimport {\n  getArticleCanonical,\n  getArticleCategorySlug,\n  getArticlePath,\n  getArticlePreviewCategorySlug,\n  getArticlePreviewPath,\n  getArticleSourceSlugForRoute,\n  getMovedArticleRedirectPath,\n  isArticleCanonicalAligned,\n} from \"@/lib/content/url\";\n\nconst DEFAULT_SOCIAL_IMAGE = \"/assets/blog-hub-hero-ccpun-v1.webp\";\n\nconst getArticleBySlugForRequest = cache((slug: string, includeDrafts: boolean) =>\n  getContentProvider().getArticleBySlug(slug, { includeDrafts }),\n);\n\nexport async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }): Promise<Metadata> {\n  const { category, slug } = await params;\n  const { isEnabled } = await draftMode();\n  const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;\n  const sourceSlug = getArticleSourceSlugForRoute(slug);\n  const article = await getArticleBySlugForRequest(sourceSlug, includeDrafts);\n  if (!article || (!includeDrafts && article.status !== \"published\")) {\n    return {\n      title: \"ไม่พบหน้า | CCPun\",\n      alternates: { canonical: null },\n      robots: { index: false, follow: true },\n    };\n  }\n\n  const finalCategory = includeDrafts ? getArticlePreviewCategorySlug(article) : getArticleCategorySlug(article);\n  const finalPath = includeDrafts ? getArticlePreviewPath(article) : getArticlePath(article);\n  const finalSlug = finalPath.split(\"/\").filter(Boolean).at(-1);\n  if (category !== finalCategory || slug !== finalSlug) return { robots: { index: false, follow: true } };\n  const canonical = includeDrafts ? null : getArticleCanonical(article);\n  const isDraft = includeDrafts || article.status !== \"published\";\n  const noindex = IS_REVIEW_ENVIRONMENT || isDraft || article.noindex === true || !isArticleCanonicalAligned(article);\n\n  return {\n    title: article.seoTitle,\n    description: article.seoDescription,\n    alternates: { canonical },\n    robots: noindex ? { index: false, follow: false } : { index: true, follow: true },\n    openGraph: {\n      type: \"article\",\n      locale: \"th_TH\",\n      ...(canonical ? { url: canonical } : {}),\n      title: article.ogTitle || article.seoTitle,\n      description: article.ogDescription || article.seoDescription,\n      siteName: \"CCPun Financial Advisor\",\n      images: [{ url: article.ogImage?.src ?? article.featuredImage?.src ?? DEFAULT_SOCIAL_IMAGE, alt: article.ogImage?.alt ?? article.featuredImage?.alt ?? \"CCPun บทความวางแผนการเงิน\" }],\n    },\n    twitter: {\n      card: \"summary_large_image\",\n      title: article.ogTitle || article.seoTitle,\n      description: article.ogDescription || article.seoDescription,\n      images: [article.ogImage?.src ?? article.featuredImage?.src ?? DEFAULT_SOCIAL_IMAGE],\n    },\n  };\n}\n\nexport default async function ArticlePage({ params }: { params: Promise<{ category: string; slug: string }> }) {\n  const { category, slug } = await params;\n  const { isEnabled } = await draftMode();\n  const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;\n  const movedPath = getMovedArticleRedirectPath(category, slug);\n\n  // A moved URL redirects only after the final owner resolves to a published\n  // source article. Public route aliases can point at an existing Sanity slug,\n  // which lets URL ownership move without publishing unrelated draft content.\n  if (movedPath && !includeDrafts) {\n    const movedTargetSlug = movedPath.split(\"/\").filter(Boolean).at(-1);\n    const movedTargetSourceSlug = movedTargetSlug ? getArticleSourceSlugForRoute(movedTargetSlug) : null;\n    const movedTargetArticle = movedTargetSourceSlug\n      ? await getArticleBySlugForRequest(movedTargetSourceSlug, false)\n      : null;\n    if (movedTargetArticle?.status === \"published\") permanentRedirect(movedPath);\n  }\n\n  const provider = getContentProvider();\n  const relatedArticlesPromise = provider.listArticles({ includeDrafts: false });\n  const sourceSlug = getArticleSourceSlugForRoute(slug);\n  const article = await getArticleBySlugForRequest(sourceSlug, includeDrafts);\n  if (!article || (!includeDrafts && article.status !== \"published\")) notFound();\n  const routeCategory = includeDrafts ? getArticlePreviewCategorySlug(article) : getArticleCategorySlug(article);\n  const routePath = includeDrafts ? getArticlePreviewPath(article) : getArticlePath(article);\n  const routeSlug = routePath.split(\"/\").filter(Boolean).at(-1);\n  if (category !== routeCategory || slug !== routeSlug) {\n    if (includeDrafts) redirect(getArticlePreviewPath(article));\n    permanentRedirect(getArticlePath(article));\n  }\n\n  const schema = isArticleCanonicalAligned(article) ? buildArticleSchemaGraph(article) : null;\n\n  let relatedArticles = [] as Awaited<ReturnType<ReturnType<typeof getContentProvider>[\"listArticles\"]>>;\n  try {\n    const candidates = (await relatedArticlesPromise)\n      .filter((candidate) => candidate.status === \"published\" && candidate.slug !== article.slug)\n      .filter((candidate) => {\n        try {\n          getArticlePath(candidate);\n          return true;\n        } catch (error) {\n          console.error(\"[blog-related] skipping article with invalid taxonomy\", {\n            slug: candidate.slug,\n            category: candidate.category,\n            categorySlug: candidate.categorySlug,\n            error: error instanceof Error ? error.message : String(error),\n          });\n          return false;\n        }\n      });\n    relatedArticles = candidates\n      .sort((a, b) => {\n        const aScore = (a.categorySlug === article.categorySlug ? 2 : 0) + (a.semanticTopic && a.semanticTopic === article.semanticTopic ? 3 : 0);\n        const bScore = (b.categorySlug === article.categorySlug ? 2 : 0) + (b.semanticTopic && b.semanticTopic === article.semanticTopic ? 3 : 0);\n        return bScore - aScore;\n      })\n      .slice(0, 2);\n  } catch (error) {\n    console.error(\"[blog-related] related articles unavailable\", { type: error instanceof Error ? error.name : \"unknown\" });\n  }\n\n  return <>\n    {schema && <script type=\"application/ld+json\" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}\n    <Website43Article preview={includeDrafts} article={article} relatedArticles={relatedArticles} />\n  </>;\n}\n",
+  "originalArchivePageSource": "import Website43Blog from \"@/features/blog/website-43/Website43Blog\";\nimport { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from \"@/features/blog/website-43/blogData\";\nimport type { Metadata } from \"next\";\nimport { draftMode } from \"next/headers\";\nimport { getContentProvider } from \"@/lib/content/provider\";\nimport { IS_DRAFT_PREVIEW_ALLOWED } from \"@/lib/deployment-environment\";\nimport { listCategoryMenuEntries } from \"@/lib/content/category-registry\";\nimport { listCategoryRegistry } from \"@/lib/content/category-registry-sanity\";\nimport { listBlogFeaturedArticleIds } from \"@/lib/content/blog-featured-sanity\";\nimport { curateFeaturedArticles } from \"@/lib/content/featured-articles\";\nimport { serializeJsonLd } from \"@/lib/content/structured-data/serialize-json-ld\";\nimport { buildBlogArchiveSchema } from \"@/lib/content/structured-data/article-schema\";\n\nconst BLOG_TITLE = \"บทความการเงิน การลงทุน และการวางแผนอนาคต | CCPun\";\nconst BLOG_DESCRIPTION = \"เคล็ดลับการเงิน การลงทุน ประกัน และการวางแผนอนาคตจาก CCPun Financial Advisor\";\nconst BLOG_URL = \"https://ccpun.com/blog/\";\nconst BLOG_IMAGE = \"https://ccpun.com/assets/blog-hub-hero-ccpun-v1.webp\";\n\nexport const metadata: Metadata = {\n  title: BLOG_TITLE,\n  description: BLOG_DESCRIPTION,\n  alternates: { canonical: BLOG_URL },\n  openGraph: {\n    type: \"website\",\n    locale: \"th_TH\",\n    url: BLOG_URL,\n    title: BLOG_TITLE,\n    description: BLOG_DESCRIPTION,\n    siteName: \"CCPun Financial Advisor\",\n    images: [{ url: BLOG_IMAGE, alt: \"บทความการเงิน ประกัน และการลงทุนจาก CCPun\" }],\n  },\n  twitter: {\n    card: \"summary_large_image\",\n    title: BLOG_TITLE,\n    description: BLOG_DESCRIPTION,\n    images: [BLOG_IMAGE],\n  },\n};\n\nexport default async function BlogPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {\n  const filters = await searchParams ?? {};\n  const query = typeof filters.q === \"string\" ? filters.q : \"\";\n  const legacyCategory = typeof filters.category === \"string\" ? filters.category : \"\";\n  const legacyTag = typeof filters.tag === \"string\" ? filters.tag : \"\";\n  const { isEnabled } = await draftMode();\n  const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;\n  const [cmsArticles, registry, manualFeaturedArticleIds] = await Promise.all([\n    getContentProvider().listArticles({ includeDrafts }),\n    listCategoryRegistry({ includeDrafts }),\n    listBlogFeaturedArticleIds(),\n  ]);\n  const articles = cmsArticles.filter((article) => includeDrafts || article.status === \"published\");\n  const categories = listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));\n\n  const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === \"all\" || article.category === legacyCategory)\n    && (!legacyTag || legacyTag === \"all\" || article.tags?.includes(legacyTag)));\n  const featuredArticles = manualFeaturedArticleIds === null ? [] : curateFeaturedArticles(articles, manualFeaturedArticleIds);\n  const schema = !includeDrafts ? buildBlogArchiveSchema(articles, { title: BLOG_TITLE, description: BLOG_DESCRIPTION }) : null;\n\n  return <>\n    {schema && <script type=\"application/ld+json\" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}\n    <Website43Blog\n      key={`all:${legacyCategory}:${legacyTag}`}\n      articles={toWebsite43ArticleItems(visibleArticles)}\n      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}\n      initialQuery={query}\n      initialPage={typeof filters.page === \"string\" ? filters.page : \"1\"}\n      categories={categories}\n    />\n  </>;\n}\n",
+  "originalCategoryPageSource": "import { cache } from \"react\";\nimport Website43Blog from \"@/features/blog/website-43/Website43Blog\";\nimport { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from \"@/features/blog/website-43/blogData\";\nimport type { Metadata } from \"next\";\nimport { draftMode } from \"next/headers\";\nimport { notFound, permanentRedirect } from \"next/navigation\";\nimport { getContentProvider } from \"@/lib/content/provider\";\nimport { IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT } from \"@/lib/deployment-environment\";\nimport {\n  articleBelongsToPhysicalCategory,\n  getCategoryCanonical,\n  listCategoryMenuEntries,\n  resolveCategoryRoute,\n  type CategoryRegistryEntry,\n} from \"@/lib/content/category-registry\";\nimport { listCategoryRegistry } from \"@/lib/content/category-registry-sanity\";\nimport { serializeJsonLd } from \"@/lib/content/structured-data/serialize-json-ld\";\nimport { buildBlogTopicHubSchema } from \"@/lib/content/structured-data/article-schema\";\nimport type { Article } from \"@/lib/content/types\";\nimport { curateFeaturedArticles } from \"@/lib/content/featured-articles\";\nimport {\n  getBlogTopicHub,\n  isArticleInSemanticTopic,\n  type BlogTopicHub,\n} from \"@/lib/content/taxonomy\";\nimport { getArticlePath, getLegacyCategoryRedirectPath, isArticleCanonicalAligned } from \"@/lib/content/url\";\nimport styles from \"@/components/layout/website-43/Website43.module.css\";\n\nconst SITE_URL = \"https://ccpun.com\";\nconst DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/assets/blog-hub-hero-ccpun-v1.webp`;\nconst getArticlesForRequest = cache((includeDrafts: boolean) =>\n  getContentProvider().listArticles({ includeDrafts }),\n);\nconst getRegistryForRequest = cache((includeDrafts: boolean) =>\n  listCategoryRegistry({ includeDrafts }),\n);\n\nfunction articleBelongsToHub(article: Article, hub: BlogTopicHub) {\n  return isArticleInSemanticTopic(\n    {\n      articleSlug: article.slug,\n      semanticTopic: article.semanticTopic,\n      categoryTitle: article.category,\n      categorySlug: article.categorySlug,\n      tags: article.tags,\n    },\n    hub.slug,\n  );\n}\n\nfunction isPublicIndexableArticle(article: Article) {\n  return article.status === \"published\" && article.noindex !== true && isArticleCanonicalAligned(article);\n}\n\nfunction categoryMenu(registry: Awaited<ReturnType<typeof getRegistryForRequest>>, includeDrafts: boolean) {\n  return listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));\n}\n\nfunction physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub | null) {\n  return {\n    title: hub?.seoTitle ?? `${category.title} | บทความและความรู้ | CCPun`,\n    description: category.description ?? hub?.description ?? `รวมบทความและความรู้เรื่อง${category.title}จาก CCPun`,\n  };\n}\n\nfunction buildTopicIntro(hub: BlogTopicHub | null) {\n  if (!hub?.intro.length) return null;\n\n  const headingId = `blog-topic-intro-${hub.slug}`;\n  return (\n    <section\n      className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}\n      aria-labelledby={headingId}\n    >\n      <div className={styles.inner}>\n        <p className={styles.eyebrow}>{hub.eyebrow}</p>\n        <h2 id={headingId} className={styles.h2}>ทำความเข้าใจ{hub.title}ก่อนตัดสินใจ</h2>\n        <div className={styles.storyCopy}>\n          {hub.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}\n        </div>\n      </div>\n    </section>\n  );\n}\n\nfunction categoryOpenGraph(category: CategoryRegistryEntry, title: string, description: string) {\n  const canonical = getCategoryCanonical(category.slug);\n  return {\n    type: \"website\" as const,\n    locale: \"th_TH\",\n    url: canonical,\n    title,\n    description,\n    siteName: \"CCPun Financial Advisor\",\n    images: [{ url: DEFAULT_SOCIAL_IMAGE, width: 1200, height: 630, alt: category.title }],\n  };\n}\n\nexport async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {\n  const { category: slug } = await params;\n  const { isEnabled } = await draftMode();\n  const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;\n  const registry = await getRegistryForRequest(includeDrafts);\n  const resolution = resolveCategoryRoute(registry, slug, { includeDrafts });\n  if (resolution.kind === \"unavailable\") throw new Error(\"Category registry unavailable\");\n\n  if (resolution.kind === \"category\") {\n    const category = resolution.category;\n    const hub = getBlogTopicHub(category.slug);\n    const articles = await getArticlesForRequest(includeDrafts);\n    const relevantIndexableArticles = articles.filter(\n      (article) => articleBelongsToPhysicalCategory(article, category) && isPublicIndexableArticle(article),\n    );\n    const copy = physicalCategoryCopy(category, hub);\n    const canonical = getCategoryCanonical(category.slug);\n    const shouldIndex = !IS_REVIEW_ENVIRONMENT && !includeDrafts\n      && category.status === \"active\"\n      && relevantIndexableArticles.length > 0;\n\n    return {\n      title: copy.title,\n      description: copy.description,\n      alternates: { canonical },\n      robots: shouldIndex ? { index: true, follow: true } : { index: false, follow: true },\n      openGraph: categoryOpenGraph(category, copy.title, copy.description),\n      twitter: {\n        card: \"summary_large_image\",\n        title: copy.title,\n        description: copy.description,\n        images: [DEFAULT_SOCIAL_IMAGE],\n      },\n    };\n  }\n\n  if (resolution.kind === \"redirect\") {\n    return {\n      title: \"บทความ | CCPun\",\n      alternates: { canonical: getCategoryCanonical(resolution.destinationSlug) },\n      robots: { index: false, follow: true },\n    };\n  }\n  if (resolution.kind === \"hidden\") {\n    return { title: \"บทความ | CCPun\", alternates: { canonical: null }, robots: { index: false, follow: true } };\n  }\n\n  // Semantic hubs are intentionally separate from physical categories. This\n  // fallback preserves topic-only destinations such as /blog/critical-illness/.\n  const hub = getBlogTopicHub(slug);\n  if (!hub) return { title: \"บทความ | CCPun\", alternates: { canonical: null }, robots: { index: false, follow: true } };\n\n  const articles = await getArticlesForRequest(false);\n  const relevantIndexableArticles = articles.filter(\n    (article) => articleBelongsToHub(article, hub) && isPublicIndexableArticle(article),\n  );\n  const shouldIndexHub = !IS_REVIEW_ENVIRONMENT && !includeDrafts && hub.indexable && relevantIndexableArticles.length > 0;\n  const canonical = `${SITE_URL}/blog/${hub.slug}/`;\n\n  return {\n    title: hub.seoTitle,\n    description: hub.description,\n    alternates: { canonical },\n    robots: shouldIndexHub ? { index: true, follow: true } : { index: false, follow: true },\n    openGraph: {\n      type: \"website\",\n      locale: \"th_TH\",\n      url: canonical,\n      title: hub.seoTitle,\n      description: hub.description,\n      siteName: \"CCPun Financial Advisor\",\n      images: [{ url: DEFAULT_SOCIAL_IMAGE, width: 1200, height: 630, alt: hub.title }],\n    },\n    twitter: {\n      card: \"summary_large_image\",\n      title: hub.seoTitle,\n      description: hub.description,\n      images: [DEFAULT_SOCIAL_IMAGE],\n    },\n  };\n}\n\nexport default async function BlogCategoryHub({ params, searchParams }: { params: Promise<{ category: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {\n  const { category: slug } = await params;\n  const { isEnabled } = await draftMode();\n  const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;\n  const registry = await getRegistryForRequest(includeDrafts);\n  const resolution = resolveCategoryRoute(registry, slug, { includeDrafts });\n  if (resolution.kind === \"unavailable\") throw new Error(\"Category registry unavailable\");\n  const queryParams = await searchParams ?? {};\n  const initialQuery = typeof queryParams.q === \"string\" ? queryParams.q : \"\";\n\n  if (resolution.kind === \"redirect\") permanentRedirect(`/blog/${resolution.destinationSlug}/`);\n  if (resolution.kind === \"hidden\") notFound();\n\n  if (resolution.kind === \"category\") {\n    const category = resolution.category;\n    const articles = await getArticlesForRequest(includeDrafts);\n    const visibleArticles = articles.filter((article) => includeDrafts || article.status === \"published\");\n    const relevantArticles = visibleArticles.filter((article) => articleBelongsToPhysicalCategory(article, category));\n    const featuredArticles = curateFeaturedArticles(relevantArticles, category.featuredArticleIds ?? []);\n    const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);\n    const hub = getBlogTopicHub(category.slug);\n    const shouldIndex = !includeDrafts\n      && category.status === \"active\"\n      && relevantIndexableArticles.length > 0;\n    const schema = shouldIndex && hub ? buildBlogTopicHubSchema(hub, relevantIndexableArticles) : null;\n\n    return <>\n      {schema && <script type=\"application/ld+json\" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}\n      <Website43Blog\n        key={`${category.slug}:${initialQuery}`}\n        articles={toWebsite43ArticleItems(relevantArticles)}\n        featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}\n        activeCategorySlug={category.slug}\n        heroDescription={category.description ?? hub?.description}\n        topicContent={buildTopicIntro(hub)}\n        initialQuery={initialQuery}\n        initialPage={typeof queryParams.page === \"string\" ? queryParams.page : \"1\"}\n        categories={categoryMenu(registry, includeDrafts)}\n      />\n    </>;\n  }\n\n  const hub = getBlogTopicHub(slug);\n  if (!hub) {\n    const legacyCategoryRedirect = getLegacyCategoryRedirectPath(slug);\n    if (legacyCategoryRedirect) permanentRedirect(legacyCategoryRedirect);\n    const article = await getContentProvider().getArticleBySlug(slug, { includeDrafts: false });\n    if (!article) notFound();\n    permanentRedirect(getArticlePath(article));\n  }\n\n  const articles = await getArticlesForRequest(false);\n  const publishedArticles = articles.filter((article) => article.status === \"published\");\n  const relevantArticles = publishedArticles.filter((article) => articleBelongsToHub(article, hub));\n  const featuredArticles = curateFeaturedArticles(relevantArticles);\n  const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);\n  const shouldIndexHub = hub.indexable && relevantIndexableArticles.length > 0;\n  const schema = shouldIndexHub ? buildBlogTopicHubSchema(hub, relevantIndexableArticles) : null;\n\n  return <>\n    {schema && <script type=\"application/ld+json\" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}\n    <Website43Blog\n      key={`${hub.slug}:${initialQuery}`}\n      articles={toWebsite43ArticleItems(relevantArticles)}\n      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}\n      activeCategorySlug={hub.slug}\n      heroDescription={hub.description}\n      topicContent={buildTopicIntro(hub)}\n      initialQuery={initialQuery}\n        initialPage={typeof queryParams.page === \"string\" ? queryParams.page : \"1\"}\n      categories={categoryMenu(registry, includeDrafts)}\n    />\n  </>;\n}\n"
+}

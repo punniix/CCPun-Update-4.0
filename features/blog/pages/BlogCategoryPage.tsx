@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getContentProvider } from "@/lib/content/provider";
+import { withUatTaxTableFixture } from "@/lib/content/uat-tax-table-fixture";
 import { IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import {
   articleBelongsToPhysicalCategory,
@@ -29,7 +30,7 @@ import styles from "@/components/layout/website-43/Website43.module.css";
 const SITE_URL = "https://ccpun.com";
 const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/assets/blog-hub-hero-ccpun-v1.webp`;
 const getArticlesForRequest = cache((includeDrafts: boolean) =>
-  getContentProvider().listArticles({ includeDrafts }),
+  getContentProvider().listArticles({ includeDrafts }).then(withUatTaxTableFixture),
 );
 const getRegistryForRequest = cache((includeDrafts: boolean) =>
   listCategoryRegistry({ includeDrafts }),
