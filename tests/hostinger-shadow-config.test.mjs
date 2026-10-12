@@ -143,10 +143,8 @@ test("Hostinger root build routes both workspaces and preserves native builds an
     for (const [provider, role, command, args] of [
       ["hostinger", "web", "npm", ["run", "build", "--workspace", "@ccpun/web"]],
       [" HOSTINGER ", " ADMIN ", "npm", ["run", "build", "--workspace", "@ccpun/admin"]],
-      ["vercel", "admin", "next", ["build"]],
       ["local", "web", "next", ["build"]],
       ["", "", "next", ["build"]],
-      ["hostinger", "unknown", "next", ["build"]],
     ]) {
       for (const exitCode of [0, 7]) {
         const result = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
@@ -752,13 +750,13 @@ test("Hostinger CLI alias uses the canonical Web workspace with its cwd and chil
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
-test("shadow CI builds explicit native Web and full local Admin while retaining legacy regression separately", () => {
+test("shadow CI builds explicit native Web and full local Admin with native app-root contracts", () => {
   const workflow = read(".github/workflows/monorepo-shadow-ci.yml");
   assert.match(workflow, /^name: CCPun Monorepo Shadow CI/m);
   assert.match(workflow, /^  web-shadow:/m);
   assert.match(workflow, /^  admin-shadow:/m);
   assert.match(workflow, /node-version: 24/);
-  assert.match(workflow, /name: Verify app-root Vercel config\s+run: node --test tests\/vercel-app-root-config\.test\.mjs/);
+  assert.match(workflow, /name: Verify native app-root contract\s+run: node --test tests\/hostinger-native-app-contract\.test\.mjs/);
   assert.match(workflow, /name: Build Web shadow\s+run: npm run build:web:shadow/);
   assert.match(workflow, /name: Typecheck Admin shadow\s+run: npm run typecheck:admin:shadow/);
   assert.match(workflow, /name: Build Admin shadow\s+run: npm run build:admin:shadow/);

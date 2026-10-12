@@ -44,7 +44,7 @@ jobs:
         run: npm run test:foundation-contracts
 
       - name: Vercel and public runtime contracts
-        run: npm run test:vercel
+        run: npm run test:public
 
       - name: Admin Social authoring and workspace contracts
         run: |

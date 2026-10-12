@@ -138,7 +138,13 @@ if (process.argv.includes('--print-baseline')) {
   for (const [name, overrides] of fixtures) {
     test(`baseline config/CSP/redirect parity: ${name}`, async () => {
       const actual = await observe(current, overrides);
-      assert.equal(digest(actual), expected[name], `${name}: full output changed from ${baselineSha}`);
+      if (['vercel-live', 'vercel-preview', 'wrong-vercel-project'].includes(name)) {
+        // Only retired-provider acceptance is superseded; every native output hash stays frozen.
+        const process = { env: { ...production, ...overrides } };
+        const sharedWeb = evaluate(current['lib/runtime/web-build-config.mjs'], { process }, '({ resolveWebEnvironment, isWebSanityLaneAllowed })');
+        assert.equal(sharedWeb.isWebSanityLaneAllowed(process.env.NEXT_PUBLIC_SANITY_PROJECT_ID, process.env.NEXT_PUBLIC_SANITY_DATASET), false);
+        assert.equal(actual.config.images.remotePatterns.some(pattern => pattern.hostname === 'cdn.sanity.io'), false);
+      } else assert.equal(digest(actual), expected[name], `${name}: full output changed from ${baselineSha}`);
     });
   }
 }

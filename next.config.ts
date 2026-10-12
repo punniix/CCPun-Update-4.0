@@ -53,9 +53,6 @@ const nextConfig: NextConfig = {
   distDir: LOCAL_DIST_DIR,
   env: {
     NEXT_PUBLIC_CCPUN_APP_ENV: APP_ENVIRONMENT === "unknown" ? "" : APP_ENVIRONMENT,
-    NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID?.trim() ?? "",
-    NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID:
-      process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim() ?? "",
   },
   trailingSlash: true,
   compress: true,

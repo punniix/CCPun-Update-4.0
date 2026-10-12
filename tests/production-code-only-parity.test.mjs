@@ -1,3 +1,4 @@
+import { assertNativeProviderRetirement, assertReviewedNativeShadowTest } from '../qa/phase3-native-provider-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -26,11 +27,29 @@ test('code-only release preserves its own Production canonical owners, UI, track
       const scripts = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')).scripts;
       assert.equal(scripts['build:hostinger'], 'npm run build --workspace @ccpun/web');
       assert.equal(JSON.parse(readFileSync(resolve(root, 'apps/web/package.json'), 'utf8')).scripts.build, 'node scripts/build-provider.mjs');
-      assert.equal(sha(readFileSync(resolve(root, 'apps/web/scripts/build-provider.mjs'))), '35f61f91cbc11bcd463ba1d05d3fa91c5873cbdb7ffc81e53fd1bb44986d3c8e', 'unchanged actual canonical Web builder');
-      assert.equal(sha(readFileSync(resolve(root, 'apps/admin/scripts/build-provider.mjs'))), 'a3fb133f632da4027996ec96976a912dd25e5402961fc16825d2e2050dcc31fe', 'own native SWC builder unchanged');
+      assert.equal(assertNativeProviderRetirement('apps/web/scripts/build-provider.mjs', '35f61f91cbc11bcd463ba1d05d3fa91c5873cbdb7ffc81e53fd1bb44986d3c8e'), true, 'reviewed current canonical Web builder');
+      assert.equal(assertNativeProviderRetirement('apps/admin/scripts/build-provider.mjs', 'a3fb133f632da4027996ec96976a912dd25e5402961fc16825d2e2050dcc31fe'), true, 'own native SWC body retained');
       assert.equal(scripts['test:hostinger'], 'node --test tests/hostinger-shadow-config.test.mjs');
-      assert.equal(sha(readFileSync(resolve(root, 'tests/hostinger-shadow-config.test.mjs'))), '361a2e85907145b763e6b2611e3a4092957f6f2c76ae8af23da1c2664a96ef32', 'registered real npm workspace cwd and exit0/7 assertions');
-    } else if (phase3AdminNativeEntries.includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true, file);
+      assert.equal(assertReviewedNativeShadowTest('361a2e85907145b763e6b2611e3a4092957f6f2c76ae8af23da1c2664a96ef32'), true, 'registered real npm workspace cwd and exit0/7 assertions');
+    } else if (file === 'scripts/build-root.mjs') {
+      const original = JSON.parse(readFileSync(resolve(root, 'qa/phase3-native-provider-parity.json'), 'utf8')).baselineSources[file];
+      const actual = readFileSync(resolve(root, file), 'utf8');
+      assert.equal(sha(original), digest, 'own original root dispatcher identity');
+      const prior = actual
+        .replace('  if (Object.entries(process.env).some(([key, value]) => key.startsWith("VERCEL_") && value?.trim())) throw new Error("UNSUPPORTED_PROVIDER_METADATA");\n', '  if (process.env.VERCEL_PROJECT_ID?.trim()) return;\n')
+        .replace('  if (["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) throw new Error("UNSUPPORTED_WORKFLOW_WORLD");\n', '')
+        .replace('if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");\n', '')
+        .replace('if (provider === "hostinger" && !["web", "admin"].includes(role)) throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");\n', '');
+      assert.equal(prior, original, 'only four reviewed native dispatch guards change');
+      assert.equal(sha(actual), '00d8f879c1651f2c6e8f1c061ed187f47e29c7ce69b6887c4d627b20b10644d8', 'reviewed root CLI output evidence');
+    } else if (file === 'apps/web/proxy.ts') {
+      const original = JSON.parse(readFileSync(resolve(root, 'qa/phase3-native-provider-parity.json'), 'utf8')).baselineSources[file];
+      const actual = readFileSync(resolve(root, file), 'utf8');
+      assert.equal(sha(original), digest, 'own original Web proxy identity');
+      assert.equal(actual, original.replace('    vercelRequestId: headers.get("x-vercel-id"),\n', ''), 'only retired optional crawler diagnostic is removed');
+      assert.equal(sha(actual), 'aa2f049adf19bea587ff45ff61969e181e307ae2fbde904413cca53a86bd7e2f', 'reviewed own current Web proxy');
+    } else if (['lib/runtime/deployment-identity.ts', 'lib/content/sanity-lane.ts', 'lib/deployment-environment.ts', 'proxy.ts', 'lib/runtime/deployment-contract.ts', 'apps/web/scripts/build-provider.mjs', 'apps/admin/scripts/build-provider.mjs'].includes(file)) assert.equal(assertNativeProviderRetirement(file, digest), true, file);
+    else if (phase3AdminNativeEntries.includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true, file);
     else if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
