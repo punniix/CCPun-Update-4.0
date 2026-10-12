@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource, productionBaselineBytes } from '../qa/phase1-source-proof.mjs';
 import { assertPhase2AdminComposition, phase2AdminEntries } from '../qa/phase2-admin-modularity-proof.mjs';
+import { assertPhase2FoundationSource, phase2FoundationPath } from '../qa/phase2-css-source-contract.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const read = file => productionBaselineSource(file);
@@ -15,6 +16,7 @@ test('code-only release preserves its own Production canonical owners, UI, track
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
     if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
+    else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);
   }
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation', 'lib/runtime/investment-availability.ts']) {
