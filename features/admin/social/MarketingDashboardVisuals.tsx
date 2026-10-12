@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- Social provider thumbnail hosts are dynamic runtime data. */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, Database, ExternalLink, Image as ImageIcon } from "lucide-react";
 import type {
   MarketingMetricUnit,
@@ -179,5 +179,37 @@ export function BenchmarkBand({
         <span className="text-right">สูงสุด {formatMarketingValue(max, unit, true)}</span>
       </div>
     </div>
+  );
+}
+
+export function MetricCard({
+  icon,
+  label,
+  value,
+  helper,
+  tone = "default",
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  helper: string;
+  tone?: "default" | "mint" | "gold" | "warning";
+}) {
+  const toneClass = tone === "mint"
+    ? "border-[#9eebce]/20 bg-[#9eebce]/[0.07]"
+    : tone === "gold"
+      ? "border-[#e0c985]/20 bg-[#e0c985]/[0.07]"
+      : tone === "warning"
+        ? "border-amber-200/20 bg-amber-200/[0.06]"
+        : "border-white/10 bg-white/[0.035]";
+  return (
+    <article className={`rounded-2xl border p-4 sm:p-5 ${toneClass}`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-white/60">{label}</span>
+        <span className="text-white/50">{icon}</span>
+      </div>
+      <div className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{value}</div>
+      <p className="mt-2 text-xs leading-5 text-white/50">{helper}</p>
+    </article>
   );
 }
