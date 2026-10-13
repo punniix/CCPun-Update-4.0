@@ -216,7 +216,27 @@ export function applyPinnedAdminUatBuildFallback(root = adminRoot, variables = p
   };
   const branch = git(["symbolic-ref", "--short", "HEAD"]);
   const sha = git(["rev-parse", "HEAD"]);
-  if (!branch || !/^[a-f0-9]{40}$/i.test(sha) || !/^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(branch)) return null;
+  const pin = /^(admin|codex)\/hostinger-release-uat-([a-f0-9]{40})$/.exec(branch);
+  if (!pin) {
+    if (branch.startsWith("codex/hostinger-release-uat-")) throw new Error("ADMIN_UAT_RELEASE_PIN_INVALID");
+    return null;
+  }
+  if (!/^[a-f0-9]{40}$/.test(sha) || pin[2] !== sha) throw new Error("ADMIN_UAT_RELEASE_PIN_SHA_MISMATCH");
+  if (pin[1] === "codex") {
+    if (variables.CCPUN_DEPLOYMENT_PROVIDER !== "hostinger" || variables.CCPUN_DEPLOYMENT_ROLE !== "admin"
+      || variables.CCPUN_APP_ENV !== "admin-uat" || variables.AUTH_URL !== "https://admin-test.ccpun.com") {
+      throw new Error("ADMIN_UAT_RELEASE_LANE_CONFLICT");
+    }
+    const metadata = {
+      CCPUN_GIT_REF: branch, CCPUN_GIT_SHA: sha, CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+      NEXT_PUBLIC_CCPUN_GIT_REF: branch, NEXT_PUBLIC_CCPUN_GIT_SHA: sha, NEXT_PUBLIC_CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
+    };
+    // Cached metadata is output, not release authority. Verify the selected pin,
+    // committed checkout and every unchanged native lane/activation guard first.
+    if (!validateNativeNeonBuild(root, { ...variables, ...metadata }, run)) throw new Error("ADMIN_UAT_RELEASE_LANE_CONFLICT");
+    Object.assign(variables, metadata);
+    return { branch, sha };
+  }
   if (variables.VERCEL_PROJECT_ID?.trim() || variables.VERCEL_DEPLOYMENT_ID?.trim()) throw new Error("ADMIN_UAT_RELEASE_VERCEL_CONFLICT");
   const explicitProvider = variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
   const explicitRole = variables.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
