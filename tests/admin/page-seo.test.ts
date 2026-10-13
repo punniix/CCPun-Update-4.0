@@ -15,7 +15,7 @@ const source = (path: string) => readFileSync(new URL(`../../${path}`, import.me
 
 function compile(path: string, dependencies: Record<string, unknown>, globals: Record<string, unknown>) {
   const exports: Record<string, unknown> = {};
-  const output = ts.transpileModule(source(path), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: path });
+  const output = ts.transpileModule(source(path), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX }, fileName: path });
   runInNewContext(output.outputText, { exports, require: (name: string) => { if (!(name in dependencies)) throw new Error(`Unexpected fixture import: ${name}`); return dependencies[name]; }, Error, URL, Response, Request, AbortSignal, TextDecoder, TextEncoder, ...globals }, { filename: path });
   return exports;
 }
@@ -150,4 +150,21 @@ test("page SEO: served tag readback excludes serialized Flight/comments, uses fi
   f.setFetch(async () => { throw new Error("secret fixture error must not leak"); });
   const failed = await f.service.readPageSeoTags("/"); assert.equal(failed.error, "request-failed"); assert.doesNotMatch(JSON.stringify(failed), /secret/);
   assert.equal(PAGE_SEO_PAGES.length, 8);
+});
+
+test("page SEO: Save diagnostic renders only paired HTTP/enums and keeps unknown/transport failures uncertain", () => {
+  const editor = compile("features/admin/seo/PageSeoEditor.tsx", {
+    "next/image": {}, "next/link": {}, "react": {}, "react/jsx-runtime": {}, "@/lib/content/page-seo-registry": registry,
+  }, {}) as { pageSeoSaveFailureMessage: (status: number | null, error?: unknown) => string };
+  const message = editor.pageSeoSaveFailureMessage;
+  assert.match(message(503, "write-unavailable"), /HTTP 503 · write-unavailable/);
+  assert.match(message(502, "save-failed"), /HTTP 502 · save-failed/);
+  for (const hostile of ["<script>private secret</script>", { token: "private secret" }, "save-failed", undefined]) {
+    const text = message(503, hostile);
+    assert.match(text, /HTTP 503/); assert.doesNotMatch(text, /private|secret|script|save-failed/);
+    assert.match(text, /ยังยืนยันผลบันทึกไม่ได้/); assert.match(text, /โหลดค่าปัจจุบัน/);
+  }
+  assert.doesNotMatch(message(502, "write-unavailable"), /write-unavailable/);
+  assert.doesNotMatch(message(null, "write-unavailable"), /HTTP|write-unavailable/);
+  assert.match(message(null), /ยังยืนยันผลบันทึกไม่ได้/);
 });

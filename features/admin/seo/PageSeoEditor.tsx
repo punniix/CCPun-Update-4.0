@@ -14,6 +14,12 @@ const formOf = (fields: PageSeoFields): Form => Object.fromEntries(PAGE_SEO_FIEL
 const inputClass = "mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-black/15 px-3 py-2 text-sm text-white focus:border-[#e0c985] focus:outline-none";
 const buttonClass = "inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40";
 
+export function pageSeoSaveFailureMessage(status: number | null, error?: unknown): string {
+  const code = status === 503 && error === "write-unavailable" ? "write-unavailable" : status === 502 && error === "save-failed" ? "save-failed" : null;
+  const http = status !== null && Number.isInteger(status) && status >= 500 && status <= 599 ? ` (HTTP ${status}${code ? ` · ${code}` : ""})` : "";
+  return `ยังยืนยันผลบันทึกไม่ได้${http} กรุณาโหลดค่าปัจจุบันก่อนลองอีกครั้ง เพื่อป้องกันการบันทึกซ้ำ`;
+}
+
 export default function PageSeoEditor() {
   const [pages, setPages] = useState<PageSeoRow[]>([]);
   const [pathname, setPathname] = useState("/");
@@ -90,7 +96,11 @@ export default function PageSeoEditor() {
       const response = await fetch("/api/admin/page-seo/", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pathname, revision: row.revision, fields }) });
       if (response.status === 409) { setConflict(true); setError("มีการแก้ค่าระหว่างนี้ ยังไม่ได้ทับข้อมูล กรุณาโหลดค่าปัจจุบันก่อนบันทึกใหม่"); return; }
       if (!response.ok) {
-        if (response.status >= 500) { setConflict(true); setError("ยังยืนยันผลบันทึกไม่ได้ กรุณาโหลดค่าปัจจุบันก่อนลองอีกครั้ง ค่าที่กรอกยังอยู่"); }
+        if (response.status >= 500) {
+          const detail: unknown = response.headers.get("content-type")?.includes("application/json") ? await response.json().catch(() => null) : null;
+          const code = detail && typeof detail === "object" && "error" in detail ? detail.error : undefined;
+          setConflict(true); setError(pageSeoSaveFailureMessage(response.status, code));
+        }
         else setError("บันทึกไม่สำเร็จ ค่าที่กรอกยังอยู่ กรุณาตรวจข้อมูลหรือสิทธิ์แล้วลองใหม่");
         return;
       }
@@ -100,7 +110,7 @@ export default function PageSeoEditor() {
       setForm(formOf(result.fields)); setConflict(false);
       setSaved("บันทึก metadata ลง Sanity UAT แล้ว — การตรวจหน้าเว็บเป็นอีกขั้นด้านล่าง");
       void checkServed(pathname);
-    } catch { setError("ยังยืนยันผลบันทึกไม่ได้ กรุณาโหลดค่าปัจจุบันก่อนลองอีกครั้ง เพื่อป้องกันการบันทึกซ้ำ"); setConflict(true); }
+    } catch { setError(pageSeoSaveFailureMessage(null)); setConflict(true); }
     finally { setSaving(false); }
   };
 
