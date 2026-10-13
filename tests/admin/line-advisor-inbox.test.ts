@@ -91,9 +91,9 @@ test("Advisor Inbox runtime reuses the exact Admin Neon lane guard", () => {
   assert.match(controlPlane, /CCPUN_LINE_TRANSCRIPT_ENABLED/);
   assert.match(controlPlane, /outboundEnabled:\s*false/);
 
-  for (const [lane, environment, vercelEnvironment] of [
-    ["uat", "admin-uat", "preview"],
-    ["production", "production-admin", "production"],
+  for (const [lane, environment] of [
+    ["uat", "admin-uat"],
+    ["production", "production-admin"],
   ] as const) {
     const identity = ADMIN_OPERATIONS_LANES[lane];
     const input = {
@@ -102,12 +102,12 @@ test("Advisor Inbox runtime reuses the exact Admin Neon lane guard", () => {
       branchId: identity.branchId,
       database: identity.database,
       connectionString: `postgresql://${identity.runtimeRole}:test-only@${identity.endpointId}.${identity.hostSuffix}/${identity.database}?sslmode=require`,
-      vercelEnvironment,
+      deploymentProvider: "hostinger",
+      deploymentRole: "admin",
       gitBranch: lane === "production" ? "v4-production" : "admin/line-advisor-inbox-20260918",
-      vercelProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-      productionAdminProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
     };
     assert.equal(resolveAdminOperationsRuntimeIdentity(input)?.lane, lane);
+    assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, deploymentProvider: "vercel", vercelProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" }), null);
     assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, branchId: "wrong-branch" }), null);
     assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, database: "wrong-db" }), null);
     assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, connectionString: input.connectionString.replace(identity.runtimeRole, "neondb_owner") }), null);

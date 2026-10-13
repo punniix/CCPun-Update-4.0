@@ -1,5 +1,4 @@
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   type AdminEnvironment,
 } from "./environment";
 import { isAdminApiPath, isAdminPagePath } from "./routes";
@@ -15,38 +14,25 @@ const DEDICATED_ADMIN_ENVIRONMENTS = new Set<AdminEnvironment>([
 export function isKnownAdminDeploymentHost(host: string | null): boolean {
   const hostname = host?.trim().toLowerCase().split(":", 1)[0];
   return Boolean(
-    hostname === "admin.ccpun.com" ||
-    (hostname && /^ccpun-admin(?:-.+)?\.vercel\.app$/.test(hostname)),
+    hostname === "admin.ccpun.com",
   );
 }
 
 export function isAdminRequestBoundary(input: {
   environment: AdminEnvironment;
-  vercelEnvironment: string | undefined;
-  deploymentProjectId: string | undefined;
   host: string | null;
 }): boolean {
   if (DEDICATED_ADMIN_ENVIRONMENTS.has(input.environment)) return true;
 
-  const isExactAdminVercelDeployment =
-    ["preview", "production"].includes(input.vercelEnvironment?.trim().toLowerCase() ?? "") &&
-    input.deploymentProjectId?.trim() === CCPUN_VERCEL_PROJECT_IDS.adminProduction;
-
-  return isExactAdminVercelDeployment || isKnownAdminDeploymentHost(input.host);
+  return isKnownAdminDeploymentHost(input.host);
 }
 
-export function isExactAdminPreviewOrigin(input: {
+export function isExactAdminPreviewOrigin(_input: {
   environment: AdminEnvironment;
-  vercelEnvironment: string | undefined;
-  deploymentProjectId: string | undefined;
   host: string | null;
 }): boolean {
-  return Boolean(
-    input.environment === "admin-uat" &&
-    input.vercelEnvironment?.trim().toLowerCase() === "preview" &&
-    input.deploymentProjectId?.trim() === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
-    isKnownAdminDeploymentHost(input.host),
-  );
+  // Native deployments must use the explicitly configured AUTH_URL origin.
+  return false;
 }
 
 function isPathOrChild(pathname: string, prefix: string): boolean {

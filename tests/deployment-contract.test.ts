@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { assertReviewedWebUatBuildProfile } from "../qa/phase3-native-provider-proof.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -42,9 +45,9 @@ test("Web Production rejects UAT, local, Vercel and wrong Sanity identity", () =
 test("Web UAT can never enable Production content or analytics", () => {
   const lane = getDeploymentLaneByEnvironment("web-uat")!;
   assert.equal(lane.indexable, false);
-  assert.equal(lane.rootDirectory, "apps/web");
-  assert.equal(lane.outputDirectory, ".next/standalone");
-  assert.equal(lane.entryFile, ".next/standalone/server.js");
+  assert.equal(lane.rootDirectory, "./");
+  assert.equal(lane.outputDirectory, "apps/web/.next/standalone");
+  assert.equal(lane.entryFile, "apps/web/.next/standalone/server.js");
   assert.deepEqual(deploymentContractFailures(lane, {
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
     CCPUN_DEPLOYMENT_ROLE: "web",
@@ -98,4 +101,27 @@ test("Admin lanes reflect the current Hostinger placement and reject stale Verce
     ...uatEnv,
     VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
   }), []);
+});
+
+test("reviewed Web UAT profile keeps the original body and rejects resealed unrelated changes", () => {
+  const read = (path: string) => readFileSync(new URL("../" + path, import.meta.url), "utf8");
+  const proof = JSON.parse(read("qa/phase3-native-provider-parity.json"));
+  const file = "lib/runtime/deployment-lanes.mjs";
+  const digest = proof.baselineHashes[file];
+  const body = read(file);
+  assert.equal(assertReviewedWebUatBuildProfile(digest, proof, read), true);
+  assert.throws(() => assertReviewedWebUatBuildProfile("0".repeat(64), proof, read));
+  for (const changed of [
+    body + "\n// unreviewed extra body\n",
+    body.replace('"productionAnalytics": "0"', '"productionAnalytics": "1"'),
+    body.replace('"buildCommand": "npm run build"', '"buildCommand": "unreviewed"'),
+  ]) {
+    assert.notEqual(changed, body);
+    const resealed = structuredClone(proof);
+    resealed.currentHashes[file] = createHash("sha256").update(changed).digest("hex");
+    assert.throws(() => assertReviewedWebUatBuildProfile(digest, resealed, (path: string) => path === file ? changed : read(path)));
+  }
+  const stale = structuredClone(proof);
+  stale.currentHashes[file] = "0".repeat(64);
+  assert.throws(() => assertReviewedWebUatBuildProfile(digest, stale, read));
 });

@@ -30,8 +30,11 @@ assert.deepEqual(packageJson.allowScripts, {
   'unrs-resolver@1.12.2': true,
 });
 
-const vercelConfig = JSON.parse(read('vercel.json'));
-assert.equal(vercelConfig.ignoreCommand, 'node scripts/vercel-ignore-build.mjs');
+for (const obsolete of ['vercel.json', 'apps/web/vercel.json', 'apps/admin/vercel.json', 'scripts/vercel-ignore-build.mjs', 'scripts/guard-survivor-deploy.mjs', 'scripts/promote-admin-after-ci.mjs']) {
+  assert.equal(existsSync(obsolete), false, `${obsolete} must not reactivate the retired deployment provider`);
+}
+assert.match(packageJson.scripts['test:public'], /hostinger-native-app-contract/);
+assert.equal(packageJson.scripts['test:vercel'], undefined);
 
 const legacyUrlLedger = JSON.parse(read('qa/legacy-url-ledger.json'));
 assert.deepEqual(legacyUrlLedger.mappings.map(({ id, destination }) => [id, destination]), [
@@ -403,8 +406,8 @@ assert.match(proxy, /environment === ["']local-uat["']/);
 assert.match(proxy, /isLocalAdminHost\(request\.headers\.get\(["']host["']\), environment\)/);
 assert.match(proxy, /isConfiguredAdminOrigin\(request\.url, process\.env\.AUTH_URL\)/);
 assert.match(proxy, /pathname\.startsWith\(["']\/api\/["']\)/);
-assert.match(proxy, /ccpun-admin-prod\.vercel\.app/);
-assert.match(proxy, /ccpun-admin\.vercel\.app/);
+assert.doesNotMatch(proxy, /ccpun-admin-prod\.vercel\.app/);
+assert.doesNotMatch(proxy, /ccpun-admin\.vercel\.app/);
 assert.match(proxy, /admin\.ccpun\.com/);
 assert.match(proxy, /["']\/api\/auth\/:path\*["']/);
 
@@ -521,4 +524,4 @@ assert.doesNotMatch(reviewPage, /\/studio\/intent\/edit\//, 'Review preview must
 
 await import('./website43-blog-article-regression.mjs');
 
-console.log('PASS: Vercel-native regression');
+console.log('PASS: public native runtime regression');

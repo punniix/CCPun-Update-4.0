@@ -223,7 +223,7 @@ test("UAT bridge requires a pure matching identity, Sanity lane and canonical ex
     "https://n8n.example/webhook/uat/", "https://n8n.example/webhook/uat\\bad", "https://n8n.example:443/webhook/uat",
   ]) assert.equal(resolve({ ...uatBridgeEnv, CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: url }), null, url);
   const preview = { ...uatBridgeEnv, CCPUN_DEPLOYMENT_PROVIDER: "vercel", VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", VERCEL_ENV: "preview" };
-  assert.equal(resolve(preview)?.lane, "admin-uat");
+  assert.equal(resolve(preview), null);
   assert.equal(resolve({ ...preview, VERCEL_ENV: "production" }), null);
   assert.equal(resolve(productionBridgeEnv)?.lane, "production-admin");
   assert.equal(resolve({}) , null);

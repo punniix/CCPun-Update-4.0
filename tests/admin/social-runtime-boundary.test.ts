@@ -1,6 +1,7 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import { isSocialFoundationEnabled, WEBSITE_42_SOCIAL_BRANCH } from "../../lib/admin/social/foundation";
 import { isSocialOperationsEnabled } from "../../lib/admin/social/operations";
 import {
@@ -17,22 +18,20 @@ import {
 } from "../../lib/admin/social/runtime";
 
 const uatEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_APP_ENV: "admin-uat",
-  VERCEL_ENV: "preview",
-  VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-  CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-  VERCEL_GIT_COMMIT_REF: SOCIAL_UAT_ANALYTICS_BRANCH,
+
+  CCPUN_GIT_REF: SOCIAL_UAT_ANALYTICS_BRANCH,
   NEXT_PUBLIC_SANITY_PROJECT_ID: SOCIAL_UAT_SANITY_PROJECT_ID,
   NEXT_PUBLIC_SANITY_DATASET: SOCIAL_UAT_SANITY_DATASET,
   CCPUN_SOCIAL_DATABASE_URL: `postgresql://${SOCIAL_UAT_NEON_IDENTITY.role}:secret@${SOCIAL_UAT_NEON_IDENTITY.endpointId}-pooler.c-3.ap-southeast-1.aws.neon.tech/${SOCIAL_UAT_NEON_IDENTITY.database}`,
 };
 
 const productionEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_APP_ENV: "production-admin",
-  VERCEL_ENV: "production",
-  VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-  CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-  VERCEL_GIT_COMMIT_REF: SOCIAL_PRODUCTION_BRANCH,
+
+  CCPUN_GIT_REF: SOCIAL_PRODUCTION_BRANCH,
   NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
   NEXT_PUBLIC_SANITY_DATASET: "production",
   CCPUN_NEON_PROJECT_ID: "production-project-id",
@@ -52,7 +51,7 @@ test("central social runtime authorizes UAT by immutable data plane rather than 
 
   const futureFeature = resolveSocialRuntime({
     ...uatEnv,
-    VERCEL_GIT_COMMIT_REF: "admin/openquok-sdk-v0-0-13",
+    CCPUN_GIT_REF: "admin/openquok-sdk-v0-0-13",
   }, {
     uatBranches: ["some-old-branch-that-must-not-be-an-auth-boundary"],
     requireUatNeon: true,
@@ -61,7 +60,7 @@ test("central social runtime authorizes UAT by immutable data plane rather than 
   assert.equal(futureFeature?.gitBranch, "admin/openquok-sdk-v0-0-13");
 
   for (const change of [
-    { VERCEL_GIT_COMMIT_REF: "v4-production" },
+    { CCPUN_GIT_REF: "v4-production" },
     { VERCEL_ENV: "production" },
     { VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web },
     { CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web },
@@ -94,7 +93,7 @@ test("Production social runtime requires every immutable deployment and data ide
     { VERCEL_ENV: "preview" },
     { VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web },
     { CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web },
-    { VERCEL_GIT_COMMIT_REF: SOCIAL_UAT_ANALYTICS_BRANCH },
+    { CCPUN_GIT_REF: SOCIAL_UAT_ANALYTICS_BRANCH },
     { NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5" },
     { NEXT_PUBLIC_SANITY_DATASET: "uat" },
     { CCPUN_NEON_PROJECT_ID: "" },
@@ -161,14 +160,16 @@ test("Production feature gates share the boundary and provider writes remain exp
   assert.equal(isSocialProviderExecutionGateEnabled(enabled), false);
   assert.equal(isSocialProviderExecutionGateEnabled({ ...enabled, CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1" }), true);
 
+  const nativeIdentity = { deploymentProvider: enabled.CCPUN_DEPLOYMENT_PROVIDER, deploymentRole: enabled.CCPUN_DEPLOYMENT_ROLE };
   assert.equal(isSocialFoundationEnabled({
     flag: enabled.CCPUN_SOCIAL_ENABLED,
     dataMode: enabled.CCPUN_SOCIAL_DATA_MODE,
     environment: "production-admin",
-    vercelEnvironment: enabled.VERCEL_ENV,
-    projectId: enabled.VERCEL_PROJECT_ID,
-    productionAdminProjectId: enabled.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID,
-    gitBranch: enabled.VERCEL_GIT_COMMIT_REF,
+    ...nativeIdentity,
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
+    gitBranch: enabled.CCPUN_GIT_REF,
     sanityProjectId: enabled.NEXT_PUBLIC_SANITY_PROJECT_ID,
     sanityDataset: enabled.NEXT_PUBLIC_SANITY_DATASET,
     connectionString: enabled.CCPUN_SOCIAL_DATABASE_URL,
@@ -180,10 +181,11 @@ test("Production feature gates share the boundary and provider writes remain exp
   assert.equal(isSocialOperationsEnabled({
     flag: enabled.CCPUN_SOCIAL_OPERATIONS_ENABLED,
     environment: "production-admin",
-    vercelEnvironment: enabled.VERCEL_ENV,
-    projectId: enabled.VERCEL_PROJECT_ID,
-    productionAdminProjectId: enabled.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID,
-    gitBranch: enabled.VERCEL_GIT_COMMIT_REF,
+    ...nativeIdentity,
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
+    gitBranch: enabled.CCPUN_GIT_REF,
     sanityProjectId: enabled.NEXT_PUBLIC_SANITY_PROJECT_ID,
     sanityDataset: enabled.NEXT_PUBLIC_SANITY_DATASET,
     connectionString: enabled.CCPUN_SOCIAL_DATABASE_URL,
@@ -196,8 +198,8 @@ test("Production feature gates share the boundary and provider writes remain exp
     flag: "1",
     dataMode: "synthetic",
     environment: "admin-uat",
-    vercelEnvironment: "preview",
-    projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+    ...nativeIdentity,
+    vercelEnvironment: undefined, projectId: undefined,
     gitBranch: WEBSITE_42_SOCIAL_BRANCH,
     sanityProjectId: SOCIAL_UAT_SANITY_PROJECT_ID,
     sanityDataset: SOCIAL_UAT_SANITY_DATASET,

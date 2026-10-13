@@ -31,7 +31,7 @@ const reachableStyleFiles = getReachableStyleFiles();
 const referenceSources = [
   ...reachableSources,
   ...[...reachableStyleFiles].map((file) => [file, readFileSync(file, 'utf8')]),
-  ...['next.config.ts', 'vercel.json']
+  ...['next.config.ts', 'apps/web/next.config.ts']
     .filter((file) => trackedFileSet.has(file))
     .map((file) => [file, readFileSync(file, 'utf8')]),
 ];
