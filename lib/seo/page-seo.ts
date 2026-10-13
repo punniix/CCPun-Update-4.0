@@ -31,19 +31,19 @@ export async function resolvePageSeoMetadata(pathname: string, defaults: Metadat
     if (fields.seoDescription) result.description = fields.seoDescription;
     if (fields.ogTitle || fields.ogDescription || fields.ogImageUrl) {
       const inherited = parent ? await parent : null;
-      const openGraph = { ...inherited?.openGraph, ...defaults.openGraph };
-      const twitter = { ...inherited?.twitter, ...defaults.twitter };
+      const openGraph: NonNullable<Metadata["openGraph"]> = { ...inherited?.openGraph, ...defaults.openGraph };
+      const twitter: NonNullable<Metadata["twitter"]> = { ...inherited?.twitter, ...defaults.twitter };
       result.openGraph = {
         ...openGraph,
         ...(fields.ogTitle ? { title: fields.ogTitle } : {}),
         ...(fields.ogDescription ? { description: fields.ogDescription } : {}),
-        ...(fields.ogImageUrl ? { images: replaceImage(openGraph.images, fields.ogImageUrl) } : {}),
+        ...(fields.ogImageUrl ? { images: replaceImage("images" in openGraph ? openGraph.images : undefined, fields.ogImageUrl) } : {}),
       };
       result.twitter = {
         ...twitter,
         ...(fields.ogTitle ? { title: fields.ogTitle } : {}),
         ...(fields.ogDescription ? { description: fields.ogDescription } : {}),
-        ...(fields.ogImageUrl ? { images: replaceImage(twitter.images, fields.ogImageUrl) } : {}),
+        ...(fields.ogImageUrl ? { images: replaceImage("images" in twitter ? twitter.images : undefined, fields.ogImageUrl) } : {}),
       };
     }
     return result;
