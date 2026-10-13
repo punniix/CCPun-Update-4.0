@@ -69,7 +69,7 @@ test("Admin LINE ingestion remains fail closed for wrong role or production ref"
 function workerProbe(variables: Record<string, string | undefined>, outboundId = "11111111-1111-4111-8111-111111111111") {
   const script = `
     const Module=require('node:module');const load=Module._load;
-    let connections=0;const queries=[];let outbound,richMenu;
+    let connections=0;const queries=[];let outbound,richMenu,value;
     Module._load=function(name,...args){
       if(name==='server-only')return {};
       if(name==='@neondatabase/serverless')return {neon(){connections++;return {async query(statement,params){queries.push({statement,payload:JSON.parse(params[0])});return [];}}}};
@@ -80,7 +80,7 @@ function workerProbe(variables: Record<string, string | undefined>, outboundId =
     const rich=require('./lib/admin/control-plane/provider-state.ts');
     const variables=JSON.parse(process.argv[1]);
     (async()=>{
-      try{const value=line.lineWorkerDigest(process.argv[2],variables);await line.claimLineSystemOutbound(process.argv[2],value,'a'.repeat(64),variables);outbound={value};}catch(error){outbound={error:error.message};}
+      try{value=line.lineWorkerDigest(process.argv[2],variables);await line.claimLineSystemOutbound(process.argv[2],value,'a'.repeat(64),variables);outbound={value};}catch(error){outbound={value,error:error.message};}
       try{await rich.claimLineRichMenuOperation(variables);richMenu={};}catch(error){richMenu={error:error.message};}
       console.log(JSON.stringify({outbound,richMenu,connections,queries}));
     })().catch(()=>process.exit(1));
@@ -159,7 +159,7 @@ test("invalid native worker metadata fails before SQL connection/claim or networ
   }
 });
 
-test("legacy Vercel worker digests remain byte-identical including trim and missing-value behavior", () => {
+test("retired Vercel worker metadata rejects before SQL or network including trim and missing values", () => {
   const base = nativeWorkerVariables("production-admin");
   const vercel = {
     ...base, CCPUN_DEPLOYMENT_PROVIDER: "vercel", VERCEL_ENV: "production",
@@ -167,11 +167,14 @@ test("legacy Vercel worker digests remain byte-identical including trim and miss
   };
   for (const values of [{ VERCEL_DEPLOYMENT_ID: " dpl-original ", VERCEL_REGION: "sin1" }, {}, { VERCEL_DEPLOYMENT_ID: "", VERCEL_REGION: "" }]) {
     const result = workerProbe({ ...vercel, ...values });
+    // Pure hash compatibility cannot grant deployment or SQL authority.
     const deploymentId = "VERCEL_DEPLOYMENT_ID" in values ? values.VERCEL_DEPLOYMENT_ID : undefined;
-    const region = "VERCEL_REGION" in values ? values.VERCEL_REGION : undefined;
     const outbound = createHash("sha256");
     for (const part of ["ccpun-line-outbound-worker-v1", "11111111-1111-4111-8111-111111111111", deploymentId?.trim() ?? "local"]) outbound.update(part).update("\0");
     assert.equal(result.outbound.value, outbound.digest("hex"));
-    assert.equal(result.queries[1].payload.worker_digest, createHash("sha256").update(`${deploymentId ?? "local"}:${region ?? "unknown"}`).digest("hex"));
+    assert.equal(result.outbound.error, "LINE_ADMIN_RUNTIME_NOT_READY");
+    assert.deepEqual(result.richMenu, {});
+    assert.equal(result.connections, 0);
+    assert.deepEqual(result.queries, []);
   }
 });

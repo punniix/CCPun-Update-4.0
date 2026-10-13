@@ -40,7 +40,6 @@ export default function proxy(request: Request & { nextUrl: URL }) {
     pathname,
     method: request.method,
     requestId: headers.get("x-request-id"),
-    vercelRequestId: headers.get("x-vercel-id"),
     cloudflareRay: headers.get("cf-ray"),
   });
 

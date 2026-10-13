@@ -1,5 +1,4 @@
 import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../environment";
 import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 
 export const ADMIN_OPERATIONS_UAT_MIGRATION_VERSION = "20260830_website_42_admin_operations_v1";
@@ -76,10 +75,11 @@ export function resolveAdminOperationsRuntimeIdentity(input: AdminOperationsRunt
   if (!lane || !input.connectionString) return null;
 
   const vercelEnvironment = input.vercelEnvironment ?? process.env.VERCEL_ENV?.trim();
-  const gitBranch = input.gitBranch ?? process.env.CCPUN_GIT_REF?.trim() ?? process.env.VERCEL_GIT_COMMIT_REF?.trim();
+  const gitBranch = input.gitBranch ?? process.env.CCPUN_GIT_REF?.trim();
   const vercelProjectId = input.vercelProjectId ?? process.env.VERCEL_PROJECT_ID?.trim();
   const productionAdminProjectId = input.productionAdminProjectId ?? process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim();
   const deployment = resolveDeploymentIdentity({
+    ...(input.releaseVariables ?? {}),
     CCPUN_APP_ENV: environment,
     CCPUN_DEPLOYMENT_PROVIDER: input.deploymentProvider ?? process.env.CCPUN_DEPLOYMENT_PROVIDER,
     CCPUN_DEPLOYMENT_ROLE: input.deploymentRole ?? process.env.CCPUN_DEPLOYMENT_ROLE,
@@ -88,20 +88,13 @@ export function resolveAdminOperationsRuntimeIdentity(input: AdminOperationsRunt
     CCPUN_RELEASE_ID: input.releaseId ?? process.env.CCPUN_RELEASE_ID,
     VERCEL_ENV: vercelEnvironment,
     VERCEL_PROJECT_ID: vercelProjectId,
-    VERCEL_GIT_COMMIT_REF: input.gitBranch ?? process.env.VERCEL_GIT_COMMIT_REF,
-    VERCEL_GIT_COMMIT_SHA: input.gitSha ?? process.env.VERCEL_GIT_COMMIT_SHA,
   }, "admin");
-  if (!deployment.valid || deployment.environment !== environment) return null;
+  if (!deployment.valid || deployment.environment !== environment
+    || !["hostinger", "local"].includes(deployment.provider)
+    || vercelEnvironment || vercelProjectId || productionAdminProjectId) return null;
 
   if (lane === "production") {
     if (deployment.provider === "local" || (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease({ ...(input.releaseVariables ?? process.env), CCPUN_APP_ENV: environment, CCPUN_DEPLOYMENT_PROVIDER: deployment.provider, CCPUN_DEPLOYMENT_ROLE: deployment.role, CCPUN_GIT_SHA: deployment.gitSha ?? undefined, CCPUN_GIT_REF: deployment.gitRef ?? undefined, CCPUN_RELEASE_ID: deployment.releaseId ?? undefined }))) return null;
-    if (deployment.provider === "vercel") {
-      if (vercelEnvironment !== "production") return null;
-      if (vercelProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction) return null;
-      if (productionAdminProjectId && productionAdminProjectId !== vercelProjectId) return null;
-    }
-  } else if (environment === "admin-uat" && deployment.provider === "vercel") {
-    if (vercelEnvironment !== "preview" || vercelProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction) return null;
   } else if (environment === "local-uat" && deployment.provider !== "local") {
     return null;
   }
@@ -141,9 +134,9 @@ export function adminOperationsRuntimeInputFromEnvironment(
     deploymentProvider: variables.CCPUN_DEPLOYMENT_PROVIDER?.trim(),
     deploymentRole: variables.CCPUN_DEPLOYMENT_ROLE?.trim(),
     releaseId: variables.CCPUN_RELEASE_ID?.trim(),
-    gitSha: variables.CCPUN_GIT_SHA?.trim() || variables.VERCEL_GIT_COMMIT_SHA?.trim(),
+    gitSha: variables.CCPUN_GIT_SHA?.trim(),
     vercelEnvironment: variables.VERCEL_ENV?.trim(),
-    gitBranch: variables.CCPUN_GIT_REF?.trim() || variables.VERCEL_GIT_COMMIT_REF?.trim(),
+    gitBranch: variables.CCPUN_GIT_REF?.trim(),
     vercelProjectId: variables.VERCEL_PROJECT_ID?.trim(),
     productionAdminProjectId: variables.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID?.trim(),
   };

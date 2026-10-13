@@ -1,3 +1,5 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import { relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,13 +15,13 @@ import {
   protectProductionContentLifecycleActions,
 } from "../../cms/sanity/policy/studio-policy";
 import { getStudioPublishingOptions } from "../../cms/sanity/config/publishing";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 
 const PRODUCTION_ADMIN_PROJECT_ID = CCPUN_VERCEL_PROJECT_IDS.adminProduction;
 const ADMIN_LAB_PROJECT_ID = "prj_retired_lab";
 const WEB_PROJECT_ID = CCPUN_VERCEL_PROJECT_IDS.web;
 const UAT_SANITY_PROJECT_ID = "ccb9lnw5";
 const PRODUCTION_SANITY_PROJECT_ID = "kyfxgjnq";
+const originalNativeIdentity = Object.fromEntries(["CCPUN_DEPLOYMENT_PROVIDER", "CCPUN_DEPLOYMENT_ROLE", "CCPUN_APP_ENV"].map(key => [key, process.env[key]]));
 const originalProjectId = process.env.VERCEL_PROJECT_ID;
 const originalProductionAdminProjectId = process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID;
 const originalLocalProductionDraftWrites = process.env.CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES;
@@ -33,6 +35,9 @@ const adminDataRefresh = readCurrentSource(new URL("../../features/admin/compone
 const adminContentPage = readCurrentSource(new URL("../../app/(control-plane)/content/articles/page.tsx", import.meta.url), "utf8");
 
 afterEach(() => {
+  for (const [key, value] of Object.entries(originalNativeIdentity)) {
+    if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  }
   if (originalProjectId === undefined) delete process.env.VERCEL_PROJECT_ID;
   else process.env.VERCEL_PROJECT_ID = originalProjectId;
   if (originalProductionAdminProjectId === undefined) {
@@ -45,8 +50,11 @@ afterEach(() => {
 });
 
 function useProductionAdminProject() {
-  process.env.VERCEL_PROJECT_ID = PRODUCTION_ADMIN_PROJECT_ID;
-  process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID = PRODUCTION_ADMIN_PROJECT_ID;
+  delete process.env.VERCEL_PROJECT_ID;
+  delete process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID;
+  process.env.CCPUN_DEPLOYMENT_PROVIDER = "hostinger";
+  process.env.CCPUN_DEPLOYMENT_ROLE = "admin";
+  process.env.CCPUN_APP_ENV = "production-admin";
 }
 
 function useLabProject() {
@@ -55,6 +63,9 @@ function useLabProject() {
 }
 
 function useLocalProject() {
+  delete process.env.CCPUN_DEPLOYMENT_PROVIDER;
+  delete process.env.CCPUN_DEPLOYMENT_ROLE;
+  delete process.env.CCPUN_APP_ENV;
   delete process.env.VERCEL_PROJECT_ID;
   delete process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID;
 }
@@ -273,3 +284,12 @@ test("Admin returns to the same Sanity data after owner editing", () => {
 function readCurrentSource(file: string | URL, _encoding: "utf8"): string {
   return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : file);
 }
+
+
+test("retired platform IDs never authorize Studio actions or providers", () => {
+  process.env.CCPUN_DEPLOYMENT_PROVIDER = "vercel";
+  process.env.VERCEL_PROJECT_ID = PRODUCTION_ADMIN_PROJECT_ID;
+  process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID = PRODUCTION_ADMIN_PROJECT_ID;
+  assert.deepEqual(filterStudioDocumentActions([{ action: "publish" }], "production", "production-admin", "article", PRODUCTION_SANITY_PROJECT_ID), []);
+  assert.deepEqual(filterStudioAuthProviders([{ name: "google" }], "production", "production-admin", PRODUCTION_SANITY_PROJECT_ID), []);
+});

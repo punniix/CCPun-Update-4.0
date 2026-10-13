@@ -1,0 +1,88 @@
+# HOLD — this earlier SDK-removal alternative is NOT recommended for application.
+# Pinned publisher source confirms configured native targets take precedence and
+# clean Hostinger defaults to LOCAL. Generic Workflow is not synonymous with Vercel.
+# Preserve the NativeWorld/SDK/plugin until actual artifact and compiler closure is proven.
+# Current recommended work retires operative Vercel identity/transport and denies
+# explicit vercel/@workflow/world-vercel targets before store mutation/SDK start.
+# No literal route, clock, publication module, dependency or runtime flag was changed.
+# PREPARED ONLY — do not apply until bounded parent review.
+# Human read/prepare exception covers Production root + Production/UAT canonical literal paths.
+# Production root SDK creation is retired with503 after unchanged owner/origin/schema validation;
+# never adopt native dispatch onto the old root entry. GET/DELETE remain the same delegates.
+# Canonical diff applies only after native-neon/disabled clock and dependency graph review;
+# the explicit native registration/state/error/ack contract remains byte-identical.
+# UAT canonical current body matches Production canonical exactly; root73UAT aliases untouched.
+--- a/app/api/admin/content/[id]/schedule/route.ts
++++ b/app/api/admin/content/[id]/schedule/route.ts
+@@ -1,10 +1,5 @@
+-import { NextResponse } from "next/server";
+-import { start } from "workflow/api";
+-import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure, articleScheduleResponseHeaders as headers } from "@/lib/admin/article-schedule-handler";
+-import { acknowledgeArticleSchedule, markScheduleStartFailed, prepareArticleSchedule } from "@/lib/admin/article-scheduling";
+-import { ArticleScheduleError, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+-import { scheduledArticlePublicationWorkflow } from "@/lib/admin/article-publication-workflow";
+-
++import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure } from "@/lib/admin/article-schedule-handler";
++import { ArticleScheduleError } from "@/lib/admin/operations/article-schedule-contract";
+ 
+ export const runtime = "nodejs";
+ export const dynamic = "force-dynamic";
+@@ -16,22 +11,9 @@
+ export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+   const validated = await readArticleSchedulePostRequest(request, { params });
+   if (!validated.ok) return validated.response;
+-  const { identity, id, parsed, scheduledAt } = validated;
+-  try {
+-    const prepared = await prepareArticleSchedule({ ...parsed.data, articleId: id.data, scheduledAt, actor: identity.actor });
+-    if (!prepared.dispatch) return NextResponse.json({ schedule: scheduleView(prepared.row) }, { status: prepared.row.status === "preparing" ? 202 : 200, headers });
+-    try {
+-      // The framework integration statically discovers this server-side start call.
+-      const run = await start(scheduledArticlePublicationWorkflow, [{ articleId: id.data, generation: prepared.row.generation, scheduledAt }]);
+-      const schedule = await acknowledgeArticleSchedule(id.data, prepared.row.generation, run.runId);
+-      return NextResponse.json({ schedule }, { status: 201, headers });
+-    } catch {
+-      try { await markScheduleStartFailed(id.data, prepared.row.generation); } catch { /* An unacknowledged preparing row is never executable. */ }
+-      return failure(new ArticleScheduleError("dispatch-failed"));
+-    }
+-  } catch (error) { return failure(error); }
++  // Proposed producer retirement requires separate native-consumer review.
++  return failure(new ArticleScheduleError("not-ready"));
+ }
+-
+ 
+ export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+   return deleteArticleScheduleResponse(request, context);
+--- a/apps/admin/app/api/admin/content/[id]/schedule/route.ts
++++ b/apps/admin/app/api/admin/content/[id]/schedule/route.ts
+@@ -1,6 +1,6 @@
+ import { NextResponse } from "next/server";
+ import { getArticleScheduleResponse, deleteArticleScheduleResponse, readArticleSchedulePostRequest, articleScheduleFailure as failure, articleScheduleResponseHeaders as headers } from "@/lib/admin/article-schedule-handler";
+-import { acknowledgeArticleSchedule, markScheduleStartFailed, prepareArticleSchedule, registerNativeArticleSchedule } from "@/lib/admin/article-scheduling";
++import { markScheduleStartFailed, prepareArticleSchedule, registerNativeArticleSchedule } from "@/lib/admin/article-scheduling";
+ import { ArticleScheduleError, scheduleView } from "@/lib/admin/operations/article-schedule-contract";
+ import { getAdminCapabilityProfile } from "@/lib/admin/capability-profile";
+ import { getArticleScheduleBackend } from "@/lib/admin/article-schedule-clock";
+@@ -20,21 +20,12 @@
+   if (!validated.ok) return validated.response;
+   const { identity, id, parsed, scheduledAt } = validated;
+   const backend = getArticleScheduleBackend();
+-  if (backend === "disabled") return failure(new ArticleScheduleError("not-ready"));
++  if (backend !== "native-neon") return failure(new ArticleScheduleError("not-ready"));
+   try {
+     const prepared = await prepareArticleSchedule({ ...parsed.data, articleId: id.data, scheduledAt, actor: identity.actor });
+     if (!prepared.dispatch) return NextResponse.json({ schedule: scheduleView(prepared.row) }, { status: prepared.row.status === "preparing" ? 202 : 200, headers });
+     try {
+-      let schedule;
+-      if (backend === "native-neon") {
+-        schedule = await registerNativeArticleSchedule(id.data, prepared.row.generation);
+-      } else {
+-        // Only the retained legacy lane loads the SDK's eager runtime imports.
+-        const { start } = await import("workflow/api");
+-        const { scheduledArticlePublicationWorkflow } = await import("@/lib/admin/article-publication-workflow");
+-        const run = await start(scheduledArticlePublicationWorkflow, [{ articleId: id.data, generation: prepared.row.generation, scheduledAt }]);
+-        schedule = await acknowledgeArticleSchedule(id.data, prepared.row.generation, run.runId);
+-      }
++      const schedule = await registerNativeArticleSchedule(id.data, prepared.row.generation);
+       return NextResponse.json({ schedule }, { status: 201, headers });
+     } catch {
+       try { await markScheduleStartFailed(id.data, prepared.row.generation); } catch { /* An unacknowledged preparing row is never executable. */ }

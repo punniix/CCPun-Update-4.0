@@ -33,7 +33,7 @@ export default async function AdminDeploymentsPage() {
   const healthy = model.status === "ready";
   const hostinger = model.provider === "hostinger";
   const environment = model.environment === "admin-uat" ? "Admin UAT" : model.environment === "production-admin" ? "Admin Production" : "ยังไม่ยืนยันสภาพแวดล้อม";
-  const provider = hostinger ? "Hostinger Cloud Startup" : model.provider === "vercel" ? "Vercel" : "ยังไม่ยืนยันผู้ให้บริการ";
+  const provider = hostinger ? "Hostinger Cloud Startup" : "ยังไม่ยืนยันผู้ให้บริการ";
 
   return (
     <div>

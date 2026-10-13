@@ -1,6 +1,5 @@
 import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   parseAdminEnvironment,
   type AdminEnvironment,
 } from "../environment";
@@ -56,7 +55,6 @@ export type SocialRuntimeDescriptor = {
   environment: "admin-uat" | "production-admin";
   provider: DeploymentProvider;
   deploymentRole: "admin";
-  vercelEnvironment?: "preview" | "production";
   projectId: string | null;
   gitBranch: string;
   sanityProjectId: string;
@@ -165,12 +163,12 @@ export function resolveSocialRuntimeDescriptor(
   requirements: SocialRuntimeRequirements = {},
 ): SocialRuntimeDescriptor | null {
   const projectId = trimmed(input.projectId);
-  const productionAdminProjectId = trimmed(input.productionAdminProjectId);
   const gitBranch = trimmed(input.gitBranch);
   const sanityProjectId = trimmed(input.sanityProjectId);
   const sanityDataset = trimmed(input.sanityDataset);
   const vercelEnvironment = trimmed(input.vercelEnvironment);
   const deployment = resolveDeploymentIdentity({
+    ...(input.releaseVariables ?? {}),
     CCPUN_APP_ENV: input.environment,
     CCPUN_DEPLOYMENT_PROVIDER: trimmed(input.deploymentProvider),
     CCPUN_DEPLOYMENT_ROLE: trimmed(input.deploymentRole),
@@ -179,18 +177,13 @@ export function resolveSocialRuntimeDescriptor(
     CCPUN_RELEASE_ID: trimmed(input.releaseId),
     VERCEL_ENV: vercelEnvironment,
     VERCEL_PROJECT_ID: projectId,
-    VERCEL_GIT_COMMIT_REF: gitBranch,
-    VERCEL_GIT_COMMIT_SHA: trimmed(input.gitSha),
   }, "admin");
-  if (!deployment.valid || deployment.environment !== input.environment) return null;
+  if (!deployment.valid || deployment.environment !== input.environment
+    || !["hostinger", "local"].includes(deployment.provider)
+    || vercelEnvironment || projectId || trimmed(input.productionAdminProjectId)) return null;
 
   if (input.environment === "admin-uat") {
-    if ((deployment.provider === "vercel" && (
-        projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
-        || (productionAdminProjectId && productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction)
-        || (vercelEnvironment && vercelEnvironment !== "preview")
-      ))
-      || !isSafeUatGitBranch(gitBranch, requirements.uatBranches)
+    if (!isSafeUatGitBranch(gitBranch, requirements.uatBranches)
       || sanityProjectId !== SOCIAL_UAT_SANITY_PROJECT_ID
       || sanityDataset !== SOCIAL_UAT_SANITY_DATASET
       || (requirements.requireUatNeon
@@ -202,7 +195,6 @@ export function resolveSocialRuntimeDescriptor(
       environment: "admin-uat",
       provider: deployment.provider,
       deploymentRole: "admin",
-      ...(deployment.provider === "vercel" ? { vercelEnvironment: "preview" as const } : {}),
       projectId: deployment.projectId,
       gitBranch: gitBranch!,
       sanityProjectId: SOCIAL_UAT_SANITY_PROJECT_ID,
@@ -215,11 +207,6 @@ export function resolveSocialRuntimeDescriptor(
     || deployment.provider === "local"
     || !gitBranch
     || (gitBranch !== SOCIAL_PRODUCTION_BRANCH && !isPinnedCloudProductionRelease({ ...(input.releaseVariables ?? process.env), CCPUN_APP_ENV: input.environment, CCPUN_DEPLOYMENT_PROVIDER: deployment.provider, CCPUN_DEPLOYMENT_ROLE: deployment.role, CCPUN_GIT_SHA: deployment.gitSha ?? undefined, CCPUN_GIT_REF: gitBranch, CCPUN_RELEASE_ID: deployment.releaseId ?? undefined }))
-    || (deployment.provider === "vercel" && (
-      vercelEnvironment !== "production"
-      || projectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
-      || productionAdminProjectId !== CCPUN_VERCEL_PROJECT_IDS.adminProduction
-    ))
     || sanityProjectId !== SOCIAL_PRODUCTION_SANITY_PROJECT_ID
     || sanityDataset !== SOCIAL_PRODUCTION_SANITY_DATASET) {
     return null;
@@ -232,7 +219,6 @@ export function resolveSocialRuntimeDescriptor(
     environment: "production-admin",
     provider: deployment.provider,
     deploymentRole: "admin",
-    ...(deployment.provider === "vercel" ? { vercelEnvironment: "production" as const } : {}),
     projectId: deployment.projectId,
     gitBranch,
     sanityProjectId: SOCIAL_PRODUCTION_SANITY_PROJECT_ID,
@@ -250,12 +236,12 @@ export function socialRuntimeInputFromEnvironment(
     deploymentProvider: trimmed(env.CCPUN_DEPLOYMENT_PROVIDER),
     deploymentRole: trimmed(env.CCPUN_DEPLOYMENT_ROLE),
     releaseId: trimmed(env.CCPUN_RELEASE_ID),
-    gitSha: trimmed(env.CCPUN_GIT_SHA) || trimmed(env.VERCEL_GIT_COMMIT_SHA),
+    gitSha: trimmed(env.CCPUN_GIT_SHA),
     vercelEnvironment: trimmed(env.VERCEL_ENV),
     projectId: trimmed(env.VERCEL_PROJECT_ID) || trimmed(env.NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID),
     productionAdminProjectId: trimmed(env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID)
       || trimmed(env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID),
-    gitBranch: trimmed(env.CCPUN_GIT_REF) || trimmed(env.VERCEL_GIT_COMMIT_REF),
+    gitBranch: trimmed(env.CCPUN_GIT_REF),
     sanityProjectId: trimmed(env.NEXT_PUBLIC_SANITY_PROJECT_ID),
     sanityDataset: trimmed(env.NEXT_PUBLIC_SANITY_DATASET),
     connectionString: trimmed(env.CCPUN_SOCIAL_DATABASE_URL),

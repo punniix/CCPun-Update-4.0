@@ -131,6 +131,7 @@ test("published-only generation creates only a Draft and rejects revision and cr
 });
 
 const uatBridgeEnv = {
+  CCPUN_GIT_REF: "admin/line-copy-fixture", CCPUN_GIT_SHA: "a".repeat(40), CCPUN_RELEASE_ID: "line-copy-fixture",
   CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat",
   NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
@@ -138,6 +139,7 @@ const uatBridgeEnv = {
   CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: "https://n8n.srv908107.hstgr.cloud/webhook/uat-line-copy",
 };
 const productionBridgeEnv = {
+  CCPUN_GIT_REF: "v4-production", CCPUN_GIT_SHA: "a".repeat(40), CCPUN_RELEASE_ID: "line-copy-fixture",
   CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_APP_ENV: "production-admin", CCPUN_LOCAL_AI_N8N_TOKEN: "synthetic-production-" + "p".repeat(50),
 };
@@ -223,7 +225,7 @@ test("UAT bridge requires a pure matching identity, Sanity lane and canonical ex
     "https://n8n.example/webhook/uat/", "https://n8n.example/webhook/uat\\bad", "https://n8n.example:443/webhook/uat",
   ]) assert.equal(resolve({ ...uatBridgeEnv, CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: url }), null, url);
   const preview = { ...uatBridgeEnv, CCPUN_DEPLOYMENT_PROVIDER: "vercel", VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", VERCEL_ENV: "preview" };
-  assert.equal(resolve(preview)?.lane, "admin-uat");
+  assert.equal(resolve(preview), null);
   assert.equal(resolve({ ...preview, VERCEL_ENV: "production" }), null);
   assert.equal(resolve(productionBridgeEnv)?.lane, "production-admin");
   assert.equal(resolve({}) , null);

@@ -1,8 +1,9 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, isAdminLineSystemDeliveryAllowed, safeAdminCapabilityReturnPath } from "../../lib/admin/capability-profile";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 
 test("editorial profile is pinned by its build marker and invalid/mismatched profiles fail closed", () => {
   assert.equal(getAdminCapabilityProfile({}), "full");
@@ -118,8 +119,8 @@ test("native public-page rejection returns a private 404 without external rewrit
     VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
   });
   assert.equal(legacy[0].status, 404);
-  assert.equal(legacy[0].rewrite, "https://candidate.example/admin-not-found/");
-  assert.equal(legacy[1].status, 200);
+  assert.equal(legacy[0].rewrite, null);
+  assert.equal(legacy[1].status, 404);
 });
 
 test("schedule handlers independently deny editorial before identity, body, params or Workflow start", () => {
