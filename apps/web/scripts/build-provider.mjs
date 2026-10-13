@@ -53,6 +53,40 @@ function sourceIdentity(root, ref) {
   return { gitSha: sha, gitRef: ref, lockSha256: sha256(readFileSync(resolve(root, "../../package-lock.json"))) };
 }
 
+export function preparePinnedHostingerWebUatLock(root = webRoot, variables = process.env) {
+  const repository = resolve(root, "../..");
+  // Only the observed ephemeral provider checkout may undo its installer-generated lock drift.
+  const providerRepository = "/home/u320222331/domains/test.ccpun.com/hbuilds/source/repository";
+  if (repository !== providerRepository || variables.CCPUN_DEPLOYMENT_PROVIDER !== "hostinger" ||
+      variables.CCPUN_DEPLOYMENT_ROLE !== "web" || variables.CCPUN_APP_ENV !== "web-uat") return false;
+  if (realpathSync(repository) !== providerRepository || variables.CCPUN_RELEASE_STAGE !== "shadow" ||
+      variables.NEXT_PUBLIC_CCPUN_APP_ENV !== "web-uat" || variables.NEXT_PUBLIC_SANITY_PROJECT_ID !== "ccb9lnw5" ||
+      variables.NEXT_PUBLIC_SANITY_DATASET !== "uat" || variables.CCPUN_UAT_MODE !== "1" ||
+      variables.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "0") throw new Error("Provider lock preparation requires the isolated Web UAT checkout.");
+  const ref = git(root, ["symbolic-ref", "--short", "HEAD"]);
+  const pin = ref.match(/^codex\/hostinger-release-uat-([0-9a-f]{40})$/);
+  if (!pin || git(root, ["rev-parse", "HEAD"]) !== pin[1] ||
+      git(root, ["rev-parse", "--verify", `refs/heads/${ref}^{commit}`]) !== pin[1]) throw new Error("Provider lock preparation requires the exact attached immutable pin.");
+  const status = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=normal"], { cwd: repository, encoding: "utf8" });
+  if (status.status !== 0) throw new Error("Cannot verify artifact source identity.");
+  if (!status.stdout) return false;
+  if (status.stdout !== " M package-lock.json\0" ||
+      !/^100644 [0-9a-f]{40} 0\tpackage-lock\.json$/.test(git(root, ["ls-files", "--stage", "--", "package-lock.json"]))) {
+    throw new Error("Provider lock preparation rejects non-lock source changes.");
+  }
+  const lock = resolve(repository, "package-lock.json"), lockStat = lstatSync(lock);
+  if (!lockStat.isFile() || lockStat.isSymbolicLink()) throw new Error("Provider lock preparation requires a regular tracked lock.");
+  const committed = spawnSync("git", ["show", "HEAD:package-lock.json"], { cwd: repository, maxBuffer: 16 * 1024 * 1024 });
+  if (committed.status !== 0) throw new Error("Cannot verify committed provider lock.");
+  writeFileSync(lock, committed.stdout);
+  const installEnv = { ...variables };
+  for (const key of Object.keys(installEnv)) if (/^npm_config_(?:workspace|workspaces|prefix|include_workspace_root)$/i.test(key)) delete installEnv[key];
+  const install = spawnSync("npm", ["ci", "--ignore-scripts", "--include=dev", "--include=optional", "--workspaces", "--include-workspace-root", "--no-audit", "--no-fund"], { cwd: repository, env: installEnv, stdio: "ignore" });
+  if (install.status !== 0) throw new Error("Provider canonical dependency installation failed.");
+  sourceIdentity(root, ref);
+  return true;
+}
+
 export function derivePinnedHostingerWebUatGitMetadata(root = webRoot, variables = process.env) {
   if (variables.CCPUN_DEPLOYMENT_PROVIDER !== "hostinger" || variables.CCPUN_DEPLOYMENT_ROLE !== "web" || variables.CCPUN_APP_ENV !== "web-uat") return null;
   const checkout = spawnSync("git", ["symbolic-ref", "--short", "HEAD"], { cwd: resolve(root, "../.."), encoding: "utf8" });
@@ -349,6 +383,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (!process.argv[3] || process.argv.length !== 4) throw new Error("Provide one archive output directory.");
     archiveStandaloneRuntime(process.argv[3]);
   } else {
+    preparePinnedHostingerWebUatLock();
     const sealedGitMetadata = derivePinnedHostingerWebUatGitMetadata();
     if (sealedGitMetadata) Object.assign(process.env, sealedGitMetadata);
     const provenance = process.env.CCPUN_EXPORT_STANDALONE === "1" ? captureStandaloneProvenance() : null;
