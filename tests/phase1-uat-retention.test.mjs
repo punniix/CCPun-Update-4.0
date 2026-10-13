@@ -69,6 +69,14 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
         assert.match(expected, /export default withWorkflow\(nextConfig\);/);
       }
       assert.equal(readFileSync(file, 'utf8'), expected, file + ': only exact reviewed retirement changes the whole body');
+    } else if (file === 'cms/sanity/schema/index.ts') {
+      assert.equal(digest, '1f48f385bff3a64d53a1c5cfa97eeed0f00ad9e0e140e477377a0822ffa01577', 'own original schema registry identity');
+      const actual = readFileSync(file, 'utf8');
+      const addedImport = 'import { pageSeo } from "./documents/page-seo";\n';
+      const addedEntry = '  pageSeo,\n';
+      assert.equal(actual.split(addedImport).length, 2, 'one additive page SEO import');
+      assert.equal(actual.split(addedEntry).length, 2, 'one additive page SEO registry entry');
+      assert.equal(sha(actual.replace(addedImport, '').replace(addedEntry, '')), digest, 'all original schema owners/order remain byte exact');
     } else if (phase3AdminNativeEntries.includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true, file);
     else if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
