@@ -26,7 +26,8 @@ function fillMissing(defaults) {
 }
 
 function applyHostingerReleaseFallback() {
-  if (process.env.VERCEL_PROJECT_ID?.trim()) return;
+  if (Object.entries(process.env).some(([key, value]) => key.startsWith("VERCEL_") && value?.trim())) throw new Error("UNSUPPORTED_PROVIDER_METADATA");
+  if (["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) throw new Error("UNSUPPORTED_WORKFLOW_WORLD");
 
   const symbolicBranch = gitValue(["symbolic-ref", "--short", "HEAD"]);
   const sha = gitValue(["rev-parse", "HEAD"]);
@@ -126,6 +127,8 @@ applyHostingerReleaseFallback();
 
 const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
 const role = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
+if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");
+if (provider === "hostinger" && !["web", "admin"].includes(role)) throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");
 const workspace = provider === "hostinger" && (role === "web" || role === "admin")
   ? `@ccpun/${role}`
   : null;

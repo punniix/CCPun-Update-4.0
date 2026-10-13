@@ -11,7 +11,7 @@ export type DeploymentLaneId =
 
 export type DeploymentLane = {
   domain: string;
-  provider: "hostinger" | "vercel";
+  provider: "hostinger";
   role: "web" | "admin";
   environment: "production" | "web-uat" | "production-admin" | "admin-uat";
   publicEnvironment: "production" | "web-uat" | "production-admin" | "admin-uat";
@@ -26,7 +26,6 @@ export type DeploymentLane = {
   rootDirectory?: string;
   outputDirectory?: string;
   entryFile?: string;
-  vercelProjectId?: string;
 };
 
 export const DEPLOYMENT_LANES = RAW_DEPLOYMENT_LANES as Record<DeploymentLaneId, DeploymentLane>;
@@ -84,13 +83,8 @@ export function deploymentContractFailures(
     if (provider !== "hostinger") failures.push("CCPUN_DEPLOYMENT_PROVIDER must be hostinger");
     if (value(variables, "CCPUN_DEPLOYMENT_ROLE") !== lane.role) failures.push("CCPUN_DEPLOYMENT_ROLE must be " + lane.role);
     if (value(variables, "VERCEL_PROJECT_ID")) failures.push("VERCEL_PROJECT_ID must be unset on Hostinger");
-  } else if (lane.provider === "vercel") {
-    if (provider && provider !== "vercel") failures.push("CCPUN_DEPLOYMENT_PROVIDER must be vercel when explicitly set");
-    if ("vercelProjectId" in lane && value(variables, "VERCEL_PROJECT_ID") !== lane.vercelProjectId) {
-      failures.push("VERCEL_PROJECT_ID must be " + lane.vercelProjectId);
-    }
-    const expectedVercelEnv = lane.environment === "production-admin" ? "production" : "preview";
-    if (value(variables, "VERCEL_ENV") !== expectedVercelEnv) failures.push("VERCEL_ENV must be " + expectedVercelEnv);
+  } else {
+    failures.push("Unsupported deployment provider");
   }
 
   return failures;

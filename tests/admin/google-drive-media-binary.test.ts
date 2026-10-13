@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { SYNTHETIC_GOOGLE_DRIVE_FILE_ID, SYNTHETIC_GOOGLE_DRIVE_ITEMS, SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID } from "./google-drive-fixtures";
 import {
   fetchGoogleDriveSelectedFileBinary,
   GOOGLE_DRIVE_FILE_SCOPE,
   GOOGLE_DRIVE_FOLDER_MIME_TYPE,
   MAX_GOOGLE_DRIVE_BINARY_BYTES,
-  SYNTHETIC_GOOGLE_DRIVE_FILE_ID,
-  SYNTHETIC_GOOGLE_DRIVE_ITEMS,
-  SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID,
 } from "../../lib/admin/media/google-drive-foundation";
 
 const authorization = {

@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-const adminVercel = JSON.parse(read("apps/admin/vercel.json"));
 const socialHttp = read("apps/admin/app/api/admin/social/worker/route.ts");
 const richMenuHttp = read("apps/admin/app/api/internal/line/rich-menu/reconcile/route.ts");
 const privateBackground = read("scripts/admin-background-worker.ts");
@@ -17,7 +16,9 @@ const retiredVercelArtifacts = [
   "scripts/operator/web-line-recovery-workflow.test.mjs",
 ];
 
-assert.equal(Object.hasOwn(adminVercel, "crons"), false, "Vercel Admin must not own operational crons");
+for (const file of ["vercel.json", "apps/web/vercel.json", "apps/admin/vercel.json"]) {
+  assert.equal(existsSync(new URL(`../${file}`, import.meta.url)), false, `${file} must not reactivate a retired provider`);
+}
 
 assert.match(socialHttp, /social-worker-unavailable/);
 assert.doesNotMatch(socialHttp, /runSocialWorker|executeSocialPublication|lib\/admin\/social\/worker/);

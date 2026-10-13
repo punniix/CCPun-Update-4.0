@@ -281,6 +281,12 @@ export function stageAdminStandaloneRuntime(root = adminRoot) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  // Preserve native compiler behavior; reject retired provider inputs before build work.
+  if (Object.entries(process.env).some(([key, value]) => key.startsWith("VERCEL_") && value?.trim())) throw new Error("UNSUPPORTED_PROVIDER_METADATA");
+  if (["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) throw new Error("UNSUPPORTED_WORKFLOW_WORLD");
+  const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() ?? "";
+  if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");
+  if (provider === "hostinger" && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== "admin") throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");
   const inferredAdminUat = applyPinnedAdminUatBuildFallback();
   if (inferredAdminUat) console.log(`Hostinger Admin UAT build identity inferred from exact release ref ${inferredAdminUat.branch} @ ${inferredAdminUat.sha.slice(0, 12)}.`);
   const hostinger = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";

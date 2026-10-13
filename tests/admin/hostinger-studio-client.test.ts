@@ -75,9 +75,9 @@ test("native browser markers fail closed without falling back to valid Vercel ID
   }, false), false);
 });
 
-test("existing Vercel browser and explicit native UAT stay isolated; public markers cannot grant server access", async () => {
+test("retired Vercel browser is denied while native UAT and server authority remain isolated", async () => {
   const legacy = await browser({ NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID: ADMIN, NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: ADMIN });
-  assert.equal(legacy.isStudioConfigurationAllowed("production", "production-admin", "kyfxgjnq"), true);
+  assert.equal(legacy.isStudioConfigurationAllowed("production", "production-admin", "kyfxgjnq"), false);
   const uat = await browser({ ...native, NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", NEXT_PUBLIC_CCPUN_GIT_REF: "codex/native-uat" });
   assert.equal(uat.isStudioConfigurationAllowed("uat", "admin-uat", "ccb9lnw5"), true);
   assert.equal(uat.isStudioConfigurationAllowed("production", "admin-uat", "kyfxgjnq"), false);

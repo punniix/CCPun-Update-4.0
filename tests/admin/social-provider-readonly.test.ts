@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import { getSocialProviderReadiness, WEBSITE_42_SOCIAL_PROVIDER_BRANCH } from "../../lib/admin/social/provider-readonly";
 import { fetchMetaContentMetadataByIds, fetchMetaReadOnlyDiscovery, matchMetaHistoricalAnalytics } from "../../lib/admin/social/providers/meta/read-only";
 import { fetchTikTokReadOnlyDiscovery, matchTikTokHistoricalAnalytics } from "../../lib/admin/social/providers/tiktok/read-only";
@@ -9,10 +8,11 @@ import { fetchYouTubeReadOnlyDiscovery, matchYouTubeHistoricalAnalytics } from "
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 const lane = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "1",
   CCPUN_APP_ENV: "admin-uat",
-  VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-  VERCEL_GIT_COMMIT_REF: WEBSITE_42_SOCIAL_PROVIDER_BRANCH,
+
+  CCPUN_GIT_REF: WEBSITE_42_SOCIAL_PROVIDER_BRANCH,
   NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
   NEXT_PUBLIC_SANITY_DATASET: "uat",
 };

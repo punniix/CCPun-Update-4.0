@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   isDeploymentIdentityAllowed,
   resolveDeploymentIdentity,
 } from "../lib/runtime/deployment-identity";
 import { shouldBlockWebIndexing } from "../apps/web/runtime-environment";
 
-test("adapts Vercel Web production and preview identity", () => {
+// Historical identities are denial inputs, not runtime provider configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" };
+
+test("retired Web provider metadata cannot authorize production or preview identity", () => {
   const production = resolveDeploymentIdentity({
     VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web,
     VERCEL_ENV: "production",
@@ -23,11 +25,11 @@ test("adapts Vercel Web production and preview identity", () => {
       gitRef: production.gitRef,
     },
     {
-      provider: "vercel",
-      role: "web",
-      environment: "production",
-      valid: true,
-      gitRef: "v4-production",
+      provider: "unknown",
+      role: "unknown",
+      environment: "unknown",
+      valid: false,
+      gitRef: null,
     },
   );
 
@@ -35,21 +37,21 @@ test("adapts Vercel Web production and preview identity", () => {
     VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web,
     VERCEL_ENV: "preview",
   }, "web");
-  assert.equal(preview.environment, "web-uat");
-  assert.equal(preview.valid, true);
+  assert.equal(preview.environment, "unknown");
+  assert.equal(preview.valid, false);
 });
 
-test("adapts Vercel Admin production and preview identity", () => {
+test("retired Admin provider metadata never grants an explicit Admin lane", () => {
   const production = resolveDeploymentIdentity({
     CCPUN_APP_ENV: "production-admin",
     VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.admin,
     VERCEL_ENV: "production",
     VERCEL_GIT_COMMIT_REF: "v4-production",
   }, "admin");
-  assert.equal(production.provider, "vercel");
-  assert.equal(production.role, "admin");
+  assert.equal(production.provider, "unknown");
+  assert.equal(production.role, "unknown");
   assert.equal(production.environment, "production-admin");
-  assert.equal(production.valid, true);
+  assert.equal(production.valid, false);
 
   const preview = resolveDeploymentIdentity({
     CCPUN_APP_ENV: "admin-uat",
@@ -57,7 +59,7 @@ test("adapts Vercel Admin production and preview identity", () => {
     VERCEL_ENV: "preview",
   }, "admin");
   assert.equal(preview.environment, "admin-uat");
-  assert.equal(preview.valid, true);
+  assert.equal(preview.valid, false);
 });
 
 test("supports explicit Hostinger identity without any Vercel project ID", () => {
@@ -114,7 +116,7 @@ test("contradictory provider role and environment identities fail closed", () =>
   assert.equal(wrongVercelLane.valid, false);
 });
 
-test("robots indexing gate preserves production SEO parity for Vercel and Hostinger", () => {
+test("robots indexing remains enabled only for native Production and blocks retired providers", () => {
   const vercel = resolveDeploymentIdentity({
     VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.web,
     VERCEL_ENV: "production",
@@ -123,7 +125,7 @@ test("robots indexing gate preserves production SEO parity for Vercel and Hostin
     environment: "production",
     deployment: vercel,
     uatMode: "0",
-  }), false);
+  }), true);
 
   const hostinger = resolveDeploymentIdentity({
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
