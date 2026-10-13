@@ -32,6 +32,30 @@ function sourceIdentity(root, ref) {
   return { gitSha: sha, gitRef: ref, lockSha256: sha256(readFileSync(resolve(root, "../../package-lock.json"))) };
 }
 
+export function derivePinnedHostingerWebUatGitMetadata(root = webRoot, variables = process.env) {
+  if (variables.CCPUN_DEPLOYMENT_PROVIDER !== "hostinger" || variables.CCPUN_DEPLOYMENT_ROLE !== "web" || variables.CCPUN_APP_ENV !== "web-uat") return null;
+  const checkout = spawnSync("git", ["symbolic-ref", "--short", "HEAD"], { cwd: resolve(root, "../.."), encoding: "utf8" });
+  if (checkout.status !== 0) {
+    if (/^codex\/hostinger-release-uat-[0-9a-f]{40}$/.test(variables.CCPUN_GIT_REF ?? "")) throw new Error("Pinned Web UAT metadata requires an attached Git checkout.");
+    return null;
+  }
+  const ref = checkout.stdout.trim();
+  const pin = ref.match(/^codex\/hostinger-release-uat-([0-9a-f]{40})$/);
+  if (!pin) return null;
+  if (variables.CCPUN_RELEASE_STAGE !== "shadow" || variables.NEXT_PUBLIC_CCPUN_APP_ENV !== "web-uat" ||
+      variables.NEXT_PUBLIC_SANITY_PROJECT_ID !== "ccb9lnw5" || variables.NEXT_PUBLIC_SANITY_DATASET !== "uat" ||
+      variables.CCPUN_UAT_MODE !== "1" || variables.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "0") {
+    throw new Error("Pinned Web UAT metadata requires the isolated lane contract.");
+  }
+  const identity = sourceIdentity(root, ref);
+  if (identity.gitSha !== pin[1]) throw new Error("Pinned Web UAT ref does not match checkout SHA.");
+  const releaseId = `hostinger-web-uat-${identity.gitSha.slice(0, 12)}`;
+  return {
+    CCPUN_GIT_REF: ref, CCPUN_GIT_SHA: identity.gitSha, CCPUN_RELEASE_ID: releaseId,
+    NEXT_PUBLIC_CCPUN_GIT_REF: ref, NEXT_PUBLIC_CCPUN_GIT_SHA: identity.gitSha, NEXT_PUBLIC_CCPUN_RELEASE_ID: releaseId,
+  };
+}
+
 export function captureStandaloneProvenance(root = webRoot, variables = process.env) {
   if (Number(process.versions.node.split(".")[0]) !== 24) throw new Error("Artifact requires Node 24.");
   // Next loads ignored .env files too. Export must use the explicit CI contract,
@@ -214,7 +238,7 @@ const RUNTIME_ENV_KEYS = [
   "CCPUN_RELEASE_ID",
 ];
 
-function injectStandaloneRuntimeEnvironment(serverFile, variables) {
+function injectStandaloneRuntimeEnvironment(serverFile, variables, sealedGitMetadata) {
   if (variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() !== "hostinger"
     || variables.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== "web") return;
 
@@ -223,13 +247,25 @@ function injectStandaloneRuntimeEnvironment(serverFile, variables) {
   );
   if (!values.CCPUN_APP_ENV || !values.NEXT_PUBLIC_CCPUN_APP_ENV) return;
 
+  if (sealedGitMetadata) {
+    if (variables.CCPUN_APP_ENV !== "web-uat" || variables.NEXT_PUBLIC_CCPUN_APP_ENV !== "web-uat" || variables.CCPUN_RELEASE_STAGE !== "shadow" ||
+        variables.NEXT_PUBLIC_SANITY_PROJECT_ID !== "ccb9lnw5" || variables.NEXT_PUBLIC_SANITY_DATASET !== "uat" || variables.CCPUN_UAT_MODE !== "1" || variables.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "0") throw new Error("Pinned Git metadata seal is isolated Web UAT only.");
+    const keys = ["CCPUN_GIT_REF", "CCPUN_GIT_SHA", "CCPUN_RELEASE_ID", "NEXT_PUBLIC_CCPUN_GIT_REF", "NEXT_PUBLIC_CCPUN_GIT_SHA", "NEXT_PUBLIC_CCPUN_RELEASE_ID"];
+    const sha = sealedGitMetadata.CCPUN_GIT_SHA;
+    if (JSON.stringify(Object.keys(sealedGitMetadata).sort()) !== JSON.stringify(keys.sort()) || !/^[0-9a-f]{40}$/.test(sha ?? "") ||
+        sealedGitMetadata.CCPUN_GIT_REF !== `codex/hostinger-release-uat-${sha}` || sealedGitMetadata.CCPUN_RELEASE_ID !== `hostinger-web-uat-${sha.slice(0, 12)}` ||
+        keys.slice().filter(key => key.startsWith("NEXT_PUBLIC_")).some(key => sealedGitMetadata[key] !== sealedGitMetadata[key.slice("NEXT_PUBLIC_".length)])) {
+      throw new Error("Invalid pinned Web UAT Git metadata seal.");
+    }
+  }
   const source = readFileSync(serverFile, "utf8");
   const marker = "// CCPUN_RUNTIME_ENV_BOOTSTRAP";
-  const bootstrap = `${marker}\nconst __ccpunRuntimeEnv = ${JSON.stringify(values)};\nfor (const [key, value] of Object.entries(__ccpunRuntimeEnv)) {\n  if (!process.env[key]) process.env[key] = value;\n}\n`;
+  const seal = sealedGitMetadata ? `Object.assign(process.env, ${JSON.stringify(sealedGitMetadata)});\n` : "";
+  const bootstrap = `${marker}\nconst __ccpunRuntimeEnv = ${JSON.stringify(values)};\nfor (const [key, value] of Object.entries(__ccpunRuntimeEnv)) {\n  if (!process.env[key]) process.env[key] = value;\n}\n${seal}`;
   writeFileSync(serverFile, `${bootstrap}${source}`);
 }
 
-export function stageStandaloneRuntime(root = webRoot, variables = process.env) {
+export function stageStandaloneRuntime(root = webRoot, variables = process.env, sealedGitMetadata = null) {
   const standaloneRoot = resolve(root, ".next/standalone");
   const nestedRuntimeRoot = resolve(standaloneRoot, "apps/web");
   const runtimeRoot = existsSync(resolve(nestedRuntimeRoot, "server.js"))
@@ -259,7 +295,7 @@ export function stageStandaloneRuntime(root = webRoot, variables = process.env) 
     replaceDirectory(resolve(runtimeRoot, "public"), resolve(standaloneRoot, "public"));
   }
 
-  injectStandaloneRuntimeEnvironment(resolve(standaloneRoot, "server.js"), variables);
+  injectStandaloneRuntimeEnvironment(resolve(standaloneRoot, "server.js"), variables, sealedGitMetadata);
 
   for (const required of [
     "server.js",
@@ -292,11 +328,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (!process.argv[3] || process.argv.length !== 4) throw new Error("Provide one archive output directory.");
     archiveStandaloneRuntime(process.argv[3]);
   } else {
+    const sealedGitMetadata = derivePinnedHostingerWebUatGitMetadata();
+    if (sealedGitMetadata) Object.assign(process.env, sealedGitMetadata);
     const provenance = process.env.CCPUN_EXPORT_STANDALONE === "1" ? captureStandaloneProvenance() : null;
     if (provenance) rmSync(resolve(webRoot, ".next/standalone", PROVENANCE), { force: true });
     if (isHostinger) await materializePublicDirectory();
     run(process.platform === "win32" ? "next.cmd" : "next", ["build", "--webpack"]);
-    if (isHostinger) stageStandaloneRuntime();
+    if (isHostinger) stageStandaloneRuntime(webRoot, process.env, sealedGitMetadata);
     if (provenance) sealStandaloneProvenance(provenance);
   }
 }

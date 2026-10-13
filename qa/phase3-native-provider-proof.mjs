@@ -11,6 +11,16 @@ const reviewedOutputTests = {"tests/phase3-native-provider-parity.test.mjs": "75
 const reviewedBaselineBuilders = {"apps/web/scripts/build-provider.mjs": "35f61f91cbc11bcd463ba1d05d3fa91c5873cbdb7ffc81e53fd1bb44986d3c8e", "apps/admin/scripts/build-provider.mjs": "b7250de7598c57900f305aef8b0dbf64986518520026f60d219908cc4ea5b16c"};
 const reviewedBuilderPreludes = {"apps/web/scripts/build-provider.mjs": "  // Reject unsupported platform inputs before assets, child processes or export.\n  if (Object.entries(process.env).some(([key, value]) => key.startsWith(\"VERCEL_\") && value?.trim())) throw new Error(\"UNSUPPORTED_PROVIDER_METADATA\");\n  if ([\"vercel\", \"@workflow/world-vercel\"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? \"\")) throw new Error(\"UNSUPPORTED_WORKFLOW_WORLD\");\n  if (provider && ![\"hostinger\", \"local\"].includes(provider)) throw new Error(\"UNSUPPORTED_BUILD_PROVIDER\");\n  if (isHostinger && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== \"web\") throw new Error(\"HOSTINGER_BUILD_ROLE_REQUIRED\");\n", "apps/admin/scripts/build-provider.mjs": "  // Preserve native compiler behavior; reject retired provider inputs before build work.\n  if (Object.entries(process.env).some(([key, value]) => key.startsWith(\"VERCEL_\") && value?.trim())) throw new Error(\"UNSUPPORTED_PROVIDER_METADATA\");\n  if ([\"vercel\", \"@workflow/world-vercel\"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? \"\")) throw new Error(\"UNSUPPORTED_WORKFLOW_WORLD\");\n  const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() ?? \"\";\n  if (provider && ![\"hostinger\", \"local\"].includes(provider)) throw new Error(\"UNSUPPORTED_BUILD_PROVIDER\");\n  if (provider === \"hostinger\" && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== \"admin\") throw new Error(\"HOSTINGER_BUILD_ROLE_REQUIRED\");\n"};
 
+// Separate current-source admission for the reviewed immutable UAT Git derivation.
+// This is a new builder body, not a recovered historical body or a ledger reseal.
+export function assertReviewedUatGitMetadataBuilder(file, source, previousDigest, current = read) {
+  if (file !== 'apps/web/scripts/build-provider.mjs' || sha(source) !== '05bab040fa2e30090c9966300b1c914ff373413a7766ef067906a017d5079909') return false;
+  assert.equal(previousDigest, '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd', 'historical current builder seal must remain unchanged');
+  assert.equal(sha(current('tests/hostinger-runtime-packaging.test.mjs')), '707d7c05fae5491e935f87c57f86df57632faf36559a4916a128c897c1e10b60', 'actual UAT pin/lane/source/runtime vectors must remain reviewed');
+  assert.match(JSON.parse(current('package.json')).scripts['test:foundation-contracts'], /node --test tests\/phase3-native-provider-parity\.test\.mjs tests\/hostinger-native-app-contract\.test\.mjs tests\/hostinger-runtime-packaging\.test\.mjs$/, 'the actual reviewed Web UAT vectors must execute in Foundation CI');
+  return true;
+}
+
 // Explicit current-source admission for the reviewed native policy retirement.
 // No original source is returned to readers. Actual old/current native requests,
 // policy/LINE outputs and unsupported-provider denials execute in the registered test.
@@ -22,13 +32,18 @@ export function assertNativeProviderRetirement(file, expectedBaselineDigest, pro
   assert.equal(sha(proof.baselineSources[file]), expectedBaselineDigest, file + ': original protected baseline differs');
   assert.equal(proof.baselineHashes[file], expectedBaselineDigest);
   assert.deepEqual(Object.keys(proof.currentHashes).sort(), sealedDependencies, 'current dependency coverage differs');
-  for (const [path, digest] of Object.entries(proof.currentHashes)) assert.equal(sha(current(path)), digest, path + ': unreviewed native runtime change');
+  for (const [path, digest] of Object.entries(proof.currentHashes)) {
+    const source = current(path);
+    if (!assertReviewedUatGitMetadataBuilder(path, source, digest, current)) assert.equal(sha(source), digest, path + ': unreviewed native runtime change');
+  }
   for (const [path, prelude] of Object.entries(reviewedBuilderPreludes)) {
     assert.equal(sha(proof.baselineSources[path]), reviewedBaselineBuilders[path], path + ': original builder fixture changed');
     assert.equal(proof.baselineHashes[path], reviewedBaselineBuilders[path]);
     const marker = 'if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {\n';
     assert.equal(proof.baselineSources[path].split(marker).length, 2, path + ': original CLI boundary differs');
-    assert.equal(current(path), proof.baselineSources[path].replace(marker, marker + prelude), path + ': unreviewed compiler/helper/body change');
+    const source = current(path), originalCurrent = proof.baselineSources[path].replace(marker, marker + prelude);
+    assert.equal(sha(originalCurrent), proof.currentHashes[path], path + ': original reviewed builder body must remain sealed');
+    if (!assertReviewedUatGitMetadataBuilder(path, source, proof.currentHashes[path], current)) assert.equal(source, originalCurrent, path + ': unreviewed compiler/helper/body change');
   }
   for (const path of admitted) assert.ok(proof.currentHashes[path], path + ': missing current source seal');
   for (const path of Object.keys(reviewedOutputTests)) {

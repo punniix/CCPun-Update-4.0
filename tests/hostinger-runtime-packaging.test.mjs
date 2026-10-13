@@ -3,7 +3,9 @@ import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, sy
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { stageStandaloneRuntime } from "../apps/web/scripts/build-provider.mjs";
+import { spawnSync } from "node:child_process";
+import { runInNewContext } from "node:vm";
+import { derivePinnedHostingerWebUatGitMetadata, stageStandaloneRuntime } from "../apps/web/scripts/build-provider.mjs";
 
 test("repeated standalone staging materializes public symlinks into an independently publishable runtime", () => {
   const fixture = mkdtempSync(join(tmpdir(), "ccpun-hostinger-package-"));
@@ -31,6 +33,70 @@ test("repeated standalone staging materializes public symlinks into an independe
     rmSync(join(fixture, "public"), { recursive: true });
     assert.equal(readFileSync(join(standalone, "public/assets/hero.png"), "utf8"), "assets/hero.png");
     assert.equal(existsSync(join(standalone, ".next/static/chunk.js")), true);
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
+
+test("immutable Web UAT checkout derives six Git fields and seals only those fields over stale runtime values", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-web-pinned-git-"));
+  const web = join(fixture, "apps/web");
+  const put = (path, value) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); };
+  const git = (...args) => {
+    const result = spawnSync("git", args, { cwd: fixture, encoding: "utf8" });
+    assert.equal(result.status, 0, "synthetic Git fixture must succeed");
+    return result.stdout.trim();
+  };
+  const variables = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_RELEASE_STAGE: "shadow",
+    CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+    NEXT_PUBLIC_SANITY_DATASET: "uat", CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_GIT_REF: "stale-ref", CCPUN_GIT_SHA: "stale-sha", CCPUN_RELEASE_ID: "stale-release",
+    NEXT_PUBLIC_CCPUN_GIT_REF: "stale-public-ref", NEXT_PUBLIC_CCPUN_GIT_SHA: "stale-public-sha", NEXT_PUBLIC_CCPUN_RELEASE_ID: "stale-public-release",
+    CCPUN_PRIVATE_SECRET: "synthetic-private-value", CCPUN_INVESTMENT_ALLOCATION_ENABLED: "1",
+  };
+  try {
+    mkdirSync(web, { recursive: true });
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, variables), null, "ordinary source without Git retains the existing manual contract");
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, { ...variables, CCPUN_GIT_REF: `codex/hostinger-release-uat-${"a".repeat(40)}` }), /attached Git checkout/);
+    put(join(fixture, ".gitignore"), "apps/web/.next/\n");
+    put(join(fixture, "package-lock.json"), "{}");
+    for (const path of ["llms.txt", ".well-known/security.txt", "favicon.ico"]) put(join(web, "public", path), path);
+    git("init", "-q"); git("config", "user.name", "Fixture"); git("config", "user.email", "fixture@example.invalid");
+    git("add", "."); git("commit", "-qm", "synthetic source");
+    const sha = git("rev-parse", "HEAD");
+    git("checkout", "-qb", `codex/hostinger-release-uat-${sha}`);
+    const seal = derivePinnedHostingerWebUatGitMetadata(web, variables);
+    const expected = { CCPUN_GIT_REF: `codex/hostinger-release-uat-${sha}`, CCPUN_GIT_SHA: sha, CCPUN_RELEASE_ID: `hostinger-web-uat-${sha.slice(0, 12)}` };
+    assert.deepEqual(seal, { ...expected, ...Object.fromEntries(Object.entries(expected).map(([key, value]) => [`NEXT_PUBLIC_${key}`, value])) });
+    assert.equal(variables.CCPUN_GIT_SHA, "stale-sha", "derivation must not mutate caller configuration");
+    for (const [key, value] of [["NEXT_PUBLIC_SANITY_PROJECT_ID", "kyfxgjnq"], ["CCPUN_ENABLE_PRODUCTION_ANALYTICS", "1"], ["CCPUN_UAT_MODE", "0"], ["CCPUN_RELEASE_STAGE", "live"], ["NEXT_PUBLIC_CCPUN_APP_ENV", "production"]]) {
+      assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, { ...variables, [key]: value }), /isolated lane contract/);
+    }
+    put(join(fixture, "package-lock.json"), "changed");
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), /clean source checkout/);
+    git("checkout", "--", "package-lock.json");
+    git("checkout", "-qb", `codex/hostinger-release-uat-${"f".repeat(40)}`);
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), /does not match checkout SHA/);
+    git("checkout", "--detach", "-q", sha);
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, variables), null, "ordinary detached CI/feature source retains the existing guard");
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, { ...variables, CCPUN_GIT_REF: expected.CCPUN_GIT_REF }), /attached Git checkout/);
+    git("checkout", "-qb", "manual-uat");
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, variables), null);
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, { ...variables, CCPUN_APP_ENV: "production" }), null);
+    git("checkout", "-q", expected.CCPUN_GIT_REF);
+    const standalone = join(web, ".next/standalone");
+    put(join(standalone, "server.js"), "");
+    put(join(standalone, "node_modules/next/package.json"), "{}");
+    put(join(standalone, ".next/BUILD_ID"), "build");
+    put(join(web, ".next/static/chunk.js"), "chunk");
+    stageStandaloneRuntime(web, { ...variables, ...seal }, seal);
+    const server = readFileSync(join(standalone, "server.js"), "utf8");
+    const runtimeEnv = { ...variables, AUTH_SECRET: "synthetic-auth", NEXT_PUBLIC_SANITY_DATASET: "protected-existing" };
+    runInNewContext(server, { process: { env: runtimeEnv } });
+    for (const [key, value] of Object.entries(seal)) assert.equal(runtimeEnv[key], value, key);
+    for (const [key, value] of Object.entries(variables).filter(([key]) => !Object.hasOwn(seal, key))) assert.equal(runtimeEnv[key], key === "NEXT_PUBLIC_SANITY_DATASET" ? "protected-existing" : value, key);
+    assert.equal(runtimeEnv.AUTH_SECRET, "synthetic-auth");
+    assert.doesNotMatch(server, /synthetic-private-value|CCPUN_PRIVATE_SECRET|CCPUN_INVESTMENT_ALLOCATION_ENABLED|AUTH_SECRET/);
+    assert.throws(() => stageStandaloneRuntime(web, variables, { ...seal, AUTH_SECRET: "must-not-serialize" }), /Invalid pinned Web UAT Git metadata seal/);
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
