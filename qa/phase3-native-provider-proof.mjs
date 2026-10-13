@@ -54,3 +54,23 @@ export function assertReviewedNativeShadowTest(expectedBaselineDigest, proof = J
   assert.equal(JSON.parse(current('package.json')).scripts['test:hostinger'], 'node --test ' + path);
   return true;
 }
+
+export function assertReviewedWebUatBuildProfile(expectedBaselineDigest, proof = JSON.parse(read('qa/phase3-native-provider-parity.json')), current = read) {
+  const file = 'lib/runtime/deployment-lanes.mjs';
+  const original = proof.baselineSources[file];
+  assert.equal(sha(original), expectedBaselineDigest, 'original lane contract differs');
+  assert.equal(proof.baselineHashes[file], expectedBaselineDigest);
+  let expected = original;
+  for (const [before, after] of [
+    ['"rootDirectory": "apps/web"', '"rootDirectory": "./"'],
+    ['"outputDirectory": ".next/standalone"', '"outputDirectory": "apps/web/.next/standalone"'],
+    ['"entryFile": ".next/standalone/server.js"', '"entryFile": "apps/web/.next/standalone/server.js"'],
+  ]) {
+    assert.equal(expected.split(before).length, 2, 'profile field must occur exactly once');
+    expected = expected.replace(before, after);
+  }
+  const actual = current(file);
+  assert.equal(actual, expected, 'only the three reviewed Web UAT profile fields may change');
+  assert.equal(sha(actual), proof.currentHashes[file], 'current lane contract seal differs');
+  return true;
+}

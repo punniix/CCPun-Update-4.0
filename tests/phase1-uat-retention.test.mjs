@@ -1,4 +1,4 @@
-import { assertNativeProviderRetirement, assertReviewedNativeShadowTest } from '../qa/phase3-native-provider-proof.mjs';
+import { assertNativeProviderRetirement, assertReviewedNativeShadowTest, assertReviewedWebUatBuildProfile } from '../qa/phase3-native-provider-proof.mjs';
 import { assertPhase3AdminNativeBoundaries, phase3AdminNativeEntries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -73,6 +73,7 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
     else if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
+    else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);
   }
 });
