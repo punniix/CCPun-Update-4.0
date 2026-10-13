@@ -152,10 +152,10 @@ test("page SEO: served tag readback excludes serialized Flight/comments, uses fi
   assert.equal(PAGE_SEO_PAGES.length, 8);
 });
 
-test("page SEO: Save diagnostic renders only paired HTTP/enums and keeps unknown/transport failures uncertain", () => {
+test("page SEO: Save diagnostic renders only paired HTTP/enums and keeps unknown/transport failures uncertain", async () => {
   const editor = compile("features/admin/seo/PageSeoEditor.tsx", {
     "next/image": {}, "next/link": {}, "react": {}, "react/jsx-runtime": {}, "@/lib/content/page-seo-registry": registry,
-  }, {}) as { pageSeoSaveFailureMessage: (status: number | null, error?: unknown) => string };
+  }, {}) as { pageSeoSaveFailureMessage: (status: number | null, error?: unknown) => string; pageSeoSaveFailureResponse: (response: Response) => Promise<string> };
   const message = editor.pageSeoSaveFailureMessage;
   assert.match(message(503, "write-unavailable"), /HTTP 503 · write-unavailable/);
   assert.match(message(502, "save-failed"), /HTTP 502 · save-failed/);
@@ -167,4 +167,15 @@ test("page SEO: Save diagnostic renders only paired HTTP/enums and keeps unknown
   assert.doesNotMatch(message(502, "write-unavailable"), /write-unavailable/);
   assert.doesNotMatch(message(null, "write-unavailable"), /HTTP|write-unavailable/);
   assert.match(message(null), /ยังยืนยันผลบันทึกไม่ได้/);
+  const withoutHeader = new Response(JSON.stringify({ error: "save-failed" }), { status: 502 });
+  withoutHeader.headers.delete("content-type");
+  assert.match(await editor.pageSeoSaveFailureResponse(withoutHeader), /HTTP 502 · save-failed/);
+  const wrongHeader = new Response(JSON.stringify({ error: "write-unavailable" }), { status: 503, headers: { "Content-Type": "text/plain" } });
+  assert.match(await editor.pageSeoSaveFailureResponse(wrongHeader), /HTTP 503 · write-unavailable/);
+  for (const [body, shape] of [[JSON.stringify({ error: "private secret<script>" }), "other-json"], ["<html>private secret</html>", "non-json"], ["", "non-json"]]) {
+    const text = await editor.pageSeoSaveFailureResponse(new Response(body, { status: 502 }));
+    assert.match(text, new RegExp(`HTTP 502 · ${shape}`));
+    assert.doesNotMatch(text, /private|secret|script|html/);
+    assert.match(text, /โหลดค่าปัจจุบัน/);
+  }
 });
