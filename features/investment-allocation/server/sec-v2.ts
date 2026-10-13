@@ -19,6 +19,7 @@ import type {
   FundRiskFact,
   FundSearchResponse,
   FundSpecificationFact,
+  FundStatisticsFact,
   PlanningFund,
 } from "../domain/types";
 import { searchDemoFunds, UAT_SYNTHETIC_FUNDS } from "./demo-funds";
@@ -184,7 +185,7 @@ const SEC_PUBLIC_FIELDS = [
   "management_style", "feederfund_master_fund", "feederfund_country", "last_upd_date",
   "fund_class_name", "fund_class_detail", "fund_class_description",
   "fund_class_tax_incentive_type", "fund_class_isin_code", "spec_code", "spec_desc",
-  "risk_spectrum", "risk_spectrum_desc", "start_date", "end_date", "prospectus_type",
+  "risk_spectrum", "risk_spectrum_desc", "start_date", "end_date", "prospectus_type", "sharpe_ratio",
   "asset_name", "asset_ratio", "type", "period", "redemp_period_oth", "settlement_period",
 ] as const;
 
@@ -550,12 +551,13 @@ export async function getFundDetail(projectId: string, requestedClassName?: stri
   }
 
   const encoded = encodeURIComponent(projectId);
-  const [profileResult, specificationResult, riskResult, allocationResult, dealingResult] = await Promise.all([
+  const [profileResult, specificationResult, riskResult, allocationResult, dealingResult, statisticsResult] = await Promise.all([
     settledEnvelope(`/v2/fund/general-info/profiles?project_info=${encoded}&page_size=100`, key),
     settledEnvelope(`/v2/fund/general-info/specifications?proj_id=${encoded}&page_size=100`, key),
     settledEnvelope(`/v2/fund/factsheet/risk-spectrum?proj_id=${encoded}&latest=true&page_size=100`, key),
     settledEnvelope(`/v2/fund/factsheet/asset-allocation?proj_id=${encoded}&latest=true&page_size=100`, key),
     settledEnvelope(`/v2/fund/factsheet/subscription-redemption-periods?proj_id=${encoded}&latest=true&page_size=100`, key),
+    settledEnvelope(`/v2/fund/factsheet/statistics?proj_id=${encoded}&latest=true&page_size=100`, key),
   ]);
 
   const profileRows = profileResult.items.map(asRecord).filter((row): row is Record<string, unknown> => Boolean(row));
@@ -621,12 +623,31 @@ export async function getFundDetail(projectId: string, requestedClassName?: stri
     };
   }
 
+  // Sharpe is a reported per-class fact, never inferred from a different class.
+  const statisticsClass = selectedClassName ?? (classes.length === 0 && !requested ? "main" : null);
+  const statisticsRows = fund?.projectId === projectId && fund.category === "equity" && statisticsClass && (!requested || requested === selectedClassName)
+    ? statisticsResult.items.map(asRecord).filter((row): row is Record<string, unknown> =>
+      Boolean(row) && asString(row!.proj_id) === projectId && asString(row!.fund_class_name) === statisticsClass)
+    : [];
+  const statisticsRow = statisticsRows.length === 1 ? statisticsRows[0] : null;
+  const rawSharpe = statisticsRow ? asString(statisticsRow.sharpe_ratio) : null;
+  const parsedSharpe = rawSharpe && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(rawSharpe) ? Number(rawSharpe) : null;
+  const statistics: FundStatisticsFact | null = statisticsRow ? {
+    projectId,
+    className: statisticsClass!,
+    sharpeRatio: parsedSharpe !== null && Number.isFinite(parsedSharpe) ? parsedSharpe : null,
+    factsheetStartDate: asString(statisticsRow.start_date),
+    factsheetEndDate: asString(statisticsRow.end_date),
+    lastUpdated: asString(statisticsRow.last_upd_date),
+  } : null;
+
   const endpointStates = {
     profile: profileResult.state,
     specification: specificationResult.state,
     risk: riskResult.state,
     allocation: allocationResult.state,
     dealing: dealingResult.state,
+    statistics: statisticsResult.state,
   };
   const warnings: string[] = [];
   if (!fund) warnings.push("ยังไม่พบข้อมูลพื้นฐานของกองทุนนี้");
@@ -647,7 +668,7 @@ export async function getFundDetail(projectId: string, requestedClassName?: stri
   ]);
   const state = fund && risk && assetAllocation.length ? (Object.values(endpointStates).includes("unavailable") ? "partial" : "fresh") : "partial";
 
-  return { source: "sec_v2", state, fund, classes, selectedClassName, specifications, risk, assetAllocation, dealing, dataDate, fetchedAt, warnings, endpointStates };
+  return { source: "sec_v2", state, fund, classes, selectedClassName, specifications, risk, assetAllocation, dealing, statistics, dataDate, fetchedAt, warnings, endpointStates };
 }
 
 async function loadLatestRisk(projectId: string, key: string): Promise<{ level: number | null; sourceDate: string | null; snapshotId: string }> {

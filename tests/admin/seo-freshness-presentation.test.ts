@@ -1,10 +1,10 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("admin distinguishes saved current, saved stale, and unsaved live SEO results", () => {
-  const contentPage = readFileSync("apps/admin/app/(control-plane)/content/articles/page.tsx", "utf8");
-  const detailPage = readFileSync("apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", "utf8");
+  const contentPage = readPhase1Source("apps/admin/app/(control-plane)/content/articles/page.tsx");
+  const detailPage = readPhase1Source("apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx");
 
   assert.match(contentPage, /article\.seoAuditVersion === SEO_AUDIT_VERSION/);
   assert.match(contentPage, /ผลที่บันทึกแล้ว · ใช้กฎตรวจเวอร์ชันปัจจุบัน/);

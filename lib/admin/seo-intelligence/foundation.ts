@@ -1,5 +1,5 @@
 import { isPinnedCloudProductionRelease } from "../../runtime/hostinger-production-release.mjs";
-import { CCPUN_VERCEL_PROJECT_IDS, parseAdminEnvironment, type AdminEnvironment } from "../environment";
+import { parseAdminEnvironment, type AdminEnvironment } from "../environment";
 import { resolveDeploymentIdentity } from "../../runtime/deployment-identity";
 import { SYNTHETIC_MARKET_PROVIDER_FIXTURES } from "./providers/ubersuggest";
 
@@ -287,6 +287,7 @@ export function isSeoIntelligenceEnabled(input: {
 }): boolean {
   if (input.flag !== "1") return false;
   const deployment = resolveDeploymentIdentity({
+    ...(input.releaseVariables ?? {}),
     CCPUN_APP_ENV: input.environment,
     CCPUN_DEPLOYMENT_PROVIDER: input.deploymentProvider,
     CCPUN_DEPLOYMENT_ROLE: input.deploymentRole,
@@ -295,27 +296,18 @@ export function isSeoIntelligenceEnabled(input: {
     CCPUN_GIT_SHA: input.gitSha,
     VERCEL_ENV: input.vercelEnvironment,
     VERCEL_PROJECT_ID: input.projectId,
-    VERCEL_GIT_COMMIT_REF: input.gitBranch,
-    VERCEL_GIT_COMMIT_SHA: input.gitSha,
   }, "admin");
-  if (!deployment.valid || deployment.environment !== input.environment) return false;
+  if (!deployment.valid || deployment.environment !== input.environment
+    || !["hostinger", "local"].includes(deployment.provider)
+    || input.vercelEnvironment?.trim() || input.projectId?.trim() || input.productionAdminProjectId?.trim()) return false;
 
   const uatLane = input.environment === "admin-uat" &&
-    (deployment.provider !== "vercel" || (
-      input.projectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
-      (!input.vercelEnvironment || input.vercelEnvironment === "preview")
-    )) &&
     (input.gitBranch === WEBSITE_42_SEO_BRANCH || input.gitBranch === WEBSITE_42_GOOGLE_PROVIDER_BRANCH || input.gitBranch?.startsWith("admin/")) &&
     input.sanityProjectId === WEBSITE_42_SEO_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_SANITY_DATASET;
 
   const productionLane = input.environment === "production-admin" &&
     deployment.provider !== "local" &&
-    (deployment.provider !== "vercel" || (
-      input.vercelEnvironment === "production" &&
-      input.projectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
-      input.productionAdminProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction
-    )) &&
     (input.gitBranch === WEBSITE_42_SEO_PRODUCTION_BRANCH || isPinnedCloudProductionRelease({ ...(input.releaseVariables ?? process.env), CCPUN_APP_ENV: input.environment, CCPUN_DEPLOYMENT_PROVIDER: deployment.provider, CCPUN_DEPLOYMENT_ROLE: deployment.role, CCPUN_GIT_SHA: deployment.gitSha ?? undefined, CCPUN_GIT_REF: input.gitBranch, CCPUN_RELEASE_ID: deployment.releaseId ?? undefined })) &&
     input.sanityProjectId === WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET;

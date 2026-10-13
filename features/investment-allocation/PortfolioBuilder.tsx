@@ -6,6 +6,7 @@ import { allocationTotal, calculatePlan, constructionCoverageMatches, createAdvi
 import { planningFundFromDetail } from "./domain/detail-to-planning";
 import type { AllocationRow, AssetBucket, ConstructionBucket, FundDetailResponse, FundSearchResponse, InvestmentPlanResult, PlanningFund, SelectedFund } from "./domain/types";
 import styles from "./InvestmentAllocation.module.css";
+import FundSharpeFact from "./FundSharpeFact";
 
 const CONSTRUCTION_LABELS: Record<ConstructionBucket, string> = {
   mixed: "กองทุนรวมผสม",
@@ -362,6 +363,7 @@ export default function PortfolioBuilder() {
                             <span>ความเสี่ยงระดับ {selected.fund.riskSpectrum ?? "ยังไม่มีข้อมูล"}</span>
                             <span>{selected.fund.liquidity.rawText ?? "ยังไม่มีข้อมูลรับเงินสำหรับชนิดหน่วยที่เลือก"}</span>
                           </div>
+                          <FundSharpeFact detail={selectedDetails[selected.fund.id].detail!} projectId={selected.fund.projectId} className={selected.fund.className} />
                           <details>
                             <summary className={styles.smallButton}>ดูสัดส่วนที่กองรายงานและวันที่ข้อมูล</summary>
                             <ul className={styles.warningList}>

@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { constantTimeBearerMatches } from "./constant-time-bearer";
 
 export function isN8nAgentOsRequestAuthorized(
   request: Request,
@@ -10,7 +10,5 @@ export function isN8nAgentOsRequestAuthorized(
   if (!expected || expected.length < 43 || !authorization?.startsWith("Bearer ")) return false;
 
   const supplied = authorization.slice(7).trim();
-  const expectedDigest = createHash("sha256").update(expected).digest();
-  const suppliedDigest = createHash("sha256").update(supplied).digest();
-  return timingSafeEqual(expectedDigest, suppliedDigest);
+  return constantTimeBearerMatches(expected, supplied);
 }
