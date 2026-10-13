@@ -58,23 +58,23 @@ test("automatic Admin UAT pin derives all six metadata values and keeps native l
     f.git("checkout", "-b", branch);
     const metadata = { CCPUN_GIT_REF: branch, CCPUN_GIT_SHA: sha, CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}`,
       NEXT_PUBLIC_CCPUN_GIT_REF: branch, NEXT_PUBLIC_CCPUN_GIT_SHA: sha, NEXT_PUBLIC_CCPUN_RELEASE_ID: `hostinger-admin-uat-${sha.slice(0, 12)}` };
-    const stale = { ...f.values, AUTH_URL: "https://admin-test.ccpun.com", AUTH_SECRET: "SYNTHETIC_UNCHANGED",
+    const stale = { ...f.values, NODE_ENV: "test" as const, AUTH_URL: "https://admin-test.ccpun.com", AUTH_SECRET: "SYNTHETIC_UNCHANGED",
       CCPUN_GIT_REF: "old-ref", CCPUN_GIT_SHA: "a".repeat(40), CCPUN_RELEASE_ID: "old-release",
       NEXT_PUBLIC_CCPUN_GIT_REF: "old-public-ref", NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40), NEXT_PUBLIC_CCPUN_RELEASE_ID: "old-public-release" };
     const values = { ...stale };
     assert.deepEqual(applyPinnedAdminUatBuildFallback(f.admin, values), { branch, sha });
     assert.deepEqual(values, { ...stale, ...metadata }, "only the six derived metadata keys may change");
-    const absent: Record<string, string | undefined> = { ...stale };
+    const absent: NodeJS.ProcessEnv = { ...stale };
     for (const key of Object.keys(metadata)) delete absent[key];
     assert.deepEqual(applyPinnedAdminUatBuildFallback(f.admin, absent), { branch, sha });
     assert.deepEqual(absent, values, "all six provider metadata entries may be absent");
     const seal = validateNativeNeonBuild(f.admin, values); assert.ok(seal);
     assert.equal(seal.gitRef, branch); assert.equal(seal.gitSha, sha); assert.equal(seal.releaseId, metadata.CCPUN_RELEASE_ID);
     for (const key of ["NEXT_PUBLIC_CCPUN_GIT_REF", "NEXT_PUBLIC_CCPUN_GIT_SHA", "NEXT_PUBLIC_CCPUN_RELEASE_ID"] as const) assert.equal(seal.publicValues[key], metadata[key]);
-    const unavailableGit = (() => spawnSync("__synthetic_missing_git_binary__", [], { encoding: "utf8" })) as typeof spawnSync;
+    const unavailableCheckout = join(f.root, "missing-checkout", "apps", "admin");
     const noGit = { ...stale };
-    assert.equal(applyPinnedAdminUatBuildFallback(f.admin, noGit, unavailableGit), null); assert.deepEqual(noGit, stale);
-    assert.throws(() => validateNativeNeonBuild(f.admin, noGit, unavailableGit), /BUILD_DENIED/);
+    assert.equal(applyPinnedAdminUatBuildFallback(unavailableCheckout, noGit), null); assert.deepEqual(noGit, stale);
+    assert.throws(() => validateNativeNeonBuild(unavailableCheckout, noGit), /BUILD_DENIED/);
     for (const change of [
       { CCPUN_DEPLOYMENT_PROVIDER: "local" }, { CCPUN_DEPLOYMENT_PROVIDER: undefined }, { CCPUN_DEPLOYMENT_ROLE: "web" },
       { CCPUN_DEPLOYMENT_ROLE: undefined }, { CCPUN_APP_ENV: "production-admin" }, { AUTH_URL: "https://evil.example" },
@@ -99,20 +99,20 @@ test("automatic Admin UAT pin derives all six metadata values and keeps native l
     assert.equal(applyPinnedAdminUatBuildFallback(f.admin, detached), null); assert.deepEqual(detached, stale);
     assert.throws(() => validateNativeNeonBuild(f.admin, detached), /BUILD_DENIED/);
     f.git("checkout", "fixture-native-neon");
-    const manual = { ...f.values };
-    assert.equal(applyPinnedAdminUatBuildFallback(f.admin, manual), null); assert.deepEqual(manual, f.values);
+    const manual = { ...f.values, NODE_ENV: "test" as const };
+    assert.equal(applyPinnedAdminUatBuildFallback(f.admin, manual), null); assert.deepEqual(manual, { ...f.values, NODE_ENV: "test" });
     assert.ok(validateNativeNeonBuild(f.admin, manual));
     f.git("checkout", "-b", "v4-production");
-    const production = productionValues(f), originalProduction = { ...production };
+    const production = { ...productionValues(f), NODE_ENV: "test" as const }, originalProduction = { ...production };
     assert.equal(applyPinnedAdminUatBuildFallback(f.admin, production), null); assert.deepEqual(production, originalProduction);
     assert.ok(validateNativeNeonBuild(f.admin, production), "explicit Production contract is unchanged");
     f.git("checkout", "-b", `admin/hostinger-release-uat-${sha}`);
-    const legacy: Record<string, string | undefined> = {};
+    const legacy: NodeJS.ProcessEnv = { NODE_ENV: "test" };
     assert.deepEqual(applyPinnedAdminUatBuildFallback(f.admin, legacy), { branch: `admin/hostinger-release-uat-${sha}`, sha });
     assert.equal(legacy.CCPUN_GIT_SHA, sha); assert.equal(legacy.CCPUN_APP_ENV, "admin-uat");
     assert.equal(legacy.NEXT_PUBLIC_CCPUN_GIT_SHA, undefined, "legacy fallback retains its original supplied-mirror contract");
     f.git("checkout", "-b", `admin/hostinger-release-uat-${"d".repeat(40)}`);
-    assert.throws(() => applyPinnedAdminUatBuildFallback(f.admin, {}), /PIN_SHA_MISMATCH/);
+    assert.throws(() => applyPinnedAdminUatBuildFallback(f.admin, { NODE_ENV: "test" }), /PIN_SHA_MISMATCH/);
   } finally { f.close(); }
 });
 

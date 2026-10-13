@@ -16,7 +16,7 @@ const reviewedBuilderPreludes = {"apps/web/scripts/build-provider.mjs": "  // Re
 export function assertReviewedUatGitMetadataBuilder(file, source, previousDigest, current = read) {
   if (file !== 'apps/admin/scripts/build-provider.mjs' || sha(source) !== '4b70ad0f95a6d8fd04fb2492892cb36fbaa23bcd94e6a213a622e011195be031') return false;
   assert.equal(previousDigest, 'c0bdcde3d94d99807b64029f4f2eb044f307088d144e080e08cbeb31a5abc8ae', 'historical current builder seal must remain unchanged');
-  assert.equal(sha(current('tests/admin/hostinger-native-neon-build.test.ts')), '2be1077ccc62e83de9aacc63a3714785a710fdaa971ce2d45122809eed3732bc', 'actual UAT pin/lane/source/runtime vectors must remain reviewed');
+  assert.equal(sha(current('tests/admin/hostinger-native-neon-build.test.ts')), '25cf618d4de0254778cd43b72413962c2a702be042b42fc5a025b40d84862c6c', 'actual UAT pin/lane/source/runtime vectors must remain reviewed');
   assert.equal(JSON.parse(current('package.json')).scripts['test:admin'], 'node --import tsx --test tests/admin/*.test.ts', 'the actual reviewed Admin UAT vectors must execute in CI');
   return true;
 }
