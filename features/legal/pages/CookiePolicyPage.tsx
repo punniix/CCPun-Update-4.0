@@ -1,3 +1,4 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Cookie } from "lucide-react";
@@ -5,19 +6,21 @@ import { Website43Footer, Website43Navbar } from "@/components/layout/website-43
 import w43Styles from "@/components/layout/website-43/Website43.module.css";
 import legalStyles from "@/components/layout/website-43/Website43Legal.module.css";
 
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/cookie-policy/")!.defaults;
+
 export const metadata: Metadata = {
-  title: "นโยบายคุกกี้ | CCPun ที่ปรึกษาทางการเงิน",
-  description: "CCPun ใช้ Google Analytics และ Meta Pixel ตามตัวเลือกความยินยอม อ่านรายละเอียดผู้ให้บริการ วัตถุประสงค์ ขอบเขต และวิธีถอนความยินยอม",
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   robots: { index: false, follow: true },
   alternates: { canonical: "https://ccpun.com/cookie-policy/" },
   openGraph: {
-    title: "นโยบายคุกกี้ | CCPun ที่ปรึกษาทางการเงิน",
-    description: "CCPun ใช้ Google Analytics และ Meta Pixel ตามตัวเลือกความยินยอม อ่านรายละเอียดผู้ให้บริการ วัตถุประสงค์ ขอบเขต และวิธีถอนความยินยอม",
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     url: "https://ccpun.com/cookie-policy/",
   },
   twitter: {
-    title: "นโยบายคุกกี้ | CCPun ที่ปรึกษาทางการเงิน",
-    description: "CCPun ใช้ Google Analytics และ Meta Pixel ตามตัวเลือกความยินยอม อ่านรายละเอียดผู้ให้บริการ วัตถุประสงค์ ขอบเขต และวิธีถอนความยินยอม",
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
   },
 };
 

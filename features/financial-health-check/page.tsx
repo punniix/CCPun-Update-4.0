@@ -1,13 +1,14 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from 'next';
 import ClientFHC from '@/features/financial-health-check/components/ClientFHC';
 import { FHC_FAQS } from '@/features/financial-health-check/components/FHCLandingIntro';
 import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 
-const FHC_DESCRIPTION = 'ตรวจสุขภาพการเงินผ่านโมดูลประเมินทุนประกันชีวิต ซึ่งครอบคลุมเฉพาะความคุ้มครองชีวิต เปรียบเทียบภาระครอบครัว หนี้ การศึกษาบุตร ความคุ้มครอง และสินทรัพย์ที่พร้อมใช้ เพื่อเริ่มทบทวนแผนการเงิน';
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/tools/financial-health-check/")!.defaults;
 
 export const metadata: Metadata = {
-  title: 'ตรวจสุขภาพการเงิน เริ่มจากช่องว่างความคุ้มครอง | CCPun',
-  description: FHC_DESCRIPTION,
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   keywords: [
     'ตรวจสุขภาพการเงิน',
     'financial health check',
@@ -21,13 +22,13 @@ export const metadata: Metadata = {
     'ความคุ้มครองที่ขาด',
   ],
   openGraph: {
-    title: 'ตรวจสุขภาพการเงิน เริ่มจากช่องว่างความคุ้มครอง | CCPun',
-    description: FHC_DESCRIPTION,
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     url: 'https://ccpun.com/tools/financial-health-check/',
     siteName: 'CCPun Financial Advisor',
     images: [
       {
-        url: 'https://ccpun.com/og-image-20260610.webp?v=68ae8d8',
+        url: PAGE_SEO_DEFAULTS.ogImageUrl!,
         width: 1200,
         height: 630,
         alt: 'CCPun Financial Health Check',
@@ -38,9 +39,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ตรวจสุขภาพการเงิน เริ่มจากช่องว่างความคุ้มครอง | CCPun',
-    description: FHC_DESCRIPTION,
-    images: ['https://ccpun.com/og-image-20260610.webp?v=68ae8d8'],
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
+    images: [PAGE_SEO_DEFAULTS.ogImageUrl!],
   },
   robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
   alternates: {

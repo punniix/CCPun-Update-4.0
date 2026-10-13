@@ -1,3 +1,4 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
@@ -8,22 +9,24 @@ import motionStyles from "@/components/ui/FunctionalMotion.module.css";
 import InvestmentAllocationTool from "./InvestmentAllocationTool";
 import styles from "./InvestmentAllocation.module.css";
 
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/tools/investment-allocation/")!.defaults;
+
 const URL = "https://ccpun.com/tools/investment-allocation/";
-const DESCRIPTION = "เลือกกองทุนด้วยตัวเอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ระดับความเสี่ยงเท่าไร และขายคืนแล้วรับเงินตามเงื่อนไขแบบไหน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ";
+const DESCRIPTION = PAGE_SEO_DEFAULTS.seoDescription!;
 
 export const metadata: Metadata = {
-  title: "เครื่องมือวางแผนกองทุน | เลือกกองเอง ดูข้อมูลจาก ก.ล.ต. | CCPun",
-  description: DESCRIPTION,
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   alternates: { canonical: URL, languages: { "th-TH": URL, "x-default": URL } },
   robots: !INVESTMENT_ALLOCATION_ENABLED || IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
-  openGraph: { title: "CCPun เครื่องมือวางแผนกองทุน", description: DESCRIPTION, url: URL, siteName: "CCPun Financial Advisor", locale: "th_TH", type: "website" },
-  twitter: { card: "summary", title: "CCPun เครื่องมือวางแผนกองทุน", description: DESCRIPTION },
+  openGraph: { title: PAGE_SEO_DEFAULTS.ogTitle!, description: PAGE_SEO_DEFAULTS.ogDescription!, url: URL, siteName: "CCPun Financial Advisor", locale: "th_TH", type: "website" },
+  twitter: { card: "summary", title: PAGE_SEO_DEFAULTS.ogTitle!, description: PAGE_SEO_DEFAULTS.ogDescription! },
 };
 
 const schema = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "CCPun เครื่องมือวางแผนกองทุน",
+  name: PAGE_SEO_DEFAULTS.ogTitle!,
   url: URL,
   applicationCategory: "FinanceApplication",
   operatingSystem: "Web",

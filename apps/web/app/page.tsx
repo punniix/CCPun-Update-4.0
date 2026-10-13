@@ -1,3 +1,7 @@
+import type { ResolvingMetadata } from "next";
+import { resolvePageSeoMetadata } from "@/lib/seo/page-seo";
+import { buildSiteRootMetadata } from "@/lib/seo/root-metadata";
+import { IS_WEB_REVIEW_ENVIRONMENT } from "../runtime-environment";
 import Website43Home from "@/features/home/website-43/Website43Home";
 import { homeFaqs } from "@/features/home/website-43/homeFaqs";
 import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
@@ -21,4 +25,9 @@ export default async function Home() {
     {professionalQualificationSchema ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(professionalQualificationSchema).replace(/</g, "\\u003c") }} /> : null}
     <Website43Home authorProfile={authorProfile} />
   </>;
+}
+
+export function generateMetadata(props: unknown, parent: ResolvingMetadata) {
+  void props;
+  return resolvePageSeoMetadata("/", buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT }), parent);
 }

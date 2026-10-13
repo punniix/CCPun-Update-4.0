@@ -1,3 +1,4 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import Website43Blog from "@/features/blog/website-43/Website43Blog";
 import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/features/blog/website-43/blogData";
 import type { Metadata } from "next";
@@ -12,28 +13,30 @@ import { curateFeaturedArticles } from "@/lib/content/featured-articles";
 import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
 import { buildBlogArchiveSchema } from "@/lib/content/structured-data/article-schema";
 
-const BLOG_TITLE = "บทความการเงิน การลงทุน และการวางแผนอนาคต | CCPun";
-const BLOG_DESCRIPTION = "เคล็ดลับการเงิน การลงทุน ประกัน และการวางแผนอนาคตจาก CCPun Financial Advisor";
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/blog/")!.defaults;
+
+const BLOG_TITLE = PAGE_SEO_DEFAULTS.seoTitle!;
+const BLOG_DESCRIPTION = PAGE_SEO_DEFAULTS.seoDescription!;
 const BLOG_URL = "https://ccpun.com/blog/";
-const BLOG_IMAGE = "https://ccpun.com/assets/blog-hub-hero-ccpun-v1.webp";
+const BLOG_IMAGE = PAGE_SEO_DEFAULTS.ogImageUrl!;
 
 export const metadata: Metadata = {
-  title: BLOG_TITLE,
-  description: BLOG_DESCRIPTION,
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   alternates: { canonical: BLOG_URL },
   openGraph: {
     type: "website",
     locale: "th_TH",
     url: BLOG_URL,
-    title: BLOG_TITLE,
-    description: BLOG_DESCRIPTION,
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     siteName: "CCPun Financial Advisor",
     images: [{ url: BLOG_IMAGE, alt: "บทความการเงิน ประกัน และการลงทุนจาก CCPun" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: BLOG_TITLE,
-    description: BLOG_DESCRIPTION,
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     images: [BLOG_IMAGE],
   },
 };
