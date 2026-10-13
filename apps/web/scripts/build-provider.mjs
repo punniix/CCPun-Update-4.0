@@ -75,12 +75,12 @@ export function preparePinnedHostingerWebUatLock(root = webRoot, variables = pro
     throw new Error("Provider lock preparation rejects non-lock source changes.");
   }
   const lock = resolve(repository, "package-lock.json"), lockStat = lstatSync(lock);
-  if (!lockStat.isFile() || lockStat.isSymbolicLink()) throw new Error("Provider lock preparation requires a regular tracked lock.");
+  if (!lockStat.isFile() || lockStat.isSymbolicLink() || lockStat.nlink !== 1) throw new Error("Provider lock preparation requires a regular tracked lock.");
   const committed = spawnSync("git", ["show", "HEAD:package-lock.json"], { cwd: repository, maxBuffer: 16 * 1024 * 1024 });
   if (committed.status !== 0) throw new Error("Cannot verify committed provider lock.");
   writeFileSync(lock, committed.stdout);
   const installEnv = { ...variables };
-  for (const key of Object.keys(installEnv)) if (/^npm_config_(?:workspace|workspaces|prefix|include_workspace_root)$/i.test(key)) delete installEnv[key];
+  for (const key of Object.keys(installEnv)) if (/^npm_config_(?:workspace|workspaces|prefix|local_prefix|include_workspace_root)$/i.test(key)) delete installEnv[key];
   const install = spawnSync("npm", ["ci", "--ignore-scripts", "--include=dev", "--include=optional", "--workspaces", "--include-workspace-root", "--no-audit", "--no-fund"], { cwd: repository, env: installEnv, stdio: "ignore" });
   if (install.status !== 0) throw new Error("Provider canonical dependency installation failed.");
   sourceIdentity(root, ref);

@@ -172,12 +172,12 @@ test("only the exact ephemeral provider checkout canonicalizes an installer-only
     assert.equal(result.status, 0, "synthetic provider Git must succeed");
     return result.stdout.trim();
   };
-  let writes = 0, npmCalls = 0, npmStatus = 0, mutateDuringInstall = false, canonicalRoot = providerRoot;
+  let writes = 0, npmCalls = 0, npmStatus = 0, mutateDuringInstall = false, canonicalRoot = providerRoot, lockLinks = 1;
   const variables = {
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "web-uat",
     CCPUN_RELEASE_STAGE: "shadow", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
     NEXT_PUBLIC_SANITY_DATASET: "uat", CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
-    npm_config_workspace: "wrong-workspace", NPM_CONFIG_PREFIX: "wrong-prefix",
+    npm_config_workspace: "wrong-workspace", NPM_CONFIG_PREFIX: "wrong-prefix", npm_config_local_prefix: "wrong-local-prefix",
   };
   const map = path => path.replace(providerRoot, fixture);
   try {
@@ -196,7 +196,7 @@ test("only the exact ephemeral provider checkout canonicalizes an installer-only
     assert.equal(helpers.split("export function preparePinnedHostingerWebUatLock(").length, 2);
     const prepare = runInNewContext(helpers.replace("export function preparePinnedHostingerWebUatLock(", "function preparePinnedHostingerWebUatLock(") + "\npreparePinnedHostingerWebUatLock", {
       resolve: (...paths) => join(...paths), webRoot: providerWeb, process: { env: {} }, sha256: digest,
-      realpathSync: () => canonicalRoot, lstatSync: path => lstatSync(map(path)), readFileSync: path => readFileSync(map(path)),
+      realpathSync: () => canonicalRoot, lstatSync: path => Object.assign(lstatSync(map(path)), { nlink: lockLinks }), readFileSync: path => readFileSync(map(path)),
       writeFileSync: (path, value) => { writes++; writeFileSync(map(path), value); },
       spawnSync: (command, args, options) => {
         if (command === "git") return spawnSync(command, args, { ...options, cwd: map(options.cwd) });
@@ -205,6 +205,7 @@ test("only the exact ephemeral provider checkout canonicalizes an installer-only
         assert.equal(options.cwd, providerRoot);
         assert.equal(options.stdio, "ignore");
         assert.equal(options.env.npm_config_workspace, undefined); assert.equal(options.env.NPM_CONFIG_PREFIX, undefined);
+        assert.equal(options.env.npm_config_local_prefix, undefined);
         assert.equal(options.env.NEXT_PUBLIC_SANITY_DATASET, "uat");
         assert.equal(digest(readFileSync(join(fixture, "package-lock.json"))), digest(lockBytes));
         if (mutateDuringInstall) writeFileSync(join(fixture, "public.txt"), "post-install drift");
@@ -240,6 +241,9 @@ test("only the exact ephemeral provider checkout canonicalizes an installer-only
     git("add", "package-lock.json");
     assert.throws(() => prepare(providerWeb, variables), /non-lock source changes/);
     git("restore", "--staged", "package-lock.json");
+    lockLinks = 2;
+    assert.throws(() => prepare(providerWeb, variables), /regular tracked lock/, "a hardlink must not change another checkout");
+    lockLinks = 1;
     assert.equal(writes, 0); assert.equal(npmCalls, 0);
     assert.equal(prepare(providerWeb, variables), true);
     assert.equal(digest(readFileSync(join(fixture, "package-lock.json"))), digest(lockBytes));

@@ -14,9 +14,9 @@ const reviewedBuilderPreludes = {"apps/web/scripts/build-provider.mjs": "  // Re
 // Separate current-source admission for UAT Git identity, bounded diagnostics and ephemeral-provider lock preparation.
 // This is a new builder body, not a recovered historical body or a ledger reseal.
 export function assertReviewedUatGitMetadataBuilder(file, source, previousDigest, current = read) {
-  if (file !== 'apps/web/scripts/build-provider.mjs' || sha(source) !== '62c38af64352e6b1c9c19601c4ca3fae6f7bbf7ce7b6214ab22ffba37647a7f0') return false;
+  if (file !== 'apps/web/scripts/build-provider.mjs' || sha(source) !== '37507410d132dd4a9b827eafb8cd18cd519b5e5f0af046371e80044413b57841') return false;
   assert.equal(previousDigest, '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd', 'historical current builder seal must remain unchanged');
-  assert.equal(sha(current('tests/hostinger-runtime-packaging.test.mjs')), '0b1ad412d52bf94fb36f9bf240acd7b0c27613296c50263e2ea598abfd657083', 'actual UAT pin/lane/source/runtime and provider-only lock preparation vectors must remain reviewed');
+  assert.equal(sha(current('tests/hostinger-runtime-packaging.test.mjs')), '0124f20a1f01ed540b329e82e1c546377012e04518074131bc42c512893d7793', 'actual UAT pin/lane/source/runtime and provider-only lock preparation vectors must remain reviewed');
   assert.match(JSON.parse(current('package.json')).scripts['test:foundation-contracts'], /node --test tests\/phase3-native-provider-parity\.test\.mjs tests\/hostinger-native-app-contract\.test\.mjs tests\/hostinger-runtime-packaging\.test\.mjs$/, 'the actual reviewed Web UAT vectors must execute in Foundation CI');
   return true;
 }
