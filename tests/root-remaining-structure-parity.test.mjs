@@ -1,15 +1,18 @@
+import { assertPhase3AdminNativeBoundaries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
+import { assertNativeProviderRetirement } from '../qa/phase3-native-provider-proof.mjs';
+import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+const read = (file) => productionBaselineSource(file);
 const hash = (source) => createHash('sha256').update(source).digest('hex');
 const baseline = JSON.parse(read('qa/root-remaining-structure-parity.json'));
 
 test('remaining root delegation preserves canonical Admin implementations and privacy/scheduler/auth owners', () => {
   for (const [file, expected] of Object.entries({ ...baseline.canonicalPreserved, ...baseline.protected })) {
-    assert.equal(hash(read(file)), expected, file);
+    if (['lib/admin/operations/article-schedule-contract.ts', 'apps/admin/proxy.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, expected), true, file);
+    else assert.equal(hash(read(file)), expected, file);
   }
   // The actual Admin POST adopts the existing reviewed-import contract, not a new provider executor.
   assert.equal(hash(read('apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts')), baseline.ubersuggestReconciledOwnerSha256);
@@ -28,7 +31,14 @@ test('three lane layouts keep exact composition and critical first-paint CSS at 
 });
 
 test('root capability alignment retains the pre-existing mixed-host origin/auth/mutation fences', () => {
-  let source = read('proxy.ts');
+  const native = JSON.parse(read('qa/phase3-native-provider-parity.json'));
+  const original = native.baselineSources['proxy.ts'];
+  assert.equal(assertNativeProviderRetirement('proxy.ts', hash(original)), true);
+  let admittedCurrent = original;
+  for (const obsoleteLine of ["    vercelRequestId: request.headers.get(\"x-vercel-id\"),\n", "    vercelEnvironment: process.env.VERCEL_ENV,\n", "    deploymentProjectId: process.env.VERCEL_PROJECT_ID,\n", "          vercelEnvironment: process.env.VERCEL_ENV,\n", "          deploymentProjectId: process.env.VERCEL_PROJECT_ID,\n", "    { source: \"/((?!\\\\.well-known/workflow/).*)\", has: [{ type: \"host\", value: \"ccpun-admin-prod.vercel.app\" }] },\n", "    { source: \"/((?!\\\\.well-known/workflow/).*)\", has: [{ type: \"host\", value: \"ccpun-admin.vercel.app\" }] },\n", "    { source: \"/((?!\\\\.well-known/workflow/).*)\", has: [{ type: \"host\", value: \"ccpun-admin(?:-.+)?\\\\.vercel\\\\.app\" }] },\n"]) admittedCurrent = admittedCurrent.replace(obsoleteLine, '');
+  assert.equal(read('proxy.ts'), admittedCurrent, 'only reviewed retired-provider arguments and host matchers are removed');
+  // The current whole body is proven above; retain the original independent capability predicates below.
+  let source = original;
   source = source.replace('import { adminCapabilityLandingPath, getAdminCapabilityProfile, isAdminCapabilityPathAllowed, safeAdminCapabilityReturnPath } from "@/lib/admin/capability-profile";\n', '');
   source = source.replace('  const capabilityProfile = getAdminCapabilityProfile();\n  const landingPath = adminCapabilityLandingPath(capabilityProfile);\n', '');
   const capabilityBlock = /  \/\/ Mixed root builds keep public Web routes, while private Admin surfaces use\n  \/\/ the same capability allowlist as the dedicated Admin entry\.\n  if \(\(isAdminBoundaryRequest \|\| isAdminPage \|\| isAdminApi \|\| isStudioPage \|\| isPreviewApi \|\| isAuthApi\)[\s\S]*?\n  \}\n\n/;

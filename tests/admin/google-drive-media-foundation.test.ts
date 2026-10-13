@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { SYNTHETIC_GOOGLE_DRIVE_FILE_ID, SYNTHETIC_GOOGLE_DRIVE_ITEMS, SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID } from "./google-drive-fixtures";
 import {
   evaluateGoogleDriveInteractiveAuthorization,
   fetchGoogleDriveBoundaryEvidence,
@@ -11,9 +12,6 @@ import {
   googleDriveInteractiveAuthorizationSchema,
   googleDriveSelectedFileRequestSchema,
   parseGoogleDriveApprovedRootFolderIds,
-  SYNTHETIC_GOOGLE_DRIVE_FILE_ID,
-  SYNTHETIC_GOOGLE_DRIVE_ITEMS,
-  SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID,
   validateGoogleDriveProjectionHttpRequest,
   type GoogleDriveNormalizedItem,
 } from "../../lib/admin/media/google-drive-foundation";

@@ -1,7 +1,8 @@
+import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 
-const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path) => readPhase1Source(path);
 
 const packageJson = JSON.parse(read('package.json'));
 assert.equal(packageJson.version, '4.1.0');
@@ -28,8 +29,11 @@ assert.deepEqual(packageJson.allowScripts, {
   'unrs-resolver@1.12.2': true,
 });
 
-const vercelConfig = JSON.parse(read('vercel.json'));
-assert.equal(vercelConfig.ignoreCommand, 'node scripts/vercel-ignore-build.mjs');
+for (const obsolete of ['vercel.json', 'apps/web/vercel.json', 'apps/admin/vercel.json', 'scripts/vercel-ignore-build.mjs', 'scripts/guard-survivor-deploy.mjs', 'scripts/promote-admin-after-ci.mjs']) {
+  assert.equal(existsSync(obsolete), false, `${obsolete} must not reactivate the retired deployment provider`);
+}
+assert.match(packageJson.scripts['test:public'], /hostinger-native-app-contract/);
+assert.equal(packageJson.scripts['test:vercel'], undefined);
 
 const legacyUrlLedger = JSON.parse(read('qa/legacy-url-ledger.json'));
 assert.deepEqual(legacyUrlLedger.mappings.map(({ id, destination }) => [id, destination]), [
@@ -401,8 +405,8 @@ assert.match(proxy, /environment === ["']local-uat["']/);
 assert.match(proxy, /isLocalAdminHost\(request\.headers\.get\(["']host["']\), environment\)/);
 assert.match(proxy, /isConfiguredAdminOrigin\(request\.url, process\.env\.AUTH_URL\)/);
 assert.match(proxy, /pathname\.startsWith\(["']\/api\/["']\)/);
-assert.match(proxy, /ccpun-admin-prod\.vercel\.app/);
-assert.match(proxy, /ccpun-admin\.vercel\.app/);
+assert.doesNotMatch(proxy, /ccpun-admin-prod\.vercel\.app/);
+assert.doesNotMatch(proxy, /ccpun-admin\.vercel\.app/);
 assert.match(proxy, /admin\.ccpun\.com/);
 assert.match(proxy, /["']\/api\/auth\/:path\*["']/);
 
@@ -413,10 +417,11 @@ assert.match(rootLayout, /<html lang="th"/);
 assert.match(rootLayout, /PRODUCTION_ANALYTICS_ENABLED/);
 assert.match(rootLayout, /const GTM_ID = PRODUCTION_ANALYTICS_ENABLED \? "GTM-5DKMGSK3" : ""/);
 assert.match(rootLayout, /<ClientWidgets gaId=\{GA_ID\} gtmId=\{GTM_ID\} metaPixelId=\{META_PIXEL_ID\} \/>/);
-assert.match(rootLayout, /robots: IS_ADMIN_APPLICATION \|\| IS_REVIEW_ENVIRONMENT/);
-assert.match(rootLayout, /openGraph: IS_ADMIN_APPLICATION \? null/);
-assert.match(rootLayout, /twitter: IS_ADMIN_APPLICATION \? null/);
-assert.match(rootLayout, /alternates: IS_ADMIN_APPLICATION \? \{ canonical: null \}/);
+assert.match(rootLayout, /buildSiteRootMetadata\(\{ admin: IS_ADMIN_APPLICATION, review: IS_REVIEW_ENVIRONMENT \}\)/);
+assert.match(rootLayout, /robots: admin \|\| review/);
+assert.match(rootLayout, /openGraph: admin \? null/);
+assert.match(rootLayout, /twitter: admin \? null/);
+assert.match(rootLayout, /alternates: admin \? \{ canonical: null \}/);
 assert.match(rootLayout, /!IS_ADMIN_APPLICATION \? <script type="application\/ld\+json"/);
 assert.doesNotMatch(rootLayout, /import\s+DraftPreviewRuntime\s+from\s+["']@\/components\/preview\/DraftPreviewRuntime["']/);
 assert.match(rootLayout, /if \(IS_DRAFT_PREVIEW_ALLOWED\) \{[\s\S]*await import\(["']@\/components\/preview\/DraftPreviewRuntime["']\)/);
@@ -516,4 +521,4 @@ assert.doesNotMatch(reviewPage, /\/studio\/intent\/edit\//, 'Review preview must
 
 await import('./website43-blog-article-regression.mjs');
 
-console.log('PASS: Vercel-native regression');
+console.log('PASS: public native runtime regression');

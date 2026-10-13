@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const workflow = readFileSync(".github/workflows/seo-topic-hubs-ci.yml", "utf8");
-const promoter = readFileSync("scripts/promote-admin-after-ci.mjs", "utf8");
+const builder = readFileSync("apps/admin/scripts/build-provider.mjs", "utf8");
+const config = readFileSync("apps/admin/next.config.ts", "utf8");
+const readiness = readFileSync(".github/workflows/hostinger-migration-readiness.yml", "utf8");
 
 test("Foundation CI verifies Production changes without automatic deployment", () => {
   assert.match(workflow, /push:\s*\n\s*branches: \[v4-production\]/);
@@ -15,51 +17,40 @@ test("Foundation CI verifies Production changes without automatic deployment", (
   assert.match(workflow, /run: npx tsc --noEmit --incremental false/);
   assert.match(workflow, /run: npm run test:architecture/);
   assert.match(workflow, /run: npm run test:foundation-contracts/);
-  assert.match(workflow, /run: npm run test:vercel/);
+  assert.match(workflow, /run: npm run test:public/);
   assert.match(workflow, /run: npm run build/);
   assert.doesNotMatch(workflow, /promote-admin|promote-admin-after-ci|secrets\.VERCEL_TOKEN/);
   assert.doesNotMatch(workflow, /(?:vercel|hostinger)\s+deploy|start-build|docker\s+(?:push|compose)/i);
 });
 
-test("Retained rollback promoter is pinned to the Admin project and exact commit SHA", () => {
-  assert.match(promoter, /DEFAULT_PROJECT_ID = "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN"/);
-  assert.match(promoter, /DEFAULT_TEAM_ID = "team_GbcO71LS2dLHwiBV6Cs39Kax"/);
-  assert.match(promoter, /deployment\?\.meta\?\.githubCommitSha === sha/);
-  assert.doesNotMatch(workflow, /CCPUN_ADMIN_PROJECT_NAME/);
-  assert.doesNotMatch(promoter, /ccpun-admin-prod/);
-  assert.match(promoter, /deployment\?\.state === "READY"/);
+test("retired vendor promotion cannot be invoked from the source tree", () => {
+  assert.equal(existsSync("scripts/promote-admin-after-ci.mjs"), false);
+  assert.equal(existsSync("apps/admin/vercel.json"), false);
+  assert.equal(existsSync("scripts/vercel-ignore-build.mjs"), false);
+  assert.doesNotMatch(workflow, /CCPUN_ADMIN_PROJECT_NAME|secrets\.VERCEL_TOKEN/);
 });
 
-test("Admin promotion accepts Vercel uid or id and fails closed without either", () => {
-  assert.match(promoter, /deployment\?\.uid \?\? deployment\?\.id/);
-  assert.match(promoter, /ADMIN_DEPLOYMENT_ID_MISSING/);
-  assert.match(promoter, /const candidateId = deploymentIdentifier\(candidate\.deployment\)/);
-  assert.match(promoter, /deploymentId: candidateId/);
-  assert.match(promoter, /const productionId = deploymentIdentifier\(production\)/);
-  assert.doesNotMatch(promoter, /candidate\.deployment\.id/);
+test("native Admin build binds the checked-out ref and exact SHA before packaging", () => {
+  assert.match(builder, /sha !== variables\.CCPUN_GIT_SHA/);
+  assert.match(builder, /checkedOutRef !== variables\.CCPUN_GIT_REF/);
+  assert.match(builder, /REF_RESOLUTION_MISMATCH/);
+  assert.match(builder, /SHA_MISMATCH/);
+  assert.match(builder, /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+  assert.match(builder, /HOSTINGER_BUILD_ROLE_REQUIRED/);
 });
 
-test("Preview Admin promotion creates a Production deployment like the Vercel CLI", () => {
-  assert.match(promoter, /\/v13\/deployments\?\$\{params\.toString\(\)\}/);
-  assert.match(promoter, /deploymentId,/);
-  assert.match(promoter, /candidate\.deployment\?\.name/);
-  assert.match(promoter, /ADMIN_DEPLOYMENT_NAME/);
-  assert.match(promoter, /name: projectName/);
-  assert.match(promoter, /target: "production"/);
-  assert.match(promoter, /meta: \{ action: "promote" \}/);
-  assert.match(promoter, /"Content-Type": "application\/json"/);
-  assert.match(promoter, /VERCEL_PRODUCTION_CREATE_FAILED_/);
-  assert.doesNotMatch(promoter, /\/v10\/projects\/.*\/promote\//);
+test("native Admin keeps standalone packaging and the existing Workflow plugin", () => {
+  assert.match(config, /output: "standalone"/);
+  assert.match(config, /withWorkflow\(nextConfig\)/);
+  assert.match(builder, /Admin standalone entry is missing/);
+  assert.match(builder, /Admin standalone runtime is incomplete/);
 });
 
-test("Admin promotion remains credential-gated and confirms the exact Production SHA", () => {
-  assert.match(promoter, /required\("VERCEL_TOKEN", env\.VERCEL_TOKEN\)/);
-  assert.match(promoter, /throw new Error\(`\$\{name\}_MISSING`\)/);
-  assert.match(promoter, /ADMIN_READY_DEPLOYMENT_NOT_FOUND/);
-  assert.match(promoter, /ADMIN_PRODUCTION_PROMOTION_NOT_CONFIRMED/);
-  assert.match(promoter, /ADMIN_PRODUCTION_DEPLOYMENT_/);
-  assert.match(promoter, /target === "production"/);
-  assert.doesNotMatch(workflow, /secrets\.VERCEL_TOKEN/);
-  assert.doesNotMatch(workflow, /VERCEL_TOKEN:\s*vercel_/);
-  assert.doesNotMatch(promoter, /vercel_[A-Za-z0-9_-]{10,}/);
+test("native CI builds remain verification-only without credentials or automatic promotion", () => {
+  assert.match(readiness, /node-version: 24/);
+  assert.match(readiness, /CCPUN_DEPLOYMENT_PROVIDER: hostinger/);
+  assert.match(readiness, /CCPUN_DEPLOYMENT_ROLE: web/);
+  assert.match(readiness, /CCPUN_GIT_SHA: \$\{\{ github\.sha \}\}/);
+  assert.doesNotMatch(readiness, /secrets\.VERCEL_TOKEN|vercel_\w{10,}|promote-admin|start-build|(?:vercel|hostinger)\s+deploy/i);
+  assert.doesNotMatch(workflow, /secrets\.VERCEL_TOKEN|VERCEL_TOKEN:\s*vercel_/);
 });

@@ -1,6 +1,7 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import { ADMIN_PERMISSIONS, ADMIN_ROLES, getAdminRoleForEmail, hasAdminPermission } from "../../lib/admin/rbac";
 import { ADMIN_ACTIONS, evaluateAdminAction } from "../../lib/admin/policy";
 
@@ -119,10 +120,11 @@ test("human owner may apply approved work only in a dedicated Admin lane", () =>
       action: "draft:apply",
       environment: "production-admin",
     }).allowed,
-    true,
+    false,
   );
 
   delete process.env.VERCEL_PROJECT_ID;
+  delete process.env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID;
   assert.equal(
     evaluateAdminAction({
       actorType: "human",

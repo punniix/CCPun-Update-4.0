@@ -1,6 +1,5 @@
 import { isPrivateSurfacePath } from "@/lib/routing/private-surfaces";
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   resolveDeploymentIdentity,
 } from "@/lib/runtime/deployment-identity";
 
@@ -28,11 +27,9 @@ export interface AiCrawlerLogEvent {
   attribution: "user_agent_unverified";
   release_id?: string;
   request_id?: string;
-  vercel_request_id?: string;
   cf_ray?: string;
 }
 
-export const CCPUN_WEB_VERCEL_PROJECT_ID = CCPUN_VERCEL_PROJECT_IDS.web;
 
 // Mirrors Cloudflare AI Crawl Control bot categories. These values identify the
 // crawler declared in the User-Agent; they do not verify the remote operator.
@@ -83,10 +80,7 @@ export function buildAiCrawlerLogEvent({
   userAgent,
   pathname,
   method,
-  projectId = process.env.VERCEL_PROJECT_ID,
-  environment = process.env.VERCEL_ENV,
   requestId,
-  vercelRequestId,
   cloudflareRay,
   observedAt = new Date().toISOString(),
   variables = process.env,
@@ -94,19 +88,12 @@ export function buildAiCrawlerLogEvent({
   userAgent: string | null | undefined;
   pathname: string;
   method: string;
-  projectId?: string;
-  environment?: string;
   requestId?: string | null;
-  vercelRequestId?: string | null;
   cloudflareRay?: string | null;
   observedAt?: string;
   variables?: Record<string, string | undefined>;
 }): AiCrawlerLogEvent | null {
-  const identity = resolveDeploymentIdentity({
-    ...variables,
-    VERCEL_PROJECT_ID: projectId,
-    VERCEL_ENV: projectId ? environment : variables.VERCEL_ENV,
-  }, "web");
+  const identity = resolveDeploymentIdentity(variables, "web");
   if (!identity.valid || identity.role !== "web") return null;
   if (!isTrackablePublicPath(pathname)) return null;
   const definition = classifyAiCrawler(userAgent);
@@ -121,13 +108,12 @@ export function buildAiCrawlerLogEvent({
     user_triggered_likelihood: definition.category === "ai_assistant" ? "high" : "low",
     path: pathname,
     method: method.toUpperCase(),
-    environment: environment?.trim() || variables.CCPUN_APP_ENV?.trim() || "local",
+    environment: variables.CCPUN_APP_ENV?.trim() || "local",
     provider: identity.provider,
     deployment_role: identity.role,
     attribution: "user_agent_unverified",
     ...(identity.releaseId ? { release_id: identity.releaseId } : {}),
-    ...(requestId || vercelRequestId ? { request_id: requestId || vercelRequestId! } : {}),
-    ...(vercelRequestId ? { vercel_request_id: vercelRequestId } : {}),
+    ...(requestId ? { request_id: requestId } : {}),
     ...(cloudflareRay ? { cf_ray: cloudflareRay } : {}),
   };
 }

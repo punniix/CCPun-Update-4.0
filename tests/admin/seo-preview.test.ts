@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -6,7 +7,7 @@ const schema = readFileSync(new URL("../../cms/sanity/schema/objects/seo-metadat
 const sanityContent = readFileSync(new URL("../../lib/content/sanity.ts", import.meta.url), "utf8");
 const articleType = readFileSync(new URL("../../lib/content/types.ts", import.meta.url), "utf8");
 const articleRoute = readFileSync(new URL("../../features/blog/pages/ArticlePage.tsx", import.meta.url), "utf8");
-const adminPage = readFileSync(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const adminPage = readPhase1Source(new URL("../../apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url));
 
 test("SEO governance includes keyword cluster and dedicated social fields", () => {
   for (const field of ["keywordCluster", "ogTitle", "ogDescription", "ogImage"]) {

@@ -1,9 +1,9 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const readSource = (relativePath: string) =>
-  readFileSync(new URL(`../../${relativePath}`, import.meta.url), "utf8");
+  readPhase1Source(relativePath);
 
 test("Admin layout contains wide content without widening the mobile viewport", () => {
   const layout = readSource("apps/admin/app/(control-plane)/layout.tsx");

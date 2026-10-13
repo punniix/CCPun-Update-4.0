@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@source not "../../qa";
+@source not "../../tests";
+@source not "../../docs";
+@source not "../../scripts";
 @source "../../components";
 @source "../../features";
 @import "./public-compat.css";

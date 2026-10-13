@@ -1,12 +1,13 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
 const apiRoot = path.join(repositoryRoot, "app/api/admin");
-const read = (relativePath: string) => readFileSync(path.join(repositoryRoot, relativePath), "utf8");
+const read = (relativePath: string) => readPhase1Source(relativePath);
 
 function routeFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

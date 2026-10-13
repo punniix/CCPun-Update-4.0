@@ -33,7 +33,6 @@ export default auth((request) => {
     userAgent: request.headers.get("user-agent"),
     pathname,
     method: request.method,
-    vercelRequestId: request.headers.get("x-vercel-id"),
     cloudflareRay: request.headers.get("cf-ray"),
   });
 
@@ -49,8 +48,6 @@ export default auth((request) => {
   const isDedicatedAdmin = isDeployedAdmin || isLocalUat || isLocalProduction;
   const isAdminBoundaryRequest = isAdminRequestBoundary({
     environment,
-    vercelEnvironment: process.env.VERCEL_ENV,
-    deploymentProjectId: process.env.VERCEL_PROJECT_ID,
     host: request.headers.get("host"),
   });
   const isAdminPage = isAdminPagePath(pathname);
@@ -92,8 +89,6 @@ export default auth((request) => {
       ? isLocalAdminHost(request.headers.get("host"), environment)
       : isExactAdminPreviewOrigin({
           environment,
-          vercelEnvironment: process.env.VERCEL_ENV,
-          deploymentProjectId: process.env.VERCEL_PROJECT_ID,
           host: request.headers.get("host"),
         }) || isConfiguredAdminOrigin(request.url, process.env.AUTH_URL);
     if (!originAllowed) {
@@ -206,13 +201,10 @@ export const config = {
     "/api/auth/:path*",
     // Workflow's signed internal transport does not use a browser Auth.js session.
     // The owner-facing API matchers above remain unchanged.
-    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
-    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "admin.ccpun.com" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "localhost" }] },
     // Generated Vercel aliases must enter the environment/project boundary too.
     // Only the immutable Admin project may resolve Preview to the Admin UAT lane.
-    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin(?:-.+)?\\.vercel\\.app" }] },
     {
       source: "/((?!\\.well-known/workflow/).*)",
       has: [

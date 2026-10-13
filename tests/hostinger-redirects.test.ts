@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-function inspect(provider: "hostinger" | "vercel", review: boolean) {
+function inspect(provider: "hostinger" | "local" | "vercel", review: boolean) {
   const script = `
     const {default:proxy, hostingerRedirectUrl, config:proxyConfig}=require('./apps/web/proxy.ts');
     const {default:config}=require('./apps/web/next.config.ts');
+    const {WEB_DEPLOYMENT_IDENTITY,shouldBlockWebIndexing}=require('./apps/web/runtime-environment.ts');
     (async()=>{
       const paths=['/ci-planning?from=a%26b','/blog/personal-finance/personal-income-tax-calculation-2569/','/living-benefits/old/?q=x%2Fy','/tools/fhc/','/financial-advisor/','/financial-advisor-extra/','/unknown-route','/unknown-route/','/api/line/webhook','/api/line/webhook/','/login/','/dashboard/','/robots.txt','/sitemap.xml','/llms.txt','/.well-known/security.txt','/.well-known/extensionless','/_next/image/?url=%2Ffavicon.png&w=32&q=75','/_next/static/font.woff2','/favicon.png/?q=1'];
       const observations=paths.map(path=>{
@@ -15,7 +16,7 @@ function inspect(provider: "hostinger" | "vercel", review: boolean) {
       });
       const dataRequest=new Request('https://candidate.example/file.json/',{headers:{'x-nextjs-data':'1'}});
       const post=proxy(new Request('https://candidate.example/tools/fhc/?q=1',{method:'POST'}));
-      console.log(JSON.stringify({observations,post:{status:post.status,location:post.headers.get('location')},dataRedirect:hostingerRedirectUrl(dataRequest),matcher:proxyConfig.matcher,skipTrailing:config.skipTrailingSlashRedirect,redirects:await config.redirects(),headers:await config.headers()}));
+      console.log(JSON.stringify({observations,post:{status:post.status,location:post.headers.get('location')},dataRedirect:hostingerRedirectUrl(dataRequest),matcher:proxyConfig.matcher,skipTrailing:config.skipTrailingSlashRedirect,redirects:await config.redirects(),headers:await config.headers(),identity:WEB_DEPLOYMENT_IDENTITY,indexingBlocked:shouldBlockWebIndexing()}));
     })();
   `;
   const result = spawnSync(process.execPath, ["--import", "tsx", "-e", script], {
@@ -73,8 +74,8 @@ test("Hostinger live redirects retain security without accidentally blocking ind
   assert.match(redirect.headers["content-security-policy"], /default-src 'self'/);
 });
 
-test("Vercel proxy stays observational and its configured redirect contract is unchanged", () => {
-  const runtime = inspect("vercel", false);
+test("local native proxy stays observational and its generic Next redirect contract is unchanged", () => {
+  const runtime = inspect("local", false);
   assert.equal(runtime.skipTrailing, undefined);
   for (const observation of runtime.observations) {
     assert.equal(observation.status, 200);
@@ -86,4 +87,12 @@ test("Vercel proxy stays observational and its configured redirect contract is u
     { source: "/tools/fhc/:path*", destination: "/tools/financial-health-check/", permanent: true },
     { source: "/financial-advisor/:path*", destination: "/", permanent: true },
   ]);
+});
+
+
+test("retired provider cannot acquire a native deployment or indexing authority", () => {
+  const runtime = inspect("vercel", false);
+  assert.equal(runtime.identity.valid, false);
+  assert.equal(runtime.identity.provider, "unknown");
+  assert.equal(runtime.indexingBlocked, true);
 });

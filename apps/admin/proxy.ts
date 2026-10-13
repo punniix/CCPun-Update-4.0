@@ -78,9 +78,6 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
       "X-Robots-Tag": "noindex, nofollow, noarchive",
     } });
   }
-  // Preserve Vercel's full-profile transport. Native Postgres requests must
-  // pass the separate raw-request fence and private network perimeter.
-  if (capabilityProfile === "full" && pathname.startsWith("/.well-known/workflow/")) return NextResponse.next();
   if (capabilityProfile === "editorial") {
     // Auth.js may rewrite request.url to AUTH_URL. Validate the actual ingress
     // Host too, so that rewrite cannot authorize an unknown request hostname.
@@ -97,7 +94,6 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
     pathname,
     method: request.method,
     requestId: request.headers.get("x-request-id"),
-    vercelRequestId: request.headers.get("x-vercel-id"),
     cloudflareRay: request.headers.get("cf-ray"),
   });
 
@@ -111,8 +107,6 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
   const isDedicatedAdmin = isDeployedAdmin || isLocalUat || isLocalProduction;
   const isAdminBoundaryRequest = isAdminRequestBoundary({
     environment,
-    vercelEnvironment: process.env.VERCEL_ENV,
-    deploymentProjectId: process.env.VERCEL_PROJECT_ID,
     host: request.headers.get("host"),
   });
   const isAdminPage = isAdminPagePath(pathname);
@@ -144,8 +138,6 @@ export function adminProxy(request: NextRequest & { auth?: { user?: { role?: Adm
       ? isLocalAdminHost(request.headers.get("host"), environment)
       : isExactAdminPreviewOrigin({
           environment,
-          vercelEnvironment: process.env.VERCEL_ENV,
-          deploymentProjectId: process.env.VERCEL_PROJECT_ID,
           host: request.headers.get("host"),
         }) || isConfiguredAdminOrigin(request.url, process.env.AUTH_URL);
     if (!originAllowed) {
@@ -280,16 +272,11 @@ export const config = {
     "/studio/:path*",
     "/api/preview/:path*",
     "/api/auth/:path*",
-    // Vercel transport does not use a browser Auth.js session. Native transport
+    // Native transport does not use a browser Auth.js session and
     // is constrained by the outer request fence and a private ingress perimeter.
     // The owner-facing API matchers above remain unchanged.
-    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin-prod.vercel.app" }] },
-    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin.vercel.app" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "admin.ccpun.com" }] },
     { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "localhost" }] },
-    // Generated Vercel aliases must enter the environment/project boundary too.
-    // Only the immutable Admin project may resolve Preview to the Admin UAT lane.
-    { source: "/((?!\\.well-known/workflow/).*)", has: [{ type: "host", value: "ccpun-admin(?:-.+)?\\.vercel\\.app" }] },
     {
       source: "/((?!\\.well-known/workflow/).*)",
       has: [

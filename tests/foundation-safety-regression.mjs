@@ -122,6 +122,7 @@ const homePage = read('apps/web/app/page.tsx');
 const webHomePage = read('apps/web/app/page.tsx');
 const publicLayout = read('app/layout.tsx');
 const webPublicLayout = read('apps/web/app/layout.tsx');
+const rootMetadataOwner = read('lib/seo/root-metadata.ts');
 
 expect(
   'legacy Author credentials contract stays intact while professional qualifications are additive',
@@ -146,10 +147,12 @@ expect(
     && entityIds.includes('export const CCPUN_PERSON_ID = "https://ccpun.com/#person"')
     && articleStructuredData.includes('author: { "@id": CCPUN_PERSON_ID }')
     && !articleStructuredData.includes('name: article.authorName')
-    && publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
-    && !publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)"')
-    && webPublicLayout.includes('authors: [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
-    && !webPublicLayout.includes('authors: [{ name: "ปั้น (CCPun)"'),
+    && publicLayout.includes('buildSiteRootMetadata({ admin: IS_ADMIN_APPLICATION, review: IS_REVIEW_ENVIRONMENT })')
+    && rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
+    && !rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"')
+    && webPublicLayout.includes('buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT })')
+    && rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
+    && !rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"'),
 );
 expect(
   'Homepage credential enrichment is fail-soft and does not require a new public page',
