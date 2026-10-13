@@ -28,7 +28,28 @@ function sourceIdentity(root, ref) {
   } else if (git(root, ["rev-parse", "--verify", `refs/remotes/origin/${ref}^{commit}`]) !== sha) {
     throw new Error("Artifact source ref does not match checkout.");
   }
-  if (git(root, ["status", "--porcelain", "--untracked-files=normal"])) throw new Error("Artifact requires a clean source checkout.");
+  const status = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=normal"], { cwd: resolve(root, "../.."), encoding: "utf8" });
+  if (status.status !== 0) throw new Error("Cannot verify artifact source identity.");
+  if (status.stdout) {
+    const counts = { trackedManifestChanged: false, trackedLockChanged: false, otherTrackedCount: 0, untrackedNestedNodeModulesCount: 0, otherUntrackedCount: 0 };
+    const records = status.stdout.split("\0");
+    for (let index = 0; index < records.length; index++) {
+      const record = records[index];
+      if (!record) continue;
+      const state = record.slice(0, 2), path = record.slice(3);
+      if (state === "??") {
+        if (/^(?:[^/]+\/)+node_modules(?:\/|$)/.test(path)) counts.untrackedNestedNodeModulesCount++;
+        else counts.otherUntrackedCount++;
+      } else {
+        // Porcelain -z includes a second, unprinted path for rename/copy records.
+        const paths = /[RC]/.test(state) ? [path, records[++index] ?? ""] : [path];
+        if (paths.some((name) => /(?:^|\/)package\.json$/.test(name))) counts.trackedManifestChanged = true;
+        else if (paths.some((name) => /(?:^|\/)package-lock\.json$/.test(name))) counts.trackedLockChanged = true;
+        else counts.otherTrackedCount++;
+      }
+    }
+    throw new Error(`Artifact requires a clean source checkout. ${JSON.stringify(counts)}`);
+  }
   return { gitSha: sha, gitRef: ref, lockSha256: sha256(readFileSync(resolve(root, "../../package-lock.json"))) };
 }
 

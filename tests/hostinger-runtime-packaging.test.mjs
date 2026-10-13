@@ -59,6 +59,8 @@ test("immutable Web UAT checkout derives six Git fields and seals only those fie
     assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, { ...variables, CCPUN_GIT_REF: `codex/hostinger-release-uat-${"a".repeat(40)}` }), /attached Git checkout/);
     put(join(fixture, ".gitignore"), "apps/web/.next/\n");
     put(join(fixture, "package-lock.json"), "{}");
+    put(join(fixture, "package.json"), "{}");
+    put(join(fixture, "tracked-public.txt"), "synthetic original");
     for (const path of ["llms.txt", ".well-known/security.txt", "favicon.ico"]) put(join(web, "public", path), path);
     git("init", "-q"); git("config", "user.name", "Fixture"); git("config", "user.email", "fixture@example.invalid");
     git("add", "."); git("commit", "-qm", "synthetic source");
@@ -73,6 +75,20 @@ test("immutable Web UAT checkout derives six Git fields and seals only those fie
     }
     put(join(fixture, "package-lock.json"), "changed");
     assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), /clean source checkout/);
+    put(join(fixture, "package.json"), "changed manifest");
+    put(join(fixture, "tracked-public.txt"), "changed public fixture");
+    put(join(web, "node_modules/synthetic-package/index.js"), "synthetic dependency");
+    const privateName = "private-customer-token-SYNTHETIC-NAME.txt";
+    const privateValue = "SYNTHETIC-SECRET-CONTENT-NEVER-LOG";
+    put(join(fixture, privateName), privateValue);
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), (error) => {
+      assert.equal(error.message, 'Artifact requires a clean source checkout. {"trackedManifestChanged":true,"trackedLockChanged":true,"otherTrackedCount":1,"untrackedNestedNodeModulesCount":1,"otherUntrackedCount":1}');
+      assert.doesNotMatch(error.stack, /private-customer-token|SYNTHETIC-NAME|SYNTHETIC-SECRET-CONTENT|tracked-public|synthetic-package|package-lock\.json/);
+      return true;
+    });
+    rmSync(join(web, "node_modules"), { recursive: true });
+    rmSync(join(fixture, privateName));
+    git("checkout", "--", "package.json", "tracked-public.txt");
     git("checkout", "--", "package-lock.json");
     git("checkout", "-qb", `codex/hostinger-release-uat-${"f".repeat(40)}`);
     assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), /does not match checkout SHA/);
