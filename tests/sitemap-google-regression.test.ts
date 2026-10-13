@@ -117,7 +117,14 @@ for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}util
   const coreSitemap = readSource("lib/sitemap/routes/core.ts");
   assert.match(coreWrapper, /export \{ GET \} from ["']@\/lib\/sitemap\/routes\/core["']/);
   const cookieRoute = readSource(`${appRoot}app/cookie-policy/page.tsx`);
-  assert.match(cookieRoute, /export \{ metadata, default \} from ["']@\/features\/legal\/pages\/CookiePolicyPage["']/);
+  if (!appRoot) {
+    assert.equal(cookieRoute, 'export { default, generateMetadata } from "@/apps/web/app/cookie-policy/page";\n');
+  } else {
+    assert.ok(cookieRoute.includes('import { metadata as defaults } from "@/features/legal/pages/CookiePolicyPage";'));
+    assert.ok(cookieRoute.includes('export { default } from "@/features/legal/pages/CookiePolicyPage";'));
+    assert.match(cookieRoute, /export function generateMetadata\(/);
+    assert.ok(cookieRoute.includes('return resolvePageSeoMetadata("/cookie-policy/", defaults, parent);'));
+  }
   const cookiePolicy = readSource("features/legal/pages/CookiePolicyPage.tsx");
   const robotsSource = readSource(`${appRoot}app/robots.ts`);
   const nextConfig = readSource(`${appRoot}next.config.ts`);
