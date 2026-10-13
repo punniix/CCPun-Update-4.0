@@ -7,6 +7,19 @@ import test from "node:test";
 import ts from "typescript";
 import { PAGE_SEO_PAGES, getPageSeoPage, pageSeoDocumentId, isPageSeoImageUrlAllowed, validatePageSeoFields } from "../lib/content/page-seo-registry";
 
+test("reviewed registry extraction recovers the original Root metadata owner and rejects unrelated source/default changes", () => {
+  const proof = readFileSync("qa/phase1-source-proof.mjs", "utf8").replace(/^import .*;\n/gm, "").replace(/^const read = .*;\n/m, "").replace(/export /g, "");
+  const { pageSeoRootMetadataBaseline } = runInNewContext(proof + "\n({pageSeoRootMetadataBaseline});", { assert, createHash });
+  const source = readFileSync("lib/seo/root-metadata.ts", "utf8");
+  const registry = readFileSync("lib/content/page-seo-registry.ts", "utf8");
+  assert.equal(createHash("sha256").update(pageSeoRootMetadataBaseline(source, registry)).digest("hex"), "2983a29ac19e21bab33d4faa9d9245a3643fa6fdbbd08821463e67233fdee874");
+  for (const changed of [source.replace("index: false", "index: true"), source.replace("width: 1200", "width: 800"), source.replace("PAGE_SEO_DEFAULTS.seoTitle!", '"changed"')]) {
+    assert.notEqual(changed, source);
+    assert.throws(() => pageSeoRootMetadataBaseline(changed, registry));
+  }
+  assert.throws(() => pageSeoRootMetadataBaseline(source, registry.replace('"documentId": "pageSeo.home"', '"documentId": "pageSeo.other"')));
+});
+
 const baselineHashes = {
   "lib/seo/root-metadata.ts": {
     "false": "5875f11d6039e5367fba129180daefac581468bc2f7eb9770629fb8ad0acc7a7",
