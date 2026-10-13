@@ -228,6 +228,15 @@ export type FundDealingFact = {
   lastUpdated: string | null;
 };
 
+export type FundStatisticsFact = {
+  projectId: string;
+  className: string;
+  sharpeRatio: number | null;
+  factsheetStartDate: string | null;
+  factsheetEndDate: string | null;
+  lastUpdated: string | null;
+};
+
 export type FundDetailResponse = {
   source: FundSource | "unavailable";
   state: DataState;
@@ -238,6 +247,7 @@ export type FundDetailResponse = {
   risk: FundRiskFact | null;
   assetAllocation: FundAssetAllocationFact[];
   dealing: FundDealingFact | null;
+  statistics?: FundStatisticsFact | null;
   dataDate: string | null;
   fetchedAt: string;
   warnings: string[];

@@ -291,8 +291,8 @@ test("HTTP 204 detail endpoints remain empty facts and cannot fabricate an avail
   for (const field of ["classes", "specifications", "assetAllocation"]) assert.equal(detail[field].length, 0);
   assert.equal(detail.risk, null);
   assert.equal(detail.dealing, null);
-  assert.deepEqual(Object.values(detail.endpointStates), ["empty", "empty", "empty", "empty", "empty"]);
-  assert.equal(adapter.requests.length, 5);
+  assert.deepEqual(Object.values(detail.endpointStates), ["empty", "empty", "empty", "empty", "empty", "empty"]);
+  assert.equal(adapter.requests.length, 6);
   assert.deepEqual(adapter.warnings, []);
   const baseline = await secAdapter(() => ({ items: [], next_cursor: null, page_size: null }), { review: true }).api.getFundDetail("M0001_2567");
   delete detail.fetchedAt;

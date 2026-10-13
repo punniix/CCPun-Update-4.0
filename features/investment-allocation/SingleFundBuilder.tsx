@@ -19,6 +19,7 @@ import type {
   FundDetailResponse,
 } from "./domain/types";
 import styles from "./InvestmentAllocation.module.css";
+import FundSharpeFact from "./FundSharpeFact";
 
 const CATEGORIES: FundCatalogCategory[] = ["equity", "mixed", "fixed_income", "alternative", "other"];
 
@@ -477,6 +478,8 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
           <p className={styles.provenance}>วันที่ข้อมูลเงื่อนไข: {formatDate(detail.dealing?.sourceDate ?? null)}</p>
         </section>
       </div>
+
+      <FundSharpeFact detail={detail} projectId={fund.projectId} className={detail.selectedClassName} />
 
       <section className={styles.resultPanel}>
         <h3>เงินก้อนนี้ถูกนำไปลงทุนในอะไรบ้าง</h3>
