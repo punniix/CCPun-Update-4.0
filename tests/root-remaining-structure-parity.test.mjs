@@ -12,6 +12,21 @@ const baseline = JSON.parse(read('qa/root-remaining-structure-parity.json'));
 test('remaining root delegation preserves canonical Admin implementations and privacy/scheduler/auth owners', () => {
   for (const [file, expected] of Object.entries({ ...baseline.canonicalPreserved, ...baseline.protected })) {
     if (['lib/admin/operations/article-schedule-contract.ts', 'apps/admin/proxy.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, expected), true, file);
+    else if (file === 'app/page.tsx') {
+      const metadata = JSON.parse(read('qa/page-seo-compat-owners.json'));
+      assert.equal(metadata.baseline, '7148dcdf3283a079a5f9bdc929867ea0ba7312d6');
+      assert.deepEqual(metadata.pairs.map(owner => owner.legacy), ['app/page.tsx', 'app/blog/page.tsx', 'app/ci-planning/page.tsx', 'app/tools/financial-health-check/page.tsx', 'app/play/money-story/page.tsx', 'app/privacy/page.tsx', 'app/cookie-policy/page.tsx']);
+      const owner = metadata.pairs[0];
+      assert.deepEqual(Object.keys(owner), ['legacy', 'canonical', 'beforeSha256', 'beforeSource', 'wrapper', 'status']);
+      assert.equal(owner.canonical, 'apps/web/app/page.tsx');
+      assert.equal(owner.status, 'migrated');
+      assert.equal(owner.beforeSha256, expected);
+      assert.equal(hash(owner.beforeSource), expected);
+      assert.equal(owner.wrapper, 'export { default, generateMetadata } from "@/apps/web/app/page";\n');
+      const current = read(file);
+      assert.equal(current, owner.wrapper);
+      assert.equal(hash(current.replace(', generateMetadata', '')), expected, file + ': only the reviewed metadata export may be added');
+    }
     else assert.equal(hash(read(file)), expected, file);
   }
   // The actual Admin POST adopts the existing reviewed-import contract, not a new provider executor.
