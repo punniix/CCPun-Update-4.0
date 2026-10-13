@@ -307,6 +307,7 @@ test("project detail projection preserves all existing consumed facts and public
       : endpoint === "specifications" ? [{ spec_code: "A", spec_desc: "ข้อกำหนด", fund_class_name: "main", last_upd_date: "2026-10-01" }]
       : endpoint === "risk-spectrum" ? [{ risk_spectrum: "RS5", risk_spectrum_desc: "เสี่ยงปานกลาง", start_date: "2026-10-02" }]
       : endpoint === "asset-allocation" ? [{ asset_name: "หุ้น", asset_ratio: 60, start_date: "2026-10-03" }, { asset_name: "ตราสารหนี้", asset_ratio: 40 }]
+      : endpoint === "statistics" ? [{ proj_id: "M0001_2567", fund_class_name: "main", sharpe_ratio: "0.5", start_date: "2026-10-05" }]
       : [{ fund_class_name: "main", type: "subscription", period: "ทุกวัน", redemp_period_oth: "หมายเหตุซื้อ" }, { fund_class_name: "main", type: "redemption", period: "ทุกวัน", redemp_period_oth: "หมายเหตุขาย", settlement_period: "T+2", start_date: "2026-10-04" }];
     return { items, unused: "x".repeat(5_355_931) };
   });
@@ -320,9 +321,19 @@ test("project detail projection preserves all existing consumed facts and public
   assert.equal(detail.dealing.subscriptionPeriodOther, "หมายเหตุซื้อ");
   assert.equal(detail.dealing.redemptionPeriodOther, "หมายเหตุขาย");
   assert.equal(detail.dataDate, "2026-10-04");
+  assert.equal(detail.statistics.sharpeRatio, 0.5);
+  assert.equal(detail.statistics.factsheetStartDate, "2026-10-05");
   await adapter.api.getFundDetail("M0001_2567");
-  assert.equal(adapter.requests.length, 5, "five project-specific projections are reused");
-  assert.equal(adapter.entries.size, 5);
+  assert.equal(adapter.requests.length, 6, "six project-specific projections are reused");
+  assert.equal(adapter.entries.size, 6);
+  assert.deepEqual(adapter.requests.map(({ url }) => url.pathname.split("/").at(-1)), [
+    "profiles", "specifications", "risk-spectrum", "asset-allocation", "subscription-redemption-periods", "statistics",
+  ]);
+  for (const { url } of adapter.requests) {
+    assert.equal(url.searchParams.get(url.pathname.endsWith("/profiles") ? "project_info" : "proj_id"), "M0001_2567");
+    assert.equal(url.searchParams.get("page_size"), "100");
+    if (url.pathname.includes("/factsheet/")) assert.equal(url.searchParams.get("latest"), "true");
+  }
 });
 
 test("AMC public projections retain the original daily TTL and reuse without another upstream call", async () => {
