@@ -36,6 +36,28 @@ function imports(tree) {
   }));
 }
 
+export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
+  assert.deepEqual(Object.keys(proof.reviewedUxOwners).sort(), [...allowed].sort(), 'Only exact reviewed UI owners are admitted');
+  for (const file of allowed) {
+    const admission = proof.reviewedUxOwners[file];
+    assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256','candidateSha256']);
+    assert.equal(admission.baselineSha256, proof.protected[file], file + ': original protected digest retained');
+    assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
+    assert.equal(sha(readCurrent(file)), admission.candidateSha256, file + ': current reviewed source frozen');
+  }
+}
+
+const approvedResetGuard = "if (game?.status === 'active' && (game.currentMonth > 1 || game.history.length > 0) && !window.confirm('กลับไปเลือกตัวละครจะเริ่มรอบใหม่ ต้องการเริ่มใหม่หรือไม่?')) return;";
+function resetPresentationProjection(source) {
+  const tree = parse(controllerPath, source);
+  const reset = find(tree, node => ts.isVariableDeclaration(node) && node.name.getText(tree) === 'returnToCharacterSelection');
+  assert(ts.isArrowFunction(reset.initializer) && ts.isBlock(reset.initializer.body));
+  const guard = reset.initializer.body.statements[0];
+  assert(ts.isIfStatement(guard), 'Reset prompt must be the first statement before events/state changes');
+  assert.equal(guard.getText(tree), approvedResetGuard, 'Only the exact approved native reset guard is admitted');
+  return source.slice(0, guard.getStart(tree)) + source.slice(guard.end);
+}
+
 // Explicit admission to the OLD protected-manifest assertion. No original source
 // is returned; current-source readers continue reading current implementations.
 export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readCurrent = read) {
@@ -52,7 +74,7 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
   assert.equal(sha(original), composition.baselineSha256);
   assert.equal(composition.test, 'tests/money-story-presentation-parity.test.mjs');
   assert.equal(sha(readCurrent(composition.test)), composition.outputTestSha256, 'Actual output/action test drift');
-  const oldTree = parse(file, original), currentTree = parse(file, current), ownerTree = parse(ownerPath, owner);
+  const oldTree = parse(file, original), currentTree = parse(file, resetPresentationProjection(current)), ownerTree = parse(ownerPath, owner);
   const expectedImports = imports(oldTree).map(item => ({ ...item, bindings: item.bindings.filter(([imported, local]) => !['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users'].includes(imported) || imported !== local) }));
   expectedImports.push({ module: './MoneyStoryStatusSidebar', typeOnly: false, default: null, namespace: null, bindings: ['money', 'MoneyStoryStatusSidebar', 'percentLabel'].map(name => [name, name, false]) });
   assert.deepEqual(imports(currentTree), expectedImports, 'Only presentation bindings may move');

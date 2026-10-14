@@ -8,11 +8,13 @@ function ToggleSwitch({
   onChange,
   disabled,
   id,
+  label,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
   id: string;
+  label: string;
 }) {
   return (
     <button
@@ -22,16 +24,28 @@ function ToggleSwitch({
       id={id}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
+      className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"
       style={{
         position: 'relative',
         display: 'inline-flex',
         width: '2.75rem',
-        height: '1.75rem',
+        height: '2.75rem',
+        minWidth: '44px',
+        minHeight: '44px',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
         borderRadius: '9999px',
         border: 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background 0.25s',
         flexShrink: 0,
+        background: 'transparent',
+      }}
+      aria-label={`${label}: ${disabled ? 'Always Active' : checked ? 'เปิด' : 'ปิด'}`}
+    >
+      <span aria-hidden="true" style={{
+        position: 'relative', width: '2.75rem', height: '1.75rem', borderRadius: '9999px',
+        transition: 'background 0.12s',
         background: disabled
           ? 'rgba(220,190,130,0.45)'
           : checked
@@ -40,23 +54,21 @@ function ToggleSwitch({
         boxShadow: checked && !disabled
           ? '0 0 12px rgba(220,190,130,0.35)'
           : 'none',
-        outline: 'none',
-      }}
-      aria-label={disabled ? 'Always Active' : checked ? 'เปิด' : 'ปิด'}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: '0.3125rem',
-          left: checked ? '1.25rem' : '0.3125rem',
-          width: '1.125rem',
-          height: '1.125rem',
-          borderRadius: '50%',
-          background: '#fff',
-          transition: 'left 0.25s',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-        }}
-      />
+      }}>
+        <span
+          style={{
+            position: 'absolute',
+            top: '0.3125rem',
+            left: checked ? '1.25rem' : '0.3125rem',
+            width: '1.125rem',
+            height: '1.125rem',
+            borderRadius: '50%',
+            background: '#fff',
+            transition: 'left 0.12s',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+          }}
+        />
+      </span>
     </button>
   );
 }
@@ -102,12 +114,15 @@ export function CategoryRow({
             onClick={() => setExpanded((e) => !e)}
             aria-expanded={expanded}
             aria-controls={`desc-${toggleId}`}
+            className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"
             style={{
               background: 'transparent',
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: '4px',
-              width: '2rem',
-              height: '2rem',
+              width: '2.75rem',
+              height: '2.75rem',
+              minWidth: '44px',
+              minHeight: '44px',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -116,7 +131,7 @@ export function CategoryRow({
               color: 'hsl(45,70%,65%)',
               fontSize: '0.875rem',
               lineHeight: 1,
-              transition: 'border-color 0.2s',
+              transition: 'border-color 0.12s',
               padding: 0,
             }}
             aria-label={expanded ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียด'}
@@ -156,6 +171,7 @@ export function CategoryRow({
             checked={checked}
             onChange={onChange}
             id={toggleId}
+            label={label}
           />
         )}
       </div>

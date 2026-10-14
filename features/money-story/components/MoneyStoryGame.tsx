@@ -342,6 +342,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   };
 
   const returnToCharacterSelection = () => {
+    if (game?.status === 'active' && (game.currentMonth > 1 || game.history.length > 0) && !window.confirm('กลับไปเลือกตัวละครจะเริ่มรอบใหม่ ต้องการเริ่มใหม่หรือไม่?')) return;
     trackMoneyStoryEvent('money_story_character_reselect');
     setGame(null);
     setSelectedCharacterId(null);

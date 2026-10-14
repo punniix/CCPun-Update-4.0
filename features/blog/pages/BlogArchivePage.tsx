@@ -64,6 +64,7 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
       articles={toWebsite43ArticleItems(visibleArticles)}
       featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
       initialQuery={query}
+      initialPage={typeof filters.page === "string" ? filters.page : "1"}
       categories={categories}
     />
   </>;

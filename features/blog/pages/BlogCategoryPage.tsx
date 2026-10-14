@@ -211,9 +211,11 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
         articles={toWebsite43ArticleItems(relevantArticles)}
         featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
         activeCategorySlug={category.slug}
+        activeCategoryTitle={category.title}
         heroDescription={category.description ?? hub?.description}
         topicContent={buildTopicIntro(hub)}
         initialQuery={initialQuery}
+      initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
         categories={categoryMenu(registry, includeDrafts)}
       />
     </>;
@@ -243,9 +245,11 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
       articles={toWebsite43ArticleItems(relevantArticles)}
       featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
       activeCategorySlug={hub.slug}
+      activeCategoryTitle={hub.title}
       heroDescription={hub.description}
       topicContent={buildTopicIntro(hub)}
       initialQuery={initialQuery}
+      initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
       categories={categoryMenu(registry, includeDrafts)}
     />
   </>;

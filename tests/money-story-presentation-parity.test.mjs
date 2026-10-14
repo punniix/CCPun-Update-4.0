@@ -120,8 +120,16 @@ const baseline = {
   "result-lose-actions": "040361a90f2c1d2fd193c7fb5dbfc8d7268dccff41d28d1f6d13f4623049b861"
 };
 
-test('Money Story rendered selection, result and recovery trees match Production', () => {
-  for (const [name, values] of cases) assert.equal(digest(render(values)), baseline[name], name);
+test('Money Story preserves original Production trees except approved focusable selection/result root', () => {
+  for (const [name, values] of cases) {
+    const tree = render(values);
+    if (name.startsWith('selection-') || name.startsWith('result-')) {
+      assert.equal(tree.props.tabIndex, -1, name + ': programmatic focus without extra Tab stop');
+      const priorTree = { ...tree, props: { ...tree.props } };
+      delete priorTree.props.tabIndex;
+      assert.equal(digest(priorTree), baseline[name], name + ': every other original property retained');
+    } else assert.equal(digest(tree), baseline[name], name);
+  }
 });
 
 test('selection and result buttons retain original state owner and analytics payloads', () => {
@@ -182,4 +190,28 @@ test('all library event impact branches preserve original render output and requ
     const game = { ...month, currentEventId: event.id, pendingShortfall: undefined };
     assert.equal(digest(render([game])), digest(render([game], OriginalGame)), event.id);
   }
+});
+
+// Explicit native prompt is a presentation safeguard; no game state/event is changed on Cancel.
+test('active round reset Cancel/Accept and untouched/final round reselect keep exact original state/events', () => {
+  const previous = globalThis.window;
+  let prompts = [];
+  const back = tree => elements(tree).find(element => element.type === 'button' && text(element).includes('กลับไปเลือก'));
+  try {
+    for (const game of [{ ...state, currentMonth: 2 }, { ...state, history: resultHistory.slice(0,1) }]) {
+      globalThis.window = { confirm: message => { prompts.push(message); return false; } };
+      const tree = render([game]); const button = back(tree); assert(button);
+      button.props.onClick(); assert.equal(prompts.at(-1), 'กลับไปเลือกตัวละครจะเริ่มรอบใหม่ ต้องการเริ่มใหม่หรือไม่?');
+      assert.deepEqual(stateWrites, []); assert.deepEqual(events, []);
+      globalThis.window.confirm = message => { prompts.push(message); return true; };
+      button.props.onClick(); assert.equal(events.at(-1).name, 'money_story_character_reselect');
+      assert.deepEqual(stateWrites.slice(-5), [[0,null],[1,null],[2,''],[3,[]],[4,[]]]);
+    }
+    let called = false;
+    globalThis.window = { confirm: () => { called = true; return false; } };
+    back(render([state])).props.onClick(); assert.equal(called, false);
+    const finished = render([{ ...state, status:'win',history:resultHistory }]);
+    elements(finished).find(x => x.type === 'button' && text(x).includes('เลือกชีวิตใหม่')).props.onClick();
+    assert.equal(called,false);
+  } finally { if (previous === undefined) delete globalThis.window; else globalThis.window = previous; }
 });

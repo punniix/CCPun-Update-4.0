@@ -40,7 +40,7 @@ export default function Website43ToolHero({
       <div className={styles.toolHeroGradient} aria-hidden="true" />
       {strongContrast ? <div className={styles.toolHeroReadabilityOverlay} aria-hidden="true" /> : null}
       <Website43Navbar overlay />
-      <div className={styles.toolHeroCopy}>
+      <div id="main-content" tabIndex={-1} className={styles.toolHeroCopy}>
         <span className={styles.toolBadge}>{badge}</span>
         <h1 id="tool-hero-title" className={styles.toolTitle}>
           {line1}

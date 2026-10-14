@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { gunzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import test from 'node:test';
 import postcss from 'postcss';
 import tailwind from '@tailwindcss/postcss';
 import ts from 'typescript';
-import { assertPhase2MoneyComposition } from '../qa/phase2-source-proof.mjs';
-import { runtimeFiles, sourceByFile, trackedFiles } from '../scripts/lib/public-reachability.mjs';
+import { assertPhase2MoneyComposition, assertReviewedUxOwners } from '../qa/phase2-source-proof.mjs';
+import { runtimeFiles, sourceByFile } from '../scripts/lib/public-reachability.mjs';
 
 const read = file => readFileSync(file, 'utf8');
 const sha = source => createHash('sha256').update(source).digest('hex');
@@ -19,6 +19,56 @@ const baselineCss = gunzipSync(Buffer.from(proof.compiledCssGzip, 'base64')).toS
 // Captured from actual f703 using the lockfile's Tailwind 4.2.1 compiler before edits.
 assert.equal(sha(proof.foundationSource), '16be3e70110eb57339671d20a877cb7a1f8026675ce0eecca47794d6efeafece');
 assert.equal(sha(baselineCss), 'a40fdcb573796224ace6b570721e44f5e38508f7b793ca192f307e8fd155a1bd');
+assert.equal(sha(JSON.stringify(proof.protected)), '8fef8bb0a931e2c28fe4b85d5514c91379de35fd98fad340e443f2dab35f3de1');
+const reviewedUiOwners = [
+  "components/layout/website-43/Website43.module.css",
+  "components/layout/website-43/Website43ResponsiveStyles.tsx",
+  "components/layout/website-43/Website43Navbar.module.css",
+  "components/layout/website-43/Website43Navbar.tsx",
+  "components/layout/website-43/Website43Shared.tsx",
+  "features/money-story/MoneyStory.module.css"
+];
+const addedSelectors = {
+  "root": [
+    ".top-24",
+    ".z-10",
+    ".basis-40",
+    ".text-\\[\\#ffb4b4\\]",
+    ".lg\\:col-span-2"
+  ],
+  "web": [
+    ".top-24",
+    ".z-10",
+    ".basis-40",
+    ".text-\\[\\#ffb4b4\\]",
+    ".lg\\:col-span-2"
+  ]
+};
+const removedSelectors = {
+  "root": [
+    ".collapse",
+    ".invisible",
+    ".h-25",
+    ".h-30",
+    ".h-35",
+    ".h-50",
+    ".h-82",
+    ".h-85",
+    ".min-w-10",
+    ".shrink",
+    ".resize",
+    ".lowercase",
+    ".shadow\\/backdrop",
+    ".duration-\\[240ms\\]",
+    ".ease-\\[cubic-bezier\\(\\.2\\,0\\,0\\,1\\)\\]"
+  ],
+  "web": [
+    ".min-w-10",
+    ".outline",
+    ".duration-\\[240ms\\]",
+    ".ease-\\[cubic-bezier\\(\\.2\\,0\\,0\\,1\\)\\]"
+  ]
+};
 
 test('Tailwind preserves automatic native app discovery and excludes only historical fixtures', () => {
   assert.match(source, /^@import "tailwindcss";/);
@@ -33,8 +83,11 @@ test('Tailwind preserves automatic native app discovery and excludes only histor
   assert.equal(fromPublicImports(source), fromPublicImports(proof.foundationSource));
 });
 
-test('all Website43, responsive, footer, first-paint and feature CSS remain byte-identical', () => {
-  for (const [path, expected] of Object.entries(proof.protected)) assert.equal(sha(read(path)), expected, path);
+test('original CSS owner manifest stays protected while exact reviewed UI owners are admitted', () => {
+  assertReviewedUxOwners(proof, reviewedUiOwners);
+  for (const [path, expected] of Object.entries(proof.protected)) {
+    if (!Object.hasOwn(proof.reviewedUxOwners,path)) assert.equal(sha(read(path)),expected,path);
+  }
 });
 
 function declarations(node) {
@@ -50,66 +103,70 @@ function rules(css) {
   postcss.parse(css).walkRules(rule => result.push({ selector: rule.selector, ancestry: ancestry(rule), declarations: declarations(rule) }));
   return result;
 }
-function subsequence(actual, expected, label) {
-  let offset = 0;
-  for (const item of actual) {
-    const key = JSON.stringify(item);
-    while (offset < expected.length && JSON.stringify(expected[offset]) !== key) offset++;
-    assert(offset++ < expected.length, label + ': ' + key);
-  }
+
+function atRules(css) {
+  const result=[];postcss.parse(css).walkAtRules(node=>result.push({name:node.name,params:node.params,ancestry:ancestry(node),declarations:declarations(node)}));return result;
 }
-
-test('the actual Tailwind compiler preserves runtime declarations and cascade order', async () => {
-  const compiled = await postcss([tailwind({ optimize: false })]).process(source, { from: resolve(file) });
-  const before = rules(baselineCss);
-  const after = rules(compiled.css);
-  // Theme variables can be removed only when excluded fixtures were their sole consumer.
-  // Every remaining value and every normal/keyframe/media/support rule preserves order.
-  const theme = rule => rule.selector === ':root, :host';
-  subsequence(after.filter(rule => !theme(rule)), before.filter(rule => !theme(rule)), 'compiled CSS rule order');
-  const oldTheme = before.find(theme);
-  const newTheme = after.find(theme);
-  subsequence(newTheme.declarations, oldTheme.declarations, 'compiled theme value order');
-  const atRules = css => {
-    const records = [];
-    postcss.parse(css).walkAtRules(node => records.push({
-      name: node.name, params: node.params, ancestry: ancestry(node), declarations: declarations(node),
-    }));
-    return records;
-  };
-  subsequence(atRules(compiled.css), atRules(baselineCss), 'compiled layer/media/support/keyframe/property order');
-
-  assert.equal(JSON.stringify(newTheme.ancestry), JSON.stringify(oldTheme.ancestry));
-  const currentKeys = new Set(after.map(rule => JSON.stringify(rule)));
-  const removed = before.filter(rule => !theme(rule) && !currentKeys.has(JSON.stringify(rule)));
-  const runtimeLiteralTokens = new Set();
-  for (const path of runtimeFiles) {
-    const tree = ts.createSourceFile(path, sourceByFile.get(path), ts.ScriptTarget.Latest, true);
-    const visit = node => {
-      if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
-        || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
-        for (const token of node.text.split(/\s+/)) runtimeLiteralTokens.add(token);
-      }
-      ts.forEachChild(node, visit);
-    };
-    visit(tree);
+const defaults = rule => rule.selector==='*, ::before, ::after, ::backdrop' && JSON.stringify(rule.ancestry)===JSON.stringify([['atrule','layer','properties'],['atrule','supports','((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b))))']]);
+function retainedRecords(context, before, after, admission) {
+  assert.deepEqual(admission.addedRules.map(rule=>rule.selector), addedSelectors[context], 'Exact added utility allowlist');
+  assert.deepEqual(admission.removedRules.map(rule=>rule.selector), removedSelectors[context], 'Exact removed utility allowlist');
+  const added = new Map(admission.addedRules.map(rule=>[rule.selector,rule]));
+  const removed = new Map(admission.removedRules.map(rule=>[rule.selector,rule]));
+  for(const [selector,rule]of added)assert.deepEqual(after.find(x=>x.selector===selector),rule,'Reviewed added rule unchanged');
+  for(const [selector,rule]of removed)assert.deepEqual(before.find(x=>x.selector===selector),rule,'Original removed rule unchanged');
+  let old=before.filter(rule=>!removed.has(rule.selector));
+  let current=after.filter(rule=>!added.has(rule.selector));
+  if(context==='web') {
+    const original=old.filter(defaults),candidate=current.filter(defaults);assert.equal(original.length,1);assert.equal(candidate.length,1);
+    assert.equal(original[0].declarations.length,68);assert.equal(candidate[0].declarations.length,67);
+    const outline=entry=>entry[0]==='--tw-outline-style';
+    const ease=entry=>entry[0]==='--tw-ease';
+    assert.equal(original[0].declarations.filter(ease).length,1);assert.equal(candidate[0].declarations.filter(ease).length,0);
+    assert.deepEqual(candidate[0].declarations.find(outline),original[0].declarations.find(outline));
+    assert.equal(candidate[0].declarations.findIndex(outline),66);
+    assert.deepEqual(candidate[0].declarations.filter(x=>!outline(x)),original[0].declarations.filter(x=>!outline(x)&&!ease(x)),'Remaining66 defaults retain values AND order');
+    old=old.filter(rule=>!defaults(rule));current=current.filter(rule=>!defaults(rule));
+  } else {
+    assert.equal(before.filter(defaults)[0].declarations.length,68);
+    assert.deepEqual(after.filter(defaults),before.filter(defaults),'Root68 initialization registry stays byte-ordered exact');
   }
-  for (const rule of removed) {
-    assert.match(rule.selector, /^\.[\w\\/-]+$/, 'Review any non-utility removal separately');
-    const utility = rule.selector.slice(1).replace(/\\(.)/g, '$1');
-    assert(!runtimeLiteralTokens.has(utility), 'Removed utility has an actual runtime literal: ' + utility);
-  }
-  const keptVariables = new Set(newTheme.declarations.map(([property]) => property));
-  const removedVariables = oldTheme.declarations.filter(([property]) => !keptVariables.has(property));
-  const currentStyles = trackedFiles.filter(path => path.endsWith('.css')).map(read).join('\n');
-  const currentRuntime = [...sourceByFile.values()].join('\n');
-  for (const [property] of removedVariables) {
-    assert(!(compiled.css + currentStyles + currentRuntime).includes('var(' + property), property + ': current CSS variable consumer');
-  }
-
-  assert(Buffer.byteLength(compiled.css) <= proof.compiledBytes, 'ownership must not increase compiled CSS');
-  for (const message of compiled.messages.filter(message => message.type === 'dir-dependency')) {
-    assert(!['qa', 'tests', 'docs', 'scripts'].some(directory => message.dir === resolve(directory) || message.dir.startsWith(resolve(directory) + '/')), message.dir);
+  assert.deepEqual(current,old,'Every retained authored/runtime rule, ancestry and declaration order remains original');
+}
+function retainedAtRules(context, before, after) {
+  const addedMedia={name:'media',params:'(width >= 64rem)',ancestry:[['atrule','layer','utilities'],['rule','.lg\\:col-span-2',null]],declarations:[['grid-column','span 2 / span 2',false]]};
+  assert.equal(after.filter(node=>JSON.stringify(node)===JSON.stringify(addedMedia)).length,1);
+  let current=after.filter(node=>JSON.stringify(node)!==JSON.stringify(addedMedia));let old=before;
+  const property=node=>node.name==='property'&&node.ancestry.length===0;
+  const originalRegistry=old.filter(property),registry=current.filter(property);
+  assert.equal(originalRegistry.length,68);assert.equal(registry.length,context==='root'?68:67);
+  assert.equal(new Set(registry.map(node=>node.params)).size,registry.length);
+  if(context==='web') {
+    const ease=node=>property(node)&&node.params==='--tw-ease';const outline=node=>property(node)&&node.params==='--tw-outline-style';
+    assert.equal(originalRegistry.filter(ease).length,1);assert.equal(registry.filter(ease).length,0);
+    assert.equal(registry.findIndex(outline),66);
+    assert.deepEqual(registry.find(outline),originalRegistry.find(outline));
+    assert.deepEqual(registry.filter(node=>!outline(node)),originalRegistry.filter(node=>!outline(node)&&!ease(node)),'Other66 nativeWeb registrations retain fullvalues/order');
+    const positions=current.flatMap((node,index)=>property(node)?[index]:[]);
+    assert(positions.every((value,index)=>value===positions[0]+index),'Property registrations retain contiguous tail');
+    const outlined=current.find(outline);current=current.filter(node=>!outline(node));old=old.filter(node=>!outline(node)&&!ease(node));
+    assert(outlined);
+  } else assert.deepEqual(registry,originalRegistry,'All68 originalRoot registrations retain values/order');
+  assert.deepEqual(current,old,'Retained at-rule declarations/ancestry/order stay original');
+}
+test('actual Root and Web compilers preserve original authored rules with exact reviewed utilities only',async()=>{
+  const runtimeLiteralTokens=new Set();for(const path of runtimeFiles){const tree=ts.createSourceFile(path,sourceByFile.get(path),ts.ScriptTarget.Latest,true);const visit=node=>{if(ts.isStringLiteral(node)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isTemplateHead(node)||ts.isTemplateMiddle(node)||ts.isTemplateTail(node))for(const token of node.text.split(/\s+/))runtimeLiteralTokens.add(token);ts.forEachChild(node,visit);};visit(tree);}
+  for(const [context,options,original]of [['root',{optimize:false},baselineCss],['web',{base:resolve('apps/web'),optimize:false},gunzipSync(Buffer.from(proof.nativeWeb.compiledCssGzip,'base64')).toString()]]) {
+    const admission=proof.reviewedCurrentCompiler[context];const captured=gunzipSync(Buffer.from(admission.compiledCssGzip,'base64')).toString();
+    const expected= context==='root' ? '67638ca5fa86d3698aca48ee320f7e9eb3652b307d2b7bfc6febf82e4f5e3cb4' : '251ccb344a8056f190916ad06eb9a806b72affa352a3398cd72247842e6a23db';assert.equal(sha(captured),expected);assert.equal(admission.compiledSha256,expected);
+    const compiled=await postcss([tailwind(options)]).process(source,{from:resolve(file)});assert.equal(compiled.css,captured,'Actual locked compiler equals reviewed output');assert.equal(Buffer.byteLength(compiled.css),admission.compiledBytes);assert.equal(gzipSync(compiled.css).length,admission.compiledGzipBytes);assert(Buffer.byteLength(compiled.css)<=(context==='root'?proof.compiledBytes:proof.nativeWeb.compiledBytes),'Reviewed UX stays within original CSS payload budget');
+    retainedRecords(context,rules(original),rules(compiled.css),admission);retainedAtRules(context,atRules(original),atRules(compiled.css));
+    for(const rule of admission.removedRules){assert.match(rule.selector,/^\.(?:[\w/-]|\\.)+$/);const utility=rule.selector.slice(1).replace(/\\(.)/g,'$1');assert(!runtimeLiteralTokens.has(utility),'Removed utility has actual runtime consumer: '+utility);}
+    for(const message of compiled.messages.filter(message=>message.type==='dir-dependency'))assert(!['qa','tests','docs','scripts'].some(directory=>message.dir===resolve(directory)||message.dir.startsWith(resolve(directory)+'/')));
+    const unknown=structuredClone(admission);unknown.addedRules.push({selector:'.unknown',ancestry:[],declarations:[]});assert.throws(()=>retainedRecords(context,rules(original),rules(compiled.css),unknown));
+    const changed=rules(compiled.css);const target=changed.find(rule=>!addedSelectors[context].includes(rule.selector)&&!defaults(rule)&&rule.declarations.length);target.declarations[0][1]+=' mutation';assert.throws(()=>retainedRecords(context,rules(original),changed,admission));
+    const mutated=atRules(compiled.css);const index=mutated.findIndex(node=>node.name==='property');mutated[index].declarations[2][1]='unreviewed';assert.throws(()=>retainedAtRules(context,atRules(original),mutated));
+    const reordered=atRules(compiled.css);const positions=reordered.flatMap((node,index)=>node.name==='property'?[index]:[]);[reordered[positions[0]],reordered[positions[1]]]=[reordered[positions[1]],reordered[positions[0]]];assert.throws(()=>retainedAtRules(context,atRules(original),reordered));
   }
 });
 
@@ -131,6 +188,8 @@ test('Money composition admission rejects changed logic, unreachable owners, mut
     return path => path === 'qa/phase2-css-delivery-parity.json' ? JSON.stringify(metadata) : path === file ? replacement : read(path);
   };
   for (const [file, source] of [
+    [composition.controller, current.replace('game.currentMonth > 1', 'game.currentMonth > 2')],
+    [composition.controller, current.replace('ต้องการเริ่มใหม่หรือไม่?', 'เริ่มใหม่ทันที')],
     [composition.controller, current.replace('game.currentMonth === 12', 'game.currentMonth === 11')],
     [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  coverShortfallWithExtraIncome as coverShortfallWithExpenseCut,')],
     [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  type coverShortfallWithExpenseCut,')],
@@ -151,13 +210,15 @@ test('Money composition admission rejects changed logic, unreachable owners, mut
 });
 
 
-test('actual Next Web compiler context preserves the original complete CSS output and payload budget', async () => {
+test('native Web compiler freezes reviewed current output while preserving original gzip and budget history', async () => {
   assert.equal(proof.nativeWeb.context, 'apps/web');
   assert.equal(proof.nativeWeb.foundationSha256, sha(proof.foundationSource));
   const original = gunzipSync(Buffer.from(proof.nativeWeb.compiledCssGzip, 'base64')).toString();
   assert.equal(sha(original), '8ef2b65a4b29c8b1e562fdcf16434a4104de01c537fdc5ddd5996506eaf5a22d');
   const candidate = await postcss([tailwind({ base: resolve('apps/web'), optimize: false })]).process(source, { from: resolve(file) });
   // This matches the app build driver's cwd. Root standalone sizes cannot certify it.
-  assert.equal(candidate.css, original, 'All rules, selectors, at-rules, declarations and order stay exact in the native app context');
-  assert.equal(Buffer.byteLength(candidate.css), proof.nativeWeb.compiledBytes);
+  const reviewed = gunzipSync(Buffer.from(proof.reviewedCurrentCompiler.web.compiledCssGzip, 'base64')).toString();
+  assert.equal(candidate.css, reviewed, 'Actual native app output equals the reviewed UX output; original gzip remains frozen');
+  assert.equal(Buffer.byteLength(candidate.css), proof.reviewedCurrentCompiler.web.compiledBytes);
+  assert.equal(sha(original), '8ef2b65a4b29c8b1e562fdcf16434a4104de01c537fdc5ddd5996506eaf5a22d');
 });

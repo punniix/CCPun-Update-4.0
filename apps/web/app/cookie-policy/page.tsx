@@ -123,7 +123,7 @@ export default function CookiePolicyPage() {
                 border: "1px solid rgba(255,255,255,0.1)",
               }}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex flex-wrap items-start gap-3">
                 <span
                   className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5"
                   style={{
@@ -134,7 +134,7 @@ export default function CookiePolicyPage() {
                 >
                   Performance
                 </span>
-                <div>
+                <div className="min-w-0 flex-1 basis-40 break-words">
                   <p className="text-foreground font-medium text-sm mb-1">
                     คุกกี้เพื่อเพิ่มประสิทธิภาพ — ยังไม่ใช้งาน
                   </p>
