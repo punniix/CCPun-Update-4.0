@@ -12,6 +12,7 @@
 .heroProof { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
 .heroProof span { padding: 7px 10px; border: 1px solid var(--w43-border); border-radius: 999px; background: rgba(74,58,58,.32); color: var(--w43-muted); font-size: 12px; }
 .heroAction { display: inline-flex; min-height: 52px; align-items: center; justify-content: center; margin-top: 28px; padding: 0 18px; border: 1px solid var(--w43-gold); border-radius: 12px; background: var(--w43-gold); color: var(--w43-deep); font-weight: 600; }
+.hero .heroAction { color: var(--w43-deep); }
 
 .shell { padding: 24px 24px 64px; background: var(--w43-bg); }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; width: min(1120px, 100%); margin: 0 auto; }
