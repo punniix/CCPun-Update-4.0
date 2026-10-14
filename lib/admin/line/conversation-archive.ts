@@ -392,20 +392,16 @@ export async function importChatOcrMessages(
   variables: Record<string, string | undefined> = process.env,
 ) {
   if (!z.string().uuid().safeParse(input.leadId).success) throw new Error("CHAT_OCR_IMPORT_INVALID_LEAD");
-  if (!/^[A-Za-z0-9._:-]{8,160}$/.test(input.requestId)) throw new Error("CHAT_OCR_IMPORT_INVALID_REQUEST");
+  if (typeof input.requestId !== "string" || !/^[A-Za-z0-9._:-]{8,160}$/.test(input.requestId)) throw new Error("CHAT_OCR_IMPORT_INVALID_REQUEST");
   if (!Array.isArray(input.messages) || input.messages.length < 1 || input.messages.length > 200) {
     throw new Error("CHAT_OCR_IMPORT_INVALID_MESSAGES");
   }
 
-  const sql = await adminSql(variables);
-  if (!sql) throw new Error("LINE_ARCHIVE_RUNTIME_NOT_READY");
-  const crypto = createLineContentCrypto(variables);
-
-  let imported = 0;
-  let duplicate = 0;
-
-  for (let index = 0; index < input.messages.length; index += 1) {
-    const message = input.messages[index]!;
+  // Validate the whole batch before encrypting or preparing any database query.
+  const prepared = input.messages.map((message, index) => {
+    if (!message || typeof message.text !== "string" || typeof message.occurredAt !== "string") {
+      throw new Error("CHAT_OCR_IMPORT_INVALID_MESSAGE");
+    }
     const text = message.text.trim();
     const occurredAt = new Date(message.occurredAt);
     if (
@@ -416,40 +412,52 @@ export async function importChatOcrMessages(
     ) {
       throw new Error("CHAT_OCR_IMPORT_INVALID_MESSAGE");
     }
-
-    const occurredIso = occurredAt.toISOString();
+    return { index, direction: message.direction, text, occurredIso: occurredAt.toISOString() };
+  });
+  const crypto = createLineContentCrypto(variables);
+  const payloads = prepared.map(({ index, direction, text, occurredIso }) => {
     const sourceDigest = createHash("sha256")
       .update([
-        "ccpun-chat-ocr-v1",
-        input.leadId,
-        input.requestId,
-        String(index),
-        message.direction,
-        occurredIso,
-        text,
+        "ccpun-chat-ocr-v1", input.leadId, input.requestId, String(index),
+        direction, occurredIso, text,
       ].join("\0"))
       .digest("hex");
     const enc = crypto.encrypt(text, "chat-ocr-import-content");
+    return JSON.stringify({
+      lead_id: input.leadId,
+      source_digest: sourceDigest,
+      direction,
+      occurred_at: occurredIso,
+      content_ciphertext_b64: enc.ciphertextB64,
+      content_nonce_b64: enc.nonceB64,
+      content_auth_tag_b64: enc.authTagB64,
+      content_key_version: enc.keyVersion,
+    });
+  });
 
-    const rows = await sql.query(
+  const sql = await adminSql(variables);
+  if (!sql) throw new Error("LINE_ARCHIVE_RUNTIME_NOT_READY");
+  let batches: Array<Array<{ outcome?: unknown }>>;
+  try {
+    batches = await sql.transaction((transaction) => payloads.map((payload) => transaction.query(
       "SELECT outcome FROM private_line.admin_import_chat_ocr_archive_message($1::jsonb)",
-      [JSON.stringify({
-        lead_id: input.leadId,
-        source_digest: sourceDigest,
-        direction: message.direction,
-        occurred_at: occurredIso,
-        content_ciphertext_b64: enc.ciphertextB64,
-        content_nonce_b64: enc.nonceB64,
-        content_auth_tag_b64: enc.authTagB64,
-        content_key_version: enc.keyVersion,
-      })],
-    ) as Array<{ outcome?: unknown }>;
+      [payload],
+    ))) as Array<Array<{ outcome?: unknown }>>;
+  } catch {
+    // A transport failure may leave commit confirmation unknown; do not expose driver details.
+    throw new Error("CHAT_OCR_IMPORT_FAILED");
+  }
 
+  if (!Array.isArray(batches) || batches.length !== payloads.length) throw new Error("CHAT_OCR_IMPORT_FAILED");
+  let imported = 0;
+  let duplicate = 0;
+  for (const rows of batches) {
+    if (!Array.isArray(rows)) throw new Error("CHAT_OCR_IMPORT_FAILED");
+    // Retain the existing RPC's first outcome, including its duplicate result.
     if (rows[0]?.outcome === "imported") imported += 1;
     else if (rows[0]?.outcome === "duplicate") duplicate += 1;
     else throw new Error("CHAT_OCR_IMPORT_FAILED");
   }
-
   return { imported, duplicate, total: input.messages.length };
 }
 

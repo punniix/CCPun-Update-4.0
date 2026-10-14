@@ -42,6 +42,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     title="ศูนย์จัดการ CCPun"
     currentEnvironmentLabel={currentEnvironmentLabel}
     identityLabel={identityLabel}
+    draftAuthScope={role === "owner" && session?.user?.email ? JSON.stringify([session.user.email.trim().toLowerCase(), environment, role, capabilityProfile]) : null}
     role={role}
     navItems={navItems}
     showLogout={Boolean(session?.user)}

@@ -91,7 +91,7 @@ export default async function AdminHealthPage() {
   const deploymentState: HealthState = productionRuntime
     ? deployment.valid && deploymentEnvironment === "production-admin" && (gitBranch === "v4-production" || isPinnedCloudProductionRelease(process.env)) ? "ok" : "warning"
     : deployment.valid && deploymentEnvironment === "admin-uat" ? "ok" : "warning";
-  const operationsState: HealthState = operations.identityValid ? "ok" : operations.configured ? "warning" : "off";
+  const operationsState: HealthState = operations.identityValid && scheduler.status === "ready" ? "ok" : operations.configured ? "warning" : "off";
   const sanityState: HealthState = sanity.readReady ? (sanity.writeReady ? "ok" : "warning") : "warning";
   const schedulerState: HealthState = !schedulerLane
     ? "off"
@@ -198,8 +198,9 @@ export default async function AdminHealthPage() {
         </Card>
 
         <Card title="ข้อมูลส่วนตัวและประวัติการทำงาน" state={operationsState}>
-          <Row label="การเชื่อมต่อ" value={operations.identityValid ? "ยืนยันฐานข้อมูลชุดที่ถูกต้องแล้ว" : operations.configured ? "ข้อมูลการเชื่อมต่อไม่ตรง ต้องตรวจ" : "ยังไม่ได้ตั้งค่าการเชื่อมต่อ"} />
-          <p className="pt-2 text-white/50">ส่วนนี้เก็บประวัติ งานรอตรวจ และข้อมูลลูกค้า แยกจากระบบเนื้อหา Sanity</p>
+          <Row label="การเชื่อมต่อ" value={operations.identityValid ? "การตั้งค่าฐานข้อมูลตรงตามชุดที่กำหนด" : operations.configured ? "ข้อมูลการเชื่อมต่อไม่ตรง ต้องตรวจ" : "ยังไม่ได้ตั้งค่าการเชื่อมต่อ"} />
+          <Row label="บัญชีที่ฐานข้อมูลใช้ทำงาน" value={scheduler.status === "ready" ? "ยืนยันบัญชีที่กำหนดจากฐานข้อมูลแล้ว" : "ยังไม่ยืนยันจากฐานข้อมูล"} />
+          <p className="pt-2 text-white/50">ส่วนนี้เก็บประวัติ งานรอตรวจ และข้อมูลลูกค้า แยกจากระบบเนื้อหา Sanity ผลนี้ยืนยันเฉพาะการเชื่อมต่อและบัญชีฐานข้อมูล การทำงานครบวงจรต้องตรวจแยก</p>
           <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="Lane" value={operations.lane ?? "—"} /><Row label="Neon project" value={operations.projectId ?? "—"} /><Row label="Branch" value={operations.branchId ?? "—"} /><Row label="Database" value={operations.database ?? "—"} /><Row label="Migration" value={operations.migrationVersion ?? "—"} /></div></details>
         </Card>
 

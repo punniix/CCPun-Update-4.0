@@ -180,3 +180,83 @@ function readCurrentSource(file: string | URL, encoding: "utf8"): string {
   void encoding;
   return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
 }
+
+test("Health keeps configuration readiness separate from the actual strict database-role read model", async () => {
+  const { loadFixtureModule } = await import("../../qa/phase1-fixture-loader.mjs");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const globals = { process: { env: {} }, console: { log() {}, warn() {}, error() {} } };
+  const contract = loadFixtureModule("lib/admin/operations/article-schedule-contract.ts", { globals });
+  const migration = loadFixtureModule("db/migrations/20260911_article_scheduling_v1.ts", { globals });
+  const lane = contract.SCHEDULER_LANES.uat;
+  const variables = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat",
+    CCPUN_GIT_REF: "admin/owner-health-fixture", CCPUN_GIT_SHA: "a".repeat(40), CCPUN_RELEASE_ID: "owner-health-fixture",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: lane.sanityProjectId, NEXT_PUBLIC_SANITY_DATASET: lane.dataset,
+    CCPUN_NEON_PROJECT_ID: lane.projectId, CCPUN_NEON_BRANCH_ID: lane.branchId, CCPUN_NEON_DATABASE: "neondb",
+    CCPUN_ADMIN_DATABASE_URL: `postgresql://ccpun_admin_runtime:FIXTURE_ONLY@${lane.endpointId}.${lane.hostSuffix}/neondb?sslmode=require`,
+    CCPUN_ARTICLE_SCHEDULING_ENABLED: "0",
+  };
+  for (const fixture of [
+    { name: "strict runtime role", role: "ccpun_admin_runtime", readFails: false, ready: true },
+    { name: "unexpected database role", role: "neondb_owner", readFails: false, ready: false },
+    { name: "database read unavailable", role: "ccpun_admin_runtime", readFails: true, ready: false },
+  ]) {
+    const queries: string[] = [];
+    const reader = loadFixtureModule("lib/admin/operations/article-scheduler-read-model.ts", {
+      globals: { ...globals, process: { env: variables } },
+      mocks: new Map([["@neondatabase/serverless", { neon: () => ({ query: async (statement: string) => {
+        queries.push(statement);
+        if (fixture.readFails) throw new Error("synthetic-read-unavailable");
+        if (!statement.includes("current_database()")) return [];
+        return [{ database_name: "neondb", role_name: fixture.role, lane: "uat", project_id: lane.projectId,
+          branch_id: lane.branchId, endpoint_id: lane.endpointId, sanity_project_id: lane.sanityProjectId,
+          sanity_dataset: lane.dataset, mode: lane.mode, enabled: false,
+          migration_version: migration.ARTICLE_SCHEDULER_MIGRATION, migration_checksum: migration.ARTICLE_SCHEDULER_CHECKSUM }];
+      } }) }]]),
+    });
+    const scheduler = await reader.readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 }, variables);
+    assert.equal(scheduler.status === "ready", fixture.ready, fixture.name);
+    assert.match(queries[0]!, /current_user AS role_name/);
+    assert.equal(queries.length, fixture.ready ? 3 : 1, "unverified identity never reaches schedule/audit reads");
+    const permissions: string[] = [];
+    const mocks = new Map<string, unknown>([
+      ["@/lib/admin/require-permission", { requireAdminPermission: async (permission: string) => { permissions.push(permission); } }],
+      ["@/lib/admin/environment", { getAdminDeploymentIdentity: () => ({ valid: true, environment: "admin-uat", provider: "hostinger", gitRef: "admin/owner-health-fixture", gitSha: "a".repeat(40) }) }],
+      ["@/lib/admin/sanity-control", { getAdminSanityStatus: () => ({ readReady: false, writeReady: false }) }],
+      ["@/lib/admin/operations/foundation", { getAdminOperationsRuntimeStatus: () => ({ configured: true, identityValid: true }) }],
+      ["@/lib/admin/operations/article-schedule-contract", { resolveArticleSchedulerLane: () => "uat" }],
+      ["@/lib/admin/operations/article-scheduler-read-model", { readArticleSchedulerModel: async () => scheduler }],
+      ["@/lib/admin/social/foundation", { getSocialFoundationRuntimeStatus: () => ({ enabled: false }) }],
+      ["@/lib/admin/social/operations", { getSocialOperationsRuntimeStatus: () => ({ enabled: false }) }],
+      ["@/lib/admin/line/key-rotation", { readLineKeyRotationStatus: async () => ({ state: "not_ready" }) }],
+      ["@/lib/admin/line/business-intelligence", { readLineOperationsHealth: async () => ({ state: "not_ready" }), readLineDeliveryHealth: async () => ({ state: "not_ready" }), readPrivacySafetyHealth: async () => ({ state: "not_ready" }) }],
+      ["@/lib/admin/line/document-media", { readLineDocumentMediaHealth: async () => ({ state: "not_ready" }), getLineProviderActivationReadiness: () => ({}) }],
+      ["@/lib/admin/line/media-provider", { getLineMediaProviderReadiness: () => ({}) }],
+      ["@/lib/admin/line/provider", { getLineSystemDeliveryProviderReadiness: () => ({}) }],
+      ["@/lib/admin/line/conversation-archive", { readLineArchiveHealth: async () => ({ state: "not_ready" }) }],
+      ["@/lib/admin/line/rich-menu-provider", { readDefaultLineRichMenuStatus: async () => ({ state: "not_ready" }) }],
+      ["@/lib/admin/line/control-plane", { readLineSystemDeliveryDatabaseReadiness: async () => ({ ready: false }) }],
+      ["@/lib/admin/control-plane/provider-state", { readLineRichMenuControlState: async () => null }],
+      ["@/features/admin/line/LineProviderActivationActions", { LineProviderActivationActions: () => null }],
+    ]);
+    const page = loadFixtureModule("apps/admin/app/(control-plane)/operations/health/page.tsx", { globals, mocks });
+    const html = renderToStaticMarkup(await page.default());
+    assert.deepEqual(permissions, ["settings:read"]);
+    const operationsCard = html.split("ข้อมูลส่วนตัวและประวัติการทำงาน")[1]?.split("</section>")[0];
+    assert.ok(operationsCard);
+    assert.match(operationsCard, /การตั้งค่าฐานข้อมูลตรงตามชุดที่กำหนด/);
+    assert.match(operationsCard, /บัญชีที่ฐานข้อมูลใช้ทำงาน/);
+    if (fixture.ready) {
+      assert.match(operationsCard, /ยืนยันบัญชีที่กำหนดจากฐานข้อมูลแล้ว/);
+      assert.match(operationsCard, /text-emerald-100[^>]*>พร้อม<\/span>/);
+    } else {
+      assert.match(operationsCard, /text-amber-50[^>]*>ต้องตรวจ<\/span>/);
+      assert.doesNotMatch(operationsCard, /text-emerald-100[^>]*>พร้อม<\/span>/);
+      assert.match(operationsCard, /ยังไม่ยืนยันจากฐานข้อมูล/);
+      assert.doesNotMatch(operationsCard, /ยืนยันบัญชีที่กำหนดจากฐานข้อมูลแล้ว/);
+    }
+    assert.doesNotMatch(operationsCard, /ccpun_admin_runtime|neondb_owner|FIXTURE_ONLY|postgresql:/);
+    assert.doesNotMatch(operationsCard, /ยืนยันฐานข้อมูลชุดที่ถูกต้องแล้ว/);
+    assert.match(operationsCard, /การทำงานครบวงจรต้องตรวจแยก/);
+  }
+});

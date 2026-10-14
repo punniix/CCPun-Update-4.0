@@ -35,17 +35,29 @@ jobs:
             'apps/admin/app/(control-plane)/dashboard/page.tsx',
             'apps/admin/app/(control-plane)/error.tsx',
             'apps/admin/app/(control-plane)/layout.tsx',
+            'apps/admin/app/(control-plane)/operations/health/page.tsx',
+            'apps/admin/app/api/internal/local-ai/reviews/route.ts',
             'features/admin/analytics/ExportCenter.tsx',
             'features/admin/analytics/StoredAnalyticsDashboard.tsx',
             'features/admin/components/AdminNavigation.tsx',
             'features/admin/components/AdminOwnerChrome.module.css',
             'features/admin/components/AdminProtectedChrome.tsx',
+            'features/admin/components/AdminDataRefresh.tsx',
             'features/admin/components/ContentArticlesPage.tsx',
             'features/admin/components/SettingsIndexPage.tsx',
             'features/admin/components/admin-navigation-model.ts',
             'features/admin/line/AdvisorCaseOperations.tsx',
+            'features/admin/line/ChatScreenshotImport.tsx',
             'features/admin/operations/AgentRuntimeJobStatus.tsx',
             'lib/admin/agent-os/action-center.ts',
+            'lib/admin/agent-os/calendar-projection.ts',
+            'lib/admin/line/conversation-archive.ts',
+            'workers/local-ai/ocr/app.py',
+            'workers/local-ai/ocr/test_request_limits.py',
+            'tests/admin/agent-os-channel-contracts.test.ts',
+            'tests/admin/chat-screenshot-ocr.test.ts',
+            'tests/admin/local-ai-review-egress.test.ts',
+            'tests/admin/provider-growth-boundary.test.ts',
             'tests/admin/admin-owner-navigation.test.ts',
             'tests/admin/admin-platform-extension-contract.test.ts',
             'tests/admin/admin-responsive-contract.test.ts',
@@ -77,7 +89,7 @@ jobs:
             'tests/admin/presentation.test.ts',
             'tests/admin/article-editorial-status.test.ts',
           ]);
-          // Every other path stays unchanged, including public/auth/API/proxy/locks/QA/phase fixtures and unlisted CMS/lib modules.
+          // Every unlisted path stays unchanged, including public/auth/API/proxy/locks/QA/phase fixtures and other CMS/lib modules.
           const changed = git('diff', '--name-only', '--no-renames', '-z', base, 'HEAD').toString().split('\0').filter(Boolean);
           assert.deepEqual(changed.filter(path => !allowed.has(path)), [], 'change outside approved UAT paths');
           const path = 'lib/admin/agent-os/action-center.ts';
@@ -118,3 +130,14 @@ jobs:
       - name: Privacy unit contracts
         if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
         run: node --test tests/sanity-free-plan-privacy.test.mjs
+      - uses: actions/setup-python@v6
+        id: ocr_python
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        with:
+          python-version: '3.10'
+      - name: OCR request checks on the deployed Python version
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' && steps.ocr_python.outcome == 'success' }}
+        run: |
+          # ponytail: only request-test dependencies; the mocked engine needs no model download.
+          python -m pip install fastapi==0.116.1 Pillow==11.3.0
+          PYTHONDONTWRITEBYTECODE=1 python workers/local-ai/ocr/test_request_limits.py

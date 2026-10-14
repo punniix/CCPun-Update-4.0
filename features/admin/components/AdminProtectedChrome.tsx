@@ -1,15 +1,15 @@
-import AdminDataRefresh from "./AdminDataRefresh";
+import AdminDataRefresh, { AdminDraftScope } from "./AdminDataRefresh";
 import AdminNavigation from "./AdminNavigation";
 import { roleLabel } from "@/lib/admin/presentation";
 import type { AdminRole } from "@/lib/admin/rbac";
 import type { AdminNavigationItem } from "./admin-navigation-model";
 import styles from "./AdminOwnerChrome.module.css";
 
-type AdminChromeProps = { title: string; currentEnvironmentLabel: string; identityLabel: string; role: AdminRole; navItems: AdminNavigationItem[]; showLogout: boolean; logout: () => Promise<void>; safety: React.ReactNode; children: React.ReactNode };
+type AdminChromeProps = { title: string; currentEnvironmentLabel: string; identityLabel: string; draftAuthScope?: string | null; role: AdminRole; navItems: AdminNavigationItem[]; showLogout: boolean; logout: () => Promise<void>; safety: React.ReactNode; children: React.ReactNode };
 
-export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityLabel, role, navItems, showLogout, logout, safety, children }: AdminChromeProps) {
+export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityLabel, draftAuthScope = null, role, navItems, showLogout, logout, safety, children }: AdminChromeProps) {
   return (
-    <div className={`${styles.chrome} min-h-screen overflow-x-hidden bg-navy-900 text-white`}>
+    <AdminDraftScope scope={draftAuthScope}><div className={`${styles.chrome} min-h-screen overflow-x-hidden bg-navy-900 text-white`}>
       <AdminDataRefresh />
       <header className="border-b border-white/10 bg-navy-800/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-3 px-4 py-4 md:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
@@ -23,7 +23,7 @@ export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityL
               <div className="text-white/65">สิทธิ์: {roleLabel(role)}</div>
             </div>
             {showLogout ? (
-              <form action={logout} className="shrink-0">
+              <form action={logout} data-admin-logout className="shrink-0">
                 <button type="submit" className="min-h-11 rounded-xl border border-white/10 px-4 py-2 text-base leading-6 font-medium text-white/75 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">ออกจากระบบ</button>
               </form>
             ) : null}
@@ -44,6 +44,6 @@ export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityL
           {children}
         </main>
       </div>
-    </div>
+    </div></AdminDraftScope>
   );
 }
