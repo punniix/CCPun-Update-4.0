@@ -274,7 +274,7 @@ test("installed Neon transaction builder batches queries in one mocked HTTP call
   const originalFetch = neonConfig.fetchFunction;
   let calls = 0;
   let fail = false;
-  neonConfig.fetchFunction = async (_url, options) => {
+  neonConfig.fetchFunction = async (_url: RequestInfo | URL, options?: RequestInit) => {
     calls++;
     const body = JSON.parse(String(options?.body)) as { queries: Array<{ query: string }> };
     assert.equal(body.queries.length, 2);

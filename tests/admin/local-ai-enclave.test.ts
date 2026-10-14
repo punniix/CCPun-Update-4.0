@@ -220,7 +220,10 @@ test("n8n bridge is token-gated and can enqueue only public-safe tasks", () => {
   assert.match(enqueueRoute, /legacy-line-card-disabled/);
   const resultRoute = read("apps/admin/app/api/internal/local-ai/reviews/route.ts");
   const ownerReviewRoute = read("apps/admin/app/api/admin/local-ai/review/route.ts");
-  assert.match(resultRoute, /job\.reviewStatus === "approved" \? job\.output : null/);
+  assert.match(resultRoute, /localAiJobStatusSchema\.parse\(job\.status\)/);
+  assert.match(resultRoute, /localAiReviewStatusSchema\.nullable\(\)\.parse\(job\.reviewStatus\)/);
+  assert.match(resultRoute, /let output: unknown = null;[\s\S]*?if \(job\.status === "succeeded" && job\.reviewStatus === "approved"\) \{[\s\S]*?const parsed = parseLocalAiTaskOutput\(job\.taskType, job\.output\);[\s\S]*?if \(!parsed\.success\) throw new Error\("LOCAL_AI_OUTPUT_INVALID"\);[\s\S]*?output = parsed\.data;/);
+  assert.doesNotMatch(resultRoute, /output:\s*job\.output|output\s*=\s*job\.output/);
   assert.match(resultRoute, /job\.dataClass !== "public-safe"/);
   assert.match(resultRoute, /status: waiting \? "awaiting-review" : job\.status/);
   assert.match(ownerReviewRoute, /identity\.role !== "owner"/);

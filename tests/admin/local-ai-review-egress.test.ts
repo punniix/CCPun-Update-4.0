@@ -27,7 +27,7 @@ test("actual review GET exports only validated approved public content/SEO outpu
   const reads: string[] = [];
   const source = readFileSync(path.resolve(import.meta.dirname, "../../apps/admin/app/api/internal/local-ai/reviews/route.ts"), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const module = { exports: {} as { GET: (request: Request) => Promise<Response> } };
+  const loaded = { exports: {} as { GET: (request: Request) => Promise<Response> } };
   const dependencies = (name: string) => {
     if (name === "@/lib/admin/local-ai/database") return { readLocalAiJob: async (value: string) => {
       reads.push(value);
@@ -39,11 +39,11 @@ test("actual review GET exports only validated approved public content/SEO outpu
     if (name === "next/server" || name === "zod") return require(name);
     throw new Error(`unexpected route dependency: ${name}`);
   };
-  new Function("require", "module", "exports", code)(dependencies, module, module.exports);
+  new Function("require", "module", "exports", code)(dependencies, loaded, loaded.exports);
 
   const call = async (expected: number, query = id) => {
     calls += 1;
-    const response = await module.exports.GET(new Request(`https://admin-test.example/api/internal/local-ai/reviews/?jobId=${encodeURIComponent(query)}`));
+    const response = await loaded.exports.GET(new Request(`https://admin-test.example/api/internal/local-ai/reviews/?jobId=${encodeURIComponent(query)}`));
     assert.equal(response.status, expected);
     assert.equal(response.headers.get("cache-control"), "private, no-cache, no-store");
     assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow, noarchive");

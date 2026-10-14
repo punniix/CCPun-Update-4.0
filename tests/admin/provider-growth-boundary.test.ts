@@ -181,13 +181,14 @@ function readCurrentSource(file: string | URL, encoding: "utf8"): string {
   return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
 }
 
-test("Health keeps configuration readiness separate from the actual strict database-role read model", async () => {
+test("Health separates configuration from strict database-role reads and never renders driver errors", async () => {
   const { loadFixtureModule } = await import("../../qa/phase1-fixture-loader.mjs");
   const { renderToStaticMarkup } = await import("react-dom/server");
   const globals = { process: { env: {} }, console: { log() {}, warn() {}, error() {} } };
   const contract = loadFixtureModule("lib/admin/operations/article-schedule-contract.ts", { globals });
   const migration = loadFixtureModule("db/migrations/20260911_article_scheduling_v1.ts", { globals });
   const lane = contract.SCHEDULER_LANES.uat;
+  const driverErrorMarker = "synthetic-driver-detail-never-render-20261014";
   const variables = {
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_APP_ENV: "admin-uat",
     CCPUN_GIT_REF: "admin/owner-health-fixture", CCPUN_GIT_SHA: "a".repeat(40), CCPUN_RELEASE_ID: "owner-health-fixture",
@@ -206,7 +207,7 @@ test("Health keeps configuration readiness separate from the actual strict datab
       globals: { ...globals, process: { env: variables } },
       mocks: new Map([["@neondatabase/serverless", { neon: () => ({ query: async (statement: string) => {
         queries.push(statement);
-        if (fixture.readFails) throw new Error("synthetic-read-unavailable");
+        if (fixture.readFails) throw new Error(driverErrorMarker);
         if (!statement.includes("current_database()")) return [];
         return [{ database_name: "neondb", role_name: fixture.role, lane: "uat", project_id: lane.projectId,
           branch_id: lane.branchId, endpoint_id: lane.endpointId, sanity_project_id: lane.sanityProjectId,
@@ -216,6 +217,7 @@ test("Health keeps configuration readiness separate from the actual strict datab
     });
     const scheduler = await reader.readArticleSchedulerModel({ scheduleLimit: 1, auditLimit: 1 }, variables);
     assert.equal(scheduler.status === "ready", fixture.ready, fixture.name);
+    if (fixture.readFails) assert.equal(scheduler.error, driverErrorMarker, "driver error reaches the read model");
     assert.match(queries[0]!, /current_user AS role_name/);
     assert.equal(queries.length, fixture.ready ? 3 : 1, "unverified identity never reaches schedule/audit reads");
     const permissions: string[] = [];
@@ -242,6 +244,11 @@ test("Health keeps configuration readiness separate from the actual strict datab
     const page = loadFixtureModule("apps/admin/app/(control-plane)/operations/health/page.tsx", { globals, mocks });
     const html = renderToStaticMarkup(await page.default());
     assert.deepEqual(permissions, ["settings:read"]);
+    assert.ok(!html.includes(driverErrorMarker), "driver details never appear anywhere in rendered HTML, including collapsed technical details");
+    if (fixture.readFails) {
+      assert.match(html, /ตอนนี้ยังอ่านข้อมูลงานตั้งเวลาไม่ได้/);
+      assert.match(html, /ยังอ่านไม่ได้ ให้ทีมเทคนิคตรวจการเชื่อมต่อฐานข้อมูล/);
+    }
     const operationsCard = html.split("ข้อมูลส่วนตัวและประวัติการทำงาน")[1]?.split("</section>")[0];
     assert.ok(operationsCard);
     assert.match(operationsCard, /การตั้งค่าฐานข้อมูลตรงตามชุดที่กำหนด/);

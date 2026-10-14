@@ -134,7 +134,25 @@ test("daily customer case keeps only follow-up and notes from CRM-style operatio
   assert.match(operations, /ตั้งวันติดตาม/);
   assert.match(operations.match(/<input[\s\S]*?\/>/)?.[0] ?? "", /min-h-11/);
   const buttons = operations.match(/<button[\s\S]*?<\/button>/g) ?? [];
-  assert.equal(buttons.length, 2);
+  const businessButtons = buttons.filter(button => /(?:ตั้งวันติดตาม|บันทึกโน้ต)\s*<\/button>/.test(button));
+  const recoveryButtons = buttons.filter(button => /ตรวจประวัติแล้ว · เปิดการบันทึกอีกครั้ง<\/button>/.test(button));
+  assert.equal(businessButtons.length, 2, "only follow-up and private-note business actions remain");
+  assert.equal(businessButtons.filter(button => /ตั้งวันติดตาม\s*<\/button>/.test(button)).length, 1);
+  assert.equal(businessButtons.filter(button => /บันทึกโน้ต\s*<\/button>/.test(button)).length, 1);
+  assert.equal(recoveryButtons.length, 2, "each draft has one guarded recovery control");
+  assert.equal(buttons.length, businessButtons.length + recoveryButtons.length, "no additional operations are introduced");
+  assert.equal(operations.match(/<form\b/g)?.length, 1);
+  assert.equal(operations.match(/\/api\/admin\/line\/inbox\/\$\{leadId\}\/operations\//g)?.length, 1);
+  assert.equal(operations.match(/\/api\/admin\/line\/inbox\/\$\{leadId\}\/notes\//g)?.length, 1);
+  for (const memory of ["followMemory", "noteMemory"]) {
+    assert.match(operations, new RegExp(`\\{${memory}\\.phase !== "idle" && !busy \\?`));
+    const recovery = recoveryButtons.find(button => button.includes(`${memory}.reviewed()`));
+    assert.ok(recovery);
+    assert.match(recovery, /type="button"/);
+    assert.match(recovery, new RegExp(`disabled=\\{${memory}\\.inFlight\\}`));
+    assert.match(recovery, new RegExp(`onClick=\\{\\(\\) => ${memory}\\.reviewed\\(\\)\\}`));
+    assert.doesNotMatch(recovery, /\bpost\(|\bfetch\(/);
+  }
   for (const button of buttons) {
     assert.match(button, /min-h-11/);
     assert.match(button, /focus-visible:outline-2/);

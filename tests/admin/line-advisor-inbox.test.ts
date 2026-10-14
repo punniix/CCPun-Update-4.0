@@ -86,9 +86,11 @@ test("R2 Bangkok follow-up roundtrips across browser timezones and note fields h
 });
 
 test("protected draft scope restores native Back/Forward drafts, bounds memory and correlates late acknowledgements", async () => {
-  assert.ok(process.env.NODE_PATH, "Use the declared installed dependency runtime for mounted React QA");
-  const dependency = createRequire(path.join(process.env.NODE_PATH!, "package.json"));
-  const { JSDOM } = dependency("jsdom") as typeof import("jsdom");
+  const dependencyRoot = process.env.CCPUN_QA_DEPENDENCY_ROOT;
+  const dependency = createRequire(path.join(dependencyRoot ?? process.cwd(), "package.json"));
+  const { JSDOM } = dependency("jsdom") as {
+    JSDOM: new (html: string, options: { url: string }) => { window: Window & typeof globalThis };
+  };
   const ts = dependency("typescript") as typeof import("typescript");
   const dom = new JSDOM('<div id="root"></div>', { url: "https://admin-test.ccpun.com/case/a" });
   const globals = ["window", "document", "navigator", "HTMLElement", "HTMLInputElement", "HTMLTextAreaElement", "Element", "HTMLAnchorElement", "HTMLFormElement", "FormData", "File", "IS_REACT_ACT_ENVIRONMENT"];
@@ -140,7 +142,7 @@ test("protected draft scope restores native Back/Forward drafts, bounds memory a
         React.createElement(advisor.AdvisorCaseOperations, { leadId: lead, notesEnabled }),
         React.createElement(ocr.ChatScreenshotImport, { leadId: lead })));
   }
-  const mount = () => React.act(async () => root.render(React.createElement(guard.AdminDraftScope, { scope }, React.createElement(guard.default), React.createElement(Page))));
+  const mount = () => React.act(async () => root.render(React.createElement(guard.AdminDraftScope, { scope } as import("react").ComponentProps<typeof guard.AdminDraftScope>, React.createElement(guard.default), React.createElement(Page))));
   const change = async (element: HTMLInputElement | HTMLTextAreaElement, value: string) => React.act(async () => {
     const prototype = element.tagName === "TEXTAREA" ? dom.window.HTMLTextAreaElement.prototype : dom.window.HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(element, value);
@@ -245,7 +247,7 @@ test("protected draft scope restores native Back/Forward drafts, bounds memory a
     const logout = () => dom.window.document.getElementById("logout")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
     let blocked = false; await React.act(async () => { blocked = !logout(); }); assert.equal(blocked, true);
     let navigations = 0;
-    dom.window.document.addEventListener("click", event => { if (event.target instanceof dom.window.Element && event.target.closest("a")) { navigations++; event.preventDefault(); } });
+    dom.window.document.addEventListener("click", (event: MouseEvent) => { if (event.target instanceof dom.window.Element && event.target.closest("a")) { navigations++; event.preventDefault(); } });
     dom.window.document.getElementById("leave")!.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
     assert.equal(navigations, 0, "Cancel prevents the delegated page navigation");
     const count = confirmations;
@@ -277,7 +279,7 @@ test("protected draft scope restores native Back/Forward drafts, bounds memory a
     await click("บันทึกโน้ต"); assert.equal(note().value, "unconfirmed-note"); await click("ตรวจประวัติแล้ว · เปิดการบันทึกอีกครั้ง");
     for (const malformed of [{}, { outcome: "created" }, { outcome: "error" }]) {
       assert.equal(button("ตั้งวันติดตาม").disabled, false);
-      const beforeFollow = calls.length;
+      const beforeFollow: number = calls.length;
       response = async () => ok(malformed); await React.act(async () => { follow().form!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
       assert.equal(calls.length, beforeFollow + 1);
       assert.equal(follow().value, "2026-10-15T12:30"); assert.doesNotMatch(dom.window.document.body.textContent!, /บันทึกแล้ว/);
