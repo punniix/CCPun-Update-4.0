@@ -1153,7 +1153,7 @@
 .articleCardBody { flex: 1; }
 .articleMeta { margin-top: auto; }
 .carouselDotButton { width: 44px; height: 44px; padding: 0; background: transparent; position: relative; }
-.carouselDotButton::after { content: ''; display: block; width: 9px; height: 9px; margin: auto; border-radius: 99px; background: var(--w43-border); }
+.carouselDotButton::after { content: ''; display: block; width: 9px; height: 9px; margin: auto; border-radius: 99px; background: var(--w43-muted); }
 .carouselDotButtonActive { width: 44px; background: transparent; }
 .carouselDotButtonActive::after { width: 30px; background: var(--w43-gold); }
 .carouselDotButton:hover, .carouselDotButton:focus-visible { background: transparent; }
