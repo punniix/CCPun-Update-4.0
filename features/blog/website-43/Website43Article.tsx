@@ -9,6 +9,8 @@ import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants
 import Website43ArticleToc from './Website43ArticleToc';
 import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountdown';
 import { renderWebsite43ArticleBody } from './Website43ArticleBody';
+import ArticleShareActions from './ArticleShareActions';
+import { estimateArticleReadingMinutes } from './articleReadingTime';
 
 const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   day: 'numeric',
@@ -54,6 +56,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
   const publishedDateLabel = article.publishedAt ? thaiDateFormatter.format(new Date(article.publishedAt)) : null;
   const updatedDateLabel = thaiDateFormatter.format(new Date(article.updatedAt));
   const showUpdatedDate = !publishedDateLabel || publishedDateLabel !== updatedDateLabel;
+  const readingMinutes = estimateArticleReadingMinutes(article);
+  const sharePath = getArticlePath(article);
 
   return (
     <div className={styles.root}>
@@ -69,10 +73,14 @@ export default function Website43Article({ article, relatedArticles = [], previe
             </nav>
             <h1 className={styles.articleHeadline}>{article.title}</h1>
             <div className={styles.articleMetaRow}>
-              <p className={styles.articleHeaderMeta}>
-                {publishedDateLabel ? `เผยแพร่เมื่อ ${publishedDateLabel}` : null}
-                {showUpdatedDate ? `${publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด ${updatedDateLabel}` : null}
-              </p>
+              <div className={styles.articleMetaGroup}>
+                <p className={styles.articleHeaderMeta}>
+                  {publishedDateLabel ? `เผยแพร่เมื่อ ${publishedDateLabel}` : null}
+                  {showUpdatedDate ? `${publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด ${updatedDateLabel}` : null}
+                </p>
+                <span className={styles.articleReadingTime}>· อ่านประมาณ {readingMinutes} นาที</span>
+              </div>
+              {!preview && <ArticleShareActions path={sharePath} title={article.title} placement="header" />}
             </div>
           </div>
         </header>
@@ -110,6 +118,10 @@ export default function Website43Article({ article, relatedArticles = [], previe
                 </details>
               )}
               <article className={styles.prose}>{renderWebsite43ArticleBody(article.body, headingIds)}</article>
+              {!preview && <div className={styles.articleBottomShare}>
+                <strong>ส่งต่อบทความนี้</strong>
+                <ArticleShareActions path={sharePath} title={article.title} placement="footer" />
+              </div>}
             </div>
           </div>
         </section>

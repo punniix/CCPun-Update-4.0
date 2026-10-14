@@ -16,7 +16,7 @@ const { renderToStaticMarkup } = require('react-dom/server');
 // Approved 2026-10-14 footer text removal changes the footer DOM only; remaining CSS/DOM contracts stay frozen.
 // Frozen active CSS/DOM outputs require no Git history or network in CI.
 const baseline = {
-  "activeCss": "1f3a9769ed1a57c241cec6ec66cb637461ec409b3859ae53819600f2e4fb1a8a",
+  "activeCss": "4fe0c0100c0eef6ca20089c052c581d54c7a5d3be62cc377c373728af9f77f61",
   "responsiveCss": "3246c4e6d5e9ab2b661e643e3ba9e8b2a95041334779f47b0c53743968ef2675",
   "navbarCss": "8bb36bb9ada57b280384145e56412db668663f1ee6cdc37d9bed7a2922498e99",
   "navbarDomOff": "e0e96baf8e7bc3de1e06632b3ae6262f7b4b9e65740ae01246e657bdc23c566b",
