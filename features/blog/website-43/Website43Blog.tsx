@@ -42,7 +42,6 @@ const BLOG_CLIENT_CLASS_NAMES = {
   articleGrid: styles.articleGrid,
   emptyState: styles.emptyState,
   pagination: styles.pagination,
-  resultCount: styles.resultCount,
 } satisfies Website43BlogClientClassNames;
 
 export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation }: {

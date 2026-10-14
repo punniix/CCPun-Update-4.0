@@ -44,7 +44,6 @@ export type Website43BlogClientClassNames = {
   articleGrid: string;
   emptyState: string;
   pagination: string;
-  resultCount: string;
 };
 
 const FEATURED_REPEAT_COUNT = 3;
@@ -330,7 +329,6 @@ export default function Website43BlogInteractive({
         <div className={classNames.articleListHeading}>
           <h2 ref={listHeadingRef} tabIndex={-1} style={{ scrollMarginTop: 96 }} className={classNames.h2}>{activeCategory.slug ? `บทความ${activeCategory.title}` : 'บทความทั้งหมด'}</h2>
         </div>
-        <p className={classNames.resultCount} role="status">{filteredArticles.length} บทความ{filteredArticles.length > 0 ? ` · แสดง ${(page - 1) * BLOG_PAGE_SIZE + 1}–${Math.min(page * BLOG_PAGE_SIZE, filteredArticles.length)}` : ''}</p>
         {filteredArticles.length ? (
           <div className={classNames.articleGrid}>
             {pageArticles.map((article) => <ArticleCard article={article} classNames={classNames} key={article.href} />)}
