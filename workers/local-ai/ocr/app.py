@@ -14,10 +14,12 @@ from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+# ponytail: one slot per process; keep one server worker or add shared admission across workers.
 _gate = asyncio.Semaphore(1)
 
 ALLOWED_TYPES = {"image/png", "image/jpeg", "image/webp"}
 MAX_BYTES = int(os.environ.get("OCR_MAX_BYTES", str(8 * 1024 * 1024)))
+BODY_TIMEOUT = 15
 MAX_SIDE = int(os.environ.get("OCR_MAX_SIDE", "2400"))
 TIMEOUT = int(os.environ.get("OCR_TIMEOUT_SECONDS", "90"))
 TOKEN = os.environ.get("OCR_SHARED_TOKEN", "").strip()
@@ -32,6 +34,23 @@ def authorized(request: Request):
     if len(TOKEN) < 43 or not header.startswith("Bearer "):
         return False
     return hmac.compare_digest(header[7:].strip(), TOKEN)
+
+async def read_image_body(request: Request):
+    body = bytearray()
+
+    async def read_stream():
+        async for chunk in request.stream():
+            if len(chunk) > MAX_BYTES - len(body):
+                raise HTTPException(status_code=413, detail="image-too-large")
+            body.extend(chunk)
+        if not body:
+            raise HTTPException(status_code=413, detail="image-too-large")
+        return bytes(body)
+
+    try:
+        return await asyncio.wait_for(read_stream(), timeout=BODY_TIMEOUT)
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=408, detail="image-read-timeout")
 
 @app.get("/healthz")
 async def health():
@@ -52,15 +71,15 @@ async def ocr(request: Request):
     if content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=415, detail="image-required")
 
-    body = await request.body()
-    if not body or len(body) > MAX_BYTES:
-        raise HTTPException(status_code=413, detail="image-too-large")
-
-    request_id = str(uuid.uuid4())
-    image_digest = hashlib.sha256(body).hexdigest()
-    started = time.monotonic()
-
-    async with _gate:
+    # Fail fast: do not queue requests in memory while the single OCR slot is busy.
+    if _gate.locked():
+        raise HTTPException(status_code=503, detail="ocr-busy")
+    await _gate.acquire()
+    try:
+        body = await read_image_body(request)
+        request_id = str(uuid.uuid4())
+        image_digest = hashlib.sha256(body).hexdigest()
+        started = time.monotonic()
         input_path = None
         try:
             with tempfile.NamedTemporaryFile(dir="/tmp", suffix=".jpg", delete=False) as tmp:
@@ -75,7 +94,7 @@ async def ocr(request: Request):
             except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
                 raise HTTPException(status_code=422, detail="invalid-image")
 
-            proc = await asyncio.to_thread(
+            engine_task = asyncio.create_task(asyncio.to_thread(
                 subprocess.run,
                 ["python", "/app/ocr_once.py", str(input_path)],
                 capture_output=True,
@@ -83,7 +102,20 @@ async def ocr(request: Request):
                 timeout=TIMEOUT,
                 check=False,
                 env={**os.environ, "PYTHONUNBUFFERED": "1"},
-            )
+            ))
+            try:
+                proc = await asyncio.shield(engine_task)
+            except asyncio.CancelledError:
+                # The thread cannot be cancelled; retain its slot/file until the 90s timeout.
+                while not engine_task.done():
+                    try:
+                        await asyncio.shield(engine_task)
+                    except asyncio.CancelledError:
+                        continue
+                    except Exception:
+                        break
+                engine_task.exception()
+                raise
 
             if proc.returncode != 0:
                 safe_log("ocr-failed", requestId=request_id, category="engine-failure")
@@ -118,3 +150,5 @@ async def ocr(request: Request):
                     input_path.unlink(missing_ok=True)
                 except Exception:
                     pass
+    finally:
+        _gate.release()

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { ExportAnalysisView } from "@/lib/admin/agent-os/export-contract";
 import { PERFORMANCE_MARKETING_TABS } from "@/lib/admin/agent-os/export-contract";
@@ -38,6 +38,7 @@ const DATASET_HELP: Record<Dataset, string> = {
 type RuntimeDetail = {
   terminal: boolean;
   job: {
+    jobId: string;
     status: string;
     stage: string;
     providerReference: string | null;
@@ -66,37 +67,66 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
   const [message, setMessage] = useState<string | null>(null);
   const [importBusy, setImportBusy] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [pollDegraded, setPollDegraded] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [lastSuccessfulReadAt, setLastSuccessfulReadAt] = useState<string | null>(null);
+  const [creationUncertain, setCreationUncertain] = useState(false);
+  const [restoring, setRestoring] = useState(true);
+  const createPending = useRef(false);
+  const unresolvedJob = !!jobId && !(detail?.terminal && ["completed", "failed", "cancelled"].includes(detail.job.status));
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const saved = JSON.parse(window.localStorage.getItem("ccpun-owner-sheet-job") || "null") as { jobId?: unknown; runtimePath?: unknown; dataset?: unknown } | null;
-        if (saved && (!compact || saved.dataset === initialDataset) && typeof saved.jobId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(saved.jobId)) {
+        const saved = JSON.parse(window.localStorage.getItem("ccpun-owner-sheet-job") || "null") as { jobId?: unknown; runtimePath?: unknown; dataset?: unknown; creationUncertain?: unknown } | null;
+        if (saved?.creationUncertain === true) setCreationUncertain(true);
+        if (saved && typeof saved.jobId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(saved.jobId)) {
           setJobId(saved.jobId);
           if (typeof saved.runtimePath === "string" && saved.runtimePath.startsWith("/operations/jobs/")) setRuntimePath(saved.runtimePath);
         }
       } catch {
         // Export remains available when browser storage is blocked.
+      } finally {
+        setRestoring(false);
       }
     }, 0);
     return () => window.clearTimeout(timer);
   }, [compact, initialDataset]);
 
   useEffect(() => {
-    if (!jobId || detail?.terminal) return;
+    if (!jobId || detail?.terminal || sessionExpired) return;
     const activeJobId = jobId;
     let stopped = false;
+    let expired = false;
+    let reading = false;
     async function poll() {
+      if (stopped || expired || reading) return;
+      reading = true;
       try {
         const response = await fetch("/api/admin/operations/jobs/" + encodeURIComponent(activeJobId) + "/", {
           cache: "no-store",
           headers: { Accept: "application/json" },
         });
-        if (!response.ok) return;
+        if (response.status === 401) {
+          expired = true;
+          if (!stopped) { setSessionExpired(true); setPollDegraded(true); }
+          return;
+        }
+        if (!response.ok) throw new Error("status-unavailable");
         const next = await response.json() as RuntimeDetail;
-        if (!stopped) setDetail(next);
+        if (typeof next?.terminal !== "boolean" || typeof next.job?.status !== "string" || next.job.jobId !== activeJobId
+          || typeof next.job.stage !== "string"
+          || (next.job.providerReference !== null && typeof next.job.providerReference !== "string")
+          || (next.job.errorCategory !== null && typeof next.job.errorCategory !== "string")) throw new Error("status-unavailable");
+        if (!stopped && !expired) {
+          setDetail(next);
+          setLastSuccessfulReadAt(new Date(Date.now()).toISOString());
+          setPollDegraded(false);
+        }
       } catch {
-        // Keep the last confirmed status visible; the next poll may recover.
+        if (!stopped) setPollDegraded(true);
+      } finally {
+        reading = false;
       }
     }
     void poll();
@@ -105,17 +135,29 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [jobId, detail?.terminal]);
+  }, [jobId, detail?.terminal, sessionExpired]);
 
   async function createGoogleSheet() {
+    if (createPending.current || restoring || sessionExpired || creationUncertain || unresolvedJob) return;
+    createPending.current = true;
     setBusy(true);
     setMessage(null);
-    setJobId(null);
-    setRuntimePath(null);
-    setDetail(null);
+    // Preserve the previous confirmed job if this request loses its response.
+    try {
+      window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId, runtimePath, dataset, creationUncertain: true }));
+    } catch {
+      // The in-memory guard still prevents another request on this page.
+    }
+    function preservePreviousJob() {
+      try { window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId, runtimePath, dataset })); } catch { /* Storage may be unavailable. */ }
+    }
     function rememberJob(nextJobId: string, nextRuntimePath: string) {
       setJobId(nextJobId);
       setRuntimePath(nextRuntimePath);
+      setDetail(null);
+      setLastSuccessfulReadAt(null);
+      setPollDegraded(false);
+      setCreationUncertain(false);
       try {
         window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId: nextJobId, runtimePath: nextRuntimePath, dataset }));
       } catch {
@@ -128,21 +170,41 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dataset, ...(dataset === "marketing-analytics" && view ? { view } : {}) }),
       });
+      if (response.status === 401) {
+        preservePreviousJob();
+        setSessionExpired(true);
+        setMessage("เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้งแล้วตรวจงานเดิมก่อนส่งออก");
+        return;
+      }
       const data = await response.json();
+      const validJobId = typeof data.jobId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.jobId);
       if (!response.ok) {
-        if (data.error === "google-sheet-export-trigger-uncertain" && typeof data.jobId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.jobId)) {
+        if (validJobId) {
           rememberJob(data.jobId, `/operations/jobs/${data.jobId}/`);
           setMessage("ยังยืนยันการรับงานไม่ได้ เก็บ Job ID ไว้แล้ว ตรวจสถานะงานนี้ก่อนลองซ้ำ ผลจาก Google อาจยังดำเนินการอยู่");
           return;
         }
+        if ([400, 403].includes(response.status) || ["google-sheet-export-uat-isolated", "google-sheet-export-not-configured", "google-sheet-export-disabled", "agent-os-runtime-not-ready"].includes(data.error)) {
+          preservePreviousJob();
+          setMessage("ยังรับงานส่งออกไม่ได้ ตรวจสิทธิ์และการเชื่อมต่อก่อนส่งออก ใช้ CSV ได้ตามปกติ");
+          return;
+        }
         throw new Error(data.error || "export_failed");
       }
-      rememberJob(String(data.jobId), String(data.runtimePath));
+      if (!validJobId) throw new Error("export-result-unknown");
+      rememberJob(data.jobId, `/operations/jobs/${data.jobId}/`);
       setMessage(dataset === "performance-marketing" ? "รับงานแล้ว กำลังตรวจงานที่คุณกรอกและอัปเดต Google Sheet เดิม ดูสถานะจนเสร็จก่อนใช้ข้อมูลใหม่" : "รับงานแล้ว ระบบกำลังสร้าง Google Sheet ให้");
     } catch {
-      setMessage("ยังเริ่มสร้าง Google Sheet ไม่ได้ ใช้ CSV ได้ตามปกติ");
+      setCreationUncertain(true);
+      try {
+        window.localStorage.setItem("ccpun-owner-sheet-job", JSON.stringify({ jobId, runtimePath, dataset, creationUncertain: true }));
+      } catch {
+        // Keep the current-page guard even when browser storage is blocked.
+      }
+      setMessage("ยังยืนยันผลการรับงานไม่ได้ ตรวจประวัติงานและไฟล์เดิมก่อนสร้างซ้ำ ใช้ CSV ได้ตามปกติ");
     } finally {
       setBusy(false);
+      createPending.current = false;
     }
   }
 
@@ -179,18 +241,15 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
   return (
     <div>
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
-        {!compact ? <label className="block max-w-xl text-sm text-white/70">
+        {!compact ? <label className="block max-w-xl text-sm leading-[22px] text-white/70">
           เลือกข้อมูลที่ต้องการ
           <select
             value={dataset}
             onChange={(event) => {
               setDataset(event.target.value as Dataset);
               setView("tracking-overview");
-              setJobId(null);
-              setDetail(null);
-              setMessage(null);
             }}
-            className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]"
+            className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]"
           >
             {GROUPS.map((group) => (
               <optgroup key={group} label={group}>
@@ -201,43 +260,48 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
             ))}
           </select>
         </label> : <h3 className="font-medium">ไฟล์วิเคราะห์ผลการตลาด</h3>}
-        <p className="mt-2 max-w-2xl text-xs leading-5 text-white/50">{DATASET_HELP[dataset]}</p>
+        <p className="mt-2 max-w-2xl text-sm leading-[22px] text-white/70">{DATASET_HELP[dataset]}</p>
 
-        {dataset === "marketing-analytics" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกมุมข้อมูลสำหรับ CSV / Google Sheet<select value={view} onChange={event => setView(event.target.value as ExportAnalysisView)} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{VIEWS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/50">All Marketing Stats คือไฟล์รวมทุกสถิติแบบอ่านง่ายและเอาไป Pivot/BI ต่อได้ ส่วน Content และ Keyword ใช้ดูรายละเอียดเฉพาะด้าน Excel รวมทุกมุม Marketing ไว้ในไฟล์เดียว ส่วน Raw Archive ต้องดาวน์โหลดแยกสำหรับตรวจระบบเท่านั้น</span></label> : null}
-        {dataset === "performance-marketing" ? <label className="mt-4 block max-w-xl text-sm text-white/70">เลือกชีตสำหรับ CSV<select value={performanceSheet} onChange={event => setPerformanceSheet(event.target.value as typeof performanceSheet)} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{PERFORMANCE_MARKETING_TABS.map(title => <option key={title} value={title}>{title}</option>)}</select><span className="mt-2 block text-xs leading-5 text-white/60">ไฟล์ Excel และ Google Sheet มีข้อมูลครบทั้ง 7 ชีต ระบบตรวจงานที่คุณแก้ใน Google Sheet ก่อนอัปเดต เพื่อไม่เขียนทับงานของคุณ</span></label> : null}
+        {dataset === "marketing-analytics" ? <label className="mt-4 block max-w-xl text-sm leading-[22px] text-white/70">เลือกมุมข้อมูลสำหรับ CSV / Google Sheet<select value={view} onChange={event => setView(event.target.value as ExportAnalysisView)} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{VIEWS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="mt-2 block text-sm leading-[22px] text-white/70">All Marketing Stats คือไฟล์รวมทุกสถิติแบบอ่านง่ายและเอาไป Pivot/BI ต่อได้ ส่วน Content และ Keyword ใช้ดูรายละเอียดเฉพาะด้าน Excel รวมทุกมุม Marketing ไว้ในไฟล์เดียว ส่วน Raw Archive ต้องดาวน์โหลดแยกสำหรับตรวจระบบเท่านั้น</span></label> : null}
+        {dataset === "performance-marketing" ? <label className="mt-4 block max-w-xl text-sm leading-[22px] text-white/70">เลือกชีตสำหรับ CSV<select value={performanceSheet} onChange={event => setPerformanceSheet(event.target.value as typeof performanceSheet)} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{PERFORMANCE_MARKETING_TABS.map(title => <option key={title} value={title}>{title}</option>)}</select><span className="mt-2 block text-sm leading-[22px] text-white/75">ไฟล์ Excel และ Google Sheet มีข้อมูลครบทั้ง 7 ชีต ระบบตรวจงานที่คุณแก้ใน Google Sheet ก่อนอัปเดต เพื่อไม่เขียนทับงานของคุณ</span></label> : null}
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <a download href={dataset === "performance-marketing" ? "/api/admin/marketing/export/?format=csv&sheet=" + encodeURIComponent(performanceSheet) : dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv&view=" + encodeURIComponent(view) : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
+          <a download href={dataset === "performance-marketing" ? "/api/admin/marketing/export/?format=csv&sheet=" + encodeURIComponent(performanceSheet) : dataset === "marketing-analytics" ? "/api/admin/analytics/export/?format=csv&view=" + encodeURIComponent(view) : "/api/admin/exports/csv/?dataset=" + encodeURIComponent(dataset)} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-base text-white/80 transition hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
             ดาวน์โหลด CSV
           </a>
-          {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel สำหรับวิเคราะห์</a> : null}
-          {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=csv&raw=1" className="inline-flex min-h-11 items-center text-xs text-white/45 underline underline-offset-4 hover:text-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">Raw Archive · สำหรับตรวจสอบระบบ</a> : null}
-          {dataset === "performance-marketing" ? <a download href="/api/admin/marketing/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel 7 ชีต</a> : null}
-          <button type="button" onClick={createGoogleSheet} disabled={busy || (dataset === "performance-marketing" && !!jobId && !detail?.terminal)} className="min-h-11 rounded-xl bg-[#e0c985] px-4 text-sm font-medium text-[#251818] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]">
+          {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-base text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel สำหรับวิเคราะห์</a> : null}
+          {dataset === "marketing-analytics" ? <a download href="/api/admin/analytics/export/?format=csv&raw=1" className="inline-flex min-h-11 items-center text-base text-white/70 underline underline-offset-4 hover:text-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">Raw Archive · สำหรับตรวจสอบระบบ</a> : null}
+          {dataset === "performance-marketing" ? <a download href="/api/admin/marketing/export/?format=xlsx" className="inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-base text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดาวน์โหลด Excel 7 ชีต</a> : null}
+          <button type="button" onClick={createGoogleSheet} disabled={busy || restoring || sessionExpired || creationUncertain || unresolvedJob} className="min-h-11 rounded-xl bg-[#e0c985] px-4 text-base font-medium text-[#251818] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]">
             {busy ? "กำลังส่งงาน…" : dataset === "performance-marketing" ? "อัปเดต Google Sheet เดิม" : "สร้าง Google Sheet"}
           </button>
         </div>
 
-        <p className="mt-4 text-xs leading-5 text-white/50">
+        <p className="mt-4 text-sm leading-[22px] text-white/70">
           {dataset === "performance-marketing" ? "Google Sheets ใช้ไฟล์เดิม 7 ชีต และรักษางานที่คุณกรอกไว้ หากข้อมูลขัดแย้ง ระบบจะให้ตรวจแผนงานก่อน ส่วน Excel/CSV เป็นไฟล์สำหรับวิเคราะห์ ไม่ใช่การนำเข้าการแก้ไขกลับอัตโนมัติ ค่าว่างไม่ใช่ศูนย์" : "เวลาเก็บและสร้างไฟล์ใช้เวลาไทย (UTC+7) Marketing Tracking ใช้ข้อมูลล่าสุดที่บันทึกไว้โดยไม่ยิง provider ใหม่ CSV/Google Sheet เป็นข้อมูลพร้อมวิเคราะห์ ส่วน Excel รวม Tracking, Content, Keyword, Traffic และ Activities โดยไม่ปน Raw Archive ค่าว่างหมายถึงไม่มีข้อมูล ไม่ใช่ศูนย์"}
         </p>
       </section>
 
+      {creationUncertain ? <p role="status" className="mt-4 text-sm leading-6 text-amber-50">ยังยืนยันผลการส่งออกไม่ได้ ตรวจประวัติงานและไฟล์เดิมก่อนสร้างซ้ำ</p> : null}
+      {sessionExpired ? <p role="status" className="mt-4 text-sm leading-6 text-amber-50">เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้งแล้วเปิดงานเดิม ยังไม่ได้ส่งงานซ้ำ</p> : null}
+
       {jobId ? (
         <section className="mt-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5" aria-live="polite">
-          <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">Google Sheet ล่าสุดที่คุณสร้าง</p>
+          <p className="text-sm leading-[22px] font-semibold tracking-[0.12em] text-[#e0c985]">Google Sheet ล่าสุดที่คุณสร้าง</p>
           <p className="mt-2 text-lg font-semibold">
             {detail ? statusText(detail.job.status) : "กำลังรับสถานะ…"}
           </p>
-          {detail?.job.errorCategory ? <p className="mt-3 text-sm text-rose-200">{detail.job.errorCategory === "marketing-actions-review-required" ? "อัปเดตข้อมูลระบบแล้ว แต่แผนงานมีรายการที่ต้องตรวจ ระบบจึงเก็บข้อมูลที่คุณกรอกไว้ กรุณาแก้รายการที่ขัดแย้งก่อนอัปเดตรอบถัดไป" : "ยังยืนยันผลไฟล์ไม่ได้ ตรวจงานล่าสุดก่อนลองซ้ำ หรือดาวน์โหลด CSV / Excel ได้"}</p> : null}
+          <p className="mt-2 text-sm leading-[22px] text-white/70">อ่านสถานะสำเร็จล่าสุด: {lastSuccessfulReadAt ? new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date(lastSuccessfulReadAt)) : "ยังไม่มีเวลาอ่านที่ยืนยัน"}</p>
+          {pollDegraded && !sessionExpired ? <p role="status" className="mt-3 text-sm leading-6 text-amber-50">ยังอ่านสถานะล่าสุดไม่ได้ กำลังแสดงสถานะที่ยืนยันครั้งก่อน ระบบจะตรวจงานเดิมใหม่โดยไม่ส่งงานซ้ำ</p> : null}
+          {detail?.job.errorCategory ? <p className="mt-3 text-sm leading-[22px] text-rose-200">{detail.job.errorCategory === "marketing-actions-review-required" ? "อัปเดตข้อมูลระบบแล้ว แต่แผนงานมีรายการที่ต้องตรวจ ระบบจึงเก็บข้อมูลที่คุณกรอกไว้ กรุณาแก้รายการที่ขัดแย้งก่อนอัปเดตรอบถัดไป" : "ยังยืนยันผลไฟล์ไม่ได้ ตรวจงานล่าสุดก่อนลองซ้ำ หรือดาวน์โหลด CSV / Excel ได้"}</p> : null}
           <div className="mt-4 flex flex-wrap gap-3">
-            {detail?.job.providerReference?.startsWith("https://docs.google.com/spreadsheets/") ? (
-              <a href={detail.job.providerReference} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-[#e0c985] px-4 text-sm font-medium text-[#251818] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
+            {detail?.job.status === "completed" && detail.job.providerReference?.startsWith("https://docs.google.com/spreadsheets/") ? (
+              <a href={detail.job.providerReference} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-[#e0c985] px-4 text-base font-medium text-[#251818] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
                 เปิด Google Sheet
               </a>
             ) : null}
             {runtimePath ? (
-              <Link href={runtimePath} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-sm text-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
+              <Link href={runtimePath} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-base text-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">
                 ดูสถานะการสร้างไฟล์
               </Link>
             ) : null}
@@ -245,24 +309,24 @@ export function ExportCenter({ initialDataset = "marketing-analytics", compact =
         </section>
       ) : null}
 
-      <Link href="/operations/jobs/" className="mt-4 inline-flex min-h-11 items-center text-sm text-[#e0c985] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">เปิดประวัติงานและไฟล์ที่สร้างไว้</Link>
-      {message ? <p className="mt-4 text-sm text-white/60" role="status">{message}</p> : null}
+      <Link href="/operations/jobs/" className="mt-4 inline-flex min-h-11 items-center text-base text-[#e0c985] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">เปิดประวัติงานและไฟล์ที่สร้างไว้</Link>
+      {message ? <p className="mt-4 text-sm leading-[22px] text-white/75" role="status">{message}</p> : null}
 
       {!compact ? <section className="mt-8 border-t border-white/15 pt-6" aria-labelledby="ubersuggest-import-title">
         <h2 id="ubersuggest-import-title" className="text-lg font-semibold">นำเข้าไฟล์รายงานจากเว็บ Ubersuggest</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-white/70">ใช้ไฟล์ CSV ที่คุณดาวน์โหลดจากเว็บ Ubersuggest ระบบเก็บข้อมูลต้นฉบับและจัดคอลัมน์ให้อ่านง่าย การนำเข้าไม่เรียก Ubersuggest API และไม่ทำให้ข้อมูลเก่ากลายเป็นข้อมูลใหม่ โปรดระบุช่วงข้อมูลจริงจากรายงาน หากเป็นข้อมูล ณ วันเดียวให้ใส่วันเริ่มและวันสิ้นสุดเดียวกัน</p>
+        <p className="mt-2 max-w-3xl text-base leading-6 text-white/70">ใช้ไฟล์ CSV ที่คุณดาวน์โหลดจากเว็บ Ubersuggest ระบบเก็บข้อมูลต้นฉบับและจัดคอลัมน์ให้อ่านง่าย การนำเข้าไม่เรียก Ubersuggest API และไม่ทำให้ข้อมูลเก่ากลายเป็นข้อมูลใหม่ โปรดระบุช่วงข้อมูลจริงจากรายงาน หากเป็นข้อมูล ณ วันเดียวให้ใส่วันเริ่มและวันสิ้นสุดเดียวกัน</p>
         <form onSubmit={importUbersuggest} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm text-white/70 sm:col-span-2">ไฟล์ CSV (ไม่เกิน 2 MB)<input name="file" type="file" accept=".csv,text/csv" required className="mt-2 block min-h-11 w-full rounded-xl border border-white/15 p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
-          <label className="text-sm text-white/70">วันที่ข้อมูลเริ่ม<input name="windowStart" type="date" required className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-white [color-scheme:dark] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
-          <label className="text-sm text-white/70">วันที่ข้อมูลสิ้นสุด<input name="windowEnd" type="date" required className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-white [color-scheme:dark] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
-          <label className="text-sm text-white/70">วันที่ต้นทางอัปเดตล่าสุด (ถ้ารายงานระบุ)<input name="sourceAsOf" type="date" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-white [color-scheme:dark] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /><span className="mt-1 block text-xs leading-5 text-white/60">ใช้วันที่ตามรายงานโดยตรง เว้นว่างหากไม่ทราบ ระบบไม่เติมเวลาและเขตเวลาที่ต้นทางไม่ได้ระบุ</span></label>
-          <label className="text-sm text-white/70">พื้นที่ของรายงาน<input name="market" required maxLength={120} placeholder="เช่น Thailand" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
-          <label className="text-sm text-white/70">ภาษาของรายงาน<input name="language" required maxLength={80} placeholder="เช่น Thai" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
-          <label className="text-sm text-white/70">สกุลเงิน CPC (ถ้ารายงานระบุ)<input name="currency" pattern="[A-Z]{3}" maxLength={3} placeholder="เช่น THB หรือ USD · เว้นว่างหากไม่ทราบ" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
-          <button type="submit" disabled={importBusy} className="min-h-11 self-end rounded-xl border border-[#e0c985]/50 px-4 py-2.5 text-sm text-[#e0c985] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{importBusy ? "กำลังบันทึกไฟล์…" : "บันทึกไฟล์เข้าคลังข้อมูล"}</button>
+          <label className="text-sm leading-[22px] text-white/70 sm:col-span-2">ไฟล์ CSV (ไม่เกิน 2 MB)<input name="file" type="file" accept=".csv,text/csv" required className="mt-2 block min-h-11 w-full rounded-xl border border-white/15 p-3 text-base leading-6 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
+          <label className="text-sm leading-[22px] text-white/70">วันที่ข้อมูลเริ่ม<input name="windowStart" type="date" required className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white [color-scheme:dark] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
+          <label className="text-sm leading-[22px] text-white/70">วันที่ข้อมูลสิ้นสุด<input name="windowEnd" type="date" required className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white [color-scheme:dark] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
+          <label className="text-sm leading-[22px] text-white/70">วันที่ต้นทางอัปเดตล่าสุด (ถ้ารายงานระบุ)<input name="sourceAsOf" type="date" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white [color-scheme:dark] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /><span className="mt-1 block text-sm leading-[22px] text-white/75">ใช้วันที่ตามรายงานโดยตรง เว้นว่างหากไม่ทราบ ระบบไม่เติมเวลาและเขตเวลาที่ต้นทางไม่ได้ระบุ</span></label>
+          <label className="text-sm leading-[22px] text-white/70">พื้นที่ของรายงาน<input name="market" required maxLength={120} placeholder="เช่น Thailand" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
+          <label className="text-sm leading-[22px] text-white/70">ภาษาของรายงาน<input name="language" required maxLength={80} placeholder="เช่น Thai" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
+          <label className="text-sm leading-[22px] text-white/70">สกุลเงิน CPC (ถ้ารายงานระบุ)<input name="currency" pattern="[A-Z]{3}" maxLength={3} placeholder="เช่น THB หรือ USD · เว้นว่างหากไม่ทราบ" className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#251818] px-3 text-base leading-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]" /></label>
+          <button type="submit" disabled={importBusy} className="min-h-11 self-end rounded-xl border border-[#e0c985]/50 px-4 py-2.5 text-base text-[#e0c985] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">{importBusy ? "กำลังบันทึกไฟล์…" : "บันทึกไฟล์เข้าคลังข้อมูล"}</button>
         </form>
         {importMessage ? <p className="mt-4 text-sm leading-6 text-white/80" role="status">{importMessage}</p> : null}
-        <Link href="/analytics/?report=ubersuggest-web-keywords" className="mt-3 inline-flex min-h-11 items-center text-sm text-[#e0c985] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดูรายงาน Ubersuggest ที่บันทึกไว้</Link>
+        <Link href="/analytics/?report=ubersuggest-web-keywords" className="mt-3 inline-flex min-h-11 items-center text-base text-[#e0c985] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e0c985]">ดูรายงาน Ubersuggest ที่บันทึกไว้</Link>
       </section> : null}
     </div>
   );

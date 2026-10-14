@@ -4,55 +4,15 @@ import { auth, signOut } from "@/auth";
 import { AdminProtectedChrome } from "@/features/admin/components/AdminProtectedChrome";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { environmentLabel } from "@/lib/admin/presentation";
-import { hasAdminPermission, type AdminPermission, type AdminRole } from "@/lib/admin/rbac";
+import { hasAdminPermission, type AdminRole } from "@/lib/admin/rbac";
 import { getAdminCapabilityProfile, isAdminCapabilityPathAllowed } from "@/lib/admin/capability-profile";
+import { isPageSeoUatAllowed } from "@/lib/admin/page-seo";
+import { buildAdminNavigation } from "@/features/admin/components/admin-navigation-model";
 
 export const metadata: Metadata = {
   title: { default: "ศูนย์จัดการ CCPun", template: "%s | ศูนย์จัดการ CCPun" },
   robots: { index: false, follow: false, nocache: true },
 };
-
-const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string; permission?: AdminPermission }> }> = [
-  { href: "/dashboard/", label: "ภาพรวม", permission: "dashboard:read", children: [
-      { href: "/dashboard/inbox/", label: "ลูกค้า LINE", permission: "advisor:read" },
-      { href: "/dashboard/campaigns/", label: "ข้อความแจ้งลูกค้า", permission: "campaign:read" },
-      { href: "/dashboard/reviews/", label: "งานรอตรวจ", permission: "reviews:read" },
-  ] },
-  { href: "/content/", label: "เนื้อหา", permission: "content:read", children: [
-      { href: "/content/articles/", label: "บทความ" },
-      { href: "/content/calendar/", label: "ปฏิทินเผยแพร่" },
-      { href: "/content/research/", label: "ข้อมูลประกอบ" },
-  ] },
-  { href: "/seo/", label: "SEO", permission: "seo:read", children: [
-      { href: "/seo/opportunities/", label: "โอกาสพัฒนา" },
-      { href: "/seo/audits/", label: "ผลตรวจ" },
-  ] },
-  { href: "/social/", label: "โซเชียล", permission: "social:read", children: [
-      { href: "/social/posts/", label: "โพสต์" },
-      { href: "/social/calendar/", label: "ปฏิทินโพสต์" },
-      { href: "/social/queue/", label: "คิวส่งโพสต์" },
-      { href: "/social/accounts/", label: "บัญชีที่เชื่อมต่อ" },
-  ] },
-  { href: "/analytics/", label: "ผลลัพธ์", permission: "dashboard:read", children: [
-      { href: "/analytics/search/", label: "ผลการค้นหา" },
-      { href: "/analytics/social/", label: "ผลลัพธ์โซเชียล" },
-      { href: "/analytics/conversions/", label: "เส้นทางลูกค้า" },
-      { href: "/analytics/exports/", label: "ส่งออกข้อมูล", permission: "settings:read" },
-  ] },
-  { href: "/operations/", label: "สถานะระบบ", permission: "settings:read", children: [
-      { href: "/operations/health/", label: "ภาพรวมระบบ" },
-      { href: "/operations/deployments/", label: "เวอร์ชันที่ใช้งาน" },
-      { href: "/operations/jobs/", label: "งานเบื้องหลัง" },
-      { href: "/operations/local-ai/", label: "AI ภายใน" },
-      { href: "/operations/privacy/", label: "ข้อมูลและความเป็นส่วนตัว" },
-      { href: "/operations/audit-log/", label: "ประวัติการทำงาน" },
-  ] },
-  { href: "/settings/", label: "ตั้งค่า", permission: "settings:read", children: [
-      { href: "/settings/integrations/", label: "การเชื่อมต่อ" },
-      { href: "/settings/access/", label: "สิทธิ์ผู้ใช้" },
-      { href: "/settings/system/", label: "ข้อมูลระบบ" },
-  ] },
-];
 
 export default async function ProtectedAdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -63,16 +23,14 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
   const environment = getAdminEnvironment();
   const currentEnvironmentLabel = environmentLabel(environment);
   const capabilityProfile = getAdminCapabilityProfile();
-  const navItems = NAV_ITEMS
-    .filter((item) => hasAdminPermission(role, item.permission))
-    .flatMap((item) => {
-      const children = item.children
-        ?.filter((child) => (!child.permission || hasAdminPermission(role, child.permission)) && isAdminCapabilityPathAllowed(child.href, capabilityProfile))
-        .map(({ href, label }) => ({ href, label }));
-      if (isAdminCapabilityPathAllowed(item.href, capabilityProfile)) return [{ ...item, children }];
-      // Reviews remains available even while its dashboard parent is disabled.
-      return (children ?? []).map((child) => ({ ...child, permission: item.permission, children: undefined }));
-    });
+  const navItems = buildAdminNavigation({
+    profile: capabilityProfile,
+    hasPermission: (permission) => hasAdminPermission(role, permission),
+    isPathAllowed: (path) => isAdminCapabilityPathAllowed(path, capabilityProfile),
+    extraDestinations: role === "owner" && isPageSeoUatAllowed()
+      ? [{ href: "/seo/pages/", label: "SEO หน้าเว็บ · UAT", permissions: ["seo:read"] }]
+      : [],
+  });
   const identityLabel = session?.user?.email ?? session?.user?.name ?? "Admin";
 
   async function logout() {
@@ -84,11 +42,9 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     title="ศูนย์จัดการ CCPun"
     currentEnvironmentLabel={currentEnvironmentLabel}
     identityLabel={identityLabel}
+    draftAuthScope={role === "owner" && session?.user?.email ? JSON.stringify([session.user.email.trim().toLowerCase(), environment, role, capabilityProfile]) : null}
     role={role}
     navItems={navItems}
-    showInbox={hasAdminPermission(role, "advisor:read") && isAdminCapabilityPathAllowed("/dashboard/inbox/", capabilityProfile)}
-    inboxLabel="ลูกค้า LINE"
-    studioLabel="Sanity Studio"
     showLogout={Boolean(session?.user)}
     logout={logout}
     safety={capabilityProfile === "editorial" && (environment === "production-admin" || environment === "local-production") ? (

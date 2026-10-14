@@ -1,9 +1,35 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
+import { createRequire } from "node:module";
+import { runInNewContext } from "node:vm";
 import "./page-seo.test";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+
+test("Owner settings preserves original destinations and requires permission before exposing job context", async () => {
+  const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
+  const compiled = transpileModule(read("features/admin/components/SettingsIndexPage.tsx"), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  const permissions: string[] = [];
+  let denied = false;
+  const loaded = { exports: {} as { SettingsPage: (props: unknown) => Promise<unknown> } };
+  runInNewContext(compiled, { module: loaded, exports: loaded.exports,
+    require: (name: string) => {
+      if (name === "next/link") return { default: "a" };
+      if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) };
+      assert.ok(name.endsWith("/require-permission"));
+      return { requireAdminPermission: async (permission: string) => { permissions.push(permission); if (denied) throw new Error("synthetic-denied"); } };
+    } });
+  const props = { eyebrow: "ตั้งค่า", title: "ตั้งค่า", items: [["/settings/integrations/", "การเชื่อมต่อ", "Synthetic connection"], ["/settings/access/", "สิทธิ์ผู้ใช้", "Synthetic access"], ["/settings/system/", "ข้อมูลระบบ", "Synthetic system"]] };
+  const rendered = JSON.stringify(await loaded.exports.SettingsPage(props));
+  for (const href of ["/settings/integrations/", "/settings/access/", "/settings/system/", "/operations/jobs/"]) assert.ok(rendered.includes(`"href":"${href}"`));
+  assert.match(rendered, /บัญชี/); assert.match(rendered, /งานเบื้องหลัง/);
+  assert.match(rendered, /"type":"details"/);
+  assert.doesNotMatch(rendered, /"onClick"|"action"|พร้อมใช้งานทั้งหมด/);
+  denied = true;
+  await assert.rejects(() => loaded.exports.SettingsPage(props), /synthetic-denied/);
+  assert.deepEqual(permissions, ["settings:read", "settings:read"]);
+});
 
 test("Admin Preview uses the admin feature-branch convention plus exact data-plane guards", () => {
   const runtime = read("lib/admin/social/runtime.ts");

@@ -31,6 +31,7 @@ type FilterableContentRow = {
 };
 
 const REVIEW_STATUS_RANK: Record<string, number> = {
+  drafting: -1,
   "content-review": 0,
   "ready-for-coo": 1,
   approved: 2,
@@ -135,7 +136,7 @@ function documentStatusRank(row: FilterableContentRow) {
 }
 
 function reviewStatusRank(value: string | null | undefined) {
-  if (!value || REVIEW_STATUS_RANK[value] === undefined) return null;
+  if (typeof value !== "string" || !Object.hasOwn(REVIEW_STATUS_RANK, value)) return null;
   return REVIEW_STATUS_RANK[value];
 }
 

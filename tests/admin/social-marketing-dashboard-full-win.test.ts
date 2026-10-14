@@ -229,7 +229,7 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   const page = read("features/admin/social/analytics-page.tsx");
   const dashboard = read("features/admin/social/SocialMarketingDashboard.tsx");
   const visuals = read("features/admin/social/MarketingDashboardVisuals.tsx");
-  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const navigation = read("features/admin/components/admin-navigation-model.ts");
 
   assert.match(page, /view === "raw"/);
   assert.match(page, /getSocialMarketingDashboard/);
@@ -250,7 +250,7 @@ test("Marketing Dashboard keeps Raw Stats, non-dev export paths and explicit dat
   assert.match(visuals, /onError=\{\(\) => setFailedUrl\(url\)\}/);
   assert.match(visuals, /key=\{url\}/);
   assert.doesNotMatch(dashboard + visuals, /recharts|chart\.js|echarts|highcharts|localStorage|sessionStorage/);
-  assert.match(layout, /href: "\/analytics\/social\/", label: "ผลลัพธ์โซเชียล"/);
+  assert.match(navigation, /href: "\/analytics\/social\/", label: "ผลลัพธ์โซเชียล"/);
 });
 
 

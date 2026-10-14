@@ -3,6 +3,7 @@ import { isAbsolute, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ADMIN_NAVIGATION_DESTINATIONS } from "../../features/admin/components/admin-navigation-model";
 
 const read = (path: string) => readCurrentSource(new URL(`../../${path}`, import.meta.url), "utf8");
 
@@ -56,7 +57,7 @@ test("Audit page exposes Scheduler transitions plus links to operational logs", 
 
 
 test("Control Plane navigation exposes only implemented workspaces", () => {
-  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const destinations = new Set(ADMIN_NAVIGATION_DESTINATIONS.map(item => item.href));
   for (const deadEnd of [
     "/seo/keywords/",
     "/seo/internal-links/",
@@ -69,13 +70,13 @@ test("Control Plane navigation exposes only implemented workspaces", () => {
     if (deadEnd === "/analytics/conversions/") {
       // This formerly-placeholder URL now has an actual canonical conversion dashboard.
       assert.match(read("apps/admin/app/(control-plane)/analytics/conversions/page.tsx"), /readConversionAnalytics\(\)/);
-      assert.match(layout, /href: "\/analytics\/conversions\/"/);
+      assert.ok(destinations.has("/analytics/conversions/"));
     } else {
-    assert.doesNotMatch(layout, new RegExp(deadEnd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.equal(destinations.has(deadEnd), false, deadEnd + ": aliases must not become duplicate menu destinations");
     }
   }
   for (const live of ["/seo/opportunities/", "/seo/audits/", "/social/posts/", "/social/calendar/", "/social/queue/", "/analytics/search/", "/analytics/social/"]) {
-    assert.match(layout, new RegExp(live.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.ok(destinations.has(live), live + ": implemented destination remains visible");
   }
 });
 

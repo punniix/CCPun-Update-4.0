@@ -1,0 +1,146 @@
+name: Admin owner redesign UAT current-source checks
+on:
+  push:
+    branches: [codex/admin-owner-redesign-uat-20261014]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: admin-owner-redesign-uat-${{ github.ref }}
+  cancel-in-progress: true
+# This separate UAT lane does not claim historical Foundation code-equivalence or deploy.
+jobs:
+  current-source:
+    if: github.ref == 'refs/heads/codex/admin-owner-redesign-uat-20261014'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact approved scope against b05 baseline
+        id: scope
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const { execFileSync } = require('node:child_process');
+          const { readFileSync } = require('node:fs');
+          const base = 'b05cce92412b327d5a1203e27c5794f17931661b';
+          const git = (...args) => execFileSync('git', args);
+          git('merge-base', '--is-ancestor', base, 'HEAD');
+          const allowed = new Set([
+            '.github/workflows/admin-owner-redesign-uat-ci.yml',
+            'apps/admin/app/(control-plane)/dashboard/inbox/page.tsx',
+            'apps/admin/app/(control-plane)/dashboard/page.tsx',
+            'apps/admin/app/(control-plane)/error.tsx',
+            'apps/admin/app/(control-plane)/layout.tsx',
+            'apps/admin/app/(control-plane)/operations/health/page.tsx',
+            'apps/admin/app/api/internal/local-ai/jobs/[jobId]/route.ts',
+            'apps/admin/app/api/internal/local-ai/reviews/route.ts',
+            'features/admin/analytics/ExportCenter.tsx',
+            'features/admin/analytics/StoredAnalyticsDashboard.tsx',
+            'features/admin/components/AdminNavigation.tsx',
+            'features/admin/components/AdminOwnerChrome.module.css',
+            'features/admin/components/AdminProtectedChrome.tsx',
+            'features/admin/components/AdminDataRefresh.tsx',
+            'features/admin/components/ContentArticlesPage.tsx',
+            'features/admin/components/SettingsIndexPage.tsx',
+            'features/admin/components/admin-navigation-model.ts',
+            'features/admin/line/AdvisorCaseOperations.tsx',
+            'features/admin/line/ChatScreenshotImport.tsx',
+            'features/admin/operations/AgentRuntimeJobStatus.tsx',
+            'lib/admin/agent-os/action-center.ts',
+            'lib/admin/agent-os/calendar-projection.ts',
+            'lib/admin/line/conversation-archive.ts',
+            'workers/local-ai/ocr/app.py',
+            'workers/local-ai/ocr/test_request_limits.py',
+            'tests/admin/agent-os-channel-contracts.test.ts',
+            'tests/admin/chat-screenshot-ocr.test.ts',
+            'tests/admin/local-ai-review-egress.test.ts',
+            'tests/admin/local-ai-production-ops-security.test.ts',
+            'tests/admin/local-ai-enclave.test.ts',
+            'tests/admin/provider-growth-boundary.test.ts',
+            'tests/admin/admin-owner-navigation.test.ts',
+            'tests/admin/admin-platform-extension-contract.test.ts',
+            'tests/admin/admin-responsive-contract.test.ts',
+            'tests/admin/agent-os-export-center.test.ts',
+            'tests/admin/agent-os-runtime-ui.test.ts',
+            'tests/admin/analytics-owner-language.test.ts',
+            'tests/admin/content-filters.test.ts',
+            'tests/admin/line-advisor-inbox.test.ts',
+            'tests/admin/line-user-friendly-presentation.test.ts',
+            'tests/admin/social-operations-2-regression.test.ts',
+            'tests/admin/admin-operations-production.test.ts',
+            'tests/admin/admin-user-language.test.ts',
+            'tests/admin/control-plane-final-closure.test.ts',
+            'tests/admin/line-attribution-privacy-ops.test.ts',
+            'tests/admin/media-library-foundation.test.ts',
+            'tests/admin/social-marketing-dashboard-full-win.test.ts',
+            'tests/admin/social-meta-connection.test.ts',
+            'tests/admin/social-operations-core.test.ts',
+            'tests/admin/social-post-live.test.ts',
+            'tests/admin/ubersuggest-dashboard.test.ts',
+            'tests/vercel-native-regression.mjs',
+            'tests/admin/marketing-presentation.test.ts',
+            'tests/admin/n8n-p1-timeout-reconciliation.test.ts',
+            'lib/admin/presentation.ts',
+            'lib/admin/content-filters.ts',
+            'cms/sanity/schema/objects/review-metadata.ts',
+            'cms/sanity/policy/article-publication.ts',
+            'features/admin/components/SeoReviewInboxPage.tsx',
+            'tests/admin/presentation.test.ts',
+            'tests/admin/article-editorial-status.test.ts',
+          ]);
+          // Every unlisted path stays unchanged, including public/auth/API/proxy/locks/QA/phase fixtures and other CMS/lib modules.
+          const changed = git('diff', '--name-only', '--no-renames', '-z', base, 'HEAD').toString().split('\0').filter(Boolean);
+          assert.deepEqual(changed.filter(path => !allowed.has(path)), [], 'change outside approved UAT paths');
+          const path = 'lib/admin/agent-os/action-center.ts';
+          const original = git('show', base + ':' + path);
+          const current = readFileSync(path);
+          assert.ok(current.subarray(0, original.length).equals(original), 'original action-center bytes changed');
+          const appended = current.subarray(original.length).toString().replace(/\s+/g, '');
+          const selector = `export function selectActionCenterSignals(signals: readonly ActionCenterSignal[], view: "human" | "follow-up",): ActionCenterSignal[] {
+            return signals.filter(signal => view === "human" ? signal.kind === "human_handoff" || signal.kind === "new_lead_unread"
+              : signal.kind === "follow_up_overdue" || signal.kind === "follow_up_today");
+          }`.replace(/\s+/g, '');
+          assert.equal(appended, selector, 'only the reviewed pure selector may be appended');
+          console.log('Approved UAT scope and protected baseline bytes verified');
+          NODE
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        id: dependencies
+        run: npm ci
+      # Run every check once dependencies and scope pass, even if another check fails.
+      - name: Lint current source
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run lint
+      - name: Typecheck current source and Admin
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npx tsc --noEmit --incremental false && npm run typecheck:admin:shadow
+      - name: Architecture and lane boundaries
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run test:architecture
+      - name: Public and tracking regressions
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run test:public
+      - name: Complete current-source Admin suite
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run test:admin
+      - name: Privacy unit contracts
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: node --test tests/sanity-free-plan-privacy.test.mjs
+      - uses: actions/setup-python@v6
+        id: ocr_python
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        with:
+          python-version: '3.10'
+      - name: OCR request checks on the deployed Python version
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' && steps.ocr_python.outcome == 'success' }}
+        run: |
+          # ponytail: only request-test dependencies; the mocked engine needs no model download.
+          python -m pip install fastapi==0.116.1 Pillow==11.3.0
+          PYTHONDONTWRITEBYTECODE=1 python workers/local-ai/ocr/test_request_limits.py

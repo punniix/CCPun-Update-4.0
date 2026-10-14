@@ -6,6 +6,7 @@ import { runInNewContext } from "node:vm";
 import { z } from "zod";
 import * as jobCopy from "../../features/admin/operations/job-copy";
 import { isPostPublishAdminOriginAllowed } from "../../lib/admin/seo-intelligence/post-publish-origin";
+import type { AgentRuntimeJobDetail } from "../../lib/admin/operations/agent-os-runtime-detail";
 
 const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
 const source = readFileSync(new URL("../../apps/admin/app/api/admin/operations/jobs/[jobId]/route.ts", import.meta.url), "utf8");
@@ -118,14 +119,20 @@ test("existing job UI exposes explicit owner timeout action and reports stale ve
     return [...(element.type === "button" ? [element] : []), ...buttons(element.props.children)];
   }
   async function fixture(permission: boolean, age: number, status = 200) {
-    const initial = { job: { ...initialJob, startedAt: new Date(now - age).toISOString(), attempt: 1, maxAttempts: 2,
-      queuedAt: initialJob.startedAt, createdAt: initialJob.startedAt, n8nExecutionId: null, providerReference: null, errorCategory: null },
-      terminal: false, elapsedMs: age, pace: "unknown", baseline: { sampleSize: 0 }, events: [] };
+    const initial = { job: { ...initialJob, source: "admin", status: "waiting_external", startedAt: new Date(now - age).toISOString(), attempt: 1, maxAttempts: 2,
+      correlationId: "00000000-0000-4000-8000-000000000020", requestId: "00000000-0000-4000-8000-000000000021",
+      payloadDigestSha256: "a".repeat(64), queueClass: "normal",
+      queuedAt: initialJob.startedAt, createdAt: initialJob.startedAt, updatedAt: new Date(now).toISOString(),
+      completedAt: null, heartbeatAt: null, durationMs: null, queueWaitMs: null,
+      n8nExecutionId: null, providerReference: null, errorCategory: null },
+      terminal: false, elapsedMs: age, heartbeatAgeMs: null, pace: "unknown", serverNow: new Date(now).toISOString(),
+      baseline: { sampleSize: 0, p50Ms: null, p90Ms: null }, events: [], eventsState: "ready" } satisfies AgentRuntimeJobDetail;
     const states: unknown[] = []; let index = 0;
     const calls: Array<{ path: string; options?: RequestInit }> = [];
     const loaded = { exports: {} as { AgentRuntimeJobStatus: (props: unknown) => unknown } };
+    class Clock extends Date { static now() { return now; } }
     runInNewContext(ui, {
-      exports: loaded.exports, module: loaded, Date: { now: () => now, parse: Date.parse },
+      exports: loaded.exports, module: loaded, Date: Clock,
       fetch: async (path: string, options?: RequestInit) => {
         calls.push({ path, options });
         return options?.method === "PATCH"
@@ -139,6 +146,7 @@ test("existing job UI exposes explicit owner timeout action and reports stale ve
         };
         assert.equal(name, "react");
         return { useEffect: () => {}, useMemo: (value: () => unknown) => value(),
+          useRef: (value: unknown) => { const slot = index++; if (!(slot in states)) states[slot] = { current: value }; return states[slot]; },
           useState: (value: unknown) => {
             const slot = index++;
             states[slot] = typeof value === "function" ? (value as () => unknown)() : value;

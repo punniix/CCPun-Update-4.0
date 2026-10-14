@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { ADMIN_NAVIGATION_DESTINATIONS } from "../../features/admin/components/admin-navigation-model";
 import type { DeploymentReadModel } from "../../lib/admin/operations/deployment-read-model";
 import {
   ADMIN_OPERATIONS_PRODUCTION_MIGRATION_CHECKSUM,
@@ -89,8 +90,11 @@ test("owner-facing Admin surfaces health and explicit SEO re-audit", () => {
   const audit = read("apps/admin/app/(control-plane)/operations/audit-log/page.tsx");
   const runtime = read("lib/admin/growth.ts");
   const button = read("features/admin/components/RunSeoAuditButton.tsx");
-  assert.match(layout, /\/operations\/health\//);
-  assert.match(layout, /permission: "settings:read"/);
+  const healthDestination = ADMIN_NAVIGATION_DESTINATIONS.find(item => item.href === "/operations/health/");
+  assert.ok(healthDestination);
+  assert.deepEqual(healthDestination.permissions, ["settings:read"]);
+  assert.match(layout, /hasAdminPermission\(role, permission\)/);
+  assert.match(layout, /isAdminCapabilityPathAllowed\(path, capabilityProfile\)/);
   assert.match(health, /ศูนย์จัดการที่กำลังใช้งาน/);
   assert.match(health, /getAdminDeploymentIdentity/);
   assert.match(runtime, /ยังไม่ใช่ผลตรวจ deployment ของเว็บสาธารณะ HTTPS/);

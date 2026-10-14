@@ -136,6 +136,7 @@ test("Social operations API is authenticated, exact-origin and GET-only", () => 
   const route = read("apps/admin/app/api/admin/social/operations/route.ts");
   const page = read("apps/admin/app/(control-plane)/social/[section]/page.tsx");
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const navigation = read("features/admin/components/admin-navigation-model.ts");
   const distribution = read("features/admin/social/page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
@@ -144,7 +145,7 @@ test("Social operations API is authenticated, exact-origin and GET-only", () => 
   assert.doesNotMatch(route, /export async function (?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(route, /fetch\(|\b(?:INSERT|UPDATE|DELETE|POST|PATCH|PUT)\b/i);
   assert.match(page, /import SocialOperationsPage from "@\/features\/admin\/social\/operations-page"/);
-  assert.match(layout, /\{ href: "\/social\/", label: "โซเชียล"/);
+  assert.match(navigation, /\{ href: "\/social\/", label: "ภาพรวมโซเชียล", permissions: \["social:read"\]/);
   assert.doesNotMatch(layout, /socialEnabled/);
   assert.doesNotMatch(distribution, /redirect\(/);
 });

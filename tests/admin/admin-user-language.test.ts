@@ -8,13 +8,14 @@ const read = (file: string) => readFileSync(path.join(root, file), "utf8");
 
 test("Admin navigation and entry screens keep Thai UI with canonical English product terms", () => {
   const navigation = read("apps/admin/app/(control-plane)/layout.tsx")
-    + read("features/admin/components/AdminNavigation.tsx");
+    + read("features/admin/components/AdminNavigation.tsx")
+    + read("features/admin/components/admin-navigation-model.ts");
   const entry = read("apps/admin/app/(control-plane-auth)/login/page.tsx")
     + read("apps/admin/app/layout.tsx");
 
   assert.match(navigation, /ภาพรวม/);
   assert.match(navigation, /ลูกค้า LINE/);
-  assert.match(navigation, /label: "เนื้อหา"/);
+  assert.match(navigation, /\["content", "คอนเทนต์"\]/);
   assert.doesNotMatch(navigation, />Overview</);
   assert.doesNotMatch(navigation, />Section</);
   assert.match(entry, /ศูนย์จัดการ CCPun/);
@@ -77,6 +78,7 @@ test("professional and product terms use canonical English instead of Thai trans
     read("apps/admin/app/(control-plane)/operations/jobs/[jobId]/page.tsx"),
     read("apps/admin/app/(control-plane)/settings/[section]/page.tsx"),
     read("apps/admin/app/(control-plane)/layout.tsx"),
+    read("features/admin/components/AdminNavigation.tsx"),
     read("features/admin/operations/AgentRuntimeJobStatus.tsx"),
   ].join("\n");
   for (const term of ["Performance Marketing", "Top Content", "Action Plan", "Agent OS Runtime", "Workflow", "Runtime", "Sanity Studio"]) assert.match(source, new RegExp(term));

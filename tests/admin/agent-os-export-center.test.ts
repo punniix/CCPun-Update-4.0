@@ -1,10 +1,142 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { runInNewContext } from "node:vm";
 import test from "node:test";
 import { resolveGoogleSheetExportRuntime } from "../../lib/admin/agent-os/export-runtime";
 import { N8N_ADMIN_INTEGRATIONS, n8nAdminIntegrationSummary } from "../../lib/admin/n8n-integration-registry";
+import { buildAdminNavigation } from "../../features/admin/components/admin-navigation-model";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
+
+function exportHarness(saved: unknown, request: (path: string, options?: { method?: string }) => Promise<unknown>) {
+  const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
+  const compiled = transpileModule(read("features/admin/analytics/ExportCenter.tsx"), { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  const slots: unknown[] = [];
+  let index = 0;
+  const effects: Array<() => void | (() => void)> = [];
+  const timeouts: Array<() => void> = [];
+  const intervals = new Map<number, () => Promise<void>>();
+  const storage = new Map<string, string>(saved ? [["ccpun-owner-sheet-job", JSON.stringify(saved)]] : []);
+  const loaded = { exports: {} as { ExportCenter: () => unknown } };
+  runInNewContext(compiled, { module: loaded, exports: loaded.exports, Date, Intl, JSON, encodeURIComponent,
+    fetch: request, window: {
+      localStorage: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) },
+      setTimeout: (fn: () => void) => { timeouts.push(fn); return timeouts.length; }, clearTimeout: () => {},
+      setInterval: (fn: () => Promise<void>) => { intervals.set(3000, fn); return 3000; }, clearInterval: (id: number) => intervals.delete(id),
+    }, require: (name: string) => {
+      if (name === "next/link") return { default: "a" };
+      if (name === "@/lib/admin/agent-os/export-contract") return { PERFORMANCE_MARKETING_TABS: ["Performance Overview"] };
+      if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) };
+      assert.equal(name, "react");
+      return { useEffect: (fn: () => void | (() => void)) => effects.push(fn),
+        useRef: (value: unknown) => { const slot = index++; if (!(slot in slots)) slots[slot] = { current: value }; return slots[slot]; },
+        useState: (value: unknown) => { const slot = index++; if (!(slot in slots)) slots[slot] = value; return [slots[slot], (next: unknown) => { slots[slot] = next; }]; },
+      };
+    } });
+  const render = () => { index = 0; effects.length = 0; return loaded.exports.ExportCenter(); };
+  const startEffects = () => effects.map(fn => fn());
+  render(); startEffects(); timeouts.splice(0).forEach(fn => fn()); render();
+  return { render, startEffects, intervals, storage };
+}
+
+type TestNode = { type?: unknown; props?: { children?: unknown; onClick?: () => Promise<void>; disabled?: boolean; href?: string } };
+function sheetButton(tree: unknown): NonNullable<TestNode["props"]> {
+  const found: NonNullable<TestNode["props"]>[] = [];
+  function visit(value: unknown) {
+    if (Array.isArray(value)) { value.forEach(visit); return; }
+    if (!value || typeof value !== "object") return;
+    const node = value as TestNode;
+    if (node.type === "button" && node.props?.onClick && JSON.stringify(node.props.children).includes("Google Sheet")) found.push(node.props);
+    visit(node.props?.children);
+  }
+  visit(tree);
+  assert.equal(found.length, 1);
+  return found[0];
+}
+
+test("R2 export polls the same saved job through non-OK, recovery and 401 without creating another", async () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const calls: string[] = [];
+  const good = { terminal: false, job: { jobId: id, status: "waiting_external", stage: "synthetic", providerReference: null, errorCategory: null } };
+  let response: () => Promise<unknown> = async () => ({ ok: true, json: async () => good });
+  const harness = exportHarness({ jobId: id, runtimePath: `/operations/jobs/${id}/`, dataset: "marketing-analytics" }, async (path, options) => {
+    assert.equal(options?.method, undefined); calls.push(path); return response();
+  });
+  const cleanup = harness.startEffects();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  const poll = harness.intervals.get(3000)!;
+  assert.equal(sheetButton(harness.render()).disabled, true);
+  for (const failure of [
+    async () => ({ ok: false, status: 503, json: () => assert.fail("non-OK body must not be read") }),
+    async () => { throw new Error("PRIVATE_NETWORK_CANARY"); },
+    async () => ({ ok: true, json: async () => ({ terminal: false }) }),
+    async () => ({ ok: true, json: async () => ({ ...good, job: { ...good.job, jobId: "synthetic-wrong-job", status: "completed", providerReference: "https://docs.google.com/spreadsheets/d/wrong/edit" } }) }),
+  ]) {
+    response = failure; await poll();
+    const rendered = JSON.stringify(harness.render());
+    assert.match(rendered, /ยังอ่านสถานะล่าสุดไม่ได้/);
+    assert.match(rendered, /กำลังรอ Google/);
+    assert.doesNotMatch(rendered, /PRIVATE_NETWORK_CANARY/);
+  }
+  response = async () => ({ ok: true, json: async () => ({ ...good, terminal: true, job: { ...good.job, status: "reconciliation_required", providerReference: "https:\/\/docs.google.com/spreadsheets/d/synthetic/edit" } }) });
+  await poll();
+  assert.equal(sheetButton(harness.render()).disabled, true);
+  assert.doesNotMatch(JSON.stringify(harness.render()), /เปิด Google Sheet/);
+  response = async () => ({ ok: false, status: 401, json: () => assert.fail("401 body must not be read") });
+  await poll(); const before = calls.length; await poll();
+  assert.equal(calls.length, before);
+  assert.match(JSON.stringify(harness.render()), /เซสชันหมดอายุ/);
+  assert.ok(calls.every(path => path === `/api/admin/operations/jobs/${id}/`));
+  cleanup.forEach(fn => { if (typeof fn === "function") fn(); });
+});
+
+test("R2 export same-tick double click sends once and unknown response survives reopening", async () => {
+  let posts = 0;
+  let rejectRequest!: (error: Error) => void;
+  const harness = exportHarness(null, async (_path, options) => {
+    assert.equal(options?.method, "POST"); posts++;
+    return new Promise((_resolve, reject) => { rejectRequest = reject; });
+  });
+  const button = sheetButton(harness.render());
+  assert.equal(button.disabled, false);
+  const first = button.onClick!();
+  await button.onClick!();
+  assert.equal(posts, 1);
+  const pending = JSON.parse(harness.storage.get("ccpun-owner-sheet-job")!);
+  assert.equal(pending.creationUncertain, true);
+  rejectRequest(new Error("PRIVATE_RESPONSE_CANARY")); await first;
+  assert.equal(sheetButton(harness.render()).disabled, true);
+  assert.match(JSON.stringify(harness.render()), /ยังยืนยันผล/);
+  const reopened = exportHarness(JSON.parse(harness.storage.get("ccpun-owner-sheet-job")!), async () => assert.fail("unknown export must not redispatch on reopening"));
+  assert.equal(sheetButton(reopened.render()).disabled, true);
+  await sheetButton(reopened.render()).onClick!();
+  assert.equal(posts, 1);
+});
+
+test("R2 export preserves the previous job until a 202 returns a new identity and never calls acceptance completed", async () => {
+  const oldId = "11111111-1111-4111-8111-111111111111";
+  const newId = "22222222-2222-4222-8222-222222222222";
+  let accept!: (value: unknown) => void;
+  const harness = exportHarness({ jobId: oldId, runtimePath: `/operations/jobs/${oldId}/` }, async (_path, options) => options?.method === "POST"
+    ? new Promise(resolve => { accept = resolve; })
+    : { ok: true, json: async () => ({ terminal: true, job: { jobId: oldId, status: "completed", stage: "synthetic", providerReference: null, errorCategory: null } }) });
+  const cleanup = harness.startEffects();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  const button = sheetButton(harness.render());
+  assert.equal(button.disabled, false);
+  const request = button.onClick!();
+  assert.equal(JSON.parse(harness.storage.get("ccpun-owner-sheet-job")!).jobId, oldId);
+  assert.match(JSON.stringify(harness.render()), new RegExp(oldId));
+  accept({ ok: true, status: 202, json: async () => ({ jobId: newId, runtimePath: `/operations/jobs/${newId}/` }) });
+  await request;
+  const rendered = JSON.stringify(harness.render());
+  assert.equal(JSON.parse(harness.storage.get("ccpun-owner-sheet-job")!).jobId, newId);
+  assert.doesNotMatch(rendered, /เสร็จแล้ว|เปิด Google Sheet/);
+  assert.match(rendered, /รับงานแล้ว/);
+  assert.equal(sheetButton(harness.render()).disabled, true);
+  cleanup.forEach(fn => { if (typeof fn === "function") fn(); });
+});
 
 test("Export Center is owner-facing and keeps generic raw conversations out", () => {
   const contract = read("lib/admin/agent-os/export-contract.ts");
@@ -13,7 +145,11 @@ test("Export Center is owner-facing and keeps generic raw conversations out", ()
   const center = read("features/admin/analytics/ExportCenter.tsx");
   assert.match(page, /ส่งออกข้อมูล/);
   assert.match(page, /settings:read/);
-  assert.match(layout, /\/analytics\/exports\//);
+  assert.match(layout, /buildAdminNavigation\(/);
+  const navigation = buildAdminNavigation({ profile: "full", hasPermission: () => true, isPathAllowed: () => true });
+  assert.ok(navigation.flatMap(item => item.children).some(item => item.href === "/analytics/exports/"));
+  const restricted = buildAdminNavigation({ profile: "full", hasPermission: permission => permission !== "settings:read", isPathAllowed: () => true });
+  assert.equal(restricted.flatMap(item => item.children).some(item => item.href === "/analytics/exports/"), false);
   assert.match(center, /social-performance/);
   assert.match(center, /seo-intelligence/);
   assert.match(center, /Social Performance/);

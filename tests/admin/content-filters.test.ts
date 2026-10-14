@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { runInNewContext } from "node:vm";
 import {
   defaultContentSortOrder,
   filterContentRows,
@@ -10,6 +13,46 @@ import {
   resolveContentSort,
   sortContentRows,
 } from "../../lib/admin/content-filters";
+
+test("Owner content presentation preserves selected filters, exact draft actions and the read-only boundary", async () => {
+  const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
+  const source = readFileSync(new URL("../../features/admin/components/ContentArticlesPage.tsx", import.meta.url), "utf8");
+  const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  let studioReady = true;
+  const permissions: string[] = [];
+  const loaded = { exports: {} as { AdminContentPage: (props: unknown, copy: unknown) => Promise<unknown> } };
+  const row = { id: "drafts.synthetic-one", title: "Synthetic article", category: "ประกันชีวิต", tags: ["Retirement"], isDraft: true, hasPublished: false, seoScore: 70, updatedAt: "2026-10-14T02:00:00Z" };
+  runInNewContext(compiled, { module: loaded, exports: loaded.exports, Date, Intl, URLSearchParams, encodeURIComponent,
+    require: (name: string) => {
+      if (name === "next/link") return { default: "a" };
+      if (name === "react/jsx-runtime") { const jsx = (type: unknown, props: unknown) => typeof type === "function" ? type(props) : ({ type, props }); return { jsx, jsxs: jsx }; }
+      if (name.endsWith("/content-filters")) return { defaultContentSortOrder, getContentTags, resolveContentFilters };
+      if (name.endsWith("/presentation")) return { adminDataLaneLabel: () => "UAT", connectionLabel: () => "synthetic-readiness", contentReviewStatusLabel: () => "รอตรวจ", friendlyApiError: () => "ยังอ่านไม่ได้" };
+      if (name.endsWith("/environment")) return { isStudioDataPlaneAllowed: () => studioReady };
+      if (name.endsWith("/require-permission")) return { requireAdminPermission: async (permission: string) => permissions.push(permission) };
+      if (name.endsWith("/sanity-control")) return { listAdminArticles: async () => ({ rows: [row, { ...row, id: "synthetic-other", category: "การเงินส่วนบุคคล" }], status: { dataset: "uat", readReady: true, writeReady: false, environment: "admin-uat" } }) };
+      if (name.endsWith("/seo-audit")) return { runSeoAudit: () => assert.fail("presentation must not trigger a new audit for this fixture") };
+      if (name.endsWith("/seo-heuristics")) return { SEO_AUDIT_VERSION: "synthetic" };
+      if (name.endsWith("/studio-policy")) return { getStudioArticleEditHref: (id: string) => `/studio/intent/edit/id=${id}` };
+      assert.fail(`Unexpected module ${name}`);
+    } });
+  const props = { searchParams: Promise.resolve({ category: "ประกันชีวิต", tag: "Retirement", sort: "title", order: "asc" }) };
+  const copy = { dataset: (value: string) => value, reviewHref: "/seo/opportunities/" };
+  const editable = JSON.stringify(await loaded.exports.AdminContentPage(props, copy));
+  assert.match(editable, /synthetic-one/);
+  assert.doesNotMatch(editable, /synthetic-other/);
+  assert.match(editable, /category=%E0%B8/);
+  assert.match(editable, /tag=Retirement/);
+  assert.match(editable, /sort=title/);
+  assert.match(editable, /order=desc/);
+  assert.match(editable, /\/api\/admin\/content\/synthetic-one\/preview/);
+  assert.match(editable, /\/studio\/intent\/edit\/id=drafts.synthetic-one/);
+  studioReady = false;
+  const readOnly = JSON.stringify(await loaded.exports.AdminContentPage(props, copy));
+  assert.doesNotMatch(readOnly, /\/studio\/intent\/create|เปิดแก้ใน Studio/);
+  assert.match(readOnly, /อ่านอย่างเดียว/);
+  assert.deepEqual(permissions, ["content:read", "content:read"]);
+});
 
 const rows = [
   { id: "one", category: " ประกันชีวิต ", tags: [" ประกันสุขภาพ ", "ประกันสุขภาพ", ""] },
@@ -99,4 +142,26 @@ test("filters and sorting resolve together without mutating the source rows", ()
   assert.equal(resolved.order, "desc");
   assert.deepEqual(resolved.rows.map((row) => row.id), ["published-draft", "draft"]);
   assert.deepEqual(sortableRows, source);
+});
+
+
+test("legitimate drafting sorts before review while missing, future and prototype values remain last", () => {
+  const rows = [
+    { id: "approved", title: "Approved", reviewStatus: "approved" },
+    { id: "unknown", title: "Unknown", reviewStatus: "future-status" },
+    { id: "ready", title: "Ready", reviewStatus: "ready-for-coo" },
+    { id: "drafting", title: "Drafting", reviewStatus: "drafting" },
+    { id: "review", title: "Review", reviewStatus: "content-review" },
+    { id: "missing", title: "Missing", reviewStatus: null },
+    ...["constructor", "toString", "__proto__"].map(value => ({ id: value, title: value, reviewStatus: value })),
+  ];
+  const original = JSON.stringify(rows);
+  const known = new Set(["drafting", "review", "ready", "approved"]);
+  for (const order of ["asc", "desc"] as const) {
+    const sorted = sortContentRows(rows, "review-status", order).map(row => row.id);
+    assert.deepEqual(sorted.slice(0, 4), order === "asc" ? ["drafting", "review", "ready", "approved"] : ["approved", "ready", "review", "drafting"]);
+    assert.equal(sorted.slice(4).some(id => known.has(id)), false);
+    assert.equal(sorted.length, rows.length, "sorting retains every row, including unknown metadata");
+  }
+  assert.equal(JSON.stringify(rows), original);
 });

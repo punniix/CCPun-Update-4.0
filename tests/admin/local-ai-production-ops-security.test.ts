@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
+import { z } from "zod";
 
 import {
   LOCAL_AI_QUEUE_POLICY,
+  localAiJobStatusSchema,
+  localAiReviewStatusSchema,
+  parseLocalAiTaskOutput,
   parseLocalAiTaskResult,
 } from "../../lib/local-ai/contracts";
 import { createLocalAiRequestFingerprint } from "../../lib/local-ai/crypto";
@@ -245,4 +251,124 @@ test("monitoring is metadata-only and private processing remains hard-disabled",
 
   const enqueueRoute = read("apps/admin/app/api/internal/local-ai/jobs/route.ts");
   assert.doesNotMatch(enqueueRoute, /z\.literal\("(?:line-intent|privacy-redaction)"\)/);
+});
+
+test("n8n detail GET gates private, unreviewed and malformed outputs without provider calls", async () => {
+  // The real route and output validators run with synthetic DB/auth/NextResponse adapters.
+  // This verifies output gating, not deployed consumer ownership or scoped capabilities.
+  type SyntheticJob = Record<string, unknown>;
+  type SyntheticResponse = { body: Record<string, unknown>; status: number; headers: Record<string, string> };
+  let job: SyntheticJob | null = null;
+  let reads = 0;
+  let lastReadId: string | null = null;
+  let authorized = true;
+  let failRead = false;
+  const jobId = "a1000000-0000-4000-8000-000000000001";
+  const otherId = "b2000000-0000-4000-8000-000000000002";
+  const canary = "PRIVATE_CANARY";
+  const loaded = { exports: {} as {
+    GET: (request: Request, context: { params: Promise<{ jobId: string }> }) => Promise<SyntheticResponse>;
+  } };
+  const source = read("apps/admin/app/api/internal/local-ai/jobs/[jobId]/route.ts");
+  runInNewContext(ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText, {
+    module: loaded,
+    exports: loaded.exports,
+    require: (name: string) => {
+      if (name === "next/server") return {
+        NextResponse: { json: (body: Record<string, unknown>, options: { status?: number; headers: Record<string, string> }) =>
+          ({ body, status: options.status ?? 200, headers: options.headers }) },
+      };
+      if (name === "zod") return { z };
+      if (name === "@/lib/local-ai/contracts") return {
+        localAiJobStatusSchema, localAiReviewStatusSchema, parseLocalAiTaskOutput,
+      };
+      if (name === "@/lib/admin/local-ai/database") return {
+        readLocalAiJob: async (id: string) => {
+          reads++;
+          lastReadId = id;
+          if (failRead) throw new Error(canary);
+          return job;
+        },
+      };
+      if (name === "@/lib/admin/local-ai/service-auth") return {
+        isN8nLocalAiRequestAuthorized: () => authorized,
+      };
+      throw new Error("unexpected fixture import");
+    },
+    Request, Response, Headers, Buffer, Date,
+  });
+  const base = {
+    id: jobId, taskType: "content-operations", dataClass: "public-safe",
+    status: "succeeded", reviewStatus: "approved", output: contentOutput,
+    errorCategory: "worker-failure", updatedAt: "2026-10-14T00:00:00.000Z",
+  };
+  let cases = 0;
+  async function check(record: SyntheticJob | null, expectedStatus: number, exposesOutput: boolean, pathId = jobId) {
+    job = record;
+    const response = await loaded.exports.GET(
+      new Request(`https://admin.invalid/api/internal/local-ai/jobs/${pathId}/`),
+      { params: Promise.resolve({ jobId: pathId }) },
+    );
+    assert.equal(response.status, expectedStatus);
+    assert.match(response.headers["Cache-Control"]!, /no-store/);
+    assert.match(response.headers["X-Robots-Tag"]!, /noindex/);
+    assert.equal(response.headers["X-Content-Type-Options"], "nosniff");
+    assert.equal(JSON.stringify(response.body).includes(canary), false);
+    if (expectedStatus === 200) {
+      assert.equal(response.body.output === null, !exposesOutput);
+      if (exposesOutput) assert.deepEqual(
+        JSON.parse(JSON.stringify(response.body.output)),
+        JSON.parse(JSON.stringify(record!.output)),
+      );
+    }
+    cases++;
+    return response;
+  }
+  for (const reviewStatus of ["approved", "pending", "rejected"]) {
+    await check({
+      ...base, dataClass: "customer-private", taskType: "privacy-redaction", reviewStatus,
+      output: { redactedText: canary, piiTypes: [], detectedCount: 1, reviewRequired: true },
+    }, 404, false);
+  }
+  await check({ ...base, dataClass: "unknown", output: { text: canary } }, 404, false);
+  await check({ ...base, id: otherId, output: { text: canary } }, 404, false);
+  for (const taskType of ["privacy-redaction", "line-intent", "constructor", "unknown"]) {
+    await check({ ...base, taskType, output: { text: canary } }, 404, false);
+  }
+  for (const status of ["queued", "leased", "succeeded", "failed", "reconciliation-required", "cancelled"]) {
+    for (const reviewStatus of ["approved", "pending", "rejected", null]) {
+      const exposesOutput = status === "succeeded" && reviewStatus === "approved";
+      await check({
+        ...base, status, reviewStatus, output: exposesOutput ? contentOutput : { text: canary },
+      }, 200, exposesOutput);
+    }
+  }
+  await check({ ...base, taskType: "seo-preprocessing", output: seoOutput }, 200, true);
+  for (const output of [
+    null,
+    { ...contentOutput, notes: canary },
+    { ...contentOutput, faqCandidates: [{ question: "Q", answerDraft: "A", notes: canary }] },
+    { ...contentOutput, reviewRequired: false },
+  ]) await check({ ...base, output }, 503, false);
+  await check({ ...base, status: "future" }, 503, false);
+  await check({ ...base, reviewStatus: "future" }, 503, false);
+  await check(null, 404, false);
+  const beforeInvalid = reads;
+  await check(base, 404, false, canary);
+  assert.equal(reads, beforeInvalid);
+  authorized = false;
+  await check(base, 401, false);
+  assert.equal(reads, beforeInvalid);
+  authorized = true;
+  failRead = true;
+  await check(base, 503, false);
+  failRead = false;
+  const firstPoll = await check(base, 200, true);
+  assert.deepEqual(await check(base, 200, true), firstPoll);
+  const uppercase = await check(base, 200, true, jobId.toUpperCase());
+  assert.equal(lastReadId, jobId);
+  assert.equal(uppercase.body.jobId, jobId);
+  assert.equal(cases, 47);
 });
