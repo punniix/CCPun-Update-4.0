@@ -194,7 +194,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
 
       {!operations.identityValid ? (
         <section className="mt-4 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-4 text-base leading-6 text-amber-50">
-          ระบบหยุดการอ่านและบันทึกประวัติ ข้อเสนอ และผลตรวจ SEO ไว้ก่อน จนกว่าจะยืนยันได้ว่าเชื่อมต่อฐานข้อมูลส่วนตัวชุดที่ถูกต้อง <Link href="/operations/health/" className="font-medium underline underline-offset-4">ดูสถานะระบบ</Link>
+          ระบบหยุดการอ่านและบันทึกประวัติ ข้อเสนอ และผลตรวจ SEO ไว้ก่อน จนกว่าจะยืนยันได้ว่าเชื่อมต่อฐานข้อมูลส่วนตัวชุดที่ถูกต้อง <Link href="/operations/health/" className="inline-flex min-h-11 items-center text-base leading-6 font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">ดูสถานะระบบ</Link>
         </section>
       ) : null}
 
