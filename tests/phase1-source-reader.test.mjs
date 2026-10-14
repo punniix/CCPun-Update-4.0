@@ -68,4 +68,27 @@ test('every frozen entry has a registered original-output fixture and every seal
   assert.equal(Object.keys(proof.owners).length, 24); // 23 new owners + existing canonical Studio client.
 });
 
-test('all 73 current UAT canonical root aliases remain byte-identical', () => { const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8'); const proof = JSON.parse(read('qa/phase1-source-ownership.json')); assert.equal(Object.keys(proof.preservedRootAliases).length, 73); for (const [file, digest] of Object.entries(proof.preservedRootAliases)) assert.equal(createHash('sha256').update(read(file)).digest('hex'), digest, file); });
+test('73 original UAT aliases preserve their bytes except the reviewed Home metadata export; current ownership totals 79', () => {
+  const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const sha = source => createHash('sha256').update(source).digest('hex');
+  const proof = JSON.parse(read('qa/phase1-source-ownership.json'));
+  const metadata = JSON.parse(read('qa/page-seo-compat-owners.json'));
+  assert.equal(Object.keys(proof.preservedRootAliases).length, 73);
+  assert.equal(metadata.baseline, '7148dcdf3283a079a5f9bdc929867ea0ba7312d6');
+  assert.deepEqual(metadata.pairs.map(owner => owner.legacy), ['app/page.tsx', 'app/blog/page.tsx', 'app/ci-planning/page.tsx', 'app/tools/financial-health-check/page.tsx', 'app/play/money-story/page.tsx', 'app/privacy/page.tsx', 'app/cookie-policy/page.tsx']);
+  assert.equal(new Set([...Object.keys(proof.preservedRootAliases), ...metadata.pairs.map(owner => owner.legacy)]).size, 79);
+  for (const [file, digest] of Object.entries(proof.preservedRootAliases)) {
+    const current = read(file);
+    if (file === 'app/page.tsx') {
+      const owner = metadata.pairs[0];
+      assert.deepEqual(Object.keys(owner), ['legacy', 'canonical', 'beforeSha256', 'beforeSource', 'wrapper', 'status']);
+      assert.equal(owner.canonical, 'apps/web/app/page.tsx');
+      assert.equal(owner.status, 'migrated');
+      assert.equal(owner.beforeSha256, digest);
+      assert.equal(sha(owner.beforeSource), digest);
+      assert.equal(owner.wrapper, 'export { default, generateMetadata } from "@/apps/web/app/page";\n');
+      assert.equal(current, owner.wrapper);
+      assert.equal(sha(current.replace(', generateMetadata', '')), digest, file + ': only the reviewed metadata export may be added');
+    } else assert.equal(sha(current), digest, file);
+  }
+});

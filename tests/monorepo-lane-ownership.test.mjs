@@ -51,9 +51,19 @@ test('Web legal and not-found routes share canonical feature implementations', (
   for (const [route, shared] of pages) {
     const specifier = '@/' + shared.replace(/\.tsx$/, '');
     const wrapper = 'export { metadata, default } from "' + specifier + '";\n';
-    for (const prefix of ['app/', 'apps/web/app/']) {
-      const routeSource = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
-      assert.equal(routeSource, wrapper, prefix + route + ' must not duplicate shared implementation');
+    if (route !== 'not-found.tsx') {
+      const rootSource = readFileSync(new URL('../app/' + route, import.meta.url), 'utf8');
+      assert.equal(rootSource, 'export { default, generateMetadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n', 'Root legal route must forward the native metadata owner');
+      const nativeSource = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
+      assert.ok(nativeSource.includes('import { metadata as defaults } from "' + specifier + '";'), 'native legal metadata must retain its original feature defaults');
+      assert.ok(nativeSource.includes('export { default } from "' + specifier + '";'), 'native legal body must retain its original feature owner');
+      assert.ok(nativeSource.includes('return resolvePageSeoMetadata("/' + route.replace(/page\.tsx$/, '') + '", defaults, parent);'), 'native legal metadata must resolve the exact public pathname');
+      assert.doesNotMatch(nativeSource, /export default function /, 'native legal entrypoint must not duplicate the feature body');
+    } else {
+      for (const prefix of ['app/', 'apps/web/app/']) {
+        const routeSource = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
+        assert.equal(routeSource, wrapper, prefix + route + ' must not duplicate shared implementation');
+      }
     }
     const sharedSource = readFileSync(new URL('../' + shared, import.meta.url), 'utf8');
     assert.match(sharedSource, /export const metadata:/);

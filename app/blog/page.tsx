@@ -1,1 +1,1 @@
-export { metadata, default } from "@/features/blog/pages/BlogArchivePage";
+export { default, generateMetadata } from "@/apps/web/app/blog/page";

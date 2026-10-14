@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { getPageSeoPage } from '../lib/content/page-seo-registry';
 import {
   CI_LINE_OA_DESTINATION,
   CI_LINE_OA_URL,
@@ -353,12 +354,18 @@ for (const legacyFhcResolverToken of ['bit.ly', 'NEXT_PUBLIC_LINE_OA_BITLY_URL']
   );
 }
 
+const ciMetadataPage = getPageSeoPage('/ci-planning/');
+assert(ciMetadataPage?.documentId === 'pageSeo-ci-planning', 'CI metadata must have its known pathname owner');
+assert(ciPageSource.includes('import { getPageSeoPage } from "@/lib/content/page-seo-registry";'), 'CI metadata must import the shared defaults owner');
+assert(ciPageSource.includes('const PAGE_SEO_DEFAULTS = getPageSeoPage("/ci-planning/")!.defaults;'), 'CI metadata must use its exact public pathname');
+assert(ciPageSource.includes('title: PAGE_SEO_DEFAULTS.seoTitle!,') && ciPageSource.includes('description: PAGE_SEO_DEFAULTS.seoDescription!,'), 'CI metadata must wire its title and description defaults');
+equal(ciMetadataPage.defaults.seoTitle, 'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun', 'CI SEO title must retain its approved value');
+equal(ciMetadataPage.defaults.seoDescription, 'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง', 'CI SEO description must retain its approved value');
+
 for (const requiredLandingCopy of [
   'เครื่องมือวางแผนทุนโรคร้ายแรง · Research Preview',
   'เงินก้อนจากประกันโรคร้ายแรงที่มี ',
   'เพียงพอรับภาระจริงไหม?',
-  'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
-  'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง',
   'เครื่องมือ Research Preview สำหรับเปรียบเทียบทุนตามรายได้หรือรายจ่าย กับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้',
   'กรอกรายได้หรือภาระที่ยังต้องดูแล แล้วเทียบกับเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่พร้อมใช้',
   'เพราะคำว่า “พอ” ของแต่ละคนไม่เท่ากัน',

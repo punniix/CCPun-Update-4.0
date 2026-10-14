@@ -1,3 +1,4 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from "next";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import Link from "next/link";
@@ -6,19 +7,21 @@ import { Website43Footer, Website43Navbar } from "@/components/layout/website-43
 import w43Styles from "@/components/layout/website-43/Website43.module.css";
 import legalStyles from "@/components/layout/website-43/Website43Legal.module.css";
 
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/privacy/")!.defaults;
+
 export const metadata: Metadata = {
-  title: "นโยบายความเป็นส่วนตัว | CCPun ที่ปรึกษาทางการเงิน",
-  description: "CCPun ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของคุณ อ่านนโยบายความเป็นส่วนตัวของเราเพื่อทำความเข้าใจว่าเราเก็บและใช้ข้อมูลอย่างไร",
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
   alternates: { canonical: "https://ccpun.com/privacy/" },
   openGraph: {
-    title: "นโยบายความเป็นส่วนตัว | CCPun ที่ปรึกษาทางการเงิน",
-    description: "CCPun ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของคุณ อ่านนโยบายความเป็นส่วนตัวของเราเพื่อทำความเข้าใจว่าเราเก็บและใช้ข้อมูลอย่างไร",
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     url: "https://ccpun.com/privacy/",
   },
   twitter: {
-    title: "นโยบายความเป็นส่วนตัว | CCPun ที่ปรึกษาทางการเงิน",
-    description: "CCPun ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของคุณ อ่านนโยบายความเป็นส่วนตัวของเราเพื่อทำความเข้าใจว่าเราเก็บและใช้ข้อมูลอย่างไร",
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
   },
 };
 

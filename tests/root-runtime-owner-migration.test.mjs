@@ -9,7 +9,11 @@ const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {
   assert.equal(inventory.pairs.length, 73);
-  for (const { legacy, canonical, wrapper, status } of inventory.pairs) {
+  const metadata = JSON.parse(read("qa/page-seo-compat-owners.json"));
+  assert.equal(metadata.pairs.length, 7);
+  const currentOwners = new Map([...inventory.pairs, ...metadata.pairs].map(item => [item.legacy, item]));
+  assert.equal(currentOwners.size, 79);
+  for (const { legacy, canonical, wrapper, status } of currentOwners.values()) {
     assert.equal(status, 'migrated', legacy);
     assert.equal(read(legacy), wrapper, legacy);
     assert.equal(existsSync(resolve(root, canonical)), true, canonical);

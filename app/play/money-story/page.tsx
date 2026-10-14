@@ -1,1 +1,1 @@
-export { metadata, default } from '@/features/money-story/page';
+export { default, generateMetadata } from "@/apps/web/app/play/money-story/page";

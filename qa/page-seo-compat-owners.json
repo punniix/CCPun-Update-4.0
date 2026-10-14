@@ -1,0 +1,68 @@
+{
+  "baseline": "7148dcdf3283a079a5f9bdc929867ea0ba7312d6",
+  "pairs": [
+    {
+      "legacy": "app/page.tsx",
+      "canonical": "apps/web/app/page.tsx",
+      "beforeSha256": "814c4f422df23d52812e47838606bfd339417cf7e80ead1854af453e8c8cfec9",
+      "beforeSource": "export { default } from \"@/apps/web/app/page\";\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/blog/page.tsx",
+      "canonical": "apps/web/app/blog/page.tsx",
+      "beforeSha256": "29a233316183374446d117aeb0d9fc9ccba52d43055e5552e4f3f80ec550f5ce",
+      "beforeSource": "export { metadata, default } from \"@/features/blog/pages/BlogArchivePage\";\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/blog/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/ci-planning/page.tsx",
+      "canonical": "apps/web/app/ci-planning/page.tsx",
+      "beforeSha256": "1bcec72d36fbf2cb3239620f21399ca9192eb259043f8f175bfeaec3a4868048",
+      "beforeSource": "export { metadata, default } from \"@/features/ci-planning/page\";\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/ci-planning/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/tools/financial-health-check/page.tsx",
+      "canonical": "apps/web/app/tools/financial-health-check/page.tsx",
+      "beforeSha256": "3e572c982951b4ecea1e5d0786841ff28535f80cfccacb7907de290fd452e396",
+      "beforeSource": "export { metadata, default } from \"@/features/financial-health-check/page\";\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/tools/financial-health-check/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/play/money-story/page.tsx",
+      "canonical": "apps/web/app/play/money-story/page.tsx",
+      "beforeSha256": "82d0e4b963086b418224683ae699f51b6b1604e6969f01c297e0b8b521e1f00f",
+      "beforeSource": "export { metadata, default } from '@/features/money-story/page';\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/play/money-story/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/privacy/page.tsx",
+      "canonical": "apps/web/app/privacy/page.tsx",
+      "beforeSha256": "3b5d431637f269a409327d38e6d9cb9f2d8af255d7cbf24cab9ba78e35fe421d",
+      "beforeSource": "export { metadata, default } from \"@/features/legal/pages/PrivacyPage\";\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/privacy/page\";\n",
+      "status": "migrated"
+    },
+    {
+      "legacy": "app/cookie-policy/page.tsx",
+      "canonical": "apps/web/app/cookie-policy/page.tsx",
+      "beforeSha256": "44b8f8a62b3f3e8fe363dd5ed38bfe8ef3aa7c1490fa5626616272f3ca72c2f7",
+      "beforeSource": "export { metadata, default } from \"@/features/legal/pages/CookiePolicyPage\";\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/cookie-policy/page\";\n",
+      "status": "migrated"
+    }
+  ],
+  "adminMirror": {
+    "legacy": "app/blog/page.tsx",
+    "canonical": "apps/admin/app/blog/page.tsx",
+    "sha256": "29a233316183374446d117aeb0d9fc9ccba52d43055e5552e4f3f80ec550f5ce",
+    "source": "export { metadata, default } from \"@/features/blog/pages/BlogArchivePage\";\n",
+    "feature": "@/features/blog/pages/BlogArchivePage"
+  }
+}

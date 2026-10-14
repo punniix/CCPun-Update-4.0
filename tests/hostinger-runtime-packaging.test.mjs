@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { stageStandaloneRuntime } from "../apps/web/scripts/build-provider.mjs";
+import { spawnSync } from "node:child_process";
+import { runInNewContext } from "node:vm";
+import { derivePinnedHostingerWebUatGitMetadata, stageStandaloneRuntime } from "../apps/web/scripts/build-provider.mjs";
 
 test("repeated standalone staging materializes public symlinks into an independently publishable runtime", () => {
   const fixture = mkdtempSync(join(tmpdir(), "ccpun-hostinger-package-"));
@@ -31,6 +34,86 @@ test("repeated standalone staging materializes public symlinks into an independe
     rmSync(join(fixture, "public"), { recursive: true });
     assert.equal(readFileSync(join(standalone, "public/assets/hero.png"), "utf8"), "assets/hero.png");
     assert.equal(existsSync(join(standalone, ".next/static/chunk.js")), true);
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
+
+test("immutable Web UAT checkout derives six Git fields and seals only those fields over stale runtime values", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-web-pinned-git-"));
+  const web = join(fixture, "apps/web");
+  const put = (path, value) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); };
+  const git = (...args) => {
+    const result = spawnSync("git", args, { cwd: fixture, encoding: "utf8" });
+    assert.equal(result.status, 0, "synthetic Git fixture must succeed");
+    return result.stdout.trim();
+  };
+  const variables = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_RELEASE_STAGE: "shadow",
+    CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+    NEXT_PUBLIC_SANITY_DATASET: "uat", CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    CCPUN_GIT_REF: "stale-ref", CCPUN_GIT_SHA: "stale-sha", CCPUN_RELEASE_ID: "stale-release",
+    NEXT_PUBLIC_CCPUN_GIT_REF: "stale-public-ref", NEXT_PUBLIC_CCPUN_GIT_SHA: "stale-public-sha", NEXT_PUBLIC_CCPUN_RELEASE_ID: "stale-public-release",
+    CCPUN_PRIVATE_SECRET: "synthetic-private-value", CCPUN_INVESTMENT_ALLOCATION_ENABLED: "1",
+  };
+  try {
+    mkdirSync(web, { recursive: true });
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, variables), null, "ordinary source without Git retains the existing manual contract");
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, { ...variables, CCPUN_GIT_REF: `codex/hostinger-release-uat-${"a".repeat(40)}` }), /attached Git checkout/);
+    put(join(fixture, ".gitignore"), "apps/web/.next/\n");
+    put(join(fixture, "package-lock.json"), "{}");
+    put(join(fixture, "package.json"), "{}");
+    put(join(fixture, "tracked-public.txt"), "synthetic original");
+    for (const path of ["llms.txt", ".well-known/security.txt", "favicon.ico"]) put(join(web, "public", path), path);
+    git("init", "-q"); git("config", "user.name", "Fixture"); git("config", "user.email", "fixture@example.invalid");
+    git("add", "."); git("commit", "-qm", "synthetic source");
+    const sha = git("rev-parse", "HEAD");
+    git("checkout", "-qb", `codex/hostinger-release-uat-${sha}`);
+    const seal = derivePinnedHostingerWebUatGitMetadata(web, variables);
+    const expected = { CCPUN_GIT_REF: `codex/hostinger-release-uat-${sha}`, CCPUN_GIT_SHA: sha, CCPUN_RELEASE_ID: `hostinger-web-uat-${sha.slice(0, 12)}` };
+    assert.deepEqual(seal, { ...expected, ...Object.fromEntries(Object.entries(expected).map(([key, value]) => [`NEXT_PUBLIC_${key}`, value])) });
+    assert.equal(variables.CCPUN_GIT_SHA, "stale-sha", "derivation must not mutate caller configuration");
+    for (const [key, value] of [["NEXT_PUBLIC_SANITY_PROJECT_ID", "kyfxgjnq"], ["CCPUN_ENABLE_PRODUCTION_ANALYTICS", "1"], ["CCPUN_UAT_MODE", "0"], ["CCPUN_RELEASE_STAGE", "live"], ["NEXT_PUBLIC_CCPUN_APP_ENV", "production"]]) {
+      assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, { ...variables, [key]: value }), /isolated lane contract/);
+    }
+    put(join(fixture, "package-lock.json"), "changed");
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), /clean source checkout/);
+    put(join(fixture, "package.json"), "changed manifest");
+    put(join(fixture, "tracked-public.txt"), "changed public fixture");
+    put(join(web, "node_modules/synthetic-package/index.js"), "synthetic dependency");
+    const privateName = "private-customer-token-SYNTHETIC-NAME.txt";
+    const privateValue = "SYNTHETIC-SECRET-CONTENT-NEVER-LOG";
+    put(join(fixture, privateName), privateValue);
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), (error) => {
+      assert.equal(error.message, 'Artifact requires a clean source checkout. {"trackedManifestChanged":true,"trackedLockChanged":true,"otherTrackedCount":1,"untrackedNestedNodeModulesCount":1,"otherUntrackedCount":1}');
+      assert.doesNotMatch(error.stack, /private-customer-token|SYNTHETIC-NAME|SYNTHETIC-SECRET-CONTENT|tracked-public|synthetic-package|package-lock\.json/);
+      return true;
+    });
+    rmSync(join(web, "node_modules"), { recursive: true });
+    rmSync(join(fixture, privateName));
+    git("checkout", "--", "package.json", "tracked-public.txt");
+    git("checkout", "--", "package-lock.json");
+    git("checkout", "-qb", `codex/hostinger-release-uat-${"f".repeat(40)}`);
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, variables), /does not match checkout SHA/);
+    git("checkout", "--detach", "-q", sha);
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, variables), null, "ordinary detached CI/feature source retains the existing guard");
+    assert.throws(() => derivePinnedHostingerWebUatGitMetadata(web, { ...variables, CCPUN_GIT_REF: expected.CCPUN_GIT_REF }), /attached Git checkout/);
+    git("checkout", "-qb", "manual-uat");
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, variables), null);
+    assert.equal(derivePinnedHostingerWebUatGitMetadata(web, { ...variables, CCPUN_APP_ENV: "production" }), null);
+    git("checkout", "-q", expected.CCPUN_GIT_REF);
+    const standalone = join(web, ".next/standalone");
+    put(join(standalone, "server.js"), "");
+    put(join(standalone, "node_modules/next/package.json"), "{}");
+    put(join(standalone, ".next/BUILD_ID"), "build");
+    put(join(web, ".next/static/chunk.js"), "chunk");
+    stageStandaloneRuntime(web, { ...variables, ...seal }, seal);
+    const server = readFileSync(join(standalone, "server.js"), "utf8");
+    const runtimeEnv = { ...variables, AUTH_SECRET: "synthetic-auth", NEXT_PUBLIC_SANITY_DATASET: "protected-existing" };
+    runInNewContext(server, { process: { env: runtimeEnv } });
+    for (const [key, value] of Object.entries(seal)) assert.equal(runtimeEnv[key], value, key);
+    for (const [key, value] of Object.entries(variables).filter(([key]) => !Object.hasOwn(seal, key))) assert.equal(runtimeEnv[key], key === "NEXT_PUBLIC_SANITY_DATASET" ? "protected-existing" : value, key);
+    assert.equal(runtimeEnv.AUTH_SECRET, "synthetic-auth");
+    assert.doesNotMatch(server, /synthetic-private-value|CCPUN_PRIVATE_SECRET|CCPUN_INVESTMENT_ALLOCATION_ENABLED|AUTH_SECRET/);
+    assert.throws(() => stageStandaloneRuntime(web, variables, { ...seal, AUTH_SECRET: "must-not-serialize" }), /Invalid pinned Web UAT Git metadata seal/);
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
@@ -76,4 +159,99 @@ test("standalone Web runtime carries only the safe Hostinger lane identity it wa
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
+});
+
+test("only the exact ephemeral provider checkout canonicalizes an installer-only lock change", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-provider-lock-"));
+  const providerRoot = "/home/u320222331/domains/test.ccpun.com/hbuilds/source/repository";
+  const providerWeb = providerRoot + "/apps/web";
+  const lockBytes = Buffer.from('{"lockfileVersion":3}\n');
+  const digest = value => createHash("sha256").update(value).digest("hex");
+  const git = (...args) => {
+    const result = spawnSync("git", args, { cwd: fixture, encoding: "utf8" });
+    assert.equal(result.status, 0, "synthetic provider Git must succeed");
+    return result.stdout.trim();
+  };
+  let writes = 0, npmCalls = 0, npmStatus = 0, mutateDuringInstall = false, canonicalRoot = providerRoot, lockLinks = 1;
+  const variables = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "web-uat",
+    CCPUN_RELEASE_STAGE: "shadow", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
+    NEXT_PUBLIC_SANITY_DATASET: "uat", CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    npm_config_workspace: "wrong-workspace", NPM_CONFIG_PREFIX: "wrong-prefix", npm_config_local_prefix: "wrong-local-prefix",
+  };
+  const map = path => path.replace(providerRoot, fixture);
+  try {
+    writeFileSync(join(fixture, "package-lock.json"), lockBytes);
+    writeFileSync(join(fixture, "package.json"), "{}\n");
+    writeFileSync(join(fixture, "public.txt"), "original");
+    git("init", "-q"); git("config", "user.name", "Fixture"); git("config", "user.email", "fixture@example.invalid");
+    git("add", "."); git("commit", "-qm", "synthetic pinned provider source");
+    const sha = git("rev-parse", "HEAD"), ref = `codex/hostinger-release-uat-${sha}`;
+    git("checkout", "-qb", ref);
+    const source = readFileSync(new URL("../apps/web/scripts/build-provider.mjs", import.meta.url), "utf8");
+    const cli = source.slice(source.indexOf('if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {'));
+    assert.equal(source.split("preparePinnedHostingerWebUatLock();").length, 2);
+    assert.match(cli, /preparePinnedHostingerWebUatLock\(\);\s+const sealedGitMetadata = derivePinnedHostingerWebUatGitMetadata\(\);/);
+    const helpers = source.slice(source.indexOf("function git(root, args) {"), source.indexOf("export function derivePinnedHostingerWebUatGitMetadata("));
+    assert.equal(helpers.split("export function preparePinnedHostingerWebUatLock(").length, 2);
+    const prepare = runInNewContext(helpers.replace("export function preparePinnedHostingerWebUatLock(", "function preparePinnedHostingerWebUatLock(") + "\npreparePinnedHostingerWebUatLock", {
+      resolve: (...paths) => join(...paths), webRoot: providerWeb, process: { env: {} }, sha256: digest,
+      realpathSync: () => canonicalRoot, lstatSync: path => Object.assign(lstatSync(map(path)), { nlink: lockLinks }), readFileSync: path => readFileSync(map(path)),
+      writeFileSync: (path, value) => { writes++; writeFileSync(map(path), value); },
+      spawnSync: (command, args, options) => {
+        if (command === "git") return spawnSync(command, args, { ...options, cwd: map(options.cwd) });
+        assert.equal(command, "npm"); npmCalls++;
+        assert.deepEqual(Array.from(args), ["ci", "--ignore-scripts", "--include=dev", "--include=optional", "--workspaces", "--include-workspace-root", "--no-audit", "--no-fund"]);
+        assert.equal(options.cwd, providerRoot);
+        assert.equal(options.stdio, "ignore");
+        assert.equal(options.env.npm_config_workspace, undefined); assert.equal(options.env.NPM_CONFIG_PREFIX, undefined);
+        assert.equal(options.env.npm_config_local_prefix, undefined);
+        assert.equal(options.env.NEXT_PUBLIC_SANITY_DATASET, "uat");
+        assert.equal(digest(readFileSync(join(fixture, "package-lock.json"))), digest(lockBytes));
+        if (mutateDuringInstall) writeFileSync(join(fixture, "public.txt"), "post-install drift");
+        return { status: npmStatus };
+      },
+    });
+    writeFileSync(join(fixture, "package-lock.json"), "installer lock drift");
+    for (const root of [join(fixture, "apps/web"), "/Users/developer/repository/apps/web", providerWeb + "/nested"]) assert.equal(prepare(root, variables), false);
+    for (const [key, value] of [["CCPUN_DEPLOYMENT_PROVIDER", "local"], ["CCPUN_DEPLOYMENT_ROLE", "admin"], ["CCPUN_APP_ENV", "production"]]) assert.equal(prepare(providerWeb, { ...variables, [key]: value }), false);
+    for (const [key, value] of [["CCPUN_RELEASE_STAGE", "live"], ["NEXT_PUBLIC_CCPUN_APP_ENV", "production"], ["NEXT_PUBLIC_SANITY_PROJECT_ID", "other"], ["NEXT_PUBLIC_SANITY_DATASET", "production"], ["CCPUN_UAT_MODE", "0"], ["CCPUN_ENABLE_PRODUCTION_ANALYTICS", "1"]]) assert.throws(() => prepare(providerWeb, { ...variables, [key]: value }), /isolated Web UAT checkout/);
+    canonicalRoot = fixture;
+    assert.throws(() => prepare(providerWeb, variables), /isolated Web UAT checkout/, "symlinked checkouts cannot broaden the provider path boundary");
+    canonicalRoot = providerRoot;
+    git("checkout", "--detach", "-q", sha);
+    assert.throws(() => prepare(providerWeb, variables), /Cannot verify artifact source identity/);
+    git("checkout", "-q", ref);
+    git("checkout", "-qb", `codex/hostinger-release-uat-${"f".repeat(40)}`);
+    assert.throws(() => prepare(providerWeb, variables), /exact attached immutable pin/);
+    git("checkout", "-q", ref);
+    for (const path of ["package.json", "public.txt"]) {
+      const original = readFileSync(join(fixture, path));
+      writeFileSync(join(fixture, path), "other source drift");
+      assert.throws(() => prepare(providerWeb, variables), /non-lock source changes/);
+      writeFileSync(join(fixture, path), original);
+    }
+    const secretName = "private-customer-secret-SYNTHETIC.txt";
+    writeFileSync(join(fixture, secretName), "synthetic never-log content");
+    assert.throws(() => prepare(providerWeb, variables), error => {
+      assert.match(error.message, /non-lock source changes/);
+      assert.doesNotMatch(error.stack, /private-customer-secret|never-log/); return true;
+    });
+    rmSync(join(fixture, secretName));
+    git("add", "package-lock.json");
+    assert.throws(() => prepare(providerWeb, variables), /non-lock source changes/);
+    git("restore", "--staged", "package-lock.json");
+    lockLinks = 2;
+    assert.throws(() => prepare(providerWeb, variables), /regular tracked lock/, "a hardlink must not change another checkout");
+    lockLinks = 1;
+    assert.equal(writes, 0); assert.equal(npmCalls, 0);
+    assert.equal(prepare(providerWeb, variables), true);
+    assert.equal(digest(readFileSync(join(fixture, "package-lock.json"))), digest(lockBytes));
+    assert.equal(writes, 1); assert.equal(npmCalls, 1);
+    assert.equal(prepare(providerWeb, variables), false, "clean checkouts need no second install");
+    writeFileSync(join(fixture, "package-lock.json"), "installer drift again"); npmStatus = 1;
+    assert.throws(() => prepare(providerWeb, variables), /canonical dependency installation failed/);
+    writeFileSync(join(fixture, "package-lock.json"), "installer drift again"); npmStatus = 0; mutateDuringInstall = true;
+    assert.throws(() => prepare(providerWeb, variables), /clean source checkout/, "post-install source drift must still abort");
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
