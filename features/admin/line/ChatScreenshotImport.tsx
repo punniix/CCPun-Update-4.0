@@ -44,6 +44,14 @@ function localBangkokToOffsetIso(value: string) {
   return `${value}:00+07:00`;
 }
 
+function isOcrSafetyHold(error: unknown) {
+  return error instanceof Error && [
+    "chat-ocr-disabled",
+    "chat-ocr-private-gateway-required",
+    "chat-ocr-proposal-verification-required",
+  ].includes(error.message);
+}
+
 export function ChatScreenshotImport({ leadId }: { leadId: string }) {
   const router = useRouter();
   const draft = useAdminCaseDraft(leadId, "ocr", () => ({ file: null as File | null, customerSide: "left" as "left" | "right", capturedAtLocal: bangkokLocalInputNow(), requestId: null as string | null, messages: [] as ProposalMessage[] }));
@@ -111,9 +119,14 @@ export function ChatScreenshotImport({ leadId }: { leadId: string }) {
       } as ProposalMessage)) };
       if (draft.complete(revision, next, true) === null) { draft.unknown(revision); return; }
       if (isCurrent()) setMessage(`อ่านได้ ${data.messages.length} ข้อความ กรุณาตรวจและแก้ก่อนบันทึก`);
-    } catch {
-      draft.unknown(revision);
-      if (isCurrent()) setMessage("ยังยืนยันผลการอ่านภาพไม่ได้ ฉบับที่คุณตรวจไว้ยังอยู่ ตรวจผลเดิมก่อนอ่านใหม่");
+    } catch (error) {
+      if (isOcrSafetyHold(error)) {
+        draft.complete(revision, draft.data, Boolean(file || requestId || messages.length));
+        if (isCurrent()) setMessage("ระบบอ่านภาพพักการใช้งานเพื่อความปลอดภัย ยังไม่ส่งภาพไปบริการ OCR และไม่ได้บันทึกข้อความ");
+      } else {
+        draft.unknown(revision);
+        if (isCurrent()) setMessage("ยังยืนยันผลการอ่านภาพไม่ได้ ฉบับที่คุณตรวจไว้ยังอยู่ ตรวจผลเดิมก่อนอ่านใหม่");
+      }
     } finally {
       draft.settled(revision);
       if (isCurrent()) pending.current = false;
@@ -150,6 +163,10 @@ export function ChatScreenshotImport({ leadId }: { leadId: string }) {
       draft.authFailed(response.status);
       if (response.status === 401) throw new Error("authentication_expired");
       const data = await response.json();
+      if (!response.ok && [
+        "chat-ocr-disabled",
+        "chat-ocr-proposal-verification-required",
+      ].includes(data?.error)) throw new Error(data.error);
       const duplicate = data.duplicate ?? 0;
       if (!response.ok || !Number.isInteger(data.imported) || data.imported < 0
         || !Number.isInteger(duplicate) || duplicate < 0 || data.imported + duplicate !== payload.messages.length
@@ -161,9 +178,14 @@ export function ChatScreenshotImport({ leadId }: { leadId: string }) {
         setMessage(`บันทึกแล้ว ${data.imported} ข้อความ${data.duplicate ? ` · ซ้ำ ${data.duplicate}` : ""}`);
         draft.refresh(router);
       }
-    } catch {
-      draft.unknown(revision);
-      if (isCurrent()) setMessage("ยังยืนยันผลการบันทึกไม่ได้ ฉบับที่ตรวจยังอยู่ ตรวจประวัติเคสและผลเดิมก่อนบันทึกซ้ำ");
+    } catch (error) {
+      if (isOcrSafetyHold(error)) {
+        draft.complete(revision, draft.data, true);
+        if (isCurrent()) setMessage("การบันทึกข้อความ OCR พักการใช้งานเพื่อความปลอดภัย ไม่มีการบันทึกข้อมูลลง CRM");
+      } else {
+        draft.unknown(revision);
+        if (isCurrent()) setMessage("ยังยืนยันผลการบันทึกไม่ได้ ฉบับที่ตรวจยังอยู่ ตรวจประวัติเคสและผลเดิมก่อนบันทึกซ้ำ");
+      }
     } finally {
       draft.settled(revision);
       if (isCurrent()) pending.current = false;
@@ -173,6 +195,7 @@ export function ChatScreenshotImport({ leadId }: { leadId: string }) {
 
   return (
     <div className="space-y-4">
+      <p role="status" className="rounded-xl border border-[#e0c985]/30 p-3 text-sm leading-[22px] text-white/90">นำเข้าภาพแชตด้วย OCR พักการใช้งานชั่วคราวระหว่างตรวจสอบช่องทาง private เพื่อป้องกันข้อมูลลูกค้าออกนอกระบบ</p>
       {draft.restored ? <p role="status" className="text-sm leading-[22px] text-white/75">นำภาพและฉบับที่ตรวจในแท็บนี้กลับมาแล้ว ยังไม่ได้บันทึกอัตโนมัติ โหลดหน้าใหม่หรือปิดแท็บจะล้างฉบับ</p> : null}
       {!draft.available ? <p role="status" className="text-sm leading-[22px] text-white/75">การเข้าสู่ระบบเปลี่ยน ฉบับในแท็บถูกล้าง กรุณาเข้าสู่ระบบและตรวจเคสอีกครั้ง</p> : null}
       {draft.capacityMessage ? <p role="status" className="text-sm leading-[22px] text-white/75">{draft.capacityMessage}</p> : null}
