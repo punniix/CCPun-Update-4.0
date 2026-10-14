@@ -1,3 +1,7 @@
+import phillipLogo from "../../../public/assets/phillip-logo.svg";
+import protectionGapIcon from "../../../public/assets/website-43/icon-protection-gap.svg";
+import taxIcon from "../../../public/assets/website-43/icon-tax.svg";
+import investmentRiskIcon from "../../../public/assets/website-43/icon-investment-risk.svg";
 import { homeFaqs as faqs } from './homeFaqs';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,9 +15,9 @@ import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountd
 const DEFAULT_AUTHOR_ROLE = 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน';
 
 const pains = [
-  ['/assets/website-43/icon-protection-gap.svg', 'ไม่แน่ใจว่ามีประกันเพียงพอหรือยัง', 'มีความคุ้มครองอยู่ แต่ไม่แน่ใจว่าที่มีอยู่นั้น เพียงพอหรือไม่ ต้องเตรียมหรือปรับเพิ่มลดอย่างไร'],
-  ['/assets/website-43/icon-tax.svg', 'มีเงินเก็บ แต่ไม่รู้จะเริ่มลงทุนอย่างไร', 'อยากให้เงินทำงาน แต่ยังไม่รู้ว่าควรเริ่มจากเป้าหมายหรือเครื่องมือไหน'],
-  ['/assets/website-43/icon-investment-risk.svg', 'มีหลายเป้าหมาย แต่ไม่รู้ควรเริ่มตรงไหนก่อน', 'ทั้งประกัน การลงทุน ภาษี และอนาคตมาพร้อมกัน จึงต้องช่วยกันจัดลำดับ'],
+  [protectionGapIcon, 'ไม่แน่ใจว่ามีประกันเพียงพอหรือยัง', 'มีความคุ้มครองอยู่ แต่ไม่แน่ใจว่าที่มีอยู่นั้น เพียงพอหรือไม่ ต้องเตรียมหรือปรับเพิ่มลดอย่างไร'],
+  [taxIcon, 'มีเงินเก็บ แต่ไม่รู้จะเริ่มลงทุนอย่างไร', 'อยากให้เงินทำงาน แต่ยังไม่รู้ว่าควรเริ่มจากเป้าหมายหรือเครื่องมือไหน'],
+  [investmentRiskIcon, 'มีหลายเป้าหมาย แต่ไม่รู้ควรเริ่มตรงไหนก่อน', 'ทั้งประกัน การลงทุน ภาษี และอนาคตมาพร้อมกัน จึงต้องช่วยกันจัดลำดับ'],
 ] as const;
 
 const steps = [
@@ -35,11 +39,11 @@ export default function Website43Home({ authorProfile = null }: { authorProfile?
 
   return (
     <div className={styles.root}>
-      <main id="main-content" tabIndex={-1}>
+      <main>
         <section id="home" className={styles.homeHero} aria-labelledby="home-hero-title">
           <div className={styles.homeHeroPicture}><Image src="/assets/website-43/home-hero-desktop.png" alt="CCPun กำลังนั่งทำงานพร้อมคอมพิวเตอร์โน้ตบุ๊ก" fill preload loading="eager" fetchPriority="high" sizes="100vw" /></div>
           <div className={styles.homeHeroGradient} aria-hidden="true" /><div className={styles.homeHeroBottomGradient} aria-hidden="true" /><Website43Navbar overlay />
-          <div className={styles.homeHeroCopy}>
+          <div id="main-content" tabIndex={-1} className={styles.homeHeroCopy}>
             <p className={styles.eyebrow}>คุณเล่าปัญหามา เราสร้างแผนแก้ไขไป</p>
             <h1 id="home-hero-title" className={styles.homeHeroTitle}>เพราะปัญหาทางการเงินมัน<span className={styles.homeHeroWord}>ซับซ้อน</span> เราจึงต้องวางแผน ออกแบบให้เหมาะกับตัวคุณ</h1>
             <p className={styles.homeHeroBody}>เริ่มจากสิ่งที่คุณมี เป้าหมายที่อยากไปให้ถึง และความเสี่ยงที่รับได้ แล้วค่อยจัดลำดับว่าอะไรควรทำก่อน</p>
@@ -59,7 +63,7 @@ export default function Website43Home({ authorProfile = null }: { authorProfile?
           <div className={styles.stats}><div className={styles.stat}><strong>5+ ปี</strong><span>ประสบการณ์ด้านการเงิน</span></div><div className={styles.stat}><strong>3 ใบอนุญาต</strong><span>การลงทุน · ประกันชีวิต · ประกันวินาศภัย</span></div><div className={styles.stat}><strong>6 แพลตฟอร์มการเงิน</strong><span>ทางเลือกที่หลากหลาย ตอบโจทย์ลูกค้า</span></div></div>
           <p className={styles.license}><span>ใบอนุญาต: ตัวแทนประกันชีวิต 6801064783</span><span className={styles.licenseSeparator} aria-hidden="true"> · </span><span>ผู้วางแผนการลงทุน 106654</span><span className={styles.licenseSeparator} aria-hidden="true"> · </span><span>นายหน้าประกันวินาศภัย 6904009841</span></p>
           <p className={styles.partnerLabel}>พาร์ทเนอร์ทั้งหมดที่ร่วมงาน</p>
-          <div className={styles.partners} ><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/aia-logo.webp" alt="AIA" width={512} height={341} /></div><strong>AIA</strong><span>ตัวแทนประกันชีวิต</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameFairdee}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoFairdee}`} src="/assets/website-43/fairdee-logo.png" alt="Fairdee" width={512} height={512} /></div><strong>Fairdee</strong><span>นายหน้าประกันวินาศภัย</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/maybank-logo.webp" alt="Maybank" width={512} height={512} /></div><strong>Maybank</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/phillip-logo.svg" alt="PhillipCapital" width={1000} height={400} /></div><strong>PhillipCapital</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameWebull}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoWebull}`} src="/assets/website-43/webull-logo.png" alt="Webull" width={736} height={736} /></div><strong>Webull</strong><span>แพลตฟอร์มการลงทุน</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/finnomena-logo.webp" alt="Finnomena" width={200} height={200} /></div><strong>Finnomena</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div></div>
+          <div className={styles.partners} ><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/aia-logo.webp" alt="AIA" width={512} height={341} /></div><strong>AIA</strong><span>ตัวแทนประกันชีวิต</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameFairdee}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoFairdee}`} src="/assets/website-43/fairdee-logo.png" alt="Fairdee" width={512} height={512} /></div><strong>Fairdee</strong><span>นายหน้าประกันวินาศภัย</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/maybank-logo.webp" alt="Maybank" width={512} height={512} /></div><strong>Maybank</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src={phillipLogo} alt="PhillipCapital" width={1000} height={400} /></div><strong>PhillipCapital</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameWebull}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoWebull}`} src="/assets/website-43/webull-logo.png" alt="Webull" width={736} height={736} /></div><strong>Webull</strong><span>แพลตฟอร์มการลงทุน</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/finnomena-logo.webp" alt="Finnomena" width={200} height={200} /></div><strong>Finnomena</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div></div>
         </div></section>
 
         <section id="about-ccpun" className={styles.about}><div className={styles.aboutInner}><div className={styles.aboutCopy}>

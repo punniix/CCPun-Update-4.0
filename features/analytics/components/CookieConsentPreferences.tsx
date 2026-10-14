@@ -8,11 +8,13 @@ function ToggleSwitch({
   onChange,
   disabled,
   id,
+  label,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
   id: string;
+  label: string;
 }) {
   return (
     <button
@@ -39,11 +41,11 @@ function ToggleSwitch({
         flexShrink: 0,
         background: 'transparent',
       }}
-      aria-label={disabled ? 'Always Active' : checked ? 'เปิด' : 'ปิด'}
+      aria-label={`${label}: ${disabled ? 'Always Active' : checked ? 'เปิด' : 'ปิด'}`}
     >
       <span aria-hidden="true" style={{
         position: 'relative', width: '2.75rem', height: '1.75rem', borderRadius: '9999px',
-        transition: 'background 0.25s',
+        transition: 'background 0.12s',
         background: disabled
           ? 'rgba(220,190,130,0.45)'
           : checked
@@ -62,7 +64,7 @@ function ToggleSwitch({
             height: '1.125rem',
             borderRadius: '50%',
             background: '#fff',
-            transition: 'left 0.25s',
+            transition: 'left 0.12s',
             boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
           }}
         />
@@ -129,7 +131,7 @@ export function CategoryRow({
               color: 'hsl(45,70%,65%)',
               fontSize: '0.875rem',
               lineHeight: 1,
-              transition: 'border-color 0.2s',
+              transition: 'border-color 0.12s',
               padding: 0,
             }}
             aria-label={expanded ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียด'}
@@ -169,6 +171,7 @@ export function CategoryRow({
             checked={checked}
             onChange={onChange}
             id={toggleId}
+            label={label}
           />
         )}
       </div>

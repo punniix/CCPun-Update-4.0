@@ -17,6 +17,30 @@ const REVIEW_HEADERS = IS_WEB_REVIEW_ENVIRONMENT
 const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
 const SANITY_LANE_ALLOWED = isWebSanityLaneAllowed(SANITY_PROJECT_ID, SANITY_DATASET, WEB_ENVIRONMENT);
+// Only the approved public parity snapshot images can enter the isolated UAT lane.
+const UAT_PUBLIC_SNAPSHOT_IMAGES = IS_HOSTINGER_DEPLOYMENT && WEB_ENVIRONMENT === "web-uat"
+  && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() === "web"
+  && SANITY_PROJECT_ID === "ccb9lnw5" && SANITY_DATASET === "uat" && SANITY_LANE_ALLOWED;
+const UAT_PUBLIC_IMAGE_PATHS = [
+  "/images/kyfxgjnq/production/0bdd2a49f0429d2ea92fc199582002ff7f744b6d-1254x1254.png",
+  "/images/kyfxgjnq/production/527e8f87fc700e2fb48140635fe0c3013689ddd1-1200x630.png",
+  "/images/kyfxgjnq/production/677b4985ae5870b6711823c3f8244ed154806199-1200x630.png",
+  "/images/kyfxgjnq/production/7382ab29e298ddbcf144aab913358bffc4d5e8b1-1200x630.png",
+  "/images/kyfxgjnq/production/80a14fe1bc84eff63b79099afb64e961fcd6fbbd-1200x630.png",
+  "/images/kyfxgjnq/production/8e06c3b1b6ed908cfe003bb3dfcb08456a5eaaeb-2315x3274.jpg",
+  "/images/kyfxgjnq/production/8f171baceef0ef7b4726bd126a7a64fd219780a1-1122x1402.png",
+  "/images/kyfxgjnq/production/9563caf40b4f12e67b528639a59b713209e636a4-1122x1402.png",
+  "/images/kyfxgjnq/production/a3529519a792b88d6e4b211ed4c995f0ed8631c1-1200x630.png",
+  "/images/kyfxgjnq/production/b6c6bbefa81e03a161a28b72312d0d8c9e1bb1d9-1200x630.png",
+  "/images/kyfxgjnq/production/c5e78011c76c8356e98dd11317d6b330cfa1bd9f-1448x1086.png",
+  "/images/kyfxgjnq/production/d07699ac66ee412dd8b8c5ee65b4a950d709dd2d-1200x630.png",
+  "/images/kyfxgjnq/production/d799176e1f3107c659e837232ab3a0943a96ecca-1448x1086.png",
+  "/images/kyfxgjnq/production/e6079b30fd2e8198ebb26d0f65e35487c63dd639-1122x1402.png",
+  "/images/kyfxgjnq/production/e714e01cc55cb206539d8624f5a80761a409a708-1024x1536.png",
+  "/images/kyfxgjnq/production/ee01debf22621f663cce28d185cbe8f5e08df08d-1200x630.png",
+  "/images/kyfxgjnq/production/f7a6a3bda1b72343db4431a7d8b94dbec1b5874e-1206x505.png",
+  "/images/kyfxgjnq/production/ff7625c3062fae141b175a3989fb452ebb9d0807-1024x1536.png"
+];
 const SECURITY_HEADERS = buildNextSecurityHeaders({
   isReviewEnvironment: IS_WEB_REVIEW_ENVIRONMENT,
   sanityProjectId: SANITY_PROJECT_ID ?? "",
@@ -65,6 +89,7 @@ const nextConfig: NextConfig = {
         pathname: "/wp-content/uploads/**",
         search: "",
       },
+      ...(UAT_PUBLIC_SNAPSHOT_IMAGES ? UAT_PUBLIC_IMAGE_PATHS.map(pathname => ({ protocol: "https" as const, hostname: "cdn.sanity.io", port: "", pathname, search: "" })) : []),
       ...(SANITY_PROJECT_ID && SANITY_DATASET && SANITY_LANE_ALLOWED
         ? [
             {

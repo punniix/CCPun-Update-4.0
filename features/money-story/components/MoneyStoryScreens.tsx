@@ -125,7 +125,7 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
     : null;
 
   return (
-    <div className={styles.shell} ref={rootRef}>
+    <div className={styles.shell} ref={rootRef} tabIndex={-1}>
       <div className={styles.start}>
         <div className={styles.startIcon} aria-hidden="true">
           <WalletCards />
@@ -319,7 +319,7 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
         ' บาท';
 
   return (
-    <div className={styles.shell} ref={rootRef}>
+    <div className={styles.shell} ref={rootRef} tabIndex={-1}>
       <div className={styles.result}>
         <div className={styles.resultHero}>
           <CharacterPortrait

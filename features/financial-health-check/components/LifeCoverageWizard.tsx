@@ -10,9 +10,6 @@ import { trackEvent } from '@/lib/analytics';
 import { getConsentData } from '@/lib/cookie-consent';
 import { calculateLifeCoverage, formatLifeCoverageMoney, LIFE_COVERAGE_INITIAL_VALUES, type LifeCoverageValues } from './lifeCoverageModel';
 
-const STEP_OUT_MS = 100;
-const STEP_IN_MS = 140;
-type MotionPhase = 'idle' | 'out' | 'in';
 
 function MoneyField({ id, label, help, value, onChange, error }: { id: keyof LifeCoverageValues; label: string; help?: string; value: number; onChange: (value: number) => void; error?: boolean }) {
   const helpId = help ? `${id}-help` : undefined;
@@ -30,14 +27,9 @@ export default function LifeCoverageWizard() {
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<keyof LifeCoverageValues | ''>('');
   const [showResult, setShowResult] = useState(false);
-  const [motionPhase, setMotionPhase] = useState<MotionPhase>('idle');
   const viewRef = useRef<HTMLElement>(null);
   const previousViewRef = useRef('1:form');
-  const motionTimersRef = useRef<number[]>([]);
 
-  useEffect(() => () => {
-    motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-  }, []);
 
   useEffect(() => {
     const view = `${step}:${showResult ? 'result' : 'form'}`;
@@ -95,32 +87,9 @@ export default function LifeCoverageWizard() {
     window.requestAnimationFrame(() => document.getElementById(field)?.focus());
   };
 
-  const runStepTransition = (commit: () => void) => {
-    if (motionPhase === 'out') return;
-    if (motionPhase === 'in') {
-      motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-      motionTimersRef.current = [];
-    }
-    const motionPreference = typeof window.matchMedia === 'function'
-      ? window.matchMedia('(prefers-reduced-motion: reduce)')
-      : null;
-    if (!motionPreference || motionPreference.matches) {
-      setMotionPhase('idle');
-      commit();
-      return;
-    }
-    setMotionPhase('out');
-    const outTimer = window.setTimeout(() => {
-      commit();
-      setMotionPhase('in');
-      const inTimer = window.setTimeout(() => setMotionPhase('idle'), STEP_IN_MS);
-      motionTimersRef.current.push(inTimer);
-    }, STEP_OUT_MS);
-    motionTimersRef.current.push(outTimer);
-  };
+  const runStepTransition = (commit: () => void) => commit();
 
   const next = () => {
-    if (motionPhase === 'out') return;
     if (step === 1 && !values.householdMonthly) { fail('householdMonthly', 'กรอกค่าใช้จ่ายครัวเรือนต่อเดือนก่อน'); return; }
     if (step === 1 && (values.supportYears < 1 || values.supportYears > 20)) { fail('supportYears', 'จำนวนปีที่ต้องการให้เงินก้อนรองรับต้องอยู่ระหว่าง 1–20 ปี'); return; }
     if (step === 1 && !Number.isSafeInteger(result.need)) { fail('householdMonthly', 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูล'); return; }
@@ -176,7 +145,7 @@ export default function LifeCoverageWizard() {
   const educationOpen = values.education > 0 || errorField === 'education';
   const footer = <div className="flex items-center gap-3">{step === 2 ? <button type="button" onClick={() => runStepTransition(() => { setStep(1); setError(''); setErrorField(''); })} className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" aria-hidden="true" />ย้อนกลับ</button> : <span className="flex-1" />}<button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44">{step === 1 ? 'ถัดไป' : 'ดูผลการคำนวณ'}<ChevronRight className="h-4 w-4" aria-hidden="true" /></button></div>;
 
-  return <section ref={viewRef} className="ccpun-motion-step-view" data-motion-phase={motionPhase}>
+  return <section ref={viewRef} className="ccpun-motion-step-view">
     <form noValidate onSubmit={(event) => { event.preventDefault(); next(); }}>
       <HumanCalculatorCard step={step} total={2} labelledBy={`fhc-step-${step}-title`} title={step === 1 ? 'ภาระที่ต้องดูแล' : 'ทรัพยากรที่พร้อมใช้'} description={step === 1 ? 'เริ่มจาก 3 ข้อมูลหลัก ส่วนทุนการศึกษาบุตรเพิ่มได้เมื่อมี' : 'กรอกเฉพาะเงินก้อนที่ตั้งใจนำมาใช้ในแผนนี้'} footer={footer}>
         {error ? <p id="life-calculator-error" role="alert" className="ccpun-motion-validation rounded-xl border border-destructive/35 bg-destructive/10 px-3 py-2.5 text-sm text-[#ffb4b4]">{error}</p> : null}

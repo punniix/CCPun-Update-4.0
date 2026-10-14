@@ -17,6 +17,7 @@ function metadata(page: 'ArticlePage' | 'BlogCategoryPage', review: boolean, fix
     'next/headers': { draftMode: async () => ({ isEnabled: fixture.preview ?? false }) },
     'next/navigation': {},
     '@/lib/deployment-environment': { IS_REVIEW_ENVIRONMENT: review, IS_DRAFT_PREVIEW_ALLOWED: true },
+    '@/lib/content/uat-tax-table-fixture': { getUatTaxTableFixture: () => null, withUatTaxTableFixture: (items: unknown) => items, withUatSnapshotCategoryMenu: (items: unknown) => items },
     '@/lib/content/provider': { getContentProvider: () => ({ getArticleBySlug: async () => article, listArticles: async () => fixture.empty ? [] : [article] }) },
     '@/lib/content/category-registry-sanity': { listCategoryRegistry: async () => [] },
     '@/lib/content/category-registry': {

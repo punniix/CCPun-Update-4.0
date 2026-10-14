@@ -126,18 +126,35 @@ const expected = {
   'invalid-sanity-project': '60071ea1f53f3793bced2a600dd9404406f2741a8718344d934628bea785049a',
 };
 const digest = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
+// Exactly the COO-authorized public UAT image exception; every other config field stays frozen.
+const snapshotPaths = new Set();
+function collectSnapshotImages(value) {
+  if (!value || typeof value !== 'object') return;
+  if (typeof value.src === 'string' && value.src.startsWith('https://cdn.sanity.io/images/kyfxgjnq/production/')) snapshotPaths.add(new URL(value.src).pathname);
+  for (const child of Object.values(value)) collectSnapshotImages(child);
+}
+collectSnapshotImages(JSON.parse(read('lib/content/uat-public-article-snapshots.json')));
+const approvedImagePatterns = [...snapshotPaths].sort().map(pathname => ({ protocol: 'https', hostname: 'cdn.sanity.io', port: '', pathname, search: '' }));
+assert.equal(approvedImagePatterns.length, 18);
+function originalConfigExceptApprovedImages(actual, name) {
+  const patterns = actual.config.images.remotePatterns;
+  const added = patterns.filter(pattern => snapshotPaths.has(pattern.pathname));
+  assert.deepEqual(added, name === 'hostinger-uat' ? approvedImagePatterns : [], name + ': only exact approved UAT images may be added');
+  return { ...actual, config: { ...actual.config, images: { ...actual.config.images, remotePatterns: patterns.filter(pattern => !snapshotPaths.has(pattern.pathname)) } } };
+}
 if (process.argv.includes('--print-baseline')) {
   const baseline = Object.fromEntries(files.map((file) => [file, execFileSync('git', ['show', `${baselineSha}:${file}`], { encoding: 'utf8' })]));
   for (const [name, overrides] of fixtures) {
     const before = await observe(baseline, overrides);
     const after = await observe(current, overrides);
-    assert.deepEqual(after, before, name);
+    assert.deepEqual(originalConfigExceptApprovedImages(after, name), before, name);
     console.log(`  '${name}': '${digest(before)}',`);
   }
 } else {
   for (const [name, overrides] of fixtures) {
     test(`baseline config/CSP/redirect parity: ${name}`, async () => {
-      const actual = await observe(current, overrides);
+      const actual = originalConfigExceptApprovedImages(await observe(current, overrides), name);
       if (['vercel-live', 'vercel-preview', 'wrong-vercel-project'].includes(name)) {
         // Only retired-provider acceptance is superseded; every native output hash stays frozen.
         const process = { env: { ...production, ...overrides } };

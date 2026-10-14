@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
 import { getContentProvider } from "@/lib/content/provider";
-import { getUatTaxTableFixture } from "@/lib/content/uat-tax-table-fixture";
+import { getUatTaxTableFixture, withUatTaxTableFixture } from "@/lib/content/uat-tax-table-fixture";
 import { buildArticleSchemaGraph } from "@/lib/content/structured-data/article-schema";
 import {
   getArticleCanonical,
@@ -74,7 +74,12 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
 export default async function ArticlePage({ params }: { params: Promise<{ category: string; slug: string }> }) {
   const { category, slug } = await params;
   const fixture = getUatTaxTableFixture(category, slug);
-  if (fixture) return <Website43Article preview={false} article={fixture} relatedArticles={[]} />;
+  if (fixture) {
+    const relatedArticles = fixture.id.startsWith("uat-public-snapshot-")
+      ? withUatTaxTableFixture([]).filter(item => item.id.startsWith("uat-public-snapshot-") && item.slug !== fixture.slug).sort((a, b) => Number(b.categorySlug === fixture.categorySlug) - Number(a.categorySlug === fixture.categorySlug)).slice(0, 2)
+      : [];
+    return <Website43Article preview={false} article={fixture} relatedArticles={relatedArticles} />;
+  }
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
   const movedPath = getMovedArticleRedirectPath(category, slug);

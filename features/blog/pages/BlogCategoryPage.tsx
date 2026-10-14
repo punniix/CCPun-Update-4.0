@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getContentProvider } from "@/lib/content/provider";
-import { withUatTaxTableFixture } from "@/lib/content/uat-tax-table-fixture";
+import { withUatTaxTableFixture, withUatSnapshotCategoryMenu } from "@/lib/content/uat-tax-table-fixture";
 import { IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import {
   articleBelongsToPhysicalCategory,
@@ -54,7 +54,7 @@ function isPublicIndexableArticle(article: Article) {
 }
 
 function categoryMenu(registry: Awaited<ReturnType<typeof getRegistryForRequest>>, includeDrafts: boolean) {
-  return listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));
+  return withUatSnapshotCategoryMenu(listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title })), registry.entries.filter(item => item.status !== "active").map(item => item.slug));
 }
 
 function physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub | null) {
@@ -212,6 +212,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
         articles={toWebsite43ArticleItems(relevantArticles)}
         featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
         activeCategorySlug={category.slug}
+        activeCategoryTitle={category.title}
         heroDescription={category.description ?? hub?.description}
         topicContent={buildTopicIntro(hub)}
         initialQuery={initialQuery}
@@ -245,6 +246,7 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
       articles={toWebsite43ArticleItems(relevantArticles)}
       featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
       activeCategorySlug={hub.slug}
+      activeCategoryTitle={hub.title}
       heroDescription={hub.description}
       topicContent={buildTopicIntro(hub)}
       initialQuery={initialQuery}

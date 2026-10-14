@@ -58,7 +58,7 @@
   font-weight: 600;
   cursor: pointer;
 }
-.navChevron { display: inline-block; font-size: 15px; line-height: 1; transform: translateY(-1px); transition: transform .18s ease; }
+.navChevron { display: inline-block; font-size: 15px; line-height: 1; transform: translateY(-1px); transition: transform .12s ease; }
 .navChevronOpen { transform: translateY(1px) rotate(180deg); }
 
 .navDropdown {
@@ -112,7 +112,7 @@
   color: var(--w43-ink);
   font-size: 14px;
   font-weight: 500;
-  transition: background .15s ease, color .15s ease;
+  transition: background .12s ease, color .12s ease;
 }
 .navDropdown a + a, .mobileSubmenu a + a { margin-top: 4px; }
 @media (hover: hover) and (pointer: fine) {
