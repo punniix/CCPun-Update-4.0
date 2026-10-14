@@ -19,6 +19,7 @@ const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8'
 const source = JSON.parse(read('qa/uat-tax-table-source-20261012.json'));
 const article = JSON.parse(read('lib/content/uat-tax-table-fixture.json'));
 const fixtureApi = require('../lib/content/uat-tax-table-fixture.ts');
+const publicSnapshots = JSON.parse(read('lib/content/uat-public-article-snapshots.json'));
 const Article = require('../features/blog/website-43/Website43Article.tsx').default;
 const variables = { CCPUN_DEPLOYMENT_PROVIDER: 'hostinger', CCPUN_DEPLOYMENT_ROLE: 'web', CCPUN_APP_ENV: 'web-uat', NEXT_PUBLIC_SANITY_PROJECT_ID: 'ccb9lnw5', NEXT_PUBLIC_SANITY_DATASET: 'uat' };
 const params = Promise.resolve({ category: 'personal-finance', slug: 'uat-ux-tax-table-20261011' });
@@ -50,8 +51,8 @@ test('fixture and card fallback fail closed outside the exact Hostinger Web UAT 
   }
   assert.equal(fixtureApi.getUatTaxTableFixture('life-insurance', article.slug, variables), null);
   assert.equal(fixtureApi.getUatTaxTableFixture('personal-finance', 'other', variables), null);
-  assert.deepEqual(fixtureApi.withUatTaxTableFixture([], variables), [article]);
-  assert.deepEqual(fixtureApi.withUatTaxTableFixture([article], variables), [article]);
+  assert.deepEqual(fixtureApi.withUatTaxTableFixture([], variables), [article, ...publicSnapshots]);
+  assert.deepEqual(fixtureApi.withUatTaxTableFixture([article], variables), [article, ...publicSnapshots]);
   const empty = [];
   assert.equal(fixtureApi.withUatTaxTableFixture(empty, { ...variables, CCPUN_APP_ENV: 'production' }), empty);
 });
@@ -82,11 +83,12 @@ test('anonymous mock keeps exact article UI after unpublish while removing canon
   assert.equal(new JSDOM(after.html).window.document.querySelectorAll('script[type="application/ld+json"]').length, 0);
 });
 
-test('only Blog/category UI opt in; sitemap, related-article and provider publication data stay separate', () => {
+test('only public display opts in; sitemap and provider publication data stay separate', () => {
   assert.match(read('features/blog/pages/BlogArchivePage.tsx'), /withUatTaxTableFixture\(cmsArticles\)/);
   assert.match(read('features/blog/pages/BlogCategoryPage.tsx'), /getContentProvider\(\)\.listArticles\(\{ includeDrafts \}\)\.then\(withUatTaxTableFixture\)/);
   for (const file of ['lib/content/provider.ts', 'lib/content/sitemap.ts']) assert.doesNotMatch(read(file), /uat-tax-table-fixture|withUatTaxTableFixture/);
-  assert.match(read('features/blog/pages/ArticlePage.tsx'), /if \(fixture\) return <Website43Article preview=\{false\} article=\{fixture\} relatedArticles=\{\[\]\}/);
+  assert.match(read('features/blog/pages/ArticlePage.tsx'), /if \(fixture\) \{/);
+  assert.match(read('features/blog/pages/ArticlePage.tsx'), /fixture.id.startsWith\("uat-public-snapshot-"\)/);
   assert.equal(article.noindex, true);
 });
 
@@ -113,7 +115,7 @@ test('ordinary routes and Production metadata/provider behavior remain byte-equi
   }
 });
 
-test('real Blog/category page data flow preserves the sole card when the published CMS list becomes empty', async () => {
+test('real Blog/category page data flow retains original sample and approved parity cards without CMS publication', async () => {
   const categoryApi = require('../lib/content/category-registry.ts');
   const registry = categoryApi.buildCategoryRegistry([{ _id: 'ccpun-category-personal-finance', title: 'การเงินส่วนบุคคล', slug: 'personal-finance', status: 'active' }]);
   for (const [file, original] of [['features/blog/pages/BlogArchivePage.tsx', source.originalArchivePageSource], ['features/blog/pages/BlogCategoryPage.tsx', source.originalCategoryPageSource]]) {
@@ -123,7 +125,7 @@ test('real Blog/category page data flow preserves the sole card when the publish
         ['next/headers', { draftMode: async () => ({ isEnabled: false }) }],
         ['@/lib/deployment-environment', { IS_DRAFT_PREVIEW_ALLOWED: true, IS_REVIEW_ENVIRONMENT: true }],
         ['@/lib/content/provider', { getContentProvider: () => ({ listArticles: async () => old ? [article] : [] }) }],
-        ['@/lib/content/uat-tax-table-fixture', { withUatTaxTableFixture: articles => fixtureApi.withUatTaxTableFixture(articles, variables) }],
+        ['@/lib/content/uat-tax-table-fixture', { withUatTaxTableFixture: articles => fixtureApi.withUatTaxTableFixture(articles, variables), withUatSnapshotCategoryMenu: (menu, excluded) => fixtureApi.withUatSnapshotCategoryMenu(menu, excluded, variables) }],
         ['@/lib/content/category-registry', categoryApi],
         ['@/lib/content/category-registry-sanity', { listCategoryRegistry: async () => registry }],
         ['@/lib/content/blog-featured-sanity', { listBlogFeaturedArticleIds: async () => [] }],
@@ -139,6 +141,13 @@ test('real Blog/category page data flow preserves the sole card when the publish
       assert.ok(cardProps, file + ': actual card component must render');
       return cardProps;
     }
-    assert.deepEqual(await observe(false), await observe(true), file + ': existing card/filter/featured props');
+    const after = await observe(false), before = await observe(true);
+    assert.deepEqual(after.articles.find(item => item.slug === article.slug), before.articles[0], 'original sample card unchanged');
+    assert.equal(after.articles.length, file.includes('BlogArchivePage') ? 11 : 4, 'only approved route records added');
+    assert.equal(new Set(after.articles.map(item => item.slug)).size, after.articles.length, 'no duplicate cards');
+    assert.deepEqual(after.categories[0], before.categories[0], 'existing category title retained');
+    assert.equal(after.categories.length, 5, 'five categories represented by public snapshots fill only missing menu data; the real registry retains its existing investment category');
+    assert.equal(after.initialQuery, before.initialQuery);
+    assert.equal(after.initialPage, before.initialPage);
   }
 });

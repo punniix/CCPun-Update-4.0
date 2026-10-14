@@ -102,7 +102,7 @@ export default function CiPlanningPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ciPlanningSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
-      <main id="main-content" tabIndex={-1} className={functionalMotion.scope}>
+      <main className={functionalMotion.scope}>
         <Website43ToolHero
           image="/assets/website-43/ci-hero.png"
           badge="เครื่องมือวางแผนทุนโรคร้ายแรง · Research Preview"

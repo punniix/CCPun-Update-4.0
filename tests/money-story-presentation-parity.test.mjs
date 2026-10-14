@@ -120,8 +120,16 @@ const baseline = {
   "result-lose-actions": "e13b18e16c877fb72cba6b8ac6ee4dc5f794460b301edd8740a39be311230678"
 };
 
-test('Money Story rendered selection, result and recovery trees match current UX/UAT', () => {
-  for (const [name, values] of cases) assert.equal(digest(render(values)), baseline[name], name);
+test('Money Story preserves full presentation except the approved focusable selection/result root', () => {
+  for (const [name, values] of cases) {
+    const tree = render(values);
+    if (name.startsWith('selection-') || name.startsWith('result-')) {
+      assert.equal(tree.props.tabIndex, -1, name + ': programmatic focus without a Tab stop');
+      const priorTree = { ...tree, props: { ...tree.props } };
+      delete priorTree.props.tabIndex;
+      assert.equal(digest(priorTree), baseline[name], name + ': every other rendered property unchanged');
+    } else assert.equal(digest(tree), baseline[name], name);
+  }
 });
 
 test('selection and result buttons retain original state owner and analytics payloads', () => {

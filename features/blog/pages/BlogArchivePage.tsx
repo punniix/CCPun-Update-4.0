@@ -4,7 +4,7 @@ import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/featu
 import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { getContentProvider } from "@/lib/content/provider";
-import { withUatTaxTableFixture } from "@/lib/content/uat-tax-table-fixture";
+import { withUatTaxTableFixture, withUatSnapshotCategoryMenu } from "@/lib/content/uat-tax-table-fixture";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
 import { listCategoryMenuEntries } from "@/lib/content/category-registry";
 import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";
@@ -54,7 +54,7 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
     listBlogFeaturedArticleIds(),
   ]);
   const articles = withUatTaxTableFixture(cmsArticles).filter((article) => includeDrafts || article.status === "published");
-  const categories = listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));
+  const categories = withUatSnapshotCategoryMenu(listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title })), registry.entries.filter(item => item.status !== "active").map(item => item.slug));
 
   const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === "all" || article.category === legacyCategory)
     && (!legacyTag || legacyTag === "all" || article.tags?.includes(legacyTag)));

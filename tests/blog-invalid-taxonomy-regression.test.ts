@@ -18,7 +18,7 @@ function article(overrides: Partial<Article> = {}): Article {
   } as Article;
 }
 
-test('blog archive keeps valid articles when one published record has unsupported taxonomy', () => {
+test('blog archive retains valid dynamic physical category slugs alongside existing categories', () => {
   const items = toWebsite43ArticleItems([
     article(),
     article({
@@ -29,9 +29,10 @@ test('blog archive keeps valid articles when one published record has unsupporte
     }),
   ]);
 
-  assert.equal(items.length, 1);
+  assert.equal(items.length, 2);
   assert.equal(items[0]?.slug, 'valid-article');
   assert.equal(items[0]?.href, '/blog/life-insurance/valid-article/');
+  assert.equal(items[1]?.href, '/blog/future-category/bad-taxonomy/');
 });
 
 test('blog archive does not crash on blank or malformed category metadata', () => {

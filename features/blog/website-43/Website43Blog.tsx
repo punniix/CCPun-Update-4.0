@@ -45,10 +45,11 @@ const BLOG_CLIENT_CLASS_NAMES = {
   resultCount: styles.resultCount,
 } satisfies Website43BlogClientClassNames;
 
-export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation }: {
+export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation }: {
   articles: Website43ArticleItem[];
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
+  activeCategoryTitle?: string;
   heroDescription?: string;
   initialQuery?: string;
   initialPage?: string;
@@ -57,11 +58,11 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
   topicNavigation?: ReactNode;
 }) {
   const blogCategories: Website43BlogCategoryItem[] = [{ slug: null, title: 'ทุกหมวดหมู่' }, ...categories];
-  const activeCategory = blogCategories.find((item) => item.slug === activeCategorySlug) ?? blogCategories[0];
+  const activeCategory = blogCategories.find((item) => item.slug === activeCategorySlug) ?? (activeCategorySlug ? { slug: activeCategorySlug, title: activeCategoryTitle ?? 'บทความ' } : blogCategories[0]);
 
   return (
     <div className={styles.root}>
-      <main id="main-content" tabIndex={-1}>
+      <main>
         <section className={styles.blogHero} aria-labelledby="blog-title">
           <Image
             className={styles.blogHeroImage}
@@ -75,8 +76,8 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
           />
           <div className={styles.blogHeroGradient} aria-hidden="true" />
           <Website43Navbar overlay />
-          <div className={styles.blogHeroCopy}>
-            <h1 id="blog-title">{activeCategory.slug ? activeCategory.title : 'บทความ'}</h1>
+          <div id="main-content" tabIndex={-1} className={styles.blogHeroCopy}>
+            <h1 id="blog-title">{activeCategorySlug ? activeCategoryTitle ?? activeCategory.title : 'บทความ'}</h1>
             <p>{heroDescription}</p>
           </div>
         </section>

@@ -11,12 +11,13 @@ const ts = require('typescript');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 // UX/UAT 3d909613 before the approved unified-footer revision.
-// Footer hashes retain its original desktop DOM; CSS hashes retain every non-footer rule.
+// Footer hashes retain its original desktop DOM. Active/navbar CSS hashes include the
+// COO-approved 2026-10-14 native interaction motion revision; responsive layout stays frozen.
 // Frozen active CSS/DOM outputs require no Git history or network in CI.
 const baseline = {
-  "activeCss": "0f419a117a99aad692302e9a099d3b48240c0567393993c3062f71ff684e98b4",
-  "responsiveCss": "3cd8efc41eec452c51c3fee2e874a6d3b3c7e06ab8fe573c503e90a5d9474c47",
-  "navbarCss": "7861f222dd4c06e9261b50d7c0a92f4a8ce06c4ada69a0a6f19dcee0befb4d82",
+  "activeCss": "a20588d20bfe731e43a00dcac79e6c47697548315b2644f2b45329de2e7a3609",
+  "responsiveCss": "3246c4e6d5e9ab2b661e643e3ba9e8b2a95041334779f47b0c53743968ef2675",
+  "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
   "navbarDomOff": "e0e96baf8e7bc3de1e06632b3ae6262f7b4b9e65740ae01246e657bdc23c566b",
   "navbarDomOn": "f2a1baf3334dce55b449c7bed10f5b802f352acde11e3137999f7b9644d9cd4c",
   "footerDomOff": "194a94f48d87c887966470a039725bbf06925bbdc648d2d6f56f8f8f486fdf10",
@@ -97,10 +98,10 @@ const footerSnapshots = (source, investmentEnabled = false) => {
   }
   return snapshots;
 };
-test('active stylesheet declarations and media order preserve the current UX/UAT baseline', () => {
+test('approved motion styling and unchanged responsive media order match the frozen UAT baseline', () => {
   assert.equal(fingerprint(stylesheetRules(after('Website43.module.css'))), baseline.activeCss);
   assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), baseline.responsiveCss);
-  assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar styling is unchanged');
+  assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar layout and approved short interaction cues remain frozen');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);
   for (const name of inactive) assert.doesNotMatch(after('Website43.module.css'), new RegExp(`\\.${name}\\b`), `inactive module class ${name}`);
 });

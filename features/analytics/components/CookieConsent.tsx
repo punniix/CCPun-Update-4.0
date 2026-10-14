@@ -125,7 +125,6 @@ export default function CookieConsent() {
       aria-describedby={showPanel ? undefined : "cookie-desc"}
       aria-modal="true"
       className="fixed bottom-0 left-0 right-0 z-[70] px-4 pb-4 sm:px-6 sm:pb-6"
-      style={{ animation: 'cookieBannerUp 0.35s ease both' }}
     >
       <div
         className="max-w-3xl mx-auto"
@@ -203,7 +202,6 @@ export default function CookieConsent() {
               padding: '1.25rem 1.5rem 1.5rem',
               overflowY: 'auto',
               overscrollBehavior: 'contain',
-              animation: 'cookiePanelDown 0.25s ease both',
             }}
           >
             {/* Header */}
@@ -298,16 +296,6 @@ export default function CookieConsent() {
         )}
       </div>
 
-      <style>{`
-        @keyframes cookieBannerUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes cookiePanelDown {
-          from { opacity: 0; transform: translateY(-8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -338,8 +338,8 @@ export function Website43ResponsiveStyles() {
   }
 
   .${styles.blogHeroImage} {
-    inset: 80px 0 auto auto;
-    height: calc(100% - 18px);
+    inset: 0 0 0 auto;
+    height: 100%;
   }
   .${styles.toolHeroImage} {
     inset: 96px 0 auto auto;
@@ -375,12 +375,12 @@ export function Website43ResponsiveStyles() {
 
 @media (min-width: 640px) and (max-width: 1023px) {
   .${styles.blogHeroImage} {
-    top: 76px;
+    top: 0;
     right: 0;
-    bottom: auto;
+    bottom: 0;
     left: auto;
     width: 508px;
-    height: 346px;
+    height: 100%;
   }
 
   .${styles.featuredCard} {

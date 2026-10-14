@@ -16,9 +16,10 @@ const proof = JSON.parse(read('qa/phase2-css-delivery-parity.json'));
 const file = 'components/styles/global-foundation.css';
 const source = read(file);
 const baselineCss = gunzipSync(Buffer.from(proof.compiledCssGzip, 'base64')).toString();
-// Captured from actual own UAT using the lockfile's Tailwind 4.2.1 compiler before edits.
+// Current authorized UAT motion/focus revision uses the locked Tailwind compiler.
+// Original foundation source, controller semantics and unaffected protected owners remain frozen.
 assert.equal(sha(proof.foundationSource), '16be3e70110eb57339671d20a877cb7a1f8026675ce0eecca47794d6efeafece');
-assert.equal(sha(baselineCss), 'ab3d13892e8df9813e0b0a13083e2836987f617f8c67c1c5fc198d3919cee746');
+assert.equal(sha(baselineCss), '36f095016bb22a67c80a4402cffd4c90b650b3ad0ef530173c2f9b5dcec8c2f8');
 
 test('Tailwind preserves automatic native app discovery and excludes only historical fixtures', () => {
   assert.match(source, /^@import "tailwindcss";/);
@@ -226,11 +227,11 @@ test('Money composition admission rejects changed logic, unreachable owners, mut
 });
 
 
-test('actual Next Web compiler context preserves the original complete CSS output and payload budget', async () => {
+test('actual Next Web compiler context preserves the approved UAT CSS output and payload budget', async () => {
   assert.equal(proof.nativeWeb.context, 'apps/web');
   assert.equal(proof.nativeWeb.foundationSha256, sha(proof.foundationSource));
   const original = gunzipSync(Buffer.from(proof.nativeWeb.compiledCssGzip, 'base64')).toString();
-  assert.equal(sha(original), '8299d73fcabeeae743d873c4103a638875ad6a960d0edf61b983298b7d2cf474');
+  assert.equal(sha(original), '5d3644d435f89cebd06953aa611dc271ffbc616078d7b2b7aa15c7a11a31409c');
   const candidate = await postcss([tailwind({ base: resolve('apps/web'), optimize: false })]).process(source, { from: resolve(file) });
   // This matches the app build driver's cwd. Root standalone sizes cannot certify it.
   assert.equal(candidate.css, original, 'All rules, selectors, at-rules, declarations and order stay exact in the native app context');
