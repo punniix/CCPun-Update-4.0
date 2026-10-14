@@ -15,7 +15,7 @@ const reviewedSourceOwners = {
   "apps/web/tsconfig.json": "f99e85600f69e583bf2a1ab88fb186f560cc4c8d405cd0dc51e9c949b69f7bbe",
   "components/layout/website-43/Website43.module.css": "8090a626a43b445db4ada15a347e3564e1d0a06287d6db2248e53530d5bde1b9",
   "components/layout/website-43/Website43Legal.module.css": "7a991a55a0c19ac7fe7152c3abbf979dfcf7a4d91223faaa3ae166b4aeb0a6f5",
-  "components/layout/website-43/Website43Navbar.module.css": "21ba038b3f7780f9d4b930772d43912d7d0b33445a62d6a4a7c896fdb5d87fc9",
+  "components/layout/website-43/Website43Navbar.module.css": "16cb8c7d1f18bbb201f704429e0264789c8a8a820cd36db97c7e3e98ffbb2492",
   "components/layout/website-43/Website43Navbar.tsx": "3ec52233fa899aa0792fd7555ee7e4d822cd53d9db1367225b394628254543f3",
   "components/layout/website-43/Website43ResponsiveStyles.tsx": "6c90a2136905c48703e1d68108d2bb3fa5d21d8bee64bf25bb4737274c2ed3bb",
   "components/layout/website-43/Website43Shared.tsx": "45433f4cf955c8705f020303cfefd51acba6fcf5e401654df8f0c1f3379ac8b6",

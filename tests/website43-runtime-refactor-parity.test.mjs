@@ -21,7 +21,7 @@ const baseline = {
 const reviewedCurrent = {
   "activeCss": "4c655ff9ca2484644114addcd7f9a5d53e70b6046a04b45600316eb788d3949d",
   "responsiveCss": "1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9",
-  "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
+  "navbarCss": "8bb36bb9ada57b280384145e56412db668663f1ee6cdc37d9bed7a2922498e99",
   "footerDesktopDom": "53e42deb5ddf5e7dd671694437c80e569b9e15094e1549d43ff3276b1ebf6122"
 };
 const directory = 'components/layout/website-43/';
