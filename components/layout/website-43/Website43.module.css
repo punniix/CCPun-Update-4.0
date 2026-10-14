@@ -1117,7 +1117,7 @@
 .articleCard:focus-visible, .featuredCard:focus-visible, .toolCtaCard:focus-visible { border-color: var(--w43-gold); }
 .articleCard:focus-visible .articleTitle { text-decoration-color: var(--w43-gold); }
 .root :is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--w43-gold-bright); outline-offset: 3px; }
-.root :is(.faqSummary, .tocMobile summary, .featuredCard):focus-visible { outline-offset: -3px; }
+.root :is(.faqSummary, .tocMobile summary, .featuredCard, .carouselDotButton):focus-visible { outline-offset: -3px; }
 .root :is(input, select, textarea):not([aria-invalid="true"]):focus-visible { border-color: var(--w43-gold-bright); }
 @media (prefers-reduced-motion: reduce) {
   .root *, .root *::before, .root *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }

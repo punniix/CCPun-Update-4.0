@@ -15,7 +15,7 @@ const { renderToStaticMarkup } = require('react-dom/server');
 // COO-approved 2026-10-14 native interaction motion revision; responsive layout stays frozen.
 // Frozen active CSS/DOM outputs require no Git history or network in CI.
 const baseline = {
-  "activeCss": "560e5b90d32f73582f4101c279efea9b094529018b24ea6d92e532f9217ba171",
+  "activeCss": "a20588d20bfe731e43a00dcac79e6c47697548315b2644f2b45329de2e7a3609",
   "responsiveCss": "3cd8efc41eec452c51c3fee2e874a6d3b3c7e06ab8fe573c503e90a5d9474c47",
   "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
   "navbarDomOff": "e0e96baf8e7bc3de1e06632b3ae6262f7b4b9e65740ae01246e657bdc23c566b",
