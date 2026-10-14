@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import shared from '@/components/layout/website-43/Website43.module.css';
 import styles from './HealthHappyCountdown.module.css';
 
@@ -21,6 +22,30 @@ function remaining(timestamp: number): TimeLeft {
 
 export default function HealthHappyCountdown({ placement }: { placement: Placement }) {
   const [now, setNow] = useState<number | null>(null);
+  const countdownRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const element = countdownRef.current;
+    if (!element || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return;
+      trackEvent('health_happy_countdown_view', {
+        campaign_id: 'aia_health_happy_2026',
+        campaign_placement: placement,
+        surface_group: placement === 'home' ? 'homepage' : 'blog',
+      });
+      observer.disconnect(); // One view per mounted banner; no timer-driven analytics events.
+    }, { threshold: 0.5 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [placement]);
+  const recordClick = (action: 'line' | 'article' | 'read_details') => {
+    trackEvent('health_happy_countdown_click', {
+      campaign_id: 'aia_health_happy_2026',
+      campaign_placement: placement,
+      campaign_action: action,
+      surface_group: placement === 'home' ? 'homepage' : 'blog',
+    });
+  };
   useEffect(() => {
     const update = () => setNow(Date.now());
     update();
@@ -42,7 +67,7 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
     { label: 'SECONDS', value: left?.seconds },
   ];
   return (
-    <aside className={styles.outside} aria-label="แคมเปญ AIA Health Happy" data-campaign="aia-health-happy-2026" data-campaign-placement={placement}>
+    <aside ref={countdownRef} className={styles.outside} aria-label="แคมเปญ AIA Health Happy" data-campaign="aia-health-happy-2026" data-campaign-placement={placement}>
       <div className={styles.frame}>
         <div className={styles.info}>
           <div className={styles.brandLine}>
@@ -64,8 +89,8 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
           ))}
         </div>
         <div className={styles.actions}>
-          <a className={shared.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign">ปรึกษาผ่าน LINE OA</a>
-          <a className={shared.outlineButton} href={placement === 'article' ? '#health-happy-details' : ARTICLE_URL} data-campaign-action={placement === 'article' ? 'read-details' : 'article'}>
+          <a className={shared.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign" onClick={() => recordClick('line')}>ปรึกษาผ่าน LINE OA</a>
+          <a className={shared.outlineButton} href={placement === 'article' ? '#health-happy-details' : ARTICLE_URL} data-campaign-action={placement === 'article' ? 'read-details' : 'article'} onClick={() => recordClick(placement === 'article' ? 'read_details' : 'article')}>
             {placement === 'article' ? 'อ่านรายละเอียดด้านล่าง' : 'อ่านบทความ Health Happy'}
           </a>
         </div>

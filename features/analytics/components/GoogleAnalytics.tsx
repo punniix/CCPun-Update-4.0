@@ -54,20 +54,26 @@ export default function GoogleAnalytics({ gaId }: { gaId: string }) {
       const nav = link.closest('nav');
       const surface = path.startsWith('/ci-planning') ? 'ci_planning'
         : path.startsWith('/tools/fhc') || path.startsWith('/tools/financial-health-check') ? 'fhc'
-        : path.startsWith('/blog/') ? 'blog'
+        : path === '/blog' || path.startsWith('/blog/') ? 'blog'
         : path === '/' ? 'homepage'
         : null;
+      const campaign = link.closest<HTMLElement>('[data-campaign="aia-health-happy-2026"]');
+      const placement = campaign?.dataset.campaignPlacement;
+      const safePlacement = placement === 'home' || placement === 'blog' || placement === 'article' ? placement : undefined;
       const explicitLocation = link.dataset.analyticsLocation;
       const allowedLocation = explicitLocation === 'navbar' || explicitLocation === 'navbar_mobile' || explicitLocation === 'home_faq'
         ? explicitLocation : null;
-      const location = allowedLocation ?? (nav ? (link.closest('#mobile-navigation') ? 'navbar_mobile' : 'navbar')
+      const location = (campaign && safePlacement) ? 'countdown' : allowedLocation ?? (nav ? (link.closest('#mobile-navigation') ? 'navbar_mobile' : 'navbar')
         : link.closest('#home') ? 'home_hero'
         : link.closest('[data-uat-section="contact"]') ? 'home_contact'
         : surface === 'fhc' ? 'fhc_landing'
         : surface === 'blog' ? 'blog_article'
         : null);
       if (!surface || !location) return;
-      trackEvent('line_oa_click', { contact_channel: 'line', cta_location: location, surface_group: surface });
+      trackEvent('line_oa_click', {
+        contact_channel: 'line', cta_location: location, surface_group: surface,
+        ...(campaign && safePlacement ? { campaign_id: 'aia_health_happy_2026', campaign_placement: safePlacement } : {}),
+      });
     };
 
     apply();

@@ -272,7 +272,7 @@ test('Article header keeps only date metadata and the author identity stays in t
   assert.doesNotMatch(article, /className=\{styles\.articleByline\}/);
   assert.match(article, /className=\{styles\.articleHeaderMeta\}/);
   assert.match(article, /className=\{styles\.authorCard\}[\s\S]*?className=\{styles\.authorName\}/);
-  assert.match(css, /\.articleMetaRow \{[\s\S]*?justify-content: flex-end;/);
+  assert.match(css, /\.articleMetaRow \{[\s\S]*?justify-content: space-between;/);
 });
 
 test('Article CTA to related-content rhythm is compact and explicitly scoped', () => {

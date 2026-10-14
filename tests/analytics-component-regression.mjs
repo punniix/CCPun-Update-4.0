@@ -86,6 +86,15 @@ try {
   clickFixture('/', '<nav id="mobile-navigation"><a href="https://lin.ee/test" data-analytics-location="navbar_mobile">LINE</a></nav>', ['navbar_mobile', 'homepage']);
   clickFixture('/', '<section id="home"><a href="https://lin.ee/test" data-analytics-location="untrusted">LINE</a></section>', ['home_hero', 'homepage']);
   clickFixture('/blog/life-insurance/example/', '<a href="https://lin.ee/test">LINE</a>', ['blog_article', 'blog']);
+  // Countdown attribution must remain distinct from ordinary homepage/blog CTA clicks.
+  clickFixture('/', '<aside data-campaign="aia-health-happy-2026" data-campaign-placement="home"><a href="https://lin.ee/test" data-analytics-location="campaign">LINE</a></aside>', ['countdown', 'homepage']);
+  assert.equal(lineEvents().at(-1).campaign_id, 'aia_health_happy_2026');
+  assert.equal(lineEvents().at(-1).campaign_placement, 'home');
+  clickFixture('/blog/', '<aside data-campaign="aia-health-happy-2026" data-campaign-placement="blog"><a href="https://lin.ee/test">LINE</a></aside>', ['countdown', 'blog']);
+  assert.equal(lineEvents().at(-1).campaign_placement, 'blog');
+  clickFixture('/blog/health-insurance/aia-health-happy-describe/', '<aside data-campaign="aia-health-happy-2026" data-campaign-placement="article"><a href="https://lin.ee/test">LINE</a></aside>', ['countdown', 'blog']);
+  assert.equal(lineEvents().at(-1).campaign_placement, 'article');
+  clickFixture('/blog/', '<a href="https://lin.ee/test">LINE</a>', ['blog_article', 'blog']);
   clickFixture('/ci-planning/', '<section id="ci-calculator"><a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a></section>', null);
   clickFixture('/tools/financial-health-check/', '<section id="fhc-calculator"><a href="https://lin.ee/test" data-analytics-location="home_faq">LINE</a></section>', null);
   clickFixture('/privacy/', '<a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a>', null);
