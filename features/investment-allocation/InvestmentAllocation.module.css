@@ -257,6 +257,9 @@
 @media (max-width: 430px) {
   .stepHeader { flex-wrap: wrap; gap: 10px; }
   .stepHeader > div { flex-basis: 100%; min-width: 0; }
+  .barRow { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
+  .barLabel { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; }
+  .barTrack { min-width: 0; }
   .deltaRow { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .deltaRow strong, .deltaRow span { min-width: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 1.65; text-align: left; }
 }
