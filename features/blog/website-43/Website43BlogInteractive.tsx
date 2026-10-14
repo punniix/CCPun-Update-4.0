@@ -340,7 +340,6 @@ export default function Website43BlogInteractive({
         )}
         {pages > 1 && <nav className={classNames.pagination} aria-label="หน้าบทความ">
           <button type="button" disabled={page === 1} onClick={() => selectPage(page - 1)}>ก่อนหน้า</button>
-          <span>หน้า {page} / {pages}</span>
           {Array.from({ length: pages }, (_, i) => i + 1).filter(n => n === 1 || n === pages || Math.abs(n - page) <= 1).map(n => <a key={n} href={blogPageHref(`/blog/${activeCategorySlug ? activeCategorySlug + '/' : ''}?q=${encodeURIComponent(query)}`, n)} aria-current={n === page ? 'page' : undefined} onClick={e => { e.preventDefault(); selectPage(n); }}>{n}</a>)}
           <button type="button" disabled={page === pages} onClick={() => selectPage(page + 1)}>ถัดไป</button>
         </nav>}
