@@ -61,7 +61,11 @@ test("all six RBAC roles retain exact old permitted leaves in full and editorial
     const actual = groups.flatMap(group => group.children.map(leaf => leaf.href));
     assert.deepEqual(plain(actual.sort()), expected.filter(isPathAllowed).sort(), `${role}/${profile}`);
     assert.equal(new Set(actual).size, actual.length);
-    for (const group of groups) assert.equal(group.href, group.children[0].href, "first authorized landing");
+    for (const group of groups) {
+      const expectedLanding = group.id === "settings" && group.children.some(leaf => leaf.href === "/settings/") ? "/settings/" : group.children[0].href;
+      assert.equal(group.href, expectedLanding, "authorized Settings hub or first permitted fallback");
+      assert.ok(group.children.some(leaf => leaf.href === group.href), "landing is always an already permitted leaf");
+    }
     if (profile === "editorial") assert.deepEqual(plain(groups.map(group => group.id)), ["content"]);
   }
 });
@@ -171,4 +175,18 @@ test("Today attention cards use the shared Inbox selection and distinguish peopl
     assert.match(text(rendered), /แหล่งงานบางส่วนยังอ่านไม่ได้/);
     assert.match(text(followUpCard), /ยังไม่ส่งข้อความแทนคุณ/);
   }
+});
+
+
+test("five owner tasks open their canonical core views and Settings falls back only to a permitted leaf", () => {
+  const owner = model.buildAdminNavigation({ profile: "full", hasPermission: permission => rbac.hasAdminPermission("owner", permission), isPathAllowed: () => true });
+  assert.deepEqual(plain(owner.map(group => [group.id, group.href])), [
+    ["today", "/dashboard/"], ["customers", "/dashboard/inbox/"], ["content", "/content/articles/"], ["results", "/analytics/"], ["settings", "/settings/"],
+  ]);
+  const accountsOnly = model.buildAdminNavigation({ profile: "full", hasPermission: () => true, isPathAllowed: path => path === "/social/accounts/" });
+  assert.deepEqual(plain(accountsOnly.map(group => [group.id, group.href])), [["settings", "/social/accounts/"]]);
+  const none = model.buildAdminNavigation({ profile: "full", hasPermission: () => true, isPathAllowed: path => path !== "/settings/" && !path.startsWith("/settings/") && !path.startsWith("/operations/") && path !== "/social/accounts/" });
+  assert.equal(none.some(group => group.id === "settings"), false);
+  const editorial = model.buildAdminNavigation({ profile: "editorial", hasPermission: () => true, isPathAllowed: path => capability.isAdminCapabilityPathAllowed(path, "editorial") });
+  assert.equal(editorial.some(group => group.id === "settings"), false);
 });

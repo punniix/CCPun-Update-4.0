@@ -177,11 +177,11 @@ test("operations health exposes counts/status only", () => {
 });
 
 test("Admin UI adds real conversions and privacy surfaces without creating another CRM", () => {
-  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const navigation = read("features/admin/components/admin-navigation-model.ts");
   const conversion = read("apps/admin/app/(control-plane)/analytics/conversions/page.tsx");
   const privacy = read("apps/admin/app/(control-plane)/operations/privacy/page.tsx");
-  assert.match(layout, /\/analytics\/conversions\//);
-  assert.match(layout, /\/operations\/privacy\//);
+  assert.match(navigation, /\/analytics\/conversions\//);
+  assert.match(navigation, /\/operations\/privacy\//);
   assert.match(conversion, /การคุยที่พร้อมให้คำแนะนำ/);
   assert.match(conversion, /แสดงเฉพาะยอดรวมและรหัสที่ปลอดภัย/);
   assert.match(privacy, /การลบข้อมูลจริงต้องยืนยันแยกต่างหาก/);

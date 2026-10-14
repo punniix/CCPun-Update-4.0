@@ -72,7 +72,7 @@ test("Post-Live preview route is authenticated, exact-origin and GET-only", () =
   const page = read("features/admin/social/post-live-page.tsx");
   const entry = read("app/(control-plane)/analytics/social/post-live/page.tsx");
   const analytics = read("features/admin/social/analytics-page.tsx");
-  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const navigation = read("features/admin/components/admin-navigation-model.ts");
   const queue = read("features/admin/social/operations-page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
@@ -86,7 +86,7 @@ test("Post-Live preview route is authenticated, exact-origin and GET-only", () =
   assert.match(page, /ไม่ติดตามแบบทันที ไม่ดึงข้อมูลเบื้องหลัง/);
   assert.equal(entry.trim(), 'export { metadata, default } from "@/features/admin/social/post-live-page";');
   assert.match(analytics, /โซเชียล · ผลลัพธ์/);
-  assert.match(layout, /href: "\/analytics\/social\/", label: "ผลลัพธ์โซเชียล"/);
+  assert.match(navigation, /href: "\/analytics\/social\/", label: "ผลลัพธ์โซเชียล"/);
   assert.doesNotMatch(queue, /\/analytics\/social\/post-live\//);
 });
 

@@ -13,6 +13,7 @@ import { ExportCenter } from "../../features/admin/analytics/ExportCenter";
 import { changeText, metricText, ownerContentCategoryLabel, ownerContentTitle, ownerEvidenceLabel, ownerMarketingText, safeContentHref, storedDateText } from "../../features/admin/marketing/presentation";
 import * as presentation from "../../features/admin/marketing/presentation";
 import type { MarketingAction, MarketingActionInput, MarketingDashboard, MarketingLeaderboard, MarketingMetric } from "../../lib/admin/marketing/model";
+import type { AgentRuntimeJobDetail } from "../../lib/admin/operations/agent-os-runtime-detail";
 
 test("marketing presentation distinguishes missing from zero and protects content links", () => {
   assert.equal(metricText(0), "0"); assert.equal(metricText(null), "ยังไม่มีข้อมูล");
@@ -102,9 +103,19 @@ test("uncertain Google trigger retains the server job and resumes status checks 
   const dom = new JSDOM("<div id='root'></div>", { url: "https://admin.ccpun.com/analytics/performance/" });
   const previous = { window: globalThis.window, document: globalThis.document, self: globalThis.self, fetch: globalThis.fetch };
   const jobId = "00000000-0000-4000-8000-000000000009", calls: Array<{ url: string; method: string; body?: string }> = [];
+  const timestamp = "2026-10-14T02:00:00.000Z";
+  const runtime = {
+    terminal: true, elapsedMs: 0, heartbeatAgeMs: null, pace: "normal", serverNow: timestamp,
+    baseline: { sampleSize: 0, p50Ms: null, p90Ms: null }, events: [], eventsState: "ready",
+    job: { jobId, correlationId: "00000000-0000-4000-8000-000000000010", requestId: "00000000-0000-4000-8000-000000000011",
+      payloadDigestSha256: "a".repeat(64), source: "admin", action: "export.google_sheet", workflowKey: "export.google_sheet",
+      status: "reconciliation_required", stage: "trigger-uncertain", queueClass: "normal", attempt: 1, maxAttempts: 2, rowVersion: 2,
+      createdAt: timestamp, updatedAt: timestamp, queuedAt: timestamp, startedAt: null, heartbeatAt: null, completedAt: null,
+      n8nExecutionId: null, providerReference: null, errorCategory: "n8n-trigger-outcome-unknown", durationMs: null, queueWaitMs: null },
+  } satisfies AgentRuntimeJobDetail;
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, self: dom.window, IS_REACT_ACT_ENVIRONMENT: true, fetch: async (url: string, options?: RequestInit) => {
     calls.push({ url, method: options?.method ?? "GET", body: options?.body ? String(options.body) : undefined });
-    return options?.method === "POST" ? Response.json({ error: "google-sheet-export-trigger-uncertain", jobId }, { status: 503 }) : Response.json({ terminal: true, job: { status: "reconciliation_required", stage: "trigger-uncertain", providerReference: null, errorCategory: "n8n-trigger-outcome-unknown" } });
+    return options?.method === "POST" ? Response.json({ error: "google-sheet-export-trigger-uncertain", jobId }, { status: 503 }) : Response.json(runtime);
   } });
   const root = createRoot(document.getElementById("root")!);
   try {

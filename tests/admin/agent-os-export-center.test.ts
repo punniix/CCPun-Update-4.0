@@ -5,6 +5,7 @@ import { runInNewContext } from "node:vm";
 import test from "node:test";
 import { resolveGoogleSheetExportRuntime } from "../../lib/admin/agent-os/export-runtime";
 import { N8N_ADMIN_INTEGRATIONS, n8nAdminIntegrationSummary } from "../../lib/admin/n8n-integration-registry";
+import { buildAdminNavigation } from "../../features/admin/components/admin-navigation-model";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 
@@ -144,7 +145,11 @@ test("Export Center is owner-facing and keeps generic raw conversations out", ()
   const center = read("features/admin/analytics/ExportCenter.tsx");
   assert.match(page, /ส่งออกข้อมูล/);
   assert.match(page, /settings:read/);
-  assert.match(layout, /\/analytics\/exports\//);
+  assert.match(layout, /buildAdminNavigation\(/);
+  const navigation = buildAdminNavigation({ profile: "full", hasPermission: () => true, isPathAllowed: () => true });
+  assert.ok(navigation.flatMap(item => item.children).some(item => item.href === "/analytics/exports/"));
+  const restricted = buildAdminNavigation({ profile: "full", hasPermission: permission => permission !== "settings:read", isPathAllowed: () => true });
+  assert.equal(restricted.flatMap(item => item.children).some(item => item.href === "/analytics/exports/"), false);
   assert.match(center, /social-performance/);
   assert.match(center, /seo-intelligence/);
   assert.match(center, /Social Performance/);

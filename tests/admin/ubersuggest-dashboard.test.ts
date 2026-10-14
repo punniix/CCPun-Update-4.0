@@ -10,7 +10,7 @@ const snapshots = readCurrentSource("lib/admin/ubersuggest-dashboard.ts", "utf8"
 const route = readCurrentSource("apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
 const routes = readCurrentSource("lib/admin/routes.ts", "utf8");
 const researchPage = readCurrentSource("features/admin/research/page.tsx", "utf8");
-const layout = readCurrentSource("apps/admin/app/(control-plane)/layout.tsx", "utf8");
+const navigation = readCurrentSource("features/admin/components/admin-navigation-model.ts", "utf8");
 const schema = readCurrentSource("cms/sanity/admin/schema/ubersuggest-types.ts", "utf8");
 const studioPolicy = readCurrentSource("cms/sanity/policy/studio-policy.ts", "utf8");
 const studioConfig = readCurrentSource("sanity.config.ts", "utf8");
@@ -93,8 +93,8 @@ test("Production Research uses snapshots while Local lanes retain provider query
 
 test("legacy Ubersuggest alias is retired and navigation has one canonical Research entry", () => {
   assert.doesNotMatch(routes, /\/snt-admin\/ubersuggest/);
-  assert.match(layout, /href: "\/content\/research\/", label: "ข้อมูลประกอบ"/);
-  assert.doesNotMatch(layout, /href: "\/snt-admin\/ubersuggest\/"/);
+  assert.match(navigation, /href: "\/content\/research\/", label: "ข้อมูลประกอบ"/);
+  assert.doesNotMatch(navigation, /href: "\/snt-admin\/ubersuggest\/"/);
 });
 
 function readCurrentSource(file: string | URL, encoding: "utf8"): string {

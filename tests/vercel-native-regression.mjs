@@ -502,7 +502,8 @@ for (const tablePage of [
   read('apps/admin/app/(control-plane)/seo/page.tsx'),
   read('apps/admin/app/(control-plane)/operations/audit-log/page.tsx'),
 ]) {
-  assert.match(tablePage, /text-white\/60 xl:hidden/);
+  assert.match(tablePage, /<p[^>]*className="[^"]*\bxl:hidden\b[^"]*">เลื่อนตารางไปทางซ้ายหรือขวาเพื่อดูข้อมูลทั้งหมด<\/p>/);
+  assert.match(tablePage, /role="region"[^>]*tabIndex=\{0\}[^>]*className="(?:[^"\s]+\s+)*overflow-x-auto(?:\s+[^"\s]+)*"/);
 }
 
 const publicDiscoverySurface = [

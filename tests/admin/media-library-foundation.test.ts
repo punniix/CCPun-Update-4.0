@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { ADMIN_NAVIGATION_DESTINATIONS } from "../../features/admin/components/admin-navigation-model";
 import {
   getMediaStorageProviderState,
   isGoogleDriveSelectedFileVerificationEnabled,
@@ -280,7 +281,7 @@ test("Distribution Overview owns the root route while the Media Library presenta
   const page = read("features/admin/social/page.tsx");
   const mediaSection = read("features/admin/media/MediaLibraryUatSection.tsx");
   const route = read("app/(control-plane)/social/page.tsx");
-  const navigation = read("apps/admin/app/(control-plane)/layout.tsx");
+  const navigation = ADMIN_NAVIGATION_DESTINATIONS;
   assert.match(page, /getMediaLibraryRuntimeStatus/);
   assert.match(page, /MediaLibraryUatSection/);
   assert.doesNotMatch(mediaSection, /text-white\/45/);
@@ -292,7 +293,9 @@ test("Distribution Overview owns the root route while the Media Library presenta
   assert.equal((mediaSection.match(/disabled aria-disabled="true"/g) ?? []).length, 2);
   assert.equal(route.trim(), 'export { metadata, default } from "@/features/admin/social/control-plane-page";');
   assert.doesNotMatch(page, /redirect\(/);
-  assert.equal((navigation.match(/\{ href: "\/social\/"/g) ?? []).length, 1);
+  assert.equal(navigation.filter(item => item.href === "/social/").length, 1);
+  assert.deepEqual(navigation.find(item => item.href === "/social/")?.permissions, ["social:read"]);
+  assert.equal(navigation.some(item => item.href === "/media/" || item.href === "/social/media/"), false, "media retains the gated Social presentation, without inventing a page route");
 });
 
 test("Google Picker and GIS use only their exact CSP origins", () => {

@@ -5,6 +5,7 @@ import test from "node:test";
 import { createRequire } from "node:module";
 import { runInNewContext } from "node:vm";
 import { buildActionCenterSignals, selectActionCenterSignals } from "../../lib/admin/agent-os/action-center";
+import { buildAdminNavigation } from "../../features/admin/components/admin-navigation-model";
 import {
   lineBotDecisionLabel,
   lineConversationStatusLabel,
@@ -50,6 +51,7 @@ test("Owner inbox rows keep one exact case link and preserve unavailable filter 
   assert.match(rendered, /"name":"stage","defaultValue":"Expert Review"/);
   assert.match(rendered, /stage=Expert%20Review/);
   assert.match(rendered, /Synthetic customer/);
+  assert.doesNotMatch(rendered, /caseState|Case state/);
   assert.match(rendered, /09:00/);
   filterFailed = true;
   const failed = JSON.stringify(await loaded.exports.default(props));
@@ -178,7 +180,9 @@ test("privacy UI describes consequences without implementation jargon", () => {
 
 test("navigation uses customer-facing Thai labels for LINE work", () => {
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
-  assert.match(layout, /ลูกค้า LINE/);
-  assert.match(layout, /ข้อความแจ้งลูกค้า/);
-  assert.doesNotMatch(layout, /Advisor Inbox|LINE Campaigns/);
+  assert.match(layout, /buildAdminNavigation\(/);
+  const leaves = buildAdminNavigation({ profile: "full", hasPermission: () => true, isPathAllowed: () => true }).flatMap(item => item.children);
+  assert.equal(leaves.find(item => item.href === "/dashboard/inbox/")?.label, "ลูกค้า LINE");
+  assert.equal(leaves.find(item => item.href === "/dashboard/campaigns/")?.label, "ข้อความแจ้งลูกค้า");
+  assert.doesNotMatch(leaves.map(item => item.label).join(" "), /Advisor Inbox|LINE Campaigns/);
 });

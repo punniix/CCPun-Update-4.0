@@ -56,6 +56,19 @@ jobs:
             'tests/admin/line-advisor-inbox.test.ts',
             'tests/admin/line-user-friendly-presentation.test.ts',
             'tests/admin/social-operations-2-regression.test.ts',
+            'tests/admin/admin-operations-production.test.ts',
+            'tests/admin/admin-user-language.test.ts',
+            'tests/admin/control-plane-final-closure.test.ts',
+            'tests/admin/line-attribution-privacy-ops.test.ts',
+            'tests/admin/media-library-foundation.test.ts',
+            'tests/admin/social-marketing-dashboard-full-win.test.ts',
+            'tests/admin/social-meta-connection.test.ts',
+            'tests/admin/social-operations-core.test.ts',
+            'tests/admin/social-post-live.test.ts',
+            'tests/admin/ubersuggest-dashboard.test.ts',
+            'tests/vercel-native-regression.mjs',
+            'tests/admin/marketing-presentation.test.ts',
+            'tests/admin/n8n-p1-timeout-reconciliation.test.ts',
           ]);
           // All other files, including public/app/auth/API/proxy/CMS/locks/QA/phase fixtures/lib, stay unchanged.
           const changed = git('diff', '--name-only', '--no-renames', '-z', base, 'HEAD').toString().split('\0').filter(Boolean);

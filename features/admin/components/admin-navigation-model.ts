@@ -84,7 +84,7 @@ export function buildAdminNavigation({ profile, hasPermission, isPathAllowed, ex
   const groups: readonly [AdminNavigationGroupId, string][] = [["today", "วันนี้"], ["customers", "ลูกค้า"], ["content", "คอนเทนต์"], ["results", "ผลลัพธ์"], ["settings", "ตั้งค่า"]];
   return groups.flatMap(([id, label]) => {
     const children = allowed.filter((leaf) => adminNavigationRouteOwner(leaf.href, profile) === id).map(({ href, label }) => ({ href, label }));
-    return children.length ? [{ id, label, href: children[0].href, children }] : [];
+    return children.length ? [{ id, label, href: id === "settings" && children.some(child => child.href === "/settings/") ? "/settings/" : children[0].href, children }] : [];
   });
 }
 

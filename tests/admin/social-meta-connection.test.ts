@@ -44,7 +44,7 @@ test("Synthetic Meta connection and GET route stay UAT-only and read-only", () =
   const page = read("features/admin/social/meta-connection-page.tsx");
   const entry = read("app/(control-plane)/social/accounts/meta/page.tsx");
   const connections = read("features/admin/social/connections-page.tsx");
-  const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const navigation = read("features/admin/components/admin-navigation-model.ts");
   const queue = read("features/admin/social/operations-page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
@@ -60,6 +60,6 @@ test("Synthetic Meta connection and GET route stay UAT-only and read-only", () =
   assert.equal(entry.trim(), 'export { metadata, default } from "@/features/admin/social/meta-connection-page";');
   assert.match(connections, /href: "\/social\/accounts\/meta\/"/);
   assert.match(connections, /Facebook Page · บัญชี Instagram/);
-  assert.match(layout, /href: "\/social\/accounts\/", label: "บัญชีที่เชื่อมต่อ"/);
+  assert.match(navigation, /href: "\/social\/accounts\/", label: "บัญชีโซเชียลที่เชื่อมต่อ"/);
   assert.doesNotMatch(queue, /\/social\/accounts\/meta\//);
 });

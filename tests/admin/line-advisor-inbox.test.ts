@@ -10,6 +10,7 @@ import path from "node:path";
 import test from "node:test";
 import { ADMIN_ROLES, hasAdminPermission } from "../../lib/admin/rbac";
 import { ADMIN_OPERATIONS_LANES, resolveAdminOperationsRuntimeIdentity } from "../../lib/admin/operations/foundation";
+import { buildAdminNavigation } from "../../features/admin/components/admin-navigation-model";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readCurrentSource(path.join(root, file), "utf8");
@@ -204,13 +205,21 @@ test("deployed Admin separates Advisor Inbox from SEO Reviews with canonical rou
   assert.match(inbox, /requireAdminPermission\("advisor:read"\)/);
   assert.match(inbox, /ลูกค้า LINE/);
   assert.match(inbox, /ตอบใน LINE OA ตามเดิม/);
-  assert.doesNotMatch(inbox, /Private-by-default|conversation archive owner-only|priority|caseState|name="journey"|name="tag"/i);
+  assert.doesNotMatch(inbox, /Private-by-default|conversation archive owner-only|name=["'](?:priority|caseState|journey|tag)["']|>\s*(?:caseState|Case state|priority)\s*</i);
+  assert.doesNotMatch(inbox, />[^<{}\n]*(?:caseState|Case state|priority)[^<{}\n]*<|\{\s*(?:item|row|lead)\.(?:caseState|priority)\s*\}/i);
   assert.match(inbox, /\/dashboard\/inbox\/\$\{item\.leadId\}\//);
   assert.doesNotMatch(inbox, /ApproveSuggestionButton|ApplySuggestionButton|ReviewDecisionControls/);
   assert.match(reviews, /requireAdminPermission\("reviews:read"\)/);
   assert.match(reviews, /ReviewDecisionControls/);
-  assert.match(layout, /\/dashboard\/inbox\/[\s\S]*ลูกค้า LINE[\s\S]*advisor:read/);
-  assert.match(layout, /\/dashboard\/reviews\/[\s\S]*งานรอตรวจ[\s\S]*reviews:read/);
+  assert.match(layout, /buildAdminNavigation\(/);
+  const navigation = buildAdminNavigation({ profile: "full", hasPermission: permission => hasAdminPermission("owner", permission), isPathAllowed: () => true });
+  const leaves = navigation.flatMap(item => item.children);
+  assert.equal(leaves.find(item => item.href === "/dashboard/inbox/")?.label, "ลูกค้า LINE");
+  assert.equal(leaves.find(item => item.href === "/dashboard/reviews/")?.label, "งานรอตรวจ");
+  for (const [href, permission] of [["/dashboard/inbox/", "advisor:read"], ["/dashboard/reviews/", "reviews:read"]]) {
+    const restricted = buildAdminNavigation({ profile: "full", hasPermission: candidate => candidate !== permission, isPathAllowed: () => true });
+    assert.equal(restricted.flatMap(item => item.children).some(item => item.href === href), false);
+  }
   assert.doesNotMatch(routes, /\/snt-admin\/reviews/);
   assert.match(routes, /ADMIN_PAGE_PREFIXES = CONTROL_PLANE_PAGE_PREFIXES/);
   for (const source of [dashboard, articles, seo]) {
