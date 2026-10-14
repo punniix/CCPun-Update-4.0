@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { runInNewContext } from 'node:vm';
 
 const read = (path) => readFileSync(path, 'utf8');
 
@@ -9,7 +11,7 @@ const navbar = read('components/layout/website-43/Website43Navbar.module.css');
 const css = read('components/layout/website-43/Website43.module.css');
 const article = read('features/blog/website-43/Website43Article.tsx');
 const articleToc = read('features/blog/website-43/Website43ArticleToc.tsx');
-const layout = read('app/layout.tsx');
+const layout = read('apps/web/app/layout.tsx');
 const home = read('features/home/website-43/Website43Home.tsx');
 const blog = read('features/blog/website-43/Website43Blog.tsx');
 
@@ -43,12 +45,72 @@ test('article TOC keeps H2 links navigable and lets users collapse or expand nes
   assert.match(css, /\.tocToggle\[aria-expanded="true"\] \.tocChevron \{ transform: rotate\(180deg\); \}/);
 });
 
+test('native mobile TOC keeps its outer separators when closed or open with a 54px summary target', () => {
+  const require = createRequire(import.meta.url);
+  const { parse } = require('postcss');
+  const { JSDOM } = require('jsdom');
+  const rules = [];
+  parse(css).walkRules((rule) => {
+    if (rule.selectors.some((selector) => ['.tocMobile', '.tocMobile summary', '.tocMobileList'].includes(selector))) {
+      rules.push(rule.toString());
+    }
+  });
+  const borderColour = css.match(/--w43-border:\s*([^;]+);/)[1];
+  // jsdom does not resolve custom properties in border shorthands.
+  const mobileCss = rules.join('\n').replaceAll('var(--w43-border)', borderColour);
+  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>หัวข้อเนื้อหา</summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
+  const details = dom.window.document.querySelector('details');
+  for (const open of [false, true]) {
+    details.open = open;
+    const frame = dom.window.getComputedStyle(details);
+    assert.equal(frame.borderTopWidth, '1px');
+    assert.equal(frame.borderBottomWidth, '1px');
+    assert.equal(frame.marginBottom, '26px');
+    assert.equal(dom.window.getComputedStyle(details.querySelector('summary')).minHeight, '54px');
+  }
+  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>หัวข้อเนื้อหา<\/summary>/);
+  dom.window.close();
+});
+
 test('Home and Article vertical rhythm use the reviewed public spacing', () => {
   assert.match(css, /section\[data-uat-section="home-learning"\] \{ padding-bottom: 40px; \}/);
   assert.match(css, /section\[data-uat-section="home-faq"\] \{ padding-top: 40px; \}/);
   assert.match(css, /\.articleHeader \{ padding: 56px 80px 34px;/);
   assert.match(css, /\.articleReadingWrap \{ padding: 38px 80px 72px;/);
   assert.match(css, /\.articleMetaRow \{[\s\S]*?border-top: 1px solid/);
+});
+
+test('Thai reading headings, explicit dividers and content links retain a clear reading rhythm', () => {
+  const require = createRequire(import.meta.url);
+  const { parse } = require('postcss');
+  const legalCss = read('components/layout/website-43/Website43Legal.module.css');
+  const sheet = parse(css + '\n' + legalCss);
+  const values = (selector) => {
+    const result = {};
+    sheet.walkRules((rule) => {
+      if (!rule.selectors.includes(selector)) return;
+      rule.walkDecls((declaration) => { result[declaration.prop] = declaration.value; });
+    });
+    return result;
+  };
+  for (const selector of ['.h2', '.prose h2']) {
+    sheet.walkRules((rule) => {
+      if (!rule.selectors.includes(selector)) return;
+      rule.walkDecls('line-height', (declaration) => assert.equal(declaration.value, '1.4'));
+    });
+    assert.equal(values(selector)['line-height'], '1.4');
+    assert.equal(values(selector).height, undefined, 'multiline headings grow with their content');
+  }
+  const dividerHeading = values('.prose > .articleDivider + h2');
+  assert.equal(dividerHeading['border-top'], '0', 'an explicit CMS divider supplies the only separator');
+  assert.equal(dividerHeading['padding-top'], '0');
+  assert.equal(dividerHeading['margin-top'], '24px');
+  assert.match(article, /<article className=\{styles\.prose\}>\{renderWebsite43ArticleBody/);
+  for (const selector of ['.articleSources a', '.content a']) {
+    assert.equal(values(selector)['text-decoration'], 'underline', 'content links do not rely only on colour');
+    assert.equal(values(selector)['text-underline-offset'], '4px');
+  }
+  assert.equal(values('.root a')['text-decoration'], 'none', 'navigation and button styling stays scoped');
 });
 
 test('article metadata hides redundant updated date when publish and update calendar dates match', () => {
@@ -103,11 +165,72 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{\s*inset: auto 0 0;\s*height: 150px;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 40%\);/);
   assert.match(responsive, /top: 252px;[^}]*height: auto;\s*object-fit: contain;\s*object-position: center center;\s*-webkit-mask-image: linear-gradient\(180deg/);
   assert.match(responsive, /-webkit-mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);\s*mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);/);
-  assert.match(responsive, /\.\$\{styles\.toolHero\} \.\$\{styles\.primaryButton\} \{\s*position: absolute;\s*top: 636px;/);
+  assert.doesNotMatch(responsive, /top: (?:548|636)px/);
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroImage \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/);
   assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroGradient \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*background: linear-gradient\(90deg,[^}]*rgba\(6,11,9,\.16\) 100%\);/);
   assert.match(css, /\.root \.toolHeroFullBleed \.primaryButton \{[^}]*width: clamp\(176px, 15\.28vw, 220px\);[^}]*min-height: 52px;/);
   assert.match(ci, /<Website43ToolHero[\s\S]*?<CILandingIntro \/>[\s\S]*?<section id="ci-calculator"/);
+});
+
+test('Tool heroes keep text and CTA in native flow at portrait, landscape and tablet sizes', () => {
+  const require = createRequire(import.meta.url);
+  const { transpileModule, ModuleKind } = require('typescript');
+  const exports = {};
+  runInNewContext(transpileModule(responsive, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
+    exports,
+    require: (name) => {
+      if (name === 'react/jsx-runtime') return require(name);
+      assert.equal(name, './Website43.module.css');
+      return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
+    },
+  });
+  const { parse } = require('postcss');
+  const sheet = parse(css + '\n' + exports.Website43ResponsiveStyles().props.children);
+  function declarations(selectors, width, height) {
+    const values = {};
+    const ranks = {};
+    sheet.walkRules((rule) => {
+      const matching = rule.selectors.filter((selector) => selectors.includes(selector));
+      if (!matching.length) return;
+      for (let parent = rule.parent; parent?.type !== 'root'; parent = parent.parent) {
+        if (parent.type !== 'atrule' || parent.name !== 'media') continue;
+        const query = parent.params;
+        if (/hover|pointer|prefers-/.test(query)) return;
+        for (const [axis, size] of [['width', width], ['height', height]]) {
+          const min = Number(query.match(new RegExp('min-' + axis + ':\\s*(\\d+)px'))?.[1] ?? 0);
+          const max = Number(query.match(new RegExp('max-' + axis + ':\\s*(\\d+)px'))?.[1] ?? Infinity);
+          if (size < min || size > max) return;
+        }
+        if (/orientation: landscape/.test(query) && width <= height) return;
+      }
+      const specificity = Math.max(...matching.map((selector) => (selector.match(/\./g) ?? []).length));
+      rule.walkDecls((declaration) => {
+        const rank = specificity + (declaration.important ? 100 : 0);
+        if (rank < (ranks[declaration.prop] ?? -1)) return;
+        ranks[declaration.prop] = rank;
+        values[declaration.prop] = declaration.value;
+      });
+    });
+    return values;
+  }
+  for (const [width, height] of [[320, 700], [390, 844], [667, 375], [844, 390], [932, 430], [820, 1180]]) {
+    const hero = declarations(['.toolHero'], width, height);
+    assert.equal(hero.height, 'auto');
+    assert.equal(hero['min-height'], width > height && height <= 500 ? '0' : width <= 639 ? '700px' : '600px');
+    const copy = declarations(['.toolHeroCopy'], width, height);
+    assert.equal(copy.position, 'relative');
+    assert.equal(copy.height, 'auto');
+    for (const selector of ['.toolBadge', '.toolTitle', '.toolDescription']) {
+      assert.equal(declarations([selector], width, height).position, 'static');
+    }
+    assert.equal(declarations(['.toolDescription'], width, height)['font-size'], '16px');
+    const action = declarations(['.primaryButton', '.toolHero .primaryButton', '.root .toolHero .primaryButton'], width, height);
+    assert.equal(action.position, 'static');
+    assert.equal(action['min-height'], '52px');
+    assert.equal(action['margin-top'], '24px');
+  }
+  assert.notEqual(declarations(['.toolHero'], 1440, 900).height, 'auto');
+  assert.equal(declarations(['.toolHeroCopy'], 1440, 900).position, 'absolute');
 });
 
 test('CI Planning keeps the TorYod project badge as secondary proof near the end of the tool page', () => {
@@ -125,17 +248,21 @@ test('CI Planning keeps the TorYod project badge as secondary proof near the end
 
 test('Footer controls and warnings stay inside the visible Website 4.3 footer card at every breakpoint', () => {
   const css = read('components/layout/website-43/Website43.module.css');
-  assert.match(css, /\.footerColumn \.footerCookieButton \{[^}]*font-size: 13px;/, 'desktop Cookie Settings stays smaller than 14px footer links');
-  assert.match(css, /\.footerCompact \.footerCookieButton \{[^}]*font-size: 13px;/, 'compact Cookie Settings stays smaller than normal footer text');
+  assert.match(css, /\.footerColumn \.footerCookieButton \{[^}]*min-height: 44px;[^}]*font-size: 13px;/, 'one responsive Cookie Settings control retains its touch target and secondary text size');
+  assert.doesNotMatch(css, /\.footerCompact|\.footerFull \{[^}]*display: none/, 'the grouped footer remains visible at every width');
+  assert.match(css, /\.footerTop \{[^}]*minmax\(0,1\.5fr\) repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.footerTop \{[^}]*repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.footerTop \{[^}]*repeat\(2,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css, /\.notFoundFooterWrap \{[^}]*height: \d+px/, '404 footer grows with the same legal and navigation content');
 
   for (const path of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx']) {
     const footer = read(path);
-    const desktop = footer.split('className={styles.footerFull}>')[1]?.split('className={styles.footerCompact}')[0]?.split('className={`${styles.footerCompact}')[0];
+    const desktop = footer.split('className={styles.footerFull}>')[1];
     const infoColumn = desktop?.match(/<strong>ข้อมูล<\/strong>([\s\S]*?)<\/div>/)?.[1];
     assert.match(infoColumn, /<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: desktop button belongs in the info column`);
     assert.equal(desktop.match(/<CookieSettingsButton\b/g)?.length, 1, `${path}: exactly one desktop button`);
     assert.match(desktop, /footerDisclaimer[\s\S]*?footerWarnings[\s\S]*?footerCopyright/, `${path}: warnings belong in the lower desktop card`);
-    assert.match(footer, /className=\{(?:styles\.footerCompact|`\$\{styles\.footerCompact\})[\s\S]*?footerWarnings[\s\S]*?<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: compact footer keeps warnings and cookie control inside`);
+    assert.doesNotMatch(footer, /styles\.footerCompact/, `${path}: duplicate compact content is removed`);
     assert.doesNotMatch(footer, /<div className=\{styles\.inner\}>\s*\{warnings \? \(/, `${path}: warnings must not sit above the footer card`);
   }
 });
@@ -182,8 +309,8 @@ test('Blog category filter is a compact publication-style dropdown with stable l
 });
 
 test('Privacy and Cookie Policy use the Production Website 4.3 shell while preserving legal and SEO contracts', () => {
-  const privacy = read('app/privacy/page.tsx');
-  const cookiePolicy = read('app/cookie-policy/page.tsx');
+  const privacy = read('apps/web/app/privacy/page.tsx');
+  const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
   const legalCss = read('components/layout/website-43/Website43Legal.module.css');
 
   for (const source of [privacy, cookiePolicy]) {
@@ -207,5 +334,6 @@ test('Privacy and Cookie Policy use the Production Website 4.3 shell while prese
   assert.match(legalCss, /border: 1px solid var\(--w43-border\)/);
   assert.match(legalCss, /color: var\(--w43-gold-bright\)/);
   assert.match(legalCss, /@media \(max-width: 640px\)/);
-  assert.match(legalCss, /overflow-x: auto/);
+  assert.match(legalCss, /\.content table \{\s*width: 100%;\s*table-layout: fixed;/);
+  assert.match(legalCss, /\.content td,\s*\.content th \{\s*overflow-wrap: anywhere;/);
 });

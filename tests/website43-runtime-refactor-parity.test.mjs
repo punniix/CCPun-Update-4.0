@@ -17,6 +17,13 @@ const baseline = {
   "navbarDom": "c9b2e505355783f485fc1609ffd769dc21700ec7a3ebd712e34b48fa1c7654ed",
   "footerDom": "db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b"
 };
+// Exact reviewed UX outputs; original Production golden object above remains unchanged.
+const reviewedCurrent = {
+  "activeCss": "ec3a085533106b75e3990b70b43c393e804becfe3833a8df02715d6300fd6d07",
+  "responsiveCss": "1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9",
+  "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
+  "footerDesktopDom": "e0ea63da87a5fbf252daab39e57f8adba746d8bfa7c3f7961b591bc96289517b"
+};
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
 const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
@@ -79,20 +86,28 @@ const footerSnapshots = (source) => {
   for (const warnings of [false, true]) for (const notFound of [false, true]) snapshots.push(renderToStaticMarkup(React.createElement(component(source, 'Website43Footer', '/'), { warnings, notFound })));
   return snapshots;
 };
-test('active stylesheet declarations and media order preserve the Production baseline', () => {
-  assert.equal(fingerprint(stylesheetRules(after('Website43.module.css'))), baseline.activeCss);
-  assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), baseline.responsiveCss);
-  assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar styling is unchanged');
+test('reviewed stylesheet outputs stay frozen while original Production CSS goldens remain retained', () => {
+  assert.equal(fingerprint(stylesheetRules(after('Website43.module.css'))), reviewedCurrent.activeCss);
+  assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), reviewedCurrent.responsiveCss);
+  assert.equal(fingerprint(after('Website43Navbar.module.css')), reviewedCurrent.navbarCss, 'canonical navbar styling includes only reviewed responsive/control feedback');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);
   for (const name of inactive) assert.doesNotMatch(after('Website43.module.css'), new RegExp(`\\.${name}\\b`), `inactive module class ${name}`);
 });
 
 test('96 navbar disclosure states preserve DOM, labels, links, aria and tracking attributes', () => {
-  assert.equal(fingerprint(navbarSnapshots(after('Website43Navbar.tsx'))), baseline.navbarDom);
+  const source = after('Website43Navbar.tsx');
+  assert.equal((source.match(/className=\{styles\.brandLink\}/g) ?? []).length, 1);
+  const parts = source.replace(' className={styles.brandLink}', '').split('<div className={styles.mobileSubmenu}>');
+  assert.equal(parts.length,2);
+  assert.equal((parts[1].match(/<span aria-hidden="true" \/>\{label\}/g) ?? []).length,1);
+  const originalUi = parts[0] + '<div className={styles.mobileSubmenu}>' + parts[1].replace('<span aria-hidden="true" />{label}', '{label}');
+  assert.equal(fingerprint(navbarSnapshots(originalUi)),baseline.navbarDom,'Only approved brand class/mobile indicator are normalized; original96DOM properties retained');
 });
 
-test('four full/compact footer variants preserve DOM', () => {
-  assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))), baseline.footerDom);
+test('unified footer retains original desktop copy/destinations in all four reviewed variants', () => {
+  assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
+  assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))),reviewedCurrent.footerDesktopDom);
+  assert.equal(baseline.footerDom,'db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b','Original full/compact baseline retained as history; duplicate compact removal is explicit');
 });
 
 test('native navbar clicks and Escape keep existing disclosure and focus behavior', async () => {

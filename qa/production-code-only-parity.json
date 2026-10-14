@@ -345,5 +345,127 @@
   },
   "criticalCssSha256": "577096749764481408b823a1135d361535d7bae18f56e5a4dbad36c0a3e00666",
   "criticalCssBytes": 2538,
-  "globalBodySha256": "63e855899fd4511fd5c4d5e460624fa0802c0293013c52226faa58c886bc8dc6"
+  "globalBodySha256": "63e855899fd4511fd5c4d5e460624fa0802c0293013c52226faa58c886bc8dc6",
+  "reviewedUxOwners": {
+    "apps/web/app/cookie-policy/page.tsx": {
+      "baselineSha256": "67daababe7bc9fc1735e985ac8d0d8a59e014f645d772c43e7c16c3e4dcced27",
+      "candidateSha256": "a6925d6982d0251d74542a8c4fdea408082454f243e0f83b52bcec124d767a9a"
+    },
+    "components/layout/website-43/Website43.module.css": {
+      "baselineSha256": "c9b70031cf6fde0b095d2a2031f18988e385927487f0c2c3bc6a251fae418175",
+      "candidateSha256": "8a1afd697d814ef0e5bbb7044fddf924567423a6b6424480ff33c3fd513c93f4"
+    },
+    "components/layout/website-43/Website43Legal.module.css": {
+      "baselineSha256": "28e04fc68ec9ece5a8871e7105d9e078b4422d447b636cac3049703a14df9ce6",
+      "candidateSha256": "7a991a55a0c19ac7fe7152c3abbf979dfcf7a4d91223faaa3ae166b4aeb0a6f5"
+    },
+    "components/layout/website-43/Website43Navbar.module.css": {
+      "baselineSha256": "f2f09105488438c7b4a13c4c9d350a6533813dafdf306ca3fd5fc20a60885392",
+      "candidateSha256": "21ba038b3f7780f9d4b930772d43912d7d0b33445a62d6a4a7c896fdb5d87fc9"
+    },
+    "components/layout/website-43/Website43Navbar.tsx": {
+      "baselineSha256": "95045bf55ac2040c96d87fcd0f3ec63373fa70c3f2665bc8bb876696b3cbdf4d",
+      "candidateSha256": "3ec52233fa899aa0792fd7555ee7e4d822cd53d9db1367225b394628254543f3"
+    },
+    "components/layout/website-43/Website43ResponsiveStyles.tsx": {
+      "baselineSha256": "dfc256d4957eeb6786fb744ede5216f05c8d308b7fc4b9c9cb0aa924b0c786fe",
+      "candidateSha256": "6c90a2136905c48703e1d68108d2bb3fa5d21d8bee64bf25bb4737274c2ed3bb"
+    },
+    "components/layout/website-43/Website43Shared.tsx": {
+      "baselineSha256": "a57722530989efb4db5a6f69a9b7d5d37d83a4bee488d2d46655e71e3e0af3e6",
+      "candidateSha256": "97946a2b76beb3957dc1655d3a11fa7b73f2970b7a1ce7c28d282113ec38986d"
+    },
+    "components/layout/website-43/Website43ToolHero.tsx": {
+      "baselineSha256": "09688e184bac6522038cdd52d6326a86561d389597b2423f57cc2779e4a3ff92",
+      "candidateSha256": "bfd8593bf862935f0215c1c11c6da2a16c6665c959e80d17c7e521dba3611446"
+    },
+    "components/ui/FunctionalMotion.module.css": {
+      "baselineSha256": "0fd71c6f3c6c77b960f36b67c2cef97793d2b304665ccec55e70535225417905",
+      "candidateSha256": "92b7093d9ccdf90e08c29520e3d50c6537339f88dce6ea98781084ccd357c873"
+    },
+    "components/ui/HumanCalculatorCard.tsx": {
+      "baselineSha256": "e9cdc963b6436f95b2e082e8fc30f4bac720f860eceb5f2a313efba24b68abb8",
+      "candidateSha256": "4e8acb7c79693ab5fecb45383355324a808109a7441e55a421b3c63f8b4cf1c4"
+    },
+    "features/analytics/components/CookieConsent.tsx": {
+      "baselineSha256": "c7c458c43944bb286b6852b5490190a287796b896612fa057b534ab035a308eb",
+      "candidateSha256": "c33b93274de762aaf9a08536de65c6263da761513edab7d11c37f5f22632ec87"
+    },
+    "features/analytics/components/CookieConsentPreferences.tsx": {
+      "baselineSha256": "32f51b40b451203abd00eb071dac62b522b5ebbed4ec05da7bd915a5d1785328",
+      "candidateSha256": "bfa0c44d6fd9342349227b69c4a249845d48ab1c49ac321ff7c85d51d4fc09b7"
+    },
+    "features/blog/pages/BlogArchivePage.tsx": {
+      "baselineSha256": "578680a5329d211ac27bbffbdfd318da05d7a07d08835757f6050ffa3ecaf4c4",
+      "candidateSha256": "8e79c488b53718920e07184bb7e65d199ea4d6f2aa3421d48f9b98589bef589c"
+    },
+    "features/blog/pages/BlogCategoryPage.tsx": {
+      "baselineSha256": "8c1b13cd9d0d946e21972da8eab69e096e2f6369f400363bc5d050d0a01c9e6a",
+      "candidateSha256": "1411abf041ec54d8e83d22510b90c923d497f46ec292434d56bdcc8b560e246d"
+    },
+    "features/blog/website-43/Website43Article.tsx": {
+      "baselineSha256": "113c9f6feadcd311e70e4fa50c18d0b10cee66f0a62c3e889eb91c0ee2127e6f",
+      "candidateSha256": "4d45863356c05da77e1ff7884c6c661182058c382bd9e38492801607dbc0c0a3"
+    },
+    "features/blog/website-43/Website43ArticleBody.tsx": {
+      "baselineSha256": "ad18924a3408d029dcb8ec886789415faa6bad1d117cdb87e37811a6f7f6d24e",
+      "candidateSha256": "78deb9fb0bc0a5d402ff57a0f5be390aca806e99d372fcdebd3dc0fa830dbf54"
+    },
+    "features/blog/website-43/Website43Blog.tsx": {
+      "baselineSha256": "13be963ff5e546403617d026ee811b50b6cb7995fa5355d5222f03c995f23c30",
+      "candidateSha256": "bffcbc8109c9f808b19eb26aaae65c9c90cab556b68086c59a973bb9d66ddb4d"
+    },
+    "features/blog/website-43/Website43BlogInteractive.tsx": {
+      "baselineSha256": "2b2df3fb9e8ae6574094ad56d4b170efa66001e34b80a9a48fa7001128205a52",
+      "candidateSha256": "8b099cf90b950b7224f37edc189fb856ca43b0d85b340b3745fa38d1f17ee437"
+    },
+    "features/ci-planning/components/CIWizard.tsx": {
+      "baselineSha256": "24e879079fa598f54bd38ec340ee869fecdbd93becf8ef7c4c448f02645aacf9",
+      "candidateSha256": "6f529c5234721605ecea12651351f09129f9c79827dc6c8b8173187ca8e2b86f"
+    },
+    "features/ci-planning/components/steps/ExpenseObligationsSection.tsx": {
+      "baselineSha256": "90dcc645ccdb76e59a391be81ed6b1adbbf7c0a6ee7994873a95fd7a850921c6",
+      "candidateSha256": "a7c2e89457fba2da585cf9972df44113597023c2ae7bb3de6c82c906639fcd6c"
+    },
+    "features/ci-planning/components/steps/RecoveryReserveSection.tsx": {
+      "baselineSha256": "902ef0276477887a19a61164f8b26e8a0f678580e9e8c79f8dfb8d259a36edcb",
+      "candidateSha256": "8d13ccb26c52c52f1e3429ac181afb58e1d6922232864e5dc143a9cd6c95060b"
+    },
+    "features/ci-planning/components/steps/StepExpenses.tsx": {
+      "baselineSha256": "db11e93e92511c46bec0a6131b611f7db0132ffe3f23c1e2e0e2cbaa333d6eb2",
+      "candidateSha256": "d178d58769cbd134d8414c0625e7083547cc49cca422d7e3665020074976a1a7"
+    },
+    "features/ci-planning/page.tsx": {
+      "baselineSha256": "08f0a48e0311ccf1865aa3265d69d55788ef58dea3734e38d12b5f8336f3cf07",
+      "candidateSha256": "40a9e9759455373cc7a757bcf7e3fc5b369f702f1542d2225f33d1aec68602fb"
+    },
+    "features/financial-health-check/components/ClientFHC.tsx": {
+      "baselineSha256": "538f6c88e61caf04056a62a70cb3ae8ebdf940cc3e8750e71f7f22999b0a2644",
+      "candidateSha256": "88f007c1e6c33d83bd4befdd69985363609f6c2ddb230861d548cba49c7e0fa2"
+    },
+    "features/financial-health-check/components/LifeCoverageWizard.tsx": {
+      "baselineSha256": "e2bcab67d5640ce07aad863894a22432b4b93841acfb9185820f85b29fa6c475",
+      "candidateSha256": "89448a29974ef184232d2a9aa7a47e588cd7b748106a6bd496ae64f2a6f09dd5"
+    },
+    "features/home/website-43/Website43Home.tsx": {
+      "baselineSha256": "29e746d13d0d6a1af9337298a9c9b4a53d28e9754aeb97397f3ebe7b33f7884f",
+      "candidateSha256": "e591abcfd63fe41907a880ecfe5577103f694b344d5ee549e227e09a42781abe"
+    },
+    "features/home/website-43/Website43HomeStatic.tsx": {
+      "baselineSha256": "65065bd768fdaca339a6c167a37bfbe29721dd5b06f6d19d4b3b5231e4bca564",
+      "candidateSha256": "5e989b3c169952e1497e34a9eeb621a90ec12ec84baba73dba53ad9fa9a9a81d"
+    },
+    "features/money-story/MoneyStory.module.css": {
+      "baselineSha256": "93bd75cade93f11855afb3bdd7863b2e99f3787c34663c35e7d27393364c8774",
+      "candidateSha256": "40b39bf243365a0888163b8a3b7dfc2d53f8a37fb92e5802f8fc12e167917a61"
+    },
+    "features/money-story/components/MoneyStoryScreens.tsx": {
+      "baselineSha256": "f0f2b104aff72531d878ea4419de40f0153b0c1a5ba9ebea942a2e69ea357207",
+      "candidateSha256": "bd05ee383cf07515b97e679ee79c1de4200d5a1253796aae96399cd62d02c618"
+    },
+    "features/money-story/page.tsx": {
+      "baselineSha256": "4895d8d1cb72a096a886b548d8af39b7045dbad84838a0db04ea964d4dc241b0",
+      "candidateSha256": "82f5d5c4e21df8663c7881e7dc7d1793654f84ee7875654ac27f75f98d32b45b"
+    }
+  }
 }

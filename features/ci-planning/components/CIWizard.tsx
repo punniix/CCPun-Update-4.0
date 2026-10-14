@@ -15,27 +15,19 @@ import StepExpenses from './steps/StepExpenses';
 const TOTAL_STEPS = 2;
 const STEP_SECTION_KEYS: Array<'expenses' | 'existingCI'> = ['expenses', 'existingCI'];
 const CALCULATION_RANGE_ERROR = 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง';
-const STEP_OUT_MS = 100;
-const STEP_IN_MS = 140;
-type MotionPhase = 'idle' | 'out' | 'in';
 
 export default function CIWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<CIFormData>(INITIAL_CI_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<CIResult | null>(null);
-  const [motionPhase, setMotionPhase] = useState<MotionPhase>('idle');
   const hasStartedRef = useRef(false);
   const hasCompletedRef = useRef(false);
   const trackedStepsRef = useRef(new Set<number>());
   const startedAtRef = useRef<number | null>(null);
   const stepRef = useRef<HTMLDivElement>(null);
   const previousViewRef = useRef('0:form');
-  const motionTimersRef = useRef<number[]>([]);
 
-  useEffect(() => () => {
-    motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-  }, []);
 
   useEffect(() => {
     const view = `${currentStep}:${result ? 'result' : 'form'}`;
@@ -90,32 +82,9 @@ export default function CIWizard() {
     });
   };
 
-  const runStepTransition = (commit: () => void) => {
-    if (motionPhase === 'out') return;
-    if (motionPhase === 'in') {
-      motionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-      motionTimersRef.current = [];
-    }
-    const motionPreference = typeof window.matchMedia === 'function'
-      ? window.matchMedia('(prefers-reduced-motion: reduce)')
-      : null;
-    if (!motionPreference || motionPreference.matches) {
-      setMotionPhase('idle');
-      commit();
-      return;
-    }
-    setMotionPhase('out');
-    const outTimer = window.setTimeout(() => {
-      commit();
-      setMotionPhase('in');
-      const inTimer = window.setTimeout(() => setMotionPhase('idle'), STEP_IN_MS);
-      motionTimersRef.current.push(inTimer);
-    }, STEP_OUT_MS);
-    motionTimersRef.current.push(outTimer);
-  };
+  const runStepTransition = (commit: () => void) => commit();
 
   const handleNext = () => {
-    if (motionPhase === 'out') return;
     const sectionKey = STEP_SECTION_KEYS[currentStep];
     const stepErrors = validateCIStep(currentStep, formData[sectionKey] as unknown as Record<string, unknown>);
     if (Object.keys(stepErrors).length > 0) {
@@ -143,7 +112,7 @@ export default function CIWizard() {
   };
 
   const handlePrev = () => {
-    if (currentStep === 0 || motionPhase === 'out') return;
+    if (currentStep === 0) return;
     runStepTransition(() => {
       setErrors({});
       setCurrentStep((step) => step - 1);
@@ -170,7 +139,7 @@ export default function CIWizard() {
   </div>;
 
   return <form noValidate onSubmit={(event) => { event.preventDefault(); handleNext(); }}>
-    <div ref={stepRef} className="ccpun-motion-step-view" data-motion-phase={motionPhase}>
+    <div ref={stepRef} className="ccpun-motion-step-view">
       <HumanCalculatorCard
         step={currentStep + 1}
         total={TOTAL_STEPS}

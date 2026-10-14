@@ -5,6 +5,7 @@ import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 import MoneyStoryGame from './components/MoneyStoryGame';
 import { MONEY_STORY_DISCLAIMER, MONEY_STORY_PYRAMID_URL } from './config';
 import styles from './MoneyStory.module.css';
+import sharedStyles from '@/components/layout/website-43/Website43.module.css';
 
 const DESCRIPTION =
   'เกมจำลองชีวิตการเงิน 12 เดือน เลือกหรือสุ่มชีวิตสมมติ แล้วลองตัดสินใจเรื่องเงินสด การลงทุน ความคุ้มครอง และการกู้ เมื่อชีวิตมีเรื่องไม่คาดคิดเข้ามา';
@@ -28,15 +29,15 @@ export const metadata: Metadata = {
 
 export default function MoneyStoryPage() {
   return (
-    <div className={styles.root}>
+    <div className={`${sharedStyles.root} ${styles.root}`}>
       <Website43Navbar />
       <main id="main-content" tabIndex={-1}>
-        <section className={styles.hero}>
+        <section className={styles.hero} aria-labelledby="money-story-title">
           <div className={styles.heroInner}>
             <p className={styles.kicker}>
               CCPun Play · เกมจำลองการเงินแบบโต้ตอบ
             </p>
-            <h1 className={styles.title}>Money Story</h1>
+            <h1 id="money-story-title" className={styles.title}>Money Story</h1>
             <p className={styles.subtitle}>
               เกมจำลองชีวิตการเงิน 12 เดือน เลือกชีวิตที่อยากลอง
               แล้วตัดสินใจว่าจะจัดการเงินอย่างไรเมื่อเรื่องไม่คาดคิดเข้ามา

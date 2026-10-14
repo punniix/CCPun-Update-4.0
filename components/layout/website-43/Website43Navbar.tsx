@@ -56,7 +56,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
         setOpen(false); setToolsOpen(false); setMobileToolsOpen(false);
       }
     }}>
-      <Link href={HOME} aria-label="CCPUN หน้าแรก"><Website43NavbarBrand /></Link>
+      <Link href={HOME} className={styles.brandLink} aria-label="CCPUN หน้าแรก"><Website43NavbarBrand /></Link>
       <div className={styles.navSpacer} />
       <nav className={styles.navLinks} aria-label="เมนูหลัก">
         <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>หน้าแรก</Link>
@@ -89,7 +89,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
             {mobileToolsOpen ? (
               <div className={styles.mobileSubmenu}>
                 {toolLinks.map(({ href, label }) => (
-                  <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>{label}</Link>
+                  <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}><span aria-hidden="true" />{label}</Link>
                 ))}
               </div>
             ) : null}
