@@ -355,7 +355,7 @@ for (const legacyFhcResolverToken of ['bit.ly', 'NEXT_PUBLIC_LINE_OA_BITLY_URL']
 }
 
 const ciMetadataPage = getPageSeoPage('/ci-planning/');
-assert(ciMetadataPage?.documentId === 'pageSeo.ci-planning', 'CI metadata must have its known pathname owner');
+assert(ciMetadataPage?.documentId === 'pageSeo-ci-planning', 'CI metadata must have its known pathname owner');
 assert(ciPageSource.includes('import { getPageSeoPage } from "@/lib/content/page-seo-registry";'), 'CI metadata must import the shared defaults owner');
 assert(ciPageSource.includes('const PAGE_SEO_DEFAULTS = getPageSeoPage("/ci-planning/")!.defaults;'), 'CI metadata must use its exact public pathname');
 assert(ciPageSource.includes('title: PAGE_SEO_DEFAULTS.seoTitle!,') && ciPageSource.includes('description: PAGE_SEO_DEFAULTS.seoDescription!,'), 'CI metadata must wire its title and description defaults');

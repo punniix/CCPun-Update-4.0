@@ -239,7 +239,7 @@ const pageSeoTable = read('lib/content/page-seo-registry.ts').match(/export cons
 assert.ok(pageSeoTable, 'page SEO defaults must remain an explicit literal JSON table');
 const fhcRecords = JSON.parse(pageSeoTable[1]).filter(page => page.pathname === '/tools/financial-health-check/');
 assert.equal(fhcRecords.length, 1, 'FHC must have exactly one metadata defaults owner');
-assert.equal(fhcRecords[0].documentId, 'pageSeo.financial-health-check');
+assert.equal(fhcRecords[0].documentId, 'pageSeo-financial-health-check');
 const fhcDescription = fhcRecords[0].defaults.seoDescription;
 assert.equal(typeof fhcDescription, 'string');
 const fhcDescriptionLength = [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(fhcDescription)].length;
