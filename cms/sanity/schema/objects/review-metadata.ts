@@ -1,6 +1,7 @@
 import { defineField, defineType } from "sanity";
 
 const reviewStatuses = [
+  { title: "กำลังจัดทำฉบับร่าง", value: "drafting" },
   { title: "กำลังตรวจเนื้อหา", value: "content-review" },
   { title: "พร้อมให้คุณอนุมัติ", value: "ready-for-coo" },
   { title: "อนุมัติเนื้อหาแล้ว", value: "approved" },

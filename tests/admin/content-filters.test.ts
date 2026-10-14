@@ -143,3 +143,25 @@ test("filters and sorting resolve together without mutating the source rows", ()
   assert.deepEqual(resolved.rows.map((row) => row.id), ["published-draft", "draft"]);
   assert.deepEqual(sortableRows, source);
 });
+
+
+test("legitimate drafting sorts before review while missing, future and prototype values remain last", () => {
+  const rows = [
+    { id: "approved", title: "Approved", reviewStatus: "approved" },
+    { id: "unknown", title: "Unknown", reviewStatus: "future-status" },
+    { id: "ready", title: "Ready", reviewStatus: "ready-for-coo" },
+    { id: "drafting", title: "Drafting", reviewStatus: "drafting" },
+    { id: "review", title: "Review", reviewStatus: "content-review" },
+    { id: "missing", title: "Missing", reviewStatus: null },
+    ...["constructor", "toString", "__proto__"].map(value => ({ id: value, title: value, reviewStatus: value })),
+  ];
+  const original = JSON.stringify(rows);
+  const known = new Set(["drafting", "review", "ready", "approved"]);
+  for (const order of ["asc", "desc"] as const) {
+    const sorted = sortContentRows(rows, "review-status", order).map(row => row.id);
+    assert.deepEqual(sorted.slice(0, 4), order === "asc" ? ["drafting", "review", "ready", "approved"] : ["approved", "ready", "review", "drafting"]);
+    assert.equal(sorted.slice(4).some(id => known.has(id)), false);
+    assert.equal(sorted.length, rows.length, "sorting retains every row, including unknown metadata");
+  }
+  assert.equal(JSON.stringify(rows), original);
+});

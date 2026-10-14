@@ -15,11 +15,12 @@ export type PublishableArticle = SanityDocument & {
   seo?: Record<string, unknown> & { noindex?: boolean };
 };
 
-export const reviewLabels: Record<string, string> = {
+export const reviewLabels: Record<string, string> = Object.assign(Object.create(null) as Record<string, string>, {
+  drafting: "กำลังจัดทำฉบับร่าง",
   "content-review": "กำลังตรวจเนื้อหา",
   "ready-for-coo": "พร้อมให้คุณอนุมัติ",
   approved: "อนุมัติเนื้อหาแล้ว",
-};
+});
 
 export function publicationSummary(published: unknown, draft: unknown) {
   return published

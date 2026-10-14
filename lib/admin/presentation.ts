@@ -11,12 +11,14 @@ const ROLE_LABELS: Record<AdminRole, string> = {
 
 const PROPOSAL_STATUS_LABELS: Record<string, string> = {
   "needs-human-review": "รอคุณตรวจสอบ",
+  "reconciliation-required": "ต้องตรวจผลการนำข้อเสนอไปใช้",
   approved: "อนุมัติแล้ว",
   applied: "นำไปใช้กับฉบับร่างแล้ว",
   rejected: "ไม่อนุมัติ",
 };
 
 const CONTENT_REVIEW_STATUS_LABELS: Record<string, string> = {
+  drafting: "กำลังจัดทำฉบับร่าง",
   "content-review": "กำลังตรวจเนื้อหา",
   "ready-for-coo": "พร้อมให้คุณอนุมัติ",
   approved: "อนุมัติเนื้อหาแล้ว",
@@ -79,19 +81,21 @@ export function roleLabel(role: AdminRole): string {
 }
 
 export function proposalStatusLabel(status: string | null | undefined): string {
-  return status ? (PROPOSAL_STATUS_LABELS[status] ?? "สถานะไม่ทราบ") : "สถานะไม่ทราบ";
+  return typeof status === "string" && Object.hasOwn(PROPOSAL_STATUS_LABELS, status) ? PROPOSAL_STATUS_LABELS[status] : "สถานะไม่ทราบ";
 }
 
 export function contentReviewStatusLabel(status: string | null | undefined): string {
-  return status ? (CONTENT_REVIEW_STATUS_LABELS[status] ?? "ไม่รู้จักขั้นตรวจนี้") : "ยังไม่มีข้อมูลการตรวจ";
+  if (status == null || status === "") return "ยังไม่มีข้อมูลการตรวจ";
+  return typeof status === "string" && Object.hasOwn(CONTENT_REVIEW_STATUS_LABELS, status) ? CONTENT_REVIEW_STATUS_LABELS[status] : "ไม่รู้จักขั้นตรวจนี้";
 }
 
 export function riskLabel(risk: string | null | undefined): string {
-  return risk ? (RISK_LABELS[risk] ?? "ไม่ทราบ") : "ไม่ระบุ";
+  if (risk == null || risk === "") return "ไม่ระบุ";
+  return typeof risk === "string" && Object.hasOwn(RISK_LABELS, risk) ? RISK_LABELS[risk] : "ไม่ทราบ";
 }
 
 export function proposalTypeLabel(type: string | null | undefined): string {
-  return type ? (PROPOSAL_TYPE_LABELS[type] ?? "ข้อเสนอ SEO") : "ข้อเสนอ SEO";
+  return typeof type === "string" && Object.hasOwn(PROPOSAL_TYPE_LABELS, type) ? PROPOSAL_TYPE_LABELS[type] : "ข้อเสนอ SEO";
 }
 
 export function connectionLabel(

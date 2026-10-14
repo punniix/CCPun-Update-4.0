@@ -160,6 +160,8 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
                         ขั้นต่อไปคือตรวจตัวอย่างด้วยตัวคุณเอง รายการนี้ยังไม่ได้เผยแพร่
                       </p>
                     </div>
+                  ) : item.status === "reconciliation-required" ? (
+                    <p className="max-w-sm text-base leading-6 text-amber-100">ผลการนำข้อเสนอไปใช้ยังไม่ยืนยัน ต้องตรวจฉบับร่างและประวัติก่อนดำเนินการต่อ หน้านี้ยังไม่เปิดให้ใช้ข้อเสนอซ้ำ</p>
                   ) : (
                     <span className="text-sm text-white/60">สถานะนี้ไม่มีรายการที่ต้องทำต่อ</span>
                   )}

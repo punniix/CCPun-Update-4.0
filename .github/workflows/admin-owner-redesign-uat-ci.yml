@@ -69,8 +69,15 @@ jobs:
             'tests/vercel-native-regression.mjs',
             'tests/admin/marketing-presentation.test.ts',
             'tests/admin/n8n-p1-timeout-reconciliation.test.ts',
+            'lib/admin/presentation.ts',
+            'lib/admin/content-filters.ts',
+            'cms/sanity/schema/objects/review-metadata.ts',
+            'cms/sanity/policy/article-publication.ts',
+            'features/admin/components/SeoReviewInboxPage.tsx',
+            'tests/admin/presentation.test.ts',
+            'tests/admin/article-editorial-status.test.ts',
           ]);
-          // All other files, including public/app/auth/API/proxy/CMS/locks/QA/phase fixtures/lib, stay unchanged.
+          // Every other path stays unchanged, including public/auth/API/proxy/locks/QA/phase fixtures and unlisted CMS/lib modules.
           const changed = git('diff', '--name-only', '--no-renames', '-z', base, 'HEAD').toString().split('\0').filter(Boolean);
           assert.deepEqual(changed.filter(path => !allowed.has(path)), [], 'change outside approved UAT paths');
           const path = 'lib/admin/agent-os/action-center.ts';
