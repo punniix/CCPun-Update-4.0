@@ -57,6 +57,20 @@ const request = (body: unknown, headers: Record<string, string> = {}) => new Req
 const saveBody = (fields: unknown = {}, revision: string | null = null, pathname = "/") => ({ pathname, revision, fields });
 const getRequest = (query = "") => new Request("https://admin-test.ccpun.com/api/admin/page-seo/" + query);
 
+test("page SEO: public singleton IDs never read or mutate dotted operational records", async () => {
+  assert.deepEqual(PAGE_SEO_PAGES.map(page => page.documentId), ['pageSeo-home', 'pageSeo-blog', 'pageSeo-ci-planning', 'pageSeo-financial-health-check', 'pageSeo-money-story', 'pageSeo-investment-allocation', 'pageSeo-privacy', 'pageSeo-cookie-policy']);
+  const f = fixture();
+  for (const id of ['pageSeo.home', 'admin.operational-synthetic']) f.documents.set(id, { _id: id, _type: "pageSeo", _rev: "protected", pathname: "/", seoTitle: "Protected synthetic record" });
+  const protectedBefore = JSON.stringify([...f.documents]);
+  const list = await f.service.listPageSeo();
+  assert.equal(list[0].revision, null); assert.deepEqual(Object.keys(list[0].overrides), []);
+  assert.equal((await f.api.PATCH(request({ ...saveBody(), documentId: "pageSeo.home" }))).status, 400);
+  assert.equal(f.calls.mutations, 0); assert.equal(JSON.stringify([...f.documents]), protectedBefore);
+  assert.equal((await f.api.PATCH(request(saveBody({ seoTitle: "Public metadata" })))).status, 200);
+  assert.equal(f.documents.get("pageSeo-home")?.seoTitle, "Public metadata");
+  assert.equal(JSON.stringify([...f.documents].filter(([id]) => id !== "pageSeo-home")), protectedBefore);
+});
+
 test("page SEO: owner/auth/native UAT/origin denial precedes any SDK, credentials, body or public fetch", async () => {
   const f = fixture();
   f.calls.identity = null;
@@ -105,20 +119,20 @@ test("page SEO: atomic create/CAS conflict/type-path guard/reset preserve unrela
   assert.match(initial.headers.get("x-robots-tag") ?? "", /noindex/);
   const first = await initial.json();
   assert.equal(first.saved, true); assert.equal(f.calls.network, 0);
-  const doc = f.documents.get("pageSeo.home")!;
+  const doc = f.documents.get("pageSeo-home")!;
   assert.deepEqual(Object.keys(doc).sort(), ["_id", "_type", "_rev", "pathname", ...PAGE_SEO_FIELDS].sort());
   assert.equal((await f.api.PATCH(request(saveBody()))).status, 409);
   assert.equal((await f.api.PATCH(request(saveBody({}, "stale")))).status, 409);
   const before = f.calls.mutations;
-  f.documents.set("pageSeo.home", { ...doc, _type: "article", body: "unchanged" });
+  f.documents.set("pageSeo-home", { ...doc, _type: "article", body: "unchanged" });
   assert.equal((await f.api.PATCH(request(saveBody({}, first.revision)))).status, 409);
-  assert.equal(f.calls.mutations, before); assert.equal(f.documents.get("pageSeo.home")!.body, "unchanged");
-  f.documents.set("pageSeo.home", { ...doc, pathname: "/blog/" });
+  assert.equal(f.calls.mutations, before); assert.equal(f.documents.get("pageSeo-home")!.body, "unchanged");
+  f.documents.set("pageSeo-home", { ...doc, pathname: "/blog/" });
   assert.equal((await f.api.PATCH(request(saveBody({}, first.revision)))).status, 409);
-  f.documents.set("pageSeo.home", doc);
+  f.documents.set("pageSeo-home", doc);
   const reset = await f.api.PATCH(request(saveBody(Object.fromEntries(PAGE_SEO_FIELDS.map(key => [key, ""])), first.revision)));
   assert.equal(reset.status, 200);
-  for (const key of PAGE_SEO_FIELDS) assert.equal(f.documents.get("pageSeo.home")![key], null);
+  for (const key of PAGE_SEO_FIELDS) assert.equal(f.documents.get("pageSeo-home")![key], null);
   assert.equal(f.documents.size, 1); assert.equal(f.calls.network, 0);
   const list = await f.api.GET(getRequest());
   assert.equal(list.status, 200); assert.equal((await list.json()).pages.length, 8);

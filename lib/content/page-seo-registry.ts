@@ -6,7 +6,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/",
     "label": "หน้าหลัก",
-    "documentId": "pageSeo.home",
+    "documentId": "pageSeo-home",
     "defaults": {
       "seoTitle": "CCPun | ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
       "seoDescription": "ไม่แน่ใจว่าควรลงทุนหรือทำประกันแบบไหน? CCPun ที่ปรึกษาทางการเงิน ช่วยดูเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี ก่อนค่อยเลือกทางที่เหมาะกับชีวิตคุณ",
@@ -18,7 +18,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/blog/",
     "label": "บทความ",
-    "documentId": "pageSeo.blog",
+    "documentId": "pageSeo-blog",
     "defaults": {
       "seoTitle": "บทความการเงิน การลงทุน และการวางแผนอนาคต | CCPun",
       "seoDescription": "เคล็ดลับการเงิน การลงทุน ประกัน และการวางแผนอนาคตจาก CCPun Financial Advisor",
@@ -30,7 +30,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/ci-planning/",
     "label": "วางแผนทุนโรคร้ายแรง",
-    "documentId": "pageSeo.ci-planning",
+    "documentId": "pageSeo-ci-planning",
     "defaults": {
       "seoTitle": "วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun",
       "seoDescription": "วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง",
@@ -42,7 +42,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/tools/financial-health-check/",
     "label": "ตรวจสุขภาพการเงิน",
-    "documentId": "pageSeo.financial-health-check",
+    "documentId": "pageSeo-financial-health-check",
     "defaults": {
       "seoTitle": "ตรวจสุขภาพการเงิน เริ่มจากช่องว่างความคุ้มครอง | CCPun",
       "seoDescription": "ตรวจสุขภาพการเงินผ่านโมดูลประเมินทุนประกันชีวิต ซึ่งครอบคลุมเฉพาะความคุ้มครองชีวิต เปรียบเทียบภาระครอบครัว หนี้ การศึกษาบุตร ความคุ้มครอง และสินทรัพย์ที่พร้อมใช้ เพื่อเริ่มทบทวนแผนการเงิน",
@@ -54,7 +54,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/play/money-story/",
     "label": "Money Story",
-    "documentId": "pageSeo.money-story",
+    "documentId": "pageSeo-money-story",
     "defaults": {
       "seoTitle": "Money Story | เกมจำลองชีวิตการเงิน 12 เดือน | CCPun",
       "seoDescription": "เกมจำลองชีวิตการเงิน 12 เดือน เลือกหรือสุ่มชีวิตสมมติ แล้วลองตัดสินใจเรื่องเงินสด การลงทุน ความคุ้มครอง และการกู้ เมื่อชีวิตมีเรื่องไม่คาดคิดเข้ามา",
@@ -66,7 +66,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/tools/investment-allocation/",
     "label": "วางแผนกองทุน",
-    "documentId": "pageSeo.investment-allocation",
+    "documentId": "pageSeo-investment-allocation",
     "defaults": {
       "seoTitle": "เครื่องมือวางแผนกองทุน | เลือกกองเอง ดูข้อมูลจาก ก.ล.ต. | CCPun",
       "seoDescription": "เลือกกองทุนด้วยตัวเอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ระดับความเสี่ยงเท่าไร และขายคืนแล้วรับเงินตามเงื่อนไขแบบไหน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ",
@@ -78,7 +78,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/privacy/",
     "label": "นโยบายความเป็นส่วนตัว",
-    "documentId": "pageSeo.privacy",
+    "documentId": "pageSeo-privacy",
     "defaults": {
       "seoTitle": "นโยบายความเป็นส่วนตัว | CCPun ที่ปรึกษาทางการเงิน",
       "seoDescription": "CCPun ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของคุณ อ่านนโยบายความเป็นส่วนตัวของเราเพื่อทำความเข้าใจว่าเราเก็บและใช้ข้อมูลอย่างไร",
@@ -90,7 +90,7 @@ export const PAGE_SEO_PAGES: readonly PageSeoPage[] = [
   {
     "pathname": "/cookie-policy/",
     "label": "นโยบายคุกกี้",
-    "documentId": "pageSeo.cookie-policy",
+    "documentId": "pageSeo-cookie-policy",
     "defaults": {
       "seoTitle": "นโยบายคุกกี้ | CCPun ที่ปรึกษาทางการเงิน",
       "seoDescription": "CCPun ใช้ Google Analytics และ Meta Pixel ตามตัวเลือกความยินยอม อ่านรายละเอียดผู้ให้บริการ วัตถุประสงค์ ขอบเขต และวิธีถอนความยินยอม",
