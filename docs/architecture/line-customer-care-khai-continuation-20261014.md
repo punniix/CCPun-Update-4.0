@@ -40,3 +40,19 @@ This change is a **deliberate fail-closed security hold**. It is not an OCR feat
 7. Release lane/source identity, CI, secret scan and Hostinger readback verified before any deploy or activation.
 
 No production deployment, provider activation or LINE customer messaging was performed in this continuation.
+
+## Provider and orchestration readback — 2026-10-15 BKK
+
+- Hostinger Admin UAT deployment screen showed last completed source `c64540ec`, not this security-hold source. No deployment settings, credentials, provider values or source refs were changed.
+- Safe public-only readiness probes of `GET /api/internal/line/ingest/` returned HTTP 503 and exact `{"status":"not-ready"}` on both Admin Production and Admin UAT when routed through the allowlisted diagnostic user agent. A generic anonymous probe sometimes met an upstream 403; these differences are not proof of any specific missing secret.
+- Hostinger VPS overview reported the existing VPS running. Its Docker Manager was opened for metadata only; individual OCR container and endpoint health were **not verified**.
+- n8n metadata-only search: `CCPun LINE Customer AI MCP — Phase 1 SYNTHETIC DRAFT` and `CCPun — Private Chat Screenshot OCR` were **inactive**. Existing P1 SEO UAT callback/worker, Owner Export and LINE Card Copy were **active**, with their previous workflow identities retained. No workflow import, activation, publishing or execution was performed.
+- GitHub draft PR **#418** targets only `codex/admin-owner-redesign-uat-20261014`, base SHA `c64540ec`, with this safety change. It was not merged; the PR initially had no CI checks.
+- Additional local `test:architecture` check passed. `test:foundation-contracts` stopped at a stale hash assertion for `features/admin/components/AdminProtectedChrome.tsx`, a file not modified by this branch. This is separate from the three unchanged full Admin baseline failures; do not claim foundation green.
+- Do not infer that the LINE webhook is healthy from successful LINE Verify alone. A real 2026-10-11 inbound flow yielded HTTP 503 with no new persisted event; the fresh 503 readiness readback remains a release blocker.
+
+### Secure ownership boundaries
+
+No existing LINE identity HMAC or encryption key may be replaced with a newly generated value: old private records would be undecryptable or unlinkable. Restoring original provider configuration requires a secure managed transfer by the owner/authorized integration that does not expose values in model context, terminal output, screenshots, commits or workflow logs. This continuation did not inspect, read, copy or display any live secret value.
+
+Next release must be conditional: restore/prove private ingress first, prove authenticated direct OCR gateway and atomic server-issued receipt consume, then complete UAT real owner-led acceptance; only then consider Production. Do not activate the n8n Care/OCR drafts as a shortcut.
