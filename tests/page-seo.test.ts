@@ -17,7 +17,7 @@ test("reviewed registry extraction recovers the original Root metadata owner and
     assert.notEqual(changed, source);
     assert.throws(() => pageSeoRootMetadataBaseline(changed, registry));
   }
-  assert.throws(() => pageSeoRootMetadataBaseline(source, registry.replace('"documentId": "pageSeo.home"', '"documentId": "pageSeo.other"')));
+  assert.throws(() => pageSeoRootMetadataBaseline(source, registry.replace('"documentId": "pageSeo-home"', '"documentId": "pageSeo.other"')));
 });
 
 const baselineHashes = {
@@ -69,6 +69,8 @@ function resolver(environment: string, data: unknown, fail = false) {
 test("known static pages are wired once and original metadata defaults remain byte-equivalent in normal/review lanes", () => {
   assert.equal(PAGE_SEO_PAGES.length, 8);
   assert.equal(new Set(PAGE_SEO_PAGES.map(p => p.documentId)).size, 8);
+  assert.deepEqual(PAGE_SEO_PAGES.map(p => p.documentId), ['pageSeo-home', 'pageSeo-blog', 'pageSeo-ci-planning', 'pageSeo-financial-health-check', 'pageSeo-money-story', 'pageSeo-investment-allocation', 'pageSeo-privacy', 'pageSeo-cookie-policy']);
+  for (const page of PAGE_SEO_PAGES) assert.match(page.documentId, /^pageSeo-[a-z0-9-]+$/, 'public SEO singleton IDs must not select protected dotted namespaces');
   const staticRoutes = [...globSync("apps/web/app/**/page.tsx")].filter(p => !p.includes("[")).map(p => p.replace("apps/web/app", "").replace("page.tsx", ""));
   assert.deepEqual(staticRoutes.sort(), PAGE_SEO_PAGES.map(p => p.pathname).sort(), "new static pages need an explicit metadata owner, never automatic CMS exposure");
   for (const page of PAGE_SEO_PAGES) {
@@ -91,23 +93,26 @@ test("known static pages are wired once and original metadata defaults remain by
 test("Production, Admin and unknown paths return exact defaults before CMS; missing/error/invalid UAT records fail back without touching robots/canonical", async () => {
   const defaults = { title: "Default", robots: { index: false, follow: true }, alternates: { canonical: "https://ccpun.com/cookie-policy/" } };
   for (const environment of ["production", "local-production", "production-admin", "admin-uat", "development", "unknown"]) {
-    const api = resolver(environment, { _id: "pageSeo.home", pathname: "/", seoTitle: "Override" });
+    const api = resolver(environment, { _id: "pageSeo-home", pathname: "/", seoTitle: "Override" });
     assert.equal(await api.resolve("/", defaults), defaults);
     assert.equal(api.calls(), 0);
   }
   const unknown = resolver("web-uat", {});
   assert.equal(await unknown.resolve("/new-page/", defaults), defaults);
   assert.equal(unknown.calls(), 0);
-  for (const data of [null, {}, { _id: "wrong", pathname: "/", seoTitle: "bad" }, { _id: "pageSeo.home", pathname: "/blog/", seoTitle: "bad" }, { _id: "pageSeo.home", pathname: "/", canonical: "https://evil.invalid/" }, { _id: "pageSeo.home", pathname: "/", robots: { index: true } }, { _id: "pageSeo.home", pathname: "/", seoTitle: "<script>" }, { _id: "pageSeo.home", pathname: "/", seoTitle: null }]) {
+  for (const data of [null, {}, { _id: "wrong", pathname: "/", seoTitle: "bad" }, { _id: "pageSeo-home", pathname: "/blog/", seoTitle: "bad" }, { _id: "pageSeo-home", pathname: "/", canonical: "https://evil.invalid/" }, { _id: "pageSeo-home", pathname: "/", robots: { index: true } }, { _id: "pageSeo-home", pathname: "/", seoTitle: "<script>" }, { _id: "pageSeo-home", pathname: "/", seoTitle: null }]) {
     const api = resolver("web-uat", data);
     assert.equal(await api.resolve("/", defaults), defaults);
   }
   assert.equal(await resolver("local-uat", null, true).resolve("/", defaults), defaults);
+  for (const id of ['pageSeo.home', 'admin.operational-synthetic', 'drafts.pageSeo-home']) {
+    assert.equal(await resolver("web-uat", { _id: id, pathname: "/", seoTitle: "Protected synthetic record" }).resolve("/", defaults), defaults);
+  }
 });
 
 test("published UAT updates metadata only, merges native parent social fields, and reads again for subsequent saves", async () => {
   const defaults = { title: "Default", robots: { index: false, follow: true }, alternates: { canonical: "https://ccpun.com/" }, openGraph: { url: "https://ccpun.com/", title: "Default OG" } };
-  const data = { _id: "pageSeo.home", pathname: "/", seoTitle: "New SEO", seoDescription: "New description", ogTitle: "New social", ogDescription: "New social description", ogImageUrl: "https://test.ccpun.com/assets/ccpun.webp" };
+  const data = { _id: "pageSeo-home", pathname: "/", seoTitle: "New SEO", seoDescription: "New description", ogTitle: "New social", ogDescription: "New social description", ogImageUrl: "https://test.ccpun.com/assets/ccpun.webp" };
   const api = resolver("web-uat", data);
   const oldImage = { url: "https://ccpun.com/og-image-old.webp", width: 1200, height: 630, alt: "Default alt", type: "image/webp" };
   const parent = Promise.resolve({ openGraph: { type: "website", siteName: "CCPun", images: [oldImage, oldImage] }, twitter: { card: "summary_large_image", images: [oldImage.url] } });
@@ -134,11 +139,11 @@ test("published UAT updates metadata only, merges native parent social fields, a
   const request = api.requests[0] as { query: string; params: { id: string; pathname: string }; perspective: string; stega: boolean };
   assert.equal(request.perspective, "published");
   assert.equal(request.stega, false);
-  assert.equal(request.params.id, "pageSeo.home");
+  assert.equal(request.params.id, "pageSeo-home");
   assert.equal(request.params.pathname, "/");
   assert.match(request.query, /_id == \$id/);
   assert.match(request.query, /pathname == \$pathname/);
-  const seoOnly = await resolver("web-uat", { _id: "pageSeo.home", pathname: "/", seoTitle: "SEO only" }).resolve("/", defaults);
+  const seoOnly = await resolver("web-uat", { _id: "pageSeo-home", pathname: "/", seoTitle: "SEO only" }).resolve("/", defaults);
   assert.equal(seoOnly.openGraph, defaults.openGraph);
 });
 
