@@ -1,8 +1,46 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createRequire } from "node:module";
+import { runInNewContext } from "node:vm";
 import { aisvSourceRuntimeLabel } from "../../lib/admin/seo-intelligence/aisv";
 import { ownerAnalyticsLimitation, ownerAnalyticsOverviewLabel, ownerAnalyticsOverviewValue } from "../../features/admin/analytics/owner-copy";
+
+test("Owner results presentation retains period/source selection, stored provenance and per-report CSV scope", async () => {
+  const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
+  const source = readFileSync(new URL("../../features/admin/analytics/StoredAnalyticsDashboard.tsx", import.meta.url), "utf8");
+  const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  const selected = { source: "gsc", report: "gsc-summary", batchId: "synthetic-batch", windowStart: "2026-10-01", windowEnd: "2026-10-07", sourceAsOf: "2026-10-08", collectedAt: "2026-10-09T02:00:00Z", overview: [], rows: [{ clicks: 0 }], columns: ["clicks"], limitations: [], nativeTimeZone: "Asia/Bangkok" };
+  let unavailable = false;
+  const permissions: string[] = [];
+  const loaded = { exports: {} as { StoredAnalyticsDashboard: (props: unknown) => Promise<unknown> } };
+  runInNewContext(compiled, { module: loaded, exports: loaded.exports, Date, Intl, encodeURIComponent,
+    require: (name: string) => {
+      if (name === "next/link") return { default: "a" };
+      if (name === "react") return { cache: (fn: unknown) => fn };
+      if (name === "react/jsx-runtime") { const jsx = (type: unknown, props: unknown) => typeof type === "function" ? type(props) : ({ type, props }); return { jsx, jsxs: jsx }; }
+      if (name === "./AnalyticsCharts") return { AnalyticsCharts: () => null };
+      if (name === "./PerformanceInsights") return { PerformanceInsights: () => null };
+      if (name === "./DailyAssessment") return { DailyAssessment: () => null };
+      if (name === "./owner-copy") return { ownerAnalyticsLimitation, ownerAnalyticsOverviewLabel, ownerAnalyticsOverviewValue };
+      if (name.endsWith("/assessment")) return { readDailyAssessment: async () => null };
+      if (name.endsWith("/store")) return { readAnalyticsDashboard: async () => ({ state: unavailable ? "unavailable" : "ready", datasets: unavailable ? [] : [selected, { ...selected, source: "ga4", report: "ga4-summary", batchId: "synthetic-other" }], sources: [] }) };
+      if (name.endsWith("/require-permission")) return { requireAdminPermission: async (permission: string) => permissions.push(permission) };
+      assert.fail(`Unexpected module ${name}`);
+    } });
+  const rendered = JSON.stringify(await loaded.exports.StoredAnalyticsDashboard({ searchParams: { source: "gsc", report: "gsc-summary", period: "2026-10-01|2026-10-07" }, now: Date.parse("2026-10-09T03:00:00Z") }));
+  assert.match(rendered, /"name":"source","defaultValue":"gsc"/);
+  assert.match(rendered, /"name":"period","defaultValue":"2026-10-01\|2026-10-07"/);
+  assert.match(rendered, /\/api\/admin\/analytics\/export\/\?report=gsc-summary/);
+  assert.doesNotMatch(rendered, /\/api\/admin\/analytics\/export\/\?report=ga4-summary/);
+  assert.match(rendered, /"dateTime":"2026-10-08"/);
+  assert.match(rendered, /"dateTime":"2026-10-09T02:00:00Z"/);
+  assert.match(rendered, /"children":"0"/);
+  unavailable = true;
+  const failed = JSON.stringify(await loaded.exports.StoredAnalyticsDashboard({ searchParams: {}, now: Date.now() }));
+  assert.match(failed, /"role":"status"[^}]*ยังอ่านคลังข้อมูลไม่ได้/);
+  assert.deepEqual(permissions, ["settings:read", "settings:read"]);
+});
 
 test("Research names known AISV collection paths and explains an unknown path without jargon", () => {
   assert.equal(aisvSourceRuntimeLabel("ccpun-local-admin"), "CCPun Local Admin");

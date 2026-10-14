@@ -19,6 +19,12 @@ test("mobile group entry/Back/close focus only their newly mounted controls", ()
       if (name === "next/link") return { default: "a" };
       if (name === "next/navigation") return { usePathname: () => "/social/" };
       if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) };
+      if (name === "./admin-navigation-model") {
+        const model = { exports: {} };
+        const modelCode = transpileModule(read("features/admin/components/admin-navigation-model.ts"), { compilerOptions: { module: ModuleKind.CommonJS } }).outputText;
+        runInNewContext(modelCode, { module: model, exports: model.exports });
+        return model.exports;
+      }
       assert.equal(name, "react");
       return { useMemo: (fn: () => unknown) => fn(), useEffect: (fn: () => void) => effects.push(fn),
         useRef: (value: unknown) => { const slot = index++; return slots[slot] ??= { current: value }; },
@@ -36,8 +42,8 @@ test("mobile group entry/Back/close focus only their newly mounted controls", ()
     const element = node as Element;
     return [element, ...elements(element.props.children)];
   }
-  const items = [{ href: "/social/", label: "โซเชียล", children: [{ href: "/social/queue/", label: "คิว" }] },
-    { href: "/seo/", label: "SEO", children: [{ href: "/seo/audit/", label: "ตรวจ" }] }];
+  const items = [{ id: "content", href: "/social/", label: "คอนเทนต์", children: [{ href: "/social/queue/", label: "คิว" }] },
+    { id: "settings", href: "/social/accounts/", label: "ตั้งค่า", children: [{ href: "/seo/audit/", label: "ตรวจ" }] }];
   let focused = "";
   const render = () => { index = 0; effects.length = 0; return elements(loaded.exports.default({ items })); };
   let tree = render();
@@ -66,7 +72,7 @@ test("mobile group entry/Back/close focus only their newly mounted controls", ()
   remounted.forEach((button, n) => attachRef(button, { focus: () => { focused = items[n].href; } }));
   assert.equal(focused, "", "focus must wait for the group buttons to remount");
   effects.forEach(fn => fn());
-  assert.equal(focused, "/seo/", "Back must restore the selected group, not the first group or dialog trigger");
+  assert.equal(focused, "/social/accounts/", "Back must restore the selected group, not the first group or dialog trigger");
   focused = "external";
   effects.forEach(fn => fn());
   assert.equal(focused, "external", "consumed Back focus must not be reused");
@@ -89,15 +95,21 @@ test("mobile group entry/Back/close focus only their newly mounted controls", ()
   assert.equal(closes, 1);
 });
 
-test("Admin navigation keeps seven primary modules and exposes Social contextually", () => {
+test("Admin navigation groups the permitted leaves into five owner tasks", () => {
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
+  const model = read("features/admin/components/admin-navigation-model.ts");
   const nav = read("features/admin/components/AdminNavigation.tsx");
-  for (const label of ["ภาพรวม", "เนื้อหา", "SEO", "โซเชียล", "ผลลัพธ์", "สถานะระบบ", "ตั้งค่า"]) {
-    assert.ok(layout.includes(`label: "${label}"`), `missing primary module ${label}`);
+  for (const label of ["วันนี้", "ลูกค้า", "คอนเทนต์", "ผลลัพธ์", "ตั้งค่า"]) {
+    assert.ok(model.includes(`"${label}"`), `missing primary module ${label}`);
   }
-  assert.match(layout, /href: "\/social\/queue\/", label: "คิวส่งโพสต์"/);
+  assert.match(layout, /buildAdminNavigation/);
+  assert.match(model, /href: "\/social\/queue\/", label: "คิวส่งโพสต์"/);
   assert.match(nav, /<PrimaryModules items=\{items\} pathname=\{pathname\} \/>/);
   assert.match(nav, /activeItem\?\.children\?\.length \? <ContextNavigation/);
+  assert.match(nav, /activeAdminNavigationItem\(items, pathname\)/);
+  assert.match(nav, /activeAdminNavigationChild\(item, pathname\)/);
+  assert.match(nav, /item.id === "content"/);
+  assert.match(nav, /href="\/studio\/" target="_blank" rel="noopener noreferrer"/);
   assert.match(nav, /aria-label="กลับไปเมนูหลัก"/);
   assert.match(nav, /min-h-11 min-w-11/);
   assert.match(nav, /motion-reduce:transition-none/);

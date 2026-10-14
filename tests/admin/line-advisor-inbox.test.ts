@@ -3,6 +3,9 @@ import { isAbsolute, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { runInNewContext } from "node:vm";
 import path from "node:path";
 import test from "node:test";
 import { ADMIN_ROLES, hasAdminPermission } from "../../lib/admin/rbac";
@@ -11,6 +14,74 @@ import { ADMIN_OPERATIONS_LANES, resolveAdminOperationsRuntimeIdentity } from ".
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readCurrentSource(path.join(root, file), "utf8");
 const checksum = "99519369562761cfb4cb95fe7d6e14f5d0a158ba31b116200d729eb865a451e0";
+
+test("R2 Bangkok follow-up roundtrips across browser timezones and note fields have associated labels", async () => {
+  const { transpileModule, ModuleKind } = createRequire(import.meta.url)("typescript") as typeof import("typescript");
+  const source = readFileSync(new URL("../../features/admin/line/AdvisorCaseOperations.tsx", import.meta.url), "utf8");
+  const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText;
+  const states: unknown[] = []; let index = 0;
+  const calls: Array<{ path: string; body: { followUpAt?: string; text?: string } }> = [];
+  let finishRequest!: () => void;
+  const loaded = { exports: {} as { bangkokFollowUpIso: (value: string) => string | null; formatBangkokFollowUp: (value: string) => string; AdvisorCaseOperations: (props: unknown) => unknown } };
+  runInNewContext(compiled, { module: loaded, exports: loaded.exports, Date, Intl, JSON,
+    FormData: class { get() { return "2026-10-14T09:45"; } },
+    fetch: async (requestPath: string, options: { body: string }) => { calls.push({ path: requestPath, body: JSON.parse(options.body) }); return new Promise(resolve => { finishRequest = () => resolve({ ok: true }); }); },
+    require: (name: string) => {
+      if (name === "next/navigation") return { useRouter: () => ({ refresh: () => {} }) };
+      if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) };
+      assert.equal(name, "react");
+      return {
+        useId: () => `synthetic-field-${index++}`,
+        useRef: (value: unknown) => { const slot = index++; if (!(slot in states)) states[slot] = { current: value }; return states[slot]; },
+        useState: (value: unknown) => { const slot = index++; if (!(slot in states)) states[slot] = value; return [states[slot], (next: unknown) => { states[slot] = next; }]; },
+      };
+    } });
+  const originalTimezone = process.env.TZ;
+  try {
+    for (const timezone of ["Asia/Bangkok", "UTC", "America/Los_Angeles", "Pacific/Auckland"]) {
+      process.env.TZ = timezone;
+      assert.equal(loaded.exports.bangkokFollowUpIso("2026-10-14T09:45"), "2026-10-14T02:45:00.000Z");
+      assert.equal(loaded.exports.bangkokFollowUpIso("2028-02-29T00:00"), "2028-02-28T17:00:00.000Z");
+      assert.match(loaded.exports.formatBangkokFollowUp("2026-10-14T02:45:00.000Z"), /09:45/);
+      for (const invalid of ["", "2026-02-29T09:45", "2026-04-31T09:45", "2026-10-14T24:00", "2026-10-14T09:60", "2026-10-14T09:45Z"]) assert.equal(loaded.exports.bangkokFollowUpIso(invalid), null);
+    }
+  } finally { if (originalTimezone === undefined) delete process.env.TZ; else process.env.TZ = originalTimezone; }
+  type Node = { type?: string; props?: Record<string, unknown> & { children?: unknown } };
+  function nodes(value: unknown): Node[] {
+    if (Array.isArray(value)) return value.flatMap(nodes);
+    if (!value || typeof value !== "object") return [];
+    const node = value as Node;
+    return [node, ...nodes(node.props?.children)];
+  }
+  const render = () => { index = 0; return loaded.exports.AdvisorCaseOperations({ leadId: "synthetic", notesEnabled: true }); };
+  let tree = nodes(render());
+  const textarea = tree.find(node => node.type === "textarea")!;
+  assert.ok(tree.some(node => node.type === "label" && node.props?.htmlFor === textarea.props?.id));
+  const form = tree.find(node => node.type === "form")!;
+  const submit = form.props!.onSubmit as (event: unknown) => void;
+  submit({ preventDefault() {}, currentTarget: {} });
+  submit({ preventDefault() {}, currentTarget: {} });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].body.followUpAt, "2026-10-14T02:45:00.000Z");
+  finishRequest(); await new Promise<void>(resolve => setImmediate(resolve));
+  tree = nodes(render());
+  assert.match(JSON.stringify(tree), /09:45/);
+  assert.match(JSON.stringify(tree), /Asia\/Bangkok/);
+  (tree.find(node => node.type === "textarea")!.props!.onChange as (event: unknown) => void)({ target: { value: "synthetic-note" } });
+  tree = nodes(render());
+  const saveNote = tree.find(node => node.type === "button" && node.props?.type === "button")!.props!.onClick as () => void;
+  saveNote(); saveNote();
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].body.text, "synthetic-note");
+  finishRequest(); await new Promise<void>(resolve => setImmediate(resolve));
+});
+
+test("R2 generic error preserves unknown effect outcome", () => {
+  const source = readFileSync(new URL("../../apps/admin/app/(control-plane)/error.tsx", import.meta.url), "utf8");
+  assert.match(source, /ยังยืนยันผลล่าสุดไม่ได้/);
+  assert.match(source, /ประวัติงานเดิมก่อนดำเนินการซ้ำ/);
+  assert.doesNotMatch(source, /ไม่ได้ถูกเผยแพร่|ลองใหม่ได้อย่างปลอดภัย/);
+});
 
 function checksumSource(sql: string) {
   return sql.split("-- checksum-source-begin\n", 2)[1]?.split("-- checksum-source-end", 1)[0] ?? "";

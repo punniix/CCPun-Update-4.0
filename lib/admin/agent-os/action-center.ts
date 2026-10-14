@@ -121,3 +121,12 @@ export function summarizeActionCenter(signals: ActionCenterSignal[]) {
     normal: signals.filter((signal) => signal.priority === "normal").length,
   };
 }
+
+export function selectActionCenterSignals(
+  signals: readonly ActionCenterSignal[],
+  view: "human" | "follow-up",
+): ActionCenterSignal[] {
+  return signals.filter(signal => view === "human"
+    ? signal.kind === "human_handoff" || signal.kind === "new_lead_unread"
+    : signal.kind === "follow_up_overdue" || signal.kind === "follow_up_today");
+}
