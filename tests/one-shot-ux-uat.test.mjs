@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
+import {resolve} from 'node:path';
+import ts from 'typescript';
 import React, {act} from 'react';
 import {JSDOM} from 'jsdom';
 import {loadFixtureModule} from '../qa/phase1-fixture-loader.mjs';
@@ -108,5 +110,28 @@ test('Home, Blog and calculator skip targets are focusable and follow navigation
     const navs=doc.querySelectorAll('nav[aria-label="เมนูหลัก"],nav[aria-label="เมนูมือถือ"]');assert.ok(navs.length);
     for(const nav of navs)assert.ok(nav.compareDocumentPosition(target)&4,'skip destination follows primary navigation');
     target.focus();assert.equal(doc.activeElement,target);
+  }
+});
+
+
+test('static SVG objects typecheck in the real Web program before generated Next declarations exist',()=>{
+  const config=ts.readConfigFile('apps/web/tsconfig.json',ts.sys.readFile);
+  assert.equal(config.error,undefined);
+  const parsed=ts.parseJsonConfigFileContent(config.config,ts.sys,resolve('apps/web'));
+  const files=parsed.fileNames.filter(file=>!file.endsWith('/next-env.d.ts')&&!file.includes('/.next/'));
+  const program=ts.createProgram(files,{...parsed.options,incremental:false});
+  const diagnostics=ts.getPreEmitDiagnostics(program);
+  assert.deepEqual(diagnostics.map(d=>({code:d.code,message:ts.flattenDiagnosticMessageText(d.messageText,'\n')})),[]);
+  const checker=program.getTypeChecker();
+  const home=program.getSourceFile(resolve('features/home/website-43/Website43Home.tsx'));
+  const imports=home.statements.filter(node=>ts.isImportDeclaration(node)&&node.moduleSpecifier.text.endsWith('.svg'));
+  assert.equal(imports.length,4);
+  for(const node of imports){
+    const type=checker.getTypeAtLocation(node.importClause.name);
+    assert.equal(type.flags&ts.TypeFlags.Any,0,node.moduleSpecifier.text);
+    for(const [key,flag] of [['src',ts.TypeFlags.String],['width',ts.TypeFlags.Number],['height',ts.TypeFlags.Number]]){
+      const property=type.getProperty(key);assert.ok(property,key);
+      assert.ok(checker.getTypeOfSymbolAtLocation(property,node).flags&flag,key);
+    }
   }
 });
