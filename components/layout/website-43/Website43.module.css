@@ -1162,7 +1162,7 @@
 .pagination a, .pagination button { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; padding: 8px 12px; border: 1px solid var(--w43-border); border-radius: 12px; background: transparent; color: var(--w43-ink); cursor: pointer; }
 .pagination a[aria-current='page'] { color: var(--w43-deep); background: var(--w43-gold); border-color: var(--w43-gold); }
 .pagination button:disabled { opacity: .45; cursor: default; }
-.resultCount, .tableHint { color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
+.tableHint { color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
 .imageDetailLink, .gameEntry { color: var(--w43-gold); font-size: 14px; line-height: 1.6; }
 .gameEntry a { display: inline-flex; min-height: 44px; align-items: center; }
 .imageDetailLink { display: inline-flex; min-height: 44px; align-items: center; text-decoration: underline !important; }
