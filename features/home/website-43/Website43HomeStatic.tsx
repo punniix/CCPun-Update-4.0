@@ -22,7 +22,6 @@ export function HomeFooter({ warnings = false }: { warnings?: boolean }) {
           <div className={styles.footerTop}>
             <div>
               <HomeBrand />
-              <div className={styles.footerBrandText}>วางแผนการเงินจากชีวิตจริง<br />เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</div>
             </div>
             <div className={styles.footerColumn}>
               <strong>สำรวจ</strong>

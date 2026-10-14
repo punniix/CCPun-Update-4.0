@@ -11,8 +11,9 @@ const ts = require('typescript');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 // UX/UAT 3d909613 before the approved unified-footer revision.
-// Footer hashes retain its original desktop DOM. Active/navbar CSS hashes include the
+// Footer hashes reflect only approved marketing tagline removal. Active/navbar CSS hashes include the
 // COO-approved 2026-10-14 native interaction motion revision; responsive layout stays frozen.
+// Approved 2026-10-14 footer text removal changes the footer DOM only; remaining CSS/DOM contracts stay frozen.
 // Frozen active CSS/DOM outputs require no Git history or network in CI.
 const baseline = {
   "activeCss": "a20588d20bfe731e43a00dcac79e6c47697548315b2644f2b45329de2e7a3609",
@@ -20,8 +21,8 @@ const baseline = {
   "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
   "navbarDomOff": "e0e96baf8e7bc3de1e06632b3ae6262f7b4b9e65740ae01246e657bdc23c566b",
   "navbarDomOn": "f2a1baf3334dce55b449c7bed10f5b802f352acde11e3137999f7b9644d9cd4c",
-  "footerDomOff": "194a94f48d87c887966470a039725bbf06925bbdc648d2d6f56f8f8f486fdf10",
-  "footerDomOn": "4216da5e34c0d40f7e811c02c78c94c128c392e1ff79fb79a0b9af958dd59893"
+  "footerDomOff": "aaf7f84c72659f0777b31707274c6fef21e2e36ead13ed16946af959d2f37bba",
+  "footerDomOn": "7e622c8a7a2deb49bfe797a3e46f72f33daa876cea2e96b6ccfe3b034ba5d682"
 };
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
@@ -111,7 +112,9 @@ test('navbar disclosure states preserve current UX DOM, labels, links, aria and 
   if (investmentCapable) assert.equal(fingerprint(navbarSnapshots(after('Website43Navbar.tsx'), true)), baseline.navbarDomOn);
 });
 
-test('unified footer preserves original desktop content with Beta off/on including 404', () => {
+test('unified footer preserves destinations but removes the approved tagline with Beta off/on and 404', () => {
+  assert.doesNotMatch(after('Website43Shared.tsx'), /วางแผนการเงินจากชีวิตจริง|เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ/);
+  assert.match(after('Website43Shared.tsx'), /CookieSettingsButton/);
   assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
   assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))), baseline.footerDomOff);
   if (investmentCapable) assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'), true)), baseline.footerDomOn);

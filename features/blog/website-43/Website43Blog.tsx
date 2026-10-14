@@ -95,7 +95,7 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
         />
         {topicNavigation}
       </main>
-      <Website43Footer />
+      <Website43Footer flushBottom />
     </div>
   );
 }
