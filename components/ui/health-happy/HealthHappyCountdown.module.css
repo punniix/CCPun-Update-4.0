@@ -34,6 +34,8 @@
 .actions a { width: 100%; min-width: 0; padding-inline: 12px; text-align: center; white-space: normal; }
 @media (min-width: 1101px) { .frame { min-height: 150px; } }
 @media (max-width: 1100px) {
+  /* Keep embedded artwork text out of the two-row and mobile banner. */
+  .frame::before { background-position: left top; background-size: auto 400%; }
   .frame { grid-template-columns: minmax(0,1fr) minmax(300px,1fr); row-gap: 12px; }
   .actions { grid-column: 1 / -1; flex-direction: row; }
   .actions a { flex: 1; }

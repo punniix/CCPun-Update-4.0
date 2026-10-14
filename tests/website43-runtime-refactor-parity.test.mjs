@@ -16,7 +16,7 @@ const { renderToStaticMarkup } = require('react-dom/server');
 // Frozen active CSS/DOM outputs require no Git history or network in CI.
 const baseline = {
   "activeCss": "a20588d20bfe731e43a00dcac79e6c47697548315b2644f2b45329de2e7a3609",
-  "responsiveCss": "3cd8efc41eec452c51c3fee2e874a6d3b3c7e06ab8fe573c503e90a5d9474c47",
+  "responsiveCss": "3246c4e6d5e9ab2b661e643e3ba9e8b2a95041334779f47b0c53743968ef2675",
   "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
   "navbarDomOff": "e0e96baf8e7bc3de1e06632b3ae6262f7b4b9e65740ae01246e657bdc23c566b",
   "navbarDomOn": "f2a1baf3334dce55b449c7bed10f5b802f352acde11e3137999f7b9644d9cd4c",
