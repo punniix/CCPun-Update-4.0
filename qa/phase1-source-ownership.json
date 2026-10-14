@@ -913,7 +913,7 @@
     "features/admin/components/HealthStatus.tsx": "09767643967af2e0015e6c4e7cf35c3f3ba90e0dfc8359526a33d21efe6a0c3b",
     "features/admin/components/ReadinessRows.tsx": "ef17bf3891599f61595112f21a5b5c2d2bdf5ce9f59c02fa3aaec4ae712afcc7",
     "features/admin/components/SeoAuditDetailPage.tsx": "2aa51e43e58bd9163e61322891bf1741d0e5dc738d51ea2a6d7558439060a4dd",
-    "features/admin/components/SeoOverviewPage.tsx": "4ed6177734fbe290c6619bebfcae8e27430d52082b246ca9f8f5cff394456e10",
+    "features/admin/components/SeoOverviewPage.tsx": "dee93c08dfc36bc9fce513945787074a0930b674d2a222e1f77383ab736c9382",
     "features/admin/components/SeoReviewInboxPage.tsx": "b32b2b0ae382122ec3595990298c28e0854b2777fdbed56e5aba867fa7010dc7",
     "features/admin/components/SettingsIndexPage.tsx": "bb56436c8673a4111408d8b1bf3e45eb36affb88249196be46ec81f28677811c",
     "features/admin/components/StudioUnavailableView.tsx": "53591d85cd379f3a75af49e741818ea071004cbbd1ff909884ca5fd1f3c63741",

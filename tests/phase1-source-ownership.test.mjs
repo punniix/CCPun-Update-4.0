@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 
 const require = createRequire(import.meta.url);
@@ -22,6 +23,7 @@ async function view(file, config, baseline = false) {
   const mocks = new Map([
     ['@/lib/admin/require-permission', { requireAdminPermission: async (permission) => { trace.push(['permission', permission]); if (config.denied) throw new Error('synthetic-forbidden'); return { role: config.role ?? 'owner' }; } }],
     ['@/lib/admin/environment', { getAdminEnvironment: () => { trace.push(['environment']); return config.environment ?? 'admin-uat'; }, isStudioDataPlaneAllowed: (dataset) => { trace.push(['studio', dataset]); return config.studioReady; } }],
+    ['@/lib/admin/page-seo', { isPageSeoUatAllowed: () => !!config.pageSeoUat && config.environment === 'admin-uat' }],
     ['@/lib/admin/sanity-control', { listAdminArticles: async () => { trace.push(['articles']); return { rows: config.empty ? [] : [{ ...row, ...config.rowOverrides, id: config.draftId ? 'drafts.' + row.id : row.id, hasPublished: config.published, isDraft: !config.published, seoScore: config.liveAudit ? null : row.seoScore }], status, error: config.readError ? config.requestFailed ? 'request-failed' : 'synthetic-read-error' : null }; }, getAdminSanityStatus: () => { trace.push(['status']); return status; }, listSeoSuggestions: async () => { trace.push(['suggestions']); return { rows: config.empty ? [] : ['needs-human-review', 'approved', 'applied', 'rejected'].map((state, index) => ({ id: 'synthetic-proposal-' + index, status: state, riskLevel: config.risk ?? 'low', approvedRiskLevel: config.risk ?? 'low', type: config.unknownType ? 'synthetic-unknown' : 'seo-title', approvedType: config.unknownType ? 'synthetic-unknown' : 'seo-title', confidence: 0.5, articleTitle: 'บทความทดสอบ', articleId: 'drafts.' + row.id, approvedTargetId: 'drafts.' + row.id, targetRevision: 'r1', targetCurrentRevision: config.stale ? 'r2' : 'r1', approvedTargetRevision: 'r1', before: 'synthetic-before', after: 'synthetic-after', approvedAfter: 'synthetic-approved', reason: 'synthetic-reason' })), status, error: config.readError ? 'synthetic-read-error' : null }; } }],
     ['@/lib/admin/suggestion-lifecycle', { isStaleSuggestionRevision: (target, current) => target !== current, getApplyableFieldPath: type => type === 'seo-title' ? 'seoTitle' : null }],
     ['@/lib/admin/identity', { getAdminIdentity: async () => { trace.push(['identity']); return config.nullIdentity ? null : { role: config.role ?? 'owner' }; } }],
@@ -75,6 +77,30 @@ for (const page of proof.sharedPages) {
     });
   }
 }
+
+test('reviewed page SEO entry changes only the UAT owner anchor with exact original owner body and role/lane DOM parity', async () => {
+  const file = 'features/admin/components/SeoOverviewPage.tsx';
+  const current = readFileSync(file, 'utf8');
+  const linkSource = '          {pageIdentity.role === "owner" && isPageSeoUatAllowed() ? <Link href="/seo/pages/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">SEO หน้าเว็บ</Link> : null}\n';
+  const importSource = 'import { isPageSeoUatAllowed } from "@/lib/admin/page-seo";\n';
+  const permissionSource = '  const pageIdentity = await requireAdminPermission("seo:read");';
+  for (const fragment of [linkSource, importSource, permissionSource]) assert.equal(current.split(fragment).length, 2, 'one exact reviewed source fragment');
+  const originalOwner = current.replace(importSource, '').replace(permissionSource, '  await requireAdminPermission("seo:read");').replace(linkSource, '');
+  assert.equal(createHash('sha256').update(originalOwner).digest('hex'), '4ed6177734fbe290c6619bebfcae8e27430d52082b246ca9f8f5cff394456e10', 'whole original owner body retained outside the three accepted fragments');
+  const anchor = '<a href="/seo/pages/" class="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">SEO หน้าเว็บ</a>';
+  const page = proof.sharedPages.find(item => item.name === 'AdminSeoPage');
+  for (const role of ['owner', 'viewer']) for (const environment of ['admin-uat', 'production-admin']) {
+    const config = { role, environment, pageSeoUat: true, studioReady: true, writeReady: true, intelligence: true };
+    const original = await view(page.canonical, config, true);
+    const candidate = await view(page.canonical, config);
+    assert.ok(original.html && candidate.html, 'both vectors execute actual server components');
+    const visible = role === 'owner' && environment === 'admin-uat';
+    assert.equal(candidate.html.split(anchor).length, visible ? 2 : 1, JSON.stringify(config));
+    assert.equal(visible ? candidate.html.replace(anchor, '') : candidate.html, original.html, 'all article markup outside the accepted anchor stays byte identical');
+    assert.deepEqual(candidate.metadata, original.metadata);
+    assert.deepEqual(candidate.trace, original.trace);
+  }
+});
 
 test('proposal Inbox owner preserves review/apply denials, frozen-risk values, stale revisions and exact action props', async () => {
   const page = proof.sharedPages.find(item => item.name === 'AdminReviewsPage');

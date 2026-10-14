@@ -4,6 +4,7 @@ import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
+import { isPageSeoUatAllowed } from "@/lib/admin/page-seo";
 import { SEO_AUDIT_VERSION } from "@/lib/admin/seo-heuristics";
 import { getSeoIntelligenceRuntimeStatus } from "@/lib/admin/seo-intelligence/foundation";
 
@@ -22,7 +23,7 @@ function formatAuditDate(value: string | null | undefined) {
 }
 
 export async function AdminSeoPage(copy: SeoOverviewCopy) {
-  await requireAdminPermission("seo:read");
+  const pageIdentity = await requireAdminPermission("seo:read");
   const identity = copy.uatTools ? await copy.uatTools.readIdentity() : undefined;
   const result = await listAdminArticles();
   const audited = result.rows.filter((row) => row.seoScore != null && row.seoAuditVersion === SEO_AUDIT_VERSION);
@@ -41,6 +42,7 @@ export async function AdminSeoPage(copy: SeoOverviewCopy) {
           </p>
         </div>
         <div className="flex gap-2">
+          {pageIdentity.role === "owner" && isPageSeoUatAllowed() ? <Link href="/seo/pages/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">SEO หน้าเว็บ</Link> : null}
           {intelligenceReady ? <Link href="/seo/opportunities/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">{copy.opportunities}</Link> : null}
           <Link href="/content/research/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อมูลงานวิจัย</Link>
           <Link href={copy.reviewsHref} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อเสนอที่รอตรวจ</Link>

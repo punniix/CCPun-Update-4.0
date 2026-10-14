@@ -2,6 +2,7 @@ import { article } from "./documents/article";
 import { author } from "./documents/author";
 import { category } from "./documents/category";
 import { blogSettings } from "./documents/blog-settings";
+import { pageSeo } from "./documents/page-seo";
 import { faqItem } from "./objects/faq-item";
 import { sourceReference } from "./objects/source-reference";
 import { reviewMetadata } from "./objects/review-metadata";
@@ -30,6 +31,7 @@ export const schemaTypes = [
   author,
   category,
   blogSettings,
+  pageSeo,
   faqItem,
   sourceReference,
   reviewMetadata,
