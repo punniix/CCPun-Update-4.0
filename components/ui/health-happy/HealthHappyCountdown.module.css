@@ -32,7 +32,11 @@
 .timeLabel { color: #baabab; font-size: 9px; letter-spacing: .06em; line-height: 1.5; }
 .actions { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .actions a { width: 100%; min-width: 0; padding-inline: 12px; text-align: center; white-space: normal; }
-@media (min-width: 1101px) { .frame { min-height: 150px; } }
+@media (min-width: 1101px) {
+  .frame { min-height: 150px; }
+  /* The short desktop frame samples only the artwork corner, excluding its logo and lettering. */
+  .frame::before { background-position: left top; background-size: auto 600%; }
+}
 @media (max-width: 1100px) {
   /* Keep embedded artwork text out of the two-row and mobile banner. */
   .frame::before { background-position: left top; background-size: auto 400%; }
