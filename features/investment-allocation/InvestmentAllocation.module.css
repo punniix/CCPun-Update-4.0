@@ -263,3 +263,9 @@
   .deltaRow { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .deltaRow strong, .deltaRow span { min-width: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 1.65; text-align: left; }
 }
+
+/* Long incomplete-data explanations need their own row below narrow-screen labels. */
+@media (max-width: 639px) {
+  .deltaRow[data-inconclusive="true"] { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .deltaRow[data-inconclusive="true"] span { min-width: 0; overflow-wrap: anywhere; text-align: left; }
+}

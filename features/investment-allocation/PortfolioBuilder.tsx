@@ -449,7 +449,7 @@ function ResultView({ result, onEdit, onSave, onHandoff, saveStatus }: { result:
 
     <div className={styles.resultPanel}>
       <h3>เทียบกับสัดส่วนที่คุณตั้งไว้</h3>
-      {result.targetDelta.length ? <div className={styles.deltaList}>{result.targetDelta.map((row) => <div className={styles.deltaRow} key={row.asset}><strong>{ASSET_LABELS[row.asset]} · ตั้งไว้ {row.targetPercent}% / จากกองที่เลือก {row.effectivePercent}%</strong><span>{row.conclusive && row.deltaPercentagePoints !== null ? `${row.deltaPercentagePoints > 0 ? "+" : ""}${row.deltaPercentagePoints} จุดเปอร์เซ็นต์` : "ยังสรุปส่วนต่างไม่ได้ เพราะมีสินทรัพย์บางส่วนที่ยังระบุไม่ได้"}</span></div>)}</div> : <p>คุณไม่ได้กำหนดสัดส่วนสินทรัพย์เป้าหมายไว้ จึงไม่มีส่วนเปรียบเทียบในหัวข้อนี้</p>}
+      {result.targetDelta.length ? <div className={styles.deltaList}>{result.targetDelta.map((row) => <div className={styles.deltaRow} data-inconclusive={row.conclusive && row.deltaPercentagePoints !== null ? undefined : "true"} key={row.asset}><strong>{ASSET_LABELS[row.asset]} · ตั้งไว้ {row.targetPercent}% / จากกองที่เลือก {row.effectivePercent}%</strong><span>{row.conclusive && row.deltaPercentagePoints !== null ? `${row.deltaPercentagePoints > 0 ? "+" : ""}${row.deltaPercentagePoints} จุดเปอร์เซ็นต์` : "ยังสรุปส่วนต่างไม่ได้ เพราะมีสินทรัพย์บางส่วนที่ยังระบุไม่ได้"}</span></div>)}</div> : <p>คุณไม่ได้กำหนดสัดส่วนสินทรัพย์เป้าหมายไว้ จึงไม่มีส่วนเปรียบเทียบในหัวข้อนี้</p>}
     </div>
 
     <div className={styles.resultPanel}>

@@ -135,3 +135,29 @@ test('static SVG objects typecheck in the real Web program before generated Next
     }
   }
 });
+
+
+test('only incomplete Investment comparisons receive the warning layout marker',async()=>{
+  const file='features/investment-allocation/PortfolioBuilder.tsx';
+  const source=readFileSync(file,'utf8');
+  const {ResultView}=loadFixtureModule(file,{
+    sources:new Map([[file,source+'\nexport { ResultView };']]),
+    mocks:new Map([
+      ['./InvestmentAllocation.module.css',{__esModule:true,default:new Proxy({},{get:(_,key)=>key})}],
+      ['@/lib/analytics',{trackEvent:()=>{}}],
+    ]),
+  });
+  const {renderToStaticMarkup}=await import('react-dom/server');
+  for(const [conclusive,delta,marked,text] of [
+    [true,10,false,'+10 จุดเปอร์เซ็นต์'],[true,-5,false,'-5 จุดเปอร์เซ็นต์'],[true,0,false,'0 จุดเปอร์เซ็นต์'],
+    [false,0,true,'ยังสรุปส่วนต่างไม่ได้'],[true,null,true,'ยังสรุปส่วนต่างไม่ได้'],[false,null,true,'ยังสรุปส่วนต่างไม่ได้'],
+  ]){
+    const result={effectiveAllocation:[],coverage:{effectiveAssetPercentKnown:100},riskDistribution:[],liquiditySummary:[],selectedFunds:[],warnings:[],targetDelta:[{asset:'equity',targetPercent:50,effectivePercent:60,conclusive,deltaPercentagePoints:delta}]};
+    const html=renderToStaticMarkup(React.createElement(ResultView,{result,onEdit:()=>{},onSave:()=>{},onHandoff:()=>{},saveStatus:null}));
+    const row=new JSDOM(html).window.document.querySelector('.deltaRow');
+    assert.equal(row.hasAttribute('data-inconclusive'),marked);
+    assert.equal(row.getAttribute('data-inconclusive'),marked?'true':null);
+    assert.equal(row.querySelector('strong').textContent,'หุ้น · ตั้งไว้ 50% / จากกองที่เลือก 60%');
+    assert.ok(row.querySelector('span').textContent.includes(text));
+  }
+});
