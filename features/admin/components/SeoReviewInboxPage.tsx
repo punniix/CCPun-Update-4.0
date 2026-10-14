@@ -23,7 +23,7 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
   const studioReady = isStudioDataPlaneAllowed(result.status.dataset ?? undefined);
 
   return (
-    <div>
+    <div className="[&_button]:min-h-11 [&_button]:text-base [&_button]:leading-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">คุณเป็นผู้ตัดสินใจ</p>
@@ -32,7 +32,7 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
             ระบบสร้างได้เพียงข้อเสนอ คุณต้องตรวจและอนุมัติด้วยตัวเอง การอนุมัติยังไม่แก้ฉบับร่าง และไม่มีขั้นตอนไหนเผยแพร่บทความให้เอง
           </p>
         </div>
-        <Link href="/content/articles/" className="w-fit rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 transition hover:bg-white/5 hover:text-white">
+        <Link href="/content/articles/" className="inline-flex min-h-11 w-fit items-center rounded-xl border border-white/10 px-4 py-2.5 text-base leading-6 text-white/70 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
           กลับไปเลือกบทความ
         </Link>
       </div>
@@ -117,7 +117,7 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
                     <div className="max-w-sm text-right">
                       {isApprovedStale ? (
                         <>
-                          <Link href={seoHref} className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-sm font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15">
+                          <Link href={seoHref} className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2 text-base leading-6 font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
                             ตรวจ SEO และสร้างข้อเสนอใหม่
                           </Link>
                           <p className="mt-2 text-sm leading-6 text-white/65">ฉบับร่างเปลี่ยนหลังจากอนุมัติ ระบบจึงไม่ใช้ข้อเสนอเดิมซ้ำ</p>
@@ -129,7 +129,7 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
                         </>
                       )}
                       {(effectiveRiskLevel === "high" || effectiveRiskLevel === "critical" || !effectiveType || !getApplyableFieldPath(effectiveType)) && studioPreviewHref && studioReady ? (
-                        <Link href={studioPreviewHref} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-[#f4df9b] underline underline-offset-4">
+                        <Link href={studioPreviewHref} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center text-base leading-6 font-medium text-[#f4df9b] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
                           เปิดตรวจด้วยตนเองใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span>
                         </Link>
                       ) : null}
@@ -152,7 +152,7 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
                         href={studioPreviewHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-xs font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15"
+                        className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2 text-base leading-6 font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"
                       >
                         เปิดตัวอย่างฉบับร่างใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span>
                       </Link>
