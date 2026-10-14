@@ -181,7 +181,8 @@
 }
 .mobileMenu a { display: flex; min-height: 44px; align-items: center; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 600; }
 .mobileTools { display: block; }
-.mobileTools > button {
+/* Outrank the public shell's .root button font shorthand so this matches mobile links. */
+.mobileMenu .mobileTools > button {
   width: 100%;
   min-height: 44px;
   display: flex;

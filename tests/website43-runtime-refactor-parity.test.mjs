@@ -18,7 +18,7 @@ const { renderToStaticMarkup } = require('react-dom/server');
 const baseline = {
   "activeCss": "1f3a9769ed1a57c241cec6ec66cb637461ec409b3859ae53819600f2e4fb1a8a",
   "responsiveCss": "3246c4e6d5e9ab2b661e643e3ba9e8b2a95041334779f47b0c53743968ef2675",
-  "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
+  "navbarCss": "8bb36bb9ada57b280384145e56412db668663f1ee6cdc37d9bed7a2922498e99",
   "navbarDomOff": "e0e96baf8e7bc3de1e06632b3ae6262f7b4b9e65740ae01246e657bdc23c566b",
   "navbarDomOn": "f2a1baf3334dce55b449c7bed10f5b802f352acde11e3137999f7b9644d9cd4c",
   "footerDomOff": "aaf7f84c72659f0777b31707274c6fef21e2e36ead13ed16946af959d2f37bba",
