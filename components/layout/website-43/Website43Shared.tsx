@@ -13,15 +13,14 @@ export function Website43Brand() {
   );
 }
 
-export function Website43Footer({ warnings = false, notFound = false }: { warnings?: boolean; notFound?: boolean }) {
+export function Website43Footer({ warnings = false, notFound = false, flushBottom = false }: { warnings?: boolean; notFound?: boolean; flushBottom?: boolean }) {
   return (
-    <footer className={`${styles.footerWrap} ${notFound ? styles.notFoundFooterWrap : ''}`}>
+    <footer className={`${styles.footerWrap} ${notFound ? styles.notFoundFooterWrap : ''} ${flushBottom ? styles.footerFlushBottom : ''}`}>
       <div className={styles.inner}>
         <div className={styles.footerFull}>
           <div className={styles.footerTop}>
             <div>
               <Website43Brand />
-              <div className={styles.footerBrandText}>วางแผนการเงินจากชีวิตจริง<br />เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</div>
             </div>
             <div className={styles.footerColumn}>
               <strong>สำรวจ</strong>

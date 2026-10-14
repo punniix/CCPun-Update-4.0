@@ -17,12 +17,12 @@ const baseline = {
   "navbarDom": "c9b2e505355783f485fc1609ffd769dc21700ec7a3ebd712e34b48fa1c7654ed",
   "footerDom": "db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b"
 };
-// Exact reviewed UX outputs; original Production golden object above remains unchanged.
+// Approved 2026-10-14 footer tagline removal + blog-only end flush. Original Production golden object remains unchanged.
 const reviewedCurrent = {
-  "activeCss": "ec3a085533106b75e3990b70b43c393e804becfe3833a8df02715d6300fd6d07",
+  "activeCss": "0ee06a1ad00938e8d54ca33fe0c5dd7c6d8a19d075090de1913c61fd62b4d686",
   "responsiveCss": "1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9",
   "navbarCss": "b0f79a2ee71084e32c2c0ee2e6bec4195dd3c128d040bf8442cf61c172e95e85",
-  "footerDesktopDom": "e0ea63da87a5fbf252daab39e57f8adba746d8bfa7c3f7961b591bc96289517b"
+  "footerDesktopDom": "53e42deb5ddf5e7dd671694437c80e569b9e15094e1549d43ff3276b1ebf6122"
 };
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
@@ -104,7 +104,10 @@ test('96 navbar disclosure states preserve DOM, labels, links, aria and tracking
   assert.equal(fingerprint(navbarSnapshots(originalUi)),baseline.navbarDom,'Only approved brand class/mobile indicator are normalized; original96DOM properties retained');
 });
 
-test('unified footer retains original desktop copy/destinations in all four reviewed variants', () => {
+test('unified footer preserves links while removing approved marketing tagline in all four reviewed variants', () => {
+  assert.doesNotMatch(after('Website43Shared.tsx'), /วางแผนการเงินจากชีวิตจริง|เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ/);
+  assert.match(after('Website43Shared.tsx'), /Website43Brand/);
+  assert.match(after('Website43Shared.tsx'), /CookieSettingsButton/);
   assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
   assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))),reviewedCurrent.footerDesktopDom);
   assert.equal(baseline.footerDom,'db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b','Original full/compact baseline retained as history; duplicate compact removal is explicit');
