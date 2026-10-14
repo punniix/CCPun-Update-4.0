@@ -105,8 +105,8 @@ test("active group and longest child context preserve deep customer, review and 
 });
 
 
-test("Today attention cards use the shared Inbox selection and distinguish people from signal counts", async () => {
-  type Element = { type: unknown; props: { children?: unknown; href?: string } };
+test("Today opens native attention tasks and groups distinct cases without changing signal counts", async () => {
+  type Element = { type: unknown; props: { children?: unknown; href?: string; className?: string } };
   const elements = (node: unknown): Element[] => {
     if (Array.isArray(node)) return node.flatMap(elements);
     if (!node || typeof node !== "object" || !("props" in node)) return [];
@@ -124,15 +124,27 @@ test("Today attention cards use the shared Inbox selection and distinguish peopl
     { leadId: "synthetic-b", kind: "new_lead_unread", reason: "synthetic new" },
     { leadId: "synthetic-a", kind: "follow_up_today", reason: "synthetic today" },
     { leadId: "synthetic-b", kind: "follow_up_overdue", reason: "synthetic overdue" },
+    { leadId: "synthetic-c", kind: "material_missing", reason: "synthetic material" },
+    { leadId: "synthetic-d", kind: "quote_waiting", reason: "synthetic quote" },
+    { leadId: "synthetic-a", kind: "quote_waiting", reason: "synthetic human" },
   ];
-  for (const unavailable of [false, true]) {
+  for (const { unavailable, advisorAllowed, operationsAllowed, reviewsAllowed } of [
+    { unavailable: false, advisorAllowed: true, operationsAllowed: true, reviewsAllowed: true },
+    { unavailable: true, advisorAllowed: true, operationsAllowed: true, reviewsAllowed: true },
+    { unavailable: false, advisorAllowed: false, operationsAllowed: true, reviewsAllowed: true },
+    { unavailable: false, advisorAllowed: true, operationsAllowed: false, reviewsAllowed: true },
+    { unavailable: false, advisorAllowed: true, operationsAllowed: true, reviewsAllowed: false },
+  ]) {
     let inboxReads = 0;
+    let jobsReads = 0;
+    let reviewsReads = 0;
+    let conversionReads = 0;
     const selections: string[] = [];
     const dashboard = load<{ default: (props: { searchParams: Promise<{ error?: string }> }) => Promise<unknown> }>("apps/admin/app/(control-plane)/dashboard/page.tsx", {
       "react/jsx-runtime": { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) },
       "next/link": { default: "a" },
       "@/lib/admin/require-permission": { requireAdminPermission: async () => ({ role: "owner" }) },
-      "@/lib/admin/rbac": { hasAdminPermission: () => true },
+      "@/lib/admin/rbac": { hasAdminPermission: (_role: string, permission: string) => permission === "advisor:read" ? advisorAllowed : permission === "settings:read" ? operationsAllowed : permission === "reviews:read" ? reviewsAllowed : true },
       "@/lib/admin/line/advisor-workflow": { listAdvisorInboxOperational: async (options: unknown) => {
         inboxReads++;
         assert.deepEqual(plain(options), {}, "retain the existing single bounded metadata read");
@@ -141,39 +153,63 @@ test("Today attention cards use the shared Inbox selection and distinguish peopl
       } },
       "@/lib/admin/agent-os/action-center": {
         buildActionCenterSignals: (rows: unknown[]) => { assert.equal(rows.length, 2); return signals; },
-        summarizeActionCenter: () => ({}),
+        summarizeActionCenter: (input: unknown) => { assert.equal(input, signals, "summary retains every signal before preview grouping"); return {}; },
         selectActionCenterSignals: (input: unknown, view: string) => {
           assert.equal(input, signals, "Dashboard selects the same built signal set for each attention view");
           selections.push(view);
-          return view === "human" ? signals.slice(0, 3) : signals.slice(3);
+          return view === "human" ? signals.slice(0, 3) : signals.slice(3, 5);
         },
       },
       "@/lib/admin/presentation": { adminDataLaneLabel: () => "UAT", connectionLabel: () => "ยังไม่พร้อม", datasetLabel: () => "UAT", environmentLabel: () => "UAT" },
       "@/lib/admin/environment": { isStudioDataPlaneAllowed: () => false },
       "@/lib/admin/operations/foundation": { getAdminOperationsRuntimeStatus: () => ({ configured: false, identityValid: false }) },
-      "@/lib/admin/operations/jobs-read-model": { readOperationsJobs: async () => ({ jobs: [], status: "partial" }) },
-      "@/lib/admin/line/business-intelligence": { readConversionAnalytics: async () => ({ state: "unavailable", summary: null }) },
-      "@/lib/admin/sanity-control": { getAdminSanityStatus: () => ({ environment: "admin-uat", dataset: "uat", readReady: false, writeReady: false }), listSeoSuggestions: async () => ({ rows: [] }) },
+      "@/lib/admin/operations/jobs-read-model": { readOperationsJobs: async () => { jobsReads++; return { jobs: [], status: "partial" }; } },
+      "@/lib/admin/line/business-intelligence": { readConversionAnalytics: async () => { conversionReads++; return { state: "unavailable", summary: null }; } },
+      "@/lib/admin/sanity-control": { getAdminSanityStatus: () => ({ environment: "admin-uat", dataset: "uat", readReady: false, writeReady: false }), listSeoSuggestions: async () => { reviewsReads++; return { rows: [] }; } },
       "@/lib/admin/dashboard-summary": { editorialDashboardSteps: () => [] },
     });
     const rendered = await dashboard.default({ searchParams: Promise.resolve({}) });
     const tree = elements(rendered);
     const humanCard = tree.find(element => element.props.href === "/dashboard/inbox/?attention=human")!;
     const followUpCard = tree.find(element => element.props.href === "/dashboard/inbox/?attention=follow-up")!;
-    assert.ok(humanCard && followUpCard, "each attention card opens its exact selected Inbox view");
-    assert.equal(inboxReads, 1);
-    if (unavailable) {
+    assert.equal(Boolean(humanCard && followUpCard), advisorAllowed, "each permitted attention card opens its exact Inbox view");
+    assert.equal(inboxReads, advisorAllowed ? 1 : 0);
+    assert.equal(jobsReads, operationsAllowed ? 1 : 0);
+    assert.equal(conversionReads, advisorAllowed ? 1 : 0);
+    assert.equal(reviewsReads, reviewsAllowed ? 1 : 0);
+    const caseLinks = tree.filter(element => element.props.href?.startsWith("/dashboard/inbox/synthetic-"));
+    assert.equal(tree.filter(element => element.props.href === "/operations/jobs/").length, operationsAllowed ? 1 : 0, "keep the attention card without a duplicate generic Jobs shortcut");
+    assert.equal(tree.some(element => element.props.href === "/dashboard/reviews/"), reviewsAllowed);
+    if (!advisorAllowed) {
+      assert.equal(caseLinks.length, 0, "no private case links without advisor permission");
+      assert.doesNotMatch(text(rendered), /synthetic human|synthetic unread|synthetic material/);
+      assert.deepEqual(selections, []);
+    } else if (unavailable) {
       assert.match(text(humanCard), /ยังอ่านไม่ได้/);
       assert.match(text(followUpCard), /ยังอ่านไม่ได้/);
       assert.deepEqual(selections, []);
+      assert.equal(caseLinks.length, 0);
     } else {
       assert.match(text(humanCard), /2 คน · 3 เรื่อง/);
       assert.match(text(followUpCard), /2 คน · 2 เรื่อง/);
       assert.deepEqual(selections, ["human", "follow-up"]);
+      assert.deepEqual(caseLinks.map(element => element.props.href), ["/dashboard/inbox/synthetic-a/", "/dashboard/inbox/synthetic-b/", "/dashboard/inbox/synthetic-c/"], "first three distinct cases retain the signal order and native IDs");
+      assert.match(text(caseLinks[0]), /synthetic human synthetic unread synthetic today/);
+      assert.equal((text(caseLinks[0]).match(/synthetic human/g) ?? []).length, 1, "repeated reasons merge without dropping signal counts");
+      assert.match(text(caseLinks[1]), /synthetic new synthetic overdue/);
+      assert.match(text(caseLinks[2]), /synthetic material/);
+      for (const link of caseLinks) {
+        assert.match(link.props.className!, /min-h-11/);
+        assert.match(link.props.className!, /focus-visible:outline-2/);
+      }
+      assert.match(text(humanCard), /ดูลูกค้าที่รอคุณ/);
+      assert.match(text(followUpCard), /ดูลูกค้าที่ถึงวันติดตาม/);
     }
     assert.match(text(rendered), /รายการล่าสุดสูงสุด 100 รายการ/);
-    assert.match(text(rendered), /แหล่งงานบางส่วนยังอ่านไม่ได้/);
-    assert.match(text(followUpCard), /ยังไม่ส่งข้อความแทนคุณ/);
+    if (operationsAllowed) assert.match(text(rendered), /แหล่งงานบางส่วนยังอ่านไม่ได้/);
+    if (advisorAllowed) assert.match(text(followUpCard), /ยังไม่ส่งข้อความแทนคุณ/);
+    if (reviewsAllowed) assert.match(text(tree.find(element => element.props.href === "/dashboard/reviews/")), /ตรวจข้อเสนอ SEO/);
+    if (operationsAllowed) assert.match(text(tree.find(element => element.props.href === "/operations/jobs/")), /ตรวจงานที่สะดุด/);
   }
 });
 

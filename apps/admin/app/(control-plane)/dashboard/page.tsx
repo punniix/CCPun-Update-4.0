@@ -43,10 +43,19 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         })), new Date().toISOString());
         const humanSignals = selectActionCenterSignals(signals, "human");
         const followUpSignals = selectActionCenterSignals(signals, "follow-up");
+        const cases = new Map<string, { leadId: string; reasons: string[] }>();
+        for (const signal of signals) {
+          const existingCase = cases.get(signal.leadId);
+          if (existingCase) {
+            if (!existingCase.reasons.includes(signal.reason)) existingCase.reasons.push(signal.reason);
+          } else {
+            cases.set(signal.leadId, { leadId: signal.leadId, reasons: [signal.reason] });
+          }
+        }
         return { ...summarizeActionCenter(signals),
           needsHuman: { people: new Set(humanSignals.map((signal) => signal.leadId)).size, signals: humanSignals.length },
           followUps: { people: new Set(followUpSignals.map((signal) => signal.leadId)).size, signals: followUpSignals.length },
-          signals: signals.slice(0, 3),
+          cases: Array.from(cases.values()).slice(0, 3),
         };
       }).catch(() => null)
     : null;
@@ -91,29 +100,29 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         <h2 id="attention-heading" className="text-xl font-semibold">เลือกงานถัดไป</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {canReadAdvisor ? <Link href="/dashboard/inbox/?attention=human" className="rounded-2xl border border-[#e0c985]/25 bg-[#e0c985]/[0.06] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
-            <p className="text-base leading-6 text-white/70">ลูกค้าที่ต้องดูต่อ</p>
+            <p className="text-base leading-6 text-white/70">ดูลูกค้าที่รอคุณ</p>
             <p className="mt-2 text-xl font-semibold text-[#f4df9b]">{advisorSummary == null ? "ยังอ่านไม่ได้" : advisorSummary.needsHuman.people ? `${advisorSummary.needsHuman.people} คน · ${advisorSummary.needsHuman.signals} เรื่อง` : "ยังไม่พบในรายการล่าสุด"}</p>
             <p className="mt-2 text-base leading-6 text-white/65">ข้อความรอคนดูและลูกค้าใหม่ที่ยังไม่ได้อ่าน · เปิดเฉพาะลูกค้ากลุ่มนี้</p>
           </Link> : null}
           {canReadReviews ? <Link href="/dashboard/reviews/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
-            <p className="text-base leading-6 text-white/70">ข้อเสนอ SEO รอตรวจ</p>
+            <p className="text-base leading-6 text-white/70">ตรวจข้อเสนอ SEO</p>
             <p className="mt-2 text-xl font-semibold">{pendingReviews == null ? "ยังอ่านไม่ได้" : pendingReviews === 0 ? "ยังไม่พบในรายการที่อ่านได้" : `${pendingReviews} รายการ`}</p>
             <p className="mt-2 text-base leading-6 text-white/65">เปิดข้อเสนอเพื่ออ่านเหตุผลและตัดสินใจ การตรวจนี้ยังไม่ใช่การเผยแพร่</p>
           </Link> : null}
           {canReadAdvisor ? <Link href="/dashboard/inbox/?attention=follow-up" className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
-            <p className="text-base leading-6 text-white/70">ถึงวันติดตาม</p>
+            <p className="text-base leading-6 text-white/70">ดูลูกค้าที่ถึงวันติดตาม</p>
             <p className="mt-2 text-xl font-semibold">{advisorSummary == null ? "ยังอ่านไม่ได้" : advisorSummary.followUps.people ? `${advisorSummary.followUps.people} คน · ${advisorSummary.followUps.signals} เรื่อง` : "ยังไม่พบในรายการล่าสุด"}</p>
             <p className="mt-2 text-base leading-6 text-white/65">วันติดตามวันนี้หรือที่เลยกำหนดจากเคสที่อ่านได้ · ยังไม่ส่งข้อความแทนคุณ</p>
           </Link> : null}
           {canReadOperations ? <Link href="/operations/jobs/" className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
-            <p className="text-base leading-6 text-white/70">งานเบื้องหลังที่ต้องตรวจ</p>
+            <p className="text-base leading-6 text-white/70">ตรวจงานที่สะดุด</p>
             <p className="mt-2 text-xl font-semibold text-amber-100">{!jobs || jobs.status === "unavailable" ? "ยังอ่านไม่ได้" : attentionJobs.length ? `${attentionJobs.length} รายการล่าสุด` : jobs.status === "partial" ? "อ่านได้บางแหล่ง" : "ยังไม่พบในรายการล่าสุด"}</p>
             <p className="mt-2 text-base leading-6 text-white/65">งานไม่สำเร็จหรือผลยังไม่ชัด ให้ตรวจประวัติก่อนลองใหม่</p>
           </Link> : null}
         </div>
         <p className="mt-3 text-sm leading-[22px] text-white/55">สัญญาณลูกค้ามาจากรายการล่าสุดสูงสุด 100 รายการ งานระบบมาจากรายการล่าสุดสูงสุด 50 รายการ ไม่ใช่งานค้างทั้งหมด{jobs?.status === "partial" ? " · แหล่งงานบางส่วนยังอ่านไม่ได้" : ""}</p>
-        {advisorSummary?.signals.length ? <ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 px-4">
-          {advisorSummary.signals.map((signal) => <li key={`${signal.leadId}:${signal.kind}`}><Link href={`/dashboard/inbox/${signal.leadId}/`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-3 text-base leading-6 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"><span className="text-white/75">{signal.reason}</span><span className="text-[#e0c985]">เปิดเคส →</span></Link></li>)}
+        {advisorSummary?.cases.length ? <ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 px-4">
+          {advisorSummary.cases.map((item) => <li key={item.leadId}><Link href={`/dashboard/inbox/${item.leadId}/`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-3 text-base leading-6 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]"><span className="flex min-w-0 flex-col gap-1 text-white/75">{item.reasons.map((reason) => <span key={reason}>{reason}</span>)}</span><span className="text-[#e0c985]">เปิดเคส →</span></Link></li>)}
         </ul> : null}
       </section>
 
@@ -153,7 +162,6 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
             <Link href="/analytics/conversions/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2 text-base leading-6 text-white/75 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
               ดูเส้นทางลูกค้า
             </Link>
-            {canReadOperations ? <Link href="/operations/jobs/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2 text-base leading-6 text-white/75 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">ดูงานเบื้องหลัง</Link> : null}
             <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2 text-base leading-6 text-white/75 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e0c985]">
               ดูลูกค้า CRM
             </Link>
