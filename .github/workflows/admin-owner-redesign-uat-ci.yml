@@ -1,0 +1,100 @@
+name: Admin owner redesign UAT current-source checks
+on:
+  push:
+    branches: [codex/admin-owner-redesign-uat-20261014]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: admin-owner-redesign-uat-${{ github.ref }}
+  cancel-in-progress: true
+# This separate UAT lane does not claim historical Foundation code-equivalence or deploy.
+jobs:
+  current-source:
+    if: github.ref == 'refs/heads/codex/admin-owner-redesign-uat-20261014'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact approved scope against b05 baseline
+        id: scope
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const { execFileSync } = require('node:child_process');
+          const { readFileSync } = require('node:fs');
+          const base = 'b05cce92412b327d5a1203e27c5794f17931661b';
+          const git = (...args) => execFileSync('git', args);
+          git('merge-base', '--is-ancestor', base, 'HEAD');
+          const allowed = new Set([
+            '.github/workflows/admin-owner-redesign-uat-ci.yml',
+            'apps/admin/app/(control-plane)/dashboard/inbox/page.tsx',
+            'apps/admin/app/(control-plane)/dashboard/page.tsx',
+            'apps/admin/app/(control-plane)/error.tsx',
+            'apps/admin/app/(control-plane)/layout.tsx',
+            'features/admin/analytics/ExportCenter.tsx',
+            'features/admin/analytics/StoredAnalyticsDashboard.tsx',
+            'features/admin/components/AdminNavigation.tsx',
+            'features/admin/components/AdminOwnerChrome.module.css',
+            'features/admin/components/AdminProtectedChrome.tsx',
+            'features/admin/components/ContentArticlesPage.tsx',
+            'features/admin/components/SettingsIndexPage.tsx',
+            'features/admin/components/admin-navigation-model.ts',
+            'features/admin/line/AdvisorCaseOperations.tsx',
+            'features/admin/operations/AgentRuntimeJobStatus.tsx',
+            'lib/admin/agent-os/action-center.ts',
+            'tests/admin/admin-owner-navigation.test.ts',
+            'tests/admin/admin-platform-extension-contract.test.ts',
+            'tests/admin/admin-responsive-contract.test.ts',
+            'tests/admin/agent-os-export-center.test.ts',
+            'tests/admin/agent-os-runtime-ui.test.ts',
+            'tests/admin/analytics-owner-language.test.ts',
+            'tests/admin/content-filters.test.ts',
+            'tests/admin/line-advisor-inbox.test.ts',
+            'tests/admin/line-user-friendly-presentation.test.ts',
+            'tests/admin/social-operations-2-regression.test.ts',
+          ]);
+          // All other files, including public/app/auth/API/proxy/CMS/locks/QA/phase fixtures/lib, stay unchanged.
+          const changed = git('diff', '--name-only', '--no-renames', '-z', base, 'HEAD').toString().split('\0').filter(Boolean);
+          assert.deepEqual(changed.filter(path => !allowed.has(path)), [], 'change outside approved UAT paths');
+          const path = 'lib/admin/agent-os/action-center.ts';
+          const original = git('show', base + ':' + path);
+          const current = readFileSync(path);
+          assert.ok(current.subarray(0, original.length).equals(original), 'original action-center bytes changed');
+          const appended = current.subarray(original.length).toString().replace(/\s+/g, '');
+          const selector = `export function selectActionCenterSignals(signals: readonly ActionCenterSignal[], view: "human" | "follow-up",): ActionCenterSignal[] {
+            return signals.filter(signal => view === "human" ? signal.kind === "human_handoff" || signal.kind === "new_lead_unread"
+              : signal.kind === "follow_up_overdue" || signal.kind === "follow_up_today");
+          }`.replace(/\s+/g, '');
+          assert.equal(appended, selector, 'only the reviewed pure selector may be appended');
+          console.log('Approved UAT scope and protected baseline bytes verified');
+          NODE
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        id: dependencies
+        run: npm ci
+      # Run every check once dependencies and scope pass, even if another check fails.
+      - name: Lint current source
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run lint
+      - name: Typecheck current source and Admin
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npx tsc --noEmit --incremental false && npm run typecheck:admin:shadow
+      - name: Architecture and lane boundaries
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run test:architecture
+      - name: Public and tracking regressions
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run test:public
+      - name: Complete current-source Admin suite
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: npm run test:admin
+      - name: Privacy unit contracts
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.dependencies.outcome == 'success' }}
+        run: node --test tests/sanity-free-plan-privacy.test.mjs
