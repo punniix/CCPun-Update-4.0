@@ -182,7 +182,7 @@ export async function AdminContentPage({ searchParams }: AdminContentPageProps, 
               <select
                 name="category"
                 defaultValue={filters.category}
-                className="min-h-11 w-full rounded-xl border border-white/15 bg-[#252a32] px-3 text-base text-white outline-none transition focus:border-[#e0c985] focus:ring-2 focus:ring-[#e0c985]/30"
+                className="min-h-11 w-full rounded-xl border border-white/15 bg-[#252a32] px-3 text-base leading-6 text-white outline-none transition focus:border-[#e0c985] focus:ring-2 focus:ring-[#e0c985]/30"
               >
                 <option value="">ทุกหมวดหมู่</option>
                 {filters.categories.map((category) => <option key={category} value={category}>{category}</option>)}
@@ -194,7 +194,7 @@ export async function AdminContentPage({ searchParams }: AdminContentPageProps, 
               <select
                 name="tag"
                 defaultValue={filters.tag}
-                className="min-h-11 w-full rounded-xl border border-white/15 bg-[#252a32] px-3 text-base text-white outline-none transition focus:border-[#e0c985] focus:ring-2 focus:ring-[#e0c985]/30"
+                className="min-h-11 w-full rounded-xl border border-white/15 bg-[#252a32] px-3 text-base leading-6 text-white outline-none transition focus:border-[#e0c985] focus:ring-2 focus:ring-[#e0c985]/30"
               >
                 <option value="">ทุกแท็ก</option>
                 {filters.tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}

@@ -155,7 +155,7 @@ export default async function AdvisorInboxPage({
           <select
             name="stage"
             defaultValue={stageParam}
-            className="mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-base text-white"
+            className="mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-base leading-6 text-white"
           >
             <option value="">รายการล่าสุดทุกสถานะ</option>
             {LINE_ADVISOR_INBOX_STAGES.map((stage) => (
