@@ -30,7 +30,7 @@ export const personSchema = {
     },
     {
       "@type": "EducationalOccupationalCredential",
-      "name": "การจัดการประกันวินาศภัยโดยตรง (เลขที่ 6904009841)",
+      "name": "ใบอนุญาตเป็นนายหน้าประกันวินาศภัย",
       "credentialCategory": "ใบอนุญาต",
       "identifier": "6904009841",
       "recognizedBy": { "@type": "Organization", "name": "สำนักงานคณะกรรมการกำกับและส่งเสริมการประกอบธุรกิจประกันภัย (คปภ.)" }
