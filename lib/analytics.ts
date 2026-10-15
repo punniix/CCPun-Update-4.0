@@ -130,7 +130,7 @@ export function clearPendingAnalyticsEvents(category?: 'analytics' | 'social'): 
   if (!category || category === 'social') pendingMeta.length = 0;
 }
 
-export function buildSemanticDataLayerEvent(eventName: string, params: SafeParams, consent: ConsentState): Record<string, string | number> | null {
+export function buildSemanticDataLayerEvent(eventName: string, params: SafeParams, consent: ConsentState): Record<string, string | number | null> | null {
   if (process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED !== 'true') return null;
   if (!consent.analytics && !consent.social) return null;
   return {
@@ -139,6 +139,13 @@ export function buildSemanticDataLayerEvent(eventName: string, params: SafeParam
     event_schema_version: 1,
     analytics_consent: consent.analytics ? 'granted' : 'denied',
     social_consent: consent.social ? 'granted' : 'denied',
+    // ponytail: clear optional event dimensions because GTM's data model retains omitted keys.
+    method: null,
+    content_type: null,
+    share_placement: null,
+    campaign_id: null,
+    campaign_placement: null,
+    campaign_action: null,
     ...params,
   };
 }
