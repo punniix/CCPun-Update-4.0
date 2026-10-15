@@ -263,7 +263,7 @@
 
 
 .authorCard { margin-top: 24px; display: grid; grid-template-columns: 96px minmax(0,1fr); column-gap: 20px; row-gap: 8px; align-items: start; padding: 24px; border: 1px solid var(--w43-border); border-radius: 16px; background: var(--w43-bg); }
-.authorAvatar { grid-row: 1 / 4; width: 96px; height: 96px; object-fit: cover; border: 1px solid rgba(224,201,133,.4); border-radius: 999px; }
+.authorAvatar { grid-row: 1 / 4; width: 96px; height: 96px; object-fit: cover; object-position: center top; border: 1px solid rgba(224,201,133,.4); border-radius: 999px; }
 .authorIdentity { min-width: 0; }
 .authorName { display: block; color: var(--w43-ink); font-size: 20px; line-height: 1.35; }
 .authorRole { display: block; margin-top: 4px; color: var(--w43-gold); font-size: 14px; font-weight: 600; }
