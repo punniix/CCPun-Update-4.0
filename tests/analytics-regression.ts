@@ -40,9 +40,32 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   event_schema_version: 1,
   analytics_consent: 'granted',
   social_consent: 'denied',
+  method: null,
+  content_type: null,
+  share_placement: null,
+  campaign_id: null,
+  campaign_placement: null,
+  campaign_action: null,
   ...safe,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
+const semanticModel: Record<string, string | number | null> = {};
+const applySemanticEvent = (eventName: string, params: Parameters<typeof buildSemanticDataLayerEvent>[1]) => {
+  Object.assign(semanticModel, buildSemanticDataLayerEvent(eventName, params, { analytics: true, social: false }));
+};
+applySemanticEvent('health_happy_countdown_click', sanitizeEventParams({ campaign_id: 'aia_health_happy_2026', campaign_placement: 'article', campaign_action: 'line' }));
+assert.equal(semanticModel.campaign_id, 'aia_health_happy_2026', 'campaign event keeps its own approved attribution');
+applySemanticEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'navbar' }));
+for (const key of ['campaign_id', 'campaign_placement', 'campaign_action']) {
+  assert.equal(semanticModel[key], null, `an unrelated LINE event must clear preceding ${key}`);
+}
+applySemanticEvent('share', sanitizeEventParams({ method: 'copy', content_type: 'article', share_placement: 'footer' }));
+assert.equal(semanticModel.method, 'copy', 'share event keeps its own approved method');
+applySemanticEvent('health_happy_countdown_view', sanitizeEventParams({ campaign_id: 'aia_health_happy_2026' }));
+for (const key of ['method', 'content_type', 'share_placement']) {
+  assert.equal(semanticModel[key], null, `a countdown event must clear preceding ${key}`);
+}
+
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
 assert.equal(acquisitionSource.includes('fbclid'), false, 'click identifiers must not be parsed, stored, or sent');
 process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'false';
