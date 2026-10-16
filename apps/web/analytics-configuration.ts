@@ -1,5 +1,5 @@
-import { resolveDeploymentIdentity } from "../../lib/runtime/deployment-identity";
-import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../../lib/runtime/deployment-contract";
+import { resolveDeploymentIdentity } from "../../lib/runtime/deployment-identity.ts";
+import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../../lib/runtime/deployment-contract.ts";
 
 type Variables = Record<string, string | undefined>;
 type UatAnalyticsDestination = Readonly<{ enabled: boolean; propertyId: string; gaId: string; gtmId: string }>;
