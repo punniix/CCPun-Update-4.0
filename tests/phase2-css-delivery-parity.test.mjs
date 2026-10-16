@@ -20,6 +20,13 @@ const baselineCss = gunzipSync(Buffer.from(proof.compiledCssGzip, 'base64')).toS
 // Original foundation source, controller semantics and unaffected protected owners remain frozen.
 assert.equal(sha(proof.foundationSource), '16be3e70110eb57339671d20a877cb7a1f8026675ce0eecca47794d6efeafece');
 assert.equal(sha(baselineCss), '36f095016bb22a67c80a4402cffd4c90b650b3ad0ef530173c2f9b5dcec8c2f8');
+assert.equal(sha(JSON.stringify(proof.protected)), '2f9ccec2a360e6df8db3a8d3c140a9ea1a616b476549a553df98461aa977b083');
+const reviewedUiOwners = [
+  "components/layout/website-43/Website43.module.css",
+  "components/layout/website-43/Website43Navbar.module.css",
+  "components/layout/website-43/Website43Shared.tsx",
+  "apps/web/app/layout.tsx"
+];
 
 test('Tailwind preserves automatic native app discovery and excludes only historical fixtures', () => {
   assert.match(source, /^@import "tailwindcss";/);
@@ -34,8 +41,62 @@ test('Tailwind preserves automatic native app discovery and excludes only histor
   assert.equal(fromPublicImports(source), fromPublicImports(proof.foundationSource));
 });
 
-test('all Website43, responsive, footer, first-paint and feature CSS remain byte-identical', () => {
-  for (const [path, expected] of Object.entries(proof.protected)) assert.equal(sha(read(path)), expected, path);
+// Same strict reviewed-owner admission contract as the Production phase2 proof.
+function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
+  assert.deepEqual(Object.keys(proof.reviewedUxOwners).sort(), [...allowed].sort());
+  for (const path of allowed) {
+    const admission = proof.reviewedUxOwners[path];
+    assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256', 'candidateSha256']);
+    assert.equal(admission.baselineSha256, proof.protected[path], path + ': original protected digest retained');
+    assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
+    assert.equal(sha(readCurrent(path)), admission.candidateSha256, path + ': exact reviewed current source');
+  }
+}
+
+// Preserve the original protected hash; admit only the deployed portrait position.
+function originalStylesExceptApprovedPortrait(source) {
+  const ast = postcss.parse(source);
+  const portraits = [];
+  ast.walkRules('.authorAvatar', rule => { if (rule.parent.type === 'root') portraits.push(rule); });
+  assert.equal(portraits.length, 1, 'One canonical author portrait rule');
+  const positions = portraits[0].nodes.filter(node => node.type === 'decl' && node.prop === 'object-position');
+  assert.equal(positions.length, 1, 'Only one approved author portrait position');
+  assert.equal(positions[0].value, 'center top');
+  assert.equal(Boolean(positions[0].important), false);
+  positions[0].remove();
+  return ast.toString();
+}
+
+test('original protected goldens remain frozen while four exact reviewed owners are admitted', () => {
+  assertReviewedUxOwners(proof, reviewedUiOwners);
+  // 0d already includes accepted Share/footer/padding changes after the older
+  // protected CSS golden. Only the subsequent portrait position is projected.
+  assert.equal(sha(originalStylesExceptApprovedPortrait(read('components/layout/website-43/Website43.module.css'))),
+    '674ffa21f62dbfbce3a76fdc947a1047a525640df3a8082e1dd50ba163c1ef01', 'Exact accepted 0d CSS before the portrait fix');
+  for (const [path, expected] of Object.entries(proof.protected)) {
+    if (!Object.hasOwn(proof.reviewedUxOwners, path)) assert.equal(sha(read(path)), expected, path);
+  }
+});
+
+test('reviewed owner admission rejects unknown paths, original baseline changes and current source drift', () => {
+  const extra = structuredClone(proof);
+  extra.reviewedUxOwners['unknown.tsx'] = { baselineSha256: '0'.repeat(64), candidateSha256: '0'.repeat(64) };
+  assert.throws(() => assertReviewedUxOwners(extra, reviewedUiOwners));
+  const baselineDrift = structuredClone(proof);
+  baselineDrift.reviewedUxOwners[reviewedUiOwners[0]].baselineSha256 = '0'.repeat(64);
+  assert.throws(() => assertReviewedUxOwners(baselineDrift, reviewedUiOwners));
+  assert.throws(() => assertReviewedUxOwners(proof, reviewedUiOwners, path => read(path) + '\n/* unreviewed mutation */'));
+});
+
+test('raw CSS portrait admission rejects altered position, duplicates and unrelated declarations', () => {
+  const path = 'components/layout/website-43/Website43.module.css';
+  const css = read(path), portrait = css.match(/\.authorAvatar\s*\{[^}]+\}/)?.[0];
+  assert.ok(portrait);
+  assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('center top', 'center bottom'))));
+  assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
+  const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
+  assert.notEqual(unrelated, css);
+  assert.notEqual(sha(originalStylesExceptApprovedPortrait(unrelated)), '674ffa21f62dbfbce3a76fdc947a1047a525640df3a8082e1dd50ba163c1ef01');
 });
 
 function declarations(node) {

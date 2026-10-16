@@ -127,7 +127,7 @@ test('root and Web keep their original complete metadata and layout/first-paint/
         ['next/font/google', { Kanit: options => { trace.push(['font', options]); return { variable: options.variable }; } }],
         ['next/headers', { draftMode: async () => { trace.push('draftMode'); return { isEnabled: draft }; } }],
         ['@/lib/deployment-environment', { IS_ADMIN_APPLICATION: admin, IS_DRAFT_PREVIEW_ALLOWED: review, IS_REVIEW_ENVIRONMENT: review, PRODUCTION_ANALYTICS_ENABLED: !admin && !review }],
-        ['../runtime-environment', { IS_WEB_REVIEW_ENVIRONMENT: review, PRODUCTION_WEB_ANALYTICS_ENABLED: !review }],
+        ['../runtime-environment', { IS_WEB_REVIEW_ENVIRONMENT: review, PRODUCTION_WEB_ANALYTICS_ENABLED: !review, UAT_WEB_ANALYTICS: { gaId: '', gtmId: '' } }],
         ['@/lib/seo/structured-data/site-schema', { ccpunSchemaGraph: { '@type': 'SyntheticSchema' } }],
         ['@/features/analytics/components/ClientWidgets', { __esModule: true, default: props => React.createElement('aside', { 'data-fixture-analytics-props': JSON.stringify(props) }) }],
         ['@/components/layout/website-43/Website43ResponsiveStyles', { Website43ResponsiveStyles: () => React.createElement('style', { 'data-fixture-responsive': true }) }],

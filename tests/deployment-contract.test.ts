@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { APPROVED_UAT_ANALYTICS, resolveUatWebAnalytics } from "../apps/web/analytics-configuration";
 import {
   DEPLOYMENT_LANES,
   deploymentContractFailures,
@@ -55,6 +56,49 @@ test("Web UAT can never enable Production content or analytics", () => {
     CCPUN_UAT_MODE: "1",
     CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
   }), []);
+});
+
+test("dedicated UAT analytics requires explicit opt-in, approved IDs and the sealed UAT lane", () => {
+  const approved = { enabled: true, propertyId: "551040812", gaId: "G-UATTEST123", gtmId: "GTM-UATTEST1" };
+  const base = {
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web",
+    CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat",
+    NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
+    CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+  };
+  const off = { gaId: "", gtmId: "" };
+  const disabledProfile = { ...APPROVED_UAT_ANALYTICS, enabled: false };
+  assert.deepEqual(resolveUatWebAnalytics(base, approved), { gaId: approved.gaId, gtmId: approved.gtmId });
+  assert.deepEqual(resolveUatWebAnalytics(base, disabledProfile), off);
+  const rejectedVariables = [
+    { CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1" }, { CCPUN_UAT_MODE: "0" },
+    { CCPUN_DEPLOYMENT_PROVIDER: "local" }, { CCPUN_DEPLOYMENT_ROLE: "admin" },
+    { CCPUN_APP_ENV: "production" }, { CCPUN_APP_ENV: "admin-uat" },
+    { NEXT_PUBLIC_CCPUN_APP_ENV: "production" }, { VERCEL_PROJECT_ID: "retired" },
+    { NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq" }, { NEXT_PUBLIC_SANITY_DATASET: "production" },
+  ];
+  for (const patch of rejectedVariables) {
+    assert.deepEqual(resolveUatWebAnalytics({ ...base, ...patch }, approved), off, JSON.stringify(patch));
+    assert.deepEqual(resolveUatWebAnalytics({ ...base, ...patch }, disabledProfile), off, JSON.stringify(patch));
+  }
+  for (const lane of Object.values(DEPLOYMENT_LANES)) {
+    const variables = { ...base, CCPUN_DEPLOYMENT_ROLE: lane.role, CCPUN_APP_ENV: lane.environment,
+      NEXT_PUBLIC_CCPUN_APP_ENV: lane.publicEnvironment, NEXT_PUBLIC_SANITY_PROJECT_ID: lane.sanityProjectId,
+      NEXT_PUBLIC_SANITY_DATASET: lane.sanityDataset, CCPUN_UAT_MODE: lane.uatMode,
+      CCPUN_ENABLE_PRODUCTION_ANALYTICS: lane.productionAnalytics };
+    assert.deepEqual(resolveUatWebAnalytics(variables, disabledProfile), off, lane.domain);
+    if (lane.environment !== "web-uat") assert.deepEqual(resolveUatWebAnalytics(variables, approved), off, lane.domain);
+  }
+  for (const pair of [
+    { ...approved, gaId: "G-5BMX2SKJLZ" }, { ...approved, gtmId: "GTM-5DKMGSK3" },
+    { ...approved, enabled: false }, { ...approved, gaId: "" }, { ...approved, gtmId: "" },
+    { ...approved, gaId: "not-a-measurement" }, { ...approved, gtmId: "not-a-container" },
+    { ...approved, propertyId: "" },
+  ]) assert.deepEqual(resolveUatWebAnalytics(base, pair), off);
+  assert.deepEqual(resolveUatWebAnalytics(base), APPROVED_UAT_ANALYTICS.enabled
+    ? { gaId: "G-RQ5C651M5M", gtmId: "GTM-N4S93T5T" } : off);
+  assert.equal(APPROVED_UAT_ANALYTICS.gaId, "G-RQ5C651M5M");
+  assert.equal(APPROVED_UAT_ANALYTICS.gtmId, "GTM-N4S93T5T");
 });
 
 test("Admin lanes reflect the current Hostinger placement and reject stale Vercel identity", () => {

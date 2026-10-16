@@ -1,4 +1,5 @@
 import { resolveWebEnvironment } from "../../lib/runtime/web-build-config.mjs";
+import { resolveUatWebAnalytics } from "./analytics-configuration";
 import {
   isContentSanityLaneAllowed,
   type ContentEnvironment,
@@ -35,6 +36,8 @@ export const PRODUCTION_WEB_ANALYTICS_ENABLED =
   WEB_DEPLOYMENT_IDENTITY.environment === "production" &&
   WEB_ENVIRONMENT === "production" &&
   process.env.CCPUN_ENABLE_PRODUCTION_ANALYTICS === "1";
+
+export const UAT_WEB_ANALYTICS = resolveUatWebAnalytics();
 
 export function isWebSanityLaneAllowed(
   projectId: string | undefined,
