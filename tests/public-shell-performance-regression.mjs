@@ -238,7 +238,7 @@ assert.doesNotMatch(
 );
 assert.match(
   website43Blog,
-  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer \/>/,
+  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer flushBottom \/>/,
   'Blog shell must keep the existing Hero/Navbar/content/Footer order while delegating only interactions to the client island',
 );
 assert.match(
