@@ -28,11 +28,17 @@ function disableGA() {
   clearPendingAnalyticsEvents('analytics');
   window.gtag?.('consent', 'update', { analytics_storage: 'denied' });
   document.getElementById('ga-script')?.remove();
+  const isUat = process.env.NEXT_PUBLIC_CCPUN_APP_ENV === 'web-uat'
+    || window.location.hostname === 'test.ccpun.com';
+  const cookieDomain = isUat ? 'test.ccpun.com' : '.ccpun.com';
   for (const cookie of document.cookie.split(';')) {
     const name = cookie.split('=', 1)[0]?.trim();
-    if (!name?.startsWith('_ga')) continue;
+    // Match UAT's GTM cookie_prefix without deleting Production parent cookies.
+    if (!name || (isUat
+      ? name !== 'ccpun_uat_ga' && !name.startsWith('ccpun_uat_ga_')
+      : !name.startsWith('_ga'))) continue;
     document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
-    document.cookie = `${name}=; Path=/; Domain=.ccpun.com; Max-Age=0; SameSite=Lax`;
+    document.cookie = `${name}=; Path=/; Domain=${cookieDomain}; Max-Age=0; SameSite=Lax`;
   }
   if (!document.getElementById('gtm-script')) {
     delete window.gtag;

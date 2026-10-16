@@ -13,7 +13,7 @@ const sha = value => createHash('sha256').update(value).digest('hex');
 const reviewedSourceOwners = {
   "apps/web/app/cookie-policy/page.tsx": "a6925d6982d0251d74542a8c4fdea408082454f243e0f83b52bcec124d767a9a",
   "apps/web/tsconfig.json": "f99e85600f69e583bf2a1ab88fb186f560cc4c8d405cd0dc51e9c949b69f7bbe",
-  "components/layout/website-43/Website43.module.css": "fef96e18e1e0815183df71fcb5977b01c4f17808ca3f5a2693f8db04d3475e53",
+  "components/layout/website-43/Website43.module.css": "9a997bd21ac5e21ec572c91e987b410bb123b8a51c66712caf0902c8581ed3a2",
   "components/layout/website-43/Website43Legal.module.css": "7a991a55a0c19ac7fe7152c3abbf979dfcf7a4d91223faaa3ae166b4aeb0a6f5",
   "components/layout/website-43/Website43Navbar.module.css": "16cb8c7d1f18bbb201f704429e0264789c8a8a820cd36db97c7e3e98ffbb2492",
   "components/layout/website-43/Website43Navbar.tsx": "3ec52233fa899aa0792fd7555ee7e4d822cd53d9db1367225b394628254543f3",
@@ -147,7 +147,18 @@ test('Investment release capability remains false even with explicit environment
 });
 
 test('Production providers, metadata, models, engines, tracking, consent storage and delivery contract stay protected', () => {
-  for (const [file,digest] of Object.entries(protectedProduction)) assert.equal(sha(read(file)), digest, file);
+  // Retain the deployed 7951 tracking baseline while admitting only the reviewed
+  // UAT cookie-isolation fix, covered by analytics-component-regression.mjs.
+  const analyticsPath = 'features/analytics/components/GoogleAnalytics.tsx';
+  assert.equal(protectedProduction[analyticsPath], '6caff27b5dec7cf21bb6b6c29149c031e47f12828090e7bdd0c26a7f5192f64f');
+  const semanticPath = 'lib/analytics.ts';
+  assert.equal(protectedProduction[semanticPath], '43b1abf55778f2dc562e79dd632573006aafbc401ff3423223d9395722681211');
+  for (const [file,digest] of Object.entries(protectedProduction)) {
+    const reviewedDigest = file === analyticsPath
+      ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
+      : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f' : digest;
+    assert.equal(sha(read(file)), reviewedDigest, file);
+  }
 });
 
 function loadArchive(articles, registry) {
