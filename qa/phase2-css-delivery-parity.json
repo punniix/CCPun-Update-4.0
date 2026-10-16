@@ -40,7 +40,7 @@
   "reviewedUxOwners": {
     "components/layout/website-43/Website43.module.css": {
       "baselineSha256": "c9b70031cf6fde0b095d2a2031f18988e385927487f0c2c3bc6a251fae418175",
-      "candidateSha256": "8a1afd697d814ef0e5bbb7044fddf924567423a6b6424480ff33c3fd513c93f4"
+      "candidateSha256": "9a997bd21ac5e21ec572c91e987b410bb123b8a51c66712caf0902c8581ed3a2"
     },
     "components/layout/website-43/Website43ResponsiveStyles.tsx": {
       "baselineSha256": "dfc256d4957eeb6786fb744ede5216f05c8d308b7fc4b9c9cb0aa924b0c786fe",
@@ -48,7 +48,7 @@
     },
     "components/layout/website-43/Website43Navbar.module.css": {
       "baselineSha256": "f2f09105488438c7b4a13c4c9d350a6533813dafdf306ca3fd5fc20a60885392",
-      "candidateSha256": "21ba038b3f7780f9d4b930772d43912d7d0b33445a62d6a4a7c896fdb5d87fc9"
+      "candidateSha256": "16cb8c7d1f18bbb201f704429e0264789c8a8a820cd36db97c7e3e98ffbb2492"
     },
     "components/layout/website-43/Website43Navbar.tsx": {
       "baselineSha256": "95045bf55ac2040c96d87fcd0f3ec63373fa70c3f2665bc8bb876696b3cbdf4d",
@@ -56,7 +56,7 @@
     },
     "components/layout/website-43/Website43Shared.tsx": {
       "baselineSha256": "a57722530989efb4db5a6f69a9b7d5d37d83a4bee488d2d46655e71e3e0af3e6",
-      "candidateSha256": "97946a2b76beb3957dc1655d3a11fa7b73f2970b7a1ce7c28d282113ec38986d"
+      "candidateSha256": "45433f4cf955c8705f020303cfefd51acba6fcf5e401654df8f0c1f3379ac8b6"
     },
     "features/money-story/MoneyStory.module.css": {
       "baselineSha256": "93bd75cade93f11855afb3bdd7863b2e99f3787c34663c35e7d27393364c8774",

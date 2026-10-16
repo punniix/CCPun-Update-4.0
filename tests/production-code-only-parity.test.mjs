@@ -14,6 +14,8 @@ const read = file => readFileSync(resolve(root, file), 'utf8');
 const sha = value => createHash('sha256').update(value).digest('hex');
 const proof = JSON.parse(read('qa/production-code-only-parity.json'));
 const reviewedUiOwners = [
+  "lib/analytics.ts",
+  "features/analytics/components/GoogleAnalytics.tsx",
   "apps/web/app/cookie-policy/page.tsx",
   "components/layout/website-43/Website43.module.css",
   "components/layout/website-43/Website43Legal.module.css",
