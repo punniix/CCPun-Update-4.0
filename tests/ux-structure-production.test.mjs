@@ -197,7 +197,12 @@ test('actual archive route sends only published provider records/active registry
   assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.categories,[]);
 });
 
-test('all39 approved source owners are frozen independently of original protected runtime owners', () => {
+test('all39 approved source records retain provenance with only the reviewed unused return-link retirement', () => {
   assert.equal(Object.keys(reviewedSourceOwners).length,39);
-  for (const [file,digest] of Object.entries(reviewedSourceOwners)) assert.equal(sha(read(file)),digest,file);
+  const retired = 'features/blog/website-43/BlogReturnLink.tsx';
+  assert.equal(reviewedSourceOwners[retired], '77a3ef1c5f7eb02e91e425e400d4c289d5e329aa400c33ac0f7484eeb991a556');
+  assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
+  for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
+    if (file !== retired) assert.equal(sha(read(file)),digest,file);
+  }
 });
