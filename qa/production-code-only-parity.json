@@ -347,13 +347,21 @@
   "criticalCssBytes": 2538,
   "globalBodySha256": "63e855899fd4511fd5c4d5e460624fa0802c0293013c52226faa58c886bc8dc6",
   "reviewedUxOwners": {
+    "lib/analytics.ts": {
+      "baselineSha256": "c0f11e45efed0a8199b947a4bf38364100a9cafb8f969a97ca263d5c387f2f50",
+      "candidateSha256": "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f"
+    },
+    "features/analytics/components/GoogleAnalytics.tsx": {
+      "baselineSha256": "29e45df6bfa386ed4045d81ce1fac9a70a294893e2389bd6af2b23bf0695b0d8",
+      "candidateSha256": "6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a"
+    },
     "apps/web/app/cookie-policy/page.tsx": {
       "baselineSha256": "67daababe7bc9fc1735e985ac8d0d8a59e014f645d772c43e7c16c3e4dcced27",
       "candidateSha256": "a6925d6982d0251d74542a8c4fdea408082454f243e0f83b52bcec124d767a9a"
     },
     "components/layout/website-43/Website43.module.css": {
       "baselineSha256": "c9b70031cf6fde0b095d2a2031f18988e385927487f0c2c3bc6a251fae418175",
-      "candidateSha256": "8a1afd697d814ef0e5bbb7044fddf924567423a6b6424480ff33c3fd513c93f4"
+      "candidateSha256": "9a997bd21ac5e21ec572c91e987b410bb123b8a51c66712caf0902c8581ed3a2"
     },
     "components/layout/website-43/Website43Legal.module.css": {
       "baselineSha256": "28e04fc68ec9ece5a8871e7105d9e078b4422d447b636cac3049703a14df9ce6",
@@ -361,7 +369,7 @@
     },
     "components/layout/website-43/Website43Navbar.module.css": {
       "baselineSha256": "f2f09105488438c7b4a13c4c9d350a6533813dafdf306ca3fd5fc20a60885392",
-      "candidateSha256": "21ba038b3f7780f9d4b930772d43912d7d0b33445a62d6a4a7c896fdb5d87fc9"
+      "candidateSha256": "16cb8c7d1f18bbb201f704429e0264789c8a8a820cd36db97c7e3e98ffbb2492"
     },
     "components/layout/website-43/Website43Navbar.tsx": {
       "baselineSha256": "95045bf55ac2040c96d87fcd0f3ec63373fa70c3f2665bc8bb876696b3cbdf4d",
@@ -373,7 +381,7 @@
     },
     "components/layout/website-43/Website43Shared.tsx": {
       "baselineSha256": "a57722530989efb4db5a6f69a9b7d5d37d83a4bee488d2d46655e71e3e0af3e6",
-      "candidateSha256": "97946a2b76beb3957dc1655d3a11fa7b73f2970b7a1ce7c28d282113ec38986d"
+      "candidateSha256": "45433f4cf955c8705f020303cfefd51acba6fcf5e401654df8f0c1f3379ac8b6"
     },
     "components/layout/website-43/Website43ToolHero.tsx": {
       "baselineSha256": "09688e184bac6522038cdd52d6326a86561d389597b2423f57cc2779e4a3ff92",
@@ -405,7 +413,7 @@
     },
     "features/blog/website-43/Website43Article.tsx": {
       "baselineSha256": "113c9f6feadcd311e70e4fa50c18d0b10cee66f0a62c3e889eb91c0ee2127e6f",
-      "candidateSha256": "4d45863356c05da77e1ff7884c6c661182058c382bd9e38492801607dbc0c0a3"
+      "candidateSha256": "b57185e94e5d6d698df82ec8e524b87bf455dca9db512100354dbe4d792ed4c4"
     },
     "features/blog/website-43/Website43ArticleBody.tsx": {
       "baselineSha256": "ad18924a3408d029dcb8ec886789415faa6bad1d117cdb87e37811a6f7f6d24e",
@@ -413,11 +421,11 @@
     },
     "features/blog/website-43/Website43Blog.tsx": {
       "baselineSha256": "13be963ff5e546403617d026ee811b50b6cb7995fa5355d5222f03c995f23c30",
-      "candidateSha256": "bffcbc8109c9f808b19eb26aaae65c9c90cab556b68086c59a973bb9d66ddb4d"
+      "candidateSha256": "4fab6ca4931b548211cf63917f3ea901c9798ad44e68f51bf1acc3832fdf3bad"
     },
     "features/blog/website-43/Website43BlogInteractive.tsx": {
       "baselineSha256": "2b2df3fb9e8ae6574094ad56d4b170efa66001e34b80a9a48fa7001128205a52",
-      "candidateSha256": "8b099cf90b950b7224f37edc189fb856ca43b0d85b340b3745fa38d1f17ee437"
+      "candidateSha256": "229035fb264ee95052543622aee9211f18d4badd314af8accbba72f78b14ad80"
     },
     "features/ci-planning/components/CIWizard.tsx": {
       "baselineSha256": "24e879079fa598f54bd38ec340ee869fecdbd93becf8ef7c4c448f02645aacf9",
@@ -453,7 +461,7 @@
     },
     "features/home/website-43/Website43HomeStatic.tsx": {
       "baselineSha256": "65065bd768fdaca339a6c167a37bfbe29721dd5b06f6d19d4b3b5231e4bca564",
-      "candidateSha256": "5e989b3c169952e1497e34a9eeb621a90ec12ec84baba73dba53ad9fa9a9a81d"
+      "candidateSha256": "854a75321d4511223729efc377a581d0f3581838faf37dd12f7b532f88b612d2"
     },
     "features/money-story/MoneyStory.module.css": {
       "baselineSha256": "93bd75cade93f11855afb3bdd7863b2e99f3787c34663c35e7d27393364c8774",
