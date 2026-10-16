@@ -10,7 +10,11 @@ import { runInNewContext } from 'node:vm';
 const { NextResponse } = createRequire(import.meta.url)('next/server');
 const baselineSha = '1843dbc11a1cd400f89a32a333516ee2e0a53223';
 const files = ['apps/web/next.config.ts', 'lib/security-policy.ts', 'apps/web/proxy.ts'];
-const helperFiles = ['lib/runtime/security-headers.mjs', 'lib/runtime/web-build-config.mjs'];
+const helperFiles = [
+  'lib/runtime/security-headers.mjs', 'lib/runtime/web-build-config.mjs',
+  'lib/runtime/deployment-identity.ts', 'lib/runtime/deployment-lanes.mjs',
+  'lib/runtime/deployment-contract.ts', 'apps/web/analytics-configuration.ts',
+];
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const current = Object.fromEntries([...files, ...helperFiles].map((file) => [file, read(file)]));
 const production = {
@@ -80,7 +84,18 @@ async function observe(sources, overrides) {
   const sharedWeb = sources['lib/runtime/web-build-config.mjs']
     ? evaluate(sources['lib/runtime/web-build-config.mjs'], { process }, '({ resolveWebEnvironment, isWebSanityLaneAllowed, TAX_SLUG_MIGRATION, WEB_REDIRECTS })') : {};
   const security = evaluate(sources['lib/security-policy.ts'], { process, IS_REVIEW_ENVIRONMENT: review, ...sharedSecurity }, '({ SECURITY_POLICY, SECURITY_HEADERS })');
-  const config = evaluate(sources['apps/web/next.config.ts'], { process, path, ...sharedSecurity, ...sharedWeb }, 'defaultExport');
+  // Evaluate the actual policy and its actual dependencies with this fixture's
+  // public env; imports are stripped by the existing hermetic VM loader.
+  let uatAnalytics = {};
+  if (sources['apps/web/analytics-configuration.ts']) {
+    const identity = evaluate(sources['lib/runtime/deployment-identity.ts'], { process }, '({ resolveDeploymentIdentity })');
+    const lanes = evaluate(sources['lib/runtime/deployment-lanes.mjs'], { process }, '({ DEPLOYMENT_CONTRACT, DEPLOYMENT_LANES })');
+    const contract = evaluate(sources['lib/runtime/deployment-contract.ts'], {
+      process, RAW_DEPLOYMENT_CONTRACT: lanes.DEPLOYMENT_CONTRACT, RAW_DEPLOYMENT_LANES: lanes.DEPLOYMENT_LANES,
+    }, '({ deploymentContractFailures, getDeploymentLaneByEnvironment })');
+    uatAnalytics = evaluate(sources['apps/web/analytics-configuration.ts'], { process, ...identity, ...contract }, '({ resolveUatWebAnalytics })');
+  }
+  const config = evaluate(sources['apps/web/next.config.ts'], { process, path, ...sharedSecurity, ...sharedWeb, ...uatAnalytics }, 'defaultExport');
   const proxy = evaluate(sources['apps/web/proxy.ts'], {
     process, URL, NextResponse, IS_REVIEW_ENVIRONMENT: review, ...sharedWeb,
     SECURITY_HEADERS: security.SECURITY_HEADERS, observeAiCrawlerRequest: () => {},
@@ -165,6 +180,30 @@ if (process.argv.includes('--print-baseline')) {
     });
   }
 }
+
+test('only the sealed dedicated UAT profile adds the semantic build flag; all original config outputs remain frozen', async () => {
+  const validUat = {
+    CCPUN_APP_ENV: 'web-uat', NEXT_PUBLIC_CCPUN_APP_ENV: 'web-uat',
+    NEXT_PUBLIC_SANITY_PROJECT_ID: 'ccb9lnw5', NEXT_PUBLIC_SANITY_DATASET: 'uat',
+    CCPUN_UAT_MODE: '1', CCPUN_ENABLE_PRODUCTION_ANALYTICS: '0',
+  };
+  const actual = originalConfigExceptApprovedImages(await observe(current, validUat), 'hostinger-uat');
+  assert.equal(actual.config.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED, 'true');
+  delete actual.config.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED;
+  assert.equal(digest(actual), expected['hostinger-uat'], 'Only the dedicated UAT semantic flag differs from the original full CSP/redirect/config output');
+  for (const override of [
+    { CCPUN_DEPLOYMENT_PROVIDER: 'local' }, { CCPUN_DEPLOYMENT_PROVIDER: 'vercel' },
+    { CCPUN_DEPLOYMENT_ROLE: 'admin' }, { VERCEL_PROJECT_ID: webProject },
+    { CCPUN_APP_ENV: 'production' }, { NEXT_PUBLIC_CCPUN_APP_ENV: 'production' },
+    { CCPUN_APP_ENV: 'admin-uat' }, { CCPUN_APP_ENV: 'unknown' },
+    { NEXT_PUBLIC_SANITY_PROJECT_ID: 'kyfxgjnq' }, { NEXT_PUBLIC_SANITY_DATASET: 'production' },
+    { CCPUN_UAT_MODE: '0' }, { CCPUN_ENABLE_PRODUCTION_ANALYTICS: '1' },
+    { CCPUN_ENABLE_PRODUCTION_ANALYTICS: undefined },
+  ]) {
+    const denied = await observe(current, { ...validUat, ...override });
+    assert.equal(Object.hasOwn(denied.config.env, 'NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED'), false, JSON.stringify(override));
+  }
+});
 
 // The build resolver is also the Web runtime owner. Keep the old Content resolver's
 // narrower Web projection without relaxing the separate deployment/Sanity seal.
