@@ -5,7 +5,7 @@ type Variables = Record<string, string | undefined>;
 type UatAnalyticsDestination = Readonly<{ enabled: boolean; propertyId: string; gaId: string; gtmId: string }>;
 
 // Dedicated public IDs were verified read-only. Keep disabled until the
-// container's actual tag/consent binding and an exact UAT release are approved.
+// GTM's actual tag/consent binding and an exact UAT release are approved.
 export const APPROVED_UAT_ANALYTICS: UatAnalyticsDestination = Object.freeze({
   enabled: true,
   propertyId: "551040812",

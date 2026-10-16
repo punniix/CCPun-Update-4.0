@@ -37,5 +37,23 @@
     "compiledSha256": "5d3644d435f89cebd06953aa611dc271ffbc616078d7b2b7aa15c7a11a31409c",
     "compiledBytes": 127188,
     "compiledGzipBytes": 16198
+  },
+  "reviewedUxOwners": {
+    "components/layout/website-43/Website43.module.css": {
+      "baselineSha256": "76e5fc3a4ac6309327e3ba479f9bb3130fc83dc42e9f07b00731b1407f9a100c",
+      "candidateSha256": "aa44b694813f53feb46b7f5c70a54ad341244c3a07e7cb9dd0cd25fa83eba5d7"
+    },
+    "components/layout/website-43/Website43Navbar.module.css": {
+      "baselineSha256": "21ba038b3f7780f9d4b930772d43912d7d0b33445a62d6a4a7c896fdb5d87fc9",
+      "candidateSha256": "16cb8c7d1f18bbb201f704429e0264789c8a8a820cd36db97c7e3e98ffbb2492"
+    },
+    "components/layout/website-43/Website43Shared.tsx": {
+      "baselineSha256": "6b04394472939a827d891c3337df5364735f3e3852387b7e4836ccea859a1c5c",
+      "candidateSha256": "fca30d87ab077ebc7abb984b480c0ff373d55e3306ccef17d4f9fe37b8a15a99"
+    },
+    "apps/web/app/layout.tsx": {
+      "baselineSha256": "efa14e5607b4381c788f78d4f7e8f7ce18360b49f77c1b7cadbafb45a82c601d",
+      "candidateSha256": "0240c032a3b21ef347ce6ef0f112e3d3284fdfe74a1c2dff7db30d9d94fcc62c"
+    }
   }
 }
