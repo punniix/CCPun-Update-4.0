@@ -67,22 +67,36 @@ test("dedicated UAT analytics requires explicit opt-in, approved IDs and the sea
     CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
   };
   const off = { gaId: "", gtmId: "" };
+  const disabledProfile = { ...APPROVED_UAT_ANALYTICS, enabled: false };
   assert.deepEqual(resolveUatWebAnalytics(base, approved), { gaId: approved.gaId, gtmId: approved.gtmId });
-  for (const patch of [
+  assert.deepEqual(resolveUatWebAnalytics(base, disabledProfile), off);
+  const rejectedVariables = [
     { CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1" }, { CCPUN_UAT_MODE: "0" },
     { CCPUN_DEPLOYMENT_PROVIDER: "local" }, { CCPUN_DEPLOYMENT_ROLE: "admin" },
     { CCPUN_APP_ENV: "production" }, { CCPUN_APP_ENV: "admin-uat" },
     { NEXT_PUBLIC_CCPUN_APP_ENV: "production" }, { VERCEL_PROJECT_ID: "retired" },
     { NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq" }, { NEXT_PUBLIC_SANITY_DATASET: "production" },
-  ]) assert.deepEqual(resolveUatWebAnalytics({ ...base, ...patch }, approved), off, JSON.stringify(patch));
+  ];
+  for (const patch of rejectedVariables) {
+    assert.deepEqual(resolveUatWebAnalytics({ ...base, ...patch }, approved), off, JSON.stringify(patch));
+    assert.deepEqual(resolveUatWebAnalytics({ ...base, ...patch }, disabledProfile), off, JSON.stringify(patch));
+  }
+  for (const lane of Object.values(DEPLOYMENT_LANES)) {
+    const variables = { ...base, CCPUN_DEPLOYMENT_ROLE: lane.role, CCPUN_APP_ENV: lane.environment,
+      NEXT_PUBLIC_CCPUN_APP_ENV: lane.publicEnvironment, NEXT_PUBLIC_SANITY_PROJECT_ID: lane.sanityProjectId,
+      NEXT_PUBLIC_SANITY_DATASET: lane.sanityDataset, CCPUN_UAT_MODE: lane.uatMode,
+      CCPUN_ENABLE_PRODUCTION_ANALYTICS: lane.productionAnalytics };
+    assert.deepEqual(resolveUatWebAnalytics(variables, disabledProfile), off, lane.domain);
+    if (lane.environment !== "web-uat") assert.deepEqual(resolveUatWebAnalytics(variables, approved), off, lane.domain);
+  }
   for (const pair of [
     { ...approved, gaId: "G-5BMX2SKJLZ" }, { ...approved, gtmId: "GTM-5DKMGSK3" },
     { ...approved, enabled: false }, { ...approved, gaId: "" }, { ...approved, gtmId: "" },
     { ...approved, gaId: "not-a-measurement" }, { ...approved, gtmId: "not-a-container" },
     { ...approved, propertyId: "" },
   ]) assert.deepEqual(resolveUatWebAnalytics(base, pair), off);
-  assert.deepEqual(resolveUatWebAnalytics(base), off, "unverified release destination remains disabled");
-  assert.equal(APPROVED_UAT_ANALYTICS.enabled, false);
+  assert.deepEqual(resolveUatWebAnalytics(base), APPROVED_UAT_ANALYTICS.enabled
+    ? { gaId: "G-RQ5C651M5M", gtmId: "GTM-N4S93T5T" } : off);
   assert.equal(APPROVED_UAT_ANALYTICS.gaId, "G-RQ5C651M5M");
   assert.equal(APPROVED_UAT_ANALYTICS.gtmId, "GTM-N4S93T5T");
 });

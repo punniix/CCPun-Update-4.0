@@ -1,6 +1,6 @@
 # Dedicated Web UAT analytics
 
-`test.ccpun.com` defaults to no GA4, GTM or Meta loader. Its Hostinger Web UAT identity,
+Default-OFF reference `ff2a4003` has no GA4, GTM or Meta loader. Its Hostinger Web UAT identity,
 Sanity UAT dataset, noindex and `CCPUN_ENABLE_PRODUCTION_ANALYTICS=0` remain mandatory.
 Production and Admin behavior are unchanged.
 
@@ -19,8 +19,10 @@ Web stream `15481003500` / Measurement ID `G-RQ5C651M5M`, and dedicated GTM acco
 The stream still names an old Vercel UAT URL. The existing UAT container's published
 Version 4 targets that UAT Measurement ID but contains two Meta tags. Both must be
 confirmed disabled and consent/semantic mappings reviewed before future activation;
-these are separately authorized UAT provider prerequisites. `enabled` stays false.
-No provider setting activates this candidate. Synthetic
+these are separately authorized UAT provider prerequisites. A local conditional candidate
+may set `enabled: true` for review/build only; it must not be released before those
+prerequisites and exact UAT deployment approval. No provider setting activates the
+default-OFF reference. Synthetic
 IDs in tests are never release configuration. GA Measurement/Container IDs are public
 identifiers; Admin reporting OAuth credentials are server-only and unrelated.
 
