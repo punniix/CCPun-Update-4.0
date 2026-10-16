@@ -7,7 +7,7 @@ type UatAnalyticsDestination = Readonly<{ enabled: boolean; propertyId: string; 
 // Dedicated public IDs were verified read-only. Keep disabled until the
 // container's actual tag/consent binding and an exact UAT release are approved.
 export const APPROVED_UAT_ANALYTICS: UatAnalyticsDestination = Object.freeze({
-  enabled: false,
+  enabled: true,
   propertyId: "551040812",
   gaId: "G-RQ5C651M5M",
   gtmId: "GTM-N4S93T5T",
