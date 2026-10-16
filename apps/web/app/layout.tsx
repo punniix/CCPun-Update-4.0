@@ -6,11 +6,11 @@ import "./globals.css";
 import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
 import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
-import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED } from "../runtime-environment";
+import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED, UAT_WEB_ANALYTICS } from "../runtime-environment";
 
-const GA_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID ?? "") : "";
+const GA_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID ?? "") : UAT_WEB_ANALYTICS.gaId;
 const META_PIXEL_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "") : "";
-const GTM_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : "";
+const GTM_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : UAT_WEB_ANALYTICS.gtmId;
 const kanit = Kanit({
   subsets: ["thai", "latin"],
   weight: ["300", "400", "600", "700"],

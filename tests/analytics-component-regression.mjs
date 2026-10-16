@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { JSDOM } from 'jsdom';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 
 const require = createRequire(import.meta.url);
 const GoogleAnalytics = require('../features/analytics/components/GoogleAnalytics.tsx').default;
@@ -29,6 +30,7 @@ const commands = (name) => (window.dataLayer ?? []).filter((entry) => entry[0] =
 });
 
 try {
+  process.env.NEXT_PUBLIC_CCPUN_APP_ENV = 'production';
   process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'true';
   await consent(true);
   await mount();
@@ -55,8 +57,12 @@ try {
   assert.equal(lineEvents().length, 1, 'remount must retain exactly one semantic click listener');
   assert.equal(lineEvents()[0].analytics_consent, 'granted');
   document.cookie = '_ga_test=synthetic; Path=/';
+  document.cookie = '_ga=synthetic-prod-parent; Domain=.ccpun.com; Path=/';
+  document.cookie = '_ga_5BMX2SKJLZ=synthetic-prod-session; Domain=.ccpun.com; Path=/';
   await consent(false);
   assert.equal(document.cookie.includes('_ga_test='), false, 'revocation clears GA cookies');
+  assert.equal(document.cookie.includes('_ga='), false, 'Production keeps its parent-domain GA cleanup');
+  assert.equal(document.cookie.includes('_ga_5BMX2SKJLZ='), false);
   link.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
   assert.equal(lineEvents().length, 1, 'denied consent suppresses LINE events');
   assert.equal(commands('consent').at(-1)[2].analytics_storage, 'denied');
@@ -125,8 +131,116 @@ try {
   await act(() => configure.click());
   assert.ok(document.querySelector('[aria-label="บันทึกการตั้งค่าคุกกี้"]'), 'visitor can reopen editable consent controls');
   await act(() => settingsRoot.unmount());
+  // Synthetic dedicated UAT profile, using the same loaders and actual Copy component.
+  dom.reconfigure({ url: 'https://test.ccpun.com/blog/personal-finance/synthetic/' });
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: window.localStorage });
+  process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'true';
+  delete window.gtag;
+  delete window.dataLayer;
+  document.getElementById('gtm-script')?.remove();
+  const { resolveUatWebAnalytics } = require('../apps/web/analytics-configuration.ts');
+  const uatProfile = resolveUatWebAnalytics({
+    CCPUN_DEPLOYMENT_PROVIDER: 'hostinger', CCPUN_DEPLOYMENT_ROLE: 'web',
+    CCPUN_APP_ENV: 'web-uat', NEXT_PUBLIC_CCPUN_APP_ENV: 'web-uat',
+    NEXT_PUBLIC_SANITY_PROJECT_ID: 'ccb9lnw5', NEXT_PUBLIC_SANITY_DATASET: 'uat',
+    CCPUN_UAT_MODE: '1', CCPUN_ENABLE_PRODUCTION_ANALYTICS: '0',
+  }, { enabled: true, propertyId: '551040812', gaId: 'G-UATTEST123', gtmId: 'GTM-UATTEST1' });
+  await consent(false);
+  const cookieAccess = Object.getOwnPropertyDescriptor(dom.window.Document.prototype, 'cookie');
+  const uatCookieWrites = [];
+  Object.defineProperty(document, 'cookie', {
+    configurable: true,
+    get: () => cookieAccess.get.call(document),
+    set: value => { uatCookieWrites.push(value); cookieAccess.set.call(document, value); },
+  });
+  const seedUatCookies = () => {
+    document.cookie = '_ga=synthetic-prod-parent; Domain=.ccpun.com; Path=/';
+    document.cookie = '_ga_5BMX2SKJLZ=synthetic-prod-session; Domain=.ccpun.com; Path=/';
+    document.cookie = 'ccpun_uat_ga=synthetic-uat-client; Path=/';
+    document.cookie = 'ccpun_uat_ga_RQ5C651M5M=synthetic-uat-session; Domain=test.ccpun.com; Path=/';
+    document.cookie = 'ccpun_uat_gaExtra=synthetic-unrelated; Path=/';
+    document.cookie = 'ccpun_uat_garbage=synthetic-unrelated; Path=/';
+  };
+  const assertUatCookieIsolation = () => {
+    assert.ok(document.cookie.includes('_ga=synthetic-prod-parent'), 'UAT must retain Production parent GA cookie');
+    assert.ok(document.cookie.includes('_ga_5BMX2SKJLZ=synthetic-prod-session'));
+    assert.equal(document.cookie.includes('ccpun_uat_ga='), false);
+    assert.equal(document.cookie.includes('ccpun_uat_ga_RQ5C651M5M='), false);
+    assert.ok(document.cookie.includes('ccpun_uat_gaExtra='));
+    assert.ok(document.cookie.includes('ccpun_uat_garbage='));
+    for (const write of uatCookieWrites.filter(value => value.includes('Max-Age=0'))) {
+      assert.doesNotMatch(write, /Domain=\.?ccpun\.com(?:;|$)/i);
+      assert.match(write, /^ccpun_uat_ga(?:_|=)/);
+      assert.ok(!write.includes('Domain=') || write.includes('Domain=test.ccpun.com;'));
+    }
+  };
+  seedUatCookies();
+  const uatRoot = createRoot(document.getElementById('root'));
+  await act(() => uatRoot.render(createElement('div', {},
+    createElement(GoogleTagManager, { gtmId: uatProfile.gtmId }),
+    createElement(GoogleAnalytics, { gaId: uatProfile.gaId }))));
+  assertUatCookieIsolation();
+  assert.equal(new URL(document.getElementById('gtm-script').src).searchParams.get('id'), 'GTM-UATTEST1');
+  const { default: Share } = loadFixtureModule('features/blog/website-43/ArticleShareActions.tsx', {
+    globals: { process: { env: { NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED: 'true' } } },
+  });
+  const shareContainer = document.createElement('div');
+  document.body.appendChild(shareContainer);
+  const shareRoot = createRoot(shareContainer);
+  let copied = '';
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { clipboard: { writeText: async value => { copied = value; } } } });
+  await act(() => shareRoot.render(createElement(Share, { path: '/blog/personal-finance/synthetic/', title: 'Synthetic', placement: 'footer' })));
+  const copyButton = document.querySelector('[aria-label="คัดลอกลิงก์บทความ"]');
+  await act(async () => { copyButton.click(); });
+  const shares = () => window.dataLayer.filter(entry => entry.event_name === 'share');
+  assert.equal(shares().length, 0, 'UAT denied consent suppresses Copy analytics');
+  await consent(true);
+  await act(async () => { copyButton.click(); });
+  assert.equal(copied, 'https://ccpun.com/blog/personal-finance/synthetic/');
+  assert.equal(shares().length, 1);
+  assert.equal(shares()[0].method, 'copy');
+  assert.equal(shares()[0].cta_location, null);
+  assert.equal(shares()[0].campaign_id, null);
+  seedUatCookies();
+  await consent(false);
+  assertUatCookieIsolation();
+  await act(async () => { copyButton.click(); });
+  assert.equal(shares().length, 1, 'UAT withdrawal suppresses subsequent Copy analytics');
+  const consentModel = {};
+  for (const entry of commands('consent')) {
+    for (const key of ['ad_storage', 'ad_user_data', 'ad_personalization']) {
+      assert.ok(entry[2][key] === undefined || entry[2][key] === 'denied');
+    }
+    Object.assign(consentModel, entry[2]);
+  }
+  for (const key of ['ad_storage', 'ad_user_data', 'ad_personalization', 'analytics_storage']) assert.equal(consentModel[key], 'denied');
+  assert.equal(document.querySelectorAll('#ga-script, #facebook-pixel').length, 0);
+  assert.ok(!document.getElementById('gtm-script').src.includes('GTM-5DKMGSK3'));
+  // The same compiled UAT build must not clear parent Production cookies on an alternate host.
+  process.env.NEXT_PUBLIC_CCPUN_APP_ENV = 'web-uat';
+  dom.reconfigure({ url: 'https://preview-test.ccpun.com/blog/personal-finance/synthetic/' });
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: window.localStorage });
+  seedUatCookies();
+  await consent(false);
+  assertUatCookieIsolation();
+  await act(() => uatRoot.unmount());
+  const alternateRoot = createRoot(document.getElementById('root'));
+  seedUatCookies();
+  await act(() => alternateRoot.render(createElement(GoogleAnalytics, { gaId: uatProfile.gaId })));
+  assertUatCookieIsolation();
+  await act(() => shareRoot.unmount());
+  await act(() => alternateRoot.unmount());
+  delete document.cookie;
+  for (const path of ['/studio/', '/dashboard/', '/content/', '/settings/', '/login/', '/snt-admin/']) {
+    const { default: Widgets } = loadFixtureModule('features/analytics/components/ClientWidgets.tsx', { mocks: new Map([
+      ['next/navigation', { usePathname: () => path }],
+      ['next/dynamic', { __esModule: true, default: () => () => createElement('script', { 'data-synthetic-loader': true }) }],
+    ]) });
+    assert.equal(require('react-dom/server').renderToStaticMarkup(createElement(Widgets, { ...uatProfile, metaPixelId: '' })), '', path);
+  }
   console.log('analytics component regression checks passed (semantic, consent, remount, native fallback)');
 } finally {
   dom.window.close();
   delete process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED;
+  delete process.env.NEXT_PUBLIC_CCPUN_APP_ENV;
 }

@@ -75,6 +75,20 @@ function component(source, name, pathname, state = []) {
 }
 
 
+// Admit only the already-deployed portrait crop fix; keep every original CSS golden.
+function originalStylesExceptApprovedPortrait(source) {
+  const ast = postcss.parse(source);
+  const portraits = [];
+  ast.walkRules('.authorAvatar', rule => { if (rule.parent.type === 'root') portraits.push(rule); });
+  assert.equal(portraits.length, 1, 'One canonical author portrait rule');
+  const positions = portraits[0].nodes.filter(node => node.type === 'decl' && node.prop === 'object-position');
+  assert.equal(positions.length, 1, 'Only one approved author portrait position');
+  assert.equal(positions[0].value, 'center top');
+  assert.equal(Boolean(positions[0].important), false);
+  positions[0].remove();
+  return ast.toString();
+}
+
 const fingerprint = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const navbarSnapshots = (source, investmentEnabled = false) => {
   const snapshots = [];
@@ -99,8 +113,19 @@ const footerSnapshots = (source, investmentEnabled = false) => {
   }
   return snapshots;
 };
+test('portrait admission rejects changed position, duplicates and unrelated active CSS drift', () => {
+  const css = after('Website43.module.css');
+  const portrait = css.match(/\.authorAvatar\s*\{[^}]+\}/)?.[0];
+  assert.ok(portrait);
+  assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('center top', 'center bottom'))));
+  assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
+  const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
+  assert.notEqual(unrelated, css, 'Synthetic unapproved width change is present');
+  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), baseline.activeCss);
+});
+
 test('approved motion styling and unchanged responsive media order match the frozen UAT baseline', () => {
-  assert.equal(fingerprint(stylesheetRules(after('Website43.module.css'))), baseline.activeCss);
+  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), baseline.activeCss);
   assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), baseline.responsiveCss);
   assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar layout and approved short interaction cues remain frozen');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);
