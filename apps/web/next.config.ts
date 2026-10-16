@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "node:path";
 import { buildNextSecurityHeaders } from "../../lib/runtime/security-headers.mjs";
 import { resolveWebEnvironment, isWebSanityLaneAllowed, WEB_REDIRECTS } from "../../lib/runtime/web-build-config.mjs";
+import { resolveUatWebAnalytics } from "./analytics-configuration.ts";
 const IS_HOSTINGER_DEPLOYMENT =
   process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
 const HOSTINGER_PUBLIC_FALLBACK = "/_next/static/ccpun-public";
@@ -62,6 +63,7 @@ const nextConfig: NextConfig = {
     : {}),
   env: {
     NEXT_PUBLIC_CCPUN_APP_ENV: WEB_ENVIRONMENT === "unknown" ? "" : WEB_ENVIRONMENT,
+    ...(resolveUatWebAnalytics().gtmId ? { NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED: "true" } : {}),
   },
   trailingSlash: true,
   compress: true,
