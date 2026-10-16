@@ -545,7 +545,7 @@
     },
     "apps/web/app/layout.tsx": {
       "baselineSha256": "926820a1263ca1b215396cb37dbeda57186f63c38d505d9be4e3dfd9fe19fcc0",
-      "candidateSha256": "efa14e5607b4381c788f78d4f7e8f7ce18360b49f77c1b7cadbafb45a82c601d"
+      "candidateSha256": "0240c032a3b21ef347ce6ef0f112e3d3284fdfe74a1c2dff7db30d9d94fcc62c"
     },
     "apps/web/app/robots.ts": {
       "baselineSha256": "724472c3b407074ddc36aec722c16a29e932810db53d0cb5a309fb2e4f63fbe0",
