@@ -59,6 +59,7 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [result, setResult] = useState<SyncResult | null>(null);
   const topRows = result?.rows.slice(0, 10) ?? [];
   const maxSessions = Math.max(0, ...topRows.flatMap((row) => [row.current.sessions, row.previous?.sessions ?? 0]));
@@ -96,8 +97,17 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
         <p role="status" className="mb-2 text-sm text-white/60">{sessionConnectionState === "connected" ? `เชื่อมต่อ GA4 ของ${laneLabel}แล้ว พร้อมอ่านเมื่อกด` : "ยังไม่ได้เชื่อมต่อหรือการเชื่อมต่อหมดอายุ ให้ Owner เชื่อมใหม่"}</p>
         {sessionConnectError ? <p role="alert" className="mb-2 text-sm text-red-200">ยังเชื่อมต่อไม่ได้ กรุณายืนยันบัญชี Owner และการตั้งค่าของ{laneLabel} หาก session เดิมไม่รองรับ ให้เข้าสู่ระบบใหม่ก่อนเชื่อมต่ออีกครั้ง</p> : null}
         {sessionAccountRefreshed && sessionConnectionState !== "connected" ? <p role="status" className="mb-2 text-sm text-white/85">ยืนยันบัญชี Google อีกครั้งแล้ว กดปุ่มด้านล่างเพื่ออนุญาตให้อ่าน GA4</p> : null}
-        <form action="/api/admin/seo/providers/connect/" method="post">
-          <button type="submit" className="glass-button-sm inline-flex min-h-11 cursor-pointer items-center text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]">เชื่อม Google Analytics สำหรับ {laneLabel}</button>
+        <form action="/api/admin/seo/providers/connect/" method="post" onSubmit={(event) => {
+          // Explicit native POST bypasses SPA form interception. Without JS the
+          // standard HTML form still submits normally (progressive enhancement).
+          event.preventDefault();
+          if (connectSubmitting) return;
+          const form = event.currentTarget;
+          setConnectSubmitting(true);
+          window.setTimeout(() => HTMLFormElement.prototype.submit.call(form), 60);
+        }}>
+          <button type="submit" disabled={connectSubmitting} className="glass-button-sm inline-flex min-h-11 cursor-pointer items-center text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e0c985]" style={connectSubmitting ? { cursor: "wait", opacity: 0.7 } : undefined}>{connectSubmitting ? "กำลังเปิดหน้าการเชื่อมต่อ Google…" : `เชื่อม Google Analytics สำหรับ ${laneLabel}`}</button>
+          <p aria-live="polite" role="status" className="mt-2 text-xs text-white/65">{connectSubmitting ? "กำลังส่งคำขอเชื่อมต่อจาก Owner ไปยัง Admin UAT…" : "หากกดแล้วไม่ไปหน้า Google ระบบจะแสดงสถานะระหว่างส่งคำขอ"}</p>
         </form>
         <p className="mt-2 text-sm text-white/60">Owner อนุญาตให้ระบบอ่าน GA4 ของ{laneLabel} การเชื่อมต่ออยู่ได้สูงสุด 8 ชั่วโมง หากออกจากระบบหรือหมดอายุให้เชื่อมใหม่ ไม่มีการดึงข้อมูลจนกว่าจะกดปุ่มด้านล่าง</p>
       </div> : null}
