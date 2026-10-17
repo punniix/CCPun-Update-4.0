@@ -11,12 +11,12 @@ for (const lane of ["admin-uat", "production-admin"] as const) test(`${lane}: ac
     const Module = require('node:module'), original = Module._load;
     const {encode,getToken} = require('next-auth/jwt');
     let config, identity={actorType:'human',actor:'owner@example.test',role:'owner',authSource:'authjs'};
-    let cookieWrites=[], cookieValues=new Map(), currentHeaders=new Headers(), signIns=[], tokenCalls=0, reportCalls=0, envReaderCalls=0;
+    let cookieWrites=[], cookieValues=new Map(), currentHeaders=new Headers(), signIns=[], redirectThrows=false, tokenCalls=0, reportCalls=0, envReaderCalls=0;
     const jar={get:name=>cookieValues.has(name)?{value:cookieValues.get(name)}:undefined,
       set(name,value,options){cookieWrites.push({name,value,options}); if(options.maxAge===0)cookieValues.delete(name);else cookieValues.set(name,value)}};
     Module._load=function(name,...args){
       if(name==='server-only')return {};
-      if(name==='next-auth')return {__esModule:true,default:c=>{config=c;return {handlers:{},auth:async()=>identity?{user:{email:identity.actor,role:identity.role}}:null,signOut:async()=>{},signIn:async(...a)=>{signIns.push(a);return Response.redirect('https://accounts.example.test/authorize')}}}};
+      if(name==='next-auth')return {__esModule:true,default:c=>{config=c;return {handlers:{},auth:async()=>identity?{user:{email:identity.actor,role:identity.role}}:null,signOut:async()=>{},signIn:async(...a)=>{signIns.push(a);if(redirectThrows)throw new Error('NEXT_REDIRECT');return Response.redirect('https://accounts.example.test/authorize')}}}};
       if(name==='next/headers')return {cookies:async()=>jar,headers:async()=>currentHeaders};
       if(name==='@/lib/admin/identity')return {getAdminIdentity:async()=>identity};
       if(name==='@/lib/admin/seo-intelligence/providers/ga4')return {
@@ -62,6 +62,23 @@ for (const lane of ["admin-uat", "production-admin"] as const) test(`${lane}: ac
       assert.equal(cookieWrites.length,0);await storeAuth(normal);
       const forged=await config.callbacks.jwt({token:{...normal},trigger:'update',session:{googleConnectionBinding:'forged',refresh_token:'forged',googleConnectionAccount:'forged'}});
       assert.equal(forged.googleConnectionBinding,undefined);assert.equal(forged.googleConnectionAccount,profile.sub);
+      // Only an already-authorized Owner in the exact Production lane may use
+      // ordinary Google re-login to repair a pre-release session. No Analytics
+      // intent, grant or provider call is emitted by this recovery path.
+      await storeAuth({sub:'legacy-auth-uuid',email:identity.actor,adminRole:'owner'});
+      const beforeRelogin=cookieWrites.length;
+      const oldSessionConnect=await connect(request('POST','/api/admin/seo/providers/connect/'));
+      assert.equal(oldSessionConnect.status,302);assert.deepEqual(signIns[0],['google',{redirectTo:'/seo/opportunities/?googleConnect=account-refreshed'}]);
+      assert.equal(cookieValues.has(currentLane.intentCookie),false);
+      signIns.length=0;redirectThrows=true;
+      await assert.rejects(connect(request('POST','/api/admin/seo/providers/connect/')), /NEXT_REDIRECT/);
+      redirectThrows=false;assert.equal(signIns.length,1);signIns.length=0;
+      assert.equal(cookieWrites.length,beforeRelogin);
+      const requestWithoutCookie=request('POST','/api/admin/seo/providers/connect/',{cookie:''});
+      const reloginAfterMissingCookie=await connect(requestWithoutCookie);
+      assert.equal(reloginAfterMissingCookie.status,302);assert.equal(signIns.length,1);
+      assert.equal(cookieValues.has(currentLane.intentCookie),false);
+      signIns.length=0;await storeAuth(normal);
       for(const [patch,change] of [[{origin:'https://other.example.test'},null],[{},'viewer']]){
         identity.role=change||'owner';const denied=await connect(request('POST','/api/admin/seo/providers/connect/',patch));assert.equal(denied.status,303);assert.ok(denied.headers.get('location').startsWith(origin+'/seo/opportunities/?googleConnect='));assert.equal(signIns.length,0)
       }

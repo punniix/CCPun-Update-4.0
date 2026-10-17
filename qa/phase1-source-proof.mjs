@@ -38,7 +38,7 @@ export function assertReviewedGoogleSessionProduction(file, originalDigest, valu
   assert.equal(environment, 'production-admin', 'unreviewed Google session environment');
   const { reviewedGoogleSessionProduction: record, ...original } = value;
   assert.equal(sha(JSON.stringify(original)), '5299183ab8850885e12516aaa91b4fb01b21530ac81fbfbf7d0810d7f3898688', 'original Production proof drift');
-  assert.equal(sha(JSON.stringify(record)), '221f259ec905734e36b59dab1cb82d7f23ee8839f126e4c70b82ebcda42e2d17', 'unreviewed Production Google session admission');
+  assert.equal(sha(JSON.stringify(record)), 'bb730aded586362ad0e4b0d6c70ade7a21152a18f5cd9635569774659ce769de', 'unreviewed Production Google session admission');
   assert.equal(record.baselineCommit, '0e88533a04bdad9d3cee6991431bd7be41f623b0');
   assert.equal(Object.keys(record.currentSourceDigests).length, 12);
   assert.equal(Object.keys(record.retainedSources).length, 6);
