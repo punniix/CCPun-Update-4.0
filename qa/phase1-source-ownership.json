@@ -1135,5 +1135,756 @@
       "originalRootSource": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport ApproveSuggestionButton from \"@/features/admin/components/ApproveSuggestionButton\";\nimport ApplySuggestionButton from \"@/features/admin/components/ApplySuggestionButton\";\nimport ReviewDecisionControls from \"@/features/admin/components/ReviewDecisionControls\";\nimport { connectionLabel, datasetLabel, proposalStatusLabel, proposalTypeLabel, riskLabel } from \"@/lib/admin/presentation\";\nimport { requireAdminPermission } from \"@/lib/admin/require-permission\";\nimport { hasAdminPermission } from \"@/lib/admin/rbac\";\nimport { listSeoSuggestions } from \"@/lib/admin/sanity-control\";\nimport { getApplyableFieldPath, isStaleSuggestionRevision } from \"@/lib/admin/suggestion-lifecycle\";\nimport { isStudioDataPlaneAllowed } from \"@/lib/admin/environment\";\n\nexport const metadata: Metadata = { title: \"ข้อเสนอที่รอตรวจ\" };\n\nfunction percent(value: number | null | undefined) {\n  return value == null ? \"—\" : `${Math.round(value * 100)}%`;\n}\n\nexport default async function AdminReviewsPage() {\n  const identity = await requireAdminPermission(\"reviews:read\");\n  const result = await listSeoSuggestions();\n  const studioReady = isStudioDataPlaneAllowed(result.status.dataset ?? undefined);\n\n  return (\n    <div>\n      <div className=\"flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between\">\n        <div>\n          <p className=\"text-xs font-semibold tracking-[0.12em] text-[#e0c985]\">คุณเป็นผู้ตัดสินใจ</p>\n          <h1 className=\"mt-2 text-3xl font-semibold\">ข้อเสนอที่รอตรวจ</h1>\n          <p className=\"mt-3 max-w-3xl text-sm leading-6 text-white/70\">\n            ระบบสร้างได้เพียงข้อเสนอ คุณต้องตรวจและอนุมัติด้วยตัวเอง การอนุมัติยังไม่แก้ฉบับร่าง และไม่มีขั้นตอนไหนเผยแพร่บทความให้เอง\n          </p>\n        </div>\n        <Link href=\"/content/articles/\" className=\"w-fit rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 transition hover:bg-white/5 hover:text-white\">\n          กลับไปเลือกบทความ\n        </Link>\n      </div>\n\n      <section className=\"mt-7 grid gap-3 sm:grid-cols-3\">\n        <div className=\"rounded-2xl border border-white/10 bg-white/[0.035] p-4\">\n          <div className=\"text-sm text-white/60\">ชุดข้อมูล</div>\n          <div className=\"mt-2 text-lg font-semibold\">{datasetLabel(result.status.dataset)}</div>\n        </div>\n        <div className=\"rounded-2xl border border-white/10 bg-white/[0.035] p-4\">\n          <div className=\"text-sm text-white/60\">ข้อเสนอที่รอตรวจ</div>\n          <div className=\"mt-2 text-lg font-semibold\">{result.rows.filter((row) => row.status === \"needs-human-review\" && !isStaleSuggestionRevision(row.targetRevision, row.targetCurrentRevision)).length}</div>\n        </div>\n        <div className=\"rounded-2xl border border-white/10 bg-white/[0.035] p-4\">\n          <div className=\"text-sm text-white/60\">การบันทึกฉบับร่าง</div>\n          <div className=\"mt-2 text-lg font-semibold\">{connectionLabel(result.status.writeReady, \"write\", result.status.environment)}</div>\n        </div>\n      </section>\n\n      {result.error ? (\n        <section className=\"mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50\">\n          <h2 className=\"font-semibold\">ยังอ่านข้อเสนอไม่ได้</h2>\n          <p className=\"mt-2 text-amber-50/80\">\n            ระบบหยุดการอ่านและบันทึกไว้เพื่อความปลอดภัย และจะไม่สลับโครงการหรือชุดข้อมูลให้เอง\n          </p>\n        </section>\n      ) : null}\n\n      {!result.error && result.rows.length === 0 ? (\n        <section className=\"mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-7 text-center\">\n          <h2 className=\"text-lg font-semibold\">ยังไม่มีข้อเสนอที่รอตรวจ</h2>\n          <p className=\"mt-2 text-sm text-white/65\">เมื่อตรวจ SEO และสร้างข้อเสนอแล้ว รายการจะปรากฏที่หน้านี้</p>\n        </section>\n      ) : null}\n\n      <section className=\"mt-6 space-y-4\">\n        {result.rows.map((item) => {\n          const usesFrozenApproval = item.status === \"approved\" || item.status === \"applied\";\n          const effectiveRiskLevel = usesFrozenApproval ? item.approvedRiskLevel : item.riskLevel;\n          const effectiveType = usesFrozenApproval ? item.approvedType : item.type;\n          const effectiveAfter = usesFrozenApproval ? item.approvedAfter : item.after;\n          const isPendingStale = item.status === \"needs-human-review\" && isStaleSuggestionRevision(item.targetRevision, item.targetCurrentRevision);\n          const isApprovedStale = item.status === \"approved\" && isStaleSuggestionRevision(item.approvedTargetRevision, item.targetCurrentRevision);\n          const isStale = isPendingStale || isApprovedStale;\n          const articleId = (usesFrozenApproval ? item.approvedTargetId : item.articleId)?.replace(/^drafts\\./, \"\");\n          const seoHref = articleId ? `/seo/audits/${encodeURIComponent(articleId)}/` : \"/seo/\";\n          const canApprove = hasAdminPermission(identity.role, \"reviews:approve\") && result.status.writeReady && item.status === \"needs-human-review\" && !isStale;\n          const canEdit = hasAdminPermission(identity.role, \"reviews:edit\") && result.status.writeReady && item.status === \"needs-human-review\" && !isStale;\n          const canReject = hasAdminPermission(identity.role, \"reviews:reject\") && result.status.writeReady && item.status === \"needs-human-review\" && !isStale;\n          const canApply = hasAdminPermission(identity.role, \"draft:apply\") && result.status.writeReady && item.status === \"approved\" && !isApprovedStale && Boolean(effectiveType && getApplyableFieldPath(effectiveType)) && effectiveRiskLevel !== \"high\" && effectiveRiskLevel !== \"critical\";\n          const approveDisabledReason = isStale\n            ? \"ข้อเสนอนี้อ้างอิงฉบับร่างรุ่นเก่า กรุณาสร้างข้อเสนอใหม่จากหน้า ตรวจ SEO\"\n              : !hasAdminPermission(identity.role, \"reviews:approve\")\n              ? \"บัญชีนี้ไม่มีสิทธิ์อนุมัติข้อเสนอ\"\n              : !result.status.writeReady\n                ? \"การบันทึกฉบับร่างยังไม่พร้อม\"\n                : null;\n          const applyDisabledReason = effectiveRiskLevel === \"high\" || effectiveRiskLevel === \"critical\"\n            ? \"ความเสี่ยงระดับนี้ต้องตรวจและแก้ด้วยตนเองใน Studio\"\n            : !effectiveType || !getApplyableFieldPath(effectiveType)\n              ? \"ข้อเสนอประเภทนี้ต้องตรวจและแก้ด้วยตนเองใน Studio\"\n            : !hasAdminPermission(identity.role, \"draft:apply\")\n              ? \"บัญชีนี้ไม่มีสิทธิ์นำข้อเสนอไปใช้กับฉบับร่าง\"\n              : !result.status.writeReady\n                ? \"การบันทึกฉบับร่างยังไม่พร้อม\"\n                : null;\n          const studioPreviewHref = articleId ? `/studio/structure/article;${encodeURIComponent(articleId)}` : null;\n          return (\n            <article key={item.id} className=\"rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6\">\n              <div className=\"flex flex-col gap-4 md:flex-row md:items-start md:justify-between\">\n                <div>\n                  <div className=\"flex flex-wrap items-center gap-2 text-xs\">\n                    <span className=\"rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70\">{isApprovedStale ? \"อนุมัติแล้ว — ต้องสร้างใหม่\" : isStale ? \"ข้อเสนอเก่า — ใช้ไม่ได้\" : proposalStatusLabel(item.status)}</span>\n                    <span className=\"rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70\">ความเสี่ยง: {riskLabel(effectiveRiskLevel)}</span>\n                    <span className=\"rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70\">ความมั่นใจของระบบ: {percent(item.confidence)}</span>\n                  </div>\n                  <h2 className=\"mt-3 text-lg font-semibold text-white/90\">{item.articleTitle || \"ข้อเสนอสำหรับบทความ\"}</h2>\n                  <p className=\"mt-1 text-sm text-[#e0c985]\">{proposalTypeLabel(effectiveType)}</p>\n                </div>\n                <div className=\"flex gap-2\">\n                  {item.status === \"approved\" ? (\n                    <div className=\"max-w-sm text-right\">\n                      {isApprovedStale ? (\n                        <>\n                          <Link href={seoHref} className=\"inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-sm font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15\">\n                            ตรวจ SEO และสร้างข้อเสนอใหม่\n                          </Link>\n                          <p className=\"mt-2 text-sm leading-6 text-white/65\">ฉบับร่างเปลี่ยนหลังจากอนุมัติ ระบบจึงไม่ใช้ข้อเสนอเดิมซ้ำ</p>\n                        </>\n                      ) : (\n                        <>\n                          <ApplySuggestionButton id={item.id} articleId={articleId} disabled={!canApply} />\n                          {applyDisabledReason ? <p className=\"mt-2 text-sm leading-6 text-white/65\">{applyDisabledReason}</p> : null}\n                        </>\n                      )}\n                      {(effectiveRiskLevel === \"high\" || effectiveRiskLevel === \"critical\" || !effectiveType || !getApplyableFieldPath(effectiveType)) && studioPreviewHref && studioReady ? (\n                        <Link href={studioPreviewHref} target=\"_blank\" rel=\"noopener noreferrer\" className=\"mt-2 inline-flex min-h-11 items-center text-sm font-medium text-[#f4df9b] underline underline-offset-4\">\n                          เปิดตรวจด้วยตนเองใน Studio<span className=\"sr-only\"> (เปิดแท็บใหม่)</span>\n                        </Link>\n                      ) : null}\n                    </div>\n                  ) : item.status === \"needs-human-review\" ? (\n                    <div className=\"max-w-sm text-right\">\n                      <ApproveSuggestionButton id={item.id} disabled={!canApprove} />\n                      <ReviewDecisionControls\n                        id={item.id}\n                        initialAfter={item.after ?? \"\"}\n                        initialReason={item.reason ?? \"\"}\n                        canEdit={canEdit}\n                        canReject={canReject}\n                      />\n                      {approveDisabledReason ? <p className=\"mt-2 text-sm leading-6 text-white/65\">{approveDisabledReason}</p> : null}\n                    </div>\n                  ) : item.status === \"applied\" && studioPreviewHref && studioReady ? (\n                    <div className=\"max-w-xs text-right\">\n                      <Link\n                        href={studioPreviewHref}\n                        target=\"_blank\"\n                        rel=\"noopener noreferrer\"\n                        className=\"inline-flex rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-xs font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15\"\n                      >\n                        เปิดตัวอย่างฉบับร่างใน Studio<span className=\"sr-only\"> (เปิดแท็บใหม่)</span>\n                      </Link>\n                      <p className=\"mt-2 text-sm leading-6 text-white/65\">\n                        ขั้นต่อไปคือตรวจตัวอย่างด้วยตัวคุณเอง รายการนี้ยังไม่ได้เผยแพร่\n                      </p>\n                    </div>\n                  ) : (\n                    <span className=\"text-sm text-white/60\">สถานะนี้ไม่มีรายการที่ต้องทำต่อ</span>\n                  )}\n                </div>\n              </div>\n\n              <div className=\"mt-5 grid gap-4 lg:grid-cols-2\">\n                <div className=\"rounded-2xl bg-black/20 p-4\">\n                  <div className=\"text-sm text-white/60\">ก่อนเปลี่ยน</div>\n                  <p className=\"mt-2 whitespace-pre-wrap text-sm leading-6 text-white/55\">{item.before || \"—\"}</p>\n                </div>\n                <div className=\"rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4\">\n                  <div className=\"text-sm text-[#e0c985]\">ข้อเสนอหลังเปลี่ยน</div>\n                  <p className=\"mt-2 whitespace-pre-wrap text-sm leading-6 text-white/75\">{effectiveAfter || \"—\"}</p>\n                </div>\n              </div>\n\n              <div className=\"mt-4 rounded-2xl bg-white/[0.025] p-4\">\n                <div className=\"text-sm text-white/60\">เหตุผลที่ระบบเสนอ</div>\n                <p className=\"mt-2 whitespace-pre-wrap text-sm leading-6 text-white/55\">{item.reason || \"—\"}</p>\n              </div>\n            </article>\n          );\n        })}\n      </section>\n    </div>\n  );\n}\n",
       "originalCanonicalSource": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport ApproveSuggestionButton from \"@/features/admin/components/ApproveSuggestionButton\";\nimport ApplySuggestionButton from \"@/features/admin/components/ApplySuggestionButton\";\nimport ReviewDecisionControls from \"@/features/admin/components/ReviewDecisionControls\";\nimport { connectionLabel, datasetLabel, proposalStatusLabel, proposalTypeLabel, riskLabel } from \"@/lib/admin/presentation\";\nimport { requireAdminPermission } from \"@/lib/admin/require-permission\";\nimport { hasAdminPermission } from \"@/lib/admin/rbac\";\nimport { listSeoSuggestions } from \"@/lib/admin/sanity-control\";\nimport { getApplyableFieldPath, isStaleSuggestionRevision } from \"@/lib/admin/suggestion-lifecycle\";\nimport { isStudioDataPlaneAllowed } from \"@/lib/admin/environment\";\n\nexport const metadata: Metadata = { title: \"ข้อเสนอที่รอตรวจ\" };\n\nfunction percent(value: number | null | undefined) {\n  return value == null ? \"—\" : `${Math.round(value * 100)}%`;\n}\n\nexport default async function AdminReviewsPage() {\n  const identity = await requireAdminPermission(\"reviews:read\");\n  const result = await listSeoSuggestions();\n  const studioReady = isStudioDataPlaneAllowed(result.status.dataset ?? undefined);\n\n  return (\n    <div>\n      <div className=\"flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between\">\n        <div>\n          <p className=\"text-xs font-semibold tracking-[0.12em] text-[#e0c985]\">คุณเป็นผู้ตัดสินใจ</p>\n          <h1 className=\"mt-2 text-3xl font-semibold\">ข้อเสนอที่รอตรวจ</h1>\n          <p className=\"mt-3 max-w-3xl text-sm leading-6 text-white/70\">\n            ระบบสร้างได้เพียงข้อเสนอ คุณต้องตรวจและอนุมัติด้วยตัวเอง การอนุมัติยังไม่แก้ฉบับร่าง และไม่มีขั้นตอนไหนเผยแพร่บทความให้เอง\n          </p>\n        </div>\n        <Link href=\"/content/articles/\" className=\"w-fit rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 transition hover:bg-white/5 hover:text-white\">\n          กลับไปเลือกบทความ\n        </Link>\n      </div>\n\n      <section className=\"mt-7 grid gap-3 sm:grid-cols-3\">\n        <div className=\"rounded-2xl border border-white/10 bg-white/[0.035] p-4\">\n          <div className=\"text-sm text-white/60\">ชุดข้อมูล</div>\n          <div className=\"mt-2 text-lg font-semibold\">{datasetLabel(result.status.dataset)}</div>\n        </div>\n        <div className=\"rounded-2xl border border-white/10 bg-white/[0.035] p-4\">\n          <div className=\"text-sm text-white/60\">ข้อเสนอที่รอตรวจ</div>\n          <div className=\"mt-2 text-lg font-semibold\">{result.rows.filter((row) => row.status === \"needs-human-review\" && !isStaleSuggestionRevision(row.targetRevision, row.targetCurrentRevision)).length}</div>\n        </div>\n        <div className=\"rounded-2xl border border-white/10 bg-white/[0.035] p-4\">\n          <div className=\"text-sm text-white/60\">การบันทึกฉบับร่าง</div>\n          <div className=\"mt-2 text-lg font-semibold\">{connectionLabel(result.status.writeReady, \"write\", result.status.environment)}</div>\n        </div>\n      </section>\n\n      {result.error ? (\n        <section className=\"mt-6 rounded-3xl border border-amber-200/20 bg-amber-200/10 p-5 text-sm leading-6 text-amber-50\">\n          <h2 className=\"font-semibold\">ยังอ่านข้อเสนอไม่ได้</h2>\n          <p className=\"mt-2 text-amber-50/80\">\n            ระบบหยุดการอ่านและบันทึกไว้เพื่อความปลอดภัย และจะไม่สลับโครงการหรือชุดข้อมูลให้เอง\n          </p>\n        </section>\n      ) : null}\n\n      {!result.error && result.rows.length === 0 ? (\n        <section className=\"mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-7 text-center\">\n          <h2 className=\"text-lg font-semibold\">ยังไม่มีข้อเสนอที่รอตรวจ</h2>\n          <p className=\"mt-2 text-sm text-white/65\">เมื่อตรวจ SEO และสร้างข้อเสนอแล้ว รายการจะปรากฏที่หน้านี้</p>\n        </section>\n      ) : null}\n\n      <section className=\"mt-6 space-y-4\">\n        {result.rows.map((item) => {\n          const usesFrozenApproval = item.status === \"approved\" || item.status === \"applied\";\n          const effectiveRiskLevel = usesFrozenApproval ? item.approvedRiskLevel : item.riskLevel;\n          const effectiveType = usesFrozenApproval ? item.approvedType : item.type;\n          const effectiveAfter = usesFrozenApproval ? item.approvedAfter : item.after;\n          const isPendingStale = item.status === \"needs-human-review\" && isStaleSuggestionRevision(item.targetRevision, item.targetCurrentRevision);\n          const isApprovedStale = item.status === \"approved\" && isStaleSuggestionRevision(item.approvedTargetRevision, item.targetCurrentRevision);\n          const isStale = isPendingStale || isApprovedStale;\n          const articleId = (usesFrozenApproval ? item.approvedTargetId : item.articleId)?.replace(/^drafts\\./, \"\");\n          const seoHref = articleId ? `/seo/audits/${encodeURIComponent(articleId)}/` : \"/seo/\";\n          const canApprove = hasAdminPermission(identity.role, \"reviews:approve\") && result.status.writeReady && item.status === \"needs-human-review\" && !isStale;\n          const canEdit = hasAdminPermission(identity.role, \"reviews:edit\") && result.status.writeReady && item.status === \"needs-human-review\" && !isStale;\n          const canReject = hasAdminPermission(identity.role, \"reviews:reject\") && result.status.writeReady && item.status === \"needs-human-review\" && !isStale;\n          const canApply = hasAdminPermission(identity.role, \"draft:apply\") && result.status.writeReady && item.status === \"approved\" && !isApprovedStale && Boolean(effectiveType && getApplyableFieldPath(effectiveType)) && effectiveRiskLevel !== \"high\" && effectiveRiskLevel !== \"critical\";\n          const approveDisabledReason = isStale\n            ? \"ข้อเสนอนี้อ้างอิงฉบับร่างรุ่นเก่า กรุณาสร้างข้อเสนอใหม่จากหน้า ตรวจ SEO\"\n              : !hasAdminPermission(identity.role, \"reviews:approve\")\n              ? \"บัญชีนี้ไม่มีสิทธิ์อนุมัติข้อเสนอ\"\n              : !result.status.writeReady\n                ? \"การบันทึกฉบับร่างยังไม่พร้อม\"\n                : null;\n          const applyDisabledReason = effectiveRiskLevel === \"high\" || effectiveRiskLevel === \"critical\"\n            ? \"ความเสี่ยงระดับนี้ต้องตรวจและแก้ด้วยตนเองใน Studio\"\n            : !effectiveType || !getApplyableFieldPath(effectiveType)\n              ? \"ข้อเสนอประเภทนี้ต้องตรวจและแก้ด้วยตนเองใน Studio\"\n            : !hasAdminPermission(identity.role, \"draft:apply\")\n              ? \"บัญชีนี้ไม่มีสิทธิ์นำข้อเสนอไปใช้กับฉบับร่าง\"\n              : !result.status.writeReady\n                ? \"การบันทึกฉบับร่างยังไม่พร้อม\"\n                : null;\n          const studioPreviewHref = articleId ? `/studio/structure/article;${encodeURIComponent(articleId)}` : null;\n          return (\n            <article key={item.id} className=\"rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6\">\n              <div className=\"flex flex-col gap-4 md:flex-row md:items-start md:justify-between\">\n                <div>\n                  <div className=\"flex flex-wrap items-center gap-2 text-xs\">\n                    <span className=\"rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70\">{isApprovedStale ? \"อนุมัติแล้ว — ต้องสร้างใหม่\" : isStale ? \"ข้อเสนอเก่า — ใช้ไม่ได้\" : proposalStatusLabel(item.status)}</span>\n                    <span className=\"rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70\">ความเสี่ยง: {riskLabel(effectiveRiskLevel)}</span>\n                    <span className=\"rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70\">ความมั่นใจของระบบ: {percent(item.confidence)}</span>\n                  </div>\n                  <h2 className=\"mt-3 text-lg font-semibold text-white/90\">{item.articleTitle || \"ข้อเสนอสำหรับบทความ\"}</h2>\n                  <p className=\"mt-1 text-sm text-[#e0c985]\">{proposalTypeLabel(effectiveType)}</p>\n                </div>\n                <div className=\"flex gap-2\">\n                  {item.status === \"approved\" ? (\n                    <div className=\"max-w-sm text-right\">\n                      {isApprovedStale ? (\n                        <>\n                          <Link href={seoHref} className=\"inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-sm font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15\">\n                            ตรวจ SEO และสร้างข้อเสนอใหม่\n                          </Link>\n                          <p className=\"mt-2 text-sm leading-6 text-white/65\">ฉบับร่างเปลี่ยนหลังจากอนุมัติ ระบบจึงไม่ใช้ข้อเสนอเดิมซ้ำ</p>\n                        </>\n                      ) : (\n                        <>\n                          <ApplySuggestionButton id={item.id} articleId={articleId} disabled={!canApply} />\n                          {applyDisabledReason ? <p className=\"mt-2 text-sm leading-6 text-white/65\">{applyDisabledReason}</p> : null}\n                        </>\n                      )}\n                      {(effectiveRiskLevel === \"high\" || effectiveRiskLevel === \"critical\" || !effectiveType || !getApplyableFieldPath(effectiveType)) && studioPreviewHref && studioReady ? (\n                        <Link href={studioPreviewHref} target=\"_blank\" rel=\"noopener noreferrer\" className=\"mt-2 inline-flex min-h-11 items-center text-sm font-medium text-[#f4df9b] underline underline-offset-4\">\n                          เปิดตรวจด้วยตนเองใน Studio<span className=\"sr-only\"> (เปิดแท็บใหม่)</span>\n                        </Link>\n                      ) : null}\n                    </div>\n                  ) : item.status === \"needs-human-review\" ? (\n                    <div className=\"max-w-sm text-right\">\n                      <ApproveSuggestionButton id={item.id} disabled={!canApprove} />\n                      <ReviewDecisionControls\n                        id={item.id}\n                        initialAfter={item.after ?? \"\"}\n                        initialReason={item.reason ?? \"\"}\n                        canEdit={canEdit}\n                        canReject={canReject}\n                      />\n                      {approveDisabledReason ? <p className=\"mt-2 text-sm leading-6 text-white/65\">{approveDisabledReason}</p> : null}\n                    </div>\n                  ) : item.status === \"applied\" && studioPreviewHref && studioReady ? (\n                    <div className=\"max-w-xs text-right\">\n                      <Link\n                        href={studioPreviewHref}\n                        target=\"_blank\"\n                        rel=\"noopener noreferrer\"\n                        className=\"inline-flex rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-xs font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15\"\n                      >\n                        เปิดตัวอย่างฉบับร่างใน Studio<span className=\"sr-only\"> (เปิดแท็บใหม่)</span>\n                      </Link>\n                      <p className=\"mt-2 text-sm leading-6 text-white/65\">\n                        ขั้นต่อไปคือตรวจตัวอย่างด้วยตัวคุณเอง รายการนี้ยังไม่ได้เผยแพร่\n                      </p>\n                    </div>\n                  ) : (\n                    <span className=\"text-sm text-white/60\">สถานะนี้ไม่มีรายการที่ต้องทำต่อ</span>\n                  )}\n                </div>\n              </div>\n\n              <div className=\"mt-5 grid gap-4 lg:grid-cols-2\">\n                <div className=\"rounded-2xl bg-black/20 p-4\">\n                  <div className=\"text-sm text-white/60\">ก่อนเปลี่ยน</div>\n                  <p className=\"mt-2 whitespace-pre-wrap text-sm leading-6 text-white/55\">{item.before || \"—\"}</p>\n                </div>\n                <div className=\"rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4\">\n                  <div className=\"text-sm text-[#e0c985]\">ข้อเสนอหลังเปลี่ยน</div>\n                  <p className=\"mt-2 whitespace-pre-wrap text-sm leading-6 text-white/75\">{effectiveAfter || \"—\"}</p>\n                </div>\n              </div>\n\n              <div className=\"mt-4 rounded-2xl bg-white/[0.025] p-4\">\n                <div className=\"text-sm text-white/60\">เหตุผลที่ระบบเสนอ</div>\n                <p className=\"mt-2 whitespace-pre-wrap text-sm leading-6 text-white/55\">{item.reason || \"—\"}</p>\n              </div>\n            </article>\n          );\n        })}\n      </section>\n    </div>\n  );\n}\n"
     }
-  ]
+  ],
+  "reviewedInheritedUat": {
+    "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+    "sourceDigests": {
+      "features/admin/components/AdminProtectedChrome.tsx": {
+        "originalSha256": "c3f0f7ccf3feb9a7358442a6c294d6c2b215604e9af03be0d6bc29380f2ba7b5",
+        "c645Sha256": "d8a5e39c67294c53e70dde7e3c6430d6485d8ba43bd30dfa72b6fe256ceb8c68"
+      },
+      "features/admin/components/ContentArticlesPage.tsx": {
+        "originalSha256": "2e970b2f54f7cbaf103d41701b5f87ea1a36291093596b6cb8800011cbc08446",
+        "c645Sha256": "c352fe0109b38a6901fb6400099d5edaa046dc0d8aa90aeb250805a1139fd8a9"
+      },
+      "features/admin/components/SeoReviewInboxPage.tsx": {
+        "originalSha256": "b32b2b0ae382122ec3595990298c28e0854b2777fdbed56e5aba867fa7010dc7",
+        "c645Sha256": "a31e21378e643b72f3fde009c9f5e8230b669d0913da104708564c07026bc408"
+      },
+      "features/admin/components/SettingsIndexPage.tsx": {
+        "originalSha256": "bb56436c8673a4111408d8b1bf3e45eb36affb88249196be46ec81f28677811c",
+        "c645Sha256": "a5a522ea8e8e37b5a8dbcf6fbda75a6d6b22c455e2223221aed4a2f2b63c1082"
+      },
+      "apps/admin/app/(control-plane)/dashboard/page.tsx": {
+        "originalSha256": "7b193290fa9a324573a519ccf6718327c5cc1bc42ff94d8cb98eb04c1c6bd80b",
+        "c645Sha256": "5e6385f8eaf2754eaa0e35676a742ed9b86e85dc52f5f758c69f19ec7f358972"
+      },
+      "apps/admin/app/(control-plane)/error.tsx": {
+        "originalSha256": "2a5824d3ded04c2a0e31e56fc40d291a9d349172e9b59873e7e27046b0f0fc2c",
+        "c645Sha256": "669d5f6289a496404818a25da4a496d4255b7a9d33b2b2d92c8e791d1131bead"
+      },
+      "apps/admin/app/(control-plane)/layout.tsx": {
+        "originalSha256": "ccc3ab6d96dbeda609dfe71133980ac26aa1d61310fc5c63c5c929eab24555bf",
+        "c645Sha256": "19986dbbe98099b28e448f3e92069fbd87ecbc539bac28e3e2c51a205ecfb289"
+      },
+      "apps/admin/app/(control-plane)/operations/health/page.tsx": {
+        "originalSha256": "984d7d0c447f6ad47af560dc2b90612cfaa37029734414edc8c40bc44aacb766",
+        "c645Sha256": "37f795550f41a1327c7e66b732f1c22c6c91c23f69653ef1ccfbf03cf9e31cc9"
+      }
+    },
+    "outputs": {
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"empty\":true}}": {
+        "originalOutputSha256": "88d50a61573989cfa795b2bdf046588ccf0af59e36ad9c61c446b55f4150b3d2",
+        "c645OutputSha256": "1ab4045eb6057fef175de36df4e958ed90374e4374c51bb021cc3a3dc4775636"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{}}": {
+        "originalOutputSha256": "90c0237ef5513f6b56600282a714cfd3fcf3f27a7dece4bfe91d5a680da15d0c",
+        "c645OutputSha256": "927cdbf9d46ad2aa6352e381d311c57ca3371109401109fef1b1f9163350b027"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"denied\":true}}": {
+        "originalOutputSha256": "5dedb90a5e2856df9b0ed474362a1fb2bfcc77f8cab9031ac367f48613dee98c",
+        "c645OutputSha256": "5dedb90a5e2856df9b0ed474362a1fb2bfcc77f8cab9031ac367f48613dee98c"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"readError\":true,\"empty\":true,\"noDataset\":true}}": {
+        "originalOutputSha256": "9a2296496fb1e8dece8b669c70975aee13c93798ab8e9cf1337fec3211bc99a5",
+        "c645OutputSha256": "553330f4de5b990c53e40384930b3f13cf238808d3e0b1489aa23a543844ebb6"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"published\":true,\"liveAudit\":true}}": {
+        "originalOutputSha256": "44efa2efad8abab72779cf80b1c768b8083cf8a669ec050a84c52bc406ff5cda",
+        "c645OutputSha256": "e584785a1705a4b5d73b726bd6cff0497761e7532f0012a5394b36aebc2273a9"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"published\":true,\"liveAudit\":true,\"auditError\":true}}": {
+        "originalOutputSha256": "31cad477f074c7b38e9d4c95ee9dce4af3e632abdc49970fa47b8ad14587984b",
+        "c645OutputSha256": "00429563e87521c2b2fb9385f1bcea9e8664771e2bae2b47e7ea0da8e8e79391"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"studioReady\":true,\"writeReady\":true,\"intelligence\":true,\"proposals\":true,\"legacyCta\":true}}": {
+        "originalOutputSha256": "10397520aa904c620bbd22863ad62e0c045b2ccb8fa474d7635e0239c0748c7e",
+        "c645OutputSha256": "03ab533c043dadc9e21d8fd9d26f85ef68784ef7e81b88c0d49136ec777cf252"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"filters\":{\"category\":\"personal-finance\",\"tag\":\"ภาษี\",\"sort\":\"title\",\"order\":\"asc\"},\"noDataset\":true}}": {
+        "originalOutputSha256": "84bb11f53ce1887f44c9597b8d7ccc32ee7f5a7f225d1bf50b65d166ec917b81",
+        "c645OutputSha256": "eba8c9ab2ed9a3daa09ebe928739511a88df2a5b56d11276cf5c3f3c54a859ad"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"draftId\":true,\"published\":true,\"rowOverrides\":{\"reviewStatus\":null,\"title\":null,\"primaryKeyword\":null,\"category\":null}}}": {
+        "originalOutputSha256": "a991775dfcec9225f708cc2cee81babf22d4466416c7a7d2d50f064f84f0ac66",
+        "c645OutputSha256": "408dfd9fd81a04ee45d4daf83db9b92744b6d13a293c0e85e70915b88172446e"
+      },
+      "{\"kind\":\"shared\",\"file\":\"app/(control-plane)/content/articles/page.tsx\",\"config\":{\"readError\":true,\"requestFailed\":true,\"empty\":true,\"noDataset\":true}}": {
+        "originalOutputSha256": "d9b84b0ecda8c5c71f24f68cbcd8eaf2ae887d226d9aba584d3027be1a56c075",
+        "c645OutputSha256": "01c55c3af2524c7b22f2d9877d41121db468a5bb5d5c1b9269a6e4ca06a16773"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"empty\":true}}": {
+        "originalOutputSha256": "88d50a61573989cfa795b2bdf046588ccf0af59e36ad9c61c446b55f4150b3d2",
+        "c645OutputSha256": "1ab4045eb6057fef175de36df4e958ed90374e4374c51bb021cc3a3dc4775636"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{}}": {
+        "originalOutputSha256": "90c0237ef5513f6b56600282a714cfd3fcf3f27a7dece4bfe91d5a680da15d0c",
+        "c645OutputSha256": "927cdbf9d46ad2aa6352e381d311c57ca3371109401109fef1b1f9163350b027"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"denied\":true}}": {
+        "originalOutputSha256": "5dedb90a5e2856df9b0ed474362a1fb2bfcc77f8cab9031ac367f48613dee98c",
+        "c645OutputSha256": "5dedb90a5e2856df9b0ed474362a1fb2bfcc77f8cab9031ac367f48613dee98c"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"readError\":true,\"empty\":true,\"noDataset\":true}}": {
+        "originalOutputSha256": "9a2296496fb1e8dece8b669c70975aee13c93798ab8e9cf1337fec3211bc99a5",
+        "c645OutputSha256": "553330f4de5b990c53e40384930b3f13cf238808d3e0b1489aa23a543844ebb6"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"published\":true,\"liveAudit\":true}}": {
+        "originalOutputSha256": "44efa2efad8abab72779cf80b1c768b8083cf8a669ec050a84c52bc406ff5cda",
+        "c645OutputSha256": "e584785a1705a4b5d73b726bd6cff0497761e7532f0012a5394b36aebc2273a9"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"published\":true,\"liveAudit\":true,\"auditError\":true}}": {
+        "originalOutputSha256": "31cad477f074c7b38e9d4c95ee9dce4af3e632abdc49970fa47b8ad14587984b",
+        "c645OutputSha256": "00429563e87521c2b2fb9385f1bcea9e8664771e2bae2b47e7ea0da8e8e79391"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"studioReady\":true,\"writeReady\":true,\"intelligence\":true,\"proposals\":true,\"legacyCta\":true}}": {
+        "originalOutputSha256": "10397520aa904c620bbd22863ad62e0c045b2ccb8fa474d7635e0239c0748c7e",
+        "c645OutputSha256": "03ab533c043dadc9e21d8fd9d26f85ef68784ef7e81b88c0d49136ec777cf252"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"filters\":{\"category\":\"personal-finance\",\"tag\":\"ภาษี\",\"sort\":\"title\",\"order\":\"asc\"},\"noDataset\":true}}": {
+        "originalOutputSha256": "84bb11f53ce1887f44c9597b8d7ccc32ee7f5a7f225d1bf50b65d166ec917b81",
+        "c645OutputSha256": "eba8c9ab2ed9a3daa09ebe928739511a88df2a5b56d11276cf5c3f3c54a859ad"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"draftId\":true,\"published\":true,\"rowOverrides\":{\"reviewStatus\":null,\"title\":null,\"primaryKeyword\":null,\"category\":null}}}": {
+        "originalOutputSha256": "a991775dfcec9225f708cc2cee81babf22d4466416c7a7d2d50f064f84f0ac66",
+        "c645OutputSha256": "408dfd9fd81a04ee45d4daf83db9b92744b6d13a293c0e85e70915b88172446e"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/content/articles/page.tsx\",\"config\":{\"readError\":true,\"requestFailed\":true,\"empty\":true,\"noDataset\":true}}": {
+        "originalOutputSha256": "d9b84b0ecda8c5c71f24f68cbcd8eaf2ae887d226d9aba584d3027be1a56c075",
+        "c645OutputSha256": "01c55c3af2524c7b22f2d9877d41121db468a5bb5d5c1b9269a6e4ca06a16773"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"empty\":true}}": {
+        "originalOutputSha256": "621eca3d7089dfd0115a029f544de68a5877912923433339504c759c32ce9db0",
+        "c645OutputSha256": "9d8e245b1b87a9cc7ce531e6156034ed5833773cc2b6528b375bc32074cfa447"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{}}": {
+        "originalOutputSha256": "610f908d311bd7b6d475a512fce351e0c417bf53a48be804ab40b891aad2b288",
+        "c645OutputSha256": "2156ec5731b8e4617c1edd1e64391a193eed376361b0b3fccd047751db9c8bd3"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"denied\":true}}": {
+        "originalOutputSha256": "28552b274449003083827b0b9e0282ea58f7011b6364c5b6de444381477e2624",
+        "c645OutputSha256": "28552b274449003083827b0b9e0282ea58f7011b6364c5b6de444381477e2624"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"readError\":true,\"empty\":true,\"noDataset\":true}}": {
+        "originalOutputSha256": "ad7dc4e6248871ee634705532d0608be504ac47bc79c4819251987eaf4e47263",
+        "c645OutputSha256": "09215d322390ae24d82857b0b49ecfea7d76877321a01089ed7cfaba949655f2"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"published\":true,\"liveAudit\":true}}": {
+        "originalOutputSha256": "610f908d311bd7b6d475a512fce351e0c417bf53a48be804ab40b891aad2b288",
+        "c645OutputSha256": "2156ec5731b8e4617c1edd1e64391a193eed376361b0b3fccd047751db9c8bd3"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"published\":true,\"liveAudit\":true,\"auditError\":true}}": {
+        "originalOutputSha256": "610f908d311bd7b6d475a512fce351e0c417bf53a48be804ab40b891aad2b288",
+        "c645OutputSha256": "2156ec5731b8e4617c1edd1e64391a193eed376361b0b3fccd047751db9c8bd3"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"studioReady\":true,\"writeReady\":true,\"intelligence\":true,\"proposals\":true,\"legacyCta\":true}}": {
+        "originalOutputSha256": "9187332c135168860a12879247ae446a17add1d0423fd1dc8e493ada36f83537",
+        "c645OutputSha256": "5e49a5d0d7b5d557726bea99e889456f4da91278ae333dae99ae001aa4521acb"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"filters\":{\"category\":\"personal-finance\",\"tag\":\"ภาษี\",\"sort\":\"title\",\"order\":\"asc\"},\"noDataset\":true}}": {
+        "originalOutputSha256": "abdeeffde5a7f84e800b1b83c805e7c8cfaaff9c9dfa2fe95652540609aeb9fd",
+        "c645OutputSha256": "475ba870d99232d85ef7563abaebf86d16bb376768a35417187b3a2241012de3"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"draftId\":true,\"published\":true,\"rowOverrides\":{\"reviewStatus\":null,\"title\":null,\"primaryKeyword\":null,\"category\":null}}}": {
+        "originalOutputSha256": "610f908d311bd7b6d475a512fce351e0c417bf53a48be804ab40b891aad2b288",
+        "c645OutputSha256": "2156ec5731b8e4617c1edd1e64391a193eed376361b0b3fccd047751db9c8bd3"
+      },
+      "{\"kind\":\"shared\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"readError\":true,\"requestFailed\":true,\"empty\":true,\"noDataset\":true}}": {
+        "originalOutputSha256": "ad7dc4e6248871ee634705532d0608be504ac47bc79c4819251987eaf4e47263",
+        "c645OutputSha256": "09215d322390ae24d82857b0b49ecfea7d76877321a01089ed7cfaba949655f2"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"low\",\"stale\":false,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "17feb544c39cc63e24af3d82894e4c7f0f8ed64fc3801e2c4a2950d444551c8d",
+        "c645OutputSha256": "096752069831f0e57a0bc79e37bf9ac91bbe1f913dd27a63f55a736d1942dac9"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"low\",\"stale\":false,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "9187332c135168860a12879247ae446a17add1d0423fd1dc8e493ada36f83537",
+        "c645OutputSha256": "5e49a5d0d7b5d557726bea99e889456f4da91278ae333dae99ae001aa4521acb"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"low\",\"stale\":true,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "9df2997dbcf667775145ca05db93ddebfa78c1d4af10f75e6b69ef9668133af1",
+        "c645OutputSha256": "a2283ef0c818e1ec9f528a854e0c3635eb4fe1450c7a54a69a826e24db0791a8"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"low\",\"stale\":true,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "70bc8c80cb78cb4eb524f6d1aebef11f13145ca21b7ddd4da068414f49db06b9",
+        "c645OutputSha256": "ac89e91d9f3fcfc0a0b4f281772bf22989c39a2c4e3d5e23a47f40b6ad5dd5c6"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"high\",\"stale\":false,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "291e39ce1ed0bb4b8cb12de857eb54bdeb14218c6ed2c4371956c67f5b348cc0",
+        "c645OutputSha256": "9a92e8ec8d899de764a18c2ba6e080edf4ce38182f9172e1f0620dd467d42af1"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"high\",\"stale\":false,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "1ae9b657829335a88933ab0e7eacdc907c3ec76f567013fcb4b7a32aaf633141",
+        "c645OutputSha256": "06ad72cb08dab1d2e21c1cc7617ef411fe60b467e5ce4443299a8decc7a6742d"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"high\",\"stale\":true,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "a5132f2a1d0725afe1bb5a9e1067628f7381e80bd30ff72ef32eb5034ee7da7e",
+        "c645OutputSha256": "51a66542c4e02439f209c236238ca7b74663bd48f219d6303994c8ed1f813514"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"high\",\"stale\":true,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "98fff107ca2e4bb1ff9fa02cf780238505b4179ca46df761ebcb16d08d5c0f17",
+        "c645OutputSha256": "30445a98296ec39ab2b06c6ca925fb27ca355d119b1a4a054257641d6ca920d9"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"critical\",\"stale\":false,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "9417e8398c640290be2733fb7adbaf705d9ca7d837026388c34cb5f5a839d3ca",
+        "c645OutputSha256": "f52a7855e347266c302321334f08db1f2e68a6eb94b0ab2fb46a1e82ed9586fb"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"critical\",\"stale\":false,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "abfadc4ea78a1393b3c48db901b902975974b6062a2a43444032269759210326",
+        "c645OutputSha256": "e359189e3cda04e2d48d5cf7327179cf68f7b01682d5c95c3e20e9308454e3cf"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"critical\",\"stale\":true,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "e2f21bc73569b0cd0a32c59e0d98751fcb6968ea1d18bd545629f54c66bf3d27",
+        "c645OutputSha256": "32500bd0aa76f03dc3dee203c8adc797987a42c3c258fa358a9b5745b125e2c9"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"owner\",\"risk\":\"critical\",\"stale\":true,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "57be4fe4c37a1ce663256f4d1cb2eb4290bcb57de5f2f8b3d00c155daaec3651",
+        "c645OutputSha256": "84676f7b2ec24f43cd2469fd6b4c5c441455a8e354d67845a11870731f00107d"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"low\",\"stale\":false,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "2e66f950f0b8381a8881e64f17efa161c9ece15ceb4fb1d2f8b75f46f8676de0",
+        "c645OutputSha256": "d675fee567e903fedb2f47735b7c06531d2c526ce78f8bbb085f281e7e1e5c1d"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"low\",\"stale\":false,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "55707feb98aa7acbc05aa8e9bcfafe393ada6a1cfa5be7705b4177a601145b87",
+        "c645OutputSha256": "dcd3ad84bfe595a254ffa111a57756d6d3e27addfc796cf98585c0198e9341a1"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"low\",\"stale\":true,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "9df2997dbcf667775145ca05db93ddebfa78c1d4af10f75e6b69ef9668133af1",
+        "c645OutputSha256": "a2283ef0c818e1ec9f528a854e0c3635eb4fe1450c7a54a69a826e24db0791a8"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"low\",\"stale\":true,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "70bc8c80cb78cb4eb524f6d1aebef11f13145ca21b7ddd4da068414f49db06b9",
+        "c645OutputSha256": "ac89e91d9f3fcfc0a0b4f281772bf22989c39a2c4e3d5e23a47f40b6ad5dd5c6"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"high\",\"stale\":false,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "c51fe8e30d0b2439a169f83f9455fd173209bd0ace79c4befa37e1e999e8b7ce",
+        "c645OutputSha256": "da78a2e32f7d05855f1a7885c5ff4152d6d271bdf0e27f1bea4af9011fc9bc41"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"high\",\"stale\":false,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "194af4467793860760247fbd184851e04049f6e84b8fc9de6ae26a470120bb2d",
+        "c645OutputSha256": "f815c0d4cd81f9cb72faf984a21e80209543bef7952bd4f29ea30db606ffde85"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"high\",\"stale\":true,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "a5132f2a1d0725afe1bb5a9e1067628f7381e80bd30ff72ef32eb5034ee7da7e",
+        "c645OutputSha256": "51a66542c4e02439f209c236238ca7b74663bd48f219d6303994c8ed1f813514"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"high\",\"stale\":true,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "98fff107ca2e4bb1ff9fa02cf780238505b4179ca46df761ebcb16d08d5c0f17",
+        "c645OutputSha256": "30445a98296ec39ab2b06c6ca925fb27ca355d119b1a4a054257641d6ca920d9"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"critical\",\"stale\":false,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "02952109d643b3c8cc694e8bfc5f3664a89724b6b79975dfbce8fc7e216030d0",
+        "c645OutputSha256": "b5c7ceedde963bcfcbe1a1f1aa0e7ab3ed65dc11e96695a2fad093cc34832d8f"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"critical\",\"stale\":false,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "16c73db049de62a51ae67dbd209ff808a98c5577a67f9376d2788b04a0315149",
+        "c645OutputSha256": "0757fe5defb739efd3093c24bf8f44dabf3cf08e1e0d50717a6430a9bab7c654"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"critical\",\"stale\":true,\"writeReady\":false,\"studioReady\":true}}": {
+        "originalOutputSha256": "e2f21bc73569b0cd0a32c59e0d98751fcb6968ea1d18bd545629f54c66bf3d27",
+        "c645OutputSha256": "32500bd0aa76f03dc3dee203c8adc797987a42c3c258fa358a9b5745b125e2c9"
+      },
+      "{\"kind\":\"reviews\",\"file\":\"apps/admin/app/(control-plane)/dashboard/reviews/page.tsx\",\"config\":{\"role\":\"viewer\",\"risk\":\"critical\",\"stale\":true,\"writeReady\":true,\"studioReady\":true}}": {
+        "originalOutputSha256": "57be4fe4c37a1ce663256f4d1cb2eb4290bcb57de5f2f8b3d00c155daaec3651",
+        "c645OutputSha256": "84676f7b2ec24f43cd2469fd6b4c5c441455a8e354d67845a11870731f00107d"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4f7bd27b68dd5b44fe05fb225e24d133d5c1694abd0d56a106d5cce39662cfad",
+        "c645OutputSha256": "e1358c6c6820ee49cd72cf68dc5448e3de0119a8229c9eecbfab348c0726d0b4"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "b722e0688d46b6890d14d4fc4167d2ac4812fdf50b9ed1e3809a7655baac5272",
+        "c645OutputSha256": "84e7b59f3444a6f42235758042137e0f1c9bf970c6d7c23a2ceb896f9363877d"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "6999985a9f2aea4fd196962b23e8cee036b1252d83cf4c289452315805c90ead",
+        "c645OutputSha256": "062c30880d83a19d63eaca2273c2e870ef0844629f5ff316125e3f27c304bfa8"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "8952f75b6c1ccf593e73d3a7b0f5825e08c08ab171cedfa48c72a2826fdc2fe1",
+        "c645OutputSha256": "3650ec3620985b61aad86fd446fab1685ffc7a8a48d3779b45ee28597a22a68e"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "cc8480e873a57bb5c7686c2b5ea203d4509e82607b6ce0c1cafe24e22d4a9d10",
+        "c645OutputSha256": "1ed7d96eef280fe9043465fcfa1482c2cc5c2246306238bb22b16c7ea4762432"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "45adac93e97a35b877a80a4fff2ce10ddeacbf7881e8d88af5eaff66dcdf2d43",
+        "c645OutputSha256": "077d038bb12bec86d8f1c66e059f2d247d224f3b657d9e31b05edcf80744d674"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "c777ab25044f6cafc6c2317764fea06c519fd5da22e77b787c015eb2a17501c8",
+        "c645OutputSha256": "0c851c921b24c1cd1efc386656098c9adfbc3bb781ba474aa13d623042bb8b74"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "186c8663b68ff7db07936d3da10f7daf2ae2ecaf5a565f0dc8177a05e81ee181",
+        "c645OutputSha256": "533b783aee60012fb9bee645974c17575b430c3a225970245dbeb4b6f363af33"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "31b1ba0e9751ffee27d52eed75be0c0c0369b8c64993f8327897b139e6e10375",
+        "c645OutputSha256": "3c947d78523b5689c7dbfbc5200ba5dc3e4fcfa308d52a67c52d69e9a9e0091a"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "95df163fee368ffba9bd889ca15b2a60a5a37951a91991b38bb8b467a58cd482",
+        "c645OutputSha256": "6b92f9a529cf18af44f43be6a985bb32f322726c408df9aaf79dbfbe425abcf0"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "d05ec363abd6cab0bcd04cde2ec873865955da15d5819b09755486d58c923b3b",
+        "c645OutputSha256": "d2a637aa03282bcb5853e7420269f45b6bb1e2115b32d816cb3d2e18e840e477"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "d800d0bcb10992b87118b31e4bee5a5de87e077a82825c5ae92f770046b7e576",
+        "c645OutputSha256": "22fb549bf03380581c351dc39d6a8cc8c947af9b2ce505db168b391a9008d8f4"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "971f724405dd0a906ac81a42300acdd5cb6877f4f25bba528323f60b6a6739de",
+        "c645OutputSha256": "17b96fb34345ffca9327c66830149d82333865fda3d4e2e158ff438b28a15c60"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "3ca078b3d0b602d094d52a94580cbee6ac6830bc14111a445136f2c65782ad33",
+        "c645OutputSha256": "ca00a31f00e3010d5a3b1a8987e02ca52422adc977b3a2953d5c7e185ee60729"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "b8e56b3591e7f75a4f172e29180c043028fe98654e7a9f96ac3c58962325f3d4",
+        "c645OutputSha256": "f0ee0e35d48cfcf9f69219872d68a634df48b278dc6d6af8f3dcf252746cbe32"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "771e8d8325037df127a16c7cfcbc29cab93dc168d00477e3584ad334b5328181",
+        "c645OutputSha256": "9e016f2168ba172fab9ba2345bab8ca414b03323e1fde0b1b1c9c0fc12dca987"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "b1771ec2609abf8397f0bc7f130063c2542e119190f83e52e92efd423ba273ed",
+        "c645OutputSha256": "503c91c34fc7696e27114a5e0a4de4a7cd52406de05330fd2c02e3374822678d"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "bdc5f011e7fcf6f9af6c2e593d22905e9d306cc5f369b6593beb00d7e7e24b4e",
+        "c645OutputSha256": "82a3161ec54a4c911853990fdb4177960efd85d23d04627ce24d6aac0d29fa57"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "456f3111e7d13f8cd9ec106317f1e1cb10892ad18f682692910ade8ce932a542",
+        "c645OutputSha256": "27f232e2dd9c217bcb9fb0771fb24e1338f42c8b6bd9d72cc6c63281e672b1a5"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "e3b5e279c256cb1c0ab42097c2318a55f75bde8bc5e9dca74ad4c736d567a542",
+        "c645OutputSha256": "d302b6b5ee513fa23964e3f0c8403904bfaf32fc8f1b547ec417d4e627169ce3"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4250a68b996bc1a515c606248da8993a89aa57254ab5db67e911e7eae042f51d",
+        "c645OutputSha256": "261afcfaab38084ff4b4e84b3968ffc5c4dcf907e895d3b9fd12876f0798a334"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "01de8cbd567f302aa3d48eae9779237c5d08fbeac640c7331203f6e912503f50",
+        "c645OutputSha256": "7a3178e1645f453a068c3a136dc250597baea2c2bf0212d088dac8059e60cbdd"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "f4a72e2ab0611bc06d4386366d19a45b7cd9378ca586086775036a4bd28225ac",
+        "c645OutputSha256": "78eed65226292cfaef37cca42263fef5c1eed7f4d48f52632989883532dbf3d0"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "47e2e9d8f9affc7efeb615bd8eda535757c7bf2a7e92f3aa520ae2d8bdf15646",
+        "c645OutputSha256": "38e2f7a442505124e5bacb4147cd21d9d575eee7e2a6a7fda5c29a4d8e6e6598"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "46f7872501b582a87feebcd6088f24d44317f2be7c02f02f9892eb92517e1bd3",
+        "c645OutputSha256": "7be7acfa6427c798dd334eb57f31b64fbb689349fdc10e2c91260b0d2b0a4196"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "2dfe65a760bcfabc04204a347329dc59ce2c2a1e0486d3fe66967d87795f2c03",
+        "c645OutputSha256": "5c32cce627d3ca7a92b2c69aa848830d8cf8d839de7426000e32df6ae5f75eb9"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "f0bcfc91318203cbaaa2c795b0b60cf42b63af6156ff493a9b09e0fd188e6ff4",
+        "c645OutputSha256": "f9eecc83ce5eeb37eae84cc701aa39624ed25cfecd58db18742d7a83dd00b0e3"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":null,\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936",
+        "c645OutputSha256": "4b6d292e49a3b874cb80d002d19033a1b73fc0bbe140866f03c98b7135c6f936"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "4f7bd27b68dd5b44fe05fb225e24d133d5c1694abd0d56a106d5cce39662cfad",
+        "c645OutputSha256": "e1358c6c6820ee49cd72cf68dc5448e3de0119a8229c9eecbfab348c0726d0b4"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "b722e0688d46b6890d14d4fc4167d2ac4812fdf50b9ed1e3809a7655baac5272",
+        "c645OutputSha256": "84e7b59f3444a6f42235758042137e0f1c9bf970c6d7c23a2ceb896f9363877d"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "6999985a9f2aea4fd196962b23e8cee036b1252d83cf4c289452315805c90ead",
+        "c645OutputSha256": "062c30880d83a19d63eaca2273c2e870ef0844629f5ff316125e3f27c304bfa8"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "8952f75b6c1ccf593e73d3a7b0f5825e08c08ab171cedfa48c72a2826fdc2fe1",
+        "c645OutputSha256": "3650ec3620985b61aad86fd446fab1685ffc7a8a48d3779b45ee28597a22a68e"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "cc8480e873a57bb5c7686c2b5ea203d4509e82607b6ce0c1cafe24e22d4a9d10",
+        "c645OutputSha256": "1ed7d96eef280fe9043465fcfa1482c2cc5c2246306238bb22b16c7ea4762432"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "45adac93e97a35b877a80a4fff2ce10ddeacbf7881e8d88af5eaff66dcdf2d43",
+        "c645OutputSha256": "077d038bb12bec86d8f1c66e059f2d247d224f3b657d9e31b05edcf80744d674"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "c777ab25044f6cafc6c2317764fea06c519fd5da22e77b787c015eb2a17501c8",
+        "c645OutputSha256": "0c851c921b24c1cd1efc386656098c9adfbc3bb781ba474aa13d623042bb8b74"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "186c8663b68ff7db07936d3da10f7daf2ae2ecaf5a565f0dc8177a05e81ee181",
+        "c645OutputSha256": "533b783aee60012fb9bee645974c17575b430c3a225970245dbeb4b6f363af33"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"owner\",\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "31b1ba0e9751ffee27d52eed75be0c0c0369b8c64993f8327897b139e6e10375",
+        "c645OutputSha256": "3c947d78523b5689c7dbfbc5200ba5dc3e4fcfa308d52a67c52d69e9a9e0091a"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "95df163fee368ffba9bd889ca15b2a60a5a37951a91991b38bb8b467a58cd482",
+        "c645OutputSha256": "6b92f9a529cf18af44f43be6a985bb32f322726c408df9aaf79dbfbe425abcf0"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "d05ec363abd6cab0bcd04cde2ec873865955da15d5819b09755486d58c923b3b",
+        "c645OutputSha256": "d2a637aa03282bcb5853e7420269f45b6bb1e2115b32d816cb3d2e18e840e477"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "d800d0bcb10992b87118b31e4bee5a5de87e077a82825c5ae92f770046b7e576",
+        "c645OutputSha256": "22fb549bf03380581c351dc39d6a8cc8c947af9b2ce505db168b391a9008d8f4"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "971f724405dd0a906ac81a42300acdd5cb6877f4f25bba528323f60b6a6739de",
+        "c645OutputSha256": "17b96fb34345ffca9327c66830149d82333865fda3d4e2e158ff438b28a15c60"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "3ca078b3d0b602d094d52a94580cbee6ac6830bc14111a445136f2c65782ad33",
+        "c645OutputSha256": "ca00a31f00e3010d5a3b1a8987e02ca52422adc977b3a2953d5c7e185ee60729"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "b8e56b3591e7f75a4f172e29180c043028fe98654e7a9f96ac3c58962325f3d4",
+        "c645OutputSha256": "f0ee0e35d48cfcf9f69219872d68a634df48b278dc6d6af8f3dcf252746cbe32"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "771e8d8325037df127a16c7cfcbc29cab93dc168d00477e3584ad334b5328181",
+        "c645OutputSha256": "9e016f2168ba172fab9ba2345bab8ca414b03323e1fde0b1b1c9c0fc12dca987"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "b1771ec2609abf8397f0bc7f130063c2542e119190f83e52e92efd423ba273ed",
+        "c645OutputSha256": "503c91c34fc7696e27114a5e0a4de4a7cd52406de05330fd2c02e3374822678d"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"editor\",\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "bdc5f011e7fcf6f9af6c2e593d22905e9d306cc5f369b6593beb00d7e7e24b4e",
+        "c645OutputSha256": "82a3161ec54a4c911853990fdb4177960efd85d23d04627ce24d6aac0d29fa57"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"full\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "456f3111e7d13f8cd9ec106317f1e1cb10892ad18f682692910ade8ce932a542",
+        "c645OutputSha256": "27f232e2dd9c217bcb9fb0771fb24e1338f42c8b6bd9d72cc6c63281e672b1a5"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"full\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "e3b5e279c256cb1c0ab42097c2318a55f75bde8bc5e9dca74ad4c736d567a542",
+        "c645OutputSha256": "d302b6b5ee513fa23964e3f0c8403904bfaf32fc8f1b547ec417d4e627169ce3"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"full\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "4250a68b996bc1a515c606248da8993a89aa57254ab5db67e911e7eae042f51d",
+        "c645OutputSha256": "261afcfaab38084ff4b4e84b3968ffc5c4dcf907e895d3b9fd12876f0798a334"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"editorial\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "01de8cbd567f302aa3d48eae9779237c5d08fbeac640c7331203f6e912503f50",
+        "c645OutputSha256": "7a3178e1645f453a068c3a136dc250597baea2c2bf0212d088dac8059e60cbdd"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"editorial\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "f4a72e2ab0611bc06d4386366d19a45b7cd9378ca586086775036a4bd28225ac",
+        "c645OutputSha256": "78eed65226292cfaef37cca42263fef5c1eed7f4d48f52632989883532dbf3d0"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"editorial\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "47e2e9d8f9affc7efeb615bd8eda535757c7bf2a7e92f3aa520ae2d8bdf15646",
+        "c645OutputSha256": "38e2f7a442505124e5bacb4147cd21d9d575eee7e2a6a7fda5c29a4d8e6e6598"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"disabled\",\"environment\":\"production-admin\"}": {
+        "originalOutputSha256": "46f7872501b582a87feebcd6088f24d44317f2be7c02f02f9892eb92517e1bd3",
+        "c645OutputSha256": "7be7acfa6427c798dd334eb57f31b64fbb689349fdc10e2c91260b0d2b0a4196"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"disabled\",\"environment\":\"local-production\"}": {
+        "originalOutputSha256": "2dfe65a760bcfabc04204a347329dc59ce2c2a1e0486d3fe66967d87795f2c03",
+        "c645OutputSha256": "5c32cce627d3ca7a92b2c69aa848830d8cf8d839de7426000e32df6ae5f75eb9"
+      },
+      "{\"kind\":\"chrome\",\"file\":\"apps/admin/app/(control-plane)/layout.tsx\",\"role\":\"viewer\",\"profile\":\"disabled\",\"environment\":\"admin-uat\"}": {
+        "originalOutputSha256": "f0bcfc91318203cbaaa2c795b0b60cf42b63af6156ff493a9b09e0fd188e6ff4",
+        "c645OutputSha256": "f9eecc83ce5eeb37eae84cc701aa39624ed25cfecd58db18742d7a83dd00b0e3"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":false,\"denied\":false}": {
+        "originalOutputSha256": "44d1a8ba30d201328cc24d9a3a616c1d6b896ce6587f1c9f4795fbee5094846a",
+        "c645OutputSha256": "d80d7c721f5486c90c942fc6ce2385d79f7d9e442dc2586c64ffd09c5c1de480"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":false,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":true,\"denied\":false}": {
+        "originalOutputSha256": "44d1a8ba30d201328cc24d9a3a616c1d6b896ce6587f1c9f4795fbee5094846a",
+        "c645OutputSha256": "d80d7c721f5486c90c942fc6ce2385d79f7d9e442dc2586c64ffd09c5c1de480"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":true,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":false,\"denied\":false}": {
+        "originalOutputSha256": "44d1a8ba30d201328cc24d9a3a616c1d6b896ce6587f1c9f4795fbee5094846a",
+        "c645OutputSha256": "d80d7c721f5486c90c942fc6ce2385d79f7d9e442dc2586c64ffd09c5c1de480"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":false,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":true,\"denied\":false}": {
+        "originalOutputSha256": "44d1a8ba30d201328cc24d9a3a616c1d6b896ce6587f1c9f4795fbee5094846a",
+        "c645OutputSha256": "d80d7c721f5486c90c942fc6ce2385d79f7d9e442dc2586c64ffd09c5c1de480"
+      },
+      "{\"kind\":\"health\",\"file\":\"app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":true,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":false,\"denied\":false}": {
+        "originalOutputSha256": "ac903d3954902ab271388bb4bd65bf7768f66ad1fc4812019365d74b514e7934",
+        "c645OutputSha256": "c104081afbb66f8b8e084b0a1f5d0ddb712569dc3e2ebfba13581cda155e6231"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":false,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":true,\"denied\":false}": {
+        "originalOutputSha256": "7759aa08e3fe14f48b15afdc1675806d71669d500bf010ca2324bade2f219bcf",
+        "c645OutputSha256": "20ba0f5eee0d60b886273cf019ee81cce91c81a31fea580f29326f5bb16b5ca0"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":false,\"warning\":true,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":false,\"denied\":false}": {
+        "originalOutputSha256": "45bfb14cbe45bdb3364bd1a0def9e00e1e2538af2b8754b4ba82a642b7dc5fd3",
+        "c645OutputSha256": "cc4bbd292b9f02a3e2701353e7cb2d8eab3396df93237f81aa03a21523bb7648"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":false,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":true,\"denied\":false}": {
+        "originalOutputSha256": "3683a834713b6bc27728c6ce8bc6ce107d230dbaef9dc39177024f336d34ea05",
+        "c645OutputSha256": "956d5baa9c78e438a0aa06f90a41dd8f6760d810399ca463da2cf22902003115"
+      },
+      "{\"kind\":\"health\",\"file\":\"apps/admin/app/(control-plane)/operations/health/page.tsx\",\"ready\":true,\"warning\":true,\"denied\":true}": {
+        "originalOutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a",
+        "c645OutputSha256": "c92e1652f54280d9760904b7048e655f0585ac4b901f15410405285b8d4d167a"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":false}": {
+        "originalOutputSha256": "439cd70137daf7c55a935e49dc0bb8af7e2e0773e163a1448695a0195acf67d0",
+        "c645OutputSha256": "5875183c278af0caa46373e01bfc1e33e8541e2e610f3babe834006ba25b2ebe"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "15fb0999d8a57757defa087369151bc43e6f07444ff6e8983d4c8cfe3d390cde",
+        "c645OutputSha256": "97bc305c676b4a69fe0f65c7450a41b5d6f11508911da65f1c26075cf09bc958"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":false}": {
+        "originalOutputSha256": "cbb452630bccfe82ff6c30f689293d16bf09fd8dc9145aaf93d3863b65ea1778",
+        "c645OutputSha256": "5e1fb6fb83f52ccca40d78525b38b7d975cc7e7cb22ceec5eab8cec176b6afe6"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "a181e82120c6186ba08670127650584b2b272a3dc9b4224f1ae1f5d081e90953",
+        "c645OutputSha256": "3d76a7a3feaaa610f2403cc41b88051256be42423085f65e9a090c06f79ec441"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":false}": {
+        "originalOutputSha256": "d5e480d6e554f28aa0c120bed726bc0b5b5c43c0c6a85e222c738c97df60e4fb",
+        "c645OutputSha256": "2eddf9579011e4fafe55d6ab1fc1b08eb2f5b348e80f64b5739deb49a45e684f"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "48bbeb41830f1d44621a389afdaae1084142716b76647df39a7598cdef9f2dec",
+        "c645OutputSha256": "8ab09b668c76fcb8ae17b7e478f5ca3ed4b09c619fe22b687f52783cf9cd0bac"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":false}": {
+        "originalOutputSha256": "d8aa88b80fea954721c1c1078d2573ec0e418e8ea6824dd17af3fdfc5208366b",
+        "c645OutputSha256": "1aa80b3be396d2cd9cebe5bb7fbc75be89d1545872ea5edeef2183f5a1adde9b"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "837edf38be0031827dbe4b721cd32d01c4a41ff4f56e787765d8ef13d309a391",
+        "c645OutputSha256": "4dd3887fb4b252f3f2537070cf6dcbe871c187563eb38a73eabfebbb2e82c38a"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":false}": {
+        "originalOutputSha256": "439cd70137daf7c55a935e49dc0bb8af7e2e0773e163a1448695a0195acf67d0",
+        "c645OutputSha256": "5875183c278af0caa46373e01bfc1e33e8541e2e610f3babe834006ba25b2ebe"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "15fb0999d8a57757defa087369151bc43e6f07444ff6e8983d4c8cfe3d390cde",
+        "c645OutputSha256": "97bc305c676b4a69fe0f65c7450a41b5d6f11508911da65f1c26075cf09bc958"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":false,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":false}": {
+        "originalOutputSha256": "cbb452630bccfe82ff6c30f689293d16bf09fd8dc9145aaf93d3863b65ea1778",
+        "c645OutputSha256": "5e1fb6fb83f52ccca40d78525b38b7d975cc7e7cb22ceec5eab8cec176b6afe6"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "a181e82120c6186ba08670127650584b2b272a3dc9b4224f1ae1f5d081e90953",
+        "c645OutputSha256": "3d76a7a3feaaa610f2403cc41b88051256be42423085f65e9a090c06f79ec441"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"owner\",\"ready\":true,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":false}": {
+        "originalOutputSha256": "d5e480d6e554f28aa0c120bed726bc0b5b5c43c0c6a85e222c738c97df60e4fb",
+        "c645OutputSha256": "2eddf9579011e4fafe55d6ab1fc1b08eb2f5b348e80f64b5739deb49a45e684f"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "48bbeb41830f1d44621a389afdaae1084142716b76647df39a7598cdef9f2dec",
+        "c645OutputSha256": "8ab09b668c76fcb8ae17b7e478f5ca3ed4b09c619fe22b687f52783cf9cd0bac"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":false,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":false}": {
+        "originalOutputSha256": "d8aa88b80fea954721c1c1078d2573ec0e418e8ea6824dd17af3fdfc5208366b",
+        "c645OutputSha256": "1aa80b3be396d2cd9cebe5bb7fbc75be89d1545872ea5edeef2183f5a1adde9b"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":false,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "837edf38be0031827dbe4b721cd32d01c4a41ff4f56e787765d8ef13d309a391",
+        "c645OutputSha256": "4dd3887fb4b252f3f2537070cf6dcbe871c187563eb38a73eabfebbb2e82c38a"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":true}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"dashboard\",\"file\":\"apps/admin/app/(control-plane)/dashboard/page.tsx\",\"role\":\"viewer\",\"ready\":true,\"denied\":true,\"error\":\"forbidden\"}": {
+        "originalOutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3",
+        "c645OutputSha256": "761030e3234dd02850fb5f97bedee67889594b87ecf3b59d5bcf3eec55578ba3"
+      },
+      "{\"kind\":\"settings\",\"file\":\"app/(control-plane)/settings/page.tsx\",\"denied\":false}": {
+        "originalOutputSha256": "810bd04ab4c23ae0fe09ebb95140883df1bfc0ef13a11c8008f2b7b54361d7b7",
+        "c645OutputSha256": "d9d9dd2eb6bc79a16e9dbfb0a78b53d4f3a31b7903beeaf75ff2fffb8773ecc9"
+      },
+      "{\"kind\":\"settings\",\"file\":\"app/(control-plane)/settings/page.tsx\",\"denied\":true}": {
+        "originalOutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f",
+        "c645OutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f"
+      },
+      "{\"kind\":\"settings\",\"file\":\"apps/admin/app/(control-plane)/settings/page.tsx\",\"denied\":false}": {
+        "originalOutputSha256": "810bd04ab4c23ae0fe09ebb95140883df1bfc0ef13a11c8008f2b7b54361d7b7",
+        "c645OutputSha256": "d9d9dd2eb6bc79a16e9dbfb0a78b53d4f3a31b7903beeaf75ff2fffb8773ecc9"
+      },
+      "{\"kind\":\"settings\",\"file\":\"apps/admin/app/(control-plane)/settings/page.tsx\",\"denied\":true}": {
+        "originalOutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f",
+        "c645OutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f"
+      }
+    }
+  }
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { reviewedCompositionSource, productionBaselineSource } from '../qa/phase1-source-proof.mjs';
+import { reviewedCompositionSource, productionBaselineSource, inheritedUatSourceDigest, assertInheritedUatFixtureSources, assertInheritedUatOutput } from '../qa/phase1-source-proof.mjs';
 import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 const sha = value => createHash('sha256').update(value).digest('hex');
 const read = file => readFileSync(file, 'utf8');
@@ -31,7 +31,7 @@ test('every admitted source has exact original and current hashes, registered ou
   const reached = new Set();
   assert.ok(Object.keys(proof.compositions).length > 0, 'must seal actual authorized compositions');
   for (const [file, record] of Object.entries(proof.compositions)) {
-    assert.equal(sha(read(file)), record.candidateSha256, file);
+    assert.equal(sha(read(file)), inheritedUatSourceDigest(file, record.candidateSha256, proof), file);
     assert.equal(sha(proof.baselineSources[file]), record.baselineSha256, file);
     assert.notEqual(record.candidateSha256, record.baselineSha256, file + ': no no-op projection');
     for (const suite of proof.coverage[file]) assert.ok(read(suite.file).includes(suite.title), file + ': registered actual fixture missing');
@@ -41,4 +41,30 @@ test('every admitted source has exact original and current hashes, registered ou
   }
   assert.deepEqual([...reached].sort(), [...owners].sort(), 'every new owner must have an actual entry import consumer');
   assert.equal(productionBaselineSource('apps/admin/scripts/build-provider.mjs'), read('apps/admin/scripts/build-provider.mjs'), 'unlisted SWC driver reads actual bytes');
+});
+
+test('inherited C645 admission rejects unknown commits, hashes, owner bodies, environments and output changes', () => {
+  assertInheritedUatFixtureSources(proof, read);
+  const admission = proof.reviewedInheritedUat;
+  assert.equal(admission.sourceCommit, 'c64540ec7bd31c9380880173a03d996902b23b64');
+  assert.equal(Object.keys(admission.sourceDigests).length, 8);
+  assert.equal(Object.keys(admission.outputs).length, 178);
+  for (const mutate of [
+    p => { p.reviewedInheritedUat.sourceCommit = 'unknown'; },
+    p => { p.reviewedInheritedUat.sourceDigests['unknown.ts'] = { originalSha256: 'unknown', c645Sha256: 'unknown' }; },
+    p => { Object.values(p.reviewedInheritedUat.sourceDigests)[0].c645Sha256 = 'unknown'; },
+    p => { Object.values(p.reviewedInheritedUat.sourceDigests)[0].originalSha256 = 'unknown'; },
+    p => { Object.values(p.reviewedInheritedUat.outputs)[0].c645OutputSha256 = 'unknown'; },
+    p => { p.owners[Object.keys(p.owners)[0]] = 'unknown'; },
+    p => { p.baselineSources[Object.keys(p.baselineSources)[0]] += 'tampered'; },
+  ]) {
+    const tampered = structuredClone(proof); mutate(tampered);
+    assert.throws(() => assertInheritedUatFixtureSources(tampered, read), /proof drift|admission/);
+  }
+  const owner = Object.keys(admission.sourceDigests)[0];
+  assert.throws(() => assertInheritedUatFixtureSources(proof, file => read(file) + (file === owner ? 'tampered' : '')), /owner body/);
+  const firstKey = JSON.parse(Object.keys(admission.outputs)[0]);
+  assert.throws(() => assertInheritedUatOutput({}, {}, { ...firstKey, environment: 'unknown-lane' }, proof), /unregistered/);
+  assert.throws(() => assertInheritedUatOutput({ trace: ['tampered'] }, { trace: [] }, firstKey, proof), /non-DOM invariant/);
+  assert.throws(() => assertInheritedUatOutput({}, {}, firstKey, proof), /Production output drift/);
 });
