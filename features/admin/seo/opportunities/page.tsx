@@ -5,6 +5,8 @@ import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getSeoIntelligenceRuntimeStatus } from "@/lib/admin/seo-intelligence/foundation";
 import GscManualSync from "./GscManualSync";
 import Ga4ManualSync from "./Ga4ManualSync";
+import { headers } from "next/headers";
+import { getGoogleSessionContext, getGoogleSessionReadiness } from "@/lib/admin/seo-intelligence/google-session-connection";
 
 export const metadata: Metadata = { title: "ผลลัพธ์จากการค้นหาธรรมชาติ" };
 
@@ -13,11 +15,16 @@ function bangkokDate(daysAgo: number) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 
-export default async function SeoOpportunitiesPage() {
-  await requireAdminPermission("seo:read");
+export default async function SeoOpportunitiesPage({ searchParams }: { searchParams?: Promise<{ googleConnect?: string }> } = {}) {
+  const identity = await requireAdminPermission("seo:read");
   const runtime = getSeoIntelligenceRuntimeStatus();
   if (!runtime.enabled) notFound();
   const laneLabel = runtime.environment === "production-admin" ? "ระบบจริง" : "พื้นที่ทดสอบ";
+  const context = getGoogleSessionContext(process.env, identity);
+  const connectAllowed = Boolean(context);
+  const connection = connectAllowed ? await getGoogleSessionReadiness(
+    new Request(`${context!.origin}/seo/opportunities/`, { headers: await headers() }), identity, process.env) : undefined;
+  const connectError = connectAllowed && ["unauthorized", "forbidden", "forbidden-origin", "configuration-required", "connect-required"].includes((await searchParams)?.googleConnect ?? "");
 
   return (
     <div>
@@ -31,7 +38,8 @@ export default async function SeoOpportunitiesPage() {
       </div>
 
       <GscManualSync defaultStartDate={bangkokDate(27)} defaultEndDate={bangkokDate(0)} laneLabel={laneLabel} />
-      <Ga4ManualSync defaultStartDate={bangkokDate(27)} defaultEndDate={bangkokDate(0)} laneLabel={laneLabel} />
+      <Ga4ManualSync defaultStartDate={bangkokDate(27)} defaultEndDate={bangkokDate(0)} laneLabel={laneLabel}
+        sessionConnectAllowed={connectAllowed} sessionConnectionState={connection?.reason} sessionConnectError={connectError} />
     </div>
   );
 }

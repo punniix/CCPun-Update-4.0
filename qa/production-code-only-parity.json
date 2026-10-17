@@ -713,5 +713,60 @@
         "hero-cta"
       ]
     }
+  },
+  "reviewedGoogleSessionProduction": {
+    "baselineCommit": "0e88533a04bdad9d3cee6991431bd7be41f623b0",
+    "environment": "production-admin",
+    "retainedSources": {
+      "lib/admin/seo-intelligence/google-data-auth.ts": {
+        "originalSha256": "73dc9b6c1cde96ea1ada36bc1ac241739c99a189c39fe1ba041cee8a728c4a52",
+        "baselineSha256": "73dc9b6c1cde96ea1ada36bc1ac241739c99a189c39fe1ba041cee8a728c4a52",
+        "candidateSha256": "d700719bb4068f53d4c029447ad8474823d8f6d4b5a1c85646272aed9884fdda"
+      },
+      "lib/admin/seo-intelligence/provider-readiness.ts": {
+        "originalSha256": "d5b55a264cae1a77afa84b69dc74ea4da2f896c3f6a6b305908c488d736e0de6",
+        "baselineSha256": "d5b55a264cae1a77afa84b69dc74ea4da2f896c3f6a6b305908c488d736e0de6",
+        "candidateSha256": "712177a872b538e9a82899439ad685e0aca863cde865f12d4d157380812712ba"
+      },
+      "apps/admin/app/api/admin/seo/providers/readiness/route.ts": {
+        "originalSha256": "1102ab55920dbb2bedbf18ddb2cfb3c0fdc5f9c8748b38be4d99c0fd61378d06",
+        "baselineSha256": "1102ab55920dbb2bedbf18ddb2cfb3c0fdc5f9c8748b38be4d99c0fd61378d06",
+        "candidateSha256": "0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc"
+      },
+      "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": {
+        "originalSha256": "fb2b8914578046cc4c862b29d146adeae3aebee64a7cf8fe957a57fd36f18124",
+        "baselineSha256": "fb2b8914578046cc4c862b29d146adeae3aebee64a7cf8fe957a57fd36f18124",
+        "candidateSha256": "ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a"
+      },
+      "features/admin/seo/opportunities/page.tsx": {
+        "originalSha256": "1e53b78fc0298e18022d11659405191a6af02d5eac1a94249d8c784902c00bef",
+        "baselineSha256": "1e53b78fc0298e18022d11659405191a6af02d5eac1a94249d8c784902c00bef",
+        "candidateSha256": "3ce7ad2f5f3a8f6f78b06625620b465f340de647084e76fab350511762993fa6"
+      },
+      "features/admin/seo/opportunities/Ga4ManualSync.tsx": {
+        "originalSha256": "49dead020ef79aa2542fef56dc303b6da94153be3b4a2e7687d43e22216e0cbb",
+        "baselineSha256": "49dead020ef79aa2542fef56dc303b6da94153be3b4a2e7687d43e22216e0cbb",
+        "candidateSha256": "ec2b947ba2f0bf5d6e63be43f578df2a2a1b1ccb3ff1cb330ad7a368ededd634"
+      }
+    },
+    "currentSourceDigests": {
+      "auth.ts": "2c71e6e6c10025c61a2ccc63010a976bbb31d34afab26ff050bff32ff653557a",
+      "types/next-auth.d.ts": "a0a87478efeb2d55df25adcb9bab63bf1d4454846ddd4a6c4d9ba4fdb0534286",
+      "lib/admin/seo-intelligence/google-session-connection.ts": "f410c19392824b0190ad0bb478481fa6a1f4e3e266c8093649b5873e65d50605",
+      "lib/admin/seo-intelligence/google-data-auth.ts": "d700719bb4068f53d4c029447ad8474823d8f6d4b5a1c85646272aed9884fdda",
+      "lib/admin/seo-intelligence/provider-readiness.ts": "712177a872b538e9a82899439ad685e0aca863cde865f12d4d157380812712ba",
+      "apps/admin/app/api/admin/seo/providers/connect/route.ts": "75b616c6dc2ea1a3b50baa1b56164dfdaa0e83bc97a019c743c51a4e07dc5ef2",
+      "apps/admin/app/api/admin/seo/providers/readiness/route.ts": "0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc",
+      "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": "ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a",
+      "features/admin/seo/opportunities/page.tsx": "3ce7ad2f5f3a8f6f78b06625620b465f340de647084e76fab350511762993fa6",
+      "features/admin/seo/opportunities/Ga4ManualSync.tsx": "ec2b947ba2f0bf5d6e63be43f578df2a2a1b1ccb3ff1cb330ad7a368ededd634",
+      "tests/admin/google-session-connection.test.ts": "ba6e205288191b400a70b7ffd9ff1599793b9409ba4a7b85a1f506a7558d8cfc",
+      "tests/admin/google-session-auth.test.ts": "233462888b9af1173c5d1da0f093a36d5ce765241662157d13af33c76af390fe"
+    },
+    "outputTests": [
+      "tests/admin/google-session-connection.test.ts",
+      "tests/admin/google-session-auth.test.ts"
+    ],
+    "coverage": "Actual current Production Connect/callback/readiness/manual-reader plus invalid grant/legacy fallback and unchanged native-UAT denial are checked by pinned tests. The six source admissions retain original Production proof records; they do not claim unchanged feature behavior."
   }
 }

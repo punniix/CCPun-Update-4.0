@@ -15,7 +15,28 @@ const read = file => productionBaselineSource(file);
 const sha = value => createHash('sha256').update(value).digest('hex');
 const proof = JSON.parse(read('qa/production-code-only-parity.json'));
 
-test('code-only release preserves its own Production canonical owners, UI, tracking, SEO and auth sources', () => {
+// Exact new Google Connect bodies are checked before their six reviewed source
+// admissions. The original Production maps and all other guards remain immutable.
+function assertReviewedGoogleSessionProduction(file, originalDigest, value, reader, environment) {
+  assert.equal(environment, 'production-admin', 'unreviewed Google session environment');
+  const { reviewedGoogleSessionProduction: record, ...original } = value;
+  assert.equal(sha(JSON.stringify(original)), '5299183ab8850885e12516aaa91b4fb01b21530ac81fbfbf7d0810d7f3898688', 'original Production proof drift');
+  assert.equal(sha(JSON.stringify(record)), '221f259ec905734e36b59dab1cb82d7f23ee8839f126e4c70b82ebcda42e2d17', 'unreviewed Production Google session admission');
+  assert.equal(record.baselineCommit, '0e88533a04bdad9d3cee6991431bd7be41f623b0');
+  assert.equal(Object.keys(record.currentSourceDigests).length, 12);
+  assert.equal(Object.keys(record.retainedSources).length, 6);
+  assert.deepEqual(record.outputTests, ['tests/admin/google-session-connection.test.ts', 'tests/admin/google-session-auth.test.ts']);
+  for (const [path, digest] of Object.entries(record.currentSourceDigests))
+    assert.equal(sha(reader(path)), digest, path + ': unreviewed actual Google session body');
+  const pins = record.retainedSources[file];
+  assert.ok(pins, file + ': unreviewed Production Google session path');
+  assert.equal(pins.originalSha256, originalDigest, file + ': original protected source drift');
+  assert.equal(pins.baselineSha256, originalDigest, file + ': immutable 0e885 ancestor drift');
+  assert.equal(pins.candidateSha256, record.currentSourceDigests[file], file + ': current source pin drift');
+  return true;
+}
+
+test('original Production owners remain guarded alongside exact reviewed Google Connect feature sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
     if (file === 'features/admin/operations/DeploymentsPage.tsx') {
@@ -61,6 +82,8 @@ test('code-only release preserves its own Production canonical owners, UI, track
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
+    else if (Object.hasOwn(proof.reviewedGoogleSessionProduction.retainedSources, file))
+      assert.equal(assertReviewedGoogleSessionProduction(file, digest, proof, path => readFileSync(resolve(root, path), 'utf8'), 'production-admin'), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);
   }
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation', 'lib/runtime/investment-availability.ts']) {
@@ -96,5 +119,31 @@ test('only eight unreachable class declarations are removed; every retained CSS 
       expected = expected.replace(rule, '');
     }
     assert.equal(read(file), expected.replace(/^[ \t]+$/gm, ""), file);
+  }
+});
+
+
+test('Production Google session admission rejects unknown lanes, source bodies, ancestors, proof and coverage', () => {
+  const record = proof.reviewedGoogleSessionProduction, reader = path => readFileSync(resolve(root, path), 'utf8');
+  const file = 'lib/admin/seo-intelligence/google-data-auth.ts', original = record.retainedSources[file].originalSha256;
+  for (const [path, pins] of Object.entries(record.retainedSources))
+    assert.equal(assertReviewedGoogleSessionProduction(path, pins.originalSha256, proof, reader, 'production-admin'), true);
+  for (const environment of ['admin-uat', 'web-uat', 'local-production', 'unknown', undefined])
+    assert.throws(() => assertReviewedGoogleSessionProduction(file, original, proof, reader, environment));
+  assert.throws(() => assertReviewedGoogleSessionProduction('unknown.ts', original, proof, reader, 'production-admin'));
+  assert.throws(() => assertReviewedGoogleSessionProduction(file, 'unknown', proof, reader, 'production-admin'));
+  for (const path of Object.keys(record.currentSourceDigests))
+    assert.throws(() => assertReviewedGoogleSessionProduction(file, original, proof, name => reader(name) + (name === path ? '//tamper' : ''), 'production-admin'));
+  for (const mutate of [
+    value => { value.reviewedGoogleSessionProduction.baselineCommit = 'unknown'; },
+    value => { value.reviewedGoogleSessionProduction.retainedSources[file].baselineSha256 = 'unknown'; },
+    value => { value.reviewedGoogleSessionProduction.retainedSources[file].originalSha256 = 'unknown'; },
+    value => { delete value.reviewedGoogleSessionProduction.currentSourceDigests[file]; },
+    value => { value.reviewedGoogleSessionProduction.currentSourceDigests['unknown.ts'] = 'unknown'; },
+    value => { value.reviewedGoogleSessionProduction.outputTests.pop(); },
+    value => { value.protected[file] = 'unknown'; },
+  ]) {
+    const changed = structuredClone(proof); mutate(changed);
+    assert.throws(() => assertReviewedGoogleSessionProduction(file, original, changed, reader, 'production-admin'));
   }
 });

@@ -54,7 +54,7 @@ function nextCheck(row: Ga4DashboardRow) {
   return "ควรตรวจว่าการเติบโตมาจากเนื้อหาหรือกลุ่มคำค้นใด";
 }
 
-export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "พื้นที่ทดสอบ" }) {
+export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel, sessionConnectAllowed = false, sessionConnectionState, sessionConnectError = false }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "พื้นที่ทดสอบ"; sessionConnectAllowed?: boolean; sessionConnectionState?: "configuration-required" | "connect-required" | "connected"; sessionConnectError?: boolean }) {
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
@@ -92,6 +92,14 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
 
   return (
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-5" aria-labelledby="ga4-title">
+      {sessionConnectAllowed ? <div className="mb-5">
+        <p role="status" className="mb-2 text-sm text-white/60">{sessionConnectionState === "connected" ? `เชื่อมต่อ GA4 ของ${laneLabel}แล้ว พร้อมอ่านเมื่อกด` : "ยังไม่ได้เชื่อมต่อหรือการเชื่อมต่อหมดอายุ ให้ Owner เชื่อมใหม่"}</p>
+        {sessionConnectError ? <p role="alert" className="mb-2 text-sm text-red-200">ยังเชื่อมต่อไม่ได้ กรุณายืนยันบัญชี Owner และการตั้งค่าของ{laneLabel} หาก session เดิมไม่รองรับ ให้เข้าสู่ระบบใหม่ก่อนเชื่อมต่ออีกครั้ง</p> : null}
+        <form action="/api/admin/seo/providers/connect/" method="post">
+          <button type="submit" className="glass-button-sm inline-flex min-h-11 items-center text-sm text-white">เชื่อม Google Analytics สำหรับ {laneLabel}</button>
+        </form>
+        <p className="mt-2 text-sm text-white/60">Owner อนุญาตให้ระบบอ่าน GA4 ของ{laneLabel} การเชื่อมต่ออยู่ได้สูงสุด 8 ชั่วโมง หากออกจากระบบหรือหมดอายุให้เชื่อมใหม่ ไม่มีการดึงข้อมูลจนกว่าจะกดปุ่มด้านล่าง</p>
+      </div> : null}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 id="ga4-title" className="text-xl font-semibold">GA4 · ผู้เข้าชมจากผลค้นหา</h2>
