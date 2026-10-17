@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { assertReviewedSeoUatEvidence } from './phase1-source-proof.mjs';
 
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const sha = source => createHash('sha256').update(source).digest('hex');
@@ -48,7 +49,9 @@ export function assertNativeProviderRetirement(file, expectedBaselineDigest, pro
   for (const path of admitted) assert.ok(proof.currentHashes[path], path + ': missing current source seal');
   for (const path of Object.keys(reviewedOutputTests)) {
     assert.equal(proof.outputTestHashes[path], reviewedOutputTests[path], path + ': reviewed evidence seal differs');
-    assert.equal(sha(current(path)), reviewedOutputTests[path], path + ': output coverage changed without review');
+    if (sha(current(path)) !== reviewedOutputTests[path])
+      assert.equal(assertReviewedSeoUatEvidence(path, reviewedOutputTests[path], JSON.parse(current('qa/phase1-source-ownership.json')), current, 'admin-uat'), true);
+    else assert.equal(sha(current(path)), reviewedOutputTests[path], path + ': output coverage changed without review');
     assert.ok(JSON.parse(current('package.json')).scripts[path === 'tests/hostinger-shadow-config.test.mjs' ? 'test:hostinger' : 'test:foundation-contracts'].includes(path), path + ': output tests are not registered');
   }
   const identity = current('lib/runtime/deployment-identity.ts');
@@ -65,7 +68,9 @@ export function assertReviewedNativeShadowTest(expectedBaselineDigest, proof = J
   assert.equal(sha(proof.baselineSources[path]), expectedBaselineDigest);
   assert.equal(proof.baselineHashes[path], expectedBaselineDigest);
   assert.equal(proof.outputTestHashes[path], reviewedOutputTests[path]);
-  assert.equal(sha(current(path)), reviewedOutputTests[path]);
+  if (sha(current(path)) !== reviewedOutputTests[path])
+    assert.equal(assertReviewedSeoUatEvidence(path, reviewedOutputTests[path], JSON.parse(current('qa/phase1-source-ownership.json')), current, 'admin-uat'), true);
+  else assert.equal(sha(current(path)), reviewedOutputTests[path]);
   assert.equal(JSON.parse(current('package.json')).scripts['test:hostinger'], 'node --test ' + path);
   return true;
 }

@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
 import { getAdminIdentity } from "@/lib/admin/identity";
-import { importChatOcrMessages } from "@/lib/admin/line/conversation-archive";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 
 export const runtime = "nodejs";
@@ -13,15 +12,6 @@ const headers = {
   "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
   "X-Robots-Tag": "noindex, nofollow, noarchive",
 };
-
-const bodySchema = z.object({
-  requestId: z.string().regex(/^[A-Za-z0-9._:-]{8,160}$/),
-  messages: z.array(z.object({
-    direction: z.enum(["inbound", "outbound"]),
-    text: z.string().trim().min(1).max(5000),
-    occurredAt: z.string().datetime({ offset: true }),
-  }).strict()).min(1).max(200),
-}).strict();
 
 export async function POST(
   request: Request,
@@ -39,27 +29,12 @@ export async function POST(
   const leadId = z.string().uuid().safeParse((await params).leadId);
   if (!leadId.success) return NextResponse.json({ error: "invalid-lead" }, { status: 400, headers });
 
-  const raw = await request.text();
-  if (Buffer.byteLength(raw, "utf8") > 1_000_000) {
-    return NextResponse.json({ error: "payload-too-large" }, { status: 413, headers });
+  if (process.env.CCPUN_CHAT_OCR_ENABLED?.trim() !== "true") {
+    return NextResponse.json({ error: "chat-ocr-disabled" }, { status: 503, headers });
   }
 
-  let value: unknown;
-  try { value = JSON.parse(raw); }
-  catch { return NextResponse.json({ error: "invalid-json" }, { status: 400, headers }); }
-
-  const parsed = bodySchema.safeParse(value);
-  if (!parsed.success) return NextResponse.json({ error: "invalid-ocr-review" }, { status: 400, headers });
-
-  try {
-    const result = await importChatOcrMessages({
-      leadId: leadId.data,
-      requestId: parsed.data.requestId,
-      messages: parsed.data.messages,
-    });
-    return NextResponse.json(result, { headers });
-  } catch (error) {
-    const code = error instanceof Error ? error.message : "CHAT_OCR_IMPORT_FAILED";
-    return NextResponse.json({ error: code.toLowerCase() }, { status: 503, headers });
-  }
+  // No private writes until the owner reviews a server-issued, single-use OCR
+  // proposal bound to this actor, lead, source image, payload revision and expiry.
+  // A client-supplied requestId by itself is not an authorization receipt.
+  return NextResponse.json({ error: "chat-ocr-proposal-verification-required" }, { status: 503, headers });
 }

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+import { assertInheritedUatFixtureSources, assertInheritedUatOutput } from '../qa/phase1-source-proof.mjs';
 const require = createRequire(import.meta.url);
 const React = require('react');
 const runtime = require('react/jsx-runtime');
@@ -47,7 +48,21 @@ test('login presentation, metadata, sanitized returns, redirects and synthetic G
   }
 });
 test('error/reset and both NotFound layouts keep exact markup and private-error suppression', async () => {
-  for (const file of ['app/(control-plane)/error.tsx', 'apps/admin/app/(control-plane)/error.tsx', 'app/(control-plane)/not-found.tsx', 'apps/admin/app/(control-plane)/not-found.tsx', 'app/(control-plane-error)/admin-not-found/page.tsx', 'apps/admin/app/(control-plane-error)/admin-not-found/page.tsx']) assert.deepEqual(await render(file, false), await render(file, true), file);
+  const ownership = JSON.parse(readFileSync('qa/phase1-source-ownership.json', 'utf8'));
+  assertInheritedUatFixtureSources(ownership, file => readFileSync(file, 'utf8'));
+  for (const file of ['app/(control-plane)/error.tsx', 'apps/admin/app/(control-plane)/error.tsx', 'app/(control-plane)/not-found.tsx', 'apps/admin/app/(control-plane)/not-found.tsx', 'app/(control-plane-error)/admin-not-found/page.tsx', 'apps/admin/app/(control-plane-error)/admin-not-found/page.tsx']) {
+    const current = await render(file, false), original = await render(file, true);
+    if (file === 'app/(control-plane)/error.tsx' || file === 'apps/admin/app/(control-plane)/error.tsx') {
+      // Lossless flattening of the known render envelope; every result field and trace remains checked.
+      const flatten = value => ({ ...value.result, trace: value.trace });
+      assert.equal(typeof current.result.html, 'string');
+      assert.deepEqual(current.trace, ['reset']);
+      const key = { kind: 'boundary-error', file };
+      assertInheritedUatOutput(flatten(current), flatten(original), key, ownership);
+      assert.throws(() => assertInheritedUatOutput({ ...flatten(current), html: current.result.html + 'tampered' }, flatten(original), key, ownership), /C645 full output drift/);
+      assert.throws(() => assertInheritedUatOutput({ ...flatten(current), trace: [] }, flatten(original), key, ownership), /non-DOM invariant/);
+    } else assert.deepEqual(current, original, file);
+  }
 });
 test('Studio preserves guard order, per-lane configuration errors, metadata/CSS and actual client export ownership', async () => {
   for (const file of ['app/studio/[[...tool]]/page.tsx', 'apps/admin/app/studio/[[...tool]]/page.tsx']) for (const c of [{}, { review: false }, { studioAllowed: false }, { missingConfig: true }, { config: null }, { config: {} }]) assert.deepEqual(await render(file, false, c), await render(file, true, c), file + ':' + JSON.stringify(c));

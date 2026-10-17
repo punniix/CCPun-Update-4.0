@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname, relative, isAbsolute, sep } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import test from 'node:test';
 import { createRequire } from 'node:module';
@@ -22,6 +22,31 @@ const baselineCss = gunzipSync(Buffer.from(proof.compiledCssGzip, 'base64')).toS
 // Captured from this own Admin candidate before stylesheet edits, using lockfile Tailwind 4.2.1.
 assert.equal(sha(proof.foundationSource), '16be3e70110eb57339671d20a877cb7a1f8026675ce0eecca47794d6efeafece');
 assert.equal(sha(baselineCss), 'da206b6086ac07799bcb3da29241743c115da43f31cf5f62342b0a3339cc8916');
+
+// Immutable C645 compiled outputs use this same checked-in lock; original Production proof stays sealed.
+const compilerVersions = { react: require('react/package.json').version, postcss: require('postcss/package.json').version,
+  tailwind: JSON.parse(readFileSync(require.resolve('@tailwindcss/postcss').replace(/dist\/index\.js$/, 'package.json'), 'utf8')).version };
+function assertReviewedUatCss(data = proof, environment = 'admin-uat', readInput = read, compiler = compilerVersions) {
+  assert.equal(environment, 'admin-uat', 'unreviewed CSS environment');
+  const { reviewedAdminUatCss, ...original } = data;
+  assert.equal(sha(JSON.stringify(original)), 'dd7d7d9ab00ab5cdb4bc600b2fd01f75fab7f3ded379c097592eb675f17f1d1f', 'original Production CSS proof drift');
+  assert.equal(sha(JSON.stringify(reviewedAdminUatCss)), 'e7fe36e630d9bef951a96010f01587a080d12d6f8623317a0837ce9dbabf2ba0', 'unreviewed C645 CSS admission');
+  assert.equal(sha(readInput(file)), reviewedAdminUatCss.foundationSourceSha256, 'UAT foundation source drift');
+  assert.equal(sha(readInput('package-lock.json')), reviewedAdminUatCss.lockSha256, 'UAT compiler lock drift');
+  assert.deepEqual(compiler, reviewedAdminUatCss.compiler, 'unreviewed CSS compiler versions');
+  return reviewedAdminUatCss;
+}
+function reviewedUatCss(key, data = proof, environment = 'admin-uat') {
+  const record = assertReviewedUatCss(data, environment).outputs[key];
+  assert.ok(record, 'unreviewed CSS context');
+  const output = gunzipSync(Buffer.from(record.cssGzip, 'base64')).toString();
+  assert.equal(sha(output), record.sha256, 'sealed UAT CSS output drift');
+  assert.equal(Buffer.byteLength(output), record.bytes);
+  return output;
+}
+function rootCssBefore(environment = 'production-admin') {
+  return environment === 'production-admin' ? baselineCss : reviewedUatCss('root', proof, environment);
+}
 
 test('Tailwind preserves native automatic scanning and shared roots, excluding historical fixtures', () => {
   assert.equal(assertPhase2FoundationSource(phase2FoundationPath, proof.foundationSha256), true);
@@ -84,9 +109,35 @@ function assertNoRuntimeConsumer(utility, candidates) {
   assert(![...candidates.prefixes].some(prefix => utility.startsWith(prefix)), 'Removed utility has a possible dynamic class prefix: ' + utility);
 }
 
+// @source not resolves relative to this CSS owner; nested app directories are distinct.
+function assertRuntimeScanDirectory(directory) {
+  assert(typeof directory === 'string' && isAbsolute(directory), 'unknown Tailwind dependency directory');
+  const actual = resolve(directory), within = relative(resolve('.'), actual);
+  assert(within !== '..' && !within.startsWith('..' + sep) && !isAbsolute(within), 'dependency directory outside owning repository');
+  for (const owner of phase2ExcludedCssSources) {
+    const excluded = resolve(dirname(file), owner);
+    assert(actual !== excluded && !actual.startsWith(excluded + sep), 'excluded root source directory: ' + owner);
+  }
+}
+
+test('watch metadata rejects every exact excluded root and descendant while preserving legitimate nested app directories', () => {
+  assert.equal(phase2ExcludedCssSources.length, 4);
+  for (const owner of phase2ExcludedCssSources) {
+    const excluded = resolve(dirname(file), owner);
+    assert.throws(() => assertRuntimeScanDirectory(excluded), /excluded root/);
+    assert.throws(() => assertRuntimeScanDirectory(resolve(excluded, 'child')), /excluded root/);
+    assert.doesNotThrow(() => assertRuntimeScanDirectory(excluded + '-lookalike'));
+  }
+  assert.doesNotThrow(() => assertRuntimeScanDirectory(resolve('apps/admin/scripts')));
+  for (const unknown of [undefined, null, 42, {}, '', 'scripts', resolve('../outside')])
+    assert.throws(() => assertRuntimeScanDirectory(unknown), /unknown|outside/);
+});
+
 test('the actual Tailwind compiler preserves runtime declarations and cascade order', async () => {
   const compiled = await postcss([tailwind({ optimize: false })]).process(source, { from: resolve(file) });
-  const before = rules(baselineCss);
+  const reviewedBaseline = rootCssBefore('admin-uat');
+  assert.equal(compiled.css, reviewedBaseline, 'full C645 UAT CSS bytes, including declarations and cascade order');
+  const before = rules(reviewedBaseline);
   const after = rules(compiled.css);
   // Theme variables can be removed only when excluded fixtures were their sole consumer.
   // Every remaining value and every normal/keyframe/media/support rule preserves order.
@@ -102,7 +153,7 @@ test('the actual Tailwind compiler preserves runtime declarations and cascade or
     }));
     return records;
   };
-  subsequence(atRules(compiled.css), atRules(baselineCss), 'compiled layer/media/support/keyframe/property order');
+  subsequence(atRules(compiled.css), atRules(reviewedBaseline), 'compiled layer/media/support/keyframe/property order');
 
   assert.equal(JSON.stringify(newTheme.ancestry), JSON.stringify(oldTheme.ancestry));
   const currentKeys = new Set(after.map(rule => JSON.stringify(rule)));
@@ -121,9 +172,9 @@ test('the actual Tailwind compiler preserves runtime declarations and cascade or
     assert(!(compiled.css + currentStyles + currentRuntime).includes('var(' + property), property + ': current CSS variable consumer');
   }
 
-  assert(Buffer.byteLength(compiled.css) <= proof.compiledBytes, 'ownership must not increase compiled CSS');
+  assert(Buffer.byteLength(compiled.css) <= Buffer.byteLength(reviewedBaseline), 'ownership must not increase compiled CSS within its reviewed environment');
   for (const message of compiled.messages.filter(message => message.type === 'dir-dependency')) {
-    assert(!/\/(?:qa|tests|docs|scripts)(?:\/|$)/.test(message.dir), message.dir);
+    assertRuntimeScanDirectory(message.dir);
   }
 });
 
@@ -178,10 +229,34 @@ test('fresh app-context CSS is exactly original in unminified and minified nativ
       const mode = minify ? 'minified' : 'unminified';
       assert.equal(modes[mode].sha256, nativeCssAnchors[context][mode]);
       const original = compileNative(proof.foundationSource, context, minify);
-      assert.equal(sha(original), modes[mode].sha256, context + ': own original baseline');
-      assert.equal(Buffer.byteLength(original), modes[mode].bytes);
+      if (mode === 'unminified') {
+        const originalProductionCss = gunzipSync(Buffer.from(modes[mode].cssGzip, 'base64')).toString();
+        assert.equal(sha(originalProductionCss), modes[mode].sha256, context + ': frozen original Production output');
+        assert.equal(Buffer.byteLength(originalProductionCss), modes[mode].bytes);
+      }
       const current = compileNative(source, context, minify);
-      assert.equal(current, original, context + ': exact native CSS including rule/atRule order');
+      assert.equal(current, original, context + ': exact native CSS delivery under the same current runtime inputs');
+      assert.equal(current, reviewedUatCss(context + '/' + mode), context + ': exact immutable C645 UAT output');
     }
   }
+});
+
+test('reviewed UAT CSS rejects unknown environments, source, lock, compiler, context and admission drift while keeping original Production goldens', () => {
+  assert.equal(assertReviewedUatCss().sourceCommit, 'c64540ec7bd31c9380880173a03d996902b23b64');
+  assert.equal(rootCssBefore(), baselineCss, 'default Production profile retains its exact frozen CSS');
+  assert.equal(Buffer.byteLength(rootCssBefore()), proof.compiledBytes, 'default Production byte budget remains frozen');
+  assert.throws(() => rootCssBefore('unknown'), /environment/);
+  assert.deepEqual(Object.keys(proof.reviewedAdminUatCss.outputs), ['root', 'apps/admin/unminified', 'apps/admin/minified', 'apps/web/unminified', 'apps/web/minified']);
+  for (const environment of ['production-admin', 'web-uat', 'unknown']) assert.throws(() => assertReviewedUatCss(proof, environment), /environment/);
+  assert.throws(() => assertReviewedUatCss(proof, 'admin-uat', path => read(path) + (path === file ? 'tampered' : '')), /foundation source/);
+  assert.throws(() => assertReviewedUatCss(proof, 'admin-uat', path => read(path) + (path === 'package-lock.json' ? 'tampered' : '')), /compiler lock/);
+  assert.throws(() => assertReviewedUatCss(proof, 'admin-uat', read, { ...compilerVersions, tailwind: 'unknown' }), /compiler versions/);
+  assert.throws(() => reviewedUatCss('unknown'), /context/);
+  for (const mutate of [
+    data => { data.reviewedAdminUatCss.environment = 'production-admin'; },
+    data => { data.reviewedAdminUatCss.sourceCommit = 'unknown'; },
+    data => { data.reviewedAdminUatCss.outputs.root.sha256 = 'unknown'; },
+    data => { data.reviewedAdminUatCss.outputs.root.cssGzip += 'tampered'; },
+    data => { data.foundationSource += 'tampered'; },
+  ]) { const data = structuredClone(proof); mutate(data); assert.throws(() => reviewedUatCss('root', data), /admission|Production CSS proof/); }
 });

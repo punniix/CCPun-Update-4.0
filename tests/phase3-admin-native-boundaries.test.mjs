@@ -326,3 +326,32 @@ test('retired provider label preserves complete actual native Deployments markup
     assert.doesNotMatch(outputs[1].html, /Vercel/);
   }
 });
+
+import * as loadFixtureModuleForSeoAdmission from '../qa/phase1-source-proof.mjs';
+
+
+test('reviewed SEO UAT source admits only the exact SHA-coupled native UAT delta', () => {
+  const file = 'lib/admin/seo-intelligence/foundation.ts';
+  const read = path => readFileSync(path, 'utf8');
+  const admission = JSON.parse(read('qa/phase1-source-ownership.json'));
+  const original = admission.reviewedSeoUat.sources[file].originalSha256;
+  const { assertReviewedSeoUatSource } = loadFixtureModuleForSeoAdmission;
+  assert.equal(assertReviewedSeoUatSource(file, original, admission, read, 'admin-uat'), true);
+  for (const environment of ['production-admin', 'local-uat', 'web-uat', 'unknown', undefined])
+    assert.throws(() => assertReviewedSeoUatSource(file, original, admission, read, environment));
+  assert.throws(() => assertReviewedSeoUatSource('unknown.ts', original, admission, read, 'admin-uat'));
+  assert.throws(() => assertReviewedSeoUatSource(file, '0'.repeat(64), admission, read, 'admin-uat'));
+  assert.throws(() => assertReviewedSeoUatSource(file, original, admission, path => read(path) + (path === file ? '// drift' : ''), 'admin-uat'));
+  const changed = structuredClone(admission); changed.reviewedSeoUat.sourceCommit = 'unknown';
+  assert.throws(() => assertReviewedSeoUatSource(file, original, changed, read, 'admin-uat'));
+  const input = { flag: '1', environment: 'admin-uat', deploymentProvider: 'hostinger', deploymentRole: 'admin',
+    gitSha: 'a'.repeat(40), gitBranch: 'codex/hostinger-release-uat-' + 'a'.repeat(40), releaseId: 'synthetic-native-release',
+    sanityProjectId: 'ccb9lnw5', sanityDataset: 'uat' };
+  const actual = load(file, {}), old = load(file, {}, true);
+  assert.equal(actual.isSeoIntelligenceEnabled(input), true);
+  assert.equal(old.isSeoIntelligenceEnabled(input), false, 'the new UAT ref is an explicit reviewed behavior change');
+  for (const patch of [{ gitSha: 'b'.repeat(40) }, { gitSha: undefined }, { gitBranch: input.gitBranch + '-extra' },
+    { environment: 'production-admin' }, { deploymentProvider: 'local' }, { deploymentProvider: 'vercel' },
+    { deploymentRole: 'web' }, { sanityDataset: 'production' }, { sanityProjectId: 'kyfxgjnq' }, { flag: '0' }])
+    assert.equal(actual.isSeoIntelligenceEnabled({ ...input, ...patch }), false);
+});

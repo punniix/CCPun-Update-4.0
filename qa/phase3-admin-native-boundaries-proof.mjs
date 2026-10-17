@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
+import { assertReviewedSeoUatSource, assertReviewedSeoUatEvidence } from './phase1-source-proof.mjs';
 
 const baseline = "4ec66433dce716be6f2a75ef57efc45500456f5f";
 const originalHashes = {
@@ -57,6 +58,8 @@ export function assertPhase3AdminNativeBoundaries(file, originalDigest, {
   for (const path of phase3AdminNativeEntries) {
     assert.equal(sha(proof.baselineSources[path]), originalHashes[path], 'own original source identity');
     if (currentHashes[path] === null) assert.equal(exists(path), false, 'retired verifier must be absent');
+    else if (path === 'lib/admin/seo-intelligence/foundation.ts' && sha(read(path)) !== currentHashes[path])
+      assert.equal(assertReviewedSeoUatSource(path, currentHashes[path], JSON.parse(read('qa/phase1-source-ownership.json')), read, 'admin-uat'), true);
     else assert.equal(sha(read(path)), currentHashes[path], path);
   }
   const privatePath = 'lib/admin/line/private-ingestion.ts';
@@ -75,6 +78,8 @@ export function assertPhase3AdminNativeBoundaries(file, originalDigest, {
   const schemaTail = text => text.slice(text.indexOf('export const scheduleStatusSchema'));
   assert.equal(schemaTail(read(scheduler)), schemaTail(proof.baselineSources[scheduler]), 'all schedule schemas, view/errors/idempotency constants remain exact');
   assert.deepEqual(proof.outputEvidence, outputEvidence, 'registered output assertion seal');
-  assert.equal(sha(read(outputEvidence.file)), outputEvidence.sha256);
+  if (sha(read(outputEvidence.file)) !== outputEvidence.sha256)
+    assert.equal(assertReviewedSeoUatEvidence(outputEvidence.file, outputEvidence.sha256, JSON.parse(read('qa/phase1-source-ownership.json')), read, 'admin-uat'), true);
+  else assert.equal(sha(read(outputEvidence.file)), outputEvidence.sha256);
   return true;
 }

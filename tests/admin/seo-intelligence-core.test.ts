@@ -114,6 +114,24 @@ test("SEO Intelligence accepts explicit Hostinger Admin identity without fake Ve
   assert.equal(isSeoIntelligenceEnabled(uatInput), true);
 });
 
+test("SEO admits only SHA-coupled Hostinger Admin UAT immutable refs", () => {
+  const sha = "c64540ec7bd31c9380880173a03d996902b23b64";
+  const pinned = { ...enabledInput, gitSha: sha, gitBranch: `codex/hostinger-release-uat-${sha}` };
+  assert.equal(isSeoIntelligenceEnabled(pinned), true);
+  for (const change of [
+    { gitSha: "a".repeat(40) }, { gitSha: undefined }, { gitSha: sha.slice(0, 8) },
+    { gitSha: sha.toUpperCase(), gitBranch: `codex/hostinger-release-uat-${sha.toUpperCase()}` },
+    { gitBranch: `codex/hostinger-release-production-${sha}` },
+    { gitBranch: `codex/hostinger-release-uat-${sha}-extra` },
+    { gitBranch: "codex/arbitrary" }, { deploymentProvider: "local" },
+    { deploymentRole: "web" }, { environment: "web-uat" as const },
+    { environment: "production-admin" as const }, { flag: "0" },
+    { sanityDataset: "production" }, { sanityProjectId: "kyfxgjnq" },
+    { vercelEnvironment: "preview" }, { projectId: "retired-project" },
+    { releaseVariables: { VERCEL_URL: "retired.example" } },
+  ]) assert.equal(isSeoIntelligenceEnabled({ ...pinned, ...change }), false, JSON.stringify(change));
+});
+
 test("Four deterministic detectors find intended fixtures and suppress known false positives", () => {
   const opportunities = detectSeoOpportunities(SYNTHETIC_SEO_OBSERVATIONS);
   assert.equal(opportunities.length, 4);
@@ -300,8 +318,7 @@ test("GSC manual sync is human-only, exact-origin, bounded and read-only", () =>
   const control = read("features/admin/seo/opportunities/GscManualSync.tsx");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
-  assert.match(route, /isConfiguredAdminOrigin/);
-  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /isPostPublishAdminOriginAllowed\(request, process\.env, getAdminEnvironment\(\)\)/);
   assert.match(route, /getSeoIntelligenceRuntimeStatus\(\)\.enabled/);
   assert.match(route, /fetchGscSearchAnalyticsTotals/);
   assert.match(route, /joinGscDashboardRows/);
@@ -384,8 +401,7 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   const control = read("features/admin/seo/opportunities/Ga4ManualSync.tsx");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
-  assert.match(route, /isConfiguredAdminOrigin/);
-  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /isPostPublishAdminOriginAllowed\(request, process\.env, getAdminEnvironment\(\)\)/);
   assert.match(route, /getSeoIntelligenceRuntimeStatus\(\)\.enabled/);
   assert.match(route, /getGoogleDataAccessToken/);
   assert.match(route, /CCPUN_GA4_PROPERTY_ID/);
@@ -394,7 +410,7 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   assert.match(route, /state: comparison && comparisonTotals \? "ready" : "partial"/);
   assert.match(route, /export async function POST\(request: Request\)/);
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
-  assert.doesNotMatch(route, /createClient|sanity|mutate|publish|console\./i);
+  assert.doesNotMatch(route, /createClient|sanity|mutate|\bpublish\s*\(|\.publish\b|console\./i);
   assert.match(control, /type="date"/);
   assert.match(control, /ผู้เข้าชมจากผลค้นหา/);
   assert.match(control, /ไม่เก็บสำเนาถาวร/);

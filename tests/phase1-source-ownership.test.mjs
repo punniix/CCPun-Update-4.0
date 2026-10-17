@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+import { assertInheritedUatFixtureSources, assertInheritedUatOutput } from '../qa/phase1-source-proof.mjs';
 
 const require = createRequire(import.meta.url);
 const { renderToStaticMarkup } = require('react-dom/server');
@@ -11,6 +12,14 @@ const React = require('react');
 const proof = JSON.parse(readFileSync('qa/phase1-source-ownership.json', 'utf8'));
 const sources = new Map(proof.sharedPages.flatMap(page => [[page.root, page.originalRootSource], [page.canonical, page.originalCanonicalSource]]));
 for (const [file, original] of Object.entries(proof.baselineSources)) sources.set(file, original);
+
+assertInheritedUatFixtureSources(proof, file => readFileSync(file, 'utf8'));
+const admittedShared=new Set(['app/(control-plane)/content/articles/page.tsx','apps/admin/app/(control-plane)/content/articles/page.tsx','apps/admin/app/(control-plane)/dashboard/reviews/page.tsx']);
+function assertPresentationParity(current, original, key) {
+  if (key.kind === 'shared' && !admittedShared.has(key.file)) return assert.deepEqual(current, original, JSON.stringify(key));
+  assertInheritedUatOutput(current, original, key, proof);
+}
+
 const date = '2026-10-12T04:00:00.000Z';
 const row = { id: 'synthetic-article', rawId: 'synthetic-article', title: 'บทความทดสอบ', category: 'personal-finance', categorySlug: 'personal-finance', slug: 'synthetic', tags: ['ภาษี'], hasPublished: false, isDraft: true, reviewStatus: 'needs-human-review', updatedAt: date, publishedAt: null, seoScore: 73, seoAuditVersion: 'fixture-audit', seoAuditedAt: date, primaryKeyword: 'ทดสอบ', searchIntent: 'informational' };
 
@@ -60,16 +69,17 @@ const cases = [
 ];
 for (const page of proof.sharedPages) {
   for (const file of new Set([page.root, page.canonical])) {
-    test(`${file}: original Production DOM, metadata, read order, write/read gates and failure outcomes`, async () => {
+    test(`${file}: original Production DOM, metadata, read order, write/read gates and failure outcomes; exact sealed C645 presentation where admitted`, async () => {
       const pageCases = page.name === 'AdminSeoPage' ? [...cases, { nullIdentity: true, uatMock: true, fabricReady: true }, ...['owner', 'editor', 'viewer'].flatMap(role => ['production-admin', 'admin-uat', 'local-production'].flatMap(environment => [true, false].flatMap(uatMock => [true, false].map(fabricReady => ({ role, environment, uatMock, fabricReady })))))] : cases;
       for (const config of pageCases) {
         const original = await view(file, config, true);
         const candidate = await view(file, config);
-        if (candidate.html !== original.html) {
-          let i = 0; while (i < Math.min(candidate.html?.length ?? 0, original.html?.length ?? 0) && candidate.html[i] === original.html[i]) i++;
-          assert.equal(candidate.html, original.html, `DOM difference at ${i}: candidate=${candidate.html?.slice(i, i + 140)} original=${original.html?.slice(i, i + 140)}`);
+        assertPresentationParity(candidate, original, {kind:'shared',file,config});
+        if (file === 'apps/admin/app/(control-plane)/content/articles/page.tsx' && config.empty && !config.denied) {
+          const key = { kind: 'shared', file, config };
+          assert.throws(() => assertInheritedUatOutput({ ...candidate, html: candidate.html + 'tampered' }, original, key, proof), /C645 full output drift/);
+          assert.throws(() => assertInheritedUatOutput({ ...candidate, trace: [] }, original, key, proof), /non-DOM invariant drift/);
         }
-        assert.deepEqual(candidate, original, JSON.stringify(config));
         if (!config.denied && !config.auditError && !(page.name === 'ArticleDetailPage' && config.empty && !config.readError)) assert.ok(candidate.html, 'must render a real page rather than matching two fixture errors');
         if (page.name === 'ArticleDetailPage' && config.empty && !config.readError) assert.equal(candidate.error, 'fixture-not-found');
         if (config.denied) assert.deepEqual(candidate.trace, [['permission', file.includes('/content/') ? 'content:read' : file.includes('/operations/') ? 'audit:read' : page.name === 'AdminReviewsPage' ? 'reviews:read' : 'seo:read']]);
@@ -106,7 +116,7 @@ test('proposal Inbox owner preserves review/apply denials, frozen-risk values, s
   const page = proof.sharedPages.find(item => item.name === 'AdminReviewsPage');
   for (const file of new Set([page.root, page.canonical])) for (const role of ['owner', 'viewer']) for (const risk of ['low', 'high', 'critical']) for (const stale of [false, true]) for (const writeReady of [false, true]) {
     const config = { role, risk, stale, writeReady, studioReady: true };
-    assert.deepEqual(await view(file, config), await view(file, config, true), JSON.stringify(config));
+    assertPresentationParity(await view(file, config), await view(file, config, true), {kind:'reviews',file,config});
   }
 });
 
@@ -129,11 +139,12 @@ test('protected Chrome retains each role/capability/lane navigation, identity, l
       const runtime = { ...jsx, jsx: (type, props, ...rest) => { if (type === 'form' && props.action) actions.push(props.action); return jsx.jsx(type, props, ...rest); } };
       const capability = loadFixtureModule('lib/admin/capability-profile.ts', { globals: { process: { env: {} } } });
       const mocks = new Map([
+        ['@/features/admin/components/admin-navigation-model', loadFixtureModule('features/admin/components/admin-navigation-model.ts')],
         ['react/jsx-runtime', runtime],
         ['@/auth', { auth: async () => { trace.push('auth'); return role ? { user: { role, email: 'synthetic@example.invalid', name: 'synthetic-owner' } } : null; }, signOut: async input => { trace.push(['signOut', input]); } }],
         ['@/lib/admin/environment', { getAdminEnvironment: () => { trace.push('environment'); return environment; } }],
         ['@/lib/admin/capability-profile', { ...capability, getAdminCapabilityProfile: () => { trace.push('capability'); return profile; } }],
-        ['@/features/admin/components/AdminDataRefresh', { __esModule: true, default: () => React.createElement('span', { 'data-fixture-refresh': true }) }],
+        ['@/features/admin/components/AdminDataRefresh', { __esModule: true, default: () => React.createElement('span', { 'data-fixture-refresh': true }), AdminDraftScope: ({ children }) => children }],
         ['@/features/admin/components/AdminNavigation', { __esModule: true, default: ({ items }) => React.createElement('nav', { 'data-fixture-navigation': JSON.stringify(items) }) }],
       ]);
       const fixtureModule = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks });
@@ -144,7 +155,7 @@ test('protected Chrome retains each role/capability/lane navigation, identity, l
         return { metadata: fixtureModule.metadata, html, trace, actionCount: actions.length };
       } catch (error) { return { error: error.message, redirect: error.url, trace }; }
     }
-    assert.deepEqual(await render(false), await render(true), JSON.stringify({ file, role, profile, environment }));
+    assertPresentationParity(await render(false),await render(true),{kind:'chrome',file,role,profile,environment});
   }
 });
 
@@ -253,7 +264,7 @@ test('Health retains per-lane reads, partial/ready/warning/off cards and safe ac
       catch (error) { return { metadata: fixtureModule.metadata, error: error.message, trace }; }
     }
     const before = await render(true), after = await render(false);
-    assert.deepEqual(after, before, JSON.stringify({ file, ready, warning, denied }));
+    assertPresentationParity(after,before,{kind:'health',file,ready,warning,denied});
     if (!denied) assert.ok(after.html, 'Health must render actual card/row bodies: ' + JSON.stringify(after.error));
     if (denied) assert.deepEqual(after.trace, [['permission', 'settings:read']]);
   }
@@ -266,7 +277,7 @@ test('Dashboard retains guarded editorial read order, review counts, advisor lim
     async function render(baseline) {
       const trace = [];
       const mocks = new Map([
-        ['@/lib/admin/agent-os/action-center', { buildActionCenterSignals: (rows, now) => { trace.push(['signals', rows, now]); return []; }, summarizeActionCenter: signals => { trace.push(['signal-summary', signals]); return {}; } }],
+        ['@/lib/admin/agent-os/action-center', { selectActionCenterSignals: loadFixtureModule('lib/admin/agent-os/action-center.ts').selectActionCenterSignals, buildActionCenterSignals: (rows, now) => { trace.push(['signals', rows, now]); return []; }, summarizeActionCenter: signals => { trace.push(['signal-summary', signals]); return {}; } }],
         ['@/lib/admin/require-permission', { requireAdminPermission: async permission => { trace.push(['permission', permission]); if (denied) throw new Error('synthetic-forbidden'); return { role }; } }],
         ['@/lib/admin/environment', { isStudioDataPlaneAllowed: dataset => { trace.push(['studio', dataset]); return ready; } }],
         ['@/lib/admin/sanity-control', { getAdminSanityStatus: () => { trace.push('sanity'); return { environment: ready ? 'local-production' : 'production-admin', dataset: ready ? 'production' : undefined, readReady: ready, writeReady: ready }; }, listSeoSuggestions: async () => { trace.push('reviews'); return { rows: [{ status: 'needs-human-review' }, { status: 'approved' }], error: ready ? null : 'synthetic-unavailable' }; } }],
@@ -280,7 +291,7 @@ test('Dashboard retains guarded editorial read order, review counts, advisor lim
       catch (error) { return { metadata: fixtureModule.metadata, error: error.message, trace }; }
     }
     const before = await render(true), after = await render(false);
-    assert.deepEqual(after, before, JSON.stringify({ file, role, ready, denied, error }));
+    assertPresentationParity(after,before,{kind:'dashboard',file,role,ready,denied,error});
     if (!denied) assert.ok(after.html, 'Dashboard must render actual editorial/advisor composition');
     if (denied) assert.deepEqual(after.trace, [['permission', 'dashboard:read']]);
   }
@@ -295,6 +306,6 @@ test('Settings index retains route data, URL ordering, guard and complete markup
       try { return { html: renderToStaticMarkup(await serverTree(await fixtureModule.default())), trace }; }
       catch (error) { return { error: error.message, trace }; }
     }
-    assert.deepEqual(await render(false), await render(true));
+    assertPresentationParity(await render(false),await render(true),{kind:'settings',file,denied});
   }
 });

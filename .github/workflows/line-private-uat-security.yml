@@ -1,0 +1,52 @@
+name: LINE private UAT safety checks
+on:
+  push:
+    branches:
+      - fix/line-care-safety-khai-20261014
+  pull_request:
+    paths:
+      - "apps/admin/app/api/admin/line/**"
+      - "features/admin/line/ChatScreenshotImport.tsx"
+      - "tests/admin/chat-*.test.ts"
+      - "tests/admin/line-readiness-owner-only.test.ts"
+      - ".github/workflows/line-private-uat-security.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: line-private-uat-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # This workflow deliberately has no secrets, production connection or provider send.
+      CCPUN_CHAT_OCR_ENABLED: "false"
+      CCPUN_LINE_SYSTEM_DELIVERY_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install project lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify private-line behavioral contracts
+        run: node --import tsx --test tests/admin/chat-screenshot-ocr.test.ts tests/admin/chat-ocr-private-gateway-guard.test.ts tests/admin/line-readiness-owner-only.test.ts tests/admin/line-advisor-inbox.test.ts tests/admin/line-user-friendly-presentation.test.ts tests/admin/local-ai-enclave.test.ts
+      - name: Admin TypeScript
+        run: npm run typecheck:admin:shadow
+      - name: Scoped ESLint
+        run: npx eslint 'apps/admin/app/api/admin/line/inbox/[leadId]/screenshot-ocr/route.ts' 'apps/admin/app/api/admin/line/inbox/[leadId]/screenshot-ocr/confirm/route.ts' apps/admin/app/api/admin/line/readiness/route.ts features/admin/line/ChatScreenshotImport.tsx tests/admin/chat-screenshot-ocr.test.ts tests/admin/chat-ocr-private-gateway-guard.test.ts tests/admin/line-readiness-owner-only.test.ts
+      - name: Diff and sensitive-file path guard
+        shell: bash
+        run: |
+          set -eu
+          git diff --check HEAD^ HEAD
+          if git diff --name-only HEAD^ HEAD | grep -E '(^|/)(\.env[^/]*|[^/]+\.(pem|p12|pfx|key))$'; then
+            echo 'Refusing sensitive file changes'
+            exit 1
+          fi

@@ -64,16 +64,18 @@ test("OCR sidecar is opt-in, bounded and memory-only for uploaded images", () =>
   assert.doesNotMatch(app, /open\([^\n]*["']a["']|sqlite|postgres|s3|upload/i);
 });
 
-test("Owner OCR bridge forwards image to n8n and requires human-confirmed CRM import", () => {
+test("Owner OCR upload is fail-closed pending verified private transport; human-confirm remains separate", () => {
   const upload = read("apps/admin/app/api/admin/line/inbox/[leadId]/screenshot-ocr/route.ts");
   const confirm = read("apps/admin/app/api/admin/line/inbox/[leadId]/screenshot-ocr/confirm/route.ts");
   const ui = read("features/admin/line/ChatScreenshotImport.tsx");
   const archive = read("lib/admin/line/conversation-archive.ts");
 
-  assert.match(upload, /CCPUN_N8N_CHAT_OCR_WEBHOOK_URL/);
   assert.match(upload, /CCPUN_CHAT_OCR_ENABLED/);
   assert.match(upload, /identity\.role !== "owner"/);
-  assert.match(confirm, /importChatOcrMessages/);
+  assert.match(upload, /chat-ocr-private-gateway-required/);
+  assert.doesNotMatch(upload, /CCPUN_N8N_CHAT_OCR_WEBHOOK_URL|CCPUN_N8N_CHAT_OCR_TOKEN|fetch\s*\(|\.formData\s*\(/);
+  assert.match(confirm, /chat-ocr-proposal-verification-required/);
+  assert.doesNotMatch(confirm, /importChatOcrMessages|request\.text\s*\(|request\.json\s*\(/);
   assert.match(ui, /ยืนยันและบันทึก/);
   assert.match(ui, /\+07:00/);
   assert.match(archive, /crypto\.encrypt\(text, "chat-ocr-import-content"\)/);

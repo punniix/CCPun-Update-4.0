@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
-import { productionBaselineBytes } from '../qa/phase1-source-proof.mjs';
+import { productionBaselineBytes, assertReviewedUatRetention, assertReviewedSeoUatSource } from '../qa/phase1-source-proof.mjs';
 import { assertPhase3AdminContracts, phase3AdminEntries } from '../qa/phase3-admin-contracts-proof.mjs';
 import { assertPhase2AdminComposition, phase2AdminEntries } from '../qa/phase2-admin-modularity-proof.mjs';
 import { assertPhase2FoundationSource, phase2FoundationPath } from '../qa/phase2-css-source-contract.mjs';
@@ -82,6 +82,53 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
+    else if (Object.hasOwn(proof.reviewedInheritedUat.retainedSources, file)) assert.equal(assertReviewedUatRetention(file, digest, proof, path => readFileSync(path), 'admin-uat'), true, file);
+    else if (proof.reviewedSeoUat.retainedRoutes.includes(file)) assert.equal(assertReviewedSeoUatSource(file, digest, proof, path => readFileSync(path, 'utf8'), 'admin-uat'), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);
   }
+});
+
+
+test('new SEO route retention stays distinct from accepted C645 and rejects environment/source/admission drift', () => {
+  assert.equal(proof.reviewedSeoUat.sourceCommit, 'd0bcfdaef62f2fae8b3b727836527dd25e22ebbe');
+  assert.equal(proof.reviewedSeoUat.retainedRoutes.length, 3);
+  assert.equal(Object.keys(proof.reviewedInheritedUat.retainedSources).length, 19);
+  assert.equal(Object.keys(proof.reviewedInheritedUat.outputs).length, 180);
+  for (const file of proof.reviewedSeoUat.retainedRoutes) {
+    const original = proof.protected[file], read = path => readFileSync(path, 'utf8');
+    assert.equal(assertReviewedSeoUatSource(file, original, proof, read, 'admin-uat'), true);
+    for (const environment of ['production-admin', 'web-uat', 'local-uat', 'unknown', undefined])
+      assert.throws(() => assertReviewedSeoUatSource(file, original, proof, read, environment));
+    assert.throws(() => assertReviewedSeoUatSource(file, 'unknown', proof, read, 'admin-uat'));
+    assert.throws(() => assertReviewedSeoUatSource('unknown.ts', original, proof, read, 'admin-uat'));
+    assert.throws(() => assertReviewedSeoUatSource(file, original, proof, path => read(path) + (path === file ? '// tamper' : ''), 'admin-uat'));
+    const changed = structuredClone(proof); changed.reviewedSeoUat.sources[file].reviewedSha256 = 'unknown';
+    assert.throws(() => assertReviewedSeoUatSource(file, original, changed, read, 'admin-uat'));
+  }
+});
+
+
+test('hermetic NODE_ENV test overlay reverses to the exact immutable D0 evidence and rejects all unreviewed variants', () => {
+  const file = 'tests/admin/seo-google-provider-readiness.test.ts';
+  const read = path => readFileSync(path, 'utf8');
+  const record = proof.reviewedSeoUat.testOverlays[file];
+  assert.equal(Object.keys(proof.reviewedSeoUat.testOverlays).length, 1);
+  assert.equal(record.sourceCommit, 'd0bcfdaef62f2fae8b3b727836527dd25e22ebbe');
+  assert.equal(proof.reviewedSeoUat.outputTests[file], 'ab5a3a31cbda12f6da76ec1283d76f857de804f74f8070502e48aa34d011d761');
+  assert.equal(record.originalSha256, proof.reviewedSeoUat.outputTests[file]);
+  assert.equal(record.after, 'env: { NODE_ENV: "test", PATH: process.env.PATH, NODE_PATH: process.env.NODE_PATH },');
+  assert.equal(sha(read(file).replace(record.after, record.before)), record.originalSha256);
+  const owner = proof.reviewedSeoUat.retainedRoutes[0], digest = proof.protected[owner];
+  assert.equal(assertReviewedSeoUatSource(owner, digest, proof, read, 'admin-uat'), true);
+  for (const field of ['sourceCommit', 'originalSha256', 'candidateSha256', 'before', 'after']) {
+    const changed = structuredClone(proof); changed.reviewedSeoUat.testOverlays[file][field] = 'unknown';
+    assert.throws(() => assertReviewedSeoUatSource(owner, digest, changed, read, 'admin-uat'));
+  }
+  const unknown = structuredClone(proof); unknown.reviewedSeoUat.testOverlays['unknown.test.ts'] = record;
+  assert.throws(() => assertReviewedSeoUatSource(owner, digest, unknown, read, 'admin-uat'));
+  const changedOriginal = structuredClone(proof); changedOriginal.reviewedSeoUat.outputTests[file] = record.candidateSha256;
+  assert.throws(() => assertReviewedSeoUatSource(owner, digest, changedOriginal, read, 'admin-uat'));
+  for (const after of [record.before, record.after.replace('"test"', '"production"'), record.after + '// unrelated test change'])
+    assert.throws(() => assertReviewedSeoUatSource(owner, digest, proof,
+      path => path === file ? read(path).replace(record.after, after) : read(path), 'admin-uat'));
 });
