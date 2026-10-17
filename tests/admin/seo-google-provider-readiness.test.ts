@@ -104,7 +104,7 @@ test("SEO Google routes retain identity and exact ingress checks before any prov
   `;
   const result = spawnSync(process.execPath, [...process.execArgv, "-e", script], {
     cwd: new URL("../../", import.meta.url),
-    env: { PATH: process.env.PATH, NODE_PATH: process.env.NODE_PATH },
+    env: { NODE_ENV: "test", PATH: process.env.PATH, NODE_PATH: process.env.NODE_PATH },
     encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);

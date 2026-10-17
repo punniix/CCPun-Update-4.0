@@ -77,14 +77,24 @@ export function assertReviewedUatRetention(file, originalDigest, proof, readSour
 }
 
 // Separate reviewed SEO compatibility. The old Production and inherited C645 objects stay sealed.
-const REVIEWED_SEO_UAT_SHA256 = 'e31bb7f61e1e7e879190d0380f7e06d4e9de213b6ef963cd2dd07f33a40d751a';
+const REVIEWED_SEO_UAT_SHA256 = 'be40d4cf031d17c97adcce92d3a44cbb766f634c21d57cd13eedf0405f655096';
 function seoUatAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed SEO admission environment');
   inheritedUatAdmission(proof);
   const record = proof.reviewedSeoUat;
   assert.equal(sha(JSON.stringify(record)), REVIEWED_SEO_UAT_SHA256, 'unreviewed SEO admission');
-  for (const [path, digest] of Object.entries(record.outputTests))
-    assert.equal(sha(readSource(path)), digest, path + ': reviewed SEO output coverage drift');
+  const { testOverlays, ...originalSeoReview } = record;
+  assert.equal(sha(JSON.stringify(originalSeoReview)), 'e31bb7f61e1e7e879190d0380f7e06d4e9de213b6ef963cd2dd07f33a40d751a', 'original reviewed D0 SEO evidence drift');
+  for (const [path, digest] of Object.entries(record.outputTests)) {
+    const source = readSource(path), overlay = testOverlays?.[path];
+    if (overlay) {
+      assert.equal(overlay.sourceCommit, record.sourceCommit, 'test overlay source provenance');
+      assert.equal(overlay.originalSha256, digest, 'original D0 test hash stays frozen');
+      assert.equal(sha(source), overlay.candidateSha256, path + ': reviewed test overlay body drift');
+      assert.equal(source.split(overlay.after).length, 2, 'exactly one reviewed test-only environment overlay');
+      assert.equal(sha(source.replace(overlay.after, overlay.before)), digest, 'test overlay reverse must recover whole immutable D0 bytes');
+    } else assert.equal(sha(source), digest, path + ': reviewed SEO output coverage drift');
+  }
   for (const [path, pins] of Object.entries(record.sources))
     assert.equal(sha(readSource(path)), pins.reviewedSha256, path + ': reviewed SEO source drift');
   return record;

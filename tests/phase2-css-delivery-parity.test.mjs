@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname, relative, isAbsolute, sep } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import test from 'node:test';
 import { createRequire } from 'node:module';
@@ -109,6 +109,30 @@ function assertNoRuntimeConsumer(utility, candidates) {
   assert(![...candidates.prefixes].some(prefix => utility.startsWith(prefix)), 'Removed utility has a possible dynamic class prefix: ' + utility);
 }
 
+// @source not resolves relative to this CSS owner; nested app directories are distinct.
+function assertRuntimeScanDirectory(directory) {
+  assert(typeof directory === 'string' && isAbsolute(directory), 'unknown Tailwind dependency directory');
+  const actual = resolve(directory), within = relative(resolve('.'), actual);
+  assert(within !== '..' && !within.startsWith('..' + sep) && !isAbsolute(within), 'dependency directory outside owning repository');
+  for (const owner of phase2ExcludedCssSources) {
+    const excluded = resolve(dirname(file), owner);
+    assert(actual !== excluded && !actual.startsWith(excluded + sep), 'excluded root source directory: ' + owner);
+  }
+}
+
+test('watch metadata rejects every exact excluded root and descendant while preserving legitimate nested app directories', () => {
+  assert.equal(phase2ExcludedCssSources.length, 4);
+  for (const owner of phase2ExcludedCssSources) {
+    const excluded = resolve(dirname(file), owner);
+    assert.throws(() => assertRuntimeScanDirectory(excluded), /excluded root/);
+    assert.throws(() => assertRuntimeScanDirectory(resolve(excluded, 'child')), /excluded root/);
+    assert.doesNotThrow(() => assertRuntimeScanDirectory(excluded + '-lookalike'));
+  }
+  assert.doesNotThrow(() => assertRuntimeScanDirectory(resolve('apps/admin/scripts')));
+  for (const unknown of [undefined, null, 42, {}, '', 'scripts', resolve('../outside')])
+    assert.throws(() => assertRuntimeScanDirectory(unknown), /unknown|outside/);
+});
+
 test('the actual Tailwind compiler preserves runtime declarations and cascade order', async () => {
   const compiled = await postcss([tailwind({ optimize: false })]).process(source, { from: resolve(file) });
   const reviewedBaseline = rootCssBefore('admin-uat');
@@ -150,7 +174,7 @@ test('the actual Tailwind compiler preserves runtime declarations and cascade or
 
   assert(Buffer.byteLength(compiled.css) <= Buffer.byteLength(reviewedBaseline), 'ownership must not increase compiled CSS within its reviewed environment');
   for (const message of compiled.messages.filter(message => message.type === 'dir-dependency')) {
-    assert(!/\/(?:qa|tests|docs|scripts)(?:\/|$)/.test(message.dir), message.dir);
+    assertRuntimeScanDirectory(message.dir);
   }
 });
 

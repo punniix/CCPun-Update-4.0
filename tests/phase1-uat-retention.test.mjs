@@ -106,3 +106,29 @@ test('new SEO route retention stays distinct from accepted C645 and rejects envi
     assert.throws(() => assertReviewedSeoUatSource(file, original, changed, read, 'admin-uat'));
   }
 });
+
+
+test('hermetic NODE_ENV test overlay reverses to the exact immutable D0 evidence and rejects all unreviewed variants', () => {
+  const file = 'tests/admin/seo-google-provider-readiness.test.ts';
+  const read = path => readFileSync(path, 'utf8');
+  const record = proof.reviewedSeoUat.testOverlays[file];
+  assert.equal(Object.keys(proof.reviewedSeoUat.testOverlays).length, 1);
+  assert.equal(record.sourceCommit, 'd0bcfdaef62f2fae8b3b727836527dd25e22ebbe');
+  assert.equal(proof.reviewedSeoUat.outputTests[file], 'ab5a3a31cbda12f6da76ec1283d76f857de804f74f8070502e48aa34d011d761');
+  assert.equal(record.originalSha256, proof.reviewedSeoUat.outputTests[file]);
+  assert.equal(record.after, 'env: { NODE_ENV: "test", PATH: process.env.PATH, NODE_PATH: process.env.NODE_PATH },');
+  assert.equal(sha(read(file).replace(record.after, record.before)), record.originalSha256);
+  const owner = proof.reviewedSeoUat.retainedRoutes[0], digest = proof.protected[owner];
+  assert.equal(assertReviewedSeoUatSource(owner, digest, proof, read, 'admin-uat'), true);
+  for (const field of ['sourceCommit', 'originalSha256', 'candidateSha256', 'before', 'after']) {
+    const changed = structuredClone(proof); changed.reviewedSeoUat.testOverlays[file][field] = 'unknown';
+    assert.throws(() => assertReviewedSeoUatSource(owner, digest, changed, read, 'admin-uat'));
+  }
+  const unknown = structuredClone(proof); unknown.reviewedSeoUat.testOverlays['unknown.test.ts'] = record;
+  assert.throws(() => assertReviewedSeoUatSource(owner, digest, unknown, read, 'admin-uat'));
+  const changedOriginal = structuredClone(proof); changedOriginal.reviewedSeoUat.outputTests[file] = record.candidateSha256;
+  assert.throws(() => assertReviewedSeoUatSource(owner, digest, changedOriginal, read, 'admin-uat'));
+  for (const after of [record.before, record.after.replace('"test"', '"production"'), record.after + '// unrelated test change'])
+    assert.throws(() => assertReviewedSeoUatSource(owner, digest, proof,
+      path => path === file ? read(path).replace(record.after, after) : read(path), 'admin-uat'));
+});

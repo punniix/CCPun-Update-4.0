@@ -2069,6 +2069,15 @@
         "insertionLength": 1067,
         "insertionSha256": "2362ce02375d39de7e405cd20751008e1dd70ef7be12321172504168e1b82782"
       }
+    },
+    "testOverlays": {
+      "tests/admin/seo-google-provider-readiness.test.ts": {
+        "sourceCommit": "d0bcfdaef62f2fae8b3b727836527dd25e22ebbe",
+        "originalSha256": "ab5a3a31cbda12f6da76ec1283d76f857de804f74f8070502e48aa34d011d761",
+        "candidateSha256": "e585c637947270861fc743ac93ea3a12ffbd60a65e4842a122d3d657ea8194c1",
+        "before": "env: { PATH: process.env.PATH, NODE_PATH: process.env.NODE_PATH },",
+        "after": "env: { NODE_ENV: \"test\", PATH: process.env.PATH, NODE_PATH: process.env.NODE_PATH },"
+      }
     }
   }
 }
