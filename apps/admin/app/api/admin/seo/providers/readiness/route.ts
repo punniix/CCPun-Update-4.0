@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isConfiguredAdminOrigin } from "@/lib/admin/auth-config";
+import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
+import { getAdminEnvironment } from "@/lib/admin/environment";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import {
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
   if (identity.actorType !== "human" || !hasAdminPermission(identity.role, "seo:read")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  if (!isConfiguredAdminOrigin(request.url, process.env.AUTH_URL)) {
+  if (!isPostPublishAdminOriginAllowed(request, process.env, getAdminEnvironment())) {
     return NextResponse.json({ error: "forbidden-origin" }, { status: 403 });
   }
   const provider = seoGoogleProviderSchema.safeParse(new URL(request.url).searchParams.get("provider"));

@@ -154,7 +154,9 @@ if (role === "web") {
       requireExact("CCPUN_SOCIAL_PROVIDER_READS_ENABLED", "0");
       requireExact("CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED", "0");
       requireExact("CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED", "0");
-      if (!/^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(gitRef)) {
+      const pinnedUat = /^admin\/hostinger-release-uat-[a-f0-9]{40}$/.test(gitRef)
+        || (/^[a-f0-9]{40}$/.test(gitSha) && gitRef === `codex/hostinger-release-uat-${gitSha}`);
+      if (!pinnedUat) {
         failures.push("Admin UAT CCPUN_GIT_REF must be a dedicated pinned Admin UAT release ref");
       }
     }
