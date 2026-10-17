@@ -197,12 +197,22 @@ test('actual archive route sends only published provider records/active registry
   assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.categories,[]);
 });
 
-test('all39 approved source records retain provenance with only the reviewed unused return-link retirement', () => {
+test('all39 approved source records retain provenance with exact reviewed return-link retirement and image URL ownership', () => {
   assert.equal(Object.keys(reviewedSourceOwners).length,39);
   const retired = 'features/blog/website-43/BlogReturnLink.tsx';
   assert.equal(reviewedSourceOwners[retired], '77a3ef1c5f7eb02e91e425e400d4c289d5e329aa400c33ac0f7484eeb991a556');
   assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
   for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
-    if (file !== retired) assert.equal(sha(read(file)),digest,file);
+    if (file === retired) continue;
+    const source = read(file);
+    if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css') {
+      const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png';
+      const derived = asset.replace('.png', '.lossless.webp');
+      const resolved = `url('../../../public/${derived}')`;
+      assert.equal(source.split(resolved).length, 2, 'exactly one native module-resolved background');
+      assert.equal(sha(source.replace(resolved, `url('/${asset}')`)), digest, 'only image URL ownership may change; all visual CSS stays byte-exact');
+      assert.equal(sha(readFileSync(resolve(root, 'public', asset))), '3b70e95f0c0e6d15afc8c43aceb1283220c170de3c3fba9440d0091374a9e428', 'same original PNG bytes');
+      assert.equal(sha(readFileSync(resolve(root, 'public', derived))), '0691ec77ae85113dc3ed87e6d26025f3d5a56db12ce3e144092b790e5dae2d4f', 'reviewed lossless WebP derivative retains decoded pixels and metadata');
+    } else assert.equal(sha(source),digest,file);
   }
 });
