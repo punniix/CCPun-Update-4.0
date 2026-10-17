@@ -18,7 +18,7 @@ test("GA4 Owner connect sends one native same-origin POST and visibly enters con
   const previous = {
     window: globalThis.window, document: globalThis.document,
     HTMLFormElement: globalThis.HTMLFormElement,
-    IS_REACT_ACT_ENVIRONMENT: globalThis.IS_REACT_ACT_ENVIRONMENT,
+    IS_REACT_ACT_ENVIRONMENT: (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT,
   };
   Object.assign(globalThis, {
     window: dom.window, document: dom.window.document,
