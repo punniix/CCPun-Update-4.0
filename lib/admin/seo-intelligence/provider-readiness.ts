@@ -43,14 +43,14 @@ export function getSeoGoogleProviderReadiness(
 ) {
   const provider = seoGoogleProviderSchema.parse(providerValue);
   const config = providerConfig[provider];
-  if (provider === "ga4" && env.CCPUN_APP_ENV === "admin-uat" && sessionConnection) {
+  if (provider === "ga4" && ["admin-uat", "production-admin"].includes(env.CCPUN_APP_ENV ?? "") && sessionConnection) {
     const ready = sessionConnection.allowed && sessionConnection.connected;
     return {
       provider, mode: "owner-session-oauth" as const,
       status: ready ? "manual-sync-ready" as const : "configuration-required" as const,
       required: [
         { name: "OWNER_GOOGLE_ANALYTICS_CONSENT", present: ready, valid: ready },
-        { name: config.resource, present: Boolean(env[config.resource]?.trim()), valid: env[config.resource] === "551040812" },
+        { name: config.resource, present: Boolean(env[config.resource]?.trim()), valid: env[config.resource] === (env.CCPUN_APP_ENV === "admin-uat" ? "551040812" : "219719845") },
       ],
       scope: config.scope, refreshableConnectionReady: ready, callbackPath: "/api/auth/callback/google",
       limitation: "การเชื่อมต่อผูกกับการเข้าสู่ระบบของ Owner สูงสุด 8 ชั่วโมง หากออกจากระบบหรือหมดอายุให้เชื่อมใหม่ ระบบอ่านเมื่อกดเท่านั้น ไม่บันทึก token ในข้อมูล session ที่ส่งให้หน้าเว็บ",

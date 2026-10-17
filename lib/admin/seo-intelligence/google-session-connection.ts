@@ -9,9 +9,16 @@ import { isPostPublishAdminOriginAllowed } from "./post-publish-origin";
 if (typeof window !== "undefined") throw new Error("GOOGLE_SESSION_SERVER_ONLY");
 
 export const GOOGLE_ANALYTICS_SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
-export const GOOGLE_UAT_PROPERTY = "551040812";
 export const GOOGLE_INTENT_COOKIE = "__Secure-ccpun-admin-uat.ga4-intent";
 export const GOOGLE_GRANT_COOKIE = "__Secure-ccpun-admin-uat.ga4-grant";
+export const GOOGLE_UAT_PROPERTY = "551040812";
+export const GOOGLE_PRODUCTION_PROPERTY = "219719845";
+const lanes = {
+  "admin-uat": { environment: "admin-uat", origin: "https://admin-test.ccpun.com", property: GOOGLE_UAT_PROPERTY,
+    intentCookie: GOOGLE_INTENT_COOKIE, grantCookie: GOOGLE_GRANT_COOKIE },
+  "production-admin": { environment: "production-admin", origin: "https://admin.ccpun.com", property: GOOGLE_PRODUCTION_PROPERTY,
+    intentCookie: "__Secure-ccpun-admin.ga4-intent", grantCookie: "__Secure-ccpun-admin.ga4-grant" },
+} as const;
 export const GOOGLE_CONNECT_AUTHORIZATION = Object.freeze({
   scope: `openid email profile ${GOOGLE_ANALYTICS_SCOPE}`,
   access_type: "offline", prompt: "consent",
@@ -27,7 +34,8 @@ type SessionToken = { sub?: unknown; email?: unknown; googleConnectionBinding?: 
 export type GoogleCookieOptions = { httpOnly: true; secure: true; sameSite: "lax"; path: string; maxAge: number };
 export type GoogleCookieWriter = (name: string, value: string, options: GoogleCookieOptions) => void;
 export type GoogleSessionReadiness = { allowed: boolean; connected: boolean; reason: "configuration-required" | "connect-required" | "connected" };
-type Context = {
+type Lane = typeof lanes[keyof typeof lanes];
+type Context = Lane & {
   ownerHash: string; clientHash: string; clientId: string; clientSecret: string;
   secret: string; source: string;
 };
@@ -37,8 +45,8 @@ const bindingShape = {
   accountHash: z.string().regex(/^[a-f0-9]{64}$/),
   clientHash: z.string().regex(/^[a-f0-9]{64}$/),
   source: z.string().regex(/^[a-f0-9]{40}$/),
-  property: z.literal(GOOGLE_UAT_PROPERTY),
-  environment: z.literal("admin-uat"), origin: z.literal("https://admin-test.ccpun.com"),
+  property: z.enum([GOOGLE_UAT_PROPERTY, GOOGLE_PRODUCTION_PROPERTY]),
+  environment: z.enum(["admin-uat", "production-admin"]), origin: z.enum(["https://admin-test.ccpun.com", "https://admin.ccpun.com"]),
 };
 const intentSchema = z.object({ ...bindingShape, nonce: z.string().min(20).max(64), issuedAt: z.number().int(), expiresAt: z.number().int() }).strict();
 const grantSchema = z.object({
@@ -52,31 +60,37 @@ export type GoogleSessionGrant = z.infer<typeof grantSchema>;
 // Process-local, bounded nonce admission. A restart/another instance requires reconnect;
 // absence must never fall back to signature-only admission.
 const intentRegistry = globalThis as typeof globalThis & { [key: symbol]: unknown };
-const registryKey = Symbol.for("ccpun.admin-uat.google-connect.intents.v1");
+const registryKey = Symbol.for("ccpun.admin.google-connect.intents.v1");
 if (intentRegistry[registryKey] !== undefined && !(intentRegistry[registryKey] instanceof Map)) throw new Error("GOOGLE_SESSION_REGISTRY_UNAVAILABLE");
 const pendingIntents = (intentRegistry[registryKey] ??= new Map<string, number>()) as Map<string, number>;
 function sweepIntents(now: number) {
   for (const [key, expiry] of pendingIntents) if (expiry <= now) pendingIntents.delete(key);
 }
 
-export function getGoogleUatContext(env: Variables, actor: Actor): Context | null {
+export function getGoogleSessionLane(env: Variables) {
+  const lane = lanes[env.CCPUN_APP_ENV as keyof typeof lanes];
+  if (!lane || env.CCPUN_DEPLOYMENT_PROVIDER !== "hostinger" || env.CCPUN_DEPLOYMENT_ROLE !== "admin"
+    || env.AUTH_URL !== lane.origin) return null;
+  return { ...lane, authCookie: `${getAdminCookieNamespace(lane.environment)}.session-token` };
+}
+
+export function getGoogleSessionContext(env: Variables, actor: Actor): Context | null {
   if (actor.actorType !== "human" || actor.role !== "owner" || !actor.actor.includes("@")) return null;
-  if (env.CCPUN_DEPLOYMENT_PROVIDER !== "hostinger" || env.CCPUN_DEPLOYMENT_ROLE !== "admin"
-    || env.CCPUN_APP_ENV !== "admin-uat" || env.AUTH_URL !== "https://admin-test.ccpun.com"
-    || env.CCPUN_GA4_PROPERTY_ID !== GOOGLE_UAT_PROPERTY || !hasStrongAuthSecret(env.AUTH_SECRET)
+  const lane = getGoogleSessionLane(env);
+  if (!lane || env.CCPUN_GA4_PROPERTY_ID !== lane.property || !hasStrongAuthSecret(env.AUTH_SECRET)
     || !/^[a-f0-9]{40}$/.test(env.CCPUN_GIT_SHA ?? "")
-    || env.CCPUN_GIT_REF !== `codex/hostinger-release-uat-${env.CCPUN_GIT_SHA}`) return null;
+    || env.CCPUN_GIT_REF !== `codex/hostinger-release-${lane.environment === "admin-uat" ? "uat" : "production"}-${env.CCPUN_GIT_SHA}`) return null;
   if (!isSeoIntelligenceEnabled({
-    releaseVariables: env, flag: env.CCPUN_SEO_INTELLIGENCE_ENABLED, environment: "admin-uat",
+    releaseVariables: env, flag: env.CCPUN_SEO_INTELLIGENCE_ENABLED, environment: lane.environment,
     deploymentProvider: env.CCPUN_DEPLOYMENT_PROVIDER, deploymentRole: env.CCPUN_DEPLOYMENT_ROLE,
     releaseId: env.CCPUN_RELEASE_ID, gitSha: env.CCPUN_GIT_SHA, gitBranch: env.CCPUN_GIT_REF,
     vercelEnvironment: env.VERCEL_ENV, projectId: env.VERCEL_PROJECT_ID || env.NEXT_PUBLIC_CCPUN_VERCEL_PROJECT_ID,
     productionAdminProjectId: env.CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID || env.NEXT_PUBLIC_CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID,
     sanityProjectId: env.NEXT_PUBLIC_SANITY_PROJECT_ID, sanityDataset: env.NEXT_PUBLIC_SANITY_DATASET,
   })) return null;
-  const credentials = getAdminGoogleOAuthCredentials("admin-uat", env);
+  const credentials = getAdminGoogleOAuthCredentials(lane.environment, env);
   if (!credentials) return null;
-  return { ownerHash: digest(actor.actor.trim().toLowerCase()), clientHash: digest(credentials.clientId),
+  return { ...lane, ownerHash: digest(actor.actor.trim().toLowerCase()), clientHash: digest(credentials.clientId),
     clientId: credentials.clientId, clientSecret: credentials.clientSecret,
     secret: env.AUTH_SECRET!, source: env.CCPUN_GIT_SHA! };
 }
@@ -89,8 +103,8 @@ function sessionMatches(session: SessionToken, context: Context) {
 function claims(context: Context, session: SessionToken) {
   return { ownerHash: context.ownerHash, subjectHash: digest(session.sub as string), clientHash: context.clientHash,
     accountHash: digest(session.googleConnectionAccount as string),
-    source: context.source, property: GOOGLE_UAT_PROPERTY, environment: "admin-uat" as const,
-    origin: "https://admin-test.ccpun.com" as const };
+    source: context.source, property: context.property, environment: context.environment,
+    origin: context.origin };
 }
 
 export function issueGoogleConnectIntent(context: Context, session: SessionToken, now = Date.now()): string {
@@ -100,7 +114,7 @@ export function issueGoogleConnectIntent(context: Context, session: SessionToken
   const payload = { ...claims(context, session), nonce: nonce(), issuedAt: now, expiresAt: now + INTENT_MS };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = createHmac("sha256", context.secret).update(`ccpun-ga4-intent:${body}`).digest("base64url");
-  pendingIntents.set(payload.nonce, payload.expiresAt);
+  pendingIntents.set(`${context.environment}:${payload.nonce}`, payload.expiresAt);
   return `${body}.${signature}`;
 }
 
@@ -123,8 +137,9 @@ export function consumeGoogleConnectIntent(input: {
     if (!parsed.success) return null;
     const intent = parsed.data;
     sweepIntents(now);
-    const admitted = pendingIntents.get(intent.nonce);
-    pendingIntents.delete(intent.nonce);
+    const key = `${input.context.environment}:${intent.nonce}`;
+    const admitted = pendingIntents.get(key);
+    pendingIntents.delete(key);
     if (admitted !== intent.expiresAt || intent.expiresAt <= now || intent.issuedAt > now
       || intent.expiresAt - intent.issuedAt !== INTENT_MS) return null;
     const wanted = claims(input.context, input.session);
@@ -146,18 +161,23 @@ export function consumeGoogleConnectIntent(input: {
 
 export async function readGoogleAuthSession(request: Request, env: Variables) {
   if (!hasStrongAuthSecret(env.AUTH_SECRET)) return null;
-  const name = `${getAdminCookieNamespace("admin-uat")}.session-token`;
+  const lane = getGoogleSessionLane(env);
+  if (!lane) return null;
+  const name = lane.authCookie;
   // Only this exact cookie is authoritative; never accept an Authorization header.
   return getToken({ req: { headers: { cookie: request.headers.get("cookie") ?? "" } },
     secret: env.AUTH_SECRET!, cookieName: name, salt: name, secureCookie: true });
 }
 
 export async function writeGoogleSessionGrant(grant: GoogleSessionGrant, env: Variables, write: GoogleCookieWriter, now = Date.now()) {
+  const lane = getGoogleSessionLane(env);
+  if (!lane || lane.environment !== grant.environment || lane.origin !== grant.origin || lane.property !== grant.property)
+    throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
   const remaining = Math.floor((grant.absoluteExpiresAt - now) / 1_000);
   if (!hasStrongAuthSecret(env.AUTH_SECRET) || remaining <= 0 || remaining > GRANT_MS / 1_000) throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
-  const value = await encode({ token: grant, secret: env.AUTH_SECRET!, salt: GOOGLE_GRANT_COOKIE, maxAge: remaining });
-  if (Buffer.byteLength(`${GOOGLE_GRANT_COOKIE}=${value}`, "utf8") > MAX_COOKIE_BYTES) throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
-  write(GOOGLE_GRANT_COOKIE, value, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: remaining });
+  const value = await encode({ token: grant, secret: env.AUTH_SECRET!, salt: lane.grantCookie, maxAge: remaining });
+  if (Buffer.byteLength(`${lane.grantCookie}=${value}`, "utf8") > MAX_COOKIE_BYTES) throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
+  write(lane.grantCookie, value, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: remaining });
 }
 
 export function validateGoogleSessionGrant(raw: unknown, context: Context, session: SessionToken, now = Date.now()): GoogleSessionGrant | null {
@@ -171,20 +191,24 @@ export function validateGoogleSessionGrant(raw: unknown, context: Context, sessi
 }
 
 async function readConnection(request: Request, actor: Actor, env: Variables) {
-  const context = getGoogleUatContext(env, actor);
-  if (!context || !isPostPublishAdminOriginAllowed(request, env, "admin-uat")) return null;
+  const context = getGoogleSessionContext(env, actor);
+  if (!context || !isPostPublishAdminOriginAllowed(request, env, context.environment)) return null;
   try {
     const session = await readGoogleAuthSession(request, env);
     if (!session) return null;
+    const entries = grantCookieEntries(request, context.grantCookie);
+    // The bounded writer never chunks: duplicates, chunks and empty values fail closed.
+    if (entries.length !== 1 || !entries[0].startsWith(`${context.grantCookie}=`)
+      || entries[0] === `${context.grantCookie}=`) return null;
     const raw = await getToken({ req: { headers: { cookie: request.headers.get("cookie") ?? "" } },
-      secret: context.secret, cookieName: GOOGLE_GRANT_COOKIE, salt: GOOGLE_GRANT_COOKIE, secureCookie: true });
+      secret: context.secret, cookieName: context.grantCookie, salt: context.grantCookie, secureCookie: true });
     const grant = validateGoogleSessionGrant(raw, context, session);
     return grant ? { context, grant } : null;
   } catch { return null; }
 }
 
 export async function getGoogleSessionReadiness(request: Request, actor: Actor, env: Variables): Promise<GoogleSessionReadiness> {
-  if (!getGoogleUatContext(env, actor)) return { allowed: false, connected: false, reason: "configuration-required" };
+  if (!getGoogleSessionContext(env, actor)) return { allowed: false, connected: false, reason: "configuration-required" };
   const connection = await readConnection(request, actor, env);
   return { allowed: true, connected: Boolean(connection), reason: connection ? "connected" : "connect-required" };
 }
@@ -196,9 +220,10 @@ export async function refreshConnectedGoogleGrant(grant: GoogleSessionGrant, con
   fetcher: typeof fetch = fetch, now = Date.now()): Promise<RefreshResult> {
   if (!grantSchema.safeParse(grant).success || grant.absoluteExpiresAt <= now || grant.issuedAt > now
     || grant.ownerHash !== context.ownerHash || grant.clientHash !== context.clientHash || grant.source !== context.source
+    || grant.environment !== context.environment || grant.origin !== context.origin || grant.property !== context.property
     || grant.absoluteExpiresAt - grant.issuedAt !== GRANT_MS) throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
   for (const [key, flight] of refreshFlights) if (flight.until <= now) refreshFlights.delete(key);
-  const key = `${grant.grantId}:${digest(grant.refreshToken)}`;
+  const key = `${context.environment}:${context.property}:${context.source}:${grant.grantId}:${digest(grant.refreshToken)}`;
   const existing = refreshFlights.get(key);
   if (existing) return existing.result;
   if (refreshFlights.size >= 64) throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
@@ -213,6 +238,17 @@ export async function refreshConnectedGoogleGrant(grant: GoogleSessionGrant, con
   })();
   refreshFlights.set(key, flight);
   return flight.result;
+}
+
+function grantCookieEntries(request: Request, name: string) {
+  return (request.headers.get("cookie") ?? "").split(";").map(value => value.trim()).filter(value => {
+    const cookie = value.split("=", 1)[0];
+    return cookie === name || cookie.startsWith(`${name}.`);
+  });
+}
+export function hasGoogleSessionGrant(request: Request, env: Variables) {
+  const lane = getGoogleSessionLane(env);
+  return Boolean(lane && grantCookieEntries(request, lane.grantCookie).length);
 }
 
 export async function getConnectedGoogleAccessToken(request: Request, actor: Actor, env: Variables, write: GoogleCookieWriter,

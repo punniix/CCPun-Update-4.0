@@ -3,8 +3,8 @@ import test from "node:test";
 import { createHmac } from "node:crypto";
 import { encode } from "next-auth/jwt";
 import {
-  consumeGoogleConnectIntent, getConnectedGoogleAccessToken, getGoogleSessionReadiness, getGoogleUatContext,
-  GOOGLE_ANALYTICS_SCOPE, GOOGLE_CONNECT_AUTHORIZATION, GOOGLE_GRANT_COOKIE, issueGoogleConnectIntent,
+  consumeGoogleConnectIntent, getConnectedGoogleAccessToken, getGoogleSessionReadiness, getGoogleSessionContext,
+  GOOGLE_ANALYTICS_SCOPE, GOOGLE_CONNECT_AUTHORIZATION, GOOGLE_GRANT_COOKIE, issueGoogleConnectIntent, getGoogleSessionLane, hasGoogleSessionGrant,
   refreshConnectedGoogleGrant, validateGoogleSessionGrant, writeGoogleSessionGrant,
 } from "../../lib/admin/seo-intelligence/google-session-connection";
 import { getSeoGoogleProviderReadiness } from "../../lib/admin/seo-intelligence/provider-readiness";
@@ -20,7 +20,7 @@ const session = { sub: "old-auth-random-uuid", email: owner.actor, googleConnect
 const callbackSession = { ...session, sub: "new-auth-random-uuid" };
 const account = { provider: "google", providerAccountId: "google-provider-sub", scope: `openid email profile ${GOOGLE_ANALYTICS_SCOPE}`, refresh_token: "synthetic-refresh" };
 const profile = { sub: "google-provider-sub", email: owner.actor, email_verified: true, aud: env.AUTH_GOOGLE_ID };
-const context = () => { const value = getGoogleUatContext(env, owner); assert.ok(value); return value; };
+const context = () => { const value = getGoogleSessionContext(env, owner); assert.ok(value); return value; };
 function grant() {
   const ctx = context();
   const value = consumeGoogleConnectIntent({ context: ctx, session, callbackSession, account, profile,
@@ -40,12 +40,12 @@ async function requestFor(value = grant(), method = "GET") {
 
 test("Connect is explicit Owner/exact UAT/resource/feature only, with Analytics scope only", () => {
   assert.ok(context());
-  for (const patch of [{ role: "editor" }, { actorType: "service" }, { actor: "not-an-email" }]) assert.equal(getGoogleUatContext(env, { ...owner, ...patch }), null);
+  for (const patch of [{ role: "editor" }, { actorType: "service" }, { actor: "not-an-email" }]) assert.equal(getGoogleSessionContext(env, { ...owner, ...patch }), null);
   for (const patch of [{ CCPUN_APP_ENV: "production-admin" }, { CCPUN_DEPLOYMENT_PROVIDER: "local" }, { CCPUN_DEPLOYMENT_ROLE: "web" },
     { AUTH_URL: "https://admin.ccpun.com" }, { CCPUN_GA4_PROPERTY_ID: "219719845" }, { CCPUN_GA4_PROPERTY_ID: "" },
     { CCPUN_SEO_INTELLIGENCE_ENABLED: "0" }, { CCPUN_GIT_REF: "codex/another-ref" }, { NEXT_PUBLIC_SANITY_DATASET: "production" },
     { AUTH_GOOGLE_SECRET: "" }, { VERCEL_ENV: "preview" }, { AUTH_SECRET: "weak" }]) {
-    assert.equal(getGoogleUatContext({ ...env, ...patch }, owner), null);
+    assert.equal(getGoogleSessionContext({ ...env, ...patch }, owner), null);
   }
   assert.equal(GOOGLE_CONNECT_AUTHORIZATION.scope, `openid email profile ${GOOGLE_ANALYTICS_SCOPE}`);
   assert.equal(GOOGLE_CONNECT_AUTHORIZATION.access_type, "offline");
@@ -141,4 +141,80 @@ test("rotation/concurrent manual refresh uses one process-local flight and never
   assert.equal(writes, 0);
   await assert.rejects(refreshConnectedGoogleGrant({ ...value, clientHash: "a".repeat(64) }, ctx, fetcher), /GOOGLE_SESSION_CONNECT_REQUIRED/);
   assert.equal(calls, 1);
+});
+
+function productionEnvironment() {
+  const ref = `codex/hostinger-release-production-${env.CCPUN_GIT_SHA}`;
+  return { ...env, NODE_ENV: 'test' as const, CCPUN_APP_ENV: 'production-admin', NEXT_PUBLIC_CCPUN_APP_ENV: 'production-admin',
+    AUTH_URL: 'https://admin.ccpun.com', CCPUN_GA4_PROPERTY_ID: '219719845', CCPUN_GIT_REF: ref,
+    NEXT_PUBLIC_SANITY_PROJECT_ID: 'kyfxgjnq', NEXT_PUBLIC_SANITY_DATASET: 'production',
+    CCPUN_ADMIN_CAPABILITY_PROFILE: 'full', CCPUN_NEON_PROJECT_ID: 'lively-bar-43618798',
+    CCPUN_NEON_BRANCH_ID: 'br-long-resonance-b3ys5xrv', CCPUN_NEON_DATABASE: 'neondb',
+    CCPUN_RELEASE_ID: 'synthetic-connect-lanes', CCPUN_ARTICLE_SCHEDULER_BACKEND: 'disabled',
+    NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: 'disabled', CCPUN_ARTICLE_SCHEDULING_ENABLED: '0',
+    CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: '0', CCPUN_NATIVE_WORKFLOW_ENABLED: '0',
+    NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: 'hostinger', NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: 'admin',
+    NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: 'full', NEXT_PUBLIC_CCPUN_GIT_SHA: env.CCPUN_GIT_SHA,
+    NEXT_PUBLIC_CCPUN_GIT_REF: ref, NEXT_PUBLIC_CCPUN_RELEASE_ID: 'synthetic-connect-lanes' };
+}
+
+test('Production Connect requires the exact existing sealed lane and property, never UAT identity', async () => {
+  const production = productionEnvironment(), previous = process.env;
+  try {
+    process.env = production;
+    const ctx = getGoogleSessionContext(production, owner); assert.ok(ctx);
+    assert.equal(ctx.environment, 'production-admin'); assert.equal(ctx.property, '219719845');
+    for (const patch of [{ CCPUN_GA4_PROPERTY_ID: '551040812' }, { AUTH_URL: env.AUTH_URL },
+      { NEXT_PUBLIC_SANITY_DATASET: 'uat' }, { CCPUN_GIT_REF: env.CCPUN_GIT_REF },
+      { CCPUN_NEON_PROJECT_ID: 'young-term-47483330' }, { NEXT_PUBLIC_CCPUN_GIT_SHA: 'a'.repeat(40) },
+      { CCPUN_SEO_INTELLIGENCE_ENABLED: '0' }, { AUTH_GOOGLE_SECRET: '' }]) {
+      assert.equal(getGoogleSessionContext({ ...production, ...patch }, owner), null);
+    }
+    const uatContext = context(), intent = issueGoogleConnectIntent(uatContext, session);
+    assert.equal(consumeGoogleConnectIntent({ context: ctx, session, callbackSession, account, profile, intent }), null);
+    // A wrong-lane attempt cannot consume the UAT lane's admitted nonce.
+    assert.ok(consumeGoogleConnectIntent({ context: uatContext, session, callbackSession, account, profile, intent }));
+  } finally { process.env = previous; }
+});
+
+test('Cross-lane ciphertext, relabelled claims, empty/duplicate/chunked grants deny before egress', async () => {
+  const production = productionEnvironment(), previous = process.env, uatGrant = grant(); let calls = 0;
+  try {
+    process.env = production;
+    const ctx = getGoogleSessionContext(production, owner); assert.ok(ctx);
+    const lane = getGoogleSessionLane(production); assert.ok(lane);
+    const value = consumeGoogleConnectIntent({ context: ctx, session, callbackSession, account, profile,
+      intent: issueGoogleConnectIntent(ctx, session) }); assert.ok(value);
+    assert.equal(validateGoogleSessionGrant(uatGrant, ctx, { ...callbackSession, googleConnectionBinding: uatGrant.sessionBinding }), null);
+    await assert.rejects(() => writeGoogleSessionGrant(uatGrant, production, () => assert.fail('no cross-lane cookie write')));
+    const auth = await encode({ token: { ...callbackSession, googleConnectionBinding: uatGrant.sessionBinding },
+      secret: production.AUTH_SECRET, salt: lane.authCookie, maxAge: 28_800 });
+    const originalCipher = await encode({ token: uatGrant, secret: env.AUTH_SECRET, salt: GOOGLE_GRANT_COOKIE, maxAge: 28_800 });
+    const relabelledClaims = await encode({ token: uatGrant, secret: production.AUTH_SECRET, salt: lane.grantCookie, maxAge: 28_800 });
+    for (const cookie of [`${lane.grantCookie}=${originalCipher}`, `${lane.grantCookie}=${relabelledClaims}`,
+      `${lane.grantCookie}=`, `${lane.grantCookie}.0=invalid`, `${lane.grantCookie}=one; ${lane.grantCookie}=two`]) {
+      const request: Request = new Request('http://127.0.0.1:3000/api/admin/seo/opportunities/sync/ga4/', { method: 'POST',
+        headers: { host: 'admin.ccpun.com', 'x-forwarded-host': 'admin.ccpun.com', 'x-forwarded-proto': 'https',
+          origin: 'https://admin.ccpun.com', cookie: `${lane.authCookie}=${auth}; ${cookie}` } });
+      assert.equal(hasGoogleSessionGrant(request, production), true);
+      await assert.rejects(() => getConnectedGoogleAccessToken(request, owner, production, () => assert.fail('no write'),
+        async () => { calls++; return Response.json({ access_token: 'must-not-return' }); }));
+    }
+    assert.equal(calls, 0);
+  } finally { process.env = previous; }
+});
+
+test('Same-process refresh caches remain distinct even with equal synthetic grant IDs and refresh tokens across lanes', async () => {
+  const production = productionEnvironment(), previous = process.env, uatContext = context(), uat = grant();
+  try {
+    process.env = production;
+    const prodContext = getGoogleSessionContext(production, owner); assert.ok(prodContext);
+    const prod = consumeGoogleConnectIntent({ context: prodContext, session, callbackSession, account, profile,
+      intent: issueGoogleConnectIntent(prodContext, session) }); assert.ok(prod);
+    prod.grantId = uat.grantId; prod.refreshToken = uat.refreshToken;
+    let calls = 0;
+    const first = await refreshConnectedGoogleGrant(uat, uatContext, async () => { calls++; return Response.json({ access_token: 'synthetic-uat-access' }); });
+    const second = await refreshConnectedGoogleGrant(prod, prodContext, async () => { calls++; return Response.json({ access_token: 'synthetic-production-access' }); });
+    assert.equal(calls, 2); assert.equal(first.accessToken, 'synthetic-uat-access'); assert.equal(second.accessToken, 'synthetic-production-access');
+  } finally { process.env = previous; }
 });

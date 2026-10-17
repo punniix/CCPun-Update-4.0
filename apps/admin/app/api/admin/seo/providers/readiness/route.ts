@@ -3,7 +3,7 @@ import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/po
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { hasAdminPermission } from "@/lib/admin/rbac";
-import { getGoogleSessionReadiness } from "@/lib/admin/seo-intelligence/google-session-connection";
+import { getGoogleSessionReadiness, hasGoogleSessionGrant } from "@/lib/admin/seo-intelligence/google-session-connection";
 import {
   getSeoGoogleProviderReadiness,
   seoGoogleProviderSchema,
@@ -20,7 +20,8 @@ export async function GET(request: Request) {
   }
   const provider = seoGoogleProviderSchema.safeParse(new URL(request.url).searchParams.get("provider"));
   if (!provider.success) return NextResponse.json({ error: "invalid-provider" }, { status: 400 });
-  const sessionConnection = provider.data === "ga4" && process.env.CCPUN_APP_ENV === "admin-uat" && identity.role === "owner"
+  const sessionConnection = provider.data === "ga4" && identity.role === "owner"
+    && (process.env.CCPUN_APP_ENV === "admin-uat" || hasGoogleSessionGrant(request, process.env))
     ? await getGoogleSessionReadiness(request, identity, process.env) : undefined;
   return NextResponse.json(getSeoGoogleProviderReadiness(provider.data, process.env, sessionConnection), {
     headers: { "Cache-Control": "no-store" },

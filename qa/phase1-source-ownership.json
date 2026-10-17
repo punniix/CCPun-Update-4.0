@@ -2126,23 +2126,23 @@
       }
     },
     "currentSourceDigests": {
-      "auth.ts": "99ca0cbdd48d42c19140db13393c53019517afdc3069daa7aa589b9e9f366d0d",
+      "auth.ts": "2c71e6e6c10025c61a2ccc63010a976bbb31d34afab26ff050bff32ff653557a",
       "types/next-auth.d.ts": "a0a87478efeb2d55df25adcb9bab63bf1d4454846ddd4a6c4d9ba4fdb0534286",
-      "lib/admin/seo-intelligence/google-session-connection.ts": "66de4320c97746f7e8d30fac5062f01e40692741ad86738f537ade453ad6b337",
+      "lib/admin/seo-intelligence/google-session-connection.ts": "f410c19392824b0190ad0bb478481fa6a1f4e3e266c8093649b5873e65d50605",
       "lib/admin/seo-intelligence/google-data-auth.ts": "d700719bb4068f53d4c029447ad8474823d8f6d4b5a1c85646272aed9884fdda",
-      "lib/admin/seo-intelligence/provider-readiness.ts": "8bc2f3c7c5b23a69bebbb79e9cf615b8373c25193d8e8f2619134c0f520b7a0d",
-      "apps/admin/app/api/admin/seo/providers/connect/route.ts": "7ca783b5abbddf76e88a995bb17790b15008af7eb57acda6244878ba0db97cd2",
-      "apps/admin/app/api/admin/seo/providers/readiness/route.ts": "454ecf1deb64e8416ec3054dd3bab2fce3bb284779dd6bc15038d6714c4591ad",
-      "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": "bb193177e67f866ffd0602f866ef7ecd87e61524de708e4bc5efffbf40c62e09",
-      "features/admin/seo/opportunities/page.tsx": "beceb509fe26f81b790b02a6de1099c5a5692bcf4970e0714b803d96fbd0dac7",
-      "features/admin/seo/opportunities/Ga4ManualSync.tsx": "f3197f5f138f93b1ed93fac6a833babf1cfc083fbc2b274b74050a994a878801",
-      "tests/admin/google-session-connection.test.ts": "07494eaf9df64a378349e6da2bbc4914027bdce4d0f38a09d083c4d31d0ff9d1",
-      "tests/admin/google-session-auth.test.ts": "f38accf4a76206b18c39b49f4abba894d2facd5f5462063b1cfea0a568268090"
+      "lib/admin/seo-intelligence/provider-readiness.ts": "712177a872b538e9a82899439ad685e0aca863cde865f12d4d157380812712ba",
+      "apps/admin/app/api/admin/seo/providers/connect/route.ts": "75b616c6dc2ea1a3b50baa1b56164dfdaa0e83bc97a019c743c51a4e07dc5ef2",
+      "apps/admin/app/api/admin/seo/providers/readiness/route.ts": "0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc",
+      "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": "ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a",
+      "features/admin/seo/opportunities/page.tsx": "3ce7ad2f5f3a8f6f78b06625620b465f340de647084e76fab350511762993fa6",
+      "features/admin/seo/opportunities/Ga4ManualSync.tsx": "ec2b947ba2f0bf5d6e63be43f578df2a2a1b1ccb3ff1cb330ad7a368ededd634",
+      "tests/admin/google-session-connection.test.ts": "11751e00afa67d935f4b02ef69513375beecdab6e9384e9948ef5030ef79bf4f",
+      "tests/admin/google-session-auth.test.ts": "e128f8c964103e19ff7d6bb959f55e3da427c00f2ba4c0b5ee2eff0bd9945009"
     },
     "outputTests": [
       "tests/admin/google-session-connection.test.ts",
       "tests/admin/google-session-auth.test.ts"
     ],
-    "coverage": "The pinned tests cover actual new Owner Connect/callback/readiness/manual-reader behavior; the baseline projection checks retained source contracts only. Independent fresh Production regression evidence is recorded separately in the parent report."
+    "coverage": "The pinned tests cover actual Owner Connect/callback/readiness/manual-reader behavior in both separated lanes, including Production legacy-reader fallback only for absent grants; the admin-uat baseline projection checks retained source contracts only. Independent fresh Production regression evidence is recorded separately."
   }
 }

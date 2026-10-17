@@ -9,7 +9,7 @@ import { joinGa4DashboardRows, previousEqualDateRange } from "@/lib/admin/seo-in
 import { getSeoIntelligenceRuntimeStatus } from "@/lib/admin/seo-intelligence/foundation";
 import { getGoogleDataAccessToken } from "@/lib/admin/seo-intelligence/google-data-auth";
 import { cookies } from "next/headers";
-import { getConnectedGoogleAccessToken } from "@/lib/admin/seo-intelligence/google-session-connection";
+import { getConnectedGoogleAccessToken, hasGoogleSessionGrant } from "@/lib/admin/seo-intelligence/google-session-connection";
 import { fetchGa4LandingPages, fetchGa4OrganicTotals } from "@/lib/admin/seo-intelligence/providers/ga4";
 
 const inputSchema = z.object({ startDate: z.iso.date(), endDate: z.iso.date() }).superRefine((input, context) => {
@@ -46,6 +46,8 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "invalid-input" }, { status: 400 });
   const propertyId = process.env.CCPUN_GA4_PROPERTY_ID?.trim();
   if (!propertyId) return NextResponse.json({ error: "provider-not-connected" }, { status: 409 });
+  const expectedProperty = getAdminEnvironment() === "production-admin" ? "219719845" : getAdminEnvironment() === "admin-uat" ? "551040812" : null;
+  if (expectedProperty && propertyId !== expectedProperty) return NextResponse.json({ error: "provider-not-connected" }, { status: 409 });
   if (syncInFlight) return NextResponse.json({ error: "sync-in-progress" }, { status: 409 });
 
   syncInFlight = true;
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
   const comparisonRange = previousEqualDateRange(parsed.data.startDate, parsed.data.endDate);
   try {
     // ponytail: one owner and one manual sync at a time; add a durable lock only with scheduled sync.
-    const token = getAdminEnvironment() === "admin-uat"
+    const token = getAdminEnvironment() === "admin-uat" || hasGoogleSessionGrant(request, process.env)
       ? await getConnectedGoogleAccessToken(request, identity, process.env,
         asyncCookieWriter(await cookies()))
       : await getGoogleDataAccessToken();

@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { cookies, headers } from "next/headers";
 import {
-  consumeGoogleConnectIntent, getGoogleUatContext, GOOGLE_INTENT_COOKIE, readGoogleAuthSession, writeGoogleSessionGrant,
+  consumeGoogleConnectIntent, getGoogleSessionContext, readGoogleAuthSession, writeGoogleSessionGrant,
 } from "@/lib/admin/seo-intelligence/google-session-connection";
 import {
   getAdminGoogleOAuthCredentials,
@@ -77,7 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const email = user?.email ?? token.email;
       token.adminRole = getConfiguredAdminRole(email, adminAuthConfigured, adminEnvironment);
       if (account && token.adminRole === "owner" && typeof email === "string") {
-        const context = getGoogleUatContext(process.env, { actorType: "human", actor: email, role: "owner" });
+        const context = getGoogleSessionContext(process.env, { actorType: "human", actor: email, role: "owner" });
         if (context) {
           delete token.googleConnectionBinding;
           delete token.googleConnectionAccount;
@@ -87,10 +87,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
           try {
             const jar = await cookies();
-            const intent = jar.get(GOOGLE_INTENT_COOKIE)?.value;
+            const intent = jar.get(context.intentCookie)?.value;
             if (intent) {
-              jar.set(GOOGLE_INTENT_COOKIE, "", { httpOnly: true, secure: true, sameSite: "lax", path: "/api/auth/callback/google", maxAge: 0 });
-              const originalSession = await readGoogleAuthSession(new Request("https://admin-test.ccpun.com/api/auth/callback/google", {
+              jar.set(context.intentCookie, "", { httpOnly: true, secure: true, sameSite: "lax", path: "/api/auth/callback/google", maxAge: 0 });
+              const originalSession = await readGoogleAuthSession(new Request(`${context.origin}/api/auth/callback/google`, {
                 headers: { cookie: (await headers()).get("cookie") ?? "" },
               }), process.env);
               const grant = originalSession ? consumeGoogleConnectIntent({ intent, context, session: originalSession,
