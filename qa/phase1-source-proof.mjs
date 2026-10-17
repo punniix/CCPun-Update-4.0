@@ -79,7 +79,7 @@ export function assertReviewedUatRetention(file, originalDigest, proof, readSour
 
 // Current Google Connect bodies remain fully pinned before any explicit UAT-only
 // retained-source projection. This does not certify new behavior against old DOM goldens.
-const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = 'cef0e3dc2bbe192dfdf497010765f7f62e719266f55776f234d080961ec71cf3';
+const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = 'd63355dc212393295687858c45c3425aa821b0036d338d3262cda35ceac0cfaf';
 function googleSessionAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed Google session environment');
   inheritedUatAdmission(proof);

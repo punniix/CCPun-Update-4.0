@@ -25,7 +25,9 @@ export default async function SeoOpportunitiesPage(props: { searchParams?: Promi
   const connectAllowed = Boolean(context);
   const connection = connectAllowed ? await getGoogleSessionReadiness(
     new Request(`${context!.origin}/seo/opportunities/`, { headers: await headers() }), identity, process.env) : undefined;
-  const connectError = connectAllowed && ["unauthorized", "forbidden", "forbidden-origin", "configuration-required", "connect-required"].includes((await searchParams)?.googleConnect ?? "");
+  const connectReturn = (await searchParams)?.googleConnect ?? "";
+  const connectError = connectAllowed && ["unauthorized", "forbidden", "forbidden-origin", "configuration-required", "connect-required"].includes(connectReturn);
+  const sessionAccountRefreshed = connectAllowed && connectReturn === "account-refreshed";
 
   return (
     <div>
@@ -40,7 +42,8 @@ export default async function SeoOpportunitiesPage(props: { searchParams?: Promi
 
       <GscManualSync defaultStartDate={bangkokDate(27)} defaultEndDate={bangkokDate(0)} laneLabel={laneLabel} />
       <Ga4ManualSync defaultStartDate={bangkokDate(27)} defaultEndDate={bangkokDate(0)} laneLabel={laneLabel}
-        sessionConnectAllowed={connectAllowed} sessionConnectionState={connection?.reason} sessionConnectError={connectError} />
+        sessionConnectAllowed={connectAllowed} sessionConnectionState={connection?.reason} sessionConnectError={connectError}
+        sessionAccountRefreshed={sessionAccountRefreshed} />
     </div>
   );
 }
