@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { runInNewContext } from "node:vm";
 import { encode } from "next-auth/jwt";
 import {
   consumeGoogleConnectIntent, getConnectedGoogleAccessToken, getGoogleSessionReadiness, getGoogleSessionContext,
@@ -169,4 +172,33 @@ test('Production baseline still denies native-UAT policy and wrong-lane grant cl
   await assert.rejects(() => getConnectedGoogleAccessToken(request, owner, env, () => assert.fail('no cookie write'),
     async () => { calls++; return Response.json({ access_token: 'must-not-return' }); }));
   assert.equal(calls, 0);
+});
+
+test("deployed Admin CSP permits the exact Google OAuth form redirect without changing other security headers", () => {
+  const { buildNextSecurityHeaders } = createRequire(import.meta.url)("../../lib/runtime/security-headers.mjs");
+  const source = readFileSync(new URL("../../apps/admin/next.config.ts", import.meta.url), "utf8");
+  const expression = source.match(/const SECURITY_HEADERS = ([\s\S]*?);\nconst STUDIO_SECURITY_HEADERS/);
+  assert.ok(expression, "evaluate the actual Admin security-header expression");
+  type Header = { key: string; value: string };
+  for (const environment of ["admin-uat", "production-admin", "production", "web-uat", "local-uat", "local-production", "development", "unknown", ""]) {
+    const options = { isReviewEnvironment: true, sanityProjectId: "", appEnvironment: environment, nodeEnv: "production" };
+    const baseline: Header[] = buildNextSecurityHeaders(options);
+    const actual: Header[] = JSON.parse(JSON.stringify(runInNewContext(expression[1], {
+      buildNextSecurityHeaders: (input: Record<string, unknown>) => buildNextSecurityHeaders({ ...input, nodeEnv: "production" }),
+      USE_REAL_DRAFT_PREVIEW_RUNTIME: true, SANITY_PROJECT_ID: "", ADMIN_ENVIRONMENT: environment,
+    })));
+    const policy = actual.find(header => header.key === "Content-Security-Policy")!.value;
+    const formAction = policy.split("; ").find(directive => directive.startsWith("form-action "))!;
+    if (["admin-uat", "production-admin"].includes(environment)) {
+      assert.equal(formAction, "form-action 'self' https://www.facebook.com https://accounts.google.com");
+      const restored = actual.map(header => header.key === "Content-Security-Policy" ? {
+        ...header, value: header.value.split("; ").map(directive => directive.startsWith("form-action ")
+          ? directive.replace(" https://accounts.google.com", "") : directive).join("; "),
+      } : header);
+      assert.deepEqual(restored, baseline, "every other directive/header remains byte-identical");
+    } else {
+      assert.equal(formAction, "form-action 'self' https://www.facebook.com");
+      assert.deepEqual(actual, baseline, "Web, local and unknown lanes retain their whole original policy");
+    }
+  }
 });
