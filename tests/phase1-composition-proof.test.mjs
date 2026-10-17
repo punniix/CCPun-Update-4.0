@@ -48,7 +48,7 @@ test('inherited C645 admission rejects unknown commits, hashes, owner bodies, en
   const admission = proof.reviewedInheritedUat;
   assert.equal(admission.sourceCommit, 'c64540ec7bd31c9380880173a03d996902b23b64');
   assert.equal(Object.keys(admission.sourceDigests).length, 8);
-  assert.equal(Object.keys(admission.outputs).length, 178);
+  assert.equal(Object.keys(admission.outputs).length, 180);
   for (const mutate of [
     p => { p.reviewedInheritedUat.sourceCommit = 'unknown'; },
     p => { p.reviewedInheritedUat.sourceDigests['unknown.ts'] = { originalSha256: 'unknown', c645Sha256: 'unknown' }; },

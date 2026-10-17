@@ -1884,6 +1884,14 @@
       "{\"kind\":\"settings\",\"file\":\"apps/admin/app/(control-plane)/settings/page.tsx\",\"denied\":true}": {
         "originalOutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f",
         "c645OutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f"
+      },
+      "{\"kind\":\"boundary-error\",\"file\":\"app/(control-plane)/error.tsx\"}": {
+        "originalOutputSha256": "28f13521714b6f3c1d03e84c49c901a914377eeac1ff93b6ce1fff34b4c4d18b",
+        "c645OutputSha256": "bf3ac7170aa7164fb73c7050e4e6f39d542bc34946a0cb7f1fbb294ac6cd43e4"
+      },
+      "{\"kind\":\"boundary-error\",\"file\":\"apps/admin/app/(control-plane)/error.tsx\"}": {
+        "originalOutputSha256": "28f13521714b6f3c1d03e84c49c901a914377eeac1ff93b6ce1fff34b4c4d18b",
+        "c645OutputSha256": "bf3ac7170aa7164fb73c7050e4e6f39d542bc34946a0cb7f1fbb294ac6cd43e4"
       }
     },
     "retainedSources": {

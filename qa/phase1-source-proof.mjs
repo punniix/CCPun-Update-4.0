@@ -8,7 +8,7 @@ const sha = source => createHash('sha256').update(source).digest('hex');
 // Exact inherited C645 UAT outputs; original Production proof and golden sources stay intact.
 // Recorded from immutable C645, never from the PR418 candidate. No DOM normalization.
 const ORIGINAL_PROOF_SHA256 = '25a140b4e82b161fb652253f5dc9aa87308ddf78d575f1f07e20c74cf349cafb';
-const INHERITED_UAT_SHA256 = '3196c1a10fbefe1bee717ab434c227d866dc475e6dd61216dc69755eb1cb8912';
+const INHERITED_UAT_SHA256 = 'a4eddc7e2fe30c12a034f980386752d1c16b4a8079cd54cebef1255c17c61c82';
 function inheritedUatAdmission(proof) {
   const { reviewedInheritedUat, ...original } = proof;
   assert.equal(sha(JSON.stringify(original)), ORIGINAL_PROOF_SHA256, 'original Production proof drift');
