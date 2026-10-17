@@ -141,7 +141,7 @@ test('hermetic NODE_ENV test overlay reverses to the exact immutable D0 evidence
 test('Google session admission pins all actual bodies before UAT-only retained-source projection', () => {
   const read = path => readFileSync(path, 'utf8'), record = proof.reviewedGoogleSessionUat;
   assert.equal(record.baselineCommit, '6bfe13a538ee0daeaa3b5c9edaadb3d08fe70327');
-  assert.equal(Object.keys(record.currentSourceDigests).length, 12);
+  assert.equal(Object.keys(record.currentSourceDigests).length, 14);
   for (const [file, pins] of Object.entries(record.existingSources)) {
     assert.equal(sha(reviewedGoogleSessionBaselineSource(file, proof, read, 'admin-uat')), pins.baseSha256);
     for (const environment of ['production-admin', 'web-uat', 'local-uat', 'unknown', undefined])
