@@ -74,6 +74,13 @@ for (const lane of ["admin-uat", "production-admin"] as const) test(`${lane}: ac
         assert.equal(refreshedLogin.googleConnectionAccount,profile.sub);
         signIns.length=0;
       }
+      const missingPrivateSession=await connect(request('POST','/api/admin/seo/providers/connect/',{cookie:''}));
+      if (production){ assert.equal(missingPrivateSession.status,303); assert.equal(signIns.length,0); }
+      else {
+        assert.equal(missingPrivateSession.status,302);assert.equal(signIns.length,1);
+        assert.deepEqual(signIns[0],['google',{redirectTo:'/seo/opportunities/?googleConnect=account-refreshed'}]);
+        assert.equal(cookieValues.has(currentLane.intentCookie),false);signIns.length=0;
+      }
       assert.equal(cookieWrites.length,writesBeforeRelogin);await storeAuth(normal);
       for(const [patch,change] of [[{origin:'https://other.example.test'},null],[{},'viewer']]){
         identity.role=change||'owner';const denied=await connect(request('POST','/api/admin/seo/providers/connect/',patch));assert.equal(denied.status,303);assert.ok(denied.headers.get('location').startsWith(origin+'/seo/opportunities/?googleConnect='));assert.equal(signIns.length,0)
