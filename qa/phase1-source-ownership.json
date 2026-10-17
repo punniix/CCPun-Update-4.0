@@ -2134,7 +2134,7 @@
       "apps/admin/app/api/admin/seo/providers/connect/route.ts": "75b616c6dc2ea1a3b50baa1b56164dfdaa0e83bc97a019c743c51a4e07dc5ef2",
       "apps/admin/app/api/admin/seo/providers/readiness/route.ts": "0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc",
       "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": "ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a",
-      "features/admin/seo/opportunities/page.tsx": "3ce7ad2f5f3a8f6f78b06625620b465f340de647084e76fab350511762993fa6",
+      "features/admin/seo/opportunities/page.tsx": "6928a4eb25c27e88eae6098e397bc2e6d5b8c168ffcc984f2b02f930b1f3ee61",
       "features/admin/seo/opportunities/Ga4ManualSync.tsx": "ec2b947ba2f0bf5d6e63be43f578df2a2a1b1ccb3ff1cb330ad7a368ededd634",
       "tests/admin/google-session-connection.test.ts": "11751e00afa67d935f4b02ef69513375beecdab6e9384e9948ef5030ef79bf4f",
       "tests/admin/google-session-auth.test.ts": "e128f8c964103e19ff7d6bb959f55e3da427c00f2ba4c0b5ee2eff0bd9945009"

@@ -15,7 +15,8 @@ function bangkokDate(daysAgo: number) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 
-export default async function SeoOpportunitiesPage({ searchParams }: { searchParams?: Promise<{ googleConnect?: string }> } = {}) {
+export default async function SeoOpportunitiesPage(props: { searchParams?: Promise<{ googleConnect?: string }> }) {
+  const { searchParams } = props ?? {};
   const identity = await requireAdminPermission("seo:read");
   const runtime = getSeoIntelligenceRuntimeStatus();
   if (!runtime.enabled) notFound();
