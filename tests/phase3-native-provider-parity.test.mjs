@@ -135,3 +135,22 @@ test('native source admission rejects unknown paths, baseline drift, runtime tam
   assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], extraSeal, entry => entry === 'lib/unreviewed.ts' ? 'unreviewed' : read(entry)));
 
 });
+
+
+test('reviewed SEO UAT output coverage is exact append-only evidence, not a replacement native golden', async () => {
+  const { assertReviewedSeoUatEvidence } = await import('../qa/phase1-source-proof.mjs');
+  const read = path => readFileSync(path, 'utf8');
+  const admission = JSON.parse(read('qa/phase1-source-ownership.json'));
+  for (const [file, record] of Object.entries(admission.reviewedSeoUat.appendOnlyEvidence)) {
+    assert.equal(assertReviewedSeoUatEvidence(file, record.originalSha256, admission, read, 'admin-uat'), true);
+    assert.throws(() => assertReviewedSeoUatEvidence(file, '0'.repeat(64), admission, read, 'admin-uat'));
+    assert.throws(() => assertReviewedSeoUatEvidence(file, record.originalSha256, admission, path => read(path) + (path === file ? '// drift' : ''), 'admin-uat'));
+    assert.throws(() => assertReviewedSeoUatEvidence(file, record.originalSha256, admission, read, 'production-admin'));
+  }
+  const file = 'tests/hostinger-shadow-config.test.mjs', original = admission.reviewedSeoUat.appendOnlyEvidence[file].originalSha256;
+  assert.throws(() => assertReviewedSeoUatEvidence('unknown.test.mjs', original, admission, read, 'admin-uat'));
+  const changed = structuredClone(admission); changed.reviewedSeoUat.appendOnlyEvidence[file].insertionSha256 = 'unknown';
+  assert.throws(() => assertReviewedSeoUatEvidence(file, original, changed, read, 'admin-uat'));
+  assert.throws(() => assertReviewedSeoUatEvidence(file, original, admission,
+    path => read(path) + (path === 'tests/admin/seo-google-provider-readiness.test.ts' ? '// removed output' : ''), 'admin-uat'));
+});

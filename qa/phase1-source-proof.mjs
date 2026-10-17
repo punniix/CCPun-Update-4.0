@@ -10,7 +10,8 @@ const sha = source => createHash('sha256').update(source).digest('hex');
 const ORIGINAL_PROOF_SHA256 = '25a140b4e82b161fb652253f5dc9aa87308ddf78d575f1f07e20c74cf349cafb';
 const INHERITED_UAT_SHA256 = 'a4eddc7e2fe30c12a034f980386752d1c16b4a8079cd54cebef1255c17c61c82';
 function inheritedUatAdmission(proof) {
-  const { reviewedInheritedUat, ...original } = proof;
+  const { reviewedInheritedUat, reviewedSeoUat, ...original } = proof;
+  void reviewedSeoUat;
   assert.equal(sha(JSON.stringify(original)), ORIGINAL_PROOF_SHA256, 'original Production proof drift');
   assert.equal(sha(JSON.stringify(reviewedInheritedUat)), INHERITED_UAT_SHA256, 'unreviewed inherited UAT admission');
   return reviewedInheritedUat;
@@ -72,5 +73,37 @@ export function assertReviewedUatRetention(file, originalDigest, proof, readSour
   assert.ok(record, file + ': unreviewed UAT retained source');
   assert.equal(record.originalSha256, originalDigest, file + ': original protected digest drift');
   assert.equal(sha(readSource(file)), record.candidateSha256, file + ': unreviewed UAT retained body');
+  return true;
+}
+
+// Separate reviewed SEO compatibility. The old Production and inherited C645 objects stay sealed.
+const REVIEWED_SEO_UAT_SHA256 = 'e31bb7f61e1e7e879190d0380f7e06d4e9de213b6ef963cd2dd07f33a40d751a';
+function seoUatAdmission(proof, readSource, environment) {
+  assert.equal(environment, 'admin-uat', 'unreviewed SEO admission environment');
+  inheritedUatAdmission(proof);
+  const record = proof.reviewedSeoUat;
+  assert.equal(sha(JSON.stringify(record)), REVIEWED_SEO_UAT_SHA256, 'unreviewed SEO admission');
+  for (const [path, digest] of Object.entries(record.outputTests))
+    assert.equal(sha(readSource(path)), digest, path + ': reviewed SEO output coverage drift');
+  for (const [path, pins] of Object.entries(record.sources))
+    assert.equal(sha(readSource(path)), pins.reviewedSha256, path + ': reviewed SEO source drift');
+  return record;
+}
+export function assertReviewedSeoUatSource(file, originalDigest, proof, readSource, environment) {
+  const record = seoUatAdmission(proof, readSource, environment).sources[file];
+  assert.ok(record, file + ': unreviewed SEO source path');
+  assert.equal(record.originalSha256, originalDigest, file + ': original SEO source drift');
+  return true;
+}
+export function assertReviewedSeoUatEvidence(file, originalDigest, proof, readSource, environment) {
+  const record = seoUatAdmission(proof, readSource, environment).appendOnlyEvidence[file];
+  assert.ok(record, file + ': unreviewed SEO evidence path');
+  assert.equal(record.originalSha256, originalDigest, file + ': original evidence seal drift');
+  const source = readSource(file);
+  assert.equal(sha(source), record.reviewedSha256, file + ': reviewed evidence body drift');
+  const insertion = source.slice(record.insertionOffset, record.insertionOffset + record.insertionLength);
+  assert.equal(sha(insertion), record.insertionSha256, 'exact reviewed evidence insertion');
+  assert.equal(sha(source.slice(0, record.insertionOffset) + source.slice(record.insertionOffset + record.insertionLength)),
+    originalDigest, 'removing only the exact reviewed insertion must recover the immutable old evidence');
   return true;
 }
