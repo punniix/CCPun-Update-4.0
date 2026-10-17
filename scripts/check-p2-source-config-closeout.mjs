@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { assertReviewedGoogleSessionProduction } from "../qa/phase1-source-proof.mjs";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -9,6 +10,7 @@ const read = (file) => readFileSync(path.join(root, file), "utf8");
 const manifest = JSON.parse(read("qa/p2-source-mirror-inventory.json"));
 const baseline = JSON.parse(read("qa/monorepo-compatibility-mirrors.json"));
 const retention = JSON.parse(read("qa/p24-legacy-retention-policy.json"));
+const production = JSON.parse(read("qa/production-code-only-parity.json"));
 
 assert.deepEqual(manifest.summary, {
   pairs: 104, identical: 74, divergent: 30, sharedRouteHandlers: 7,
@@ -33,7 +35,10 @@ for (const item of manifest.pairs) {
   if (migration) {
     assert.equal(item.identical, true, "Only identical grandfathered bodies may migrate");
     assert.equal(read(item.legacy), migration.wrapper, "migrated root adapter drift");
-    assert.equal(createHash("sha256").update(read(item.canonical)).digest("hex"), migration.baselineSha256, "canonical migrated implementation drift");
+    if (Object.hasOwn(production.reviewedGoogleSessionProduction?.retainedSources ?? {}, item.canonical)) {
+      assert.equal(assertReviewedGoogleSessionProduction(item.canonical, migration.baselineSha256,
+        production, read, "production-admin"), true, "reviewed Production Google connection owner");
+    } else assert.equal(createHash("sha256").update(read(item.canonical)).digest("hex"), migration.baselineSha256, "canonical migrated implementation drift");
     continue;
   }
   const identical = read(item.legacy) === read(item.canonical);

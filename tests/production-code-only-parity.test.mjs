@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import { productionBaselineSource, productionBaselineBytes } from '../qa/phase1-source-proof.mjs';
+import { productionBaselineSource, productionBaselineBytes, assertReviewedGoogleSessionProduction } from '../qa/phase1-source-proof.mjs';
 import { assertPhase3AdminNativeBoundaries, phase3AdminNativeEntries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 import { assertPhase3AdminContracts, phase3AdminEntries } from '../qa/phase3-admin-contracts-proof.mjs';
 import { assertPhase2AdminComposition, phase2AdminEntries } from '../qa/phase2-admin-modularity-proof.mjs';
@@ -14,27 +14,6 @@ const root = resolve(import.meta.dirname, '..');
 const read = file => productionBaselineSource(file);
 const sha = value => createHash('sha256').update(value).digest('hex');
 const proof = JSON.parse(read('qa/production-code-only-parity.json'));
-
-// Exact new Google Connect bodies are checked before their six reviewed source
-// admissions. The original Production maps and all other guards remain immutable.
-function assertReviewedGoogleSessionProduction(file, originalDigest, value, reader, environment) {
-  assert.equal(environment, 'production-admin', 'unreviewed Google session environment');
-  const { reviewedGoogleSessionProduction: record, ...original } = value;
-  assert.equal(sha(JSON.stringify(original)), '5299183ab8850885e12516aaa91b4fb01b21530ac81fbfbf7d0810d7f3898688', 'original Production proof drift');
-  assert.equal(sha(JSON.stringify(record)), '221f259ec905734e36b59dab1cb82d7f23ee8839f126e4c70b82ebcda42e2d17', 'unreviewed Production Google session admission');
-  assert.equal(record.baselineCommit, '0e88533a04bdad9d3cee6991431bd7be41f623b0');
-  assert.equal(Object.keys(record.currentSourceDigests).length, 12);
-  assert.equal(Object.keys(record.retainedSources).length, 6);
-  assert.deepEqual(record.outputTests, ['tests/admin/google-session-connection.test.ts', 'tests/admin/google-session-auth.test.ts']);
-  for (const [path, digest] of Object.entries(record.currentSourceDigests))
-    assert.equal(sha(reader(path)), digest, path + ': unreviewed actual Google session body');
-  const pins = record.retainedSources[file];
-  assert.ok(pins, file + ': unreviewed Production Google session path');
-  assert.equal(pins.originalSha256, originalDigest, file + ': original protected source drift');
-  assert.equal(pins.baselineSha256, originalDigest, file + ': immutable 0e885 ancestor drift');
-  assert.equal(pins.candidateSha256, record.currentSourceDigests[file], file + ': current source pin drift');
-  return true;
-}
 
 test('original Production owners remain guarded alongside exact reviewed Google Connect feature sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
@@ -145,5 +124,23 @@ test('Production Google session admission rejects unknown lanes, source bodies, 
   ]) {
     const changed = structuredClone(proof); mutate(changed);
     assert.throws(() => assertReviewedGoogleSessionProduction(file, original, changed, reader, 'production-admin'));
+  }
+});
+
+
+test('P2 migrated Google owners use the same reviewed ancestor and current-body admission', () => {
+  const migrations = JSON.parse(readFileSync(resolve(root, 'qa/root-runtime-owner-migration.json'), 'utf8')).pairs;
+  const selected = migrations.filter(item => Object.hasOwn(proof.reviewedGoogleSessionProduction.retainedSources, item.canonical));
+  assert.deepEqual(selected.map(item => item.canonical).sort(), [
+    'apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts',
+    'apps/admin/app/api/admin/seo/providers/readiness/route.ts',
+  ]);
+  const reader = file => readFileSync(resolve(root, file), 'utf8');
+  for (const item of selected) {
+    assert.equal(reader(item.legacy), item.wrapper, 'root adapter stays unchanged');
+    assert.equal(assertReviewedGoogleSessionProduction(item.canonical, item.baselineSha256, proof, reader, 'production-admin'), true);
+    assert.throws(() => assertReviewedGoogleSessionProduction(item.canonical, 'unknown', proof, reader, 'production-admin'));
+    assert.throws(() => assertReviewedGoogleSessionProduction(item.canonical, item.baselineSha256, proof,
+      file => reader(file) + (file === item.canonical ? '//tamper' : ''), 'production-admin'));
   }
 });

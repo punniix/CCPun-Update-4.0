@@ -31,3 +31,24 @@ export function productionBaselineBytes(file) {
     ? Buffer.from(reviewedCompositionSource(file, proof, read), "utf8")
     : readFileSync(new URL("../" + file, import.meta.url));
 }
+
+// Exact new Google Connect bodies are checked before their six reviewed source
+// admissions. The original Production maps and all other guards remain immutable.
+export function assertReviewedGoogleSessionProduction(file, originalDigest, value, reader, environment) {
+  assert.equal(environment, 'production-admin', 'unreviewed Google session environment');
+  const { reviewedGoogleSessionProduction: record, ...original } = value;
+  assert.equal(sha(JSON.stringify(original)), '5299183ab8850885e12516aaa91b4fb01b21530ac81fbfbf7d0810d7f3898688', 'original Production proof drift');
+  assert.equal(sha(JSON.stringify(record)), '221f259ec905734e36b59dab1cb82d7f23ee8839f126e4c70b82ebcda42e2d17', 'unreviewed Production Google session admission');
+  assert.equal(record.baselineCommit, '0e88533a04bdad9d3cee6991431bd7be41f623b0');
+  assert.equal(Object.keys(record.currentSourceDigests).length, 12);
+  assert.equal(Object.keys(record.retainedSources).length, 6);
+  assert.deepEqual(record.outputTests, ['tests/admin/google-session-connection.test.ts', 'tests/admin/google-session-auth.test.ts']);
+  for (const [path, digest] of Object.entries(record.currentSourceDigests))
+    assert.equal(sha(reader(path)), digest, path + ': unreviewed actual Google session body');
+  const pins = record.retainedSources[file];
+  assert.ok(pins, file + ': unreviewed Production Google session path');
+  assert.equal(pins.originalSha256, originalDigest, file + ': original protected source drift');
+  assert.equal(pins.baselineSha256, originalDigest, file + ': immutable 0e885 ancestor drift');
+  assert.equal(pins.candidateSha256, record.currentSourceDigests[file], file + ': current source pin drift');
+  return true;
+}
