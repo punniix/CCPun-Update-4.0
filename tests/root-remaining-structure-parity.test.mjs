@@ -2,15 +2,20 @@ import { assertPhase3AdminNativeBoundaries } from '../qa/phase3-admin-native-bou
 import { assertNativeProviderRetirement } from '../qa/phase3-native-provider-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { productionBaselineSource, assertReviewedUatRetention } from '../qa/phase1-source-proof.mjs';
+import { productionBaselineSource, assertReviewedUatRetention, reviewedGoogleSessionBaselineSource } from '../qa/phase1-source-proof.mjs';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 
-const read = (file) => productionBaselineSource(file);
+const actual = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+const sessionProof = JSON.parse(actual('qa/phase1-source-ownership.json'));
+const read = file => Object.hasOwn(sessionProof.reviewedGoogleSessionUat.existingSources, file)
+  ? reviewedGoogleSessionBaselineSource(file, sessionProof, actual, 'admin-uat')
+  : productionBaselineSource(file);
 const hash = (source) => createHash('sha256').update(source).digest('hex');
 const baseline = JSON.parse(read('qa/root-remaining-structure-parity.json'));
 const uatProof = JSON.parse(read('qa/phase1-source-ownership.json'));
 
-test('remaining root delegation preserves canonical Admin implementations and privacy/scheduler/auth owners', () => {
+test('retained root delegation preserves original contracts after separately pinned Google UAT source review', () => {
   for (const [file, expected] of Object.entries({ ...baseline.canonicalPreserved, ...baseline.protected })) {
     if (['lib/admin/operations/article-schedule-contract.ts', 'apps/admin/proxy.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, expected), true, file);
     else if (Object.hasOwn(uatProof.reviewedInheritedUat.retainedSources, file)) assert.equal(assertReviewedUatRetention(file, expected, uatProof, read, 'admin-uat'), true, file);

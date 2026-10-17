@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
-import { productionBaselineBytes, assertReviewedUatRetention, assertReviewedSeoUatSource } from '../qa/phase1-source-proof.mjs';
+import { productionBaselineBytes, assertReviewedUatRetention, assertReviewedSeoUatSource, reviewedGoogleSessionBaselineSource } from '../qa/phase1-source-proof.mjs';
 import { assertPhase3AdminContracts, phase3AdminEntries } from '../qa/phase3-admin-contracts-proof.mjs';
 import { assertPhase2AdminComposition, phase2AdminEntries } from '../qa/phase2-admin-modularity-proof.mjs';
 import { assertPhase2FoundationSource, phase2FoundationPath } from '../qa/phase2-css-source-contract.mjs';
@@ -23,7 +23,11 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
   for (const file of root) assert.equal(sha(readFileSync(file)), proof.protected[file], file + ': root source must stay byte exact');
   assert.equal(Object.keys(proof.protected).length, 764);
   for (const [file, digest] of Object.entries(proof.protected)) {
-    if (file === 'features/admin/operations/DeploymentsPage.tsx') {
+    if (Object.hasOwn(proof.reviewedGoogleSessionUat.existingSources, file)) {
+      const pins = proof.reviewedGoogleSessionUat.existingSources[file];
+      assert.equal(pins.originalProtectedSha256, digest, file + ': original protection is frozen');
+      assert.equal(sha(reviewedGoogleSessionBaselineSource(file, proof, path => readFileSync(path, 'utf8'), 'admin-uat')), pins.baseSha256);
+    } else if (file === 'features/admin/operations/DeploymentsPage.tsx') {
       assert.equal(digest, '3664b01ea11471d9c4d421adf82c206704ac7859b4503acc0e2a9e44bfd3271e', 'own original UI identity');
       const actual = readFileSync(file, 'utf8');
       const nativeLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : "ยังไม่ยืนยันผู้ให้บริการ";';
@@ -131,4 +135,33 @@ test('hermetic NODE_ENV test overlay reverses to the exact immutable D0 evidence
   for (const after of [record.before, record.after.replace('"test"', '"production"'), record.after + '// unrelated test change'])
     assert.throws(() => assertReviewedSeoUatSource(owner, digest, proof,
       path => path === file ? read(path).replace(record.after, after) : read(path), 'admin-uat'));
+});
+
+
+test('Google session admission pins all actual bodies before UAT-only retained-source projection', () => {
+  const read = path => readFileSync(path, 'utf8'), record = proof.reviewedGoogleSessionUat;
+  assert.equal(record.baselineCommit, '6bfe13a538ee0daeaa3b5c9edaadb3d08fe70327');
+  assert.equal(Object.keys(record.currentSourceDigests).length, 12);
+  for (const [file, pins] of Object.entries(record.existingSources)) {
+    assert.equal(sha(reviewedGoogleSessionBaselineSource(file, proof, read, 'admin-uat')), pins.baseSha256);
+    for (const environment of ['production-admin', 'web-uat', 'local-uat', 'unknown', undefined])
+      assert.throws(() => reviewedGoogleSessionBaselineSource(file, proof, read, environment));
+  }
+  const file = 'auth.ts';
+  assert.throws(() => reviewedGoogleSessionBaselineSource('unknown.ts', proof, read, 'admin-uat'));
+  for (const path of Object.keys(record.currentSourceDigests))
+    assert.throws(() => reviewedGoogleSessionBaselineSource(file, proof, name => read(name) + (name === path ? '//tamper' : ''), 'admin-uat'));
+  for (const mutate of [
+    value => { value.reviewedGoogleSessionUat.baselineCommit = 'unknown'; },
+    value => { value.reviewedGoogleSessionUat.existingSources[file].baseSha256 = 'unknown'; },
+    value => { value.reviewedGoogleSessionUat.existingSources[file].baselineSource += '//tamper'; },
+    value => { value.reviewedGoogleSessionUat.existingSources[file].originalProtectedSha256 = 'unknown'; },
+    value => { delete value.reviewedGoogleSessionUat.currentSourceDigests[file]; },
+    value => { value.reviewedGoogleSessionUat.currentSourceDigests['unknown.ts'] = 'unknown'; },
+    value => { value.reviewedGoogleSessionUat.outputTests.pop(); },
+    value => { value.protected[file] = 'unknown'; },
+  ]) {
+    const changed = structuredClone(proof); mutate(changed);
+    assert.throws(() => reviewedGoogleSessionBaselineSource(file, changed, read, 'admin-uat'));
+  }
 });

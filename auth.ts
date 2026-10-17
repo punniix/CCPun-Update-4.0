@@ -1,5 +1,9 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { cookies, headers } from "next/headers";
+import {
+  consumeGoogleConnectIntent, getGoogleUatContext, GOOGLE_INTENT_COOKIE, readGoogleAuthSession, writeGoogleSessionGrant,
+} from "@/lib/admin/seo-intelligence/google-session-connection";
 import {
   getAdminGoogleOAuthCredentials,
   getAdminCookieNamespace,
@@ -69,9 +73,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }) !== null
       );
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, profile }) {
       const email = user?.email ?? token.email;
       token.adminRole = getConfiguredAdminRole(email, adminAuthConfigured, adminEnvironment);
+      if (account && token.adminRole === "owner" && typeof email === "string") {
+        const context = getGoogleUatContext(process.env, { actorType: "human", actor: email, role: "owner" });
+        if (context) {
+          delete token.googleConnectionBinding;
+          delete token.googleConnectionAccount;
+          if (account.provider === "google" && typeof account.providerAccountId === "string"
+            && account.providerAccountId === profile?.sub && profile.email_verified === true) {
+            token.googleConnectionAccount = account.providerAccountId;
+          }
+          try {
+            const jar = await cookies();
+            const intent = jar.get(GOOGLE_INTENT_COOKIE)?.value;
+            if (intent) {
+              jar.set(GOOGLE_INTENT_COOKIE, "", { httpOnly: true, secure: true, sameSite: "lax", path: "/api/auth/callback/google", maxAge: 0 });
+              const originalSession = await readGoogleAuthSession(new Request("https://admin-test.ccpun.com/api/auth/callback/google", {
+                headers: { cookie: (await headers()).get("cookie") ?? "" },
+              }), process.env);
+              const grant = originalSession ? consumeGoogleConnectIntent({ intent, context, session: originalSession,
+                callbackSession: token, account, profile: profile ?? {} }) : null;
+              if (grant) {
+                await writeGoogleSessionGrant(grant, process.env, (name, value, options) => jar.set(name, value, options));
+                token.googleConnectionBinding = grant.sessionBinding;
+              }
+            }
+          } catch { /* Grant failure never changes ordinary login or exposes provider details. */ }
+        }
+      }
       return token;
     },
     async session({ session, token }) {

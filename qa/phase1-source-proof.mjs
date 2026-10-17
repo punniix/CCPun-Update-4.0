@@ -10,7 +10,8 @@ const sha = source => createHash('sha256').update(source).digest('hex');
 const ORIGINAL_PROOF_SHA256 = '25a140b4e82b161fb652253f5dc9aa87308ddf78d575f1f07e20c74cf349cafb';
 const INHERITED_UAT_SHA256 = 'a4eddc7e2fe30c12a034f980386752d1c16b4a8079cd54cebef1255c17c61c82';
 function inheritedUatAdmission(proof) {
-  const { reviewedInheritedUat, reviewedSeoUat, ...original } = proof;
+  const { reviewedInheritedUat, reviewedSeoUat, reviewedGoogleSessionUat, ...original } = proof;
+  void reviewedGoogleSessionUat;
   void reviewedSeoUat;
   assert.equal(sha(JSON.stringify(original)), ORIGINAL_PROOF_SHA256, 'original Production proof drift');
   assert.equal(sha(JSON.stringify(reviewedInheritedUat)), INHERITED_UAT_SHA256, 'unreviewed inherited UAT admission');
@@ -76,6 +77,33 @@ export function assertReviewedUatRetention(file, originalDigest, proof, readSour
   return true;
 }
 
+// Current Google Connect bodies remain fully pinned before any explicit UAT-only
+// retained-source projection. This does not certify new behavior against old DOM goldens.
+const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = '902e65e32f414495facb85f1a140f5b7be687e39e82dacaedc075ea8f9f38149';
+function googleSessionAdmission(proof, readSource, environment) {
+  assert.equal(environment, 'admin-uat', 'unreviewed Google session environment');
+  inheritedUatAdmission(proof);
+  const record = proof.reviewedGoogleSessionUat;
+  assert.equal(sha(JSON.stringify(record)), REVIEWED_GOOGLE_SESSION_UAT_SHA256, 'unreviewed Google session admission');
+  assert.equal(record.baselineCommit, '6bfe13a538ee0daeaa3b5c9edaadb3d08fe70327');
+  assert.equal(Object.keys(record.existingSources).length, 8);
+  assert.equal(Object.keys(record.currentSourceDigests).length, 12);
+  assert.deepEqual(record.outputTests, ['tests/admin/google-session-connection.test.ts', 'tests/admin/google-session-auth.test.ts']);
+  for (const [path, digest] of Object.entries(record.currentSourceDigests))
+    assert.equal(sha(readSource(path)), digest, path + ': unreviewed actual Google session body');
+  for (const [path, pins] of Object.entries(record.existingSources)) {
+    assert.equal(proof.protected[path] ?? null, pins.originalProtectedSha256, path + ': original Google session protection drift');
+    assert.equal(sha(pins.baselineSource), pins.baseSha256, path + ': immutable 6b source drift');
+    assert.ok(record.currentSourceDigests[path], path + ': missing actual source pin');
+  }
+  return record;
+}
+export function reviewedGoogleSessionBaselineSource(file, proof, readSource, environment) {
+  const pins = googleSessionAdmission(proof, readSource, environment).existingSources[file];
+  assert.ok(pins, file + ': unreviewed Google session projection path');
+  return pins.baselineSource;
+}
+
 // Separate reviewed SEO compatibility. The old Production and inherited C645 objects stay sealed.
 const REVIEWED_SEO_UAT_SHA256 = 'be40d4cf031d17c97adcce92d3a44cbb766f634c21d57cd13eedf0405f655096';
 function seoUatAdmission(proof, readSource, environment) {
@@ -95,8 +123,14 @@ function seoUatAdmission(proof, readSource, environment) {
       assert.equal(sha(source.replace(overlay.after, overlay.before)), digest, 'test overlay reverse must recover whole immutable D0 bytes');
     } else assert.equal(sha(source), digest, path + ': reviewed SEO output coverage drift');
   }
-  for (const [path, pins] of Object.entries(record.sources))
-    assert.equal(sha(readSource(path)), pins.reviewedSha256, path + ': reviewed SEO source drift');
+  // D0 remains the same evidence. For the separately reviewed Google session delta,
+  // validate every current body first, then compare its immutable 6b ancestor to D0.
+  const google = proof.reviewedGoogleSessionUat
+    ? googleSessionAdmission(proof, readSource, environment) : null;
+  for (const [path, pins] of Object.entries(record.sources)) {
+    const source = google?.existingSources[path]?.baselineSource ?? readSource(path);
+    assert.equal(sha(source), pins.reviewedSha256, path + ': reviewed SEO source drift');
+  }
   return record;
 }
 export function assertReviewedSeoUatSource(file, originalDigest, proof, readSource, environment) {
