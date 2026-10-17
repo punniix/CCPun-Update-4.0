@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -76,4 +77,16 @@ test('Preview shares hidden and countdown view is once per intersection, not eve
   assert.match(countdown, /observer\.disconnect\(\)/);
   assert.match(countdown, /health_happy_countdown_click/);
   assert.match(consent, /if \(!consent\) return;/);
+});
+
+
+test('countdown image cache ownership keeps every visual declaration and both reviewed assets exact', () => {
+  const sha = value => createHash('sha256').update(value).digest('hex');
+  const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article';
+  const css = readFileSync('components/ui/health-happy/HealthHappyCountdown.module.css', 'utf8');
+  const resolved = `url('../../../public/${asset}.lossless.webp')`;
+  assert.equal(css.split(resolved).length, 2, 'exactly one module-resolved lossless background');
+  assert.equal(sha(css.replace(resolved, `url('/${asset}.png')`)), '73e39a9e3f17af98b25e9a12b706d0a9729260aced6bd47425e79dd9ec6e9766', 'all visual CSS stays byte-exact');
+  assert.equal(sha(readFileSync(`public/${asset}.png`)), '3b70e95f0c0e6d15afc8c43aceb1283220c170de3c3fba9440d0091374a9e428', 'original article PNG remains exact');
+  assert.equal(sha(readFileSync(`public/${asset}.lossless.webp`)), '0691ec77ae85113dc3ed87e6d26025f3d5a56db12ce3e144092b790e5dae2d4f', 'reviewed lossless derivative retains decoded pixels and metadata');
 });

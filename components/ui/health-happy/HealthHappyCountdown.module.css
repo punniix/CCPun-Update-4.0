@@ -9,7 +9,7 @@
 }
 .frame::before {
   position: absolute; z-index: -1; inset: 0; content: ''; opacity: .085;
-  background: url('/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png') center right / cover no-repeat;
+  background: url('../../../public/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp') center right / cover no-repeat;
   pointer-events: none;
 }
 .info { min-width: 0; }
