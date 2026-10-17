@@ -26,6 +26,23 @@ const errorMessage: Record<string, string> = {
   "sync-in-progress": "มีการดึงข้อมูลอยู่แล้ว กรุณารอให้เสร็จ",
 };
 
+const genericSyncError = "ดึงข้อมูลไม่สำเร็จและไม่มีข้อมูลใดถูกบันทึก";
+const diagnosticErrorCodes = new Set([
+  "unauthorized", "forbidden", "forbidden-origin", "invalid-origin", "not-found", "invalid-input",
+  "provider-not-connected", "sync-in-progress", "provider-auth-required",
+  "provider-rate-limited", "provider-timeout", "provider-invalid-response", "provider-unavailable",
+]);
+
+function ga4SyncFailureMessage(status: number, payload: unknown, jsonParsed: boolean, laneLabel: string) {
+  const value = payload && typeof payload === "object" && !Array.isArray(payload) && Object.hasOwn(payload, "error")
+    ? (payload as { error?: unknown }).error : null;
+  const code = typeof value === "string" && diagnosticErrorCodes.has(value) ? value : "unknown-response";
+  if (code === "provider-not-connected") return `ยังไม่ได้เชื่อม GA4 สำหรับ ${laneLabel}`;
+  if (Object.hasOwn(errorMessage, code)) return errorMessage[code];
+  const httpStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : "unknown";
+  return `${genericSyncError} (HTTP ${httpStatus}; error=${code}; JSON=${jsonParsed ? "true" : "false"})`;
+}
+
 function fetchedLabel(value: string) {
   return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(value));
 }
@@ -75,11 +92,13 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ startDate, endDate }),
       });
-      const payload = await response.json().catch(() => null);
+      let jsonParsed = false;
+      const payload: unknown = await response.json().then((value: unknown) => {
+        jsonParsed = true;
+        return value;
+      }).catch(() => null);
       if (!response.ok) {
-        setMessage(payload?.error === "provider-not-connected"
-          ? `ยังไม่ได้เชื่อม GA4 สำหรับ ${laneLabel}`
-          : errorMessage[payload?.error] ?? "ดึงข้อมูลไม่สำเร็จและไม่มีข้อมูลใดถูกบันทึก");
+        setMessage(ga4SyncFailureMessage(response.status, payload, jsonParsed, laneLabel));
         setState("error");
         return;
       }
