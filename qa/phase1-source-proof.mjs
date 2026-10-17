@@ -8,7 +8,7 @@ const sha = source => createHash('sha256').update(source).digest('hex');
 // Exact inherited C645 UAT outputs; original Production proof and golden sources stay intact.
 // Recorded from immutable C645, never from the PR418 candidate. No DOM normalization.
 const ORIGINAL_PROOF_SHA256 = '25a140b4e82b161fb652253f5dc9aa87308ddf78d575f1f07e20c74cf349cafb';
-const INHERITED_UAT_SHA256 = '3c17aa020d6233010d6c2b8d4877eff9bf215d453595267642a919b043dafb9f';
+const INHERITED_UAT_SHA256 = '3196c1a10fbefe1bee717ab434c227d866dc475e6dd61216dc69755eb1cb8912';
 function inheritedUatAdmission(proof) {
   const { reviewedInheritedUat, ...original } = proof;
   assert.equal(sha(JSON.stringify(original)), ORIGINAL_PROOF_SHA256, 'original Production proof drift');
@@ -62,4 +62,15 @@ export function productionBaselineBytes(file) {
   return proof.compositions?.[file]
     ? Buffer.from(reviewedCompositionSource(file, proof, read), "utf8")
     : readFileSync(new URL("../" + file, import.meta.url));
+}
+
+// Only the two explicit UAT retention guards opt into these exact accepted sources.
+// Production projections and every original protected digest remain unchanged.
+export function assertReviewedUatRetention(file, originalDigest, proof, readSource, environment) {
+  assert.equal(environment, 'admin-uat', 'unreviewed retention environment');
+  const record = inheritedUatAdmission(proof).retainedSources[file];
+  assert.ok(record, file + ': unreviewed UAT retained source');
+  assert.equal(record.originalSha256, originalDigest, file + ': original protected digest drift');
+  assert.equal(sha(readSource(file)), record.candidateSha256, file + ': unreviewed UAT retained body');
+  return true;
 }

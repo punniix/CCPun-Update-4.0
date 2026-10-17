@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
-import { productionBaselineBytes } from '../qa/phase1-source-proof.mjs';
+import { productionBaselineBytes, assertReviewedUatRetention } from '../qa/phase1-source-proof.mjs';
 import { assertPhase3AdminContracts, phase3AdminEntries } from '../qa/phase3-admin-contracts-proof.mjs';
 import { assertPhase2AdminComposition, phase2AdminEntries } from '../qa/phase2-admin-modularity-proof.mjs';
 import { assertPhase2FoundationSource, phase2FoundationPath } from '../qa/phase2-css-source-contract.mjs';
@@ -82,6 +82,7 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
+    else if (Object.hasOwn(proof.reviewedInheritedUat.retainedSources, file)) assert.equal(assertReviewedUatRetention(file, digest, proof, path => readFileSync(path), 'admin-uat'), true, file);
     else assert.equal(sha(productionBaselineBytes(file)), digest, file);
   }
 });

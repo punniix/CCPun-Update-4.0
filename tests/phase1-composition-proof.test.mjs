@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { reviewedCompositionSource, productionBaselineSource, inheritedUatSourceDigest, assertInheritedUatFixtureSources, assertInheritedUatOutput } from '../qa/phase1-source-proof.mjs';
+import { reviewedCompositionSource, productionBaselineSource, inheritedUatSourceDigest, assertInheritedUatFixtureSources, assertInheritedUatOutput, assertReviewedUatRetention } from '../qa/phase1-source-proof.mjs';
 import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 const sha = value => createHash('sha256').update(value).digest('hex');
 const read = file => readFileSync(file, 'utf8');
@@ -67,4 +67,30 @@ test('inherited C645 admission rejects unknown commits, hashes, owner bodies, en
   assert.throws(() => assertInheritedUatOutput({}, {}, { ...firstKey, environment: 'unknown-lane' }, proof), /unregistered/);
   assert.throws(() => assertInheritedUatOutput({ trace: ['tampered'] }, { trace: [] }, firstKey, proof), /non-DOM invariant/);
   assert.throws(() => assertInheritedUatOutput({}, {}, firstKey, proof), /Production output drift/);
+});
+
+test('explicit Admin UAT retention admits only sixteen C645 and three reviewed PR418 bodies; rejects unknown environment, source, original digest and admission tampering', () => {
+  const records = proof.reviewedInheritedUat.retainedSources;
+  const c645 = 'c64540ec7bd31c9380880173a03d996902b23b64', f008 = 'f0081b17a3a6ed86976597a248fc7c2bc697c70d';
+  assert.equal(Object.keys(records).length, 19);
+  assert.equal(Object.values(records).filter(record => record.sourceCommit === c645).length, 16);
+  assert.equal(Object.values(records).filter(record => record.sourceCommit === f008).length, 3);
+  for (const [file, record] of Object.entries(records)) {
+    assert.equal(record.originalSha256, proof.protected[file], 'original protected map remains frozen');
+    assert.equal(record.sourceCommit === c645, record.candidateSha256 === record.c645Sha256, 'inherited source equality is explicit; PR418 safety is distinct');
+    assert.equal(assertReviewedUatRetention(file, proof.protected[file], proof, read, 'admin-uat'), true);
+  }
+  const file = Object.keys(records)[0], original = proof.protected[file];
+  for (const environment of ['production-admin', 'local-production', 'web-uat', 'unknown', undefined]) {
+    assert.throws(() => assertReviewedUatRetention(file, original, proof, read, environment), /environment/);
+  }
+  assert.throws(() => assertReviewedUatRetention('unknown.ts', original, proof, read, 'admin-uat'), /unreviewed UAT retained source/);
+  assert.throws(() => assertReviewedUatRetention(file, 'unknown', proof, read, 'admin-uat'), /original protected digest/);
+  assert.throws(() => assertReviewedUatRetention(file, original, proof, path => read(path) + 'tampered', 'admin-uat'), /retained body/);
+  for (const field of ['sourceCommit', 'originalSha256', 'c645Sha256', 'candidateSha256']) {
+    const tampered = structuredClone(proof); tampered.reviewedInheritedUat.retainedSources[file][field] = 'unknown';
+    assert.throws(() => assertReviewedUatRetention(file, original, tampered, read, 'admin-uat'), /admission/);
+  }
+  const tampered = structuredClone(proof); tampered.reviewedInheritedUat.retainedSources['unknown.ts'] = records[file];
+  assert.throws(() => assertReviewedUatRetention(file, original, tampered, read, 'admin-uat'), /admission/);
 });

@@ -1885,6 +1885,122 @@
         "originalOutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f",
         "c645OutputSha256": "bb1bae70a9230613e98a27d70d3e2983f81e52bf57368f560fee11b643b8e35f"
       }
+    },
+    "retainedSources": {
+      "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx": {
+        "originalSha256": "01f46af8976339b9306d24367703e3986104e0d230a03246ae78c84c87b29a0e",
+        "c645Sha256": "c6a84ce309916b1bafa242f4f68439a211bce3977b6771ff0a6e906ff08809c6",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "c6a84ce309916b1bafa242f4f68439a211bce3977b6771ff0a6e906ff08809c6"
+      },
+      "apps/admin/app/api/admin/line/inbox/[leadId]/screenshot-ocr/confirm/route.ts": {
+        "originalSha256": "bdd5fa0d9857ae2b2422366ebfecf7dccb01c22cf4f3fcb6bdb1e7d1b1ebe2f7",
+        "c645Sha256": "bdd5fa0d9857ae2b2422366ebfecf7dccb01c22cf4f3fcb6bdb1e7d1b1ebe2f7",
+        "sourceCommit": "f0081b17a3a6ed86976597a248fc7c2bc697c70d",
+        "candidateSha256": "baeedcf23e56d71576c1050c36074bc1cf4be057d169633a730f7b47dec572a0"
+      },
+      "apps/admin/app/api/admin/line/inbox/[leadId]/screenshot-ocr/route.ts": {
+        "originalSha256": "388ea8f665590e75799d17a8b91fe7e5fa1977297e07f6608d851cb10e1156f7",
+        "c645Sha256": "388ea8f665590e75799d17a8b91fe7e5fa1977297e07f6608d851cb10e1156f7",
+        "sourceCommit": "f0081b17a3a6ed86976597a248fc7c2bc697c70d",
+        "candidateSha256": "316d442b1b7c5158ff3370f4c8bb38849ada2f74d7543297b8810f2b87f6874c"
+      },
+      "apps/admin/app/api/internal/local-ai/jobs/[jobId]/route.ts": {
+        "originalSha256": "c0dea7e01de2503ab59589b26bb9695f9ab8d62b186b9fdb422cb048063f1ee1",
+        "c645Sha256": "ea473335f13d96cbaaade51bfc8bd1f4581059148bdb39f2b877a278128ee5c8",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "ea473335f13d96cbaaade51bfc8bd1f4581059148bdb39f2b877a278128ee5c8"
+      },
+      "apps/admin/app/api/internal/local-ai/reviews/route.ts": {
+        "originalSha256": "b9145adc93f1bc5b69fbc91d5d0e922a23e829c7eac8308f4d7e0b46c34af8c8",
+        "c645Sha256": "9bd77a3e379c07fbfb0b67dd01f5e71bb0006faa302f17964e7090693f0456be",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "9bd77a3e379c07fbfb0b67dd01f5e71bb0006faa302f17964e7090693f0456be"
+      },
+      "cms/sanity/policy/article-publication.ts": {
+        "originalSha256": "802db995aec376a4696d1ea3962f39a40332415a2f1438c0ffaebc8c1ceccd04",
+        "c645Sha256": "1eaf702df44fff82ec6e3dad689ba198d449fb58de046c2a98392bd111e05032",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "1eaf702df44fff82ec6e3dad689ba198d449fb58de046c2a98392bd111e05032"
+      },
+      "cms/sanity/schema/objects/review-metadata.ts": {
+        "originalSha256": "2184bd58e5af961cb5e6fb3e945570a47bd3d4915012e95a2b003dfcf396dbb0",
+        "c645Sha256": "52e6791196069f30a99219a971ff1b279754302de2db875eeb3d76ec0dd98f99",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "52e6791196069f30a99219a971ff1b279754302de2db875eeb3d76ec0dd98f99"
+      },
+      "features/admin/analytics/ExportCenter.tsx": {
+        "originalSha256": "93b805bf944f7a5d0f804bafc2a7ef8dd8d87a3b8c0e350fbc25310cc2a1d393",
+        "c645Sha256": "0dcf66582834425eafd05a14d87cd51123527dac5d9dc5c3ff830ab17f5c1ad6",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "0dcf66582834425eafd05a14d87cd51123527dac5d9dc5c3ff830ab17f5c1ad6"
+      },
+      "features/admin/analytics/StoredAnalyticsDashboard.tsx": {
+        "originalSha256": "6400acdc6b0240a3d38f0a5e76ec4609a37b5bfbb5c924bfbe1730b2362c6b83",
+        "c645Sha256": "f1509a6d2cb2deaedd6f5a59317d446248848b9cad2f07a3fe2d5445f392a01e",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "f1509a6d2cb2deaedd6f5a59317d446248848b9cad2f07a3fe2d5445f392a01e"
+      },
+      "features/admin/components/AdminDataRefresh.tsx": {
+        "originalSha256": "0fa92f07454f1e520a89c683276379f0851ec7df736d320cae65bc4899011f13",
+        "c645Sha256": "7972a230efc7cd43d147db32480fea2c3c5f082347348cc1dd5e3c65dc434029",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "7972a230efc7cd43d147db32480fea2c3c5f082347348cc1dd5e3c65dc434029"
+      },
+      "features/admin/components/AdminNavigation.tsx": {
+        "originalSha256": "d83c84b613924d2ff900d3829b8aad2b94550c97e41605d4959397a804bbbe96",
+        "c645Sha256": "e35d1ce2dae0a003b89d1ae8034a4affeacff92bbfb39ee432049a1dd7e5fcd4",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "e35d1ce2dae0a003b89d1ae8034a4affeacff92bbfb39ee432049a1dd7e5fcd4"
+      },
+      "features/admin/line/AdvisorCaseOperations.tsx": {
+        "originalSha256": "89607f8ff06bba4c23018fc7638cc65c3eee395884447d7a5c763f6dec16a52d",
+        "c645Sha256": "093a15f415e3d8f70c3a166072cf51463604cbb83bd68a3f9b083ad0314042dd",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "093a15f415e3d8f70c3a166072cf51463604cbb83bd68a3f9b083ad0314042dd"
+      },
+      "features/admin/line/ChatScreenshotImport.tsx": {
+        "originalSha256": "91b4a6f48eb7b507a7bb8746610eb78fd39d064a8d1bdf389d57a951889f8158",
+        "c645Sha256": "182f5a7a73f5144f2b974668e04d4788dbb8b2552eb8e970f8e65242486ad612",
+        "sourceCommit": "f0081b17a3a6ed86976597a248fc7c2bc697c70d",
+        "candidateSha256": "6a586535340cf35ce193f8c3d133ce0b83afc1174a68ba8d5e119e945067d54c"
+      },
+      "features/admin/operations/AgentRuntimeJobStatus.tsx": {
+        "originalSha256": "0d1fb203775394c3ea555cf5e038bc0f13e2fcdf9abab905d3aae37ff00e8dad",
+        "c645Sha256": "e9aa7bd5f52366eb7ad73702fb3929a6f2b12131a28a74be95267cf5b5c30d65",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "e9aa7bd5f52366eb7ad73702fb3929a6f2b12131a28a74be95267cf5b5c30d65"
+      },
+      "lib/admin/agent-os/action-center.ts": {
+        "originalSha256": "41aa5e0c4132ae124cd32a3fab7a80456a567bca0aac7778c15d81a3a0f4ff75",
+        "c645Sha256": "9e435927714228eba662a7f25c39b9c66d373e9ea9e0aa258998ed080404e6f0",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "9e435927714228eba662a7f25c39b9c66d373e9ea9e0aa258998ed080404e6f0"
+      },
+      "lib/admin/agent-os/calendar-projection.ts": {
+        "originalSha256": "b42709500e6315289498dbece9a9fcd0d92f494d440f9fd24e062af4b9f7cd98",
+        "c645Sha256": "e95f3d8a56646fb045a40496e313bb30d35b582e0241713c4dea4772275f8549",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "e95f3d8a56646fb045a40496e313bb30d35b582e0241713c4dea4772275f8549"
+      },
+      "lib/admin/content-filters.ts": {
+        "originalSha256": "008d8dd8fc400aba3754d502d72ad492c58bbcb3364c00152293f23a8df1ab18",
+        "c645Sha256": "bd0e300ea205d64a615c2d94d8c845ce0a04881dc7d84b7eaadad7564c950699",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "bd0e300ea205d64a615c2d94d8c845ce0a04881dc7d84b7eaadad7564c950699"
+      },
+      "lib/admin/line/conversation-archive.ts": {
+        "originalSha256": "cc79f2984961078383547a4892667506d59a760b48b47f54cc7a584edae86728",
+        "c645Sha256": "a81006fe1380259ddf819807d5657860c3493f82dbe6534fd92e93cd5213aab1",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "a81006fe1380259ddf819807d5657860c3493f82dbe6534fd92e93cd5213aab1"
+      },
+      "lib/admin/presentation.ts": {
+        "originalSha256": "a6aac1617c6f98a0343ac8ab673a0608ac2e8711bd77e1b921384a466b55eb1b",
+        "c645Sha256": "fcc774bb08eb46fcc0e10ebd07e6cb6eb2a890ee6c5d20d12351254bef821f18",
+        "sourceCommit": "c64540ec7bd31c9380880173a03d996902b23b64",
+        "candidateSha256": "fcc774bb08eb46fcc0e10ebd07e6cb6eb2a890ee6c5d20d12351254bef821f18"
+      }
     }
   }
 }
