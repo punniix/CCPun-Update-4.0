@@ -301,8 +301,11 @@ export function isSeoIntelligenceEnabled(input: {
     || !["hostinger", "local"].includes(deployment.provider)
     || input.vercelEnvironment?.trim() || input.projectId?.trim() || input.productionAdminProjectId?.trim()) return false;
 
+  const pinnedHostingerUat = deployment.provider === "hostinger"
+    && /^[a-f0-9]{40}$/.test(deployment.gitSha ?? "")
+    && input.gitBranch === `codex/hostinger-release-uat-${deployment.gitSha}`;
   const uatLane = input.environment === "admin-uat" &&
-    (input.gitBranch === WEBSITE_42_SEO_BRANCH || input.gitBranch === WEBSITE_42_GOOGLE_PROVIDER_BRANCH || input.gitBranch?.startsWith("admin/")) &&
+    (input.gitBranch === WEBSITE_42_SEO_BRANCH || input.gitBranch === WEBSITE_42_GOOGLE_PROVIDER_BRANCH || input.gitBranch?.startsWith("admin/") || pinnedHostingerUat) &&
     input.sanityProjectId === WEBSITE_42_SEO_SANITY_PROJECT_ID &&
     input.sanityDataset === WEBSITE_42_SEO_SANITY_DATASET;
 

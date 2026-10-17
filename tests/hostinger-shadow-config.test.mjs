@@ -428,6 +428,22 @@ test("Hostinger Admin readiness certifies only full native-neon pinned lanes wit
   }
 });
 
+test("Hostinger Admin readiness accepts native codex UAT refs only when SHA-coupled", () => {
+  const sha = "c64540ec7bd31c9380880173a03d996902b23b64";
+  const pinned = { CCPUN_GIT_SHA: sha, CCPUN_GIT_REF: `codex/hostinger-release-uat-${sha}` };
+  assert.equal(runAdminReadiness("admin-uat", pinned).status, 0);
+  for (const patch of [
+    { CCPUN_GIT_SHA: "b".repeat(40) }, { CCPUN_GIT_SHA: "" },
+    { CCPUN_GIT_SHA: sha.slice(0, 8), CCPUN_GIT_REF: `codex/hostinger-release-uat-${sha.slice(0, 8)}` },
+    { CCPUN_GIT_SHA: sha.toUpperCase(), CCPUN_GIT_REF: `codex/hostinger-release-uat-${sha.toUpperCase()}` },
+    { CCPUN_GIT_REF: `codex/hostinger-release-production-${sha}` },
+    { CCPUN_GIT_REF: `codex/hostinger-release-uat-${sha}-extra` },
+    { CCPUN_GIT_REF: "codex/arbitrary" }, { CCPUN_DEPLOYMENT_ROLE: "web" },
+    { NEXT_PUBLIC_SANITY_DATASET: "production" }, { CCPUN_SOCIAL_PROVIDER_READS_ENABLED: "1" },
+    { VERCEL_ENV: "preview" },
+  ]) assert.notEqual(runAdminReadiness("admin-uat", { ...pinned, ...patch }).status, 0, JSON.stringify(patch));
+});
+
 test("Hostinger Web readiness accepts only the explicit live production identity", () => {
   const ok = runReadiness();
   assert.equal(ok.status, 0, ok.stderr || ok.stdout);
