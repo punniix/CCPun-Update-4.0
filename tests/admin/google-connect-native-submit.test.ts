@@ -163,3 +163,60 @@ test("GA4 manual failures retain friendly messages and redact all unrecognized r
     dom.window.close();
   }
 });
+
+
+test("GA4 UAT stage markers are fixed, best-effort and preserve real route guards and results", async () => {
+  const source = readFileSync(new URL("../../apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const prefix = "CCPUN_GA4_SYNC_STAGE:";
+  const allowed = new Set(["entry", "gates-passed", "token-ready", "current-ready", "comparison-ready", "comparison-partial", "failed", "finished"]);
+  const marker = "SYNTHETIC_PRIVATE_VALUE_MUST_NEVER_BE_LOGGED";
+  async function run(mode: string, options: { environment?: string; provider?: string; role?: string; loggerThrows?: boolean } = {}) {
+    const logs: unknown[][] = []; let tokenCalls = 0, providerCalls = 0;
+    const environment = options.environment ?? "admin-uat";
+    const variables = { CCPUN_DEPLOYMENT_PROVIDER: options.provider ?? "hostinger", CCPUN_DEPLOYMENT_ROLE: options.role ?? "admin",
+      CCPUN_GA4_PROPERTY_ID: mode === "wrong-resource" ? "0" : environment === "production-admin" ? "219719845" : "551040812" };
+    const response = { rows: [], totals: { sessions: 0, engagedSessions: 0, engagementRate: 0 }, truncated: false, timeZone: null, limitations: [] };
+    const mocks: Record<string, unknown> = {
+      "node:crypto": { randomUUID: () => marker }, "zod": require("zod"),
+      "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
+      "@/lib/admin/seo-intelligence/post-publish-origin": { isPostPublishAdminOriginAllowed: () => mode !== "bad-origin" },
+      "@/lib/admin/environment": { getAdminEnvironment: () => environment },
+      "@/lib/admin/identity": { getAdminIdentity: async () => { if (mode === "auth-failed") throw Error(marker); return mode === "unauthorized" ? null : { actorType: "human", role: "owner" }; } },
+      "@/lib/admin/rbac": { hasAdminPermission: () => true },
+      "@/lib/admin/seo-intelligence/contracts": { previousEqualDateRange: () => ({ startDate: "2026-09-14", endDate: "2026-09-30" }), joinGa4DashboardRows: () => [] },
+      "@/lib/admin/seo-intelligence/foundation": { getSeoIntelligenceRuntimeStatus: () => ({ enabled: mode !== "disabled" }) },
+      "@/lib/admin/seo-intelligence/google-data-auth": { getGoogleDataAccessToken: () => assert.fail("no unplanned credential reader") },
+      "next/headers": { cookies: async () => ({ set() {} }) },
+      "@/lib/admin/seo-intelligence/google-session-connection": { hasGoogleSessionGrant: () => true, getConnectedGoogleAccessToken: async () => {
+        tokenCalls++; if (mode === "token-failed") throw Error("GOOGLE_SESSION_CONNECT_REQUIRED"); return marker;
+      } },
+      "@/lib/admin/seo-intelligence/providers/ga4": Object.fromEntries(["fetchGa4LandingPages", "fetchGa4OrganicTotals"].map(name => [name, async (input: { startDate: string }) => {
+        providerCalls++; if (mode === "current-failed" || (mode === "comparison-failed" && input.startDate === "2026-09-14")) throw Error("GA4_TIMEOUT"); return response;
+      }])),
+    };
+    const exports: { POST?: (request: Request) => Promise<Response>; trace?: (value: string) => void } = {};
+    const fakeConsole = { warn: (...args: unknown[]) => { logs.push(args); if (options.loggerThrows) throw Error(marker); } };
+    new Function("require", "exports", "console", "process", compiled + "\nexports.trace = traceGa4SyncStage;")(
+      (name: string) => { assert.ok(Object.hasOwn(mocks, name), "only explicit local mock imports"); return mocks[name]; }, exports, fakeConsole, { env: variables });
+    const request = new Request("https://admin-test.ccpun.com/api/admin/seo/opportunities/sync/ga4/", { method: "POST", body: JSON.stringify(mode === "invalid-input" ? {} : { startDate: "2026-10-01", endDate: "2026-10-17" }) });
+    let result: Response | undefined;
+    if (mode === "auth-failed") await assert.rejects(exports.POST!(request), error => error instanceof Error && error.message === marker);
+    else result = await exports.POST!(request);
+    const count = logs.length; exports.trace!(marker); exports.trace!("constructor"); assert.equal(logs.length, count);
+    for (const args of logs) { assert.equal(args.length, 1); assert.equal(typeof args[0], "string"); assert.ok(allowed.has(String(args[0]).slice(prefix.length))); assert.ok(String(args[0]).startsWith(prefix)); }
+    assert.equal(JSON.stringify(logs).includes(marker), false, "no request ID, error, token or dynamic value reaches logs");
+    return { stages: logs.map(args => String(args[0]).slice(prefix.length)), tokenCalls, providerCalls, status: result?.status, body: result ? await result.json() : null };
+  }
+  const success = await run("ok"); assert.equal(success.status, 200); assert.equal(success.body.state, "ready"); assert.equal(success.tokenCalls, 1); assert.equal(success.providerCalls, 4);
+  assert.deepEqual(success.stages, ["entry", "gates-passed", "token-ready", "current-ready", "comparison-ready", "finished"]);
+  for (const [mode, status, error] of [["unauthorized", 401, "unauthorized"], ["bad-origin", 403, "forbidden-origin"], ["disabled", 404, "not-found"], ["invalid-input", 400, "invalid-input"], ["wrong-resource", 409, "provider-not-connected"]] as const) {
+    const value = await run(mode); assert.equal(value.status, status); assert.equal(value.body.error, error); assert.deepEqual(value.stages, ["entry"]); assert.equal(value.tokenCalls + value.providerCalls, 0);
+  }
+  assert.deepEqual((await run("auth-failed")).stages, ["entry"], "no new catch around pre-existing auth failure");
+  const token = await run("token-failed"); assert.equal(token.status, 409); assert.equal(token.body.error, "provider-auth-required"); assert.deepEqual(token.stages, ["entry", "gates-passed", "failed", "finished"]);
+  const current = await run("current-failed"); assert.equal(current.status, 504); assert.equal(current.body.error, "provider-timeout"); assert.deepEqual(current.stages, ["entry", "gates-passed", "token-ready", "failed", "finished"]);
+  const comparison = await run("comparison-failed"); assert.equal(comparison.status, 200); assert.equal(comparison.body.state, "partial"); assert.deepEqual(comparison.stages, ["entry", "gates-passed", "token-ready", "current-ready", "comparison-partial", "finished"]);
+  assert.equal((await run("ok", { loggerThrows: true })).status, 200, "logger failures cannot alter business response");
+  for (const options of [{ environment: "production-admin" }, { provider: "local" }, { role: "web" }]) assert.deepEqual((await run("ok", options)).stages, [], "only exact Hostinger Admin UAT logs markers");
+});

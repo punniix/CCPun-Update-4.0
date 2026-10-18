@@ -24,6 +24,27 @@ const inputSchema = z.object({ startDate: z.iso.date(), endDate: z.iso.date() })
 
 let syncInFlight = false;
 
+const GA4_SYNC_STAGE_MARKERS = {
+  entry: "CCPUN_GA4_SYNC_STAGE:entry",
+  gatesPassed: "CCPUN_GA4_SYNC_STAGE:gates-passed",
+  tokenReady: "CCPUN_GA4_SYNC_STAGE:token-ready",
+  currentReady: "CCPUN_GA4_SYNC_STAGE:current-ready",
+  comparisonReady: "CCPUN_GA4_SYNC_STAGE:comparison-ready",
+  comparisonPartial: "CCPUN_GA4_SYNC_STAGE:comparison-partial",
+  failed: "CCPUN_GA4_SYNC_STAGE:failed",
+  finished: "CCPUN_GA4_SYNC_STAGE:finished",
+} as const;
+
+function traceGa4SyncStage(stage: keyof typeof GA4_SYNC_STAGE_MARKERS) {
+  try {
+    if (getAdminEnvironment() === "admin-uat"
+      && process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim() === "hostinger"
+      && process.env.CCPUN_DEPLOYMENT_ROLE?.trim() === "admin"
+      && Object.hasOwn(GA4_SYNC_STAGE_MARKERS, stage)) console.warn(GA4_SYNC_STAGE_MARKERS[stage]);
+  } catch { /* Best-effort fixed UAT markers never change request behavior. */ }
+}
+
+
 function providerError(error: unknown) {
   const code = error instanceof Error ? error.message : "";
   if (code === "GA4_AUTH_REQUIRED") return { error: "provider-auth-required", status: 409 };
@@ -34,6 +55,7 @@ function providerError(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  traceGa4SyncStage("entry");
   const identity = await getAdminIdentity();
   if (!identity) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (identity.actorType !== "human" || !hasAdminPermission(identity.role, "research:provider-query")) {
@@ -54,15 +76,18 @@ export async function POST(request: Request) {
   const requestId = randomUUID();
   const comparisonRange = previousEqualDateRange(parsed.data.startDate, parsed.data.endDate);
   try {
+    traceGa4SyncStage("gatesPassed");
     // ponytail: one owner and one manual sync at a time; add a durable lock only with scheduled sync.
     const token = getAdminEnvironment() === "admin-uat" || hasGoogleSessionGrant(request, process.env)
       ? await getConnectedGoogleAccessToken(request, identity, process.env,
         asyncCookieWriter(await cookies()))
       : await getGoogleDataAccessToken();
+    traceGa4SyncStage("tokenReady");
     const [current, currentTotals] = await Promise.all([
       fetchGa4LandingPages({ propertyId, token, ...parsed.data }),
       fetchGa4OrganicTotals({ propertyId, token, ...parsed.data }),
     ]);
+    traceGa4SyncStage("currentReady");
     let comparison: Awaited<ReturnType<typeof fetchGa4LandingPages>> | null = null;
     let comparisonTotals: Awaited<ReturnType<typeof fetchGa4OrganicTotals>> | null = null;
     let comparisonError: string | null = null;
@@ -71,7 +96,9 @@ export async function POST(request: Request) {
         fetchGa4LandingPages({ propertyId, token, ...comparisonRange }),
         fetchGa4OrganicTotals({ propertyId, token, ...comparisonRange }),
       ]);
+      traceGa4SyncStage("comparisonReady");
     } catch (error) {
+      traceGa4SyncStage("comparisonPartial");
       comparisonError = providerError(error).error;
     }
     const joinedRows = joinGa4DashboardRows(current.rows, comparison?.rows ?? []);
@@ -107,6 +134,7 @@ export async function POST(request: Request) {
       ])],
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    traceGa4SyncStage("failed");
     const code = error instanceof Error ? error.message : "";
     if (code === "GOOGLE_SESSION_CONNECT_REQUIRED") return NextResponse.json({ error: "provider-auth-required", requestId }, { status: 409 });
     if (code === "GOOGLE_DATA_NOT_CONFIGURED") return NextResponse.json({ error: "provider-not-connected", requestId }, { status: 409 });
@@ -121,6 +149,7 @@ export async function POST(request: Request) {
     });
   } finally {
     syncInFlight = false;
+    traceGa4SyncStage("finished");
   }
 }
 

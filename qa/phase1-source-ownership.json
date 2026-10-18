@@ -2138,13 +2138,13 @@
       "lib/admin/seo-intelligence/provider-readiness.ts": "712177a872b538e9a82899439ad685e0aca863cde865f12d4d157380812712ba",
       "apps/admin/app/api/admin/seo/providers/connect/route.ts": "774edf8aa7f602d7019fce9952570219caa950a5d65fbd0fa9a0ae2933e1e01d",
       "apps/admin/app/api/admin/seo/providers/readiness/route.ts": "0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc",
-      "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": "ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a",
+      "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": "7938c5c7fd55c16d47cebfe5e94ba8b36dd98c66558f0e4a2711d578815d634d",
       "features/admin/seo/opportunities/page.tsx": "daefe808fe8ac11e126cb27c6284284bdb374a19a092b2e9d48a6860009653c4",
       "features/admin/seo/opportunities/Ga4ManualSync.tsx": "23ea5afa1f5e2d84b3b1f421208e7446b52d5da1309073263b3b694272fdeb82",
       "tests/admin/google-session-connection.test.ts": "11751e00afa67d935f4b02ef69513375beecdab6e9384e9948ef5030ef79bf4f",
       "tests/admin/google-session-auth.test.ts": "97d090a6e36f6f34fa16aa92aeeef71ebaa37fbe144b527d3c8eaa3950395ed7",
       "apps/admin/next.config.ts": "202e30306c29ef7ab2c6e6548892cd18df28b741313f92dd3ed4cb4e33e30dc5",
-      "tests/admin/google-connect-native-submit.test.ts": "c3ed00f126414d1b003711c5c7c403f244e540d7fad5c6f8b07ad7850225cee3"
+      "tests/admin/google-connect-native-submit.test.ts": "5745a310dffef09e3c82adfc7ebb292772051ba53b907ea3506cf331dce1e227"
     },
     "outputTests": [
       "tests/admin/google-session-connection.test.ts",
