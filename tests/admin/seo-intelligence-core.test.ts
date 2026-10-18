@@ -410,7 +410,16 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   assert.match(route, /state: comparison && comparisonTotals \? "ready" : "partial"/);
   assert.match(route, /export async function POST\(request: Request\)/);
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
-  assert.doesNotMatch(route, /createClient|sanity|mutate|\bpublish\s*\(|\.publish\b|console\./i);
+  const allowedStageHelper = "const GA4_SYNC_STAGE_MARKERS = {\n  entry: \"CCPUN_GA4_SYNC_STAGE:entry\",\n  gatesPassed: \"CCPUN_GA4_SYNC_STAGE:gates-passed\",\n  tokenReady: \"CCPUN_GA4_SYNC_STAGE:token-ready\",\n  currentReady: \"CCPUN_GA4_SYNC_STAGE:current-ready\",\n  comparisonReady: \"CCPUN_GA4_SYNC_STAGE:comparison-ready\",\n  comparisonPartial: \"CCPUN_GA4_SYNC_STAGE:comparison-partial\",\n  failed: \"CCPUN_GA4_SYNC_STAGE:failed\",\n  finished: \"CCPUN_GA4_SYNC_STAGE:finished\",\n} as const;\n\nfunction traceGa4SyncStage(stage: keyof typeof GA4_SYNC_STAGE_MARKERS) {\n  try {\n    if (getAdminEnvironment() === \"admin-uat\"\n      && process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim() === \"hostinger\"\n      && process.env.CCPUN_DEPLOYMENT_ROLE?.trim() === \"admin\"\n      && Object.hasOwn(GA4_SYNC_STAGE_MARKERS, stage)) console.warn(GA4_SYNC_STAGE_MARKERS[stage]);\n  } catch { /* Best-effort fixed UAT markers never change request behavior. */ }\n}\n\n";
+  const assertReadOnlyRoute = (source: string) => {
+    assert.equal(source.split(allowedStageHelper).length, 2, "only the exact reviewed fixed UAT marker helper is admitted once");
+    assert.doesNotMatch(source.replace(allowedStageHelper, ""), /createClient|sanity|mutate|\bpublish\s*\(|\.publish\b|console\./i);
+  };
+  assertReadOnlyRoute(route);
+  for (const changed of [route.replace("console.warn", "console.error"), route.replace("admin-uat", "production-admin"), route.replace("hostinger", "*"),
+    route.replace("CCPUN_GA4_SYNC_STAGE:entry", "dynamic"), route + allowedStageHelper, route + "\nconsole.warn('unexpected');",
+    route + "\ncreateClient();", route + "\nmutate();", route + "\npublish();"])
+    assert.throws(() => assertReadOnlyRoute(changed));
   assert.match(control, /type="date"/);
   assert.match(control, /ผู้เข้าชมจากผลค้นหา/);
   assert.match(control, /ไม่เก็บสำเนาถาวร/);

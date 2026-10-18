@@ -105,7 +105,7 @@ export function reviewedGoogleSessionBaselineSource(file, proof, readSource, env
 }
 
 // Separate reviewed SEO compatibility. The old Production and inherited C645 objects stay sealed.
-const REVIEWED_SEO_UAT_SHA256 = 'be40d4cf031d17c97adcce92d3a44cbb766f634c21d57cd13eedf0405f655096';
+const REVIEWED_SEO_UAT_SHA256 = 'f20cf9fa47a2368ea1da83d880fe779bdedead055aec018e135744e8283f5c0d';
 function seoUatAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed SEO admission environment');
   inheritedUatAdmission(proof);

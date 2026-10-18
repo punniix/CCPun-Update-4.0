@@ -116,7 +116,7 @@ test('hermetic NODE_ENV test overlay reverses to the exact immutable D0 evidence
   const file = 'tests/admin/seo-google-provider-readiness.test.ts';
   const read = path => readFileSync(path, 'utf8');
   const record = proof.reviewedSeoUat.testOverlays[file];
-  assert.equal(Object.keys(proof.reviewedSeoUat.testOverlays).length, 1);
+  assert.deepEqual(Object.keys(proof.reviewedSeoUat.testOverlays).sort(), ["tests/admin/seo-google-provider-readiness.test.ts", "tests/admin/seo-intelligence-core.test.ts"]);
   assert.equal(record.sourceCommit, 'd0bcfdaef62f2fae8b3b727836527dd25e22ebbe');
   assert.equal(proof.reviewedSeoUat.outputTests[file], 'ab5a3a31cbda12f6da76ec1283d76f857de804f74f8070502e48aa34d011d761');
   assert.equal(record.originalSha256, proof.reviewedSeoUat.outputTests[file]);
@@ -164,4 +164,20 @@ test('Google session admission pins all actual bodies before UAT-only retained-s
     const changed = structuredClone(proof); mutate(changed);
     assert.throws(() => reviewedGoogleSessionBaselineSource(file, changed, read, 'admin-uat'));
   }
+});
+
+
+test('fixed UAT GA4 marker guard overlay retains immutable D0 evidence and rejects every unreviewed body', () => {
+  const file = 'tests/admin/seo-intelligence-core.test.ts', read = path => readFileSync(path, 'utf8');
+  const record = proof.reviewedSeoUat.testOverlays[file];
+  assert.equal(record.originalSha256, '0d0b565b9314506d7b97d2f17e7cd102a9e0b1279ac6ae0fd5a892e66147bfd4');
+  assert.equal(proof.reviewedSeoUat.outputTests[file], record.originalSha256);
+  assert.equal(sha(read(file).replace(record.after, record.before)), record.originalSha256);
+  const owner = proof.reviewedSeoUat.retainedRoutes[0], digest = proof.protected[owner];
+  assert.equal(assertReviewedSeoUatSource(owner, digest, proof, read, 'admin-uat'), true);
+  for (const replacement of [record.before, record.after + '// extra exemption', record.after.replace('console.warn', 'console.error'), record.after.replace('hostinger', '*')])
+    assert.throws(() => assertReviewedSeoUatSource(owner, digest, proof,
+      path => path === file ? read(path).replace(record.after, replacement) : read(path), 'admin-uat'));
+  const unknown = structuredClone(proof); unknown.reviewedSeoUat.testOverlays['unknown.test.ts'] = record;
+  assert.throws(() => assertReviewedSeoUatSource(owner, digest, unknown, read, 'admin-uat'));
 });
