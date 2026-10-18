@@ -32,16 +32,16 @@ export function productionBaselineBytes(file) {
     : readFileSync(new URL("../" + file, import.meta.url));
 }
 
-// Exact new Google Connect bodies are checked before their seven reviewed source
+// Exact new Google Connect bodies are checked before their eight reviewed source
 // admissions. The original Production maps and all other guards remain immutable.
 export function assertReviewedGoogleSessionProduction(file, originalDigest, value, reader, environment) {
   assert.equal(environment, 'production-admin', 'unreviewed Google session environment');
   const { reviewedGoogleSessionProduction: record, ...original } = value;
   assert.equal(sha(JSON.stringify(original)), '5299183ab8850885e12516aaa91b4fb01b21530ac81fbfbf7d0810d7f3898688', 'original Production proof drift');
-  assert.equal(sha(JSON.stringify(record)), '21c0f5563e8a0026c2be7b2bfc5ee408f0dc07d21589e703efd47f2292ca3008', 'unreviewed Production Google session admission');
+  assert.equal(sha(JSON.stringify(record)), '0fcffc5371c977c0f817edbab1c0ca09b263ee1199f1d7850ed5a391e7594f9d', 'unreviewed Production Google session admission');
   assert.equal(record.baselineCommit, '0e88533a04bdad9d3cee6991431bd7be41f623b0');
-  assert.equal(Object.keys(record.currentSourceDigests).length, 13);
-  assert.equal(Object.keys(record.retainedSources).length, 7);
+  assert.equal(Object.keys(record.currentSourceDigests).length, 14);
+  assert.equal(Object.keys(record.retainedSources).length, 8);
   assert.deepEqual(record.outputTests, ['tests/admin/google-session-connection.test.ts', 'tests/admin/google-session-auth.test.ts']);
   for (const [path, digest] of Object.entries(record.currentSourceDigests))
     assert.equal(sha(reader(path)), digest, path + ': unreviewed actual Google session body');

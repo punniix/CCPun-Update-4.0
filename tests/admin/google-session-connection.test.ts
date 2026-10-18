@@ -202,3 +202,45 @@ test("deployed Admin CSP permits the exact Google OAuth form redirect without ch
     }
   }
 });
+
+
+test("GA4 totals accept only documented empty ProtoJSON envelopes without synthesizing headers or summing landing rows", async () => {
+  const require = createRequire(import.meta.url); const ts = require("typescript");
+  const source = readFileSync(new URL("../../lib/admin/seo-intelligence/contracts.ts", import.meta.url), "utf8");
+  const contracts: { normalizeGa4OrganicTotalsReport?: (raw: unknown) => { totals: { sessions: number; engagedSessions: number; engagementRate: number }; timeZone: string | null; limitations: string[] }; normalizeGa4LandingPageReport?: (raw: unknown) => { rows: Array<{ sessions: number }> } } = {};
+  new Function("require", "exports", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText)(require, contracts);
+  const normalize = contracts.normalizeGa4OrganicTotalsReport!;
+  // RunReportResponse/ProtoJSON: repeated arrays and default rowCount=0 may be absent.
+  // https://protobuf.dev/programming-guides/json/ and Google RunReportResponse reference.
+  const empty = [{}, { metricHeaders: [], rows: [], rowCount: 0, dimensionHeaders: [] },
+    { kind: "analyticsData#runReport", metadata: { timeZone: "Asia/Bangkok", currencyCode: "THB", emptyReason: "SYNTHETIC_EMPTY_REASON" }, propertyQuota: { tokensPerDay: { consumed: 1, remaining: 9 } } }];
+  for (const payload of empty) assert.deepEqual(normalize(payload).totals, { sessions: 0, engagedSessions: 0, engagementRate: 0 });
+  assert.equal(normalize(empty[2]).timeZone, "Asia/Bangkok");
+  const malformed: unknown[] = [null, [], { metricHeaders: null }, { rows: null }, { rows: [{}] }, { rowCount: 1 }, { rowCount: "0" },
+    { dimensionHeaders: [{ name: "country" }] }, { metricHeaders: [{ name: "wrong" }] }, { totals: [{}] }, { maximums: [{}] }, { minimums: [{}] },
+    { error: {} }, { reports: [] }, { unexpected: true }, { kind: "other" }, { metadata: null }, { metadata: { error: "SYNTHETIC_ONLY" } },
+    { metadata: { timeZone: 0 } }, { propertyQuota: null }, { propertyQuota: { unknown: {} } }, { propertyQuota: { tokensPerDay: { consumed: "1" } } }];
+  malformed.push(Object.defineProperty({}, "rowCount", { get() { return 0; } }),
+    { metadata: Object.defineProperty({}, "emptyReason", { enumerable: true, get() { return "SYNTHETIC_ONLY"; } }) },
+    new Proxy({ rowCount: 0 }, { getOwnPropertyDescriptor() { throw Error("SYNTHETIC_ONLY"); } }));
+  for (const payload of malformed) assert.throws(() => normalize(payload));
+  const metricHeaders = [{ name: "sessions" }, { name: "engagedSessions" }];
+  assert.equal(normalize({ metricHeaders, rows: [{ metricValues: [{ value: "17" }, { value: "5" }] }] }).totals.sessions, 17);
+  const landing = contracts.normalizeGa4LandingPageReport!({ dimensionHeaders: [{ name: "landingPage" }], metricHeaders, rows: [
+    { dimensionValues: [{ value: "/known/" }], metricValues: [{ value: "10" }, { value: "3" }] },
+    { dimensionValues: [{ value: "(not set)" }], metricValues: [{ value: "7" }, { value: "2" }] },
+  ] });
+  assert.equal(landing.rows.reduce((sum, row) => sum + row.sessions, 0), 10, "landing rows cannot replace exact ungrouped totals");
+  const provider = readFileSync(new URL("../../lib/admin/seo-intelligence/providers/ga4.ts", import.meta.url), "utf8");
+  const functions: { fetchGa4OrganicTotals?: (input: unknown, fetcher: typeof fetch) => Promise<{ totals: { sessions: number } }> } = {};
+  new Function("require", "exports", ts.transpileModule(provider, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText)((name: string) => name === "server-only" ? {} : name === "../contracts" ? { ...require("../../lib/admin/seo-intelligence/contracts.ts"), ...contracts } : require(name), functions);
+  const input = { propertyId: "1", token: "SYNTHETIC_ONLY", startDate: "2026-10-01", endDate: "2026-10-17" };
+  let calls = 0;
+  for (const payload of empty) {
+    const result = await functions.fetchGa4OrganicTotals!(input, (async () => { calls++; return Response.json(payload); }) as typeof fetch);
+    assert.equal(result.totals.sessions, 0);
+  }
+  for (const payload of malformed.slice(0, 22)) await assert.rejects(functions.fetchGa4OrganicTotals!(input, (async () => { calls++; return Response.json(payload); }) as typeof fetch), (error: unknown) => error instanceof Error && error.message === "GA4_INVALID_RESPONSE");
+  assert.equal(calls, empty.length + 22, "one existing request per invocation; no extra provider retry");
+  assert.throws(() => contracts.normalizeGa4LandingPageReport!({}), "headerless landing reports remain rejected");
+});

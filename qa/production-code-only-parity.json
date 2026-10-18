@@ -752,6 +752,11 @@
         "baselineSha256": "96745c9829ca970aad29f655613064140ad90b7068f127d6277dfced0d525b82",
         "originalSha256": "96745c9829ca970aad29f655613064140ad90b7068f127d6277dfced0d525b82",
         "candidateSha256": "202e30306c29ef7ab2c6e6548892cd18df28b741313f92dd3ed4cb4e33e30dc5"
+      },
+      "lib/admin/seo-intelligence/contracts.ts": {
+        "originalSha256": "11b09f83f5618430dc381446cc15745bc469e931df6b7288d32a96e09f7cc319",
+        "baselineSha256": "11b09f83f5618430dc381446cc15745bc469e931df6b7288d32a96e09f7cc319",
+        "candidateSha256": "1f8bcb7c6182e57d7d629f6da27fb0592c40f76add007c9451a8d326d2a6b5fc"
       }
     },
     "currentSourceDigests": {
@@ -765,9 +770,10 @@
       "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts": "ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a",
       "features/admin/seo/opportunities/page.tsx": "daefe808fe8ac11e126cb27c6284284bdb374a19a092b2e9d48a6860009653c4",
       "features/admin/seo/opportunities/Ga4ManualSync.tsx": "6d7b04465b871886c234b6a9e83c6519d979471ff77e659c74e57c118de97b30",
-      "tests/admin/google-session-connection.test.ts": "286b063615211bb707e0059f892cb9468b46a9894c138cb9ffa878bc0a15e627",
+      "tests/admin/google-session-connection.test.ts": "cd80d83aea8c864a88a32644931ffd4328d48869ec3165633cb27edd8918c5d0",
       "tests/admin/google-session-auth.test.ts": "79cb895a8594124391c36346c840e964cc0c9fcdcd0f2fe755bae16e99616fd3",
-      "apps/admin/next.config.ts": "202e30306c29ef7ab2c6e6548892cd18df28b741313f92dd3ed4cb4e33e30dc5"
+      "apps/admin/next.config.ts": "202e30306c29ef7ab2c6e6548892cd18df28b741313f92dd3ed4cb4e33e30dc5",
+      "lib/admin/seo-intelligence/contracts.ts": "1f8bcb7c6182e57d7d629f6da27fb0592c40f76add007c9451a8d326d2a6b5fc"
     },
     "outputTests": [
       "tests/admin/google-session-connection.test.ts",

@@ -155,7 +155,7 @@ export function normalizeGa4LandingPageReport(raw: unknown): {
 
 const ga4OrganicTotalsReportSchema = z.object({
   dimensionHeaders: z.array(z.object({ name: z.string() })).default([]),
-  metricHeaders: z.array(z.object({ name: z.string() }).passthrough()),
+  metricHeaders: z.array(z.object({ name: z.string() }).passthrough()).default([]),
   rows: z.array(z.object({
     metricValues: z.array(z.object({ value: z.string() })),
   }).passthrough()).default([]),
@@ -167,6 +167,51 @@ const ga4OrganicTotalsReportSchema = z.object({
   }).passthrough().optional(),
 }).passthrough();
 
+// ProtoJSON omits empty repeated fields/default zero. This exception is totals-only;
+// malformed or populated reports still require the exact requested metric headers.
+function isEmptyGa4TotalsReport(raw: unknown): boolean {
+  try {
+    const fields = (value: unknown) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+      const prototype = Object.getPrototypeOf(value);
+      if (prototype !== Object.prototype && prototype !== null) return null;
+      const descriptors = Object.getOwnPropertyDescriptors(value);
+      return Object.values(descriptors).every(field => Object.hasOwn(field, "value")) ? descriptors : null;
+    };
+    const report = fields(raw);
+    const allowed = new Set(["dimensionHeaders", "metricHeaders", "rows", "totals", "maximums", "minimums", "rowCount", "metadata", "propertyQuota", "kind"]);
+    if (!report || Object.keys(report).some(key => !allowed.has(key))) return false;
+    for (const key of ["dimensionHeaders", "metricHeaders", "rows", "totals", "maximums", "minimums"]) {
+      const field = report[key];
+      if (field && (!Array.isArray(field.value) || Object.getOwnPropertyDescriptor(field.value, "length")?.value !== 0)) return false;
+    }
+    if (report.rowCount && report.rowCount.value !== 0) return false;
+    if (report.kind && report.kind.value !== "analyticsData#runReport") return false;
+    if (report.metadata) {
+      const metadata = fields(report.metadata.value);
+      const types: Record<string, string> = { dataLossFromOtherRow: "boolean", samplingMetadatas: "array", subjectToThresholding: "boolean", timeZone: "string", currencyCode: "string", emptyReason: "string", schemaRestrictionResponse: "object", dataTruncationReasons: "array" };
+      if (!metadata) return false;
+      for (const [key, field] of Object.entries(metadata)) {
+        const type = types[key];
+        if (!type || (type === "array" ? !Array.isArray(field.value) : type === "object" ? !fields(field.value) : typeof field.value !== type)) return false;
+      }
+    }
+    if (report.propertyQuota) {
+      const quota = fields(report.propertyQuota.value);
+      const allowedQuota = new Set(["tokensPerDay", "tokensPerHour", "concurrentRequests", "serverErrorsPerProjectPerHour", "potentiallyThresholdedRequestsPerHour", "tokensPerProjectPerHour"]);
+      if (!quota) return false;
+      for (const [key, field] of Object.entries(quota)) {
+        const status = fields(field.value);
+        if (!allowedQuota.has(key) || !status) return false;
+        for (const [name, item] of Object.entries(status)) {
+          if (!["consumed", "remaining"].includes(name) || typeof item.value !== "number" || !Number.isSafeInteger(item.value) || item.value < 0) return false;
+        }
+      }
+    }
+    return true;
+  } catch { return false; }
+}
+
 export function normalizeGa4OrganicTotalsReport(raw: unknown): {
   totals: Ga4MetricTotals;
   timeZone: string | null;
@@ -174,7 +219,8 @@ export function normalizeGa4OrganicTotalsReport(raw: unknown): {
 } {
   const data = ga4OrganicTotalsReportSchema.parse(raw);
   if (data.dimensionHeaders.length !== 0) throw new Error("GA4_HEADER_MISMATCH");
-  if (data.metricHeaders.map((header) => header.name).join(",") !== "sessions,engagedSessions") throw new Error("GA4_HEADER_MISMATCH");
+  if (data.metricHeaders.map((header) => header.name).join(",") !== "sessions,engagedSessions"
+    && !(data.metricHeaders.length === 0 && isEmptyGa4TotalsReport(raw))) throw new Error("GA4_HEADER_MISMATCH");
   const row = data.rows[0];
   if (data.rows.length > 1 || (row && row.metricValues.length !== 2)) throw new Error("GA4_VALUE_MISMATCH");
   const values = row?.metricValues.map((item) => Number(item.value)) ?? [0, 0];
