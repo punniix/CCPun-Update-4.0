@@ -12,20 +12,37 @@ import {
 const TIMEOUT_MS = 15_000;
 type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
-type Ga4FailurePhase = "fetch" | "http" | "decode" | "schema-headers" | "schema-dimension-value" | "schema-metric-value" | "schema-row-count" | "schema-metadata" | "schema-other" | "normalize-headers" | "normalize-values" | "normalize-other";
+type Ga4HeaderFailurePhase = `schema-headers-${"landing" | "totals"}-${"dimension" | "metric"}-${"missing" | "null" | "nonarray" | "name-invalid" | "other"}`;
+type Ga4FailurePhase = Ga4HeaderFailurePhase | "fetch" | "http" | "decode" | "schema-headers" | "schema-dimension-value" | "schema-metric-value" | "schema-row-count" | "schema-metadata" | "schema-other" | "normalize-headers" | "normalize-values" | "normalize-other";
 class Ga4ProviderFailure extends Error {
   constructor(code: "GA4_AUTH_REQUIRED" | "GA4_RATE_LIMITED" | "GA4_TIMEOUT" | "GA4_INVALID_RESPONSE" | "GA4_PROVIDER_UNAVAILABLE", phase: Ga4FailurePhase) {
     super(code);
     Object.defineProperty(this, "ccpunGa4FailurePhase", { value: phase, enumerable: false, writable: false, configurable: false });
   }
 }
-function normalizationFailurePhase(error: unknown): Ga4FailurePhase {
+function headerFailurePhase(raw: unknown, query: "landing" | "totals", group: "dimension" | "metric", nameInvalid: boolean): Ga4HeaderFailurePhase {
+  let shape: "missing" | "null" | "nonarray" | "name-invalid" | "other" = "other";
+  try {
+    const field = Object.getOwnPropertyDescriptor(raw, group === "dimension" ? "dimensionHeaders" : "metricHeaders");
+    if (!field) shape = "missing";
+    else if (Object.hasOwn(field, "value")) {
+      if (field.value === null) shape = "null";
+      else if (!Array.isArray(field.value)) shape = "nonarray";
+      else if (nameInvalid) shape = "name-invalid";
+    }
+  } catch { /* Only fixed structural metadata; no getters or raw values escape. */ }
+  return `schema-headers-${query}-${group}-${shape}`;
+}
+function normalizationFailurePhase(error: unknown, raw: unknown, query: "landing" | "totals"): Ga4FailurePhase {
   try {
     if (error instanceof ZodError) {
       const paths = error.issues.map(issue => issue.path);
       if (paths.some(path => path.includes("dimensionValues"))) return "schema-dimension-value";
       if (paths.some(path => path.includes("metricValues"))) return "schema-metric-value";
-      if (paths.some(path => path[0] === "dimensionHeaders" || path[0] === "metricHeaders")) return "schema-headers";
+      for (const group of ["dimension", "metric"] as const) {
+        const header = group === "dimension" ? "dimensionHeaders" : "metricHeaders";
+        if (paths.some(path => path[0] === header)) return headerFailurePhase(raw, query, group, paths.some(path => path[0] === header && path[2] === "name"));
+      }
       if (paths.some(path => path[0] === "rowCount")) return "schema-row-count";
       if (paths.some(path => path[0] === "metadata")) return "schema-metadata";
       return "schema-other";
@@ -36,7 +53,7 @@ function normalizationFailurePhase(error: unknown): Ga4FailurePhase {
   } catch { return "normalize-other"; }
 }
 
-const GA4_FAILURE_PHASES = new Set<Ga4FailurePhase>(["fetch", "http", "decode", "schema-headers", "schema-dimension-value", "schema-metric-value", "schema-row-count", "schema-metadata", "schema-other", "normalize-headers", "normalize-values", "normalize-other"]);
+const GA4_FAILURE_PHASES = new Set<Ga4FailurePhase>(["fetch", "http", "decode", "schema-headers", "schema-dimension-value", "schema-metric-value", "schema-row-count", "schema-metadata", "schema-other", "normalize-headers", "normalize-values", "normalize-other", "schema-headers-landing-dimension-missing", "schema-headers-landing-dimension-null", "schema-headers-landing-dimension-nonarray", "schema-headers-landing-dimension-name-invalid", "schema-headers-landing-dimension-other", "schema-headers-landing-metric-missing", "schema-headers-landing-metric-null", "schema-headers-landing-metric-nonarray", "schema-headers-landing-metric-name-invalid", "schema-headers-landing-metric-other", "schema-headers-totals-dimension-missing", "schema-headers-totals-dimension-null", "schema-headers-totals-dimension-nonarray", "schema-headers-totals-dimension-name-invalid", "schema-headers-totals-dimension-other", "schema-headers-totals-metric-missing", "schema-headers-totals-metric-null", "schema-headers-totals-metric-nonarray", "schema-headers-totals-metric-name-invalid", "schema-headers-totals-metric-other"]);
 export function getGa4FailurePhase(error: unknown): Ga4FailurePhase | null {
   try {
     if (!(error instanceof Ga4ProviderFailure)) return null;
@@ -94,7 +111,7 @@ export async function fetchGa4LandingPages(rawInput: unknown, fetcher: FetchLike
   try {
     report = normalizeGa4LandingPageReport(raw);
   } catch (error) {
-    throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", normalizationFailurePhase(error));
+    throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", normalizationFailurePhase(error, raw, "landing"));
   }
   const truncated = report.rowCount > input.rowLimit;
   return {
@@ -131,6 +148,6 @@ export async function fetchGa4OrganicTotals(rawInput: unknown, fetcher: FetchLik
     const report = normalizeGa4OrganicTotalsReport(raw);
     return { fetchedAt: new Date().toISOString(), ...report };
   } catch (error) {
-    throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", normalizationFailurePhase(error));
+    throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", normalizationFailurePhase(error, raw, "totals"));
   }
 }

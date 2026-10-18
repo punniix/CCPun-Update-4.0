@@ -53,6 +53,26 @@ const GA4_SYNC_STAGE_MARKERS = {
   phaseNormalizeHeaders: "CCPUN_GA4_SYNC_STAGE:phase-normalize-headers",
   phaseNormalizeValues: "CCPUN_GA4_SYNC_STAGE:phase-normalize-values",
   phaseNormalizeOther: "CCPUN_GA4_SYNC_STAGE:phase-normalize-other",
+  headerSchemaHeadersLandingDimensionMissing: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-dimension-missing",
+  headerSchemaHeadersLandingDimensionNull: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-dimension-null",
+  headerSchemaHeadersLandingDimensionNonarray: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-dimension-nonarray",
+  headerSchemaHeadersLandingDimensionNameInvalid: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-dimension-name-invalid",
+  headerSchemaHeadersLandingDimensionOther: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-dimension-other",
+  headerSchemaHeadersLandingMetricMissing: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-metric-missing",
+  headerSchemaHeadersLandingMetricNull: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-metric-null",
+  headerSchemaHeadersLandingMetricNonarray: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-metric-nonarray",
+  headerSchemaHeadersLandingMetricNameInvalid: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-metric-name-invalid",
+  headerSchemaHeadersLandingMetricOther: "CCPUN_GA4_SYNC_STAGE:schema-headers-landing-metric-other",
+  headerSchemaHeadersTotalsDimensionMissing: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-dimension-missing",
+  headerSchemaHeadersTotalsDimensionNull: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-dimension-null",
+  headerSchemaHeadersTotalsDimensionNonarray: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-dimension-nonarray",
+  headerSchemaHeadersTotalsDimensionNameInvalid: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-dimension-name-invalid",
+  headerSchemaHeadersTotalsDimensionOther: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-dimension-other",
+  headerSchemaHeadersTotalsMetricMissing: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-metric-missing",
+  headerSchemaHeadersTotalsMetricNull: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-metric-null",
+  headerSchemaHeadersTotalsMetricNonarray: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-metric-nonarray",
+  headerSchemaHeadersTotalsMetricNameInvalid: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-metric-name-invalid",
+  headerSchemaHeadersTotalsMetricOther: "CCPUN_GA4_SYNC_STAGE:schema-headers-totals-metric-other",
   phaseUnclassified: "CCPUN_GA4_SYNC_STAGE:phase-unclassified",
 } as const;
 
@@ -76,6 +96,26 @@ function traceGa4FailurePhase(error: unknown) {
       case "http": traceGa4SyncStage("phaseHttp"); break;
       case "decode": traceGa4SyncStage("phaseDecode"); break;
       case "schema-headers": traceGa4SyncStage("phaseSchemaHeaders"); break;
+      case "schema-headers-landing-dimension-missing": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingDimensionMissing"); break;
+      case "schema-headers-landing-dimension-null": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingDimensionNull"); break;
+      case "schema-headers-landing-dimension-nonarray": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingDimensionNonarray"); break;
+      case "schema-headers-landing-dimension-name-invalid": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingDimensionNameInvalid"); break;
+      case "schema-headers-landing-dimension-other": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingDimensionOther"); break;
+      case "schema-headers-landing-metric-missing": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingMetricMissing"); break;
+      case "schema-headers-landing-metric-null": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingMetricNull"); break;
+      case "schema-headers-landing-metric-nonarray": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingMetricNonarray"); break;
+      case "schema-headers-landing-metric-name-invalid": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingMetricNameInvalid"); break;
+      case "schema-headers-landing-metric-other": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersLandingMetricOther"); break;
+      case "schema-headers-totals-dimension-missing": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsDimensionMissing"); break;
+      case "schema-headers-totals-dimension-null": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsDimensionNull"); break;
+      case "schema-headers-totals-dimension-nonarray": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsDimensionNonarray"); break;
+      case "schema-headers-totals-dimension-name-invalid": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsDimensionNameInvalid"); break;
+      case "schema-headers-totals-dimension-other": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsDimensionOther"); break;
+      case "schema-headers-totals-metric-missing": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsMetricMissing"); break;
+      case "schema-headers-totals-metric-null": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsMetricNull"); break;
+      case "schema-headers-totals-metric-nonarray": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsMetricNonarray"); break;
+      case "schema-headers-totals-metric-name-invalid": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsMetricNameInvalid"); break;
+      case "schema-headers-totals-metric-other": traceGa4SyncStage("phaseSchemaHeaders"); traceGa4SyncStage("headerSchemaHeadersTotalsMetricOther"); break;
       case "schema-dimension-value": traceGa4SyncStage("phaseSchemaDimensionValue"); break;
       case "schema-metric-value": traceGa4SyncStage("phaseSchemaMetricValue"); break;
       case "schema-row-count": traceGa4SyncStage("phaseSchemaRowCount"); break;

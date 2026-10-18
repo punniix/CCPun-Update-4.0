@@ -169,7 +169,7 @@ test("GA4 UAT stage markers are fixed, best-effort and preserve real route guard
   const source = readFileSync(new URL("../../apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const prefix = "CCPUN_GA4_SYNC_STAGE:";
-  const allowed = new Set(["entry", "gates-passed", "token-ready", "current-ready", "comparison-ready", "comparison-partial", "failed", "finished", "failed-ga4-auth", "failed-ga4-rate", "failed-ga4-timeout", "failed-ga4-invalid", "failed-ga4-unavailable", "failed-unclassified", "error-response-ready", "phase-input", "phase-fetch", "phase-http", "phase-decode", "phase-schema-headers", "phase-schema-dimension-value", "phase-schema-metric-value", "phase-schema-row-count", "phase-schema-metadata", "phase-schema-other", "phase-normalize-headers", "phase-normalize-values", "phase-normalize-other", "phase-unclassified"]);
+  const allowed = new Set(["entry", "gates-passed", "token-ready", "current-ready", "comparison-ready", "comparison-partial", "failed", "finished", "failed-ga4-auth", "failed-ga4-rate", "failed-ga4-timeout", "failed-ga4-invalid", "failed-ga4-unavailable", "failed-unclassified", "error-response-ready", "phase-input", "phase-fetch", "phase-http", "phase-decode", "phase-schema-headers", "phase-schema-dimension-value", "phase-schema-metric-value", "phase-schema-row-count", "phase-schema-metadata", "phase-schema-other", "phase-normalize-headers", "phase-normalize-values", "phase-normalize-other", "phase-unclassified", "schema-headers-landing-dimension-missing", "schema-headers-landing-dimension-null", "schema-headers-landing-dimension-nonarray", "schema-headers-landing-dimension-name-invalid", "schema-headers-landing-dimension-other", "schema-headers-landing-metric-missing", "schema-headers-landing-metric-null", "schema-headers-landing-metric-nonarray", "schema-headers-landing-metric-name-invalid", "schema-headers-landing-metric-other", "schema-headers-totals-dimension-missing", "schema-headers-totals-dimension-null", "schema-headers-totals-dimension-nonarray", "schema-headers-totals-dimension-name-invalid", "schema-headers-totals-dimension-other", "schema-headers-totals-metric-missing", "schema-headers-totals-metric-null", "schema-headers-totals-metric-nonarray", "schema-headers-totals-metric-name-invalid", "schema-headers-totals-metric-other"]);
   const marker = "SYNTHETIC_PRIVATE_VALUE_MUST_NEVER_BE_LOGGED";
   async function run(mode: string, options: { environment?: string; provider?: string; role?: string; loggerThrows?: boolean; responseThrows?: boolean; failurePhase?: string; failureGetter?: boolean } = {}) {
     const logs: unknown[][] = []; let tokenCalls = 0, providerCalls = 0;
@@ -226,6 +226,10 @@ test("GA4 UAT stage markers are fixed, best-effort and preserve real route guard
     const value = await run("ok", { failurePhase: phase }); assert.equal(value.status, 502);
     assert.deepEqual(value.stages, ["entry", "gates-passed", "token-ready", "failed", "failed-ga4-invalid", "phase-" + phase, "error-response-ready", "finished"]);
   }
+  for (const phase of ["schema-headers-landing-dimension-missing", "schema-headers-landing-dimension-null", "schema-headers-landing-dimension-nonarray", "schema-headers-landing-dimension-name-invalid", "schema-headers-landing-dimension-other", "schema-headers-landing-metric-missing", "schema-headers-landing-metric-null", "schema-headers-landing-metric-nonarray", "schema-headers-landing-metric-name-invalid", "schema-headers-landing-metric-other", "schema-headers-totals-dimension-missing", "schema-headers-totals-dimension-null", "schema-headers-totals-dimension-nonarray", "schema-headers-totals-dimension-name-invalid", "schema-headers-totals-dimension-other", "schema-headers-totals-metric-missing", "schema-headers-totals-metric-null", "schema-headers-totals-metric-nonarray", "schema-headers-totals-metric-name-invalid", "schema-headers-totals-metric-other"]) {
+    const value = await run("ok", { failurePhase: phase }); assert.equal(value.status, 502); assert.equal(value.body.error, "provider-invalid-response");
+    assert.deepEqual(value.stages, ["entry", "gates-passed", "token-ready", "failed", "failed-ga4-invalid", "phase-schema-headers", phase, "error-response-ready", "finished"]);
+  }
   for (const options of [{ failurePhase: marker }, { failureGetter: true }]) {
     const value = await run("ok", options); assert.equal(value.status, 502);
     assert.ok(value.stages.includes("phase-unclassified")); assert.ok(value.stages.includes("error-response-ready"));
@@ -269,7 +273,7 @@ test("GA4 provider failure phases retain error enums and reveal only fixed schem
   await failure("fetch", "GA4_PROVIDER_UNAVAILABLE", {}, 200, "network");
   await failure("fetch", "GA4_TIMEOUT", {}, 200, "timeout");
   await failure("decode", "GA4_INVALID_RESPONSE", {}, 200, "decode");
-  await failure("schema-headers", "GA4_INVALID_RESPONSE", {});
+  await failure("schema-headers-landing-dimension-missing", "GA4_INVALID_RESPONSE", {});
   await failure("schema-dimension-value", "GA4_INVALID_RESPONSE", { ...base, rows: [{ dimensionValues: [{}], metricValues: [{ value: "1" }, { value: "0" }] }] });
   await failure("schema-metric-value", "GA4_INVALID_RESPONSE", { ...base, rows: [{ dimensionValues: [{ value: "/synthetic/" }], metricValues: [{}, { value: "0" }] }] });
   await failure("schema-row-count", "GA4_INVALID_RESPONSE", { ...base, rowCount: null });
@@ -299,6 +303,38 @@ test("GA4 provider failure phases retain error enums and reveal only fixed schem
   assert.equal(functions.getGa4FailurePhase!(getter), null);
   const noData = await functions.fetchGa4LandingPages!(input, (async () => { requests++; return Response.json(base); }) as typeof fetch);
   assert.deepEqual((noData as { rows: unknown[] }).rows, []);
+  // Exact published Google REST sample, not a query against the Owner property.
+  // https://developers.google.com/analytics/devguides/reporting/data/v1/basics#read_the_response
+  const googleSample = { dimensionHeaders: [{ name: "country" }], metricHeaders: [{ name: "activeUsers", type: "TYPE_INTEGER" }], rows: [
+    { dimensionValues: [{ value: "Japan" }], metricValues: [{ value: "2541" }] },
+    { dimensionValues: [{ value: "France" }], metricValues: [{ value: "12" }] },
+  ], metadata: {}, rowCount: 2 };
+  await failure("normalize-headers", "GA4_INVALID_RESPONSE", googleSample);
+  for (const totals of [false, true]) for (const group of ["dimension", "metric"] as const) {
+    for (const shape of ["missing", "null", "nonarray", "name-invalid", "other"] as const) {
+      if (totals && group === "dimension" && shape === "missing") continue; // Existing totals contract legitimately defaults absent dimensions.
+      const payload: Record<string, unknown> = { dimensionHeaders: totals ? [] : dimensionHeaders, metricHeaders };
+      const field = group === "dimension" ? "dimensionHeaders" : "metricHeaders";
+      if (shape === "missing") delete payload[field];
+      else payload[field] = shape === "null" ? null : shape === "nonarray" ? {} : shape === "name-invalid" ? [{}] : [null];
+      await failure(`schema-headers-${totals ? "totals" : "landing"}-${group}-${shape}`, "GA4_INVALID_RESPONSE", payload, 200, "json", totals);
+    }
+  }
+  // Untrusted accessor/Proxy metadata must never invoke a getter or change the public error.
+  const headerIssue = new zod.ZodError([{ code: "custom", path: ["dimensionHeaders"], message: "SYNTHETIC_ONLY" }]);
+  contracts.normalizeGa4LandingPageReport = () => { throw headerIssue; };
+  for (const raw of [Object.defineProperty({}, "dimensionHeaders", { get() { assert.fail("no raw getter invocation"); } }),
+    new Proxy({}, { getOwnPropertyDescriptor() { throw Error("SYNTHETIC_ONLY"); } })]) {
+    await assert.rejects(functions.fetchGa4LandingPages!(input, (async () => { const response = Response.json({}); Object.defineProperty(response, "json", { value: async () => raw }); return response; }) as typeof fetch), (error: unknown) => {
+      assert.ok(error instanceof Error); assert.equal(error.message, "GA4_INVALID_RESPONSE");
+      assert.equal(functions.getGa4FailurePhase!(error), "schema-headers-landing-dimension-other"); return true;
+    });
+  }
+  contracts.normalizeGa4LandingPageReport = originalLanding;
+  for (const phase of ["schema-headers-landing-dimension-missing", "schema-headers-landing-dimension-SYNTHETIC_ONLY"]) {
+    const forged = Object.defineProperty(Error("GA4_INVALID_RESPONSE"), "ccpunGa4FailurePhase", { value: phase });
+    assert.equal(functions.getGa4FailurePhase!(forged), null, "new structural phases retain private class provenance");
+  }
   const before = requests;
   await assert.rejects(functions.fetchGa4LandingPages!({ ...input, token: "" }, (async () => { requests++; assert.fail("invalid input cannot reach a provider"); }) as typeof fetch), error => error instanceof require("zod").ZodError);
   assert.equal(requests, before, "input validation remains before egress and retains its original ZodError");

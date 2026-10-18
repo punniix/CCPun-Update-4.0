@@ -79,7 +79,7 @@ export function assertReviewedUatRetention(file, originalDigest, proof, readSour
 
 // Current Google Connect bodies remain fully pinned before any explicit UAT-only
 // retained-source projection. This does not certify new behavior against old DOM goldens.
-const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = '1350c5320dc21f38d0283f38ecb1d754610146e092e26a09f49d8b6874ddfa58';
+const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = '40d34cccd3a11cc5dc15202c0219d322762172cb5424525b96574e43c40a7f69';
 function googleSessionAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed Google session environment');
   inheritedUatAdmission(proof);
@@ -105,7 +105,7 @@ export function reviewedGoogleSessionBaselineSource(file, proof, readSource, env
 }
 
 // Separate reviewed SEO compatibility. The old Production and inherited C645 objects stay sealed.
-const REVIEWED_SEO_UAT_SHA256 = 'a71d04db95b53442f6af53b76881690c2917e0c344fa6e40a005cc7c6022a7ca';
+const REVIEWED_SEO_UAT_SHA256 = '90e2efebc0d153be7efdb6589286092e23e3c619dd1c9265e9070357d922acd7';
 function seoUatAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed SEO admission environment');
   inheritedUatAdmission(proof);
