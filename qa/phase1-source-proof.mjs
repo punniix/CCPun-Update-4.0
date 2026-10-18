@@ -79,15 +79,15 @@ export function assertReviewedUatRetention(file, originalDigest, proof, readSour
 
 // Current Google Connect bodies remain fully pinned before any explicit UAT-only
 // retained-source projection. This does not certify new behavior against old DOM goldens.
-const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = '40d34cccd3a11cc5dc15202c0219d322762172cb5424525b96574e43c40a7f69';
+const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = 'beb14cac6a0635e91ba652441d22b506f608340fc4a0c7139694495fb70e06cf';
 function googleSessionAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed Google session environment');
   inheritedUatAdmission(proof);
   const record = proof.reviewedGoogleSessionUat;
   assert.equal(sha(JSON.stringify(record)), REVIEWED_GOOGLE_SESSION_UAT_SHA256, 'unreviewed Google session admission');
   assert.equal(record.baselineCommit, '6bfe13a538ee0daeaa3b5c9edaadb3d08fe70327');
-  assert.equal(Object.keys(record.existingSources).length, 10);
-  assert.equal(Object.keys(record.currentSourceDigests).length, 15);
+  assert.equal(Object.keys(record.existingSources).length, 11);
+  assert.equal(Object.keys(record.currentSourceDigests).length, 16);
   assert.deepEqual(record.outputTests, ['tests/admin/google-session-connection.test.ts', 'tests/admin/google-session-auth.test.ts', 'tests/admin/google-connect-native-submit.test.ts']);
   for (const [path, digest] of Object.entries(record.currentSourceDigests))
     assert.equal(sha(readSource(path)), digest, path + ': unreviewed actual Google session body');

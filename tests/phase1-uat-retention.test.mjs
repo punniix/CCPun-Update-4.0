@@ -141,9 +141,11 @@ test('hermetic NODE_ENV test overlay reverses to the exact immutable D0 evidence
 test('Google session admission pins all actual bodies before UAT-only retained-source projection', () => {
   const read = path => readFileSync(path, 'utf8'), record = proof.reviewedGoogleSessionUat;
   assert.equal(record.baselineCommit, '6bfe13a538ee0daeaa3b5c9edaadb3d08fe70327');
-  assert.equal(Object.keys(record.currentSourceDigests).length, 15);
+  assert.equal(Object.keys(record.currentSourceDigests).length, 16);
   assert.equal(record.existingSources["lib/admin/seo-intelligence/providers/ga4.ts"].originalProtectedSha256, "f040c04705d2ce1699a735810f48810aa3193aa406f72f18d10bbc665cc5c18e");
   assert.equal(record.existingSources["lib/admin/seo-intelligence/providers/ga4.ts"].baseSha256, "f040c04705d2ce1699a735810f48810aa3193aa406f72f18d10bbc665cc5c18e");
+  assert.equal(record.existingSources["lib/admin/seo-intelligence/contracts.ts"].originalProtectedSha256, "11b09f83f5618430dc381446cc15745bc469e931df6b7288d32a96e09f7cc319");
+  assert.equal(record.existingSources["lib/admin/seo-intelligence/contracts.ts"].baseSha256, "11b09f83f5618430dc381446cc15745bc469e931df6b7288d32a96e09f7cc319");
   for (const [file, pins] of Object.entries(record.existingSources)) {
     assert.equal(sha(reviewedGoogleSessionBaselineSource(file, proof, read, 'admin-uat')), pins.baseSha256);
     for (const environment of ['production-admin', 'web-uat', 'local-uat', 'unknown', undefined])
