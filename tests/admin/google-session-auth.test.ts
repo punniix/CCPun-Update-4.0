@@ -20,6 +20,7 @@ for (const lane of ["admin-uat", "production-admin"] as const) test(`${lane}: ac
       if(name==='next/headers')return {cookies:async()=>jar,headers:async()=>currentHeaders};
       if(name==='@/lib/admin/identity')return {getAdminIdentity:async()=>identity};
       if(name==='@/lib/admin/seo-intelligence/providers/ga4')return {
+        getGa4FailurePhase:()=>null,
         fetchGa4LandingPages:async input=>{reportCalls++;assert.equal(input.propertyId,ownProperty);assert.equal(input.token,'synthetic-access');return {fetchedAt:'2026-10-17T00:00:00Z',rows:[],truncated:false,timeZone:'Asia/Bangkok',limitations:[]}},
         fetchGa4OrganicTotals:async input=>{reportCalls++;assert.equal(input.propertyId,ownProperty);return {fetchedAt:'2026-10-17T00:00:00Z',totals:{sessions:0,engagedSessions:0,engagementRate:0},timeZone:'Asia/Bangkok',limitations:[]}}};
       return original.call(this,name,...args);

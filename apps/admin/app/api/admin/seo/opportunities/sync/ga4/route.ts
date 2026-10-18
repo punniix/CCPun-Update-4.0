@@ -10,7 +10,7 @@ import { getSeoIntelligenceRuntimeStatus } from "@/lib/admin/seo-intelligence/fo
 import { getGoogleDataAccessToken } from "@/lib/admin/seo-intelligence/google-data-auth";
 import { cookies } from "next/headers";
 import { getConnectedGoogleAccessToken, hasGoogleSessionGrant } from "@/lib/admin/seo-intelligence/google-session-connection";
-import { fetchGa4LandingPages, fetchGa4OrganicTotals } from "@/lib/admin/seo-intelligence/providers/ga4";
+import { fetchGa4LandingPages, fetchGa4OrganicTotals, getGa4FailurePhase } from "@/lib/admin/seo-intelligence/providers/ga4";
 
 const inputSchema = z.object({ startDate: z.iso.date(), endDate: z.iso.date() }).superRefine((input, context) => {
   const start = Date.parse(`${input.startDate}T00:00:00Z`);
@@ -33,6 +33,27 @@ const GA4_SYNC_STAGE_MARKERS = {
   comparisonPartial: "CCPUN_GA4_SYNC_STAGE:comparison-partial",
   failed: "CCPUN_GA4_SYNC_STAGE:failed",
   finished: "CCPUN_GA4_SYNC_STAGE:finished",
+  failedGa4Auth: "CCPUN_GA4_SYNC_STAGE:failed-ga4-auth",
+  failedGa4Rate: "CCPUN_GA4_SYNC_STAGE:failed-ga4-rate",
+  failedGa4Timeout: "CCPUN_GA4_SYNC_STAGE:failed-ga4-timeout",
+  failedGa4Invalid: "CCPUN_GA4_SYNC_STAGE:failed-ga4-invalid",
+  failedGa4Unavailable: "CCPUN_GA4_SYNC_STAGE:failed-ga4-unavailable",
+  failedUnclassified: "CCPUN_GA4_SYNC_STAGE:failed-unclassified",
+  errorResponseReady: "CCPUN_GA4_SYNC_STAGE:error-response-ready",
+  phaseInput: "CCPUN_GA4_SYNC_STAGE:phase-input",
+  phaseFetch: "CCPUN_GA4_SYNC_STAGE:phase-fetch",
+  phaseHttp: "CCPUN_GA4_SYNC_STAGE:phase-http",
+  phaseDecode: "CCPUN_GA4_SYNC_STAGE:phase-decode",
+  phaseSchemaHeaders: "CCPUN_GA4_SYNC_STAGE:phase-schema-headers",
+  phaseSchemaDimensionValue: "CCPUN_GA4_SYNC_STAGE:phase-schema-dimension-value",
+  phaseSchemaMetricValue: "CCPUN_GA4_SYNC_STAGE:phase-schema-metric-value",
+  phaseSchemaRowCount: "CCPUN_GA4_SYNC_STAGE:phase-schema-row-count",
+  phaseSchemaMetadata: "CCPUN_GA4_SYNC_STAGE:phase-schema-metadata",
+  phaseSchemaOther: "CCPUN_GA4_SYNC_STAGE:phase-schema-other",
+  phaseNormalizeHeaders: "CCPUN_GA4_SYNC_STAGE:phase-normalize-headers",
+  phaseNormalizeValues: "CCPUN_GA4_SYNC_STAGE:phase-normalize-values",
+  phaseNormalizeOther: "CCPUN_GA4_SYNC_STAGE:phase-normalize-other",
+  phaseUnclassified: "CCPUN_GA4_SYNC_STAGE:phase-unclassified",
 } as const;
 
 function traceGa4SyncStage(stage: keyof typeof GA4_SYNC_STAGE_MARKERS) {
@@ -44,6 +65,29 @@ function traceGa4SyncStage(stage: keyof typeof GA4_SYNC_STAGE_MARKERS) {
   } catch { /* Best-effort fixed UAT markers never change request behavior. */ }
 }
 
+
+function traceGa4FailurePhase(error: unknown) {
+  try {
+    const phase = error instanceof z.ZodError ? "input"
+      : getGa4FailurePhase(error);
+    switch (phase) {
+      case "input": traceGa4SyncStage("phaseInput"); break;
+      case "fetch": traceGa4SyncStage("phaseFetch"); break;
+      case "http": traceGa4SyncStage("phaseHttp"); break;
+      case "decode": traceGa4SyncStage("phaseDecode"); break;
+      case "schema-headers": traceGa4SyncStage("phaseSchemaHeaders"); break;
+      case "schema-dimension-value": traceGa4SyncStage("phaseSchemaDimensionValue"); break;
+      case "schema-metric-value": traceGa4SyncStage("phaseSchemaMetricValue"); break;
+      case "schema-row-count": traceGa4SyncStage("phaseSchemaRowCount"); break;
+      case "schema-metadata": traceGa4SyncStage("phaseSchemaMetadata"); break;
+      case "schema-other": traceGa4SyncStage("phaseSchemaOther"); break;
+      case "normalize-headers": traceGa4SyncStage("phaseNormalizeHeaders"); break;
+      case "normalize-values": traceGa4SyncStage("phaseNormalizeValues"); break;
+      case "normalize-other": traceGa4SyncStage("phaseNormalizeOther"); break;
+      default: traceGa4SyncStage("phaseUnclassified");
+    }
+  } catch { /* Diagnostic metadata never changes the existing failure response. */ }
+}
 
 function providerError(error: unknown) {
   const code = error instanceof Error ? error.message : "";
@@ -142,11 +186,20 @@ export async function POST(request: Request) {
     if (code === "GOOGLE_DATA_RATE_LIMITED") return NextResponse.json({ error: "provider-rate-limited", requestId }, { status: 429, headers: { "Retry-After": "60" } });
     if (code === "GOOGLE_DATA_TIMEOUT") return NextResponse.json({ error: "provider-timeout", requestId }, { status: 504 });
     if (code === "GOOGLE_DATA_INVALID_RESPONSE") return NextResponse.json({ error: "provider-invalid-response", requestId }, { status: 502 });
+    if (code === "GA4_AUTH_REQUIRED") traceGa4SyncStage("failedGa4Auth");
+    else if (code === "GA4_RATE_LIMITED") traceGa4SyncStage("failedGa4Rate");
+    else if (code === "GA4_TIMEOUT") traceGa4SyncStage("failedGa4Timeout");
+    else if (code === "GA4_INVALID_RESPONSE") traceGa4SyncStage("failedGa4Invalid");
+    else if (code === "GA4_PROVIDER_UNAVAILABLE") traceGa4SyncStage("failedGa4Unavailable");
+    else traceGa4SyncStage("failedUnclassified");
+    traceGa4FailurePhase(error);
     const mapped = providerError(error);
-    return NextResponse.json({ error: mapped.error, requestId }, {
+    const response = NextResponse.json({ error: mapped.error, requestId }, {
       status: mapped.status,
       ...(mapped.status === 429 ? { headers: { "Retry-After": "60" } } : {}),
     });
+    traceGa4SyncStage("errorResponseReady");
+    return response;
   } finally {
     syncInFlight = false;
     traceGa4SyncStage("finished");

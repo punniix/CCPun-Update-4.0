@@ -79,15 +79,15 @@ export function assertReviewedUatRetention(file, originalDigest, proof, readSour
 
 // Current Google Connect bodies remain fully pinned before any explicit UAT-only
 // retained-source projection. This does not certify new behavior against old DOM goldens.
-const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = 'cea161bb83a5206c667a2366fe8086ce94d4d22101ddeb1c0825db25c14aec30';
+const REVIEWED_GOOGLE_SESSION_UAT_SHA256 = '1350c5320dc21f38d0283f38ecb1d754610146e092e26a09f49d8b6874ddfa58';
 function googleSessionAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed Google session environment');
   inheritedUatAdmission(proof);
   const record = proof.reviewedGoogleSessionUat;
   assert.equal(sha(JSON.stringify(record)), REVIEWED_GOOGLE_SESSION_UAT_SHA256, 'unreviewed Google session admission');
   assert.equal(record.baselineCommit, '6bfe13a538ee0daeaa3b5c9edaadb3d08fe70327');
-  assert.equal(Object.keys(record.existingSources).length, 9);
-  assert.equal(Object.keys(record.currentSourceDigests).length, 14);
+  assert.equal(Object.keys(record.existingSources).length, 10);
+  assert.equal(Object.keys(record.currentSourceDigests).length, 15);
   assert.deepEqual(record.outputTests, ['tests/admin/google-session-connection.test.ts', 'tests/admin/google-session-auth.test.ts', 'tests/admin/google-connect-native-submit.test.ts']);
   for (const [path, digest] of Object.entries(record.currentSourceDigests))
     assert.equal(sha(readSource(path)), digest, path + ': unreviewed actual Google session body');
@@ -105,7 +105,7 @@ export function reviewedGoogleSessionBaselineSource(file, proof, readSource, env
 }
 
 // Separate reviewed SEO compatibility. The old Production and inherited C645 objects stay sealed.
-const REVIEWED_SEO_UAT_SHA256 = 'f20cf9fa47a2368ea1da83d880fe779bdedead055aec018e135744e8283f5c0d';
+const REVIEWED_SEO_UAT_SHA256 = 'a71d04db95b53442f6af53b76881690c2917e0c344fa6e40a005cc7c6022a7ca';
 function seoUatAdmission(proof, readSource, environment) {
   assert.equal(environment, 'admin-uat', 'unreviewed SEO admission environment');
   inheritedUatAdmission(proof);

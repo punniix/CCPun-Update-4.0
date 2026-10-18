@@ -1,4 +1,5 @@
 import "server-only";
+import { ZodError } from "zod";
 
 import {
   ga4QueryInputSchema,
@@ -10,6 +11,39 @@ import {
 
 const TIMEOUT_MS = 15_000;
 type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+
+type Ga4FailurePhase = "fetch" | "http" | "decode" | "schema-headers" | "schema-dimension-value" | "schema-metric-value" | "schema-row-count" | "schema-metadata" | "schema-other" | "normalize-headers" | "normalize-values" | "normalize-other";
+class Ga4ProviderFailure extends Error {
+  constructor(code: "GA4_AUTH_REQUIRED" | "GA4_RATE_LIMITED" | "GA4_TIMEOUT" | "GA4_INVALID_RESPONSE" | "GA4_PROVIDER_UNAVAILABLE", phase: Ga4FailurePhase) {
+    super(code);
+    Object.defineProperty(this, "ccpunGa4FailurePhase", { value: phase, enumerable: false, writable: false, configurable: false });
+  }
+}
+function normalizationFailurePhase(error: unknown): Ga4FailurePhase {
+  try {
+    if (error instanceof ZodError) {
+      const paths = error.issues.map(issue => issue.path);
+      if (paths.some(path => path.includes("dimensionValues"))) return "schema-dimension-value";
+      if (paths.some(path => path.includes("metricValues"))) return "schema-metric-value";
+      if (paths.some(path => path[0] === "dimensionHeaders" || path[0] === "metricHeaders")) return "schema-headers";
+      if (paths.some(path => path[0] === "rowCount")) return "schema-row-count";
+      if (paths.some(path => path[0] === "metadata")) return "schema-metadata";
+      return "schema-other";
+    }
+    if (error instanceof Error && error.message === "GA4_HEADER_MISMATCH") return "normalize-headers";
+    if (error instanceof Error && error.message === "GA4_VALUE_MISMATCH") return "normalize-values";
+    return "normalize-other";
+  } catch { return "normalize-other"; }
+}
+
+const GA4_FAILURE_PHASES = new Set<Ga4FailurePhase>(["fetch", "http", "decode", "schema-headers", "schema-dimension-value", "schema-metric-value", "schema-row-count", "schema-metadata", "schema-other", "normalize-headers", "normalize-values", "normalize-other"]);
+export function getGa4FailurePhase(error: unknown): Ga4FailurePhase | null {
+  try {
+    if (!(error instanceof Ga4ProviderFailure)) return null;
+    const phase: unknown = Object.getOwnPropertyDescriptor(error, "ccpunGa4FailurePhase")?.value;
+    return typeof phase === "string" && GA4_FAILURE_PHASES.has(phase as Ga4FailurePhase) ? phase as Ga4FailurePhase : null;
+  } catch { return null; }
+}
 
 async function requestPage(url: string, token: string, body: string, fetcher: FetchLike): Promise<unknown> {
   try {
@@ -24,17 +58,17 @@ async function requestPage(url: string, token: string, body: string, fetcher: Fe
       try {
         return await response.json() as unknown;
       } catch {
-        throw new Error("GA4_INVALID_RESPONSE");
+        throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", "decode");
       }
     }
-    if (response.status === 401 || response.status === 403) throw new Error("GA4_AUTH_REQUIRED");
-    if (response.status === 429) throw new Error("GA4_RATE_LIMITED");
-    if (response.status < 500) throw new Error("GA4_INVALID_RESPONSE");
-    throw new Error("GA4_PROVIDER_UNAVAILABLE");
+    if (response.status === 401 || response.status === 403) throw new Ga4ProviderFailure("GA4_AUTH_REQUIRED", "http");
+    if (response.status === 429) throw new Ga4ProviderFailure("GA4_RATE_LIMITED", "http");
+    if (response.status < 500) throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", "http");
+    throw new Ga4ProviderFailure("GA4_PROVIDER_UNAVAILABLE", "http");
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("GA4_")) throw error;
-    if (error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)) throw new Error("GA4_TIMEOUT");
-    throw new Error("GA4_PROVIDER_UNAVAILABLE");
+    if (error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)) throw new Ga4ProviderFailure("GA4_TIMEOUT", "fetch");
+    throw new Ga4ProviderFailure("GA4_PROVIDER_UNAVAILABLE", "fetch");
   }
 }
 
@@ -59,8 +93,8 @@ export async function fetchGa4LandingPages(rawInput: unknown, fetcher: FetchLike
   let report: ReturnType<typeof normalizeGa4LandingPageReport>;
   try {
     report = normalizeGa4LandingPageReport(raw);
-  } catch {
-    throw new Error("GA4_INVALID_RESPONSE");
+  } catch (error) {
+    throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", normalizationFailurePhase(error));
   }
   const truncated = report.rowCount > input.rowLimit;
   return {
@@ -96,7 +130,7 @@ export async function fetchGa4OrganicTotals(rawInput: unknown, fetcher: FetchLik
   try {
     const report = normalizeGa4OrganicTotalsReport(raw);
     return { fetchedAt: new Date().toISOString(), ...report };
-  } catch {
-    throw new Error("GA4_INVALID_RESPONSE");
+  } catch (error) {
+    throw new Ga4ProviderFailure("GA4_INVALID_RESPONSE", normalizationFailurePhase(error));
   }
 }

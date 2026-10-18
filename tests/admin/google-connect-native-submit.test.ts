@@ -169,9 +169,9 @@ test("GA4 UAT stage markers are fixed, best-effort and preserve real route guard
   const source = readFileSync(new URL("../../apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const prefix = "CCPUN_GA4_SYNC_STAGE:";
-  const allowed = new Set(["entry", "gates-passed", "token-ready", "current-ready", "comparison-ready", "comparison-partial", "failed", "finished"]);
+  const allowed = new Set(["entry", "gates-passed", "token-ready", "current-ready", "comparison-ready", "comparison-partial", "failed", "finished", "failed-ga4-auth", "failed-ga4-rate", "failed-ga4-timeout", "failed-ga4-invalid", "failed-ga4-unavailable", "failed-unclassified", "error-response-ready", "phase-input", "phase-fetch", "phase-http", "phase-decode", "phase-schema-headers", "phase-schema-dimension-value", "phase-schema-metric-value", "phase-schema-row-count", "phase-schema-metadata", "phase-schema-other", "phase-normalize-headers", "phase-normalize-values", "phase-normalize-other", "phase-unclassified"]);
   const marker = "SYNTHETIC_PRIVATE_VALUE_MUST_NEVER_BE_LOGGED";
-  async function run(mode: string, options: { environment?: string; provider?: string; role?: string; loggerThrows?: boolean } = {}) {
+  async function run(mode: string, options: { environment?: string; provider?: string; role?: string; loggerThrows?: boolean; responseThrows?: boolean; failurePhase?: string; failureGetter?: boolean } = {}) {
     const logs: unknown[][] = []; let tokenCalls = 0, providerCalls = 0;
     const environment = options.environment ?? "admin-uat";
     const variables = { CCPUN_DEPLOYMENT_PROVIDER: options.provider ?? "hostinger", CCPUN_DEPLOYMENT_ROLE: options.role ?? "admin",
@@ -179,7 +179,7 @@ test("GA4 UAT stage markers are fixed, best-effort and preserve real route guard
     const response = { rows: [], totals: { sessions: 0, engagedSessions: 0, engagementRate: 0 }, truncated: false, timeZone: null, limitations: [] };
     const mocks: Record<string, unknown> = {
       "node:crypto": { randomUUID: () => marker }, "zod": require("zod"),
-      "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
+      "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => { if (options.responseThrows) throw Error(marker); return Response.json(body, init); } } },
       "@/lib/admin/seo-intelligence/post-publish-origin": { isPostPublishAdminOriginAllowed: () => mode !== "bad-origin" },
       "@/lib/admin/environment": { getAdminEnvironment: () => environment },
       "@/lib/admin/identity": { getAdminIdentity: async () => { if (mode === "auth-failed") throw Error(marker); return mode === "unauthorized" ? null : { actorType: "human", role: "owner" }; } },
@@ -191,9 +191,9 @@ test("GA4 UAT stage markers are fixed, best-effort and preserve real route guard
       "@/lib/admin/seo-intelligence/google-session-connection": { hasGoogleSessionGrant: () => true, getConnectedGoogleAccessToken: async () => {
         tokenCalls++; if (mode === "token-failed") throw Error("GOOGLE_SESSION_CONNECT_REQUIRED"); return marker;
       } },
-      "@/lib/admin/seo-intelligence/providers/ga4": Object.fromEntries(["fetchGa4LandingPages", "fetchGa4OrganicTotals"].map(name => [name, async (input: { startDate: string }) => {
-        providerCalls++; if (mode === "current-failed" || (mode === "comparison-failed" && input.startDate === "2026-09-14")) throw Error("GA4_TIMEOUT"); return response;
-      }])),
+      "@/lib/admin/seo-intelligence/providers/ga4": { getGa4FailurePhase: (error: unknown) => Object.getOwnPropertyDescriptor(error, "ccpunGa4FailurePhase")?.value ?? null, ...Object.fromEntries(["fetchGa4LandingPages", "fetchGa4OrganicTotals"].map(name => [name, async (input: { startDate: string }) => {
+        providerCalls++; if (options.failurePhase || options.failureGetter) { const failure = Error("GA4_INVALID_RESPONSE"); Object.defineProperty(failure, "ccpunGa4FailurePhase", options.failureGetter ? { get() { throw Error(marker); } } : { value: options.failurePhase }); throw failure; } const failure = ({ "current-auth": "GA4_AUTH_REQUIRED", "current-rate": "GA4_RATE_LIMITED", "current-invalid": "GA4_INVALID_RESPONSE", "current-unavailable": "GA4_PROVIDER_UNAVAILABLE", "current-unclassified": marker } as Record<string, string>)[mode]; if (failure) throw Error(failure); if (mode === "current-failed" || (mode === "comparison-failed" && input.startDate === "2026-09-14")) throw Error("GA4_TIMEOUT"); return response;
+      }])) },
     };
     const exports: { POST?: (request: Request) => Promise<Response>; trace?: (value: string) => void } = {};
     const fakeConsole = { warn: (...args: unknown[]) => { logs.push(args); if (options.loggerThrows) throw Error(marker); } };
@@ -201,7 +201,7 @@ test("GA4 UAT stage markers are fixed, best-effort and preserve real route guard
       (name: string) => { assert.ok(Object.hasOwn(mocks, name), "only explicit local mock imports"); return mocks[name]; }, exports, fakeConsole, { env: variables });
     const request = new Request("https://admin-test.ccpun.com/api/admin/seo/opportunities/sync/ga4/", { method: "POST", body: JSON.stringify(mode === "invalid-input" ? {} : { startDate: "2026-10-01", endDate: "2026-10-17" }) });
     let result: Response | undefined;
-    if (mode === "auth-failed") await assert.rejects(exports.POST!(request), error => error instanceof Error && error.message === marker);
+    if (mode === "auth-failed" || options.responseThrows) await assert.rejects(exports.POST!(request), error => error instanceof Error && error.message === marker);
     else result = await exports.POST!(request);
     const count = logs.length; exports.trace!(marker); exports.trace!("constructor"); assert.equal(logs.length, count);
     for (const args of logs) { assert.equal(args.length, 1); assert.equal(typeof args[0], "string"); assert.ok(allowed.has(String(args[0]).slice(prefix.length))); assert.ok(String(args[0]).startsWith(prefix)); }
@@ -215,8 +215,91 @@ test("GA4 UAT stage markers are fixed, best-effort and preserve real route guard
   }
   assert.deepEqual((await run("auth-failed")).stages, ["entry"], "no new catch around pre-existing auth failure");
   const token = await run("token-failed"); assert.equal(token.status, 409); assert.equal(token.body.error, "provider-auth-required"); assert.deepEqual(token.stages, ["entry", "gates-passed", "failed", "finished"]);
-  const current = await run("current-failed"); assert.equal(current.status, 504); assert.equal(current.body.error, "provider-timeout"); assert.deepEqual(current.stages, ["entry", "gates-passed", "token-ready", "failed", "finished"]);
+  const current = await run("current-failed"); assert.equal(current.status, 504); assert.equal(current.body.error, "provider-timeout"); assert.deepEqual(current.stages, ["entry", "gates-passed", "token-ready", "failed", "failed-ga4-timeout", "phase-unclassified", "error-response-ready", "finished"]);
+  for (const [mode, status, code, stage] of [["current-auth", 409, "provider-auth-required", "failed-ga4-auth"], ["current-rate", 429, "provider-rate-limited", "failed-ga4-rate"], ["current-invalid", 502, "provider-invalid-response", "failed-ga4-invalid"], ["current-unavailable", 502, "provider-unavailable", "failed-ga4-unavailable"], ["current-unclassified", 502, "provider-unavailable", "failed-unclassified"]] as const) {
+    const value = await run(mode); assert.equal(value.status, status); assert.equal(value.body.error, code);
+    assert.deepEqual(value.stages, ["entry", "gates-passed", "token-ready", "failed", stage, "phase-unclassified", "error-response-ready", "finished"]);
+  }
+  assert.deepEqual((await run("current-failed", { responseThrows: true })).stages,
+    ["entry", "gates-passed", "token-ready", "failed", "failed-ga4-timeout", "phase-unclassified", "finished"], "response-ready requires successful actual response construction; prior throw remains uncaught");
+  for (const phase of ["input", "fetch", "http", "decode", "schema-headers", "schema-dimension-value", "schema-metric-value", "schema-row-count", "schema-metadata", "schema-other", "normalize-headers", "normalize-values", "normalize-other"]) {
+    const value = await run("ok", { failurePhase: phase }); assert.equal(value.status, 502);
+    assert.deepEqual(value.stages, ["entry", "gates-passed", "token-ready", "failed", "failed-ga4-invalid", "phase-" + phase, "error-response-ready", "finished"]);
+  }
+  for (const options of [{ failurePhase: marker }, { failureGetter: true }]) {
+    const value = await run("ok", options); assert.equal(value.status, 502);
+    assert.ok(value.stages.includes("phase-unclassified")); assert.ok(value.stages.includes("error-response-ready"));
+  }
   const comparison = await run("comparison-failed"); assert.equal(comparison.status, 200); assert.equal(comparison.body.state, "partial"); assert.deepEqual(comparison.stages, ["entry", "gates-passed", "token-ready", "current-ready", "comparison-partial", "finished"]);
   assert.equal((await run("ok", { loggerThrows: true })).status, 200, "logger failures cannot alter business response");
   for (const options of [{ environment: "production-admin" }, { provider: "local" }, { role: "web" }]) assert.deepEqual((await run("ok", options)).stages, [], "only exact Hostinger Admin UAT logs markers");
+});
+
+test("GA4 provider failure phases retain error enums and reveal only fixed schema groups", async () => {
+  const source = readFileSync(new URL("../../lib/admin/seo-intelligence/providers/ga4.ts", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText;
+  const functions: { getGa4FailurePhase?: (error: unknown) => string | null; fetchGa4LandingPages?: (input: unknown, fetcher: typeof fetch) => Promise<unknown>; fetchGa4OrganicTotals?: (input: unknown, fetcher: typeof fetch) => Promise<unknown> } = {};
+  const contracts = { ...require("../../lib/admin/seo-intelligence/contracts.ts") };
+  new Function("require", "exports", compiled)((name: string) => {
+    if (name === "server-only") return {};
+    if (name === "zod") return require("zod");
+    assert.equal(name, "../contracts"); return contracts;
+  }, functions);
+  const input = { propertyId: "1", token: "SYNTHETIC_NOT_REAL_TOKEN", startDate: "2026-10-01", endDate: "2026-10-17" };
+  const dimensionHeaders = [{ name: "landingPage" }], metricHeaders = [{ name: "sessions" }, { name: "engagedSessions" }];
+  const base = { dimensionHeaders, metricHeaders };
+  let requests = 0;
+  async function failure(phase: string, code: string, payload: unknown, status = 200, mode = "json", totals = false) {
+    const fakeFetch = (async () => { requests++;
+      if (mode === "network") throw TypeError("SYNTHETIC_PRIVATE_NOT_LOGGABLE");
+      if (mode === "timeout") throw new DOMException("SYNTHETIC_PRIVATE_NOT_LOGGABLE", "TimeoutError");
+      return mode === "decode" ? new Response("SYNTHETIC_NOT_JSON", { status }) : Response.json(payload, { status });
+    }) as typeof fetch;
+    await assert.rejects((totals ? functions.fetchGa4OrganicTotals! : functions.fetchGa4LandingPages!)(input, fakeFetch), (error: unknown) => {
+      assert.ok(error instanceof Error); assert.equal(error.message, code);
+      const field = Object.getOwnPropertyDescriptor(error, "ccpunGa4FailurePhase");
+      assert.deepEqual(field, { value: phase, enumerable: false, writable: false, configurable: false });
+      assert.equal(functions.getGa4FailurePhase!(error), phase);
+      assert.equal(functions.getGa4FailurePhase!(new Proxy(error, { getOwnPropertyDescriptor() { throw Error("SYNTHETIC_ONLY"); } })), null);
+      assert.equal(JSON.stringify(error), "{}", "phase metadata does not become response data"); return true;
+    });
+  }
+  for (const [status, code] of [[401, "GA4_AUTH_REQUIRED"], [403, "GA4_AUTH_REQUIRED"], [429, "GA4_RATE_LIMITED"], [400, "GA4_INVALID_RESPONSE"], [500, "GA4_PROVIDER_UNAVAILABLE"]] as const)
+    await failure("http", code, {}, status);
+  await failure("fetch", "GA4_PROVIDER_UNAVAILABLE", {}, 200, "network");
+  await failure("fetch", "GA4_TIMEOUT", {}, 200, "timeout");
+  await failure("decode", "GA4_INVALID_RESPONSE", {}, 200, "decode");
+  await failure("schema-headers", "GA4_INVALID_RESPONSE", {});
+  await failure("schema-dimension-value", "GA4_INVALID_RESPONSE", { ...base, rows: [{ dimensionValues: [{}], metricValues: [{ value: "1" }, { value: "0" }] }] });
+  await failure("schema-metric-value", "GA4_INVALID_RESPONSE", { ...base, rows: [{ dimensionValues: [{ value: "/synthetic/" }], metricValues: [{}, { value: "0" }] }] });
+  await failure("schema-row-count", "GA4_INVALID_RESPONSE", { ...base, rowCount: null });
+  await failure("schema-metadata", "GA4_INVALID_RESPONSE", { ...base, metadata: null });
+  await failure("schema-other", "GA4_INVALID_RESPONSE", { ...base, rows: "SYNTHETIC_NOT_AN_ARRAY" });
+  await failure("normalize-headers", "GA4_INVALID_RESPONSE", { ...base, dimensionHeaders: [{ name: "syntheticWrongHeader" }] });
+  await failure("normalize-values", "GA4_INVALID_RESPONSE", { ...base, rows: [{ dimensionValues: [{ value: "/synthetic/" }], metricValues: [{ value: "1" }, { value: "2" }] }] });
+  await failure("schema-metric-value", "GA4_INVALID_RESPONSE", { metricHeaders, rows: [{ metricValues: [{}] }] }, 200, "json", true);
+  const zod = require("zod"), privateMessage = Error("SYNTHETIC_ONLY");
+  Object.defineProperty(privateMessage, "message", { get() { throw Error("SYNTHETIC_ONLY"); } });
+  const issuePath = new zod.ZodError([{ code: "custom", path: [], message: "SYNTHETIC_ONLY" }]);
+  Object.defineProperty(issuePath.issues[0], "path", { get() { throw Error("SYNTHETIC_ONLY"); } });
+  const issueGetter = new Proxy(new zod.ZodError([{ code: "custom", path: [], message: "SYNTHETIC_ONLY" }]), {
+    get(target, key, receiver) { if (key === "issues") throw Error("SYNTHETIC_ONLY"); return Reflect.get(target, key, receiver); },
+  });
+  const originalLanding = contracts.normalizeGa4LandingPageReport, originalTotals = contracts.normalizeGa4OrganicTotalsReport;
+  for (const malformed of [privateMessage, issueGetter, issuePath]) {
+    contracts.normalizeGa4LandingPageReport = () => { throw malformed; };
+    contracts.normalizeGa4OrganicTotalsReport = () => { throw malformed; };
+    await failure("normalize-other", "GA4_INVALID_RESPONSE", base);
+    await failure("normalize-other", "GA4_INVALID_RESPONSE", { metricHeaders }, 200, "json", true);
+  }
+  contracts.normalizeGa4LandingPageReport = originalLanding; contracts.normalizeGa4OrganicTotalsReport = originalTotals;
+  const forged = Error("GA4_INVALID_RESPONSE"); Object.defineProperty(forged, "ccpunGa4FailurePhase", { value: "http" });
+  assert.equal(functions.getGa4FailurePhase!(forged), null, "plain errors cannot impersonate private provider provenance");
+  const getter = Error("GA4_INVALID_RESPONSE"); Object.defineProperty(getter, "ccpunGa4FailurePhase", { get() { assert.fail("no untrusted getter invocation"); } });
+  assert.equal(functions.getGa4FailurePhase!(getter), null);
+  const noData = await functions.fetchGa4LandingPages!(input, (async () => { requests++; return Response.json(base); }) as typeof fetch);
+  assert.deepEqual((noData as { rows: unknown[] }).rows, []);
+  const before = requests;
+  await assert.rejects(functions.fetchGa4LandingPages!({ ...input, token: "" }, (async () => { requests++; assert.fail("invalid input cannot reach a provider"); }) as typeof fetch), error => error instanceof require("zod").ZodError);
+  assert.equal(requests, before, "input validation remains before egress and retains its original ZodError");
 });
