@@ -32,7 +32,7 @@ export function isStudioConfigurationAllowed(
     || !sha || !/^[a-f0-9]{40}$/.test(sha) || !ref || !/^[a-zA-Z0-9._/-]{1,128}$/.test(ref)
     || !release || !/^[a-zA-Z0-9._-]{1,128}$/.test(release)
     || (environment !== "production-admin" && environment !== "admin-uat")
-    || (environment === "production-admin" ? !productionRefAllowed || backend !== "disabled" : backend !== "native-neon")) return false;
+    || (environment === "production-admin" ? !productionRefAllowed || !["disabled", "native-neon"].includes(backend ?? "") : backend !== "native-neon")) return false;
   return isStudioDataPlaneAllowed(dataset, environment, "", "", projectId, {
     CCPUN_DEPLOYMENT_PROVIDER: provider, CCPUN_DEPLOYMENT_ROLE: role, CCPUN_APP_ENV: environment,
     CCPUN_GIT_SHA: sha, CCPUN_GIT_REF: ref, CCPUN_RELEASE_ID: release,

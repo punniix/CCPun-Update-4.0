@@ -54,13 +54,22 @@ test("exact SHA-pinned Hostinger Production Studio ref is accepted and near-miss
   }, false), false);
 });
 
+test("actual Production browser keeps Studio available with native scheduling enabled", async () => {
+  const scheduled = { ...native, NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", NEXT_PUBLIC_CCPUN_GIT_REF: `codex/hostinger-release-production-${SHA}` };
+  const policy = await browser(scheduled);
+  assert.equal(policy.isStudioConfigurationAllowed("production", "production-admin", "kyfxgjnq"), true);
+  assert.equal(policy.filterStudioAuthProviders([{ name: "google" }, { name: "github" }], "production", "production-admin", "kyfxgjnq").map(x => x.name).join(","), "google");
+  assert.equal(policy.isStudioConfigurationAllowed("uat", "production-admin", "ccb9lnw5"), false);
+  assert.equal(policy.isStudioConfigurationAllowed("production", "production-admin", "kyfxgjnq", { ...scheduled, NEXT_PUBLIC_CCPUN_GIT_REF: `codex/hostinger-release-production-${"b".repeat(40)}` }, false), false);
+});
+
 test("native browser markers fail closed without falling back to valid Vercel IDs", async () => {
   const policy = await browser(native);
   const mutations = [
     { NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "vercel" }, { NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "" },
     { NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: undefined }, { NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "web" },
     { NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: undefined }, { NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "editorial" },
-    { NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: undefined }, { NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon" },
+    { NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: undefined }, { NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "unknown" },
     { NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: undefined }, { NEXT_PUBLIC_CCPUN_GIT_SHA: "bad" },
     { NEXT_PUBLIC_CCPUN_GIT_SHA: undefined }, { NEXT_PUBLIC_CCPUN_GIT_REF: "feature/not-production" },
     { NEXT_PUBLIC_CCPUN_RELEASE_ID: undefined }, { NEXT_PUBLIC_CCPUN_RELEASE_ID: "bad release" },
