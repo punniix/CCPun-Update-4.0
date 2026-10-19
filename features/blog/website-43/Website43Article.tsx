@@ -77,7 +77,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
             <div className={styles.articleMetaRow}>
               <div className={styles.articleMetaGroup}>
                 <p className={styles.articleHeaderMeta}>
-                  {publishedDateLabel && <><span className={styles.articleDateLabel}>เผยแพร่เมื่อ</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></>}
+                  {publishedDateLabel && <><span className={styles.articleDateLabel}>เผยแพร่</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></>}
                   {showUpdatedDate && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>{publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด</span> <time dateTime={article.updatedAt}>{updatedDateLabel}</time></span>}
                 </p>
                 <ArticleEngagementSummary readingMinutes={readingMinutes} />

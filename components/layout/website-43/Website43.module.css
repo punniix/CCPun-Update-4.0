@@ -216,15 +216,15 @@
 
 .articleMetaGroup { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
 .articleReadingTime { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--w43-muted); font-size: 14px; line-height: 22px; }
-.articleReadingTime > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.articleReadingTime > span { white-space: nowrap; }
 .articleReadingTime b { font-weight: 500; }
 .articleShareControls { position: relative; display: inline-flex; align-items: center; gap: 10px; max-width: 100%; }
 .articleShareLabel { display: none; }
 .articleShareButtons { display: flex; align-items: center; gap: 7px; }
-.root .articleShareButton { display: inline-flex; width: 44px; height: 44px; min-width: 44px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--w43-gold); color: var(--w43-deep); cursor: pointer; }
+.root .articleShareButton { display: inline-flex; width: 44px; height: 44px; min-width: 44px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--w43-border); border-radius: 12px; background: transparent; color: var(--w43-gold); cursor: pointer; }
 .root .articleShareButton:disabled { cursor: wait; opacity: .65; }
 @media (hover: hover) and (pointer: fine) {
-  .root .articleShareButton:hover { color: var(--w43-deep); background: var(--w43-gold-bright); border-color: var(--w43-gold-bright); }
+  .root .articleShareButton:hover { color: var(--w43-gold-bright); background: rgba(224,201,133,.06); border-color: var(--w43-gold); }
 }
 .root .articleShareButton:focus-visible { outline: 2px solid var(--w43-gold-bright); outline-offset: 2px; }
 .articleShareStatus { position: absolute; z-index: 2; top: 100%; left: 0; max-width: min(320px, calc(100vw - 48px)); color: var(--w43-gold); font-size: 12px; white-space: normal; }

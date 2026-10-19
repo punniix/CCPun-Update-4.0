@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Clock3, Eye, Heart, Share2 } from 'lucide-react';
 import { isAnalyticsEnabled } from '@/lib/cookie-consent';
 import styles from '@/components/layout/website-43/Website43.module.css';
 
@@ -83,9 +82,9 @@ export function ArticleEngagementSummary({ readingMinutes }: { readingMinutes?: 
   const { metrics } = useArticleEngagement();
   const history = 'ยอดที่บันทึกได้จาก GA4 ระหว่าง 29 ก.ย. 2566–16 ต.ค. 2569 รวมกิจกรรมใหม่ที่บันทึกได้หลังเปิดระบบ ไม่ใช่ยอดตลอดอายุบทความ';
   return <div className={styles.articleReadingTime}>
-    {readingMinutes !== undefined && <span><Clock3 size={15} aria-hidden="true" />อ่าน <b>{readingMinutes}</b> นาที</span>}
-    <span title={history} aria-label={metrics.views === null ? 'ยังไม่มียอดอ่านที่ยืนยัน' : `การเปิดบทความที่บันทึกได้ ${metrics.views} ครั้ง`}><Eye size={15} aria-hidden="true" />เปิดอ่าน <b>{metrics.views ?? '—'}</b> ครั้ง</span>
-    <span title={`${history} ยอดแชร์นับการกดแชร์และคัดลอกลิงก์ที่สำเร็จ`} aria-label={metrics.shares === null ? 'ยังไม่มียอดแชร์ที่ยืนยัน' : `การแชร์ที่บันทึกได้ ${metrics.shares} ครั้ง`}><Share2 size={15} aria-hidden="true" />แชร์ <b>{metrics.shares ?? '—'}</b> ครั้ง</span>
-    {readingMinutes !== undefined && metrics.hearts !== null && metrics.hearts > 0 && <span title="ยอดถูกใจที่บันทึกหลังเปิดระบบ ไม่มียอดถูกใจย้อนหลัง" aria-label={`ถูกใจใหม่ ${metrics.hearts} ครั้ง`}><Heart size={15} aria-hidden="true" />{metrics.hearts}</span>}
+    {readingMinutes !== undefined && <span>อ่าน <b>{readingMinutes}</b> นาที</span>}
+    <span title={history} aria-label={metrics.views === null ? 'ยังไม่มียอดอ่านที่ยืนยัน' : `การเปิดบทความที่บันทึกได้ ${metrics.views} ครั้ง`}>เปิดอ่าน <b>{metrics.views ?? '—'}</b> ครั้ง</span>
+    <span title={`${history} ยอดแชร์นับการกดแชร์และคัดลอกลิงก์ที่สำเร็จ`} aria-label={metrics.shares === null ? 'ยังไม่มียอดแชร์ที่ยืนยัน' : `การแชร์ที่บันทึกได้ ${metrics.shares} ครั้ง`}>แชร์ <b>{metrics.shares ?? '—'}</b> ครั้ง</span>
+    {readingMinutes !== undefined && metrics.hearts !== null && metrics.hearts > 0 && <span title="ยอดถูกใจที่บันทึกหลังเปิดระบบ ไม่มียอดถูกใจย้อนหลัง" aria-label={`ถูกใจใหม่ ${metrics.hearts} ครั้ง`}>{metrics.hearts}</span>}
   </div>;
 }
