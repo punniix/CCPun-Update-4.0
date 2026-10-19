@@ -17,7 +17,7 @@ export type ArticleRichText = {
 
 export type ArticleBlock =
   | ({ type: "paragraph" } & ArticleRichText)
-  | ({ type: "heading"; level: 2 | 3 } & ArticleRichText)
+  | ({ type: "heading"; level: 2 | 3 | 4 } & ArticleRichText)
   | { type: "bulletList"; items: Array<string | ArticleRichText> }
   | { type: "numberList"; items: Array<string | ArticleRichText> }
   | ({ type: "quote" } & ArticleRichText)

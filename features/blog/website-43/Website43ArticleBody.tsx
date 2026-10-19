@@ -33,7 +33,9 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       const id = headingIds.get(index);
       return item.level === 2
         ? <h2 id={id} key={key}>{richContent(item)}</h2>
-        : <h3 id={id} key={key}>{richContent(item)}</h3>;
+        : item.level === 3
+          ? <h3 id={id} key={key}>{richContent(item)}</h3>
+          : <h4 id={id} key={key}>{richContent(item)}</h4>;
     }
     if (item.type === 'bulletList') return <ul key={key}>{item.items.map((entry, itemIndex) => <li key={`${key}-${itemIndex}`}>{listItemContent(entry)}</li>)}</ul>;
     if (item.type === 'numberList') return <ol key={key}>{item.items.map((entry, itemIndex) => <li key={`${key}-${itemIndex}`}>{listItemContent(entry)}</li>)}</ol>;

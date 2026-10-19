@@ -49,7 +49,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
     ? [{ index, id: `section-${index + 1}`, label: item.text, level: item.level }]
     : []);
   const headingIds = new Map(headings.map((heading) => [heading.index, heading.id]));
-  const tocGroups = headings.reduce<Array<{ primary: (typeof headings)[number]; children: Array<(typeof headings)[number]> }>>((groups, heading) => {
+  const tocGroups = headings.filter((heading) => heading.level !== 4).reduce<Array<{ primary: (typeof headings)[number]; children: Array<(typeof headings)[number]> }>>((groups, heading) => {
     if (heading.level === 2 || groups.length === 0) groups.push({ primary: heading, children: [] });
     else groups[groups.length - 1].children.push(heading);
     return groups;
@@ -89,7 +89,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
         {article.slug === 'aia-health-happy-describe' && <HealthHappyCountdown placement="article" />}
         <section className={styles.articleReadingWrap} id={article.slug === 'aia-health-happy-describe' ? 'health-happy-details' : undefined}>
           <div className={styles.articleReadingGrid}>
-            {headings.length > 0 && (
+            {tocGroups.length > 0 && (
               <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">
                 <strong>หัวข้อเนื้อหา</strong>
                 <Website43ArticleToc groups={tocGroups} />
@@ -110,7 +110,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
                   {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
                 </figure>
               )}
-              {headings.length > 0 && (
+              {tocGroups.length > 0 && (
                 <details className={styles.tocMobile}>
                   <summary>หัวข้อเนื้อหา</summary>
                   <div className={styles.tocMobileList}>

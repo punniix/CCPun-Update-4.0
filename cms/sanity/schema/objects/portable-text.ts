@@ -11,6 +11,7 @@ export const portableText = defineType({
         { title: "ย่อหน้าปกติ", value: "normal" },
         { title: "หัวข้อหลัก (H2)", value: "h2" },
         { title: "หัวข้อย่อย (H3)", value: "h3" },
+        { title: "หัวข้อย่อยระดับ 4 (H4)", value: "h4" },
         { title: "ข้อความอ้างอิง", value: "blockquote" },
       ],
       lists: [
