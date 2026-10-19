@@ -97,6 +97,22 @@ export function parseProfessionalQualifications(items: unknown) {
   });
 }
 
+export const professionalLicenseSchema = z.object({
+  _key: z.string().min(1).nullish().transform((value) => value ?? undefined).catch(undefined),
+  name: z.string().trim().min(1).max(160),
+  identifier: z.string().trim().min(1).max(80),
+  issuer: z.string().trim().min(1).max(160),
+  issuerUrl: z.string().url().nullish().transform((value) => value ?? undefined).catch(undefined),
+});
+
+export function parseProfessionalLicenses(items: unknown) {
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item) => {
+    const parsed = professionalLicenseSchema.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
 export const authorSchema = z.object({
   name: z.string().min(1),
   profileName: z.string().min(1).nullish().catch(undefined),
@@ -105,6 +121,8 @@ export const authorSchema = z.object({
   profileCtaLabel: z.string().min(1).nullish().catch(undefined),
   profileCtaUrl: z.string().refine((value) => /^(https?:\/\/|\/(?!\/)|#)/.test(value)).nullish().catch(undefined),
   professionalQualifications: z.array(z.unknown()).nullish().catch(undefined),
+  professionalLicenses: z.array(z.unknown()).nullish().catch(undefined),
+  sameAs: z.array(z.string().url()).nullish().catch(undefined),
   profileAvatar: z.object({
     src: z.string().min(1),
     alt: z.string().min(1),

@@ -155,13 +155,14 @@ expect(
     && !rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"'),
 );
 expect(
-  'Homepage credential enrichment is fail-soft and does not require a new public page',
+  'Site-wide credential enrichment uses one Person graph while homepage keeps its Author Card',
   homePage.includes('getPrimaryAuthorProfile')
-    && homePage.includes('buildProfessionalQualificationPersonSchema')
     && homePage.includes('<Website43Home authorProfile={authorProfile} />')
     && webHomePage.includes('getPrimaryAuthorProfile')
-    && webHomePage.includes('buildProfessionalQualificationPersonSchema')
     && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && webPublicLayout.includes('buildCcpunSchemaGraph(author)')
+    && siteStructuredData.includes('buildProfessionalQualificationPersonSchema(')
+    && !webHomePage.includes('professionalQualificationSchema')
     && !homePage.includes('/about/')
     && !webHomePage.includes('/about/'),
 );
