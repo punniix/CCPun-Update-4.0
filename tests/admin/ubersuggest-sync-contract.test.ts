@@ -70,7 +70,7 @@ async function loadFixture(entry: string, state: FixtureState) {
     export const isExactAdminPreviewOrigin = () => false;
     export const isAuthenticatedAdminPreviewPath = () => false;
     export const isInternalServiceApiPath = path => path.startsWith('/api/internal/');`;
-  const realAliases = new Set(["auth-config", "rbac", "capability-profile", "routes", "auth-diagnostics", "ubersuggest-sync", "article-schedule-handler", "auth-route-observer", "seo-intelligence/aisv", "operations/article-schedule-contract"].map(name => `@/lib/admin/${name}`));
+  const realAliases = new Set(["auth-config", "rbac", "capability-profile", "routes", "auth-diagnostics", "ubersuggest-sync", "article-schedule-handler", "auth-route-observer", "seo-intelligence/aisv", "seo-intelligence/post-publish-origin", "operations/article-schedule-contract"].map(name => `@/lib/admin/${name}`));
   const result = await build({ entryPoints: [resolve(root, entry)], bundle: true, write: false, format: "esm", platform: "node", nodePaths: (process.env.NODE_PATH ?? "").split(":"), plugins: [{ name: "fixture-boundaries", setup(builder) {
     builder.onResolve({ filter: /^(?:@\/|next\/server$|workflow\/api$)/ }, (args) => {
       if (args.path === "workflow/api") return { path: "sdk", namespace: "sdk" };
@@ -175,7 +175,7 @@ test("mixed root proxy preserves public Web routes and applies Admin capability/
 });
 
 test("UAT root schedule adapter keeps native, disabled, legacy, identity, origin and strict-input boundaries", async (t) => {
-  const variables = { AUTH_URL: "https://admin-test.ccpun.com", CCPUN_ADMIN_CAPABILITY_PROFILE: "full", NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full" };
+  const variables = { AUTH_URL: "https://admin-test.ccpun.com", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_ADMIN_CAPABILITY_PROFILE: "full", NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full" };
   const before = Object.fromEntries(Object.keys(variables).map(key => [key, process.env[key]])); Object.assign(process.env, variables);
   const body = { scheduledLocal: "2026-10-12T16:00", draftRevision: "fixture-revision", publishedRevision: null, expectedGeneration: null, expectedVersion: 0, requestId: randomUUID() };
   const cases = [
@@ -188,6 +188,9 @@ test("UAT root schedule adapter keeps native, disabled, legacy, identity, origin
     { name: "service actor denied", backend: "native-neon", identity: { actor: "fixture-service", actorType: "agent", role: "owner" }, status: 403, prepares: 0, native: 0, sdk: 0 },
     { name: "viewer denied", backend: "native-neon", identity: { actor: "fixture-viewer", actorType: "human", role: "viewer" }, status: 403, prepares: 0, native: 0, sdk: 0 },
     { name: "foreign origin denied", backend: "native-neon", origin: "https://foreign.example", status: 403, prepares: 0, native: 0, sdk: 0 },
+    { name: "missing origin denied", backend: "native-neon", origin: "", status: 403, prepares: 0, native: 0, sdk: 0 },
+    { name: "forged Host denied", backend: "native-neon", host: "foreign.example", status: 403, prepares: 0, native: 0, sdk: 0 },
+    { name: "multiple Host values denied", backend: "native-neon", host: "admin-test.ccpun.com, foreign.example", status: 403, prepares: 0, native: 0, sdk: 0 },
     { name: "unknown request field denied", backend: "native-neon", body: { ...body, credential: "fixture-forbidden" }, status: 400, prepares: 0, native: 0, sdk: 0 },
     { name: "draft-prefixed article ID denied", backend: "native-neon", id: "drafts.fixture", status: 400, prepares: 0, native: 0, sdk: 0 },
     { name: "impossible Bangkok date denied", backend: "native-neon", body: { ...body, scheduledLocal: "2026-02-31T16:00" }, status: 400, prepares: 0, native: 0, sdk: 0 },
@@ -199,8 +202,13 @@ test("UAT root schedule adapter keeps native, disabled, legacy, identity, origin
       const fixture = await loadFixture("app/api/admin/content/[id]/schedule/route.ts", state);
       try {
         const input = "body" in c ? c.body : body;
-        const req = new Request("https://admin-test.ccpun.com/api/admin/content/fixture/schedule/", { method: "POST", headers: { origin: "origin" in c ? c.origin : variables.AUTH_URL, "content-type": "application/json" }, body: JSON.stringify(input) });
-        const response = await fixture.exports.POST(req, { params: Promise.resolve({ id: "id" in c ? c.id : "fixture-article" }) });
+        const req = new Request("https://admin-test.ccpun.com/api/admin/content/fixture/schedule/", { method: "POST", headers: { host: "host" in c ? c.host : "admin-test.ccpun.com", origin: "origin" in c ? c.origin : variables.AUTH_URL, "content-type": "application/json" }, body: JSON.stringify(input) });
+        let bodyReads = 0, paramsReads = 0;
+        const readJson = req.json.bind(req);
+        req.json = async () => { bodyReads++; return readJson(); };
+        const params = { then(resolve: (value: { id: string }) => unknown) { paramsReads++; return Promise.resolve(resolve({ id: "id" in c ? c.id : "fixture-article" })); } } as unknown as Promise<{ id: string }>;
+        const response = await fixture.exports.POST(req, { params });
+        if (c.status === 403) { assert.equal(bodyReads, 0); assert.equal(paramsReads, 0); }
         assert.equal(response.status, c.status);
         assert.equal(response.headers.get("cache-control"), "private, no-store");
         assert.equal(state.preparedCalls, c.prepares); assert.equal(state.nativeCalls, c.native); assert.equal(state.sdkCalls, c.sdk); assert.equal(state.sdkLoads, c.sdk);
