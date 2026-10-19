@@ -35,40 +35,46 @@ test('article uses one editorial spread: TOC sidebar + 720px main column + align
   assert.match(article, /article\.sources && article\.sources\.length > 0[\s\S]*?data-uat-section="article-sources"[\s\S]*?styles\.articleSupportInner[\s\S]*?>แหล่งอ้างอิง</);
 });
 
-test('article TOC keeps H2 links navigable and lets users collapse or expand nested H3 items', () => {
+test('article TOC keeps H2, H3 and H4 links visible inside the native outer disclosures', () => {
   assert.match(article, /Website43ArticleToc groups=\{tocGroups\}/);
-  assert.match(articleToc, /aria-expanded=\{isExpanded\}/);
-  assert.match(articleToc, /aria-controls=\{sublistId\}/);
-  assert.match(articleToc, /hidden=\{!isExpanded\}/);
   assert.match(articleToc, /href=\{`#\$\{group\.primary\.id\}`\}/);
-  assert.match(articleToc, /group\.children\.map/);
-  assert.match(css, /\.tocToggle\[aria-expanded="true"\] \.tocChevron \{ transform: rotate\(180deg\); \}/);
+  assert.match(articleToc, /href=\{`#\$\{heading\.id\}`\}/);
+  assert.match(articleToc, /data-level=\{group\.primary\.level\}/);
+  assert.match(articleToc, /data-level=\{heading\.level\}/);
+  assert.match(articleToc, /heading\.level === 4 \? styles\.tocTertiary : styles\.tocSecondary/);
+  assert.doesNotMatch(articleToc, /aria-expanded|aria-controls|\shidden=|<button/);
+  assert.match(article, /<details className=\{styles\.tocDisclosure\} open>/);
+  assert.match(article, /<details className=\{styles\.tocMobile\}>/);
+  assert.match(css, /\.tocDisclosure\[open\] > summary > svg, \.tocMobile\[open\] > summary > svg \{ transform: rotate\(180deg\); \}/);
 });
 
-test('native mobile TOC keeps its outer separators when closed or open with a 54px summary target', () => {
+test('native mobile TOC keeps separators on its 56px summary when closed or open', () => {
   const require = createRequire(import.meta.url);
   const { parse } = require('postcss');
   const { JSDOM } = require('jsdom');
   const rules = [];
+  const summaryDeclarations = {};
   parse(css).walkRules((rule) => {
-    if (rule.selectors.some((selector) => ['.tocMobile', '.tocMobile summary', '.tocMobileList'].includes(selector))) {
+    if (rule.selectors.some((selector) => ['.tocMobile', '.tocMobile > summary', '.tocMobileList'].includes(selector))) {
       rules.push(rule.toString());
+      if (rule.selectors.includes('.tocMobile > summary')) rule.walkDecls(declaration => { summaryDeclarations[declaration.prop] = declaration.value; });
     }
   });
   const borderColour = css.match(/--w43-border:\s*([^;]+);/)[1];
   // jsdom does not resolve custom properties in border shorthands.
   const mobileCss = rules.join('\n').replaceAll('var(--w43-border)', borderColour);
-  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>หัวข้อเนื้อหา</summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
+  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14"></svg></summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
   const details = dom.window.document.querySelector('details');
   for (const open of [false, true]) {
     details.open = open;
     const frame = dom.window.getComputedStyle(details);
-    assert.equal(frame.borderTopWidth, '1px');
-    assert.equal(frame.borderBottomWidth, '1px');
+    assert.equal(frame.borderTopWidth, '0px');
+    assert.equal(frame.borderBottomWidth, '0px');
     assert.equal(frame.marginBottom, '26px');
-    assert.equal(dom.window.getComputedStyle(details.querySelector('summary')).minHeight, '54px');
+    assert.equal(dom.window.getComputedStyle(details.querySelector('summary')).minHeight, '56px');
   }
-  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>หัวข้อเนื้อหา<\/summary>/);
+  assert.equal(summaryDeclarations['border-block'], '1px solid var(--w43-border)', 'separators belong to the summary in both disclosure states');
+  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14"/);
   dom.window.close();
 });
 
@@ -117,8 +123,8 @@ test('article metadata hides redundant updated date when publish and update cale
   assert.match(article, /const publishedDateLabel = article\.publishedAt \? thaiDateFormatter\.format\(new Date\(article\.publishedAt\)\) : null;/);
   assert.match(article, /const updatedDateLabel = thaiDateFormatter\.format\(new Date\(article\.updatedAt\)\);/);
   assert.match(article, /const showUpdatedDate = !publishedDateLabel \|\| publishedDateLabel !== updatedDateLabel;/);
-  assert.match(article, /\{publishedDateLabel \? `เผยแพร่เมื่อ \$\{publishedDateLabel\}` : null\}/);
-  assert.match(article, /\{showUpdatedDate \? `\$\{publishedDateLabel \? ' · ' : ''\}อัปเดตล่าสุด \$\{updatedDateLabel\}` : null\}/);
+  assert.match(article, /\{publishedDateLabel && <><span className=\{styles\.articleDateLabel\}>เผยแพร่<\/span> <time dateTime=\{article\.publishedAt\}>\{publishedDateLabel\}<\/time><\/>\}/);
+  assert.match(article, /\{showUpdatedDate && <span className=\{styles\.articleUpdatedDate\}><span className=\{styles\.articleDateLabel\}>\{publishedDateLabel \? ' · ' : ''\}อัปเดตล่าสุด<\/span> <time dateTime=\{article\.updatedAt\}>\{updatedDateLabel\}<\/time><\/span>\}/);
 });
 
 test('Kanit starts early without putting the whole font family on the critical path', () => {
