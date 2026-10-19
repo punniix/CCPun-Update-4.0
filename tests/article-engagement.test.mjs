@@ -3,9 +3,11 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { resolveDeploymentIdentity } from "../lib/runtime/deployment-identity.ts";
 
 const require = createRequire(import.meta.url);
+require("tsx/cjs");
 const { transpileModule, ModuleKind } = require("typescript");
 const source = readFileSync(new URL("../apps/web/lib/article-engagement.ts", import.meta.url), "utf8");
 const productionId = "91b217d8-72f3-4e8b-a217-bed78cac437c";
@@ -30,6 +32,7 @@ function load(overrides = {}) {
     require: name => {
       if (name === "server-only") return {};
       if (name === "node:crypto") return require(name);
+      if (name.endsWith("content/uat-tax-table-fixture")) return require("../lib/content/uat-tax-table-fixture.ts");
       if (name.endsWith("deployment-identity")) return { resolveDeploymentIdentity };
       if (name.endsWith("content/provider")) return { getContentProvider: () => ({ listArticles: async options => {
         assert.equal(options.includeDrafts, false); return articles;
@@ -129,6 +132,12 @@ test("UAT uses its own database and current published IDs; failures remain gener
   const uatRequest = () => request(productionId, undefined, {}, "https://test.ccpun.com");
   assert.equal((await lib.handleArticleEngagement(uatRequest(), productionId)).status, 200);
   assert.equal(lib.calls[0].params[0], productionId);
+  const fixtureId = `uat-public-snapshot-${productionId}`;
+  const fixtureRead = await lib.handleArticleEngagement(request(fixtureId, undefined, {}, "https://test.ccpun.com"), fixtureId);
+  assert.equal(fixtureRead.status, 200, 'only approved UAT snapshot maps to its canonical counter');
+  assert.equal(lib.calls.at(-1).params[0], productionId);
+  const fixtureHeart = await lib.handleArticleEngagement(request(fixtureId, { type: "heart", liked: true }, {}, "https://test.ccpun.com"), fixtureId);
+  assert.ok(fixtureHeart.headers.get('set-cookie').includes(`Path=/api/article-engagement/${fixtureId}/`));
   lib.fail();
   const failed = await lib.handleArticleEngagement(uatRequest(), productionId);
   assert.equal(failed.status, 503);
@@ -181,4 +190,13 @@ test("rate limiter has finite capacity and expires without storing network ident
   for (let i = 0; i < 255; i++) assert.equal(lib.takeArticleRateLimit(String(i), 1, 1), true);
   assert.equal(lib.takeArticleRateLimit("overflow", 1, 1), false);
   assert.equal(lib.takeArticleRateLimit("overflow", 1, 60_001), true);
+});
+
+test("UAT tax outline changes only the six approved heading levels and preserves all snapshot content", () => {
+  const snapshots = JSON.parse(readFileSync(new URL('../lib/content/uat-public-article-snapshots.json', import.meta.url), 'utf8'));
+  const tax = snapshots.find(article => article.slug === 'personal-income-tax-calculation');
+  const headings = tax.body.flatMap((block, index) => block.type === 'heading' ? [[`section-${index + 1}`, block.level]] : []);
+  assert.deepEqual(headings, [['section-3', 2], ['section-9', 3], ['section-15', 3], ['section-21', 3], ['section-25', 3], ['section-29', 4], ['section-41', 3], ['section-45', 2], ['section-52', 2], ['section-54', 2]]);
+  for (const section of [9, 15, 21, 25, 29, 41]) tax.body[section - 1].level = 2;
+  assert.equal(createHash('sha256').update(JSON.stringify(snapshots)).digest('hex'), 'e010705b544af7f79626fa5998fbb01461a672cf93220c4ab3e01c602e2f4d42', 'all non-level bytes/data and other nine articles match Author UAT65c snapshot baseline');
 });

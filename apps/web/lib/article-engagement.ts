@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import { withUatTaxTableFixture } from "../../../lib/content/uat-tax-table-fixture";
 import { getContentProvider } from "../../../lib/content/provider";
 import { resolveDeploymentIdentity } from "../../../lib/runtime/deployment-identity";
 
@@ -119,9 +120,13 @@ async function readBody(request: Request): Promise<Record<string, unknown>> {
   }
 }
 
-async function publishedArticleId(id: string) {
-  // The common runtime uses current published content. The UAT counterpart adds
-  // its existing guarded fixture resolver here; Production has no fixture import.
+async function publishedArticleId(id: string, runtime: { environment: string }) {
+  // Only the existing approved UAT snapshots may map to a published canonical ID.
+  if (runtime.environment === "web-uat") {
+    const fixture = withUatTaxTableFixture([], process.env).find(item => item.id === id && item.status === "published"
+      && !!item.publishedAt && Number.isFinite(Date.parse(item.publishedAt)) && Date.parse(item.publishedAt) <= Date.now());
+    if (fixture && id.startsWith("uat-public-snapshot-")) return id.slice("uat-public-snapshot-".length);
+  }
   let timer: ReturnType<typeof setTimeout> | undefined;
   const articles = await Promise.race([
     getContentProvider().listArticles({ includeDrafts: false }),
@@ -178,7 +183,7 @@ export async function handleArticleEngagement(request: Request, requestedId: str
         if (body.analyticsConsent !== true) throw new RequestError(403, "analytics_consent_required");
       }
     }
-    const articleId = await publishedArticleId(requestedId);
+    const articleId = await publishedArticleId(requestedId, runtime);
     if (body && !takeArticleRateLimit(`article:${articleId}`, 120)) throw new RequestError(429, "rate_limited");
     let token = heartToken(request, articleId);
     let setCookie = false;
