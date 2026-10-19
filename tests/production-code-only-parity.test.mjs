@@ -14,11 +14,29 @@ const root = resolve(import.meta.dirname, '..');
 const read = file => productionBaselineSource(file);
 const sha = value => createHash('sha256').update(value).digest('hex');
 const proof = JSON.parse(read('qa/production-code-only-parity.json'));
+const reviewedReleaseOwners = {
+  "cms/sanity/schema/documents/author.ts": [
+    "c5b003fc4f919911381939eb8bccfcaa4246d8212bab338f33f8cea0c12d3559",
+    "574550ddb81476bdb881434346f3c4100718b6a08270252b9abe85a5e3471133"
+  ],
+  "cms/sanity/schema/objects/portable-text.ts": [
+    "b2fcb0fbb052a3c613d3e686de3f7e1087bc30c4a948cc9e56348524abdd0803",
+    "7abf78ee4b4877cb81a03ee6c98fb3dff2f7303f5c9c359bc5e77aee765f9f52"
+  ]
+};
 
 test('original Production owners remain guarded alongside exact reviewed Google Connect feature sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
-    if (file === 'features/admin/operations/DeploymentsPage.tsx') {
+    if (Object.hasOwn(reviewedReleaseOwners, file)) {
+      assert.equal(digest, reviewedReleaseOwners[file][0], file + ': original protection is frozen');
+      assert.equal(sha(readFileSync(resolve(root, file))), reviewedReleaseOwners[file][1], file + ': exact reviewed release owner');
+    } else if (file === 'cms/sanity/policy/studio-policy.ts') {
+      const source = readFileSync(resolve(root, file), 'utf8');
+      const accepted = '!["disabled", "native-neon"].includes(backend ?? "")';
+      assert.equal(source.split(accepted).length, 2);
+      assert.equal(sha(source.replace(accepted, 'backend !== "disabled"')), digest, 'only accepted scheduler backend predicate differs');
+    } else if (file === 'features/admin/operations/DeploymentsPage.tsx') {
       assert.equal(digest, '3664b01ea11471d9c4d421adf82c206704ac7859b4503acc0e2a9e44bfd3271e', 'own original UI identity');
       const actual = readFileSync(resolve(root, file), 'utf8');
       const nativeLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : "ยังไม่ยืนยันผู้ให้บริการ";';

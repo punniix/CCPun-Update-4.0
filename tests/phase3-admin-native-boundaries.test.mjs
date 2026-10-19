@@ -302,14 +302,14 @@ test('actual root and canonical scheduler handlers deny invalid deployment befor
   const body = { scheduledLocal: '2026-10-13T15:30', draftRevision: 'draft-1', publishedRevision: null,
     expectedGeneration: null, expectedVersion: 0, requestId: '11111111-1111-4111-8111-111111111111' };
   let denied = 0, controls = 0;
-  async function observe(route, env) {
+  async function observe(route, env, host = 'admin.ccpun.com') {
     const trace = [];
     const mocks = new Map([
       ['next/server', { NextResponse: FixtureResponse }],
       ['@/lib/admin/identity', { async getAdminIdentity() { trace.push('identity'); return { actorType: 'human', actor: 'synthetic-owner@example.invalid', role: 'owner' }; } }],
       ['@/lib/admin/rbac', { hasAdminPermission(role, permission) { trace.push('permission'); return role === 'owner' && permission === 'content:schedule'; },
         getAdminRoleForEmail() { trace.push('owner-role'); return 'owner'; } }],
-      ['@/lib/admin/auth-config', { isSameOriginAdminMutation(url, origin) { trace.push('origin'); return new URL(url).origin === origin; } }],
+      ['@/lib/admin/auth-config', { isConfiguredAdminOrigin(url, configured) { return new URL(url).origin === configured; }, isSameOriginAdminMutation(url, origin) { trace.push('origin'); return new URL(url).origin === origin; } }],
       ['@neondatabase/serverless', { neon() { trace.push('sql-constructor'); throw new Error('SYNTHETIC_SQL_BOUNDARY'); } }],
       ['next-sanity', { createClient() { trace.push('sanity-client'); throw new Error('SYNTHETIC_SANITY_BOUNDARY'); }, groq(strings) { return strings.join(''); } }],
       ['workflow/api', { async start() { trace.push('sdk-start'); throw new Error('SYNTHETIC_SDK_BOUNDARY'); } }],
@@ -317,7 +317,7 @@ test('actual root and canonical scheduler handlers deny invalid deployment befor
     ]);
     const handler = load(route, env, false, mocks);
     const request = new Request('https://admin.ccpun.com/api/admin/content/article-fixture/schedule/', {
-      method: 'POST', headers: { origin: 'https://admin.ccpun.com', 'content-type': 'application/json' }, body: JSON.stringify(body),
+      method: 'POST', headers: { host, origin: 'https://admin.ccpun.com', 'content-type': 'application/json' }, body: JSON.stringify(body),
     });
     const result = await handler.POST(request, { params: Promise.resolve({ id: 'article-fixture' }) });
     return { status: result.status, body: await result.json(), headers: Object.fromEntries(result.headers), trace };
@@ -329,7 +329,8 @@ test('actual root and canonical scheduler handlers deny invalid deployment befor
       assert.equal(result.headers['cache-control'], 'private, no-store');
       // Canonical wrong-role identity is rejected by its unchanged backend gate before preparation.
       const earlyCanonicalWrongRole = route.startsWith('apps/') && change.CCPUN_DEPLOYMENT_ROLE === 'web';
-      assert.deepEqual(result.trace, earlyCanonicalWrongRole ? ['identity', 'permission', 'origin'] : ['identity', 'permission', 'origin', 'owner-role'], route + JSON.stringify(change));
+      const originTrace = change.CCPUN_DEPLOYMENT_PROVIDER === 'vercel' || change.CCPUN_DEPLOYMENT_ROLE === 'web' ? ['origin'] : [];
+      assert.deepEqual(result.trace, ['identity', 'permission', ...originTrace, ...(earlyCanonicalWrongRole ? [] : ['owner-role'])], route + JSON.stringify(change));
       assert.equal(result.trace.some(value => /sql|sdk|sanity/.test(value)), false); denied++;
     }
     const env = { ...base, CCPUN_ARTICLE_SCHEDULER_BACKEND: 'native-neon', NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: 'native-neon',
@@ -337,8 +338,14 @@ test('actual root and canonical scheduler handlers deny invalid deployment befor
       NEXT_PUBLIC_CCPUN_RELEASE_ID: base.CCPUN_RELEASE_ID, CCPUN_NATIVE_WORKFLOW_ENABLED: '0' };
     const result = await observe(route, env);
     assert.equal(result.status, 503); assert.deepEqual(result.body, { error: 'not-ready' });
-    assert.deepEqual(result.trace, ['identity', 'permission', 'origin', 'owner-role', 'sql-constructor']);
+    assert.deepEqual(result.trace, ['identity', 'permission', 'owner-role', 'sql-constructor']);
     assert.equal(result.trace.includes('sdk-start'), false); controls++;
+    for (const host of ['evil.example', 'admin.ccpun.com,evil.example']) {
+      const deniedHost = await observe(route, env, host);
+      assert.equal(deniedHost.status, 403);
+      assert.deepEqual(deniedHost.body, { error: 'invalid-origin' });
+      assert.equal(deniedHost.trace.some(value => /sql|sdk|sanity/.test(value)), false);
+    }
   }
   assert.equal(denied, 14); assert.equal(controls, 2);
 });

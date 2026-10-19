@@ -89,7 +89,7 @@ async function observeSchedule(file, old, c) {
   const mocks = new TracedMocks([
     ['next/server', { NextResponse }], ['@/lib/admin/identity', { getAdminIdentity: async () => { trace.push('identity'); return identity(c); } }],
     ['@/lib/admin/rbac', { hasAdminPermission: (...args) => { trace.push(['permission', ...args]); return !c.permissionDenied; } }],
-    ['@/lib/admin/auth-config', { isSameOriginAdminMutation: () => { trace.push('same-origin'); return !c.badOrigin; } }],
+    ['@/lib/admin/auth-config', { isSameOriginAdminMutation: () => { trace.push('same-origin'); return !c.badOrigin; }, isConfiguredAdminOrigin: () => !c.badConfiguredOrigin }],
     ['@/lib/admin/capability-profile', { getAdminCapabilityProfile: () => { trace.push('capability'); return c.profile ?? 'full'; } }],
     ['@/lib/admin/article-schedule-clock', { getArticleScheduleBackend: () => { trace.push('backend'); return c.backend ?? 'native-neon'; } }],
     ['@/lib/admin/operations/article-schedule-contract', { ArticleScheduleError, articleIdSchema, scheduleRequestSchema, cancelScheduleRequestSchema, scheduleView: x => { trace.push(['view', x]); return { status: x.status, generation: x.generation }; } }],
@@ -118,6 +118,9 @@ test('schedule handlers retain both lane contracts, validation/capability order,
   for (const file of [rootSchedule, canonicalSchedule]) for (const method of ['GET', 'POST', 'DELETE']) for (const c of scheduleCases) assert.deepEqual(await observeSchedule(file, false, { ...c, method }), await observeSchedule(file, true, { ...c, method }), file + ':' + JSON.stringify({ ...c, method }));
   assert.equal((await observeSchedule(canonicalSchedule, false, { profile: 'editorial' })).result.status, 404);
   assert.equal((await observeSchedule(rootSchedule, false, { identity: null })).result.status, 403);
+  const configuredOriginDenied = await observeSchedule(canonicalSchedule, false, { badConfiguredOrigin: true });
+  assert.equal(configuredOriginDenied.result.status, 403);
+  assert.equal(configuredOriginDenied.trace.some(value => value === 'params' || value === 'body:json'), false, 'configured-origin denial precedes payload access');
   const native = await observeSchedule(canonicalSchedule, false, {});
   assert.equal(native.trace.some(x => Array.isArray(x) && x[0] === 'import'), false, 'native scheduling never loads legacy Workflow');
   const legacy = await observeSchedule(rootSchedule, false, { identity: null });
