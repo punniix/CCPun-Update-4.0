@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { getPublicAuthorName } from '@/lib/content/author-identity';
 import type { Article } from '@/lib/content/types';
 import { getArticleSemanticTopic } from '@/lib/content/taxonomy';
 import { getArticlePath } from '@/lib/content/url';
@@ -25,7 +26,7 @@ const DEFAULT_AUTHOR_BIO = 'ในฐานะที่ปรึกษาทา�
 export default function Website43Article({ article, relatedArticles = [], preview = false }: { article: Article; relatedArticles?: Article[]; preview?: boolean }) {
   const professionalQualifications = article.author?.professionalQualifications ?? [];
   const managedProfile = professionalQualifications.length > 0;
-  const baseAuthorName = article.author?.profileName ?? article.author?.name ?? article.authorName ?? 'ชนาธิป ชิตประเสริฐ';
+  const baseAuthorName = article.author ? getPublicAuthorName(article.author) : (article.authorName || 'ชนาธิป ชิตประเสริฐ');
   const qualificationSuffix = professionalQualifications.map((qualification) => qualification.shortName.trim()).filter(Boolean).join(', ');
   const author = {
     name: qualificationSuffix ? `${baseAuthorName}, ${qualificationSuffix}` : baseAuthorName,

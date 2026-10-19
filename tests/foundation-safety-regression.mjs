@@ -155,15 +155,15 @@ expect(
     && !rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"'),
 );
 expect(
-  'Homepage credential enrichment is fail-soft and does not require a new public page',
-  homePage.includes('getPrimaryAuthorProfile')
-    && homePage.includes('buildProfessionalQualificationPersonSchema')
-    && homePage.includes('<Website43Home authorProfile={authorProfile} />')
-    && webHomePage.includes('getPrimaryAuthorProfile')
-    && webHomePage.includes('buildProfessionalQualificationPersonSchema')
-    && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
-    && !homePage.includes('/about/')
-    && !webHomePage.includes('/about/'),
+  'Site-wide author schema uses one Person node while Homepage keeps Author Card',
+  homePage.includes('getPrimaryAuthorProfile') || homePage.includes('export { default, generateMetadata }')
+    ? webHomePage.includes('getPrimaryAuthorProfile')
+      && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
+      && webPublicLayout.includes('buildCcpunSchemaGraph(author)')
+      && siteStructuredData.includes('buildProfessionalQualificationPersonSchema(')
+      && !webHomePage.includes('professionalQualificationSchema')
+      && !webHomePage.includes('/about/')
+    : false,
 );
 
 const sanityContent = read('lib/content/sanity.ts');

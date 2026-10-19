@@ -63,6 +63,27 @@ export const author = defineType({
       ],
     }),
     defineField({
+      name: "professionalLicenses",
+      title: "ใบอนุญาตวิชาชีพ (Person Schema)",
+      type: "array",
+      description: "ข้อมูลใบอนุญาตของผู้เขียนที่ใช้กับ Person Schema โดยไม่เปลี่ยนการแสดงผล Author Card",
+      validation: (Rule) => Rule.max(10),
+      of: [
+        defineArrayMember({
+          name: "professionalLicense",
+          title: "ใบอนุญาต",
+          type: "object",
+          fields: [
+            defineField({ name: "name", title: "ชื่อใบอนุญาต", type: "string", validation: (Rule) => Rule.required().max(160) }),
+            defineField({ name: "identifier", title: "เลขที่ใบอนุญาต", type: "string", validation: (Rule) => Rule.required().max(80) }),
+            defineField({ name: "issuer", title: "หน่วยงานออกใบอนุญาต", type: "string", validation: (Rule) => Rule.required().max(160) }),
+            defineField({ name: "issuerUrl", title: "เว็บไซต์หน่วยงาน", type: "url", validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }) }),
+          ],
+          preview: { select: { title: "name", subtitle: "identifier" } },
+        }),
+      ],
+    }),
+    defineField({
       name: "sameAs",
       title: "Profile URLs",
       type: "array",

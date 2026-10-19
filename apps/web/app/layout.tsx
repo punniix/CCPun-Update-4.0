@@ -3,7 +3,9 @@ import { CRITICAL_FOUNDATION_CSS } from "@/components/styles/critical-foundation
 import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
 import "./globals.css";
-import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
+import { buildCcpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
+import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
+import { getPublicAuthorName } from "@/lib/content/author-identity";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
 import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
 import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED, UAT_WEB_ANALYTICS } from "../runtime-environment";
@@ -27,9 +29,17 @@ const kanitCritical = Kanit({
   preload: true,
 });
 
-export const metadata: Metadata = buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT });
+export async function generateMetadata(): Promise<Metadata> {
+  const author = await getPrimaryAuthorProfile();
+  return {
+    ...buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT }),
+    authors: [{ name: getPublicAuthorName(author), url: "https://ccpun.com" }],
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const author = await getPrimaryAuthorProfile();
+  const schemaGraph = buildCcpunSchemaGraph(author);
   return (
     <html lang="th" className={`${kanit.variable} ${kanitCritical.variable}`} suppressHydrationWarning>
       <head>
@@ -38,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         <Website43ResponsiveStyles />
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_FOUNDATION_CSS }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ccpunSchemaGraph) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaGraph).replace(/</g, "\\u003c") }} />
       </head>
       <body className="antialiased font-sans">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:p-2 focus:bg-background focus:text-foreground focus:rounded focus:border focus:border-primary/50">

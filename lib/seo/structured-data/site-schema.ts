@@ -1,4 +1,5 @@
-import type { ProfessionalQualification } from "@/lib/content/types";
+import type { ArticleAuthorProfile, ProfessionalQualification } from "@/lib/content/types";
+import { getPublicAuthorName } from "@/lib/content/author-identity";
 import { CCPUN_PERSON_ID } from "./entity-ids";
 
 // CCPun — Structured Data (Schema.org JSON-LD)
@@ -218,3 +219,55 @@ export const ccpunSchemaGraph = {
     websiteSchema,
   ],
 };
+
+/**
+ * One Person per page, using the same Sanity author data as the visible profile.
+ * Existing licenses/social URLs are preserved as transitional fallbacks until CMS
+ * fields are explicitly populated; never overwrite Production content here.
+ */
+export function buildCcpunSchemaGraph(author?: ArticleAuthorProfile | null) {
+  const licenses = (author?.professionalLicenses ?? []).flatMap((license) => {
+    const name = license.name.trim();
+    const identifier = license.identifier.trim();
+    const issuer = license.issuer.trim();
+    if (!name || !identifier || !issuer) return [];
+    return [{
+      "@type": "EducationalOccupationalCredential",
+      name,
+      credentialCategory: "ใบอนุญาต",
+      identifier,
+      recognizedBy: {
+        "@type": "Organization",
+        name: issuer,
+        ...(license.issuerUrl?.trim() ? { url: license.issuerUrl.trim() } : {}),
+      },
+    }];
+  });
+  const qualifications = buildProfessionalQualificationPersonSchema(
+    author?.professionalQualifications ?? [],
+  )?.hasCredential ?? [];
+  const credentialNodes = [
+    ...(licenses.length ? licenses : personSchema.hasCredential),
+    ...qualifications,
+  ];
+  const uniqueCredentials = credentialNodes.filter(
+    (credential, index, items) => items.findIndex(
+      (item) => item.identifier === credential.identifier && item.name === credential.name,
+    ) === index,
+  );
+  const socialProfiles = (author?.sameAs ?? []).filter(
+    (url) => /^https?:\/\//.test(url),
+  );
+  const person = {
+    ...personSchema,
+    name: getPublicAuthorName(author),
+    jobTitle: author?.profileRole?.trim() || personSchema.jobTitle,
+    description: author?.profileBio?.trim() || personSchema.description,
+    sameAs: socialProfiles.length ? [...new Set(socialProfiles)] : personSchema.sameAs,
+    hasCredential: uniqueCredentials,
+  };
+  return {
+    "@context": "https://schema.org",
+    "@graph": [financialServiceSchema, person, websiteSchema],
+  };
+}

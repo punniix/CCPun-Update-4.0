@@ -3,6 +3,8 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { sanityFetch } from "@/lib/content/sanity-fetch";
 import { resolveContentEnvironment } from "@/lib/content/sanity-lane";
 import { getPageSeoPage, validatePageSeoFields } from "@/lib/content/page-seo-registry";
+import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
+import { getPublicAuthorName } from "@/lib/content/author-identity";
 
 function replaceImage(images: unknown, url: string) {
   const entries = Array.isArray(images) ? images : images ? [images] : [];
@@ -12,6 +14,15 @@ function replaceImage(images: unknown, url: string) {
 }
 
 export async function resolvePageSeoMetadata(pathname: string, defaults: Metadata, parent?: ResolvingMetadata): Promise<Metadata> {
+  // Keep every public page's author metadata aligned with the same Sanity record.
+  // Admin/other surfaces without an author field do not read public author data.
+  if (defaults.authors) {
+    const author = await getPrimaryAuthorProfile();
+    defaults = {
+      ...defaults,
+      authors: [{ name: getPublicAuthorName(author), url: "https://ccpun.com" }],
+    };
+  }
   const page = getPageSeoPage(pathname);
   if (!page || !["web-uat", "local-uat"].includes(resolveContentEnvironment())) return defaults;
   try {
