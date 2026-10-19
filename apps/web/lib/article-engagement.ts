@@ -147,7 +147,15 @@ export async function handleArticleEngagement(request: Request, requestedId: str
     if (!ARTICLE_ID.test(requestedId)) throw new RequestError(404, "article_not_found");
     const runtime = resolveArticleRuntime();
     if (!runtime) throw new RequestError(503, "unavailable");
-    if (new URL(request.url).origin !== runtime.origin || request.headers.get("sec-fetch-site") === "cross-site") {
+    // Hostinger may expose its internal HTTP URL. Trust only the pinned external
+    // Host, and reject every supplied forwarded value unless it is single/exact.
+    const requestUrl = new URL(request.url);
+    const expectedHost = new URL(runtime.origin).host;
+    if (!["http:", "https:"].includes(requestUrl.protocol) || requestUrl.username || requestUrl.password
+      || request.headers.get("host") !== expectedHost
+      || (request.headers.has("x-forwarded-host") && request.headers.get("x-forwarded-host") !== expectedHost)
+      || (request.headers.has("x-forwarded-proto") && request.headers.get("x-forwarded-proto") !== "https")
+      || request.headers.get("sec-fetch-site") === "cross-site") {
       throw new RequestError(403, "invalid_origin");
     }
     if (!takeArticleRateLimit("all", 1200)) throw new RequestError(429, "rate_limited");

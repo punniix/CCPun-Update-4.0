@@ -49,7 +49,7 @@ function load(overrides = {}) {
 function request(id = productionId, body, headers = {}, origin = "https://ccpun.com") {
   return new Request(`${origin}/api/article-engagement/${id}/`, {
     ...(body === undefined ? {} : { method: "POST", body: JSON.stringify(body) }),
-    headers: { ...(body === undefined ? {} : { "content-type": "application/json", origin }), ...headers },
+    headers: { host: new URL(origin).host, ...(body === undefined ? {} : { "content-type": "application/json", origin }), ...headers },
   });
 }
 
@@ -95,7 +95,7 @@ test("event contract enforces origin, consent, schema, nonce and actual streamed
   assert.equal(lib.calls.length, 0);
   const stream = new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(2049)); controller.close(); } });
   const oversized = new Request(endpoint + productionId + "/", { method: "POST", body: stream, duplex: "half",
-    headers: { origin: "https://ccpun.com", "content-type": "application/json", "content-length": "1" } });
+    headers: { host: "ccpun.com", origin: "https://ccpun.com", "content-type": "application/json", "content-length": "1" } });
   assert.equal((await lib.handleArticleEngagement(oversized, productionId)).status, 413);
   assert.equal((await lib.handleArticleEngagement(request(productionId, { type: "view", eventId: nonce, analyticsConsent: true }), productionId)).status, 200);
   assert.equal(lib.calls.length, 1);
@@ -133,6 +133,45 @@ test("UAT uses its own database and current published IDs; failures remain gener
   const failed = await lib.handleArticleEngagement(uatRequest(), productionId);
   assert.equal(failed.status, 503);
   assert.deepEqual(await failed.json(), { available: false, error: "unavailable" });
+});
+
+test("both lanes accept Hostinger internal URLs only with pinned Host and exact forwarded headers", async () => {
+  for (const [origin, variables] of [
+    ["https://ccpun.com", {}],
+    ["https://test.ccpun.com", { CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat", CCPUN_UAT_MODE: "1",
+      NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
+      CCPUN_ARTICLE_DATABASE_URL: "postgresql://ccpun_article_runtime:synthetic@ep-mute-frost-aztvz394.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require" }],
+  ]) {
+    const lib = load(variables);
+    const host = new URL(origin).host;
+    const headers = { host, origin, "content-type": "application/json", "x-forwarded-host": host, "x-forwarded-proto": "https" };
+    const internal = (changes = {}, method = "POST") => new Request(`http://127.0.0.1:3000/api/article-engagement/${productionId}/`, {
+      method, headers: { ...headers, ...changes },
+      ...(method === "POST" ? { body: JSON.stringify({ type: "heart", liked: true }) } : {}),
+    });
+    assert.equal((await lib.handleArticleEngagement(internal(), productionId)).status, 200);
+    const baselineCalls = lib.calls.length;
+    for (const changes of [
+      { host: "attacker.example" }, { host: `${host}, attacker.example` }, { host: "" },
+      { "x-forwarded-host": "attacker.example" }, { "x-forwarded-host": `${host}, ${host}` }, { "x-forwarded-host": "" },
+      { "x-forwarded-proto": "http" }, { "x-forwarded-proto": "https, https" }, { "x-forwarded-proto": "" },
+      { origin: "https://attacker.example" }, { "sec-fetch-site": "cross-site" },
+    ]) assert.equal((await lib.handleArticleEngagement(internal(changes), productionId)).status, 403);
+    const missingHost = internal();
+    missingHost.headers.delete("host");
+    assert.equal((await lib.handleArticleEngagement(missingHost, productionId)).status, 403);
+    const externalMissingHost = request(productionId, undefined, {}, origin);
+    externalMissingHost.headers.delete("host");
+    assert.equal((await lib.handleArticleEngagement(externalMissingHost, productionId)).status, 403);
+    for (const url of ["ftp://127.0.0.1/path", "http://user:password@127.0.0.1/path"]) {
+      assert.equal((await lib.handleArticleEngagement({ url, method: "GET", headers: new Headers(headers) }, productionId)).status, 403);
+    }
+    assert.equal(lib.calls.length, baselineCalls, "rejected requests must not reach SQL");
+    const noForwardedHeaders = internal({}, "GET");
+    noForwardedHeaders.headers.delete("x-forwarded-host");
+    noForwardedHeaders.headers.delete("x-forwarded-proto");
+    assert.equal((await lib.handleArticleEngagement(noForwardedHeaders, productionId)).status, 200);
+  }
 });
 
 test("rate limiter has finite capacity and expires without storing network identity", () => {
