@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const css = readFileSync(new URL('../components/layout/website-43/Website43.module.css', import.meta.url), 'utf8');
-const selector = '.prose :is(p, li, h2, h3, blockquote) a';
+const selector = '.prose :is(p, li, h2, h3, h4, blockquote) a';
 const rule = (suffix = '') => {
   const start = css.indexOf(`${selector}${suffix} {`);
   assert.ok(start >= 0, `missing inline article link rule ${suffix}`);
