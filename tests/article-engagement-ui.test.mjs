@@ -47,6 +47,9 @@ test('actual Article controls read verified metrics, gate analytics consent and 
     assert.ok(dom.window.document.querySelector('[aria-label="การเปิดบทความที่บันทึกได้ 2 ครั้ง"]'));
     assert.equal(dom.window.document.querySelectorAll('button[aria-pressed="false"]').length, 2);
     assert.equal(dom.window.document.querySelectorAll('.articleShareButtons > *').length, 10, 'five functional controls at each placement');
+    const controls = [...dom.window.document.querySelector('.articleShareButtons').children];
+    assert.deepEqual(controls.map(node => node.getAttribute('aria-label')), ['แชร์บทความผ่าน LINE', 'แชร์บทความผ่าน Facebook', 'แชร์บทความผ่าน X', 'คัดลอกลิงก์บทความ', 'ถูกใจบทความ']);
+    assert.equal(dom.window.document.querySelectorAll('.articleReadingTime svg').length, 0, 'approved metadata uses plain text only');
     const heart = () => dom.window.document.querySelector('button[aria-pressed]');
     await React.act(async () => { heart().click(); await settle(); });
     assert.equal(dom.window.document.querySelectorAll('button[aria-pressed="true"]').length, 2, 'server-confirmed heart state is shared across header/footer');

@@ -70,10 +70,6 @@ export default function ArticleShareActions({ path, title, placement }: {
     <div className={styles.articleShareControls} aria-label="แชร์บทความ">
       <span className={styles.articleShareLabel}>แชร์</span>
       <div className={styles.articleShareButtons}>
-        <button type="button" className={styles.articleShareButton} aria-label={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} title={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} aria-pressed={metrics.liked} disabled={heartPending}
-          onClick={async () => { setHeartError(false); const saved = await recordEngagement('heart', !metrics.liked); if (!saved) setHeartError(true); }}>
-          <Heart aria-hidden="true" size={21} fill={metrics.liked ? 'currentColor' : 'none'} />
-        </button>
         {shares.map(({ method, name, href }) => (
           <a key={method} className={styles.articleShareButton} href={href} target="_blank" rel="noopener noreferrer"
             aria-label={'แชร์บทความผ่าน ' + name} title={'แชร์ผ่าน ' + name}
@@ -84,6 +80,10 @@ export default function ArticleShareActions({ path, title, placement }: {
         <button type="button" className={styles.articleShareButton}
           onClick={copy} aria-label="คัดลอกลิงก์บทความ" title="คัดลอกลิงก์บทความ">
           {copyState === 'success' ? <CheckIcon aria-hidden="true" size={21} /> : <LinkIcon aria-hidden="true" size={21} />}
+        </button>
+        <button type="button" className={styles.articleShareButton} aria-label={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} title={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} aria-pressed={metrics.liked} disabled={heartPending}
+          onClick={async () => { setHeartError(false); const saved = await recordEngagement('heart', !metrics.liked); if (!saved) setHeartError(true); }}>
+          <Heart aria-hidden="true" size={21} fill={metrics.liked ? 'currentColor' : 'none'} />
         </button>
       </div>
       <span className={styles.articleShareStatus} role="status" aria-live="polite">
