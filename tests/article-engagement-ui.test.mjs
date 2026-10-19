@@ -21,6 +21,8 @@ test('actual Article controls read verified metrics, gate analytics consent and 
   const requests = [];
   const metrics = { available: true, views: 2, shares: 0, hearts: null, liked: false, activatedAt: '2026-10-19T00:00:00Z' };
   let rejectHeart = false;
+  let deferShare = false;
+  let releaseShare;
   Object.defineProperty(dom.window.navigator, 'clipboard', { value: { writeText: async () => {} }, configurable: true });
   Object.defineProperties(globalThis, {
     window: { value: dom.window, configurable: true }, document: { value: dom.window.document, configurable: true },
@@ -33,7 +35,9 @@ test('actual Article controls read verified metrics, gate analytics consent and 
       if (body?.type === 'view') metrics.views += 1;
       if (body?.type === 'share') metrics.shares += 1;
       if (body?.type === 'heart') { metrics.liked = body.liked; metrics.hearts = body.liked ? 1 : null; }
-      return Response.json(metrics);
+      const response = Response.json(metrics);
+      if (body?.type === 'share' && deferShare) await new Promise(resolve => { releaseShare = resolve; });
+      return response;
     }, configurable: true },
   });
   const { createRoot } = require('react-dom/client');
@@ -70,6 +74,16 @@ test('actual Article controls read verified metrics, gate analytics consent and 
     await React.act(async () => { copy.click(); await settle(); });
     const share = requests.find(request => request.body?.type === 'share');
     assert.equal(share.body.analyticsConsent, true);
+    assert.match(dom.window.document.querySelector('.articleReadingTime').textContent, /ถูกใจ 1 ครั้ง/);
+    deferShare = true;
+    await React.act(async () => { copy.click(); await settle(); });
+    rejectHeart = false;
+    await React.act(async () => { heart().click(); await settle(); });
+    assert.equal(dom.window.document.querySelectorAll('button[aria-pressed="false"]').length, 2);
+    await React.act(async () => { releaseShare(); await settle(); });
+    assert.equal(dom.window.document.querySelectorAll('button[aria-pressed="false"]').length, 2, 'late share response must preserve latest acknowledged heart state');
+    assert.doesNotMatch(dom.window.document.querySelector('.articleReadingTime').textContent, /ถูกใจ/);
+    assert.ok(dom.window.document.querySelector('[aria-label="การแชร์ที่บันทึกได้ 2 ครั้ง"]'), 'verified share total remains monotonic');
     assert.match(share.body.eventId, /^[0-9a-f-]{36}$/);
     assert.ok(requests.every(request => request.url === '/api/article-engagement/published-fixture/'));
   } finally {

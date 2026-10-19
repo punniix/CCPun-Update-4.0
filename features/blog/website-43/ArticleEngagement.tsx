@@ -33,6 +33,7 @@ export function ArticleEngagementProvider({ articleId, disabled = false, childre
   const viewSent = useRef(false);
   const heartInFlight = useRef(false);
   const appliedEvents = useRef(0);
+  const heartConfirmed = useRef(false);
   const endpoint = `/api/article-engagement/${encodeURIComponent(articleId)}/`;
   const record = useCallback(async (type: Action, liked?: boolean) => {
     if (disabled || (type !== 'heart' && !isAnalyticsEnabled())) return false;
@@ -49,7 +50,13 @@ export function ArticleEngagementProvider({ articleId, disabled = false, childre
       const next = parseMetrics(await response.json());
       if (!next?.available) return false;
       appliedEvents.current += 1;
-      setMetrics(next);
+      if (type === 'heart') heartConfirmed.current = true;
+      setMetrics(previous => ({
+        ...next,
+        views: previous.views === null ? next.views : next.views === null ? previous.views : Math.max(previous.views, next.views),
+        shares: previous.shares === null ? next.shares : next.shares === null ? previous.shares : Math.max(previous.shares, next.shares),
+        ...(type !== 'heart' && heartConfirmed.current ? { liked: previous.liked, hearts: previous.hearts } : {}),
+      }));
       if (type === 'view') viewSent.current = true;
       return true;
     } catch { return false; }
@@ -83,6 +90,7 @@ export function ArticleEngagementSummary({ readingMinutes }: { readingMinutes?: 
   return <div className={styles.articleReadingTime}>
     {readingMinutes !== undefined && <span>อ่าน <b>{readingMinutes}</b> นาที</span>}
     {metrics.views !== null && <span title="ยอดที่บันทึกได้" aria-label={`การเปิดบทความที่บันทึกได้ ${metrics.views} ครั้ง`}>เปิดอ่าน <b>{metrics.views}</b> ครั้ง</span>}
+    {metrics.hearts !== null && metrics.hearts > 0 && <span>ถูกใจ <b>{metrics.hearts}</b> ครั้ง</span>}
     {metrics.shares !== null && <span title="ยอดที่บันทึกได้" aria-label={`การแชร์ที่บันทึกได้ ${metrics.shares} ครั้ง`}>แชร์ <b>{metrics.shares}</b> ครั้ง</span>}
   </div>;
 }
