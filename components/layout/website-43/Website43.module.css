@@ -27,7 +27,7 @@
 .root *, .root *::before, .root *::after { box-sizing: border-box; }
 .root a { color: inherit; text-decoration: none; }
 .root button, .root input, .root select { font: inherit; }
-.root h1, .root h2, .root h3, .root p, .root li, .root summary, .root a, .root button, .root span {
+.root h1, .root h2, .root h3, .root h4, .root p, .root li, .root summary, .root a, .root button, .root span {
   word-break: normal;
   overflow-wrap: normal;
   line-break: auto;
@@ -247,12 +247,13 @@
 .toc a { color: var(--w43-muted); line-height: 1.45; }
 .tocMobile { display: none; }
 .prose { color: var(--w43-muted); font-size: 17px; line-height: 1.78; }
-.prose :is(p, li, h2, h3, blockquote) a { color: var(--w43-gold); text-decoration: underline; text-underline-offset: 4px; }
-.prose :is(p, li, h2, h3, blockquote) a:hover { color: var(--w43-gold-bright); }
-.prose :is(p, li, h2, h3, blockquote) a:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 3px; }
+.prose :is(p, li, h2, h3, h4, blockquote) a { color: var(--w43-gold); text-decoration: underline; text-underline-offset: 4px; }
+.prose :is(p, li, h2, h3, h4, blockquote) a:hover { color: var(--w43-gold-bright); }
+.prose :is(p, li, h2, h3, h4, blockquote) a:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 3px; }
 .prose > p:first-child { color: rgba(250,249,249,.9); font-size: 19px; line-height: 1.75; }
 .prose h2 { margin: 46px 0 14px; padding-top: 26px; border-top: 1px solid rgba(91,72,72,.62); color: var(--w43-ink); font-size: 30px; line-height: 1.4; }
 .prose h3 { margin: 30px 0 10px; color: var(--w43-ink); font-size: 21px; line-height: 1.4; }
+.prose h4 { margin: 24px 0 8px; color: var(--w43-ink); font-size: 18px; font-weight: 600; line-height: 1.5; }
 .prose p { margin: 0 0 18px; }
 .prose ol, .prose ul { margin: 0 0 20px; padding-inline-start: 1.5em; list-style-position: outside; }
 .prose ol { list-style-type: decimal; }
@@ -649,6 +650,7 @@
   .prose { font-size: 16px; line-height: 1.7; }
   .prose h2 { margin-top: 34px; font-size: 26px; }
   .prose h3 { font-size: 20px; }
+  .prose h4 { font-size: 17px; }
   .articleQuote { padding: 20px; font-size: 18px; }
   .relatedGrid { grid-template-columns: 1fr; }
   .authorCard { grid-template-columns: 72px minmax(0,1fr); column-gap: 16px; row-gap: 14px; padding: 20px; }

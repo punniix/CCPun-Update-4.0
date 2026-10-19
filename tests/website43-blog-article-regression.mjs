@@ -15,6 +15,22 @@ const { parseProfessionalQualifications } = require('../lib/content/sanity-schem
 const { buildProfessionalQualificationPersonSchema, personSchema } = require('../lib/seo/structured-data/site-schema.ts');
 const { buildArticleSchemaGraph } = require('../lib/content/structured-data/article-schema.ts');
 const Article = require('../features/blog/website-43/Website43Article.tsx').default;
+// Exercise the real pure converter without loading Sanity clients or credentials.
+const ts = require('typescript');
+const sanitySource = readFileSync(new URL('../lib/content/sanity.ts', import.meta.url), 'utf8');
+const sanityAst = ts.createSourceFile('sanity.ts', sanitySource, ts.ScriptTarget.Latest, true);
+const converter = sanityAst.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'portableTextToArticleBlocks');
+assert.ok(converter, 'Portable Text converter remains available');
+const converterExports = {};
+new Function('exports', ts.transpileModule(converter.getText(sanityAst), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(converterExports);
+const h4Body = converterExports.portableTextToArticleBlocks([{
+  _type: 'block', style: 'h4',
+  children: [{ _type: 'span', text: 'หัวข้อย่อยระดับสี่', marks: ['strong', 'em', 'reference'] }],
+  markDefs: [{ _key: 'reference', _type: 'link', href: 'https://example.com/h4', openInNewTab: true, nofollow: true, sponsored: true }],
+}]);
+assert.equal(h4Body[0].type, 'heading', 'Sanity H4 must not normalize to a paragraph');
+assert.equal(h4Body[0].level, 4);
+assert.deepEqual(h4Body[0].segments, [{ text: 'หัวข้อย่อยระดับสี่', href: 'https://example.com/h4', openInNewTab: true, nofollow: true, sponsored: true, strong: true, emphasis: true }]);
 const article = {
   id: 'published-fixture', slug: 'fixture-article', category: 'ประกันชีวิต', categorySlug: 'life-insurance',
   title: 'บทความทดสอบ', excerpt: 'ข้อมูลทดสอบ', authorName: 'ผู้เขียนจากเนื้อหา', status: 'published',
@@ -25,6 +41,8 @@ const article = {
     { type: 'paragraph', text: 'บทนำ', segments: [{ text: 'ลิงก์อ้างอิง', href: 'https://example.com/reference', strong: true, emphasis: true, nofollow: true, sponsored: true }] },
     { type: 'heading', level: 2, text: 'หัวข้อหลัก' },
     { type: 'heading', level: 3, text: 'หัวข้อย่อย' },
+    ...h4Body,
+    { type: 'heading', level: 3, text: 'หัวข้อย่อยถัดไป' },
     { type: 'image', src: '/assets/pun.jpg', alt: 'ภาพเนื้อหา', width: 400, height: 400, credit: 'เจ้าของภาพเดี่ยว' },
     { type: 'gallery', images: [{ src: '/assets/pun.jpg', alt: 'ภาพแกลเลอรี', width: 400, height: 400, caption: 'คำบรรยายแกลเลอรี', credit: 'เจ้าของแกลเลอรี' }] },
     { type: 'bulletList', items: ['รายการหนึ่ง', { text: 'รายการสอง', segments: [{ text: 'ตัวหนา', strong: true }] }] },
@@ -45,6 +63,17 @@ const rendered = doc(React.createElement(Article, { article }));
 assert.equal(rendered.querySelectorAll('h1').length, 1);
 assert.ok(rendered.querySelector('h2#section-2'), 'preserve legacy block-index + 1 heading IDs');
 assert.ok(rendered.querySelector('a[href="#section-2"]'));
+assert.ok(rendered.querySelector('h3#section-3'), 'existing H3 keeps its block-index anchor');
+assert.ok(rendered.querySelector('h4#section-4 a em strong'), 'H4 preserves inline links and emphasis');
+assert.ok(rendered.querySelector('h3#section-5'), 'headings after H4 retain their body index');
+const tocLinks = [...rendered.querySelectorAll('.toc a, .tocMobile a')].map((link) => link.getAttribute('href'));
+assert.deepEqual(tocLinks, ['#section-2', '#section-3', '#section-5', '#section-2', '#section-3', '#section-5'], 'desktop and mobile TOC keep the existing H2/H3 hierarchy and exclude H4');
+const h4Link = rendered.querySelector('h4#section-4 a');
+assert.equal(h4Link.target, '_blank');
+for (const rel of ['noopener', 'noreferrer', 'nofollow', 'sponsored']) assert.ok(h4Link.rel.split(' ').includes(rel));
+const h4Only = doc(React.createElement(Article, { article: { ...article, body: h4Body } }));
+assert.ok(h4Only.querySelector('h4#section-1'));
+assert.equal(h4Only.querySelectorAll('.toc, .tocMobile').length, 0, 'H4-only content must not create an empty TOC');
 for (const text of ['คำบรรยายภาพเปิด', 'เครดิต: เจ้าของภาพเดี่ยว', 'คำบรรยายแกลเลอรี · เครดิต: เจ้าของแกลเลอรี', 'ผู้เขียนจากเนื้อหา', '(2.0 MB)', 'ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก', 'คำถามทดสอบ', 'แหล่งต้นทาง']) assert.ok(rendered.body.textContent.includes(text), text);
 for (const selector of ['ul li', 'ol li', 'blockquote', 'aside', 'details', 'table th', 'table td', 'hr', 'em strong']) assert.ok(rendered.querySelector(selector), selector);
 const external = rendered.querySelector('a[href="https://example.com/reference"]');

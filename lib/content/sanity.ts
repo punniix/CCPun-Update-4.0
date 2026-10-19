@@ -83,7 +83,7 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
       continue;
     }
     flushList();
-    if (item.style === "h2" || item.style === "h3") result.push({ type: "heading", level: item.style === "h2" ? 2 : 3, ...rich });
+    if (item.style === "h2" || item.style === "h3" || item.style === "h4") result.push({ type: "heading", level: item.style === "h2" ? 2 : item.style === "h3" ? 3 : 4, ...rich });
     else if (item.style === "blockquote") result.push({ type: "quote", ...rich });
     else result.push({ type: "paragraph", ...rich });
   }
