@@ -767,11 +767,11 @@
 .articleSources a { color: var(--w43-gold) !important; overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 4px; }
 
 /* Website 4.3 article TOC hierarchy */
-.tocDisclosure { border-block: 1px solid var(--w43-border); }
-.tocDisclosure > summary, .tocMobile > summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 56px; padding: 0; list-style: none; color: var(--w43-ink); font-size: 14px; font-weight: 500; cursor: pointer; }
+.tocDisclosure { border: 0; }
+.tocDisclosure > summary, .tocMobile > summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 56px; border-block: 1px solid var(--w43-border); padding: 0; list-style: none; color: var(--w43-ink); font-size: 14px; font-weight: 500; cursor: pointer; }
 .tocDisclosure > summary::-webkit-details-marker, .tocMobile > summary::-webkit-details-marker { display: none; }
-.tocDisclosure > summary > span, .tocMobile > summary > span { font-size: 14px; }
-.tocDisclosure[open] > summary > span, .tocMobile[open] > summary > span { transform: rotate(180deg); }
+.tocDisclosure > summary > svg, .tocMobile > summary > svg { width: 14px; height: 14px; flex: 0 0 14px; }
+.tocDisclosure[open] > summary > svg, .tocMobile[open] > summary > svg { transform: rotate(180deg); }
 .tocList, .tocMobileList { display: flex; flex-direction: column; gap: 2px; }
 .tocList { padding-block: 8px; }
 .tocGroup { min-width: 0; }
@@ -790,7 +790,7 @@
   .prose h4 { font-size: 18px; line-height: 28px; }
   .articleReadingGrid { display: block; }
   .toc { display: none; }
-  .tocMobile { display: block; padding: 0; margin-bottom: 26px; border-block: 1px solid var(--w43-border); }
+  .tocMobile { display: block; padding: 0; margin-bottom: 26px; border: 0; }
   .tocMobile > summary { min-height: 56px; padding: 0; }
   .tocMobileList { padding: 0; border-top: 0; }
   .tocMobileList .tocPrimary, .tocMobileList .tocSecondary, .tocMobileList .tocTertiary { padding: 11px 0 !important; }
