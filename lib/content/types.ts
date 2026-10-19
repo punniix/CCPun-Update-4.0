@@ -58,6 +58,14 @@ export type ProfessionalQualification = {
   issuerUrl?: string;
 };
 
+export type ProfessionalLicense = {
+  _key?: string;
+  name: string;
+  identifier: string;
+  issuer: string;
+  issuerUrl?: string;
+};
+
 export type ArticleAuthorProfile = {
   name: string;
   profileName?: string;
@@ -66,6 +74,8 @@ export type ArticleAuthorProfile = {
   profileCtaLabel?: string;
   profileCtaUrl?: string;
   professionalQualifications?: ProfessionalQualification[];
+  professionalLicenses?: ProfessionalLicense[];
+  sameAs?: string[];
   profileAvatar?: {
     src: string;
     alt: string;

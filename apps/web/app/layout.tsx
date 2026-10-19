@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
 import "./globals.css";
-import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
+import { buildCcpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
+import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
+import { getPublicAuthorName } from "@/lib/content/author-identity";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
 import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
 import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED } from "../runtime-environment";
@@ -25,7 +27,7 @@ const kanitCritical = Kanit({
   preload: true,
 });
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   metadataBase: new URL("https://ccpun.com"),
   title: "CCPun | ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
   description: "ไม่แน่ใจว่าควรลงทุนหรือทำประกันแบบไหน? CCPun ที่ปรึกษาทางการเงิน ช่วยดูเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี ก่อนค่อยเลือกทางที่เหมาะกับชีวิตคุณ",
@@ -57,7 +59,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export async function generateMetadata(): Promise<Metadata> {
+  const author = await getPrimaryAuthorProfile();
+  return {
+    ...baseMetadata,
+    authors: [{ name: getPublicAuthorName(author), url: "https://ccpun.com" }],
+  };
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const author = await getPrimaryAuthorProfile();
+  const schemaGraph = buildCcpunSchemaGraph(author);
   return (
     <html lang="th" className={`${kanit.variable} ${kanitCritical.variable}`} suppressHydrationWarning>
       <head>
@@ -84,7 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           @keyframes scroll-breath{0%,100%{transform:translateX(-50%) translateY(0);opacity:1}50%{transform:translateX(-50%) translateY(6px);opacity:.62}}
           @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-badge,.hero-heading,.hero-subtitle,.hero-cta,.scroll-indicator{animation:none!important}}
         ` }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ccpunSchemaGraph) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaGraph).replace(/</g, "\\u003c") }} />
       </head>
       <body className="antialiased font-sans">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:p-2 focus:bg-background focus:text-foreground focus:rounded focus:border focus:border-primary/50">

@@ -4,7 +4,7 @@ import { createClient, groq } from "next-sanity";
 import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import type { Article, ArticleBlock, ContentProvider } from "./types";
-import { authorSchema, baseArticleSchema, bodyItemSchema, faqItemSchema, parseProfessionalQualifications, parseRenderableBodyItems, parseRenderableFaqItems, rawArticleSchema, type PortableBodyItem, type RawArticle, type RawArticleSummary } from './sanity-schema';
+import { authorSchema, baseArticleSchema, bodyItemSchema, faqItemSchema, parseProfessionalLicenses, parseProfessionalQualifications, parseRenderableBodyItems, parseRenderableFaqItems, rawArticleSchema, type PortableBodyItem, type RawArticle, type RawArticleSummary } from './sanity-schema';
 import { sanityFetch } from "@/lib/sanity-live";
 import { getSanityReadToken } from "@/lib/content/sanity-credentials";
 import { isContentSanityLaneAllowed } from "@/lib/content/sanity-lane";
@@ -95,6 +95,7 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
 function toArticleAuthorProfile(author: RawArticleSummary["author"]): Article["author"] {
   if (!author) return undefined;
   const professionalQualifications = parseProfessionalQualifications(author.professionalQualifications);
+  const professionalLicenses = parseProfessionalLicenses(author.professionalLicenses);
   return {
     name: author.name,
     profileName: author.profileName ?? undefined,
@@ -104,6 +105,8 @@ function toArticleAuthorProfile(author: RawArticleSummary["author"]): Article["a
     profileCtaUrl: author.profileCtaUrl ?? undefined,
     profileAvatar: author.profileAvatar ?? undefined,
     ...(professionalQualifications.length ? { professionalQualifications } : {}),
+    ...(professionalLicenses.length ? { professionalLicenses } : {}),
+    ...(author.sameAs?.length ? { sameAs: author.sameAs } : {}),
   };
 }
 
@@ -192,7 +195,7 @@ const baseProjection = groq`{
   "category": category->title,
   "categorySlug": category->slug.current,
   tags,
-  "authorName": author->name,
+  "authorName": coalesce(author->profileName, author->name),
   "author": author->{
     name,
     profileName,
@@ -208,6 +211,14 @@ const baseProjection = groq`{
       issuer,
       issuerUrl
     },
+    professionalLicenses[]{
+      _key,
+      name,
+      identifier,
+      issuer,
+      issuerUrl
+    },
+    sameAs,
     "profileAvatar": select(defined(profileAvatar.asset) => {
       "src": profileAvatar.asset->url,
       "width": profileAvatar.asset->metadata.dimensions.width,
@@ -279,7 +290,8 @@ const articleProjection = groq`{
 const listQuery = groq`*[_type == "article" && defined(slug.current)] | order(coalesce(publishedAt, _updatedAt) desc) ${baseProjection}`;
 const bySlugQuery = groq`*[_type == "article" && slug.current == $slug][0] ${articleProjection}`;
 
-const primaryAuthorQuery = groq`*[_type == "author" && name == "CCPun"][0]{
+// Use a stable identity, not the editable display name.
+const primaryAuthorQuery = groq`*[_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]][0]{
   name,
   profileName,
   profileRole,
@@ -294,6 +306,14 @@ const primaryAuthorQuery = groq`*[_type == "author" && name == "CCPun"][0]{
     issuer,
     issuerUrl
   },
+  professionalLicenses[]{
+    _key,
+    name,
+    identifier,
+    issuer,
+    issuerUrl
+  },
+  sameAs,
   "profileAvatar": select(defined(profileAvatar.asset) => {
     "src": profileAvatar.asset->url,
     "width": profileAvatar.asset->metadata.dimensions.width,
@@ -341,7 +361,7 @@ async function readPrimaryAuthorProfile(): Promise<NonNullable<Article["author"]
 
 export const getPrimaryAuthorProfile = unstable_cache(
   readPrimaryAuthorProfile,
-  ["ccpun-primary-author-profile-v1", projectId ?? "unconfigured", dataset ?? "unconfigured"],
+  ["ccpun-primary-author-profile-v2", projectId ?? "unconfigured", dataset ?? "unconfigured"],
   { revalidate: 300, tags: ["ccpun-primary-author"] },
 );
 

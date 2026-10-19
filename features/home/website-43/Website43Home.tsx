@@ -1,3 +1,5 @@
+import { getPublicAuthorName } from "@/lib/content/author-identity";
+import { Fragment } from "react";
 import { homeFaqs as faqs } from './homeFaqs';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -26,11 +28,18 @@ export default function Website43Home({ authorProfile = null }: { authorProfile?
   const professionalQualifications = authorProfile?.professionalQualifications ?? [];
   const primaryQualification = professionalQualifications[0];
   const qualificationSuffix = professionalQualifications.map((qualification) => qualification.shortName.trim()).filter(Boolean).join(', ');
-  const profileName = authorProfile?.profileName?.trim() || 'ชนาธิป ชิตประเสริฐ';
+  const profileName = getPublicAuthorName(authorProfile);
   const profileRole = authorProfile?.profileRole?.trim() || DEFAULT_AUTHOR_ROLE;
   const displayName = qualificationSuffix ? `${profileName}, ${qualificationSuffix}` : profileName;
   const qualificationIdentifier = primaryQualification?.identifier?.trim();
   const showManagedIdentity = professionalQualifications.length > 0;
+  const licenseLabels = authorProfile?.professionalLicenses?.length
+    ? authorProfile.professionalLicenses.map(({ name, identifier }) => name.trim() + " " + identifier.trim())
+    : [
+      "ตัวแทนประกันชีวิต 6801064783",
+      "ผู้วางแผนการลงทุน 106654",
+      "นายหน้าประกันวินาศภัย 6904009841",
+    ];
 
   return (
     <div className={styles.root}>
@@ -54,7 +63,12 @@ export default function Website43Home({ authorProfile = null }: { authorProfile?
 
         <section className={`${styles.section} ${styles.trustSection}`}><div className={styles.inner}>
           <div className={styles.stats}><div className={styles.stat}><strong>5+ ปี</strong><span>ประสบการณ์ด้านการเงิน</span></div><div className={styles.stat}><strong>3 ใบอนุญาต</strong><span>การลงทุน · ประกันชีวิต · ประกันวินาศภัย</span></div><div className={styles.stat}><strong>6 แพลตฟอร์มการเงิน</strong><span>ทางเลือกที่หลากหลาย ตอบโจทย์ลูกค้า</span></div></div>
-          <p className={styles.license}><span>ใบอนุญาต: ตัวแทนประกันชีวิต 6801064783</span><span className={styles.licenseSeparator} aria-hidden="true"> · </span><span>ผู้วางแผนการลงทุน 106654</span><span className={styles.licenseSeparator} aria-hidden="true"> · </span><span>นายหน้าประกันวินาศภัย 6904009841</span></p>
+          <p className={styles.license}>{licenseLabels.map((label, index) => (
+            <Fragment key={label}>
+              {index > 0 ? <span className={styles.licenseSeparator} aria-hidden="true"> · </span> : null}
+              <span>{index === 0 ? "ใบอนุญาต: " : ""}{label}</span>
+            </Fragment>
+          ))}</p>
           <p className={styles.partnerLabel}>พาร์ทเนอร์ทั้งหมดที่ร่วมงาน</p>
           <div className={styles.partners} style={{gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))'}}><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/aia-logo.webp" alt="AIA" width={512} height={341} /></div><strong>AIA</strong><span>ตัวแทนประกันชีวิต</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameFairdee}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoFairdee}`} src="/assets/website-43/fairdee-logo.png" alt="Fairdee" width={512} height={512} /></div><strong>Fairdee</strong><span>นายหน้าประกันวินาศภัย</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/maybank-logo.webp" alt="Maybank" width={512} height={512} /></div><strong>Maybank</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/phillip-logo.svg" alt="PhillipCapital" width={1000} height={400} /></div><strong>PhillipCapital</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameWebull}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoWebull}`} src="/assets/website-43/webull-logo.png" alt="Webull" width={736} height={736} /></div><strong>Webull</strong><span>แพลตฟอร์มการลงทุน</span></div><div className={styles.partner}><div className={`${styles.partnerLogoFrame} ${styles.partnerLogoFrameStandard}`}><Image className={`${styles.partnerLogo} ${styles.partnerLogoStandard}`} src="/assets/finnomena-logo.webp" alt="Finnomena" width={200} height={200} /></div><strong>Finnomena</strong><span>ผู้วางแผนการลงทุนอิสระ</span></div></div>
         </div></section>
