@@ -7,10 +7,14 @@ const require = createRequire(import.meta.url);
 require('tsx/cjs');
 require.extensions['.css'] = module => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }; };
 require.cache[require.resolve('../lib/analytics.ts')] = { exports: { trackEvent() {} } };
+const { renderToStaticMarkup } = require('react-dom/server');
 const { ArticleEngagementProvider, ArticleEngagementSummary } = require('../features/blog/website-43/ArticleEngagement.tsx');
 const Actions = require('../features/blog/website-43/ArticleShareActions.tsx').default;
 
 test('actual Article controls read verified metrics, gate analytics consent and update both hearts only after server success', async () => {
+  const pending = renderToStaticMarkup(React.createElement(ArticleEngagementSummary, { readingMinutes: 11 }));
+  assert.doesNotMatch(pending, /—|เปิดอ่าน|แชร์|GA4|ย้อนหลัง/);
+  assert.match(pending, /อ่าน/);
   const dom = new JSDOM('<div id="app"></div>', { url: 'https://ccpun.com/blog/personal-finance/fixture/' });
   const names = ['window', 'document', 'navigator', 'localStorage', 'fetch', 'IS_REACT_ACT_ENVIRONMENT'];
   const before = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
@@ -45,6 +49,8 @@ test('actual Article controls read verified metrics, gate analytics consent and 
     });
     assert.equal(requests.filter(request => request.body).length, 0, 'no view/share write without existing analytics consent');
     assert.ok(dom.window.document.querySelector('[aria-label="การเปิดบทความที่บันทึกได้ 2 ครั้ง"]'));
+    assert.ok(dom.window.document.querySelector('[aria-label="การแชร์ที่บันทึกได้ 0 ครั้ง"]'), 'known zero remains visible');
+    assert.doesNotMatch(dom.window.document.querySelector('.articleReadingTime').outerHTML, /GA4|—|ย้อนหลัง/);
     assert.equal(dom.window.document.querySelectorAll('button[aria-pressed="false"]').length, 2);
     assert.equal(dom.window.document.querySelectorAll('.articleShareButtons > *').length, 10, 'five functional controls at each placement');
     const controls = [...dom.window.document.querySelector('.articleShareButtons').children];
