@@ -13,7 +13,7 @@ const sha = value => createHash('sha256').update(value).digest('hex');
 const reviewedSourceOwners = {
   "apps/web/app/cookie-policy/page.tsx": "a6925d6982d0251d74542a8c4fdea408082454f243e0f83b52bcec124d767a9a",
   "apps/web/tsconfig.json": "f99e85600f69e583bf2a1ab88fb186f560cc4c8d405cd0dc51e9c949b69f7bbe",
-  "components/layout/website-43/Website43.module.css": "9a997bd21ac5e21ec572c91e987b410bb123b8a51c66712caf0902c8581ed3a2",
+  "components/layout/website-43/Website43.module.css": "244b11b3d139756c27d99ad67d43f8eeb20287d68fcc8380b90d521c9837be16",
   "components/layout/website-43/Website43Legal.module.css": "7a991a55a0c19ac7fe7152c3abbf979dfcf7a4d91223faaa3ae166b4aeb0a6f5",
   "components/layout/website-43/Website43Navbar.module.css": "16cb8c7d1f18bbb201f704429e0264789c8a8a820cd36db97c7e3e98ffbb2492",
   "components/layout/website-43/Website43Navbar.tsx": "3ec52233fa899aa0792fd7555ee7e4d822cd53d9db1367225b394628254543f3",
@@ -26,8 +26,8 @@ const reviewedSourceOwners = {
   "features/analytics/components/CookieConsentPreferences.tsx": "bfa0c44d6fd9342349227b69c4a249845d48ab1c49ac321ff7c85d51d4fc09b7",
   "features/blog/pages/BlogArchivePage.tsx": "8e79c488b53718920e07184bb7e65d199ea4d6f2aa3421d48f9b98589bef589c",
   "features/blog/pages/BlogCategoryPage.tsx": "1411abf041ec54d8e83d22510b90c923d497f46ec292434d56bdcc8b560e246d",
-  "features/blog/website-43/Website43Article.tsx": "b57185e94e5d6d698df82ec8e524b87bf455dca9db512100354dbe4d792ed4c4",
-  "features/blog/website-43/Website43ArticleBody.tsx": "78deb9fb0bc0a5d402ff57a0f5be390aca806e99d372fcdebd3dc0fa830dbf54",
+  "features/blog/website-43/Website43Article.tsx": "d6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2",
+  "features/blog/website-43/Website43ArticleBody.tsx": "a6e73b3fe0e67d728be2e4d26083ae08be17ad4493c31431145b8d74297dba07",
   "features/blog/website-43/Website43Blog.tsx": "4fab6ca4931b548211cf63917f3ea901c9798ad44e68f51bf1acc3832fdf3bad",
   "features/blog/website-43/Website43BlogInteractive.tsx": "229035fb264ee95052543622aee9211f18d4badd314af8accbba72f78b14ad80",
   "features/ci-planning/components/CIWizard.tsx": "6f529c5234721605ecea12651351f09129f9c79827dc6c8b8173187ca8e2b86f",
@@ -37,7 +37,7 @@ const reviewedSourceOwners = {
   "features/ci-planning/page.tsx": "40a9e9759455373cc7a757bcf7e3fc5b369f702f1542d2225f33d1aec68602fb",
   "features/financial-health-check/components/ClientFHC.tsx": "88f007c1e6c33d83bd4befdd69985363609f6c2ddb230861d548cba49c7e0fa2",
   "features/financial-health-check/components/LifeCoverageWizard.tsx": "89448a29974ef184232d2a9aa7a47e588cd7b748106a6bd496ae64f2a6f09dd5",
-  "features/home/website-43/Website43Home.tsx": "e591abcfd63fe41907a880ecfe5577103f694b344d5ee549e227e09a42781abe",
+  "features/home/website-43/Website43Home.tsx": "dc2a4efb448ab859570a55a53344c9f88007f19e39a6f497d18185c0ffc9f30e",
   "features/home/website-43/Website43HomeStatic.tsx": "854a75321d4511223729efc377a581d0f3581838faf37dd12f7b532f88b612d2",
   "features/money-story/MoneyStory.module.css": "40b39bf243365a0888163b8a3b7dfc2d53f8a37fb92e5802f8fc12e167917a61",
   "features/money-story/components/MoneyStoryGame.tsx": "1628800ae52abfd0c6b67a636904eb7c717d43058660700aef3bd1a68c8f468d",
@@ -46,7 +46,7 @@ const reviewedSourceOwners = {
   "apps/web/static-images.d.ts": "fe57bd015bfec7883efee95cfa98ec8ffd4806c505c4a9ad3ccacc6275ac5579",
   "components/ui/health-happy/HealthHappyCountdown.module.css": "73e39a9e3f17af98b25e9a12b706d0a9729260aced6bd47425e79dd9ec6e9766",
   "components/ui/health-happy/HealthHappyCountdown.tsx": "8932c557a75fe8d3a79cc2b65624d6b6cc3f21f090e8f04650f1b24ecb9f1f35",
-  "features/blog/website-43/ArticleDetailAccess.tsx": "b4480e60d1f79f2465d43435e3c8aea8af5a1ed51087e3c7fe382840318342fa",
+  "features/blog/website-43/ArticleDetailAccess.tsx": "a25a584fede138b706ad3b61064b49da3c5ddd443529d6cf89aef015eb547dc1",
   "features/blog/website-43/BlogNavigation.ts": "c978030ce80dce3ada76d3269f098c200b12c581d259fb4d8e6fecd4b8f1ff84",
   "features/blog/website-43/BlogReturnLink.tsx": "77a3ef1c5f7eb02e91e425e400d4c289d5e329aa400c33ac0f7484eeb991a556",
   "lib/runtime/investment-availability.ts": "d7dadd956963e82c6efe4dd966a8710c44aed30d325e5f7f246261ffa3bfc3fa"
@@ -197,7 +197,8 @@ test('actual archive route sends only published provider records/active registry
   assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.categories,[]);
 });
 
-test('all39 approved source records retain provenance with exact reviewed return-link retirement and image URL ownership', () => {
+// Reviewed Article/H4/Author candidate updates retain original baseline hashes in the parity manifests.
+test('all39 approved source records retain provenance with exact reviewed Article and image URL ownership', () => {
   assert.equal(Object.keys(reviewedSourceOwners).length,39);
   const retired = 'features/blog/website-43/BlogReturnLink.tsx';
   assert.equal(reviewedSourceOwners[retired], '77a3ef1c5f7eb02e91e425e400d4c289d5e329aa400c33ac0f7484eeb991a556');

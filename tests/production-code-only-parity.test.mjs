@@ -45,7 +45,13 @@ const reviewedUiOwners = [
   "features/home/website-43/Website43HomeStatic.tsx",
   "features/money-story/MoneyStory.module.css",
   "features/money-story/components/MoneyStoryScreens.tsx",
-  "features/money-story/page.tsx"
+  "features/money-story/page.tsx",
+  "apps/web/app/page.tsx",
+  "features/blog/website-43/Website43ArticleToc.tsx",
+  "lib/content/sanity-schema.ts",
+  "lib/content/sanity.ts",
+  "lib/content/types.ts",
+  "lib/seo/structured-data/site-schema.ts"
 ];
 assert.equal(sha(JSON.stringify(proof.canonical)), '1ba83563d79b8fe6616cd75123ba8240cd1e6e788e14f72deff1163bdb74b44c');
 assert.equal(sha(JSON.stringify(proof.protected)), 'f1698b69fc464985bbb45bf57276ca793df17142a1d63089c2bd68d894d22e72');

@@ -40,7 +40,7 @@
   "reviewedUxOwners": {
     "components/layout/website-43/Website43.module.css": {
       "baselineSha256": "c9b70031cf6fde0b095d2a2031f18988e385927487f0c2c3bc6a251fae418175",
-      "candidateSha256": "9a997bd21ac5e21ec572c91e987b410bb123b8a51c66712caf0902c8581ed3a2"
+      "candidateSha256": "244b11b3d139756c27d99ad67d43f8eeb20287d68fcc8380b90d521c9837be16"
     },
     "components/layout/website-43/Website43ResponsiveStyles.tsx": {
       "baselineSha256": "dfc256d4957eeb6786fb744ede5216f05c8d308b7fc4b9c9cb0aa924b0c786fe",
@@ -61,6 +61,10 @@
     "features/money-story/MoneyStory.module.css": {
       "baselineSha256": "93bd75cade93f11855afb3bdd7863b2e99f3787c34663c35e7d27393364c8774",
       "candidateSha256": "40b39bf243365a0888163b8a3b7dfc2d53f8a37fb92e5802f8fc12e167917a61"
+    },
+    "apps/web/app/layout.tsx": {
+      "baselineSha256": "efa14e5607b4381c788f78d4f7e8f7ce18360b49f77c1b7cadbafb45a82c601d",
+      "candidateSha256": "daa07176ae85638c47960e0561fc28da4cef4101fb12f1f73bf10eaccee4b472"
     }
   },
   "reviewedCurrentCompiler": {

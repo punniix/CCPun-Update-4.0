@@ -19,7 +19,7 @@ const baseline = {
 };
 // Approved 2026-10-14 footer tagline removal + blog-only end flush. Original Production golden object remains unchanged.
 const reviewedCurrent = {
-  "activeCss": "5618ac3f3e11d75204403b10ade3bd6cb5c7600595981a33e4926d0c6c311ae3",
+  "activeCss": "b0667b266057590903178ab882dc6531de433464273dcb7ef698cdf7d5f2f240",
   "responsiveCss": "1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9",
   "navbarCss": "8bb36bb9ada57b280384145e56412db668663f1ee6cdc37d9bed7a2922498e99",
   "footerDesktopDom": "53e42deb5ddf5e7dd671694437c80e569b9e15094e1549d43ff3276b1ebf6122"

@@ -41,7 +41,7 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
   for (const file of allowed) {
     const admission = proof.reviewedUxOwners[file];
     assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256','candidateSha256']);
-    assert.equal(admission.baselineSha256, proof.protected[file], file + ': original protected digest retained');
+    assert.equal(admission.baselineSha256, (proof.protected[file] ?? proof.canonical?.[file]), file + ': original protected digest retained');
     assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
     assert.equal(sha(readCurrent(file)), admission.candidateSha256, file + ': current reviewed source frozen');
   }

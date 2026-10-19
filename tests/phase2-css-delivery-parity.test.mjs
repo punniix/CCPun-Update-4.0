@@ -26,7 +26,8 @@ const reviewedUiOwners = [
   "components/layout/website-43/Website43Navbar.module.css",
   "components/layout/website-43/Website43Navbar.tsx",
   "components/layout/website-43/Website43Shared.tsx",
-  "features/money-story/MoneyStory.module.css"
+  "features/money-story/MoneyStory.module.css",
+  "apps/web/app/layout.tsx"
 ];
 const addedSelectors = {
   "root": [

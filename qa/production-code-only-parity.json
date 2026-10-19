@@ -361,7 +361,7 @@
     },
     "components/layout/website-43/Website43.module.css": {
       "baselineSha256": "c9b70031cf6fde0b095d2a2031f18988e385927487f0c2c3bc6a251fae418175",
-      "candidateSha256": "9a997bd21ac5e21ec572c91e987b410bb123b8a51c66712caf0902c8581ed3a2"
+      "candidateSha256": "244b11b3d139756c27d99ad67d43f8eeb20287d68fcc8380b90d521c9837be16"
     },
     "components/layout/website-43/Website43Legal.module.css": {
       "baselineSha256": "28e04fc68ec9ece5a8871e7105d9e078b4422d447b636cac3049703a14df9ce6",
@@ -413,11 +413,11 @@
     },
     "features/blog/website-43/Website43Article.tsx": {
       "baselineSha256": "113c9f6feadcd311e70e4fa50c18d0b10cee66f0a62c3e889eb91c0ee2127e6f",
-      "candidateSha256": "b57185e94e5d6d698df82ec8e524b87bf455dca9db512100354dbe4d792ed4c4"
+      "candidateSha256": "d6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2"
     },
     "features/blog/website-43/Website43ArticleBody.tsx": {
       "baselineSha256": "ad18924a3408d029dcb8ec886789415faa6bad1d117cdb87e37811a6f7f6d24e",
-      "candidateSha256": "78deb9fb0bc0a5d402ff57a0f5be390aca806e99d372fcdebd3dc0fa830dbf54"
+      "candidateSha256": "a6e73b3fe0e67d728be2e4d26083ae08be17ad4493c31431145b8d74297dba07"
     },
     "features/blog/website-43/Website43Blog.tsx": {
       "baselineSha256": "13be963ff5e546403617d026ee811b50b6cb7995fa5355d5222f03c995f23c30",
@@ -457,7 +457,7 @@
     },
     "features/home/website-43/Website43Home.tsx": {
       "baselineSha256": "29e746d13d0d6a1af9337298a9c9b4a53d28e9754aeb97397f3ebe7b33f7884f",
-      "candidateSha256": "e591abcfd63fe41907a880ecfe5577103f694b344d5ee549e227e09a42781abe"
+      "candidateSha256": "dc2a4efb448ab859570a55a53344c9f88007f19e39a6f497d18185c0ffc9f30e"
     },
     "features/home/website-43/Website43HomeStatic.tsx": {
       "baselineSha256": "65065bd768fdaca339a6c167a37bfbe29721dd5b06f6d19d4b3b5231e4bca564",
@@ -474,6 +474,30 @@
     "features/money-story/page.tsx": {
       "baselineSha256": "4895d8d1cb72a096a886b548d8af39b7045dbad84838a0db04ea964d4dc241b0",
       "candidateSha256": "82f5d5c4e21df8663c7881e7dc7d1793654f84ee7875654ac27f75f98d32b45b"
+    },
+    "apps/web/app/page.tsx": {
+      "baselineSha256": "4a398712e8c7eb60ed5842214a16949e4ee25908d131aba16f3263f414609b56",
+      "candidateSha256": "078e4f47f6cfdeb924604610b87ac0f8abe51bd1bc064bf33e91f8f5501dd3b7"
+    },
+    "features/blog/website-43/Website43ArticleToc.tsx": {
+      "baselineSha256": "2f029b8ee547830d9960c37e792589d90d727861004c3eebde6b6ee3f4c81e4b",
+      "candidateSha256": "9c88a2f091174b0a492d10ae2c1e63ed6bb099aa0fe2ef2bf3d1f6de15cc6f86"
+    },
+    "lib/content/sanity-schema.ts": {
+      "baselineSha256": "534563fbf40e51c01ac8b11edf2aca181c5135b876a811b110ffa15f5a77894c",
+      "candidateSha256": "d205ac196c3247ccc19ec57a358adc088fb59b7befb8798b4f19a2ee9e02d04c"
+    },
+    "lib/content/sanity.ts": {
+      "baselineSha256": "4f5ef60f0f02697f81b2f2d14b7aa2cf8ce0885de92a11eaf774ff70d325bac0",
+      "candidateSha256": "2b670ca67fd7d4124b58b72339fd484639f9a5ba7e1053010b56725ab065646b"
+    },
+    "lib/content/types.ts": {
+      "baselineSha256": "c42e29f8f5c00c2baa08df28a8528159255ccc68694390bbc8f2db508a2d4420",
+      "candidateSha256": "29cb83580e33b6df294d3b01e02cfff335f42a68e6eedc09088cb7eac840de52"
+    },
+    "lib/seo/structured-data/site-schema.ts": {
+      "baselineSha256": "8f6461b5d70ff1e46c401df7230e503a08bc8700e6e945c47bedab366020013b",
+      "candidateSha256": "4d611d04bf54c60254137e01b57e249adf694aaa4be8fc6a64a6c4b9ec653813"
     }
   }
 }

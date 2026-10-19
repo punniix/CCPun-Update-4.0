@@ -127,14 +127,15 @@ test('root and Web keep their original complete metadata and layout/first-paint/
         ['next/headers', { draftMode: async () => { trace.push('draftMode'); return { isEnabled: draft }; } }],
         ['@/lib/deployment-environment', { IS_ADMIN_APPLICATION: admin, IS_DRAFT_PREVIEW_ALLOWED: review, IS_REVIEW_ENVIRONMENT: review, PRODUCTION_ANALYTICS_ENABLED: !admin && !review }],
         ['../runtime-environment', { IS_WEB_REVIEW_ENVIRONMENT: review, PRODUCTION_WEB_ANALYTICS_ENABLED: !review }],
-        ['@/lib/seo/structured-data/site-schema', { ccpunSchemaGraph: { '@type': 'SyntheticSchema' } }],
+        ['@/lib/seo/structured-data/site-schema', { ccpunSchemaGraph: { '@type': 'SyntheticSchema' }, buildCcpunSchemaGraph: () => ({ '@type': 'SyntheticSchema' }) }],
+        ['@/lib/content/sanity', { getPrimaryAuthorProfile: async () => null }],
         ['@/features/analytics/components/ClientWidgets', { __esModule: true, default: props => React.createElement('aside', { 'data-fixture-analytics-props': JSON.stringify(props) }) }],
         ['@/components/layout/website-43/Website43ResponsiveStyles', { Website43ResponsiveStyles: () => React.createElement('style', { 'data-fixture-responsive': true }) }],
         ['@/components/preview/DraftPreviewRuntime', { __esModule: true, default: props => React.createElement('aside', { 'data-fixture-draft-sdk-props': JSON.stringify(props) }) }],
       ]);
       const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks, globals: { process: { env: { NEXT_PUBLIC_GA_ID: 'synthetic-ga', NEXT_PUBLIC_META_PIXEL_ID: 'synthetic-meta' } } } });
       const tree = await fixture.default({ children: React.createElement('p', null, 'synthetic-content') });
-      return { metadata: fixture.metadata, html: renderToStaticMarkup(await serverTree(tree)), trace };
+      return { metadata: fixture.generateMetadata ? await fixture.generateMetadata() : fixture.metadata, html: renderToStaticMarkup(await serverTree(tree)), trace };
     }
     assert.deepEqual(await render(false), await render(true), JSON.stringify({ file, admin, review, draft }));
   }
