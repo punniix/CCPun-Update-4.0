@@ -39,7 +39,8 @@ test('the exact authorized public snapshot retains all 21 table rows, inline ref
   assert.equal(article.authorName, source.publicDisplay.find(row => row._id === source.document.author._ref).name);
   const dom = new JSDOM(renderToStaticMarkup(React.createElement(Article, { article, preview: false, relatedArticles: [] }))).window.document;
   assert.equal(dom.querySelectorAll('tbody tr').length, 21);
-  assert.ok(dom.body.textContent.includes('CCPun UAT Author'));
+  assert.ok(dom.body.textContent.includes('ชนาธิป ชิตประเสริฐ'));
+  assert.equal(dom.body.textContent.includes('CCPun UAT Author'), false, 'canonical public identity replaces the fixture byline');
   assert.ok(dom.querySelector('a[href="https://www.rd.go.th/5937.html"]'));
 });
 

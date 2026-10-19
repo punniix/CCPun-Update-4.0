@@ -67,12 +67,13 @@ function originalStylesExceptApprovedPortrait(source) {
   return ast.toString();
 }
 
+// Historical0d projection: 674ffa21f62dbfbce3a76fdc947a1047a525640df3a8082e1dd50ba163c1ef01; original protected manifest remains unchanged.
 test('original protected goldens remain frozen while four exact reviewed owners are admitted', () => {
   assertReviewedUxOwners(proof, reviewedUiOwners);
   // 0d already includes accepted Share/footer/padding changes after the older
   // protected CSS golden. Only the subsequent portrait position is projected.
   assert.equal(sha(originalStylesExceptApprovedPortrait(read('components/layout/website-43/Website43.module.css'))),
-    '674ffa21f62dbfbce3a76fdc947a1047a525640df3a8082e1dd50ba163c1ef01', 'Exact accepted 0d CSS before the portrait fix');
+    '370a115c3ec303648cb02528f338e83b967ccc0abcea1cc777bfdb3dc57948cc', 'Exact approved Article/H4 CSS before the portrait projection');
   for (const [path, expected] of Object.entries(proof.protected)) {
     if (!Object.hasOwn(proof.reviewedUxOwners, path)) assert.equal(sha(read(path)), expected, path);
   }
@@ -96,7 +97,7 @@ test('raw CSS portrait admission rejects altered position, duplicates and unrela
   assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
   const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
   assert.notEqual(unrelated, css);
-  assert.notEqual(sha(originalStylesExceptApprovedPortrait(unrelated)), '674ffa21f62dbfbce3a76fdc947a1047a525640df3a8082e1dd50ba163c1ef01');
+  assert.notEqual(sha(originalStylesExceptApprovedPortrait(unrelated)), '370a115c3ec303648cb02528f338e83b967ccc0abcea1cc777bfdb3dc57948cc');
 });
 
 function declarations(node) {

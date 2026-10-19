@@ -24,6 +24,8 @@ const baseline = {
   "footerDomOff": "aaf7f84c72659f0777b31707274c6fef21e2e36ead13ed16946af959d2f37bba",
   "footerDomOn": "7e622c8a7a2deb49bfe797a3e46f72f33daa876cea2e96b6ccfe3b034ba5d682"
 };
+// Approved Article/H4 styles; original motion baseline and all unrelated CSS/DOM goldens remain frozen.
+const reviewedArticleActiveCss = 'bfd566caa265bc5fc839ed597589a5aa8412f805dba31f27aecaa9a50b4ae28b';
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
 const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
@@ -121,11 +123,11 @@ test('portrait admission rejects changed position, duplicates and unrelated acti
   assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
   const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
   assert.notEqual(unrelated, css, 'Synthetic unapproved width change is present');
-  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), baseline.activeCss);
+  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), reviewedArticleActiveCss);
 });
 
 test('approved motion styling and unchanged responsive media order match the frozen UAT baseline', () => {
-  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), baseline.activeCss);
+  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), reviewedArticleActiveCss);
   assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), baseline.responsiveCss);
   assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar layout and approved short interaction cues remain frozen');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);
