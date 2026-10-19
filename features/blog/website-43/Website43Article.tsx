@@ -93,7 +93,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
             {tocGroups.length > 0 && (
               <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">
                 <details className={styles.tocDisclosure} open>
-                  <summary>หัวข้อเนื้อหา<span aria-hidden="true">⌄</span></summary>
+                  <summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
                   <Website43ArticleToc groups={tocGroups} />
                 </details>
               </aside>
@@ -115,7 +115,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
               )}
               {tocGroups.length > 0 && (
                 <details className={styles.tocMobile}>
-                  <summary>หัวข้อเนื้อหา<span aria-hidden="true">⌄</span></summary>
+                  <summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
                   <div className={styles.tocMobileList}>
                     <Website43ArticleToc groups={tocGroups} />
                   </div>
