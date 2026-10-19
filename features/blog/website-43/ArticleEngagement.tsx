@@ -80,11 +80,9 @@ export function useArticleEngagement() { return useContext(Engagement); }
 
 export function ArticleEngagementSummary({ readingMinutes }: { readingMinutes?: number }) {
   const { metrics } = useArticleEngagement();
-  const history = 'ยอดที่บันทึกได้จาก GA4 ระหว่าง 29 ก.ย. 2566–16 ต.ค. 2569 รวมกิจกรรมใหม่ที่บันทึกได้หลังเปิดระบบ ไม่ใช่ยอดตลอดอายุบทความ';
   return <div className={styles.articleReadingTime}>
     {readingMinutes !== undefined && <span>อ่าน <b>{readingMinutes}</b> นาที</span>}
-    <span title={history} aria-label={metrics.views === null ? 'ยังไม่มียอดอ่านที่ยืนยัน' : `การเปิดบทความที่บันทึกได้ ${metrics.views} ครั้ง`}>เปิดอ่าน <b>{metrics.views ?? '—'}</b> ครั้ง</span>
-    <span title={`${history} ยอดแชร์นับการกดแชร์และคัดลอกลิงก์ที่สำเร็จ`} aria-label={metrics.shares === null ? 'ยังไม่มียอดแชร์ที่ยืนยัน' : `การแชร์ที่บันทึกได้ ${metrics.shares} ครั้ง`}>แชร์ <b>{metrics.shares ?? '—'}</b> ครั้ง</span>
-    {readingMinutes !== undefined && metrics.hearts !== null && metrics.hearts > 0 && <span title="ยอดถูกใจที่บันทึกหลังเปิดระบบ ไม่มียอดถูกใจย้อนหลัง" aria-label={`ถูกใจใหม่ ${metrics.hearts} ครั้ง`}>{metrics.hearts}</span>}
+    {metrics.views !== null && <span title="ยอดที่บันทึกได้" aria-label={`การเปิดบทความที่บันทึกได้ ${metrics.views} ครั้ง`}>เปิดอ่าน <b>{metrics.views}</b> ครั้ง</span>}
+    {metrics.shares !== null && <span title="ยอดที่บันทึกได้" aria-label={`การแชร์ที่บันทึกได้ ${metrics.shares} ครั้ง`}>แชร์ <b>{metrics.shares}</b> ครั้ง</span>}
   </div>;
 }
