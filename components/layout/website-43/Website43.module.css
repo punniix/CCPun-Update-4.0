@@ -753,8 +753,8 @@
   .articleTableWrap::-webkit-scrollbar { height: 4px; }
   .articleTableWrap::-webkit-scrollbar-track { background: var(--w43-border); }
   .articleTableWrap::-webkit-scrollbar-thumb { background: var(--w43-gold); border-radius: 4px; }
-  .articleTableWrap .articleTable { min-width: 560px; font-size: 15px; table-layout: fixed; }
-  .articleTableWrap .articleTable :is(th, td):first-child { position: static; width: 66cqw; }
+  .articleTableWrap .articleTable { width: max(100%, calc(64cqw + var(--article-table-remainder, 246px))); min-width: 0; font-size: 15px; table-layout: fixed; }
+  .articleTableWrap .articleTable :is(th, td):first-child { position: static; width: 64cqw; }
   .tableHint { display: none; }
 }
 .articleDivider { margin: 36px 0; border: 0; border-top: 1px solid var(--w43-border); }
