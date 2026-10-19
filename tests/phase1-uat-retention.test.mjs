@@ -11,6 +11,17 @@ import { assertPhase2FoundationSource, phase2FoundationPath } from '../qa/phase2
 const proof = JSON.parse(readFileSync('qa/phase1-source-ownership.json', 'utf8'));
 const native = JSON.parse(readFileSync('qa/phase3-native-provider-parity.json', 'utf8'));
 const sha = value => createHash('sha256').update(value).digest('hex');
+// Only the two approved additive Author/H4 schemas supersede their original protected bodies.
+const reviewedSchemaOwners = {
+  "cms/sanity/schema/documents/author.ts": [
+    "c5b003fc4f919911381939eb8bccfcaa4246d8212bab338f33f8cea0c12d3559",
+    "574550ddb81476bdb881434346f3c4100718b6a08270252b9abe85a5e3471133"
+  ],
+  "cms/sanity/schema/objects/portable-text.ts": [
+    "b2fcb0fbb052a3c613d3e686de3f7e1087bc30c4a948cc9e56348524abdd0803",
+    "7abf78ee4b4877cb81a03ee6c98fb3dff2f7303f5c9c359bc5e77aee765f9f52"
+  ]
+};
 
 test('own UAT 1f baseline retains every root alias and all P1/private/provider/tracking sources outside exact canonical extraction', () => {
   assert.equal(proof.baseline, '1f19562560e5e2de47cf643a4dbe7f27a9a91348');
@@ -23,7 +34,10 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
   for (const file of root) assert.equal(sha(readFileSync(file)), proof.protected[file], file + ': root source must stay byte exact');
   assert.equal(Object.keys(proof.protected).length, 764);
   for (const [file, digest] of Object.entries(proof.protected)) {
-    if (Object.hasOwn(proof.reviewedGoogleSessionUat.existingSources, file)) {
+    if (Object.hasOwn(reviewedSchemaOwners, file)) {
+      assert.equal(digest, reviewedSchemaOwners[file][0], file + ': original schema protection is frozen');
+      assert.equal(sha(readFileSync(file)), reviewedSchemaOwners[file][1], file + ': exact reviewed additive schema');
+    } else if (Object.hasOwn(proof.reviewedGoogleSessionUat.existingSources, file)) {
       const pins = proof.reviewedGoogleSessionUat.existingSources[file];
       assert.equal(pins.originalProtectedSha256, digest, file + ': original protection is frozen');
       assert.equal(sha(reviewedGoogleSessionBaselineSource(file, proof, path => readFileSync(path, 'utf8'), 'admin-uat')), pins.baseSha256);

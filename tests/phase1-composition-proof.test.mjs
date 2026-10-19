@@ -94,3 +94,11 @@ test('explicit Admin UAT retention admits only sixteen C645 and three reviewed P
   const tampered = structuredClone(proof); tampered.reviewedInheritedUat.retainedSources['unknown.ts'] = records[file];
   assert.throws(() => assertReviewedUatRetention(file, original, tampered, read, 'admin-uat'), /admission/);
 });
+
+test('accepted scheduler owner remains sealed and rejects source or original-proof drift', () => {
+  const file = 'lib/admin/article-schedule-handler.ts';
+  assert.equal(inheritedUatSourceDigest(file, proof.owners[file], proof), sha(read(file)));
+  assert.throws(() => inheritedUatSourceDigest(file, '0'.repeat(64), proof));
+  const route = Object.keys(proof.compositions)[0];
+  assert.throws(() => reviewedCompositionSource(route, proof, path => read(path) + (path === file ? '\n/* mutation */' : '')), /shared owner changed/);
+});

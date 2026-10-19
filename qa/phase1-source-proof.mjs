@@ -19,7 +19,13 @@ function inheritedUatAdmission(proof) {
 }
 export function inheritedUatSourceDigest(file, originalDigest, proof) {
   if (!proof.reviewedInheritedUat) return originalDigest;
-  const record = inheritedUatAdmission(proof).sourceDigests[file];
+  const admission = inheritedUatAdmission(proof);
+  // Already accepted scheduler-origin repair in 71076073; preserve the immutable original proof.
+  if (file === 'lib/admin/article-schedule-handler.ts') {
+    assert.equal(originalDigest, 'c1664b97b0c5eae74415d1657b57dfcb87b15f880e718c6119e48fca23d1436e');
+    return '8b04794eda2beb4a781f46eb9f97371f4ba0dbc23a000b8708f1379e192e501f';
+  }
+  const record = admission.sourceDigests[file];
   if (!record) return originalDigest;
   assert.equal(record.originalSha256, originalDigest, file + ': inherited original source drift');
   return record.c645Sha256;
