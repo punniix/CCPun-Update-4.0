@@ -12,6 +12,7 @@ import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountd
 import { renderWebsite43ArticleBody } from './Website43ArticleBody';
 import ArticleShareActions from './ArticleShareActions';
 import { estimateArticleReadingMinutes } from './articleReadingTime';
+import { ArticleEngagementProvider, ArticleEngagementSummary } from './ArticleEngagement';
 
 const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   day: 'numeric',
@@ -49,7 +50,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
     ? [{ index, id: `section-${index + 1}`, label: item.text, level: item.level }]
     : []);
   const headingIds = new Map(headings.map((heading) => [heading.index, heading.id]));
-  const tocGroups = headings.filter((heading) => heading.level !== 4).reduce<Array<{ primary: (typeof headings)[number]; children: Array<(typeof headings)[number]> }>>((groups, heading) => {
+  const tocGroups = headings.reduce<Array<{ primary: (typeof headings)[number]; children: Array<(typeof headings)[number]> }>>((groups, heading) => {
     if (heading.level === 2 || groups.length === 0) groups.push({ primary: heading, children: [] });
     else groups[groups.length - 1].children.push(heading);
     return groups;
@@ -61,7 +62,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
   const sharePath = getArticlePath(article);
 
   return (
-    <div className={styles.root}>
+    <ArticleEngagementProvider key={article.id} articleId={article.id} disabled={preview}><div className={styles.root}>
       <Website43Navbar responsiveOverlay />
       <main id="main-content" tabIndex={-1}>
         {preview && <aside className={styles.section} role="status"><div className={styles.inner}>
@@ -76,10 +77,10 @@ export default function Website43Article({ article, relatedArticles = [], previe
             <div className={styles.articleMetaRow}>
               <div className={styles.articleMetaGroup}>
                 <p className={styles.articleHeaderMeta}>
-                  {publishedDateLabel ? `เผยแพร่เมื่อ ${publishedDateLabel}` : null}
-                  {showUpdatedDate ? `${publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด ${updatedDateLabel}` : null}
+                  {publishedDateLabel && <><span className={styles.articleDateLabel}>เผยแพร่เมื่อ</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></>}
+                  {showUpdatedDate && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>{publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด</span> <time dateTime={article.updatedAt}>{updatedDateLabel}</time></span>}
                 </p>
-                <span className={styles.articleReadingTime}>· อ่านประมาณ {readingMinutes} นาที</span>
+                <ArticleEngagementSummary readingMinutes={readingMinutes} />
               </div>
               {!preview && <ArticleShareActions path={sharePath} title={article.title} placement="header" />}
             </div>
@@ -91,8 +92,10 @@ export default function Website43Article({ article, relatedArticles = [], previe
           <div className={styles.articleReadingGrid}>
             {tocGroups.length > 0 && (
               <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">
-                <strong>หัวข้อเนื้อหา</strong>
-                <Website43ArticleToc groups={tocGroups} />
+                <details className={styles.tocDisclosure} open>
+                  <summary>หัวข้อเนื้อหา<span aria-hidden="true">⌄</span></summary>
+                  <Website43ArticleToc groups={tocGroups} />
+                </details>
               </aside>
             )}
             <div className={styles.articleMainColumn}>
@@ -112,7 +115,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
               )}
               {tocGroups.length > 0 && (
                 <details className={styles.tocMobile}>
-                  <summary>หัวข้อเนื้อหา</summary>
+                  <summary>หัวข้อเนื้อหา<span aria-hidden="true">⌄</span></summary>
                   <div className={styles.tocMobileList}>
                     <Website43ArticleToc groups={tocGroups} />
                   </div>
@@ -120,7 +123,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
               )}
               <article className={styles.prose}>{renderWebsite43ArticleBody(article.body, headingIds)}</article>
               {!preview && <div className={styles.articleBottomShare}>
-                <strong>ส่งต่อบทความนี้</strong>
+                <ArticleEngagementSummary />
                 <ArticleShareActions path={sharePath} title={article.title} placement="footer" />
               </div>}
             </div>
@@ -203,6 +206,6 @@ export default function Website43Article({ article, relatedArticles = [], previe
         <section className={styles.section}><div className={`${styles.inner} ${styles.articleSupportInner}`}><p className={styles.cardBody}>บทความนี้จัดทำเพื่อให้ข้อมูลทั่วไป ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก และการลงทุนมีความเสี่ยง ควรศึกษาความคุ้มครอง เงื่อนไข ข้อยกเว้น และความเหมาะสมก่อนตัดสินใจ</p></div></section>
       </main>
       <Website43Footer />
-    </div>
+    </div></ArticleEngagementProvider>
   );
 }

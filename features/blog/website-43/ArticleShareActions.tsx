@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Link as LinkIcon, Check as CheckIcon } from 'lucide-react';
+import { Link as LinkIcon, Check as CheckIcon, Heart } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import styles from '@/components/layout/website-43/Website43.module.css';
+import { useArticleEngagement } from './ArticleEngagement';
 
 // Genuine Simple Icons SVG paths (CC0) for LINE, Facebook and X, preserved as provided.
 const social = {
@@ -40,6 +41,8 @@ export default function ArticleShareActions({ path, title, placement }: {
   placement: SharePlacement;
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
+  const [heartError, setHeartError] = useState(false);
+  const { metrics, heartPending, record: recordEngagement } = useArticleEngagement();
   // Always share the public canonical page, never the test.ccpun.com UAT origin or a Draft preview URL.
   const url = URL_ORIGIN + path;
   const encoded = encodeURIComponent(url);
@@ -50,6 +53,7 @@ export default function ArticleShareActions({ path, title, placement }: {
   ] as const;
   const record = (method: 'line' | 'facebook' | 'x' | 'copy') => {
     trackEvent('share', { method, content_type: 'article', share_placement: placement });
+    void recordEngagement('share');
   };
   const copy = async () => {
     try {
@@ -66,6 +70,10 @@ export default function ArticleShareActions({ path, title, placement }: {
     <div className={styles.articleShareControls} aria-label="แชร์บทความ">
       <span className={styles.articleShareLabel}>แชร์</span>
       <div className={styles.articleShareButtons}>
+        <button type="button" className={styles.articleShareButton} aria-label={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} title={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} aria-pressed={metrics.liked} disabled={heartPending}
+          onClick={async () => { setHeartError(false); const saved = await recordEngagement('heart', !metrics.liked); if (!saved) setHeartError(true); }}>
+          <Heart aria-hidden="true" size={21} fill={metrics.liked ? 'currentColor' : 'none'} />
+        </button>
         {shares.map(({ method, name, href }) => (
           <a key={method} className={styles.articleShareButton} href={href} target="_blank" rel="noopener noreferrer"
             aria-label={'แชร์บทความผ่าน ' + name} title={'แชร์ผ่าน ' + name}
@@ -79,7 +87,7 @@ export default function ArticleShareActions({ path, title, placement }: {
         </button>
       </div>
       <span className={styles.articleShareStatus} role="status" aria-live="polite">
-        {copyState === 'success' ? 'คัดลอกลิงก์แล้ว' : copyState === 'error' ? 'คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง' : ''}
+        {heartError ? 'บันทึกถูกใจไม่สำเร็จ กรุณาลองอีกครั้ง' : copyState === 'success' ? 'คัดลอกลิงก์แล้ว' : copyState === 'error' ? 'คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง' : ''}
       </span>
     </div>
   );

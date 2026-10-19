@@ -5,18 +5,28 @@ export function ArticleTableAccess({ children, stickyFirstColumn = false }: { ch
   const ref = useRef<HTMLDivElement>(null);
   const hintId = useId();
   const [overflow, setOverflow] = useState(false);
+  const [scroll, setScroll] = useState({ end: true, width: 100, left: 0 });
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    const measure = () => setOverflow(node.scrollWidth > node.clientWidth + 1);
+    const measure = () => {
+      setOverflow(node.scrollWidth > node.clientWidth + 1);
+      const width = Math.min(100, node.clientWidth / Math.max(1, node.scrollWidth) * 100);
+      const progress = node.scrollLeft / Math.max(1, node.scrollWidth - node.clientWidth);
+      setScroll({ end: node.scrollLeft + node.clientWidth >= node.scrollWidth - 2, width, left: progress * (100 - width) });
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(node);
     if (node.firstElementChild) observer.observe(node.firstElementChild);
     measure();
-    return () => observer.disconnect();
+    node.addEventListener('scroll', measure, { passive: true });
+    return () => { observer.disconnect(); node.removeEventListener('scroll', measure); };
   }, []);
   return <>
     {overflow && <p id={hintId} className={styles.tableHint}>เลื่อนตารางเพื่อดูทั้งหมด</p>}
-    <div ref={ref} className={styles.articleTableWrap} data-wide-table={stickyFirstColumn || undefined} tabIndex={overflow ? 0 : undefined} role={overflow ? 'region' : undefined} aria-label={overflow ? 'ตารางที่เลื่อนได้' : undefined} aria-describedby={overflow ? hintId : undefined}>{children}</div>
+    <div className={styles.articleTableViewport} data-overflow={overflow || undefined} data-scroll-end={scroll.end}>
+      <div ref={ref} className={styles.articleTableWrap} data-wide-table={stickyFirstColumn || undefined} tabIndex={overflow ? 0 : undefined} role={overflow ? 'region' : undefined} aria-label={overflow ? 'ตารางที่เลื่อนได้' : undefined} aria-describedby={overflow ? hintId : undefined}>{children}</div>
+      {overflow && <div className={styles.articleTableTrack} aria-hidden="true"><span style={{ width: `${scroll.width}%`, left: `${scroll.left}%` }} /></div>}
+    </div>
   </>;
 }

@@ -67,13 +67,13 @@ assert.ok(rendered.querySelector('h3#section-3'), 'existing H3 keeps its block-i
 assert.ok(rendered.querySelector('h4#section-4 a em strong'), 'H4 preserves inline links and emphasis');
 assert.ok(rendered.querySelector('h3#section-5'), 'headings after H4 retain their body index');
 const tocLinks = [...rendered.querySelectorAll('.toc a, .tocMobile a')].map((link) => link.getAttribute('href'));
-assert.deepEqual(tocLinks, ['#section-2', '#section-3', '#section-5', '#section-2', '#section-3', '#section-5'], 'desktop and mobile TOC keep the existing H2/H3 hierarchy and exclude H4');
+assert.deepEqual(tocLinks, ['#section-2', '#section-3', '#section-4', '#section-5', '#section-2', '#section-3', '#section-4', '#section-5'], 'approved desktop and mobile TOC include H2/H3/H4 without changing body-index anchors');
 const h4Link = rendered.querySelector('h4#section-4 a');
 assert.equal(h4Link.target, '_blank');
 for (const rel of ['noopener', 'noreferrer', 'nofollow', 'sponsored']) assert.ok(h4Link.rel.split(' ').includes(rel));
 const h4Only = doc(React.createElement(Article, { article: { ...article, body: h4Body } }));
 assert.ok(h4Only.querySelector('h4#section-1'));
-assert.equal(h4Only.querySelectorAll('.toc, .tocMobile').length, 0, 'H4-only content must not create an empty TOC');
+assert.equal(h4Only.querySelectorAll('a[href="#section-1"]').length, 2, 'both TOC variants preserve the H4-only anchor');
 for (const text of ['คำบรรยายภาพเปิด', 'เครดิต: เจ้าของภาพเดี่ยว', 'คำบรรยายแกลเลอรี · เครดิต: เจ้าของแกลเลอรี', 'ผู้เขียนจากเนื้อหา', '(2.0 MB)', 'ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก', 'คำถามทดสอบ', 'แหล่งต้นทาง']) assert.ok(rendered.body.textContent.includes(text), text);
 for (const selector of ['ul li', 'ol li', 'blockquote', 'aside', 'details', 'table th', 'table td', 'hr', 'em strong']) assert.ok(rendered.querySelector(selector), selector);
 const external = rendered.querySelector('a[href="https://example.com/reference"]');

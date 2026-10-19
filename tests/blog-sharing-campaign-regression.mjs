@@ -44,7 +44,7 @@ test('brand vector share actions use public canonical URLs and accessible names'
   assert.match(html, /twitter\.com\/intent\/tweet/);
   assert.match(html, /ccpun\.com%2Fblog%2Fpersonal-finance/);
   assert.doesNotMatch(html, /test\.ccpun\.com|localhost|<script/);
-  assert.equal((html.match(/<svg/g) ?? []).length, 4, 'three genuine social logos and one link symbol');
+  assert.equal((html.match(/<svg/g) ?? []).length, 5, 'three genuine social logos, one link symbol and the approved heart control');
   assert.ok((html.match(/width="21"/g) ?? []).length >= 3);
 });
 
