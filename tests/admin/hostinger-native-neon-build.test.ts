@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { build } from "esbuild";
-import { sealNativeNeonRuntime, validateNativeNeonBuild, validateNativeNeonSource } from "../../apps/admin/scripts/build-provider.mjs";
+import { runAdminNextBuild, sealNativeNeonRuntime, validateNativeNeonBuild, validateNativeNeonSource } from "../../apps/admin/scripts/build-provider.mjs";
 import { applyHostingerAdminUatSafeRuntimeFlags } from "../../apps/admin/instrumentation";
+import { assertNativeProviderRetirement } from "../../qa/phase3-native-provider-proof.mjs";
 import { getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
 import { startArticleScheduleWorker } from "../../scripts/article-schedule-worker";
 
@@ -163,6 +164,86 @@ test("native config omits Workflow for UAT and sealed manual Production while ac
       assert.notEqual(invalid.status, 0); assert.match(invalid.stderr, /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
     }
   } finally { f.close(); }
+});
+
+test("Hostinger prebundles the real config TS graph for plain Node and retains lane guards and cleanup", async () => {
+  const f = fixture(); try {
+    // These are the actual shared owners, not stubs that hide ESM TS resolution.
+    for (const path of ["lib/admin/environment.ts", "lib/admin/capability-profile.ts", "lib/admin/routes.ts",
+      "lib/runtime/deployment-identity.ts", "lib/routing/private-surfaces.ts", "apps/next-security-headers.mjs", "lib/runtime/security-headers.mjs"]) put(join(f.root, path), source(path));
+    put(join(f.root, "node_modules/workflow/package.json"), '{"exports":{"./next":"./next.cjs"}}');
+    put(join(f.root, "node_modules/workflow/next.cjs"), 'throw new Error("SDK_WRAPPER_WAS_LOADED");');
+    f.git("add", "apps", "lib"); f.git("commit", "-m", "Real canonical config dependencies");
+    const values = { ...f.values, CCPUN_GIT_SHA: f.git("rev-parse", "HEAD") };
+    const env = (lane: Record<string, string | undefined>) => ({ PATH: process.env.PATH, NODE_ENV: "test", ...lane });
+    const raw = spawnSync(process.execPath, ["--input-type=module", "-e", 'await import("./next.config.ts")'],
+      { cwd: f.admin, env: env(values), encoding: "utf8" });
+    assert.notEqual(raw.status, 0); assert.match(raw.stderr, /ERR_MODULE_NOT_FOUND/);
+    assert.match(raw.stderr, /lib\/admin\/environment/);
+    const compiled = join(f.admin, "next.config.mjs");
+    const run = async (lane: Record<string, string | undefined>) => runAdminNextBuild(f.admin, env(lane), (_command, args, options) => {
+      assert.deepEqual(args.slice(1), ["build", "--webpack"]);
+      assert.equal(options.cwd, f.admin); assert.equal(existsSync(compiled), true);
+      return spawnSync(process.execPath, ["--input-type=module", "-e",
+        `const loadConfig=(await import("node:module")).createRequire(import.meta.url)(${JSON.stringify(fileURLToPath(new URL("../../node_modules/next/dist/server/config.js", import.meta.url)))}).default;const c=await loadConfig("phase-production-build",process.cwd(),{silent:true});console.log(JSON.stringify({configFileName:c.configFileName,output:c.output,env:c.env,headers:await c.headers(),rewrites:await c.rewrites(),images:c.images,trace:c.outputFileTracingRoot}));`],
+      { cwd: f.admin, env: options.env, encoding: "utf8" });
+    });
+    const uat = await run(values);
+    assert.equal(uat.status, 0, uat.stderr); assert.equal(existsSync(compiled), false);
+    const actual = JSON.parse(uat.stdout);
+    assert.equal(actual.configFileName, "next.config.mjs");
+    assert.equal(actual.output, "standalone"); assert.equal(actual.trace, f.root);
+    assert.equal(actual.env.NEXT_PUBLIC_CCPUN_APP_ENV, "admin-uat");
+    assert.ok(actual.images.remotePatterns.some((pattern: { pathname: string }) => pattern.pathname === "/images/ccb9lnw5/uat/**"));
+    assert.ok(actual.headers.some((rule: { headers: { key: string; value: string }[] }) => rule.headers.some((h) => h.key === "X-Robots-Tag" && h.value === "noindex, nofollow, noarchive")));
+    assert.match(JSON.stringify(actual.headers), /https:\/\/accounts\.google\.com/);
+    assert.ok(actual.rewrites.beforeFiles.some((rule: { source: string }) => rule.source === "/assets/:path*"));
+    for (const change of [{ CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" }, { CCPUN_GIT_SHA: "a".repeat(40) }]) {
+      const denied = await run({ ...values, ...change });
+      assert.notEqual(denied.status, 0); assert.match(denied.stderr, /NATIVE_NEON_UAT_BUILD_DENIED/);
+      assert.equal(existsSync(compiled), false);
+    }
+    f.git("checkout", "-b", "v4-production");
+    const production = { ...productionValues(f), CCPUN_GIT_SHA: values.CCPUN_GIT_SHA };
+    const prod = await run(production);
+    assert.equal(prod.status, 0, prod.stderr); assert.equal(existsSync(compiled), false);
+    assert.equal(JSON.parse(prod.stdout).env.NEXT_PUBLIC_CCPUN_APP_ENV, "production-admin");
+    const denied = await run({ ...production, AUTH_URL: "https://evil.example" });
+    assert.notEqual(denied.status, 0); assert.match(denied.stderr, /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+    assert.throws(() => runAdminNextBuild(f.admin, env(values), () => { throw new Error("FIXTURE_NEXT_FAILURE"); }), /FIXTURE_NEXT_FAILURE/);
+    assert.equal(existsSync(compiled), false, "thrown Next failure also removes only owned generated config");
+    put(compiled, "// unowned existing config\n");
+    assert.throws(() => runAdminNextBuild(f.admin, env(values)), /HOSTINGER_ADMIN_CONFIG_OUTPUT_EXISTS/);
+    assert.equal(readFileSync(compiled, "utf8"), "// unowned existing config\n");
+    unlinkSync(compiled);
+    symlinkSync(join(f.root, "missing-unowned-config.mjs"), compiled);
+    assert.throws(() => runAdminNextBuild(f.admin, env(values)), /HOSTINGER_ADMIN_CONFIG_OUTPUT_EXISTS/);
+    unlinkSync(compiled);
+    const local = await runAdminNextBuild(f.admin, { CCPUN_DEPLOYMENT_PROVIDER: "local" }, (_command, args) => {
+      assert.deepEqual(args.slice(1), ["build"]); assert.equal(existsSync(compiled), false);
+      return { status: 0 };
+    });
+    assert.equal(local.status, 0);
+    unlinkSync(join(f.admin, "next.config.ts"));
+    assert.throws(() => runAdminNextBuild(f.admin, env(values)), /Could not resolve/);
+    assert.equal(existsSync(compiled), false, "compiler failure also cleans its owned output");
+    const driver = source("apps/admin/scripts/build-provider.mjs");
+    assert.ok(driver.indexOf("const nativeSeal = validateNativeNeonBuild();") < driver.indexOf("runAdminNextBuild(adminRoot, buildEnvironment)"));
+    assert.ok(driver.indexOf("if (hostinger) installAdminMonorepoDependencies();") < driver.indexOf("runAdminNextBuild(adminRoot, buildEnvironment)"));
+  } finally { f.close(); }
+});
+
+test("reviewed config-build admission rejects unknown contract changes even with a rewritten output seal", () => {
+  const proof = JSON.parse(source("qa/phase3-native-provider-parity.json"));
+  const file = "lib/runtime/deployment-identity.ts";
+  assert.equal(assertNativeProviderRetirement(file, proof.baselineHashes[file]), true);
+  const contract = "tests/hostinger-native-app-contract.test.mjs";
+  const changed = source(contract) + "\n// unreviewed contract change\n";
+  const readChanged = (path: string) => path === contract ? changed : source(path);
+  assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], proof, readChanged));
+  const resealed = structuredClone(proof);
+  resealed.outputTestHashes[contract] = createHash("sha256").update(changed).digest("hex");
+  assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], resealed, readChanged));
 });
 
 test("manual Production seal binds the real lane/ref and permanently disabled scheduler without claiming readiness", () => {

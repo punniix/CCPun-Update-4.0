@@ -36,7 +36,11 @@ test('current app roots use native workspace builders and contain no provider de
     if (role === "web") {
       assert.match(builder, /function run\(command, args, cwd = webRoot\)/);
       assert.match(builder, /spawnSync\(command, args, \{[\s\S]*?cwd,/);
-    } else assert.match(builder, /cwd: adminRoot/);
+    } else {
+      assert.match(builder, /export function runAdminNextBuild\(root = adminRoot,/);
+      assert.match(builder, /runAdminNextBuild\(adminRoot, buildEnvironment\)/);
+      assert.match(builder, /cwd: root, env: variables/);
+    }
     assert.equal(existsSync(new URL(`../apps/${role}/vercel.json`, import.meta.url)), false);
   }
   assert.equal(root.scripts.build, 'node scripts/build-root.mjs');
