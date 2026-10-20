@@ -60,6 +60,25 @@ test('original Production owners remain guarded alongside exact reviewed Google 
     else if (phase3AdminEntries.includes(file)) assert.equal(assertPhase3AdminContracts(file, digest), true, file);
     else if (phase2AdminEntries.includes(file)) assert.equal(assertPhase2AdminComposition(file, digest), true, file);
     else if (file === phase2FoundationPath) assert.equal(assertPhase2FoundationSource(file, digest), true, file);
+    else if (file === 'cms/sanity/policy/article-publication.ts') {
+      // Explicitly reviewed P0 only: protect the current new source AND
+      // prove removing the single helper and timestamp expression gives the
+      // original immutable Production owner byte-for-byte.
+      const source = readFileSync(resolve(root, file), 'utf8');
+      assert.equal(digest, '802db995aec376a4696d1ea3962f39a40332415a2f1438c0ffaebc8c1ceccd04');
+      assert.equal(sha(source), '44104c396d8a05e3bbade5a1d52a27bc287e9722ff420872f34825464df89695');
+      const marker = '/**\n * Only published, reader-facing changes can advance the SEO freshness date.';
+      const nextMarker = '/**\n * Normal owner-approved publication is always indexable.';
+      const begin = source.indexOf(marker);
+      const end = source.indexOf(nextMarker, begin + marker.length);
+      assert.ok(begin >= 0 && end > begin, 'reviewed P0 helper present exactly once');
+      assert.equal(source.indexOf(marker, begin + marker.length), -1);
+      const withoutHelper = source.slice(0, begin) + source.slice(end);
+      const replacement = "    contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)\\n      ? now\\n      : (published?.contentUpdatedAt || published?._updatedAt || now),";
+      assert.equal(withoutHelper.split(replacement).length, 2, 'one reviewed timestamp change');
+      const original = withoutHelper.replace(replacement, '    contentUpdatedAt: now,');
+      assert.equal(sha(original), digest, 'original immutable publication body preserved');
+    }
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else if (Object.hasOwn(proof.reviewedGoogleSessionProduction.retainedSources, file))
       assert.equal(assertReviewedGoogleSessionProduction(file, digest, proof, path => readFileSync(resolve(root, path), 'utf8'), 'production-admin'), true, file);
