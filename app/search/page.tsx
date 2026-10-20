@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 import { CCPunAiSearchBar } from '@/features/ai-search/CCPunAiSearchWidgets';
 import { Website43Navbar } from '@/components/layout/website-43/Website43Navbar';
@@ -41,7 +42,7 @@ export default function SearchPage() {
             โปรดตรวจสอบข้อมูลอัปเดต เงื่อนไขกรมธรรม์ และแหล่งอ้างอิงก่อนตัดสินใจ
           </p>
           <div className={styles.actions}>
-            <a href="/blog/">อ่านบทความทั้งหมด</a>
+            <Link href="/blog/">อ่านบทความทั้งหมด</Link>
             <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer">ปรึกษากับ CCPun</a>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import type { CSSProperties } from 'react';
 
 // Public endpoint — no credentials are embedded in the website bundle.
@@ -45,7 +46,7 @@ export function CCPunAiSearchChrome() {
 
 export function CCPunAiSearchBar() {
   const ready = useSearchSnippet();
-  if (!ready) return <a href="/blog/" style={{ color: '#E0C985' }}>อ่านบทความ CCPun ทั้งหมด</a>;
+  if (!ready) return <Link href="/blog/" style={{ color: '#E0C985' }}>อ่านบทความ CCPun ทั้งหมด</Link>;
   return (
     <search-bar-snippet
       api-url={CCPUN_AI_SEARCH_URL}
