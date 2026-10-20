@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Link as LinkIcon, Check as CheckIcon, Heart } from 'lucide-react';
+import { Link as LinkIcon, Check as CheckIcon } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { useArticleEngagement } from './ArticleEngagement';
@@ -41,8 +41,7 @@ export default function ArticleShareActions({ path, title, placement }: {
   placement: SharePlacement;
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
-  const [heartError, setHeartError] = useState(false);
-  const { metrics, heartPending, record: recordEngagement } = useArticleEngagement();
+  const { record: recordEngagement } = useArticleEngagement();
   // Always share the public canonical page, never the test.ccpun.com UAT origin or a Draft preview URL.
   const url = URL_ORIGIN + path;
   const encoded = encodeURIComponent(url);
@@ -81,13 +80,10 @@ export default function ArticleShareActions({ path, title, placement }: {
           onClick={copy} aria-label="คัดลอกลิงก์บทความ" title="คัดลอกลิงก์บทความ">
           {copyState === 'success' ? <CheckIcon aria-hidden="true" size={21} /> : <LinkIcon aria-hidden="true" size={21} />}
         </button>
-        <button type="button" className={styles.articleShareButton} aria-label={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} title={metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'} aria-pressed={metrics.liked} disabled={heartPending}
-          onClick={async () => { setHeartError(false); const saved = await recordEngagement('heart', !metrics.liked); if (!saved) setHeartError(true); }}>
-          <Heart aria-hidden="true" size={21} fill={metrics.liked ? 'currentColor' : 'none'} />
-        </button>
+
       </div>
       <span className={styles.articleShareStatus} role="status" aria-live="polite">
-        {heartError ? 'บันทึกถูกใจไม่สำเร็จ กรุณาลองอีกครั้ง' : copyState === 'success' ? 'คัดลอกลิงก์แล้ว' : copyState === 'error' ? 'คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง' : ''}
+        {copyState === 'success' ? 'คัดลอกลิงก์แล้ว' : copyState === 'error' ? 'คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง' : ''}
       </span>
     </div>
   );

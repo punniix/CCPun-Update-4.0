@@ -111,6 +111,23 @@ assert.ok(managedProfile.body.textContent.includes('บทบาทจาก San
 assert.ok(managedProfile.body.textContent.includes('คำอธิบายจาก Sanity'));
 assert.ok(!managedProfile.body.textContent.includes('AFPT260195'), 'Article author card must not repeat the credential identifier');
 
+
+const byline = managedProfile.querySelector('header h1').previousElementSibling;
+assert.equal(byline.tagName,'P');
+assert.equal(byline.textContent,'โดย ชนาธิป ชิตประเสริฐ, AFPT');
+assert.equal(byline.querySelector('a,button'),null,'compact byline stays plain and noninteractive');
+assert.equal(managedProfile.querySelectorAll('.authorCard').length,1,'one full profile retained at article end');
+assert.equal(managedProfile.querySelector('.authorName').textContent,'ชนาธิป ชิตประเสริฐ, AFPT™','full profile retains real qualification label');
+assert.equal(rendered.querySelector('header h1').previousElementSibling.textContent,'โดย ผู้เขียนจากเนื้อหา');
+assert.ok(!rendered.querySelector('header h1').previousElementSibling.textContent.includes('AFPT'),'no invented qualification for an author without credentials');
+const {renderWebsite43ArticleBody}=require('../features/blog/website-43/Website43ArticleBody.tsx');
+const introItems=[{type:'paragraph',text:'บทนำแรก',segments:[{text:'อ้างอิงเดิม',href:'https://example.com/inline'}]},{type:'paragraph',text:'บทนำที่สอง'},{type:'heading',level:2,text:'หัวข้อหลัก'},{type:'paragraph',text:'เนื้อหาปกติ'}];
+const introDoc=doc(React.createElement('article',{className:'prose'},renderWebsite43ArticleBody(introItems,new Map([[2,'section-3']]))));
+const paragraphs=[...introDoc.querySelectorAll('p')];
+for(const p of paragraphs.slice(0,2)){assert.equal(p.style.fontSize,'19px');assert.equal(p.style.lineHeight,'1.75');assert.equal(p.style.color,'rgba(250, 249, 249, 0.9)');assert.equal(p.style.margin,'','existing paragraph gap remains stylesheet-owned');}
+assert.equal(paragraphs[2].getAttribute('style'),null,'body after first nonparagraph keeps existing responsive16/17 typography');
+assert.ok(paragraphs[0].querySelector('a[href="https://example.com/inline"]'),'intro adjustment preserves inline citations');
+
 const parsedQualifications = parseProfessionalQualifications([
   { _key: 'valid', shortName: 'AFPT™', name: 'ที่ปรึกษาการเงิน AFPT™', identifier: 'AFPT260195', issuer: 'สมาคมนักวางแผนการเงินไทย' },
   { _key: 'invalid', shortName: 'BROKEN' },
@@ -133,6 +150,7 @@ assert.deepEqual(articlePosting.author, { '@id': 'https://ccpun.com/#person' });
 assert.equal('name' in articlePosting.author, false, 'Article JSON-LD must not create a conflicting author name');
 
 const item = toWebsite43ArticleItem(article);
+assert.equal(item.id, article.id, 'card engagement uses actual published document ID rather than slug');
 assert.match(item.meta, /2 มิ\.ย\. 2569/, 'Bangkok midnight date stays identical in SSR and hydration');
 assert.equal(item.href, '/blog/life-insurance/fixture-article/');
 assert.doesNotThrow(() => toWebsite43ArticleItem({ ...article, publishedAt: 'invalid' }));
@@ -201,8 +219,10 @@ assert.match(articleStyles, /\.prose :is\(p, li, h2, h3, h4, blockquote\) a\s*\{
 
 // Render only the dedicated Blog interaction island as a cached route remount after popstate already fired.
 const browserDom = new JSDOM('<div id="app"></div>', { url: 'https://ccpun.com/blog/?q=สุขภาพ' });
-const savedGlobals = new Map(['window', 'document', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+const cardReads = [];
+const savedGlobals = new Map(['fetch', 'window', 'document', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 Object.defineProperties(globalThis, {
+  fetch: { value: async (url, init={}) => { cardReads.push({url, body:init.body}); return Response.json({available:false,views:null,shares:null,hearts:null,liked:false}); }, configurable:true },
   window: { value: browserDom.window, configurable: true },
   document: { value: browserDom.window.document, configurable: true },
   requestAnimationFrame: { value: () => 0, configurable: true },
@@ -226,15 +246,23 @@ await React.act(async () => root.render(React.createElement(BlogClient, {
   classNames,
   categories,
 })));
+const six=Array.from({length:8},(_,index)=>({...item,id:`id-${index}`,slug:`slug-${index}`,href:`/blog/life-insurance/slug-${index}/`}));
+const sixDoc=doc(React.createElement(BlogClient,{articles:six,featuredArticles:six,classNames,categories}));
+assert.equal(sixDoc.querySelectorAll('.articleGrid > article').length,6);
+assert.equal(sixDoc.querySelectorAll('.articleGrid button[aria-pressed]').length,6,'heart mounts only six visible page cards');
+assert.equal(sixDoc.querySelectorAll('.featuredRail button[aria-pressed]').length,0,'three repeated carousel sets have no engagement providers/actions');
+assert.equal(sixDoc.querySelectorAll('.articleGrid a button').length,0);
+assert.ok([...sixDoc.querySelectorAll('.articleGrid button[aria-pressed]')].every(button=>button.getAttribute('aria-label')==='ถูกใจบทความ: '+item.title),'each card button names the actual article');
+
 const input = browserDom.window.document.querySelector('input[type="search"]');
 assert.equal(input.value, 'สุขภาพ', 'cached stale initial props must read the restored browser URL on mount');
-assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 1);
+assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > article').length, 1);
 await React.act(async () => {
   browserDom.window.history.replaceState(null, '', '/blog/');
   browserDom.window.dispatchEvent(new browserDom.window.PopStateEvent('popstate'));
 });
 assert.equal(input.value, '');
-assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 2);
+assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > article').length, 2);
 
 const inputValueSetter = Object.getOwnPropertyDescriptor(browserDom.window.HTMLInputElement.prototype, 'value').set;
 await React.act(async () => {
@@ -243,14 +271,16 @@ await React.act(async () => {
 });
 assert.equal(input.value, 'abc123');
 assert.equal(new URL(browserDom.window.location.href).searchParams.get('q'), 'abc123', 'live search must persist q through App Router replace');
-assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 0);
+assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > article').length, 0);
 await React.act(async () => {
   inputValueSetter.call(input, '');
   input.dispatchEvent(new browserDom.window.Event('input', { bubbles: true }));
 });
 assert.equal(new URL(browserDom.window.location.href).searchParams.has('q'), false, 'clearing live search must remove q from the URL');
-assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > a').length, 2);
+assert.equal(browserDom.window.document.querySelectorAll('.articleGrid > article').length, 2);
 
+assert.ok(cardReads.every(request => !request.body), 'listing mounts only read metrics, never record Article views');
+assert.equal(browserDom.window.document.querySelectorAll('.articleGrid a button').length,0, 'heart controls are not nested in content navigation');
 await React.act(async () => root.unmount());
 for (const [key, descriptor] of savedGlobals) {
   if (descriptor) Object.defineProperty(globalThis, key, descriptor);

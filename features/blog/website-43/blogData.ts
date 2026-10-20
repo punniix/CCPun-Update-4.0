@@ -4,6 +4,7 @@ import { getArticlePath } from '@/lib/content/url';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 
 export type Website43ArticleItem = {
+  id: string;
   slug: string;
   category: string;
   title: string;
@@ -38,6 +39,7 @@ export function toWebsite43ArticleItem(article: Article): Website43ArticleItem {
   const formattedDate = Number.isFinite(date.getTime()) ? thaiDateFormatter.format(date) : null;
 
   return {
+    id: article.id,
     slug: article.slug,
     category: semanticTopic?.title ?? article.category,
     title: article.title,

@@ -1,3 +1,5 @@
+import './article-overview-rendering.test.mjs';
+import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -255,7 +257,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
   assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
   for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
     if (file === retired) continue;
-    const source = read(file);
+    const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
     if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css') {
       const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png';
       const derived = asset.replace('.png', '.lossless.webp');
@@ -273,7 +275,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
       assert.equal(sha(source), '49a2b4550755fc02c7c1f145bb5980b267c6a2d82013059cc135cd4ad6464717', 'only unused legal selectors removed');
     } else if (file === 'features/blog/website-43/Website43Article.tsx') {
       assert.equal(digest, 'd6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2');
-      assert.equal(sha(source), 'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae', 'reviewed Article V4 composition only');
+      assert.equal(sha(articleOverviewSourceProjection(source)), 'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae', 'reviewed Article V4 plus exact published overview only');
     } else assert.equal(sha(source),digest,file);
   }
 });

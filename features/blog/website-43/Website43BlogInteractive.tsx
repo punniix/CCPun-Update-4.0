@@ -1,5 +1,7 @@
 'use client';
 
+import ArticleCardEngagement from './ArticleCardEngagement';
+import cardStyles from './ArticleCardEngagement.module.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -51,15 +53,17 @@ const FEATURED_AUTOPLAY_MS = 4000;
 
 function ArticleCard({ article, classNames }: { article: Website43ArticleItem; classNames: Website43BlogClientClassNames }) {
   return (
-    <Link className={classNames.articleCard} href={article.href}>
+    <article className={classNames.articleCard}>
+    <Link className={cardStyles.contentLink} href={article.href}>
       <Image className={classNames.articleImage} src={article.image} alt="" width={article.imageWidth} height={article.imageHeight} sizes="(max-width: 639px) calc(100vw - 48px), (max-width: 1023px) 48vw, 380px" loading="lazy" />
       <div className={classNames.articleCardBody}>
         <span className={classNames.articleCategory}>{article.category}</span>
-        <h2 className={classNames.articleTitle}>{article.title}</h2>
-        <p className={classNames.articleExcerpt}>{article.excerpt}</p>
-        <p className={classNames.articleMeta}>{article.meta}</p>
+        <h2 className={classNames.articleTitle} style={{ textWrap: 'pretty' }}>{article.title}</h2>
+        <p className={classNames.articleExcerpt} style={{ textWrap: 'pretty' }}>{article.excerpt}</p>
       </div>
     </Link>
+    <ArticleCardEngagement articleId={article.id} title={article.title} dateLabel={article.meta} publishedAt={article.publishedAt} />
+    </article>
   );
 }
 

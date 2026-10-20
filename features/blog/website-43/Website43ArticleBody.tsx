@@ -26,9 +26,10 @@ function listItemContent(item: string | ArticleRichText) {
 }
 
 export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Map<number, string>) {
+  const introEnd = items.findIndex(item => item.type !== 'paragraph');
   return items.map((item, index) => {
     const key = `article-block-${index}`;
-    if (item.type === 'paragraph') return <p key={key}>{richContent(item)}</p>;
+    if (item.type === 'paragraph') return <p key={key} style={index < (introEnd < 0 ? items.length : introEnd) ? { fontSize: 19, lineHeight: 1.75, color: 'rgba(250,249,249,.9)' } : undefined}>{richContent(item)}</p>;
     if (item.type === 'heading') {
       const id = headingIds.get(index);
       return item.level === 2

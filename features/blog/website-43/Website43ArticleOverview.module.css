@@ -1,0 +1,14 @@
+.overview { margin: 28px 0; padding: 22px 24px; border: 1px solid var(--w43-border); border-radius: 16px; background: var(--w43-surface); color: var(--w43-ink); word-break: normal; overflow-wrap: break-word; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--w43-gold); font-size: 18px; font-weight: 600; line-height: 1.6; cursor: pointer; list-style: none; }
+.heading::-webkit-details-marker { display: none; }
+.heading svg { flex-shrink: 0; transition: transform 160ms ease; }
+.overview[open] .heading svg { transform: rotate(180deg); }
+.heading:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 6px; border-radius: 2px; }
+.content { margin-top: 14px; font-size: 16px; line-height: 1.9; text-wrap: pretty; }
+.content p { margin: 0; white-space: pre-line; }
+.content ul { margin: 0; padding-inline-start: 22px; }
+.content li + li { margin-top: 10px; }
+.content li::marker { color: var(--w43-gold); }
+@media (max-width: 767px) { .overview { padding: 18px 20px; margin: 24px 0; } .heading { font-size: 17px; } }
+@media (prefers-reduced-motion: reduce) { .heading svg { transition: none; } }
+.content ::highlight(ccpun-overview-pending) { color: transparent; text-shadow: none; }

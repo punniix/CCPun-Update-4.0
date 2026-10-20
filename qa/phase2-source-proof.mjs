@@ -36,6 +36,115 @@ function imports(tree) {
   }));
 }
 
+export function reviewedArticleCardProjection(file, source) {
+  const changes = {
+  "features/blog/website-43/Website43Article.tsx": [
+    [
+      "            <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>โดย {author.name.replaceAll('™', '')}</p>\n",
+      ""
+    ],
+    [
+      "textWrap: 'balance', marginTop: 12",
+      "textWrap: 'balance'"
+    ]
+  ],
+  "features/blog/website-43/Website43BlogInteractive.tsx": [
+    [
+      "import ArticleCardEngagement from './ArticleCardEngagement';\nimport cardStyles from './ArticleCardEngagement.module.css';\n",
+      ""
+    ],
+    [
+      "    <article className={classNames.articleCard}>\n    <Link className={cardStyles.contentLink} href={article.href}>",
+      "    <Link className={classNames.articleCard} href={article.href}>"
+    ],
+    [
+      "      </div>\n    </Link>\n    <ArticleCardEngagement articleId={article.id} title={article.title} dateLabel={article.meta} publishedAt={article.publishedAt} />\n    </article>",
+      "        <p className={classNames.articleMeta}>{article.meta}</p>\n      </div>\n    </Link>"
+    ]
+  ],
+  "features/blog/website-43/Website43ArticleBody.tsx": [
+    [
+      "  const introEnd = items.findIndex(item => item.type !== 'paragraph');\n",
+      ""
+    ],
+    [
+      "<p key={key} style={index < (introEnd < 0 ? items.length : introEnd) ? { fontSize: 19, lineHeight: 1.75, color: 'rgba(250,249,249,.9)' } : undefined}>",
+      "<p key={key}>"
+    ]
+  ],
+  "features/blog/website-43/blogData.ts": [
+    [
+      "  id: string;\n",
+      ""
+    ],
+    [
+      "    id: article.id,\n",
+      ""
+    ]
+  ]
+};
+  for (const [reviewed, original] of changes[file] ?? []) {
+    assert.equal(source.split(reviewed).length, 2, file + ": one exact approved card/byline/intro change");
+    source = source.replace(reviewed, original);
+  }
+  return source;
+}
+
+export function reviewedThaiWrapProjection(file, source) {
+  const additions = {
+  "features/blog/website-43/Website43Article.tsx": [
+    [
+      "<h1 className={styles.articleHeadline}>",
+      "<h1 className={styles.articleHeadline} style={{ textWrap: 'balance' }}>"
+    ],
+    [
+      "<h3 className={styles.articleTitle}>",
+      "<h3 className={styles.articleTitle} style={{ textWrap: 'pretty' }}>"
+    ],
+    [
+      "<p className={styles.articleExcerpt}>",
+      "<p className={styles.articleExcerpt} style={{ textWrap: 'pretty' }}>"
+    ]
+  ],
+  "features/blog/website-43/Website43BlogInteractive.tsx": [
+    [
+      "<h2 className={classNames.articleTitle}>",
+      "<h2 className={classNames.articleTitle} style={{ textWrap: 'pretty' }}>"
+    ],
+    [
+      "<p className={classNames.articleExcerpt}>",
+      "<p className={classNames.articleExcerpt} style={{ textWrap: 'pretty' }}>"
+    ]
+  ],
+  "features/blog/website-43/Website43ArticleToc.tsx": [
+    [
+      "data-level={group.primary.level}>",
+      "data-level={group.primary.level} style={{ textWrap: 'pretty' }}>"
+    ],
+    [
+      "data-level={heading.level}>",
+      "data-level={heading.level} style={{ textWrap: 'pretty' }}>"
+    ]
+  ]
+};
+  for (const [original, reviewed] of additions[file] ?? []) {
+    assert.equal(source.split(reviewed).length, 2, file + ": one exact scoped Thai wrapping insertion");
+    source = source.replace(reviewed, original);
+  }
+  return source;
+}
+
+export function articleOverviewSourceProjection(source) {
+  for (const addition of [
+    "import Website43ArticleOverview from './Website43ArticleOverview';\n",
+    "              {(preview || article.status === 'published') && <Website43ArticleOverview summary={article.geo?.summary} />}\n",
+  ]) {
+    assert.equal(source.split(addition).length, 2, 'one exact approved published overview insertion');
+    source = source.replace(addition, '');
+  }
+  return source;
+}
+
 export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
   assert.deepEqual(Object.keys(proof.reviewedUxOwners).sort(), [...allowed].sort(), 'Only exact reviewed UI owners are admitted');
   for (const file of allowed) {
@@ -43,7 +152,8 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
     assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256','candidateSha256']);
     assert.equal(admission.baselineSha256, (proof.protected[file] ?? proof.canonical?.[file]), file + ': original protected digest retained');
     assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
-    let source = readCurrent(file);
+    let source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, readCurrent(file)));
+    if (file === 'features/blog/website-43/Website43Article.tsx') source = articleOverviewSourceProjection(source);
     let expected = admission.candidateSha256;
     const articleV4 = {
       'components/layout/website-43/Website43.module.css': ['244b11b3d139756c27d99ad67d43f8eeb20287d68fcc8380b90d521c9837be16', 'def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13'],

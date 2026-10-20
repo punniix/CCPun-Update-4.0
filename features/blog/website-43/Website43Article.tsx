@@ -8,6 +8,7 @@ import styles from '@/components/layout/website-43/Website43.module.css';
 import { SectionHeading, Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 import Website43ArticleToc from './Website43ArticleToc';
+import Website43ArticleOverview from './Website43ArticleOverview';
 import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountdown';
 import { renderWebsite43ArticleBody } from './Website43ArticleBody';
 import ArticleShareActions from './ArticleShareActions';
@@ -73,7 +74,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
             <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
               <Link href="/">หน้าแรก</Link> <span>›</span> <Link href={`${BASE}/blog`}>บทความ</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
-            <h1 className={styles.articleHeadline}>{article.title}</h1>
+            <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>โดย {author.name.replaceAll('™', '')}</p>
+            <h1 className={styles.articleHeadline} style={{ textWrap: 'balance', marginTop: 12 }}>{article.title}</h1>
             <div className={styles.articleMetaRow}>
               <div className={styles.articleMetaGroup}>
                 <p className={styles.articleHeaderMeta}>
@@ -121,6 +123,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
                   </div>
                 </details>
               )}
+              {(preview || article.status === 'published') && <Website43ArticleOverview summary={article.geo?.summary} />}
               <article className={styles.prose}>{renderWebsite43ArticleBody(article.body, headingIds)}</article>
               {!preview && <div className={styles.articleBottomShare}>
                 <ArticleEngagementSummary />
@@ -181,8 +184,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
                       {candidate.featuredImage && <Image className={styles.articleImage} src={candidate.featuredImage.src} alt="" width={candidate.featuredImage.width} height={candidate.featuredImage.height} sizes="(max-width: 639px) calc(100vw - 48px), 520px" loading="lazy" />}
                       <div className={styles.articleCardBody}>
                         <span className={styles.articleCategory}>{candidateTopic?.title ?? candidate.category}</span>
-                        <h3 className={styles.articleTitle}>{candidate.title}</h3>
-                        <p className={styles.articleExcerpt}>{candidate.excerpt.trim() || candidate.title}</p>
+                        <h3 className={styles.articleTitle} style={{ textWrap: 'pretty' }}>{candidate.title}</h3>
+                        <p className={styles.articleExcerpt} style={{ textWrap: 'pretty' }}>{candidate.excerpt.trim() || candidate.title}</p>
                         <span className={styles.articleCategory}>อ่านบทความ →</span>
                       </div>
                     </Link>
