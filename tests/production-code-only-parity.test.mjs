@@ -79,6 +79,21 @@ test('original Production owners remain guarded alongside exact reviewed Google 
       const original = withoutHelper.replace(replacement, '    contentUpdatedAt: now,');
       assert.equal(sha(original), digest, 'original immutable publication body preserved');
     }
+    else if (file === 'cms/sanity/policy/studio-policy.ts') {
+      // Hostinger native scheduler support was approved in 33570428. Exact
+      // source and one-expression reconstruction preserve the old Production
+      // security baseline. Native Studio origin/lane negative tests remain.
+      const source = readFileSync(resolve(root, file), 'utf8');
+      assert.equal(digest, '4ff3192df5c3276e2c63da0fb81fd5318d87b355c8e8b1f26a045d253336b5d1');
+      assert.equal(sha(source), 'ce7135c03619d9d814c2cce01484f0f85793135e7a8f58c1d9e56db8feea0da2');
+      const reviewed = "!productionRefAllowed || ![\"disabled\", \"native-neon\"].includes(backend ?? \"\") : backend !== \"native-neon\"";
+      const original = "!productionRefAllowed || backend !== \"disabled\" : backend !== \"native-neon\"";
+      assert.equal(source.split(reviewed).length, 2, 'one reviewed native scheduler allowance');
+      assert.equal(sha(source.replace(reviewed, original)), digest, 'frozen Studio security baseline preserved');
+      const securityTests = readFileSync(resolve(root, 'tests/admin/hostinger-studio-client.test.ts'),'utf8');
+      assert.ok(securityTests.includes('actual Production browser keeps Studio available with native scheduling enabled'));
+      assert.ok(securityTests.includes('native browser markers fail closed'));
+    }
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else if (Object.hasOwn(proof.reviewedGoogleSessionProduction.retainedSources, file))
       assert.equal(assertReviewedGoogleSessionProduction(file, digest, proof, path => readFileSync(resolve(root, path), 'utf8'), 'production-admin'), true, file);
