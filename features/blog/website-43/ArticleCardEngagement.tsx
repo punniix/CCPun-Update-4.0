@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { Eye, Heart } from 'lucide-react';
 import { ArticleEngagementProvider, useArticleEngagement } from './ArticleEngagement';
 import styles from './ArticleCardEngagement.module.css';
 
 type CardMeta = { title: string; dateLabel: string; publishedAt: string };
 
-export function ArticleCardEngagementControls({ title, dateLabel, publishedAt }: CardMeta) {
+export function ArticleCardEngagementControls({ title, dateLabel, publishedAt, metricsRef }: CardMeta & { metricsRef?: Ref<HTMLElement> }) {
   const { metrics, heartPending, record } = useArticleEngagement();
   const [error, setError] = useState(false);
   const knownViews = metrics.available && metrics.views !== null;
   const knownHearts = metrics.available && metrics.hearts !== null;
-  return <footer className={styles.footer}>
+  return <footer ref={metricsRef} className={styles.footer}>
     <div className={styles.row}>
       {dateLabel && <time className={styles.date} dateTime={publishedAt}>{dateLabel}</time>}
       <div className={styles.metrics}>
@@ -29,5 +29,19 @@ export function ArticleCardEngagementControls({ title, dateLabel, publishedAt }:
 }
 
 export default function ArticleCardEngagement({ articleId, ...meta }: CardMeta & { articleId: string }) {
-  return <ArticleEngagementProvider articleId={articleId} recordView={false}><ArticleCardEngagementControls {...meta} /></ArticleEngagementProvider>;
+  const metricsRef = useRef<HTMLElement>(null);
+  const [loadMetrics, setLoadMetrics] = useState(() => typeof IntersectionObserver === 'undefined');
+  useEffect(() => {
+    const target = metricsRef.current;
+    if (!target || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.target === target && entry.isIntersecting)) {
+        setLoadMetrics(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '0px', threshold: 0 });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+  return <ArticleEngagementProvider articleId={articleId} recordView={false} loadMetrics={loadMetrics}><ArticleCardEngagementControls {...meta} metricsRef={metricsRef} /></ArticleEngagementProvider>;
 }

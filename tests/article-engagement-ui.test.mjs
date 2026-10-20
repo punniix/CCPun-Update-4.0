@@ -185,6 +185,80 @@ test('cards GET known totals without recording views on mount, consent or manual
   }finally{await React.act(async()=>root.unmount());for(const[name,descriptor]of before){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}dom.window.close();}
 });
 
+test('six card metrics wait for their existing footer to become visible once, retaining explicit hearts and read cleanup', async () => {
+  const dom = new JSDOM('<div id="app"></div>', { url: 'https://ccpun.com/blog/' });
+  const names = ['window', 'document', 'navigator', 'localStorage', 'fetch', 'IntersectionObserver', 'IS_REACT_ACT_ENVIRONMENT'];
+  const before = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const observers = [];
+  const requests = [];
+  let releaseRead;
+  const zero = { available: true, views: 0, hearts: 0, shares: 0, liked: false };
+  class Observer {
+    constructor(callback, options) { this.callback = callback; this.options = options; this.targets = new Set(); observers.push(this); }
+    observe(target) { this.target = target; this.targets.add(target); }
+    disconnect() { this.targets.clear(); }
+    emit(isIntersecting) { this.callback([{ target: this.target, isIntersecting }]); }
+  }
+  Object.defineProperties(globalThis, {
+    window: { value: dom.window, configurable: true }, document: { value: dom.window.document, configurable: true },
+    navigator: { value: dom.window.navigator, configurable: true }, localStorage: { value: dom.window.localStorage, configurable: true },
+    IntersectionObserver: { value: Observer, configurable: true }, IS_REACT_ACT_ENVIRONMENT: { value: true, configurable: true },
+    fetch: { value: async (url, init = {}) => {
+      const body = init.body ? JSON.parse(init.body) : null;
+      requests.push({ url, body, signal: init.signal });
+      if (body?.type === 'heart') return Response.json({ ...zero, hearts: 1, liked: true });
+      if (url.endsWith('/card-0/')) return new Promise(resolve => { releaseRead = () => resolve(Response.json(zero)); });
+      if (url.endsWith('/card-2/')) return Response.json({ available: false }, { status: 503 });
+      if (url.endsWith('/card-3/')) return new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+      return Response.json(zero);
+    }, configurable: true },
+  });
+  dom.window.localStorage.setItem('ccpun_cookie_consent', JSON.stringify({ status: 'accepted_all', analytics: true, expires: Date.now() + 60000 }));
+  const { createRoot } = require('react-dom/client');
+  const root = createRoot(dom.window.document.getElementById('app'));
+  const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+  let unmounted = false;
+  try {
+    await React.act(async () => {
+      root.render(React.createElement(React.Fragment, null, ...Array.from({ length: 6 }, (_, index) => React.createElement(CardEngagement, { key: index, articleId: `card-${index}`, title: `บทความ ${index}`, dateLabel: 'เผยแพร่ 7 ต.ค. 2569', publishedAt: '2026-10-07' }))));
+      await settle();
+    });
+    assert.equal(requests.length, 0, 'all offscreen cards perform no initial GET');
+    assert.equal(observers.length, 6);
+    assert.ok(observers.every(observer => observer.target.tagName === 'FOOTER' && observer.target.parentElement.id === 'app'), 'observe existing footer without adding wrapper DOM');
+    assert.ok(observers.every(observer => observer.options.rootMargin === '0px' && observer.options.threshold === 0));
+    await React.act(async () => { observers.forEach(observer => observer.emit(false)); dom.window.dispatchEvent(new dom.window.CustomEvent('ccpun:consent')); await settle(); });
+    assert.equal(requests.length, 0, 'offscreen and consent notifications cause neither reads nor view writes');
+    await React.act(async () => { observers[0].emit(true); await settle(); });
+    assert.equal(requests.length, 1); assert.equal(requests[0].body, null);
+    assert.equal(observers[0].targets.size, 0, 'first visibility disconnects that observer');
+    await React.act(async () => { observers[0].emit(true); await settle(); });
+    assert.equal(requests.length, 1, 'repeated visibility does not reload totals');
+    const footers = [...document.querySelectorAll('footer')];
+    await React.act(async () => { footers[0].querySelector('button').click(); await settle(); });
+    assert.equal(requests[1].body.type, 'heart', 'explicit heart remains available independently of deferred read');
+    await React.act(async () => { releaseRead(); await settle(); });
+    assert.equal(footers[0].querySelector('button').getAttribute('aria-pressed'), 'true', 'late GET cannot replace acknowledged heart state');
+    assert.equal(footers[0].querySelector('button').textContent, '1');
+    await React.act(async () => { observers[1].emit(true); observers[2].emit(true); await settle(); });
+    assert.equal(footers[1].querySelector('[aria-label="เปิดอ่านที่บันทึกได้ 0 ครั้ง"]').textContent, '0');
+    assert.equal(footers[1].querySelector('button').textContent, '0', 'confirmed zero is visible');
+    assert.equal(footers[2].querySelector('button').textContent, '', 'unavailable read never fabricates zero');
+    assert.equal(footers[2].querySelector('[aria-label^="เปิดอ่านที่บันทึกได้"]'), null);
+    assert.ok(requests.every(request => request.body === null || request.body.type === 'heart'), 'cards never record views');
+    assert.equal(requests.filter(request => /card-[45]\/$/.test(request.url)).length, 0, 'remaining hidden cards stay unloaded');
+    await React.act(async () => { observers[3].emit(true); await settle(); });
+    const pending = requests.find(request => request.url.endsWith('/card-3/'));
+    await React.act(async () => { root.unmount(); unmounted = true; await settle(); });
+    assert.equal(pending.signal.aborted, true, 'unmount aborts the deferred metrics read');
+    assert.ok(observers.every(observer => observer.targets.size === 0), 'all observers disconnect on unmount');
+  } finally {
+    if (!unmounted) await React.act(async () => root.unmount());
+    for (const [name, descriptor] of before) { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else delete globalThis[name]; }
+    dom.window.close();
+  }
+});
+
 
 test('card/byline/intro admissions reconstruct every complete original owner and reject unrelated changes', () => {
   const pins={

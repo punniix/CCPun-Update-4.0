@@ -26,7 +26,7 @@ function parseMetrics(value: unknown): Metrics | null {
   return { views: row.views as number | null, shares: row.shares as number | null, hearts: row.hearts as number | null, liked: row.liked, available: row.available, activatedAt: typeof row.activatedAt === 'string' ? row.activatedAt : null };
 }
 
-export function ArticleEngagementProvider({ articleId, disabled = false, recordView = true, children }: { articleId: string; disabled?: boolean; recordView?: boolean; children: ReactNode }) {
+export function ArticleEngagementProvider({ articleId, disabled = false, recordView = true, loadMetrics = true, children }: { articleId: string; disabled?: boolean; recordView?: boolean; loadMetrics?: boolean; children: ReactNode }) {
   const [metrics, setMetrics] = useState(empty);
   const [heartPending, setHeartPending] = useState(false);
   const viewEvent = useRef<string | null>(null);
@@ -70,15 +70,15 @@ export function ArticleEngagementProvider({ articleId, disabled = false, recordV
     if (disabled) return;
     const controller = new AbortController();
     const revision = appliedEvents.current;
-    const timeout = setTimeout(() => controller.abort(), 6000);
-    void fetch(endpoint, { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+    const timeout = loadMetrics ? setTimeout(() => controller.abort(), 6000) : undefined;
+    if (loadMetrics) void fetch(endpoint, { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
       .then(async response => { if (response.ok) { const next = parseMetrics(await response.json()); if (next && !controller.signal.aborted && appliedEvents.current === revision) setMetrics(next); } })
       .catch(() => undefined).finally(() => clearTimeout(timeout));
     const countView = () => { if (recordView && isAnalyticsEnabled()) void record('view'); };
     countView();
     window.addEventListener('ccpun:consent', countView);
     return () => { controller.abort(); clearTimeout(timeout); window.removeEventListener('ccpun:consent', countView); };
-  }, [disabled, endpoint, record, recordView]);
+  }, [disabled, endpoint, record, recordView, loadMetrics]);
 
   return <Engagement.Provider value={{ metrics, heartPending, record }}>{children}</Engagement.Provider>;
 }
