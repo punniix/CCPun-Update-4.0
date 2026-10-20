@@ -178,14 +178,27 @@ test("Overview v2 accepts two or three brief points only and forwards whole midd
   const valid={status:"generated",summary,sourceRevision:"r1",promptVersion:"article-overview-v2"};
   assert.ok(helper.articleOverviewResultSchema.safeParse(valid).success);
   const format=helper.ARTICLE_OVERVIEW_OUTPUT_FORMAT;
-  assert.equal(format.properties.points.items.pattern, "^[^\\r\\n<>]{1,99}$");
+  assert.equal(format.properties.points.items.pattern, "^[^\\r\\n<>]+$");
   const pointPattern=new RegExp(format.properties.points.items.pattern,"u");
-  for(const point of ["ก".repeat(99),"ก"+"😀".repeat(98)])assert.ok(pointPattern.test(point),"99 Unicode code points fit");
-  for(const point of ["ก".repeat(100),"ก"+"😀".repeat(99),"ก\nข","ก\rข","ก<ข>"])assert.ok(!pointPattern.test(point),"100 code points or multiline/markup fail the output schema");
+  const completePoint="บทความอธิบายวิธีคำนวณภาษี ตั้งแต่แยกประเภทรายได้ หักค่าใช้จ่ายและค่าลดหย่อน จนถึงคำนวณภาษีที่ต้องชำระ";
+  assert.equal([...completePoint].length,101);
+  for(const point of [completePoint,"ก".repeat(150),"ก"+"😀".repeat(99)])assert.ok(pointPattern.test(point),"a complete point can exceed 99 code points");
+  for(const point of ["","ก\nข","ก\rข","ก<ข>"])assert.ok(!pointPattern.test(point),"points stay nonempty, single-line and plain text");
   const bounded=["ก".repeat(99),"ข".repeat(99),"ค".repeat(99)].join("\n");
-  assert.equal(contracts.countGraphemes(bounded),299);
-  assert.ok(helper.articleOverviewResultSchema.safeParse({...valid,summary:bounded}).success);
-  assert.ok(!helper.articleOverviewResultSchema.safeParse({...valid,summary:"ก".repeat(100)+"\n"+"ข".repeat(100)+"\n"+"ค".repeat(100)}).success,"existing total300 cap remains strict");
+  const prep=code("เตรียมสรุปบทความ",{mode:"article-overview",...overviewMetadata,sourceRevision:"r1",promptVersion:"article-overview-v2",source});
+  const vectors=[
+    [completePoint+"\n"+summary.split("\n")[1],true],
+    ["ก".repeat(149)+"\n"+"ข".repeat(150),true],
+    ["ก".repeat(150)+"\n"+"ข".repeat(150),false],
+    ["ก".repeat(191)+"\n"+"ข".repeat(192),false],
+  ] as const;
+  assert.deepEqual(vectors.slice(1).map(([text])=>contracts.countGraphemes(text)),[300,301,384]);
+  for(const [text,accepted] of vectors){
+    assert.equal(helper.articleOverviewResultSchema.safeParse({...valid,summary:text}).success,accepted,"Admin keeps the hard total length gate");
+    const result=code("ตรวจสรุปบทความ",{done:true,done_reason:"stop",message:{content:JSON.stringify({points:text.split("\n")})}},prep);
+    assert.equal(result.status==="generated",accepted,"n8n and Admin agree at the total length boundary");
+    if(accepted)assert.equal(result.summary,text,"accepted text is never clipped or repaired");
+  }
 
   assert.ok(helper.articleOverviewResultSchema.safeParse({...valid,summary:summary+"\nอธิบายข้อควรตรวจสอบและเงื่อนไขสำคัญที่เกี่ยวข้องกับเนื้อหา"}).success);
   for(const changed of [{summary:"สรุปเพียงประเด็นเดียว ".repeat(5)},{summary:summary+"\nข้อสาม\nข้อสี่"},{promptVersion:"article-overview-v1"}])assert.ok(!helper.articleOverviewResultSchema.safeParse({...valid,...changed}).success);
