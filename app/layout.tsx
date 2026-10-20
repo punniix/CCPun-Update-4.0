@@ -4,6 +4,7 @@ import { Kanit } from "next/font/google";
 import "./globals.css";
 import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
+import { CCPunAiSearchChrome } from "@/features/ai-search/CCPunAiSearchWidgets";
 import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
 import { IS_ADMIN_APPLICATION, IS_DRAFT_PREVIEW_ALLOWED, IS_REVIEW_ENVIRONMENT, PRODUCTION_ANALYTICS_ENABLED } from "@/lib/deployment-environment";
 
@@ -108,6 +109,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         {children}
         {!IS_ADMIN_APPLICATION ? <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} /> : null}
+        {!IS_ADMIN_APPLICATION ? <CCPunAiSearchChrome /> : null}
         {draftPreviewRuntime}
       </body>
     </html>
