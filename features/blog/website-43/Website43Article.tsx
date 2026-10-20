@@ -131,7 +131,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
                 {article.faq.map(({ question, answer }) => (
                   <details className={styles.faqItem} key={question}>
                     <summary className={styles.faqSummary}><span>{question}</span><span className={styles.faqIcon} aria-hidden="true">+</span></summary>
-                    <p className={styles.faqAnswer}>{answer}</p>
+                    <p className={styles.faqAnswer} style={{ whiteSpace: 'pre-line' }}>{answer}</p>
                   </details>
                 ))}
               </div>

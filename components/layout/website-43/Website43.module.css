@@ -150,7 +150,7 @@
 .faqSummary:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: -3px; border-radius: 14px; }
 .faqIcon { flex: 0 0 auto; color: var(--w43-ink); font-size: 22px; font-weight: 600; line-height: 1; transition: transform .18s ease; }
 .faqItem[open] .faqIcon { transform: rotate(45deg); }
-.faqAnswer { white-space: pre-line; margin: 0; padding: 16px 20px 22px; border-top: 1px solid rgba(224,201,133,.10); color: var(--w43-muted); font-size: 15px; font-weight: 400; line-height: 1.65; }
+.faqAnswer { margin: 0; padding: 16px 20px 22px; border-top: 1px solid rgba(224,201,133,.10); color: var(--w43-muted); font-size: 15px; font-weight: 400; line-height: 1.65; }
 .faqCta { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; margin-top: 20px; padding: 0 20px; border-radius: 12px; background: var(--w43-gold); color: var(--w43-deep) !important; font-weight: 600; }
 .section[data-uat-section="home-learning"] { padding-bottom: 40px; }
 .section[data-uat-section="home-faq"] { padding-top: 40px; }

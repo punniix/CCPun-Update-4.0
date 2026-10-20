@@ -221,6 +221,6 @@ test("public content reads stay no-store, while FAQ newlines are rendered legibl
   const fetchSource = readSource("lib/content/sanity-fetch.ts");
   assert.match(fetchSource, /useCdn:\s*false/);
   assert.match(fetchSource, /cache:\s*"no-store"/);
-  const articleCss = readSource("components/layout/website-43/Website43.module.css");
-  assert.match(articleCss, /\.faqAnswer\s*\{[^}]*white-space:\s*pre-line/);
+  const articleComponent = readSource("features/blog/website-43/Website43Article.tsx");
+  assert.match(articleComponent, /faqAnswer[^}]*\}\s*style=\{\{\s*whiteSpace:\s*'pre-line'/);
 });
