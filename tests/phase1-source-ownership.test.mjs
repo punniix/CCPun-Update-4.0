@@ -142,6 +142,13 @@ test('root and Web keep their original complete metadata and layout/first-paint/
       const font = original.trace.find(entry => Array.isArray(entry) && entry[0] === 'font' && entry[1].variable === '--font-kanit');
       assert.deepEqual(font[1].weight, ['300', '400', '600', '700'], 'original noncritical font weights retained');
       font[1].weight = ['300', '400', '500', '600', '700'];
+      const critical = original.trace.find(entry => Array.isArray(entry) && entry[0] === 'font' && entry[1].variable === '--font-kanit-critical');
+      assert.deepEqual(critical[1].weight, ['400', '600', '700'], 'original critical Thai weights retained');
+      critical[1].weight = ['400', '500', '600', '700'];
+      for (const entry of [font, critical]) {
+        assert.equal(entry[1].display, 'optional', 'original display policy retained');
+        entry[1].display = 'swap';
+      }
     }
     assert.deepEqual(await render(false), original, JSON.stringify({ file, admin, review, draft }));
   }

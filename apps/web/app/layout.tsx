@@ -17,15 +17,15 @@ const kanit = Kanit({
   subsets: ["thai", "latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-kanit",
-  display: "optional",
+  display: "swap",
   preload: false,
 });
 
 const kanitCritical = Kanit({
   subsets: ["thai"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-kanit-critical",
-  display: "optional",
+  display: "swap",
   preload: true,
 });
 
