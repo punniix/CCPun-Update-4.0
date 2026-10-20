@@ -74,7 +74,7 @@ test('original Production owners remain guarded alongside exact reviewed Google 
       assert.ok(begin >= 0 && end > begin, 'reviewed P0 helper present exactly once');
       assert.equal(source.indexOf(marker, begin + marker.length), -1);
       const withoutHelper = source.slice(0, begin) + source.slice(end);
-      const replacement = "    contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)\\n      ? now\\n      : (published?.contentUpdatedAt || published?._updatedAt || now),";
+      const replacement = "    contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)\n      ? now\n      : (published?.contentUpdatedAt || published?._updatedAt || now),";
       assert.equal(withoutHelper.split(replacement).length, 2, 'one reviewed timestamp change');
       const original = withoutHelper.replace(replacement, '    contentUpdatedAt: now,');
       assert.equal(sha(original), digest, 'original immutable publication body preserved');
