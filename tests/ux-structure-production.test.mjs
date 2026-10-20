@@ -148,6 +148,12 @@ test('Investment release capability remains false even with explicit environment
 
 function packageBeforePostPublishScripts(source) {
   const manifest = JSON.parse(source);
+  assert.equal(manifest.dependencies['@cloudflare/ai-search-snippet'], '^0.0.43', 'only the reviewed disabled SDK is admitted');
+  delete manifest.dependencies['@cloudflare/ai-search-snippet'];
+  const architecture = 'node --test tests/monorepo-lane-ownership.test.mjs';
+  const withAi = architecture + ' tests/ai-search-integration.test.mjs';
+  assert.equal(manifest.scripts['test:architecture'].split(withAi).length, 2, 'one reviewed AI SSR and import-graph check');
+  manifest.scripts['test:architecture'] = manifest.scripts['test:architecture'].replace(withAi, architecture);
   for (const [name, value] of Object.entries({
     'worker:seo-post-publish': 'node --conditions=react-server --import tsx scripts/seo-post-publish-worker.ts',
     'nav:check': 'node scripts/sync-public-nav-config.mjs --check',
@@ -157,6 +163,21 @@ function packageBeforePostPublishScripts(source) {
     delete manifest.scripts[name];
   }
   return JSON.stringify(manifest, null, 2) + '\n';
+}
+
+function lockBeforeAiSdk(source) {
+  const lock = JSON.parse(source);
+  for (const owner of ['', 'apps/web']) {
+    assert.equal(lock.packages[owner].dependencies['@cloudflare/ai-search-snippet'], '^0.0.43');
+    delete lock.packages[owner].dependencies['@cloudflare/ai-search-snippet'];
+  }
+  assert.deepEqual(lock.packages['node_modules/@cloudflare/ai-search-snippet'], {
+    version: '0.0.43', resolved: 'https://registry.npmjs.org/@cloudflare/ai-search-snippet/-/ai-search-snippet-0.0.43.tgz',
+    integrity: 'sha512-NWT/0wULeX1YLQRDFm6rs8NAJz4YDYWbED628F0GpXF1w5PT09glR4CilIdGiovL9jflGneCD7/uLTrxWMkerQ==',
+    license: 'MIT', engines: { node: '>=16.0.0' },
+  });
+  delete lock.packages['node_modules/@cloudflare/ai-search-snippet'];
+  return JSON.stringify(lock, null, 2) + '\n';
 }
 
 test('Production providers, metadata, models, engines, tracking, consent storage and delivery contract stay protected', () => {
@@ -170,16 +191,24 @@ test('Production providers, metadata, models, engines, tracking, consent storage
     const reviewedDigest = file === analyticsPath
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
       : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f' : digest;
-    assert.equal(sha(file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : read(file)), reviewedDigest, file);
+    const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
+    assert.equal(sha(source), reviewedDigest, file);
   }
 });
 
-test('Production script admission rejects unknown scripts, changed commands and dependency drift', () => {
+test('Production script and AI SDK admissions reject unknown scripts, changed commands and dependency drift', () => {
   const manifest = JSON.parse(read('package.json'));
   const altered = value => sha(packageBeforePostPublishScripts(JSON.stringify(value)));
   assert.notEqual(altered({ ...manifest, scripts: { ...manifest.scripts, unreviewed: 'new-command' } }), protectedProduction['package.json']);
   assert.notEqual(altered({ ...manifest, dependencies: { ...manifest.dependencies, unreviewed: '1.0.0' } }), protectedProduction['package.json']);
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'nav:check': 'unreviewed' } }));
+  assert.throws(() => altered({ ...manifest, dependencies: { ...manifest.dependencies, '@cloudflare/ai-search-snippet': '^0.0.44' } }));
+  assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'test:architecture': manifest.scripts['test:architecture'] + ' node --test tests/monorepo-lane-ownership.test.mjs tests/ai-search-integration.test.mjs' } }));
+  const lock = JSON.parse(read('package-lock.json'));
+  lock.packages['node_modules/clsx'].version = '0.0.0';
+  assert.notEqual(sha(lockBeforeAiSdk(JSON.stringify(lock))), protectedProduction['package-lock.json']);
+  lock.packages['node_modules/@cloudflare/ai-search-snippet'].integrity = 'unreviewed';
+  assert.throws(() => lockBeforeAiSdk(JSON.stringify(lock)));
 });
 
 function loadArchive(articles, registry) {

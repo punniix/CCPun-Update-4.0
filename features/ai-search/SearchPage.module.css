@@ -1,0 +1,10 @@
+.root { color: #FAF9F9; background: #352727; min-height: 100vh; }
+.main { padding: 48px 24px 112px; }
+.inner { max-width: 960px; margin: 0 auto; }
+.eyebrow { color: #E0C985; font-weight: 600; letter-spacing: .07em; margin: 0 0 10px; }
+.main h1 { color: #FAF9F9; font-size: clamp(30px, 4.5vw, 52px); font-weight: 700; line-height: 1.25; max-width: 860px; }
+.lead { color: #BAABAB; font-size: clamp(16px, 2vw, 19px); margin: 18px 0 30px; max-width: 760px; line-height: 1.8; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.actions a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 12px; padding: 10px 20px; color: #251818; background: #E0C985; font-weight: 600; }
+.actions a:first-child { border: 1px solid #5B4848; color: #FAF9F9; background: transparent; }
+@media(max-width: 639px) { .main { padding: 24px 20px 72px; } }

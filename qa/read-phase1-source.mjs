@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 const defaultOwners = new Set(Object.keys(JSON.parse(readFileSync(new URL('./phase1-source-ownership.json', import.meta.url), 'utf8')).owners));
-for (const route of ['privacy/page.tsx', 'not-found.tsx', 'sitemap.xml/route.ts', 'sitemaps/core.xml/route.ts', 'sitemaps/tools.xml/route.ts', 'sitemaps/blog.xml/route.ts']) defaultOwners.add('apps/web/app/' + route);
+for (const route of ['privacy/page.tsx', 'cookie-policy/page.tsx', 'not-found.tsx', 'sitemap.xml/route.ts', 'sitemaps/core.xml/route.ts', 'sitemaps/tools.xml/route.ts', 'sitemaps/blog.xml/route.ts']) defaultOwners.add('apps/web/app/' + route);
 
 // Supplementary source guards inspect current implementations actually imported by
 // the entry. No baseline snapshots, external dependencies or unimported owner bag.

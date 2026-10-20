@@ -9,12 +9,14 @@ const root = resolve(import.meta.dirname, '..');
 const read = (file) => readFileSync(resolve(root, file), 'utf8');
 const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
 
-test('six duplicate public routes retain frozen canonical bodies, export identities and literal Next configuration', () => {
-  const protectedSources = JSON.parse(read('qa/production-code-only-parity.json')).protected;
-  const routes = ['privacy/page.tsx', 'not-found.tsx', 'sitemap.xml/route.ts', 'sitemaps/core.xml/route.ts', 'sitemaps/tools.xml/route.ts', 'sitemaps/blog.xml/route.ts'];
+test('seven duplicate public routes retain frozen canonical bodies, export identities and literal Next configuration', () => {
+  const productionProof = JSON.parse(read('qa/production-code-only-parity.json'));
+  const routes = ['privacy/page.tsx', 'not-found.tsx', 'sitemap.xml/route.ts', 'sitemaps/core.xml/route.ts', 'sitemaps/tools.xml/route.ts', 'sitemaps/blog.xml/route.ts', 'cookie-policy/page.tsx'];
   const verify = (route, source = read('app/' + route)) => {
     const file = 'app/' + route, canonical = 'apps/web/' + file;
-    assert.equal(createHash('sha256').update(read(canonical)).digest('hex'), protectedSources[canonical], canonical);
+    const reviewed = productionProof.reviewedUxOwners[canonical];
+    if (reviewed) assert.equal(reviewed.baselineSha256, productionProof.protected[canonical], 'original canonical source retained');
+    assert.equal(createHash('sha256').update(read(canonical)).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
     const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
     const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
     assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${dynamic ? 'GET' : 'default, metadata'} } from "${owner}";\n`);
