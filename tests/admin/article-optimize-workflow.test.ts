@@ -71,8 +71,9 @@ test("category guard accepts only Sanity reference-shaped values", () => {
 });
 
 test("publication leaves content/references intact and preserves ORIGINAL publishedAt", async () => {
-  const db = memoryClient([draft, published]);
-  await publishApprovedArticle(db.client, draft, published, now);
+  const optimizedDraft = { ...draft, title: "Optimized published title" };
+  const db = memoryClient([optimizedDraft, published]);
+  await publishApprovedArticle(db.client, optimizedDraft, published, now);
   const live = db.read().get("article1")!;
   assert.equal(live.publishedAt, first);
   assert.equal(live.contentUpdatedAt, now);
