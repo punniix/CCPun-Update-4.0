@@ -18,6 +18,22 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: TypeScript strict compilation
         run: npx tsc --noEmit --incremental false
+      - name: Audit protected baseline source drift without changing guards
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, existsSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const p = JSON.parse(readFileSync('qa/production-code-only-parity.json','utf8'));
+          const records = {...p.canonical, ...p.protected, ...p.retainedVariants, ...p.workerEntrySources};
+          const mismatches = [];
+          for(const [file,digest] of Object.entries(records)) {
+            if(!existsSync(file)) continue;
+            const actual=createHash('sha256').update(readFileSync(file)).digest('hex');
+            if(actual!==digest) mismatches.push({file,expected:digest,actual});
+          }
+          console.log('Protected baseline discrepancies:',mismatches.length,'of',Object.keys(records).length);
+          for(const x of mismatches) console.log(JSON.stringify(x));
+          NODE
       - name: Production foundation safety/parity
         run: npm run test:foundation-contracts
       - name: Publication and scheduling regression
