@@ -27,9 +27,9 @@ export default function NotFound() {
             <p className={styles.notFoundCode}>404</p>
             <h1>ไม่พบหน้าที่คุณกำลังหา</h1>
             <p className={styles.notFoundDescription}>ลิงก์อาจเปลี่ยนหรือถูกย้าย ลองกลับหน้าแรกหรือเลือกอ่านบทความเพื่อไปต่อ</p>
-            <div className={styles.notFoundActions}>
-              <Link className={styles.primaryButton} href="/">กลับหน้าแรก</Link>
-              <Link className={styles.blogRecovery} style={{ width: 'min(160px, 100%)', justifyContent: 'center' }} href="/blog/">ดูบทความ</Link>
+            <div className={styles.notFoundActions} style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}>
+              <Link className={styles.primaryButton} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto' }} href="/">กลับหน้าแรก</Link>
+              <Link className={styles.blogRecovery} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto', justifyContent: 'center' }} href="/blog/">ดูบทความ</Link>
             </div>
           </div>
         </section>

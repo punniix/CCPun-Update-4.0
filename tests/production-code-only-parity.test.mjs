@@ -36,9 +36,15 @@ function assertReviewedGoogleRoute(file, digest, source) {
 }
 function assertReviewed404Button(digest, source) {
   assert.equal(digest, '73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8', 'original complete 404 source stays frozen');
-  const insertion = " style={{ width: 'min(160px, 100%)', justifyContent: 'center' }}";
-  assert.equal(source.split(insertion).length, 2, 'only one exact 404 recovery style insertion');
-  assert.equal(sha(source.replace(insertion, '')), digest, 'all other original 404 bytes remain protected');
+  for (const insertion of [
+    " style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}",
+    " style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto' }}",
+    " style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto', justifyContent: 'center' }}",
+  ]) {
+    assert.equal(source.split(insertion).length, 2, 'each exact 404 action style occurs once');
+    source = source.replace(insertion, '');
+  }
+  assert.equal(sha(source), digest, 'all other original 404 bytes remain protected');
 }
 const reviewedUiOwners = [
   "lib/analytics.ts",
@@ -118,7 +124,7 @@ test('reviewed LINE and Google route admissions reject unrelated changes, unknow
 
 test('404 button admission rejects changed width, copy and duplicate style insertions', () => {
   const file = 'apps/web/app/not-found.tsx', source = read(file), digest = proof.protected[file];
-  for (const changed of [source.replace('min(160px, 100%)', 'min(161px, 100%)'), source.replace('ดูบทความ', 'unreviewed copy'), source + "\n style={{ width: 'min(160px, 100%)', justifyContent: 'center' }}"]) {
+  for (const changed of [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('ดูบทความ', 'unreviewed copy'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"]) {
     assert.throws(() => assertReviewed404Button(digest, changed));
   }
 });
