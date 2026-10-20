@@ -29,7 +29,7 @@ export default function NotFound() {
             <p className={styles.notFoundDescription}>ลิงก์อาจเปลี่ยนหรือถูกย้าย ลองกลับหน้าแรกหรือเลือกอ่านบทความเพื่อไปต่อ</p>
             <div className={styles.notFoundActions}>
               <Link className={styles.primaryButton} href="/">กลับหน้าแรก</Link>
-              <Link className={styles.blogRecovery} href="/blog/">ดูบทความ</Link>
+              <Link className={styles.blogRecovery} style={{ width: 'min(160px, 100%)', justifyContent: 'center' }} href="/blog/">ดูบทความ</Link>
             </div>
           </div>
         </section>

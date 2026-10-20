@@ -34,6 +34,12 @@ function assertReviewedGoogleRoute(file, digest, source) {
   assert.equal(digest, googleRoutePins[file][0], 'original Google API source remains frozen');
   assert.equal(sha(source), googleRoutePins[file][1], file + ': exact reviewed Google API body');
 }
+function assertReviewed404Button(digest, source) {
+  assert.equal(digest, '73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8', 'original complete 404 source stays frozen');
+  const insertion = " style={{ width: 'min(160px, 100%)', justifyContent: 'center' }}";
+  assert.equal(source.split(insertion).length, 2, 'only one exact 404 recovery style insertion');
+  assert.equal(sha(source.replace(insertion, '')), digest, 'all other original 404 bytes remain protected');
+}
 const reviewedUiOwners = [
   "lib/analytics.ts",
   "features/analytics/components/GoogleAnalytics.tsx",
@@ -83,6 +89,7 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
     if (lineCopyOriginRoutes.includes(file)) assertReviewedLineCopyOrigin(file, digest, read(file));
     else if (Object.hasOwn(googleRoutePins, file)) assertReviewedGoogleRoute(file, digest, read(file));
+    else if (file === 'apps/web/app/not-found.tsx') assertReviewed404Button(digest, read(file));
     else if (file === 'features/money-story/components/MoneyStoryGame.tsx') assertPhase2MoneyComposition(file, digest);
     else if (['lib/runtime/deployment-identity.ts', 'lib/content/sanity-lane.ts', 'lib/deployment-environment.ts', 'proxy.ts', 'lib/runtime/deployment-contract.ts'].includes(file)) assertNativeProviderRetirement(file, digest);
     else if (['apps/admin/app/api/internal/line/bridge-health/route.ts', 'apps/admin/app/api/internal/line/ingest-event/route.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true);
@@ -107,6 +114,13 @@ test('reviewed LINE and Google route admissions reject unrelated changes, unknow
     assert.throws(() => assertReviewedGoogleRoute(file, '0'.repeat(64), read(file)));
   }
   assert.throws(() => assertReviewedGoogleRoute('unknown.ts', '0'.repeat(64), ''));
+});
+
+test('404 button admission rejects changed width, copy and duplicate style insertions', () => {
+  const file = 'apps/web/app/not-found.tsx', source = read(file), digest = proof.protected[file];
+  for (const changed of [source.replace('min(160px, 100%)', 'min(161px, 100%)'), source.replace('ดูบทความ', 'unreviewed copy'), source + "\n style={{ width: 'min(160px, 100%)', justifyContent: 'center' }}"]) {
+    assert.throws(() => assertReviewed404Button(digest, changed));
+  }
 });
 
 test('critical first-paint CSS and three layout compositions preserve the exact Production baseline', () => {

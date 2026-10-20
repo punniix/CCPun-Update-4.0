@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (file) => readFileSync(resolve(root, file), 'utf8');
@@ -12,11 +13,17 @@ const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
 test('seven duplicate public routes retain frozen canonical bodies, export identities and literal Next configuration', () => {
   const productionProof = JSON.parse(read('qa/production-code-only-parity.json'));
   const routes = ['privacy/page.tsx', 'not-found.tsx', 'sitemap.xml/route.ts', 'sitemaps/core.xml/route.ts', 'sitemaps/tools.xml/route.ts', 'sitemaps/blog.xml/route.ts', 'cookie-policy/page.tsx'];
-  const verify = (route, source = read('app/' + route)) => {
+  const verify = (route, source = read('app/' + route), canonicalSource = read('apps/web/app/' + route)) => {
     const file = 'app/' + route, canonical = 'apps/web/' + file;
     const reviewed = productionProof.reviewedUxOwners[canonical];
     if (reviewed) assert.equal(reviewed.baselineSha256, productionProof.protected[canonical], 'original canonical source retained');
-    assert.equal(createHash('sha256').update(read(canonical)).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
+    if (canonical === 'apps/web/app/not-found.tsx') {
+      assert.equal(productionProof.protected[canonical], '73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8');
+      const insertion = " style={{ width: 'min(160px, 100%)', justifyContent: 'center' }}";
+      assert.equal(canonicalSource.split(insertion).length, 2, 'exact reviewed 404 button style occurs once');
+      canonicalSource = canonicalSource.replace(insertion, '');
+    }
+    assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
     const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
     const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
     assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${dynamic ? 'GET' : 'default, metadata'} } from "${owner}";\n`);
@@ -30,6 +37,22 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
   assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, metadata', 'default')));
   assert.throws(() => verify(routes[2], read('app/' + routes[2]).replace('force-static', 'force-dynamic')));
   assert.throws(() => verify(routes[1], read('app/' + routes[1]).replace('@/apps/web/', '@/apps/admin/')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('min(160px, 100%)', 'min(161px, 100%)')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('ดูบทความ', 'unreviewed copy')));
+});
+
+test('compiled root and Web 404 recovery retain centered bounded buttons, copy, href and metadata', () => {
+  const shared = { Website43Navbar: () => null, Website43Footer: () => null };
+  const mocks = new Map([['@/components/layout/website-43/Website43Shared', shared]]);
+  const legacy = loadFixtureModule('app/not-found.tsx', { mocks });
+  const canonical = loadFixtureModule('apps/web/app/not-found.tsx', { mocks });
+  assert.deepEqual(legacy.metadata, canonical.metadata);
+  for (const page of [legacy, canonical]) {
+    const html = renderToStaticMarkup(page.default());
+    assert.match(html, /<a style="width:min\(160px, 100%\);justify-content:center" href="\/blog\/">ดูบทความ<\/a>/);
+    assert.match(html, /href="\/">กลับหน้าแรก<\/a>/);
+    assert.match(html, /<h1>ไม่พบหน้าที่คุณกำลังหา<\/h1>/);
+  }
 });
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {
