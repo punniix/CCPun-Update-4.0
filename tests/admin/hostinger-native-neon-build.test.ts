@@ -175,22 +175,24 @@ test("Hostinger prebundles the real config TS graph for plain Node and retains l
     put(join(f.root, "node_modules/workflow/next.cjs"), 'throw new Error("SDK_WRAPPER_WAS_LOADED");');
     f.git("add", "apps", "lib"); f.git("commit", "-m", "Real canonical config dependencies");
     const values = { ...f.values, CCPUN_GIT_SHA: f.git("rev-parse", "HEAD") };
-    const env = (lane: Record<string, string | undefined>) => ({ PATH: process.env.PATH, NODE_ENV: "test", ...lane });
+    const env = (lane: Record<string, string | undefined>): NodeJS.ProcessEnv => ({ PATH: process.env.PATH, NODE_ENV: "test", ...lane });
     const raw = spawnSync(process.execPath, ["--input-type=module", "-e", 'await import("./next.config.ts")'],
       { cwd: f.admin, env: env(values), encoding: "utf8" });
     assert.notEqual(raw.status, 0); assert.match(raw.stderr, /ERR_MODULE_NOT_FOUND/);
     assert.match(raw.stderr, /lib\/admin\/environment/);
     const compiled = join(f.admin, "next.config.mjs");
-    const run = async (lane: Record<string, string | undefined>) => runAdminNextBuild(f.admin, env(lane), (_command, args, options) => {
-      assert.deepEqual(args.slice(1), ["build", "--webpack"]);
-      assert.equal(options.cwd, f.admin); assert.equal(existsSync(compiled), true);
-      return spawnSync(process.execPath, ["--input-type=module", "-e",
-        `const loadConfig=(await import("node:module")).createRequire(import.meta.url)(${JSON.stringify(fileURLToPath(new URL("../../node_modules/next/dist/server/config.js", import.meta.url)))}).default;const c=await loadConfig("phase-production-build",process.cwd(),{silent:true});console.log(JSON.stringify({configFileName:c.configFileName,output:c.output,env:c.env,headers:await c.headers(),rewrites:await c.rewrites(),images:c.images,trace:c.outputFileTracingRoot}));`],
-      { cwd: f.admin, env: options.env, encoding: "utf8" });
-    });
+    const run = async (lane: Record<string, string | undefined>) => runAdminNextBuild(f.admin, env(lane), new Proxy(spawnSync, {
+      apply(_target, _receiver, [, args = [], options = {}]: Parameters<typeof spawnSync>) {
+        assert.deepEqual(args.slice(1), ["build", "--webpack"]);
+        assert.equal(options.cwd, f.admin); assert.equal(existsSync(compiled), true);
+        return spawnSync(process.execPath, ["--input-type=module", "-e",
+          `const loadConfig=(await import("node:module")).createRequire(import.meta.url)(${JSON.stringify(fileURLToPath(new URL("../../node_modules/next/dist/server/config.js", import.meta.url)))}).default;const c=await loadConfig("phase-production-build",process.cwd(),{silent:true});console.log(JSON.stringify({configFileName:c.configFileName,output:c.output,env:c.env,headers:await c.headers(),rewrites:await c.rewrites(),images:c.images,trace:c.outputFileTracingRoot}));`],
+        { cwd: f.admin, env: options.env, encoding: options.encoding });
+      },
+    }));
     const uat = await run(values);
-    assert.equal(uat.status, 0, uat.stderr); assert.equal(existsSync(compiled), false);
-    const actual = JSON.parse(uat.stdout);
+    assert.equal(uat.status, 0, uat.stderr.toString("utf8")); assert.equal(existsSync(compiled), false);
+    const actual = JSON.parse(uat.stdout.toString("utf8"));
     assert.equal(actual.configFileName, "next.config.mjs");
     assert.equal(actual.output, "standalone"); assert.equal(actual.trace, f.root);
     assert.equal(actual.env.NEXT_PUBLIC_CCPUN_APP_ENV, "admin-uat");
@@ -200,16 +202,16 @@ test("Hostinger prebundles the real config TS graph for plain Node and retains l
     assert.ok(actual.rewrites.beforeFiles.some((rule: { source: string }) => rule.source === "/assets/:path*"));
     for (const change of [{ CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" }, { CCPUN_GIT_SHA: "a".repeat(40) }]) {
       const denied = await run({ ...values, ...change });
-      assert.notEqual(denied.status, 0); assert.match(denied.stderr, /NATIVE_NEON_UAT_BUILD_DENIED/);
+      assert.notEqual(denied.status, 0); assert.match(denied.stderr.toString("utf8"), /NATIVE_NEON_UAT_BUILD_DENIED/);
       assert.equal(existsSync(compiled), false);
     }
     f.git("checkout", "-b", "v4-production");
     const production = { ...productionValues(f), CCPUN_GIT_SHA: values.CCPUN_GIT_SHA };
     const prod = await run(production);
-    assert.equal(prod.status, 0, prod.stderr); assert.equal(existsSync(compiled), false);
-    assert.equal(JSON.parse(prod.stdout).env.NEXT_PUBLIC_CCPUN_APP_ENV, "production-admin");
+    assert.equal(prod.status, 0, prod.stderr.toString("utf8")); assert.equal(existsSync(compiled), false);
+    assert.equal(JSON.parse(prod.stdout.toString("utf8")).env.NEXT_PUBLIC_CCPUN_APP_ENV, "production-admin");
     const denied = await run({ ...production, AUTH_URL: "https://evil.example" });
-    assert.notEqual(denied.status, 0); assert.match(denied.stderr, /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
+    assert.notEqual(denied.status, 0); assert.match(denied.stderr.toString("utf8"), /NATIVE_ADMIN_PRODUCTION_BUILD_DENIED/);
     assert.throws(() => runAdminNextBuild(f.admin, env(values), () => { throw new Error("FIXTURE_NEXT_FAILURE"); }), /FIXTURE_NEXT_FAILURE/);
     assert.equal(existsSync(compiled), false, "thrown Next failure also removes only owned generated config");
     put(compiled, "// unowned existing config\n");
@@ -219,10 +221,12 @@ test("Hostinger prebundles the real config TS graph for plain Node and retains l
     symlinkSync(join(f.root, "missing-unowned-config.mjs"), compiled);
     assert.throws(() => runAdminNextBuild(f.admin, env(values)), /HOSTINGER_ADMIN_CONFIG_OUTPUT_EXISTS/);
     unlinkSync(compiled);
-    const local = await runAdminNextBuild(f.admin, { CCPUN_DEPLOYMENT_PROVIDER: "local" }, (_command, args) => {
-      assert.deepEqual(args.slice(1), ["build"]); assert.equal(existsSync(compiled), false);
-      return { status: 0 };
-    });
+    const local = await runAdminNextBuild(f.admin, env({ CCPUN_DEPLOYMENT_PROVIDER: "local" }), new Proxy(spawnSync, {
+      apply(_target, _receiver, [, args = [], options = {}]: Parameters<typeof spawnSync>) {
+        assert.deepEqual(args.slice(1), ["build"]); assert.equal(existsSync(compiled), false);
+        return spawnSync(process.execPath, ["-e", ""], { encoding: options.encoding });
+      },
+    }));
     assert.equal(local.status, 0);
     unlinkSync(join(f.admin, "next.config.ts"));
     assert.throws(() => runAdminNextBuild(f.admin, env(values)), /Could not resolve/);
