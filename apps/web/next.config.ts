@@ -83,7 +83,7 @@ function buildNextSecurityHeaders({
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
-    `connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://ea88b552-a894-4e4e-8e39-08fc938baf22.search.ai.cloudflare.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com${sanityConnectSources}${sanityReviewConnectSources}`,
+    `connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com${sanityConnectSources}${sanityReviewConnectSources}`,
     "frame-src 'self' https://www.facebook.com https://accounts.google.com https://docs.google.com",
     "frame-ancestors 'self'",
     "object-src 'none'",

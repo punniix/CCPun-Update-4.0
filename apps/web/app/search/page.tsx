@@ -1,1 +1,1 @@
-export { metadata, default } from "@/app/search/page";
+export { metadata, default } from "@/features/ai-search/SearchPage";

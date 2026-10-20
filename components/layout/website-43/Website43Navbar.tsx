@@ -61,7 +61,6 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
       <nav className={styles.navLinks} aria-label="เมนูหลัก">
         <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>หน้าแรก</Link>
         <Link href={`${BASE}/blog`} aria-current={blogCurrent}>บทความ</Link>
-        <Link href={`${BASE}/search`} aria-current={pathname === BASE + "/search" ? "page" : undefined}>ค้นหาด้วย AI</Link>
         <div className={styles.navTools} ref={toolsRef}>
           <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>
             เครื่องมือ <span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
@@ -83,7 +82,6 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
         <nav id="mobile-navigation" className={styles.mobileMenu} aria-label="เมนูมือถือ">
           <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined} onClick={() => setOpen(false)}>หน้าแรก</Link>
           <Link href={`${BASE}/blog`} aria-current={blogCurrent} onClick={() => setOpen(false)}>บทความ</Link>
-          <Link href={`${BASE}/search`} aria-current={pathname === BASE + "/search" ? "page" : undefined} onClick={() => setOpen(false)}>ค้นหาด้วย AI</Link>
           <div className={styles.mobileTools}>
             <button type="button" data-active={toolsCurrent} aria-expanded={mobileToolsOpen} onClick={() => setMobileToolsOpen((v) => !v)}>
               <span>เครื่องมือ</span><span className={`${styles.navChevron} ${mobileToolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
