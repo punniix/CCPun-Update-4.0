@@ -56,8 +56,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
     return groups;
   }, []);
   const publishedDateLabel = article.publishedAt ? thaiDateFormatter.format(new Date(article.publishedAt)) : null;
-  const updatedDateLabel = thaiDateFormatter.format(new Date(article.updatedAt));
-  const showUpdatedDate = !publishedDateLabel || publishedDateLabel !== updatedDateLabel;
+  const optimizedDateLabel = article.optimizedAt && Number.isFinite(Date.parse(article.optimizedAt))
+    ? thaiDateFormatter.format(new Date(article.optimizedAt)) : null;
   const readingMinutes = estimateArticleReadingMinutes(article);
   const sharePath = getArticlePath(article);
 
@@ -77,8 +77,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
             <div className={styles.articleMetaRow}>
               <div className={styles.articleMetaGroup}>
                 <p className={styles.articleHeaderMeta}>
-                  {publishedDateLabel && <><span className={styles.articleDateLabel}>เผยแพร่</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></>}
-                  {showUpdatedDate && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>{publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด</span> <time dateTime={article.updatedAt}>{updatedDateLabel}</time></span>}
+                  {publishedDateLabel && <span><span className={styles.articleDateLabel}>เผยแพร่</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></span>}
+                  {optimizedDateLabel && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>อัปเดตข้อมูลล่าสุด</span> <time dateTime={article.optimizedAt}>{optimizedDateLabel}</time></span>}
                 </p>
                 <ArticleEngagementSummary readingMinutes={readingMinutes} />
               </div>
@@ -130,17 +130,6 @@ export default function Website43Article({ article, relatedArticles = [], previe
           </div>
         </section>
 
-        {article.sources && article.sources.length > 0 && (
-          <section className={styles.section} data-uat-section="article-sources">
-            <div className={`${styles.inner} ${styles.articleSupportInner}`}>
-              <h2 className={styles.h2}>แหล่งอ้างอิง</h2>
-              <ul className={styles.articleSources}>
-                {article.sources.map((source, index) => <li key={`${source.label}-${index}`}>{source.url ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.label}</a> : source.label}</li>)}
-              </ul>
-            </div>
-          </section>
-        )}
-
         {article.faq && article.faq.length > 0 && (
           <section id="faq" className={`${styles.section} ${styles.sectionBottomLarge}`}>
             <div className={`${styles.inner} ${styles.articleSupportInner}`}>
@@ -149,7 +138,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
                 {article.faq.map(({ question, answer }) => (
                   <details className={styles.faqItem} key={question}>
                     <summary className={styles.faqSummary}><span>{question}</span><span className={styles.faqIcon} aria-hidden="true">+</span></summary>
-                    <p className={styles.faqAnswer}>{answer}</p>
+                    <p className={styles.faqAnswer} style={{ whiteSpace: 'pre-line' }}>{answer}</p>
                   </details>
                 ))}
               </div>

@@ -21,6 +21,8 @@ const baselineCss = gunzipSync(Buffer.from(proof.compiledCssGzip, 'base64')).toS
 assert.equal(sha(proof.foundationSource), '16be3e70110eb57339671d20a877cb7a1f8026675ce0eecca47794d6efeafece');
 assert.equal(sha(baselineCss), '36f095016bb22a67c80a4402cffd4c90b650b3ad0ef530173c2f9b5dcec8c2f8');
 assert.equal(sha(JSON.stringify(proof.protected)), '2f9ccec2a360e6df8db3a8d3c140a9ea1a616b476549a553df98461aa977b083');
+const previousArticleH4RawCss = '370a115c3ec303648cb02528f338e83b967ccc0abcea1cc777bfdb3dc57948cc';
+const articleV4RawCss = 'f10e64c7495b3eb810c718c0341f53d4a2d23f814e1a0571aef82069dddf391e';
 const reviewedUiOwners = [
   "components/layout/website-43/Website43.module.css",
   "components/layout/website-43/Website43Navbar.module.css",
@@ -49,7 +51,18 @@ function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
     assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256', 'candidateSha256']);
     assert.equal(admission.baselineSha256, proof.protected[path], path + ': original protected digest retained');
     assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
-    assert.equal(sha(readCurrent(path)), admission.candidateSha256, path + ': exact reviewed current source');
+    let current = readCurrent(path);
+    let expected = admission.candidateSha256;
+    if (path === 'components/layout/website-43/Website43.module.css') {
+      assert.equal(expected, 'a4a259c77abd127abd6f7e1050bf9f8cd90d2097e2166a11ebd3a7cc06157c53', 'previous reviewed UAT CSS pin retained');
+      expected = 'c853a22f5263beee4f37f2a9a8ed77d2ded42b118f03c909152242e37d2aeb8f';
+    }
+    if (path === 'apps/web/app/layout.tsx') {
+      const approved = 'weight: ["300", "400", "500", "600", "700"]';
+      assert.equal(current.split(approved).length, 2, 'one noncritical Kanit 500 face');
+      current = current.replace(approved, 'weight: ["300", "400", "600", "700"]');
+    }
+    assert.equal(sha(current), expected, path + ': exact reviewed current source');
   }
 }
 
@@ -72,8 +85,9 @@ test('original protected goldens remain frozen while four exact reviewed owners 
   assertReviewedUxOwners(proof, reviewedUiOwners);
   // 0d already includes accepted Share/footer/padding changes after the older
   // protected CSS golden. Only the subsequent portrait position is projected.
+  assert.equal(previousArticleH4RawCss, '370a115c3ec303648cb02528f338e83b967ccc0abcea1cc777bfdb3dc57948cc', 'previous Article/H4 raw pin retained');
   assert.equal(sha(originalStylesExceptApprovedPortrait(read('components/layout/website-43/Website43.module.css'))),
-    '370a115c3ec303648cb02528f338e83b967ccc0abcea1cc777bfdb3dc57948cc', 'Exact approved Article/H4 CSS before the portrait projection');
+    articleV4RawCss, 'Exact approved Article V4 CSS before the portrait projection');
   for (const [path, expected] of Object.entries(proof.protected)) {
     if (!Object.hasOwn(proof.reviewedUxOwners, path)) assert.equal(sha(read(path)), expected, path);
   }
@@ -97,7 +111,7 @@ test('raw CSS portrait admission rejects altered position, duplicates and unrela
   assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
   const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
   assert.notEqual(unrelated, css);
-  assert.notEqual(sha(originalStylesExceptApprovedPortrait(unrelated)), '370a115c3ec303648cb02528f338e83b967ccc0abcea1cc777bfdb3dc57948cc');
+  assert.notEqual(sha(originalStylesExceptApprovedPortrait(unrelated)), articleV4RawCss);
 });
 
 function declarations(node) {

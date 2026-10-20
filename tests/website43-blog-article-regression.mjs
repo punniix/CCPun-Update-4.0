@@ -77,9 +77,12 @@ for (const rel of ['noopener', 'noreferrer', 'nofollow', 'sponsored']) assert.ok
 const h4Only = doc(React.createElement(Article, { article: { ...article, body: h4Body } }));
 assert.ok(h4Only.querySelector('h4#section-1'));
 assert.equal(h4Only.querySelectorAll('a[href="#section-1"]').length, 2, 'both TOC variants preserve the H4-only anchor');
-for (const text of ['คำบรรยายภาพเปิด', 'เครดิต: เจ้าของภาพเดี่ยว', 'คำบรรยายแกลเลอรี · เครดิต: เจ้าของแกลเลอรี', 'ผู้เขียนจากเนื้อหา', '(2.0 MB)', 'ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก', 'คำถามทดสอบ', 'แหล่งต้นทาง']) assert.ok(rendered.body.textContent.includes(text), text);
+for (const text of ['คำบรรยายภาพเปิด', 'เครดิต: เจ้าของภาพเดี่ยว', 'คำบรรยายแกลเลอรี · เครดิต: เจ้าของแกลเลอรี', 'ผู้เขียนจากเนื้อหา', '(2.0 MB)', 'ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก', 'คำถามทดสอบ']) assert.ok(rendered.body.textContent.includes(text), text);
 for (const selector of ['ul li', 'ol li', 'blockquote', 'aside', 'details', 'table th', 'table td', 'hr', 'em strong']) assert.ok(rendered.querySelector(selector), selector);
+assert.equal(rendered.querySelector('[data-uat-section="article-sources"]'), null, 'approved inline evidence replaces the visible end reference list');
+assert.equal(rendered.querySelector('a[href="https://example.com/source"]'), null, 'source metadata is not rendered as an extra end link');
 const external = rendered.querySelector('a[href="https://example.com/reference"]');
+assert.ok(external, 'the original inline reference remains in the rendered article');
 assert.equal(external.target, '_blank');
 for (const rel of ['noopener', 'noreferrer', 'nofollow', 'sponsored']) assert.ok(external.rel.split(' ').includes(rel));
 assert.equal(rendered.querySelector('a[href="https://example.com/action"]').target, '_blank');
@@ -197,7 +200,7 @@ assert.ok(layout.includes('<Website43ResponsiveStyles />'), 'canonical responsiv
 assert.ok(!layout.includes('Website43TransitionStyles') && !layout.includes('Website43FinalPolishStyles'), 'retired responsive patch owners must stay out of the public shell');
 assert.match(articleStyles, /\.prose ol\s*\{[^}]*list-style-type:\s*decimal;/s, 'ordered article lists must restore decimal markers after Tailwind Preflight');
 assert.match(articleStyles, /\.prose ul\s*\{[^}]*list-style-type:\s*disc;/s, 'unordered article lists must restore bullet markers after Tailwind Preflight');
-assert.match(articleStyles, /\.articleSources\s*\{[^}]*list-style:\s*disc outside;/s, 'article source lists must keep visible markers');
+assert.match(articleStyles, /\.prose :is\(p, li, h2, h3, h4, blockquote\) a\s*\{[^}]*text-decoration:\s*underline;/s, 'inline references keep an accessible underline');
 
 // Render only the dedicated Blog interaction island as a cached route remount after popstate already fired.
 const browserDom = new JSDOM('<div id="app"></div>', { url: 'https://ccpun.com/blog/?q=สุขภาพ' });

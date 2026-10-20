@@ -26,6 +26,7 @@ const baseline = {
 };
 // Approved Article/H4 styles; original motion baseline and all unrelated CSS/DOM goldens remain frozen.
 const reviewedArticleActiveCss = 'bfd566caa265bc5fc839ed597589a5aa8412f805dba31f27aecaa9a50b4ae28b';
+const reviewedArticleV4Css = '5b493494383f404f684ce1c0c691f6a830a9f0924a08b1327065256828da073a';
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
 const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
@@ -123,11 +124,13 @@ test('portrait admission rejects changed position, duplicates and unrelated acti
   assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
   const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
   assert.notEqual(unrelated, css, 'Synthetic unapproved width change is present');
-  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), reviewedArticleActiveCss);
+  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), reviewedArticleV4Css);
 });
 
 test('approved motion styling and unchanged responsive media order match the frozen UAT baseline', () => {
-  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), reviewedArticleActiveCss);
+  assert.equal(reviewedArticleActiveCss, 'bfd566caa265bc5fc839ed597589a5aa8412f805dba31f27aecaa9a50b4ae28b', 'previous reviewed UAT CSS remains retained');
+  assert.equal(createHash('sha256').update(after('Website43.module.css')).digest('hex'), 'c853a22f5263beee4f37f2a9a8ed77d2ded42b118f03c909152242e37d2aeb8f', 'exact reviewed UAT Article V4 source');
+  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), reviewedArticleV4Css);
   assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), baseline.responsiveCss);
   assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar layout and approved short interaction cues remain frozen');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);

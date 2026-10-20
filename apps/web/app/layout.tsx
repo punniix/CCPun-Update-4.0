@@ -15,7 +15,7 @@ const META_PIXEL_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLI
 const GTM_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : UAT_WEB_ANALYTICS.gtmId;
 const kanit = Kanit({
   subsets: ["thai", "latin"],
-  weight: ["300", "400", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-kanit",
   display: "optional",
   preload: false,

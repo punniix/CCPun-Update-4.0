@@ -29,10 +29,10 @@ test('article uses one editorial spread: TOC sidebar + 720px main column + align
   assert.match(article, /className=\{styles\.articleInlineFigure\}[\s\S]*?className=\{styles\.articleFeature\}/);
   assert.match(article, /sizes="\(max-width: 767px\) calc\(100vw - 48px\), 720px"/);
   assert.match(css, /\.articleReadingGrid \{[\s\S]*?grid-template-columns: 260px 720px;[\s\S]*?gap: 48px;[\s\S]*?width: min\(1028px,100%\); margin: 0 auto;/);
-  assert.match(css, /\.articleFeature \{ display: block; width: 100%;[\s\S]*?border-radius: 8px;/);
+  assert.match(css, /\.articleFeature \{ display: block; width: 100%;[\s\S]*?border-radius: 14px;/);
   assert.match(css, /\.articleSupportInner \{ width: min\(1028px,100%\); margin-inline: auto; \}/);
   assert.match(responsive, /\.\$\{styles\.section\} > \.\$\{styles\.articleSupportInner\},\s*\.\$\{styles\.sectionDeep\} > \.\$\{styles\.articleSupportInner\} \{[\s\S]*?width: min\(1028px, 100%\);/);
-  assert.match(article, /article\.sources && article\.sources\.length > 0[\s\S]*?data-uat-section="article-sources"[\s\S]*?styles\.articleSupportInner[\s\S]*?>แหล่งอ้างอิง</);
+  assert.doesNotMatch(article, /data-uat-section="article-sources"|>แหล่งอ้างอิง</);
 });
 
 test('article TOC keeps H2, H3 and H4 links visible inside the native outer disclosures', () => {
@@ -112,23 +112,29 @@ test('Thai reading headings, explicit dividers and content links retain a clear 
   assert.equal(dividerHeading['padding-top'], '0');
   assert.equal(dividerHeading['margin-top'], '24px');
   assert.match(article, /<article className=\{styles\.prose\}>\{renderWebsite43ArticleBody/);
-  for (const selector of ['.articleSources a', '.content a']) {
+  for (const selector of ['.prose :is(p, li, h2, h3, h4, blockquote) a', '.content a']) {
     assert.equal(values(selector)['text-decoration'], 'underline', 'content links do not rely only on colour');
     assert.equal(values(selector)['text-underline-offset'], '4px');
   }
   assert.equal(values('.root a')['text-decoration'], 'none', 'navigation and button styling stays scoped');
 });
 
-test('article metadata hides redundant updated date when publish and update calendar dates match', () => {
-  assert.match(article, /const publishedDateLabel = article\.publishedAt \? thaiDateFormatter\.format\(new Date\(article\.publishedAt\)\) : null;/);
-  assert.match(article, /const updatedDateLabel = thaiDateFormatter\.format\(new Date\(article\.updatedAt\)\);/);
-  assert.match(article, /const showUpdatedDate = !publishedDateLabel \|\| publishedDateLabel !== updatedDateLabel;/);
-  assert.match(article, /\{publishedDateLabel && <><span className=\{styles\.articleDateLabel\}>เผยแพร่<\/span> <time dateTime=\{article\.publishedAt\}>\{publishedDateLabel\}<\/time><\/>\}/);
-  assert.match(article, /\{showUpdatedDate && <span className=\{styles\.articleUpdatedDate\}><span className=\{styles\.articleDateLabel\}>\{publishedDateLabel \? ' · ' : ''\}อัปเดตล่าสุด<\/span> <time dateTime=\{article\.updatedAt\}>\{updatedDateLabel\}<\/time><\/span>\}/);
+test('article metadata uses verified optimization date, consistent type and readable TOC separation', () => {
+  assert.match(article, /article\.optimizedAt && Number\.isFinite\(Date\.parse\(article\.optimizedAt\)\)/);
+  assert.doesNotMatch(article, /article\.updatedAt|showUpdatedDate/);
+  assert.match(article, />อัปเดตข้อมูลล่าสุด<\/span> <time dateTime=\{article\.optimizedAt\}/);
+  assert.match(css, /\.articleHeaderMeta \{[^}]*font-size: 14px;[^}]*font-weight: 400;[^}]*line-height: 22px;/);
+  assert.match(css, /\.articleDateLabel \{ font-size: inherit; font-weight: 400; \}/);
+  assert.match(css, /\.articleHeaderMeta time \{ color: var\(--w43-ink\); font-weight: 500; \}/);
+  assert.match(css, /\.articleReadingTime b \{ color: var\(--w43-ink\); font-weight: 500; \}/);
+  assert.match(css, /\.tocList \{ padding-block: 24px 8px; \}/);
+  assert.match(css, /\.tocDisclosure > summary, \.tocMobile > summary \{[^}]*justify-content: center;/);
+  assert.match(css, /\.articleFeature \{[^}]*height: auto;/);
+  assert.doesNotMatch(css, /\.articleFeature \{[^}]*aspect-ratio:/);
 });
 
 test('Kanit starts early without putting the whole font family on the critical path', () => {
-  assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["300", "400", "600", "700"\][\s\S]*?display: "optional"[\s\S]*?preload: false/);
+  assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["300", "400", "500", "600", "700"\][\s\S]*?display: "optional"[\s\S]*?preload: false/);
   assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai"\][\s\S]*?weight: \["400", "600", "700"\][\s\S]*?display: "optional"[\s\S]*?preload: true/);
   assert.match(layout, /className=\{`\$\{kanit\.variable\} \$\{kanitCritical\.variable\}`\}/);
   assert.doesNotMatch(layout, /const kanitCritical = Kanit\(\{[\s\S]*?weight: \[[^\]]*"300"/);

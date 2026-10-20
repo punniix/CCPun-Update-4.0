@@ -88,7 +88,7 @@ export function useArticleEngagement() { return useContext(Engagement); }
 export function ArticleEngagementSummary({ readingMinutes }: { readingMinutes?: number }) {
   const { metrics } = useArticleEngagement();
   return <div className={styles.articleReadingTime}>
-    {readingMinutes !== undefined && <span>อ่าน <b>{readingMinutes}</b> นาที</span>}
+    {readingMinutes !== undefined && <span className={styles.articleReadingEstimate}>ใช้เวลาอ่านประมาณ <b>{readingMinutes}</b> นาที</span>}
     {metrics.views !== null && <span title="ยอดที่บันทึกได้" aria-label={`การเปิดบทความที่บันทึกได้ ${metrics.views} ครั้ง`}>เปิดอ่าน <b>{metrics.views}</b> ครั้ง</span>}
     {metrics.hearts !== null && metrics.hearts > 0 && <span>ถูกใจ <b>{metrics.hearts}</b> ครั้ง</span>}
     {metrics.shares !== null && <span title="ยอดที่บันทึกได้" aria-label={`การแชร์ที่บันทึกได้ ${metrics.shares} ครั้ง`}>แชร์ <b>{metrics.shares}</b> ครั้ง</span>}
