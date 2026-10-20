@@ -61,6 +61,11 @@ function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
       const approved = 'weight: ["300", "400", "500", "600", "700"]';
       assert.equal(current.split(approved).length, 2, 'one noncritical Kanit 500 face');
       current = current.replace(approved, 'weight: ["300", "400", "600", "700"]');
+      const critical = 'weight: ["400", "500", "600", "700"]';
+      assert.equal(current.split(critical).length, 2, 'one critical Thai Kanit 500 face');
+      current = current.replace(critical, 'weight: ["400", "600", "700"]');
+      assert.equal(current.split('display: "swap"').length, 3, 'both existing Kanit loaders swap late fonts');
+      current = current.replaceAll('display: "swap"', 'display: "optional"');
     }
     assert.equal(sha(current), expected, path + ': exact reviewed current source');
   }
