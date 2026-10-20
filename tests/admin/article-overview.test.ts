@@ -177,6 +177,16 @@ test("Overview v2 accepts two or three brief points only and forwards whole midd
   const {helper}=fixture();
   const valid={status:"generated",summary,sourceRevision:"r1",promptVersion:"article-overview-v2"};
   assert.ok(helper.articleOverviewResultSchema.safeParse(valid).success);
+  const format=helper.ARTICLE_OVERVIEW_OUTPUT_FORMAT;
+  assert.equal(format.properties.points.items.pattern, "^[^\\r\\n<>]{1,99}$");
+  const pointPattern=new RegExp(format.properties.points.items.pattern,"u");
+  for(const point of ["ก".repeat(99),"ก"+"😀".repeat(98)])assert.ok(pointPattern.test(point),"99 Unicode code points fit");
+  for(const point of ["ก".repeat(100),"ก"+"😀".repeat(99),"ก\nข","ก\rข","ก<ข>"])assert.ok(!pointPattern.test(point),"100 code points or multiline/markup fail the output schema");
+  const bounded=["ก".repeat(99),"ข".repeat(99),"ค".repeat(99)].join("\n");
+  assert.equal(contracts.countGraphemes(bounded),299);
+  assert.ok(helper.articleOverviewResultSchema.safeParse({...valid,summary:bounded}).success);
+  assert.ok(!helper.articleOverviewResultSchema.safeParse({...valid,summary:"ก".repeat(100)+"\n"+"ข".repeat(100)+"\n"+"ค".repeat(100)}).success,"existing total300 cap remains strict");
+
   assert.ok(helper.articleOverviewResultSchema.safeParse({...valid,summary:summary+"\nอธิบายข้อควรตรวจสอบและเงื่อนไขสำคัญที่เกี่ยวข้องกับเนื้อหา"}).success);
   for(const changed of [{summary:"สรุปเพียงประเด็นเดียว ".repeat(5)},{summary:summary+"\nข้อสาม\nข้อสี่"},{promptVersion:"article-overview-v1"}])assert.ok(!helper.articleOverviewResultSchema.safeParse({...valid,...changed}).success);
   const rich={...source,body:[...source.body,{_type:"block",style:"normal",children:[{_type:"span",text:"MIDDLE_COMPLETE ข้อมูลช่วงกลาง "+"รายละเอียด ".repeat(250)}]},{_type:"block",style:"h4",children:[{_type:"span",text:"TAIL_COMPLETE ข้อจำกัดท้ายบทความ"}]}],faq:[{question:"FAQ_COMPLETE",answer:"เงื่อนไขครบ"}],sources:[{label:"REFERENCE_COMPLETE",url:"https://www.rd.go.th/"}]};
@@ -184,6 +194,9 @@ test("Overview v2 accepts two or three brief points only and forwards whole midd
   const prepared=code("เตรียมสรุปบทความ",request);assert.equal(prepared.valid,true);assert.deepEqual(JSON.parse(prepared.source),rich);
   for(const marker of ["MIDDLE_COMPLETE","TAIL_COMPLETE","FAQ_COMPLETE","REFERENCE_COMPLETE"])assert.ok(prepared.source.includes(marker),marker);
   assert.ok(prepared.source.length>1400,"complete article flow never reuses LINE excerpt cutoff");
+  assert.deepEqual(prepared.format,format);
+  const generated=code("ตรวจสรุปบทความ",{done:true,done_reason:"stop",message:{content:JSON.stringify({points:bounded.split("\n")})}},prepared);
+  assert.equal(generated.status,"generated");assert.equal(generated.summary,bounded);
 });
 
 test("Overview request preference is optional, bounded and separate from full article source", async () => {
