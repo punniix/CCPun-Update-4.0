@@ -1,0 +1,26 @@
+name: CCPun P0 Web Release QA (isolated)
+on:
+  push:
+    branches:
+      - qa/p0-web-release-20261020
+permissions:
+  contents: read
+jobs:
+  web-p0:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: TypeScript strict compilation
+        run: npx tsc --noEmit --incremental false
+      - name: Production foundation and CSS parity
+        run: npm run test:foundation-contracts
+      - name: Content SEO and publication regression
+        run: node --import tsx --test tests/admin/article-optimize-workflow.test.ts tests/admin/article-publish-action.test.ts tests/sitemap-google-regression.test.ts
+      - name: Hostinger regression
+        run: npm run test:hostinger
