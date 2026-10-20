@@ -9,6 +9,7 @@ export type ArticleCategoryReference = {
 export type PublishableArticle = SanityDocument & {
   publishedAt?: string;
   contentUpdatedAt?: string;
+  contentOptimizedAt?: string;
   slug?: { current?: string };
   category?: { _type?: string; _ref?: string; _weak?: boolean };
   review?: { status?: string };
@@ -65,6 +66,69 @@ export function articlePublishBlock(draft: PublishableArticle | null, published:
 }
 
 /**
+ * Only published, reader-facing changes can advance the SEO freshness date.
+ * Draft revisions, review/internal notes, workflow status and SEO audit metadata
+ * are not meaningful content changes. Normalize Portable Text _keys so editor
+ * block regeneration alone cannot make an unchanged page appear freshly edited.
+ */
+function normalizeVisibleValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeVisibleValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key, entry]) => !["_key", "_rev", "_createdAt", "_updatedAt"].includes(key) && entry !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, entry]) => [key, normalizeVisibleValue(entry)]),
+    );
+  }
+  return value ?? null;
+}
+
+export function hasArticleContentChanges(draft: PublishableArticle | null, published: PublishableArticle | null): boolean {
+  return Boolean(draft && published && ["title", "body", "faq", "sources"].some((field) =>
+    JSON.stringify(normalizeVisibleValue(draft[field])) !== JSON.stringify(normalizeVisibleValue(published[field]))));
+}
+
+function publicArticleContent(article: PublishableArticle) {
+  const seo = (article.seo ?? {}) as Record<string, unknown>;
+  return {
+    title: article.title,
+    excerpt: article.excerpt,
+    lineTitle: article.lineTitle,
+    lineDescription: article.lineDescription,
+    slug: article.slug?.current,
+    category: article.category?._ref,
+    tags: article.tags,
+    author: article.author,
+    featuredImage: article.featuredImage,
+    migratedFeaturedImage: article.migratedFeaturedImage,
+    body: article.body,
+    faq: article.faq,
+    sources: article.sources,
+    geo: article.geo,
+    seo: {
+      title: seo.title,
+      description: seo.description,
+      ogTitle: seo.ogTitle,
+      ogDescription: seo.ogDescription,
+      ogImage: seo.ogImage,
+      canonical: seo.canonical,
+      noindex: seo.noindex === true,
+      semanticTopic: seo.semanticTopic,
+    },
+  };
+}
+
+export function hasMeaningfulArticleContentChange(
+  draft: PublishableArticle,
+  published: PublishableArticle | null,
+): boolean {
+  if (!published) return true;
+  return JSON.stringify(normalizeVisibleValue(publicArticleContent(draft)))
+    !== JSON.stringify(normalizeVisibleValue(publicArticleContent(published)));
+}
+
+/**
  * Normal owner-approved publication is always indexable.
  * Draft/preview protection must never leak into a Live document. Any future
  * intentional Live noindex use case must go through a separate explicit workflow.
@@ -73,23 +137,31 @@ export function buildPublishedArticleDocument(
   draft: PublishableArticle,
   published: PublishableArticle | null,
   now = new Date().toISOString(),
+  confirmOptimization = false,
 ): PublishableArticle {
   const seo = draft.seo ? { ...draft.seo, noindex: false } : undefined;
-  return {
+  const document: PublishableArticle = {
     ...draft,
     ...(seo ? { seo } : {}),
     _id: draft._id.slice(7),
     publishedAt: published?.publishedAt || draft.publishedAt || now,
-    contentUpdatedAt: now,
+    contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)
+      ? now
+      : (published?.contentUpdatedAt || published?._updatedAt || now),
   };
+  // Only an approved substantive update can advance this date; never trust a Draft-supplied value.
+  delete document.contentOptimizedAt;
+  if (published?.contentOptimizedAt) document.contentOptimizedAt = published.contentOptimizedAt;
+  if (confirmOptimization && hasArticleContentChanges(draft, published)) document.contentOptimizedAt = now;
+  return document;
 }
 
 /** Atomic publication: failed/conflicting writes leave both versions and dates untouched. */
-export async function publishApprovedArticle(client: SanityClient, draft: PublishableArticle, published: PublishableArticle | null, now = new Date().toISOString()) {
+export async function publishApprovedArticle(client: SanityClient, draft: PublishableArticle, published: PublishableArticle | null, now = new Date().toISOString(), confirmOptimization = false) {
   const blocked = articlePublishBlock(draft, published, Date.parse(now));
   if (blocked) throw new Error(blocked);
   const publishedId = draft._id.slice(7);
-  const document = buildPublishedArticleDocument(draft, published, now);
+  const document = buildPublishedArticleDocument(draft, published, now, confirmOptimization);
   // Sanity owns document system metadata; content and existing weak references stay intact.
   const payload: Record<string, unknown> = { ...document };
   for (const field of ["_rev", "_createdAt", "_updatedAt", "_system"]) delete payload[field];

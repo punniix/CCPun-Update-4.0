@@ -78,7 +78,25 @@ test('explicit Admin UAT retention admits only sixteen C645 and three reviewed P
   for (const [file, record] of Object.entries(records)) {
     assert.equal(record.originalSha256, proof.protected[file], 'original protected map remains frozen');
     assert.equal(record.sourceCommit === c645, record.candidateSha256 === record.c645Sha256, 'inherited source equality is explicit; PR418 safety is distinct');
-    assert.equal(assertReviewedUatRetention(file, proof.protected[file], proof, read, 'admin-uat'), true);
+    let retainedRead = read;
+    if (file === 'cms/sanity/policy/article-publication.ts') {
+      let prior = read(file);
+      assert.equal(sha(prior), '7901e92173b1c6878dec4312c071651b5a7413a282e93cbc07ab6b8037b96f92', 'exact reviewed optimization and freshness publisher');
+      // Reverse only the admitted feature before testing the immutable prior retention contract.
+      prior = prior.slice(0, prior.indexOf('/**\n * Only published, reader-facing changes'))
+        + prior.slice(prior.indexOf('/**\n * Normal owner-approved publication'));
+      prior = prior.replace('  contentOptimizedAt?: string;\n', '')
+        .replace('  confirmOptimization = false,\n', '')
+        .replace('  const document: PublishableArticle = {', '  return {')
+        .replace('    contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)\n      ? now\n      : (published?.contentUpdatedAt || published?._updatedAt || now),', '    contentUpdatedAt: now,')
+        .replace(/\n  \/\/ Only an approved substantive update[^\n]*\n[\s\S]*?\n  return document;/, '')
+        .replace('now = new Date().toISOString(), confirmOptimization = false)', 'now = new Date().toISOString())')
+        .replace('buildPublishedArticleDocument(draft, published, now, confirmOptimization)', 'buildPublishedArticleDocument(draft, published, now)');
+      assert.equal(record.candidateSha256, '1eaf702df44fff82ec6e3dad689ba198d449fb58de046c2a98392bd111e05032', 'prior UAT identity remains frozen');
+      assert.equal(sha(prior), record.candidateSha256, 'whole prior null-prototype publisher is unchanged');
+      retainedRead = path => path === file ? prior : read(path);
+    }
+    assert.equal(assertReviewedUatRetention(file, proof.protected[file], proof, retainedRead, 'admin-uat'), true);
   }
   const file = Object.keys(records)[0], original = proof.protected[file];
   for (const environment of ['production-admin', 'local-production', 'web-uat', 'unknown', undefined]) {

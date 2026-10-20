@@ -36,6 +36,27 @@ function assertReviewedLineCopyOriginRepair(file, digest, source) {
   assert.equal(sha(source), digest, file + ': every other original byte remains protected');
 }
 
+const reviewedArticleOptimizationOwners = {
+  'cms/sanity/policy/article-publication.ts': [
+    '802db995aec376a4696d1ea3962f39a40332415a2f1438c0ffaebc8c1ceccd04',
+    '7901e92173b1c6878dec4312c071651b5a7413a282e93cbc07ab6b8037b96f92',
+  ],
+  'cms/sanity/policy/article-publish-action.tsx': [
+    '55009ab64b6ee3996238dcd776e69265db49bd0a3c208d4fcb9eab9f99705002',
+    '045c84dd3309216f3bad97ee8e4696c0a5f2f1d353dc18f31507a7c6aa05a826',
+  ],
+  'cms/sanity/schema/documents/article.ts': [
+    'c8659434b3686aa7badef41fa3c80e05232942c9acefbc8c5d1d7f5555b74670',
+    '3e8a27c0429ae3f97b47829d7355d4e832db185db45cfd4f942089451fd74d27',
+  ],
+};
+function assertReviewedArticleOptimization(file, digest, source) {
+  assert.ok(Object.hasOwn(reviewedArticleOptimizationOwners, file), 'only three reviewed Article owners are admitted');
+  assert.equal(digest, reviewedArticleOptimizationOwners[file][0], file + ': original protection is frozen');
+  if (file === 'cms/sanity/policy/article-publication.ts') assert.equal(proof.reviewedInheritedUat.retainedSources[file].candidateSha256, '1eaf702df44fff82ec6e3dad689ba198d449fb58de046c2a98392bd111e05032', 'prior UAT null-prototype publisher identity stays frozen');
+  assert.equal(sha(source), reviewedArticleOptimizationOwners[file][1], file + ': exact reviewed explicit optimization owner');
+}
+
 test('own UAT 1f baseline retains every root alias and all P1/private/provider/tracking sources outside exact canonical extraction', () => {
   assert.equal(proof.baseline, '1f19562560e5e2de47cf643a4dbe7f27a9a91348');
   assert.equal(Object.keys(proof.compositions).length, 21);
@@ -52,6 +73,8 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
       assert.equal(sha(readFileSync(file)), reviewedSchemaOwners[file][1], file + ': exact reviewed additive schema');
     } else if (lineCopyOriginRoutes.includes(file)) {
       assertReviewedLineCopyOriginRepair(file, digest, readFileSync(file, 'utf8'));
+    } else if (Object.hasOwn(reviewedArticleOptimizationOwners, file)) {
+      assertReviewedArticleOptimization(file, digest, readFileSync(file, 'utf8'));
     } else if (Object.hasOwn(proof.reviewedGoogleSessionUat.existingSources, file)) {
       const pins = proof.reviewedGoogleSessionUat.existingSources[file];
       assert.equal(pins.originalProtectedSha256, digest, file + ': original protection is frozen');
@@ -131,6 +154,43 @@ test('LINE origin repair admission still rejects unrelated authorization edits a
     assert.throws(() => assertReviewedLineCopyOriginRepair(file, protectedSources[file], changedRole));
     assert.throws(() => assertReviewedLineCopyOriginRepair(file, protectedSources[file], source + '\nisLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment());\n'));
   }
+});
+
+test('Article optimization admission rejects original proof drift and changes to approval, category, noindex or intent guards', () => {
+  const file = 'cms/sanity/policy/article-publication.ts';
+  const sources = { ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources };
+  const source = readFileSync(file, 'utf8');
+  assert.throws(() => assertReviewedArticleOptimization('unknown.ts', sources[file], source));
+  assert.throws(() => assertReviewedArticleOptimization(file, 'unknown', source));
+  for (const [original, replacement] of [
+    ['draft.review?.status !== "approved"', 'draft.review?.status !== "drafting"'],
+    ['draft.category?._ref !== published.category?._ref', 'false'],
+    ['noindex: false', 'noindex: true'],
+    ['confirmOptimization && hasArticleContentChanges(draft, published)', 'hasArticleContentChanges(draft, published)'],
+    ['delete document.contentOptimizedAt;', ''],
+    ['Object.create(null)', '{}'],
+    ['contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)', 'contentUpdatedAt: true'],
+  ]) {
+    const changed = source.replace(original, replacement);
+    assert.notEqual(changed, source, original + ': negative probe must change the actual owner');
+    assert.throws(() => assertReviewedArticleOptimization(file, sources[file], changed));
+  }
+  const actionFile = 'cms/sanity/policy/article-publish-action.tsx';
+  const action = readFileSync(actionFile, 'utf8');
+  for (const [original, replacement] of [
+    ['optimization: false', 'optimization: true'],
+    ['draft._rev !== confirmation.draft', 'false'],
+    ['published?._rev !== confirmation.published', 'false'],
+  ]) {
+    const changed = action.replace(original, replacement);
+    assert.notEqual(changed, action);
+    assert.throws(() => assertReviewedArticleOptimization(actionFile, sources[actionFile], changed));
+  }
+  const schemaFile = 'cms/sanity/schema/documents/article.ts';
+  const schema = readFileSync(schemaFile, 'utf8');
+  const editable = schema.replace(/(name: "contentOptimizedAt",[\s\S]*?readOnly:) true/, '$1 false');
+  assert.notEqual(editable, schema);
+  assert.throws(() => assertReviewedArticleOptimization(schemaFile, sources[schemaFile], editable));
 });
 
 test('new SEO route retention stays distinct from accepted C645 and rejects environment/source/admission drift', () => {

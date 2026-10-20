@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useClient, useSyncState, useValidationStatus, type DocumentActionComponent } from "sanity";
 import type { AdminEnvironment } from "../../../lib/admin/environment";
-import { articlePublishBlock, publishApprovedArticle, type PublishableArticle } from "./article-publication";
+import { articlePublishBlock, hasArticleContentChanges, publishApprovedArticle, type PublishableArticle } from "./article-publication";
 
 export function createGoogleSafeArticlePublishAction(originalAction: DocumentActionComponent): DocumentActionComponent {
   const GoogleSafeArticlePublishAction: DocumentActionComponent = (props) => {
@@ -11,7 +11,7 @@ export function createGoogleSafeArticlePublishAction(originalAction: DocumentAct
     const client = useClient({ apiVersion: "2025-02-19" });
     const sync = useSyncState(props.id, props.type);
     const validation = useValidationStatus(props.draft?._id || props.id, props.type, true);
-    const [confirmation, setConfirmation] = useState<{ draft: string; published?: string } | null>(null);
+    const [confirmation, setConfirmation] = useState<{ draft: string; published?: string; optimization: boolean } | null>(null);
     const [isPublishing, setIsPublishing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const inFlight = useRef(false);
@@ -28,7 +28,7 @@ export function createGoogleSafeArticlePublishAction(originalAction: DocumentAct
       title: "ตรวจตัวอย่างและเลือก อนุมัติเนื้อหาแล้ว ในแท็บ ตัวอย่าง / สถานะเผยแพร่ จากนั้นยืนยันเผยแพร่ฉบับนี้",
       onHandle: () => {
         if (disabled || !draft) return;
-        setConfirmation({ draft: draft._rev, published: published?._rev });
+        setConfirmation({ draft: draft._rev, published: published?._rev, optimization: false });
       },
       dialog: error ? {
         type: "dialog",
@@ -37,9 +37,15 @@ export function createGoogleSafeArticlePublishAction(originalAction: DocumentAct
         onClose: () => setError(null),
       } : confirmation ? {
         type: "confirm",
-        message: published
+        message: <div><p>{published
           ? "คุณตรวจตัวอย่าง ตรวจเนื้อหาและข้อเท็จจริง และอนุมัติฉบับนี้แล้วใช่ไหม? เมื่อยืนยัน ฉบับแก้ไขนี้จะแทนฉบับ Live โดยคงวันเผยแพร่ครั้งแรกและ URL เดิม"
-          : "คุณตรวจตัวอย่าง ตรวจเนื้อหาและข้อเท็จจริง และอนุมัติฉบับนี้แล้วใช่ไหม? เมื่อยืนยัน บทความนี้จะเผยแพร่บนเว็บไซต์",
+          : "คุณตรวจตัวอย่าง ตรวจเนื้อหาและข้อเท็จจริง และอนุมัติฉบับนี้แล้วใช่ไหม? เมื่อยืนยัน บทความนี้จะเผยแพร่บนเว็บไซต์"}</p>
+          {hasArticleContentChanges(draft, published) && <label>
+            <input type="checkbox" checked={confirmation.optimization}
+              onChange={(event) => setConfirmation({ ...confirmation, optimization: event.currentTarget.checked })} />
+            ยืนยันว่าฉบับนี้ปรับปรุงข้อมูลบทความแล้ว
+          </label>}
+        </div>,
         confirmButtonText: published ? "ยืนยันอัปเดตบทความ" : "ยืนยันเผยแพร่บทความ",
         cancelButtonText: "กลับไปตรวจอีกครั้ง",
         onCancel: () => setConfirmation(null),
@@ -53,7 +59,7 @@ export function createGoogleSafeArticlePublishAction(originalAction: DocumentAct
           inFlight.current = true;
           setIsPublishing(true);
           try {
-            await publishApprovedArticle(client, draft, published);
+            await publishApprovedArticle(client, draft, published, undefined, confirmation.optimization);
             if (process.env.NEXT_PUBLIC_CCPUN_POST_PUBLISH_SEO_ENABLED === "1") try {
               const queued = await fetch("/api/admin/seo/post-publish/", {
                 method: "POST", credentials: "same-origin",
