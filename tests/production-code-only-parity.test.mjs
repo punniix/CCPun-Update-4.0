@@ -38,6 +38,26 @@ function assertReviewedLineCopyOriginRepair(file, digest, source) {
   assert.equal(sha(source), digest, file + ': every other original byte remains protected');
 }
 
+const reviewedArticleOptimizationOwners = {
+  'cms/sanity/policy/article-publication.ts': [
+    '802db995aec376a4696d1ea3962f39a40332415a2f1438c0ffaebc8c1ceccd04',
+    '8df23792e5d8774e1f74405e5dbc0f8805cc02ee88d419cbcdecad54b2c0deb2',
+  ],
+  'cms/sanity/policy/article-publish-action.tsx': [
+    '55009ab64b6ee3996238dcd776e69265db49bd0a3c208d4fcb9eab9f99705002',
+    '045c84dd3309216f3bad97ee8e4696c0a5f2f1d353dc18f31507a7c6aa05a826',
+  ],
+  'cms/sanity/schema/documents/article.ts': [
+    'c8659434b3686aa7badef41fa3c80e05232942c9acefbc8c5d1d7f5555b74670',
+    '3e8a27c0429ae3f97b47829d7355d4e832db185db45cfd4f942089451fd74d27',
+  ],
+};
+function assertReviewedArticleOptimization(file, digest, source) {
+  assert.ok(Object.hasOwn(reviewedArticleOptimizationOwners, file), 'only three reviewed Article owners are admitted');
+  assert.equal(digest, reviewedArticleOptimizationOwners[file][0], file + ': original protection is frozen');
+  assert.equal(sha(source), reviewedArticleOptimizationOwners[file][1], file + ': exact reviewed explicit optimization owner');
+}
+
 test('original Production owners remain guarded alongside exact reviewed Google Connect feature sources', () => {
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources })) {
@@ -46,6 +66,8 @@ test('original Production owners remain guarded alongside exact reviewed Google 
       assert.equal(sha(readFileSync(resolve(root, file))), reviewedReleaseOwners[file][1], file + ': exact reviewed release owner');
     } else if (lineCopyOriginRoutes.includes(file)) {
       assertReviewedLineCopyOriginRepair(file, digest, readFileSync(resolve(root, file), 'utf8'));
+    } else if (Object.hasOwn(reviewedArticleOptimizationOwners, file)) {
+      assertReviewedArticleOptimization(file, digest, readFileSync(resolve(root, file), 'utf8'));
     } else if (file === 'cms/sanity/policy/studio-policy.ts') {
       const source = readFileSync(resolve(root, file), 'utf8');
       const accepted = '!["disabled", "native-neon"].includes(backend ?? "")';
@@ -112,6 +134,41 @@ test('LINE origin repair admission still rejects unrelated authorization edits a
     assert.throws(() => assertReviewedLineCopyOriginRepair(file, protectedSources[file], changedRole));
     assert.throws(() => assertReviewedLineCopyOriginRepair(file, protectedSources[file], source + '\nisLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment());\n'));
   }
+});
+
+test('Article optimization admission rejects original proof drift and changes to approval, category, noindex or intent guards', () => {
+  const file = 'cms/sanity/policy/article-publication.ts';
+  const sources = { ...proof.canonical, ...proof.protected, ...proof.retainedVariants, ...proof.workerEntrySources };
+  const source = readFileSync(resolve(root, file), 'utf8');
+  assert.throws(() => assertReviewedArticleOptimization('unknown.ts', sources[file], source));
+  assert.throws(() => assertReviewedArticleOptimization(file, 'unknown', source));
+  for (const [original, replacement] of [
+    ['draft.review?.status !== "approved"', 'draft.review?.status !== "drafting"'],
+    ['draft.category?._ref !== published.category?._ref', 'false'],
+    ['noindex: false', 'noindex: true'],
+    ['confirmOptimization && hasArticleContentChanges(draft, published)', 'hasArticleContentChanges(draft, published)'],
+    ['delete document.contentOptimizedAt;', ''],
+  ]) {
+    const changed = source.replace(original, replacement);
+    assert.notEqual(changed, source, original + ': negative probe must change the actual owner');
+    assert.throws(() => assertReviewedArticleOptimization(file, sources[file], changed));
+  }
+  const actionFile = 'cms/sanity/policy/article-publish-action.tsx';
+  const action = readFileSync(resolve(root, actionFile), 'utf8');
+  for (const [original, replacement] of [
+    ['optimization: false', 'optimization: true'],
+    ['draft._rev !== confirmation.draft', 'false'],
+    ['published?._rev !== confirmation.published', 'false'],
+  ]) {
+    const changed = action.replace(original, replacement);
+    assert.notEqual(changed, action);
+    assert.throws(() => assertReviewedArticleOptimization(actionFile, sources[actionFile], changed));
+  }
+  const schemaFile = 'cms/sanity/schema/documents/article.ts';
+  const schema = readFileSync(resolve(root, schemaFile), 'utf8');
+  const editable = schema.replace(/(name: "contentOptimizedAt",[\s\S]*?readOnly:) true/, '$1 false');
+  assert.notEqual(editable, schema);
+  assert.throws(() => assertReviewedArticleOptimization(schemaFile, sources[schemaFile], editable));
 });
 
 test('critical first-paint CSS and three layout compositions preserve the exact Production baseline', () => {

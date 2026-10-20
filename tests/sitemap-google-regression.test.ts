@@ -104,7 +104,8 @@ test("protects Google publish eligibility and sets one meaningful publication ti
   assert.equal(resolveContentLastmod(written!), now);
   assert.equal(draft.contentUpdatedAt, undefined, "publication must not stamp a saved draft separately");
   assert.match(action, /articlePublishBlock\(draft, published\)/);
-  assert.match(action, /await publishApprovedArticle\(client, draft, published\)/);
+  assert.match(action, /await publishApprovedArticle\(client, draft, published, undefined, confirmation\.optimization\)/);
+  assert.match(action, /setConfirmation\(\{ draft: draft\._rev, published: published\?\._rev, optimization: false \}\)/);
   assert.match(action, /schemaType !== "article"[\s\S]*action\.action === "publish"/);
   assert.match(config, /wrapGoogleSafeArticlePublishActions[\s\S]*protectProductionContentLifecycleActions/);
   assert.match(schema, /name:\s*"contentUpdatedAt"[\s\S]*readOnly:\s*true/);

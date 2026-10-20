@@ -115,6 +115,14 @@ export const article = defineType({
       readOnly: true,
     }),
     defineField({
+      name: "contentOptimizedAt",
+      title: "วันปรับปรุงข้อมูลบทความล่าสุด",
+      description: "แสดงบนหน้าเว็บเมื่อคุณยืนยันว่าปรับปรุงข้อมูลบทความแล้วและเผยแพร่สำเร็จเท่านั้น การบันทึกหรือแก้ LINE Card จะไม่เปลี่ยนวันนี้",
+      type: "datetime",
+      group: "publication",
+      readOnly: true,
+    }),
+    defineField({
       name: "publishedAt",
       title: "วันเผยแพร่ครั้งแรก (ระบบเก็บไว้เมื่อปรับปรุงบทความ)",
       description: "สำหรับบทความใหม่ ตั้งวันเผยแพร่ได้ หรือเว้นให้ระบบกำหนดอัตโนมัติ สำหรับบทความที่ Live แล้ว ระบบจะยึดวันแรกจากฉบับ Live เสมอ แม้แก้ค่านี้ใน Draft",

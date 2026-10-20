@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SanityClient } from "sanity";
-import { articleCategoryReferenceBlock, articlePublishBlock, isArticleCategoryReference, publicationSummary, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
+import { articleCategoryReferenceBlock, articlePublishBlock, hasArticleContentChanges, isArticleCategoryReference, publicationSummary, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
 import { faqItem } from "../../cms/sanity/schema/objects/faq-item";
 import { sourceReference } from "../../cms/sanity/schema/objects/source-reference";
 import { tableRow, simpleTable } from "../../cms/sanity/schema/objects/table";
@@ -136,4 +136,73 @@ test("Live and draft state remains separate from review status", () => {
   assert.match(publicationSummary(published, draft), /Live.*ยังไม่เผยแพร่/);
   assert.match(publicationSummary(published, null), /ฉบับปัจจุบันเผยแพร่อยู่/);
   assert.match(publicationSummary(null, draft), /ยังไม่เผยแพร่/);
+});
+
+test("only explicit approved substantive updates create the optimization date", async () => {
+  for (const change of [
+    { title: "Updated title" },
+    { body: [{ _type: "block", children: [{ text: "Updated content" }] }] },
+    { faq: [{ question: "Updated question?", answer: "Updated answer" }] },
+    { sources: [{ title: "Official updated source", url: "https://example.com/source" }] },
+  ]) {
+    const changed = { ...draft, ...change };
+    const db = memoryClient([changed, published]);
+    await publishApprovedArticle(db.client, changed, published, now, true);
+    const live = db.read().get("article1")!;
+    assert.equal(live.contentOptimizedAt, now);
+    assert.equal(live.publishedAt, first);
+    assert.equal(live.contentUpdatedAt, now);
+    assert.equal(db.commits(), 1);
+    assert.ok(!db.read().has(draft._id));
+  }
+});
+
+test("first publication, no changes and LINE-only changes cannot claim optimization, even with intent", async () => {
+  for (const previous of [null, published]) {
+    for (const changes of [{}, { lineTitle: "New LINE title", lineDescription: "New LINE card" }, { review: { status: "approved", notes: "Reviewed" } }]) {
+      const value = { ...draft, ...changes, contentOptimizedAt: "2030-01-01T00:00:00.000Z" };
+      const db = memoryClient(previous ? [value, previous] : [value]);
+      await publishApprovedArticle(db.client, value, previous, now, true);
+      assert.equal(Object.hasOwn(db.read().get("article1")!, "contentOptimizedAt"), false);
+    }
+  }
+});
+
+test("normal and scheduled publication preserve only the trusted Live optimization date", async () => {
+  for (const previousDate of [undefined, "2025-01-02T00:00:00.000Z"]) {
+    const previous = { ...published, ...(previousDate ? { contentOptimizedAt: previousDate } : {}) };
+    const value = { ...draft, title: "Changed without explicit optimization approval", contentOptimizedAt: now };
+    const db = memoryClient([value, previous]);
+    await publishApprovedArticle(db.client, value, previous, now);
+    assert.equal(db.read().get("article1")?.contentOptimizedAt, previousDate);
+  }
+});
+
+test("approval alone never advances a previous optimization date for unchanged or LINE-only content", async () => {
+  const previous = { ...published, contentOptimizedAt: "2025-01-02T00:00:00.000Z" };
+  for (const changes of [{}, { lineTitle: "New LINE title", lineDescription: "New card description" }]) {
+    const value = { ...draft, ...changes, contentOptimizedAt: now };
+    const db = memoryClient([value, previous]);
+    await publishApprovedArticle(db.client, value, previous, now, true);
+    assert.equal(db.read().get("article1")?.contentOptimizedAt, previous.contentOptimizedAt);
+  }
+});
+
+test("Sanity object keys and JSON property order do not count as optimized content", () => {
+  const previous = { ...published, body: [{ _key: "old", _type: "block", children: [{ _key: "a", _type: "span", text: "Same content" }] }] };
+  const value = { ...draft, body: [{ children: [{ text: "Same content", _type: "span", _key: "b" }], _type: "block", _key: "new" }] };
+  assert.equal(hasArticleContentChanges(value, previous), false);
+  assert.equal(hasArticleContentChanges(value, null), false);
+  assert.equal(hasArticleContentChanges(null, previous), false);
+});
+
+test("failed or revision-conflicting optimization leaves all dates and both versions untouched", async () => {
+  const previous = { ...published, contentOptimizedAt: "2025-01-02T00:00:00.000Z" };
+  const value = { ...draft, title: "Updated content" };
+  for (const [changedDraft, changedLive, fail] of [[value, previous, true], [{ ...value, _rev: "new" }, previous, false], [value, { ...previous, _rev: "new" }, false]] as const) {
+    const db = memoryClient([changedDraft, changedLive], fail);
+    await assert.rejects(publishApprovedArticle(db.client, value, previous, now, true));
+    assert.deepEqual(db.read().get(value._id), changedDraft);
+    assert.deepEqual(db.read().get(previous._id), changedLive);
+  }
 });
