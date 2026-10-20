@@ -23,6 +23,19 @@ const reviewedSchemaOwners = {
   ]
 };
 
+const lineCopyOriginRoutes = ["generate", "improve", "publish"].map(action => `apps/admin/app/api/admin/content/[id]/line-copy/${action}/route.ts`);
+function assertReviewedLineCopyOriginRepair(file, digest, source) {
+  assert.ok(lineCopyOriginRoutes.includes(file), 'only three reviewed LINE routes are admitted');
+  for (const [accepted, original] of [
+    ['import { getAdminEnvironment } from "@/lib/admin/environment";\nimport { isPostPublishAdminOriginAllowed as isLineCopyAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";', 'import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";'],
+    ['isLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment())', 'isSameOriginAdminMutation(request.url, request.headers.get("origin"))'],
+  ]) {
+    assert.equal(source.split(accepted).length, 2, file + ': exact origin replacement occurs once');
+    source = source.replace(accepted, original);
+  }
+  assert.equal(sha(source), digest, file + ': every other original byte remains protected');
+}
+
 test('own UAT 1f baseline retains every root alias and all P1/private/provider/tracking sources outside exact canonical extraction', () => {
   assert.equal(proof.baseline, '1f19562560e5e2de47cf643a4dbe7f27a9a91348');
   assert.equal(Object.keys(proof.compositions).length, 21);
@@ -37,6 +50,8 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
     if (Object.hasOwn(reviewedSchemaOwners, file)) {
       assert.equal(digest, reviewedSchemaOwners[file][0], file + ': original schema protection is frozen');
       assert.equal(sha(readFileSync(file)), reviewedSchemaOwners[file][1], file + ': exact reviewed additive schema');
+    } else if (lineCopyOriginRoutes.includes(file)) {
+      assertReviewedLineCopyOriginRepair(file, digest, readFileSync(file, 'utf8'));
     } else if (Object.hasOwn(proof.reviewedGoogleSessionUat.existingSources, file)) {
       const pins = proof.reviewedGoogleSessionUat.existingSources[file];
       assert.equal(pins.originalProtectedSha256, digest, file + ': original protection is frozen');
@@ -106,6 +121,17 @@ test('own UAT 1f baseline retains every root alias and all P1/private/provider/t
   }
 });
 
+
+test('LINE origin repair admission still rejects unrelated authorization edits and duplicate replacements', () => {
+  const protectedSources = proof.protected;
+  for (const file of lineCopyOriginRoutes) {
+    const source = readFileSync(file, 'utf8');
+    const changedRole = source.replace('identity.role !== "owner"', 'identity.role !== "editor"');
+    assert.notEqual(changedRole, source);
+    assert.throws(() => assertReviewedLineCopyOriginRepair(file, protectedSources[file], changedRole));
+    assert.throws(() => assertReviewedLineCopyOriginRepair(file, protectedSources[file], source + '\nisLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment());\n'));
+  }
+});
 
 test('new SEO route retention stays distinct from accepted C645 and rejects environment/source/admission drift', () => {
   assert.equal(proof.reviewedSeoUat.sourceCommit, 'd0bcfdaef62f2fae8b3b727836527dd25e22ebbe');

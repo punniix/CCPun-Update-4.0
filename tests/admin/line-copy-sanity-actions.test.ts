@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { isPostPublishAdminOriginAllowed } from "../../lib/admin/seo-intelligence/post-publish-origin";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 
@@ -58,7 +59,7 @@ test("Improve LINE copy uses approved Published fields only and requires owner a
   assert.doesNotMatch(route, /draft\.body|published\.body|"body":/);
   assert.doesNotMatch(helper.split("const improvementTargetQuery =")[1]?.split("function readClient")[0] ?? "", /pt::text\(body\)|"body"/);
   assert.match(route, /identity\.role !== "owner"/);
-  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /isLineCopyAdminOriginAllowed/);
   assert.match(route, /signProposal\(token/);
   assert.match(route, /timingSafeEqual/);
   assert.match(helper, /target\.draft\.revision !== draftRevision\.data \|\| target\.published\.revision !== publishedRevision\.data/);
@@ -131,6 +132,7 @@ test("published-only generation creates only a Draft and rejects revision and cr
 });
 
 const uatBridgeEnv = {
+  AUTH_URL: "https://admin-test.ccpun.com",
   CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_APP_ENV: "admin-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "admin-uat",
   NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
@@ -138,6 +140,7 @@ const uatBridgeEnv = {
   CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: "https://n8n.srv908107.hstgr.cloud/webhook/uat-line-copy",
 };
 const productionBridgeEnv = {
+  AUTH_URL: "https://admin.ccpun.com",
   CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
   CCPUN_APP_ENV: "production-admin", CCPUN_LOCAL_AI_N8N_TOKEN: "synthetic-production-" + "p".repeat(50),
 };
@@ -160,13 +163,13 @@ async function loadBridge() {
   return bridge as { resolveLineCopyN8nBridge: (env: Record<string, string | undefined>) => { lane: string; token?: string; webhookUrl?: URL } | null };
 }
 
-async function loadLineRoute(name: "generate" | "improve", env: Record<string, string | undefined>) {
+async function loadLineRoute(name: "generate" | "improve" | "publish", env: Record<string, string | undefined>) {
   const ts = await import("typescript");
   const { z } = await import("zod");
   const crypto = await import("node:crypto");
   const bridge = await loadBridge();
   const state = {
-    owner: true, origin: true, reads: 0, writes: 0,
+    owner: true, reads: 0, writes: 0,
     draft: { revision: "draft-rev", title: "Article", body: "Draft body", category: "Health", slug: "article-1", lineTitle: "", lineDescription: "" },
     calls: [] as { url: string; options: RequestInit }[],
   };
@@ -177,7 +180,8 @@ async function loadLineRoute(name: "generate" | "improve", env: Record<string, s
     if (id === "node:crypto") return crypto;
     if (id === "zod") return { z };
     if (id === "next/server") return { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } };
-    if (id === "@/lib/admin/auth-config") return { isSameOriginAdminMutation: () => state.origin };
+    if (id === "@/lib/admin/environment") return { getAdminEnvironment: () => env.CCPUN_APP_ENV ?? "unknown" };
+    if (id === "@/lib/admin/seo-intelligence/post-publish-origin") return { isPostPublishAdminOriginAllowed };
     if (id === "@/lib/admin/identity") return { getAdminIdentity: async () => state.owner ? { actorType: "human", role: "owner" } : null };
     if (id === "@/lib/admin/rbac") return { hasAdminPermission: () => true };
     if (id === "@/lib/admin/local-ai/service-auth") return bridge;
@@ -187,20 +191,72 @@ async function loadLineRoute(name: "generate" | "improve", env: Record<string, s
       readArticleLineCopyImprovementTarget: async () => { state.reads++; return target(); },
       applyGeneratedLineCopyToDraft: async () => { state.writes++; return { status: "applied", revision: "next-rev", appliedFields: ["lineTitle", "lineDescription"] }; },
       applyImprovedLineCopyToDraft: async () => { state.writes++; return { status: "applied", revision: "next-rev" }; },
+      publishDraftLineCopyOnly: async () => { state.writes++; return { status: "published", revision: "next-rev" }; },
     };
     throw new Error("Unexpected route dependency " + id);
   }, exports, { env }, async (url: URL, options: RequestInit) => {
     state.calls.push({ url: url.href, options });
     return Response.json({ status: "generated", lineTitle: "Proposal title", lineDescription: "Proposal description" });
   });
-  const invoke = (body: unknown) => exports.POST!(new Request("https://admin-test.ccpun.com/api/admin/content/article-1/line-copy/" + name, {
-    method: "POST", headers: { "Content-Type": "application/json", Origin: "https://admin-test.ccpun.com" }, body: JSON.stringify(body),
-  }), { params: Promise.resolve({ id: "article-1" }) });
+  const invoke = (body: unknown, options: { url?: string; headers?: Record<string, string | undefined> } = {}) => {
+    const origin = env.AUTH_URL ?? "https://admin-test.ccpun.com";
+    const headers = new Headers({ "Content-Type": "application/json", host: new URL(origin).host, origin, "x-forwarded-host": new URL(origin).host, "x-forwarded-proto": "https" });
+    for (const [key, value] of Object.entries(options.headers ?? {})) {
+      if (value === undefined) headers.delete(key);
+      else headers.set(key, value);
+    }
+    return exports.POST!(new Request(options.url ?? origin + "/api/admin/content/article-1/line-copy/" + name, {
+      method: "POST", headers, body: JSON.stringify(body),
+    }), { params: Promise.resolve({ id: "article-1" }) });
+  };
   return { state, invoke };
 }
 const generateInput = { sourceRevision: "published-rev", requestId: "11111111-1111-4111-8111-111111111111" };
 const proposeInput = { action: "propose", draftRevision: "draft-rev", publishedRevision: "published-rev", requestId: generateInput.requestId };
 const acceptInput = { action: "accept", draftRevision: "draft-rev", publishedRevision: "published-rev", lineTitle: "Proposal title", lineDescription: "Proposal description", proposalToken: "x".repeat(43) };
+
+test("LINE mutations accept verified Hostinger ingress after URL rewriting and reject spoofed or cross-lane origins before side effects", async () => {
+  const inputs = { generate: generateInput, improve: proposeInput, publish: { draftRevision: "draft-rev", publishedRevision: "published-rev" } };
+  const url = "http://127.0.0.1:3000/api/admin/content/article-1/line-copy/";
+  for (const env of [uatBridgeEnv, productionBridgeEnv]) {
+    for (const name of ["generate", "improve", "publish"] as const) {
+      const route = await loadLineRoute(name, env);
+      const response = await route.invoke(inputs[name], { url: url + name });
+      assert.equal(response.status, 200, `${env.CCPUN_APP_ENV} ${name}`);
+      assert.deepEqual([route.state.reads, route.state.writes, route.state.calls.length], name === "generate" ? [1, 1, 1] : name === "improve" ? [2, 0, 1] : [0, 1, 0]);
+      for (const headers of [
+        { host: undefined }, { host: "attacker.example" },
+        { "x-forwarded-host": "attacker.example" },
+        { "x-forwarded-host": new URL(env.AUTH_URL).host + ", attacker.example" },
+        { "x-forwarded-proto": "http" }, { origin: undefined }, { origin: "https://attacker.example" },
+        { host: "admin.ccpun.com", origin: "https://admin.ccpun.com", "x-forwarded-host": "admin.ccpun.com" },
+        { host: "admin-test.ccpun.com", origin: "https://admin-test.ccpun.com", "x-forwarded-host": "admin-test.ccpun.com" },
+      ]) {
+        if (headers.origin === env.AUTH_URL && headers.host === new URL(env.AUTH_URL).host) continue;
+        const denied = await loadLineRoute(name, env);
+        const result = await denied.invoke(inputs[name], { url: url + name, headers });
+        assert.equal(result.status, 403);
+        assert.deepEqual(await result.json(), { error: "invalid-origin" });
+        assert.deepEqual([denied.state.reads, denied.state.writes, denied.state.calls.length], [0, 0, 0]);
+      }
+      for (const delta of [
+        { AUTH_URL: undefined },
+        { AUTH_URL: env.AUTH_URL === uatBridgeEnv.AUTH_URL ? productionBridgeEnv.AUTH_URL : uatBridgeEnv.AUTH_URL },
+        { CCPUN_APP_ENV: "unknown" }, { CCPUN_DEPLOYMENT_ROLE: "web" },
+      ]) {
+        const denied = await loadLineRoute(name, { ...env, ...delta });
+        assert.equal((await denied.invoke(inputs[name], { url: url + name })).status, 403);
+        assert.deepEqual([denied.state.reads, denied.state.writes, denied.state.calls.length], [0, 0, 0]);
+      }
+      const unauthorized = await loadLineRoute(name, env);
+      unauthorized.state.owner = false;
+      const result = await unauthorized.invoke(inputs[name], { url: url + name });
+      assert.equal(result.status, 403);
+      assert.deepEqual(await result.json(), { error: "forbidden" });
+      assert.deepEqual([unauthorized.state.reads, unauthorized.state.writes, unauthorized.state.calls.length], [0, 0, 0]);
+    }
+  }
+});
 
 test("UAT bridge requires a pure matching identity, Sanity lane and canonical explicit webhook", async () => {
   const { resolveLineCopyN8nBridge: resolve } = await loadBridge();
@@ -249,12 +305,11 @@ test("blocked UAT Generate/Improve cannot read, create a Draft, apply or call n8
 
 test("owner, origin and input rejection retain priority over unavailable bridge", async () => {
   for (const name of ["generate", "improve"] as const) {
-    const route = await loadLineRoute(name, {});
+    const route = await loadLineRoute(name, { ...uatBridgeEnv, CCPUN_LOCAL_AI_N8N_TOKEN: undefined });
     route.state.owner = false;
     assert.equal((await route.invoke({})).status, 403);
-    route.state.owner = true; route.state.origin = false;
-    assert.equal((await route.invoke({})).status, 403);
-    route.state.origin = true;
+    route.state.owner = true;
+    assert.equal((await route.invoke({}, { headers: { origin: "https://attacker.example" } })).status, 403);
     assert.equal((await route.invoke({})).status, 400);
     assert.deepEqual([route.state.reads, route.state.writes, route.state.calls.length], [0, 0, 0]);
   }

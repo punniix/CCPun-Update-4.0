@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+import { getAdminEnvironment } from "@/lib/admin/environment";
+import { isPostPublishAdminOriginAllowed as isLineCopyAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import {
   applyGeneratedLineCopyToDraft,
@@ -59,7 +60,7 @@ function failure(error: unknown) {
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const identity = await requireOwner();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) {
+  if (!isLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment())) {
     return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
   }
 
