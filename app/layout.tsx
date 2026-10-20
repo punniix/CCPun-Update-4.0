@@ -109,7 +109,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         {children}
         {!IS_ADMIN_APPLICATION ? <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} /> : null}
-        {!IS_ADMIN_APPLICATION ? <CCPunAiSearchChrome /> : null}
+        {!IS_ADMIN_APPLICATION && !IS_REVIEW_ENVIRONMENT && process.env.CCPUN_APP_ENV === "production" ? <CCPunAiSearchChrome /> : null}
         {draftPreviewRuntime}
       </body>
     </html>

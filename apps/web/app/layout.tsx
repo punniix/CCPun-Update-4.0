@@ -3,8 +3,9 @@ import { Kanit } from "next/font/google";
 import "./globals.css";
 import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
+import { CCPunAiSearchChrome } from "@/features/ai-search/CCPunAiSearchWidgets";
 import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
-import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED } from "../runtime-environment";
+import { IS_WEB_REVIEW_ENVIRONMENT, WEB_DEPLOYMENT_CONTRACT_VALID, WEB_DEPLOYMENT_IDENTITY, WEB_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED } from "../runtime-environment";
 
 const GA_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID ?? "") : "";
 const META_PIXEL_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "") : "";
@@ -92,6 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         {children}
         <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} />
+        {!IS_WEB_REVIEW_ENVIRONMENT && WEB_DEPLOYMENT_CONTRACT_VALID && WEB_DEPLOYMENT_IDENTITY.valid && WEB_ENVIRONMENT === "production" ? <CCPunAiSearchChrome /> : null}
       </body>
     </html>
   );

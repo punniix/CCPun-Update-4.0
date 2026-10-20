@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 import { CCPunAiSearchBar } from '@/features/ai-search/CCPunAiSearchWidgets';
 import { Website43Navbar } from '@/components/layout/website-43/Website43Navbar';
 import { Website43Footer } from '@/components/layout/website-43/Website43Shared';
@@ -30,7 +31,7 @@ export default function SearchPage() {
             ลองค้นหาด้วยภาษาของคุณเอง ระบบจะช่วยค้นข้อมูลจากบทความที่ CCPun เผยแพร่ไว้
             เพื่อให้เริ่มทำความเข้าใจและเปรียบเทียบตัวเลือกได้ง่ายขึ้น
           </p>
-          <div className={styles.searchBox}><CCPunAiSearchBar /></div>
+          <div className={styles.searchBox}>{IS_REVIEW_ENVIRONMENT ? <p>AI Search เปิดให้ใช้งานผ่านเว็บไซต์ Production เท่านั้น</p> : <CCPunAiSearchBar />}</div>
           <section className={styles.suggestions} aria-labelledby="sample-questions">
             <h2 id="sample-questions">ตัวอย่างคำถามที่ค้นหาได้</h2>
             <ul>{suggestions.map((question) => <li key={question}>{question}</li>)}</ul>
