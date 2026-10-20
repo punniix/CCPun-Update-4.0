@@ -19,7 +19,12 @@ test('native default-open overview renders full SSR text, two points, and no emp
   for (const point of summary.split('\n')) assert.ok(html.includes(point));
   const legacy = 'สรุปเดิมที่ได้รับอนุมัติและเผยแพร่แล้ว '.repeat(20);
   const legacyHtml = renderToStaticMarkup(React.createElement(Overview,{summary:legacy}));
-  assert.ok(legacyHtml.includes(legacy)); assert.match(legacyHtml, /<p>/);
+  assert.ok(legacyHtml.includes(legacy)); assert.equal((legacyHtml.match(/<li>/g)||[]).length,1);
+  const editorialPoints = ['สรุปเดิมข้อแรกยังอยู่ครบ', 'สรุปเดิมข้อสองยังอยู่ครบ', 'สรุปเดิมข้อสามยังอยู่ครบ'];
+  const editorialHtml = renderToStaticMarkup(React.createElement(Overview,{summary:editorialPoints.join('\r\n\r\n')}));
+  assert.equal((editorialHtml.match(/<li>/g)||[]).length,3);
+  for (const point of editorialPoints) assert.ok(editorialHtml.includes(point));
+  for (const markup of [html,legacyHtml,editorialHtml]) { assert.match(markup, /<ul>/); assert.doesNotMatch(markup, /<p[\s>]/); }
   assert.doesNotMatch(html, /aria-hidden="true"[^>]*>[^<]*บทความ|fetch\(|loading=|placeholder/);
 });
 
@@ -53,6 +58,7 @@ test('exact overview insertions reconstruct complete approved Article body and r
 test('overview uses native Thai wrapping, unconstrained height and reduced-motion-safe disclosure', () => {
   const css=read('features/blog/website-43/Website43ArticleOverview.module.css');
   assert.match(css,/word-break: normal/); assert.match(css,/text-wrap: pretty/); assert.match(css,/@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(css,/\.content ul \{[^}]*list-style-type: disc;[^}]*list-style-position: outside;/);
   assert.doesNotMatch(css,/(?:^|[;{]\s*)(?:max-)?height:\s*\d|word-break:\s*break-all|display:\s*none[^}]*content|overflow:\s*hidden/);
   assert.doesNotMatch(read('features/blog/website-43/Website43ArticleOverview.tsx'),/\u200b|<br\b|\.slice\(|dangerouslySetInnerHTML|fetch\(/);
 });

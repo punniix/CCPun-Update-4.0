@@ -97,11 +97,11 @@ export default function Website43ArticleOverview({ summary }: { summary?: string
     };
   }, [summary]);
   if (!summary?.trim()) return null;
-  const paragraphs = summary.split(/\r?\n/).filter(point => point.trim());
+  const points = summary.split(/\r?\n/).filter(point => point.trim());
   return <details className={styles.overview} open lang="th" ref={detailsRef}>
     <summary className={styles.heading}>สรุปบทความนี้<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
     <div className={styles.content} ref={contentRef}>
-      {paragraphs.length === 2 ? <ul>{paragraphs.map((point, index) => <li key={index}>{point}</li>)}</ul> : <p>{summary}</p>}
+      <ul>{points.map((point, index) => <li key={index}>{point}</li>)}</ul>
     </div>
   </details>;
 }
