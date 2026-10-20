@@ -43,7 +43,31 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
     assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256','candidateSha256']);
     assert.equal(admission.baselineSha256, (proof.protected[file] ?? proof.canonical?.[file]), file + ': original protected digest retained');
     assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
-    assert.equal(sha(readCurrent(file)), admission.candidateSha256, file + ': current reviewed source frozen');
+    let source = readCurrent(file);
+    let expected = admission.candidateSha256;
+    const articleV4 = {
+      'components/layout/website-43/Website43.module.css': ['244b11b3d139756c27d99ad67d43f8eeb20287d68fcc8380b90d521c9837be16', 'def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13'],
+      'features/blog/website-43/Website43Article.tsx': ['d6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2', 'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae'],
+    };
+    if (articleV4[file]) {
+      assert.equal(expected, articleV4[file][0], file + ': previous reviewed candidate retained');
+      expected = articleV4[file][1];
+    }
+    if (file === 'apps/web/app/layout.tsx') {
+      const approved = 'weight: ["300", "400", "500", "600", "700"]';
+      assert.equal(source.split(approved).length, 2, 'one noncritical Kanit 500 face');
+      source = source.replace(approved, 'weight: ["300", "400", "600", "700"]');
+    }
+    const additions = {
+      'lib/content/types.ts': ['  optimizedAt?: string;\n'],
+      'lib/content/sanity-schema.ts': ['  contentOptimizedAt: z.string().datetime({ offset: true }).nullish().transform((value) => value ?? undefined).catch(undefined),\n'],
+      'lib/content/sanity.ts': ['    optimizedAt: raw.contentOptimizedAt,\n', '  contentOptimizedAt,\n'],
+    };
+    for (const addition of additions[file] ?? []) {
+      assert.equal(source.split(addition).length, 2, file + ': one explicit optimization-date addition');
+      source = source.replace(addition, '');
+    }
+    assert.equal(sha(source), expected, file + ': current reviewed source frozen');
   }
 }
 

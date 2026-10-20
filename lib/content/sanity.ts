@@ -136,6 +136,7 @@ function articleBase(raw: RawArticleSummary, body: ArticleBlock[] = []): Article
     status,
     publishedAt: raw.publishedAt ?? undefined,
     updatedAt: raw.updatedAt,
+    optimizedAt: raw.contentOptimizedAt,
     seoTitle: seoTitle || raw.title,
     seoDescription: seoDescription || excerpt || raw.title,
     ogTitle: raw.seo?.ogTitle ?? undefined,
@@ -227,6 +228,7 @@ const baseProjection = groq`{
     })
   },
   publishedAt,
+  contentOptimizedAt,
   "updatedAt": coalesce(contentUpdatedAt, migration.sourceModifiedAt, _updatedAt),
   seo,
   "ogImage": select(defined(seo.ogImage.asset) => {

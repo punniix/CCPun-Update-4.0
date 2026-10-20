@@ -165,6 +165,7 @@ export const baseArticleSchema = z.object({
   author: authorSchema.nullish().catch(undefined),
   publishedAt: z.string().nullish(),
   updatedAt: z.string().min(1),
+  contentOptimizedAt: z.string().datetime({ offset: true }).nullish().transform((value) => value ?? undefined).catch(undefined),
   seo: seoSchema,
   ogImage: imageSchema,
   featuredImage: imageSchema,

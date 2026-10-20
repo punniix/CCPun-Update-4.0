@@ -14,7 +14,7 @@ const Actions = require('../features/blog/website-43/ArticleShareActions.tsx').d
 test('actual Article controls read verified metrics, gate analytics consent and update both hearts only after server success', async () => {
   const pending = renderToStaticMarkup(React.createElement(ArticleEngagementSummary, { readingMinutes: 11 }));
   assert.doesNotMatch(pending, /—|เปิดอ่าน|แชร์|GA4|ย้อนหลัง/);
-  assert.match(pending, /อ่าน/);
+  assert.match(pending, /ใช้เวลาอ่านประมาณ <b>11<\/b> นาที/);
   const dom = new JSDOM('<div id="app"></div>', { url: 'https://ccpun.com/blog/personal-finance/fixture/' });
   const names = ['window', 'document', 'navigator', 'localStorage', 'fetch', 'IS_REACT_ACT_ENVIRONMENT'];
   const before = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
@@ -91,4 +91,45 @@ test('actual Article controls read verified metrics, gate analytics consent and 
     for (const [name, descriptor] of before) { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else delete globalThis[name]; }
     dom.window.close();
   }
+});
+
+
+test('actual Article shows latest information date only for a valid explicit optimize timestamp', () => {
+  require.cache[require.resolve('../components/layout/website-43/Website43Shared.tsx')] = { exports: {
+    Website43Navbar: () => null, Website43Footer: () => null, SectionHeading: () => null,
+  } };
+  require.cache[require.resolve('../components/ui/health-happy/HealthHappyCountdown.tsx')] = { exports: { __esModule: true, default: () => null } };
+  const Article = require('../features/blog/website-43/Website43Article.tsx').default;
+  const fixture = {
+    id: 'published-fixture', slug: 'fixture', title: 'บทความตัวอย่าง', excerpt: 'ตัวอย่าง', category: 'การเงินส่วนบุคคล',
+    categorySlug: 'personal-finance', authorName: 'ผู้เขียน', status: 'published', publishedAt: '2026-10-07T00:00:00Z',
+    updatedAt: '2026-10-20T00:00:00Z', seoTitle: 'ตัวอย่าง', seoDescription: 'ตัวอย่าง',
+    body: [{ type: 'paragraph', text: 'อ่านข้อมูลจากกรมสรรพากร', segments: [{ text: 'กรมสรรพากร', href: 'https://www.rd.go.th/' }] }],
+    sources: [{ label: 'กรมสรรพากร', url: 'https://www.rd.go.th/' }],
+    faq: [{ question: 'คำถามตัวอย่าง', answer: 'บรรทัดแรก\nบรรทัดถัดไป' }],
+  };
+  const render = (optimizedAt) => new JSDOM(renderToStaticMarkup(React.createElement(Article, { article: { ...fixture, optimizedAt } })));
+  for (const value of [undefined, 'not-a-date']) {
+    const dom = render(value);
+    assert.doesNotMatch(dom.window.document.querySelector('header').textContent, /อัปเดต/);
+    assert.equal(dom.window.document.querySelectorAll('[data-uat-section="article-sources"]').length, 0);
+    assert.ok(dom.window.document.querySelector('.prose a[href="https://www.rd.go.th/"]'), 'inline evidence remains available in the article');
+    dom.window.close();
+  }
+  const dom = render('2026-10-19T00:00:00Z');
+  assert.match(dom.window.document.querySelector('header').textContent, /อัปเดตข้อมูลล่าสุด/);
+  assert.equal(dom.window.document.querySelector('.articleUpdatedDate time').dateTime, '2026-10-19T00:00:00Z');
+  assert.equal(dom.window.document.querySelector('.articleDateLabel').textContent, 'เผยแพร่');
+  assert.equal(dom.window.document.querySelector('.faqAnswer').style.whiteSpace, 'pre-line', 'retain the native Production FAQ newline fix');
+  assert.match(dom.window.document.querySelector('.faqAnswer').textContent, /บรรทัดแรก\nบรรทัดถัดไป/);
+  dom.window.close();
+});
+
+test('Sanity accepts only a valid explicit optimization timestamp and ignores malformed optional values', () => {
+  const { baseArticleSchema } = require('../lib/content/sanity-schema.ts');
+  const fixture = { _id: 'fixture', slug: 'fixture', title: 'ตัวอย่าง', category: 'การเงิน', updatedAt: '2026-10-20T00:00:00Z' };
+  for (const value of [undefined, null, '', 'not-a-date', 1]) {
+    assert.equal(baseArticleSchema.parse({ ...fixture, contentOptimizedAt: value }).contentOptimizedAt, undefined);
+  }
+  assert.equal(baseArticleSchema.parse({ ...fixture, contentOptimizedAt: '2026-10-19T00:00:00Z' }).contentOptimizedAt, '2026-10-19T00:00:00Z');
 });

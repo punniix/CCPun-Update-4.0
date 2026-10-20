@@ -106,6 +106,7 @@ export type Article = {
   status: ArticleStatus;
   publishedAt?: string;
   updatedAt: string;
+  optimizedAt?: string;
   seoTitle: string;
   seoDescription: string;
   ogTitle?: string;

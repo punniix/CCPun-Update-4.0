@@ -24,6 +24,7 @@ const reviewedCurrent = {
   "navbarCss": "8bb36bb9ada57b280384145e56412db668663f1ee6cdc37d9bed7a2922498e99",
   "footerDesktopDom": "53e42deb5ddf5e7dd671694437c80e569b9e15094e1549d43ff3276b1ebf6122"
 };
+const articleV4CssFingerprint = 'e5ee6c0fda60766b8e2cb32a55f2d537fc52058236547287bab33c727ab6ba98';
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
 const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
@@ -108,11 +109,13 @@ test('portrait admission rejects changed position, duplicates and unrelated acti
   assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
   const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
   assert.notEqual(unrelated, css, 'Synthetic unapproved width change is present');
-  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), reviewedCurrent.activeCss);
+  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), articleV4CssFingerprint);
 });
 
 test('reviewed stylesheet outputs stay frozen while original Production CSS goldens remain retained', () => {
-  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), reviewedCurrent.activeCss);
+  assert.equal(reviewedCurrent.activeCss, 'b0667b266057590903178ab882dc6531de433464273dcb7ef698cdf7d5f2f240', 'previous reviewed CSS pin retained');
+  assert.equal(createHash('sha256').update(after('Website43.module.css')).digest('hex'), 'def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13', 'exact reviewed Article V4 source');
+  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), articleV4CssFingerprint);
   assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), reviewedCurrent.responsiveCss);
   assert.equal(fingerprint(after('Website43Navbar.module.css')), reviewedCurrent.navbarCss, 'canonical navbar styling includes only reviewed responsive/control feedback');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);

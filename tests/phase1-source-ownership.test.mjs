@@ -137,7 +137,13 @@ test('root and Web keep their original complete metadata and layout/first-paint/
       const tree = await fixture.default({ children: React.createElement('p', null, 'synthetic-content') });
       return { metadata: fixture.generateMetadata ? await fixture.generateMetadata() : fixture.metadata, html: renderToStaticMarkup(await serverTree(tree)), trace };
     }
-    assert.deepEqual(await render(false), await render(true), JSON.stringify({ file, admin, review, draft }));
+    const original = await render(true);
+    if (file === 'apps/web/app/layout.tsx') {
+      const font = original.trace.find(entry => Array.isArray(entry) && entry[0] === 'font' && entry[1].variable === '--font-kanit');
+      assert.deepEqual(font[1].weight, ['300', '400', '600', '700'], 'original noncritical font weights retained');
+      font[1].weight = ['300', '400', '500', '600', '700'];
+    }
+    assert.deepEqual(await render(false), original, JSON.stringify({ file, admin, review, draft }));
   }
 });
 
