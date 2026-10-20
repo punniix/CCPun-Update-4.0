@@ -105,7 +105,7 @@ expect(
     && studioPolicy.includes('provider !== "hostinger" || role !== "admin" || vercelProject || productionProject || profile !== "full"')
     && studioPolicy.includes('const productionRefAllowed = Boolean(')
     && studioPolicy.includes('ref === `codex/hostinger-release-production-${sha}`')
-    && studioPolicy.includes('!productionRefAllowed || backend !== "disabled" : backend !== "native-neon")) return false;')
+    && studioPolicy.includes('!productionRefAllowed || !["disabled", "native-neon"].includes(backend ?? "") : backend !== "native-neon")) return false;')
     && ['filterStudioAuthProviders', 'filterStudioDocumentActions', 'filterStudioNewDocumentOptions'].every((name) =>
       /\): T\[\] \{\s*if \(!isStudioConfigurationAllowed\(dataset, environment, projectId\)\) return \[\];/.test(
         studioPolicy.split(`export function ${name}`)[1]?.split('\nexport function ')[0] ?? '',
