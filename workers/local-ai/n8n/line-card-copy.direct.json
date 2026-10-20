@@ -912,7 +912,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ (()=>{const data=$('เตรียมสรุปบทความ').item.json;if(data.provider!=='openai'||data.inputTokenUpperBound>200000||data.maxCostUsd!==0.03)throw new Error('overview-budget-invalid');return {model:'gpt-6-luna',input:data.messages,service_tier:'default',store:false,max_output_tokens:1024,reasoning:{effort:'low'},text:{format:{type:'json_schema',name:'article_overview_v2',schema:data.format,strict:true}}};})() }}",
+        "jsonBody": "={{ ({model:'gpt-6-luna',input:$('เตรียมสรุปบทความ').item.json.messages,service_tier:'default',store:false,max_output_tokens:1024,reasoning:{effort:'low'},text:{format:{type:'json_schema',name:'article_overview_v2',schema:$('เตรียมสรุปบทความ').item.json.format,strict:true}}}) }}",
         "options": {
           "redirect": {
             "redirect": {

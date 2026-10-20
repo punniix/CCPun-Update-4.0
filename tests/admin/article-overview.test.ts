@@ -245,3 +245,23 @@ test("API rejects source or final escaped prompt exceeding cap before any infere
     assert.equal((await f.run()).status,413);assert.deepEqual(f.events,["read"]);
   }
 });
+
+test("pure-object HTTP expression preserves the previous bounded cloud body; actual Prep/IF graph fences every rejected input", () => {
+  const previous="={{ (()=>{const data=$('เตรียมสรุปบทความ').item.json;if(data.provider!=='openai'||data.inputTokenUpperBound>200000||data.maxCostUsd!==0.03)throw new Error('overview-budget-invalid');return {model:'gpt-6-luna',input:data.messages,service_tier:'default',store:false,max_output_tokens:1024,reasoning:{effort:'low'},text:{format:{type:'json_schema',name:'article_overview_v2',schema:data.format,strict:true}}};})() }}";
+  const current=node("OpenAI · Article Overview").parameters.jsonBody;
+  assert.doesNotMatch(current,/=>|\bconst\b|\bthrow\b|\breturn\b/);
+  const evaluate=(expression:string,data:unknown)=>new Function("$","return "+expression.slice(3,-2))(()=>({item:{json:data}}));
+  const {helper}=fixture();
+  for(const [text,preference] of [["ก".repeat(17000),undefined],["ก".repeat(60000),"เน้นภาพรวมและเงื่อนไขสำคัญ"],['"'.repeat(24000),"ใช้ภาษาธรรมชาติ"],["\n".repeat(23000),"ก".repeat(200)]]){
+    const selected=helper.articleOverviewSource({...source,body:[{_type:"block",children:[{_type:"span",text}]}]});
+    const plan=helper.articleOverviewInferencePlan(selected,preference);assert.equal(plan.provider,"openai");
+    assert.deepEqual(evaluate(current,plan),evaluate(previous,plan),"all fixed wire fields, full text, schema and preferences remain identical");
+  }
+  const condition=(name:string,data:unknown)=>{const gate=node(name).parameters.conditions.conditions[0];const left=new Function("$json","return "+gate.leftValue.slice(3,-2))(data);if(gate.operator.type==="boolean"){assert.equal(gate.operator.operation,"true");return left===true;}assert.equal(gate.operator.type,"string");assert.equal(gate.operator.operation,"equals");return left===gate.rightValue;};
+  const path=(input:unknown)=>{const prepared=code("เตรียมสรุปบทความ",input);const ready=condition("ข้อมูลสรุปพร้อม?",prepared);const target=workflow.connections["ข้อมูลสรุปพร้อม?"].main[ready?0:1][0].node;if(!ready)return[target];assert.equal(target,"สรุปด้วย Local?");return[target,workflow.connections[target].main[condition(target,prepared)?0:1][0].node];};
+  const base={mode:"article-overview",...overviewMetadata,sourceRevision:"r1",promptVersion:"article-overview-v2",source};
+  assert.deepEqual(path(base),["สรุปด้วย Local?","Ollama · Article Overview"]);
+  const cloudSource={...source,body:[{_type:"block",children:[{_type:"span",text:"ก".repeat(17000)}]}]};
+  assert.deepEqual(path({...base,source:cloudSource,inferenceProvider:"openai"}),["สรุปด้วย Local?","OpenAI · Article Overview"]);
+  for(const input of [null,{}, {...base,inferenceProvider:"openai"},{...base,instructionHash:"bad"},{...base,editorialInstructionVersion:"future"},{...base,source:{...source,body:["untyped"]}},{...base,source:{...source,body:[{_type:"block",children:[{_type:"span",text:"ก".repeat(70000)}]}]}},{...base,source:{...source,body:[{_type:"block",children:[{_type:"span",text:'"'.repeat(60000)}]}]}}])assert.deepEqual(path(input),["ตอบสรุปบทความ"],"invalid/oversize/version/hash/provider failures cannot reach either inference HTTP node");
+});
