@@ -37,7 +37,7 @@ export default function ArticleOverviewInput(props: TextInputProps) {
     <Card padding={3} border radius={2}><Stack gap={3}>
       <Text size={1}>สรุปจากบทความเต็ม 2–3 ประเด็นว่าบทความนี้พูดถึงอะไร คุณแก้ข้อความเองได้ การสร้างสรุปยังไม่เผยแพร่หน้าเว็บ</Text>
       <label><Text as="span" size={1}>คำแนะนำสำหรับสรุปบทความ</Text><TextArea value={instructions} rows={3} disabled={busy || props.readOnly} onChange={event => setInstructions(event.currentTarget.value)} /></label>
-      <Text size={1} muted>คำแนะนำ 1–200 ตัวอักษร ไม่เกิน 600 ไบต์ · ผลลัพธ์ยังต้องเป็น 2–3 ประเด็น รวม 60–300 ตัวอักษรตามการนับของระบบ</Text>
+      <Text size={1} muted>คำแนะนำ 1–200 ตัวอักษร ไม่เกิน 600 ไบต์ · ผลลัพธ์ยังต้องเป็น 2–3 ประเด็น รวม 60–400 ตัวอักษรตามการนับของระบบ</Text>
       <Button mode="ghost" text="คืนค่าคำแนะนำเริ่มต้น" disabled={busy || props.readOnly} onClick={() => setInstructions(ARTICLE_OVERVIEW_DEFAULT_INSTRUCTIONS)} />
       <Button text={busy ? "กำลังสร้างสรุป…" : exists ? "มีสรุปแล้ว" : "Gen สรุปบทความ"} disabled={busy || exists || sync.isSyncing || !id || typeof revision !== "string" || props.readOnly} onClick={() => void generate()} />
       {exists && <Text size={1} muted>หากต้องการสร้างใหม่ ให้ตรวจแล้วล้างข้อความเดิมและรอให้ Draft บันทึกก่อน</Text>}

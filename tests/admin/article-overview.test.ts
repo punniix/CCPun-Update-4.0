@@ -44,7 +44,7 @@ test("new result protocol enforces two or three short plain points, grapheme lim
   const { helper } = fixture();
   const valid = { status: "generated", summary, sourceRevision: "r1", promptVersion: "article-overview-v2" };
   assert.ok(helper.articleOverviewResultSchema.safeParse(valid).success);
-  for (const change of [{ summary: "สั้น" }, { summary: "ก".repeat(301) + "\nจบ" }, { summary: summary.replace("\n", " ") }, { summary: summary + "\nประเด็นเพิ่ม\nประเด็นเกิน" }, { promptVersion: "unknown" }, { surprise: true }, { summary: summary + " https://bad.example" }, { summary: summary + " คุ้มครองทุกกรณี" }]) assert.ok(!helper.articleOverviewResultSchema.safeParse({ ...valid, ...change }).success, JSON.stringify(change));
+  for (const change of [{ summary: "สั้น" }, { summary: "ก".repeat(401) + "\nจบ" }, { summary: summary.replace("\n", " ") }, { summary: summary + "\nประเด็นเพิ่ม\nประเด็นเกิน" }, { promptVersion: "unknown" }, { surprise: true }, { summary: summary + " https://bad.example" }, { summary: summary + " คุ้มครองทุกกรณี" }]) assert.ok(!helper.articleOverviewResultSchema.safeParse({ ...valid, ...change }).success, JSON.stringify(change));
 });
 
 test("Draft CAS applies only missing geo.summary, keeps existing geo, dates and Published unchanged", async () => {
@@ -189,10 +189,12 @@ test("Overview v2 accepts two or three brief points only and forwards whole midd
   const vectors=[
     [completePoint+"\n"+summary.split("\n")[1],true],
     ["ก".repeat(149)+"\n"+"ข".repeat(150),true],
-    ["ก".repeat(150)+"\n"+"ข".repeat(150),false],
-    ["ก".repeat(191)+"\n"+"ข".repeat(192),false],
+    ["ก".repeat(150)+"\n"+"ข".repeat(150),true],
+    ["ก".repeat(191)+"\n"+"ข".repeat(192),true],
+    ["ก".repeat(199)+"\n"+"ข".repeat(200),true],
+    ["ก".repeat(200)+"\n"+"ข".repeat(200),false],
   ] as const;
-  assert.deepEqual(vectors.slice(1).map(([text])=>contracts.countGraphemes(text)),[300,301,384]);
+  assert.deepEqual(vectors.slice(1).map(([text])=>contracts.countGraphemes(text)),[300,301,384,400,401]);
   for(const [text,accepted] of vectors){
     assert.equal(helper.articleOverviewResultSchema.safeParse({...valid,summary:text}).success,accepted,"Admin keeps the hard total length gate");
     const result=code("ตรวจสรุปบทความ",{done:true,done_reason:"stop",message:{content:JSON.stringify({points:text.split("\n")})}},prep);
@@ -210,6 +212,21 @@ test("Overview v2 accepts two or three brief points only and forwards whole midd
   assert.deepEqual(prepared.format,format);
   const generated=code("ตรวจสรุปบทความ",{done:true,done_reason:"stop",message:{content:JSON.stringify({points:bounded.split("\n")})}},prepared);
   assert.equal(generated.status,"generated");assert.equal(generated.summary,bounded);
+});
+
+test("recorded execution 70479 keeps three complete 346-grapheme points unchanged within the finite 400 cap", () => {
+  const points=["บทความอธิบายขั้นคำนวณภาษีและค่าลดหย่อนปี 2569 ครอบคลุมสิทธิส่วนตัว ครอบครัว ประกันสังคม ประกัน เงินออมเพื่อเกษียณ บ้าน เงินบริจาค และมาตรการเฉพาะปี", "สรุปวงเงินและเงื่อนไขสำคัญ พร้อมชี้รายการที่ใช้เพดานร่วมกัน เช่น ประกันชีวิตกับสุขภาพ และกลุ่มออมเกษียณ รวมถึงสิทธิที่ต้องผ่าน e-Donation หรือมีหลักฐานเฉพาะ", "กล่าวถึงวิธีประเมินภาษีที่ประหยัดได้จริง และการตรวจยอดสิทธิ เอกสาร เงื่อนไขกองทุนและมาตรการ ก่อนยื่นภาษีปี 2569 ในปี 2570"];
+  const text=points.join("\n");
+  assert.equal(contracts.countGraphemes(text),346);
+  const {helper}=fixture();
+  const selected=helper.articleOverviewSource({...source,body:[...source.body,{_type:"block",children:[{_type:"span",text:"ปีภาษี 2569 ยื่นภาษีในปี 2570"}]}]});
+  const prep=code("เตรียมสรุปบทความ",{mode:"article-overview",...overviewMetadata,sourceRevision:"r1",promptVersion:"article-overview-v2",source:selected});
+  assert.equal(prep.valid,true);
+  const result=code("ตรวจสรุปบทความ",{done:true,done_reason:"stop",message:{content:JSON.stringify({points})}},prep);
+  assert.equal(result.status,"generated");assert.equal(result.summary,text,"replay never clips or repairs the recorded points");
+  assert.ok(helper.articleOverviewResultSchema.safeParse({status:"generated",summary:text,sourceRevision:"r1",promptVersion:"article-overview-v2"}).success);
+  const ui=readFileSync("cms/sanity/components/ArticleOverviewInput.tsx","utf8");
+  assert.match(ui,/60–400/);assert.match(ui,/คำแนะนำ 1–200/);assert.doesNotMatch(ui,/60–300/);
 });
 
 test("Overview request preference is optional, bounded and separate from full article source", async () => {
