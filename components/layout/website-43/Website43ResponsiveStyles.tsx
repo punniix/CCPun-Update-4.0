@@ -24,8 +24,6 @@ export function Website43ResponsiveStyles() {
 .${styles.articleReadingWrap},
 .${styles.toolStorySection},
 .${styles.calculatorSection},
-.${styles.legalHeader},
-.${styles.legalBody},
 .${styles.notFound},
 .${styles.footerWrap} {
   padding-left: var(--w43-content-gutter);
@@ -36,8 +34,6 @@ export function Website43ResponsiveStyles() {
 .${styles.sectionDeep} > .${styles.inner},
 .${styles.blogContent} > .${styles.inner},
 .${styles.articleHeader} > .${styles.inner},
-.${styles.legalHeader} > .${styles.inner},
-.${styles.legalBody} > .${styles.inner},
 .${styles.footerWrap} > .${styles.inner} {
   width: var(--w43-shell-width);
   max-width: 100%;
@@ -110,12 +106,6 @@ export function Website43ResponsiveStyles() {
   grid-template-columns: minmax(220px, 260px) minmax(0, 720px);
   gap: clamp(32px, 3.333vw, 48px);
 }
-.${styles.legalGrid} {
-  width: min(988px, calc(100vw - 112px));
-  max-width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
 
 @media (max-width: 1023px) {
   .${styles.root} {
@@ -129,8 +119,6 @@ export function Website43ResponsiveStyles() {
   .${styles.sectionDeep} > .${styles.inner},
   .${styles.blogContent} > .${styles.inner},
   .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
   .${styles.footerWrap} > .${styles.inner} {
     width: 100%;
     max-width: none;
@@ -183,10 +171,6 @@ export function Website43ResponsiveStyles() {
     grid-template-columns: 200px minmax(0, 1fr);
     gap: 32px;
   }
-  .${styles.legalGrid} {
-    width: 100%;
-    max-width: none;
-  }
 }
 
 @media (max-width: 639px) {
@@ -204,8 +188,6 @@ export function Website43ResponsiveStyles() {
   .${styles.articleReadingWrap},
   .${styles.toolStorySection},
   .${styles.calculatorSection},
-  .${styles.legalHeader},
-  .${styles.legalBody},
   .${styles.notFound},
   .${styles.footerWrap} {
     padding-left: var(--w43-content-gutter);
@@ -216,8 +198,6 @@ export function Website43ResponsiveStyles() {
   .${styles.sectionDeep} > .${styles.inner},
   .${styles.blogContent} > .${styles.inner},
   .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
   .${styles.footerWrap} > .${styles.inner},
   .${styles.aboutInner} {
     width: var(--w43-mobile-reading-width);
@@ -288,12 +268,6 @@ export function Website43ResponsiveStyles() {
 
   .${styles.articleReadingGrid} {
     display: block;
-    width: var(--w43-mobile-reading-width);
-    max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
-  }
-  .${styles.legalGrid} {
     width: var(--w43-mobile-reading-width);
     max-width: 100%;
     margin-left: 0;

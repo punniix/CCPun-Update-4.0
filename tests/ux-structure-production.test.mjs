@@ -216,7 +216,11 @@ test('all39 approved source records retain provenance with exact reviewed Articl
       assert.equal(sha(readFileSync(resolve(root, 'public', derived))), '0691ec77ae85113dc3ed87e6d26025f3d5a56db12ce3e144092b790e5dae2d4f', 'reviewed lossless WebP derivative retains decoded pixels and metadata');
     } else if (file === 'components/layout/website-43/Website43.module.css') {
       assert.equal(digest, '244b11b3d139756c27d99ad67d43f8eeb20287d68fcc8380b90d521c9837be16');
-      assert.equal(sha(source), 'def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13', 'reviewed Article V4 CSS only');
+      // Previous V4 source def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13 stays pinned in phase2-source-proof.
+      assert.equal(sha(source), '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d', 'reviewed V4 CSS minus nine unused legal rules');
+    } else if (file === 'components/layout/website-43/Website43ResponsiveStyles.tsx') {
+      assert.equal(digest, '6c90a2136905c48703e1d68108d2bb3fa5d21d8bee64bf25bb4737274c2ed3bb');
+      assert.equal(sha(source), '49a2b4550755fc02c7c1f145bb5980b267c6a2d82013059cc135cd4ad6464717', 'only unused legal selectors removed');
     } else if (file === 'features/blog/website-43/Website43Article.tsx') {
       assert.equal(digest, 'd6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2');
       assert.equal(sha(source), 'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae', 'reviewed Article V4 composition only');

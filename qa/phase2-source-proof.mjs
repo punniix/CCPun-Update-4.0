@@ -53,6 +53,14 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
       assert.equal(expected, articleV4[file][0], file + ': previous reviewed candidate retained');
       expected = articleV4[file][1];
     }
+    const unusedLegalCss = {
+      'components/layout/website-43/Website43.module.css': ['def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13', '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d'],
+      'components/layout/website-43/Website43ResponsiveStyles.tsx': ['6c90a2136905c48703e1d68108d2bb3fa5d21d8bee64bf25bb4737274c2ed3bb', '49a2b4550755fc02c7c1f145bb5980b267c6a2d82013059cc135cd4ad6464717'],
+    };
+    if (unusedLegalCss[file]) {
+      assert.equal(expected, unusedLegalCss[file][0], file + ': pre-cleanup source retained');
+      expected = unusedLegalCss[file][1];
+    }
     if (file === 'apps/web/app/layout.tsx') {
       const approved = 'weight: ["300", "400", "500", "600", "700"]';
       assert.equal(source.split(approved).length, 2, 'one noncritical Kanit 500 face');

@@ -25,6 +25,7 @@ const reviewedCurrent = {
   "footerDesktopDom": "53e42deb5ddf5e7dd671694437c80e569b9e15094e1549d43ff3276b1ebf6122"
 };
 const articleV4CssFingerprint = 'e5ee6c0fda60766b8e2cb32a55f2d537fc52058236547287bab33c727ab6ba98';
+const retainedLegalCssFingerprint = '8a09ef8b30735b69df506bb91acfe9aa63f4055219aca4a3a2e2ac3c4af7b227';
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
 const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
@@ -109,14 +110,17 @@ test('portrait admission rejects changed position, duplicates and unrelated acti
   assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
   const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
   assert.notEqual(unrelated, css, 'Synthetic unapproved width change is present');
-  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), articleV4CssFingerprint);
+  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), retainedLegalCssFingerprint);
 });
 
 test('reviewed stylesheet outputs stay frozen while original Production CSS goldens remain retained', () => {
   assert.equal(reviewedCurrent.activeCss, 'b0667b266057590903178ab882dc6531de433464273dcb7ef698cdf7d5f2f240', 'previous reviewed CSS pin retained');
-  assert.equal(createHash('sha256').update(after('Website43.module.css')).digest('hex'), 'def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13', 'exact reviewed Article V4 source');
-  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), articleV4CssFingerprint);
-  assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), reviewedCurrent.responsiveCss);
+  assert.equal(articleV4CssFingerprint, 'e5ee6c0fda60766b8e2cb32a55f2d537fc52058236547287bab33c727ab6ba98', 'pre-cleanup Article V4 output retained');
+  assert.equal(reviewedCurrent.responsiveCss, '1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9', 'pre-cleanup responsive output retained');
+  assert.equal(createHash('sha256').update(after('Website43.module.css')).digest('hex'), '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d', 'only nine unused module rules removed');
+  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), retainedLegalCssFingerprint);
+  assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), '292cfa5edc576889aeaea3bcf9eab885b839ee114154068e7959bf23ae274024');
+  assert.doesNotMatch(after('Website43.module.css') + after('Website43ResponsiveStyles.tsx'), /\b(?:legalHeader|legalBody|legalGrid)\b/);
   assert.equal(fingerprint(after('Website43Navbar.module.css')), reviewedCurrent.navbarCss, 'canonical navbar styling includes only reviewed responsive/control feedback');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);
   for (const name of inactive) assert.doesNotMatch(after('Website43.module.css'), new RegExp(`\\.${name}\\b`), `inactive module class ${name}`);
