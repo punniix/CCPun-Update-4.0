@@ -113,7 +113,7 @@ export function reviewedThaiWrapProjection(file, source) {
     ],
     [
       "<p className={classNames.articleExcerpt}>",
-      "<p className={classNames.articleExcerpt} style={{ textWrap: 'pretty' }}>"
+      "<p className={classNames.articleExcerpt} style={{ textWrap: 'balance' }}>"
     ]
   ],
   "features/blog/website-43/Website43ArticleToc.tsx": [

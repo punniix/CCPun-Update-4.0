@@ -59,7 +59,7 @@ function ArticleCard({ article, classNames }: { article: Website43ArticleItem; c
       <div className={classNames.articleCardBody}>
         <span className={classNames.articleCategory}>{article.category}</span>
         <h2 className={classNames.articleTitle} style={{ textWrap: 'pretty' }}>{article.title}</h2>
-        <p className={classNames.articleExcerpt} style={{ textWrap: 'pretty' }}>{article.excerpt}</p>
+        <p className={classNames.articleExcerpt} style={{ textWrap: 'balance' }}>{article.excerpt}</p>
       </div>
     </Link>
     <ArticleCardEngagement articleId={article.id} title={article.title} dateLabel={article.meta} publishedAt={article.publishedAt} />

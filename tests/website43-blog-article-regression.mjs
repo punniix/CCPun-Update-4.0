@@ -249,6 +249,8 @@ await React.act(async () => root.render(React.createElement(BlogClient, {
 const six=Array.from({length:8},(_,index)=>({...item,id:`id-${index}`,slug:`slug-${index}`,href:`/blog/life-insurance/slug-${index}/`}));
 const sixDoc=doc(React.createElement(BlogClient,{articles:six,featuredArticles:six,classNames,categories}));
 assert.equal(sixDoc.querySelectorAll('.articleGrid > article').length,6);
+assert.equal(sixDoc.querySelector('.articleGrid .articleExcerpt').style.textWrap,'balance','only the card excerpt uses the native balance mode verified at nine widths');
+assert.equal(sixDoc.querySelector('.articleGrid .articleTitle').style.textWrap,'pretty','card title retains its existing approved wrapping');
 assert.equal(sixDoc.querySelectorAll('.articleGrid button[aria-pressed]').length,6,'heart mounts only six visible page cards');
 assert.equal(sixDoc.querySelectorAll('.featuredRail button[aria-pressed]').length,0,'three repeated carousel sets have no engagement providers/actions');
 assert.equal(sixDoc.querySelectorAll('.articleGrid a button').length,0);
