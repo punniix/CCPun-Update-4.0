@@ -157,7 +157,7 @@ assert.match(sanityProvider, /category->slug\.current/);
 const provider = read('lib/content/provider.ts');
 assert.match(provider, /hasSanityConfig \? sanityContentProvider : localContentProvider/);
 
-const blogSitemap = read('lib/sitemap/routes/blog.ts');
+const blogSitemap = read('apps/web/app/sitemaps/blog.xml/route.ts');
 assert.match(blogSitemap, /includeDrafts:\s*false/);
 assert.match(blogSitemap, /getArticleCanonical/);
 assert.match(blogSitemap, /filter\(isArticleCanonicalAligned\)/);
@@ -241,8 +241,8 @@ const fhcLanding = read('features/financial-health-check/components/FHCLandingIn
 assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('features/legal/pages/CookiePolicyPage.tsx');
-const privacyPolicy = read('features/legal/pages/PrivacyPage.tsx');
+const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
+const privacyPolicy = read('apps/web/app/privacy/page.tsx');
 const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);
@@ -506,10 +506,10 @@ const publicDiscoverySurface = [
   read('components/layout/website-43/Website43Navbar.tsx'),
   read('lib/nav-config.json'),
   read('public/nav-config.json'),
-  read('lib/sitemap/routes/index.ts'),
-  read('lib/sitemap/routes/core.ts'),
-  read('lib/sitemap/routes/tools.ts'),
-  read('lib/sitemap/routes/blog.ts'),
+  read('apps/web/app/sitemap.xml/route.ts'),
+  read('apps/web/app/sitemaps/core.xml/route.ts'),
+  read('apps/web/app/sitemaps/tools.xml/route.ts'),
+  read('apps/web/app/sitemaps/blog.xml/route.ts'),
 ].join('\n');
 assert.doesNotMatch(publicDiscoverySurface, /\/snt-admin\//, 'Admin routes must stay out of public navigation and sitemaps');
 

@@ -4,6 +4,7 @@ import test from "node:test";
 import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import { loadFixtureModule } from "../../qa/phase1-fixture-loader.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
+import * as React from "react";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -46,5 +47,24 @@ test("compiled Production page and real recheck button enforce every owner, lane
       assert.equal(html.includes("สถานะคิว"), expected);
       assert.deepEqual(reads, ["seo:read"]);
     }
+  }
+});
+
+
+test("compiled confirmation button retains its dark text color without adding a public CSS utility", () => {
+  for (const working of [false, true]) {
+    const states: unknown[] = [true, working, ""];
+    const button = loadFixtureModule("features/admin/components/PostPublishOwnerRecheckButton.tsx", {
+      mocks: new Map([["react", { ...React, useState: () => [states.shift(), () => {}] }]]),
+    });
+    const html = renderToStaticMarkup(button.default({ articleId: "article-1" }));
+    const confirmation = html.match(/<button\b[^>]*>ยืนยันส่งตรวจ SEO<\/button>/)?.[0];
+    assert.ok(confirmation);
+    assert.match(confirmation, /style="color:#352727"/);
+    assert.match(confirmation, /bg-\[#e0c985\]/);
+    assert.match(confirmation, /disabled:opacity-40/);
+    assert.doesNotMatch(confirmation, /text-\[#352727\]/);
+    assert.equal(confirmation.includes('disabled=""'), working);
+    assert.equal(states.length, 0);
   }
 });
