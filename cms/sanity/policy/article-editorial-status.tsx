@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Button, Card, Dialog } from "@sanity/ui";
 import { useEditState, useSyncState, useWorkspace, type ObjectInputProps, type DocumentBadgeComponent } from "sanity";
 import { IntentLink } from "sanity/router";
-import { requestArticleLineCopy } from "./article-line-copy-action";
+import { LineEditorialFields, requestArticleLineCopy } from "./article-line-copy-action";
+import { LINE_TITLE_DEFAULT_INSTRUCTIONS, LINE_DESCRIPTION_DEFAULT_INSTRUCTIONS } from "../../../lib/local-ai/editorial-instructions";
 import { publicationSummary, reviewLabels } from "./article-publication";
 
 type ArticleLineCopyDocument = {
@@ -33,6 +35,10 @@ function ArticleLineCopyGenerator({
   const [elapsed, setElapsed] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [customize, setCustomize] = useState(false);
+  const [titleInstructions, setTitleInstructions] = useState(LINE_TITLE_DEFAULT_INSTRUCTIONS);
+  const [descriptionInstructions, setDescriptionInstructions] = useState(LINE_DESCRIPTION_DEFAULT_INSTRUCTIONS);
+  const dialogId = useId();
   const inFlight = useRef(false);
 
   useEffect(() => {
@@ -56,7 +62,8 @@ function ArticleLineCopyGenerator({
     setMessage(null);
     setError(null);
     try {
-      const result = await requestArticleLineCopy(id, source._rev);
+      const result = await requestArticleLineCopy(id, source._rev, { ...(!existingTitle ? { lineTitle: titleInstructions } : {}), ...(!existingDescription ? { lineDescription: descriptionInstructions } : {}) });
+      setCustomize(false);
       setMessage(result.status === "skipped-existing"
         ? "ข้อความ LINE มีครบแล้ว จึงไม่ได้เขียนทับ"
         : `สร้าง${missing || "ข้อความ LINE"}แล้ว และบันทึกไว้ใน Draft`);
@@ -78,7 +85,7 @@ function ArticleLineCopyGenerator({
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <button
           type="button"
-          onClick={() => void generate()}
+          onClick={() => { setError(null); setCustomize(true); }}
           disabled={disabled}
           style={{ padding: "10px 16px", cursor: disabled ? "not-allowed" : "pointer" }}
         >
@@ -100,7 +107,17 @@ function ArticleLineCopyGenerator({
             : "ใช้ได้กับบทความทุกสถานะหลังมี revision แรก"}
       </p>
       {message ? <p role="status" style={{ marginBottom: 0 }}>{message}</p> : null}
-      {error ? <p role="alert" style={{ marginBottom: 0 }}>{error}</p> : null}
+      {error && !customize ? <p role="alert" style={{ marginBottom: 0 }}>{error}</p> : null}
+      {customize && <Dialog id={dialogId} header="ปรับคำแนะนำก่อนสร้างข้อความ LINE" width={1} onClose={() => { if (!busy) setCustomize(false); }}>
+        <Card padding={4}>
+          <LineEditorialFields title={titleInstructions} description={descriptionInstructions} showTitle={!existingTitle} showDescription={!existingDescription} busy={busy} onTitle={setTitleInstructions} onDescription={setDescriptionInstructions} />
+          {error && <p role="alert">{error}</p>}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 }}>
+            <Button type="button" mode="ghost" disabled={busy} text="ยกเลิก" onClick={() => setCustomize(false)} />
+            <Button type="button" tone="primary" disabled={disabled} loading={busy} text={busy ? `กำลังสร้างข้อความ LINE… ${elapsed} วินาที` : "สร้างข้อความ LINE"} onClick={() => void generate()} />
+          </div>
+        </Card>
+      </Dialog>}
     </section>
   );
 }

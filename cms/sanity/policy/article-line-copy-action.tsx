@@ -63,7 +63,7 @@ export async function requestArticleLineCopy(id: string, sourceRevision: string,
   return result;
 }
 
-function LineEditorialFields({ title, description, showTitle = true, showDescription = true, busy, onTitle, onDescription }: {
+export function LineEditorialFields({ title, description, showTitle = true, showDescription = true, busy, onTitle, onDescription }: {
   title: string; description: string; showTitle?: boolean; showDescription?: boolean; busy: boolean; onTitle: (value: string) => void; onDescription: (value: string) => void;
 }) {
   return <div style={{ display: "grid", gap: 16 }}>
