@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const taxonomy = await read('lib/content/taxonomy.ts');
@@ -19,7 +20,7 @@ const articlePresentation = await read('features/blog/website-43/Website43Articl
 const blogPresentation = await read('features/blog/website-43/Website43Blog.tsx');
 const blogInteractive = await read('features/blog/website-43/Website43BlogInteractive.tsx');
 const blogData = await read('features/blog/website-43/blogData.ts');
-const sitemap = await read('app/sitemaps/blog.xml/route.ts');
+const sitemap = readPhase1Source('app/sitemaps/blog.xml/route.ts');
 const webSitemap = await read('apps/web/app/sitemaps/blog.xml/route.ts');
 
 for (const slug of ['personal-finance', 'life-insurance', 'health-insurance', 'critical-illness-insurance', 'motor-insurance', 'investment']) {

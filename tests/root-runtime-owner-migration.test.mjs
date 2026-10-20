@@ -2,10 +2,33 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
+import { createHash } from 'node:crypto';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (file) => readFileSync(resolve(root, file), 'utf8');
 const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
+
+test('six duplicate public routes retain frozen canonical bodies, export identities and literal Next configuration', () => {
+  const protectedSources = JSON.parse(read('qa/production-code-only-parity.json')).protected;
+  const routes = ['privacy/page.tsx', 'not-found.tsx', 'sitemap.xml/route.ts', 'sitemaps/core.xml/route.ts', 'sitemaps/tools.xml/route.ts', 'sitemaps/blog.xml/route.ts'];
+  const verify = (route, source = read('app/' + route)) => {
+    const file = 'app/' + route, canonical = 'apps/web/' + file;
+    assert.equal(createHash('sha256').update(read(canonical)).digest('hex'), protectedSources[canonical], canonical);
+    const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
+    const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
+    assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${dynamic ? 'GET' : 'default, metadata'} } from "${owner}";\n`);
+    const sentinel = { __esModule: true, default: () => null, metadata: { title: 'fixture' }, GET: () => new Response('fixture') };
+    const candidate = loadFixtureModule(file, { sources: new Map([[file, source]]), mocks: new Map([[owner, sentinel]]) });
+    assert.deepEqual(Object.keys(candidate).sort(), dynamic ? ['GET', 'dynamic'] : ['default', 'metadata']);
+    for (const name of dynamic ? ['GET'] : ['default', 'metadata']) assert.equal(candidate[name], sentinel[name]);
+    if (dynamic) assert.equal(candidate.dynamic, JSON.parse(dynamic));
+  };
+  for (const route of routes) verify(route);
+  assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, metadata', 'default')));
+  assert.throws(() => verify(routes[2], read('app/' + routes[2]).replace('force-static', 'force-dynamic')));
+  assert.throws(() => verify(routes[1], read('app/' + routes[1]).replace('@/apps/web/', '@/apps/admin/')));
+});
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {
   assert.equal(inventory.pairs.length, 49);
