@@ -16,6 +16,28 @@ const proof = JSON.parse(read('qa/production-code-only-parity.json'));
 const lineCopyOriginRoutes = ['generate', 'improve', 'publish'].map(action => `apps/admin/app/api/admin/content/[id]/line-copy/${action}/route.ts`);
 function assertReviewedLineCopyOrigin(file, digest, source) {
   assert.ok(lineCopyOriginRoutes.includes(file));
+  const editorialRoutePins = {
+    generate: ['e1bef2dce1567f7983ff802c790f8ed96b9da36d1a1c75df4f4e9c39221f8e57', '8952c7083bac583ff2eb2e0c30c0b7fc89d6735d1e640ed01374e4c3a55143ff'],
+    improve: ['5dc7aad8286fdbfab89158a2c6f0aeee2a349f5aafc88218eb41614e3e27f214', '221b04f4b66a3e06490d05721ac053d92f32451ce59ac3d782aa0b6b8e74d8f2'],
+  };
+  const action = file.split('/').at(-2);
+  if (Object.hasOwn(editorialRoutePins, action)) {
+    assert.equal(sha(source), editorialRoutePins[action][1], 'exact reviewed per-field editorial source; unrelated drift rejected');
+    const replacements = [
+      ['import { EDITORIAL_INSTRUCTION_VERSION, lineEditorialInstructionsSchema, resolveLineEditorialInstructions } from "@/lib/local-ai/editorial-instructions";\n', ''],
+      ['    const editorialInstructions = resolveLineEditorialInstructions(parsed.data.editorialInstructions);\n    const instructionHash = createHash("sha256").update(JSON.stringify([EDITORIAL_INSTRUCTION_VERSION, editorialInstructions])).digest("hex");\n', ''],
+      ['          triggerSource: `sanity:${EDITORIAL_INSTRUCTION_VERSION}:${instructionHash}`,\n          editorialInstructions,\n          editorialInstructionVersion: EDITORIAL_INSTRUCTION_VERSION,', '          triggerSource: "sanity",'],
+      ...(action === 'generate' ? [
+        ['import { createHash } from "node:crypto";\n', ''],
+        ['  editorialInstructions: lineEditorialInstructionsSchema.optional(),\n', ''],
+      ] : [
+        ['import { createHash, createHmac, timingSafeEqual } from "node:crypto";', 'import { createHmac, timingSafeEqual } from "node:crypto";'],
+        ['requestId: z.string().uuid(), editorialInstructions: lineEditorialInstructionsSchema.optional() }).strict()', 'requestId: z.string().uuid() }).strict()'],
+      ]),
+    ];
+    for (const [accepted, original] of replacements) { assert.equal(source.split(accepted).length, 2); source = source.replace(accepted, original); }
+    assert.equal(sha(source), editorialRoutePins[action][0], 'complete previously approved origin-guarded source reconstructed');
+  }
   for (const [accepted, original] of [
     ['import { getAdminEnvironment } from "@/lib/admin/environment";\nimport { isPostPublishAdminOriginAllowed as isLineCopyAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";', 'import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";'],
     ['isLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment())', 'isSameOriginAdminMutation(request.url, request.headers.get("origin"))'],

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import {
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { resolveLineCopyN8nBridge } from "@/lib/admin/local-ai/service-auth";
 import { lineCardTextDescriptionSchema, lineCardTitleSchema } from "@/lib/local-ai/contracts";
+import { EDITORIAL_INSTRUCTION_VERSION, lineEditorialInstructionsSchema, resolveLineEditorialInstructions } from "@/lib/local-ai/editorial-instructions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ const revisions = {
   publishedRevision: z.string().min(1).max(200),
 };
 const bodySchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("propose"), ...revisions, requestId: z.string().uuid() }).strict(),
+  z.object({ action: z.literal("propose"), ...revisions, requestId: z.string().uuid(), editorialInstructions: lineEditorialInstructionsSchema.optional() }).strict(),
   z.object({
     action: z.literal("accept"),
     ...revisions,
@@ -127,6 +128,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     let response: Response;
+    const editorialInstructions = resolveLineEditorialInstructions(parsed.data.editorialInstructions);
+    const instructionHash = createHash("sha256").update(JSON.stringify([EDITORIAL_INSTRUCTION_VERSION, editorialInstructions])).digest("hex");
     try {
       response = await fetch(webhookUrl, {
         method: "POST",
@@ -135,7 +138,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         body: JSON.stringify({
           mode: "improve-existing",
           requestId: parsed.data.requestId,
-          triggerSource: "sanity",
+          triggerSource: `sanity:${EDITORIAL_INSTRUCTION_VERSION}:${instructionHash}`,
+          editorialInstructions,
+          editorialInstructionVersion: EDITORIAL_INSTRUCTION_VERSION,
           source: {
             id,
             revision: target.published.revision,

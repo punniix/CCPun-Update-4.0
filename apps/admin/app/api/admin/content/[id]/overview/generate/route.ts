@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminIdentity } from "@/lib/admin/identity";
@@ -5,12 +6,13 @@ import { getAdminEnvironment } from "@/lib/admin/environment";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { resolveLineCopyN8nBridge } from "@/lib/admin/local-ai/service-auth";
-import { applyArticleOverviewToDraft, articleOverviewResultSchema, ARTICLE_OVERVIEW_PROMPT_VERSION, readOrCreateArticleOverviewDraft } from "@/lib/admin/article-overview";
+import { applyArticleOverviewToDraft, articleOverviewResponseSchema, articleOverviewInferencePlan, ARTICLE_OVERVIEW_PROMPT_VERSION, readOrCreateArticleOverviewDraft } from "@/lib/admin/article-overview";
+import { EDITORIAL_INSTRUCTION_VERSION, editorialInstructionSchema, resolveOverviewEditorialInstructions } from "@/lib/local-ai/editorial-instructions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow, noarchive", "X-Content-Type-Options": "nosniff" };
-const input = z.object({ sourceRevision: z.string().min(1).max(200), requestId: z.string().uuid() }).strict();
+const input = z.object({ sourceRevision: z.string().min(1).max(200), requestId: z.string().uuid(), editorialInstructions: editorialInstructionSchema.optional() }).strict();
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status, headers });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,13 +33,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const draft = await readOrCreateArticleOverviewDraft(id, parsed.data.sourceRevision);
     if (draft.summary) return NextResponse.json({ status: "skipped-existing", revision: draft.revision, summary: draft.summary }, { headers });
     let response: Response;
+    const editorialInstructions = resolveOverviewEditorialInstructions(parsed.data.editorialInstructions);
+    const instructionHash = createHash("sha256").update(JSON.stringify([EDITORIAL_INSTRUCTION_VERSION, editorialInstructions])).digest("hex");
+    const inferencePlan = articleOverviewInferencePlan(draft.source, editorialInstructions);
     try {
-      response = await fetch(url, { method: "POST", redirect: "error", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, cache: "no-store", signal: AbortSignal.timeout(150_000), body: JSON.stringify({ mode: "article-overview", requestId: parsed.data.requestId, promptVersion: ARTICLE_OVERVIEW_PROMPT_VERSION, sourceRevision: draft.revision, source: draft.source }) });
+      response = await fetch(url, { method: "POST", redirect: "error", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, cache: "no-store", signal: AbortSignal.timeout(150_000), body: JSON.stringify({ mode: "article-overview", requestId: parsed.data.requestId, triggerSource: `sanity:${EDITORIAL_INSTRUCTION_VERSION}:${instructionHash}`, instructionHash, editorialInstructions, editorialInstructionVersion: EDITORIAL_INSTRUCTION_VERSION, inferenceProvider: inferencePlan.provider, promptVersion: ARTICLE_OVERVIEW_PROMPT_VERSION, sourceRevision: draft.revision, source: draft.source }) });
     } catch { return fail("overview-timeout", 504); }
     const payload = await response.json().catch(() => null);
     if (!response.ok || payload?.status === "error") return fail(payload?.errorCategory === "model-unavailable" ? "overview-model-unavailable" : "overview-generation-failed", 502);
-    const result = articleOverviewResultSchema.safeParse(payload);
-    if (!result.success || result.data.sourceRevision !== draft.revision) return fail("overview-invalid-result", 502);
+    const result = articleOverviewResponseSchema.safeParse(payload);
+    if (!result.success || result.data.sourceRevision !== draft.revision || result.data.requestId !== parsed.data.requestId || result.data.instructionHash !== instructionHash) return fail("overview-invalid-result", 502);
     return NextResponse.json(await applyArticleOverviewToDraft(id, draft.revision, result.data.summary), { headers });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";

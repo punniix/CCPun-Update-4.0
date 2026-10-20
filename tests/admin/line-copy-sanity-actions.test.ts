@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { isPostPublishAdminOriginAllowed } from "../../lib/admin/seo-intelligence/post-publish-origin";
+import * as editorial from "../../lib/local-ai/editorial-instructions";
 
 const read = (path: string) => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 
@@ -187,6 +188,7 @@ async function loadLineRoute(name: "generate" | "improve" | "publish", env: Reco
     if (id === "@/lib/admin/identity") return { getAdminIdentity: async () => state.owner ? { actorType: "human", role: "owner" } : null };
     if (id === "@/lib/admin/rbac") return { hasAdminPermission: () => true };
     if (id === "@/lib/admin/local-ai/service-auth") return bridge;
+    if (id === "@/lib/local-ai/editorial-instructions") return editorial;
     if (id === "@/lib/local-ai/contracts") return { lineCardTitleSchema: z.string().min(1), lineCardTextDescriptionSchema: z.string().min(1) };
     if (id === "@/lib/admin/line/description-optimization") return {
       readOrCreateArticleDraftLineCopy: async () => { state.reads++; return state.draft; },
@@ -359,4 +361,36 @@ test("Production keeps legacy default/custom-base webhook, skipped generation an
   skipped.state.draft.lineTitle = "Existing"; skipped.state.draft.lineDescription = "Existing description";
   assert.equal((await (await skipped.invoke(generateInput)).json()).status, "skipped-existing");
   assert.deepEqual([skipped.state.reads, skipped.state.writes, skipped.state.calls.length], [1, 0, 0]);
+});
+
+test("Generate and Improve validate transient per-field preferences before reads and bind trusted replay identity", async () => {
+  for (const name of ["generate","improve"] as const) {
+    const input = name === "generate" ? generateInput : proposeInput;
+    for (const editorialInstructions of [null,[],"text",{lineTitle:" "},{lineDescription:3},{unknown:"style"},{lineTitle:"ก".repeat(201)}]) {
+      const route=await loadLineRoute(name,uatBridgeEnv);
+      assert.equal((await route.invoke({...input,editorialInstructions})).status,400);
+      assert.deepEqual([route.state.reads,route.state.writes,route.state.calls.length],[0,0,0]);
+    }
+    for(const override of [{editorialInstructionVersion:"attacker"},{triggerSource:"attacker"},{instructionHash:"attacker"},{model:"public"}]) {
+      const route=await loadLineRoute(name,uatBridgeEnv);assert.equal((await route.invoke({...input,...override})).status,400);assert.equal(route.state.calls.length,0);
+    }
+    const calls=[];
+    for(const preference of [undefined,{}, {lineTitle:" เน้นประเด็นหลัก "}, {lineTitle:"เน้นประเด็นหลัก"}, {lineDescription:"เน้นเงื่อนไขสำคัญ"}]) {
+      const route=await loadLineRoute(name,uatBridgeEnv);
+      assert.equal((await route.invoke({...input,...(preference===undefined?{}:{editorialInstructions:preference})})).status,200);
+      calls.push(JSON.parse(route.state.calls[0].options.body as string));
+    }
+    assert.deepEqual(calls[0].editorialInstructions,editorial.resolveLineEditorialInstructions());
+    assert.equal(calls[0].editorialInstructionVersion,editorial.EDITORIAL_INSTRUCTION_VERSION);
+    assert.equal(calls[0].triggerSource,calls[1].triggerSource);
+    assert.equal(calls[2].triggerSource,calls[3].triggerSource);
+    assert.notEqual(calls[0].triggerSource,calls[2].triggerSource);
+    assert.notEqual(calls[2].triggerSource,calls[4].triggerSource);
+    assert.match(calls[0].triggerSource,/^sanity:field-editorial-v1:[a-f0-9]{64}$/);
+    assert.equal(calls[2].source.editorialInstructions,undefined,"preferences never become article facts");
+    assert.equal(calls[2].requestId,input.requestId,"server hashes preferences without changing the replay UUID");
+  }
+  const route=await loadLineRoute("improve",uatBridgeEnv);
+  assert.equal((await route.invoke({...acceptInput,editorialInstructions:{lineTitle:"เปลี่ยน"}})).status,400,"accept shape cannot add preferences or bypass signed proposal");
+  assert.deepEqual([route.state.reads,route.state.writes,route.state.calls.length],[0,0,0]);
 });
