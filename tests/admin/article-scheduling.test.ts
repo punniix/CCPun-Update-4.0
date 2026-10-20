@@ -1,4 +1,6 @@
 import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
@@ -81,7 +83,7 @@ test("private scheduler accepts an explicit Hostinger Admin identity without fak
   }
 });
 test("queue storage has no Sanity operational writes and Workflow wiring uses an absolute time", () => {
-  const read=(file:string)=>readPhase1Source(file);
+  const read=(file:string)=>readCurrentSource(new URL(`../../${file}`,import.meta.url),"utf8");
   assert.doesNotMatch(read("lib/admin/article-scheduling.ts"),/createOrReplace|publishSchedule|drafts\.publishSchedule/);
   assert.match(read("lib/admin/operations/article-schedule-store.ts"),/process\.env\.CCPUN_ADMIN_DATABASE_URL/);
   assert.doesNotMatch(read("lib/admin/operations/article-schedule-store.ts"),/process\.env\.(?:CCPUN_SOCIAL_DATABASE_URL|DATABASE_URL)/);
@@ -89,12 +91,24 @@ test("queue storage has no Sanity operational writes and Workflow wiring uses an
   assert.match(read("lib/admin/article-publication-workflow.ts"),/sleep\(new Date\(input\.scheduledAt\)\)/);
   assert.match(read("lib/admin/article-publication-workflow.ts"),/maxRetries = 0/);
   assert.match(read("proxy.ts"),/well-known\/workflow\//);
-  assert.match(read("app/api/admin/content/[id]/schedule/route.ts"),/cancelScheduleRequestSchema\.safeParse/);
+  assert.match(read("app/api/admin/content/[id]/schedule/route.ts"), /return deleteArticleScheduleResponse\(request, context\)/);
+  assert.match(read("lib/admin/article-schedule-handler.ts"),/cancelScheduleRequestSchema\.safeParse/);
 });
 
 test("cancelled article schedules display as cancelled in calendar and audit", () => {
   for (const page of ["content/calendar", "operations/audit-log"]) {
-    const source = readPhase1Source(`apps/admin/app/(control-plane)/${page}/page.tsx`);
+    const source = readCurrentSource(new URL(`../../apps/admin/app/(control-plane)/${page}/page.tsx`, import.meta.url), "utf8");
     assert.match(source, /if \(status === "cancelled"\) return "ยกเลิกแล้ว";/);
   }
+});
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}
+
+test("Phase1 source assertions follow the actual ContentCalendarPage entry binding", () => {
+  const entry = readCurrentSource("apps/admin/app/(control-plane)/content/calendar/page.tsx", "utf8");
+  assert.match(entry, /from "@\/features\/admin\/components\/ContentCalendarPage"/);
+  assert.match(entry, /return ContentCalendarPageOwner\(/);
 });

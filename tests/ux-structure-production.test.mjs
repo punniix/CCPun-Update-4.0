@@ -146,6 +146,19 @@ test('Investment release capability remains false even with explicit environment
   for (const file of ['components/layout/website-43/Website43Navbar.tsx','components/layout/website-43/Website43Shared.tsx','features/home/website-43/Website43Home.tsx','features/home/website-43/Website43HomeStatic.tsx','lib/nav-config.json','public/nav-config.json', ...files('apps/web/app/sitemaps')]) assert.doesNotMatch(read(file), /investment-allocation|INVESTMENT_TOOL_LINK/, file);
 });
 
+function packageBeforePostPublishScripts(source) {
+  const manifest = JSON.parse(source);
+  for (const [name, value] of Object.entries({
+    'worker:seo-post-publish': 'node --conditions=react-server --import tsx scripts/seo-post-publish-worker.ts',
+    'nav:check': 'node scripts/sync-public-nav-config.mjs --check',
+    'nav:sync:write': 'node scripts/sync-public-nav-config.mjs --write',
+  })) {
+    assert.equal(manifest.scripts[name], value, 'only the reviewed Production script is admitted');
+    delete manifest.scripts[name];
+  }
+  return JSON.stringify(manifest, null, 2) + '\n';
+}
+
 test('Production providers, metadata, models, engines, tracking, consent storage and delivery contract stay protected', () => {
   // Retain the deployed 7951 tracking baseline while admitting only the reviewed
   // UAT cookie-isolation fix, covered by analytics-component-regression.mjs.
@@ -157,8 +170,16 @@ test('Production providers, metadata, models, engines, tracking, consent storage
     const reviewedDigest = file === analyticsPath
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
       : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f' : digest;
-    assert.equal(sha(read(file)), reviewedDigest, file);
+    assert.equal(sha(file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : read(file)), reviewedDigest, file);
   }
+});
+
+test('Production script admission rejects unknown scripts, changed commands and dependency drift', () => {
+  const manifest = JSON.parse(read('package.json'));
+  const altered = value => sha(packageBeforePostPublishScripts(JSON.stringify(value)));
+  assert.notEqual(altered({ ...manifest, scripts: { ...manifest.scripts, unreviewed: 'new-command' } }), protectedProduction['package.json']);
+  assert.notEqual(altered({ ...manifest, dependencies: { ...manifest.dependencies, unreviewed: '1.0.0' } }), protectedProduction['package.json']);
+  assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'nav:check': 'unreviewed' } }));
 });
 
 function loadArchive(articles, registry) {

@@ -292,7 +292,7 @@ test("GSC provider is server-only, paginated, bounded and never logs credentials
   assert.match(provider, /fetchGscSearchAnalyticsTotals/);
   assert.match(provider, /rowLimit: 1/);
   assert.match(provider, /normalizeGscSearchAnalyticsTotals/);
-  assert.doesNotMatch(provider, /console\./);
+  assert.doesNotMatch(provider, /console\.(?:log|info|warn|error|debug)\s*\(/);
 });
 
 test("GSC manual sync is human-only, exact-origin, bounded and read-only", () => {
@@ -382,10 +382,15 @@ test("GA4 provider requests bounded Organic Search landing outcomes without cred
 test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", () => {
   const route = read("apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts");
   const control = read("features/admin/seo/opportunities/Ga4ManualSync.tsx");
+  const originGuard = read("lib/admin/seo-intelligence/post-publish-origin.ts");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
-  assert.match(route, /isConfiguredAdminOrigin/);
-  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /isPostPublishAdminOriginAllowed/);
+  assert.match(originGuard, /isConfiguredAdminOrigin/);
+  assert.match(originGuard, /isSameOriginAdminMutation/);
+  assert.match(originGuard, /host !== publicUrl\.host/);
+  assert.match(originGuard, /forwardedHost && forwardedHost !== publicUrl\.host/);
+  assert.match(originGuard, /origin && new URL\(origin\)\.origin === publicUrl\.origin/);
   assert.match(route, /getSeoIntelligenceRuntimeStatus\(\)\.enabled/);
   assert.match(route, /getGoogleDataAccessToken/);
   assert.match(route, /CCPUN_GA4_PROPERTY_ID/);
@@ -394,7 +399,7 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   assert.match(route, /state: comparison && comparisonTotals \? "ready" : "partial"/);
   assert.match(route, /export async function POST\(request: Request\)/);
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
-  assert.doesNotMatch(route, /createClient|sanity|mutate|publish|console\./i);
+  assert.doesNotMatch(route, /\bcreateClient\s*\(|\b(?:sanityClient|mutate|publish)\s*\(|console\./i);
   assert.match(control, /type="date"/);
   assert.match(control, /ผู้เข้าชมจากผลค้นหา/);
   assert.match(control, /ไม่เก็บสำเนาถาวร/);

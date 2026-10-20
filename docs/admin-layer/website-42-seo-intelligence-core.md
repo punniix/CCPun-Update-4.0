@@ -1,3 +1,5 @@
+> **Hostinger four-lane override (2026-10-08):** This document contains historical Website 4.2/Vercel details. Current authority is docs/architecture/ccpun-four-lane-deployment-contract.md and docs/architecture/seo-post-publish-vps-20261008.md. GSC/GA4 reader OAuth retains the read-only scopes, while Post-Publish sitemap writing requires separate owner approval and a VPS-only token. Historical Vercel settings below are not live instructions.
+
 # Website 4.2 SEO Intelligence Core
 
 The preparation branch exposes an authenticated, same-origin readiness endpoint at
@@ -17,8 +19,7 @@ Required provider variables for both the exact Preview/UAT lane and the gated Pr
 - `CCPUN_GSC_SITE_URL` (`sc-domain:ccpun.com` or the exact verified URL-prefix property)
 - `CCPUN_GA4_PROPERTY_ID` (numeric Property ID, not a `G-...` Measurement ID)
 
-The OAuth grant must contain only `webmasters.readonly` and `analytics.readonly`. Reconnect is
-an explicit owner action. No token is stored in Sanity, returned to the browser or logged.
+The read-only OAuth grant uses webmasters.readonly for GSC and analytics.readonly for GA4. A separate write-scoped owner-approved VPS-only token is required for the blog sitemap PUT. Do not upgrade the existing read token or use the broad grant for ordinary analytics. No provider tokens are stored in Sanity, browser, or logs.
 
 Status: owner-triggered, read-only Admin UAT and gated Production foundation.
 

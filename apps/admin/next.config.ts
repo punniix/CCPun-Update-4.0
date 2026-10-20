@@ -31,7 +31,10 @@ const SECURITY_HEADERS = buildNextSecurityHeaders({
   isReviewEnvironment: USE_REAL_DRAFT_PREVIEW_RUNTIME,
   sanityProjectId: SANITY_PROJECT_ID ?? "",
   appEnvironment: ADMIN_ENVIRONMENT,
-});
+}).map((header) => ["admin-uat", "production-admin"].includes(ADMIN_ENVIRONMENT)
+  && header.key === "Content-Security-Policy"
+  ? { ...header, value: header.value.replace("form-action 'self' https://www.facebook.com", "form-action 'self' https://www.facebook.com https://accounts.google.com") }
+  : header);
 const STUDIO_SECURITY_HEADERS = SECURITY_HEADERS
   .filter(({ key }) => key !== "X-Frame-Options")
   .map(({ key, value }) => key === "Content-Security-Policy"

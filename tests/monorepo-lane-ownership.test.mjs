@@ -41,10 +41,50 @@ test('monorepo audit starts from the actual apps/web and apps/admin entrypoints'
   assert.deepEqual(report.unassignedRoutes, []);
 });
 
+
+test('Web legal and not-found routes share canonical feature implementations', () => {
+  const pages = [
+    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage.tsx'],
+    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage.tsx'],
+    ['not-found.tsx', 'features/public-pages/NotFoundPage.tsx'],
+  ];
+  for (const [route, shared] of pages) {
+    const specifier = '@/' + shared.replace(/\.tsx$/, '');
+    const wrapper = 'export { metadata, default } from "' + specifier + '";\n';
+    for (const prefix of ['app/', 'apps/web/app/']) {
+      const routeSource = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
+      assert.equal(routeSource, wrapper, prefix + route + ' must not duplicate shared implementation');
+    }
+    const sharedSource = readFileSync(new URL('../' + shared, import.meta.url), 'utf8');
+    assert.match(sharedSource, /export const metadata:/);
+    assert.match(sharedSource, /export default function /);
+  }
+});
+
 test('legacy root mirrors are compatibility debt, never justification to create more duplicate route files', async () => {
   const report = await audit({log:false});
   assert.deepEqual(baselinedMirrors.canonicalWorkspaces,['apps/web','apps/admin']);
   const approved = new Set(baselinedMirrors.existingPairs.map((pair) => pair.join('\0')));
   const newPairs = report.compatibilityMirrors.filter(({legacy,canonical}) => !approved.has([legacy,canonical].join('\0')));
   assert.deepEqual(newPairs,[], 'New duplicate root routes require replacing the clone with an owned feature or documented exception');
+});
+
+test('Web sitemap routes have exactly one implementation but keep both route entrypoints', () => {
+  const routes = [
+    ['sitemap.xml/route.ts', 'index', 'force-static'],
+    ['sitemaps/core.xml/route.ts', 'core', 'force-static'],
+    ['sitemaps/tools.xml/route.ts', 'tools', 'force-static'],
+    ['sitemaps/blog.xml/route.ts', 'blog', 'force-dynamic'],
+  ];
+  for (const [route, moduleName, dynamic] of routes) {
+    const expected = 'export const dynamic = "' + dynamic + '";\n'
+      + 'export { GET } from "@/lib/sitemap/routes/' + moduleName + '";\n';
+    for (const prefix of ['app/', 'apps/web/app/']) {
+      const source = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
+      assert.equal(source, expected, prefix + route + ' must retain Next runtime config and shared implementation');
+    }
+    const implementation = readFileSync(new URL('../lib/sitemap/routes/' + moduleName + '.ts', import.meta.url), 'utf8');
+    assert.match(implementation, /export (async )?function GET\(/);
+    assert.doesNotMatch(implementation, /export const dynamic/);
+  }
 });

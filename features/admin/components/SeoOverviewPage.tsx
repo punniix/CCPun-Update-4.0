@@ -1,9 +1,10 @@
 type SeoOverviewCopy = { eyebrow: string; title: string; intro: string; opportunities: string; reviewsHref: string; dataset: (value: string | null | undefined, fallback?: string) => string; draftTitle: string; draftFields: string; draftMeaning: string; protectedTitle: string; protectedFields: string; migrationHint: string; readFailure: string; approvalBoundary: string };
 import Link from "next/link";
 import RunSeoAuditButton from "@/features/admin/components/RunSeoAuditButton";
+import PostPublishOwnerRecheckButton from "@/features/admin/components/PostPublishOwnerRecheckButton";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
-import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
+import { getAdminEnvironment, isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { SEO_AUDIT_VERSION } from "@/lib/admin/seo-heuristics";
 import { getSeoIntelligenceRuntimeStatus } from "@/lib/admin/seo-intelligence/foundation";
 
@@ -22,7 +23,10 @@ function formatAuditDate(value: string | null | undefined) {
 }
 
 export async function AdminSeoPage(copy: SeoOverviewCopy) {
-  await requireAdminPermission("seo:read");
+  const identity = await requireAdminPermission("seo:read");
+  const ownerRecheckReady = identity.role === "owner"
+    && getAdminEnvironment() === "production-admin"
+    && process.env.CCPUN_SEO_POST_PUBLISH_QUEUE_ENABLED === "1";
   const result = await listAdminArticles();
   const audited = result.rows.filter((row) => row.seoScore != null && row.seoAuditVersion === SEO_AUDIT_VERSION);
   const average = audited.length ? Math.round(audited.reduce((sum, row) => sum + (row.seoScore ?? 0), 0) / audited.length) : null;
@@ -87,6 +91,7 @@ export async function AdminSeoPage(copy: SeoOverviewCopy) {
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
                         <Link href={`/seo/audits/${encodeURIComponent(article.id)}/`} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-sm font-medium text-white/70 hover:bg-white/5">ดูรายละเอียด</Link>
+                        {ownerRecheckReady && !article.isDraft ? <PostPublishOwnerRecheckButton articleId={article.id} /> : null}
                         {article.isDraft && result.status.writeReady ? (
                           <RunSeoAuditButton articleId={article.id} hasPreviousAudit={article.seoScore != null} />
                         ) : !article.isDraft && studioReady ? (

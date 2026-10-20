@@ -94,3 +94,76 @@ export async function fetchGscSearchAnalytics(rawInput: unknown, fetcher: FetchL
 
   return { fetchedAt: new Date().toISOString(), rows, truncated: true, limitation: "Reached the bounded 50,000-row manual-sync limit; Search Console does not guarantee every possible query row." };
 }
+
+export async function inspectGscIndexedUrl(input: {
+  siteUrl: string;
+  inspectionUrl: string;
+  token: string;
+}, fetcher: FetchLike = fetch): Promise<{
+  state: "indexed" | "not-indexed" | "unknown";
+  verdict: string | null;
+  coverageState: string | null;
+  indexingState: string | null;
+  pageFetchState: string | null;
+  lastCrawlTime: string | null;
+  googleCanonical: string | null;
+  userCanonical: string | null;
+  inspectionResultLink: string | null;
+  limitation: string;
+}> {
+  const raw = await requestPage(
+    "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect",
+    input.token,
+    JSON.stringify({
+      inspectionUrl: input.inspectionUrl,
+      siteUrl: input.siteUrl,
+      languageCode: "th-TH",
+    }),
+    fetcher,
+  );
+  if (!raw || typeof raw !== "object") throw new Error("GSC_INVALID_RESPONSE");
+  const result = (raw as { inspectionResult?: unknown }).inspectionResult;
+  if (!result || typeof result !== "object") throw new Error("GSC_INVALID_RESPONSE");
+  const record = result as Record<string, unknown>;
+  const indexStatus = record.indexStatusResult;
+  if (!indexStatus || typeof indexStatus !== "object") throw new Error("GSC_INVALID_RESPONSE");
+  const index = indexStatus as Record<string, unknown>;
+  const stringOrNull = (value: unknown) => typeof value === "string" && value.length > 0 ? value : null;
+  const verdict = stringOrNull(index.verdict);
+  return {
+    state: verdict === "PASS" ? "indexed" : verdict === "FAIL" ? "not-indexed" : "unknown",
+    verdict,
+    coverageState: stringOrNull(index.coverageState),
+    indexingState: stringOrNull(index.indexingState),
+    pageFetchState: stringOrNull(index.pageFetchState),
+    lastCrawlTime: stringOrNull(index.lastCrawlTime),
+    googleCanonical: stringOrNull(index.googleCanonical),
+    userCanonical: stringOrNull(index.userCanonical),
+    inspectionResultLink: stringOrNull(record.inspectionResultLink),
+    limitation: "URL Inspection reports only the version known to Google's index; it is not a live indexability test and does not request indexing.",
+  };
+}
+
+export async function submitGscSitemap(input: {
+  siteUrl: string;
+  sitemapUrl: string;
+  token: string;
+}, fetcher: FetchLike = fetch): Promise<{ submittedAt: string }> {
+  const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(input.siteUrl)}/sitemaps/${encodeURIComponent(input.sitemapUrl)}`;
+  let response: Response;
+  try {
+    response = await fetcher(endpoint, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${input.token}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (error) {
+    if (error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)) throw new Error("GSC_TIMEOUT");
+    throw new Error("GSC_PROVIDER_UNAVAILABLE");
+  }
+  if (response.status === 401 || response.status === 403) throw new Error("GSC_AUTH_REQUIRED");
+  if (response.status === 429) throw new Error("GSC_RATE_LIMITED");
+  if (!response.ok) throw new Error("GSC_INVALID_RESPONSE");
+  return { submittedAt: new Date().toISOString() };
+}

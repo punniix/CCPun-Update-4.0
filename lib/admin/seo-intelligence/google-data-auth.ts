@@ -50,3 +50,24 @@ export async function getGoogleDataAccessToken(
   if (!parsed.success) throw new Error("GOOGLE_DATA_INVALID_RESPONSE");
   return parsed.data.access_token;
 }
+
+/** Owner-session alternative; the existing environment-based reader above is unchanged. */
+export async function refreshGoogleSessionAccessToken(
+  credentials: { clientId: string; clientSecret: string; refreshToken: string },
+  fetcher: FetchLike = fetch,
+) {
+  let response: Response;
+  try {
+    response = await fetcher("https://oauth2.googleapis.com/token", {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ client_id: credentials.clientId, client_secret: credentials.clientSecret,
+        refresh_token: credentials.refreshToken, grant_type: "refresh_token" }),
+      cache: "no-store", signal: AbortSignal.timeout(10_000),
+    });
+  } catch { throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED"); }
+  if (!response.ok) throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
+  const result = z.object({ access_token: z.string().min(1).max(8_192), refresh_token: z.string().min(1).max(2_048).optional() })
+    .safeParse(await response.json().catch(() => null));
+  if (!result.success) throw new Error("GOOGLE_SESSION_CONNECT_REQUIRED");
+  return { accessToken: result.data.access_token, refreshToken: result.data.refresh_token };
+}

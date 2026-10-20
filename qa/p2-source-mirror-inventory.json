@@ -1,0 +1,741 @@
+{
+  "purpose": "P2.2 exact owner and retention classification of all 104 original source mirrors; no route-file deletion.",
+  "baseline": "qa/monorepo-compatibility-mirrors.json",
+  "cssNote": "app/globals.css is outside route implementation mirrors and is separately retained as styling compatibility.",
+  "summary": {
+    "pairs": 104,
+    "identical": 74,
+    "divergent": 30,
+    "sharedRouteHandlers": 7
+  },
+  "pairs": [
+    {
+      "legacy": "app/(control-plane)/analytics/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/[section]/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/search/loading.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/search/loading.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/search/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/search/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/social/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/social/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/analytics/social/post-live/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/analytics/social/post-live/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/content/articles/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/articles/[id]/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/content/articles/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/articles/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/content/calendar/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/calendar/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/content/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/content/research/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/content/research/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/dashboard/inbox/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/dashboard/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/dashboard/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/error.tsx",
+      "canonical": "apps/admin/app/(control-plane)/error.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/layout.tsx",
+      "canonical": "apps/admin/app/(control-plane)/layout.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/not-found.tsx",
+      "canonical": "apps/admin/app/(control-plane)/not-found.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/operations/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/[section]/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/operations/audit-log/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/audit-log/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/operations/health/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/health/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/operations/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/operations/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/seo/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/[section]/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/seo/audits/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/audits/[id]/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/seo/audits/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/audits/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/seo/opportunities/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/opportunities/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/seo/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/seo/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/settings/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/settings/[section]/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/settings/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/settings/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane)/social/[section]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/[section]/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/accounts/meta/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/accounts/meta/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/accounts/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/accounts/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/accounts/tiktok/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/accounts/tiktok/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/accounts/youtube/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/accounts/youtube/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/calendar/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/calendar/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/posts/[id]/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/posts/[id]/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/(control-plane)/social/posts/page.tsx",
+      "canonical": "apps/admin/app/(control-plane)/social/posts/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane-auth)/login/page.tsx",
+      "canonical": "apps/admin/app/(control-plane-auth)/login/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/(control-plane-error)/admin-not-found/page.tsx",
+      "canonical": "apps/admin/app/(control-plane-error)/admin-not-found/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/api/admin/content/[id]/preview/route.ts",
+      "canonical": "apps/admin/app/api/admin/content/[id]/preview/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/content/[id]/schedule/route.ts",
+      "canonical": "apps/admin/app/api/admin/content/[id]/schedule/route.ts",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/api/admin/content/route.ts",
+      "canonical": "apps/admin/app/api/admin/content/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/media/route.ts",
+      "canonical": "apps/admin/app/api/admin/media/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/media/upload-intents/route.ts",
+      "canonical": "apps/admin/app/api/admin/media/upload-intents/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/providers/ubersuggest/callback/route.ts",
+      "canonical": "apps/admin/app/api/admin/providers/ubersuggest/callback/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/providers/ubersuggest/connect/route.ts",
+      "canonical": "apps/admin/app/api/admin/providers/ubersuggest/connect/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/providers/ubersuggest/sync/route.ts",
+      "canonical": "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/api/admin/research/route.ts",
+      "canonical": "apps/admin/app/api/admin/research/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/research/ubersuggest/route.ts",
+      "canonical": "apps/admin/app/api/admin/research/ubersuggest/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/apply/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/apply/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/approve/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/approve/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/edit/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/edit/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/reviews/[id]/reject/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/[id]/reject/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/reviews/route.ts",
+      "canonical": "apps/admin/app/api/admin/reviews/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/seo/audit/[id]/proposals/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/audit/[id]/proposals/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/seo/audit/[id]/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/audit/[id]/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/seo/opportunities/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/opportunities/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/seo/opportunities/sync/ga4/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/seo/opportunities/sync/gsc/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/opportunities/sync/gsc/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/seo/providers/readiness/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/providers/readiness/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/seo/suggestions/route.ts",
+      "canonical": "apps/admin/app/api/admin/seo/suggestions/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/session/route.ts",
+      "canonical": "apps/admin/app/api/admin/session/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/analytics/backfill/meta-insights/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/analytics/backfill/meta-insights/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/analytics/post-live/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/analytics/post-live/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/analytics/sync/[provider]/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/analytics/sync/[provider]/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/drafts/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/drafts/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/export/sheets/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/export/sheets/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/foundation/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/foundation/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/operations/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/operations/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/audio/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/audio/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/capabilities/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/capabilities/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/connection/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/connection/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/discovery/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/discovery/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/providers/meta/handoff/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/meta/handoff/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/providers/tiktok/discovery/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/tiktok/discovery/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/providers/youtube/discovery/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/providers/youtube/discovery/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/publications/execute/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/publications/execute/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/admin/social/publications/route.ts",
+      "canonical": "apps/admin/app/api/admin/social/publications/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/auth/[...nextauth]/route.ts",
+      "canonical": "apps/admin/app/api/auth/[...nextauth]/route.ts",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/api/preview/disable/route.ts",
+      "canonical": "apps/admin/app/api/preview/disable/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/api/preview/enable/route.ts",
+      "canonical": "apps/admin/app/api/preview/enable/route.ts",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/blog/[category]/[slug]/page.tsx",
+      "canonical": "apps/admin/app/blog/[category]/[slug]/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/blog/[category]/[slug]/page.tsx",
+      "canonical": "apps/web/app/blog/[category]/[slug]/page.tsx",
+      "lane": "web",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/blog/[category]/page.tsx",
+      "canonical": "apps/admin/app/blog/[category]/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/blog/[category]/page.tsx",
+      "canonical": "apps/web/app/blog/[category]/page.tsx",
+      "lane": "web",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/blog/page.tsx",
+      "canonical": "apps/admin/app/blog/page.tsx",
+      "lane": "admin",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/blog/page.tsx",
+      "canonical": "apps/web/app/blog/page.tsx",
+      "lane": "web",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/ci-planning/page.tsx",
+      "canonical": "apps/web/app/ci-planning/page.tsx",
+      "lane": "web",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/cookie-policy/page.tsx",
+      "canonical": "apps/web/app/cookie-policy/page.tsx",
+      "lane": "web",
+      "classification": "shared-handler-routing-wrapper",
+      "identical": true
+    },
+    {
+      "legacy": "app/layout.tsx",
+      "canonical": "apps/admin/app/layout.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/layout.tsx",
+      "canonical": "apps/web/app/layout.tsx",
+      "lane": "web",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/not-found.tsx",
+      "canonical": "apps/web/app/not-found.tsx",
+      "lane": "web",
+      "classification": "shared-handler-routing-wrapper",
+      "identical": true
+    },
+    {
+      "legacy": "app/page.tsx",
+      "canonical": "apps/admin/app/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/page.tsx",
+      "canonical": "apps/web/app/page.tsx",
+      "lane": "web",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/play/money-story/page.tsx",
+      "canonical": "apps/web/app/play/money-story/page.tsx",
+      "lane": "web",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    },
+    {
+      "legacy": "app/privacy/page.tsx",
+      "canonical": "apps/web/app/privacy/page.tsx",
+      "lane": "web",
+      "classification": "shared-handler-routing-wrapper",
+      "identical": true
+    },
+    {
+      "legacy": "app/robots.ts",
+      "canonical": "apps/admin/app/robots.ts",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/robots.ts",
+      "canonical": "apps/web/app/robots.ts",
+      "lane": "web",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/sitemap.xml/route.ts",
+      "canonical": "apps/web/app/sitemap.xml/route.ts",
+      "lane": "web",
+      "classification": "shared-handler-routing-wrapper",
+      "identical": true
+    },
+    {
+      "legacy": "app/sitemaps/blog.xml/route.ts",
+      "canonical": "apps/web/app/sitemaps/blog.xml/route.ts",
+      "lane": "web",
+      "classification": "shared-handler-routing-wrapper",
+      "identical": true
+    },
+    {
+      "legacy": "app/sitemaps/core.xml/route.ts",
+      "canonical": "apps/web/app/sitemaps/core.xml/route.ts",
+      "lane": "web",
+      "classification": "shared-handler-routing-wrapper",
+      "identical": true
+    },
+    {
+      "legacy": "app/sitemaps/tools.xml/route.ts",
+      "canonical": "apps/web/app/sitemaps/tools.xml/route.ts",
+      "lane": "web",
+      "classification": "shared-handler-routing-wrapper",
+      "identical": true
+    },
+    {
+      "legacy": "app/studio/[[...tool]]/page.tsx",
+      "canonical": "apps/admin/app/studio/[[...tool]]/page.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/studio/[[...tool]]/studio-client.tsx",
+      "canonical": "apps/admin/app/studio/[[...tool]]/studio-client.tsx",
+      "lane": "admin",
+      "classification": "divergent-compatibility-retained",
+      "identical": false
+    },
+    {
+      "legacy": "app/tools/financial-health-check/page.tsx",
+      "canonical": "apps/web/app/tools/financial-health-check/page.tsx",
+      "lane": "web",
+      "classification": "identical-compatibility-retained",
+      "identical": true
+    }
+  ]
+}

@@ -13,6 +13,27 @@ const root = resolve(import.meta.dirname, '..');
 const read = file => readFileSync(resolve(root, file), 'utf8');
 const sha = value => createHash('sha256').update(value).digest('hex');
 const proof = JSON.parse(read('qa/production-code-only-parity.json'));
+const lineCopyOriginRoutes = ['generate', 'improve', 'publish'].map(action => `apps/admin/app/api/admin/content/[id]/line-copy/${action}/route.ts`);
+function assertReviewedLineCopyOrigin(file, digest, source) {
+  assert.ok(lineCopyOriginRoutes.includes(file));
+  for (const [accepted, original] of [
+    ['import { getAdminEnvironment } from "@/lib/admin/environment";\nimport { isPostPublishAdminOriginAllowed as isLineCopyAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";', 'import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";'],
+    ['isLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment())', 'isSameOriginAdminMutation(request.url, request.headers.get("origin"))'],
+  ]) {
+    assert.equal(source.split(accepted).length, 2, 'exact origin replacement occurs once');
+    source = source.replace(accepted, original);
+  }
+  assert.equal(sha(source), digest, file + ': every other original byte remains protected');
+}
+const googleRoutePins = {
+  'apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts': ['fb2b8914578046cc4c862b29d146adeae3aebee64a7cf8fe957a57fd36f18124', 'ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a'],
+  'apps/admin/app/api/admin/seo/providers/readiness/route.ts': ['1102ab55920dbb2bedbf18ddb2cfb3c0fdc5f9c8748b38be4d99c0fd61378d06', '0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc'],
+};
+function assertReviewedGoogleRoute(file, digest, source) {
+  assert.ok(Object.hasOwn(googleRoutePins, file));
+  assert.equal(digest, googleRoutePins[file][0], 'original Google API source remains frozen');
+  assert.equal(sha(source), googleRoutePins[file][1], file + ': exact reviewed Google API body');
+}
 const reviewedUiOwners = [
   "lib/analytics.ts",
   "features/analytics/components/GoogleAnalytics.tsx",
@@ -60,7 +81,9 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   assertReviewedUxOwners(proof, reviewedUiOwners);
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
-    if (file === 'features/money-story/components/MoneyStoryGame.tsx') assertPhase2MoneyComposition(file, digest);
+    if (lineCopyOriginRoutes.includes(file)) assertReviewedLineCopyOrigin(file, digest, read(file));
+    else if (Object.hasOwn(googleRoutePins, file)) assertReviewedGoogleRoute(file, digest, read(file));
+    else if (file === 'features/money-story/components/MoneyStoryGame.tsx') assertPhase2MoneyComposition(file, digest);
     else if (['lib/runtime/deployment-identity.ts', 'lib/content/sanity-lane.ts', 'lib/deployment-environment.ts', 'proxy.ts', 'lib/runtime/deployment-contract.ts'].includes(file)) assertNativeProviderRetirement(file, digest);
     else if (['apps/admin/app/api/internal/line/bridge-health/route.ts', 'apps/admin/app/api/internal/line/ingest-event/route.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
@@ -70,6 +93,20 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
     assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
   }
+});
+
+test('reviewed LINE and Google route admissions reject unrelated changes, unknown owners and duplicate guards', () => {
+  for (const file of lineCopyOriginRoutes) {
+    const source = read(file), changed = source.replace('identity.role !== "owner"', 'identity.role !== "editor"');
+    assert.notEqual(changed, source);
+    assert.throws(() => assertReviewedLineCopyOrigin(file, proof.protected[file], changed));
+    assert.throws(() => assertReviewedLineCopyOrigin(file, proof.protected[file], source + '\nisLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment());\n'));
+  }
+  for (const [file, [digest]] of Object.entries(googleRoutePins)) {
+    assert.throws(() => assertReviewedGoogleRoute(file, digest, read(file) + '\n// unreviewed change'));
+    assert.throws(() => assertReviewedGoogleRoute(file, '0'.repeat(64), read(file)));
+  }
+  assert.throws(() => assertReviewedGoogleRoute('unknown.ts', '0'.repeat(64), ''));
 });
 
 test('critical first-paint CSS and three layout compositions preserve the exact Production baseline', () => {

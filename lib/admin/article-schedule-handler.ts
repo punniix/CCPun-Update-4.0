@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { hasAdminPermission } from "@/lib/admin/rbac";
-import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+import { getAdminEnvironment } from "@/lib/admin/environment";
+import { isPostPublishAdminOriginAllowed as isArticleScheduleOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { cancelArticleSchedule, getArticleScheduleState } from "@/lib/admin/article-scheduling";
 import { ArticleScheduleError, articleIdSchema, cancelScheduleRequestSchema, scheduleRequestSchema as bodySchema } from "@/lib/admin/operations/article-schedule-contract";
 import { bangkokLocalDateTimeToIso } from "@/cms/sanity/policy/article-scheduling";
@@ -33,7 +34,7 @@ export async function getArticleScheduleResponse(_request: Request, { params }: 
 export async function deleteArticleScheduleResponse(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const identity = await requireScheduleIdentity();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
+  if (!isArticleScheduleOriginAllowed(request, process.env, getAdminEnvironment())) return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
   const id = articleIdSchema.safeParse((await params).id);
   const parsed = cancelScheduleRequestSchema.safeParse(await request.json().catch(() => null));
   if (!id.success || !parsed.success) return failure(new ArticleScheduleError("invalid-request"));
@@ -45,7 +46,7 @@ export async function deleteArticleScheduleResponse(request: Request, { params }
 export async function readArticleSchedulePostRequest(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const identity = await requireScheduleIdentity();
   if (!identity) return { ok: false as const, response: NextResponse.json({ error: "forbidden" }, { status: 403, headers }) };
-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) return { ok: false as const, response: NextResponse.json({ error: "invalid-origin" }, { status: 403, headers }) };
+  if (!isArticleScheduleOriginAllowed(request, process.env, getAdminEnvironment())) return { ok: false as const, response: NextResponse.json({ error: "invalid-origin" }, { status: 403, headers }) };
   const id = articleIdSchema.safeParse((await params).id);
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!id.success || !parsed.success) return { ok: false as const, response: failure(new ArticleScheduleError("invalid-request")) };

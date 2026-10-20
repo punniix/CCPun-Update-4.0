@@ -12,5 +12,8 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     adminRole?: AdminRole | null;
+    /** Private binding only; provider credentials never enter the public Session. */
+    googleConnectionBinding?: string;
+    googleConnectionAccount?: string;
   }
 }

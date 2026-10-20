@@ -45,7 +45,10 @@
     "check:hostinger": "node scripts/check-hostinger-readiness.mjs",
     "qa:hostinger:parity": "node scripts/hostinger-seo-parity.mjs",
     "test:hostinger": "node --test tests/hostinger-shadow-config.test.mjs",
-    "build:hostinger": "npm run build --workspace @ccpun/web"
+    "build:hostinger": "npm run build --workspace @ccpun/web",
+    "worker:seo-post-publish": "node --conditions=react-server --import tsx scripts/seo-post-publish-worker.ts",
+    "nav:check": "node scripts/sync-public-nav-config.mjs --check",
+    "nav:sync:write": "node scripts/sync-public-nav-config.mjs --write"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.3.1",
