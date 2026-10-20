@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SanityClient } from "sanity";
-import { articleCategoryReferenceBlock, articlePublishBlock, hasArticleContentChanges, isArticleCategoryReference, publicationSummary, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
+import { articleCategoryReferenceBlock, articlePublishBlock, hasArticleContentChanges, hasMeaningfulArticleContentChange, isArticleCategoryReference, publicationSummary, publishApprovedArticle, type PublishableArticle } from "../../cms/sanity/policy/article-publication";
 import { faqItem } from "../../cms/sanity/schema/objects/faq-item";
 import { sourceReference } from "../../cms/sanity/schema/objects/source-reference";
 import { tableRow, simpleTable } from "../../cms/sanity/schema/objects/table";
@@ -71,8 +71,9 @@ test("category guard accepts only Sanity reference-shaped values", () => {
 });
 
 test("publication leaves content/references intact and preserves ORIGINAL publishedAt", async () => {
-  const db = memoryClient([draft, published]);
-  await publishApprovedArticle(db.client, draft, published, now);
+  const optimizedDraft = { ...draft, title: "Optimized published title" };
+  const db = memoryClient([optimizedDraft, published]);
+  await publishApprovedArticle(db.client, optimizedDraft, published, now);
   const live = db.read().get("article1")!;
   assert.equal(live.publishedAt, first);
   assert.equal(live.contentUpdatedAt, now);
@@ -189,9 +190,10 @@ test("approval alone never advances a previous optimization date for unchanged o
 });
 
 test("Sanity object keys and JSON property order do not count as optimized content", () => {
-  const previous = { ...published, body: [{ _key: "old", _type: "block", children: [{ _key: "a", _type: "span", text: "Same content" }] }] };
-  const value = { ...draft, body: [{ children: [{ text: "Same content", _type: "span", _key: "b" }], _type: "block", _key: "new" }] };
+  const previous = { ...published, body: [{ _key: "old", _rev: "old", _createdAt: first, _updatedAt: first, _type: "block", children: [{ _key: "a", _type: "span", text: "Same content" }] }] };
+  const value = { ...draft, body: [{ children: [{ text: "Same content", _type: "span", _key: "b" }], _type: "block", _key: "new", _rev: "new", _createdAt: now, _updatedAt: now }] };
   assert.equal(hasArticleContentChanges(value, previous), false);
+  assert.equal(hasMeaningfulArticleContentChange(value, previous), false);
   assert.equal(hasArticleContentChanges(value, null), false);
   assert.equal(hasArticleContentChanges(null, previous), false);
 });

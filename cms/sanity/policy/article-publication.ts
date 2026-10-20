@@ -64,17 +64,67 @@ export function articlePublishBlock(draft: PublishableArticle | null, published:
   return null;
 }
 
-// Compare article content, excluding Sanity object keys/system metadata and object-property order.
-function articleContentValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(articleContentValue);
-  if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(Object.entries(value).filter(([key]) => !["_key", "_rev", "_createdAt", "_updatedAt"].includes(key))
-    .sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, articleContentValue(item)]));
+/**
+ * Only published, reader-facing changes can advance the SEO freshness date.
+ * Draft revisions, review/internal notes, workflow status and SEO audit metadata
+ * are not meaningful content changes. Normalize Portable Text _keys so editor
+ * block regeneration alone cannot make an unchanged page appear freshly edited.
+ */
+function normalizeVisibleValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeVisibleValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key, entry]) => !["_key", "_rev", "_createdAt", "_updatedAt"].includes(key) && entry !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, entry]) => [key, normalizeVisibleValue(entry)]),
+    );
+  }
+  return value ?? null;
 }
 
 export function hasArticleContentChanges(draft: PublishableArticle | null, published: PublishableArticle | null): boolean {
   return Boolean(draft && published && ["title", "body", "faq", "sources"].some((field) =>
-    JSON.stringify(articleContentValue(draft[field])) !== JSON.stringify(articleContentValue(published[field]))));
+    JSON.stringify(normalizeVisibleValue(draft[field])) !== JSON.stringify(normalizeVisibleValue(published[field]))));
+}
+
+function publicArticleContent(article: PublishableArticle) {
+  const seo = (article.seo ?? {}) as Record<string, unknown>;
+  return {
+    title: article.title,
+    excerpt: article.excerpt,
+    lineTitle: article.lineTitle,
+    lineDescription: article.lineDescription,
+    slug: article.slug?.current,
+    category: article.category?._ref,
+    tags: article.tags,
+    author: article.author,
+    featuredImage: article.featuredImage,
+    migratedFeaturedImage: article.migratedFeaturedImage,
+    body: article.body,
+    faq: article.faq,
+    sources: article.sources,
+    geo: article.geo,
+    seo: {
+      title: seo.title,
+      description: seo.description,
+      ogTitle: seo.ogTitle,
+      ogDescription: seo.ogDescription,
+      ogImage: seo.ogImage,
+      canonical: seo.canonical,
+      noindex: seo.noindex === true,
+      semanticTopic: seo.semanticTopic,
+    },
+  };
+}
+
+export function hasMeaningfulArticleContentChange(
+  draft: PublishableArticle,
+  published: PublishableArticle | null,
+): boolean {
+  if (!published) return true;
+  return JSON.stringify(normalizeVisibleValue(publicArticleContent(draft)))
+    !== JSON.stringify(normalizeVisibleValue(publicArticleContent(published)));
 }
 
 /**
@@ -94,7 +144,9 @@ export function buildPublishedArticleDocument(
     ...(seo ? { seo } : {}),
     _id: draft._id.slice(7),
     publishedAt: published?.publishedAt || draft.publishedAt || now,
-    contentUpdatedAt: now,
+    contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)
+      ? now
+      : (published?.contentUpdatedAt || published?._updatedAt || now),
   };
   // Only an approved substantive update can advance this date; never trust a Draft-supplied value.
   delete document.contentOptimizedAt;

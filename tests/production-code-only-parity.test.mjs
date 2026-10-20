@@ -41,7 +41,7 @@ function assertReviewedLineCopyOriginRepair(file, digest, source) {
 const reviewedArticleOptimizationOwners = {
   'cms/sanity/policy/article-publication.ts': [
     '802db995aec376a4696d1ea3962f39a40332415a2f1438c0ffaebc8c1ceccd04',
-    '8df23792e5d8774e1f74405e5dbc0f8805cc02ee88d419cbcdecad54b2c0deb2',
+    '670c64682286b667a671f6f63818d3506b312932dc9609fc170a2bd23d374a94',
   ],
   'cms/sanity/policy/article-publish-action.tsx': [
     '55009ab64b6ee3996238dcd776e69265db49bd0a3c208d4fcb9eab9f99705002',
@@ -148,6 +148,7 @@ test('Article optimization admission rejects original proof drift and changes to
     ['noindex: false', 'noindex: true'],
     ['confirmOptimization && hasArticleContentChanges(draft, published)', 'hasArticleContentChanges(draft, published)'],
     ['delete document.contentOptimizedAt;', ''],
+    ['contentUpdatedAt: hasMeaningfulArticleContentChange(draft, published)', 'contentUpdatedAt: true'],
   ]) {
     const changed = source.replace(original, replacement);
     assert.notEqual(changed, source, original + ': negative probe must change the actual owner');
