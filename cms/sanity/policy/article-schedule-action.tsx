@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useSyncState, useValidationStatus, type DocumentActionComponent } from "sanity";
 import { articlePublishBlock, type PublishableArticle } from "./article-publication";
 import type { AdminEnvironment } from "../../../lib/admin/environment";
 import type { ScheduleView } from "../../../lib/admin/operations/article-schedule-contract";
+import { articleScheduleUiBlock } from "./article-schedule-readiness";
 
 const labels: Record<ScheduleView["status"], string> = {
   preparing: "ยังไม่ยืนยันการส่งคิว", scheduled: "ตั้งเวลาแล้ว", executing: "กำลังตรวจและดำเนินการ",
@@ -32,6 +33,9 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
     const sync = useSyncState(props.id, props.type);
     const validation = useValidationStatus(props.draft?._id || props.id, props.type, true);
     const endpoint = `/api/admin/content/${encodeURIComponent(props.id.replace(/^drafts\./, ""))}/schedule/`;
+    const timeInputId = useId();
+    const confirmationId = useId();
+    const readinessId = useId();
     const [open, setOpen] = useState(false);
     const [scheduledLocal, setScheduledLocal] = useState(() => localBangkok(Date.now() + 10 * 60_000));
     const [state, setState] = useState<{ ready: boolean; mode: "publish" | "validate-only"; schedule: ScheduleView | null } | null>(null);
@@ -66,7 +70,21 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
     const blocked = articlePublishBlock(draft, published);
     const validating = sync.isSyncing || validation.isValidating || validation.validation.some((item) => item.level === "error");
     const locked = schedule?.status === "executing" || schedule?.status === "reconciliation-required" || schedule?.status === "preparing";
-    const canSchedule = Boolean(state?.ready && !loading && !busy && !validating && !blocked && unchanged && confirmed && !locked && draft && confirmation && scheduledLocal && !props.version && !props.liveEdit);
+    const readinessBlock = articleScheduleUiBlock({
+      loading,
+      busy,
+      ready: state?.ready ?? null,
+      mode: state?.mode ?? null,
+      isUat: isTest,
+      validating,
+      articleBlock: blocked,
+      revisionsMatch: Boolean(unchanged),
+      confirmed,
+      locked,
+      draftPresent: Boolean(draft),
+      scheduledLocal,
+    });
+    const canSchedule = readinessBlock === null && Boolean(draft && confirmation) && !props.version && !props.liveEdit;
     const canCancel = Boolean(schedule && ["preparing", "scheduled"].includes(schedule.status) && !loading && !busy);
 
     async function mutate(cancel: boolean) {
@@ -110,19 +128,29 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
         content: (
           <div style={{ padding: "1rem", display: "grid", gap: "1rem", maxWidth: 540 }}>
             <p>ระบบยึดฉบับที่คุณยืนยัน หากแก้บทความหรือมีการเผยแพร่ฉบับอื่นหลังตั้งเวลา คิวนี้จะหยุดให้ตรวจใหม่</p>
-            {loading ? <p role="status">กำลังอ่านสถานะจริง…</p> : null}
-            {state && !state.ready ? <p role="status">ยังไม่ได้เปิดใช้งานการตั้งเวลาใหม่ แต่ยังยกเลิกคิวที่รออยู่ได้</p> : null}
             {schedule ? <p role="status">{labels[schedule.status]} · {displayTime(schedule.scheduledAt)} (เวลาไทย)</p> : null}
             {schedule?.status === "executing" || schedule?.status === "reconciliation-required" ? <p>ยังไม่สามารถตั้งซ้ำหรือยืนยันยกเลิกได้ ต้องตรวจสถานะ Live และผลธุรกรรมก่อน</p> : null}
-            <label style={{ display: "grid", gap: ".5rem" }}>
+            <label htmlFor={timeInputId} style={{ display: "block" }}>
               วันและเวลา (Asia/Bangkok) · ล่วงหน้า 30 วินาทีถึง 90 วัน
-              <input type="datetime-local" value={scheduledLocal} onChange={(event) => { setScheduledLocal(event.currentTarget.value); setConfirmed(false); }} disabled={busy} style={{ font: "inherit", padding: ".7rem" }} />
             </label>
-            {blocked || validating || !unchanged ? <p>{!unchanged ? "ฉบับบทความเปลี่ยน กรุณาปิดแล้วเปิดหน้าตั้งเวลาใหม่" : blocked || "รอการบันทึกและตรวจฟอร์มให้เสร็จก่อนตั้งเวลา"}</p> : null}
-            <label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)} disabled={busy} /> {isTest ? "ยืนยันทดสอบฉบับนี้ โดยไม่มีการเผยแพร่" : "ฉันตรวจตัวอย่างและอนุมัติให้เผยแพร่ฉบับนี้ตามเวลาที่เลือกแล้ว"}</label>
+            <input id={timeInputId} name="article-scheduled-local" type="datetime-local"
+              aria-describedby={readinessId}
+              value={scheduledLocal}
+              onChange={(event) => { setScheduledLocal(event.currentTarget.value); setConfirmed(false); }}
+              disabled={busy} required
+              style={{ font: "inherit", padding: ".7rem", width: "100%", boxSizing: "border-box" }} />
+            <label htmlFor={confirmationId} style={{ display: "flex", gap: ".7rem", alignItems: "center", cursor: busy ? "wait" : "pointer" }}>
+              <input id={confirmationId} name="article-schedule-owner-confirmation" type="checkbox"
+                checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)}
+                disabled={busy} style={{ minWidth: 20, minHeight: 20 }} />
+              <span>{isTest ? "ยืนยันทดสอบฉบับนี้ โดยไม่มีการเผยแพร่" : "ฉันตรวจตัวอย่างและอนุมัติให้เผยแพร่ฉบับนี้ตามเวลาที่เลือกแล้ว"}</span>
+            </label>
+            <p id={readinessId} role="status" aria-live="polite" style={{ margin: 0 }}>
+              {readinessBlock || (canSchedule ? "ตรวจสอบเรียบร้อย พร้อมยืนยันตั้งเวลา" : "ตรวจเงื่อนไขก่อนตั้งเวลา")}
+            </p>
             {error ? <p role="alert">{error}</p> : null}
             <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap" }}>
-              <button type="button" onClick={() => void mutate(false)} disabled={!canSchedule} style={{ minHeight: 44 }}>{busy ? "กำลังดำเนินการ…" : isTest ? "ยืนยันตั้งเวลาทดสอบ" : "ยืนยันตั้งเวลา"}</button>
+              <button type="button" onClick={() => void mutate(false)} disabled={!canSchedule} aria-describedby={readinessId} style={{ minHeight: 44 }}>{busy ? "กำลังดำเนินการ…" : isTest ? "ยืนยันตั้งเวลาทดสอบ" : "ยืนยันตั้งเวลา"}</button>
               {schedule && ["preparing", "scheduled"].includes(schedule.status) ? <button type="button" onClick={() => void mutate(true)} disabled={!canCancel} style={{ minHeight: 44 }}>ยกเลิกคิวนี้</button> : null}
               <button type="button" disabled={busy || loading} onClick={() => { setError(null); setRefresh((value) => value + 1); }} style={{ minHeight: 44 }}>โหลดสถานะล่าสุด</button>
             </div>

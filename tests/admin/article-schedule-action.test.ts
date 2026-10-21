@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { randomUUID } from "node:crypto";
 import ts from "typescript";
 import { articlePublishBlock } from "../../cms/sanity/policy/article-publication";
+import { articleScheduleUiBlock } from "../../cms/sanity/policy/article-schedule-readiness";
 
 // Match the existing Studio-wrapper harness: only Sanity hooks are injected.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +32,7 @@ async function mount(queued=false,ready=true,readFails=false) {
   new Function("require","exports",compiled)((id:string)=>{
     if(id==="sanity")return{useSyncState:()=>state.sync,useValidationStatus:()=>state.validation};
     if(id==="./article-publication")return{articlePublishBlock};
+    if(id==="./article-schedule-readiness")return{articleScheduleUiBlock};
     return require(id);
   },exports);
   const action=exports.createArticleScheduleAction("production-admin");let current:Bag;
@@ -81,5 +83,32 @@ test("mounted scheduler suppresses duplicate clicks but gives a new confirmed re
     await ui.confirm();await ui.click(ui.button("ยืนยันตั้งเวลา"));assert.equal(ui.state.calls.length,2);
     assert.notEqual(ui.state.calls[1].body.requestId,first.requestId);
     assert.equal(ui.state.calls[1].body.expectedGeneration,first.requestId);
+  }finally{await ui.close();}
+});
+
+
+test("mounted scheduler exposes accessible date and confirmation controls with actionable disabled explanation",async()=>{
+  const ui=await mount();try{
+    await ui.open();
+    const datetime=document.querySelector<HTMLInputElement>('input[name="article-scheduled-local"]');
+    const consent=document.querySelector<HTMLInputElement>('input[name="article-schedule-owner-confirmation"]');
+    assert.ok(datetime);assert.ok(consent);
+    assert.ok(datetime.id && consent.id);
+    assert.ok(document.querySelector('label[for="'+datetime.id+'"]'));
+    assert.ok(document.querySelector('label[for="'+consent.id+'"]'));
+    assert.equal(ui.button("ยืนยันตั้งเวลา").disabled,true);
+    assert.match(document.querySelector('[role="status"]')?.textContent||"",/ยืนยันอนุมัติ/);
+    await ui.confirm();
+    assert.equal(ui.button("ยืนยันตั้งเวลา").disabled,false);
+  }finally{await ui.close();}
+});
+
+test("mounted scheduler renders backend-unavailable diagnostic without bypassing guard",async()=>{
+  const ui=await mount(false,false);try{
+    await ui.open();
+    await ui.confirm();
+    assert.equal(ui.button("ยืนยันตั้งเวลา").disabled,true);
+    assert.match(document.querySelector('[role="status"]')?.textContent||"",/ยังไม่พร้อม/);
+    assert.equal(ui.state.calls.length,0);
   }finally{await ui.close();}
 });
