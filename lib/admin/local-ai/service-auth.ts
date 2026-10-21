@@ -20,7 +20,17 @@ export function isN8nLocalAiRequestAuthorized(
 export function resolveLineCopyN8nBridge(variables: Record<string, string | undefined>) {
   const identity = getAdminDeploymentIdentity(variables);
   if (!identity.valid || identity.role !== "admin") return null;
-  if (identity.environment === "production-admin") return { lane: "production-admin" } as const;
+  if (identity.environment === "production-admin") {
+    // An explicit Production intake must never fall back to the legacy workflow.
+    if (variables.CCPUN_LOCAL_AI_N8N_WEBHOOK_URL === undefined) {
+      return { lane: "production-admin", webhookUrl: undefined } as const;
+    }
+    const configuredUrl = variables.CCPUN_LOCAL_AI_N8N_WEBHOOK_URL.trim();
+    const token = variables.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
+    if (!token || token.length < 43
+      || configuredUrl !== "https://n8n.srv908107.hstgr.cloud/webhook/ccpun-admin-production-gen-v1") return null;
+    return { lane: "production-admin", webhookUrl: new URL(configuredUrl) } as const;
+  }
   if (identity.environment !== "admin-uat"
     || (variables.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER !== undefined
       && variables.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER.trim() !== identity.provider)

@@ -948,6 +948,30 @@
       "parameters": {
         "jsCode": "const prep=$('เตรียมสรุปบทความ').item.json;\nconst fail=()=>[{json:{error:'model-unavailable'}}];\nif(!prep.valid||prep.provider!=='openai'||prep.inputTokenUpperBound>200000||prep.maxCostUsd!==0.03)return fail();\nif($json.error||$json.status!=='completed'||$json.store!==false||$json.service_tier!=='default'||$json.incomplete_details)return fail();\nconst content=Array.isArray($json.output)?$json.output.flatMap(item=>Array.isArray(item.content)?item.content:[]):[];\nif(content.some(part=>part.type==='refusal'||part.refusal))return fail();\nconst text=content.filter(part=>part.type==='output_text'&&typeof part.text==='string').map(part=>part.text).join('')||(typeof $json.output_text==='string'?$json.output_text:'');\nif(!text.trim())return fail();\nreturn [{json:{done:true,done_reason:'stop',message:{content:text}}}];"
       }
+    },
+    {
+      "id": "8f1beb20-ce7a-472b-bf47-1c0fcdf385bb",
+      "name": "Admin Production · Generate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ccpun-admin-production-gen-v1",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "8f1beb20-ce7a-472b-bf47-1c0fcdf385bb",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__BIND_DEDICATED_PRODUCTION_GEN_HEADER_AUTH__",
+          "name": "CCPun Admin Production Gen (bind dedicated credential)"
+        }
+      }
     }
   ],
   "connections": {
@@ -1427,15 +1451,26 @@
           }
         ]
       ]
+    },
+    "Admin Production · Generate": {
+      "main": [
+        [
+          {
+            "node": "สรุปบทความ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "availableInMCP": true,
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true,
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
     "executionTimeout": 300,
     "binaryMode": "separate"
   }

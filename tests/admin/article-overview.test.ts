@@ -78,17 +78,17 @@ test("published source creates Draft only; stale revisions, drafts/versions IDs 
 
 const routePath = "apps/admin/app/api/admin/content/[id]/overview/generate/route.ts";
 const env = { AUTH_URL: "https://admin-test.ccpun.com", CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_LOCAL_AI_N8N_TOKEN: "s".repeat(48) };
-function routeFixture({ role = "owner", actorType = "human", origin = "https://admin-test.ccpun.com", bridge = { lane: "admin-uat", token: "s".repeat(48), webhookUrl: new URL("https://n8n.example/webhook/uat-overview") }, result = { status: "generated", summary, sourceRevision: "r1", promptVersion: "article-overview-v2" }, draftSummary = "", applyConflict = false, routeSource = source, requestBody = undefined as Record<string, unknown> | undefined } = {}) {
+function routeFixture({ role = "owner", actorType = "human", origin = "https://admin-test.ccpun.com", bridge = { lane: "admin-uat", token: "s".repeat(48), webhookUrl: new URL("https://n8n.example/webhook/uat-overview") }, result = { status: "generated", summary, sourceRevision: "r1", promptVersion: "article-overview-v2" }, draftSummary = "", applyConflict = false, routeSource = source, requestBody = undefined as Record<string, unknown> | undefined, runtimeEnv: variables = env as Record<string, string | undefined> } = {}) {
   const events: unknown[] = [];
   const h = fixture();
   const route = loadFixtureModule(routePath, { mocks: new Map<string, unknown>([
     ["@/lib/admin/identity", { getAdminIdentity: async () => ({ role, actorType }) }],
-    ["@/lib/admin/environment", { getAdminEnvironment: () => "admin-uat" }],
+    ["@/lib/admin/environment", { getAdminEnvironment: () => variables.CCPUN_APP_ENV ?? "admin-uat" }],
     ["@/lib/admin/local-ai/service-auth", { resolveLineCopyN8nBridge: () => bridge }],
     ["@/lib/admin/article-overview", { ...h.helper, readOrCreateArticleOverviewDraft: async () => { events.push("read"); return { revision: "r1", summary: draftSummary, source: routeSource }; }, applyArticleOverviewToDraft: async (...args: unknown[]) => { events.push(args); if (applyConflict) throw new Error("OVERVIEW_CONFLICT"); return { status: "applied" }; } }],
-  ]), globals: { process: { env } } });
-  const request = new Request("http://127.0.0.1:3000/api/admin/content/article/overview/generate/", { method: "POST", headers: { origin, host: "admin-test.ccpun.com", "content-type": "application/json" }, body: JSON.stringify(requestBody ?? { sourceRevision: "r1", requestId: "d4b6174c-19e8-4ee1-847a-d5c46ac57d44" }) });
-  async function run() { const old = globalThis.fetch; globalThis.fetch = async (url, init) => { events.push({ url: String(url), body: JSON.parse(String(init?.body)) }); return Response.json({ requestId: (events.at(-1) as {body: Record<string, unknown>}).body.requestId, instructionHash: (events.at(-1) as {body: Record<string, unknown>}).body.instructionHash, editorialInstructionVersion: EDITORIAL_INSTRUCTION_VERSION, ...result }); }; try { return await route.POST(request, { params: Promise.resolve({ id: "article" }) }); } finally { globalThis.fetch = old; } }
+  ]), globals: { process: { env: variables } } });
+  const request = new Request("http://127.0.0.1:3000/api/admin/content/article/overview/generate/", { method: "POST", headers: { origin, host: new URL(origin).host, "content-type": "application/json" }, body: JSON.stringify(requestBody ?? { sourceRevision: "r1", requestId: "d4b6174c-19e8-4ee1-847a-d5c46ac57d44" }) });
+  async function run() { const old = globalThis.fetch; globalThis.fetch = async (url, init) => { events.push({ url: String(url), body: JSON.parse(String(init?.body)), redirect: init?.redirect, authorization: (init?.headers as Record<string, string>)?.Authorization }); return Response.json({ requestId: (events.at(-1) as {body: Record<string, unknown>}).body.requestId, instructionHash: (events.at(-1) as {body: Record<string, unknown>}).body.instructionHash, editorialInstructionVersion: EDITORIAL_INSTRUCTION_VERSION, ...result }); }; try { return await route.POST(request, { params: Promise.resolve({ id: "article" }) }); } finally { globalThis.fetch = old; } }
   return { run, events };
 }
 
@@ -105,18 +105,45 @@ test("actual endpoint binds source revision, no-store response, missing model an
   const off = routeFixture({ bridge: null as never }); assert.equal((await off.run()).status, 503); assert.deepEqual(off.events, []);
 });
 
+test("overview Production intake uses the dedicated URL and bearer without changing its inference criteria", async () => {
+  const url = "https://n8n.srv908107.hstgr.cloud/webhook/ccpun-admin-production-gen-v1";
+  const f = routeFixture({ origin: "https://admin.ccpun.com", runtimeEnv: { ...env, AUTH_URL: "https://admin.ccpun.com", CCPUN_APP_ENV: "production-admin", CCPUN_LOCAL_AI_N8N_BASE_URL: "https://ignored.example/" }, bridge: { lane: "production-admin", token: "unused", webhookUrl: new URL(url) } });
+  assert.equal((await f.run()).status, 200);
+  const call = f.events[1] as { url: string; redirect: string; authorization: string; body: Record<string, unknown> };
+  assert.equal(call.url, url); assert.equal(call.redirect, "error");
+  assert.equal(call.authorization, "Bearer " + env.CCPUN_LOCAL_AI_N8N_TOKEN);
+  assert.equal(call.body.inferenceProvider, "local");
+  assert.deepEqual(call.body.source, source);
+});
+
 const workflow = JSON.parse(readFileSync("workers/local-ai/n8n/line-card-copy.direct.json", "utf8"));
 const node = (name: string) => workflow.nodes.find((entry: { name: string }) => entry.name === name);
 function code(name: string, input: unknown, prep?: unknown) { return new Function("$json", "$", "Buffer", node(name).parameters.jsCode)(input, () => ({ item: { json: prep } }), Buffer)[0].json; }
 
-test("workflow preserves 22 untouched LINE nodes, exact seven editorial changes, settings and original LINE edges", () => {
+test("workflow preserves 22 untouched LINE nodes, exact seven editorial changes, bounded privacy settings and original LINE edges", () => {
   const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
-  assert.equal(workflow.nodes.length, 38);
+  assert.equal(workflow.nodes.length, 39);
+  assert.equal(digest(workflow.nodes.slice(0, 38)), "5ae146cd33be21567d47edde26da9552d235e7f835c82b49748e6b2ddf2d81be", "all 38 reviewed node objects remain exact");
+  const { ["Admin Production · Generate"]: dedicatedEdge, ...existingEdges } = workflow.connections;
+  assert.equal(digest(existingEdges), "401edb53fb57500d7a48ebd43637bec7452fdee1aeb4d1bb3c4d22a837ed2095", "every reviewed edge remains exact");
+  assert.deepEqual(dedicatedEdge, { main: [[{ node: "สรุปบทความ?", type: "main", index: 0 }]] });
+  const dedicated = workflow.nodes[38];
+  assert.equal(dedicated.name, "Admin Production · Generate");
+  assert.equal(dedicated.type, "n8n-nodes-base.webhook");
+  assert.equal(dedicated.typeVersion, 2.1);
+  assert.deepEqual(dedicated.parameters, { httpMethod: "POST", path: "ccpun-admin-production-gen-v1", authentication: "headerAuth", responseMode: "responseNode", options: {} });
+  assert.deepEqual(dedicated.credentials, { httpHeaderAuth: { id: "__BIND_DEDICATED_PRODUCTION_GEN_HEADER_AUTH__", name: "CCPun Admin Production Gen (bind dedicated credential)" } });
+  assert.equal(new Set(workflow.nodes.map((entry: {id: string}) => entry.id)).size, 39);
+  assert.notEqual(dedicated.webhookId, node("Sanity · Generate LINE").webhookId);
   const changedNames = ["เตรียมงาน LINE", "Ollama · Candidate A", "Ollama · Candidate B", "Ollama · Candidate C", "Ollama · Improve A", "Ollama · Improve B", "Ollama · เลือก Candidate"];
   const editorialPins = {"เตรียมงาน LINE": "ed7f8a2c56270baa17da3fab8d28a81621b9d6b2fd8bd2b9a6e68b52236a3a64", "Ollama · Candidate A": "fcc6bd0bebb359f489904fb39b4486d1afa6c16266cecb96c9366af7558c6dbd", "Ollama · Candidate B": "b8d2b861278a917dd26d22e087166e6d0f3141b85f58b06b9a5e47921cb3574b", "Ollama · Candidate C": "1aad904d352e708719d5e7b1365c92f262f1ae2d440678d06116da71fc5e210d", "Ollama · เลือก Candidate": "4edd682de5348a56264a1ff40169908d9d3dc4aafdf66df5642d5a1a88253188", "Ollama · Improve A": "272b8a446a137b475ed5ec134723b3294c8d661aafb1064f54f37d076d4a2ed3", "Ollama · Improve B": "282b8bab98ac169a454f5cb8085ee4db833ab85dcb33b74d6d3a4b82d494384b"};
   assert.equal(digest(workflow.nodes.slice(0,29).filter((entry:{name:string})=>!changedNames.includes(entry.name))), "8564770c48dbf412dd8df74e4f7d4d20dc33a30b37956f5e88ddabe19b9d8778", "22 unmodified original LINE node objects remain frozen");
   for(const entry of workflow.nodes.slice(0,29).filter((entry:{name:string})=>changedNames.includes(entry.name)))assert.equal(digest(entry),editorialPins[entry.name as keyof typeof editorialPins],"exact reviewed preference-only node body");
-  assert.equal(digest(workflow.settings), "221d1006199d8a1b22f736b38c8dac2ffcac606902c09274a00887cf4d7dbba9");
+  assert.equal(workflow.settings.saveDataErrorExecution, "none");
+  assert.equal(workflow.settings.saveDataSuccessExecution, "none");
+  assert.equal(workflow.settings.saveManualExecutions, false);
+  assert.equal(workflow.settings.saveExecutionProgress, false);
+  assert.equal(digest({ ...workflow.settings, saveDataErrorExecution: "all", saveDataSuccessExecution: "all", saveManualExecutions: true, saveExecutionProgress: true }), "221d1006199d8a1b22f736b38c8dac2ffcac606902c09274a00887cf4d7dbba9", "only four explicitly reviewed execution-retention settings change; timeout and remaining settings exact");
   const oldConnections = Object.fromEntries(Object.entries(workflow.connections).filter(([key]) => workflow.nodes.slice(0, 29).some((entry: {name: string}) => entry.name === key)));
   oldConnections["Sanity · Generate LINE"] = { main: [[{ node: "เตรียมงาน LINE", type: "main", index: 0 }]] };
   assert.equal(digest(oldConnections), "79a123a9382b1fe5cf49db02a7a1c1ee7df1e70b89f4b04c5d822f14c19357d4", "only webhook entry changes; every old LINE edge retained");

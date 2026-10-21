@@ -22,6 +22,13 @@ function assertReviewedLineCopyOrigin(file, digest, source) {
   };
   const action = file.split('/').at(-2);
   if (Object.hasOwn(editorialRoutePins, action)) {
+    for (const [accepted, previous] of [
+      ['bridge.webhookUrl ?? new URL("/webhook/ccpun-line-card-generate", baseUrl)', 'bridge.lane === "admin-uat" ? bridge.webhookUrl : new URL("/webhook/ccpun-line-card-generate", baseUrl)'],
+      ['...(bridge.webhookUrl ? { redirect: "error" as const } : {}),', '...(bridge.lane === "admin-uat" ? { redirect: "error" as const } : {}),'],
+    ]) {
+      assert.equal(source.split(accepted).length, 2, 'exact dedicated-intake replacement occurs once');
+      source = source.replace(accepted, previous);
+    }
     assert.equal(sha(source), editorialRoutePins[action][1], 'exact reviewed per-field editorial source; unrelated drift rejected');
     const replacements = [
       ['import { EDITORIAL_INSTRUCTION_VERSION, lineEditorialInstructionsSchema, resolveLineEditorialInstructions } from "@/lib/local-ai/editorial-instructions";\n', ''],
@@ -137,6 +144,14 @@ test('reviewed LINE and Google route admissions reject unrelated changes, unknow
     assert.notEqual(changed, source);
     assert.throws(() => assertReviewedLineCopyOrigin(file, proof.protected[file], changed));
     assert.throws(() => assertReviewedLineCopyOrigin(file, proof.protected[file], source + '\nisLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment());\n'));
+  }
+  for (const file of lineCopyOriginRoutes.filter(file => !file.includes('/publish/'))) {
+    const source = read(file);
+    for (const changed of [
+      source.replace('bridge.webhookUrl ?? new URL', 'bridge.webhookUrl || new URL'),
+      source.replace('...(bridge.webhookUrl ? { redirect: "error" as const } : {}),', '...(false ? { redirect: "error" as const } : {}),'),
+      source + '\nbridge.webhookUrl;\n',
+    ]) assert.throws(() => assertReviewedLineCopyOrigin(file, proof.protected[file], changed));
   }
   for (const [file, [digest]] of Object.entries(googleRoutePins)) {
     assert.throws(() => assertReviewedGoogleRoute(file, digest, read(file) + '\n// unreviewed change'));
