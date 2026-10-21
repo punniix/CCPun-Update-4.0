@@ -194,10 +194,11 @@ export async function handleArticleEngagement(request: Request, requestedId: str
         ? await sql.query("SELECT * FROM ccpun_article.record_article_event($1::text,$2::text,$3::uuid,$4::text)", [articleId, body.type, body.eventId, hash])
         : await sql.query("SELECT * FROM ccpun_article.read_article_metrics($1::text,$2::text)", [articleId, hash]);
     const row = rows[0];
-    if (!row || typeof row.liked !== "boolean" || typeof row.activated_at !== "string" || !Number.isFinite(Date.parse(row.activated_at))) {
+    const activatedAt = row?.activated_at instanceof Date ? row.activated_at.toISOString() : row?.activated_at;
+    if (!row || typeof row.liked !== "boolean" || typeof activatedAt !== "string" || !Number.isFinite(Date.parse(activatedAt))) {
       throw new Error("INVALID_METRIC_RESULT");
     }
-    const response = Response.json({ available: true, views: safeCount(row.views), shares: safeCount(row.shares), hearts: safeCount(row.hearts), liked: row.liked, activatedAt: row.activated_at, history }, { headers: HEADERS });
+    const response = Response.json({ available: true, views: safeCount(row.views), shares: safeCount(row.shares), hearts: safeCount(row.hearts), liked: row.liked, activatedAt, history }, { headers: HEADERS });
     if (setCookie) {
       response.headers.set("Set-Cookie", `${cookieName(articleId)}=${token}; Path=/api/article-engagement/${encodeURIComponent(requestedId)}/; Max-Age=31536000; HttpOnly; Secure; SameSite=Strict`);
     }

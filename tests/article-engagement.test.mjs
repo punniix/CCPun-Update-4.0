@@ -11,7 +11,7 @@ const source = readFileSync(new URL("../apps/web/lib/article-engagement.ts", imp
 const productionId = "91b217d8-72f3-4e8b-a217-bed78cac437c";
 const endpoint = "https://ccpun.com/api/article-engagement/";
 const nonce = "b494e65b-9c14-465c-a7ea-45798ba4ac52";
-function load(overrides = {}) {
+function load(overrides = {}, activatedAt = "2026-10-19T10:00:00.000Z") {
   const variables = {
     CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production",
     NEXT_PUBLIC_CCPUN_APP_ENV: "production", CCPUN_UAT_MODE: "0",
@@ -25,7 +25,7 @@ function load(overrides = {}) {
   let fail = false;
   const exports = {};
   runInNewContext(transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: 9 } }).outputText, {
-    exports, process: { env: variables }, Buffer, URL, TextDecoder, Request, Response, Headers, AbortSignal,
+    exports, process: { env: variables }, Buffer, URL, TextDecoder, Request, Response, Headers, AbortSignal, Date,
     setTimeout, clearTimeout,
     require: name => {
       if (name === "server-only") return {};
@@ -39,7 +39,7 @@ function load(overrides = {}) {
         calls.push({ sql, params });
         if (fail) throw new Error("synthetic database failure: must never leak");
         return [{ views: "2", shares: 0, hearts: sql.includes("set_article_heart") && params[2] ? 1 : null,
-          liked: sql.includes("set_article_heart") ? params[2] : !!params.at(-1), activated_at: "2026-10-19T10:00:00.000Z" }];
+          liked: sql.includes("set_article_heart") ? params[2] : !!params.at(-1), activated_at: activatedAt }];
       } }) };
       throw new Error(`Unexpected dependency: ${name}`);
     },
@@ -79,6 +79,23 @@ test("GET has no cookie, unknown history stays null, and future published IDs wo
   assert.equal((await lib.handleArticleEngagement(request(futureId), futureId)).status, 200);
   for (const id of ["drafts.hidden", "not-published", "uat-public-snapshot-" + productionId]) {
     assert.equal((await lib.handleArticleEngagement(request(id), id)).status, 404);
+  }
+});
+
+test("Neon timestamps accept parsed Date values and reject invalid dates", async () => {
+  const parseTimestamp = require("@neondatabase/serverless").types.getTypeParser(1184, "text");
+  const activatedAt = parseTimestamp("2026-10-21 09:31:40.940+00");
+  assert.ok(activatedAt instanceof Date);
+  const lib = load({}, activatedAt);
+  const response = await lib.handleArticleEngagement(request(), productionId);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).activatedAt, "2026-10-21T09:31:40.940Z");
+  assert.equal(lib.calls.length, 1);
+  for (const invalid of [new Date(NaN), "not-a-date"]) {
+    const invalidLib = load({}, invalid);
+    const failed = await invalidLib.handleArticleEngagement(request(), productionId);
+    assert.equal(failed.status, 503);
+    assert.deepEqual(await failed.json(), { available: false, error: "unavailable" });
   }
 });
 
