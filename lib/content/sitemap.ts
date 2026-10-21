@@ -38,7 +38,6 @@ const rawSitemapArticleSchema = z.object({
   canonical: z.string().nullish(),
   noindex: z.boolean().nullish(),
   publishedAt: z.string().min(1),
-  contentOptimizedAt: z.string().nullish(),
   contentUpdatedAt: z.string().nullish(),
   sourceModifiedAt: z.string().nullish(),
   systemUpdatedAt: z.string().min(1),
@@ -59,7 +58,6 @@ export type SitemapArticle = Pick<
 > & {
   status: "published";
   publishedAt: string;
-  optimizedAt?: string;
   updatedAt: string;
 };
 
@@ -80,7 +78,6 @@ const sitemapArticleQuery = groq`*[
   "canonical": seo.canonical,
   "noindex": coalesce(seo.noindex, false),
   publishedAt,
-  contentOptimizedAt,
   contentUpdatedAt,
   "sourceModifiedAt": migration.sourceModifiedAt,
   "systemUpdatedAt": _updatedAt
@@ -114,7 +111,6 @@ function toSitemapArticle(rawInput: unknown): SitemapArticle | null {
     canonical: raw.canonical ?? undefined,
     noindex: raw.noindex ?? false,
     publishedAt: raw.publishedAt,
-    optimizedAt: raw.contentOptimizedAt ?? undefined,
     updatedAt,
     status: "published",
   };
@@ -130,7 +126,7 @@ function fromLocalArticle(article: Article): SitemapArticle | null {
 }
 
 export async function listSitemapArticles(
-  options: { includeDrafts: false; fresh?: boolean } = { includeDrafts: false },
+  options: { includeDrafts: false } = { includeDrafts: false },
 ): Promise<SitemapArticle[]> {
   if (!client) {
     if (isDeployedProduction) throw new Error("Production sitemap requires an approved Sanity data lane");
@@ -150,7 +146,7 @@ export async function listSitemapArticles(
         useCdn: false,
         stega: { enabled: false, studioUrl: "/studio" },
       })
-      .fetch(sitemapArticleQuery, {}, options.fresh ? { cache: "no-store" } : undefined),
+      .fetch(sitemapArticleQuery),
   );
   return rows.flatMap((row: unknown) => {
     const mapped = toSitemapArticle(row);

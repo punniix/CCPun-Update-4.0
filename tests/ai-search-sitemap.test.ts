@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import test from "node:test";
@@ -25,17 +26,25 @@ const previous = "2025-02-01T00:00:00.000Z";
 const now = "2025-03-01T00:00:00.000Z";
 const article = { id: "article", slug: "tax-guide", category: "การเงินส่วนบุคคล", categorySlug: "personal-finance", status: "published", publishedAt: first, updatedAt: previous };
 
-function route(rows: unknown[] = [article], blocked = false, fail = false) {
-  const calls: unknown[] = [];
+function route(rows: unknown[] = [article], blocked = false, fail = false, laneAllowed = true) {
+  const calls: unknown[][] = [], configurations: Array<Record<string, unknown>> = [];
   const loaded = load("apps/web/app/sitemaps/ai-search.xml/route.ts", {
-    "@/lib/content/sitemap": { listSitemapArticles: async (options: unknown) => { calls.push(options); if (fail) throw new Error("private diagnostic"); return rows; } },
+    "next-sanity": {
+      groq: (strings: TemplateStringsArray) => strings.join(""),
+      createClient: (configuration: Record<string, unknown>) => {
+        configurations.push(configuration);
+        return { fetch: async (...args: unknown[]) => { calls.push(args); if (fail) throw new Error("private diagnostic"); return rows; } };
+      },
+    },
+    "@/lib/content/sanity-credentials": { getSanityReadToken: () => undefined },
+    "@/lib/content/sanity-lane": { isContentSanityLaneAllowed: () => laneAllowed },
     "@/lib/content/url": urls,
     "@/lib/runtime/deployment-contract": contract,
     "@/lib/sitemap/google": dates,
     "@/lib/sitemap/xml": xml,
     "../../../runtime-environment": { shouldBlockWebIndexing: () => blocked },
-  });
-  return { calls, GET: loaded.GET as (request: Request) => Promise<Response> };
+  }, { NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", NEXT_PUBLIC_SANITY_DATASET: "production" });
+  return { calls, configurations, GET: loaded.GET as (request: Request) => Promise<Response> };
 }
 const request = (origin = "https://ccpun.com") => new Request(`${origin}/sitemaps/ai-search.xml`);
 
@@ -43,7 +52,7 @@ test("AI feed contains only home and eligible canonical articles, with fresh pub
   const loaded = route([
     article, { ...article, optimizedAt: now },
     ...[
-      { id: "drafts.article" }, { id: "versions.release.article" }, { status: "draft" }, { noindex: true },
+      { id: "drafts.article" }, { id: "versions.release.article" }, { noindex: true },
       { publishedAt: "2999-01-01" }, { optimizedAt: "2999-01-01" }, { optimizedAt: "invalid" },
       { canonical: "https://example.com/blog/personal-finance/tax-guide/" },
       { canonical: "https://ccpun.com/privacy/" }, { canonical: "https://ccpun.com/blog/?preview=1" },
@@ -56,7 +65,9 @@ test("AI feed contains only home and eligible canonical articles, with fresh pub
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow, noarchive");
   assert.match(response.headers.get("content-type")!, /application\/xml/);
-  assert.deepEqual(loaded.calls, [{ includeDrafts: false, fresh: true }]);
+  assert.deepEqual(loaded.calls[0].slice(1), [{}, { cache: "no-store" }]);
+  assert.equal(loaded.configurations[0].perspective, "published");
+  assert.equal(loaded.configurations[0].useCdn, false);
   const body = await response.text();
   assert.equal((body.match(/<url>/g) || []).length, 2);
   assert.match(body, /<loc>https:\/\/ccpun.com\/<\/loc>/);
@@ -71,8 +82,13 @@ test("private deployment requests fail closed before reading content, regardless
     assert.equal(response.status, 503);
     assert.equal(response.headers.get("cache-control"), "no-store");
     assert.equal(loaded.calls.length, 0);
+    assert.equal(loaded.configurations.length, 0);
     assert.doesNotMatch(await response.text(), /<url>|tax-guide/);
   }
+  const mismatchedSanity = route([article], false, false, false);
+  assert.equal((await mismatchedSanity.GET(request())).status, 503);
+  assert.equal(mismatchedSanity.calls.length, 0);
+  assert.equal(mismatchedSanity.configurations.length, 0);
 });
 
 test("real Web indexing guard allows only the complete Production contract, never UAT or mixed lanes", async () => {
@@ -146,32 +162,18 @@ test("featured-image-only publication preserves prior/absent optimized date and 
   }
 });
 
-test("existing lightweight sitemap query projects optimization separately; fresh option does not change Google read/cache defaults", async () => {
-  const calls: unknown[][] = [];
-  const row = { _id: "article", slug: article.slug, category: article.category, categorySlug: article.categorySlug, publishedAt: first, contentUpdatedAt: previous, contentOptimizedAt: now, systemUpdatedAt: now };
-  const client = { withConfig: () => client, fetch: async (...args: unknown[]) => { calls.push(args); return [row]; } };
-  const loaded = load("lib/content/sitemap.ts", {
-    "server-only": {},
-    "next-sanity": { createClient: () => client, groq: (strings: TemplateStringsArray) => strings.join("") },
-    "@/lib/content/sanity-credentials": { getSanityReadToken: () => undefined },
-    "@/lib/content/sanity-lane": { isContentSanityLaneAllowed: () => true },
-    "@/lib/sitemap/google": dates,
-    "@/lib/runtime/deployment-identity": { resolveDeploymentIdentity: () => ({ valid: true, role: "web", environment: "production" }) },
-  }, { NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", NEXT_PUBLIC_SANITY_DATASET: "production" });
-  // Module configuration uses only these public, non-secret identifiers.
-  assert.match(source("lib/content/sitemap.ts"), /contentOptimizedAt: z\.string\(\)\.nullish\(\)/);
-  const list = loaded.listSitemapArticles as (options?: { includeDrafts: false; fresh?: boolean }) => Promise<Array<{ optimizedAt?: string; updatedAt: string }>>;
-  const google = await list();
-  const ai = await list({ includeDrafts: false, fresh: true });
-  assert.equal(google[0].updatedAt, previous);
-  assert.equal(ai[0].optimizedAt, now);
-  assert.equal(ai[0].updatedAt, previous);
-  assert.equal(calls[0][2], undefined);
-  assert.deepEqual(calls[1][2], { cache: "no-store" });
-  assert.match(source("lib/content/sitemap.ts"), /fetch\(sitemapArticleQuery, \{\}, options\.fresh \? \{ cache: "no-store" \} : undefined\)/);
-  assert.match(source("lib/content/sitemap.ts"), /perspective: "published"/);
-  assert.match(source("lib/content/sitemap.ts"), /review\.status == "approved"/);
-  assert.match(source("lib/content/sitemap.ts"), /coalesce\(seo\.noindex, false\) == false/);
+test("AI query owns fresh published projection while frozen Google sitemap owner/cache remain unchanged", async () => {
+  const loaded = route([{ ...article, optimizedAt: now }]);
+  assert.equal((await loaded.GET(request())).status, 200);
+  const query = String(loaded.calls[0][0]);
+  assert.match(query, /_type == "article"/);
+  assert.match(query, /dateTime\(publishedAt\) <= dateTime\(now\(\)\)/);
+  assert.match(query, /review\.status == "approved"/);
+  assert.match(query, /coalesce\(seo\.noindex, false\) == false/);
+  assert.match(query, /"optimizedAt": contentOptimizedAt/);
+  assert.doesNotMatch(query, /body|faq|sources|author|featuredImage|review\.notes/);
+  assert.deepEqual(loaded.calls[0].slice(1), [{}, { cache: "no-store" }]);
+  assert.equal(createHash("sha256").update(source("lib/content/sitemap.ts")).digest("hex"), "9ef594397d15e78faeaa5a1df17c751b943b5d542e75e9686634a1d34f3de634", "complete frozen Google source stays byte-for-byte unchanged");
   assert.doesNotMatch(source("apps/web/app/sitemaps/blog.xml/route.ts"), /optimizedAt|fresh: true|ai-search/);
   assert.equal(xml.xmlResponse("test").headers.get("cache-control"), "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
 });
