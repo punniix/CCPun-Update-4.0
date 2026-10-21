@@ -10,6 +10,25 @@ Task receipt: `sanity-optimize-20260909`. Branch: `codex/admin-sanity-optimize-w
 4. Click **ยืนยันอนุมัติและเผยแพร่**, then confirm the exact version. Cancellation makes no changes. Validation errors, unsaved changes, stale revisions, or changed URL/category prevent publication.
 5. Verify the resulting Live page. The original `publishedAt` is preserved; `contentUpdatedAt` changes in the same atomic transaction as publication. A failed transaction leaves both versions and dates unchanged. An ambiguous connection failure requires checking Sanity state before retrying.
 
+## Mandatory owner-review gate (new content and small optimizations)
+
+Publication approval is an **editorial decision**, not a plugin permission. The CCPun owner must see and approve the **specific current version** before any action that makes content Live.
+
+**New articles / substantial rewrites**
+1. Write and QA the full Draft, leaving it as `content-review` or `ready-for-coo` (never auto-approve). For a new article, keep `seo.noindex=true` and `publishedAt` empty.
+2. Present the completed article or its authenticated Draft Preview to the owner for review.
+3. If revised, ask the owner to review the new version again; an approval of an earlier revision does not carry forward.
+4. Only after the owner explicitly agrees to publication (e.g. **"เสร็จแล้ว โพสต์ได้"**) may the approved revision be published. Then verify datePublished, URL, indexability, sitemap, and Live content.
+
+**Small edits/optimizations to a currently Published article**
+1. Inspect the Live and any pre-existing Draft versions, and limit the proposal to the requested exact article and scope (e.g. a broken internal link, a short paragraph, SEO title).
+2. Show the owner the **before → after change directly in the ChatGPT chat**; there is no requirement to open Sanity Studio for a minor edit.
+3. Wait for an explicit yes **after** the owner sees the changes; natural-language approval such as **"โอเค โพสต์เลย"** is sufficient. Do not interpret broad task instructions as prior approval for an unseen change.
+4. Publish only the revision containing the approved small change; preserve the original `publishedAt`, update `contentUpdatedAt` only as appropriate under the existing workflow, and confirm the resulting Live page. Do not publish any unrelated Draft.
+5. If the change turns out to be substantial (multiple sections, product terms, legal or financial claims, URL ownership, canonical, noindex), return to the full-owner-review workflow.
+
+**No bypass:** `Always Allow` for the Sanity ChatGPT app, a request to optimize, a ready-for-review status, successful tests, or an agent's own QA do not substitute for owner sign-off. Do not set `review.status=approved` or approval timestamps yourself before that sign-off. Confirm an exact authorized version and use an optimistic revision check.
+
 UAT deliberately retains its no-publish policy. It can test draft editing and previews; mounted synthetic tests cover publication and Published + Draft behavior without publishing UAT fixtures.
 
 ## Scope and contracts
