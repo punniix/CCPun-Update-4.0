@@ -139,12 +139,17 @@ export function createArticleScheduleAction(environment: AdminEnvironment): Docu
               onChange={(event) => { setScheduledLocal(event.currentTarget.value); setConfirmed(false); }}
               disabled={busy} required
               style={{ font: "inherit", padding: ".7rem", width: "100%", boxSizing: "border-box" }} />
-            <label htmlFor={confirmationId} style={{ display: "flex", gap: ".7rem", alignItems: "center", cursor: busy ? "wait" : "pointer" }}>
-              <input id={confirmationId} name="article-schedule-owner-confirmation" type="checkbox"
-                checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)}
-                disabled={busy} style={{ minWidth: 20, minHeight: 20 }} />
+            <button id={confirmationId} type="button" name="article-schedule-owner-confirmation"
+              role="checkbox" aria-checked={confirmed} aria-describedby={readinessId}
+              disabled={busy} onClick={() => setConfirmed((current) => !current)}
+              style={{ display: "inline-flex", alignItems: "center", gap: ".7rem", width: "100%",
+                padding: ".75rem", minHeight: 48, textAlign: "left", cursor: busy ? "wait" : "pointer",
+                border: "1px solid currentColor", borderRadius: 6, background: "transparent", color: "inherit" }}>
+              <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                minWidth: 24, height: 24, border: "2px solid currentColor", borderRadius: 4,
+                fontWeight: 700 }}>{confirmed ? "✓" : ""}</span>
               <span>{isTest ? "ยืนยันทดสอบฉบับนี้ โดยไม่มีการเผยแพร่" : "ฉันตรวจตัวอย่างและอนุมัติให้เผยแพร่ฉบับนี้ตามเวลาที่เลือกแล้ว"}</span>
-            </label>
+            </button>
             <p id={readinessId} role="status" aria-live="polite" style={{ margin: 0 }}>
               {readinessBlock || (canSchedule ? "ตรวจสอบเรียบร้อย พร้อมยืนยันตั้งเวลา" : "ตรวจเงื่อนไขก่อนตั้งเวลา")}
             </p>

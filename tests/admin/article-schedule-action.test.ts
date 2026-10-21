@@ -42,7 +42,7 @@ async function mount(queued=false,ready=true,readFails=false) {
   await render();
   return {state,get result(){return current!;},get props(){return props;},render,
     open:async()=>{await act(async()=>current!.onHandle());},
-    confirm:async()=>{const input=document.querySelector<HTMLInputElement>('input[type="checkbox"]');assert.ok(input);await act(async()=>input.click());},
+    confirm:async()=>{const control=document.querySelector<HTMLButtonElement>('button[role="checkbox"]');assert.ok(control);await act(async()=>control.click());},
     button:(text:string)=>{const button=Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((node)=>node.textContent?.includes(text));assert.ok(button,text);return button;},
     click:async(button:HTMLButtonElement)=>{await act(async()=>button.click());},
     close:async()=>{await act(async()=>root.unmount());dom.window.close();Object.assign(globalThis,previous);},
@@ -91,14 +91,16 @@ test("mounted scheduler exposes accessible date and confirmation controls with a
   const ui=await mount();try{
     await ui.open();
     const datetime=document.querySelector<HTMLInputElement>('input[name="article-scheduled-local"]');
-    const consent=document.querySelector<HTMLInputElement>('input[name="article-schedule-owner-confirmation"]');
+    const consent=document.querySelector<HTMLButtonElement>('button[role="checkbox"][name="article-schedule-owner-confirmation"]');
     assert.ok(datetime);assert.ok(consent);
     assert.ok(datetime.id && consent.id);
     assert.ok(document.querySelector('label[for="'+datetime.id+'"]'));
-    assert.ok(document.querySelector('label[for="'+consent.id+'"]'));
+    assert.equal(consent.getAttribute("aria-checked"),"false");
+    assert.ok(consent.textContent?.includes("อนุมัติ"));
     assert.equal(ui.button("ยืนยันตั้งเวลา").disabled,true);
     assert.match(document.querySelector('[role="status"]')?.textContent||"",/ยืนยันอนุมัติ/);
     await ui.confirm();
+    assert.equal(consent.getAttribute("aria-checked"),"true");
     assert.equal(ui.button("ยืนยันตั้งเวลา").disabled,false);
   }finally{await ui.close();}
 });
