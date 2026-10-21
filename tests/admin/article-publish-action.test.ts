@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
+import { hasArticleContentChanges } from "../../cms/sanity/policy/article-publication";
 
 // ponytail: compile only the wrapper to inject Sanity hooks; React mounts real hook state.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,8 +26,9 @@ async function mount() {
     if (id === "sanity") return { useClient: () => ({}), useSyncState: () => state.sync, useValidationStatus: () => state.validation };
     if (id === "./article-publication") return {
       articlePublishBlock: (draft: Bag) => draft?.review?.status === "approved" ? null : "not approved",
-      publishApprovedArticle: async (_client: unknown, draft: Bag, published: Bag) => {
-        state.calls.push({ draft, published });
+      hasArticleContentChanges,
+      publishApprovedArticle: async (_client: unknown, draft: Bag, published: Bag, _now: unknown, optimization: boolean) => {
+        state.calls.push({ draft, published, optimization });
         if (state.fail) throw new Error("revision conflict");
       },
     };
@@ -36,10 +38,10 @@ async function mount() {
   let current: Bag;
   let props: Bag = {
     id: "article", type: "article", onComplete: () => state.complete++,
-    draft: { _id: "drafts.article", _type: "article", _rev: "draft-1", publishedAt: "2020-01-01", review: { status: "approved" } },
-    published: { _id: "article", _type: "article", _rev: "live-1", publishedAt: "2020-01-01" },
+    draft: { _id: "drafts.article", _type: "article", _rev: "draft-1", title: "Updated article", publishedAt: "2020-01-01", review: { status: "approved" } },
+    published: { _id: "article", _type: "article", _rev: "live-1", title: "Original article", publishedAt: "2020-01-01" },
   };
-  function Probe() { current = action(props); return null; }
+  function Probe() { current = action(props); return current?.dialog?.type === "confirm" ? current.dialog.message : null; }
   const render = async (update: Bag = {}) => { props = { ...props, ...update }; await act(async () => root.render(createElement(Probe))); };
   await render();
   return {
@@ -47,6 +49,8 @@ async function mount() {
     handle: async () => { await act(async () => current!.onHandle()); },
     cancel: async () => { await act(async () => current!.dialog.onCancel()); },
     confirm: async () => { await act(async () => current!.dialog.onConfirm()); },
+    checkbox: () => dom.window.document.querySelector('input[type="checkbox"]') as HTMLInputElement | null,
+    checkOptimization: async () => { const input = dom.window.document.querySelector('input[type="checkbox"]') as HTMLInputElement | null; assert.ok(input); await act(async () => input.click()); },
     close: async () => { await act(async () => root.unmount()); dom.window.close(); Object.assign(globalThis, previous); },
   };
 }
@@ -60,9 +64,49 @@ test("mounted publish confirmation cancels without mutation; successful confirma
     assert.equal(ui.state.calls.length, 1); assert.equal(ui.state.complete, 1);
     assert.equal(ui.state.calls[0].draft._rev, "draft-1");
     assert.equal(ui.state.calls[0].published._rev, "live-1");
+    assert.equal(ui.state.calls[0].optimization, false);
     assert.equal(ui.props.draft.publishedAt, "2020-01-01");
     assert.equal(ui.props.draft.contentUpdatedAt, undefined);
   } finally { await ui.close(); }
+});
+
+test("optimization checkbox defaults off, passes explicit approval and resets on cancellation", async () => {
+  const ui = await mount();
+  try {
+    await ui.handle();
+    assert.equal(ui.checkbox()?.checked, false);
+    assert.match(globalThis.document.body.textContent ?? "", /ยืนยันว่าฉบับนี้ปรับปรุงข้อมูลบทความแล้ว/);
+    await ui.checkOptimization(); assert.equal(ui.checkbox()?.checked, true);
+    await ui.cancel(); assert.equal(ui.state.calls.length, 0);
+    assert.equal(ui.props.draft.contentOptimizedAt, undefined);
+    await ui.handle(); assert.equal(ui.checkbox()?.checked, false);
+    await ui.checkOptimization(); await ui.confirm();
+    assert.equal(ui.state.calls[0].optimization, true);
+    assert.equal(ui.state.complete, 1);
+  } finally { await ui.close(); }
+});
+
+test("first publication and LINE-only edits do not offer optimization approval", async () => {
+  const ui = await mount();
+  try {
+    await ui.render({ published: null }); await ui.handle();
+    assert.equal(ui.checkbox(), null); await ui.cancel();
+    await ui.render({ published: { ...ui.props.draft, _id: "article", _rev: "live-1" }, draft: { ...ui.props.draft, lineTitle: "LINE card only" } });
+    await ui.handle(); assert.equal(ui.checkbox(), null); await ui.confirm();
+    assert.equal(ui.state.calls[0].optimization, false);
+  } finally { await ui.close(); }
+});
+
+test("checked optimization approval cannot survive a changed Draft or Live revision", async () => {
+  for (const version of ["draft", "published"]) {
+    const ui = await mount();
+    try {
+      await ui.handle(); await ui.checkOptimization();
+      await ui.render({ [version]: { ...ui.props[version], _rev: "new-revision" } });
+      await ui.confirm(); assert.equal(ui.state.calls.length, 0);
+      assert.equal(ui.state.complete, 0); assert.equal(ui.result.dialog.type, "dialog");
+    } finally { await ui.close(); }
+  }
 });
 
 test("mounted wrapper blocks validation, syncing and review changes, including while confirmation is open", async () => {

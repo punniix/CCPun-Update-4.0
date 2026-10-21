@@ -105,7 +105,7 @@ expect(
     && studioPolicy.includes('provider !== "hostinger" || role !== "admin" || vercelProject || productionProject || profile !== "full"')
     && studioPolicy.includes('const productionRefAllowed = Boolean(')
     && studioPolicy.includes('ref === `codex/hostinger-release-production-${sha}`')
-    && studioPolicy.includes('!productionRefAllowed || backend !== "disabled" : backend !== "native-neon")) return false;')
+    && studioPolicy.includes('!productionRefAllowed || !["disabled", "native-neon"].includes(backend ?? "") : backend !== "native-neon")) return false;')
     && ['filterStudioAuthProviders', 'filterStudioDocumentActions', 'filterStudioNewDocumentOptions'].every((name) =>
       /\): T\[\] \{\s*if \(!isStudioConfigurationAllowed\(dataset, environment, projectId\)\) return \[\];/.test(
         studioPolicy.split(`export function ${name}`)[1]?.split('\nexport function ')[0] ?? '',
@@ -118,10 +118,11 @@ const sanityRuntimeSchema = read('lib/content/sanity-schema.ts');
 const siteStructuredData = read('lib/seo/structured-data/site-schema.ts');
 const entityIds = read('lib/seo/structured-data/entity-ids.ts');
 const articleStructuredData = read('lib/content/structured-data/article-schema.ts');
-const homePage = read('app/page.tsx');
+const homePage = read('apps/web/app/page.tsx');
 const webHomePage = read('apps/web/app/page.tsx');
 const publicLayout = read('app/layout.tsx');
 const webPublicLayout = read('apps/web/app/layout.tsx');
+const rootMetadataOwner = read('lib/seo/root-metadata.ts');
 
 expect(
   'legacy Author credentials contract stays intact while professional qualifications are additive',
@@ -146,19 +147,22 @@ expect(
     && entityIds.includes('export const CCPUN_PERSON_ID = "https://ccpun.com/#person"')
     && articleStructuredData.includes('author: { "@id": CCPUN_PERSON_ID }')
     && !articleStructuredData.includes('name: article.authorName')
-    && publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
-    && !publicLayout.includes('authors: IS_ADMIN_APPLICATION ? undefined : [{ name: "ปั้น (CCPun)"')
-    && webPublicLayout.includes('authors: [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
-    && !webPublicLayout.includes('authors: [{ name: "ปั้น (CCPun)"'),
+    && publicLayout.includes('buildSiteRootMetadata({ admin: IS_ADMIN_APPLICATION, review: IS_REVIEW_ENVIRONMENT })')
+    && webPublicLayout.includes('buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT })')
+    && rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
+    && !rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"')
+    && rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }]')
+    && !rootMetadataOwner.includes('authors: admin ? undefined : [{ name: "ปั้น (CCPun)"'),
 );
 expect(
-  'Homepage credential enrichment is fail-soft and does not require a new public page',
+  'Site-wide credential enrichment uses one Person graph while homepage keeps its Author Card',
   homePage.includes('getPrimaryAuthorProfile')
-    && homePage.includes('buildProfessionalQualificationPersonSchema')
     && homePage.includes('<Website43Home authorProfile={authorProfile} />')
     && webHomePage.includes('getPrimaryAuthorProfile')
-    && webHomePage.includes('buildProfessionalQualificationPersonSchema')
     && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && webPublicLayout.includes('buildCcpunSchemaGraph(author)')
+    && siteStructuredData.includes('buildProfessionalQualificationPersonSchema(')
+    && !webHomePage.includes('professionalQualificationSchema')
     && !homePage.includes('/about/')
     && !webHomePage.includes('/about/'),
 );

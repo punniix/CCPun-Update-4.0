@@ -21,8 +21,9 @@ const env = {
   CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1",
   CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
   CCPUN_APP_ENV: "admin-uat",
-  VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-  VERCEL_GIT_COMMIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+  CCPUN_DEPLOYMENT_ROLE: "admin",
+  CCPUN_GIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
   NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
   NEXT_PUBLIC_SANITY_DATASET: "uat",
   CCPUN_SOCIAL_DATABASE_URL: "postgresql://ccpun_social_runtime:secret@ep-mute-frost-aztvz394-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb",
@@ -54,7 +55,7 @@ test("Final Meta write boundary rejects a caller-constructible authorization whe
     videoUrl: "https://trusted-media.example/reel.mp4",
     audio: { audioId: "audio-1" },
     authorization: authorized,
-  }, { ...env, VERCEL_GIT_COMMIT_REF: "main" }, async () => { called = true; return new Response(); }), /META_PROVIDER_WRITES_DISABLED/);
+  }, { ...env, CCPUN_GIT_REF: "main" }, async () => { called = true; return new Response(); }), /META_PROVIDER_WRITES_DISABLED/);
   assert.equal(called, false);
 });
 
@@ -359,7 +360,7 @@ test("Meta publishing requires attested scopes and logs only safe provider diagn
 });
 
 test("Instagram audio route is human-only, same-origin and gated to the exact UAT provider lane", () => {
-  const route = read("app/api/admin/social/providers/meta/audio/route.ts");
+  const route = read("apps/admin/app/api/admin/social/providers/meta/audio/route.ts");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);
   assert.match(route, /isSameOriginAdminMutation\(request\.url, request\.headers\.get\("origin"\)\)/);

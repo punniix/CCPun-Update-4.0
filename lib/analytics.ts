@@ -35,7 +35,14 @@ const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   tool_name: new Set(['ci_planning', 'fhc', 'money_story']),
   step_name: new Set(['risk_assessment', 'expenses', 'existing_ci', 'risk_handling']),
   contact_channel: new Set(['facebook_inbox', 'line']),
-  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article']),
+  // Approved editorial/campaign dimensions only; never include free-form user text.
+  method: new Set(['line', 'facebook', 'x', 'copy']),
+  content_type: new Set(['article']),
+  share_placement: new Set(['header', 'footer']),
+  campaign_id: new Set(['aia_health_happy_2026']),
+  campaign_placement: new Set(['home', 'blog', 'article']),
+  campaign_action: new Set(['line', 'article', 'read_details']),
+  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article', 'countdown']),
   surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog', 'money_story']),
   calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
@@ -117,7 +124,7 @@ export function clearPendingAnalyticsEvents(category?: 'analytics' | 'social'): 
   if (!category || category === 'social') pendingMeta.length = 0;
 }
 
-export function buildSemanticDataLayerEvent(eventName: string, params: SafeParams, consent: ConsentState): Record<string, string | number> | null {
+export function buildSemanticDataLayerEvent(eventName: string, params: SafeParams, consent: ConsentState): Record<string, string | number | null> | null {
   if (process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED !== 'true') return null;
   if (!consent.analytics && !consent.social) return null;
   return {
@@ -126,6 +133,22 @@ export function buildSemanticDataLayerEvent(eventName: string, params: SafeParam
     event_schema_version: 1,
     analytics_consent: consent.analytics ? 'granted' : 'denied',
     social_consent: consent.social ? 'granted' : 'denied',
+    // ponytail: clear optional event dimensions because GTM's data model retains omitted keys.
+    tool_name: null,
+    surface_group: null,
+    cta_location: null,
+    contact_channel: null,
+    step_name: null,
+    step_number: null,
+    duration_seconds: null,
+    calculator_version: null,
+    page_version: null,
+    method: null,
+    content_type: null,
+    share_placement: null,
+    campaign_id: null,
+    campaign_placement: null,
+    campaign_action: null,
     ...params,
   };
 }

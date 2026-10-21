@@ -17,7 +17,7 @@ export type ArticleRichText = {
 
 export type ArticleBlock =
   | ({ type: "paragraph" } & ArticleRichText)
-  | ({ type: "heading"; level: 2 | 3 } & ArticleRichText)
+  | ({ type: "heading"; level: 2 | 3 | 4 } & ArticleRichText)
   | { type: "bulletList"; items: Array<string | ArticleRichText> }
   | { type: "numberList"; items: Array<string | ArticleRichText> }
   | ({ type: "quote" } & ArticleRichText)
@@ -58,6 +58,14 @@ export type ProfessionalQualification = {
   issuerUrl?: string;
 };
 
+export type ProfessionalLicense = {
+  _key?: string;
+  name: string;
+  identifier: string;
+  issuer: string;
+  issuerUrl?: string;
+};
+
 export type ArticleAuthorProfile = {
   name: string;
   profileName?: string;
@@ -66,6 +74,8 @@ export type ArticleAuthorProfile = {
   profileCtaLabel?: string;
   profileCtaUrl?: string;
   professionalQualifications?: ProfessionalQualification[];
+  professionalLicenses?: ProfessionalLicense[];
+  sameAs?: string[];
   profileAvatar?: {
     src: string;
     alt: string;
@@ -96,6 +106,7 @@ export type Article = {
   status: ArticleStatus;
   publishedAt?: string;
   updatedAt: string;
+  optimizedAt?: string;
   seoTitle: string;
   seoDescription: string;
   ogTitle?: string;

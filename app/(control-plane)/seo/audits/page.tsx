@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function SeoAuditsIndexPage() {
-  redirect("/seo/");
-}
+export { default } from "@/apps/admin/app/(control-plane)/seo/audits/page";

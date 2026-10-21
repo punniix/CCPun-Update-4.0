@@ -13,15 +13,14 @@ export function Website43Brand() {
   );
 }
 
-export function Website43Footer({ warnings = false, notFound = false }: { warnings?: boolean; notFound?: boolean }) {
+export function Website43Footer({ warnings = false, notFound = false, flushBottom = false }: { warnings?: boolean; notFound?: boolean; flushBottom?: boolean }) {
   return (
-    <footer className={`${styles.footerWrap} ${notFound ? styles.notFoundFooterWrap : ''}`}>
+    <footer className={`${styles.footerWrap} ${notFound ? styles.notFoundFooterWrap : ''} ${flushBottom ? styles.footerFlushBottom : ''}`}>
       <div className={styles.inner}>
         <div className={styles.footerFull}>
           <div className={styles.footerTop}>
             <div>
               <Website43Brand />
-              <div className={styles.footerBrandText}>วางแผนการเงินจากชีวิตจริง<br />เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</div>
             </div>
             <div className={styles.footerColumn}>
               <strong>สำรวจ</strong>
@@ -53,33 +52,6 @@ export function Website43Footer({ warnings = false, notFound = false }: { warnin
             </div>
           ) : null}
           <p className={styles.footerCopyright}>© 2026 CCPUN · ที่ปรึกษาทางการเงิน และผู้วางแผนการลงทุน</p>
-        </div>
-
-        <div className={`${styles.footerCompact} ${notFound ? styles.notFoundFooterCompact : ''}`}>
-          {notFound ? <>
-            <Website43Brand />
-            <nav aria-label="เมนูส่วนท้าย">
-              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/privacy`}>Privacy</Link> · <Link href={`${BASE}/cookie-policy`}>Cookie</Link>
-            </nav>
-          </> : <>
-            <Website43Brand />
-            <p>วางแผนการเงินจากชีวิตจริง เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ</p>
-            <nav aria-label="เมนูส่วนท้าย">
-              <Link href={HOME}>หน้าแรก</Link> · <Link href={`${BASE}/blog`}>บทความ</Link> · <Link href={`${BASE}/play/money-story`}>Money Story</Link> · <Link href={`${BASE}/tools/financial-health-check`}>FHC</Link> · <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
-            </nav>
-            <nav aria-label="นโยบาย">
-              <Link href={`${BASE}/privacy`}>นโยบายความเป็นส่วนตัว</Link> · <Link href={`${BASE}/cookie-policy`}>นโยบายคุกกี้</Link>
-            </nav>
-            <p>ข้อมูลเพื่อความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล</p>
-            {warnings ? (
-              <div className={styles.footerWarnings}>
-                <p>คำเตือน: การลงทุนมีความเสี่ยง ผู้ลงทุนควรทำความเข้าใจลักษณะสินค้า เงื่อนไขผลตอบแทน และความเสี่ยงก่อนตัดสินใจลงทุน</p>
-                <p>ผลการดำเนินงานในอดีต มิได้เป็นสิ่งยืนยันถึงผลการดำเนินงานในอนาคต</p>
-                <p>ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก ควรศึกษาความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ</p>
-              </div>
-            ) : null}
-          </>}
-          <CookieSettingsButton className={styles.footerCookieButton} />
         </div>
       </div>
     </footer>

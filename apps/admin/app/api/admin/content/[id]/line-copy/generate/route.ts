@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+import { getAdminEnvironment } from "@/lib/admin/environment";
+import { isPostPublishAdminOriginAllowed as isLineCopyAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import {
   applyGeneratedLineCopyToDraft,
@@ -9,6 +11,7 @@ import {
 } from "@/lib/admin/line/description-optimization";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { resolveLineCopyN8nBridge } from "@/lib/admin/local-ai/service-auth";
+import { EDITORIAL_INSTRUCTION_VERSION, lineEditorialInstructionsSchema, resolveLineEditorialInstructions } from "@/lib/local-ai/editorial-instructions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +26,7 @@ const bodySchema = z.object({
   sourceRevision: z.string().min(1).max(200).optional(),
   draftRevision: z.string().min(1).max(200).optional(),
   requestId: z.string().uuid(),
+  editorialInstructions: lineEditorialInstructionsSchema.optional(),
 }).strict().superRefine((value, context) => {
   if (!value.sourceRevision && !value.draftRevision) {
     context.addIssue({ code: "custom", message: "sourceRevision is required" });
@@ -59,7 +63,7 @@ function failure(error: unknown) {
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const identity = await requireOwner();
   if (!identity) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
-  if (!isSameOriginAdminMutation(request.url, request.headers.get("origin"))) {
+  if (!isLineCopyAdminOriginAllowed(request, process.env, getAdminEnvironment())) {
     return NextResponse.json({ error: "invalid-origin" }, { status: 403, headers });
   }
 
@@ -104,6 +108,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     let response: Response;
+    const editorialInstructions = resolveLineEditorialInstructions(parsed.data.editorialInstructions);
+    const instructionHash = createHash("sha256").update(JSON.stringify([EDITORIAL_INSTRUCTION_VERSION, editorialInstructions])).digest("hex");
     try {
       response = await fetch(webhookUrl, {
         method: "POST",
@@ -114,7 +120,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         },
         body: JSON.stringify({
           requestId: parsed.data.requestId,
-          triggerSource: "sanity",
+          triggerSource: `sanity:${EDITORIAL_INSTRUCTION_VERSION}:${instructionHash}`,
+          editorialInstructions,
+          editorialInstructionVersion: EDITORIAL_INSTRUCTION_VERSION,
           title: draft.title,
           body: draft.body,
           category: draft.category,

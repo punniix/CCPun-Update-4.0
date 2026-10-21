@@ -1,3 +1,4 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -5,12 +6,12 @@ import test from "node:test";
 
 const ubersuggest = readFileSync(new URL("../../lib/admin/ubersuggest.ts", import.meta.url), "utf8");
 const ubersuggestContracts = readFileSync(new URL("../../lib/admin/ubersuggest-contracts.ts", import.meta.url), "utf8");
-const researchRoute = readFileSync(new URL("../../app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
+const researchRoute = readFileSync(new URL("../../apps/admin/app/api/admin/research/ubersuggest/route.ts", import.meta.url), "utf8");
 const growth = readFileSync(new URL("../../lib/admin/growth.ts", import.meta.url), "utf8");
 const growthPage = readFileSync(new URL("../../app/(control-plane)/analytics/search/page.tsx", import.meta.url), "utf8");
-const growthLoading = readFileSync(new URL("../../app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
+const growthLoading = readFileSync(new URL("../../apps/admin/app/(control-plane)/analytics/search/loading.tsx", import.meta.url), "utf8");
 const research = readFileSync(new URL("../../lib/admin/research.ts", import.meta.url), "utf8");
-const geoPage = readFileSync(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url), "utf8");
+const geoPage = readPhase1Source(new URL("../../app/(control-plane)/seo/audits/[id]/page.tsx", import.meta.url));
 const researchPage = readFileSync(new URL("../../features/admin/research/page.tsx", import.meta.url), "utf8");
 const researchForm = readFileSync(new URL("../../features/admin/components/UbersuggestResearchForm.tsx", import.meta.url), "utf8");
 
@@ -138,7 +139,7 @@ test("Admin growth removes Vercel monitoring in every lane and keeps native runt
   assert.equal(values.fetchCount, 0);
   assert.doesNotMatch(growth, /readVercelHealth|CCPUN_VERCEL_READ_TOKEN|CCPUN_VERCEL_PUBLIC_PROJECT_ID|CCPUN_VERCEL_TEAM_ID|api\.vercel\.com/);
   assert.doesNotMatch(growthPage, /Vercel Health/);
-  const health = readFileSync(new URL("../../apps/admin/app/(control-plane)/operations/health/page.tsx", import.meta.url), "utf8");
+  const health = readPhase1Source(new URL("../../apps/admin/app/(control-plane)/operations/health/page.tsx", import.meta.url));
   assert.doesNotMatch(health, /probeLineBridgeFromAdmin|line-bridge-probe|Vercel Health|process\.env\.VERCEL_/);
   assert.match(health, /readLineSystemDeliveryDatabaseReadiness/);
   assert.match(health, /readLineDeliveryHealth/);

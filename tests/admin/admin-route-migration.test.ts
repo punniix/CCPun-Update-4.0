@@ -28,14 +28,14 @@ test("canonical Control Plane routes exist without an active snt-admin route tre
     "app/(control-plane-auth)/login/page.tsx",
     "app/(control-plane)/dashboard/page.tsx",
     "app/(control-plane)/dashboard/inbox/page.tsx",
-    "app/(control-plane)/content/page.tsx",
+    "apps/admin/app/(control-plane)/content/page.tsx",
     "app/(control-plane)/seo/page.tsx",
     "app/(control-plane)/social/page.tsx",
     "app/(control-plane)/analytics/page.tsx",
-    "app/(control-plane)/operations/page.tsx",
+    "apps/admin/app/(control-plane)/operations/page.tsx",
     "app/(control-plane)/settings/page.tsx",
     "app/(control-plane-error)/admin-not-found/page.tsx",
-    "app/api/admin/session/route.ts",
+    "apps/admin/app/api/admin/session/route.ts",
   ]) assert.equal(existsSync(path.join(repositoryRoot, route)), true, route);
 
   assert.deepEqual(sourceFiles("app/snt-admin"), []);
@@ -83,7 +83,7 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
   assert.match(proxy, /if \(isAdminBoundaryRequest\) \{\s*if \(!adminSurfaceAllowed\) \{\s*return new NextResponse\("Not Found", \{ status: 404 \}\)/);
   assert.match(proxy, /matcher:\s*\[\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*"\/",/);
   assert.match(proxy, /type: "host", value: "localhost"/);
-  assert.match(proxy, /type: "host", value: "ccpun-admin\(\?:-\.\+\)\?\\\\\.vercel\\\\\.app"/);
+  assert.doesNotMatch(proxy, /type: "host", value: "ccpun-admin.*vercel/);
   assert.match(proxy, /if \(isAdminNotFoundPage\) \{\s*return NextResponse\.next\(\{ status: 404 \}\)/);
   assert.match(proxy, /disposition === "entry"[\s\S]*role \? "\/dashboard\/" : "\/login\/"/);
   assert.match(proxy, /if \(pathname\.startsWith\("\/api\/"\)\) \{\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401 \}\)/);
@@ -95,11 +95,15 @@ test("Admin root, return URL and unauthenticated API boundaries fail safely", ()
 test("active Admin runtime references snt-admin only in deny-only privacy and proxy fences", () => {
   const allowed = new Set([
     "app/robots.ts",
+    "apps/admin/app/robots.ts",
+    "apps/web/app/robots.ts",
     "next.config.ts",
     "proxy.ts",
   ]);
   const files = [
     ...sourceFiles("app"),
+    ...sourceFiles("apps/admin/app"),
+    ...sourceFiles("apps/web/app"),
     ...sourceFiles("features/admin"),
     ...sourceFiles("lib/admin"),
     ...sourceFiles("cms/sanity/policy"),

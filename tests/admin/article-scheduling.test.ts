@@ -1,6 +1,8 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { articleScheduleBlock, bangkokLocalDateTimeToIso, getScheduleDelaySeconds } from "../../cms/sanity/policy/article-scheduling";
 import type { PublishableArticle } from "../../cms/sanity/policy/article-publication";
@@ -48,9 +50,9 @@ function variables(lane: "uat" | "production") {
     NEXT_PUBLIC_SANITY_PROJECT_ID:p.sanityProjectId,NEXT_PUBLIC_SANITY_DATASET:p.dataset,CCPUN_NEON_PROJECT_ID:p.projectId,CCPUN_NEON_BRANCH_ID:p.branchId,CCPUN_NEON_DATABASE:"neondb",
     CCPUN_ADMIN_DATABASE_URL:`postgresql://ccpun_admin_runtime:TEST_ONLY@${p.endpointId}.${p.hostSuffix}/neondb?sslmode=require` };
 }
-test("private scheduler accepts only the exact Admin project role Neon and Sanity lane", () => {
+test("retired platform IDs never authorize the private scheduler even with exact Neon and Sanity metadata", () => {
   for (const lane of ["uat","production"] as const) {
-    const v=variables(lane); assert.equal(resolveArticleSchedulerLane(v),lane);
+    const v=variables(lane); assert.equal(resolveArticleSchedulerLane(v),null);
     for (const [key,value] of [["VERCEL_PROJECT_ID","prj_other"],["NEXT_PUBLIC_SANITY_PROJECT_ID","wrong"],["CCPUN_NEON_BRANCH_ID","wrong"],["CCPUN_NEON_DATABASE","postgres"],["CCPUN_APP_ENV","production"]]) assert.equal(resolveArticleSchedulerLane({...v,[key]:value}),null,key);
     assert.equal(resolveArticleSchedulerLane({...v,CCPUN_ADMIN_DATABASE_URL:v.CCPUN_ADMIN_DATABASE_URL.replace("ccpun_admin_runtime","ccpun_social_runtime")}),null);
     assert.equal(resolveArticleSchedulerLane({...v,CCPUN_ADMIN_DATABASE_URL:v.CCPUN_ADMIN_DATABASE_URL.replace("ccpun_admin_runtime","neondb_owner")}),null);
@@ -81,7 +83,7 @@ test("private scheduler accepts an explicit Hostinger Admin identity without fak
   }
 });
 test("queue storage has no Sanity operational writes and Workflow wiring uses an absolute time", () => {
-  const read=(file:string)=>readFileSync(new URL(`../../${file}`,import.meta.url),"utf8");
+  const read=(file:string)=>readCurrentSource(new URL(`../../${file}`,import.meta.url),"utf8");
   assert.doesNotMatch(read("lib/admin/article-scheduling.ts"),/createOrReplace|publishSchedule|drafts\.publishSchedule/);
   assert.match(read("lib/admin/operations/article-schedule-store.ts"),/process\.env\.CCPUN_ADMIN_DATABASE_URL/);
   assert.doesNotMatch(read("lib/admin/operations/article-schedule-store.ts"),/process\.env\.(?:CCPUN_SOCIAL_DATABASE_URL|DATABASE_URL)/);
@@ -89,12 +91,24 @@ test("queue storage has no Sanity operational writes and Workflow wiring uses an
   assert.match(read("lib/admin/article-publication-workflow.ts"),/sleep\(new Date\(input\.scheduledAt\)\)/);
   assert.match(read("lib/admin/article-publication-workflow.ts"),/maxRetries = 0/);
   assert.match(read("proxy.ts"),/well-known\/workflow\//);
-  assert.match(read("app/api/admin/content/[id]/schedule/route.ts"),/cancelScheduleRequestSchema\.safeParse/);
+  assert.match(read("app/api/admin/content/[id]/schedule/route.ts"), /return deleteArticleScheduleResponse\(request, context\)/);
+  assert.match(read("lib/admin/article-schedule-handler.ts"),/cancelScheduleRequestSchema\.safeParse/);
 });
 
 test("cancelled article schedules display as cancelled in calendar and audit", () => {
   for (const page of ["content/calendar", "operations/audit-log"]) {
-    const source = readFileSync(new URL(`../../apps/admin/app/(control-plane)/${page}/page.tsx`, import.meta.url), "utf8");
+    const source = readCurrentSource(new URL(`../../apps/admin/app/(control-plane)/${page}/page.tsx`, import.meta.url), "utf8");
     assert.match(source, /if \(status === "cancelled"\) return "ยกเลิกแล้ว";/);
   }
+});
+
+function readCurrentSource(file: string | URL, encoding: "utf8"): string {
+  void encoding;
+  return readPhase1Source(file instanceof URL ? relative(process.cwd(), fileURLToPath(file)) : isAbsolute(file) ? relative(process.cwd(), file) : file);
+}
+
+test("Phase1 source assertions follow the actual ContentCalendarPage entry binding", () => {
+  const entry = readCurrentSource("apps/admin/app/(control-plane)/content/calendar/page.tsx", "utf8");
+  assert.match(entry, /from "@\/features\/admin\/components\/ContentCalendarPage"/);
+  assert.match(entry, /return ContentCalendarPageOwner\(/);
 });

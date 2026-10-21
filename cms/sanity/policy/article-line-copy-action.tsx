@@ -5,6 +5,7 @@ import { useSyncState, type DocumentActionComponent } from "sanity";
 
 import type { AdminEnvironment } from "../../../lib/admin/environment";
 import type { PublishableArticle } from "./article-publication";
+import { LINE_TITLE_DEFAULT_INSTRUCTIONS, LINE_DESCRIPTION_DEFAULT_INSTRUCTIONS, lineEditorialInstructionsSchema, type LineEditorialInstructions } from "../../../lib/local-ai/editorial-instructions";
 
 type LineArticle = PublishableArticle & {
   lineTitle?: string;
@@ -44,14 +45,15 @@ export type ArticleLineCopyResult = {
   revision?: string;
 };
 
-export async function requestArticleLineCopy(id: string, sourceRevision: string) {
+export async function requestArticleLineCopy(id: string, sourceRevision: string, editorialInstructions?: LineEditorialInstructions) {
+  if (!lineEditorialInstructionsSchema.optional().safeParse(editorialInstructions).success) throw new Error("คำแนะนำแต่ละช่องต้องมี 1–200 ตัวอักษร และไม่เกิน 600 ไบต์ กรุณาย่อข้อความแล้วลองใหม่");
   const endpoint = `/api/admin/content/${encodeURIComponent(logicalId(id))}/line-copy/generate/`;
   const response = await fetch(endpoint, {
     method: "POST",
     credentials: "same-origin",
     cache: "no-store",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ sourceRevision, requestId: crypto.randomUUID() }),
+    body: JSON.stringify({ sourceRevision, requestId: crypto.randomUUID(), ...(editorialInstructions === undefined ? {} : { editorialInstructions }) }),
   });
   if (!response.ok) throw new Error(await readError(response));
   const result = await response.json() as ArticleLineCopyResult;
@@ -59,6 +61,17 @@ export async function requestArticleLineCopy(id: string, sourceRevision: string)
     throw new Error("ระบบตอบผล LINE copy ไม่ครบ");
   }
   return result;
+}
+
+export function LineEditorialFields({ title, description, showTitle = true, showDescription = true, busy, onTitle, onDescription }: {
+  title: string; description: string; showTitle?: boolean; showDescription?: boolean; busy: boolean; onTitle: (value: string) => void; onDescription: (value: string) => void;
+}) {
+  return <div style={{ display: "grid", gap: 16 }}>
+    <p>ปรับแนวทางการเขียนก่อนสร้างได้ ใช้เพื่อกำหนดน้ำเสียงและสิ่งที่อยากเน้น ข้อมูลอ้างอิงและกติกาความปลอดภัยยังยึดจากบทความ</p>
+    {showTitle && <div><label style={{ display: "grid", gap: 8 }}>คำแนะนำสำหรับ LINE Title<textarea value={title} disabled={busy} onChange={event => onTitle(event.currentTarget.value)} rows={3} style={{ font: "inherit", width: "100%" }} /></label><p>ผลลัพธ์: 24–60 ตัวอักษรตามการนับของระบบ</p><button type="button" disabled={busy} onClick={() => onTitle(LINE_TITLE_DEFAULT_INSTRUCTIONS)}>คืนค่าเริ่มต้นของ Title</button></div>}
+    {showDescription && <div><label style={{ display: "grid", gap: 8 }}>คำแนะนำสำหรับ LINE Description<textarea value={description} disabled={busy} onChange={event => onDescription(event.currentTarget.value)} rows={3} style={{ font: "inherit", width: "100%" }} /></label><p>ผลลัพธ์: 50–90 ตัวอักษรตามการนับของระบบ</p><button type="button" disabled={busy} onClick={() => onDescription(LINE_DESCRIPTION_DEFAULT_INSTRUCTIONS)}>คืนค่าเริ่มต้นของ Description</button></div>}
+    <p>คำแนะนำแต่ละช่อง: 1–200 ตัวอักษร และไม่เกิน 600 ไบต์ ไม่ได้บันทึกเป็นเนื้อหาบทความ</p>
+  </div>;
 }
 
 export function createGenerateArticleLineCopyAction(): DocumentActionComponent {
@@ -69,6 +82,9 @@ export function createGenerateArticleLineCopyAction(): DocumentActionComponent {
     const [busy, setBusy] = useState(false);
     const [elapsed, setElapsed] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const [customize, setCustomize] = useState(false);
+    const [titleInstructions, setTitleInstructions] = useState(LINE_TITLE_DEFAULT_INSTRUCTIONS);
+    const [descriptionInstructions, setDescriptionInstructions] = useState(LINE_DESCRIPTION_DEFAULT_INSTRUCTIONS);
     const inFlight = useRef(false);
 
     useEffect(() => {
@@ -93,7 +109,8 @@ export function createGenerateArticleLineCopyAction(): DocumentActionComponent {
       setBusy(true);
       setError(null);
       try {
-        await requestArticleLineCopy(props.id, source._rev);
+        await requestArticleLineCopy(props.id, source._rev, { ...(!existingTitle ? { lineTitle: titleInstructions } : {}), ...(!existingDescription ? { lineDescription: descriptionInstructions } : {}) });
+        setCustomize(false);
         props.onComplete();
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "ระบบยังทำรายการนี้ไม่สำเร็จ และยังไม่ได้แก้บทความ");
@@ -113,12 +130,12 @@ export function createGenerateArticleLineCopyAction(): DocumentActionComponent {
             ? "สร้าง Draft จากฉบับ Live แล้วเติมเฉพาะหัวข้อหรือคำโปรย LINE ที่ยังว่าง"
             : "บันทึกบทความก่อน แล้วจึงสร้างข้อความ LINE ได้",
       disabled,
-      onHandle: () => void generate(),
-      dialog: error ? {
+      onHandle: () => { setError(null); setCustomize(true); },
+      dialog: customize ? {
         type: "dialog",
-        header: "ยังสร้าง LINE copy ไม่สำเร็จ",
-        content: <p role="alert">{error}</p>,
-        onClose: () => setError(null),
+        header: "ปรับคำแนะนำก่อนสร้างข้อความ LINE",
+        content: <div><LineEditorialFields title={titleInstructions} description={descriptionInstructions} showTitle={!existingTitle} showDescription={!existingDescription} busy={busy} onTitle={setTitleInstructions} onDescription={setDescriptionInstructions} />{error && <p role="alert">{error}</p>}<button type="button" disabled={disabled} onClick={() => void generate()}>{busy ? `กำลังสร้างข้อความ LINE… ${elapsed} วินาที` : "สร้างข้อความ LINE"}</button></div>,
+        onClose: () => { if (!busy) setCustomize(false); },
       } : null,
     };
   };
@@ -224,6 +241,9 @@ export function createImproveArticleLineCopyAction(): DocumentActionComponent {
     const [elapsed, setElapsed] = useState(0);
     const [proposal, setProposal] = useState<LineCopyProposal | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [customize, setCustomize] = useState(false);
+    const [titleInstructions, setTitleInstructions] = useState(LINE_TITLE_DEFAULT_INSTRUCTIONS);
+    const [descriptionInstructions, setDescriptionInstructions] = useState(LINE_DESCRIPTION_DEFAULT_INSTRUCTIONS);
     const inFlight = useRef(false);
 
     useEffect(() => {
@@ -242,6 +262,8 @@ export function createImproveArticleLineCopyAction(): DocumentActionComponent {
 
     async function improve() {
       if (inFlight.current || disabled || !draft?._rev || !published?._rev) return;
+      const editorialInstructions = { lineTitle: titleInstructions, lineDescription: descriptionInstructions };
+      if (!lineEditorialInstructionsSchema.safeParse(editorialInstructions).success) { setError("คำแนะนำแต่ละช่องต้องมี 1–200 ตัวอักษร และไม่เกิน 600 ไบต์ กรุณาย่อข้อความแล้วลองใหม่"); return; }
       inFlight.current = true;
       setBusy(true);
       setError(null);
@@ -252,7 +274,7 @@ export function createImproveArticleLineCopyAction(): DocumentActionComponent {
           credentials: "same-origin",
           cache: "no-store",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: "propose", draftRevision: draft._rev, publishedRevision: published._rev, requestId: crypto.randomUUID() }),
+          body: JSON.stringify({ action: "propose", draftRevision: draft._rev, publishedRevision: published._rev, requestId: crypto.randomUUID(), editorialInstructions }),
         });
         if (!response.ok) throw new Error(await readError(response));
         const result = await response.json() as LineCopyProposal & { status?: string };
@@ -260,6 +282,7 @@ export function createImproveArticleLineCopyAction(): DocumentActionComponent {
           throw new Error("ระบบตอบข้อเสนอ LINE copy ไม่ครบ");
         }
         setProposal(result);
+        setCustomize(false);
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "ระบบยังสร้างข้อเสนอ LINE copy ไม่สำเร็จ");
       } finally {
@@ -306,8 +329,13 @@ export function createImproveArticleLineCopyAction(): DocumentActionComponent {
       label: busy ? `กำลังปรับปรุง LINE… ${elapsed} วินาที` : "Improve LINE copy",
       title: "ปรับปรุงจาก LINE Title / Description ที่เผยแพร่แล้ว โดยไม่ส่งเนื้อหาบทความให้ Local AI",
       disabled,
-      onHandle: () => void improve(),
-      dialog: error ? {
+      onHandle: () => { setError(null); setCustomize(true); },
+      dialog: customize ? {
+        type: "dialog",
+        header: "ปรับคำแนะนำก่อน Improve LINE copy",
+        content: <div><LineEditorialFields title={titleInstructions} description={descriptionInstructions} busy={busy} onTitle={setTitleInstructions} onDescription={setDescriptionInstructions} />{error && <p role="alert">{error}</p>}<button type="button" disabled={disabled} onClick={() => void improve()}>{busy ? `กำลังปรับปรุง LINE… ${elapsed} วินาที` : "สร้างข้อเสนอ LINE copy"}</button></div>,
+        onClose: () => { if (!busy) setCustomize(false); },
+      } : error ? {
         type: "dialog",
         header: "ยังปรับปรุง LINE copy ไม่สำเร็จ",
         content: <p role="alert">{error}</p>,

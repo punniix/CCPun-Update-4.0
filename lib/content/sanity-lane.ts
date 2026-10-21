@@ -1,10 +1,7 @@
 import {
-  CCPUN_VERCEL_PROJECT_IDS,
   resolveDeploymentIdentity,
 } from "../runtime/deployment-identity";
 import { getDeploymentLaneByEnvironment } from "../runtime/deployment-contract";
-
-export const CONTENT_VERCEL_PROJECT_IDS = CCPUN_VERCEL_PROJECT_IDS;
 
 export const CONTENT_ENVIRONMENTS = [
   "development",
@@ -46,14 +43,9 @@ export function resolveContentEnvironment(
 ): ContentEnvironment {
   if (explicitValue?.trim()) return parseContentEnvironment(explicitValue);
 
-  const vercel = vercelEnvironment?.trim().toLowerCase();
-  const projectId = deploymentProjectId?.trim();
-  if (vercel === "production" && projectId === CONTENT_VERCEL_PROJECT_IDS.web) return "production";
-  if (vercel === "production" && projectId === CONTENT_VERCEL_PROJECT_IDS.admin) return "production-admin";
-  if (vercel === "preview" && projectId === CONTENT_VERCEL_PROJECT_IDS.web) return "web-uat";
-  if (vercel === "preview" && projectId === CONTENT_VERCEL_PROJECT_IDS.admin) return "admin-uat";
-  if (!projectId) return "development";
-  return "unknown";
+  // Retired platform values never infer a current content lane.
+  if (vercelEnvironment?.trim() || deploymentProjectId?.trim()) return "unknown";
+  return "development";
 }
 
 export function isContentDeploymentAllowed(
@@ -86,24 +78,9 @@ export function isContentDeploymentAllowed(
       && (environment === "development" || environment === "local-uat" || environment === "local-production");
   }
 
-  if (provider && provider !== "vercel") return false;
-  if (provider === "vercel" && !deploymentProjectId) return false;
-
-  switch (environment) {
-    case "development":
-      return !deploymentProjectId || deploymentProjectId === CONTENT_VERCEL_PROJECT_IDS.web;
-    case "web-uat":
-    case "production":
-      return deploymentProjectId === CONTENT_VERCEL_PROJECT_IDS.web;
-    case "local-uat":
-    case "local-production":
-      return !deploymentProjectId;
-    case "admin-uat":
-    case "production-admin":
-      return deploymentProjectId === CONTENT_VERCEL_PROJECT_IDS.admin;
-    default:
-      return false;
-  }
+  if (provider) return false;
+  return !deploymentProjectId
+    && (environment === "development" || environment === "local-uat" || environment === "local-production");
 }
 
 export function isContentSanityLaneAllowed(

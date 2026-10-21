@@ -1,141 +1,74 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
-
-const read = (path) => readFileSync(path, 'utf8');
-
+import { readFileSync, existsSync } from 'node:fs';
+const read = file => readFileSync(file, 'utf8');
 const css = read('components/layout/website-43/Website43.module.css');
-const navbarCss = read('components/layout/website-43/Website43Navbar.module.css');
-const functionalCss = read('components/ui/FunctionalMotion.module.css');
-const home = read('features/home/website-43/Website43Home.tsx');
-const blog = read('features/blog/website-43/Website43Blog.tsx');
-const article = read('features/blog/website-43/Website43Article.tsx');
-const fhc = read('features/financial-health-check/components/ClientFHC.tsx');
-const fhcWizard = read('features/financial-health-check/components/LifeCoverageWizard.tsx');
-const ci = read('features/ci-planning/page.tsx');
-const ciWizard = read('features/ci-planning/components/CIWizard.tsx');
-const ciResult = read('features/ci-planning/components/result/CIResult.tsx');
-const calculatorCard = read('components/ui/HumanCalculatorCard.tsx');
-const currencyInput = read('components/ui/CurrencyInput.tsx');
-const toolHero = read('components/layout/website-43/Website43ToolHero.tsx');
+const functional = read('components/ui/FunctionalMotion.module.css');
+const navbar = read('components/layout/website-43/Website43Navbar.module.css');
+const money = read('features/money-story/MoneyStory.module.css');
+const ci = read('features/ci-planning/components/CIWizard.tsx');
+const fhc = read('features/financial-health-check/components/LifeCoverageWizard.tsx');
 
-const revealBlock = css.match(/@supports \(animation-timeline: view\(\)\) \{[\s\S]*?\n\}\n\n@media \(hover: hover\)/)?.[0] ?? '';
-const functionalSources = [functionalCss, fhcWizard, ciWizard, ciResult, calculatorCard, currencyInput, toolHero];
-const calculatorClientSources = [fhcWizard, ciWizard, ciResult, currencyInput];
+test('readable content has no ancestor fade, intro reveal or delayed calculator commit', () => {
+  assert.doesNotMatch(css, /w43Reveal|w43DisclosureIn|animation-timeline|@starting-style/);
+  assert.doesNotMatch(functional, /@keyframes|opacity:\s*\.(?:9|8)|data-motion-phase/);
+  for (const source of [ci, fhc]) assert.doesNotMatch(source, /STEP_OUT_MS|STEP_IN_MS|motionTimersRef|motionPhase/);
+  assert.doesNotMatch(read('features/analytics/components/CookieConsent.tsx'), /cookieBannerUp|cookiePanelDown/);
+});
 
-test('public motion stays CSS-driven and adds no motion library or hydration boundary', () => {
+test('explicit interactive cards use at most two pixels with no image zoom', () => {
+  assert.match(css, /translateY\(-2px\)/);
+  assert.doesNotMatch(css, /translateY\(-3px\)|scale: 1\.015/);
+  assert.match(css, /transform \.14s/);
+  assert.match(css, /hover: hover\) and \(pointer: fine\) and \(prefers-reduced-motion: no-preference/);
+});
+
+test('press feedback preserves disabled appearance and reduced-motion fallback', () => {
+  assert.match(functional, /not\(:disabled\):active.*translateY\(1px\)/);
+  assert.match(functional, /prefers-reduced-motion: reduce/);
+  assert.match(functional, /transform: none/);
+  assert.match(css, /:disabled \{ opacity: \.5; cursor: not-allowed/);
+  assert.match(money, /not\(:disabled\):hover/);
+  assert.match(money, /prefers-reduced-motion:reduce.*transform:none!important/);
+});
+
+test('reduced motion disables Website43 transitions, animations, scrolling and card transforms', () => {
+  const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce) {'));
+  assert.match(reduced, /\.root \*, \.root \*::before, \.root \*::after \{ transition: none !important; animation: none !important; scroll-behavior: auto !important;/);
+  assert.match(reduced, /\.primaryButton:active, \.outlineButton:active \{ transform: none;/);
+  assert.match(reduced, /\.articleCard, \.featuredCard, \.toolCtaCard \{ translate: none !important; transform: none !important;/);
+  assert.match(reduced, /\.articleCard img, \.featuredCard img, \.toolCtaCard img \{ scale: 1 !important;/);
+});
+
+test('state indicators commit immediately; native interaction cues stay short', () => {
+  assert.doesNotMatch(read('components/ui/HumanCalculatorCard.tsx'), /transition-\[width\]|duration-\[240ms\]/);
+  assert.doesNotMatch(money, /transition:width/);
+  assert.match(navbar, /transition: transform \.12s/);
+  assert.match(functional, /border-color \.12s/);
+});
+
+test('motion introduces no library, observer, animation-frame loop or hydration boundary', () => {
   assert.equal(existsSync('components/layout/website-43/Website43MotionBoundary.tsx'), false);
-  assert.equal(existsSync('components/layout/website-43/Website43Motion.module.css'), false);
-  for (const source of [home, blog, article, fhc, ci, ...functionalSources]) {
-    assert.doesNotMatch(source, /framer-motion|MotionConfig|Website43MotionBoundary/);
-  }
-  assert.match(functionalCss, /@keyframes calculatorStepIn/);
-  assert.match(functionalCss, /@keyframes calculatorResultIn/);
-});
-
-test('scroll reveal is progressive and excludes hero/LCP-critical and calculator surfaces', () => {
-  assert.match(css, /@keyframes w43Reveal/);
-  assert.match(css, /from \{ opacity: \.9; translate: 0 8px; \}/);
-  assert.match(css, /@supports \(animation-timeline: view\(\)\)/);
-  assert.match(revealBlock, /animation-timeline: view\(\)/);
-  assert.match(revealBlock, /animation-range: entry 0% entry 32%/);
-  assert.match(revealBlock, /\.learnGrid > \.toolCtaCard/);
-  assert.match(revealBlock, /\.articleGrid > \.articleCard/);
-  assert.match(revealBlock, /\.articleSupportInner/);
-  assert.doesNotMatch(revealBlock, /homeHero|blogHero|articleHeadline|articleFeature|featuredViewport|calculator|toolHero/);
-  assert.doesNotMatch(revealBlock, /opacity:\s*0(?:[;\s}]|$)/);
-});
-
-test('card hover motion stays restrained and does not resize layout', () => {
-  assert.match(css, /\.articleCard, \.featuredCard, \.toolCtaCard \{[\s\S]*?transform \.18s/);
-  assert.match(css, /transform: translateY\(-3px\)/);
-  assert.match(css, /scale: 1\.015/);
-  assert.match(css, /box-shadow: 0 12px 28px rgba\(0,0,0,\.16\)/);
-});
-
-test('functional button press feedback is tactile and restrained', () => {
-  assert.match(functionalCss, /ccpun-motion-tactile[\s\S]*?scale: 1;[\s\S]*?scale \.12s cubic-bezier\(\.2, 0, 0, 1\)/);
-  assert.match(functionalCss, /ccpun-motion-tactile:not\(:disabled\):active[\s\S]*?scale: \.98;/);
-  assert.doesNotMatch(toolHero, /ccpun-motion-tactile/);
-  assert.match(toolHero, /className=\{styles\.primaryButton\}/);
-  assert.match(css, /\.primaryButton:not\(:disabled\):active,[\s\S]*?transform: scale\(\.985\)/);
-  assert.match(fhcWizard, /ccpun-motion-tactile/);
-  assert.match(ciWizard, /ccpun-motion-tactile/);
-});
-
-test('calculator step and result motion use the restrained motion DNA', () => {
-  assert.match(functionalCss, /calculatorStepIn[\s\S]*?opacity: \.92; translate: 0 6px;/);
-  assert.match(functionalCss, /ccpun-motion-step-view\[data-motion-phase='out'\][\s\S]*?opacity: \.92;[\s\S]*?translate: 0 -4px;/);
-  assert.match(functionalCss, /opacity \.1s cubic-bezier\(\.2, 0, 0, 1\)/);
-  assert.match(functionalCss, /animation: calculatorStepIn \.14s cubic-bezier\(\.2, 0, 0, 1\) both/);
-  assert.match(functionalCss, /calculatorResultIn[\s\S]*?opacity: \.9; translate: 0 6px;/);
-  assert.match(functionalCss, /animation: calculatorResultIn \.22s cubic-bezier\(\.2, 0, 0, 1\) both/);
-  for (const source of [fhcWizard, ciWizard]) {
-    assert.match(source, /className="ccpun-motion-step-view"/);
-    assert.match(source, /data-motion-phase=\{motionPhase\}/);
-    assert.match(source, /prefers-reduced-motion: reduce/);
-    assert.match(source, /STEP_OUT_MS = 100/);
-    assert.match(source, /STEP_IN_MS = 140/);
-  }
-  assert.match(fhcWizard, /ccpun-motion-result-reveal/);
-  assert.match(ciResult, /ccpun-motion-result-reveal/);
-});
-
-test('calculator progress input and selection feedback stay short and semantic', () => {
-  assert.match(calculatorCard, /data-ui="calculator-progress-fill"/);
-  assert.match(calculatorCard, /duration-\[240ms\]/);
-  assert.match(calculatorCard, /motion-reduce:transition-none/);
-  assert.match(currencyInput, /ccpun-motion-input-feedback/);
-  assert.match(functionalCss, /ccpun-motion-input-feedback[\s\S]*?\.16s cubic-bezier\(\.2, 0, 0, 1\)/);
-  assert.match(ciResult, /type="radio"[\s\S]*?checked=\{selected\}/);
-  assert.match(ciResult, /ccpun-motion-selection/);
-  assert.match(ciResult, /ccpun-motion-selection-active/);
-});
-
-test('functional stylesheet is owned by the Website 4.3 tool shells rather than calculator client modules', () => {
-  assert.match(fhc, /FunctionalMotion\.module\.css/);
-  assert.match(ci, /FunctionalMotion\.module\.css/);
-  assert.match(fhc, /functionalMotion\.scope/);
-  assert.match(ci, /functionalMotion\.scope/);
-  for (const source of calculatorClientSources) {
-    assert.doesNotMatch(source, /FunctionalMotion\.module\.css/);
+  for (const file of ['features/home/website-43/Website43Home.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43Article.tsx', 'features/analytics/components/CookieConsent.tsx']) {
+    assert.doesNotMatch(read(file), /framer-motion|MotionConfig|Website43MotionBoundary|IntersectionObserver/);
   }
 });
 
-test('FAQ article details TOC and menus keep their short feedback motion', () => {
-  assert.match(css, /@keyframes w43DisclosureIn/);
-  assert.match(css, /\.faqItem\[open\] \.faqAnswer/);
-  assert.match(css, /\.tocSublist:not\(\[hidden\]\)/);
-  assert.match(css, /animation: w43DisclosureIn \.18s/);
-  assert.match(css, /\.categoryMenuPanel \{\s*transition: opacity \.18s/);
-  assert.match(navbarCss, /\.navChevron \{[^}]*transition: transform \.18s ease/);
-  assert.match(navbarCss, /\.navDropdown a \{[^}]*transition: background \.15s ease, color \.15s ease/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.root \*, \.root \*::before, \.root \*::after \{ transition: none !important; animation: none !important/);
-  assert.match(css, /@starting-style/);
-  assert.match(css, /translate: 0 -6px/);
+test('functional motion is inherited from public shells without duplicate child imports', () => {
+  for (const file of ['features/ci-planning/page.tsx','features/financial-health-check/components/ClientFHC.tsx']) assert.match(read(file), /FunctionalMotion\.module\.css/);
+  for (const source of [ci, fhc, read('features/ci-planning/components/result/CIResult.tsx'), read('components/ui/HumanCalculatorCard.tsx'), read('components/ui/CurrencyInput.tsx')]) assert.doesNotMatch(source, /FunctionalMotion\.module\.css/);
+  assert.doesNotMatch(css, /\.navDropdown\b|\.mobileMenu\b/);
+  assert.doesNotMatch(functional, /animation-timeline|view\(\)|homeHero|blogHero|articleHeadline|articleFeature|featuredViewport/);
 });
 
-test('functional motion never introduces 3D, looping, or layout-resizing animation', () => {
-  const allMotionCss = `${css}\n${functionalCss}`;
-  assert.doesNotMatch(allMotionCss, /rotateX|rotateY|perspective|animation-iteration-count:\s*infinite|animation[^;]*\binfinite\b/);
-  assert.doesNotMatch(functionalCss, /transition[^;]*(?:height|width|max-height|min-height|top|left|right|bottom|margin|padding)/);
-});
-
-test('reduced-motion removes decorative and functional movement', () => {
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /transition: none !important; animation: none !important/);
-  assert.match(css, /\.articleCard, \.featuredCard, \.toolCtaCard \{ translate: none !important; transform: none !important; \}/);
-  assert.match(css, /\.articleCard img, \.featuredCard img, \.toolCtaCard img \{ scale: 1 !important; \}/);
-  assert.match(functionalCss, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(functionalCss, /animation: none !important;\s*transition: none !important;\s*translate: 0 0 !important;/);
-  assert.match(functionalCss, /scale: 1 !important/);
-});
-
-test('FHC and CI keep Website 4.3 visual language while functional motion stays separate from decorative reveal', () => {
-  for (const source of [fhc, ci]) {
-    assert.match(source, /Website43\.module\.css/);
-    assert.match(source, /Website43ToolHero/);
-    assert.doesNotMatch(source, /w43Reveal|toolCtaCard|framer-motion|MotionConfig/);
+test('interaction cues do not resize layout, use three-dimensional transforms or add a frame loop', () => {
+  const cardRule=css.slice(css.indexOf('.articleCard, .featuredCard, .toolCtaCard {'),css.indexOf('}',css.indexOf('.articleCard, .featuredCard, .toolCtaCard {')));
+  assert.doesNotMatch(cardRule, /transition:\s*(?:all|width|height)|(?:width|height|font-size)\s+\.\d+s/);
+  assert.doesNotMatch([css,functional,money].join('\n'), /translate3d|rotateX\s*\(|rotateY\s*\(|perspective:|transform-style:\s*preserve-3d/);
+  assert.doesNotMatch([css,functional].join('\n'), /animation(?:-iteration-count)?:[^;{}]*\binfinite\b/);
+  for (const declaration of functional.matchAll(/transition:\s*([^;{}]+);/g)) {
+    assert.doesNotMatch(declaration[1], /(?:^|,)\s*(?:all|width|height|min-width|max-width|min-height|max-height|top|right|bottom|left|margin(?:-[a-z]+)?|padding(?:-[a-z]+)?|font-size)\b/);
   }
-  assert.doesNotMatch(functionalCss, /animation-timeline|view\(\)|homeHero|blogHero|articleHeadline|articleFeature|featuredViewport/);
+  for(const file of ['features/home/website-43/Website43Home.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43Article.tsx']) assert.doesNotMatch(read(file), /^['"]use client['"]/m);
+  for(const source of [ci,fhc,read('features/home/website-43/Website43Home.tsx'),read('features/analytics/components/CookieConsent.tsx')]) assert.doesNotMatch(source, /requestAnimationFrame\(\s*(?:loop|tick|animate)\s*\)|setInterval\(/);
 });

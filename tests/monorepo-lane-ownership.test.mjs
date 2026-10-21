@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { DEPLOYMENT_LANES } from '../lib/runtime/deployment-lanes.mjs';
 import { main as audit } from '../scripts/audit-monorepo-boundaries.mjs';
@@ -42,20 +42,17 @@ test('monorepo audit starts from the actual apps/web and apps/admin entrypoints'
 });
 
 
-test('Web legal and not-found routes share canonical feature implementations', () => {
+test('Web legal and not-found routes have one canonical app implementation', () => {
   const pages = [
     ['privacy/page.tsx', 'features/legal/pages/PrivacyPage.tsx'],
     ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage.tsx'],
     ['not-found.tsx', 'features/public-pages/NotFoundPage.tsx'],
   ];
   for (const [route, shared] of pages) {
-    const specifier = '@/' + shared.replace(/\.tsx$/, '');
-    const wrapper = 'export { metadata, default } from "' + specifier + '";\n';
-    for (const prefix of ['app/', 'apps/web/app/']) {
-      const routeSource = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
-      assert.equal(routeSource, wrapper, prefix + route + ' must not duplicate shared implementation');
-    }
-    const sharedSource = readFileSync(new URL('../' + shared, import.meta.url), 'utf8');
+    const wrapper = 'export { default, metadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n';
+    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), wrapper, route);
+    assert.equal(existsSync(new URL('../' + shared, import.meta.url)), false, 'No second implementation owner');
+    const sharedSource = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
     assert.match(sharedSource, /export const metadata:/);
     assert.match(sharedSource, /export default function /);
   }
@@ -77,14 +74,12 @@ test('Web sitemap routes have exactly one implementation but keep both route ent
     ['sitemaps/blog.xml/route.ts', 'blog', 'force-dynamic'],
   ];
   for (const [route, moduleName, dynamic] of routes) {
-    const expected = 'export const dynamic = "' + dynamic + '";\n'
-      + 'export { GET } from "@/lib/sitemap/routes/' + moduleName + '";\n';
-    for (const prefix of ['app/', 'apps/web/app/']) {
-      const source = readFileSync(new URL('../' + prefix + route, import.meta.url), 'utf8');
-      assert.equal(source, expected, prefix + route + ' must retain Next runtime config and shared implementation');
-    }
-    const implementation = readFileSync(new URL('../lib/sitemap/routes/' + moduleName + '.ts', import.meta.url), 'utf8');
+    const configuration = 'export const dynamic = "' + dynamic + '";\n';
+    const expected = configuration + 'export { GET } from "@/apps/web/app/' + route.replace(/\.ts$/, '') + '";\n';
+    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), expected, route);
+    assert.equal(existsSync(new URL('../lib/sitemap/routes/' + moduleName + '.ts', import.meta.url)), false, 'No duplicate sitemap owner');
+    const implementation = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
     assert.match(implementation, /export (async )?function GET\(/);
-    assert.doesNotMatch(implementation, /export const dynamic/);
+    assert.equal(implementation.split(configuration).length, 2, 'Canonical literal Next configuration occurs once');
   }
 });

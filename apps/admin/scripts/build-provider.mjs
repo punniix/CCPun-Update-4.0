@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const adminRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -280,7 +281,35 @@ export function stageAdminStandaloneRuntime(root = adminRoot) {
   console.log("Hostinger Admin standalone runtime staged.");
 }
 
+// Hostinger's older glibc image can use SWC WASM while loading config. Bundle
+// the canonical TS graph so Node never resolves its extensionless TS imports.
+// Keep the source validator external: it must use its real path and Git gates.
+export function runAdminNextBuild(root = adminRoot, variables = process.env, run = spawnSync) {
+  const hostinger = variables.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
+  const compiled = resolve(root, "next.config.mjs");
+  if (hostinger && lstatSync(compiled, { throwIfNoEntry: false })) throw new Error("HOSTINGER_ADMIN_CONFIG_OUTPUT_EXISTS");
+  try {
+    if (hostinger) {
+      const { buildSync } = createRequire(import.meta.url)("esbuild");
+      buildSync({ entryPoints: [resolve(root, "next.config.ts")], outfile: compiled,
+        bundle: true, platform: "node", format: "esm", target: "node24", packages: "external",
+        external: ["./scripts/build-provider.mjs"], logLevel: "info" });
+    }
+    const nextBin = resolve(root, "../../node_modules/next/dist/bin/next");
+    return run(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])],
+      { cwd: root, env: variables, stdio: "inherit" });
+  } finally {
+    if (hostinger) rmSync(compiled, { force: true });
+  }
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  // Preserve native compiler behavior; reject retired provider inputs before build work.
+  if (Object.entries(process.env).some(([key, value]) => key.startsWith("VERCEL_") && value?.trim())) throw new Error("UNSUPPORTED_PROVIDER_METADATA");
+  if (["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) throw new Error("UNSUPPORTED_WORKFLOW_WORLD");
+  const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() ?? "";
+  if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");
+  if (provider === "hostinger" && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== "admin") throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");
   const inferredAdminUat = applyPinnedAdminUatBuildFallback();
   if (inferredAdminUat) console.log(`Hostinger Admin UAT build identity inferred from exact release ref ${inferredAdminUat.branch} @ ${inferredAdminUat.sha.slice(0, 12)}.`);
   const hostinger = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() === "hostinger";
@@ -288,8 +317,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (hostinger && process.env.CCPUN_ADMIN_CAPABILITY_PROFILE?.trim().toLowerCase() !== "editorial" && !nativeSeal) throw new Error("Hostinger full Admin build requires a sealed native Admin lane.");
   if (hostinger) installAdminMonorepoDependencies();
   const buildEnvironment = { ...process.env, ...(nativeSeal?.publicValues ?? {}), ...(nativeSeal ? { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0", CCPUN_NATIVE_WORKFLOW_ENABLED: "0" } : {}) };
-  const nextBin = resolve(adminRoot, "../../node_modules/next/dist/bin/next");
-  const result = spawnSync(process.execPath, [nextBin, "build", ...(hostinger ? ["--webpack"] : [])], { cwd: adminRoot, env: buildEnvironment, stdio: "inherit" });
+  const result = runAdminNextBuild(adminRoot, buildEnvironment);
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (hostinger) {

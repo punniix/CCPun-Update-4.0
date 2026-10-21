@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import { SYNTHETIC_SOCIAL_FOUNDATION } from "../../lib/admin/social/foundation";
 import { SYNTHETIC_PUBLISHED_SOCIAL_RECORDS } from "../../lib/admin/social/operations";
 import {
@@ -40,10 +39,11 @@ test("Provider-neutral contract exposes unavailable and unsupported states witho
 
 test("synthetic Post-Live runtime is UAT-only and fails closed in Production", () => {
   const uatEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
     CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
     CCPUN_APP_ENV: "admin-uat",
-    VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    VERCEL_GIT_COMMIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
+
+    CCPUN_GIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
     NEXT_PUBLIC_SANITY_DATASET: "uat",
   };
@@ -51,12 +51,11 @@ test("synthetic Post-Live runtime is UAT-only and fails closed in Production", (
   assert.equal(isSyntheticPostLiveRuntimeEnabled({ ...uatEnv, CCPUN_SOCIAL_OPERATIONS_ENABLED: "0" }), false);
 
   const productionEnv = {
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin",
     CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
     CCPUN_APP_ENV: "production-admin",
-    VERCEL_ENV: "production",
-    VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    CCPUN_PRODUCTION_ADMIN_VERCEL_PROJECT_ID: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    VERCEL_GIT_COMMIT_REF: "v4-production",
+
+    CCPUN_GIT_REF: "v4-production",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq",
     NEXT_PUBLIC_SANITY_DATASET: "production",
     CCPUN_NEON_PROJECT_ID: "production-project-id",
@@ -69,7 +68,7 @@ test("synthetic Post-Live runtime is UAT-only and fails closed in Production", (
 });
 
 test("Post-Live preview route is authenticated, exact-origin and GET-only", () => {
-  const route = read("app/api/admin/social/analytics/post-live/route.ts");
+  const route = read("apps/admin/app/api/admin/social/analytics/post-live/route.ts");
   const page = read("features/admin/social/post-live-page.tsx");
   const entry = read("app/(control-plane)/analytics/social/post-live/page.tsx");
   const analytics = read("features/admin/social/analytics-page.tsx");

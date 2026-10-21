@@ -1,2 +1,2 @@
 export const dynamic = "force-static";
-export { GET } from "@/lib/sitemap/routes/tools";
+export { GET } from "@/apps/web/app/sitemaps/tools.xml/route";

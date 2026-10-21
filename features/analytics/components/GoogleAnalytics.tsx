@@ -28,11 +28,17 @@ function disableGA() {
   clearPendingAnalyticsEvents('analytics');
   window.gtag?.('consent', 'update', { analytics_storage: 'denied' });
   document.getElementById('ga-script')?.remove();
+  const isUat = process.env.NEXT_PUBLIC_CCPUN_APP_ENV === 'web-uat'
+    || window.location.hostname === 'test.ccpun.com';
+  const cookieDomain = isUat ? 'test.ccpun.com' : '.ccpun.com';
   for (const cookie of document.cookie.split(';')) {
     const name = cookie.split('=', 1)[0]?.trim();
-    if (!name?.startsWith('_ga')) continue;
+    // Match UAT's GTM cookie_prefix without deleting Production parent cookies.
+    if (!name || (isUat
+      ? name !== 'ccpun_uat_ga' && !name.startsWith('ccpun_uat_ga_')
+      : !name.startsWith('_ga'))) continue;
     document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
-    document.cookie = `${name}=; Path=/; Domain=.ccpun.com; Max-Age=0; SameSite=Lax`;
+    document.cookie = `${name}=; Path=/; Domain=${cookieDomain}; Max-Age=0; SameSite=Lax`;
   }
   if (!document.getElementById('gtm-script')) {
     delete window.gtag;
@@ -54,20 +60,26 @@ export default function GoogleAnalytics({ gaId }: { gaId: string }) {
       const nav = link.closest('nav');
       const surface = path.startsWith('/ci-planning') ? 'ci_planning'
         : path.startsWith('/tools/fhc') || path.startsWith('/tools/financial-health-check') ? 'fhc'
-        : path.startsWith('/blog/') ? 'blog'
+        : path === '/blog' || path.startsWith('/blog/') ? 'blog'
         : path === '/' ? 'homepage'
         : null;
+      const campaign = link.closest<HTMLElement>('[data-campaign="aia-health-happy-2026"]');
+      const placement = campaign?.dataset.campaignPlacement;
+      const safePlacement = placement === 'home' || placement === 'blog' || placement === 'article' ? placement : undefined;
       const explicitLocation = link.dataset.analyticsLocation;
       const allowedLocation = explicitLocation === 'navbar' || explicitLocation === 'navbar_mobile' || explicitLocation === 'home_faq'
         ? explicitLocation : null;
-      const location = allowedLocation ?? (nav ? (link.closest('#mobile-navigation') ? 'navbar_mobile' : 'navbar')
+      const location = (campaign && safePlacement) ? 'countdown' : allowedLocation ?? (nav ? (link.closest('#mobile-navigation') ? 'navbar_mobile' : 'navbar')
         : link.closest('#home') ? 'home_hero'
         : link.closest('[data-uat-section="contact"]') ? 'home_contact'
         : surface === 'fhc' ? 'fhc_landing'
         : surface === 'blog' ? 'blog_article'
         : null);
       if (!surface || !location) return;
-      trackEvent('line_oa_click', { contact_channel: 'line', cta_location: location, surface_group: surface });
+      trackEvent('line_oa_click', {
+        contact_channel: 'line', cta_location: location, surface_group: surface,
+        ...(campaign && safePlacement ? { campaign_id: 'aia_health_happy_2026', campaign_placement: safePlacement } : {}),
+      });
     };
 
     apply();

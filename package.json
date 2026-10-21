@@ -14,15 +14,14 @@
     "build": "node scripts/build-root.mjs",
     "start": "next start",
     "lint": "eslint",
-    "worker:seo-post-publish": "node --conditions=react-server --import tsx scripts/seo-post-publish-worker.ts",
-    "test:architecture": "node scripts/check-deployment-contract.mjs && node scripts/check-repository-architecture.mjs && node scripts/sync-public-nav-config.mjs --check && node scripts/check-p2-source-config-closeout.mjs && node scripts/check-app-runtime-boundaries.mjs && node scripts/check-p0-execution-ownership.mjs && node --test tests/monorepo-lane-ownership.test.mjs && node --import tsx --test tests/content-runtime-environment.test.ts tests/deployment-identity.test.ts tests/deployment-contract.test.ts",
+    "test:architecture": "node scripts/check-deployment-contract.mjs && node scripts/check-repository-architecture.mjs && node scripts/check-app-runtime-boundaries.mjs && node scripts/check-p0-execution-ownership.mjs && node --test tests/monorepo-lane-ownership.test.mjs tests/ai-search-integration.test.mjs && node --import tsx --test tests/content-runtime-environment.test.ts tests/deployment-identity.test.ts tests/deployment-contract.test.ts",
     "audit:public-css": "node scripts/audit-public-css-usage.mjs",
     "audit:public-assets": "node scripts/audit-public-assets.mjs",
     "audit:public-architecture": "node scripts/audit-public-architecture.mjs",
-    "test:vercel": "npm run audit:public-css && npm run audit:public-assets && npm run audit:public-architecture && node --import tsx --test tests/ci-recovery-reserve-regression.test.ts && node tests/vercel-native-regression.mjs && node tests/public-shell-performance-regression.mjs && node tests/blog-mobile-hotfix-regression.mjs && node --test tests/website43-public-layout-regression.mjs && node --test tests/website43-public-motion-regression.mjs && node --test tests/vercel-build-routing.test.mjs && node --import tsx --test tests/ai-crawler-observability.test.ts && node --import tsx tests/analytics-regression.ts && node --import tsx tests/analytics-component-regression.mjs",
+    "test:public": "npm run audit:public-css && npm run audit:public-assets && npm run audit:public-architecture && node --import tsx --test tests/ci-recovery-reserve-regression.test.ts && node tests/vercel-native-regression.mjs && node tests/public-shell-performance-regression.mjs && node tests/blog-mobile-hotfix-regression.mjs && node --test tests/website43-public-layout-regression.mjs && node --test tests/website43-public-motion-regression.mjs && node --test tests/hostinger-native-app-contract.test.mjs && node --import tsx --test tests/ai-crawler-observability.test.ts && node --import tsx tests/analytics-regression.ts && node --import tsx tests/analytics-component-regression.mjs",
     "test:search-intent-owners": "node tests/search-intent-owner-regression.mjs",
-    "test:foundation-contracts": "node tests/foundation-safety-regression.mjs && node tests/search-intent-owner-regression.mjs && node --test tests/website43-runtime-refactor-parity.test.mjs tests/money-story-presentation-parity.test.mjs tests/public-foundation-css-parity.test.mjs tests/web-foundation-config-parity.test.mjs tests/money-story-engine-parity.test.mjs",
-    "check:foundation": "npm run lint && npx tsc --noEmit --incremental false && npm run test:architecture && npm run test:foundation-contracts && npm run test:vercel && npm run test:admin",
+    "test:foundation-contracts": "node tests/foundation-safety-regression.mjs && node tests/search-intent-owner-regression.mjs && node --test tests/root-runtime-owner-migration.test.mjs tests/production-code-only-parity.test.mjs tests/website43-runtime-refactor-parity.test.mjs tests/money-story-presentation-parity.test.mjs tests/public-foundation-css-parity.test.mjs tests/web-foundation-config-parity.test.mjs tests/money-story-engine-parity.test.mjs && node --test tests/phase1-source-ownership.test.mjs tests/phase1-admin-api-parity.test.mjs tests/phase1-admin-boundary-parity.test.mjs tests/phase1-source-reader.test.mjs tests/phase2-css-delivery-parity.test.mjs tests/phase3-native-provider-parity.test.mjs tests/hostinger-native-app-contract.test.mjs && node --test tests/phase3-admin-contracts.test.mjs && node --test tests/phase3-admin-native-boundaries.test.mjs",
+    "check:foundation": "npm run lint && npx tsc --noEmit --incremental false && npm run test:architecture && npm run test:foundation-contracts && npm run test:public && npm run test:admin",
     "qa:legacy-urls": "node qa/legacy-url-regression.mjs",
     "qa:site": "node qa/uat-text-responsive-check.mjs",
     "qa:admin-41-responsive": "node qa/admin-41-responsive-regression.mjs",
@@ -38,8 +37,6 @@
     "cms:category-registry:uat:dry-run": "CCPUN_APP_ENV=local-uat NEXT_PUBLIC_CCPUN_APP_ENV=local-uat NEXT_PUBLIC_SANITY_PROJECT_ID=ccb9lnw5 NEXT_PUBLIC_SANITY_DATASET=uat SANITY_STUDIO_PROJECT_ID=ccb9lnw5 SANITY_STUDIO_DATASET=uat node --env-file-if-exists=.env.local --import tsx scripts/migrate-category-registry.ts --target=uat --dry-run",
     "cms:category-registry:production:dry-run": "CCPUN_APP_ENV=local-production NEXT_PUBLIC_CCPUN_APP_ENV=local-production CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 NEXT_PUBLIC_CCPUN_LOCAL_PRODUCTION_DRAFT_WRITES=1 NEXT_PUBLIC_SANITY_PROJECT_ID=kyfxgjnq NEXT_PUBLIC_SANITY_DATASET=production SANITY_STUDIO_PROJECT_ID=kyfxgjnq SANITY_STUDIO_DATASET=production node --env-file-if-exists=.env.local --import tsx scripts/migrate-category-registry.ts --target=production --dry-run",
     "qa:category-registry": "node --import tsx scripts/qa-category-registry.ts",
-    "guard:survivor": "node scripts/guard-survivor-deploy.mjs",
-    "build:survivor": "npm run guard:survivor && next build",
     "test:admin": "node --import tsx --test tests/admin/*.test.ts",
     "build:web:shadow": "npm run build --workspace @ccpun/web",
     "build:admin:shadow": "npm run build --workspace @ccpun/admin",
@@ -48,10 +45,10 @@
     "check:hostinger": "node scripts/check-hostinger-readiness.mjs",
     "qa:hostinger:parity": "node scripts/hostinger-seo-parity.mjs",
     "test:hostinger": "node --test tests/hostinger-shadow-config.test.mjs",
-    "build:hostinger": "node scripts/build-provider.mjs",
+    "build:hostinger": "npm run build --workspace @ccpun/web",
+    "worker:seo-post-publish": "node --conditions=react-server --import tsx scripts/seo-post-publish-worker.ts",
     "nav:check": "node scripts/sync-public-nav-config.mjs --check",
-    "nav:sync:write": "node scripts/sync-public-nav-config.mjs --write",
-    "audit:p2-closeout": "node scripts/check-p2-source-config-closeout.mjs"
+    "nav:sync:write": "node scripts/sync-public-nav-config.mjs --write"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.3.1",
@@ -68,7 +65,8 @@
     "server-only": "0.0.1",
     "tailwind-merge": "^3.5.0",
     "workflow": "^4.8.9",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@cloudflare/ai-search-snippet": "^0.0.43"
   },
   "devDependencies": {
     "@sanity/ui": "^4.2.1",

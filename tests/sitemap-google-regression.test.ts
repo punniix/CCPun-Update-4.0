@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { readPhase1Source } from "../qa/read-phase1-source.mjs";
 import type { SanityClient } from "sanity";
 import { articlePublishBlock, buildPublishedArticleDocument, hasMeaningfulArticleContentChange, publishApprovedArticle, type PublishableArticle } from "../cms/sanity/policy/article-publication";
 import {
@@ -104,7 +105,7 @@ test("protects Google publish eligibility and sets one meaningful publication ti
   assert.equal(resolveContentLastmod(written!), now);
   assert.equal(draft.contentUpdatedAt, undefined, "publication must not stamp a saved draft separately");
   assert.match(action, /articlePublishBlock\(draft, published\)/);
-  assert.match(action, /await publishApprovedArticle\(client, draft, published\)/);
+  assert.match(action, /await publishApprovedArticle\(client, draft, published, undefined, confirmation\.optimization\)/);
   assert.match(action, /schemaType !== "article"[\s\S]*action\.action === "publish"/);
   assert.match(config, /wrapGoogleSafeArticlePublishActions[\s\S]*protectProductionContentLifecycleActions/);
   assert.match(schema, /name:\s*"contentUpdatedAt"[\s\S]*readOnly:\s*true/);
@@ -112,12 +113,10 @@ test("protects Google publish eligibility and sets one meaningful publication ti
 
 
 for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}utility compliance and private error surfaces out of search ownership`, () => {
-  const coreWrapper = readSource(appRoot + "app/sitemaps/core.xml/route.ts");
-  const coreSitemap = readSource("lib/sitemap/routes/core.ts");
-  assert.match(coreWrapper, /export \{ GET \} from ["']@\/lib\/sitemap\/routes\/core["']/);
-  const cookieRoute = readSource(`${appRoot}app/cookie-policy/page.tsx`);
-  assert.match(cookieRoute, /export \{ metadata, default \} from ["']@\/features\/legal\/pages\/CookiePolicyPage["']/);
-  const cookiePolicy = readSource("features/legal/pages/CookiePolicyPage.tsx");
+  const coreSitemap = readPhase1Source(appRoot + "app/sitemaps/core.xml/route.ts");
+  const cookieEntry = readSource(`${appRoot}app/cookie-policy/page.tsx`);
+  if (!appRoot) assert.equal(cookieEntry, 'export { default, metadata } from "@/apps/web/app/cookie-policy/page";\n');
+  const cookiePolicy = readSource("apps/web/app/cookie-policy/page.tsx");
   const robotsSource = readSource(`${appRoot}app/robots.ts`);
   const nextConfig = readSource(`${appRoot}next.config.ts`);
 

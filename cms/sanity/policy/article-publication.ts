@@ -9,6 +9,7 @@ export type ArticleCategoryReference = {
 export type PublishableArticle = SanityDocument & {
   publishedAt?: string;
   contentUpdatedAt?: string;
+  contentOptimizedAt?: string;
   slug?: { current?: string };
   category?: { _type?: string; _ref?: string; _weak?: boolean };
   review?: { status?: string };
@@ -74,12 +75,17 @@ function normalizeVisibleValue(value: unknown): unknown {
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .filter(([key, entry]) => key !== "_key" && entry !== undefined)
+        .filter(([key, entry]) => !["_key", "_rev", "_createdAt", "_updatedAt"].includes(key) && entry !== undefined)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, entry]) => [key, normalizeVisibleValue(entry)]),
     );
   }
   return value ?? null;
+}
+
+export function hasArticleContentChanges(draft: PublishableArticle | null, published: PublishableArticle | null): boolean {
+  return Boolean(draft && published && ["title", "body", "faq", "sources"].some((field) =>
+    JSON.stringify(normalizeVisibleValue(draft[field])) !== JSON.stringify(normalizeVisibleValue(published[field]))));
 }
 
 function publicArticleContent(article: PublishableArticle) {
@@ -130,9 +136,10 @@ export function buildPublishedArticleDocument(
   draft: PublishableArticle,
   published: PublishableArticle | null,
   now = new Date().toISOString(),
+  confirmOptimization = false,
 ): PublishableArticle {
   const seo = draft.seo ? { ...draft.seo, noindex: false } : undefined;
-  return {
+  const document: PublishableArticle = {
     ...draft,
     ...(seo ? { seo } : {}),
     _id: draft._id.slice(7),
@@ -141,14 +148,19 @@ export function buildPublishedArticleDocument(
       ? now
       : (published?.contentUpdatedAt || published?._updatedAt || now),
   };
+  // Only an approved substantive update can advance this date; never trust a Draft-supplied value.
+  delete document.contentOptimizedAt;
+  if (published?.contentOptimizedAt) document.contentOptimizedAt = published.contentOptimizedAt;
+  if (confirmOptimization && hasArticleContentChanges(draft, published)) document.contentOptimizedAt = now;
+  return document;
 }
 
 /** Atomic publication: failed/conflicting writes leave both versions and dates untouched. */
-export async function publishApprovedArticle(client: SanityClient, draft: PublishableArticle, published: PublishableArticle | null, now = new Date().toISOString()) {
+export async function publishApprovedArticle(client: SanityClient, draft: PublishableArticle, published: PublishableArticle | null, now = new Date().toISOString(), confirmOptimization = false) {
   const blocked = articlePublishBlock(draft, published, Date.parse(now));
   if (blocked) throw new Error(blocked);
   const publishedId = draft._id.slice(7);
-  const document = buildPublishedArticleDocument(draft, published, now);
+  const document = buildPublishedArticleDocument(draft, published, now, confirmOptimization);
   // Sanity owns document system metadata; content and existing weak references stay intact.
   const payload: Record<string, unknown> = { ...document };
   for (const field of ["_rev", "_createdAt", "_updatedAt", "_system"]) delete payload[field];

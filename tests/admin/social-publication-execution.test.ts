@@ -103,8 +103,9 @@ test("Approval runtime is exact UAT, branch and runtime-role gated", () => {
   const env = {
     CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
     CCPUN_APP_ENV: "admin-uat",
-    VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-    VERCEL_GIT_COMMIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
+    CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+    CCPUN_DEPLOYMENT_ROLE: "admin",
+    CCPUN_GIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
     NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
     NEXT_PUBLIC_SANITY_DATASET: "uat",
     CCPUN_SOCIAL_DATABASE_URL: "postgresql://ccpun_social_runtime:secret@ep-mute-frost-aztvz394-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb",
@@ -113,7 +114,7 @@ test("Approval runtime is exact UAT, branch and runtime-role gated", () => {
   assert.equal(isSocialProviderExecutionGateEnabled(env), false);
   assert.equal(isSocialProviderExecutionGateEnabled({ ...env, CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1" }), true);
   assert.equal(isSocialPublicationApprovalEnabled({ ...env, CCPUN_APP_ENV: "local-production" }), false);
-  assert.equal(isSocialPublicationApprovalEnabled({ ...env, VERCEL_GIT_COMMIT_REF: "main" }), false);
+  assert.equal(isSocialPublicationApprovalEnabled({ ...env, CCPUN_GIT_REF: "main" }), false);
   assert.equal(isSocialPublicationApprovalEnabled({ ...env, CCPUN_SOCIAL_DATABASE_URL: env.CCPUN_SOCIAL_DATABASE_URL.replace("ccpun_social_runtime", "neondb_owner") }), false);
   const source = read("lib/admin/social/publishing.ts");
   for (const duplicate of ["CCPUN_NEON_PROJECT_ID", "CCPUN_NEON_BRANCH_ID", "CCPUN_NEON_ENDPOINT_ID", "CCPUN_NEON_DATABASE", "CCPUN_SOCIAL_PUBLICATION_APPROVAL_ENABLED"]) {
@@ -122,7 +123,7 @@ test("Approval runtime is exact UAT, branch and runtime-role gated", () => {
 });
 
 test("Approval API is owner-only, same-origin, validated and never calls a provider", () => {
-  const route = read("app/api/admin/social/publications/route.ts");
+  const route = read("apps/admin/app/api/admin/social/publications/route.ts");
   assert.match(route, /export async function GET/);
   assert.match(route, /listApprovedSocialVariants/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);

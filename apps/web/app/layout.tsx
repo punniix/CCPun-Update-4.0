@@ -1,7 +1,11 @@
+import { buildSiteRootMetadata } from "@/lib/seo/root-metadata";
+import { CRITICAL_FOUNDATION_CSS } from "@/components/styles/critical-foundation";
 import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
 import "./globals.css";
-import { ccpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
+import { buildCcpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
+import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
+import { getPublicAuthorName } from "@/lib/content/author-identity";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
 import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
 import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED } from "../runtime-environment";
@@ -11,53 +15,31 @@ const META_PIXEL_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLI
 const GTM_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : "";
 const kanit = Kanit({
   subsets: ["thai", "latin"],
-  weight: ["300", "400", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-kanit",
-  display: "optional",
+  display: "swap",
   preload: false,
 });
 
 const kanitCritical = Kanit({
   subsets: ["thai"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-kanit-critical",
-  display: "optional",
+  display: "swap",
   preload: true,
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://ccpun.com"),
-  title: "CCPun | ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน",
-  description: "ไม่แน่ใจว่าควรลงทุนหรือทำประกันแบบไหน? CCPun ที่ปรึกษาทางการเงิน ช่วยดูเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี ก่อนค่อยเลือกทางที่เหมาะกับชีวิตคุณ",
-  keywords: ["ที่ปรึกษาการเงิน", "กองทุนรวม", "ประกันชีวิต", "วางแผนภาษี", "RMF", "SSF", "ThaiESG", "AIA", "Finnomena", "PhillipCapital"],
-  authors: [{ name: "ชนาธิป ชิตประเสริฐ", url: "https://ccpun.com" }],
-  openGraph: {
-    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
-    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
-    url: "https://ccpun.com",
-    siteName: "CCPun Financial Advisor",
-    images: [{ url: "https://ccpun.com/og-image-20260610.webp?v=68ae8d8", width: 1200, height: 630, alt: "CCPun ที่ปรึกษาการเงิน" }],
-    locale: "th_TH",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "ลงทุนหรือทำประกันอะไรดี? เริ่มจากปัญหาที่คุณมีก่อน | CCPun",
-    description: "เพราะคำว่า “ดีที่สุด” ของคนอื่น อาจไม่ตอบโจทย์คุณ ลองเริ่มจากเป้าหมาย ความเสี่ยง และสิ่งที่คุณมี แล้วค่อยเลือกลงทุนหรือประกันให้เหมาะกับตัวเอง",
-    images: ["https://ccpun.com/og-image-20260610.webp?v=68ae8d8"],
-  },
-  alternates: {
-    canonical: "https://ccpun.com/",
-    languages: { "th-TH": "https://ccpun.com/", "x-default": "https://ccpun.com/" },
-  },
-  robots: IS_WEB_REVIEW_ENVIRONMENT ? { index: false, follow: false, nocache: true } : undefined,
-  icons: {
-    icon: { url: "/favicon.png", type: "image/png" },
-    apple: "/favicon.png",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const author = await getPrimaryAuthorProfile();
+  return {
+    ...buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT }),
+    authors: [{ name: getPublicAuthorName(author), url: "https://ccpun.com" }],
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const author = await getPrimaryAuthorProfile();
+  const schemaGraph = buildCcpunSchemaGraph(author);
   return (
     <html lang="th" className={`${kanit.variable} ${kanitCritical.variable}`} suppressHydrationWarning>
       <head>
@@ -65,26 +47,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         <Website43ResponsiveStyles />
-        <style dangerouslySetInnerHTML={{ __html: `
-          :root{color-scheme:dark;--background:0 15% 18%;--foreground:0 10% 98%;--primary:45 60% 70%;--primary-foreground:0 15% 12%;--muted-foreground:0 10% 70%;--border:0 12% 32%;--radius:1rem;}
-          body{background-color:hsl(0 15% 18%);color:hsl(0 10% 98%);font-family:'Kanit',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;}
-          .hero-dark-overlay{background:linear-gradient(180deg,rgba(15,20,30,.45) 0%,rgba(20,25,35,.40) 50%,rgba(15,20,30,.50) 100%);}
-          .hero-gold-accent{background:radial-gradient(ellipse at 30% 20%,rgba(220,190,130,.08) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(220,190,130,.05) 0%,transparent 50%);}
-          .hero-grid-pattern{background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.3) 1px,transparent 0);background-size:40px 40px;}
-          .glass-card{position:relative;overflow:hidden;border-radius:1rem;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.03) 100%);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.15);box-shadow:0 8px 32px rgba(0,0,0,.25),inset 0 1px 1px rgba(255,255,255,.15);}
-          .gold-button{position:relative;overflow:hidden;border-radius:9999px;padding:.75rem 1.25rem;font-weight:600;transition:all .3s;color:hsl(0 15% 12%);background:linear-gradient(135deg,hsl(45,60%,70%) 0%,hsl(45,70%,78%) 50%,hsl(45,60%,70%) 100%);background-size:200% 200%;box-shadow:0 2px 8px rgba(0,0,0,.2),0 0 20px rgba(220,190,130,.18),inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(0,0,0,.08);}
-          .text-gold-gradient{color:#e0c985;}
-          @media(max-width:768px){.gold-button{padding:.75rem 1.25rem;}}
-          @media(min-width:768px){.gold-button{padding:1rem 2rem;}}
-          @keyframes hero-fade-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-          .hero-badge{animation:hero-fade-up .4s ease both;}
-          .hero-heading{animation:hero-fade-up .4s ease both;}
-          .hero-subtitle{animation:hero-fade-up .4s ease .1s both;}
-          .hero-cta{animation:hero-fade-up .4s ease .2s both;}
-          @keyframes scroll-breath{0%,100%{transform:translateX(-50%) translateY(0);opacity:1}50%{transform:translateX(-50%) translateY(6px);opacity:.62}}
-          @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-badge,.hero-heading,.hero-subtitle,.hero-cta,.scroll-indicator{animation:none!important}}
-        ` }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ccpunSchemaGraph) }} />
+        <style dangerouslySetInnerHTML={{ __html: CRITICAL_FOUNDATION_CSS }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaGraph).replace(/</g, "\\u003c") }} />
       </head>
       <body className="antialiased font-sans">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:p-2 focus:bg-background focus:text-foreground focus:rounded focus:border focus:border-primary/50">

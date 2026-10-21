@@ -1,8 +1,9 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import {
   classifySocialDatabaseError,
   canTransitionPublicationStatus,
@@ -27,11 +28,12 @@ import {
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 const enabledInput = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
   flag: "1",
   dataMode: "synthetic",
   environment: "admin-uat" as const,
-  vercelEnvironment: "preview",
-  projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+  vercelEnvironment: undefined,
+  projectId: undefined,
   gitBranch: WEBSITE_42_SOCIAL_BRANCH,
   sanityProjectId: WEBSITE_42_SANITY_PROJECT_ID,
   sanityDataset: WEBSITE_42_SANITY_DATASET,
@@ -176,7 +178,7 @@ test("Migration checksum covers the reviewed DDL and operational constraints", (
 });
 
 test("Social API is authenticated, owner-scoped, exact-origin and read-only", () => {
-  const route = read("app/api/admin/social/foundation/route.ts");
+  const route = read("apps/admin/app/api/admin/social/foundation/route.ts");
   const page = read("app/(control-plane)/social/page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "social:read"\)/);

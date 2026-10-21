@@ -9,8 +9,9 @@ const enabledEnv = {
   CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED: "1",
   CCPUN_SOCIAL_OPERATIONS_ENABLED: "1",
   CCPUN_APP_ENV: "admin-uat",
-  VERCEL_PROJECT_ID: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-  VERCEL_GIT_COMMIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
+  CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+  CCPUN_DEPLOYMENT_ROLE: "admin",
+  CCPUN_GIT_REF: "codex/website-42-social-analytics-ingestion-20260831",
   NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5",
   NEXT_PUBLIC_SANITY_DATASET: "uat",
   CCPUN_NEON_PROJECT_ID: "young-term-47483330",
@@ -702,7 +703,7 @@ test("Mocked Facebook native schedule claims once and uses the Page token return
 });
 
 test("Manual execution route is owner-only, same-origin, UAT-gated and has no background runner", () => {
-  const route = read("app/api/admin/social/publications/execute/route.ts");
+  const route = read("apps/admin/app/api/admin/social/publications/execute/route.ts");
   const store = read("lib/admin/social/execution-store.ts");
   assert.match(route, /identity\.actorType !== "human" \|\| identity\.role !== "owner"/);
   assert.match(route, /isSameOriginAdminMutation\(request\.url, request\.headers\.get\("origin"\)\)/);

@@ -1,7 +1,4 @@
-import {
-  CCPUN_VERCEL_PROJECT_IDS as RUNTIME_VERCEL_PROJECT_IDS,
-  resolveDeploymentIdentity,
-} from "../runtime/deployment-identity";
+import { resolveDeploymentIdentity } from "../runtime/deployment-identity";
 
 export const ADMIN_ENVIRONMENTS = [
   "development",
@@ -17,11 +14,6 @@ export const ADMIN_ENVIRONMENTS = [
 ] as const;
 
 export type AdminEnvironment = (typeof ADMIN_ENVIRONMENTS)[number];
-
-export const CCPUN_VERCEL_PROJECT_IDS = {
-  web: RUNTIME_VERCEL_PROJECT_IDS.web,
-  adminProduction: RUNTIME_VERCEL_PROJECT_IDS.admin,
-} as const;
 
 const EXPLICIT_ENVIRONMENTS = new Set<AdminEnvironment>([
   "development",
@@ -97,17 +89,13 @@ export function parseAdminEnvironment(value: string | undefined): AdminEnvironme
 
 export function resolveAdminEnvironment(
   explicitValue: string | undefined,
-  vercelEnvironment: string | undefined,
-  deploymentProjectId: string | undefined,
+  _legacyEnvironment: string | undefined,
+  _legacyProjectId: string | undefined,
 ): AdminEnvironment {
   const explicitEnvironment = parseAdminEnvironment(explicitValue);
   if (explicitValue?.trim()) return explicitEnvironment;
 
-  const isAdminPreview =
-    vercelEnvironment?.trim().toLowerCase() === "preview" &&
-    deploymentProjectId?.trim() === CCPUN_VERCEL_PROJECT_IDS.adminProduction;
-
-  return isAdminPreview ? "admin-uat" : "unknown";
+  return "unknown";
 }
 
 export function getAdminEnvironment(): AdminEnvironment {
@@ -164,32 +152,10 @@ export function isDeploymentProjectAllowed(
       && identity.environment === environment;
   }
 
-  if (provider && provider !== "vercel" && provider !== "local") return false;
-  if (provider === "vercel" && !deploymentProjectId) return false;
+  if (provider && provider !== "local") return false;
+  if (deploymentProjectId || productionAdminProjectId) return false;
 
-  switch (environment) {
-    case "development":
-      return !deploymentProjectId;
-    case "web-uat":
-      return deploymentProjectId === CCPUN_VERCEL_PROJECT_IDS.web;
-    case "local-uat":
-    case "local-production":
-      return !deploymentProjectId;
-    case "lab":
-    case "uat":
-      return false;
-    case "admin-uat":
-      return deploymentProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction;
-    case "production-admin":
-      return Boolean(
-        deploymentProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction &&
-        productionAdminProjectId === CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-      );
-    case "production":
-      return deploymentProjectId === CCPUN_VERCEL_PROJECT_IDS.web;
-    default:
-      return false;
-  }
+  return environment === "development" || environment === "local-uat" || environment === "local-production";
 }
 
 export function isAdminSurfaceAllowed(

@@ -1,13 +1,11 @@
+import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import test from "node:test";
 import { ADMIN_ROLES, hasAdminPermission } from "../../lib/admin/rbac";
 import { ADMIN_OPERATIONS_LANES, resolveAdminOperationsRuntimeIdentity } from "../../lib/admin/operations/foundation";
 
-const root = path.resolve(import.meta.dirname, "../..");
-const read = (file: string) => readFileSync(path.join(root, file), "utf8");
+const read = (file: string) => readPhase1Source(file);
 const checksum = "99519369562761cfb4cb95fe7d6e14f5d0a158ba31b116200d729eb865a451e0";
 
 function checksumSource(sql: string) {
@@ -89,9 +87,9 @@ test("Advisor Inbox runtime reuses the exact Admin Neon lane guard", () => {
   assert.match(controlPlane, /CCPUN_LINE_TRANSCRIPT_ENABLED/);
   assert.match(controlPlane, /outboundEnabled:\s*false/);
 
-  for (const [lane, environment, vercelEnvironment] of [
-    ["uat", "admin-uat", "preview"],
-    ["production", "production-admin", "production"],
+  for (const [lane, environment] of [
+    ["uat", "admin-uat"],
+    ["production", "production-admin"],
   ] as const) {
     const identity = ADMIN_OPERATIONS_LANES[lane];
     const input = {
@@ -100,12 +98,14 @@ test("Advisor Inbox runtime reuses the exact Admin Neon lane guard", () => {
       branchId: identity.branchId,
       database: identity.database,
       connectionString: `postgresql://${identity.runtimeRole}:test-only@${identity.endpointId}.${identity.hostSuffix}/${identity.database}?sslmode=require`,
-      vercelEnvironment,
+      deploymentProvider: "hostinger", deploymentRole: "admin",
+      gitSha: "a".repeat(40), releaseId: "advisor-inbox-fixture",
       gitBranch: lane === "production" ? "v4-production" : "admin/line-advisor-inbox-20260918",
-      vercelProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
-      productionAdminProjectId: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN",
     };
     assert.equal(resolveAdminOperationsRuntimeIdentity(input)?.lane, lane);
+    assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, deploymentProvider: "vercel" }), null);
+    assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, deploymentRole: "web" }), null);
+    assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, vercelEnvironment: "preview" }), null);
     assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, branchId: "wrong-branch" }), null);
     assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, database: "wrong-db" }), null);
     assert.equal(resolveAdminOperationsRuntimeIdentity({ ...input, connectionString: input.connectionString.replace(identity.runtimeRole, "neondb_owner") }), null);

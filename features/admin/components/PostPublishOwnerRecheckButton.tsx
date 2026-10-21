@@ -60,7 +60,7 @@ export default function PostPublishOwnerRecheckButton({ articleId }: { articleId
     <div className="flex flex-wrap items-center gap-2">
       {confirming ? (
         <>
-          <button type="button" disabled={working} onClick={() => void recheck()} className="min-h-11 rounded-xl bg-[#e0c985] px-3 py-2 text-sm font-semibold text-[#352727] disabled:opacity-40">
+          <button type="button" disabled={working} onClick={() => void recheck()} style={{ color: "#352727" }} className="min-h-11 rounded-xl bg-[#e0c985] px-3 py-2 text-sm font-semibold disabled:opacity-40">
             ยืนยันส่งตรวจ SEO
           </button>
           <button type="button" disabled={working} onClick={() => setConfirming(false)} className="min-h-11 rounded-xl border border-white/20 px-3 py-2 text-sm text-white/70">

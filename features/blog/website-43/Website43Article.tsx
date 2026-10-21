@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { getPublicAuthorName } from "@/lib/content/author-identity";
 import type { Article } from '@/lib/content/types';
 import { getArticleSemanticTopic } from '@/lib/content/taxonomy';
 import { getArticlePath } from '@/lib/content/url';
@@ -7,7 +8,12 @@ import styles from '@/components/layout/website-43/Website43.module.css';
 import { SectionHeading, Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { WEBSITE43_BASE as BASE } from '@/components/layout/website-43/constants';
 import Website43ArticleToc from './Website43ArticleToc';
+import Website43ArticleOverview from './Website43ArticleOverview';
+import HealthHappyCountdown from '@/components/ui/health-happy/HealthHappyCountdown';
 import { renderWebsite43ArticleBody } from './Website43ArticleBody';
+import ArticleShareActions from './ArticleShareActions';
+import { estimateArticleReadingMinutes } from './articleReadingTime';
+import { ArticleEngagementProvider, ArticleEngagementSummary } from './ArticleEngagement';
 
 const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   day: 'numeric',
@@ -22,7 +28,7 @@ const DEFAULT_AUTHOR_BIO = 'ในฐานะที่ปรึกษาทา�
 export default function Website43Article({ article, relatedArticles = [], preview = false }: { article: Article; relatedArticles?: Article[]; preview?: boolean }) {
   const professionalQualifications = article.author?.professionalQualifications ?? [];
   const managedProfile = professionalQualifications.length > 0;
-  const baseAuthorName = article.author?.profileName ?? article.author?.name ?? article.authorName ?? 'ชนาธิป ชิตประเสริฐ';
+  const baseAuthorName = article.author ? getPublicAuthorName(article.author) : (article.authorName || 'ชนาธิป ชิตประเสริฐ');
   const qualificationSuffix = professionalQualifications.map((qualification) => qualification.shortName.trim()).filter(Boolean).join(', ');
   const author = {
     name: qualificationSuffix ? `${baseAuthorName}, ${qualificationSuffix}` : baseAuthorName,
@@ -51,11 +57,13 @@ export default function Website43Article({ article, relatedArticles = [], previe
     return groups;
   }, []);
   const publishedDateLabel = article.publishedAt ? thaiDateFormatter.format(new Date(article.publishedAt)) : null;
-  const updatedDateLabel = thaiDateFormatter.format(new Date(article.updatedAt));
-  const showUpdatedDate = !publishedDateLabel || publishedDateLabel !== updatedDateLabel;
+  const optimizedDateLabel = article.optimizedAt && Number.isFinite(Date.parse(article.optimizedAt))
+    ? thaiDateFormatter.format(new Date(article.optimizedAt)) : null;
+  const readingMinutes = estimateArticleReadingMinutes(article);
+  const sharePath = getArticlePath(article);
 
   return (
-    <div className={styles.root}>
+    <ArticleEngagementProvider key={article.id} articleId={article.id} disabled={preview}><div className={styles.root}>
       <Website43Navbar responsiveOverlay />
       <main id="main-content" tabIndex={-1}>
         {preview && <aside className={styles.section} role="status"><div className={styles.inner}>
@@ -66,22 +74,30 @@ export default function Website43Article({ article, relatedArticles = [], previe
             <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
               <Link href="/">หน้าแรก</Link> <span>›</span> <Link href={`${BASE}/blog`}>บทความ</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
-            <h1 className={styles.articleHeadline}>{article.title}</h1>
+            <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>โดย {author.name.replaceAll('™', '')}</p>
+            <h1 className={styles.articleHeadline} style={{ textWrap: 'balance', marginTop: 12 }}>{article.title}</h1>
             <div className={styles.articleMetaRow}>
-              <p className={styles.articleHeaderMeta}>
-                {publishedDateLabel ? `เผยแพร่เมื่อ ${publishedDateLabel}` : null}
-                {showUpdatedDate ? `${publishedDateLabel ? ' · ' : ''}อัปเดตล่าสุด ${updatedDateLabel}` : null}
-              </p>
+              <div className={styles.articleMetaGroup}>
+                <p className={styles.articleHeaderMeta}>
+                  {publishedDateLabel && <span><span className={styles.articleDateLabel}>เผยแพร่</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></span>}
+                  {optimizedDateLabel && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>อัปเดตข้อมูลล่าสุด</span> <time dateTime={article.optimizedAt}>{optimizedDateLabel}</time></span>}
+                </p>
+                <ArticleEngagementSummary readingMinutes={readingMinutes} />
+              </div>
+              {!preview && <ArticleShareActions path={sharePath} title={article.title} placement="header" />}
             </div>
           </div>
         </header>
 
-        <section className={styles.articleReadingWrap}>
+        {article.slug === 'aia-health-happy-describe' && <HealthHappyCountdown placement="article" />}
+        <section className={styles.articleReadingWrap} id={article.slug === 'aia-health-happy-describe' ? 'health-happy-details' : undefined}>
           <div className={styles.articleReadingGrid}>
-            {headings.length > 0 && (
+            {tocGroups.length > 0 && (
               <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">
-                <strong>หัวข้อเนื้อหา</strong>
-                <Website43ArticleToc groups={tocGroups} />
+                <details className={styles.tocDisclosure} open>
+                  <summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+                  <Website43ArticleToc groups={tocGroups} />
+                </details>
               </aside>
             )}
             <div className={styles.articleMainColumn}>
@@ -99,29 +115,23 @@ export default function Website43Article({ article, relatedArticles = [], previe
                   {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
                 </figure>
               )}
-              {headings.length > 0 && (
+              {tocGroups.length > 0 && (
                 <details className={styles.tocMobile}>
-                  <summary>หัวข้อเนื้อหา</summary>
+                  <summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
                   <div className={styles.tocMobileList}>
                     <Website43ArticleToc groups={tocGroups} />
                   </div>
                 </details>
               )}
+              {(preview || article.status === 'published') && <Website43ArticleOverview summary={article.geo?.summary} />}
               <article className={styles.prose}>{renderWebsite43ArticleBody(article.body, headingIds)}</article>
+              {!preview && <div className={styles.articleBottomShare}>
+                <ArticleEngagementSummary />
+                <ArticleShareActions path={sharePath} title={article.title} placement="footer" />
+              </div>}
             </div>
           </div>
         </section>
-
-        {article.sources && article.sources.length > 0 && (
-          <section className={styles.section} data-uat-section="article-sources">
-            <div className={`${styles.inner} ${styles.articleSupportInner}`}>
-              <h2 className={styles.h2}>แหล่งอ้างอิง</h2>
-              <ul className={styles.articleSources}>
-                {article.sources.map((source, index) => <li key={`${source.label}-${index}`}>{source.url ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.label}</a> : source.label}</li>)}
-              </ul>
-            </div>
-          </section>
-        )}
 
         {article.faq && article.faq.length > 0 && (
           <section id="faq" className={`${styles.section} ${styles.sectionBottomLarge}`}>
@@ -174,8 +184,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
                       {candidate.featuredImage && <Image className={styles.articleImage} src={candidate.featuredImage.src} alt="" width={candidate.featuredImage.width} height={candidate.featuredImage.height} sizes="(max-width: 639px) calc(100vw - 48px), 520px" loading="lazy" />}
                       <div className={styles.articleCardBody}>
                         <span className={styles.articleCategory}>{candidateTopic?.title ?? candidate.category}</span>
-                        <h3 className={styles.articleTitle}>{candidate.title}</h3>
-                        <p className={styles.articleExcerpt}>{candidate.excerpt.trim() || candidate.title}</p>
+                        <h3 className={styles.articleTitle} style={{ textWrap: 'pretty' }}>{candidate.title}</h3>
+                        <p className={styles.articleExcerpt} style={{ textWrap: 'pretty' }}>{candidate.excerpt.trim() || candidate.title}</p>
                         <span className={styles.articleCategory}>อ่านบทความ →</span>
                       </div>
                     </Link>
@@ -188,6 +198,6 @@ export default function Website43Article({ article, relatedArticles = [], previe
         <section className={styles.section}><div className={`${styles.inner} ${styles.articleSupportInner}`}><p className={styles.cardBody}>บทความนี้จัดทำเพื่อให้ข้อมูลทั่วไป ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก และการลงทุนมีความเสี่ยง ควรศึกษาความคุ้มครอง เงื่อนไข ข้อยกเว้น และความเหมาะสมก่อนตัดสินใจ</p></div></section>
       </main>
       <Website43Footer />
-    </div>
+    </div></ArticleEngagementProvider>
   );
 }

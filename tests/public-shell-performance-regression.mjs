@@ -203,8 +203,8 @@ assert.doesNotMatch(
 );
 assert.match(
   website43ResponsiveStyles,
-  /\.\$\{styles\.homeHero\}\s*\{[\s\S]*height:\s*clamp\(740px,[\s\S]*760px\)/,
-  'Mobile Home hero must interpolate between the 390 canonical and 600 transition reference instead of locking one height',
+  /\.\$\{styles\.homeHero\}\s*\{\s*height:\s*auto;\s*min-height:\s*780px;\s*isolation:\s*isolate;/,
+  'Mobile Home hero must grow with readable content while retaining its minimum image area and paint isolation',
 );
 assert.match(
   website43ResponsiveStyles,
@@ -229,7 +229,7 @@ assert.doesNotMatch(
 );
 assert.match(
   website43Blog,
-  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer \/>/,
+  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer flushBottom \/>/,
   'Blog shell must keep the existing Hero/Navbar/content/Footer order while delegating only interactions to the client island',
 );
 assert.match(

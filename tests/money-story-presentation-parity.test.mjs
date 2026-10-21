@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import test from 'node:test';
 import { createRequire } from 'node:module';
 
@@ -16,10 +17,10 @@ const stateWrites = [];
 const cache = new Map();
 
 // No browser, provider scripts, or network: execute the real JSX and pure engine.
-function load(path) {
-  if (cache.has(path)) return cache.get(path);
+function load(path, sources = new Map(), modules = cache) {
+  if (modules.has(path)) return modules.get(path);
   const exports = {};
-  cache.set(path, exports);
+  modules.set(path, exports);
   const require = (id) => {
     if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'fragment' };
     if (id === 'react') return {
@@ -39,11 +40,11 @@ function load(path) {
     if (id === '@/lib/cookie-consent') return { getConsentData: () => ({ analytics: true }) };
     if (id.startsWith('.')) {
       const target = resolve(dirname(path), id);
-      return load(existsSync(target + '.tsx') ? target + '.tsx' : target + '.ts');
+      return load(existsSync(target + '.tsx') ? target + '.tsx' : target + '.ts', sources, modules);
     }
     throw new Error('Unexpected import: ' + id);
   };
-  new Function('exports', 'require', 'requestAnimationFrame', ts.transpileModule(readFileSync(path, 'utf8'), {
+  new Function('exports', 'require', 'requestAnimationFrame', ts.transpileModule(sources.get(path) ?? readFileSync(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText)(exports, require, (callback) => callback());
   return exports;
@@ -59,13 +60,13 @@ function expand(value) {
   if (typeof value.type === 'function') return expand(value.type(value.props));
   return { ...value, props: { ...value.props, children: expand(value.props.children) } };
 }
-function render(values) {
+function render(values, component = Game) {
   hookValues = values;
   hookIndex = 0;
   effects.length = 0;
   events.length = 0;
   stateWrites.length = 0;
-  return expand(Game({ showSeed: true }));
+  return expand(component({ showSeed: true }));
 }
 function digest(tree) {
   return createHash('sha256').update(JSON.stringify(tree, (key, value) => {
@@ -119,8 +120,16 @@ const baseline = {
   "result-lose-actions": "040361a90f2c1d2fd193c7fb5dbfc8d7268dccff41d28d1f6d13f4623049b861"
 };
 
-test('Money Story rendered selection, result and recovery trees match Production', () => {
-  for (const [name, values] of cases) assert.equal(digest(render(values)), baseline[name], name);
+test('Money Story preserves original Production trees except approved focusable selection/result root', () => {
+  for (const [name, values] of cases) {
+    const tree = render(values);
+    if (name.startsWith('selection-') || name.startsWith('result-')) {
+      assert.equal(tree.props.tabIndex, -1, name + ': programmatic focus without extra Tab stop');
+      const priorTree = { ...tree, props: { ...tree.props } };
+      delete priorTree.props.tabIndex;
+      assert.equal(digest(priorTree), baseline[name], name + ': every other original property retained');
+    } else assert.equal(digest(tree), baseline[name], name);
+  }
 });
 
 test('selection and result buttons retain original state owner and analytics payloads', () => {
@@ -143,4 +152,66 @@ test('selection and result buttons retain original state owner and analytics pay
   find(' เลือกชีวิตใหม่').props.onClick();
   assert.deepEqual(events.slice(-2).map((event) => event.name), ['money_story_replay', 'money_story_character_reselect']);
   assert.deepEqual(stateWrites.slice(-5), [[0, null], [1, null], [2, ''], [3, []], [4, []]]);
+});
+
+// Original f703 controller executes only as an output fixture, never as a current-source reader.
+const phase2 = JSON.parse(readFileSync('qa/phase2-css-delivery-parity.json', 'utf8'));
+const OriginalGame = load(gamePath, new Map([[gamePath, gunzipSync(Buffer.from(phase2.moneyOriginalControllerGzip, 'base64')).toString()]]), new Map()).default;
+const sidebarCases = [
+  ...characters.map(character => engine.createGame('phase2-sidebar-parity', character.id)),
+  ...['health', 'critical', 'life', 'motor', 'home'].flatMap(type =>
+    [0, 1, 2].flatMap(activeFromMonth => ['existing', 'purchased'].map(source => ({
+      ...state, protections: [{ type, source, activeFromMonth, monthlyPremium: 1234 }],
+    })))),
+  ...[-1000, 0, 0.5, 1e6, 1e9].map(amount => ({ ...state, cash: amount, investments: amount })),
+];
+test('actual extracted status sidebar preserves all characters, coverage timings and goal/meter clamps', () => {
+  for (const [index, game] of sidebarCases.entries()) {
+    assert.equal(digest(render([game])), digest(render([game], OriginalGame)), 'sidebar state ' + index);
+  }
+});
+
+test('active controller buttons keep callback state writes and analytics after sidebar extraction', () => {
+  let activeTrace;
+  for (const original of [false, true]) {
+    const tree = render([state], original ? OriginalGame : Game);
+    const begin = elements(tree).find(element => element.type === 'button' && text(element) === 'เริ่มเดือน 1');
+    begin.props.onClick();
+    const trace = { states: structuredClone(stateWrites), events: structuredClone(events) };
+    if (original) assert.deepEqual(trace, activeTrace);
+    else activeTrace = trace;
+  }
+});
+
+
+test('all library event impact branches preserve original render output and required presentation dependencies', () => {
+  const month = engine.beginMonth(state);
+  for (const event of eventLibrary) {
+    const game = { ...month, currentEventId: event.id, pendingShortfall: undefined };
+    assert.equal(digest(render([game])), digest(render([game], OriginalGame)), event.id);
+  }
+});
+
+// Explicit native prompt is a presentation safeguard; no game state/event is changed on Cancel.
+test('active round reset Cancel/Accept and untouched/final round reselect keep exact original state/events', () => {
+  const previous = globalThis.window;
+  let prompts = [];
+  const back = tree => elements(tree).find(element => element.type === 'button' && text(element).includes('กลับไปเลือก'));
+  try {
+    for (const game of [{ ...state, currentMonth: 2 }, { ...state, history: resultHistory.slice(0,1) }]) {
+      globalThis.window = { confirm: message => { prompts.push(message); return false; } };
+      const tree = render([game]); const button = back(tree); assert(button);
+      button.props.onClick(); assert.equal(prompts.at(-1), 'กลับไปเลือกตัวละครจะเริ่มรอบใหม่ ต้องการเริ่มใหม่หรือไม่?');
+      assert.deepEqual(stateWrites, []); assert.deepEqual(events, []);
+      globalThis.window.confirm = message => { prompts.push(message); return true; };
+      button.props.onClick(); assert.equal(events.at(-1).name, 'money_story_character_reselect');
+      assert.deepEqual(stateWrites.slice(-5), [[0,null],[1,null],[2,''],[3,[]],[4,[]]]);
+    }
+    let called = false;
+    globalThis.window = { confirm: () => { called = true; return false; } };
+    back(render([state])).props.onClick(); assert.equal(called, false);
+    const finished = render([{ ...state, status:'win',history:resultHistory }]);
+    elements(finished).find(x => x.type === 'button' && text(x).includes('เลือกชีวิตใหม่')).props.onClick();
+    assert.equal(called,false);
+  } finally { if (previous === undefined) delete globalThis.window; else globalThis.window = previous; }
 });

@@ -24,8 +24,6 @@ export function Website43ResponsiveStyles() {
 .${styles.articleReadingWrap},
 .${styles.toolStorySection},
 .${styles.calculatorSection},
-.${styles.legalHeader},
-.${styles.legalBody},
 .${styles.notFound},
 .${styles.footerWrap} {
   padding-left: var(--w43-content-gutter);
@@ -36,11 +34,9 @@ export function Website43ResponsiveStyles() {
 .${styles.sectionDeep} > .${styles.inner},
 .${styles.blogContent} > .${styles.inner},
 .${styles.articleHeader} > .${styles.inner},
-.${styles.legalHeader} > .${styles.inner},
-.${styles.legalBody} > .${styles.inner},
 .${styles.footerWrap} > .${styles.inner} {
   width: var(--w43-shell-width);
-  max-width: none;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -53,8 +49,8 @@ export function Website43ResponsiveStyles() {
 }
 
 .${styles.about} {
-  padding-left: var(--w43-hero-gutter);
-  padding-right: var(--w43-hero-gutter);
+  padding-left: var(--w43-content-gutter);
+  padding-right: var(--w43-content-gutter);
 }
 
 .${styles.homeHeroCopy} {
@@ -110,12 +106,6 @@ export function Website43ResponsiveStyles() {
   grid-template-columns: minmax(220px, 260px) minmax(0, 720px);
   gap: clamp(32px, 3.333vw, 48px);
 }
-.${styles.legalGrid} {
-  width: min(988px, calc(100vw - 112px));
-  max-width: none;
-  margin-left: auto;
-  margin-right: auto;
-}
 
 @media (max-width: 1023px) {
   .${styles.root} {
@@ -129,8 +119,6 @@ export function Website43ResponsiveStyles() {
   .${styles.sectionDeep} > .${styles.inner},
   .${styles.blogContent} > .${styles.inner},
   .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
   .${styles.footerWrap} > .${styles.inner} {
     width: 100%;
     max-width: none;
@@ -174,14 +162,14 @@ export function Website43ResponsiveStyles() {
   .${styles.toolDescription} {
     width: 100%;
   }
+  .${styles.toolHero} .${styles.primaryButton} {
+    width: 140px;
+    min-width: 140px;
+  }
 
   .${styles.articleReadingGrid} {
     grid-template-columns: 200px minmax(0, 1fr);
     gap: 32px;
-  }
-  .${styles.legalGrid} {
-    width: 100%;
-    max-width: none;
   }
 }
 
@@ -193,12 +181,23 @@ export function Website43ResponsiveStyles() {
     --w43-shell-width: var(--w43-mobile-reading-width);
   }
 
+  .${styles.section},
+  .${styles.sectionDeep},
+  .${styles.blogContent},
+  .${styles.articleHeader},
+  .${styles.articleReadingWrap},
+  .${styles.toolStorySection},
+  .${styles.calculatorSection},
+  .${styles.notFound},
+  .${styles.footerWrap} {
+    padding-left: var(--w43-content-gutter);
+    padding-right: var(--w43-content-gutter);
+  }
+
   .${styles.section} > .${styles.inner},
   .${styles.sectionDeep} > .${styles.inner},
   .${styles.blogContent} > .${styles.inner},
   .${styles.articleHeader} > .${styles.inner},
-  .${styles.legalHeader} > .${styles.inner},
-  .${styles.legalBody} > .${styles.inner},
   .${styles.footerWrap} > .${styles.inner},
   .${styles.aboutInner} {
     width: var(--w43-mobile-reading-width);
@@ -274,12 +273,6 @@ export function Website43ResponsiveStyles() {
     margin-left: 0;
     margin-right: auto;
   }
-  .${styles.legalGrid} {
-    width: var(--w43-mobile-reading-width);
-    max-width: 100%;
-    margin-left: 0;
-    margin-right: auto;
-  }
 
   .${styles.toolHeroCopy} {
     z-index: 4;
@@ -319,8 +312,8 @@ export function Website43ResponsiveStyles() {
   }
 
   .${styles.blogHeroImage} {
-    inset: 80px 0 auto auto;
-    height: calc(100% - 18px);
+    inset: 0 0 0 auto;
+    height: 100%;
   }
   .${styles.toolHeroImage} {
     inset: 96px 0 auto auto;
@@ -356,12 +349,12 @@ export function Website43ResponsiveStyles() {
 
 @media (min-width: 640px) and (max-width: 1023px) {
   .${styles.blogHeroImage} {
-    top: 76px;
+    top: 0;
     right: 0;
-    bottom: auto;
+    bottom: 0;
     left: auto;
     width: 508px;
-    height: 346px;
+    height: 100%;
   }
 
   .${styles.featuredCard} {
@@ -385,6 +378,37 @@ export function Website43ResponsiveStyles() {
 }
 
 @media (max-width: 1023px) {
+  .${styles.toolHero} {
+    height: auto;
+    min-height: 600px;
+  }
+  .${styles.toolHeroCopy} {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    margin-inline: var(--w43-hero-gutter);
+    padding-top: 104px;
+    padding-bottom: 32px;
+  }
+  .${styles.toolBadge}, .${styles.toolTitle}, .${styles.toolDescription} {
+    position: static;
+  }
+  .${styles.toolDescription} {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .${styles.toolHeroGradient} {
+    height: 100%;
+  }
+  .${styles.root} .${styles.toolHero} .${styles.primaryButton} {
+    position: static;
+    width: 176px;
+    min-width: 176px;
+    min-height: 52px;
+    margin-top: 24px;
+  }
   .${styles.notFound} {
     height: auto;
     padding-top: 72px;
@@ -403,7 +427,8 @@ export function Website43ResponsiveStyles() {
   }
 
   .${styles.homeHero} {
-    height: clamp(740px, calc(9.52381vw + 702.857px), 760px);
+    height: auto;
+    min-height: 780px;
     isolation: isolate;
   }
   .${styles.homeHeroPicture} {
@@ -427,7 +452,12 @@ export function Website43ResponsiveStyles() {
     display: none;
   }
   .${styles.homeHeroCopy} {
-    top: clamp(104px, calc(3.80952vw + 89.1429px), 112px);
+    position: relative;
+    top: 0;
+    left: 0;
+    margin-inline: var(--w43-hero-gutter);
+    padding-top: clamp(104px, calc(3.80952vw + 89.1429px), 112px);
+    padding-bottom: 28px;
   }
   .${styles.homeHeroBody} {
     margin-top: clamp(326px, calc(1.90476vw + 318.571px), 330px);
@@ -453,7 +483,8 @@ export function Website43ResponsiveStyles() {
   }
 
   .${styles.toolHero} {
-    height: 700px;
+    height: auto;
+    min-height: 700px;
   }
   .${styles.toolHeroImage} {
     top: 252px;
@@ -470,14 +501,15 @@ export function Website43ResponsiveStyles() {
   .${styles.toolHeroGradient} {
     inset: 0;
     width: 100%;
-    height: 700px;
+    height: 100%;
     background: linear-gradient(180deg,rgb(4,6,5) 0%,rgb(4,6,5) 34%,rgba(4,6,5,.88) 37%,rgba(4,6,5,.55) 40%,rgba(4,6,5,.25) 42%,rgba(4,6,5,0) 44%,rgba(4,6,5,0) 100%);
   }
   .${styles.toolHero}::after {
     content: '';
     position: absolute;
     z-index: 2;
-    top: 465px;
+    top: auto;
+    bottom: 0;
     right: 0;
     left: 0;
     height: 235px;
@@ -485,40 +517,28 @@ export function Website43ResponsiveStyles() {
     background: linear-gradient(180deg,rgba(4,5,4,.1) 0%,rgba(4,5,4,.34) 22%,rgba(4,5,4,.58) 52%,rgba(4,5,4,.7) 78%,rgba(4,5,4,.74) 100%);
   }
   .${styles.toolHeroCopy} {
+    position: relative;
     top: 0;
-    left: var(--w43-hero-gutter);
-    width: calc(100% - var(--w43-hero-gutter) - var(--w43-hero-gutter));
-    height: 700px;
+    left: 0;
+    width: auto;
+    height: auto;
   }
   .${styles.toolBadge} {
-    position: absolute;
-    top: 104px;
-    left: 0;
+    position: static;
   }
   .${styles.toolTitle} {
-    position: absolute;
-    top: 164px;
-    left: 0;
+    position: static;
     width: 100%;
-    margin: 0;
+    margin: 20px 0 0;
     font-size: 30px;
     line-height: 39px;
   }
   .${styles.toolDescription} {
-    position: absolute;
-    top: 548px;
-    left: 0;
+    position: static;
     width: 100%;
-    margin: 0;
-    font-size: 15px;
+    margin: 240px 0 0;
+    font-size: 16px;
     line-height: 1.6;
-  }
-  .${styles.toolHero} .${styles.primaryButton} {
-    position: absolute;
-    top: 636px;
-    left: 0;
-    min-width: 140px;
-    margin: 0;
   }
 
   .${styles.notFound} {
@@ -541,11 +561,19 @@ export function Website43ResponsiveStyles() {
     width: 100%;
   }
   .${styles.notFoundFooterWrap} {
-    height: clamp(137px, calc(11.9048vw + 90.5714px), 162px);
+    height: auto;
     padding-top: 24px;
     padding-right: var(--w43-hero-gutter);
     padding-bottom: 24px;
     padding-left: var(--w43-hero-gutter);
+  }
+}
+@media (max-width: 1023px) and (max-height: 500px) and (orientation: landscape) {
+  .${styles.toolHero} {
+    min-height: 0;
+  }
+  .${styles.toolDescription} {
+    margin-top: 24px;
   }
 }
 `;

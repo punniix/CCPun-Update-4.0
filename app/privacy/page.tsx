@@ -1,1 +1,1 @@
-export { metadata, default } from "@/features/legal/pages/PrivacyPage";
+export { default, metadata } from "@/apps/web/app/privacy/page";

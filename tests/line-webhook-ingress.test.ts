@@ -372,7 +372,7 @@ test("legacy v4 Web LINE acceptance retains its existing provider and Neon contr
   assert.equal(resolveLineIngestRuntime(legacy)?.provider, "hostinger");
   assert.equal(resolveLineIngestRuntime({ ...legacy, CCPUN_DEPLOYMENT_PROVIDER: "vercel",
     VERCEL_ENV: "production", VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",
-  })?.provider, "vercel");
+  }), null);
   assert.equal(resolveLineIngestRuntime({ ...legacy, CCPUN_DEPLOYMENT_PROVIDER: "local" }), null);
   assert.equal(resolveLineIngestRuntime({ ...legacy, CCPUN_DEPLOYMENT_PROVIDER: "vercel",
     VERCEL_ENV: "preview", VERCEL_PROJECT_ID: "prj_dxwjITkd0av5QiJQv2snUlIASUWu",

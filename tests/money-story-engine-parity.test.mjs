@@ -150,3 +150,59 @@ test('shortfall sale, loan, income, cuts, restructure and combined recovery reta
     }
   }
 });
+
+function defaultAndGuardTrace(runtime) {
+  const trace = [];
+  const originalNow = Date.now;
+  const originalRandom = Math.random;
+  try {
+    Date.now = () => 1760123456789;
+    Math.random = () => 0.25;
+    trace.push(['default-seed', runtime.createSeed(), runtime.createGame()]);
+  } finally {
+    Date.now = originalNow;
+    Math.random = originalRandom;
+  }
+  for (const seed of ['', 'default', 'ไทย', 'random-character-001', 'random-character-002']) {
+    const state = runtime.createGame(seed);
+    trace.push(['default-character', state, runtime.statusBars(state)]);
+    trace.push(['unknown-character', runtime.createGame(seed, 'unknown-character')]);
+    for (const status of ['active', 'win', 'survive', 'lose']) {
+      for (const monthStarted of [false, true]) {
+        const input = { ...state, status, monthStarted };
+        trace.push(['guards', runtime.beginMonth(input), runtime.completeMonth(input), runtime.resolveEventChoice(input, 'missing-option')]);
+      }
+    }
+    const started = runtime.beginMonth(state);
+    trace.push(['invalid-choice', runtime.resolveEventChoice(started, 'missing-option')]);
+    for (const action of ['coverShortfallWithInvestments', 'coverShortfallWithLoan', 'coverShortfallWithExtraIncome', 'coverShortfallWithExpenseCut', 'coverShortfallWithDebtRestructure']) {
+      trace.push(['no-shortfall', action, runtime[action](state)]);
+    }
+  }
+  return trace;
+}
+function roundingEdgeTrace(runtime) {
+  const trace = [];
+  for (const principal of [0, 0.5, 4999.5, 5000, 121126.125, 1e9]) {
+    for (const rate of [0, -0.001, 0.0075, 1]) {
+      for (const months of [0, 1, 12]) trace.push(['payment', principal, rate, months, runtime.amortizedPayment(principal, rate, months)]);
+    }
+  }
+  for (const cash of [-0.5, -4999.5, -121126.125, 0, 0.5]) {
+    const state = { ...runtime.createGame('fractional-shortfall', 'nut'), cash, investments: 12345.67, pendingShortfall: { amount: Math.abs(cash), resume: 'month-end', usedActions: [] } };
+    trace.push(['fractional', runtime.quoteShortfallLoan(state), runtime.coverShortfallWithInvestments(state), runtime.coverShortfallWithLoan(state), runtime.quoteRecoveryDebtRestructure(state)]);
+  }
+  return trace;
+}
+const edgeDigest = (value) => createHash('sha256').update(JSON.stringify(value, (_, item) => {
+  if (item === undefined) return { undefined: true };
+  return typeof item === 'number' && !Number.isFinite(item) ? { nonfinite: String(item) } : item;
+})).digest('hex');
+
+// Frozen from the actual pre-split UAT engine 3d909613; never derived from the refactor.
+test('default seed, random character and inactive/invalid-action guards retain exact baseline outputs', () => {
+  assert.equal(edgeDigest(defaultAndGuardTrace(engine)), 'b7c03865249e1c7160b68a595339d43bdc5131d12a7a64b4253f2ccac6d461f8');
+});
+test('fractional shortfalls and zero/negative-rate payment edges retain rounding and nonfinite baseline values', () => {
+  assert.equal(edgeDigest(roundingEdgeTrace(engine)), '7a094f313b532a2533fea02fda4b182767fd697f478260a21fcc947ef5cdd6d8');
+});

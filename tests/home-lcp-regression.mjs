@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const home = readFileSync(new URL("../features/home/website-43/Website43Home.tsx", import.meta.url), "utf8");
-const route = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+const route = readFileSync(new URL("../apps/web/app/page.tsx", import.meta.url), "utf8");
 assert.match(route, /<Website43Home/);
 const hero = home.split('<section id="home"')[1].split('</section>')[0];
 assert.match(hero, /home-hero-desktop\.png/);
@@ -13,7 +13,16 @@ assert.doesNotMatch(hero, /loading="lazy"/);
 assert.equal((hero.match(/<Image\b/g) ?? []).length, 1, "Home hero must request one responsive image");
 const headline = home.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, "");
 assert.equal(headline, "เพราะปัญหาทางการเงินมันซับซ้อน เราจึงต้องวางแผน ออกแบบให้เหมาะกับตัวคุณ", "Line-wrap markup must preserve the approved headline text");
-assert.match(home, /<main id="main-content" tabIndex=\{\-1\}>/);
+const focusTarget = '<div id="main-content" tabIndex={-1} className={styles.homeHeroCopy}>';
+assert.equal((home.match(/\bid="main-content"/g) ?? []).length, 1, "Home has one skip-link focus target");
+assert.ok(hero.includes(focusTarget), "The exact focusable homeHeroCopy DIV remains inside the Home hero");
+const main = home.split('<main>')[1]?.split('</main>')[0];
+assert.ok(main?.includes('<section id="home"') && main.includes(focusTarget), "The hero and focus target remain inside main");
+assert.ok(hero.indexOf(focusTarget) < hero.indexOf('<h1'), "Skip-link target precedes the approved H1");
+for (const file of ['app/layout.tsx', 'apps/web/app/layout.tsx']) {
+  const layout = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  assert.match(layout, /<a href="#main-content" className=/, file + ": skip link retains its exact target");
+}
 assert.match(route, /mainEntity: homeFaqs\.map/);
 assert.match(home, /homeFaqs as faqs/);
 assert.doesNotMatch(home, /\/preview\//);

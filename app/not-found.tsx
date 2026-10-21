@@ -1,1 +1,1 @@
-export { metadata, default } from "@/features/public-pages/NotFoundPage";
+export { default, metadata } from "@/apps/web/app/not-found";

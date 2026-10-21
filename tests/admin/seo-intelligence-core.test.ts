@@ -1,7 +1,8 @@
+// Retired platform identifiers are synthetic denial fixtures, never runtime configuration.
+const CCPUN_VERCEL_PROJECT_IDS = { web: "prj_dxwjITkd0av5QiJQv2snUlIASUWu", admin: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN", adminProduction: "prj_6tuUxJxYbQ4mpF7sMgNWx2p2jowN" } as const;
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CCPUN_VERCEL_PROJECT_IDS } from "../../lib/admin/environment";
 import {
   ga4QueryInputSchema,
   gscQueryInputSchema,
@@ -31,10 +32,11 @@ import {
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 const enabledInput = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
   flag: "1",
   environment: "admin-uat" as const,
-  vercelEnvironment: "preview",
-  projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+  vercelEnvironment: undefined,
+  projectId: undefined,
   productionAdminProjectId: undefined,
   gitBranch: WEBSITE_42_SEO_BRANCH,
   sanityProjectId: WEBSITE_42_SEO_SANITY_PROJECT_ID,
@@ -55,11 +57,12 @@ test("SEO Intelligence retains exact Admin UAT branches and adds only the exact 
   ]) assert.equal(isSeoIntelligenceEnabled({ ...enabledInput, ...change }), false, JSON.stringify(change));
 
   const productionInput = {
+  deploymentProvider: "hostinger", deploymentRole: "admin",
     flag: "1",
     environment: "production-admin" as const,
-    vercelEnvironment: "production",
-    projectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
-    productionAdminProjectId: CCPUN_VERCEL_PROJECT_IDS.adminProduction,
+    vercelEnvironment: undefined,
+    projectId: undefined,
+    productionAdminProjectId: undefined,
     gitBranch: WEBSITE_42_SEO_PRODUCTION_BRANCH,
     sanityProjectId: WEBSITE_42_SEO_PRODUCTION_SANITY_PROJECT_ID,
     sanityDataset: WEBSITE_42_SEO_PRODUCTION_SANITY_DATASET,
@@ -69,10 +72,10 @@ test("SEO Intelligence retains exact Admin UAT branches and adds only the exact 
     { flag: "true" },
     { environment: "admin-uat" as const },
     { vercelEnvironment: "preview" },
-    { vercelEnvironment: undefined },
+    { deploymentProvider: "vercel" },
     { projectId: CCPUN_VERCEL_PROJECT_IDS.web },
     { productionAdminProjectId: CCPUN_VERCEL_PROJECT_IDS.web },
-    { productionAdminProjectId: undefined },
+    { deploymentRole: "web" },
     { gitBranch: WEBSITE_42_GOOGLE_PROVIDER_BRANCH },
     { sanityProjectId: WEBSITE_42_SEO_SANITY_PROJECT_ID },
     { sanityDataset: WEBSITE_42_SEO_SANITY_DATASET },
@@ -293,7 +296,7 @@ test("GSC provider is server-only, paginated, bounded and never logs credentials
 });
 
 test("GSC manual sync is human-only, exact-origin, bounded and read-only", () => {
-  const route = read("app/api/admin/seo/opportunities/sync/gsc/route.ts");
+  const route = read("apps/admin/app/api/admin/seo/opportunities/sync/gsc/route.ts");
   const control = read("features/admin/seo/opportunities/GscManualSync.tsx");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
@@ -377,12 +380,17 @@ test("GA4 provider requests bounded Organic Search landing outcomes without cred
 });
 
 test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", () => {
-  const route = read("app/api/admin/seo/opportunities/sync/ga4/route.ts");
+  const route = read("apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts");
   const control = read("features/admin/seo/opportunities/Ga4ManualSync.tsx");
+  const originGuard = read("lib/admin/seo-intelligence/post-publish-origin.ts");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
-  assert.match(route, /isConfiguredAdminOrigin/);
-  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /isPostPublishAdminOriginAllowed/);
+  assert.match(originGuard, /isConfiguredAdminOrigin/);
+  assert.match(originGuard, /isSameOriginAdminMutation/);
+  assert.match(originGuard, /host !== publicUrl\.host/);
+  assert.match(originGuard, /forwardedHost && forwardedHost !== publicUrl\.host/);
+  assert.match(originGuard, /origin && new URL\(origin\)\.origin === publicUrl\.origin/);
   assert.match(route, /getSeoIntelligenceRuntimeStatus\(\)\.enabled/);
   assert.match(route, /getGoogleDataAccessToken/);
   assert.match(route, /CCPUN_GA4_PROPERTY_ID/);
@@ -391,7 +399,7 @@ test("GA4 manual sync is human-only, exact-origin, branch-gated and read-only", 
   assert.match(route, /state: comparison && comparisonTotals \? "ready" : "partial"/);
   assert.match(route, /export async function POST\(request: Request\)/);
   assert.doesNotMatch(route, /export async function (?:GET|PUT|PATCH|DELETE)/);
-  assert.doesNotMatch(route, /createClient|sanity|mutate|publish|console\./i);
+  assert.doesNotMatch(route, /\bcreateClient\s*\(|\b(?:sanityClient|mutate|publish)\s*\(|console\./i);
   assert.match(control, /type="date"/);
   assert.match(control, /ผู้เข้าชมจากผลค้นหา/);
   assert.match(control, /ไม่เก็บสำเนาถาวร/);
@@ -416,7 +424,7 @@ test("Organic Search page removes synthetic and operational telemetry", () => {
 });
 
 test("SEO opportunities API is authenticated, exact-origin and GET-only", () => {
-  const route = read("app/api/admin/seo/opportunities/route.ts");
+  const route = read("apps/admin/app/api/admin/seo/opportunities/route.ts");
   const page = read("app/(control-plane)/seo/opportunities/page.tsx");
   assert.match(route, /getAdminIdentity\(\)/);
   assert.match(route, /hasAdminPermission\(identity\.role, "seo:read"\)/);

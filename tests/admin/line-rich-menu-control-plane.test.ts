@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
@@ -41,13 +41,13 @@ test("LINE reconciliation is durable but autonomous execution is private-VPS onl
   const route = read("apps/admin/app/api/internal/line/rich-menu/reconcile/route.ts");
   const reconciler = read("lib/admin/line/rich-menu-reconciler.ts");
   const worker = read("scripts/admin-background-worker.ts");
-  const vercel = JSON.parse(read("apps/admin/vercel.json")) as { crons?: Array<{ path: string; schedule: string }> };
+  const retiredConfig = path.join(root, "apps/admin/vercel.json");
   assert.match(route, /export async function GET\(request: Request\)/);
   assert.match(route, /CRON_SECRET/);
   assert.match(route, /authorization/);
   assert.match(route, /rich-menu-reconciler-unavailable/);
   assert.doesNotMatch(route, /reconcileDesiredLineRichMenu/);
-  assert.equal(Object.hasOwn(vercel, "crons"), false);
+  assert.equal(existsSync(retiredConfig), false);
   assert.match(worker, /CCPUN_BACKGROUND_EXECUTION_PLANE !== "vps"/);
   assert.match(worker, /CCPUN_BACKGROUND_WORKER_ENABLED !== "1"/);
   assert.match(worker, /line-rich-menu/);

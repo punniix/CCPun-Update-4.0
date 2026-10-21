@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
@@ -35,11 +35,12 @@ test("Admin extension contract keeps one auth authority and no-cost data ownersh
 
 test("Admin app root remains private and independently deployable", () => {
   const nextConfig = read("apps/admin/next.config.ts");
-  const vercel = read("apps/admin/vercel.json");
+  const retiredConfig = new URL("../../apps/admin/vercel.json", import.meta.url);
   assert.match(nextConfig, /noindex, nofollow, noarchive/);
   assert.match(nextConfig, /private, no-cache, no-store/);
   assert.match(nextConfig, /withWorkflow\(nextConfig\)/);
-  assert.match(vercel, /node \.\.\/\.\.\/scripts\/vercel-ignore-build\.mjs/);
+  assert.equal(existsSync(retiredConfig), false);
+  assert.match(nextConfig, /output: "standalone"/);
 });
 
 test("Admin auth configuration is Auth.js/Google-oriented and does not depend on Neon Auth", () => {

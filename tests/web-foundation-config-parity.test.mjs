@@ -10,8 +10,9 @@ import { runInNewContext } from 'node:vm';
 const { NextResponse } = createRequire(import.meta.url)('next/server');
 const baselineSha = '1843dbc11a1cd400f89a32a333516ee2e0a53223';
 const files = ['apps/web/next.config.ts', 'lib/security-policy.ts', 'apps/web/proxy.ts'];
+const helperFiles = ['lib/runtime/security-headers.mjs', 'lib/runtime/web-build-config.mjs'];
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
-const current = Object.fromEntries(files.map((file) => [file, read(file)]));
+const current = Object.fromEntries([...files, ...helperFiles].map((file) => [file, read(file)]));
 const production = {
   NODE_ENV: 'production', CCPUN_DEPLOYMENT_PROVIDER: 'hostinger',
   CCPUN_DEPLOYMENT_ROLE: 'web', CCPUN_APP_ENV: 'production',
@@ -53,7 +54,8 @@ const paths = [
 
 function evaluate(source, bindings, result) {
   const javascript = stripTypeScriptTypes(source)
-    .replace(/^import .*$/gm, '')
+    .replace(/^import[\s\S]*?;\n/gm, '')
+    .replace(/^export \{.*\} from .*$/gm, '')
     .replace(/^export default /gm, 'const defaultExport = ')
     .replace(/^export /gm, '');
   return runInNewContext(`${javascript}\n(${result});`, bindings);
@@ -73,10 +75,14 @@ async function observe(sources, overrides) {
   // Existing runtime review input stays distinct from the config's Web-only input.
   const review = env.CCPUN_UAT_MODE === '1' || ['development', 'web-uat', 'local-uat', 'local-production', 'admin-uat', 'production-admin'].includes(contentEnvironment);
   const process = { env, cwd: () => '/ccpun-parity/apps/web' };
-  const security = evaluate(sources['lib/security-policy.ts'], { process, IS_REVIEW_ENVIRONMENT: review }, '({ SECURITY_POLICY, SECURITY_HEADERS })');
-  const config = evaluate(sources['apps/web/next.config.ts'], { process, path }, 'defaultExport');
+  const sharedSecurity = sources['lib/runtime/security-headers.mjs']
+    ? evaluate(sources['lib/runtime/security-headers.mjs'], { process }, '({ buildNextSecurityHeaders, shouldEnforceHttps })') : {};
+  const sharedWeb = sources['lib/runtime/web-build-config.mjs']
+    ? evaluate(sources['lib/runtime/web-build-config.mjs'], { process }, '({ resolveWebEnvironment, isWebSanityLaneAllowed, TAX_SLUG_MIGRATION, WEB_REDIRECTS })') : {};
+  const security = evaluate(sources['lib/security-policy.ts'], { process, IS_REVIEW_ENVIRONMENT: review, ...sharedSecurity }, '({ SECURITY_POLICY, SECURITY_HEADERS })');
+  const config = evaluate(sources['apps/web/next.config.ts'], { process, path, ...sharedSecurity, ...sharedWeb }, 'defaultExport');
   const proxy = evaluate(sources['apps/web/proxy.ts'], {
-    process, URL, NextResponse, IS_REVIEW_ENVIRONMENT: review,
+    process, URL, NextResponse, IS_REVIEW_ENVIRONMENT: review, ...sharedWeb,
     SECURITY_HEADERS: security.SECURITY_HEADERS, observeAiCrawlerRequest: () => {},
   }, '({ proxy: defaultExport, hostingerRedirectUrl, config })');
   const requests = paths.map((pathname) => new Request(`https://candidate.example${pathname}`));
@@ -132,7 +138,40 @@ if (process.argv.includes('--print-baseline')) {
   for (const [name, overrides] of fixtures) {
     test(`baseline config/CSP/redirect parity: ${name}`, async () => {
       const actual = await observe(current, overrides);
-      assert.equal(digest(actual), expected[name], `${name}: full output changed from ${baselineSha}`);
+      if (['vercel-live', 'vercel-preview', 'wrong-vercel-project'].includes(name)) {
+        // Only retired-provider acceptance is superseded; every native output hash stays frozen.
+        const process = { env: { ...production, ...overrides } };
+        const sharedWeb = evaluate(current['lib/runtime/web-build-config.mjs'], { process }, '({ resolveWebEnvironment, isWebSanityLaneAllowed })');
+        assert.equal(sharedWeb.isWebSanityLaneAllowed(process.env.NEXT_PUBLIC_SANITY_PROJECT_ID, process.env.NEXT_PUBLIC_SANITY_DATASET), false);
+        assert.equal(actual.config.images.remotePatterns.some(pattern => pattern.hostname === 'cdn.sanity.io'), false);
+      } else assert.equal(digest(actual), expected[name], `${name}: full output changed from ${baselineSha}`);
     });
   }
 }
+
+// The build resolver is also the Web runtime owner. Keep the old Content resolver's
+// narrower Web projection without relaxing the separate deployment/Sanity seal.
+test('shared Web environment resolver retains the content-runtime projection', () => {
+  const values = ['', ' Production ', 'web-uat', 'development', 'local-uat', 'local-production', 'lab', 'uat', 'admin-uat', 'production-admin', 'unknown'];
+  const projects = ['', webProject, adminProject, 'unrecognized'];
+  for (const explicit of values) for (const project of projects) for (const vercel of ['', ' Preview ', 'production']) {
+    const process = { env: { CCPUN_APP_ENV: explicit, VERCEL_PROJECT_ID: project, VERCEL_ENV: vercel } };
+    const content = evaluate(read('lib/content/sanity-lane.ts'), { process, CCPUN_VERCEL_PROJECT_IDS: { web: webProject, admin: adminProject } }, 'resolveContentEnvironment()');
+    const expected = ['development', 'web-uat', 'production'].includes(content) ? content : 'unknown';
+    assert.equal(evaluate(current['lib/runtime/web-build-config.mjs'], { process }, 'resolveWebEnvironment()'), expected, JSON.stringify(process.env));
+  }
+});
+
+test('legacy root fallback retains its ordered three permanent redirects', async () => {
+  const process = { env: production, cwd: () => "/fixture" };
+  const sharedWeb = evaluate(current['lib/runtime/web-build-config.mjs'], { process }, '({ WEB_REDIRECTS, TAX_SLUG_MIGRATION })');
+  const rootConfig = evaluate(read('next.config.ts'), {
+    process, withWorkflow: (config) => config, IS_ADMIN_APPLICATION: false, IS_REVIEW_ENVIRONMENT: false,
+    SECURITY_HEADERS: [], getAdminEnvironment: () => 'production', isSanityLaneAllowed: () => true, ...sharedWeb,
+  }, 'defaultExport');
+  assert.deepEqual(JSON.parse(JSON.stringify(await rootConfig.redirects())), [
+    { source: '/living-benefits/:path*', destination: '/ci-planning/', permanent: true },
+    { source: '/tools/fhc/:path*', destination: '/tools/financial-health-check/', permanent: true },
+    { source: '/financial-advisor/:path*', destination: '/', permanent: true },
+  ]);
+});

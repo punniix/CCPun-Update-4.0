@@ -17,6 +17,15 @@ const baseline = {
   "navbarDom": "c9b2e505355783f485fc1609ffd769dc21700ec7a3ebd712e34b48fa1c7654ed",
   "footerDom": "db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b"
 };
+// Approved 2026-10-14 footer tagline removal + blog-only end flush. Original Production golden object remains unchanged.
+const reviewedCurrent = {
+  "activeCss": "b0667b266057590903178ab882dc6531de433464273dcb7ef698cdf7d5f2f240",
+  "responsiveCss": "1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9",
+  "navbarCss": "8bb36bb9ada57b280384145e56412db668663f1ee6cdc37d9bed7a2922498e99",
+  "footerDesktopDom": "53e42deb5ddf5e7dd671694437c80e569b9e15094e1549d43ff3276b1ebf6122"
+};
+const articleV4CssFingerprint = 'e5ee6c0fda60766b8e2cb32a55f2d537fc52058236547287bab33c727ab6ba98';
+const retainedLegalCssFingerprint = '8a09ef8b30735b69df506bb91acfe9aa63f4055219aca4a3a2e2ac3c4af7b227';
 const directory = 'components/layout/website-43/';
 const after = (file) => readFileSync(directory + file, 'utf8');
 const inactive = new Set(['nav', 'hamburger', 'mobileMenu', 'mobileSubmenu', 'mobileTools', 'navBand', 'navChevron', 'navChevronOpen', 'navCta', 'navDropdown', 'navLinks', 'navOverlay', 'navSpacer', 'navTools', 'navToolsButton', 'notFoundNavBand', 'responsiveOverlayBand', 'reading']);
@@ -62,6 +71,20 @@ function component(source, name, pathname, state = []) {
 }
 
 
+// Admit only the already-deployed portrait crop fix; keep every original CSS golden.
+function originalStylesExceptApprovedPortrait(source) {
+  const ast = postcss.parse(source);
+  const portraits = [];
+  ast.walkRules('.authorAvatar', rule => { if (rule.parent.type === 'root') portraits.push(rule); });
+  assert.equal(portraits.length, 1, 'One canonical author portrait rule');
+  const positions = portraits[0].nodes.filter(node => node.type === 'decl' && node.prop === 'object-position');
+  assert.equal(positions.length, 1, 'Only one approved author portrait position');
+  assert.equal(positions[0].value, 'center top');
+  assert.equal(Boolean(positions[0].important), false);
+  positions[0].remove();
+  return ast.toString();
+}
+
 const fingerprint = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const navbarSnapshots = (source) => {
   const snapshots = [];
@@ -79,20 +102,47 @@ const footerSnapshots = (source) => {
   for (const warnings of [false, true]) for (const notFound of [false, true]) snapshots.push(renderToStaticMarkup(React.createElement(component(source, 'Website43Footer', '/'), { warnings, notFound })));
   return snapshots;
 };
-test('active stylesheet declarations and media order preserve the Production baseline', () => {
-  assert.equal(fingerprint(stylesheetRules(after('Website43.module.css'))), baseline.activeCss);
-  assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), baseline.responsiveCss);
-  assert.equal(fingerprint(after('Website43Navbar.module.css')), baseline.navbarCss, 'canonical navbar styling is unchanged');
+test('portrait admission rejects changed position, duplicates and unrelated active CSS drift', () => {
+  const css = after('Website43.module.css');
+  const portrait = css.match(/\.authorAvatar\s*\{[^}]+\}/)?.[0];
+  assert.ok(portrait);
+  assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('center top', 'center bottom'))));
+  assert.throws(() => originalStylesExceptApprovedPortrait(css.replace(portrait, portrait.replace('object-position: center top;', 'object-position: center top; object-position: center top;'))));
+  const unrelated = css.replace(portrait, portrait.replace('width: 96px;', 'width: 97px;'));
+  assert.notEqual(unrelated, css, 'Synthetic unapproved width change is present');
+  assert.notEqual(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(unrelated))), retainedLegalCssFingerprint);
+});
+
+test('reviewed stylesheet outputs stay frozen while original Production CSS goldens remain retained', () => {
+  assert.equal(reviewedCurrent.activeCss, 'b0667b266057590903178ab882dc6531de433464273dcb7ef698cdf7d5f2f240', 'previous reviewed CSS pin retained');
+  assert.equal(articleV4CssFingerprint, 'e5ee6c0fda60766b8e2cb32a55f2d537fc52058236547287bab33c727ab6ba98', 'pre-cleanup Article V4 output retained');
+  assert.equal(reviewedCurrent.responsiveCss, '1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9', 'pre-cleanup responsive output retained');
+  assert.equal(createHash('sha256').update(after('Website43.module.css')).digest('hex'), '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d', 'only nine unused module rules removed');
+  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), retainedLegalCssFingerprint);
+  assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), '292cfa5edc576889aeaea3bcf9eab885b839ee114154068e7959bf23ae274024');
+  assert.doesNotMatch(after('Website43.module.css') + after('Website43ResponsiveStyles.tsx'), /\b(?:legalHeader|legalBody|legalGrid)\b/);
+  assert.equal(fingerprint(after('Website43Navbar.module.css')), reviewedCurrent.navbarCss, 'canonical navbar styling includes only reviewed responsive/control feedback');
   assert.doesNotMatch(after('Website43ResponsiveStyles.tsx'), /styles\.(?:navBand|navOverlay|responsiveOverlayBand)/);
   for (const name of inactive) assert.doesNotMatch(after('Website43.module.css'), new RegExp(`\\.${name}\\b`), `inactive module class ${name}`);
 });
 
 test('96 navbar disclosure states preserve DOM, labels, links, aria and tracking attributes', () => {
-  assert.equal(fingerprint(navbarSnapshots(after('Website43Navbar.tsx'))), baseline.navbarDom);
+  const source = after('Website43Navbar.tsx');
+  assert.equal((source.match(/className=\{styles\.brandLink\}/g) ?? []).length, 1);
+  const parts = source.replace(' className={styles.brandLink}', '').split('<div className={styles.mobileSubmenu}>');
+  assert.equal(parts.length,2);
+  assert.equal((parts[1].match(/<span aria-hidden="true" \/>\{label\}/g) ?? []).length,1);
+  const originalUi = parts[0] + '<div className={styles.mobileSubmenu}>' + parts[1].replace('<span aria-hidden="true" />{label}', '{label}');
+  assert.equal(fingerprint(navbarSnapshots(originalUi)),baseline.navbarDom,'Only approved brand class/mobile indicator are normalized; original96DOM properties retained');
 });
 
-test('four full/compact footer variants preserve DOM', () => {
-  assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))), baseline.footerDom);
+test('unified footer preserves links while removing approved marketing tagline in all four reviewed variants', () => {
+  assert.doesNotMatch(after('Website43Shared.tsx'), /วางแผนการเงินจากชีวิตจริง|เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ/);
+  assert.match(after('Website43Shared.tsx'), /Website43Brand/);
+  assert.match(after('Website43Shared.tsx'), /CookieSettingsButton/);
+  assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
+  assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))),reviewedCurrent.footerDesktopDom);
+  assert.equal(baseline.footerDom,'db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b','Original full/compact baseline retained as history; duplicate compact removal is explicit');
 });
 
 test('native navbar clicks and Escape keep existing disclosure and focus behavior', async () => {

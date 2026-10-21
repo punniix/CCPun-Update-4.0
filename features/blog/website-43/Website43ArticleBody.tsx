@@ -2,6 +2,7 @@ import Image from 'next/image';
 import type { ReactNode } from 'react';
 import type { ArticleBlock, ArticleRichText } from '@/lib/content/types';
 import styles from '@/components/layout/website-43/Website43.module.css';
+import { ArticleTableAccess } from './ArticleDetailAccess';
 
 function richContent(content: ArticleRichText) {
   const segments = content.segments?.length ? content.segments : [{ text: content.text }];
@@ -25,14 +26,17 @@ function listItemContent(item: string | ArticleRichText) {
 }
 
 export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Map<number, string>) {
+  const introEnd = items.findIndex(item => item.type !== 'paragraph');
   return items.map((item, index) => {
     const key = `article-block-${index}`;
-    if (item.type === 'paragraph') return <p key={key}>{richContent(item)}</p>;
+    if (item.type === 'paragraph') return <p key={key} style={index < (introEnd < 0 ? items.length : introEnd) ? { fontSize: 19, lineHeight: 1.75, color: 'rgba(250,249,249,.9)' } : undefined}>{richContent(item)}</p>;
     if (item.type === 'heading') {
       const id = headingIds.get(index);
       return item.level === 2
         ? <h2 id={id} key={key}>{richContent(item)}</h2>
-        : <h3 id={id} key={key}>{richContent(item)}</h3>;
+        : item.level === 3
+          ? <h3 id={id} key={key}>{richContent(item)}</h3>
+          : <h4 id={id} key={key}>{richContent(item)}</h4>;
     }
     if (item.type === 'bulletList') return <ul key={key}>{item.items.map((entry, itemIndex) => <li key={`${key}-${itemIndex}`}>{listItemContent(entry)}</li>)}</ul>;
     if (item.type === 'numberList') return <ol key={key}>{item.items.map((entry, itemIndex) => <li key={`${key}-${itemIndex}`}>{listItemContent(entry)}</li>)}</ol>;
@@ -42,6 +46,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return (
         <figure className={styles.articleInlineFigure} key={key}>
           <Image src={item.src} alt={item.alt} width={item.width} height={item.height} sizes="(max-width: 767px) calc(100vw - 48px), 720px" loading="lazy" />
+          <a href={item.src} target="_blank" rel="noopener noreferrer" className={styles.imageDetailLink}>ดูภาพขนาดใหญ่ <span className="sr-only">(เปิดในแท็บใหม่)</span></a>
           {(item.caption || item.credit) && <figcaption>{item.caption}{item.caption && item.credit ? ' · ' : ''}{item.credit ? `เครดิต: ${item.credit}` : ''}</figcaption>}
         </figure>
       );
@@ -69,13 +74,14 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return <details className={styles.articleDetails} key={key}><summary>{item.summary}</summary><p>{item.text}</p></details>;
     }
     if (item.type === 'table') {
+      const columnCount = item.rows.reduce((count, row) => Math.max(count, row.length), item.headers.length);
       return (
-        <div className={styles.articleTableWrap} key={key}>
+        <ArticleTableAccess key={key} stickyFirstColumn={columnCount >= 3} columnCount={columnCount}>
           <table className={styles.articleTable}>
-            {item.headers.length > 0 && <thead><tr>{item.headers.map((header, cellIndex) => <th key={`${key}-header-${cellIndex}`}>{header}</th>)}</tr></thead>}
+            {item.headers.length > 0 && <thead><tr>{item.headers.map((header, cellIndex) => <th scope="col" key={`${key}-header-${cellIndex}`}>{header}</th>)}</tr></thead>}
             <tbody>{item.rows.map((row, rowIndex) => <tr key={`${key}-row-${rowIndex}`}>{row.map((cell, cellIndex) => <td key={`${key}-${rowIndex}-${cellIndex}`}>{cell}</td>)}</tr>)}</tbody>
           </table>
-        </div>
+        </ArticleTableAccess>
       );
     }
     if (item.type === 'divider') return <hr className={styles.articleDivider} key={key} />;

@@ -283,6 +283,11 @@ export function stageStandaloneRuntime(root = webRoot, variables = process.env) 
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  // Reject unsupported platform inputs before assets, child processes or export.
+  if (Object.entries(process.env).some(([key, value]) => key.startsWith("VERCEL_") && value?.trim())) throw new Error("UNSUPPORTED_PROVIDER_METADATA");
+  if (["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) throw new Error("UNSUPPORTED_WORKFLOW_WORLD");
+  if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");
+  if (isHostinger && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== "web") throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");
   if (process.argv[2] === "--archive-standalone") {
     if (!process.argv[3] || process.argv.length !== 4) throw new Error("Provide one archive output directory.");
     archiveStandaloneRuntime(process.argv[3]);

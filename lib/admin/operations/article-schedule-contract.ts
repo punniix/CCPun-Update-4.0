@@ -26,12 +26,9 @@ export function resolveArticleSchedulerLane(variables: Record<string, string | u
   )) return null;
 
   const deployment = resolveDeploymentIdentity(variables, "admin");
-  if (!deployment.valid || deployment.environment !== environment) return null;
+  if (!deployment.valid || deployment.environment !== environment
+    || !["hostinger", "local"].includes(deployment.provider)) return null;
   if (environment === "production-admin" && (deployment.provider === "local" || (deployment.gitRef !== "v4-production" && !isPinnedCloudProductionRelease(variables)))) return null;
-  if (deployment.provider === "vercel") {
-    if (environment === "production-admin" && variables.VERCEL_ENV !== "production") return null;
-    if (environment === "admin-uat" && variables.VERCEL_ENV !== "preview") return null;
-  }
   if (variables.CCPUN_NEON_PROJECT_ID !== expected.projectId || variables.CCPUN_NEON_BRANCH_ID !== expected.branchId || variables.CCPUN_NEON_DATABASE !== "neondb") return null;
   try {
     const url = new URL(variables.CCPUN_ADMIN_DATABASE_URL || "");

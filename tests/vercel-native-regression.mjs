@@ -1,7 +1,8 @@
+import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 
-const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path) => readPhase1Source(path);
 
 const packageJson = JSON.parse(read('package.json'));
 assert.equal(packageJson.version, '4.1.0');
@@ -28,8 +29,11 @@ assert.deepEqual(packageJson.allowScripts, {
   'unrs-resolver@1.12.2': true,
 });
 
-const vercelConfig = JSON.parse(read('vercel.json'));
-assert.equal(vercelConfig.ignoreCommand, 'node scripts/vercel-ignore-build.mjs');
+for (const obsolete of ['vercel.json', 'apps/web/vercel.json', 'apps/admin/vercel.json', 'scripts/vercel-ignore-build.mjs', 'scripts/guard-survivor-deploy.mjs', 'scripts/promote-admin-after-ci.mjs']) {
+  assert.equal(existsSync(obsolete), false, `${obsolete} must not reactivate the retired deployment provider`);
+}
+assert.match(packageJson.scripts['test:public'], /hostinger-native-app-contract/);
+assert.equal(packageJson.scripts['test:vercel'], undefined);
 
 const legacyUrlLedger = JSON.parse(read('qa/legacy-url-ledger.json'));
 assert.deepEqual(legacyUrlLedger.mappings.map(({ id, destination }) => [id, destination]), [
@@ -47,12 +51,12 @@ assert.doesNotMatch(nextConfig, /output:\s*["']export["']/);
 assert.doesNotMatch(nextConfig, /unoptimized:\s*true/);
 assert.match(nextConfig, /APP_ENVIRONMENT === ["']local-uat["'][\s\S]*["']\.ccpun-local\/next-uat["']/);
 assert.match(nextConfig, /APP_ENVIRONMENT === ["']local-production["'][\s\S]*["']\.ccpun-local\/next-production["']/);
-assert.match(nextConfig, /source:\s*["']\/living-benefits\/:path\*["']/);
-assert.match(nextConfig, /destination:\s*["']\/ci-planning\/["']/);
-assert.match(nextConfig, /source:\s*["']\/tools\/fhc\/:path\*["']/);
-assert.match(nextConfig, /destination:\s*["']\/tools\/financial-health-check\/["']/);
-assert.match(nextConfig, /source:\s*["']\/financial-advisor\/:path\*["']/);
-assert.match(nextConfig, /source:\s*["']\/financial-advisor\/:path\*["'][\s\S]*destination:\s*["']\/["'][\s\S]*permanent:\s*true/);
+assert.match(nextConfig, /WEB_REDIRECTS\.filter\(\(\{ prefix \}\) => prefix !== TAX_SLUG_MIGRATION\)/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /destination:\s*["']\/ci-planning\/["']/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /prefix:\s*["']\/tools\/fhc["']/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /destination:\s*["']\/tools\/financial-health-check\/["']/);
+assert.match(read('lib/runtime/web-build-config.mjs'), /prefix: ["']\/financial-advisor["'], destination: ["']\/["']/);
+assert.match(nextConfig, /source: `\$\{prefix\}\/:path\*`, destination, permanent: true/);
 assert.match(nextConfig, /SECURITY_HEADERS/);
 
 for (const legacyStaticArtifact of ['public/CNAME', 'public/.nojekyll', 'public/_headers', 'scripts/postprocess-static.mjs']) {
@@ -71,8 +75,8 @@ for (const requiredRoute of [
   'features/blog/pages/BlogCategoryPage.tsx',
   'features/blog/pages/ArticlePage.tsx',
   'lib/content/url.ts',
-  'app/api/preview/enable/route.ts',
-  'app/api/admin/content/[id]/preview/route.ts',
+  'apps/admin/app/api/preview/enable/route.ts',
+  'apps/admin/app/api/admin/content/[id]/preview/route.ts',
   'app/studio/[[...tool]]/page.tsx',
   'app/studio/[[...tool]]/studio-client.tsx',
   'sanity.config.ts',
@@ -90,12 +94,12 @@ for (const requiredRoute of [
   assert.equal(existsSync(new URL(`../${requiredRoute}`, import.meta.url)), true, `missing ${requiredRoute}`);
 }
 
-const previewRoute = read('app/api/preview/enable/route.ts');
+const previewRoute = read('apps/admin/app/api/preview/enable/route.ts');
 assert.match(previewRoute, /defineEnableDraftMode/);
 assert.match(previewRoute, /IS_DRAFT_PREVIEW_ALLOWED/);
 assert.match(previewRoute, /getAdminSanityReadToken/);
 assert.doesNotMatch(previewRoute, /draft\.enable\(\)/);
-const ownerPreviewRoute = read('app/api/admin/content/[id]/preview/route.ts');
+const ownerPreviewRoute = read('apps/admin/app/api/admin/content/[id]/preview/route.ts');
 assert.match(ownerPreviewRoute, /hasAdminPermission\(identity\.role, "draft:apply"\)/);
 assert.match(ownerPreviewRoute, /row\.isDraft/);
 assert.match(ownerPreviewRoute, /draftMode\(\)\)\.enable\(\)/);
@@ -119,7 +123,7 @@ assert.match(proxy, /isProductionEnvironment\(\)/);
 assert.match(proxy, /new NextResponse\(["']Not Found["'], \{ status: 404 \}\)/);
 assert.match(previewRoute, /getAdminIdentity/);
 assert.match(previewRoute, /hasAdminPermission\(identity\.role, ["']draft:apply["']\)/);
-const disablePreviewRoute = read('app/api/preview/disable/route.ts');
+const disablePreviewRoute = read('apps/admin/app/api/preview/disable/route.ts');
 assert.match(disablePreviewRoute, /getAdminIdentity/);
 assert.match(disablePreviewRoute, /hasAdminPermission\(identity\.role, ["']draft:apply["']\)/);
 
@@ -153,7 +157,7 @@ assert.match(sanityProvider, /category->slug\.current/);
 const provider = read('lib/content/provider.ts');
 assert.match(provider, /hasSanityConfig \? sanityContentProvider : localContentProvider/);
 
-const blogSitemap = read('lib/sitemap/routes/blog.ts');
+const blogSitemap = read('apps/web/app/sitemaps/blog.xml/route.ts');
 assert.match(blogSitemap, /includeDrafts:\s*false/);
 assert.match(blogSitemap, /getArticleCanonical/);
 assert.match(blogSitemap, /filter\(isArticleCanonicalAligned\)/);
@@ -237,8 +241,8 @@ const fhcLanding = read('features/financial-health-check/components/FHCLandingIn
 assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('features/legal/pages/CookiePolicyPage.tsx');
-const privacyPolicy = read('features/legal/pages/PrivacyPage.tsx');
+const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
+const privacyPolicy = read('apps/web/app/privacy/page.tsx');
 const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);
@@ -357,25 +361,25 @@ assert.match(deploymentEnvironment, /DEPLOYMENT_IDENTITY\.role === "web"/);
 assert.match(deploymentEnvironment, /DEPLOYMENT_IDENTITY\.environment === "production"/);
 assert.match(deploymentEnvironment, /CCPUN_ENABLE_PRODUCTION_ANALYTICS === "1"/);
 
-const securityPolicy = read('lib/security-policy.ts');
-assert.match(securityPolicy, /import \{ IS_REVIEW_ENVIRONMENT \} from ["']\.\/deployment-environment["']/);
-assert.match(
-  securityPolicy,
-  /const SANITY_REVIEW_SCRIPT_SOURCES = IS_REVIEW_ENVIRONMENT\s*\?\s*["'] https:\/\/core\.sanity-cdn\.com["']\s*:\s*["']["']/,
-);
-assert.match(securityPolicy, /const SANITY_PROJECT_ID = process\.env\.NEXT_PUBLIC_SANITY_PROJECT_ID \?\? ["']["']/);
+const securityRuntime = read('lib/security-policy.ts');
+const securityPolicy = read('lib/runtime/security-headers.mjs');
+assert.match(securityRuntime, /import \{ IS_REVIEW_ENVIRONMENT \} from ["']\.\/deployment-environment["']/);
+assert.match(securityRuntime, /buildNextSecurityHeaders\(\{[\s\S]*isReviewEnvironment: IS_REVIEW_ENVIRONMENT,[\s\S]*sanityProjectId: process\.env\.NEXT_PUBLIC_SANITY_PROJECT_ID \?\? ["']["']/);
+assert.match(securityRuntime, /export \{ shouldEnforceHttps \} from ["']\.\/runtime\/security-headers\.mjs["']/);
+assert.match(securityPolicy, /const sanityReviewScriptSources = isReviewEnvironment\s*\?\s*["'] https:\/\/core\.sanity-cdn\.com["']\s*:\s*["']["']/);
+assert.match(securityPolicy, /sanityProjectId = ["']["']/);
 assert.match(securityPolicy, /\/\^\[a-z0-9\]\+\$\//);
-assert.match(securityPolicy, /https:\/\/\$\{SANITY_PROJECT_ID\}\.api\.sanity\.io/);
-assert.match(securityPolicy, /wss:\/\/\$\{SANITY_PROJECT_ID\}\.api\.sanity\.io/);
-assert.match(securityPolicy, /script-src[^`]*\$\{SANITY_REVIEW_SCRIPT_SOURCES\}/);
-assert.match(securityPolicy, /environment !== ["']local-uat["']/);
-assert.match(securityPolicy, /ENFORCE_HTTPS \? \[["']upgrade-insecure-requests["']\] : \[\]/);
-assert.match(securityPolicy, /connect-src[^`]*\$\{SANITY_CONNECT_SOURCES\}[^`]*\$\{SANITY_REVIEW_CONNECT_SOURCES\}/);
+assert.match(securityPolicy, /https:\/\/\$\{sanityProjectId\}\.api\.sanity\.io/);
+assert.match(securityPolicy, /wss:\/\/\$\{sanityProjectId\}\.api\.sanity\.io/);
+assert.match(securityPolicy, /script-src[^`]*\$\{sanityReviewScriptSources\}/);
+assert.match(securityPolicy, /appEnvironment !== ["']local-uat["']/);
+assert.match(securityPolicy, /enforceHttps \? \[["']upgrade-insecure-requests["']\] : \[\]/);
+assert.match(securityPolicy, /connect-src[^`]*\$\{sanityConnectSources\}[^`]*\$\{sanityReviewConnectSources\}/);
 assert.equal((securityPolicy.match(/core\.sanity-cdn\.com/g) ?? []).length, 1);
 assert.equal((securityPolicy.match(/https:\/\/\*\.sanity-cdn\.com/g) ?? []).length, 1);
 assert.equal((securityPolicy.match(/https:\/\/sanity-cdn\.com/g) ?? []).length, 1);
 assert.doesNotMatch(securityPolicy, /\*\.api\.sanity\.io/);
-assert.match(securityPolicy, /IS_DEVELOPMENT \? ["'] 'unsafe-eval'["'] : ["']["']/);
+assert.match(securityPolicy, /isDevelopment \? ["'] 'unsafe-eval'["'] : ["']["']/);
 
 assert.match(studioPage, /["']darkreader-lock["']:\s*["']true["']/);
 
@@ -401,8 +405,8 @@ assert.match(proxy, /environment === ["']local-uat["']/);
 assert.match(proxy, /isLocalAdminHost\(request\.headers\.get\(["']host["']\), environment\)/);
 assert.match(proxy, /isConfiguredAdminOrigin\(request\.url, process\.env\.AUTH_URL\)/);
 assert.match(proxy, /pathname\.startsWith\(["']\/api\/["']\)/);
-assert.match(proxy, /ccpun-admin-prod\.vercel\.app/);
-assert.match(proxy, /ccpun-admin\.vercel\.app/);
+assert.doesNotMatch(proxy, /ccpun-admin-prod\.vercel\.app/);
+assert.doesNotMatch(proxy, /ccpun-admin\.vercel\.app/);
 assert.match(proxy, /admin\.ccpun\.com/);
 assert.match(proxy, /["']\/api\/auth\/:path\*["']/);
 
@@ -413,10 +417,11 @@ assert.match(rootLayout, /<html lang="th"/);
 assert.match(rootLayout, /PRODUCTION_ANALYTICS_ENABLED/);
 assert.match(rootLayout, /const GTM_ID = PRODUCTION_ANALYTICS_ENABLED \? "GTM-5DKMGSK3" : ""/);
 assert.match(rootLayout, /<ClientWidgets gaId=\{GA_ID\} gtmId=\{GTM_ID\} metaPixelId=\{META_PIXEL_ID\} \/>/);
-assert.match(rootLayout, /robots: IS_ADMIN_APPLICATION \|\| IS_REVIEW_ENVIRONMENT/);
-assert.match(rootLayout, /openGraph: IS_ADMIN_APPLICATION \? null/);
-assert.match(rootLayout, /twitter: IS_ADMIN_APPLICATION \? null/);
-assert.match(rootLayout, /alternates: IS_ADMIN_APPLICATION \? \{ canonical: null \}/);
+assert.match(rootLayout, /buildSiteRootMetadata\(\{ admin: IS_ADMIN_APPLICATION, review: IS_REVIEW_ENVIRONMENT \}\)/);
+assert.match(rootLayout, /robots: admin \|\| review/);
+assert.match(rootLayout, /openGraph: admin \? null/);
+assert.match(rootLayout, /twitter: admin \? null/);
+assert.match(rootLayout, /alternates: admin \? \{ canonical: null \}/);
 assert.match(rootLayout, /!IS_ADMIN_APPLICATION \? <script type="application\/ld\+json"/);
 assert.doesNotMatch(rootLayout, /import\s+DraftPreviewRuntime\s+from\s+["']@\/components\/preview\/DraftPreviewRuntime["']/);
 assert.match(rootLayout, /if \(IS_DRAFT_PREVIEW_ALLOWED\) \{[\s\S]*await import\(["']@\/components\/preview\/DraftPreviewRuntime["']\)/);
@@ -501,10 +506,10 @@ const publicDiscoverySurface = [
   read('components/layout/website-43/Website43Navbar.tsx'),
   read('lib/nav-config.json'),
   read('public/nav-config.json'),
-  read('lib/sitemap/routes/index.ts'),
-  read('lib/sitemap/routes/core.ts'),
-  read('lib/sitemap/routes/tools.ts'),
-  read('lib/sitemap/routes/blog.ts'),
+  read('apps/web/app/sitemap.xml/route.ts'),
+  read('apps/web/app/sitemaps/core.xml/route.ts'),
+  read('apps/web/app/sitemaps/tools.xml/route.ts'),
+  read('apps/web/app/sitemaps/blog.xml/route.ts'),
 ].join('\n');
 assert.doesNotMatch(publicDiscoverySurface, /\/snt-admin\//, 'Admin routes must stay out of public navigation and sitemaps');
 
@@ -516,4 +521,4 @@ assert.doesNotMatch(reviewPage, /\/studio\/intent\/edit\//, 'Review preview must
 
 await import('./website43-blog-article-regression.mjs');
 
-console.log('PASS: Vercel-native regression');
+console.log('PASS: public native runtime regression');

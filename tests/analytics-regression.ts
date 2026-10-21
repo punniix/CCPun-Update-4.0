@@ -40,9 +40,53 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   event_schema_version: 1,
   analytics_consent: 'granted',
   social_consent: 'denied',
-  ...safe,
+  tool_name: safe.tool_name,
+  surface_group: null,
+  cta_location: null,
+  contact_channel: null,
+  step_name: null,
+  step_number: safe.step_number,
+  duration_seconds: safe.duration_seconds,
+  calculator_version: safe.calculator_version,
+  page_version: safe.page_version,
+  method: null,
+  content_type: null,
+  share_placement: null,
+  campaign_id: null,
+  campaign_placement: null,
+  campaign_action: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
+const semanticModel: Record<string, string | number | null> = {};
+const applySemanticEvent = (eventName: string, params: Parameters<typeof buildSemanticDataLayerEvent>[1]) => {
+  Object.assign(semanticModel, buildSemanticDataLayerEvent(eventName, params, { analytics: true, social: false }));
+};
+applySemanticEvent('health_happy_countdown_click', sanitizeEventParams({ campaign_id: 'aia_health_happy_2026', campaign_placement: 'article', campaign_action: 'line' }));
+assert.equal(semanticModel.campaign_id, 'aia_health_happy_2026', 'campaign event keeps its own approved attribution');
+applySemanticEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'navbar' }));
+for (const key of ['campaign_id', 'campaign_placement', 'campaign_action']) {
+  assert.equal(semanticModel[key], null, `an unrelated LINE event must clear preceding ${key}`);
+}
+applySemanticEvent('share', sanitizeEventParams({ method: 'copy', content_type: 'article', share_placement: 'footer' }));
+assert.equal(semanticModel.method, 'copy', 'share event keeps its own approved method');
+applySemanticEvent('health_happy_countdown_view', sanitizeEventParams({ campaign_id: 'aia_health_happy_2026' }));
+for (const key of ['method', 'content_type', 'share_placement']) {
+  assert.equal(semanticModel[key], null, `a countdown event must clear preceding ${key}`);
+}
+applySemanticEvent('ci_step_view', sanitizeEventParams({ ...safe, step_name: 'expenses', traffic_source: 'organic', device_type: 'desktop' }));
+applySemanticEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'navbar', surface_group: 'homepage' }));
+assert.equal(semanticModel.cta_location, 'navbar', 'LINE keeps its own approved CTA context');
+applySemanticEvent('share', sanitizeEventParams({ method: 'copy', content_type: 'article', share_placement: 'footer' }));
+for (const key of ['tool_name', 'surface_group', 'cta_location', 'contact_channel', 'step_name', 'step_number', 'duration_seconds', 'calculator_version', 'page_version']) {
+  assert.equal(semanticModel[key], null, `share must clear preceding event-local ${key}`);
+}
+assert.equal(semanticModel.traffic_source, 'organic', 'event-local resets must preserve first-touch acquisition context');
+assert.equal(semanticModel.device_type, 'desktop', 'event-local resets must preserve device context');
+applySemanticEvent('health_happy_countdown_view', sanitizeEventParams({ campaign_id: 'aia_health_happy_2026', campaign_placement: 'blog', surface_group: 'blog' }));
+assert.equal(semanticModel.cta_location, null, 'countdown view must not inherit the preceding LINE CTA');
+assert.equal(semanticModel.contact_channel, null, 'countdown view must not inherit a contact action');
+assert.equal(semanticModel.surface_group, 'blog', 'countdown keeps its own approved surface');
+
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
 assert.equal(acquisitionSource.includes('fbclid'), false, 'click identifiers must not be parsed, stored, or sent');
 process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'false';
