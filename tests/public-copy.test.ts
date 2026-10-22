@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { evaluate, parse } from "groq-js";
 import { TARGETS, buildBoundaryQuery, checkBoundary } from "../qa/sanity-free-plan-privacy.mjs";
 import { readFileSync } from "node:fs";
@@ -26,6 +28,31 @@ test("copy documents reject cross-page identity, arbitrary keys, HTML, duplicate
     { ...home, entries: [home.entries[0], home.entries[0]] },
   ]) assert.throws(() => parsePublicCopy("home", doc));
   assert.equal(parsePublicCopy("home", null)["home.hero.eyebrow"], publicCopyText({})("home.hero.eyebrow"));
+});
+
+test("legal copy retains rendered punctuation and accepts browser paths as escaped React text", () => {
+  const expected = {
+    "privacy.span5": "“เก็บเท่าที่จำเป็น ใช้ตามวัตถุประสงค์ที่แจ้ง และปกป้องด้วยมาตรการที่เหมาะสม”",
+    "cookies.p14": "แถบแจ้งเตือนจะปรากฏที่ด้านล่างหน้าจอ คุณกด “ยอมรับ” หรือ “ตั้งค่าคุกกี้” แล้วเลือกแต่ละประเภทก่อนกด “บันทึกการตั้งค่า” การตั้งค่าจะถูกจำไว้เป็นเวลา 1 ปี",
+    "cookies.p15": "ผ่านลิงก์ “ตั้งค่าคุกกี้” ที่ด้านล่างของเว็บไซต์",
+    "cookies.p16": "คุณสามารถเปลี่ยนการตั้งค่าคุกกี้ได้ตลอดเวลา โดยกดที่ลิงก์ “ตั้งค่าคุกกี้” ที่ด้านล่างของทุกหน้าในเว็บไซต์ เมื่อปิด Meta Pixel เว็บไซต์จะถอนสิทธิ์ หยุดโหลดสคริปต์ และลบ _fbp/_fbc ที่ตั้งบนโดเมน CCPun เท่าที่เบราว์เซอร์อนุญาต",
+    "cookies.p18": "คุณลบหรือบล็อกคุกกี้ได้จากการตั้งค่าเบราว์เซอร์ของคุณโดยตรง เช่น Chrome: Settings > Privacy and security > Cookies การบล็อกคุกกี้ทั้งหมดอาจส่งผลให้บางส่วนของเว็บไซต์ทำงานได้ไม่เต็มที่",
+  } as const;
+  for (const [key, value] of Object.entries(expected)) assert.equal(publicCopyText({})(key as keyof typeof expected), value);
+  for (const scope of ["privacy", "cookies"] as const) {
+    const entries = publicCopyInitialEntries(scope);
+    assert.deepEqual(parsePublicCopy(scope, { _id: publicCopyDocumentId(scope), _type: "publicPageCopy", scope, locale: "th", entries }), Object.fromEntries(entries.map(({ key, text }) => [key, text])));
+    const source = readFileSync(new URL(`../features/legal/pages/${scope === "privacy" ? "PrivacyPage" : "CookiePolicyPage"}.tsx`, import.meta.url), "utf8");
+    assert.ok(!source.includes("dangerouslySetInnerHTML"));
+  }
+  const text = "Settings > Privacy & security > Cookies";
+  const document = { _id: publicCopyDocumentId("cookies"), _type: "publicPageCopy", scope: "cookies", locale: "th", entries: [{ key: "cookies.p18", text }] };
+  const copy = parsePublicCopy("cookies", document);
+  assert.equal(publicCopyText(copy)("cookies.p18"), text);
+  assert.equal(renderToStaticMarkup(createElement("p", null, publicCopyText(copy)("cookies.p18"))), "<p>Settings &gt; Privacy &amp; security &gt; Cookies</p>");
+  for (const invalid of ["<", "<script>bad</script>", ...Array.from({ length: 32 }, (_, index) => index).filter(index => ![9, 10, 13].includes(index)).map(index => String.fromCharCode(index)), "\u007f"]) {
+    assert.throws(() => parsePublicCopy("cookies", { ...document, entries: [{ key: "cookies.p18", text: `Settings ${invalid} Privacy` }] }), /PUBLIC_COPY_ENTRY_INVALID/);
+  }
 });
 
 test("page copy and SEO stay hidden and actionless in Production Studio", () => {

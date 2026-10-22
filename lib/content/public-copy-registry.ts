@@ -119,7 +119,7 @@ export function parsePublicCopy(scope: PublicCopyScope, input: unknown): PublicC
   if (doc._id !== publicCopyDocumentId(scope) || doc._type !== "publicPageCopy" || doc.scope !== scope || doc.locale !== "th" || !Array.isArray(doc.entries)) throw new Error("PUBLIC_COPY_IDENTITY_INVALID");
   const seen = new Set<string>();
   for (const entry of doc.entries) {
-    if (!entry || typeof entry !== "object" || !Object.hasOwn(PUBLIC_COPY_SCOPES[scope].defaults, entry.key) || seen.has(entry.key) || typeof entry.text !== "string" || !entry.text.trim() || entry.text.length > 12000 || /[<>\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(entry.text)) throw new Error("PUBLIC_COPY_ENTRY_INVALID");
+    if (!entry || typeof entry !== "object" || !Object.hasOwn(PUBLIC_COPY_SCOPES[scope].defaults, entry.key) || seen.has(entry.key) || typeof entry.text !== "string" || !entry.text.trim() || entry.text.length > 12000 || /[<\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(entry.text)) throw new Error("PUBLIC_COPY_ENTRY_INVALID");
     const defaultText = (PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>)[entry.key];
     const placeholders = (value: string) => [...new Set(value.match(/\{[a-zA-Z0-9_]+\}/g) ?? [])].sort().join("|");
     if (placeholders(entry.text) !== placeholders(defaultText)) throw new Error("PUBLIC_COPY_PLACEHOLDER_INVALID");
