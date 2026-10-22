@@ -1,3 +1,4 @@
+import { getFhcPyramidHref } from "../article-availability";
 import { getPublicCopy } from '@/lib/content/public-copy';
 import { publicCopyText, type PublicCopyValues } from '@/lib/content/public-copy-registry';
 import { getFhcFaqs } from '@/lib/content/tool-copy-defaults';
@@ -12,6 +13,7 @@ import LifeCoverageWizard from './LifeCoverageWizard';
 
 export default async function ClientFHC({ copy }: { copy?: PublicCopyValues } = {}) {
   const t = publicCopyText(copy ?? await getPublicCopy('fhc'));
+  const pyramidHref = await getFhcPyramidHref();
 
   return (
     <div className={styles.root}>
@@ -40,7 +42,7 @@ export default async function ClientFHC({ copy }: { copy?: PublicCopyValues } = 
           </div>
         </section>
 
-        <FHCPlanningContext />
+        <FHCPlanningContext pyramidHref={pyramidHref} />
 
         <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`} aria-labelledby="fhc-faq-title">
           <div className={styles.inner}>

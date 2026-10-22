@@ -380,16 +380,6 @@
 .calculatorStage :global(.ccpun-calculator-result-details) summary { cursor: pointer; color: var(--w43-ink); font-size: 14px; font-weight: 600; }
 .calculatorStage :global(.ccpun-calculator-result) :global(.money-comparison) { padding: 2px 0; }
 .calculatorStage :global(.ccpun-calculator-result) :global(.money-comparison) dl { border-color: var(--w43-border); background: rgba(37,24,24,.28); }
-.ciStoryCarouselWrap { position: relative; }
-.ciStoryViewport { position: relative; margin-top: 36px; }
-.ciStoryGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
-.ciStoryGrid > :nth-child(n+4) { display: none; }
-.ciStoryCarouselControls { display: none; }
-.ciStoryCard { overflow: hidden; border: 1px solid var(--w43-border); border-radius: 16px; background: var(--w43-surface); }
-.ciStoryCard img { width: 100%; aspect-ratio: 4/3; object-fit: cover; }
-.ciStoryCard div { padding: 20px; }
-.ciStoryCard h3 { margin: 0; font-size: 20px; }
-.ciStoryCard p { margin: 10px 0 0; color: var(--w43-muted); font-size: 15px; line-height: 1.6; }
 
 @media (min-width: 1200px) {
   .calculatorSection {
@@ -539,7 +529,6 @@
   .methodBox { margin-top: 44px; padding: 26px; }
   .toolStorySection { padding: 40px 40px 20px; }
   .calculatorSection { padding: 28px 40px 48px; }
-  .ciStoryGrid { gap: 12px; }
 
 
   .notFound { height: auto; padding: 72px 40px 48px; }
@@ -691,18 +680,6 @@
   .calculatorStage :global(.ccpun-calculator-result-method-grid) { grid-template-columns: 1fr; }
   .calculatorStage :global(.ccpun-calculator-result-cta) { padding: 20px; }
   .toolMethodGrid { grid-template-columns: 1fr; gap: 12px; }
-  .ciStoryCarouselWrap { --ci-story-card-width: min(78vw, 430px); margin-inline: -24px; }
-  .ciStoryGrid { position: relative; display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: calc(50% - min(39vw, 215px)); padding-inline: calc(50% - min(39vw, 215px)); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-  .ciStoryGrid > :nth-child(n+4) { display: block; }
-  .ciStoryGrid::-webkit-scrollbar { display: none; }
-  .ciStoryGrid:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 2px; }
-  .ciStoryCard { flex: 0 0 var(--ci-story-card-width); scroll-snap-align: center; scroll-snap-stop: always; }
-  .ciStoryCarouselControls { position: absolute; inset: 0; display: block; pointer-events: none; }
-  .ciStoryCarouselControls button { position: absolute; top: 50%; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--w43-border); border-radius: 999px; background: rgba(37,24,24,.82); color: var(--w43-gold); cursor: pointer; pointer-events: auto; transform: translateY(-50%); }
-  .ciStoryCarouselControls button:first-child { left: calc(50% - min(39vw, 215px) + 8px); }
-  .ciStoryCarouselControls button:last-child { right: calc(50% - min(39vw, 215px) + 8px); }
-  .ciStoryCarouselControls button:focus-visible { outline: 2px solid var(--w43-gold); outline-offset: 2px; }
-  .ciStoryCarouselControls svg { width: 18px; height: 18px; }
 
 
 

@@ -29,7 +29,8 @@ export default function FHCLandingIntro() {
   );
 }
 
-export function FHCPlanningContext() {
+export function FHCPlanningContext({ pyramidHref }: { pyramidHref: string }) {
+  const siteText = usePublicCopy();
   const t = usePublicCopy(FHC_COPY_DEFAULTS);
 
 const truths = [
@@ -77,7 +78,7 @@ const truths = [
               {t("fhc.intro.description6")}</p>
             <p>
               {t("fhc.intro.description7")}{' '}
-              <Link href="/blog/personal-finance/financial-pyramid/" className={styles.toolInlineLink}>{t("fhc.intro.label")}</Link>
+              <Link href={pyramidHref} className={styles.toolInlineLink}>{pyramidHref === "/blog/" ? siteText("site.nav.blog") : t("fhc.intro.label")}</Link>
               {' '}{t("fhc.intro.description8")}{' '}
               <Link href="/ci-planning/" className={styles.toolInlineLink}>{t("fhc.intro.label2")}</Link>
             </p>
