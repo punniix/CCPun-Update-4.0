@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
+          check-latest: true
           cache: npm
       - run: npm ci
       - name: Verify native app-root contract
@@ -50,6 +51,7 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
+          check-latest: true
           cache: npm
       - run: npm ci
       # Full local build; sealed native-Neon acceptance has separate gates.
