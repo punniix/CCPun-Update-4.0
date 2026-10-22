@@ -95,7 +95,11 @@ test('public compatibility routes delegate editable SEO to their canonical Web r
   }
 });
 
-test('generated CCPun build outputs stay excluded in root and nested apps', () => {
+test('generated CCPun build outputs stay excluded in root and nested apps', async () => {
   const paths = ['.ccpun-local/next-uat/build/package.json', 'apps/web/.ccpun-local/next-uat/build/package.json', 'apps/admin/.ccpun-local/next-uat/build/package.json'];
   assert.deepEqual(execFileSync('git', ['check-ignore', '--', ...paths], { encoding: 'utf8' }).trim().split('\n'), paths);
+  const { ESLint } = await import('eslint');
+  const eslint = new ESLint();
+  for (const file of paths.map(path => path.replace('package.json', 'generated.js'))) assert.equal(await eslint.isPathIgnored(file), true, file);
+  for (const file of ['apps/web/app/page.tsx', 'apps/admin/app/layout.tsx']) assert.equal(await eslint.isPathIgnored(file), false, file);
 });
