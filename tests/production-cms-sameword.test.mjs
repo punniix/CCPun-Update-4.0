@@ -167,20 +167,25 @@ test('SEO edits preserve indexing and canonical controls; only explicit sharing 
 });
 test('Production preview authorizes before reads and refuses wrong lane, scope or data-plane identity',async()=>{
   for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'web-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'investment'}]) {
-    const trace=[];const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
+    const trace=[];let queries=0;const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
       ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>{trace.push(permission);if(config.denied)throw new Error('fixture-denied');}}],
       ['@/lib/admin/environment',{getAdminEnvironment:()=>config.environment,isAdminReadDataPlaneAllowed:()=>config.allowed}],
-      ['../content/sanity-fetch',{sanityFetch:async()=>assert.fail('unauthorized CMS read')}],
-    ])});await assert.rejects(api.getPublicCopyPreview(config.scope??'home'));assert.deepEqual(trace,['draft:apply']);
+      ['../content/sanity-fetch',{sanityFetch:async()=>{queries++;assert.fail('unauthorized CMS read');}}],
+    ])});await assert.rejects(api.getPublicCopyPreview(config.scope??'home'));assert.deepEqual(trace,['draft:apply']);assert.equal(queries,0,'denied preview cannot issue a query even if its rejection is caught');
   }
 });
 test('authorized preview reads only fixed original scope and site singletons using draft perspective',async()=>{
-  const trace=[];const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
+  const trace=[],key='ci.expenses.monthlyIncome.label';
+  const copy={_id:'publicPageCopy-ci-th',_type:'publicPageCopy',scope:'ci',locale:'th',entries:[{key,text:'DRAFT CI LABEL'}]};
+  const site={_id:'publicPageCopy-site-th',_type:'publicPageCopy',scope:'site',locale:'th',entries:[{key:'site.footerDisclaimer',text:'DRAFT SITE FOOTER'}]};
+  const records={'publicPageCopy-ci-th':copy,'publicPageCopy-site-th':site,'pageSeo-ci-planning':{seoTitle:'DRAFT CI SEO'}};
+  const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
     ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>trace.push(['permission',permission])}],
     ['@/lib/admin/environment',{getAdminEnvironment:()=> 'production-admin',isAdminReadDataPlaneAllowed:(dataset,environment)=>{assert.equal(dataset,'production');assert.equal(environment,'production-admin');return true;}}],
-    ['../content/sanity-fetch',{sanityFetch:async request=>{assert.equal(request.perspective,'drafts');trace.push(['read',request.params.id]);assert.ok(['publicPageCopy-ci-th','publicPageCopy-site-th','pageSeo-ci-planning'].includes(request.params.id));return{data:null};}}],
-  ])});const result=await api.getPublicCopyPreview('ci');assert.equal(trace[0][0],'permission');assert.equal(trace.length,4);assert.deepEqual(result.copy,registry.parsePublicCopy('ci',null));assert.deepEqual(result.site,registry.parsePublicCopy('site',null));
+    ['../content/sanity-fetch',{sanityFetch:async request=>{assert.equal(request.perspective,'drafts');assert.ok(Object.hasOwn(records,request.params.id));if(request.params.id==='pageSeo-ci-planning')assert.deepEqual(request.params,{id:'pageSeo-ci-planning',pathname:'/ci-planning/'});else assert.deepEqual(request.params,{id:request.params.id});trace.push(['read',request.params.id]);return{data:records[request.params.id]};}}],
+  ])});const result=await api.getPublicCopyPreview('ci');assert.deepEqual(trace,[['permission','draft:apply'],['read','publicPageCopy-ci-th'],['read','publicPageCopy-site-th'],['read','pageSeo-ci-planning']]);assert.deepEqual(result.copy,registry.parsePublicCopy('ci',copy));assert.deepEqual(result.site,registry.parsePublicCopy('site',site));assert.equal(result.copy[key],'DRAFT CI LABEL');assert.equal(result.seo.seoTitle,'DRAFT CI SEO');
 });
+
 test('money labels translate presentation only and retain original identifiers and numerical game state',()=>{
   const domain=loadFixtureModule('lib/content/money-story-copy-defaults.ts');const engine=loadFixtureModule('features/money-story/engine.ts');const game=engine.createGame('same-word-copy','gam'),before=JSON.stringify(game);
   const key=Object.keys(domain.MONEY_STORY_COPY_DEFAULTS).find(key=>domain.MONEY_STORY_COPY_DEFAULTS[key]==='แก้ม');const values={...domain.MONEY_STORY_COPY_DEFAULTS,[key]:'ชื่อที่แก้ผ่าน Sanity'};
@@ -197,16 +202,17 @@ test('original article fallback and managed author branches retain complete b871
   const articles=[base,{...base,authorName:'ผู้เขียนภายนอก'},{...base,author:{name:'ผู้เขียนจัดการ',professionalQualifications:[{shortName:'CFP',identifier:'123'}],profileRole:'บทบาท',profileBio:'ประวัติ',profileCtaLabel:'อ่านประวัติ',profileCtaUrl:'#about-ccpun',profileAvatar:{src:'/assets/ccpun.webp',alt:'ชื่อผู้เขียน',width:96,height:96}}}];
   for(const[index,article]of articles.entries())assert.equal(digest(await renderFixture('blog',{preview:index===2},{article})),articleBaseline[index]);
 });
-test('public reader transmits only validated edits, keeps published lane and fails back to original renderer defaults',async()=>{
+test('public reader transmits only validated published edits independently of draft flags and cookies',async()=>{
   const key='home.hero.eyebrow',document={_id:'publicPageCopy-home-th',_type:'publicPageCopy',scope:'home',locale:'th',entries:[{key,text:'ข้อความที่แก้'}]};
-  for(const data of [null,document,{...document,_id:'private.document'},{...document,entries:[{key,text:'<script>'}]},'unavailable']) {
-    const requests=[];const api=loadFixtureModule('lib/content/public-copy.ts',{mocks:new Map([
-      ['react',{cache:fn=>fn}],['next/headers',{draftMode:()=>assert.fail('Production public read must not request drafts')}],
-      ['../deployment-environment',{IS_DRAFT_PREVIEW_ALLOWED:false}],
+  for(const previewAllowed of [false,true])for(const cookieEnabled of [false,true])for(const data of [null,document,{...document,_id:'private.document'},{...document,entries:[{key,text:'<script>'}]},'unavailable']) {
+    let draftReads=0;const requests=[];const api=loadFixtureModule('lib/content/public-copy.ts',{mocks:new Map([
+      ['react',{cache:fn=>fn}],['next/headers',{draftMode:async()=>{draftReads++;return{isEnabled:cookieEnabled};}}],
+      ['../deployment-environment',{IS_DRAFT_PREVIEW_ALLOWED:previewAllowed}],
       ['./sanity-fetch',{sanityFetch:async request=>{requests.push(request);if(data==='unavailable')throw new Error('fixture-unavailable');return{data};}}],
-    ])});const result=await api.getPublicCopy('home');assert.deepEqual(result,data===document?{[key]:'ข้อความที่แก้'}:{});assert.equal(requests.length,1);assert.equal(requests[0].perspective,'published');assert.deepEqual(requests[0].params,{id:'publicPageCopy-home-th'});assert.equal(registry.publicCopyText(result)('home.hero.description'),registry.PUBLIC_COPY_SCOPES.home.defaults['home.hero.description']);
+    ])});const result=await api.getPublicCopy('home');assert.deepEqual(result,data===document?{[key]:'ข้อความที่แก้'}:{});assert.equal(requests.length,1);assert.equal(requests[0].perspective,'published');assert.deepEqual(requests[0].params,{id:'publicPageCopy-home-th'});assert.equal(requests[0].query,'*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text}}');assert.equal(draftReads,0,`generic reader must not consult draft cookies: ${previewAllowed}/${cookieEnabled}`);assert.equal(registry.publicCopyText(result)('home.hero.description'),registry.PUBLIC_COPY_SCOPES.home.defaults['home.hero.description']);
   }
 });
+
 test('fixed SEO singleton drafts initialize their read-only pathname without a Production seed migration',()=>{
   const schema=loadFixtureModule('cms/sanity/schema/documents/page-seo.ts',{mocks:new Map([['sanity',{defineType:value=>value,defineField:value=>value}]])}).pageSeo;
   const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;assert.equal(pages.length,7);

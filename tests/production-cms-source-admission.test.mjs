@@ -24,6 +24,38 @@ test('same-word CMS admission rejects every unknown or modified source, includin
   ]) {const current=read(file),mutant=current.replace(before,after);assert.notEqual(mutant,current);assert.throws(()=>assertProductionCmsOwner(file,mutant));}
 });
 
+test('published-only reader hardening retains the frozen predecessor proof and denies draft restoration or unrelated drift',()=>{
+  const file='lib/content/public-copy.ts',source=read(file);
+  assert.equal(productionCmsOwners[file].after,'fe2f34b82b8e02b87b6d71502d089951d14e8bd1789a458a4d4c0bbfa3b77d9c');
+  assert.ok(!source.includes('draftMode'));assert.ok(!source.includes('IS_DRAFT_PREVIEW_ALLOWED'));
+  assertProductionCmsOwner(file,source);
+  let predecessor=source;
+  for(const[current,old]of [
+    [
+        "import { sanityFetch } from \"./sanity-fetch\";",
+        "import { draftMode } from \"next/headers\";\nimport { sanityFetch } from \"./sanity-fetch\";\nimport { IS_DRAFT_PREVIEW_ALLOWED } from \"../deployment-environment\";"
+    ],
+    [
+        "export const getPublicCopy = cache(async (scope: PublicCopyScope) => {\n  try {",
+        "export const getPublicCopy = cache(async (scope: PublicCopyScope) => {\n  const preview = IS_DRAFT_PREVIEW_ALLOWED && (await draftMode()).isEnabled;\n  try {"
+    ],
+    [
+        "perspective: \"published\",",
+        "perspective: preview ? \"drafts\" : \"published\","
+    ]
+]) {
+    assert.equal(predecessor.split(current).length,2);predecessor=predecessor.replace(current,old);
+  }
+  assert.equal(cmsSha(predecessor),productionCmsOwners[file].after,'original reviewed full reader identity remains frozen');
+  assert.throws(()=>assertProductionCmsOwner(file,predecessor),'the original cookie-dependent draft reader is no longer eligible');
+  for(const mutant of [
+    source.replace('perspective: "published",','perspective: "drafts",'),
+    source.replace('params: { id: publicCopyDocumentId(scope) }','params: { id: "private.document" }'),
+    source.replace('return {};','return null;'),
+    source+'\n// unrelated reader drift\n',
+  ]) {assert.notEqual(mutant,source);assert.throws(()=>assertProductionCmsOwner(file,mutant));}
+});
+
 function schemaStructure(source) {
   const admitted = [
     ["const VALIDATION_COPY_KEYS = Object.fromEntries(\n  Object.entries(CI_COPY_DEFAULTS).filter(([key]) => key.startsWith('ci.validation.')).map(([key, message]) => [message, key]),\n) as Record<string, keyof typeof CI_COPY_DEFAULTS>;\n\n", ''],

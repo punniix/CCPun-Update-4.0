@@ -158,6 +158,29 @@ assertProductionCmsProvenance();
 export function assertProductionCmsOwner(file, source = read(file)) {
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(Object.hasOwn(productionCmsOwners,file), 'Unknown CMS source owner: '+file);
+  // Preserve the original 74-owner proof. Only this exact published-only
+  // hardening may reconstruct its reviewed predecessor; the predecessor itself
+  // and every unrelated source change remain denied as current runtime source.
+  if (file === 'lib/content/public-copy.ts') {
+    const publishedOnlyInverse = [
+      [
+            "import { sanityFetch } from \"./sanity-fetch\";",
+            "import { draftMode } from \"next/headers\";\nimport { sanityFetch } from \"./sanity-fetch\";\nimport { IS_DRAFT_PREVIEW_ALLOWED } from \"../deployment-environment\";"
+      ],
+      [
+            "export const getPublicCopy = cache(async (scope: PublicCopyScope) => {\n  try {",
+            "export const getPublicCopy = cache(async (scope: PublicCopyScope) => {\n  const preview = IS_DRAFT_PREVIEW_ALLOWED && (await draftMode()).isEnabled;\n  try {"
+      ],
+      [
+            "perspective: \"published\",",
+            "perspective: preview ? \"drafts\" : \"published\","
+      ]
+];
+    for (const [current, predecessor] of publishedOnlyInverse) {
+      assert.equal(source.split(current).length, 2, 'exact published-only copy reader transition');
+      source = source.replace(current, predecessor);
+    }
+  }
   assert.equal(cmsSha(source), productionCmsOwners[file].after, file+': exact reviewed same-word CMS source');
   return true;
 }
