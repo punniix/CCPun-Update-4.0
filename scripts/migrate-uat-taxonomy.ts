@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 import { normalizeArticleTaxonomy } from "../lib/content/taxonomy";
-import { appendScriptAdminAudit } from "./admin-operations-audit";
+import { appendScriptAdminAudit, assertNoPendingScriptAdminAudit } from "./admin-operations-audit";
 
 const UAT_PROJECT_ID = "ccb9lnw5";
 const UAT_DATASET = "uat";
@@ -304,7 +304,10 @@ export async function applyTaxonomyMigration(
   plan: TaxonomyMigrationPlan,
   timestamp = new Date().toISOString(),
   appendAudit: typeof appendScriptAdminAudit | undefined = undefined,
+  checkPendingAudit: (() => Promise<void>) | undefined = undefined,
 ) {
+  if (!checkPendingAudit) throw new Error("Refusing taxonomy apply without pending-audit reconciliation check");
+  await checkPendingAudit();
   if (!plan.changes.length && !plan.categoryCreates.length) return { changed: 0, categoriesCreated: 0, auditLogCreated: false };
   if (!appendAudit) throw new Error("Refusing taxonomy mutation without Neon Admin audit");
 
@@ -322,11 +325,22 @@ export async function applyTaxonomyMigration(
     transaction = transaction.patch(change.id, (patch) => patch.ifRevisionId(change.revision).set(change.set));
   }
 
-  await transaction.commit({ tag: "ccpun.uat.taxonomy-normalization" });
-  await appendAudit({
-    id: `${auditId}.success`, action: "uat-taxonomy:normalize-success", objectId: `uat-taxonomy:${plan.changes.length}`,
-    requestId, timestamp, after: { status: "succeeded" },
-  });
+  try {
+    await transaction.commit({ tag: "ccpun.uat.taxonomy-normalization" });
+    await appendAudit({
+      id: `${auditId}.success`, action: "uat-taxonomy:normalize-success", objectId: `uat-taxonomy:${plan.changes.length}`,
+      requestId, timestamp, after: { status: "succeeded" },
+    });
+  } catch {
+    // Both an uncertain commit and a missing post-commit audit require manual
+    // reconciliation. Never retry/roll back CMS or claim success from current content.
+    await appendAudit({
+      id: `${auditId}.reconciliation-required`, action: "uat-taxonomy:normalize-reconciliation-required",
+      objectId: `uat-taxonomy:${plan.changes.length}`, requestId, timestamp,
+      after: { status: "reconciliation-required" },
+    }).catch(() => undefined);
+    throw new Error("UAT_TAXONOMY_RECONCILIATION_REQUIRED");
+  }
   return { changed: plan.changes.length, categoriesCreated: plan.categoryCreates.length, auditLogCreated: true };
 }
 
@@ -364,12 +378,12 @@ export async function main(args = process.argv.slice(2), environment: Environmen
         "slug": category->slug.current
       }
     }`),
-    client.fetch<RawCategory[]>(`*[_type == "category" || _id in ["ccpun-category-personal-finance", "ccpun-category-life-insurance", "ccpun-category-investment"]]{
+    client.fetch<RawCategory[]>(`*[_type == "category" || _id in $categoryIds]{
       _id,
       _type,
       title,
       "slug": slug.current
-    }`),
+    }`, { categoryIds: LEGACY_UAT_MIGRATION_CATEGORIES.map(({ slug }) => `ccpun-category-${slug}`) }),
   ]);
   const plan = buildTaxonomyMigrationPlan(articles, categories);
   const report = {
@@ -397,7 +411,8 @@ export async function main(args = process.argv.slice(2), environment: Environmen
     return report;
   }
 
-  const result = await applyTaxonomyMigration(client as unknown as TransactionClient, plan, new Date().toISOString(), appendScriptAdminAudit);
+  const result = await applyTaxonomyMigration(client as unknown as TransactionClient, plan, new Date().toISOString(),
+    (audit) => appendScriptAdminAudit(audit, environment), () => assertNoPendingScriptAdminAudit(environment));
   console.log(JSON.stringify({ ...report, ...result }, null, 2));
   return { ...report, ...result };
 }

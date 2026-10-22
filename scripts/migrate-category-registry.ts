@@ -1,5 +1,6 @@
 import { createClient } from "@sanity/client";
 import { getCliClient } from "sanity/cli";
+import { assertNoPendingScriptAdminAudit } from "./admin-operations-audit";
 import {
   buildCategoryRegistry,
   type RawCategoryRegistryRow,
@@ -178,7 +179,8 @@ const plannedPatches = rawCategories.flatMap((doc) => {
   if (!desired || doc.status === desired) return [];
   if (args.target === "uat" && !UAT_STATUS_BY_SLUG.has(doc.slug?.current ?? "")) return [];
   if (args.target === "production" && !PRODUCTION_EXPECTED.some((expected) => expected.slug === doc.slug?.current)) return [];
-  return [{ id: doc._id, from: doc.status ?? null, to: desired, beforeIdentity: snapshotIdentity(doc) }];
+  if (!doc._rev?.trim()) throw new Error("Refusing Category Registry migration: revision is required for every status patch");
+  return [{ id: doc._id, revision: doc._rev, from: doc.status ?? null, to: desired, beforeIdentity: snapshotIdentity(doc) }];
 });
 
 const plan = {
@@ -199,8 +201,10 @@ if (args.mode === "dry-run") {
   process.exit(0);
 }
 
+// A pending taxonomy intent also blocks Category writes in the same UAT plane.
+if (args.target === "uat") await assertNoPendingScriptAdminAudit();
 const tx = client.transaction();
-for (const patch of plannedPatches) tx.patch(patch.id, { set: { status: patch.to } });
+for (const patch of plannedPatches) tx.patch(patch.id, { ifRevisionID: patch.revision, set: { status: patch.to } });
 if (motorSeed) {
   tx.createIfNotExists({
     _id: motorSeed._id,
