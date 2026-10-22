@@ -174,8 +174,9 @@ const command = workspace
   ? (process.platform === "win32" ? "npm.cmd" : "npm")
   : (process.platform === "win32" ? "next.cmd" : "next");
 const args = workspace
-  ? ["run", "build", "--workspace", workspace, ...(acceptance ? ["--", acceptanceFlag] : [])]
+  ? ["run", "build", "--workspace", workspace]
   : ["build"];
+if (acceptance) args.push("--", acceptanceFlag);
 
 if (workspace) {
   console.log(`Hostinger monorepo root build: delegating to ${workspace}.`);
