@@ -106,7 +106,8 @@ const ALL_COPY_DEFAULTS = { ...SITE_COPY_DEFAULTS, ...HOME_COPY_DEFAULTS, ...CI_
 export function publicCopyText(values: PublicCopyValues) {
   return (key: PublicCopyKey): string => values[key] ?? ALL_COPY_DEFAULTS[key];
 }
-export function publicCopyDocumentId(scope: PublicCopyScope) { return `publicPageCopy.${scope}.th`; }
+// Public documents must remain in Sanity's root namespace; dotted IDs require authentication.
+export function publicCopyDocumentId(scope: PublicCopyScope) { return `publicPageCopy-${scope}-th`; }
 export function publicCopyInitialEntries(scope: PublicCopyScope) {
   return Object.entries(PUBLIC_COPY_SCOPES[scope].defaults).map(([key, text]) => ({ _type: "publicCopyEntry", _key: key.replaceAll(".", "-"), key, text }));
 }

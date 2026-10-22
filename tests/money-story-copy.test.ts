@@ -25,6 +25,7 @@ test("nested scoped CMS copy renders character label without mutating game or sh
 test("every shipped scope can seed validated stable singleton entries without HTML or duplicate keys", () => {
   for (const scope of Object.keys(PUBLIC_COPY_SCOPES) as PublicCopyScope[]) {
     const entries = publicCopyInitialEntries(scope);
+    assert.match(publicCopyDocumentId(scope), /^[a-zA-Z0-9_-]+$/);
     assert.equal(new Set(entries.map(entry => entry._key)).size, entries.length);
     const parsed = parsePublicCopy(scope, { _id: publicCopyDocumentId(scope), _type: "publicPageCopy", scope, locale: "th", entries });
     assert.equal(Object.keys(parsed).length, entries.length);

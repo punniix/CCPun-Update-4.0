@@ -16,7 +16,7 @@ test("CMS text changes exact owned key, preserves fallback, and FAQ output share
 
 test("copy documents reject cross-page identity, arbitrary keys, HTML, duplicate and empty values", () => {
   for (const doc of [
-    { ...home, _id: "publicPageCopy.site.th" }, { ...home, scope: "site" }, { ...home, locale: "en" },
+    { ...home, _id: "publicPageCopy-site-th" }, { ...home, _id: "publicPageCopy.home.th" }, { ...home, scope: "site" }, { ...home, locale: "en" },
     { ...home, entries: [{ key: "site.nav.home", text: "wrong scope" }] },
     { ...home, entries: [{ key: "home.hero.eyebrow", text: "<script>bad</script>" }] },
     { ...home, entries: [{ key: "home.hero.eyebrow", text: "" }] },
@@ -43,4 +43,10 @@ test("server reader preserves lane checks, published default and authenticated d
   const route = readFileSync(new URL("../apps/web/app/page.tsx", import.meta.url), "utf8");
   assert.ok(route.includes("getHomeCopyFaqs(copy)"));
   assert.ok(route.includes("faqs={homeFaqs}"));
+});
+
+test("published copy singleton IDs stay public without exposing a Web read token", () => {
+  assert.equal(publicCopyDocumentId("home"), "publicPageCopy-home-th");
+  assert.equal(publicCopyDocumentId("site"), "publicPageCopy-site-th");
+  assert.ok(!publicCopyDocumentId("home").includes("."));
 });
