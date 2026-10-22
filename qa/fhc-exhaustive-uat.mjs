@@ -1,3 +1,4 @@
+import { productionCmsDisplaySource } from './production-cms-source-proof.mjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -178,7 +179,7 @@ function seededFormulaCases(section) {
 }
 
 async function staticChecks(section) {
-  const life = await readFile('features/financial-health-check/components/LifeCoverageWizard.tsx', 'utf8');
+  const life = productionCmsDisplaySource('features/financial-health-check/components/LifeCoverageWizard.tsx', await readFile('features/financial-health-check/components/LifeCoverageWizard.tsx', 'utf8'));
   const lifeModel = await readFile('features/financial-health-check/components/lifeCoverageModel.ts', 'utf8');
   const currency = await readFile('components/ui/CurrencyInput.tsx', 'utf8');
   const analytics = await readFile('lib/analytics.ts', 'utf8');
