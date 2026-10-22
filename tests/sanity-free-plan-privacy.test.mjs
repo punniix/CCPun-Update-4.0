@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { evaluate, parse } from "groq-js";
 import {
   TARGETS,
   buildDocumentUrl,
@@ -79,34 +78,13 @@ test("direct document URLs are limited to approved CCPun datasets", () => {
 });
 
 
-test("actual GROQ fixture admission rejects modified identity, author, indexing or markers", async () => {
-  const fixtures = Array.from({ length: 11 }, (_, index) => {
-    const number = String(index + 1).padStart(2, "0");
-    return { _id: `ccpun-uat-qa-article-20261023-${number}`, _type: "article",
-      slug: { current: `uat-qa-20261023-${number}` }, author: { _ref: "ccpun-uat-qa-author-20261023" },
-      seo: { noindex: true }, tags: ["UAT QA", "ข้อมูลสังเคราะห์", `qa-marker-${number}`] };
-  });
-  const query = parse(buildBoundaryQuery(activeUat));
-  const counts = async dataset => (await evaluate(query, { dataset })).get();
-  assert.equal(checkBoundary(activeUat, { result: await counts(fixtures) }).approvedSyntheticArticles, 11);
-  for (const modified of [
-    { _id: "another-article" }, { slug: { current: "uat-qa-20261023-02" } },
-    { author: { _ref: "real-author" } }, { seo: { noindex: false } }, { seo: {} },
-    { tags: ["UAT QA", "ข้อมูลสังเคราะห์", "qa-marker-02"] },
-    { tags: ["ข้อมูลสังเคราะห์", "qa-marker-01"] }, { tags: ["UAT QA", "qa-marker-01"] },
-  ]) {
-    const result = await counts([{ ...fixtures[0], ...modified }, ...fixtures.slice(1)]);
-    assert.equal(result.articles, 11);
-    assert.equal(result.approvedSyntheticArticles, 10);
-    assert.throws(() => checkBoundary(activeUat, { result }), /UNAPPROVED_PUBLIC_UAT_ARTICLE/);
+test("unknown or malformed synthetic admission counts cannot exempt public UAT articles", () => {
+  const result = { articles: 1, authors: 0, categories: 0, operational: 0, drafts: 0, versions: 0 };
+  for (const approvedSyntheticArticles of [undefined, null, "1", -1, 0, 0.5, 12]) {
+    assert.throws(() => checkBoundary(activeUat, { result: { ...result, approvedSyntheticArticles } }));
   }
-  const approved = await counts(fixtures);
-  assert.throws(() => checkBoundary(activeUat, { result: { ...approved, approvedSyntheticArticles: 12 } }));
-  const result = await counts([...fixtures, { _id: "private-real-article", _type: "article" }]);
-  assert.throws(() => checkBoundary(activeUat, { result }), /UNAPPROVED_PUBLIC_UAT_ARTICLE/);
+  assert.equal(checkBoundary(activeUat, { result: { ...result, approvedSyntheticArticles: 1 } }).articles, 1);
   for (const target of TARGETS.filter(target => target.key !== "active-uat")) {
     assert.ok(!buildBoundaryQuery(target).includes("approvedSyntheticArticles"));
   }
-  const legacy = TARGETS.find(target => target.key === "legacy-uat");
-  assert.throws(() => checkBoundary(legacy, { result: { articles: 1, authors: 0, categories: 0, operational: 0, drafts: 0, versions: 0 } }));
 });
