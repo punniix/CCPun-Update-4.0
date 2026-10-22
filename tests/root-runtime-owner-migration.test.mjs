@@ -107,7 +107,9 @@ test('root compatibility routes delegate implementations to their canonical app 
 test('global foundation has one owner with explicit root, Web and Admin entry bridges', () => {
   const owner = resolve(root, 'components/styles/global-foundation.css');
   const resolveImport = (file) => {
-    const match = read(file).match(/^@import "([^"\n]+)";\s*$/);
+    const source = read(file);
+    if (file === "apps/web/app/globals.css") assert.equal(source, "@import \"../../../components/styles/global-foundation.css\";\n/* Public Web never renders the private Admin UI. Keep its utility candidates\n   out of this app's CSS without changing the shared or Admin foundations. */\n@source not \"../../../features/admin\";\n", "only the exact Web-only Admin scanner exclusion is admitted");
+    const match = source.match(file === "apps/web/app/globals.css" ? /^@import "([^"\n]+)";/ : /^@import "([^"\n]+)";\s*$/);
     assert.ok(match, file);
     return resolve(root, dirname(file), match[1]);
   };
