@@ -2,13 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
+import { readFileSync } from "node:fs";
+import { loadFixtureModule } from "../../qa/phase1-fixture-loader.mjs";
 import { tmpdir } from "node:os";
 import { SYNTHETIC_GOOGLE_DRIVE_FILE_ID, SYNTHETIC_GOOGLE_DRIVE_ITEMS, SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID } from "./google-drive-fixtures";
 import {
-  canStageGoogleDriveMedia,
   disposeGoogleDriveSelectedFileBinary,
-  MAX_GOOGLE_DRIVE_STAGED_BYTES,
-  GOOGLE_DRIVE_STAGING_RESERVE_BYTES,
   fetchGoogleDriveSelectedFileBinary,
   GOOGLE_DRIVE_FILE_SCOPE,
   GOOGLE_DRIVE_FOLDER_MIME_TYPE,
@@ -224,6 +223,12 @@ test("aborted pending download cancels bytes before approval and cleans its priv
 });
 
 test("media resource admission retains 1GB/file and ten-file aggregate with explicit disk reserve", () => {
+  const file = "lib/admin/media/google-drive-foundation.ts";
+  const actualSource = readFileSync(file, "utf8");
+  // Expose private policy only in this existing in-memory test loader, never in runtime.
+  const { canStageGoogleDriveMedia, MAX_GOOGLE_DRIVE_STAGED_BYTES, GOOGLE_DRIVE_STAGING_RESERVE_BYTES } = loadFixtureModule(file, {
+    sources: new Map([[file, actualSource + "\nexport { canStageGoogleDriveMedia, MAX_GOOGLE_DRIVE_STAGED_BYTES, GOOGLE_DRIVE_STAGING_RESERVE_BYTES };\n"]]),
+  });
   const available = MAX_GOOGLE_DRIVE_STAGED_BYTES + GOOGLE_DRIVE_STAGING_RESERVE_BYTES;
   assert.equal(canStageGoogleDriveMedia(MAX_GOOGLE_DRIVE_BINARY_BYTES, 9 * MAX_GOOGLE_DRIVE_BINARY_BYTES, 9 * MAX_GOOGLE_DRIVE_BINARY_BYTES, available), true);
   assert.equal(canStageGoogleDriveMedia(MAX_GOOGLE_DRIVE_BINARY_BYTES, MAX_GOOGLE_DRIVE_STAGED_BYTES, 0, available), false);
