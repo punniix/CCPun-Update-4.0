@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+import { chmod, mkdtemp, open, rm, rmdir, statfs, unlink, type FileHandle } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { z } from "zod";
 
 if (typeof window !== "undefined") {
@@ -425,21 +429,136 @@ export type GoogleDriveSelectedFileBinaryResult =
         | "media-response-unverifiable";
     };
 
-function exactSizeStream(body: ReadableStream<Uint8Array>, expectedByteSize: number) {
-  let received = 0;
-  return body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
-    transform(chunk, controller) {
-      received += chunk.byteLength;
-      if (received > expectedByteSize) {
-        controller.error(new Error("GOOGLE_DRIVE_MEDIA_SIZE_MISMATCH"));
-        return;
+// At most the existing ten 1GB files may be staged in this process. Disk
+// pressure is a resource denial, never permission to send unverified bytes.
+export const MAX_GOOGLE_DRIVE_STAGED_BYTES = 10 * MAX_GOOGLE_DRIVE_BINARY_BYTES;
+export const GOOGLE_DRIVE_STAGING_RESERVE_BYTES = 256 * 1024 * 1024;
+let stagedBytes = 0;
+let unwrittenBytes = 0;
+const stagedDisposals = new WeakMap<ReadableStream<Uint8Array>, () => Promise<void>>();
+
+export function canStageGoogleDriveMedia(bytes: number, reserved: number, pending: number, available: number) {
+  return Number.isSafeInteger(bytes) && bytes > 0 && bytes <= MAX_GOOGLE_DRIVE_BINARY_BYTES
+    && Number.isSafeInteger(reserved) && reserved >= 0 && reserved + bytes <= MAX_GOOGLE_DRIVE_STAGED_BYTES
+    && Number.isSafeInteger(pending) && pending >= 0 && Number.isSafeInteger(available)
+    && available - pending - bytes >= GOOGLE_DRIVE_STAGING_RESERVE_BYTES;
+}
+
+/** Disposal remains available even when a provider has locked the Web stream. */
+export async function disposeGoogleDriveSelectedFileBinary(body: ReadableStream<Uint8Array>) {
+  const dispose = stagedDisposals.get(body);
+  if (dispose) await dispose();
+  else await body.cancel().catch(() => undefined);
+}
+
+async function verifiedMediaStream(body: ReadableStream<Uint8Array>, bytes: number, checksum: string, signal: AbortSignal) {
+  if (stagedBytes + bytes > MAX_GOOGLE_DRIVE_STAGED_BYTES) throw new Error("GOOGLE_DRIVE_MEDIA_STAGING_DENIED");
+  const reader = body.getReader();
+  const previousReserved = stagedBytes;
+  const previousPending = unwrittenBytes;
+  stagedBytes += bytes;
+  unwrittenBytes += bytes;
+  let pending = bytes;
+  let directory: string | undefined;
+  let file: FileHandle | undefined;
+  let disposed = false;
+  let closePromise: Promise<void> | undefined;
+  let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+  let streamEnded = false;
+  const release = () => {
+    if (closePromise) return closePromise;
+    disposed = true;
+    closePromise = (async () => {
+      await file?.close().catch(() => undefined);
+      if (directory) await rm(directory, { recursive: true, force: true }).catch(() => undefined);
+      stagedBytes -= bytes;
+      unwrittenBytes -= pending;
+      pending = 0;
+    })();
+    return closePromise;
+  };
+  const onAbort = () => { void reader.cancel().catch(() => undefined); };
+  signal.addEventListener("abort", onAbort, { once: true });
+  try {
+    signal.throwIfAborted();
+    const disk = await statfs(tmpdir());
+    // Include reservations made while statfs was pending, without counting
+    // already-written bytes twice (the filesystem already subtracts those).
+    if (!canStageGoogleDriveMedia(bytes, previousReserved, previousPending, Number(disk.bavail) * Number(disk.bsize))
+      || Number(disk.bavail) * Number(disk.bsize) - unwrittenBytes < GOOGLE_DRIVE_STAGING_RESERVE_BYTES) {
+      throw new Error("GOOGLE_DRIVE_MEDIA_STAGING_DENIED");
+    }
+    directory = await mkdtemp(join(tmpdir(), "ccpun-approved-media-"));
+    await chmod(directory, 0o700);
+    const filename = join(directory, "media");
+    file = await open(filename, "wx+", 0o600);
+    // Unlink BEFORE the first media byte. No named file can be swapped or left
+    // with media content after a crash; the kernel reclaims the open descriptor.
+    await unlink(filename);
+    await rmdir(directory);
+    directory = undefined;
+    const hash = createHash("sha256");
+    let received = 0;
+    while (true) {
+      signal.throwIfAborted();
+      const chunk = await reader.read();
+      signal.throwIfAborted();
+      if (chunk.done) break;
+      if (!(chunk.value instanceof Uint8Array) || received + chunk.value.byteLength > bytes) {
+        throw new Error("GOOGLE_DRIVE_MEDIA_SIZE_MISMATCH");
       }
-      controller.enqueue(chunk);
-    },
-    flush(controller) {
-      if (received !== expectedByteSize) controller.error(new Error("GOOGLE_DRIVE_MEDIA_SIZE_MISMATCH"));
-    },
-  }));
+      // Bound individual filesystem writes even if the upstream emits a large chunk.
+      for (let offset = 0; offset < chunk.value.byteLength;) {
+        signal.throwIfAborted();
+        const part = chunk.value.slice(offset, Math.min(offset + 64 * 1024, chunk.value.byteLength));
+        const written = await file.write(part, 0, part.byteLength, received);
+        if (written.bytesWritten <= 0) throw new Error("GOOGLE_DRIVE_MEDIA_STAGING_DENIED");
+        hash.update(part.subarray(0, written.bytesWritten));
+        received += written.bytesWritten;
+        offset += written.bytesWritten;
+        pending -= written.bytesWritten;
+        unwrittenBytes -= written.bytesWritten;
+      }
+    }
+    if (received !== bytes || hash.digest("hex") !== checksum) throw new Error("GOOGLE_DRIVE_MEDIA_BYTES_MISMATCH");
+    signal.throwIfAborted();
+    let position = 0;
+    const verified = new ReadableStream<Uint8Array>({
+      start(controller) { streamController = controller; },
+      async pull(controller) {
+        try {
+          if (disposed || !file) throw new Error("GOOGLE_DRIVE_MEDIA_CLOSED");
+          const buffer = new Uint8Array(Math.min(64 * 1024, bytes - position));
+          if (buffer.byteLength === 0) {
+            streamEnded = true;
+            controller.close();
+            await release();
+            return;
+          }
+          const read = await file.read(buffer, 0, buffer.byteLength, position);
+          if (disposed || read.bytesRead === 0) throw new Error("GOOGLE_DRIVE_MEDIA_CLOSED");
+          position += read.bytesRead;
+          controller.enqueue(buffer.subarray(0, read.bytesRead));
+        } catch {
+          if (!streamEnded) { streamEnded = true; controller.error(new Error("GOOGLE_DRIVE_MEDIA_CLOSED")); }
+          await release();
+        }
+      },
+      async cancel() { streamEnded = true; await release(); },
+    });
+    stagedDisposals.set(verified, async () => {
+      if (!streamEnded) { streamEnded = true; streamController?.error(new Error("GOOGLE_DRIVE_MEDIA_CLOSED")); }
+      await release();
+    });
+    return verified;
+  } catch {
+    void reader.cancel().catch(() => undefined);
+    await release();
+    throw new Error("GOOGLE_DRIVE_MEDIA_UNVERIFIED");
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+    reader.releaseLock();
+  }
 }
 
 /**
@@ -472,11 +591,13 @@ export async function fetchGoogleDriveSelectedFileBinary(input: {
   const authorization = evaluateGoogleDriveInteractiveAuthorization(input.authorization, input.nowMs);
   if (!authorization.usable) return { ready: false, reason: authorization.reason };
 
+  const deadline = AbortSignal.timeout(input.signal ? 5 * 60_000 : 60_000);
+  const signal = input.signal ? AbortSignal.any([input.signal, deadline]) : deadline;
   const ancestry = await fetchGoogleDriveAncestry({
     rootFolderIds: rootFolderIds.data,
     selectedItemId: selectedItemId.data,
     accessToken: accessToken.data,
-    signal: input.signal,
+    signal,
     fetchImpl: input.fetchImpl,
   });
   if (!ancestry.ok) {
@@ -519,7 +640,7 @@ export async function fetchGoogleDriveSelectedFileBinary(input: {
       },
       cache: "no-store",
       redirect: "error",
-      signal: input.signal ?? AbortSignal.timeout(60_000),
+      signal,
     });
   } catch {
     return { ready: false, reason: "provider-unavailable" };
@@ -543,6 +664,13 @@ export async function fetchGoogleDriveSelectedFileBinary(input: {
     return { ready: false, reason: "media-response-unverifiable" };
   }
 
+  let verifiedBody: ReadableStream<Uint8Array>;
+  try {
+    verifiedBody = await verifiedMediaStream(response.body, expectedByteSize.data, expectedSha256Checksum.data, signal);
+  } catch {
+    void response.body.cancel().catch(() => undefined);
+    return { ready: false, reason: "media-response-unverifiable" };
+  }
   return {
     ready: true,
     file: {
@@ -551,7 +679,7 @@ export async function fetchGoogleDriveSelectedFileBinary(input: {
       mimeType: expectedMimeType.data,
       byteSize: expectedByteSize.data,
       sha256Checksum: expectedSha256Checksum.data,
-      body: exactSizeStream(response.body, expectedByteSize.data),
+      body: verifiedBody,
     },
   };
 }
