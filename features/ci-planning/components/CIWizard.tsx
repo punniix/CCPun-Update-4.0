@@ -1,4 +1,7 @@
 'use client';
+import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
+import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
+
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -14,9 +17,13 @@ import StepExpenses from './steps/StepExpenses';
 
 const TOTAL_STEPS = 2;
 const STEP_SECTION_KEYS: Array<'expenses' | 'existingCI'> = ['expenses', 'existingCI'];
-const CALCULATION_RANGE_ERROR = 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง';
+
 
 export default function CIWizard() {
+  const t = usePublicCopy(CI_COPY_DEFAULTS);
+
+const CALCULATION_RANGE_ERROR = t("ci.wizard.validation.calculationRange");
+
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<CIFormData>(INITIAL_CI_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -86,7 +93,7 @@ export default function CIWizard() {
 
   const handleNext = () => {
     const sectionKey = STEP_SECTION_KEYS[currentStep];
-    const stepErrors = validateCIStep(currentStep, formData[sectionKey] as unknown as Record<string, unknown>);
+    const stepErrors = validateCIStep(currentStep, formData[sectionKey] as unknown as Record<string, unknown>, t);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       focusFirstAlert();
@@ -134,8 +141,8 @@ export default function CIWizard() {
 
   const stepProps = { data: formData, updateData, errors };
   const footer = <div className="flex items-center gap-3">
-    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label="ย้อนกลับ" className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" /><span>ย้อนกลับ</span></button> : <span className="flex-1" />}
-    <button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44"><span>{currentStep === TOTAL_STEPS - 1 ? 'ดูผลคำนวณ' : 'ถัดไป'}</span>{currentStep === TOTAL_STEPS - 1 ? <BarChart3 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label={t("ci.wizard.ariaLabel")} className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" /><span>{t("ci.wizard.ariaLabel")}</span></button> : <span className="flex-1" />}
+    <button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44"><span>{currentStep === TOTAL_STEPS - 1 ? t("ci.wizard.footer") : t("ci.wizard.footer2")}</span>{currentStep === TOTAL_STEPS - 1 ? <BarChart3 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
   </div>;
 
   return <form noValidate onSubmit={(event) => { event.preventDefault(); handleNext(); }}>
@@ -144,8 +151,8 @@ export default function CIWizard() {
         step={currentStep + 1}
         total={TOTAL_STEPS}
         labelledBy={`ci-step-${currentStep + 1}-title`}
-        title={currentStep === 0 ? 'ผลกระทบต่อรายได้และรายจ่าย' : 'เงินก้อนและสินทรัพย์ที่มี'}
-        description={currentStep === 0 ? 'เริ่มจาก 3 ข้อมูลหลัก แล้วค่อยเปิดรายละเอียดค่าเรียนหรือหนี้เมื่อมี' : 'กรอกสินทรัพย์ที่มี แล้วเลือกได้ว่าต้องการรักษาเงินก้อนนี้ไว้หรือไม่'}
+        title={currentStep === 0 ? t("ci.wizard.title") : t("ci.wizard.title2")}
+        description={currentStep === 0 ? t("ci.wizard.description") : t("ci.wizard.description2")}
         footer={footer}
       >
         {errors.calculation ? <p id="ci-calculation-error" role="alert" tabIndex={-1} className="ccpun-motion-validation rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{errors.calculation}</p> : null}

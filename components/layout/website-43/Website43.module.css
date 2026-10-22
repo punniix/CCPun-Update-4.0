@@ -1137,3 +1137,11 @@
   .pagination a { display: none; }
   .pagination { flex-wrap: nowrap; }
 }
+
+/* ponytail: text-only tools use natural content height, without an empty image stage. */
+.root .toolHeroTextOnly { height: auto; min-height: 0; padding: 152px max(24px, calc((100% - 1280px) / 2)) 48px; background: var(--w43-bg); }
+.root .toolHeroTextOnly::after { display: none; }
+.root .toolHeroTextOnly .toolHeroCopy { position: relative; top: auto; left: auto; width: min(100%, 760px); }
+@media (max-width: 639px) {
+  .root .toolHeroTextOnly { padding-top: 120px; padding-bottom: 32px; }
+}

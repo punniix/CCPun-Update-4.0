@@ -1,4 +1,9 @@
-'use client';
+"use client";
+
+import type { SITE_COPY_DEFAULTS } from "@/lib/content/site-copy-defaults";
+import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
+import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
+
 
 import { useEffect, useState } from 'react';
 import { Download, Share2 } from 'lucide-react';
@@ -13,10 +18,10 @@ interface ResultImageDownloadButtonProps {
 
 type ActionState = 'idle' | 'downloading' | 'downloaded' | 'sharing' | 'share-opened' | 'error';
 
-async function createResultFile(result: CIResult, selectedMethod: CIEstimationMethod): Promise<File> {
+async function createResultFile(result: CIResult, selectedMethod: CIEstimationMethod, t: (key: keyof typeof CI_COPY_DEFAULTS) => string, imageText: (key: keyof typeof SITE_COPY_DEFAULTS) => string): Promise<File> {
   const { createCIResultImageSummary, renderCIResultImage } = await import('@/features/ci-planning/result-image');
-  const summary = createCIResultImageSummary(result, selectedMethod, CI_ASSESSMENT_VERSION);
-  const blob = await renderCIResultImage(summary);
+  const summary = createCIResultImageSummary(result, selectedMethod, CI_ASSESSMENT_VERSION, undefined, t);
+  const blob = await renderCIResultImage(summary, undefined, undefined, t, imageText);
   return new File([blob], `ccpun-critical-illness-summary-${new Date().toISOString().slice(0, 10)}.png`, { type: 'image/png' });
 }
 
@@ -24,6 +29,9 @@ export default function ResultImageDownloadButton({
   result,
   selectedMethod,
 }: ResultImageDownloadButtonProps) {
+  const t = usePublicCopy(CI_COPY_DEFAULTS);
+  const imageText = usePublicCopy();
+
   const [state, setState] = useState<ActionState>('idle');
   const [prepared, setPrepared] = useState<{ result: CIResult; method: CIEstimationMethod; file: File } | null>(null);
   const imageFile = prepared?.result === result && prepared.method === selectedMethod ? prepared.file : null;
@@ -34,18 +42,18 @@ export default function ResultImageDownloadButton({
 
   useEffect(() => {
     let current = true;
-    void createResultFile(result, selectedMethod)
+    void createResultFile(result, selectedMethod, t, imageText)
       .then((file) => { if (current) setPrepared({ result, method: selectedMethod, file }); })
       .catch(() => { if (current) setPrepared(null); });
     return () => { current = false; };
-  }, [result, selectedMethod]);
+  }, [result, selectedMethod, t, imageText]);
 
   async function handleDownload(): Promise<void> {
     if (state === 'downloading' || state === 'sharing') return;
     setState('downloading');
 
     try {
-      const file = imageFile ?? await createResultFile(result, selectedMethod);
+      const file = imageFile ?? await createResultFile(result, selectedMethod, t, imageText);
       const objectUrl = URL.createObjectURL(file);
       const anchor = document.createElement('a');
       anchor.href = objectUrl;
@@ -82,15 +90,15 @@ export default function ResultImageDownloadButton({
   }
 
   const statusMessage = state === 'downloading'
-    ? 'กำลังเตรียมภาพสำหรับบันทึก'
+    ? t("ci.download.statusMessage")
     : state === 'sharing'
-      ? 'กำลังเปิดเมนูแชร์ภาพ'
+      ? t("ci.download.statusMessage2")
       : state === 'downloaded'
-      ? 'เริ่มดาวน์โหลดภาพสรุปแล้ว'
+      ? t("ci.download.statusMessage3")
       : state === 'share-opened'
-        ? 'ตรวจสอบผู้รับใน LINE และกดส่งด้วยตัวเอง'
+        ? t("ci.download.statusMessage4")
       : state === 'error'
-        ? 'ดำเนินการไม่สำเร็จ ลองบันทึกภาพแล้วแนบใน LINE'
+        ? t("ci.download.statusMessage5")
         : '';
 
   return (
@@ -105,7 +113,7 @@ export default function ResultImageDownloadButton({
           className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
         >
           <Download className="h-5 w-5" aria-hidden="true" />
-          {state === 'downloading' ? 'กำลังสร้างภาพ…' : 'บันทึกภาพสรุป'}
+          {state === 'downloading' ? t("ci.download.label") : t("ci.download.label2")}
         </button>
         {canShareFile ? <button
           type="button"
@@ -116,12 +124,11 @@ export default function ResultImageDownloadButton({
           className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
         >
           <Share2 className="h-5 w-5" aria-hidden="true" />
-          {state === 'sharing' ? 'กำลังเปิด…' : 'แชร์ภาพผลลัพธ์'}
+          {state === 'sharing' ? t("ci.download.label3") : t("ci.download.label4")}
         </button> : null}
       </div>
       <p id="ci-result-image-privacy" className="text-xs leading-relaxed text-muted-foreground">
-        ภาพมีตัวเลขจากการประเมินและสร้างบนอุปกรณ์นี้ เว็บไม่อัปโหลดข้อมูลที่คุณกรอก ก่อนส่งให้ตรวจสอบผู้รับใน LINE
-      </p>
+        {t("ci.download.resultImagePrivacy.description")}</p>
       <p id="ci-result-image-status" className="text-xs text-muted-foreground empty:sr-only" aria-live="polite" aria-atomic="true">
         {statusMessage}
       </p>

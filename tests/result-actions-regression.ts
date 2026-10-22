@@ -1,3 +1,6 @@
+import { SITE_COPY_DEFAULTS } from "../lib/content/site-copy-defaults";
+import { getPageSeoPage } from "../lib/content/page-seo-registry";
+import { CI_COPY_DEFAULTS, FHC_COPY_DEFAULTS } from "../lib/content/tool-copy-defaults";
 import { readFileSync } from 'node:fs';
 import {
   CI_LINE_OA_DESTINATION,
@@ -258,36 +261,54 @@ for (const rawValue of ['12345', '98765', '777777']) {
   assert(!serializedSummary.includes(rawValue), `raw input value ${rawValue} must not enter the image DTO`);
 }
 
-const imageSource = readFileSync(new URL('../features/ci-planning/result-image.ts', import.meta.url), 'utf8');
-const shareImageSource = readFileSync(new URL('../lib/shared/result-share-image.ts', import.meta.url), 'utf8');
+// Read source contracts through their explicit CMS defaults; never search unrelated catalog entries.
+const toolDefaults: Record<string, string> = { ...SITE_COPY_DEFAULTS, ...CI_COPY_DEFAULTS, ...FHC_COPY_DEFAULTS };
+function defaultCopySource(source: string): string {
+  const text = (key: string) => { assert(Object.hasOwn(toolDefaults, key), `bound tool copy key must exist: ${key}`); return toolDefaults[key]; };
+  return source
+    .replace(/([\w-]+)=\{t\(["']([^"']+)["']\)\}/g, (_match, attribute, key) => `${attribute}=${JSON.stringify(text(key))}`)
+    .replace(/\{t\(["']([^"']+)["']\)\}/g, (_match, key) => text(key))
+    .replace(/\bt\(["']([^"']+)["']\)/g, (_match, key) => `'${text(key).replaceAll("'", "\\'")}'`);
+}
+const imageSourceRaw = readFileSync(new URL('../features/ci-planning/result-image.ts', import.meta.url), 'utf8');
+const imageSource = defaultCopySource(imageSourceRaw);
+const shareImageSourceRaw = readFileSync(new URL('../lib/shared/result-share-image.ts', import.meta.url), 'utf8');
+const shareImageSource = defaultCopySource(shareImageSourceRaw);
 assert(!shareImageSource.includes('สินทรัพย์ยังอยู่ในทุนที่มี'), 'CI export must not restore the removed grey protected-assets note');
-const fhcImageSource = readFileSync(
+const fhcImageSourceRaw = readFileSync(
   new URL('../features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx', import.meta.url),
   'utf8',
 );
-const ciResultSource = readFileSync(
+const fhcImageSource = defaultCopySource(fhcImageSourceRaw);
+const ciResultSourceRaw = readFileSync(
   new URL('../features/ci-planning/components/result/CIResult.tsx', import.meta.url),
   'utf8',
 );
+const ciResultSource = defaultCopySource(ciResultSourceRaw);
 const ciConstantsSource = readFileSync(new URL('../features/ci-planning/calculator/constants.ts', import.meta.url), 'utf8');
-const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8');
-const ciLandingSource = readFileSync(
+const ciPageSourceRaw = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8');
+const ciPageSource = defaultCopySource(ciPageSourceRaw) + JSON.stringify(getPageSeoPage("/ci-planning/")!.defaults);
+const ciLandingSourceRaw = readFileSync(
   new URL('../features/ci-planning/components/CILandingIntro.tsx', import.meta.url),
   'utf8',
 );
-const ciExpensesSurfaceSource = [
+const ciLandingSource = defaultCopySource(ciLandingSourceRaw);
+const ciExpensesSurfaceSourceRaw = [
   readFileSync(new URL('../features/ci-planning/components/steps/StepExpenses.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../features/ci-planning/components/steps/ExpenseObligationsSection.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../features/ci-planning/components/steps/RecoveryReserveSection.tsx', import.meta.url), 'utf8'),
 ].join('\n');
-const ciExistingSource = readFileSync(
+const ciExpensesSurfaceSource = defaultCopySource(ciExpensesSurfaceSourceRaw);
+const ciExistingSourceRaw = readFileSync(
   new URL('../features/ci-planning/components/steps/StepExistingCI.tsx', import.meta.url),
   'utf8',
 );
-const resultImageButtonSource = readFileSync(
+const ciExistingSource = defaultCopySource(ciExistingSourceRaw);
+const resultImageButtonSourceRaw = readFileSync(
   new URL('../features/ci-planning/components/ResultImageDownloadButton.tsx', import.meta.url),
   'utf8',
 );
+const resultImageButtonSource = defaultCopySource(resultImageButtonSourceRaw);
 const ciCalculatorSource = readFileSync(new URL('../features/ci-planning/calculator/calculator.ts', import.meta.url), 'utf8');
 const ciTypesSource = readFileSync(new URL('../features/ci-planning/calculator/types.ts', import.meta.url), 'utf8');
 const analyticsSource = readFileSync(new URL('../lib/analytics.ts', import.meta.url), 'utf8');
@@ -298,21 +319,21 @@ const ccpunWordmarkSource = readFileSync(
   'utf8',
 );
 assert(ciResultSource.includes('Recovery Reserve'), 'CI result must expose Recovery Reserve');
-assert(imageSource.includes('Recovery Reserve'), 'saved image must state Recovery Reserve inclusion/exclusion');
+assert(imageSourceRaw.includes('t("ci.image.recoveryScopeNote")') && CI_COPY_DEFAULTS['ci.image.recoveryScopeNote'].includes('Recovery Reserve') && imageSourceRaw.includes('t("ci.image.label14")') && CI_COPY_DEFAULTS['ci.image.label14'].includes('ยังไม่ได้รวม Recovery Reserve'), 'saved image must state Recovery Reserve inclusion/exclusion through explicit CMS keys');
 for (const networkPrimitive of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'WebSocket']) {
   assert(!shareImageSource.includes(networkPrimitive), `shared result image module must not use ${networkPrimitive}`);
 }
 assert(imageSource.includes('/assets/ccpun-text-logo.svg'), 'result image must use the current same-origin CCPUN wordmark');
 assert(imageSource.includes('/assets/line-oa-qr.png'), 'result image must include the approved same-origin LINE OA QR');
-assert(imageSource.includes('เพิ่มเพื่อน LINE @ccpun'), 'result image must label the LINE OA QR');
+assert(imageSourceRaw.includes('actionLabel: t("ci.image.actionLabel")') && CI_COPY_DEFAULTS['ci.image.actionLabel'] === 'เพิ่มเพื่อน LINE @ccpun', 'result image must label the LINE OA QR through its explicit CMS key');
 assert(ccpunWordmarkSource.includes('viewBox="0 0 124 36"'), 'CCPUN wordmark must retain enough safe area to avoid clipping the N');
 assert(!imageSource.includes('เวอร์ชันวิธีประเมิน:'), 'result image must not expose the internal assessment version');
 assert(!imageSource.includes("context.fillText('ccpun.com'"), 'result image must remove the obsolete footer signature');
 assert(!shareImageSource.includes('#16352f') && shareImageSource.includes('#352727'), 'result image must use the current warm-brown palette');
-assert(imageSource.includes('รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก'), 'income result image must state that the selected duration is in years');
+assert(imageSourceRaw.includes('t("ci.image.label12")') && CI_COPY_DEFAULTS['ci.image.label12'] === 'รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก', 'income result image must state that the selected duration is in years through its explicit CMS key');
 assert(shareImageSource.includes("'image/png'"), 'result image must be encoded as PNG');
 assert(imageSource.includes('ประมาณการทุนโรคร้ายแรงที่ควรมี'), 'CI image must use the approved headline');
-assert(imageSource.includes("summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'"), 'CI export must label the selected estimation method');
+assert(imageSourceRaw.includes("summary.estimationMethod === 'income' ? 'ci.image.incomeBasis' : 'ci.image.expenseBasis'") && CI_COPY_DEFAULTS['ci.image.incomeBasis'] === 'รายได้' && CI_COPY_DEFAULTS['ci.image.expenseBasis'] === 'รายจ่าย', 'CI export must label the selected estimation method through its explicit CMS keys');
 assert(!shareImageSource.includes('context.fillText(summary.methodTitle, 68, 385)'), 'CI image must not repeat the method below its amount');
 assert(shareImageSource.includes('context.fillText(summary.methodTitle, 96, 862)'), 'FHC image must keep its existing method detail');
 assert(shareImageSource.includes('ทุนสำหรับรับมือโรคร้ายแรง'), 'CI image must use the review-approved funding label');
@@ -398,35 +419,14 @@ equal(
   1,
   'CI tool hero must have exactly one primary pre-calculator CTA label',
 );
-for (const storyImage of [
-  '/assets/ci-story-income-v6.webp',
-  '/assets/ci-story-debt-v6.webp',
-  '/assets/ci-story-coverage-v6.webp',
-]) {
-  equal(
-    (ciLandingSource.match(new RegExp(storyImage.replace(/\//g, '\\/'), 'g')) ?? []).length,
-    1,
-    `lean CI landing must declare the distinct story image once: ${storyImage}`,
-  );
-}
+assert(ciLandingSource.includes('data-ui="ci-trust-scenarios"'), 'CI landing must present the three scenario panels');
+assert(!ciLandingSource.includes('<Image') && !ciLandingSource.includes('storyBeats[index %'), 'CI landing must not duplicate generated-human imagery');
+assert(!ciLandingSource.includes('setTimeout') && !ciLandingSource.includes('setInterval'), 'static scenarios must not keep carousel timers');
 assert(!ciLandingSource.includes('/assets/ci-planning-consultation-v1.webp'), 'lean CI landing must not repeat the legacy composite image');
-assert(ciLandingSource.includes('src={beat.src}'), 'lean CI landing must map one image source per story beat');
-for (const approvedImageAlt of [
-  'ภาพประกอบผู้รับการรักษาด้วยคีโมกำลังทบทวนค่าใช้จ่ายกับคู่ชีวิต ขณะที่งานและรายได้อาจหยุดลง',
-  'ภาพประกอบครอบครัวกำลังทบทวนค่างวดบ้าน รถ และค่าใช้จ่ายที่ยังต้องดูแล',
-  'ภาพประกอบครอบครัวหลายวัยกำลังทบทวนเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์ที่พร้อมใช้',
-]) {
-  assert(ciLandingSource.includes(approvedImageAlt), `lean CI landing must keep the approved image alt: ${approvedImageAlt}`);
-}
-assert(
-  ciLandingSource.includes('ภาพประกอบสร้างด้วย Generative AI'),
-  'lean CI landing must disclose the Generative AI image',
-);
-equal(
-  (ciLandingSource.match(/ภาพประกอบสร้างด้วย Generative AI/g) ?? []).length,
-  1,
-  'Generative AI caption must appear exactly once',
-);
+assert(ciLandingSource.includes('storyBeats.map((beat, index)'), 'CI landing must render each logical scenario once');
+
+assert(!ciLandingSource.includes('ภาพประกอบสร้างด้วย Generative AI'), 'text-only CI scenarios must not keep a misleading image caption');
+assert(!ciPageSource.includes('image="/assets/website-43/ci-hero.png"'), 'CI hero must not retain the generated-human scene');
 assert(!ciLandingSource.includes('<figure'), 'lean CI landing must not contain a standalone image figure');
 assert(!ciLandingSource.includes('rounded-full'), 'lean CI landing must not restore image chips');
 assert(
@@ -484,7 +484,7 @@ assert(
   'result download must receive the selected method',
 );
 assert(
-  resultImageButtonSource.includes('createCIResultImageSummary(result, selectedMethod, CI_ASSESSMENT_VERSION)'),
+  resultImageButtonSource.includes('createCIResultImageSummary(result, selectedMethod, CI_ASSESSMENT_VERSION, undefined, t)'),
   'result download must export the selected method',
 );
 

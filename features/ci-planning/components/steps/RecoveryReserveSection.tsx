@@ -1,4 +1,7 @@
 'use client';
+import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
+import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
+
 
 import { ExternalLink, RotateCcw } from 'lucide-react';
 import CurrencyInput from '@/components/ui/CurrencyInput';
@@ -40,21 +43,7 @@ type AmountField =
 
 const PRESET_ORDER: Array<'basic' | 'continued' | 'longTerm'> = ['basic', 'continued', 'longTerm'];
 
-const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }> = [
-  { field: 'pulseOximeter', label: 'เครื่องวัดออกซิเจนปลายนิ้ว' },
-  { field: 'bloodPressureMonitor', label: 'เครื่องวัดความดัน' },
-  { field: 'thermometer', label: 'เครื่องวัดอุณหภูมิ' },
-  { field: 'walker', label: 'Walker / อุปกรณ์ช่วยเดิน' },
-  { field: 'wheelchair', label: 'Wheelchair' },
-  { field: 'showerChair', label: 'เก้าอี้อาบน้ำ / อุปกรณ์ห้องน้ำ' },
-  { field: 'grabRailAndSafety', label: 'ราวจับและอุปกรณ์ความปลอดภัยในบ้าน' },
-  { field: 'hospitalBed', label: 'เตียงผู้ป่วย / อุปกรณ์ก้อนใหญ่' },
-  { field: 'consumables', label: 'ของใช้สิ้นเปลืองช่วงพักฟื้น' },
-  { field: 'homeAdaptation', label: 'ปรับบ้านเดิม / ห้องน้ำ / ทางลาด / พื้นที่ใช้งาน', help: 'เป็นงบเผื่อสำหรับการปรับบ้าน ไม่ใช่ราคาก่อสร้างตายตัว' },
-  { field: 'majorHousing', label: 'Major Housing Reserve', help: 'เผื่อกรณีต่อเติมครั้งใหญ่ เปลี่ยนพื้นที่อยู่อาศัย หรือต้องจัดที่อยู่อาศัยใหม่ ไม่รวมราคาที่ดิน' },
-  { field: 'contingency', label: 'เงินเผื่อความคลาดเคลื่อน' },
-  { field: 'otherRecoveryCosts', label: 'ค่าใช้จ่ายอื่นช่วงพักฟื้น' },
-];
+
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -66,24 +55,26 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 }
 
 function BreakdownRows({ recovery: value }: { recovery: CIRecoveryCosts }) {
+  const t = usePublicCopy(CI_COPY_DEFAULTS);
+
   const preview = calcRecoveryReserveNeed(value);
   const rowCandidates: Array<[string, number]> = [
-    [`ติดตามรักษา ${preview.treatmentVisits} ครั้ง × ${baht(preview.treatmentVisitUnitCost)}`, preview.visitNeed],
-    [`ผู้ดูแล ${preview.caregiverHomeDays} วัน × ${baht(preview.caregiverDailyCost)}`, preview.caregiverHomeNeed],
-    [`กายภาพ/ฟื้นฟู ${preview.rehabSessions} ครั้ง × ${baht(preview.rehabUnitCost)}`, preview.rehabNeed],
-    ['เครื่องวัดออกซิเจนปลายนิ้ว', preview.pulseOximeter],
-    ['เครื่องวัดความดัน', preview.bloodPressureMonitor],
-    ['เครื่องวัดอุณหภูมิ', preview.thermometer],
-    ['Walker / อุปกรณ์ช่วยเดิน', preview.walker],
-    ['Wheelchair', preview.wheelchair],
-    ['เก้าอี้อาบน้ำ / อุปกรณ์ห้องน้ำ', preview.showerChair],
-    ['ราวจับและอุปกรณ์ความปลอดภัย', preview.grabRailAndSafety],
-    ['เตียงผู้ป่วย / อุปกรณ์ก้อนใหญ่', preview.hospitalBed],
-    ['ของใช้สิ้นเปลือง', preview.consumables],
-    ['ปรับบ้านเดิม / พื้นที่ใช้งาน', preview.homeAdaptation],
-    ['Major Housing Reserve', preview.majorHousing],
-    ['เงินเผื่อความคลาดเคลื่อน', preview.contingency],
-    ['ค่าใช้จ่ายอื่น', preview.otherRecoveryCosts],
+    [t("ci.recovery.rowCandidates").replaceAll("{treatmentVisits}", String(preview.treatmentVisits)).replaceAll("{value2}", String(baht(preview.treatmentVisitUnitCost))), preview.visitNeed],
+    [t("ci.recovery.rowCandidates2").replaceAll("{caregiverHomeDays}", String(preview.caregiverHomeDays)).replaceAll("{value2}", String(baht(preview.caregiverDailyCost))), preview.caregiverHomeNeed],
+    [t("ci.recovery.rowCandidates3").replaceAll("{rehabSessions}", String(preview.rehabSessions)).replaceAll("{value2}", String(baht(preview.rehabUnitCost))), preview.rehabNeed],
+    [t("ci.recovery.pulseOximeter.label"), preview.pulseOximeter],
+    [t("ci.recovery.bloodPressureMonitor.label"), preview.bloodPressureMonitor],
+    [t("ci.recovery.thermometer.label"), preview.thermometer],
+    [t("ci.recovery.walker.label"), preview.walker],
+    [t("ci.recovery.wheelchair.label"), preview.wheelchair],
+    [t("ci.recovery.showerChair.label"), preview.showerChair],
+    [t("ci.recovery.rowCandidates4"), preview.grabRailAndSafety],
+    [t("ci.recovery.hospitalBed.label"), preview.hospitalBed],
+    [t("ci.recovery.rowCandidates5"), preview.consumables],
+    [t("ci.recovery.rowCandidates6"), preview.homeAdaptation],
+    [t("ci.recovery.majorHousing.label"), preview.majorHousing],
+    [t("ci.recovery.contingency.label"), preview.contingency],
+    [t("ci.recovery.rowCandidates7"), preview.otherRecoveryCosts],
   ];
   const rows = rowCandidates.filter(([, amount]) => amount > 0);
 
@@ -96,7 +87,7 @@ function BreakdownRows({ recovery: value }: { recovery: CIRecoveryCosts }) {
         </div>
       ))}
       <div className="flex items-start justify-between gap-4 pt-2">
-        <dt className="font-medium text-foreground">รวมรายละเอียด</dt>
+        <dt className="font-medium text-foreground">{t("ci.recovery.metricLabel")}</dt>
         <dd className="shrink-0 font-semibold tabular-nums text-primary">{baht(preview.breakdownTotal)}</dd>
       </div>
     </dl>
@@ -109,6 +100,24 @@ export default function RecoveryReserveSection({
   recoveryPreview,
   onChangeRecovery,
 }: Props) {
+  const t = usePublicCopy(CI_COPY_DEFAULTS);
+
+const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }> = [
+  { field: 'pulseOximeter', label: t("ci.recovery.pulseOximeter.label") },
+  { field: 'bloodPressureMonitor', label: t("ci.recovery.bloodPressureMonitor.label") },
+  { field: 'thermometer', label: t("ci.recovery.thermometer.label") },
+  { field: 'walker', label: t("ci.recovery.walker.label") },
+  { field: 'wheelchair', label: t("ci.recovery.wheelchair.label") },
+  { field: 'showerChair', label: t("ci.recovery.showerChair.label") },
+  { field: 'grabRailAndSafety', label: t("ci.recovery.grabRailAndSafety.label") },
+  { field: 'hospitalBed', label: t("ci.recovery.hospitalBed.label") },
+  { field: 'consumables', label: t("ci.recovery.consumables.label") },
+  { field: 'homeAdaptation', label: t("ci.recovery.homeAdaptation.label"), help: t("ci.recovery.homeAdaptation.help") },
+  { field: 'majorHousing', label: t("ci.recovery.majorHousing.label"), help: t("ci.recovery.majorHousing.help") },
+  { field: 'contingency', label: t("ci.recovery.contingency.label") },
+  { field: 'otherRecoveryCosts', label: t("ci.recovery.otherRecoveryCosts.label") },
+];
+
   const choosePreset = (mode: 'basic' | 'continued' | 'longTerm') => {
     onChangeRecovery(getRecoveryPreset(mode));
   };
@@ -145,16 +154,14 @@ export default function RecoveryReserveSection({
   return (
     <section className="border-t border-white/10 pt-5" data-ui="ci-recovery-reserve" aria-labelledby="ci-recovery-title">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-primary">เงินสำรองสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต</p>
-        <h4 id="ci-recovery-title" className="text-base font-medium text-foreground">Recovery Reserve</h4>
+        <p className="text-xs font-medium text-primary">{t("ci.recovery.description")}</p>
+        <h4 id="ci-recovery-title" className="text-base font-medium text-foreground">{t("ci.expenses.metricLabel5")}</h4>
         <p className="text-xs leading-6 text-white/70">
-          ก้อนนี้แยกจากรายได้ ค่าใช้จ่ายประจำ ค่าเรียน และหนี้ เลือกชุดประมาณการที่ใกล้กับสิ่งที่อยากเผื่อไว้ก่อน
-          แล้วค่อยเปิดดูรายละเอียด หรือเลือกกำหนดเองเพื่อแก้รายการย่อยได้
-        </p>
+          {t("ci.recovery.description2")}</p>
       </div>
 
       <fieldset className="mt-5 space-y-3">
-        <legend className="sr-only">เลือก Recovery Reserve</legend>
+        <legend className="sr-only">{t("ci.recovery.groupLabel")}</legend>
         <div className="grid items-start gap-3 lg:grid-cols-2">
           {PRESET_ORDER.map((mode) => {
             const preset = CI_RECOVERY_PRESETS[mode];
@@ -175,16 +182,15 @@ export default function RecoveryReserveSection({
                     className="mt-1 h-4 w-4 shrink-0 accent-primary"
                   />
                   <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground">{preset.title}</span>
+                    <span className="block text-sm font-medium text-foreground">{t(`ci.recovery.preset.${mode}.title`)}</span>
                     <span className="mt-1 block text-2xl font-semibold tabular-nums text-primary">{baht(preset.reserve)}</span>
-                    <span className="mt-1 block text-xs leading-6 text-white/70">{preset.shortDescription}</span>
+                    <span className="mt-1 block text-xs leading-6 text-white/70">{t(`ci.recovery.preset.${mode}.shortDescription`)}</span>
                   </span>
                 </label>
 
                 <details className="mt-3 border-t border-white/10 pt-3">
                   <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    ดูรายละเอียดการคำนวณ
-                  </summary>
+                    {t("ci.recovery.expandLabel")}</summary>
                   <div className="mt-3 space-y-3">
                     <BreakdownRows recovery={preset.recovery} />
                     <button
@@ -192,8 +198,7 @@ export default function RecoveryReserveSection({
                       onClick={() => onChangeRecovery(copyPresetToCustom(mode))}
                       className="glass-button inline-flex min-h-11 w-full items-center justify-center px-4 text-xs"
                     >
-                      ใช้ชุดนี้แล้วปรับเอง
-                    </button>
+                      {t("ci.recovery.action")}</button>
                   </div>
                 </details>
               </article>
@@ -212,20 +217,19 @@ export default function RecoveryReserveSection({
                 className="mt-1 h-4 w-4 shrink-0 accent-primary"
               />
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">กำหนดเงินสำรองเอง</span>
+                <span className="block text-sm font-medium text-foreground">{t("ci.recovery.label")}</span>
                 <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                  เริ่มจากจำนวนเงินที่อยากเผื่อ แล้วให้ระบบจัดตัวอย่างให้ ก่อนแก้วัน ครั้ง ราคา หรือรายการย่อยตามสถานการณ์ของคุณ
-                </span>
+                  {t("ci.recovery.label2")}</span>
               </span>
             </label>
 
             <div className="mt-4 space-y-2">
-              <label htmlFor="ci-recovery-custom-target" className="block min-h-10 text-xs text-white/65">เงินสำรองที่อยากเผื่อ</label>
+              <label htmlFor="ci-recovery-custom-target" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryCustomTarget.label")}</label>
               <CurrencyInput
                 id="ci-recovery-custom-target"
                 value={selected === 'custom' ? recovery.targetReserve : 0}
                 onChange={(value) => onChangeRecovery({ ...recovery, mode: 'custom', targetReserve: value })}
-                placeholder="เช่น 300,000"
+                placeholder={t("ci.recovery.placeholder")}
                 error={Boolean(targetError)}
                 aria-describedby={targetError ? 'ci-recovery-custom-target-error' : undefined}
               />
@@ -236,42 +240,39 @@ export default function RecoveryReserveSection({
                 onClick={() => onChangeRecovery(buildCustomRecoveryFromTarget(recovery.targetReserve))}
                 className="glass-button inline-flex min-h-11 w-full items-center justify-center px-4 text-xs disabled:cursor-not-allowed disabled:opacity-50"
               >
-                จัดตัวอย่างรายการตามยอดนี้
-              </button>
+                {t("ci.recovery.action2")}</button>
             </div>
 
             {selected === 'custom' ? (
               <details className="mt-3 border-t border-white/10 pt-3">
                 <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  ดูและแก้ไขรายการย่อย
-                </summary>
+                  {t("ci.recovery.expandLabel2")}</summary>
                 <div className="mt-4 space-y-5">
                   <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                     <div className="flex items-start justify-between gap-4 text-xs">
-                      <span className="text-muted-foreground">เงินสำรองที่ตั้งไว้</span>
+                      <span className="text-muted-foreground">{t("ci.recovery.label3")}</span>
                       <strong className="tabular-nums text-primary">{baht(recovery.targetReserve)}</strong>
                     </div>
                     <div className="mt-2 flex items-start justify-between gap-4 text-xs">
-                      <span className="text-muted-foreground">รวมรายละเอียดที่กรอก</span>
+                      <span className="text-muted-foreground">{t("ci.recovery.label4")}</span>
                       <strong className="tabular-nums text-foreground">{baht(recoveryPreview.breakdownTotal)}</strong>
                     </div>
                     {recoveryPreview.unallocated > 0 ? (
                       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        ยังไม่ได้จัดสรร <strong className="text-foreground">{baht(recoveryPreview.unallocated)}</strong> จากเงินก้อนที่ตั้งไว้
-                      </p>
+                        {t("ci.recovery.description3")}<strong className="text-foreground">{baht(recoveryPreview.unallocated)}</strong> {t("ci.recovery.description4")}</p>
                     ) : null}
                     {recoveryPreview.overBudget > 0 ? (
                       <p className="mt-2 text-xs leading-5 text-[#ffb4b4]">
-                        รายละเอียดที่ปรับสูงกว่าเงินก้อนที่ตั้งไว้ <strong>{baht(recoveryPreview.overBudget)}</strong>
+                        {t("ci.recovery.description5")}<strong>{baht(recoveryPreview.overBudget)}</strong>
                       </p>
                     ) : null}
                   </div>
 
                   <section className="space-y-4" aria-labelledby="ci-recovery-custom-services">
-                    <h5 id="ci-recovery-custom-services" className="text-sm font-medium text-foreground">การติดตาม การดูแล และการฟื้นฟู</h5>
+                    <h5 id="ci-recovery-custom-services" className="text-sm font-medium text-foreground">{t("ci.recovery.recoveryCustomServices.heading")}</h5>
                     <div className="grid items-start gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-treatment-visits" className="block min-h-10 text-xs text-white/65">ติดตามรักษา · จำนวนครั้ง</label>
+                        <label htmlFor="ci-recovery-treatment-visits" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryTreatmentVisits.label")}</label>
                         <input
                           id="ci-recovery-treatment-visits"
                           type="number"
@@ -285,12 +286,12 @@ export default function RecoveryReserveSection({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-treatment-rate" className="block min-h-10 text-xs text-white/65">ประมาณต่อครั้ง</label>
+                        <label htmlFor="ci-recovery-treatment-rate" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryTreatmentRate.label")}</label>
                         <CurrencyInput id="ci-recovery-treatment-rate" value={recovery.treatmentVisitUnitCost} onChange={(value) => updateCustomNumber('treatmentVisitUnitCost', value)} />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-caregiver-days" className="block min-h-10 text-xs text-white/65">ผู้ดูแล · จำนวนวัน</label>
+                        <label htmlFor="ci-recovery-caregiver-days" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryCaregiverDays.label")}</label>
                         <input
                           id="ci-recovery-caregiver-days"
                           type="number"
@@ -304,12 +305,12 @@ export default function RecoveryReserveSection({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-caregiver-rate" className="block min-h-10 text-xs text-white/65">ประมาณต่อวัน</label>
+                        <label htmlFor="ci-recovery-caregiver-rate" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryCaregiverRate.label")}</label>
                         <CurrencyInput id="ci-recovery-caregiver-rate" value={recovery.caregiverDailyCost} onChange={(value) => updateCustomNumber('caregiverDailyCost', value)} />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-rehab-sessions" className="block min-h-10 text-xs text-white/65">กายภาพ/ฟื้นฟู · จำนวนครั้ง</label>
+                        <label htmlFor="ci-recovery-rehab-sessions" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryRehabSessions.label")}</label>
                         <input
                           id="ci-recovery-rehab-sessions"
                           type="number"
@@ -323,14 +324,14 @@ export default function RecoveryReserveSection({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-rehab-rate" className="block min-h-10 text-xs text-white/65">ประมาณต่อครั้ง</label>
+                        <label htmlFor="ci-recovery-rehab-rate" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryTreatmentRate.label")}</label>
                         <CurrencyInput id="ci-recovery-rehab-rate" value={recovery.rehabUnitCost} onChange={(value) => updateCustomNumber('rehabUnitCost', value)} />
                       </div>
                     </div>
                   </section>
 
                   <section className="space-y-3 border-t border-white/10 pt-4" aria-labelledby="ci-recovery-custom-items">
-                    <h5 id="ci-recovery-custom-items" className="text-sm font-medium text-foreground">อุปกรณ์ บ้าน และเงินเผื่อ</h5>
+                    <h5 id="ci-recovery-custom-items" className="text-sm font-medium text-foreground">{t("ci.recovery.recoveryCustomItems.heading")}</h5>
                     <div className="grid items-start gap-4 sm:grid-cols-2">
                       {AMOUNT_FIELDS.map(({ field, label, help }) => (
                         <div key={field} className="space-y-2">
@@ -354,16 +355,14 @@ export default function RecoveryReserveSection({
                       className="glass-button inline-flex min-h-11 items-center gap-2 px-4 text-xs"
                     >
                       <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                      ล้างรายการย่อย
-                    </button>
+                      {t("ci.recovery.action3")}</button>
                     <button
                       type="button"
                       onClick={() => onChangeRecovery({ ...recovery, targetReserve: recoveryPreview.breakdownTotal })}
                       disabled={recoveryPreview.breakdownTotal <= 0}
                       className="glass-button inline-flex min-h-11 items-center px-4 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      ใช้ยอดรวมจากรายละเอียด
-                    </button>
+                      {t("ci.recovery.action4")}</button>
                   </div>
                 </div>
               </details>
@@ -374,36 +373,30 @@ export default function RecoveryReserveSection({
 
       {selected !== 'none' ? (
         <div className="mt-5 rounded-xl border border-primary/30 bg-primary/[0.08] p-4">
-          <p className="text-xs font-medium text-primary">Recovery Reserve ที่เลือก</p>
+          <p className="text-xs font-medium text-primary">{t("ci.recovery.description6")}</p>
           <output className="mt-1 block text-2xl font-semibold tabular-nums text-primary" aria-live="polite">
             {baht(recoveryPreview.reserveNeed)}
           </output>
           <p className="mt-2 text-xs leading-6 text-white/70">
-            ระบบจะนำเงินก้อนนี้ไปบวกเพิ่มเพียง 1 ครั้งในวิธีคำนวณที่คุณใช้ โดยไม่รวมซ้ำกับรายได้ ค่าใช้จ่ายประจำ ค่าเรียน หรือหนี้
-          </p>
+            {t("ci.recovery.description7")}</p>
           <button
             type="button"
             onClick={() => onChangeRecovery({ ...EMPTY_CI_RECOVERY })}
             className="mt-3 inline-flex min-h-11 items-center text-xs text-muted-foreground underline decoration-white/30 underline-offset-4"
           >
-            ยังไม่รวม Recovery Reserve
-          </button>
+            {t("ci.recovery.action5")}</button>
         </div>
       ) : (
         <p className="mt-4 text-xs leading-6 text-white/70">
-          ยังไม่ได้เลือกเงินสำรองก้อนนี้ หากไม่เลือก ระบบจะคำนวณเฉพาะฐานรายได้หรือรายจ่ายและภาระที่กรอก
-        </p>
+          {t("ci.recovery.description8")}</p>
       )}
 
       <details className="mt-4 border-t border-white/10 pt-4">
         <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-muted-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          ที่มาของตัวเลขประมาณการ
-        </summary>
+          {t("ci.recovery.expandLabel3")}</summary>
         <div className="mt-3 space-y-3 text-xs leading-5 text-muted-foreground">
           <p>
-            ตัวเลขใน 3 ชุดแรกเป็น planning benchmark ที่ปัดเผื่อเพื่อใช้วางเงินสำรอง ไม่ใช่ราคาค่าบริการตายตัว
-            และไม่ใช่คำแนะนำทางการแพทย์ว่าทุกคนจำเป็นต้องใช้อุปกรณ์หรือปรับบ้านเหมือนกัน
-          </p>
+            {t("ci.recovery.description9")}</p>
           {CI_RECOVERY_SOURCES.map((source) => (
             <p key={source.id}>
               <a
@@ -412,11 +405,11 @@ export default function RecoveryReserveSection({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-primary underline decoration-primary/40 underline-offset-4"
               >
-                {source.publisher} · {source.year}
+                {t(`ci.recovery.source.${source.id}.publisher` as keyof typeof CI_COPY_DEFAULTS)} · {source.year}
                 <ExternalLink className="h-3 w-3" aria-hidden="true" />
               </a>
               <br />
-              {source.note}
+              {t(`ci.recovery.source.${source.id}.note` as keyof typeof CI_COPY_DEFAULTS)}
             </p>
           ))}
         </div>
