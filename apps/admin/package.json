@@ -9,12 +9,16 @@
     "test": "cd ../.. && node --import tsx --test tests/admin/*.test.ts",
     "check": "npm run typecheck && npm run test",
     "build": "node scripts/build-provider.mjs",
-    "start": "next start"
+    "start": "next start",
+    "predev": "node ../../scripts/check-next-security-baseline.mjs",
+    "prebuild": "node ../../scripts/check-next-security-baseline.mjs",
+    "predev:uat": "node ../../scripts/check-next-security-baseline.mjs",
+    "prestart": "node ../../scripts/check-next-security-baseline.mjs"
   },
   "dependencies": {
-    "next": "16.3.8",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "react-dom": "19.2.9"
   },
   "engines": {
     "node": "24.x"
