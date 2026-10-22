@@ -332,6 +332,20 @@ console.log(JSON.stringify({
   }
 });
 
+test("local foundation and CI share all calculator and static contract commands", () => {
+  const scripts = JSON.parse(read("package.json")).scripts;
+  const workflow = read(".github/workflows/seo-topic-hubs-ci.yml");
+  for (const name of ["test:calculators", "test:sitemap-google", "test:home-lcp", "test:seo-topic-hubs"]) {
+    assert.equal(scripts["check:foundation"].split(`npm run ${name}`).length, 2, `${name} runs once locally`);
+    assert.equal(workflow.split(`run: npm run ${name}\n`).length, 2, `${name} runs once in CI`);
+  }
+  assert.equal(scripts["test:calculators"].split(" && ").length, 9);
+  assert.equal(scripts["test:sitemap-google"], "node --conditions=react-server --import tsx --test tests/sitemap-google-regression.test.ts");
+  assert.equal(scripts["build:admin:uat:acceptance"], "node scripts/build-root.mjs --native-scheduler-uat-acceptance");
+  assert.equal(scripts.build, "node scripts/build-root.mjs", "ordinary build keeps its existing entry");
+  assert.doesNotMatch(workflow, /run: node (?:--import tsx --test tests\/sitemap-google|tests\/(?:home-lcp|seo-topic-hubs)-regression)/);
+});
+
 test("pinned Admin UAT release slot self-identifies full native-neon and binds the actual checked-out SHA without inventing secrets", { skip: process.platform === "win32" }, () => {
   const fixture = mkdtempSync(join(tmpdir(), "ccpun-root-admin-uat-build-"));
   try {
@@ -367,6 +381,10 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
       releaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
     });
     assert.equal(invocation.env.dbUrl, undefined, "release bootstrap must never synthesize the Admin database secret");
+
+    const acceptance = (...extra) => spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs"), "--native-scheduler-uat-acceptance", ...extra],
+      { cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}` } });
+    assert.notEqual(acceptance().status, 0, "a stable slot whose suffix differs from HEAD cannot request live acceptance");
 
     assert.equal(spawnSync("git", ["checkout", "--detach"], { cwd: fixture }).status, 0);
     const detached = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
@@ -416,6 +434,18 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
       });
       assert.notEqual(denied.status, 0);
       assert.match(denied.stderr, /ADMIN_UAT_RELEASE_(?:PROVIDER|ROLE)_CONFLICT/);
+    }
+    const exactRef = `admin/hostinger-release-uat-${sha}`;
+    assert.equal(spawnSync("git", ["branch", "-m", exactRef], { cwd: fixture }).status, 0);
+    const explicit = acceptance();
+    assert.equal(explicit.status, 0, explicit.stderr);
+    const forwarded = JSON.parse(explicit.stdout.trim().split("\n").at(-1));
+    assert.deepEqual(forwarded.args, ["run", "build", "--workspace", "@ccpun/admin", "--", "--native-scheduler-uat-acceptance"]);
+    assert.equal(forwarded.env.executor, "0"); assert.equal(forwarded.env.plane, "cloud"); assert.equal(forwarded.env.nativeWorkflow, "0");
+    assert.notEqual(acceptance("--native-scheduler-uat-acceptance").status, 0, "duplicate opt-ins are denied");
+    for (const otherRef of ["v4-production", "ordinary-feature"]) {
+      assert.equal(spawnSync("git", ["branch", "-m", otherRef], { cwd: fixture }).status, 0);
+      assert.notEqual(acceptance().status, 0, "ordinary and Production builds cannot opt in");
     }
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });

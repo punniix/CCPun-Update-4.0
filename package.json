@@ -21,7 +21,7 @@
     "test:public": "npm run audit:public-css && npm run audit:public-assets && npm run audit:public-architecture && node --import tsx --test tests/ci-recovery-reserve-regression.test.ts && node tests/vercel-native-regression.mjs && node tests/public-shell-performance-regression.mjs && node tests/blog-mobile-hotfix-regression.mjs && node --test tests/website43-public-layout-regression.mjs && node --test tests/website43-public-motion-regression.mjs && node --test tests/hostinger-native-app-contract.test.mjs && node --import tsx --test tests/ai-crawler-observability.test.ts && node --import tsx tests/analytics-regression.ts && node --import tsx tests/analytics-component-regression.mjs && node --import tsx --test tests/public-copy.test.ts tests/money-story-copy.test.ts tests/page-seo.test.ts tests/article-author-identity.test.ts tests/investment-allocation-regression.test.ts tests/investment-fund-catalog.test.ts tests/uat-campaign-pagination.test.mjs tests/signature-article-uat.test.mjs tests/public-copy-preview.test.mjs",
     "test:search-intent-owners": "node tests/search-intent-owner-regression.mjs",
     "test:foundation-contracts": "node tests/foundation-safety-regression.mjs && node tests/search-intent-owner-regression.mjs && node --test tests/root-runtime-owner-migration.test.mjs tests/production-code-only-parity.test.mjs tests/website43-runtime-refactor-parity.test.mjs tests/money-story-presentation-parity.test.mjs tests/public-foundation-css-parity.test.mjs tests/web-foundation-config-parity.test.mjs tests/money-story-engine-parity.test.mjs && node --test tests/phase1-source-ownership.test.mjs tests/phase1-admin-api-parity.test.mjs tests/phase1-admin-boundary-parity.test.mjs tests/phase1-source-reader.test.mjs tests/phase2-css-delivery-parity.test.mjs tests/phase3-native-provider-parity.test.mjs tests/hostinger-native-app-contract.test.mjs && node --test tests/phase3-admin-contracts.test.mjs && node --test tests/phase3-admin-native-boundaries.test.mjs",
-    "check:foundation": "npm run lint && npx tsc --noEmit --incremental false && npm run test:architecture && npm run test:foundation-contracts && npm run test:public && npm run test:admin",
+    "check:foundation": "npm run lint && npx tsc --noEmit --incremental false && npm run test:architecture && npm run test:foundation-contracts && npm run test:public && npm run test:admin && npm run test:calculators && npm run test:sitemap-google && npm run test:home-lcp && npm run test:seo-topic-hubs",
     "qa:legacy-urls": "node qa/legacy-url-regression.mjs",
     "qa:site": "node qa/uat-text-responsive-check.mjs",
     "qa:admin-41-responsive": "node qa/admin-41-responsive-regression.mjs",
@@ -55,7 +55,12 @@
     "prelocal:uat": "node scripts/check-next-security-baseline.mjs",
     "prelocal:production:read": "node scripts/check-next-security-baseline.mjs",
     "prelocal:production:draft": "node scripts/check-next-security-baseline.mjs",
-    "prestart": "node scripts/check-next-security-baseline.mjs"
+    "prestart": "node scripts/check-next-security-baseline.mjs",
+    "build:admin:uat:acceptance": "node scripts/build-root.mjs --native-scheduler-uat-acceptance",
+    "test:calculators": "node --import tsx tests/calculator-regression.ts && node --import tsx --test tests/ci-numeric-safety.test.ts && node --test tests/calculator-design-language.test.mjs && node --test tests/calculator-ux-formula-parity.test.mjs && node --import tsx --test tests/calculator-ux-journey.test.mjs && node --import tsx --test tests/ci-recovery-ui-regression.test.mjs && node --import tsx --test tests/ci-numeric-ui-regression.test.mjs && node --import tsx tests/result-actions-regression.ts && node tests/fhc-seo-geo-regression.mjs",
+    "test:sitemap-google": "node --conditions=react-server --import tsx --test tests/sitemap-google-regression.test.ts",
+    "test:home-lcp": "node tests/home-lcp-regression.mjs",
+    "test:seo-topic-hubs": "node tests/seo-topic-hubs-regression.mjs"
   },
   "dependencies": {
     "@cloudflare/ai-search-snippet": "^0.0.43",

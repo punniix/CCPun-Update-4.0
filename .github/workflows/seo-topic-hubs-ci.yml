@@ -92,16 +92,7 @@ jobs:
           node --import tsx --test "${files[@]}"
 
       - name: FHC and CI calculator regression gate
-        run: |
-          node --import tsx tests/calculator-regression.ts
-          node --import tsx --test tests/ci-numeric-safety.test.ts
-          node --test tests/calculator-design-language.test.mjs
-          node --test tests/calculator-ux-formula-parity.test.mjs
-          node --import tsx --test tests/calculator-ux-journey.test.mjs
-          node --import tsx --test tests/ci-recovery-ui-regression.test.mjs
-          node --import tsx --test tests/ci-numeric-ui-regression.test.mjs
-          node --import tsx tests/result-actions-regression.ts
-          node tests/fhc-seo-geo-regression.mjs
+        run: npm run test:calculators
 
       - name: FHC and CI exhaustive browser QA
         shell: bash
@@ -163,10 +154,10 @@ jobs:
           bash qa/run-calculator-browser-gate.sh
 
       - name: Google sitemap deterministic contract
-        run: node --import tsx --test tests/sitemap-google-regression.test.ts
+        run: npm run test:sitemap-google
 
       - name: Homepage LCP loading contract
-        run: node tests/home-lcp-regression.mjs
+        run: npm run test:home-lcp
 
       # Production health is a post-merge verification. Running it on a PR makes
       # incident fixes impossible to merge when the currently deployed version is
@@ -176,7 +167,7 @@ jobs:
         run: npm run qa:legacy-urls
 
       - name: SEO topic hub static contract
-        run: node tests/seo-topic-hubs-regression.mjs
+        run: npm run test:seo-topic-hubs
 
       - name: SEO and homepage HTTP contracts on read-only Production content
         shell: bash

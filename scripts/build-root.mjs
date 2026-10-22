@@ -157,6 +157,13 @@ applyHostingerReleaseFallback();
 
 const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
 const role = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
+const acceptanceFlag = "--native-scheduler-uat-acceptance";
+const acceptance = process.argv.slice(2).includes(acceptanceFlag);
+if (acceptance && (process.argv.slice(2).length !== 1 || provider !== "hostinger" || role !== "admin"
+  || process.env.CCPUN_APP_ENV !== "admin-uat"
+  || process.env.CCPUN_GIT_REF !== `admin/hostinger-release-uat-${gitValue(["rev-parse", "HEAD"])}`)) {
+  throw new Error("NATIVE_SCHEDULER_UAT_ACCEPTANCE_TARGET_DENIED");
+}
 if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");
 if (provider === "hostinger" && !["web", "admin"].includes(role)) throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");
 const workspace = provider === "hostinger" && (role === "web" || role === "admin")
@@ -167,7 +174,7 @@ const command = workspace
   ? (process.platform === "win32" ? "npm.cmd" : "npm")
   : (process.platform === "win32" ? "next.cmd" : "next");
 const args = workspace
-  ? ["run", "build", "--workspace", workspace]
+  ? ["run", "build", "--workspace", workspace, ...(acceptance ? ["--", acceptanceFlag] : [])]
   : ["build"];
 
 if (workspace) {
