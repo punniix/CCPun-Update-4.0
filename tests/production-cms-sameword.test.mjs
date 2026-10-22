@@ -228,3 +228,32 @@ test('protected preview page cannot start its author query before scoped authori
     ['@/features/money-story/page',{renderMoneyStoryPage:()=>null}],
   ]);const page=loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/page.tsx',{mocks});await assert.rejects(page.default({searchParams:Promise.resolve({scope:'home'})}),/fixture-denied/);assert.equal(authorReads,0);
 });
+test('copy and SEO preview links require registered page and matching fixed published or draft ID',()=>{
+  const config=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:value=>value,presentationTool:value=>value}]])}).createStudioPresentationPlugin();
+  const pages=loadFixtureModule('lib/content/page-seo-registry.ts');
+  for(const[scope,page]of Object.entries(registry.PUBLIC_COPY_SCOPES)) {
+    for(const prefix of ['', 'drafts.'])assert.equal(config.resolve.locations.publicPageCopy.resolve({id:prefix+registry.publicCopyDocumentId(scope),scope}).locations[0].href,'/content/website-preview/?scope='+scope);
+    assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({id:'wrong',scope}).locations,[]);
+    if(scope==='site')continue;
+    for(const prefix of ['', 'drafts.'])assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:prefix+pages.pageSeoDocumentId(page.pathname),pathname:page.pathname}).locations,[{title:'ดูฉบับร่างหน้าเว็บไซต์และ SEO',href:'/content/website-preview/?scope='+scope}]);
+    assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:'wrong',pathname:page.pathname}).locations,[]);
+  }
+  for(const pathname of ['*','/tools/investment-allocation/','https://evil.invalid/','/new-page/'])assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:'pageSeo-home',pathname}).locations,[]);
+  assert.deepEqual(config.resolve.locations.pageSeo.resolve(null).locations,[]);assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({scope:'investment',id:'publicPageCopy-investment-th'}).locations,[]);
+});
+test('fixed singletons initialize validated editable drafts while Production publication remains disabled',()=>{
+  const definitions=new Map([['sanity',{defineType:value=>value,defineField:value=>value,defineArrayMember:value=>value}]]);
+  const copy=loadFixtureModule('cms/sanity/schema/documents/public-page-copy.ts',{mocks:definitions}).publicPageCopy;
+  for(const scope of Object.keys(registry.PUBLIC_COPY_SCOPES)) {
+    const draft={...copy.initialValue({scope}),_type:'publicPageCopy',_id:'drafts.'+registry.publicCopyDocumentId(scope)};
+    assert.equal(copy.validation({custom:fn=>fn})(draft),true);assert.notEqual(copy.validation({custom:fn=>fn})({...draft,_id:'wrong'}),true);
+  }
+  assert.equal(copy.fields.find(field=>field.name==='scope').readOnly,true);assert.equal(copy.fields.find(field=>field.name==='entries').of[0].fields.find(field=>field.name==='text').type,'text');
+  const policy=loadFixtureModule('cms/sanity/policy/studio-policy.ts',{mocks:new Map([['../../../lib/admin/environment',{isStudioDataPlaneAllowed:()=>true}]])});
+  const actions=['publish','delete','unpublish','unpublishVersion','discardChanges'].map(action=>({action}));
+  for(const type of ['publicPageCopy','pageSeo']) {
+    assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq'),[]);
+    const allowed=policy.filterStudioDocumentActions(actions,'uat','admin-uat',type,'ccb9lnw5');assert.ok(allowed.some(item=>item.action==='publish'));assert.ok(!allowed.some(item=>['delete','unpublish','unpublishVersion'].includes(item.action)));
+  }
+  const items=[{getId:()=> 'publicPageCopy'},{getId:()=> 'pageSeo'}];assert.deepEqual(policy.filterStudioStructureItems(items,'production-admin'),items);assert.deepEqual(policy.filterStudioNewDocumentOptions(items.map(item=>({templateId:item.getId()})),'production','production-admin','kyfxgjnq'),[]);
+});

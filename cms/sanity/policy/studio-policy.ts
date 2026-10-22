@@ -61,7 +61,7 @@ const SYSTEM_DOCUMENT_TYPES = new Set([
 ]);
 const UAT_PAGE_DOCUMENT_TYPES = new Set(["publicPageCopy", "pageSeo"]);
 const DRAFT_ONLY_DOCUMENT_TYPES = new Set(["masterContent", "socialVariant"]);
-const OWNER_HIDDEN_NEW_DOCUMENT_TYPES = new Set([...UAT_PAGE_DOCUMENT_TYPES, "category", "blogSettings", ...SYSTEM_DOCUMENT_TYPES]);
+const OWNER_HIDDEN_NEW_DOCUMENT_TYPES = new Set([...Array.from(UAT_PAGE_DOCUMENT_TYPES), "category", "blogSettings", ...Array.from(SYSTEM_DOCUMENT_TYPES)]);
 const OWNER_HIDDEN_STRUCTURE_DOCUMENT_TYPES = SYSTEM_DOCUMENT_TYPES;
 
 function isUatEditorialEnvironment(environment: AdminEnvironment): boolean {
