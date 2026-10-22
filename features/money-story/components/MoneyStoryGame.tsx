@@ -1,4 +1,7 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { MONEY_STORY_COPY_DEFAULTS, moneyStoryLabel } from "@/lib/content/money-story-copy-defaults";
+
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Undo2 } from 'lucide-react';
@@ -26,6 +29,7 @@ import {
   statusBars,
 } from '../engine';
 import {
+  MONEY_STORY_PYRAMID_URL,
   EVENT_CATEGORY_LABELS,
   PROTECTION_CATALOG,
 } from '../config';
@@ -47,6 +51,9 @@ function isLumpSumProtection(type?: ProtectionType) {
   return type === 'critical' || type === 'life';
 }
 
+export default function MoneyStoryGame({ showSeed = false, pyramidHref = MONEY_STORY_PYRAMID_URL }: { showSeed?: boolean; pyramidHref?: string }) {
+  const text = usePublicCopy(MONEY_STORY_COPY_DEFAULTS);
+  const label = (value: string) => moneyStoryLabel(value, text);
 function optionImpactLines(option: EventOption, game: GameState) {
   const effect = option.effect;
   const lines: string[] = [];
@@ -58,22 +65,22 @@ function optionImpactLines(option: EventOption, game: GameState) {
   if (effect.borrow) {
     const loan = effect.borrow;
     lines.push(
-      'ได้เงิน ' +
+      text("moneyStory.optionImpactLinesText") +
         money.format(loan.principal) +
-        ' บาท · ค่างวดประมาณ ' +
+        text("moneyStory.optionImpactLinesText2") +
         money.format(amortizedPayment(loan.principal, loan.monthlyRate, loan.termMonths)) +
-        ' บาท/เดือน × ' +
+        text("moneyStory.optionImpactLinesText3") +
         loan.termMonths +
-        ' เดือน',
+        text("moneyStory.optionImpactLinesText4"),
     );
   }
 
   if (cashDelta !== 0) {
     lines.push(
-      'เงินสด ' +
+      text("moneyStory.optionImpactLinesText5") +
         (cashDelta > 0 ? '+' : '-') +
         money.format(Math.abs(cashDelta)) +
-        ' บาท',
+        text("moneyStory.optionImpactLinesText6"),
     );
   }
 
@@ -81,10 +88,10 @@ function optionImpactLines(option: EventOption, game: GameState) {
     if (effect.investmentDelta > 0) {
       const transfer = Math.min(effect.investmentDelta, cashAfterTransfers);
       cashAfterTransfers -= transfer;
-      lines.push('ย้ายเงินสด ' + money.format(transfer) + ' บาทไปลงทุน');
+      lines.push(text("moneyStory.optionImpactLinesText7") + money.format(transfer) + text("moneyStory.optionImpactLinesText8"));
     } else {
       const reduction = Math.min(game.investments, Math.abs(effect.investmentDelta));
-      lines.push('เงินลงทุน -' + money.format(reduction) + ' บาท');
+      lines.push(text("moneyStory.optionImpactLinesText9") + money.format(reduction) + text("moneyStory.optionImpactLinesText6"));
     }
   }
 
@@ -94,49 +101,49 @@ function optionImpactLines(option: EventOption, game: GameState) {
     const sign =
       effect.investmentPercent > 0 ? '+' : effect.investmentPercent < 0 ? '-' : '';
     lines.push(
-      'เงินลงทุน ' +
+      text("moneyStory.optionImpactLinesText10") +
         sign +
         percentLabel(effect.investmentPercent) +
         ' · ' +
         money.format(before) +
         ' → ' +
         money.format(after) +
-        ' บาท',
+        text("moneyStory.optionImpactLinesText6"),
     );
   }
 
   if (effect.incomeModifier) {
     lines.push(
-      'รายได้ ' +
+      text("moneyStory.optionImpactLinesText11") +
         (effect.incomeModifier.percent > 0 ? '+' : '-') +
         percentLabel(effect.incomeModifier.percent) +
         (effect.incomeModifier.throughEnd
-          ? ' ตั้งแต่เดือนหน้าไปจนจบเกม'
-          : ' × ' + (effect.incomeModifier.months ?? 1) + ' เดือน'),
+          ? text("moneyStory.optionImpactLinesText12")
+          : ' × ' + (effect.incomeModifier.months ?? 1) + text("moneyStory.optionImpactLinesText4")),
     );
   }
 
   if (effect.expenseModifier) {
     lines.push(
-      'ค่าใช้จ่าย +' +
+      text("moneyStory.optionImpactLinesText13") +
         money.format(effect.expenseModifier.amount) +
-        ' บาท/เดือน × ' +
+        text("moneyStory.optionImpactLinesText3") +
         effect.expenseModifier.months +
-        ' เดือน',
+        text("moneyStory.optionImpactLinesText4"),
     );
   }
 
   if (effect.cost) {
     lines.push(
-      'ค่าใช้จ่ายจากเหตุการณ์ ' +
+      text("moneyStory.optionImpactLinesText14") +
         money.format(effect.cost.amount) +
-        ' บาท · ระบบจะใช้สิทธิ/ความคุ้มครองที่มี ก่อนคำนวณเงินที่ต้องจ่ายเอง',
+        text("moneyStory.optionImpactLinesText15"),
     );
   }
 
   if (effect.debtPrincipalReduction) {
     const payment = Math.min(effect.debtPrincipalReduction, cashAfterTransfers);
-    lines.push('จ่ายเพิ่ม ' + money.format(payment) + ' บาทเพื่อลดเงินต้น');
+    lines.push(text("moneyStory.optionImpactLinesText16") + money.format(payment) + text("moneyStory.optionImpactLinesText17"));
   }
 
   if (effect.addProtection) {
@@ -144,48 +151,48 @@ function optionImpactLines(option: EventOption, game: GameState) {
     const protection = PROTECTION_CATALOG[protectionType];
     const preview = protectionBenefitPreview(game, protectionType);
     lines.push(
-      'เบี้ย ' +
+      text("moneyStory.optionImpactLinesText18") +
         money.format(protection.monthlyPremium) +
-        ' บาท/เดือน · เริ่มคุ้มครองเดือนถัดไป',
+        text("moneyStory.optionImpactLinesText19"),
     );
 
     if (isLumpSumProtection(protectionType)) {
       lines.push(
-        'ตัวอย่างในเกม: ถ้าเกิดเหตุที่เข้าเงื่อนไขและมีผลกระทบทางการเงิน ' +
+        text("moneyStory.optionImpactLinesText20") +
           money.format(preview.grossCost) +
-          ' บาท',
+          text("moneyStory.optionImpactLinesText6"),
       );
       lines.push(
-        'ความคุ้มครองนี้ช่วยเป็นเงินก้อนประมาณ ' +
+        text("moneyStory.optionImpactLinesText21") +
           money.format(preview.protectionBenefit) +
-          ' บาท · เหลือภาระที่ต้องรับเองประมาณ ' +
+          text("moneyStory.optionImpactLinesText22") +
           money.format(preview.withProtection) +
-          ' บาท',
+          text("moneyStory.optionImpactLinesText6"),
       );
     } else {
       lines.push(
-        'ตัวอย่างในเกม: ถ้าเกิดค่าใช้จ่าย ' +
+        text("moneyStory.optionImpactLinesText23") +
           money.format(preview.grossCost) +
-          ' บาท',
+          text("moneyStory.optionImpactLinesText6"),
       );
       lines.push(
-        'ไม่มีความคุ้มครองนี้ จ่ายเอง ' +
+        text("moneyStory.optionImpactLinesText24") +
           money.format(preview.withoutProtection) +
-          ' บาท → มีความคุ้มครอง จ่ายเองประมาณ ' +
+          text("moneyStory.optionImpactLinesText25") +
           money.format(preview.withProtection) +
-          ' บาท',
+          text("moneyStory.optionImpactLinesText6"),
       );
     }
   }
 
   if (lines.length === 0) {
-    lines.push('ไม่มีผลกระทบทางการเงินทันที');
+    lines.push(text("moneyStory.optionImpactLinesText26"));
   }
 
   return lines;
 }
 
-export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolean }) {
+
   const [game, setGame] = useState<GameState | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState('');
@@ -342,7 +349,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   };
 
   const returnToCharacterSelection = () => {
-    if (game?.status === 'active' && (game.currentMonth > 1 || game.history.length > 0) && !window.confirm('กลับไปเลือกตัวละครจะเริ่มรอบใหม่ ต้องการเริ่มใหม่หรือไม่?')) return;
+    if (game?.status === 'active' && (game.currentMonth > 1 || game.history.length > 0) && !window.confirm(text("moneyStory.returnToCharacterSelectionText"))) return;
     trackMoneyStoryEvent('money_story_character_reselect');
     setGame(null);
     setSelectedCharacterId(null);
@@ -363,20 +370,20 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
     const safeHighlight = game.history.filter((entry) => !entry.sensitive).at(-1);
     const result =
       game.status === 'win'
-        ? 'ไปถึงเป้าหมาย'
+        ? text("moneyStory.resultText")
         : game.status === 'survive'
-          ? 'ผ่านครบ 12 เดือน'
-          : 'เจอเดือนที่ไปต่อไม่ไหว';
+          ? text("moneyStory.resultText2")
+          : text("moneyStory.resultText3");
 
     return (
-      'Money Story: รอบนี้ได้เล่นชีวิตของ “' +
-      character.name +
-      '” และ' +
+      text("moneyStory.shareTextText") +
+      moneyStoryLabel(character.name, text) +
+      text("moneyStory.shareTextText2") +
       result +
-      (safeHighlight ? ' — แถมเจอ “' + safeHighlight.eventTitle + '”' : '') +
-      ' ลองดูว่า 12 เดือนของคุณจะเป็นยังไง'
+      (safeHighlight ? text("moneyStory.shareTextText3") + moneyStoryLabel(safeHighlight.eventTitle, text) + '”' : '') +
+      text("moneyStory.shareTextText4")
     );
-  }, [game, character]);
+  }, [game, character, text]);
 
   const share = async () => {
     if (!shareText) return;
@@ -392,11 +399,11 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
         await navigator.clipboard.writeText(
           shareText + ' ' + window.location.href,
         );
-        setShareStatus('คัดลอกลิงก์แล้ว');
+        setShareStatus(text("moneyStory.shareText"));
       }
       trackMoneyStoryEvent('money_story_share');
     } catch {
-      setShareStatus('ยังแชร์ไม่ได้ในเบราว์เซอร์นี้');
+      setShareStatus(text("moneyStory.shareText2"));
     }
   };
 
@@ -430,6 +437,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
   if (game.status !== 'active') {
     return (
       <MoneyStoryResult
+        pyramidHref={pyramidHref}
         game={game}
         character={character}
         bars={bars}
@@ -465,46 +473,41 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
               className={styles.characterBadge}
             />
             <div>
-              <div className={styles.characterName}>{character.name}</div>
-              <p className={styles.characterRole}>{character.role}</p>
+              <div className={styles.characterName}>{label(character.name)}</div>
+              <p className={styles.characterRole}>{label(character.role)}</p>
             </div>
           </div>
-          <p className={styles.story}>{character.story}</p>
-          <p className={styles.trait}>{character.trait}</p>
+          <p className={label(styles.story)}>{label(character.story)}</p>
+          <p className={label(styles.trait)}>{label(character.trait)}</p>
           <p className={styles.goalText}>
-            <strong>เป้าหมาย</strong>
+            <strong>{text("moneyStory.strong4")}</strong>
             <br />
-            {character.goal.label}
+            {label(character.goal.label)}
           </p>
           <button
             type="button"
             className={styles.changeCharacterButton}
             onClick={returnToCharacterSelection}
-          >
-            กลับไปเลือกตัวละคร
-          </button>
+          >{text("moneyStory.changeCharacterButton")}</button>
         </aside>
 
         <section className={styles.center} aria-live="polite">
           <div className={styles.monthTop}>
             <div>
-              <div className={styles.monthNum}>
-                เดือน {game.currentMonth} / 12
-              </div>
+              <div className={styles.monthNum}>{text("moneyStory.monthNum")}{game.currentMonth}{" " + text("moneyStory.monthNum2")}</div>
               {showSeed ? (
-                <div className={styles.seed}>
-                  รอบจำลอง {game.seed.slice(-6).toUpperCase()}
+                <div className={styles.seed}>{text("moneyStory.seed")}{game.seed.slice(-6).toUpperCase()}
                 </div>
               ) : null}
             </div>
             <div className={styles.monthStatus}>
-              <div className={styles.balanceSummary} aria-label="สถานะเงินปัจจุบัน">
+              <div className={styles.balanceSummary} aria-label={text("moneyStory.moneyStoryGamearialabel")}>
                 <span>
-                  <small>เงินสดพร้อมใช้</small>
+                  <small>{text("moneyStory.small")}</small>
                   <strong>{money.format(Math.max(0, game.cash))}</strong>
                 </span>
                 <span>
-                  <small>พอร์ตลงทุน</small>
+                  <small>{text("moneyStory.small2")}</small>
                   <strong>{money.format(game.investments)}</strong>
                 </span>
               </div>
@@ -513,31 +516,23 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                 className={styles.undoButton}
                 onClick={undo}
                 disabled={undoStack.length === 0}
-                aria-label="ย้อนกลับการตัดสินใจล่าสุด"
+                aria-label={text("moneyStory.moneyStoryGamearialabel2")}
               >
-                <Undo2 size={14} />
-                ย้อนกลับ
-              </button>
+                <Undo2 size={14} />{text("moneyStory.undoButton")}</button>
             </div>
           </div>
 
           {!game.monthStarted ? (
             <div className={styles.card}>
-              <span className={styles.category}>เริ่มเดือนใหม่</span>
-              <h2 className={styles.eventTitle}>
-                รับรายได้ แล้วหักค่าใช้จ่ายประจำ
-              </h2>
-              <p className={styles.eventText}>
-                ระบบจะคำนวณค่าใช้จ่ายประจำ ค่างวดหนี้ และเบี้ยความคุ้มครองก่อน
-                แล้วจึงสุ่มเหตุการณ์ประจำเดือน
-              </p>
+              <span className={styles.category}>{text("moneyStory.category")}</span>
+              <h2 className={label(styles.eventTitle)}>{text("moneyStory.eventTitle")}</h2>
+              <p className={styles.eventText}>{text("moneyStory.eventText")}</p>
               <div className={styles.choices}>
                 <button
                   className={styles.primary}
                   type="button"
                   onClick={begin}
-                >
-                  เริ่มเดือน {game.currentMonth}
+                >{text("moneyStory.primary")}{game.currentMonth}
                 </button>
               </div>
             </div>
@@ -545,14 +540,9 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
 
           {game.pendingShortfall ? (
             <div className={styles.card + ' ' + styles.shortfall}>
-              <span className={styles.category}>ช่วงแก้สถานการณ์</span>
-              <h2 className={styles.eventTitle}>
-                ยังขาดอีก {money.format(game.pendingShortfall.amount)} บาท
-              </h2>
-              <p className={styles.eventText}>
-                เกมยังไม่จบตรงนี้ คุณใช้หลายวิธีร่วมกันได้
-                ทุกครั้งที่เลือก ระบบจะคำนวณยอดที่ยังขาดใหม่
-              </p>
+              <span className={styles.category}>{text("moneyStory.category2")}</span>
+              <h2 className={label(styles.eventTitle)}>{text("moneyStory.eventTitle2")}{money.format(game.pendingShortfall.amount)}{" " + text("moneyStory.eventTitle3")}</h2>
+              <p className={styles.eventText}>{text("moneyStory.eventText2")}</p>
 
               <div className={styles.shortfallActions}>
                 {canSellInvestments ? (
@@ -564,12 +554,10 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       trackMoneyStoryEvent('money_story_recovery_investment');
                     }}
                   >
-                    <strong>ใช้เงินลงทุนก่อน</strong>
-                    <span>
-                      ขาย {money.format(
+                    <strong>{text("moneyStory.strong5")}</strong>
+                    <span>{text("moneyStory.span")}{money.format(
                         Math.min(game.pendingShortfall.amount, game.investments),
-                      )} บาท เพื่อเติมส่วนที่ขาด
-                    </span>
+                      )}{" " + text("moneyStory.span2")}</span>
                   </button>
                 ) : null}
 
@@ -582,12 +570,9 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       trackMoneyStoryEvent('money_story_recovery_income');
                     }}
                   >
-                    <strong>รับงานเสริมเร่งด่วน</strong>
-                    <span>
-                      เงินสด +{money.format(extraIncomeQuote.immediate)} บาทวันนี้ ·
-                      รายได้ +{percentLabel(extraIncomeQuote.ongoingPercent)} อีก{' '}
-                      {extraIncomeQuote.months} เดือน
-                    </span>
+                    <strong>{text("moneyStory.strong6")}</strong>
+                    <span>{text("moneyStory.span3")}{money.format(extraIncomeQuote.immediate)}{" " + text("moneyStory.span4")}{percentLabel(extraIncomeQuote.ongoingPercent)}{" " + text("moneyStory.span5")}{' '}
+                      {extraIncomeQuote.months}{" " + text("moneyStory.span6")}</span>
                   </button>
                 ) : null}
 
@@ -600,12 +585,8 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       trackMoneyStoryEvent('money_story_recovery_expense_cut');
                     }}
                   >
-                    <strong>ลดค่าใช้จ่ายชั่วคราว</strong>
-                    <span>
-                      ช่วยเดือนนี้ได้สูงสุด {money.format(expenseCutQuote.immediate)} บาท ·
-                      ลดรายจ่าย {money.format(expenseCutQuote.monthlyReduction)} บาท/เดือน
-                      อีก {expenseCutQuote.months} เดือน
-                    </span>
+                    <strong>{text("moneyStory.strong7")}</strong>
+                    <span>{text("moneyStory.span7")}{money.format(expenseCutQuote.immediate)}{" " + text("moneyStory.span8") + " "}{money.format(expenseCutQuote.monthlyReduction)}{" " + text("moneyStory.span9") + " "}{expenseCutQuote.months}{" " + text("moneyStory.span6")}</span>
                   </button>
                 ) : null}
 
@@ -618,14 +599,11 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       trackMoneyStoryEvent('money_story_recovery_debt');
                     }}
                   >
-                    <strong>ขอปรับค่างวด</strong>
-                    <span>
-                      ลดค่างวดที่ต้องจ่ายเดือนนี้ได้ประมาณ{' '}
-                      {money.format(debtRestructureQuote.immediateRelief)} บาท ·
-                      ค่างวดถัดไปประมาณ{' '}
+                    <strong>{text("moneyStory.strong8")}</strong>
+                    <span>{text("moneyStory.span10") + " "}
+                      {money.format(debtRestructureQuote.immediateRelief)}{" " + text("moneyStory.span11") + " "}
                       {money.format(debtRestructureQuote.nextMonthlyBefore)} →{' '}
-                      {money.format(debtRestructureQuote.nextMonthlyAfter)} บาท/เดือน
-                    </span>
+                      {money.format(debtRestructureQuote.nextMonthlyAfter)}{" " + text("moneyStory.span12")}</span>
                   </button>
                 ) : null}
 
@@ -640,25 +618,20 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                   >
                     <strong>
                       {loanQuote.partial
-                        ? 'กู้ได้สูงสุด ' + money.format(loanQuote.principal) + ' บาท'
-                        : 'กู้ ' + money.format(loanQuote.principal) + ' บาท'}
+                        ? text("moneyStory.moneyStoryGameText") + money.format(loanQuote.principal) + text("moneyStory.optionImpactLinesText6")
+                        : text("moneyStory.moneyStoryGameText2") + money.format(loanQuote.principal) + text("moneyStory.optionImpactLinesText6")}
                     </strong>
-                    <span>
-                      ค่างวดประมาณ {money.format(loanQuote.monthlyPayment)} บาท/เดือน ×{' '}
-                      {loanQuote.termMonths} เดือน
-                      {loanQuote.partial
-                        ? ' · เงินกู้นี้ยังไม่พอปิดส่วนที่ขาด ต้องใช้วิธีอื่นร่วมด้วย'
-                        : ' · ช่วยผ่านเดือนนี้ แต่เพิ่มภาระเดือนถัดไป'}
+                    <span>{text("moneyStory.span13")}{money.format(loanQuote.monthlyPayment)}{" " + text("moneyStory.span14")}{' '}
+                      {loanQuote.termMonths}{" " + text("moneyStory.span6")}{loanQuote.partial
+                        ? text("moneyStory.moneyStoryGameText3")
+                        : text("moneyStory.moneyStoryGameText4")}
                     </span>
                   </button>
                 ) : null}
 
                 {!canRecover ? (
                   <>
-                    <p className={styles.recoveryExhausted}>
-                      ลองใช้ทางเลือกฉุกเฉินที่มีครบแล้ว
-                      หากยังปิดส่วนที่ขาดไม่ได้ รอบนี้จึงไปต่อไม่ไหว
-                    </p>
+                    <p className={styles.recoveryExhausted}>{text("moneyStory.recoveryExhausted")}</p>
                     <button
                       type="button"
                       className={styles.danger}
@@ -666,9 +639,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                         commitGame(declareUnableToContinue(game));
                         trackMoneyStoryEvent('money_story_lose');
                       }}
-                    >
-                      จบรอบนี้
-                    </button>
+                    >{text("moneyStory.danger")}</button>
                   </>
                 ) : null}
               </div>
@@ -678,29 +649,29 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
           {event && !game.pendingShortfall ? (
             <div className={styles.card}>
               <span className={styles.category}>
-                {EVENT_CATEGORY_LABELS[event.category]}
+                {label(EVENT_CATEGORY_LABELS[event.category])}
               </span>
-              <h2 className={styles.eventTitle}>{event.title}</h2>
-              <p className={styles.eventText}>{event.text}</p>
+              <h2 className={label(styles.eventTitle)}>{label(event.title)}</h2>
+              <p className={styles.eventText}>{label(event.text)}</p>
 
               {game.monthLedger ? (
                 <div className={styles.ledger}>
                   <div>
-                    <span>รายได้เดือนนี้</span>
+                    <span>{text("moneyStory.span15")}</span>
                     <strong>+{money.format(game.monthLedger.income)}</strong>
                   </div>
                   <div>
-                    <span>ค่าใช้จ่ายประจำ</span>
+                    <span>{text("moneyStory.span16")}</span>
                     <strong>
                       -{money.format(game.monthLedger.fixedExpenses)}
                     </strong>
                   </div>
                   <div>
-                    <span>ค่างวดหนี้</span>
+                    <span>{text("moneyStory.span17")}</span>
                     <strong>-{money.format(game.monthLedger.debtPayments)}</strong>
                   </div>
                   <div>
-                    <span>เบี้ยความคุ้มครอง</span>
+                    <span>{text("moneyStory.span18")}</span>
                     <strong>
                       -{money.format(game.monthLedger.protectionPremiums)}
                     </strong>
@@ -720,9 +691,7 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                     type="button"
                     className={styles.primary}
                     onClick={() => choose(event.options[0].id)}
-                  >
-                    รับทราบและไปต่อ
-                  </button>
+                  >{text("moneyStory.primary2")}</button>
                 </div>
               ) : (
                 <div className={styles.choices}>
@@ -731,12 +700,12 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                       key={option.id}
                       data-money-choice
                       type="button"
-                      className={styles.choice}
+                      className={label(styles.choice)}
                       onClick={() => choose(option.id)}
                     >
                       <span className={styles.key}>{index + 1}</span>
-                      <strong>{option.label}</strong>
-                      <span className={styles.choiceOutcome}>{option.outcomeText}</span>
+                      <strong>{label(option.label)}</strong>
+                      <span className={styles.choiceOutcome}>{label(option.outcomeText)}</span>
                       {optionImpactLines(option, game).map((line) => (
                         <span className={styles.choiceImpact} key={line}>{line}</span>
                       ))}
@@ -753,11 +722,11 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
             <div className={styles.card}>
               <span className={styles.category}>
                 {resolvedEvent?.options.length === 1
-                  ? 'ผลของเหตุการณ์'
-                  : 'ผลของการตัดสินใจ'}
+                  ? text("moneyStory.moneyStoryGameText5")
+                  : text("moneyStory.moneyStoryGameText6")}
               </span>
-              <h2 className={styles.eventTitle}>
-                {game.lastResolution.summary}
+              <h2 className={label(styles.eventTitle)}>
+                {label(game.lastResolution.summary)}
               </h2>
               {lastChoiceImpact.length ? (
                 <div className={styles.eventImpact}>
@@ -772,40 +741,36 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                   <div className={styles.numberBox}>
                     <small>
                       {resolvedUsesLumpSum
-                        ? 'ผลกระทบทางการเงิน'
-                        : 'ค่าใช้จ่ายจากเหตุการณ์'}
+                        ? text("moneyStory.moneyStoryGameText7")
+                        : text("moneyStory.moneyStoryGameText8")}
                     </small>
                     <strong>
-                      {money.format(game.lastResolution.grossCost)} บาท
-                    </strong>
+                      {money.format(game.lastResolution.grossCost)}{" " + text("moneyStory.eventTitle3")}</strong>
                   </div>
                   {!resolvedUsesLumpSum ? (
                     <div className={styles.numberBox}>
-                      <small>สิทธิ/สวัสดิการช่วย</small>
+                      <small>{text("moneyStory.small3")}</small>
                       <strong>
-                        {money.format(game.lastResolution.existingBenefit ?? 0)} บาท
-                      </strong>
+                        {money.format(game.lastResolution.existingBenefit ?? 0)}{" " + text("moneyStory.eventTitle3")}</strong>
                     </div>
                   ) : null}
                   <div className={styles.numberBox}>
                     <small>
                       {resolvedUsesLumpSum
-                        ? 'เงินก้อนจากความคุ้มครอง'
-                        : 'ความคุ้มครองช่วย'}
+                        ? text("moneyStory.moneyStoryGameText9")
+                        : text("moneyStory.moneyStoryGameText10")}
                     </small>
                     <strong>
-                      {money.format(game.lastResolution.protectionBenefit ?? 0)} บาท
-                    </strong>
+                      {money.format(game.lastResolution.protectionBenefit ?? 0)}{" " + text("moneyStory.eventTitle3")}</strong>
                   </div>
                   <div className={styles.numberBox}>
                     <small>
                       {resolvedUsesLumpSum
-                        ? 'ภาระที่ยังต้องรับเอง'
-                        : 'เงินที่ต้องจ่ายเอง'}
+                        ? text("moneyStory.moneyStoryGameText11")
+                        : text("moneyStory.moneyStoryGameText12")}
                     </small>
                     <strong>
-                      {money.format(game.lastResolution.outOfPocket ?? 0)} บาท
-                    </strong>
+                      {money.format(game.lastResolution.outOfPocket ?? 0)}{" " + text("moneyStory.eventTitle3")}</strong>
                   </div>
                 </div>
               ) : null}
@@ -817,8 +782,8 @@ export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolea
                   onClick={goNext}
                 >
                   {game.currentMonth === 12
-                    ? 'ดูผล 12 เดือน'
-                    : 'ไปเดือนถัดไป'}
+                    ? text("moneyStory.moneyStoryGameText13")
+                    : text("moneyStory.moneyStoryGameText14")}
                 </button>
               </div>
             </div>

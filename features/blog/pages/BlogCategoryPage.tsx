@@ -1,3 +1,5 @@
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText } from "@/lib/content/public-copy-registry";
 import { cache } from "react";
 import Website43Blog from "@/features/blog/website-43/Website43Blog";
 import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/features/blog/website-43/blogData";
@@ -56,14 +58,14 @@ function categoryMenu(registry: Awaited<ReturnType<typeof getRegistryForRequest>
   return listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));
 }
 
-function physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub | null) {
+function physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub | null, copyText: ReturnType<typeof publicCopyText>) {
   return {
-    title: hub?.seoTitle ?? `${category.title} | บทความและความรู้ | CCPun`,
-    description: category.description ?? hub?.description ?? `รวมบทความและความรู้เรื่อง${category.title}จาก CCPun`,
+    title: hub?.seoTitle ?? copyText("blog.category.seoTitle").replaceAll("{title}", category.title),
+    description: category.description ?? hub?.description ?? copyText("blog.category.description").replaceAll("{title}", category.title),
   };
 }
 
-function buildTopicIntro(hub: BlogTopicHub | null) {
+function buildTopicIntro(hub: BlogTopicHub | null, copyText: ReturnType<typeof publicCopyText>) {
   if (!hub?.intro.length) return null;
 
   const headingId = `blog-topic-intro-${hub.slug}`;
@@ -74,7 +76,7 @@ function buildTopicIntro(hub: BlogTopicHub | null) {
     >
       <div className={styles.inner}>
         <p className={styles.eyebrow}>{hub.eyebrow}</p>
-        <h2 id={headingId} className={styles.h2}>ทำความเข้าใจ{hub.title}ก่อนตัดสินใจ</h2>
+        <h2 id={headingId} className={styles.h2}>{copyText("blog.category.heading").replaceAll("{title}", hub.title)}</h2>
         <div className={styles.storyCopy}>
           {hub.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
@@ -97,6 +99,7 @@ function categoryOpenGraph(category: CategoryRegistryEntry, title: string, descr
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
+  const copyText = publicCopyText(await getPublicCopy("blog"));
   const { category: slug } = await params;
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
@@ -111,7 +114,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
     const relevantIndexableArticles = articles.filter(
       (article) => articleBelongsToPhysicalCategory(article, category) && isPublicIndexableArticle(article),
     );
-    const copy = physicalCategoryCopy(category, hub);
+    const copy = physicalCategoryCopy(category, hub, copyText);
     const canonical = getCategoryCanonical(category.slug);
     const shouldIndex = !includeDrafts
       && category.status === "active"
@@ -134,19 +137,19 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
 
   if (resolution.kind === "redirect") {
     return {
-      title: "บทความ | CCPun",
+      title: copyText("blog.category.fallbackTitle"),
       alternates: { canonical: getCategoryCanonical(resolution.destinationSlug) },
       robots: { index: false, follow: true },
     };
   }
   if (resolution.kind === "hidden") {
-    return { title: "บทความ | CCPun", alternates: { canonical: null }, robots: { index: false, follow: true } };
+    return { title: copyText("blog.category.fallbackTitle"), alternates: { canonical: null }, robots: { index: false, follow: true } };
   }
 
   // Semantic hubs are intentionally separate from physical categories. This
   // fallback preserves topic-only destinations such as /blog/critical-illness/.
   const hub = getBlogTopicHub(slug);
-  if (!hub) return { title: "บทความ | CCPun", alternates: { canonical: null }, robots: { index: false, follow: true } };
+  if (!hub) return { title: copyText("blog.category.fallbackTitle"), alternates: { canonical: null }, robots: { index: false, follow: true } };
 
   const articles = await getArticlesForRequest(false);
   const relevantIndexableArticles = articles.filter(
@@ -179,6 +182,8 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
 }
 
 export default async function BlogCategoryHub({ params, searchParams }: { params: Promise<{ category: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  const copy = await getPublicCopy("blog");
+  const copyText = publicCopyText(copy);
   const { category: slug } = await params;
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
@@ -207,13 +212,14 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
     return <>
       {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
       <Website43Blog
+        copyOverride={copy}
         key={`${category.slug}:${initialQuery}`}
-        articles={toWebsite43ArticleItems(relevantArticles)}
-        featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
+        articles={toWebsite43ArticleItems(relevantArticles, copy)}
+        featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}
         activeCategorySlug={category.slug}
         activeCategoryTitle={category.title}
         heroDescription={category.description ?? hub?.description}
-        topicContent={buildTopicIntro(hub)}
+        topicContent={buildTopicIntro(hub, copyText)}
         initialQuery={initialQuery}
       initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
         categories={categoryMenu(registry, includeDrafts)}
@@ -241,13 +247,14 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
   return <>
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
     <Website43Blog
+        copyOverride={copy}
       key={`${hub.slug}:${initialQuery}`}
-      articles={toWebsite43ArticleItems(relevantArticles)}
-      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
+      articles={toWebsite43ArticleItems(relevantArticles, copy)}
+      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}
       activeCategorySlug={hub.slug}
       activeCategoryTitle={hub.title}
       heroDescription={hub.description}
-      topicContent={buildTopicIntro(hub)}
+      topicContent={buildTopicIntro(hub, copyText)}
       initialQuery={initialQuery}
       initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
       categories={categoryMenu(registry, includeDrafts)}

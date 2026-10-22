@@ -1,1 +1,1 @@
-export { metadata, default } from "@/features/ci-planning/page";
+export { default, generateMetadata } from "@/apps/web/app/ci-planning/page";

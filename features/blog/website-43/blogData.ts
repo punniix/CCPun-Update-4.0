@@ -1,3 +1,4 @@
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import type { Article } from '@/lib/content/types';
 import { getArticleSemanticTopic } from '@/lib/content/taxonomy';
 import { getArticlePath } from '@/lib/content/url';
@@ -25,7 +26,8 @@ const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   timeZone: 'Asia/Bangkok',
 });
 
-export function toWebsite43ArticleItem(article: Article): Website43ArticleItem {
+export function toWebsite43ArticleItem(article: Article, copy: PublicCopyValues = {}): Website43ArticleItem {
+  const copyText = publicCopyText(copy);
   const semanticTopic = getArticleSemanticTopic({
     articleSlug: article.slug,
     semanticTopic: article.semanticTopic,
@@ -44,7 +46,7 @@ export function toWebsite43ArticleItem(article: Article): Website43ArticleItem {
     category: semanticTopic?.title ?? article.category,
     title: article.title,
     excerpt: article.excerpt.trim() || article.title,
-    meta: formattedDate ? `${article.publishedAt ? 'เผยแพร่' : 'อัปเดต'} ${formattedDate}` : '',
+    meta: formattedDate ? `${article.publishedAt ? copyText("blog.date.published") : copyText("blog.date.updated")} ${formattedDate}` : '',
     publishedAt: displayDate,
     image: article.featuredImage?.src ?? '/assets/blog-hub-hero-ccpun-v1.webp',
     imageWidth: article.featuredImage?.width ?? 1774,
@@ -54,12 +56,12 @@ export function toWebsite43ArticleItem(article: Article): Website43ArticleItem {
   };
 }
 
-export function toWebsite43ArticleItemsInOrder(articles: readonly Article[]): Website43ArticleItem[] {
+export function toWebsite43ArticleItemsInOrder(articles: readonly Article[], copy: PublicCopyValues = {}): Website43ArticleItem[] {
   const items: Website43ArticleItem[] = [];
 
   for (const article of articles) {
     try {
-      items.push(toWebsite43ArticleItem(article));
+      items.push(toWebsite43ArticleItem(article, copy));
     } catch (error) {
       // CMS taxonomy is editor-controlled data. A single legacy, malformed, or
       // newly introduced category must never take down the entire public archive.
@@ -78,7 +80,7 @@ export function toWebsite43ArticleItemsInOrder(articles: readonly Article[]): We
   return items;
 }
 
-export function toWebsite43ArticleItems(articles: Article[]): Website43ArticleItem[] {
-  return toWebsite43ArticleItemsInOrder(articles)
+export function toWebsite43ArticleItems(articles: Article[], copy: PublicCopyValues = {}): Website43ArticleItem[] {
+  return toWebsite43ArticleItemsInOrder(articles, copy)
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 }

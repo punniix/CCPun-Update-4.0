@@ -1,4 +1,5 @@
 'use client';
+import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 import { useEffect, useRef, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import shared from '@/components/layout/website-43/Website43.module.css';
@@ -21,6 +22,7 @@ function remaining(timestamp: number): TimeLeft {
 }
 
 export default function HealthHappyCountdown({ placement }: { placement: Placement }) {
+  const text = usePublicCopy();
   const [now, setNow] = useState<number | null>(null);
   const countdownRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -61,25 +63,25 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
 
   const left = now === null ? null : remaining(now);
   const values = [
-    { label: 'DAYS', value: left?.days },
-    { label: 'HOURS', value: left?.hours },
-    { label: 'MINUTES', value: left?.minutes },
-    { label: 'SECONDS', value: left?.seconds },
+    { id: "days", label: text("site.campaign.days"), value: left?.days },
+    { id: "hours", label: text("site.campaign.hours"), value: left?.hours },
+    { id: "minutes", label: text("site.campaign.minutes"), value: left?.minutes },
+    { id: "seconds", label: text("site.campaign.seconds"), value: left?.seconds },
   ];
   return (
-    <aside ref={countdownRef} className={styles.outside} aria-label="แคมเปญ AIA Health Happy" data-campaign="aia-health-happy-2026" data-campaign-placement={placement}>
+    <aside ref={countdownRef} className={styles.outside} aria-label={text("site.extra.healthHappyCountdownarialabel")} data-campaign="aia-health-happy-2026" data-campaign-placement={placement}>
       <div className={styles.frame}>
         <div className={styles.info}>
           <div className={styles.brandLine}>
-            <span className={styles.brandAia}>AIA</span>
-            <strong className={styles.brandName}>HEALTH HAPPY</strong>
+            <span className={styles.brandAia}>{text("site.extra.brandAia")}</span>
+            <strong className={styles.brandName}>{text("site.extra.brandName")}</strong>
           </div>
-          <p className={styles.headline}>นับถอยหลังปิดแผนประกันสุขภาพที่ดีที่สุดของ AIA</p>
-          <p className={styles.date}>30 พฤศจิกายน <span>2569</span></p>
+          <p className={styles.headline}>{text("site.extra.headline")}</p>
+          <p className={styles.date}>{text("site.extra.date")}<span>{text("site.extra.span")}</span></p>
         </div>
-        <div className={styles.timer} role="timer" aria-label="นับถอยหลังถึงวันที่ 30 พฤศจิกายน 2569 เวลา 23 นาฬิกา 59 นาที 59 วินาที เวลาประเทศไทย" aria-live="off">
-          {values.map(({ label, value }, i) => (
-            <div className={styles.timePart} key={label}>
+        <div className={styles.timer} role="timer" aria-label={text("site.extra.healthHappyCountdownarialabel2")} aria-live="off">
+          {values.map(({ id, label, value }, i) => (
+            <div className={styles.timePart} key={id}>
               {i !== 0 && <span className={styles.colon} aria-hidden="true">:</span>}
               <span className={styles.timeUnit}>
                 <strong className={styles.numeral}>{value === undefined ? '--' : String(value).padStart(2, '0')}</strong>
@@ -89,9 +91,9 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
           ))}
         </div>
         <div className={styles.actions}>
-          <a className={shared.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign" onClick={() => recordClick('line')}>ปรึกษาผ่าน LINE OA</a>
+          <a className={shared.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign" onClick={() => recordClick('line')}>{text("site.extra.a")}</a>
           <a className={shared.outlineButton} href={placement === 'article' ? '#health-happy-details' : ARTICLE_URL} data-campaign-action={placement === 'article' ? 'read-details' : 'article'} onClick={() => recordClick(placement === 'article' ? 'read_details' : 'article')}>
-            {placement === 'article' ? 'อ่านรายละเอียดด้านล่าง' : 'อ่านบทความ Health Happy'}
+            {placement === 'article' ? text("site.extra.healthHappyCountdownText") : text("site.extra.healthHappyCountdownText2")}
           </a>
         </div>
       </div>

@@ -36,8 +36,13 @@ function load(path, sources = new Map(), modules = cache) {
     if (id === 'next/link') return { __esModule: true, default: (props) => jsx('a', props) };
     if (id === 'lucide-react') return new Proxy({}, { get: (_, name) => (props) => jsx('icon', { name, ...props }) });
     if (id.endsWith('.css')) return { __esModule: true, default: new Proxy({}, { get: (_, name) => name }) };
+    if (id === '@/components/ui/PublicCopyProvider') return { usePublicCopy: defaults => key => defaults[key] };
     if (id === '@/lib/analytics') return { trackEvent: (name, params) => events.push({ name, params }) };
     if (id === '@/lib/cookie-consent') return { getConsentData: () => ({ analytics: true }) };
+    if (id.startsWith('@/')) {
+      const target = resolve(id.slice(2));
+      return load(existsSync(target + '.tsx') ? target + '.tsx' : target + '.ts', sources, modules);
+    }
     if (id.startsWith('.')) {
       const target = resolve(dirname(path), id);
       return load(existsSync(target + '.tsx') ? target + '.tsx' : target + '.ts', sources, modules);

@@ -1,3 +1,5 @@
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import Link from 'next/link';
 import CookieSettingsButton from '@/components/layout/CookieSettingsButton';
 import styles from './Website43.module.css';
@@ -13,7 +15,8 @@ export function Website43Brand() {
   );
 }
 
-export function Website43Footer({ warnings = false, notFound = false, flushBottom = false }: { warnings?: boolean; notFound?: boolean; flushBottom?: boolean }) {
+export async function Website43Footer({ warnings = false, notFound = false, flushBottom = false, copy }: { warnings?: boolean; notFound?: boolean; flushBottom?: boolean; copy?: PublicCopyValues }) {
+  const text = publicCopyText(copy ?? await getPublicCopy("site"));
   return (
     <footer className={`${styles.footerWrap} ${notFound ? styles.notFoundFooterWrap : ''} ${flushBottom ? styles.footerFlushBottom : ''}`}>
       <div className={styles.inner}>
@@ -23,35 +26,35 @@ export function Website43Footer({ warnings = false, notFound = false, flushBotto
               <Website43Brand />
             </div>
             <div className={styles.footerColumn}>
-              <strong>สำรวจ</strong>
-              <Link href={HOME}>หน้าแรก</Link>
-              <Link href={`${BASE}/blog`}>บทความ</Link>
-              <Link href={`${BASE}/tools/financial-health-check`}>เครื่องมือ</Link>
+              <strong>{text("site.footer.explore")}</strong>
+              <Link href={HOME}>{text("site.nav.home")}</Link>
+              <Link href={`${BASE}/blog`}>{text("site.nav.blog")}</Link>
+              <Link href={`${BASE}/tools/financial-health-check`}>{text("site.nav.tools")}</Link>
             </div>
             <div className={styles.footerColumn}>
-              <strong>เครื่องมือ</strong>
-              <Link href={`${BASE}/play/money-story`}>Money Story</Link>
-              <Link href={`${BASE}/tools/financial-health-check`}>Financial Health Check</Link>
-              <Link href={`${BASE}/ci-planning`}>CI Planning</Link>
+              <strong>{text("site.nav.tools")}</strong>
+              <Link href={`${BASE}/play/money-story`}>{text("site.tools.moneyStory")}</Link>
+              <Link href={`${BASE}/tools/financial-health-check`}>{text("site.tools.fhc")}</Link>
+              <Link href={`${BASE}/ci-planning`}>{text("site.tools.ci")}</Link>
             </div>
             <div className={styles.footerColumn}>
-              <strong>ข้อมูล</strong>
-              <Link href={`${HOME}#about-ccpun`}>เกี่ยวกับ Pun</Link>
-              <Link href={`${BASE}/privacy`}>Privacy</Link>
-              <Link href={`${BASE}/cookie-policy`}>Cookie</Link>
+              <strong>{text("site.footer.information")}</strong>
+              <Link href={`${HOME}#about-ccpun`}>{text("site.footer.about")}</Link>
+              <Link href={`${BASE}/privacy`}>{text("site.footer.privacy")}</Link>
+              <Link href={`${BASE}/cookie-policy`}>{text("site.footer.cookies")}</Link>
               <CookieSettingsButton className={styles.footerCookieButton} />
             </div>
           </div>
           <div className={styles.footerRule} />
-          <p className={styles.footerDisclaimer}>ข้อมูลบนเว็บไซต์มีวัตถุประสงค์เพื่อให้ความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล</p>
+          <p className={styles.footerDisclaimer}>{text("site.footerDisclaimer")}</p>
           {warnings ? (
             <div className={styles.footerWarnings}>
-              <p>คำเตือน: การลงทุนมีความเสี่ยง ผู้ลงทุนควรทำความเข้าใจลักษณะสินค้า เงื่อนไขผลตอบแทน และความเสี่ยงก่อนตัดสินใจลงทุน</p>
-              <p>ผลการดำเนินงานในอดีต มิได้เป็นสิ่งยืนยันถึงผลการดำเนินงานในอนาคต</p>
-              <p>ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก ควรศึกษาความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ</p>
+              <p>{text("site.disclosure.investment")}</p>
+              <p>{text("site.disclosure.pastPerformance")}</p>
+              <p>{text("site.disclosure.insurance")}</p>
             </div>
           ) : null}
-          <p className={styles.footerCopyright}>© 2026 CCPUN · ที่ปรึกษาทางการเงิน และผู้วางแผนการลงทุน</p>
+          <p className={styles.footerCopyright}>{text("site.footerCopyright")}</p>
         </div>
       </div>
     </footer>

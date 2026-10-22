@@ -1,4 +1,6 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { isAnalyticsEnabled } from '@/lib/cookie-consent';
@@ -86,9 +88,11 @@ export function ArticleEngagementProvider({ articleId, disabled = false, recordV
 export function useArticleEngagement() { return useContext(Engagement); }
 
 export function ArticleEngagementSummary({ readingMinutes }: { readingMinutes?: number }) {
+  const copyText = usePublicCopy(BLOG_COPY_DEFAULTS);
+
   const { metrics } = useArticleEngagement();
   return <div className={styles.articleReadingTime}>
-    {readingMinutes !== undefined && <span className={styles.articleReadingEstimate}>ใช้เวลาอ่านประมาณ <b>{readingMinutes}</b> นาที</span>}
-    {metrics.shares !== null && <span title="ยอดที่บันทึกได้" aria-label={`การแชร์ที่บันทึกได้ ${metrics.shares} ครั้ง`}>แชร์ <b>{metrics.shares}</b> ครั้ง</span>}
+    {readingMinutes !== undefined && <span className={styles.articleReadingEstimate}>{copyText("blog.articleReadingEstimate")}<b>{readingMinutes}</b>{" "}{copyText("blog.articleReadingEstimate2")}</span>}
+    {metrics.shares !== null && <span title={copyText("blog.articleEngagementSummarytitle")} aria-label={copyText("blog.dynamic3").replaceAll("{0}", String(metrics.shares))}>{copyText("blog.span3")}<b>{metrics.shares}</b>{" "}{copyText("blog.span4")}</span>}
   </div>;
 }

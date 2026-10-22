@@ -1,4 +1,7 @@
 'use client';
+import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
+import { FHC_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
+
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Edit3, MessageCircle, RefreshCw } from 'lucide-react';
@@ -12,16 +15,20 @@ import { calculateLifeCoverage, formatLifeCoverageMoney, LIFE_COVERAGE_INITIAL_V
 
 
 function MoneyField({ id, label, help, value, onChange, error }: { id: keyof LifeCoverageValues; label: string; help?: string; value: number; onChange: (value: number) => void; error?: boolean }) {
+  const t = usePublicCopy(FHC_COPY_DEFAULTS);
+
   const helpId = help ? `${id}-help` : undefined;
   const describedBy = [helpId, error && 'life-calculator-error'].filter(Boolean).join(' ') || undefined;
   return <div className="space-y-2">
     <label htmlFor={id} className="text-sm font-medium text-foreground">{label}</label>
-    <CurrencyInput id={id} value={value} onChange={onChange} placeholder="เช่น 30,000" error={error} aria-describedby={describedBy} />
+    <CurrencyInput id={id} value={value} onChange={onChange} placeholder={t("fhc.wizard.placeholder")} error={error} aria-describedby={describedBy} />
     {help && <p id={helpId} className="text-xs leading-5 text-muted-foreground">{help}</p>}
   </div>;
 }
 
 export default function LifeCoverageWizard() {
+  const t = usePublicCopy(FHC_COPY_DEFAULTS);
+
   const [step, setStep] = useState(1);
   const [values, setValues] = useState<LifeCoverageValues>(LIFE_COVERAGE_INITIAL_VALUES);
   const [error, setError] = useState('');
@@ -90,12 +97,12 @@ export default function LifeCoverageWizard() {
   const runStepTransition = (commit: () => void) => commit();
 
   const next = () => {
-    if (step === 1 && !values.householdMonthly) { fail('householdMonthly', 'กรอกค่าใช้จ่ายครัวเรือนต่อเดือนก่อน'); return; }
-    if (step === 1 && (values.supportYears < 1 || values.supportYears > 20)) { fail('supportYears', 'จำนวนปีที่ต้องการให้เงินก้อนรองรับต้องอยู่ระหว่าง 1–20 ปี'); return; }
-    if (step === 1 && !Number.isSafeInteger(result.need)) { fail('householdMonthly', 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูล'); return; }
+    if (step === 1 && !values.householdMonthly) { fail('householdMonthly', t("fhc.wizard.next")); return; }
+    if (step === 1 && (values.supportYears < 1 || values.supportYears > 20)) { fail('supportYears', t("fhc.wizard.next2")); return; }
+    if (step === 1 && !Number.isSafeInteger(result.need)) { fail('householdMonthly', t("fhc.wizard.next3")); return; }
     trackStart();
     if (step === 2) {
-      if (![result.resources, result.gap].every(Number.isSafeInteger)) { fail('existingLifeCoverage', 'ตัวเลขสูงเกินช่วงที่เครื่องมือนี้คำนวณได้ กรุณาตรวจสอบข้อมูล'); return; }
+      if (![result.resources, result.gap].every(Number.isSafeInteger)) { fail('existingLifeCoverage', t("fhc.wizard.next3")); return; }
       setShowResult(true);
       if (!completedRef.current) {
         completedRef.current = true;
@@ -112,51 +119,51 @@ export default function LifeCoverageWizard() {
 
   if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <div className="ccpun-calculator-result-lead">
-      <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
-      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ช่องว่างความคุ้มครอง<span className="whitespace-nowrap">เบื้องต้น</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} บาท</span></h2>
-      <p className="ccpun-calculator-result-amount">{formatLifeCoverageMoney(result.gap)} <small>บาท</small></p>
-      <p className="ccpun-calculator-result-body">ส่วนต่างระหว่างภาระที่คุณกรอก กับทุนประกันชีวิตและสินทรัพย์ที่ตั้งใจใช้ ไม่ใช่วงเงินที่ควรซื้อโดยอัตโนมัติ</p>
+      <p className="ccpun-calculator-result-eyebrow">{t("fhc.wizard.description")}</p>
+      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t("fhc.wizard.lifeResultTitle.heading")}<span className="whitespace-nowrap">{t("fhc.wizard.label")}</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} {t("fhc.wizard.label2")}</span></h2>
+      <p className="ccpun-calculator-result-amount">{formatLifeCoverageMoney(result.gap)} <small>{t("fhc.wizard.label2")}</small></p>
+      <p className="ccpun-calculator-result-body">{t("fhc.wizard.description2")}</p>
     </div>
 
-    <dl className="mb-5 grid grid-cols-2 gap-3 border-y border-white/10 py-4 text-sm" aria-label="ข้อมูลที่ใช้ประเมิน">
-      <div><dt className="text-muted-foreground">ค่าใช้จ่ายครอบครัวต่อเดือน</dt><dd>{formatLifeCoverageMoney(values.householdMonthly)} บาท</dd></div>
-      <div><dt className="text-muted-foreground">ช่วงเวลาที่เลือก</dt><dd>{values.supportYears} ปี</dd></div>
+    <dl className="mb-5 grid grid-cols-2 gap-3 border-y border-white/10 py-4 text-sm" aria-label={t("fhc.wizard.ariaLabel")}>
+      <div><dt className="text-muted-foreground">{t("fhc.wizard.metricLabel")}</dt><dd>{formatLifeCoverageMoney(values.householdMonthly)} {t("fhc.wizard.label2")}</dd></div>
+      <div><dt className="text-muted-foreground">{t("fhc.wizard.metricLabel2")}</dt><dd>{values.supportYears} {t("fhc.wizard.label3")}</dd></div>
     </dl>
-    <MoneyComparison need={result.need} resources={result.resources} title="ภาระที่ต้องดูแลเทียบกับทรัพยากรที่พร้อมใช้" needLabel="ภาระตามข้อมูลที่กรอก" />
+    <MoneyComparison need={result.need} resources={result.resources} title={t("fhc.wizard.title")} needLabel={t("fhc.wizard.needLabel")} />
 
     <dl className="ccpun-calculator-result-rows">
-      <div className="ccpun-calculator-result-row"><dt>ค่าใช้จ่ายครอบครัวตามช่วงเวลาที่เลือก</dt><dd>{formatLifeCoverageMoney(result.familySupport)} บาท</dd></div>
-      <div className="ccpun-calculator-result-row"><dt>หนี้และทุนการศึกษาบุตร</dt><dd>{formatLifeCoverageMoney(values.debt + values.education)} บาท</dd></div>
-      <div className="ccpun-calculator-result-row"><dt>ทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้</dt><dd>{formatLifeCoverageMoney(result.resources)} บาท</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>{t("fhc.wizard.metricLabel3")}</dt><dd>{formatLifeCoverageMoney(result.familySupport)} {t("fhc.wizard.label2")}</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>{t("fhc.wizard.metricLabel4")}</dt><dd>{formatLifeCoverageMoney(values.debt + values.education)} {t("fhc.wizard.label2")}</dd></div>
+      <div className="ccpun-calculator-result-row"><dt>{t("fhc.wizard.metricLabel5")}</dt><dd>{formatLifeCoverageMoney(result.resources)} {t("fhc.wizard.label2")}</dd></div>
     </dl>
 
-    <div className="ccpun-calculator-result-notice">ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล ไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี และประกันไม่ใช่เงินฝาก</div>
+    <div className="ccpun-calculator-result-notice">{t("fhc.wizard.label4")}</div>
 
     <div className="ccpun-calculator-result-cta">
       <FHCLifeResultImageDownloadButton summary={{ familySupport: result.familySupport, debtAndEducation: values.debt + values.education, resources: result.resources, gap: result.gap }} />
-      <h3>อยากทบทวนตัวเลขต่อ?</h3>
-      <p>บันทึกภาพนี้ไว้ แล้วส่งมาคุยกับ CCPun ทาง LINE OA ได้เมื่อพร้อม</p>
-      <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)" onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button ccpun-motion-tactile mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />คุยกับ CCPun ทาง LINE OA</a>
+      <h3>{t("fhc.wizard.heading")}</h3>
+      <p>{t("fhc.wizard.description3")}</p>
+      <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label={t("fhc.wizard.ariaLabel2")} onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button ccpun-motion-tactile mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />{t("fhc.wizard.linkLabel")}</a>
     </div>
 
-    <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" />แก้ไขข้อมูล</button><button type="button" onClick={() => { setValues(LIFE_COVERAGE_INITIAL_VALUES); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" />เริ่มใหม่</button></div>
+    <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" />{t("fhc.wizard.action")}</button><button type="button" onClick={() => { setValues(LIFE_COVERAGE_INITIAL_VALUES); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" />{t("fhc.wizard.action2")}</button></div>
   </section>;
 
   const educationOpen = values.education > 0 || errorField === 'education';
-  const footer = <div className="flex items-center gap-3">{step === 2 ? <button type="button" onClick={() => runStepTransition(() => { setStep(1); setError(''); setErrorField(''); })} className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" aria-hidden="true" />ย้อนกลับ</button> : <span className="flex-1" />}<button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44">{step === 1 ? 'ถัดไป' : 'ดูผลการคำนวณ'}<ChevronRight className="h-4 w-4" aria-hidden="true" /></button></div>;
+  const footer = <div className="flex items-center gap-3">{step === 2 ? <button type="button" onClick={() => runStepTransition(() => { setStep(1); setError(''); setErrorField(''); })} className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" aria-hidden="true" />{t("fhc.wizard.action3")}</button> : <span className="flex-1" />}<button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44">{step === 1 ? t("fhc.wizard.footer") : t("fhc.wizard.footer2")}<ChevronRight className="h-4 w-4" aria-hidden="true" /></button></div>;
 
   return <section ref={viewRef} className="ccpun-motion-step-view">
     <form noValidate onSubmit={(event) => { event.preventDefault(); next(); }}>
-      <HumanCalculatorCard step={step} total={2} labelledBy={`fhc-step-${step}-title`} title={step === 1 ? 'ภาระที่ต้องดูแล' : 'ทรัพยากรที่พร้อมใช้'} description={step === 1 ? 'เริ่มจาก 3 ข้อมูลหลัก ส่วนทุนการศึกษาบุตรเพิ่มได้เมื่อมี' : 'กรอกเฉพาะเงินก้อนที่ตั้งใจนำมาใช้ในแผนนี้'} footer={footer}>
+      <HumanCalculatorCard step={step} total={2} labelledBy={`fhc-step-${step}-title`} title={step === 1 ? t("fhc.wizard.title2") : t("fhc.wizard.title3")} description={step === 1 ? t("fhc.wizard.description4") : t("fhc.wizard.description5")} footer={footer}>
         {error ? <p id="life-calculator-error" role="alert" className="ccpun-motion-validation rounded-xl border border-destructive/35 bg-destructive/10 px-3 py-2.5 text-sm text-[#ffb4b4]">{error}</p> : null}
         {step === 1 ? <>
-          <MoneyField id="householdMonthly" label="ค่าใช้จ่ายครัวเรือนต่อเดือน" help="กรอกหลังหักรายได้อื่นที่ยังมีอยู่แล้ว" value={values.householdMonthly} onChange={(value) => updateValue('householdMonthly', value)} error={errorField === 'householdMonthly'} />
-          <fieldset className="space-y-2"><legend className="text-sm font-medium text-foreground">จำนวนปีที่ต้องการให้เงินก้อนรองรับ</legend><div className="flex items-center justify-between text-xs text-muted-foreground"><span>1 ปี</span><output htmlFor="supportYears" className="text-base font-semibold tabular-nums text-primary">{values.supportYears} ปี</output><span>20 ปี</span></div><input id="supportYears" type="range" min="1" max="20" step="1" value={values.supportYears} onChange={(event) => updateValue('supportYears', Number(event.target.value))} aria-invalid={errorField === 'supportYears' || undefined} aria-describedby={errorField === 'supportYears' ? 'supportYears-help life-calculator-error' : 'supportYears-help'} aria-label="จำนวนปีที่ต้องการให้เงินก้อนรองรับ" className="min-h-11 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><p id="supportYears-help" className="text-xs leading-5 text-muted-foreground">ปรับได้ 1–20 ปี</p></fieldset>
-          <MoneyField id="debt" label="หนี้คงเหลือทั้งหมด (ถ้ามี)" help="รวมบ้าน รถ บัตรเครดิต และสินเชื่อที่ต้องการให้เงินก้อนนี้รองรับ" value={values.debt} onChange={(value) => updateValue('debt', value)} error={errorField === 'debt'} />
-          <details open={educationOpen} className="group border-t border-white/10 pt-4"><summary className="min-h-11 py-3 cursor-pointer text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">เพิ่มทุนการศึกษาบุตร (ถ้ามี)</summary><div className="mt-4"><MoneyField id="education" label="ทุนการศึกษารวมที่ต้องการเตรียม" help="รวมค่าเล่าเรียนและค่าใช้จ่ายที่ตั้งใจดูแล" value={values.education} onChange={(value) => updateValue('education', value)} error={errorField === 'education'} /></div></details>
+          <MoneyField id="householdMonthly" label={t("fhc.wizard.label5")} help={t("fhc.wizard.help")} value={values.householdMonthly} onChange={(value) => updateValue('householdMonthly', value)} error={errorField === 'householdMonthly'} />
+          <fieldset className="space-y-2"><legend className="text-sm font-medium text-foreground">{t("fhc.wizard.groupLabel")}</legend><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t("fhc.wizard.label6")}</span><output htmlFor="supportYears" className="text-base font-semibold tabular-nums text-primary">{values.supportYears} {t("fhc.wizard.label3")}</output><span>{t("fhc.wizard.label7")}</span></div><input id="supportYears" type="range" min="1" max="20" step="1" value={values.supportYears} onChange={(event) => updateValue('supportYears', Number(event.target.value))} aria-invalid={errorField === 'supportYears' || undefined} aria-describedby={errorField === 'supportYears' ? 'supportYears-help life-calculator-error' : 'supportYears-help'} aria-label={t("fhc.wizard.groupLabel")} className="min-h-11 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /><p id="supportYears-help" className="text-xs leading-5 text-muted-foreground">{t("fhc.wizard.supportYearsHelp.description")}</p></fieldset>
+          <MoneyField id="debt" label={t("fhc.wizard.label8")} help={t("fhc.wizard.help2")} value={values.debt} onChange={(value) => updateValue('debt', value)} error={errorField === 'debt'} />
+          <details open={educationOpen} className="group border-t border-white/10 pt-4"><summary className="min-h-11 py-3 cursor-pointer text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t("fhc.wizard.expandLabel")}</summary><div className="mt-4"><MoneyField id="education" label={t("fhc.wizard.label9")} help={t("fhc.wizard.help3")} value={values.education} onChange={(value) => updateValue('education', value)} error={errorField === 'education'} /></div></details>
         </> : <>
-          <MoneyField id="existingLifeCoverage" label="ทุนประกันชีวิตที่มีอยู่" help="กรอกเฉพาะทุนที่ตั้งใจให้ครอบครัวใช้ตามแผนนี้" value={values.existingLifeCoverage} onChange={(value) => updateValue('existingLifeCoverage', value)} error={errorField === 'existingLifeCoverage'} />
-          <MoneyField id="liquidAssets" label="สินทรัพย์สภาพคล่องที่ตั้งใจใช้" help="ไม่หักเงินสำรองฉุกเฉินโดยอัตโนมัติ เพื่อไม่ให้นับเงินก้อนเดียวซ้ำ" value={values.liquidAssets} onChange={(value) => updateValue('liquidAssets', value)} error={errorField === 'liquidAssets'} />
+          <MoneyField id="existingLifeCoverage" label={t("fhc.wizard.label10")} help={t("fhc.wizard.help4")} value={values.existingLifeCoverage} onChange={(value) => updateValue('existingLifeCoverage', value)} error={errorField === 'existingLifeCoverage'} />
+          <MoneyField id="liquidAssets" label={t("fhc.wizard.label11")} help={t("fhc.wizard.help5")} value={values.liquidAssets} onChange={(value) => updateValue('liquidAssets', value)} error={errorField === 'liquidAssets'} />
         </>}
       </HumanCalculatorCard>
     </form>

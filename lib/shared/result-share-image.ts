@@ -1,3 +1,5 @@
+import { SITE_COPY_DEFAULTS } from "@/lib/content/site-copy-defaults";
+
 export const RESULT_SHARE_IMAGE_WIDTH = 1080;
 export const RESULT_SHARE_IMAGE_HEIGHT = 1350;
 
@@ -102,6 +104,7 @@ export async function renderResultShareImage(
   summary: Readonly<ResultShareImageSummary>,
   logoPath: string,
   lineQrPath: string,
+  t: (key: keyof typeof SITE_COPY_DEFAULTS) => string = key => SITE_COPY_DEFAULTS[key],
 ): Promise<Blob> {
   if (typeof document === 'undefined' || typeof Image === 'undefined') {
     throw new Error('การสร้างภาพสรุปทำได้เฉพาะในเบราว์เซอร์');
@@ -207,10 +210,10 @@ export async function renderResultShareImage(
     drawSticker('M12 21c0-2-1.5-3-3-3H3V3h5c2 0 4 1 4 4v14z M12 21c0-2 1.5-3 3-3h6V3h-5c-2 0-4 1-4 4v14z', 940, 470, 50, 11);
     context.fillStyle = ink;
     context.font = '600 32px Kanit, sans-serif';
-    context.fillText('ทุนสำหรับรับมือโรคร้ายแรง', 96, 488);
+    context.fillText(t('site.image.needTitle'), 96, 488);
     context.fillStyle = gold;
     context.font = '500 28px Kanit, sans-serif';
-    context.fillText('มีแล้ว', 96, 556);
+    context.fillText(t('site.image.available'), 96, 556);
     context.fillStyle = resources < target ? shortfallColor : gold;
     context.fillText(summary.metrics[2].label, 566, 556);
     context.fillStyle = gold;
@@ -232,22 +235,22 @@ export async function renderResultShareImage(
       const nonzero = items.filter((item) => item.amount > 0);
       const rows = nonzero.length > 5
         ? [...nonzero.slice(0, 4), {
-          label: `รายการอื่นอีก ${nonzero.length - 4} รายการ`,
+          label: t('site.image.otherItems').replaceAll('{count}', String(nonzero.length - 4)),
           amount: nonzero.slice(4).reduce((sum, item) => sum + item.amount, 0),
         }]
         : nonzero;
       if (rows.length === 0) {
         context.fillStyle = muted;
         context.font = '500 28px Kanit, sans-serif';
-        context.fillText('ยังไม่มีรายการที่กรอก', 96, yStart);
+        context.fillText(t('site.image.emptyItems'), 96, yStart);
       }
       rows.forEach((item, index) => {
         context.fillStyle = ink;
         fitText(context, item.label, 580, 28, 500, 22);
         context.fillText(item.label, 96, yStart + index * 47);
         context.textAlign = 'right';
-        fitText(context, `${Math.round(item.amount).toLocaleString('th-TH')} บาท`, 280, 29, 600, 23);
-        context.fillText(`${Math.round(item.amount).toLocaleString('th-TH')} บาท`, 984, yStart + index * 47);
+        fitText(context, `${Math.round(item.amount).toLocaleString('th-TH')} ${t('site.money.baht')}`, 280, 29, 600, 23);
+        context.fillText(`${Math.round(item.amount).toLocaleString('th-TH')} ${t('site.money.baht')}`, 984, yStart + index * 47);
         context.textAlign = 'left';
       });
     };
@@ -256,11 +259,11 @@ export async function renderResultShareImage(
     drawSticker('M3 16V9l2-4h14l2 4v7 M3 16h18 M6 16v3 M18 16v3 M6 10h12 M6 13h1 M17 13h1', 940, resourceHeaderY + 7, 50, -10);
     context.fillStyle = gold;
     context.font = '600 30px Kanit, sans-serif';
-    context.fillText('ที่มาของทุนที่ประเมิน', 96, 835);
+    context.fillText(t('site.image.targetSources'), 96, 835);
     drawItems(summary.composition.targetItems, 885);
     context.fillStyle = gold;
     context.font = '600 30px Kanit, sans-serif';
-    context.fillText('รวมทุนที่ต้องเตรียม', 96, targetTotalY);
+    context.fillText(t('site.image.targetTotal'), 96, targetTotalY);
     context.textAlign = 'right';
     fitText(context, summary.primaryAmount, 350, 30, 600, 24);
     context.fillText(summary.primaryAmount, 984, targetTotalY);
@@ -273,11 +276,11 @@ export async function renderResultShareImage(
     context.stroke();
     context.fillStyle = gold;
     context.font = '600 30px Kanit, sans-serif';
-    context.fillText('ทุนที่มีสำหรับรับมือโรคร้ายแรง', 96, resourceHeaderY);
+    context.fillText(t('site.image.resourcesTitle'), 96, resourceHeaderY);
     drawItems(summary.composition.resourceItems, resourceRowsY);
     context.fillStyle = gold;
     context.font = '600 30px Kanit, sans-serif';
-    context.fillText('รวมทุนที่มี', 96, resourceTotalY);
+    context.fillText(t('site.image.resourcesTotal'), 96, resourceTotalY);
     context.textAlign = 'right';
     fitText(context, summary.composition.resourcesText, 350, 30, 600, 24);
     context.fillText(summary.composition.resourcesText, 984, resourceTotalY);

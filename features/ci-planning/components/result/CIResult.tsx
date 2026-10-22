@@ -1,17 +1,19 @@
 'use client';
+import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
+import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
+
 
 import { useEffect, useRef, useState } from 'react';
 import { Edit3, ExternalLink, MessageCircle, RefreshCw } from 'lucide-react';
 import MoneyComparison from '@/components/ui/MoneyComparison';
 import { trackEvent } from '@/lib/analytics';
 import {
-  CI_ESTIMATION_METHOD_LABELS,
   CI_LINE_OA_URL,
   CI_ASSESSMENT_VERSION,
 } from '@/features/ci-planning/calculator/constants';
 import type { CIEstimationMethod, CIResult as CIResultType } from '@/features/ci-planning/calculator/types';
 import ResultImageDownloadButton from '@/features/ci-planning/components/ResultImageDownloadButton';
-import { CI_RECOVERY_SOURCES, getRecoveryModeLabel } from '@/features/ci-planning/recovery-evidence';
+import { CI_RECOVERY_SOURCES } from '@/features/ci-planning/recovery-evidence';
 
 interface CIResultProps {
   result: CIResultType;
@@ -30,6 +32,8 @@ function getDefaultEstimationMethod(result: CIResultType): CIEstimationMethod {
 }
 
 export default function CIResult({ result, onEditData, onReset }: CIResultProps) {
+  const t = usePublicCopy(CI_COPY_DEFAULTS);
+
   const [selectedMethod, setSelectedMethod] = useState<CIEstimationMethod>(() => getDefaultEstimationMethod(result));
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const hasTrackedResultViewRef = useRef(false);
@@ -46,7 +50,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     ? selectedMethod
     : (availableMethods[0] ?? 'expense');
 
-  const methodLabel = CI_ESTIMATION_METHOD_LABELS[activeMethod];
+  const methodLabel = t(activeMethod === 'income' ? 'ci.method.income' : 'ci.method.expense');
   const selectedBaseNeed = activeMethod === 'income' ? incomeBaseNeed : expenseBaseNeed;
   const selectedNeed = activeMethod === 'income' ? result.incomeBasedNeed : result.calculatedNeed;
   const displayedGap = activeMethod === 'income' ? result.incomeShortfall : result.shortfall;
@@ -66,49 +70,48 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
 
   const difference = displayedGap > 0 ? displayedGap : displayedSurplus;
   const differenceLabel = displayedGap > 0
-    ? 'ทุนที่ยังขาด'
+    ? t("ci.result.differenceLabel")
     : displayedSurplus > 0
-      ? 'ทรัพยากรที่มีมากกว่าประมาณการ'
-      : 'ส่วนต่างจากประมาณการ';
+      ? t("ci.result.differenceLabel2")
+      : t("ci.result.differenceLabel3");
 
   const recoveryRowCandidates: Array<[string, number]> = [
-    [`ติดตามรักษา ${result.recoveryTreatmentVisits} ครั้ง × ${baht(result.recoveryTreatmentVisitUnitCost)}`, result.recoveryVisitNeed],
-    [`ผู้ดูแล ${result.recoveryCaregiverHomeDays} วัน × ${baht(result.recoveryCaregiverDailyCost)}`, result.recoveryCaregiverHomeNeed],
-    [`กายภาพ/ฟื้นฟู ${result.recoveryRehabSessions} ครั้ง × ${baht(result.recoveryRehabUnitCost)}`, result.recoveryRehabNeed],
-    ['เครื่องวัดออกซิเจนปลายนิ้ว', result.recoveryPulseOximeter],
-    ['เครื่องวัดความดัน', result.recoveryBloodPressureMonitor],
-    ['เครื่องวัดอุณหภูมิ', result.recoveryThermometer],
-    ['Walker / อุปกรณ์ช่วยเดิน', result.recoveryWalker],
-    ['Wheelchair', result.recoveryWheelchair],
-    ['เก้าอี้อาบน้ำ / อุปกรณ์ห้องน้ำ', result.recoveryShowerChair],
-    ['ราวจับและอุปกรณ์ความปลอดภัย', result.recoveryGrabRailAndSafety],
-    ['เตียงผู้ป่วย / อุปกรณ์ก้อนใหญ่', result.recoveryHospitalBed],
-    ['ของใช้สิ้นเปลือง', result.recoveryConsumables],
-    ['ปรับบ้านเดิม / พื้นที่ใช้งาน', result.recoveryHomeAdaptation],
-    ['Major Housing Reserve', result.recoveryMajorHousing],
-    ['เงินเผื่อความคลาดเคลื่อน', result.recoveryContingency],
-    ['ค่าใช้จ่ายอื่นช่วงพักฟื้น', result.recoveryOtherCosts],
+    [t("ci.result.recoveryRowCandidates").replaceAll("{recoveryTreatmentVisits}", String(result.recoveryTreatmentVisits)).replaceAll("{value2}", String(baht(result.recoveryTreatmentVisitUnitCost))), result.recoveryVisitNeed],
+    [t("ci.result.recoveryRowCandidates2").replaceAll("{recoveryCaregiverHomeDays}", String(result.recoveryCaregiverHomeDays)).replaceAll("{value2}", String(baht(result.recoveryCaregiverDailyCost))), result.recoveryCaregiverHomeNeed],
+    [t("ci.result.recoveryRowCandidates3").replaceAll("{recoveryRehabSessions}", String(result.recoveryRehabSessions)).replaceAll("{value2}", String(baht(result.recoveryRehabUnitCost))), result.recoveryRehabNeed],
+    [t("ci.recovery.pulseOximeter.label"), result.recoveryPulseOximeter],
+    [t("ci.recovery.bloodPressureMonitor.label"), result.recoveryBloodPressureMonitor],
+    [t("ci.recovery.thermometer.label"), result.recoveryThermometer],
+    [t("ci.recovery.walker.label"), result.recoveryWalker],
+    [t("ci.recovery.wheelchair.label"), result.recoveryWheelchair],
+    [t("ci.recovery.showerChair.label"), result.recoveryShowerChair],
+    [t("ci.recovery.rowCandidates4"), result.recoveryGrabRailAndSafety],
+    [t("ci.recovery.hospitalBed.label"), result.recoveryHospitalBed],
+    [t("ci.recovery.rowCandidates5"), result.recoveryConsumables],
+    [t("ci.recovery.rowCandidates6"), result.recoveryHomeAdaptation],
+    [t("ci.recovery.majorHousing.label"), result.recoveryMajorHousing],
+    [t("ci.recovery.contingency.label"), result.recoveryContingency],
+    [t("ci.recovery.otherRecoveryCosts.label"), result.recoveryOtherCosts],
   ];
   const recoveryRows = recoveryRowCandidates.filter(([, amount]) => amount > 0);
 
   return <div data-ui="human-centered-ci-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <section className="ccpun-calculator-result-lead">
-      <p className="ccpun-calculator-result-eyebrow">ผลการประเมิน</p>
+      <p className="ccpun-calculator-result-eyebrow">{t("ci.result.description")}</p>
       <h2
         ref={resultHeadingRef}
         tabIndex={-1}
         className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        ประมาณการทุนเบื้องต้น · {methodLabel}
+        {t("ci.result.heading")}{methodLabel}
       </h2>
       <output className="ccpun-calculator-result-amount" aria-live="polite" aria-atomic="true">{baht(selectedNeed)}</output>
       <p className="ccpun-calculator-result-body">
-        ยอดรวมนี้ = {baht(selectedBaseNeed)} จาก{activeMethod === 'expense' ? 'รายจ่ายและภาระที่กรอก' : 'รายได้ตามช่วงเวลาที่เลือก'} + Recovery Reserve {baht(result.recoveryReserveNeed)}{result.protectedAssetsNeed > 0 ? ` + เป้าหมายรักษาสินทรัพย์ ${baht(result.protectedAssetsNeed)}` : ''} โดยบวกแต่ละส่วนเพียง 1 ครั้ง
-      </p>
+        {t("ci.result.description2")}{baht(selectedBaseNeed)} {t("ci.result.description3")}{activeMethod === 'expense' ? t("ci.result.label") : t("ci.result.label2")} + Recovery Reserve {baht(result.recoveryReserveNeed)}{result.protectedAssetsNeed > 0 ? t("ci.result.label3").replaceAll("{value1}", String(baht(result.protectedAssetsNeed))) : ''} {t("ci.result.description4")}</p>
     </section>
 
     {availableMethods.length > 1 ? <fieldset className="space-y-3" aria-describedby="ci-estimation-method-help">
-      <legend className="ccpun-calculator-result-panel-title">เลือกวิธีดูประมาณการ</legend>
+      <legend className="ccpun-calculator-result-panel-title">{t("ci.result.groupLabel")}</legend>
       <div className="ccpun-calculator-result-method-grid">
         {availableMethods.map((method) => {
           const value = method === 'expense' ? result.calculatedNeed : result.incomeBasedNeed;
@@ -125,73 +128,67 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
                 onChange={() => setSelectedMethod(method)}
                 className="h-4 w-4 accent-primary"
               />
-              <span className="text-sm font-medium">{CI_ESTIMATION_METHOD_LABELS[method]}</span>
+              <span className="text-sm font-medium">{t(method === 'income' ? 'ci.method.income' : 'ci.method.expense')}</span>
             </span>
             <span className="text-sm tabular-nums" style={{ color: 'var(--w43-muted)' }}>{baht(value)}</span>
           </label>;
         })}
       </div>
       <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">
-        ระบบแสดงสองวิธีแยกกันและไม่นำมาบวกกัน แต่ละวิธีเริ่มจากฐานตามรายจ่ายหรือรายได้ แล้วบวก Recovery Reserve 1 ครั้ง
-        {result.protectedAssetsNeed > 0 ? ' และเป้าหมายรักษาสินทรัพย์อีก 1 ครั้ง' : ''}
+        {t("ci.result.estimationMethodHelp.description")}{result.protectedAssetsNeed > 0 ? t("ci.result.label4") : ''}
       </p>
     </fieldset> : null}
 
     <MoneyComparison
       need={selectedNeed}
       resources={result.availableResources}
-      title={`เปรียบเทียบ${methodLabel}กับทุนที่มี`}
+      title={t("ci.result.title").replaceAll("{methodLabel}", String(methodLabel))}
       needLabel={methodLabel}
-      resourcesLabel="ทุนที่มี"
+      resourcesLabel={t("ci.result.resourcesLabel")}
     />
 
     <section className="ccpun-calculator-result-panel">
       <p className="ccpun-calculator-result-eyebrow">{differenceLabel}</p>
       <p className="ccpun-calculator-result-difference mt-1 font-semibold tabular-nums">{baht(difference)}</p>
       <p className="ccpun-calculator-result-body">
-        ทุนที่มีรวม {baht(result.availableResources)} จากเงินก้อนประกันโรคร้ายแรงและสินทรัพย์สภาพคล่องที่คุณกรอก
-      </p>
+        {t("ci.result.description5")}{baht(result.availableResources)} {t("ci.result.description6")}</p>
       {result.protectedAssetsNeed > 0 ? <p className="ccpun-calculator-result-body">
-        คุณเลือกเก็บสินทรัพย์สภาพคล่อง {baht(result.protectedAssetsNeed)} ไว้ ระบบจึงเพิ่มเป้าหมายทุนเท่ากับยอดนี้ 1 ครั้ง เพื่อให้เห็นส่วนขาดหลังเผื่อรักษาสินทรัพย์ก้อนเดิม
-      </p> : null}
+        {t("ci.result.description7")}{baht(result.protectedAssetsNeed)} {t("ci.result.description8")}</p> : null}
       {displayedSurplus > 0 ? <p className="ccpun-calculator-result-body">
-        จำนวนที่สูงกว่าประมาณการนี้อ้างอิงเฉพาะสมมติฐานชุดนี้ ไม่ได้หมายความว่าความคุ้มครองทั้งหมดเพียงพอแล้ว
-      </p> : null}
+        {t("ci.result.description9")}</p> : null}
       <details className="ccpun-calculator-result-details">
-        <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ดูที่มาของประมาณการ</summary>
+        <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t("ci.result.expandLabel")}</summary>
         <div className="mt-4">
           {activeMethod === 'expense' ? <dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">
-            <div className="ccpun-calculator-result-row"><dt>ค่าใช้จ่ายครอบครัว</dt><dd>{baht(result.householdNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>ค่าเรียนบุตร</dt><dd>{baht(result.educationNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>ภาระหนี้รวม</dt><dd>{baht(result.debtNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>Recovery Reserve</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
-            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>เป้าหมายรักษาสินทรัพย์</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
+            <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel")}</dt><dd>{baht(result.householdNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel2")}</dt><dd>{baht(result.educationNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel3")}</dt><dd>{baht(result.debtNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel5")}</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
+            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel3")}</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
           </dl> : <dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">
-            <div className="ccpun-calculator-result-row"><dt>ทุนตามรายได้ก่อน Recovery</dt><dd>{baht(incomeBaseNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>Recovery Reserve</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
-            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>เป้าหมายรักษาสินทรัพย์</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
+            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel4")}</dt><dd>{baht(incomeBaseNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel5")}</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
+            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel3")}</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
           </dl>}
         </div>
       </details>
     </section>
 
     <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
-      <p className="ccpun-calculator-result-eyebrow">เงินสำรองสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต</p>
+      <p className="ccpun-calculator-result-eyebrow">{t("ci.recovery.description")}</p>
       <h3 id="ci-recovery-result-title" className="ccpun-calculator-result-panel-title mt-1">
-        {getRecoveryModeLabel(result.recoveryMode)}
+        {t(`ci.recovery.mode.${result.recoveryMode}`)}
       </h3>
       <p className="mt-2 text-3xl font-semibold tabular-nums" style={{ color: 'var(--w43-gold)' }}>
         {baht(result.recoveryReserveNeed)}
       </p>
       <p className="ccpun-calculator-result-body">
-        ก้อนนี้แยกจากรายได้ ค่าใช้จ่ายประจำ ค่าเรียน และหนี้ แล้วบวกเพิ่มเพียง 1 ครั้งในวิธีคำนวณที่เลือก
-      </p>
+        {t("ci.result.description10")}</p>
 
       {result.recoveryReserveNeed > 0 ? (
         <details className="mt-4 border-t pt-4" style={{ borderColor: 'var(--w43-border)' }}>
           <summary className="cursor-pointer text-sm font-medium focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            ดูรายละเอียด Recovery Reserve
-          </summary>
+            {t("ci.result.expandLabel2")}</summary>
           <div className="mt-4 space-y-4">
             <dl className="ccpun-calculator-result-rows">
               {recoveryRows.map(([label, amount]) => (
@@ -201,34 +198,29 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
                 </div>
               ))}
               <div className="ccpun-calculator-result-row">
-                <dt>รวมรายละเอียด</dt>
+                <dt>{t("ci.recovery.metricLabel")}</dt>
                 <dd>{baht(result.recoveryBreakdownTotal)}</dd>
               </div>
             </dl>
 
             {result.recoveryUnallocated > 0 ? <p className="ccpun-calculator-result-body">
-              จากยอดที่ตั้งไว้ ยังมีเงินที่ไม่ได้จัดสรรในรายการย่อย {baht(result.recoveryUnallocated)}
+              {t("ci.result.description11")}{baht(result.recoveryUnallocated)}
             </p> : null}
 
             {result.recoveryOverBudget > 0 ? <p className="ccpun-calculator-result-body" style={{ color: 'var(--destructive)' }}>
-              รายละเอียดย่อยสูงกว่าเงินสำรองที่ตั้งไว้ {baht(result.recoveryOverBudget)} ผลรวมหลักยังใช้เงินสำรองที่คุณยืนยันไว้
-            </p> : null}
+              {t("ci.result.description12")}{baht(result.recoveryOverBudget)} {t("ci.result.description13")}</p> : null}
 
             {result.recoveryMajorHousing > 0 ? <p className="ccpun-calculator-result-body">
-              Major Housing Reserve เป็นทางเลือกเผื่อกรณีต้องปรับโครงสร้าง ต่อเติม เปลี่ยนพื้นที่อยู่อาศัย หรือจัดที่อยู่อาศัยใหม่
-              ไม่ได้หมายความว่าต้องเกิดค่าใช้จ่ายทุกประเภทพร้อมกัน และไม่รวมราคาที่ดิน
-            </p> : null}
+              {t("ci.result.description14")}</p> : null}
           </div>
         </details>
-      ) : <p className="ccpun-calculator-result-body">ไม่ได้รวม Recovery Reserve ในการประเมินครั้งนี้</p>}
+      ) : <p className="ccpun-calculator-result-body">{t("ci.result.description15")}</p>}
 
       <details className="mt-4 border-t pt-4" style={{ borderColor: 'var(--w43-border)' }}>
-        <summary className="cursor-pointer text-sm font-medium">ที่มาของตัวเลขประมาณการ</summary>
+        <summary className="cursor-pointer text-sm font-medium">{t("ci.recovery.expandLabel3")}</summary>
         <div className="mt-3 space-y-3 text-xs leading-5" style={{ color: 'var(--w43-muted)' }}>
           <p>
-            ตัวเลขของชุดประมาณการเป็น planning benchmark ที่ปัดเผื่อเพื่อวางเงินสำรอง ไม่ใช่ราคาค่าบริการตายตัว
-            และไม่ใช่คำแนะนำทางการแพทย์ว่าทุกคนต้องใช้รายการเดียวกัน
-          </p>
+            {t("ci.result.description16")}</p>
           {CI_RECOVERY_SOURCES.map((source) => <p key={source.id}>
             <a
               href={source.url}
@@ -237,11 +229,11 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
               className="inline-flex items-center gap-1"
               style={{ color: 'var(--w43-gold)' }}
             >
-              {source.publisher} · {source.year}
+              {t(`ci.recovery.source.${source.id}.publisher` as keyof typeof CI_COPY_DEFAULTS)} · {source.year}
               <ExternalLink className="h-3 w-3" aria-hidden="true" />
             </a>
             <br />
-            {source.note}
+            {t(`ci.recovery.source.${source.id}.note` as keyof typeof CI_COPY_DEFAULTS)}
           </p>)}
         </div>
       </details>
@@ -249,14 +241,14 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
 
     <div className="ccpun-calculator-result-cta ccpun-ci-result-cta">
       <div className="ccpun-ci-result-cta-inner">
-        <h3>อยากทบทวนตัวเลขต่อ?</h3>
-        <p className="ccpun-ci-result-cta-copy">แชร์ภาพผลลัพธ์แล้วเลือกแชต LINE OA ของ CCPun หรือบันทึกภาพไว้แนบในแชตด้วยตัวเอง</p>
+        <h3>{t("ci.result.heading2")}</h3>
+        <p className="ccpun-ci-result-cta-copy">{t("ci.result.description17")}</p>
         <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />
         <a
           href={CI_LINE_OA_URL}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="คุยกับ CCPun ทาง LINE OA (เปิดในแท็บใหม่)"
+          aria-label={t("ci.result.ariaLabel")}
           className="gold-button ccpun-motion-tactile ccpun-ci-result-cta-line inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
           onClick={() => trackEvent('ci_contact_click', {
             tool_name: 'ci_planning',
@@ -266,24 +258,21 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           })}
         >
           <MessageCircle className="h-5 w-5" aria-hidden="true" />
-          ไปที่ LINE OA เพื่อส่งภาพ
-        </a>
+          {t("ci.result.linkLabel")}</a>
       </div>
     </div>
 
     <p className="ccpun-calculator-result-notice">
-      ผลลัพธ์เป็นประมาณการเบื้องต้นจากข้อมูลและสมมติฐานที่คุณกรอก ไม่ใช่คำแนะนำเฉพาะบุคคล
-      โปรดศึกษารายละเอียดความคุ้มครอง เงื่อนไข และข้อยกเว้นก่อนตัดสินใจ และประกันไม่ใช่เงินฝาก
-    </p>
+      {t("ci.result.description18")}</p>
 
     <div className="grid gap-3 sm:grid-cols-2">
       <button type="button" onClick={onEditData} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2">
         <Edit3 className="h-4 w-4" />
-        <span>แก้ไขข้อมูล</span>
+        <span>{t("ci.result.label5")}</span>
       </button>
       <button type="button" onClick={onReset} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2">
         <RefreshCw className="h-4 w-4" />
-        <span>เริ่มใหม่</span>
+        <span>{t("ci.result.label6")}</span>
       </button>
     </div>
   </div>;

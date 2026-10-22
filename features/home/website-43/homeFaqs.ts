@@ -1,4 +1,5 @@
-export const homeFaqs = [
-  { question: 'CCPun คือใคร?', answer: 'CCPun คือผู้ให้คำแนะนำด้านประกันและการลงทุน โดยมีใบอนุญาตตัวแทนประกันชีวิต นายหน้าประกันวินาศภัย และผู้วางแผนการลงทุน โดยให้คำแนะนำที่ตั้งต้นจากปัญหาที่คุณมี และนำแผนไปพัฒนาต่อเป็นคำแนะนำที่เหมาะกับตัวคุณ' },
-  { question: 'CCPun ช่วยให้คำแนะนำทางการเงินด้านใดได้บ้าง', answer: 'ช่วยวางแผนการลงทุนและให้คำปรึกษาด้านประกันและการเงิน โดยเช็กจากปัญหา ความคุ้มครอง และเป้าหมายทางการเงินที่ลูกค้าต้องการให้ไปถึง' },
-] as const;
+import { getHomeCopyFaqs } from "@/lib/content/public-copy-registry";
+
+// Compatibility entrypoint; canonical editorial copy lives in the scoped registry.
+export { getHomeCopyFaqs };
+export const homeFaqs = getHomeCopyFaqs({});

@@ -1,0 +1,230 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+const require = createRequire(import.meta.url);
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+const registry = loadFixtureModule('lib/content/public-copy-registry.ts');
+const copyProvider = loadFixtureModule('components/ui/PublicCopyProvider.tsx');
+const digest = value => createHash('sha256').update(value).digest('hex');
+const syntheticArticles = Array.from({length: 8}, (_, i) => ({id:`fixture-${i}`, slug:`fixture-${i}`, title:`บทความ ${i}`, excerpt:`รายละเอียด ${i}`, category:'การเงินส่วนบุคคล', categorySlug:'personal-finance', status:'published', publishedAt:'2026-10-01T00:00:00Z', updatedAt:'2026-10-02T00:00:00Z', tags:[], body:[]}));
+const files = {
+  home:'features/home/website-43/Website43Home.tsx',
+  ci:'features/ci-planning/page.tsx',
+  fhc:'features/financial-health-check/page.tsx',
+  blog:'features/blog/pages/BlogArchivePage.tsx',
+  privacy:'features/legal/pages/PrivacyPage.tsx',
+  cookies:'features/legal/pages/CookiePolicyPage.tsx',
+  moneyStory:'features/money-story/page.tsx',
+  site:'components/layout/website-43/Website43Shared.tsx',
+};
+const serverNames = new Set(['Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
+async function resolveServer(node) {
+  if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
+  if (!React.isValidElement(node)) return node;
+  if (typeof node.type === 'function' && serverNames.has(node.type.name) && !['Website43Navbar'].includes(node.type.name)) return resolveServer(await node.type(node.props));
+  const children = await resolveServer(node.props.children);
+  return React.cloneElement(node, {}, ...(Array.isArray(children) ? children : [children]));
+}
+export async function renderFixture(scope, props = {}, {sources = new Map(), overrides = {}, article = null} = {}) {
+  const mocks = new Map([
+    ['@/components/ui/PublicCopyProvider',copyProvider],
+    ['@/lib/content/public-copy',{getPublicCopy:async requested=>({...registry.parsePublicCopy(requested,null),...overrides})}],
+    ['@/lib/content/sanity',{getPrimaryAuthorProfile:async()=>null}],
+    ['@/lib/content/provider',{getContentProvider:()=>({listArticles:async()=>syntheticArticles})}],
+    ['@/lib/content/category-registry-sanity',{listCategoryRegistry:async()=>({entries:[]})}],
+    ['@/lib/content/blog-featured-sanity',{listBlogFeaturedArticleIds:async()=>null}],
+    ['@/lib/deployment-environment',{IS_REVIEW_ENVIRONMENT:false,IS_DRAFT_PREVIEW_ALLOWED:false}],
+    ['@/lib/seo/page-seo',{resolvePageSeoMetadata:async(_pathname,defaults)=>defaults}],
+    ['@/lib/analytics',{trackEvent:()=>assert.fail('render must not emit analytics')}],
+    ['@/lib/cookie-consent',{getConsentData:()=>null}],
+    ['next/headers',{draftMode:async()=>({isEnabled:false})}],
+    ['next/navigation',{usePathname:()=> '/',notFound:()=>{throw new Error('fixture-not-found')}}],
+  ]);
+  // Existing fixture loader intentionally does not load assets. Stable named CSS
+  // projections retain class identity so a layout change changes these goldens.
+  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx'])];
+  for (const file of allFiles) {
+    const source = sources.get(file) ?? readFileSync(file,'utf8');
+    for (const [,id] of source.matchAll(/from ['"]([^'"]+\.(?:css|svg))['"]/g)) {
+      if (id.endsWith('.css')) mocks.set(id,{__esModule:true,default:new Proxy({}, {get:(_,name)=>String(name)})});
+      else mocks.set(id,{__esModule:true,default:{src:id,width:32,height:32}});
+    }
+  }
+  const path = article ? 'features/blog/website-43/Website43Article.tsx' : files[scope];
+  const fixtureModule = loadFixtureModule(path,{sources,mocks});
+  const render = scope === 'site' ? fixtureModule.Website43Footer : fixtureModule.default;
+  const tree = await render(article ? {article,...props} : scope === 'home' ? {copy:overrides,...props} : props);
+  const Provider = copyProvider.PublicCopyProvider;
+  return renderToStaticMarkup(React.createElement(Provider, {values:{...registry.parsePublicCopy("site",null),...registry.parsePublicCopy(scope,null),...overrides}}, await resolveServer(tree)));
+}
+// Frozen b871b734 public render hashes, captured independently before capability
+// implementation. No live data, network, deployments or mutable baseline reseal.
+const baseline = {
+  "0": "a7d6cc52eaedd5d36e889d8dc534977d9e887f66a11d9e2a1dc16488ec46f733",
+  "1": "b0e0f201e07d15ac3c292d8645c664be46edc988a3b3f4e2307fd33b4f09fe63",
+  "2": "c81397d413ecb7d87b3543dc87ffcd50cb6988e676bb7be037a8e870bd785cc0",
+  "3": "4737df82abf4ef636e87b2e2e09b238faf5d2ecf3f78353b6b78f4489e83d828",
+  "4": "1afeaadc78f892948343ef3b03af00f28c8b4d7bbbbd849689cbf6aa15277de4",
+  "5": "6239f5a8c1edd0706b3758bff4a38913034bc86ca428aa269c3883bdff9e61a0",
+  "6": "5b3fc40d5c75e981b4b959fbc163961a0f585b01fec499fb1e03e9d5db9c3e2d",
+  "7": "b3cf68c8290de306ddedc2a9bed9be044f57f64b94d7343e7986c02dfc1d1bba",
+  "8": "835a56065253b42e6b9d5b77aa598456baac8982bd623030e3d1dadddc992623",
+  "9": "805ccb282a0fae7795b81a28c04a3a098744c1abd59a6357f9c9cf1d2cb1240e",
+  "10": "87de95089e85cfe42c209b663df714630386c79dccfea4f80e62e08465e3b717"
+};
+// TESTS
+export function metadataFixture(scope, review = false, sources = new Map()) {
+  if (scope === 'home') return loadFixtureModule('lib/seo/root-metadata.ts',{sources}).buildSiteRootMetadata({admin:false,review});
+  const mocks = new Map([
+    ['@/lib/deployment-environment',{IS_REVIEW_ENVIRONMENT:review}],
+    ['@/lib/seo/page-seo',{resolvePageSeoMetadata:(_path,defaults)=>defaults}],
+    ['next/headers',{draftMode:async()=>({isEnabled:false})}],
+  ]);
+  const fixtureModule = loadFixtureModule(files[scope],{sources,mocks});
+  return fixtureModule.metadata ?? fixtureModule.generateMetadata({},Promise.resolve({}));
+}
+
+const metadataBaseline = {
+  "home:false": "5875f11d6039e5367fba129180daefac581468bc2f7eb9770629fb8ad0acc7a7",
+  "home:true": "9573d0f4f86a36bcf4c1119b21139a8e523269268cc6fcfafa517ba5a95eb4ba",
+  "ci:false": "4b1c1fa53d62e6f74a28a9419a02bcc3228b9f6532ca6ab28a4f241b254b4db0",
+  "ci:true": "b1d0351fde939bd500bb43657902ec075c112f5af67b59228e14fcceb4e1afd9",
+  "fhc:false": "71f3fdf91d8e431e27b6f96cea9e30c25c786dd002042fc3dbea733a70502613",
+  "fhc:true": "6399b2cb186fb7fa26b2b58beaaf6eeb2b6f6371e680262e954b35946eb300fd",
+  "blog:false": "e787404a7dff8b6a0674ae31a048a830d76d7f5957c2a1e7c0f0485ebdb9e1ff",
+  "blog:true": "e787404a7dff8b6a0674ae31a048a830d76d7f5957c2a1e7c0f0485ebdb9e1ff",
+  "privacy:false": "1584613e6de3fe8043754e908e7426202d3277949ade7168c0f735083071d6c6",
+  "privacy:true": "4732b9c364b4febe7e41af97e93d34c5cc38398873f25f0bd4d22b305247ad68",
+  "cookies:false": "5108add8d96e9afa7c2587058f47099baa4121b63838f4adb0c14acbb172af7c",
+  "cookies:true": "5108add8d96e9afa7c2587058f47099baa4121b63838f4adb0c14acbb172af7c",
+  "moneyStory:false": "720fc53f0e281c75b9551fdf0871f3bd788104da8a01d12d75f859372f5dba78",
+  "moneyStory:true": "d8335e6d35b48aa591a457869eec492f2872cd0985474f532049dc1e3c522712"
+};
+const cases = [
+  ['site',{warnings:true}],['home',{}],
+  ['home',{authorProfile:{name:'เจ้าของโปรไฟล์',professionalQualifications:[{shortName:'CFP',identifier:'123'}],professionalLicenses:[{name:'ใบอนุญาต',identifier:'456'}],profileRole:'ผู้วางแผน',profileBio:'ประวัติ'}}],
+  ['ci',{}],['fhc',{}],['blog',{searchParams:Promise.resolve({})}],
+  ['blog',{searchParams:Promise.resolve({q:'ไม่มีผล'})}],['blog',{searchParams:Promise.resolve({page:'2'})}],
+  ['privacy',{}],['cookies',{}],['moneyStory',{}],
+];
+test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
+  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
+  for (const [index,[scope,props]] of cases.entries()) assert.equal(digest(await renderFixture(scope,props)),baseline[index],`${index}:${scope}`);
+  assert.equal((await renderFixture('blog',{})).match(/class="articleCard"/g)?.length,6);
+});
+test('seven original metadata objects preserve every field in ordinary and review lanes',async()=>{
+  for (const scope of Object.keys(files).filter(scope=>scope!=='site')) for (const review of [false,true]) assert.equal(digest(JSON.stringify(await metadataFixture(scope,review))),metadataBaseline[scope+':'+review]);
+});
+test('each scoped CMS edit reaches existing UI while destinations and formulas remain owned by source',async()=>{
+  const keys={site:'site.footerDisclaimer',home:'home.hero.eyebrow',ci:'ci.expenses.monthlyIncome.label',fhc:'fhc.wizard.placeholder',blog:'blog.activeCategoryText',privacy:'privacy.h1',cookies:'cookies.h1',moneyStory:'moneyStory.title'};
+  for(const[scope,key]of Object.entries(keys)) {
+    assert.ok(Object.hasOwn(registry.PUBLIC_COPY_SCOPES[scope].defaults,key),key);
+    const value=`ข้อความเจ้าของ ${scope}`;
+    const parsed=registry.parsePublicCopy(scope,{_id:registry.publicCopyDocumentId(scope),_type:'publicPageCopy',scope,locale:'th',entries:[{key,text:value}]});
+    const html=await renderFixture(scope,{}, {overrides:parsed});assert.ok(html.includes(value),key);
+    const before=await renderFixture(scope,{});assert.deepEqual([...html.matchAll(/(?:href|action)="([^"]*)"/g)].map(m=>m[0]),[...before.matchAll(/(?:href|action)="([^"]*)"/g)].map(m=>m[0]),key);
+  }
+});
+test('plain text documents retain exact singleton identity, key ownership and interpolation guards',()=>{
+  for(const scope of Object.keys(registry.PUBLIC_COPY_SCOPES)) {
+    const entries=registry.publicCopyInitialEntries(scope);const document={_id:registry.publicCopyDocumentId(scope),_type:'publicPageCopy',scope,locale:'th',entries};
+    assert.deepEqual(registry.parsePublicCopy(scope,document),registry.parsePublicCopy(scope,null));
+    for(const patch of [{_id:'drafts.'+document._id},{_id:document._id+'.private'},{scope:'wrong'},{locale:'en'},{entries:[entries[0],entries[0]]},{entries:[{key:'unowned',text:'แก้'}]},{entries:[{...entries[0],text:'<script>alert(1)</script>'}]},{entries:[{...entries[0],text:''}]}])assert.throws(()=>registry.parsePublicCopy(scope,{...document,...patch}));
+    const interpolated=entries.find(entry=>/\{[a-zA-Z0-9_]+\}/.test(entry.text));if(interpolated)assert.throws(()=>registry.parsePublicCopy(scope,{...document,entries:[{...interpolated,text:'missing placeholder'}]}),/PLACEHOLDER/);
+  }
+  assert.ok(registry.PUBLIC_COPY_SCOPES.cookies.defaults['cookies.p18'].includes('Settings > Privacy'));
+  const values=Object.values(loadFixtureModule('lib/content/money-story-copy-defaults.ts').MONEY_STORY_COPY_DEFAULTS);assert.equal(new Set(values).size,values.length,'reverse translation has one canonical key per original value');
+});
+function seoResolver(data,{environment='production',fail=false}={}) {
+  const requests=[];const fixtureModule=loadFixtureModule('lib/seo/page-seo.ts',{mocks:new Map([
+    ['@/lib/content/sanity-lane',{resolveContentEnvironment:()=>environment}],
+    ['@/lib/content/sanity-fetch',{sanityFetch:async request=>{requests.push(request);if(fail)throw new Error('fixture-unavailable');return{data};}}],
+  ])});return{resolve:fixtureModule.resolvePageSeoMetadata,requests};
+}
+test('SEO null, empty, malformed and unavailable records return the complete original metadata unchanged',async()=>{
+  for(const scope of Object.keys(files).filter(s=>s!=='site')) {
+    const defaults=await metadataFixture(scope);const pathname=registry.PUBLIC_COPY_SCOPES[scope].pathname;
+    for(const data of [null,{}, {_id:'wrong',pathname,seoTitle:'wrong'}, {_id:loadFixtureModule('lib/content/page-seo-registry.ts').pageSeoDocumentId(pathname),pathname,seoTitle:'<script>'}])assert.equal(await seoResolver(data).resolve(pathname,defaults),defaults);
+    assert.equal(await seoResolver(null,{fail:true}).resolve(pathname,defaults),defaults);
+  }
+  const denied=seoResolver({}, {environment:'admin-uat'});assert.equal(await denied.resolve('/',{}).then(v=>Object.keys(v).length),0);assert.equal(denied.requests.length,0);
+});
+test('SEO edits preserve indexing and canonical controls; only explicit sharing edits inherit sharing data',async()=>{
+  const defaults=await metadataFixture('cookies');const record={_id:'pageSeo-cookie-policy',pathname:'/cookie-policy/',seoTitle:'ชื่อเจ้าของ',seoDescription:'คำอธิบายเจ้าของ'};
+  const api=seoResolver(record),value=await api.resolve('/cookie-policy/',defaults,Promise.resolve({openGraph:{images:[{url:'https://ccpun.com/parent.webp'}]}}));
+  assert.equal(value.title,record.seoTitle);assert.equal(value.description,record.seoDescription);assert.deepEqual(value.robots,{index:false,follow:true});assert.deepEqual(value.alternates,defaults.alternates);assert.equal(value.openGraph,defaults.openGraph);assert.equal(value.openGraph.images,undefined);
+  assert.equal(api.requests[0].perspective,'published');assert.deepEqual(api.requests[0].params,{id:'pageSeo-cookie-policy',pathname:'/cookie-policy/'});
+  assert.equal(await seoResolver({...record,seoTitle:' ',seoDescription:null}).resolve('/cookie-policy/',defaults),defaults);
+  const shared=await seoResolver({...record,ogTitle:'ชื่อแชร์',ogImageUrl:'https://cdn.sanity.io/images/kyfxgjnq/production/asset-1200x630.webp'}).resolve('/cookie-policy/',defaults);
+  assert.equal(shared.openGraph.title,'ชื่อแชร์');assert.equal(shared.openGraph.images[0].url,'https://cdn.sanity.io/images/kyfxgjnq/production/asset-1200x630.webp');assert.deepEqual(shared.robots,defaults.robots);
+  const image=loadFixtureModule('lib/content/page-seo-registry.ts').isPageSeoImageUrlAllowed;
+  assert.equal(image('https://cdn.sanity.io/images/kyfxgjnq/production/asset-1200x630.webp'),true);
+  for(const url of ['https://cdn.sanity.io/images/ccb9lnw5/uat/asset-1200x630.webp','https://cdn.sanity.io/images/other/production/asset.webp','https://evil.invalid/asset.webp','https://ccpun.com/assets/%2e%2e/private.webp','https://user@ccpun.com/assets/a.webp'])assert.equal(image(url),false,url);
+});
+test('Production preview authorizes before reads and refuses wrong lane, scope or data-plane identity',async()=>{
+  for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'admin-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'investment'}]) {
+    const trace=[];const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
+      ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>{trace.push(permission);if(config.denied)throw new Error('fixture-denied');}}],
+      ['@/lib/admin/environment',{getAdminEnvironment:()=>config.environment,isAdminReadDataPlaneAllowed:()=>config.allowed}],
+      ['../content/sanity-fetch',{sanityFetch:async()=>assert.fail('unauthorized CMS read')}],
+    ])});await assert.rejects(api.getPublicCopyPreview(config.scope??'home'));assert.deepEqual(trace,['draft:apply']);
+  }
+});
+test('authorized preview reads only fixed original scope and site singletons using draft perspective',async()=>{
+  const trace=[];const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
+    ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>trace.push(['permission',permission])}],
+    ['@/lib/admin/environment',{getAdminEnvironment:()=> 'production-admin',isAdminReadDataPlaneAllowed:(dataset,environment)=>{assert.equal(dataset,'production');assert.equal(environment,'production-admin');return true;}}],
+    ['../content/sanity-fetch',{sanityFetch:async request=>{assert.equal(request.perspective,'drafts');trace.push(['read',request.params.id]);assert.ok(['publicPageCopy-ci-th','publicPageCopy-site-th','pageSeo-ci-planning'].includes(request.params.id));return{data:null};}}],
+  ])});const result=await api.getPublicCopyPreview('ci');assert.equal(trace[0][0],'permission');assert.equal(trace.length,4);assert.deepEqual(result.copy,registry.parsePublicCopy('ci',null));assert.deepEqual(result.site,registry.parsePublicCopy('site',null));
+});
+test('money labels translate presentation only and retain original identifiers and numerical game state',()=>{
+  const domain=loadFixtureModule('lib/content/money-story-copy-defaults.ts');const engine=loadFixtureModule('features/money-story/engine.ts');const game=engine.createGame('same-word-copy','gam'),before=JSON.stringify(game);
+  const key=Object.keys(domain.MONEY_STORY_COPY_DEFAULTS).find(key=>domain.MONEY_STORY_COPY_DEFAULTS[key]==='แก้ม');const values={...domain.MONEY_STORY_COPY_DEFAULTS,[key]:'ชื่อที่แก้ผ่าน Sanity'};
+  assert.equal(domain.moneyStoryLabel('แก้ม',key=>values[key]),'ชื่อที่แก้ผ่าน Sanity');assert.equal(domain.moneyStoryLabel('gam',key=>values[key]),'gam');assert.equal(JSON.stringify(game),before);
+});
+
+const articleBaseline = [
+  "34c4e1c52d8f5d3f3c7d25ec6eae0f32a9b38e40d5c7f6680d575c4bb990efc5",
+  "c45cd0aefd771abec6e8b8503711d3ec2711c88074b27936f8785ac010904c55",
+  "5c84973604db5c04095c4e1c59340d7c6c4fd11ec745f8174400f75761b4886c"
+];
+test('original article fallback and managed author branches retain complete b871 rendering',async()=>{
+  const base={id:'article-fixture',slug:'article-fixture',title:'บทความเจ้าของ',excerpt:'คำอธิบาย',category:'การเงินส่วนบุคคล',categorySlug:'personal-finance',status:'published',publishedAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-02T00:00:00Z',tags:[],body:[{type:'heading',level:2,text:'หัวข้อ'},{type:'paragraph',text:'เนื้อหา'}]};
+  const articles=[base,{...base,authorName:'ผู้เขียนภายนอก'},{...base,author:{name:'ผู้เขียนจัดการ',professionalQualifications:[{shortName:'CFP',identifier:'123'}],profileRole:'บทบาท',profileBio:'ประวัติ',profileCtaLabel:'อ่านประวัติ',profileCtaUrl:'#about-ccpun',profileAvatar:{src:'/assets/ccpun.webp',alt:'ชื่อผู้เขียน',width:96,height:96}}}];
+  for(const[index,article]of articles.entries())assert.equal(digest(await renderFixture('blog',{preview:index===2},{article})),articleBaseline[index]);
+});
+test('public reader transmits only validated edits, keeps published lane and fails back to original renderer defaults',async()=>{
+  const key='home.hero.eyebrow',document={_id:'publicPageCopy-home-th',_type:'publicPageCopy',scope:'home',locale:'th',entries:[{key,text:'ข้อความที่แก้'}]};
+  for(const data of [null,document,{...document,_id:'private.document'},{...document,entries:[{key,text:'<script>'}]},'unavailable']) {
+    const requests=[];const api=loadFixtureModule('lib/content/public-copy.ts',{mocks:new Map([
+      ['react',{cache:fn=>fn}],['next/headers',{draftMode:()=>assert.fail('Production public read must not request drafts')}],
+      ['../deployment-environment',{IS_DRAFT_PREVIEW_ALLOWED:false}],
+      ['./sanity-fetch',{sanityFetch:async request=>{requests.push(request);if(data==='unavailable')throw new Error('fixture-unavailable');return{data};}}],
+    ])});const result=await api.getPublicCopy('home');assert.deepEqual(result,data===document?{[key]:'ข้อความที่แก้'}:{});assert.equal(requests.length,1);assert.equal(requests[0].perspective,'published');assert.deepEqual(requests[0].params,{id:'publicPageCopy-home-th'});assert.equal(registry.publicCopyText(result)('home.hero.description'),registry.PUBLIC_COPY_SCOPES.home.defaults['home.hero.description']);
+  }
+});
+test('fixed SEO singleton drafts initialize their read-only pathname without a Production seed migration',()=>{
+  const schema=loadFixtureModule('cms/sanity/schema/documents/page-seo.ts',{mocks:new Map([['sanity',{defineType:value=>value,defineField:value=>value}]])}).pageSeo;
+  const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;assert.equal(pages.length,7);
+  for(const page of pages)assert.deepEqual(schema.initialValue({pathname:page.pathname}),{pathname:page.pathname});
+  assert.deepEqual(schema.initialValue({pathname:'/tools/investment-allocation/'}),{});assert.deepEqual(schema.initialValue({}),{});
+  assert.equal(schema.fields.find(field=>field.name==='pathname').readOnly,true);
+  assert.ok(readFileSync('cms/sanity/config/structure.ts','utf8').includes('.documentId(page.documentId).initialValueTemplate("pageSeo", { pathname: page.pathname })'));
+});
+test('protected preview page cannot start its author query before scoped authorization finishes',async()=>{
+  let authorReads=0;const mocks=new Map([
+    ['@/lib/admin/public-copy-preview',{getPublicCopyPreview:async()=>{throw new Error('fixture-denied');}}],
+    ['@/lib/content/sanity',{getPrimaryAuthorProfile:async()=>{authorReads++;return null;}}],
+    ['@/features/home/website-43/Website43Home',{__esModule:true,default:()=>null}],
+    ['@/features/ci-planning/page',{renderCiPlanningPage:()=>null}],
+    ['@/features/financial-health-check/page',{renderFinancialHealthCheckPage:()=>null}],
+    ['@/features/blog/pages/BlogArchivePage',{renderBlogPage:()=>null}],
+    ['@/features/legal/pages/PrivacyPage',{renderPrivacyPage:()=>null}],
+    ['@/features/legal/pages/CookiePolicyPage',{renderCookiePolicyPage:()=>null}],
+    ['@/features/money-story/page',{renderMoneyStoryPage:()=>null}],
+  ]);const page=loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/page.tsx',{mocks});await assert.rejects(page.default({searchParams:Promise.resolve({scope:'home'})}),/fixture-denied/);assert.equal(authorReads,0);
+});
