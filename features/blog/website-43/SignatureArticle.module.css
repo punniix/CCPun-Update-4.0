@@ -52,11 +52,36 @@
 .termNav button.selected{border-color:var(--gold);color:var(--highlight);}
 .subtle{border-top:1px solid var(--border);margin-top:16px;padding-top:16px;}
 .subtle b{color:var(--highlight);}
+
+.sourceGroup{min-width:0;}
+.sourceMeta{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:16px 20px;margin-bottom:16px;}
+.sourceMeta p{margin:7px 0;font-size:15px;line-height:1.6;color:var(--ink);}
+.sourceMeta strong{display:inline-block;color:var(--muted);font-weight:500;margin-right:8px;}
+.sourceBadge{display:inline-block;color:var(--highlight);font-size:14px;font-weight:600;margin:0 0 10px;}
+.sourceBadge[data-verified="true"]{color:var(--highlight);}
+.sourceRow cite{font-style:normal;font-size:16px;color:var(--ink);font-weight:600;}
+.sourceDisclaimer{font-size:14px;color:var(--muted);line-height:1.6;margin:12px 0 0;}
 .sourceList{border-top:1px solid var(--border);}
 .sourceRow{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid var(--border);padding:16px 0;}
 .sourceRow b{font-size:16px;font-weight:600;}
 .sourceRow p{margin:4px 0;font-size:15px;}
 .sourceRow a{color:var(--highlight);font-size:14px;white-space:nowrap;align-self:center;text-underline-offset:4px;}
+/* Non-JS-readable plan facts with native details. No animated layout or added network call. */
+.planFacts{border-top:1px solid var(--border);margin-top:24px;padding-top:18px;}
+.planFacts h4{font-size:18px;font-weight:600;line-height:1.5;margin:0 0 5px;color:var(--ink);}
+.planFacts>p{font-size:14px;line-height:1.65;color:var(--muted);margin:0 0 12px;overflow-wrap:anywhere;}
+.planFacts details{border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:0 16px;}
+.planFacts summary{cursor:pointer;font-weight:500;font-size:15px;color:var(--highlight);padding:12px 0;min-height:48px;}
+.planFacts summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+.planFactsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:6px 0 16px;}
+.planFactCard{min-width:0;border:1px solid var(--border);border-radius:14px;padding:15px;background:var(--bg);}
+.planFactCard h5{color:var(--ink);font-size:17px;margin:0 0 5px;font-weight:600;overflow-wrap:anywhere;}
+.planFactHeadline{font-size:15px;color:var(--highlight);font-weight:600;margin:0 0 12px;}
+.planFactCard dl{margin:0;}
+.planFactCard dl>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;border-top:1px solid var(--border);padding:9px 0;}
+.planFactCard dt{font-size:14px;color:var(--muted);}
+.planFactCard dd{font-size:15px;font-weight:500;color:var(--ink);margin:0;overflow-wrap:anywhere;}
+
 .foot{border-top:1px solid var(--border);margin-top:24px;padding-top:16px;font-size:15px;}
 .foot b{color:var(--highlight);font-weight:600;margin-right:5px;}
 .foot p{margin:0 0 8px;}
@@ -183,6 +208,9 @@
  .tabs button{flex:1;min-width:0;padding:8px 9px;}
  .sourceRow{flex-wrap:wrap;}
  .sourceRow a{white-space:normal;}
+ .planFactsGrid{grid-template-columns:1fr;}
+ .sourceMeta{padding:16px;}
+ .planFactCard dl>div{grid-template-columns:40% 1fr;}
 }
 @media (max-width:359px){
  .root{padding:12px;} .tableMobile dl>div{grid-template-columns:1fr;gap:2px;}

@@ -35,14 +35,22 @@ function useSignatureMotion() {
   return {ref,'data-motion-active':visible?'true':'false'};
 }
 
-function Heading({title,description}:{title:string;description?:string}) {
-  return <header className={styles.heading}><span className={styles.eyebrow}>CCPUN / EDITORIAL INSIGHT</span>
+function Heading({title,description,eyebrow='CCPUN / EDITORIAL INSIGHT'}:{title:string;description?:string;eyebrow?:string}) {
+  return <header className={styles.heading}><span className={styles.eyebrow}>{eyebrow}</span>
     <h3>{title}</h3>{description&&<p>{description}</p>}</header>;
 }
 function Foot({text,note}:{text?:string;note?:string}) {
   return (text||note)?<footer className={styles.foot}>{text&&<p><b>สิ่งที่ควรดูต่อ</b> {text}</p>}{note&&<small>{note}</small>}</footer>:null;
 }
 function NumberText({n}:{n:number}){return <span className={styles.amount}>{fmt(n)}</span>;}
+const hasHttpSource=(entries:{url?:string}[])=>entries.some(e=>!!e.url&&/^https?:\/\//.test(e.url));
+function reviewDate(iso:string|undefined){
+  if(!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso))return '';
+  const parsed=new Date(iso+'T12:00:00.000Z');
+  if(Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==iso)return '';
+  return new Intl.DateTimeFormat('th-TH',{timeZone:'UTC',day:'numeric',month:'long',year:'numeric'}).format(parsed);
+}
+
 export function SignatureEditorialView({block}: {block:Editorial}) {
   const motion=useSignatureMotion();
   const [used,setUsed]=useState(Math.max(0,block.used??0));
@@ -112,15 +120,29 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
         <div className={styles.panel} key={active} aria-live="polite">{term?<><span className={styles.caption}>ความหมาย</span><h4>{term.label}</h4><p>{term.value}</p>{term.detail&&<div className={styles.subtle}><b>ควรดูอะไรต่อ</b><p>{term.detail}</p></div>}</>:<p>เพิ่มคำศัพท์ใน Sanity เพื่อแสดงที่นี่</p>}</div>
       </div>;break;
     }
-    case 'sources':
-      contents=<div className={styles.sourceList}>{entries.map((e,i)=><div className={styles.sourceRow} key={i}>
-        <div><b>{e.label}</b><p>{e.value}</p>{e.detail&&<small>{e.detail}</small>}</div>
-        {e.url&&/^https?:\/\//.test(e.url)&&<a href={e.url} target="_blank" rel="noopener noreferrer">ดูแหล่งข้อมูล <span aria-hidden>↗</span></a>}
-      </div>)}</div>;break;
+    case 'sources': {
+      // Never show "verified" based on free-form text alone.
+      const reviewed=block.sourceStatus==='verified'&&!!reviewDate(block.verifiedAt)&&hasHttpSource(entries);
+      contents=<div className={styles.sourceGroup}>
+        <div className={styles.sourceMeta} aria-label="สถานะและช่วงเวลาของข้อมูล">
+          <span className={styles.sourceBadge} data-verified={reviewed?'true':'false'}>
+            {reviewed?'ตรวจสอบเอกสารต้นฉบับแล้ว':'ยังไม่ยืนยันการตรวจสอบต้นฉบับ'}
+          </span>
+          {block.effectivePeriod&&<p><strong>ปีภาษี / ช่วงเวลาที่มีผล</strong> {block.effectivePeriod}</p>}
+          {block.sourceVersion&&<p><strong>เวอร์ชันเอกสาร</strong> {block.sourceVersion}</p>}
+          {reviewed&&block.verifiedAt&&<p><strong>ตรวจสอบล่าสุด</strong> <time dateTime={block.verifiedAt}>{reviewDate(block.verifiedAt)}</time></p>}
+        </div>
+        <div className={styles.sourceList} role="list">{entries.map((e,i)=><div className={styles.sourceRow} role="listitem" key={i}>
+          <div><cite>{e.label}</cite><p>{e.value}</p>{e.detail&&<small>{e.detail}</small>}</div>
+          {e.url&&/^https?:\/\//.test(e.url)&&<a href={e.url} target="_blank" rel="noopener noreferrer" aria-label={'เปิดเอกสารต้นฉบับ: '+e.label}>เปิดเอกสารต้นทาง <span aria-hidden="true">↗</span></a>}
+        </div>)}</div>
+        {!reviewed&&<p className={styles.sourceDisclaimer}>ข้อมูลในส่วนนี้ยังไม่ยืนยันวันที่ตรวจสอบกับต้นฉบับ โปรดตรวจเงื่อนไขและเอกสารล่าสุดก่อนนำไปใช้จริง</p>}
+      </div>;break;
+    }
     default: contents=null;
   }
   return <section className={styles.root} {...motion} data-ccpun-signature={block.kind} aria-label={block.title}>
-    <Heading title={block.title} description={block.description}/>
+    <Heading title={block.title} description={block.description} eyebrow={block.kind==='sources'?'CCPUN / SOURCE & VERIFICATION':'CCPUN / EDITORIAL INSIGHT'}/>
     {contents}
     <Foot text={block.takeaway} note={block.sampleNote}/>
   </section>;
@@ -135,7 +157,7 @@ export function SignatureTableView({block}:{block:TableBlock}) {
   </dl>;
   const mobileInitialRows=5;
   return <section className={styles.root} {...motion} aria-label={block.title} data-ccpun-signature="table">
-    <Heading title={block.title} description={block.description}/>
+    <Heading title={block.title} description={block.description} eyebrow="CCPUN / STRUCTURED TABLE"/>
     <div className={styles.tableDesktop}><table><thead><tr>{block.headers.map((h,i)=><th scope="col" key={i}>{h}</th>)}</tr></thead>
       <tbody>{block.rows.map((r,i)=><tr key={i}>{block.headers.map((_,j)=><td key={j}>{r[j]??'—'}</td>)}</tr>)}</tbody></table></div>
     <div className={styles.tableMobile}>
@@ -182,7 +204,7 @@ export function SignaturePlanView({block}:{block:Explorer}) {
   const focus=plans[a];
   if(!focus)return null;
   return <section className={styles.root} {...motion} data-ccpun-signature="plan-explorer" aria-label={block.title}>
-    <Heading title={block.title} description={block.description}/>
+    <Heading title={block.title} description={block.description} eyebrow="CCPUN / PLAN EXPLORER"/>
     <div className={styles.tabs} role="group" aria-label="วิธีดูข้อมูล">
       {[['single','01 ดูแผนเดียว'],['overview','ดูภาพรวม'],['compare','02 เปรียบเทียบ']].map(([v,label])=><button key={v} type="button"
         className={view===v?styles.selected:undefined} aria-pressed={view===v} onClick={()=>setView(v as typeof view)}>{label}</button>)}
@@ -213,6 +235,20 @@ export function SignaturePlanView({block}:{block:Explorer}) {
         <div><dt>{r.label}</dt><dd></dd></div><div><dt>แผน A</dt><dd>{r.va}</dd></div><div><dt>แผน B</dt><dd>{r.vb}</dd></div></dl>)}</div>
       {rows.length===0&&<p className={styles.caption}>ไม่พบความแตกต่างในหมวดที่เลือก</p>}
     </>}
+    <aside className={styles.planFacts} aria-label="ข้อมูลรายละเอียดทุกแผนสำหรับการอ่านและเปรียบเทียบ">
+      <h4>ภาพรวมข้อมูลทุกแผน</h4>
+      <p>มี {plans.length} แผนให้เปรียบเทียบ: {plans.slice(0,4).map(p=>p.name).join(' · ')}{plans.length>4?' และอีก '+(plans.length-4)+' แผน':''}</p>
+      <details>
+        <summary>อ่านรายละเอียดและเงื่อนไขของทุกแผน ({plans.length} แผน)</summary>
+        <div className={styles.planFactsGrid}>
+          {plans.map((plan,i)=><section className={styles.planFactCard} key={i} aria-label={plan.name}>
+            <h5>{plan.name}</h5>
+            {plan.headline&&<p className={styles.planFactHeadline}>{plan.headline}</p>}
+            <dl>{plan.benefits.map((benefit,j)=><div key={j}><dt>{benefit.label}</dt><dd>{benefit.value}</dd></div>)}</dl>
+          </section>)}
+        </div>
+      </details>
+    </aside>
     <Foot text={block.takeaway} note={block.sampleNote}/>
   </section>;
 }

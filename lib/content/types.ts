@@ -33,6 +33,7 @@ export type ArticleBlock =
       kind: "insight" | "limit" | "beforeAfter" | "timeline" | "checklist" | "calculation" | "glossary" | "sources";
       title: string; description?: string; takeaway?: string; sampleNote?: string;
       firstLabel?: string; secondLabel?: string; limit?: number; used?: number;
+      sourceStatus?: "unverified" | "verified"; verifiedAt?: string; effectivePeriod?: string; sourceVersion?: string;
       monthlyAmount?: number; months?: number; existingAmount?: number;
       entries: Array<{label:string; value:string; detail?:string; url?:string}>;
     }

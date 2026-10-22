@@ -37,7 +37,7 @@ const article:Article={
     {type:'signatureEditorial',kind:'timeline',title:'ขั้นตอนการวางแผน',entries:list},
     {type:'signatureEditorial',kind:'calculation',title:'คำนวณเงินสำรองตัวอย่าง',monthlyAmount:30000,months:6,existingAmount:60000,entries:[],sampleNote:'ไม่รวมเงินเฟ้อและค่าใช้จ่ายอื่น'},
     {type:'signatureEditorial',kind:'glossary',title:'ศัพท์ที่ควรเข้าใจก่อน',entries:[{label:'วงเงิน',value:'จำนวนเงินสูงสุดในเงื่อนไขที่กำหนด',detail:'อย่าลืมตรวจเพดานรายหมวด'},{label:'เงื่อนไข',value:'ข้อกำหนดก่อนมีสิทธิใช้ประโยชน์'}]},
-    {type:'signatureEditorial',kind:'sources',title:'ข้อมูลนี้มาจากไหน',entries:[{label:'ชุดทดสอบ CCPun',value:'ข้อมูลจำลองสำหรับ UAT ไม่มีเอกสารผลิตภัณฑ์จริง'}]},
+    {type:'signatureEditorial',kind:'sources',title:'ข้อมูลนี้มาจากไหน',description:'ตรวจดูสถานะ เวอร์ชัน และเอกสารประกอบก่อนนำข้อมูลไปใช้อ้างอิง',sourceStatus:'unverified',effectivePeriod:'ข้อมูลจำลอง ไม่ใช่ปีภาษีจริง',sourceVersion:'CCPun UAT fixture v1',entries:[{label:'ชุดทดสอบ CCPun',value:'ข้อมูลจำลองสำหรับ UAT ไม่มีเอกสารผลิตภัณฑ์จริง',detail:'ยังไม่มีวันที่ตรวจสอบต้นฉบับ'}],sampleNote:'บล็อกนี้ไม่ได้ยืนยันข้อมูลประกันหรือสิทธิภาษีจริง'},
     {type:'heading',level:2,text:'02 ตารางและการเปรียบเทียบ'},
     {type:'signatureStructuredTable',title:'ตารางข้อมูลตัวอย่าง',headers:['รายการ','แผน A','แผน B'],
       rows:[['หัวข้อ 1','100 หน่วย','200 หน่วย'],['หัวข้อ 2','ไม่มี','มี']],sampleNote:'สมมติฐานเพื่อทดสอบการแสดงผลบนมือถือ'},

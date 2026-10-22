@@ -100,7 +100,7 @@ test('UAT tax article renders readable table plus Insight without interactive ch
   assert.match(source,/robots:\{index:false,follow:false\}/);
   assert.match(source,/CCPUN_APP_ENV/);
   assert.match(source,/notFound\(\)/);
-  assert.equal((source.match(/type:'signatureEditorial'/g)||[]).length,1);
+  assert.equal((source.match(/type:'signatureEditorial'/g)||[]).length,2);
   assert.equal((source.match(/type:'signatureStructuredTable'/g)||[]).length,1);
   assert.doesNotMatch(source,/kind:'checklist'/);
   assert.doesNotMatch(read('apps/web/app/blog/signature-article-preview/page.tsx'),/kind:'checklist'/);
@@ -121,4 +121,37 @@ test('All remaining interactive Article blocks are transient browser state, not 
     assert.ok(!component.includes(forbidden),forbidden+' must not persist user inputs');
   assert.match(component,/const \[monthly,setMonthly\]=useState/);
   assert.match(component,/const \[view,setView\]=useState/);
+});
+
+test('Plan Explorer offers SSR-readable all-plan benefit facts using native details, independent of user selection',()=>{
+ const view=read('features/blog/website-43/SignatureArticle.tsx');
+ assert.match(view,/className=\{styles\.planFacts\}/);
+ assert.match(view,/<details>[\s\S]*?<summary>อ่านรายละเอียดและเงื่อนไขของทุกแผน/);
+ assert.match(view,/plans\.map\(\(plan,i\)=>/);
+ assert.match(view,/plan\.benefits\.map\(\(benefit,j\)=>/);
+ assert.match(view,/<dt>\{benefit\.label\}<\/dt><dd>\{benefit\.value\}<\/dd>/);
+});
+
+test('Source & Verification defaults to unverified unless real ISO date and linked source both exist',()=>{
+ const view=read('features/blog/website-43/SignatureArticle.tsx');
+ const studio=read('cms/sanity/schema/objects/signature-editorial.ts');
+ assert.match(view,/block\.sourceStatus==='verified'&&!!reviewDate\(block\.verifiedAt\)&&hasHttpSource\(entries\)/);
+ assert.match(view,/ยังไม่ยืนยันการตรวจสอบต้นฉบับ/);
+ assert.match(view,/<time dateTime=\{block\.verifiedAt\}>/);
+ assert.match(view,/rel="noopener noreferrer"/);
+ assert.match(studio,/name:'verifiedAt'/);
+ assert.match(studio,/name:'effectivePeriod'/);
+ assert.match(studio,/name:'sourceVersion'/);
+ assert.match(studio,/ระบุวันที่ตรวจสอบจริงก่อนเลือกว่าตรวจสอบแล้ว/);
+ assert.equal(signatureEditorialSchema.safeParse({_type:'signatureEditorial',kind:'sources',title:'ทดลองที่มา',sourceStatus:'verified',verifiedAt:'not a date'}).success,false);
+ assert.equal(signatureEditorialSchema.safeParse({_type:'signatureEditorial',kind:'sources',title:'ทดลองที่มา',sourceStatus:'unverified'}).success,true);
+});
+
+test('Both UAT example articles have plainly marked unverified provenance',()=>{
+ for(const file of ['apps/web/app/blog/signature-article-preview/page.tsx','apps/web/app/blog/uat-tax-article-component-review/page.tsx']){
+  const s=read(file);
+  assert.match(s,/sourceStatus:'unverified'/);
+  assert.match(s,/kind:'sources'/);
+  assert.match(s,/noindex:true/);
+ }
 });

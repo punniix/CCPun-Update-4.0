@@ -77,6 +77,8 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
         type:"signatureEditorial",kind:item.kind,title:item.title,
         description:item.description ?? undefined,takeaway:item.takeaway ?? undefined,sampleNote:item.sampleNote ?? undefined,
         firstLabel:item.firstLabel ?? undefined,secondLabel:item.secondLabel ?? undefined,
+        sourceStatus:item.sourceStatus ?? undefined,verifiedAt:item.verifiedAt ?? undefined,
+        effectivePeriod:item.effectivePeriod ?? undefined,sourceVersion:item.sourceVersion ?? undefined,
         limit:item.limit ?? undefined,used:item.used ?? undefined,
         monthlyAmount:item.monthlyAmount ?? undefined,months:item.months ?? undefined,
         existingAmount:item.existingAmount ?? undefined,
@@ -310,7 +312,7 @@ const articleProjection = groq`{
     headers,
     rows,
     kind,firstLabel,secondLabel,limit,used,monthlyAmount,months,existingAmount,
-    takeaway,sampleNote,
+    takeaway,sampleNote,sourceStatus,verifiedAt,effectivePeriod,sourceVersion,
     entries[]{_key,label,value,detail,url},
     plans[]{_key,name,headline,benefits[]{_key,label,value,category}}
   },
