@@ -63,6 +63,29 @@ test('draft preview authorization and exact UAT lane fail before any content que
   }
 });
 
+test('authorized scoped UAT draft preview queries only the selected copy, site and matching SEO singletons', async () => {
+  const trace = [], key = 'ci.expenses.monthlyIncome.label';
+  const copy = { _id: 'publicPageCopy-ci-th', _type: 'publicPageCopy', scope: 'ci', locale: 'th', entries: [{ key, text: 'DRAFT CI LABEL' }] };
+  const site = { _id: 'publicPageCopy-site-th', _type: 'publicPageCopy', scope: 'site', locale: 'th', entries: [{ key: 'site.footerDisclaimer', text: 'DRAFT SITE FOOTER' }] };
+  const records = { 'publicPageCopy-ci-th': copy, 'publicPageCopy-site-th': site, 'pageSeo-ci-planning': { seoTitle: 'DRAFT CI SEO' } };
+  const helper = loadFixtureModule('lib/admin/public-copy-preview.ts', { mocks: new Map([
+    ['@/lib/admin/require-permission', { requireAdminPermission: async permission => trace.push(['permission', permission]) }],
+    ['@/lib/admin/environment', { getAdminEnvironment: () => 'admin-uat', isAdminReadDataPlaneAllowed: (dataset, environment) => { assert.equal(dataset, 'uat'); assert.equal(environment, 'admin-uat'); return true; } }],
+    ['@/lib/content/sanity-fetch', { sanityFetch: async request => {
+      assert.equal(request.perspective, 'drafts');
+      assert.ok(Object.hasOwn(records, request.params.id), 'only the fixed selected-scope/site/SEO records are queried');
+      if (request.params.id === 'pageSeo-ci-planning') assert.deepEqual(request.params, { id: 'pageSeo-ci-planning', pathname: '/ci-planning/' });
+      else assert.deepEqual(request.params, { id: request.params.id });
+      trace.push(['query', request.params.id]); return { data: records[request.params.id] };
+    } }],
+  ]) });
+  const result = await helper.getUatPublicCopyPreview('ci');
+  assert.deepEqual(trace, [['permission', 'draft:apply'], ['query', 'publicPageCopy-ci-th'], ['query', 'publicPageCopy-site-th'], ['query', 'pageSeo-ci-planning']]);
+  assert.deepEqual(result.copy, registry.parsePublicCopy('ci', copy));
+  assert.deepEqual(result.site, registry.parsePublicCopy('site', site));
+  assert.equal(result.copy[key], 'DRAFT CI LABEL'); assert.equal(result.seo.seoTitle, 'DRAFT CI SEO');
+});
+
 test('shared education availability keeps Production untouched and UAT missing articles on a working archive', async () => {
   const canonical = '/blog/personal-finance/financial-pyramid/';
   for (const [environment, article, expected] of [

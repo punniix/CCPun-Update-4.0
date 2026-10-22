@@ -65,11 +65,32 @@ test("page copy and SEO stay hidden and actionless in Production Studio", () => 
   }
 });
 
-test("server reader preserves lane checks, published default and authenticated draft boundary", () => {
-  const source = readFileSync(new URL("../lib/content/public-copy.ts", import.meta.url), "utf8");
-  assert.ok(source.includes('from "./sanity-fetch"'));
-  assert.ok(source.includes('IS_DRAFT_PREVIEW_ALLOWED && (await draftMode()).isEnabled'));
-  assert.ok(source.includes('perspective: preview ? "drafts" : "published"'));
+test("generic public reader always requests published copy independently of draft flags and cookies", async () => {
+  const key = "home.hero.eyebrow";
+  const document = { ...home, entries: [{ key, text: "PUBLISHED COPY" }] };
+  for (const previewAllowed of [false, true]) for (const cookieEnabled of [false, true]) {
+    for (const data of [null, document, { ...document, _id: "private.document" }, "unavailable"]) {
+      const requests: Array<{ query: string; params: Record<string, string>; perspective: string }> = [];
+      let draftReads = 0;
+      const reader = loadFixtureModule("lib/content/public-copy.ts", { mocks: new Map<string, unknown>([
+        ["react", { cache: (fn: unknown) => fn }],
+        ["next/headers", { draftMode: async () => { draftReads++; return { isEnabled: cookieEnabled }; } }],
+        ["../deployment-environment", { IS_DRAFT_PREVIEW_ALLOWED: previewAllowed }],
+        ["./sanity-fetch", { sanityFetch: async (request: { query: string; params: Record<string, string>; perspective: string }) => {
+          requests.push(request);
+          if (data === "unavailable") throw new Error("fixture-unavailable");
+          return { data };
+        } }],
+      ]) });
+      const copy = await reader.getPublicCopy("home");
+      assert.deepEqual(copy, parsePublicCopy("home", data === document ? document : null));
+      assert.equal(requests.length, 1);
+      assert.equal(requests[0].perspective, "published");
+      assert.deepEqual(requests[0].params, { id: "publicPageCopy-home-th" });
+      assert.equal(requests[0].query, '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text}}');
+      assert.equal(draftReads, 0, `generic reader must not consult draft cookies: ${previewAllowed}/${cookieEnabled}`);
+    }
+  }
   const route = readFileSync(new URL("../apps/web/app/page.tsx", import.meta.url), "utf8");
   assert.ok(route.includes("getHomeCopyFaqs(copy)"));
   assert.ok(route.includes("faqs={homeFaqs}"));
