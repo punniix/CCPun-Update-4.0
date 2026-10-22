@@ -2,6 +2,8 @@
 
 Status: Foundation for Website 4.1 maintenance and the upcoming UX/UI 4.2 work.
 
+Current delivery policy: Hostinger Node.js applications on Node 24. Before changing design, public text, metadata, assets or preview, follow [Design and content release protocol](architecture/design-content-release-protocol.md). Keep the current design until the owner explicitly approves a proposed prototype for implementation.
+
 ## Goal
 
 Make every engineering change easy to review and hard to accidentally push into Production with broken SEO, tracking, consent, or content behavior.
@@ -21,16 +23,16 @@ GitHub Pull Request
         |
 CCPun Foundation CI
         |
-Vercel Preview
+Authorized Hostinger UAT deployment
         |
 human review / approval
         |
 v4-production
         |
-Vercel Production -> ccpun.com
+Separately authorized Hostinger Production deployment -> ccpun.com
 ```
 
-GitHub is the source of truth for code. Vercel Preview is the normal place to validate branch changes. Sanity UAT is the normal place to validate draft/content experiments.
+GitHub is the source of truth for code. Hostinger `test.ccpun.com` and `admin-test.ccpun.com` validate branch changes. Sanity UAT validates draft/content experiments. Do not deploy or promote this repository through Vercel.
 
 ## Who does what
 
@@ -69,7 +71,7 @@ Do not use `v4-production` as a working branch.
 ### Branch / Preview
 
 - Code: feature branch.
-- Web validation: Vercel Preview.
+- Web/Admin validation: the existing Hostinger UAT applications, using a verified immutable source ref.
 - Content experiment: Sanity UAT.
 - Production Sanity: read-only unless the user explicitly authorizes a Production write.
 
@@ -171,7 +173,7 @@ GitHub CI runs the shared regression gate and read-only Production HTTP contract
 
 The browser-level `npm run qa:tracking` suite requires its CDP/browser test environment and public tracking IDs; run it for tracking/consent changes when that environment is available.
 
-## Vercel Preview review
+## Hostinger UAT review
 
 For visual or behavior changes, validate the Preview before merging. At minimum check the affected route on a mobile and desktop viewport when the change is user-facing.
 
@@ -182,7 +184,7 @@ For SEO-sensitive changes, verify the rendered canonical, robots, structured dat
 Normal release:
 
 ```text
-approved PR -> merge to v4-production -> Vercel Production deployment
+approved PR -> separately authorized merge to v4-production -> separately authorized Hostinger Production deployment
 ```
 
 Rollback should prefer reverting the responsible merge/commit rather than manually editing Production into an unknown state.
@@ -196,6 +198,6 @@ The foundation is ready when:
 - agents have one written safety contract (`AGENTS.md`),
 - PRs have a consistent review checklist,
 - the general CI gate protects code + SEO + analytics contracts,
-- Vercel Preview is the standard review target,
+- Hostinger UAT is the standard review target,
 - Production Sanity remains protected by environment policy,
 - UX/UI work can change presentation without silently changing URLs, event contracts, or consent behavior.
