@@ -29,8 +29,9 @@ test("actual dependency baseline rejects unpatched lock records and missing/rang
     return spawnSync(process.execPath, [join(root, "scripts/check-next-security-baseline.mjs")], { encoding: "utf8" });
   };
   try {
-    for (const directory of ["scripts", "apps/web", "apps/admin"]) mkdirSync(join(root, directory), { recursive: true });
+    for (const directory of ["scripts", "apps/web", "apps/admin", "lib/runtime"]) mkdirSync(join(root, directory), { recursive: true });
     writeFileSync(join(root, "scripts/check-next-security-baseline.mjs"), baseline);
+    writeFileSync(join(root, "lib/runtime/node-security-baseline.mjs"), readFileSync(new URL("../../lib/runtime/node-security-baseline.mjs", import.meta.url), "utf8"));
     for (const [path, source] of manifests) writeFileSync(join(root, path), source);
     assert.equal(run().status, 0);
     for (const [name, oldVersion] of [["undici", "7.29.1"], ["dompurify", "3.4.16"]]) {

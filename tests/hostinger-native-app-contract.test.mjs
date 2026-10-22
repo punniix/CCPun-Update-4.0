@@ -2,11 +2,20 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, realpathSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import test from 'node:test';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+
+
+function writeSecurityBaselineFixture(root) {
+  for (const file of ['scripts/check-next-security-baseline.mjs', 'lib/runtime/node-security-baseline.mjs', 'package.json', 'package-lock.json', 'apps/web/package.json', 'apps/admin/package.json']) {
+    const target = join(root, file);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, read(file));
+  }
+}
 
 // Trap the build-child boundary rather than execute any SDK, compiler or network.
 function forbiddenBuildBoundary(fixture) {
@@ -69,6 +78,7 @@ test('canonical Admin CLI denies retired provider inputs before native fallback,
     writeFileSync(join(fixture, 'lib/runtime/hostinger-production-release.mjs'), read('lib/runtime/hostinger-production-release.mjs'));
     writeFileSync(join(fixture, 'lib/runtime/deployment-lanes.mjs'), read('lib/runtime/deployment-lanes.mjs'));
     const entry = join(scripts, 'build-provider.mjs'); writeFileSync(entry, read('apps/admin/scripts/build-provider.mjs'));
+    writeSecurityBaselineFixture(fixture);
     const boundary = forbiddenBuildBoundary(fixture);
     const tree = () => JSON.stringify([readdirSync(fixture).sort(), readdirSync(scripts).sort()]);
     const baseline = tree();
@@ -101,6 +111,7 @@ test('root build denies unsupported provider metadata and invalid Hostinger role
     mkdirSync(join(fixture, 'scripts')); mkdirSync(join(fixture, 'lib/runtime'), { recursive: true });
     writeFileSync(join(fixture, 'scripts/build-root.mjs'), read('scripts/build-root.mjs'));
     writeFileSync(join(fixture, 'lib/runtime/deployment-lanes.mjs'), read('lib/runtime/deployment-lanes.mjs'));
+    writeSecurityBaselineFixture(fixture);
     const boundary = forbiddenBuildBoundary(fixture);
     for (const [env, error] of [
       [{ CCPUN_DEPLOYMENT_PROVIDER: 'vercel', CCPUN_DEPLOYMENT_ROLE: 'web' }, 'UNSUPPORTED_BUILD_PROVIDER'],
@@ -132,8 +143,9 @@ test('root build denies unsupported provider metadata and invalid Hostinger role
 test('canonical Web CLI denies unsupported inputs before child execution, public materialization or artifact writes', () => {
   const fixture = mkdtempSync(join(tmpdir(), 'ccpun-native-web-cli-deny-'));
   try {
-    const scripts = join(fixture, 'scripts'); mkdirSync(scripts);
+    const scripts = join(fixture, 'apps/web/scripts'); mkdirSync(scripts, { recursive: true });
     const entry = join(scripts, 'build-provider.mjs'); writeFileSync(entry, read('apps/web/scripts/build-provider.mjs'));
+    writeSecurityBaselineFixture(fixture);
     const boundary = forbiddenBuildBoundary(fixture);
     const tree = () => JSON.stringify([readdirSync(fixture).sort(), readdirSync(scripts).sort()]);
     const baseline = tree();
@@ -173,4 +185,39 @@ test('retired private verifier and operative project-ID exports are absent', () 
   assert.equal(existsSync(new URL('../lib/runtime/vercel-service-auth.ts', import.meta.url)), false);
   assert.doesNotMatch(read('lib/runtime/deployment-identity.ts'), /export\s+const\s+CCPUN_VERCEL_PROJECT_IDS/);
   assert.doesNotMatch(read('lib/content/sanity-lane.ts'), /CONTENT_VERCEL_PROJECT_IDS/);
+});
+
+
+test('direct root, Web and Admin CLI entries cannot bypass security floors with npm lifecycle disabled', () => {
+  for (const entry of ['scripts/build-root.mjs', 'apps/web/scripts/build-provider.mjs', 'apps/admin/scripts/build-provider.mjs']) {
+    const fixture = mkdtempSync(join(tmpdir(), 'ccpun-direct-floor-'));
+    try {
+      writeSecurityBaselineFixture(fixture);
+      for (const file of [entry, 'lib/runtime/hostinger-production-release.mjs', 'lib/runtime/deployment-lanes.mjs']) {
+        mkdirSync(dirname(join(fixture, file)), { recursive: true });
+        writeFileSync(join(fixture, file), read(file));
+      }
+      const boundary = forbiddenBuildBoundary(fixture);
+      const args = entry.includes('web/') ? [] : ['--native-scheduler-uat-acceptance'];
+      const variables = { PATH: '', npm_config_ignore_scripts: 'true', CCPUN_DEPLOYMENT_PROVIDER: 'local' };
+      const lock = JSON.parse(readFileSync(join(fixture, 'package-lock.json'), 'utf8'));
+      lock.packages['node_modules/undici'].version = '7.29.1';
+      writeFileSync(join(fixture, 'package-lock.json'), JSON.stringify(lock));
+      const deniedLock = spawnSync(process.execPath, ['--import', boundary.file, realpathSync(join(fixture, entry)), ...args], { cwd: fixture, encoding: 'utf8', env: variables });
+      assert.notEqual(deniedLock.status, 0);
+      assert.match(deniedLock.stderr, /below patched floor 7\.30\.1/);
+      assert.equal(existsSync(boundary.marker), false, entry + ': compiler/executor/network boundary');
+      assert.equal(existsSync(boundary.gitMarker), false, entry + ': floor precedes provenance work');
+      writeSecurityBaselineFixture(fixture);
+      // Unit fault injection of version metadata only; no platform spoofing,
+      // provider connection or acceptance fixture runs in this regression.
+      writeFileSync(boundary.file, readFileSync(boundary.file, 'utf8') + '\nObject.defineProperty(process.versions, "node", { value: "24.22.0" });\n');
+      const deniedRuntime = spawnSync(process.execPath, ['--import', boundary.file, realpathSync(join(fixture, entry)), ...args], { cwd: fixture, encoding: 'utf8', env: variables });
+      assert.notEqual(deniedRuntime.status, 0);
+      assert.match(deniedRuntime.stderr, /NODE_SECURITY_BASELINE_DENIED/);
+      assert.equal(existsSync(boundary.marker), false);
+      assert.equal(existsSync(boundary.gitMarker), false);
+      for (const path of ['.next', 'apps/web/.next', 'apps/admin/.next', 'public']) assert.equal(existsSync(join(fixture, path)), false);
+    } finally { rmSync(fixture, { recursive: true, force: true }); }
+  }
 });
