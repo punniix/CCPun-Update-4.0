@@ -248,10 +248,14 @@ test('Production providers, metadata, models, engines, tracking, consent storage
   assert.equal(protectedProduction[analyticsPath], '6caff27b5dec7cf21bb6b6c29149c031e47f12828090e7bdd0c26a7f5192f64f');
   const semanticPath = 'lib/analytics.ts';
   assert.equal(protectedProduction[semanticPath], '43b1abf55778f2dc562e79dd632573006aafbc401ff3423223d9395722681211');
+  // Reviewed shared Node security policy and generated serving guard; all other bytes remain pinned.
+  const webDriverPath = 'apps/web/scripts/build-provider.mjs';
+  assert.equal(protectedProduction[webDriverPath], '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd');
   for (const [file,digest] of Object.entries(protectedProduction)) {
     const reviewedDigest = file === analyticsPath
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
-      : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f' : digest;
+      : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f'
+      : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4' : digest;
     const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
     assert.equal(sha(source), reviewedDigest, file);
   }
