@@ -1,8 +1,21 @@
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { DEPLOYMENT_LANES } from '../lib/runtime/deployment-lanes.mjs';
 import { main as audit } from '../scripts/audit-monorepo-boundaries.mjs';
+
+test('generated CCPun build outputs stay excluded in root and nested apps while source remains checked', async () => {
+  const paths = ['.ccpun-local/next-uat/build/package.json', 'apps/web/.ccpun-local/next-uat/build/package.json', 'apps/admin/.ccpun-local/next-uat/build/package.json'];
+  assert.deepEqual(execFileSync('git', ['check-ignore', '--', ...paths], { encoding: 'utf8' }).trim().split('\n'), paths);
+  const { ESLint } = await import('eslint');
+  const eslint = new ESLint();
+  for (const file of paths.map(path => path.replace('package.json', 'generated.js'))) assert.equal(await eslint.isPathIgnored(file), true, file);
+  for (const file of ['apps/web/app/page.tsx', 'apps/admin/app/layout.tsx']) {
+    assert.equal(await eslint.isPathIgnored(file), false, file);
+    assert.equal(spawnSync('git', ['check-ignore', '--no-index', '--quiet', '--', file]).status, 1, file);
+  }
+});
 
 const baselinedMirrors = JSON.parse(readFileSync(new URL('../qa/monorepo-compatibility-mirrors.json', import.meta.url), 'utf8'));
 

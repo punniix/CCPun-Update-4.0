@@ -60,8 +60,8 @@ next-env.d.ts
 /wp-drafts-export*.json
 /ccpun-wp-drafts-export*.json
 
-# Local CCPun Admin launcher runtime/build output
-/.ccpun-local/
+# Local CCPun launcher runtime/build output in every app
+**/.ccpun-local/
 /tools/local-admin/dist/
 
 # Workflow SDK generated transport and local execution data
