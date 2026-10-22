@@ -1,4 +1,6 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 
 import { useEffect, useRef, useState, type Ref } from 'react';
 import { Eye, Heart } from 'lucide-react';
@@ -8,6 +10,8 @@ import styles from './ArticleCardEngagement.module.css';
 type CardMeta = { title: string; dateLabel: string; publishedAt: string };
 
 export function ArticleCardEngagementControls({ title, dateLabel, publishedAt, metricsRef }: CardMeta & { metricsRef?: Ref<HTMLElement> }) {
+  const copyText = usePublicCopy(BLOG_COPY_DEFAULTS);
+
   const { metrics, heartPending, record } = useArticleEngagement();
   const [error, setError] = useState(false);
   const knownViews = metrics.available && metrics.views !== null;
@@ -16,15 +20,15 @@ export function ArticleCardEngagementControls({ title, dateLabel, publishedAt, m
     <div className={styles.row}>
       {dateLabel && <time className={styles.date} dateTime={publishedAt}>{dateLabel}</time>}
       <div className={styles.metrics}>
-        {knownViews && <span className={styles.views} aria-label={`เปิดอ่านที่บันทึกได้ ${metrics.views} ครั้ง`}><Eye aria-hidden="true" size={17} /><span>{metrics.views}</span></span>}
+        {knownViews && <span className={styles.views} aria-label={copyText("blog.dynamic1").replaceAll("{0}", String(metrics.views))}><Eye aria-hidden="true" size={17} /><span>{metrics.views}</span></span>}
         <button type="button" className={styles.heart} disabled={heartPending} aria-pressed={metrics.liked}
-          aria-label={`${metrics.liked ? 'ยกเลิกถูกใจบทความ' : 'ถูกใจบทความ'}: ${title}`}
+          aria-label={`${metrics.liked ? copyText("blog.articleCardEngagementControlsText") : copyText("blog.articleCardEngagementControlsText2")}: ${title}`}
           onClick={async () => { setError(false); if (!await record('heart', !metrics.liked)) setError(true); }}>
           <Heart aria-hidden="true" size={18} fill={metrics.liked ? 'currentColor' : 'none'} />{knownHearts && <span>{metrics.hearts}</span>}
         </button>
       </div>
     </div>
-    {error && <p className={styles.error} role="status">บันทึกถูกใจไม่สำเร็จ กรุณาลองอีกครั้ง</p>}
+    {error && <p className={styles.error} role="status">{copyText("blog.error")}</p>}
   </footer>;
 }
 

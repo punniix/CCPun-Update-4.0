@@ -1,3 +1,6 @@
+import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -34,32 +37,38 @@ const schema = {
   author: { "@type": "Organization", name: "CCPun Financial Advisor", url: "https://ccpun.com" },
 };
 
-export default function InvestmentAllocationPage() {
-  if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
-  return (
-    <main className={`${websiteStyles.root} ${motionStyles.scope}`}>
+export async function renderInvestmentAllocationPage(copyOverride?: PublicCopyValues) {
+  const copy = copyOverride ?? await getPublicCopy("investment");
+  const copyText = publicCopyText(copy);
+
+
+  return (<PublicCopyProvider values={copy}><main className={`${websiteStyles.root} ${motionStyles.scope}`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <Website43Navbar />
       <section className={styles.hero}>
         <div className={styles.heroInner}>
-          <span className={styles.badge}>CCPun Investment</span>
-          <h1>คุณเลือกกองเอง<br /><span>ระบบช่วยให้เห็นว่าเงินอยู่ตรงไหน</span></h1>
-          <p className={styles.heroLead}>เริ่มง่ายด้วยกองเดียว หรือจัดหลายกองเอง แล้วดูข้อมูลกองทุนจาก ก.ล.ต. ทั้งประเภทกอง ระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ</p>
-          <div className={styles.heroProof} aria-label="ขอบเขตของเครื่องมือ">
-            <span>กองเดียวหรือหลายกอง</span><span>ข้อมูลจาก ก.ล.ต.</span><span>คุณเลือกกองเอง</span><span>ไม่มีการคาดการณ์ผลตอบแทน</span>
+          <span className={styles.badge}>{copyText("investment.badge")}</span>
+          <h1>{copyText("investment.h1")}<br /><span>{copyText("investment.span13")}</span></h1>
+          <p className={styles.heroLead}>{copyText("investment.heroLead")}</p>
+          <div className={styles.heroProof} aria-label={copyText("investment.investmentAllocationPagearialabel")}>
+            <span>{copyText("investment.span14")}</span><span>{copyText("investment.linesText5")}</span><span>{copyText("investment.h1")}</span><span>{copyText("investment.span15")}</span>
           </div>
-          <a className={styles.heroAction} href="#investment-mode-title">เริ่มเลือกวิธีลงทุน</a>
+          <a className={styles.heroAction} href="#investment-mode-title">{copyText("investment.heroAction")}</a>
         </div>
       </section>
       <InvestmentAllocationTool />
-      <section className={styles.legalSection} aria-label="ขอบเขตข้อมูล">
+      <section className={styles.legalSection} aria-label={copyText("investment.investmentAllocationPagearialabel2")}>
         <div className={styles.legalInner}>
-          <h2>เครื่องมือนี้ช่วยอธิบาย ไม่ได้ตัดสินใจแทน</h2>
-          <p>ผลลัพธ์มาจากจำนวนเงินและกองทุนที่คุณเลือกเอง ระบบแสดงระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขขายคืนแยกกัน โดยไม่ตัดสินว่ากองใดเหมาะกับคุณหรือควรซื้อขายกองไหน</p>
-          <p>ถ้าข้อมูลบางส่วนยังไม่พร้อม ระบบจะแจ้งตรง ๆ และจะไม่เติมข้อมูลหรือเดาแทนข้อมูลจาก ก.ล.ต.</p>
+          <h2>{copyText("investment.h25")}</h2>
+          <p>{copyText("investment.p17")}</p>
+          <p>{copyText("investment.p18")}</p>
         </div>
       </section>
       <Website43Footer warnings />
-    </main>
-  );
+    </main></PublicCopyProvider>);
+}
+
+export default function InvestmentAllocationPage() {
+  if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
+  return renderInvestmentAllocationPage();
 }

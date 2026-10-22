@@ -79,6 +79,7 @@ export type ProfessionalLicense = {
 };
 
 export type ArticleAuthorProfile = {
+  id?: string;
   name: string;
   profileName?: string;
   profileRole?: string;

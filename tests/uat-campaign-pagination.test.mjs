@@ -39,3 +39,12 @@ test("Blog uses ten articles per page and retains bounds and query filters", asy
   assert.deepEqual(blogPage("NaN", 0), { page: 1, pages: 1 });
   assert.equal(blogPageHref("/blog/?q=tax&page=2", 3), "/blog/?q=tax&page=3");
 });
+
+test("CMS date-prefix edits preserve the date and physical article URL", async () => {
+  const { toWebsite43ArticleItem } = await import("../features/blog/website-43/blogData.ts");
+  const article = { id: "fixture", slug: "copy-date-check", title: "Fixture", excerpt: "Fixture", category: "การเงินส่วนบุคคล", categorySlug: "personal-finance", authorName: "Test", status: "published", publishedAt: "2026-10-23T00:00:00Z", updatedAt: "2026-10-23T00:00:00Z", seoTitle: "Fixture", seoDescription: "Fixture", body: [] };
+  const item = toWebsite43ArticleItem(article, { "blog.date.published": "Published test" });
+  assert.ok(item.meta.startsWith("Published test "));
+  assert.equal(item.href, "/blog/personal-finance/copy-date-check/");
+  assert.equal(item.publishedAt, article.publishedAt);
+});

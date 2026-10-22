@@ -32,11 +32,11 @@ const baselineHashes = {
     "false": "ecd95896269b2e015975fb4ae33561947f604ba3701212bd998b2385d11f1463",
     "true": "5c35db3923f0269c8bd8911d642e1519035a8c56d65549c79cf28431765afc06"
   },
-  "apps/web/app/privacy/page.tsx": {
+  "features/legal/pages/PrivacyPage.tsx": {
     "false": "1584613e6de3fe8043754e908e7426202d3277949ade7168c0f735083071d6c6",
     "true": "4732b9c364b4febe7e41af97e93d34c5cc38398873f25f0bd4d22b305247ad68"
   },
-  "apps/web/app/cookie-policy/page.tsx": {
+  "features/legal/pages/CookiePolicyPage.tsx": {
     "false": "5108add8d96e9afa7c2587058f47099baa4121b63838f4adb0c14acbb172af7c",
     "true": "5108add8d96e9afa7c2587058f47099baa4121b63838f4adb0c14acbb172af7c"
   }
@@ -62,7 +62,9 @@ test("known static pages are wired once and original metadata defaults remain by
   for (const page of PAGE_SEO_PAGES) {
     assert.equal(pageSeoDocumentId(page.pathname), page.documentId);
     const path = "apps/web/app" + (page.pathname === "/" ? "/" : page.pathname) + "page.tsx";
-    const source = readFileSync(path, "utf8");
+    const route = readFileSync(path, "utf8");
+    const owner = route.match(/export \{ default, generateMetadata \} from "@\/(features\/[^"]+)"/)?.[1];
+    const source = owner ? readFileSync(owner + ".tsx", "utf8") : route;
     assert.ok(source.includes("generateMetadata"));
     assert.ok(source.includes(JSON.stringify(page.pathname)));
     assert.doesNotMatch(source, /export.*\{.*metadata[, }]/, "Next cannot export both static metadata and generateMetadata");

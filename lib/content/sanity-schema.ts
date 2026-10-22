@@ -148,6 +148,7 @@ export function parseProfessionalLicenses(items: unknown) {
 }
 
 export const authorSchema = z.object({
+  _id: z.string().optional(),
   name: z.string().min(1),
   profileName: z.string().min(1).nullish().catch(undefined),
   profileRole: z.string().min(1).nullish().catch(undefined),

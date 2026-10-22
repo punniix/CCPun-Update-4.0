@@ -1,8 +1,11 @@
+import { INVESTMENT_COPY_DEFAULTS } from "../lib/content/investment-copy-defaults.ts";
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { runInNewContext } from 'node:vm';
 import test from 'node:test';
+
+function runCopyContext(code, context = {}) { context.copyText ??= key => INVESTMENT_COPY_DEFAULTS[key]; return runInNewContext(code, context); }
 
 const source = (name) => readFileSync(new URL(`../features/investment-allocation/${name}.tsx`, import.meta.url), 'utf8');
 const single = source('SingleFundBuilder');
@@ -31,7 +34,7 @@ function runtime(text, name) {
   for (const key of ['Catalog', 'CatalogLoading', 'CatalogAppending', 'SelectedFund', 'Detail', 'DetailLoading', 'SaveStatus', 'PlanId', 'Searching', 'SearchState', 'SelectedFunds', 'SelectedDetails']) {
     context[`set${key}`] = (value) => { state[key] = typeof value === 'function' ? value(state[key]) : value; };
   }
-  const invoke = runInNewContext(`${functionSource(text, name)}\n${name};`, context);
+  const invoke = runCopyContext(`${functionSource(text, name)}\n${name};`, context);
   const respond = (index, data, ok = true) => pending[index]({ ok, status: ok ? 200 : 503, json: async () => data });
   return { state, context, invoke, respond };
 }
@@ -47,7 +50,7 @@ test('single starts once on its first category progression and sends only catego
   for (const key of ['Category', 'Subcategory', 'AmcId', 'SelectedFund', 'Detail', 'SaveStatus']) {
     context[`set${key}`] = () => {};
   }
-  const chooseCategory = runInNewContext(`${functionSource(single, 'chooseCategory')}\nchooseCategory;`, context);
+  const chooseCategory = runCopyContext(`${functionSource(single, 'chooseCategory')}\nchooseCategory;`, context);
   assert.equal(events.length, 0, 'rendering the handler cannot count as a start');
   for (const category of ['equity', 'mixed', 'all']) chooseCategory(category);
   assert.equal(events[0].name, 'ia_tool_start', 'start precedes the first step');
@@ -114,9 +117,9 @@ test('both builders normalize invalid amounts to zero before calculation or hand
     const amountSource = text.match(/  const parsedAmount = .*\n  const amount = .*;/)?.[0];
     assert.ok(amountSource);
     for (const input of ['', '-10', 'Infinity', 'NaN', '1e309']) {
-      assert.equal(runInNewContext(`${amountSource}\namount;`, { investmentAmount: input }), 0);
+      assert.equal(runCopyContext(`${amountSource}\namount;`, { investmentAmount: input }), 0);
     }
-    assert.equal(runInNewContext(`${amountSource}\namount;`, { investmentAmount: '500,000' }), 500000);
+    assert.equal(runCopyContext(`${amountSource}\namount;`, { investmentAmount: '500,000' }), 500000);
   }
   assert.equal((single.match(/disabled=\{handoffDisabled\}/g) || []).length, 2);
 });
@@ -129,7 +132,7 @@ test('single handoff rejects invalid amount, missing identity/class and preserve
     detail: { fund: { projectId: 'UAT-MIXED-01' }, source: 'uat_synthetic', state: 'demo', classes: [{ name: 'A' }], selectedClassName: 'A', assetAllocation: [], dealing: null, dataDate: '2026-09-01', fetchedAt: '2026-10-11', endpointStates: { risk: 'empty' }, snapshotIds: ['demo-source'], warnings: ['synthetic'] },
     ensurePlanId: () => 'test-plan',
   };
-  const invoke = () => runInNewContext(`${stripTypeScriptTypes(single.slice(start, end))}\nbuildHandoff();`, context);
+  const invoke = () => runCopyContext(`${stripTypeScriptTypes(single.slice(start, end))}\nbuildHandoff();`, context);
   const payload = invoke();
   assert.equal(payload.provenance.source, 'uat_synthetic');
   assert.equal(payload.provenance.fetched_at, '2026-10-11');
@@ -187,8 +190,8 @@ function portfolioDetailRuntime() {
     },
     fetch: (url) => { requests.push(url); return new Promise(resolve => pending.push(resolve)); },
   };
-  const load = runInNewContext(`${functionSource(portfolio, 'loadSelectedDetail')}\nloadSelectedDetail;`, context);
-  const remove = runInNewContext(`${functionSource(portfolio, 'removeFund')}\nremoveFund;`, context);
+  const load = runCopyContext(`${functionSource(portfolio, 'loadSelectedDetail')}\nloadSelectedDetail;`, context);
+  const remove = runCopyContext(`${functionSource(portfolio, 'removeFund')}\nremoveFund;`, context);
   const respond = (index, projectId, selectedClassName, ok = true) => pending[index]({ ok, status: ok ? 200 : 503, json: async () => ({ fund: { projectId }, selectedClassName, risk: index + 1 }) });
   return { state, context, requests, load, remove, respond };
 }
@@ -229,7 +232,7 @@ test('single display removes only identical repeated specification labels, retai
   assert.ok(expression);
   const descriptions = ['Same', 'Distinct', 'Same', 'Same '];
   const detail = { specifications: descriptions.map((description, index) => ({ description, code: index, className: 'A' })) };
-  assert.deepEqual(Array.from(runInNewContext(expression, { detail, Set })), ['Same', 'Distinct', 'Same ']);
+  assert.deepEqual(Array.from(runCopyContext(expression, { detail, Set })), ['Same', 'Distinct', 'Same ']);
   assert.equal(detail.specifications.length, 4, 'source facts and provenance are not deduplicated');
 });
 
@@ -239,7 +242,7 @@ test('rapid add is unique and remove/re-add invalidates an earlier detail for th
   run.state.SelectedFunds = [];
   run.context.selectedIds.current.clear();
   run.context.loadSelectedDetail = run.load;
-  const add = runInNewContext(`${functionSource(portfolio, 'addFund')}\naddFund;`, run.context);
+  const add = runCopyContext(`${functionSource(portfolio, 'addFund')}\naddFund;`, run.context);
   const fund = { id: 'a', projectId: 'A', constructionBucket: 'equity' };
   add(fund); add(fund);
   assert.equal(run.state.SelectedFunds.length, 1);

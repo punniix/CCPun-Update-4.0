@@ -1,3 +1,5 @@
+import { getPublicCopy } from "@/lib/content/public-copy";
+import type { PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import Website43Blog from "@/features/blog/website-43/Website43Blog";
 import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/features/blog/website-43/blogData";
@@ -40,7 +42,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function BlogPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+export async function renderBlogPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}, copyOverride?: PublicCopyValues) {
+  const copy = copyOverride ?? await getPublicCopy("blog");
   const filters = await searchParams ?? {};
   const query = typeof filters.q === "string" ? filters.q : "";
   const legacyCategory = typeof filters.category === "string" ? filters.category : "";
@@ -63,12 +66,15 @@ export default async function BlogPage({ searchParams }: { searchParams?: Promis
   return <>
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
     <Website43Blog
+      copyOverride={copy}
       key={`all:${legacyCategory}:${legacyTag}`}
-      articles={toWebsite43ArticleItems(visibleArticles)}
-      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles)}
+      articles={toWebsite43ArticleItems(visibleArticles, copy)}
+      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}
       initialQuery={query}
       initialPage={typeof filters.page === "string" ? filters.page : "1"}
       categories={categories}
     />
   </>;
 }
+
+export default function BlogPage(props: Parameters<typeof renderBlogPage>[0]) { return renderBlogPage(props); }

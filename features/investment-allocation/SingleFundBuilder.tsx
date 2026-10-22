@@ -1,4 +1,6 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { INVESTMENT_COPY_DEFAULTS, investmentLabel } from "@/lib/content/investment-copy-defaults";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
@@ -26,12 +28,7 @@ function formatMoney(value: number): string {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(value);
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return "ไม่ระบุ";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric" }).format(date);
-}
+
 
 function subcategoryLabel(category: FundCatalogCategory | "all", subcategory: FundCatalogSubcategory): string {
   if (category === "equity") return equitySubcategoryLabel(subcategory);
@@ -44,6 +41,9 @@ function rawAllocationTotal(detail: FundDetailResponse | null): number {
 }
 
 export default function SingleFundBuilder() {
+  const copyText = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+
+
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [category, setCategory] = useState<FundCatalogCategory | "all" | null>(null);
   const [subcategory, setSubcategory] = useState<FundCatalogSubcategory>("all");
@@ -70,7 +70,7 @@ export default function SingleFundBuilder() {
   const amount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 0;
   const options = useMemo(() => category ? subcategoryOptions(category) : ["all"] as FundCatalogSubcategory[], [category]);
   const allocationTotal = rawAllocationTotal(detail);
-  const selectedAmcName = amcId === "all" ? "ทุก บลจ." : amcs?.items.find((item) => item.id === amcId)?.nameTh ?? "บลจ. ที่เลือก";
+  const selectedAmcName = amcId === "all" ? copyText("investment.selectedAmcNameText") : amcs?.items.find((item) => item.id === amcId)?.nameTh ?? copyText("investment.selectedAmcNameText2");
   const amcStep = options.length > 1 ? 3 : 2;
   const fundStep = options.length > 1 ? 4 : 3;
 
@@ -82,7 +82,7 @@ export default function SingleFundBuilder() {
       if (!response.ok) throw new Error(`amcs_${response.status}`);
       setAmcs(await response.json() as FundAmcResponse);
     } catch {
-      setAmcs({ source: "unavailable", state: "unavailable", items: [], fetchedAt: new Date().toISOString(), message: "โหลดรายชื่อ บลจ. ไม่สำเร็จชั่วคราว" });
+      setAmcs({ source: "unavailable", state: "unavailable", items: [], fetchedAt: new Date().toISOString(), message: copyText("investment.loadAmcsText") });
     } finally {
       setAmcsLoading(false);
     }
@@ -124,7 +124,7 @@ export default function SingleFundBuilder() {
       setCatalog((current) => append && current ? { ...data, items: [...current.items, ...data.items] } : data);
     } catch {
       if (request !== catalogRequest.current) return;
-      setCatalog({ source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query: filters.query, category: filters.category, subcategory: filters.subcategory, amcId: filters.amcId === "all" ? null : filters.amcId, fetchedAt: new Date().toISOString(), message: "โหลดรายชื่อกองทุนไม่สำเร็จชั่วคราว" });
+      setCatalog({ source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query: filters.query, category: filters.category, subcategory: filters.subcategory, amcId: filters.amcId === "all" ? null : filters.amcId, fetchedAt: new Date().toISOString(), message: copyText("investment.loadCatalogText") });
     } finally {
       if (request === catalogRequest.current) {
         setCatalogLoading(false);
@@ -198,7 +198,7 @@ export default function SingleFundBuilder() {
       }, 0);
     } catch {
       if (request !== detailRequest.current) return;
-      setDetail({ source: "unavailable", state: "unavailable", fund, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt: new Date().toISOString(), warnings: ["โหลดรายละเอียดกองทุนไม่สำเร็จชั่วคราว"], endpointStates: {} });
+      setDetail({ source: "unavailable", state: "unavailable", fund, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt: new Date().toISOString(), warnings: [copyText("investment.fetchDetailText")], endpointStates: {} });
     } finally {
       if (request === detailRequest.current) setDetailLoading(false);
     }
@@ -239,10 +239,10 @@ export default function SingleFundBuilder() {
     if (!payload) return;
     try {
       localStorage.setItem("ccpun_investment_single_fund_plan_v1", JSON.stringify(payload));
-      setSaveStatus("บันทึกไว้ในอุปกรณ์นี้แล้ว — ยังไม่ได้ส่งข้อมูลออกจากเบราว์เซอร์");
+      setSaveStatus(copyText("investment.savePlanText"));
       trackEvent("ia_save_local", { tool_name: "investment_allocation", cta_location: "investment_allocation_result", surface_group: "investment_allocation" });
     } catch {
-      setSaveStatus("อุปกรณ์นี้ไม่อนุญาตให้บันทึกข้อมูลในเบราว์เซอร์");
+      setSaveStatus(copyText("investment.savePlanText2"));
     }
   }
 
@@ -251,67 +251,67 @@ export default function SingleFundBuilder() {
     if (!payload || !selectedFund || !detail) return;
     const allocationLines = detail.assetAllocation.map((row) => `- ${row.name}: ${row.percentNav}%`);
     const lines = [
-      "CCPun — แผนกองทุนกองเดียว / ขอให้ Pun ช่วยดู",
-      `รหัสแผน: ${payload.plan_id}`,
-      `เงินลงทุน: ${formatMoney(payload.investment_amount)} บาท`,
-      `กองที่เลือกเอง: ${selectedFund.nameTh} (${selectedFund.abbreviation})`,
-      detail.selectedClassName ? `ชนิดหน่วยลงทุน: ${detail.selectedClassName}` : "",
-      detail.risk?.level ? `ระดับความเสี่ยง: ${detail.risk.level} จาก 1–8` : "ระดับความเสี่ยง: ยังไม่มีข้อมูล",
+      copyText("investment.linesText11"),
+      copyText("investment.dynamic1").replaceAll("{0}", String(payload.plan_id)),
+      copyText("investment.dynamic2").replaceAll("{0}", String(formatMoney(payload.investment_amount))),
+      copyText("investment.dynamic3").replaceAll("{0}", String(selectedFund.nameTh)).replaceAll("{1}", String(selectedFund.abbreviation)),
+      detail.selectedClassName ? copyText("investment.dynamic4").replaceAll("{0}", String(detail.selectedClassName)) : "",
+      detail.risk?.level ? copyText("investment.dynamic5").replaceAll("{0}", String(detail.risk.level)) : copyText("investment.linesText12"),
       "",
-      detail.source === "uat_synthetic" ? "สัดส่วนสินทรัพย์จากข้อมูลสังเคราะห์ UAT (ไม่ใช่ข้อมูลกองทุนจริง):" : "สัดส่วนสินทรัพย์ตามข้อมูลจาก ก.ล.ต.:",
+      detail.source === "uat_synthetic" ? copyText("investment.linesText13") : copyText("investment.linesText14"),
       ...allocationLines,
       "",
-      detail.dealing?.settlementPeriod ? `เงื่อนไขรับเงินหลังขายคืน: ${detail.dealing.settlementPeriod}` : "เงื่อนไขรับเงินหลังขายคืน: ยังไม่มีข้อมูล",
-      detail.dataDate ? `ข้อมูล ณ วันที่: ${detail.dataDate}` : "",
-      `ตรวจข้อมูลเมื่อ: ${detail.fetchedAt}`,
-      ...detail.warnings.map((warning) => `ข้อจำกัด: ${warning}`),
+      detail.dealing?.settlementPeriod ? copyText("investment.dynamic6").replaceAll("{0}", String(detail.dealing.settlementPeriod)) : copyText("investment.linesText15"),
+      detail.dataDate ? copyText("investment.dynamic7").replaceAll("{0}", String(detail.dataDate)) : "",
+      copyText("investment.dynamic8").replaceAll("{0}", String(detail.fetchedAt)),
+      ...detail.warnings.map((warning) => copyText("investment.dynamic9").replaceAll("{0}", String(warning))),
       "",
-      "ลูกค้าเป็นผู้เลือกกองเอง ต้องการให้ Pun ช่วยดูต่อ",
+      copyText("investment.linesText16"),
     ].filter(Boolean);
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      setSaveStatus("คัดลอกสรุปแล้ว กำลังเปิด LINE — วางข้อความในแชตได้เลย");
+      setSaveStatus(copyText("investment.handoffToLineText"));
     } catch {
-      setSaveStatus("เปิด LINE ได้ แต่เบราว์เซอร์ไม่อนุญาต Clipboard");
+      setSaveStatus(copyText("investment.handoffToLineText3"));
     }
     trackEvent("ia_contact_click", { tool_name: "investment_allocation", contact_channel: "line", cta_location: "investment_allocation_result", surface_group: "investment_allocation" });
     window.open("https://lin.ee/tqLCs4f", "_blank", "noopener,noreferrer");
   }
 
   return (
-    <section id="investment-allocation-builder" className={styles.shell} aria-label="เลือกกองทุนกองเดียว">
+    <section id="investment-allocation-builder" className={styles.shell} aria-label={copyText("investment.singleFundBuilderarialabel")}>
       <div className={styles.singleLayout}>
         <div className={styles.builder}>
           <div className={styles.stepHeader}>
             <div>
-              <p className={styles.eyebrow}>เริ่มง่าย · กองเดียว</p>
-              <h2>เลือกกองเอง แล้วดูว่าเงินถูกนำไปลงทุนอย่างไร</h2>
-              <p>ไม่ต้องจัดพอร์ตหลายกองก่อน เลือกประเภทที่สนใจ กรองตาม บลจ. ได้ แล้วค่อยเลือกกองทุนที่คุณต้องการดู</p>
+              <p className={styles.eyebrow}>{copyText("investment.eyebrow3")}</p>
+              <h2>{copyText("investment.h23")}</h2>
+              <p>{copyText("investment.p9")}</p>
             </div>
-            <span className={styles.stepPill}>ข้อมูลจาก ก.ล.ต.</span>
+            <span className={styles.stepPill}>{copyText("investment.linesText5")}</span>
           </div>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="single-investment-amount">เงินที่ต้องการลงทุน</label>
+            <label className={styles.fieldLabel} htmlFor="single-investment-amount">{copyText("investment.fieldLabel5")}</label>
             <div className={styles.moneyInputWrap}>
-              <input id="single-investment-amount" inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => { setInvestmentAmount(event.target.value); setSaveStatus(null); setPlanId(null); }} placeholder="เช่น 500000" />
-              <span>บาท</span>
+              <input id="single-investment-amount" inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => { setInvestmentAmount(event.target.value); setSaveStatus(null); setPlanId(null); }} placeholder={copyText("investment.portfolioBuilderplaceholder")} />
+              <span>{copyText("investment.span3")}</span>
             </div>
-            <p className={styles.fieldHint}>จำนวนเงินนี้ใช้แสดงภาพว่าแต่ละสัดส่วนคิดเป็นเงินประมาณเท่าไร และไม่ถูกส่งไปใช้วิเคราะห์พฤติกรรมการใช้งาน</p>
+            <p className={styles.fieldHint}>{copyText("investment.fieldHint2")}</p>
           </div>
 
           <div className={styles.fieldGroup}>
-            <span className={styles.fieldLabel}>1. เลือกประเภทกองที่สนใจ</span>
+            <span className={styles.fieldLabel}>{copyText("investment.fieldLabel6")}</span>
             <div className={styles.categoryGrid}>
               {CATEGORIES.map((item) => (
                 <button key={item} className={styles.categoryCard} data-active={category === item} aria-pressed={category === item} type="button" onClick={() => chooseCategory(item)}>
-                  <strong>{FUND_CATEGORY_LABELS[item]}</strong>
-                  <span>{FUND_CATEGORY_DESCRIPTIONS[item]}</span>
+                  <strong>{investmentLabel(FUND_CATEGORY_LABELS[item], copyText)}</strong>
+                  <span>{investmentLabel(FUND_CATEGORY_DESCRIPTIONS[item], copyText)}</span>
                 </button>
               ))}
               <button className={styles.categoryCard} data-active={category === "all"} aria-pressed={category === "all"} type="button" onClick={() => chooseCategory("all")}>
-                <strong>ดูกองทุนทุกประเภท</strong>
-                <span>ถ้ายังไม่แน่ใจว่าควรเริ่มดูจากหมวดไหน สามารถเปิดดูทั้งหมดได้</span>
+                <strong>{copyText("investment.strong6")}</strong>
+                <span>{copyText("investment.span7")}</span>
               </button>
             </div>
           </div>
@@ -320,38 +320,38 @@ export default function SingleFundBuilder() {
             <>
               {options.length > 1 ? (
                 <div className={styles.fieldGroup}>
-                  <span className={styles.fieldLabel}>2. เลือกพื้นที่ลงทุน</span>
-                  <div className={styles.filterChips} role="group" aria-label="ขอบเขตกองทุน">
+                  <span className={styles.fieldLabel}>{copyText("investment.fieldLabel7")}</span>
+                  <div className={styles.filterChips} role="group" aria-label={copyText("investment.singleFundBuilderarialabel2")}>
                     {options.map((option) => (
                       <button key={option} className={styles.filterChip} data-active={subcategory === option} aria-pressed={subcategory === option} type="button" onClick={() => chooseSubcategory(option)}>
-                        {subcategoryLabel(category, option)}
+                        {investmentLabel(subcategoryLabel(category, option), copyText)}
                       </button>
                     ))}
                   </div>
-                  <p className={styles.fieldHint}>เลือกตามพื้นที่ลงทุนที่คุณสนใจ ระบบอ้างอิงข้อมูลที่กองทุนรายงานต่อ ก.ล.ต.</p>
+                  <p className={styles.fieldHint}>{copyText("investment.fieldHint3")}</p>
                 </div>
               ) : null}
 
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel} htmlFor="fund-amc-filter">{amcStep}. เลือก บลจ. (ไม่จำเป็น)</label>
+                <label className={styles.fieldLabel} htmlFor="fund-amc-filter">{amcStep}{copyText("investment.fieldLabel8")}</label>
                 <select id="fund-amc-filter" className={styles.amcSelect} value={amcId} disabled={amcsLoading} onChange={(event) => chooseAmc(event.target.value)}>
-                  <option value="all">ทุก บลจ.</option>
+                  <option value="all">{copyText("investment.selectedAmcNameText")}</option>
                   {amcs?.items.map((item) => <option value={item.id} key={item.id}>{item.nameTh}</option>)}
                 </select>
-                <p className={styles.fieldHint}>{amcsLoading ? "กำลังโหลดรายชื่อ บลจ.…" : "ถ้าคุณมี บลจ. ที่ต้องการดูอยู่แล้ว สามารถกรองได้ทันที หรือเลือกทุก บลจ. เพื่อดูทั้งหมด"}</p>
+                <p className={styles.fieldHint}>{amcsLoading ? copyText("investment.singleFundBuilderText") : copyText("investment.singleFundBuilderText2")}</p>
                 {amcs?.state === "unavailable" && amcs.message ? <div className={styles.statusNotice} role="status">{amcs.message}</div> : null}
               </div>
 
               <div className={styles.fieldGroup}>
-                <span className={styles.fieldLabel}>{fundStep}. เลือกกองทุน</span>
+                <span className={styles.fieldLabel}>{fundStep}{copyText("investment.fieldLabel9")}</span>
                 <form className={styles.searchRow} onSubmit={submitSearch}>
-                  <input className={styles.searchInput} aria-label="ค้นหากองทุน" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder="ค้นหาชื่อกองหรือชื่อย่อ" />
-                  <button className={styles.smallButton} type="submit">ค้นหา</button>
+                  <input className={styles.searchInput} aria-label={copyText("investment.portfolioBuilderarialabel2")} value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={copyText("investment.portfolioBuilderplaceholder2")} />
+                  <button className={styles.smallButton} type="submit">{copyText("investment.portfolioBuilderText2")}</button>
                 </form>
-                {query ? <button className={styles.clearSearch} type="button" onClick={() => { setQueryInput(""); setQuery(""); if (category) void loadCatalog({ category, subcategory, query: "", amcId }); }}>ล้างคำค้น “{query}”</button> : null}
+                {query ? <button className={styles.clearSearch} type="button" onClick={() => { setQueryInput(""); setQuery(""); if (category) void loadCatalog({ category, subcategory, query: "", amcId }); }}>{copyText("investment.clearSearch")}{query}”</button> : null}
                 <div className={styles.catalogMeta}>
-                  <span>{catalog?.source === "sec_v2" ? `ข้อมูลจาก ก.ล.ต. · ${selectedAmcName} · ลำดับรายการไม่ใช่การจัดอันดับ` : catalog?.source === "uat_synthetic" ? "ข้อมูลตัวอย่างชั่วคราว" : ""}</span>
-                  {catalog?.fetchedAt ? <span>ตรวจข้อมูลล่าสุด {formatDate(catalog.fetchedAt)}</span> : null}
+                  <span>{catalog?.source === "sec_v2" ? copyText("investment.dynamic10").replaceAll("{0}", String(selectedAmcName)) : catalog?.source === "uat_synthetic" ? copyText("investment.singleFundBuilderText3") : ""}</span>
+                  {catalog?.fetchedAt ? <span>{copyText("investment.span8")}{formatDate(catalog.fetchedAt, copyText)}</span> : null}
                 </div>
 
                 {catalogLoading ? <CatalogSkeleton /> : null}
@@ -365,40 +365,40 @@ export default function SingleFundBuilder() {
                           <p className={styles.catalogAbbr}>{fund.abbreviation}</p>
                           <p className={styles.catalogAmc}>{fund.amcNameTh}</p>
                           <div className={styles.fundFacts}>
-                            <span>{FUND_CATEGORY_LABELS[fund.category]}</span>
-                            <span>{geographyLabel(fund.investCountryFlag, fund.category)}</span>
-                            {fund.masterFund ? <span>ลงทุนผ่านกองทุนหลัก</span> : null}
+                            <span>{investmentLabel(FUND_CATEGORY_LABELS[fund.category], copyText)}</span>
+                            <span>{investmentLabel(geographyLabel(fund.investCountryFlag, fund.category), copyText)}</span>
+                            {fund.masterFund ? <span>{copyText("investment.span9")}</span> : null}
                           </div>
                         </div>
-                        <button className={styles.catalogChoose} type="button" onClick={() => void fetchDetail(fund)}>เลือกกองนี้</button>
+                        <button className={styles.catalogChoose} type="button" onClick={() => void fetchDetail(fund)}>{copyText("investment.portfolioBuilderText7")}</button>
                       </article>
                     ))}
                   </div>
                 ) : null}
                 {!catalogLoading && catalog?.hasMore && catalog.nextCursor ? (
-                  <button className={styles.loadMore} type="button" disabled={catalogAppending} onClick={() => category && void loadCatalog({ category, subcategory, query, amcId, cursor: catalog.nextCursor, append: true })}>{catalogAppending ? "กำลังโหลด…" : "ดูกองทุนเพิ่ม"}</button>
+                  <button className={styles.loadMore} type="button" disabled={catalogAppending} onClick={() => category && void loadCatalog({ category, subcategory, query, amcId, cursor: catalog.nextCursor, append: true })}>{catalogAppending ? copyText("investment.singleFundBuilderText4") : copyText("investment.singleFundBuilderText5")}</button>
                 ) : null}
               </div>
             </>
-          ) : <div className={styles.statusNotice}>เลือกประเภทกองด้านบนก่อน จากนั้นคุณสามารถเลือกพื้นที่ลงทุน เลือก บลจ. หรือดูทุก บลจ. แล้วค่อยเลือกกองทุนได้</div>}
+          ) : <div className={styles.statusNotice}>{copyText("investment.statusNotice6")}</div>}
         </div>
 
-        <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label="สรุปการเลือกกองเดียว">
-          <p className={styles.eyebrow}>กองเดียว</p>
-          <h2>เลือกกองเดียว ระบบคิดเป็น 100% ให้เลย</h2>
-          <p className={styles.summaryIntro}>คุณไม่ต้องกรอกสัดส่วนหลายช่อง เมื่อเลือกกองแล้ว ระบบจะแสดงว่าเงินก้อนนี้ถูกนำไปลงทุนในอะไรบ้างจากข้อมูลล่าสุดที่กองทุนเปิดเผย</p>
-          <div className={styles.summaryAmount}><span>เงินในแผน</span><strong>{amount > 0 ? `${formatMoney(amount)} บาท` : "—"}</strong></div>
+        <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label={copyText("investment.singleFundBuilderarialabel3")}>
+          <p className={styles.eyebrow}>{copyText("investment.eyebrow4")}</p>
+          <h2>{copyText("investment.h24")}</h2>
+          <p className={styles.summaryIntro}>{copyText("investment.summaryIntro2")}</p>
+          <div className={styles.summaryAmount}><span>{copyText("investment.span6")}</span><strong>{amount > 0 ? copyText("investment.dynamic11").replaceAll("{0}", String(formatMoney(amount))) : "—"}</strong></div>
           <dl className={styles.summaryRows}>
-            <div className={styles.summaryRow}><dt>ประเภทกอง</dt><dd>{category ? category === "all" ? "ทุกประเภท" : FUND_CATEGORY_LABELS[category] : "ยังไม่เลือก"}</dd></div>
-            <div className={styles.summaryRow}><dt>พื้นที่ลงทุน</dt><dd>{category ? subcategoryLabel(category, subcategory) : "—"}</dd></div>
-            <div className={styles.summaryRow}><dt>บลจ.</dt><dd>{category ? selectedAmcName : "—"}</dd></div>
-            <div className={styles.summaryRow}><dt>กองที่เลือก</dt><dd>{selectedFund?.abbreviation ?? "ยังไม่เลือก"}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText("investment.dt")}</dt><dd>{category ? category === "all" ? copyText("investment.singleFundBuilderText6") : investmentLabel(FUND_CATEGORY_LABELS[category], copyText) : copyText("investment.singleFundBuilderText7")}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText("investment.dt5")}</dt><dd>{category ? investmentLabel(subcategoryLabel(category, subcategory), copyText) : "—"}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText("investment.dt6")}</dt><dd>{category ? selectedAmcName : "—"}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText("investment.dt2")}</dt><dd>{selectedFund?.abbreviation ?? copyText("investment.singleFundBuilderText7")}</dd></div>
           </dl>
-          <div className={styles.statusNotice}>รายการกองทุนไม่มีการแนะนำหรือจัดอันดับ คุณเป็นคนเลือกกองเองทุกขั้น</div>
+          <div className={styles.statusNotice}>{copyText("investment.statusNotice7")}</div>
         </aside>
       </div>
 
-      {detailLoading ? <div className={styles.singleResultLoading}>กำลังโหลดข้อมูลกองทุนจาก ก.ล.ต.…</div> : null}
+      {detailLoading ? <div className={styles.singleResultLoading}>{copyText("investment.singleResultLoading")}</div> : null}
       {selectedFund && detail && !detailLoading ? (
         <SingleFundResult
           amount={amount}
@@ -416,7 +416,9 @@ export default function SingleFundBuilder() {
 }
 
 function CatalogSkeleton() {
-  return <div className={styles.catalogList} aria-busy="true" aria-label="กำลังโหลดรายชื่อกองทุน">{[0, 1, 2].map((item) => <div className={styles.catalogSkeleton} key={item} />)}</div>;
+  const copyText = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+
+  return <div className={styles.catalogList} aria-busy="true" aria-label={copyText("investment.catalogSkeletonarialabel")}>{[0, 1, 2].map((item) => <div className={styles.catalogSkeleton} key={item} />)}</div>;
 }
 
 function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange, onSave, onHandoff, saveStatus }: {
@@ -429,6 +431,8 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
   onHandoff: () => void;
   saveStatus: string | null;
 }) {
+  const copyText = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+
   const riskLevel = detail.risk?.level;
   const classRequired = detail.classes.length > 0 && !detail.selectedClassName;
   const handoffDisabled = amount <= 0 || detail.state === "unavailable" || classRequired || detail.fund?.projectId !== fund.projectId;
@@ -437,22 +441,22 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
     <div id="single-fund-result" className={styles.singleResult}>
       <div className={styles.singleResultHeader}>
         <div>
-          <p className={styles.eyebrow}>กองที่คุณเลือกเอง · 100%</p>
+          <p className={styles.eyebrow}>{copyText("investment.eyebrow5")}</p>
           <h2>{fund.nameTh}</h2>
           <p>{fund.abbreviation} · {fund.amcNameTh}</p>
         </div>
-        <span className={styles.dataBadge}>{detail.source === "uat_synthetic" ? "ข้อมูลตัวอย่าง UAT" : detail.source === "sec_v2" ? "ข้อมูลจาก ก.ล.ต." : "ข้อมูลยังไม่พร้อม"}</span>
+        <span className={styles.dataBadge}>{detail.source === "uat_synthetic" ? copyText("investment.singleFundResultText") : detail.source === "sec_v2" ? copyText("investment.linesText5") : copyText("investment.singleFundResultText2")}</span>
       </div>
 
       {detail.classes.length > 1 ? (
         <section className={styles.resultPanel} aria-labelledby="class-selector-title">
-          <h3 id="class-selector-title">เลือกชนิดหน่วยลงทุน</h3>
-          <p>กองเดียวกันอาจมีหลายชนิดหน่วยลงทุนและเงื่อนไขซื้อขายต่างกัน เลือกชนิดหน่วยที่คุณสนใจก่อนดูเงื่อนไขขายคืนและการรับเงิน</p>
+          <h3 id="class-selector-title">{copyText("investment.h39")}</h3>
+          <p>{copyText("investment.p10")}</p>
           <div className={styles.classGrid}>
             {detail.classes.map((item) => (
               <button className={styles.classCard} data-active={detail.selectedClassName === item.name} aria-pressed={detail.selectedClassName === item.name} key={item.name} type="button" onClick={() => onClassChange(item.name)}>
                 <strong>{item.name}</strong>
-                <span>{item.detail ?? item.description ?? "ยังไม่มีรายละเอียดเพิ่มเติมสำหรับชนิดหน่วยนี้"}</span>
+                <span>{item.detail ?? item.description ?? copyText("investment.singleFundResultText3")}</span>
               </button>
             ))}
           </div>
@@ -461,59 +465,66 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
 
       <div className={styles.singleResultGrid}>
         <section className={styles.resultPanel}>
-          <h3>ระดับความเสี่ยงของกองทุน</h3>
-          {riskLevel ? <><div className={styles.riskSingle}><strong>{riskLevel}</strong><span>ระดับ {riskLevel} จาก 1–8 ตามข้อมูลกองทุน</span></div><p>{detail.risk?.description}</p></> : <p>ยังไม่มีข้อมูลระดับความเสี่ยง 1–8 ที่แสดงได้ในตอนนี้</p>}
-          <p className={styles.provenance}>ข้อมูล ณ วันที่ {formatDate(detail.risk?.sourceDate ?? null)}</p>
+          <h3>{copyText("investment.h310")}</h3>
+          {riskLevel ? <><div className={styles.riskSingle}><strong>{riskLevel}</strong><span>{copyText("investment.span10")}{riskLevel}{" "}{copyText("investment.span11")}</span></div><p>{detail.risk?.description}</p></> : <p>{copyText("investment.p11")}</p>}
+          <p className={styles.provenance}>{copyText("investment.provenance2")}{formatDate(detail.risk?.sourceDate ?? null, copyText)}</p>
         </section>
 
         <section className={styles.resultPanel}>
-          <h3>ขายคืนแล้วรับเงินเมื่อไร</h3>
-          {classRequired ? <p>เลือกชนิดหน่วยลงทุนก่อน เพื่อดูเงื่อนไขของชนิดหน่วยนั้นให้ถูกต้อง</p> : detail.dealing ? <dl className={styles.factRows}>
-            <div><dt>ซื้อได้เมื่อไร</dt><dd>{detail.dealing.subscriptionPeriod ?? "ไม่ระบุ"}</dd></div>
-            <div><dt>ขายคืนได้เมื่อไร</dt><dd>{detail.dealing.redemptionPeriod ?? "ไม่ระบุ"}</dd></div>
-            <div><dt>รับเงินหลังขายคืน</dt><dd>{detail.dealing.settlementPeriod ?? "ไม่ระบุ"}</dd></div>
-          </dl> : <p>ยังไม่มีข้อมูลเงื่อนไขซื้อและขายคืนที่แสดงได้ในตอนนี้</p>}
-          <p className={styles.provenance}>ข้อมูลนี้เป็นเงื่อนไขที่กองทุนรายงานไว้ ไม่ใช่การรับประกันวันที่เงินจริงเข้าบัญชี</p>
-          <p className={styles.provenance}>วันที่ข้อมูลเงื่อนไข: {formatDate(detail.dealing?.sourceDate ?? null)}</p>
+          <h3>{copyText("investment.h311")}</h3>
+          {classRequired ? <p>{copyText("investment.p12")}</p> : detail.dealing ? <dl className={styles.factRows}>
+            <div><dt>{copyText("investment.dt7")}</dt><dd>{detail.dealing.subscriptionPeriod ?? copyText("investment.formatDateText")}</dd></div>
+            <div><dt>{copyText("investment.dt8")}</dt><dd>{detail.dealing.redemptionPeriod ?? copyText("investment.formatDateText")}</dd></div>
+            <div><dt>{copyText("investment.dt9")}</dt><dd>{detail.dealing.settlementPeriod ?? copyText("investment.formatDateText")}</dd></div>
+          </dl> : <p>{copyText("investment.p13")}</p>}
+          <p className={styles.provenance}>{copyText("investment.provenance3")}</p>
+          <p className={styles.provenance}>{copyText("investment.provenance4")}{formatDate(detail.dealing?.sourceDate ?? null, copyText)}</p>
         </section>
       </div>
 
       <section className={styles.resultPanel}>
-        <h3>เงินก้อนนี้ถูกนำไปลงทุนในอะไรบ้าง</h3>
-        <p>{detail.source === "uat_synthetic" ? "แสดงสัดส่วนสินทรัพย์จากข้อมูลสังเคราะห์สำหรับทดสอบ UAT เท่านั้น" : "แสดงสัดส่วนสินทรัพย์ตามข้อมูลที่กองทุนรายงานต่อ ก.ล.ต."} โดยคงตัวเลขตามต้นทางและไม่ปรับให้รวมเป็น 100% เอง</p>
+        <h3>{copyText("investment.h312")}</h3>
+        <p>{detail.source === "uat_synthetic" ? copyText("investment.singleFundResultText4") : copyText("investment.singleFundResultText5")}{" "}{copyText("investment.p14")}</p>
         {detail.assetAllocation.length ? <div className={styles.assetFactList}>{detail.assetAllocation.map((row, index) => {
           const equivalent = amount > 0 ? amount * row.percentNav / 100 : 0;
           return <div className={styles.assetFactRow} key={`${row.name}-${index}`}>
-            <div className={styles.assetFactHeader}><strong>{row.name}</strong><span>{row.percentNav}%{amount > 0 ? ` · ประมาณ ${formatMoney(equivalent)} บาท` : ""}</span></div>
+            <div className={styles.assetFactHeader}><strong>{row.name}</strong><span>{row.percentNav}%{amount > 0 ? copyText("investment.dynamic12").replaceAll("{0}", String(formatMoney(equivalent))) : ""}</span></div>
             <div className={styles.barTrack} aria-hidden="true"><div className={styles.barFill} data-negative={row.percentNav < 0} style={{ width: `${Math.min(100, Math.abs(row.percentNav))}%` }} /></div>
           </div>;
-        })}</div> : <p>ยังไม่มีข้อมูลสัดส่วนสินทรัพย์ที่แสดงได้ในตอนนี้</p>}
-        <p className={styles.allocationTotalRaw}>รวมตามข้อมูลที่รายงาน: <strong>{allocationTotal}%</strong></p>
-        <p className={styles.provenance}>วันที่ข้อมูลล่าสุดที่พบ {formatDate(detail.dataDate)} · ตรวจข้อมูลเมื่อ {formatDate(detail.fetchedAt)} · วันที่ข้อมูลแต่ละส่วนอาจต่างกัน การตรวจล่าสุดไม่ได้ทำให้ข้อมูลต้นทางใหม่ขึ้น</p>
-        {detail.source === "uat_synthetic" ? <p className={styles.statusNotice}>ข้อมูลสังเคราะห์สำหรับทดสอบเท่านั้น ไม่ใช่ข้อมูลกองทุนจริงจาก ก.ล.ต.</p> : null}
-        <p className={styles.provenance}>ชนิดหน่วยลงทุน: {detail.selectedClassName ?? "ยังไม่ระบุ"} · ข้อมูลนี้ไม่ใช้เปรียบเทียบผลตอบแทน ค่าธรรมเนียม สกุลเงิน หรือการป้องกันความเสี่ยงค่าเงินซึ่งยังไม่มีข้อมูลที่ตรวจสอบได้ครบ</p>
+        })}</div> : <p>{copyText("investment.p15")}</p>}
+        <p className={styles.allocationTotalRaw}>{copyText("investment.allocationTotalRaw")}<strong>{allocationTotal}%</strong></p>
+        <p className={styles.provenance}>{copyText("investment.provenance5")}{formatDate(detail.dataDate, copyText)}{" "}{copyText("investment.provenance6")}{formatDate(detail.fetchedAt, copyText)}{" "}{copyText("investment.provenance7")}</p>
+        {detail.source === "uat_synthetic" ? <p className={styles.statusNotice}>{copyText("investment.statusNotice8")}</p> : null}
+        <p className={styles.provenance}>{copyText("investment.provenance8")}{detail.selectedClassName ?? copyText("investment.linesText3")}{" "}{copyText("investment.provenance9")}</p>
       </section>
 
       {detail.specifications.length || fund.masterFund ? <section className={styles.resultPanel}>
-        <h3>ข้อมูลเพิ่มเติมเกี่ยวกับกองทุน</h3>
+        <h3>{copyText("investment.h313")}</h3>
         <div className={styles.specList}>
-          {fund.masterFund ? <span>กองทุนหลักที่ลงทุนต่อ: {fund.masterFund}{fund.feederCountry ? ` · ${fund.feederCountry}` : ""}</span> : null}
+          {fund.masterFund ? <span>{copyText("investment.span12")}{fund.masterFund}{fund.feederCountry ? ` · ${fund.feederCountry}` : ""}</span> : null}
           {[...new Set(detail.specifications.map((spec) => spec.description))].map((description) => <span key={description}>{description}</span>)}
         </div>
       </section> : null}
 
-      {detail.warnings.length ? <section className={styles.resultPanel}><h3>ข้อจำกัดของข้อมูล</h3><ul className={styles.warningList}>{detail.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></section> : null}
+      {detail.warnings.length ? <section className={styles.resultPanel}><h3>{copyText("investment.h314")}</h3><ul className={styles.warningList}>{detail.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></section> : null}
 
       <section className={styles.resultPanel}>
-        <h3>ให้ Pun ช่วยดูต่อ</h3>
-        <p>ระบบไม่ได้ตัดสินว่ากองนี้ “ดี” หรือ “เหมาะ” แต่ช่วยส่งข้อมูลที่คุณเลือกเองให้คุยต่อได้โดยไม่ต้องเริ่มใหม่</p>
+        <h3>{copyText("investment.h38")}</h3>
+        <p>{copyText("investment.p16")}</p>
         <div className={styles.resultActions}>
-          <button className={styles.secondary} type="button" disabled={handoffDisabled} onClick={onSave}>บันทึกในอุปกรณ์นี้</button>
-          <button className={styles.primary} type="button" disabled={handoffDisabled} onClick={onHandoff}>คัดลอกสรุป + ส่งให้ Pun ช่วยดู</button>
+          <button className={styles.secondary} type="button" disabled={handoffDisabled} onClick={onSave}>{copyText("investment.secondary")}</button>
+          <button className={styles.primary} type="button" disabled={handoffDisabled} onClick={onHandoff}>{copyText("investment.primary4")}</button>
         </div>
-        {amount <= 0 ? <p className={styles.validation} role="status">กรอกจำนวนเงินที่มากกว่า 0 ก่อนบันทึกหรือคัดลอกสรุป</p> : null}
+        {amount <= 0 ? <p className={styles.validation} role="status">{copyText("investment.validation")}</p> : null}
         {saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}
       </section>
     </div>
   );
+}
+
+function formatDate(value: string | null, copyText: (key: keyof typeof INVESTMENT_COPY_DEFAULTS) => string): string {
+  if (!value) return copyText("investment.formatDateText");
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric" }).format(date);
 }

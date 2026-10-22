@@ -1,4 +1,6 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { INVESTMENT_COPY_DEFAULTS } from "@/lib/content/investment-copy-defaults";
 
 import { useState } from "react";
 import PortfolioBuilder from "./PortfolioBuilder";
@@ -8,25 +10,28 @@ import styles from "./InvestmentAllocation.module.css";
 type JourneyMode = "single" | "portfolio";
 
 export default function InvestmentAllocationTool() {
+  const copyText = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+
+
   const [mode, setMode] = useState<JourneyMode>("single");
 
   return (
     <>
       <section className={styles.modeSection} aria-labelledby="investment-mode-title">
         <div className={styles.modeInner}>
-          <p className={styles.eyebrow}>เริ่มแบบที่ตรงกับโจทย์คุณ</p>
-          <h2 id="investment-mode-title">อยากใช้กองเดียว หรือจัดหลายกอง?</h2>
-          <p className={styles.modeLead}>ทั้งสองทางให้คุณเป็นคนเลือกกองเอง ระบบไม่จัดอันดับ ไม่แนะนำกอง และไม่เลือกแทน</p>
-          <div className={styles.modeGrid} role="group" aria-label="เลือกวิธีจัดการลงทุน">
+          <p className={styles.eyebrow}>{copyText("investment.eyebrow")}</p>
+          <h2 id="investment-mode-title">{copyText("investment.h2")}</h2>
+          <p className={styles.modeLead}>{copyText("investment.modeLead")}</p>
+          <div className={styles.modeGrid} role="group" aria-label={copyText("investment.investmentAllocationToolarialabel")}>
             <button className={styles.modeCard} data-active={mode === "single"} aria-pressed={mode === "single"} type="button" onClick={() => setMode("single")}>
-              <span className={styles.modeBadge}>เริ่มง่าย</span>
-              <strong>ใช้กองเดียว</strong>
-              <span>เลือกกองทุน 1 กอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ความเสี่ยงระดับไหน และขายคืนแล้วรับเงินตามเงื่อนไขอะไร</span>
+              <span className={styles.modeBadge}>{copyText("investment.modeBadge")}</span>
+              <strong>{copyText("investment.strong")}</strong>
+              <span>{copyText("investment.span")}</span>
             </button>
             <button className={styles.modeCard} data-active={mode === "portfolio"} aria-pressed={mode === "portfolio"} type="button" onClick={() => setMode("portfolio")}>
-              <span className={styles.modeBadge}>ขั้นสูง</span>
-              <strong>จัดหลายกองเอง</strong>
-              <span>กำหนดสัดส่วน เลือกหลายกอง และดูว่าสุดท้ายเงินกระจายไปอยู่ในสินทรัพย์อะไรบ้าง</span>
+              <span className={styles.modeBadge}>{copyText("investment.modeBadge2")}</span>
+              <strong>{copyText("investment.strong2")}</strong>
+              <span>{copyText("investment.span2")}</span>
             </button>
           </div>
         </div>

@@ -126,6 +126,7 @@ function toArticleAuthorProfile(author: RawArticleSummary["author"]): Article["a
   const professionalQualifications = parseProfessionalQualifications(author.professionalQualifications);
   const professionalLicenses = parseProfessionalLicenses(author.professionalLicenses);
   return {
+    id: author._id,
     name: author.name,
     profileName: author.profileName ?? undefined,
     profileRole: author.profileRole ?? undefined,
@@ -227,6 +228,7 @@ const baseProjection = groq`{
   tags,
   "authorName": coalesce(author->profileName, author->name),
   "author": author->{
+    _id,
     name,
     profileName,
     profileRole,
@@ -327,6 +329,7 @@ const bySlugQuery = groq`*[_type == "article" && slug.current == $slug][0] ${art
 
 // Use a stable identity, not the editable display name.
 const primaryAuthorQuery = groq`*[_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]][0]{
+  _id,
   name,
   profileName,
   profileRole,

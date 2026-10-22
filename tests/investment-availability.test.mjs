@@ -118,7 +118,9 @@ test('actual tools sitemap excludes investment when closed and includes it once 
 
 test('page blocks rendering before its JSX; shared server gate supplies both navigation layouts', () => {
   const page = source('features/investment-allocation/page.tsx');
-  const guard = page.match(/export default function InvestmentAllocationPage\(\) \{([\s\S]*?)\n  return \(/)?.[1];
+  const guard = page.match(/if \(!INVESTMENT_ALLOCATION_ENABLED\) notFound\(\);/)?.[0];
+  const entry = page.slice(page.indexOf('export default function InvestmentAllocationPage'));
+  assert.ok(entry.indexOf(guard) < entry.indexOf('return renderInvestmentAllocationPage'), 'public disabled route stops before renderer or CMS reads');
   assert.ok(guard, 'page guard must precede JSX');
   assert.throws(() => runInNewContext(guard, { INVESTMENT_ALLOCATION_ENABLED: false, notFound: () => { throw new Error('404'); } }), /404/);
   runInNewContext(guard, { INVESTMENT_ALLOCATION_ENABLED: true, notFound: () => { throw new Error('404'); } });
