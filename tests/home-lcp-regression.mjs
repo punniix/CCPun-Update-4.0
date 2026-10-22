@@ -1,7 +1,8 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const home = readFileSync(new URL("../features/home/website-43/Website43Home.tsx", import.meta.url), "utf8");
+const home = productionCmsDisplaySource("features/home/website-43/Website43Home.tsx");
 const route = readFileSync(new URL("../apps/web/app/page.tsx", import.meta.url), "utf8");
 assert.match(route, /<Website43Home/);
 const hero = home.split('<section id="home"')[1].split('</section>')[0];
@@ -24,7 +25,10 @@ for (const file of ['app/layout.tsx', 'apps/web/app/layout.tsx']) {
   assert.match(layout, /<a href="#main-content" className=/, file + ": skip link retains its exact target");
 }
 assert.match(route, /mainEntity: homeFaqs\.map/);
-assert.match(home, /homeFaqs as faqs/);
+assert.match(home, /faqs = getHomeCopyFaqs\(copy\)/);
+assert.match(home, /faqs\.map\(/);
+assert.match(route, /const homeFaqs = getHomeCopyFaqs\(copy\)/);
+assert.match(route, /faqs=\{homeFaqs\}/);
 assert.doesNotMatch(home, /\/preview\//);
 const shared = readFileSync(new URL("../components/layout/website-43/Website43Shared.tsx", import.meta.url), "utf8");
 assert.match(shared, /import CookieSettingsButton from '@\/components\/layout\/CookieSettingsButton'/);

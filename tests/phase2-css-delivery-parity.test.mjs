@@ -191,7 +191,7 @@ test('Money composition admission rejects changed logic, unreachable owners, mut
   };
   for (const [file, source] of [
     [composition.controller, current.replace('game.currentMonth > 1', 'game.currentMonth > 2')],
-    [composition.controller, current.replace('ต้องการเริ่มใหม่หรือไม่?', 'เริ่มใหม่ทันที')],
+    [composition.controller, current.replace('moneyStory.returnToCharacterSelectionText', 'moneyStory.resultText')],
     [composition.controller, current.replace('game.currentMonth === 12', 'game.currentMonth === 11')],
     [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  coverShortfallWithExtraIncome as coverShortfallWithExpenseCut,')],
     [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  type coverShortfallWithExpenseCut,')],

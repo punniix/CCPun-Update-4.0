@@ -1,8 +1,9 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 
-const read = (path) => readPhase1Source(path);
+const read = (path) => readPhase1Source(path,{read:p=>productionCmsDisplaySource(p)});
 
 const packageJson = JSON.parse(read('package.json'));
 assert.equal(packageJson.version, '4.1.0');
@@ -332,7 +333,7 @@ assert.deepEqual(portableTextMembers, [
 const articleBodyRenderer = read('features/blog/website-43/Website43ArticleBody.tsx');
 const articleTocRenderer = read('features/blog/website-43/Website43ArticleToc.tsx');
 assert.match(articleTocRenderer, /groups/);
-assert.match(articlePresentation, /renderWebsite43ArticleBody\(article\.body, headingIds\)/);
+assert.match(articlePresentation, /renderWebsite43ArticleBody\(article\.body, headingIds, copy\)/);
 assert.match(articleBodyRenderer, /const id = headingIds\.get\(index\)/);
 assert.match(articleBodyRenderer, /id=\{id\}/);
 for (const [schemaType, publicType] of [

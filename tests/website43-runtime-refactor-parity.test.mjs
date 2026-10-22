@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -51,6 +52,11 @@ function stylesheetRules(source, responsive = false) {
 }
 
 
+const { SITE_COPY_DEFAULTS } = loadFixtureModule('lib/content/site-copy-defaults.ts');
+const defaultCopyText = (values = SITE_COPY_DEFAULTS) => key => {
+  assert.ok(Object.hasOwn(SITE_COPY_DEFAULTS,key), `Known site copy key: ${key}`);
+  return values[key] ?? SITE_COPY_DEFAULTS[key];
+};
 const styles = new Proxy({}, { get: (_, property) => String(property) });
 function component(source, name, pathname, state = []) {
   const hooks = state === null ? React : { ...React, useState: (initial) => [state.length ? state.shift() : initial, () => {}] };
@@ -59,6 +65,9 @@ function component(source, name, pathname, state = []) {
     if (id === 'next/link') return { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) };
     if (id === 'next/navigation') return { usePathname: () => pathname };
     if (id === 'react') return hooks;
+    if (id === '@/components/ui/PublicCopyProvider') return { usePublicCopy: () => defaultCopyText() };
+    if (id === '@/lib/content/public-copy') return { getPublicCopy: async scope => { assert.equal(scope,'site'); return { ...SITE_COPY_DEFAULTS }; } };
+    if (id === '@/lib/content/public-copy-registry') return { publicCopyText: defaultCopyText };
     if (id === './constants') return { WEBSITE43_BASE: '', WEBSITE43_HOME: '/' };
     if (id === './Website43Navbar') return {};
     if (id.includes('CookieSettingsButton')) return { __esModule: true, default: (props) => React.createElement('button', props, 'Cookie settings') };
@@ -97,9 +106,9 @@ const navbarSnapshots = (source) => {
   }
   return snapshots;
 };
-const footerSnapshots = (source) => {
+const footerSnapshots = async (source) => {
   const snapshots = [];
-  for (const warnings of [false, true]) for (const notFound of [false, true]) snapshots.push(renderToStaticMarkup(React.createElement(component(source, 'Website43Footer', '/'), { warnings, notFound })));
+  for (const warnings of [false, true]) for (const notFound of [false, true]) snapshots.push(renderToStaticMarkup(await component(source, 'Website43Footer', '/')({ warnings, notFound })));
   return snapshots;
 };
 test('portrait admission rejects changed position, duplicates and unrelated active CSS drift', () => {
@@ -136,12 +145,12 @@ test('96 navbar disclosure states preserve DOM, labels, links, aria and tracking
   assert.equal(fingerprint(navbarSnapshots(originalUi)),baseline.navbarDom,'Only approved brand class/mobile indicator are normalized; original96DOM properties retained');
 });
 
-test('unified footer preserves links while removing approved marketing tagline in all four reviewed variants', () => {
+test('unified footer preserves links while removing approved marketing tagline in all four reviewed variants', async () => {
   assert.doesNotMatch(after('Website43Shared.tsx'), /วางแผนการเงินจากชีวิตจริง|เพื่อให้คุณตัดสินใจได้อย่างมั่นใจ/);
   assert.match(after('Website43Shared.tsx'), /Website43Brand/);
   assert.match(after('Website43Shared.tsx'), /CookieSettingsButton/);
   assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
-  assert.equal(fingerprint(footerSnapshots(after('Website43Shared.tsx'))),reviewedCurrent.footerDesktopDom);
+  assert.equal(fingerprint(await footerSnapshots(after('Website43Shared.tsx'))),reviewedCurrent.footerDesktopDom);
   assert.equal(baseline.footerDom,'db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b','Original full/compact baseline retained as history; duplicate compact removal is explicit');
 });
 

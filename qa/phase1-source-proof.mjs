@@ -1,3 +1,4 @@
+import { assertProductionCmsOwner, hasProductionCmsOwner } from './production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -13,7 +14,8 @@ export function productionBaselineSource(file) {
   const projection = proof.compositions?.[file];
   if (!projection) return read(file);
   let current = read(file);
-  if (file === 'apps/web/app/layout.tsx') {
+  const cmsSource = hasProductionCmsOwner(file);
+  if (file === 'apps/web/app/layout.tsx' && !cmsSource) {
     const approved = 'weight: ["300", "400", "500", "600", "700"]';
     assert.equal(current.split(approved).length, 2, 'only the noncritical Kanit face adds weight 500 once');
     current = current.replace(approved, 'weight: ["300", "400", "600", "700"]');
@@ -23,11 +25,13 @@ export function productionBaselineSource(file) {
     assert.equal(current.split('display: "swap"').length, 3, 'both existing Kanit loaders swap late fonts');
     current = current.replaceAll('display: "swap"', 'display: "optional"');
   }
-  if (file === 'apps/admin/app/(control-plane)/operations/health/page.tsx') {
+  if (cmsSource) assertProductionCmsOwner(file,current);
+  else if (file === 'apps/admin/app/(control-plane)/operations/health/page.tsx') {
     assert.equal(projection.candidateSha256, '984d7d0c447f6ad47af560dc2b90612cfaa37029734414edc8c40bc44aacb766', 'original Health composition remains frozen');
     assert.equal(sha(current), '4d0045767bdbfdf9ed410e0b1d1cb31b1969d07f74ea0fac02f62c26e447bcce', 'only reviewed numeric serving-runtime rows are admitted');
   } else assert.equal(sha(current), projection.candidateSha256, file + ': unreviewed route composition change');
   for (const [owner, digest] of Object.entries(proof.owners)) {
+    if(hasProductionCmsOwner(owner)) {assertProductionCmsOwner(owner,read(owner));continue;}
     const recheckOwner = owner === 'features/admin/components/SeoOverviewPage.tsx';
     const schedulerOwner = owner === 'lib/admin/article-schedule-handler.ts';
     if (recheckOwner) assert.equal(digest, '833dec440489b8f480239b633cfa3c16216259438ae40c4f7af90d939f99e3cb', 'original SEO page owner retained');

@@ -1,3 +1,5 @@
+import './production-cms-source-admission.test.mjs';
+import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import './ux-structure-production.test.mjs';
 import { assertPhase3AdminNativeBoundaries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 import assert from 'node:assert/strict';
@@ -64,6 +66,10 @@ function assertReviewedGoogleRoute(file, digest, source) {
   assert.equal(sha(source), googleRoutePins[file][1], file + ': exact reviewed Google API body');
 }
 function assertReviewed404Button(digest, source) {
+  if(hasProductionCmsOwner('apps/web/app/not-found.tsx')) {
+    assert.equal(digest,'73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8');
+    return assertProductionCmsOwner('apps/web/app/not-found.tsx',source);
+  }
   assert.equal(digest, '73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8', 'original complete 404 source stays frozen');
   for (const insertion of [
     " style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}",
@@ -122,6 +128,7 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   assertReviewedUxOwners(proof, reviewedUiOwners);
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
+    if(hasProductionCmsOwner(file)) {assertProductionCmsOwner(file,read(file)); continue;}
     if (lineCopyOriginRoutes.includes(file)) assertReviewedLineCopyOrigin(file, digest, read(file));
     else if (Object.hasOwn(googleRoutePins, file)) assertReviewedGoogleRoute(file, digest, read(file));
     else if (file === 'features/blog/website-43/blogData.ts') assert.equal(sha(reviewedArticleCardProjection(file, read(file))), digest, 'only actual Article ID added to card data');
@@ -162,7 +169,7 @@ test('reviewed LINE and Google route admissions reject unrelated changes, unknow
 
 test('404 button admission rejects changed width, copy and duplicate style insertions', () => {
   const file = 'apps/web/app/not-found.tsx', source = read(file), digest = proof.protected[file];
-  for (const changed of [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('ดูบทความ', 'unreviewed copy'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"]) {
+  for (const changed of [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('site.extra.blogRecovery','site.extra.primaryButton'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"]) {
     assert.throws(() => assertReviewed404Button(digest, changed));
   }
 });

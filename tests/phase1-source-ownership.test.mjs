@@ -123,6 +123,8 @@ test('root and Web keep their original complete metadata and layout/first-paint/
     async function render(baseline) {
       const trace = [];
       const mocks = new Map([
+        ['@/lib/content/public-copy',{getPublicCopy:async scope=>loadFixtureModule('lib/content/public-copy-registry.ts').parsePublicCopy(scope,null)}],
+        ['@/components/ui/PublicCopyProvider',{PublicCopyProvider:({children})=>children}],
         ['next/font/google', { Kanit: options => { trace.push(['font', options]); return { variable: options.variable }; } }],
         ['next/headers', { draftMode: async () => { trace.push('draftMode'); return { isEnabled: draft }; } }],
         ['@/lib/deployment-environment', { IS_ADMIN_APPLICATION: admin, IS_DRAFT_PREVIEW_ALLOWED: review, IS_REVIEW_ENVIRONMENT: review, PRODUCTION_ANALYTICS_ENABLED: !admin && !review }],

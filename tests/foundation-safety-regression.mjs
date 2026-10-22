@@ -1,6 +1,7 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import fs from 'node:fs';
 
-const read = (path) => fs.readFileSync(path, 'utf8');
+const read = (path) => productionCmsDisplaySource(path,fs.readFileSync(path,'utf8'));
 const failures = [];
 
 function expect(name, pass, detail = '') {
@@ -166,9 +167,9 @@ expect(
 expect(
   'Site-wide credential enrichment uses one Person graph while homepage keeps its Author Card',
   homePage.includes('getPrimaryAuthorProfile')
-    && homePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && homePage.includes('<Website43Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
     && webHomePage.includes('getPrimaryAuthorProfile')
-    && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && webHomePage.includes('<Website43Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
     && webPublicLayout.includes('buildCcpunSchemaGraph(author)')
     && siteStructuredData.includes('buildProfessionalQualificationPersonSchema(')
     && !webHomePage.includes('professionalQualificationSchema')

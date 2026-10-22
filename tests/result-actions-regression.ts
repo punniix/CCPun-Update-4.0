@@ -1,4 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { CI_COPY_DEFAULTS } from '../lib/content/tool-copy-defaults';
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
+import { fileURLToPath } from 'node:url';
+import { relative } from 'node:path';
+import { readFileSync as rawReadFileSync } from 'node:fs';
+const readFileSync = (file: URL, encoding: 'utf8'): string => productionCmsDisplaySource(relative(process.cwd(),fileURLToPath(file)),rawReadFileSync(file,encoding));
 import {
   CI_LINE_OA_DESTINATION,
   CI_LINE_OA_URL,
@@ -312,7 +317,9 @@ assert(!shareImageSource.includes('#16352f') && shareImageSource.includes('#3527
 assert(imageSource.includes('รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก'), 'income result image must state that the selected duration is in years');
 assert(shareImageSource.includes("'image/png'"), 'result image must be encoded as PNG');
 assert(imageSource.includes('ประมาณการทุนโรคร้ายแรงที่ควรมี'), 'CI image must use the approved headline');
-assert(imageSource.includes("summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'"), 'CI export must label the selected estimation method');
+assert(imageSource.includes("summary.estimationMethod === 'income' ? 'ci.image.incomeBasis' : 'ci.image.expenseBasis'"), 'CI export must label the selected estimation method');
+equal(CI_COPY_DEFAULTS["ci.image.incomeBasis"],"รายได้","original income label");
+equal(CI_COPY_DEFAULTS["ci.image.expenseBasis"],"รายจ่าย","original expense label");
 assert(!shareImageSource.includes('context.fillText(summary.methodTitle, 68, 385)'), 'CI image must not repeat the method below its amount');
 assert(shareImageSource.includes('context.fillText(summary.methodTitle, 96, 862)'), 'FHC image must keep its existing method detail');
 assert(shareImageSource.includes('ทุนสำหรับรับมือโรคร้ายแรง'), 'CI image must use the review-approved funding label');
@@ -484,7 +491,7 @@ assert(
   'result download must receive the selected method',
 );
 assert(
-  resultImageButtonSource.includes('createCIResultImageSummary(result, selectedMethod, CI_ASSESSMENT_VERSION)'),
+  resultImageButtonSource.includes('createCIResultImageSummary(result, selectedMethod, CI_ASSESSMENT_VERSION, undefined, t)'),
   'result download must export the selected method',
 );
 

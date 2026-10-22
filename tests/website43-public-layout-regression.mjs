@@ -1,10 +1,11 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 
-const read = (path) => readFileSync(path, 'utf8');
+const read = (path) => productionCmsDisplaySource(path, readFileSync(path, 'utf8'));
 
 const responsive = read('components/layout/website-43/Website43ResponsiveStyles.tsx');
 const navbar = read('components/layout/website-43/Website43Navbar.module.css');

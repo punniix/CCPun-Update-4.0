@@ -1,3 +1,4 @@
+import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import './article-overview-rendering.test.mjs';
 import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
 import test from 'node:test';
@@ -150,6 +151,9 @@ test('Investment release capability remains false even with explicit environment
 
 function packageBeforePostPublishScripts(source) {
   const manifest = JSON.parse(source);
+  const sameWordTest=' && node --test tests/production-cms-sameword.test.mjs';
+  assert.equal(manifest.scripts['test:foundation-contracts'].split(sameWordTest).length,2,'same-word frozen render and metadata checks must run exactly once');
+  manifest.scripts['test:foundation-contracts']=manifest.scripts['test:foundation-contracts'].replace(sameWordTest,'');
   const addedStaticChecks = " && npm run test:calculators && npm run test:sitemap-google && npm run test:home-lcp && npm run test:seo-topic-hubs";
   assert.ok(manifest.scripts["check:foundation"].endsWith(addedStaticChecks), "all existing static CI gates must also run locally");
   manifest.scripts["check:foundation"] = manifest.scripts["check:foundation"].slice(0, -addedStaticChecks.length);
@@ -268,6 +272,7 @@ test('Production providers, metadata, models, engines, tracking, consent storage
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
       : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f'
       : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4' : digest;
+    if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
     const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
     assert.equal(sha(source), reviewedDigest, file);
   }
@@ -322,6 +327,9 @@ test('Vite security admission rejects changed overrides, artifact metadata and u
 function loadArchive(articles, registry) {
   const Page = props => React.createElement('archive-proof', props);
   const mocks = {
+    '@/lib/content/public-copy': { getPublicCopy: async () => ({}) },
+    '@/lib/content/public-copy-registry': { publicCopyText: () => key => key },
+    '@/components/ui/PublicCopyProvider': { PublicCopyProvider: ({children}) => children },
     'next/headers': { draftMode: async () => ({ isEnabled: false }) },
     '@/features/blog/website-43/Website43Blog': { __esModule: true, default: Page },
     '@/features/blog/website-43/blogData': { toWebsite43ArticleItems: x => x, toWebsite43ArticleItemsInOrder: x => x },
@@ -363,6 +371,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
   assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
   for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
     if (file === retired) continue;
+    if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
     const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
     if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css') {
       const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png';
