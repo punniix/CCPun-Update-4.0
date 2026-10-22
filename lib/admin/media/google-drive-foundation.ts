@@ -431,13 +431,13 @@ export type GoogleDriveSelectedFileBinaryResult =
 
 // At most the existing ten 1GB files may be staged in this process. Disk
 // pressure is a resource denial, never permission to send unverified bytes.
-export const MAX_GOOGLE_DRIVE_STAGED_BYTES = 10 * MAX_GOOGLE_DRIVE_BINARY_BYTES;
-export const GOOGLE_DRIVE_STAGING_RESERVE_BYTES = 256 * 1024 * 1024;
+const MAX_GOOGLE_DRIVE_STAGED_BYTES = 10 * MAX_GOOGLE_DRIVE_BINARY_BYTES;
+const GOOGLE_DRIVE_STAGING_RESERVE_BYTES = 256 * 1024 * 1024;
 let stagedBytes = 0;
 let unwrittenBytes = 0;
 const stagedDisposals = new WeakMap<ReadableStream<Uint8Array>, () => Promise<void>>();
 
-export function canStageGoogleDriveMedia(bytes: number, reserved: number, pending: number, available: number) {
+function canStageGoogleDriveMedia(bytes: number, reserved: number, pending: number, available: number) {
   return Number.isSafeInteger(bytes) && bytes > 0 && bytes <= MAX_GOOGLE_DRIVE_BINARY_BYTES
     && Number.isSafeInteger(reserved) && reserved >= 0 && reserved + bytes <= MAX_GOOGLE_DRIVE_STAGED_BYTES
     && Number.isSafeInteger(pending) && pending >= 0 && Number.isSafeInteger(available)
