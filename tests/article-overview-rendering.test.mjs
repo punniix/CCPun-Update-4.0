@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
-import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection, assertReviewedMasterUatOwner, reviewedMasterUatOwners } from '../qa/phase2-source-proof.mjs';
+import { assertReviewedMasterUatOwner, reviewedMasterUatOwners } from '../qa/phase2-source-proof.mjs';
 const read = path => readFileSync(path,'utf8');
 const path = 'features/blog/website-43/Website43Article.tsx';
 const summary = 'บทความอธิบายวิธีแยกรายได้ ค่าใช้จ่าย และค่าลดหย่อน เพื่อเห็นภาพลำดับการคำนวณภาษี\nยกตัวอย่างข้อมูลที่ต้องเตรียมและข้อควรตรวจสอบ ก่อนนำไปคำนวณตามบทความ';
