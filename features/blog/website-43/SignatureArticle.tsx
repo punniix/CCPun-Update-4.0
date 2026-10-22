@@ -43,6 +43,41 @@ function Foot({text,note}:{text?:string;note?:string}) {
   return (text||note)?<footer className={styles.foot}>{text&&<p><b>สิ่งที่ควรดูต่อ</b> {text}</p>}{note&&<small>{note}</small>}</footer>:null;
 }
 function NumberText({n}:{n:number}){return <span className={styles.amount}>{fmt(n)}</span>;}
+/**
+ * Format whole-baht inputs in place (30,000, 60,000), with a mobile number keypad.
+ * Transient DOM/input state only; no network, cookies or database. Setting the
+ * selection after grouping keeps the caret steady even when editing mid-string.
+ */
+function GroupedMoneyInput({
+  id,initialValue,max,onValueChange,
+}:{
+  id:string;initialValue:number;max:number;onValueChange:(value:number)=>void;
+}){
+  return <input id={id} className={styles.input} type="text" inputMode="numeric"
+    autoComplete="off" spellCheck={false} pattern="[0-9,]*"
+    defaultValue={fmt(Math.max(0,Math.min(initialValue,max)))}
+    onInput={(event)=>{
+      const input=event.currentTarget;
+      const raw=input.value;
+      const cursor=input.selectionStart??raw.length;
+      const toLatin=(text:string)=>text.replace(/[๐-๙]/g,ch=>String(ch.charCodeAt(0)-0x0E50));
+      const before=toLatin(raw.slice(0,cursor)).replace(/[^0-9]/g,'').length;
+      const digits=toLatin(raw).replace(/[^0-9]/g,'').slice(0,15);
+      const amount=Math.min(max,Number(digits)||0);
+      const formatted=digits?fmt(amount):'';
+      input.value=formatted;
+      let position=0,seen=0;
+      while(position<formatted.length && seen<Math.min(before,String(amount).length)){
+        if(/[0-9]/.test(formatted[position]))seen++;
+        position++;
+      }
+      input.setSelectionRange(position,position);
+      onValueChange(amount);
+    }}
+    onBlur={(event)=>{if(!event.currentTarget.value)event.currentTarget.value='0';}}
+  />;
+}
+
 const hasHttpSource=(entries:{url?:string}[])=>entries.some(e=>!!e.url&&/^https?:\/\//.test(e.url));
 function reviewDate(iso:string|undefined){
   if(!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso))return '';
@@ -100,11 +135,11 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
       contents=<div className={styles.two}>
         <div className={styles.panel}>
           <label className={styles.field} htmlFor={id+'monthly'}>เงินต่อเดือน (บาท)</label>
-          <input id={id+'monthly'} className={styles.input} type="number" min={0} max={1000000000} value={monthly} onChange={e=>setMonthly(Math.max(0,Math.min(1000000000,Number(e.target.value)||0)))}/>
+          <GroupedMoneyInput id={id+'monthly'} initialValue={block.monthlyAmount??30000} max={1000000000} onValueChange={setMonthly}/>
           <label className={styles.field} htmlFor={id+'months'}>จำนวนเดือน: {months}</label>
           <input id={id+'months'} className={styles.range} type="range" min={1} max={120} value={months} onChange={e=>setMonths(Number(e.target.value))}/>
           <label className={styles.field} htmlFor={id+'existing'}>เงินที่มีแล้ว (บาท)</label>
-          <input id={id+'existing'} className={styles.input} type="number" min={0} max={1000000000000} value={existing} onChange={e=>setExisting(Math.max(0,Number(e.target.value)||0))}/>
+          <GroupedMoneyInput id={id+'existing'} initialValue={block.existingAmount??0} max={1000000000000} onValueChange={setExisting}/>
         </div>
         <div className={styles.panel}><span className={styles.caption}>ส่วนที่ยังต้องเตรียม (สมมติฐาน)</span><p className={styles.number}><NumberText n={remaining}/> บาท</p>
           <details className={styles.details}><summary>ดูที่มาของตัวเลข</summary>
