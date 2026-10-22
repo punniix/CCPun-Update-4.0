@@ -166,7 +166,7 @@ test('SEO edits preserve indexing and canonical controls; only explicit sharing 
   for(const url of ['https://cdn.sanity.io/images/ccb9lnw5/uat/asset-1200x630.webp','https://cdn.sanity.io/images/other/production/asset.webp','https://evil.invalid/asset.webp','https://ccpun.com/assets/%2e%2e/private.webp','https://user@ccpun.com/assets/a.webp'])assert.equal(image(url),false,url);
 });
 test('Production preview authorizes before reads and refuses wrong lane, scope or data-plane identity',async()=>{
-  for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'admin-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'investment'}]) {
+  for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'web-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'investment'}]) {
     const trace=[];const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
       ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>{trace.push(permission);if(config.denied)throw new Error('fixture-denied');}}],
       ['@/lib/admin/environment',{getAdminEnvironment:()=>config.environment,isAdminReadDataPlaneAllowed:()=>config.allowed}],
@@ -256,4 +256,20 @@ test('fixed singletons initialize validated editable drafts while Production pub
     const allowed=policy.filterStudioDocumentActions(actions,'uat','admin-uat',type,'ccb9lnw5');assert.ok(allowed.some(item=>item.action==='publish'));assert.ok(!allowed.some(item=>['delete','unpublish','unpublishVersion'].includes(item.action)));
   }
   const items=[{getId:()=> 'publicPageCopy'},{getId:()=> 'pageSeo'}];assert.deepEqual(policy.filterStudioStructureItems(items,'production-admin'),items);assert.deepEqual(policy.filterStudioNewDocumentOptions(items.map(item=>({templateId:item.getId()})),'production','production-admin','kyfxgjnq'),[]);
+});
+test('the same curated code supports authorized UAT acceptance through its exact UAT bindings',async()=>{
+  const defaults=await metadataFixture('home');const seo=seoResolver({_id:'pageSeo-home',pathname:'/',seoTitle:'UAT verification'}, {environment:'web-uat'});assert.equal((await seo.resolve('/',defaults)).title,'UAT verification');assert.equal(seo.requests[0].perspective,'published');
+  const trace=[];const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
+    ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>trace.push(permission)}],
+    ['@/lib/admin/environment',{getAdminEnvironment:()=> 'admin-uat',isAdminReadDataPlaneAllowed:(dataset,environment)=>{assert.equal(dataset,'uat');assert.equal(environment,'admin-uat');return true;}}],
+    ['../content/sanity-fetch',{sanityFetch:async request=>{assert.equal(request.perspective,'drafts');trace.push(request.params.id);return{data:null};}}],
+  ])});assert.deepEqual((await api.getPublicCopyPreview('home')).copy,registry.parsePublicCopy('home',null));assert.equal(trace[0],'draft:apply');assert.equal(trace.length,4);
+});
+test('Sanity OG uploads stay in the matching fixed UAT or Production image pair',async()=>{
+  const image=loadFixtureModule('lib/content/page-seo-registry.ts').isPageSeoImageUrlAllowed;
+  const prod='https://cdn.sanity.io/images/kyfxgjnq/production/image-1200x630.webp',uat='https://cdn.sanity.io/images/ccb9lnw5/uat/image-1200x630.webp';
+  assert.equal(image(prod,'production'),true);assert.equal(image(uat,'uat'),true);assert.equal(image(uat,'production'),false);assert.equal(image(prod,'uat'),false);assert.equal(image('https://test.ccpun.com/assets/image.webp','production'),false);
+  const defaults=await metadataFixture('home'),record={_id:'pageSeo-home',pathname:'/',ogImageUrl:uat};assert.equal((await seoResolver(record,{environment:'web-uat'}).resolve('/',defaults)).openGraph.images[0].url,uat);assert.equal(await seoResolver(record,{environment:'production'}).resolve('/',defaults),defaults);
+  const schema=loadFixtureModule('cms/sanity/schema/documents/page-seo.ts',{mocks:new Map([['sanity',{defineType:value=>value,defineField:value=>value}]]),globals:{process:{env:{NEXT_PUBLIC_SANITY_PROJECT_ID:'ccb9lnw5',NEXT_PUBLIC_SANITY_DATASET:'uat'}}}}).pageSeo;
+  const rule={uri(){return this},custom(fn){return fn}};const check=schema.fields.find(field=>field.name==='ogImageUrl').validation(rule);assert.equal(check(uat),true);assert.notEqual(check(prod),true);
 });

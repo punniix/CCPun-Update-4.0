@@ -95,16 +95,17 @@ export function getPageSeoPage(pathname: string): PageSeoPage | undefined {
 export function pageSeoDocumentId(pathname: string): string | null {
   return getPageSeoPage(pathname)?.documentId ?? null;
 }
-export function isPageSeoImageUrlAllowed(value: string): boolean {
+export function isPageSeoImageUrlAllowed(value: string, dataset: "production" | "uat" = "production"): boolean {
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" || url.port || url.username || url.password || url.hash) return false;
-    const sanity = url.hostname === "cdn.sanity.io" && url.pathname.startsWith("/images/kyfxgjnq/production/");
-    const ownAsset = ["ccpun.com", "test.ccpun.com"].includes(url.hostname) && /^\/(?:assets\/|og-image[^/]*$)/.test(url.pathname);
+    const imagePrefix = dataset === "uat" ? "/images/ccb9lnw5/uat/" : "/images/kyfxgjnq/production/";
+    const sanity = url.hostname === "cdn.sanity.io" && url.pathname.startsWith(imagePrefix);
+    const ownAsset = (url.hostname === "ccpun.com" || (dataset === "uat" && url.hostname === "test.ccpun.com")) && /^\/(?:assets\/|og-image[^/]*$)/.test(url.pathname);
     return (sanity || ownAsset) && /\.(?:avif|gif|jpe?g|png|webp)$/i.test(url.pathname) && !/%(?:2f|2e|5c)/i.test(url.pathname) && [...url.searchParams.keys()].every(key => ["v", "w", "h", "fit", "auto", "q", "dpr", "rect", "crop"].includes(key));
   } catch { return false; }
 }
-export function validatePageSeoFields(input: unknown): PageSeoFields {
+export function validatePageSeoFields(input: unknown, dataset: "production" | "uat" = "production"): PageSeoFields {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("page_seo_invalid_fields");
   const record = input as Record<string, unknown>, output: PageSeoFields = {};
   for (const [key, raw] of Object.entries(record)) {
@@ -113,7 +114,7 @@ export function validatePageSeoFields(input: unknown): PageSeoFields {
     const value = typeof raw === "string" ? raw.trim() || null : null;
     const limit = key === "ogImageUrl" ? 2048 : key.endsWith("Description") ? 320 : 120;
     if (value && (value.length > limit || /[<>\u0000-\u001f\u007f]/.test(value))) throw new TypeError("page_seo_invalid_field");
-    if (key === "ogImageUrl" && value && !isPageSeoImageUrlAllowed(value)) throw new TypeError("page_seo_invalid_image");
+    if (key === "ogImageUrl" && value && !isPageSeoImageUrlAllowed(value, dataset)) throw new TypeError("page_seo_invalid_image");
     output[key as keyof PageSeoFields] = value;
   }
   return output;

@@ -13,7 +13,9 @@ function replaceImage(images: unknown, url: string) {
 
 export async function resolvePageSeoMetadata(pathname: string, defaults: Metadata, parent?: ResolvingMetadata): Promise<Metadata> {
   const page = getPageSeoPage(pathname);
-  if (!page || !["production", "local-production"].includes(resolveContentEnvironment())) return defaults;
+  const environment = resolveContentEnvironment();
+  if (!page || !["production", "local-production", "web-uat", "local-uat"].includes(environment)) return defaults;
+  const dataset = ["web-uat", "local-uat"].includes(environment) ? "uat" : "production";
   try {
     const { data } = await sanityFetch({
       query: '*[_id == $id && _type == "pageSeo" && pathname == $pathname][0]{_id, pathname, seoTitle, seoDescription, ogTitle, ogDescription, ogImageUrl}',
@@ -24,7 +26,7 @@ export async function resolvePageSeoMetadata(pathname: string, defaults: Metadat
     if (!data) return defaults;
     const { _id: id, pathname: path, ...rawFields } = data;
     if (id !== page.documentId || path !== pathname) return defaults;
-    const fields = validatePageSeoFields(rawFields);
+    const fields = validatePageSeoFields(rawFields, dataset);
     if (!Object.values(fields).some(Boolean)) return defaults;
     const result: Metadata = { ...defaults };
     if (fields.seoTitle) result.title = fields.seoTitle;
