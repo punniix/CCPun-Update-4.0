@@ -338,24 +338,24 @@ function decisionImpactText(option: EventOption) {
             <div className={styles.resultNumbers}>
               <div className={styles.numberBox}>
                 <small>{text("moneyStory.small7")}</small>
-                <strong>{reserveMonths.toFixed(1)}{text("moneyStory.strong9")}</strong>
+                <strong>{reserveMonths.toFixed(1)}{' '}{text("moneyStory.strong9")}</strong>
                 <span>
-                  {money.format(bars.cashReserveAllocated)}{text("moneyStory.eventTitle3")}</span>
+                  {money.format(bars.cashReserveAllocated)}{' '}{text("moneyStory.eventTitle3")}</span>
               </div>
               <div className={styles.numberBox}>
                 <small>{text("moneyStory.small8")}</small>
-                <strong>{money.format(bars.goalPosition)}{text("moneyStory.eventTitle3")}</strong>
+                <strong>{money.format(bars.goalPosition)}{' '}{text("moneyStory.eventTitle3")}</strong>
                 <span>
                   {Math.round(bars.goalProgressPercent)}{text("moneyStory.moneyStoryResultText9")}</span>
               </div>
               <div className={styles.numberBox}>
                 <small>{text("moneyStory.small9")}</small>
-                <strong>{money.format(endingDebt)}{text("moneyStory.eventTitle3")}</strong>
-                <span>{text("moneyStory.span19")}{money.format(startingDebt)}{text("moneyStory.eventTitle3")}</span>
+                <strong>{money.format(endingDebt)}{' '}{text("moneyStory.eventTitle3")}</strong>
+                <span>{text("moneyStory.span19")}{money.format(startingDebt)}{' '}{text("moneyStory.eventTitle3")}</span>
               </div>
               <div className={styles.numberBox}>
                 <small>{text("moneyStory.strong")}</small>
-                <strong>{endingProtectionCount}{text("moneyStory.strong10")}</strong>
+                <strong>{endingProtectionCount}{' '}{text("moneyStory.strong10")}</strong>
                 <span>{text("moneyStory.span19")}{startingProtectionCount}
                   {purchasedProtections.length
                     ? text("moneyStory.moneyStoryResultText10") + purchasedProtections.join(', ')
@@ -369,7 +369,7 @@ function decisionImpactText(option: EventOption) {
                 <strong>{money.format(startBars.goalPosition)}</strong>
               </span>
               <span aria-hidden="true">→</span>
-              <span>{text("moneyStory.span21")}<strong>{money.format(bars.goalPosition)}</strong>{text("moneyStory.eventTitle3")}</span>
+              <span>{text("moneyStory.span21")}<strong>{money.format(bars.goalPosition)}</strong>{' '}{text("moneyStory.eventTitle3")}</span>
             </div>
           </div>
 
@@ -422,10 +422,10 @@ function decisionImpactText(option: EventOption) {
           <div className={styles.resultActions}>
             {canUndo ? (
               <button type="button" className={styles.secondary} onClick={undo}>
-                <Undo2 size={16} />{text("moneyStory.undoButton")}</button>
+                <Undo2 size={16} />{' '}{text("moneyStory.undoButton")}</button>
             ) : null}
             <button type="button" className={styles.primary} onClick={replay}>
-              <RefreshCcw size={16} />{text("moneyStory.primary4")}</button>
+              <RefreshCcw size={16} />{' '}{text("moneyStory.primary4")}</button>
             <button type="button" className={styles.secondary} onClick={share}>{text("moneyStory.secondary2")}</button>
             <Link
               className={styles.secondary}

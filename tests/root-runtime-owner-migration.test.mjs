@@ -10,12 +10,23 @@ const root = resolve(import.meta.dirname, '..');
 const read = (file) => readFileSync(resolve(root, file), 'utf8');
 const inventory = JSON.parse(read('qa/root-runtime-owner-migration.json'));
 
+// Exact UAT-only admissions for the approved CMS ownership/async read and
+// feature-gated tools sitemap. The Production proof and its original hashes stay frozen.
+const uatRouteAdmissions = {
+  'apps/web/app/privacy/page.tsx': { sha256: 'bbc50c12b8e6e79815c425777d5810d286b9879cc3e46c10f2e2263e040cd14b', feature: 'features/legal/pages/PrivacyPage' },
+  'apps/web/app/cookie-policy/page.tsx': { sha256: 'a540031c7bd3064560244c68f4f6443c6d702d4555b3a44fe83e58e9e4d5fc94', feature: 'features/legal/pages/CookiePolicyPage' },
+  'apps/web/app/not-found.tsx': { sha256: '3ebd09b78ab0158fa127ef72b22b913719ecce34bbb7a1cbd324406e8fa95ce2' },
+  'apps/web/app/sitemaps/tools.xml/route.ts': { sha256: '01987729a8a7c3f2ba827726b0c6a8ca43e2b7717f7160eb6b3d67b1193e989d' },
+};
+
 test('seven duplicate public routes retain frozen canonical bodies, export identities and literal Next configuration', () => {
   const productionProof = JSON.parse(read('qa/production-code-only-parity.json'));
   const routes = ['privacy/page.tsx', 'not-found.tsx', 'sitemap.xml/route.ts', 'sitemaps/core.xml/route.ts', 'sitemaps/tools.xml/route.ts', 'sitemaps/blog.xml/route.ts', 'cookie-policy/page.tsx'];
   const verify = (route, source = read('app/' + route), canonicalSource = read('apps/web/app/' + route)) => {
     const file = 'app/' + route, canonical = 'apps/web/' + file;
     const reviewed = productionProof.reviewedUxOwners[canonical];
+    const admission = uatRouteAdmissions[canonical];
+    if (admission) assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), admission.sha256, canonical + ' exact authorized UAT change');
     if (reviewed) assert.equal(reviewed.baselineSha256, productionProof.protected[canonical], 'original canonical source retained');
     if (canonical === 'apps/web/app/not-found.tsx') {
       assert.equal(productionProof.protected[canonical], '73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8');
@@ -28,34 +39,41 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
         canonicalSource = canonicalSource.replace(insertion, '');
       }
     }
-    assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
+    if (!admission) assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
+    if (admission?.feature) assert.equal(read(canonical), `export { default, generateMetadata } from "@/${admission.feature}";\n`);
     const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
     const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
-    assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${dynamic ? 'GET' : 'default, metadata'} } from "${owner}";\n`);
-    const sentinel = { __esModule: true, default: () => null, metadata: { title: 'fixture' }, GET: () => new Response('fixture') };
+    const names = dynamic ? ['GET'] : admission?.feature ? ['default', 'generateMetadata'] : ['default', 'metadata'];
+    assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${names.join(', ')} } from "${owner}";\n`);
+    const sentinel = { __esModule: true, default: () => null, metadata: { title: 'fixture' }, generateMetadata: () => ({ title: 'fixture' }), GET: () => new Response('fixture') };
     const candidate = loadFixtureModule(file, { sources: new Map([[file, source]]), mocks: new Map([[owner, sentinel]]) });
-    assert.deepEqual(Object.keys(candidate).sort(), dynamic ? ['GET', 'dynamic'] : ['default', 'metadata']);
-    for (const name of dynamic ? ['GET'] : ['default', 'metadata']) assert.equal(candidate[name], sentinel[name]);
+    assert.deepEqual(Object.keys(candidate).sort(), [...names, ...(dynamic ? ['dynamic'] : [])].sort());
+    for (const name of names) assert.equal(candidate[name], sentinel[name]);
     if (dynamic) assert.equal(candidate.dynamic, JSON.parse(dynamic));
+    if (admission?.feature) {
+      const resolved = loadFixtureModule(file, { mocks: new Map([['@/' + admission.feature, sentinel]]) });
+      for (const name of names) assert.equal(resolved[name], sentinel[name], `${file} -> ${canonical} -> feature owner`);
+    }
   };
   for (const route of routes) verify(route);
-  assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, metadata', 'default')));
+  assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, generateMetadata', 'default')));
   assert.throws(() => verify(routes[2], read('app/' + routes[2]).replace('force-static', 'force-dynamic')));
   assert.throws(() => verify(routes[1], read('app/' + routes[1]).replace('@/apps/web/', '@/apps/admin/')));
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('min(292px, 100%)', 'min(293px, 100%)')));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('ดูบทความ', 'unreviewed copy')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('getPublicCopy("site")', 'getPublicCopy("home")')));
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'")));
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('1 1 124px', '1 1 125px')));
 });
 
-test('compiled root and Web 404 recovery retain centered bounded buttons, copy, href and metadata', () => {
+test('compiled root and Web 404 recovery retain centered bounded buttons, copy, href and metadata', async () => {
   const shared = { Website43Navbar: () => null, Website43Footer: () => null };
-  const mocks = new Map([['@/components/layout/website-43/Website43Shared', shared]]);
+  const copy = loadFixtureModule('lib/content/public-copy-registry.ts');
+  const mocks = new Map([['@/components/layout/website-43/Website43Shared', shared], ['@/lib/content/public-copy', { getPublicCopy: async scope => copy.parsePublicCopy(scope, null) }]]);
   const legacy = loadFixtureModule('app/not-found.tsx', { mocks });
   const canonical = loadFixtureModule('apps/web/app/not-found.tsx', { mocks });
   assert.deepEqual(legacy.metadata, canonical.metadata);
   for (const page of [legacy, canonical]) {
-    const html = renderToStaticMarkup(page.default());
+    const html = renderToStaticMarkup(await page.default());
     assert.match(html, /style="flex-direction:row;flex-wrap:wrap;width:min\(292px, 100%\);gap:12px;justify-content:center;margin-inline:auto"/);
     const links = [...html.matchAll(/<a style="([^"]+)" href="(\/|\/blog\/)">([^<]+)<\/a>/g)];
     assert.deepEqual(links.map(([, , href, text]) => [href, text]), [['/', 'กลับหน้าแรก'], ['/blog/', 'ดูบทความ']]);
@@ -74,8 +92,8 @@ test('root compatibility routes delegate implementations to their canonical app 
     const implementation = read(canonical);
     const namedReexports = [...implementation.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
     const wrapperExports = [...wrapper.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
-    for (const name of ['default', 'metadata']) {
-      const exported = name === 'default' ? /export default\b/.test(implementation) : /export const metadata\b/.test(implementation);
+    for (const name of ['default', 'metadata', 'generateMetadata']) {
+      const exported = name === 'default' ? /export default\b/.test(implementation) : name === 'metadata' ? /export const metadata\b/.test(implementation) : /export (?:async )?function generateMetadata\b/.test(implementation);
       if (exported || namedReexports.includes(name)) assert.ok(wrapperExports.includes(name), `${legacy}: missing ${name} export`);
     }
     assert.match(wrapper, new RegExp(`from "@/${canonical.replace(/\.[^.]+$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), legacy);

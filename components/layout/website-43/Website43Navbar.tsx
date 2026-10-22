@@ -67,7 +67,7 @@ const toolLinks = [
         <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>{text("site.nav.home")}</Link>
         <Link href={`${BASE}/blog`} aria-current={blogCurrent}>{text("site.nav.blog")}</Link>
         <div className={styles.navTools} ref={toolsRef}>
-          <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>{text("site.nav.tools")}<span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
+          <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>{text("site.nav.tools")}{' '}<span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
           </button>
           {toolsOpen ? (
             <div id="home-tools-navigation" className={styles.navDropdown}>

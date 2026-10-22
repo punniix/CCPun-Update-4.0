@@ -492,7 +492,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
         <section className={styles.center} aria-live="polite">
           <div className={styles.monthTop}>
             <div>
-              <div className={styles.monthNum}>{text("moneyStory.monthNum")}{game.currentMonth}{text("moneyStory.monthNum2")}</div>
+              <div className={styles.monthNum}>{text("moneyStory.monthNum")}{game.currentMonth}{' '}{text("moneyStory.monthNum2")}</div>
               {showSeed ? (
                 <div className={styles.seed}>{text("moneyStory.seed")}{game.seed.slice(-6).toUpperCase()}
                 </div>
@@ -539,7 +539,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
           {game.pendingShortfall ? (
             <div className={styles.card + ' ' + styles.shortfall}>
               <span className={styles.category}>{text("moneyStory.category2")}</span>
-              <h2 className={label(styles.eventTitle)}>{text("moneyStory.eventTitle2")}{money.format(game.pendingShortfall.amount)}{text("moneyStory.eventTitle3")}</h2>
+              <h2 className={label(styles.eventTitle)}>{text("moneyStory.eventTitle2")}{money.format(game.pendingShortfall.amount)}{' '}{text("moneyStory.eventTitle3")}</h2>
               <p className={styles.eventText}>{text("moneyStory.eventText2")}</p>
 
               <div className={styles.shortfallActions}>
@@ -555,7 +555,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
                     <strong>{text("moneyStory.strong5")}</strong>
                     <span>{text("moneyStory.span")}{money.format(
                         Math.min(game.pendingShortfall.amount, game.investments),
-                      )}{text("moneyStory.span2")}</span>
+                      )}{' '}{text("moneyStory.span2")}</span>
                   </button>
                 ) : null}
 
@@ -569,8 +569,8 @@ function optionImpactLines(option: EventOption, game: GameState) {
                     }}
                   >
                     <strong>{text("moneyStory.strong6")}</strong>
-                    <span>{text("moneyStory.span3")}{money.format(extraIncomeQuote.immediate)}{text("moneyStory.span4")}{percentLabel(extraIncomeQuote.ongoingPercent)}{text("moneyStory.span5")}{' '}
-                      {extraIncomeQuote.months}{text("moneyStory.span6")}</span>
+                    <span>{text("moneyStory.span3")}{money.format(extraIncomeQuote.immediate)}{' '}{text("moneyStory.span4")}{percentLabel(extraIncomeQuote.ongoingPercent)}{' '}{text("moneyStory.span5")}{' '}
+                      {extraIncomeQuote.months}{' '}{text("moneyStory.span6")}</span>
                   </button>
                 ) : null}
 
@@ -584,7 +584,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
                     }}
                   >
                     <strong>{text("moneyStory.strong7")}</strong>
-                    <span>{text("moneyStory.span7")}{money.format(expenseCutQuote.immediate)}{text("moneyStory.span8")}{money.format(expenseCutQuote.monthlyReduction)}{text("moneyStory.span9")}{expenseCutQuote.months}{text("moneyStory.span6")}</span>
+                    <span>{text("moneyStory.span7")}{money.format(expenseCutQuote.immediate)}{' '}{text("moneyStory.span8")}{' '}{money.format(expenseCutQuote.monthlyReduction)}{' '}{text("moneyStory.span9")}{' '}{expenseCutQuote.months}{' '}{text("moneyStory.span6")}</span>
                   </button>
                 ) : null}
 
@@ -599,9 +599,9 @@ function optionImpactLines(option: EventOption, game: GameState) {
                   >
                     <strong>{text("moneyStory.strong8")}</strong>
                     <span>{text("moneyStory.span10")}{' '}
-                      {money.format(debtRestructureQuote.immediateRelief)}{text("moneyStory.span11")}{' '}
+                      {money.format(debtRestructureQuote.immediateRelief)}{' '}{text("moneyStory.span11")}{' '}
                       {money.format(debtRestructureQuote.nextMonthlyBefore)} →{' '}
-                      {money.format(debtRestructureQuote.nextMonthlyAfter)}{text("moneyStory.span12")}</span>
+                      {money.format(debtRestructureQuote.nextMonthlyAfter)}{' '}{text("moneyStory.span12")}</span>
                   </button>
                 ) : null}
 
@@ -619,8 +619,8 @@ function optionImpactLines(option: EventOption, game: GameState) {
                         ? text("moneyStory.moneyStoryGameText") + money.format(loanQuote.principal) + text("moneyStory.optionImpactLinesText6")
                         : text("moneyStory.moneyStoryGameText2") + money.format(loanQuote.principal) + text("moneyStory.optionImpactLinesText6")}
                     </strong>
-                    <span>{text("moneyStory.span13")}{money.format(loanQuote.monthlyPayment)}{text("moneyStory.span14")}{' '}
-                      {loanQuote.termMonths}{text("moneyStory.span6")}{loanQuote.partial
+                    <span>{text("moneyStory.span13")}{money.format(loanQuote.monthlyPayment)}{' '}{text("moneyStory.span14")}{' '}
+                      {loanQuote.termMonths}{' '}{text("moneyStory.span6")}{loanQuote.partial
                         ? text("moneyStory.moneyStoryGameText3")
                         : text("moneyStory.moneyStoryGameText4")}
                     </span>
@@ -743,13 +743,13 @@ function optionImpactLines(option: EventOption, game: GameState) {
                         : text("moneyStory.moneyStoryGameText8")}
                     </small>
                     <strong>
-                      {money.format(game.lastResolution.grossCost)}{text("moneyStory.eventTitle3")}</strong>
+                      {money.format(game.lastResolution.grossCost)}{' '}{text("moneyStory.eventTitle3")}</strong>
                   </div>
                   {!resolvedUsesLumpSum ? (
                     <div className={styles.numberBox}>
                       <small>{text("moneyStory.small3")}</small>
                       <strong>
-                        {money.format(game.lastResolution.existingBenefit ?? 0)}{text("moneyStory.eventTitle3")}</strong>
+                        {money.format(game.lastResolution.existingBenefit ?? 0)}{' '}{text("moneyStory.eventTitle3")}</strong>
                     </div>
                   ) : null}
                   <div className={styles.numberBox}>
@@ -759,7 +759,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
                         : text("moneyStory.moneyStoryGameText10")}
                     </small>
                     <strong>
-                      {money.format(game.lastResolution.protectionBenefit ?? 0)}{text("moneyStory.eventTitle3")}</strong>
+                      {money.format(game.lastResolution.protectionBenefit ?? 0)}{' '}{text("moneyStory.eventTitle3")}</strong>
                   </div>
                   <div className={styles.numberBox}>
                     <small>
@@ -768,7 +768,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
                         : text("moneyStory.moneyStoryGameText12")}
                     </small>
                     <strong>
-                      {money.format(game.lastResolution.outOfPocket ?? 0)}{text("moneyStory.eventTitle3")}</strong>
+                      {money.format(game.lastResolution.outOfPocket ?? 0)}{' '}{text("moneyStory.eventTitle3")}</strong>
                   </div>
                 </div>
               ) : null}

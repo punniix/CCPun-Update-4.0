@@ -50,7 +50,7 @@ function Meter({
         />
       </div>
       <div className={styles.valueLine}>
-        <span>{Math.round(value)}{text("moneyStory.span23")}</span>
+        <span>{Math.round(value)}{' '}{text("moneyStory.span23")}</span>
         <div className={styles.meterDetail}>{detail}</div>
       </div>
     </div>
@@ -88,8 +88,8 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
               status={bars.liquidityLabel}
               detail={
                 <>
-                  <span>{text("moneyStory.span24")}{money.format(Math.max(0, game.cash))}{text("moneyStory.eventTitle3")}</span>
-                  <small>{text("moneyStory.small10")}{money.format(game.investments)}{text("moneyStory.small11")}</small>
+                  <span>{text("moneyStory.span24")}{money.format(Math.max(0, game.cash))}{' '}{text("moneyStory.eventTitle3")}</span>
+                  <small>{text("moneyStory.small10")}{money.format(game.investments)}{' '}{text("moneyStory.small11")}</small>
                 </>
               }
             />
@@ -103,7 +103,7 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
               detail={
                 <>
                   <span>{text("moneyStory.span25")}{' '}
-                    {money.format(bars.projectedMonthlyFlexibility)}{text("moneyStory.span12")}</span>
+                    {money.format(bars.projectedMonthlyFlexibility)}{' '}{text("moneyStory.span12")}</span>
                   <small>{text("moneyStory.small12")}</small>
                 </>
               }
@@ -118,7 +118,7 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
               </div>
               <div className={styles.goalScore}>
                 <strong>{Math.round(bars.goalProgressPercent)}%</strong>
-                <span>{text("moneyStory.span26")}{money.format(bars.goalPosition)}{text("moneyStory.eventTitle3")}</span>
+                <span>{text("moneyStory.span26")}{money.format(bars.goalPosition)}{' '}{text("moneyStory.eventTitle3")}</span>
               </div>
               <div
                 className={styles.goalJourneyTrack}
@@ -137,11 +137,11 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
                 <span>{bars.goalPreviousMilestonePercent}%</span>
                 <strong>{bars.goalNextMilestonePercent}%</strong>
               </div>
-              <p className={styles.goalNext}>{text("moneyStory.goalNext")}{money.format(bars.goalNextMilestoneAmount)}{text("moneyStory.eventTitle3")}{' · '}{text("moneyStory.goalNext2")}{money.format(bars.goalRemainingToNext)}{text("moneyStory.eventTitle3")}</p>
+              <p className={styles.goalNext}>{text("moneyStory.goalNext")}{money.format(bars.goalNextMilestoneAmount)}{' '}{text("moneyStory.eventTitle3")}{' · '}{text("moneyStory.goalNext2")}{money.format(bars.goalRemainingToNext)}{' '}{text("moneyStory.eventTitle3")}</p>
               <div className={styles.goalReserveNote}>
-                <span>{text("moneyStory.span27")}{money.format(bars.cashReserveTarget)}{text("moneyStory.eventTitle3")}</span>
-                <small>{text("moneyStory.small13")}{money.format(bars.cashReserveAllocated)}{text("moneyStory.eventTitle3")}{' · '}{text("moneyStory.small14")}{' '}
-                  {money.format(bars.cashAboveReserve)}{text("moneyStory.eventTitle3")}</small>
+                <span>{text("moneyStory.span27")}{money.format(bars.cashReserveTarget)}{' '}{text("moneyStory.eventTitle3")}</span>
+                <small>{text("moneyStory.small13")}{money.format(bars.cashReserveAllocated)}{' '}{text("moneyStory.eventTitle3")}{' · '}{text("moneyStory.small14")}{' '}
+                  {money.format(bars.cashAboveReserve)}{' '}{text("moneyStory.eventTitle3")}</small>
               </div>
               <small className={styles.goalFormula}>{text("moneyStory.goalFormula")}{' · '}{text("moneyStory.goalFormula2")}</small>
             </div>
@@ -179,7 +179,7 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
                       <span>{protectionIcons[type]} {label(catalog.label)}</span>
                       <strong>{pending ? text("moneyStory.moneyStoryStatusSidebarText") : active ? text("moneyStory.moneyStoryStatusSidebarText2") : text("moneyStory.moneyStoryStatusSidebarText3")}</strong>
                     </div>
-                    <small>{text("moneyStory.small16")}{money.format(catalog.maxBenefit)}{text("moneyStory.eventTitle3")}{catalog.coverageRate < 1
+                    <small>{text("moneyStory.small16")}{money.format(catalog.maxBenefit)}{' '}{text("moneyStory.eventTitle3")}{catalog.coverageRate < 1
                         ? ' · ' + percentLabel(catalog.coverageRate) + text("moneyStory.moneyStoryStatusSidebarText4")
                         : ''}
                     </small>
