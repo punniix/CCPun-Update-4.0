@@ -147,3 +147,7 @@ Every substantial task should report:
 6. Known risks and rollback path.
 
 If a requested change conflicts with these rules, stop the risky part, explain the conflict, and propose the safest implementation that preserves the user's intended outcome.
+
+## Mandatory Next.js security baseline (2026-10-22)
+
+All new Codex/agent/developer work must start from the patched v4-production baseline and run npm run check:security-baseline before build, PR, merge or deployment. Never reintroduce Next.js below 16.4.2 or React/React DOM below 19.2.9; update all three package manifests and lockfile together. Feature worktrees based on older commits must rebase/merge the patched branch without discarding uncommitted work. See docs/architecture/nextjs-security-baseline-20261022.md. Do not deploy Production until UAT and rollback gates pass.
