@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import { resolvePageSeoMetadata } from "@/lib/seo/page-seo";
+import type { Metadata, ResolvingMetadata } from "next";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import Link from "next/link";
 import { ArrowLeft, Shield } from "lucide-react";
@@ -6,7 +7,7 @@ import { Website43Footer, Website43Navbar } from "@/components/layout/website-43
 import w43Styles from "@/components/layout/website-43/Website43.module.css";
 import legalStyles from "@/components/layout/website-43/Website43Legal.module.css";
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "นโยบายความเป็นส่วนตัว | CCPun ที่ปรึกษาทางการเงิน",
   description: "CCPun ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของคุณ อ่านนโยบายความเป็นส่วนตัวของเราเพื่อทำความเข้าใจว่าเราเก็บและใช้ข้อมูลอย่างไร",
   robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
@@ -315,4 +316,9 @@ export default function PrivacyPage() {
       <Website43Footer />
     </div>
   );
+}
+
+export function generateMetadata(props: unknown, parent: ResolvingMetadata) {
+  void props;
+  return resolvePageSeoMetadata("/privacy/", metadata, parent);
 }

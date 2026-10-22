@@ -1,3 +1,4 @@
+import { isHealthHappyCampaignAvailable } from "@/components/ui/health-happy/availability";
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import styles from '@/components/layout/website-43/Website43.module.css';
@@ -44,7 +45,7 @@ const BLOG_CLIENT_CLASS_NAMES = {
   pagination: styles.pagination,
 } satisfies Website43BlogClientClassNames;
 
-export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation }: {
+export default async function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation }: {
   articles: Website43ArticleItem[];
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
@@ -56,6 +57,7 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
   topicContent?: ReactNode;
   topicNavigation?: ReactNode;
 }) {
+  const campaignAvailable = await isHealthHappyCampaignAvailable();
   const blogCategories: Website43BlogCategoryItem[] = [{ slug: null, title: 'ทุกหมวดหมู่' }, ...categories];
   const activeCategory = blogCategories.find((item) => item.slug === activeCategorySlug) ?? (activeCategorySlug ? { slug: activeCategorySlug, title: activeCategoryTitle ?? 'บทความ' } : blogCategories[0]);
 
@@ -81,7 +83,7 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
           </div>
         </section>
 
-        {!activeCategory.slug && <HealthHappyCountdown placement="blog" />}
+        {!activeCategory.slug && campaignAvailable && <HealthHappyCountdown placement="blog" />}
         {topicContent}
         <Website43BlogInteractive
           articles={articles}

@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
+import { resolvePageSeoMetadata } from "@/lib/seo/page-seo";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Cookie } from "lucide-react";
 import { Website43Footer, Website43Navbar } from "@/components/layout/website-43/Website43Shared";
 import w43Styles from "@/components/layout/website-43/Website43.module.css";
 import legalStyles from "@/components/layout/website-43/Website43Legal.module.css";
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "นโยบายคุกกี้ | CCPun ที่ปรึกษาทางการเงิน",
   description: "CCPun ใช้ Google Analytics และ Meta Pixel ตามตัวเลือกความยินยอม อ่านรายละเอียดผู้ให้บริการ วัตถุประสงค์ ขอบเขต และวิธีถอนความยินยอม",
   robots: { index: false, follow: true },
@@ -377,4 +378,8 @@ export default function CookiePolicyPage() {
       <Website43Footer />
     </div>
   );
+}
+export function generateMetadata(props: unknown, parent: ResolvingMetadata) {
+  void props;
+  return resolvePageSeoMetadata("/cookie-policy/", metadata, parent);
 }

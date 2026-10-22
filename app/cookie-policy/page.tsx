@@ -1,1 +1,1 @@
-export { default, metadata } from "@/apps/web/app/cookie-policy/page";
+export { default, generateMetadata } from "@/apps/web/app/cookie-policy/page";

@@ -1,3 +1,4 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from 'next';
 import functionalMotion from '@/components/ui/FunctionalMotion.module.css';
 import styles from '@/components/layout/website-43/Website43.module.css';
@@ -7,18 +8,20 @@ import CILandingIntro from '@/features/ci-planning/components/CILandingIntro';
 import CIWizard from '@/features/ci-planning/components/CIWizard';
 import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/ci-planning/")!.defaults;
+
 export const metadata: Metadata = {
-  title: 'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
-  description: 'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง',
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   keywords: ['วางแผนทุนโรคร้ายแรง', 'คำนวณทุนโรคร้ายแรง', 'ทุนประกันโรคร้ายแรง'],
   openGraph: {
-    title: 'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
-    description: 'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง',
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     url: 'https://ccpun.com/ci-planning/',
     siteName: 'CCPun Financial Advisor',
     images: [
       {
-        url: 'https://ccpun.com/og-image-20260610.webp?v=68ae8d8',
+        url: PAGE_SEO_DEFAULTS.ogImageUrl!,
         width: 1200,
         height: 630,
         alt: 'CCPun วางแผนทุนประกันโรคร้ายแรง',
@@ -29,9 +32,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
-    description: 'วางแผนทุนโรคร้ายแรงด้วยเครื่องมือประเมินเบื้องต้น เปรียบเทียบรายได้หรือค่าใช้จ่ายกับเงินก้อนและสินทรัพย์สภาพคล่อง เพื่อเห็นส่วนต่างก่อนทบทวนความคุ้มครอง',
-    images: ['https://ccpun.com/og-image-20260610.webp?v=68ae8d8'],
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
+    images: [PAGE_SEO_DEFAULTS.ogImageUrl!],
   },
   robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
   alternates: {

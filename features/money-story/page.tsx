@@ -1,3 +1,4 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
@@ -7,16 +8,15 @@ import { MONEY_STORY_DISCLAIMER, MONEY_STORY_PYRAMID_URL } from './config';
 import styles from './MoneyStory.module.css';
 import sharedStyles from '@/components/layout/website-43/Website43.module.css';
 
-const DESCRIPTION =
-  'เกมจำลองชีวิตการเงิน 12 เดือน เลือกหรือสุ่มชีวิตสมมติ แล้วลองตัดสินใจเรื่องเงินสด การลงทุน ความคุ้มครอง และการกู้ เมื่อชีวิตมีเรื่องไม่คาดคิดเข้ามา';
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/play/money-story/")!.defaults;
 
 export const metadata: Metadata = {
-  title: 'Money Story | เกมจำลองชีวิตการเงิน 12 เดือน | CCPun',
-  description: DESCRIPTION,
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   alternates: { canonical: 'https://ccpun.com/play/money-story/' },
   openGraph: {
-    title: 'Money Story | CCPun',
-    description: DESCRIPTION,
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     url: 'https://ccpun.com/play/money-story/',
     siteName: 'CCPun Financial Advisor',
     locale: 'th_TH',

@@ -1,4 +1,4 @@
-export const BLOG_PAGE_SIZE = 6;
+export const BLOG_PAGE_SIZE = 10;
 export function blogPage(value: string | number | null | undefined, total: number) {
   const pages = Math.max(1, Math.ceil(total / BLOG_PAGE_SIZE));
   const raw = String(value ?? '1');
