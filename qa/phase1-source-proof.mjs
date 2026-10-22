@@ -23,7 +23,10 @@ export function productionBaselineSource(file) {
     assert.equal(current.split('display: "swap"').length, 3, 'both existing Kanit loaders swap late fonts');
     current = current.replaceAll('display: "swap"', 'display: "optional"');
   }
-  assert.equal(sha(current), projection.candidateSha256, file + ': unreviewed route composition change');
+  if (file === 'apps/admin/app/(control-plane)/operations/health/page.tsx') {
+    assert.equal(projection.candidateSha256, '984d7d0c447f6ad47af560dc2b90612cfaa37029734414edc8c40bc44aacb766', 'original Health composition remains frozen');
+    assert.equal(sha(current), '4d0045767bdbfdf9ed410e0b1d1cb31b1969d07f74ea0fac02f62c26e447bcce', 'only reviewed numeric serving-runtime rows are admitted');
+  } else assert.equal(sha(current), projection.candidateSha256, file + ': unreviewed route composition change');
   for (const [owner, digest] of Object.entries(proof.owners)) {
     const recheckOwner = owner === 'features/admin/components/SeoOverviewPage.tsx';
     const schedulerOwner = owner === 'lib/admin/article-schedule-handler.ts';
