@@ -250,8 +250,17 @@ test("Media APIs keep synthetic GET separate from owner-only runtime Drive verif
     assert.doesNotMatch(source, /\.formData\(|\.arrayBuffer\(|\.blob\(|request\.body|uploadUrl|storageUrl/);
     assert.doesNotMatch(source, /console\./);
   }
-  for (const source of [listRoute, driveFoundation]) {
-    assert.doesNotMatch(source, /localStorage|sessionStorage|cookies\(|createClient|INSERT|UPDATE|DELETE/i);
+  const cryptoUpdate = "hash.update(part.subarray(0, written.bytesWritten));";
+  assert.equal(driveFoundation.split(cryptoUpdate).length - 1, 1, "one exact reviewed SHA256 byte-stream update");
+  assert.match(driveFoundation, /const hash = createHash\("sha256"\);/);
+  const storageOrSql = /localStorage|sessionStorage|cookies\(|createClient|INSERT|UPDATE|DELETE/i;
+  const withoutCryptoUpdate = driveFoundation.replace(cryptoUpdate, "");
+  for (const source of [listRoute, withoutCryptoUpdate]) {
+    assert.doesNotMatch(source, storageOrSql);
+  }
+  for (const mutation of ["hash.update(unreviewedBytes);", "INSERT INTO unexpected VALUES (1)",
+    "UPDATE unexpected SET value=1", "DELETE FROM unexpected", "localStorage.setItem('x','y')", "createClient()"] ) {
+    assert.match(withoutCryptoUpdate + mutation, storageOrSql, "unknown storage/SQL/update calls remain denied");
   }
   assert.doesNotMatch(listRoute, /refreshToken|accessToken.*NextResponse|console\./);
 });
