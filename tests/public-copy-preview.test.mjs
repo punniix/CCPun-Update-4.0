@@ -126,3 +126,34 @@ test('actual UAT preview page does not start its author query when scoped author
   await assert.rejects(page.default({ searchParams: Promise.resolve({ scope: 'home' }) }), /fixture-denied/);
   assert.equal(authorReads, 0);
 });
+
+test('UAT presentation copy and SEO links require registered pages and matching fixed document IDs', () => {
+  const config = loadFixtureModule('cms/sanity/config/presentation.ts', { mocks: new Map([['sanity/presentation', { defineLocations: value => value, presentationTool: value => value }]]) }).createStudioPresentationPlugin();
+  const pages = loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;
+  assert.equal(Object.keys(registry.PUBLIC_COPY_SCOPES).length, 9);
+  assert.equal(pages.length, 8);
+  for (const scope of Object.keys(registry.PUBLIC_COPY_SCOPES)) {
+    const id = registry.publicCopyDocumentId(scope);
+    for (const prefix of ['', 'drafts.']) assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({ id: prefix + id, scope }).locations, [{ title: 'ดูฉบับร่างหน้าเว็บไซต์', href: '/content/website-preview/?scope=' + scope }]);
+    for (const invalid of ['wrong', 'drafts.drafts.' + id, 'https://evil.invalid/' + id]) assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({ id: invalid, scope }).locations, []);
+  }
+  for (const page of pages) {
+    const scope = Object.entries(registry.PUBLIC_COPY_SCOPES).find(([scope, config]) => scope !== 'site' && config.pathname === page.pathname)[0];
+    for (const prefix of ['', 'drafts.']) assert.deepEqual(config.resolve.locations.pageSeo.resolve({ id: prefix + page.documentId, pathname: page.pathname }).locations, [{ title: 'ดูฉบับร่างหน้าเว็บไซต์และ SEO', href: '/content/website-preview/?scope=' + scope }]);
+    for (const id of ['wrong', 'drafts.drafts.' + page.documentId, 'https://evil.invalid/' + page.documentId]) assert.deepEqual(config.resolve.locations.pageSeo.resolve({ id, pathname: page.pathname }).locations, []);
+  }
+  for (const pathname of ['*', '', '/new-page/', 'https://evil.invalid/', undefined, null]) assert.deepEqual(config.resolve.locations.pageSeo.resolve({ id: 'pageSeo-home', pathname }).locations, []);
+  for (const scope of ['unknown', 'https://evil.invalid/', undefined, null]) assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({ id: 'publicPageCopy-home-th', scope }).locations, []);
+  assert.deepEqual(config.resolve.locations.pageSeo.resolve(null).locations, []);
+  assert.deepEqual(config.resolve.locations.publicPageCopy.resolve(null).locations, []);
+});
+
+test('UAT presentation retains the protected preview configuration and existing article locations', () => {
+  const config = loadFixtureModule('cms/sanity/config/presentation.ts', { mocks: new Map([['sanity/presentation', { defineLocations: value => value, presentationTool: value => value }]]) }).createStudioPresentationPlugin();
+  assert.deepEqual(config.previewUrl, { initial: '/blog/', previewMode: { enable: '/api/preview/enable' } });
+  const article = config.resolve.locations.article;
+  assert.deepEqual(article.select, { title: 'title', slug: 'slug.current', categorySlug: 'category.slug.current' });
+  assert.deepEqual(article.resolve({ title: 'บทความตัวอย่าง', slug: 'sample', categorySlug: 'health-insurance' }).locations, [{ title: 'บทความตัวอย่าง', href: '/blog/health-insurance/sample/' }, { title: 'รวมบทความ', href: '/blog/' }]);
+  assert.deepEqual(article.resolve({ slug: 'sample' }).locations, [{ title: 'บทความใหม่', href: '/blog/personal-finance/sample/' }, { title: 'รวมบทความ', href: '/blog/' }]);
+  assert.deepEqual(article.resolve(null).locations, [{ title: 'รวมบทความ', href: '/blog/' }]);
+});
