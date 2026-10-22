@@ -98,12 +98,24 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
   </section>;
 }
 export function SignatureTableView({block}:{block:TableBlock}) {
+  // Keep every table row in server-rendered HTML for readers and search engines.
+  // Only collapse the long tail of the mobile layout with native <details>
+  // (no extra JavaScript state, tracking, or persistence).
+  const mobileRow=(r:string[],i:number)=><dl key={i} className={styles.panel}>
+    {block.headers.map((h,j)=><div key={j}><dt>{h}</dt><dd>{r[j]??'—'}</dd></div>)}
+  </dl>;
+  const mobileInitialRows=5;
   return <section className={styles.root} aria-label={block.title} data-ccpun-signature="table">
     <Heading title={block.title} description={block.description}/>
     <div className={styles.tableDesktop}><table><thead><tr>{block.headers.map((h,i)=><th scope="col" key={i}>{h}</th>)}</tr></thead>
       <tbody>{block.rows.map((r,i)=><tr key={i}>{block.headers.map((_,j)=><td key={j}>{r[j]??'—'}</td>)}</tr>)}</tbody></table></div>
-    <div className={styles.tableMobile}>{block.rows.map((r,i)=><dl key={i} className={styles.panel}>
-      {block.headers.map((h,j)=><div key={j}><dt>{h}</dt><dd>{r[j]??'—'}</dd></div>)}</dl>)}</div>
+    <div className={styles.tableMobile}>
+      {block.rows.slice(0,mobileInitialRows).map(mobileRow)}
+      {block.rows.length>mobileInitialRows&&<details className={styles.tableMore}>
+        <summary>ดูอีก {block.rows.length-mobileInitialRows} รายการ <span aria-hidden="true">⌄</span></summary>
+        <div className={styles.tableMoreRows}>{block.rows.slice(mobileInitialRows).map((r,i)=>mobileRow(r,i+mobileInitialRows))}</div>
+      </details>}
+    </div>
     <Foot text={block.takeaway} note={block.sampleNote}/>
   </section>;
 }

@@ -78,3 +78,16 @@ test('Editorial interactions are ephemeral and lightweight motion respects reduc
   assert.doesNotMatch(jsx,/localStorage|sessionStorage|indexedDB|document\.cookie/);
   assert.doesNotMatch(css,/animation-iteration-count:\s*infinite|animation:\s*[^;]*infinite/);
 });
+
+test('UAT tax article represents three signature components without publishing source draft',()=>{
+  const source=read('apps/web/app/blog/uat-tax-article-component-review/page.tsx');
+  const renderer=read('features/blog/website-43/SignatureArticle.tsx');
+  assert.match(source,/uat-ux-tax-table-20261011/);
+  assert.match(source,/robots:\{index:false,follow:false\}/);
+  assert.match(source,/CCPUN_APP_ENV/);
+  assert.match(source,/notFound\(\)/);
+  assert.equal((source.match(/type:'signatureEditorial'/g)||[]).length,2);
+  assert.equal((source.match(/type:'signatureStructuredTable'/g)||[]).length,1);
+  assert.match(renderer,/<details className=\{styles\.tableMore\}>/);
+  assert.match(renderer,/block\.rows\.slice\(mobileInitialRows\)/);
+});
