@@ -71,6 +71,40 @@ const removedSelectors = {
   ]
 };
 
+// The reviewed UAT article renderer now contains the native <details> comment
+// "collapse", a local `contents` variable, and static scenario copy. Tailwind's
+// text scanner treats those non-class tokens as utilities. Admit only these exact
+// compiler blocks: stripping them must reproduce the OLD reviewed bytes exactly.
+// This neither changes the frozen captures nor admits any authored CSS change.
+const uatScannerBlocks = {
+  root: ['  .collapse {\n    visibility: collapse;\n  }\n'],
+  web: [
+    '  .collapse {\n    visibility: collapse;\n  }\n',
+    '  .static {\n    position: static;\n  }\n',
+    '  .contents {\n    display: contents;\n  }\n',
+  ],
+};
+function assertUatScannerDelta(context, actual, captured) {
+  let retained = actual;
+  for (const block of uatScannerBlocks[context]) {
+    assert.equal(retained.split(block).length - 1, 1, 'Exact reviewed scanner block occurs once');
+    retained = retained.replace(block, '');
+  }
+  assert.equal(retained, captured, 'Every other compiled byte remains the frozen reviewed output');
+  // Also pin the AST position/order, so moving an admitted block is rejected.
+  const original = rules(captured);
+  const added = uatScannerBlocks[context].map(block => rules(`@layer utilities {\n${block}}`)[0]);
+  const expected = original.slice();
+  for (const rule of added) {
+    const next = { '.collapse': '.visible', '.static': '.sticky', '.contents': '.flex' }[rule.selector];
+    const index = expected.findIndex(candidate => candidate.selector === next);
+    assert(index >= 0);
+    expected.splice(index, 0, rule);
+  }
+  assert.deepEqual(rules(actual), expected, 'Only exact scanner rules at their compiler positions are admitted');
+  return retained;
+}
+
 test('Tailwind preserves automatic native app discovery and excludes only historical fixtures', () => {
   assert.match(source, /^@import "tailwindcss";/);
   const owners = [...source.matchAll(/@source "([^"\n]+)";/g)].map(([, owner]) => resolve('components/styles', owner));
@@ -160,14 +194,20 @@ test('actual Root and Web compilers preserve original authored rules with exact 
   for(const [context,options,original]of [['root',{optimize:false},baselineCss],['web',{base:resolve('apps/web'),optimize:false},gunzipSync(Buffer.from(proof.nativeWeb.compiledCssGzip,'base64')).toString()]]) {
     const admission=proof.reviewedCurrentCompiler[context];const captured=gunzipSync(Buffer.from(admission.compiledCssGzip,'base64')).toString();
     const expected= context==='root' ? '67638ca5fa86d3698aca48ee320f7e9eb3652b307d2b7bfc6febf82e4f5e3cb4' : '251ccb344a8056f190916ad06eb9a806b72affa352a3398cd72247842e6a23db';assert.equal(sha(captured),expected);assert.equal(admission.compiledSha256,expected);
-    const compiled=await postcss([tailwind(options)]).process(source,{from:resolve(file)});assert.equal(compiled.css,captured,'Actual locked compiler equals reviewed output');assert.equal(Buffer.byteLength(compiled.css),admission.compiledBytes);assert.equal(gzipSync(compiled.css).length,admission.compiledGzipBytes);assert(Buffer.byteLength(compiled.css)<=(context==='root'?proof.compiledBytes:proof.nativeWeb.compiledBytes),'Reviewed UX stays within original CSS payload budget');
-    retainedRecords(context,rules(original),rules(compiled.css),admission);retainedAtRules(context,atRules(original),atRules(compiled.css));
+    const compiled=await postcss([tailwind(options)]).process(source,{from:resolve(file)});
+    const retained=assertUatScannerDelta(context,compiled.css,captured);
+    assert.equal(Buffer.byteLength(retained),admission.compiledBytes);assert.equal(gzipSync(retained).length,admission.compiledGzipBytes);assert(Buffer.byteLength(compiled.css)<=(context==='root'?proof.compiledBytes:proof.nativeWeb.compiledBytes),'Reviewed UX stays within original CSS payload budget');
+    retainedRecords(context,rules(original),rules(retained),admission);retainedAtRules(context,atRules(original),atRules(retained));
     for(const rule of admission.removedRules){assert.match(rule.selector,/^\.(?:[\w/-]|\\.)+$/);const utility=rule.selector.slice(1).replace(/\\(.)/g,'$1');assert(!runtimeLiteralTokens.has(utility),'Removed utility has actual runtime consumer: '+utility);}
     for(const message of compiled.messages.filter(message=>message.type==='dir-dependency'))assert(!['qa','tests','docs','scripts'].some(directory=>message.dir===resolve(directory)||message.dir.startsWith(resolve(directory)+'/')));
-    const unknown=structuredClone(admission);unknown.addedRules.push({selector:'.unknown',ancestry:[],declarations:[]});assert.throws(()=>retainedRecords(context,rules(original),rules(compiled.css),unknown));
-    const changed=rules(compiled.css);const target=changed.find(rule=>!addedSelectors[context].includes(rule.selector)&&!defaults(rule)&&rule.declarations.length);target.declarations[0][1]+=' mutation';assert.throws(()=>retainedRecords(context,rules(original),changed,admission));
-    const mutated=atRules(compiled.css);const index=mutated.findIndex(node=>node.name==='property');mutated[index].declarations[2][1]='unreviewed';assert.throws(()=>retainedAtRules(context,atRules(original),mutated));
-    const reordered=atRules(compiled.css);const positions=reordered.flatMap((node,index)=>node.name==='property'?[index]:[]);[reordered[positions[0]],reordered[positions[1]]]=[reordered[positions[1]],reordered[positions[0]]];assert.throws(()=>retainedAtRules(context,atRules(original),reordered));
+    const unknown=structuredClone(admission);unknown.addedRules.push({selector:'.unknown',ancestry:[],declarations:[]});assert.throws(()=>retainedRecords(context,rules(original),rules(retained),unknown));
+    const changed=rules(retained);const target=changed.find(rule=>!addedSelectors[context].includes(rule.selector)&&!defaults(rule)&&rule.declarations.length);target.declarations[0][1]+=' mutation';assert.throws(()=>retainedRecords(context,rules(original),changed,admission));
+    const mutated=atRules(retained);const index=mutated.findIndex(node=>node.name==='property');mutated[index].declarations[2][1]='unreviewed';assert.throws(()=>retainedAtRules(context,atRules(original),mutated));
+    const reordered=atRules(retained);const positions=reordered.flatMap((node,index)=>node.name==='property'?[index]:[]);[reordered[positions[0]],reordered[positions[1]]]=[reordered[positions[1]],reordered[positions[0]]];assert.throws(()=>retainedAtRules(context,atRules(original),reordered));
+    assert.throws(()=>assertUatScannerDelta(context,compiled.css.replace('visibility: collapse;', 'visibility: hidden;'),captured));
+    assert.throws(()=>assertUatScannerDelta(context,compiled.css+uatScannerBlocks[context][0],captured));
+    assert.throws(()=>assertUatScannerDelta(context,compiled.css+'\n.unreviewed { color: red; }',captured));
+    assert.throws(()=>assertUatScannerDelta(context,compiled.css.replace(uatScannerBlocks[context][0],'')+uatScannerBlocks[context][0],captured));
   }
 });
 
@@ -190,7 +230,7 @@ test('Money composition admission rejects changed logic, unreachable owners, mut
   };
   for (const [file, source] of [
     [composition.controller, current.replace('game.currentMonth > 1', 'game.currentMonth > 2')],
-    [composition.controller, current.replace('ต้องการเริ่มใหม่หรือไม่?', 'เริ่มใหม่ทันที')],
+    [composition.controller, current.replace('text("moneyStory.returnToCharacterSelectionText")', 'text("moneyStory.gameplayHeading")')],
     [composition.controller, current.replace('game.currentMonth === 12', 'game.currentMonth === 11')],
     [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  coverShortfallWithExtraIncome as coverShortfallWithExpenseCut,')],
     [composition.controller, current.replace('  coverShortfallWithExpenseCut,', '  type coverShortfallWithExpenseCut,')],
@@ -219,7 +259,8 @@ test('native Web compiler freezes reviewed current output while preserving origi
   const candidate = await postcss([tailwind({ base: resolve('apps/web'), optimize: false })]).process(source, { from: resolve(file) });
   // This matches the app build driver's cwd. Root standalone sizes cannot certify it.
   const reviewed = gunzipSync(Buffer.from(proof.reviewedCurrentCompiler.web.compiledCssGzip, 'base64')).toString();
-  assert.equal(candidate.css, reviewed, 'Actual native app output equals the reviewed UX output; original gzip remains frozen');
-  assert.equal(Buffer.byteLength(candidate.css), proof.reviewedCurrentCompiler.web.compiledBytes);
+  const retained=assertUatScannerDelta('web',candidate.css,reviewed);
+  assert.equal(Buffer.byteLength(retained), proof.reviewedCurrentCompiler.web.compiledBytes);
+  assert(Buffer.byteLength(candidate.css)<=proof.nativeWeb.compiledBytes, 'Actual Web output remains within the original payload budget');
   assert.equal(sha(original), '8ef2b65a4b29c8b1e562fdcf16434a4104de01c537fdc5ddd5996506eaf5a22d');
 });
