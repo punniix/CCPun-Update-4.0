@@ -34,7 +34,7 @@ try{
     await new Promise(r=>setTimeout(r,250));
     const value=await evaluate("(()=>{const roots=[...document.querySelectorAll('[data-ccpun-signature]')];const small=roots.flatMap(a=>[...a.querySelectorAll('button')].filter(b=>b.getBoundingClientRect().height<44).map(b=>b.textContent.slice(0,24)));const overflow=roots.flatMap(a=>[...a.querySelectorAll('*')].filter(x=>{const r=x.getBoundingClientRect();return r.width>0&&(r.right>innerWidth+2||r.left < -2)}).slice(0,3).map(x=>x.textContent.slice(0,26)));return {viewport:innerWidth,pageWidth:document.documentElement.scrollWidth,blocks:roots.length,small:small.slice(0,8),overflow:overflow.slice(0,8)};})()");
     console.log('DEVICE',JSON.stringify(value));
-    if(value.blocks!==10||value.small.length||value.overflow.length)throw Error('Device QA failure '+JSON.stringify(value));
+    if(value.blocks!==9||value.small.length||value.overflow.length)throw Error('Device QA failure '+JSON.stringify(value));
     if(width===390||width===1440){
       await evaluate("document.querySelector('[data-ccpun-signature=\"plan-explorer\"]').scrollIntoView({block:'center'});true");
       const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});

@@ -35,7 +35,6 @@ const article:Article={
     {type:'signatureEditorial',kind:'limit',title:'ตัวอย่างวงเงินที่ใช้และคงเหลือ',limit:100000,used:35000,description:'ลองเลื่อนดูผลลัพธ์',entries:[],sampleNote:'วงเงินสมมติ ไม่ใช่สิทธิจริง'},
     {type:'signatureEditorial',kind:'beforeAfter',title:'ก่อน–หลังการเตรียมเงินสำรอง',entries:[{label:'ก่อนจัดสรร',value:'0 บาท'},{label:'หลังจัดสรร',value:'60,000 บาท'}]},
     {type:'signatureEditorial',kind:'timeline',title:'ขั้นตอนการวางแผน',entries:list},
-    {type:'signatureEditorial',kind:'checklist',title:'เตรียมข้อมูลครบหรือยัง',entries:list},
     {type:'signatureEditorial',kind:'calculation',title:'คำนวณเงินสำรองตัวอย่าง',monthlyAmount:30000,months:6,existingAmount:60000,entries:[],sampleNote:'ไม่รวมเงินเฟ้อและค่าใช้จ่ายอื่น'},
     {type:'signatureEditorial',kind:'glossary',title:'ศัพท์ที่ควรเข้าใจก่อน',entries:[{label:'วงเงิน',value:'จำนวนเงินสูงสุดในเงื่อนไขที่กำหนด',detail:'อย่าลืมตรวจเพดานรายหมวด'},{label:'เงื่อนไข',value:'ข้อกำหนดก่อนมีสิทธิใช้ประโยชน์'}]},
     {type:'signatureEditorial',kind:'sources',title:'ข้อมูลนี้มาจากไหน',entries:[{label:'ชุดทดสอบ CCPun',value:'ข้อมูลจำลองสำหรับ UAT ไม่มีเอกสารผลิตภัณฑ์จริง'}]},

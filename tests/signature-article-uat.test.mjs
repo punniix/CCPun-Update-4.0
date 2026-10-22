@@ -93,15 +93,32 @@ test('Editorial interactions are ephemeral and lightweight motion respects reduc
   }
 });
 
-test('UAT tax article represents three signature components without publishing source draft',()=>{
+test('UAT tax article renders readable table plus Insight without interactive checklist',()=>{
   const source=read('apps/web/app/blog/uat-tax-article-component-review/page.tsx');
   const renderer=read('features/blog/website-43/SignatureArticle.tsx');
   assert.match(source,/uat-ux-tax-table-20261011/);
   assert.match(source,/robots:\{index:false,follow:false\}/);
   assert.match(source,/CCPUN_APP_ENV/);
   assert.match(source,/notFound\(\)/);
-  assert.equal((source.match(/type:'signatureEditorial'/g)||[]).length,2);
+  assert.equal((source.match(/type:'signatureEditorial'/g)||[]).length,1);
   assert.equal((source.match(/type:'signatureStructuredTable'/g)||[]).length,1);
+  assert.doesNotMatch(source,/kind:'checklist'/);
+  assert.doesNotMatch(read('apps/web/app/blog/signature-article-preview/page.tsx'),/kind:'checklist'/);
   assert.match(renderer,/<details className=\{styles\.tableMore\}>/);
   assert.match(renderer,/block\.rows\.slice\(mobileInitialRows\)/);
+});
+
+test('No anonymous checklist renders in article even when old Sanity draft contains one',()=>{
+  const renderer=read('features/blog/website-43/Website43ArticleBody.tsx');
+  const readTime=read('features/blog/website-43/articleReadingTime.ts');
+  assert.match(renderer,/item\.kind === 'checklist'\) return null/);
+  assert.match(readTime,/block\.kind === 'checklist'\) return ''/);
+});
+
+test('All remaining interactive Article blocks are transient browser state, not a user database',()=>{
+  const component=read('features/blog/website-43/SignatureArticle.tsx');
+  for(const forbidden of ['fetch(', 'localStorage', 'sessionStorage', 'indexedDB', 'document.cookie', 'navigator.sendBeacon', 'XMLHttpRequest', 'supabase'])
+    assert.ok(!component.includes(forbidden),forbidden+' must not persist user inputs');
+  assert.match(component,/const \[monthly,setMonthly\]=useState/);
+  assert.match(component,/const \[view,setView\]=useState/);
 });

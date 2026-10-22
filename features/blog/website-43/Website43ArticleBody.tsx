@@ -85,6 +85,9 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
         </ArticleTableAccess>
       );
     }
+    // Keep legacy Checklist data in Sanity Draft for future membership workflows,
+    // but do not render a progress-oriented block for anonymous article readers.
+    if (item.type === 'signatureEditorial' && item.kind === 'checklist') return null;
     if (item.type === 'signatureEditorial') return <SignatureEditorialView block={item} key={key}/>;
     if (item.type === 'signatureStructuredTable') return <SignatureTableView block={item} key={key}/>;
     if (item.type === 'signaturePlanExplorer') return <SignaturePlanView block={item} key={key}/>;
