@@ -48,6 +48,9 @@ export const portableText = defineType({
     defineArrayMember({ type: "detailsBlock" }),
     defineArrayMember({ type: "migratedImage" }),
     defineArrayMember({ type: "simpleTable" }),
+    defineArrayMember({ type: "signatureEditorial" }),
+    defineArrayMember({ type: "signatureStructuredTable" }),
+    defineArrayMember({ type: "signaturePlanExplorer" }),
     defineArrayMember({ type: "divider" }),
   ],
 });

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { ArticleBlock, ArticleRichText } from '@/lib/content/types';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { ArticleTableAccess } from './ArticleDetailAccess';
+import {SignatureEditorialView,SignatureTableView,SignaturePlanView} from './SignatureArticle';
 
 function richContent(content: ArticleRichText) {
   const segments = content.segments?.length ? content.segments : [{ text: content.text }];
@@ -84,6 +85,9 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
         </ArticleTableAccess>
       );
     }
+    if (item.type === 'signatureEditorial') return <SignatureEditorialView block={item} key={key}/>;
+    if (item.type === 'signatureStructuredTable') return <SignatureTableView block={item} key={key}/>;
+    if (item.type === 'signaturePlanExplorer') return <SignaturePlanView block={item} key={key}/>;
     if (item.type === 'divider') return <hr className={styles.articleDivider} key={key} />;
 
     const exhaustive: never = item;

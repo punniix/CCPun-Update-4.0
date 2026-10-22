@@ -65,6 +65,34 @@ export const simpleTableSchema = z.object({
   headers: z.array(z.string()).nullish(),
   rows: z.array(z.union([legacyTableRowSchema, tableRowSchema])).nullish(),
 });
+export const signatureEditorialSchema = z.object({
+  _type: z.literal("signatureEditorial"),
+  kind: z.enum(["insight", "limit", "beforeAfter", "timeline", "checklist", "calculation", "glossary", "sources"]),
+  title: z.string().min(4), description: z.string().nullish(),
+  takeaway: z.string().nullish(), sampleNote: z.string().nullish(),
+  firstLabel: z.string().nullish(), secondLabel: z.string().nullish(),
+  limit: z.number().nonnegative().nullish(), used: z.number().nonnegative().nullish(),
+  monthlyAmount: z.number().nonnegative().nullish(), months: z.number().int().min(1).max(120).nullish(),
+  existingAmount: z.number().nonnegative().nullish(),
+  entries: z.array(z.object({
+    label:z.string().min(1),value:z.string().min(1),
+    detail:z.string().nullish(),url:z.string().url().nullish(),
+  })).nullish(),
+});
+export const signatureStructuredTableSchema = z.object({
+  _type:z.literal("signatureStructuredTable"),title:z.string().min(4),
+  description:z.string().nullish(),takeaway:z.string().nullish(),sampleNote:z.string().nullish(),
+  headers:z.array(z.string()).min(2).max(6),
+  rows:z.array(z.union([legacyTableRowSchema,tableRowSchema])).min(1).max(60),
+});
+export const signaturePlanExplorerSchema = z.object({
+  _type:z.literal("signaturePlanExplorer"),title:z.string().min(4),
+  description:z.string().nullish(),takeaway:z.string().nullish(),sampleNote:z.string().nullish(),
+  plans:z.array(z.object({
+    name:z.string().min(1),headline:z.string().nullish(),
+    benefits:z.array(z.object({label:z.string().min(1),value:z.string().min(1),category:z.string().nullish()})).min(1).max(40),
+  })).min(2).max(12),
+});
 export const dividerSchema = z.object({ _type: z.literal("divider") });
 export const bodyItemSchema = z.union([
   portableBlockSchema,
@@ -76,6 +104,9 @@ export const bodyItemSchema = z.union([
   detailsBlockSchema,
   migratedImageSchema,
   simpleTableSchema,
+  signatureEditorialSchema,
+  signatureStructuredTableSchema,
+  signaturePlanExplorerSchema,
   dividerSchema,
 ]);
 export const faqItemSchema = z.object({ question: z.string().min(1), answer: z.string().min(1) });

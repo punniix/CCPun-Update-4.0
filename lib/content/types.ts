@@ -28,6 +28,17 @@ export type ArticleBlock =
   | { type: "pdf"; title: string; description?: string; url: string; filename?: string; size?: number }
   | { type: "details"; summary: string; text: string }
   | { type: "table"; headers: string[]; rows: string[][] }
+  | {
+      type: "signatureEditorial";
+      kind: "insight" | "limit" | "beforeAfter" | "timeline" | "checklist" | "calculation" | "glossary" | "sources";
+      title: string; description?: string; takeaway?: string; sampleNote?: string;
+      firstLabel?: string; secondLabel?: string; limit?: number; used?: number;
+      monthlyAmount?: number; months?: number; existingAmount?: number;
+      entries: Array<{label:string; value:string; detail?:string; url?:string}>;
+    }
+  | { type: "signatureStructuredTable"; title:string; description?:string; takeaway?:string; sampleNote?:string; headers:string[]; rows:string[][] }
+  | { type: "signaturePlanExplorer"; title:string; description?:string; takeaway?:string; sampleNote?:string;
+      plans:Array<{name:string;headline?:string; benefits:Array<{label:string;value:string;category?:string}>}> }
   | { type: "divider" };
 
 export type ArticleSource = {

@@ -18,6 +18,9 @@ import { ctaBlock } from "./objects/cta-block";
 import { pdfDownload } from "./objects/pdf-download";
 import { detailsBlock } from "./objects/details-block";
 import { portableText } from "./objects/portable-text";
+import {signatureEditorial} from "./objects/signature-editorial";
+import {signatureStructuredTable} from "./objects/signature-structured-table";
+import {signaturePlanExplorer} from "./objects/signature-plan-explorer";
 import { masterContent } from "./documents/master-content";
 import { socialVariant } from "./documents/social-variant";
 import { lineDiscoveryConfig } from "./documents/line-discovery-config";
@@ -46,6 +49,9 @@ export const schemaTypes = [
   ctaBlock,
   pdfDownload,
   detailsBlock,
+  signatureEditorial,
+  signatureStructuredTable,
+  signaturePlanExplorer,
   portableText,
   masterContent,
   socialVariant,
