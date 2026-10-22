@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { loadFixtureModule } from "../qa/phase1-fixture-loader.mjs";
 import { parsePublicCopy, publicCopyDocumentId, publicCopyInitialEntries, publicCopyText, getHomeCopyFaqs } from "../lib/content/public-copy-registry";
 import { filterStudioDocumentActions, filterStudioStructureItems, filterStudioNewDocumentOptions } from "../cms/sanity/policy/studio-policy";
 
@@ -49,4 +50,28 @@ test("published copy singleton IDs stay public without exposing a Web read token
   assert.equal(publicCopyDocumentId("home"), "publicPageCopy-home-th");
   assert.equal(publicCopyDocumentId("site"), "publicPageCopy-site-th");
   assert.ok(!publicCopyDocumentId("home").includes("."));
+});
+
+test("native publish is limited to the two exact UAT page types after the Studio data-plane guard", () => {
+  const actions = ["publish", "delete", "unpublish", "unpublishVersion", "discardChanges"].map(action => ({ action }));
+  for (const allowed of [true, false]) {
+    const { filterStudioDocumentActions: filter }: { filterStudioDocumentActions: typeof filterStudioDocumentActions } = loadFixtureModule("cms/sanity/policy/studio-policy.ts", {
+      mocks: new Map([["../../../lib/admin/environment", { isStudioDataPlaneAllowed: () => allowed }]]),
+    });
+    for (const type of ["publicPageCopy", "pageSeo"]) {
+      for (const environment of ["development", "local-uat", "admin-uat"] as const) {
+        const result = filter(actions, "uat", environment, type, "ccb9lnw5");
+        assert.equal(result.some(({ action }) => action === "publish"), allowed);
+        assert.ok(!result.some(({ action }) => ["delete", "unpublish", "unpublishVersion"].includes(action)));
+      }
+      for (const [dataset, environment, project] of [
+        ["production", "local-uat", "ccb9lnw5"], ["uat", "local-uat", "kyfxgjnq"],
+        ["production", "production-admin", "kyfxgjnq"], ["production", "local-production", "kyfxgjnq"],
+        ["uat", "web-uat", "ccb9lnw5"], ["uat", "unknown", "ccb9lnw5"],
+      ] as const) assert.ok(!filter(actions, dataset, environment, type, project).some(({ action }) => action === "publish"));
+    }
+    for (const type of ["article", "author", "category", "masterContent", "auditLog"]) {
+      assert.ok(!filter(actions, "uat", "local-uat", type, "ccb9lnw5").some(({ action }) => action === "publish"));
+    }
+  }
 });

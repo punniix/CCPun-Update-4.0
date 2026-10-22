@@ -115,7 +115,10 @@ export function filterStudioDocumentActions<T extends { action?: string }>(
       : BLOCKED_PRODUCTION_ADMIN_ACTIONS;
     return actions.filter(({ action }) => !action || !blockedActions.has(action));
   }
-  return actions.filter(({ action }) => !action || !BLOCKED_NON_PRODUCTION_ACTIONS.has(action));
+  const uatPagePublishAllowed = Boolean(schemaType && UAT_PAGE_DOCUMENT_TYPES.has(schemaType)
+    && isUatEditorialEnvironment(environment) && dataset === "uat" && projectId === "ccb9lnw5");
+  return actions.filter(({ action }) => !action || !BLOCKED_NON_PRODUCTION_ACTIONS.has(action)
+    || (action === "publish" && uatPagePublishAllowed));
 }
 
 function wasEverPublished(props: Parameters<DocumentActionComponent>[0]) {
