@@ -1,3 +1,5 @@
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText } from "@/lib/content/public-copy-registry";
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import styles from '@/components/layout/website-43/Website43.module.css';
@@ -17,19 +19,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function NotFound() {
+export default async function NotFound() {
+  const text = publicCopyText(await getPublicCopy("site"));
   return (
     <div className={styles.root}>
       <Website43Navbar notFound />
       <main id="main-content" tabIndex={-1}>
         <section className={styles.notFound}>
           <div className={styles.inner}>
-            <p className={styles.notFoundCode}>404</p>
-            <h1>ไม่พบหน้าที่คุณกำลังหา</h1>
-            <p className={styles.notFoundDescription}>ลิงก์อาจเปลี่ยนหรือถูกย้าย ลองกลับหน้าแรกหรือเลือกอ่านบทความเพื่อไปต่อ</p>
+            <p className={styles.notFoundCode}>{text("site.extra.notFoundCode")}</p>
+            <h1>{text("site.extra.h1")}</h1>
+            <p className={styles.notFoundDescription}>{text("site.extra.notFoundDescription")}</p>
             <div className={styles.notFoundActions} style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}>
-              <Link className={styles.primaryButton} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto' }} href="/">กลับหน้าแรก</Link>
-              <Link className={styles.blogRecovery} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto', justifyContent: 'center' }} href="/blog/">ดูบทความ</Link>
+              <Link className={styles.primaryButton} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto' }} href="/">{text("site.extra.primaryButton")}</Link>
+              <Link className={styles.blogRecovery} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto', justifyContent: 'center' }} href="/blog/">{text("site.extra.blogRecovery")}</Link>
             </div>
           </div>
         </section>

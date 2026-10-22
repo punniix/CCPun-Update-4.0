@@ -1,4 +1,5 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -8,6 +9,7 @@ import { CategoryRow } from './CookieConsentPreferences';
 
 // ─── Main Component ───────────────────────────────────────────────
 export default function CookieConsent() {
+  const text = usePublicCopy();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
@@ -149,20 +151,15 @@ export default function CookieConsent() {
                 <p
                   id="cookie-title"
                   className="text-sm font-semibold text-foreground mb-1"
-                >
-                  เว็บไซต์นี้ใช้คุกกี้
-                </p>
+                >{text("site.cookie.title")}</p>
                 <p
                   id="cookie-desc"
                   className="text-xs text-muted-foreground leading-relaxed"
-                >
-                  เว็บไซต์ใช้ Google Analytics เพื่อวิเคราะห์การใช้งาน และใช้ Meta Pixel เฉพาะหน้า CI Planning กับ Financial Health Check หลังคุณเลือกยินยอม{' '}
+                >{text("site.cookie.description")}{' '}
                   <Link
                     href="/cookie-policy"
                     className="text-primary hover:underline underline-offset-2"
-                  >
-                    นโยบายคุกกี้
-                  </Link>
+                  >{text("site.cookie.policy")}</Link>
                 </p>
               </div>
 
@@ -177,18 +174,14 @@ export default function CookieConsent() {
                     color: 'hsl(45,70%,65%)',
                     background: 'transparent',
                   }}
-                  aria-label="ตั้งค่าคุกกี้"
-                >
-                  ตั้งค่าคุกกี้
-                </button>
+                  aria-label={text("site.cookie.settings")}
+                >{text("site.cookie.settings")}</button>
                 <button
                   type="button"
                   onClick={handleAcceptAll}
                   className="gold-button min-h-11 text-sm font-semibold px-5 py-2"
-                  aria-label="ยอมรับคุกกี้ทั้งหมด"
-                >
-                  ยอมรับ
-                </button>
+                  aria-label={text("site.cookieConsentarialabel")}
+                >{text("site.cookie.accept")}</button>
               </div>
             </div>
           </div>
@@ -221,13 +214,11 @@ export default function CookieConsent() {
                   color: 'hsl(0 10% 98%)',
                   margin: 0,
                 }}
-              >
-                การตั้งค่าคุกกี้
-              </h2>
+              >{text("site.cookie.preferencesTitle")}</h2>
               <button
                 type="button"
                 onClick={() => setShowPanel(false)}
-                aria-label="ปิดหน้าตั้งค่าคุกกี้"
+                aria-label={text("site.cookieConsentarialabel2")}
                 style={{
                   background: 'transparent',
                   border: '1px solid rgba(255,255,255,0.15)',
@@ -253,30 +244,30 @@ export default function CookieConsent() {
             {/* 4 หมวดคุกกี้ */}
             <CategoryRow
               toggleId="toggle-essential"
-              label="การจัดเก็บสถานะความยินยอมที่จำเป็น"
-              description="บันทึกตัวเลือกความยินยอมไว้ใน localStorage เพื่อให้เว็บไซต์ใช้ตัวเลือกเดิมควบคุมแท็ก"
+              label={text("site.cookieConsentlabel")}
+              description={text("site.cookieConsentdescription")}
               checked={true}
               onChange={() => {}}
               alwaysActive
             />
             <CategoryRow
               toggleId="toggle-performance"
-              label="คุกกี้เพื่อเพิ่มประสิทธิภาพ (ยังไม่ใช้งาน)"
-              description="ปัจจุบันเว็บไซต์ยังไม่ใช้คุกกี้หรือบริการบุคคลที่สามในหมวดนี้ การเปิดหรือปิดตัวเลือกจะบันทึกเฉพาะสถานะความยินยอมไว้ใน localStorage ของเบราว์เซอร์"
+              label={text("site.cookieConsentlabel2")}
+              description={text("site.cookieConsentdescription2")}
               checked={performance}
               onChange={setPerformance}
             />
             <CategoryRow
               toggleId="toggle-analytics"
-              label="คุกกี้เพื่อการวิเคราะห์ข้อมูล"
-              description="Google Analytics — วิเคราะห์จำนวนผู้เข้าชมและพฤติกรรมการใช้งาน เพื่อปรับปรุงเว็บไซต์"
+              label={text("site.cookieConsentlabel3")}
+              description={text("site.cookieConsentdescription3")}
               checked={analytics}
               onChange={setAnalytics}
             />
             <CategoryRow
               toggleId="toggle-social"
-              label="Meta Pixel เพื่อการวัดผลและการตลาด"
-              description="Meta Platforms, Inc. — โหลดเฉพาะหน้า CI Planning และ Financial Health Check หลังคุณเปิดตัวเลือกนี้ เพื่อวัดการเข้าชมและปฏิสัมพันธ์สำหรับประเมินผลโฆษณา อาจใช้ _fbp สูงสุด 90 วันและ _fbc เมื่อเกี่ยวข้อง โดยไม่ส่งค่าที่กรอกในเครื่องมือหรือข้อมูลติดต่อ คุณถอนความยินยอมได้ที่ตั้งค่าคุกกี้"
+              label={text("site.cookieConsentlabel4")}
+              description={text("site.cookieConsentdescription4")}
               checked={social}
               onChange={setSocial}
             />
@@ -287,10 +278,8 @@ export default function CookieConsent() {
                 type="button"
                 onClick={handleSavePreferences}
                 className="gold-button min-h-11 text-sm font-semibold px-5 py-2"
-                aria-label="บันทึกการตั้งค่าคุกกี้"
-              >
-                บันทึกการตั้งค่า
-              </button>
+                aria-label={text("site.cookieConsentarialabel3")}
+              >{text("site.cookie.save")}</button>
             </div>
           </div>
         )}

@@ -1,3 +1,6 @@
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText } from "@/lib/content/public-copy-registry";
+import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import { buildSiteRootMetadata } from "@/lib/seo/root-metadata";
 import { CRITICAL_FOUNDATION_CSS } from "@/components/styles/critical-foundation";
 import type { Metadata } from "next";
@@ -38,7 +41,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const author = await getPrimaryAuthorProfile();
+  const [author, copy] = await Promise.all([getPrimaryAuthorProfile(), getPublicCopy("site")]);
+  const text = publicCopyText(copy);
   const schemaGraph = buildCcpunSchemaGraph(author);
   return (
     <html lang="th" className={`${kanit.variable} ${kanitCritical.variable}`} suppressHydrationWarning>
@@ -52,10 +56,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="antialiased font-sans">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:p-2 focus:bg-background focus:text-foreground focus:rounded focus:border focus:border-primary/50">
-          ข้ามไปเนื้อหาหลัก
+          {text("site.skipLink")}
         </a>
+        <PublicCopyProvider values={copy}>
         {children}
         <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} />
+        </PublicCopyProvider>
       </body>
     </html>
   );

@@ -1,4 +1,5 @@
 'use client';
+import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -27,13 +28,14 @@ function useSearchSnippet() {
 }
 
 export function CCPunAiSearchChrome() {
+  const text = usePublicCopy();
   const ready = useSearchSnippet();
   if (!ready) return null;
   return (
     <>
       <search-modal-snippet
         api-url={CCPUN_AI_SEARCH_URL}
-        placeholder="ค้นหาบทความการเงิน ประกัน และการลงทุน"
+        placeholder={text("site.extra.cCPunAiSearchChromeplaceholder")}
         shortcut="k"
         show-url="true"
         show-date="true"
@@ -45,12 +47,13 @@ export function CCPunAiSearchChrome() {
 }
 
 export function CCPunAiSearchBar() {
+  const text = usePublicCopy();
   const ready = useSearchSnippet();
-  if (!ready) return <Link href="/blog/" style={{ color: '#E0C985' }}>อ่านบทความ CCPun ทั้งหมด</Link>;
+  if (!ready) return <Link href="/blog/" style={{ color: '#E0C985' }}>{text("site.extra.link")}</Link>;
   return (
     <search-bar-snippet
       api-url={CCPUN_AI_SEARCH_URL}
-      placeholder="ลองถาม เช่น Copayment กับ Deductible ต่างกันอย่างไร?"
+      placeholder={text("site.extra.cCPunAiSearchBarplaceholder")}
       max-results="20"
       max-render-results="8"
       show-url="true"

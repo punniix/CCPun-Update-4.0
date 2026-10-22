@@ -1,16 +1,12 @@
 'use client';
 
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { INVESTMENT_TOOL_LINK } from "./constants";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import styles from './Website43Navbar.module.css';
 import { WEBSITE43_BASE as BASE, WEBSITE43_HOME as HOME } from './constants';
-
-const toolLinks = [
-  { href: `${BASE}/play/money-story`, label: 'Money Story (Beta)' },
-  { href: `${BASE}/tools/financial-health-check`, label: 'ตรวจสุขภาพการเงิน (Beta)' },
-  { href: `${BASE}/ci-planning`, label: 'วางแผนเงินก้อนโรคร้ายแรง' },
-];
 
 function Website43NavbarBrand() {
   return (
@@ -20,7 +16,16 @@ function Website43NavbarBrand() {
   );
 }
 
-export function Website43Navbar({ overlay = false, notFound = false, responsiveOverlay = false }: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean }) {
+export function Website43Navbar({ overlay = false, notFound = false, responsiveOverlay = false, investmentEnabled = false }: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean; investmentEnabled?: boolean }) {
+  const text = usePublicCopy();
+const toolLinks = [
+  { href: `${BASE}/play/money-story`, label: text("site.nav.moneyStory") },
+  { href: `${BASE}/tools/financial-health-check`, label: text("site.nav.fhc") },
+  { href: `${BASE}/ci-planning`, label: text("site.nav.ci") },
+  ...(investmentEnabled ? [{ ...INVESTMENT_TOOL_LINK, href: INVESTMENT_TOOL_LINK.href.replace(/\/$/, ""), label: text("site.tools.investment") }] : []),
+];
+
+
   const pathname = usePathname()?.replace(/\/$/, '');
   const blogCurrent = pathname === `${BASE}/blog` ? 'page' : pathname?.startsWith(`${BASE}/blog/`) ? 'location' : undefined;
   const toolsCurrent = toolLinks.some(({ href }) => pathname === href);
@@ -56,14 +61,13 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
         setOpen(false); setToolsOpen(false); setMobileToolsOpen(false);
       }
     }}>
-      <Link href={HOME} className={styles.brandLink} aria-label="CCPUN หน้าแรก"><Website43NavbarBrand /></Link>
+      <Link href={HOME} className={styles.brandLink} aria-label={text("site.nav.homeLabel")}><Website43NavbarBrand /></Link>
       <div className={styles.navSpacer} />
-      <nav className={styles.navLinks} aria-label="เมนูหลัก">
-        <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>หน้าแรก</Link>
-        <Link href={`${BASE}/blog`} aria-current={blogCurrent}>บทความ</Link>
+      <nav className={styles.navLinks} aria-label={text("site.nav.mainLabel")}>
+        <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>{text("site.nav.home")}</Link>
+        <Link href={`${BASE}/blog`} aria-current={blogCurrent}>{text("site.nav.blog")}</Link>
         <div className={styles.navTools} ref={toolsRef}>
-          <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>
-            เครื่องมือ <span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
+          <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>{text("site.nav.tools")}<span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
           </button>
           {toolsOpen ? (
             <div id="home-tools-navigation" className={styles.navDropdown}>
@@ -74,17 +78,17 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
           ) : null}
         </div>
       </nav>
-      <a className={styles.navCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar">ติดต่อเรา</a>
-      <button ref={mobileButtonRef} className={styles.hamburger} aria-controls="mobile-navigation" type="button" aria-label={open ? 'ปิดเมนู' : 'เปิดเมนู'} aria-expanded={open} onClick={() => { setOpen((v) => !v); setToolsOpen(false); }}>
+      <a className={styles.navCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar">{text("site.nav.contact")}</a>
+      <button ref={mobileButtonRef} className={styles.hamburger} aria-controls="mobile-navigation" type="button" aria-label={open ? text("site.nav.close") : text("site.nav.open")} aria-expanded={open} onClick={() => { setOpen((v) => !v); setToolsOpen(false); }}>
         <span /><span /><span />
       </button>
       {open ? (
-        <nav id="mobile-navigation" className={styles.mobileMenu} aria-label="เมนูมือถือ">
-          <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined} onClick={() => setOpen(false)}>หน้าแรก</Link>
-          <Link href={`${BASE}/blog`} aria-current={blogCurrent} onClick={() => setOpen(false)}>บทความ</Link>
+        <nav id="mobile-navigation" className={styles.mobileMenu} aria-label={text("site.nav.mobileLabel")}>
+          <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined} onClick={() => setOpen(false)}>{text("site.nav.home")}</Link>
+          <Link href={`${BASE}/blog`} aria-current={blogCurrent} onClick={() => setOpen(false)}>{text("site.nav.blog")}</Link>
           <div className={styles.mobileTools}>
             <button type="button" data-active={toolsCurrent} aria-expanded={mobileToolsOpen} onClick={() => setMobileToolsOpen((v) => !v)}>
-              <span>เครื่องมือ</span><span className={`${styles.navChevron} ${mobileToolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
+              <span>{text("site.nav.tools")}</span><span className={`${styles.navChevron} ${mobileToolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
             </button>
             {mobileToolsOpen ? (
               <div className={styles.mobileSubmenu}>
@@ -94,7 +98,7 @@ export function Website43Navbar({ overlay = false, notFound = false, responsiveO
               </div>
             ) : null}
           </div>
-          <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar_mobile" onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>ติดต่อเรา</a>
+          <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar_mobile" onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>{text("site.nav.contact")}</a>
         </nav>
       ) : null}
     </div>

@@ -1,3 +1,5 @@
+import { PUBLIC_COPY_SCOPES, publicCopyDocumentId } from "../../../lib/content/public-copy-registry";
+import { PAGE_SEO_PAGES } from "../../../lib/content/page-seo-registry";
 import { map } from "rxjs";
 import { structureTool, type StructureBuilder, type StructureResolverContext } from "sanity/structure";
 import { filterStudioStructureItems } from "../policy/studio-policy";
@@ -128,6 +130,18 @@ function blogSettingsWorkspace(S: StructureBuilder) {
     );
 }
 
+function publicPagesWorkspace(S: StructureBuilder) {
+  return S.listItem().id("public-pages").title("ข้อความและ SEO หน้าเว็บไซต์").child(
+    S.list().id("public-pages-list").title("ข้อความและ SEO หน้าเว็บไซต์").items([
+      ...Object.entries(PUBLIC_COPY_SCOPES).map(([scope, config]) => S.listItem().id(`copy-${scope}`).title(config.label)
+        .child(S.document().schemaType("publicPageCopy").documentId(publicCopyDocumentId(scope as keyof typeof PUBLIC_COPY_SCOPES)).initialValueTemplate("publicPageCopy", { scope }).title(config.label))),
+      S.divider(),
+      ...PAGE_SEO_PAGES.map(page => S.listItem().id(`seo-${page.documentId}`).title(`SEO · ${page.label}`)
+        .child(S.document().schemaType("pageSeo").documentId(page.documentId).title(`SEO · ${page.label}`))),
+    ]),
+  );
+}
+
 export function createStudioStructurePlugin(environment: AdminEnvironment) {
   return structureTool({
     structure: (S, context) => {
@@ -137,8 +151,9 @@ export function createStudioStructurePlugin(environment: AdminEnvironment) {
       const hasBlogSettings = allowedItems.some((item) => item.getId() === "blogSettings");
       const authors = allowedItems.filter((item) => item.getId() === "author").map((item) => item.title("ผู้เขียน"));
       const otherChannels = allowedItems.filter((item) => item.getId() === "masterContent" || item.getId() === "socialVariant");
+      const hasPublicCopy = allowedItems.some(item => item.getId() === "publicPageCopy");
       const remainingItems = allowedItems.filter((item) =>
-        !["article", "category", "blogSettings", "author", "masterContent", "socialVariant"].includes(item.getId() ?? "")
+        !["article", "category", "blogSettings", "author", "masterContent", "socialVariant", "publicPageCopy", "pageSeo"].includes(item.getId() ?? "")
       );
       const supportItems = [
         ...(hasCategory ? [categoryWorkspace(S)] : []),
@@ -151,6 +166,7 @@ export function createStudioStructurePlugin(environment: AdminEnvironment) {
         .title("เนื้อหา")
         .items([
           ...(hasArticle ? [articleWorkspace(S, context)] : []),
+          ...(hasPublicCopy ? [publicPagesWorkspace(S)] : []),
           ...(supportItems.length ? [S.listItem().id("support-data").title("ข้อมูลประกอบ")
             .child(S.list().id("support-data-list").title("ข้อมูลประกอบ").items(supportItems))] : []),
           ...(otherChannels.length ? [S.listItem().id("other-channels").title("ช่องทางอื่น")

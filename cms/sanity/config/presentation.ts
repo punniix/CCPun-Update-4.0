@@ -11,6 +11,10 @@ export function createStudioPresentationPlugin() {
     },
     resolve: {
       locations: {
+        publicPageCopy: defineLocations({
+          select: { scope: "scope" },
+          resolve: document => ({ locations: [{ title: "ดูฉบับร่างหน้าเว็บไซต์", href: `/content/website-preview/?scope=${encodeURIComponent(document?.scope ?? "home")}` }] }),
+        }),
         article: defineLocations({
           select: { title: "title", slug: "slug.current", categorySlug: "category.slug.current" },
           resolve: (document) => ({

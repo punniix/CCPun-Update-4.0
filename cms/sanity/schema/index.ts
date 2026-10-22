@@ -1,3 +1,5 @@
+import { publicPageCopy } from "./documents/public-page-copy";
+import { pageSeo } from "./documents/page-seo";
 import { article } from "./documents/article";
 import { author } from "./documents/author";
 import { category } from "./documents/category";
@@ -29,6 +31,8 @@ import { adminIntelligenceSchemaTypes } from "../admin/schema";
 
 export const schemaTypes = [
   ...adminIntelligenceSchemaTypes,
+  publicPageCopy,
+  pageSeo,
   article,
   author,
   category,
