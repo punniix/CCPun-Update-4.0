@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { main as audit } from '../scripts/audit-monorepo-boundaries.mjs';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { buildNextSecurityHeaders } from '../lib/runtime/security-headers.mjs';
 
@@ -93,19 +93,37 @@ test('search request uses only native search, fixed retrieval settings and expli
 });
 
 test('CSP adds exactly one UAT Web connect host while preserving complete Production and Admin headers', () => {
-  const before = execFileSync('git', ['show', '1a56f1d6:lib/runtime/security-headers.mjs'], { encoding: 'utf8' });
-  const baseline = loadFixtureModule('lib/runtime/security-headers.mjs', { sources: new Map([['lib/runtime/security-headers.mjs', before]]) });
+  // Complete, ordered header-array digests captured from reviewed source 1a56f1d6.
+  // Keep these historical values independent of current output and Git history:
+  // CI checks out shallow source and must still verify every header/directive.
+  const baselineHashes = {
+    production: 'b2aa6cd10eba7a8b49597ba2c03abef8fd5c253fea4ab8e009b3f169e330063b',
+    'local-production': 'da04fcebf8d19afa3167a9c88d1c4f7245bb82fb6f01b18c3b325183ad998fab',
+    'production-admin': 'b2aa6cd10eba7a8b49597ba2c03abef8fd5c253fea4ab8e009b3f169e330063b',
+    'admin-uat': '1ed601dc29a1dd248f667df727195c479aedd68392e2eaebdec944673b580fd4',
+    development: 'b2aa6cd10eba7a8b49597ba2c03abef8fd5c253fea4ab8e009b3f169e330063b',
+    unknown: 'b2aa6cd10eba7a8b49597ba2c03abef8fd5c253fea4ab8e009b3f169e330063b',
+    'web-uat': '1ed601dc29a1dd248f667df727195c479aedd68392e2eaebdec944673b580fd4',
+    'local-uat': 'f91357f06695300091041b3d19a88bff15f3f106988e9d597c960ebd8b7f3227',
+  };
+  const digest = headers => createHash('sha256').update(JSON.stringify(headers)).digest('hex');
+  const preservesBaseline = (headers, environment) => digest(headers) === baselineHashes[environment];
   for (const appEnvironment of ['production', 'local-production', 'production-admin', 'admin-uat', 'development', 'unknown', 'web-uat', 'local-uat']) {
     const options = { appEnvironment, nodeEnv: 'production', isReviewEnvironment: appEnvironment.includes('uat'), sanityProjectId: 'ccb9lnw5' };
     const actual = buildNextSecurityHeaders(options);
-    const original = baseline.buildNextSecurityHeaders(options);
+    let comparable = actual;
     if (['web-uat', 'local-uat'].includes(appEnvironment)) {
       const csp = actual.find(header => header.key === 'Content-Security-Policy').value;
       assert.equal(csp.split(host).length - 1, 1);
       assert.match(csp, new RegExp('connect-src[^;]*' + host.replaceAll('.', '\\.')));
       assert.doesNotMatch(csp, /\*\.search\.ai\.cloudflare\.com/);
-      assert.deepEqual(actual.map(header => header.key === 'Content-Security-Policy' ? { ...header, value: header.value.replace(' ' + host, '') } : header), original);
-    } else assert.deepEqual(actual, original);
+      comparable = actual.map(header => header.key === 'Content-Security-Policy' ? { ...header, value: header.value.replace(' ' + host, '') } : header);
+    }
+    assert.equal(preservesBaseline(comparable, appEnvironment), true, appEnvironment);
+    const changedHeader = comparable.map((header, index) => index ? header : { ...header, value: header.value + ' tampered' });
+    assert.equal(preservesBaseline(changedHeader, appEnvironment), false, 'Unrelated header mutation must fail');
+    assert.equal(preservesBaseline(comparable.filter(header => header.key !== 'Content-Security-Policy'), appEnvironment), false, 'Missing CSP must fail');
+    assert.equal(preservesBaseline([...comparable, { key: 'X-Unreviewed', value: '1' }], appEnvironment), false, 'Extra header must fail');
   }
 });
 
