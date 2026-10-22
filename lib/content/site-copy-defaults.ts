@@ -93,5 +93,18 @@ export const SITE_COPY_DEFAULTS = {
   "site.image.targetSources": "ที่มาของทุนที่ประเมิน",
   "site.image.targetTotal": "รวมทุนที่ต้องเตรียม",
   "site.image.resourcesTitle": "ทุนที่มีสำหรับรับมือโรคร้ายแรง",
-  "site.image.resourcesTotal": "รวมทุนที่มี"
+  "site.image.resourcesTotal": "รวมทุนที่มี",
+  "site.aiSearch.open": "ค้นหาบทความด้วย Cloudflare (UAT)",
+  "site.aiSearch.description": "ค้นหาเฉพาะบทความทดสอบ UAT โดยส่งคำค้นไปยัง Cloudflare และแสดงข้อความจากบทความ",
+  "site.aiSearch.label": "คำค้นบทความ",
+  "site.aiSearch.placeholder": "เช่น qa-marker-01",
+  "site.aiSearch.submit": "ค้นหา",
+  "site.aiSearch.loading": "กำลังค้นหา…",
+  "site.aiSearch.queryError": "กรอกคำค้นตั้งแต่ 1 ถึง 200 ตัวอักษร",
+  "site.aiSearch.rateLimit": "ค้นหาถี่เกินไป กรุณารอสักครู่แล้วลองอีกครั้ง",
+  "site.aiSearch.timeout": "การค้นหาใช้เวลานาน กรุณาลองอีกครั้ง",
+  "site.aiSearch.unavailable": "ยังค้นหาไม่ได้ในขณะนี้ คุณยังใช้ช่องค้นหาบทความเดิมได้",
+  "site.aiSearch.empty": "ไม่พบบทความทดสอบที่ตรงกับคำค้น ลองเปลี่ยนคำค้น",
+  "site.aiSearch.results": "ผลการค้นหาบทความ UAT",
+  "site.aiSearch.close": "ปิดการค้นหา"
 } as const;

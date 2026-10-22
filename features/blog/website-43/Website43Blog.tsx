@@ -48,7 +48,7 @@ const BLOG_CLIENT_CLASS_NAMES = {
   pagination: styles.pagination,
 } satisfies Website43BlogClientClassNames;
 
-export async function renderWebsite43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription, initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation, siteCopyOverride }: {
+export async function renderWebsite43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription, initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation, siteCopyOverride, searchEnhancement }: {
   articles: Website43ArticleItem[];
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
@@ -61,6 +61,7 @@ export async function renderWebsite43Blog({ articles, featuredArticles, activeCa
   topicNavigation?: ReactNode;
   copyOverride?: PublicCopyValues;
   siteCopyOverride?: PublicCopyValues;
+  searchEnhancement?: ReactNode;
 }, copyOverride?: PublicCopyValues) {
   const copy = copyOverride ?? await getPublicCopy("blog");
   const copyText = publicCopyText(copy);
@@ -93,6 +94,7 @@ export async function renderWebsite43Blog({ articles, featuredArticles, activeCa
 
         {!activeCategory.slug && campaignAvailable && <HealthHappyCountdown placement="blog" />}
         {topicContent}
+        {searchEnhancement && <div className={styles.inner}>{searchEnhancement}</div>}
         <Website43BlogInteractive
           articles={articles}
           featuredArticles={featuredArticles}
