@@ -157,9 +157,9 @@ expect(
 expect(
   'Site-wide credential enrichment uses one Person graph while homepage keeps its Author Card',
   homePage.includes('getPrimaryAuthorProfile')
-    && homePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && /<Website43Home\s+authorProfile=\{authorProfile\}(?:\s[^>]*)?\s*\/>/.test(homePage)
     && webHomePage.includes('getPrimaryAuthorProfile')
-    && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && /<Website43Home\s+authorProfile=\{authorProfile\}(?:\s[^>]*)?\s*\/>/.test(webHomePage)
     && webPublicLayout.includes('buildCcpunSchemaGraph(author)')
     && siteStructuredData.includes('buildProfessionalQualificationPersonSchema(')
     && !webHomePage.includes('professionalQualificationSchema')

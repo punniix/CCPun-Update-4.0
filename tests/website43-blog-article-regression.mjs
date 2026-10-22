@@ -14,6 +14,9 @@ const { toWebsite43ArticleItem } = require('../features/blog/website-43/blogData
 const { parseProfessionalQualifications } = require('../lib/content/sanity-schema.ts');
 const { buildProfessionalQualificationPersonSchema, personSchema } = require('../lib/seo/structured-data/site-schema.ts');
 const { buildArticleSchemaGraph } = require('../lib/content/structured-data/article-schema.ts');
+// Native SSR fixture runs in Node, with only CMS IO and the server marker mocked.
+require.cache[require.resolve('server-only')] = { exports: {} };
+require.cache[require.resolve('../lib/content/public-copy.ts')] = { exports: { getPublicCopy: async () => ({}) } };
 const Article = require('../features/blog/website-43/Website43Article.tsx').default;
 // Exercise the real pure converter without loading Sanity clients or credentials.
 const ts = require('typescript');
@@ -58,8 +61,18 @@ const article = {
   sources: [{ label: 'แหล่งต้นทาง', url: 'https://example.com/source' }],
   faq: [{ question: 'คำถามทดสอบ', answer: 'คำตอบทดสอบ' }],
 };
-const doc = (element) => new JSDOM(renderToStaticMarkup(element)).window.document;
-const rendered = doc(React.createElement(Article, { article }));
+async function resolveServer(element) {
+  if (Array.isArray(element)) return Promise.all(element.map(async (child, index) => {
+    const resolved = await resolveServer(child);
+    return React.isValidElement(resolved) && resolved.key === null ? React.cloneElement(resolved, { key: `server-fixture-${index}` }) : resolved;
+  }));
+  if (!React.isValidElement(element)) return element;
+  if (typeof element.type === 'function' && element.type.constructor.name === 'AsyncFunction') return resolveServer(await element.type(element.props));
+  if (!Object.hasOwn(element.props, 'children')) return element;
+  return React.cloneElement(element, { children: await resolveServer(element.props.children) });
+}
+const doc = async (element) => new JSDOM(renderToStaticMarkup(await resolveServer(element))).window.document;
+const rendered = await doc(React.createElement(Article, { article }));
 assert.equal(rendered.querySelectorAll('h1').length, 1);
 assert.ok(rendered.querySelector('h2#section-2'), 'preserve legacy block-index + 1 heading IDs');
 assert.ok(rendered.querySelector('a[href="#section-2"]'));
@@ -71,7 +84,7 @@ assert.deepEqual(tocLinks, ['#section-2', '#section-3', '#section-4', '#section-
 const h4Link = rendered.querySelector('h4#section-4 a');
 assert.equal(h4Link.target, '_blank');
 for (const rel of ['noopener', 'noreferrer', 'nofollow', 'sponsored']) assert.ok(h4Link.rel.split(' ').includes(rel));
-const h4Only = doc(React.createElement(Article, { article: { ...article, body: h4Body } }));
+const h4Only = await doc(React.createElement(Article, { article: { ...article, body: h4Body } }));
 assert.ok(h4Only.querySelector('h4#section-1'));
 assert.equal(h4Only.querySelectorAll('a[href="#section-1"]').length, 2, 'both TOC variants preserve the H4-only anchor');
 for (const text of ['คำบรรยายภาพเปิด', 'เครดิต: เจ้าของภาพเดี่ยว', 'คำบรรยายแกลเลอรี · เครดิต: เจ้าของแกลเลอรี', 'ผู้เขียนจากเนื้อหา', '(2.0 MB)', 'ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก', 'คำถามทดสอบ']) assert.ok(rendered.body.textContent.includes(text), text);
@@ -86,12 +99,13 @@ assert.equal(rendered.querySelector('a[href="https://example.com/action"]').targ
 assert.ok(rendered.querySelector('a[href="/#about-ccpun"]'));
 assert.ok([...rendered.querySelectorAll('button')].some((button) => button.textContent.includes('ตั้งค่าคุกกี้')));
 assert.equal([...rendered.querySelectorAll('a')].filter((a) => !a.getAttribute('href') || a.getAttribute('href').startsWith('/preview/')).length, 0);
-const profile = doc(React.createElement(Article, { article: { ...article, author: { name: 'ชื่อ CMS', profileName: 'ชื่อโปรไฟล์', profileCtaUrl: '#about-ccpun' } } }));
+const profile = await doc(React.createElement(Article, { article: { ...article, author: { name: 'ชื่อ CMS', profileName: 'ชื่อโปรไฟล์', profileCtaUrl: '#about-ccpun' } } }));
 assert.ok(profile.body.textContent.includes('ชื่อโปรไฟล์'));
-assert.ok(profile.body.textContent.includes('ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน'), 'legacy Author data keeps the current visible role before managed qualifications are populated');
+assert.ok(!profile.body.textContent.includes('ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน'), 'unknown identity cannot inherit advisor credentials');
+assert.equal(profile.querySelector('.authorAvatar'), null, 'unknown identity cannot inherit the real advisor portrait');
 assert.ok(profile.querySelector('a[href="/#about-ccpun"]'));
 
-const managedProfile = doc(React.createElement(Article, { article: { ...article, author: {
+const managedProfile = await doc(React.createElement(Article, { article: { ...article, author: {
   name: 'CCPun',
   profileName: 'ชนาธิป ชิตประเสริฐ',
   profileRole: 'บทบาทจาก Sanity',
@@ -112,17 +126,14 @@ assert.ok(managedProfile.body.textContent.includes('คำอธิบายจ�
 assert.ok(!managedProfile.body.textContent.includes('AFPT260195'), 'Article author card must not repeat the credential identifier');
 
 
-const byline = managedProfile.querySelector('header h1').previousElementSibling;
-assert.equal(byline.tagName,'P');
-assert.equal(byline.textContent,'โดย ชนาธิป ชิตประเสริฐ, AFPT');
-assert.equal(byline.querySelector('a,button'),null,'compact byline stays plain and noninteractive');
-assert.equal(managedProfile.querySelectorAll('.authorCard').length,1,'one full profile retained at article end');
-assert.equal(managedProfile.querySelector('.authorName').textContent,'ชนาธิป ชิตประเสริฐ, AFPT™','full profile retains real qualification label');
-assert.equal(rendered.querySelector('header h1').previousElementSibling.textContent,'โดย ผู้เขียนจากเนื้อหา');
-assert.ok(!rendered.querySelector('header h1').previousElementSibling.textContent.includes('AFPT'),'no invented qualification for an author without credentials');
+assert.equal(managedProfile.querySelector('header .articleByline'), null, 'header keeps date metadata without a duplicate byline');
+assert.equal(managedProfile.querySelectorAll('.authorCard').length, 1, 'one full profile retained at article end');
+assert.equal(managedProfile.querySelector('.authorName').textContent, 'ชนาธิป ชิตประเสริฐ, AFPT™');
+assert.equal(rendered.querySelector('.authorName').textContent, 'ผู้เขียนจากเนื้อหา');
+assert.ok(!rendered.querySelector('.authorName').textContent.includes('AFPT'), 'no invented qualification for an author without credentials');
 const {renderWebsite43ArticleBody}=require('../features/blog/website-43/Website43ArticleBody.tsx');
 const introItems=[{type:'paragraph',text:'บทนำแรก',segments:[{text:'อ้างอิงเดิม',href:'https://example.com/inline'}]},{type:'paragraph',text:'บทนำที่สอง'},{type:'heading',level:2,text:'หัวข้อหลัก'},{type:'paragraph',text:'เนื้อหาปกติ'}];
-const introDoc=doc(React.createElement('article',{className:'prose'},renderWebsite43ArticleBody(introItems,new Map([[2,'section-3']]))));
+const introDoc=await doc(React.createElement('article',{className:'prose'},renderWebsite43ArticleBody(introItems,new Map([[2,'section-3']]))));
 const paragraphs=[...introDoc.querySelectorAll('p')];
 for(const p of paragraphs.slice(0,2)){assert.equal(p.style.fontSize,'19px');assert.equal(p.style.lineHeight,'1.75');assert.equal(p.style.color,'rgba(250, 249, 249, 0.9)');assert.equal(p.style.margin,'','existing paragraph gap remains stylesheet-owned');}
 assert.equal(paragraphs[2].getAttribute('style'),null,'body after first nonparagraph keeps existing responsive16/17 typography');
@@ -178,11 +189,16 @@ mock('../lib/content/provider.ts', { getContentProvider: () => ({
 mock('next/headers', { draftMode: async () => ({ isEnabled: true }) });
 mock('next/navigation', { ...nextNavigation, useRouter: () => ({ replace: () => {} }) });
 mock('../lib/deployment-environment.ts', { IS_DRAFT_PREVIEW_ALLOWED: false });
+// Public default delegates to its named async server renderer. Resolve that
+// server boundary before invoking React's synchronous client-island SSR.
+const blogShell = require('../features/blog/website-43/Website43Blog.tsx');
+const renderBlogShell = blogShell.default;
+mock('../features/blog/website-43/Website43Blog.tsx', { ...blogShell, __esModule: true, default: async props => renderBlogShell(props) });
 const overview = require('../features/blog/pages/BlogArchivePage.tsx').default;
 const category = require('../features/blog/pages/BlogCategoryPage.tsx');
 const articleRoute = require('../features/blog/pages/ArticlePage.tsx');
 for (const [slug, label, expected] of [['health-insurance', 'ประกันสุขภาพ', 'บทความสุขภาพ'], ['investment', 'การลงทุน', null]]) {
-  const markup = doc(await category.default({ params: Promise.resolve({ category: slug }) }));
+  const markup = await doc(await category.default({ params: Promise.resolve({ category: slug }) }));
   assert.equal(markup.querySelector('.categoryMenuButton').textContent.trim().startsWith(label), true);
   assert.equal(markup.querySelectorAll('h1').length, 1);
   assert.equal(markup.querySelector('h1').textContent, label);
@@ -193,7 +209,7 @@ for (const [slug, label, expected] of [['health-insurance', 'ประกัน�
   assert.equal(metadata.alternates.canonical, `https://ccpun.com/blog/${slug}/`);
   if (slug === 'investment') assert.equal(metadata.robots.index, false);
 }
-const archive = doc(await overview({ searchParams: Promise.resolve({ q: 'ข้อมูล' }) }));
+const archive = await doc(await overview({ searchParams: Promise.resolve({ q: 'ข้อมูล' }) }));
 assert.equal(archive.querySelector('input[type="search"]').getAttribute('value'), 'ข้อมูล');
 assert.ok(!archive.body.textContent.includes('DRAFT MUST NOT LEAK'));
 assert.equal(archive.querySelectorAll('nav[aria-label="หัวข้อบทความหลัก"]').length, 0);
@@ -246,15 +262,15 @@ await React.act(async () => root.render(React.createElement(BlogClient, {
   classNames,
   categories,
 })));
-const six=Array.from({length:8},(_,index)=>({...item,id:`id-${index}`,slug:`slug-${index}`,href:`/blog/life-insurance/slug-${index}/`}));
-const sixDoc=doc(React.createElement(BlogClient,{articles:six,featuredArticles:six,classNames,categories}));
-assert.equal(sixDoc.querySelectorAll('.articleGrid > article').length,6);
-assert.equal(sixDoc.querySelector('.articleGrid .articleExcerpt').style.textWrap,'balance','only the card excerpt uses the native balance mode verified at nine widths');
-assert.equal(sixDoc.querySelector('.articleGrid .articleTitle').style.textWrap,'pretty','card title retains its existing approved wrapping');
-assert.equal(sixDoc.querySelectorAll('.articleGrid button[aria-pressed]').length,6,'heart mounts only six visible page cards');
-assert.equal(sixDoc.querySelectorAll('.featuredRail button[aria-pressed]').length,0,'three repeated carousel sets have no engagement providers/actions');
-assert.equal(sixDoc.querySelectorAll('.articleGrid a button').length,0);
-assert.ok([...sixDoc.querySelectorAll('.articleGrid button[aria-pressed]')].every(button=>button.getAttribute('aria-label')==='ถูกใจบทความ: '+item.title),'each card button names the actual article');
+const pageFixtures=Array.from({length:12},(_,index)=>({...item,id:`id-${index}`,slug:`slug-${index}`,href:`/blog/life-insurance/slug-${index}/`}));
+const pageDoc=await doc(React.createElement(BlogClient,{articles:pageFixtures,featuredArticles:pageFixtures,classNames,categories}));
+assert.equal(pageDoc.querySelectorAll('.articleGrid > article').length,10);
+assert.equal(pageDoc.querySelector('.articleGrid .articleExcerpt').style.textWrap,'balance','only the card excerpt uses the native balance mode verified at nine widths');
+assert.equal(pageDoc.querySelector('.articleGrid .articleTitle').style.textWrap,'pretty','card title retains its existing approved wrapping');
+assert.equal(pageDoc.querySelectorAll('.articleGrid button[aria-pressed]').length,10,'heart mounts only ten visible page cards');
+assert.equal(pageDoc.querySelectorAll('.featuredRail button[aria-pressed]').length,0,'three repeated carousel sets have no engagement providers/actions');
+assert.equal(pageDoc.querySelectorAll('.articleGrid a button').length,0);
+assert.ok([...pageDoc.querySelectorAll('.articleGrid button[aria-pressed]')].every(button=>button.getAttribute('aria-label')==='ถูกใจบทความ: '+item.title),'each card button names the actual article');
 
 const input = browserDom.window.document.querySelector('input[type="search"]');
 assert.equal(input.value, 'สุขภาพ', 'cached stale initial props must read the restored browser URL on mount');

@@ -1,3 +1,4 @@
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -13,6 +14,8 @@ const article = read('features/blog/website-43/Website43Article.tsx');
 const articleToc = read('features/blog/website-43/Website43ArticleToc.tsx');
 const layout = read('apps/web/app/layout.tsx');
 const home = read('features/home/website-43/Website43Home.tsx');
+const blogCopy = loadFixtureModule('lib/content/blog-copy-defaults.ts').BLOG_COPY_DEFAULTS;
+const homeCopy = loadFixtureModule('lib/content/public-copy-registry.ts').HOME_COPY_DEFAULTS;
 const blog = read('features/blog/website-43/Website43Blog.tsx');
 
 test('wide desktop Website 4.3 shells stay centered instead of pinning to the left', () => {
@@ -63,7 +66,7 @@ test('native mobile TOC keeps separators on its 56px summary when closed or open
   const borderColour = css.match(/--w43-border:\s*([^;]+);/)[1];
   // jsdom does not resolve custom properties in border shorthands.
   const mobileCss = rules.join('\n').replaceAll('var(--w43-border)', borderColour);
-  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14"></svg></summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
+  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>\{copyText\("blog\.website43Articlearialabel2"\)\}<svg aria-hidden="true" width="14" height="14"></svg></summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
   const details = dom.window.document.querySelector('details');
   for (const open of [false, true]) {
     details.open = open;
@@ -74,7 +77,7 @@ test('native mobile TOC keeps separators on its 56px summary when closed or open
     assert.equal(dom.window.getComputedStyle(details.querySelector('summary')).minHeight, '56px');
   }
   assert.equal(summaryDeclarations['border-block'], '1px solid var(--w43-border)', 'separators belong to the summary in both disclosure states');
-  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14"/);
+  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>\{copyText\("blog\.website43Articlearialabel2"\)\}<svg aria-hidden="true" width="14" height="14"/);
   dom.window.close();
 });
 
@@ -122,7 +125,7 @@ test('Thai reading headings, explicit dividers and content links retain a clear 
 test('article metadata uses verified optimization date, consistent type and readable TOC separation', () => {
   assert.match(article, /article\.optimizedAt && Number\.isFinite\(Date\.parse\(article\.optimizedAt\)\)/);
   assert.doesNotMatch(article, /article\.updatedAt|showUpdatedDate/);
-  assert.match(article, />อัปเดตข้อมูลล่าสุด<\/span> <time dateTime=\{article\.optimizedAt\}/);
+  assert.match(article, />\{copyText\("blog\.articleDateLabel2"\)\}<\/span> <time dateTime=\{article\.optimizedAt\}/);
   assert.match(css, /\.articleHeaderMeta \{[^}]*font-size: 14px;[^}]*font-weight: 400;[^}]*line-height: 22px;/);
   assert.match(css, /\.articleDateLabel \{ font-size: inherit; font-weight: 400; \}/);
   assert.match(css, /\.articleHeaderMeta time \{ color: var\(--w43-ink\); font-weight: 500; \}/);
@@ -159,7 +162,8 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(fhc, /functionalMotion\.scope/);
   assert.match(fhc, /FHCPlanningContext/);
   assert.match(ci, /functionalMotion\.scope/);
-  assert.match(ci, /Recovery Reserve/);
+  assert.match(ci, /CILandingIntro/);
+  assert.match(JSON.stringify(loadFixtureModule('lib/content/tool-copy-defaults.ts').CI_COPY_DEFAULTS), /Recovery Reserve/);
   assert.match(toolHero, /ctaHref/);
   assert.match(toolHero, /toolHeroGradient/);
   assert.match(toolHero, /fullBleed\?: boolean/);
@@ -270,7 +274,7 @@ test('Footer controls and warnings stay inside the visible Website 4.3 footer ca
   for (const path of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx']) {
     const footer = read(path);
     const desktop = footer.split('className={styles.footerFull}>')[1];
-    const infoColumn = desktop?.match(/<strong>ข้อมูล<\/strong>([\s\S]*?)<\/div>/)?.[1];
+    const infoColumn = desktop?.match(/<strong>\{text\("site\.footer\.information"\)\}<\/strong>([\s\S]*?)<\/div>/)?.[1];
     assert.match(infoColumn, /<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: desktop button belongs in the info column`);
     assert.equal(desktop.match(/<CookieSettingsButton\b/g)?.length, 1, `${path}: exactly one desktop button`);
     assert.match(desktop, /footerDisclaimer[\s\S]*?footerWarnings[\s\S]*?footerCopyright/, `${path}: warnings belong in the lower desktop card`);
@@ -288,8 +292,8 @@ test('Article header keeps only date metadata and the author identity stays in t
 });
 
 test('Article CTA to related-content rhythm is compact and explicitly scoped', () => {
-  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articlePlanCtaSection\}`\}[\s\S]*?>อยากจัดลำดับแผนให้เหมาะกับชีวิตคุณ\?</);
-  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articleRelatedSection\}`\}[\s\S]*?>อ่านต่อ</);
+  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articlePlanCtaSection\}`\}[\s\S]*?>\{copyText\("blog\.h2"\)\}</);
+  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articleRelatedSection\}`\}[\s\S]*?>\{copyText\("blog\.h22"\)\}</);
   assert.match(css, /\.articlePlanCtaSection \{ padding-top: 40px; padding-bottom: 24px; \}/);
   assert.match(css, /\.articleRelatedSection \{ padding-top: 24px; padding-bottom: 48px; \}/);
 });
@@ -297,7 +301,7 @@ test('Article CTA to related-content rhythm is compact and explicitly scoped', (
 test('Home learning cards share one visual composition including the READ card', () => {
   assert.match(home, /className=\{`\$\{styles\.toolCtaCard\} \$\{styles\.learnArticleCard\}`\}/);
   assert.match(home, /src="\/assets\/website-43\/blog-hero\.png"[\s\S]*?styles\.learnArticleImage/);
-  assert.match(home, /styles\.toolCtaContent[\s\S]*?>READ<[\s\S]*?>บทความการเงิน<[\s\S]*?styles\.toolCtaAction/);
+  assert.match(home, /styles\.toolCtaContent[\s\S]*?>\{text\("home\.planNum"\)\}<[\s\S]*?>\{text\("home\.h3"\)\}<[\s\S]*?styles\.toolCtaAction/);
   assert.doesNotMatch(home, /<article className=\{styles\.learnCard\}[\s\S]*?>READ</);
   assert.match(css, /\.learnArticleImage \{ object-position: 68% center; \}/);
 });
@@ -321,8 +325,8 @@ test('Blog category filter is a compact publication-style dropdown with stable l
 });
 
 test('Privacy and Cookie Policy use the Production Website 4.3 shell while preserving legal and SEO contracts', () => {
-  const privacy = read('apps/web/app/privacy/page.tsx');
-  const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
+  const privacy = read('features/legal/pages/PrivacyPage.tsx') + JSON.stringify(loadFixtureModule('lib/content/legal-copy-defaults.ts').PRIVACY_COPY_DEFAULTS);
+  const cookiePolicy = read('features/legal/pages/CookiePolicyPage.tsx') + JSON.stringify(loadFixtureModule('lib/content/legal-copy-defaults.ts').COOKIES_COPY_DEFAULTS);
   const legalCss = read('components/layout/website-43/Website43Legal.module.css');
 
   for (const source of [privacy, cookiePolicy]) {
@@ -348,4 +352,13 @@ test('Privacy and Cookie Policy use the Production Website 4.3 shell while prese
   assert.match(legalCss, /@media \(max-width: 640px\)/);
   assert.match(legalCss, /\.content table \{\s*width: 100%;\s*table-layout: fixed;/);
   assert.match(legalCss, /\.content td,\s*\.content th \{\s*overflow-wrap: anywhere;/);
+});
+
+test('CMS display keys retain approved default wording at the checked source positions', () => {
+  assert.equal(blogCopy['blog.website43Articlearialabel2'], 'หัวข้อเนื้อหา');
+  assert.equal(blogCopy['blog.articleDateLabel2'], 'อัปเดตข้อมูลล่าสุด');
+  assert.equal(blogCopy['blog.h2'], 'อยากจัดลำดับแผนให้เหมาะกับชีวิตคุณ?');
+  assert.equal(blogCopy['blog.h22'], 'อ่านต่อ');
+  assert.equal(homeCopy['home.planNum'], 'READ');
+  assert.equal(homeCopy['home.h3'], 'บทความการเงิน');
 });

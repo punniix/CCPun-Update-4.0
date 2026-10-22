@@ -42,20 +42,23 @@ test('monorepo audit starts from the actual apps/web and apps/admin entrypoints'
 });
 
 
-test('Web legal and not-found routes have one canonical app implementation', () => {
-  const pages = [
-    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage.tsx'],
-    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage.tsx'],
-    ['not-found.tsx', 'features/public-pages/NotFoundPage.tsx'],
-  ];
-  for (const [route, shared] of pages) {
-    const wrapper = 'export { default, metadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n';
-    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), wrapper, route);
-    assert.equal(existsSync(new URL('../' + shared, import.meta.url)), false, 'No second implementation owner');
-    const sharedSource = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
-    assert.match(sharedSource, /export const metadata:/);
-    assert.match(sharedSource, /export default function /);
+test('Web legal and not-found routes have one canonical implementation', () => {
+  for (const [route, feature] of [
+    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage'],
+    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage'],
+  ]) {
+    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n');
+    assert.equal(readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/' + feature + '";\n', 'Web routes remain composition-only');
+    const implementation = readFileSync(new URL('../' + feature + '.tsx', import.meta.url), 'utf8');
+    assert.match(implementation, /const metadata:/);
+    assert.match(implementation, /export function generateMetadata/);
+    assert.match(implementation, /export default(?: async)? function /);
   }
+  assert.equal(readFileSync(new URL('../app/not-found.tsx', import.meta.url), 'utf8'), 'export { default, metadata } from "@/apps/web/app/not-found";\n');
+  assert.equal(existsSync(new URL('../features/public-pages/NotFoundPage.tsx', import.meta.url)), false);
+  const notFound = readFileSync(new URL('../apps/web/app/not-found.tsx', import.meta.url), 'utf8');
+  assert.match(notFound, /export const metadata:/);
+  assert.match(notFound, /export default(?: async)? function /);
 });
 
 test('legacy root mirrors are compatibility debt, never justification to create more duplicate route files', async () => {
@@ -81,5 +84,12 @@ test('Web sitemap routes have exactly one implementation but keep both route ent
     const implementation = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
     assert.match(implementation, /export (async )?function GET\(/);
     assert.equal(implementation.split(configuration).length, 2, 'Canonical literal Next configuration occurs once');
+  }
+});
+
+test('public compatibility routes delegate editable SEO to their canonical Web route', () => {
+  for (const route of ['page', 'blog/page', 'ci-planning/page', 'tools/financial-health-check/page', 'play/money-story/page']) {
+    assert.equal(readFileSync(new URL('../app/' + route + '.tsx', import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/apps/web/app/' + route + '";\n');
+    assert.match(readFileSync(new URL('../apps/web/app/' + route + '.tsx', import.meta.url), 'utf8'), /generateMetadata/);
   }
 });

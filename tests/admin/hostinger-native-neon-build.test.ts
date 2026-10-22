@@ -241,6 +241,10 @@ test("reviewed config-build admission rejects unknown contract changes even with
   const proof = JSON.parse(source("qa/phase3-native-provider-parity.json"));
   const file = "lib/runtime/deployment-identity.ts";
   assert.equal(assertNativeProviderRetirement(file, proof.baselineHashes[file]), true);
+  for (const path of ["scripts/build-root.mjs", "tests/hostinger-shadow-config.test.mjs"]) {
+    const unknown = (candidate: string) => source(candidate) + (candidate === path ? "\n// unreviewed identity change\n" : "");
+    assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], proof, unknown));
+  }
   const contract = "tests/hostinger-native-app-contract.test.mjs";
   const changed = source(contract) + "\n// unreviewed contract change\n";
   const readChanged = (path: string) => path === contract ? changed : source(path);

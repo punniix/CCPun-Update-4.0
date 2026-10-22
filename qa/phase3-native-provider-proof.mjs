@@ -11,8 +11,11 @@ const reviewedOutputTests = {"tests/phase3-native-provider-parity.test.mjs": "03
 const reviewedBaselineBuilders = {"apps/web/scripts/build-provider.mjs": "35f61f91cbc11bcd463ba1d05d3fa91c5873cbdb7ffc81e53fd1bb44986d3c8e", "apps/admin/scripts/build-provider.mjs": "b7250de7598c57900f305aef8b0dbf64986518520026f60d219908cc4ea5b16c"};
 const reviewedBuilderPreludes = {"apps/web/scripts/build-provider.mjs": "  // Reject unsupported platform inputs before assets, child processes or export.\n  if (Object.entries(process.env).some(([key, value]) => key.startsWith(\"VERCEL_\") && value?.trim())) throw new Error(\"UNSUPPORTED_PROVIDER_METADATA\");\n  if ([\"vercel\", \"@workflow/world-vercel\"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? \"\")) throw new Error(\"UNSUPPORTED_WORKFLOW_WORLD\");\n  if (provider && ![\"hostinger\", \"local\"].includes(provider)) throw new Error(\"UNSUPPORTED_BUILD_PROVIDER\");\n  if (isHostinger && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== \"web\") throw new Error(\"HOSTINGER_BUILD_ROLE_REQUIRED\");\n", "apps/admin/scripts/build-provider.mjs": "  // Preserve native compiler behavior; reject retired provider inputs before build work.\n  if (Object.entries(process.env).some(([key, value]) => key.startsWith(\"VERCEL_\") && value?.trim())) throw new Error(\"UNSUPPORTED_PROVIDER_METADATA\");\n  if ([\"vercel\", \"@workflow/world-vercel\"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? \"\")) throw new Error(\"UNSUPPORTED_WORKFLOW_WORLD\");\n  const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() ?? \"\";\n  if (provider && ![\"hostinger\", \"local\"].includes(provider)) throw new Error(\"UNSUPPORTED_BUILD_PROVIDER\");\n  if (provider === \"hostinger\" && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== \"admin\") throw new Error(\"HOSTINGER_BUILD_ROLE_REQUIRED\");\n"};
 
-// Exact reviewed Hostinger config-loader repair; original proof records stay frozen.
+// Exact reviewed Hostinger config-loader and pinned Web UAT identity repairs.
+// Original proof records stay frozen; all unlisted source changes remain denied.
 const reviewedAdminConfigBuild = {
+  'scripts/build-root.mjs': { before: '00d8f879c1651f2c6e8f1c061ed187f47e29c7ce69b6887c4d627b20b10644d8', after: 'bae35c056a6cc2c07df792721c665eac022d099298e42b75fa52a41f3c9d45b7' },
+  'tests/hostinger-shadow-config.test.mjs': { before: '2b865e4bf79ea0ea541107641a8de56039630b0cc72dfabb304afcc48b1cbe7c', after: 'c57c041aa202c9ab6d3e495f3dd5e5a7ab1987828c1360c4fab1cdcac0927486' },
   'apps/admin/scripts/build-provider.mjs': { before: '619fa6263ac85abb328b374319154a3d5f91bfa620657c808e0a507e4122b6e7', after: 'efc39afaf1b48e75db06ca1e6e9985cc4ab895b7c41d1bdb82676345f83fb385' },
   'tests/hostinger-native-app-contract.test.mjs': { before: '41edd506167307164c31c48e38054f8ae64447c98afc054a80846b96e98ec44f', after: '5d1eabc88dabee42121f5015be8a4cd62e536cbf01a87a2b59ee764be23b30ae' },
 };
@@ -63,7 +66,7 @@ export function assertReviewedNativeShadowTest(expectedBaselineDigest, proof = J
   assert.equal(sha(proof.baselineSources[path]), expectedBaselineDigest);
   assert.equal(proof.baselineHashes[path], expectedBaselineDigest);
   assert.equal(proof.outputTestHashes[path], reviewedOutputTests[path]);
-  assert.equal(sha(current(path)), reviewedOutputTests[path]);
+  assertCurrentNativeDigest(path, current(path), reviewedOutputTests[path]);
   assert.equal(JSON.parse(current('package.json')).scripts['test:hostinger'], 'node --test ' + path);
   return true;
 }

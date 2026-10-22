@@ -131,9 +131,9 @@ test("hub route resolves real hubs before any legacy one-segment redirect fallba
   assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
   assert.match(categoryPage, /buildBlogTopicHubSchema\(hub, relevantIndexableArticles\)/);
   assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
-  assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles\)\}/);
+  assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles, copy\)\}/);
   assert.match(categoryPage, /const featuredArticles = curateFeaturedArticles\(relevantArticles\)/);
-  assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItemsInOrder\(featuredArticles\)\}/);
+  assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItemsInOrder\(featuredArticles, copy\)\}/);
 });
 
 test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO nodes", () => {

@@ -1,4 +1,5 @@
 import { readPhase1Source } from '../qa/read-phase1-source.mjs';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 
@@ -232,18 +233,21 @@ assert.match(publishedWordPressPreparer, /ccpun-category-critical-illness/);
 assert.match(publishedWordPressPreparer, /ccpun-prod-mirror-author-ccpun/);
 
 const fhcPage = read('features/financial-health-check/page.tsx');
-const fhcDescription = fhcPage.match(/const FHC_DESCRIPTION = '([^']+)'/)?.[1] ?? '';
+const fhcDescription = loadFixtureModule('lib/content/page-seo-registry.ts').getPageSeoPage('/tools/financial-health-check/').defaults.seoDescription;
+assert.match(fhcPage, /description: PAGE_SEO_DEFAULTS\.seoDescription!/);
 const fhcDescriptionLength = [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(fhcDescription)].length;
 assert.ok(fhcDescriptionLength >= 140 && fhcDescriptionLength <= 155, `FHC description must be 140-155 Thai graphemes, received ${fhcDescriptionLength}`);
 assert.match(fhcDescription, /เฉพาะความคุ้มครองชีวิต/);
-assert.match(read('features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx'), /ประกันไม่ใช่เงินฝาก/);
+assert.match(JSON.stringify(loadFixtureModule('lib/content/site-copy-defaults.ts').SITE_COPY_DEFAULTS), /ประกันไม่ใช่เงินฝาก/);
+assert.match(read('features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx'), /usePublicCopy/);
 const fhcLanding = read('features/financial-health-check/components/FHCLandingIntro.tsx');
-assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
+assert.match(fhcLanding, /fhc\.intro\./);
+assert.match(JSON.stringify(loadFixtureModule('lib/content/tool-copy-defaults.ts').FHC_COPY_DEFAULTS), /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
-const privacyPolicy = read('apps/web/app/privacy/page.tsx');
-const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
+const cookiePolicy = read('features/legal/pages/CookiePolicyPage.tsx') + JSON.stringify(loadFixtureModule('lib/content/legal-copy-defaults.ts').COOKIES_COPY_DEFAULTS);
+const privacyPolicy = read('features/legal/pages/PrivacyPage.tsx') + JSON.stringify(loadFixtureModule('lib/content/legal-copy-defaults.ts').PRIVACY_COPY_DEFAULTS);
+const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n') + JSON.stringify(loadFixtureModule('lib/content/site-copy-defaults.ts').SITE_COPY_DEFAULTS);
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);
   assert.match(disclosure, /Meta Pixel/);
@@ -283,7 +287,8 @@ assert.match(articleSchema, /"@type": "BreadcrumbList"/);
 assert.match(articleSchema, /getArticleCanonical/);
 assert.match(articleSchema, /"@type": "FAQPage"/);
 
-assert.match(articlePresentation, /คำถามที่พบบ่อย/);
+assert.match(articlePresentation, /copyText\("blog\.website43Articleeyebrow"\)/);
+assert.equal(loadFixtureModule("lib/content/blog-copy-defaults.ts").BLOG_COPY_DEFAULTS["blog.website43Articleeyebrow"], "คำถามที่พบบ่อย");
 assert.match(articlePresentation, /article\.faq\.map/);
 assert.match(articlePresentation, /<details className=\{styles\.faqItem\}/);
 
@@ -327,12 +332,15 @@ assert.deepEqual(portableTextMembers, [
   'detailsBlock',
   'migratedImage',
   'simpleTable',
+  'signatureEditorial',
+  'signatureStructuredTable',
+  'signaturePlanExplorer',
   'divider',
 ]);
 const articleBodyRenderer = read('features/blog/website-43/Website43ArticleBody.tsx');
 const articleTocRenderer = read('features/blog/website-43/Website43ArticleToc.tsx');
 assert.match(articleTocRenderer, /groups/);
-assert.match(articlePresentation, /renderWebsite43ArticleBody\(article\.body, headingIds\)/);
+assert.match(articlePresentation, /renderWebsite43ArticleBody\(article\.body, headingIds, copy\)/);
 assert.match(articleBodyRenderer, /const id = headingIds\.get\(index\)/);
 assert.match(articleBodyRenderer, /id=\{id\}/);
 for (const [schemaType, publicType] of [
@@ -344,6 +352,9 @@ for (const [schemaType, publicType] of [
   ['detailsBlock', 'details'],
   ['migratedImage', 'image'],
   ['simpleTable', 'table'],
+  ['signatureEditorial', 'signatureEditorial'],
+  ['signatureStructuredTable', 'signatureStructuredTable'],
+  ['signaturePlanExplorer', 'signaturePlanExplorer'],
   ['divider', 'divider'],
 ]) {
   assert.match(sanityProvider, new RegExp(`literal\\(["']${schemaType}["']\\)`), `${schemaType} requires a validated Sanity parser`);

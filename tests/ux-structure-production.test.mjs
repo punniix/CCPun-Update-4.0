@@ -1,5 +1,5 @@
 import './article-overview-rendering.test.mjs';
-import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
+import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection, assertReviewedMasterUatOwner, hasReviewedMasterUatOwner } from '../qa/phase2-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -124,32 +124,33 @@ function closure(entries) {
   }
   return seen;
 }
-const forbidden = /(?:uat-tax-table-fixture|uat-public-article-snapshots|uat-public-snapshot|investment-allocation)/;
+const forbidden = /(?:uat-tax-table-fixture|uat-public-article-snapshots|uat-public-snapshot)/;
 
-test('all actual Root/Web entry imports exclude UAT content and separated Investment features', () => {
+test('actual Root/Web imports exclude private UAT fixtures; reviewed Investment remains lane gated', () => {
   const entries = files('apps/web/app').filter(file => /(?:page|route|layout|not-found|robots)\.[jt]sx?$/.test(file));
   const publicRoots = ['app/layout.tsx','app/page.tsx','app/blog/page.tsx','app/blog/[category]/page.tsx','app/blog/[category]/[slug]/page.tsx','app/ci-planning/page.tsx','app/tools/financial-health-check/page.tsx','app/play/money-story/page.tsx','app/cookie-policy/page.tsx','app/privacy/page.tsx','app/not-found.tsx','app/sitemap.xml/route.ts','app/sitemaps/core.xml/route.ts','app/sitemaps/blog.xml/route.ts','app/sitemaps/tools.xml/route.ts'];
   assert(entries.length > 10);
   for (const file of closure([...entries, ...publicRoots])) assert.doesNotMatch(file, forbidden, file);
-  for (const directory of ['features/investment-allocation','apps/web/app/tools/investment-allocation','apps/web/app/api/investment-allocation','app/tools/investment-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
   for (const file of ['lib/content/uat-tax-table-fixture.ts','lib/content/uat-tax-table-fixture.json','lib/content/uat-public-article-snapshots.json']) assert.equal(existsSync(resolve(root, file)), false, file);
 });
 
-test('Investment release capability remains false even with explicit environment1 and cannot enter navigation/sitemap/meta', () => {
-  const source = read('lib/runtime/investment-availability.ts');
-  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  const before = process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED;
-  try {
-    process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = '1';
+test('Investment release capability is closed outside the two approved public UAT lanes', () => {
+  const compiled = ts.transpileModule(read('lib/runtime/investment-availability.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  for (const lane of [undefined, '', 'production', 'web-production', 'admin-uat', 'WEB-UAT', 'web-uat', 'local-uat']) {
     const loaded = { exports: {} };
-    new Function('require','module','exports',compiled)(id => { assert.equal(id, 'server-only'); return {}; },loaded,loaded.exports);
-    assert.equal(loaded.exports.INVESTMENT_ALLOCATION_ENABLED, false);
-  } finally { if (before === undefined) delete process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED; else process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = before; }
-  for (const file of ['components/layout/website-43/Website43Navbar.tsx','components/layout/website-43/Website43Shared.tsx','features/home/website-43/Website43Home.tsx','features/home/website-43/Website43HomeStatic.tsx','lib/nav-config.json','public/nav-config.json', ...files('apps/web/app/sitemaps')]) assert.doesNotMatch(read(file), /investment-allocation|INVESTMENT_TOOL_LINK/, file);
+    new Function('require', 'module', 'exports', 'process', compiled)(() => ({}), loaded, loaded.exports, { env: { CCPUN_APP_ENV: lane, CCPUN_INVESTMENT_ALLOCATION_ENABLED: '1' } });
+    assert.equal(loaded.exports.INVESTMENT_ALLOCATION_ENABLED, ['web-uat', 'local-uat'].includes(lane), String(lane));
+  }
+  assert.match(read('components/layout/website-43/Website43Navbar.tsx'), /investmentEnabled = false/);
+  for (const file of ['lib/nav-config.json', 'public/nav-config.json']) assert.doesNotMatch(read(file), /investment-allocation/, file);
+  for (const file of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx', 'apps/web/app/sitemaps/tools.xml/route.ts']) assert.match(read(file), /INVESTMENT_ALLOCATION_ENABLED/, file);
 });
 
 function packageBeforePostPublishScripts(source) {
   const manifest = JSON.parse(source);
+  const uatChecks = " && node --import tsx --test tests/public-copy.test.ts tests/money-story-copy.test.ts tests/page-seo.test.ts tests/article-author-identity.test.ts tests/investment-allocation-regression.test.ts tests/investment-fund-catalog.test.ts tests/uat-campaign-pagination.test.mjs tests/signature-article-uat.test.mjs tests/public-copy-preview.test.mjs";
+  assert.ok(manifest.scripts["test:public"].endsWith(uatChecks), "exact appended UAT behavior checks are required");
+  manifest.scripts["test:public"] = manifest.scripts["test:public"].slice(0, -uatChecks.length);
   assert.equal(manifest.overrides.vite, '8.3.3', 'only the exact reviewed Vite security override is admitted');
   delete manifest.overrides.vite;
   assert.equal(manifest.dependencies['@cloudflare/ai-search-snippet'], '^0.0.43', 'only the reviewed disabled SDK is admitted');
@@ -207,7 +208,8 @@ test('Production providers, metadata, models, engines, tracking, consent storage
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
       : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f' : digest;
     const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
-    assert.equal(sha(source), reviewedDigest, file);
+    if (hasReviewedMasterUatOwner(file)) assertReviewedMasterUatOwner(file, reviewedDigest, source);
+    else assert.equal(sha(source), reviewedDigest, file);
   }
 });
 
@@ -219,6 +221,7 @@ test('Production script and AI SDK admissions reject unknown scripts, changed co
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'nav:check': 'unreviewed' } }));
   assert.throws(() => altered({ ...manifest, dependencies: { ...manifest.dependencies, '@cloudflare/ai-search-snippet': '^0.0.44' } }));
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'test:architecture': manifest.scripts['test:architecture'] + ' node --test tests/monorepo-lane-ownership.test.mjs tests/ai-search-integration.test.mjs' } }));
+  assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'test:public': manifest.scripts['test:public'].replace('tests/page-seo.test.ts', 'tests/missing.test.ts') } }));
   const lock = JSON.parse(read('package-lock.json'));
   lock.packages['node_modules/clsx'].version = '0.0.0';
   assert.notEqual(sha(lockBeforeAiSdk(JSON.stringify(lock))), protectedProduction['package-lock.json']);
@@ -259,6 +262,8 @@ function loadArchive(articles, registry) {
     '@/features/blog/website-43/Website43Blog': { __esModule: true, default: Page },
     '@/features/blog/website-43/blogData': { toWebsite43ArticleItems: x => x, toWebsite43ArticleItemsInOrder: x => x },
     '@/lib/content/provider': { getContentProvider: () => ({ listArticles: async () => articles }) },
+    '@/lib/content/public-copy': { getPublicCopy: async () => ({}) },
+    '@/lib/content/page-seo-registry': { getPageSeoPage: () => ({ defaults: {} }) },
     '@/lib/deployment-environment': { IS_DRAFT_PREVIEW_ALLOWED: false },
     '@/lib/content/category-registry': { listCategoryMenuEntries: entries => entries.entries.filter(x => x.status === 'active') },
     '@/lib/content/category-registry-sanity': { listCategoryRegistry: async () => registry },
@@ -296,6 +301,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
   assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
   for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
     if (file === retired) continue;
+    if (hasReviewedMasterUatOwner(file)) { assertReviewedMasterUatOwner(file, digest, read(file)); continue; }
     const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
     if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css') {
       const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png';
