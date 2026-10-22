@@ -150,6 +150,8 @@ test('Investment release capability remains false even with explicit environment
 
 function packageBeforePostPublishScripts(source) {
   const manifest = JSON.parse(source);
+  assert.equal(manifest.overrides.vite, '8.3.3', 'only the exact reviewed Vite security override is admitted');
+  delete manifest.overrides.vite;
   assert.equal(manifest.dependencies['@cloudflare/ai-search-snippet'], '^0.0.43', 'only the reviewed disabled SDK is admitted');
   delete manifest.dependencies['@cloudflare/ai-search-snippet'];
   const architecture = 'node --test tests/monorepo-lane-ownership.test.mjs';
@@ -169,6 +171,17 @@ function packageBeforePostPublishScripts(source) {
 
 function lockBeforeAiSdk(source) {
   const lock = JSON.parse(source);
+  const vite = lock.packages['node_modules/vite'];
+  assert.equal(vite.version, '8.3.3');
+  assert.equal(vite.resolved, 'https://registry.npmjs.org/vite/-/vite-8.3.3.tgz');
+  assert.equal(vite.integrity, 'sha512-cTAldKPImjg6c+gk48U19POPn3GCBzZwpdsN8ZMEEcbpes+6/wvfqUd0C2y3qYY4wsj8PwgFwrZ/1jBPVttMSg==');
+  assert.equal(vite.dependencies.rolldown, '~1.2.11');
+  // Reconstruct only the four reviewed security-patch fields. The original whole
+  // lock hash below still protects every other dependency and metadata byte.
+  vite.version = '8.3.1';
+  vite.resolved = 'https://registry.npmjs.org/vite/-/vite-8.3.1.tgz';
+  vite.integrity = 'sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==';
+  vite.dependencies.rolldown = '~1.2.9';
   for (const owner of ['', 'apps/web']) {
     assert.equal(lock.packages[owner].dependencies['@cloudflare/ai-search-snippet'], '^0.0.43');
     delete lock.packages[owner].dependencies['@cloudflare/ai-search-snippet'];
@@ -211,6 +224,32 @@ test('Production script and AI SDK admissions reject unknown scripts, changed co
   assert.notEqual(sha(lockBeforeAiSdk(JSON.stringify(lock))), protectedProduction['package-lock.json']);
   lock.packages['node_modules/@cloudflare/ai-search-snippet'].integrity = 'unreviewed';
   assert.throws(() => lockBeforeAiSdk(JSON.stringify(lock)));
+});
+
+test('Vite security admission rejects changed overrides, artifact metadata and unrelated dependencies', () => {
+  const manifest = JSON.parse(read('package.json'));
+  for (const version of [undefined, '^8.3.3', '8.3.1', '8.3.4']) {
+    const changed = structuredClone(manifest); changed.overrides.vite = version;
+    assert.throws(() => packageBeforePostPublishScripts(JSON.stringify(changed)));
+  }
+  const extraOverride = structuredClone(manifest); extraOverride.overrides.unreviewed = '1.0.0';
+  assert.notEqual(sha(packageBeforePostPublishScripts(JSON.stringify(extraOverride))), protectedProduction['package.json']);
+  const original = JSON.parse(read('package-lock.json'));
+  for (const [field, value] of [['version', '8.3.4'], ['resolved', 'https://unreviewed.example/vite.tgz'], ['integrity', 'unreviewed']]) {
+    const changed = structuredClone(original); changed.packages['node_modules/vite'][field] = value;
+    assert.throws(() => lockBeforeAiSdk(JSON.stringify(changed)));
+  }
+  const range = structuredClone(original); range.packages['node_modules/vite'].dependencies.rolldown = '~1.2.12';
+  assert.throws(() => lockBeforeAiSdk(JSON.stringify(range)));
+  for (const mutate of [
+    lock => { lock.packages['node_modules/vite'].dependencies.postcss = '^9.0.0'; },
+    lock => { lock.packages['node_modules/vite'].unreviewed = true; },
+    lock => { lock.packages['node_modules/rolldown'].version = '0.0.0'; },
+    lock => { delete lock.packages['node_modules/@emnapi/core']; },
+  ]) {
+    const changed = structuredClone(original); mutate(changed);
+    assert.notEqual(sha(lockBeforeAiSdk(JSON.stringify(changed))), protectedProduction['package-lock.json']);
+  }
 });
 
 function loadArchive(articles, registry) {

@@ -341,6 +341,49 @@ test("configured UAT uses only exact explicit URL/token, denies redirects and re
   }
 });
 
+const productionGenUrl = "https://n8n.srv908107.hstgr.cloud/webhook/ccpun-admin-production-gen-v1";
+
+test("explicit Production intake is canonical, dedicated and fails closed before Draft reads", async () => {
+  const { resolveLineCopyN8nBridge: resolve } = await loadBridge();
+  const configured = { ...productionBridgeEnv, CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: productionGenUrl };
+  assert.equal(resolve(configured)?.lane, "production-admin");
+  assert.equal(resolve(configured)?.webhookUrl?.href, productionGenUrl);
+  for (const url of ["", " ", productionGenUrl + "?", productionGenUrl + "#", productionGenUrl + "/",
+    productionGenUrl.replace("https:", "http:"), productionGenUrl.replace("n8n.", "attacker.n8n."),
+    productionGenUrl.replace(".cloud/", ".cloud:443/"), productionGenUrl.replace("https://", "https://user:pass@"),
+    productionGenUrl.replace("ccpun-admin", "%63cpun-admin"), productionGenUrl.replace("/webhook/", "/webhook/alias/../"),
+    "https://n8n.srv908107.hstgr.cloud/webhook/ccpun-line-card-generate",
+    uatBridgeEnv.CCPUN_LOCAL_AI_N8N_WEBHOOK_URL]) {
+    assert.equal(resolve({ ...configured, CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: url }), null, url);
+    for (const [name, input] of [["generate", generateInput], ["improve", proposeInput], ["improve", acceptInput]] as const) {
+      const route = await loadLineRoute(name, { ...configured, CCPUN_LOCAL_AI_N8N_WEBHOOK_URL: url });
+      assert.equal((await route.invoke(input)).status, 503);
+      assert.deepEqual([route.state.reads, route.state.writes, route.state.calls.length], [0, 0, 0]);
+    }
+  }
+  for (const token of [undefined, "short"]) {
+    assert.equal(resolve({ ...configured, CCPUN_LOCAL_AI_N8N_TOKEN: token }), null);
+    for (const name of ["generate", "improve"] as const) {
+      const route = await loadLineRoute(name, { ...configured, CCPUN_LOCAL_AI_N8N_TOKEN: token });
+      assert.equal((await route.invoke(name === "generate" ? generateInput : proposeInput)).status, 503);
+      assert.deepEqual([route.state.reads, route.state.writes, route.state.calls.length], [0, 0, 0]);
+    }
+  }
+  for (const name of ["generate", "improve"] as const) {
+    const route = await loadLineRoute(name, { ...configured, CCPUN_LOCAL_AI_N8N_BASE_URL: "https://ignored.example/" });
+    const response = await route.invoke(name === "generate" ? generateInput : proposeInput);
+    assert.equal(response.status, 200);
+    assert.equal(route.state.calls[0].url, productionGenUrl);
+    assert.equal(route.state.calls[0].options.redirect, "error");
+    assert.equal((route.state.calls[0].options.headers as Record<string, string>).Authorization, "Bearer " + productionBridgeEnv.CCPUN_LOCAL_AI_N8N_TOKEN);
+    if (name === "improve") {
+      const proposal = await response.json();
+      assert.equal((await route.invoke({ ...acceptInput, proposalToken: proposal.proposalToken })).status, 200);
+      assert.equal(route.state.calls.length, 1, "manual signed acceptance never generates again");
+    }
+  }
+});
+
 test("Production keeps legacy default/custom-base webhook, skipped generation and token-only HMAC acceptance", async () => {
   for (const base of [undefined, "https://other-n8n.example/ignored-prefix/"]) {
     for (const name of ["generate", "improve"] as const) {

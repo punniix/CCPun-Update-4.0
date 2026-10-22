@@ -119,7 +119,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const baseUrl = process.env.CCPUN_LOCAL_AI_N8N_BASE_URL?.trim() || "https://n8n.srv908107.hstgr.cloud";
     let webhookUrl: URL;
     try {
-      webhookUrl = bridge.lane === "admin-uat" ? bridge.webhookUrl : new URL("/webhook/ccpun-line-card-generate", baseUrl);
+      webhookUrl = bridge.webhookUrl ?? new URL("/webhook/ccpun-line-card-generate", baseUrl);
     } catch {
       return NextResponse.json({ error: "line-copy-orchestrator-unavailable" }, { status: 503, headers });
     }
@@ -133,7 +133,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     try {
       response = await fetch(webhookUrl, {
         method: "POST",
-        ...(bridge.lane === "admin-uat" ? { redirect: "error" as const } : {}),
+        ...(bridge.webhookUrl ? { redirect: "error" as const } : {}),
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "improve-existing",

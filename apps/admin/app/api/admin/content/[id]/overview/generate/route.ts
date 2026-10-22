@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!bridge) return fail("overview-unavailable", 503);
   const token = bridge.lane === "admin-uat" ? bridge.token : process.env.CCPUN_LOCAL_AI_N8N_TOKEN?.trim();
   let url: URL;
-  try { url = bridge.lane === "admin-uat" ? bridge.webhookUrl : new URL("/webhook/ccpun-line-card-generate", process.env.CCPUN_LOCAL_AI_N8N_BASE_URL?.trim() || "https://n8n.srv908107.hstgr.cloud"); }
+  try { url = bridge.webhookUrl ?? new URL("/webhook/ccpun-line-card-generate", process.env.CCPUN_LOCAL_AI_N8N_BASE_URL?.trim() || "https://n8n.srv908107.hstgr.cloud"); }
   catch { return fail("overview-unavailable", 503); }
   if (!token || token.length < 43 || url.protocol !== "https:" || url.username || url.password) return fail("overview-unavailable", 503);
   try {
