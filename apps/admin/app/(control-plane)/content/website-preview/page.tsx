@@ -21,7 +21,8 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
   const requested = (await searchParams).scope ?? "home";
   if (typeof requested !== "string" || !Object.hasOwn(PUBLIC_COPY_SCOPES, requested)) notFound();
   const scope = requested as PublicCopyScope;
-  const [{ copy, site, seo }, authorProfile] = await Promise.all([getUatPublicCopyPreview(scope), getPrimaryAuthorProfile()]);
+  const { copy, site, seo } = await getUatPublicCopyPreview(scope);
+  const authorProfile = await getPrimaryAuthorProfile();
   let content: React.ReactNode;
   switch (scope) {
     case "site": case "home": content = <Website43Home authorProfile={authorProfile} copy={copy} siteCopy={site} campaignAvailable={false} />; break;

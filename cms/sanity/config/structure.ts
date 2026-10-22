@@ -137,7 +137,7 @@ function publicPagesWorkspace(S: StructureBuilder) {
         .child(S.document().schemaType("publicPageCopy").documentId(publicCopyDocumentId(scope as keyof typeof PUBLIC_COPY_SCOPES)).initialValueTemplate("publicPageCopy", { scope }).title(config.label))),
       S.divider(),
       ...PAGE_SEO_PAGES.map(page => S.listItem().id(`seo-${page.documentId}`).title(`SEO · ${page.label}`)
-        .child(S.document().schemaType("pageSeo").documentId(page.documentId).title(`SEO · ${page.label}`))),
+        .child(S.document().schemaType("pageSeo").documentId(page.documentId).initialValueTemplate("pageSeo", { pathname: page.pathname }).title(`SEO · ${page.label}`))),
     ]),
   );
 }

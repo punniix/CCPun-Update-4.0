@@ -3,6 +3,7 @@ import { getPageSeoPage, PAGE_SEO_PAGES, isPageSeoImageUrlAllowed, PAGE_SEO_FIEL
 
 export const pageSeo = defineType({
   name: "pageSeo", title: "SEO หน้าเว็บ", type: "document",
+  initialValue: ({ pathname }: { pathname?: string }) => pathname && getPageSeoPage(pathname) ? { pathname } : {},
   fields: [
     defineField({ name: "pathname", title: "หน้าเว็บ", type: "string", readOnly: true, options: { list: PAGE_SEO_PAGES.map(page => ({ title: page.label, value: page.pathname })) }, validation: Rule => Rule.required().custom(value => getPageSeoPage(String(value ?? "")) ? true : "ต้องเป็นหน้าเว็บที่ระบบรองรับ") }),
     defineField({ name: "seoTitle", title: "ชื่อสำหรับผลค้นหา", type: "string", description: "เว้นว่างเพื่อใช้ค่าเริ่มต้นจากหน้าเว็บ", validation: Rule => Rule.max(120) }),

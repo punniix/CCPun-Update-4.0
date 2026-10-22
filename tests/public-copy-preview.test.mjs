@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 
@@ -94,4 +95,34 @@ export default function Preview(props) { return <PublicCopyProvider values={{"si
   const original = renderToStaticMarkup(React.createElement(fixture.default, props));
   assert.match(fallback, /href="\/blog\/">ดูบทความ<\/a>/);
   assert.match(original, /href="\/blog\/personal-finance\/financial-pyramid\/">พีระมิดทางการเงินคืออะไร\?<\/a>/);
+});
+
+test('fixed UAT SEO singleton drafts initialize only their registered read-only pathname', () => {
+  const schema = loadFixtureModule('cms/sanity/schema/documents/page-seo.ts', { mocks: new Map([['sanity', { defineType: value => value, defineField: value => value }]]) }).pageSeo;
+  const pages = loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;
+  assert.equal(pages.length, 8);
+  assert.ok(pages.some(page => page.pathname === '/tools/investment-allocation/'));
+  for (const page of pages) assert.deepEqual(schema.initialValue({ pathname: page.pathname }), { pathname: page.pathname });
+  for (const pathname of [undefined, null, '', '/arbitrary/', 'https://ccpun.com/', 'pageSeo-home']) assert.deepEqual(schema.initialValue({ pathname }), {});
+  assert.equal(schema.fields.find(field => field.name === 'pathname').readOnly, true);
+  assert.ok(readFileSync(new URL('../cms/sanity/config/structure.ts', import.meta.url), 'utf8').includes('.documentId(page.documentId).initialValueTemplate("pageSeo", { pathname: page.pathname })'));
+});
+
+test('actual UAT preview page does not start its author query when scoped authorization fails', async () => {
+  let authorReads = 0;
+  const mocks = new Map([
+    ['@/lib/admin/public-copy-preview', { getUatPublicCopyPreview: async () => { throw new Error('fixture-denied'); } }],
+    ['@/lib/content/sanity', { getPrimaryAuthorProfile: async () => { authorReads++; return null; } }],
+    ['@/features/home/website-43/Website43Home', { __esModule: true, default: () => null }],
+    ['@/features/ci-planning/page', { renderCiPlanningPage: () => null }],
+    ['@/features/financial-health-check/page', { renderFinancialHealthCheckPage: () => null }],
+    ['@/features/investment-allocation/page', { renderInvestmentAllocationPage: () => null }],
+    ['@/features/blog/pages/BlogArchivePage', { renderBlogPage: () => null }],
+    ['@/features/legal/pages/PrivacyPage', { renderPrivacyPage: () => null }],
+    ['@/features/legal/pages/CookiePolicyPage', { renderCookiePolicyPage: () => null }],
+    ['@/features/money-story/page', { renderMoneyStoryPage: () => null }],
+  ]);
+  const page = loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/page.tsx', { mocks });
+  await assert.rejects(page.default({ searchParams: Promise.resolve({ scope: 'home' }) }), /fixture-denied/);
+  assert.equal(authorReads, 0);
 });
