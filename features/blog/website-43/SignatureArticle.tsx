@@ -1,6 +1,6 @@
 'use client';
 
-import {useId,useMemo,useState,type ReactNode} from 'react';
+import {useEffect,useId,useMemo,useRef,useState,type ReactNode} from 'react';
 import type {ArticleBlock} from '@/lib/content/types';
 import styles from './SignatureArticle.module.css';
 
@@ -8,6 +8,33 @@ type Editorial=Extract<ArticleBlock,{type:'signatureEditorial'}>;
 type Explorer=Extract<ArticleBlock,{type:'signaturePlanExplorer'}>;
 type TableBlock=Extract<ArticleBlock,{type:'signatureStructuredTable'}>;
 const fmt=(n:number)=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:0}).format(n);
+
+// One observer for the entire article: no scroll listeners, RAF loops or timers.
+// Offscreen blocks remain static; the browser animates only opacity and transform.
+const signatureMotionListeners = new Map<HTMLElement, (visible:boolean)=>void>();
+let signatureMotionObserver: IntersectionObserver | null = null;
+function useSignatureMotion() {
+  const ref=useRef<HTMLElement>(null);
+  const [visible,setVisible]=useState(false);
+  useEffect(()=>{
+    const element=ref.current;
+    if(!element||typeof IntersectionObserver==='undefined')return;
+    if(!signatureMotionObserver){
+      signatureMotionObserver=new IntersectionObserver((entries)=>{
+        for(const entry of entries)signatureMotionListeners.get(entry.target as HTMLElement)?.(entry.isIntersecting);
+      },{rootMargin:'64px 0px 64px 0px',threshold:0});
+    }
+    signatureMotionListeners.set(element,setVisible);
+    signatureMotionObserver.observe(element);
+    return()=>{
+      signatureMotionObserver?.unobserve(element);
+      signatureMotionListeners.delete(element);
+      if(signatureMotionListeners.size===0){signatureMotionObserver?.disconnect();signatureMotionObserver=null;}
+    };
+  },[]);
+  return {ref,'data-motion-active':visible?'true':'false'};
+}
+
 function Heading({title,description}:{title:string;description?:string}) {
   return <header className={styles.heading}><span className={styles.eyebrow}>CCPUN / EDITORIAL INSIGHT</span>
     <h3>{title}</h3>{description&&<p>{description}</p>}</header>;
@@ -17,6 +44,7 @@ function Foot({text,note}:{text?:string;note?:string}) {
 }
 function NumberText({n}:{n:number}){return <span className={styles.amount}>{fmt(n)}</span>;}
 export function SignatureEditorialView({block}: {block:Editorial}) {
+  const motion=useSignatureMotion();
   const [used,setUsed]=useState(Math.max(0,block.used??0));
   const [months,setMonths]=useState(block.months??6);
   const [monthly,setMonthly]=useState(block.monthlyAmount??30000);
@@ -91,13 +119,14 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
       </div>)}</div>;break;
     default: contents=null;
   }
-  return <section className={styles.root} data-ccpun-signature={block.kind} aria-label={block.title}>
+  return <section className={styles.root} {...motion} data-ccpun-signature={block.kind} aria-label={block.title}>
     <Heading title={block.title} description={block.description}/>
     {contents}
     <Foot text={block.takeaway} note={block.sampleNote}/>
   </section>;
 }
 export function SignatureTableView({block}:{block:TableBlock}) {
+  const motion=useSignatureMotion();
   // Keep every table row in server-rendered HTML for readers and search engines.
   // Only collapse the long tail of the mobile layout with native <details>
   // (no extra JavaScript state, tracking, or persistence).
@@ -105,7 +134,7 @@ export function SignatureTableView({block}:{block:TableBlock}) {
     {block.headers.map((h,j)=><div key={j}><dt>{h}</dt><dd>{r[j]??'—'}</dd></div>)}
   </dl>;
   const mobileInitialRows=5;
-  return <section className={styles.root} aria-label={block.title} data-ccpun-signature="table">
+  return <section className={styles.root} {...motion} aria-label={block.title} data-ccpun-signature="table">
     <Heading title={block.title} description={block.description}/>
     <div className={styles.tableDesktop}><table><thead><tr>{block.headers.map((h,i)=><th scope="col" key={i}>{h}</th>)}</tr></thead>
       <tbody>{block.rows.map((r,i)=><tr key={i}>{block.headers.map((_,j)=><td key={j}>{r[j]??'—'}</td>)}</tr>)}</tbody></table></div>
@@ -133,6 +162,7 @@ function PlanSelector({plans,index,onSelect,label}:{plans:Explorer['plans'];inde
   </div>;
 }
 export function SignaturePlanView({block}:{block:Explorer}) {
+  const motion=useSignatureMotion();
   const plans=block.plans;
   const [view,setView]=useState<'single'|'overview'|'compare'>('single');
   const [a,setA]=useState(0);
@@ -151,7 +181,7 @@ export function SignaturePlanView({block}:{block:Explorer}) {
   },[plans,a,b,activeCategory,diff]);
   const focus=plans[a];
   if(!focus)return null;
-  return <section className={styles.root} data-ccpun-signature="plan-explorer" aria-label={block.title}>
+  return <section className={styles.root} {...motion} data-ccpun-signature="plan-explorer" aria-label={block.title}>
     <Heading title={block.title} description={block.description}/>
     <div className={styles.tabs} role="group" aria-label="วิธีดูข้อมูล">
       {[['single','01 ดูแผนเดียว'],['overview','ดูภาพรวม'],['compare','02 เปรียบเทียบ']].map(([v,label])=><button key={v} type="button"

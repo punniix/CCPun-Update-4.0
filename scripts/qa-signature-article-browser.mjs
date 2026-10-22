@@ -46,10 +46,21 @@ try{
   const motion=await evaluate("(()=>{const root=document.querySelector('[data-ccpun-signature=\\\"plan-explorer\\\"]');const node=root.querySelector('[class*=tableDesktop]');const style=getComputedStyle(node);return {name:style.animationName,duration:style.animationDuration};})()");
   console.log('MOTION',JSON.stringify(motion));
   if(motion.name==='none'||motion.duration==='0s')throw Error('Expected lightweight animation on active table');
+  // Loop effects must be compositor-only and truly suspended offscreen.
+  const loopInView=await evaluate("(async()=>{\n const root=document.querySelector('[data-ccpun-signature=\"plan-explorer\"]');\n root.querySelector('button[aria-pressed=\"true\"]')?.click();\n root.scrollIntoView({block:'center'});\n await new Promise(resolve=>setTimeout(resolve,300));\n const eyebrow=root.querySelector('[class*=eyebrow]');\n const css=getComputedStyle(eyebrow,'::before');\n return {visible:root.dataset.motionActive,animation:css.animationName,duration:css.animationDuration};\n})()");
+  console.log('LOOP_IN_VIEW',JSON.stringify(loopInView));
+  if(loopInView.visible!=='true'||!loopInView.animation.includes('ccpunSignatureGoldBreathe')||loopInView.duration!=='8s')throw Error('Expected gold-loop signal in viewport');
+  const loopOffscreen=await evaluate("(async()=>{\n window.scrollTo({top:0,behavior:'instant'});\n await new Promise(resolve=>setTimeout(resolve,250));\n const root=document.querySelector('[data-ccpun-signature=\"plan-explorer\"]');\n const eyebrow=root.querySelector('[class*=eyebrow]');\n return {visible:root.dataset.motionActive,animation:getComputedStyle(eyebrow,'::before').animationName};\n})()");
+  console.log('LOOP_OFFSCREEN',JSON.stringify(loopOffscreen));
+  if(loopOffscreen.visible!=='false'||loopOffscreen.animation!=='none')throw Error('Loop failed to pause offscreen');
+  await evaluate("(async()=>{\n const root=document.querySelector('[data-ccpun-signature=\"plan-explorer\"]');\n root.querySelector('button[aria-pressed=\"true\"]')?.click();\n root.scrollIntoView({block:'center'});\n await new Promise(resolve=>setTimeout(resolve,300));\n const eyebrow=root.querySelector('[class*=eyebrow]');\n const css=getComputedStyle(eyebrow,'::before');\n return {visible:root.dataset.motionActive,animation:css.animationName,duration:css.animationDuration};\n})()");
   await cmd('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   const reduced=await evaluate("(()=>{const n=document.querySelector('[data-ccpun-signature=\\\"plan-explorer\\\"] [class*=tableDesktop]');return getComputedStyle(n).animationName;})()");
   console.log('REDUCED_MOTION',reduced);
   if(reduced!=='none')throw Error('Reduced motion not respected');
+  const reducedLoop=await evaluate("(()=>{const p=document.querySelector('[data-ccpun-signature=\\\"plan-explorer\\\"]');return getComputedStyle(p.querySelector('[class*=eyebrow]'),'::before').animationName;})()");
+  console.log('REDUCED_LOOP',reducedLoop);
+  if(reducedLoop!=='none')throw Error('Reduced-motion does not stop repeating loop');
 
   if(!result.opened||!result.selectedC)throw Error('Dropdown interaction failed');
   console.log('BROWSER_QA_PASS');

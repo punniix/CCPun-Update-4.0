@@ -76,7 +76,21 @@ test('Editorial interactions are ephemeral and lightweight motion respects reduc
   assert.match(css,/animation:none!important/);
   assert.match(css,/animation-timeline: view\(block\)/);
   assert.doesNotMatch(jsx,/localStorage|sessionStorage|indexedDB|document\.cookie/);
-  assert.doesNotMatch(css,/animation-iteration-count:\s*infinite|animation:\s*[^;]*infinite/);
+  // Exactly two slow, purposefully looping gold indicators; no animated cards/backgrounds.
+  const loops=[...css.matchAll(/animation:\s*([^;]+infinite)/g)].map(m=>m[1].trim());
+  assert.equal(loops.length,2);
+  assert.ok(loops.some(x=>x.includes('ccpunSignatureGoldBreathe 8s')));
+  assert.ok(loops.some(x=>x.includes('ccpunSignaturePlanBeacon 9s')));
+  assert.match(jsx,/new IntersectionObserver/);
+  assert.match(jsx,/signatureMotionListeners\.size===0/);
+  assert.match(jsx,/data-motion-active/);
+  for(const name of ['ccpunSignatureGoldBreathe','ccpunSignaturePlanBeacon']){
+    const match=css.match(new RegExp('@keyframes '+name+'\\s*\\{([\\s\\S]*?)\\n\\}'));
+    assert.ok(match,name+' keyframes missing');
+    assert.doesNotMatch(match[1],/box-shadow|filter|backdrop-filter|left:|top:|height:|width:|margin:|padding:/);
+    assert.match(match[1],/opacity:/);
+    assert.match(match[1],/transform:/);
+  }
 });
 
 test('UAT tax article represents three signature components without publishing source draft',()=>{
