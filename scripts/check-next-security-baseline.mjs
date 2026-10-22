@@ -4,18 +4,14 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { isSupportedNodeSecurityVersion } from "../lib/runtime/node-security-baseline.mjs";
+export { isSupportedNodeSecurityVersion } from "../lib/runtime/node-security-baseline.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const readJson = (p) => JSON.parse(readFileSync(resolve(root, p), "utf8"));
 const manifestPaths = ["package.json", "apps/web/package.json", "apps/admin/package.json"];
 const lock = readJson("package-lock.json");
 const failures = [];
-/** @param {string} value */
-export function isSupportedNodeSecurityVersion(value) {
-  if (!/^24\.\d+\.\d+$/.test(value)) return false;
-  const [, minor, patch] = value.split(".").map(Number);
-  return minor > 22 || (minor === 22 && patch >= 1);
-}
 if (!isSupportedNodeSecurityVersion(process.versions.node)) failures.push("NODE_SECURITY_BASELINE_DENIED: require Node24.22.1 or a later Node24 release");
 
 function parseVersion(value, context) {

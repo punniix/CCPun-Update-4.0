@@ -11,6 +11,14 @@ import { archiveStandaloneRuntime, captureStandaloneProvenance, sealStandalonePr
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
+function writeSecurityBaselineFixture(root) {
+  for (const file of ['scripts/check-next-security-baseline.mjs', 'lib/runtime/node-security-baseline.mjs', 'package.json', 'package-lock.json', 'apps/web/package.json', 'apps/admin/package.json']) {
+    const target = join(root, file);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, read(file));
+  }
+}
+
 test("shadow app configs keep security headers provider-safe", () => {
   const web = read("apps/web/next.config.ts");
   const admin = read("apps/admin/next.config.ts");
@@ -134,6 +142,7 @@ test("Hostinger root build routes both workspaces and preserves native builds an
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
     for (const command of ["npm", "next"]) {
       const executable = join(fixture, command);
@@ -167,8 +176,9 @@ test("v4-production root build self-identifies the Hostinger Web production lane
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
-    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+    writeFileSync(join(fixture, "package.json"), read("package.json"));
 
     const npm = join(fixture, "npm");
     writeFileSync(npm, `#!${process.execPath}
@@ -239,8 +249,9 @@ test("pinned Hostinger Web UAT root build self-identifies the isolated shadow la
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
-    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+    writeFileSync(join(fixture, "package.json"), read("package.json"));
 
     const npm = join(fixture, "npm");
     writeFileSync(npm, `#!${process.execPath}
@@ -312,8 +323,9 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
-    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+    writeFileSync(join(fixture, "package.json"), read("package.json"));
     const npm = join(fixture, "npm");
     writeFileSync(npm, `#!${process.execPath}\nconsole.log(JSON.stringify({args:process.argv.slice(2),env:{provider:process.env.CCPUN_DEPLOYMENT_PROVIDER,role:process.env.CCPUN_DEPLOYMENT_ROLE,appEnv:process.env.CCPUN_APP_ENV,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,producer:process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED,executor:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED,plane:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE,nativeWorkflow:process.env.CCPUN_NATIVE_WORKFLOW_ENABLED,social:process.env.CCPUN_SOCIAL_ENABLED,socialMode:process.env.CCPUN_SOCIAL_DATA_MODE,socialOps:process.env.CCPUN_SOCIAL_OPERATIONS_ENABLED,socialReads:process.env.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,socialWrites:process.env.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,socialAnalytics:process.env.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,project:process.env.CCPUN_NEON_PROJECT_ID,branch:process.env.CCPUN_NEON_BRANCH_ID,endpoint:process.env.CCPUN_NEON_ENDPOINT_ID,database:process.env.CCPUN_NEON_DATABASE,authUrl:process.env.AUTH_URL,gitRef:process.env.CCPUN_GIT_REF,gitSha:process.env.CCPUN_GIT_SHA,publicGitRef:process.env.NEXT_PUBLIC_CCPUN_GIT_REF,publicGitSha:process.env.NEXT_PUBLIC_CCPUN_GIT_SHA,publicReleaseId:process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID,releaseId:process.env.CCPUN_RELEASE_ID,dbUrl:process.env.CCPUN_ADMIN_DATABASE_URL}}));`);
     chmodSync(npm, 0o755);
