@@ -256,6 +256,13 @@ test('FHC public article link falls back only in UAT when absent, draft, partial
     let reads = 0;
     const dependencies = id => {
       if (id === 'server-only') return {};
+      if (id === '@/lib/content/article-availability') {
+        const sharedModule = { exports: {} };
+        const sharedSource = readFileSync('lib/content/article-availability.ts', 'utf8');
+        const sharedCompiled = ts.transpileModule(sharedSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+        new Function('require', 'module', 'exports', sharedCompiled)(dependencies, sharedModule, sharedModule.exports);
+        return sharedModule.exports;
+      }
       if (id === '@/lib/content/sanity-lane') return { resolveContentEnvironment: () => environment };
       if (id === '@/lib/content/url') return { getArticlePath: value => value.path };
       if (id === '@/lib/content/provider') return { getContentProvider: () => ({ getArticleBySlug: async (slug, options) => {
