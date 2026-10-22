@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
@@ -8,7 +9,7 @@ import postcss from 'postcss';
 import tailwind from '@tailwindcss/postcss';
 import ts from 'typescript';
 import { assertPhase2MoneyComposition, assertReviewedUxOwners } from '../qa/phase2-source-proof.mjs';
-import { runtimeFiles, sourceByFile } from '../scripts/lib/public-reachability.mjs';
+import { publicReachableSources, runtimeFiles, sourceByFile } from '../scripts/lib/public-reachability.mjs';
 
 const read = file => readFileSync(file, 'utf8');
 const sha = source => createHash('sha256').update(source).digest('hex');
@@ -222,4 +223,82 @@ test('native Web compiler freezes reviewed current output while preserving origi
   assert.equal(candidate.css, reviewed, 'Actual native app output equals the reviewed UX output; original gzip remains frozen');
   assert.equal(Buffer.byteLength(candidate.css), proof.reviewedCurrentCompiler.web.compiledBytes);
   assert.equal(sha(original), '8ef2b65a4b29c8b1e562fdcf16434a4104de01c537fdc5ddd5996506eaf5a22d');
+});
+
+// Tailwind caches scanner candidates by source identity in-process. Each variant
+// must compile in a separate process or removed Admin candidates can appear to
+// remain present, making a size/coverage comparison misleading.
+function compileNativeWebInIsolation(input) {
+  const program = `import {readFileSync} from 'node:fs';
+    import {resolve} from 'node:path'; import postcss from 'postcss';
+    import tailwind from '@tailwindcss/postcss';
+    const result=await postcss([tailwind({base:resolve('apps/web'),optimize:false})])
+      .process(readFileSync(0,'utf8'),{from:resolve('apps/web/app/globals.css')});
+    process.stdout.write(result.css);`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', program], {
+    input, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout;
+}
+
+test('native Web excludes only unreachable Admin utility candidates while keeping public CSS and Admin ownership intact', () => {
+  const path = 'apps/web/app/globals.css';
+  const webSource = read(path);
+  const exclusion = '@source not "../../../features/admin";';
+  assert.equal(webSource.split(exclusion).length - 1, 1);
+  assert.equal(resolve('apps/web/app', '../../../features/admin'), resolve('features/admin'));
+  assert.deepEqual([...webSource.matchAll(/@(?:import|source)\s[^;]+;/g)].map(([directive]) => directive), [
+    '@import "../../../components/styles/global-foundation.css";', exclusion,
+  ], 'Only the Web wrapper owns this exact exclusion');
+  assert.equal(read('apps/admin/app/globals.css'), '@import "../../../app/globals.css";\n');
+  assert.equal(read('app/globals.css'), '@import "../components/styles/global-foundation.css";\n');
+  assert(!source.includes('features/admin'), 'Shared Root/Admin foundation must retain Admin scanning');
+  assert.deepEqual(publicReachableSources.filter(([file]) => file.startsWith('features/admin/')), [], 'No public route may depend on excluded private UI');
+
+  const original = compileNativeWebInIsolation(webSource.replace(exclusion, ''));
+  const candidate = compileNativeWebInIsolation(webSource);
+  const before = rules(original), after = rules(candidate);
+  const identity = ({ selector, ancestry }) => JSON.stringify([selector, ancestry]);
+  const generatedDefaults = rule => defaults(rule) || (rule.selector === ':root, :host' && JSON.stringify(rule.ancestry) === JSON.stringify([['atrule', 'layer', 'theme']]));
+  const retained = new Set(after.filter(rule => !generatedDefaults(rule)).map(identity));
+  assert.deepEqual(after.filter(rule => !generatedDefaults(rule)), before.filter(rule => !generatedDefaults(rule) && retained.has(identity(rule))), 'Every retained public rule keeps its declaration values, ancestry and order');
+  const oldDefaults = before.filter(generatedDefaults), newDefaults = after.filter(generatedDefaults);
+  assert.equal(oldDefaults.length, 2); assert.equal(newDefaults.length, 2);
+  for (let index = 0; index < oldDefaults.length; index++) {
+    assert.equal(identity(newDefaults[index]), identity(oldDefaults[index]));
+    const properties = new Set(newDefaults[index].declarations.map(([property]) => property));
+    assert.deepEqual(newDefaults[index].declarations, oldDefaults[index].declarations.filter(([property]) => properties.has(property)), 'Remaining generated theme/initialization properties keep values and relative order');
+    for (const [property] of oldDefaults[index].declarations.filter(([property]) => !properties.has(property))) {
+      assert(!candidate.includes(`var(${property})`) && !candidate.includes(`var(${property},`), 'Removed generated property remains referenced: ' + property);
+    }
+  }
+  const atIdentity = ({ name, params, ancestry }) => JSON.stringify([name, params, ancestry]);
+  const afterAt = atRules(candidate), retainedAt = new Set(afterAt.map(atIdentity));
+  assert.deepEqual(afterAt, atRules(original).filter(node => retainedAt.has(atIdentity(node))), 'Retained layers, media queries, keyframes and property registrations stay exact');
+
+  const publicTokens = new Set();
+  for (const [file, source] of publicReachableSources) {
+    const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+    const visit = node => {
+      if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+        for (const token of node.text.split(/\s+/)) publicTokens.add(token);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(tree);
+  }
+  const removed = before.filter(rule => !generatedDefaults(rule) && !retained.has(identity(rule)));
+  assert(removed.length > 0, 'The exact private UI exclusion must remove actual utility output');
+  for (const rule of removed) {
+    if (!/^\.(?:[\w/-]|\\.)+$/.test(rule.selector)) continue;
+    const utility = rule.selector.slice(1).replace(/\\(.)/g, '$1');
+    assert(!publicTokens.has(utility), 'Removed utility has a public runtime consumer: ' + utility);
+  }
+  assert(Buffer.byteLength(candidate) < Buffer.byteLength(original));
+  assert(gzipSync(candidate).length < gzipSync(original).length);
+  // A newly authored public utility must remain discoverable through the actual
+  // Web wrapper; the exclusion may not turn into a hard-coded class safelist.
+  assert.match(compileNativeWebInIsolation(webSource + '\n@source inline("w-[137px]");\n'), /width: 137px/);
+  assert.doesNotMatch(candidate, /width: 137px/);
 });
