@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { DEPLOYMENT_LANES } from '../lib/runtime/deployment-lanes.mjs';
@@ -92,4 +93,9 @@ test('public compatibility routes delegate editable SEO to their canonical Web r
     assert.equal(readFileSync(new URL('../app/' + route + '.tsx', import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/apps/web/app/' + route + '";\n');
     assert.match(readFileSync(new URL('../apps/web/app/' + route + '.tsx', import.meta.url), 'utf8'), /generateMetadata/);
   }
+});
+
+test('generated CCPun build outputs stay excluded in root and nested apps', () => {
+  const paths = ['.ccpun-local/next-uat/build/package.json', 'apps/web/.ccpun-local/next-uat/build/package.json', 'apps/admin/.ccpun-local/next-uat/build/package.json'];
+  assert.deepEqual(execFileSync('git', ['check-ignore', '--', ...paths], { encoding: 'utf8' }).trim().split('\n'), paths);
 });
