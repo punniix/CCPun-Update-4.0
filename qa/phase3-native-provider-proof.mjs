@@ -17,7 +17,7 @@ const reviewedBuilderPreludes = {"apps/web/scripts/build-provider.mjs": "  // Re
 const reviewedAdminConfigBuild = {
   'scripts/build-root.mjs': { before: '00d8f879c1651f2c6e8f1c061ed187f47e29c7ce69b6887c4d627b20b10644d8', after: 'ac52d602809efb5710592457a75b39f8726baf4fdf6a806a8fa6522ae5af9956' },
   'tests/hostinger-shadow-config.test.mjs': { before: '2b865e4bf79ea0ea541107641a8de56039630b0cc72dfabb304afcc48b1cbe7c', after: '4e17e66ecedbc106dcb20cd543cc41dae433a8b5c952b1352413919a98df274a' },
-  'apps/admin/scripts/build-provider.mjs': { before: '619fa6263ac85abb328b374319154a3d5f91bfa620657c808e0a507e4122b6e7', after: '5e25dc2ba88d09682e5c9e1fa90e87ad58cf66df91eca59a41ed2c704f39bf06' },
+  'apps/admin/scripts/build-provider.mjs': { before: '619fa6263ac85abb328b374319154a3d5f91bfa620657c808e0a507e4122b6e7', after: '4f98d3b4de8cf2d1b2218eccd8576acf1292c718a8c50346664ef13df45e9465' },
   'tests/hostinger-native-app-contract.test.mjs': { before: '41edd506167307164c31c48e38054f8ae64447c98afc054a80846b96e98ec44f', after: '5d1eabc88dabee42121f5015be8a4cd62e536cbf01a87a2b59ee764be23b30ae' },
 };
 function assertCurrentNativeDigest(path, body, originalDigest) {

@@ -97,6 +97,34 @@ test("acceptance receipt requires the actual named test with zero skips and reda
   }
 });
 
+test("failed acceptance exposes only one exact closed harness phase and code", () => {
+  const record = (phase: string, code: string) => `  error: 'NATIVE_NEON_UAT_FAILED phase=${phase} code=${code}'`;
+  const phases = ["preflight", "prepare", "ack", "cancel-generation", "wait-db-due", "claim-exit", "fresh-process-clock", "verified", "cleanup"];
+  const codes = ["TARGET_DENIED", "AMBIENT_ENV_DENIED", "ENV_FILE_DENIED", "UAT_BINDING_DENIED", "DSN_POLICY_DENIED", "SOURCE_DENIED", "DURABLE_IDENTITY_DENIED",
+    "FIXTURE_ARGUMENT_DENIED", "FIXTURE_CLAIM_DENIED", "OWNERSHIP_DENIED", "FIXTURE_STATE_DENIED", "CMS_WRITE_DENIED", "FIXTURE_EXECUTION_DENIED", "CHILD_FAILED", "CLOCK_DENIED", "DUE_TIMEOUT", "UNCLASSIFIED"];
+  for (const phase of phases) for (const code of codes) {
+    assert.throws(() => assertNativeSchedulerUatTestResult({ status: 1, stdout: `not ok 1 - fixture\n${record(phase, code)}\n  stack: SENSITIVE_SYNTHETIC\n`, stderr: "SENSITIVE_SYNTHETIC" }),
+      { message: `NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED phase=${phase} code=${code}` });
+  }
+  for (const stdout of [record("unreviewed", "SOURCE_DENIED"), record("preflight", "UNREVIEWED"),
+    record("preflight", "SOURCE_DENIED") + " SENSITIVE_SYNTHETIC", record("preflight", "SOURCE_DENIED") + "\n" + record("ack", "CHILD_FAILED"),
+    record("preflight", "SOURCE_DENIED").trim(), "# " + record("preflight", "SOURCE_DENIED"),
+    '  error: "NATIVE_NEON_UAT_FAILED phase=preflight code=SOURCE_DENIED SENSITIVE_SYNTHETIC"',
+    "SENSITIVE_SYNTHETIC NATIVE_NEON_UAT_FAILED phase=preflight code=SOURCE_DENIED", "SENSITIVE_SYNTHETIC"]) {
+    assert.throws(() => assertNativeSchedulerUatTestResult({ status: 1, stdout, stderr: record("ack", "CHILD_FAILED"), error: new Error("SENSITIVE_SYNTHETIC") }),
+      { message: "NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED" });
+  }
+  const directory = mkdtempSync(join(tmpdir(), "ccpun-closed-tap-"));
+  try {
+    const file = join(directory, "fixture.cjs");
+    writeFileSync(file, 'require("node:test")("synthetic failure",()=>{throw new Error("NATIVE_NEON_UAT_FAILED phase=preflight code=SOURCE_DENIED")});');
+    const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+    const actual = spawnSync(process.execPath, ["--test", "--test-reporter=tap", file], { env, encoding: "utf8" });
+    assert.equal(actual.status, 1);
+    assert.throws(() => assertNativeSchedulerUatTestResult(actual), { message: "NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED phase=preflight code=SOURCE_DENIED" });
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
 test("seal binds committed source, exact ref and root lock rather than declared provenance", () => {
   const f = fixture(); try {
     const seal = validateNativeNeonBuild(f.admin, f.values);

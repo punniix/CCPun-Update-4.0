@@ -311,7 +311,16 @@ export function assertNativeSchedulerUatTestResult(result) {
   if (result.error || result.status !== 0 || lines.filter(line => /^ok /.test(line)).join("\n") !== `ok 1 - ${expected}`
     || ["tests 1", "pass 1", "fail 0", "skipped 0", "cancelled 0"].some(value => lines.filter(line => line.startsWith(`# ${value.split(" ")[0]} `)).join("\n") !== `# ${value}`)
     || /# SKIP|# TODO|^not ok /m.test(tap)) {
-    throw new Error("NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED");
+    // Only the harness's exact TAP error record may supply closed diagnostics.
+    // Do not forward stderr, stack, assertions, provider messages or raw lines.
+    const phases = new Set(["preflight", "prepare", "ack", "cancel-generation", "wait-db-due", "claim-exit", "fresh-process-clock", "verified", "cleanup"]);
+    const codes = new Set(["TARGET_DENIED", "AMBIENT_ENV_DENIED", "ENV_FILE_DENIED", "UAT_BINDING_DENIED", "DSN_POLICY_DENIED", "SOURCE_DENIED",
+      "DURABLE_IDENTITY_DENIED", "FIXTURE_ARGUMENT_DENIED", "FIXTURE_CLAIM_DENIED", "OWNERSHIP_DENIED", "FIXTURE_STATE_DENIED", "CMS_WRITE_DENIED",
+      "FIXTURE_EXECUTION_DENIED", "CHILD_FAILED", "CLOCK_DENIED", "DUE_TIMEOUT", "UNCLASSIFIED"]);
+    const records = lines.map(line => line.match(/^  error: 'NATIVE_NEON_UAT_FAILED phase=([a-z-]+) code=([A-Z_]+)'$/)).filter(Boolean);
+    const record = records.length === 1 ? records[0] : null;
+    const diagnostic = record && phases.has(record[1]) && codes.has(record[2]) ? ` phase=${record[1]} code=${record[2]}` : "";
+    throw new Error(`NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED${diagnostic}`);
   }
   return "NATIVE_SCHEDULER_UAT_ACCEPTANCE_PASS tests=1 pass=1 fail=0 skipped=0";
 }
