@@ -82,4 +82,4 @@ export async function renderBlogPage({ searchParams, searchEnhancement }: BlogPa
   </>;
 }
 
-export default function BlogPage(props: BlogPageProps) { return renderBlogPage(props); }
+export default function BlogPage(props: Pick<BlogPageProps, "searchParams">) { return renderBlogPage(props); }
