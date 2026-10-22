@@ -260,12 +260,15 @@ console.log(JSON.stringify({
     gitSha: process.env.CCPUN_GIT_SHA,
     releaseId: process.env.CCPUN_RELEASE_ID,
     stage: process.env.CCPUN_RELEASE_STAGE,
+    publicSha: process.env.NEXT_PUBLIC_CCPUN_GIT_SHA,
+    publicRef: process.env.NEXT_PUBLIC_CCPUN_GIT_REF,
+    publicRelease: process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID,
   },
 }));
 `);
     chmodSync(npm, 0o755);
 
-    const branch = "codex/hostinger-release-uat-fixture123";
+    let branch = "web-uat-fixture";
     for (const args of [
       ["init", "-b", branch],
       ["config", "user.email", "fixture@example.invalid"],
@@ -277,6 +280,9 @@ console.log(JSON.stringify({
       assert.equal(git.status, 0, git.stderr);
     }
     const sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: fixture, encoding: "utf8" }).stdout.trim();
+
+    branch = `codex/hostinger-release-uat-${sha}`;
+    assert.equal(spawnSync("git", ["branch", "-m", branch], { cwd: fixture }).status, 0);
 
     const result = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
       cwd: fixture,
@@ -300,7 +306,27 @@ console.log(JSON.stringify({
       gitSha: sha,
       releaseId: `hostinger-web-uat-${sha.slice(0, 12)}`,
       stage: "shadow",
+      publicSha: sha,
+      publicRef: branch,
+      publicRelease: `hostinger-web-uat-${sha.slice(0, 12)}`,
     });
+    const stale = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+      cwd: fixture, encoding: "utf8",
+      env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production", NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", CCPUN_GIT_REF: "old-uat-ref", CCPUN_GIT_SHA: "1".repeat(40), NEXT_PUBLIC_CCPUN_GIT_SHA: "1".repeat(40) },
+    });
+    assert.equal(stale.status, 0, stale.stderr);
+    assert.deepEqual(JSON.parse(stale.stdout.trim().split("\n").at(-1)).env, invocation.env);
+    for (const [key, value, error] of [["CCPUN_DEPLOYMENT_PROVIDER", "local", "WEB_UAT_RELEASE_PROVIDER_CONFLICT"], ["CCPUN_DEPLOYMENT_ROLE", "admin", "WEB_UAT_RELEASE_ROLE_CONFLICT"]]) {
+      const denied = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], { cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, [key]: value } });
+      assert.notEqual(denied.status, 0);
+      assert.match(denied.stderr, new RegExp(error));
+      assert.doesNotMatch(denied.stdout, /"command"/);
+    }
+    assert.equal(spawnSync("git", ["branch", "-m", `codex/hostinger-release-uat-${"2".repeat(40)}`], { cwd: fixture }).status, 0);
+    const wrongSha = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], { cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}` } });
+    assert.notEqual(wrongSha.status, 0);
+    assert.match(wrongSha.stderr, /WEB_UAT_RELEASE_SHA_CONFLICT/);
+
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
