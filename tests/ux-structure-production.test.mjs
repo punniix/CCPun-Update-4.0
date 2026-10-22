@@ -150,6 +150,18 @@ test('Investment release capability remains false even with explicit environment
 
 function packageBeforePostPublishScripts(source) {
   const manifest = JSON.parse(source);
+  const addedStaticChecks = " && npm run test:calculators && npm run test:sitemap-google && npm run test:home-lcp && npm run test:seo-topic-hubs";
+  assert.ok(manifest.scripts["check:foundation"].endsWith(addedStaticChecks), "all existing static CI gates must also run locally");
+  manifest.scripts["check:foundation"] = manifest.scripts["check:foundation"].slice(0, -addedStaticChecks.length);
+  for (const [name, command] of Object.entries({
+  "test:calculators": "node --import tsx tests/calculator-regression.ts && node --import tsx --test tests/ci-numeric-safety.test.ts && node --test tests/calculator-design-language.test.mjs && node --test tests/calculator-ux-formula-parity.test.mjs && node --import tsx --test tests/calculator-ux-journey.test.mjs && node --import tsx --test tests/ci-recovery-ui-regression.test.mjs && node --import tsx --test tests/ci-numeric-ui-regression.test.mjs && node --import tsx tests/result-actions-regression.ts && node tests/fhc-seo-geo-regression.mjs",
+  "test:sitemap-google": "node --conditions=react-server --import tsx --test tests/sitemap-google-regression.test.ts",
+  "test:home-lcp": "node tests/home-lcp-regression.mjs",
+  "test:seo-topic-hubs": "node tests/seo-topic-hubs-regression.mjs"
+})) {
+    assert.equal(manifest.scripts[name], command, "only exact existing canonical CI commands are admitted");
+    delete manifest.scripts[name];
+  }
   // Admit only these reviewed compatible security patches; retain the complete
   // original manifest digest for every other field and existing command.
   for (const owner of [manifest.overrides, manifest.overrides['@workflow/world-local'], manifest.overrides['@workflow/world-vercel']]) {
@@ -267,6 +279,11 @@ test('Production script and AI SDK admissions reject unknown scripts, changed co
   assert.notEqual(altered({ ...manifest, scripts: { ...manifest.scripts, unreviewed: 'new-command' } }), protectedProduction['package.json']);
   assert.notEqual(altered({ ...manifest, dependencies: { ...manifest.dependencies, unreviewed: '1.0.0' } }), protectedProduction['package.json']);
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'nav:check': 'unreviewed' } }));
+  for (const name of ['test:calculators', 'test:sitemap-google', 'test:home-lcp', 'test:seo-topic-hubs']) {
+    assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, [name]: 'unreviewed' } }));
+  }
+  assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'check:foundation': manifest.scripts['check:foundation'].replace(' && npm run test:sitemap-google', '') } }));
+  assert.notEqual(altered({ ...manifest, scripts: { ...manifest.scripts, 'build:admin:uat:acceptance': 'node scripts/build-root.mjs --native-scheduler-uat-acceptance' } }), protectedProduction['package.json'], 'no native acceptance alias is admitted in Production');
   assert.throws(() => altered({ ...manifest, dependencies: { ...manifest.dependencies, '@cloudflare/ai-search-snippet': '^0.0.44' } }));
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'test:architecture': manifest.scripts['test:architecture'] + ' node --test tests/monorepo-lane-ownership.test.mjs tests/ai-search-integration.test.mjs' } }));
   const lock = JSON.parse(read('package-lock.json'));
