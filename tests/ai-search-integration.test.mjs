@@ -18,6 +18,8 @@ const chunk = (number = '01') => ({ text: '<script>bad()</script> [unsafe](javas
   title: '<img src=x onerror=bad()>', document_id: `ccpun-uat-qa-article-20261023-${number}`,
 } } });
 
+const envelope = chunks => ({ success: true, result: { chunks } });
+
 const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 
 test('requested UAT search remains Web-only, without a new route, SDK or Admin import graph', async () => {
@@ -55,20 +57,21 @@ test('actual Web route imports and mounts search only for exact UAT environments
 });
 
 test('result validation admits only all three exact identities for the eleven public UAT documents', () => {
-  assert.equal(widget.parseAiSearchResults({ chunks: Array.from({ length: 11 }, (_, i) => chunk(String(i + 1).padStart(2, '0'))) }).length, 5);
-  for (let i = 1; i <= 11; i++) assert.equal(widget.parseAiSearchResults({ chunks: [chunk(String(i).padStart(2, '0'))] }).length, 1);
-  for (const value of [null, {}, { chunks: null }, { chunks: {} }]) assert.throws(() => widget.parseAiSearchResults(value), /unavailable/);
+  assert.equal(widget.parseAiSearchResults(envelope(Array.from({ length: 11 }, (_, i) => chunk(String(i + 1).padStart(2, '0'))))).length, 5);
+  for (let i = 1; i <= 11; i++) assert.equal(widget.parseAiSearchResults(envelope([chunk(String(i).padStart(2, '0'))])).length, 1);
+  for (const value of [null, {}, envelope(null), envelope({})]) assert.throws(() => widget.parseAiSearchResults(value), /unavailable/);
+  for (const value of [{ chunks: [chunk()] }, { success: false, result: { chunks: [chunk()] } }, { success: true }, { success: true, result: null }, { success: true, result: [] }, { success: true, result: {} }, { success: 'true', result: { chunks: [chunk()] } }]) assert.throws(() => widget.parseAiSearchResults(value), /unavailable/);
   const hostileUrls = ['javascript:alert(1)', 'https://ccpun.com/blog/personal-finance/uat-qa-20261023-01/',
     'https://test.ccpun.com.evil.test/blog/personal-finance/uat-qa-20261023-01/', 'http://test.ccpun.com/blog/personal-finance/uat-qa-20261023-01/',
     'https://test.ccpun.com/admin/', 'https://test.ccpun.com/blog/personal-finance/uat-qa-20261023-01/?draft=1',
     'https://test.ccpun.com/blog/personal-finance/uat-qa-20261023-01/#drafts', 'https://test.ccpun.com/blog/health-insurance/uat-qa-20261023-01/'];
-  for (const url of hostileUrls) { const item = chunk(); item.item.metadata.url = url; assert.deepEqual(widget.parseAiSearchResults({ chunks: [item] }), []); }
+  for (const url of hostileUrls) { const item = chunk(); item.item.metadata.url = url; assert.deepEqual(widget.parseAiSearchResults(envelope([item])), []); }
   for (const [field, bad] of [['document_id', 'drafts.ccpun-uat-qa-article-20261023-01'], ['document_id', 'versions.release.article'], ['title', null]]) {
-    const item = chunk(); item.item.metadata[field] = bad; assert.deepEqual(widget.parseAiSearchResults({ chunks: [item] }), []);
+    const item = chunk(); item.item.metadata[field] = bad; assert.deepEqual(widget.parseAiSearchResults(envelope([item])), []);
   }
   const wrongKey = chunk(); wrongKey.item.key = 'ccpun-uat-qa-20261023-02.md';
-  assert.deepEqual(widget.parseAiSearchResults({ chunks: [null, {}, { item: 'bad' }, wrongKey] }), []);
-  assert.equal(widget.parseAiSearchResults({ chunks: [chunk(), chunk()] }).length, 1);
+  assert.deepEqual(widget.parseAiSearchResults(envelope([null, {}, { item: 'bad' }, wrongKey])), []);
+  assert.equal(widget.parseAiSearchResults(envelope([chunk(), chunk()])).length, 1);
 });
 
 test('search request uses only native search, fixed retrieval settings and explicit cancellation', async () => {
@@ -80,7 +83,7 @@ test('search request uses only native search, fixed retrieval settings and expli
     assert.equal(options.method, 'POST'); assert.equal(options.credentials, 'omit'); assert.equal(options.redirect, 'error');
     assert.equal(options.referrerPolicy, 'no-referrer'); assert.equal(options.signal, controller.signal);
     assert.deepEqual(JSON.parse(options.body), { query: 'qa-marker-01', ai_search_options: { query_rewrite: { enabled: false }, reranking: { enabled: false }, retrieval: { retrieval_type: 'hybrid', max_num_results: 5, match_threshold: 0.2 } } });
-    return { ok: true, json: async () => ({ chunks: [chunk()] }) };
+    return { ok: true, json: async () => (envelope([chunk()])) };
   };
   assert.equal((await widget.searchUatArticles(' qa-marker-01 ', controller.signal, request)).length, 1);
   for (const query of ['', ' ', 'x'.repeat(201)]) await assert.rejects(widget.searchUatArticles(query, controller.signal, request), /query/);
@@ -134,7 +137,7 @@ test('native browser form sends nothing on typing, escapes results, handles fail
   const { createRoot } = require('react-dom/client');
   const root = createRoot(dom.window.document.querySelector('#root'));
   let calls = 0;
-  let response = async () => ({ ok: true, json: async () => ({ chunks: [chunk()] }) });
+  let response = async () => ({ ok: true, json: async () => (envelope([chunk()])) });
   globalThis.fetch = async (...args) => { calls++; return response(...args); };
   let timeout;
   const realSetTimeout = globalThis.setTimeout;
@@ -159,7 +162,7 @@ test('native browser form sends nothing on typing, escapes results, handles fail
     assert.equal(dom.window.document.querySelector('li a').textContent, '<img src=x onerror=bad()>');
     assert.match(dom.window.document.querySelector('li p').textContent, /<script>/);
     for (const [makeResponse, message] of [
-      [async () => ({ ok: true, json: async () => ({ chunks: [] }) }), 'ไม่พบบทความทดสอบ'],
+      [async () => ({ ok: true, json: async () => (envelope([])) }), 'ไม่พบบทความทดสอบ'],
       [async () => ({ ok: false, status: 429 }), 'ค้นหาถี่เกินไป'],
       [async () => { throw new Error('offline'); }, 'ยังค้นหาไม่ได้'],
       [async () => ({ ok: true, json: async () => ({ unexpected: true }) }), 'ยังค้นหาไม่ได้'],

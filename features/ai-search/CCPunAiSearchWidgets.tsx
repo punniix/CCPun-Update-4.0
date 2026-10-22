@@ -21,9 +21,13 @@ const UAT_CORPUS = Array.from({ length: 11 }, (_, index) => {
 export type AiSearchResult = { url: string; title: string; text: string };
 
 export function parseAiSearchResults(payload: unknown): AiSearchResult[] {
-  if (!payload || typeof payload !== 'object' || !('chunks' in payload) || !Array.isArray(payload.chunks)) throw new Error('unavailable');
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)
+    || !('success' in payload) || payload.success !== true || !('result' in payload)
+    || !payload.result || typeof payload.result !== 'object' || Array.isArray(payload.result)
+    || !('chunks' in payload.result) || !Array.isArray(payload.result.chunks)) throw new Error('unavailable');
+  const { chunks } = payload.result;
   const results: AiSearchResult[] = [];
-  for (const chunk of payload.chunks.slice(0, 50)) {
+  for (const chunk of chunks.slice(0, 50)) {
     if (!chunk || typeof chunk !== 'object') continue;
     const metadata = chunk.item?.metadata;
     const approved = UAT_CORPUS.find(item => item.url === metadata?.url && item.id === metadata?.document_id && item.key === chunk.item?.key);
