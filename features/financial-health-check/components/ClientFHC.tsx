@@ -11,7 +11,7 @@ import Website43ToolHero from '@/components/layout/website-43/Website43ToolHero'
 import FHCLandingIntro, { FHCPlanningContext } from './FHCLandingIntro';
 import LifeCoverageWizard from './LifeCoverageWizard';
 
-export default async function ClientFHC({ copy }: { copy?: PublicCopyValues } = {}) {
+export default async function ClientFHC({ copy, siteCopy }: { copy?: PublicCopyValues; siteCopy?: PublicCopyValues } = {}) {
   const t = publicCopyText(copy ?? await getPublicCopy('fhc'));
   const pyramidHref = await getFhcPyramidHref();
 
@@ -63,7 +63,7 @@ export default async function ClientFHC({ copy }: { copy?: PublicCopyValues } = 
           </div>
         </section>
       </main>
-      <Website43Footer />
+      <Website43Footer copy={siteCopy} />
     </div>
   );
 }

@@ -25,7 +25,7 @@ const metadata: Metadata = {
   },
 };
 
-export async function renderPrivacyPage(copyOverride?: PublicCopyValues) {
+export async function renderPrivacyPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const text = publicCopyText(copyOverride ?? await getPublicCopy("privacy"));
   return (
     <div className={`${w43Styles.root} ${legalStyles.page}`}>
@@ -221,7 +221,7 @@ export async function renderPrivacyPage(copyOverride?: PublicCopyValues) {
 
       </div>
       </main>
-      <Website43Footer />
+      <Website43Footer copy={siteCopyOverride} />
     </div>
   );
 }

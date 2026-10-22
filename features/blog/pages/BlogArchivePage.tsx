@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
 };
 
-export async function renderBlogPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}, copyOverride?: PublicCopyValues) {
+export async function renderBlogPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}, copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const copy = copyOverride ?? await getPublicCopy("blog");
   const filters = await searchParams ?? {};
   const query = typeof filters.q === "string" ? filters.q : "";
@@ -67,6 +67,7 @@ export async function renderBlogPage({ searchParams }: { searchParams?: Promise<
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
     <Website43Blog
       copyOverride={copy}
+      siteCopyOverride={siteCopyOverride}
       key={`all:${legacyCategory}:${legacyTag}`}
       articles={toWebsite43ArticleItems(visibleArticles, copy)}
       featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}

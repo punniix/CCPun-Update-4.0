@@ -1,3 +1,4 @@
+import { getFinancialPyramidHref } from "@/lib/content/article-availability";
 import { getPublicCopy } from "@/lib/content/public-copy";
 import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
@@ -30,9 +31,10 @@ export const metadata: Metadata = {
     : { index: true, follow: true },
 };
 
-export async function renderMoneyStoryPage(copyOverride?: PublicCopyValues) {
+export async function renderMoneyStoryPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const copy = copyOverride ?? await getPublicCopy("moneyStory");
   const text = publicCopyText(copy);
+  const pyramidHref = await getFinancialPyramidHref();
   return (
     <div className={`${sharedStyles.root} ${styles.root}`}>
       <Website43Navbar />
@@ -46,7 +48,7 @@ export async function renderMoneyStoryPage(copyOverride?: PublicCopyValues) {
         </section>
 
         <section className={styles.gameSection} aria-label={text("moneyStory.moneyStoryPagearialabel")}>
-          <PublicCopyProvider values={copy}><MoneyStoryGame showSeed={IS_REVIEW_ENVIRONMENT} /></PublicCopyProvider>
+          <PublicCopyProvider values={copy}><MoneyStoryGame showSeed={IS_REVIEW_ENVIRONMENT} pyramidHref={pyramidHref} /></PublicCopyProvider>
         </section>
 
         <section
@@ -71,13 +73,13 @@ export async function renderMoneyStoryPage(copyOverride?: PublicCopyValues) {
               </div>
             </div>
             <p className={styles.disclaimer}>{text("moneyStory.disclaimer")}{' '}
-              <Link href={MONEY_STORY_PYRAMID_URL}>{text("moneyStory.link")}</Link>
+              <Link href={pyramidHref}>{pyramidHref === MONEY_STORY_PYRAMID_URL ? text("moneyStory.link") : text("site.extra.blogRecovery")}</Link>
             </p>
             <p className={styles.disclaimer}>{text("moneyStory.config.label449")}</p>
           </div>
         </section>
       </main>
-      <Website43Footer warnings />
+      <Website43Footer warnings copy={siteCopyOverride} />
     </div>
   );
 }

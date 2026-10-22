@@ -119,10 +119,14 @@ test('protected Chrome retains each role/capability/lane navigation, identity, l
 });
 
 test('root and Web keep their original complete metadata and layout/first-paint/tracking composition', async () => {
+  const copy = loadFixtureModule('lib/content/public-copy-registry.ts');
   for (const file of ['app/layout.tsx', 'apps/web/app/layout.tsx']) for (const admin of [false, true]) for (const review of [false, true]) for (const draft of [false, true]) {
     async function render(baseline) {
       const trace = [];
       const mocks = new Map([
+        // Client context has no host output; its actual hook behavior is covered by public-copy preview SSR.
+        ['@/components/ui/PublicCopyProvider', { PublicCopyProvider: ({ children }) => children }],
+        ['@/lib/content/public-copy', { getPublicCopy: async scope => copy.parsePublicCopy(scope, null) }],
         ['next/font/google', { Kanit: options => { trace.push(['font', options]); return { variable: options.variable }; } }],
         ['next/headers', { draftMode: async () => { trace.push('draftMode'); return { isEnabled: draft }; } }],
         ['@/lib/deployment-environment', { IS_ADMIN_APPLICATION: admin, IS_DRAFT_PREVIEW_ALLOWED: review, IS_REVIEW_ENVIRONMENT: review, PRODUCTION_ANALYTICS_ENABLED: !admin && !review }],

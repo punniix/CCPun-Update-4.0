@@ -1,5 +1,5 @@
 import { getPublicCopy } from "@/lib/content/public-copy";
-import { publicCopyText } from "@/lib/content/public-copy-registry";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { INVESTMENT_TOOL_LINK } from "@/components/layout/website-43/constants";
 import Link from 'next/link';
@@ -20,8 +20,8 @@ export function Website43Brand() {
   );
 }
 
-export async function Website43Footer({ warnings = false, notFound = false, flushBottom = false }: { warnings?: boolean; notFound?: boolean; flushBottom?: boolean }) {
-  const text = publicCopyText(await getPublicCopy("site"));
+export async function Website43Footer({ warnings = false, notFound = false, flushBottom = false, copy }: { warnings?: boolean; notFound?: boolean; flushBottom?: boolean; copy?: PublicCopyValues }) {
+  const text = publicCopyText(copy ?? await getPublicCopy("site"));
   return (
     <footer className={`${styles.footerWrap} ${notFound ? styles.notFoundFooterWrap : ''} ${flushBottom ? styles.footerFlushBottom : ''}`}>
       <div className={styles.inner}>

@@ -29,6 +29,7 @@ import {
   statusBars,
 } from '../engine';
 import {
+  MONEY_STORY_PYRAMID_URL,
   EVENT_CATEGORY_LABELS,
   PROTECTION_CATALOG,
 } from '../config';
@@ -50,7 +51,7 @@ function isLumpSumProtection(type?: ProtectionType) {
   return type === 'critical' || type === 'life';
 }
 
-export default function MoneyStoryGame({ showSeed = false }: { showSeed?: boolean }) {
+export default function MoneyStoryGame({ showSeed = false, pyramidHref = MONEY_STORY_PYRAMID_URL }: { showSeed?: boolean; pyramidHref?: string }) {
   const text = usePublicCopy(MONEY_STORY_COPY_DEFAULTS);
   const label = (value: string) => moneyStoryLabel(value, text);
 function optionImpactLines(option: EventOption, game: GameState) {
@@ -436,6 +437,7 @@ function optionImpactLines(option: EventOption, game: GameState) {
   if (game.status !== 'active') {
     return (
       <MoneyStoryResult
+        pyramidHref={pyramidHref}
         game={game}
         character={character}
         bars={bars}

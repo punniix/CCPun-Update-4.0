@@ -25,13 +25,13 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
   let content: React.ReactNode;
   switch (scope) {
     case "site": case "home": content = <Website43Home authorProfile={authorProfile} copy={copy} siteCopy={site} campaignAvailable={false} />; break;
-    case "ci": content = await renderCiPlanningPage(copy); break;
-    case "fhc": content = await renderFinancialHealthCheckPage(copy); break;
-    case "investment": content = await renderInvestmentAllocationPage(copy); break;
-    case "blog": content = await renderBlogPage({}, copy); break;
-    case "privacy": content = await renderPrivacyPage(copy); break;
-    case "cookies": content = await renderCookiePolicyPage(copy); break;
-    case "moneyStory": content = await renderMoneyStoryPage(copy); break;
+    case "ci": content = await renderCiPlanningPage(copy, site); break;
+    case "fhc": content = await renderFinancialHealthCheckPage(copy, site); break;
+    case "investment": content = await renderInvestmentAllocationPage(copy, site); break;
+    case "blog": content = await renderBlogPage({}, copy, site); break;
+    case "privacy": content = await renderPrivacyPage(copy, site); break;
+    case "cookies": content = await renderCookiePolicyPage(copy, site); break;
+    case "moneyStory": content = await renderMoneyStoryPage(copy, site); break;
   }
   return <>
     <aside className="mb-6 border border-primary/30 p-4" aria-label="ตัวอย่างฉบับร่าง UAT">
@@ -41,6 +41,6 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
       <Link href={`/studio/intent/edit/id=${publicCopyDocumentId(scope)};type=publicPageCopy`} className="inline-flex min-h-11 items-center underline">แก้ข้อความใน Sanity</Link>
       <dl className="mt-3 space-y-2 text-sm"><div><dt>SEO Title</dt><dd>{seo.seoTitle}</dd></div><div><dt>Meta Description</dt><dd>{seo.seoDescription}</dd></div><div><dt>OG Title</dt><dd>{seo.ogTitle}</dd></div><div><dt>OG Description</dt><dd>{seo.ogDescription}</dd></div></dl>
     </aside>
-    <PublicCopyProvider values={site}>{content}</PublicCopyProvider>
+    <PublicCopyProvider values={{ ...site, ...copy }}>{content}</PublicCopyProvider>
   </>;
 }

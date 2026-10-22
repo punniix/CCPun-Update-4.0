@@ -37,7 +37,7 @@ const schema = {
   author: { "@type": "Organization", name: "CCPun Financial Advisor", url: "https://ccpun.com" },
 };
 
-export async function renderInvestmentAllocationPage(copyOverride?: PublicCopyValues) {
+export async function renderInvestmentAllocationPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const copy = copyOverride ?? await getPublicCopy("investment");
   const copyText = publicCopyText(copy);
 
@@ -64,7 +64,7 @@ export async function renderInvestmentAllocationPage(copyOverride?: PublicCopyVa
           <p>{copyText("investment.p18")}</p>
         </div>
       </section>
-      <Website43Footer warnings />
+      <Website43Footer warnings copy={siteCopyOverride} />
     </main></PublicCopyProvider>);
 }
 

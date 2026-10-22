@@ -54,7 +54,7 @@ export const metadata: Metadata = {
 
 
 
-export async function renderCiPlanningPage(copyOverride?: PublicCopyValues) {
+export async function renderCiPlanningPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const t = publicCopyText(copyOverride ?? await getPublicCopy('ci'));
 
 const CI_FAQS = [
@@ -204,7 +204,7 @@ const breadcrumbSchema = {
         </section>
       </main>
 
-      <Website43Footer />
+      <Website43Footer copy={siteCopyOverride} />
     </div>
   );
 }

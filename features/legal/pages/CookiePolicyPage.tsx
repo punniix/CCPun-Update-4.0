@@ -24,7 +24,7 @@ const metadata: Metadata = {
   },
 };
 
-export async function renderCookiePolicyPage(copyOverride?: PublicCopyValues) {
+export async function renderCookiePolicyPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const text = publicCopyText(copyOverride ?? await getPublicCopy("cookies"));
   return (
     <div className={`${w43Styles.root} ${legalStyles.page}`}>
@@ -303,7 +303,7 @@ export async function renderCookiePolicyPage(copyOverride?: PublicCopyValues) {
 
       </div>
       </main>
-      <Website43Footer />
+      <Website43Footer copy={siteCopyOverride} />
     </div>
   );
 }

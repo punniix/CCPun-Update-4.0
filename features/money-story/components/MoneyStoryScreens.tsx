@@ -163,7 +163,7 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
     );
 }
 
-export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo, replay, share, shareStatus, onPyramidClick, onLineClick }: {
+export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo, replay, share, shareStatus, onPyramidClick, onLineClick, pyramidHref = MONEY_STORY_PYRAMID_URL }: {
   game: GameState;
   character: CharacterProfile;
   bars: ReturnType<typeof statusBars>;
@@ -173,10 +173,12 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
   replay: () => void;
   share: () => Promise<void>;
   shareStatus: string;
+  pyramidHref?: string;
   onPyramidClick: () => void;
   onLineClick: () => void;
 }) {
   const text = usePublicCopy(MONEY_STORY_COPY_DEFAULTS);
+  const siteText = usePublicCopy();
   const label = (value: string) => moneyStoryLabel(value, text);
 function decisionImpactText(option: EventOption) {
   const effect = option.effect;
@@ -429,9 +431,9 @@ function decisionImpactText(option: EventOption) {
             <button type="button" className={styles.secondary} onClick={share}>{text("moneyStory.secondary2")}</button>
             <Link
               className={styles.secondary}
-              href={MONEY_STORY_PYRAMID_URL}
+              href={pyramidHref}
               onClick={onPyramidClick}
-            >{text("moneyStory.secondary3")}</Link>
+            >{pyramidHref === MONEY_STORY_PYRAMID_URL ? text("moneyStory.secondary3") : siteText("site.extra.blogRecovery")}</Link>
           </div>
 
           {shareStatus ? (

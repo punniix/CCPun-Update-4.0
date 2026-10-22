@@ -58,7 +58,7 @@ export const metadata: Metadata = {
 
 
 
-export async function renderFinancialHealthCheckPage(copyOverride?: PublicCopyValues) {
+export async function renderFinancialHealthCheckPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const t = publicCopyText(copyOverride ?? await getPublicCopy('fhc'));
 const breadcrumbSchema = {
   "@context": "https://schema.org",
@@ -100,7 +100,7 @@ const jsonLd = {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <ClientFHC copy={copyOverride} />
+      <ClientFHC copy={copyOverride} siteCopy={siteCopyOverride} />
     </>
   );
 }
