@@ -81,7 +81,7 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
       const term=entries[active];
       contents=<div className={styles.glossary}>
         <nav className={styles.termNav} aria-label="เลือกคำศัพท์">{entries.map((e,i)=><button className={i===active?styles.selected:undefined} type="button" key={i} aria-pressed={i===active} onClick={()=>setActive(i)}>{e.label}</button>)}</nav>
-        <div className={styles.panel} aria-live="polite">{term?<><span className={styles.caption}>ความหมาย</span><h4>{term.label}</h4><p>{term.value}</p>{term.detail&&<div className={styles.subtle}><b>ควรดูอะไรต่อ</b><p>{term.detail}</p></div>}</>:<p>เพิ่มคำศัพท์ใน Sanity เพื่อแสดงที่นี่</p>}</div>
+        <div className={styles.panel} key={active} aria-live="polite">{term?<><span className={styles.caption}>ความหมาย</span><h4>{term.label}</h4><p>{term.value}</p>{term.detail&&<div className={styles.subtle}><b>ควรดูอะไรต่อ</b><p>{term.detail}</p></div>}</>:<p>เพิ่มคำศัพท์ใน Sanity เพื่อแสดงที่นี่</p>}</div>
       </div>;break;
     }
     case 'sources':
@@ -147,7 +147,7 @@ export function SignaturePlanView({block}:{block:Explorer}) {
     </div>
     {view==='single'&&<>
       <PlanSelector plans={plans} index={a} onSelect={setA} label="เลือกแผนที่สนใจ"/>
-      <div className={styles.featurePanel}>
+      <div className={styles.featurePanel} key={a}>
         <span className={styles.caption}>แผนที่เลือก</span><h4>{focus.name}</h4>{focus.headline&&<div className={styles.number}>{focus.headline}</div>}
         <div className={styles.benefitGrid}>{focus.benefits.slice(0,more?undefined:4).map((item,i)=>
           <div key={i}><span className={styles.caption}>{item.label}</span><strong>{item.value}</strong></div>)}</div>

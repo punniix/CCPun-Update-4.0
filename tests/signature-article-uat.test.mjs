@@ -64,3 +64,17 @@ test('Article editor authoring is discoverable through Portable Text',()=>{
   assert.match(adapter,/entries\[\]\{/);
   assert.match(adapter,/plans\[\]\{/);
 });
+
+test('Editorial interactions are ephemeral and lightweight motion respects reduced-motion',()=>{
+  const css=read('features/blog/website-43/SignatureArticle.module.css');
+  const jsx=read('features/blog/website-43/SignatureArticle.tsx');
+  assert.match(css,/@keyframes ccpunArticleEnter/);
+  assert.match(css,/@keyframes ccpunDropdownEnter/);
+  assert.match(css,/animation-duration: 160ms/);
+  assert.match(css,/prefers-reduced-motion: no-preference/);
+  assert.match(css,/prefers-reduced-motion:reduce/);
+  assert.match(css,/animation:none!important/);
+  assert.match(css,/animation-timeline: view\(block\)/);
+  assert.doesNotMatch(jsx,/localStorage|sessionStorage|indexedDB|document\.cookie/);
+  assert.doesNotMatch(css,/animation-iteration-count:\s*infinite|animation:\s*[^;]*infinite/);
+});

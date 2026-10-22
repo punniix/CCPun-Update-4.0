@@ -95,6 +95,56 @@
 @supports (backdrop-filter:blur(8px)){
  .optionList{background:rgba(74,58,58,.93);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 }
+/* Article experience motion — progressive, composited, no animation libraries.
+ * All geometry and CCPun Production color tokens remain unchanged. */
+@media (prefers-reduced-motion: no-preference) {
+  .tabs button,.filters button,.termNav button,.ghostButton,.primaryButton,.selectButton,
+  .overCard,.checklist label,.optionList button {
+    transition: transform 170ms cubic-bezier(.2,.7,.2,1),
+                background-color 170ms ease,border-color 170ms ease,
+                box-shadow 170ms ease,color 170ms ease;
+  }
+  .primaryButton:active,.ghostButton:active,.selectButton:active,
+  .tabs button:active,.filters button:active,.termNav button:active,.overCard:active {
+    transform: scale(.985);
+  }
+  .featurePanel,.overview,.optionList,.glossary .panel,.tableDesktop,.tableMobile,
+  .resultRefresh {
+    animation: ccpunArticleEnter 210ms cubic-bezier(.2,.7,.2,1) both;
+  }
+  .optionList { transform-origin: 50% 0%; animation-name: ccpunDropdownEnter; animation-duration: 160ms; }
+  .track span { transition: width 200ms cubic-bezier(.2,.7,.2,1); }
+  .checklist label:has(input:checked) { border-color:var(--gold);background:var(--surface); }
+  .checklist label:has(input:checked) input { animation: ccpunCheckConfirm 180ms cubic-bezier(.2,.7,.2,1); }
+  @media (hover:hover) and (pointer:fine) {
+    .overCard:hover { transform:translateY(-3px);border-color:var(--gold);box-shadow:0 8px 20px rgba(0,0,0,.16); }
+    .primaryButton:hover { box-shadow:0 7px 21px rgba(0,0,0,.24); }
+    .tabs button:hover:not(.selected),.filters button:hover:not(.selected),
+    .termNav button:hover:not(.selected) { border-color:var(--gold); }
+  }
+  /* CSS-only in-view emphasis, never hides text or shifts the article layout. */
+  @supports (animation-timeline: view()) {
+    .timelineStep,.sourceRow { animation: ccpunArticleInView linear both;
+      animation-timeline: view(block); animation-range: entry 0% cover 15%; }
+  }
+}
+@keyframes ccpunArticleEnter {
+  from { opacity:.55;transform:translateY(7px); }
+  to { opacity:1;transform:translateY(0); }
+}
+@keyframes ccpunDropdownEnter {
+  from { opacity:.4;transform:translateY(-5px) scale(.99); }
+  to { opacity:1;transform:translateY(0) scale(1); }
+}
+@keyframes ccpunCheckConfirm {
+  0% { transform:scale(.93); }
+  65% { transform:scale(1.08); }
+  100% { transform:scale(1); }
+}
+@keyframes ccpunArticleInView {
+  from { opacity:.83;transform:translateY(5px); }
+  to { opacity:1;transform:translateY(0); }
+}
 @media(max-width:680px){
  .root{padding:16px;margin:24px 0;}
  .two,.timeline,.glossary,.overview,.benefitGrid{grid-template-columns:1fr;}

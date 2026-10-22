@@ -26,7 +26,7 @@ try{
   }
   await cmd('Page.enable');
   await cmd('Runtime.enable');
-  await cmd('Page.navigate',{url:'http://127.0.0.1:3156/blog/signature-article-preview/'});
+  await cmd('Page.navigate',{url:process.env.SIGNATURE_QA_URL||'http://127.0.0.1:3156/blog/signature-article-preview/'});
   await new Promise(r=>setTimeout(r,1400));
   mkdirSync('/tmp/ccpun-signature-browser-qa',{recursive:true});
   for(const width of [320,390,820,1440]){
@@ -43,6 +43,14 @@ try{
   }
   const result=await evaluate("(async()=>{const root=document.querySelector('[data-ccpun-signature=\"plan-explorer\"]');const compare=[...root.querySelectorAll('button')].find(x=>x.textContent.includes('02 เปรียบเทียบ'));compare.click();await new Promise(r=>setTimeout(r,100));const selector=root.querySelector('button[aria-expanded]');selector.click();await new Promise(r=>setTimeout(r,100));const opened=selector.getAttribute('aria-expanded')==='true';const c=[...root.querySelectorAll('button')].find(x=>x.textContent.includes('ตัวเลือก C'));c?.click();await new Promise(r=>setTimeout(r,100));return {opened,selectedC:!!c,html:root.textContent.includes('ตัวเลือก C')};})()");
   console.log('INTERACTION',JSON.stringify(result));
+  const motion=await evaluate("(()=>{const root=document.querySelector('[data-ccpun-signature=\\\"plan-explorer\\\"]');const node=root.querySelector('[class*=tableDesktop]');const style=getComputedStyle(node);return {name:style.animationName,duration:style.animationDuration};})()");
+  console.log('MOTION',JSON.stringify(motion));
+  if(motion.name==='none'||motion.duration==='0s')throw Error('Expected lightweight animation on active table');
+  await cmd('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  const reduced=await evaluate("(()=>{const n=document.querySelector('[data-ccpun-signature=\\\"plan-explorer\\\"] [class*=tableDesktop]');return getComputedStyle(n).animationName;})()");
+  console.log('REDUCED_MOTION',reduced);
+  if(reduced!=='none')throw Error('Reduced motion not respected');
+
   if(!result.opened||!result.selectedC)throw Error('Dropdown interaction failed');
   console.log('BROWSER_QA_PASS');
 }finally{ws?.close();chrome.kill('SIGTERM');}
