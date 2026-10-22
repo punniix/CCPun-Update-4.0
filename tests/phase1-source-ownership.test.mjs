@@ -195,6 +195,9 @@ test('Health retains per-lane reads, partial/ready/warning/off cards and safe ac
   const ts = require('typescript');
   const root = 'app/(control-plane)/operations/health/page.tsx';
   for (const file of [root, 'apps/admin/' + root]) for (const ready of [false, true]) for (const warning of [false, true]) for (const denied of [false, true]) {
+    const runtimeVersions = ready ? warning ? { node: '24.22.0', undici: '7.29.1' } : { node: '24.22.1', undici: '7.30.1' }
+      : warning ? {} : { node: '<script>private-version</script>', undici: '7.30.1\nprivate-suffix' };
+    const safeVersion = value => /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(value ?? '') ? value : '—';
     async function render(baseline) {
       const trace = [];
       const models = {
@@ -236,12 +239,21 @@ test('Health retains per-lane reads, partial/ready/warning/off cards and safe ac
         }
         mocks.set(statement.moduleSpecifier.text, exports);
       }
-      const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks, globals: { process: { env: { CCPUN_APP_ENV: 'production-admin' } } } });
+      const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks, globals: { process: { env: { CCPUN_APP_ENV: 'production-admin', PRIVATE_TEST_SECRET: 'never-render-this-env-value' }, get versions() { if (denied) throw new Error('VERSION_READ_BEFORE_PERMISSION'); return runtimeVersions; } } } });
       try { return { metadata: fixture.metadata, html: renderToStaticMarkup(await serverTree(await fixture.default())), trace }; }
       catch (error) { return { metadata: fixture.metadata, error: error.message, trace }; }
     }
     const before = await render(true), after = await render(false);
-    assert.deepEqual(after, before, JSON.stringify({ file, ready, warning, denied }));
+    if (!denied && after.html && file.startsWith('apps/admin/')) {
+      const approvedRows = renderToStaticMarkup(React.createElement(React.Fragment, null,
+        React.createElement(loadFixtureModule('features/admin/components/HealthStatus.tsx').Row, { label: 'Node.js', value: safeVersion(runtimeVersions.node) }),
+        React.createElement(loadFixtureModule('features/admin/components/HealthStatus.tsx').Row, { label: 'Bundled Undici', value: safeVersion(runtimeVersions.undici) })));
+      assert.equal(after.html.split(approvedRows).length, 2, 'exactly two closed numeric runtime rows');
+      const at = after.html.indexOf(approvedRows);
+      assert.ok(at > after.html.indexOf('<details') && at < after.html.indexOf('</details>'), 'runtime rows stay inside existing technical details');
+      assert.doesNotMatch(after.html, /private-version|private-suffix|never-render-this-env-value/);
+      assert.deepEqual({ ...after, html: after.html.replace(approvedRows, '') }, before, JSON.stringify({ file, ready, warning, denied }));
+    } else assert.deepEqual(after, before, JSON.stringify({ file, ready, warning, denied }));
     if (!denied) assert.ok(after.html, 'Health must render actual card/row bodies: ' + JSON.stringify(after.error));
     if (denied) assert.deepEqual(after.trace, [['permission', 'settings:read']]);
   }
