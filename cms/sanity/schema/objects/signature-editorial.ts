@@ -24,6 +24,21 @@ export const signatureEditorial=defineType({
     defineField({name:'monthlyAmount',type:'number',title:'เงินต่อเดือน (บาท)',hidden:({parent})=>parent?.kind!=='calculation',validation:Rule=>Rule.min(0).max(1e9)}),
     defineField({name:'months',type:'number',title:'จำนวนเดือน',initialValue:6,hidden:({parent})=>parent?.kind!=='calculation',validation:Rule=>Rule.integer().min(1).max(120)}),
     defineField({name:'existingAmount',type:'number',title:'เงินที่มีอยู่แล้ว (บาท)',initialValue:0,hidden:({parent})=>parent?.kind!=='calculation',validation:Rule=>Rule.min(0).max(1e12)}),
+    // Optional, meaning-first provenance metadata. Shown ONLY for source blocks.
+    // Existing drafts remain valid and show unverified until verified metadata is complete.
+    defineField({name:'sourceStatus',type:'string',title:'ตรวจสอบข้อมูลแล้วหรือยัง?',
+      description:'เลือก “ยังไม่ได้ตรวจสอบ” ไว้ก่อน จนกว่าจะตรวจเอกสารต้นฉบับจริง',
+      initialValue:'unverified',hidden:({parent})=>parent?.kind!=='sources',
+      options:{layout:'radio',list:[{title:'ยังไม่ได้ตรวจสอบ',value:'unverified'},{title:'ตรวจสอบกับต้นฉบับแล้ว',value:'verified'}]}}),
+    defineField({name:'verifiedAt',type:'date',title:'วันที่ตรวจสอบต้นฉบับล่าสุด',
+      description:'กรอกเฉพาะวันที่ได้ตรวจต้นฉบับจริง ไม่ใช่วันที่เขียนหรือแก้บทความ',
+      options:{dateFormat:'DD/MM/YYYY'},hidden:({parent})=>parent?.kind!=='sources'}),
+    defineField({name:'effectivePeriod',type:'string',title:'ปีภาษี / ช่วงเวลาที่ข้อมูลมีผล (ถ้ามี)',
+      description:'เช่น ปีภาษี 2569 หรือ ไม่ระบุ (ข้อมูลจำลอง)',
+      hidden:({parent})=>parent?.kind!=='sources'}),
+    defineField({name:'sourceVersion',type:'string',title:'เวอร์ชันเอกสาร / ชื่อประกาศ (ถ้ามี)',
+      description:'ช่วยให้คนอ่านกลับไปเช็กเอกสารต้นฉบับรุ่นเดียวกันได้',
+      hidden:({parent})=>parent?.kind!=='sources'}),
     defineField({name:'entries',type:'array',title:'เพิ่มรายการ กด +',
       description:'สำหรับก่อน–หลัง / ขั้นตอน / เช็กลิสต์ / คำศัพท์ / แหล่งอ้างอิง',
       hidden:({parent})=>!['beforeAfter','timeline','checklist','glossary','sources'].includes(String(parent?.kind)),
@@ -42,6 +57,13 @@ export const signatureEditorial=defineType({
     if(block.kind==='calculation'&&(!(typeof block.monthlyAmount==='number'&&block.monthlyAmount>=0)||!(typeof block.months==='number'&&block.months>0)))
       return 'กรอกเงินต่อเดือนและจำนวนเดือนให้ครบ';
     if(block.kind==='beforeAfter'&&block.entries?.length!==2)return 'กรอก 2 รายการ: ก่อนและหลัง';
+    if(block.kind==='sources' && (value as {sourceStatus?:string})?.sourceStatus==='verified'){
+      const sourceBlock=value as {verifiedAt?:string;entries?:Array<{url?:string}>};
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(sourceBlock.verifiedAt??''))return 'ระบุวันที่ตรวจสอบจริงก่อนเลือกว่าตรวจสอบแล้ว';
+      if(!sourceBlock.entries?.some(entry=>/^https?:\/\//.test(entry?.url??'')))
+        return 'เพิ่มลิงก์เอกสารต้นฉบับอย่างน้อย 1 แหล่งก่อนเลือกว่าตรวจสอบแล้ว';
+    }
+
     if(['timeline','checklist','glossary','sources'].includes(block.kind)&&!block.entries?.length)
       return 'กด + เพื่อเพิ่มอย่างน้อย 1 รายการ';
     return true;
