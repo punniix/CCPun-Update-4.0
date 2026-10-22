@@ -42,7 +42,9 @@ export const metadata: Metadata = {
   },
 };
 
-export async function renderBlogPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}, copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
+type BlogPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
+
+export async function renderBlogPage({ searchParams }: BlogPageProps = {}, copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const copy = copyOverride ?? await getPublicCopy("blog");
   const filters = await searchParams ?? {};
   const query = typeof filters.q === "string" ? filters.q : "";
@@ -78,4 +80,4 @@ export async function renderBlogPage({ searchParams }: { searchParams?: Promise<
   </>;
 }
 
-export default function BlogPage(props: Parameters<typeof renderBlogPage>[0]) { return renderBlogPage(props); }
+export default function BlogPage(props: BlogPageProps) { return renderBlogPage(props); }
