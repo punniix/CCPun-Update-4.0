@@ -75,6 +75,29 @@ export function buildDocumentUrl(projectId, dataset, id) {
   return url;
 }
 
+// Explicit owner-authorized public test records; every other UAT article stays private.
+const UAT_FIXTURE_NUMBERS = Array.from({ length: 11 }, (_, index) => String(index + 1).padStart(2, "0"));
+function isActiveUat(target) {
+  return target.key === "active-uat" && target.projectId === "ccb9lnw5" && target.dataset === "uat";
+}
+
+export function buildBoundaryQuery(target) {
+  const fixturePairs = UAT_FIXTURE_NUMBERS.map(number =>
+    `(_id == "ccpun-uat-qa-article-20261023-${number}" && slug.current == "uat-qa-20261023-${number}" && "qa-marker-${number}" in tags)`,
+  ).join(" || ");
+  return `{
+    "articles": count(*[_type == "article"]),
+    "authors": count(*[_type == "author"]),
+    "categories": count(*[_type == "category"]),
+    "operational": count(*[_type in ${JSON.stringify(OPERATIONAL_TYPES)}]),
+    "drafts": count(*[_id in path("drafts.**")]),
+    "versions": count(*[_id in path("versions.**")])${isActiveUat(target) ? `,
+    "approvedSyntheticArticles": count(*[_type == "article" && (${fixturePairs})
+      && author._ref == "ccpun-uat-qa-author-20261023" && seo.noindex == true
+      && "UAT QA" in tags && "ข้อมูลสังเคราะห์" in tags])` : ""}
+  }`;
+}
+
 export function checkBoundary(target, payload) {
   const result = payload?.result;
   for (const key of ["articles", "authors", "categories", "operational", "drafts", "versions"]) {
@@ -89,7 +112,14 @@ export function checkBoundary(target, payload) {
     assert.ok(result.articles > 0, `MISSING_PUBLIC_ARTICLE_CONTROL:${target.key}`);
   }
   if (target.requireNoPublishedArticles) {
-    assert.equal(result.articles, 0, `PUBLIC_UAT_OR_RECOVERY_ARTICLE:${target.key}`);
+    if (isActiveUat(target)) {
+      assert.ok(Number.isSafeInteger(result.approvedSyntheticArticles)
+        && result.approvedSyntheticArticles >= 0 && result.approvedSyntheticArticles <= UAT_FIXTURE_NUMBERS.length,
+      "INVALID_APPROVED_UAT_FIXTURE_COUNT");
+      assert.equal(result.articles, result.approvedSyntheticArticles, "UNAPPROVED_PUBLIC_UAT_ARTICLE");
+    } else {
+      assert.equal(result.articles, 0, `PUBLIC_UAT_OR_RECOVERY_ARTICLE:${target.key}`);
+    }
   }
   if (target.requireNoPublicEditorialMetadata) {
     assert.equal(result.authors, 0, `PUBLIC_RECOVERY_AUTHOR:${target.key}`);
@@ -133,19 +163,10 @@ async function requestJson(url) {
 }
 
 export async function main() {
-  const query = `{
-    "articles": count(*[_type == "article"]),
-    "authors": count(*[_type == "author"]),
-    "categories": count(*[_type == "category"]),
-    "operational": count(*[_type in ${JSON.stringify(OPERATIONAL_TYPES)}]),
-    "drafts": count(*[_id in path("drafts.**")]),
-    "versions": count(*[_id in path("versions.**")])
-  }`;
-
   const results = [];
   for (const target of TARGETS) {
     for (const transport of target.transports) {
-      const response = await requestJson(buildQueryUrl(target, transport, query));
+      const response = await requestJson(buildQueryUrl(target, transport, buildBoundaryQuery(target)));
       assert.equal(response.status, 200, `PUBLIC_DATASET_HTTP_FAILED:${target.key}:${transport}`);
       results.push({ target: target.key, transport, ...checkBoundary(target, response.payload) });
     }
