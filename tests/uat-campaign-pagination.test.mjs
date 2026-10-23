@@ -21,7 +21,7 @@ function campaign(lane, article, path = "/blog/health-insurance/aia-health-happy
   return { available, reads: () => reads };
 }
 test("UAT hides campaign for missing, Draft, wrong-path or unavailable content; Production stays unchanged", async () => {
-  for (const lane of ["web-uat", "local-uat"]) {
+  for (const lane of ["web-uat", "admin-uat", "local-uat"]) {
     for (const article of [null, { status: "draft" }]) assert.equal(await campaign(lane, article).available(), false);
     assert.equal(await campaign(lane, { status: "published" }, "/wrong/").available(), false);
     assert.equal(await campaign(lane, null, undefined, true).available(), false);
