@@ -37,6 +37,11 @@ export function loadFixtureModule(file, { sources = new Map(), mocks = new Map()
         return { __esModule: true, default: component, [id.split('/').at(-1)]: component };
       }
       if (id.endsWith('.css')) return {};
+      if (id.startsWith('@/public/') && id.endsWith('.webp')) {
+        const asset = path.normalize(resolve(id, p));
+        if (!asset.startsWith('public/')) throw new Error('Fixture asset must remain public');
+        return { __esModule: true, default: { src: '/' + asset.slice('public/'.length) } };
+      }
       if (id.startsWith('@/') || id.startsWith('.')) return load(resolve(id, p));
       return require(id);
     };

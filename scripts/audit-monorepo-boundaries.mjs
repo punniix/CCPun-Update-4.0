@@ -1,4 +1,5 @@
-import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -6,25 +7,12 @@ const ROOT = process.cwd();
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 const SCAN_DIRS = ['app', 'apps', 'features', 'components', 'lib', 'cms', 'db', 'workers'];
 const ROOT_FILES = ['auth.ts', 'proxy.ts', 'next.config.ts'];
-const IGNORE_PARTS = new Set(['node_modules', '.next', '.git', '.ccpun-local']);
 
 const normalize = (value) => value.split(path.sep).join('/');
 const relative = (value) => normalize(path.relative(ROOT, value));
 
 async function exists(file) {
   try { return (await stat(file)).isFile(); } catch { return false; }
-}
-
-async function walk(dir, output = []) {
-  let entries;
-  try { entries = await readdir(dir, { withFileTypes: true }); } catch { return output; }
-  for (const entry of entries) {
-    if (IGNORE_PARTS.has(entry.name)) continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) await walk(full, output);
-    else if (SOURCE_EXTENSIONS.includes(path.extname(entry.name))) output.push(full);
-  }
-  return output;
 }
 
 function importSpecifiers(source) {
@@ -80,11 +68,12 @@ function externalPackage(specifier) {
 }
 
 async function main({ log = true } = {}) {
-  const absoluteFiles = [];
-  for (const dir of SCAN_DIRS) await walk(path.join(ROOT, dir), absoluteFiles);
-  for (const file of ROOT_FILES) if (await exists(path.join(ROOT, file))) absoluteFiles.push(path.join(ROOT, file));
-
-  const files = [...new Set(absoluteFiles.map(relative))].sort();
+  const inventory = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  }).split('\0').filter(Boolean);
+  const files = [...new Set(inventory.filter((file) => SOURCE_EXTENSIONS.includes(path.extname(file))
+    && (ROOT_FILES.includes(file) || SCAN_DIRS.some((dir) => file.startsWith(dir + '/')))))].sort();
   const sourceByFile = new Map();
   const edges = new Map();
   const reverseEdges = new Map();
