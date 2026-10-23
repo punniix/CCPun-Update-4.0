@@ -166,7 +166,7 @@ export function CategoryRow({
               flexShrink: 0,
               letterSpacing: '0.02em',
             }}
-          >{text("site.cookie.alwaysActive")}</span>
+          >{text.node("site.cookie.alwaysActive")}</span>
         ) : (
           <ToggleSwitch
             checked={checked}

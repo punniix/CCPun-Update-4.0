@@ -47,21 +47,21 @@ export async function renderInvestmentAllocationPage(copyOverride?: PublicCopyVa
       <Website43Navbar />
       <section className={styles.hero}>
         <div className={styles.heroInner}>
-          <span className={styles.badge}>{copyText("investment.badge")}</span>
-          <h1>{copyText("investment.h1")}<br /><span>{copyText("investment.span13")}</span></h1>
-          <p className={styles.heroLead}>{copyText("investment.heroLead")}</p>
+          <span className={styles.badge}>{copyText.node("investment.badge")}</span>
+          <h1>{copyText.node("investment.h1")}<br /><span>{copyText.node("investment.span13")}</span></h1>
+          <p className={styles.heroLead}>{copyText.node("investment.heroLead")}</p>
           <div className={styles.heroProof} aria-label={copyText("investment.investmentAllocationPagearialabel")}>
-            <span>{copyText("investment.span14")}</span><span>{copyText("investment.linesText5")}</span><span>{copyText("investment.h1")}</span><span>{copyText("investment.span15")}</span>
+            <span>{copyText.node("investment.span14")}</span><span>{copyText.node("investment.linesText5")}</span><span>{copyText.node("investment.h1")}</span><span>{copyText.node("investment.span15")}</span>
           </div>
-          <a className={styles.heroAction} href="#investment-mode-title">{copyText("investment.heroAction")}</a>
+          <a className={styles.heroAction} href="#investment-mode-title">{copyText.node("investment.heroAction")}</a>
         </div>
       </section>
       <InvestmentAllocationTool />
       <section className={styles.legalSection} aria-label={copyText("investment.investmentAllocationPagearialabel2")}>
         <div className={styles.legalInner}>
-          <h2>{copyText("investment.h25")}</h2>
-          <p>{copyText("investment.p17")}</p>
-          <p>{copyText("investment.p18")}</p>
+          <h2>{copyText.node("investment.h25")}</h2>
+          <p>{copyText.node("investment.p17")}</p>
+          <p>{copyText.node("investment.p18")}</p>
         </div>
       </section>
       <Website43Footer warnings copy={siteCopyOverride} />

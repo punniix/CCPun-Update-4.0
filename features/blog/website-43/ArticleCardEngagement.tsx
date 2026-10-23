@@ -28,7 +28,7 @@ export function ArticleCardEngagementControls({ title, dateLabel, publishedAt, m
         </button>
       </div>
     </div>
-    {error && <p className={styles.error} role="status">{copyText("blog.error")}</p>}
+    {error && <p className={styles.error} role="status">{copyText.node("blog.error")}</p>}
   </footer>;
 }
 

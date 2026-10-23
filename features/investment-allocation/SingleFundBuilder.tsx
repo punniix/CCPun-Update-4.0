@@ -284,24 +284,24 @@ export default function SingleFundBuilder() {
         <div className={styles.builder}>
           <div className={styles.stepHeader}>
             <div>
-              <p className={styles.eyebrow}>{copyText("investment.eyebrow3")}</p>
-              <h2>{copyText("investment.h23")}</h2>
-              <p>{copyText("investment.p9")}</p>
+              <p className={styles.eyebrow}>{copyText.node("investment.eyebrow3")}</p>
+              <h2>{copyText.node("investment.h23")}</h2>
+              <p>{copyText.node("investment.p9")}</p>
             </div>
-            <span className={styles.stepPill}>{copyText("investment.linesText5")}</span>
+            <span className={styles.stepPill}>{copyText.node("investment.linesText5")}</span>
           </div>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="single-investment-amount">{copyText("investment.fieldLabel5")}</label>
+            <label className={styles.fieldLabel} htmlFor="single-investment-amount">{copyText.node("investment.fieldLabel5")}</label>
             <div className={styles.moneyInputWrap}>
               <input id="single-investment-amount" inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => { setInvestmentAmount(event.target.value); setSaveStatus(null); setPlanId(null); }} placeholder={copyText("investment.portfolioBuilderplaceholder")} />
-              <span>{copyText("investment.span3")}</span>
+              <span>{copyText.node("investment.span3")}</span>
             </div>
-            <p className={styles.fieldHint}>{copyText("investment.fieldHint2")}</p>
+            <p className={styles.fieldHint}>{copyText.node("investment.fieldHint2")}</p>
           </div>
 
           <div className={styles.fieldGroup}>
-            <span className={styles.fieldLabel}>{copyText("investment.fieldLabel6")}</span>
+            <span className={styles.fieldLabel}>{copyText.node("investment.fieldLabel6")}</span>
             <div className={styles.categoryGrid}>
               {CATEGORIES.map((item) => (
                 <button key={item} className={styles.categoryCard} data-active={category === item} aria-pressed={category === item} type="button" onClick={() => chooseCategory(item)}>
@@ -310,8 +310,8 @@ export default function SingleFundBuilder() {
                 </button>
               ))}
               <button className={styles.categoryCard} data-active={category === "all"} aria-pressed={category === "all"} type="button" onClick={() => chooseCategory("all")}>
-                <strong>{copyText("investment.strong6")}</strong>
-                <span>{copyText("investment.span7")}</span>
+                <strong>{copyText.node("investment.strong6")}</strong>
+                <span>{copyText.node("investment.span7")}</span>
               </button>
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function SingleFundBuilder() {
             <>
               {options.length > 1 ? (
                 <div className={styles.fieldGroup}>
-                  <span className={styles.fieldLabel}>{copyText("investment.fieldLabel7")}</span>
+                  <span className={styles.fieldLabel}>{copyText.node("investment.fieldLabel7")}</span>
                   <div className={styles.filterChips} role="group" aria-label={copyText("investment.singleFundBuilderarialabel2")}>
                     {options.map((option) => (
                       <button key={option} className={styles.filterChip} data-active={subcategory === option} aria-pressed={subcategory === option} type="button" onClick={() => chooseSubcategory(option)}>
@@ -328,14 +328,14 @@ export default function SingleFundBuilder() {
                       </button>
                     ))}
                   </div>
-                  <p className={styles.fieldHint}>{copyText("investment.fieldHint3")}</p>
+                  <p className={styles.fieldHint}>{copyText.node("investment.fieldHint3")}</p>
                 </div>
               ) : null}
 
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel} htmlFor="fund-amc-filter">{amcStep}{copyText("investment.fieldLabel8")}</label>
+                <label className={styles.fieldLabel} htmlFor="fund-amc-filter">{amcStep}{copyText.node("investment.fieldLabel8")}</label>
                 <select id="fund-amc-filter" className={styles.amcSelect} value={amcId} disabled={amcsLoading} onChange={(event) => chooseAmc(event.target.value)}>
-                  <option value="all">{copyText("investment.selectedAmcNameText")}</option>
+                  <option value="all">{copyText.node("investment.selectedAmcNameText")}</option>
                   {amcs?.items.map((item) => <option value={item.id} key={item.id}>{item.nameTh}</option>)}
                 </select>
                 <p className={styles.fieldHint}>{amcsLoading ? copyText("investment.singleFundBuilderText") : copyText("investment.singleFundBuilderText2")}</p>
@@ -343,15 +343,15 @@ export default function SingleFundBuilder() {
               </div>
 
               <div className={styles.fieldGroup}>
-                <span className={styles.fieldLabel}>{fundStep}{copyText("investment.fieldLabel9")}</span>
+                <span className={styles.fieldLabel}>{fundStep}{copyText.node("investment.fieldLabel9")}</span>
                 <form className={styles.searchRow} onSubmit={submitSearch}>
                   <input className={styles.searchInput} aria-label={copyText("investment.portfolioBuilderarialabel2")} value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={copyText("investment.portfolioBuilderplaceholder2")} />
-                  <button className={styles.smallButton} type="submit">{copyText("investment.portfolioBuilderText2")}</button>
+                  <button className={styles.smallButton} type="submit">{copyText.node("investment.portfolioBuilderText2")}</button>
                 </form>
-                {query ? <button className={styles.clearSearch} type="button" onClick={() => { setQueryInput(""); setQuery(""); if (category) void loadCatalog({ category, subcategory, query: "", amcId }); }}>{copyText("investment.clearSearch")}{query}”</button> : null}
+                {query ? <button className={styles.clearSearch} type="button" onClick={() => { setQueryInput(""); setQuery(""); if (category) void loadCatalog({ category, subcategory, query: "", amcId }); }}>{copyText.node("investment.clearSearch")}{query}”</button> : null}
                 <div className={styles.catalogMeta}>
                   <span>{catalog?.source === "sec_v2" ? copyText("investment.dynamic10").replaceAll("{0}", String(selectedAmcName)) : catalog?.source === "uat_synthetic" ? copyText("investment.singleFundBuilderText3") : ""}</span>
-                  {catalog?.fetchedAt ? <span>{copyText("investment.span8")}{formatDate(catalog.fetchedAt, copyText)}</span> : null}
+                  {catalog?.fetchedAt ? <span>{copyText.node("investment.span8")}{formatDate(catalog.fetchedAt, copyText)}</span> : null}
                 </div>
 
                 {catalogLoading ? <CatalogSkeleton /> : null}
@@ -367,10 +367,10 @@ export default function SingleFundBuilder() {
                           <div className={styles.fundFacts}>
                             <span>{investmentLabel(FUND_CATEGORY_LABELS[fund.category], copyText)}</span>
                             <span>{investmentLabel(geographyLabel(fund.investCountryFlag, fund.category), copyText)}</span>
-                            {fund.masterFund ? <span>{copyText("investment.span9")}</span> : null}
+                            {fund.masterFund ? <span>{copyText.node("investment.span9")}</span> : null}
                           </div>
                         </div>
-                        <button className={styles.catalogChoose} type="button" onClick={() => void fetchDetail(fund)}>{copyText("investment.portfolioBuilderText7")}</button>
+                        <button className={styles.catalogChoose} type="button" onClick={() => void fetchDetail(fund)}>{copyText.node("investment.portfolioBuilderText7")}</button>
                       </article>
                     ))}
                   </div>
@@ -380,25 +380,25 @@ export default function SingleFundBuilder() {
                 ) : null}
               </div>
             </>
-          ) : <div className={styles.statusNotice}>{copyText("investment.statusNotice6")}</div>}
+          ) : <div className={styles.statusNotice}>{copyText.node("investment.statusNotice6")}</div>}
         </div>
 
         <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label={copyText("investment.singleFundBuilderarialabel3")}>
-          <p className={styles.eyebrow}>{copyText("investment.eyebrow4")}</p>
-          <h2>{copyText("investment.h24")}</h2>
-          <p className={styles.summaryIntro}>{copyText("investment.summaryIntro2")}</p>
-          <div className={styles.summaryAmount}><span>{copyText("investment.span6")}</span><strong>{amount > 0 ? copyText("investment.dynamic11").replaceAll("{0}", String(formatMoney(amount))) : "—"}</strong></div>
+          <p className={styles.eyebrow}>{copyText.node("investment.eyebrow4")}</p>
+          <h2>{copyText.node("investment.h24")}</h2>
+          <p className={styles.summaryIntro}>{copyText.node("investment.summaryIntro2")}</p>
+          <div className={styles.summaryAmount}><span>{copyText.node("investment.span6")}</span><strong>{amount > 0 ? copyText("investment.dynamic11").replaceAll("{0}", String(formatMoney(amount))) : "—"}</strong></div>
           <dl className={styles.summaryRows}>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt")}</dt><dd>{category ? category === "all" ? copyText("investment.singleFundBuilderText6") : investmentLabel(FUND_CATEGORY_LABELS[category], copyText) : copyText("investment.singleFundBuilderText7")}</dd></div>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt5")}</dt><dd>{category ? investmentLabel(subcategoryLabel(category, subcategory), copyText) : "—"}</dd></div>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt6")}</dt><dd>{category ? selectedAmcName : "—"}</dd></div>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt2")}</dt><dd>{selectedFund?.abbreviation ?? copyText("investment.singleFundBuilderText7")}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt")}</dt><dd>{category ? category === "all" ? copyText("investment.singleFundBuilderText6") : investmentLabel(FUND_CATEGORY_LABELS[category], copyText) : copyText("investment.singleFundBuilderText7")}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt5")}</dt><dd>{category ? investmentLabel(subcategoryLabel(category, subcategory), copyText) : "—"}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt6")}</dt><dd>{category ? selectedAmcName : "—"}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt2")}</dt><dd>{selectedFund?.abbreviation ?? copyText("investment.singleFundBuilderText7")}</dd></div>
           </dl>
-          <div className={styles.statusNotice}>{copyText("investment.statusNotice7")}</div>
+          <div className={styles.statusNotice}>{copyText.node("investment.statusNotice7")}</div>
         </aside>
       </div>
 
-      {detailLoading ? <div className={styles.singleResultLoading}>{copyText("investment.singleResultLoading")}</div> : null}
+      {detailLoading ? <div className={styles.singleResultLoading}>{copyText.node("investment.singleResultLoading")}</div> : null}
       {selectedFund && detail && !detailLoading ? (
         <SingleFundResult
           amount={amount}
@@ -441,7 +441,7 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
     <div id="single-fund-result" className={styles.singleResult}>
       <div className={styles.singleResultHeader}>
         <div>
-          <p className={styles.eyebrow}>{copyText("investment.eyebrow5")}</p>
+          <p className={styles.eyebrow}>{copyText.node("investment.eyebrow5")}</p>
           <h2>{fund.nameTh}</h2>
           <p>{fund.abbreviation} · {fund.amcNameTh}</p>
         </div>
@@ -450,8 +450,8 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
 
       {detail.classes.length > 1 ? (
         <section className={styles.resultPanel} aria-labelledby="class-selector-title">
-          <h3 id="class-selector-title">{copyText("investment.h39")}</h3>
-          <p>{copyText("investment.p10")}</p>
+          <h3 id="class-selector-title">{copyText.node("investment.h39")}</h3>
+          <p>{copyText.node("investment.p10")}</p>
           <div className={styles.classGrid}>
             {detail.classes.map((item) => (
               <button className={styles.classCard} data-active={detail.selectedClassName === item.name} aria-pressed={detail.selectedClassName === item.name} key={item.name} type="button" onClick={() => onClassChange(item.name)}>
@@ -465,57 +465,57 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
 
       <div className={styles.singleResultGrid}>
         <section className={styles.resultPanel}>
-          <h3>{copyText("investment.h310")}</h3>
-          {riskLevel ? <><div className={styles.riskSingle}><strong>{riskLevel}</strong><span>{copyText("investment.span10")}{riskLevel}{" "}{copyText("investment.span11")}</span></div><p>{detail.risk?.description}</p></> : <p>{copyText("investment.p11")}</p>}
-          <p className={styles.provenance}>{copyText("investment.provenance2")}{formatDate(detail.risk?.sourceDate ?? null, copyText)}</p>
+          <h3>{copyText.node("investment.h310")}</h3>
+          {riskLevel ? <><div className={styles.riskSingle}><strong>{riskLevel}</strong><span>{copyText.node("investment.span10")}{riskLevel}{" "}{copyText.node("investment.span11")}</span></div><p>{detail.risk?.description}</p></> : <p>{copyText.node("investment.p11")}</p>}
+          <p className={styles.provenance}>{copyText.node("investment.provenance2")}{formatDate(detail.risk?.sourceDate ?? null, copyText)}</p>
         </section>
 
         <section className={styles.resultPanel}>
-          <h3>{copyText("investment.h311")}</h3>
-          {classRequired ? <p>{copyText("investment.p12")}</p> : detail.dealing ? <dl className={styles.factRows}>
-            <div><dt>{copyText("investment.dt7")}</dt><dd>{detail.dealing.subscriptionPeriod ?? copyText("investment.formatDateText")}</dd></div>
-            <div><dt>{copyText("investment.dt8")}</dt><dd>{detail.dealing.redemptionPeriod ?? copyText("investment.formatDateText")}</dd></div>
-            <div><dt>{copyText("investment.dt9")}</dt><dd>{detail.dealing.settlementPeriod ?? copyText("investment.formatDateText")}</dd></div>
-          </dl> : <p>{copyText("investment.p13")}</p>}
-          <p className={styles.provenance}>{copyText("investment.provenance3")}</p>
-          <p className={styles.provenance}>{copyText("investment.provenance4")}{formatDate(detail.dealing?.sourceDate ?? null, copyText)}</p>
+          <h3>{copyText.node("investment.h311")}</h3>
+          {classRequired ? <p>{copyText.node("investment.p12")}</p> : detail.dealing ? <dl className={styles.factRows}>
+            <div><dt>{copyText.node("investment.dt7")}</dt><dd>{detail.dealing.subscriptionPeriod ?? copyText("investment.formatDateText")}</dd></div>
+            <div><dt>{copyText.node("investment.dt8")}</dt><dd>{detail.dealing.redemptionPeriod ?? copyText("investment.formatDateText")}</dd></div>
+            <div><dt>{copyText.node("investment.dt9")}</dt><dd>{detail.dealing.settlementPeriod ?? copyText("investment.formatDateText")}</dd></div>
+          </dl> : <p>{copyText.node("investment.p13")}</p>}
+          <p className={styles.provenance}>{copyText.node("investment.provenance3")}</p>
+          <p className={styles.provenance}>{copyText.node("investment.provenance4")}{formatDate(detail.dealing?.sourceDate ?? null, copyText)}</p>
         </section>
       </div>
 
       <section className={styles.resultPanel}>
-        <h3>{copyText("investment.h312")}</h3>
-        <p>{detail.source === "uat_synthetic" ? copyText("investment.singleFundResultText4") : copyText("investment.singleFundResultText5")}{" "}{copyText("investment.p14")}</p>
+        <h3>{copyText.node("investment.h312")}</h3>
+        <p>{detail.source === "uat_synthetic" ? copyText("investment.singleFundResultText4") : copyText("investment.singleFundResultText5")}{" "}{copyText.node("investment.p14")}</p>
         {detail.assetAllocation.length ? <div className={styles.assetFactList}>{detail.assetAllocation.map((row, index) => {
           const equivalent = amount > 0 ? amount * row.percentNav / 100 : 0;
           return <div className={styles.assetFactRow} key={`${row.name}-${index}`}>
             <div className={styles.assetFactHeader}><strong>{row.name}</strong><span>{row.percentNav}%{amount > 0 ? copyText("investment.dynamic12").replaceAll("{0}", String(formatMoney(equivalent))) : ""}</span></div>
             <div className={styles.barTrack} aria-hidden="true"><div className={styles.barFill} data-negative={row.percentNav < 0} style={{ width: `${Math.min(100, Math.abs(row.percentNav))}%` }} /></div>
           </div>;
-        })}</div> : <p>{copyText("investment.p15")}</p>}
-        <p className={styles.allocationTotalRaw}>{copyText("investment.allocationTotalRaw")}<strong>{allocationTotal}%</strong></p>
-        <p className={styles.provenance}>{copyText("investment.provenance5")}{formatDate(detail.dataDate, copyText)}{" "}{copyText("investment.provenance6")}{formatDate(detail.fetchedAt, copyText)}{" "}{copyText("investment.provenance7")}</p>
-        {detail.source === "uat_synthetic" ? <p className={styles.statusNotice}>{copyText("investment.statusNotice8")}</p> : null}
-        <p className={styles.provenance}>{copyText("investment.provenance8")}{detail.selectedClassName ?? copyText("investment.linesText3")}{" "}{copyText("investment.provenance9")}</p>
+        })}</div> : <p>{copyText.node("investment.p15")}</p>}
+        <p className={styles.allocationTotalRaw}>{copyText.node("investment.allocationTotalRaw")}<strong>{allocationTotal}%</strong></p>
+        <p className={styles.provenance}>{copyText.node("investment.provenance5")}{formatDate(detail.dataDate, copyText)}{" "}{copyText.node("investment.provenance6")}{formatDate(detail.fetchedAt, copyText)}{" "}{copyText.node("investment.provenance7")}</p>
+        {detail.source === "uat_synthetic" ? <p className={styles.statusNotice}>{copyText.node("investment.statusNotice8")}</p> : null}
+        <p className={styles.provenance}>{copyText.node("investment.provenance8")}{detail.selectedClassName ?? copyText("investment.linesText3")}{" "}{copyText.node("investment.provenance9")}</p>
       </section>
 
       {detail.specifications.length || fund.masterFund ? <section className={styles.resultPanel}>
-        <h3>{copyText("investment.h313")}</h3>
+        <h3>{copyText.node("investment.h313")}</h3>
         <div className={styles.specList}>
-          {fund.masterFund ? <span>{copyText("investment.span12")}{fund.masterFund}{fund.feederCountry ? ` · ${fund.feederCountry}` : ""}</span> : null}
+          {fund.masterFund ? <span>{copyText.node("investment.span12")}{fund.masterFund}{fund.feederCountry ? ` · ${fund.feederCountry}` : ""}</span> : null}
           {[...new Set(detail.specifications.map((spec) => spec.description))].map((description) => <span key={description}>{description}</span>)}
         </div>
       </section> : null}
 
-      {detail.warnings.length ? <section className={styles.resultPanel}><h3>{copyText("investment.h314")}</h3><ul className={styles.warningList}>{detail.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></section> : null}
+      {detail.warnings.length ? <section className={styles.resultPanel}><h3>{copyText.node("investment.h314")}</h3><ul className={styles.warningList}>{detail.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></section> : null}
 
       <section className={styles.resultPanel}>
-        <h3>{copyText("investment.h38")}</h3>
-        <p>{copyText("investment.p16")}</p>
+        <h3>{copyText.node("investment.h38")}</h3>
+        <p>{copyText.node("investment.p16")}</p>
         <div className={styles.resultActions}>
-          <button className={styles.secondary} type="button" disabled={handoffDisabled} onClick={onSave}>{copyText("investment.secondary")}</button>
-          <button className={styles.primary} type="button" disabled={handoffDisabled} onClick={onHandoff}>{copyText("investment.primary4")}</button>
+          <button className={styles.secondary} type="button" disabled={handoffDisabled} onClick={onSave}>{copyText.node("investment.secondary")}</button>
+          <button className={styles.primary} type="button" disabled={handoffDisabled} onClick={onHandoff}>{copyText.node("investment.primary4")}</button>
         </div>
-        {amount <= 0 ? <p className={styles.validation} role="status">{copyText("investment.validation")}</p> : null}
+        {amount <= 0 ? <p className={styles.validation} role="status">{copyText.node("investment.validation")}</p> : null}
         {saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}
       </section>
     </div>

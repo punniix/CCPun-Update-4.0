@@ -266,8 +266,8 @@ const toolDefaults: Record<string, string> = { ...SITE_COPY_DEFAULTS, ...CI_COPY
 function defaultCopySource(source: string): string {
   const text = (key: string) => { assert(Object.hasOwn(toolDefaults, key), `bound tool copy key must exist: ${key}`); return toolDefaults[key]; };
   return source
-    .replace(/([\w-]+)=\{t\(["']([^"']+)["']\)\}/g, (_match, attribute, key) => `${attribute}=${JSON.stringify(text(key))}`)
-    .replace(/\{t\(["']([^"']+)["']\)\}/g, (_match, key) => text(key))
+    .replace(/([\w-]+)=\{t(?:\.node)?\(["']([^"']+)["']\)\}/g, (_match, attribute, key) => `${attribute}=${JSON.stringify(text(key))}`)
+    .replace(/\{t(?:\.node)?\(["']([^"']+)["']\)\}/g, (_match, key) => text(key))
     .replace(/\bt\(["']([^"']+)["']\)/g, (_match, key) => `'${text(key).replaceAll("'", "\\'")}'`);
 }
 const imageSourceRaw = readFileSync(new URL('../features/ci-planning/result-image.ts', import.meta.url), 'utf8');

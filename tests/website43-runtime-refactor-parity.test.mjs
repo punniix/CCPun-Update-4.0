@@ -60,9 +60,13 @@ function dataExports(pathname) {
 }
 const { SITE_COPY_DEFAULTS } = dataExports('lib/content/site-copy-defaults.ts');
 const runtimeConstants = dataExports(directory + 'constants.ts');
-const defaultCopyText = (values = SITE_COPY_DEFAULTS) => key => {
-  assert.ok(Object.hasOwn(SITE_COPY_DEFAULTS, key), `Known site copy key: ${key}`);
-  return values[key] ?? SITE_COPY_DEFAULTS[key];
+const defaultCopyText = (values = SITE_COPY_DEFAULTS) => {
+  const text = key => {
+    assert.ok(Object.hasOwn(SITE_COPY_DEFAULTS, key), `Known site copy key: ${key}`);
+    return values[key] ?? SITE_COPY_DEFAULTS[key];
+  };
+  // Unsized copy renders the same plain string through `.node` (see lib/content/public-copy-text.ts).
+  return Object.assign(text, { node: text });
 };
 const styles = new Proxy({}, { get: (_, property) => String(property) });
 function component(source, name, pathname, state = [], investmentEnabled = false) {

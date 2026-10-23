@@ -8,6 +8,17 @@ const require = createRequire(import.meta.url);
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const registry = loadFixtureModule('lib/content/public-copy-registry.ts');
+const { cleanCopyText } = loadFixtureModule('lib/content/public-copy-text.ts');
+// Decodes the @vercel/stega v1 payload Sanity Visual Editing reads.
+function editTarget(value) {
+  const digits = { '\u200B': 0, '\u200C': 1, '\u200D': 2, '\uFEFF': 3 };
+  const start = value.indexOf('\u200B'.repeat(4));
+  if (start === -1) return null;
+  const marks = [...value.slice(start + 4)].filter(char => Object.hasOwn(digits, char));
+  const bytes = [];
+  for (let index = 0; index + 3 < marks.length; index += 4) bytes.push(marks.slice(index, index + 4).reduce((byte, char) => byte * 4 + digits[char], 0));
+  return JSON.parse(new TextDecoder().decode(new Uint8Array(bytes)));
+}
 
 // Resolve async RSCs before React renders the real synchronous client components,
 // so context/hooks execute inside React rather than through a manual function call.
@@ -81,9 +92,17 @@ test('authorized scoped UAT draft preview queries only the selected copy, site a
   ]) });
   const result = await helper.getUatPublicCopyPreview('ci');
   assert.deepEqual(trace, [['permission', 'draft:apply'], ['query', 'publicPageCopy-ci-th'], ['query', 'publicPageCopy-site-th'], ['query', 'pageSeo-ci-planning']]);
-  assert.deepEqual(result.copy, registry.parsePublicCopy('ci', copy));
-  assert.deepEqual(result.site, registry.parsePublicCopy('site', site));
-  assert.equal(result.copy[key], 'DRAFT CI LABEL'); assert.equal(result.seo.seoTitle, 'DRAFT CI SEO');
+  // Every preview value is the parsed draft plus a zero-width Visual Editing target
+  // that opens exactly its own Studio field; the readable text is unchanged.
+  const clean = values => Object.fromEntries(Object.entries(values).map(([name, value]) => [name, cleanCopyText(value)]));
+  assert.deepEqual(clean(result.copy), registry.parsePublicCopy('ci', copy));
+  assert.deepEqual(clean(result.site), registry.parsePublicCopy('site', site));
+  assert.equal(cleanCopyText(result.copy[key]), 'DRAFT CI LABEL'); assert.equal(result.seo.seoTitle, 'DRAFT CI SEO');
+  for (const [scope, values, name] of [['ci', result.copy, key], ['site', result.site, 'site.footerDisclaimer']]) {
+    for (const [entry, value] of Object.entries(values)) assert.ok(editTarget(value), `${entry} carries an edit target`);
+    const path = `entries[_key=="${name.replaceAll('.', '-')}"].text`;
+    assert.deepEqual(editTarget(values[name]), { origin: 'sanity.io', href: `/studio/intent/edit/id=publicPageCopy-${scope}-th;type=publicPageCopy;path=${encodeURIComponent(path)}` });
+  }
 });
 
 test('shared education availability keeps Production untouched and UAT missing articles on a working archive', async () => {

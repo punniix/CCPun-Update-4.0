@@ -125,7 +125,7 @@ test('All remaining interactive Article blocks are transient browser state, not 
 });
 
 test('Plan Explorer offers SSR-readable all-plan benefit facts using native details, independent of user selection',()=>{
- const view=read('features/blog/website-43/SignatureArticle.tsx').replace(/\{copyText\("([^"]+)"\)\}/g, (_, key) => BLOG_COPY_DEFAULTS[key]);
+ const view=read('features/blog/website-43/SignatureArticle.tsx').replace(/\{copyText(?:\.node)?\("([^"]+)"\)\}/g, (_, key) => BLOG_COPY_DEFAULTS[key]);
  assert.match(view,/className=\{styles\.planFacts\}/);
  assert.match(view,/<details>[\s\S]*?<summary>อ่านรายละเอียดและเงื่อนไขของทุกแผน/);
  assert.match(view,/plans\.map\(\(plan,i\)=>/);
@@ -134,7 +134,7 @@ test('Plan Explorer offers SSR-readable all-plan benefit facts using native deta
 });
 
 test('Source & Verification defaults to unverified unless real ISO date and linked source both exist',()=>{
- const view=read('features/blog/website-43/SignatureArticle.tsx').replace(/\{copyText\("([^"]+)"\)\}/g, (_, key) => BLOG_COPY_DEFAULTS[key]);
+ const view=read('features/blog/website-43/SignatureArticle.tsx').replace(/\{copyText(?:\.node)?\("([^"]+)"\)\}/g, (_, key) => BLOG_COPY_DEFAULTS[key]);
  const studio=read('cms/sanity/schema/objects/signature-editorial.ts');
  assert.match(view,/block\.sourceStatus==='verified'&&!!reviewDate\(block\.verifiedAt\)&&hasHttpSource\(entries\)/);
  assert.match(BLOG_COPY_DEFAULTS["blog.signatureEditorialViewText6"],/ยังไม่ยืนยันการตรวจสอบต้นฉบับ/);

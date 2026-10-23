@@ -33,9 +33,9 @@ export default async function ClientFHC({ copy, siteCopy }: { copy?: PublicCopyV
 
         <section id="fhc-calculator" aria-labelledby="fhc-calculator-heading" className={styles.calculatorSection}>
           <div className={styles.calculatorHeader}>
-            <p className={styles.eyebrow}>{t("fhc.landing.description2")}</p>
-            <h2 id="fhc-calculator-heading">{t("fhc.landing.calculatorHeading.heading")}</h2>
-            <p>{t("fhc.landing.description3")}</p>
+            <p className={styles.eyebrow}>{t.node("fhc.landing.description2")}</p>
+            <h2 id="fhc-calculator-heading">{t.node("fhc.landing.calculatorHeading.heading")}</h2>
+            <p>{t.node("fhc.landing.description3")}</p>
           </div>
           <div className={styles.calculatorStage}>
             <LifeCoverageWizard />
@@ -47,8 +47,8 @@ export default async function ClientFHC({ copy, siteCopy }: { copy?: PublicCopyV
         <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`} aria-labelledby="fhc-faq-title">
           <div className={styles.inner}>
             <div className={`${styles.toolFaq} ${styles.toolFaqStandalone}`}>
-              <p className={styles.eyebrow}>{t("fhc.landing.description4")}</p>
-              <h2 id="fhc-faq-title" className={styles.h2}>{t("fhc.landing.faqTitle.heading")}</h2>
+              <p className={styles.eyebrow}>{t.node("fhc.landing.description4")}</p>
+              <h2 id="fhc-faq-title" className={styles.h2}>{t.node("fhc.landing.faqTitle.heading")}</h2>
               <div className={styles.faqDetails}>
                 {getFhcFaqs(t).map((faq) => (
                   <details key={faq.question}>
@@ -59,7 +59,7 @@ export default async function ClientFHC({ copy, siteCopy }: { copy?: PublicCopyV
               </div>
             </div>
             <p className={styles.toolDisclaimer}>
-              {t("fhc.landing.description5")}</p>
+              {t.node("fhc.landing.description5")}</p>
           </div>
         </section>
       </main>

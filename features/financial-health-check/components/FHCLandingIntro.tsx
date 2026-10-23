@@ -17,12 +17,12 @@ export default function FHCLandingIntro() {
     <section aria-labelledby="fhc-intro-title" className={`${styles.toolStorySection} ${styles.fhcIntroCompact}`}>
       <div className={styles.inner}>
         <h2 id="fhc-intro-title" className={styles.h2}>
-          {t("fhc.intro.introTitle.heading")}</h2>
+          {t.node("fhc.intro.introTitle.heading")}</h2>
         <div className={styles.storyCopy}>
           <p>
-            {t("fhc.intro.description")}</p>
+            {t.node("fhc.intro.description")}</p>
           <p>
-            {t("fhc.intro.description2")}</p>
+            {t.node("fhc.intro.description2")}</p>
         </div>
       </div>
     </section>
@@ -54,8 +54,8 @@ const truths = [
   return (
     <section aria-labelledby="fhc-context-title" className={`${styles.toolStorySection} ${styles.fhcContextSection}`}>
       <div className={styles.inner}>
-        <p className={styles.eyebrow}>{t("fhc.intro.description3")}</p>
-        <h2 id="fhc-context-title" className={styles.h2}>{t("fhc.intro.contextTitle.heading")}</h2>
+        <p className={styles.eyebrow}>{t.node("fhc.intro.description3")}</p>
+        <h2 id="fhc-context-title" className={styles.h2}>{t.node("fhc.intro.contextTitle.heading")}</h2>
         <div className={styles.truthGrid}>
           {truths.map(([number, title, description]) => (
             <article className={styles.truth} key={number}>
@@ -68,19 +68,19 @@ const truths = [
 
         <div className={styles.methodBox}>
           <div>
-            <p className={styles.eyebrow}>{t("fhc.intro.description4")}</p>
-            <h3>{t("fhc.intro.heading")}</h3>
+            <p className={styles.eyebrow}>{t.node("fhc.intro.description4")}</p>
+            <h3>{t.node("fhc.intro.heading")}</h3>
           </div>
           <div>
             <p>
-              {t("fhc.intro.description5")}</p>
+              {t.node("fhc.intro.description5")}</p>
             <p>
-              {t("fhc.intro.description6")}</p>
+              {t.node("fhc.intro.description6")}</p>
             <p>
-              {t("fhc.intro.description7")}{' '}
+              {t.node("fhc.intro.description7")}{' '}
               <Link href={pyramidHref} className={styles.toolInlineLink}>{pyramidHref === "/blog/" ? siteText("site.nav.blog") : t("fhc.intro.label")}</Link>
-              {' '}{t("fhc.intro.description8")}{' '}
-              <Link href="/ci-planning/" className={styles.toolInlineLink}>{t("fhc.intro.label2")}</Link>
+              {' '}{t.node("fhc.intro.description8")}{' '}
+              <Link href="/ci-planning/" className={styles.toolInlineLink}>{t.node("fhc.intro.label2")}</Link>
             </p>
           </div>
         </div>

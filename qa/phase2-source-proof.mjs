@@ -70,10 +70,11 @@ export const reviewedMasterUatOwners = {
   "lib/content/types.ts": {"before": "4a4b67507a288a70890bade4d5bdb98a2db5207cc55a9ed94afbbc9a2ebf1c15", "previous": ["29cb83580e33b6df294d3b01e02cfff335f42a68e6eedc09088cb7eac840de52", "4a4b67507a288a70890bade4d5bdb98a2db5207cc55a9ed94afbbc9a2ebf1c15", "c42e29f8f5c00c2baa08df28a8528159255ccc68694390bbc8f2db508a2d4420"], "after": "b71073429caa5b5d5899400ed94187075f5c1770d70200403ebfe81c2c1f4790", "reason": "Additive signature blocks and actual author identity; original CMS guards and parsers retained"},
   "lib/runtime/investment-availability.ts": {"before": "d7dadd956963e82c6efe4dd966a8710c44aed30d325e5f7f246261ffa3bfc3fa", "previous": ["d7dadd956963e82c6efe4dd966a8710c44aed30d325e5f7f246261ffa3bfc3fa"], "after": "d35194a16d58429683b9781650f83f6711f2a72248c23ed76a105c84aac202e3", "reason": "Explicit Web UAT only; Production/admin/unknown lanes denied by runtime tests"},
   "lib/seo/root-metadata.ts": {"before": "2983a29ac19e21bab33d4faa9d9245a3643fa6fdbbd08821463e67233fdee874", "previous": ["2983a29ac19e21bab33d4faa9d9245a3643fa6fdbbd08821463e67233fdee874"], "after": "85d6d0b4bc1e4014119e1381f3f6d5b7f4a98644628740686552ed7d56e75724", "reason": "CMS text extraction; current default/override render and lane tests"},
-  "tests/money-story-presentation-parity.test.mjs": {"before": "5ae09487e20eaadd25fe2e8a203aa6fd07d6a60270efb84764f8225ad42ce708", "previous": ["5ae09487e20eaadd25fe2e8a203aa6fd07d6a60270efb84764f8225ad42ce708"], "after": "f08a574534c94c254574eecf5ed4ae59322ccf7dc8c964b3b19b94e99c3d338e", "reason": "CMS text extraction; current default/override render and lane tests"}
+  "tests/money-story-presentation-parity.test.mjs": {"before": "5ae09487e20eaadd25fe2e8a203aa6fd07d6a60270efb84764f8225ad42ce708", "previous": ["5ae09487e20eaadd25fe2e8a203aa6fd07d6a60270efb84764f8225ad42ce708"], "after": "d18f0bc291140e119beca8e898823093d46c3e5bc88849caeaa1b9c2a50715ff", "reason": "CMS text extraction; current default/override render and lane tests"}
 };
 // Exact mobile follow-up inverses preserve every original Main UAT source identity.
 export function canonicalNavigationPredecessor(file, source) {
+  source = sizedCopyPredecessor(source);
   const paths = {
     'components/layout/website-43/Website43Navbar.tsx': { blog: 2, 'tools/financial-health-check': 1, 'ci-planning': 1, 'play/money-story': 1 },
     'components/layout/website-43/Website43Shared.tsx': { blog: 1, 'tools/financial-health-check': 2, 'ci-planning': 1, 'play/money-story': 1, privacy: 1, 'cookie-policy': 1 },
@@ -111,12 +112,19 @@ export function nativeAuthorPredecessor(source) {
   return source;
 }
 
+// Sized CMS copy: visible children call `text.node("key")`, the same lookup as
+// `text("key")` that also applies an editor-chosen font size. Only this exact
+// call-site rename is inverted; any other drift still fails the digest.
+export function sizedCopyPredecessor(source) {
+  return source.replace(/\b(t|text|copyText)\.node\((["'])/g, '$1($2');
+}
 export function hasReviewedMasterUatOwner(file) { return Object.hasOwn(reviewedMasterUatOwners, file); }
 export function assertReviewedMasterUatOwner(file, previousDigest, source = read(file)) {
   const record = reviewedMasterUatOwners[file];
   assert.ok(record && Object.hasOwn(reviewedMasterUatOwners, file), file + ': not an approved UAT delta');
   assert.ok(record.previous.includes(previousDigest), file + ': historical protected digest changed');
   source = canonicalNavigationPredecessor(file, source);
+  source = sizedCopyPredecessor(source);
   if (file === 'lib/content/sanity.ts') source = nativeAuthorPredecessor(source);
   // Invert only the owner-requested removal of the public AI consumer. Keep all
   // prior hashes frozen; this projection is never returned to runtime fixtures.

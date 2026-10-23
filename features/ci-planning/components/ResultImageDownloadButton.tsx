@@ -128,7 +128,7 @@ export default function ResultImageDownloadButton({
         </button> : null}
       </div>
       <p id="ci-result-image-privacy" className="text-xs leading-relaxed text-muted-foreground">
-        {t("ci.download.resultImagePrivacy.description")}</p>
+        {t.node("ci.download.resultImagePrivacy.description")}</p>
       <p id="ci-result-image-status" className="text-xs text-muted-foreground empty:sr-only" aria-live="polite" aria-atomic="true">
         {statusMessage}
       </p>

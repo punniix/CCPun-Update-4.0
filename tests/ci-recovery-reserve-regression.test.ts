@@ -71,9 +71,9 @@ test('in-form summary shows the income base separately from its Recovery-inclusi
 
   const summary = readFileSync('features/ci-planning/components/steps/StepExpenses.tsx', 'utf8');
   assert.equal(CI_COPY_DEFAULTS['ci.expenses.metricLabel4'], 'ทุนตามรายได้ก่อน Recovery');
-  assert.match(summary, /\{t\("ci\.expenses\.metricLabel4"\)\}<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeBaseNeed\)/);
+  assert.match(summary, /\{t(?:\.node)?\("ci\.expenses\.metricLabel4"\)\}<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeBaseNeed\)/);
   assert.equal(CI_COPY_DEFAULTS['ci.expenses.metricLabel7'], 'ทุนตามรายได้รวม');
-  assert.match(summary, /\{t\("ci\.expenses\.metricLabel7"\)\}<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeTotalNeed\)/);
+  assert.match(summary, /\{t(?:\.node)?\("ci\.expenses\.metricLabel7"\)\}<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeTotalNeed\)/);
   const styles = readFileSync('components/layout/website-43/Website43.module.css', 'utf8');
   assert.match(styles, /human-centered-ci-expenses[^\n]*\.text-xs[\s\S]*human-centered-ci-resources[^\n]*\.text-xs\) \{ font-size: 14px; \}/);
 });

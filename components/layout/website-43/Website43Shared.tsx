@@ -31,36 +31,36 @@ export async function Website43Footer({ warnings = false, notFound = false, flus
               <Website43Brand />
             </div>
             <div className={styles.footerColumn}>
-              <strong>{text("site.footer.explore")}</strong>
-              <Link href={HOME}>{text("site.nav.home")}</Link>
-              <Link href={`${BASE}/blog/`}>{text("site.nav.blog")}</Link>
-              <Link href={`${BASE}/tools/financial-health-check/`}>{text("site.nav.tools")}</Link>
+              <strong>{text.node("site.footer.explore")}</strong>
+              <Link href={HOME}>{text.node("site.nav.home")}</Link>
+              <Link href={`${BASE}/blog/`}>{text.node("site.nav.blog")}</Link>
+              <Link href={`${BASE}/tools/financial-health-check/`}>{text.node("site.nav.tools")}</Link>
             </div>
             <div className={styles.footerColumn}>
-              <strong>{text("site.nav.tools")}</strong>
-              <Link href={`${BASE}/play/money-story/`}>{text("site.tools.moneyStory")}</Link>
-              <Link href={`${BASE}/tools/financial-health-check/`}>{text("site.tools.fhc")}</Link>
-              <Link href={`${BASE}/ci-planning/`}>{text("site.tools.ci")}</Link>
-              {INVESTMENT_ALLOCATION_ENABLED ? <Link href={INVESTMENT_TOOL_LINK.href}>{text("site.tools.investment")}</Link> : null}
+              <strong>{text.node("site.nav.tools")}</strong>
+              <Link href={`${BASE}/play/money-story/`}>{text.node("site.tools.moneyStory")}</Link>
+              <Link href={`${BASE}/tools/financial-health-check/`}>{text.node("site.tools.fhc")}</Link>
+              <Link href={`${BASE}/ci-planning/`}>{text.node("site.tools.ci")}</Link>
+              {INVESTMENT_ALLOCATION_ENABLED ? <Link href={INVESTMENT_TOOL_LINK.href}>{text.node("site.tools.investment")}</Link> : null}
             </div>
             <div className={styles.footerColumn}>
-              <strong>{text("site.footer.information")}</strong>
-              <Link href={`${HOME}#about-ccpun`}>{text("site.footer.about")}</Link>
-              <Link href={`${BASE}/privacy/`}>{text("site.footer.privacy")}</Link>
-              <Link href={`${BASE}/cookie-policy/`}>{text("site.footer.cookies")}</Link>
+              <strong>{text.node("site.footer.information")}</strong>
+              <Link href={`${HOME}#about-ccpun`}>{text.node("site.footer.about")}</Link>
+              <Link href={`${BASE}/privacy/`}>{text.node("site.footer.privacy")}</Link>
+              <Link href={`${BASE}/cookie-policy/`}>{text.node("site.footer.cookies")}</Link>
               <CookieSettingsButton className={styles.footerCookieButton} />
             </div>
           </div>
           <div className={styles.footerRule} />
-          <p className={styles.footerDisclaimer}>{text("site.footerDisclaimer")}</p>
+          <p className={styles.footerDisclaimer}>{text.node("site.footerDisclaimer")}</p>
           {warnings ? (
             <div className={styles.footerWarnings}>
-              <p>{text("site.disclosure.investment")}</p>
-              <p>{text("site.disclosure.pastPerformance")}</p>
-              <p>{text("site.disclosure.insurance")}</p>
+              <p>{text.node("site.disclosure.investment")}</p>
+              <p>{text.node("site.disclosure.pastPerformance")}</p>
+              <p>{text.node("site.disclosure.insurance")}</p>
             </div>
           ) : null}
-          <p className={styles.footerCopyright}>{text("site.footerCopyright")}</p>
+          <p className={styles.footerCopyright}>{text.node("site.footerCopyright")}</p>
         </div>
       </div>
     </footer>

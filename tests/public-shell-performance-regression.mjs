@@ -357,4 +357,8 @@ const assertMobileOwner = (file, source) => assertReviewedMasterUatOwner(file, r
 // Keep the existing author regression in test:public/check:foundation, including
 // the actual RSC request cache and private preview guard checks.
 execFileSync(process.execPath, ['--import', 'tsx', '--test', 'tests/author-profile-schema-sync.test.ts'], { stdio: 'inherit' });
+// Sanity text editor: sizes, plain-text safety, and a current page-location map
+// for every editable key (regenerate with scripts/generate-public-copy-locations.mjs).
+execFileSync(process.execPath, ['--import', 'tsx', '--test', 'tests/public-copy-editor.test.ts'], { stdio: 'inherit' });
+execFileSync(process.execPath, ['--import', 'tsx', 'scripts/generate-public-copy-locations.mjs', '--check'], { stdio: 'inherit' });
 console.log('Public shell performance regression checks passed, including canonical navigation and active states.');

@@ -87,7 +87,7 @@ function BreakdownRows({ recovery: value }: { recovery: CIRecoveryCosts }) {
         </div>
       ))}
       <div className="flex items-start justify-between gap-4 pt-2">
-        <dt className="font-medium text-foreground">{t("ci.recovery.metricLabel")}</dt>
+        <dt className="font-medium text-foreground">{t.node("ci.recovery.metricLabel")}</dt>
         <dd className="shrink-0 font-semibold tabular-nums text-primary">{baht(preview.breakdownTotal)}</dd>
       </div>
     </dl>
@@ -154,14 +154,14 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
   return (
     <section className="border-t border-white/10 pt-5" data-ui="ci-recovery-reserve" aria-labelledby="ci-recovery-title">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-primary">{t("ci.recovery.description")}</p>
-        <h4 id="ci-recovery-title" className="text-base font-medium text-foreground">{t("ci.expenses.metricLabel5")}</h4>
+        <p className="text-xs font-medium text-primary">{t.node("ci.recovery.description")}</p>
+        <h4 id="ci-recovery-title" className="text-base font-medium text-foreground">{t.node("ci.expenses.metricLabel5")}</h4>
         <p className="text-xs leading-6 text-white/70">
-          {t("ci.recovery.description2")}</p>
+          {t.node("ci.recovery.description2")}</p>
       </div>
 
       <fieldset className="mt-5 space-y-3">
-        <legend className="sr-only">{t("ci.recovery.groupLabel")}</legend>
+        <legend className="sr-only">{t.node("ci.recovery.groupLabel")}</legend>
         <div className="grid items-start gap-3 lg:grid-cols-2">
           {PRESET_ORDER.map((mode) => {
             const preset = CI_RECOVERY_PRESETS[mode];
@@ -190,7 +190,7 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
 
                 <details className="mt-3 border-t border-white/10 pt-3">
                   <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    {t("ci.recovery.expandLabel")}</summary>
+                    {t.node("ci.recovery.expandLabel")}</summary>
                   <div className="mt-3 space-y-3">
                     <BreakdownRows recovery={preset.recovery} />
                     <button
@@ -198,7 +198,7 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
                       onClick={() => onChangeRecovery(copyPresetToCustom(mode))}
                       className="glass-button inline-flex min-h-11 w-full items-center justify-center px-4 text-xs"
                     >
-                      {t("ci.recovery.action")}</button>
+                      {t.node("ci.recovery.action")}</button>
                   </div>
                 </details>
               </article>
@@ -217,14 +217,14 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
                 className="mt-1 h-4 w-4 shrink-0 accent-primary"
               />
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">{t("ci.recovery.label")}</span>
+                <span className="block text-sm font-medium text-foreground">{t.node("ci.recovery.label")}</span>
                 <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                  {t("ci.recovery.label2")}</span>
+                  {t.node("ci.recovery.label2")}</span>
               </span>
             </label>
 
             <div className="mt-4 space-y-2">
-              <label htmlFor="ci-recovery-custom-target" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryCustomTarget.label")}</label>
+              <label htmlFor="ci-recovery-custom-target" className="block min-h-10 text-xs text-white/65">{t.node("ci.recovery.recoveryCustomTarget.label")}</label>
               <CurrencyInput
                 id="ci-recovery-custom-target"
                 value={selected === 'custom' ? recovery.targetReserve : 0}
@@ -240,39 +240,39 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
                 onClick={() => onChangeRecovery(buildCustomRecoveryFromTarget(recovery.targetReserve))}
                 className="glass-button inline-flex min-h-11 w-full items-center justify-center px-4 text-xs disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {t("ci.recovery.action2")}</button>
+                {t.node("ci.recovery.action2")}</button>
             </div>
 
             {selected === 'custom' ? (
               <details className="mt-3 border-t border-white/10 pt-3">
                 <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-white/70 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  {t("ci.recovery.expandLabel2")}</summary>
+                  {t.node("ci.recovery.expandLabel2")}</summary>
                 <div className="mt-4 space-y-5">
                   <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                     <div className="flex items-start justify-between gap-4 text-xs">
-                      <span className="text-muted-foreground">{t("ci.recovery.label3")}</span>
+                      <span className="text-muted-foreground">{t.node("ci.recovery.label3")}</span>
                       <strong className="tabular-nums text-primary">{baht(recovery.targetReserve)}</strong>
                     </div>
                     <div className="mt-2 flex items-start justify-between gap-4 text-xs">
-                      <span className="text-muted-foreground">{t("ci.recovery.label4")}</span>
+                      <span className="text-muted-foreground">{t.node("ci.recovery.label4")}</span>
                       <strong className="tabular-nums text-foreground">{baht(recoveryPreview.breakdownTotal)}</strong>
                     </div>
                     {recoveryPreview.unallocated > 0 ? (
                       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        {t("ci.recovery.description3")}<strong className="text-foreground">{baht(recoveryPreview.unallocated)}</strong> {t("ci.recovery.description4")}</p>
+                        {t.node("ci.recovery.description3")}<strong className="text-foreground">{baht(recoveryPreview.unallocated)}</strong> {t.node("ci.recovery.description4")}</p>
                     ) : null}
                     {recoveryPreview.overBudget > 0 ? (
                       <p className="mt-2 text-xs leading-5 text-[#ffb4b4]">
-                        {t("ci.recovery.description5")}<strong>{baht(recoveryPreview.overBudget)}</strong>
+                        {t.node("ci.recovery.description5")}<strong>{baht(recoveryPreview.overBudget)}</strong>
                       </p>
                     ) : null}
                   </div>
 
                   <section className="space-y-4" aria-labelledby="ci-recovery-custom-services">
-                    <h5 id="ci-recovery-custom-services" className="text-sm font-medium text-foreground">{t("ci.recovery.recoveryCustomServices.heading")}</h5>
+                    <h5 id="ci-recovery-custom-services" className="text-sm font-medium text-foreground">{t.node("ci.recovery.recoveryCustomServices.heading")}</h5>
                     <div className="grid items-start gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-treatment-visits" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryTreatmentVisits.label")}</label>
+                        <label htmlFor="ci-recovery-treatment-visits" className="block min-h-10 text-xs text-white/65">{t.node("ci.recovery.recoveryTreatmentVisits.label")}</label>
                         <input
                           id="ci-recovery-treatment-visits"
                           type="number"
@@ -286,12 +286,12 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-treatment-rate" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryTreatmentRate.label")}</label>
+                        <label htmlFor="ci-recovery-treatment-rate" className="block min-h-10 text-xs text-white/65">{t.node("ci.recovery.recoveryTreatmentRate.label")}</label>
                         <CurrencyInput id="ci-recovery-treatment-rate" value={recovery.treatmentVisitUnitCost} onChange={(value) => updateCustomNumber('treatmentVisitUnitCost', value)} />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-caregiver-days" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryCaregiverDays.label")}</label>
+                        <label htmlFor="ci-recovery-caregiver-days" className="block min-h-10 text-xs text-white/65">{t.node("ci.recovery.recoveryCaregiverDays.label")}</label>
                         <input
                           id="ci-recovery-caregiver-days"
                           type="number"
@@ -305,12 +305,12 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-caregiver-rate" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryCaregiverRate.label")}</label>
+                        <label htmlFor="ci-recovery-caregiver-rate" className="block min-h-10 text-xs text-white/65">{t.node("ci.recovery.recoveryCaregiverRate.label")}</label>
                         <CurrencyInput id="ci-recovery-caregiver-rate" value={recovery.caregiverDailyCost} onChange={(value) => updateCustomNumber('caregiverDailyCost', value)} />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-rehab-sessions" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryRehabSessions.label")}</label>
+                        <label htmlFor="ci-recovery-rehab-sessions" className="block min-h-10 text-xs text-white/65">{t.node("ci.recovery.recoveryRehabSessions.label")}</label>
                         <input
                           id="ci-recovery-rehab-sessions"
                           type="number"
@@ -324,14 +324,14 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="ci-recovery-rehab-rate" className="block min-h-10 text-xs text-white/65">{t("ci.recovery.recoveryTreatmentRate.label")}</label>
+                        <label htmlFor="ci-recovery-rehab-rate" className="block min-h-10 text-xs text-white/65">{t.node("ci.recovery.recoveryTreatmentRate.label")}</label>
                         <CurrencyInput id="ci-recovery-rehab-rate" value={recovery.rehabUnitCost} onChange={(value) => updateCustomNumber('rehabUnitCost', value)} />
                       </div>
                     </div>
                   </section>
 
                   <section className="space-y-3 border-t border-white/10 pt-4" aria-labelledby="ci-recovery-custom-items">
-                    <h5 id="ci-recovery-custom-items" className="text-sm font-medium text-foreground">{t("ci.recovery.recoveryCustomItems.heading")}</h5>
+                    <h5 id="ci-recovery-custom-items" className="text-sm font-medium text-foreground">{t.node("ci.recovery.recoveryCustomItems.heading")}</h5>
                     <div className="grid items-start gap-4 sm:grid-cols-2">
                       {AMOUNT_FIELDS.map(({ field, label, help }) => (
                         <div key={field} className="space-y-2">
@@ -355,14 +355,14 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
                       className="glass-button inline-flex min-h-11 items-center gap-2 px-4 text-xs"
                     >
                       <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                      {t("ci.recovery.action3")}</button>
+                      {t.node("ci.recovery.action3")}</button>
                     <button
                       type="button"
                       onClick={() => onChangeRecovery({ ...recovery, targetReserve: recoveryPreview.breakdownTotal })}
                       disabled={recoveryPreview.breakdownTotal <= 0}
                       className="glass-button inline-flex min-h-11 items-center px-4 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {t("ci.recovery.action4")}</button>
+                      {t.node("ci.recovery.action4")}</button>
                   </div>
                 </div>
               </details>
@@ -373,30 +373,30 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
 
       {selected !== 'none' ? (
         <div className="mt-5 rounded-xl border border-primary/30 bg-primary/[0.08] p-4">
-          <p className="text-xs font-medium text-primary">{t("ci.recovery.description6")}</p>
+          <p className="text-xs font-medium text-primary">{t.node("ci.recovery.description6")}</p>
           <output className="mt-1 block text-2xl font-semibold tabular-nums text-primary" aria-live="polite">
             {baht(recoveryPreview.reserveNeed)}
           </output>
           <p className="mt-2 text-xs leading-6 text-white/70">
-            {t("ci.recovery.description7")}</p>
+            {t.node("ci.recovery.description7")}</p>
           <button
             type="button"
             onClick={() => onChangeRecovery({ ...EMPTY_CI_RECOVERY })}
             className="mt-3 inline-flex min-h-11 items-center text-xs text-muted-foreground underline decoration-white/30 underline-offset-4"
           >
-            {t("ci.recovery.action5")}</button>
+            {t.node("ci.recovery.action5")}</button>
         </div>
       ) : (
         <p className="mt-4 text-xs leading-6 text-white/70">
-          {t("ci.recovery.description8")}</p>
+          {t.node("ci.recovery.description8")}</p>
       )}
 
       <details className="mt-4 border-t border-white/10 pt-4">
         <summary className="min-h-11 py-3 cursor-pointer text-xs font-medium text-muted-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          {t("ci.recovery.expandLabel3")}</summary>
+          {t.node("ci.recovery.expandLabel3")}</summary>
         <div className="mt-3 space-y-3 text-xs leading-5 text-muted-foreground">
           <p>
-            {t("ci.recovery.description9")}</p>
+            {t.node("ci.recovery.description9")}</p>
           {CI_RECOVERY_SOURCES.map((source) => (
             <p key={source.id}>
               <a

@@ -73,7 +73,7 @@ export default function ArticleShareActions({ path, title, placement, origin = U
 
   return (
     <div className={styles.articleShareControls} aria-label={copyText("blog.articleShareActionsarialabel")}>
-      <span className={styles.articleShareLabel}>{copyText("blog.articleShareLabel")}</span>
+      <span className={styles.articleShareLabel}>{copyText.node("blog.articleShareLabel")}</span>
       <div className={styles.articleShareButtons}>
         {shares.map(({ method, name, href }) => (
           <a key={method} className={styles.articleShareButton} href={href} target="_blank" rel="noopener noreferrer"

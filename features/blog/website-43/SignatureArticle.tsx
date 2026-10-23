@@ -45,7 +45,7 @@ function Heading({title,description,eyebrow}:{title:string;description?:string;e
 function Foot({text,note}:{text?:string;note?:string}) {
   const copyText = usePublicCopy(BLOG_COPY_DEFAULTS);
 
-  return (text||note)?<footer className={styles.foot}>{text&&<p><b>{copyText("blog.b")}</b> {text}</p>}{note&&<small>{note}</small>}</footer>:null;
+  return (text||note)?<footer className={styles.foot}>{text&&<p><b>{copyText.node("blog.b")}</b> {text}</p>}{note&&<small>{note}</small>}</footer>:null;
 }
 function NumberText({n}:{n:number}){return <span className={styles.amount}>{fmt(n)}</span>;}
 /**
@@ -111,18 +111,18 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
   switch(block.kind) {
     case 'insight':
       contents=<div className={styles.two}>
-        <div className={styles.panel}><span className={styles.caption}>{copyText("blog.caption")}</span><h4>{block.firstLabel||copyText("blog.signatureEditorialViewText")}</h4></div>
-        <div className={styles.panel}><span className={styles.caption}>{copyText("blog.caption2")}</span><h4>{block.secondLabel||copyText("blog.signatureEditorialViewText2")}</h4></div>
+        <div className={styles.panel}><span className={styles.caption}>{copyText.node("blog.caption")}</span><h4>{block.firstLabel||copyText("blog.signatureEditorialViewText")}</h4></div>
+        <div className={styles.panel}><span className={styles.caption}>{copyText.node("blog.caption2")}</span><h4>{block.secondLabel||copyText("blog.signatureEditorialViewText2")}</h4></div>
       </div>;break;
     case 'limit':
       contents=<div className={styles.panel}><div className={styles.split}>
-        <span className={styles.caption}>{copyText("blog.caption3")}</span><strong><NumberText n={max}/>{" "}{copyText("blog.strong")}</strong></div>
+        <span className={styles.caption}>{copyText.node("blog.caption3")}</span><strong><NumberText n={max}/>{" "}{copyText.node("blog.strong")}</strong></div>
         <div className={styles.track} role="progressbar" aria-valuemin={0} aria-valuemax={max||100} aria-valuenow={Math.min(max,used)} aria-label={copyText("blog.signatureEditorialViewarialabel")}>
           <span style={{width:progress+'%'}}/></div>
-        <label className={styles.field} htmlFor={id}>{copyText("blog.field")}</label>
+        <label className={styles.field} htmlFor={id}>{copyText.node("blog.field")}</label>
         <input id={id} className={styles.range} type="range" min={0} max={max||100} step={Math.max(1,Math.round(max/100)||1)} value={Math.min(used,max||100)} onChange={e=>setUsed(Number(e.target.value))}/>
-        <div className={styles.two}><div><span className={styles.caption}>{copyText("blog.caption4")}</span><div className={styles.number}><NumberText n={Math.min(used,max)}/></div></div>
-          <div><span className={styles.caption}>{copyText("blog.caption5")}</span><div className={styles.number}><NumberText n={Math.max(0,max-used)}/></div></div></div>
+        <div className={styles.two}><div><span className={styles.caption}>{copyText.node("blog.caption4")}</span><div className={styles.number}><NumberText n={Math.min(used,max)}/></div></div>
+          <div><span className={styles.caption}>{copyText.node("blog.caption5")}</span><div className={styles.number}><NumberText n={Math.max(0,max-used)}/></div></div></div>
       </div>;break;
     case 'beforeAfter':
       contents=<div className={styles.two}>{entries.slice(0,2).map((item,i)=><div className={styles.panel} key={i}>
@@ -132,34 +132,34 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
       contents=<ol className={styles.timeline}>{entries.map((item,i)=><li className={styles.timelineStep} key={i}>
         <span className={styles.stepNum}>{String(i+1).padStart(2,'0')}</span><div><b>{item.label}</b><p>{item.value}</p>{item.detail&&<small>{item.detail}</small>}</div></li>)}</ol>;break;
     case 'checklist':
-      contents=<div className={styles.panel}><p className={styles.highlight}>{copyText("blog.highlight")}{checked.length} / {entries.length}{" "}{copyText("blog.highlight2")}</p>
+      contents=<div className={styles.panel}><p className={styles.highlight}>{copyText.node("blog.highlight")}{checked.length} / {entries.length}{" "}{copyText.node("blog.highlight2")}</p>
         <div className={styles.track} role="progressbar" aria-valuemin={0} aria-valuemax={entries.length||1} aria-valuenow={checked.length} aria-label={copyText("blog.signatureEditorialViewarialabel2")}><span style={{width:(entries.length?checked.length/entries.length*100:0)+'%'}}/></div>
         <div className={styles.checklist}>{entries.map((e,i)=><label key={i}>
           <input type="checkbox" checked={checked.includes(i)} onChange={()=>choose(i)}/>
           <span><b>{e.label}</b><small>{e.value}</small></span></label>)}</div>
-        <small>{copyText("blog.small")}</small></div>;break;
+        <small>{copyText.node("blog.small")}</small></div>;break;
     case 'calculation':
       contents=<div className={styles.two}>
         <div className={styles.panel}>
-          <label className={styles.field} htmlFor={id+'monthly'}>{copyText("blog.field2")}</label>
+          <label className={styles.field} htmlFor={id+'monthly'}>{copyText.node("blog.field2")}</label>
           <GroupedMoneyInput id={id+'monthly'} initialValue={block.monthlyAmount??30000} max={1000000000} onValueChange={setMonthly}/>
-          <label className={styles.field} htmlFor={id+'months'}>{copyText("blog.field3")}{months}</label>
+          <label className={styles.field} htmlFor={id+'months'}>{copyText.node("blog.field3")}{months}</label>
           <input id={id+'months'} className={styles.range} type="range" min={1} max={120} value={months} onChange={e=>setMonths(Number(e.target.value))}/>
-          <label className={styles.field} htmlFor={id+'existing'}>{copyText("blog.field4")}</label>
+          <label className={styles.field} htmlFor={id+'existing'}>{copyText.node("blog.field4")}</label>
           <GroupedMoneyInput id={id+'existing'} initialValue={block.existingAmount??0} max={1000000000000} onValueChange={setExisting}/>
         </div>
-        <div className={styles.panel}><span className={styles.caption}>{copyText("blog.caption6")}</span><p className={styles.number}><NumberText n={remaining}/>{" "}{copyText("blog.strong")}</p>
-          <details className={styles.details}><summary>{copyText("blog.summary")}</summary>
-            <p>{fmt(monthly)} × {fmt(months)}{" "}{copyText("blog.p3")}{fmt(goal)}{" "}{copyText("blog.strong")}</p>
-            <p>{fmt(goal)} − {fmt(existing)} = {fmt(goal-existing)}{" "}{copyText("blog.strong")}</p>
-            <p>{copyText("blog.p4")}</p></details>
+        <div className={styles.panel}><span className={styles.caption}>{copyText.node("blog.caption6")}</span><p className={styles.number}><NumberText n={remaining}/>{" "}{copyText.node("blog.strong")}</p>
+          <details className={styles.details}><summary>{copyText.node("blog.summary")}</summary>
+            <p>{fmt(monthly)} × {fmt(months)}{" "}{copyText.node("blog.p3")}{fmt(goal)}{" "}{copyText.node("blog.strong")}</p>
+            <p>{fmt(goal)} − {fmt(existing)} = {fmt(goal-existing)}{" "}{copyText.node("blog.strong")}</p>
+            <p>{copyText.node("blog.p4")}</p></details>
         </div>
       </div>;break;
     case 'glossary': {
       const term=entries[active];
       contents=<div className={styles.glossary}>
         <nav className={styles.termNav} aria-label={copyText("blog.signatureEditorialViewarialabel3")}>{entries.map((e,i)=><button className={i===active?styles.selected:undefined} type="button" key={i} aria-pressed={i===active} onClick={()=>setActive(i)}>{e.label}</button>)}</nav>
-        <div className={styles.panel} key={active} aria-live="polite">{term?<><span className={styles.caption}>{copyText("blog.caption7")}</span><h4>{term.label}</h4><p>{term.value}</p>{term.detail&&<div className={styles.subtle}><b>{copyText("blog.b2")}</b><p>{term.detail}</p></div>}</>:<p>{copyText("blog.p5")}</p>}</div>
+        <div className={styles.panel} key={active} aria-live="polite">{term?<><span className={styles.caption}>{copyText.node("blog.caption7")}</span><h4>{term.label}</h4><p>{term.value}</p>{term.detail&&<div className={styles.subtle}><b>{copyText.node("blog.b2")}</b><p>{term.detail}</p></div>}</>:<p>{copyText.node("blog.p5")}</p>}</div>
       </div>;break;
     }
     case 'sources': {
@@ -170,15 +170,15 @@ export function SignatureEditorialView({block}: {block:Editorial}) {
           <span className={styles.sourceBadge} data-verified={reviewed?'true':'false'}>
             {reviewed?copyText("blog.signatureEditorialViewText5"):copyText("blog.signatureEditorialViewText6")}
           </span>
-          {block.effectivePeriod&&<p><strong>{copyText("blog.strong2")}</strong> {block.effectivePeriod}</p>}
-          {block.sourceVersion&&<p><strong>{copyText("blog.strong3")}</strong> {block.sourceVersion}</p>}
-          {reviewed&&block.verifiedAt&&<p><strong>{copyText("blog.strong4")}</strong> <time dateTime={block.verifiedAt}>{reviewDate(block.verifiedAt)}</time></p>}
+          {block.effectivePeriod&&<p><strong>{copyText.node("blog.strong2")}</strong> {block.effectivePeriod}</p>}
+          {block.sourceVersion&&<p><strong>{copyText.node("blog.strong3")}</strong> {block.sourceVersion}</p>}
+          {reviewed&&block.verifiedAt&&<p><strong>{copyText.node("blog.strong4")}</strong> <time dateTime={block.verifiedAt}>{reviewDate(block.verifiedAt)}</time></p>}
         </div>
         <div className={styles.sourceList} role="list">{entries.map((e,i)=><div className={styles.sourceRow} role="listitem" key={i}>
           <div><cite>{e.label}</cite><p>{e.value}</p>{e.detail&&<small>{e.detail}</small>}</div>
-          {e.url&&/^https?:\/\//.test(e.url)&&<a href={e.url} target="_blank" rel="noopener noreferrer" aria-label={copyText("blog.signatureEditorialViewText7")+e.label}>{copyText("blog.a")}<span aria-hidden="true">↗</span></a>}
+          {e.url&&/^https?:\/\//.test(e.url)&&<a href={e.url} target="_blank" rel="noopener noreferrer" aria-label={copyText("blog.signatureEditorialViewText7")+e.label}>{copyText.node("blog.a")}<span aria-hidden="true">↗</span></a>}
         </div>)}</div>
-        {!reviewed&&<p className={styles.sourceDisclaimer}>{copyText("blog.sourceDisclaimer")}</p>}
+        {!reviewed&&<p className={styles.sourceDisclaimer}>{copyText.node("blog.sourceDisclaimer")}</p>}
       </div>;break;
     }
     default: contents=null;
@@ -207,7 +207,7 @@ export function SignatureTableView({block}:{block:TableBlock}) {
     <div className={styles.tableMobile}>
       {block.rows.slice(0,mobileInitialRows).map(mobileRow)}
       {block.rows.length>mobileInitialRows&&<details className={styles.tableMore}>
-        <summary>{copyText("blog.summary2")}{block.rows.length-mobileInitialRows}{" "}{copyText("blog.summary3")}<span aria-hidden="true">⌄</span></summary>
+        <summary>{copyText.node("blog.summary2")}{block.rows.length-mobileInitialRows}{" "}{copyText.node("blog.summary3")}<span aria-hidden="true">⌄</span></summary>
         <div className={styles.tableMoreRows}>{block.rows.slice(mobileInitialRows).map((r,i)=>mobileRow(r,i+mobileInitialRows))}</div>
       </details>}
     </div>
@@ -260,34 +260,34 @@ export function SignaturePlanView({block}:{block:Explorer}) {
     {view==='single'&&<>
       <PlanSelector plans={plans} index={a} onSelect={setA} label={copyText("blog.signaturePlanViewlabel")}/>
       <div className={styles.featurePanel} key={a}>
-        <span className={styles.caption}>{copyText("blog.caption8")}</span><h4>{focus.name}</h4>{focus.headline&&<div className={styles.number}>{focus.headline}</div>}
+        <span className={styles.caption}>{copyText.node("blog.caption8")}</span><h4>{focus.name}</h4>{focus.headline&&<div className={styles.number}>{focus.headline}</div>}
         <div className={styles.benefitGrid}>{focus.benefits.slice(0,more?undefined:4).map((item,i)=>
           <div key={i}><span className={styles.caption}>{item.label}</span><strong>{item.value}</strong></div>)}</div>
         {focus.benefits.length>4&&<button className={styles.ghostButton} type="button" onClick={()=>setMore(x=>!x)}>{more?copyText("blog.signaturePlanViewText4"):copyText("blog.signaturePlanViewText5")}</button>}
-        <button className={styles.primaryButton} type="button" onClick={()=>{setB(a===b?(a+1)%plans.length:b);setView('compare')}}>{copyText("blog.primaryButton")}</button>
+        <button className={styles.primaryButton} type="button" onClick={()=>{setB(a===b?(a+1)%plans.length:b);setView('compare')}}>{copyText.node("blog.primaryButton")}</button>
       </div>
     </>}
     {view==='overview'&&<div className={styles.overview}>{plans.map((plan,i)=><button type="button" key={i} className={styles.overCard}
-      onClick={()=>{setA(i);setView('single')}}><span className={styles.caption}>{copyText("blog.caption9")}{i+1}</span><h4>{plan.name}</h4><p>{plan.headline}</p><small>{copyText("blog.small2")}</small></button>)}</div>}
+      onClick={()=>{setA(i);setView('single')}}><span className={styles.caption}>{copyText.node("blog.caption9")}{i+1}</span><h4>{plan.name}</h4><p>{plan.headline}</p><small>{copyText.node("blog.small2")}</small></button>)}</div>}
     {view==='compare'&&<>
       <div className={styles.two}><PlanSelector plans={plans} index={a} onSelect={setA} label={copyText("blog.signaturePlanViewlabel2")}/>
         <PlanSelector plans={plans} index={b} onSelect={setB} label={copyText("blog.signaturePlanViewlabel3")}/></div>
-      <div className={styles.two}><div className={styles.panel}><span className={styles.caption}>{copyText("blog.signaturePlanViewlabel2")}</span><h4>{plans[a]?.name}</h4><div className={styles.highlight}>{plans[a]?.headline}</div></div>
-        <div className={styles.panel}><span className={styles.caption}>{copyText("blog.signaturePlanViewlabel3")}</span><h4>{plans[b]?.name}</h4><div className={styles.highlight}>{plans[b]?.headline}</div></div></div>
+      <div className={styles.two}><div className={styles.panel}><span className={styles.caption}>{copyText.node("blog.signaturePlanViewlabel2")}</span><h4>{plans[a]?.name}</h4><div className={styles.highlight}>{plans[a]?.headline}</div></div>
+        <div className={styles.panel}><span className={styles.caption}>{copyText.node("blog.signaturePlanViewlabel3")}</span><h4>{plans[b]?.name}</h4><div className={styles.highlight}>{plans[b]?.headline}</div></div></div>
       <div className={styles.filters}>{categories.map(([key,text])=><button type="button" key={key} aria-pressed={key===activeCategory}
         className={key===activeCategory?styles.selected:undefined} onClick={()=>setCategory(key)}>{text}</button>)}
-        <button type="button" aria-pressed={diff} className={diff?styles.selected:undefined} onClick={()=>setDiff(!diff)}>{copyText("blog.selected")}</button></div>
-      <div className={styles.tableDesktop}><table><thead><tr><th scope="col">{copyText("blog.highlight2")}</th><th scope="col">{plans[a]?.name}</th><th scope="col">{plans[b]?.name}</th></tr></thead>
+        <button type="button" aria-pressed={diff} className={diff?styles.selected:undefined} onClick={()=>setDiff(!diff)}>{copyText.node("blog.selected")}</button></div>
+      <div className={styles.tableDesktop}><table><thead><tr><th scope="col">{copyText.node("blog.highlight2")}</th><th scope="col">{plans[a]?.name}</th><th scope="col">{plans[b]?.name}</th></tr></thead>
         <tbody>{rows.map((r,i)=><tr key={i}><th scope="row">{r.label}</th><td>{r.va}</td><td>{r.vb}</td></tr>)}</tbody></table></div>
       <div className={styles.tableMobile}>{rows.map((r,i)=><dl key={i} className={styles.panel}>
-        <div><dt>{r.label}</dt><dd></dd></div><div><dt>{copyText("blog.signaturePlanViewlabel2")}</dt><dd>{r.va}</dd></div><div><dt>{copyText("blog.signaturePlanViewlabel3")}</dt><dd>{r.vb}</dd></div></dl>)}</div>
-      {rows.length===0&&<p className={styles.caption}>{copyText("blog.caption10")}</p>}
+        <div><dt>{r.label}</dt><dd></dd></div><div><dt>{copyText.node("blog.signaturePlanViewlabel2")}</dt><dd>{r.va}</dd></div><div><dt>{copyText.node("blog.signaturePlanViewlabel3")}</dt><dd>{r.vb}</dd></div></dl>)}</div>
+      {rows.length===0&&<p className={styles.caption}>{copyText.node("blog.caption10")}</p>}
     </>}
     <aside className={styles.planFacts} aria-label={copyText("blog.signaturePlanViewarialabel2")}>
-      <h4>{copyText("blog.h4")}</h4>
-      <p>{copyText("blog.p6")}{plans.length}{" "}{copyText("blog.p7")}{plans.slice(0,4).map(p=>p.name).join(' · ')}{plans.length>4?copyText("blog.signaturePlanViewText6")+(plans.length-4)+copyText("blog.signaturePlanViewText7"):''}</p>
+      <h4>{copyText.node("blog.h4")}</h4>
+      <p>{copyText.node("blog.p6")}{plans.length}{" "}{copyText.node("blog.p7")}{plans.slice(0,4).map(p=>p.name).join(' · ')}{plans.length>4?copyText("blog.signaturePlanViewText6")+(plans.length-4)+copyText("blog.signaturePlanViewText7"):''}</p>
       <details>
-        <summary>{copyText("blog.summary4")}{plans.length}{" "}{copyText("blog.summary5")}</summary>
+        <summary>{copyText.node("blog.summary4")}{plans.length}{" "}{copyText.node("blog.summary5")}</summary>
         <div className={styles.planFactsGrid}>
           {plans.map((plan,i)=><section className={styles.planFactCard} key={i} aria-label={plan.name}>
             <h5>{plan.name}</h5>

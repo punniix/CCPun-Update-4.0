@@ -4,6 +4,8 @@ import { MONEY_STORY_COPY_DEFAULTS } from "./money-story-copy-defaults";
 import { PRIVACY_COPY_DEFAULTS, COOKIES_COPY_DEFAULTS } from "./legal-copy-defaults";
 import { CI_COPY_DEFAULTS, FHC_COPY_DEFAULTS } from "./tool-copy-defaults";
 import { BLOG_COPY_DEFAULTS } from "./blog-copy-defaults";
+import { createCopyText, type CopyText } from "./public-copy-text";
+import { copyStyleFromEntry, encodeCopyValue } from "./public-copy-style";
 import { INVESTMENT_COPY_DEFAULTS } from "./investment-copy-defaults";
 // Persisted keys are content contracts. Defaults preserve the approved pre-CMS copy.
 export const HOME_COPY_DEFAULTS = {
@@ -103,8 +105,8 @@ export type SiteCopyKey = keyof typeof SITE_COPY_DEFAULTS;
 export type PublicCopyKey = SiteCopyKey | keyof typeof HOME_COPY_DEFAULTS | keyof typeof CI_COPY_DEFAULTS | keyof typeof FHC_COPY_DEFAULTS | keyof typeof BLOG_COPY_DEFAULTS | keyof typeof INVESTMENT_COPY_DEFAULTS | keyof typeof PRIVACY_COPY_DEFAULTS | keyof typeof COOKIES_COPY_DEFAULTS | keyof typeof MONEY_STORY_COPY_DEFAULTS;
 export type PublicCopyValues = Partial<Record<PublicCopyKey, string>>;
 const ALL_COPY_DEFAULTS = { ...SITE_COPY_DEFAULTS, ...HOME_COPY_DEFAULTS, ...CI_COPY_DEFAULTS, ...FHC_COPY_DEFAULTS, ...BLOG_COPY_DEFAULTS, ...INVESTMENT_COPY_DEFAULTS, ...PRIVACY_COPY_DEFAULTS, ...COOKIES_COPY_DEFAULTS, ...MONEY_STORY_COPY_DEFAULTS };
-export function publicCopyText(values: PublicCopyValues) {
-  return (key: PublicCopyKey): string => values[key] ?? ALL_COPY_DEFAULTS[key];
+export function publicCopyText(values: PublicCopyValues): CopyText<PublicCopyKey> {
+  return createCopyText<PublicCopyKey>(key => values[key] ?? ALL_COPY_DEFAULTS[key]);
 }
 // Public documents must remain in Sanity's root namespace; dotted IDs require authentication.
 export function publicCopyDocumentId(scope: PublicCopyScope) { return `publicPageCopy-${scope}-th`; }
@@ -119,12 +121,12 @@ export function parsePublicCopy(scope: PublicCopyScope, input: unknown): PublicC
   if (doc._id !== publicCopyDocumentId(scope) || doc._type !== "publicPageCopy" || doc.scope !== scope || doc.locale !== "th" || !Array.isArray(doc.entries)) throw new Error("PUBLIC_COPY_IDENTITY_INVALID");
   const seen = new Set<string>();
   for (const entry of doc.entries) {
-    if (!entry || typeof entry !== "object" || !Object.hasOwn(PUBLIC_COPY_SCOPES[scope].defaults, entry.key) || seen.has(entry.key) || typeof entry.text !== "string" || !entry.text.trim() || entry.text.length > 12000 || /[<\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(entry.text)) throw new Error("PUBLIC_COPY_ENTRY_INVALID");
+    if (!entry || typeof entry !== "object" || !Object.hasOwn(PUBLIC_COPY_SCOPES[scope].defaults, entry.key) || seen.has(entry.key) || typeof entry.text !== "string" || !entry.text.trim() || entry.text.length > 12000 || /[<\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\uE000]/.test(entry.text)) throw new Error("PUBLIC_COPY_ENTRY_INVALID");
     const defaultText = (PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>)[entry.key];
     const placeholders = (value: string) => [...new Set(value.match(/\{[a-zA-Z0-9_]+\}/g) ?? [])].sort().join("|");
     if (placeholders(entry.text) !== placeholders(defaultText)) throw new Error("PUBLIC_COPY_PLACEHOLDER_INVALID");
     seen.add(entry.key);
-    values[entry.key as PublicCopyKey] = entry.text;
+    values[entry.key as PublicCopyKey] = encodeCopyValue(entry.text, copyStyleFromEntry(entry));
   }
   return values;
 }

@@ -41,11 +41,11 @@ export default function CILandingIntro() {
   return (
     <section aria-labelledby="ci-problem-title" className={styles.toolStorySection}>
       <div className={styles.inner}>
-        <h2 id="ci-problem-title" className={styles.h2}>{t('ci.story.problemTitle.heading')}</h2>
+        <h2 id="ci-problem-title" className={styles.h2}>{t.node('ci.story.problemTitle.heading')}</h2>
         <div className={styles.storyCopy}>
-          <p>{t('ci.story.description4')}</p>
-          <p>{t('ci.story.description5')}</p>
-          <p>{t('ci.story.description6')}</p>
+          <p>{t.node('ci.story.description4')}</p>
+          <p>{t.node('ci.story.description5')}</p>
+          <p>{t.node('ci.story.description6')}</p>
         </div>
         {/* ponytail: three static scenarios need no looping images, timers or motion state. */}
         <div className="mt-8 grid gap-6 sm:grid-cols-3" aria-label={t('ci.story.ariaLabel')} data-ui="ci-trust-scenarios">
@@ -57,7 +57,7 @@ export default function CILandingIntro() {
             </article>
           ))}
         </div>
-        <p className={styles.lead}>{t('ci.story.description8')}</p>
+        <p className={styles.lead}>{t.node('ci.story.description8')}</p>
       </div>
     </section>
   );

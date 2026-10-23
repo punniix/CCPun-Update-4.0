@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadFixtureModule } from "../qa/phase1-fixture-loader.mjs";
+import { sizedCopyPredecessor } from "../qa/phase2-source-proof.mjs";
 
-const home = readFileSync(new URL("../features/home/website-43/Website43Home.tsx", import.meta.url), "utf8");
+const home = sizedCopyPredecessor(readFileSync(new URL("../features/home/website-43/Website43Home.tsx", import.meta.url), "utf8"));
 const route = readFileSync(new URL("../apps/web/app/page.tsx", import.meta.url), "utf8");
 assert.match(route, /<Website43Home/);
 const hero = home.split('<section id="home"')[1].split('</section>')[0];

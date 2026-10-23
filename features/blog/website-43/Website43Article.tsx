@@ -76,20 +76,20 @@ const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
       <Website43Navbar responsiveOverlay />
       <main id="main-content" tabIndex={-1}>
         {preview && <aside className={styles.section} role="status"><div className={styles.inner}>
-          <p>{copyText("blog.p2")}</p><form action="/api/preview/disable/" method="post"><button type="submit" className={styles.outlineButton}>{copyText("blog.outlineButton")}</button></form>
+          <p>{copyText.node("blog.p2")}</p><form action="/api/preview/disable/" method="post"><button type="submit" className={styles.outlineButton}>{copyText.node("blog.outlineButton")}</button></form>
         </div></aside>}
         <header className={styles.articleHeader}>
           <div className={styles.inner}>
             <nav className={styles.breadcrumbs} aria-label={copyText("blog.website43Articlearialabel")}>
-              <Link href="/">{copyText("blog.link")}</Link> <span>›</span> <Link href={`${BASE}/blog/`}>{copyText("blog.activeCategoryText")}</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
+              <Link href="/">{copyText.node("blog.link")}</Link> <span>›</span> <Link href={`${BASE}/blog/`}>{copyText.node("blog.activeCategoryText")}</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
-            <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>{copyText("blog.articleHeaderMeta")}{author.name.replaceAll('™', '')}</p>
+            <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>{copyText.node("blog.articleHeaderMeta")}{author.name.replaceAll('™', '')}</p>
             <h1 className={styles.articleHeadline} style={{ textWrap: 'balance', marginTop: 12 }}>{article.title}</h1>
             <div className={styles.articleMetaRow}>
               <div className={styles.articleMetaGroup}>
                 <p className={styles.articleHeaderMeta}>
-                  {publishedDateLabel && <span><span className={styles.articleDateLabel}>{copyText("blog.articleDateLabel")}</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></span>}
-                  {optimizedDateLabel && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>{copyText("blog.articleDateLabel2")}</span> <time dateTime={article.optimizedAt}>{optimizedDateLabel}</time></span>}
+                  {publishedDateLabel && <span><span className={styles.articleDateLabel}>{copyText.node("blog.articleDateLabel")}</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></span>}
+                  {optimizedDateLabel && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>{copyText.node("blog.articleDateLabel2")}</span> <time dateTime={article.optimizedAt}>{optimizedDateLabel}</time></span>}
                 </p>
                 <ArticleEngagementSummary readingMinutes={readingMinutes} />
               </div>
@@ -104,7 +104,7 @@ const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
             {tocGroups.length > 0 && (
               <aside className={styles.toc} aria-label={copyText("blog.website43Articlearialabel2")}>
                 <details className={styles.tocDisclosure} open>
-                  <summary>{copyText("blog.website43Articlearialabel2")}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+                  <summary>{copyText.node("blog.website43Articlearialabel2")}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
                   <Website43ArticleToc groups={tocGroups} />
                 </details>
               </aside>
@@ -126,7 +126,7 @@ const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
               )}
               {tocGroups.length > 0 && (
                 <details className={styles.tocMobile}>
-                  <summary>{copyText("blog.website43Articlearialabel2")}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+                  <summary>{copyText.node("blog.website43Articlearialabel2")}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
                   <div className={styles.tocMobileList}>
                     <Website43ArticleToc groups={tocGroups} />
                   </div>
@@ -174,16 +174,16 @@ const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
 
         <section className={`${styles.sectionDeep} ${styles.articlePlanCtaSection}`}>
           <div className={`${styles.inner} ${styles.articleSupportInner}`}>
-            <h2 className={styles.h2}>{copyText("blog.h2")}</h2>
-            <p className={styles.lead} style={{ color: '#faf9f9' }}>{copyText("blog.lead")}</p>
-            <a className={styles.faqCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-surface="blog" data-analytics-location="blog_article">{copyText("blog.faqCta")}</a>
+            <h2 className={styles.h2}>{copyText.node("blog.h2")}</h2>
+            <p className={styles.lead} style={{ color: '#faf9f9' }}>{copyText.node("blog.lead")}</p>
+            <a className={styles.faqCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-surface="blog" data-analytics-location="blog_article">{copyText.node("blog.faqCta")}</a>
           </div>
         </section>
 
         {relatedArticles.length > 0 && (
           <section className={`${styles.sectionDeep} ${styles.articleRelatedSection}`}>
             <div className={`${styles.inner} ${styles.articleSupportInner}`}>
-              <h2 className={styles.h2}>{copyText("blog.h22")}</h2>
+              <h2 className={styles.h2}>{copyText.node("blog.h22")}</h2>
               <div className={styles.relatedGrid}>
                 {relatedArticles.slice(0, 2).map((candidate) => {
                   const candidateTopic = getArticleSemanticTopic({ articleSlug: candidate.slug, semanticTopic: candidate.semanticTopic, categoryTitle: candidate.category, categorySlug: candidate.categorySlug, tags: candidate.tags });
@@ -195,7 +195,7 @@ const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
                         <span className={styles.articleCategory}>{candidateTopic?.title ?? candidate.category}</span>
                         <h3 className={styles.articleTitle} style={{ textWrap: 'pretty' }}>{candidate.title}</h3>
                         <p className={styles.articleExcerpt} style={{ textWrap: 'pretty' }}>{candidate.excerpt.trim() || candidate.title}</p>
-                        <span className={styles.articleCategory}>{copyText("blog.articleCategory")}</span>
+                        <span className={styles.articleCategory}>{copyText.node("blog.articleCategory")}</span>
                       </div>
                     </Link>
                   );
@@ -204,7 +204,7 @@ const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
             </div>
           </section>
         )}
-        <section className={styles.section}><div className={`${styles.inner} ${styles.articleSupportInner}`}><p className={styles.cardBody}>{copyText("blog.cardBody")}</p></div></section>
+        <section className={styles.section}><div className={`${styles.inner} ${styles.articleSupportInner}`}><p className={styles.cardBody}>{copyText.node("blog.cardBody")}</p></div></section>
       </main>
       <Website43Footer />
     </div></ArticleEngagementProvider></PublicCopyProvider>);

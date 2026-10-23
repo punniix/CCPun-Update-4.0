@@ -253,33 +253,33 @@ function stepCopy(step: number) {
         <div className={styles.builder}>
           <div className={styles.stepHeader}>
             <div>
-              <p className={styles.eyebrow}>{copyText("investment.strong2")}</p>
+              <p className={styles.eyebrow}>{copyText.node("investment.strong2")}</p>
               <h2>{currentCopy.title}</h2>
               <p>{currentCopy.body}</p>
             </div>
-            <span className={styles.stepPill}>{copyText("investment.stepPill")}{step}{copyText("investment.stepPill2")}</span>
+            <span className={styles.stepPill}>{copyText.node("investment.stepPill")}{step}{copyText.node("investment.stepPill2")}</span>
           </div>
 
           {step === 1 ? (
             <>
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel} htmlFor="investment-amount">{copyText("investment.fieldLabel")}</label>
+                <label className={styles.fieldLabel} htmlFor="investment-amount">{copyText.node("investment.fieldLabel")}</label>
                 <div className={styles.moneyInputWrap}>
                   <input id="investment-amount" inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => setInvestmentAmount(event.target.value)} placeholder={copyText("investment.portfolioBuilderplaceholder")} />
-                  <span>{copyText("investment.span3")}</span>
+                  <span>{copyText.node("investment.span3")}</span>
                 </div>
-                <p className={styles.fieldHint}>{copyText("investment.fieldHint")}</p>
+                <p className={styles.fieldHint}>{copyText.node("investment.fieldHint")}</p>
               </div>
 
               <div className={styles.fieldGroup}>
-                <span className={styles.fieldLabel}>{copyText("investment.fieldLabel2")}</span>
+                <span className={styles.fieldLabel}>{copyText.node("investment.fieldLabel2")}</span>
                 <div className={styles.allocationList}>
                   {construction.map((row) => (
                     <div className={styles.allocationRow} key={row.key}>
-                      <div className={styles.allocationName}><strong>{CONSTRUCTION_LABELS[row.key]}</strong><small>{copyText("investment.small")}</small></div>
+                      <div className={styles.allocationName}><strong>{CONSTRUCTION_LABELS[row.key]}</strong><small>{copyText.node("investment.small")}</small></div>
                       <div className={styles.allocationControls}>
                         <label className={styles.percentWrap}><span>%</span><input className={styles.percentInput} aria-label={copyText("investment.dynamic15").replaceAll("{0}", String(CONSTRUCTION_LABELS[row.key]))} type="number" min="0" max="100" step="0.01" value={row.percent ? Math.round(row.percent * 100) / 100 : ""} onChange={(event) => updateConstruction(row.key, safePercent(event.target.value))} /></label>
-                        <label className={styles.amountWrap}><span>{copyText("investment.span3")}</span><input className={styles.amountInput} aria-label={copyText("investment.dynamic16").replaceAll("{0}", String(CONSTRUCTION_LABELS[row.key]))} inputMode="decimal" type="number" min="0" max={amount || undefined} step="1000" disabled={amount <= 0} value={amount > 0 && row.percent ? Math.round((amount * row.percent) / 100 * 100) / 100 : ""} onChange={(event) => updateConstructionAmount(row.key, event.target.value)} /></label>
+                        <label className={styles.amountWrap}><span>{copyText.node("investment.span3")}</span><input className={styles.amountInput} aria-label={copyText("investment.dynamic16").replaceAll("{0}", String(CONSTRUCTION_LABELS[row.key]))} inputMode="decimal" type="number" min="0" max={amount || undefined} step="1000" disabled={amount <= 0} value={amount > 0 && row.percent ? Math.round((amount * row.percent) / 100 * 100) / 100 : ""} onChange={(event) => updateConstructionAmount(row.key, event.target.value)} /></label>
                       </div>
                     </div>
                   ))}
@@ -287,7 +287,7 @@ function stepCopy(step: number) {
                 <AllocationTotal total={constructionTotal} label={copyText("investment.portfolioBuilderlabel")} />
               </div>
 
-              <div className={styles.actions}><span /><button className={styles.primary} type="button" disabled={!constructionValid} onClick={() => navigate(2)}>{copyText("investment.primary")}</button></div>
+              <div className={styles.actions}><span /><button className={styles.primary} type="button" disabled={!constructionValid} onClick={() => navigate(2)}>{copyText.node("investment.primary")}</button></div>
             </>
           ) : null}
 
@@ -297,7 +297,7 @@ function stepCopy(step: number) {
                 <input className={styles.searchInput} aria-label={copyText("investment.portfolioBuilderarialabel2")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copyText("investment.portfolioBuilderplaceholder2")} />
                 <button className={styles.smallButton} type="submit" disabled={searching}>{searching ? copyText("investment.portfolioBuilderText") : copyText("investment.portfolioBuilderText2")}</button>
               </form>
-              <div className={styles.statusNotice}><strong>{copyText("investment.strong3")}</strong>{" "}{copyText("investment.statusNotice")}</div>
+              <div className={styles.statusNotice}><strong>{copyText.node("investment.strong3")}</strong>{" "}{copyText.node("investment.statusNotice")}</div>
 
               {searchState?.message ? <div className={styles.statusNotice} role="status">{searchState.message}</div> : null}
               {searchState?.funds.length ? (
@@ -307,8 +307,8 @@ function stepCopy(step: number) {
                     const selectable = Boolean(fund.constructionBucket);
                     return <article className={styles.fundCard} key={fund.id}>
                       <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{fund.name}</strong><small>{fund.shortName}{fund.className ? ` · ${fund.className}` : ""}</small></div><span className={styles.sourceBadge}>{fund.provenance.source === "uat_synthetic" ? copyText("investment.portfolioBuilderText3") : copyText("investment.linesText5")}</span></div>
-                      <div className={styles.fundFacts}><span>{copyText("investment.span4")}{fund.riskSpectrum ?? "—"}</span><span>{fund.constructionBucket ? CONSTRUCTION_LABELS[fund.constructionBucket] : copyText("investment.portfolioBuilderText4")}</span><span>{fund.liquidity.rawText ?? copyText("investment.portfolioBuilderText5")}</span></div>
-                      {!selectable ? <p className={styles.liveFundWarning}>{copyText("investment.liveFundWarning")}</p> : null}
+                      <div className={styles.fundFacts}><span>{copyText.node("investment.span4")}{fund.riskSpectrum ?? "—"}</span><span>{fund.constructionBucket ? CONSTRUCTION_LABELS[fund.constructionBucket] : copyText("investment.portfolioBuilderText4")}</span><span>{fund.liquidity.rawText ?? copyText("investment.portfolioBuilderText5")}</span></div>
+                      {!selectable ? <p className={styles.liveFundWarning}>{copyText.node("investment.liveFundWarning")}</p> : null}
                       <button type="button" data-primary={selectable && !alreadySelected} disabled={!selectable || alreadySelected} onClick={() => addFund(fund)}>{alreadySelected ? copyText("investment.portfolioBuilderText6") : selectable ? copyText("investment.portfolioBuilderText7") : copyText("investment.portfolioBuilderText8")}</button>
                     </article>;
                   })}
@@ -316,21 +316,21 @@ function stepCopy(step: number) {
               ) : null}
 
               <div className={styles.fieldGroup}>
-                <span className={styles.fieldLabel}>{copyText("investment.fieldLabel3")}</span>
-                {selectedFunds.length === 0 ? <div className={styles.statusNotice}>{copyText("investment.statusNotice2")}</div> : (
+                <span className={styles.fieldLabel}>{copyText.node("investment.fieldLabel3")}</span>
+                {selectedFunds.length === 0 ? <div className={styles.statusNotice}>{copyText.node("investment.statusNotice2")}</div> : (
                   <div className={styles.selectedList}>
                     {selectedFunds.map((selected) => <article className={styles.fundCard} key={selected.fund.id}>
-                      <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{selected.fund.name}</strong><small>{selected.fund.constructionBucket ? CONSTRUCTION_LABELS[selected.fund.constructionBucket] : copyText("investment.portfolioBuilderText9")}</small></div><span className={styles.sourceBadge}>{copyText("investment.sourceBadge")}</span></div>
+                      <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{selected.fund.name}</strong><small>{selected.fund.constructionBucket ? CONSTRUCTION_LABELS[selected.fund.constructionBucket] : copyText("investment.portfolioBuilderText9")}</small></div><span className={styles.sourceBadge}>{copyText.node("investment.sourceBadge")}</span></div>
                       {selectedDetails[selected.fund.id]?.state === "loading" ? (
-                        <p className={styles.provenance} role="status">{copyText("investment.provenance")}</p>
+                        <p className={styles.provenance} role="status">{copyText.node("investment.provenance")}</p>
                       ) : null}
                       {selectedDetails[selected.fund.id]?.state === "unavailable" ? (
-                        <div className={styles.statusNotice} role="status">{copyText("investment.statusNotice3")}<button className={styles.smallButton} type="button" onClick={() => void loadSelectedDetail(selected.fund, selectedDetails[selected.fund.id].requestedClass)}>{copyText("investment.smallButton")}</button>
+                        <div className={styles.statusNotice} role="status">{copyText.node("investment.statusNotice3")}<button className={styles.smallButton} type="button" onClick={() => void loadSelectedDetail(selected.fund, selectedDetails[selected.fund.id].requestedClass)}>{copyText.node("investment.smallButton")}</button>
                         </div>
                       ) : null}
                       {selectedDetails[selected.fund.id]?.detail?.classes.length ? (
                         <label className={styles.fieldGroup}>
-                          <span className={styles.fieldLabel}>{copyText("investment.fieldLabel4")}</span>
+                          <span className={styles.fieldLabel}>{copyText.node("investment.fieldLabel4")}</span>
                           <select
                             className={styles.amcSelect}
                             aria-label={copyText("investment.dynamic17").replaceAll("{0}", String(selected.fund.name))}
@@ -338,7 +338,7 @@ function stepCopy(step: number) {
                             disabled={selectedDetails[selected.fund.id].state === "loading"}
                             onChange={(event) => void loadSelectedDetail(selected.fund, event.target.value || null)}
                           >
-                            <option value="">{copyText("investment.option")}</option>
+                            <option value="">{copyText.node("investment.option")}</option>
                             {[...new Map(selectedDetails[selected.fund.id].detail!.classes.map(row => [row.name, row])).values()].map(row => (
                               <option key={row.name} value={row.name}>{row.name}{row.description ? ` · ${row.description}` : ""}</option>
                             ))}
@@ -348,14 +348,14 @@ function stepCopy(step: number) {
                       {selectedDetails[selected.fund.id]?.state === "ready" ? (
                         <>
                           <div className={styles.fundFacts}>
-                            <span>{copyText("investment.span4")}{selected.fund.riskSpectrum ?? copyText("investment.linesText8")}</span>
+                            <span>{copyText.node("investment.span4")}{selected.fund.riskSpectrum ?? copyText("investment.linesText8")}</span>
                             <span>{selected.fund.liquidity.rawText ?? copyText("investment.portfolioBuilderText10")}</span>
                           </div>
                           <details>
-                            <summary className={styles.smallButton}>{copyText("investment.smallButton2")}</summary>
+                            <summary className={styles.smallButton}>{copyText.node("investment.smallButton2")}</summary>
                             <ul className={styles.warningList}>
                               {selectedDetails[selected.fund.id].detail!.assetAllocation.map((row, index) => (
-                                <li key={index}>{row.name}: {row.percentNav}{copyText("investment.li")}{row.sourceDate ?? copyText("investment.linesText3")}</li>
+                                <li key={index}>{row.name}: {row.percentNav}{copyText.node("investment.li")}{row.sourceDate ?? copyText("investment.linesText3")}</li>
                               ))}
                             </ul>
                             {selected.fund.provenance.notes.map((note, index) => <p className={styles.provenance} key={index}>{note}</p>)}
@@ -363,8 +363,8 @@ function stepCopy(step: number) {
                         </>
                       ) : null}
                       <div className={styles.selectedControl}>
-                        <label><span>{copyText("investment.span5")}</span><div className={styles.percentWrap}><span>%</span><input className={styles.percentInput} type="number" min="0" max="100" step="1" aria-label={copyText("investment.dynamic18").replaceAll("{0}", String(selected.fund.name))} value={selected.weightPercent || ""} onChange={(event) => updateSelectedWeight(selected.fund.id, safePercent(event.target.value))} /></div></label>
-                        <button type="button" onClick={() => removeFund(selected.fund.id)}>{copyText("investment.button")}</button>
+                        <label><span>{copyText.node("investment.span5")}</span><div className={styles.percentWrap}><span>%</span><input className={styles.percentInput} type="number" min="0" max="100" step="1" aria-label={copyText("investment.dynamic18").replaceAll("{0}", String(selected.fund.name))} value={selected.weightPercent || ""} onChange={(event) => updateSelectedWeight(selected.fund.id, safePercent(event.target.value))} /></div></label>
+                        <button type="button" onClick={() => removeFund(selected.fund.id)}>{copyText.node("investment.button")}</button>
                       </div>
                     </article>)}
                   </div>
@@ -372,46 +372,46 @@ function stepCopy(step: number) {
                 <AllocationTotal total={selectedTotal} label={copyText("investment.portfolioBuilderlabel2")} errorMessage={selectedTotal === 100 && !constructionCoverageMatches(construction, selectedFunds) ? copyText("investment.portfolioBuilderText11") : undefined} />
               </div>
 
-              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(1)}>{copyText("investment.ghost")}</button><button className={styles.primary} type="button" disabled={!selectedValid} onClick={() => navigate(3)}>{copyText("investment.primary2")}</button></div>
+              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(1)}>{copyText.node("investment.ghost")}</button><button className={styles.primary} type="button" disabled={!selectedValid} onClick={() => navigate(3)}>{copyText.node("investment.primary2")}</button></div>
             </>
           ) : null}
 
           {step === 3 ? (
             <>
               <div className={styles.optionalBox}>
-                <h3>{copyText("investment.h3")}</h3>
-                <p>{copyText("investment.p")}</p>
+                <h3>{copyText.node("investment.h3")}</h3>
+                <p>{copyText.node("investment.p")}</p>
               </div>
               <div className={styles.allocationList}>
                 {target.map((row) => (
                   <div className={styles.allocationRow} key={row.key}>
-                    <div className={styles.allocationName}><strong>{ASSET_LABELS[row.key]}</strong><small>{copyText("investment.small2")}</small></div>
+                    <div className={styles.allocationName}><strong>{ASSET_LABELS[row.key]}</strong><small>{copyText.node("investment.small2")}</small></div>
                     <label className={styles.percentWrap}><span>%</span><input className={styles.percentInput} aria-label={copyText("investment.dynamic19").replaceAll("{0}", String(ASSET_LABELS[row.key]))} type="number" min="0" max="100" step="1" value={row.percent || ""} onChange={(event) => updateTarget(row.key, safePercent(event.target.value))} /></label>
                   </div>
                 ))}
               </div>
               <AllocationTotal total={targetTotal} label={copyText("investment.portfolioBuilderlabel3")} allowZero />
-              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(2)}>{copyText("investment.ghost")}</button><button className={styles.primary} type="button" disabled={!targetValid} onClick={() => navigate(4)}>{copyText("investment.primary3")}</button></div>
+              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(2)}>{copyText.node("investment.ghost")}</button><button className={styles.primary} type="button" disabled={!targetValid} onClick={() => navigate(4)}>{copyText.node("investment.primary3")}</button></div>
             </>
           ) : null}
 
           {step === 4 ? (
-            result ? <ResultView result={result} onEdit={() => navigate(1)} onSave={savePlan} onHandoff={handoffToLine} saveStatus={saveStatus} /> : <div className={styles.statusNotice}>{copyText("investment.statusNotice4")}</div>
+            result ? <ResultView result={result} onEdit={() => navigate(1)} onSave={savePlan} onHandoff={handoffToLine} saveStatus={saveStatus} /> : <div className={styles.statusNotice}>{copyText.node("investment.statusNotice4")}</div>
           ) : null}
         </div>
 
         <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label={copyText("investment.portfolioBuilderarialabel4")}>
-          <p className={styles.eyebrow}>{copyText("investment.eyebrow2")}</p>
-          <h2>{copyText("investment.h22")}</h2>
-          <p className={styles.summaryIntro}>{copyText("investment.summaryIntro")}</p>
-          <div className={styles.summaryAmount}><span>{copyText("investment.span6")}</span><strong>{amount > 0 ? copyText("investment.dynamic11").replaceAll("{0}", String(formatMoney(amount))) : "—"}</strong></div>
+          <p className={styles.eyebrow}>{copyText.node("investment.eyebrow2")}</p>
+          <h2>{copyText.node("investment.h22")}</h2>
+          <p className={styles.summaryIntro}>{copyText.node("investment.summaryIntro")}</p>
+          <div className={styles.summaryAmount}><span>{copyText.node("investment.span6")}</span><strong>{amount > 0 ? copyText("investment.dynamic11").replaceAll("{0}", String(formatMoney(amount))) : "—"}</strong></div>
           <dl className={styles.summaryRows}>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt")}</dt><dd>{constructionTotal}{copyText("investment.dd")}</dd></div>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt2")}</dt><dd>{selectedFunds.length}{" "}{copyText("investment.dd2")}{selectedTotal}%</dd></div>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt3")}</dt><dd>{targetTotal === 0 ? copyText("investment.portfolioBuilderText12") : `${targetTotal}%`}</dd></div>
-            <div className={styles.summaryRow}><dt>{copyText("investment.dt4")}</dt><dd>{searchState?.mode === "sec_live" ? copyText("investment.portfolioBuilderText13") : searchState ? copyText("investment.portfolioBuilderText3") : copyText("investment.portfolioBuilderText14")}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt")}</dt><dd>{constructionTotal}{copyText.node("investment.dd")}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt2")}</dt><dd>{selectedFunds.length}{" "}{copyText.node("investment.dd2")}{selectedTotal}%</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt3")}</dt><dd>{targetTotal === 0 ? copyText("investment.portfolioBuilderText12") : `${targetTotal}%`}</dd></div>
+            <div className={styles.summaryRow}><dt>{copyText.node("investment.dt4")}</dt><dd>{searchState?.mode === "sec_live" ? copyText("investment.portfolioBuilderText13") : searchState ? copyText("investment.portfolioBuilderText3") : copyText("investment.portfolioBuilderText14")}</dd></div>
           </dl>
-          <div className={styles.statusNotice}>{copyText("investment.statusNotice5")}</div>
+          <div className={styles.statusNotice}>{copyText.node("investment.statusNotice5")}</div>
         </aside>
       </div>
     </section>
@@ -434,33 +434,33 @@ function ResultView({ result, onEdit, onSave, onHandoff, saveStatus }: { result:
   const unknownRisk = result.riskDistribution.find((row) => row.level === "unknown")?.percent ?? 0;
   return <div className={styles.resultStack}>
     <div className={styles.resultPanel}>
-      <h3>{copyText("investment.h32")}</h3>
-      <p>{copyText("investment.p2")}{result.coverage.effectiveAssetPercentKnown}{copyText("investment.p3")}</p>
+      <h3>{copyText.node("investment.h32")}</h3>
+      <p>{copyText.node("investment.p2")}{result.coverage.effectiveAssetPercentKnown}{copyText.node("investment.p3")}</p>
       <div className={styles.barList}>{result.effectiveAllocation.filter((row) => row.percent > 0).map((row) => <div className={styles.barRow} key={row.key}><span className={styles.barLabel}>{EFFECTIVE_LABELS[row.key]}</span><div className={styles.barTrack}><div className={styles.barFill} style={{ width: `${Math.min(100, row.percent)}%` }} /></div><span className={styles.barValue}>{row.percent}%</span></div>)}</div>
     </div>
 
     <div className={styles.resultPanel}>
-      <h3>{copyText("investment.h33")}</h3>
-      {result.targetDelta.length ? <div className={styles.deltaList}>{result.targetDelta.map((row) => <div className={styles.deltaRow} key={row.asset}><strong>{ASSET_LABELS[row.asset]}{" "}{copyText("investment.strong4")}{row.targetPercent}{copyText("investment.strong5")}{row.effectivePercent}%</strong><span>{row.conclusive && row.deltaPercentagePoints !== null ? copyText("investment.dynamic22").replaceAll("{0}", String(row.deltaPercentagePoints > 0 ? "+" : "")).replaceAll("{1}", String(row.deltaPercentagePoints)) : copyText("investment.resultViewText")}</span></div>)}</div> : <p>{copyText("investment.p4")}</p>}
+      <h3>{copyText.node("investment.h33")}</h3>
+      {result.targetDelta.length ? <div className={styles.deltaList}>{result.targetDelta.map((row) => <div className={styles.deltaRow} key={row.asset}><strong>{ASSET_LABELS[row.asset]}{" "}{copyText.node("investment.strong4")}{row.targetPercent}{copyText.node("investment.strong5")}{row.effectivePercent}%</strong><span>{row.conclusive && row.deltaPercentagePoints !== null ? copyText("investment.dynamic22").replaceAll("{0}", String(row.deltaPercentagePoints > 0 ? "+" : "")).replaceAll("{1}", String(row.deltaPercentagePoints)) : copyText("investment.resultViewText")}</span></div>)}</div> : <p>{copyText.node("investment.p4")}</p>}
     </div>
 
     <div className={styles.resultPanel}>
-      <h3>{copyText("investment.h34")}</h3>
-      <p>{copyText("investment.p5")}</p>
+      <h3>{copyText.node("investment.h34")}</h3>
+      <p>{copyText.node("investment.p5")}</p>
       <div className={styles.riskRail}>{result.riskDistribution.filter((row) => row.level !== "unknown").map((row) => <div className={styles.riskCell} data-has-value={row.percent > 0} key={String(row.level)}><strong>{row.level}</strong><span>{row.percent}%</span></div>)}</div>
-      {unknownRisk > 0 ? <p className={styles.unknownLine}>{copyText("investment.unknownLine")}{unknownRisk}{copyText("investment.unknownLine2")}</p> : null}
+      {unknownRisk > 0 ? <p className={styles.unknownLine}>{copyText.node("investment.unknownLine")}{unknownRisk}{copyText.node("investment.unknownLine2")}</p> : null}
     </div>
 
     <div className={styles.resultPanel}>
-      <h3>{copyText("investment.h35")}</h3>
-      <p>{copyText("investment.p6")}</p>
-      <div className={styles.liquidityGrid}>{result.liquiditySummary.map((row) => <div className={styles.liquidityCard} key={row.bucket}><strong>{row.bucket}</strong><span>{row.percent}% · {formatMoney(row.amount)}{" "}{copyText("investment.span3")}</span></div>)}</div>
+      <h3>{copyText.node("investment.h35")}</h3>
+      <p>{copyText.node("investment.p6")}</p>
+      <div className={styles.liquidityGrid}>{result.liquiditySummary.map((row) => <div className={styles.liquidityCard} key={row.bucket}><strong>{row.bucket}</strong><span>{row.percent}% · {formatMoney(row.amount)}{" "}{copyText.node("investment.span3")}</span></div>)}</div>
     </div>
 
-    <div className={styles.resultPanel}><h3>{copyText("investment.h36")}</h3><ul className={styles.warningList}>{result.selectedFunds.map(({ fund }) => <li key={fund.id}>{fund.name}{" "}{copyText("investment.li2")}{fund.className ?? copyText("investment.linesText3")} · {fund.provenance.source === "uat_synthetic" ? copyText("investment.linesText4") : copyText("investment.linesText5")}{" "}{copyText("investment.li3")}{fund.provenance.sourceDate ?? copyText("investment.linesText3")}{" "}{copyText("investment.li4")}{fund.provenance.fetchedAt}</li>)}</ul><p>{copyText("investment.p7")}</p></div>
-    <div className={styles.resultPanel}><h3>{copyText("investment.h37")}</h3><ul className={styles.warningList}>{result.warnings.map((warning) => <li key={warning}>{WARNING_LABELS[warning]}</li>)}</ul></div>
+    <div className={styles.resultPanel}><h3>{copyText.node("investment.h36")}</h3><ul className={styles.warningList}>{result.selectedFunds.map(({ fund }) => <li key={fund.id}>{fund.name}{" "}{copyText.node("investment.li2")}{fund.className ?? copyText("investment.linesText3")} · {fund.provenance.source === "uat_synthetic" ? copyText("investment.linesText4") : copyText("investment.linesText5")}{" "}{copyText.node("investment.li3")}{fund.provenance.sourceDate ?? copyText("investment.linesText3")}{" "}{copyText.node("investment.li4")}{fund.provenance.fetchedAt}</li>)}</ul><p>{copyText.node("investment.p7")}</p></div>
+    <div className={styles.resultPanel}><h3>{copyText.node("investment.h37")}</h3><ul className={styles.warningList}>{result.warnings.map((warning) => <li key={warning}>{WARNING_LABELS[warning]}</li>)}</ul></div>
 
-    <div className={styles.resultPanel}><h3>{copyText("investment.h38")}</h3><p>{copyText("investment.p8")}</p><div className={styles.resultActions}><button className={styles.ghost} type="button" onClick={onEdit}>{copyText("investment.ghost2")}</button><button className={styles.secondary} type="button" onClick={onSave}>{copyText("investment.secondary")}</button><button className={styles.primary} type="button" onClick={onHandoff}>{copyText("investment.primary4")}</button></div>{saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}</div>
+    <div className={styles.resultPanel}><h3>{copyText.node("investment.h38")}</h3><p>{copyText.node("investment.p8")}</p><div className={styles.resultActions}><button className={styles.ghost} type="button" onClick={onEdit}>{copyText.node("investment.ghost2")}</button><button className={styles.secondary} type="button" onClick={onSave}>{copyText.node("investment.secondary")}</button><button className={styles.primary} type="button" onClick={onHandoff}>{copyText.node("investment.primary4")}</button></div>{saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}</div>
   </div>;
 }
 

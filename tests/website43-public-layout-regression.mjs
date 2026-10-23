@@ -66,7 +66,7 @@ test('native mobile TOC keeps separators on its 56px summary when closed or open
   const borderColour = css.match(/--w43-border:\s*([^;]+);/)[1];
   // jsdom does not resolve custom properties in border shorthands.
   const mobileCss = rules.join('\n').replaceAll('var(--w43-border)', borderColour);
-  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>\{copyText\("blog\.website43Articlearialabel2"\)\}<svg aria-hidden="true" width="14" height="14"></svg></summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
+  const dom = new JSDOM(`<style>${mobileCss}</style><details class="tocMobile"><summary>\{copyText(?:\.node)?\("blog\.website43Articlearialabel2"\)\}<svg aria-hidden="true" width="14" height="14"></svg></summary><div class="tocMobileList">หัวข้อบทความ</div></details>`);
   const details = dom.window.document.querySelector('details');
   for (const open of [false, true]) {
     details.open = open;
@@ -77,7 +77,7 @@ test('native mobile TOC keeps separators on its 56px summary when closed or open
     assert.equal(dom.window.getComputedStyle(details.querySelector('summary')).minHeight, '56px');
   }
   assert.equal(summaryDeclarations['border-block'], '1px solid var(--w43-border)', 'separators belong to the summary in both disclosure states');
-  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>\{copyText\("blog\.website43Articlearialabel2"\)\}<svg aria-hidden="true" width="14" height="14"/);
+  assert.match(article, /<details className=\{styles\.tocMobile\}>\s*<summary>\{copyText(?:\.node)?\("blog\.website43Articlearialabel2"\)\}<svg aria-hidden="true" width="14" height="14"/);
   dom.window.close();
 });
 
@@ -125,7 +125,7 @@ test('Thai reading headings, explicit dividers and content links retain a clear 
 test('article metadata uses verified optimization date, consistent type and readable TOC separation', () => {
   assert.match(article, /article\.optimizedAt && Number\.isFinite\(Date\.parse\(article\.optimizedAt\)\)/);
   assert.doesNotMatch(article, /article\.updatedAt|showUpdatedDate/);
-  assert.match(article, />\{copyText\("blog\.articleDateLabel2"\)\}<\/span> <time dateTime=\{article\.optimizedAt\}/);
+  assert.match(article, />\{copyText(?:\.node)?\("blog\.articleDateLabel2"\)\}<\/span> <time dateTime=\{article\.optimizedAt\}/);
   assert.match(css, /\.articleHeaderMeta \{[^}]*font-size: 14px;[^}]*font-weight: 400;[^}]*line-height: 22px;/);
   assert.match(css, /\.articleDateLabel \{ font-size: inherit; font-weight: 400; \}/);
   assert.match(css, /\.articleHeaderMeta time \{ color: var\(--w43-ink\); font-weight: 500; \}/);
@@ -274,7 +274,7 @@ test('Footer controls and warnings stay inside the visible Website 4.3 footer ca
   for (const path of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx']) {
     const footer = read(path);
     const desktop = footer.split('className={styles.footerFull}>')[1];
-    const infoColumn = desktop?.match(/<strong>\{text\("site\.footer\.information"\)\}<\/strong>([\s\S]*?)<\/div>/)?.[1];
+    const infoColumn = desktop?.match(/<strong>\{text(?:\.node)?\("site\.footer\.information"\)\}<\/strong>([\s\S]*?)<\/div>/)?.[1];
     assert.match(infoColumn, /<CookieSettingsButton className=\{styles\.footerCookieButton\} \/>/, `${path}: desktop button belongs in the info column`);
     assert.equal(desktop.match(/<CookieSettingsButton\b/g)?.length, 1, `${path}: exactly one desktop button`);
     assert.match(desktop, /footerDisclaimer[\s\S]*?footerWarnings[\s\S]*?footerCopyright/, `${path}: warnings belong in the lower desktop card`);
@@ -292,8 +292,8 @@ test('Article header keeps only date metadata and the author identity stays in t
 });
 
 test('Article CTA to related-content rhythm is compact and explicitly scoped', () => {
-  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articlePlanCtaSection\}`\}[\s\S]*?>\{copyText\("blog\.h2"\)\}</);
-  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articleRelatedSection\}`\}[\s\S]*?>\{copyText\("blog\.h22"\)\}</);
+  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articlePlanCtaSection\}`\}[\s\S]*?>\{copyText(?:\.node)?\("blog\.h2"\)\}</);
+  assert.match(article, /className=\{`\$\{styles\.sectionDeep\} \$\{styles\.articleRelatedSection\}`\}[\s\S]*?>\{copyText(?:\.node)?\("blog\.h22"\)\}</);
   assert.match(css, /\.articlePlanCtaSection \{ padding-top: 40px; padding-bottom: 24px; \}/);
   assert.match(css, /\.articleRelatedSection \{ padding-top: 24px; padding-bottom: 48px; \}/);
 });
@@ -301,7 +301,7 @@ test('Article CTA to related-content rhythm is compact and explicitly scoped', (
 test('Home learning cards share one visual composition including the READ card', () => {
   assert.match(home, /className=\{`\$\{styles\.toolCtaCard\} \$\{styles\.learnArticleCard\}`\}/);
   assert.match(home, /src="\/assets\/website-43\/blog-hero\.png"[\s\S]*?styles\.learnArticleImage/);
-  assert.match(home, /styles\.toolCtaContent[\s\S]*?>\{text\("home\.planNum"\)\}<[\s\S]*?>\{text\("home\.h3"\)\}<[\s\S]*?styles\.toolCtaAction/);
+  assert.match(home, /styles\.toolCtaContent[\s\S]*?>\{text(?:\.node)?\("home\.planNum"\)\}<[\s\S]*?>\{text(?:\.node)?\("home\.h3"\)\}<[\s\S]*?styles\.toolCtaAction/);
   assert.doesNotMatch(home, /<article className=\{styles\.learnCard\}[\s\S]*?>READ</);
   assert.match(css, /\.learnArticleImage \{ object-position: 68% center; \}/);
 });

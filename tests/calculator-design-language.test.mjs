@@ -184,7 +184,7 @@ test('CI gap and its income or expense breakdown share one card, separate from R
 test('CI result actions and FAQ spacing stay aligned without changing shared FHC styles', () => {
   assert.match(ciResult, /ccpun-calculator-result-cta ccpun-ci-result-cta/);
   assert.equal(CI_COPY_DEFAULTS['ci.result.heading2'], 'อยากทบทวนตัวเลขต่อ?');
-  assert.match(ciResult, /<h3>\{t\("ci\.result\.heading2"\)\}<\/h3>[\s\S]*ccpun-ci-result-cta-copy[\s\S]*<ResultImageDownloadButton[\s\S]*ccpun-ci-result-cta-line/);
+  assert.match(ciResult, /<h3>\{t(?:\.node)?\("ci\.result\.heading2"\)\}<\/h3>[\s\S]*ccpun-ci-result-cta-copy[\s\S]*<ResultImageDownloadButton[\s\S]*ccpun-ci-result-cta-line/);
   assert.match(ciImageActions, /canShareFile \? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'/);
   assert.match(ciImageActions, /empty:sr-only/);
   assert.doesNotMatch(ciImageActions, /min-h-5/);

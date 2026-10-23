@@ -36,7 +36,7 @@ function load(path, sources = new Map(), modules = cache) {
     if (id === 'next/link') return { __esModule: true, default: (props) => jsx('a', props) };
     if (id === 'lucide-react') return new Proxy({}, { get: (_, name) => (props) => jsx('icon', { name, ...props }) });
     if (id.endsWith('.css')) return { __esModule: true, default: new Proxy({}, { get: (_, name) => name }) };
-    if (id === '@/components/ui/PublicCopyProvider') return { usePublicCopy: defaults => key => defaults[key] };
+    if (id === '@/components/ui/PublicCopyProvider') return { usePublicCopy: defaults => Object.assign(key => defaults[key], { node: key => defaults[key] }) };
     if (id === '@/lib/analytics') return { trackEvent: (name, params) => events.push({ name, params }) };
     if (id === '@/lib/cookie-consent') return { getConsentData: () => ({ analytics: true }) };
     if (id.startsWith('@/')) {
@@ -250,7 +250,7 @@ test('active round reset Cancel/Accept and untouched/final round reselect keep e
 
 test('CMS harness still rejects changed text, whitespace, destinations and disabled state', () => {
   const before = render([state]);
-  const tampered = load(gamePath, new Map([[gamePath, readFileSync(gamePath, 'utf8').replace('text("moneyStory.category")', 'text("moneyStory.category2")')]]), new Map()).default;
+  const tampered = load(gamePath, new Map([[gamePath, readFileSync(gamePath, 'utf8').replace(/text(\.node)?\("moneyStory\.category"\)/, 'text$1("moneyStory.category2")')]]), new Map()).default;
   assert.notEqual(hostDigest(render([state], tampered)), hostDigest(before));
   const span = children => jsx('span', { children });
   assert.equal(hostDigest(span(['เงิน ', 1])), hostDigest(span('เงิน 1')));

@@ -91,7 +91,7 @@ test('native typing advances only complete Thai/emoji graphemes and cleans only 
   put('NodeFilter',{SHOW_TEXT:4});put('document',document);put('window',new EventTarget());put('innerHeight',800);put('matchMedia',()=>motion);
   put('setTimeout',fn=>{const id=++timerId;timers.set(id,fn);return id;});put('clearTimeout',id=>timers.delete(id));
   try {
-    const overviewModule=loadFixtureModule('features/blog/website-43/Website43ArticleOverview.tsx',{mocks:new Map([['@/components/ui/PublicCopyProvider', {usePublicCopy: defaults => key => defaults[key]}], ['react',{...React,useRef:()=>({current:refs.shift()}),useEffect:effect=>effects.push(effect)}]])});
+    const overviewModule=loadFixtureModule('features/blog/website-43/Website43ArticleOverview.tsx',{mocks:new Map([['@/components/ui/PublicCopyProvider', {usePublicCopy: defaults => Object.assign(key => defaults[key], {node: key => defaults[key]})}], ['react',{...React,useRef:()=>({current:refs.shift()}),useEffect:effect=>effects.push(effect)}]])});
     const text='กิ้👩‍💻ไทยอ่านได้ครบประโยคและคงรูปสระทุกตัว';
     const ends=overviewModule.overviewGraphemeEnds(text);assert.deepEqual(ends.slice(0,2),[3,8]);
     const mount=(options={})=>{

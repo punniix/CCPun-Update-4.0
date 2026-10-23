@@ -64,7 +64,7 @@ export default function FHCLifeResultImageDownloadButton({ summary }: { summary:
 
   return <div className="space-y-2">
     <button type="button" onClick={download} disabled={status === 'working'} aria-busy={status === 'working'} aria-describedby="fhc-image-privacy fhc-image-status" className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><Download className="h-5 w-5" aria-hidden="true" />{status === 'working' ? t("fhc.download.label") : t("fhc.download.label2")}</button>
-    <p id="fhc-image-privacy" className="text-xs text-muted-foreground">{t("fhc.download.imagePrivacy.description")}</p>
+    <p id="fhc-image-privacy" className="text-xs text-muted-foreground">{t.node("fhc.download.imagePrivacy.description")}</p>
     <p id="fhc-image-status" aria-live="polite" className="min-h-5 text-xs text-muted-foreground">{status === 'success' ? t("fhc.download.label3") : status === 'error' ? t("fhc.download.label4") : ''}</p>
   </div>;
 }

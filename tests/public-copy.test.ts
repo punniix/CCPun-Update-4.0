@@ -89,7 +89,7 @@ test("generic public reader always requests published copy independently of draf
       assert.equal(requests.length, 1);
       assert.equal(requests[0].perspective, "published");
       assert.deepEqual(requests[0].params, { id: "publicPageCopy-home-th" });
-      assert.equal(requests[0].query, '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text}}');
+      assert.equal(requests[0].query, '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text, size, sizeMobile, sizeDesktop}}');
       assert.equal(draftReads, 0, `generic reader must not consult draft cookies: ${previewAllowed}/${cookieEnabled}`);
     }
   }

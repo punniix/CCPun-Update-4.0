@@ -111,22 +111,22 @@ export function CCPunAiSearchBar() {
   return <details ref={details} className={styles.search}
     onToggle={event => { if (!event.currentTarget.open) { activeRequest.current?.abort(); activeRequest.current = null; setStatus('idle'); setResults([]); } }}
     onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); close(); } }}>
-    <summary ref={summary}>{text('site.aiSearch.open')}</summary>
+    <summary ref={summary}>{text.node('site.aiSearch.open')}</summary>
     <div className={styles.content}>
-      <p>{text('site.aiSearch.description')}</p>
+      <p>{text.node('site.aiSearch.description')}</p>
       <form onSubmit={submit} role="search" aria-label={text('site.aiSearch.open')}>
-        <label htmlFor={inputId}>{text('site.aiSearch.label')}</label>
+        <label htmlFor={inputId}>{text.node('site.aiSearch.label')}</label>
         <div className={styles.controls}>
           <input id={inputId} name="query" type="search" maxLength={200} required autoComplete="off"
             value={query} onChange={event => setQuery(event.target.value)} placeholder={text('site.aiSearch.placeholder')} />
-          <button type="submit" disabled={status === 'loading'}>{text('site.aiSearch.submit')}</button>
+          <button type="submit" disabled={status === 'loading'}>{text.node('site.aiSearch.submit')}</button>
         </div>
       </form>
       <div role="status" aria-live="polite" aria-busy={status === 'loading'}>{message}</div>
       {results.length > 0 && <ul aria-label={text('site.aiSearch.results')}>
         {results.map(result => <li key={result.url}><a href={result.url}>{result.title}</a><p>{result.text}</p></li>)}
       </ul>}
-      <button className={styles.close} type="button" onClick={close}>{text('site.aiSearch.close')}</button>
+      <button className={styles.close} type="button" onClick={close}>{text.node('site.aiSearch.close')}</button>
     </div>
   </details>;
 }
