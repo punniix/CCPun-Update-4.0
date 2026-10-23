@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { insert, set, setIfMissing, unset, useFormValue, type ArrayOfObjectsInputProps, type Path } from "sanity";
 import { Badge, Box, Button, Card, Flex, Stack, Text, TextArea, TextInput } from "@sanity/ui";
-import { ChevronDownIcon, ChevronRightIcon, ResetIcon, SearchIcon } from "@sanity/icons";
+// @sanity/icons 5 exposes each icon on its own subpath; the bare index has no named icons.
+import { ChevronDownIcon } from "@sanity/icons/ChevronDown";
+import { ChevronRightIcon } from "@sanity/icons/ChevronRight";
+import { ResetIcon } from "@sanity/icons/Reset";
+import { SearchIcon } from "@sanity/icons/Search";
 import { PUBLIC_COPY_SCOPES, type PublicCopyScope } from "../../../lib/content/public-copy-registry";
 import locations from "../../../lib/content/public-copy-locations.json";
 
