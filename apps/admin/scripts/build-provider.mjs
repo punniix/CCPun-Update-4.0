@@ -191,6 +191,24 @@ export function sealNativeNeonRuntime(root, seal) {
     writeFileSync(serverPath, prelude + server, { mode: 0o600 });
   }
 
+  if (seal.environment === "production-admin") {
+    const serverPath = resolve(standalone, "server.js");
+    if (!existsSync(serverPath)) throw new Error("NATIVE_ADMIN_PRODUCTION_RUNTIME_ENTRY_MISSING");
+    // The build has already bound this seal to clean source and the exact ref.
+    // Runtime configuration keeps every non-Git setting supplied by the host.
+    const runtimeIdentity = {
+      CCPUN_GIT_REF: seal.gitRef,
+      CCPUN_GIT_SHA: seal.gitSha,
+      CCPUN_RELEASE_ID: seal.releaseId,
+      NEXT_PUBLIC_CCPUN_GIT_REF: seal.gitRef,
+      NEXT_PUBLIC_CCPUN_GIT_SHA: seal.gitSha,
+      NEXT_PUBLIC_CCPUN_RELEASE_ID: seal.releaseId,
+    };
+    const server = readFileSync(serverPath, "utf8");
+    if (server.includes("CCPun sealed Admin Production Git identity")) throw new Error("NATIVE_ADMIN_PRODUCTION_RUNTIME_ALREADY_SEALED");
+    writeFileSync(serverPath, `/* CCPun sealed Admin Production Git identity */\nObject.assign(process.env,${JSON.stringify(runtimeIdentity)});\n` + server, { mode: 0o600 });
+  }
+
   writeFileSync(resolve(standalone, "ccpun-native-admin-manifest.json"), JSON.stringify({ ...manifest,
     nodeVersion: process.version, platform: process.platform, architecture: process.arch,
     buildId: readFileSync(resolve(standalone, ".next/BUILD_ID"), "utf8").trim() }, null, 2) + "\n", { mode: 0o600 });
