@@ -113,7 +113,17 @@ const cases = [
 ];
 test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
   assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
-  for (const [index,[scope,props]] of cases.entries()) assert.equal(digest(await renderFixture(scope,props)),baseline[index],`${index}:${scope}`);
+  for (const [index,[scope,props]] of cases.entries()) {
+    let html = await renderFixture(scope,props);
+    if (scope === 'blog') {
+      const hint = '<link rel="preload" href="/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp" as="image" fetchPriority="high"/>';
+      const heroHint = '<link rel="preload" as="image" href="/assets/website-43/blog-hero.png" imageSizes="(max-width: 639px) 100vw, 60vw" fetchPriority="high"/>';
+      assert.ok(html.startsWith(heroHint + hint), 'Blog retains its Hero hint before the exact approved artwork hint');
+      assert.equal(html.split(hint).length, 2, 'Blog emits the approved hint exactly once');
+      html = html.replace(hint, '');
+    }
+    assert.equal(digest(html),baseline[index],`${index}:${scope}`);
+  }
   assert.equal((await renderFixture('blog',{})).match(/class="articleCard"/g)?.length,6);
 });
 test('seven original metadata objects preserve every field in ordinary and review lanes',async()=>{

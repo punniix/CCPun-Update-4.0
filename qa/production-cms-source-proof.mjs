@@ -158,6 +158,18 @@ assertProductionCmsProvenance();
 export function assertProductionCmsOwner(file, source = read(file)) {
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(Object.hasOwn(productionCmsOwners,file), 'Unknown CMS source owner: '+file);
+  if (file === 'components/ui/health-happy/HealthHappyCountdown.tsx') {
+    // Only the exact Blog artwork hint may reconstruct the frozen same-word source.
+    const blogPreloadAdditions = [
+      "import { preload } from 'react-dom';\n",
+      "import countdownArtwork from '@/public/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp';\n",
+      "  if (placement === 'blog') {\n    preload(countdownArtwork.src, { as: 'image', fetchPriority: 'high' });\n  }\n",
+    ];
+    for (const addition of blogPreloadAdditions) {
+      assert.equal(source.split(addition).length, 2, 'exact Blog-only countdown preload transition');
+      source = source.replace(addition, '');
+    }
+  }
   // Preserve the original 74-owner proof. Only this exact published-only
   // hardening may reconstruct its reviewed predecessor; the predecessor itself
   // and every unrelated source change remain denied as current runtime source.
