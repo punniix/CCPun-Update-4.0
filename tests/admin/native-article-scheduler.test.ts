@@ -206,7 +206,7 @@ test('actual Node24 single-file marker and exact ambient gate', () => {
 });
 `);
     const result = spawnSync(process.execPath, ["--conditions=react-server", "--import", "tsx", "--test", "--test-reporter=tap", probe], {
-      cwd: fileURLToPath(new URL("../../", import.meta.url)), env: { PATH: process.env.PATH ?? "" }, encoding: "utf8", timeout: 15_000,
+      cwd: fileURLToPath(new URL("../../", import.meta.url)), env: { PATH: process.env.PATH ?? "", NODE_ENV: "test" }, encoding: "utf8", timeout: 15_000,
     });
     assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /# tests 1/); assert.match(result.stdout, /# pass 1/);
