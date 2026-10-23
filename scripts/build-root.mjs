@@ -27,7 +27,7 @@ function fillMissing(defaults) {
   }
 }
 
-function applyHostingerReleaseFallback() {
+async function applyHostingerReleaseFallback() {
   if (Object.entries(process.env).some(([key, value]) => key.startsWith("VERCEL_") && value?.trim())) throw new Error("UNSUPPORTED_PROVIDER_METADATA");
   if (["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) throw new Error("UNSUPPORTED_WORKFLOW_WORLD");
 
@@ -38,6 +38,38 @@ function applyHostingerReleaseFallback() {
   const explicitProvider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
   const explicitRole = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
   const configuredRef = process.env.CCPUN_GIT_REF?.trim() ?? "";
+  const productionRefPrefix = "codex/hostinger-release-production-";
+  if (symbolicBranch.startsWith(productionRefPrefix)
+    || (configuredRef.startsWith(productionRefPrefix) && symbolicBranch !== `admin/hostinger-release-uat-${sha}`)) {
+    // Only the actual checkout can authorize a refresh; configured Git metadata
+    // may be stale, but must never choose another lane or invent Production flags.
+    if (symbolicBranch !== `${productionRefPrefix}${sha}` || !/^[a-f0-9]{40}$/.test(sha)) {
+      throw new Error("PRODUCTION_RELEASE_REF_DENIED");
+    }
+    const releaseId = `hostinger-${explicitRole}-prod-${sha.slice(0, 12)}`;
+    const identity = {
+      CCPUN_GIT_REF: symbolicBranch, CCPUN_GIT_SHA: sha, CCPUN_RELEASE_ID: releaseId,
+      NEXT_PUBLIC_CCPUN_GIT_REF: symbolicBranch, NEXT_PUBLIC_CCPUN_GIT_SHA: sha, NEXT_PUBLIC_CCPUN_RELEASE_ID: releaseId,
+    };
+    const prospective = { ...process.env, ...identity };
+    let accepted = false;
+    if (explicitProvider === "hostinger" && explicitRole === "admin") {
+      const { isPinnedCloudProductionRelease } = await import("../lib/runtime/hostinger-production-release.mjs");
+      accepted = isPinnedCloudProductionRelease(prospective, prospective, false);
+    } else if (explicitProvider === "hostinger" && explicitRole === "web" && prospective.CCPUN_APP_ENV === "production"
+      && [undefined, "hostinger"].includes(prospective.NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER)
+      && [undefined, "web"].includes(prospective.NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE)) {
+      // The existing read-only Web validator checks live/candidate, Sanity and
+      // analytics/UAT policy. Suppress its configuration output, including errors.
+      accepted = spawnSync(process.execPath, [resolve(repositoryRoot, "scripts/check-hostinger-readiness.mjs"), "--strict"], {
+        cwd: repositoryRoot, env: prospective, stdio: "ignore",
+      }).status === 0;
+    }
+    if (!accepted) throw new Error("PRODUCTION_RELEASE_IDENTITY_DENIED");
+    Object.assign(process.env, identity);
+    console.log(`Hostinger Production ${explicitRole} Git identity bound to checked-out pinned release @ ${sha.slice(0, 12)}.`);
+    return;
+  }
   const adminUatRefPattern = /^admin\/hostinger-release-uat-[a-f0-9]{40}$/;
   const adminUatRef = adminUatRefPattern.test(symbolicBranch)
     ? symbolicBranch
@@ -125,7 +157,7 @@ function applyHostingerReleaseFallback() {
   }
 }
 
-applyHostingerReleaseFallback();
+await applyHostingerReleaseFallback();
 
 const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
 const role = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();

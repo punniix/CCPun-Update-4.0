@@ -19,10 +19,18 @@ const reviewedAdminConfigBuild = {
   'apps/web/scripts/build-provider.mjs': { before: '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd', after: '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4' },
   'tests/hostinger-shadow-config.test.mjs': { before: '2b865e4bf79ea0ea541107641a8de56039630b0cc72dfabb304afcc48b1cbe7c', after: '4c48e59ed5de59304237e09605e3857fe497cc88012447ade5a7cf2623742833' },
 };
+// Exact successor for the independently reviewed Production Git-only refresh.
+// Original repair admissions and historical proof JSON remain unchanged.
+const reviewedProductionGitIdentity = {
+  'scripts/build-root.mjs': { before: 'b3640b1f1dfd80bbe1cd59aed0b3e857398ce9ae374652c92c098260f39beb0f', after: '90353a4946aba0043b17659dff86a193937b04021d21c083bea58f1b785d23bd' },
+  'tests/hostinger-shadow-config.test.mjs': { before: '4c48e59ed5de59304237e09605e3857fe497cc88012447ade5a7cf2623742833', after: '533a86ac229ae28df22a8efe133cef62ea7977eb1967dac3ce989ad342a04ee2' },
+};
 function assertCurrentNativeDigest(path, body, originalDigest) {
   const repair = reviewedAdminConfigBuild[path];
   if (repair) assert.equal(originalDigest, repair.before, path + ': original repair seal differs');
-  assert.equal(sha(body), repair?.after ?? originalDigest, path + ': unreviewed native runtime change');
+  const successor = reviewedProductionGitIdentity[path];
+  if (successor) assert.equal(repair?.after ?? originalDigest, successor.before, path + ': previous reviewed successor seal differs');
+  assert.equal(sha(body), successor?.after ?? repair?.after ?? originalDigest, path + ': unreviewed native runtime change');
 }
 
 // Explicit current-source admission for the reviewed native policy retirement.
@@ -66,7 +74,7 @@ export function assertReviewedNativeShadowTest(expectedBaselineDigest, proof = J
   assert.equal(sha(proof.baselineSources[path]), expectedBaselineDigest);
   assert.equal(proof.baselineHashes[path], expectedBaselineDigest);
   assert.equal(proof.outputTestHashes[path], reviewedOutputTests[path]);
-  assert.equal(sha(current(path)), reviewedOutputTests[path]);
+  assertCurrentNativeDigest(path, current(path), reviewedOutputTests[path]);
   assert.equal(JSON.parse(current('package.json')).scripts['test:hostinger'], 'node --test ' + path);
   return true;
 }
