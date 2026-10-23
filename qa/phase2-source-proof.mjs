@@ -77,6 +77,28 @@ export function assertReviewedMasterUatOwner(file, previousDigest, source = read
   const record = reviewedMasterUatOwners[file];
   assert.ok(record && Object.hasOwn(reviewedMasterUatOwners, file), file + ': not an approved UAT delta');
   assert.ok(record.previous.includes(previousDigest), file + ': historical protected digest changed');
+  // Invert only the owner-requested removal of the public AI consumer. Keep all
+  // prior hashes frozen; this projection is never returned to runtime fixtures.
+  const backendOnly = {
+    'apps/web/app/blog/page.tsx': [
+      ['  return renderBlogPage(props);\n', '  if (process.env.CCPUN_APP_ENV === "web-uat" || process.env.CCPUN_APP_ENV === "local-uat") {\n    const { CCPunAiSearchBar } = await import("@/features/ai-search/CCPunAiSearchWidgets");\n    return renderBlogPage({ ...props, searchEnhancement: <CCPunAiSearchBar /> });\n  }\n  return renderBlogPage(props);\n'],
+    ],
+    'features/blog/pages/BlogArchivePage.tsx': [
+      ['import type { Metadata } from "next";\n', 'import type { Metadata } from "next";\nimport type { ReactNode } from "react";\n'],
+      ['type BlogPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };', 'type BlogPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>>; searchEnhancement?: ReactNode };'],
+      ['renderBlogPage({ searchParams }: BlogPageProps', 'renderBlogPage({ searchParams, searchEnhancement }: BlogPageProps'],
+      ['      siteCopyOverride={siteCopyOverride}\n', '      siteCopyOverride={siteCopyOverride}\n      searchEnhancement={searchEnhancement}\n'],
+    ],
+    'features/blog/website-43/Website43Blog.tsx': [
+      ['topicNavigation, siteCopyOverride }: {', 'topicNavigation, siteCopyOverride, searchEnhancement }: {'],
+      ['  siteCopyOverride?: PublicCopyValues;\n', '  siteCopyOverride?: PublicCopyValues;\n  searchEnhancement?: ReactNode;\n'],
+      ['        {topicContent}\n', '        {topicContent}\n        {searchEnhancement && <div className={styles.inner}>{searchEnhancement}</div>}\n'],
+    ],
+  };
+  for (const [current, previous] of backendOnly[file] ?? []) {
+    assert.equal(source.split(current).length, 2, file + ': exactly one backend-only transition');
+    source = source.replace(current, previous);
+  }
   if (file === 'components/ui/health-happy/HealthHappyCountdown.tsx') {
     const additions = [
       "import { preload } from 'react-dom';\n",

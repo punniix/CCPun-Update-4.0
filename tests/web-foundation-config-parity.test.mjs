@@ -126,22 +126,11 @@ const expected = {
   'invalid-sanity-project': '60071ea1f53f3793bced2a600dd9404406f2741a8718344d934628bea785049a',
 };
 const digest = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-// Only the two owner-authorized UAT fixtures add this one connect-src origin.
-// Keep every historical digest above, including both Production lanes, frozen.
+// AI Search is backend-only. Restore every frozen browser-output digest.
 const searchOrigin = 'https://f687f126-71f5-49d5-8193-ac2313dd8e3e.search.ai.cloudflare.com';
-const reviewedUatSearch = {
-  'hostinger-uat': { before: 'cf4afd298bdb7249538fdbd03b44f3005d9c402d7f984cc9a9d65b9e82f20f0d', after: 'd18226a7dc5479a245b32cdd51924bff198c156363977cd94fa7820aedb8a29e' },
-  'local-uat': { before: '085b4125a864d6f5e4d00bce656be12fbfb328ca81580e1dd5150245c6acfe76', after: 'f23068fc02a0be8a40466a09ce5f5a7a69ace1a1b6206909dadaba8b3ae1180e' },
-};
 function assertNativeFixture(name, actual) {
-  const reviewed = reviewedUatSearch[name];
-  if (reviewed) {
-    assert.equal(expected[name], reviewed.before, 'historical UAT digest remains frozen');
-    const policy = actual.runtimeSecurity.SECURITY_POLICY;
-    assert.equal(policy.split(searchOrigin).length - 1, 1);
-    assert.ok(policy.split('; ').find(directive => directive.startsWith('connect-src ')).endsWith(' ' + searchOrigin));
-  } else assert.ok(!JSON.stringify(actual).includes(searchOrigin), 'other lanes never gain the UAT search origin');
-  assert.equal(digest(actual), reviewed?.after ?? expected[name], `${name}: unreviewed full output change`);
+  assert.ok(!JSON.stringify(actual).includes(searchOrigin), 'no browser lane admits the public AI Search origin');
+  assert.equal(digest(actual), expected[name], `${name}: unreviewed full output change`);
 }
 if (process.argv.includes('--print-baseline')) {
   const baseline = Object.fromEntries(files.map((file) => [file, execFileSync('git', ['show', `${baselineSha}:${file}`], { encoding: 'utf8' })]));
@@ -166,12 +155,12 @@ if (process.argv.includes('--print-baseline')) {
   }
 }
 
-test('reviewed UAT search admission rejects a substituted origin and unrelated response drift', async () => {
-  for (const [name, overrides] of fixtures.filter(([name]) => reviewedUatSearch[name])) {
+test('backend-only UAT rejects public AI Search origins and unrelated response drift', async () => {
+  for (const [name, overrides] of fixtures.filter(([name]) => ['hostinger-uat', 'local-uat'].includes(name))) {
     const actual = await observe(current, overrides);
     assertNativeFixture(name, actual);
     const changedOrigin = structuredClone(actual);
-    changedOrigin.runtimeSecurity.SECURITY_POLICY = changedOrigin.runtimeSecurity.SECURITY_POLICY.replace(searchOrigin, 'https://unreviewed.example');
+    changedOrigin.runtimeSecurity.SECURITY_POLICY += '; connect-src ' + searchOrigin;
     assert.throws(() => assertNativeFixture(name, changedOrigin));
     const changedResponse = structuredClone(actual); changedResponse.responses[0].status = 500;
     assert.throws(() => assertNativeFixture(name, changedResponse));

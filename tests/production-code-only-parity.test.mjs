@@ -206,6 +206,16 @@ test('every reviewed UAT owner retains its historical pin and rejects source or 
         assert.notEqual(mutant, source);
         assert.throws(() => assertReviewedMasterUatOwner(file, record.before, mutant));
       }
+    } else if (['apps/web/app/blog/page.tsx', 'features/blog/pages/BlogArchivePage.tsx', 'features/blog/website-43/Website43Blog.tsx'].includes(file)) {
+      const source = read(file);
+      const withPublicAi = file === 'apps/web/app/blog/page.tsx'
+        ? source.replace('  return renderBlogPage(props);', '  return renderBlogPage({ ...props, searchEnhancement: <CCPunAiSearchBar /> });')
+        : file === 'features/blog/pages/BlogArchivePage.tsx'
+          ? source.replace('      siteCopyOverride={siteCopyOverride}', '      siteCopyOverride={siteCopyOverride}\n      searchEnhancement={searchEnhancement}')
+          : source.replace('        {topicContent}', '        {topicContent}\n        {searchEnhancement && <div>{searchEnhancement}</div>}');
+      assert.notEqual(source, withPublicAi);
+      assert.throws(() => assertReviewedMasterUatOwner(file, record.before, withPublicAi));
+      assert.throws(() => assertReviewedMasterUatOwner(file, record.before, source + source), 'duplicate source must fail');
     } else assert.equal(sha(read(file)), record.after, file);
     assert.ok(record.previous.includes(record.before), file);
     assertReviewedMasterUatOwner(file, record.before, read(file));

@@ -4,7 +4,6 @@ import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import Website43Blog from "@/features/blog/website-43/Website43Blog";
 import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/features/blog/website-43/blogData";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import { draftMode } from "next/headers";
 import { getContentProvider } from "@/lib/content/provider";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
@@ -43,9 +42,9 @@ export const metadata: Metadata = {
   },
 };
 
-type BlogPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>>; searchEnhancement?: ReactNode };
+type BlogPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
-export async function renderBlogPage({ searchParams, searchEnhancement }: BlogPageProps = {}, copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
+export async function renderBlogPage({ searchParams }: BlogPageProps = {}, copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
   const copy = copyOverride ?? await getPublicCopy("blog");
   const filters = await searchParams ?? {};
   const query = typeof filters.q === "string" ? filters.q : "";
@@ -71,7 +70,6 @@ export async function renderBlogPage({ searchParams, searchEnhancement }: BlogPa
     <Website43Blog
       copyOverride={copy}
       siteCopyOverride={siteCopyOverride}
-      searchEnhancement={searchEnhancement}
       key={`all:${legacyCategory}:${legacyTag}`}
       articles={toWebsite43ArticleItems(visibleArticles, copy)}
       featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}

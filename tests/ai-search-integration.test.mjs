@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { main as audit } from '../scripts/audit-monorepo-boundaries.mjs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { buildNextSecurityHeaders } from '../lib/runtime/security-headers.mjs';
 
@@ -22,7 +23,7 @@ const envelope = chunks => ({ success: true, result: { chunks } });
 
 const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 
-test('requested UAT search remains Web-only, without a new route, SDK or Admin import graph', async () => {
+test('AI Search has no public Web consumer or query route; indexing and private boundaries stay separate', async () => {
   for (const file of ['apps/web/app/search/page.tsx', 'features/ai-search/SearchPage.tsx', 'features/ai-search/SearchPage.module.css']) {
     assert.equal(existsSync(new URL('../' + file, import.meta.url)), false, 'No dedicated search page is requested');
   }
@@ -38,25 +39,50 @@ test('requested UAT search remains Web-only, without a new route, SDK or Admin i
   assert.doesNotMatch(read('features/ai-search/CCPunAiSearchWidgets.tsx'), /@cloudflare\/|search-.*-snippet|chat-bubble|dangerouslySetInnerHTML|innerHTML|eval\(/);
   assert.match(read('features/blog/website-43/Website43Blog.tsx'), /<Website43BlogInteractive/);
   assert.doesNotMatch(read('features/blog/website-43/Website43Blog.tsx'), /features\/ai-search/);
+  const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { encoding: 'utf8' }).split('\0');
+  const consumers = files.filter(file => /^(?:app|apps\/web|features|components|lib)\//.test(file)
+    && /\.[cm]?[jt]sx?$/.test(file) && !file.startsWith('features/ai-search/') && existsSync(file));
+  for (const file of consumers) {
+    assert.doesNotMatch(read(file), /(?:from\s*|import\s*\(|require\s*\()\s*['"][^'"]*(?:features\/ai-search|ai-search-snippet)/, file);
+    assert.doesNotMatch(read(file), /searchEnhancement|https:\/\/[^'"\s]*\.search\.ai\.cloudflare\.com/, file);
+  }
+  assert.deepEqual(files.filter(file => /^(?:app|apps\/web\/app)\/(?:search\/|api\/(?:[^/]+\/)*(?:ai-search|search)\/)/.test(file)), []);
+  assert.ok(existsSync(new URL('../apps/web/app/sitemaps/ai-search.xml/route.ts', import.meta.url)), 'Published-only indexing feed remains');
 });
 
-test('actual Web route imports and mounts search only for exact UAT environments', async () => {
+test('actual Blog route never imports or mounts AI Search in any environment and retains local search params', async () => {
   for (const environment of ['web-uat', 'local-uat', 'production', 'local-production', 'admin-uat', 'production-admin', 'development', 'unknown', undefined]) {
     const calls = [];
     const route = loadFixtureModule('apps/web/app/blog/page.tsx', { globals: { process: { env: { CCPUN_APP_ENV: environment } } }, mocks: new Map([
-      ['@/features/ai-search/CCPunAiSearchWidgets', { CCPunAiSearchBar: () => React.createElement('aside', null, 'UAT SEARCH') }],
+      ['@/features/ai-search/CCPunAiSearchWidgets', { CCPunAiSearchBar: () => { throw new Error('Public AI Search must never mount'); } }],
       ['@/features/blog/pages/BlogArchivePage', { metadata: {}, renderBlogPage: props => { calls.push(props); return props.searchEnhancement ?? 'ORIGINAL BLOG'; } }],
       ['@/lib/seo/page-seo', { resolvePageSeoMetadata() {} }],
     ]) });
     const params = Promise.resolve({ q: 'original-local-query' });
     const result = await route.default({ searchParams: params });
     assert.equal(calls[0].searchParams, params);
-    if (['web-uat', 'local-uat'].includes(environment)) assert.equal(renderToStaticMarkup(result), '<aside>UAT SEARCH</aside>');
-    else { assert.equal(result, 'ORIGINAL BLOG'); assert.equal(calls[0].searchEnhancement, undefined); }
+    assert.equal(result, 'ORIGINAL BLOG');
+    assert.deepEqual(calls, [{ searchParams: params }]);
   }
 });
 
-test('result validation admits only all three exact identities for the eleven public UAT documents', () => {
+test('actual Blog shell ignores the removed AI slot while retaining the ordinary article search', async () => {
+  const shell = loadFixtureModule('features/blog/website-43/Website43Blog.tsx', { mocks: new Map([
+    ['@/lib/content/public-copy', { getPublicCopy: async () => ({}) }],
+    ['@/components/ui/health-happy/availability', { isHealthHappyCampaignAvailable: async () => false }],
+    ['@/components/ui/health-happy/HealthHappyCountdown', { __esModule: true, default: () => null }],
+    ['@/components/layout/website-43/Website43Shared', { Website43Navbar: () => null, Website43Footer: () => null }],
+    ['./ArticleCardEngagement', { __esModule: true, default: () => null }],
+  ]) });
+  const html = renderToStaticMarkup(await shell.default({ articles: [], searchEnhancement: React.createElement('aside', null, 'FORBIDDEN_AI_WIDGET') }));
+  assert.doesNotMatch(html, /FORBIDDEN_AI_WIDGET|Cloudflare|search\.ai\.cloudflare\.com/);
+  const dom = new JSDOM(html);
+  assert.equal(dom.window.document.querySelectorAll('input[type="search"]').length, 1, 'ordinary local article filter stays');
+  assert.equal(dom.window.document.querySelectorAll('h1').length, 1);
+  dom.window.close();
+});
+
+test('preserved dormant prototype validation admits only the eleven exact UAT identities', () => {
   assert.equal(widget.parseAiSearchResults(envelope(Array.from({ length: 11 }, (_, i) => chunk(String(i + 1).padStart(2, '0'))))).length, 5);
   for (let i = 1; i <= 11; i++) assert.equal(widget.parseAiSearchResults(envelope([chunk(String(i).padStart(2, '0'))])).length, 1);
   for (const value of [null, {}, envelope(null), envelope({})]) assert.throws(() => widget.parseAiSearchResults(value), /unavailable/);
@@ -74,7 +100,7 @@ test('result validation admits only all three exact identities for the eleven pu
   assert.equal(widget.parseAiSearchResults(envelope([chunk(), chunk()])).length, 1);
 });
 
-test('search request uses only native search, fixed retrieval settings and explicit cancellation', async () => {
+test('preserved dormant prototype request retains fixed retrieval settings and cancellation', async () => {
   let calls = 0;
   const controller = new AbortController();
   const request = async (url, options) => {
@@ -95,7 +121,7 @@ test('search request uses only native search, fixed retrieval settings and expli
   await assert.rejects(aborted, { name: 'AbortError' });
 });
 
-test('CSP adds exactly one UAT Web connect host while preserving complete Production and Admin headers', () => {
+test('backend-only AI Search restores frozen browser CSP in every Web and Admin environment', () => {
   // Complete, ordered header-array digests captured from reviewed source 1a56f1d6.
   // Keep these historical values independent of current output and Git history:
   // CI checks out shallow source and must still verify every header/directive.
@@ -114,15 +140,11 @@ test('CSP adds exactly one UAT Web connect host while preserving complete Produc
   for (const appEnvironment of ['production', 'local-production', 'production-admin', 'admin-uat', 'development', 'unknown', 'web-uat', 'local-uat']) {
     const options = { appEnvironment, nodeEnv: 'production', isReviewEnvironment: appEnvironment.includes('uat'), sanityProjectId: 'ccb9lnw5' };
     const actual = buildNextSecurityHeaders(options);
-    let comparable = actual;
-    if (['web-uat', 'local-uat'].includes(appEnvironment)) {
-      const csp = actual.find(header => header.key === 'Content-Security-Policy').value;
-      assert.equal(csp.split(host).length - 1, 1);
-      assert.match(csp, new RegExp('connect-src[^;]*' + host.replaceAll('.', '\\.')));
-      assert.doesNotMatch(csp, /\*\.search\.ai\.cloudflare\.com/);
-      comparable = actual.map(header => header.key === 'Content-Security-Policy' ? { ...header, value: header.value.replace(' ' + host, '') } : header);
-    }
+    const comparable = actual;
+    assert.doesNotMatch(JSON.stringify(actual), /search\.ai\.cloudflare\.com/);
     assert.equal(preservesBaseline(comparable, appEnvironment), true, appEnvironment);
+    const publicSearch = actual.map(header => header.key === 'Content-Security-Policy' ? { ...header, value: header.value.replace("connect-src 'self'", "connect-src 'self' " + host) } : header);
+    assert.equal(preservesBaseline(publicSearch, appEnvironment), false, 'Public AI Search connection must fail');
     const changedHeader = comparable.map((header, index) => index ? header : { ...header, value: header.value + ' tampered' });
     assert.equal(preservesBaseline(changedHeader, appEnvironment), false, 'Unrelated header mutation must fail');
     assert.equal(preservesBaseline(comparable.filter(header => header.key !== 'Content-Security-Policy'), appEnvironment), false, 'Missing CSP must fail');
@@ -130,7 +152,7 @@ test('CSP adds exactly one UAT Web connect host while preserving complete Produc
   }
 });
 
-test('native browser form sends nothing on typing, escapes results, handles failures and aborts on close/timeout', async () => {
+test('preserved dormant prototype form sends nothing on typing, escapes results and handles abort/failure', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'https://test.ccpun.com/blog/' });
   const saved = new Map(['window', 'document', 'navigator', 'IS_REACT_ACT_ENVIRONMENT', 'fetch', 'setTimeout', 'clearTimeout'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   Object.defineProperties(globalThis, { window: { value: dom.window, configurable: true }, document: { value: dom.window.document, configurable: true }, navigator: { value: dom.window.navigator, configurable: true }, IS_REACT_ACT_ENVIRONMENT: { value: true, configurable: true, writable: true } });
