@@ -406,6 +406,159 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
+test("exact Production checkout refreshes only six Git markers after the existing role validator accepts", { skip: process.platform === "win32" }, () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ccpun-root-production-pin-"));
+  try {
+    writeSecurityBaselineFixture(fixture);
+    for (const file of ["scripts/build-root.mjs", "scripts/check-hostinger-readiness.mjs", "lib/runtime/deployment-lanes.mjs", "lib/runtime/hostinger-production-release.mjs"]) {
+      const target = join(fixture, file);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, read(file));
+    }
+    const npm = join(fixture, "npm");
+    writeFileSync(npm, `#!${process.execPath}\nconsole.log("BUILD_CHILD="+JSON.stringify({args:process.argv.slice(2),env:process.env}));\n`);
+    chmodSync(npm, 0o755);
+    const git = (args) => {
+      const result = spawnSync("git", args, { cwd: fixture, encoding: "utf8" });
+      assert.equal(result.status, 0, result.stderr);
+      return result.stdout.trim();
+    };
+    git(["init", "-b", "fixture"]);
+    git(["add", "."]);
+    git(["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "fixture"]);
+    const sha = git(["rev-parse", "HEAD"]);
+    const ref = `codex/hostinger-release-production-${sha}`;
+    git(["branch", "-m", ref]);
+    const common = {
+      PATH: `${fixture}:${process.env.PATH ?? ""}`, HOME: process.env.HOME, NODE_ENV: "production",
+      CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_RELEASE_STAGE: "live",
+      NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER: "hostinger",
+      NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", NEXT_PUBLIC_SANITY_DATASET: "production",
+      CCPUN_GIT_REF: "v4-production", CCPUN_GIT_SHA: "a".repeat(40), CCPUN_RELEASE_ID: "old-private",
+      NEXT_PUBLIC_CCPUN_GIT_REF: "old-public", NEXT_PUBLIC_CCPUN_GIT_SHA: "b".repeat(40), NEXT_PUBLIC_CCPUN_RELEASE_ID: "old-public-release",
+      UNRELATED_FIXTURE_SETTING: "preserve-this-setting",
+    };
+    const admin = {
+      ...common, CCPUN_DEPLOYMENT_ROLE: "admin", NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "admin",
+      CCPUN_APP_ENV: "production-admin", NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin",
+      CCPUN_ADMIN_CAPABILITY_PROFILE: "full", NEXT_PUBLIC_CCPUN_ADMIN_CAPABILITY_PROFILE: "full",
+      AUTH_URL: "https://admin.ccpun.com", CCPUN_NEON_PROJECT_ID: "lively-bar-43618798",
+      CCPUN_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv", CCPUN_NEON_DATABASE: "neondb",
+      CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled", NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "disabled",
+      CCPUN_ARTICLE_SCHEDULING_ENABLED: "0", CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "0",
+      CCPUN_NATIVE_WORKFLOW_ENABLED: "0", CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "cloud",
+      CCPUN_BACKGROUND_EXECUTION_PLANE: "cloud", CCPUN_BACKGROUND_WORKER_ENABLED: "0",
+      CCPUN_UAT_MODE: "0", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0",
+    };
+    const web = {
+      ...common, CCPUN_DEPLOYMENT_ROLE: "web", NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE: "web",
+      CCPUN_APP_ENV: "production", NEXT_PUBLIC_CCPUN_APP_ENV: "production",
+      CCPUN_UAT_MODE: "0", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "1",
+    };
+    const run = (env) => spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], { cwd: fixture, encoding: "utf8", env });
+    const accepted = (env) => {
+      const result = run(env);
+      assert.equal(result.status, 0, result.stderr);
+      const child = JSON.parse(result.stdout.split("\n").find((line) => line.startsWith("BUILD_CHILD=")).slice("BUILD_CHILD=".length));
+      // macOS injects this platform-only value into spawned processes.
+      delete child.env.__CF_USER_TEXT_ENCODING;
+      assert.deepEqual(child.args, ["run", "build", "--workspace", `@ccpun/${env.CCPUN_DEPLOYMENT_ROLE}`]);
+      const releaseId = `hostinger-${env.CCPUN_DEPLOYMENT_ROLE}-prod-${sha.slice(0, 12)}`;
+      assert.deepEqual(child.env, { ...env, CCPUN_GIT_REF: ref, CCPUN_GIT_SHA: sha, CCPUN_RELEASE_ID: releaseId,
+        NEXT_PUBLIC_CCPUN_GIT_REF: ref, NEXT_PUBLIC_CCPUN_GIT_SHA: sha, NEXT_PUBLIC_CCPUN_RELEASE_ID: releaseId });
+    };
+    const denied = (env, reason = /PRODUCTION_RELEASE_(?:REF|IDENTITY)_DENIED/) => {
+      const result = run(env);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, reason);
+      assert.doesNotMatch(result.stdout, /BUILD_CHILD=|"status"|VALIDATOR_VALUE_MUST_NOT_ESCAPE/);
+      assert.doesNotMatch(result.stderr, /preserve-this-setting|old-private|old-public-release|VALIDATOR_VALUE_MUST_NOT_ESCAPE/);
+    };
+    accepted(admin);
+    accepted({ ...admin, CCPUN_GIT_REF: `codex/hostinger-release-production-${"0".repeat(40)}` });
+    accepted({ ...admin, CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" });
+    accepted(web);
+    accepted({ ...web, CCPUN_RELEASE_STAGE: "candidate", CCPUN_UAT_MODE: "1", CCPUN_ENABLE_PRODUCTION_ANALYTICS: "0" });
+    for (const [key, value] of [
+      ["CCPUN_DEPLOYMENT_PROVIDER", "local"], ["CCPUN_DEPLOYMENT_ROLE", "unknown"],
+      ["CCPUN_APP_ENV", "admin-uat"], ["NEXT_PUBLIC_CCPUN_APP_ENV", "admin-uat"],
+      ["NEXT_PUBLIC_SANITY_PROJECT_ID", "ccb9lnw5"], ["NEXT_PUBLIC_SANITY_DATASET", "uat"],
+      ["CCPUN_ADMIN_CAPABILITY_PROFILE", "editorial"], ["AUTH_URL", "https://admin-test.ccpun.com"],
+      ["CCPUN_NEON_BRANCH_ID", "br-crimson-mouse-az7ajkv8"], ["CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED", "1"],
+      ["NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE", "web"], ["NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND", "native-neon"],
+    ]) denied({ ...admin, [key]: value });
+    for (const [key, value] of [
+      ["CCPUN_DEPLOYMENT_PROVIDER", "local"], ["CCPUN_DEPLOYMENT_ROLE", "admin"],
+      ["CCPUN_APP_ENV", "web-uat"], ["NEXT_PUBLIC_CCPUN_APP_ENV", "web-uat"],
+      ["NEXT_PUBLIC_SANITY_PROJECT_ID", "ccb9lnw5"], ["NEXT_PUBLIC_SANITY_DATASET", "uat"],
+      ["CCPUN_RELEASE_STAGE", "shadow"], ["CCPUN_UAT_MODE", "1"], ["CCPUN_ENABLE_PRODUCTION_ANALYTICS", "0"],
+      ["NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER", "local"], ["NEXT_PUBLIC_CCPUN_DEPLOYMENT_ROLE", "admin"],
+      ["WORKFLOW_TARGET_WORLD", "local"],
+    ]) denied({ ...web, [key]: value });
+    denied({ ...web, NEXT_PUBLIC_SANITY_DATASET: "VALIDATOR_VALUE_MUST_NOT_ESCAPE" });
+    denied({ ...admin, CCPUN_DEPLOYMENT_PROVIDER: undefined });
+    denied({ ...admin, CCPUN_ADMIN_CAPABILITY_PROFILE: undefined });
+    denied({ ...admin, VERCEL_ENV: "production" }, /UNSUPPORTED_PROVIDER_METADATA/);
+    for (const badRef of [
+      `codex/hostinger-release-production-${"0".repeat(40)}`,
+      `codex/hostinger-release-production-${"A".repeat(40)}`,
+      `${ref}-extra`, "codex/hostinger-release-production-short",
+    ]) {
+      git(["branch", "-m", badRef]);
+      denied(admin, /PRODUCTION_RELEASE_REF_DENIED/);
+    }
+    git(["branch", "-m", ref]);
+    git(["checkout", "--detach"]);
+    denied({ ...admin, CCPUN_GIT_REF: ref }, /PRODUCTION_RELEASE_REF_DENIED/);
+    git(["checkout", "-b", "unrelated-branch"]);
+    denied({ ...admin, CCPUN_GIT_REF: ref }, /PRODUCTION_RELEASE_REF_DENIED/);
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
+
+test("Production Git successor keeps historical seals and rejects tampering, resealing and removed assertions", async () => {
+  const { assertNativeProviderRetirement, assertReviewedNativeShadowTest } = await import("../qa/phase3-native-provider-proof.mjs");
+  const proof = JSON.parse(read("qa/phase3-native-provider-parity.json"));
+  const file = "lib/runtime/deployment-identity.ts";
+  const shadow = "tests/hostinger-shadow-config.test.mjs";
+  const digest = (body) => createHash("sha256").update(body).digest("hex");
+  const verify = (record = proof, reader = read) => assertNativeProviderRetirement(file, proof.baselineHashes[file], record, reader);
+  assert.equal(verify(), true);
+  assert.equal(assertReviewedNativeShadowTest(proof.baselineHashes[shadow], proof), true);
+  for (const path of ["scripts/build-root.mjs", shadow]) {
+    const changed = read(path) + "\n// unreviewed change\n";
+    const reader = (entry) => entry === path ? changed : read(entry);
+    assert.throws(() => verify(proof, reader));
+    const resealed = structuredClone(proof);
+    (path === shadow ? resealed.outputTestHashes : resealed.currentHashes)[path] = digest(changed);
+    assert.throws(() => verify(resealed, reader));
+  }
+  const assertion = "      assert.deepEqual(child.args, [\"run\", \"build\", \"--workspace\", `@ccpun/${env.CCPUN_DEPLOYMENT_ROLE}`]);";
+  const reduced = read(shadow).replace(assertion, "");
+  assert.notEqual(reduced, read(shadow));
+  const removed = structuredClone(proof);
+  removed.outputTestHashes[shadow] = digest(reduced);
+  assert.throws(() => verify(removed, (entry) => entry === shadow ? reduced : read(entry)));
+  assert.throws(() => assertReviewedNativeShadowTest(proof.baselineHashes[shadow], removed, (entry) => entry === shadow ? reduced : read(entry)));
+  assert.throws(() => assertReviewedNativeShadowTest(proof.baselineHashes[shadow], proof, (entry) => entry === shadow ? proof.baselineSources[shadow] : read(entry)));
+  for (const [path, historical] of [
+    ["scripts/build-root.mjs", "b3640b1f1dfd80bbe1cd59aed0b3e857398ce9ae374652c92c098260f39beb0f"],
+    [shadow, "4c48e59ed5de59304237e09605e3857fe497cc88012447ade5a7cf2623742833"],
+  ]) {
+    const rewritten = structuredClone(proof);
+    (path === shadow ? rewritten.outputTestHashes : rewritten.currentHashes)[path] = historical;
+    assert.throws(() => verify(rewritten));
+  }
+  const unowned = structuredClone(proof);
+  unowned.currentHashes["lib/unreviewed.ts"] = digest("unreviewed");
+  assert.throws(() => verify(unowned, (entry) => entry === "lib/unreviewed.ts" ? "unreviewed" : read(entry)));
+  assert.throws(() => assertNativeProviderRetirement("scripts/build-root.mjs", proof.baselineHashes[file]));
+  const marker = "'scripts/build-root.mjs': { before: 'b3640b1f1dfd80bbe1cd59aed0b3e857398ce9ae374652c92c098260f39beb0f'";
+  const brokenChain = read("qa/phase3-native-provider-proof.mjs").replace(marker, marker.replace(/b3640b1f[0-9a-f]+/, "0".repeat(64)));
+  assert.notEqual(brokenChain, read("qa/phase3-native-provider-proof.mjs"));
+  const changedProof = await import(`data:text/javascript;base64,${Buffer.from(brokenChain).toString("base64")}`);
+  assert.throws(() => changedProof.assertNativeProviderRetirement(file, proof.baselineHashes[file], proof, read), /previous reviewed successor seal differs/);
+});
+
 test("Hostinger Admin readiness certifies only full native-neon pinned lanes without echoing database secrets", () => {
   for (const environment of ["admin-uat", "production-admin"]) {
     const ok = runAdminReadiness(environment);
