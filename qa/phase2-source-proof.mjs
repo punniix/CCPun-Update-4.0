@@ -1,3 +1,4 @@
+import { assertProductionCmsOwner, hasProductionCmsOwner } from './production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -146,12 +147,14 @@ export function articleOverviewSourceProjection(source) {
 }
 
 export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
+  assert.ok(["e7d30c05a340e831756440a21ae8ab515ad7680d90bc333288dac2c3ff996eb7", "a45fec53fee9dc969b817d9d4df4dc96271a4838da22f3c5250e79d55afb2885"].includes(sha(JSON.stringify(proof.reviewedUxOwners))),'previous complete UI admission manifest remains frozen');
   assert.deepEqual(Object.keys(proof.reviewedUxOwners).sort(), [...allowed].sort(), 'Only exact reviewed UI owners are admitted');
   for (const file of allowed) {
     const admission = proof.reviewedUxOwners[file];
     assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256','candidateSha256']);
     assert.equal(admission.baselineSha256, (proof.protected[file] ?? proof.canonical?.[file]), file + ': original protected digest retained');
     assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
+    if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,readCurrent(file)); continue; }
     let source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, readCurrent(file)));
     if (file === 'features/blog/website-43/Website43Article.tsx') source = articleOverviewSourceProjection(source);
     let expected = admission.candidateSha256;
@@ -211,9 +214,21 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
   assert.equal(file, controllerPath, 'Only the reviewed Money Story composition is admitted');
   const proof = JSON.parse(readCurrent('qa/phase2-css-delivery-parity.json'));
   const composition = proof.moneyComposition;
+  assert.equal(sha(JSON.stringify(composition)), '92b76f2e8c0599731866ca76111ee4887c49d97ef93b2ca1a05b08ec39e61265','entire original Money composition manifest stays frozen');
   assert.equal(composition.controller, controllerPath);
   assert.equal(composition.owner, ownerPath);
   const current = readCurrent(file), owner = readCurrent(ownerPath);
+  if(hasProductionCmsOwner(file)) {
+    assert.equal(composition.controllerSha256,'1628800ae52abfd0c6b67a636904eb7c717d43058660700aef3bd1a68c8f468d');
+    assert.equal(composition.ownerSha256,'6ec4b01b4930d5b14d95073a168e2d87e982ae611edb4945d0ff8accf301ec9b');
+    assertProductionCmsOwner(file,current); assertProductionCmsOwner(ownerPath,owner);
+    const original = gunzipSync(Buffer.from(proof.moneyOriginalControllerGzip,'base64')).toString();
+    assert.equal(sha(original),expectedBaselineDigest,'frozen original Money controller');
+    assert.equal(expectedBaselineDigest,composition.baselineSha256);
+    assert.equal(composition.test,'tests/money-story-presentation-parity.test.mjs');
+    assert.equal(sha(readCurrent(composition.test)),'7c0b778d22dd6bf699e3c477d55a396d655446301307e7beaab8e0924a1783eb','unchanged six-output/action fixture with only default CMS context');
+    return true;
+  }
   assert.equal(sha(current), composition.controllerSha256, 'Unreviewed controller composition');
   assert.equal(sha(owner), composition.ownerSha256, 'Unreviewed current sidebar body');
   const original = gunzipSync(Buffer.from(proof.moneyOriginalControllerGzip, 'base64')).toString();

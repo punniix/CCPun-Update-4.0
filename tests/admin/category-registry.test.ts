@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { loadFixtureModule } from "../../qa/phase1-fixture-loader.mjs";
 import {
   articleBelongsToPhysicalCategory,
   buildCategoryRegistry,
@@ -210,4 +212,83 @@ test("travel-insurance lifecycle: draft -> active -> safe deactivate/redirect", 
     kind: "redirect",
     destinationSlug: "motor-insurance",
   });
+});
+
+function categoryMigrationFixture(options: { missingRevision?: boolean; concurrentEdit?: boolean; pending?: boolean; noChanges?: boolean; dryRun?: boolean } = {}) {
+  const file = "scripts/migrate-category-registry.ts";
+  const source = readFileSync(file, "utf8");
+  const marker = '\nmain().catch((error) => {';
+  assert.equal(source.split(marker).length, 2);
+  const docs: Array<{ _id: string; _type: string; _rev?: string; title: string; slug: { current: string }; status: string; description: string }> = [
+    { _id: "category-personal", _type: "category", _rev: "read-rev-1", title: "การเงินส่วนบุคคล", slug: { current: "personal-finance" }, status: options.noChanges ? "active" : "draft", description: "Existing description" },
+    { _id: "category-motor", _type: "category", _rev: "read-rev-motor", title: "ประกันรถยนต์", slug: { current: "motor-insurance" }, status: "active", description: "Motor description" },
+  ];
+  if (options.missingRevision) delete docs[0]!._rev;
+  const operations: Array<{ id: string; patch: { ifRevisionID?: string; set: { status: string } } }> = [];
+  let transactionCount = 0, commitCount = 0, pendingChecks = 0;
+  const tx = {
+    patch(id: string, patch: { ifRevisionID?: string; set: { status: string } }) { operations.push({ id, patch }); return tx; },
+    createIfNotExists() { throw new Error("UNEXPECTED_CREATE"); },
+    async commit() {
+      commitCount += 1;
+      if (options.concurrentEdit) { docs[0]!._rev = "concurrent-rev"; docs[0]!.description = "Concurrent editor value"; }
+      // Sanity applies the complete transaction only when all revision preconditions match.
+      for (const operation of operations) if (docs.find(doc => doc._id === operation.id)?._rev !== operation.patch.ifRevisionID) throw new Error("REVISION_CONFLICT");
+      for (const operation of operations) Object.assign(docs.find(doc => doc._id === operation.id)!, operation.patch.set, { _rev: "committed-rev" });
+    },
+  };
+  const client = {
+    config: () => ({ projectId: "ccb9lnw5", dataset: "uat" }),
+    withConfig() { return client; },
+    async fetch(query: string) { return query.startsWith('*[_type == "category"]') ? structuredClone(docs) : []; },
+    transaction() { transactionCount += 1; return tx; },
+  };
+  const { main } = loadFixtureModule(file, {
+    // Disable only the process entry in this in-memory fixture; actual main, lane,
+    // plan, transaction and readback code execute unchanged.
+    sources: new Map([[file, source.split(marker)[0] + '\nexport { main };\n']]),
+    mocks: new Map<string, unknown>([
+      ["sanity/cli", { getCliClient: () => client }],
+      ["@sanity/client", { createClient() { throw new Error("UNEXPECTED_PRODUCTION_READ"); } }],
+      ["@/scripts/admin-operations-audit", { async assertNoPendingScriptAdminAudit() {
+        pendingChecks += 1;
+        if (options.pending) throw new Error("UAT_TAXONOMY_RECONCILIATION_REQUIRED");
+      } }],
+    ]),
+    globals: { process: { env: { CCPUN_APP_ENV: "local-uat" },
+      argv: ["node", file, "--target=uat", options.dryRun ? "--dry-run" : "--apply", "--confirm=CCPUN-CATEGORY-REGISTRY-UAT"],
+      exit(code: number) { throw new Error(`FIXTURE_EXIT_${code}`); } }, console: { log() {} } },
+  });
+  return { run: () => main(), docs, operations, state: () => ({ transactionCount, commitCount, pendingChecks }) };
+}
+
+test("registry migration status writes bind the exact fetched revision and retain identity/content", async () => {
+  const fixture = categoryMigrationFixture();
+  await fixture.run();
+  assert.deepEqual(fixture.operations, [{ id: "category-personal", patch: { ifRevisionID: "read-rev-1", set: { status: "active" } } }]);
+  assert.equal(fixture.docs[0]!.description, "Existing description");
+  assert.equal(fixture.docs[0]!.status, "active");
+  assert.deepEqual(fixture.state(), { transactionCount: 1, commitCount: 1, pendingChecks: 1 });
+});
+
+test("registry migration refuses missing revision before transaction and a concurrent edit cannot be overwritten", async () => {
+  const missing = categoryMigrationFixture({ missingRevision: true });
+  await assert.rejects(missing.run(), /revision is required/);
+  assert.deepEqual(missing.state(), { transactionCount: 0, commitCount: 0, pendingChecks: 0 });
+  const concurrent = categoryMigrationFixture({ concurrentEdit: true });
+  await assert.rejects(concurrent.run(), /REVISION_CONFLICT/);
+  assert.equal(concurrent.docs[0]!.status, "draft");
+  assert.equal(concurrent.docs[0]!.description, "Concurrent editor value");
+  assert.equal(concurrent.state().commitCount, 1, "no automatic provider retry");
+});
+
+test("registry UAT apply checks unresolved taxonomy intents even for no changes, while dry-run stays mutation-free", async () => {
+  for (const noChanges of [false, true]) {
+    const fixture = categoryMigrationFixture({ pending: true, noChanges });
+    await assert.rejects(fixture.run(), /UAT_TAXONOMY_RECONCILIATION_REQUIRED/);
+    assert.deepEqual(fixture.state(), { transactionCount: 0, commitCount: 0, pendingChecks: 1 });
+  }
+  const dry = categoryMigrationFixture({ pending: true, dryRun: true });
+  await assert.rejects(dry.run(), /FIXTURE_EXIT_0/);
+  assert.deepEqual(dry.state(), { transactionCount: 0, commitCount: 0, pendingChecks: 0 });
 });

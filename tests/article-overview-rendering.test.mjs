@@ -1,11 +1,10 @@
+import { assertProductionCmsOwner, productionCmsOwners } from '../qa/production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
-import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
 const read = path => readFileSync(path,'utf8');
 const path = 'features/blog/website-43/Website43Article.tsx';
 const summary = 'บทความอธิบายวิธีแยกรายได้ ค่าใช้จ่าย และค่าลดหย่อน เพื่อเห็นภาพลำดับการคำนวณภาษี\nยกตัวอย่างข้อมูลที่ต้องเตรียมและข้อควรตรวจสอบ ก่อนนำไปคำนวณตามบทความ';
@@ -28,9 +27,10 @@ test('native default-open overview renders full SSR text, two points, and no emp
   assert.doesNotMatch(html, /aria-hidden="true"[^>]*>[^<]*บทความ|fetch\(|loading=|placeholder/);
 });
 
-test('actual Article composition hides Draft/preview/empty and places overview after mobile TOC before body', () => {
+test('actual Article composition hides Draft/preview/empty and places overview after mobile TOC before body', async () => {
   const component = (tag, label='') => function FixtureComponent({children}) { return React.createElement(tag,null,label,children); };
   const mocks = new Map([
+    ['@/lib/content/public-copy', { getPublicCopy: async scope => loadFixtureModule('lib/content/public-copy-registry.ts').parsePublicCopy(scope,null) }],
     ['@/components/layout/website-43/Website43Shared', { Website43Navbar:()=>null, Website43Footer:()=>null, SectionHeading:()=>null }],
     ['./ArticleEngagement', { ArticleEngagementProvider:component('div'), ArticleEngagementSummary:()=>null }],
     ['./ArticleShareActions', { __esModule:true,default:()=>null }],
@@ -40,19 +40,20 @@ test('actual Article composition hides Draft/preview/empty and places overview a
   ]);
   const Article = loadFixtureModule(path,{mocks}).default;
   const article = {id:'article',slug:'overview-test',title:'บทความ',category:'การเงินส่วนบุคคล',categorySlug:'personal-finance',status:'published',body:[{type:'heading',level:2,text:'หัวข้อ'}],geo:{summary},featuredImage:{src:'/image.webp',alt:'IMAGE-FIXTURE',width:720,height:400}};
-  const html = renderToStaticMarkup(React.createElement(Article,{article}));
+  const html = renderToStaticMarkup(await Article({article}));
   assert.ok(html.indexOf('IMAGE-FIXTURE')<html.lastIndexOf('TOC-FIXTURE'));
   assert.ok(html.lastIndexOf('TOC-FIXTURE')<html.indexOf('สรุปบทความนี้'));
   assert.ok(html.indexOf('สรุปบทความนี้')<html.indexOf('BODY-FIXTURE'));
-  assert.ok(renderToStaticMarkup(React.createElement(Article,{article:{...article,status:'draft'},preview:true})).includes('สรุปบทความนี้'),'authorized Draft Preview renders the current draft summary');
-  for (const props of [{article:{...article,status:'draft'}},{article:{...article,geo:{summary:' '}}},{article:{...article,status:'draft',geo:{summary:' '}},preview:true}]) assert.ok(!renderToStaticMarkup(React.createElement(Article,props)).includes('สรุปบทความนี้'));
+  assert.ok(renderToStaticMarkup(await Article({article:{...article,status:'draft'},preview:true})).includes('สรุปบทความนี้'),'authorized Draft Preview renders the current draft summary');
+  for (const props of [{article:{...article,status:'draft'}},{article:{...article,geo:{summary:' '}}},{article:{...article,status:'draft',geo:{summary:' '}},preview:true}]) assert.ok(!renderToStaticMarkup(await Article(props)).includes('สรุปบทความนี้'));
 });
 
 test('exact overview insertions reconstruct complete approved Article body and reject unrelated drift', () => {
-  const source=read(path), sha=value=>createHash('sha256').update(value).digest('hex');
-  const check=value=>assert.equal(sha(articleOverviewSourceProjection(reviewedThaiWrapProjection(path,reviewedArticleCardProjection(path,value)))),'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae');
+  const source=read(path);
+  assert.equal(productionCmsOwners[path].before,'3e161d551d7a5c779753fe88193c857cd221209818471a2d1afb8c4f02c65f2c');
+  const check=value=>assertProductionCmsOwner(path,value);
   check(source);
-  for(const mutant of [source.replace("article.status === 'published'", "article.status !== 'published'"), source.replace('summary={article.geo?.summary}', 'summary={article.excerpt}'), source.replace('อ่านต่อ','เปลี่ยนข้อความ'), source+"\n// unknown change\n"]) assert.throws(()=>check(mutant));
+  for(const mutant of [source.replace("article.status === 'published'", "article.status !== 'published'"),source.replace('summary={article.geo?.summary}','summary={article.excerpt}'),source.replace('blog.articleHeaderMeta','blog.articleDateLabel'),source+'\n// unknown change\n']) {assert.notEqual(mutant,source);assert.throws(()=>check(mutant));}
 });
 
 test('overview uses native Thai wrapping, unconstrained height and reduced-motion-safe disclosure', () => {
@@ -66,16 +67,9 @@ test('overview uses native Thai wrapping, unconstrained height and reduced-motio
 
 test('Thai wrap trial admits exact local styles and rejects content/font/unknown drift in every owner', () => {
   for (const file of ['features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43ArticleToc.tsx']) {
-    const source=read(file), old=reviewedThaiWrapProjection(file,reviewedArticleCardProjection(file,source));
-    assert.notEqual(old,source);
-    assert.throws(()=>reviewedThaiWrapProjection(file,source.replace("textWrap: 'pretty'", "textWrap: 'nowrap'")));
-    assert.equal(reviewedThaiWrapProjection(file,reviewedArticleCardProjection(file,source+'\n// unrelated')),old+'\n// unrelated','unknown bytes are retained for whole-body hash rejection, never stripped');
-    if (file !== path) {
-      const pin=JSON.parse(read('qa/production-code-only-parity.json')).reviewedUxOwners[file].candidateSha256;
-      const sha=value=>createHash('sha256').update(value).digest('hex');
-      assert.equal(sha(old),pin,'complete existing owner body reconstructed');
-      for(const changed of [source+'\n// unrelated',source.replace(file.includes('Toc')?'group.primary.label':'article.title',"'unreviewed copy'")]) assert.notEqual(sha(reviewedThaiWrapProjection(file,reviewedArticleCardProjection(file,changed))),pin,'copy/unknown drift remains rejected by original whole-body pin');
-    }
+    const source=read(file);
+    assertProductionCmsOwner(file,source);
+    for(const mutant of [source.replace("textWrap: 'pretty'","textWrap: 'nowrap'"), source+'\n// unrelated',source.replace(file.includes('Toc')?'group.primary.label':'article.title',"'unreviewed copy'")]) {assert.notEqual(mutant,source);assert.throws(()=>assertProductionCmsOwner(file,mutant));}
   }
 });
 
@@ -93,7 +87,7 @@ test('native typing advances only complete Thai/emoji graphemes and cleans only 
   put('NodeFilter',{SHOW_TEXT:4});put('document',document);put('window',new EventTarget());put('innerHeight',800);put('matchMedia',()=>motion);
   put('setTimeout',fn=>{const id=++timerId;timers.set(id,fn);return id;});put('clearTimeout',id=>timers.delete(id));
   try {
-    const overviewModule=loadFixtureModule('features/blog/website-43/Website43ArticleOverview.tsx',{mocks:new Map([['react',{...React,useRef:()=>({current:refs.shift()}),useEffect:effect=>effects.push(effect)}]])});
+    const overviewModule=loadFixtureModule('features/blog/website-43/Website43ArticleOverview.tsx',{mocks:new Map([['@/components/ui/PublicCopyProvider', {usePublicCopy: defaults => key => defaults[key]}], ['react',{...React,useRef:()=>({current:refs.shift()}),useEffect:effect=>effects.push(effect)}]])});
     const text='กิ้👩‍💻ไทยอ่านได้ครบประโยคและคงรูปสระทุกตัว';
     const ends=overviewModule.overviewGraphemeEnds(text);assert.deepEqual(ends.slice(0,2),[3,8]);
     const mount=(options={})=>{

@@ -4,6 +4,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// Direct CLI entry must enforce the same floor even when npm lifecycle hooks are disabled.
+await import(new URL("./check-next-security-baseline.mjs", import.meta.url));
 const { DEPLOYMENT_LANES } = await import(
   new URL("../lib/runtime/deployment-lanes.mjs", import.meta.url)
 );

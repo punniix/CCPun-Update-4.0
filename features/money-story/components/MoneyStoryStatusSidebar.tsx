@@ -1,3 +1,6 @@
+'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { MONEY_STORY_COPY_DEFAULTS, moneyStoryLabel } from "@/lib/content/money-story-copy-defaults";
 import { Car, HeartPulse, House, ShieldCheck, Users } from 'lucide-react';
 import { PROTECTION_CATALOG } from '../config';
 import type { statusBars } from '../engine';
@@ -25,6 +28,8 @@ function Meter({
   status: string;
   detail: React.ReactNode;
 }) {
+  const text = usePublicCopy(MONEY_STORY_COPY_DEFAULTS);
+
   return (
     <div>
       <div className={styles.meterHeader}>
@@ -45,7 +50,7 @@ function Meter({
         />
       </div>
       <div className={styles.valueLine}>
-        <span>{Math.round(value)} / 100</span>
+        <span>{Math.round(value)}{" " + text("moneyStory.span23")}</span>
         <div className={styles.meterDetail}>{detail}</div>
       </div>
     </div>
@@ -64,6 +69,8 @@ type MoneyStoryStatusSidebarProps = {
 
 // Presentation only. The controller owns decisions, focus, state and analytics.
 export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarProps) {
+  const text = usePublicCopy(MONEY_STORY_COPY_DEFAULTS);
+  const label = (value: string) => moneyStoryLabel(value, text);
   const protectionTypes: ProtectionType[] = [
     'health',
     'critical',
@@ -76,15 +83,13 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
         <aside className={styles.side + ' ' + styles.sideRight}>
           <div className={styles.sidebarSection}>
             <Meter
-              label="เงินพร้อมรับมือ"
+              label={text("moneyStory.moneyStoryStatusSidebarlabel")}
               value={bars.liquidity}
               status={bars.liquidityLabel}
               detail={
                 <>
-                  <span>เงินสดพร้อมใช้ {money.format(Math.max(0, game.cash))} บาท</span>
-                  <small>
-                    พอร์ตลงทุน {money.format(game.investments)} บาท ไม่รวมในบาร์นี้
-                  </small>
+                  <span>{text("moneyStory.span24")}{money.format(Math.max(0, game.cash))}{" " + text("moneyStory.eventTitle3")}</span>
+                  <small>{text("moneyStory.small10")}{money.format(game.investments)}{" " + text("moneyStory.small11")}</small>
                 </>
               }
             />
@@ -92,16 +97,14 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
 
           <div className={styles.sidebarSection}>
             <Meter
-              label="ความคล่องตัว"
+              label={text("moneyStory.moneyStoryStatusSidebarlabel2")}
               value={bars.flexibility}
               status={bars.flexibilityLabel}
               detail={
                 <>
-                  <span>
-                    เหลือหลังภาระประจำ{' '}
-                    {money.format(bars.projectedMonthlyFlexibility)} บาท/เดือน
-                  </span>
-                  <small>วัดจากรายได้เทียบกับภาระประจำของเดือนถัดไป</small>
+                  <span>{text("moneyStory.span25")}{' '}
+                    {money.format(bars.projectedMonthlyFlexibility)}{" " + text("moneyStory.span12")}</span>
+                  <small>{text("moneyStory.small12")}</small>
                 </>
               }
             />
@@ -110,19 +113,17 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
           <div className={styles.sidebarSection}>
             <div className={styles.goalJourney}>
               <div className={styles.goalJourneyHeader}>
-                <strong>เส้นทางเป้าหมาย</strong>
+                <strong>{text("moneyStory.strong11")}</strong>
                 <span>{bars.goalLabel}</span>
               </div>
               <div className={styles.goalScore}>
                 <strong>{Math.round(bars.goalProgressPercent)}%</strong>
-                <span>
-                  เงินสำหรับเป้าหมาย {money.format(bars.goalPosition)} บาท
-                </span>
+                <span>{text("moneyStory.span26")}{money.format(bars.goalPosition)}{" " + text("moneyStory.eventTitle3")}</span>
               </div>
               <div
                 className={styles.goalJourneyTrack}
                 role="progressbar"
-                aria-label="ความคืบหน้าสู่หมุดหมายถัดไป"
+                aria-label={text("moneyStory.moneyStoryStatusSidebararialabel")}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(bars.goalSegmentProgress)}
@@ -136,30 +137,19 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
                 <span>{bars.goalPreviousMilestonePercent}%</span>
                 <strong>{bars.goalNextMilestonePercent}%</strong>
               </div>
-              <p className={styles.goalNext}>
-                หมุดหมายถัดไป {money.format(bars.goalNextMilestoneAmount)} บาท
-                {' · '}อีก {money.format(bars.goalRemainingToNext)} บาท
-              </p>
+              <p className={styles.goalNext}>{text("moneyStory.goalNext")}{money.format(bars.goalNextMilestoneAmount)}{" " + text("moneyStory.eventTitle3")}{' · '}{text("moneyStory.goalNext2")}{money.format(bars.goalRemainingToNext)}{" " + text("moneyStory.eventTitle3")}</p>
               <div className={styles.goalReserveNote}>
-                <span>
-                  กันเงินสำรอง 3 เดือน {money.format(bars.cashReserveTarget)} บาท
-                </span>
-                <small>
-                  ตอนนี้กันได้ {money.format(bars.cashReserveAllocated)} บาท
-                  {' · '}เงินสดส่วนเกินที่นับเข้าเป้าหมาย{' '}
-                  {money.format(bars.cashAboveReserve)} บาท
-                </small>
+                <span>{text("moneyStory.span27")}{money.format(bars.cashReserveTarget)}{" " + text("moneyStory.eventTitle3")}</span>
+                <small>{text("moneyStory.small13")}{money.format(bars.cashReserveAllocated)}{" " + text("moneyStory.eventTitle3")}{' · '}{text("moneyStory.small14")}{' '}
+                  {money.format(bars.cashAboveReserve)}{" " + text("moneyStory.eventTitle3")}</small>
               </div>
-              <small className={styles.goalFormula}>
-                เป้าหมาย = พอร์ตลงทุน + เงินสดส่วนที่เกินเงินสำรอง − หนี้
-                {' · '}100% คือเป้าหมายแรก ไม่ใช่จุดจบ
-              </small>
+              <small className={styles.goalFormula}>{text("moneyStory.goalFormula")}{' · '}{text("moneyStory.goalFormula2")}</small>
             </div>
           </div>
 
           <div className={styles.sidebarSection + ' ' + styles.protections}>
             <div className={styles.sidebarHeading}>
-              <h3>ความคุ้มครอง</h3>
+              <h3>{text("moneyStory.strong")}</h3>
             </div>
             <div className={styles.coverageList}>
               {protectionTypes.map((type) => {
@@ -177,8 +167,8 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
                 if (!holding) {
                   return (
                     <div className={styles.coverageMissing} key={type}>
-                      <span>{protectionIcons[type]} {catalog.label}</span>
-                      <small>ยังไม่มี</small>
+                      <span>{protectionIcons[type]} {label(catalog.label)}</span>
+                      <small>{text("moneyStory.small15")}</small>
                     </div>
                   );
                 }
@@ -186,19 +176,17 @@ export function MoneyStoryStatusSidebar({ game, bars }: MoneyStoryStatusSidebarP
                 return (
                   <div className={styles.coverageItem} key={type}>
                     <div className={styles.coverageTitle}>
-                      <span>{protectionIcons[type]} {catalog.label}</span>
-                      <strong>{pending ? 'เริ่มเดือนหน้า' : active ? 'มีผลแล้ว' : 'รอเริ่ม'}</strong>
+                      <span>{protectionIcons[type]} {label(catalog.label)}</span>
+                      <strong>{pending ? text("moneyStory.moneyStoryStatusSidebarText") : active ? text("moneyStory.moneyStoryStatusSidebarText2") : text("moneyStory.moneyStoryStatusSidebarText3")}</strong>
                     </div>
-                    <small>
-                      ช่วยตามกติกาเกมสูงสุด {money.format(catalog.maxBenefit)} บาท
-                      {catalog.coverageRate < 1
-                        ? ' · ' + percentLabel(catalog.coverageRate) + ' ของส่วนที่เข้าเกณฑ์'
+                    <small>{text("moneyStory.small16")}{money.format(catalog.maxBenefit)}{" " + text("moneyStory.eventTitle3")}{catalog.coverageRate < 1
+                        ? ' · ' + percentLabel(catalog.coverageRate) + text("moneyStory.moneyStoryStatusSidebarText4")
                         : ''}
                     </small>
                     <small>
                       {holding.source === 'existing'
-                        ? 'ความคุ้มครองที่มีอยู่แล้ว'
-                        : 'เบี้ย ' + money.format(holding.monthlyPremium) + ' บาท/เดือน'}
+                        ? text("moneyStory.moneyStoryStatusSidebarText5")
+                        : text("moneyStory.optionImpactLinesText18") + money.format(holding.monthlyPremium) + text("moneyStory.moneyStoryResultText4")}
                     </small>
                   </div>
                 );

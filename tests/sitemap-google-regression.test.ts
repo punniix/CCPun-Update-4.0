@@ -115,8 +115,9 @@ test("protects Google publish eligibility and sets one meaningful publication ti
 for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}utility compliance and private error surfaces out of search ownership`, () => {
   const coreSitemap = readPhase1Source(appRoot + "app/sitemaps/core.xml/route.ts");
   const cookieEntry = readSource(`${appRoot}app/cookie-policy/page.tsx`);
-  if (!appRoot) assert.equal(cookieEntry, 'export { default, metadata } from "@/apps/web/app/cookie-policy/page";\n');
-  const cookiePolicy = readSource("apps/web/app/cookie-policy/page.tsx");
+  if (!appRoot) assert.equal(cookieEntry, 'export { default, generateMetadata } from "@/apps/web/app/cookie-policy/page";\n');
+  assert.equal(readSource("apps/web/app/cookie-policy/page.tsx"), 'export { default, generateMetadata } from "@/features/legal/pages/CookiePolicyPage";\n');
+  const cookiePolicy = readSource("features/legal/pages/CookiePolicyPage.tsx");
   const robotsSource = readSource(`${appRoot}app/robots.ts`);
   const nextConfig = readSource(`${appRoot}next.config.ts`);
 

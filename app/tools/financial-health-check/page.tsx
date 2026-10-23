@@ -1,1 +1,1 @@
-export { metadata, default } from "@/features/financial-health-check/page";
+export { default, generateMetadata } from "@/apps/web/app/tools/financial-health-check/page";

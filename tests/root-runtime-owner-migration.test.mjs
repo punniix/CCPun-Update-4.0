@@ -1,3 +1,4 @@
+import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -17,7 +18,9 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
     const file = 'app/' + route, canonical = 'apps/web/' + file;
     const reviewed = productionProof.reviewedUxOwners[canonical];
     if (reviewed) assert.equal(reviewed.baselineSha256, productionProof.protected[canonical], 'original canonical source retained');
-    if (canonical === 'apps/web/app/not-found.tsx') {
+    const cmsSource = hasProductionCmsOwner(canonical);
+    if(cmsSource) assertProductionCmsOwner(canonical,canonicalSource);
+    if (canonical === 'apps/web/app/not-found.tsx' && !cmsSource) {
       assert.equal(productionProof.protected[canonical], '73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8');
       for (const insertion of [
         " style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}",
@@ -28,34 +31,35 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
         canonicalSource = canonicalSource.replace(insertion, '');
       }
     }
-    assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
+    if(!cmsSource) assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
     const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
     const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
-    assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${dynamic ? 'GET' : 'default, metadata'} } from "${owner}";\n`);
-    const sentinel = { __esModule: true, default: () => null, metadata: { title: 'fixture' }, GET: () => new Response('fixture') };
+    const metadataExport = canonical.endsWith('/privacy/page.tsx') || canonical.endsWith('/cookie-policy/page.tsx') ? 'generateMetadata' : 'metadata';
+    assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${dynamic ? 'GET' : 'default, '+metadataExport} } from "${owner}";\n`);
+    const sentinel = { __esModule: true, default: () => null, metadata: { title: 'fixture' }, generateMetadata: async()=>({title:'fixture'}), GET: () => new Response('fixture') };
     const candidate = loadFixtureModule(file, { sources: new Map([[file, source]]), mocks: new Map([[owner, sentinel]]) });
-    assert.deepEqual(Object.keys(candidate).sort(), dynamic ? ['GET', 'dynamic'] : ['default', 'metadata']);
-    for (const name of dynamic ? ['GET'] : ['default', 'metadata']) assert.equal(candidate[name], sentinel[name]);
+    assert.deepEqual(Object.keys(candidate).sort(), dynamic ? ['GET', 'dynamic'] : ['default', metadataExport]);
+    for (const name of dynamic ? ['GET'] : ['default', metadataExport]) assert.equal(candidate[name], sentinel[name]);
     if (dynamic) assert.equal(candidate.dynamic, JSON.parse(dynamic));
   };
   for (const route of routes) verify(route);
-  assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, metadata', 'default')));
+  assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, generateMetadata', 'default')));
   assert.throws(() => verify(routes[2], read('app/' + routes[2]).replace('force-static', 'force-dynamic')));
   assert.throws(() => verify(routes[1], read('app/' + routes[1]).replace('@/apps/web/', '@/apps/admin/')));
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('min(292px, 100%)', 'min(293px, 100%)')));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('ดูบทความ', 'unreviewed copy')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('site.extra.blogRecovery', 'site.extra.primaryButton')));
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'")));
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('1 1 124px', '1 1 125px')));
 });
 
-test('compiled root and Web 404 recovery retain centered bounded buttons, copy, href and metadata', () => {
+test('compiled root and Web 404 recovery retain centered bounded buttons, copy, href and metadata', async () => {
   const shared = { Website43Navbar: () => null, Website43Footer: () => null };
-  const mocks = new Map([['@/components/layout/website-43/Website43Shared', shared]]);
+  const mocks = new Map([['@/components/layout/website-43/Website43Shared', shared], ['@/lib/content/public-copy', {getPublicCopy: async scope => loadFixtureModule('lib/content/public-copy-registry.ts').parsePublicCopy(scope,null)}]]);
   const legacy = loadFixtureModule('app/not-found.tsx', { mocks });
   const canonical = loadFixtureModule('apps/web/app/not-found.tsx', { mocks });
   assert.deepEqual(legacy.metadata, canonical.metadata);
   for (const page of [legacy, canonical]) {
-    const html = renderToStaticMarkup(page.default());
+    const html = renderToStaticMarkup(await page.default());
     assert.match(html, /style="flex-direction:row;flex-wrap:wrap;width:min\(292px, 100%\);gap:12px;justify-content:center;margin-inline:auto"/);
     const links = [...html.matchAll(/<a style="([^"]+)" href="(\/|\/blog\/)">([^<]+)<\/a>/g)];
     assert.deepEqual(links.map(([, , href, text]) => [href, text]), [['/', 'กลับหน้าแรก'], ['/blog/', 'ดูบทความ']]);
@@ -69,13 +73,15 @@ test('root compatibility routes delegate implementations to their canonical app 
   assert.equal(inventory.pairs.length, 49);
   for (const { legacy, canonical, wrapper, status } of inventory.pairs) {
     assert.equal(status, 'migrated', legacy);
-    assert.equal(read(legacy), wrapper, legacy);
+    const expectedWrapper = hasProductionCmsOwner(legacy) ? (wrapper.includes('default, metadata') ? wrapper.replace('default, metadata','default, generateMetadata') : wrapper.replace('export { default }','export { default, generateMetadata }')) : wrapper;
+    assert.equal(read(legacy), expectedWrapper, legacy);
+    if(hasProductionCmsOwner(legacy)) assertProductionCmsOwner(legacy,read(legacy));
     assert.equal(existsSync(resolve(root, canonical)), true, canonical);
     const implementation = read(canonical);
     const namedReexports = [...implementation.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
-    const wrapperExports = [...wrapper.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
-    for (const name of ['default', 'metadata']) {
-      const exported = name === 'default' ? /export default\b/.test(implementation) : /export const metadata\b/.test(implementation);
+    const wrapperExports = [...expectedWrapper.matchAll(/export \{\s*([^}]+)\s*\}/g)].flatMap(match => match[1].split(',').map(name => name.trim()));
+    for (const name of ['default', 'metadata', 'generateMetadata']) {
+      const exported = name === 'default' ? /export default\b/.test(implementation) : name === 'metadata' ? /export const metadata\b/.test(implementation) : /export (?:async )?function generateMetadata\b/.test(implementation);
       if (exported || namedReexports.includes(name)) assert.ok(wrapperExports.includes(name), `${legacy}: missing ${name} export`);
     }
     assert.match(wrapper, new RegExp(`from "@/${canonical.replace(/\.[^.]+$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), legacy);
@@ -89,7 +95,9 @@ test('root compatibility routes delegate implementations to their canonical app 
 test('global foundation has one owner with explicit root, Web and Admin entry bridges', () => {
   const owner = resolve(root, 'components/styles/global-foundation.css');
   const resolveImport = (file) => {
-    const match = read(file).match(/^@import "([^"\n]+)";\s*$/);
+    const source = read(file);
+    if (file === "apps/web/app/globals.css") assert.equal(source, "@import \"../../../components/styles/global-foundation.css\";\n/* Public Web never renders the private Admin UI. Keep its utility candidates\n   out of this app's CSS without changing the shared or Admin foundations. */\n@source not \"../../../features/admin\";\n", "only the exact Web-only Admin scanner exclusion is admitted");
+    const match = source.match(file === "apps/web/app/globals.css" ? /^@import "([^"\n]+)";/ : /^@import "([^"\n]+)";\s*$/);
     assert.ok(match, file);
     return resolve(root, dirname(file), match[1]);
   };

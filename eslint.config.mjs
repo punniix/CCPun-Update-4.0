@@ -9,7 +9,7 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     "**/.next/**",
-    ".ccpun-local/**",
+    "**/.ccpun-local/**",
     "out/**",
     "build/**",
     "UAT-*/**",

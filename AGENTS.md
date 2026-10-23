@@ -14,11 +14,13 @@ This repository powers `ccpun.com`. Treat SEO continuity, consent, analytics con
 
 Read `docs/engineering-workflow-v1.md` before making repository-wide, SEO, analytics, Sanity, routing, or deployment changes.
 
+Before any design, public copy, SEO metadata, asset, or CMS preview change, read and follow `docs/architecture/design-content-release-protocol.md`. This applies to AI agents, developers, designers and ChatGPT plugins. The current design remains the implementation baseline; new FigCraft colour/design prototypes require explicit owner design approval before implementation. UAT development/deployment approval does not approve a prototype or Production release.
+
 ## Repository architecture
 
 Read `docs/architecture/repository-architecture.md` before adding significant files or features.
 
-Runtime baseline: Public Web and Admin both use Node.js 24.x. Do not introduce Node 22-only dependencies or configuration; keep local, CI and Vercel builds on Node 24.
+Runtime baseline: Public Web and Admin both use Node.js 24.x. Do not introduce Node 22-only dependencies or configuration; keep local, CI and Hostinger builds on Node 24.
 
 Before creating a source file:
 
@@ -55,9 +57,9 @@ Before modifying Sanity:
 
 - Production branch: `v4-production`.
 - Never edit `v4-production` directly. Work on a feature/fix/refactor branch.
-- Normal path: branch -> implementation -> tests -> Pull Request -> CI -> Vercel Preview -> human review -> merge.
+- Normal path: branch -> implementation -> tests -> Pull Request -> CI -> authorized Hostinger UAT deployment -> human review -> separately authorized merge/release.
 - Do not merge a PR or trigger a Production deployment unless the user explicitly asks for that action in the current task.
-- Vercel Preview is the validation target for branch work. `ccpun.com` is not a test environment.
+- Hostinger `test.ccpun.com` and `admin-test.ccpun.com` are the validation targets. Use the existing Hostinger Node.js applications via the Hostinger connector; do not deploy/promote through Vercel. `ccpun.com` is not a test environment.
 - Keep changes surgical. Do not mix unrelated URL, content, analytics, and visual changes in one experiment when the effects need to be measured separately.
 
 ## 2. Environment and Sanity safety
@@ -142,7 +144,7 @@ Every substantial task should report:
 1. What changed and why.
 2. Files/surfaces affected.
 3. Tests run and their results.
-4. Vercel Preview status when applicable.
+4. Exact source SHA, Hostinger UAT build status and custom-domain verification when applicable.
 5. Whether SEO URLs, Sanity Production, analytics, or consent changed.
 6. Known risks and rollback path.
 

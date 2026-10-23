@@ -13,8 +13,11 @@ const reviewedBuilderPreludes = {"apps/web/scripts/build-provider.mjs": "  // Re
 
 // Exact reviewed Hostinger config-loader repair; original proof records stay frozen.
 const reviewedAdminConfigBuild = {
-  'apps/admin/scripts/build-provider.mjs': { before: '619fa6263ac85abb328b374319154a3d5f91bfa620657c808e0a507e4122b6e7', after: 'efc39afaf1b48e75db06ca1e6e9985cc4ab895b7c41d1bdb82676345f83fb385' },
-  'tests/hostinger-native-app-contract.test.mjs': { before: '41edd506167307164c31c48e38054f8ae64447c98afc054a80846b96e98ec44f', after: '5d1eabc88dabee42121f5015be8a4cd62e536cbf01a87a2b59ee764be23b30ae' },
+  'apps/admin/scripts/build-provider.mjs': { before: '619fa6263ac85abb328b374319154a3d5f91bfa620657c808e0a507e4122b6e7', after: '9ef7eeb3cfa9f08b182a1036dd845231e8301553b25c772f2c2e42a9b0c60a9e' },
+  'tests/hostinger-native-app-contract.test.mjs': { before: '41edd506167307164c31c48e38054f8ae64447c98afc054a80846b96e98ec44f', after: '413d7991b78b2b325f10dc73a1b9ec04330c14ebacb1f64be9a6144a13759fbd' },
+  'scripts/build-root.mjs': { before: '00d8f879c1651f2c6e8f1c061ed187f47e29c7ce69b6887c4d627b20b10644d8', after: 'b3640b1f1dfd80bbe1cd59aed0b3e857398ce9ae374652c92c098260f39beb0f' },
+  'apps/web/scripts/build-provider.mjs': { before: '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd', after: '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4' },
+  'tests/hostinger-shadow-config.test.mjs': { before: '2b865e4bf79ea0ea541107641a8de56039630b0cc72dfabb304afcc48b1cbe7c', after: '4c48e59ed5de59304237e09605e3857fe497cc88012447ade5a7cf2623742833' },
 };
 function assertCurrentNativeDigest(path, body, originalDigest) {
   const repair = reviewedAdminConfigBuild[path];

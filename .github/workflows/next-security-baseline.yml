@@ -19,5 +19,6 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
+          check-latest: true
       - name: Reject vulnerable or mismatched dependency versions
         run: node scripts/check-next-security-baseline.mjs

@@ -1,3 +1,4 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -68,7 +69,7 @@ test('in-form summary shows the income base separately from its Recovery-inclusi
   assert.equal(preview.incomeTotalNeed, 6_500_000);
   assert.equal(preview.expenseTotalNeed, 2_300_000);
 
-  const summary = readFileSync('features/ci-planning/components/steps/StepExpenses.tsx', 'utf8');
+  const summary = productionCmsDisplaySource('features/ci-planning/components/steps/StepExpenses.tsx');
   assert.match(summary, /ทุนตามรายได้ก่อน Recovery<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeBaseNeed\)/);
   assert.match(summary, /ทุนตามรายได้รวม<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeTotalNeed\)/);
   const styles = readFileSync('components/layout/website-43/Website43.module.css', 'utf8');

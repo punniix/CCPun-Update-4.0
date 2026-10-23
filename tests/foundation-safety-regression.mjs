@@ -1,6 +1,7 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import fs from 'node:fs';
 
-const read = (path) => fs.readFileSync(path, 'utf8');
+const read = (path) => productionCmsDisplaySource(path,fs.readFileSync(path,'utf8'));
 const failures = [];
 
 function expect(name, pass, detail = '') {
@@ -14,7 +15,16 @@ function expect(name, pass, detail = '') {
 
 const agents = read('AGENTS.md');
 expect('agent workflow protects v4-production', agents.includes('Never edit `v4-production` directly'));
-expect('agent workflow requires Preview and human review', agents.includes('Vercel Preview -> human review -> merge'));
+expect('agent workflow requires Hostinger UAT, human review and explicit Production approval',
+  agents.includes('authorized Hostinger UAT deployment -> human review -> separately authorized merge/release')
+    && agents.includes('Do not merge a PR or trigger a Production deployment unless the user explicitly asks for that action in the current task.')
+    && agents.includes('do not deploy/promote through Vercel'));
+expect('agent policy links the mandatory design and content release protocol', agents.includes('docs/architecture/design-content-release-protocol.md'));
+const designProtocol = read('docs/architecture/design-content-release-protocol.md');
+expect('current design remains baseline and prototype implementation needs owner approval',
+  designProtocol.includes('The current implemented design is the baseline.')
+    && designProtocol.includes('A FigCraft prototype is a proposal until the owner explicitly approves that design for implementation.')
+    && designProtocol.includes('Approval to develop or deploy UAT is not design approval.'));
 expect('agent policy separates canonical URL from semantic topic', agents.includes('Semantic topic classification is a separate knowledge-graph layer'));
 expect('agent policy preserves Health CI Hero semantics', agents.includes('AIA Health CI Hero is health/medical-expense insurance') && agents.includes('It is NOT critical-illness lump-sum insurance'));
 expect('agent policy locks Health winner pages to Health physical URLs', agents.includes('AIA Health Happy and AIA Health CI Hero have approved final physical/canonical owners under `/blog/health-insurance/...`'));
@@ -157,9 +167,9 @@ expect(
 expect(
   'Site-wide credential enrichment uses one Person graph while homepage keeps its Author Card',
   homePage.includes('getPrimaryAuthorProfile')
-    && homePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && homePage.includes('<Website43Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
     && webHomePage.includes('getPrimaryAuthorProfile')
-    && webHomePage.includes('<Website43Home authorProfile={authorProfile} />')
+    && webHomePage.includes('<Website43Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
     && webPublicLayout.includes('buildCcpunSchemaGraph(author)')
     && siteStructuredData.includes('buildProfessionalQualificationPersonSchema(')
     && !webHomePage.includes('professionalQualificationSchema')

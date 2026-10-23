@@ -29,7 +29,7 @@ test('frozen composition projection rejects entry, owner and original-fixture ta
   const proof = { compositions: { 'app/reviewed.ts': { candidateSha256: sha('CURRENT_ENTRY'), baselineSha256: sha('ORIGINAL_ENTRY') } }, owners: { 'lib/reviewed.ts': sha('CURRENT_OWNER') }, baselineSources: { 'app/reviewed.ts': 'ORIGINAL_ENTRY' } };
   const files = new Map([['app/reviewed.ts', 'CURRENT_ENTRY'], ['lib/reviewed.ts', 'CURRENT_OWNER'], ['app/unlisted.ts', 'CURRENT_UNLISTED']]);
   const source = readFileSync(new URL('../qa/phase1-source-proof.mjs', import.meta.url), 'utf8').replaceAll('import.meta.url', '"file:///virtual/qa/phase1-source-proof.mjs"');
-  const { productionBaselineSource: project } = loadFixtureModule('qa/phase1-source-proof.mjs', { sources: new Map([['qa/phase1-source-proof.mjs', source]]), mocks: new Map([['node:fs', { readFileSync: url => { const file = url.pathname.replace('/virtual/', ''); return file === 'qa/phase1-source-ownership.json' ? JSON.stringify(proof) : files.get(file); } }]]) });
+  const { productionBaselineSource: project } = loadFixtureModule('qa/phase1-source-proof.mjs', { sources: new Map([['qa/phase1-source-proof.mjs', source]]), mocks: new Map([['./production-cms-source-proof.mjs',{hasProductionCmsOwner:()=>false,assertProductionCmsOwner:()=>assert.fail('synthetic paths are never CMS admitted')}], ['node:fs', { readFileSync: url => { const file = url.pathname.replace('/virtual/', ''); return file === 'qa/phase1-source-ownership.json' ? JSON.stringify(proof) : files.get(file); } }]]) });
   assert.equal(project('app/reviewed.ts'), 'ORIGINAL_ENTRY');
   assert.equal(project('app/unlisted.ts'), 'CURRENT_UNLISTED');
   files.set('app/reviewed.ts', 'UNREVIEWED_ENTRY');

@@ -39,6 +39,7 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
+          check-latest: true
       - name: Test fail-closed privacy assertions
         run: node --test tests/sanity-free-plan-privacy.test.mjs
       - name: Anonymous Sanity API and CDN reads across Free-plan datasets

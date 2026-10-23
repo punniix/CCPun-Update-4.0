@@ -1,3 +1,6 @@
+import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import styles from '@/components/layout/website-43/Website43.module.css';
@@ -44,7 +47,7 @@ const BLOG_CLIENT_CLASS_NAMES = {
   pagination: styles.pagination,
 } satisfies Website43BlogClientClassNames;
 
-export default function Website43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription = 'เข้าใจเรื่องการเงิน ประกัน การลงทุนได้ง่าย แม้จะเริ่มจาก 0', initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation }: {
+export async function renderWebsite43Blog({ articles, featuredArticles, activeCategorySlug = null, activeCategoryTitle, heroDescription, initialQuery = '', initialPage = '1', categories = [], topicContent, topicNavigation, siteCopyOverride }: {
   articles: Website43ArticleItem[];
   featuredArticles?: Website43ArticleItem[];
   activeCategorySlug?: string | null;
@@ -55,12 +58,17 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
   categories?: Website43BlogCategoryItem[];
   topicContent?: ReactNode;
   topicNavigation?: ReactNode;
-}) {
-  const blogCategories: Website43BlogCategoryItem[] = [{ slug: null, title: 'ทุกหมวดหมู่' }, ...categories];
-  const activeCategory = blogCategories.find((item) => item.slug === activeCategorySlug) ?? (activeCategorySlug ? { slug: activeCategorySlug, title: activeCategoryTitle ?? 'บทความ' } : blogCategories[0]);
+  copyOverride?: PublicCopyValues;
+  siteCopyOverride?: PublicCopyValues;
+}, copyOverride?: PublicCopyValues) {
+  const copy = copyOverride ?? await getPublicCopy("blog");
+  const copyText = publicCopyText(copy);
 
-  return (
-    <div className={styles.root}>
+
+  const blogCategories: Website43BlogCategoryItem[] = [{ slug: null, title: copyText("blog.blogCategoriesText") }, ...categories];
+  const activeCategory = blogCategories.find((item) => item.slug === activeCategorySlug) ?? (activeCategorySlug ? { slug: activeCategorySlug, title: activeCategoryTitle ?? copyText("blog.activeCategoryText") } : blogCategories[0]);
+
+  return (<PublicCopyProvider values={copy}><div className={styles.root}>
       <main>
         <section className={styles.blogHero} aria-labelledby="blog-title">
           <Image
@@ -76,8 +84,8 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
           <div className={styles.blogHeroGradient} aria-hidden="true" />
           <Website43Navbar overlay />
           <div id="main-content" tabIndex={-1} className={styles.blogHeroCopy}>
-            <h1 id="blog-title">{activeCategorySlug ? activeCategoryTitle ?? activeCategory.title : 'บทความ'}</h1>
-            <p>{heroDescription}</p>
+            <h1 id="blog-title">{activeCategorySlug ? activeCategoryTitle ?? activeCategory.title : copyText("blog.activeCategoryText")}</h1>
+            <p>{heroDescription ?? copyText("blog.website43BlogText")}</p>
           </div>
         </section>
 
@@ -94,7 +102,8 @@ export default function Website43Blog({ articles, featuredArticles, activeCatego
         />
         {topicNavigation}
       </main>
-      <Website43Footer flushBottom />
-    </div>
-  );
+      <Website43Footer flushBottom copy={siteCopyOverride} />
+    </div></PublicCopyProvider>);
 }
+
+export default function Website43Blog(props: Parameters<typeof renderWebsite43Blog>[0]) { return renderWebsite43Blog(props, props.copyOverride); }

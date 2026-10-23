@@ -1,8 +1,21 @@
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { DEPLOYMENT_LANES } from '../lib/runtime/deployment-lanes.mjs';
 import { main as audit } from '../scripts/audit-monorepo-boundaries.mjs';
+
+test('generated CCPun build outputs stay excluded in root and nested apps while source remains checked', async () => {
+  const paths = ['.ccpun-local/next-uat/build/package.json', 'apps/web/.ccpun-local/next-uat/build/package.json', 'apps/admin/.ccpun-local/next-uat/build/package.json'];
+  assert.deepEqual(execFileSync('git', ['check-ignore', '--', ...paths], { encoding: 'utf8' }).trim().split('\n'), paths);
+  const { ESLint } = await import('eslint');
+  const eslint = new ESLint();
+  for (const file of paths.map(path => path.replace('package.json', 'generated.js'))) assert.equal(await eslint.isPathIgnored(file), true, file);
+  for (const file of ['apps/web/app/page.tsx', 'apps/admin/app/layout.tsx']) {
+    assert.equal(await eslint.isPathIgnored(file), false, file);
+    assert.equal(spawnSync('git', ['check-ignore', '--no-index', '--quiet', '--', file]).status, 1, file);
+  }
+});
 
 const baselinedMirrors = JSON.parse(readFileSync(new URL('../qa/monorepo-compatibility-mirrors.json', import.meta.url), 'utf8'));
 
@@ -42,19 +55,37 @@ test('monorepo audit starts from the actual apps/web and apps/admin entrypoints'
 });
 
 
-test('Web legal and not-found routes have one canonical app implementation', () => {
-  const pages = [
-    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage.tsx'],
-    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage.tsx'],
-    ['not-found.tsx', 'features/public-pages/NotFoundPage.tsx'],
+test('Web legal and not-found routes have one canonical implementation with explicit metadata ownership', () => {
+  const legal = [
+    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage', 'renderPrivacyPage'],
+    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage', 'renderCookiePolicyPage'],
   ];
-  for (const [route, shared] of pages) {
-    const wrapper = 'export { default, metadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n';
-    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), wrapper, route);
-    assert.equal(existsSync(new URL('../' + shared, import.meta.url)), false, 'No second implementation owner');
-    const sharedSource = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
-    assert.match(sharedSource, /export const metadata:/);
-    assert.match(sharedSource, /export default function /);
+  for (const [route, owner, render] of legal) {
+    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n');
+    assert.equal(readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/' + owner + '";\n');
+    const source = readFileSync(new URL('../' + owner + '.tsx', import.meta.url), 'utf8');
+    assert.equal((source.match(new RegExp('export async function ' + render + '\\(', 'g')) ?? []).length, 1, 'One reusable rendering owner');
+    assert.match(source, /const metadata: Metadata/);
+    assert.doesNotMatch(source, /export const metadata:/, 'The route must not export both static and generated metadata');
+  }
+  const route = 'not-found.tsx';
+  assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), 'export { default, metadata } from "@/apps/web/app/not-found";\n');
+  assert.equal(existsSync(new URL('../features/public-pages/NotFoundPage.tsx', import.meta.url)), false, 'No second not-found implementation owner');
+  const source = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
+  assert.match(source, /export const metadata:/);
+  assert.match(source, /^export default async function NotFound\(/m);
+  const seoOwners = [
+    ['apps/web/app/page.tsx', '/'], ['apps/web/app/blog/page.tsx', '/blog/'],
+    ['apps/web/app/ci-planning/page.tsx', '/ci-planning/'],
+    ['apps/web/app/tools/financial-health-check/page.tsx', '/tools/financial-health-check/'],
+    ['apps/web/app/play/money-story/page.tsx', '/play/money-story/'],
+    ['features/legal/pages/PrivacyPage.tsx', '/privacy/'],
+    ['features/legal/pages/CookiePolicyPage.tsx', '/cookie-policy/'],
+  ];
+  for (const [file, pathname] of seoOwners) {
+    const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    assert.equal((source.match(/export function generateMetadata\(/g) ?? []).length, 1, file);
+    assert.ok(source.includes('resolvePageSeoMetadata(' + JSON.stringify(pathname) + ','), file);
   }
 });
 

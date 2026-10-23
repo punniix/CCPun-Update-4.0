@@ -1,8 +1,9 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const read = (path) => readFileSync(path, 'utf8');
+const read = (path) => productionCmsDisplaySource(path, readFileSync(path, 'utf8'));
 
 const fhcShell = read('features/financial-health-check/components/ClientFHC.tsx');
 const fhcIntro = read('features/financial-health-check/components/FHCLandingIntro.tsx');
@@ -88,7 +89,8 @@ test('FHC and CI use the new Website 4.3 tool hero without rewriting the legacy 
 test('FHC reaches the calculator before the deeper planning context and keeps the mobile hero readable', () => {
   const introIndex = fhcShell.indexOf('<FHCLandingIntro />');
   const calculatorIndex = fhcShell.indexOf('id="fhc-calculator"');
-  const contextIndex = fhcShell.indexOf('<FHCPlanningContext />');
+  assert.match(fhcShell,/<FHCPlanningContext pyramidHref=\{pyramidHref\} \/>/);
+  const contextIndex = fhcShell.indexOf('<FHCPlanningContext ');
   assert.ok(introIndex >= 0 && calculatorIndex > introIndex && contextIndex > calculatorIndex);
   assert.match(fhcShell, /strongContrast/);
   assert.match(fhcIntro, /fhcIntroCompact/);

@@ -715,3 +715,41 @@ test("Manual execution route is owner-only, same-origin, UAT-gated and has no ba
   assert.match(store, /FOR UPDATE/);
   assert.doesNotMatch(`${route}\n${store}`, /setInterval|cron|n8n/i);
 });
+
+test("actual Drive byte verification denies changed bytes before any Meta request", async () => {
+  const { fetchGoogleDriveSelectedFileBinary } = await import("../../lib/admin/media/google-drive-foundation");
+  const assetId = "drive_file_image_001";
+  const database = fakeSql(baseRow({ format: "image-post" }));
+  let metaCalls = 0;
+  let binaryCalls = 0;
+  await assert.rejects(executeSocialPublication({
+    request: { publicationId: "publication:001", expectedJobVersion: 1,
+      driveMedia: { accessToken: "ephemeral-drive-token",
+        authorization: { scope: "https://www.googleapis.com/auth/drive.file", mode: "owner-interactive",
+          tokenPersistence: "memory-only", refreshTokenPersistence: "forbidden",
+          issuedAtMs: Date.parse("2026-09-01T00:00:00.000Z"), expiresAtMs: Date.parse("2026-09-01T00:30:00.000Z") },
+        files: [{ assetId, expectedMimeType: "image/jpeg", expectedByteSize: 1, expectedSha256: approvedSha256 }] } },
+    actor: "owner@example.com", requestId: "request-drive-byte-binding",
+    env: { ...enabledEnv, CCPUN_GOOGLE_DRIVE_ADMIN_ROOT_FOLDER_ID: "drive_admin_root_001", CCPUN_GOOGLE_DRIVE_MEDIA_ROOT_FOLDER_ID: "drive_media_root_001" },
+    dependencies: {
+      sql: database.sql,
+      readVariant: async () => approvedVariant({ format: "image-post", mediaMetadata: [{ assetId, role: "primary", order: null,
+        mimeType: "image/jpeg", sha256Checksum: approvedSha256, widthPx: 1200, heightPx: 1200, durationMs: null }] }),
+      fetchDriveBinary: input => fetchGoogleDriveSelectedFileBinary({ ...input, fetchImpl: async urlInput => {
+        const url = new URL(String(urlInput));
+        if (url.searchParams.get("alt") === "media") {
+          binaryCalls += 1;
+          return new Response(new Uint8Array([1]), { headers: { "Content-Type": "image/jpeg", "Content-Length": "1" } });
+        }
+        const id = url.pathname.split("/").at(-1)!;
+        return new Response(JSON.stringify(id === assetId
+          ? { id, name: "approved.jpg", mimeType: "image/jpeg", parents: ["drive_media_root_001"], trashed: false, size: "1", sha256Checksum: approvedSha256 }
+          : { id, name: "root", mimeType: "application/vnd.google-apps.folder", parents: [], trashed: false }));
+      } }),
+      fetcher: async () => { metaCalls += 1; throw new Error("META_MUST_NOT_START"); },
+      now: () => new Date("2026-09-01T00:00:00.000Z"),
+    },
+  }), /SOCIAL_EXECUTION_TRUSTED_MEDIA_REQUIRED/);
+  assert.equal(binaryCalls, 1, "test reaches actual approved-metadata byte download");
+  assert.equal(metaCalls, 0, "no Meta auth/read/write begins before byte verification");
+});

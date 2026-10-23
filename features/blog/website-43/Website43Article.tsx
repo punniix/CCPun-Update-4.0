@@ -1,3 +1,6 @@
+import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText } from "@/lib/content/public-copy-registry";
 import Image from 'next/image';
 import Link from 'next/link';
 import { getPublicAuthorName } from "@/lib/content/author-identity";
@@ -22,19 +25,24 @@ const thaiDateFormatter = new Intl.DateTimeFormat('th-TH', {
   timeZone: 'Asia/Bangkok',
 });
 
-const DEFAULT_AUTHOR_ROLE = 'ที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน';
-const DEFAULT_AUTHOR_BIO = 'ในฐานะที่ปรึกษาทางการเงินและผู้วางแผนการลงทุน ผมเริ่มจากเป้าหมาย ความเสี่ยง และสถานการณ์ของแต่ละคน ก่อนช่วยพิจารณาทางเลือกด้านการลงทุนหรือประกันให้เหมาะกับชีวิตจริง';
 
-export default function Website43Article({ article, relatedArticles = [], preview = false }: { article: Article; relatedArticles?: Article[]; preview?: boolean }) {
+
+
+export default async function Website43Article({ article, relatedArticles = [], preview = false }: { article: Article; relatedArticles?: Article[]; preview?: boolean }) {
+  const copy = await getPublicCopy("blog");
+  const copyText = publicCopyText(copy);
+const DEFAULT_AUTHOR_ROLE = copyText("blog.dEFAULTAUTHORROLEText");
+const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
+
   const professionalQualifications = article.author?.professionalQualifications ?? [];
   const managedProfile = professionalQualifications.length > 0;
-  const baseAuthorName = article.author ? getPublicAuthorName(article.author) : (article.authorName || 'ชนาธิป ชิตประเสริฐ');
+  const baseAuthorName = article.author ? getPublicAuthorName(article.author) : (article.authorName || "ชนาธิป ชิตประเสริฐ");
   const qualificationSuffix = professionalQualifications.map((qualification) => qualification.shortName.trim()).filter(Boolean).join(', ');
   const author = {
     name: qualificationSuffix ? `${baseAuthorName}, ${qualificationSuffix}` : baseAuthorName,
     role: managedProfile ? article.author?.profileRole?.trim() || DEFAULT_AUTHOR_ROLE : DEFAULT_AUTHOR_ROLE,
     bio: managedProfile ? article.author?.profileBio?.trim() || DEFAULT_AUTHOR_BIO : DEFAULT_AUTHOR_BIO,
-    profileCtaLabel: article.author?.profileCtaLabel ?? 'รู้จัก CCPun เพิ่มเติม',
+    profileCtaLabel: article.author?.profileCtaLabel ?? copyText("blog.authorText"),
     profileCtaUrl: article.author?.profileCtaUrl?.startsWith('#') ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? '/#about-ccpun',
     avatar: article.author?.profileAvatar ?? { src: '/assets/ccpun.webp', alt: 'ชนาธิป ชิตประเสริฐ', width: 96, height: 96 },
   };
@@ -62,29 +70,28 @@ export default function Website43Article({ article, relatedArticles = [], previe
   const readingMinutes = estimateArticleReadingMinutes(article);
   const sharePath = getArticlePath(article);
 
-  return (
-    <ArticleEngagementProvider key={article.id} articleId={article.id} disabled={preview}><div className={styles.root}>
+  return (<PublicCopyProvider values={copy}><ArticleEngagementProvider key={article.id} articleId={article.id} disabled={preview}><div className={styles.root}>
       <Website43Navbar responsiveOverlay />
       <main id="main-content" tabIndex={-1}>
         {preview && <aside className={styles.section} role="status"><div className={styles.inner}>
-          <p>ฉบับร่าง Preview · noindex</p><form action="/api/preview/disable/" method="post"><button type="submit" className={styles.outlineButton}>ปิด Preview</button></form>
+          <p>{copyText("blog.p2")}</p><form action="/api/preview/disable/" method="post"><button type="submit" className={styles.outlineButton}>{copyText("blog.outlineButton")}</button></form>
         </div></aside>}
         <header className={styles.articleHeader}>
           <div className={styles.inner}>
-            <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-              <Link href="/">หน้าแรก</Link> <span>›</span> <Link href={`${BASE}/blog`}>บทความ</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
+            <nav className={styles.breadcrumbs} aria-label={copyText("blog.website43Articlearialabel")}>
+              <Link href="/">{copyText("blog.link")}</Link> <span>›</span> <Link href={`${BASE}/blog`}>{copyText("blog.activeCategoryText")}</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
-            <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>โดย {author.name.replaceAll('™', '')}</p>
+            <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>{copyText("blog.articleHeaderMeta")}{author.name.replaceAll('™', '')}</p>
             <h1 className={styles.articleHeadline} style={{ textWrap: 'balance', marginTop: 12 }}>{article.title}</h1>
             <div className={styles.articleMetaRow}>
               <div className={styles.articleMetaGroup}>
                 <p className={styles.articleHeaderMeta}>
-                  {publishedDateLabel && <span><span className={styles.articleDateLabel}>เผยแพร่</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></span>}
-                  {optimizedDateLabel && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>อัปเดตข้อมูลล่าสุด</span> <time dateTime={article.optimizedAt}>{optimizedDateLabel}</time></span>}
+                  {publishedDateLabel && <span><span className={styles.articleDateLabel}>{copyText("blog.articleDateLabel")}</span> <time dateTime={article.publishedAt}>{publishedDateLabel}</time></span>}
+                  {optimizedDateLabel && <span className={styles.articleUpdatedDate}><span className={styles.articleDateLabel}>{copyText("blog.articleDateLabel2")}</span> <time dateTime={article.optimizedAt}>{optimizedDateLabel}</time></span>}
                 </p>
                 <ArticleEngagementSummary readingMinutes={readingMinutes} />
               </div>
-              {!preview && <ArticleShareActions path={sharePath} title={article.title} placement="header" />}
+              {!preview && <ArticleShareActions origin={"https://ccpun.com"} path={sharePath} title={article.title} placement="header" />}
             </div>
           </div>
         </header>
@@ -93,9 +100,9 @@ export default function Website43Article({ article, relatedArticles = [], previe
         <section className={styles.articleReadingWrap} id={article.slug === 'aia-health-happy-describe' ? 'health-happy-details' : undefined}>
           <div className={styles.articleReadingGrid}>
             {tocGroups.length > 0 && (
-              <aside className={styles.toc} aria-label="หัวข้อเนื้อหา">
+              <aside className={styles.toc} aria-label={copyText("blog.website43Articlearialabel2")}>
                 <details className={styles.tocDisclosure} open>
-                  <summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+                  <summary>{copyText("blog.website43Articlearialabel2")}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
                   <Website43ArticleToc groups={tocGroups} />
                 </details>
               </aside>
@@ -117,17 +124,17 @@ export default function Website43Article({ article, relatedArticles = [], previe
               )}
               {tocGroups.length > 0 && (
                 <details className={styles.tocMobile}>
-                  <summary>หัวข้อเนื้อหา<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+                  <summary>{copyText("blog.website43Articlearialabel2")}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
                   <div className={styles.tocMobileList}>
                     <Website43ArticleToc groups={tocGroups} />
                   </div>
                 </details>
               )}
               {(preview || article.status === 'published') && <Website43ArticleOverview summary={article.geo?.summary} />}
-              <article className={styles.prose}>{renderWebsite43ArticleBody(article.body, headingIds)}</article>
+              <article className={styles.prose}>{renderWebsite43ArticleBody(article.body, headingIds, copy)}</article>
               {!preview && <div className={styles.articleBottomShare}>
                 <ArticleEngagementSummary />
-                <ArticleShareActions path={sharePath} title={article.title} placement="footer" />
+                <ArticleShareActions origin={"https://ccpun.com"} path={sharePath} title={article.title} placement="footer" />
               </div>}
             </div>
           </div>
@@ -136,7 +143,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
         {article.faq && article.faq.length > 0 && (
           <section id="faq" className={`${styles.section} ${styles.sectionBottomLarge}`}>
             <div className={`${styles.inner} ${styles.articleSupportInner}`}>
-              <SectionHeading eyebrow="คำถามที่พบบ่อย" title="คำถามเกี่ยวกับบทความนี้" />
+              <SectionHeading eyebrow={copyText("blog.website43Articleeyebrow")} title={copyText("blog.website43Articletitle")} />
               <div className={styles.faqList}>
                 {article.faq.map(({ question, answer }) => (
                   <details className={styles.faqItem} key={question}>
@@ -152,29 +159,29 @@ export default function Website43Article({ article, relatedArticles = [], previe
         <section className={styles.section}>
           <div className={`${styles.inner} ${styles.articleSupportInner}`}>
             <div className={styles.authorCard}>
-              <Image className={styles.authorAvatar} src={author.avatar.src} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} sizes="(max-width: 639px) 72px, 96px" />
+              {author.avatar && <Image className={styles.authorAvatar} src={author.avatar.src} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} sizes="(max-width: 639px) 72px, 96px" />}
               <div className={styles.authorIdentity}>
                 <strong className={styles.authorName}>{author.name}</strong>
-                <span className={styles.authorRole}>{author.role}</span>
+                {author.role && <span className={styles.authorRole}>{author.role}</span>}
               </div>
-              <p className={styles.authorBio}>{author.bio}</p>
-              <Link className={styles.authorLink} href={author.profileCtaUrl}>{author.profileCtaLabel} →</Link>
+              {author.bio && <p className={styles.authorBio}>{author.bio}</p>}
+              {author.profileCtaUrl && <Link className={styles.authorLink} href={author.profileCtaUrl}>{author.profileCtaLabel} →</Link>}
             </div>
           </div>
         </section>
 
         <section className={`${styles.sectionDeep} ${styles.articlePlanCtaSection}`}>
           <div className={`${styles.inner} ${styles.articleSupportInner}`}>
-            <h2 className={styles.h2}>อยากจัดลำดับแผนให้เหมาะกับชีวิตคุณ?</h2>
-            <p className={styles.lead} style={{ color: '#faf9f9' }}>เตรียมข้อมูลรายได้ รายจ่าย หนี้ และเป้าหมาย แล้วคุยกันแบบเห็นภาพรวม</p>
-            <a className={styles.faqCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-surface="blog" data-analytics-location="blog_article">ปรึกษากับ CCPun</a>
+            <h2 className={styles.h2}>{copyText("blog.h2")}</h2>
+            <p className={styles.lead} style={{ color: '#faf9f9' }}>{copyText("blog.lead")}</p>
+            <a className={styles.faqCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-surface="blog" data-analytics-location="blog_article">{copyText("blog.faqCta")}</a>
           </div>
         </section>
 
         {relatedArticles.length > 0 && (
           <section className={`${styles.sectionDeep} ${styles.articleRelatedSection}`}>
             <div className={`${styles.inner} ${styles.articleSupportInner}`}>
-              <h2 className={styles.h2}>อ่านต่อ</h2>
+              <h2 className={styles.h2}>{copyText("blog.h22")}</h2>
               <div className={styles.relatedGrid}>
                 {relatedArticles.slice(0, 2).map((candidate) => {
                   const candidateTopic = getArticleSemanticTopic({ articleSlug: candidate.slug, semanticTopic: candidate.semanticTopic, categoryTitle: candidate.category, categorySlug: candidate.categorySlug, tags: candidate.tags });
@@ -186,7 +193,7 @@ export default function Website43Article({ article, relatedArticles = [], previe
                         <span className={styles.articleCategory}>{candidateTopic?.title ?? candidate.category}</span>
                         <h3 className={styles.articleTitle} style={{ textWrap: 'pretty' }}>{candidate.title}</h3>
                         <p className={styles.articleExcerpt} style={{ textWrap: 'pretty' }}>{candidate.excerpt.trim() || candidate.title}</p>
-                        <span className={styles.articleCategory}>อ่านบทความ →</span>
+                        <span className={styles.articleCategory}>{copyText("blog.articleCategory")}</span>
                       </div>
                     </Link>
                   );
@@ -195,9 +202,8 @@ export default function Website43Article({ article, relatedArticles = [], previe
             </div>
           </section>
         )}
-        <section className={styles.section}><div className={`${styles.inner} ${styles.articleSupportInner}`}><p className={styles.cardBody}>บทความนี้จัดทำเพื่อให้ข้อมูลทั่วไป ผลิตภัณฑ์ประกันไม่ใช่เงินฝาก และการลงทุนมีความเสี่ยง ควรศึกษาความคุ้มครอง เงื่อนไข ข้อยกเว้น และความเหมาะสมก่อนตัดสินใจ</p></div></section>
+        <section className={styles.section}><div className={`${styles.inner} ${styles.articleSupportInner}`}><p className={styles.cardBody}>{copyText("blog.cardBody")}</p></div></section>
       </main>
       <Website43Footer />
-    </div></ArticleEngagementProvider>
-  );
+    </div></ArticleEngagementProvider></PublicCopyProvider>);
 }

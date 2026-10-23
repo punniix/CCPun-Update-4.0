@@ -1,8 +1,9 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { readPhase1Source } from '../qa/read-phase1-source.mjs';
 
-const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = async (path) => productionCmsDisplaySource(path,await readFile(new URL(`../${path}`, import.meta.url),'utf8'));
 const taxonomy = await read('lib/content/taxonomy.ts');
 const categoryRegistry = await read('lib/content/category-registry.ts');
 const categoryRegistrySanity = await read('lib/content/category-registry-sanity.ts');
@@ -92,11 +93,11 @@ assert.match(categoryPage, /activeCategorySlug=\{category\.slug\}/);
 assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
 assert.match(categoryPage, /heroDescription=\{category\.description \?\? hub\?\.description\}/);
 assert.match(categoryPage, /heroDescription=\{hub\.description\}/);
-assert.match(categoryPage, /topicContent=\{buildTopicIntro\(hub\)\}/);
+assert.match(categoryPage, /topicContent=\{buildTopicIntro\(hub, copyText\)\}/);
 assert.match(categoryPage, /hub\.intro\.map/);
 assert.match(categoryPage, /styles\.storyCopy/);
 assert.match(blogPresentation, /heroDescription\?: string/);
-assert.match(blogPresentation, /<p>\{heroDescription\}<\/p>/);
+assert.match(blogPresentation, /<p>\{heroDescription \?\? 'เข้าใจเรื่องการเงิน\ ประกัน\ การลงทุนได้ง่าย\ แม้จะเริ่มจาก\ 0'\}<\/p>/);
 assert.match(categoryPage, /categories=\{categoryMenu\(registry, includeDrafts\)\}/);
 
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.

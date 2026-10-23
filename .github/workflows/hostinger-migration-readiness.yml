@@ -46,6 +46,7 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
+          check-latest: true
           cache: npm
       - run: npm ci
       - name: Real isolated World storage and queue recovery
@@ -78,6 +79,7 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
+          check-latest: true
           cache: npm
       - run: npm ci
       - name: Import isolated Post-Publish Worker on Node 24 without starting an executor

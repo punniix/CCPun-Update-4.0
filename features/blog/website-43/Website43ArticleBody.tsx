@@ -1,3 +1,4 @@
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import type { ArticleBlock, ArticleRichText } from '@/lib/content/types';
@@ -25,7 +26,9 @@ function listItemContent(item: string | ArticleRichText) {
   return typeof item === 'string' ? item : richContent(item);
 }
 
-export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Map<number, string>) {
+export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Map<number, string>, copy: PublicCopyValues = {}) {
+  const copyText = publicCopyText(copy);
+
   const introEnd = items.findIndex(item => item.type !== 'paragraph');
   return items.map((item, index) => {
     const key = `article-block-${index}`;
@@ -46,8 +49,8 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return (
         <figure className={styles.articleInlineFigure} key={key}>
           <Image src={item.src} alt={item.alt} width={item.width} height={item.height} sizes="(max-width: 767px) calc(100vw - 48px), 720px" loading="lazy" />
-          <a href={item.src} target="_blank" rel="noopener noreferrer" className={styles.imageDetailLink}>ดูภาพขนาดใหญ่ <span className="sr-only">(เปิดในแท็บใหม่)</span></a>
-          {(item.caption || item.credit) && <figcaption>{item.caption}{item.caption && item.credit ? ' · ' : ''}{item.credit ? `เครดิต: ${item.credit}` : ''}</figcaption>}
+          <a href={item.src} target="_blank" rel="noopener noreferrer" className={styles.imageDetailLink}>{copyText("blog.imageDetailLink")}<span className="sr-only">{copyText("blog.span")}</span></a>
+          {(item.caption || item.credit) && <figcaption>{item.caption}{item.caption && item.credit ? ' · ' : ''}{item.credit ? copyText("blog.dynamic2").replaceAll("{0}", String(item.credit)) : ''}</figcaption>}
         </figure>
       );
     }
@@ -57,7 +60,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
           {item.images.map((image, imageIndex) => (
             <figure key={`${key}-${imageIndex}`}>
               <Image src={image.src} alt={image.alt} width={image.width} height={image.height} sizes="(max-width: 767px) calc(100vw - 48px), 360px" loading="lazy" />
-              {(image.caption || image.credit) && <figcaption>{image.caption}{image.caption && image.credit ? ' · ' : ''}{image.credit ? `เครดิต: ${image.credit}` : ''}</figcaption>}
+              {(image.caption || image.credit) && <figcaption>{image.caption}{image.caption && image.credit ? ' · ' : ''}{image.credit ? copyText("blog.dynamic2").replaceAll("{0}", String(image.credit)) : ''}</figcaption>}
             </figure>
           ))}
         </div>
@@ -68,7 +71,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return <a className={item.style === 'primary' ? styles.primaryButton : styles.outlineButton} href={item.url} target={newTab ? '_blank' : undefined} rel={newTab ? 'noopener noreferrer' : undefined} key={key}>{item.label}</a>;
     }
     if (item.type === 'pdf') {
-      return <a className={styles.articleDownload} href={item.url} target="_blank" rel="noopener noreferrer" key={key}><strong>{item.title}</strong>{item.description && <span>{item.description}</span>}<span>เปิดไฟล์ PDF{item.size ? ` (${(item.size / 1048576).toFixed(1)} MB)` : ''}</span></a>;
+      return <a className={styles.articleDownload} href={item.url} target="_blank" rel="noopener noreferrer" key={key}><strong>{item.title}</strong>{item.description && <span>{item.description}</span>}<span>{copyText("blog.span2")}{item.size ? ` (${(item.size / 1048576).toFixed(1)} MB)` : ''}</span></a>;
     }
     if (item.type === 'details') {
       return <details className={styles.articleDetails} key={key}><summary>{item.summary}</summary><p>{item.text}</p></details>;
@@ -84,6 +87,8 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
         </ArticleTableAccess>
       );
     }
+    // Keep legacy Checklist data in Sanity Draft for future membership workflows,
+    // but do not render a progress-oriented block for anonymous article readers.
     if (item.type === 'divider') return <hr className={styles.articleDivider} key={key} />;
 
     const exhaustive: never = item;

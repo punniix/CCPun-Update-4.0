@@ -1,3 +1,4 @@
+import { nodeSecurityRuntimeGuardSource } from "../../../lib/runtime/node-security-baseline.mjs";
 import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -221,12 +222,16 @@ function injectStandaloneRuntimeEnvironment(serverFile, variables) {
   const values = Object.fromEntries(
     RUNTIME_ENV_KEYS.map((key) => [key, variables[key]?.trim()]).filter(([, value]) => Boolean(value)),
   );
-  if (!values.CCPUN_APP_ENV || !values.NEXT_PUBLIC_CCPUN_APP_ENV) return;
-
   const source = readFileSync(serverFile, "utf8");
+  const runtimeGuard = nodeSecurityRuntimeGuardSource();
+  // Serving-version enforcement is independent of optional lane identity.
+  if (!values.CCPUN_APP_ENV || !values.NEXT_PUBLIC_CCPUN_APP_ENV) {
+    writeFileSync(serverFile, runtimeGuard + source);
+    return;
+  }
   const marker = "// CCPUN_RUNTIME_ENV_BOOTSTRAP";
   const bootstrap = `${marker}\nconst __ccpunRuntimeEnv = ${JSON.stringify(values)};\nfor (const [key, value] of Object.entries(__ccpunRuntimeEnv)) {\n  if (!process.env[key]) process.env[key] = value;\n}\n`;
-  writeFileSync(serverFile, `${bootstrap}${source}`);
+  writeFileSync(serverFile, `${runtimeGuard}${bootstrap}${source}`);
 }
 
 export function stageStandaloneRuntime(root = webRoot, variables = process.env) {
@@ -288,6 +293,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) throw new Error("UNSUPPORTED_WORKFLOW_WORLD");
   if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");
   if (isHostinger && process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== "web") throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");
+  // Run before materialization, native acceptance, dependency installation or compiler work.
+  await import(new URL("../../../scripts/check-next-security-baseline.mjs", import.meta.url));
   if (process.argv[2] === "--archive-standalone") {
     if (!process.argv[3] || process.argv.length !== 4) throw new Error("Provide one archive output directory.");
     archiveStandaloneRuntime(process.argv[3]);

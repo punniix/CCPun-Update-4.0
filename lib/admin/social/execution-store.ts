@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import {
+  disposeGoogleDriveSelectedFileBinary,
   fetchGoogleDriveSelectedFileBinary,
   googleDriveInteractiveAuthorizationSchema,
   googleDriveSelectedFileRequestSchema,
@@ -518,7 +519,7 @@ async function resolveApprovedDriveMedia(input: {
       });
       if (!result.ready || result.file.id !== media.assetId || result.file.mimeType !== media.mimeType
         || result.file.sha256Checksum !== file.expectedSha256) {
-        if (result.ready) await result.file.body.cancel().catch(() => undefined);
+        if (result.ready) await disposeGoogleDriveSelectedFileBinary(result.file.body);
         throw new Error("SOCIAL_EXECUTION_TRUSTED_MEDIA_REQUIRED");
       }
       resolved.push({
@@ -537,7 +538,7 @@ async function resolveApprovedDriveMedia(input: {
     }
     return resolved;
   } catch (error) {
-    await Promise.allSettled(resolved.map((media) => media.body.cancel()));
+    await Promise.allSettled(resolved.map((media) => disposeGoogleDriveSelectedFileBinary(media.body)));
     throw error;
   }
 }
@@ -740,7 +741,6 @@ export async function executeSocialPublication(input: {
       ...(commentRows.length > 0 ? { commentsPublished: commentRows.length } : {}),
     };
   } catch (error) {
-    await Promise.allSettled(resolvedMedia.map((media) => media.body.cancel()));
     const errorCode = error instanceof Error ? error.message : "";
     const knownNoCommentMutation = [
       "META_API_AUTH_REQUIRED", "META_API_SCOPE_REQUIRED", "META_API_RATE_LIMITED",
@@ -771,5 +771,7 @@ export async function executeSocialPublication(input: {
     if (!failed) throw new Error("SOCIAL_EXECUTION_RECONCILIATION_REQUIRED");
     if (reconciliationRequired) throw new Error("SOCIAL_EXECUTION_RECONCILIATION_REQUIRED");
     throw new Error(mapped.code);
+  } finally {
+    await Promise.allSettled(resolvedMedia.map((media) => disposeGoogleDriveSelectedFileBinary(media.body)));
   }
 }

@@ -1,6 +1,6 @@
-import { CI_ESTIMATION_METHOD_LABELS } from './calculator/constants';
+import type { SITE_COPY_DEFAULTS } from "@/lib/content/site-copy-defaults";
+import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 import type { CIEstimationMethod, CIResult } from './calculator/types';
-import { getRecoveryModeLabel } from './recovery-evidence';
 import {
   RESULT_SHARE_IMAGE_WIDTH,
   renderResultShareImage,
@@ -8,11 +8,10 @@ import {
 
 export const RESULT_IMAGE_WIDTH = RESULT_SHARE_IMAGE_WIDTH;
 
-const SUMMARY_DISCLAIMER = 'ผลลัพธ์นี้เป็นประมาณการเบื้องต้นจากข้อมูลที่กรอก';
-const IMAGE_NOTICE = 'ไม่ใช่คำแนะนำเฉพาะบุคคลหรือเอกสารรับรอง';
+
 
 export interface CIResultImageSummary {
-  toolName: 'การวางแผนทุนโรคร้ายแรง';
+  toolName: string;
   generatedDate: string;
   estimationMethod: CIEstimationMethod;
   methodLabel: string;
@@ -33,8 +32,8 @@ export interface CIResultImageSummary {
     recovery: number;
   }> | null;
   assessmentVersion: string;
-  disclaimer: typeof SUMMARY_DISCLAIMER;
-  imageNotice: typeof IMAGE_NOTICE;
+  disclaimer: string;
+  imageNotice: string;
 }
 
 export function createCIResultImageSummary(
@@ -42,6 +41,7 @@ export function createCIResultImageSummary(
   estimationMethod: CIEstimationMethod,
   assessmentVersion: string,
   generatedAt: Date = new Date(),
+  t: (key: keyof typeof CI_COPY_DEFAULTS) => string = (key) => CI_COPY_DEFAULTS[key],
 ): Readonly<CIResultImageSummary> {
   const isIncomeMethod = estimationMethod === 'income';
   const breakdown = isIncomeMethod
@@ -54,32 +54,32 @@ export function createCIResultImageSummary(
     });
   const mainNeedToday = isIncomeMethod ? result.incomeBasedNeed : result.calculatedNeed;
   const targetItems = (isIncomeMethod
-    ? [{ label: 'ฐานตามรายได้', amount: Math.max(mainNeedToday - result.recoveryReserveNeed - result.protectedAssetsNeed, 0) }]
+    ? [{ label: t("ci.image.label"), amount: Math.max(mainNeedToday - result.recoveryReserveNeed - result.protectedAssetsNeed, 0) }]
     : [
-      { label: 'ค่าใช้จ่ายครัวเรือน', amount: result.householdNeed },
-      { label: 'การศึกษา', amount: result.educationNeed },
-      { label: 'ภาระหนี้', amount: result.debtNeed },
+      { label: t("ci.image.label2"), amount: result.householdNeed },
+      { label: t("ci.image.label3"), amount: result.educationNeed },
+      { label: t("ci.image.label4"), amount: result.debtNeed },
     ]).filter((item) => item.amount > 0);
   if (mainNeedToday > 0 && result.recoveryReserveNeed > 0) {
-    targetItems.push({ label: `สำรองฟื้นฟู (${getRecoveryModeLabel(result.recoveryMode)})`, amount: result.recoveryReserveNeed });
+    targetItems.push({ label: t("ci.image.recoveryLabel").replaceAll("{value1}", String(t(`ci.recovery.mode.${result.recoveryMode}`))), amount: result.recoveryReserveNeed });
   }
   if (mainNeedToday > 0 && result.protectedAssetsNeed > 0) {
-    targetItems.push({ label: 'เป้าหมายรักษาสินทรัพย์', amount: result.protectedAssetsNeed });
+    targetItems.push({ label: t("ci.image.label5"), amount: result.protectedAssetsNeed });
   }
   const resourceItems = [
-    { label: 'ประกันโรคร้ายแรง', amount: result.existingCoverage },
-    { label: 'สินทรัพย์สภาพคล่อง', amount: result.liquidAssets },
+    { label: t("ci.image.label6"), amount: result.existingCoverage },
+    { label: t("ci.image.label7"), amount: result.liquidAssets },
   ].filter((item) => item.amount > 0);
 
   return Object.freeze({
-    toolName: 'การวางแผนทุนโรคร้ายแรง' as const,
+    toolName: t("ci.image.label8"),
     generatedDate: generatedAt.toLocaleDateString('th-TH', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     }),
     estimationMethod,
-    methodLabel: CI_ESTIMATION_METHOD_LABELS[estimationMethod],
+    methodLabel: t(estimationMethod === 'income' ? 'ci.method.income' : 'ci.method.expense'),
     mainNeedToday,
     existingCICover: result.existingCoverage,
     liquidAssets: result.liquidAssets,
@@ -92,8 +92,8 @@ export function createCIResultImageSummary(
     resourceItems: Object.freeze(resourceItems.map((item) => Object.freeze(item))),
     breakdown,
     assessmentVersion,
-    disclaimer: SUMMARY_DISCLAIMER,
-    imageNotice: IMAGE_NOTICE,
+    disclaimer: t("ci.image.disclaimer"),
+    imageNotice: t("ci.image.notice"),
   });
 }
 
@@ -109,29 +109,31 @@ export async function renderCIResultImage(
   summary: Readonly<CIResultImageSummary>,
   logoPath = '/assets/ccpun-text-logo.svg',
   lineQrPath = '/assets/line-oa-qr.png',
+  t: (key: keyof typeof CI_COPY_DEFAULTS) => string = (key) => CI_COPY_DEFAULTS[key],
+  imageText?: (key: keyof typeof SITE_COPY_DEFAULTS) => string,
 ): Promise<Blob> {
   const differenceLabel = summary.shortfall > 0
-    ? 'ทุนที่ยังขาด'
+    ? t("ci.image.label9")
     : summary.surplus > 0
-      ? 'เงินและสินทรัพย์ที่มีมากกว่าประมาณการ'
-      : 'ส่วนต่างจากประมาณการ';
+      ? t("ci.image.label10")
+      : t("ci.image.label11");
   const differenceValue = summary.shortfall > 0 ? summary.shortfall : summary.surplus;
   const methodDetail = summary.breakdown
-    ? `ครัวเรือน ${baht(summary.breakdown.household)} · การศึกษา ${baht(summary.breakdown.education)} · หนี้ ${baht(summary.breakdown.debt)}`
-    : 'รายได้ต่อเดือน × 12 เดือน × จำนวนปีที่เลือก';
+    ? t("ci.image.expenseBreakdown").replaceAll("{value1}", String(baht(summary.breakdown.household))).replaceAll("{value2}", String(baht(summary.breakdown.education))).replaceAll("{value3}", String(baht(summary.breakdown.debt)))
+    : t("ci.image.label12");
 
   return renderResultShareImage({
     toolName: summary.toolName,
-    resultLabel: `ประมาณการทุนโรคร้ายแรงที่ควรมีจาก${summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'}`,
+    resultLabel: t("ci.image.resultLabel").replaceAll("{value1}", String(t(summary.estimationMethod === 'income' ? 'ci.image.incomeBasis' : 'ci.image.expenseBasis'))),
     primaryAmount: baht(summary.mainNeedToday),
     metrics: [
-      { label: 'เงินก้อนจากประกันโรคร้ายแรง', value: baht(summary.existingCICover) },
-      { label: 'สินทรัพย์สภาพคล่อง', value: baht(summary.liquidAssets) },
+      { label: t("ci.image.label13"), value: baht(summary.existingCICover) },
+      { label: t("ci.image.label7"), value: baht(summary.liquidAssets) },
       { label: differenceLabel, value: baht(differenceValue), emphasis: true },
     ],
-    methodTitle: `ประเมินจาก${summary.estimationMethod === 'income' ? 'รายได้' : 'รายจ่าย'}`,
+    methodTitle: t("ci.image.methodTitle").replaceAll("{value1}", String(t(summary.estimationMethod === 'income' ? 'ci.image.incomeBasis' : 'ci.image.expenseBasis'))),
     methodDetail,
-    dateLabel: `ประเมินเมื่อ ${summary.generatedDate}`,
+    dateLabel: t("ci.image.dateLabel").replaceAll("{value1}", String(summary.generatedDate)),
     composition: {
       targetItems: summary.targetItems,
       resourceItems: summary.resourceItems,
@@ -142,9 +144,9 @@ export async function renderCIResultImage(
     },
     noticeTitle: summary.disclaimer,
     noticeDetail: summary.imageNotice,
-    actionLabel: 'เพิ่มเพื่อน LINE @ccpun',
+    actionLabel: t("ci.image.actionLabel"),
     scopeNote: summary.recoveryReserve > 0
-      ? `Recovery Reserve ${baht(summary.recoveryReserve)} เป็นเงินก้อนสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต แยกจากฐานรายได้/รายจ่าย แล้วบวก 1 ครั้งในวิธีที่เลือก`
-      : 'การประเมินครั้งนี้ยังไม่ได้รวม Recovery Reserve เพิ่มจากฐานรายได้หรือรายจ่าย',
-  }, logoPath, lineQrPath);
+      ? t("ci.image.recoveryScopeNote").replaceAll("{value1}", String(baht(summary.recoveryReserve)))
+      : t("ci.image.label14"),
+  }, logoPath, lineQrPath, imageText);
 }

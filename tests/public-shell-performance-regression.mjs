@@ -1,7 +1,8 @@
+import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path) => productionCmsDisplaySource(path,readFileSync(new URL(`../${path}`, import.meta.url),'utf8'));
 const layout = read('app/layout.tsx');
 const nextConfig = read('next.config.ts');
 const draftPreviewRuntime = read('components/preview/DraftPreviewRuntime.tsx');
@@ -229,7 +230,7 @@ assert.doesNotMatch(
 );
 assert.match(
   website43Blog,
-  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer flushBottom \/>/,
+  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer flushBottom copy=\{siteCopyOverride\} \/>/,
   'Blog shell must keep the existing Hero/Navbar/content/Footer order while delegating only interactions to the client island',
 );
 assert.match(
