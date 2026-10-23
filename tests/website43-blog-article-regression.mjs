@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JSDOM } from 'jsdom';
@@ -9,6 +10,11 @@ const require = createRequire(import.meta.url);
 require('tsx/cjs');
 require.extensions['.css'] = (module) => {
   module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) };
+};
+const countdownArtworkUrl = '/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp';
+require.extensions['.webp'] = (module, filename) => {
+  assert.equal(filename, fileURLToPath(new URL('../public' + countdownArtworkUrl, import.meta.url)), 'only the countdown public artwork is a fixture asset');
+  module.exports = { __esModule: true, default: { src: countdownArtworkUrl } };
 };
 const { toWebsite43ArticleItem } = require('../features/blog/website-43/blogData.ts');
 const { parseProfessionalQualifications } = require('../lib/content/sanity-schema.ts');
@@ -306,3 +312,5 @@ for (const [key, descriptor] of savedGlobals) {
 }
 browserDom.window.close();
 console.log('PASS: actual Article block/credit/anchor/profile renderer, Bangkok date, public route/filter/metadata/redirect, stale Draft cookie and cached browser query restoration');
+const { execFileSync } = await import('node:child_process');
+execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-blog-preload.test.mjs', import.meta.url))], { stdio: 'inherit' });
