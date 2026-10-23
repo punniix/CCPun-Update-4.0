@@ -67,3 +67,19 @@ test('every frozen entry has a registered original-output fixture and every seal
   assert.equal(Object.keys(proof.compositions).length, 45);
   assert.equal(Object.keys(proof.owners).length, 24); // 23 new owners + existing canonical Studio client.
 });
+
+test('private scoped preview Chrome successor preserves the frozen owner and rejects source or guard drift',()=>{
+  const sha=value=>createHash('sha256').update(value).digest('hex');
+  const owner='features/admin/components/AdminProtectedChrome.tsx';
+  const original='c4d7b48c01a42177bdc7489e26efa81ff932f086de0fd6af3eb6135b6710c1e2';
+  const proof={compositions:{'app/reviewed.ts':{candidateSha256:sha('CURRENT_ENTRY'),baselineSha256:sha('ORIGINAL_ENTRY')}},owners:{[owner]:original},baselineSources:{'app/reviewed.ts':'ORIGINAL_ENTRY'}};
+  const current=readFileSync(owner,'utf8');const files=new Map([['app/reviewed.ts','CURRENT_ENTRY'],[owner,current]]);
+  const source=readFileSync('qa/phase1-source-proof.mjs','utf8').replaceAll('import.meta.url','"file:///virtual/qa/phase1-source-proof.mjs"');
+  const project=loadFixtureModule('qa/phase1-source-proof.mjs',{sources:new Map([['qa/phase1-source-proof.mjs',source]]),mocks:new Map([
+    ['./phase2-source-proof.mjs',{hasReviewedMasterUatOwner:()=>false,assertReviewedMasterUatOwner:()=>assert.fail('synthetic fixture uses only the exact Chrome branch')}],
+    ['node:fs',{readFileSync:url=>{const path=url.pathname.replace('/virtual/','');return path==='qa/phase1-source-ownership.json'?JSON.stringify(proof):files.get(path);}}],
+  ])}).productionBaselineSource;
+  assert.equal(project('app/reviewed.ts'),'ORIGINAL_ENTRY');
+  for(const mutated of [current+'\n// unexpected edit',current.replace('return <>{children}</>;','return null;')]){assert.notEqual(mutated,current);files.set(owner,mutated);assert.throws(()=>project('app/reviewed.ts'),/reviewed private scoped preview Chrome/);}
+  files.set(owner,current);proof.owners[owner]='changed-original';assert.throws(()=>project('app/reviewed.ts'),/original Admin Chrome owner remains frozen/);
+});

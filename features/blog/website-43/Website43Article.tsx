@@ -81,7 +81,7 @@ const DEFAULT_AUTHOR_BIO = copyText("blog.dEFAULTAUTHORBIOText");
         <header className={styles.articleHeader}>
           <div className={styles.inner}>
             <nav className={styles.breadcrumbs} aria-label={copyText("blog.website43Articlearialabel")}>
-              <Link href="/">{copyText("blog.link")}</Link> <span>›</span> <Link href={`${BASE}/blog`}>{copyText("blog.activeCategoryText")}</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
+              <Link href="/">{copyText("blog.link")}</Link> <span>›</span> <Link href={`${BASE}/blog/`}>{copyText("blog.activeCategoryText")}</Link> <span>›</span> <Link href={topicHref}>{topicName}</Link>
             </nav>
             <p className={styles.articleHeaderMeta} style={{ width: 'min(1028px,100%)', margin: '24px auto 0' }}>{copyText("blog.articleHeaderMeta")}{author.name.replaceAll('™', '')}</p>
             <h1 className={styles.articleHeadline} style={{ textWrap: 'balance', marginTop: 12 }}>{article.title}</h1>

@@ -1,3 +1,7 @@
+import { assertReviewedMasterUatOwner, reviewedMasterUatOwners } from '../qa/phase2-source-proof.mjs';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
@@ -83,9 +87,10 @@ assert.match(
 );
 assert.match(
   draftPreviewRuntime,
-  /if \(!enabled\) return null;[\s\S]*import\(["']@\/lib\/admin\/sanity-preview-live["']\)[\s\S]*import\(["']next-sanity\/visual-editing["']\)/,
+  /if \(!enabled\) return null;[\s\S]*import\(["']@\/lib\/admin\/sanity-preview-live["']\)[\s\S]*import\(["']\.\/LiveVisualEditing["']\)/,
   'Sanity Live and Visual Editing must only be imported from preview-only modules after the preview gate passes',
 );
+assert.match(read('components/preview/LiveVisualEditing.tsx'), /from "next-sanity\/visual-editing"[\s\S]*<VisualEditing refresh=\{async \(\) => \{ router\.refresh\(\); \}\}/, 'native mutation refresh stays inside the gated preview client wrapper');
 assert.match(
   draftPreviewRuntime,
   /<SanityLive includeDrafts=\{isDraftMode\} \/>[\s\S]*isDraftMode \? <VisualEditing \/>/,
@@ -294,4 +299,62 @@ assert.match(
   'Draft cookies must not bypass the deployment preview gate while category and article reads share preview state',
 );
 
-console.log('Public shell performance regression checks passed.');
+const assertMobileOwner = (file, source) => assertReviewedMasterUatOwner(file, reviewedMasterUatOwners[file].before, source);
+// Exercise the actual navbar with both menus open, including each canonical and
+// pre-redirect pathname. Hooks are controlled here; link and active-state logic run.
+{
+  const require = createRequire(import.meta.url);
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { JSDOM } = require('jsdom');
+  const registry = loadFixtureModule('lib/content/public-copy-registry.ts');
+  const tools = ['/play/money-story/', '/tools/financial-health-check/', '/ci-planning/'];
+  for (const pathname of ['/', '/blog', '/blog/', '/blog/health/example/', ...tools.flatMap(path => [path, path.slice(0, -1)])]) {
+    const mocks = new Map([
+      ['react', { ...React, useState: () => [true, () => {}], useRef: () => ({ current: null }), useEffect: () => {} }],
+      ['next/navigation', { usePathname: () => pathname }],
+      ['@/components/ui/PublicCopyProvider', { usePublicCopy: () => registry.publicCopyText(registry.parsePublicCopy('site', null)) }],
+      ['./Website43Navbar.module.css', { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) }],
+    ]);
+    const { Website43Navbar } = loadFixtureModule('components/layout/website-43/Website43Navbar.tsx', { mocks });
+    const dom = new JSDOM(renderToStaticMarkup(Website43Navbar({})));
+    const document = dom.window.document;
+    for (const path of ['/blog/', ...tools]) {
+      assert.equal(document.querySelectorAll(`a[href="${path}"]`).length, 2, 'desktop and mobile use the final canonical route');
+      assert.equal(document.querySelectorAll(`a[href="${path.slice(0, -1)}"]`).length, 0, 'no redirecting nav link');
+    }
+    const activeTool = tools.find(path => path === pathname || path.slice(0, -1) === pathname);
+    assert.equal(document.querySelectorAll('button[data-active="true"]').length, activeTool ? 2 : 0, 'both Tools buttons retain current-page state');
+    for (const path of tools) assert.equal(document.querySelectorAll(`a[href="${path}"][aria-current="page"]`).length, path === activeTool ? 2 : 0);
+    assert.equal(document.querySelectorAll('a[href="/blog/"][aria-current="page"]').length, /^\/blog\/?$/.test(pathname) ? 2 : 0);
+    assert.equal(document.querySelectorAll('a[href="/blog/"][aria-current="location"]').length, pathname.startsWith('/blog/') && pathname !== '/blog/' ? 2 : 0);
+    dom.window.close();
+  }
+  for (const file of ['components/layout/website-43/Website43Navbar.tsx', 'components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx', 'features/home/website-43/Website43Home.tsx', 'features/blog/website-43/Website43Article.tsx']) {
+    const source = readFileSync(file, 'utf8');
+    assertMobileOwner(file, source);
+    for (const changed of [source.replace('/blog/`', '/blog`'), source.replace('/blog/`', '/unowned/`'), source + '\n// unknown source change\n', source.replace('href={`${BASE}/blog/`}', 'href={`${BASE}/blog/`} data-unreviewed="yes"')]) {
+      assert.notEqual(changed, source);
+      assert.throws(() => assertMobileOwner(file, changed), 'only exact canonical href changes can bridge the frozen source');
+    }
+    if (file.endsWith('/Website43Navbar.tsx')) assert.throws(() => assertMobileOwner(file, source.replace("href.replace(/\\/$/, '')", 'href')), 'missing normalization cannot silently clear the active tool');
+  }
+  const authorFile = 'lib/content/sanity.ts';
+  const authorSource = readFileSync(authorFile, 'utf8');
+  assertMobileOwner(authorFile, authorSource);
+  for (const mutant of [
+    authorSource.replace('cache(unstable_cache(', 'unstable_cache('),
+    authorSource.replace('revalidate: 300', 'revalidate: 3600'),
+    authorSource.replace('PRIMARY_AUTHOR_FETCH_TIMEOUT_MS = 2000', 'PRIMARY_AUTHOR_FETCH_TIMEOUT_MS = 20000'),
+    authorSource.replace('tags: ["ccpun-primary-author"]', 'tags: []'),
+    authorSource.replace('  getSanityPreviewClient();\n', ''),
+    authorSource.replace('perspective: "published" | "drafts" = "published"', 'perspective: "published" | "drafts" = "drafts"'),
+    authorSource + '\n// unknown author change\n',
+  ]) assert.throws(() => assertMobileOwner(authorFile, mutant), 'request memoization cannot admit a changed author reader');
+
+}
+
+// Keep the existing author regression in test:public/check:foundation, including
+// the actual RSC request cache and private preview guard checks.
+execFileSync(process.execPath, ['--import', 'tsx', '--test', 'tests/author-profile-schema-sync.test.ts'], { stdio: 'inherit' });
+console.log('Public shell performance regression checks passed, including canonical navigation and active states.');

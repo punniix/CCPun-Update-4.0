@@ -139,7 +139,7 @@ test('page blocks rendering before its JSX; shared server gate supplies both nav
   for (const available of [false, true]) {
     const links = runInNewContext(`${menu}\ntoolLinks;`, { BASE: '', navigation, INVESTMENT_TOOL_LINK, investmentEnabled: available, text: key => key });
     assert.equal(links.filter(({ href }) => href.replace(/\/$/, '') === '/tools/investment-allocation').length, available ? 1 : 0);
-    assert.deepEqual(Array.from(links.slice(0, 3), ({ href }) => href), ['/play/money-story', '/tools/financial-health-check', '/ci-planning']);
+    assert.deepEqual(Array.from(links.slice(0, 3), ({ href }) => href), ['/play/money-story/', '/tools/financial-health-check/', '/ci-planning/']);
   }
   assert.doesNotMatch(source('public/nav-config.json'), /investment-allocation/, 'closed compatibility navigation must not expose unfinished investment');
 });

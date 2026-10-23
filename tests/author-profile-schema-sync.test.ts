@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { getPublicAuthorName } from "../lib/content/author-identity";
 import { buildCcpunSchemaGraph } from "../lib/seo/structured-data/site-schema";
@@ -73,4 +74,103 @@ test("primary author does not depend on mutable Sanity name", () => {
   assert.ok(source.includes("ccpun-author-ccpun-profile"));
   assert.ok(source.includes("ccpun-prod-mirror-author-ccpun"));
   assert.ok(!source.includes('name == "CCPun"'));
+});
+
+test("native RSC shares one cold primary-author read per request without sharing the next request", () => {
+  const script = String.raw`
+    import assert from 'node:assert/strict';
+    import { readFileSync } from 'node:fs';
+    import React from 'react';
+    import { renderToReadableStream } from 'next/dist/compiled/react-server-dom-webpack/server.node.js';
+    import { loadFixtureModule } from './qa/phase1-fixture-loader.mjs';
+    const file = 'lib/content/sanity.ts';
+    const source = readFileSync(file, 'utf8');
+    let predecessor = source;
+    for (const [current, old] of [
+      ['import { cache } from "react";\n', ''],
+      ['export const getPrimaryAuthorProfile = cache(unstable_cache(', 'export const getPrimaryAuthorProfile = unstable_cache('],
+      ['{ revalidate: 300, tags: ["ccpun-primary-author"] },\n));', '{ revalidate: 300, tags: ["ccpun-primary-author"] },\n);'],
+    ]) {
+      assert.equal(predecessor.split(current).length, 2);
+      predecessor = predecessor.replace(current, old);
+    }
+    async function observe(candidate, expected) {
+      let backendReads = 0;
+      const mocks = new Map([
+        ['next-sanity', { createClient: () => ({}), groq: String.raw }],
+        // A cold persistence boundary: no replacement cache implementation.
+        ['next/cache', { unstable_cache: (read, keys, options) => {
+          assert.deepEqual(keys, ['ccpun-primary-author-profile-v2', 'unconfigured', 'unconfigured']);
+          assert.deepEqual(options, { revalidate: 300, tags: ['ccpun-primary-author'] });
+          return read;
+        } }],
+        ['@/lib/sanity-live', { sanityFetch: async request => {
+          backendReads++;
+          assert.equal(request.perspective, 'published');
+          assert.equal(request.stega, false);
+          await Promise.resolve();
+          return { data: null };
+        } }],
+        ['@/lib/content/sanity-credentials', { getSanityReadToken: () => '' }],
+        ['@/lib/content/sanity-lane', { isContentSanityLaneAllowed: () => false }],
+        ['@/lib/deployment-environment', { IS_DRAFT_PREVIEW_ALLOWED: false }],
+      ]);
+      const { getPrimaryAuthorProfile } = loadFixtureModule(file, { sources: new Map([[file, candidate]]), mocks });
+      async function Request() {
+        const values = await Promise.all([getPrimaryAuthorProfile(), getPrimaryAuthorProfile(), getPrimaryAuthorProfile()]);
+        assert.deepEqual(values, [null, null, null], 'unavailable-profile fallback is unchanged');
+        return 'complete';
+      }
+      for (let request = 1; request <= 2; request++) {
+        await new Response(renderToReadableStream(React.createElement(Request), {})).text();
+        assert.equal(backendReads, expected * request, 'only the current RSC request shares the cold reader');
+      }
+      return backendReads;
+    }
+    assert.equal(await observe(predecessor, 3), 6);
+    assert.equal(await observe(source, 1), 2);
+    console.log('native RSC cold reads: predecessor 3/request; candidate 1/request; next request reads afresh');
+  `;
+  const output = execFileSync(process.execPath, ["--conditions=react-server", "--input-type=module", "-"], { input: script, encoding: "utf8" });
+  assert.match(output, /predecessor 3\/request; candidate 1\/request; next request reads afresh/);
+});
+
+test("uncached author preview enforces the existing lane and token guards before any draft read", () => {
+  const script = String.raw`
+    import assert from 'node:assert/strict';
+    import { loadFixtureModule } from './qa/phase1-fixture-loader.mjs';
+    function runtime({ allowed = true, configured = true, token = true } = {}) {
+      const requests = [];
+      const mocks = new Map([
+        ['next-sanity', { createClient: () => ({ withConfig: () => ({}) }), groq: String.raw }],
+        ['next/cache', { unstable_cache: read => read }],
+        ['@/lib/sanity-live', { sanityFetch: async request => {
+          requests.push(request);
+          return { data: { name: 'CCPun', profileName: 'Draft author ' + requests.length, profileRole: 'Draft role', professionalQualifications: [{ shortName: 'CFP', name: 'Draft qualification', identifier: 'FIXTURE', issuer: 'Fixture issuer' }] } };
+        } }],
+        ['@/lib/content/sanity-credentials', { getSanityReadToken: () => token ? 'synthetic-fixture-only' : '' }],
+        ['@/lib/content/sanity-lane', { isContentSanityLaneAllowed: () => configured }],
+        ['@/lib/deployment-environment', { IS_DRAFT_PREVIEW_ALLOWED: allowed }],
+      ]);
+      const module = loadFixtureModule('lib/content/sanity.ts', { mocks, globals: { process: { env: { NEXT_PUBLIC_SANITY_PROJECT_ID: 'fixture', NEXT_PUBLIC_SANITY_DATASET: 'production' } } } });
+      return { module, requests };
+    }
+    const { module, requests } = runtime();
+    const first = await module.getPrimaryAuthorPreviewProfile();
+    const second = await module.getPrimaryAuthorPreviewProfile();
+    assert.equal(first.profileName, 'Draft author 1');
+    assert.equal(second.profileName, 'Draft author 2', 'draft preview is never held in the published cache');
+    assert.equal(second.profileRole, 'Draft role');
+    assert.equal(second.professionalQualifications[0].shortName, 'CFP');
+    assert.equal(requests.length, 2);
+    for (const request of requests) { assert.equal(request.perspective, 'drafts'); assert.equal(request.stega, false); }
+    for (const settings of [{ allowed: false }, { configured: false }, { token: false }]) {
+      const denied = runtime(settings);
+      await assert.rejects(denied.module.getPrimaryAuthorPreviewProfile());
+      assert.equal(denied.requests.length, 0, 'denied preview cannot start a draft query');
+    }
+    console.log('uncached author preview: draft edits visible; lane, deployment and token denials before reads');
+  `;
+  const output = execFileSync(process.execPath, ["--conditions=react-server", "--input-type=module", "-"], { input: script, encoding: "utf8" });
+  assert.match(output, /draft edits visible; lane, deployment and token denials before reads/);
 });

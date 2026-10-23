@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { sanityFetch } from "./sanity-fetch";
-import { parsePublicCopy, publicCopyDocumentId, type PublicCopyScope } from "./public-copy-registry";
+import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope, type PublicCopyValues } from "./public-copy-registry";
 
 // One fresh read per scope/request; no cross-request cache of drafts or published copy.
 export const getPublicCopy = cache(async (scope: PublicCopyScope) => {
@@ -11,9 +11,11 @@ export const getPublicCopy = cache(async (scope: PublicCopyScope) => {
       params: { id: publicCopyDocumentId(scope) },
       perspective: "published",
     });
-    return parsePublicCopy(scope, data);
+    parsePublicCopy(scope, data);
+    // Defaults already ship with each renderer; send only validated CMS edits to clients.
+    return data ? Object.fromEntries(data.entries.filter(({ key, text }: { key: string; text: string }) => text !== (PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>)[key]).map(({ key, text }: { key: string; text: string }) => [key, text])) as PublicCopyValues : {};
   } catch {
     // Preserve readable approved defaults during an unavailable/invalid CMS response.
-    return parsePublicCopy(scope, null);
+    return {};
   }
 });
