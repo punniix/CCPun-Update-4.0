@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { insert, set, setIfMissing, unset, useFormValue, type ArrayOfObjectsInputProps, type Path } from "sanity";
-import { Badge, Box, Button, Card, Flex, Select, Stack, Text, TextArea, TextInput } from "@sanity/ui";
+import { Badge, Box, Button, Card, Flex, Stack, Text, TextArea, TextInput } from "@sanity/ui";
 import { ChevronDownIcon, ChevronRightIcon, ResetIcon, SearchIcon } from "@sanity/icons";
 import { PUBLIC_COPY_SCOPES, type PublicCopyScope } from "../../../lib/content/public-copy-registry";
-import { COPY_SIZE_LIMITS, COPY_SIZE_PRESETS, type CopySizePreset } from "../../../lib/content/public-copy-style";
 import locations from "../../../lib/content/public-copy-locations.json";
 
 type Entry = { _key: string; _type?: string; key: string; text?: string; size?: string; sizeMobile?: number; sizeDesktop?: number };
@@ -19,7 +18,8 @@ const placeholders = (value: string) => Array.from(new Set(value.match(/\{[a-zA-
 /**
  * Page-ordered editor for one page's texts. Editors see where each text sits on
  * the page (section, element) instead of storage keys, can search, reset to the
- * approved original, and choose a font size (preset or exact px per screen).
+ * approved original. Page copy is text-only: font size is edited per article
+ * body (Portable Text marks), not here. Reset still clears any legacy size.
  */
 export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) {
   const { onChange, readOnly } = props;
@@ -120,7 +120,7 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
               <Stack gap={3} padding={3}>
                 {visible.map(({ key, location }) => (
                   <CopyRow key={key} copyKey={key} location={location} entry={byKey.get(key)} original={defaults[key]} readOnly={Boolean(readOnly)} changed={isChanged(key)}
-                    onText={text => patchEntry(key, "text", text)} onSize={(field, next) => patchEntry(key, field, next)} onReset={() => resetEntry(key)} />
+                    onText={text => patchEntry(key, "text", text)} onReset={() => resetEntry(key)} />
                 ))}
               </Stack>
             ) : null}
@@ -131,14 +131,12 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
   );
 }
 
-function CopyRow({ copyKey, location, entry, original, readOnly, changed, onText, onSize, onReset }: {
+function CopyRow({ copyKey, location, entry, original, readOnly, changed, onText, onReset }: {
   copyKey: string; location: Location; entry: Entry | undefined; original: string; readOnly: boolean; changed: boolean;
-  onText: (text: string) => void; onSize: (field: "size" | "sizeMobile" | "sizeDesktop", value: string | number | undefined) => void; onReset: () => void;
+  onText: (text: string) => void; onReset: () => void;
 }) {
   const text = entry?.text ?? original;
-  const [advanced, setAdvanced] = useState(Boolean(entry?.sizeMobile || entry?.sizeDesktop));
   const missing = placeholders(original).filter(token => !text.includes(token));
-  const number = (raw: string) => raw.trim() === "" ? undefined : Number(raw);
   return (
     <Card padding={3} radius={2} tone={changed ? "caution" : "default"} border id={`copy-${entryKey(copyKey)}`}>
       <Stack gap={3}>
@@ -153,31 +151,9 @@ function CopyRow({ copyKey, location, entry, original, readOnly, changed, onText
           onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onText(event.currentTarget.value)} />
         {missing.length ? <Text size={1} style={{ color: "var(--card-badge-critical-dot-color, #f03e2f)" }}>ต้องคง {missing.join(" ")} ไว้ ระบบใช้เติมตัวเลขหรือชื่อ</Text> : null}
         {text !== original ? <Text size={1} muted>ข้อความเดิม: {original}</Text> : null}
-        <Flex gap={2} align="center" wrap="wrap">
-          <Text size={1} muted>ขนาดตัวอักษร</Text>
-          <Box style={{ minWidth: 170 }}>
-            <Select fontSize={1} padding={2} value={entry?.size ?? ""} disabled={readOnly} onChange={(event: ChangeEvent<HTMLSelectElement>) => onSize("size", event.currentTarget.value || undefined)}>
-              <option value="">ตามดีไซน์ของหน้า</option>
-              {(Object.entries(COPY_SIZE_PRESETS) as Array<[CopySizePreset, (typeof COPY_SIZE_PRESETS)[CopySizePreset]]>).map(([value, preset]) => (
-                <option key={value} value={value}>{preset.title} · มือถือ {preset.mobile}px / จอใหญ่ {preset.desktop}px</option>
-              ))}
-            </Select>
-          </Box>
-          <Button mode="bleed" fontSize={1} padding={2} text={advanced ? "ซ่อนขั้นสูง" : "ขั้นสูง (px)"} onClick={() => setAdvanced(!advanced)} />
-          <Box flex={1} />
-          {changed ? <Button mode="ghost" tone="critical" fontSize={1} padding={2} icon={ResetIcon} text="คืนค่าเดิม" disabled={readOnly} onClick={onReset} /> : null}
-        </Flex>
-        {advanced ? (
-          <Flex gap={3} wrap="wrap" align="center">
-            <Box style={{ width: 150 }}>
-              <TextInput fontSize={1} padding={2} type="number" min={COPY_SIZE_LIMITS.mobile.min} max={COPY_SIZE_LIMITS.mobile.max} prefix={<Box padding={2}><Text size={1} muted>มือถือ</Text></Box>} suffix={<Box padding={2}><Text size={1} muted>px</Text></Box>}
-                value={entry?.sizeMobile ?? ""} readOnly={readOnly} onChange={(event: ChangeEvent<HTMLInputElement>) => onSize("sizeMobile", number(event.currentTarget.value))} />
-            </Box>
-            <Box style={{ width: 160 }}>
-              <TextInput fontSize={1} padding={2} type="number" min={COPY_SIZE_LIMITS.desktop.min} max={COPY_SIZE_LIMITS.desktop.max} prefix={<Box padding={2}><Text size={1} muted>จอใหญ่</Text></Box>} suffix={<Box padding={2}><Text size={1} muted>px</Text></Box>}
-                value={entry?.sizeDesktop ?? ""} readOnly={readOnly} onChange={(event: ChangeEvent<HTMLInputElement>) => onSize("sizeDesktop", number(event.currentTarget.value))} />
-            </Box>
-            <Text size={0} muted>มือถือ {COPY_SIZE_LIMITS.mobile.min}–{COPY_SIZE_LIMITS.mobile.max}px · จอใหญ่ {COPY_SIZE_LIMITS.desktop.min}–{COPY_SIZE_LIMITS.desktop.max}px · ตรวจในตัวอย่างมือถือก่อน Publish</Text>
+        {changed ? (
+          <Flex justify="flex-end">
+            <Button mode="ghost" tone="critical" fontSize={1} padding={2} icon={ResetIcon} text="คืนค่าเดิม" disabled={readOnly} onClick={onReset} />
           </Flex>
         ) : null}
       </Stack>

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
-import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection, hasReviewedMasterUatOwner, assertReviewedMasterUatOwner, reviewedMasterUatOwners, canonicalNavigationPredecessor, nativeAuthorPredecessor } from '../qa/phase2-source-proof.mjs';
+import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection, hasReviewedMasterUatOwner, assertReviewedMasterUatOwner, reviewedMasterUatOwners, canonicalNavigationPredecessor, nativeAuthorPredecessor, articleFontSizePredecessor } from '../qa/phase2-source-proof.mjs';
 import { assertNativeProviderRetirement, assertReviewedWebUatBuildProfile } from '../qa/phase3-native-provider-proof.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -231,7 +231,8 @@ test('every reviewed UAT owner retains its historical pin and rejects source or 
     } else {
       const current = read(file);
       assertReviewedMasterUatOwner(file, record.before, current);
-      const predecessor = file === 'lib/content/sanity.ts' ? nativeAuthorPredecessor(current) : canonicalNavigationPredecessor(file, current);
+      const withoutFontSize = articleFontSizePredecessor(file, current);
+      const predecessor = file === 'lib/content/sanity.ts' ? nativeAuthorPredecessor(withoutFontSize) : canonicalNavigationPredecessor(file, withoutFontSize);
       assert.equal(sha(predecessor), record.after, file);
     }
     assert.ok(record.previous.includes(record.before), file);

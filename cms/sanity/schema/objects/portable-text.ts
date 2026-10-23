@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
+import { articleFontSizeDecorators } from "../../components/ArticleFontSizeMarks";
 
 export const portableText = defineType({
   name: "portableText",
@@ -19,6 +20,16 @@ export const portableText = defineType({
         { title: "รายการลำดับเลข", value: "number" },
       ],
       marks: {
+        // Listing decorators replaces Sanity's defaults, so the five defaults stay
+        // (existing articles already use strong/em/underline). Values are persisted: never rename.
+        decorators: [
+          { title: "ตัวหนา", value: "strong" },
+          { title: "ตัวเอียง", value: "em" },
+          { title: "ขีดเส้นใต้", value: "underline" },
+          { title: "ขีดฆ่า", value: "strike-through" },
+          { title: "โค้ด", value: "code" },
+          ...articleFontSizeDecorators,
+        ],
         annotations: [
           defineArrayMember({
             name: "link",

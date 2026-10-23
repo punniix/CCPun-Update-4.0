@@ -118,6 +118,32 @@ export function nativeAuthorPredecessor(source) {
 export function sizedCopyPredecessor(source) {
   return source.replace(/\b(t|text|copyText)\.node\((["'])/g, '$1($2');
 }
+// Owner-approved article-body font-size marks (2026-10-24). Only these exact
+// additions are inverted per file; any other drift still fails the digest.
+const ARTICLE_FONT_SIZE_TRANSITIONS = {
+  'features/blog/website-43/Website43ArticleBody.tsx': [
+    ["import { articleFontSizeStyle } from '@/lib/content/article-font-size';\n", ''],
+    [' style={articleFontSizeStyle(segment.size)}>{node}</span>;', '>{node}</span>;'],
+  ],
+  'lib/content/sanity.ts': [
+    ['import { articleFontSizeFromMarks, type ArticleFontSize } from "./article-font-size";\n', ''],
+    ['emphasis?: boolean; size?: ArticleFontSize }> }> = [];', 'emphasis?: boolean }> }> = [];'],
+    ['      const size = articleFontSizeFromMarks(marks);\n', ''],
+    ['        ...(size ? { size } : {}),\n', ''],
+    ['segment.href || segment.strong || segment.emphasis || segment.size)', 'segment.href || segment.strong || segment.emphasis)'],
+  ],
+  'lib/content/types.ts': [
+    ['import type { ArticleFontSize } from "./article-font-size";\n\n', ''],
+    ['  /** Editor-chosen size relative to the surrounding text (Sanity font-size mark). */\n  size?: ArticleFontSize;\n', ''],
+  ],
+};
+export function articleFontSizePredecessor(file, source) {
+  for (const [current, previous] of ARTICLE_FONT_SIZE_TRANSITIONS[file] ?? []) {
+    assert.equal(source.split(current).length, 2, file + ': exactly one article font-size transition');
+    source = source.replace(current, previous);
+  }
+  return source;
+}
 export function hasReviewedMasterUatOwner(file) { return Object.hasOwn(reviewedMasterUatOwners, file); }
 export function assertReviewedMasterUatOwner(file, previousDigest, source = read(file)) {
   const record = reviewedMasterUatOwners[file];
@@ -125,6 +151,7 @@ export function assertReviewedMasterUatOwner(file, previousDigest, source = read
   assert.ok(record.previous.includes(previousDigest), file + ': historical protected digest changed');
   source = canonicalNavigationPredecessor(file, source);
   source = sizedCopyPredecessor(source);
+  source = articleFontSizePredecessor(file, source);
   if (file === 'lib/content/sanity.ts') source = nativeAuthorPredecessor(source);
   // Invert only the owner-requested removal of the public AI consumer. Keep all
   // prior hashes frozen; this projection is never returned to runtime fixtures.
