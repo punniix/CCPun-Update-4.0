@@ -22,10 +22,18 @@ const reviewedAdminConfigBuild = {
   'tests/hostinger-native-app-contract.test.mjs': { before: '41edd506167307164c31c48e38054f8ae64447c98afc054a80846b96e98ec44f', after: '413d7991b78b2b325f10dc73a1b9ec04330c14ebacb1f64be9a6144a13759fbd' },
   'apps/web/scripts/build-provider.mjs': { before: '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd', after: '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4' },
 };
+// Exact successor for the independently reviewed Production Git-only refresh.
+// Original repair admissions and historical proof JSON remain unchanged.
+const reviewedProductionGitIdentity = {
+  'scripts/build-root.mjs': { before: 'a6fac6d5200f2ccf8ad4eb61b467c45738bd52ea8c76c6d0732a4fee9e9e7b3a', after: '52335defbafeec4973bfe0b3f3025b684376aab70f861bfb9a2c07c2a8709cc2' },
+  'tests/hostinger-shadow-config.test.mjs': { before: '4dee63352cd8651719cc2d156fa1aaf8b1209ef71ceccb6defc0ce1a72f1f8df', after: '979af5a6561d71316bba545c56552da996eb196fa631a070dd1dbd3b2309d982' },
+};
 function assertCurrentNativeDigest(path, body, originalDigest) {
   const repair = reviewedAdminConfigBuild[path];
   if (repair) assert.equal(originalDigest, repair.before, path + ': original repair seal differs');
-  assert.equal(sha(body), repair?.after ?? originalDigest, path + ': unreviewed native runtime change');
+  const successor = reviewedProductionGitIdentity[path];
+  if (successor) assert.equal(repair?.after ?? originalDigest, successor.before, path + ': previous reviewed successor seal differs');
+  assert.equal(sha(body), successor?.after ?? repair?.after ?? originalDigest, path + ': unreviewed native runtime change');
 }
 
 // Explicit current-source admission for the reviewed native policy retirement.
