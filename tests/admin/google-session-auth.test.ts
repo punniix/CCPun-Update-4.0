@@ -106,7 +106,11 @@ for (const lane of ["admin-uat", "production-admin"] as const) test(`${lane}: ac
       assert.equal((await manual(request('POST','/api/admin/seo/opportunities/sync/ga4/',{origin:'https://other.example.test'}))).status,403);
       process.env.CCPUN_GA4_PROPERTY_ID=otherProperty;assert.equal((await manual(request('POST','/api/admin/seo/opportunities/sync/ga4/'))).status,409);
       process.env.CCPUN_GA4_PROPERTY_ID=ownProperty;process.env.CCPUN_SEO_INTELLIGENCE_ENABLED='0';assert.equal((await manual(request('POST','/api/admin/seo/opportunities/sync/ga4/'))).status,404);
-      process.env.CCPUN_SEO_INTELLIGENCE_ENABLED='1';assert.equal((await gsc(request('POST','/api/admin/seo/opportunities/sync/gsc/'))).status,403);
+      process.env.CCPUN_SEO_INTELLIGENCE_ENABLED='1';
+      // GSC uses the same Hostinger origin guard as GA4: a foreign Origin is refused, the real lane
+      // passes the guard and then stops at its own configuration (no GSC site) without provider calls.
+      assert.equal((await gsc(request('POST','/api/admin/seo/opportunities/sync/gsc/',{origin:'https://other.example.test'}))).status,403);
+      const gscUnconfigured=await gsc(request('POST','/api/admin/seo/opportunities/sync/gsc/'));assert.equal(gscUnconfigured.status,409);assert.equal((await gscUnconfigured.json()).error,'provider-not-connected');
       assert.equal(tokenCalls,0);assert.equal(reportCalls,0);
       const result=await manual(request('POST','/api/admin/seo/opportunities/sync/ga4/'));assert.equal(result.status,200);assert.equal((await result.json()).state,'ready');assert.equal(tokenCalls,1);assert.equal(reportCalls,4);
       const privateGrant=await getToken({req:{headers:{cookie:currentLane.grantCookie+'='+cookieValues.get(currentLane.grantCookie)}},secret:process.env.AUTH_SECRET,cookieName:currentLane.grantCookie,salt:currentLane.grantCookie});assert.equal(privateGrant.refreshToken,'synthetic-rotated');
