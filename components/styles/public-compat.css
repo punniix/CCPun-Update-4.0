@@ -102,19 +102,3 @@
     background: linear-gradient(90deg, transparent, hsl(42,50%,55%), transparent);
   }
 }
-
-/* Font size an editor chose for one text in Sanity (lib/content/public-copy-style.ts).
-   Unset texts render no wrapper and keep their page CSS. The editor's choice wins
-   over descendant rules such as `.card span`, so it is marked important. */
-.cms-copy-size[data-cms-copy] {
-  font-size: var(--cms-fs-m) !important;
-  line-height: 1.45;
-}
-:is(h1, h2, h3, h4) > .cms-copy-size[data-cms-copy] {
-  line-height: 1.25;
-}
-@media (min-width: 768px) {
-  .cms-copy-size[data-cms-copy] {
-    font-size: var(--cms-fs-d) !important;
-  }
-}

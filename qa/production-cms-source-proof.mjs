@@ -207,7 +207,7 @@ export const cmsNativeFollowupOwners = {
   'features/money-story/components/MoneyStoryScreens.tsx': { before: '217c83a2b12f8b34b793749f2fd0b1bd38a7eb793c328acf51b9c3dbd1212831', after: 'f5164f5715f2c33b921a53304b4e6116a1273b7cb2064d709bdc071f5873cc17' },
   'features/money-story/components/MoneyStoryStatusSidebar.tsx': { before: '7731b451eefb1e0c5fe91b3a7a0c31c38b2cc2eadc498dc1a4aea08688e3bb43', after: 'cc3c449593e971072d55dbbcc47771a37bf8f61c7c745f3a6e6859c525b8e5ff' },
   'features/money-story/page.tsx': { before: '88333aaf339ceacdb87a34b099640e93b83dfe34ddd55990f84c59d1c1eb34d8', after: '83f1719473106c1f47b1022e9f7bd642c4e3fc87f7b546a869e70b9108f4296d' },
-  'lib/admin/public-copy-preview.ts': { before: '4f9df5d953f0648a7186e3f8d63054b87402e581cce51c8b5a266418c4c26b39', after: '893ce597fa62bfe9938ac53c2806cf6c73aee8e7ab899befa55a834ecf24c231' },
+  'lib/admin/public-copy-preview.ts': { before: '4f9df5d953f0648a7186e3f8d63054b87402e581cce51c8b5a266418c4c26b39', after: '9538b4faab828cf6919a573a0ae8a321a1c2ff43514117ee41ed9b465addc3f2' },
   'lib/content/public-copy-registry.ts': { before: 'b6ffb074fcca343806f404800e251980decec3026fb13c783ff3e821137765e7', after: '9712dcf42084d5097624e84ce5ef3cb2bae936f61fc472c4d57bc3390a021a29' },
 };
 // Exact canonical navigation transition; every original owner digest stays frozen.
@@ -328,7 +328,9 @@ export function productionCmsDisplaySource(file, source = read(file)) {
   const replacements=[];
   function visit(node) {
     let key;
-    if(ts.isCallExpression(node) && ts.isIdentifier(node.expression) && ['t','text','copyText'].includes(node.expression.text) && node.arguments.length===1 && ts.isStringLiteral(node.arguments[0])) key=node.arguments[0].text;
+    // `text.node("key")` is the same CMS lookup rendered as a sized visible child.
+    const lookup = ts.isCallExpression(node) && (ts.isIdentifier(node.expression) ? node.expression : ts.isPropertyAccessExpression(node.expression) && node.expression.name.text==='node' && ts.isIdentifier(node.expression.expression) ? node.expression.expression : null);
+    if(lookup && ['t','text','copyText'].includes(lookup.text) && node.arguments.length===1 && ts.isStringLiteral(node.arguments[0])) key=node.arguments[0].text;
     if(ts.isElementAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text.endsWith('_COPY_DEFAULTS') && ts.isStringLiteral(node.argumentExpression)) key=node.argumentExpression.text;
     if(key!==undefined) {
       assert.ok(Object.hasOwn(values,key),'Unknown public default key: '+key);

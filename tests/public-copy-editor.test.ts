@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { isValidElement, type ReactElement } from "react";
-import { COPY_STYLE_SEPARATOR, copySizeVariables, copyStyleFromEntry, encodeCopyValue, resolveCopySize, splitCopyValue } from "../lib/content/public-copy-style";
-import { cleanCopyText, createCopyText } from "../lib/content/public-copy-text";
+import { COPY_STYLE_SEPARATOR, copyStyleFromEntry, encodeCopyValue, resolveCopySize, splitCopyValue } from "../lib/content/public-copy-style";
+import { cleanCopyText, createCopyText, fluidFontSize } from "../lib/content/public-copy-text";
 import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, publicCopyInitialEntries, publicCopyText } from "../lib/content/public-copy-registry";
 import locations from "../lib/content/public-copy-locations.json";
 
@@ -17,7 +17,6 @@ test("preset and advanced px resolve per breakpoint with px overriding preset", 
   assert.deepEqual(resolveCopySize({ size: "xl", desktopPx: 40 }), { mobile: 22, desktop: 40 });
   assert.deepEqual(resolveCopySize({ mobilePx: 18 }), { mobile: 18, desktop: 18 });
   assert.equal(resolveCopySize(null), null);
-  assert.deepEqual(copySizeVariables({ size: "sm" }), { "--cms-fs-m": "14px", "--cms-fs-d": "14px" });
 });
 
 test("sized text renders a span for visible children and plain text everywhere else", () => {
@@ -25,11 +24,14 @@ test("sized text renders a span for visible children and plain text everywhere e
   assert.ok(value.includes(COPY_STYLE_SEPARATOR));
   const text = createCopyText<string>(() => value);
   assert.equal(text("k"), "หัวข้อ");
-  const node = text.node("k") as ReactElement<{ className: string; style: Record<string, string>; children: string }>;
+  const node = text.node("k") as ReactElement<{ "data-cms-copy": string; style: { fontSize: string; lineHeight: number }; children: string }>;
   assert.ok(isValidElement(node));
-  assert.equal(node.props.className, "cms-copy-size");
-  assert.deepEqual(node.props.style, { "--cms-fs-m": "30px", "--cms-fs-d": "34px" });
+  assert.equal(node.props["data-cms-copy"], "k");
+  assert.equal(node.props.style.fontSize, "clamp(30px, calc(30px + 4 * ((100vw - 375px) / 905)), 34px)");
+  assert.equal(node.props.style.lineHeight, 1.3);
   assert.equal(node.props.children, "หัวข้อ");
+  assert.equal(fluidFontSize(16, 16), "16px");
+  assert.equal(fluidFontSize(40, 20), "clamp(20px, calc(40px + -20 * ((100vw - 375px) / 905)), 40px)");
   assert.deepEqual(splitCopyValue(value), { text: "หัวข้อ", style: { size: "2xl", mobilePx: 30 } });
 });
 

@@ -7,7 +7,7 @@ import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicC
 import { getPageSeoPage, validatePageSeoFields } from "../content/page-seo-registry";
 import { encodeCopyValue, splitCopyValue } from "../content/public-copy-style";
 
-// Same invisible encoding Sanity Visual Editing reads (@vercel/stega v1 format):
+// Same zero-width encoding Sanity Visual Editing reads (@vercel/stega v1 format):
 // a 4-character prefix, then each UTF-8 byte of the JSON as four base-4 digits.
 const STEGA_DIGITS = ["\u200B", "\u200C", "\u200D", "\uFEFF"];
 function stegaCombine(text: string, info: Record<string, string>) {
@@ -18,7 +18,7 @@ function stegaCombine(text: string, info: Record<string, string>) {
   return text + encoded;
 }
 
-// Each visible preview text carries an invisible pointer to its Sanity field, so
+// Each displayed preview text carries a zero-width pointer to its Sanity field, so
 // a click on the page in Presentation opens exactly that entry for editing.
 function withEditTargets(scope: PublicCopyScope, values: Record<string, string>) {
   const id = publicCopyDocumentId(scope);

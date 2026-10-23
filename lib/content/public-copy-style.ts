@@ -70,9 +70,3 @@ export function resolveCopySize(style: CopyStyle | null): { mobile: number; desk
   const desktop = style.desktopPx ?? preset?.desktop ?? style.mobilePx;
   return mobile && desktop ? { mobile, desktop } : null;
 }
-
-/** Inline custom properties consumed by the global `.cms-copy-size` rule. */
-export function copySizeVariables(style: CopyStyle | null): Record<string, string> | null {
-  const size = resolveCopySize(style);
-  return size ? { "--cms-fs-m": `${size.mobile}px`, "--cms-fs-d": `${size.desktop}px` } : null;
-}

@@ -31,6 +31,15 @@ test('published-only reader hardening retains the frozen predecessor proof and d
   assertProductionCmsOwner(file,source);
   let predecessor=source;
   for(const[current,old]of [
+    // Sized copy (size fields and value encoding) is the newest reviewed reader step.
+    [
+      "entries[]{_key, key, text, size, sizeMobile, sizeDesktop}}'",
+      "entries[]{_key, key, text}}'"
+    ],
+    [
+      "    const values = parsePublicCopy(scope, data) as Record<string, string>;\n    // Defaults already ship with each renderer; send only validated CMS edits\n    // (changed wording or a chosen size) to clients.\n    const defaults = PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>;\n    return data ? Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== defaults[key])) as PublicCopyValues : {};",
+      "    parsePublicCopy(scope, data);\n    // Defaults already ship with each renderer; send only validated CMS edits to clients.\n    return data ? Object.fromEntries(data.entries.filter(({ key, text }: { key: string; text: string }) => text !== (PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>)[key]).map(({ key, text }: { key: string; text: string }) => [key, text])) as PublicCopyValues : {};"
+    ],
     [
       'import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope, type PublicCopyValues } from "./public-copy-registry";',
       'import { parsePublicCopy, publicCopyDocumentId, type PublicCopyScope, type PublicCopyValues } from "./public-copy-registry";'
