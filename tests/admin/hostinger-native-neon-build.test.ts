@@ -248,6 +248,17 @@ test("reviewed config-build admission rejects unknown contract changes even with
   const resealed = structuredClone(proof);
   resealed.outputTestHashes[contract] = createHash("sha256").update(changed).digest("hex");
   assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], resealed, readChanged));
+  const driver = "apps/admin/scripts/build-provider.mjs";
+  const original = source(driver);
+  const removed = original.replace('    writeFileSync(serverPath, `/* CCPun sealed Admin Production Git identity */\\nObject.assign(process.env,${JSON.stringify(runtimeIdentity)});\\n` + server, { mode: 0o600 });', '    writeFileSync(serverPath, server, { mode: 0o600 });');
+  assert.notEqual(removed, original);
+  for (const altered of [original + "\n// unreviewed runtime change\n", removed]) {
+    const reader = (path: string) => path === driver ? altered : source(path);
+    assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], proof, reader));
+    const rewritten = structuredClone(proof);
+    rewritten.currentHashes[driver] = createHash("sha256").update(altered).digest("hex");
+    assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], rewritten, reader));
+  }
 });
 
 test("manual Production seal binds the real lane/ref and permanently disabled scheduler without claiming readiness", () => {
@@ -277,6 +288,7 @@ test("manual Production seal binds the real lane/ref and permanently disabled sc
     ]) assert.throws(() => validateNativeNeonBuild(f.admin, { ...values, ...change }), /PRODUCTION_BUILD_DENIED/);
     const runtime = join(f.admin, ".next/standalone");
     put(join(runtime, ".next/server/app-paths-manifest.json"), '{}'); put(join(runtime, ".next/BUILD_ID"), "manual-fixture-build");
+    put(join(runtime, "server.js"), "// synthetic standalone entry\n");
     sealNativeNeonRuntime(f.admin, seal);
     const manifest = JSON.parse(readFileSync(join(runtime, "ccpun-native-admin-manifest.json"), "utf8"));
     assert.equal(manifest.environment, "production-admin"); assert.equal(manifest.schedulerBackend, "disabled");
@@ -284,6 +296,46 @@ test("manual Production seal binds the real lane/ref and permanently disabled sc
     put(join(f.root, "package-lock.json"), '{"lockfileVersion":3,"tampered":true}\n');
     assert.throws(() => validateNativeNeonBuild(f.admin, values), /PRODUCTION_BUILD_DENIED/);
   } finally { f.close(); }
+});
+
+test("Production standalone binds only six sealed Git markers before runtime identity checks", () => {
+  for (const backend of ["disabled", "native-neon"]) {
+    const f = fixture(); try {
+      const ref = `codex/hostinger-release-production-${f.values.CCPUN_GIT_SHA}`;
+      f.git("branch", "-m", ref);
+      const values = { ...productionValues(f), CCPUN_GIT_REF: ref, CCPUN_ARTICLE_SCHEDULER_BACKEND: backend,
+        NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: backend, CCPUN_ARTICLE_SCHEDULING_ENABLED: backend === "disabled" ? "0" : "1" };
+      const seal = validateNativeNeonBuild(f.admin, values); assert.ok(seal);
+      const runtime = join(f.admin, ".next/standalone");
+      put(join(runtime, ".next/server/app-paths-manifest.json"), '{}'); put(join(runtime, ".next/BUILD_ID"), "production-git-fixture");
+      const identity = {
+        CCPUN_GIT_REF: seal.gitRef, CCPUN_GIT_SHA: seal.gitSha, CCPUN_RELEASE_ID: seal.releaseId,
+        NEXT_PUBLIC_CCPUN_GIT_REF: seal.gitRef, NEXT_PUBLIC_CCPUN_GIT_SHA: seal.gitSha, NEXT_PUBLIC_CCPUN_RELEASE_ID: seal.releaseId,
+      };
+      const incoming = { ...values, ...seal.publicValues, NODE_ENV: "test" as const, AUTH_SECRET: "FIXTURE_SECRET_UNCHANGED",
+        UNRELATED_FIXTURE_SETTING: "unchanged", ...Object.fromEntries(Object.keys(identity).map(key => [key, "stale-marker"])) };
+      const serverPath = join(runtime, "server.js");
+      put(serverPath, `const initial=Object.fromEntries(${JSON.stringify(Object.keys(incoming))}.map(key=>[key,process.env[key]]));
+  import(${JSON.stringify(new URL(`file://${join(f.root, "lib/runtime/hostinger-production-release.mjs")}`).href)}).then(({isPinnedCloudProductionRelease})=>console.log(JSON.stringify({initial,accepted:isPinnedCloudProductionRelease(process.env,${JSON.stringify({ ...seal.publicValues, NEXT_PUBLIC_CCPUN_APP_ENV: "production-admin" })})})));\n`);
+      sealNativeNeonRuntime(f.admin, seal);
+      const run = (extra: Record<string, string | undefined> = {}) => spawnSync(process.execPath, [serverPath], { env: { ...incoming, ...extra }, encoding: "utf8" });
+      const result = run(); assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(JSON.parse(result.stdout.trim()), { initial: { ...incoming, ...identity }, accepted: true });
+      const server = readFileSync(serverPath, "utf8");
+      const encoded = server.match(/^\/\* CCPun sealed Admin Production Git identity \*\/\nObject\.assign\(process\.env,(\{[^\n]+\})\);\n/);
+      assert.ok(encoded); assert.deepEqual(JSON.parse(encoded[1]), identity);
+      // Manifest metadata is not runtime authority; the sealed entry is self-contained.
+      put(join(runtime, "ccpun-native-admin-manifest.json"), '{"gitSha":"counterfeit"}');
+      assert.equal(JSON.parse(run().stdout.trim()).accepted, true);
+      for (const change of [{ CCPUN_APP_ENV: "admin-uat" }, { CCPUN_ARTICLE_SCHEDULER_BACKEND: backend === "disabled" ? "native-neon" : "disabled" }, { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" }]) {
+        const denied = run(change); assert.equal(denied.status, 0, denied.stderr);
+        assert.deepEqual(JSON.parse(denied.stdout.trim()), { initial: { ...incoming, ...identity, ...change }, accepted: false });
+      }
+      assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /PRODUCTION_RUNTIME_ALREADY_SEALED/);
+      unlinkSync(serverPath);
+      assert.throws(() => sealNativeNeonRuntime(f.admin, seal), /PRODUCTION_RUNTIME_ENTRY_MISSING/);
+    } finally { f.close(); }
+  }
 });
 
 test("native standalone seal permits internal workspace links and denies escapes, credentials and SDK mounts", () => {
