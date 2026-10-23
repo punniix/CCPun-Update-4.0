@@ -7,6 +7,7 @@ import {
   buildQueryUrl,
   checkBoundary,
   checkPrivateDocument,
+  checkRetiredDataset,
 } from "../qa/sanity-free-plan-privacy.mjs";
 
 const production = TARGETS.find((target) => target.key === "production");
@@ -87,4 +88,16 @@ test("unknown or malformed synthetic admission counts cannot exempt public UAT a
   for (const target of TARGETS.filter(target => target.key !== "active-uat")) {
     assert.ok(!buildBoundaryQuery(target).includes("approvedSyntheticArticles"));
   }
+});
+
+test("only the retired legacy UAT dataset may answer with the exact not-found denial", () => {
+  const legacy = TARGETS.find((target) => target.key === "legacy-uat");
+  const notFound = { error: "Dataset not found", statusCode: 404, message: 'Dataset "uat" not found for project ID "kyfxgjnq"' };
+  assert.deepEqual(checkRetiredDataset(legacy, 404, notFound), { retired: true, status: 404 });
+  assert.throws(() => checkRetiredDataset(legacy, 401, notFound));
+  assert.throws(() => checkRetiredDataset(legacy, 404, { ...notFound, error: "Unauthorized" }));
+  assert.throws(() => checkRetiredDataset(legacy, 404, { ...notFound, message: 'Dataset "uat" not found for project ID "ccb9lnw5"' }));
+  for (const target of [production, activeUat, recovery]) assert.throws(() => checkRetiredDataset(target, 404, notFound));
+  // If the dataset is ever recreated, the ordinary boundary still applies.
+  assert.throws(() => checkBoundary(legacy, { result: { articles: 1, authors: 0, categories: 0, operational: 0, drafts: 0, versions: 0 } }));
 });
