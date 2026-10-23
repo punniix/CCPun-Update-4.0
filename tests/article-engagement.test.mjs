@@ -23,6 +23,7 @@ function load(overrides = {}) {
   const calls = [];
   const articles = [{ id: productionId, status: "published", publishedAt: "2026-10-07T08:14:13.608Z" }];
   let fail = false;
+  let activatedAt = "2026-10-19T10:00:00.000Z";
   const exports = {};
   runInNewContext(transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: 9 } }).outputText, {
     exports, process: { env: variables }, Buffer, URL, TextDecoder, Request, Response, Headers, AbortSignal,
@@ -39,12 +40,12 @@ function load(overrides = {}) {
         calls.push({ sql, params });
         if (fail) throw new Error("synthetic database failure: must never leak");
         return [{ views: "2", shares: 0, hearts: sql.includes("set_article_heart") && params[2] ? 1 : null,
-          liked: sql.includes("set_article_heart") ? params[2] : !!params.at(-1), activated_at: "2026-10-19T10:00:00.000Z" }];
+          liked: sql.includes("set_article_heart") ? params[2] : !!params.at(-1), activated_at: activatedAt }];
       } }) };
       throw new Error(`Unexpected dependency: ${name}`);
     },
   });
-  return { ...exports, variables, calls, articles, fail: () => { fail = true; } };
+  return { ...exports, variables, calls, articles, fail: () => { fail = true; }, activatedAt: value => { activatedAt = value; } };
 }
 function request(id = productionId, body, headers = {}, origin = "https://ccpun.com") {
   return new Request(`${origin}/api/article-engagement/${id}/`, {
@@ -79,6 +80,23 @@ test("GET has no cookie, unknown history stays null, and future published IDs wo
   assert.equal((await lib.handleArticleEngagement(request(futureId), futureId)).status, 200);
   for (const id of ["drafts.hidden", "not-published", "uat-public-snapshot-" + productionId]) {
     assert.equal((await lib.handleArticleEngagement(request(id), id)).status, 404);
+  }
+});
+
+test("activated_at accepts the real Neon driver Date shape and rejects invalid timestamps", async () => {
+  const { types } = require("@neondatabase/serverless");
+  const parsed = types.getTypeParser(1184, "text")("2026-10-21 09:31:40.94+00");
+  assert.ok(parsed instanceof Date, "driver parses timestamptz into Date");
+  const lib = load();
+  lib.activatedAt(parsed);
+  const response = await lib.handleArticleEngagement(request(), productionId);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).activatedAt, "2026-10-21T09:31:40.940Z");
+  for (const bad of [null, "not-a-date", new Date(Number.NaN), 1729500000000]) {
+    lib.activatedAt(bad);
+    const failed = await lib.handleArticleEngagement(request(), productionId);
+    assert.equal(failed.status, 503);
+    assert.deepEqual(await failed.json(), { available: false, error: "unavailable" });
   }
 });
 
