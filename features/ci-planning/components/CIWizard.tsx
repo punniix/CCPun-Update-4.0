@@ -141,7 +141,7 @@ const CALCULATION_RANGE_ERROR = t("ci.wizard.validation.calculationRange");
 
   const stepProps = { data: formData, updateData, errors };
   const footer = <div className="flex items-center gap-3">
-    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label={t("ci.wizard.ariaLabel")} className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" /><span>{t("ci.wizard.ariaLabel")}</span></button> : <span className="flex-1" />}
+    {currentStep > 0 ? <button type="button" onClick={handlePrev} aria-label={t("ci.wizard.ariaLabel")} className="glass-button ccpun-motion-tactile inline-flex min-h-11 items-center gap-2 px-4"><ChevronLeft className="h-4 w-4" /><span>{t.node("ci.wizard.ariaLabel")}</span></button> : <span className="flex-1" />}
     <button type="submit" className="gold-button ccpun-motion-tactile ml-auto inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-5 sm:flex-none sm:min-w-44"><span>{currentStep === TOTAL_STEPS - 1 ? t("ci.wizard.footer") : t("ci.wizard.footer2")}</span>{currentStep === TOTAL_STEPS - 1 ? <BarChart3 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
   </div>;
 

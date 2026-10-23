@@ -62,10 +62,10 @@ const toolLinks = [
       <Link href={HOME} className={styles.brandLink} aria-label={text("site.nav.homeLabel")}><Website43NavbarBrand /></Link>
       <div className={styles.navSpacer} />
       <nav className={styles.navLinks} aria-label={text("site.nav.mainLabel")}>
-        <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>{text("site.nav.home")}</Link>
-        <Link href={`${BASE}/blog/`} aria-current={blogCurrent}>{text("site.nav.blog")}</Link>
+        <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>{text.node("site.nav.home")}</Link>
+        <Link href={`${BASE}/blog/`} aria-current={blogCurrent}>{text.node("site.nav.blog")}</Link>
         <div className={styles.navTools} ref={toolsRef}>
-          <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>{text("site.nav.tools")}{' '}<span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
+          <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>{text.node("site.nav.tools")}{' '}<span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
           </button>
           {toolsOpen ? (
             <div id="home-tools-navigation" className={styles.navDropdown}>
@@ -76,17 +76,17 @@ const toolLinks = [
           ) : null}
         </div>
       </nav>
-      <a className={styles.navCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar">{text("site.nav.contact")}</a>
+      <a className={styles.navCta} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar">{text.node("site.nav.contact")}</a>
       <button ref={mobileButtonRef} className={styles.hamburger} aria-controls="mobile-navigation" type="button" aria-label={open ? text("site.nav.close") : text("site.nav.open")} aria-expanded={open} onClick={() => { setOpen((v) => !v); setToolsOpen(false); }}>
         <span /><span /><span />
       </button>
       {open ? (
         <nav id="mobile-navigation" className={styles.mobileMenu} aria-label={text("site.nav.mobileLabel")}>
-          <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined} onClick={() => setOpen(false)}>{text("site.nav.home")}</Link>
-          <Link href={`${BASE}/blog/`} aria-current={blogCurrent} onClick={() => setOpen(false)}>{text("site.nav.blog")}</Link>
+          <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined} onClick={() => setOpen(false)}>{text.node("site.nav.home")}</Link>
+          <Link href={`${BASE}/blog/`} aria-current={blogCurrent} onClick={() => setOpen(false)}>{text.node("site.nav.blog")}</Link>
           <div className={styles.mobileTools}>
             <button type="button" data-active={toolsCurrent} aria-expanded={mobileToolsOpen} onClick={() => setMobileToolsOpen((v) => !v)}>
-              <span>{text("site.nav.tools")}</span><span className={`${styles.navChevron} ${mobileToolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
+              <span>{text.node("site.nav.tools")}</span><span className={`${styles.navChevron} ${mobileToolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
             </button>
             {mobileToolsOpen ? (
               <div className={styles.mobileSubmenu}>
@@ -96,7 +96,7 @@ const toolLinks = [
               </div>
             ) : null}
           </div>
-          <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar_mobile" onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>{text("site.nav.contact")}</a>
+          <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="navbar_mobile" onClick={() => { setOpen(false); setMobileToolsOpen(false); }}>{text.node("site.nav.contact")}</a>
         </nav>
       ) : null}
     </div>

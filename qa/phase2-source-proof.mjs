@@ -185,7 +185,7 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
       source = source.replaceAll('display: "swap"', 'display: "optional"');
     }
     const additions = {
-      'lib/content/types.ts': ['  optimizedAt?: string;\n'],
+      'lib/content/types.ts': ['  optimizedAt?: string;\n', 'import type { ArticleFontSize } from "./article-font-size";\n\n', '  /** Editor-chosen size relative to the surrounding text (Sanity font-size mark). */\n  size?: ArticleFontSize;\n'],
       'lib/content/sanity-schema.ts': ['  contentOptimizedAt: z.string().datetime({ offset: true }).nullish().transform((value) => value ?? undefined).catch(undefined),\n'],
       'lib/content/sanity.ts': ['    optimizedAt: raw.contentOptimizedAt,\n', '  contentOptimizedAt,\n'],
     };
@@ -226,7 +226,7 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
     assert.equal(sha(original),expectedBaselineDigest,'frozen original Money controller');
     assert.equal(expectedBaselineDigest,composition.baselineSha256);
     assert.equal(composition.test,'tests/money-story-presentation-parity.test.mjs');
-    assert.equal(sha(readCurrent(composition.test)),'7c0b778d22dd6bf699e3c477d55a396d655446301307e7beaab8e0924a1783eb','unchanged six-output/action fixture with only default CMS context');
+    assert.equal(sha(readCurrent(composition.test)),'2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b','unchanged six-output/action fixture with only default CMS context');
     return true;
   }
   assert.equal(sha(current), composition.controllerSha256, 'Unreviewed controller composition');

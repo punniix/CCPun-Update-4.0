@@ -43,7 +43,9 @@ test('exact preload admission preserves complete prior SSR and denies predecesso
   assertProductionCmsOwner(file, source);
   const prior = source.replace("import { preload } from 'react-dom';\n", '')
     .replace(/import countdownArtwork[^\n]+\n/, '')
-    .replace(/  if \(placement === 'blog'\) \{\n    preload[^\n]+\n  \}\n/, '');
+    .replace(/  if \(placement === 'blog'\) \{\n    preload[^\n]+\n  \}\n/, '')
+    // Reviewed sized-copy successor: `text.node("key")` is the same CMS lookup as `text("key")`.
+    .replace(/\b(t|text|copyText)\.node\((["'])/g, '$1($2');
   assert.equal(cmsSha(prior), productionCmsOwners[file].after);
   for (const mutant of [prior, source.replace("placement === 'blog'", "placement === 'home'"), source.replace("fetchPriority: 'high'", "fetchPriority: 'low'"), source.replace('article.lossless.webp', 'article.png'), source.replace('site.extra.headline', 'site.extra.date'), source + "\nimport { preload } from 'react-dom';\n", source + '\n// unrelated\n']) {
     assert.notEqual(mutant, source);

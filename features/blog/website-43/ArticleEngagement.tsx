@@ -92,7 +92,7 @@ export function ArticleEngagementSummary({ readingMinutes }: { readingMinutes?: 
 
   const { metrics } = useArticleEngagement();
   return <div className={styles.articleReadingTime}>
-    {readingMinutes !== undefined && <span className={styles.articleReadingEstimate}>{copyText("blog.articleReadingEstimate")}<b>{readingMinutes}</b>{" "}{copyText("blog.articleReadingEstimate2")}</span>}
-    {metrics.shares !== null && <span title={copyText("blog.articleEngagementSummarytitle")} aria-label={copyText("blog.dynamic3").replaceAll("{0}", String(metrics.shares))}>{copyText("blog.span3")}<b>{metrics.shares}</b>{" "}{copyText("blog.span4")}</span>}
+    {readingMinutes !== undefined && <span className={styles.articleReadingEstimate}>{copyText.node("blog.articleReadingEstimate")}<b>{readingMinutes}</b>{" "}{copyText.node("blog.articleReadingEstimate2")}</span>}
+    {metrics.shares !== null && <span title={copyText("blog.articleEngagementSummarytitle")} aria-label={copyText("blog.dynamic3").replaceAll("{0}", String(metrics.shares))}>{copyText.node("blog.span3")}<b>{metrics.shares}</b>{" "}{copyText.node("blog.span4")}</span>}
   </div>;
 }

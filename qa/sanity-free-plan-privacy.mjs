@@ -34,6 +34,9 @@ export const TARGETS = [
     key: "legacy-uat",
     projectId: "kyfxgjnq",
     dataset: "uat",
+    // Deleted with owner approval (2026-10-23 cleanup). "Dataset not found" is
+    // the safest state; if it ever reappears it must still expose nothing.
+    retired: true,
     transports: ["api", "apicdn"],
     requirePublishedArticles: false,
     requireNoPublishedArticles: true,
@@ -129,6 +132,16 @@ export function checkBoundary(target, payload) {
   return result;
 }
 
+// A retired dataset passes only with Sanity's exact not-found answer for that
+// project/dataset; any other non-200 answer still fails closed.
+export function checkRetiredDataset(target, status, payload) {
+  assert.equal(target?.retired, true, `NOT_A_RETIRED_TARGET:${target?.key}`);
+  assert.equal(status, 404, `RETIRED_DATASET_UNEXPECTED_STATUS:${target.key}`);
+  assert.equal(payload?.error, "Dataset not found", `RETIRED_DATASET_INVALID_DENIAL:${target.key}`);
+  assert.equal(payload?.message, `Dataset "${target.dataset}" not found for project ID "${target.projectId}"`, `RETIRED_DATASET_INVALID_DENIAL:${target.key}`);
+  return { retired: true, status };
+}
+
 export function checkPrivateDocument(status, payload) {
   if (status === 401 || status === 403 || status === 404) {
     assert.ok(payload?.error, "INVALID_DENIAL_RESPONSE");
@@ -167,6 +180,10 @@ export async function main() {
   for (const target of TARGETS) {
     for (const transport of target.transports) {
       const response = await requestJson(buildQueryUrl(target, transport, buildBoundaryQuery(target)));
+      if (target.retired && response.status !== 200) {
+        results.push({ target: target.key, transport, ...checkRetiredDataset(target, response.status, response.payload) });
+        continue;
+      }
       assert.equal(response.status, 200, `PUBLIC_DATASET_HTTP_FAILED:${target.key}:${transport}`);
       results.push({ target: target.key, transport, ...checkBoundary(target, response.payload) });
     }

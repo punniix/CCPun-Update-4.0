@@ -41,9 +41,9 @@ export async function renderMoneyStoryPage(copyOverride?: PublicCopyValues, site
       <main id="main-content" tabIndex={-1}>
         <section className={styles.hero} aria-labelledby="money-story-title">
           <div className={styles.heroInner}>
-            <p className={styles.kicker}>{text("moneyStory.kicker")}</p>
-            <h1 id="money-story-title" className={styles.title}>{text("moneyStory.title")}</h1>
-            <p className={styles.subtitle}>{text("moneyStory.subtitle")}</p>
+            <p className={styles.kicker}>{text.node("moneyStory.kicker")}</p>
+            <h1 id="money-story-title" className={styles.title}>{text.node("moneyStory.title")}</h1>
+            <p className={styles.subtitle}>{text.node("moneyStory.subtitle")}</p>
           </div>
         </section>
 
@@ -56,26 +56,26 @@ export async function renderMoneyStoryPage(copyOverride?: PublicCopyValues, site
           aria-labelledby="money-story-about"
         >
           <div className={styles.explainInner}>
-            <p className={styles.kicker}>{text("moneyStory.kicker2")}</p>
-            <h2 id="money-story-about">{text("moneyStory.h2")}</h2>
+            <p className={styles.kicker}>{text.node("moneyStory.kicker2")}</p>
+            <h2 id="money-story-about">{text.node("moneyStory.h2")}</h2>
             <div className={styles.explainGrid}>
               <div className={styles.explainCard}>
-                <strong>{text("moneyStory.strong")}</strong>
-                <p>{text("moneyStory.p")}</p>
+                <strong>{text.node("moneyStory.strong")}</strong>
+                <p>{text.node("moneyStory.p")}</p>
               </div>
               <div className={styles.explainCard}>
-                <strong>{text("moneyStory.strong2")}</strong>
-                <p>{text("moneyStory.p2")}</p>
+                <strong>{text.node("moneyStory.strong2")}</strong>
+                <p>{text.node("moneyStory.p2")}</p>
               </div>
               <div className={styles.explainCard}>
-                <strong>{text("moneyStory.strong3")}</strong>
-                <p>{text("moneyStory.p3")}</p>
+                <strong>{text.node("moneyStory.strong3")}</strong>
+                <p>{text.node("moneyStory.p3")}</p>
               </div>
             </div>
-            <p className={styles.disclaimer}>{text("moneyStory.disclaimer")}{' '}
-              <Link href={pyramidHref}>{text("moneyStory.link")}</Link>
+            <p className={styles.disclaimer}>{text.node("moneyStory.disclaimer")}{' '}
+              <Link href={pyramidHref}>{text.node("moneyStory.link")}</Link>
             </p>
-            <p className={styles.disclaimer}>{text("moneyStory.config.label449")}</p>
+            <p className={styles.disclaimer}>{text.node("moneyStory.config.label449")}</p>
           </div>
         </section>
       </main>

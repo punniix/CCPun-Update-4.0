@@ -27,12 +27,12 @@ export default async function NotFound() {
       <main id="main-content" tabIndex={-1}>
         <section className={styles.notFound}>
           <div className={styles.inner}>
-            <p className={styles.notFoundCode}>{text("site.extra.notFoundCode")}</p>
-            <h1>{text("site.extra.h1")}</h1>
-            <p className={styles.notFoundDescription}>{text("site.extra.notFoundDescription")}</p>
+            <p className={styles.notFoundCode}>{text.node("site.extra.notFoundCode")}</p>
+            <h1>{text.node("site.extra.h1")}</h1>
+            <p className={styles.notFoundDescription}>{text.node("site.extra.notFoundDescription")}</p>
             <div className={styles.notFoundActions} style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}>
-              <Link className={styles.primaryButton} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto' }} href="/">{text("site.extra.primaryButton")}</Link>
-              <Link className={styles.blogRecovery} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto', justifyContent: 'center' }} href="/blog/">{text("site.extra.blogRecovery")}</Link>
+              <Link className={styles.primaryButton} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto' }} href="/">{text.node("site.extra.primaryButton")}</Link>
+              <Link className={styles.blogRecovery} style={{ flex: '1 1 124px', width: 'auto', minWidth: 0, minHeight: 48, height: 'auto', justifyContent: 'center' }} href="/blog/">{text.node("site.extra.blogRecovery")}</Link>
             </div>
           </div>
         </section>

@@ -10,6 +10,27 @@ const { renderToStaticMarkup } = require('react-dom/server');
 const registry = loadFixtureModule('lib/content/public-copy-registry.ts');
 const copyProvider = loadFixtureModule('components/ui/PublicCopyProvider.tsx');
 const digest = value => createHash('sha256').update(value).digest('hex');
+const copyText = loadFixtureModule('lib/content/public-copy-text.ts');
+// Draft preview values carry a zero-width Visual Editing target (lib/admin/public-copy-preview.ts).
+// Decode it exactly as the @vercel/stega v1 reader does: 4-char prefix, 4 base-4 digits per byte.
+const STEGA_DIGITS = ['​', '‌', '‍', '﻿'];
+function editTarget(value) {
+  const match = value.match(/​{4}([​‌‍﻿]+)$/);
+  assert.ok(match, 'preview value carries an edit target');
+  const digits = [...match[1]].map(char => STEGA_DIGITS.indexOf(char));
+  assert.equal(digits.length % 4, 0);
+  const bytes = [];
+  for (let i = 0; i < digits.length; i += 4) bytes.push((digits[i] << 6) | (digits[i + 1] << 4) | (digits[i + 2] << 2) | digits[i + 3]);
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes)));
+}
+function assertPreviewValues(actual, scope, expected) {
+  assert.deepEqual(Object.keys(actual).sort(), Object.keys(expected).sort());
+  for (const [key, value] of Object.entries(actual)) {
+    assert.equal(copyText.cleanCopyText(value), expected[key], key + ': same wording once edit markers are removed');
+    const path = `entries[_key=="${key.replaceAll('.', '-')}"].text`;
+    assert.deepEqual(editTarget(value), { origin: 'sanity.io', href: `/studio/intent/edit/id=${registry.publicCopyDocumentId(scope)};type=publicPageCopy;path=${encodeURIComponent(path)}` });
+  }
+}
 const syntheticArticles = Array.from({length: 8}, (_, i) => ({id:`fixture-${i}`, slug:`fixture-${i}`, title:`บทความ ${i}`, excerpt:`รายละเอียด ${i}`, category:'การเงินส่วนบุคคล', categorySlug:'personal-finance', status:'published', publishedAt:'2026-10-01T00:00:00Z', updatedAt:'2026-10-02T00:00:00Z', tags:[], body:[]}));
 const files = {
   home:'features/home/website-43/Website43Home.tsx',
@@ -215,7 +236,7 @@ test('authorized preview reads only fixed original scope and site singletons usi
     ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>trace.push(['permission',permission])}],
     ['@/lib/admin/environment',{getAdminEnvironment:()=> 'production-admin',isAdminReadDataPlaneAllowed:(dataset,environment)=>{assert.equal(dataset,'production');assert.equal(environment,'production-admin');return true;}}],
     ['../content/sanity-fetch',{sanityFetch:async request=>{assert.equal(request.perspective,'drafts');assert.ok(Object.hasOwn(records,request.params.id));if(request.params.id==='pageSeo-ci-planning')assert.deepEqual(request.params,{id:'pageSeo-ci-planning',pathname:'/ci-planning/'});else assert.deepEqual(request.params,{id:request.params.id});trace.push(['read',request.params.id]);return{data:records[request.params.id]};}}],
-  ])});const result=await api.getPublicCopyPreview('ci');assert.deepEqual(trace,[['permission','draft:apply'],['read','publicPageCopy-ci-th'],['read','publicPageCopy-site-th'],['read','pageSeo-ci-planning']]);assert.deepEqual(result.copy,registry.parsePublicCopy('ci',copy));assert.deepEqual(result.site,registry.parsePublicCopy('site',site));assert.equal(result.copy[key],'DRAFT CI LABEL');assert.equal(result.seo.seoTitle,'DRAFT CI SEO');
+  ])});const result=await api.getPublicCopyPreview('ci');assert.deepEqual(trace,[['permission','draft:apply'],['read','publicPageCopy-ci-th'],['read','publicPageCopy-site-th'],['read','pageSeo-ci-planning']]);assertPreviewValues(result.copy,'ci',registry.parsePublicCopy('ci',copy));assertPreviewValues(result.site,'site',registry.parsePublicCopy('site',site));assert.equal(copyText.cleanCopyText(result.copy[key]),'DRAFT CI LABEL');assert.equal(result.seo.seoTitle,'DRAFT CI SEO');
 });
 
 test('money labels translate presentation only and retain original identifiers and numerical game state',()=>{
@@ -244,12 +265,17 @@ test('original article fallback and managed author branches retain complete b871
 });
 test('public reader transmits only validated published edits independently of draft flags and cookies',async()=>{
   const key='home.hero.eyebrow',document={_id:'publicPageCopy-home-th',_type:'publicPageCopy',scope:'home',locale:'th',entries:[{key,text:'ข้อความที่แก้'}]};
-  for(const previewAllowed of [false,true])for(const cookieEnabled of [false,true])for(const data of [null,document,{...document,_id:'private.document'},{...document,entries:[{key,text:'<script>'}]},'unavailable']) {
+  // Same wording with only an editor-chosen size is an edit and must reach the page;
+  // an out-of-range size invalidates the document so the page keeps its defaults.
+  const original=registry.PUBLIC_COPY_SCOPES.home.defaults[key];
+  const sized={...document,entries:[{key,text:original,size:'xl',sizeDesktop:40}]},invalidSize={...document,entries:[{key,text:original,sizeMobile:300}]};
+  const expected=data=>data===document?{[key]:'ข้อความที่แก้'}:data===sized?{[key]:original+'\uE000s=xl;d=40'}:{};
+  for(const previewAllowed of [false,true])for(const cookieEnabled of [false,true])for(const data of [null,document,sized,invalidSize,{...document,_id:'private.document'},{...document,entries:[{key,text:'<script>'}]},'unavailable']) {
     let draftReads=0;const requests=[];const api=loadFixtureModule('lib/content/public-copy.ts',{mocks:new Map([
       ['react',{cache:fn=>fn}],['next/headers',{draftMode:async()=>{draftReads++;return{isEnabled:cookieEnabled};}}],
       ['../deployment-environment',{IS_DRAFT_PREVIEW_ALLOWED:previewAllowed}],
       ['./sanity-fetch',{sanityFetch:async request=>{requests.push(request);if(data==='unavailable')throw new Error('fixture-unavailable');return{data};}}],
-    ])});const result=await api.getPublicCopy('home');assert.deepEqual(result,data===document?{[key]:'ข้อความที่แก้'}:{});assert.equal(requests.length,1);assert.equal(requests[0].perspective,'published');assert.deepEqual(requests[0].params,{id:'publicPageCopy-home-th'});assert.equal(requests[0].query,'*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text}}');assert.equal(draftReads,0,`generic reader must not consult draft cookies: ${previewAllowed}/${cookieEnabled}`);assert.equal(registry.publicCopyText(result)('home.hero.description'),registry.PUBLIC_COPY_SCOPES.home.defaults['home.hero.description']);
+    ])});const result=await api.getPublicCopy('home');assert.deepEqual(result,expected(data));if(data===sized){assert.equal(registry.publicCopyText(result)(key),original);assert.ok(React.isValidElement(registry.publicCopyText(result).node(key)));}assert.equal(requests.length,1);assert.equal(requests[0].perspective,'published');assert.deepEqual(requests[0].params,{id:'publicPageCopy-home-th'});assert.equal(requests[0].query,'*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text, size, sizeMobile, sizeDesktop}}');assert.equal(draftReads,0,`generic reader must not consult draft cookies: ${previewAllowed}/${cookieEnabled}`);assert.equal(registry.publicCopyText(result)('home.hero.description'),registry.PUBLIC_COPY_SCOPES.home.defaults['home.hero.description']);
   }
 });
 
@@ -288,13 +314,13 @@ test('copy and SEO preview links require registered page and matching fixed publ
   assert.deepEqual(config.resolve.locations.pageSeo.resolve(null).locations,[]);assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({scope:'investment',id:'publicPageCopy-investment-th'}).locations,[]);
 });
 test('fixed singletons initialize validated editable drafts and authorize only exact Production page publishing',()=>{
-  const definitions=new Map([['sanity',{defineType:value=>value,defineField:value=>value,defineArrayMember:value=>value}]]);
+  const definitions=new Map([['sanity',{defineType:value=>value,defineField:value=>value,defineArrayMember:value=>value}],['../../components/PublicCopyEntriesInput',{__esModule:true,default:function PublicCopyEntriesInput(){return null;}}]]);
   const copy=loadFixtureModule('cms/sanity/schema/documents/public-page-copy.ts',{mocks:definitions}).publicPageCopy;
   for(const scope of Object.keys(registry.PUBLIC_COPY_SCOPES)) {
     const draft={...copy.initialValue({scope}),_type:'publicPageCopy',_id:'drafts.'+registry.publicCopyDocumentId(scope)};
     assert.equal(copy.validation({custom:fn=>fn})(draft),true);assert.notEqual(copy.validation({custom:fn=>fn})({...draft,_id:'wrong'}),true);
   }
-  assert.equal(copy.fields.find(field=>field.name==='scope').readOnly,true);assert.equal(copy.fields.find(field=>field.name==='entries').of[0].fields.find(field=>field.name==='text').type,'text');
+  assert.equal(copy.fields.find(field=>field.name==='scope').readOnly,true);const entries=copy.fields.find(field=>field.name==='entries');assert.equal(entries.components.input.name,'PublicCopyEntriesInput');assert.deepEqual(entries.of[0].fields.map(field=>field.name),['key','text','size','sizeMobile','sizeDesktop']);assert.equal(copy.fields.find(field=>field.name==='entries').of[0].fields.find(field=>field.name==='text').type,'text');
   const policy=loadFixtureModule('cms/sanity/policy/studio-policy.ts',{mocks:new Map([['../../../lib/admin/environment',{isStudioDataPlaneAllowed:()=>true}]])});
   const actions=['publish','delete','unpublish','unpublishVersion','discardChanges'].map(action=>({action}));
   for(const type of ['publicPageCopy','pageSeo']) {
@@ -310,7 +336,7 @@ test('the same curated code supports authorized UAT acceptance through its exact
     ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>trace.push(permission)}],
     ['@/lib/admin/environment',{getAdminEnvironment:()=> 'admin-uat',isAdminReadDataPlaneAllowed:(dataset,environment)=>{assert.equal(dataset,'uat');assert.equal(environment,'admin-uat');return true;}}],
     ['../content/sanity-fetch',{sanityFetch:async request=>{assert.equal(request.perspective,'drafts');trace.push(request.params.id);return{data:null};}}],
-  ])});assert.deepEqual((await api.getPublicCopyPreview('home')).copy,registry.parsePublicCopy('home',null));assert.equal(trace[0],'draft:apply');assert.equal(trace.length,4);
+  ])});assertPreviewValues((await api.getPublicCopyPreview('home')).copy,'home',registry.parsePublicCopy('home',null));assert.equal(trace[0],'draft:apply');assert.equal(trace.length,4);
 });
 test('Sanity OG uploads stay in the matching fixed UAT or Production image pair',async()=>{
   const image=loadFixtureModule('lib/content/page-seo-registry.ts').isPageSeoImageUrlAllowed;

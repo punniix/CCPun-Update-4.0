@@ -139,11 +139,11 @@ const loopedStories = Array.from({ length: 9 }, (_, index) => storyBeats[index %
   return (
     <section aria-labelledby="ci-problem-title" className={styles.toolStorySection}>
       <div className={styles.inner}>
-        <h2 id="ci-problem-title" className={styles.h2}>{t("ci.story.problemTitle.heading")}</h2>
+        <h2 id="ci-problem-title" className={styles.h2}>{t.node("ci.story.problemTitle.heading")}</h2>
         <div className={styles.storyCopy}>
-          <p>{t("ci.story.description4")}</p>
-          <p>{t("ci.story.description5")}</p>
-          <p>{t("ci.story.description6")}</p>
+          <p>{t.node("ci.story.description4")}</p>
+          <p>{t.node("ci.story.description5")}</p>
+          <p>{t.node("ci.story.description6")}</p>
         </div>
 
         <div
@@ -177,7 +177,7 @@ const loopedStories = Array.from({ length: 9 }, (_, index) => storyBeats[index %
             </div>
           </div>
         </div>
-        <p className={styles.eyebrow} style={{ marginTop: 20 }}>{t("ci.story.description7")}</p>
+        <p className={styles.eyebrow} style={{ marginTop: 20 }}>{t.node("ci.story.description7")}</p>
         <p className={styles.lead}>
           เมื่อแยกทีละส่วน คุณจะเห็นที่มาของตัวเลข ภาระส่วนไหนต้องดูแลอีกนาน และเงินก้อนจากประกันโรคร้ายแรงที่มีอยู่ช่วยรองรับได้เพียงใด
         </p>

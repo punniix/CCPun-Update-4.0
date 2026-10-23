@@ -104,7 +104,7 @@ export default function Website43ArticleOverview({ summary }: { summary?: string
   if (!summary?.trim()) return null;
   const points = summary.split(/\r?\n/).filter(point => point.trim());
   return <details className={styles.overview} open lang="th" ref={detailsRef}>
-    <summary className={styles.heading}>{copyText("blog.heading")}<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+    <summary className={styles.heading}>{copyText.node("blog.heading")}<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
     <div className={styles.content} ref={contentRef}>
       <ul>{points.map((point, index) => <li key={index}>{point}</li>)}</ul>
     </div>

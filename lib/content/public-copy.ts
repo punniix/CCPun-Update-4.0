@@ -7,13 +7,15 @@ import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicC
 export const getPublicCopy = cache(async (scope: PublicCopyScope) => {
   try {
     const { data } = await sanityFetch({
-      query: '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text}}',
+      query: '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text, size, sizeMobile, sizeDesktop}}',
       params: { id: publicCopyDocumentId(scope) },
       perspective: "published",
     });
-    parsePublicCopy(scope, data);
-    // Defaults already ship with each renderer; send only validated CMS edits to clients.
-    return data ? Object.fromEntries(data.entries.filter(({ key, text }: { key: string; text: string }) => text !== (PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>)[key]).map(({ key, text }: { key: string; text: string }) => [key, text])) as PublicCopyValues : {};
+    const values = parsePublicCopy(scope, data) as Record<string, string>;
+    // Defaults already ship with each renderer; send only validated CMS edits
+    // (changed wording or a chosen size) to clients.
+    const defaults = PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>;
+    return data ? Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== defaults[key])) as PublicCopyValues : {};
   } catch {
     // Preserve readable approved defaults during an unavailable/invalid CMS response.
     return {};

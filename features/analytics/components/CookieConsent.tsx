@@ -151,15 +151,15 @@ export default function CookieConsent() {
                 <p
                   id="cookie-title"
                   className="text-sm font-semibold text-foreground mb-1"
-                >{text("site.cookie.title")}</p>
+                >{text.node("site.cookie.title")}</p>
                 <p
                   id="cookie-desc"
                   className="text-xs text-muted-foreground leading-relaxed"
-                >{text("site.cookie.description")}{' '}
+                >{text.node("site.cookie.description")}{' '}
                   <Link
                     href="/cookie-policy"
                     className="text-primary hover:underline underline-offset-2"
-                  >{text("site.cookie.policy")}</Link>
+                  >{text.node("site.cookie.policy")}</Link>
                 </p>
               </div>
 
@@ -175,13 +175,13 @@ export default function CookieConsent() {
                     background: 'transparent',
                   }}
                   aria-label={text("site.cookie.settings")}
-                >{text("site.cookie.settings")}</button>
+                >{text.node("site.cookie.settings")}</button>
                 <button
                   type="button"
                   onClick={handleAcceptAll}
                   className="gold-button min-h-11 text-sm font-semibold px-5 py-2"
                   aria-label={text("site.cookieConsentarialabel")}
-                >{text("site.cookie.accept")}</button>
+                >{text.node("site.cookie.accept")}</button>
               </div>
             </div>
           </div>
@@ -214,7 +214,7 @@ export default function CookieConsent() {
                   color: 'hsl(0 10% 98%)',
                   margin: 0,
                 }}
-              >{text("site.cookie.preferencesTitle")}</h2>
+              >{text.node("site.cookie.preferencesTitle")}</h2>
               <button
                 type="button"
                 onClick={() => setShowPanel(false)}
@@ -279,7 +279,7 @@ export default function CookieConsent() {
                 onClick={handleSavePreferences}
                 className="gold-button min-h-11 text-sm font-semibold px-5 py-2"
                 aria-label={text("site.cookieConsentarialabel3")}
-              >{text("site.cookie.save")}</button>
+              >{text.node("site.cookie.save")}</button>
             </div>
           </div>
         )}

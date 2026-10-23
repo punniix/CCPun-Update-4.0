@@ -2,6 +2,7 @@ import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import type { ArticleBlock, ArticleRichText } from '@/lib/content/types';
+import { articleFontSizeStyle } from '@/lib/content/article-font-size';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { ArticleTableAccess } from './ArticleDetailAccess';
 
@@ -18,7 +19,7 @@ function richContent(content: ArticleRichText) {
         .join(' ');
       node = <a href={segment.href} target={newTab ? '_blank' : undefined} rel={rel || undefined}>{node}</a>;
     }
-    return <span key={`${segment.text}-${index}`}>{node}</span>;
+    return <span key={`${segment.text}-${index}`} style={articleFontSizeStyle(segment.size)}>{node}</span>;
   });
 }
 
@@ -49,7 +50,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return (
         <figure className={styles.articleInlineFigure} key={key}>
           <Image src={item.src} alt={item.alt} width={item.width} height={item.height} sizes="(max-width: 767px) calc(100vw - 48px), 720px" loading="lazy" />
-          <a href={item.src} target="_blank" rel="noopener noreferrer" className={styles.imageDetailLink}>{copyText("blog.imageDetailLink")}<span className="sr-only">{copyText("blog.span")}</span></a>
+          <a href={item.src} target="_blank" rel="noopener noreferrer" className={styles.imageDetailLink}>{copyText.node("blog.imageDetailLink")}<span className="sr-only">{copyText.node("blog.span")}</span></a>
           {(item.caption || item.credit) && <figcaption>{item.caption}{item.caption && item.credit ? ' · ' : ''}{item.credit ? copyText("blog.dynamic2").replaceAll("{0}", String(item.credit)) : ''}</figcaption>}
         </figure>
       );
@@ -71,7 +72,7 @@ export function renderWebsite43ArticleBody(items: ArticleBlock[], headingIds: Ma
       return <a className={item.style === 'primary' ? styles.primaryButton : styles.outlineButton} href={item.url} target={newTab ? '_blank' : undefined} rel={newTab ? 'noopener noreferrer' : undefined} key={key}>{item.label}</a>;
     }
     if (item.type === 'pdf') {
-      return <a className={styles.articleDownload} href={item.url} target="_blank" rel="noopener noreferrer" key={key}><strong>{item.title}</strong>{item.description && <span>{item.description}</span>}<span>{copyText("blog.span2")}{item.size ? ` (${(item.size / 1048576).toFixed(1)} MB)` : ''}</span></a>;
+      return <a className={styles.articleDownload} href={item.url} target="_blank" rel="noopener noreferrer" key={key}><strong>{item.title}</strong>{item.description && <span>{item.description}</span>}<span>{copyText.node("blog.span2")}{item.size ? ` (${(item.size / 1048576).toFixed(1)} MB)` : ''}</span></a>;
     }
     if (item.type === 'details') {
       return <details className={styles.articleDetails} key={key}><summary>{item.summary}</summary><p>{item.text}</p></details>;
