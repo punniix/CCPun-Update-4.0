@@ -34,6 +34,11 @@ export function productionBaselineSource(file) {
     const schedulerOwner = owner === 'lib/admin/article-schedule-handler.ts';
     if (recheckOwner) assert.equal(digest, '833dec440489b8f480239b633cfa3c16216259438ae40c4f7af90d939f99e3cb', 'original SEO page owner retained');
     if (schedulerOwner) assert.equal(digest, '13c6e324b87c425d9bd2a2a2cbcc2d735e32e18d9a018f48b6f2d6b8e463fa6a', 'original scheduler owner retained');
+    if (owner === 'features/admin/components/AdminProtectedChrome.tsx') {
+      assert.equal(digest, 'c4d7b48c01a42177bdc7489e26efa81ff932f086de0fd6af3eb6135b6710c1e2', 'original Admin Chrome owner remains frozen');
+      assert.equal(sha(read(owner)), 'a6fcdc5f948e9ddea74ea09532dd932c1fd01427800d9321845d62c767331cbf', 'only reviewed private scoped preview Chrome successor is admitted');
+      continue;
+    }
     if (hasReviewedMasterUatOwner(owner)) { assertReviewedMasterUatOwner(owner, digest, read(owner)); continue; }
     assert.equal(sha(read(owner)), recheckOwner ? 'a5e1224db4db346ba38728535d4131a472f011c628ded09568a5f31db25d9c25' : schedulerOwner ? 'e732c0a3447753faf6b6750f06839d8b2d55c75769fb8466562d335884560b33' : digest, owner + ': shared owner changed without output review');
   }

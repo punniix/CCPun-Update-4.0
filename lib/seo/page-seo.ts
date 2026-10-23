@@ -8,7 +8,8 @@ function replaceImage(images: unknown, url: string) {
   const entries = Array.isArray(images) ? images : images ? [images] : [];
   const first = entries[0];
   const originalUrl = typeof first === "string" || first instanceof URL ? String(first) : first?.url ? String(first.url) : null;
-  return [{ ...(originalUrl === url && first && typeof first === "object" && !(first instanceof URL) ? first : {}), url }, ...entries.slice(1)];
+  if (originalUrl === url) return entries;
+  return [{ url }, ...entries.slice(1)];
 }
 
 export async function resolvePageSeoMetadata(pathname: string, defaults: Metadata, parent?: ResolvingMetadata): Promise<Metadata> {
@@ -24,7 +25,8 @@ export async function resolvePageSeoMetadata(pathname: string, defaults: Metadat
     if (!data) return defaults;
     const { _id: id, pathname: path, ...rawFields } = data;
     if (id !== page.documentId || path !== pathname) return defaults;
-    const fields = validatePageSeoFields(rawFields);
+    const fields = Object.fromEntries(Object.entries(validatePageSeoFields(rawFields))
+      .filter(([key, value]) => value && value !== page.defaults[key as keyof typeof page.defaults]));
     if (!Object.values(fields).some(Boolean)) return defaults;
     const result: Metadata = { ...defaults };
     if (fields.seoTitle) result.title = fields.seoTitle;

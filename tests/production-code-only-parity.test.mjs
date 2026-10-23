@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
-import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection, hasReviewedMasterUatOwner, assertReviewedMasterUatOwner, reviewedMasterUatOwners } from '../qa/phase2-source-proof.mjs';
+import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection, hasReviewedMasterUatOwner, assertReviewedMasterUatOwner, reviewedMasterUatOwners, canonicalNavigationPredecessor, nativeAuthorPredecessor } from '../qa/phase2-source-proof.mjs';
 import { assertNativeProviderRetirement, assertReviewedWebUatBuildProfile } from '../qa/phase3-native-provider-proof.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -129,6 +129,18 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
     else if (file === 'features/blog/website-43/blogData.ts') assert.equal(sha(reviewedArticleCardProjection(file, read(file))), digest, 'only actual Article ID added to card data');
     else if (file === 'apps/web/app/not-found.tsx') assertReviewed404Button(digest, read(file));
     else if (file === 'features/money-story/components/MoneyStoryGame.tsx') assertPhase2MoneyComposition(file, digest);
+    else if (file === 'components/preview/DraftPreviewRuntime.tsx') {
+      // Admit exactly the native live-refresh wrapper, then recheck the immutable baseline.
+      let source = read(file);
+      for (const [changed, original] of [
+        ['const [{ SanityLive }, { default: VisualEditing }]', 'const [{ SanityLive }, { VisualEditing }]'],
+        ['import("./LiveVisualEditing")', 'import("next-sanity/visual-editing")'],
+      ]) {
+        assert.equal(source.split(changed).length, 2, 'reviewed UAT Preview change occurs once');
+        source = source.replace(changed, original);
+      }
+      assert.equal(sha(source), digest, 'original protected Preview runtime preserved');
+    }
     else if (['lib/runtime/deployment-identity.ts', 'lib/content/sanity-lane.ts', 'lib/deployment-environment.ts', 'proxy.ts', 'lib/runtime/deployment-contract.ts'].includes(file)) assertNativeProviderRetirement(file, digest);
     else if (['apps/admin/app/api/internal/line/bridge-health/route.ts', 'apps/admin/app/api/internal/line/ingest-event/route.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
@@ -216,7 +228,12 @@ test('every reviewed UAT owner retains its historical pin and rejects source or 
       assert.notEqual(source, withPublicAi);
       assert.throws(() => assertReviewedMasterUatOwner(file, record.before, withPublicAi));
       assert.throws(() => assertReviewedMasterUatOwner(file, record.before, source + source), 'duplicate source must fail');
-    } else assert.equal(sha(read(file)), record.after, file);
+    } else {
+      const current = read(file);
+      assertReviewedMasterUatOwner(file, record.before, current);
+      const predecessor = file === 'lib/content/sanity.ts' ? nativeAuthorPredecessor(current) : canonicalNavigationPredecessor(file, current);
+      assert.equal(sha(predecessor), record.after, file);
+    }
     assert.ok(record.previous.includes(record.before), file);
     assertReviewedMasterUatOwner(file, record.before, read(file));
     assert.throws(() => assertReviewedMasterUatOwner(file, '0'.repeat(64), read(file)), file);

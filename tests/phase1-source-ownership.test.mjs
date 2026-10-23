@@ -100,6 +100,7 @@ test('protected Chrome retains each role/capability/lane navigation, identity, l
       const capability = loadFixtureModule('lib/admin/capability-profile.ts', { globals: { process: { env: {} } } });
       const mocks = new Map([
         ['react/jsx-runtime', runtime],
+        ['next/navigation', { usePathname: () => '/dashboard/', redirect: url => { throw Object.assign(new Error('fixture-redirect'), { url }); }, notFound: () => { throw Object.assign(new Error('fixture-not-found'), { code: 'not-found' }); } }],
         ['@/auth', { auth: async () => { trace.push('auth'); return role ? { user: { role, email: 'synthetic@example.invalid', name: 'synthetic-owner' } } : null; }, signOut: async input => { trace.push(['signOut', input]); } }],
         ['@/lib/admin/environment', { getAdminEnvironment: () => { trace.push('environment'); return environment; } }],
         ['@/lib/admin/capability-profile', { ...capability, getAdminCapabilityProfile: () => { trace.push('capability'); return profile; } }],

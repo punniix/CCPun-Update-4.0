@@ -83,7 +83,9 @@ test("generic public reader always requests published copy independently of draf
         } }],
       ]) });
       const copy = await reader.getPublicCopy("home");
-      assert.deepEqual(copy, parsePublicCopy("home", data === document ? document : null));
+      const expected = parsePublicCopy("home", data === document ? document : null);
+      for (const key of Object.keys(expected) as Array<keyof typeof expected>) assert.equal(publicCopyText(copy)(key), expected[key]);
+      assert.deepEqual(copy, data === document ? { [key]: "PUBLISHED COPY" } : {});
       assert.equal(requests.length, 1);
       assert.equal(requests[0].perspective, "published");
       assert.deepEqual(requests[0].params, { id: "publicPageCopy-home-th" });

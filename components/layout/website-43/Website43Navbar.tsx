@@ -19,16 +19,16 @@ function Website43NavbarBrand() {
 export function Website43Navbar({ overlay = false, notFound = false, responsiveOverlay = false, investmentEnabled = false }: { overlay?: boolean; notFound?: boolean; responsiveOverlay?: boolean; investmentEnabled?: boolean }) {
   const text = usePublicCopy();
 const toolLinks = [
-  { href: `${BASE}/play/money-story`, label: text("site.nav.moneyStory") },
-  { href: `${BASE}/tools/financial-health-check`, label: text("site.nav.fhc") },
-  { href: `${BASE}/ci-planning`, label: text("site.nav.ci") },
+  { href: `${BASE}/play/money-story/`, label: text("site.nav.moneyStory") },
+  { href: `${BASE}/tools/financial-health-check/`, label: text("site.nav.fhc") },
+  { href: `${BASE}/ci-planning/`, label: text("site.nav.ci") },
   ...(investmentEnabled ? [{ ...INVESTMENT_TOOL_LINK, href: INVESTMENT_TOOL_LINK.href.replace(/\/$/, ""), label: text("site.tools.investment") }] : []),
 ];
 
 
   const pathname = usePathname()?.replace(/\/$/, '');
   const blogCurrent = pathname === `${BASE}/blog` ? 'page' : pathname?.startsWith(`${BASE}/blog/`) ? 'location' : undefined;
-  const toolsCurrent = toolLinks.some(({ href }) => pathname === href);
+  const toolsCurrent = toolLinks.some(({ href }) => pathname === href.replace(/\/$/, ''));
   const [open, setOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
@@ -65,14 +65,14 @@ const toolLinks = [
       <div className={styles.navSpacer} />
       <nav className={styles.navLinks} aria-label={text("site.nav.mainLabel")}>
         <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined}>{text("site.nav.home")}</Link>
-        <Link href={`${BASE}/blog`} aria-current={blogCurrent}>{text("site.nav.blog")}</Link>
+        <Link href={`${BASE}/blog/`} aria-current={blogCurrent}>{text("site.nav.blog")}</Link>
         <div className={styles.navTools} ref={toolsRef}>
           <button ref={toolsButtonRef} className={styles.navToolsButton} data-active={toolsCurrent} type="button" aria-controls="home-tools-navigation" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>{text("site.nav.tools")}{' '}<span className={`${styles.navChevron} ${toolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
           </button>
           {toolsOpen ? (
             <div id="home-tools-navigation" className={styles.navDropdown}>
               {toolLinks.map(({ href, label }) => (
-                <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />{label}</Link>
+                <Link key={href} href={href} aria-current={pathname === href.replace(/\/$/, '') ? 'page' : undefined} onClick={() => setToolsOpen(false)}><span aria-hidden="true" />{label}</Link>
               ))}
             </div>
           ) : null}
@@ -85,7 +85,7 @@ const toolLinks = [
       {open ? (
         <nav id="mobile-navigation" className={styles.mobileMenu} aria-label={text("site.nav.mobileLabel")}>
           <Link href={HOME} aria-current={pathname === BASE ? 'page' : undefined} onClick={() => setOpen(false)}>{text("site.nav.home")}</Link>
-          <Link href={`${BASE}/blog`} aria-current={blogCurrent} onClick={() => setOpen(false)}>{text("site.nav.blog")}</Link>
+          <Link href={`${BASE}/blog/`} aria-current={blogCurrent} onClick={() => setOpen(false)}>{text("site.nav.blog")}</Link>
           <div className={styles.mobileTools}>
             <button type="button" data-active={toolsCurrent} aria-expanded={mobileToolsOpen} onClick={() => setMobileToolsOpen((v) => !v)}>
               <span>{text("site.nav.tools")}</span><span className={`${styles.navChevron} ${mobileToolsOpen ? styles.navChevronOpen : ''}`} aria-hidden="true">⌄</span>
@@ -93,7 +93,7 @@ const toolLinks = [
             {mobileToolsOpen ? (
               <div className={styles.mobileSubmenu}>
                 {toolLinks.map(({ href, label }) => (
-                  <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}><span aria-hidden="true" />{label}</Link>
+                  <Link key={href} href={href} aria-current={pathname === href.replace(/\/$/, '') ? 'page' : undefined} onClick={() => { setOpen(false); setMobileToolsOpen(false); }}><span aria-hidden="true" />{label}</Link>
                 ))}
               </div>
             ) : null}

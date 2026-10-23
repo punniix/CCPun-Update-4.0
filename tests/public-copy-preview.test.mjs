@@ -26,7 +26,7 @@ for (const [scope, key] of [['ci', 'ci.expenses.monthlyIncome.label'], ['fhc', '
     const site = { ...registry.parsePublicCopy('site', null), 'site.footerDisclaimer': 'DRAFT SITE FOOTER', 'site.cookie.settings': 'DRAFT COOKIE BUTTON' };
     const mocks = new Map([
       ['@/lib/admin/public-copy-preview', { getUatPublicCopyPreview: async requested => { assert.equal(requested, scope); return { copy, site, seo: {} }; } }],
-      ['@/lib/content/sanity', { getPrimaryAuthorProfile: async () => null }],
+      ['@/lib/content/sanity', { getPrimaryAuthorPreviewProfile: async () => null }],
       ['@/lib/content/public-copy', { getPublicCopy: async requested => { reads.push(requested); return { ...registry.parsePublicCopy(requested, null), 'site.footerDisclaimer': 'PUBLISHED FOOTER' }; } }],
       ['@/features/home/website-43/Website43Home', { __esModule: true, default: () => null }],
       ['@/features/blog/pages/BlogArchivePage', { renderBlogPage: () => null }],
@@ -135,7 +135,7 @@ test('actual UAT preview page does not start its author query when scoped author
   let authorReads = 0;
   const mocks = new Map([
     ['@/lib/admin/public-copy-preview', { getUatPublicCopyPreview: async () => { throw new Error('fixture-denied'); } }],
-    ['@/lib/content/sanity', { getPrimaryAuthorProfile: async () => { authorReads++; return null; } }],
+    ['@/lib/content/sanity', { getPrimaryAuthorPreviewProfile: async () => { authorReads++; return null; } }],
     ['@/features/home/website-43/Website43Home', { __esModule: true, default: () => null }],
     ['@/features/ci-planning/page', { renderCiPlanningPage: () => null }],
     ['@/features/financial-health-check/page', { renderFinancialHealthCheckPage: () => null }],
@@ -157,12 +157,12 @@ test('UAT presentation copy and SEO links require registered pages and matching 
   assert.equal(pages.length, 8);
   for (const scope of Object.keys(registry.PUBLIC_COPY_SCOPES)) {
     const id = registry.publicCopyDocumentId(scope);
-    for (const prefix of ['', 'drafts.']) assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({ id: prefix + id, scope }).locations, [{ title: 'ดูฉบับร่างหน้าเว็บไซต์', href: '/content/website-preview/?scope=' + scope }]);
+    for (const prefix of ['', 'drafts.']) assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({ id: prefix + id, scope }).locations, [{ title: 'ดูฉบับร่างหน้าเว็บไซต์', href: '/content/website-preview/' + scope + '/' }]);
     for (const invalid of ['wrong', 'drafts.drafts.' + id, 'https://evil.invalid/' + id]) assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({ id: invalid, scope }).locations, []);
   }
   for (const page of pages) {
     const scope = Object.entries(registry.PUBLIC_COPY_SCOPES).find(([scope, config]) => scope !== 'site' && config.pathname === page.pathname)[0];
-    for (const prefix of ['', 'drafts.']) assert.deepEqual(config.resolve.locations.pageSeo.resolve({ id: prefix + page.documentId, pathname: page.pathname }).locations, [{ title: 'ดูฉบับร่างหน้าเว็บไซต์และ SEO', href: '/content/website-preview/?scope=' + scope }]);
+    for (const prefix of ['', 'drafts.']) assert.deepEqual(config.resolve.locations.pageSeo.resolve({ id: prefix + page.documentId, pathname: page.pathname }).locations, [{ title: 'ดูฉบับร่างหน้าเว็บไซต์และ SEO', href: '/content/website-preview/seo-' + scope + '/' }]);
     for (const id of ['wrong', 'drafts.drafts.' + page.documentId, 'https://evil.invalid/' + page.documentId]) assert.deepEqual(config.resolve.locations.pageSeo.resolve({ id, pathname: page.pathname }).locations, []);
   }
   for (const pathname of ['*', '', '/new-page/', 'https://evil.invalid/', undefined, null]) assert.deepEqual(config.resolve.locations.pageSeo.resolve({ id: 'pageSeo-home', pathname }).locations, []);
@@ -173,10 +173,51 @@ test('UAT presentation copy and SEO links require registered pages and matching 
 
 test('UAT presentation retains the protected preview configuration and existing article locations', () => {
   const config = loadFixtureModule('cms/sanity/config/presentation.ts', { mocks: new Map([['sanity/presentation', { defineLocations: value => value, presentationTool: value => value }]]) }).createStudioPresentationPlugin();
-  assert.deepEqual(config.previewUrl, { initial: '/blog/', previewMode: { enable: '/api/preview/enable' } });
+  assert.deepEqual(config.previewUrl, { initial: '/content/website-preview/home/', previewMode: { enable: '/api/preview/enable' } });
   const article = config.resolve.locations.article;
   assert.deepEqual(article.select, { title: 'title', slug: 'slug.current', categorySlug: 'category.slug.current' });
   assert.deepEqual(article.resolve({ title: 'บทความตัวอย่าง', slug: 'sample', categorySlug: 'health-insurance' }).locations, [{ title: 'บทความตัวอย่าง', href: '/blog/health-insurance/sample/' }, { title: 'รวมบทความ', href: '/blog/' }]);
   assert.deepEqual(article.resolve({ slug: 'sample' }).locations, [{ title: 'บทความใหม่', href: '/blog/personal-finance/sample/' }, { title: 'รวมบทความ', href: '/blog/' }]);
   assert.deepEqual(article.resolve(null).locations, [{ title: 'รวมบทความ', href: '/blog/' }]);
+});
+
+// Native Presentation changes selected forms with private preview navigation.
+test('all existing UAT scopes and SEO forms retain their strict fixed IDs in native Presentation',async()=>{
+  const config=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:v=>v,presentationTool:v=>v}]])}).createStudioPresentationPlugin();
+  const pages=loadFixtureModule('lib/content/page-seo-registry.ts');const resolve=config.resolve.mainDocuments[0].resolve;
+  assert.equal(Object.keys(registry.PUBLIC_COPY_SCOPES).length,9);assert.equal(pages.PAGE_SEO_PAGES.length,8);
+  assert.equal(Object.values(registry.PUBLIC_COPY_SCOPES).reduce((n,s)=>n+Object.keys(s.defaults).length,0),1798);
+  for(const[scope,entry]of Object.entries(registry.PUBLIC_COPY_SCOPES)){
+    assert.deepEqual(resolve({params:{scope}}),{filter:'_id == $id && _type == $type',params:{id:registry.publicCopyDocumentId(scope),type:'publicPageCopy'}});
+    const page=pages.getPageSeoPage(entry.pathname);assert.deepEqual(resolve({params:{scope:'seo-'+scope}}),page?{filter:'_id == $id && _type == $type',params:{id:page.documentId,type:'pageSeo'}}:undefined);
+    const doc={_id:registry.publicCopyDocumentId(scope),_type:'publicPageCopy',scope,locale:'th',entries:registry.publicCopyInitialEntries(scope)};assert.deepEqual(registry.parsePublicCopy(scope,doc),registry.parsePublicCopy(scope,null));
+    assert.throws(()=>registry.parsePublicCopy(scope,{...doc,entries:[...doc.entries,{key:'unowned.anything',text:'wrong'}]}));
+  }
+  assert.deepEqual(resolve({params:{scope:'author-home'}}),{filter:'_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]'});
+  for(const scope of ['unknown','seo-site','home/evil'])assert.equal(resolve({params:{scope}}),undefined);
+  const route=loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/[scope]/page.tsx',{mocks:new Map([['next/navigation',{notFound:()=>{throw Error('fixture404')}}],['../page',{__esModule:true,default:()=>null}]])}).default;
+  for(const scope of Object.keys(registry.PUBLIC_COPY_SCOPES)){
+    const node=await route({params:Promise.resolve({scope}),searchParams:Promise.resolve({scope:'unknown',q:'คำค้น',page:'2'})});assert.deepEqual(await node.props.searchParams,{scope,q:'คำค้น',page:'2'});
+  }
+  for(const scope of ['unknown','seo-site','home/evil'])await assert.rejects(route({params:Promise.resolve({scope})}),/fixture404/);
+});
+test('native Presentation refreshes saved mutations without public SDK imports or iframe reloads',async()=>{
+  let refreshes=0;const callbacks=[];const Component=loadFixtureModule('components/preview/LiveVisualEditing.tsx',{mocks:new Map([['next/navigation',{useRouter:()=>({refresh:()=>refreshes++})}],['next-sanity/visual-editing',{VisualEditing:props=>{callbacks.push(props.refresh);return null;}}]])}).default;
+  renderToStaticMarkup(React.createElement(Component));for(const source of ['manual','mutation'])await callbacks[0]({source});assert.equal(refreshes,2);
+  for(const file of ['lib/content/sanity-fetch.ts','lib/content/public-copy.ts','apps/web/app/layout.tsx'])assert.doesNotMatch(readFileSync(file,'utf8'),/LiveVisualEditing|next-sanity\/visual-editing/);
+});
+test('native all-page UAT preview uses full viewport only on fixed private paths after server auth',()=>{
+  const pages=loadFixtureModule('lib/content/page-seo-registry.ts');const paths=['/content/website-preview','/content/website-preview/author-home',...Object.keys(registry.PUBLIC_COPY_SCOPES).flatMap(scope=>['/content/website-preview/'+scope,...(pages.getPageSeoPage(registry.PUBLIC_COPY_SCOPES[scope].pathname)?['/content/website-preview/seo-'+scope]:[])])];
+  for(const path of [...paths,'/dashboard','/content/website-preview/unknown','/content/website-preview/home/evil','/content/website-preview/seo-site']){
+    const Component=loadFixtureModule('features/admin/components/AdminProtectedChrome.tsx',{mocks:new Map([['next/navigation',{usePathname:()=>path+'/'}],['./AdminDataRefresh',{__esModule:true,default:()=>null}],['./AdminNavigation',{__esModule:true,default:()=>null}]])}).AdminProtectedChrome;
+    const html=renderToStaticMarkup(React.createElement(Component,{title:'ADMIN CHROME',currentEnvironmentLabel:'UAT',identityLabel:'Owner',role:'owner',navItems:[],showInbox:false,showLogout:false,logout:async()=>{},safety:null},React.createElement('section',null,'PUBLIC PREVIEW')));
+    if(paths.includes(path))assert.equal(html,'<section>PUBLIC PREVIEW</section>');else assert.ok(html.includes('ADMIN CHROME'));
+  }
+  const layout=readFileSync('apps/admin/app/(control-plane)/layout.tsx','utf8');assert.ok(layout.indexOf('await auth()')<layout.indexOf('return <AdminProtectedChrome'));assert.ok(layout.includes('if (!role) redirect("/login/")'));
+});
+test('full UAT defaults add zero browser overrides while one validated edit still reaches its original key',async()=>{
+  for(const scope of Object.keys(registry.PUBLIC_COPY_SCOPES))for(const changed of [false,true]){
+    const entries=registry.publicCopyInitialEntries(scope).map((e,i)=>changed&&i===0?{...e,text:e.text+' · ตัวอย่าง'}:e);const data={_id:registry.publicCopyDocumentId(scope),_type:'publicPageCopy',scope,locale:'th',entries};
+    const reader=loadFixtureModule('lib/content/public-copy.ts',{mocks:new Map([['react',{cache:fn=>fn}],['./sanity-fetch',{sanityFetch:async()=>({data})}]])});assert.deepEqual(await reader.getPublicCopy(scope),changed?{[entries[0].key]:entries[0].text}:{});
+  }
 });

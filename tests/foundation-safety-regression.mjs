@@ -179,7 +179,8 @@ expect(
 const sanityContent = read('lib/content/sanity.ts');
 expect(
   'primary Author lookup is cached, timeout-bounded and falls back cleanly when Sanity is unavailable',
-  sanityContent.includes('export const getPrimaryAuthorProfile = unstable_cache')
+  sanityContent.includes('export const getPrimaryAuthorProfile = cache(unstable_cache(')
+    && sanityContent.includes('import { cache } from "react";')
     && sanityContent.includes('const PRIMARY_AUTHOR_FETCH_TIMEOUT_MS = 2000')
     && sanityContent.includes('settleWithin(')
     && sanityContent.includes('[author-profile] primary author timed out')

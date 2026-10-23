@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient, groq } from "next-sanity";
 import { unstable_cache } from "next/cache";
@@ -378,10 +379,10 @@ function settleWithin<T>(promise: Promise<T>, timeoutMs: number): Promise<T | nu
   });
 }
 
-async function readPrimaryAuthorProfile(): Promise<NonNullable<Article["author"]> | null> {
+async function readPrimaryAuthorProfile(perspective: "published" | "drafts" = "published"): Promise<NonNullable<Article["author"]> | null> {
   try {
     const result = await settleWithin(
-      sanityFetch({ query: primaryAuthorQuery, perspective: "published", stega: false }),
+      sanityFetch({ query: primaryAuthorQuery, perspective, stega: false }),
       PRIMARY_AUTHOR_FETCH_TIMEOUT_MS,
     );
     if (!result) {
@@ -397,11 +398,11 @@ async function readPrimaryAuthorProfile(): Promise<NonNullable<Article["author"]
   }
 }
 
-export const getPrimaryAuthorProfile = unstable_cache(
-  readPrimaryAuthorProfile,
+export const getPrimaryAuthorProfile = cache(unstable_cache(
+  () => readPrimaryAuthorProfile(),
   ["ccpun-primary-author-profile-v2", projectId ?? "unconfigured", dataset ?? "unconfigured"],
   { revalidate: 300, tags: ["ccpun-primary-author"] },
-);
+));
 
 function configuredClient(includeDrafts: boolean) {
   if (!client) throw new Error("Sanity is not configured");
@@ -412,6 +413,11 @@ function configuredClient(includeDrafts: boolean) {
 
 export function getSanityPreviewClient() {
   return configuredClient(true);
+}
+
+export async function getPrimaryAuthorPreviewProfile() {
+  getSanityPreviewClient();
+  return readPrimaryAuthorProfile("drafts");
 }
 
 function reportSanityError(scope: string, error: unknown) {

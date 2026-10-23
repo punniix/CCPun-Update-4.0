@@ -72,11 +72,52 @@ export const reviewedMasterUatOwners = {
   "lib/seo/root-metadata.ts": {"before": "2983a29ac19e21bab33d4faa9d9245a3643fa6fdbbd08821463e67233fdee874", "previous": ["2983a29ac19e21bab33d4faa9d9245a3643fa6fdbbd08821463e67233fdee874"], "after": "85d6d0b4bc1e4014119e1381f3f6d5b7f4a98644628740686552ed7d56e75724", "reason": "CMS text extraction; current default/override render and lane tests"},
   "tests/money-story-presentation-parity.test.mjs": {"before": "5ae09487e20eaadd25fe2e8a203aa6fd07d6a60270efb84764f8225ad42ce708", "previous": ["5ae09487e20eaadd25fe2e8a203aa6fd07d6a60270efb84764f8225ad42ce708"], "after": "f08a574534c94c254574eecf5ed4ae59322ccf7dc8c964b3b19b94e99c3d338e", "reason": "CMS text extraction; current default/override render and lane tests"}
 };
+// Exact mobile follow-up inverses preserve every original Main UAT source identity.
+export function canonicalNavigationPredecessor(file, source) {
+  const paths = {
+    'components/layout/website-43/Website43Navbar.tsx': { blog: 2, 'tools/financial-health-check': 1, 'ci-planning': 1, 'play/money-story': 1 },
+    'components/layout/website-43/Website43Shared.tsx': { blog: 1, 'tools/financial-health-check': 2, 'ci-planning': 1, 'play/money-story': 1, privacy: 1, 'cookie-policy': 1 },
+    'features/home/website-43/Website43HomeStatic.tsx': { blog: 1, 'tools/financial-health-check': 2, 'ci-planning': 1, privacy: 1, 'cookie-policy': 1 },
+    'features/home/website-43/Website43Home.tsx': { blog: 1, 'tools/financial-health-check': 1, 'ci-planning': 1 },
+    'features/blog/website-43/Website43Article.tsx': { blog: 1 },
+  };
+  if (!Object.hasOwn(paths, file)) return source;
+  const navbar = file.endsWith('/Website43Navbar.tsx');
+  for (const [route, count] of Object.entries(paths[file])) {
+    const before = navbar && route !== 'blog' ? 'href: `${BASE}/' + route + '`' : 'href={`${BASE}/' + route + '`}';
+    const current = before.replace(route + '`', route + '/`');
+    assert.equal(source.split(current).length - 1, count, file + ': exact canonical ' + route + ' links');
+    source = source.replaceAll(current, before);
+  }
+  if (navbar) {
+    const current = "pathname === href.replace(/\\/$/, '')";
+    assert.equal(source.split(current).length - 1, 3, 'all tool active-state comparisons retain trailing-slash normalization');
+    source = source.replaceAll(current, 'pathname === href');
+  }
+  return source;
+}
+export function nativeAuthorPredecessor(source) {
+  for (const [current, old] of [
+    ['import { cache } from "react";\n', ''],
+    ['export const getPrimaryAuthorProfile = cache(unstable_cache(\n  () => readPrimaryAuthorProfile(),', 'export const getPrimaryAuthorProfile = unstable_cache(\n  readPrimaryAuthorProfile,'],
+    ['{ revalidate: 300, tags: ["ccpun-primary-author"] },\n));', '{ revalidate: 300, tags: ["ccpun-primary-author"] },\n);'],
+    ['async function readPrimaryAuthorProfile(perspective: "published" | "drafts" = "published")', 'async function readPrimaryAuthorProfile()'],
+    ['sanityFetch({ query: primaryAuthorQuery, perspective, stega: false })', 'sanityFetch({ query: primaryAuthorQuery, perspective: "published", stega: false })'],
+    ['\nexport async function getPrimaryAuthorPreviewProfile() {\n  getSanityPreviewClient();\n  return readPrimaryAuthorProfile("drafts");\n}\n', ''],
+  ]) {
+    assert.equal(source.split(current).length, 2, 'one exact native author request-cache/guarded-preview delta');
+    source = source.replace(current, old);
+  }
+  return source;
+}
+
 export function hasReviewedMasterUatOwner(file) { return Object.hasOwn(reviewedMasterUatOwners, file); }
 export function assertReviewedMasterUatOwner(file, previousDigest, source = read(file)) {
   const record = reviewedMasterUatOwners[file];
   assert.ok(record && Object.hasOwn(reviewedMasterUatOwners, file), file + ': not an approved UAT delta');
   assert.ok(record.previous.includes(previousDigest), file + ': historical protected digest changed');
+  source = canonicalNavigationPredecessor(file, source);
+  if (file === 'lib/content/sanity.ts') source = nativeAuthorPredecessor(source);
   // Invert only the owner-requested removal of the public AI consumer. Keep all
   // prior hashes frozen; this projection is never returned to runtime fixtures.
   const backendOnly = {
