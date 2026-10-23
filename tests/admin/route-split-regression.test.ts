@@ -23,9 +23,10 @@ test("Admin draft preview is authenticated, narrow and no-store", () => {
   assert.match(nextConfig, /ADMIN_PROTECTED_PREVIEW_SOURCES\.map\([\s\S]*PRIVATE_ADMIN_API_HEADERS/);
 });
 
-test("Studio Presentation starts on the protected Blog preview surface", () => {
+test("Studio Presentation starts on protected Home preview with scoped page forms", () => {
   const presentation = read("cms/sanity/config/presentation.ts");
-  assert.match(presentation, /initial: "\/blog\/"/);
+  assert.match(presentation, /initial: "\/content\/website-preview\/home\/"/);
+  assert.match(presentation, /route: "\/content\/website-preview\/:scope"/);
   assert.match(presentation, /enable: "\/api\/preview\/enable"/);
 });
 

@@ -16,9 +16,9 @@ type DraftPreviewRuntimeProps = {
 export default async function DraftPreviewRuntime({ enabled, isDraftMode }: DraftPreviewRuntimeProps) {
   if (!enabled) return null;
 
-  const [{ SanityLive }, { VisualEditing }] = await Promise.all([
+  const [{ SanityLive }, { default: VisualEditing }] = await Promise.all([
     import("@/lib/admin/sanity-preview-live"),
-    import("next-sanity/visual-editing"),
+    import("./LiveVisualEditing"),
   ]);
 
   return (

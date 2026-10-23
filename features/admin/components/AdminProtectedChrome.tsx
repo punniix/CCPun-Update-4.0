@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { PUBLIC_COPY_SCOPES, type PublicCopyScope } from "@/lib/content/public-copy-registry";
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import AdminDataRefresh from "./AdminDataRefresh";
 import AdminNavigation from "./AdminNavigation";
 import { roleLabel } from "@/lib/admin/presentation";
@@ -8,6 +13,12 @@ type NavigationItem = { href: string; label: string; permission: AdminPermission
 type AdminChromeProps = { title: string; currentEnvironmentLabel: string; identityLabel: string; role: AdminRole; navItems: NavigationItem[]; showInbox: boolean; inboxLabel: string; studioLabel: string; showLogout: boolean; logout: () => Promise<void>; safety: React.ReactNode; children: React.ReactNode };
 
 export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityLabel, role, navItems, showInbox, inboxLabel, studioLabel, showLogout, logout, safety, children }: AdminChromeProps) {
+  const pathname = usePathname();
+  const previewPaths = Object.keys(PUBLIC_COPY_SCOPES).flatMap(scope => [
+    `/content/website-preview/${scope}`,
+    ...(getPageSeoPage(PUBLIC_COPY_SCOPES[scope as PublicCopyScope].pathname) ? [`/content/website-preview/seo-${scope}`] : []),
+  ]);
+  if (pathname === "/content/website-preview/" || pathname === "/content/website-preview" || pathname?.replace(/\/$/, "") === "/content/website-preview/author-home" || previewPaths.includes(pathname?.replace(/\/$/, "") ?? "")) return <>{children}</>;
   return (
     <div className="min-h-screen overflow-x-hidden bg-navy-900 text-white">
       <AdminDataRefresh />

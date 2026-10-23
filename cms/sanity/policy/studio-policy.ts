@@ -1,4 +1,6 @@
 import type { DocumentActionComponent } from "sanity";
+import { PUBLIC_COPY_SCOPES, publicCopyDocumentId, type PublicCopyScope } from "../../../lib/content/public-copy-registry";
+import { PAGE_SEO_PAGES } from "../../../lib/content/page-seo-registry";
 import { isStudioDataPlaneAllowed, type AdminEnvironment } from "../../../lib/admin/environment";
 
 // This public identity only selects Studio's browser configuration. Server
@@ -97,10 +99,21 @@ export function filterStudioDocumentActions<T extends { action?: string }>(
   environment: AdminEnvironment,
   schemaType?: string,
   projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  documentId?: string,
 ): T[] {
   if (!isStudioConfigurationAllowed(dataset, environment, projectId)) return [];
   if (schemaType && SYSTEM_DOCUMENT_TYPES.has(schemaType)) return [];
-  if (schemaType && UAT_PAGE_DOCUMENT_TYPES.has(schemaType) && !isUatEditorialEnvironment(environment)) return [];
+  if (schemaType && UAT_PAGE_DOCUMENT_TYPES.has(schemaType)) {
+    const productionPageAllowed = environment === "production-admin" && dataset === "production" && projectId === "kyfxgjnq";
+    if (productionPageAllowed) {
+      const id = documentId?.replace(/^drafts\./, "");
+      const registered = schemaType === "publicPageCopy"
+        ? Object.keys(PUBLIC_COPY_SCOPES).some(scope => publicCopyDocumentId(scope as PublicCopyScope) === id)
+        : PAGE_SEO_PAGES.some(page => page.documentId === id);
+      return registered ? actions.filter(({ action }) => Boolean(action && ["publish", "discardChanges", "restore"].includes(action))) : [];
+    }
+    if (!isUatEditorialEnvironment(environment)) return [];
+  }
   if (schemaType && DRAFT_ONLY_DOCUMENT_TYPES.has(schemaType) && !isDraftOnlyEditorialEnvironment(environment)) return [];
   if (environment === "local-production") {
     if (schemaType !== "article") return [];

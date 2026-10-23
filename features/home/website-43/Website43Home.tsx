@@ -99,18 +99,18 @@ const steps = [
         <section className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}><div className={styles.inner}><HomeSectionHeading eyebrow={text("home.website43Homeeyebrow3")} title={text("home.website43Hometitle3")} description={text("home.website43Homedescription2")} /><div className={styles.journey}>{steps.map(([number,title,body],index)=><article className={styles.step} key={number}><div className={styles.stepRail}><span className={styles.stepNum}>{number}</span>{index<steps.length-1?<span className={styles.stepLine}/>:null}</div><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
 
         <section className={styles.section} data-uat-section="home-learning"><div className={styles.inner}><HomeSectionHeading title={text("home.website43Hometitle4")} description={text("home.website43Homedescription3")} /><div className={styles.learnGrid}>
-          <Link className={`${styles.toolCtaCard} ${styles.learnArticleCard}`} href={`${BASE}/blog`} aria-label={text("home.website43Homearialabel")}>
+          <Link className={`${styles.toolCtaCard} ${styles.learnArticleCard}`} href={`${BASE}/blog/`} aria-label={text("home.website43Homearialabel")}>
             <Image src="/assets/website-43/blog-hero.png" alt="" fill sizes="(max-width: 639px) 100vw, 33vw" aria-hidden="true" className={`${styles.toolCtaImage} ${styles.learnArticleImage}`}/>
             <span className={styles.toolCtaOverlay} aria-hidden="true" />
             <span className={styles.toolCtaContent}><span className={styles.planNum}>{text("home.planNum")}</span><h3>{text("home.h3")}</h3><p>{text("home.p4")}</p><span className={styles.toolCtaAction}>{text("home.toolCtaAction")}</span></span>
           </Link>
           <div className={styles.toolCtaGrid}>
-            <Link className={styles.toolCtaCard} href={`${BASE}/tools/financial-health-check`} aria-label={text("home.website43Homearialabel2")}>
+            <Link className={styles.toolCtaCard} href={`${BASE}/tools/financial-health-check/`} aria-label={text("home.website43Homearialabel2")}>
               <Image src="/assets/website-43/fhc-hero.png" alt="" fill sizes="(max-width: 639px) 100vw, 25vw" aria-hidden="true" className={styles.toolCtaImage}/>
               <span className={styles.toolCtaOverlay} aria-hidden="true" />
               <span className={styles.toolCtaContent}><span className={styles.planNum}>{text("home.planNum2")}</span><h3>{text("home.h32")}</h3><p>{text("home.p5")}</p><span className={styles.toolCtaAction}>{text("home.toolCtaAction2")}</span></span>
             </Link>
-            <Link className={styles.toolCtaCard} href={`${BASE}/ci-planning`} aria-label={text("home.website43Homearialabel3")}>
+            <Link className={styles.toolCtaCard} href={`${BASE}/ci-planning/`} aria-label={text("home.website43Homearialabel3")}>
               <Image src="/assets/website-43/ci-hero.png" alt="" fill sizes="(max-width: 639px) 100vw, 25vw" aria-hidden="true" className={styles.toolCtaImage}/>
               <span className={styles.toolCtaOverlay} aria-hidden="true" />
               <span className={styles.toolCtaContent}><span className={styles.planNum}>{text("home.planNum2")}</span><h3>{text("home.h33")}</h3><p>{text("home.p6")}</p><span className={styles.toolCtaAction}>{text("home.toolCtaAction2")}</span></span>
