@@ -27,6 +27,7 @@ const reviewedAdminConfigBuild = {
 const reviewedProductionGitIdentity = {
   'scripts/build-root.mjs': { before: 'a6fac6d5200f2ccf8ad4eb61b467c45738bd52ea8c76c6d0732a4fee9e9e7b3a', after: '52335defbafeec4973bfe0b3f3025b684376aab70f861bfb9a2c07c2a8709cc2' },
   'tests/hostinger-shadow-config.test.mjs': { before: '4dee63352cd8651719cc2d156fa1aaf8b1209ef71ceccb6defc0ce1a72f1f8df', after: '979af5a6561d71316bba545c56552da996eb196fa631a070dd1dbd3b2309d982' },
+  'apps/admin/scripts/build-provider.mjs': { before: 'eccd93f65ec1f0d7ecdf22682a3e14bc76e9be5acfb54daad1c2ccc02f0a070d', after: '13c3110d98944fa6cb9795f7f539ffc27b1c5390e3e51615325efc40e7ec90ff' },
 };
 function assertCurrentNativeDigest(path, body, originalDigest) {
   const repair = reviewedAdminConfigBuild[path];
