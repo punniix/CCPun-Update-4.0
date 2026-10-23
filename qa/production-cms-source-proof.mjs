@@ -183,7 +183,7 @@ export const cmsNativeFollowupOwners = {
   'features/blog/website-43/ArticleEngagement.tsx': { before: '5b1cd1352362acf4c60c84774c9c8cf9e84a754821b221244c36cb18b3e53d51', after: '941020bc1e53917b1fec02af8036ec4053b48e9cf4cc75abbcf41d477a5d3799' },
   'features/blog/website-43/ArticleShareActions.tsx': { before: '9063b511fd196ba2a8481135c535a13e060593e156fb5ef4040e5e4f3408de1e', after: '468315c7dc18c8b6030e8881bf6498fd5df2adc931dc5a0b48d9726c303135af' },
   'features/blog/website-43/Website43Article.tsx': { before: '4d8e5ba000d14284338f62655436265ac5905215599dc188b8e93d5f8c87d6c8', after: 'f83711498a004d6ba7a3b03b70bf6a8404ee740d5c411d61ce9cf327fe12d073' },
-  'features/blog/website-43/Website43ArticleBody.tsx': { before: '36eb4256c58c6fa6ac7a2cb7ec55c8735c7726d329d6b0cb072257269301863c', after: '46830e95b4194c3b5f6c253e969c4b2e334d5e8ce83c2156716c778efdbb6bc9' },
+  'features/blog/website-43/Website43ArticleBody.tsx': { before: '36eb4256c58c6fa6ac7a2cb7ec55c8735c7726d329d6b0cb072257269301863c', after: 'f6b1fc1b297992a2f562e11662e03d38f6eb729c23043a016cc707adb44c32d8' },
   'features/blog/website-43/Website43ArticleOverview.tsx': { before: '0706a3a19ac50424a021c2c975b993c2a1ac1242ab48c982744b50a60a1b2d2d', after: '2a3f73e4bd3f3b2f75a2327f5d55fdbad4cab39aa3f99d8f2bc11e238669f09c' },
   'features/blog/website-43/Website43BlogInteractive.tsx': { before: '30b860fda3148b2f80fd7427298432d92b6772f46e590153c8d07db4f039d0f6', after: '86390aa571858f25c19403c5f8df5a9b9fe67317c63cd0ee022cfb9fe1e14774' },
   'features/ci-planning/components/CILandingIntro.tsx': { before: '571aa84c26251f12779f34df925f7e1b259878225844409bd2dfc48689b2b0b0', after: '60aeafd97e1f4c672bf1c684d385ae8a86e5b2fa7b66f291e4b0feab80682aa0' },
@@ -239,6 +239,18 @@ export function assertProductionCmsOwner(file, source = read(file)) {
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
   if (file === 'lib/content/sanity.ts') {
+    // Owner-approved article-body font-size marks (2026-10-24): only these exact
+    // converter additions may be removed to reconstruct the frozen reader.
+    for (const [current, old] of [
+      ['import { articleFontSizeFromMarks, type ArticleFontSize } from "./article-font-size";\n', ''],
+      ['emphasis?: boolean; size?: ArticleFontSize }> }> = [];', 'emphasis?: boolean }> }> = [];'],
+      ['      const size = articleFontSizeFromMarks(marks);\n', ''],
+      ['        ...(size ? { size } : {}),\n', ''],
+      ['segment.href || segment.strong || segment.emphasis || segment.size)', 'segment.href || segment.strong || segment.emphasis)'],
+    ]) {
+      assert.equal(source.split(current).length, 2, 'one exact article font-size mark transition');
+      source = source.replace(current, old);
+    }
     for (const [current, old] of [
       ['import { cache } from "react";\n', ''],
       ['export const getPrimaryAuthorProfile = cache(unstable_cache(\n  () => readPrimaryAuthorProfile(),', 'export const getPrimaryAuthorProfile = unstable_cache(\n  readPrimaryAuthorProfile,'],

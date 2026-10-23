@@ -5,6 +5,7 @@ import { createClient, groq } from "next-sanity";
 import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import type { Article, ArticleBlock, ContentProvider } from "./types";
+import { articleFontSizeFromMarks, type ArticleFontSize } from "./article-font-size";
 import { authorSchema, baseArticleSchema, bodyItemSchema, faqItemSchema, parseProfessionalLicenses, parseProfessionalQualifications, parseRenderableBodyItems, parseRenderableFaqItems, rawArticleSchema, type PortableBodyItem, type RawArticle, type RawArticleSummary } from './sanity-schema';
 import { sanityFetch } from "@/lib/sanity-live";
 import { getSanityReadToken } from "@/lib/content/sanity-credentials";
@@ -30,7 +31,7 @@ const client = hasSanityConfig
 export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleBlock[] {
   const result: ArticleBlock[] = [];
   let listType: "bulletList" | "numberList" | null = null;
-  let listItems: Array<string | { text: string; segments?: Array<{ text: string; href?: string; strong?: boolean; emphasis?: boolean }> }> = [];
+  let listItems: Array<string | { text: string; segments?: Array<{ text: string; href?: string; strong?: boolean; emphasis?: boolean; size?: ArticleFontSize }> }> = [];
 
   const flushList = () => {
     if (listType && listItems.length) result.push({ type: listType, items: listItems });
@@ -43,6 +44,7 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
     const segments = item.children.filter((child) => child.text.length > 0).map((child) => {
       const marks = child.marks ?? [];
       const linkKey = marks.find((mark) => markDefs.has(mark));
+      const size = articleFontSizeFromMarks(marks);
       return {
         text: child.text,
         ...(linkKey ? {
@@ -53,10 +55,11 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
         } : {}),
         ...(marks.includes("strong") ? { strong: true } : {}),
         ...(marks.includes("em") ? { emphasis: true } : {}),
+        ...(size ? { size } : {}),
       };
     });
     const text = segments.map((segment) => segment.text).join("").trim();
-    return { text, ...(segments.some((segment) => segment.href || segment.strong || segment.emphasis) ? { segments } : {}) };
+    return { text, ...(segments.some((segment) => segment.href || segment.strong || segment.emphasis || segment.size) ? { segments } : {}) };
   };
 
   for (const item of items) {

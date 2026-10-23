@@ -1,3 +1,5 @@
+import type { ArticleFontSize } from "./article-font-size";
+
 export type ArticleStatus = "draft" | "published";
 
 export type ArticleInline = {
@@ -8,6 +10,8 @@ export type ArticleInline = {
   openInNewTab?: boolean;
   nofollow?: boolean;
   sponsored?: boolean;
+  /** Editor-chosen size relative to the surrounding text (Sanity font-size mark). */
+  size?: ArticleFontSize;
 };
 
 export type ArticleRichText = {

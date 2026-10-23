@@ -2,6 +2,7 @@ import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import type { ArticleBlock, ArticleRichText } from '@/lib/content/types';
+import { articleFontSizeStyle } from '@/lib/content/article-font-size';
 import styles from '@/components/layout/website-43/Website43.module.css';
 import { ArticleTableAccess } from './ArticleDetailAccess';
 
@@ -18,7 +19,7 @@ function richContent(content: ArticleRichText) {
         .join(' ');
       node = <a href={segment.href} target={newTab ? '_blank' : undefined} rel={rel || undefined}>{node}</a>;
     }
-    return <span key={`${segment.text}-${index}`}>{node}</span>;
+    return <span key={`${segment.text}-${index}`} style={articleFontSizeStyle(segment.size)}>{node}</span>;
   });
 }
 

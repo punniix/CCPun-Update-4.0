@@ -185,7 +185,7 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
       source = source.replaceAll('display: "swap"', 'display: "optional"');
     }
     const additions = {
-      'lib/content/types.ts': ['  optimizedAt?: string;\n'],
+      'lib/content/types.ts': ['  optimizedAt?: string;\n', 'import type { ArticleFontSize } from "./article-font-size";\n\n', '  /** Editor-chosen size relative to the surrounding text (Sanity font-size mark). */\n  size?: ArticleFontSize;\n'],
       'lib/content/sanity-schema.ts': ['  contentOptimizedAt: z.string().datetime({ offset: true }).nullish().transform((value) => value ?? undefined).catch(undefined),\n'],
       'lib/content/sanity.ts': ['    optimizedAt: raw.contentOptimizedAt,\n', '  contentOptimizedAt,\n'],
     };

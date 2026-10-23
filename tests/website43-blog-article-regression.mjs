@@ -35,7 +35,8 @@ const sanityAst = ts.createSourceFile('sanity.ts', sanitySource, ts.ScriptTarget
 const converter = sanityAst.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'portableTextToArticleBlocks');
 assert.ok(converter, 'Portable Text converter remains available');
 const converterExports = {};
-new Function('exports', ts.transpileModule(converter.getText(sanityAst), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(converterExports);
+const { articleFontSizeFromMarks, articleFontSizeStyle } = loadFixtureModule('lib/content/article-font-size.ts');
+new Function('exports', 'articleFontSizeFromMarks', ts.transpileModule(converter.getText(sanityAst), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(converterExports, articleFontSizeFromMarks);
 const h4Body = converterExports.portableTextToArticleBlocks([{
   _type: 'block', style: 'h4',
   children: [{ _type: 'span', text: 'หัวข้อย่อยระดับสี่', marks: ['strong', 'em', 'reference'] }],
@@ -44,6 +45,20 @@ const h4Body = converterExports.portableTextToArticleBlocks([{
 assert.equal(h4Body[0].type, 'heading', 'Sanity H4 must not normalize to a paragraph');
 assert.equal(h4Body[0].level, 4);
 assert.deepEqual(h4Body[0].segments, [{ text: 'หัวข้อย่อยระดับสี่', href: 'https://example.com/h4', openInNewTab: true, nofollow: true, sponsored: true, strong: true, emphasis: true }]);
+// Article-body font-size marks (Sanity decorators) carry through as a size per segment; the largest wins.
+const sizedBody = converterExports.portableTextToArticleBlocks([
+  { _type: 'block', style: 'normal', children: [
+    { _type: 'span', text: 'ปกติ ', marks: [] },
+    { _type: 'span', text: 'เล็ก', marks: ['fontSmall'] },
+    { _type: 'span', text: 'ใหญ่', marks: ['strong', 'fontLarge', 'fontXLarge'] },
+  ], markDefs: [] },
+  { _type: 'block', style: 'normal', children: [{ _type: 'span', text: 'ไม่มีขนาด', marks: ['unknownMark'] }], markDefs: [] },
+]);
+assert.deepEqual(sizedBody[0].segments, [{ text: 'ปกติ ' }, { text: 'เล็ก', size: 'small' }, { text: 'ใหญ่', strong: true, size: 'xlarge' }]);
+assert.equal(sizedBody[1].segments, undefined, 'unknown marks never create sized segments');
+assert.deepEqual(articleFontSizeStyle('small'), { fontSize: '0.875em' });
+assert.deepEqual(articleFontSizeStyle('large'), { fontSize: '1.2em', lineHeight: 1.5 });
+assert.equal(articleFontSizeStyle(undefined), undefined);
 const article = {
   id: 'published-fixture', slug: 'fixture-article', category: 'ประกันชีวิต', categorySlug: 'life-insurance',
   title: 'บทความทดสอบ', excerpt: 'ข้อมูลทดสอบ', authorName: 'ผู้เขียนจากเนื้อหา', status: 'published',
@@ -147,6 +162,13 @@ const paragraphs=[...introDoc.querySelectorAll('p')];
 for(const p of paragraphs.slice(0,2)){assert.equal(p.style.fontSize,'19px');assert.equal(p.style.lineHeight,'1.75');assert.equal(p.style.color,'rgba(250, 249, 249, 0.9)');assert.equal(p.style.margin,'','existing paragraph gap remains stylesheet-owned');}
 assert.equal(paragraphs[2].getAttribute('style'),null,'body after first nonparagraph keeps existing responsive16/17 typography');
 assert.ok(paragraphs[0].querySelector('a[href="https://example.com/inline"]'),'intro adjustment preserves inline citations');
+const sizedDoc=await doc(React.createElement('article',{className:'prose'},renderWebsite43ArticleBody([{type:'heading',level:2,text:'หัว'},...sizedBody],new Map([[0,'section-1']]))));
+const sizedSpans=[...sizedDoc.querySelectorAll('p')[0].children];
+assert.equal(sizedSpans[0].getAttribute('style'),null,'unsized text keeps stylesheet typography');
+assert.equal(sizedSpans[1].style.fontSize,'0.875em');
+assert.equal(sizedSpans[2].style.fontSize,'1.45em');
+assert.equal(sizedSpans[2].style.lineHeight,'1.4');
+assert.ok(sizedSpans[2].querySelector('strong'),'size combines with bold');
 
 const parsedQualifications = parseProfessionalQualifications([
   { _key: 'valid', shortName: 'AFPT™', name: 'ที่ปรึกษาการเงิน AFPT™', identifier: 'AFPT260195', issuer: 'สมาคมนักวางแผนการเงินไทย' },
