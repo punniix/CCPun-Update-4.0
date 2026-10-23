@@ -37,7 +37,7 @@ export default function HumanCalculatorCard({
       <div className="mb-5">
         <div className="flex items-center justify-between gap-4 text-xs font-medium">
           <span style={{ color: 'var(--w43-gold)' }}>{progressLabel}</span>
-          <span style={{ color: 'var(--w43-muted)' }}>{t('site.calculator.knownData')}</span>
+          <span style={{ color: 'var(--w43-muted)' }}>{t.node('site.calculator.knownData')}</span>
         </div>
         <div
           role="progressbar"

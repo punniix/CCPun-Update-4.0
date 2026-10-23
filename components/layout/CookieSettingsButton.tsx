@@ -8,6 +8,6 @@ export default function CookieSettingsButton({ className = '' }: { className?: s
       type="button"
       onClick={() => window.dispatchEvent(new Event('ccpun:openCookieSettings'))}
       className={`inline-flex min-h-11 items-center text-[13px] text-muted-foreground hover:text-primary transition-colors ${className}`.trim()}
-    >{text("site.cookie.settings")}</button>
+    >{text.node("site.cookie.settings")}</button>
   );
 }

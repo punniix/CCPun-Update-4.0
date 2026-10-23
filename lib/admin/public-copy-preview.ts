@@ -5,6 +5,30 @@ import { getAdminEnvironment, isAdminReadDataPlaneAllowed } from "./environment"
 import { sanityFetch } from "../content/sanity-fetch";
 import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope } from "../content/public-copy-registry";
 import { getPageSeoPage, validatePageSeoFields } from "../content/page-seo-registry";
+import { encodeCopyValue, splitCopyValue } from "../content/public-copy-style";
+
+// Same invisible encoding Sanity Visual Editing reads (@vercel/stega v1 format):
+// a 4-character prefix, then each UTF-8 byte of the JSON as four base-4 digits.
+const STEGA_DIGITS = ["\u200B", "\u200C", "\u200D", "\uFEFF"];
+function stegaCombine(text: string, info: Record<string, string>) {
+  let encoded = STEGA_DIGITS[0].repeat(4);
+  for (const byte of new TextEncoder().encode(JSON.stringify(info))) {
+    encoded += STEGA_DIGITS[(byte >> 6) & 3] + STEGA_DIGITS[(byte >> 4) & 3] + STEGA_DIGITS[(byte >> 2) & 3] + STEGA_DIGITS[byte & 3];
+  }
+  return text + encoded;
+}
+
+// Each visible preview text carries an invisible pointer to its Sanity field, so
+// a click on the page in Presentation opens exactly that entry for editing.
+function withEditTargets(scope: PublicCopyScope, values: Record<string, string>) {
+  const id = publicCopyDocumentId(scope);
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => {
+    const { text, style } = splitCopyValue(value);
+    const path = `entries[_key=="${key.replaceAll(".", "-")}"].text`;
+    const href = `/studio/intent/edit/id=${id};type=publicPageCopy;path=${encodeURIComponent(path)}`;
+    return [key, encodeCopyValue(stegaCombine(text, { origin: "sanity.io", href }), style)];
+  }));
+}
 
 export async function getPublicCopyPreview(scope: PublicCopyScope = "home") {
   await requireAdminPermission("draft:apply");
@@ -16,10 +40,10 @@ export async function getPublicCopyPreview(scope: PublicCopyScope = "home") {
   const contentScope = scope === "site" ? "home" : scope;
   const read = async (scope: PublicCopyScope) => {
     const { data } = await sanityFetch({
-      query: '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text}}',
+      query: '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text, size, sizeMobile, sizeDesktop}}',
       params: { id: publicCopyDocumentId(scope) }, perspective: "drafts",
     });
-    return parsePublicCopy(scope, data);
+    return withEditTargets(scope, parsePublicCopy(scope, data) as Record<string, string>);
   };
   const seoPage = getPageSeoPage(PUBLIC_COPY_SCOPES[contentScope].pathname)!;
   const [copy, site, { data: seo }] = await Promise.all([

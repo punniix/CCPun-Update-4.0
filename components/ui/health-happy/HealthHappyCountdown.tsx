@@ -78,11 +78,11 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
       <div className={styles.frame}>
         <div className={styles.info}>
           <div className={styles.brandLine}>
-            <span className={styles.brandAia}>{text("site.extra.brandAia")}</span>
-            <strong className={styles.brandName}>{text("site.extra.brandName")}</strong>
+            <span className={styles.brandAia}>{text.node("site.extra.brandAia")}</span>
+            <strong className={styles.brandName}>{text.node("site.extra.brandName")}</strong>
           </div>
-          <p className={styles.headline}>{text("site.extra.headline")}</p>
-          <p className={styles.date}>{text("site.extra.date")}<span>{text("site.extra.span")}</span></p>
+          <p className={styles.headline}>{text.node("site.extra.headline")}</p>
+          <p className={styles.date}>{text.node("site.extra.date")}<span>{text.node("site.extra.span")}</span></p>
         </div>
         <div className={styles.timer} role="timer" aria-label={text("site.extra.healthHappyCountdownarialabel2")} aria-live="off">
           {values.map(({ id, label, value }, i) => (
@@ -96,7 +96,7 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
           ))}
         </div>
         <div className={styles.actions}>
-          <a className={shared.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign" onClick={() => recordClick('line')}>{text("site.extra.a")}</a>
+          <a className={shared.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign" onClick={() => recordClick('line')}>{text.node("site.extra.a")}</a>
           <a className={shared.outlineButton} href={placement === 'article' ? '#health-happy-details' : ARTICLE_URL} data-campaign-action={placement === 'article' ? 'read-details' : 'article'} onClick={() => recordClick(placement === 'article' ? 'read_details' : 'article')}>
             {placement === 'article' ? text("site.extra.healthHappyCountdownText") : text("site.extra.healthHappyCountdownText2")}
           </a>

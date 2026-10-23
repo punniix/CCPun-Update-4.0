@@ -232,7 +232,7 @@ export default function Website43BlogInteractive({
   return (
     <section onClick={rememberListing} className={classNames.blogContent}>
       {featuredCount > 0 && <div className={classNames.inner}>
-        <p className={classNames.eyebrow}>{copyText("blog.p")}</p>
+        <p className={classNames.eyebrow}>{copyText.node("blog.p")}</p>
       </div>}
       {featuredCount > 0 ? <div
         className={classNames.featuredViewport}
@@ -343,12 +343,12 @@ export default function Website43BlogInteractive({
             {pageArticles.map((article) => <ArticleCard article={article} classNames={classNames} key={article.href} />)}
           </div>
         ) : (
-          <div className={classNames.emptyState}>{copyText("blog.div")}</div>
+          <div className={classNames.emptyState}>{copyText.node("blog.div")}</div>
         )}
         {pages > 1 && <nav className={classNames.pagination} aria-label={copyText("blog.website43BlogInteractivearialabel4")}>
-          <button type="button" disabled={page === 1} onClick={() => selectPage(page - 1)}>{copyText("blog.button")}</button>
+          <button type="button" disabled={page === 1} onClick={() => selectPage(page - 1)}>{copyText.node("blog.button")}</button>
           {Array.from({ length: pages }, (_, i) => i + 1).filter(n => n === 1 || n === pages || Math.abs(n - page) <= 1).map(n => <a key={n} href={blogPageHref(`/blog/${activeCategorySlug ? activeCategorySlug + '/' : ''}?q=${encodeURIComponent(query)}`, n)} aria-current={n === page ? 'page' : undefined} onClick={e => { e.preventDefault(); selectPage(n); }}>{n}</a>)}
-          <button type="button" disabled={page === pages} onClick={() => selectPage(page + 1)}>{copyText("blog.button2")}</button>
+          <button type="button" disabled={page === pages} onClick={() => selectPage(page + 1)}>{copyText.node("blog.button2")}</button>
         </nav>}
       </div>
     </section>

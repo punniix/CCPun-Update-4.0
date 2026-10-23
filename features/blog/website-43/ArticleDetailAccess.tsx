@@ -27,7 +27,7 @@ export function ArticleTableAccess({ children, stickyFirstColumn = false, column
     return () => { observer.disconnect(); node.removeEventListener('scroll', measure); };
   }, []);
   return <>
-    {overflow && <p id={hintId} className={styles.tableHint}>{copyText("blog.tableHint")}</p>}
+    {overflow && <p id={hintId} className={styles.tableHint}>{copyText.node("blog.tableHint")}</p>}
     <div className={styles.articleTableViewport} data-overflow={overflow || undefined} data-scroll-end={scroll.end} style={{ '--article-table-remainder': `${Math.max(0, columnCount - 1) * 246}px` } as CSSProperties}>
       <div ref={ref} className={styles.articleTableWrap} data-wide-table={stickyFirstColumn || undefined} tabIndex={overflow ? 0 : undefined} role={overflow ? 'region' : undefined} aria-label={overflow ? copyText("blog.articleTableAccessText") : undefined} aria-describedby={overflow ? hintId : undefined}>{children}</div>
       {overflow && <div className={styles.articleTableTrack} aria-hidden="true"><span style={{ width: `${scroll.width}%`, left: `${scroll.left}%` }} /></div>}

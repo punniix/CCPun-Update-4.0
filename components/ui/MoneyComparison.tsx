@@ -42,7 +42,7 @@ export default function MoneyComparison({
         </div>
       ) : (
         <p className="rounded-xl border border-border/30 bg-background/25 p-4 text-sm text-muted-foreground">
-          {t('site.money.empty')}
+          {t.node('site.money.empty')}
         </p>
       )}
       <dl className="grid gap-3 rounded-xl border border-border/30 bg-background/25 p-4 sm:grid-cols-3">

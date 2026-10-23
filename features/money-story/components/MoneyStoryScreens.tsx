@@ -83,8 +83,8 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
           <div className={styles.startIcon} aria-hidden="true">
             <WalletCards />
           </div>
-          <h2>{text("moneyStory.h22")}</h2>
-          <p>{text("moneyStory.p4")}</p>
+          <h2>{text.node("moneyStory.h22")}</h2>
+          <p>{text.node("moneyStory.p4")}</p>
 
           <div className={styles.characterPicker} aria-label={text("moneyStory.moneyStorySelectionarialabel")}>
             {MONEY_STORY_CHARACTERS.map((profile) => {
@@ -111,15 +111,15 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
                     <small>{label(profile.challenge)}</small>
                   </span>
                   <span className={styles.characterPickMeta}>
-                    <b>{text("moneyStory.optionImpactLinesText11")}{money.format(profile.baseIncome)}</b>
-                    <b>{text("moneyStory.b")}{money.format(profile.fixedExpenses)}</b>
+                    <b>{text.node("moneyStory.optionImpactLinesText11")}{money.format(profile.baseIncome)}</b>
+                    <b>{text.node("moneyStory.b")}{money.format(profile.fixedExpenses)}</b>
                   </span>
                 </button>
               );
             })}
           </div>
 
-          <p className={styles.mobileSwipeHint}>{text("moneyStory.mobileSwipeHint")}</p>
+          <p className={styles.mobileSwipeHint}>{text.node("moneyStory.mobileSwipeHint")}</p>
 
           {selectedCharacter ? (
             <div className={styles.selectedLifePreview}>
@@ -137,10 +137,10 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
               </div>
               <p>{label(selectedCharacter.challenge)}</p>
               <div className={styles.selectedLifeStats}>
-                <span><small>{text("moneyStory.small4")}</small><b>{money.format(selectedCharacter.startingCash)}</b></span>
-                <span><small>{text("moneyStory.small2")}</small><b>{money.format(selectedCharacter.startingInvestments)}</b></span>
-                <span><small>{text("moneyStory.small5")}</small><b>{money.format(selectedCharacter.fixedExpenses)}{text("moneyStory.b2")}</b></span>
-                <span><small>{text("moneyStory.small6")}</small><b>{money.format(selectedCharacter.goal.targetNetPosition)}</b></span>
+                <span><small>{text.node("moneyStory.small4")}</small><b>{money.format(selectedCharacter.startingCash)}</b></span>
+                <span><small>{text.node("moneyStory.small2")}</small><b>{money.format(selectedCharacter.startingInvestments)}</b></span>
+                <span><small>{text.node("moneyStory.small5")}</small><b>{money.format(selectedCharacter.fixedExpenses)}{text.node("moneyStory.b2")}</b></span>
+                <span><small>{text.node("moneyStory.small6")}</small><b>{money.format(selectedCharacter.goal.targetNetPosition)}</b></span>
               </div>
             </div>
           ) : null}
@@ -151,12 +151,12 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
               className={styles.primary}
               disabled={!selectedCharacterId}
               onClick={() => start(selectedCharacterId ?? undefined)}
-            >{text("moneyStory.primary3")}</button>
+            >{text.node("moneyStory.primary3")}</button>
             <button
               type="button"
               className={styles.secondary}
               onClick={() => start()}
-            >{text("moneyStory.secondary")}</button>
+            >{text.node("moneyStory.secondary")}</button>
           </div>
         </div>
       </div>
@@ -329,35 +329,35 @@ function decisionImpactText(option: EventOption) {
               id={character.id}
               className={styles.resultPortrait}
             />
-            <p className={styles.kicker}>{text("moneyStory.kicker3")}{label(character.name)}</p>
+            <p className={styles.kicker}>{text.node("moneyStory.kicker3")}{label(character.name)}</p>
             <h2>{resultTitle}</h2>
           </div>
 
           <div className={styles.resultSnapshot}>
-            <h3>{text("moneyStory.h3")}</h3>
+            <h3>{text.node("moneyStory.h3")}</h3>
             <p className={styles.resultLead}>{resultLead}</p>
             <div className={styles.resultNumbers}>
               <div className={styles.numberBox}>
-                <small>{text("moneyStory.small7")}</small>
+                <small>{text.node("moneyStory.small7")}</small>
                 <strong>{reserveMonths.toFixed(1)}{" " + text("moneyStory.strong9")}</strong>
                 <span>
                   {money.format(bars.cashReserveAllocated)}{" " + text("moneyStory.eventTitle3")}</span>
               </div>
               <div className={styles.numberBox}>
-                <small>{text("moneyStory.small8")}</small>
+                <small>{text.node("moneyStory.small8")}</small>
                 <strong>{money.format(bars.goalPosition)}{" " + text("moneyStory.eventTitle3")}</strong>
                 <span>
-                  {Math.round(bars.goalProgressPercent)}{text("moneyStory.moneyStoryResultText9")}</span>
+                  {Math.round(bars.goalProgressPercent)}{text.node("moneyStory.moneyStoryResultText9")}</span>
               </div>
               <div className={styles.numberBox}>
-                <small>{text("moneyStory.small9")}</small>
+                <small>{text.node("moneyStory.small9")}</small>
                 <strong>{money.format(endingDebt)}{" " + text("moneyStory.eventTitle3")}</strong>
-                <span>{text("moneyStory.span19")}{money.format(startingDebt)}{" " + text("moneyStory.eventTitle3")}</span>
+                <span>{text.node("moneyStory.span19")}{money.format(startingDebt)}{" " + text("moneyStory.eventTitle3")}</span>
               </div>
               <div className={styles.numberBox}>
-                <small>{text("moneyStory.strong")}</small>
+                <small>{text.node("moneyStory.strong")}</small>
                 <strong>{endingProtectionCount}{" " + text("moneyStory.strong10")}</strong>
-                <span>{text("moneyStory.span19")}{startingProtectionCount}
+                <span>{text.node("moneyStory.span19")}{startingProtectionCount}
                   {purchasedProtections.length
                     ? text("moneyStory.moneyStoryResultText10") + purchasedProtections.join(', ')
                     : text("moneyStory.moneyStoryResultText11")}
@@ -366,34 +366,34 @@ function decisionImpactText(option: EventOption) {
             </div>
 
             <div className={styles.resultCompare}>
-              <span>{text("moneyStory.span20")}{' '}
+              <span>{text.node("moneyStory.span20")}{' '}
                 <strong>{money.format(startBars.goalPosition)}</strong>
               </span>
               <span aria-hidden="true">→</span>
-              <span>{text("moneyStory.span21")}<strong>{money.format(bars.goalPosition)}</strong>{" " + text("moneyStory.eventTitle3")}</span>
+              <span>{text.node("moneyStory.span21")}<strong>{money.format(bars.goalPosition)}</strong>{" " + text("moneyStory.eventTitle3")}</span>
             </div>
           </div>
 
           <div className={styles.resultGrid}>
             <div className={styles.card}>
-              <h3>{text("moneyStory.h32")}</h3>
+              <h3>{text.node("moneyStory.h32")}</h3>
               {importantDecisions.length ? (
                 <ul className={styles.decisionList}>
                   {importantDecisions.map((item) => (
                     <li key={String(item.month) + '-' + item.title + '-' + item.choice}>
-                      <strong>{text("moneyStory.monthNum")}{item.month} · {label(item.title)}</strong>
-                      <span>{text("moneyStory.span22")}{label(item.choice)}”</span>
+                      <strong>{text.node("moneyStory.monthNum")}{item.month} · {label(item.title)}</strong>
+                      <span>{text.node("moneyStory.span22")}{label(item.choice)}”</span>
                       <small>{item.impact}</small>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className={styles.emptyResultNote}>{text("moneyStory.emptyResultNote")}</p>
+                <p className={styles.emptyResultNote}>{text.node("moneyStory.emptyResultNote")}</p>
               )}
             </div>
 
             <div className={styles.card}>
-              <h3>{text("moneyStory.h33")}</h3>
+              <h3>{text.node("moneyStory.h33")}</h3>
               {watchItems.length ? (
                 <ul className={styles.watchList}>
                   {watchItems.slice(0, 3).map((item) => (
@@ -401,16 +401,16 @@ function decisionImpactText(option: EventOption) {
                   ))}
                 </ul>
               ) : (
-                <p className={styles.emptyResultNote}>{text("moneyStory.emptyResultNote2")}</p>
+                <p className={styles.emptyResultNote}>{text.node("moneyStory.emptyResultNote2")}</p>
               )}
             </div>
 
             <div className={styles.card + ' ' + styles.resultWide}>
-              <h3>{text("moneyStory.h34")}</h3>
+              <h3>{text.node("moneyStory.h34")}</h3>
               <ul className={styles.timeline}>
                 {game.history.slice(-5).map((item) => (
                   <li key={String(item.month) + '-' + item.eventId}>
-                    <strong>{text("moneyStory.monthNum")}{item.month}</strong>
+                    <strong>{text.node("moneyStory.monthNum")}{item.month}</strong>
                     <span>
                       {item.sensitive ? text("moneyStory.moneyStoryResultText12") : label(item.eventTitle)}
                     </span>
@@ -427,12 +427,12 @@ function decisionImpactText(option: EventOption) {
             ) : null}
             <button type="button" className={styles.primary} onClick={replay}>
               <RefreshCcw size={16} />{" " + text("moneyStory.primary4")}</button>
-            <button type="button" className={styles.secondary} onClick={share}>{text("moneyStory.secondary2")}</button>
+            <button type="button" className={styles.secondary} onClick={share}>{text.node("moneyStory.secondary2")}</button>
             <Link
               className={styles.secondary}
               href={pyramidHref}
               onClick={onPyramidClick}
-            >{text("moneyStory.secondary3")}</Link>
+            >{text.node("moneyStory.secondary3")}</Link>
           </div>
 
           {shareStatus ? (
@@ -442,15 +442,15 @@ function decisionImpactText(option: EventOption) {
           ) : null}
 
           <div className={styles.lineCard}>
-            <h3>{text("moneyStory.h35")}</h3>
-            <p>{text("moneyStory.p5")}</p>
+            <h3>{text.node("moneyStory.h35")}</h3>
+            <p>{text.node("moneyStory.p5")}</p>
             <a
               className={styles.primary}
               href={MONEY_STORY_LINE_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={onLineClick}
-            >{text("moneyStory.primary5")}</a>
+            >{text.node("moneyStory.primary5")}</a>
           </div>
         </div>
       </div>

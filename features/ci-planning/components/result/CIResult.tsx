@@ -97,21 +97,21 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
 
   return <div data-ui="human-centered-ci-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <section className="ccpun-calculator-result-lead">
-      <p className="ccpun-calculator-result-eyebrow">{t("ci.result.description")}</p>
+      <p className="ccpun-calculator-result-eyebrow">{t.node("ci.result.description")}</p>
       <h2
         ref={resultHeadingRef}
         tabIndex={-1}
         className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {t("ci.result.heading")}{methodLabel}
+        {t.node("ci.result.heading")}{methodLabel}
       </h2>
       <output className="ccpun-calculator-result-amount" aria-live="polite" aria-atomic="true">{baht(selectedNeed)}</output>
       <p className="ccpun-calculator-result-body">
-        {t("ci.result.description2")}{baht(selectedBaseNeed)} {t("ci.result.description3")}{activeMethod === 'expense' ? t("ci.result.label") : t("ci.result.label2")} + Recovery Reserve {baht(result.recoveryReserveNeed)}{result.protectedAssetsNeed > 0 ? t("ci.result.label3").replaceAll("{value1}", String(baht(result.protectedAssetsNeed))) : ''} {t("ci.result.description4")}</p>
+        {t.node("ci.result.description2")}{baht(selectedBaseNeed)} {t.node("ci.result.description3")}{activeMethod === 'expense' ? t("ci.result.label") : t("ci.result.label2")} + Recovery Reserve {baht(result.recoveryReserveNeed)}{result.protectedAssetsNeed > 0 ? t("ci.result.label3").replaceAll("{value1}", String(baht(result.protectedAssetsNeed))) : ''} {t.node("ci.result.description4")}</p>
     </section>
 
     {availableMethods.length > 1 ? <fieldset className="space-y-3" aria-describedby="ci-estimation-method-help">
-      <legend className="ccpun-calculator-result-panel-title">{t("ci.result.groupLabel")}</legend>
+      <legend className="ccpun-calculator-result-panel-title">{t.node("ci.result.groupLabel")}</legend>
       <div className="ccpun-calculator-result-method-grid">
         {availableMethods.map((method) => {
           const value = method === 'expense' ? result.calculatedNeed : result.incomeBasedNeed;
@@ -135,7 +135,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
         })}
       </div>
       <p id="ci-estimation-method-help" className="ccpun-calculator-result-body">
-        {t("ci.result.estimationMethodHelp.description")}{result.protectedAssetsNeed > 0 ? t("ci.result.label4") : ''}
+        {t.node("ci.result.estimationMethodHelp.description")}{result.protectedAssetsNeed > 0 ? t("ci.result.label4") : ''}
       </p>
     </fieldset> : null}
 
@@ -151,31 +151,31 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
       <p className="ccpun-calculator-result-eyebrow">{differenceLabel}</p>
       <p className="ccpun-calculator-result-difference mt-1 font-semibold tabular-nums">{baht(difference)}</p>
       <p className="ccpun-calculator-result-body">
-        {t("ci.result.description5")}{baht(result.availableResources)} {t("ci.result.description6")}</p>
+        {t.node("ci.result.description5")}{baht(result.availableResources)} {t.node("ci.result.description6")}</p>
       {result.protectedAssetsNeed > 0 ? <p className="ccpun-calculator-result-body">
-        {t("ci.result.description7")}{baht(result.protectedAssetsNeed)} {t("ci.result.description8")}</p> : null}
+        {t.node("ci.result.description7")}{baht(result.protectedAssetsNeed)} {t.node("ci.result.description8")}</p> : null}
       {displayedSurplus > 0 ? <p className="ccpun-calculator-result-body">
-        {t("ci.result.description9")}</p> : null}
+        {t.node("ci.result.description9")}</p> : null}
       <details className="ccpun-calculator-result-details">
-        <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t("ci.result.expandLabel")}</summary>
+        <summary className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t.node("ci.result.expandLabel")}</summary>
         <div className="mt-4">
           {activeMethod === 'expense' ? <dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">
-            <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel")}</dt><dd>{baht(result.householdNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel2")}</dt><dd>{baht(result.educationNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel3")}</dt><dd>{baht(result.debtNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel5")}</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
-            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel3")}</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
+            <div className="ccpun-calculator-result-row"><dt>{t.node("ci.result.metricLabel")}</dt><dd>{baht(result.householdNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t.node("ci.result.metricLabel2")}</dt><dd>{baht(result.educationNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t.node("ci.expenses.metricLabel3")}</dt><dd>{baht(result.debtNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t.node("ci.expenses.metricLabel5")}</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
+            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>{t.node("ci.result.metricLabel3")}</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
           </dl> : <dl className="ccpun-calculator-result-rows ccpun-calculator-result-breakdown">
-            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel4")}</dt><dd>{baht(incomeBaseNeed)}</dd></div>
-            <div className="ccpun-calculator-result-row"><dt>{t("ci.expenses.metricLabel5")}</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
-            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>{t("ci.result.metricLabel3")}</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
+            <div className="ccpun-calculator-result-row"><dt>{t.node("ci.expenses.metricLabel4")}</dt><dd>{baht(incomeBaseNeed)}</dd></div>
+            <div className="ccpun-calculator-result-row"><dt>{t.node("ci.expenses.metricLabel5")}</dt><dd>{baht(result.recoveryReserveNeed)}</dd></div>
+            {result.protectedAssetsNeed > 0 ? <div className="ccpun-calculator-result-row"><dt>{t.node("ci.result.metricLabel3")}</dt><dd>{baht(result.protectedAssetsNeed)}</dd></div> : null}
           </dl>}
         </div>
       </details>
     </section>
 
     <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
-      <p className="ccpun-calculator-result-eyebrow">{t("ci.recovery.description")}</p>
+      <p className="ccpun-calculator-result-eyebrow">{t.node("ci.recovery.description")}</p>
       <h3 id="ci-recovery-result-title" className="ccpun-calculator-result-panel-title mt-1">
         {t(`ci.recovery.mode.${result.recoveryMode}`)}
       </h3>
@@ -183,12 +183,12 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
         {baht(result.recoveryReserveNeed)}
       </p>
       <p className="ccpun-calculator-result-body">
-        {t("ci.result.description10")}</p>
+        {t.node("ci.result.description10")}</p>
 
       {result.recoveryReserveNeed > 0 ? (
         <details className="mt-4 border-t pt-4" style={{ borderColor: 'var(--w43-border)' }}>
           <summary className="cursor-pointer text-sm font-medium focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            {t("ci.result.expandLabel2")}</summary>
+            {t.node("ci.result.expandLabel2")}</summary>
           <div className="mt-4 space-y-4">
             <dl className="ccpun-calculator-result-rows">
               {recoveryRows.map(([label, amount]) => (
@@ -198,29 +198,29 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
                 </div>
               ))}
               <div className="ccpun-calculator-result-row">
-                <dt>{t("ci.recovery.metricLabel")}</dt>
+                <dt>{t.node("ci.recovery.metricLabel")}</dt>
                 <dd>{baht(result.recoveryBreakdownTotal)}</dd>
               </div>
             </dl>
 
             {result.recoveryUnallocated > 0 ? <p className="ccpun-calculator-result-body">
-              {t("ci.result.description11")}{baht(result.recoveryUnallocated)}
+              {t.node("ci.result.description11")}{baht(result.recoveryUnallocated)}
             </p> : null}
 
             {result.recoveryOverBudget > 0 ? <p className="ccpun-calculator-result-body" style={{ color: 'var(--destructive)' }}>
-              {t("ci.result.description12")}{baht(result.recoveryOverBudget)} {t("ci.result.description13")}</p> : null}
+              {t.node("ci.result.description12")}{baht(result.recoveryOverBudget)} {t.node("ci.result.description13")}</p> : null}
 
             {result.recoveryMajorHousing > 0 ? <p className="ccpun-calculator-result-body">
-              {t("ci.result.description14")}</p> : null}
+              {t.node("ci.result.description14")}</p> : null}
           </div>
         </details>
-      ) : <p className="ccpun-calculator-result-body">{t("ci.result.description15")}</p>}
+      ) : <p className="ccpun-calculator-result-body">{t.node("ci.result.description15")}</p>}
 
       <details className="mt-4 border-t pt-4" style={{ borderColor: 'var(--w43-border)' }}>
-        <summary className="cursor-pointer text-sm font-medium">{t("ci.recovery.expandLabel3")}</summary>
+        <summary className="cursor-pointer text-sm font-medium">{t.node("ci.recovery.expandLabel3")}</summary>
         <div className="mt-3 space-y-3 text-xs leading-5" style={{ color: 'var(--w43-muted)' }}>
           <p>
-            {t("ci.result.description16")}</p>
+            {t.node("ci.result.description16")}</p>
           {CI_RECOVERY_SOURCES.map((source) => <p key={source.id}>
             <a
               href={source.url}
@@ -241,8 +241,8 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
 
     <div className="ccpun-calculator-result-cta ccpun-ci-result-cta">
       <div className="ccpun-ci-result-cta-inner">
-        <h3>{t("ci.result.heading2")}</h3>
-        <p className="ccpun-ci-result-cta-copy">{t("ci.result.description17")}</p>
+        <h3>{t.node("ci.result.heading2")}</h3>
+        <p className="ccpun-ci-result-cta-copy">{t.node("ci.result.description17")}</p>
         <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />
         <a
           href={CI_LINE_OA_URL}
@@ -258,21 +258,21 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           })}
         >
           <MessageCircle className="h-5 w-5" aria-hidden="true" />
-          {t("ci.result.linkLabel")}</a>
+          {t.node("ci.result.linkLabel")}</a>
       </div>
     </div>
 
     <p className="ccpun-calculator-result-notice">
-      {t("ci.result.description18")}</p>
+      {t.node("ci.result.description18")}</p>
 
     <div className="grid gap-3 sm:grid-cols-2">
       <button type="button" onClick={onEditData} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2">
         <Edit3 className="h-4 w-4" />
-        <span>{t("ci.result.label5")}</span>
+        <span>{t.node("ci.result.label5")}</span>
       </button>
       <button type="button" onClick={onReset} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2">
         <RefreshCw className="h-4 w-4" />
-        <span>{t("ci.result.label6")}</span>
+        <span>{t.node("ci.result.label6")}</span>
       </button>
     </div>
   </div>;

@@ -129,9 +129,9 @@ const breadcrumbSchema = {
 
         <section id="ci-calculator" aria-labelledby="ci-calculator-title" className={styles.calculatorSection}>
           <div className={styles.calculatorHeader}>
-            <p className={styles.eyebrow}>{t("ci.landing.description3")}</p>
-            <h2 id="ci-calculator-title">{t("ci.landing.calculatorTitle.heading")}<span className={styles.calculatorWord}>{t("ci.landing.label")}</span></h2>
-            <p>{t("ci.landing.description4")}</p>
+            <p className={styles.eyebrow}>{t.node("ci.landing.description3")}</p>
+            <h2 id="ci-calculator-title">{t.node("ci.landing.calculatorTitle.heading")}<span className={styles.calculatorWord}>{t.node("ci.landing.label")}</span></h2>
+            <p>{t.node("ci.landing.description4")}</p>
           </div>
           <div className={styles.calculatorStage}>
             <CIWizard />
@@ -140,32 +140,32 @@ const breadcrumbSchema = {
 
         <section className={styles.toolStorySection} aria-labelledby="ci-reading-title">
           <div className={styles.inner}>
-            <p className={styles.eyebrow}>{t("ci.landing.description5")}</p>
-            <h2 id="ci-reading-title" className={styles.h2}>{t("ci.landing.readingTitle.heading")}</h2>
-            <p className={styles.lead}>{t("ci.landing.description6")}</p>
+            <p className={styles.eyebrow}>{t.node("ci.landing.description5")}</p>
+            <h2 id="ci-reading-title" className={styles.h2}>{t.node("ci.landing.readingTitle.heading")}</h2>
+            <p className={styles.lead}>{t.node("ci.landing.description6")}</p>
 
             <div className={styles.toolMethodGrid}>
               <article className={styles.toolMethodItem}>
-                <h3>{t("ci.landing.heading")}</h3>
-                <p>{t("ci.landing.description7")}</p>
+                <h3>{t.node("ci.landing.heading")}</h3>
+                <p>{t.node("ci.landing.description7")}</p>
               </article>
               <article className={styles.toolMethodItem}>
-                <h3>{t("ci.landing.heading2")}</h3>
-                <p>{t("ci.landing.description8")}</p>
+                <h3>{t.node("ci.landing.heading2")}</h3>
+                <p>{t.node("ci.landing.description8")}</p>
               </article>
             </div>
             <div className={styles.methodBox}>
               <div>
-                <p className={styles.eyebrow}>{t("ci.landing.description9")}</p>
-                <h3>{t("ci.landing.heading3")}</h3>
+                <p className={styles.eyebrow}>{t.node("ci.landing.description9")}</p>
+                <h3>{t.node("ci.landing.heading3")}</h3>
               </div>
               <p>
-                {t("ci.landing.description10")}</p>
+                {t.node("ci.landing.description10")}</p>
             </div>
 
             <div className={styles.toolFaq}>
-              <p className={styles.eyebrow}>{t("ci.landing.description11")}</p>
-              <h2 className={styles.h2}>{t("ci.landing.heading4")}</h2>
+              <p className={styles.eyebrow}>{t.node("ci.landing.description11")}</p>
+              <h2 className={styles.h2}>{t.node("ci.landing.heading4")}</h2>
               <div className={styles.faqDetails}>
                 {CI_FAQS.map((faq) => (
                   <details key={faq.question}>
@@ -177,10 +177,10 @@ const breadcrumbSchema = {
             </div>
 
             <p className={styles.toolDisclaimer}>
-              {t("ci.landing.description12")}</p>
+              {t.node("ci.landing.description12")}</p>
 
             <div className={styles.toolProjectRecognition}>
-              <p className={styles.toolProjectRecognitionCopy}>{t("ci.landing.description13")}</p>
+              <p className={styles.toolProjectRecognitionCopy}>{t.node("ci.landing.description13")}</p>
               <a
                 className={styles.toolProjectRecognitionLink}
                 href="https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning"
