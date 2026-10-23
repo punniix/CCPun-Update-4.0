@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { CI_COPY_DEFAULTS } from '../lib/content/tool-copy-defaults';
 import { calculateCI, calcRecoveryReserveNeed } from '../features/ci-planning/calculator/calculator';
 import { INITIAL_CI_FORM_DATA } from '../features/ci-planning/calculator/constants';
 import { validateCIStep } from '../features/ci-planning/calculator/schemas';
@@ -69,8 +70,10 @@ test('in-form summary shows the income base separately from its Recovery-inclusi
   assert.equal(preview.expenseTotalNeed, 2_300_000);
 
   const summary = readFileSync('features/ci-planning/components/steps/StepExpenses.tsx', 'utf8');
-  assert.match(summary, /ทุนตามรายได้ก่อน Recovery<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeBaseNeed\)/);
-  assert.match(summary, /ทุนตามรายได้รวม<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeTotalNeed\)/);
+  assert.equal(CI_COPY_DEFAULTS['ci.expenses.metricLabel4'], 'ทุนตามรายได้ก่อน Recovery');
+  assert.match(summary, /\{t\("ci\.expenses\.metricLabel4"\)\}<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeBaseNeed\)/);
+  assert.equal(CI_COPY_DEFAULTS['ci.expenses.metricLabel7'], 'ทุนตามรายได้รวม');
+  assert.match(summary, /\{t\("ci\.expenses\.metricLabel7"\)\}<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeTotalNeed\)/);
   const styles = readFileSync('components/layout/website-43/Website43.module.css', 'utf8');
   assert.match(styles, /human-centered-ci-expenses[^\n]*\.text-xs[\s\S]*human-centered-ci-resources[^\n]*\.text-xs\) \{ font-size: 14px; \}/);
 });

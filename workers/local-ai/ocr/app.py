@@ -17,7 +17,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 _gate = asyncio.Semaphore(1)
 
 ALLOWED_TYPES = {"image/png", "image/jpeg", "image/webp"}
-MAX_BYTES = int(os.environ.get("OCR_MAX_BYTES", str(8 * 1024 * 1024)))
+MAX_BYTES = min(8 * 1024 * 1024, max(1, int(os.environ.get("OCR_MAX_BYTES", str(8 * 1024 * 1024)))))
 MAX_SIDE = int(os.environ.get("OCR_MAX_SIDE", "2400"))
 TIMEOUT = int(os.environ.get("OCR_TIMEOUT_SECONDS", "90"))
 TOKEN = os.environ.get("OCR_SHARED_TOKEN", "").strip()
@@ -52,15 +52,24 @@ async def ocr(request: Request):
     if content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=415, detail="image-required")
 
-    body = await request.body()
-    if not body or len(body) > MAX_BYTES:
-        raise HTTPException(status_code=413, detail="image-too-large")
+    # Admission precedes body accumulation. With no await between locked() and
+    # acquire(), a free asyncio semaphore is claimed in this event-loop turn.
+    if _gate.locked():
+        raise HTTPException(status_code=429, detail="ocr-busy")
+    await _gate.acquire()
+    try:
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > MAX_BYTES:
+                raise HTTPException(status_code=413, detail="image-too-large")
+            body.extend(chunk)
+        if not body:
+            raise HTTPException(status_code=413, detail="image-too-large")
 
-    request_id = str(uuid.uuid4())
-    image_digest = hashlib.sha256(body).hexdigest()
-    started = time.monotonic()
+        request_id = str(uuid.uuid4())
+        image_digest = hashlib.sha256(body).hexdigest()
+        started = time.monotonic()
 
-    async with _gate:
         input_path = None
         try:
             with tempfile.NamedTemporaryFile(dir="/tmp", suffix=".jpg", delete=False) as tmp:
@@ -118,3 +127,5 @@ async def ocr(request: Request):
                     input_path.unlink(missing_ok=True)
                 except Exception:
                     pass
+    finally:
+        _gate.release()

@@ -51,6 +51,11 @@ function Card({ title, state, children }: { title: string; state: HealthState; c
 export default async function AdminHealthPage() {
   await requireAdminPermission("settings:read");
 
+  // Read the serving process, not build-time/public environment metadata.
+  const versionOnly = (value: string | undefined) => value && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(value) ? value : "—";
+  const runtimeNode = versionOnly(process.versions?.node);
+  const runtimeUndici = versionOnly(process.versions?.undici);
+
   const deployment = getAdminDeploymentIdentity();
   const sanity = getAdminSanityStatus();
   const operations = getAdminOperationsRuntimeStatus();
@@ -178,7 +183,7 @@ export default async function AdminHealthPage() {
       <div className="mt-7 grid gap-4 xl:grid-cols-2">
         <Card title="ศูนย์จัดการที่กำลังใช้งาน" state={deploymentState}>
           <p>{deploymentState === "ok" ? "กำลังใช้เวอร์ชันจากสายงานที่ถูกต้อง" : "เวอร์ชันหรือสภาพแวดล้อมไม่ตรงตามที่คาด ต้องตรวจเพิ่มเติม"}</p>
-          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="ผู้ให้บริการ" value={provider} /><Row label="สภาพแวดล้อม" value={deploymentEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /></div></details>
+          <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="ผู้ให้บริการ" value={provider} /><Row label="สภาพแวดล้อม" value={deploymentEnvironment} /><Row label="Git branch" value={gitBranch} /><Row label="Commit" value={gitSha} /><Row label="Node.js" value={runtimeNode} /><Row label="Bundled Undici" value={runtimeUndici} /></div></details>
         </Card>
 
         <Card title="ข้อมูลและคิว LINE" state={

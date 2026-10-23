@@ -1,22 +1,26 @@
+import { getFinancialPyramidHref } from "@/lib/content/article-availability";
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
+import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Website43Footer, Website43Navbar } from '@/components/layout/website-43/Website43Shared';
 import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 import MoneyStoryGame from './components/MoneyStoryGame';
-import { MONEY_STORY_DISCLAIMER, MONEY_STORY_PYRAMID_URL } from './config';
+import { MONEY_STORY_PYRAMID_URL } from './config';
 import styles from './MoneyStory.module.css';
 import sharedStyles from '@/components/layout/website-43/Website43.module.css';
 
-const DESCRIPTION =
-  'เกมจำลองชีวิตการเงิน 12 เดือน เลือกหรือสุ่มชีวิตสมมติ แล้วลองตัดสินใจเรื่องเงินสด การลงทุน ความคุ้มครอง และการกู้ เมื่อชีวิตมีเรื่องไม่คาดคิดเข้ามา';
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/play/money-story/")!.defaults;
 
 export const metadata: Metadata = {
-  title: 'Money Story | เกมจำลองชีวิตการเงิน 12 เดือน | CCPun',
-  description: DESCRIPTION,
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   alternates: { canonical: 'https://ccpun.com/play/money-story/' },
   openGraph: {
-    title: 'Money Story | CCPun',
-    description: DESCRIPTION,
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     url: 'https://ccpun.com/play/money-story/',
     siteName: 'CCPun Financial Advisor',
     locale: 'th_TH',
@@ -27,26 +31,24 @@ export const metadata: Metadata = {
     : { index: true, follow: true },
 };
 
-export default function MoneyStoryPage() {
+export async function renderMoneyStoryPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
+  const copy = copyOverride ?? await getPublicCopy("moneyStory");
+  const text = publicCopyText(copy);
+  const pyramidHref = await getFinancialPyramidHref();
   return (
     <div className={`${sharedStyles.root} ${styles.root}`}>
       <Website43Navbar />
       <main id="main-content" tabIndex={-1}>
         <section className={styles.hero} aria-labelledby="money-story-title">
           <div className={styles.heroInner}>
-            <p className={styles.kicker}>
-              CCPun Play · เกมจำลองการเงินแบบโต้ตอบ
-            </p>
-            <h1 id="money-story-title" className={styles.title}>Money Story</h1>
-            <p className={styles.subtitle}>
-              เกมจำลองชีวิตการเงิน 12 เดือน เลือกชีวิตที่อยากลอง
-              แล้วตัดสินใจว่าจะจัดการเงินอย่างไรเมื่อเรื่องไม่คาดคิดเข้ามา
-            </p>
+            <p className={styles.kicker}>{text("moneyStory.kicker")}</p>
+            <h1 id="money-story-title" className={styles.title}>{text("moneyStory.title")}</h1>
+            <p className={styles.subtitle}>{text("moneyStory.subtitle")}</p>
           </div>
         </section>
 
-        <section className={styles.gameSection} aria-label="เกม Money Story">
-          <MoneyStoryGame showSeed={IS_REVIEW_ENVIRONMENT} />
+        <section className={styles.gameSection} aria-label={text("moneyStory.moneyStoryPagearialabel")}>
+          <PublicCopyProvider values={copy}><MoneyStoryGame showSeed={IS_REVIEW_ENVIRONMENT} pyramidHref={pyramidHref} /></PublicCopyProvider>
         </section>
 
         <section
@@ -54,42 +56,32 @@ export default function MoneyStoryPage() {
           aria-labelledby="money-story-about"
         >
           <div className={styles.explainInner}>
-            <p className={styles.kicker}>เล่นก่อน แล้วค่อยเห็นภาพ</p>
-            <h2 id="money-story-about">
-              เงินแต่ละก้อนทำหน้าที่ไม่เหมือนกัน
-            </h2>
+            <p className={styles.kicker}>{text("moneyStory.kicker2")}</p>
+            <h2 id="money-story-about">{text("moneyStory.h2")}</h2>
             <div className={styles.explainGrid}>
               <div className={styles.explainCard}>
-                <strong>ความคุ้มครอง</strong>
-                <p>
-                  มีต้นทุน แต่ช่วยลดแรงกระแทกจากเหตุที่ตรงกับความคุ้มครอง
-                  ไม่ได้ทำให้ทุกเหตุการณ์หายไป
-                </p>
+                <strong>{text("moneyStory.strong")}</strong>
+                <p>{text("moneyStory.p")}</p>
               </div>
               <div className={styles.explainCard}>
-                <strong>การลงทุน</strong>
-                <p>
-                  ช่วยให้เงินมีโอกาสเติบโต แต่มีขึ้นลง
-                  และเงินที่ต้องรีบใช้ไม่ควรพึ่งผลลัพธ์เดียว
-                </p>
+                <strong>{text("moneyStory.strong2")}</strong>
+                <p>{text("moneyStory.p2")}</p>
               </div>
               <div className={styles.explainCard}>
-                <strong>การกู้</strong>
-                <p>
-                  เพิ่มเงินในมือวันนี้ แต่ทำให้เดือนถัดไปมีค่างวดเพิ่ม
-                  และเงินเหลือน้อยลง
-                </p>
+                <strong>{text("moneyStory.strong3")}</strong>
+                <p>{text("moneyStory.p3")}</p>
               </div>
             </div>
-            <p className={styles.disclaimer}>
-              ถ้าอยากเข้าใจหลักการวางฐานการเงินให้เป็นลำดับ อ่านต่อที่{' '}
-              <Link href={MONEY_STORY_PYRAMID_URL}>พีระมิดทางการเงิน</Link>
+            <p className={styles.disclaimer}>{text("moneyStory.disclaimer")}{' '}
+              <Link href={pyramidHref}>{pyramidHref === MONEY_STORY_PYRAMID_URL ? text("moneyStory.link") : text("site.extra.blogRecovery")}</Link>
             </p>
-            <p className={styles.disclaimer}>{MONEY_STORY_DISCLAIMER}</p>
+            <p className={styles.disclaimer}>{text("moneyStory.config.label449")}</p>
           </div>
         </section>
       </main>
-      <Website43Footer warnings />
+      <Website43Footer warnings copy={siteCopyOverride} />
     </div>
   );
 }
+
+export default function MoneyStoryPage() { return renderMoneyStoryPage(); }

@@ -1,0 +1,15 @@
+.search { margin: 32px 24px; border-block: 1px solid var(--w43-border); color: var(--w43-ink); }
+.search summary { padding: 16px 0; color: var(--w43-gold); cursor: pointer; min-height: 48px; }
+.content { padding: 0 0 20px; }
+.content p { margin: 12px 0; overflow-wrap: anywhere; line-height: 1.6; }
+.content label { display: block; margin-bottom: 8px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.controls input { flex: 1 1 220px; min-width: 0; min-height: 48px; padding: 10px 12px; border: 1px solid var(--w43-border); border-radius: 8px; color: var(--w43-ink); background: var(--w43-surface); }
+.controls button, .close { min-height: 48px; padding: 10px 20px; border: 1px solid var(--w43-gold); border-radius: 8px; cursor: pointer; }
+.controls button { background: var(--w43-gold); color: var(--w43-deep); }
+.controls button:disabled { opacity: .6; cursor: wait; }
+.close { margin-top: 16px; background: transparent; color: var(--w43-gold); }
+.search :is(summary, input, button, a):focus-visible { outline: 2px solid var(--w43-gold-bright); outline-offset: 3px; }
+.content ul { margin: 16px 0; padding-left: 24px; }
+.content li { margin: 16px 0; overflow-wrap: anywhere; }
+.content a { color: var(--w43-gold); text-decoration: underline; text-underline-offset: 3px; }

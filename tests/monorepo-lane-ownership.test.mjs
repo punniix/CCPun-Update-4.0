@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { DEPLOYMENT_LANES } from '../lib/runtime/deployment-lanes.mjs';
@@ -42,20 +43,23 @@ test('monorepo audit starts from the actual apps/web and apps/admin entrypoints'
 });
 
 
-test('Web legal and not-found routes have one canonical app implementation', () => {
-  const pages = [
-    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage.tsx'],
-    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage.tsx'],
-    ['not-found.tsx', 'features/public-pages/NotFoundPage.tsx'],
-  ];
-  for (const [route, shared] of pages) {
-    const wrapper = 'export { default, metadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n';
-    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), wrapper, route);
-    assert.equal(existsSync(new URL('../' + shared, import.meta.url)), false, 'No second implementation owner');
-    const sharedSource = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
-    assert.match(sharedSource, /export const metadata:/);
-    assert.match(sharedSource, /export default function /);
+test('Web legal and not-found routes have one canonical implementation', () => {
+  for (const [route, feature] of [
+    ['privacy/page.tsx', 'features/legal/pages/PrivacyPage'],
+    ['cookie-policy/page.tsx', 'features/legal/pages/CookiePolicyPage'],
+  ]) {
+    assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/apps/web/app/' + route.replace(/\.tsx$/, '') + '";\n');
+    assert.equal(readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/' + feature + '";\n', 'Web routes remain composition-only');
+    const implementation = readFileSync(new URL('../' + feature + '.tsx', import.meta.url), 'utf8');
+    assert.match(implementation, /const metadata:/);
+    assert.match(implementation, /export function generateMetadata/);
+    assert.match(implementation, /export default(?: async)? function /);
   }
+  assert.equal(readFileSync(new URL('../app/not-found.tsx', import.meta.url), 'utf8'), 'export { default, metadata } from "@/apps/web/app/not-found";\n');
+  assert.equal(existsSync(new URL('../features/public-pages/NotFoundPage.tsx', import.meta.url)), false);
+  const notFound = readFileSync(new URL('../apps/web/app/not-found.tsx', import.meta.url), 'utf8');
+  assert.match(notFound, /export const metadata:/);
+  assert.match(notFound, /export default(?: async)? function /);
 });
 
 test('legacy root mirrors are compatibility debt, never justification to create more duplicate route files', async () => {
@@ -82,4 +86,20 @@ test('Web sitemap routes have exactly one implementation but keep both route ent
     assert.match(implementation, /export (async )?function GET\(/);
     assert.equal(implementation.split(configuration).length, 2, 'Canonical literal Next configuration occurs once');
   }
+});
+
+test('public compatibility routes delegate editable SEO to their canonical Web route', () => {
+  for (const route of ['page', 'blog/page', 'ci-planning/page', 'tools/financial-health-check/page', 'play/money-story/page']) {
+    assert.equal(readFileSync(new URL('../app/' + route + '.tsx', import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/apps/web/app/' + route + '";\n');
+    assert.match(readFileSync(new URL('../apps/web/app/' + route + '.tsx', import.meta.url), 'utf8'), /generateMetadata/);
+  }
+});
+
+test('generated CCPun build outputs stay excluded in root and nested apps', async () => {
+  const paths = ['.ccpun-local/next-uat/build/package.json', 'apps/web/.ccpun-local/next-uat/build/package.json', 'apps/admin/.ccpun-local/next-uat/build/package.json'];
+  assert.deepEqual(execFileSync('git', ['check-ignore', '--', ...paths], { encoding: 'utf8' }).trim().split('\n'), paths);
+  const { ESLint } = await import('eslint');
+  const eslint = new ESLint();
+  for (const file of paths.map(path => path.replace('package.json', 'generated.js'))) assert.equal(await eslint.isPathIgnored(file), true, file);
+  for (const file of ['apps/web/app/page.tsx', 'apps/admin/app/layout.tsx']) assert.equal(await eslint.isPathIgnored(file), false, file);
 });

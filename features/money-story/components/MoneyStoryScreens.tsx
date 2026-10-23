@@ -1,3 +1,6 @@
+'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { MONEY_STORY_COPY_DEFAULTS, moneyStoryLabel } from "@/lib/content/money-story-copy-defaults";
 import type { RefObject } from 'react';
 import Link from 'next/link';
 import { RefreshCcw, Undo2, WalletCards } from 'lucide-react';
@@ -61,65 +64,15 @@ function decisionScore(option: EventOption, baseIncome: number) {
   return score;
 }
 
-function decisionImpactText(option: EventOption) {
-  const effect = option.effect;
-
-  if (effect.incomeModifier) {
-    const sign = effect.incomeModifier.percent >= 0 ? '+' : '-';
-    const duration = effect.incomeModifier.throughEnd
-      ? 'ต่อถึงสิ้นเกม'
-      : 'นาน ' + (effect.incomeModifier.months ?? 1) + ' เดือน';
-    return 'รายได้ ' + sign + percentLabel(effect.incomeModifier.percent) + ' ' + duration;
-  }
-
-  if (effect.debtPrincipalReduction) {
-    return 'ลดเงินต้นเพิ่ม ' + money.format(effect.debtPrincipalReduction) + ' บาท';
-  }
-
-  if (effect.addProtection) {
-    return 'เพิ่มความคุ้มครอง ' + PROTECTION_CATALOG[effect.addProtection].label;
-  }
-
-  if (effect.borrow) {
-    return 'เพิ่มเงินกู้ ' + money.format(effect.borrow.principal) + ' บาท';
-  }
-
-  if (effect.investmentDelta) {
-    return effect.investmentDelta > 0
-      ? 'ย้ายเงินไปลงทุน ' + money.format(effect.investmentDelta) + ' บาท'
-      : 'ลดเงินลงทุน ' + money.format(Math.abs(effect.investmentDelta)) + ' บาท';
-  }
-
-  if (effect.investmentPercent) {
-    return 'พอร์ตเปลี่ยน ' +
-      (effect.investmentPercent > 0 ? '+' : '-') +
-      percentLabel(effect.investmentPercent);
-  }
-
-  if (effect.expenseModifier) {
-    return 'ค่าใช้จ่ายเพิ่ม ' +
-      money.format(effect.expenseModifier.amount) +
-      ' บาท/เดือน นาน ' +
-      effect.expenseModifier.months +
-      ' เดือน';
-  }
-
-  if (effect.cashDelta) {
-    return 'เงินสด ' +
-      (effect.cashDelta > 0 ? '+' : '-') +
-      money.format(Math.abs(effect.cashDelta)) +
-      ' บาท';
-  }
-
-  return option.outcomeText;
-}
-
 export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedCharacterId, start }: {
   rootRef: RefObject<HTMLDivElement | null>;
   selectedCharacterId: string | null;
   setSelectedCharacterId: (id: string) => void;
   start: (characterId?: string) => void;
 }) {
+  const text = usePublicCopy(MONEY_STORY_COPY_DEFAULTS);
+  const label = (value: string) => moneyStoryLabel(value, text);
+
     const selectedCharacter = selectedCharacterId
       ? MONEY_STORY_CHARACTERS.find((item) => item.id === selectedCharacterId)
       : null;
@@ -130,13 +83,10 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
           <div className={styles.startIcon} aria-hidden="true">
             <WalletCards />
           </div>
-          <h2>เลือกชีวิตที่อยากลอง แล้วอยู่กับมัน 12 เดือน</h2>
-          <p>
-            แต่ละชีวิตเริ่มต้นไม่เหมือนกัน ทั้งรายได้ เงินสด พอร์ต ภาระ
-            และคนที่ต้องดูแล คุณเลือกเองได้ หรือให้เกมสุ่มให้ก็ได้
-          </p>
+          <h2>{text("moneyStory.h22")}</h2>
+          <p>{text("moneyStory.p4")}</p>
 
-          <div className={styles.characterPicker} aria-label="เลือกตัวละคร">
+          <div className={styles.characterPicker} aria-label={text("moneyStory.moneyStorySelectionarialabel")}>
             {MONEY_STORY_CHARACTERS.map((profile) => {
               const selected = selectedCharacterId === profile.id;
               return (
@@ -155,21 +105,21 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
                     className={styles.characterPickAvatar}
                   />
                   <span className={styles.characterPickCopy}>
-                    <strong>{profile.name}</strong>
-                    <span>{profile.role}</span>
-                    <em>{profile.archetype}</em>
-                    <small>{profile.challenge}</small>
+                    <strong>{label(profile.name)}</strong>
+                    <span>{label(profile.role)}</span>
+                    <em>{label(profile.archetype)}</em>
+                    <small>{label(profile.challenge)}</small>
                   </span>
                   <span className={styles.characterPickMeta}>
-                    <b>รายได้ {money.format(profile.baseIncome)}</b>
-                    <b>ภาระ {money.format(profile.fixedExpenses)}</b>
+                    <b>{text("moneyStory.optionImpactLinesText11")}{money.format(profile.baseIncome)}</b>
+                    <b>{text("moneyStory.b")}{money.format(profile.fixedExpenses)}</b>
                   </span>
                 </button>
               );
             })}
           </div>
 
-          <p className={styles.mobileSwipeHint}>เลื่อนไปด้านข้างเพื่อดูชีวิตอื่น</p>
+          <p className={styles.mobileSwipeHint}>{text("moneyStory.mobileSwipeHint")}</p>
 
           {selectedCharacter ? (
             <div className={styles.selectedLifePreview}>
@@ -180,17 +130,17 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
                 />
                 <div>
                   <strong>
-                    {selectedCharacter.name} · {selectedCharacter.role}
+                    {label(selectedCharacter.name)} · {label(selectedCharacter.role)}
                   </strong>
-                  <em>{selectedCharacter.archetype}</em>
+                  <em>{label(selectedCharacter.archetype)}</em>
                 </div>
               </div>
-              <p>{selectedCharacter.challenge}</p>
+              <p>{label(selectedCharacter.challenge)}</p>
               <div className={styles.selectedLifeStats}>
-                <span><small>เงินสดเริ่มต้น</small><b>{money.format(selectedCharacter.startingCash)}</b></span>
-                <span><small>พอร์ตลงทุน</small><b>{money.format(selectedCharacter.startingInvestments)}</b></span>
-                <span><small>ภาระประจำ</small><b>{money.format(selectedCharacter.fixedExpenses)}/ด.</b></span>
-                <span><small>เป้าหมายแรก</small><b>{money.format(selectedCharacter.goal.targetNetPosition)}</b></span>
+                <span><small>{text("moneyStory.small4")}</small><b>{money.format(selectedCharacter.startingCash)}</b></span>
+                <span><small>{text("moneyStory.small2")}</small><b>{money.format(selectedCharacter.startingInvestments)}</b></span>
+                <span><small>{text("moneyStory.small5")}</small><b>{money.format(selectedCharacter.fixedExpenses)}{text("moneyStory.b2")}</b></span>
+                <span><small>{text("moneyStory.small6")}</small><b>{money.format(selectedCharacter.goal.targetNetPosition)}</b></span>
               </div>
             </div>
           ) : null}
@@ -201,23 +151,19 @@ export function MoneyStorySelection({ rootRef, selectedCharacterId, setSelectedC
               className={styles.primary}
               disabled={!selectedCharacterId}
               onClick={() => start(selectedCharacterId ?? undefined)}
-            >
-              เริ่มชีวิตที่เลือก
-            </button>
+            >{text("moneyStory.primary3")}</button>
             <button
               type="button"
               className={styles.secondary}
               onClick={() => start()}
-            >
-              สุ่มให้ฉัน
-            </button>
+            >{text("moneyStory.secondary")}</button>
           </div>
         </div>
       </div>
     );
 }
 
-export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo, replay, share, shareStatus, onPyramidClick, onLineClick }: {
+export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo, replay, share, shareStatus, onPyramidClick, onLineClick, pyramidHref = MONEY_STORY_PYRAMID_URL }: {
   game: GameState;
   character: CharacterProfile;
   bars: ReturnType<typeof statusBars>;
@@ -227,15 +173,73 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
   replay: () => void;
   share: () => Promise<void>;
   shareStatus: string;
+  pyramidHref?: string;
   onPyramidClick: () => void;
   onLineClick: () => void;
 }) {
+  const text = usePublicCopy(MONEY_STORY_COPY_DEFAULTS);
+  const siteText = usePublicCopy();
+  const label = (value: string) => moneyStoryLabel(value, text);
+function decisionImpactText(option: EventOption) {
+  const effect = option.effect;
+
+  if (effect.incomeModifier) {
+    const sign = effect.incomeModifier.percent >= 0 ? '+' : '-';
+    const duration = effect.incomeModifier.throughEnd
+      ? text("moneyStory.durationText")
+      : text("moneyStory.durationText2") + (effect.incomeModifier.months ?? 1) + text("moneyStory.optionImpactLinesText4");
+    return text("moneyStory.optionImpactLinesText11") + sign + percentLabel(effect.incomeModifier.percent) + ' ' + duration;
+  }
+
+  if (effect.debtPrincipalReduction) {
+    return text("moneyStory.decisionImpactTextText") + money.format(effect.debtPrincipalReduction) + text("moneyStory.optionImpactLinesText6");
+  }
+
+  if (effect.addProtection) {
+    return text("moneyStory.decisionImpactTextText2") + label(PROTECTION_CATALOG[effect.addProtection].label);
+  }
+
+  if (effect.borrow) {
+    return text("moneyStory.decisionImpactTextText3") + money.format(effect.borrow.principal) + text("moneyStory.optionImpactLinesText6");
+  }
+
+  if (effect.investmentDelta) {
+    return effect.investmentDelta > 0
+      ? text("moneyStory.decisionImpactTextText4") + money.format(effect.investmentDelta) + text("moneyStory.optionImpactLinesText6")
+      : text("moneyStory.decisionImpactTextText5") + money.format(Math.abs(effect.investmentDelta)) + text("moneyStory.optionImpactLinesText6");
+  }
+
+  if (effect.investmentPercent) {
+    return text("moneyStory.decisionImpactTextText6") +
+      (effect.investmentPercent > 0 ? '+' : '-') +
+      percentLabel(effect.investmentPercent);
+  }
+
+  if (effect.expenseModifier) {
+    return text("moneyStory.decisionImpactTextText7") +
+      money.format(effect.expenseModifier.amount) +
+      text("moneyStory.decisionImpactTextText8") +
+      effect.expenseModifier.months +
+      text("moneyStory.optionImpactLinesText4");
+  }
+
+  if (effect.cashDelta) {
+    return text("moneyStory.optionImpactLinesText5") +
+      (effect.cashDelta > 0 ? '+' : '-') +
+      money.format(Math.abs(effect.cashDelta)) +
+      text("moneyStory.optionImpactLinesText6");
+  }
+
+  return option.outcomeText;
+}
+
+
     const resultTitle =
       game.status === 'win'
-        ? 'คุณพาชีวิตนี้ไปถึงเป้าหมาย'
+        ? text("moneyStory.resultTitleText")
         : game.status === 'survive'
-          ? 'คุณผ่านครบ 12 เดือน'
-          : 'รอบนี้ไปต่อไม่ไหว';
+          ? text("moneyStory.resultTitleText2")
+          : text("moneyStory.resultTitleText3");
 
     const baseline = createGame('result-baseline-' + character.id, character.id);
     const startBars = statusBars(baseline);
@@ -250,7 +254,7 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
     const endingProtectionCount = game.protections.length;
     const purchasedProtections = game.protections
       .filter((holding) => holding.source === 'purchased')
-      .map((holding) => PROTECTION_CATALOG[holding.type].label);
+      .map((holding) => label(PROTECTION_CATALOG[holding.type].label));
 
     const importantDecisions = game.history
       .map((entry) => {
@@ -274,49 +278,49 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
     const watchItems: string[] = [];
     if (reserveMonths < 2.95) {
       watchItems.push(
-        'เงินสำรองตอนจบอยู่ที่ ' +
+        text("moneyStory.moneyStoryResultText") +
           reserveMonths.toFixed(1) +
-          ' เดือน จากเป้า 3 เดือน',
+          text("moneyStory.moneyStoryResultText2"),
       );
     }
     if (bars.projectedMonthlyFlexibility < character.baseIncome * 0.15) {
       watchItems.push(
-        'หลังภาระประจำ เหลือประมาณ ' +
+        text("moneyStory.moneyStoryResultText3") +
           money.format(bars.projectedMonthlyFlexibility) +
-          ' บาท/เดือน',
+          text("moneyStory.moneyStoryResultText4"),
       );
     }
     if (endingDebt > startingDebt) {
       watchItems.push(
-        'หนี้เพิ่มจาก ' +
+        text("moneyStory.moneyStoryResultText5") +
           money.format(startingDebt) +
-          ' เป็น ' +
+          text("moneyStory.moneyStoryResultText6") +
           money.format(endingDebt) +
-          ' บาท',
+          text("moneyStory.optionImpactLinesText6"),
       );
     } else if (endingDebt > 0 && endingDebt >= startingDebt * 0.75) {
       watchItems.push(
-        'หนี้ยังเหลือ ' + money.format(endingDebt) + ' บาท',
+        text("moneyStory.moneyStoryResultText7") + money.format(endingDebt) + text("moneyStory.optionImpactLinesText6"),
       );
     }
     if (bars.goalProgressPercent < 100) {
       watchItems.push(
-        'เงินสำหรับเป้าหมายอยู่ที่ ' +
+        text("moneyStory.moneyStoryResultText8") +
           Math.round(bars.goalProgressPercent) +
-          '% ของเป้าแรก',
+          text("moneyStory.moneyStoryResultText9"),
       );
     }
 
     const resultLead =
       game.status === 'lose'
-        ? 'รอบนี้หยุดที่เดือน ' +
+        ? text("moneyStory.resultLeadText") +
           game.currentMonth +
-          ' เพราะเงินสดรับภาระที่เข้ามาต่อไม่ไหว'
-        : 'จบรอบด้วยเงินสำรอง ' +
+          text("moneyStory.resultLeadText2")
+        : text("moneyStory.resultLeadText3") +
           reserveMonths.toFixed(1) +
-          ' เดือน และเงินสำหรับเป้าหมาย ' +
+          text("moneyStory.resultLeadText4") +
           money.format(bars.goalPosition) +
-          ' บาท';
+          text("moneyStory.optionImpactLinesText6");
 
     return (
       <div className={styles.shell} ref={rootRef} tabIndex={-1}>
@@ -326,79 +330,71 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
               id={character.id}
               className={styles.resultPortrait}
             />
-            <p className={styles.kicker}>ผลลัพธ์ · {character.name}</p>
+            <p className={styles.kicker}>{text("moneyStory.kicker3")}{label(character.name)}</p>
             <h2>{resultTitle}</h2>
           </div>
 
           <div className={styles.resultSnapshot}>
-            <h3>หลังรอบนี้ เงินอยู่ตรงไหน</h3>
+            <h3>{text("moneyStory.h3")}</h3>
             <p className={styles.resultLead}>{resultLead}</p>
             <div className={styles.resultNumbers}>
               <div className={styles.numberBox}>
-                <small>เงินสำรอง</small>
-                <strong>{reserveMonths.toFixed(1)} / 3 เดือน</strong>
+                <small>{text("moneyStory.small7")}</small>
+                <strong>{reserveMonths.toFixed(1)}{' '}{text("moneyStory.strong9")}</strong>
                 <span>
-                  {money.format(bars.cashReserveAllocated)} บาท
-                </span>
+                  {money.format(bars.cashReserveAllocated)}{' '}{text("moneyStory.eventTitle3")}</span>
               </div>
               <div className={styles.numberBox}>
-                <small>เงินสำหรับเป้าหมาย</small>
-                <strong>{money.format(bars.goalPosition)} บาท</strong>
+                <small>{text("moneyStory.small8")}</small>
+                <strong>{money.format(bars.goalPosition)}{' '}{text("moneyStory.eventTitle3")}</strong>
                 <span>
-                  {Math.round(bars.goalProgressPercent)}% ของเป้าแรก
-                </span>
+                  {Math.round(bars.goalProgressPercent)}{text("moneyStory.moneyStoryResultText9")}</span>
               </div>
               <div className={styles.numberBox}>
-                <small>หนี้คงเหลือ</small>
-                <strong>{money.format(endingDebt)} บาท</strong>
-                <span>เริ่มต้น {money.format(startingDebt)} บาท</span>
+                <small>{text("moneyStory.small9")}</small>
+                <strong>{money.format(endingDebt)}{' '}{text("moneyStory.eventTitle3")}</strong>
+                <span>{text("moneyStory.span19")}{money.format(startingDebt)}{' '}{text("moneyStory.eventTitle3")}</span>
               </div>
               <div className={styles.numberBox}>
-                <small>ความคุ้มครอง</small>
-                <strong>{endingProtectionCount} ประเภท</strong>
-                <span>
-                  เริ่มต้น {startingProtectionCount}
+                <small>{text("moneyStory.strong")}</small>
+                <strong>{endingProtectionCount}{' '}{text("moneyStory.strong10")}</strong>
+                <span>{text("moneyStory.span19")}{startingProtectionCount}
                   {purchasedProtections.length
-                    ? ' · เพิ่ม ' + purchasedProtections.join(', ')
-                    : ' · ไม่ได้เพิ่มระหว่างเกม'}
+                    ? text("moneyStory.moneyStoryResultText10") + purchasedProtections.join(', ')
+                    : text("moneyStory.moneyStoryResultText11")}
                 </span>
               </div>
             </div>
 
             <div className={styles.resultCompare}>
-              <span>
-                เงินสำหรับเป้าหมายเริ่มต้น{' '}
+              <span>{text("moneyStory.span20")}{' '}
                 <strong>{money.format(startBars.goalPosition)}</strong>
               </span>
               <span aria-hidden="true">→</span>
-              <span>
-                ตอนจบ <strong>{money.format(bars.goalPosition)}</strong> บาท
-              </span>
+              <span>{text("moneyStory.span21")}<strong>{money.format(bars.goalPosition)}</strong>{' '}{text("moneyStory.eventTitle3")}</span>
             </div>
           </div>
 
           <div className={styles.resultGrid}>
             <div className={styles.card}>
-              <h3>จังหวะที่เปลี่ยนรอบนี้</h3>
+              <h3>{text("moneyStory.h32")}</h3>
               {importantDecisions.length ? (
                 <ul className={styles.decisionList}>
                   {importantDecisions.map((item) => (
                     <li key={String(item.month) + '-' + item.title + '-' + item.choice}>
-                      <strong>เดือน {item.month} · {item.title}</strong>
-                      <span>เลือก “{item.choice}”</span>
+                      <strong>{text("moneyStory.monthNum")}{item.month} · {label(item.title)}</strong>
+                      <span>{text("moneyStory.span22")}{label(item.choice)}”</span>
                       <small>{item.impact}</small>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className={styles.emptyResultNote}>
-                  รอบนี้ยังไม่มีจังหวะที่ต้องเลือกหลายทางมากนัก
-                </p>
+                <p className={styles.emptyResultNote}>{text("moneyStory.emptyResultNote")}</p>
               )}
             </div>
 
             <div className={styles.card}>
-              <h3>ถ้าเล่นอีกรอบ</h3>
+              <h3>{text("moneyStory.h33")}</h3>
               {watchItems.length ? (
                 <ul className={styles.watchList}>
                   {watchItems.slice(0, 3).map((item) => (
@@ -406,20 +402,18 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
                   ))}
                 </ul>
               ) : (
-                <p className={styles.emptyResultNote}>
-                  เงินสำรองครบ 3 เดือน เป้าแรกถึงแล้ว และหนี้ไม่ได้เพิ่ม ลองดูว่ารอบหน้าจะรักษาฐานนี้ไว้ได้ไหม
-                </p>
+                <p className={styles.emptyResultNote}>{text("moneyStory.emptyResultNote2")}</p>
               )}
             </div>
 
             <div className={styles.card + ' ' + styles.resultWide}>
-              <h3>เรื่องที่เกิดขึ้นช่วงท้าย</h3>
+              <h3>{text("moneyStory.h34")}</h3>
               <ul className={styles.timeline}>
                 {game.history.slice(-5).map((item) => (
                   <li key={String(item.month) + '-' + item.eventId}>
-                    <strong>เดือน {item.month}</strong>
+                    <strong>{text("moneyStory.monthNum")}{item.month}</strong>
                     <span>
-                      {item.sensitive ? 'เหตุการณ์สำคัญ' : item.eventTitle}
+                      {item.sensitive ? text("moneyStory.moneyStoryResultText12") : label(item.eventTitle)}
                     </span>
                   </li>
                 ))}
@@ -430,22 +424,16 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
           <div className={styles.resultActions}>
             {canUndo ? (
               <button type="button" className={styles.secondary} onClick={undo}>
-                <Undo2 size={16} /> ย้อนกลับ
-              </button>
+                <Undo2 size={16} />{' '}{text("moneyStory.undoButton")}</button>
             ) : null}
             <button type="button" className={styles.primary} onClick={replay}>
-              <RefreshCcw size={16} /> เลือกชีวิตใหม่
-            </button>
-            <button type="button" className={styles.secondary} onClick={share}>
-              แชร์ Money Story
-            </button>
+              <RefreshCcw size={16} />{' '}{text("moneyStory.primary4")}</button>
+            <button type="button" className={styles.secondary} onClick={share}>{text("moneyStory.secondary2")}</button>
             <Link
               className={styles.secondary}
-              href={MONEY_STORY_PYRAMID_URL}
+              href={pyramidHref}
               onClick={onPyramidClick}
-            >
-              พีระมิดทางการเงินคืออะไร?
-            </Link>
+            >{pyramidHref === MONEY_STORY_PYRAMID_URL ? text("moneyStory.secondary3") : siteText("site.extra.blogRecovery")}</Link>
           </div>
 
           {shareStatus ? (
@@ -455,19 +443,15 @@ export function MoneyStoryResult({ game, character, bars, rootRef, canUndo, undo
           ) : null}
 
           <div className={styles.lineCard}>
-            <h3>ถ้าอยากลองดูตัวเลขของชีวิตจริง</h3>
-            <p>
-              เอารายได้ ภาระ เงินสำรอง ความคุ้มครอง และเป้าหมายของคุณมาคุยกันได้
-            </p>
+            <h3>{text("moneyStory.h35")}</h3>
+            <p>{text("moneyStory.p5")}</p>
             <a
               className={styles.primary}
               href={MONEY_STORY_LINE_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={onLineClick}
-            >
-              เพิ่มเพื่อน LINE เพื่อคุยต่อ
-            </a>
+            >{text("moneyStory.primary5")}</a>
           </div>
         </div>
       </div>

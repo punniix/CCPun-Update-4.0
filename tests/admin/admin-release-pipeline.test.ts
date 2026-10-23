@@ -35,6 +35,18 @@ test("Retired provider promoter and config cannot grant an Admin release authori
   assert.match(packageJson.scripts["test:foundation-contracts"], /tests\/hostinger-native-app-contract\.test\.mjs/);
 });
 
+function assertClosedBaselineOnly(output: string) {
+  assert.match(output, /^CCPun patched dependency baseline OK: next 16\.4\.2, react 19\.2\.9, react-dom 19\.2\.9, sharp 0\.35\.5, undici 7\.30\.1, dompurify 3\.4\.17\nCCPun runtime security baseline OK: Node 24\.\d+\.\d+, bundled Undici \d+\.\d+\.\d+\n$/);
+}
+
+test("Native dispatcher baseline output rejects extra or substituted diagnostic payloads", () => {
+  const valid = "CCPun patched dependency baseline OK: next 16.4.2, react 19.2.9, react-dom 19.2.9, sharp 0.35.5, undici 7.30.1, dompurify 3.4.17\nCCPun runtime security baseline OK: Node 24.22.1, bundled Undici 7.30.1\n";
+  assertClosedBaselineOnly(valid);
+  for (const output of [valid + "unexpected\n", valid.replace("24.22.1", "secret-shaped-value"), "", valid.replace("7.30.1", "7.29.1")]) {
+    assert.throws(() => assertClosedBaselineOnly(output));
+  }
+});
+
 test("Native dispatcher rejects retired provider and missing Admin role before build", () => {
   for (const { patch, code } of [
     { patch: { CCPUN_DEPLOYMENT_PROVIDER: "vercel", CCPUN_DEPLOYMENT_ROLE: "admin" }, code: "UNSUPPORTED_BUILD_PROVIDER" },
@@ -45,7 +57,7 @@ test("Native dispatcher rejects retired provider and missing Admin role before b
     });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, new RegExp(code));
-    assert.equal(result.stdout, "");
+    assertClosedBaselineOnly(result.stdout);
   }
 });
 
@@ -60,7 +72,7 @@ test("Native dispatcher rejects retired workflow targets and deployment metadata
     });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /UNSUPPORTED_WORKFLOW_WORLD|UNSUPPORTED_PROVIDER_METADATA/);
-    assert.equal(result.stdout, "");
+    assertClosedBaselineOnly(result.stdout);
   }
 });
 

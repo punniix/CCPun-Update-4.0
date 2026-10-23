@@ -206,7 +206,9 @@ async function realLab() {
     await enqueue("ready");
     await until(() => delivered.includes("ready"), "ACTIVE_EXECUTOR");
     await enqueue("delayed", 8);
-    const pending = async () => (await pool.query("SELECT id, run_at FROM graphile_worker.jobs WHERE payload->>'id' = $1", ["delayed"])).rows;
+    // The supported jobs view exposes the bounded job key/task, not payload.
+    // Match only this fixture's idempotency key and queue; keep all durable-ID checks.
+    const pending = async () => (await pool.query("SELECT id, run_at FROM graphile_worker.jobs WHERE key = $1 AND task_identifier = $2", ["ccpun-lab-delayed", `${jobPrefix}flows`])).rows;
     const before = await pending();
     assert.equal(before.length, 1, "DELAY_NOT_DURABLY_STORED");
     const due = new Date(String(before[0].run_at)).getTime();

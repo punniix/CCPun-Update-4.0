@@ -1,3 +1,6 @@
+"use client";
+
+import { usePublicCopy } from "./PublicCopyProvider";
 import type { ReactNode } from 'react';
 
 export default function HumanCalculatorCard({
@@ -17,6 +20,8 @@ export default function HumanCalculatorCard({
   footer?: ReactNode;
   labelledBy?: string;
 }) {
+  const t = usePublicCopy();
+  const progressLabel = t('site.calculator.progress').replaceAll('{step}', String(step)).replaceAll('{total}', String(total));
   const progress = Math.max(0, Math.min(100, (step / total) * 100));
 
   return (
@@ -31,12 +36,12 @@ export default function HumanCalculatorCard({
     >
       <div className="mb-5">
         <div className="flex items-center justify-between gap-4 text-xs font-medium">
-          <span style={{ color: 'var(--w43-gold)' }}>ขั้นตอน {step} จาก {total}</span>
-          <span style={{ color: 'var(--w43-muted)' }}>ใช้ข้อมูลเท่าที่ทราบ</span>
+          <span style={{ color: 'var(--w43-gold)' }}>{progressLabel}</span>
+          <span style={{ color: 'var(--w43-muted)' }}>{t('site.calculator.knownData')}</span>
         </div>
         <div
           role="progressbar"
-          aria-label={`ขั้นตอน ${step} จาก ${total}`}
+          aria-label={progressLabel}
           aria-valuemin={1}
           aria-valuemax={total}
           aria-valuenow={step}

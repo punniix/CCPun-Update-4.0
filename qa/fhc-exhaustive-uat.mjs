@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { FHC_COPY_DEFAULTS } from '../lib/content/tool-copy-defaults.ts';
 
 const BASE_URL = process.env.UAT_BASE_URL || 'http://127.0.0.1:3005';
 const CDP_HTTP = process.env.CDP_HTTP || 'http://127.0.0.1:9342';
@@ -84,8 +85,22 @@ async function navigate(client) {
   await loaded;
   await evaluate(client, `document.fonts?.ready?.then(() => true) ?? true`);
   await sleep(350);
-  await evaluate(client, `(() => { const b=[...document.querySelectorAll('button')].find(x=>x.textContent?.trim()==='ยอมรับ'); if(b)b.click(); return true })()`);
-  await sleep(100);
+  // Wait for the delayed consent dialog to release its focus trap.
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const settled = await evaluate(client, `(() => {
+      const dialog = document.querySelector('[role="dialog"][aria-labelledby="cookie-title"]');
+      const accept = [...(dialog?.querySelectorAll('button') || [])].find(x => x.textContent?.trim() === 'ยอมรับ');
+      if (accept?.getClientRects().length) accept.click();
+      let consent;
+      try { consent = JSON.parse(localStorage.getItem('ccpun_cookie_consent') || 'null'); } catch { return false; }
+      const field = document.getElementById('householdMonthly');
+      return Boolean(consent && Date.now() <= consent.expires && !dialog && field && !field.closest('[inert]'));
+    })()`);
+    if (settled) return;
+    await sleep(50);
+  }
+  throw new Error('Timed out waiting for calculator cookie consent to settle');
 }
 
 async function screenshot(client, name, selector = '#fhc-calculator') {
@@ -137,6 +152,7 @@ async function calculate(client, values) {
   return evaluate(client, `(() => ({
     body: document.body.innerText,
     title: document.querySelector('#life-result-title')?.innerText || '',
+    resultBody: document.querySelector('section[aria-labelledby="life-result-title"]')?.innerText || '',
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     cta: (()=>{const a=[...document.querySelectorAll('a')].find(x=>x.textContent?.includes('คุยกับ CCPun ทาง LINE OA')); return a?{href:a.href,target:a.target,rel:a.rel,height:a.getBoundingClientRect().height}:null})(),
     download: (()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent?.includes('บันทึกภาพสรุป')); return b?{describedBy:b.getAttribute('aria-describedby'),height:b.getBoundingClientRect().height}:null})()
@@ -187,8 +203,10 @@ async function staticChecks(section) {
   assertion(section, 'currency input requests numeric keyboard', currency.includes('inputMode="numeric"'));
   assertion(section, 'analytics allowlist omits calculator money fields', !analytics.includes("'householdMonthly'") && !analytics.includes("'existingLifeCoverage'"));
   assertion(section, 'FHC event calls do not attach value object', !/trackEvent\([^\n]+(?:householdMonthly|debt|education|existingLifeCoverage|liquidAssets)/.test(life));
-  assertion(section, 'result has estimate and insurance-not-deposit disclosure', life.includes('ไม่ใช่คำแนะนำเฉพาะบุคคล') && life.includes('ประกันไม่ใช่เงินฝาก'));
-  assertion(section, 'result does not promise sufficiency', life.includes('ไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี'));
+  const disclosure = FHC_COPY_DEFAULTS['fhc.wizard.label4'];
+  const boundDisclosure = life.includes('t("fhc.wizard.label4")');
+  assertion(section, 'result has estimate and insurance-not-deposit disclosure', boundDisclosure && disclosure.includes('ไม่ใช่คำแนะนำเฉพาะบุคคล') && disclosure.includes('ประกันไม่ใช่เงินฝาก'));
+  assertion(section, 'result does not promise sufficiency', boundDisclosure && disclosure.includes('ไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี'));
   assertion(section, 'LINE CTA has safe new-tab relation', life.includes('target="_blank"') && life.includes('rel="noreferrer"'));
   if (process.env.CLOUD_HTML_PATH && process.env.CLOUD_HEADERS_PATH && process.env.CLOUD_ROBOTS_PATH) {
     const [html, headers, robots] = await Promise.all([
@@ -298,6 +316,8 @@ async function main() {
     const known = await calculate(client, { householdMonthly: 30000, supportYears: 10, debt: 200000, education: 50000, existingLifeCoverage: 100000, liquidAssets: 100000 });
     assertion(report.browserAssertions, 'known formula browser result = 3,650,000', known.title.includes('3,650,000 บาท'), known.title);
     assertion(report.browserAssertions, 'result contains all breakdown rows', known.body.includes('3,600,000 บาท') && known.body.includes('250,000 บาท') && known.body.includes('200,000 บาท'));
+    assertion(report.browserAssertions, 'rendered result has estimate and insurance-not-deposit disclosure', known.resultBody.includes('ไม่ใช่คำแนะนำเฉพาะบุคคล') && known.resultBody.includes('ประกันไม่ใช่เงินฝาก'));
+    assertion(report.browserAssertions, 'rendered result does not promise sufficiency', known.resultBody.includes('ไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี'));
     assertion(report.browserAssertions, 'result has no overflow', !known.overflow);
     assertion(report.browserAssertions, 'LINE CTA contract is safe', known.cta?.href === 'https://lin.ee/tqLCs4f' && known.cta?.target === '_blank' && known.cta?.rel.includes('noreferrer') && known.cta?.height >= 44, JSON.stringify(known.cta));
     assertion(report.browserAssertions, 'download control is present and described', known.download?.describedBy?.includes('fhc-image-privacy') && known.download?.height >= 44, JSON.stringify(known.download));

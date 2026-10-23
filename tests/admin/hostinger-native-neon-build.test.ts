@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { build } from "esbuild";
-import { runAdminNextBuild, sealNativeNeonRuntime, validateNativeNeonBuild, validateNativeNeonSource } from "../../apps/admin/scripts/build-provider.mjs";
+import { assertNativeSchedulerUatTestResult, nativeSchedulerUatTestEnvironment, runAdminNextBuild, runNativeSchedulerUatAcceptance, sealNativeNeonRuntime, validateNativeNeonBuild, validateNativeNeonSource } from "../../apps/admin/scripts/build-provider.mjs";
 import { applyHostingerAdminUatSafeRuntimeFlags } from "../../apps/admin/instrumentation";
 import { assertNativeProviderRetirement } from "../../qa/phase3-native-provider-proof.mjs";
 import { getArticleScheduleBackend } from "../../lib/admin/article-schedule-clock";
@@ -52,6 +52,78 @@ function productionValues(f: ReturnType<typeof fixture>): Record<string, string 
     CCPUN_NEON_PROJECT_ID: "lively-bar-43618798", CCPUN_NEON_BRANCH_ID: "br-long-resonance-b3ys5xrv",
     CCPUN_GIT_REF: "v4-production", AUTH_URL: "https://admin.ccpun.com" };
 }
+
+test("explicit UAT acceptance confines credentials to the real test child and never enables the build runtime", () => {
+  const f = fixture(); try {
+    const ref = `admin/hostinger-release-uat-${f.values.CCPUN_GIT_SHA}`;
+    f.git("branch", "-m", ref);
+    const values: Record<string, string | undefined> = { ...f.values, CCPUN_GIT_REF: ref, CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "cloud",
+      CCPUN_ADMIN_DATABASE_URL: "synthetic-not-a-connection", SANITY_API_TOKEN: "excluded-synthetic", AUTH_SECRET: "excluded-synthetic",
+      HOME: "/excluded", NEXT_PHASE: "phase-production-build", NEXT_RUNTIME: "nodejs" };
+    const seal = validateNativeNeonBuild(f.admin, values);
+    assert.ok(seal);
+    const child = nativeSchedulerUatTestEnvironment({ ...values, ...seal.publicValues }, seal);
+    assert.equal(child.CCPUN_ADMIN_DATABASE_URL, values.CCPUN_ADMIN_DATABASE_URL);
+    for (const key of ["SANITY_API_TOKEN", "AUTH_SECRET", "HOME", "NEXT_PHASE", "NEXT_RUNTIME", "NEXT_PUBLIC_CCPUN_DEPLOYMENT_PROVIDER"]) assert.ok(!(key in child), key);
+    assert.equal(child.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE, "vps");
+    assert.equal(child.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED, "1");
+    assert.equal(child.CCPUN_NATIVE_WORKFLOW_ENABLED, "0");
+    assert.equal(child.CCPUN_NATIVE_ARTICLE_SCHEDULER_UAT_TEST, "1");
+    assert.equal(child.NEXT_PUBLIC_CCPUN_GIT_SHA, seal.gitSha);
+    assert.equal(values.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED, "0");
+    assert.equal(values.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE, "cloud");
+    for (const change of [{ CCPUN_DEPLOYMENT_PROVIDER: "local" }, { CCPUN_DEPLOYMENT_ROLE: "web" },
+      { CCPUN_APP_ENV: "production-admin" }, { CCPUN_ADMIN_DATABASE_URL: undefined },
+      { CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED: "1" }, { CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE: "vps" }, { CCPUN_NATIVE_WORKFLOW_ENABLED: "1" }]) {
+      assert.throws(() => nativeSchedulerUatTestEnvironment({ ...values, ...change }, seal), /ACCEPTANCE_TARGET_DENIED/);
+    }
+    for (const denied of [null, { ...seal, environment: "production-admin" }, { ...seal, gitRef: "v4-production" }, { ...seal, schedulerBackend: "disabled" }]) {
+      assert.throws(() => nativeSchedulerUatTestEnvironment(values, denied), /ACCEPTANCE_TARGET_DENIED/);
+    }
+    if (process.platform !== "linux") assert.throws(() => runNativeSchedulerUatAcceptance(f.admin, values, seal), /ACCEPTANCE_RUNTIME_DENIED/);
+  } finally { f.close(); }
+});
+
+test("acceptance receipt requires the actual named test with zero skips and redacts all failures", () => {
+  const tap = "TAP version 13\nok 1 - actual Hostinger UAT native registration/CAS/due/cancel and restarted claim exclusion\n# tests 1\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n";
+  assert.match(assertNativeSchedulerUatTestResult({ status: 0, stdout: tap }), /^NATIVE_SCHEDULER_UAT_ACCEPTANCE_PASS tests=1 pass=1 fail=0 skipped=0$/);
+  for (const result of [{ status: 1, stdout: tap }, { status: 0, stdout: tap, error: new Error("SENSITIVE_SYNTHETIC") },
+    { status: 0, stdout: tap.replace("# skipped 0", "# skipped 1") }, { status: 0, stdout: tap.replace("# pass 1", "# pass 0") },
+    { status: 0, stdout: tap.replace("# cancelled 0", "# cancelled 1") }, { status: 0, stdout: tap.replace("ok 1 - actual", "ok 1 - other") },
+    { status: 0, stdout: `${tap}not ok 2 - unexpected\n` }, { status: 0, stdout: `${tap}# SKIP\n` },
+    { status: 0, stdout: `${tap}# tests 1\n` }, { status: 0, stdout: `${tap}ok 2 - other\n` },
+    { status: 0, stdout: "SENSITIVE_SYNTHETIC", stderr: "SENSITIVE_SYNTHETIC" }]) {
+    assert.throws(() => assertNativeSchedulerUatTestResult(result), { message: "NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED" });
+  }
+});
+
+test("failed acceptance exposes only one exact closed harness phase and code", () => {
+  const record = (phase: string, code: string) => `  error: 'NATIVE_NEON_UAT_FAILED phase=${phase} code=${code}'`;
+  const phases = ["preflight", "prepare", "ack", "cancel-generation", "wait-db-due", "claim-exit", "fresh-process-clock", "verified", "cleanup"];
+  const codes = ["TARGET_DENIED", "AMBIENT_ENV_DENIED", "ENV_FILE_DENIED", "UAT_BINDING_DENIED", "DSN_POLICY_DENIED", "SOURCE_DENIED", "DURABLE_IDENTITY_DENIED",
+    "FIXTURE_ARGUMENT_DENIED", "FIXTURE_CLAIM_DENIED", "OWNERSHIP_DENIED", "FIXTURE_STATE_DENIED", "CMS_WRITE_DENIED", "FIXTURE_EXECUTION_DENIED", "CHILD_FAILED", "CLOCK_DENIED", "DUE_TIMEOUT", "UNCLASSIFIED"];
+  for (const phase of phases) for (const code of codes) {
+    assert.throws(() => assertNativeSchedulerUatTestResult({ status: 1, stdout: `not ok 1 - fixture\n${record(phase, code)}\n  stack: SENSITIVE_SYNTHETIC\n`, stderr: "SENSITIVE_SYNTHETIC" }),
+      { message: `NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED phase=${phase} code=${code}` });
+  }
+  for (const stdout of [record("unreviewed", "SOURCE_DENIED"), record("preflight", "UNREVIEWED"),
+    record("preflight", "SOURCE_DENIED") + " SENSITIVE_SYNTHETIC", record("preflight", "SOURCE_DENIED") + "\n" + record("ack", "CHILD_FAILED"),
+    record("preflight", "SOURCE_DENIED").trim(), "# " + record("preflight", "SOURCE_DENIED"),
+    '  error: "NATIVE_NEON_UAT_FAILED phase=preflight code=SOURCE_DENIED SENSITIVE_SYNTHETIC"',
+    "SENSITIVE_SYNTHETIC NATIVE_NEON_UAT_FAILED phase=preflight code=SOURCE_DENIED", "SENSITIVE_SYNTHETIC"]) {
+    assert.throws(() => assertNativeSchedulerUatTestResult({ status: 1, stdout, stderr: record("ack", "CHILD_FAILED"), error: new Error("SENSITIVE_SYNTHETIC") }),
+      { message: "NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED" });
+  }
+  const directory = mkdtempSync(join(tmpdir(), "ccpun-closed-tap-"));
+  try {
+    const file = join(directory, "fixture.cjs");
+    writeFileSync(file, 'require("node:test")("synthetic failure",()=>{throw new Error("NATIVE_NEON_UAT_FAILED phase=preflight code=SOURCE_DENIED")});');
+    const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+    const actual = spawnSync(process.execPath, ["--test", "--test-reporter=tap", file], { env, encoding: "utf8" });
+    assert.equal(actual.status, 1);
+    assert.throws(() => assertNativeSchedulerUatTestResult(actual), { message: "NATIVE_SCHEDULER_UAT_ACCEPTANCE_FAILED phase=preflight code=SOURCE_DENIED" });
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 test("seal binds committed source, exact ref and root lock rather than declared provenance", () => {
   const f = fixture(); try {
@@ -241,6 +313,10 @@ test("reviewed config-build admission rejects unknown contract changes even with
   const proof = JSON.parse(source("qa/phase3-native-provider-parity.json"));
   const file = "lib/runtime/deployment-identity.ts";
   assert.equal(assertNativeProviderRetirement(file, proof.baselineHashes[file]), true);
+  for (const path of ["scripts/build-root.mjs", "tests/hostinger-shadow-config.test.mjs"]) {
+    const unknown = (candidate: string) => source(candidate) + (candidate === path ? "\n// unreviewed identity change\n" : "");
+    assert.throws(() => assertNativeProviderRetirement(file, proof.baselineHashes[file], proof, unknown));
+  }
   const contract = "tests/hostinger-native-app-contract.test.mjs";
   const changed = source(contract) + "\n// unreviewed contract change\n";
   const readChanged = (path: string) => path === contract ? changed : source(path);

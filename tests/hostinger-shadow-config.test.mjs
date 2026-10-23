@@ -11,6 +11,14 @@ import { archiveStandaloneRuntime, captureStandaloneProvenance, sealStandalonePr
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
+function writeSecurityBaselineFixture(root) {
+  for (const file of ['scripts/check-next-security-baseline.mjs', 'lib/runtime/node-security-baseline.mjs', 'package.json', 'package-lock.json', 'apps/web/package.json', 'apps/admin/package.json']) {
+    const target = join(root, file);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, read(file));
+  }
+}
+
 test("shadow app configs keep security headers provider-safe", () => {
   const web = read("apps/web/next.config.ts");
   const admin = read("apps/admin/next.config.ts");
@@ -134,6 +142,7 @@ test("Hostinger root build routes both workspaces and preserves native builds an
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
     for (const command of ["npm", "next"]) {
       const executable = join(fixture, command);
@@ -167,8 +176,9 @@ test("v4-production root build self-identifies the Hostinger Web production lane
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
-    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+    writeFileSync(join(fixture, "package.json"), read("package.json"));
 
     const npm = join(fixture, "npm");
     writeFileSync(npm, `#!${process.execPath}
@@ -239,8 +249,9 @@ test("pinned Hostinger Web UAT root build self-identifies the isolated shadow la
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
-    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+    writeFileSync(join(fixture, "package.json"), read("package.json"));
 
     const npm = join(fixture, "npm");
     writeFileSync(npm, `#!${process.execPath}
@@ -260,12 +271,15 @@ console.log(JSON.stringify({
     gitSha: process.env.CCPUN_GIT_SHA,
     releaseId: process.env.CCPUN_RELEASE_ID,
     stage: process.env.CCPUN_RELEASE_STAGE,
+    publicSha: process.env.NEXT_PUBLIC_CCPUN_GIT_SHA,
+    publicRef: process.env.NEXT_PUBLIC_CCPUN_GIT_REF,
+    publicRelease: process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID,
   },
 }));
 `);
     chmodSync(npm, 0o755);
 
-    const branch = "codex/hostinger-release-uat-fixture123";
+    let branch = "web-uat-fixture";
     for (const args of [
       ["init", "-b", branch],
       ["config", "user.email", "fixture@example.invalid"],
@@ -277,6 +291,9 @@ console.log(JSON.stringify({
       assert.equal(git.status, 0, git.stderr);
     }
     const sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: fixture, encoding: "utf8" }).stdout.trim();
+
+    branch = `codex/hostinger-release-uat-${sha}`;
+    assert.equal(spawnSync("git", ["branch", "-m", branch], { cwd: fixture }).status, 0);
 
     const result = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
       cwd: fixture,
@@ -300,10 +317,44 @@ console.log(JSON.stringify({
       gitSha: sha,
       releaseId: `hostinger-web-uat-${sha.slice(0, 12)}`,
       stage: "shadow",
+      publicSha: sha,
+      publicRef: branch,
+      publicRelease: `hostinger-web-uat-${sha.slice(0, 12)}`,
     });
+    const stale = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
+      cwd: fixture, encoding: "utf8",
+      env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web", CCPUN_APP_ENV: "production", NEXT_PUBLIC_SANITY_PROJECT_ID: "kyfxgjnq", CCPUN_GIT_REF: "old-uat-ref", CCPUN_GIT_SHA: "1".repeat(40), NEXT_PUBLIC_CCPUN_GIT_SHA: "1".repeat(40) },
+    });
+    assert.equal(stale.status, 0, stale.stderr);
+    assert.deepEqual(JSON.parse(stale.stdout.trim().split("\n").at(-1)).env, invocation.env);
+    for (const [key, value, error] of [["CCPUN_DEPLOYMENT_PROVIDER", "local", "WEB_UAT_RELEASE_PROVIDER_CONFLICT"], ["CCPUN_DEPLOYMENT_ROLE", "admin", "WEB_UAT_RELEASE_ROLE_CONFLICT"]]) {
+      const denied = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], { cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}`, [key]: value } });
+      assert.notEqual(denied.status, 0);
+      assert.match(denied.stderr, new RegExp(error));
+      assert.doesNotMatch(denied.stdout, /"command"/);
+    }
+    assert.equal(spawnSync("git", ["branch", "-m", `codex/hostinger-release-uat-${"2".repeat(40)}`], { cwd: fixture }).status, 0);
+    const wrongSha = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], { cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}` } });
+    assert.notEqual(wrongSha.status, 0);
+    assert.match(wrongSha.stderr, /WEB_UAT_RELEASE_SHA_CONFLICT/);
+
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
+});
+
+test("local foundation and CI share all calculator and static contract commands", () => {
+  const scripts = JSON.parse(read("package.json")).scripts;
+  const workflow = read(".github/workflows/seo-topic-hubs-ci.yml");
+  for (const name of ["test:calculators", "test:sitemap-google", "test:home-lcp", "test:seo-topic-hubs"]) {
+    assert.equal(scripts["check:foundation"].split(`npm run ${name}`).length, 2, `${name} runs once locally`);
+    assert.equal(workflow.split(`run: npm run ${name}\n`).length, 2, `${name} runs once in CI`);
+  }
+  assert.equal(scripts["test:calculators"].split(" && ").length, 9);
+  assert.equal(scripts["test:sitemap-google"], "node --conditions=react-server --import tsx --test tests/sitemap-google-regression.test.ts");
+  assert.equal(scripts["build:admin:uat:acceptance"], "node scripts/build-root.mjs --native-scheduler-uat-acceptance");
+  assert.equal(scripts.build, "node scripts/build-root.mjs", "ordinary build keeps its existing entry");
+  assert.doesNotMatch(workflow, /run: node (?:--import tsx --test tests\/sitemap-google|tests\/(?:home-lcp|seo-topic-hubs)-regression)/);
 });
 
 test("pinned Admin UAT release slot self-identifies full native-neon and binds the actual checked-out SHA without inventing secrets", { skip: process.platform === "win32" }, () => {
@@ -312,8 +363,9 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
     mkdirSync(join(fixture, "scripts"));
     mkdirSync(join(fixture, "lib/runtime"), { recursive: true });
     writeFileSync(join(fixture, "scripts/build-root.mjs"), read("scripts/build-root.mjs"));
+    writeSecurityBaselineFixture(fixture);
     writeFileSync(join(fixture, "lib/runtime/deployment-lanes.mjs"), read("lib/runtime/deployment-lanes.mjs"));
-    writeFileSync(join(fixture, "package.json"), '{"private":true}\n');
+    writeFileSync(join(fixture, "package.json"), read("package.json"));
     const npm = join(fixture, "npm");
     writeFileSync(npm, `#!${process.execPath}\nconsole.log(JSON.stringify({args:process.argv.slice(2),env:{provider:process.env.CCPUN_DEPLOYMENT_PROVIDER,role:process.env.CCPUN_DEPLOYMENT_ROLE,appEnv:process.env.CCPUN_APP_ENV,profile:process.env.CCPUN_ADMIN_CAPABILITY_PROFILE,backend:process.env.CCPUN_ARTICLE_SCHEDULER_BACKEND,producer:process.env.CCPUN_ARTICLE_SCHEDULING_ENABLED,executor:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED,plane:process.env.CCPUN_ARTICLE_SCHEDULE_EXECUTION_PLANE,nativeWorkflow:process.env.CCPUN_NATIVE_WORKFLOW_ENABLED,social:process.env.CCPUN_SOCIAL_ENABLED,socialMode:process.env.CCPUN_SOCIAL_DATA_MODE,socialOps:process.env.CCPUN_SOCIAL_OPERATIONS_ENABLED,socialReads:process.env.CCPUN_SOCIAL_PROVIDER_READS_ENABLED,socialWrites:process.env.CCPUN_SOCIAL_PROVIDER_WRITES_ENABLED,socialAnalytics:process.env.CCPUN_SOCIAL_ANALYTICS_INGESTION_ENABLED,project:process.env.CCPUN_NEON_PROJECT_ID,branch:process.env.CCPUN_NEON_BRANCH_ID,endpoint:process.env.CCPUN_NEON_ENDPOINT_ID,database:process.env.CCPUN_NEON_DATABASE,authUrl:process.env.AUTH_URL,gitRef:process.env.CCPUN_GIT_REF,gitSha:process.env.CCPUN_GIT_SHA,publicGitRef:process.env.NEXT_PUBLIC_CCPUN_GIT_REF,publicGitSha:process.env.NEXT_PUBLIC_CCPUN_GIT_SHA,publicReleaseId:process.env.NEXT_PUBLIC_CCPUN_RELEASE_ID,releaseId:process.env.CCPUN_RELEASE_ID,dbUrl:process.env.CCPUN_ADMIN_DATABASE_URL}}));`);
     chmodSync(npm, 0o755);
@@ -341,6 +393,10 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
       releaseId: `hostinger-admin-uat-${sha.slice(0, 12)}`,
     });
     assert.equal(invocation.env.dbUrl, undefined, "release bootstrap must never synthesize the Admin database secret");
+
+    const acceptance = (...extra) => spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs"), "--native-scheduler-uat-acceptance", ...extra],
+      { cwd: fixture, encoding: "utf8", env: { PATH: `${fixture}:${process.env.PATH ?? ""}` } });
+    assert.notEqual(acceptance().status, 0, "a stable slot whose suffix differs from HEAD cannot request live acceptance");
 
     assert.equal(spawnSync("git", ["checkout", "--detach"], { cwd: fixture }).status, 0);
     const detached = spawnSync(process.execPath, [join(fixture, "scripts/build-root.mjs")], {
@@ -390,6 +446,18 @@ test("pinned Admin UAT release slot self-identifies full native-neon and binds t
       });
       assert.notEqual(denied.status, 0);
       assert.match(denied.stderr, /ADMIN_UAT_RELEASE_(?:PROVIDER|ROLE)_CONFLICT/);
+    }
+    const exactRef = `admin/hostinger-release-uat-${sha}`;
+    assert.equal(spawnSync("git", ["branch", "-m", exactRef], { cwd: fixture }).status, 0);
+    const explicit = acceptance();
+    assert.equal(explicit.status, 0, explicit.stderr);
+    const forwarded = JSON.parse(explicit.stdout.trim().split("\n").at(-1));
+    assert.deepEqual(forwarded.args, ["run", "build", "--workspace", "@ccpun/admin", "--", "--native-scheduler-uat-acceptance"]);
+    assert.equal(forwarded.env.executor, "0"); assert.equal(forwarded.env.plane, "cloud"); assert.equal(forwarded.env.nativeWorkflow, "0");
+    assert.notEqual(acceptance("--native-scheduler-uat-acceptance").status, 0, "duplicate opt-ins are denied");
+    for (const otherRef of ["v4-production", "ordinary-feature"]) {
+      assert.equal(spawnSync("git", ["branch", "-m", otherRef], { cwd: fixture }).status, 0);
+      assert.notEqual(acceptance().status, 0, "ordinary and Production builds cannot opt in");
     }
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });

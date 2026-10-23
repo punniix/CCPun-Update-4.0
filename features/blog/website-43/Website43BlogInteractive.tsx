@@ -1,4 +1,6 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 
 import ArticleCardEngagement from './ArticleCardEngagement';
 import cardStyles from './ArticleCardEngagement.module.css';
@@ -84,6 +86,9 @@ export default function Website43BlogInteractive({
   categories: Website43BlogCategoryItem[];
   classNames: Website43BlogClientClassNames;
 }) {
+  const copyText = usePublicCopy(BLOG_COPY_DEFAULTS);
+
+
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
   const featuredRailRef = useRef<HTMLDivElement>(null);
   const featuredHoverRef = useRef(false);
@@ -227,11 +232,11 @@ export default function Website43BlogInteractive({
   return (
     <section onClick={rememberListing} className={classNames.blogContent}>
       {featuredCount > 0 && <div className={classNames.inner}>
-        <p className={classNames.eyebrow}>บทความแนะนำ</p>
+        <p className={classNames.eyebrow}>{copyText("blog.p")}</p>
       </div>}
       {featuredCount > 0 ? <div
         className={classNames.featuredViewport}
-        aria-label="บทความแนะนำ"
+        aria-label={copyText("blog.p")}
         onPointerEnter={(event) => { if (event.pointerType !== 'touch') featuredHoverRef.current = true; }}
         onPointerLeave={() => { featuredHoverRef.current = false; }}
       >
@@ -262,13 +267,13 @@ export default function Website43BlogInteractive({
             })}
           </div>
         </div>
-        <div className={classNames.carouselControls} aria-label="เลือกบทความแนะนำ">
+        <div className={classNames.carouselControls} aria-label={copyText("blog.website43BlogInteractivearialabel")}>
           {featuredSource.map((article, index) => (
             <button
               className={`${classNames.carouselDotButton} ${index === activeFeatured ? classNames.carouselDotButtonActive : ''}`}
               type="button"
               onClick={() => scrollFeaturedTo(index)}
-              aria-label={`แสดงบทความแนะนำ ${index + 1}: ${article.title}`}
+              aria-label={copyText("blog.dynamic4").replaceAll("{0}", String(index + 1)).replaceAll("{1}", String(article.title))}
               aria-current={index === activeFeatured ? 'true' : undefined}
               key={article.href}
             />
@@ -280,8 +285,8 @@ export default function Website43BlogInteractive({
           <input
             className={classNames.searchField}
             type="search"
-            placeholder="ค้นหาบทความ…"
-            aria-label="ค้นหาบทความ"
+            placeholder={copyText("blog.website43BlogInteractiveplaceholder")}
+            aria-label={copyText("blog.website43BlogInteractivearialabel2")}
             value={query}
             onChange={(event) => {
               const value = event.target.value;
@@ -309,7 +314,7 @@ export default function Website43BlogInteractive({
             <nav
               id="blog-category-options"
               className={classNames.categoryMenuPanel}
-              aria-label="เลือกหมวดหมู่บทความ"
+              aria-label={copyText("blog.website43BlogInteractivearialabel3")}
               hidden={!categoryMenuOpen}
             >
               {categories.map((item) => {
@@ -331,19 +336,19 @@ export default function Website43BlogInteractive({
           </div>
         </div>
         <div className={classNames.articleListHeading}>
-          <h2 ref={listHeadingRef} tabIndex={-1} style={{ scrollMarginTop: 96 }} className={classNames.h2}>{activeCategory.slug ? `บทความ${activeCategory.title}` : 'บทความทั้งหมด'}</h2>
+          <h2 ref={listHeadingRef} tabIndex={-1} style={{ scrollMarginTop: 96 }} className={classNames.h2}>{activeCategory.slug ? copyText("blog.dynamic5").replaceAll("{0}", String(activeCategory.title)) : copyText("blog.website43BlogInteractiveText")}</h2>
         </div>
         {filteredArticles.length ? (
           <div className={classNames.articleGrid}>
             {pageArticles.map((article) => <ArticleCard article={article} classNames={classNames} key={article.href} />)}
           </div>
         ) : (
-          <div className={classNames.emptyState}>ไม่พบบทความที่ตรงกับคำค้นหรือหมวดหมู่ที่เลือก</div>
+          <div className={classNames.emptyState}>{copyText("blog.div")}</div>
         )}
-        {pages > 1 && <nav className={classNames.pagination} aria-label="หน้าบทความ">
-          <button type="button" disabled={page === 1} onClick={() => selectPage(page - 1)}>ก่อนหน้า</button>
+        {pages > 1 && <nav className={classNames.pagination} aria-label={copyText("blog.website43BlogInteractivearialabel4")}>
+          <button type="button" disabled={page === 1} onClick={() => selectPage(page - 1)}>{copyText("blog.button")}</button>
           {Array.from({ length: pages }, (_, i) => i + 1).filter(n => n === 1 || n === pages || Math.abs(n - page) <= 1).map(n => <a key={n} href={blogPageHref(`/blog/${activeCategorySlug ? activeCategorySlug + '/' : ''}?q=${encodeURIComponent(query)}`, n)} aria-current={n === page ? 'page' : undefined} onClick={e => { e.preventDefault(); selectPage(n); }}>{n}</a>)}
-          <button type="button" disabled={page === pages} onClick={() => selectPage(page + 1)}>ถัดไป</button>
+          <button type="button" disabled={page === pages} onClick={() => selectPage(page + 1)}>{copyText("blog.button2")}</button>
         </nav>}
       </div>
     </section>

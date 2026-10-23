@@ -163,7 +163,7 @@ assert.doesNotMatch(
 );
 assert.match(
   website43Shared,
-  /export \{ Website43Navbar \} from '\.\/Website43Navbar';/,
+  /import \{ Website43Navbar as Navbar \} from '\.\/Website43Navbar';[\s\S]*return <Navbar \{\.\.\.props\} investmentEnabled=\{INVESTMENT_ALLOCATION_ENABLED\}/,
   'Shared Website 4.3 API must delegate only the interactive navbar to its client island',
 );
 assert.match(
@@ -229,7 +229,7 @@ assert.doesNotMatch(
 );
 assert.match(
   website43Blog,
-  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer flushBottom \/>/,
+  /<Website43Navbar overlay \/>[\s\S]*<Website43BlogInteractive[\s\S]*<Website43Footer flushBottom copy=\{siteCopyOverride\} \/>/,
   'Blog shell must keep the existing Hero/Navbar/content/Footer order while delegating only interactions to the client island',
 );
 assert.match(
@@ -239,7 +239,7 @@ assert.match(
 );
 assert.match(
   website43Blog,
-  /const blogCategories: Website43BlogCategoryItem\[\] = \[\{ slug: null, title: 'ทุกหมวดหมู่' \}, \.\.\.categories\]/,
+  /const blogCategories: Website43BlogCategoryItem\[\] = \[\{ slug: null, title: copyText\("blog\.blogCategoriesText"\) \}, \.\.\.categories\]/,
   'Blog shell must prepend the all-category option without importing a client-side taxonomy registry',
 );
 assert.doesNotMatch(

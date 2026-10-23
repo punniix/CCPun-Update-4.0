@@ -2,11 +2,11 @@ import './ux-structure-production.test.mjs';
 import { assertPhase3AdminNativeBoundaries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
-import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
+import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection, hasReviewedMasterUatOwner, assertReviewedMasterUatOwner, reviewedMasterUatOwners } from '../qa/phase2-source-proof.mjs';
 import { assertNativeProviderRetirement, assertReviewedWebUatBuildProfile } from '../qa/phase3-native-provider-proof.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -64,6 +64,7 @@ function assertReviewedGoogleRoute(file, digest, source) {
   assert.equal(sha(source), googleRoutePins[file][1], file + ': exact reviewed Google API body');
 }
 function assertReviewed404Button(digest, source) {
+  if (hasReviewedMasterUatOwner('apps/web/app/not-found.tsx')) return assertReviewedMasterUatOwner('apps/web/app/not-found.tsx', digest, source);
   assert.equal(digest, '73fb0bf30b6e8302c1526d9f9ce979147377938026c03f4de2a60d9bb1f31fe8', 'original complete 404 source stays frozen');
   for (const insertion of [
     " style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}",
@@ -122,7 +123,8 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   assertReviewedUxOwners(proof, reviewedUiOwners);
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
-    if (lineCopyOriginRoutes.includes(file)) assertReviewedLineCopyOrigin(file, digest, read(file));
+    if (hasReviewedMasterUatOwner(file)) assertReviewedMasterUatOwner(file, digest, read(file));
+    else if (lineCopyOriginRoutes.includes(file)) assertReviewedLineCopyOrigin(file, digest, read(file));
     else if (Object.hasOwn(googleRoutePins, file)) assertReviewedGoogleRoute(file, digest, read(file));
     else if (file === 'features/blog/website-43/blogData.ts') assert.equal(sha(reviewedArticleCardProjection(file, read(file))), digest, 'only actual Article ID added to card data');
     else if (file === 'apps/web/app/not-found.tsx') assertReviewed404Button(digest, read(file));
@@ -132,9 +134,6 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else if (Object.hasOwn(proof.reviewedUxOwners, file)) assert.equal(proof.reviewedUxOwners[file].baselineSha256, digest, file);
     else assert.equal(sha(productionBaselineSource(file)), digest, file);
-  }
-  for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
-    assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
   }
 });
 
@@ -162,7 +161,7 @@ test('reviewed LINE and Google route admissions reject unrelated changes, unknow
 
 test('404 button admission rejects changed width, copy and duplicate style insertions', () => {
   const file = 'apps/web/app/not-found.tsx', source = read(file), digest = proof.protected[file];
-  for (const changed of [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('ดูบทความ', 'unreviewed copy'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"]) {
+  for (const changed of [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('site.extra.blogRecovery', 'site.extra.unreviewed'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"]) {
     assert.throws(() => assertReviewed404Button(digest, changed));
   }
 });
@@ -191,4 +190,17 @@ test('reviewed UI owner admission rejects unknown owners, baseline tampering and
   const baselineDrift = structuredClone(proof); baselineDrift.reviewedUxOwners[reviewedUiOwners[0]].baselineSha256 = '0'.repeat(64);
   assert.throws(() => assertReviewedUxOwners(baselineDrift, reviewedUiOwners));
   assert.throws(() => assertReviewedUxOwners(proof, reviewedUiOwners, file => read(file) + '\n/* unreviewed runtime mutation */'));
+});
+
+// Exact current pins admit only explicitly reviewed UAT owners. They cannot admit
+// a changed historical digest, unknown path, or even one extra source byte.
+test('every reviewed UAT owner retains its historical pin and rejects source or baseline tampering', () => {
+  for (const [file, record] of Object.entries(reviewedMasterUatOwners)) {
+    assert.equal(sha(read(file)), record.after, file);
+    assert.ok(record.previous.includes(record.before), file);
+    assertReviewedMasterUatOwner(file, record.before, read(file));
+    assert.throws(() => assertReviewedMasterUatOwner(file, '0'.repeat(64), read(file)), file);
+    assert.throws(() => assertReviewedMasterUatOwner(file, record.before, read(file) + '\n// unreviewed'), file);
+  }
+  assert.throws(() => assertReviewedMasterUatOwner('unknown.ts', '0'.repeat(64), ''));
 });

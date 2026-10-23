@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   TARGETS,
   buildDocumentUrl,
+  buildBoundaryQuery,
   buildQueryUrl,
   checkBoundary,
   checkPrivateDocument,
@@ -33,12 +34,12 @@ test("production requires a public article control while private classes stay in
   }));
 });
 
-test("UAT requires zero anonymously readable articles, operational docs, drafts and versions", () => {
+test("active UAT permits only explicit synthetic articles while private classes stay invisible", () => {
   assert.equal(checkBoundary(activeUat, {
-    result: { articles: 0, authors: 2, categories: 6, operational: 0, drafts: 0, versions: 0 },
+    result: { articles: 0, authors: 2, categories: 6, operational: 0, drafts: 0, versions: 0, approvedSyntheticArticles: 0 },
   }).articles, 0);
   for (const key of ["articles", "operational", "drafts", "versions"]) {
-    const result = { articles: 0, authors: 2, categories: 6, operational: 0, drafts: 0, versions: 0, [key]: 1 };
+    const result = { articles: 0, authors: 2, categories: 6, operational: 0, drafts: 0, versions: 0, approvedSyntheticArticles: 0, [key]: 1 };
     assert.throws(() => checkBoundary(activeUat, { result }));
   }
 });
@@ -74,4 +75,16 @@ test("direct document URLs are limited to approved CCPun datasets", () => {
   assert.equal(url.hostname, "ccb9lnw5.api.sanity.io");
   assert.equal(url.pathname, "/v2026-08-20/data/doc/uat/PRE3q7eScK0PyOENLK4lnx");
   assert.throws(() => buildDocumentUrl("example", "uat", "x"));
+});
+
+
+test("unknown or malformed synthetic admission counts cannot exempt public UAT articles", () => {
+  const result = { articles: 1, authors: 0, categories: 0, operational: 0, drafts: 0, versions: 0 };
+  for (const approvedSyntheticArticles of [undefined, null, "1", -1, 0, 0.5, 12]) {
+    assert.throws(() => checkBoundary(activeUat, { result: { ...result, approvedSyntheticArticles } }));
+  }
+  assert.equal(checkBoundary(activeUat, { result: { ...result, approvedSyntheticArticles: 1 } }).articles, 1);
+  for (const target of TARGETS.filter(target => target.key !== "active-uat")) {
+    assert.ok(!buildBoundaryQuery(target).includes("approvedSyntheticArticles"));
+  }
 });

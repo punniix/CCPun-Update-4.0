@@ -3,13 +3,13 @@ import styles from './Website43.module.css';
 import { Website43Navbar } from './Website43Shared';
 
 type Website43ToolHeroProps = {
-  image: string;
+  image?: string;
   badge: string;
   line1: string;
   line2: string;
   description: string;
   ctaHref: string;
-  ctaLabel?: string;
+  ctaLabel: string;
   strongContrast?: boolean;
   fullBleed?: boolean;
 };
@@ -21,12 +21,13 @@ export default function Website43ToolHero({
   line2,
   description,
   ctaHref,
-  ctaLabel = 'เริ่มประเมิน',
+  ctaLabel,
   strongContrast = false,
   fullBleed = false,
 }: Website43ToolHeroProps) {
   return (
-    <section className={fullBleed ? `${styles.toolHero} ${styles.toolHeroFullBleed}` : styles.toolHero} aria-labelledby="tool-hero-title">
+    <section className={`${styles.toolHero} ${image ? fullBleed ? styles.toolHeroFullBleed : '' : styles.toolHeroTextOnly}`} aria-labelledby="tool-hero-title">
+      {image ? <>
       <Image
         className={styles.toolHeroImage}
         src={image}
@@ -39,6 +40,7 @@ export default function Website43ToolHero({
       />
       <div className={styles.toolHeroGradient} aria-hidden="true" />
       {strongContrast ? <div className={styles.toolHeroReadabilityOverlay} aria-hidden="true" /> : null}
+      </> : null}
       <Website43Navbar overlay />
       <div id="main-content" tabIndex={-1} className={styles.toolHeroCopy}>
         <span className={styles.toolBadge}>{badge}</span>

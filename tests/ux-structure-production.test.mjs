@@ -1,5 +1,5 @@
 import './article-overview-rendering.test.mjs';
-import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
+import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection, assertReviewedMasterUatOwner, hasReviewedMasterUatOwner } from '../qa/phase2-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -124,32 +124,54 @@ function closure(entries) {
   }
   return seen;
 }
-const forbidden = /(?:uat-tax-table-fixture|uat-public-article-snapshots|uat-public-snapshot|investment-allocation)/;
+const forbidden = /(?:uat-tax-table-fixture|uat-public-article-snapshots|uat-public-snapshot)/;
 
-test('all actual Root/Web entry imports exclude UAT content and separated Investment features', () => {
+test('actual Root/Web imports exclude private UAT fixtures; reviewed Investment remains lane gated', () => {
   const entries = files('apps/web/app').filter(file => /(?:page|route|layout|not-found|robots)\.[jt]sx?$/.test(file));
   const publicRoots = ['app/layout.tsx','app/page.tsx','app/blog/page.tsx','app/blog/[category]/page.tsx','app/blog/[category]/[slug]/page.tsx','app/ci-planning/page.tsx','app/tools/financial-health-check/page.tsx','app/play/money-story/page.tsx','app/cookie-policy/page.tsx','app/privacy/page.tsx','app/not-found.tsx','app/sitemap.xml/route.ts','app/sitemaps/core.xml/route.ts','app/sitemaps/blog.xml/route.ts','app/sitemaps/tools.xml/route.ts'];
   assert(entries.length > 10);
   for (const file of closure([...entries, ...publicRoots])) assert.doesNotMatch(file, forbidden, file);
-  for (const directory of ['features/investment-allocation','apps/web/app/tools/investment-allocation','apps/web/app/api/investment-allocation','app/tools/investment-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
   for (const file of ['lib/content/uat-tax-table-fixture.ts','lib/content/uat-tax-table-fixture.json','lib/content/uat-public-article-snapshots.json']) assert.equal(existsSync(resolve(root, file)), false, file);
 });
 
-test('Investment release capability remains false even with explicit environment1 and cannot enter navigation/sitemap/meta', () => {
-  const source = read('lib/runtime/investment-availability.ts');
-  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  const before = process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED;
-  try {
-    process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = '1';
+test('Investment release capability is closed outside the two approved public UAT lanes', () => {
+  const compiled = ts.transpileModule(read('lib/runtime/investment-availability.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  for (const lane of [undefined, '', 'production', 'web-production', 'admin-uat', 'WEB-UAT', 'web-uat', 'local-uat']) {
     const loaded = { exports: {} };
-    new Function('require','module','exports',compiled)(id => { assert.equal(id, 'server-only'); return {}; },loaded,loaded.exports);
-    assert.equal(loaded.exports.INVESTMENT_ALLOCATION_ENABLED, false);
-  } finally { if (before === undefined) delete process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED; else process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = before; }
-  for (const file of ['components/layout/website-43/Website43Navbar.tsx','components/layout/website-43/Website43Shared.tsx','features/home/website-43/Website43Home.tsx','features/home/website-43/Website43HomeStatic.tsx','lib/nav-config.json','public/nav-config.json', ...files('apps/web/app/sitemaps')]) assert.doesNotMatch(read(file), /investment-allocation|INVESTMENT_TOOL_LINK/, file);
+    new Function('require', 'module', 'exports', 'process', compiled)(() => ({}), loaded, loaded.exports, { env: { CCPUN_APP_ENV: lane, CCPUN_INVESTMENT_ALLOCATION_ENABLED: '1' } });
+    assert.equal(loaded.exports.INVESTMENT_ALLOCATION_ENABLED, ['web-uat', 'local-uat'].includes(lane), String(lane));
+  }
+  assert.match(read('components/layout/website-43/Website43Navbar.tsx'), /investmentEnabled = false/);
+  for (const file of ['lib/nav-config.json', 'public/nav-config.json']) assert.doesNotMatch(read(file), /investment-allocation/, file);
+  for (const file of ['components/layout/website-43/Website43Shared.tsx', 'features/home/website-43/Website43HomeStatic.tsx', 'apps/web/app/sitemaps/tools.xml/route.ts']) assert.match(read(file), /INVESTMENT_ALLOCATION_ENABLED/, file);
 });
 
 function packageBeforePostPublishScripts(source) {
   const manifest = JSON.parse(source);
+  // Admit only these reviewed compatible security patches; retain the complete
+  // original manifest digest for every other field and existing command.
+  for (const owner of [manifest.overrides, manifest.overrides['@workflow/world-local'], manifest.overrides['@workflow/world-vercel']]) {
+    assert.equal(owner.undici, '7.30.1');
+    owner.undici = '7.29.1';
+  }
+  assert.equal(manifest.overrides.dompurify, '3.4.17');
+  manifest.overrides.dompurify = '3.4.16';
+  const addedStaticChecks = " && npm run test:calculators && npm run test:sitemap-google && npm run test:home-lcp && npm run test:seo-topic-hubs";
+  assert.ok(manifest.scripts["check:foundation"].endsWith(addedStaticChecks), "all static CI gates must run locally");
+  manifest.scripts["check:foundation"] = manifest.scripts["check:foundation"].slice(0, -addedStaticChecks.length);
+  for (const [name, value] of Object.entries({
+  "build:admin:uat:acceptance": "node scripts/build-root.mjs --native-scheduler-uat-acceptance",
+  "test:calculators": "node --import tsx tests/calculator-regression.ts && node --import tsx --test tests/ci-numeric-safety.test.ts && node --test tests/calculator-design-language.test.mjs && node --test tests/calculator-ux-formula-parity.test.mjs && node --import tsx --test tests/calculator-ux-journey.test.mjs && node --import tsx --test tests/ci-recovery-ui-regression.test.mjs && node --import tsx --test tests/ci-numeric-ui-regression.test.mjs && node --import tsx tests/result-actions-regression.ts && node tests/fhc-seo-geo-regression.mjs",
+  "test:sitemap-google": "node --conditions=react-server --import tsx --test tests/sitemap-google-regression.test.ts",
+  "test:home-lcp": "node tests/home-lcp-regression.mjs",
+  "test:seo-topic-hubs": "node tests/seo-topic-hubs-regression.mjs"
+})) {
+    assert.equal(manifest.scripts[name], value, "only the exact reviewed acceptance and canonical CI commands are admitted");
+    delete manifest.scripts[name];
+  }
+  const uatChecks = " && node --import tsx --test tests/public-copy.test.ts tests/money-story-copy.test.ts tests/page-seo.test.ts tests/article-author-identity.test.ts tests/investment-allocation-regression.test.ts tests/investment-fund-catalog.test.ts tests/uat-campaign-pagination.test.mjs tests/signature-article-uat.test.mjs tests/public-copy-preview.test.mjs";
+  assert.ok(manifest.scripts["test:public"].endsWith(uatChecks), "exact appended UAT behavior checks are required");
+  manifest.scripts["test:public"] = manifest.scripts["test:public"].slice(0, -uatChecks.length);
   assert.equal(manifest.overrides.vite, '8.3.3', 'only the exact reviewed Vite security override is admitted');
   delete manifest.overrides.vite;
   assert.equal(manifest.dependencies['@cloudflare/ai-search-snippet'], '^0.0.43', 'only the reviewed disabled SDK is admitted');
@@ -171,6 +193,44 @@ function packageBeforePostPublishScripts(source) {
 
 function lockBeforeAiSdk(source) {
   const lock = JSON.parse(source);
+  // Exact registry records generated by npm. All unrelated lock entries stay
+  // covered by the unchanged historical whole-lock hash below.
+  assert.deepEqual(lock.packages["node_modules/undici"], {
+  "version": "7.30.1",
+  "resolved": "https://registry.npmjs.org/undici/-/undici-7.30.1.tgz",
+  "integrity": "sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.18.1"
+  }
+});
+  lock.packages["node_modules/undici"] = {
+  "version": "7.29.1",
+  "resolved": "https://registry.npmjs.org/undici/-/undici-7.29.1.tgz",
+  "integrity": "sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.18.1"
+  }
+};
+  assert.deepEqual(lock.packages["node_modules/dompurify"], {
+  "version": "3.4.17",
+  "resolved": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.17.tgz",
+  "integrity": "sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==",
+  "license": "(MPL-2.0 OR Apache-2.0)",
+  "optionalDependencies": {
+    "@types/trusted-types": "^2.0.7"
+  }
+});
+  lock.packages["node_modules/dompurify"] = {
+  "version": "3.4.16",
+  "resolved": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.16.tgz",
+  "integrity": "sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==",
+  "license": "(MPL-2.0 OR Apache-2.0)",
+  "optionalDependencies": {
+    "@types/trusted-types": "^2.0.7"
+  }
+};
   const vite = lock.packages['node_modules/vite'];
   assert.equal(vite.version, '8.3.3');
   assert.equal(vite.resolved, 'https://registry.npmjs.org/vite/-/vite-8.3.3.tgz');
@@ -202,12 +262,17 @@ test('Production providers, metadata, models, engines, tracking, consent storage
   assert.equal(protectedProduction[analyticsPath], '6caff27b5dec7cf21bb6b6c29149c031e47f12828090e7bdd0c26a7f5192f64f');
   const semanticPath = 'lib/analytics.ts';
   assert.equal(protectedProduction[semanticPath], '43b1abf55778f2dc562e79dd632573006aafbc401ff3423223d9395722681211');
+  // Reviewed shared Node security policy and generated serving guard; all other bytes remain pinned.
+  const webDriverPath = 'apps/web/scripts/build-provider.mjs';
+  assert.equal(protectedProduction[webDriverPath], '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd');
   for (const [file,digest] of Object.entries(protectedProduction)) {
     const reviewedDigest = file === analyticsPath
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
-      : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f' : digest;
+      : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f'
+      : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4' : digest;
     const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
-    assert.equal(sha(source), reviewedDigest, file);
+    if (hasReviewedMasterUatOwner(file)) assertReviewedMasterUatOwner(file, reviewedDigest, source);
+    else assert.equal(sha(source), reviewedDigest, file);
   }
 });
 
@@ -217,8 +282,13 @@ test('Production script and AI SDK admissions reject unknown scripts, changed co
   assert.notEqual(altered({ ...manifest, scripts: { ...manifest.scripts, unreviewed: 'new-command' } }), protectedProduction['package.json']);
   assert.notEqual(altered({ ...manifest, dependencies: { ...manifest.dependencies, unreviewed: '1.0.0' } }), protectedProduction['package.json']);
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'nav:check': 'unreviewed' } }));
+  for (const name of ['build:admin:uat:acceptance', 'test:calculators', 'test:sitemap-google', 'test:home-lcp', 'test:seo-topic-hubs']) {
+    assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, [name]: 'unreviewed' } }));
+  }
+  assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'check:foundation': manifest.scripts['check:foundation'].replace(' && npm run test:sitemap-google', '') } }));
   assert.throws(() => altered({ ...manifest, dependencies: { ...manifest.dependencies, '@cloudflare/ai-search-snippet': '^0.0.44' } }));
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'test:architecture': manifest.scripts['test:architecture'] + ' node --test tests/monorepo-lane-ownership.test.mjs tests/ai-search-integration.test.mjs' } }));
+  assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'test:public': manifest.scripts['test:public'].replace('tests/page-seo.test.ts', 'tests/missing.test.ts') } }));
   const lock = JSON.parse(read('package-lock.json'));
   lock.packages['node_modules/clsx'].version = '0.0.0';
   assert.notEqual(sha(lockBeforeAiSdk(JSON.stringify(lock))), protectedProduction['package-lock.json']);
@@ -259,6 +329,8 @@ function loadArchive(articles, registry) {
     '@/features/blog/website-43/Website43Blog': { __esModule: true, default: Page },
     '@/features/blog/website-43/blogData': { toWebsite43ArticleItems: x => x, toWebsite43ArticleItemsInOrder: x => x },
     '@/lib/content/provider': { getContentProvider: () => ({ listArticles: async () => articles }) },
+    '@/lib/content/public-copy': { getPublicCopy: async () => ({}) },
+    '@/lib/content/page-seo-registry': { getPageSeoPage: () => ({ defaults: {} }) },
     '@/lib/deployment-environment': { IS_DRAFT_PREVIEW_ALLOWED: false },
     '@/lib/content/category-registry': { listCategoryMenuEntries: entries => entries.entries.filter(x => x.status === 'active') },
     '@/lib/content/category-registry-sanity': { listCategoryRegistry: async () => registry },
@@ -296,6 +368,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
   assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
   for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
     if (file === retired) continue;
+    if (hasReviewedMasterUatOwner(file)) { assertReviewedMasterUatOwner(file, digest, read(file)); continue; }
     const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
     if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css') {
       const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png';
@@ -316,5 +389,19 @@ test('all39 approved source records retain provenance with exact reviewed Articl
       assert.equal(digest, 'd6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2');
       assert.equal(sha(articleOverviewSourceProjection(source)), 'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae', 'reviewed Article V4 plus exact published overview only');
     } else assert.equal(sha(source),digest,file);
+  }
+});
+
+
+test('reviewed Undici and DOMPurify patches reject altered registry records and override values', () => {
+  for (const name of ['undici', 'dompurify']) {
+    for (const field of ['version', 'resolved', 'integrity', 'license']) {
+      const changed = JSON.parse(read('package-lock.json'));
+      changed.packages['node_modules/' + name][field] += '-unreviewed';
+      assert.throws(() => lockBeforeAiSdk(JSON.stringify(changed)), name + ':' + field);
+    }
+    const changed = JSON.parse(read('package.json'));
+    changed.overrides[name] += '-unreviewed';
+    assert.throws(() => packageBeforePostPublishScripts(JSON.stringify(changed)), name);
   }
 });

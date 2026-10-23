@@ -126,11 +126,12 @@ test('auth caller failures rethrow the same boundary error object and keep indep
   }
 });
 
-test('the exact Drive fixtures move to tests while every actual Drive runtime body and export stays intact', () => {
+test('frozen Drive fixtures remain exact while the reviewed byte-verification security delta adds only disposal', () => {
   const drive = phase3AdminEntries[2], fixture = 'tests/admin/google-drive-fixtures.ts';
   const currentSource = read(drive);
-  assert.equal(digest(currentSource + proof.driveFixtureSeparator + proof.driveFixtureBody), proof.originalHashes[drive]);
-  const before = loadFixtureModule(drive, { sources: new Map([[drive, currentSource + proof.driveFixtureSeparator + proof.driveFixtureBody]]) });
+  assert.equal(proof.currentHashes[drive], '380f5eea690f1a63c5c7be03715995f6073090d0dc41f9808ad1c2e69b878aae');
+  assertPhase3AdminContracts(drive, proof.originalHashes[drive]);
+  const before = loadFixtureModule(fixture, { sources: new Map([[fixture, 'import { GOOGLE_DRIVE_FOLDER_MIME_TYPE } from "../../lib/admin/media/google-drive-foundation";\n' + proof.driveFixtureBody]]) });
   const after = loadFixtureModule(drive);
   const fixtures = loadFixtureModule(fixture);
   const fixtureNames = ['SYNTHETIC_GOOGLE_DRIVE_ROOT_FOLDER_ID', 'SYNTHETIC_GOOGLE_DRIVE_FILE_ID', 'SYNTHETIC_GOOGLE_DRIVE_ITEMS'];
@@ -139,7 +140,9 @@ test('the exact Drive fixtures move to tests while every actual Drive runtime bo
     assert.equal(Object.hasOwn(after, name), false);
   }
   assert.equal(Object.isFrozen(fixtures.SYNTHETIC_GOOGLE_DRIVE_ITEMS), true);
-  assert.deepEqual(Object.keys(after), Object.keys(before).filter(name => !fixtureNames.includes(name)));
+  // Whole-body immutability is intentionally retired for the approved security repair.
+  // Keep the original19 runtime exports and permit only the required cross-module disposal.
+  assert.deepEqual(Object.keys(after).sort(), ["GOOGLE_DRIVE_FILE_SCOPE", "GOOGLE_DRIVE_FOLDER_MIME_TYPE", "GOOGLE_DRIVE_SHORTCUT_MIME_TYPE", "GOOGLE_DRIVE_INTERACTIVE_AUTH_MAX_TTL_MS", "MAX_GOOGLE_DRIVE_PROJECTION_BODY_BYTES", "MAX_GOOGLE_DRIVE_BINARY_BYTES", "googleDriveFileIdSchema", "googleDriveRootBoundarySchema", "googleDriveInteractiveAuthorizationSchema", "googleDriveSelectedFileRequestSchema", "googleDriveSelectedFileProjectionSchema", "parseGoogleDriveApprovedRootFolderIds", "validateGoogleDriveProjectionHttpRequest", "evaluateGoogleDriveInteractiveAuthorization", "googleDriveNormalizedItemSchema", "fetchGoogleDriveBoundaryEvidence", "fetchGoogleDriveSelectedFileProjection", "fetchGoogleDriveSelectedFileBinary", "evaluateGoogleDriveRootBoundary", "disposeGoogleDriveSelectedFileBinary"].sort());
   assert(!currentSource.includes('google-drive-fixtures'));
   const runtimeConsumers = spawnSync('git', ['grep', '-l', '-E', 'SYNTHETIC_GOOGLE_DRIVE|google-drive-fixtures', '--', 'lib', 'apps', 'features', 'workers'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   assert([0, 1].includes(runtimeConsumers.status));
@@ -169,6 +172,14 @@ test('current composition admission rejects wrong baseline, extra scope and rese
       }));
     }
   }
+  const changedFixtures = structuredClone(proof);
+  changedFixtures.driveFixtureBody += "\n";
+  const fixturePath = 'tests/admin/google-drive-fixtures.ts';
+  const fixtureSource = read(fixturePath) + "\n";
+  changedFixtures.currentHashes[fixturePath] = digest(fixtureSource);
+  assert.throws(() => assertPhase3AdminContracts(phase3AdminEntries[0], proof.originalHashes[phase3AdminEntries[0]], {
+    proof: changedFixtures, read: path => path === fixturePath ? fixtureSource : read(path),
+  }), 'frozen synthetic fixtures cannot be resealed alongside a body change');
   const wrongOriginal = structuredClone(proof); wrongOriginal.originalSources[phase3AdminEntries[0]] += '\n';
   assert.throws(() => assertPhase3AdminContracts(phase3AdminEntries[0], proof.originalHashes[phase3AdminEntries[0]], { proof: wrongOriginal }));
   const removedAssertion = read(proof.outputEvidence.file).replace('assert.equal(record[1], 32)', 'void record');

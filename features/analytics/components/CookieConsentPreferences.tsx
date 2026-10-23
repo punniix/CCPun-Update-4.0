@@ -1,4 +1,5 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
 
 import { useState } from 'react';
 
@@ -16,6 +17,7 @@ function ToggleSwitch({
   id: string;
   label: string;
 }) {
+  const text = usePublicCopy();
   return (
     <button
       type="button"
@@ -41,7 +43,7 @@ function ToggleSwitch({
         flexShrink: 0,
         background: 'transparent',
       }}
-      aria-label={`${label}: ${disabled ? 'Always Active' : checked ? 'เปิด' : 'ปิด'}`}
+      aria-label={`${label}: ${disabled ? 'Always Active' : checked ? text("site.toggleSwitchText") : text("site.toggleSwitchText2")}`}
     >
       <span aria-hidden="true" style={{
         position: 'relative', width: '2.75rem', height: '1.75rem', borderRadius: '9999px',
@@ -89,6 +91,7 @@ export function CategoryRow({
   alwaysActive?: boolean;
   toggleId: string;
 }) {
+  const text = usePublicCopy();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -134,7 +137,7 @@ export function CategoryRow({
               transition: 'border-color 0.12s',
               padding: 0,
             }}
-            aria-label={expanded ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียด'}
+            aria-label={expanded ? text("site.categoryRowText") : text("site.categoryRowText2")}
           >
             {expanded ? '−' : '+'}
           </button>
@@ -163,9 +166,7 @@ export function CategoryRow({
               flexShrink: 0,
               letterSpacing: '0.02em',
             }}
-          >
-            Always Active
-          </span>
+          >{text("site.cookie.alwaysActive")}</span>
         ) : (
           <ToggleSwitch
             checked={checked}

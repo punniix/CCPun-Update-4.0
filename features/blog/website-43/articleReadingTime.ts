@@ -27,6 +27,13 @@ function blockText(block: ArticleBlock): string {
       return block.label;
     case 'pdf':
       return [block.title, block.description].filter(Boolean).join(' ');
+    case 'signatureEditorial':
+      if (block.kind === 'checklist') return ''; // Hidden until a membership/persistence product exists.
+      return [block.title,block.description,block.firstLabel,block.secondLabel,block.takeaway,block.effectivePeriod,block.sourceVersion,...block.entries.map(e=>e.label+' '+e.value)].filter(Boolean).join(' ');
+    case 'signatureStructuredTable':
+      return [block.title,...block.headers,...block.rows.flat(),block.takeaway].filter(Boolean).join(' ');
+    case 'signaturePlanExplorer':
+      return [block.title,...block.plans.flatMap(p=>[p.name,p.headline,...p.benefits.map(b=>b.label+' '+b.value)])].filter(Boolean).join(' ');
     case 'divider':
       return '';
   }

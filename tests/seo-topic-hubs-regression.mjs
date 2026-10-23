@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { readPhase1Source } from '../qa/read-phase1-source.mjs';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const taxonomy = await read('lib/content/taxonomy.ts');
@@ -92,11 +93,11 @@ assert.match(categoryPage, /activeCategorySlug=\{category\.slug\}/);
 assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
 assert.match(categoryPage, /heroDescription=\{category\.description \?\? hub\?\.description\}/);
 assert.match(categoryPage, /heroDescription=\{hub\.description\}/);
-assert.match(categoryPage, /topicContent=\{buildTopicIntro\(hub\)\}/);
+assert.match(categoryPage, /topicContent=\{buildTopicIntro\(hub, copyText\)\}/);
 assert.match(categoryPage, /hub\.intro\.map/);
 assert.match(categoryPage, /styles\.storyCopy/);
 assert.match(blogPresentation, /heroDescription\?: string/);
-assert.match(blogPresentation, /<p>\{heroDescription\}<\/p>/);
+assert.match(blogPresentation, /<p>\{heroDescription \?\? copyText\("blog\.website43BlogText"\)\}<\/p>/);
 assert.match(categoryPage, /categories=\{categoryMenu\(registry, includeDrafts\)\}/);
 
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.
@@ -140,7 +141,9 @@ assert.match(blogPage, /listCategoryMenuEntries/);
 assert.match(blogPage, /categories=\{categories\}/);
 assert.doesNotMatch(blogPage, /BLOG_TOPIC_HUBS/);
 assert.match(blogPresentation, /categories\?: Website43BlogCategoryItem\[\]/);
-assert.match(blogPresentation, /ทุกหมวดหมู่/);
+assert.match(blogPresentation, /\{ slug: null, title: copyText\("blog\.blogCategoriesText"\) \}/);
+const { BLOG_COPY_DEFAULTS } = loadFixtureModule('lib/content/blog-copy-defaults.ts');
+assert.equal(BLOG_COPY_DEFAULTS['blog.blogCategoriesText'], 'ทุกหมวดหมู่');
 assert.match(blogInteractive, /nativeReplaceState\.call\(window\.history/);
 assert.match(blogInteractive, /url\.searchParams\.set\('q'/);
 assert.match(blogPage, /filters\.category/);

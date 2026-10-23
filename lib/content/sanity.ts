@@ -71,6 +71,35 @@ export function portableTextToArticleBlocks(items: PortableBodyItem[]): ArticleB
     if (item._type === "pdfDownload") { keylessFlush(); result.push({ type: "pdf", title: item.title, description: item.description ?? undefined, url: item.file.url, filename: item.file.filename ?? undefined, size: item.file.size ?? undefined }); continue; }
     if (item._type === "detailsBlock") { keylessFlush(); result.push({ type: "details", summary: item.summary, text: item.text }); continue; }
     if (item._type === "simpleTable") { keylessFlush(); result.push({ type: "table", headers: item.headers ?? [], rows: (item.rows ?? []).map((row) => Array.isArray(row) ? row : row.cells) }); continue; }
+    if (item._type === "signatureEditorial") {
+      keylessFlush();
+      result.push({
+        type:"signatureEditorial",kind:item.kind,title:item.title,
+        description:item.description ?? undefined,takeaway:item.takeaway ?? undefined,sampleNote:item.sampleNote ?? undefined,
+        firstLabel:item.firstLabel ?? undefined,secondLabel:item.secondLabel ?? undefined,
+        sourceStatus:item.sourceStatus ?? undefined,verifiedAt:item.verifiedAt ?? undefined,
+        effectivePeriod:item.effectivePeriod ?? undefined,sourceVersion:item.sourceVersion ?? undefined,
+        limit:item.limit ?? undefined,used:item.used ?? undefined,
+        monthlyAmount:item.monthlyAmount ?? undefined,months:item.months ?? undefined,
+        existingAmount:item.existingAmount ?? undefined,
+        entries:(item.entries ?? []).map(entry=>({label:entry.label,value:entry.value,detail:entry.detail ?? undefined,url:entry.url ?? undefined})),
+      });
+      continue;
+    }
+    if (item._type === "signatureStructuredTable") {
+      keylessFlush();
+      result.push({type:"signatureStructuredTable",title:item.title,description:item.description ?? undefined,takeaway:item.takeaway ?? undefined,
+        sampleNote:item.sampleNote ?? undefined,headers:item.headers,rows:item.rows.map(row=>Array.isArray(row)?row:row.cells)});
+      continue;
+    }
+    if (item._type === "signaturePlanExplorer") {
+      keylessFlush();
+      result.push({type:"signaturePlanExplorer",title:item.title,description:item.description ?? undefined,takeaway:item.takeaway ?? undefined,
+        sampleNote:item.sampleNote ?? undefined,
+        plans:item.plans.map(plan=>({name:plan.name,headline:plan.headline ?? undefined,
+          benefits:plan.benefits.map(b=>({label:b.label,value:b.value,category:b.category ?? undefined}))}))});
+      continue;
+    }
     if (item._type === "divider") { keylessFlush(); result.push({ type: "divider" }); continue; }
 
     const rich = richText(item);
@@ -97,6 +126,7 @@ function toArticleAuthorProfile(author: RawArticleSummary["author"]): Article["a
   const professionalQualifications = parseProfessionalQualifications(author.professionalQualifications);
   const professionalLicenses = parseProfessionalLicenses(author.professionalLicenses);
   return {
+    id: author._id,
     name: author.name,
     profileName: author.profileName ?? undefined,
     profileRole: author.profileRole ?? undefined,
@@ -198,6 +228,7 @@ const baseProjection = groq`{
   tags,
   "authorName": coalesce(author->profileName, author->name),
   "author": author->{
+    _id,
     name,
     profileName,
     profileRole,
@@ -281,7 +312,11 @@ const articleProjection = groq`{
     images[]{"src": asset->url, "width": asset->metadata.dimensions.width, "height": asset->metadata.dimensions.height, alt, caption, credit},
     "file": file.asset->{"url": url, "filename": originalFilename, mimeType, size},
     headers,
-    rows
+    rows,
+    kind,firstLabel,secondLabel,limit,used,monthlyAmount,months,existingAmount,
+    takeaway,sampleNote,sourceStatus,verifiedAt,effectivePeriod,sourceVersion,
+    entries[]{_key,label,value,detail,url},
+    plans[]{_key,name,headline,benefits[]{_key,label,value,category}}
   },
   faq[]{question, answer},
   sources[]{label, url, publisher, accessedAt},
@@ -294,6 +329,7 @@ const bySlugQuery = groq`*[_type == "article" && slug.current == $slug][0] ${art
 
 // Use a stable identity, not the editable display name.
 const primaryAuthorQuery = groq`*[_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]][0]{
+  _id,
   name,
   profileName,
   profileRole,

@@ -1,1 +1,4 @@
 @import "../../../components/styles/global-foundation.css";
+/* Public Web never renders the private Admin UI. Keep its utility candidates
+   out of this app's CSS without changing the shared or Admin foundations. */
+@source not "../../../features/admin";

@@ -59,8 +59,9 @@ const SYSTEM_DOCUMENT_TYPES = new Set([
   "auditLog",
   "publishSchedule",
 ]);
+const UAT_PAGE_DOCUMENT_TYPES = new Set(["publicPageCopy", "pageSeo"]);
 const DRAFT_ONLY_DOCUMENT_TYPES = new Set(["masterContent", "socialVariant"]);
-const OWNER_HIDDEN_NEW_DOCUMENT_TYPES = new Set(["category", "blogSettings", ...SYSTEM_DOCUMENT_TYPES]);
+const OWNER_HIDDEN_NEW_DOCUMENT_TYPES = new Set([...UAT_PAGE_DOCUMENT_TYPES, "category", "blogSettings", ...SYSTEM_DOCUMENT_TYPES]);
 const OWNER_HIDDEN_STRUCTURE_DOCUMENT_TYPES = SYSTEM_DOCUMENT_TYPES;
 
 function isUatEditorialEnvironment(environment: AdminEnvironment): boolean {
@@ -99,6 +100,7 @@ export function filterStudioDocumentActions<T extends { action?: string }>(
 ): T[] {
   if (!isStudioConfigurationAllowed(dataset, environment, projectId)) return [];
   if (schemaType && SYSTEM_DOCUMENT_TYPES.has(schemaType)) return [];
+  if (schemaType && UAT_PAGE_DOCUMENT_TYPES.has(schemaType) && !isUatEditorialEnvironment(environment)) return [];
   if (schemaType && DRAFT_ONLY_DOCUMENT_TYPES.has(schemaType) && !isDraftOnlyEditorialEnvironment(environment)) return [];
   if (environment === "local-production") {
     if (schemaType !== "article") return [];
@@ -113,7 +115,10 @@ export function filterStudioDocumentActions<T extends { action?: string }>(
       : BLOCKED_PRODUCTION_ADMIN_ACTIONS;
     return actions.filter(({ action }) => !action || !blockedActions.has(action));
   }
-  return actions.filter(({ action }) => !action || !BLOCKED_NON_PRODUCTION_ACTIONS.has(action));
+  const uatPagePublishAllowed = Boolean(schemaType && UAT_PAGE_DOCUMENT_TYPES.has(schemaType)
+    && isUatEditorialEnvironment(environment) && dataset === "uat" && projectId === "ccb9lnw5");
+  return actions.filter(({ action }) => !action || !BLOCKED_NON_PRODUCTION_ACTIONS.has(action)
+    || (action === "publish" && uatPagePublishAllowed));
 }
 
 function wasEverPublished(props: Parameters<DocumentActionComponent>[0]) {
@@ -192,6 +197,7 @@ export function filterStudioStructureItems<T extends StudioStructureItem>(
     if (!documentType) return false;
     return (
       !OWNER_HIDDEN_STRUCTURE_DOCUMENT_TYPES.has(documentType) &&
+      (!UAT_PAGE_DOCUMENT_TYPES.has(documentType) || isUatEditorialEnvironment(environment)) &&
       (isDraftOnlyEditorialEnvironment(environment) || !DRAFT_ONLY_DOCUMENT_TYPES.has(documentType))
     );
   });

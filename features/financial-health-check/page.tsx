@@ -1,13 +1,16 @@
+import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import type { Metadata } from 'next';
 import ClientFHC from '@/features/financial-health-check/components/ClientFHC';
-import { FHC_FAQS } from '@/features/financial-health-check/components/FHCLandingIntro';
+import { getFhcFaqs } from '@/lib/content/tool-copy-defaults';
+import { getPublicCopy } from '@/lib/content/public-copy';
+import { publicCopyText, type PublicCopyValues } from '@/lib/content/public-copy-registry';
 import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 
-const FHC_DESCRIPTION = 'ตรวจสุขภาพการเงินผ่านโมดูลประเมินทุนประกันชีวิต ซึ่งครอบคลุมเฉพาะความคุ้มครองชีวิต เปรียบเทียบภาระครอบครัว หนี้ การศึกษาบุตร ความคุ้มครอง และสินทรัพย์ที่พร้อมใช้ เพื่อเริ่มทบทวนแผนการเงิน';
+const PAGE_SEO_DEFAULTS = getPageSeoPage("/tools/financial-health-check/")!.defaults;
 
 export const metadata: Metadata = {
-  title: 'ตรวจสุขภาพการเงิน เริ่มจากช่องว่างความคุ้มครอง | CCPun',
-  description: FHC_DESCRIPTION,
+  title: PAGE_SEO_DEFAULTS.seoTitle!,
+  description: PAGE_SEO_DEFAULTS.seoDescription!,
   keywords: [
     'ตรวจสุขภาพการเงิน',
     'financial health check',
@@ -21,13 +24,13 @@ export const metadata: Metadata = {
     'ความคุ้มครองที่ขาด',
   ],
   openGraph: {
-    title: 'ตรวจสุขภาพการเงิน เริ่มจากช่องว่างความคุ้มครอง | CCPun',
-    description: FHC_DESCRIPTION,
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
     url: 'https://ccpun.com/tools/financial-health-check/',
     siteName: 'CCPun Financial Advisor',
     images: [
       {
-        url: 'https://ccpun.com/og-image-20260610.webp?v=68ae8d8',
+        url: PAGE_SEO_DEFAULTS.ogImageUrl!,
         width: 1200,
         height: 630,
         alt: 'CCPun Financial Health Check',
@@ -38,9 +41,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ตรวจสุขภาพการเงิน เริ่มจากช่องว่างความคุ้มครอง | CCPun',
-    description: FHC_DESCRIPTION,
-    images: ['https://ccpun.com/og-image-20260610.webp?v=68ae8d8'],
+    title: PAGE_SEO_DEFAULTS.ogTitle!,
+    description: PAGE_SEO_DEFAULTS.ogDescription!,
+    images: [PAGE_SEO_DEFAULTS.ogImageUrl!],
   },
   robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
   alternates: {
@@ -49,19 +52,27 @@ export const metadata: Metadata = {
   },
 };
 
+
+
+
+
+
+
+export async function renderFinancialHealthCheckPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
+  const t = publicCopyText(copyOverride ?? await getPublicCopy('fhc'));
 const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "หน้าหลัก", "item": "https://ccpun.com/" },
-    { "@type": "ListItem", "position": 2, "name": "ตรวจสุขภาพการเงิน", "item": "https://ccpun.com/tools/financial-health-check/" },
+    { "@type": "ListItem", "position": 1, "name": t("fhc.breadcrumb.home"), "item": "https://ccpun.com/" },
+    { "@type": "ListItem", "position": 2, "name": t("fhc.breadcrumb.tool"), "item": "https://ccpun.com/tools/financial-health-check/" },
   ],
 };
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Financial Health Check: โมดูลประเมินทุนประกันชีวิต · Research Preview",
+  "name": t("fhc.schema.name"),
   "url": "https://ccpun.com/tools/financial-health-check/",
   "applicationCategory": "FinanceApplication",
   "operatingSystem": "Web",
@@ -70,20 +81,17 @@ const jsonLd = {
     "name": "CCPun Financial Advisor",
     "url": "https://ccpun.com"
   },
-  "description": "เครื่องมือประเมินช่องว่างความคุ้มครองชีวิตจากภาระครอบครัวและทรัพยากรที่ผู้ใช้ตั้งใจใช้ เป็นจุดเริ่มต้นสำหรับทบทวนแผนการเงิน"
+  "description": t("fhc.schema.description")
 };
-
-const faqSchema = {
+  const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: FHC_FAQS.map((faq) => ({
+  mainEntity: getFhcFaqs(t).map((faq) => ({
     '@type': 'Question',
     name: faq.question,
     acceptedAnswer: { '@type': 'Answer', text: faq.answer },
   })),
 };
-
-export default function FinancialHealthCheckPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
@@ -92,7 +100,11 @@ export default function FinancialHealthCheckPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <ClientFHC />
+      <ClientFHC copy={copyOverride} siteCopy={siteCopyOverride} />
     </>
   );
+}
+
+export default function FinancialHealthCheckPage() {
+  return renderFinancialHealthCheckPage();
 }

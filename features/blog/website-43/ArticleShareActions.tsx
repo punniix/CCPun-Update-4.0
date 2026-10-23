@@ -1,4 +1,6 @@
 'use client';
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 
 import { useState } from 'react';
 import { Link as LinkIcon, Check as CheckIcon } from 'lucide-react';
@@ -35,15 +37,19 @@ function fallbackCopy(text: string): boolean {
   finally { input.remove(); }
 }
 
-export default function ArticleShareActions({ path, title, placement }: {
+export default function ArticleShareActions({ path, title, placement, origin = URL_ORIGIN }: {
   path: string;
   title: string;
   placement: SharePlacement;
+  origin?: "https://ccpun.com" | "https://test.ccpun.com";
 }) {
+  const copyText = usePublicCopy(BLOG_COPY_DEFAULTS);
+
+
   const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
   const { record: recordEngagement } = useArticleEngagement();
-  // Always share the public canonical page, never the test.ccpun.com UAT origin or a Draft preview URL.
-  const url = URL_ORIGIN + path;
+  // Fixed lane origins only; never trust a Host header or an editorial URL.
+  const url = (origin === "https://test.ccpun.com" ? origin : URL_ORIGIN) + path;
   const encoded = encodeURIComponent(url);
   const shares = [
     { method: 'line', name: 'LINE', href: 'https://social-plugins.line.me/lineit/share?url=' + encoded },
@@ -66,24 +72,24 @@ export default function ArticleShareActions({ path, title, placement }: {
   };
 
   return (
-    <div className={styles.articleShareControls} aria-label="แชร์บทความ">
-      <span className={styles.articleShareLabel}>แชร์</span>
+    <div className={styles.articleShareControls} aria-label={copyText("blog.articleShareActionsarialabel")}>
+      <span className={styles.articleShareLabel}>{copyText("blog.articleShareLabel")}</span>
       <div className={styles.articleShareButtons}>
         {shares.map(({ method, name, href }) => (
           <a key={method} className={styles.articleShareButton} href={href} target="_blank" rel="noopener noreferrer"
-            aria-label={'แชร์บทความผ่าน ' + name} title={'แชร์ผ่าน ' + name}
+            aria-label={copyText("blog.articleShareActionsText") + name} title={copyText("blog.articleShareActionsText2") + name}
             onClick={() => record(method)}>
             <SocialLogo method={method} />
           </a>
         ))}
         <button type="button" className={styles.articleShareButton}
-          onClick={copy} aria-label="คัดลอกลิงก์บทความ" title="คัดลอกลิงก์บทความ">
+          onClick={copy} aria-label={copyText("blog.articleShareActionsarialabel2")} title={copyText("blog.articleShareActionsarialabel2")}>
           {copyState === 'success' ? <CheckIcon aria-hidden="true" size={21} /> : <LinkIcon aria-hidden="true" size={21} />}
         </button>
 
       </div>
       <span className={styles.articleShareStatus} role="status" aria-live="polite">
-        {copyState === 'success' ? 'คัดลอกลิงก์แล้ว' : copyState === 'error' ? 'คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง' : ''}
+        {copyState === 'success' ? copyText("blog.articleShareActionsText3") : copyState === 'error' ? copyText("blog.articleShareActionsText4") : ''}
       </span>
     </div>
   );

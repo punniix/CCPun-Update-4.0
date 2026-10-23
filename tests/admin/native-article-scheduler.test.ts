@@ -1,6 +1,6 @@
 import { readPhase1Source } from "../../qa/read-phase1-source.mjs";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -170,4 +170,46 @@ test("Admin native branch loads no SDK until the explicit retained legacy branch
   assert.match(route, /registerNativeArticleSchedule/);
   assert.match(route, /await import\("@\/lib\/admin\/article-publication-workflow"\)/);
   assert.match(route, /cancelArticleSchedule/);
+});
+
+// Exercise the exact fixture ambient gate without importing the Linux/DB fixture.
+test("single-file Node24 runner identity is bounded and never forwarded to raw UAT workers", () => {
+  const source = readFileSync(new URL("./native-article-scheduler-uat.test.ts", import.meta.url), "utf8");
+  const allowed = source.slice(source.indexOf("const allowed = new Set("), source.indexOf("\ntype GuardCode"));
+  const gate = source.slice(source.indexOf("  if (Object.keys(process.env)"), source.indexOf("  for (const directory"));
+  const childEnvironment = source.split("\n").find(line => line.includes("const env = Object.fromEntries(Object.entries(process.env).filter"));
+  assert.ok(allowed.startsWith("const allowed = new Set(")); assert.ok(gate.includes('deny("AMBIENT_ENV_DENIED")'));
+  assert.ok(childEnvironment);
+  const root = mkdtempSync(join(tmpdir(), "ccpun-node-runner-identity-"));
+  try {
+    const probe = join(root, "runner.test.mjs");
+    writeFileSync(probe, `import assert from 'node:assert/strict';
+import test from 'node:test';
+const gate = Function('process', 'deny', ${JSON.stringify(allowed + "\n" + gate + "\nreturn true;")});
+const childEnvironment = Function('process', ${JSON.stringify(allowed + "\n" + childEnvironment + "\nreturn env;")});
+const check = env => gate({env}, () => { throw new Error('AMBIENT_ENV_DENIED'); });
+test('actual Node24 single-file marker and exact ambient gate', () => {
+  assert.equal(process.versions.node.split('.')[0], '24');
+  assert.equal(process.env.NODE_TEST_CONTEXT, 'child-v8');
+  assert.equal(process.env.NODE_TEST_WORKER_ID, '1');
+  // Exercise Node's actual markers in the launcher's synthetic envelope.
+  // The Linux-only fixture does not admit macOS loader ambient variables.
+  const actual = {NODE_ENV:'test', NODE_TEST_CONTEXT:process.env.NODE_TEST_CONTEXT, NODE_TEST_WORKER_ID:process.env.NODE_TEST_WORKER_ID};
+  assert.equal(check(actual), true);
+  for (const id of ['0', '2', '01', '', '1x', '1\\n']) assert.throws(() => check({...actual, NODE_TEST_WORKER_ID:id}), /AMBIENT_ENV_DENIED/);
+  for (const key of ['UNEXPECTED_AMBIENT', 'NODE_OPTIONS', 'NODE_UNKNOWN', 'FORCE_COLOR']) assert.throws(() => check({...actual, [key]:'fixture'}), /AMBIENT_ENV_DENIED/);
+  for (const context of [undefined, 'child', 'unexpected']) assert.throws(() => check({...actual, NODE_TEST_CONTEXT:context}), /AMBIENT_ENV_DENIED/);
+  const raw = childEnvironment({env:actual});
+  assert.equal(Object.hasOwn(raw, 'NODE_TEST_CONTEXT'), false);
+  assert.equal(Object.hasOwn(raw, 'NODE_TEST_WORKER_ID'), false);
+  assert.equal(check(raw), true);
+});
+`);
+    const result = spawnSync(process.execPath, ["--conditions=react-server", "--import", "tsx", "--test", "--test-reporter=tap", probe], {
+      cwd: fileURLToPath(new URL("../../", import.meta.url)), env: { PATH: process.env.PATH ?? "", NODE_ENV: "test" }, encoding: "utf8", timeout: 15_000,
+    });
+    assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /# tests 1/); assert.match(result.stdout, /# pass 1/);
+    assert.match(result.stdout, /# fail 0/); assert.match(result.stdout, /# skipped 0/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

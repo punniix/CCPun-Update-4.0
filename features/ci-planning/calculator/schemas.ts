@@ -1,3 +1,4 @@
+import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 // =============================================
 // CI Planning — Zod Validation Schemas
 // Zod v4 compatible
@@ -9,30 +10,30 @@ import { EMPTY_CI_RECOVERY } from '@/features/ci-planning/recovery-evidence';
 // ── Step 0: Expenses ──────────────────────────────────────────────────────
 
 const nonNegativeAmount = z.number()
-  .finite('กรุณากรอกตัวเลขที่ถูกต้อง')
-  .min(0, 'จำนวนเงินต้องไม่ติดลบ');
+  .finite(CI_COPY_DEFAULTS["ci.validation.nonNegativeAmount.finite"])
+  .min(0, CI_COPY_DEFAULTS["ci.validation.nonNegativeAmount.min"]);
 
 const remainingInstallments = z.number()
-  .finite('กรุณากรอกจำนวนงวดที่ถูกต้อง')
-  .int('จำนวนงวดต้องเป็นจำนวนเต็ม')
-  .min(0, 'จำนวนงวดต้องไม่ติดลบ')
-  .max(600, 'จำนวนงวดต้องไม่เกิน 600 งวด');
+  .finite(CI_COPY_DEFAULTS["ci.validation.remainingInstallments.finite"])
+  .int(CI_COPY_DEFAULTS["ci.validation.remainingInstallments.int"])
+  .min(0, CI_COPY_DEFAULTS["ci.validation.remainingInstallments.min"])
+  .max(600, CI_COPY_DEFAULTS["ci.validation.remainingInstallments.max"]);
 
 const educationPlanSchema = z.object({
   annualCost: z.number()
-    .finite('กรุณากรอกค่าใช้จ่ายต่อปีให้ถูกต้อง')
-    .gt(0, 'กรุณากรอกค่าใช้จ่ายต่อปีมากกว่า 0 บาท'),
+    .finite(CI_COPY_DEFAULTS["ci.validation.educationPlanSchema.finite"])
+    .gt(0, CI_COPY_DEFAULTS["ci.validation.educationPlanSchema.gt"]),
   yearsRemaining: z.number()
-    .finite('กรุณากรอกจำนวนปีให้ถูกต้อง')
-    .int('จำนวนปีต้องเป็นจำนวนเต็ม')
-    .min(1, 'จำนวนปีต้องอย่างน้อย 1 ปี')
-    .max(30, 'จำนวนปีต้องไม่เกิน 30 ปี'),
+    .finite(CI_COPY_DEFAULTS["ci.validation.educationPlanSchema.finite2"])
+    .int(CI_COPY_DEFAULTS["ci.validation.educationPlanSchema.int"])
+    .min(1, CI_COPY_DEFAULTS["ci.validation.educationPlanSchema.min"])
+    .max(30, CI_COPY_DEFAULTS["ci.validation.educationPlanSchema.max"]),
 });
 
 const recoveryCount = z.number()
-  .finite('กรุณากรอกจำนวนให้ถูกต้อง')
-  .int('กรุณากรอกเป็นจำนวนเต็ม')
-  .min(0, 'จำนวนต้องไม่ติดลบ');
+  .finite(CI_COPY_DEFAULTS["ci.validation.recoveryCount.finite"])
+  .int(CI_COPY_DEFAULTS["ci.validation.recoveryCount.int"])
+  .min(0, CI_COPY_DEFAULTS["ci.validation.recoveryCount.min"]);
 
 const recoveryMode = z.enum(['none', 'basic', 'continued', 'longTerm', 'custom']);
 
@@ -40,13 +41,13 @@ const recoverySchema = z.object({
   mode: recoveryMode,
   targetReserve: nonNegativeAmount,
 
-  treatmentVisits: recoveryCount.max(100, 'จำนวนครั้งรักษา/ติดตามต้องไม่เกิน 100 ครั้ง'),
+  treatmentVisits: recoveryCount.max(100, CI_COPY_DEFAULTS["ci.validation.recoverySchema.max"]),
   treatmentVisitUnitCost: nonNegativeAmount,
 
-  caregiverHomeDays: recoveryCount.max(730, 'จำนวนวันผู้ดูแลต้องไม่เกิน 730 วัน'),
+  caregiverHomeDays: recoveryCount.max(730, CI_COPY_DEFAULTS["ci.validation.recoverySchema.max2"]),
   caregiverDailyCost: nonNegativeAmount,
 
-  rehabSessions: recoveryCount.max(200, 'จำนวนครั้งกายภาพต้องไม่เกิน 200 ครั้ง'),
+  rehabSessions: recoveryCount.max(200, CI_COPY_DEFAULTS["ci.validation.recoverySchema.max3"]),
   rehabUnitCost: nonNegativeAmount,
 
   pulseOximeter: nonNegativeAmount,
@@ -68,7 +69,7 @@ const recoverySchema = z.object({
     context.addIssue({
       code: 'custom',
       path: ['targetReserve'],
-      message: 'กรุณาเลือกเงินสำรองหรือกรอกจำนวนเงินที่ต้องการเผื่อ',
+      message: CI_COPY_DEFAULTS["ci.validation.recoverySchema.message"],
     });
   }
 });
@@ -86,7 +87,7 @@ const legacyRecoverySchema = z.object({
     context.addIssue({
       code: 'custom',
       path: ['homeRehabSessions'],
-      message: 'จำนวนครั้งกายภาพที่บ้านต้องไม่มากกว่าจำนวนครั้งกายภาพทั้งหมด',
+      message: CI_COPY_DEFAULTS["ci.validation.legacyRecoverySchema.message"],
     });
   }
 });
@@ -101,38 +102,38 @@ const stepExpensesSchema = z.object({
   carInstallmentsRemaining: remainingInstallments,
   otherDebtBalance: nonNegativeAmount,
   reserveYears: z.number()
-    .finite('กรุณากรอกจำนวนปีที่ถูกต้อง')
-    .int('จำนวนปีต้องเป็นจำนวนเต็ม')
-    .min(1, 'ระยะสำรองต้องอย่างน้อย 1 ปี')
-    .max(10, 'ระยะสำรองต้องไม่เกิน 10 ปี'),
+    .finite(CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.finite"])
+    .int(CI_COPY_DEFAULTS["ci.validation.educationPlanSchema.int"])
+    .min(1, CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.min"])
+    .max(10, CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.max"]),
   recovery: z.union([recoverySchema, legacyRecoverySchema]).default({ ...EMPTY_CI_RECOVERY }),
 }).superRefine((data, context) => {
   if (data.mortgagePayment > 0 && data.mortgageInstallmentsRemaining === 0) {
     context.addIssue({
       code: 'custom',
       path: ['mortgageInstallmentsRemaining'],
-      message: 'กรุณากรอกจำนวนงวดบ้านที่เหลือ',
+      message: CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.message"],
     });
   }
   if (data.mortgagePayment === 0 && data.mortgageInstallmentsRemaining > 0) {
     context.addIssue({
       code: 'custom',
       path: ['mortgagePayment'],
-      message: 'กรุณากรอกค่างวดบ้านต่อเดือน',
+      message: CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.message2"],
     });
   }
   if (data.carPayment > 0 && data.carInstallmentsRemaining === 0) {
     context.addIssue({
       code: 'custom',
       path: ['carInstallmentsRemaining'],
-      message: 'กรุณากรอกจำนวนงวดรถที่เหลือ',
+      message: CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.message3"],
     });
   }
   if (data.carPayment === 0 && data.carInstallmentsRemaining > 0) {
     context.addIssue({
       code: 'custom',
       path: ['carPayment'],
-      message: 'กรุณากรอกค่างวดรถต่อเดือน',
+      message: CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.message4"],
     });
   }
 
@@ -148,7 +149,7 @@ const stepExpensesSchema = z.object({
     context.addIssue({
       code: 'custom',
       path: ['expenses'],
-      message: 'กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการก่อนคำนวณเงินก้อน',
+      message: CI_COPY_DEFAULTS["ci.validation.stepExpensesSchema.message5"],
     });
   }
 });
@@ -168,10 +169,15 @@ const STEP_SCHEMAS = [
   stepExistingCISchema,
 ];
 
-/** Validate ข้อมูลตาม step ปัจจุบัน (0-indexed) */
+const VALIDATION_COPY_KEYS = Object.fromEntries(
+  Object.entries(CI_COPY_DEFAULTS).filter(([key]) => key.startsWith('ci.validation.')).map(([key, message]) => [message, key]),
+) as Record<string, keyof typeof CI_COPY_DEFAULTS>;
+
+/** Validation mechanics stay code-owned; only known messages use the caller's scoped copy. */
 export function validateCIStep(
   step: number,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  text?: (key: keyof typeof CI_COPY_DEFAULTS) => string,
 ): Record<string, string> {
   const schema = STEP_SCHEMAS[step];
   if (!schema) return {};
@@ -183,7 +189,8 @@ export function validateCIStep(
   result.error.issues.forEach((issue) => {
     const path = issue.path.join('.');
     if (!errors[path]) {
-      errors[path] = issue.message;
+      const copyKey = VALIDATION_COPY_KEYS[issue.message];
+      errors[path] = copyKey && text ? text(copyKey) : issue.message;
     }
   });
 

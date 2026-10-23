@@ -1,3 +1,7 @@
+"use client";
+
+import { usePublicCopy } from "./PublicCopyProvider";
+
 interface MoneyComparisonProps {
   need: number;
   resources: number;
@@ -6,15 +10,18 @@ interface MoneyComparisonProps {
   resourcesLabel?: string;
 }
 
-const baht = (value: number) => `${Math.round(value).toLocaleString('th-TH')} บาท`;
 
 export default function MoneyComparison({
   need,
   resources,
   title,
-  needLabel = 'ทุนที่ต้องเตรียม',
-  resourcesLabel = 'เงินและสินทรัพย์ที่พร้อมใช้',
+  needLabel: customNeedLabel,
+  resourcesLabel: customResourcesLabel,
 }: MoneyComparisonProps) {
+  const t = usePublicCopy();
+  const needLabel = customNeedLabel ?? t('site.money.need');
+  const resourcesLabel = customResourcesLabel ?? t('site.money.resources');
+  const baht = (value: number) => `${Math.round(value).toLocaleString('th-TH')} ${t('site.money.baht')}`;
   const gap = Math.max(need - resources, 0);
   const surplus = Math.max(resources - need, 0);
   const coveredPercent = need > 0 ? Math.min((resources / need) * 100, 100) : 0;
@@ -35,7 +42,7 @@ export default function MoneyComparison({
         </div>
       ) : (
         <p className="rounded-xl border border-border/30 bg-background/25 p-4 text-sm text-muted-foreground">
-          ยังไม่มีทุนตั้งต้นจากข้อมูลชุดนี้ จึงไม่แสดงสัดส่วนบนแถบเปรียบเทียบ
+          {t('site.money.empty')}
         </p>
       )}
       <dl className="grid gap-3 rounded-xl border border-border/30 bg-background/25 p-4 sm:grid-cols-3">
@@ -48,12 +55,12 @@ export default function MoneyComparison({
           <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(resources)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">{gap > 0 ? 'ยังมีช่องว่าง' : surplus > 0 ? 'เกินเป้าหมาย' : 'พอดีกับเป้าหมาย'}</dt>
+          <dt className="text-sm text-muted-foreground">{gap > 0 ? t('site.money.gap') : surplus > 0 ? t('site.money.surplus') : t('site.money.balanced')}</dt>
           <dd className="mt-1 font-semibold tabular-nums text-primary">{baht(gap > 0 ? gap : surplus)}</dd>
         </div>
       </dl>
       <p className="sr-only" aria-live="polite">
-        {needLabel} {baht(need)} {resourcesLabel} {baht(resources)} {gap > 0 ? `ยังมีช่องว่างประมาณ ${baht(gap)}` : surplus > 0 ? `เกินเป้าหมายประมาณ ${baht(surplus)}` : 'ทรัพยากรพอดีกับเป้าหมายตามข้อมูลชุดนี้'}
+        {needLabel} {baht(need)} {resourcesLabel} {baht(resources)} {gap > 0 ? t('site.money.gapSummary').replaceAll('{amount}', baht(gap)) : surplus > 0 ? t('site.money.surplusSummary').replaceAll('{amount}', baht(surplus)) : t('site.money.balancedSummary')}
       </p>
     </figure>
   );

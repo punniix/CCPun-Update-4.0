@@ -373,7 +373,7 @@
       "legacy": "app/page.tsx",
       "canonical": "apps/web/app/page.tsx",
       "baselineSha256": "4a398712e8c7eb60ed5842214a16949e4ee25908d131aba16f3263f414609b56",
-      "wrapper": "export { default } from \"@/apps/web/app/page\";\n",
+      "wrapper": "export { default, generateMetadata } from \"@/apps/web/app/page\";\n",
       "status": "migrated",
       "migrationBaseline": "341aeefafdc8fee1b5e8dab013db70c535aa73ac"
     },

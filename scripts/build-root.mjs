@@ -4,6 +4,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// Direct CLI entry must enforce the same floor even when npm lifecycle hooks are disabled.
+await import(new URL("./check-next-security-baseline.mjs", import.meta.url));
 const { DEPLOYMENT_LANES } = await import(
   new URL("../lib/runtime/deployment-lanes.mjs", import.meta.url)
 );
@@ -36,6 +38,37 @@ function applyHostingerReleaseFallback() {
   const explicitProvider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
   const explicitRole = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
   const configuredRef = process.env.CCPUN_GIT_REF?.trim() ?? "";
+  const webUatRefPattern = /^codex\/hostinger-release-uat-([a-f0-9]{40})$/;
+  const webUatRef = webUatRefPattern.test(symbolicBranch) ? symbolicBranch
+    : !symbolicBranch && webUatRefPattern.test(configuredRef) ? configuredRef : "";
+  if (symbolicBranch.startsWith("codex/hostinger-release-uat-") && !webUatRef) throw new Error("WEB_UAT_RELEASE_REF_INVALID");
+  if (webUatRef) {
+    if (webUatRef.match(webUatRefPattern)?.[1] !== sha) throw new Error("WEB_UAT_RELEASE_SHA_CONFLICT");
+    if (!symbolicBranch && gitValue(["rev-parse", "--verify", `refs/remotes/origin/${webUatRef}^{commit}`]) !== sha) throw new Error("WEB_UAT_RELEASE_REF_CONFLICT");
+    if (explicitProvider && explicitProvider !== "hostinger") throw new Error("WEB_UAT_RELEASE_PROVIDER_CONFLICT");
+    if (explicitRole && explicitRole !== "web") throw new Error("WEB_UAT_RELEASE_ROLE_CONFLICT");
+    // Only this exact immutable Web UAT checkout may replace stale public identity.
+    // Credentials and all Production settings remain outside this allowlist.
+    Object.assign(process.env, {
+      CCPUN_DEPLOYMENT_PROVIDER: webUatLane.provider,
+      CCPUN_DEPLOYMENT_ROLE: webUatLane.role,
+      CCPUN_RELEASE_STAGE: "shadow",
+      CCPUN_APP_ENV: webUatLane.environment,
+      NEXT_PUBLIC_CCPUN_APP_ENV: webUatLane.publicEnvironment,
+      NEXT_PUBLIC_SANITY_PROJECT_ID: webUatLane.sanityProjectId,
+      NEXT_PUBLIC_SANITY_DATASET: webUatLane.sanityDataset,
+      CCPUN_UAT_MODE: webUatLane.uatMode,
+      CCPUN_ENABLE_PRODUCTION_ANALYTICS: webUatLane.productionAnalytics,
+      CCPUN_GIT_REF: webUatRef,
+      CCPUN_GIT_SHA: sha,
+      CCPUN_RELEASE_ID: `hostinger-web-uat-${sha.slice(0, 12)}`,
+      NEXT_PUBLIC_CCPUN_GIT_REF: webUatRef,
+      NEXT_PUBLIC_CCPUN_GIT_SHA: sha,
+      NEXT_PUBLIC_CCPUN_RELEASE_ID: `hostinger-web-uat-${sha.slice(0, 12)}`,
+    });
+    console.log(`Hostinger Web UAT build identity inferred from ${webUatRef} @ ${sha.slice(0, 12)}.`);
+    return;
+  }
   const adminUatRefPattern = /^admin\/hostinger-release-uat-[a-f0-9]{40}$/;
   const adminUatRef = adminUatRefPattern.test(symbolicBranch)
     ? symbolicBranch
@@ -97,8 +130,7 @@ function applyHostingerReleaseFallback() {
   const branch = symbolicBranch;
   if (!branch) return;
   const isProduction = branch === "v4-production";
-  const isPinnedUat = branch.startsWith("codex/hostinger-release-uat-");
-  if (!isProduction && !isPinnedUat) return;
+  if (!isProduction) return;
 
   const lane = isProduction ? webProductionLane : webUatLane;
   fillMissing({
@@ -127,6 +159,13 @@ applyHostingerReleaseFallback();
 
 const provider = process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase();
 const role = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
+const acceptanceFlag = "--native-scheduler-uat-acceptance";
+const acceptance = process.argv.slice(2).includes(acceptanceFlag);
+if (acceptance && (process.argv.slice(2).length !== 1 || provider !== "hostinger" || role !== "admin"
+  || process.env.CCPUN_APP_ENV !== "admin-uat"
+  || process.env.CCPUN_GIT_REF !== `admin/hostinger-release-uat-${gitValue(["rev-parse", "HEAD"])}`)) {
+  throw new Error("NATIVE_SCHEDULER_UAT_ACCEPTANCE_TARGET_DENIED");
+}
 if (provider && !["hostinger", "local"].includes(provider)) throw new Error("UNSUPPORTED_BUILD_PROVIDER");
 if (provider === "hostinger" && !["web", "admin"].includes(role)) throw new Error("HOSTINGER_BUILD_ROLE_REQUIRED");
 const workspace = provider === "hostinger" && (role === "web" || role === "admin")
@@ -139,6 +178,7 @@ const command = workspace
 const args = workspace
   ? ["run", "build", "--workspace", workspace]
   : ["build"];
+if (acceptance) args.push("--", acceptanceFlag);
 
 if (workspace) {
   console.log(`Hostinger monorepo root build: delegating to ${workspace}.`);

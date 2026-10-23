@@ -1,3 +1,5 @@
+import { publicPageCopy } from "./documents/public-page-copy";
+import { pageSeo } from "./documents/page-seo";
 import { article } from "./documents/article";
 import { author } from "./documents/author";
 import { category } from "./documents/category";
@@ -18,6 +20,9 @@ import { ctaBlock } from "./objects/cta-block";
 import { pdfDownload } from "./objects/pdf-download";
 import { detailsBlock } from "./objects/details-block";
 import { portableText } from "./objects/portable-text";
+import {signatureEditorial} from "./objects/signature-editorial";
+import {signatureStructuredTable} from "./objects/signature-structured-table";
+import {signaturePlanExplorer} from "./objects/signature-plan-explorer";
 import { masterContent } from "./documents/master-content";
 import { socialVariant } from "./documents/social-variant";
 import { lineDiscoveryConfig } from "./documents/line-discovery-config";
@@ -26,6 +31,8 @@ import { adminIntelligenceSchemaTypes } from "../admin/schema";
 
 export const schemaTypes = [
   ...adminIntelligenceSchemaTypes,
+  publicPageCopy,
+  pageSeo,
   article,
   author,
   category,
@@ -46,6 +53,9 @@ export const schemaTypes = [
   ctaBlock,
   pdfDownload,
   detailsBlock,
+  signatureEditorial,
+  signatureStructuredTable,
+  signaturePlanExplorer,
   portableText,
   masterContent,
   socialVariant,

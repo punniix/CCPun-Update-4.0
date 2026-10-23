@@ -115,14 +115,17 @@ test("protects Google publish eligibility and sets one meaningful publication ti
 for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}utility compliance and private error surfaces out of search ownership`, () => {
   const coreSitemap = readPhase1Source(appRoot + "app/sitemaps/core.xml/route.ts");
   const cookieEntry = readSource(`${appRoot}app/cookie-policy/page.tsx`);
-  if (!appRoot) assert.equal(cookieEntry, 'export { default, metadata } from "@/apps/web/app/cookie-policy/page";\n');
+  if (!appRoot) assert.equal(cookieEntry, 'export { default, generateMetadata } from "@/apps/web/app/cookie-policy/page";\n');
   const cookiePolicy = readSource("apps/web/app/cookie-policy/page.tsx");
+  const cookiePolicyOwner = readSource("features/legal/pages/CookiePolicyPage.tsx");
   const robotsSource = readSource(`${appRoot}app/robots.ts`);
   const nextConfig = readSource(`${appRoot}next.config.ts`);
 
   assert.match(coreSitemap, /https:\/\/ccpun\.com\/privacy\//);
   assert.doesNotMatch(coreSitemap, /cookie-policy/);
-  assert.match(cookiePolicy, /robots:\s*\{\s*index:\s*false,\s*follow:\s*true\s*\}/);
+  assert.equal(cookiePolicy, 'export { default, generateMetadata } from "@/features/legal/pages/CookiePolicyPage";\n');
+  assert.match(cookiePolicyOwner, /robots:\s*\{\s*index:\s*false,\s*follow:\s*true\s*\}/);
+  assert.match(cookiePolicyOwner, /resolvePageSeoMetadata\("\/cookie-policy\/", metadata, parent\)/);
   assert.match(robotsSource, /["']\/admin-not-found\/["']/);
   assert.match(nextConfig, /["']\/admin-not-found\/:path\*["']/);
   if (appRoot) {

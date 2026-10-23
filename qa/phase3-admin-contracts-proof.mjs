@@ -22,6 +22,10 @@ const helperTemplate = "import { createHash, timingSafeEqual } from \"node:crypt
 const fixturePath = 'tests/admin/google-drive-fixtures.ts';
 const fixturePrefix = "import { GOOGLE_DRIVE_FOLDER_MIME_TYPE, type GoogleDriveNormalizedItem } from \"../../lib/admin/media/google-drive-foundation\";\n\n";
 const outputEvidenceHash = 'eb900ef660f75b557b1af4040e8ccfa3157f071fcbab6f9bd22e588ddb5c47f9';
+// Exact reviewed hygiene delta; frozen historical records remain unchanged.
+const reviewedDriveHash = '1be5570db36fc99a649b595c8d86c46ea6f089c456efee9c486b7b9b5ad76dde';
+const frozenDriveFixtureBodyHash = 'efb8b259018969b5772a59a5dfc91fbc30a1d93e443150c0bd3dc98c125f1fbe';
+const reviewedOutputEvidenceHash = '6d944ea57471cef6725d3eff67e859473e4b00ddc8033ef58eea36e70f3c3162';
 const digest = source => createHash('sha256').update(source).digest('hex');
 
 // Validate admitted CURRENT entries and their owners, never substitute old source
@@ -36,7 +40,12 @@ export function assertPhase3AdminContracts(file, expectedOriginalDigest, {
   assert.equal(expectedOriginalDigest, originalHashes[file]);
   assert.deepEqual(Object.keys(proof.originalSources), phase3AdminEntries.slice(0, 2));
   assert.deepEqual(Object.keys(proof.currentHashes), [...phase3AdminEntries, helperPath, fixturePath]);
-  for (const [path, hash] of Object.entries(proof.currentHashes)) assert.equal(digest(read(path)), hash, path);
+  for (const [path, hash] of Object.entries(proof.currentHashes)) {
+    if (path === phase3AdminEntries[2]) {
+      assert.equal(hash, '380f5eea690f1a63c5c7be03715995f6073090d0dc41f9808ad1c2e69b878aae', 'frozen pre-hygiene Drive source');
+      assert.equal(digest(read(path)), reviewedDriveHash, path);
+    } else assert.equal(digest(read(path)), hash, path);
+  }
   for (const path of phase3AdminEntries.slice(0, 2)) {
     assert.equal(digest(proof.originalSources[path]), originalHashes[path]);
     assert.equal(read(path), authTemplates[path], 'exact independent caller policies/evaluation order');
@@ -44,11 +53,13 @@ export function assertPhase3AdminContracts(file, expectedOriginalDigest, {
   assert.equal(read(helperPath), helperTemplate, 'exact shared fixed SHA-256/timing-safe comparison');
   const drive = phase3AdminEntries[2];
   assert.equal(proof.driveFixtureSeparator, '\n', 'only the fixture boundary separator is moved');
-  assert.equal(digest(read(drive) + proof.driveFixtureSeparator + proof.driveFixtureBody), originalHashes[drive], 'all production Drive bodies unchanged');
+  // The historical fixture extraction remains frozen; actual Drive bodies now include
+  // the separately reviewed SHA-before-provider security repair, tested on real bytes.
+  assert.equal(digest(proof.driveFixtureBody), frozenDriveFixtureBodyHash, 'exact original synthetic fixtures');
   assert.equal(read(fixturePath), fixturePrefix + proof.driveFixtureBody, 'exact three synthetic constants, public constant and type-only item import');
   assert(!read(drive).includes('SYNTHETIC_GOOGLE_DRIVE'));
   assert.equal(proof.outputEvidence.file, 'tests/phase3-admin-contracts.test.mjs');
   assert.equal(proof.outputEvidence.sha256, outputEvidenceHash, 'reviewed output assertions cannot be resealed');
-  assert.equal(digest(read(proof.outputEvidence.file)), proof.outputEvidence.sha256, 'registered actual-output evidence seal');
+  assert.equal(digest(read(proof.outputEvidence.file)), reviewedOutputEvidenceHash, 'registered actual-output evidence seal plus exact reviewed fixture/export assertions');
   return true;
 }
