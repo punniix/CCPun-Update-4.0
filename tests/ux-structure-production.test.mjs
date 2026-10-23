@@ -370,7 +370,19 @@ test('all39 approved source records retain provenance with exact reviewed Articl
     if (file === retired) continue;
     if (hasReviewedMasterUatOwner(file)) { assertReviewedMasterUatOwner(file, digest, read(file)); continue; }
     const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
-    if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css') {
+    if (file === 'apps/web/static-images.d.ts') {
+      assert.equal(digest, 'fe57bd015bfec7883efee95cfa98ec8ffd4806c505c4a9ad3ccacc6275ac5579');
+      const comment = '// Static SVG and WebP imports must typecheck before Next generates next-env.d.ts.';
+      const addition = '\ndeclare module "*.webp" {\n  const image: import("next/image").StaticImageData;\n  export default image;\n}\n';
+      const check = (candidate) => {
+        assert.equal(candidate.split(comment).length, 2, 'exact image declaration comment');
+        assert.equal(candidate.split(addition).length, 2, 'exactly one typed WebP declaration');
+        const prior = candidate.replace(comment, comment.replace('SVG and WebP', 'SVG')).replace(addition, '');
+        assert.equal(sha(prior), digest, 'all original declarations remain frozen');
+      };
+      check(source);
+      for (const mutant of [source.replace('*.webp', '*.png'), source.replace('StaticImageData', 'any'), source + addition, source + '\n// unrelated\n', source.replace(addition, '')]) assert.throws(() => check(mutant));
+    } else if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css') {
       const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png';
       const derived = asset.replace('.png', '.lossless.webp');
       const resolved = `url('../../../public/${derived}')`;

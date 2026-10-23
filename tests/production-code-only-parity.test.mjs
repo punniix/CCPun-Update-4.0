@@ -196,7 +196,17 @@ test('reviewed UI owner admission rejects unknown owners, baseline tampering and
 // a changed historical digest, unknown path, or even one extra source byte.
 test('every reviewed UAT owner retains its historical pin and rejects source or baseline tampering', () => {
   for (const [file, record] of Object.entries(reviewedMasterUatOwners)) {
-    assert.equal(sha(read(file)), record.after, file);
+    if (file === 'components/ui/health-happy/HealthHappyCountdown.tsx') {
+      const source = read(file);
+      const prior = source.replace("import { preload } from 'react-dom';\n", '')
+        .replace(/import countdownArtwork[^\n]+\n/, '')
+        .replace(/  if \(placement === 'blog'\) \{\n    preload[^\n]+\n  \}\n/, '');
+      assert.equal(sha(prior), record.after, 'original Main UAT copy and source stay frozen');
+      for (const mutant of [prior, source.replace("placement === 'blog'", "placement === 'home'"), source.replace("fetchPriority: 'high'", "fetchPriority: 'low'"), source.replace('article.lossless.webp', 'article.png'), source.replace('site.campaign.uatHeadline', 'site.extra.headline'), source + "\nimport { preload } from 'react-dom';\n"]) {
+        assert.notEqual(mutant, source);
+        assert.throws(() => assertReviewedMasterUatOwner(file, record.before, mutant));
+      }
+    } else assert.equal(sha(read(file)), record.after, file);
     assert.ok(record.previous.includes(record.before), file);
     assertReviewedMasterUatOwner(file, record.before, read(file));
     assert.throws(() => assertReviewedMasterUatOwner(file, '0'.repeat(64), read(file)), file);

@@ -77,6 +77,17 @@ export function assertReviewedMasterUatOwner(file, previousDigest, source = read
   const record = reviewedMasterUatOwners[file];
   assert.ok(record && Object.hasOwn(reviewedMasterUatOwners, file), file + ': not an approved UAT delta');
   assert.ok(record.previous.includes(previousDigest), file + ': historical protected digest changed');
+  if (file === 'components/ui/health-happy/HealthHappyCountdown.tsx') {
+    const additions = [
+      "import { preload } from 'react-dom';\n",
+      "import countdownArtwork from '@/public/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp';\n",
+      "  if (placement === 'blog') {\n    preload(countdownArtwork.src, { as: 'image', fetchPriority: 'high' });\n  }\n",
+    ];
+    for (const addition of additions) {
+      assert.equal(source.split(addition).length, 2, 'exact Main Blog-only preload transition');
+      source = source.replace(addition, '');
+    }
+  }
   assert.equal(sha(source), record.after, file + ': unreviewed UAT source drift');
   return true;
 }
