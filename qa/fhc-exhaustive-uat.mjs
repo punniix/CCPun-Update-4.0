@@ -85,8 +85,22 @@ async function navigate(client) {
   await loaded;
   await evaluate(client, `document.fonts?.ready?.then(() => true) ?? true`);
   await sleep(350);
-  await evaluate(client, `(() => { const b=[...document.querySelectorAll('button')].find(x=>x.textContent?.trim()==='ยอมรับ'); if(b)b.click(); return true })()`);
-  await sleep(100);
+  // Wait for the delayed consent dialog to release its focus trap.
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const settled = await evaluate(client, `(() => {
+      const dialog = document.querySelector('[role="dialog"][aria-labelledby="cookie-title"]');
+      const accept = [...(dialog?.querySelectorAll('button') || [])].find(x => x.textContent?.trim() === 'ยอมรับ');
+      if (accept?.getClientRects().length) accept.click();
+      let consent;
+      try { consent = JSON.parse(localStorage.getItem('ccpun_cookie_consent') || 'null'); } catch { return false; }
+      const field = document.getElementById('householdMonthly');
+      return Boolean(consent && Date.now() <= consent.expires && !dialog && field && !field.closest('[inert]'));
+    })()`);
+    if (settled) return;
+    await sleep(50);
+  }
+  throw new Error('Timed out waiting for calculator cookie consent to settle');
 }
 
 async function screenshot(client, name, selector = '#fhc-calculator') {
