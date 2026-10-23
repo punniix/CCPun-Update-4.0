@@ -57,7 +57,7 @@ export const sanityStudioConfig =
           actions: (previousActions, context) => {
             const editorialActions = wrapGoogleSafeArticlePublishActions(
                   protectProductionContentLifecycleActions(
-                    filterStudioDocumentActions(previousActions, context.dataset, environment, context.schemaType, projectId),
+                    filterStudioDocumentActions(previousActions, context.dataset, environment, context.schemaType, projectId, context.documentId),
                     environment,
                     context.schemaType,
                   ),

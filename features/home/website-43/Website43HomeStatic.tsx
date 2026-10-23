@@ -26,19 +26,19 @@ export async function HomeFooter({ warnings = false, copy }: { warnings?: boolea
             <div className={styles.footerColumn}>
               <strong>{text("site.footer.explore")}</strong>
               <Link href={HOME}>{text("site.nav.home")}</Link>
-              <Link href={`${BASE}/blog`}>{text("site.nav.blog")}</Link>
-              <Link href={`${BASE}/tools/financial-health-check`}>{text("site.nav.tools")}</Link>
+              <Link href={`${BASE}/blog/`}>{text("site.nav.blog")}</Link>
+              <Link href={`${BASE}/tools/financial-health-check/`}>{text("site.nav.tools")}</Link>
             </div>
             <div className={styles.footerColumn}>
               <strong>{text("site.nav.tools")}</strong>
-              <Link href={`${BASE}/tools/financial-health-check`}>{text("site.tools.fhc")}</Link>
-              <Link href={`${BASE}/ci-planning`}>{text("site.tools.ci")}</Link>
+              <Link href={`${BASE}/tools/financial-health-check/`}>{text("site.tools.fhc")}</Link>
+              <Link href={`${BASE}/ci-planning/`}>{text("site.tools.ci")}</Link>
             </div>
             <div className={styles.footerColumn}>
               <strong>{text("site.footer.information")}</strong>
               <Link href={`${HOME}#about-ccpun`}>{text("site.footer.about")}</Link>
-              <Link href={`${BASE}/privacy`}>{text("site.footer.privacy")}</Link>
-              <Link href={`${BASE}/cookie-policy`}>{text("site.footer.cookies")}</Link>
+              <Link href={`${BASE}/privacy/`}>{text("site.footer.privacy")}</Link>
+              <Link href={`${BASE}/cookie-policy/`}>{text("site.footer.cookies")}</Link>
               <CookieSettingsButton className={styles.footerCookieButton} />
             </div>
           </div>

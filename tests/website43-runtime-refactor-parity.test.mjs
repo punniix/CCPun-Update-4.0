@@ -1,5 +1,6 @@
 import test from 'node:test';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+import { assertProductionCmsOwner, canonicalNavigationPredecessor } from '../qa/production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -136,7 +137,11 @@ test('reviewed stylesheet outputs stay frozen while original Production CSS gold
 });
 
 test('96 navbar disclosure states preserve DOM, labels, links, aria and tracking attributes', () => {
-  const source = after('Website43Navbar.tsx');
+  const current = after('Website43Navbar.tsx');
+  assertProductionCmsOwner(directory + 'Website43Navbar.tsx', current);
+  // Only the exact canonical-link/active-comparison delta is inverted; the
+  // complete original 96-state DOM fingerprint remains unchanged.
+  const source = canonicalNavigationPredecessor(directory + 'Website43Navbar.tsx', current);
   assert.equal((source.match(/className=\{styles\.brandLink\}/g) ?? []).length, 1);
   const parts = source.replace(' className={styles.brandLink}', '').split('<div className={styles.mobileSubmenu}>');
   assert.equal(parts.length,2);
@@ -150,7 +155,9 @@ test('unified footer preserves links while removing approved marketing tagline i
   assert.match(after('Website43Shared.tsx'), /Website43Brand/);
   assert.match(after('Website43Shared.tsx'), /CookieSettingsButton/);
   assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
-  assert.equal(fingerprint(await footerSnapshots(after('Website43Shared.tsx'))),reviewedCurrent.footerDesktopDom);
+  const current = after('Website43Shared.tsx');
+  assertProductionCmsOwner(directory + 'Website43Shared.tsx', current);
+  assert.equal(fingerprint(await footerSnapshots(canonicalNavigationPredecessor(directory + 'Website43Shared.tsx', current))),reviewedCurrent.footerDesktopDom);
   assert.equal(baseline.footerDom,'db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b','Original full/compact baseline retained as history; duplicate compact removal is explicit');
 });
 

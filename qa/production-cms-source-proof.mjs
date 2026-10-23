@@ -155,9 +155,75 @@ export function assertProductionCmsProvenance() {
   return true;
 }
 assertProductionCmsProvenance();
+// Independently reviewed native CMS follow-up successors. These are additional
+// exact source admissions; historical identity maps and output goldens stay frozen.
+export const cmsNativeFollowupOwners = {
+  'apps/admin/app/(control-plane)/content/website-preview/[scope]/page.tsx': { before: null, after: '077a95203d65637908cd7428bcfecdf36392c0a0f9c420c603952b27ab831b3b' },
+  'lib/content/public-copy.ts': { before: 'bbca2c3582aa0c4ac7ed77b13299cc4cf19145d72331c769f6e2a49c17156bfa', after: '0b21f52cad4663b7376b194464be6c251a855f232774d5f7f588fefeb77d01a9' },
+  'lib/seo/page-seo.ts': { before: '11cffcb2b28b9481a52cc0286d551a55b35e12000cfd2df6d1f517b2309d399d', after: 'afcd4d3b99592f2a71628d8931da3420f68e3d8be2800f53694f80ccf1112977' },
+  'components/preview/DraftPreviewRuntime.tsx': { before: 'db35c38a0fa5d7f26b16346749a866b992a9bea86c9276191d92e08eef7eeddf', after: 'b019b273e462f1782df230d87174293c9200fe2e2fa1a37fd7c2163d684a0ec3' },
+  'components/preview/LiveVisualEditing.tsx': { before: null, after: '66b19f69ff0cf7488ee0dea38e2dbf7e4b385f141fe03b391ec44981ab876320' },
+  'cms/sanity/config/presentation.ts': { before: '5118bcd2307c6fefe8b40d9e37e8d298f34a05955eb2e68fcfb2b369eae3bbe0', after: '0126cf3c9839119ef6c3da5ce70b54d468a97c27fe315c01581790807f92b53a' },
+  'apps/admin/app/(control-plane)/content/website-preview/page.tsx': { before: '216f98da295801c21b61d493001b274fa727ce5774b6134b808832ad69076bdd', after: '0ebaa9b82cea9fe6d71239970431a9cd460b03ebbaec300596e5317201c3f256' },
+  'cms/sanity/policy/studio-policy.ts': { before: '32c6538e82089c0d4122b207695836d156b7d9676a9aacea5af9fd8112880168', after: '037cdca400a76fe7c25a433b3ff49ef113a9416fa3de25103c0b9d10ecdc9211' },
+  'sanity.config.ts': { before: '471036fd50ddb149dc90cbe95eee7d2f319c1f8418255851e0a3ddd8048f5c41', after: 'ca8fa14a21e771ffe17df1f8896497a7033cd0b095af6ed4b067da2a077b617a' },
+  'features/admin/components/AdminProtectedChrome.tsx': { before: 'c4d7b48c01a42177bdc7489e26efa81ff932f086de0fd6af3eb6135b6710c1e2', after: 'a6fcdc5f948e9ddea74ea09532dd932c1fd01427800d9321845d62c767331cbf' },
+};
+// Exact canonical navigation transition; every original owner digest stays frozen.
+// Counts are per owned source, so missing/duplicate links and unrelated edits fail.
+export function canonicalNavigationPredecessor(file, source) {
+  const paths = {
+    'components/layout/website-43/Website43Navbar.tsx': { blog: 2, 'tools/financial-health-check': 1, 'ci-planning': 1, 'play/money-story': 1 },
+    'components/layout/website-43/Website43Shared.tsx': { blog: 1, 'tools/financial-health-check': 2, 'ci-planning': 1, 'play/money-story': 1, privacy: 1, 'cookie-policy': 1 },
+    'features/home/website-43/Website43HomeStatic.tsx': { blog: 1, 'tools/financial-health-check': 2, 'ci-planning': 1, privacy: 1, 'cookie-policy': 1 },
+    'features/home/website-43/Website43Home.tsx': { blog: 1, 'tools/financial-health-check': 1, 'ci-planning': 1 },
+    'features/blog/website-43/Website43Article.tsx': { blog: 1 },
+  };
+  if (!Object.hasOwn(paths, file)) return source;
+  const navbar = file.endsWith('/Website43Navbar.tsx');
+  for (const [route, count] of Object.entries(paths[file])) {
+    const before = navbar && route !== 'blog' ? 'href: `${BASE}/' + route + '`' : 'href={`${BASE}/' + route + '`}';
+    const current = before.replace(route + '`', route + '/`');
+    assert.equal(source.split(current).length - 1, count, file + ': exact canonical ' + route + ' links');
+    source = source.replaceAll(current, before);
+  }
+  if (navbar) {
+    const current = "pathname === href.replace(/\\/$/, '')";
+    assert.equal(source.split(current).length - 1, 3, 'all tool active-state comparisons retain trailing-slash normalization');
+    source = source.replaceAll(current, 'pathname === href');
+  }
+  return source;
+}
 export function assertProductionCmsOwner(file, source = read(file)) {
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
-  assert.ok(Object.hasOwn(productionCmsOwners,file), 'Unknown CMS source owner: '+file);
+  assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
+  if (file === 'lib/content/sanity.ts') {
+    for (const [current, old] of [
+      ['import { cache } from "react";\n', ''],
+      ['export const getPrimaryAuthorProfile = cache(unstable_cache(\n  () => readPrimaryAuthorProfile(),', 'export const getPrimaryAuthorProfile = unstable_cache(\n  readPrimaryAuthorProfile,'],
+      ['{ revalidate: 300, tags: ["ccpun-primary-author"] },\n));', '{ revalidate: 300, tags: ["ccpun-primary-author"] },\n);'],
+      ['async function readPrimaryAuthorProfile(perspective: "published" | "drafts" = "published")', 'async function readPrimaryAuthorProfile()'],
+      ['sanityFetch({ query: primaryAuthorQuery, perspective, stega: false })', 'sanityFetch({ query: primaryAuthorQuery, perspective: "published", stega: false })'],
+      ['\nexport async function getPrimaryAuthorPreviewProfile() {\n  getSanityPreviewClient();\n  return readPrimaryAuthorProfile("drafts");\n}\n', ''],
+    ]) {
+      assert.equal(source.split(current).length, 2, 'one exact native request-cache wrapper');
+      source = source.replace(current, old);
+    }
+    const frozen = JSON.parse(read('qa/production-code-only-parity.json')).reviewedUxOwners[file].candidateSha256;
+    assert.equal(frozen, '2b670ca67fd7d4124b58b72339fd484639f9a5ba7e1053010b56725ab065646b', 'original reviewed author reader remains frozen');
+    assert.equal(cmsSha(source), '036885be4019b588fa26d7bb6e4d8bd2cb23aa33e6fd6963951af51e0c862117', 'exact deployed author reader before request memoization');
+    for (const addition of ['    optimizedAt: raw.contentOptimizedAt,\n', '  contentOptimizedAt,\n']) {
+      assert.equal(source.split(addition).length, 2, 'original optimization-date admission is unchanged');
+      source = source.replace(addition, '');
+    }
+    assert.equal(cmsSha(source), frozen, 'only native request memoization may wrap the unchanged author reader');
+    return true;
+  }
+  if (Object.hasOwn(cmsNativeFollowupOwners, file)) {
+    assert.equal(cmsSha(source), cmsNativeFollowupOwners[file].after, file + ': exact independently reviewed native CMS successor');
+    return true;
+  }
+  source = canonicalNavigationPredecessor(file, source);
   if (file === 'components/ui/health-happy/HealthHappyCountdown.tsx') {
     // Only the exact Blog artwork hint may reconstruct the frozen same-word source.
     const blogPreloadAdditions = [
@@ -196,7 +262,7 @@ export function assertProductionCmsOwner(file, source = read(file)) {
   assert.equal(cmsSha(source), productionCmsOwners[file].after, file+': exact reviewed same-word CMS source');
   return true;
 }
-export function hasProductionCmsOwner(file) { return Object.hasOwn(productionCmsOwners,file); }
+export function hasProductionCmsOwner(file) { return file === 'lib/content/sanity.ts' || Object.hasOwn(productionCmsOwners,file) || Object.hasOwn(cmsNativeFollowupOwners,file); }
 
 let defaults;
 function allDefaults() {

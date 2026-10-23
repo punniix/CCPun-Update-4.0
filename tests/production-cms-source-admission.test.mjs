@@ -32,6 +32,14 @@ test('published-only reader hardening retains the frozen predecessor proof and d
   let predecessor=source;
   for(const[current,old]of [
     [
+      'import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope, type PublicCopyValues } from "./public-copy-registry";',
+      'import { parsePublicCopy, publicCopyDocumentId, type PublicCopyScope, type PublicCopyValues } from "./public-copy-registry";'
+    ],
+    [
+      '.filter(({ key, text }: { key: string; text: string }) => text !== (PUBLIC_COPY_SCOPES[scope].defaults as Record<string, string>)[key])',
+      ''
+    ],
+    [
         "import { sanityFetch } from \"./sanity-fetch\";",
         "import { draftMode } from \"next/headers\";\nimport { sanityFetch } from \"./sanity-fetch\";\nimport { IS_DRAFT_PREVIEW_ALLOWED } from \"../deployment-environment\";"
     ],

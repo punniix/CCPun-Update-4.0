@@ -8,7 +8,8 @@ function replaceImage(images: unknown, url: string) {
   const entries = Array.isArray(images) ? images : images ? [images] : [];
   const first = entries[0];
   const originalUrl = typeof first === "string" || first instanceof URL ? String(first) : first?.url ? String(first.url) : null;
-  return [{ ...(originalUrl === url && first && typeof first === "object" && !(first instanceof URL) ? first : {}), url }, ...entries.slice(1)];
+  if (originalUrl === url) return entries;
+  return [{ url }, ...entries.slice(1)];
 }
 
 export async function resolvePageSeoMetadata(pathname: string, defaults: Metadata, parent?: ResolvingMetadata): Promise<Metadata> {
@@ -26,15 +27,16 @@ export async function resolvePageSeoMetadata(pathname: string, defaults: Metadat
     if (!data) return defaults;
     const { _id: id, pathname: path, ...rawFields } = data;
     if (id !== page.documentId || path !== pathname) return defaults;
-    const fields = validatePageSeoFields(rawFields, dataset);
+    const fields = Object.fromEntries(Object.entries(validatePageSeoFields(rawFields, dataset))
+      .filter(([key, value]) => value && value !== page.defaults[key as keyof typeof page.defaults]));
     if (!Object.values(fields).some(Boolean)) return defaults;
     const result: Metadata = { ...defaults };
     if (fields.seoTitle) result.title = fields.seoTitle;
     if (fields.seoDescription) result.description = fields.seoDescription;
     if (fields.ogTitle || fields.ogDescription || fields.ogImageUrl) {
       const inherited = parent ? await parent : null;
-      const openGraph: NonNullable<Metadata["openGraph"]> = { ...inherited?.openGraph, ...defaults.openGraph };
-      const twitter: NonNullable<Metadata["twitter"]> = { ...inherited?.twitter, ...defaults.twitter };
+      const openGraph: NonNullable<Metadata["openGraph"]> = { ...(defaults.openGraph ?? inherited?.openGraph) };
+      const twitter: NonNullable<Metadata["twitter"]> = { ...(defaults.twitter ?? inherited?.twitter) };
       result.openGraph = {
         ...openGraph,
         ...(fields.ogTitle ? { title: fields.ogTitle } : {}),
