@@ -39,7 +39,8 @@ async function applyHostingerReleaseFallback() {
   const explicitRole = process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase();
   const configuredRef = process.env.CCPUN_GIT_REF?.trim() ?? "";
   const productionRefPrefix = "codex/hostinger-release-production-";
-  if (symbolicBranch.startsWith(productionRefPrefix) || configuredRef.startsWith(productionRefPrefix)) {
+  if (symbolicBranch.startsWith(productionRefPrefix)
+    || (configuredRef.startsWith(productionRefPrefix) && symbolicBranch !== `admin/hostinger-release-uat-${sha}`)) {
     // Only the actual checkout can authorize a refresh; configured Git metadata
     // may be stale, but must never choose another lane or invent Production flags.
     if (symbolicBranch !== `${productionRefPrefix}${sha}` || !/^[a-f0-9]{40}$/.test(sha)) {

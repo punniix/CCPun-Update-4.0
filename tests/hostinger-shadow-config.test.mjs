@@ -475,6 +475,8 @@ test("exact Production checkout refreshes only six Git markers after the existin
       assert.doesNotMatch(result.stderr, /preserve-this-setting|old-private|old-public-release|VALIDATOR_VALUE_MUST_NOT_ESCAPE/);
     };
     accepted(admin);
+    accepted({ ...admin, CCPUN_GIT_REF: `admin/hostinger-release-uat-${sha}` });
+    denied({ ...admin, CCPUN_GIT_REF: `admin/hostinger-release-uat-${sha}`, CCPUN_APP_ENV: "admin-uat" });
     accepted({ ...admin, CCPUN_GIT_REF: `codex/hostinger-release-production-${"0".repeat(40)}` });
     accepted({ ...admin, CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", NEXT_PUBLIC_CCPUN_ARTICLE_SCHEDULER_BACKEND: "native-neon", CCPUN_ARTICLE_SCHEDULING_ENABLED: "1" });
     accepted(web);
@@ -512,6 +514,18 @@ test("exact Production checkout refreshes only six Git markers after the existin
     denied({ ...admin, CCPUN_GIT_REF: ref }, /PRODUCTION_RELEASE_REF_DENIED/);
     git(["checkout", "-b", "unrelated-branch"]);
     denied({ ...admin, CCPUN_GIT_REF: ref }, /PRODUCTION_RELEASE_REF_DENIED/);
+    git(["branch", "-m", `admin/hostinger-release-uat-${"0".repeat(40)}`]);
+    denied({ ...admin, CCPUN_GIT_REF: ref }, /PRODUCTION_RELEASE_REF_DENIED/);
+    git(["branch", "-m", `admin/hostinger-release-uat-${sha}`]);
+    const adminUat = run({ PATH: common.PATH, HOME: common.HOME, CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "admin", CCPUN_GIT_REF: `codex/hostinger-release-production-${"a".repeat(40)}` });
+    assert.equal(adminUat.status, 0, adminUat.stderr);
+    const adminUatChild = JSON.parse(adminUat.stdout.split("\n").find((line) => line.startsWith("BUILD_CHILD=")).slice("BUILD_CHILD=".length));
+    assert.equal(adminUatChild.env.CCPUN_APP_ENV, "admin-uat");
+    assert.equal(adminUatChild.env.CCPUN_GIT_REF, `admin/hostinger-release-uat-${sha}`);
+    assert.equal(adminUatChild.env.CCPUN_GIT_SHA, sha);
+    assert.equal(adminUatChild.env.CCPUN_ARTICLE_SCHEDULE_EXECUTOR_ENABLED, "0");
+    assert.equal(adminUatChild.env.CCPUN_NATIVE_WORKFLOW_ENABLED, "0");
+    assert.equal(adminUatChild.env.CCPUN_ADMIN_DATABASE_URL, undefined);
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 

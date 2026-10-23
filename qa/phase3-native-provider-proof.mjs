@@ -22,8 +22,8 @@ const reviewedAdminConfigBuild = {
 // Exact successor for the independently reviewed Production Git-only refresh.
 // Original repair admissions and historical proof JSON remain unchanged.
 const reviewedProductionGitIdentity = {
-  'scripts/build-root.mjs': { before: 'b3640b1f1dfd80bbe1cd59aed0b3e857398ce9ae374652c92c098260f39beb0f', after: 'd4a13118f0ec969f757889ace7f97ef127f87cd8007f6062cb28a78c92bf8fc4' },
-  'tests/hostinger-shadow-config.test.mjs': { before: '4c48e59ed5de59304237e09605e3857fe497cc88012447ade5a7cf2623742833', after: '6c42f94c31fe939cd478db18fde8b3f3ff3b9a05374d1aa96e81245a0d16c2f6' },
+  'scripts/build-root.mjs': { before: 'b3640b1f1dfd80bbe1cd59aed0b3e857398ce9ae374652c92c098260f39beb0f', after: '90353a4946aba0043b17659dff86a193937b04021d21c083bea58f1b785d23bd' },
+  'tests/hostinger-shadow-config.test.mjs': { before: '4c48e59ed5de59304237e09605e3857fe497cc88012447ade5a7cf2623742833', after: '533a86ac229ae28df22a8efe133cef62ea7977eb1967dac3ce989ad342a04ee2' },
 };
 function assertCurrentNativeDigest(path, body, originalDigest) {
   const repair = reviewedAdminConfigBuild[path];
