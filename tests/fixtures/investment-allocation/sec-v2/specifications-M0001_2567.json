@@ -1,0 +1,29 @@
+{
+  "_fixture_note": "Contract fixture for offline tests. Field names and envelope follow the SEC Open API v2 responses consumed by features/investment-allocation/server/sec-v2.ts (live-verified in PR #165). Values are synthetic, not a live recording; scripts/qa/investment-allocation-live.mjs checks the live API on UAT.",
+  "message": "success",
+  "items": [
+    {
+      "proj_id": "M0001_2567",
+      "fund_class_name": "A",
+      "spec_code": "DIV",
+      "spec_desc": "จ่ายเงินปันผล",
+      "last_upd_date": "2026-09-01"
+    },
+    {
+      "proj_id": "M0001_2567",
+      "fund_class_name": "D",
+      "spec_code": "NODIV",
+      "spec_desc": "ไม่จ่ายเงินปันผล",
+      "last_upd_date": "2026-09-01"
+    },
+    {
+      "proj_id": "M0001_2567",
+      "fund_class_name": "main",
+      "spec_code": "EQ",
+      "spec_desc": "กองทุนรวมตราสารทุน",
+      "last_upd_date": "2026-09-01"
+    }
+  ],
+  "next_cursor": null,
+  "page_size": 100
+}

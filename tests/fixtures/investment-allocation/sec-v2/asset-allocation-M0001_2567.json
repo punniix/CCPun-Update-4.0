@@ -1,0 +1,28 @@
+{
+  "_fixture_note": "Contract fixture for offline tests. Field names and envelope follow the SEC Open API v2 responses consumed by features/investment-allocation/server/sec-v2.ts (live-verified in PR #165). Values are synthetic, not a live recording; scripts/qa/investment-allocation-live.mjs checks the live API on UAT.",
+  "message": "success",
+  "items": [
+    {
+      "proj_id": "M0001_2567",
+      "asset_name": "เงินฝาก",
+      "asset_ratio": "4.75",
+      "start_date": "2026-08-31",
+      "last_upd_date": "2026-09-05"
+    },
+    {
+      "proj_id": "M0001_2567",
+      "asset_name": "ตราสารทุน",
+      "asset_ratio": 95.25,
+      "start_date": "2026-08-31",
+      "last_upd_date": "2026-09-05"
+    },
+    {
+      "proj_id": "M0001_2567",
+      "asset_name": "ไม่มีตัวเลข",
+      "asset_ratio": null,
+      "start_date": "2026-08-31"
+    }
+  ],
+  "next_cursor": null,
+  "page_size": 100
+}
