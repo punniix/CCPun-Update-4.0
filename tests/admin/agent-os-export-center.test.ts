@@ -27,8 +27,12 @@ test("n8n Integration Registry separates Admin triggers, background jobs, unconn
   assert.equal(summary["admin-trigger"], 3);
   assert.equal(summary.unconnected, 3);
   assert.equal(summary.background, 3);
-  assert.equal(summary["test-only"], 2);
-  assert.equal(summary.legacy, 9);
+  assert.equal(summary["test-only"], 1);
+  // The nine legacy jobs and the UAT bridge smoke were archived in n8n (2026-10-24) and must not reappear silently.
+  assert.equal(summary.legacy, 0);
+  for (const archived of ["vTc7XQOrAP1d2SBT", "BQUpRPsK01DV8y5x", "7gPcVg0cvAHrymeu", "JZFpX7rPDbWbLKtQ", "GQ7nwqvjNVB03LZm", "q6mhnjGoyRXK3oU0", "cr8wUTdpGuRYGLQ6", "5LWabOJmPsquxxm1", "ORGmkqYQkVNG7wme", "mDSHSABsn2zA39UM"]) {
+    assert.equal(N8N_ADMIN_INTEGRATIONS.some((item) => item.workflowId === archived), false, archived);
+  }
   assert.deepEqual(
     N8N_ADMIN_INTEGRATIONS.filter((item) => item.status === "unconnected").map((item) => item.workflowId),
     ["HpHQEFLf7k6dKMC3", "Gn7ghA6RV8ladv56", "bwQcEsfdC0tUOgIA"],
