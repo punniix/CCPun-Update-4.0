@@ -136,9 +136,9 @@ test('article metadata uses verified optimization date, consistent type and read
 
 test('Kanit starts early without putting the whole font family on the critical path', () => {
   // Website v5 Phase B (deliberate budget change): three weights for the v5 type scale and only the
-  // LCP face (Thai 500, v5 headings) preloaded. Previously five weights plus four preloaded Thai weights.
+  // LCP face (Kanit 500 for v5 headings, Thai + Latin subsets) preloaded. Previously five weights plus four preloaded Thai weights.
   assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["400", "500", "600"\][\s\S]*?display: "swap"[\s\S]*?preload: false/);
-  assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai"\][\s\S]*?weight: \["500"\][\s\S]*?display: "swap"[\s\S]*?preload: true/);
+  assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["500"\][\s\S]*?display: "swap"[\s\S]*?preload: true/);
   assert.match(layout, /className=\{`\$\{kanit\.variable\} \$\{kanitCritical\.variable\}`\}/);
   assert.doesNotMatch(layout, /const kanitCritical = Kanit\(\{[\s\S]*?weight: \[[^\]]*"300"/);
 });

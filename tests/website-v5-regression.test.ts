@@ -240,8 +240,8 @@ test("Phase B: Investment Allocation stays gated, noindex outside an enabled non
 test("Phase B performance budget: three Kanit weights, one preloaded LCP face, text-first tool heroes", () => {
   const layout = read("apps/web/app/layout.tsx");
   assert.match(layout, /subsets: \["thai", "latin"\],\n  weight: \["400", "500", "600"\],\n  variable: "--font-kanit",\n  display: "swap",\n  preload: false,/);
-  assert.match(layout, /subsets: \["thai"\],\n  weight: \["500"\],\n  variable: "--font-kanit-critical",\n  display: "swap",\n  preload: true,/);
-  assert.equal((layout.match(/preload: true/g) ?? []).length, 1, "exactly one preloaded font face");
+  assert.match(layout, /subsets: \["thai", "latin"\],\n  weight: \["500"\],\n  variable: "--font-kanit-critical",\n  display: "swap",\n  preload: true,/);
+  assert.equal((layout.match(/preload: true/g) ?? []).length, 1, "exactly one preloaded font face (500), Thai + Latin subset files");
   const parts = read("components/layout/v5/V5ToolParts.tsx");
   assert.doesNotMatch(parts, /next\/image|<img/, "tool heroes have no image, so the H1 is the LCP element");
   const countdown = read("components/ui/health-happy/HealthHappyCountdown.tsx");

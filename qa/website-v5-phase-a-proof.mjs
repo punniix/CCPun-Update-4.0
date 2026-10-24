@@ -64,7 +64,7 @@ export const websiteV5PhaseASources = Object.freeze({
   // Website v5 Phase B: tool/legal render owners, root layout fonts and the shared widgets moved
   // off the 4.3 stylesheet. `before` is the Phase A + Investment Allocation merge (b6453d0a).
   // BEGIN Phase B reviewed sources
-  "apps/web/app/layout.tsx": { before: "8f5386d2856faaf786df41662174beb0735cc62d9fce2cd6d82bd2a731575963", after: "fd023ae3bd462c254dc0320b67a1883a1f0c59ba01e400aa637e2bd268c16ac0" },
+  "apps/web/app/layout.tsx": { before: "8f5386d2856faaf786df41662174beb0735cc62d9fce2cd6d82bd2a731575963", after: "9a7dceb0615ae610ecafe80a0937547b9a6c6c8b422688e443ba763970cc3ab8" },
   "features/ci-planning/page.tsx": { before: "980ff674a6fc1fc0908825cbcab844a09154b477755c50613934db08f9697458", after: "4890e76a4f868daeb7d6e2da0f1dc9adbc10226b07479b55e91eeebe8045c9d5" },
   "features/financial-health-check/page.tsx": { before: "09d336add15f70b947c0c2d31f78722881b8821ce84c77724c075c5098769fd9", after: "0da6a83befa83fad31e4f9af07a74fa0fdd1f5f2f55201ec80bf127a7d1abd7c" },
   "features/money-story/page.tsx": { before: "83f1719473106c1f47b1022e9f7bd642c4e3fc87f7b546a869e70b9108f4296d", after: "725dd62b52935c0ca9c2cde0a252ad393986db9891808141157591a9ff57f6be" },

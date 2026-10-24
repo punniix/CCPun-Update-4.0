@@ -16,7 +16,8 @@ const GA_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID 
 const META_PIXEL_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "") : "";
 const GTM_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : "";
 // Website v5: three Kanit weights (400 body, 500 headings/UI, 600 calculator emphasis) in Thai + Latin,
-// none preloaded. Only the LCP face is preloaded: Thai 500, used by v5 headings through --font-kanit-critical.
+// none preloaded. Only the LCP face is preloaded: Kanit 500 for v5 headings (--font-kanit-critical), in
+// Thai + Latin because Thai headings take their spaces and digits from the Latin subset file.
 const kanit = Kanit({
   subsets: ["thai", "latin"],
   weight: ["400", "500", "600"],
@@ -26,7 +27,7 @@ const kanit = Kanit({
 });
 
 const kanitCritical = Kanit({
-  subsets: ["thai"],
+  subsets: ["thai", "latin"],
   weight: ["500"],
   variable: "--font-kanit-critical",
   display: "swap",
