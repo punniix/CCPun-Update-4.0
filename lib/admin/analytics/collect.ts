@@ -26,9 +26,18 @@ export function normalizeGa4Summary(raw: unknown) {
     limitations: [...(report.metadata?.subjectToThresholding ? ["GA4 applied data thresholding"] : []), ...(report.metadata?.dataLossFromOtherRow ? ["GA4 grouped rows into (other)"] : []), ...(report.metadata?.samplingMetadatas?.length ? ["GA4 sampled this report"] : [])] };
 }
 
-export async function collectAnalyticsSource(source: AnalyticsSource, date = analyticsDate(), variables: Record<string, string | undefined> = process.env, fetcher: FetchLike = fetch) {
+/**
+ * Relay modes let n8n execute the planned read-only Google requests with its own OAuth credential.
+ * "relay-dry-run" never touches the database; it only discovers which provider requests are still needed.
+ */
+export type AnalyticsRelayOptions = { mode?: "relay-dry-run" | "relay-submit"; relayToken?: string; relayLimitation?: string };
+const RELAY_DRY_RUN_BATCH = "00000000-0000-4000-8000-000000000000";
+
+export async function collectAnalyticsSource(source: AnalyticsSource, date = analyticsDate(), variables: Record<string, string | undefined> = process.env, fetcher: FetchLike = fetch, options: AnalyticsRelayOptions = {}) {
   const deadline = Date.now() + 90_000;
-  const claim = await beginAnalyticsCollection(source, date, variables);
+  const dryRun = options.mode === "relay-dry-run";
+  if (options.mode && (!options.relayToken || (source !== "gsc" && source !== "ga4"))) throw new Error("ANALYTICS_RELAY_UNSUPPORTED");
+  const claim = dryRun ? { status: "claimed" as const, batchId: RELAY_DRY_RUN_BATCH, attempt: 0 } : await beginAnalyticsCollection(source, date, variables);
   if (claim.status !== "claimed") return { source, status: claim.status === "completed" ? "duplicate" : claim.status, batchId: claim.batchId };
   const raw: RawAnalyticsPage[] = [];
   const collectedAt = new Date().toISOString();
@@ -53,11 +62,13 @@ export async function collectAnalyticsSource(source: AnalyticsSource, date = ana
   let ga4BaselineReadyBeforeDeadline = false;
   try {
     if (source === "gsc" || source === "ga4") {
-      if (getSeoGoogleProviderReadiness(source, variables).status !== "manual-sync-ready") throw new Error("ANALYTICS_NOT_CONFIGURED");
+      const readiness = getSeoGoogleProviderReadiness(source, variables);
+      const resourceName = source === "gsc" ? "CCPUN_GSC_SITE_URL" : "CCPUN_GA4_PROPERTY_ID";
+      if (options.relayToken ? readiness.required?.find((item) => item.name === resourceName)?.valid !== true : readiness.status !== "manual-sync-ready") throw new Error("ANALYTICS_NOT_CONFIGURED");
       // Provider processing delays differ. Recollect rolling windows daily to preserve late revisions.
       const windowEnd = shiftAnalyticsDate(date, source === "gsc" ? -3 : -1);
       const windowStart = shiftAnalyticsDate(windowEnd, -27);
-      const token = await getGoogleDataAccessToken(variables, timedFetch);
+      const token = options.relayToken ?? await getGoogleDataAccessToken(variables, timedFetch);
       if (source === "gsc") {
         const input = { siteUrl: variables.CCPUN_GSC_SITE_URL!.trim(), token, startDate: windowStart, endDate: windowEnd, dimensions: ["query", "page"], rowLimit: 25_000 };
         const [summary, detail] = await Promise.all([fetchGscSearchAnalyticsTotals(input, capturedFetch("gsc-summary")), fetchGscSearchAnalytics(input, capturedFetch("gsc-query-page"))]);
@@ -114,10 +125,13 @@ export async function collectAnalyticsSource(source: AnalyticsSource, date = ana
       }
     }
     if (Date.now() > deadline && !ga4BaselineReadyBeforeDeadline) throw new Error("ANALYTICS_SOURCE_UNAVAILABLE");
+    if (dryRun) return { source, status: "dry-run" as const, batchId: claim.batchId, reports: reports.length };
+    if (options.relayLimitation) for (const report of reports) report.limitations.push(options.relayLimitation);
     const status = await finishAnalyticsCollection({ batchId: claim.batchId, attempt: claim.attempt, reports, raw, error: null }, variables);
     return { source, status, batchId: claim.batchId, reports: reports.length };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
+    if (dryRun) return { source, status: "dry-run" as const, batchId: claim.batchId, reports: 0 };
     const category = /NOT_CONFIGURED/.test(message) ? "not-configured" : /INVALID|Zod/.test(message) || error instanceof z.ZodError ? "invalid-response" : /TOO_LARGE/.test(message) ? "batch-too-large" : "source-unavailable";
     await finishAnalyticsCollection({ batchId: claim.batchId, attempt: claim.attempt, reports: [], raw: category === "batch-too-large" ? [] : raw, error: category }, variables);
     return { source, status: "failed" as const, batchId: claim.batchId, error: category };
