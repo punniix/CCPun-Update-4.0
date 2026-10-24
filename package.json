@@ -113,6 +113,9 @@
     "@sanity/runtime-cli": {
       "adm-zip": "0.6.1"
     },
+    "@module-federation/dts-plugin": {
+      "adm-zip": "0.6.1"
+    },
     "@vercel/frameworks": {
       "smol-toml": "1.9.0"
     },
