@@ -19,7 +19,13 @@ async function serve(options: { key?: string | null; pageStatus?: number } = {})
   const handlers = Object.fromEntries((["amcs", "catalog", "detail", "funds"] as Route[]).map((name) => [name, routeHandler(name, sec, { lane: "web-uat", key: options.key, limiter })]));
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
-    const api = url.pathname.match(/^\/api\/investment-allocation\/(amcs|catalog|detail|funds)$/);
+    // Mirror the Hostinger proxy (apps/web/proxy.ts): slashless paths answer a
+    // 308 to the trailing-slash URL, which the script must not depend on.
+    if (/\/[^/.]+$/.test(url.pathname)) {
+      res.writeHead(308, { location: `${url.pathname}/${url.search}` }).end();
+      return;
+    }
+    const api = url.pathname.match(/^\/api\/investment-allocation\/(amcs|catalog|detail|funds)\/$/);
     if (api) {
       const response = await handlers[api[1]](new Request(url, { headers: { "x-forwarded-for": "203.0.113.50" } }));
       res.writeHead(response.status, Object.fromEntries(response.headers));

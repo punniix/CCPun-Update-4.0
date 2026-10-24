@@ -98,7 +98,7 @@ async function main() {
   });
 
   await check('SEC general-info/amcs via /api/investment-allocation/amcs', async () => {
-    const result = await get('/api/investment-allocation/amcs');
+    const result = await get('/api/investment-allocation/amcs/');
     expectLiveJson(result, 'amcs');
     expect(result.body.source === 'sec_v2', `source=${result.body.source} state=${result.body.state} (expected live sec_v2; uat_synthetic means no SEC key, unavailable means SEC failed)`);
     expect(Array.isArray(result.body.items) && result.body.items.length > 0, 'no AMCs returned');
@@ -107,7 +107,7 @@ async function main() {
   });
 
   await check('SEC general-info/profiles via /api/investment-allocation/catalog (equity, paged)', async () => {
-    const first = await get('/api/investment-allocation/catalog?category=equity&limit=8');
+    const first = await get('/api/investment-allocation/catalog/?category=equity&limit=8');
     expectLiveJson(first, 'catalog');
     expect(first.body.source === 'sec_v2', `source=${first.body.source} state=${first.body.state}`);
     expect(first.body.items.length > 0, 'no equity funds returned');
@@ -118,7 +118,7 @@ async function main() {
     }
     state.equity = first.body.items;
     if (!first.body.nextCursor) return { detail: `${first.body.items.length} funds, single page` };
-    const next = await get(`/api/investment-allocation/catalog?category=equity&limit=8&cursor=${encodeURIComponent(first.body.nextCursor)}`);
+    const next = await get(`/api/investment-allocation/catalog/?category=equity&limit=8&cursor=${encodeURIComponent(first.body.nextCursor)}`);
     expectLiveJson(next, 'catalog page 2');
     const ids = new Set(first.body.items.map((item) => item.projectId));
     expect(next.body.items.every((item) => !ids.has(item.projectId)), 'page 2 repeats page 1');
@@ -126,7 +126,7 @@ async function main() {
   });
 
   await check('catalog geography filter (equity/domestic) honours invest_country_flag', async () => {
-    const result = await get('/api/investment-allocation/catalog?category=equity&subcategory=domestic&limit=8');
+    const result = await get('/api/investment-allocation/catalog/?category=equity&subcategory=domestic&limit=8');
     expectLiveJson(result, 'catalog domestic');
     expect(result.body.source === 'sec_v2', `source=${result.body.source}`);
     expect(result.body.items.every((item) => item.investCountryFlag === '3'), 'a non-domestic fund leaked through');
@@ -134,7 +134,7 @@ async function main() {
   });
 
   await check('catalog Thai search text', async () => {
-    const result = await get(`/api/investment-allocation/catalog?q=${encodeURIComponent('หุ้น')}&limit=8`);
+    const result = await get(`/api/investment-allocation/catalog/?q=${encodeURIComponent('หุ้น')}&limit=8`);
     expectLiveJson(result, 'catalog Thai search');
     expect(result.body.source === 'sec_v2' && result.body.query === 'หุ้น', `source=${result.body.source} query=${result.body.query}`);
     return { detail: `${result.body.items.length} funds` };
@@ -148,7 +148,7 @@ async function main() {
     let lookupError = null;
     try {
       state.fund = state.equity[0];
-      detail = await get(`/api/investment-allocation/detail?proj_id=${encodeURIComponent(state.fund.projectId)}`);
+      detail = await get(`/api/investment-allocation/detail/?proj_id=${encodeURIComponent(state.fund.projectId)}`);
       expectLiveJson(detail, 'detail');
       expect(detail.body.source === 'sec_v2', `source=${detail.body.source}`);
       expect(detail.body.fund?.projectId === state.fund.projectId, 'detail returned a different project');
@@ -167,12 +167,12 @@ async function main() {
 
   await check('detail class selection returns class-specific dealing terms', async () => {
     if (!state.fund) return { skip: 'no fund available' };
-    const base = await get(`/api/investment-allocation/detail?proj_id=${encodeURIComponent(state.fund.projectId)}`);
+    const base = await get(`/api/investment-allocation/detail/?proj_id=${encodeURIComponent(state.fund.projectId)}`);
     expectLiveJson(base, 'detail');
     const classes = base.body.classes ?? [];
     if (classes.length < 2) return { skip: `${state.fund.projectId} has ${classes.length} class(es); multi-class path not exercised` };
     const chosen = classes[0].name;
-    const result = await get(`/api/investment-allocation/detail?proj_id=${encodeURIComponent(state.fund.projectId)}&class_name=${encodeURIComponent(chosen)}`);
+    const result = await get(`/api/investment-allocation/detail/?proj_id=${encodeURIComponent(state.fund.projectId)}&class_name=${encodeURIComponent(chosen)}`);
     expectLiveJson(result, 'detail with class');
     expect(result.body.selectedClassName === chosen, `selected ${result.body.selectedClassName}`);
     expect(result.body.dealing === null || result.body.dealing.className === chosen, 'dealing borrowed from another class');
@@ -181,7 +181,7 @@ async function main() {
 
   await check('SEC profiles + risk-spectrum via /api/investment-allocation/funds', async () => {
     const query = state.fund?.abbreviation ?? 'SET';
-    const result = await get(`/api/investment-allocation/funds?q=${encodeURIComponent(query)}`);
+    const result = await get(`/api/investment-allocation/funds/?q=${encodeURIComponent(query)}`);
     expectLiveJson(result, 'funds');
     expect(result.body.mode === 'sec_live', `mode=${result.body.mode}`);
     expect(result.body.state !== 'unavailable' || result.body.funds.length === 0, 'inconsistent unavailable state');
@@ -194,7 +194,7 @@ async function main() {
   });
 
   await check('invalid input is rejected with uncached 400s', async () => {
-    for (const path of ['/api/investment-allocation/detail?proj_id=invalid', '/api/investment-allocation/catalog?category=invalid', '/api/investment-allocation/funds']) {
+    for (const path of ['/api/investment-allocation/detail/?proj_id=invalid', '/api/investment-allocation/catalog/?category=invalid', '/api/investment-allocation/funds/']) {
       const result = await get(path);
       expect(result.status === 400, `${path}: HTTP ${result.status}`);
       expect((result.headers.get('cache-control') ?? '').includes('no-store'), `${path}: cacheable error`);
@@ -205,7 +205,7 @@ async function main() {
     if (!flag('--check-rate-limit')) return { skip: 'pass --check-rate-limit to spend ~12 detail calls of SEC quota' };
     if (!state.fund) return { skip: 'no fund available' };
     for (let i = 0; i < 15; i += 1) {
-      const result = await get(`/api/investment-allocation/detail?proj_id=${encodeURIComponent(state.fund.projectId)}`);
+      const result = await get(`/api/investment-allocation/detail/?proj_id=${encodeURIComponent(state.fund.projectId)}`);
       if (result.status === 429) {
         expect(Number(result.headers.get('retry-after')) >= 1, 'missing Retry-After');
         expect(result.body?.error === 'rate_limited', '429 body');
