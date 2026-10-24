@@ -275,7 +275,11 @@ const ciResultSource = readFileSync(
   'utf8',
 );
 const ciConstantsSource = readFileSync(new URL('../features/ci-planning/calculator/constants.ts', import.meta.url), 'utf8');
-const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8');
+// Website v5 Phase B: /ci-planning/ renders features/ci-planning/v5 (asserted in website-v5-regression);
+// these Website 4.3 landing contracts now pin the retained, byte-identical 4.3 presentation plus the
+// unchanged metadata owner, so a rollback restores exactly what was reviewed.
+const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8') + '\n'
+  + readFileSync(new URL('../features/ci-planning/website-43/Website43CiPlanningPage.tsx', import.meta.url), 'utf8');
 const ciLandingSource = readFileSync(
   new URL('../features/ci-planning/components/CILandingIntro.tsx', import.meta.url),
   'utf8',

@@ -10,15 +10,16 @@ import { buildCcpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
 import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
 import { getPublicAuthorName } from "@/lib/content/author-identity";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
-import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
 import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED } from "../runtime-environment";
 
 const GA_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID ?? "") : "";
 const META_PIXEL_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "") : "";
 const GTM_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : "";
+// Website v5: three Kanit weights (400 body, 500 headings/UI, 600 calculator emphasis) in Thai + Latin,
+// none preloaded. Only the LCP face is preloaded: Thai 500, used by v5 headings through --font-kanit-critical.
 const kanit = Kanit({
   subsets: ["thai", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
   variable: "--font-kanit",
   display: "swap",
   preload: false,
@@ -26,7 +27,7 @@ const kanit = Kanit({
 
 const kanitCritical = Kanit({
   subsets: ["thai"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500"],
   variable: "--font-kanit-critical",
   display: "swap",
   preload: true,
@@ -50,7 +51,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {IS_WEB_REVIEW_ENVIRONMENT ? <meta name="darkreader-lock" /> : null}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
-        <Website43ResponsiveStyles />
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_FOUNDATION_CSS }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaGraph).replace(/</g, "\\u003c") }} />
       </head>

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { websiteV5PhaseBRenderGoldens } from '../qa/website-v5-phase-a-proof.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -42,7 +43,7 @@ const files = {
   moneyStory:'features/money-story/page.tsx',
   site:'components/layout/website-43/Website43Shared.tsx',
 };
-const serverNames = new Set(['V5Page','V5BlogIndex','V5Header','V5Footer','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
+const serverNames = new Set(['V5Page','V5BlogIndex','V5Header','V5Footer','V5CiPlanning','V5Fhc','V5MoneyStory','V5Privacy','V5CookiePolicy','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
 async function resolveServer(node) {
   if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
   if (!React.isValidElement(node)) return node;
@@ -67,7 +68,7 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
   ]);
   // Existing fixture loader intentionally does not load assets. Stable named CSS
   // projections retain class identity so a layout change changes these goldens.
-  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx','components/layout/v5/V5Page.tsx','components/layout/v5/V5Header.tsx','components/layout/v5/V5Footer.tsx','components/layout/v5/V5Primitives.tsx','components/layout/v5/V5LegacyBridge.tsx','features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5BlogSearch.tsx','features/blog/v5/V5GroupPager.tsx'])];
+  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx','components/layout/v5/V5Page.tsx','components/layout/v5/V5Header.tsx','components/layout/v5/V5Footer.tsx','components/layout/v5/V5Primitives.tsx','components/layout/v5/V5LegacyBridge.tsx','features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5BlogSearch.tsx','features/blog/v5/V5GroupPager.tsx','components/layout/v5/V5ToolParts.tsx','features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx','features/money-story/v5/V5MoneyStory.tsx','features/legal/v5/V5Privacy.tsx','features/legal/v5/V5CookiePolicy.tsx','features/blog/website-43/ArticleShareActions.tsx','features/blog/website-43/ArticleEngagement.tsx','features/blog/website-43/ArticleDetailAccess.tsx'])];
   for (const file of allFiles) {
     const source = sources.get(file) ?? readFileSync(file,'utf8');
     for (const [,id] of source.matchAll(/from ['"]([^'"]+\.(?:css|svg))['"]/g)) {
@@ -168,8 +169,10 @@ test('eight original scopes retain exact b871 public HTML, current design and si
       assert.equal(html.split(hint).length, 2, 'Blog emits the approved hint exactly once');
       html = html.replace(hint, '');
     }
+    // Website v5 Phase B: tool/legal scopes render the v5 shell; their reviewed v5 digest replaces the b871 golden.
+    if (Object.hasOwn(websiteV5PhaseBRenderGoldens.v5, index)) { assert.equal(digest(html), websiteV5PhaseBRenderGoldens.v5[index], `${index}:${scope} (v5)`); continue; }
     html = inverseCanonicalShellLinks(html, scope);
-    assert.equal(digest(html),baseline[index],`${index}:${scope}`);
+    assert.equal(digest(html),websiteV5PhaseBRenderGoldens.retained[index] ?? baseline[index],`${index}:${scope}`);
   }
   // v5 archive (plan T02): every published article is linked in the /blog/ HTML, ?q= is
   // preserved in the search field, and ?page= never creates another listing owner.

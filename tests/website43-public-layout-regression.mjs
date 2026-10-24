@@ -135,8 +135,10 @@ test('article metadata uses verified optimization date, consistent type and read
 });
 
 test('Kanit starts early without putting the whole font family on the critical path', () => {
-  assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["300", "400", "500", "600", "700"\][\s\S]*?display: "swap"[\s\S]*?preload: false/);
-  assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai"\][\s\S]*?weight: \["400", "500", "600", "700"\][\s\S]*?display: "swap"[\s\S]*?preload: true/);
+  // Website v5 Phase B (deliberate budget change): three weights for the v5 type scale and only the
+  // LCP face (Thai 500, v5 headings) preloaded. Previously five weights plus four preloaded Thai weights.
+  assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["400", "500", "600"\][\s\S]*?display: "swap"[\s\S]*?preload: false/);
+  assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai"\][\s\S]*?weight: \["500"\][\s\S]*?display: "swap"[\s\S]*?preload: true/);
   assert.match(layout, /className=\{`\$\{kanit\.variable\} \$\{kanitCritical\.variable\}`\}/);
   assert.doesNotMatch(layout, /const kanitCritical = Kanit\(\{[\s\S]*?weight: \[[^\]]*"300"/);
 });
@@ -146,8 +148,9 @@ test('the Home LCP image is preloaded alongside the bounded critical font budget
 });
 
 test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI use the new aligned tool shell', () => {
+  // Website v5 Phase B: routes render v5; these 4.3 shell contracts pin the retained 4.3 presentations.
   const fhc = read('features/financial-health-check/components/ClientFHC.tsx');
-  const ci = read('features/ci-planning/page.tsx');
+  const ci = read('features/ci-planning/website-43/Website43CiPlanningPage.tsx');
   const toolHero = read('components/layout/website-43/Website43ToolHero.tsx');
   assert.match(home, /Website43/);
   assert.match(blog, /Website43/);
@@ -247,7 +250,11 @@ test('Tool heroes keep text and CTA in native flow at portrait, landscape and ta
 });
 
 test('CI Planning keeps the TorYod project badge as secondary proof near the end of the tool page', () => {
-  const ci = read('features/ci-planning/page.tsx');
+  // Website v5 Phase B: retained 4.3 presentation; the v5 page keeps the same single badge after its disclaimer.
+  const ci = read('features/ci-planning/website-43/Website43CiPlanningPage.tsx');
+  const v5 = readFileSync('features/ci-planning/v5/V5CiPlanning.tsx', 'utf8');
+  assert.equal(v5.split('https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning').length - 1, 1);
+  assert.match(v5, /ci\.landing\.description12[\s\S]*?toryod\.co\/projects\//, 'v5 keeps TorYod after the tool disclaimer');
   const toryodProjectUrl = 'https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning';
 
   assert.equal(ci.split(toryodProjectUrl).length - 1, 1, 'TorYod project link appears exactly once');
@@ -322,8 +329,10 @@ test('Blog category filter is a compact publication-style dropdown with stable l
 });
 
 test('Privacy and Cookie Policy use the Production Website 4.3 shell while preserving legal and SEO contracts', () => {
-  const privacy = read('apps/web/app/privacy/page.tsx');
-  const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
+  // Website v5 Phase B: the routes and metadata owners are unchanged and now render the v5 legal pages;
+  // the 4.3 shell assertions pin the retained, byte-identical 4.3 legal presentations.
+  const privacy = read('apps/web/app/privacy/page.tsx') + '\n' + read('features/legal/website-43/Website43PrivacyPage.tsx');
+  const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx') + '\n' + read('features/legal/website-43/Website43CookiePolicyPage.tsx');
   const legalCss = read('components/layout/website-43/Website43Legal.module.css');
 
   for (const source of [privacy, cookiePolicy]) {

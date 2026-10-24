@@ -142,6 +142,9 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             {qualifications.length > 0 && <p className={styles.aboutIdentity}><strong>{displayName}</strong><span>{role}{primary?.identifier ? text("home.advisor.qualificationPrefix") + primary.identifier : ""}</span></p>}
             <div className={styles.aboutCopy}><p>{text.node("home.p")}</p><p>{text.node("home.p2")}</p><p>{text.node("home.p3")}</p></div>
             <p className={styles.advisorNote}>{text.node("home.advisorNote")}</p>
+            <div className={shell.buttonRow}>
+              <a className={shell.button} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer">{siteText.node("site.extra.a")}</a>
+            </div>
           </div>
         </div>
       </section>

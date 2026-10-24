@@ -1,0 +1,173 @@
+/*
+  Website v5 tool, legal and Investment pages (FigCraft review-v3 pages 07-11, 14).
+  Text-first heroes (no hero image, so the H1 is the LCP element), split calculator
+  stage, FAQ and info cards. Shares the tokens defined on the v5 shell root.
+*/
+.hero { padding-block: 56px 48px; background: var(--v5-bg-alt); }
+@media (min-width: 1024px) { .hero { padding-block: 96px 80px; } }
+.heroKicker { color: var(--v5-gold-text); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); margin-bottom: 14px; }
+.heroTitle { font-size: clamp(30px, 6vw, 48px); line-height: 1.3; max-width: 900px; }
+.heroTitle span { color: var(--v5-gold-text); }
+.heroSubtitle { font-size: clamp(20px, 3vw, 28px); line-height: 1.4; margin-top: 10px; }
+.heroLead { color: var(--v5-muted); font-size: clamp(16px, 1.7vw, 19px); line-height: 1.75; margin-top: 16px; max-width: 760px; }
+.heroMeta { color: var(--v5-muted); font-size: 14px; margin-top: 14px; }
+.heroChips { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 0; padding: 0; list-style: none; }
+.heroChips li { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--v5-border); color: var(--v5-text); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
+.heroBreadcrumbs { margin-bottom: 20px; }
+
+/* Two-column intro: heading left, story right. */
+.split { display: grid; gap: 24px 64px; }
+@media (min-width: 900px) { .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+.story { display: grid; gap: 14px; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
+.story p { margin: 0; }
+
+.infoGrid { display: grid; gap: 12px; margin-top: 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .infoGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.infoCard { padding: 20px; border-radius: 16px; background: var(--v5-card); border: 1px solid var(--v5-border-soft); }
+.sectionAltCard .infoCard, :global(.v5-alt) .infoCard { background: var(--v5-card-alt); }
+.infoCard h3 { font-size: 16px; line-height: 1.45; }
+.infoCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; margin-top: 8px; }
+.infoNum { display: block; color: var(--v5-gold-text); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); margin-bottom: 8px; }
+
+/* Calculator section: stage on the left, reading notes on the right (desktop). */
+.calcHeader { max-width: 760px; margin-bottom: 28px; }
+.calcGrid { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 1024px) { .calcGrid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 32px; } }
+.calcGridSolo { max-width: 780px; }
+.calcAside { display: grid; gap: 12px; }
+@media (min-width: 1024px) { .calcAside { position: sticky; top: 100px; } }
+.asideCard { padding: 20px 22px; border-radius: 18px; background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
+.asideCard h3 { font-size: 17px; }
+.asideCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; margin-top: 6px; }
+
+/* FAQ (native details: works without JS, server-rendered answers). */
+.faq { display: grid; gap: 10px; margin-top: 24px; }
+.faq details { border: 1px solid var(--v5-border); border-radius: 16px; background: var(--v5-card-alt); }
+.faq summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 14px 20px; cursor: pointer; list-style: none; font-size: 17px; font-weight: 500; font-family: var(--v5-font-display); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--v5-gold-text); font-size: 20px; line-height: 1; flex: none; }
+.faq details[open] summary::after { content: "–"; }
+.faq details p { padding: 0 20px 18px; color: var(--v5-muted); font-size: 15px; line-height: 1.75; }
+
+.note { color: var(--v5-muted); font-size: 14px; line-height: 1.75; margin-top: 24px; max-width: 900px; }
+.note a, .inlineLink { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; }
+.badgeRow { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 24px; }
+.badgeRow img { display: block; height: auto; max-width: 240px; }
+
+/* Guides block: tool page -> owner articles (internal linking). */
+.guides { margin-top: 0; }
+
+/*
+  Calculator theming scope. The reused calculators keep their markup, formulas and
+  analytics; this maps the 4.3 tokens and the Tailwind theme colours they read onto
+  the v5 tokens, so the same components follow the v5 dark and light themes.
+*/
+.calcScope {
+  --w43-deep: #251818;
+  --w43-bg: #352727;
+  --w43-surface: #4a3a3a;
+  --w43-border: #5b4848;
+  --w43-gold: #e0c985;
+  --w43-gold-bright: #ebd9a2;
+  --w43-ink: #faf9f9;
+  --w43-muted: #baabab;
+  min-width: 0;
+  font-family: var(--v5-font);
+}
+.calcScope [data-ui="human-centered-calculator-card"] { max-width: none; border-radius: 22px; padding: clamp(18px, 3vw, 28px); background: var(--v5-card-alt) !important; border-color: var(--v5-border-soft) !important; }
+.calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]), .calcScope select { border-radius: 14px; }
+.calcScope :focus-visible { outline: 3px solid var(--v5-gold); outline-offset: 2px; }
+
+:global(html[data-theme="light"]) .calcScope {
+  --w43-deep: #fffdf9;
+  --w43-bg: #f2ebe1;
+  --w43-surface: #e9dfd2;
+  --w43-border: #dccdb9;
+  --w43-gold: #7a5c14;
+  --w43-gold-bright: #5c430c;
+  --w43-ink: #251818;
+  --w43-muted: #5f4c4c;
+  --background: 36 50% 96%;
+  --foreground: 0 21% 12%;
+  --card: 36 100% 99%;
+  --card-foreground: 0 21% 12%;
+  --primary: 42 72% 28%;
+  --primary-foreground: 36 100% 99%;
+  --secondary: 34 30% 88%;
+  --secondary-foreground: 0 21% 12%;
+  --muted: 34 30% 88%;
+  --muted-foreground: 0 11% 34%;
+  --border: 34 32% 79%;
+  --input: 34 32% 79%;
+  --ring: 42 72% 28%;
+  --destructive: 0 62% 38%;
+  --color-background: hsl(36 50% 96%);
+  --color-foreground: hsl(0 21% 12%);
+  --color-card: hsl(36 100% 99%);
+  --color-card-foreground: hsl(0 21% 12%);
+  --color-primary: hsl(42 72% 28%);
+  --color-primary-foreground: hsl(36 100% 99%);
+  --color-secondary: hsl(34 30% 88%);
+  --color-muted: hsl(34 30% 88%);
+  --color-muted-foreground: hsl(0 11% 34%);
+  --color-border: hsl(34 32% 79%);
+  --color-input: hsl(34 32% 79%);
+  --color-ring: hsl(42 72% 28%);
+  --color-destructive: hsl(0 62% 38%);
+  /* White-alpha utilities (text-white/70, bg-white/5) become ink-alpha on cream. */
+  --color-white: #251818;
+  --color-gold-400: #7a5c14;
+  --color-gold-500: #7a5c14;
+  color: #251818;
+}
+:global(html[data-theme="light"]) .calcScope :global(.gold-button) { color: #fffdf9; background: #7a5c14; box-shadow: none; }
+:global(html[data-theme="light"]) .calcScope :global(.glass-button),
+:global(html[data-theme="light"]) .calcScope :global(.glass-card) { background: #fffdf9; color: #251818; border-color: #dccdb9; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:global(html[data-theme="light"]) .calcScope :global(.text-gold-gradient) { color: #7a5c14; background: none; -webkit-text-fill-color: currentColor; }
+:global(html[data-theme="light"]) .calcScope [role="progressbar"] { background: #dccdb9 !important; }
+:global(html[data-theme="light"]) .calcScope :global(.text-\[\#ffb4b4\]) { color: #9b1c1c; }
+
+/* Legal pages (FigCraft 10/11): table of contents + readable column. */
+.legalGrid { display: grid; gap: 32px; }
+@media (min-width: 1024px) { .legalGrid { grid-template-columns: 240px minmax(0, 720px); justify-content: center; gap: 56px; } }
+.toc { font-size: 14px; }
+.toc h2 { font-size: 15px; margin-bottom: 8px; }
+.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.toc a { display: inline-flex; align-items: center; min-height: 36px; color: var(--v5-muted); text-decoration: none; line-height: 1.5; }
+.toc a:hover { color: var(--v5-gold-text); }
+@media (min-width: 1024px) { .toc { position: sticky; top: 100px; align-self: start; } }
+@media (max-width: 1023px) { .toc { padding: 16px 20px; border: 1px solid var(--v5-border-soft); border-radius: 16px; background: var(--v5-card-alt); } }
+.legalBody { min-width: 0; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
+.legalBody > p:first-child { color: var(--v5-text); }
+.legalBody section { padding-block: 28px; border-top: 1px solid var(--v5-border-soft); scroll-margin-top: 96px; }
+.legalBody h2 { color: var(--v5-text); font-size: 20px; line-height: 1.45; margin-bottom: 12px; }
+.legalBody h3 { color: var(--v5-text); font-size: 17px; margin: 18px 0 8px; }
+.legalBody p + p, .legalBody p + ul, .legalBody ul + p { margin-top: 12px; }
+.legalBody ul { margin: 12px 0 0; padding-left: 1.25rem; display: grid; gap: 6px; }
+.legalBody li::marker { color: var(--v5-gold-text); }
+.legalBody strong { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); }
+.legalBody a { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.legalBody table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+.legalBody th, .legalBody td { text-align: left; vertical-align: top; padding: 10px 12px; border: 1px solid var(--v5-border-soft); }
+.legalBody th { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); background: var(--v5-card-alt); }
+.tableScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.legalBody button { min-height: 44px; }
+
+/*
+  Investment Allocation (FigCraft 14): the reused builders read the 4.3 token names
+  from their own module; the scope above maps them to v5 tokens in both themes.
+*/
+.iaScope :global(section) { scroll-margin-top: 96px; }
+
+/* Money Story (FigCraft 09): the game keeps its own module; this neutralises its page-root box. */
+.msWrap.msWrap { min-height: 0; overflow-x: visible; background: transparent; font-family: var(--v5-font); }
+
+/* Cookie categories (FigCraft 11). */
+.policyCard { margin-top: 14px; padding: 18px 20px; border-radius: 16px; background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
+.policyCard header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 12px; }
+.policyCard header > div { flex: 1 1 220px; min-width: 0; }
+.policyTag { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 12px; border-radius: 999px; border: 1px solid var(--v5-border); color: var(--v5-gold-text); font-size: 13px; font-weight: 500; font-family: var(--v5-font-display); }
+.policyCard header p { margin: 0; }
+.policyCard header p:first-child { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); }
+.policyCard table td:first-child { width: 9rem; color: var(--v5-text); }
+@media (max-width: 479px) { .policyCard table td:first-child { width: 6.5rem; } }

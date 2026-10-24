@@ -1,60 +1,59 @@
-/* CCPun Website 4.3: reuse the original gold/outline button primitives. */
-.outside { padding: 16px 24px; background: #251818; }
+/*
+  CCPun Website v5 countdown (FigCraft 06). Same markup, copy, deadline and analytics; v5 tokens with 4.3 fallbacks.
+  The 4.3 decorative artwork layer (and its high-priority 51 KB preload on /blog/) is dropped: v5 frames are flat.
+*/
+.outside { padding: 16px var(--v5-gutter, 24px); background: var(--v5-bg, #251818); }
 .frame {
   isolation: isolate; position: relative; overflow: hidden; width: min(1280px,100%); margin-inline: auto;
   display: grid; grid-template-columns: minmax(0,1.15fr) minmax(305px,1.15fr) minmax(205px,.70fr);
-  align-items: center; column-gap: clamp(14px,2vw,32px); padding: 18px 24px;
-  border: 1px solid #5b4848; border-left: 4px solid #c8102e; border-radius: 16px;
-  background: #352727; color: #faf9f9;
-}
-.frame::before {
-  position: absolute; z-index: -1; inset: 0; content: ''; opacity: .085;
-  background: url('../../../public/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp') center right / cover no-repeat;
-  pointer-events: none;
+  align-items: center; column-gap: clamp(14px,2vw,32px); padding: 22px 26px;
+  border: 1px solid var(--v5-border-soft, #5b4848); border-radius: 22px;
+  background: var(--v5-card, #352727); color: var(--v5-text, #faf9f9);
 }
 .info { min-width: 0; }
 .brandLine { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; line-height: 1.2; }
-.brandAia { color: #f04c68; font-size: 20px; font-weight: 700; }
-.brandName { font-size: clamp(19px,2vw,25px); font-weight: 700; letter-spacing: .01em; }
-.headline { margin: 6px 0 0; color: #faf9f9; font-size: 13px; line-height: 1.5; }
-.date { margin: 4px 0 0; color: #e0c985; font-size: clamp(23px,2.4vw,30px); font-weight: 700; line-height: 1.35; }
+.brandAia { color: #e0405c; font-size: 15px; font-weight: 500; letter-spacing: .02em; }
+.brandName { font-size: clamp(18px,1.8vw,22px); font-weight: 500; letter-spacing: .01em; font-family: var(--v5-font-display, inherit); }
+.headline { margin: 6px 0 0; color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.55; }
+.date { margin: 6px 0 0; color: var(--v5-gold-text, #e0c985); font-size: clamp(22px,2.3vw,28px); font-weight: 500; line-height: 1.35; font-family: var(--v5-font-display, inherit); }
 .date span { white-space: nowrap; }
 .timer {
-  display: flex; align-items: center; justify-content: center; min-width: 0; padding: 14px 12px;
-  border: 1px solid #e0c985; border-radius: 12px; background: rgba(37,24,24,.83);
+  display: flex; align-items: center; justify-content: center; min-width: 0; padding: 16px 12px;
+  border: 1px solid var(--v5-border-soft, #5b4848); border-radius: 16px; background: var(--v5-bg, #251818);
   font-variant-numeric: tabular-nums;
 }
 .timePart { display: flex; align-items: center; min-width: 0; flex: 1 1 0; }
 .timePart:first-child { flex: 1.1 1 0; }
 .timeUnit { display: flex; flex-direction: column; align-items: center; min-width: 0; flex: 1; }
-.numeral { color: #ebd9a2; font-size: clamp(25px,2.6vw,38px); font-weight: 600; line-height: 1.15; }
-.colon { color: #ebd9a2; font-size: 27px; font-weight: 600; transform: translateY(-7px); }
-.timeLabel { color: #baabab; font-size: 9px; letter-spacing: .06em; line-height: 1.5; }
+.numeral { color: var(--v5-text, #faf9f9); font-size: clamp(26px,2.6vw,36px); font-weight: 500; line-height: 1.15; font-family: var(--v5-font-display, inherit); }
+.colon { display: none; }
+.timeLabel { color: var(--v5-muted, #baabab); font-size: 13px; line-height: 1.6; margin-top: 2px; }
 .actions { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.actions a { width: 100%; min-width: 0; padding-inline: 12px; text-align: center; white-space: normal; }
-@media (min-width: 1101px) {
-  .frame { min-height: 150px; }
-  /* The short desktop frame samples only the artwork corner, excluding its logo and lettering. */
-  .frame::before { background-position: left top; background-size: auto 600%; }
+.actions a { width: 100%; min-width: 0; padding-inline: 14px; text-align: center; white-space: normal; }
+.primaryButton, .outlineButton {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 20px; border-radius: 999px;
+  font-size: 14px; font-weight: 500; line-height: 1.35; text-decoration: none; font-family: var(--v5-font-display, inherit);
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
+.primaryButton { background: var(--v5-gold, #e0c985); border: 1px solid var(--v5-gold, #e0c985); color: var(--v5-on-gold, #251818); }
+.primaryButton:hover { background: var(--v5-highlight, #ebd9a2); }
+.outlineButton { background: transparent; border: 1px solid var(--v5-border, #5b4848); color: var(--v5-text, #faf9f9); }
+.outlineButton:hover { border-color: var(--v5-gold, #e0c985); }
+@media (min-width: 1101px) { .frame { min-height: 150px; } }
 @media (max-width: 1100px) {
-  /* Keep embedded artwork text out of the two-row and mobile banner. */
-  .frame::before { background-position: left top; background-size: auto 400%; }
-  .frame { grid-template-columns: minmax(0,1fr) minmax(300px,1fr); row-gap: 12px; }
+  .frame { grid-template-columns: minmax(0,1fr) minmax(300px,1fr); row-gap: 14px; }
   .actions { grid-column: 1 / -1; flex-direction: row; }
   .actions a { flex: 1; }
 }
 @media (max-width: 650px) {
-  .outside { padding: 12px 16px; }
-  .frame { grid-template-columns: minmax(0,1fr); gap: 10px; padding: 15px; border-radius: 14px; }
-  .brandAia { font-size: 17px; }
-  .brandName { font-size: 20px; }
-  .headline { font-size: 12px; margin-top: 3px; }
-  .date { font-size: 26px; margin-top: 3px; }
-  .timer { padding: 9px 8px; }
-  .numeral { font-size: clamp(24px,8vw,35px); }
-  .timeLabel { font-size: 8px; }
-  .colon { font-size: 23px; }
-  .actions { grid-column: auto; display: grid; grid-template-columns: 1fr; gap: 7px; }
+  .outside { padding: 12px var(--v5-gutter, 16px); }
+  .frame { grid-template-columns: minmax(0,1fr); gap: 12px; padding: 18px; border-radius: 20px; }
+  .brandName { font-size: 19px; }
+  .headline { font-size: 13px; margin-top: 3px; }
+  .date { font-size: 24px; margin-top: 3px; }
+  .timer { padding: 12px 8px; }
+  .numeral { font-size: clamp(24px,8vw,32px); }
+  .timeLabel { font-size: 12px; }
+  .actions { grid-column: auto; display: grid; grid-template-columns: 1fr; gap: 8px; }
   .actions a { min-height: 48px; }
 }

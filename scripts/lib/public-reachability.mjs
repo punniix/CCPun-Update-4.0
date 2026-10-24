@@ -90,6 +90,12 @@ export const websiteV5RollbackRoots = Object.freeze([
   'features/blog/website-43/Website43Blog.tsx',
   'features/blog/website-43/Website43Article.tsx',
   'components/layout/website-43/Website43NotFound.tsx',
+  // Website v5 Phase B: the retained 4.3 tool and legal presentation (rollback target).
+  'features/ci-planning/website-43/Website43CiPlanningPage.tsx',
+  'features/money-story/website-43/Website43MoneyStoryPage.tsx',
+  'features/financial-health-check/components/ClientFHC.tsx',
+  'features/legal/website-43/Website43PrivacyPage.tsx',
+  'features/legal/website-43/Website43CookiePolicyPage.tsx',
 ]);
 export const reachable = walkReachable([...entryFiles, ...websiteV5RollbackRoots]);
 export const reachableSources = sourcesFor(reachable);

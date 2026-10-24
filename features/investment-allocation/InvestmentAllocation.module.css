@@ -253,3 +253,34 @@
 @media (prefers-reduced-motion: reduce) {
   .modeCard, .catalogSkeleton { transition: none; animation: none; }
 }
+
+/*
+  Website v5 skin (FigCraft 14, UAT prototype). Layout and behaviour are unchanged;
+  the page sits in the v5 shell, whose tool scope maps the --w43-* names used above
+  onto the v5 dark/light tokens. This block only aligns widths, rhythm, radii and
+  minimum type sizes with the v5 design system.
+*/
+.modeSection { padding: 56px var(--v5-gutter, 24px) 16px; background: var(--v5-bg, var(--w43-deep)); }
+.shell { padding: 24px var(--v5-gutter, 24px) 72px; background: var(--v5-bg, var(--w43-deep)); }
+.modeInner, .grid, .singleLayout, .singleResult, .singleResultLoading { width: min(1280px, 100%); }
+@media (min-width: 700px) { .modeSection, .shell { padding-inline: var(--v5-gutter, 40px); } }
+@media (min-width: 1040px) { .modeSection, .shell { padding-inline: var(--v5-gutter, 80px); } .summarySticky { top: 96px; } }
+.modeInner h2, .stepHeader h2, .summary h2, .singleResultHeader h2 { font-weight: 500; font-family: var(--v5-font-display, inherit); }
+.eyebrow { font-size: 14px; font-weight: 500; letter-spacing: .02em; text-transform: none; }
+.modeLead, .stepHeader p, .summaryIntro { font-size: 15px; }
+.builder, .summary { border-radius: 22px; background: var(--v5-card-alt, rgba(74,58,58,.42)); border-color: var(--v5-border-soft, var(--w43-border)); }
+.modeCard { border-radius: 20px; background: var(--v5-card-alt, rgba(74,58,58,.35)); }
+.modeCard strong, .categoryCard strong, .catalogMain h3 { font-weight: 500; }
+.modeBadge, .sourceBadge, .dataBadge { font-size: 12px; font-weight: 500; }
+.modeCard > span:last-child, .categoryCard span, .catalogAmc, .catalogAbbr, .fieldHint, .validation, .statusNotice, .fundTitle small, .fundFacts span,
+.allocationName small, .summaryRow, .resultPanel > p, .barLabel, .barValue, .factRows dt, .factRows dd, .assetFactHeader span, .specList span,
+.catalogMeta, .provenance, .unknownLine, .liquidityCard span, .deltaRow span, .selectedControl label, .riskCell span, .clearSearch { font-size: 13px; }
+.primary, .secondary, .ghost, .smallButton, .catalogChoose, .loadMore { border-radius: 999px; font-weight: 500; }
+.categoryCard, .catalogCard, .fundCard, .resultPanel, .optionalBox, .totalBox { border-radius: 16px; }
+.moneyInputWrap input, .searchInput, .amcSelect { border-radius: 14px; }
+.riskStatement, .warningList { font-size: 13px; }
+:global(html[data-theme="light"]) .warningList, :global(html[data-theme="light"]) .liveFundWarning { color: #7a4b00; }
+:global(html[data-theme="light"]) .validation[data-error="true"] { color: #9b1c1c; }
+:global(html[data-theme="light"]) :is(.allocationRow, .totalBox, .statusNotice, .fundCard, .optionalBox, .resultPanel, .categoryCard, .catalogCard, .liquidityCard, .riskCell, .catalogSkeleton) { background: #fffdf9; }
+:global(html[data-theme="light"]) :is(.categoryCard, .classCard, .modeCard)[data-active="true"] { background: rgba(122, 92, 20, .08); }
+:global(html[data-theme="light"]) :is(.barTrack, .progressTrack) { background: #e9dfd2; }

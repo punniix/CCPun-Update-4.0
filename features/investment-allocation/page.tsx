@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
-import { Website43Footer, Website43Navbar } from "@/components/layout/website-43/Website43Shared";
-import websiteStyles from "@/components/layout/website-43/Website43.module.css";
+import V5Page from "@/components/layout/v5/V5Page";
+import shell from "@/components/layout/v5/V5.module.css";
+import { V5ToolHero, v5ToolStyles } from "@/components/layout/v5/V5ToolParts";
 import motionStyles from "@/components/ui/FunctionalMotion.module.css";
 import InvestmentAllocationTool from "./InvestmentAllocationTool";
 import { INVESTMENT_NO_GUARANTEE_STATEMENT } from "./domain/copy";
-import styles from "./InvestmentAllocation.module.css";
 
 const URL = "https://ccpun.com/tools/investment-allocation/";
 const DESCRIPTION = "เลือกกองทุนด้วยตัวเอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ระดับความเสี่ยงเท่าไร และขายคืนแล้วรับเงินตามเงื่อนไขแบบไหน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ";
@@ -32,33 +32,32 @@ const schema = {
   author: { "@type": "Organization", name: "CCPun Financial Advisor", url: "https://ccpun.com" },
 };
 
+// Website v5 (FigCraft 14): same gate, metadata, schema and builders, inside the shared v5 shell.
+// The tool stays out of navigation and sitemaps while its flag is off in Production.
 export default function InvestmentAllocationPage() {
   if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
   return (
-    <main className={`${websiteStyles.root} ${motionStyles.scope}`}>
+    <V5Page>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <Website43Navbar />
-      <section className={styles.hero}>
-        <div className={styles.heroInner}>
-          <span className={styles.badge}>CCPun Investment</span>
-          <h1>คุณเลือกกองเอง<br /><span>ระบบช่วยให้เห็นว่าเงินอยู่ตรงไหน</span></h1>
-          <p className={styles.heroLead}>เริ่มง่ายด้วยกองเดียว หรือจัดหลายกองเอง แล้วดูข้อมูลกองทุนจาก ก.ล.ต. ทั้งประเภทกอง ระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ</p>
-          <div className={styles.heroProof} aria-label="ขอบเขตของเครื่องมือ">
-            <span>กองเดียวหรือหลายกอง</span><span>ข้อมูลจาก ก.ล.ต.</span><span>คุณเลือกกองเอง</span><span>ไม่มีการคาดการณ์ผลตอบแทน</span>
-          </div>
-          <a className={styles.heroAction} href="#investment-mode-title">เริ่มเลือกวิธีลงทุน</a>
+      <V5ToolHero
+        id="investment-hero-title"
+        kicker="CCPun Investment"
+        title={<>คุณเลือกกองเอง<br /><span>ระบบช่วยให้เห็นว่าเงินอยู่ตรงไหน</span></>}
+        lead="เริ่มง่ายด้วยกองเดียว หรือจัดหลายกองเอง แล้วดูข้อมูลกองทุนจาก ก.ล.ต. ทั้งประเภทกอง ระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ"
+        chips={["กองเดียวหรือหลายกอง", "ข้อมูลจาก ก.ล.ต.", "คุณเลือกกองเอง", "ไม่มีการคาดการณ์ผลตอบแทน"]}
+        cta={{ href: "#investment-mode-title", label: "เริ่มเลือกวิธีลงทุน" }}
+      />
+      <div className={`${v5ToolStyles.calcScope} ${v5ToolStyles.iaScope} ${motionStyles.scope}`}>
+        <InvestmentAllocationTool />
+      </div>
+      <section className={shell.sectionAlt} aria-labelledby="investment-scope-title">
+        <div className={`${shell.inner} ${shell.narrow}`}>
+          <h2 id="investment-scope-title" className={shell.h2}>เครื่องมือนี้ช่วยอธิบาย ไม่ได้ตัดสินใจแทน</h2>
+          <p className={shell.lead}>ผลลัพธ์มาจากจำนวนเงินและกองทุนที่คุณเลือกเอง ระบบแสดงระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขขายคืนแยกกัน โดยไม่ตัดสินว่ากองใดเหมาะกับคุณหรือควรซื้อขายกองไหน</p>
+          <p className={shell.lead}>ถ้าข้อมูลบางส่วนยังไม่พร้อม ระบบจะแจ้งตรง ๆ และจะไม่เติมข้อมูลหรือเดาแทนข้อมูลจาก ก.ล.ต.</p>
+          <p className={shell.lead}>{INVESTMENT_NO_GUARANTEE_STATEMENT}</p>
         </div>
       </section>
-      <InvestmentAllocationTool />
-      <section className={styles.legalSection} aria-label="ขอบเขตข้อมูล">
-        <div className={styles.legalInner}>
-          <h2>เครื่องมือนี้ช่วยอธิบาย ไม่ได้ตัดสินใจแทน</h2>
-          <p>ผลลัพธ์มาจากจำนวนเงินและกองทุนที่คุณเลือกเอง ระบบแสดงระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขขายคืนแยกกัน โดยไม่ตัดสินว่ากองใดเหมาะกับคุณหรือควรซื้อขายกองไหน</p>
-          <p>ถ้าข้อมูลบางส่วนยังไม่พร้อม ระบบจะแจ้งตรง ๆ และจะไม่เติมข้อมูลหรือเดาแทนข้อมูลจาก ก.ล.ต.</p>
-          <p>{INVESTMENT_NO_GUARANTEE_STATEMENT}</p>
-        </div>
-      </section>
-      <Website43Footer warnings />
-    </main>
+    </V5Page>
   );
 }

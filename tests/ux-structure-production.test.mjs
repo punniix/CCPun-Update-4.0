@@ -1,4 +1,5 @@
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
+import { isWebsiteV5ReviewedSuccessor } from '../qa/website-v5-phase-a-proof.mjs';
 import { websiteV5CopyPredecessor, websiteV5PredecessorDigest } from '../qa/website-v5-phase-a-proof.mjs';
 import './article-overview-rendering.test.mjs';
 import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
@@ -480,6 +481,9 @@ test('all39 approved source records retain provenance with exact reviewed Articl
       continue;
     }
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
+    // Website v5 Phase B: the countdown stylesheet is an exact reviewed v5 successor (flat v5 frame, no
+    // decorative artwork layer); its frozen predecessor digest stays recorded in qa/website-v5-phase-a-proof.mjs.
+    if (isWebsiteV5ReviewedSuccessor(file, read(file))) continue;
     const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
     if (file === 'apps/web/static-images.d.ts') {
       assert.equal(digest, 'fe57bd015bfec7883efee95cfa98ec8ffd4806c505c4a9ad3ccacc6275ac5579');

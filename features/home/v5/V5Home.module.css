@@ -3,12 +3,12 @@
 @media (min-width: 1024px) { .hero { padding-block: 72px 96px; } }
 .heroGrid { display: grid; gap: 28px; align-items: center; }
 @media (min-width: 900px) { .heroGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: 48px; } }
-.heroEyebrow { color: var(--v5-gold-text); font-size: 14px; font-weight: 500; line-height: 1.6; }
+.heroEyebrow { color: var(--v5-gold-text); font-size: 14px; font-weight: 500; line-height: 1.6; font-family: var(--v5-font-display); }
 .heroTitle { margin-top: 14px; font-size: clamp(30px, 5.6vw, 50px); line-height: 1.3; }
 .heroTitle em { font-style: normal; color: var(--v5-gold-text); }
 .heroBody { margin-top: 18px; color: var(--v5-muted); font-size: clamp(16px, 1.7vw, 19px); line-height: 1.75; max-width: 620px; }
 .credentials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; margin-top: 28px; padding: 18px 20px; border-radius: 18px; border: 1px solid var(--v5-border); background: var(--v5-bg); }
-.credentials dt { font-size: 14px; font-weight: 500; }
+.credentials dt { font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
 .credentials dd { margin: 2px 0 0; color: var(--v5-muted); font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
 .portrait { position: relative; overflow: hidden; border-radius: 24px; aspect-ratio: 4 / 3.3; background: var(--v5-surface); box-shadow: var(--v5-shadow); }
 .portrait img { object-fit: cover; object-position: 58% 30%; }
@@ -26,26 +26,26 @@
 @media (min-width: 1024px) { .partners { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .partner { display: grid; justify-items: center; gap: 8px; padding: 14px 10px; border-radius: 16px; background: #fffdf9; border: 1px solid rgba(91, 72, 72, 0.18); color: #352727; text-align: center; }
 .partner img { width: auto; max-width: 100%; height: 40px; object-fit: contain; }
-.partner strong { font-size: 13px; font-weight: 500; }
+.partner strong { font-size: 13px; font-weight: 500; font-family: var(--v5-font-display); }
 .partner span { font-size: 12px; color: #5f4c4c; line-height: 1.4; }
 
 .quotes { display: grid; gap: 16px; margin-top: 32px; }
 @media (min-width: 900px) { .quotes { grid-template-columns: 1.25fr 1fr; gap: 20px; } }
 .quote { margin: 0; padding: 28px; border-radius: var(--v5-radius); background: var(--v5-card); border: 1px solid var(--v5-border-soft); }
-.quote blockquote { margin: 0; font-size: 18px; line-height: 1.7; font-weight: 500; }
+.quote blockquote { margin: 0; font-size: 18px; line-height: 1.7; font-weight: 500; font-family: var(--v5-font-display); }
 .quote blockquote::before { content: "“"; }
 .quote blockquote::after { content: "”"; }
-.quote figcaption { margin-top: 16px; color: var(--v5-gold-text); font-size: 14px; font-weight: 500; }
+.quote figcaption { margin-top: 16px; color: var(--v5-gold-text); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
 .quote figcaption::before { content: "— "; }
 
 .about { display: grid; gap: 28px; align-items: start; }
 @media (min-width: 900px) { .about { grid-template-columns: minmax(240px, 400px) minmax(0, 1fr); gap: 56px; } }
 .aboutPortrait { width: 100%; height: auto; border-radius: 24px; aspect-ratio: 4 / 5; object-fit: cover; object-position: top; background: var(--v5-surface); max-width: 400px; }
 .aboutIdentity { margin-top: 14px; }
-.aboutIdentity strong { display: block; font-size: 18px; font-weight: 500; }
+.aboutIdentity strong { display: block; font-size: 18px; font-weight: 500; font-family: var(--v5-font-display); }
 .aboutIdentity span { color: var(--v5-muted); font-size: 14px; }
 .aboutCopy { display: grid; gap: 14px; margin-top: 18px; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
-.advisorNote { margin-top: 20px; padding: 18px 20px; border-left: 3px solid var(--v5-gold); background: var(--v5-card); border-radius: 0 14px 14px 0; font-weight: 500; }
+.advisorNote { margin-top: 20px; padding: 18px 20px; border-left: 3px solid var(--v5-gold); background: var(--v5-card); border-radius: 0 14px 14px 0; font-weight: 500; font-family: var(--v5-font-display); }
 
 .tools { display: grid; gap: 14px; margin-top: 28px; }
 @media (min-width: 640px) { .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -56,17 +56,17 @@
 .toolCard h3 a { text-decoration: none; }
 .toolCard h3 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .toolCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; }
-.toolCard span { margin-top: auto; color: var(--v5-gold-text); font-weight: 500; font-size: 14px; }
+.toolCard span { margin-top: auto; color: var(--v5-gold-text); font-weight: 500; font-size: 14px; font-family: var(--v5-font-display); }
 
 .guides { display: grid; gap: 14px; margin-top: 28px; }
 @media (min-width: 900px) { .guides { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
-.topicsLabel { margin-top: 28px; margin-bottom: 10px; color: var(--v5-muted); font-size: 14px; font-weight: 500; }
+.topicsLabel { margin-top: 28px; margin-bottom: 10px; color: var(--v5-muted); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
 
 .faq { display: grid; gap: 24px; }
 @media (min-width: 900px) { .faq { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; } }
 .faqList { display: grid; gap: 10px; }
 .faqItem { border-radius: 16px; background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
-.faqItem > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 14px 20px; cursor: pointer; font-size: 17px; font-weight: 500; list-style: none; }
+.faqItem > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 14px 20px; cursor: pointer; font-size: 17px; font-weight: 500; list-style: none; font-family: var(--v5-font-display); }
 .faqItem > summary::-webkit-details-marker { display: none; }
 .faqItem > summary::after { content: "+"; color: var(--v5-gold-text); font-size: 20px; line-height: 1; }
 .faqItem[open] > summary::after { content: "–"; }

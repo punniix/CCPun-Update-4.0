@@ -9,6 +9,7 @@ import { selectRelatedArticles } from "../features/blog/v5/related";
 import { resolveHubTools, resolveNextSteps } from "../features/blog/v5/next-step";
 import { listFallbackTopics, listLinkableTopics, HOME_CORE_GUIDE_SLUGS, TOPIC_CLUSTER_PILLARS } from "../lib/content/topic-navigation";
 import { buildCategoryRegistry } from "../lib/content/category-registry";
+import { listToolGuides, TOOL_GUIDE_TOPICS } from "../components/layout/v5/tool-guides";
 
 const read = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 const v5Files = [
@@ -160,4 +161,91 @@ test("Protected URL layer is untouched by v5 routes", () => {
   for (const file of v5Files.filter((name) => name.endsWith(".tsx"))) {
     assert.doesNotMatch(read(file), /\/v2\/|href="https:\/\/ccpun\.com\//, `${file}: no /v2/ paths or absolute self links`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Website v5 Phase B: tool, legal and Investment pages, single shell, performance budget.
+// ---------------------------------------------------------------------------
+
+// Phase B keeps every route file and metadata owner; the existing render owners render v5.
+const phaseBOwners: Record<string, [string, string]> = {
+  "features/ci-planning/page.tsx": ["renderCiPlanningPage", "@/features/ci-planning/v5/V5CiPlanning"],
+  "features/financial-health-check/page.tsx": ["renderFinancialHealthCheckPage", "@/features/financial-health-check/v5/V5Fhc"],
+  "features/money-story/page.tsx": ["renderMoneyStoryPage", "./v5/V5MoneyStory"],
+  "features/legal/pages/PrivacyPage.tsx": ["renderPrivacyPage", "@/features/legal/v5/V5Privacy"],
+  "features/legal/pages/CookiePolicyPage.tsx": ["renderCookiePolicyPage", "@/features/legal/v5/V5CookiePolicy"],
+};
+
+test("Phase B: every public page renders the single v5 shell and none imports Website 4.3 code or styles", () => {
+  for (const [owner, [render, renderer]] of Object.entries(phaseBOwners)) {
+    const source = read(owner);
+    assert.equal((source.match(new RegExp(`export async function ${render}\\(`, "g")) ?? []).length, 1, `${owner}: one reusable render owner (also used by the Admin preview)`);
+    assert.ok(source.includes(`from '${renderer}'`) || source.includes(`from "${renderer}"`), `${owner} renders ${renderer}`);
+    assert.doesNotMatch(source, /website-43|Website43/, `${owner}: no 4.3 shell, footer or stylesheet`);
+    assert.match(source, /metadata: Metadata = \{/, `${owner}: metadata stays with its existing owner`);
+    const rendererSource = read(`${renderer.replace("@/", "").replace("./", owner.replace(/page\.tsx$/, ""))}.tsx`);
+    assert.match(rendererSource, /<V5Page\b/, `${renderer} uses the shared v5 page frame (header + one footer)`);
+    assert.doesNotMatch(rendererSource, /website-43|Website43/, `${renderer}: no 4.3 shell, footer or stylesheet`);
+  }
+  for (const route of ["apps/web/app/ci-planning/page.tsx", "apps/web/app/tools/financial-health-check/page.tsx", "apps/web/app/play/money-story/page.tsx"]) {
+    assert.match(read(route), /resolvePageSeoMetadata\(/, `${route}: route-level SEO resolution is unchanged`);
+  }
+  assert.match(read("features/investment-allocation/page.tsx"), /<V5Page>/);
+  assert.doesNotMatch(read("apps/web/app/layout.tsx"), /Website43ResponsiveStyles|website-43/, "the 4.3 stylesheet no longer ships in the root layout");
+  for (const widget of ["components/ui/health-happy/HealthHappyCountdown.tsx", "features/blog/website-43/ArticleShareActions.tsx", "features/blog/website-43/ArticleEngagement.tsx", "features/blog/website-43/ArticleDetailAccess.tsx", "components/layout/v5/V5LegacyBridge.tsx"]) {
+    assert.doesNotMatch(read(widget), /website-43\/Website43\.module\.css/, `${widget}: widget styles no longer pull the 68 KB 4.3 module into every v5 page`);
+  }
+});
+
+test("Phase B: tool pages keep calculators, JSON-LD and analytics owners; CI links to its guides", () => {
+  const ci = read("features/ci-planning/v5/V5CiPlanning.tsx");
+  for (const marker of ["<CIWizard />", "<CiLandingViewTracker />", "'@type': 'FAQPage'", "'@type': 'WebApplication'", "'@type': 'BreadcrumbList'", "id=\"ci-calculator\"", "listToolGuides('ci'"]) assert.ok(ci.includes(marker), `CI v5 keeps ${marker}`);
+  const tracker = read("features/ci-planning/v5/CiLandingViewTracker.tsx");
+  assert.match(tracker, /landingTrackedRef\.current \|\| !getConsentData\(\)\?\.analytics/);
+  assert.match(tracker, /trackEvent\('ci_landing_view', \{\n\s+tool_name: 'ci_planning',\n\s+cta_location: 'ci_landing',\n\s+calculator_version: CI_ASSESSMENT_VERSION,\n\s+\}\)/);
+  const fhc = read("features/financial-health-check/v5/V5Fhc.tsx");
+  for (const marker of ["<LifeCoverageWizard />", "getFhcFaqs(t)", "id=\"fhc-calculator\"", "href=\"/ci-planning/\""]) assert.ok(fhc.includes(marker), `FHC v5 keeps ${marker}`);
+  assert.match(read("features/money-story/v5/V5MoneyStory.tsx"), /<MoneyStoryGame showSeed=\{IS_REVIEW_ENVIRONMENT\}/);
+
+  const guides = listToolGuides("ci", corpus).map((item) => item.slug);
+  assert.deepEqual(guides, ["critical-illness-insurance"], "CI tool lists CI owners only; AIA Health CI Hero (health) is never a CI guide");
+  assert.equal(listToolGuides("fhc", corpus)[0].slug, "pension-insurance-guide", "life pillar first");
+  assert.ok(listToolGuides("fhc", corpus).every((item) => ["life-insurance", "personal-finance"].includes(item.semanticTopic ?? "")));
+  assert.equal(listToolGuides("moneyStory", corpus)[0].slug, "financial-pyramid", "personal-finance pillar first");
+  assert.ok(listToolGuides("fhc", corpus).length <= 3);
+  assert.deepEqual([...TOOL_GUIDE_TOPICS.ci], ["critical-illness-insurance"]);
+  assert.deepEqual(listToolGuides("ci", [...corpus, article("ci-hidden", "critical-illness-insurance", "critical-illness-insurance", "2026-10-21T00:00:00Z", { noindex: true })]).map((item) => item.slug), ["critical-illness-insurance"], "noindex articles are never linked");
+});
+
+test("Phase B: legal pages keep their copy scope, anchors and trailing-slash links; consent stays reachable", () => {
+  const privacy = read("features/legal/v5/V5Privacy.tsx");
+  const cookies = read("features/legal/v5/V5CookiePolicy.tsx");
+  assert.match(privacy, /getPublicCopy\("privacy"\)/);
+  assert.match(cookies, /getPublicCopy\("cookies"\)/);
+  assert.match(privacy, /href="\/cookie-policy\/"/);
+  assert.match(cookies, /href="\/privacy\/"/);
+  assert.match(cookies, /ccpun_cookie_consent \(localStorage\)/, "cookie inventory names are unchanged");
+  for (const source of [privacy, cookies]) assert.match(source, /SECTIONS\.map\(\(\[id, key\]\) => <li key=\{id\}><a href=\{`#\$\{id\}`\}>/, "table of contents links to in-page anchors");
+});
+
+test("Phase B: Investment Allocation stays gated, noindex outside an enabled non-review lane, and out of the v5 nav", () => {
+  const page = read("features/investment-allocation/page.tsx");
+  assert.match(page, /if \(!INVESTMENT_ALLOCATION_ENABLED\) notFound\(\);/);
+  assert.match(page, /robots: !INVESTMENT_ALLOCATION_ENABLED \|\| IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \}/);
+  for (const file of ["components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx", "components/layout/v5/constants.ts", "features/home/v5/V5Home.tsx"]) {
+    assert.doesNotMatch(read(file), /investment-allocation/, `${file}: the flag-gated tool is not linked while Production keeps it off`);
+  }
+});
+
+test("Phase B performance budget: three Kanit weights, one preloaded LCP face, text-first tool heroes", () => {
+  const layout = read("apps/web/app/layout.tsx");
+  assert.match(layout, /subsets: \["thai", "latin"\],\n  weight: \["400", "500", "600"\],\n  variable: "--font-kanit",\n  display: "swap",\n  preload: false,/);
+  assert.match(layout, /subsets: \["thai"\],\n  weight: \["500"\],\n  variable: "--font-kanit-critical",\n  display: "swap",\n  preload: true,/);
+  assert.equal((layout.match(/preload: true/g) ?? []).length, 1, "exactly one preloaded font face");
+  const parts = read("components/layout/v5/V5ToolParts.tsx");
+  assert.doesNotMatch(parts, /next\/image|<img/, "tool heroes have no image, so the H1 is the LCP element");
+  const countdown = read("components/ui/health-happy/HealthHappyCountdown.tsx");
+  assert.doesNotMatch(countdown, /preload\(/, "the decorative countdown artwork no longer competes with the /blog/ LCP image");
+  assert.match(countdown, /trackEvent\('health_happy_countdown_view'/);
+  assert.match(countdown, /trackEvent\('health_happy_countdown_click'/);
 });

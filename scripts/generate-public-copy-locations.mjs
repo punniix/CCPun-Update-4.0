@@ -32,7 +32,9 @@ const PAGE_FILES = {
     "apps/web/app/layout.tsx",
   ],
   home: ["features/home/v5/V5Home.tsx", "features/home/website-43/Website43Home.tsx"],
+  // Website v5 Phase B: the v5 renderer is what visitors meet first; 4.3 files stay listed as rollback.
   ci: [
+    "features/ci-planning/v5/V5CiPlanning.tsx",
     "features/ci-planning/page.tsx",
     "features/ci-planning/components/CILandingIntro.tsx",
     "features/ci-planning/components/CIWizard.tsx",
@@ -45,6 +47,7 @@ const PAGE_FILES = {
     "features/ci-planning/result-image.ts",
   ],
   fhc: [
+    "features/financial-health-check/v5/V5Fhc.tsx",
     "features/financial-health-check/page.tsx",
     "features/financial-health-check/components/FHCLandingIntro.tsx",
     "features/financial-health-check/components/ClientFHC.tsx",
@@ -71,9 +74,10 @@ const PAGE_FILES = {
     "features/blog/website-43/ArticleDetailAccess.tsx",
     "features/blog/website-43/blogData.ts",
   ],
-  privacy: ["features/legal/pages/PrivacyPage.tsx"],
-  cookies: ["features/legal/pages/CookiePolicyPage.tsx"],
+  privacy: ["features/legal/v5/V5Privacy.tsx", "features/legal/pages/PrivacyPage.tsx"],
+  cookies: ["features/legal/v5/V5CookiePolicy.tsx", "features/legal/pages/CookiePolicyPage.tsx"],
   moneyStory: [
+    "features/money-story/v5/V5MoneyStory.tsx",
     "features/money-story/page.tsx",
     "features/money-story/components/MoneyStoryScreens.tsx",
     "features/money-story/components/MoneyStoryGame.tsx",
@@ -91,6 +95,11 @@ const FILE_SECTIONS = {
   "features/blog/v5/V5Category.tsx": "หน้าหมวดหมู่บทความ",
   "features/blog/v5/V5Article.tsx": "หน้าอ่านบทความ",
   "features/blog/v5/V5ArticleBody.tsx": "หน้าอ่านบทความ · เนื้อหา",
+  "features/ci-planning/v5/V5CiPlanning.tsx": "หน้าวางแผนทุนโรคร้ายแรง",
+  "features/financial-health-check/v5/V5Fhc.tsx": "หน้าตรวจสุขภาพการเงิน",
+  "features/money-story/v5/V5MoneyStory.tsx": "หน้าเกม Money Story",
+  "features/legal/v5/V5Privacy.tsx": "หน้านโยบายความเป็นส่วนตัว",
+  "features/legal/v5/V5CookiePolicy.tsx": "หน้านโยบายคุกกี้",
   "components/layout/website-43/Website43Navbar.tsx": "เมนูด้านบน",
   "components/layout/website-43/Website43Shared.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
   "features/home/website-43/Website43HomeStatic.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",

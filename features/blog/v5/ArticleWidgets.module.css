@@ -1,0 +1,37 @@
+/*
+  Website v5 skin for the shared article widgets (reading time, share controls,
+  table scroll access). Their markup, behaviour and analytics stay in the existing
+  components; only the stylesheet moved off the 68 KB Website 4.3 module.
+*/
+.articleReadingTime { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--v5-muted, #baabab); font-size: 14px; line-height: 22px; }
+.articleReadingTime > span { white-space: nowrap; }
+.articleReadingTime b { color: var(--v5-text, #faf9f9); font-weight: 500; }
+.articleReadingEstimate { white-space: nowrap; }
+.articleShareControls { position: relative; display: inline-flex; align-items: center; gap: 10px; max-width: 100%; }
+.articleShareLabel { display: none; }
+.articleShareButtons { display: flex; align-items: center; gap: 8px; }
+.articleShareButton { display: inline-flex; width: 44px; height: 44px; min-width: 44px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--v5-border, #5b4848); border-radius: 999px; background: transparent; color: var(--v5-gold-text, #e0c985); cursor: pointer; transition: border-color 160ms ease, background-color 160ms ease; }
+.articleShareButton svg { width: 18px; height: 18px; }
+.articleShareButton:disabled { cursor: wait; opacity: .65; }
+@media (hover: hover) and (pointer: fine) { .articleShareButton:hover { border-color: var(--v5-gold, #e0c985); background: rgba(224, 201, 133, .08); } }
+.articleShareButton:focus-visible { outline: 3px solid var(--v5-gold, #e0c985); outline-offset: 2px; }
+.articleShareStatus { position: absolute; z-index: 2; top: 100%; left: 0; max-width: min(320px, calc(100vw - 48px)); color: var(--v5-gold-text, #e0c985); font-size: 13px; white-space: normal; }
+@media (max-width: 639px) { .articleReadingEstimate { flex-basis: 100%; } }
+
+.articleTableViewport { display: contents; }
+.articleTableTrack { display: none; }
+.articleTableWrap { width: 100%; margin: 28px 0; overflow-x: auto; border-radius: 16px; }
+.articleTableWrap:focus-visible { outline: 3px solid var(--v5-gold, #e0c985); outline-offset: 3px; }
+.tableHint { color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.6; }
+@media (max-width: 767px) {
+  .articleTableWrap { scrollbar-width: thin; scrollbar-color: var(--v5-gold, #e0c985) var(--v5-border, #5b4848); }
+  .articleTableViewport { display: block; position: relative; container-type: inline-size; margin: 28px 0; }
+  .articleTableViewport .articleTableWrap { margin: 0; }
+  .articleTableViewport[data-overflow='true']:not([data-scroll-end='true'])::after { content: ''; position: absolute; inset: 0 0 4px auto; width: 24px; border-radius: 0 16px 16px 0; background: linear-gradient(to right, transparent, var(--v5-bg, #251818)); pointer-events: none; }
+  .articleTableTrack { display: block; position: relative; height: 4px; margin-top: 4px; overflow: hidden; border-radius: 4px; background: var(--v5-border, #5b4848); }
+  .articleTableTrack > span { display: block; position: absolute; inset-block: 0; border-radius: 4px; background: var(--v5-gold, #e0c985); }
+  .articleTableWrap::-webkit-scrollbar { height: 4px; }
+  .articleTableWrap::-webkit-scrollbar-track { background: var(--v5-border, #5b4848); }
+  .articleTableWrap::-webkit-scrollbar-thumb { background: var(--v5-gold, #e0c985); border-radius: 4px; }
+  .tableHint { display: none; }
+}

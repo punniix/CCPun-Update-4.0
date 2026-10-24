@@ -2,7 +2,7 @@
 import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
 import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import styles from '@/components/layout/website-43/Website43.module.css';
+import styles from '@/features/blog/v5/ArticleWidgets.module.css';
 export function ArticleTableAccess({ children, stickyFirstColumn = false, columnCount = 2 }: { children: ReactNode; stickyFirstColumn?: boolean; columnCount?: number }) {
   const copyText = usePublicCopy(BLOG_COPY_DEFAULTS);
 

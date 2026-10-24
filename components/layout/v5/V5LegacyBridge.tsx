@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
-import w43 from "@/components/layout/website-43/Website43.module.css";
 import styles from "./V5.module.css";
 
-/** Hosts a reused Website 4.3 widget inside a v5 page without re-implementing its behaviour or analytics. */
+/**
+ * Hosts a reused widget (countdown, share/engagement, table access) inside a v5 page without
+ * re-implementing its behaviour or analytics. Phase B moved those widgets off the Website 4.3
+ * stylesheet, so the bridge only maps the legacy token names onto v5 tokens.
+ */
 export default function V5LegacyBridge({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`${w43.root} ${styles.compat} ${className}`.trim()}>{children}</div>;
+  return <div className={`${styles.compat} ${className}`.trim()}>{children}</div>;
 }

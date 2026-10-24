@@ -251,8 +251,10 @@ const fhcLanding = read('features/financial-health-check/components/FHCLandingIn
 assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
-const privacyPolicy = read('apps/web/app/privacy/page.tsx');
+// Website v5 Phase B: the unchanged legal routes render the v5 legal pages; disclosures are asserted on the
+// active v5 renderer (same copy keys) together with the route and its metadata owner.
+const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx') + '\n' + read('features/legal/v5/V5CookiePolicy.tsx');
+const privacyPolicy = read('apps/web/app/privacy/page.tsx') + '\n' + read('features/legal/v5/V5Privacy.tsx');
 const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);

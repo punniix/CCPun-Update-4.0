@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { loadFixtureModule } from './phase1-fixture-loader.mjs';
 import { adminPhase1PredecessorDigest } from './admin-phase1-quick-wins-proof.mjs';
-import { isWebsiteV5ReviewedSuccessor, websiteV5CopyPredecessor } from './website-v5-phase-a-proof.mjs';
+import { isWebsiteV5RetainedSource, isWebsiteV5ReviewedSuccessor, websiteV5CopyPredecessor, websiteV5RendererSources } from './website-v5-phase-a-proof.mjs';
 
 // Exact b871b734 -> 05370957 same-word CMS capability admission. Historical
 // manifests and rendered/metadata/action goldens are deliberately unchanged.
@@ -337,8 +337,10 @@ function allDefaults() {
 // only a constant registered default. Expressions, order, routes, aria and math
 // remain in the inspected candidate source. No baseline source is substituted.
 export function productionCmsDisplaySource(file, source = read(file)) {
-  if (!hasProductionCmsOwner(file)) return source;
-  assertProductionCmsOwner(file,source);
+  // Website v5 Phase B: an exact retained 4.3 presentation reads like its original owner.
+  const retained = isWebsiteV5RetainedSource(file, source) || websiteV5RendererSources.includes(file);
+  if (!hasProductionCmsOwner(file) && !retained) return source;
+  if (!retained) assertProductionCmsOwner(file,source);
   const legalOwners = {"apps/web/app/privacy/page.tsx":"features/legal/pages/PrivacyPage.tsx","apps/web/app/cookie-policy/page.tsx":"features/legal/pages/CookiePolicyPage.tsx"};
   if(Object.hasOwn(legalOwners,file)) return source+"\n"+productionCmsDisplaySource(legalOwners[file]);
   const values = allDefaults();
