@@ -25,7 +25,6 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
   ] },
   { href: "/seo/", label: "SEO", permission: "seo:read", children: [
       { href: "/seo/opportunities/", label: "โอกาสพัฒนา" },
-      { href: "/seo/audits/", label: "ผลตรวจ" },
   ] },
   { href: "/social/", label: "โซเชียล", permission: "social:read", children: [
       { href: "/social/posts/", label: "โพสต์" },
@@ -34,6 +33,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
       { href: "/social/accounts/", label: "บัญชีที่เชื่อมต่อ" },
   ] },
   { href: "/analytics/", label: "ผลลัพธ์", permission: "dashboard:read", children: [
+      { href: "/analytics/performance/", label: "บทความที่ได้ผล & สิ่งที่ควรทำ", permission: "settings:read" },
       { href: "/analytics/search/", label: "ผลการค้นหา" },
       { href: "/analytics/social/", label: "ผลลัพธ์โซเชียล" },
       { href: "/analytics/conversions/", label: "เส้นทางลูกค้า" },
@@ -88,7 +88,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     navItems={navItems}
     showInbox={hasAdminPermission(role, "advisor:read") && isAdminCapabilityPathAllowed("/dashboard/inbox/", capabilityProfile)}
     inboxLabel="ลูกค้า LINE"
-    studioLabel="Sanity Studio"
+    studioLabel="แก้เนื้อหา"
     showLogout={Boolean(session?.user)}
     logout={logout}
     safety={capabilityProfile === "editorial" && (environment === "production-admin" || environment === "local-production") ? (

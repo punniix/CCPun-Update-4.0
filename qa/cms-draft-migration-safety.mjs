@@ -78,7 +78,7 @@ try {
   assert.match(exporter, /X-WP-TotalPages/);
   assert.match(gitignore, /wp-drafts-export\*\.json/);
   assert.match(studio, /filterStudioDocumentActions\(previousActions, context\.dataset, environment, context\.schemaType, projectId\)/);
-  assert.match(schema, /Published documents require review status Approved/);
+  assert.match(schema, /ก่อนเผยแพร่ ต้องตั้งขั้นตรวจเนื้อหาเป็น “อนุมัติเนื้อหาแล้ว”/);
 
   console.log('PASS: 23/23 CMS Draft migration safety checks');
 } finally {

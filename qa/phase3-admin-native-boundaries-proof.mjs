@@ -35,9 +35,10 @@ const currentHashes = {
   "lib/admin/operations/deployment-read-model.ts": "daea36d68f0cc8a6cd1e9f0756977c284a63d4d4ac050a4a8fb580455fd58bb0",
   "lib/admin/operations/article-schedule-contract.ts": "c0e2bb7d7e15924523a81000e0e7d3e2bc3bdba1d29070d8e00381fea826b392"
 };
+// Resealed for the reviewed Admin Phase 1 DeploymentsPage copy/chip inverse (2026-10-24).
 const outputEvidence = {
   "file": "tests/phase3-admin-native-boundaries.test.mjs",
-  "sha256": "c2fabd03bf29696c0611e88b1744f9132eb1fdb441e70b14f529ec0f526fa521"
+  "sha256": "facdd036edc30735ad9bdd5fa49f13882c5b6ddde5a34c9acd15b640fb9ba6ed"
 };
 export const phase3AdminNativeEntries = Object.freeze(Object.keys(originalHashes));
 const sha = value => createHash('sha256').update(value).digest('hex');

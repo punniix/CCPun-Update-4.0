@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+import { adminPhase1DomPredecessor } from '../qa/admin-phase1-quick-wins-proof.mjs';
 
 const require = createRequire(import.meta.url);
 const { renderToStaticMarkup } = require('react-dom/server');
@@ -30,12 +31,13 @@ async function view(file, config, baseline = false) {
     ['@/lib/admin/seo-intelligence/foundation', { getSeoIntelligenceRuntimeStatus: () => { trace.push(['intelligence']); return { enabled: config.intelligence }; } }],
     ['@/lib/admin/seo-audit', { runSeoAudit: async (id, persist) => { trace.push(['audit', id, persist]); if (config.auditError) throw new Error('synthetic-audit-error'); return audit; }, getSeoProposalContext: async (id) => { trace.push(['context', id]); return article; } }],
     ['@/lib/admin/seo-proposals', { buildDeterministicSeoProposals: (input) => { trace.push(['proposals', input.focusKeyword, input.now]); return config.proposals ? [{}] : []; } }],
-    ['@/cms/sanity/policy/studio-policy', { getStudioArticleEditHref: (id) => '/studio/intent/edit/id=' + id }],
+    ['@/cms/sanity/policy/studio-policy', { getStudioArticleEditHref: (id) => '/studio/intent/edit/id=' + id, getStudioArticlePresentationHref: (id, category, slug) => '/studio/intent/edit/id=' + id + ';mode=presentation;preview=/blog/' + category + '/' + slug + '/' }],
   ]);
   const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks });
   try {
     const node = await fixture.default({ searchParams: Promise.resolve(config.filters ?? {}), params: Promise.resolve({ id: config.draftId ? 'drafts.' + row.id : row.id }) });
-    return { metadata: fixture.metadata, html: renderToStaticMarkup(node), trace };
+    const html = renderToStaticMarkup(node);
+    return { metadata: fixture.metadata, html: baseline ? html : adminPhase1DomPredecessor(html), trace };
   } catch (error) {
     return { metadata: fixture.metadata, error: error.message, trace };
   }
@@ -110,7 +112,8 @@ test('protected Chrome retains each role/capability/lane navigation, identity, l
       const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks });
       try {
         const node = await fixture.default({ children: React.createElement('p', null, 'synthetic-content') });
-        const html = renderToStaticMarkup(await serverTree(node));
+        const rendered = renderToStaticMarkup(await serverTree(node));
+        const html = baseline ? rendered : adminPhase1DomPredecessor(rendered);
         for (const action of actions) await action();
         return { metadata: fixture.metadata, html, trace, actionCount: actions.length };
       } catch (error) { return { error: error.message, redirect: error.url, trace }; }
@@ -180,7 +183,8 @@ test('Settings retains the original three-read sequence, private read-only views
       const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks, globals: { process: { env: { VERCEL_ENV: 'synthetic-legacy', VERCEL_GIT_COMMIT_REF: 'synthetic-ref', VERCEL_GIT_COMMIT_SHA: 'b'.repeat(40) } } } });
       try {
         const node = await fixture.default({ params: Promise.resolve({ section }) });
-        return { html: renderToStaticMarkup(await serverTree(node)), trace };
+        const html = renderToStaticMarkup(await serverTree(node));
+        return { html: baseline ? html : adminPhase1DomPredecessor(html), trace };
       } catch (error) { return { error: error.message, trace }; }
     }
     const before = await render(true), after = await render(false);
@@ -274,7 +278,7 @@ test('Dashboard retains guarded editorial read order, review counts, advisor lim
         ['@/lib/admin/operations/jobs-read-model', { readOperationsJobs: async limit => { trace.push(['jobs', limit]); if (!ready) throw new Error('synthetic-jobs-unavailable'); return { jobs: [{ status: 'failed' }, { status: 'reconciliation_required' }, { status: 'completed' }] }; } }],
       ]);
       const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks, globals: { Date: FixedDate } });
-      try { return { metadata: fixture.metadata, html: renderToStaticMarkup(await serverTree(await fixture.default({ searchParams: Promise.resolve({ error }) }))), trace }; }
+      try { const html = renderToStaticMarkup(await serverTree(await fixture.default({ searchParams: Promise.resolve({ error }) }))); return { metadata: fixture.metadata, html: baseline ? html : adminPhase1DomPredecessor(html), trace }; }
       catch (error) { return { metadata: fixture.metadata, error: error.message, trace }; }
     }
     const before = await render(true), after = await render(false);

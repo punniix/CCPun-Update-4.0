@@ -10,7 +10,7 @@ function StatusBadge({ state }: { state: string }) {
   const good = state === "success";
   const pending = ["queued", "pending", "in_progress"].includes(state);
   const label = good ? "สำเร็จ" : pending ? "กำลังเตรียม" : state === "failure" || state === "error" ? "ไม่สำเร็จ" : "ต้องตรวจ";
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${good ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : pending ? "border-amber-200/20 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/[0.04] text-white/65"}`}>{label}</span>;
+  return <span className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${good ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : pending ? "border-amber-200/20 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/[0.04] text-white/65"}`}>{label}</span>;
 }
 
 function DeploymentRow({ item }: { item: DeploymentHistoryItem }) {
@@ -61,8 +61,8 @@ export default async function AdminDeploymentsPage() {
         {model.history.length ? <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10"><table className="min-w-[760px] w-full text-left"><thead className="bg-black/15 text-xs text-white/45"><tr><th className="px-4 py-3">รหัสเวอร์ชัน</th><th className="px-4 py-3">ผล</th><th className="px-4 py-3">สายงาน</th><th className="px-4 py-3">เวลา</th><th className="px-4 py-3">เลขรายการ</th></tr></thead><tbody>{model.history.map((item) => <DeploymentRow key={item.id} item={item} />)}</tbody></table></div> : <p className="mt-5 rounded-2xl border border-white/10 p-4 text-sm text-white/60">ยังอ่านประวัติการนำ Admin ขึ้นระบบจริงไม่ได้ แต่ข้อมูลเวอร์ชันด้านบนยังมาจากระบบที่กำลังทำงานโดยตรง</p>}
       </section>
       {hostinger ? <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
-        <h2 className="text-xl font-semibold">GitHub Actions ของ SHA ปัจจุบัน</h2>
-        <p className="mt-1 text-sm text-white/55">แสดงเฉพาะ checks ที่อ่านได้ของ SHA นี้ รายการอาจไม่ครบและยังไม่ใช่หลักฐานว่า required checks หรือการนำขึ้น Hostinger ผ่านทั้งหมด</p>
+        <h2 className="text-xl font-semibold">ผลตรวจอัตโนมัติบน GitHub ของเวอร์ชันนี้</h2>
+        <p className="mt-1 text-sm text-white/55">แสดงเฉพาะผลตรวจที่อ่านได้ของเวอร์ชันนี้ รายการอาจไม่ครบ และยังไม่ใช่หลักฐานว่าผลตรวจที่จำเป็นหรือการนำขึ้น Hostinger ผ่านทั้งหมด</p>
         {model.githubChecks.length ? <ul className="mt-5 space-y-3">{model.githubChecks.map((check, index) => <li key={`${check.name}-${index}`} className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3"><div><p className="text-sm text-white/85">{check.name}</p><p className="mt-1 text-xs text-white/55">{check.conclusion ?? "ยังไม่มีผลสรุป"}{check.completedAt ? ` · ${formatDate(check.completedAt)}` : ""}</p></div><StatusBadge state={check.state} /></li>)}</ul> : <p className="mt-5 text-sm text-white/60">ยังไม่มีผล GitHub Actions ที่อ่านและยืนยัน SHA ตรงกันได้</p>}
       </section> : null}
     </div>

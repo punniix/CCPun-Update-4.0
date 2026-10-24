@@ -6,7 +6,7 @@ const semanticTopicOptions = BLOG_TOPIC_HUBS.map(({ slug, title }) => ({ title, 
 
 export const seoMetadata = defineType({
   name: "seoMetadata",
-  title: "SEO Control Center",
+  title: "ศูนย์ตั้งค่า SEO",
   type: "object",
   fields: [
     defineField({
@@ -49,17 +49,17 @@ export const seoMetadata = defineType({
       type: "string",
       options: {
         list: [
-          { title: "Informational", value: "informational" },
-          { title: "Commercial", value: "commercial" },
-          { title: "Transactional", value: "transactional" },
-          { title: "Navigational", value: "navigational" },
-          { title: "Mixed", value: "mixed" },
+          { title: "หาข้อมูล / หาความรู้", value: "informational" },
+          { title: "เปรียบเทียบก่อนตัดสินใจ", value: "commercial" },
+          { title: "พร้อมซื้อหรือติดต่อ", value: "transactional" },
+          { title: "ตั้งใจหาแบรนด์หรือหน้าเฉพาะ", value: "navigational" },
+          { title: "หลายเป้าหมายรวมกัน", value: "mixed" },
         ],
       },
     }),
     defineField({
       name: "semanticTopic",
-      title: "หัวข้อเชิงความหมาย (Semantic Topic)",
+      title: "หัวข้อเชิงความหมาย",
       description: "ใช้จัด Knowledge Graph และ breadcrumb/schema ในอนาคต แยกจากหมวดที่อยู่ใน URL การเปลี่ยนช่องนี้ไม่ใช่การย้าย URL",
       type: "string",
       options: { list: semanticTopicOptions },
@@ -93,7 +93,7 @@ export const seoMetadata = defineType({
     }),
     defineField({
       name: "canonical",
-      title: "Canonical override (Protected)",
+      title: "ที่อยู่หลักของหน้า (Canonical) · ล็อกหลังเผยแพร่",
       description: "เว้นว่างเพื่อใช้ canonical จาก route ปัจจุบัน บทความที่เคยเผยแพร่แล้วต้องเปลี่ยนผ่าน SEO Migration Workflow เท่านั้น",
       type: "url",
       readOnly: ({ document }) => Boolean(document?.publishedAt),
@@ -101,7 +101,7 @@ export const seoMetadata = defineType({
     }),
     defineField({
       name: "noindex",
-      title: "Noindex (Protected)",
+      title: "ซ่อนจากผลค้นหา Google (Noindex) · ล็อกหลังเผยแพร่",
       description: "ใช้เฉพาะก่อนเผยแพร่หรือใน workflow ที่อนุมัติแล้ว เพื่อป้องกันหน้าที่เผยแพร่แล้วหลุดจาก Google โดยไม่ตั้งใจ",
       type: "boolean",
       initialValue: false,

@@ -19,16 +19,16 @@ test("SEO Control Center keeps semantic topic separate from protected published 
 
   assert.match(schema, /title: "URL Slug \(Protected หลังเผยแพร่\)"/);
   assert.match(schema, /title: "หมวดหมู่หลัก \(Protected หลังเผยแพร่\)"/);
-  assert.match(schema, /title: "Canonical override \(Protected\)"/);
-  assert.match(schema, /title: "Noindex \(Protected\)"/);
+  assert.match(schema, /title: "ที่อยู่หลักของหน้า \(Canonical\) · ล็อกหลังเผยแพร่"/);
+  assert.match(schema, /title: "ซ่อนจากผลค้นหา Google \(Noindex\) · ล็อกหลังเผยแพร่"/);
 
   const publishedLocks = schema.match(/readOnly: \(\{ document \}\) => Boolean\(document\?\.publishedAt\)/g) ?? [];
   assert.ok(publishedLocks.length >= 4, "slug, category, canonical and noindex must be protected after publication");
 
-  assert.match(input, /SEO Control Center/);
+  assert.match(input, /ศูนย์ตั้งค่า SEO/);
   assert.match(input, /ผลตรวจ SEO ล่าสุดที่บันทึก/);
   assert.match(input, /ไม่คำนวณผลตรวจซ้ำใน Studio/);
-  assert.match(input, /Semantic Topic แยกจาก URL จริง/);
+  assert.match(input, /หัวข้อเชิงความหมายแยกจาก URL จริง/);
   assert.doesNotMatch(input, /Google Preview|สถานะ SEO ที่ควรตรวจ|useFormValue|const checks/);
 
   assert.match(adminPage, /SEO Control Center/);

@@ -129,8 +129,8 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
                         </>
                       )}
                       {(effectiveRiskLevel === "high" || effectiveRiskLevel === "critical" || !effectiveType || !getApplyableFieldPath(effectiveType)) && studioPreviewHref && studioReady ? (
-                        <Link href={studioPreviewHref} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-[#f4df9b] underline underline-offset-4">
-                          เปิดตรวจด้วยตนเองใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span>
+                        <Link href={studioPreviewHref} className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-[#f4df9b] underline underline-offset-4">
+                          เปิดตรวจด้วยตนเองใน Studio
                         </Link>
                       ) : null}
                     </div>
@@ -150,11 +150,9 @@ export async function AdminReviewsPage(copy: ReviewInboxCopy) {
                     <div className="max-w-xs text-right">
                       <Link
                         href={studioPreviewHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="inline-flex rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-xs font-semibold text-[#f4df9b] transition hover:bg-[#e0c985]/15"
                       >
-                        เปิดตัวอย่างฉบับร่างใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span>
+                        เปิดตัวอย่างฉบับร่างใน Studio
                       </Link>
                       <p className="mt-2 text-sm leading-6 text-white/65">
                         ขั้นต่อไปคือตรวจตัวอย่างด้วยตัวคุณเอง รายการนี้ยังไม่ได้เผยแพร่

@@ -186,13 +186,13 @@ export default async function AdvisorInboxPage({
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="rounded-full border border-[#e0c985]/20 bg-[#e0c985]/10 px-2.5 py-1 text-[#f4df9b]">
+                      <span className="inline-flex whitespace-nowrap rounded-full border border-[#e0c985]/20 bg-[#e0c985]/10 px-2.5 py-1 text-[#f4df9b]">
                         {lineStageLabel(item.stage)}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70">
+                      <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70">
                         {lineJourneyLabel(item.journey)}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70">
+                      <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/70">
                         {lineConversationStatusLabel(item.conversationStatus)}
                       </span>
                     </div>

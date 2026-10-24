@@ -111,7 +111,7 @@ export function SocialCalendarDashboard() {
             <div><dt className="text-white/45">เวลาที่กำหนด</dt><dd className="mt-1 text-white/75">{formatDate(publication?.scheduledAt)}</dd></div>
             <div><dt className="text-white/45">สถานะการเผยแพร่</dt><dd className="mt-1 text-white/75">{publication ? statusLabel[publication.status] ?? publication.status : "ยังไม่มีรายการ"}</dd></div>
           </dl>
-          <details className="mt-4 break-all text-xs text-white/45"><summary className="cursor-pointer">ดูรายละเอียดสำหรับทีมเทคนิค</summary><p className="mt-1">รหัส {item.id} · {item.draft ? "ฉบับร่าง" : "ฉบับที่อนุมัติแล้ว"}</p></details>
+          <details className="mt-4 break-words text-xs text-white/45"><summary className="cursor-pointer">ดูรายละเอียดสำหรับทีมเทคนิค</summary><p className="mt-1">รหัส {item.id} · {item.draft ? "ฉบับร่าง" : "ฉบับที่อนุมัติแล้ว"}</p></details>
         </article>;
       })}
       {workspace && items.length === 0 ? <p className="rounded-2xl border border-white/10 p-5 text-sm text-white/65">ไม่มีฉบับร่างหรือรายการเผยแพร่ตามตัวกรอง</p> : null}

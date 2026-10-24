@@ -218,9 +218,9 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
               return <div key={number} className="min-h-44 rounded-2xl border border-white/10 bg-white/[0.02] p-5 opacity-60"><span className="text-sm font-semibold text-[#e0c985]">ขั้นที่ {number}</span><h3 className="mt-3 text-lg font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-white/65">{detail}</p></div>;
             }
             return (
-              <Link key={number} href={href} target={opensStudio ? "_blank" : undefined} rel={opensStudio ? "noopener noreferrer" : undefined} className="min-h-44 rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">
+              <Link key={number} href={href} className="min-h-44 rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">
                 <span className="text-sm font-semibold text-[#e0c985]">ขั้นที่ {number}</span>
-                <h3 className="mt-3 text-lg font-semibold">{title}{opensStudio ? <span className="sr-only"> (เปิดแท็บใหม่)</span> : null}</h3>
+                <h3 className="mt-3 text-lg font-semibold">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-white/65">{detail}</p>
               </Link>
             );

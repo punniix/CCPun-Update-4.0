@@ -52,7 +52,7 @@ export async function SeoAuditDetailPage({ params }: PageProps, copy: SeoDetailC
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/seo/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">กลับหน้าตรวจ SEO</Link>
-          {studioReady ? <Link href={studioHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm font-medium text-[#f4df9b] hover:bg-[#e0c985]/15">เปิดแก้ใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : null}
+          {studioReady ? <Link href={studioHref} className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm font-medium text-[#f4df9b] hover:bg-[#e0c985]/15">เปิดแก้ใน Studio</Link> : null}
           {status.writeReady && isDraft ? <RunSeoAuditButton articleId={id} /> : null}
           {status.writeReady && isDraft && safeProposals.length ? <GenerateSeoProposalButton articleId={id} /> : null}
         </div>

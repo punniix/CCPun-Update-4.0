@@ -5,6 +5,7 @@ import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { assertPhase3AdminNativeBoundaries, phase3AdminNativeEntries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
+import { adminPhase1SourcePredecessor } from '../qa/admin-phase1-quick-wins-proof.mjs';
 
 const proof = JSON.parse(readFileSync('qa/phase3-admin-native-boundaries.json', 'utf8'));
 // BEFORE is the complete historical 95fa graph; a3 names only the 14 entry-source origin.
@@ -293,11 +294,14 @@ test('retired provider label preserves complete actual native Deployments markup
   const nativeLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : "ยังไม่ยืนยันผู้ให้บริการ";';
   const oldLabel = 'const provider = hostinger ? "Hostinger Cloud Startup" : model.provider === "vercel" ? "Vercel" : "ยังไม่ยืนยันผู้ให้บริการ";';
   assert.equal(current.split(nativeLabel).length, 2);
-  const original = current.replace(nativeLabel, oldLabel);
+  // Every other byte stays pinned: undo only the exact reviewed Admin Phase 1
+  // copy/chip transitions, then the native label, and compare the frozen digest.
+  const original = adminPhase1SourcePredecessor(file, current).replace(nativeLabel, oldLabel);
   assert.equal(sha(original), '3664b01ea11471d9c4d421adf82c206704ac7859b4503acc0e2a9e44bfd3271e');
+  const nativeLabelPredecessor = current.replace(nativeLabel, oldLabel);
   for (const provider of ['hostinger', 'local', 'unknown']) {
     const outputs = [];
-    for (const source of [original, current]) {
+    for (const source of [nativeLabelPredecessor, current]) {
       const trace = [];
       const model = { provider, status: 'ready', exactShaProduction: null, environment: 'production-admin',
         canonicalHost: 'admin.ccpun.com', requestHost: 'admin.ccpun.com', gitBranch: 'native-fixture',

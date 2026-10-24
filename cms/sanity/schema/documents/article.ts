@@ -103,8 +103,8 @@ export const article = defineType({
     defineField({ name: "faq", title: "FAQ ที่แสดงในบทความ", type: "array", of: [defineArrayMember({ type: "faqItem" })], group: "content", description: "ใช้ชุดคำถามนี้เป็นหลักสำหรับ FAQ ใหม่ ตรวจว่าไม่ซ้ำกับคำถามในเนื้อหาเดิมก่อนเพิ่ม และอย่าลบ FAQ เดิมเป็นชุดจนกว่าผู้ดูแลจะตรวจการแสดงผลและข้อมูลค้นหาแล้ว" }),
     defineField({ name: "sources", title: "แหล่งอ้างอิง", type: "array", of: [defineArrayMember({ type: "sourceReference" })], group: "review" }),
     defineField({ name: "review", title: "ขั้นตรวจเนื้อหา", type: "reviewMetadata", group: "publication", validation: (Rule) => Rule.required() }),
-    defineField({ name: "seo", title: "SEO Control Center", type: "seoMetadata", group: "seoGeo", components: { input: SeoScoreInput }, validation: (Rule) => Rule.required() }),
-    defineField({ name: "geo", title: "GEO / AI Search", type: "geoMetadata", group: "seoGeo" }),
+    defineField({ name: "seo", title: "ศูนย์ตั้งค่า SEO", type: "seoMetadata", group: "seoGeo", components: { input: SeoScoreInput }, validation: (Rule) => Rule.required() }),
+    defineField({ name: "geo", title: "การค้นหาด้วย AI (GEO)", type: "geoMetadata", group: "seoGeo" }),
     defineField({ name: "migration", title: "Migration source", type: "migrationSource", readOnly: true, hidden: true }),
     defineField({
       name: "contentUpdatedAt",
@@ -131,7 +131,7 @@ export const article = defineType({
       validation: (Rule) =>
         Rule.custom((value, context) => {
           const id = String(context.document?._id ?? "");
-          return id.startsWith("drafts.") || value ? true : "Published documents require a published date";
+          return id.startsWith("drafts.") || value ? true : "บทความที่เผยแพร่ต้องมีวันเผยแพร่";
       }),
     }),
   ],
@@ -143,7 +143,7 @@ export const article = defineType({
       const review = document?.review as { status?: string } | undefined;
       return id.startsWith("drafts.") || review?.status === "approved"
         ? true
-        : "Published documents require review status Approved";
+        : "ก่อนเผยแพร่ ต้องตั้งขั้นตรวจเนื้อหาเป็น “อนุมัติเนื้อหาแล้ว”";
     }),
   orderings: [{ title: "แก้ไขล่าสุดก่อน", name: "updatedDesc", by: [{ field: "_updatedAt", direction: "desc" }] }],
   preview: {

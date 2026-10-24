@@ -20,7 +20,8 @@ test("Admin navigation and entry screens keep Thai UI with canonical English pro
   assert.match(entry, /ศูนย์จัดการ CCPun/);
   assert.doesNotMatch(entry, /Admin Control Plane/);
   assert.doesNotMatch(entry, /PRODUCTION ADMIN|Vercel หรือ Sanity/);
-  assert.match(navigation, /Sanity Studio/);
+  // Phase 1 (owner-approved): the top-bar Studio entry uses plain Thai.
+  assert.match(navigation, /studioLabel="แก้เนื้อหา"/);
   assert.match(read("lib/admin/environment.ts"), /ศูนย์จัดการ · ระบบจริง/);
   assert.doesNotMatch(read("lib/admin/environment.ts"), /return "PRODUCTION ADMIN"/);
 });
@@ -79,6 +80,8 @@ test("professional and product terms use canonical English instead of Thai trans
     read("apps/admin/app/(control-plane)/layout.tsx"),
     read("features/admin/operations/AgentRuntimeJobStatus.tsx"),
   ].join("\n");
-  for (const term of ["Performance Marketing", "Top Content", "Action Plan", "Agent OS Runtime", "Workflow", "Runtime", "Sanity Studio"]) assert.match(source, new RegExp(term));
+  for (const term of ["Agent OS Runtime", "Workflow", "Runtime"]) assert.match(source, new RegExp(term));
+  // Phase 1 (owner-approved): owner-facing entry labels are plain Thai, not transliteration.
+  for (const label of ["บทความที่ได้ผล & สิ่งที่ควรทำ", "แก้เนื้อหา", "งานอัตโนมัติใน n8n"]) assert.match(source, new RegExp(label));
   assert.doesNotMatch(source, /เวิร์กโฟลว์|รันไทม์|ดีพลอย|คอมมิต|ดาต้าเซ็ต|สตูดิโอ/);
 });
