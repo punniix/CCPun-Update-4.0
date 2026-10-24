@@ -6,6 +6,7 @@ import { createRequire, stripTypeScriptTypes } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
+import { WEB_REDIRECTS } from '../lib/runtime/web-build-config.mjs';
 
 const { NextResponse } = createRequire(import.meta.url)('next/server');
 const baselineSha = '1843dbc11a1cd400f89a32a333516ee2e0a53223';
@@ -126,12 +127,34 @@ const expected = {
   'invalid-sanity-project': '60071ea1f53f3793bced2a600dd9404406f2741a8718344d934628bea785049a',
 };
 const digest = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+// Reviewed 2026-10-24 (fix/ga4-events-outage-20261024): Hostinger now matches
+// WEB_REDIRECTS against the slash-normalised path before the trailing-slash 308,
+// so a slashless legacy URL reaches its final URL in one hop. Assert that exact
+// delta, then restore the baseline's first hop so every other byte of the frozen
+// output (config, CSP, headers, all other redirects) is still compared.
+function baselineFirstHop(observation) {
+  const responses = observation.responses.map((response) => {
+    const url = new URL(response.url);
+    const redirect = WEB_REDIRECTS.find(({ prefix }) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`));
+    const legacyAddSlash = /\/[^/.]+$/.test(url.pathname);
+    const legacyStripSlash = !response.data && /\/[^/]+\.\w+\/$/.test(url.pathname);
+    if (!redirect || (!legacyAddSlash && !legacyStripSlash)) return response;
+    const final = new URL(`${redirect.destination}${url.search}`, url.origin).href;
+    assert.equal(response.helperDestination, final, `${url.pathname}: helper must return the final URL`);
+    const legacy = new URL(url.href);
+    legacy.pathname = legacyAddSlash ? `${url.pathname}/` : url.pathname.slice(0, -1);
+    if (![301, 308].includes(response.status)) return { ...response, helperDestination: legacy.href };
+    assert.equal(response.headers.location, final, `${url.pathname}: legacy redirect must reach its final URL in one hop`);
+    return { ...response, headers: { ...response.headers, location: legacy.href }, helperDestination: legacy.href };
+  });
+  return { ...observation, responses };
+}
 if (process.argv.includes('--print-baseline')) {
   const baseline = Object.fromEntries(files.map((file) => [file, execFileSync('git', ['show', `${baselineSha}:${file}`], { encoding: 'utf8' })]));
   for (const [name, overrides] of fixtures) {
     const before = await observe(baseline, overrides);
     const after = await observe(current, overrides);
-    assert.deepEqual(after, before, name);
+    assert.deepEqual(baselineFirstHop(after), before, name);
     console.log(`  '${name}': '${digest(before)}',`);
   }
 } else {
@@ -144,7 +167,7 @@ if (process.argv.includes('--print-baseline')) {
         const sharedWeb = evaluate(current['lib/runtime/web-build-config.mjs'], { process }, '({ resolveWebEnvironment, isWebSanityLaneAllowed })');
         assert.equal(sharedWeb.isWebSanityLaneAllowed(process.env.NEXT_PUBLIC_SANITY_PROJECT_ID, process.env.NEXT_PUBLIC_SANITY_DATASET), false);
         assert.equal(actual.config.images.remotePatterns.some(pattern => pattern.hostname === 'cdn.sanity.io'), false);
-      } else assert.equal(digest(actual), expected[name], `${name}: full output changed from ${baselineSha}`);
+      } else assert.equal(digest(baselineFirstHop(actual)), expected[name], `${name}: full output changed from ${baselineSha}`);
     });
   }
 }
@@ -174,4 +197,86 @@ test('legacy root fallback retains its ordered three permanent redirects', async
     { source: '/tools/fhc/:path*', destination: '/tools/financial-health-check/', permanent: true },
     { source: '/financial-advisor/:path*', destination: '/', permanent: true },
   ]);
+});
+
+function hostingerProxy(overrides) {
+  const env = { ...production, ...overrides };
+  const process = { env, cwd: () => '/ccpun-parity/apps/web' };
+  const sharedSecurity = evaluate(current['lib/runtime/security-headers.mjs'], { process }, '({ buildNextSecurityHeaders, shouldEnforceHttps })');
+  const sharedWeb = evaluate(current['lib/runtime/web-build-config.mjs'], { process }, '({ resolveWebEnvironment, isWebSanityLaneAllowed, TAX_SLUG_MIGRATION, WEB_REDIRECTS })');
+  const review = env.CCPUN_UAT_MODE === '1' || env.CCPUN_APP_ENV === 'web-uat';
+  const security = evaluate(current['lib/security-policy.ts'], { process, IS_REVIEW_ENVIRONMENT: review, ...sharedSecurity }, '({ SECURITY_POLICY, SECURITY_HEADERS })');
+  return evaluate(current['apps/web/proxy.ts'], {
+    process, URL, NextResponse, IS_REVIEW_ENVIRONMENT: review, ...sharedWeb,
+    SECURITY_HEADERS: security.SECURITY_HEADERS, observeAiCrawlerRequest: () => {},
+  }, 'defaultExport');
+}
+
+test('Hostinger slashless legacy redirects reach their final URL in exactly one hop', () => {
+  const finals = {
+    '/living-benefits': ['/ci-planning/', 308],
+    '/tools/fhc': ['/tools/financial-health-check/', 308],
+    '/financial-advisor': ['/', 308],
+    [tax]: ['/blog/personal-finance/personal-income-tax-calculation/', 301],
+  };
+  for (const overrides of [{}, { CCPUN_APP_ENV: 'web-uat', CCPUN_UAT_MODE: '1', NEXT_PUBLIC_SANITY_PROJECT_ID: 'ccb9lnw5', NEXT_PUBLIC_SANITY_DATASET: 'uat' }]) {
+    const proxy = hostingerProxy(overrides);
+    for (const [path, [destination, status]] of Object.entries(finals)) {
+      for (const suffix of ['', '/', '?utm_source=line']) {
+        const response = proxy(new Request(`https://candidate.example${path}${suffix}`));
+        const query = suffix.startsWith('?') ? suffix : '';
+        assert.equal(response.status, status, `${path}${suffix}`);
+        assert.equal(response.headers.get('location'), `https://candidate.example${destination}${query}`, `${path}${suffix}`);
+        const next = proxy(new Request(response.headers.get('location')));
+        assert.equal(next.status, 200, `${path}${suffix}: final URL must not redirect again`);
+      }
+    }
+    assert.equal(proxy(new Request('https://candidate.example/tools/fhc-guide')).headers.get('location'), 'https://candidate.example/tools/fhc-guide/', 'prefix matching stays segment-bound');
+  }
+});
+
+// Regression for the 2026-10-03 Hostinger cutover outage: the Production Web env
+// carried no NEXT_PUBLIC_GA_ID / NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED, so GA4
+// custom events (ci_*, fhc_*, line_oa_click) stopped while GTM page views continued.
+const hostingerProductionLive = {
+  ...production, CCPUN_RELEASE_STAGE: 'live', CCPUN_ENABLE_PRODUCTION_ANALYTICS: '1',
+  NEXT_PUBLIC_CCPUN_APP_ENV: 'production', CCPUN_GIT_REF: 'v4-production', CCPUN_GIT_SHA: 'a'.repeat(40), CCPUN_RELEASE_ID: 'synthetic-web-prod',
+};
+const webConfigEnv = (env) => {
+  const process = { env, cwd: () => '/ccpun-parity/apps/web' };
+  const sharedSecurity = evaluate(current['lib/runtime/security-headers.mjs'], { process }, '({ buildNextSecurityHeaders, shouldEnforceHttps })');
+  const sharedWeb = evaluate(current['lib/runtime/web-build-config.mjs'], { process }, '({ resolveWebEnvironment, isWebSanityLaneAllowed, TAX_SLUG_MIGRATION, WEB_REDIRECTS })');
+  const warnings = [];
+  const config = evaluate(current['apps/web/next.config.ts'], { process, path, console: { warn: (message) => warnings.push(message) }, ...sharedSecurity, ...sharedWeb }, 'defaultExport');
+  return { env: JSON.parse(JSON.stringify(config.env)), warnings };
+};
+
+test('Production Web build inlines the GA4 identity and GTM semantic event contract without Hostinger NEXT_PUBLIC values', () => {
+  const live = webConfigEnv(hostingerProductionLive);
+  assert.equal(live.env.NEXT_PUBLIC_GA_ID, 'G-5BMX2SKJLZ', 'GoogleAnalytics (LINE listener, GA flush) must mount on Production');
+  assert.equal(live.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED, 'true', 'trackEvent must feed the GTM ccpun_event tag on Production');
+  assert.equal(live.env.NEXT_PUBLIC_CCPUN_APP_ENV, 'production');
+  assert.deepEqual(live.warnings, ['NEXT_PUBLIC_META_PIXEL_ID is not set: Meta Pixel stays disabled on Production tool pages.']);
+  const explicit = webConfigEnv({ ...hostingerProductionLive, NEXT_PUBLIC_GA_ID: ' G-5BMX2SKJLZ ', NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED: 'true', NEXT_PUBLIC_META_PIXEL_ID: '123456789012345' });
+  assert.deepEqual(explicit.env, live.env, 'matching explicit values are accepted unchanged');
+  assert.deepEqual(explicit.warnings, []);
+  for (const [key, value] of [['NEXT_PUBLIC_GA_ID', 'G-OTHER0000'], ['NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED', 'false']]) {
+    assert.throws(() => webConfigEnv({ ...hostingerProductionLive, [key]: value }), new RegExp(`PRODUCTION_WEB_PUBLIC_ANALYTICS_CONFLICT: ${key}`), `${key} conflict must fail the build`);
+  }
+  // Every other lane keeps analytics off by design and gains no tracking identity.
+  for (const overrides of [
+    { CCPUN_ENABLE_PRODUCTION_ANALYTICS: '0', CCPUN_RELEASE_STAGE: 'candidate', CCPUN_UAT_MODE: '1' },
+    { CCPUN_APP_ENV: 'web-uat', NEXT_PUBLIC_CCPUN_APP_ENV: 'web-uat', CCPUN_ENABLE_PRODUCTION_ANALYTICS: '0', CCPUN_UAT_MODE: '1', NEXT_PUBLIC_SANITY_PROJECT_ID: 'ccb9lnw5', NEXT_PUBLIC_SANITY_DATASET: 'uat' },
+    { CCPUN_DEPLOYMENT_ROLE: 'admin' },
+    { CCPUN_APP_ENV: 'development', CCPUN_DEPLOYMENT_PROVIDER: 'local' },
+  ]) {
+    const { env } = webConfigEnv({ ...hostingerProductionLive, ...overrides });
+    assert.equal(env.NEXT_PUBLIC_GA_ID, undefined, JSON.stringify(overrides));
+    assert.equal(env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED, undefined, JSON.stringify(overrides));
+  }
+  // The inlined keys are exactly the ones the runtime consumers read.
+  assert.match(read('apps/web/app/layout.tsx'), /const GA_ID = PRODUCTION_WEB_ANALYTICS_ENABLED \? \(process\.env\.NEXT_PUBLIC_GA_ID \?\? ""\) : "";/);
+  assert.match(read('features/analytics/components/ClientWidgets.tsx'), /\{gaId && <GoogleAnalytics gaId=\{gaId\} \/>\}/);
+  assert.match(read('lib/analytics.ts'), /process\.env\.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED !== 'true'/);
+  assert.match(read('features/analytics/components/GoogleAnalytics.tsx'), /trackEvent\('line_oa_click'/);
 });
