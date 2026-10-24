@@ -68,6 +68,16 @@ Before modifying Sanity:
 - Use Sanity UAT for drafts, schema experiments, and content experiments unless Production write/publish is explicitly approved.
 - Importing or staging content is not publication.
 - Never publish, unpublish, delete, bulk-migrate, or rewrite Production content unless the user explicitly asks for that exact Production action.
+
+### Mandatory CCPun owner editorial review / publication gate
+
+- **Every article, whether new or an optimization to an existing Published article, must be reviewed and explicitly approved by the CCPun owner before publication.** Agent completion, successful QA, `ready-for-coo`, and app `Always Allow / full_access` permissions are never publication authorization.
+- **New articles and substantial rewrites:** Prepare a complete Draft, perform content/fact/SEO/compliance checks, leave it unpublished and `review.status: content-review` (or `ready-for-coo` for owner review), and show the current version to the owner. For never-published drafts keep `seo.noindex: true` and `publishedAt` unset. Never set `review.status: approved` or approval timestamps on behalf of the owner.
+- **Small, narrowly scoped optimizations to existing Live articles:** The owner may review **inside the ChatGPT conversation** instead of opening Sanity Studio. Show the specific article(s) and the exact proposed before/after wording or link/metadata changes, as well as their scope. Wait for an explicit approval of the displayed changes, e.g. "โอเค โพสต์เลย" or "เสร็จแล้ว โพสต์ได้". After approval, edit/publish only those exact existing articles using revision guards and verify Live state. A subsequent different change must be shown again before publishing.
+- Generic phrases ("ลุย", "ทำให้เสร็จ", "optimize ทั้งหมด") do not by themselves waive this review gate. ChatGPT's permission to execute Sanity writes is separate from the owner's editorial authorization to publish.
+- Do not route reviewable changes through a different document version, change URL/canonical/indexability, or republish unrelated Drafts. Keep each publication scoped to the approved article IDs, versions, and changes.
+- **Stop before any `publish_documents`, Admin Publish action, automated publication, or release** if the owner has not reviewed and expressly approved the specific version. If in doubt, ask first.
+
 - Preserve the existing environment boundaries in `lib/admin/environment.ts`, `cms/sanity/policy/studio-policy.ts`, and their tests.
 - Never commit tokens, API keys, OAuth secrets, Vercel secrets, Sanity tokens, or private credentials.
 
