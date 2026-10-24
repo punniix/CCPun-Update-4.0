@@ -211,8 +211,11 @@ test("Action Plan accepts one hundred actions plus its three blank drafts and pr
 test("Daily marketing uses existing credentials and bounded native-grain refresh before AI", () => {
   const dailyNames = ["Marketing Daily · Canonical Identity", "Marketing Daily · GSC 7 วัน", "Marketing Daily · GA4 7 วัน", "Marketing Daily · วัดผลก่อน–หลัง", "Marketing Daily · ตรวจผล factual"];
   for (let i = 0; i < dailyNames.length - 1; i++) assert.equal(workflow.connections[dailyNames[i]!].main[0][0].node, dailyNames[i + 1]);
-  const body = workflow.nodes.find((node: { name: string }) => node.name === dailyNames[1]).parameters.jsonBody;
-  assert.deepEqual(JSON.parse(body), { operation: "collect", source: "gsc", lookbackDays: 7 });
+  // Google GSC/GA4 are fetched by n8n's own read-only credentials through the relay sub-workflow; Admin keeps planning and validation.
+  const gsc = workflow.nodes.find((node: { name: string }) => node.name === dailyNames[1]);
+  assert.equal(gsc.type, "n8n-nodes-base.executeWorkflow");
+  assert.equal(gsc.parameters.workflowId.value, "pcDVd2P6ipg8b6p4");
+  assert.deepEqual(gsc.parameters.workflowInputs.value, { endpoint: "marketing", source: "gsc", lookbackDays: 7 });
   for (const prefix of ["Marketing AI Weekly", "Marketing AI Monthly"]) {
     const run = new Function("$input", "$runIndex", String(dailyNodes.get(prefix + " · ตรวจขอบเขต retry")!.parameters.jsCode));
     const evaluate = (status: string, attempt: number, workerSucceeded = false) => run({ first: () => ({ json: { status, workerSucceeded, rawRows: ["must not reach AI state"] } }) }, attempt - 1)[0].json;

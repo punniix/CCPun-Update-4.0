@@ -16,6 +16,8 @@ The existing production workflow XOQHPkio5WzZIz0l remains the single n8n workflo
 - Admin · Export Google Sheet is the authenticated webhook root for owner exports.
 - Daily · เก็บข้อมูล 06:00 is the single scheduled root for collection, canonical identity refresh, deterministic measurement, Weekly AI, Monthly AI and learning summary.
 - These roots are execution-independent inside one workflow. Keep exactly one Schedule Trigger to avoid duplicate daily collection.
+- Daily · รันทันที (กดเอง) is a native Manual Trigger wired to the same first node as 06:00, so the owner can run the whole collection chain on demand from the n8n editor without a second schedule.
+- GSC and GA4 (Daily · GSC, Daily · GA4, Marketing Daily · GSC 7 วัน, Marketing Daily · GA4 7 วัน) are native Execute Workflow nodes that call the Google read-only relay sub-workflow (`pcDVd2P6ipg8b6p4`, source: `google-read-only-relay.direct.json`) with `endpoint`, `source` and `lookbackDays`. The relay asks Admin which Google requests are needed, fetches them with n8n's own read-only Google credentials, and returns only Admin's verdict; Admin still plans, validates and stores every row. Daily · META still calls Admin directly.
 - Do not create a duplicate Daily/AI workflow. Any refactor must update this existing workflow ID and preserve the webhook path, credentials, schedule, idempotency and Agent Runtime Job callbacks.
 - Google Sheets native nodes are preferred where they preserve behavior. Spreadsheet creation is already native. Exact-range Action Plan reads plus metadata/batchUpdate/staging/atomic commit remain HTTP Request nodes because the native Sheets row operations do not expose equivalent transaction and CAS behavior.
 
