@@ -30,7 +30,7 @@ export default async function NotFound() {
     <V5Page>
       <section className={shell.section} style={{ textAlign: 'center' }} aria-labelledby="not-found-title">
         <div className={shell.inner}>
-          <p aria-hidden="true" style={{ fontSize: 'clamp(96px, 22vw, 180px)', lineHeight: 1, fontWeight: 600, color: 'var(--v5-watermark)', margin: 0 }}>{text.node("site.extra.notFoundCode")}</p>
+          <p aria-hidden="true" style={{ fontSize: 'clamp(96px, 22vw, 180px)', lineHeight: 1, fontWeight: 500, color: 'var(--v5-watermark)', margin: 0 }}>{text.node("site.extra.notFoundCode")}</p>
           <h1 id="not-found-title" className={shell.h1} style={{ marginTop: 8 }}>{text.node("site.extra.h1")}</h1>
           <p className={shell.lead} style={{ marginInline: 'auto' }}>{text.node("site.extra.notFoundDescription")}</p>
           <div className={shell.buttonRow} style={{ justifyContent: 'center' }}>

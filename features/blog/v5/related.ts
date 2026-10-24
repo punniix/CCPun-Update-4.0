@@ -6,6 +6,7 @@ import type { BlogTopicSlug } from "@/lib/content/taxonomy";
 import type { Article } from "@/lib/content/types";
 
 export const RELATED_MAX = 4;
+export const RELATED_MIN = 3;
 
 function topicSlug(article: Article): BlogTopicSlug | null {
   return getArticleSemanticTopic({
@@ -32,6 +33,7 @@ function hasValidPath(article: Article) {
  *   2. the cluster pillar, if not already chosen
  *   3. the pillar of the paired bridge cluster (CI ⇄ Health, Tax ⇄ Life, Motor → reserve fund)
  *   4. recent articles from the same physical category
+ *   5. only while fewer than 3 cards: newest articles of the paired cluster (plan pairs only)
  * It never fills with off-topic "newest" articles. A manual `relatedArticles`
  * Sanity field (plan step 0) does not exist yet and needs an approved additive schema change.
  */
@@ -51,5 +53,7 @@ export function selectRelatedArticles(article: Article, candidates: readonly Art
   let physical: string | null = null;
   try { physical = getArticleCategorySlug(article); } catch { physical = null; }
   if (physical) newest.filter((candidate) => articleBelongsToPhysicalCategory(candidate, { slug: physical as string })).forEach(add);
+  // Plan pairs only (CI ⇄ Health, Tax ⇄ Life); motor keeps just its reserve-fund pillar.
+  if (bridge && topic !== "motor-insurance" && chosen.length < RELATED_MIN) newest.filter((candidate) => topicSlug(candidate) === bridge).forEach((candidate) => { if (chosen.length < RELATED_MIN) add(candidate); });
   return chosen;
 }

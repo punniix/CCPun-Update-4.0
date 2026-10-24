@@ -54,13 +54,13 @@ test("T09: internal links render root-relative with a trailing slash; external l
 
 test("T07: related articles follow topic → pillar → bridge → category and never use off-topic filler", () => {
   const ci = selectRelatedArticles(bySlug("critical-illness-insurance"), corpus).map((item) => item.slug);
-  assert.deepEqual(ci, ["copayment-vs-deductible-health-insurance"], "CI owner: no same-topic siblings, so the bridge (Health pillar) only");
+  assert.deepEqual(ci, ["copayment-vs-deductible-health-insurance", "aia-health-ci-hero-guide", "aia-health-happy-describe"], "CI owner: bridge pillar, then the paired Health cluster (CI ⇄ CI Hero disambiguation) up to 3 cards");
   const ciHero = selectRelatedArticles(bySlug("aia-health-ci-hero-guide"), corpus).map((item) => item.slug);
   assert.deepEqual(ciHero.slice(0, 2), ["copayment-vs-deductible-health-insurance", "aia-health-happy-describe"], "same semantic topic first, newest first");
   assert.ok(ciHero.length <= 4);
   assert.ok(ciHero.includes("critical-illness-insurance"), "health ⇄ CI bridge gives the CI owner related-card links");
   const car = selectRelatedArticles(bySlug("car-insurance-types"), corpus).map((item) => item.slug);
-  assert.deepEqual(car, ["financial-pyramid"], "motor links only to the reserve-fund pillar, not to the newest articles");
+  assert.deepEqual(car, ["financial-pyramid"], "motor links only to the reserve-fund pillar, never to the newest off-topic articles");
   const pyramid = selectRelatedArticles(bySlug("financial-pyramid"), corpus).map((item) => item.slug);
   assert.deepEqual(pyramid.slice(0, 2), ["personal-income-tax-calculation", "tax-deduction"]);
   assert.ok(pyramid.includes("pension-insurance-guide"));
