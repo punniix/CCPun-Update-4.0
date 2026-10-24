@@ -23,6 +23,29 @@ const SECURITY_HEADERS = buildNextSecurityHeaders({
   appEnvironment: WEB_ENVIRONMENT,
 });
 
+// Public, non-secret Production Web tracking identity (GTM-5DKMGSK3 lives in the
+// layout). Vercel supplied these as NEXT_PUBLIC_* project variables; the Hostinger
+// cutover dropped them, which silently unmounted the GA/LINE listener and moved
+// trackEvent off the GTM semantic `ccpun_event` contract. NEXT_PUBLIC_* values are
+// inlined at build time, so the Production analytics lane owns them here.
+const PRODUCTION_WEB_PUBLIC_ANALYTICS = {
+  NEXT_PUBLIC_GA_ID: "G-5BMX2SKJLZ",
+  NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED: "true",
+};
+function resolveProductionWebPublicAnalytics() {
+  if (WEB_ENVIRONMENT !== "production"
+    || process.env.CCPUN_DEPLOYMENT_ROLE?.trim().toLowerCase() !== "web"
+    || process.env.CCPUN_ENABLE_PRODUCTION_ANALYTICS !== "1") return {};
+  for (const [key, expected] of Object.entries(PRODUCTION_WEB_PUBLIC_ANALYTICS)) {
+    const explicit = process.env[key]?.trim();
+    if (explicit && explicit !== expected) throw new Error(`PRODUCTION_WEB_PUBLIC_ANALYTICS_CONFLICT: ${key}`);
+  }
+  if (!/^\d{5,20}$/.test(process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() ?? "")) {
+    console.warn("NEXT_PUBLIC_META_PIXEL_ID is not set: Meta Pixel stays disabled on Production tool pages.");
+  }
+  return { ...PRODUCTION_WEB_PUBLIC_ANALYTICS };
+}
+
 const nextConfig: NextConfig = {
   ...(IS_HOSTINGER_DEPLOYMENT
     ? {
@@ -38,6 +61,7 @@ const nextConfig: NextConfig = {
     : {}),
   env: {
     NEXT_PUBLIC_CCPUN_APP_ENV: WEB_ENVIRONMENT === "unknown" ? "" : WEB_ENVIRONMENT,
+    ...resolveProductionWebPublicAnalytics(),
   },
   trailingSlash: true,
   compress: true,

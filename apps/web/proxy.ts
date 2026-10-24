@@ -8,6 +8,15 @@ import { TAX_SLUG_MIGRATION, WEB_REDIRECTS } from "../../lib/runtime/web-build-c
 export function hostingerRedirectUrl(request: Request): URL | null {
   const url = new URL(request.url);
   const pathname = url.pathname;
+  // Permanent redirects match the slash-normalised path before the trailing-slash
+  // 308, so a slashless legacy URL reaches its final URL in one hop.
+  const normalizedPathname = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  for (const { prefix, destination } of WEB_REDIRECTS) {
+    if (normalizedPathname === prefix || normalizedPathname.startsWith(`${prefix}/`)) {
+      url.pathname = destination;
+      return url;
+    }
+  }
   // Match Next's trailingSlash rules, including .well-known and data requests.
   if (!pathname.startsWith("/.well-known/") && pathname !== "/.well-known") {
     if (!request.headers.has("x-nextjs-data") && /\/[^/]+\.\w+\/$/.test(pathname)) {
@@ -16,12 +25,6 @@ export function hostingerRedirectUrl(request: Request): URL | null {
     }
     if (/\/[^/.]+$/.test(pathname)) {
       url.pathname = `${pathname}/`;
-      return url;
-    }
-  }
-  for (const { prefix, destination } of WEB_REDIRECTS) {
-    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
-      url.pathname = destination;
       return url;
     }
   }

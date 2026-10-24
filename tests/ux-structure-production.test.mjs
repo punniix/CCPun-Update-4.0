@@ -313,11 +313,16 @@ test('Production providers, metadata, models, engines, tracking, consent storage
   // Reviewed shared Node security policy and generated serving guard; all other bytes remain pinned.
   const webDriverPath = 'apps/web/scripts/build-provider.mjs';
   assert.equal(protectedProduction[webDriverPath], '90a606fc6d04947385989fac4f6ce2f43f10d214c4fabc72dcc465e378de84bd');
+  // Reviewed 2026-10-24 GA4 outage fix: the Production analytics lane inlines its
+  // public GA4 ID and semantic-layer flag; covered by web-foundation-config-parity.
+  const webConfigPath = 'apps/web/next.config.ts';
+  assert.equal(protectedProduction[webConfigPath], '2c21e02a2bd71080f5c5a339338f9ad520b99d629598ad0fe105a7c3f8a16cf4');
   for (const [file,digest] of Object.entries(protectedProduction)) {
     const reviewedDigest = file === analyticsPath
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
       : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f'
-      : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4' : digest;
+      : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4'
+      : file === webConfigPath ? 'd4cf8aa0725fdf58263e3f68776db192fa39bfa1e7578b8cb7f715a7e5face9f' : digest;
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
     const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
     assert.equal(sha(source), reviewedDigest, file);
