@@ -1,8 +1,9 @@
 import { getPublicCopy } from "@/lib/content/public-copy";
 import { publicCopyText } from "@/lib/content/public-copy-registry";
 import { cache } from "react";
-import Website43Blog from "@/features/blog/website-43/Website43Blog";
-import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/features/blog/website-43/blogData";
+import V5Category from "@/features/blog/v5/V5Category";
+import { getPublishedArticles, getPublishedCategoryRegistry } from "@/components/layout/v5/shell-data";
+import { listFallbackTopics, listLinkableTopics } from "@/lib/content/topic-navigation";
 import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
@@ -11,7 +12,6 @@ import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
 import {
   articleBelongsToPhysicalCategory,
   getCategoryCanonical,
-  listCategoryMenuEntries,
   resolveCategoryRoute,
   type CategoryRegistryEntry,
 } from "@/lib/content/category-registry";
@@ -19,22 +19,21 @@ import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";
 import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
 import { buildBlogTopicHubSchema } from "@/lib/content/structured-data/article-schema";
 import type { Article } from "@/lib/content/types";
-import { curateFeaturedArticles } from "@/lib/content/featured-articles";
 import {
   getBlogTopicHub,
   isArticleInSemanticTopic,
   type BlogTopicHub,
 } from "@/lib/content/taxonomy";
 import { getArticlePath, getLegacyCategoryRedirectPath, isArticleCanonicalAligned } from "@/lib/content/url";
-import styles from "@/components/layout/website-43/Website43.module.css";
 
 const SITE_URL = "https://ccpun.com";
 const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/assets/blog-hub-hero-ccpun-v1.webp`;
+// Published reads share the request cache with the v5 nav/footer topics.
 const getArticlesForRequest = cache((includeDrafts: boolean) =>
-  getContentProvider().listArticles({ includeDrafts }),
+  includeDrafts ? getContentProvider().listArticles({ includeDrafts }) : getPublishedArticles(),
 );
 const getRegistryForRequest = cache((includeDrafts: boolean) =>
-  listCategoryRegistry({ includeDrafts }),
+  includeDrafts ? listCategoryRegistry({ includeDrafts }) : getPublishedCategoryRegistry(),
 );
 
 function articleBelongsToHub(article: Article, hub: BlogTopicHub) {
@@ -54,8 +53,9 @@ function isPublicIndexableArticle(article: Article) {
   return article.status === "published" && article.noindex !== true && isArticleCanonicalAligned(article);
 }
 
-function categoryMenu(registry: Awaited<ReturnType<typeof getRegistryForRequest>>, includeDrafts: boolean) {
-  return listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));
+// Plan T11: sibling-hub chips link only categories that own indexable articles.
+function linkableTopics(registry: Awaited<ReturnType<typeof getRegistryForRequest>>, articles: Article[]) {
+  return registry.available ? listLinkableTopics(registry, articles) : listFallbackTopics(articles);
 }
 
 function physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub | null, copyText: ReturnType<typeof publicCopyText>) {
@@ -63,26 +63,6 @@ function physicalCategoryCopy(category: CategoryRegistryEntry, hub: BlogTopicHub
     title: hub?.seoTitle ?? copyText("blog.category.seoTitle").replaceAll("{title}", category.title),
     description: category.description ?? hub?.description ?? copyText("blog.category.description").replaceAll("{title}", category.title),
   };
-}
-
-function buildTopicIntro(hub: BlogTopicHub | null, copyText: ReturnType<typeof publicCopyText>) {
-  if (!hub?.intro.length) return null;
-
-  const headingId = `blog-topic-intro-${hub.slug}`;
-  return (
-    <section
-      className={`${styles.sectionDeep} ${styles.sectionTopLarge} ${styles.sectionBottomLarge}`}
-      aria-labelledby={headingId}
-    >
-      <div className={styles.inner}>
-        <p className={styles.eyebrow}>{hub.eyebrow}</p>
-        <h2 id={headingId} className={styles.h2}>{copyText("blog.category.heading").replaceAll("{title}", hub.title)}</h2>
-        <div className={styles.storyCopy}>
-          {hub.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-        </div>
-      </div>
-    </section>
-  );
 }
 
 function categoryOpenGraph(category: CategoryRegistryEntry, title: string, description: string) {
@@ -181,17 +161,14 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   };
 }
 
-export default async function BlogCategoryHub({ params, searchParams }: { params: Promise<{ category: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function BlogCategoryHub({ params }: { params: Promise<{ category: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const copy = await getPublicCopy("blog");
-  const copyText = publicCopyText(copy);
   const { category: slug } = await params;
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
   const registry = await getRegistryForRequest(includeDrafts);
   const resolution = resolveCategoryRoute(registry, slug, { includeDrafts });
   if (resolution.kind === "unavailable") throw new Error("Category registry unavailable");
-  const queryParams = await searchParams ?? {};
-  const initialQuery = typeof queryParams.q === "string" ? queryParams.q : "";
 
   if (resolution.kind === "redirect") permanentRedirect(`/blog/${resolution.destinationSlug}/`);
   if (resolution.kind === "hidden") notFound();
@@ -201,7 +178,6 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
     const articles = await getArticlesForRequest(includeDrafts);
     const visibleArticles = articles.filter((article) => includeDrafts || article.status === "published");
     const relevantArticles = visibleArticles.filter((article) => articleBelongsToPhysicalCategory(article, category));
-    const featuredArticles = curateFeaturedArticles(relevantArticles, category.featuredArticleIds ?? []);
     const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);
     const hub = getBlogTopicHub(category.slug);
     const shouldIndex = !includeDrafts
@@ -211,18 +187,14 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
 
     return <>
       {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
-      <Website43Blog
-        copyOverride={copy}
-        key={`${category.slug}:${initialQuery}`}
-        articles={toWebsite43ArticleItems(relevantArticles, copy)}
-        featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}
-        activeCategorySlug={category.slug}
-        activeCategoryTitle={category.title}
-        heroDescription={category.description ?? hub?.description}
-        topicContent={buildTopicIntro(hub, copyText)}
-        initialQuery={initialQuery}
-      initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
-        categories={categoryMenu(registry, includeDrafts)}
+      <V5Category
+        slug={category.slug}
+        title={category.title}
+        description={category.description ?? hub?.description}
+        hub={hub}
+        articles={relevantArticles}
+        topics={linkableTopics(registry, visibleArticles)}
+        copy={copy}
       />
     </>;
   }
@@ -239,25 +211,20 @@ export default async function BlogCategoryHub({ params, searchParams }: { params
   const articles = await getArticlesForRequest(false);
   const publishedArticles = articles.filter((article) => article.status === "published");
   const relevantArticles = publishedArticles.filter((article) => articleBelongsToHub(article, hub));
-  const featuredArticles = curateFeaturedArticles(relevantArticles);
   const relevantIndexableArticles = relevantArticles.filter(isPublicIndexableArticle);
   const shouldIndexHub = hub.indexable && relevantIndexableArticles.length > 0;
   const schema = shouldIndexHub ? buildBlogTopicHubSchema(hub, relevantIndexableArticles) : null;
 
   return <>
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
-    <Website43Blog
-        copyOverride={copy}
-      key={`${hub.slug}:${initialQuery}`}
-      articles={toWebsite43ArticleItems(relevantArticles, copy)}
-      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}
-      activeCategorySlug={hub.slug}
-      activeCategoryTitle={hub.title}
-      heroDescription={hub.description}
-      topicContent={buildTopicIntro(hub, copyText)}
-      initialQuery={initialQuery}
-      initialPage={typeof queryParams.page === "string" ? queryParams.page : "1"}
-      categories={categoryMenu(registry, includeDrafts)}
+    <V5Category
+      slug={hub.slug}
+      title={hub.title}
+      description={hub.description}
+      hub={hub}
+      articles={relevantArticles}
+      topics={linkableTopics(registry, publishedArticles)}
+      copy={copy}
     />
   </>;
 }

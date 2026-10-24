@@ -15,6 +15,9 @@ const OUTPUT = path.join(ROOT, "lib/content/public-copy-locations.json");
 // still contribute; they sort after the listed ones.
 const PAGE_FILES = {
   site: [
+    // Website v5 shell renders first on Phase A pages; 4.3 files stay listed for Phase B pages.
+    "components/layout/v5/V5Header.tsx",
+    "components/layout/v5/V5Footer.tsx",
     "components/layout/website-43/Website43Navbar.tsx",
     "features/home/website-43/Website43HomeStatic.tsx",
     "components/layout/website-43/Website43Shared.tsx",
@@ -28,7 +31,7 @@ const PAGE_FILES = {
     "apps/web/app/not-found.tsx",
     "apps/web/app/layout.tsx",
   ],
-  home: ["features/home/website-43/Website43Home.tsx"],
+  home: ["features/home/v5/V5Home.tsx", "features/home/website-43/Website43Home.tsx"],
   ci: [
     "features/ci-planning/page.tsx",
     "features/ci-planning/components/CILandingIntro.tsx",
@@ -49,6 +52,12 @@ const PAGE_FILES = {
     "features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx",
   ],
   blog: [
+    "features/blog/v5/V5BlogIndex.tsx",
+    "features/blog/v5/V5BlogSearch.tsx",
+    "features/blog/v5/V5GroupPager.tsx",
+    "features/blog/v5/V5Category.tsx",
+    "features/blog/v5/V5Article.tsx",
+    "features/blog/v5/V5ArticleBody.tsx",
     "features/blog/website-43/Website43Blog.tsx",
     "features/blog/website-43/Website43BlogInteractive.tsx",
     "features/blog/website-43/ArticleCardEngagement.tsx",
@@ -74,6 +83,14 @@ const PAGE_FILES = {
 
 // Human section names for whole files that have no visible heading of their own.
 const FILE_SECTIONS = {
+  "components/layout/v5/V5Header.tsx": "เมนูด้านบน",
+  "components/layout/v5/V5Footer.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
+  "features/blog/v5/V5BlogIndex.tsx": "หน้ารวมบทความ",
+  "features/blog/v5/V5BlogSearch.tsx": "หน้ารวมบทความ · ค้นหาและรายการ",
+  "features/blog/v5/V5GroupPager.tsx": "หน้ารวมบทความ · ตัวแบ่งหน้าในหมวด",
+  "features/blog/v5/V5Category.tsx": "หน้าหมวดหมู่บทความ",
+  "features/blog/v5/V5Article.tsx": "หน้าอ่านบทความ",
+  "features/blog/v5/V5ArticleBody.tsx": "หน้าอ่านบทความ · เนื้อหา",
   "components/layout/website-43/Website43Navbar.tsx": "เมนูด้านบน",
   "components/layout/website-43/Website43Shared.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
   "features/home/website-43/Website43HomeStatic.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Website43Home from "@/features/home/website-43/Website43Home";
+import V5Home from "@/features/home/v5/V5Home";
 import { renderCiPlanningPage } from "@/features/ci-planning/page";
 import { renderFinancialHealthCheckPage } from "@/features/financial-health-check/page";
 import { renderBlogPage } from "@/features/blog/pages/BlogArchivePage";
@@ -25,7 +25,7 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
   const authorProfile = await getPrimaryAuthorPreviewProfile();
   let content: React.ReactNode;
   switch (scope) {
-    case "site": case "home": content = <Website43Home authorProfile={authorProfile} copy={copy} siteCopy={site} />; break;
+    case "site": case "home": content = <V5Home authorProfile={authorProfile} copy={copy} siteCopy={site} />; break;
     case "ci": content = await renderCiPlanningPage(copy, site); break;
     case "fhc": content = await renderFinancialHealthCheckPage(copy, site); break;
     case "blog": content = await renderBlogPage({ searchParams: Promise.resolve(filters) }, copy, site); break;

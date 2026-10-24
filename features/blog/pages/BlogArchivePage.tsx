@@ -1,12 +1,13 @@
 import { getPublicCopy } from "@/lib/content/public-copy";
 import type { PublicCopyValues } from "@/lib/content/public-copy-registry";
-import Website43Blog from "@/features/blog/website-43/Website43Blog";
-import { toWebsite43ArticleItems, toWebsite43ArticleItemsInOrder } from "@/features/blog/website-43/blogData";
+import V5BlogIndex from "@/features/blog/v5/V5BlogIndex";
+import { listLinkableTopics, listFallbackTopics } from "@/lib/content/topic-navigation";
+import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
+import { getPublishedArticles, getPublishedCategoryRegistry } from "@/components/layout/v5/shell-data";
 import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { getContentProvider } from "@/lib/content/provider";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
-import { listCategoryMenuEntries } from "@/lib/content/category-registry";
 import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";
 import { listBlogFeaturedArticleIds } from "@/lib/content/blog-featured-sanity";
 import { curateFeaturedArticles } from "@/lib/content/featured-articles";
@@ -50,30 +51,34 @@ export async function renderBlogPage({ searchParams }: BlogPageProps = {}, copyO
   const legacyTag = typeof filters.tag === "string" ? filters.tag : "";
   const { isEnabled } = await draftMode();
   const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled;
-  const [cmsArticles, registry, manualFeaturedArticleIds] = await Promise.all([
-    getContentProvider().listArticles({ includeDrafts }),
-    listCategoryRegistry({ includeDrafts }),
+  const [cmsArticles, registry, manualFeaturedArticleIds, author] = await Promise.all([
+    // Published reads are request-cached and shared with the v5 nav/footer.
+    includeDrafts ? getContentProvider().listArticles({ includeDrafts }) : getPublishedArticles(),
+    includeDrafts ? listCategoryRegistry({ includeDrafts }) : getPublishedCategoryRegistry(),
     listBlogFeaturedArticleIds(),
+    getPrimaryAuthorProfile(),
   ]);
   const articles = cmsArticles.filter((article) => includeDrafts || article.status === "published");
-  const categories = listCategoryMenuEntries(registry, includeDrafts).map(({ slug, title }) => ({ slug, title }));
+  // Plan T11: only categories with indexable articles are linked from the listing.
+  const topics = registry.available ? listLinkableTopics(registry, articles) : listFallbackTopics(articles);
 
   const visibleArticles = articles.filter((article) => (!legacyCategory || legacyCategory === "all" || article.category === legacyCategory)
     && (!legacyTag || legacyTag === "all" || article.tags?.includes(legacyTag)));
   const featuredArticles = manualFeaturedArticleIds === null ? [] : curateFeaturedArticles(articles, manualFeaturedArticleIds);
   const schema = !includeDrafts ? buildBlogArchiveSchema(articles, { title: BLOG_TITLE, description: BLOG_DESCRIPTION }) : null;
 
+  // Plan T02: every article is in the /blog/ HTML (per-group paging on the same URL, no ?page= owner).
   return <>
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
-    <Website43Blog
-      copyOverride={copy}
-      siteCopyOverride={siteCopyOverride}
+    <V5BlogIndex
       key={`all:${legacyCategory}:${legacyTag}`}
-      articles={toWebsite43ArticleItems(visibleArticles, copy)}
-      featuredArticles={toWebsite43ArticleItemsInOrder(featuredArticles, copy)}
+      copy={copy}
+      siteCopy={siteCopyOverride}
+      articles={visibleArticles}
+      featured={featuredArticles}
+      topics={topics}
+      author={author}
       initialQuery={query}
-      initialPage={typeof filters.page === "string" ? filters.page : "1"}
-      categories={categories}
     />
   </>;
 }

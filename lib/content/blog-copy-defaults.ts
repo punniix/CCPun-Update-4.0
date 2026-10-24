@@ -64,5 +64,16 @@ export const BLOG_COPY_DEFAULTS = {
   "blog.dynamic2": "เครดิต: {0}",
   "blog.dynamic3": "การแชร์ที่บันทึกได้ {0} ครั้ง",
   "blog.dynamic4": "แสดงบทความแนะนำ {0}: {1}",
-  "blog.dynamic5": "บทความ{0}"
+  "blog.dynamic5": "บทความ{0}",
+  "blog.startHere.title": "เริ่มอ่านที่นี่",
+  "blog.group.latest": "บทความล่าสุด",
+  "blog.group.count": "{0} บทความ",
+  "blog.group.viewAll": "ดูทั้งหมด →",
+  "blog.pager.label": "เลือกหน้าของ {0}",
+  "blog.pager.first": "« หน้าแรก",
+  "blog.pager.last": "หน้าสุดท้าย »",
+  "blog.pager.status": "หน้า {0} จาก {1}",
+  "blog.topicTools.title": "ลองเทียบความคุ้มครองที่มีอยู่กับภาระจริง",
+  "blog.topicTools.description": "เครื่องมือที่เกี่ยวกับหมวดนี้",
+  "blog.nextStep.eyebrow": "ขั้นต่อไป"
 } as const;
