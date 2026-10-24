@@ -174,6 +174,15 @@ function packageBeforePostPublishScripts(source) {
   }
   assert.equal(manifest.overrides.dompurify, '3.4.17');
   manifest.overrides.dompurify = '3.4.16';
+  // Reviewed 2026-10-24 security patch: zod >= 4.6.6 (GHSA-mrhx-c7xc-m3w5) and body-parser 2.4.0 (GHSA-27r3-jxmh-p828).
+  assert.equal(manifest.overrides.zod, '^4.6.6', 'only the exact reviewed zod security override is admitted');
+  delete manifest.overrides.zod;
+  assert.equal(manifest.overrides['body-parser'], '2.4.0', 'only the exact reviewed body-parser security override is admitted');
+  delete manifest.overrides['body-parser'];
+  assert.deepEqual(manifest.overrides['@module-federation/dts-plugin'], { 'adm-zip': '0.6.1' }, 'only the exact reviewed adm-zip security override is admitted');
+  delete manifest.overrides['@module-federation/dts-plugin'];
+  assert.equal(manifest.dependencies.zod, '^4.6.6', 'only the reviewed zod floor is admitted');
+  manifest.dependencies.zod = '^4.3.6';
   assert.equal(manifest.overrides.vite, '8.3.3', 'only the exact reviewed Vite security override is admitted');
   delete manifest.overrides.vite;
   assert.equal(manifest.dependencies['@cloudflare/ai-search-snippet'], '^0.0.43', 'only the reviewed disabled SDK is admitted');
@@ -193,8 +202,45 @@ function packageBeforePostPublishScripts(source) {
   return JSON.stringify(manifest, null, 2) + '\n';
 }
 
+const zodFunding = { url: 'https://github.com/sponsors/colinhacks' };
+const zodRecord = (version, integrity) => ({ version, resolved: `https://registry.npmjs.org/zod/-/zod-${version}.tgz`, integrity, license: 'MIT', funding: zodFunding });
+const bodyParserRecord = (version, integrity, contentType, iconv, qs) => ({ version, resolved: `https://registry.npmjs.org/body-parser/-/body-parser-${version}.tgz`, integrity, license: 'MIT',
+  dependencies: { bytes: '^3.1.2', 'content-type': contentType, debug: '^4.4.3', 'http-errors': '^2.0.1', 'iconv-lite': iconv, 'on-finished': '^2.4.1', qs, 'raw-body': '^3.0.2', 'type-is': '^2.1.0' },
+  engines: { node: '>=18' }, funding: { type: 'opencollective', url: 'https://opencollective.com/express' } });
+const qsRecord = (version, integrity) => ({ version, resolved: `https://registry.npmjs.org/qs/-/qs-${version}.tgz`, integrity, license: 'BSD-3-Clause',
+  dependencies: { 'es-define-property': '^1.0.1', 'side-channel': '^1.1.1' }, engines: { node: '>=0.6' }, funding: { url: 'https://github.com/sponsors/ljharb' } });
+const zod4111 = zodRecord('4.1.11', 'sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==');
+const zod436 = zodRecord('4.3.6', 'sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==');
+const zodNestedBefore = {
+  'node_modules/@vercel/cli-auth/node_modules/zod': zod4111, 'node_modules/@vercel/cli-config/node_modules/zod': zod4111,
+  'node_modules/@workflow/cli/node_modules/zod': zod436, 'node_modules/@workflow/core/node_modules/zod': zod436,
+  'node_modules/@workflow/world-local/node_modules/zod': zod436, 'node_modules/@workflow/world-postgres/node_modules/zod': zod436,
+  'node_modules/@workflow/world-vercel/node_modules/zod': zod436, 'node_modules/@workflow/world/node_modules/zod': zod436,
+};
+/** Reverse only the reviewed 2026-10-24 zod/body-parser security patch (and the qs record npm regenerated with it). */
+function lockBeforeZodBodyParserPatch(lock) {
+  for (const owner of ['', 'apps/web']) {
+    assert.equal(lock.packages[owner].dependencies.zod, '^4.6.6');
+    lock.packages[owner].dependencies.zod = '^4.3.6';
+  }
+  assert.deepEqual(lock.packages['node_modules/zod'], zodRecord('4.6.7', 'sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=='));
+  lock.packages['node_modules/zod'] = zodRecord('4.6.2', 'sha512-lh5RCAGFa1Cm2hjtNwLQhSs/AsqdWnTQaBER9fEwN/88pSh7KOtJavtBx/0VlkN/uFd61SwYmljLMDAsHlvzBQ==');
+  assert.deepEqual(lock.packages['node_modules/body-parser'], bodyParserRecord('2.4.0', 'sha512-Ifk1KcLrxaGt1occQagQNFNNOqRt1LFuehEnHHzB8Z6cRgIxRU1TBaiIsUiCdA+gy5PL7Y1IX31DNKkRmxtXjQ==', '^2.1.0', '^0.7.3', '^6.16.1'));
+  lock.packages['node_modules/body-parser'] = bodyParserRecord('2.3.0', 'sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==', '^2.0.0', '^0.7.2', '^6.15.2');
+  assert.deepEqual(lock.packages['node_modules/qs'], qsRecord('6.16.1', 'sha512-5Px6J7rfHBAGUhNQ3es4YzcOdBBw0SDcVtThJml4RdnKw4tKs2epA0kPZ+K8X+WiHktT93RHVcQ/3ym5aTCgtg=='));
+  lock.packages['node_modules/qs'] = qsRecord('6.16.0', 'sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==');
+  // adm-zip stays deduplicated onto the patched root 0.6.1 (GHSA-7q85-xj36-vmfc and related) via the dts-plugin override.
+  assert.equal(Object.hasOwn(lock.packages, 'node_modules/@module-federation/dts-plugin/node_modules/adm-zip'), false, 'no vulnerable nested adm-zip');
+  for (const [path, record] of Object.entries(zodNestedBefore)) {
+    assert.equal(Object.hasOwn(lock.packages, path), false, path + ' is deduplicated onto the patched zod');
+    lock.packages[path] = record;
+  }
+  lock.packages = Object.fromEntries(Object.entries(lock.packages).sort(([a], [b]) => a.localeCompare(b, 'en')));
+}
+
 function lockBeforeAiSdk(source) {
   const lock = JSON.parse(source);
+  lockBeforeZodBodyParserPatch(lock);
   // Exact registry records generated by npm. All unrelated lock entries stay
   // covered by the unchanged historical whole-lock hash below.
   assert.deepEqual(lock.packages["node_modules/undici"], {
