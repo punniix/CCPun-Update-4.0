@@ -14,7 +14,7 @@ import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { listAdminArticles } from "@/lib/admin/sanity-control";
 import { runSeoAudit } from "@/lib/admin/seo-audit";
 import { SEO_AUDIT_VERSION } from "@/lib/admin/seo-heuristics";
-import { getStudioArticleEditHref } from "@/cms/sanity/policy/studio-policy";
+import { getStudioArticleEditHref, getStudioArticlePresentationHref } from "@/cms/sanity/policy/studio-policy";
 
 
 function formatDate(value: string) {
@@ -246,6 +246,7 @@ export async function AdminContentPage({ searchParams }: AdminContentPageProps, 
                 {filters.rows.map((article) => {
                   const documentId = article.id.replace(/^drafts\./, "");
                   const studioHref = getStudioArticleEditHref(article.id);
+                  const presentationHref = getStudioArticlePresentationHref(article.id, article.categorySlug, article.slug);
                   const liveAudit = liveAudits.get(article.id);
                   const seoScore = article.seoScore ?? liveAudit?.score;
                   const hasSavedAudit = article.seoScore != null;
@@ -259,7 +260,7 @@ export async function AdminContentPage({ searchParams }: AdminContentPageProps, 
                   return (
                     <tr key={article.rawId} className="align-top transition hover:bg-white/[0.025]">
                       <td className="px-5 py-4">
-                        <div className="font-medium text-white/85">{article.title || "บทความยังไม่มีชื่อ"}</div>
+                        <Link href={`/content/articles/${encodeURIComponent(documentId)}/`} className="font-medium text-white/85 underline-offset-4 hover:text-[#f4df9b] hover:underline focus:outline-none focus:ring-2 focus:ring-[#e0c985]/60">{article.title || "บทความยังไม่มีชื่อ"}</Link>
                         <div className="mt-1 text-xs text-white/55">{article.category || "ยังไม่จัดหมวดหมู่"} · /{article.slug || "ยังไม่มี slug"}</div>
                         {articleTags.length > 0 ? (
                           <div className="mt-2 flex max-w-md flex-wrap gap-1.5" aria-label="แท็กบทความ">
@@ -294,7 +295,8 @@ export async function AdminContentPage({ searchParams }: AdminContentPageProps, 
                       <td className="px-4 py-4 text-white/50">{article.publishedAt ? formatDate(article.publishedAt) : "ยังไม่เคยเผยแพร่"}</td>
                       <td className="px-4 py-4 text-white/50">{formatDate(article.updatedAt)}</td>
                       <td className="px-5 py-4">
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          {studioReady ? <Link href={presentationHref} className="inline-flex min-h-11 items-center whitespace-nowrap rounded-xl bg-[#e0c985] px-3.5 py-2 text-sm font-semibold text-[#17191d] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-[#e0c985]/60">แก้พร้อมดูตัวอย่าง</Link> : null}
                           {article.isDraft ? (
                             <form action={`/api/admin/content/${encodeURIComponent(documentId)}/preview`} method="post" target="_blank">
                               <button type="submit" className="font-medium text-[#e0c985] hover:underline">เปิดตัวอย่าง<span className="sr-only"> (เปิดแท็บใหม่)</span></button>

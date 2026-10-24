@@ -83,6 +83,15 @@ export function getStudioArticleEditHref(documentId: string): string {
   return `/studio/intent/edit/id=${encodeURIComponent(logicalDocumentId)};type=article`;
 }
 
+// Same edit intent as ArticleDraftPreview: opens this exact logical document in
+// Presentation. Without a category/slug there is no preview path, so it falls
+// back to the ordinary edit intent rather than guessing a URL.
+export function getStudioArticlePresentationHref(documentId: string, categorySlug?: string | null, slug?: string | null): string {
+  if (!categorySlug || !slug) return getStudioArticleEditHref(documentId);
+  const preview = `/blog/${encodeURIComponent(categorySlug)}/${encodeURIComponent(slug)}/`;
+  return `${getStudioArticleEditHref(documentId)};mode=presentation;presentation=presentation;preview=${encodeURIComponent(preview)}`;
+}
+
 export function filterStudioAuthProviders<T extends StudioAuthProvider>(
   providers: T[],
   dataset: string,

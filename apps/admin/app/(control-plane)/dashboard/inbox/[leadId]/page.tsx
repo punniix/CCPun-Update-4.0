@@ -104,14 +104,14 @@ export default async function AdvisorCasePage({
           >
             หลักฐานการคุย
           </Link>
-          <span className="rounded-full border border-[#e0c985]/20 bg-[#e0c985]/10 px-3 py-1.5 text-[#f4df9b]">
+          <span className="inline-flex whitespace-nowrap rounded-full border border-[#e0c985]/20 bg-[#e0c985]/10 px-3 py-1.5 text-[#f4df9b]">
             {lineStageLabel(item.stage)}
           </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/70">
+          <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/70">
             {lineConversationStatusLabel(item.conversationStatus)}
           </span>
           {detail.botDecision === "human_handoff" ? (
-            <span className="rounded-full border border-sky-200/15 bg-sky-200/[0.06] px-3 py-1.5 text-sky-100">
+            <span className="inline-flex whitespace-nowrap rounded-full border border-sky-200/15 bg-sky-200/[0.06] px-3 py-1.5 text-sky-100">
               {lineBotDecisionLabel(detail.botDecision)}
             </span>
           ) : null}

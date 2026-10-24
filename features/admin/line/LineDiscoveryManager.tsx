@@ -368,7 +368,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
               <p className="text-xs font-semibold tracking-[0.1em] text-[#e0c985]">ตัวอย่างก่อนใช้จริง</p>
               <h3 className="mt-1 text-base font-semibold text-white/85">การ์ดบทความใน LINE</h3>
             </div>
-            <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/45">
+            <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/45">
               {previewArticles.length}/{current.maxCards}
             </span>
           </div>

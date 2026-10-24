@@ -1,6 +1,7 @@
 "use client";
 
 import { ArticleLiveBadge } from "./cms/sanity/policy/article-editorial-status";
+import { StudioNavbarWithAdminBackLink } from "./cms/sanity/components/StudioAdminBackLink";
 import { defineConfig } from "sanity";
 import { schemaTypes } from "./cms/sanity/schema";
 import { createStudioPresentationPlugin } from "./cms/sanity/config/presentation";
@@ -51,6 +52,7 @@ export const sanityStudioConfig =
           createStudioStructurePlugin(environment),
           createStudioPresentationPlugin(),
         ],
+        studio: { components: { navbar: StudioNavbarWithAdminBackLink } },
         schema: { types: schemaTypes },
         document: {
           badges: (previous, context) => context.schemaType === "article" ? [...previous, ArticleLiveBadge] : previous,

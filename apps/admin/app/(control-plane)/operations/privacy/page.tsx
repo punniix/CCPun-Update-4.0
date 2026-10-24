@@ -134,7 +134,7 @@ export default async function PrivacyPage() {
                       สร้างเมื่อ {date(request.requestedAt)}
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/60">
+                  <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/60">
                     {linePrivacyStatusLabel(request.status)}
                   </span>
                 </div>

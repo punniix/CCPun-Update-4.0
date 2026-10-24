@@ -11,7 +11,7 @@ test("Sanity LINE actions stay separate from normal article publish and show ela
   const action = read("cms/sanity/policy/article-line-copy-action.tsx");
   assert.match(config, /appendArticleLineCopyActions/);
   assert.match(action, /กำลังสร้างข้อความ LINE… \$\{elapsed\} วินาที/);
-  assert.match(action, /Publish LINE only/);
+  assert.match(action, /เผยแพร่เฉพาะข้อความ LINE/);
   assert.match(action, /เนื้อหาและงาน SEO อื่นใน Draft จะยังไม่ถูกเผยแพร่/);
   assert.match(action, /inFlight\.current/);
   assert.match(action, /const source = draft \?\? published/);
@@ -53,7 +53,7 @@ test("Improve LINE copy uses approved Published fields only and requires owner a
   assert.match(action, /action: "propose"/);
   assert.match(action, /ตรวจข้อเสนอ LINE copy ก่อนบันทึก Draft/);
   assert.match(action, /action: "accept"/);
-  assert.match(action, /Publish LINE only/);
+  assert.match(action, /เผยแพร่เฉพาะข้อความ LINE/);
   assert.match(route, /mode: "improve-existing"/);
   assert.match(route, /existingLineTitle/);
   assert.match(route, /existingLineDescription/);
