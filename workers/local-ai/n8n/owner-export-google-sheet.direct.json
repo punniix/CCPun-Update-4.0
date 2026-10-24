@@ -416,76 +416,147 @@
       }
     },
     {
+      "parameters": {},
+      "id": "9f3c2a1e-6b7d-4e58-9a0c-1d2e3f4a5b6c",
+      "name": "Daily · รันทันที (กดเอง)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -980,
+        -620
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "pcDVd2P6ipg8b6p4",
+          "mode": "list",
+          "cachedResultName": "CCPun — Google read-only relay (sub-workflow, called by Owner Export 06:00)",
+          "cachedResultUrl": "/workflow/pcDVd2P6ipg8b6p4"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "endpoint": "daily",
+            "source": "gsc",
+            "lookbackDays": 7
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "endpoint",
+              "displayName": "endpoint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lookbackDays",
+              "displayName": "lookbackDays",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
       "id": "57477e77-37bd-4e06-92d5-c4662b12c2c3",
       "name": "Daily · GSC",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
         -740,
         -440
       ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
-        "sendHeaders": false,
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "{\"source\":\"gsc\"}",
-        "options": {
-          "timeout": 120000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "XH8Mfoa7XEeXo7dw",
-          "name": "CCPun Production Analytics Service"
-        }
-      }
+      "onError": "continueRegularOutput"
     },
     {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "pcDVd2P6ipg8b6p4",
+          "mode": "list",
+          "cachedResultName": "CCPun — Google read-only relay (sub-workflow, called by Owner Export 06:00)",
+          "cachedResultUrl": "/workflow/pcDVd2P6ipg8b6p4"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "endpoint": "daily",
+            "source": "ga4",
+            "lookbackDays": 7
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "endpoint",
+              "displayName": "endpoint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lookbackDays",
+              "displayName": "lookbackDays",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
       "id": "c69bcb5f-2f8c-4cdf-b3b4-e08bbf510ac0",
       "name": "Daily · GA4",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
         -500,
         -440
       ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/analytics/daily/' }}",
-        "sendHeaders": false,
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "{\"source\":\"ga4\"}",
-        "options": {
-          "timeout": 120000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "XH8Mfoa7XEeXo7dw",
-          "name": "CCPun Production Analytics Service"
-        }
-      }
+      "onError": "continueRegularOutput"
     },
     {
       "id": "5b046c7e-c214-46b8-b5bd-027c512cd657",
@@ -646,72 +717,136 @@
       }
     },
     {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "pcDVd2P6ipg8b6p4",
+          "mode": "list",
+          "cachedResultName": "CCPun — Google read-only relay (sub-workflow, called by Owner Export 06:00)",
+          "cachedResultUrl": "/workflow/pcDVd2P6ipg8b6p4"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "endpoint": "marketing",
+            "source": "gsc",
+            "lookbackDays": 7
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "endpoint",
+              "displayName": "endpoint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lookbackDays",
+              "displayName": "lookbackDays",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
       "id": "32da7db3-52e6-4530-8d32-2f118809d336",
       "name": "Marketing Daily · GSC 7 วัน",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
         920,
         -440
       ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/refresh/' }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "{\"operation\": \"collect\", \"source\": \"gsc\", \"lookbackDays\": 7}",
-        "options": {
-          "timeout": 120000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "XH8Mfoa7XEeXo7dw",
-          "name": "CCPun Production Analytics Service"
-        }
-      }
+      "onError": "continueRegularOutput"
     },
     {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "pcDVd2P6ipg8b6p4",
+          "mode": "list",
+          "cachedResultName": "CCPun — Google read-only relay (sub-workflow, called by Owner Export 06:00)",
+          "cachedResultUrl": "/workflow/pcDVd2P6ipg8b6p4"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "endpoint": "marketing",
+            "source": "ga4",
+            "lookbackDays": 7
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "endpoint",
+              "displayName": "endpoint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lookbackDays",
+              "displayName": "lookbackDays",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
       "id": "8c9f4853-efd8-411d-9ad0-c099f739ec2d",
       "name": "Marketing Daily · GA4 7 วัน",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
         1140,
         -440
       ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + '/api/internal/marketing/refresh/' }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "{\"operation\": \"collect\", \"source\": \"ga4\", \"lookbackDays\": 7}",
-        "options": {
-          "timeout": 120000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "XH8Mfoa7XEeXo7dw",
-          "name": "CCPun Production Analytics Service"
-        }
-      }
+      "onError": "continueRegularOutput"
     },
     {
       "id": "6c6262fd-a622-41cc-b6cf-d293e985f7a3",
@@ -3351,6 +3486,17 @@
         [
           {
             "node": "Marketing AI Monthly · บันทึกสถานะขั้น",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily · รันทันที (กดเอง)": {
+      "main": [
+        [
+          {
+            "node": "Daily · GSC",
             "type": "main",
             "index": 0
           }

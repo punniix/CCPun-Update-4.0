@@ -155,12 +155,16 @@ test("Google Sheet lineage accepts a real pipeline correlation ID while direct f
   assert.match(marketingWorkspaceCsv(workspace, "Performance Overview"), new RegExp(correlationId));
 });
 
-test("Owner Export and Daily AI remain one 77-node source workflow with two independent roots", () => {
+test("Owner Export and Daily AI remain one 78-node source workflow: export webhook, one 06:00 schedule and an owner run-now trigger", () => {
   const workflow = JSON.parse(readFileSync("workers/local-ai/n8n/owner-export-google-sheet.direct.json", "utf8"));
-  assert.equal(workflow.nodes.length, 77);
+  assert.equal(workflow.nodes.length, 78);
   assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Admin · Export Google Sheet"), true);
   assert.equal(workflow.nodes.some((node: { name: string }) => node.name === "Daily · เก็บข้อมูล 06:00"), true);
   assert.equal(workflow.settings.availableInMCP, true);
   assert.equal(workflow.settings.timezone, "Asia/Bangkok");
   assert.equal(workflow.nodes.filter((node: { type: string }) => node.type === "n8n-nodes-base.scheduleTrigger").length, 1);
+  // The run-now trigger starts exactly the same collection chain as 06:00, so a manual run never duplicates or forks the schedule.
+  const manual = workflow.nodes.filter((node: { type: string }) => node.type === "n8n-nodes-base.manualTrigger");
+  assert.equal(manual.length, 1);
+  assert.deepEqual(workflow.connections[manual[0].name], workflow.connections["Daily · เก็บข้อมูล 06:00"]);
 });
