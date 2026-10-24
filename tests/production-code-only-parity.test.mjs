@@ -61,6 +61,9 @@ const googleRoutePins = {
   'apps/admin/app/api/admin/seo/providers/readiness/route.ts': ['1102ab55920dbb2bedbf18ddb2cfb3c0fdc5f9c8748b38be4d99c0fd61378d06', '0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc'],
   // GSC manual sync takes the same Hostinger origin guard as GA4 (2026-10-24).
   'apps/admin/app/api/admin/seo/opportunities/sync/gsc/route.ts': ['578e312b09bb047d1c3c846988a6bab455b31fbcaa66a6aeb7bf692f08c8f070', '56c36d4ae7ffb416e2066c040270272522dfd7ee50d55b2c7eebcebe044013d6'],
+  // n8n read-only Google relay (2026-10-24): service-token guard unchanged; relay bodies only.
+  'apps/admin/app/api/internal/analytics/daily/route.ts': ['3f760292d4fc1c5a94d79d49efb3484d818ec42e646b2eeb567d0d6ca847712e', '704e4443600a35daa2bac4e8653c29663647274aa19bad656944853cb22d4770'],
+  'apps/admin/app/api/internal/marketing/refresh/route.ts': ['5f9e821fdb8c5e7bd171037d78bfbee1be41c121b9dc50a7eca61e2a0bc1b32e', '280b59ac2d35826a5f43e63b6262ec9b387eb7e01c2de91a0665f27c4fcd5f74'],
 };
 function assertReviewedGoogleRoute(file, digest, source) {
   assert.ok(Object.hasOwn(googleRoutePins, file));
