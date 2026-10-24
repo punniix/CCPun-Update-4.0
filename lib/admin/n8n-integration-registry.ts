@@ -16,6 +16,8 @@ export type N8nAdminIntegration = {
   sourceControlled: boolean;
 };
 
+// Workflows archived in n8n on 2026-10-24 (Agent OS UAT smoke and nine legacy CCPun jobs) are no longer listed;
+// archive is reversible in n8n, and a restored workflow must be re-added here deliberately.
 export const N8N_ADMIN_INTEGRATIONS: N8nAdminIntegration[] = [
   { workflowId: "NeHFrMsfXcdnVxjU", workflowName: "CCPun — Local AI — LINE Card Copy", status: "admin-trigger", adminEntry: "สร้าง / ปรับข้อความ LINE", adminPath: "/content/articles/", purpose: "สร้างและปรับหัวข้อ/คำโปรย LINE จากบทความ", recommendation: "ใช้งานผ่านปุ่มใน Admin ต่อไป", sourceControlled: true },
   { workflowId: "IBgbhEGfzCcvGFy2", workflowName: "CCPun — Private Chat Screenshot OCR", status: "admin-trigger", adminEntry: "อ่านภาพด้วย Local OCR", adminPath: "/dashboard/inbox/", purpose: "อ่านภาพแคปแชท แล้วให้เจ้าของตรวจข้อความก่อนบันทึก CRM", recommendation: "มีปุ่มแล้ว แต่ต้องตรวจสถานะ n8n ก่อนเปิดใช้จริง", sourceControlled: true },
@@ -27,16 +29,6 @@ export const N8N_ADMIN_INTEGRATIONS: N8nAdminIntegration[] = [
   { workflowId: "F1SCT95FfMwLBD43", workflowName: "CCPun — Contact Form to Sheets + Email", status: "background", adminEntry: null, adminPath: null, purpose: "รับข้อมูลจากฟอร์มสาธารณะแล้วส่งต่อระบบหลังบ้าน", recommendation: "ไม่ต้องมีปุ่ม Admin เพราะ trigger มาจากหน้าเว็บ", sourceControlled: false },
   { workflowId: "IyJfaqUVF6KbnYfy", workflowName: "FHC Lead Capture — CCPun", status: "background", adminEntry: null, adminPath: null, purpose: "รับ Lead จาก Financial Health Check", recommendation: "ไม่ต้องมีปุ่ม Admin เพราะ trigger มาจาก public funnel", sourceControlled: false },
   { workflowId: "ZqCLKTFDeBQFGWx1", workflowName: "CCPun — Local AI Smoke Test", status: "test-only", adminEntry: null, adminPath: null, purpose: "ทดสอบ Local AI bridge แบบ manual", recommendation: "คงเป็น test-only ไม่ต้องมีปุ่ม Production", sourceControlled: false },
-  { workflowId: "vTc7XQOrAP1d2SBT", workflowName: "CCPun — Agent OS UAT Bridge Smoke", status: "test-only", adminEntry: null, adminPath: null, purpose: "ทดสอบ Agent OS bridge ใน UAT", recommendation: "คงเป็น UAT/test-only ไม่ต้องมีปุ่ม Production", sourceControlled: false },
-  { workflowId: "BQUpRPsK01DV8y5x", workflowName: "CCPun — marketing-report-weekly", status: "legacy", adminEntry: null, adminPath: null, purpose: "รายงานการตลาดรายสัปดาห์จากระบบเดิม", recommendation: "audit/repair validation ก่อนตัดสินใจว่าจะเชื่อม Admin หรือ retire", sourceControlled: false },
-  { workflowId: "7gPcVg0cvAHrymeu", workflowName: "CCPun — article-publish", status: "legacy", adminEntry: null, adminPath: null, purpose: "workflow เผยแพร่บทความจากระบบเดิม", recommendation: "ไม่ควรต่อ Admin จนกว่าจะยืนยันว่าไม่ซ้ำ Article Scheduler ปัจจุบัน", sourceControlled: false },
-  { workflowId: "JZFpX7rPDbWbLKtQ", workflowName: "CCPun — cost-tracker", status: "legacy", adminEntry: null, adminPath: null, purpose: "ติดตามค่าใช้จ่ายจากระบบเดิม", recommendation: "ตรวจว่าซ้ำกับ Cost/Operations model ปัจจุบันหรือไม่ก่อนใช้งานต่อ", sourceControlled: false },
-  { workflowId: "GQ7nwqvjNVB03LZm", workflowName: "CCPun — daily-report", status: "legacy", adminEntry: null, adminPath: null, purpose: "รายงานประจำวันจากระบบเดิม", recommendation: "พิจารณา retire หรือรวมเข้า Dashboard/Automation report ปัจจุบัน", sourceControlled: false },
-  { workflowId: "q6mhnjGoyRXK3oU0", workflowName: "CCPun — weekly-content-reminder", status: "legacy", adminEntry: null, adminPath: null, purpose: "เตือนงานคอนเทนต์รายสัปดาห์", recommendation: "ตรวจความซ้ำกับ Content Calendar ก่อนเชื่อมใหม่", sourceControlled: false },
-  { workflowId: "cr8wUTdpGuRYGLQ6", workflowName: "CCPun — social-post", status: "legacy", adminEntry: null, adminPath: null, purpose: "ส่งโพสต์โซเชียลจากระบบเดิม", recommendation: "ไม่ควรต่อ Admin เพราะมี Social Queue/Calendar ปัจจุบันอยู่แล้ว", sourceControlled: false },
-  { workflowId: "5LWabOJmPsquxxm1", workflowName: "CCPun — content-ai-tools", status: "legacy", adminEntry: null, adminPath: null, purpose: "ชุดเครื่องมือ AI สำหรับคอนเทนต์รุ่นเดิม", recommendation: "audit ก่อนใช้งานต่อ เพราะมี Local AI pipeline ชุดใหม่แล้ว", sourceControlled: false },
-  { workflowId: "ORGmkqYQkVNG7wme", workflowName: "CCPun — ads-monitoring", status: "legacy", adminEntry: null, adminPath: null, purpose: "ติดตามโฆษณาจากระบบเดิม", recommendation: "ยังไม่ควรต่อ Admin จนกว่าจะมี owner-facing Ads model ที่ชัดเจน", sourceControlled: false },
-  { workflowId: "mDSHSABsn2zA39UM", workflowName: "CCPun — monthly-cost-report", status: "legacy", adminEntry: null, adminPath: null, purpose: "รายงานค่าใช้จ่ายรายเดือนจากระบบเดิม", recommendation: "ตรวจความซ้ำกับ Cost/Operations model ก่อนตัดสินใจใช้งานต่อ", sourceControlled: false },
 ];
 
 export const N8N_ADMIN_STATUS_LABEL: Record<N8nAdminIntegrationStatus, string> = {
