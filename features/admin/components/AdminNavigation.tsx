@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
+import { contextualNavigationItems, type AdminNavigationChild, type AdminNavigationGroup } from "./admin-navigation-model";
 
-type NavigationChild = { href: string; label: string };
-type NavigationItem = { href: string; label: string; children?: NavigationChild[] };
+type NavigationChild = AdminNavigationChild;
+type NavigationItem = AdminNavigationGroup;
 
 function isPathWithin(pathname: string, href: string) {
   if (pathname === href) return true;
@@ -14,8 +15,7 @@ function isPathWithin(pathname: string, href: string) {
 }
 
 function contextualItems(item: NavigationItem): NavigationChild[] {
-  const children = item.children ?? [];
-  return [{ href: item.href, label: "ภาพรวม" }, ...children.filter((child) => child.href !== item.href)];
+  return contextualNavigationItems(item);
 }
 
 function PrimaryModules({ items, pathname }: { items: NavigationItem[]; pathname: string }) {

@@ -194,7 +194,7 @@ export function createPublishArticleLineOnlyAction(): DocumentActionComponent {
     }
 
     return {
-      label: busy ? "กำลังเผยแพร่ LINE…" : changed ? "Publish LINE only" : "LINE บน Live เป็นปัจจุบันแล้ว",
+      label: busy ? "กำลังเผยแพร่ LINE…" : changed ? "เผยแพร่เฉพาะข้อความ LINE" : "LINE บน Live เป็นปัจจุบันแล้ว",
       title: "เผยแพร่เฉพาะ LINE Title / LINE Description จาก Draft โดยไม่แตะเนื้อหา SEO, Body, FAQ หรือฟิลด์อื่น",
       disabled,
       onHandle: () => setConfirm(true),
@@ -206,7 +206,7 @@ export function createPublishArticleLineOnlyAction(): DocumentActionComponent {
       } : confirm ? {
         type: "confirm",
         message: "เผยแพร่เฉพาะ LINE Title / LINE Description ไปที่ Live ใช่ไหม? เนื้อหาและงาน SEO อื่นใน Draft จะยังไม่ถูกเผยแพร่",
-        confirmButtonText: "Publish LINE only",
+        confirmButtonText: "เผยแพร่เฉพาะข้อความ LINE",
         cancelButtonText: "ยกเลิก",
         onCancel: () => setConfirm(false),
         onConfirm: () => {
@@ -326,13 +326,13 @@ export function createImproveArticleLineCopyAction(): DocumentActionComponent {
     }
 
     return {
-      label: busy ? `กำลังปรับปรุง LINE… ${elapsed} วินาที` : "Improve LINE copy",
+      label: busy ? `กำลังปรับปรุง LINE… ${elapsed} วินาที` : "ปรับข้อความ LINE ด้วย AI",
       title: "ปรับปรุงจาก LINE Title / Description ที่เผยแพร่แล้ว โดยไม่ส่งเนื้อหาบทความให้ Local AI",
       disabled,
       onHandle: () => { setError(null); setCustomize(true); },
       dialog: customize ? {
         type: "dialog",
-        header: "ปรับคำแนะนำก่อน Improve LINE copy",
+        header: "ปรับคำแนะนำก่อนให้ AI ปรับข้อความ LINE",
         content: <div><LineEditorialFields title={titleInstructions} description={descriptionInstructions} busy={busy} onTitle={setTitleInstructions} onDescription={setDescriptionInstructions} />{error && <p role="alert">{error}</p>}<button type="button" disabled={disabled} onClick={() => void improve()}>{busy ? `กำลังปรับปรุง LINE… ${elapsed} วินาที` : "สร้างข้อเสนอ LINE copy"}</button></div>,
         onClose: () => { if (!busy) setCustomize(false); },
       } : error ? {
@@ -350,7 +350,7 @@ export function createImproveArticleLineCopyAction(): DocumentActionComponent {
           <p><strong>ข้อเสนอ:</strong> {proposal.lineDescription}</p>
           {(proposal.draftLineTitle?.trim() !== proposal.currentLineTitle || proposal.draftLineDescription?.trim() !== proposal.currentLineDescription) &&
             <p role="alert">Draft มี LINE copy ต่างจาก Live การยอมรับจะเขียนทับ LINE Title และ Description ใน Draft เท่านั้น</p>}
-          <p>ตรวจแล้วกดบันทึก Draft จากนั้นใช้ “Publish LINE only” แยกต่างหากเมื่อพร้อมเผยแพร่</p>
+          <p>ตรวจแล้วกดบันทึก Draft จากนั้นใช้ “เผยแพร่เฉพาะข้อความ LINE” แยกต่างหากเมื่อพร้อมเผยแพร่</p>
           <button type="button" disabled={busy} onClick={() => void accept()}>ยอมรับและบันทึกใน Draft</button>
         </div>,
         onClose: () => setProposal(null),

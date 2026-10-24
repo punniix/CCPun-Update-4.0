@@ -12,7 +12,7 @@ export const masterContent = defineType({
       validation: (Rule) => Rule.required().max(200),
     }),
     defineField({ name: "summary", title: "แก่นเนื้อหา", type: "text", rows: 4 }),
-    defineField({ name: "semanticTopic", title: "Semantic Topic", type: "string" }),
+    defineField({ name: "semanticTopic", title: "หัวข้อเชิงความหมาย", type: "string" }),
     defineField({
       name: "websiteArticle",
       title: "บทความเว็บไซต์",

@@ -27,15 +27,15 @@ export default function SeoScoreInput(props: ObjectInputProps<SeoValue>) {
     <Stack gap={4}>
       <Card padding={4} radius={3} border>
         <Stack gap={2}>
-          <Text size={1} weight="semibold">SEO Control Center</Text>
+          <Text size={1} weight="semibold">ศูนย์ตั้งค่า SEO</Text>
           <Text size={1}>
-            แก้ SEO Title, Meta Description, Search Intent และ Semantic Topic ได้ในฟอร์มด้านล่าง ส่วนความพร้อม SEO / GEO แบบสดให้ตรวจใน Control Plane เพื่อไม่คำนวณผลตรวจซ้ำใน Studio
+            แก้ชื่อและคำอธิบายบน Google เป้าหมายการค้นหา และหัวข้อเชิงความหมายได้ในฟอร์มด้านล่าง ส่วนความพร้อม SEO / GEO แบบสดให้ตรวจในศูนย์จัดการ เพื่อไม่คำนวณผลตรวจซ้ำใน Studio
           </Text>
           <Text size={1} muted>
-            URL Slug, หมวดหมู่ที่กำหนด path, Canonical override และ Noindex เป็น Protected fields หลังบทความมีวันเผยแพร่
+            URL Slug หมวดหมู่ที่กำหนด path ที่อยู่หลักของหน้า (Canonical) และการซ่อนจากผลค้นหา (Noindex) จะถูกล็อกหลังบทความมีวันเผยแพร่
           </Text>
           <Text size={1} muted>
-            Semantic Topic แยกจาก URL จริง จึงใช้จัด Knowledge Graph ได้โดยไม่ต้องย้าย canonical path
+            หัวข้อเชิงความหมายแยกจาก URL จริง จึงใช้จัดกลุ่มเนื้อหาได้โดยไม่ต้องย้ายที่อยู่หน้า
           </Text>
         </Stack>
       </Card>

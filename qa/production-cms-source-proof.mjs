@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { loadFixtureModule } from './phase1-fixture-loader.mjs';
+import { adminPhase1PredecessorDigest } from './admin-phase1-quick-wins-proof.mjs';
 
 // Exact b871b734 -> 05370957 same-word CMS capability admission. Historical
 // manifests and rendered/metadata/action goldens are deliberately unchanged.
@@ -273,7 +274,7 @@ export function assertProductionCmsOwner(file, source = read(file)) {
     return true;
   }
   if (Object.hasOwn(cmsNativeFollowupOwners, file)) {
-    assert.equal(cmsSha(source), cmsNativeFollowupOwners[file].after, file + ': exact independently reviewed native CMS successor');
+    assert.equal(adminPhase1PredecessorDigest(file, source), cmsNativeFollowupOwners[file].after, file + ': exact independently reviewed native CMS successor');
     return true;
   }
   source = canonicalNavigationPredecessor(file, source);

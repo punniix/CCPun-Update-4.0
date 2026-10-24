@@ -32,11 +32,11 @@ export const N8N_ADMIN_INTEGRATIONS: N8nAdminIntegration[] = [
 ];
 
 export const N8N_ADMIN_STATUS_LABEL: Record<N8nAdminIntegrationStatus, string> = {
-  "admin-trigger": "มีปุ่มใน Admin",
-  background: "ทำงานเบื้องหลัง",
-  unconnected: "ยังไม่มีปุ่มใน Admin",
-  "test-only": "ใช้ทดสอบเท่านั้น",
-  legacy: "Legacy / รอตัดสินใจ",
+  "admin-trigger": "มีปุ่ม",
+  background: "เบื้องหลัง",
+  unconnected: "ยังไม่มีปุ่ม",
+  "test-only": "ทดสอบ",
+  legacy: "รอตัดสินใจ",
 };
 
 export function n8nAdminIntegrationSummary() {

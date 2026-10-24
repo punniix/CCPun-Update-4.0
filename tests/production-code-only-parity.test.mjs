@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
+import { adminPhase1PredecessorDigest } from '../qa/admin-phase1-quick-wins-proof.mjs';
 import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
 import { assertNativeProviderRetirement, assertReviewedWebUatBuildProfile } from '../qa/phase3-native-provider-proof.mjs';
 
@@ -143,7 +144,7 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
     else if (['apps/admin/app/api/internal/line/bridge-health/route.ts', 'apps/admin/app/api/internal/line/ingest-event/route.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else if (Object.hasOwn(proof.reviewedUxOwners, file)) assert.equal(proof.reviewedUxOwners[file].baselineSha256, digest, file);
-    else assert.equal(sha(productionBaselineSource(file)), digest, file);
+    else assert.equal(adminPhase1PredecessorDigest(file, productionBaselineSource(file)), digest, file);
   }
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
     assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');

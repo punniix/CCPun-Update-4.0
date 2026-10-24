@@ -103,8 +103,8 @@ export const article = defineType({
     defineField({ name: "faq", title: "FAQ ที่แสดงในบทความ", type: "array", of: [defineArrayMember({ type: "faqItem" })], group: "content", description: "ใช้ชุดคำถามนี้เป็นหลักสำหรับ FAQ ใหม่ ตรวจว่าไม่ซ้ำกับคำถามในเนื้อหาเดิมก่อนเพิ่ม และอย่าลบ FAQ เดิมเป็นชุดจนกว่าผู้ดูแลจะตรวจการแสดงผลและข้อมูลค้นหาแล้ว" }),
     defineField({ name: "sources", title: "แหล่งอ้างอิง", type: "array", of: [defineArrayMember({ type: "sourceReference" })], group: "review" }),
     defineField({ name: "review", title: "ขั้นตรวจเนื้อหา", type: "reviewMetadata", group: "publication", validation: (Rule) => Rule.required() }),
-    defineField({ name: "seo", title: "SEO Control Center", type: "seoMetadata", group: "seoGeo", components: { input: SeoScoreInput }, validation: (Rule) => Rule.required() }),
-    defineField({ name: "geo", title: "GEO / AI Search", type: "geoMetadata", group: "seoGeo" }),
+    defineField({ name: "seo", title: "ศูนย์ตั้งค่า SEO", type: "seoMetadata", group: "seoGeo", components: { input: SeoScoreInput }, validation: (Rule) => Rule.required() }),
+    defineField({ name: "geo", title: "การค้นหาด้วย AI (GEO)", type: "geoMetadata", group: "seoGeo" }),
     defineField({ name: "migration", title: "Migration source", type: "migrationSource", readOnly: true, hidden: true }),
     defineField({
       name: "contentUpdatedAt",

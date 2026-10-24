@@ -29,7 +29,7 @@ export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityL
               <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">{title}</p>
               <p className="mt-1 text-sm text-white/60">พื้นที่ตรวจและเตรียมงานก่อนเผยแพร่</p>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">{currentEnvironmentLabel}</span>
+            <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">{currentEnvironmentLabel}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {showInbox ? <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">{inboxLabel}</Link> : null}
