@@ -1,0 +1,15 @@
+{
+  "_fixture_note": "Contract fixture for offline tests. Field names and envelope follow the SEC Open API v2 responses consumed by features/investment-allocation/server/sec-v2.ts (live-verified in PR #165). Values are synthetic, not a live recording; scripts/qa/investment-allocation-live.mjs checks the live API on UAT.",
+  "message": "success",
+  "items": [
+    {
+      "proj_id": "M0002_2567",
+      "risk_spectrum": "RS8",
+      "risk_spectrum_desc": "เสี่ยงสูงมาก",
+      "start_date": "2026-08-31",
+      "last_upd_date": "2026-09-05"
+    }
+  ],
+  "next_cursor": null,
+  "page_size": 100
+}
