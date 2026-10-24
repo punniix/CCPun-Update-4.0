@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isConfiguredAdminOrigin, isSameOriginAdminMutation } from "@/lib/admin/auth-config";
+import { getAdminEnvironment } from "@/lib/admin/environment";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { hasAdminPermission } from "@/lib/admin/rbac";
+import { isPostPublishAdminOriginAllowed } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { joinGscDashboardRows, previousEqualDateRange } from "@/lib/admin/seo-intelligence/contracts";
 import { getSeoIntelligenceRuntimeStatus } from "@/lib/admin/seo-intelligence/foundation";
 import { getGoogleDataAccessToken } from "@/lib/admin/seo-intelligence/google-data-auth";
@@ -39,10 +40,11 @@ export async function POST(request: Request) {
   if (identity.actorType !== "human" || !hasAdminPermission(identity.role, "research:provider-query")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  if (
-    !isConfiguredAdminOrigin(request.url, process.env.AUTH_URL) ||
-    !isSameOriginAdminMutation(request.url, request.headers.get("origin"))
-  ) return NextResponse.json({ error: "forbidden-origin" }, { status: 403 });
+  // Same guard as the GA4 sync: on Hostinger the route sees an internal URL, so
+  // the public Host/forwarded host and Origin must match the lane's AUTH_URL.
+  if (!isPostPublishAdminOriginAllowed(request, process.env, getAdminEnvironment())) {
+    return NextResponse.json({ error: "forbidden-origin" }, { status: 403 });
+  }
   if (!getSeoIntelligenceRuntimeStatus().enabled) return NextResponse.json({ error: "not-found" }, { status: 404 });
 
   const parsed = inputSchema.safeParse(await request.json().catch(() => null));

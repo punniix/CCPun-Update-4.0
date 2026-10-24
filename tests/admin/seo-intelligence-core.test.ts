@@ -300,8 +300,8 @@ test("GSC manual sync is human-only, exact-origin, bounded and read-only", () =>
   const control = read("features/admin/seo/opportunities/GscManualSync.tsx");
   assert.match(route, /identity\.actorType !== "human"/);
   assert.match(route, /research:provider-query/);
-  assert.match(route, /isConfiguredAdminOrigin/);
-  assert.match(route, /isSameOriginAdminMutation/);
+  assert.match(route, /isPostPublishAdminOriginAllowed\(request, process\.env, getAdminEnvironment\(\)\)/);
+  assert.doesNotMatch(route, /isConfiguredAdminOrigin\(request\.url/);
   assert.match(route, /getSeoIntelligenceRuntimeStatus\(\)\.enabled/);
   assert.match(route, /fetchGscSearchAnalyticsTotals/);
   assert.match(route, /joinGscDashboardRows/);

@@ -59,6 +59,8 @@ function assertReviewedLineCopyOrigin(file, digest, source) {
 const googleRoutePins = {
   'apps/admin/app/api/admin/seo/opportunities/sync/ga4/route.ts': ['fb2b8914578046cc4c862b29d146adeae3aebee64a7cf8fe957a57fd36f18124', 'ac973a53cd1289f33b67edd5ea96765898453f8e0a8ae41fc1b999b2cf4aee7a'],
   'apps/admin/app/api/admin/seo/providers/readiness/route.ts': ['1102ab55920dbb2bedbf18ddb2cfb3c0fdc5f9c8748b38be4d99c0fd61378d06', '0d77695ed859f6d8c16b4f07d2a2484e9ddc6c2b5be69150440816aaacf8dabc'],
+  // GSC manual sync takes the same Hostinger origin guard as GA4 (2026-10-24).
+  'apps/admin/app/api/admin/seo/opportunities/sync/gsc/route.ts': ['578e312b09bb047d1c3c846988a6bab455b31fbcaa66a6aeb7bf692f08c8f070', '56c36d4ae7ffb416e2066c040270272522dfd7ee50d55b2c7eebcebe044013d6'],
 };
 function assertReviewedGoogleRoute(file, digest, source) {
   assert.ok(Object.hasOwn(googleRoutePins, file));
