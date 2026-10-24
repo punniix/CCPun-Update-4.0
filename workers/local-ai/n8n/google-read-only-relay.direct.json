@@ -1,0 +1,382 @@
+{
+  "name": "CCPun — Google read-only relay (sub-workflow, called by Owner Export 06:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "endpoint"
+            },
+            {
+              "name": "source"
+            },
+            {
+              "name": "lookbackDays",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "r1",
+      "name": "Relay · Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Round state: job metadata + provider JSON already fetched. Admin owns request planning, validation and storage.\nconst input = $input.first().json;\nconst job = input.job ?? { endpoint: input.endpoint, source: input.source, lookbackDays: input.lookbackDays ?? 7 };\nif (!['marketing', 'daily'].includes(job.endpoint) || !['gsc', 'ga4'].includes(job.source)) throw new Error('RELAY_INVALID_JOB');\nconst responses = Array.isArray(input.responses) ? input.responses : [];\nconst round = Number.isInteger(input.round) ? input.round : 0;\nconst window = input.window ?? null;\nconst body = job.endpoint === 'marketing'\n  ? { operation: 'relay', source: job.source, ...(window ? { startDate: window.startDate, endDate: window.endDate } : { lookbackDays: job.lookbackDays }), responses }\n  : { source: job.source, relayResponses: responses };\nreturn [{ json: { job, responses, round, window, body } }];"
+      },
+      "id": "r2",
+      "name": "Relay · Build body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CCPUN_ADMIN_BASE_URL || 'https://admin.ccpun.com') + ($json.job.endpoint === 'marketing' ? '/api/internal/marketing/refresh/' : '/api/internal/analytics/daily/') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "r3",
+      "name": "Relay · Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XH8Mfoa7XEeXo7dw",
+          "name": "CCPun Production Analytics Service"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "r4-c",
+              "leftValue": "={{ $json.state === 'needs-requests' && Array.isArray($json.requests) && $json.requests.length > 0 && $('Relay · Build body').last().json.round < 5 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "r4",
+      "name": "Relay · ต้องดึงเพิ่ม?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const relay = $input.first().json;\nconst state = $('Relay · Build body').last().json;\nreturn relay.requests.map((request) => ({ json: { key: request.key, url: request.url, body: request.body, source: state.job.source } }));"
+      },
+      "id": "r5",
+      "name": "Relay · แตกคำขอ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "r6-c",
+              "leftValue": "={{ $json.source === 'gsc' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "r6",
+      "name": "Relay · GSC หรือ GA4?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "r7",
+      "name": "Google · GSC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1328,
+        -224
+      ],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "uEWpjwXHGc414olN",
+          "name": "CCPun GSC read-only (n8n)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAnalyticsOAuth2",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "r8",
+      "name": "Google · GA4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1328,
+        -16
+      ],
+      "credentials": {
+        "googleAnalyticsOAuth2": {
+          "id": "MpeqYMGahrZQLPPB",
+          "name": "Google Analytics account - CCPun"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const state = $('Relay · Build body').last().json;\nconst relay = $('Relay · Admin').last().json;\nconst planned = $('Relay · แตกคำขอ').all();\nconst fetched = $input.all();\nif (fetched.length !== planned.length) throw new Error('RELAY_RESPONSE_COUNT_MISMATCH');\nconst responses = state.responses.concat(fetched.map((item, index) => ({ key: planned[index].json.key, status: Number(item.json.statusCode) || 502, body: item.json.body ?? null })));\nconst window = state.window ?? (relay.startDate && relay.endDate ? { startDate: relay.startDate, endDate: relay.endDate } : null);\nreturn [{ json: { job: state.job, responses, round: state.round + 1, window } }];"
+      },
+      "id": "r9",
+      "name": "Relay · รวมคำตอบ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return only Admin's verdict; provider rows never leave this sub-workflow.\nreturn [{ json: $('Relay · Admin').last().json }];"
+      },
+      "id": "r10",
+      "name": "Relay · ผลลัพธ์",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        128
+      ]
+    }
+  ],
+  "connections": {
+    "Relay · Start": {
+      "main": [
+        [
+          {
+            "node": "Relay · Build body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relay · Build body": {
+      "main": [
+        [
+          {
+            "node": "Relay · Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relay · Admin": {
+      "main": [
+        [
+          {
+            "node": "Relay · ต้องดึงเพิ่ม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relay · ต้องดึงเพิ่ม?": {
+      "main": [
+        [
+          {
+            "node": "Relay · แตกคำขอ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Relay · ผลลัพธ์",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relay · แตกคำขอ": {
+      "main": [
+        [
+          {
+            "node": "Relay · GSC หรือ GA4?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relay · GSC หรือ GA4?": {
+      "main": [
+        [
+          {
+            "node": "Google · GSC",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google · GA4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google · GSC": {
+      "main": [
+        [
+          {
+            "node": "Relay · รวมคำตอบ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google · GA4": {
+      "main": [
+        [
+          {
+            "node": "Relay · รวมคำตอบ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relay · รวมคำตอบ": {
+      "main": [
+        [
+          {
+            "node": "Relay · Build body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Bangkok",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "active": false
+}
