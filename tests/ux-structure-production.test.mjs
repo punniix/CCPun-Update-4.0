@@ -177,6 +177,8 @@ function packageBeforePostPublishScripts(source) {
   delete manifest.overrides.zod;
   assert.equal(manifest.overrides['body-parser'], '2.4.0', 'only the exact reviewed body-parser security override is admitted');
   delete manifest.overrides['body-parser'];
+  assert.deepEqual(manifest.overrides['@module-federation/dts-plugin'], { 'adm-zip': '0.6.1' }, 'only the exact reviewed adm-zip security override is admitted');
+  delete manifest.overrides['@module-federation/dts-plugin'];
   assert.equal(manifest.dependencies.zod, '^4.6.6', 'only the reviewed zod floor is admitted');
   manifest.dependencies.zod = '^4.3.6';
   assert.equal(manifest.overrides.vite, '8.3.3', 'only the exact reviewed Vite security override is admitted');
@@ -213,7 +215,7 @@ const zodNestedBefore = {
   'node_modules/@workflow/world-local/node_modules/zod': zod436, 'node_modules/@workflow/world-postgres/node_modules/zod': zod436,
   'node_modules/@workflow/world-vercel/node_modules/zod': zod436, 'node_modules/@workflow/world/node_modules/zod': zod436,
 };
-/** Reverse only the reviewed 2026-10-24 zod/body-parser security patch (and the qs/adm-zip records npm regenerated with it). */
+/** Reverse only the reviewed 2026-10-24 zod/body-parser security patch (and the qs record npm regenerated with it). */
 function lockBeforeZodBodyParserPatch(lock) {
   for (const owner of ['', 'apps/web']) {
     assert.equal(lock.packages[owner].dependencies.zod, '^4.6.6');
@@ -225,9 +227,8 @@ function lockBeforeZodBodyParserPatch(lock) {
   lock.packages['node_modules/body-parser'] = bodyParserRecord('2.3.0', 'sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==', '^2.0.0', '^0.7.2', '^6.15.2');
   assert.deepEqual(lock.packages['node_modules/qs'], qsRecord('6.16.1', 'sha512-5Px6J7rfHBAGUhNQ3es4YzcOdBBw0SDcVtThJml4RdnKw4tKs2epA0kPZ+K8X+WiHktT93RHVcQ/3ym5aTCgtg=='));
   lock.packages['node_modules/qs'] = qsRecord('6.16.0', 'sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==');
-  assert.deepEqual(lock.packages['node_modules/@module-federation/dts-plugin/node_modules/adm-zip'], { version: '0.6.0', resolved: 'https://registry.npmjs.org/adm-zip/-/adm-zip-0.6.0.tgz',
-    integrity: 'sha512-XleryMhbuksdKtofnWZ9Sk+4CUTbms4Mb/EU32SZwToAyZ5RgVos/ki8n+yr0LWHOGKuakbXTuuYNHLQjhddgg==', license: 'MIT', engines: { node: '>=14.0' } });
-  delete lock.packages['node_modules/@module-federation/dts-plugin/node_modules/adm-zip'];
+  // adm-zip stays deduplicated onto the patched root 0.6.1 (GHSA-7q85-xj36-vmfc and related) via the dts-plugin override.
+  assert.equal(Object.hasOwn(lock.packages, 'node_modules/@module-federation/dts-plugin/node_modules/adm-zip'), false, 'no vulnerable nested adm-zip');
   for (const [path, record] of Object.entries(zodNestedBefore)) {
     assert.equal(Object.hasOwn(lock.packages, path), false, path + ' is deduplicated onto the patched zod');
     lock.packages[path] = record;
