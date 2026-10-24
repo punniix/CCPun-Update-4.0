@@ -8,7 +8,7 @@ function inspect(provider: "hostinger" | "local" | "vercel", review: boolean) {
     const {default:config}=require('./apps/web/next.config.ts');
     const {WEB_DEPLOYMENT_IDENTITY,shouldBlockWebIndexing}=require('./apps/web/runtime-environment.ts');
     (async()=>{
-      const paths=['/ci-planning?from=a%26b','/blog/personal-finance/personal-income-tax-calculation-2569/','/living-benefits/old/?q=x%2Fy','/tools/fhc/','/financial-advisor/','/financial-advisor-extra/','/unknown-route','/unknown-route/','/api/line/webhook','/api/line/webhook/','/login/','/dashboard/','/robots.txt','/sitemap.xml','/llms.txt','/.well-known/security.txt','/.well-known/extensionless','/_next/image/?url=%2Ffavicon.png&w=32&q=75','/_next/static/font.woff2','/favicon.png/?q=1'];
+      const paths=['/living-benefits','/tools/fhc','/financial-advisor','/blog/personal-finance/personal-income-tax-calculation-2569','/ci-planning?from=a%26b','/blog/personal-finance/personal-income-tax-calculation-2569/','/living-benefits/old/?q=x%2Fy','/tools/fhc/','/financial-advisor/','/financial-advisor-extra/','/unknown-route','/unknown-route/','/api/line/webhook','/api/line/webhook/','/login/','/dashboard/','/robots.txt','/sitemap.xml','/llms.txt','/.well-known/security.txt','/.well-known/extensionless','/_next/image/?url=%2Ffavicon.png&w=32&q=75','/_next/static/font.woff2','/favicon.png/?q=1'];
       const observations=paths.map(path=>{
         const req=new Request('https://candidate.example'+path);
         const response=proxy(req);
@@ -43,6 +43,10 @@ test("Hostinger redirects preserve URL and query semantics with complete candida
   assert.equal(runtime.skipTrailing, true);
   assert.deepEqual(runtime.redirects, []);
   const expected: Record<string, string> = {
+    "/living-benefits": "/ci-planning/",
+    "/tools/fhc": "/tools/financial-health-check/",
+    "/financial-advisor": "/",
+    "/blog/personal-finance/personal-income-tax-calculation-2569": "/blog/personal-finance/personal-income-tax-calculation/",
     "/ci-planning?from=a%26b": "/ci-planning/?from=a%26b",
     "/blog/personal-finance/personal-income-tax-calculation-2569/": "/blog/personal-finance/personal-income-tax-calculation/",
     "/living-benefits/old/?q=x%2Fy": "/ci-planning/?q=x%2Fy",
@@ -55,7 +59,7 @@ test("Hostinger redirects preserve URL and query semantics with complete candida
   const policy = runtime.headers.find((rule: { source: string }) => rule.source === "/:path*").headers;
   for (const observation of runtime.observations) {
     const destination = expected[observation.path];
-    const expectedStatus = observation.path.startsWith("/blog/personal-finance/personal-income-tax-calculation-2569/") ? 301 : destination ? 308 : 200;
+    const expectedStatus = observation.path.startsWith("/blog/personal-finance/personal-income-tax-calculation-2569") ? 301 : destination ? 308 : 200;
     assert.equal(observation.status, expectedStatus, observation.path);
     assert.equal(observation.location, destination ? `https://candidate.example${destination}` : null, observation.path);
     if (destination) {

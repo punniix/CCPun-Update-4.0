@@ -122,6 +122,35 @@ try {
   browser.gtag = (...args: unknown[]) => { sent.push(args); };
   flushPendingAnalyticsEvents('analytics');
   assert.equal(sent.length, 2, 'revoking consent must discard queued events');
+
+  // An unapproved calculator_version (the current CI v11 constant) drops only that
+  // parameter; the allowlisted event itself must still be dispatched.
+  clearPendingAnalyticsEvents();
+  sent.length = 0;
+  trackEvent('ci_calculator_start', { tool_name: 'ci_planning', cta_location: 'ci_calculator', calculator_version: 'ci_planning_v11_asset_protection_2026' });
+  assert.deepEqual(sent.map((args) => args[1]), ['ci_calculator_start'], 'unknown calculator_version must not drop the event');
+  assert.equal((sent[0][2] as Record<string, unknown>).calculator_version, undefined, 'unknown calculator_version value must not be sent');
+
+  // Production GTM routes GA4 custom events only from the semantic ccpun_event contract
+  // (2026-10-03 Hostinger outage: the flag was missing, so nothing reached that tag).
+  process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'true';
+  clearPendingAnalyticsEvents();
+  sent.length = 0;
+  browser.dataLayer = [];
+  trackEvent('ci_landing_view', { tool_name: 'ci_planning', cta_location: 'ci_landing', calculator_version: 'ci_planning_v11_asset_protection_2026' });
+  trackEvent('line_oa_click', { contact_channel: 'line', cta_location: 'navbar', surface_group: 'ci_planning', phone: '0800000000' });
+  const semanticRows = browser.dataLayer as Array<Record<string, unknown>>;
+  assert.deepEqual(semanticRows.map((row) => [row.event, row.event_name, row.event_schema_version, row.analytics_consent]), [
+    ['ccpun_event', 'ci_landing_view', 1, 'granted'],
+    ['ccpun_event', 'line_oa_click', 1, 'granted'],
+  ], 'semantic mode must hand CI landing and LINE events to the GTM ccpun_event tag');
+  assert.equal(sent.length, 0, 'semantic mode keeps a single destination owner');
+  assert.equal(semanticRows[1].cta_location, 'navbar');
+  assert.ok(!JSON.stringify(semanticRows).includes('0800000000'), 'personal data must never reach the dataLayer');
+  analyticsConsent = false;
+  trackEvent('line_oa_click', { contact_channel: 'line', cta_location: 'navbar', surface_group: 'ci_planning' });
+  assert.equal(semanticRows.length, 2, 'semantic mode must stay consent-gated');
+  analyticsConsent = true;
 } finally {
   clearPendingAnalyticsEvents();
   Reflect.deleteProperty(globalThis, 'window');
