@@ -46,27 +46,40 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
   assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, generateMetadata', 'default')));
   assert.throws(() => verify(routes[2], read('app/' + routes[2]).replace('force-static', 'force-dynamic')));
   assert.throws(() => verify(routes[1], read('app/' + routes[1]).replace('@/apps/web/', '@/apps/admin/')));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('min(292px, 100%)', 'min(293px, 100%)')));
+  // Website v5 Phase A: the Web 404 is the reviewed v5 source; any copy, href or byte change is rejected.
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('site.extra.blogRecovery', 'site.extra.primaryButton')));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'")));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('1 1 124px', '1 1 125px')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('href="/blog/"', 'href="/blog"')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx') + ' '));
 });
 
 test('compiled root and Web 404 recovery retain centered bounded buttons, copy, href and metadata', async () => {
   const shared = { Website43Navbar: () => null, Website43Footer: () => null };
-  const mocks = new Map([['@/components/layout/website-43/Website43Shared', shared], ['@/lib/content/public-copy', {getPublicCopy: async scope => loadFixtureModule('lib/content/public-copy-registry.ts').parsePublicCopy(scope,null)}]]);
+  const copyMock = {getPublicCopy: async scope => loadFixtureModule('lib/content/public-copy-registry.ts').parsePublicCopy(scope,null)};
+  // Website v5 Phase A: the route renders the v5 404 inside the shared v5 frame (mocked here);
+  // the Website 4.3 body is retained verbatim as the rollback component and keeps its exact contract.
+  const mocks = new Map([
+    ['@/components/layout/website-43/Website43Shared', shared], ['./Website43Shared', shared], ['@/lib/content/public-copy', copyMock],
+    ['@/components/layout/v5/V5Page', { __esModule: true, default: ({ children }) => children }],
+    ['@/components/layout/v5/shell-data', { getPublishedArticles: async () => [] }],
+  ]);
   const legacy = loadFixtureModule('app/not-found.tsx', { mocks });
   const canonical = loadFixtureModule('apps/web/app/not-found.tsx', { mocks });
   assert.deepEqual(legacy.metadata, canonical.metadata);
+  assert.equal(canonical.metadata.alternates.canonical, null);
   for (const page of [legacy, canonical]) {
     const html = renderToStaticMarkup(await page.default());
-    assert.match(html, /style="flex-direction:row;flex-wrap:wrap;width:min\(292px, 100%\);gap:12px;justify-content:center;margin-inline:auto"/);
-    const links = [...html.matchAll(/<a style="([^"]+)" href="(\/|\/blog\/)">([^<]+)<\/a>/g)];
-    assert.deepEqual(links.map(([, , href, text]) => [href, text]), [['/', 'กลับหน้าแรก'], ['/blog/', 'ดูบทความ']]);
-    assert.equal(links[0][1], 'flex:1 1 124px;width:auto;min-width:0;min-height:48px;height:auto');
-    assert.equal(links[1][1], links[0][1] + ';justify-content:center');
-    assert.match(html, /<h1>ไม่พบหน้าที่คุณกำลังหา<\/h1>/);
+    const links = [...html.matchAll(/<a(?: class="[^"]*")? href="(\/|\/blog\/)">([^<]+)<\/a>/g)];
+    assert.deepEqual(links.map(([, href, text]) => [href, text]), [['/', 'กลับหน้าแรก'], ['/blog/', 'ดูบทความ']]);
+    assert.match(html, /<h1 id="not-found-title"[^>]*>ไม่พบหน้าที่คุณกำลังหา<\/h1>/);
   }
+  const rollback = loadFixtureModule('components/layout/website-43/Website43NotFound.tsx', { mocks });
+  const html = renderToStaticMarkup(await rollback.default());
+  assert.match(html, /style="flex-direction:row;flex-wrap:wrap;width:min\(292px, 100%\);gap:12px;justify-content:center;margin-inline:auto"/);
+  const links = [...html.matchAll(/<a style="([^"]+)" href="(\/|\/blog\/)">([^<]+)<\/a>/g)];
+  assert.deepEqual(links.map(([, , href, text]) => [href, text]), [['/', 'กลับหน้าแรก'], ['/blog/', 'ดูบทความ']]);
+  assert.equal(links[0][1], 'flex:1 1 124px;width:auto;min-width:0;min-height:48px;height:auto');
+  assert.equal(links[1][1], links[0][1] + ';justify-content:center');
+  assert.match(html, /<h1>ไม่พบหน้าที่คุณกำลังหา<\/h1>/);
 });
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {

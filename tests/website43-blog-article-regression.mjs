@@ -89,7 +89,7 @@ const article = {
 async function serverTree(node) {
   if(Array.isArray(node))return Promise.all(node.map(serverTree));
   if(!React.isValidElement(node))return node;
-  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog'].includes(node.type.name)))return serverTree(await node.type(node.props));
+  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog','V5Page','V5BlogIndex'].includes(node.type.name)))return serverTree(await node.type(node.props));
   const children=await serverTree(node.props.children);
   return React.cloneElement(node,{},...(Array.isArray(children)?children:[children]));
 }
@@ -214,6 +214,8 @@ const categoryRegistryFixture = buildCategoryRegistry([
 mock('../lib/content/public-copy.ts',{getPublicCopy:async scope=>copyRegistry.parsePublicCopy(scope,null)});
 mock('../lib/content/category-registry-sanity.ts', { listCategoryRegistry: async () => categoryRegistryFixture });
 mock('../lib/content/blog-featured-sanity.ts', { listBlogFeaturedArticleIds: async () => [] });
+// v5 /blog/ shows the primary author chip; the server-only Sanity reader is mocked like the other providers.
+mock('../lib/content/sanity.ts', { getPrimaryAuthorProfile: async () => null });
 mock('../lib/content/provider.ts', { getContentProvider: () => ({
   listArticles: async (options) => { calls.push(options); return [article, health, draft]; },
   getArticleBySlug: async (slug, options) => { calls.push(options); return [article, health, draft].find((entry) => entry.slug === slug) ?? null; },
@@ -226,7 +228,11 @@ const category = require('../features/blog/pages/BlogCategoryPage.tsx');
 const articleRoute = require('../features/blog/pages/ArticlePage.tsx');
 for (const [slug, label, expected] of [['health-insurance', 'ประกันสุขภาพ', 'บทความสุขภาพ'], ['investment', 'การลงทุน', null]]) {
   const markup = await doc(await category.default({ params: Promise.resolve({ category: slug }) }));
-  assert.equal(markup.querySelector('.categoryMenuButton').textContent.trim().startsWith(label), true);
+  // Website v5 Phase A: the hub renders V5Category; the current hub chip is server-rendered
+  // only for categories that own articles (plan T11 hides the empty investment hub).
+  const currentChip = markup.querySelector('nav a[aria-current="page"]');
+  if (expected) assert.equal(currentChip?.textContent.trim(), label);
+  else assert.ok(!markup.querySelector('a[href="/blog/investment/"][aria-current="page"]'));
   assert.equal(markup.querySelectorAll('h1').length, 1);
   assert.equal(markup.querySelector('h1').textContent, label);
   if (expected) assert.ok(markup.body.textContent.includes(expected));

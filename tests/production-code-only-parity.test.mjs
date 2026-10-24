@@ -9,6 +9,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
 import { adminPhase1PredecessorDigest } from '../qa/admin-phase1-quick-wins-proof.mjs';
+import { websiteV5PredecessorDigest } from '../qa/website-v5-phase-a-proof.mjs';
 import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
 import { assertNativeProviderRetirement, assertReviewedWebUatBuildProfile } from '../qa/phase3-native-provider-proof.mjs';
 
@@ -144,7 +145,8 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
     else if (['apps/admin/app/api/internal/line/bridge-health/route.ts', 'apps/admin/app/api/internal/line/ingest-event/route.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else if (Object.hasOwn(proof.reviewedUxOwners, file)) assert.equal(proof.reviewedUxOwners[file].baselineSha256, digest, file);
-    else assert.equal(adminPhase1PredecessorDigest(file, productionBaselineSource(file)), digest, file);
+    // Website v5 Phase A: an exact reviewed v5 successor maps to its frozen predecessor first.
+    else assert.equal(adminPhase1PredecessorDigest(file, productionBaselineSource(file)) === digest ? digest : websiteV5PredecessorDigest(file, productionBaselineSource(file)), digest, file);
   }
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
     assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
@@ -175,7 +177,12 @@ test('reviewed LINE and Google route admissions reject unrelated changes, unknow
 
 test('404 button admission rejects changed width, copy and duplicate style insertions', () => {
   const file = 'apps/web/app/not-found.tsx', source = read(file), digest = proof.protected[file];
-  for (const changed of [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('site.extra.blogRecovery','site.extra.primaryButton'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"]) {
+  // Website v5 Phase A: the route now renders the v5 404, so 4.3-only mutations are no-ops;
+  // every effective mutation of the reviewed v5 source (copy, href, any byte) must still be rejected.
+  const mutations = [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('site.extra.blogRecovery','site.extra.primaryButton'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"];
+  const effective = [...mutations, source.replace('href="/blog/"', 'href="/blog"'), source + ' '].filter((changed) => changed !== source);
+  assert.ok(effective.length >= 3);
+  for (const changed of effective) {
     assert.throws(() => assertReviewed404Button(digest, changed));
   }
 });

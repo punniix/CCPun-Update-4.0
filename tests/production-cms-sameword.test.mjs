@@ -42,7 +42,7 @@ const files = {
   moneyStory:'features/money-story/page.tsx',
   site:'components/layout/website-43/Website43Shared.tsx',
 };
-const serverNames = new Set(['Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
+const serverNames = new Set(['V5Page','V5BlogIndex','V5Header','V5Footer','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
 async function resolveServer(node) {
   if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
   if (!React.isValidElement(node)) return node;
@@ -67,7 +67,7 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
   ]);
   // Existing fixture loader intentionally does not load assets. Stable named CSS
   // projections retain class identity so a layout change changes these goldens.
-  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx'])];
+  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx','components/layout/v5/V5Page.tsx','components/layout/v5/V5Header.tsx','components/layout/v5/V5Footer.tsx','components/layout/v5/V5Primitives.tsx','components/layout/v5/V5LegacyBridge.tsx','features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5BlogSearch.tsx','features/blog/v5/V5GroupPager.tsx'])];
   for (const file of allFiles) {
     const source = sources.get(file) ?? readFileSync(file,'utf8');
     for (const [,id] of source.matchAll(/from ['"]([^'"]+\.(?:css|svg))['"]/g)) {
@@ -156,6 +156,10 @@ const cases = [
 test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
   assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
   for (const [index,[scope,props]] of cases.entries()) {
+    // Website v5 Phase A: /blog/ now renders the v5 index, so its b871 HTML golden (cases 5-7)
+    // is retired deliberately and replaced by the v5 archive assertions below. The unchanged
+    // Website 4.3 Blog presentation keeps its own render contract in website43-blog-article-regression.
+    if (scope === 'blog') continue;
     let html = await renderFixture(scope,props);
     if (scope === 'blog') {
       const hint = '<link rel="preload" href="/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp" as="image" fetchPriority="high"/>';
@@ -167,7 +171,14 @@ test('eight original scopes retain exact b871 public HTML, current design and si
     html = inverseCanonicalShellLinks(html, scope);
     assert.equal(digest(html),baseline[index],`${index}:${scope}`);
   }
-  assert.equal((await renderFixture('blog',{})).match(/class="articleCard"/g)?.length,6);
+  // v5 archive (plan T02): every published article is linked in the /blog/ HTML, ?q= is
+  // preserved in the search field, and ?page= never creates another listing owner.
+  const archive = await renderFixture('blog',{searchParams:Promise.resolve({})});
+  const articleHrefs = new Set([...archive.matchAll(/href="(\/blog\/personal-finance\/fixture-\d\/)"/g)].map(m=>m[1]));
+  assert.equal(articleHrefs.size, 8);
+  assert.doesNotMatch(archive, /[?&]page=/);
+  assert.match(await renderFixture('blog',{searchParams:Promise.resolve({q:'ไม่มีผล'})}), /value="ไม่มีผล"/);
+  assert.equal(await renderFixture('blog',{searchParams:Promise.resolve({page:'2'})}), archive);
 });
 test('seven original metadata objects preserve every field in ordinary and review lanes',async()=>{
   for (const scope of Object.keys(files).filter(scope=>scope!=='site')) for (const review of [false,true]) assert.equal(digest(JSON.stringify(await metadataFixture(scope,review))),metadataBaseline[scope+':'+review]);
@@ -292,6 +303,8 @@ test('protected preview page cannot start its author query before scoped authori
     ['@/lib/admin/public-copy-preview',{getPublicCopyPreview:async()=>{throw new Error('fixture-denied');}}],
     ['@/lib/content/sanity',{getPrimaryAuthorPreviewProfile:async()=>{authorReads++;return null;}}],
     ['@/features/home/website-43/Website43Home',{__esModule:true,default:()=>null}],
+    // Website v5 Phase A: the preview renders the same v5 Home as the candidate Web release.
+    ['@/features/home/v5/V5Home',{__esModule:true,default:()=>null}],
     ['@/features/ci-planning/page',{renderCiPlanningPage:()=>null}],
     ['@/features/financial-health-check/page',{renderFinancialHealthCheckPage:()=>null}],
     ['@/features/blog/pages/BlogArchivePage',{renderBlogPage:()=>null}],

@@ -104,12 +104,28 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
 
   const schema = isArticleCanonicalAligned(article) ? buildArticleSchemaGraph(article) : null;
 
-  let relatedArticles: Awaited<ReturnType<typeof getPublishedArticles>> = [];
-  let allArticles: Awaited<ReturnType<typeof getPublishedArticles>> = [];
+  let relatedArticles = [] as Awaited<ReturnType<typeof getPublishedArticles>>;
+  let allArticles = [] as Awaited<ReturnType<typeof getPublishedArticles>>;
   try {
     allArticles = await relatedArticlesPromise;
+    const candidates = allArticles
+      .filter((candidate) => candidate.status === "published" && candidate.slug !== article.slug)
+      .filter((candidate) => {
+        try {
+          getArticlePath(candidate);
+          return true;
+        } catch (error) {
+          console.error("[blog-related] skipping article with invalid taxonomy", {
+            slug: candidate.slug,
+            category: candidate.category,
+            categorySlug: candidate.categorySlug,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return false;
+        }
+      });
     // Internal-linking plan T07: topic → pillar → bridge → same category; never off-topic filler.
-    relatedArticles = selectRelatedArticles(article, allArticles);
+    relatedArticles = selectRelatedArticles(article, candidates);
   } catch (error) {
     console.error("[blog-related] related articles unavailable", { type: error instanceof Error ? error.name : "unknown" });
   }

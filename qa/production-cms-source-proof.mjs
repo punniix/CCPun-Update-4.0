@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { loadFixtureModule } from './phase1-fixture-loader.mjs';
 import { adminPhase1PredecessorDigest } from './admin-phase1-quick-wins-proof.mjs';
+import { isWebsiteV5ReviewedSuccessor, websiteV5CopyPredecessor } from './website-v5-phase-a-proof.mjs';
 
 // Exact b871b734 -> 05370957 same-word CMS capability admission. Historical
 // manifests and rendered/metadata/action goldens are deliberately unchanged.
@@ -239,6 +240,10 @@ export function canonicalNavigationPredecessor(file, source) {
 export function assertProductionCmsOwner(file, source = read(file)) {
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
+  // Website v5 Phase A (UAT prototype): an exact reviewed v5 route successor, or the
+  // exact additive v5 copy keys removed to reconstruct the frozen registry source.
+  if (isWebsiteV5ReviewedSuccessor(file, source)) return true;
+  source = websiteV5CopyPredecessor(file, source);
   if (file === 'lib/content/sanity.ts') {
     // Owner-approved article-body font-size marks (2026-10-24): only these exact
     // converter additions may be removed to reconstruct the frozen reader.

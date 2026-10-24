@@ -6,7 +6,7 @@ import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 import styles from "./V5Blog.module.css";
 
 /**
- * Client-side filter over the server-rendered cards. It never removes cards from
+ * Client-side search over the server-rendered cards. It never removes cards from
  * the HTML and keeps the existing `?q=` deep-link behaviour without adding history entries.
  */
 export default function V5BlogSearch({ scopeId, initialQuery = "" }: { scopeId: string; initialQuery?: string }) {

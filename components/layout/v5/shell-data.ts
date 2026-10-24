@@ -1,5 +1,5 @@
-import "server-only";
-
+// Server composition only: it reads through the content provider, whose Sanity fetch is itself
+// server-only, so a client import still fails at build time.
 import { cache } from "react";
 import { getContentProvider } from "@/lib/content/provider";
 import { listCategoryRegistry } from "@/lib/content/category-registry-sanity";

@@ -168,7 +168,15 @@ const articlePresentation = read('features/blog/website-43/Website43Article.tsx'
 const website43Shell = read('components/layout/website-43/Website43Shared.tsx');
 assert.match(articlePage, /index:\s*false,\s*follow:\s*false/);
 assert.match(articlePage, /isArticleCanonicalAligned\(article\) \? buildArticleSchemaGraph\(article\) : null/);
-assert.match(articlePage, /Website43Article/);
+// Website v5 Phase A: the article route renders the v5 template (the 4.3 template stays unchanged).
+assert.match(articlePage, /<V5Article preview=\{includeDrafts\} article=\{article\}/);
+const v5ArticlePresentation = read('features/blog/v5/V5Article.tsx');
+const v5Primitives = read('components/layout/v5/V5Primitives.tsx');
+assert.match(v5ArticlePresentation, /analyticsLocation="blog_article"/);
+assert.match(v5Primitives, /data-analytics-location=\{analyticsLocation\}/);
+assert.match(read('components/layout/v5/constants.ts'), /V5_LINE_URL = "https:\/\/lin\.ee\/tqLCs4f"/);
+assert.match(v5ArticlePresentation, /renderV5ArticleBody\(article\.body, headingIds, copy\)/);
+assert.match(read('features/blog/v5/V5ArticleBody.tsx'), /const id = headingIds\.get\(index\)/);
 assert.match(articlePage, /getArticleCanonical/);
 assert.match(articlePresentation, /href="https:\/\/lin\.ee\/tqLCs4f"/);
 assert.match(articlePresentation, /data-analytics-location="blog_article"/);
@@ -215,7 +223,8 @@ assert.match(categoryRegistry, /CATEGORY_STATUS_VALUES = \["draft", "active"\]/)
 assert.match(categoryRegistry, /resolveCategoryRoute/);
 assert.match(categoryRegistrySanity, /_type == "category"/);
 assert.match(blogArchivePage, /listCategoryRegistry/);
-assert.match(blogArchivePage, /listCategoryMenuEntries/);
+assert.match(blogArchivePage, /listLinkableTopics/);
+assert.match(read('lib/content/topic-navigation.ts'), /listCategoryMenuEntries\(registry, false\)/);
 assert.match(blogPresentation, /Website43BlogInteractive/);
 assert.match(blogData, /getArticlePath/);
 assert.match(blogData, /getArticleSemanticTopic/);

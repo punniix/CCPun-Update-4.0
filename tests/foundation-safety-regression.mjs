@@ -167,9 +167,10 @@ expect(
 expect(
   'Site-wide credential enrichment uses one Person graph while homepage keeps its Author Card',
   homePage.includes('getPrimaryAuthorProfile')
-    && homePage.includes('<Website43Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
+    // Website v5 Phase A: the route renders the v5 homepage with the same author/copy/FAQ inputs.
+    && homePage.includes('<V5Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
     && webHomePage.includes('getPrimaryAuthorProfile')
-    && webHomePage.includes('<Website43Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
+    && webHomePage.includes('<V5Home authorProfile={authorProfile} copy={copy} faqs={homeFaqs} />')
     && webPublicLayout.includes('buildCcpunSchemaGraph(author)')
     && siteStructuredData.includes('buildProfessionalQualificationPersonSchema(')
     && !webHomePage.includes('professionalQualificationSchema')

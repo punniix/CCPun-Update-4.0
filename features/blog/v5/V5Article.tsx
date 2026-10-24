@@ -178,7 +178,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             </div>
           </section>}
 
-          <V5ContactBand title={text.node("blog.h2")} lead={text.node("blog.lead")} cta={text.node("blog.faqCta")} />
+          <V5ContactBand title={text.node("blog.h2")} lead={text.node("blog.lead")} cta={text.node("blog.faqCta")} analyticsLocation="blog_article" />
 
           {relatedCards.length > 0 && <section className={shell.section}>
             <div className={`${shell.inner} ${shell.narrow}`}>

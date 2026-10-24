@@ -131,10 +131,10 @@ test("hub route resolves real hubs before any legacy one-segment redirect fallba
   assert.match(categoryPage, /const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled/);
   assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
   assert.match(categoryPage, /buildBlogTopicHubSchema\(hub, relevantIndexableArticles\)/);
-  assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
-  assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles, copy\)\}/);
-  assert.match(categoryPage, /const featuredArticles = curateFeaturedArticles\(relevantArticles\)/);
-  assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItemsInOrder\(featuredArticles, copy\)\}/);
+  // Website v5 Phase A: semantic-only hubs render V5Category with every published hub article.
+  assert.match(categoryPage, /slug=\{hub\.slug\}/);
+  assert.match(categoryPage, /articles=\{relevantArticles\}/);
+  assert.match(categoryPage, /const relevantArticles = publishedArticles\.filter\(\(article\) => articleBelongsToHub\(article, hub\)\)/);
 });
 
 test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO nodes", () => {
@@ -143,6 +143,7 @@ test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO
   assert.doesNotMatch(articlePage, /\/blog\/\?category=/);
   assert.doesNotMatch(schemaSource, /\/blog\/\?category=/);
   assert.match(source("features/blog/website-43/Website43Article.tsx"), /href=\{topicHref\}/);
+  assert.match(source("features/blog/v5/V5Article.tsx"), /href: topicHref, label: topicName/);
   assert.match(articlePage, /getMovedArticleRedirectPath\(category, slug\)/);
   assert.match(schemaSource, /articleSection:\s*sectionName/);
   assert.match(schemaSource, /item:\s*sectionUrl/);

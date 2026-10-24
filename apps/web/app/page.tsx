@@ -4,7 +4,7 @@ import { buildSiteRootMetadata } from "@/lib/seo/root-metadata";
 import { IS_WEB_REVIEW_ENVIRONMENT } from "../runtime-environment";
 import V5Home from "@/features/home/v5/V5Home";
 import { getPublicCopy } from "@/lib/content/public-copy";
-import { getHomeCopyFaqs } from "@/lib/content/public-copy-registry";
+import { getHomeCopyFaqs } from "@/features/home/website-43/homeFaqs";
 import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
 
 export default async function Home() {

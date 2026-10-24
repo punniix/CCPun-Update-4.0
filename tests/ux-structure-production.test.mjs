@@ -1,4 +1,5 @@
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
+import { websiteV5CopyPredecessor, websiteV5PredecessorDigest } from '../qa/website-v5-phase-a-proof.mjs';
 import './article-overview-rendering.test.mjs';
 import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
 import test from 'node:test';
@@ -324,8 +325,9 @@ test('Production providers, metadata, models, engines, tracking, consent storage
       : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4'
       : file === webConfigPath ? 'd4cf8aa0725fdf58263e3f68776db192fa39bfa1e7578b8cb7f715a7e5face9f' : digest;
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
-    const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
-    assert.equal(sha(source), reviewedDigest, file);
+    const source = file === 'package.json' ? packageBeforePostPublishScripts(websiteV5CopyPredecessor(file, read(file))) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
+    // Website v5 Phase A: an exact reviewed v5 route successor maps to its frozen predecessor digest.
+    assert.equal(file === 'package.json' ? sha(source) : websiteV5PredecessorDigest(file, source), reviewedDigest, file);
   }
 });
 
@@ -382,8 +384,11 @@ function loadArchive(articles, registry) {
     '@/lib/content/public-copy-registry': { publicCopyText: () => key => key },
     '@/components/ui/PublicCopyProvider': { PublicCopyProvider: ({children}) => children },
     'next/headers': { draftMode: async () => ({ isEnabled: false }) },
-    '@/features/blog/website-43/Website43Blog': { __esModule: true, default: Page },
-    '@/features/blog/website-43/blogData': { toWebsite43ArticleItems: x => x, toWebsite43ArticleItemsInOrder: x => x },
+    // Website v5 Phase A: /blog/ renders V5BlogIndex; published reads share the v5 request cache.
+    '@/features/blog/v5/V5BlogIndex': { __esModule: true, default: Page },
+    '@/lib/content/topic-navigation': { listLinkableTopics: entries => entries.entries.filter(x => x.status === 'active').map(({ slug, title }) => ({ slug, title })), listFallbackTopics: () => [] },
+    '@/lib/content/sanity': { getPrimaryAuthorProfile: async () => null },
+    '@/components/layout/v5/shell-data': { getPublishedArticles: async () => articles.filter(x => x.status === 'published'), getPublishedCategoryRegistry: async () => ({ available: true, ...registry }) },
     '@/lib/content/provider': { getContentProvider: () => ({ listArticles: async () => articles }) },
     '@/lib/deployment-environment': { IS_DRAFT_PREVIEW_ALLOWED: false },
     '@/lib/content/category-registry': { listCategoryMenuEntries: entries => entries.entries.filter(x => x.status === 'active') },
@@ -406,12 +411,13 @@ test('actual archive route sends only published provider records/active registry
   const tree = await archiveModule.default({ searchParams: Promise.resolve({ page:'2', q:'' }) });
   const page = React.Children.toArray(tree.props.children).find(x => x.type === Page);
   assert.deepEqual(page.props.articles, records.slice(0,10));
-  assert.deepEqual(page.props.categories, [{ slug:'personal-finance',title:'Original physical category' }]);
-  assert.equal(page.props.initialPage,'2');
+  assert.deepEqual(page.props.topics, [{ slug:'personal-finance',title:'Original physical category' }]);
+  // v5 pages per group on the same URL: ?page= is never forwarded as a listing owner.
+  assert.equal(Object.hasOwn(page.props, 'initialPage'), false);
   const empty = loadArchive([], { entries:[] });
   const emptyTree = await empty.module.default({ searchParams: Promise.resolve({}) });
   const emptyPage = React.Children.toArray(emptyTree.props.children).find(x => x.type === empty.Page);
-  assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.categories,[]);
+  assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.topics,[]);
 });
 
 // Reviewed Article/H4/Author candidate updates retain original baseline hashes in the parity manifests.
