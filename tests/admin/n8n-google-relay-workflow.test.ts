@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-type Node = { name: string; type: string; parameters: Record<string, any>; credentials?: Record<string, { id: string; name: string }>; onError?: string };
-type Workflow = { name: string; nodes: Node[]; connections: Record<string, any>; settings: Record<string, unknown>; active: boolean };
+type Named = { name: string; type: string; parameters: { jsonBody?: unknown } };
 
-const read = (path: string) => JSON.parse(readFileSync(path, "utf8")) as Workflow;
+// Parsed n8n source JSON stays loosely typed, as in the other workflow contract tests.
+const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const relay = read("workers/local-ai/n8n/google-read-only-relay.direct.json");
 const owner = read("workers/local-ai/n8n/owner-export-google-sheet.direct.json");
-const node = (workflow: Workflow, name: string) => {
+const node = (workflow: { nodes: Named[] }, name: string) => {
   const found = workflow.nodes.find((item) => item.name === name);
   assert.ok(found, `missing node ${name}`);
-  return found;
+  return found as ReturnType<typeof read>;
 };
 
 test("relay sub-workflow takes three declared inputs and keeps Admin as the planner and validator", () => {
@@ -70,5 +70,5 @@ test("Owner Export collects GSC and GA4 through the native Execute Workflow rela
   const meta = node(owner, "Daily · META");
   assert.equal(meta.type, "n8n-nodes-base.httpRequest");
   assert.deepEqual(JSON.parse(meta.parameters.jsonBody), { source: "meta" });
-  assert.equal(owner.nodes.filter((item) => item.type === "n8n-nodes-base.httpRequest" && /"source":"(?:gsc|ga4)"/.test(String(item.parameters.jsonBody ?? ""))).length, 0);
+  assert.equal(owner.nodes.filter((item: Named) => item.type === "n8n-nodes-base.httpRequest" && /"source":"(?:gsc|ga4)"/.test(String(item.parameters.jsonBody ?? ""))).length, 0);
 });
