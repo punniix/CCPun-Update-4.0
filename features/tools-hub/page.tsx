@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getPublicCopy } from "@/lib/content/public-copy";
 import { publicCopyText } from "@/lib/content/public-copy-registry";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import Link from "next/link";
@@ -20,7 +21,8 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: URL },
-  robots: { index: true, follow: true },
+  // UAT stays noindex like every other tool page; Production indexes the hub.
+  robots: IS_REVIEW_ENVIRONMENT ? { index: false, follow: false } : { index: true, follow: true },
   openGraph: { type: "website", locale: "th_TH", url: URL, title: TITLE, description: DESCRIPTION, siteName: "CCPun Financial Advisor" },
   twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
 };

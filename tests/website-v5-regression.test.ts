@@ -273,7 +273,8 @@ test("D2: system (default) / light / dark with a no-flash boot script and guarde
 
 test("D3/L8: one bottom LINE element shown after the hero, hidden on scroll down, back on scroll up, reduced motion respected", () => {
   const dock = read("components/layout/v5/V5ChatDock.tsx");
-  assert.match(dock, /#main-content > :first-child/);
+  assert.match(dock, /document\.querySelector\("#main-content section"\)/);
+  assert.match(dock, /Math\.min\(bottom, window\.innerHeight \* 1\.25\)/);
   assert.match(dock, /delta < -SCROLL_DELTA/);
   assert.match(dock, /delta > SCROLL_DELTA && y > revealY \+ HIDE_AFTER/);
   assert.match(dock, /passive: true/);
@@ -300,7 +301,7 @@ test("T1: /tools/ is an indexable hub with canonical, sitemap entry, nav, footer
   const hub = read("features/tools-hub/page.tsx");
   assert.match(hub, /alternates: \{ canonical: URL \}/);
   assert.match(hub, /const URL = "https:\/\/ccpun\.com\/tools\/";/);
-  assert.match(hub, /robots: \{ index: true, follow: true \}/);
+  assert.match(hub, /robots: IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \} : \{ index: true, follow: true \}/);
   for (const href of ["/ci-planning/", "/tools/financial-health-check/", "/play/money-story/"]) assert.ok(hub.includes(`href: "${href}"`), href);
   assert.match(hub, /data-analytics-location="tools_hub"/);
   assert.doesNotMatch(hub, /ฟรี|ดีที่สุด|การันตี|…/);

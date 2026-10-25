@@ -39,9 +39,12 @@ export default function V5ChatDock({ config, context }: { config: LineChatConfig
     const set = (next: boolean) => { if (next !== visible) { visible = next; setShown(next); } };
     // Measured on every throttled frame, so a late-loading hero or a rotated phone is handled
     // without a window size listener.
+    // The hero is the first section in <main> (some pages wrap everything in one search scope);
+    // it is capped at 1.25 screens so a tall first block never keeps the bar away.
     const measure = () => {
-      const hero = document.querySelector("#main-content > :first-child");
-      heroBottom = hero ? Math.max(240, hero.getBoundingClientRect().bottom + window.scrollY - 80) : 480;
+      const hero = document.querySelector("#main-content section") ?? document.querySelector("#main-content > :first-child");
+      const bottom = hero ? hero.getBoundingClientRect().bottom + window.scrollY - 80 : 480;
+      heroBottom = Math.max(240, Math.min(bottom, window.innerHeight * 1.25));
     };
     const update = () => {
       frame = 0;
