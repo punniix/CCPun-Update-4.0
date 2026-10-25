@@ -6,7 +6,6 @@ import { FHC_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Edit3, MessageCircle, RefreshCw } from 'lucide-react';
 import FHCLifeResultImageDownloadButton from '@/features/financial-health-check/components/FHCLifeResultImageDownloadButton';
-import ResultEmailControl from '@/components/ui/result-email/ResultEmailControl';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 import HumanCalculatorCard from '@/components/ui/HumanCalculatorCard';
 import MoneyComparison from '@/components/ui/MoneyComparison';
@@ -142,8 +141,6 @@ export default function LifeCoverageWizard() {
 
     <div className="ccpun-calculator-result-cta">
       <FHCLifeResultImageDownloadButton summary={{ familySupport: result.familySupport, debtAndEducation: values.debt + values.education, resources: result.resources, gap: result.gap }} />
-      {/* Email phase 1 (owner-approved 2026-10-25): renders nothing unless CCPUN_RESULT_EMAIL_ENABLED=1. */}
-      <ResultEmailControl tool="fhc" figures={{ gap: result.gap, familySupport: result.familySupport, debtAndEducation: values.debt + values.education, resources: result.resources }} />
       <h3>{t.node("fhc.wizard.heading")}</h3>
       <p>{t.node("fhc.wizard.description3")}</p>
       <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label={t("fhc.wizard.ariaLabel2")} onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button ccpun-motion-tactile mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />{t.node("fhc.wizard.linkLabel")}</a>

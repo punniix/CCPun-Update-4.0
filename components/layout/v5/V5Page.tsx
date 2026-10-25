@@ -5,21 +5,18 @@ import styles from "./V5.module.css";
 import V5Header from "./V5Header";
 import V5Footer from "./V5Footer";
 import V5ChatDockServer from "./V5ChatDockServer";
-import { RESULT_EMAIL_ENABLED } from "@/lib/runtime/result-email-availability";
-import { ResultEmailAvailability } from "@/components/ui/result-email/ResultEmailAvailability";
 
 /**
  * v5 page frame: header, one focusable main landmark (skip-link target), the single shared
  * footer and the one bottom LINE chat element. Server-rendered; no client-only navigation.
  * The chat topics follow the page's physical path (`current`) unless `chat` names a page group;
- * `chatTopic` adds one code-fallback topic for that group (Coming Soon pages). The result-email
- * flag (off unless CCPUN_RESULT_EMAIL_ENABLED=1) reaches tool result screens through a markup-free context.
+ * `chatTopic` adds one code-fallback topic for that group (Coming Soon pages).
  */
 export default function V5Page({ current, children, siteCopy, chat, chatTopic }: { current?: string; children: ReactNode; siteCopy?: PublicCopyValues; chat?: ChatPageContext; chatTopic?: LineChatTopic }) {
   return (
     <div className={styles.root}>
       <V5Header current={current} siteCopy={siteCopy} />
-      <main id="main-content" tabIndex={-1}><ResultEmailAvailability enabled={RESULT_EMAIL_ENABLED}>{children}</ResultEmailAvailability></main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
       <V5Footer siteCopy={siteCopy} />
       <V5ChatDockServer context={chat ?? chatContextForPath(current)} pageTopic={chatTopic} />
     </div>

@@ -49,8 +49,6 @@ const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   page_group: new Set(['home', 'blog_index', 'blog_category', 'article', 'tool_ci', 'tool_fhc', 'tool_money_story', 'tool_investment_allocation', 'tools_hub', 'about', 'coming_soon', 'default']),
   // Coming Soon (owner-approved 2026-10-25): the planned path only, as registered in lib/content/coming-soon.ts.
   coming_soon_path: /^\/tools\/[a-z0-9][a-z0-9-]{1,60}\/$/,
-  // Email phase 1 (owner-approved 2026-10-25, behind a flag): which tool's result was emailed. Never the address or figures.
-  result_tool: new Set(['ci_planning', 'fhc', 'investment_allocation']),
   campaign_code: /^[a-z0-9][a-z0-9_-]{1,63}$/,
   calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
@@ -162,7 +160,6 @@ export function buildSemanticDataLayerEvent(eventName: string, params: SafeParam
     page_group: null,
     campaign_code: null,
     coming_soon_path: null,
-    result_tool: null,
     ...params,
   };
 }

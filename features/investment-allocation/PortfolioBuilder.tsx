@@ -6,7 +6,6 @@ import { planningFundFromDetail } from "./domain/detail-to-planning";
 import type { AllocationRow, AssetBucket, ConstructionBucket, FundDetailResponse, FundSearchResponse, InvestmentPlanResult, PlanningFund, SelectedFund } from "./domain/types";
 import styles from "./InvestmentAllocation.module.css";
 import { INVESTMENT_RISK_STATEMENT, requestFailureMessage } from "./domain/copy";
-import ResultEmailControl from "@/components/ui/result-email/ResultEmailControl";
 
 const CONSTRUCTION_LABELS: Record<ConstructionBucket, string> = {
   mixed: "กองทุนผสม",
@@ -419,21 +418,6 @@ function AllocationTotal({ total, label, allowZero = false, errorMessage }: { to
   return <div className={styles.totalBox} data-valid={valid}><div className={styles.totalLine}><span>{label}</span><strong>{total}%</strong></div><div className={styles.progressTrack} aria-hidden="true"><div className={styles.progressFill} style={{ width: `${width}%` }} /></div><p className={styles.validation} data-error={!valid || Boolean(errorMessage)} aria-live="polite">{message}</p></div>;
 }
 
-/** Email phase 1 (owner-approved 2026-10-25, flag off by default): numbers only, for the visitor's own email. */
-function resultEmailFigures(result: InvestmentPlanResult) {
-  const percent = (key: AssetBucket) => result.effectiveAllocation.find((row) => row.key === key)?.percent ?? 0;
-  return {
-    planAmount: result.investmentAmount,
-    fundCount: result.selectedFunds.length,
-    assetKnownPercent: result.coverage.effectiveAssetPercentKnown,
-    equityPercent: percent("equity"),
-    fixedIncomePercent: percent("fixed_income"),
-    cashPercent: percent("cash"),
-    otherPercent: percent("other"),
-    unknownPercent: percent("unknown"),
-  };
-}
-
 function ResultView({ result, onEdit, onSave, onHandoff, saveStatus }: { result: InvestmentPlanResult; onEdit: () => void; onSave: () => void; onHandoff: () => void; saveStatus: string | null }) {
   const unknownRisk = result.riskDistribution.find((row) => row.level === "unknown")?.percent ?? 0;
   return <div className={styles.resultStack}>
@@ -465,6 +449,6 @@ function ResultView({ result, onEdit, onSave, onHandoff, saveStatus }: { result:
     <div className={styles.resultPanel}><h3>ข้อมูลที่ใช้ในแผนนี้</h3><ul className={styles.warningList}>{result.selectedFunds.map(({ fund }) => <li key={fund.id}>{fund.name} · ชนิดหน่วย {fund.className ?? "ยังไม่ระบุ"} · {fund.provenance.source === "uat_synthetic" ? "ข้อมูลสังเคราะห์ UAT" : "ข้อมูลจาก ก.ล.ต."} · วันที่ข้อมูล {fund.provenance.sourceDate ?? "ยังไม่ระบุ"} · ตรวจเมื่อ {fund.provenance.fetchedAt}</li>)}</ul><p>วันที่ข้อมูลแต่ละกองอาจต่างกัน การตรวจล่าสุดไม่ได้ทำให้ข้อมูลต้นทางใหม่ขึ้น เครื่องมือนี้ไม่ใช้เปรียบเทียบผลตอบแทน ค่าธรรมเนียม สกุลเงิน หรือการป้องกันความเสี่ยงค่าเงินที่ยังมีข้อมูลไม่ครบ</p></div>
     <div className={styles.resultPanel}><h3>ข้อควรรู้ก่อนนำผลไปใช้</h3><ul className={styles.warningList}>{result.warnings.map((warning) => <li key={warning}>{WARNING_LABELS[warning]}</li>)}</ul></div>
 
-    <div className={styles.resultPanel}><h3>ให้ Pun ช่วยดูต่อ</h3><p>คุณสามารถปรับพอร์ตต่อ บันทึกไว้ในอุปกรณ์ หรือคัดลอกสรุปเพื่อส่งให้ Pun ดูต่อได้</p><div className={styles.resultActions}><button className={styles.ghost} type="button" onClick={onEdit}>ปรับพอร์ตต่อ</button><button className={styles.secondary} type="button" onClick={onSave}>บันทึกในอุปกรณ์นี้</button><button className={styles.primary} type="button" onClick={onHandoff}>คัดลอกสรุป + ส่งให้ Pun ช่วยดู</button></div>{saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}<ResultEmailControl tool="investment_allocation" figures={resultEmailFigures(result)} /></div>
+    <div className={styles.resultPanel}><h3>ให้ Pun ช่วยดูต่อ</h3><p>คุณสามารถปรับพอร์ตต่อ บันทึกไว้ในอุปกรณ์ หรือคัดลอกสรุปเพื่อส่งให้ Pun ดูต่อได้</p><div className={styles.resultActions}><button className={styles.ghost} type="button" onClick={onEdit}>ปรับพอร์ตต่อ</button><button className={styles.secondary} type="button" onClick={onSave}>บันทึกในอุปกรณ์นี้</button><button className={styles.primary} type="button" onClick={onHandoff}>คัดลอกสรุป + ส่งให้ Pun ช่วยดู</button></div>{saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}</div>
   </div>;
 }
