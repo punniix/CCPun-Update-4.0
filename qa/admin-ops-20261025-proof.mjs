@@ -42,11 +42,24 @@ export const adminOps20261025Sources = Object.freeze({
   // END reviewed sources
 });
 
+// Codex audit follow-ups F01-F03 (2026-10-25): the ภาพรวม 06:00 card also
+// names the new "stuck" (ค้างเกินเวลา) and UAT "unscheduled" states. Same exact
+// mechanism: `before` is the reviewed successor admitted above, so the file
+// chains back through that entry to its original reviewed predecessor. Any
+// other byte still fails every frozen proof.
+export const adminOpsAuditFollowUpSources = Object.freeze({
+  // BEGIN reviewed follow-up sources
+  "apps/admin/app/(control-plane)/dashboard/page.tsx": { before: "1f9a7a1ace99efb7d2913907ff5daa1f5108c30c880724a7c6a7627d05d0f27a", after: "07325e4407b4cbdc27c0c0ddec721458a3e7ffe42d70d271f5e7ccce7adb490d" },
+  // END reviewed follow-up sources
+});
+
 // Maps the digest of an exact reviewed successor to its reviewed predecessor;
 // any other digest is returned unchanged (so an unreviewed edit still fails).
 export function adminOps20261025PredecessorDigest(file, digest) {
+  const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file] : null;
+  const reviewed = followUp && digest === followUp.after ? followUp.before : digest;
   const entry = Object.hasOwn(adminOps20261025Sources, file) ? adminOps20261025Sources[file] : null;
-  return entry && digest === entry.after ? entry.before : digest;
+  return entry && reviewed === entry.after ? entry.before : reviewed;
 }
 
 export function adminOps20261025SourceDigest(source) {

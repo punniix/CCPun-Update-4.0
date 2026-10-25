@@ -20,6 +20,18 @@ export const DAILY_JOB_KEY = "daily-0600";
 export const RUN_LOG_RETENTION_DAYS = 90;
 // The 06:00 run normally finishes well before this Bangkok time.
 export const DAILY_JOB_EXPECTED_BY_MINUTES = 7 * 60 + 30;
+// n8n hard-stops the daily workflow after settings.executionTimeout = 600 s
+// (workers/local-ai/n8n/owner-export-google-sheet.direct.json). A run whose
+// status row still says "running" after this n8n limit plus a 20-minute grace
+// (queueing, a slow final status write, clock skew) can no longer finish on its
+// own: it is reported as stuck. 30 minutes after a 06:00 start is still well
+// inside the 07:30 expected-by time, so a stuck schedule run surfaces before
+// the "missing" check would.
+export const DAILY_JOB_N8N_EXECUTION_TIMEOUT_SECONDS = 600;
+export const DAILY_JOB_STUCK_AFTER_MINUTES = 30;
+// Only Production runs the 06:00 n8n schedule. UAT has no schedule, so a day
+// without a UAT run is "unscheduled", never a "missing" outage.
+export const DAILY_JOB_SCHEDULED_LANES: readonly OpsLane[] = ["production-admin"];
 
 export const OPS_NOT_CONNECTED_LABEL = "ยังไม่ได้เชื่อม Supabase";
 
@@ -194,6 +206,16 @@ function sameSummary(a: RunLogDailySummary, b: RunLogDailySummary) {
  * 2. Dates past the window are summarized (replacing a summary that was still
  *    backed by detail rows, or merging late rows into an already-purged one)
  *    and their detail rows are deleted. Summaries are never deleted.
+ *
+ * Count contract (with the insert guard below, migration 20261025000400):
+ * every summary counts each accepted detail row exactly once. totalSteps is
+ * the number of distinct (executionId, step) rows, executions the number of
+ * distinct executionIds and the status columns one per row, all for that
+ * (runDate, workflowId). Once a day is archived (detailRowsRetained = false)
+ * its summary is final, because no new detail row can land on it. The additive
+ * merge in step 2 is only reachable for rows accepted before that guard
+ * existed; for those, executions is an upper bound (a late step of an already
+ * counted execution is counted again), never an under-count.
  */
 export function applyRunLogRetentionInMemory(state: RunLogState, now: Date | string | number, keepDays = RUN_LOG_RETENTION_DAYS): { state: RunLogState; result: RetentionResult } {
   const cutoff = retentionCutoff(now, keepDays);
@@ -242,12 +264,29 @@ export function applyRunLogRetentionInMemory(state: RunLogState, now: Date | str
   };
 }
 
+/**
+ * Mirror of the BEFORE INSERT/UPDATE trigger public.ops_guard_workflow_run_date()
+ * (migration 20261025000400). A detail row is refused when its Bangkok run date
+ * is older than the minimum 90-day retention window at write time, or when that
+ * day/workflow was already archived (its summary no longer has detail rows).
+ * Without this guard a late step of an already counted execution was merged
+ * additively into the purged summary and counted twice (reproduced on PG16).
+ */
+export function insertRunLogRowInMemory(state: RunLogState, row: RunLogRow, now: Date | string | number): RunLogState {
+  if (row.runDate < retentionCutoff(now)) throw new Error("OPS_RUN_LOG_TOO_OLD");
+  if (state.daily.some((item) => item.runDate === row.runDate && item.workflowId === row.workflowId && !item.detailRowsRetained)) throw new Error("OPS_RUN_LOG_DAY_ARCHIVED");
+  if (state.runs.some((item) => item.workflowId === row.workflowId && item.executionId === row.executionId && item.step === row.step)) throw new Error("OPS_RUN_LOG_DUPLICATE_STEP");
+  return { runs: [...state.runs, row], daily: state.daily };
+}
+
 // ---------------------------------------------------------------------------
-// 06:00 job health for the Admin banner and the failure email.
+// 06:00 job health for the Admin banner and the owner alert.
 // ---------------------------------------------------------------------------
 
+export type DailyJobHealthState = "ok" | "running" | "stuck" | "failed" | "missing" | "unscheduled" | "unknown";
+
 export type DailyJobHealth = {
-  state: "ok" | "running" | "failed" | "missing" | "unknown";
+  state: DailyJobHealthState;
   source: "supabase" | "neon-fallback" | "none";
   runDate: string | null;
   failedSteps: string[];
@@ -255,15 +294,95 @@ export type DailyJobHealth = {
   storeState: OpsStoreState;
 };
 
-/** From the Supabase 06:00 status row (preferred source). */
-export function deriveDailyJobHealth(latest: DailyJobStatus | null, now: Date | string | number = Date.now()): Omit<DailyJobHealth, "storeState"> {
+export function dailyJobScheduledForLane(lane: OpsLane | null | undefined): boolean {
+  return lane != null && DAILY_JOB_SCHEDULED_LANES.includes(lane);
+}
+
+/** True once a "running" row is past n8n's own execution limit plus grace. */
+export function isDailyJobRunStuck(job: Pick<DailyJobStatus, "status" | "startedAt">, now: Date | string | number): boolean {
+  if (job.status !== "running") return false;
+  const startedAt = Date.parse(job.startedAt);
+  return Number.isFinite(startedAt) && new Date(now).getTime() - startedAt >= DAILY_JOB_STUCK_AFTER_MINUTES * 60_000;
+}
+
+/**
+ * From the Supabase 06:00 status row (preferred source).
+ * - today's row: failed/partial -> failed, succeeded -> ok, running -> running
+ *   until DAILY_JOB_STUCK_AFTER_MINUTES after its start, then stuck;
+ * - no row today (none at all, or only an older day): before 07:30 Bangkok
+ *   unknown; from 07:30 missing on a scheduled lane, unscheduled on UAT.
+ * `scheduled` defaults to true so a caller that does not know its lane keeps
+ * the stricter Production reading.
+ */
+export function deriveDailyJobHealth(latest: DailyJobStatus | null, now: Date | string | number = Date.now(), options: { scheduled?: boolean } = {}): Omit<DailyJobHealth, "storeState"> {
   const today = bangkokDate(now);
   const due = bangkokMinutes(now) >= DAILY_JOB_EXPECTED_BY_MINUTES;
+  const scheduled = options.scheduled ?? true;
   if (!latest || latest.runDate < today) {
-    return { state: due ? "missing" : "unknown", source: "supabase", runDate: latest?.runDate ?? null, failedSteps: [], job: latest };
+    return { state: !due ? "unknown" : scheduled ? "missing" : "unscheduled", source: "supabase", runDate: latest?.runDate ?? null, failedSteps: [], job: latest };
   }
-  const state = latest.status === "failed" || latest.status === "partial" ? "failed" : latest.status === "running" ? "running" : "ok";
+  const state = latest.status === "failed" || latest.status === "partial" ? "failed"
+    : latest.status === "running" ? (isDailyJobRunStuck(latest, now) ? "stuck" : "running")
+    : "ok";
   return { state, source: "supabase", runDate: latest.runDate, failedSteps: latest.failedSteps, job: latest };
+}
+
+// ---------------------------------------------------------------------------
+// Owner alert claim. Mirrors public.ops_claim_alert() / ops_mark_alert_accepted()
+// in db/supabase/migrations/20261025000300_ops_alert_claims.sql so the
+// crash-safety rules are tested here; the SQL is the production implementation.
+//   pending  -> claimed by one attempt until claim_expires_at; if that attempt
+//               dies (or the relay outcome is unknown) the claim can be taken
+//               again after expiry and the same reference is re-sent;
+//   accepted -> the relay answered 2xx for this reference. This is "relay
+//               accepted", NOT "email delivered";
+//   sent     -> reserved for a later delivery confirmation; nothing sets it yet.
+// The reference doubles as the relay idempotency key, so a retry after an
+// accepted-but-unanswered send is de-duplicated downstream.
+// ---------------------------------------------------------------------------
+
+export const OPS_ALERT_KINDS = ["daily-job-failed", "daily-job-stuck", "daily-job-missing"] as const;
+export type OpsAlertKind = (typeof OPS_ALERT_KINDS)[number];
+export const OPS_ALERT_STATES = ["pending", "accepted", "sent"] as const;
+export type OpsAlertState = (typeof OPS_ALERT_STATES)[number];
+// Longer than the 5 s relay timeout by far; also the retry interval after a
+// crash, a relay rejection or an unconfirmed send.
+export const OPS_ALERT_CLAIM_TTL_SECONDS = 600;
+export const OPS_ALERT_REFERENCE_PATTERN = /^[a-z0-9][a-z0-9:._-]{0,159}$/;
+
+export const alertClaimResultSchema = z.object({
+  claimed: z.boolean(),
+  state: z.enum(OPS_ALERT_STATES),
+  attempts: z.number().int().positive(),
+}).strict();
+export type AlertClaimResult = z.infer<typeof alertClaimResultSchema>;
+
+export type AlertClaimRow = { reference: string; kind: OpsAlertKind; state: OpsAlertState; attempts: number; claimedAt: string; claimExpiresAt: string; relayAcceptedAt: string | null };
+
+export function claimAlertInMemory(rows: Map<string, AlertClaimRow>, input: { reference: string; kind: OpsAlertKind; ttlSeconds?: number }, now: Date | string | number): AlertClaimResult {
+  const ttlSeconds = input.ttlSeconds ?? OPS_ALERT_CLAIM_TTL_SECONDS;
+  if (!OPS_ALERT_REFERENCE_PATTERN.test(input.reference)) throw new Error("OPS_ALERT_REFERENCE_INVALID");
+  if (!Number.isInteger(ttlSeconds) || ttlSeconds < 60 || ttlSeconds > 86_400) throw new Error("OPS_ALERT_TTL_INVALID");
+  const at = new Date(now);
+  const expires = new Date(at.getTime() + ttlSeconds * 1000).toISOString();
+  const existing = rows.get(input.reference);
+  if (!existing) {
+    rows.set(input.reference, { reference: input.reference, kind: input.kind, state: "pending", attempts: 1, claimedAt: at.toISOString(), claimExpiresAt: expires, relayAcceptedAt: null });
+    return { claimed: true, state: "pending", attempts: 1 };
+  }
+  if (existing.state === "pending" && existing.kind === input.kind && Date.parse(existing.claimExpiresAt) <= at.getTime()) {
+    const next = { ...existing, attempts: existing.attempts + 1, claimedAt: at.toISOString(), claimExpiresAt: expires };
+    rows.set(input.reference, next);
+    return { claimed: true, state: "pending", attempts: next.attempts };
+  }
+  return { claimed: false, state: existing.state, attempts: existing.attempts };
+}
+
+export function markAlertAcceptedInMemory(rows: Map<string, AlertClaimRow>, reference: string, now: Date | string | number): boolean {
+  const existing = rows.get(reference);
+  if (!existing || existing.state !== "pending") return false;
+  rows.set(reference, { ...existing, state: "accepted", relayAcceptedAt: new Date(now).toISOString() });
+  return true;
 }
 
 type AnalyticsSourceAttempt = { source: string; lastAttemptAt: string | null; lastAttemptStatus: string | null };

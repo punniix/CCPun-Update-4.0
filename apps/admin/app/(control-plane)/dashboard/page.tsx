@@ -10,7 +10,7 @@ import { readOperationsJobs } from "@/lib/admin/operations/jobs-read-model";
 import { readConversionAnalytics } from "@/lib/admin/line/business-intelligence";
 import { readEditorialDashboardSummary, editorialDashboardSteps } from "@/lib/admin/dashboard-summary";
 import { readDailyJobHealth } from "@/lib/admin/ops-telemetry/daily-job";
-import { dailyJobStepLabel, opsStoreStateLabel } from "@/lib/admin/ops-telemetry/contracts";
+import { DAILY_JOB_STUCK_AFTER_MINUTES, dailyJobStepLabel, opsStoreStateLabel } from "@/lib/admin/ops-telemetry/contracts";
 
 export const metadata: Metadata = { title: "เริ่มที่นี่" };
 
@@ -96,12 +96,14 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         {dailyJob ? (
           <Link href="/analytics/" className="glass-card p-5" data-daily-job-card={dailyJob.state}>
             <p className="text-sm text-white/60">รอบเก็บข้อมูล 06:00</p>
-            <p className={`mt-2 text-xl font-semibold ${dailyJob.state === "failed" || dailyJob.state === "missing" ? "text-amber-200" : dailyJob.state === "ok" ? "text-emerald-200" : "text-gold-400"}`}>
+            <p className={`mt-2 text-xl font-semibold ${dailyJob.state === "failed" || dailyJob.state === "stuck" || dailyJob.state === "missing" ? "text-amber-200" : dailyJob.state === "ok" ? "text-emerald-200" : "text-gold-400"}`}>
               {dailyJob.storeState !== "ready" ? opsStoreStateLabel[dailyJob.storeState]
                 : dailyJob.state === "ok" ? "สำเร็จแล้ววันนี้"
                 : dailyJob.state === "running" ? "กำลังเก็บข้อมูล"
+                : dailyJob.state === "stuck" ? "ค้างเกินเวลา"
                 : dailyJob.state === "failed" ? "ไม่สำเร็จ"
                 : dailyJob.state === "missing" ? "ยังไม่พบรอบของวันนี้"
+                : dailyJob.state === "unscheduled" ? "ระบบทดสอบไม่มีรอบอัตโนมัติ"
                 : "ยังไม่ถึงเวลาตรวจ"}
             </p>
             <p className="mt-2 text-sm leading-6 text-white/65">
@@ -109,6 +111,8 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
                 ? "สถานะรอบ 06:00 จะแสดงที่นี่เมื่อเชื่อม Supabase แล้ว ระหว่างนี้ดูสถานะแต่ละแหล่งได้ในรายงานเช้านี้"
                 : dailyJob.state === "failed" && dailyJob.failedSteps.length
                   ? `ขั้นตอนที่มีปัญหา: ${dailyJob.failedSteps.map(dailyJobStepLabel).join(", ")}`
+                  : dailyJob.state === "stuck"
+                  ? `รอบนี้เริ่มแล้วแต่ไม่จบภายใน ${DAILY_JOB_STUCK_AFTER_MINUTES} นาที ให้ตรวจ n8n แล้วกด “ดึงใหม่ตอนนี้”`
                   : "เปิดรายงานเช้านี้ หรือกด “ดึงใหม่ตอนนี้” เมื่อต้องการข้อมูลล่าสุด"}
             </p>
           </Link>

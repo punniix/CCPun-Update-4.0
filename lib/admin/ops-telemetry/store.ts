@@ -3,11 +3,16 @@ import { z } from "zod";
 import type { AdminEnvironment } from "../environment";
 import {
   DAILY_JOB_KEY,
+  OPS_ALERT_CLAIM_TTL_SECONDS,
+  OPS_ALERT_REFERENCE_PATTERN,
   RUN_LOG_RETENTION_DAYS,
+  alertClaimResultSchema,
   dailyJobStatusRowSchema,
   retentionResultSchema,
   toDailyJobStatus,
+  type AlertClaimResult,
   type DailyJobStatus,
+  type OpsAlertKind,
   type OpsLane,
   type OpsResult,
   type OpsStoreState,
@@ -26,10 +31,14 @@ export interface OpsTelemetryStore {
   readonly provider: "supabase" | "disabled";
   status(): Promise<OpsTelemetryStatus>;
   readLatestDailyJob(jobKey?: string): Promise<OpsResult<DailyJobStatus | null>>;
-  /** Atomically marks the failure alert as sent; true only for the first caller. */
-  claimDailyJobAlert(id: number, at?: string): Promise<OpsResult<boolean>>;
-  /** Undoes a claim whose email could not be delivered, so a later render retries. */
-  releaseDailyJobAlert(id: number, at: string): Promise<OpsResult<boolean>>;
+  /**
+   * Calls public.ops_claim_alert(): atomically claims one owner alert by its
+   * reference for ttlSeconds (database clock). claimed is true for exactly one
+   * caller; an unexpired pending claim or an accepted alert is never re-claimed.
+   */
+  claimAlert(input: { reference: string; kind: OpsAlertKind; ttlSeconds?: number }): Promise<OpsResult<AlertClaimResult>>;
+  /** Calls public.ops_mark_alert_accepted(): pending -> accepted ("relay accepted", not "email delivered"). */
+  markAlertRelayAccepted(reference: string): Promise<OpsResult<boolean>>;
   /** Calls public.ops_apply_run_log_retention(). Never invoked automatically. */
   applyRunLogRetention(input?: { now?: string; keepDays?: number }): Promise<OpsResult<RetentionResult>>;
 }
@@ -63,8 +72,8 @@ export const disabledOpsTelemetryStore: OpsTelemetryStore = Object.freeze({
   provider: "disabled" as const,
   async status() { return { state: "not-configured" as const, provider: "disabled" as const, lane: null }; },
   async readLatestDailyJob() { return notReady<DailyJobStatus | null>("not-configured"); },
-  async claimDailyJobAlert() { return notReady<boolean>("not-configured"); },
-  async releaseDailyJobAlert() { return notReady<boolean>("not-configured"); },
+  async claimAlert() { return notReady<AlertClaimResult>("not-configured"); },
+  async markAlertRelayAccepted() { return notReady<boolean>("not-configured"); },
   async applyRunLogRetention() { return notReady<RetentionResult>("not-configured"); },
 });
 
@@ -122,26 +131,24 @@ export function createSupabaseOpsTelemetryStore(options: { url: string; key: str
         return rows[0] ? toDailyJobStatus(rows[0]) : null;
       });
     },
-    claimDailyJobAlert(id, at = new Date().toISOString()) {
+    claimAlert(input) {
       return guarded(async () => {
-        if (!Number.isSafeInteger(id) || id <= 0) throw new Error("OPS_INVALID_ID");
-        const value = await request(`ops_daily_job_status?id=eq.${id}&alert_sent_at=is.null`, {
-          method: "PATCH",
-          body: { alert_sent_at: at, updated_at: at },
-          prefer: "return=representation",
+        const ttlSeconds = input.ttlSeconds ?? OPS_ALERT_CLAIM_TTL_SECONDS;
+        if (!OPS_ALERT_REFERENCE_PATTERN.test(input.reference) || !Number.isInteger(ttlSeconds) || ttlSeconds < 60 || ttlSeconds > 86_400) throw new Error("OPS_ALERT_INVALID");
+        // p_now is omitted on purpose: claim expiry uses the database clock, so
+        // the page-render fallback and the scheduled check agree on it.
+        const value = await request("rpc/ops_claim_alert", {
+          method: "POST",
+          body: { p_reference: input.reference, p_kind: input.kind, p_ttl_seconds: ttlSeconds },
         });
-        return Array.isArray(value) && value.length === 1;
+        return alertClaimResultSchema.parse(value);
       });
     },
-    releaseDailyJobAlert(id, at) {
+    markAlertRelayAccepted(reference) {
       return guarded(async () => {
-        if (!Number.isSafeInteger(id) || id <= 0 || !Number.isFinite(Date.parse(at))) throw new Error("OPS_INVALID_ID");
-        const value = await request(`ops_daily_job_status?id=eq.${id}&alert_sent_at=eq.${encodeURIComponent(at)}`, {
-          method: "PATCH",
-          body: { alert_sent_at: null },
-          prefer: "return=representation",
-        });
-        return Array.isArray(value) && value.length === 1;
+        if (!OPS_ALERT_REFERENCE_PATTERN.test(reference)) throw new Error("OPS_ALERT_INVALID");
+        const value = await request("rpc/ops_mark_alert_accepted", { method: "POST", body: { p_reference: reference } });
+        return z.boolean().parse(value);
       });
     },
     applyRunLogRetention(input = {}) {

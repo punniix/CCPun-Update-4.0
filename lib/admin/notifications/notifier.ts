@@ -16,14 +16,20 @@ import { z } from "zod";
 //   CCPUN_ALERT_EMAIL_TO=owner@example.com      (one recipient)
 
 export type OwnerNotification = {
-  kind: "daily-job-failed";
+  kind: "daily-job-failed" | "daily-job-stuck" | "daily-job-missing";
   subject: string;
   text: string;
-  // Correlation id for de-duplication on the relay side (no personal data).
+  // Idempotency key (no personal data). The relay must de-duplicate on it and
+  // answer 2xx for a reference it has already accepted, so a retry after an
+  // accepted-but-unanswered request never produces a second email.
   reference: string;
 };
 
-export type NotifyResult = { delivered: true; channel: "email-webhook" } | { delivered: false; reason: "disabled" | "invalid-config" | "send-failed" };
+// "accepted" means the relay answered 2xx. It is NOT proof that an email
+// reached the inbox. "relay-rejected" = the relay answered non-2xx;
+// "relay-unconfirmed" = timeout/network error, the relay may or may not have
+// accepted it (the caller retries later with the same reference).
+export type NotifyResult = { accepted: true; channel: "email-webhook" } | { accepted: false; reason: "disabled" | "invalid-config" | "relay-rejected" | "relay-unconfirmed" };
 
 export interface NotificationAdapter {
   readonly channel: "email-webhook" | "disabled";
@@ -42,7 +48,7 @@ export const ALERT_EMAIL_ENV = {
 
 export const disabledNotificationAdapter: NotificationAdapter = Object.freeze({
   channel: "disabled" as const,
-  async send() { return { delivered: false as const, reason: "disabled" as const }; },
+  async send() { return { accepted: false as const, reason: "disabled" as const }; },
 });
 
 const emailSchema = z.email().max(254);
@@ -70,15 +76,15 @@ export function createWebhookEmailAdapter(config: { url: string; secret: string;
       try {
         const response = await fetchImpl(config.url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "X-CCPun-Timestamp": timestamp, "X-CCPun-Signature": `sha256=${signature}` },
+          headers: { "Content-Type": "application/json", "Idempotency-Key": message.reference, "X-CCPun-Timestamp": timestamp, "X-CCPun-Signature": `sha256=${signature}` },
           body,
           cache: "no-store",
           redirect: "error",
           signal: AbortSignal.timeout(5_000),
         });
-        return response.ok ? { delivered: true, channel: "email-webhook" } : { delivered: false, reason: "send-failed" };
+        return response.ok ? { accepted: true, channel: "email-webhook" } : { accepted: false, reason: "relay-rejected" };
       } catch {
-        return { delivered: false, reason: "send-failed" };
+        return { accepted: false, reason: "relay-unconfirmed" };
       }
     },
   };
@@ -87,7 +93,7 @@ export function createWebhookEmailAdapter(config: { url: string; secret: string;
 export function getOwnerNotifier(variables: Variables = process.env, fetchImpl?: FetchLike): NotificationAdapter {
   const config = readAlertEmailConfig(variables);
   if (config === "disabled") return disabledNotificationAdapter;
-  if (config === "invalid-config") return { channel: "disabled", async send() { return { delivered: false, reason: "invalid-config" }; } };
+  if (config === "invalid-config") return { channel: "disabled", async send() { return { accepted: false, reason: "invalid-config" }; } };
   return createWebhookEmailAdapter(config, fetchImpl);
 }
 

@@ -1,6 +1,13 @@
 # Supabase สำหรับบันทึกงาน n8n (data split, 25 ต.ค. 2026)
 
-สถานะ: โค้ดฝั่ง Admin และ SQL migration พร้อมแล้ว แต่ยังไม่ได้สร้างโปรเจกต์ Supabase ยังไม่ได้ตั้งค่า env และยังไม่ได้แก้ n8n ระหว่างที่ยังไม่ได้เชื่อม Admin จะแสดง "ยังไม่ได้เชื่อม Supabase" และทำงานต่อได้ตามปกติ
+## Status
+
+- เอกสารนี้คือ **contract และวิธีตั้งค่า** ไม่ใช่สถานะ release สถานะปัจจุบันแยกเป็น source ready / build deployed / configured / read accepted / write accepted และเก็บไว้ที่ **receipt เดียว**: receipt ตรวจ runtime ของ Supabase Admin (`2026-10-25-supabase-admin-runtime-check`) ใน workspace shared state ตามกติกาของ `docs/current-work.md` อย่าคัดลอกสถานะมาไว้ที่นี่
+- ข้อเท็จจริงที่ไม่เปลี่ยนแล้ว (25 ต.ค. 2026): สร้างโปรเจกต์ Supabase ครบทั้งสอง lane แล้ว คือ UAT ref `qgmfyyaakycfkcfdvzik` และ Production ref `yzujeklhhwryijcnmkri`
+- Codex เป็นเจ้าของการเชื่อม n8n (เขียน `ops_daily_job_status`, `ops_workflow_runs`, `ops_raw_daily_pulls`) และการคัด field ฝั่ง producer งานนี้ไม่ได้แก้ n8n
+- migration `20261025000300` และ `20261025000400` (Codex audit F03/F06) อยู่ใน source แล้ว แต่ต้องรันในแต่ละโปรเจกต์ก่อน Admin ที่ใช้ claim ใหม่จะส่ง alert ได้ (ดูขั้นที่ 2) ถ้ายังไม่รัน การจอง alert จะได้ "ยังอ่าน Supabase ไม่ได้" และไม่มีอีเมลส่งออก ส่วนป้ายเตือนยังทำงานตามปกติ
+
+ประวัติ: สถานะเดิมตอนเขียนเอกสารนี้ครั้งแรก (25 ต.ค. 2026 ก่อนสร้างโปรเจกต์) คือ "โค้ดฝั่ง Admin และ SQL migration พร้อมแล้ว แต่ยังไม่ได้สร้างโปรเจกต์ Supabase ยังไม่ได้ตั้งค่า env และยังไม่ได้แก้ n8n ระหว่างที่ยังไม่ได้เชื่อม Admin จะแสดง "ยังไม่ได้เชื่อม Supabase" และทำงานต่อได้ตามปกติ"
 
 ## ข้อมูลอะไรไปอยู่ที่ไหน
 
@@ -37,7 +44,11 @@
 3. ไฟล์ lane **ไฟล์เดียว** ให้ตรงกับโปรเจกต์:
    - โปรเจกต์ UAT: `db/supabase/lane/admin-uat.sql`
    - โปรเจกต์ Production: `db/supabase/lane/production-admin.sql`
-4. ตรวจผลด้วย `db/supabase/readback/ops_telemetry_readback.sql`: ทุกตารางต้องเป็น `rls_enabled = true`, `client_role_grants = 0`, `deny_policies = 1`, `anon`/`authenticated` ต้อง `can_execute = false` และ lane ต้องตรงกับโปรเจกต์
+4. `db/supabase/migrations/20261025000300_ops_alert_claims.sql` (ตาราง `ops_alert_claims` และฟังก์ชันจอง alert แบบมีวันหมดอายุ, F03)
+5. `db/supabase/migrations/20261025000400_ops_run_log_late_row_guard.sql` (trigger กันแถวมาช้าที่ทำให้นับซ้ำ, F06)
+6. ตรวจผลด้วย `db/supabase/readback/ops_telemetry_readback.sql`: ทุกตารางรวม `ops_alert_claims` ต้องเป็น `rls_enabled = true`, `client_role_grants = 0`, `deny_policies = 1`, `anon`/`authenticated` ต้อง `can_execute`/`can_claim`/`can_mark_accepted = false` (`service_role` = true), trigger `ops_guard_workflow_run_date` ต้องมีและ `tgenabled = O` และ lane ต้องตรงกับโปรเจกต์
+
+ห้ามรัน `db/supabase/acceptance/ops_audit_followups_acceptance.sql` ในโปรเจกต์จริง ไฟล์นั้นใช้กับ PostgreSQL ในเครื่องหรือฐานข้อมูลทิ้งได้เท่านั้น (เขียนข้อมูลทดสอบแล้ว ROLLBACK)
 
 ไฟล์ migration รันซ้ำได้โดยไม่เสียหาย ถ้ารันไฟล์ lane ผิดโปรเจกต์ จะ error (`division by zero`) และไม่เปลี่ยนค่า lane เดิม
 
@@ -70,15 +81,37 @@
 
 1. สร้าง workflow ใหม่ใน n8n: Webhook (POST) → Code ตรวจลายเซ็น → Gmail หรือ Send Email (SMTP)
    - ลายเซ็น: `X-CCPun-Signature = "sha256=" + HMAC_SHA256(secret, X-CCPun-Timestamp + "." + rawBody)` ให้ปฏิเสธถ้าไม่ตรงหรือ timestamp เก่ากว่า 5 นาที
-   - body มี `to`, `subject`, `text`, `kind`, `reference` (ใช้ `reference` กันส่งซ้ำ)
+   - body มี `to`, `subject`, `text`, `kind`, `reference` และ header `Idempotency-Key` = `reference`
+   - **ต้องกันส่งซ้ำด้วย `reference`** (เช่นเก็บใน n8n Data Table) และตอบ 2xx เมื่อเจอ `reference` ที่รับไปแล้ว โดยไม่ส่งอีเมลซ้ำ Admin จะส่ง `reference` เดิมซ้ำเมื่อไม่แน่ใจว่า relay รับแล้วหรือยัง
+   - `kind` เป็น `daily-job-failed` (ไม่สำเร็จ), `daily-job-stuck` (ค้างเกิน 30 นาที) หรือ `daily-job-missing` (ถึง 07:30 แล้วยังไม่พบรอบ เฉพาะ Production)
 2. ตั้ง env ใน Admin ของ lane นั้น:
    - `CCPUN_ALERT_EMAIL_PROVIDER=webhook`
    - `CCPUN_ALERT_EMAIL_WEBHOOK_URL=https://…/webhook/…` (ต้องเป็น https)
    - `CCPUN_ALERT_EMAIL_WEBHOOK_SECRET=<สุ่มอย่างน้อย 32 ตัวอักษร ใช้ค่าเดียวกับใน n8n>`
    - `CCPUN_ALERT_EMAIL_TO=<อีเมลของปั้น>`
-3. อีเมลต้องใช้ Supabase ด้วย เพราะระบบจองสิทธิ์ส่งครั้งเดียวต่อหนึ่งรอบไว้ที่ `ops_daily_job_status.alert_sent_at` ถ้าส่งไม่สำเร็จจะคืนสิทธิ์ให้ลองใหม่
+3. อีเมลต้องใช้ Supabase ด้วย เพราะระบบจองสิทธิ์ส่งครั้งเดียวต่อหนึ่งเหตุการณ์ไว้ที่ตาราง `ops_alert_claims` (migration `20261025000300`):
+   - `pending` = มีผู้จองอยู่ 10 นาที (`OPS_ALERT_CLAIM_TTL_SECONDS`) ถ้าผู้จองล่ม relay ปฏิเสธ หรือไม่รู้ผล (timeout) ระบบไม่คืนสิทธิ์ทันที แต่หลังหมดอายุผู้เรียกรายถัดไปจะจองใหม่และส่ง `reference` เดิม
+   - `accepted` = relay ตอบ 2xx แล้ว **แปลว่า relay รับแล้ว ไม่ได้แปลว่าอีเมลถึงกล่องแล้ว**
+   - `sent` = สงวนไว้สำหรับการยืนยันการส่งถึงในอนาคต ตอนนี้ยังไม่มีอะไรตั้งค่านี้
+   - คอลัมน์เดิม `ops_daily_job_status.alert_sent_at` เลิกใช้แล้ว (จองก่อนส่ง ถ้าล่มกลางทางจะไม่ส่งอีกเลย) ไม่ได้ลบคอลัมน์
 
-ข้อจำกัดที่ต้องรู้: Admin ส่งอีเมลเมื่อมีการเปิดหน้าใดก็ได้ใน Admin ครั้งแรกหลังรอบล้มเหลว (ไม่มี timer ใน Admin ตามนโยบาย Cloud Admin) ถ้าต้องการอีเมลทันทีโดยไม่ต้องเปิด Admin ให้ทำเป็นงานแยก: เพิ่ม internal endpoint ที่ n8n เรียกได้ (ต้องแก้ allowlist ใน `lib/admin/host-routing.ts` ซึ่งถูก seal ไว้และต้องผ่านการรีวิวแยก) หรือให้ n8n ส่งอีเมลจาก error branch เอง
+### การตรวจรอบ 06:00 โดยไม่ต้องเปิด Admin (F02)
+
+การเปิดหน้า Admin ยังส่ง alert ได้เหมือนเดิม (เป็นทางสำรอง) ทางหลักคือสคริปต์ตรวจตามเวลา ซึ่งใช้ claim เดียวกัน จึงไม่ส่งซ้ำ:
+
+```
+node --conditions=react-server --import tsx scripts/admin-daily-job-check.ts            # ตรวจและส่ง alert ถ้าเปิดอีเมลไว้
+node --conditions=react-server --import tsx scripts/admin-daily-job-check.ts --no-dispatch  # อ่านอย่างเดียว
+```
+
+- ใช้ env ฝั่ง server ของ lane นั้น (`CCPUN_APP_ENV`, `CCPUN_SUPABASE_*`, `CCPUN_ALERT_EMAIL_*` ถ้าเปิดอีเมล) พิมพ์ JSON หนึ่งบรรทัด ไม่มี key/URL
+- exit code: `0` ปกติหรือ alert ถูก relay รับแล้ว/กำลังมีผู้ส่ง, `1` อ่านสถานะไม่ได้หรือถูกปฏิเสธ, `2` งานมีปัญหา (ไม่สำเร็จ/ค้าง/ไม่พบรอบ) และยังไม่มี alert ที่ relay รับ ใช้ exit `2` กับ cron `MAILTO` หรือ monitor ภายนอกได้แม้ยังไม่เปิดอีเมล
+- ส่ง alert สำหรับ: ไม่สำเร็จหรือ partial (`failed`), ค้าง (`stuck`: สถานะยัง running เกิน 30 นาทีหลังเริ่ม เพราะ n8n หยุดงานเองที่ 10 นาที) และไม่พบรอบหลัง 07:30 (`missing`, เฉพาะ Production; UAT ไม่มีรอบ 06:00 อัตโนมัติจึงแสดง "ระบบทดสอบไม่มีรอบอัตโนมัติ" ไม่ถือเป็นเหตุขัดข้อง)
+- ตั้งเวลาเรียก (ยังไม่ได้ตั้ง ต้องอนุมัติแยก): เช่นทุก 15 นาทีระหว่าง 07:30–22:00 จาก cron/systemd timer บน VPS ที่มี env ของ lane นั้น
+- **ข้อจำกัด:** ถ้ารันสคริปต์จาก n8n (Execute Command) จะจับกรณี n8n ล่มทั้งระบบไม่ได้ เพราะตัวตรวจหยุดไปพร้อม n8n ต้องมีตัวตั้งเวลานอก n8n และถ้า n8n กับ cron อยู่ VPS เดียวกัน ต้องมี heartbeat/uptime monitor ภายนอกอีกชั้นเพื่อจับกรณี VPS ล่ม
+- ไม่ได้เพิ่ม internal endpoint ใหม่ เพราะ `lib/admin/host-routing.ts` ถูก seal และ internal route ที่มีอยู่ (`/api/internal/local-ai/operations/*`) เป็น GET อ่านอย่างเดียวของงาน Local AI ไม่เหมาะจะเพิ่มการส่งอีเมล
+
+ประวัติ: ข้อจำกัดเดิม (ก่อน F02) คือ "Admin ส่งอีเมลเมื่อมีการเปิดหน้าใดก็ได้ใน Admin ครั้งแรกหลังรอบล้มเหลว (ไม่มี timer ใน Admin ตามนโยบาย Cloud Admin) ถ้าต้องการอีเมลทันทีโดยไม่ต้องเปิด Admin ให้ทำเป็นงานแยก: เพิ่ม internal endpoint ที่ n8n เรียกได้ (ต้องแก้ allowlist ใน `lib/admin/host-routing.ts` ซึ่งถูก seal ไว้และต้องผ่านการรีวิวแยก) หรือให้ n8n ส่งอีเมลจาก error branch เอง"
 
 ## ขั้นที่ 5: เพิ่ม credential ใน n8n
 
@@ -126,9 +159,13 @@
 
 `public.ops_apply_run_log_retention(p_now, p_keep_days default 90)` สรุปรายวันลง `ops_workflow_run_daily` (เก็บตลอด) แล้วลบแถวรายละเอียดที่เก่ากว่า 90 วัน รันซ้ำได้ผลเท่าเดิม ไม่ยอมให้ตั้งต่ำกว่า 90 วัน ตอนนี้ **ยังไม่ได้ตั้งเวลาและห้ามรันบน Production** จนกว่าจะอนุมัติแยก ทางเลือกเมื่ออนุมัติ: ให้ n8n เรียก RPC วันละครั้ง หรือเปิด pg_cron ในโปรเจกต์นั้น
 
+สัญญาการนับ (หลัง migration `20261025000400`): สรุปรายวันต่อ `run_date` + `workflow_id` นับแถวรายละเอียดที่ถูกรับแต่ละแถวครั้งเดียวเท่านั้น `total_steps` = จำนวนแถว (execution, step) ที่ไม่ซ้ำ, `executions` = จำนวน execution ที่ไม่ซ้ำ, ช่องสถานะ = จำนวนแถวตามสถานะ เมื่อวันไหนถูกสรุปและลบรายละเอียดแล้ว สรุปของวันนั้นถือเป็นค่าสุดท้าย trigger จะปฏิเสธแถวที่มาช้าสำหรับวันนั้น (`OPS_RUN_LOG_DAY_ARCHIVED`) และแถวที่เก่ากว่า 90 วัน (`OPS_RUN_LOG_TOO_OLD`) ก่อนหน้านี้แถวมาช้าของ execution เดิมถูกบวกเพิ่มจนนับซ้ำ (ทดสอบซ้ำได้บน PostgreSQL 16) Supabase node ของ n8n ที่เขียน `ops_workflow_runs` ควรตั้ง continue on error เพื่อไม่ให้งานหลักล้มเพราะ telemetry
+
 ข้อมูลดิบ (`ops_raw_daily_pulls`) ยังไม่มีนโยบายลบ แผน Free มีพื้นที่ 500 MB ควรตัดสินใจระยะเก็บภายใน 1–2 เดือนหลังเริ่มใช้
 
 ## ย้อนกลับ
 
 - ลบ env `CCPUN_SUPABASE_*` ออกจาก Hostinger แล้ว restart: Admin กลับไปแสดง "ยังไม่ได้เชื่อม Supabase" และป้ายรอบ 06:00 บนรายงานเช้าใช้สถานะจาก Neon แทน
 - ปิด Supabase node ใน n8n: การเก็บข้อมูลผ่าน Admin → Neon ยังทำงานเหมือนเดิม เพราะขั้นนี้เป็นการเขียนเพิ่ม ไม่ได้ตัดเส้นทางเดิม
+- ย้อน migration `20261025000400`: `DROP TRIGGER IF EXISTS ops_guard_workflow_run_date ON public.ops_workflow_runs; DROP FUNCTION IF EXISTS public.ops_guard_workflow_run_date();` (ข้อมูลไม่หาย แต่กลับไปเสี่ยงนับซ้ำ)
+- ย้อน migration `20261025000300`: ปิดอีเมลก่อน (`CCPUN_ALERT_EMAIL_PROVIDER` ไม่ใช่ `webhook`) แล้วจึง `DROP FUNCTION IF EXISTS public.ops_mark_alert_accepted(text, timestamptz); DROP FUNCTION IF EXISTS public.ops_claim_alert(text, text, integer, timestamptz); DROP TABLE IF EXISTS public.ops_alert_claims;` Admin ที่ยังใช้ claim ใหม่จะได้ "ยังอ่าน Supabase ไม่ได้" ตอนจองและไม่ส่งอีเมล ป้ายเตือนยังแสดงตามปกติ

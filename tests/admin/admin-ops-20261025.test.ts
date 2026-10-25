@@ -15,8 +15,12 @@ import {
   bangkokDate,
   deriveDailyJobHealth,
   deriveDailyJobHealthFromAnalytics,
+  claimAlertInMemory,
+  markAlertAcceptedInMemory,
   retentionCutoff,
+  type AlertClaimRow,
   type DailyJobStatus,
+  type OpsAlertKind,
   type RunLogRow,
   type RunLogState,
 } from "../../lib/admin/ops-telemetry/contracts";
@@ -24,7 +28,7 @@ import { ADMIN_NAVIGATION_REDIRECTS, contextualNavigationItems, splitTechnicalNa
 import { LOCAL_AI_FIRST_JOBS, buildArticleSuggestionInput } from "../../lib/local-ai/first-jobs";
 import { LOCAL_AI_TASK_TYPES, localAiTaskInputSchemas } from "../../lib/local-ai/contracts";
 import { hasArticleContentChanges } from "../../cms/sanity/policy/article-publication";
-import { adminOps20261025PredecessorDigest, adminOps20261025SourceDigest, adminOps20261025Sources } from "../../qa/admin-ops-20261025-proof.mjs";
+import { adminOps20261025PredecessorDigest, adminOps20261025SourceDigest, adminOps20261025Sources, adminOpsAuditFollowUpSources } from "../../qa/admin-ops-20261025-proof.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -119,7 +123,8 @@ test("without CCPUN_SUPABASE_* env the store degrades to 'ยังไม่ไ�
     const disabled = store.getOpsTelemetryStore(env);
     assert.equal(disabled.provider, "disabled", JSON.stringify(env));
     assert.deepEqual(await disabled.readLatestDailyJob(), { state: "not-configured", value: null });
-    assert.deepEqual(await disabled.claimDailyJobAlert(1), { state: "not-configured", value: null });
+    assert.deepEqual(await disabled.claimAlert({ reference: "admin-uat:daily-0600:failed:1", kind: "daily-job-failed" }), { state: "not-configured", value: null });
+    assert.deepEqual(await disabled.markAlertRelayAccepted("admin-uat:daily-0600:failed:1"), { state: "not-configured", value: null });
     assert.deepEqual(await disabled.applyRunLogRetention(), { state: "not-configured", value: null });
   }
   const health = await dailyJob.readDailyJobHealth(store.getOpsTelemetryStore({}));
@@ -134,21 +139,28 @@ test("Supabase store is lane-locked, sends the service key only in headers and c
   assert.deepEqual(await wrongLane.readLatestDailyJob(), { state: "lane-mismatch", value: null });
   assert.equal(mismatch.calls.length, 1, "no data read after a lane mismatch");
 
-  const fake = fakeSupabase([{ body: [{ lane: "admin-uat" }] }, { body: [jobRow] }, { body: [jobRow] }, { body: [] }, { body: { cutoff: "2026-07-27", keepDays: 90, refreshedSummaries: 1, archivedSummaries: 0, deletedRows: 0 } }]);
+  const fake = fakeSupabase([{ body: [{ lane: "admin-uat" }] }, { body: [jobRow] }, { body: { claimed: true, state: "pending", attempts: 1 } }, { body: { claimed: false, state: "pending", attempts: 1 } }, { body: { cutoff: "2026-07-27", keepDays: 90, refreshedSummaries: 1, archivedSummaries: 0, deletedRows: 0 } }, { body: true }]);
   const uat = store.getOpsTelemetryStore(env, fake.fetch);
   const latest = await uat.readLatestDailyJob();
   assert.equal(latest.state, "ready"); assert.equal(latest.value?.status, "failed"); assert.deepEqual(latest.value?.failedSteps, ["gsc"]);
-  assert.deepEqual(await uat.claimDailyJobAlert(7, "2026-10-25T03:00:00.000Z"), { state: "ready", value: true });
-  assert.deepEqual(await uat.claimDailyJobAlert(7, "2026-10-25T03:00:01.000Z"), { state: "ready", value: false });
+  const reference = "admin-uat:daily-0600:failed:7";
+  assert.deepEqual(await uat.claimAlert({ reference, kind: "daily-job-failed" }), { state: "ready", value: { claimed: true, state: "pending", attempts: 1 } });
+  assert.deepEqual(await uat.claimAlert({ reference, kind: "daily-job-failed" }), { state: "ready", value: { claimed: false, state: "pending", attempts: 1 } });
   assert.equal((await uat.applyRunLogRetention({ now: "2026-10-25T03:00:00.000Z" })).state, "ready");
+  assert.deepEqual(await uat.markAlertRelayAccepted(reference), { state: "ready", value: true });
+  assert.deepEqual(await uat.claimAlert({ reference: "Not A Reference", kind: "daily-job-failed" }), { state: "unavailable", value: null }, "an invalid reference never reaches Supabase");
+  assert.equal(fake.calls.length, 6);
   for (const call of fake.calls) {
     assert.ok(call.url.startsWith("https://abc.supabase.co/rest/v1/"));
     assert.doesNotMatch(call.url, /service-role-test-key/);
     assert.equal((call.init.headers as Record<string, string>).Authorization, "Bearer service-role-test-key");
     assert.equal(call.init.redirect, "error");
   }
-  assert.match(fake.calls[2]!.url, /ops_daily_job_status\?id=eq\.7&alert_sent_at=is\.null$/);
-  assert.equal(fake.calls[2]!.init.method, "PATCH");
+  assert.match(fake.calls[2]!.url, /rpc\/ops_claim_alert$/);
+  assert.equal(fake.calls[2]!.init.method, "POST");
+  assert.deepEqual(JSON.parse(String(fake.calls[2]!.init.body)), { p_reference: reference, p_kind: "daily-job-failed", p_ttl_seconds: 600 }, "claim expiry uses the database clock (no p_now)");
+  assert.match(fake.calls[5]!.url, /rpc\/ops_mark_alert_accepted$/);
+  assert.deepEqual(JSON.parse(String(fake.calls[5]!.init.body)), { p_reference: reference });
   assert.match(fake.calls[4]!.url, /rpc\/ops_apply_run_log_retention$/);
   assert.deepEqual(JSON.parse(String(fake.calls[4]!.init.body)), { p_now: "2026-10-25T03:00:00.000Z", p_keep_days: 90 });
   assert.equal((await uat.applyRunLogRetention({ keepDays: 30 })).state, "unavailable", "retention shorter than 90 days is refused");
@@ -166,7 +178,9 @@ test("06:00 health: failed, running, ok and missing after 07:30 Bangkok; Neon fa
   assert.equal(bangkokDate(morning), "2026-10-25");
   assert.equal(deriveDailyJobHealth(failedJob, morning).state, "failed");
   assert.equal(deriveDailyJobHealth({ ...failedJob, status: "partial" }, morning).state, "failed");
-  assert.equal(deriveDailyJobHealth({ ...failedJob, status: "running" }, morning).state, "running");
+  assert.equal(deriveDailyJobHealth({ ...failedJob, status: "running" }, "2026-10-24T23:20:00.000Z").state, "running");
+  // Codex audit F01: a 06:00 run still "running" at 08:00 is stuck, not running forever.
+  assert.equal(deriveDailyJobHealth({ ...failedJob, status: "running" }, morning).state, "stuck");
   assert.equal(deriveDailyJobHealth({ ...failedJob, status: "succeeded" }, morning).state, "ok");
   assert.equal(deriveDailyJobHealth({ ...failedJob, runDate: "2026-10-24" }, morning).state, "missing");
   assert.equal(deriveDailyJobHealth(null, "2026-10-24T23:10:00.000Z").state, "unknown", "06:10 Bangkok is too early to call it missing");
@@ -178,43 +192,49 @@ test("06:00 health: failed, running, ok and missing after 07:30 Bangkok; Neon fa
 test("email notifier is disabled by default and the webhook adapter signs every message", async () => {
   assert.equal(notifier.alertEmailStatus({}), "disabled");
   assert.equal(notifier.getOwnerNotifier({}).channel, "disabled");
-  assert.deepEqual(await notifier.getOwnerNotifier({}).send({ kind: "daily-job-failed", subject: "s", text: "t", reference: "r" }), { delivered: false, reason: "disabled" });
+  assert.deepEqual(await notifier.getOwnerNotifier({}).send({ kind: "daily-job-failed", subject: "s", text: "t", reference: "r" }), { accepted: false, reason: "disabled" });
   for (const env of [{ CCPUN_ALERT_EMAIL_PROVIDER: "webhook" }, { CCPUN_ALERT_EMAIL_PROVIDER: "webhook", CCPUN_ALERT_EMAIL_WEBHOOK_URL: "http://relay.example.test/x", CCPUN_ALERT_EMAIL_WEBHOOK_SECRET: "x".repeat(32), CCPUN_ALERT_EMAIL_TO: "owner@example.test" }, { CCPUN_ALERT_EMAIL_PROVIDER: "webhook", CCPUN_ALERT_EMAIL_WEBHOOK_URL: "https://relay.example.test/x", CCPUN_ALERT_EMAIL_WEBHOOK_SECRET: "short", CCPUN_ALERT_EMAIL_TO: "owner@example.test" }]) {
     assert.equal(notifier.alertEmailStatus(env), "invalid-config", JSON.stringify(env));
   }
   const secret = "s".repeat(40);
   const sent: Array<{ url: string; init: RequestInit }> = [];
   const adapter = notifier.getOwnerNotifier({ CCPUN_ALERT_EMAIL_PROVIDER: "webhook", CCPUN_ALERT_EMAIL_WEBHOOK_URL: "https://relay.example.test/hook", CCPUN_ALERT_EMAIL_WEBHOOK_SECRET: secret, CCPUN_ALERT_EMAIL_TO: "owner@example.test" }, async (url, init = {}) => { sent.push({ url, init }); return new Response(null, { status: 200 }); });
-  assert.deepEqual(await adapter.send({ kind: "daily-job-failed", subject: "s", text: "t", reference: "daily-0600:n8n-1" }), { delivered: true, channel: "email-webhook" });
+  assert.deepEqual(await adapter.send({ kind: "daily-job-failed", subject: "s", text: "t", reference: "daily-0600:n8n-1" }), { accepted: true, channel: "email-webhook" });
   const headers = sent[0]!.init.headers as Record<string, string>;
+  assert.equal(headers["Idempotency-Key"], "daily-0600:n8n-1", "the reference is the relay idempotency key");
   assert.equal(headers["X-CCPun-Signature"], "sha256=" + createHmac("sha256", secret).update(`${headers["X-CCPun-Timestamp"]}.${String(sent[0]!.init.body)}`).digest("hex"));
   assert.equal(JSON.parse(String(sent[0]!.init.body)).to, "owner@example.test");
 });
 
-test("failure email is sent once per failed run and released for retry when delivery fails", async () => {
+test("failure email is sent once per failed run; a failed send keeps the claim until it expires, then retries", async () => {
   const health = { ...deriveDailyJobHealth(failedJob, "2026-10-25T01:00:00.000Z"), storeState: "ready" as const };
-  const claims: string[] = [];
-  let claimed = false;
+  const clock = { now: Date.parse("2026-10-25T01:00:00.000Z") };
+  const claims = new Map<string, AlertClaimRow>();
+  const calls: string[] = [];
   const fakeStore = {
     provider: "supabase" as const,
     status: async () => ({ state: "ready" as const, provider: "supabase" as const, lane: "admin-uat" as const }),
     readLatestDailyJob: async () => ({ state: "ready" as const, value: failedJob }),
-    claimDailyJobAlert: async () => { claims.push("claim"); const first = !claimed; claimed = true; return { state: "ready" as const, value: first }; },
-    releaseDailyJobAlert: async () => { claims.push("release"); claimed = false; return { state: "ready" as const, value: true }; },
+    claimAlert: async (input: { reference: string; kind: OpsAlertKind; ttlSeconds?: number }) => { calls.push("claim"); return { state: "ready" as const, value: claimAlertInMemory(claims, input, clock.now) }; },
+    markAlertRelayAccepted: async (reference: string) => { calls.push("accepted"); return { state: "ready" as const, value: markAlertAcceptedInMemory(claims, reference, clock.now) }; },
     applyRunLogRetention: async () => ({ state: "not-configured" as const, value: null }),
   };
   const messages: string[] = [];
-  const ok = { channel: "email-webhook" as const, send: async (message: { subject: string }) => { messages.push(message.subject); return { delivered: true as const, channel: "email-webhook" as const }; } };
-  assert.deepEqual(await dailyJob.dispatchDailyJobFailureAlert(health, { store: fakeStore, notifier: ok }), { delivered: true, channel: "email-webhook" });
-  assert.deepEqual(await dailyJob.dispatchDailyJobFailureAlert(health, { store: fakeStore, notifier: ok }), { delivered: false, reason: "already-sent" });
+  const ok = { channel: "email-webhook" as const, send: async (message: { subject: string }) => { messages.push(message.subject); return { accepted: true as const, channel: "email-webhook" as const }; } };
+  const broken = { channel: "email-webhook" as const, send: async () => ({ accepted: false as const, reason: "relay-rejected" as const }) };
+  const reference = "admin-uat:daily-0600:failed:7";
+  assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: broken }), { outcome: "relay-rejected", reference });
+  assert.deepEqual(calls, ["claim"], "a rejected send is not released");
+  assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: ok }), { outcome: "claim-held", reference }, "no retry before the claim expires");
+  assert.equal(messages.length, 0);
+  clock.now += 10 * 60_000;
+  assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: ok }), { outcome: "relay-accepted", reference, recorded: true });
+  assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: ok }), { outcome: "already-accepted", reference });
   assert.equal(messages.length, 1); assert.match(messages[0]!, /06:00 วันที่ 2026-10-25 ไม่สำเร็จ/);
-  claimed = false; claims.length = 0;
-  const broken = { channel: "email-webhook" as const, send: async () => ({ delivered: false as const, reason: "send-failed" as const }) };
-  assert.deepEqual(await dailyJob.dispatchDailyJobFailureAlert(health, { store: fakeStore, notifier: broken }), { delivered: false, reason: "send-failed" });
-  assert.deepEqual(claims, ["claim", "release"]);
-  assert.deepEqual(await dailyJob.dispatchDailyJobFailureAlert(health, { store: fakeStore, notifier: notifier.disabledNotificationAdapter }), { delivered: false, reason: "disabled" });
-  assert.deepEqual(claims, ["claim", "release"], "disabled email never claims the run");
-  assert.deepEqual(await dailyJob.dispatchDailyJobFailureAlert({ ...health, job: { ...failedJob, alertSentAt: "2026-10-25T00:00:00.000Z" } }, { store: fakeStore, notifier: ok }), { delivered: false, reason: "already-sent" });
+  calls.length = 0;
+  assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: notifier.disabledNotificationAdapter }), { outcome: "email-disabled", reference });
+  assert.deepEqual(calls, [], "disabled email never claims the run");
+  assert.deepEqual(await dailyJob.dispatchDailyJobAlert({ ...health, state: "ok" }, { store: fakeStore, notifier: ok }), { outcome: "not-needed" });
 });
 
 test("Admin-wide banner reads Supabase only; the report fallback reuses the Neon status it already loaded", () => {
@@ -385,8 +405,12 @@ test("A3: the button hides once approved and stays blocked by every other publis
 test("2026-10-25 frozen-proof admissions are exact and reject any further edit", () => {
   for (const [file, { before: predecessor, after: successor }] of Object.entries(adminOps20261025Sources)) {
     assert.ok(existsSync(path.join(root, file)), file);
-    const digest = adminOps20261025SourceDigest(read(file));
+    const current = adminOps20261025SourceDigest(read(file));
+    // A later exact follow-up admission may replace the successor; it must name this successor as its predecessor.
+    const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file as keyof typeof adminOpsAuditFollowUpSources] : null;
+    const digest = followUp && current === followUp.after ? followUp.before : current;
     assert.equal(digest, successor, `${file} is exactly the reviewed successor`);
+    assert.equal(adminOps20261025PredecessorDigest(file, current), predecessor);
     assert.equal(adminOps20261025PredecessorDigest(file, digest), predecessor);
     assert.equal(adminOps20261025PredecessorDigest(file, adminOps20261025SourceDigest(read(file) + "\n// unreviewed")), adminOps20261025SourceDigest(read(file) + "\n// unreviewed"));
     assert.notEqual(predecessor, successor);
