@@ -33,7 +33,7 @@
 .actions { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .actions a { width: 100%; min-width: 0; padding-inline: 16px; text-align: center; white-space: normal; }
 .primaryButton, .outlineButton {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 20px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 20px; border-radius: var(--v5-radius-button, 14px);
   font-size: 15px; font-weight: 500; line-height: 1.35; text-decoration: none; font-family: var(--v5-font-display, inherit);
   transition: background-color 160ms ease, border-color 160ms ease;
 }

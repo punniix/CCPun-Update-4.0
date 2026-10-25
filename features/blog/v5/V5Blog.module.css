@@ -10,7 +10,7 @@
 .authorChip img { width: 36px; height: 36px; border-radius: 999px; object-fit: cover; object-position: top; background: var(--v5-surface); }
 .search { position: relative; }
 .search input {
-  width: 100%; min-height: 52px; padding: 12px 20px 12px 44px; border-radius: 999px; border: 1px solid var(--v5-field-edge);
+  width: 100%; min-height: 52px; padding: 12px 20px 12px 44px; border-radius: var(--v5-radius); border: 1px solid var(--v5-field-edge);
   background: var(--v5-bg); color: var(--v5-text); font: inherit; font-size: 16px;
 }
 .search input:focus { border-color: var(--v5-focus); }

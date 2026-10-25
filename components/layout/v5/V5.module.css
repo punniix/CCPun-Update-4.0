@@ -32,12 +32,13 @@
   font-synthesis-weight: none;
   --v5-gutter: 20px;
   --v5-max: 1280px;
-  /* One radius scale (design QA 2026-10-25): cards, large media, small surfaces. Buttons and chips stay pill. */
+  /* One radius scale (design QA 2026-10-25): cards, large media, small surfaces. Chips and round icon buttons stay pill. */
   --v5-radius: 14px;
   --v5-radius-lg: 16px;
   --v5-radius-sm: 12px;
-  /* One button shape for the whole site (every .button variant, calculators, cookie notice). */
-  --v5-radius-button: 999px;
+  /* One button shape for the whole site (every .button variant, calculators, cookie notice, chat dock):
+     14px per DESIGN.md (owner decision 2026-10-25, not pill). */
+  --v5-radius-button: 14px;
   /* Rhythm and type tokens (design QA 2026-10-25). Thai meta text never drops below 14px. */
   --v5-section-y: 56px;
   --v5-head-gap: 24px;
@@ -107,7 +108,7 @@
 .textLink { color: var(--v5-gold-text); font-weight: 500; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; font-family: var(--v5-font-display); }
 .textLink:hover { text-decoration: underline; text-underline-offset: 4px; }
 
-/* Buttons: 48px touch targets, pill shape. */
+/* Buttons: 48px touch targets, 14px corners (--v5-radius-button). */
 .button, .buttonOutline, .buttonDark {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; padding: 12px 28px; border-radius: var(--v5-radius-button); font-family: var(--v5-font-display);

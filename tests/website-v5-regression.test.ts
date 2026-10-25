@@ -602,3 +602,10 @@ test("Article LINE CTAs open the dock's chat panel; no-JS falls back to the page
   assert.match(panel, /trackEvent\("line_oa_click", \{\n\s+contact_channel: "line", cta_location: "chat_panel", chat_topic_id: topic\.id, page_group: panel\.pageGroup,/, "topic clicks keep line_oa_click unchanged");
   assert.match(read("lib/analytics.ts"), /panel_trigger: new Set\(\['dock', 'article_cta'\]\),/);
 });
+
+test("Buttons use 14px corners sitewide (DESIGN.md), including the countdown, calculators and cookie notice", () => {
+  assert.match(read("components/layout/v5/V5.module.css"), /--v5-radius-button: 14px;/);
+  assert.match(read("components/ui/health-happy/HealthHappyCountdown.module.css"), /border-radius: var\(--v5-radius-button, 14px\);/);
+  assert.match(read("features/analytics/components/CookieConsent.module.css"), /--cc-radius-button: 14px;/);
+  assert.match(read("DESIGN.md"), /- \*\*Shape:\*\* Gently curved \(14px radius\)/);
+});

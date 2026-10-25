@@ -82,7 +82,8 @@ export const websiteV5PhaseASources = Object.freeze({
   // Design QA 2026-10-25 (UAT): countdown labels read at 14px on phones (were 12/13px) and the frame
   // radii follow the v5 scale (16/12px); the reviewed v5 successor digest moves to this exact file.
   // 2026-10-25 UX fixes (owner-approved #4, #8): AIA red per theme, 15px buttons, tabular numerals, spacing on the 4px scale.
-  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "5da3152bab3d94d710272e56214e7fe328993f904ae2c1be4a0efa52c30653f7" },
+  // 2026-10-25 owner decision (addendum 2): countdown buttons take the site 14px button corners (var(--v5-radius-button)).
+  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "680f964d475b51ed3a2be9c092257fc17554916626d57c03668ad28ca4cad804" },
   "features/blog/website-43/ArticleShareActions.tsx": { before: "468315c7dc18c8b6030e8881bf6498fd5df2adc931dc5a0b48d9726c303135af", after: "79595cd57be1e6d2764661826516105ab39a6a16103783047c596f5377ab2058" },
   "features/blog/website-43/ArticleEngagement.tsx": { before: "941020bc1e53917b1fec02af8036ec4053b48e9cf4cc75abbcf41d477a5d3799", after: "146f49c1e9fd9bedacba9c9b602384dc4bd8a5581de901667d3d86b470cd772c" },
   "features/blog/website-43/ArticleDetailAccess.tsx": { before: "9b00002d896f86765bc9216adb1427454b2a734abb257b0505ca77d8f80976c9", after: "689e79413207218ecf12595b8aa08537f5c0e3d49298a16c5e59075aad56d0ed" },
