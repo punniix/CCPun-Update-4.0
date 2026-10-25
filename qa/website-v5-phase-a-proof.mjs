@@ -63,6 +63,10 @@ export const websiteV5PhaseASources = Object.freeze({
   "features/blog/pages/ArticlePage.tsx": { before: "c951fa95c6b892baf46e25d3e73f50ad296177ae3aaa99497a7a0ad019192303", after: "e161a9247a0bd02b6864cc2b259f71b4324d0493fbcb77f10cbebda5bed29db1" },
   "features/blog/pages/BlogArchivePage.tsx": { before: "a5ecfe50bcb34368d7d0477f41102cb8ea70f1a4cf879e4a9f260743a114a8f7", after: "c257181241eb908c3412c2c38302eb0bb3efb6f7553dd0e4202bde9df93b33f4" },
   "features/blog/pages/BlogCategoryPage.tsx": { before: "ca7090a27fb42eea89812cb4efcccb6748e5a7c841b9f0b1a0c4e33582a8fd56", after: "a69647fc9d9a02a514031a989be3907a2af7f5ed6096e5d07e17132afb04384f" },
+  // 2026-10-25 (owner-approved, visual only): cookie notice skin moves to CookieConsent.module.css; consent logic,
+  // storage, defaults, timing, events and copy are unchanged. `before` is the reviewed source at afc0c4c7.
+  "features/analytics/components/CookieConsent.tsx": { before: "29bf6a9af3ff34d8bf867acdef1a3718f7d9c27e514591fbcf32628e7de2f0af", after: "5f84509f9b4bb4f15956142229ed4ddfaa994924f44903565594002774467815" },
+  "features/analytics/components/CookieConsentPreferences.tsx": { before: "a1da91f8c246c4a59f63b94c68206826d3b28889226beb604b92c0374c81d1dd", after: "7ef7f14e891fbfe09ec67fdafbb94026588f225487fe424a0998005c3dc6558e" },
   // END reviewed sources
   // Website v5 Phase B: tool/legal render owners, root layout fonts and the shared widgets moved
   // off the 4.3 stylesheet. `before` is the Phase A + Investment Allocation merge (b6453d0a).

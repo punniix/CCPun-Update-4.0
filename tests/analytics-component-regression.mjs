@@ -5,6 +5,9 @@ import { createRoot } from 'react-dom/client';
 import { JSDOM } from 'jsdom';
 
 const require = createRequire(import.meta.url);
+// The cookie notice imports its CSS module (visual-only skin, 2026-10-25); class names resolve to their keys here,
+// as in article-engagement-ui.test.mjs. No consent or analytics assertion depends on styling.
+require.extensions['.css'] = module => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }; };
 const GoogleAnalytics = require('../features/analytics/components/GoogleAnalytics.tsx').default;
 const GoogleTagManager = require('../features/analytics/components/GoogleTagManager.tsx').default;
 // No external resources execute: this checks the app's loader and consent lifecycle, not provider hits.

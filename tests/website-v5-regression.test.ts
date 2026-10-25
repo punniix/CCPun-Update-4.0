@@ -480,3 +480,22 @@ test("UX: v5 spacing sits on the 4px scale, headings step up, short grids adapt 
     assert.match(read(file), new RegExp(`v5Label\\((?:text|home|homeText|blog)\\("${key.replace(".", "\\.")}"\\)\\)`), `${file}: ${key} goes through v5Label`);
   }
 });
+
+test("UX: the cookie notice matches the site visually and keeps its consent behaviour", () => {
+  const css = read("features/analytics/components/CookieConsent.module.css");
+  assert.match(css, /:global\(html\[data-theme="light"\]\) \.dialog \{/);
+  assert.match(css, /\.description \{[^}]*font-size: 15px;/);
+  assert.match(css, /--cc-radius-button: 14px;/);
+  assert.match(css, /\.button, \.buttonOutline \{[^}]*min-height: 48px;[^}]*border-radius: var\(--cc-radius-button\);/);
+  for (const [, size] of css.matchAll(/font-size:\s*(\d+)px/g)) assert.ok(Number(size) >= 14, `cookie notice font-size ${size}px`);
+  const consent = read("features/analytics/components/CookieConsent.tsx");
+  const preferences = read("features/analytics/components/CookieConsentPreferences.tsx");
+  assert.doesNotMatch(consent + preferences, /style=\{\{/, "visual rules live in the CSS module");
+  assert.doesNotMatch(consent, /text-xs/, "no 12px body text");
+  // Behaviour stays byte-for-byte the reviewed logic: same storage call shapes, timing and event.
+  assert.match(consent, /setTimeout\(\(\) => setVisible\(true\), 800\)/);
+  assert.match(consent, /status: 'accepted_all',\n      essential: true,\n      performance: true,\n      analytics: true,\n      social: true,/);
+  assert.match(consent, /window\.dispatchEvent\(new CustomEvent\('ccpun:consent', \{ detail: 'accepted' \}\)\);/);
+  assert.match(consent, /new CustomEvent\('ccpun:consent', \{ detail: analytics \? 'accepted' : 'rejected' \}\)/);
+  assert.match(consent, /role="dialog"[\s\S]*aria-modal="true"/);
+});

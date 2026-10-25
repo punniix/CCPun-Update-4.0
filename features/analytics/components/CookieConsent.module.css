@@ -1,0 +1,122 @@
+/*
+  Cookie notice skin (owner-approved 2026-10-25, visual only). The dialog renders outside the v5
+  page root, so it carries its own copy of the v5 tokens: dark by default, the cream surfaces when
+  the v5 theme boot script sets html[data-theme="light"]. Consent logic, storage, defaults, timing,
+  events and copy live in CookieConsent.tsx / lib/cookie-consent.ts and are unchanged.
+*/
+.dialog {
+  --cc-card: #352727;
+  --cc-surface: #4a3a3a;
+  --cc-border: #5b4848;
+  --cc-border-soft: rgba(91, 72, 72, 0.72);
+  --cc-text: #faf9f9;
+  --cc-muted: #baabab;
+  --cc-gold: #e0c985;
+  --cc-gold-hover: #ebd9a2;
+  --cc-gold-text: #e0c985;
+  --cc-on-gold: #251818;
+  --cc-focus: #e0c985;
+  /* Switch track states are UI components: >= 3:1 against the card in each theme. */
+  --cc-track-off: #9a8585;
+  --cc-track-on: #e0c985;
+  --cc-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  --cc-radius: 16px;
+  --cc-radius-button: 14px;
+  position: fixed; right: 0; bottom: 0; left: 0; z-index: 70;
+  padding: 0 16px 16px;
+  font-family: var(--font-kanit), Kanit, system-ui, sans-serif;
+  color: var(--cc-text);
+}
+:global(html[data-theme="light"]) .dialog {
+  --cc-card: #fffdf9;
+  --cc-surface: #e9dfd2;
+  --cc-border: #dccdb9;
+  --cc-border-soft: rgba(91, 72, 72, 0.18);
+  --cc-text: #251818;
+  --cc-muted: #5f4c4c;
+  --cc-gold-text: #7a5c14;
+  --cc-focus: #7a5c14;
+  --cc-track-off: #8a7766;
+  --cc-track-on: #7a5c14;
+  --cc-shadow: 0 -8px 32px rgba(53, 39, 39, 0.14);
+}
+@media (min-width: 640px) { .dialog { padding: 0 24px 24px; } }
+.dialog:focus { outline: none; }
+.dialog :focus-visible { outline: 3px solid var(--cc-focus); outline-offset: 3px; }
+
+.card {
+  display: flex; flex-direction: column; overflow: hidden;
+  max-width: 768px; max-height: calc(100dvh - 32px); margin-inline: auto;
+  background: var(--cc-card); border: 1px solid var(--cc-border); border-radius: var(--cc-radius);
+  box-shadow: var(--cc-shadow);
+}
+
+/* Banner */
+.banner { padding: 20px; }
+@media (min-width: 640px) { .banner { padding: 24px; } }
+.bannerRow { display: flex; flex-direction: column; gap: 16px; }
+@media (min-width: 640px) { .bannerRow { flex-direction: row; align-items: center; gap: 24px; } }
+.copy { flex: 1; min-width: 0; }
+.title { margin: 0 0 4px; color: var(--cc-text); font-size: 16px; font-weight: 500; line-height: 1.5; }
+.description { margin: 0; color: var(--cc-muted); font-size: 15px; line-height: 1.7; }
+.link { color: var(--cc-gold-text); text-decoration: underline; text-underline-offset: 3px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; flex-shrink: 0; }
+@media (max-width: 479px) { .actions > * { flex: 1 1 auto; } }
+
+/* Buttons: the site button (48px, shared 14px radius, display weight). One gold action per view. */
+.button, .buttonOutline {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 12px 24px; border-radius: var(--cc-radius-button);
+  font: inherit; font-size: 15px; font-weight: 500; line-height: 1.3; cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.button { background: var(--cc-gold); border: 1px solid var(--cc-gold); color: var(--cc-on-gold); }
+.button:hover { background: var(--cc-gold-hover); }
+.buttonOutline { background: transparent; border: 1px solid var(--cc-border); color: var(--cc-text); }
+.buttonOutline:hover { border-color: var(--cc-gold); }
+
+/* Preferences panel */
+.panel { padding: 20px 24px 24px; overflow-y: auto; overscroll-behavior: contain; }
+.panelHead { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.panelTitle { margin: 0; color: var(--cc-text); font-size: 17px; font-weight: 500; line-height: 1.45; }
+.close {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 44px; height: 44px; padding: 0; border: 1px solid var(--cc-border); border-radius: 999px;
+  background: transparent; color: var(--cc-muted); font-size: 18px; line-height: 1; cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.close:hover { border-color: var(--cc-gold); color: var(--cc-text); }
+.panelActions { display: flex; justify-content: flex-end; margin-top: 20px; }
+
+.row { border-bottom: 1px solid var(--cc-border-soft); }
+.rowMain { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.rowLabelGroup { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.expand {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 44px; height: 44px; padding: 0; border: 1px solid var(--cc-border); border-radius: 12px;
+  background: transparent; color: var(--cc-gold-text); font-size: 16px; line-height: 1; cursor: pointer;
+  transition: border-color 160ms ease;
+}
+.expand:hover { border-color: var(--cc-gold); }
+.rowLabel { flex: 1; color: var(--cc-text); font-size: 15px; font-weight: 500; line-height: 1.55; cursor: pointer; }
+.rowLabel[data-always-active="true"] { cursor: default; }
+.alwaysActive { flex-shrink: 0; color: var(--cc-gold-text); font-size: 14px; font-weight: 500; }
+.rowDescription { padding: 0 0 12px 52px; }
+.rowDescription p { margin: 0; color: var(--cc-muted); font-size: 14px; line-height: 1.65; }
+
+/* Switch: 44px target, 44x28 track. */
+.switch {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 999px;
+  background: transparent; cursor: pointer;
+}
+.switch:disabled { cursor: not-allowed; }
+.track { position: relative; width: 44px; height: 28px; border-radius: 999px; background: var(--cc-track-off); transition: background-color 120ms ease; }
+.switch[aria-checked="true"] .track { background: var(--cc-track-on); }
+.switch:disabled .track { background: var(--cc-track-on); opacity: 0.55; }
+.knob { position: absolute; top: 5px; left: 5px; width: 18px; height: 18px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); transition: left 120ms ease; }
+.switch[aria-checked="true"] .knob { left: 21px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .button, .buttonOutline, .close, .expand, .track, .knob { transition: none; }
+}
