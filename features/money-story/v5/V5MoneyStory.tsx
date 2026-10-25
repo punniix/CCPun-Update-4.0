@@ -30,7 +30,7 @@ export default async function V5MoneyStory({ copy, siteCopy }: { copy?: PublicCo
 
   return (
     <V5Page current="/play/money-story/" siteCopy={siteCopy}>
-      <V5ToolHero id="money-story-title" kicker={text('moneyStory.kicker')} title={text('moneyStory.title')} lead={text('moneyStory.subtitle')} />
+      <V5ToolHero id="money-story-title" title={text('moneyStory.title')} lead={text('moneyStory.subtitle')} />
 
       <section className={shell.section} aria-label={text('moneyStory.moneyStoryPagearialabel')}>
         <div className={shell.inner}>
@@ -42,7 +42,7 @@ export default async function V5MoneyStory({ copy, siteCopy }: { copy?: PublicCo
 
       <section className={shell.sectionAlt} aria-labelledby="money-story-about">
         <div className={shell.inner}>
-          <V5SectionHeading id="money-story-about" eyebrow={text.node('moneyStory.kicker2')} title={text.node('moneyStory.h2')} />
+          <V5SectionHeading id="money-story-about" title={text.node('moneyStory.h2')} />
           <V5InfoCards items={[
             { title: text.node('moneyStory.strong'), body: text.node('moneyStory.p') },
             { title: text.node('moneyStory.strong2'), body: text.node('moneyStory.p2') },

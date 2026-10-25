@@ -67,7 +67,6 @@ export async function renderToolsHubPage() {
       <V5ToolHero
         id="tools-hub-title"
         breadcrumbs={<V5Breadcrumbs label="เส้นทางของหน้า" items={[{ href: "/", label: "หน้าแรก" }, { label: V5_TOOLS_HUB.label }]} />}
-        kicker="เครื่องมือ CCPun"
         title="ลองคิดเองก่อน แล้วค่อยคุยกัน"
         lead="แต่ละเครื่องมือใช้ตัวเลขที่คุณใส่เอง ช่วยให้เห็นภาพก่อนตัดสินใจ ถ้าอยากให้ช่วยดูผลต่อ ทักมาทาง LINE ได้"
       />

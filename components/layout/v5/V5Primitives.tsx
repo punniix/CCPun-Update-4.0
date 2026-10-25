@@ -83,10 +83,10 @@ export function V5ContactBand({ title, lead, cta, analyticsSection, analyticsLoc
   );
 }
 
-export function V5SectionHeading({ eyebrow, title, description, id, as = "h2" }: { eyebrow?: ReactNode; title: ReactNode; description?: ReactNode; id?: string; as?: "h1" | "h2" }) {
+/** Section heading. No eyebrow label above the heading (owner decision 2026-10-25). */
+export function V5SectionHeading({ title, description, id, as = "h2" }: { title: ReactNode; description?: ReactNode; id?: string; as?: "h1" | "h2" }) {
   const Heading = as;
   return <>
-    {eyebrow ? <p className={styles.eyebrow}>{eyebrow}</p> : null}
     <Heading id={id} className={as === "h1" ? styles.h1 : styles.h2}>{title}</Heading>
     {description ? <p className={styles.lead}>{description}</p> : null}
   </>;

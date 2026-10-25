@@ -246,7 +246,6 @@ export default function PortfolioBuilder() {
         <div className={styles.builder}>
           <div className={styles.stepHeader}>
             <div>
-              <p className={styles.eyebrow}>จัดหลายกองเอง</p>
               <h2>{currentCopy.title}</h2>
               <p>{currentCopy.body}</p>
             </div>
@@ -396,7 +395,6 @@ export default function PortfolioBuilder() {
         </div>
 
         <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label="สรุปแผนระหว่างจัดพอร์ต">
-          <p className={styles.eyebrow}>สรุประหว่างจัดพอร์ต</p>
           <h2>เห็นภาพโดยไม่เลือกแทน</h2>
           <p className={styles.summaryIntro}>ตัวเลขอัปเดตตามสิ่งที่คุณกรอกเอง ระบบไม่ตั้งพอร์ตหรือเลือกกองทุนให้โดยอัตโนมัติ</p>
           <div className={styles.summaryAmount}><span>เงินในแผน</span><strong>{amount > 0 ? `${formatMoney(amount)} บาท` : "—"}</strong></div>

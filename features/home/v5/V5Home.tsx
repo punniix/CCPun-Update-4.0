@@ -77,7 +77,6 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
       <section id="home" className={styles.hero} aria-labelledby="home-hero-title">
         <div className={`${shell.inner} ${styles.heroGrid}`}>
           <div>
-            <p className={styles.heroEyebrow}>{displayName} · {role}</p>
             <h1 id="home-hero-title" className={styles.heroTitle}>{text.node("home.hero.titleBefore")}<em>{text.node("home.hero.titleEmphasis")}</em>{text.node("home.hero.titleAfter")}</h1>
             <p className={styles.heroBody}>{text.node("home.hero.eyebrow")} {text.node("home.hero.description")}</p>
             <div className={shell.buttonRow}>
@@ -98,7 +97,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
 
       <section className={shell.section} aria-labelledby="home-pains">
         <div className={shell.inner}>
-          <V5SectionHeading id="home-pains" eyebrow={text.node("home.website43Homeeyebrow")} title={text.node("home.website43Hometitle")} description={text.node("home.website43Homedescription")} />
+          <V5SectionHeading id="home-pains" title={text.node("home.website43Hometitle")} description={text.node("home.website43Homedescription")} />
           <div className={styles.cards3}>
             {pains.map(([icon, title, body]) => (
               <article className={styles.painCard} key={title}>
@@ -126,7 +125,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
 
       <section className={shell.section} aria-labelledby="home-voices">
         <div className={shell.inner}>
-          <V5SectionHeading id="home-voices" eyebrow={text.node("home.website43Homeeyebrow2")} title={text.node("home.website43Hometitle2")} />
+          <V5SectionHeading id="home-voices" title={text.node("home.website43Hometitle2")} />
           <div className={styles.quotes}>
             <figure className={styles.quote}><blockquote>{text.node("home.blockquote")}</blockquote><figcaption>{text.node("home.cite")}</figcaption></figure>
             <figure className={styles.quote}><blockquote>{text.node("home.blockquote2")}</blockquote><figcaption>{text.node("home.cite2")}</figcaption></figure>
@@ -138,7 +137,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
         <div className={`${shell.inner} ${styles.about}`}>
           <Image className={styles.aboutPortrait} src="/assets/ccpun.webp" alt={text("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 400px" loading="lazy" />
           <div>
-            <V5SectionHeading id="home-about" eyebrow={text.node("home.eyebrow2")} title={text.node("home.h2")} />
+            <V5SectionHeading id="home-about" title={text.node("home.h2")} />
             {qualifications.length > 0 && <p className={styles.aboutIdentity}><strong>{displayName}</strong><span>{role}{primary?.identifier ? text("home.advisor.qualificationPrefix") + primary.identifier : ""}</span></p>}
             <div className={styles.aboutCopy}><p>{text.node("home.p")}</p><p>{text.node("home.p2")}</p><p>{text.node("home.p3")}</p></div>
             <p className={styles.advisorNote}>{text.node("home.advisorNote")}</p>
@@ -189,7 +188,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
       <section className={shell.sectionAlt} id="faq" data-uat-section="home-faq" aria-labelledby="home-faq-title">
         <div className={`${shell.inner} ${styles.faq}`}>
           <div>
-            <V5SectionHeading id="home-faq-title" eyebrow={text.node("home.website43Homeeyebrow4")} title={text.node("home.website43Hometitle5")} />
+            <V5SectionHeading id="home-faq-title" title={text.node("home.website43Hometitle5")} />
             <div className={shell.buttonRow}><a className={shell.buttonOutline} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-location="home_faq">{text.node("home.contactCta")}</a></div>
           </div>
           <div className={styles.faqList}>

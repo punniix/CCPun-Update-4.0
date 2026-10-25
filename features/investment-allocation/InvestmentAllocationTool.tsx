@@ -14,7 +14,6 @@ export default function InvestmentAllocationTool() {
     <>
       <section className={styles.modeSection} aria-labelledby="investment-mode-title">
         <div className={styles.modeInner}>
-          <p className={styles.eyebrow}>เริ่มแบบที่ตรงกับโจทย์คุณ</p>
           <h2 id="investment-mode-title">อยากใช้กองเดียว หรือจัดหลายกอง?</h2>
           <p className={styles.modeLead}>ทั้งสองทางให้คุณเป็นคนเลือกกองเอง ระบบไม่จัดอันดับ ไม่แนะนำกอง และไม่เลือกแทน</p>
           <div className={styles.modeGrid} role="group" aria-label="เลือกวิธีจัดการลงทุน">

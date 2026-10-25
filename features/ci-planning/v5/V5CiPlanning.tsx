@@ -68,7 +68,6 @@ export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCo
       <CiLandingViewTracker />
 
       <V5ToolHero
-        kicker={t('ci.landing.badge')}
         title={<>{t('ci.landing.line1Text')}<span>{t('ci.landing.line2Text')}</span></>}
         lead={t('ci.landing.description2')}
         cta={{ href: '#ci-calculator', label: t('ci.landing.ctaLabel') }}
@@ -97,20 +96,18 @@ export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCo
       <section id="ci-calculator" className={shell.sectionAlt} aria-labelledby="ci-calculator-title">
         <div className={shell.inner}>
           <div className={styles.calcHeader}>
-            <V5SectionHeading id="ci-calculator-title" eyebrow={t.node('ci.landing.description3')} title={<>{t.node('ci.landing.calculatorTitle.heading')}{t.node('ci.landing.label')}</>} description={t.node('ci.landing.description4')} />
+            <V5SectionHeading id="ci-calculator-title" title={<>{t.node('ci.landing.calculatorTitle.heading')}{t.node('ci.landing.label')}</>} description={t.node('ci.landing.description4')} />
           </div>
           <div className={styles.calcGrid}>
             <div className={`${styles.calcScope} ${functionalMotion.scope}`}><CIWizard /></div>
             <aside className={styles.calcAside} aria-labelledby="ci-reading-title">
               <div className={styles.asideCard}>
-                <p className={shell.eyebrow}>{t.node('ci.landing.description5')}</p>
                 <h3 id="ci-reading-title">{t.node('ci.landing.readingTitle.heading')}</h3>
                 <p>{t.node('ci.landing.description6')}</p>
               </div>
               <div className={styles.asideCard}><h3>{t.node('ci.landing.heading')}</h3><p>{t.node('ci.landing.description7')}</p></div>
               <div className={styles.asideCard}><h3>{t.node('ci.landing.heading2')}</h3><p>{t.node('ci.landing.description8')}</p></div>
               <div className={styles.asideCard}>
-                <p className={shell.eyebrow}>{t.node('ci.landing.description9')}</p>
                 <h3>{t.node('ci.landing.heading3')}</h3>
                 <p>{t.node('ci.landing.description10')}</p>
               </div>
@@ -131,7 +128,7 @@ export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCo
 
       <section className={guides.length > 0 ? shell.sectionAlt : shell.section} aria-labelledby="ci-faq-title">
         <div className={shell.inner}>
-          <V5SectionHeading id="ci-faq-title" eyebrow={t.node('ci.landing.description11')} title={t.node('ci.landing.heading4')} />
+          <V5SectionHeading id="ci-faq-title" title={t.node('ci.landing.heading4')} />
           <V5Faq items={faqs} />
           <p className={styles.note}>{t.node('ci.landing.description12')}</p>
           <div className={styles.badgeRow}>

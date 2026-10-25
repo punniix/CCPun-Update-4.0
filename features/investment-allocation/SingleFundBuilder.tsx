@@ -275,7 +275,6 @@ export default function SingleFundBuilder() {
         <div className={styles.builder}>
           <div className={styles.stepHeader}>
             <div>
-              <p className={styles.eyebrow}>เริ่มง่าย · กองเดียว</p>
               <h2>เลือกกองเอง แล้วดูว่าเงินถูกนำไปลงทุนอย่างไร</h2>
               <p>ไม่ต้องจัดพอร์ตหลายกองก่อน เลือกประเภทที่สนใจ กรองตาม บลจ. ได้ แล้วค่อยเลือกกองทุนที่คุณต้องการดู</p>
             </div>
@@ -375,7 +374,6 @@ export default function SingleFundBuilder() {
         </div>
 
         <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label="สรุปการเลือกกองเดียว">
-          <p className={styles.eyebrow}>กองเดียว</p>
           <h2>เลือกกองเดียว ระบบคิดเป็น 100% ให้เลย</h2>
           <p className={styles.summaryIntro}>คุณไม่ต้องกรอกสัดส่วนหลายช่อง เมื่อเลือกกองแล้ว ระบบจะแสดงว่าเงินก้อนนี้ถูกนำไปลงทุนในอะไรบ้างจากข้อมูลล่าสุดที่กองทุนเปิดเผย</p>
           <div className={styles.summaryAmount}><span>เงินในแผน</span><strong>{amount > 0 ? `${formatMoney(amount)} บาท` : "—"}</strong></div>
@@ -428,7 +426,6 @@ function SingleFundResult({ amount, fund, detail, allocationTotal, onClassChange
     <div id="single-fund-result" className={styles.singleResult}>
       <div className={styles.singleResultHeader}>
         <div>
-          <p className={styles.eyebrow}>กองที่คุณเลือกเอง · 100%</p>
           <h2>{fund.nameTh}</h2>
           <p>{fund.abbreviation} · {fund.amcNameTh}</p>
         </div>

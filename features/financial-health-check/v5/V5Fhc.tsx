@@ -64,7 +64,6 @@ export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValue
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       <V5ToolHero
-        kicker={t('fhc.landing.badge')}
         title={<>{t('fhc.landing.line1Text')} <span>{t('fhc.landing.line2Text')}</span></>}
         lead={t('fhc.landing.description')}
         cta={{ href: '#fhc-calculator', label: t('fhc.landing.ctaLabel') }}
@@ -84,13 +83,12 @@ export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValue
       <section id="fhc-calculator" className={shell.sectionAlt} aria-labelledby="fhc-calculator-heading">
         <div className={shell.inner}>
           <div className={styles.calcHeader}>
-            <V5SectionHeading id="fhc-calculator-heading" eyebrow={t.node('fhc.landing.description2')} title={t.node('fhc.landing.calculatorHeading.heading')} description={t.node('fhc.landing.description3')} />
+            <V5SectionHeading id="fhc-calculator-heading" title={t.node('fhc.landing.calculatorHeading.heading')} description={t.node('fhc.landing.description3')} />
           </div>
           <div className={styles.calcGrid}>
             <div className={`${styles.calcScope} ${functionalMotion.scope}`}><LifeCoverageWizard /></div>
             <aside className={styles.calcAside} aria-labelledby="fhc-module-title">
               <div className={styles.asideCard}>
-                <p className={shell.eyebrow}>{t.node('fhc.intro.description4')}</p>
                 <h3 id="fhc-module-title">{t.node('fhc.intro.heading')}</h3>
                 <p>{t.node('fhc.intro.description5')}</p>
                 <p>{t.node('fhc.intro.description6')}</p>
@@ -108,7 +106,7 @@ export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValue
 
       <section className={shell.section} aria-labelledby="fhc-context-title">
         <div className={shell.inner}>
-          <V5SectionHeading id="fhc-context-title" eyebrow={t.node('fhc.intro.description3')} title={t.node('fhc.intro.contextTitle.heading')} />
+          <V5SectionHeading id="fhc-context-title" title={t.node('fhc.intro.contextTitle.heading')} />
           <V5InfoCards numbered items={[
             { title: t.node('fhc.intro.truths'), body: t.node('fhc.intro.truths2') },
             { title: t.node('fhc.intro.truths3'), body: t.node('fhc.intro.truths4') },
@@ -129,7 +127,7 @@ export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValue
 
       <section className={shell.section} aria-labelledby="fhc-faq-title">
         <div className={shell.inner}>
-          <V5SectionHeading id="fhc-faq-title" eyebrow={t.node('fhc.landing.description4')} title={t.node('fhc.landing.faqTitle.heading')} />
+          <V5SectionHeading id="fhc-faq-title" title={t.node('fhc.landing.faqTitle.heading')} />
           <V5Faq items={faqs} />
           <p className={styles.note}>{t.node('fhc.landing.description5')}</p>
         </div>

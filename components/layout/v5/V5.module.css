@@ -41,7 +41,6 @@
   --v5-card-gap: 16px;
   --v5-list-gap: 12px;
   --v5-text-meta: 14px;
-  --v5-text-eyebrow: 15px;
   color-scheme: dark;
   min-height: 100vh;
   background: var(--v5-bg);
@@ -89,7 +88,6 @@
 .section { padding-block: var(--v5-section-y); }
 .sectionAlt { padding-block: var(--v5-section-y); background: var(--v5-bg-alt); }
 
-.eyebrow { color: var(--v5-gold-text); font-size: var(--v5-text-eyebrow); font-weight: 500; letter-spacing: 0.02em; margin-bottom: 10px; font-family: var(--v5-font-display); }
 .h1 { font-size: clamp(30px, 6.4vw, 48px); line-height: 1.28; }
 .h2 { font-size: clamp(24px, 3.6vw, 34px); line-height: 1.32; }
 .h3 { font-size: 20px; line-height: 1.4; }

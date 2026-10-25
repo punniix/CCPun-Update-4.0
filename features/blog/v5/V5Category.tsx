@@ -61,10 +61,7 @@ export default async function V5Category({ slug, title, description, hub, articl
 
         {hub && hub.intro.length > 0 && <section className={shell.section} aria-labelledby={`hub-intro-${hub.slug}`}>
           <div className={`${shell.inner} ${styles.intro}`}>
-            <div>
-              <p className={shell.eyebrow}>{hub.eyebrow}</p>
-              <h2 id={`hub-intro-${hub.slug}`} className={shell.h2}>{text("blog.category.heading").replaceAll("{title}", hub.title)}</h2>
-            </div>
+            <h2 id={`hub-intro-${hub.slug}`} className={shell.h2}>{text("blog.category.heading").replaceAll("{title}", hub.title)}</h2>
             <div>
               <div className={styles.introCopy}>{hub.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
               {featuredLink && <div className={styles.featuredTool}>

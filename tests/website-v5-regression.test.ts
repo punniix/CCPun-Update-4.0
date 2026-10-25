@@ -333,7 +333,7 @@ test("Phase B performance budget: three Kanit weights, one preloaded LCP face, t
 // Design QA 2026-10-25 (owner request): Thai readability floor, one rhythm/radius scale, phone card fix.
 // ---------------------------------------------------------------------------
 
-test("QA: v5 text never drops below 13px; meta/eyebrow tokens are 14/15px; rhythm and radius are central tokens", () => {
+test("QA: v5 text never drops below 13px; the meta token is 14px; rhythm and radius are central tokens", () => {
   const sheets = [
     ...v5Files.filter((file) => file.endsWith(".css")),
     "features/tools-hub/ToolsHub.module.css",
@@ -345,7 +345,7 @@ test("QA: v5 text never drops below 13px; meta/eyebrow tokens are 14/15px; rhyth
     }
   }
   const shellCss = read("components/layout/v5/V5.module.css");
-  for (const token of ["--v5-text-meta: 14px;", "--v5-text-eyebrow: 15px;", "--v5-radius: 14px;", "--v5-section-y: 56px;", "--v5-card-gap: 16px;", "--v5-head-gap: 24px;"]) {
+  for (const token of ["--v5-text-meta: 14px;", "--v5-radius: 14px;", "--v5-section-y: 56px;", "--v5-card-gap: 16px;", "--v5-head-gap: 24px;"]) {
     assert.ok(shellCss.includes(token), token);
   }
   assert.match(shellCss, /\.section \{ padding-block: var\(--v5-section-y\); \}/);
@@ -357,4 +357,40 @@ test("QA: v5 text never drops below 13px; meta/eyebrow tokens are 14/15px; rhyth
   assert.match(home, /\.credentials dd \{[^}]*font-size: var\(--v5-text-meta\)/);
   assert.doesNotMatch(read("features/blog/v5/V5Blog.module.css"), /radial-gradient/, "no decorative glow panels");
   assert.match(read("components/layout/v5/V5Tool.module.css"), /\.calcScope :global\(\.text-xs\) \{ font-size: 14px; line-height: 1\.6; \}/);
+});
+
+// ---------------------------------------------------------------------------
+// UX fixes 2026-10-25 (owner decisions): no eyebrows on any v5 page.
+// ---------------------------------------------------------------------------
+
+const v5PageSources = [
+  ...v5Files.filter((file) => file.endsWith(".tsx")),
+  "features/ci-planning/v5/V5CiPlanning.tsx",
+  "features/financial-health-check/v5/V5Fhc.tsx",
+  "features/money-story/v5/V5MoneyStory.tsx",
+  "features/legal/v5/V5Privacy.tsx",
+  "features/legal/v5/V5CookiePolicy.tsx",
+  "features/tools-hub/page.tsx",
+  "features/investment-allocation/page.tsx",
+  "features/investment-allocation/InvestmentAllocationTool.tsx",
+  "features/investment-allocation/PortfolioBuilder.tsx",
+  "features/investment-allocation/SingleFundBuilder.tsx",
+];
+
+test("UX: no v5 page renders an eyebrow or a tool-hero kicker", () => {
+  for (const file of v5PageSources) {
+    const source = read(file);
+    assert.doesNotMatch(source, /\beyebrow=\{/, `${file}: no eyebrow prop`);
+    assert.doesNotMatch(source, /\bkicker=/, `${file}: no hero kicker`);
+    assert.doesNotMatch(source, /className=\{(?:shell|styles)\.(?:eyebrow|heroKicker|heroEyebrow)\}/, `${file}: no eyebrow class`);
+  }
+  assert.doesNotMatch(read("components/layout/v5/V5Primitives.tsx"), /eyebrow\?:/, "V5SectionHeading has no eyebrow slot");
+  assert.doesNotMatch(read("components/layout/v5/V5ToolParts.tsx"), /kicker\?:/, "V5ToolHero has no kicker slot");
+  for (const css of ["components/layout/v5/V5.module.css", "components/layout/v5/V5Tool.module.css", "features/home/v5/V5Home.module.css"]) {
+    assert.doesNotMatch(read(css), /\.(?:eyebrow|heroKicker|heroEyebrow) \{/, `${css}: no eyebrow style`);
+  }
+  // Protected calculator and game views keep their markup; the v5 scope stops rendering their heading eyebrows.
+  const tool = read("components/layout/v5/V5Tool.module.css");
+  assert.match(tool, /\.calcScope :global\(\.ccpun-calculator-result-eyebrow\):has\(\+ :is\(h2, h3\)\) \{ display: none; \}/);
+  assert.match(tool, /\.msWrap \[data-character\] \+ p:has\(\+ h2\) \{ display: none; \}/);
 });

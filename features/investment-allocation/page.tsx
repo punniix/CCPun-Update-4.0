@@ -42,10 +42,8 @@ export default function InvestmentAllocationPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <V5ToolHero
         id="investment-hero-title"
-        kicker="CCPun Investment"
         title={<>คุณเลือกกองเอง<br /><span>ระบบช่วยให้เห็นว่าเงินอยู่ตรงไหน</span></>}
         lead="เริ่มง่ายด้วยกองเดียว หรือจัดหลายกองเอง แล้วดูข้อมูลกองทุนจาก ก.ล.ต. ทั้งประเภทกอง ระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ"
-        chips={["กองเดียวหรือหลายกอง", "ข้อมูลจาก ก.ล.ต.", "คุณเลือกกองเอง", "ไม่มีการคาดการณ์ผลตอบแทน"]}
         cta={{ href: "#investment-mode-title", label: "เริ่มเลือกวิธีลงทุน" }}
       />
       <div className={`${v5ToolStyles.calcScope} ${v5ToolStyles.iaScope} ${motionStyles.scope}`}>

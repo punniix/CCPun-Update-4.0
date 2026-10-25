@@ -142,7 +142,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
 
           {article.faq && article.faq.length > 0 && <section id="faq" className={shell.sectionAlt}>
             <div className={`${shell.inner} ${shell.narrow}`}>
-              <V5SectionHeading eyebrow={text.node("blog.website43Articleeyebrow")} title={text.node("blog.website43Articletitle")} />
+              <V5SectionHeading title={text.node("blog.website43Articletitle")} />
               <div className={styles.faqList}>
                 {article.faq.map(({ question, answer }) => (
                   <details className={styles.faqItem} key={question}><summary>{question}</summary><p>{answer}</p></details>
@@ -162,9 +162,8 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             </div>
           </section>
 
-          {nextSteps.length > 0 && <section className={shell.section} style={{ paddingTop: 0 }} aria-labelledby="v5-next-step">
+          {nextSteps.length > 0 && <section className={shell.section} style={{ paddingTop: 0 }} aria-label={text("blog.nextStep.eyebrow")}>
             <div className={`${shell.inner} ${shell.narrow}`}>
-              <p className={shell.eyebrow} id="v5-next-step">{text.node("blog.nextStep.eyebrow")}</p>
               <div className={styles.nextStep}>
                 {nextSteps.map((step) => (
                   <div className={styles.nextCard} key={step.key}>
