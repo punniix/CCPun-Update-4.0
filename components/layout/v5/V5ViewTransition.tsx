@@ -39,9 +39,11 @@ export function V5SharedTransition({ part, articleId, children }: { part: V5Shar
   if (ViewTransition == null) return <>{children}</>;
   const name = v5ArticleTransitionName(part, articleId);
   if (!claimV5TransitionName(name)) return <>{children}</>;
+  // The stylesheet travels once per request: React hoists it, and later claims skip it in the payload.
+  const firstClaim = claimV5TransitionName("ccpun-v5-view-transitions-style");
   return (
     <>
-      <style href="ccpun-v5-view-transitions" precedence="default">{V5_VIEW_TRANSITION_CSS}</style>
+      {firstClaim ? <style href="ccpun-v5-view-transitions" precedence="default">{V5_VIEW_TRANSITION_CSS}</style> : null}
       <ViewTransition name={name} share={part === "title" ? "ccpun-vt-title" : "ccpun-vt-cover"} default="none">{children}</ViewTransition>
     </>
   );
