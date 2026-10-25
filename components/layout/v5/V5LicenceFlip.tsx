@@ -22,6 +22,13 @@ function TurnIcon() {
   );
 }
 
+/** A back value with its `keep` phrase held on one line (falls back to the plain text when the phrase is absent). */
+function renderValue({ value, keep }: V5FlipLine) {
+  const at = keep ? value.indexOf(keep) : -1;
+  if (!keep || at < 0) return value;
+  return <>{value.slice(0, at)}<span className={styles.keep}>{keep}</span>{value.slice(at + keep.length)}</>;
+}
+
 export function isV5CardFlippable(back: readonly V5FlipLine[], note: string | null | undefined): boolean {
   return Boolean(note) || back.some((line) => !line.repeatsFront && line.value.trim() !== "");
 }
@@ -51,7 +58,7 @@ export default function V5LicenceFlip({ term, detail, hint, back, note = null }:
             {back.map((line) => (
               <span className={styles.line} key={line.label} aria-hidden={line.repeatsFront ? true : undefined}>
                 <span className={styles.label}>{line.label}</span>
-                <span className={styles.backValue}>{line.value}</span>
+                <span className={styles.backValue}>{renderValue(line)}</span>
               </span>
             ))}
             {note ? <span className={styles.verify}>{note}</span> : null}

@@ -19,6 +19,8 @@
 .number, .label, .verify { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
 .line { display: flex; flex-direction: column; }
 .backValue { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+/* A phrase that must not split mid-phrase (the TFPA name); the phone layout gives each card the full row so it fits. */
+.keep { white-space: nowrap; }
 .hint { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; }
 .hint svg { flex: none; width: 14px; height: 14px; }
 

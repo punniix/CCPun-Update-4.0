@@ -25,6 +25,10 @@ const URL = "https://ccpun.com/about/";
 // Title reuses the approved About heading (home.eyebrow2) and the site Person name.
 const TITLE = `รู้จักที่ปรึกษาทางการเงิน CCPun | ${personSchema.name} (${personSchema.alternateName[0]})`;
 const DESCRIPTION = personSchema.description;
+const PORTRAIT_DARK = "/assets/ccpun-portrait-v5-about-dark.webp";
+const PORTRAIT_LIGHT = "/assets/ccpun-portrait-v5-about-light.webp";
+// UAT-only alt text for the father photo (new string, pending owner approval).
+const FATHER_PHOTO_ALT = "ปั้นกับคุณพ่อในวันรับปริญญา";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -40,6 +44,19 @@ export const metadata: Metadata = {
 function OwnerCopySlot({ slot, note }: { slot: string; note: string }) {
   if (!IS_REVIEW_ENVIRONMENT) return null;
   return <p className={styles.slot} data-uat-placeholder={slot}><strong>UAT</strong> {note}</p>;
+}
+
+/**
+ * The owner-chosen father photo (treatment a, colour, 2026-10-25) waits in the UAT-only father-story slot
+ * until the owner's story text arrives; Production builds never render it.
+ */
+function FatherPhotoSlot() {
+  if (!IS_REVIEW_ENVIRONMENT) return null;
+  return (
+    <figure className={styles.fatherPhoto} data-uat-placeholder="about-father-photo">
+      <Image src="/assets/ccpun-father-v5-colour.webp" alt={FATHER_PHOTO_ALT} width={1086} height={1448} sizes="(max-width: 899px) calc(100vw - 40px), 420px" />
+    </figure>
+  );
 }
 
 export async function renderAboutPage() {
@@ -67,7 +84,7 @@ export async function renderAboutPage() {
       },
       // The full Person entity (credentials, organisation, sameAs) is emitted site-wide by the
       // layout graph under the same @id; this node only adds the portrait shown on this page.
-      { "@type": "Person", "@id": CCPUN_PERSON_ID, name: personSchema.name, image: "https://ccpun.com/assets/ccpun.webp" },
+      { "@type": "Person", "@id": CCPUN_PERSON_ID, name: personSchema.name, image: `https://ccpun.com${PORTRAIT_DARK}` },
       {
         "@type": "BreadcrumbList",
         "@id": `${URL}#breadcrumb`,
@@ -92,7 +109,12 @@ export async function renderAboutPage() {
               <OwnerCopySlot slot="about-hero-sentence" note="ประโยคแนะนำตัวของปั้นหนึ่งประโยค (รอข้อความจากเจ้าของ)" />
               <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />
             </div>
-            <Image className={styles.portrait} src="/assets/ccpun.webp" alt={home("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 440px" preload loading="eager" fetchPriority="high" />
+            <div className={styles.portraitFrame}>
+              {/* Owner-approved portrait (photo 4, v5b set, 2026-10-25), art-directed per theme. Next's theme-image
+                  pattern: both stay lazy with high fetch priority, so only the visible theme's file is fetched. */}
+              <Image className={`${styles.portrait} ${styles.portraitDark}`} src={PORTRAIT_DARK} alt={home("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 440px" fetchPriority="high" />
+              <Image className={`${styles.portrait} ${styles.portraitLight}`} src={PORTRAIT_LIGHT} alt={home("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 440px" fetchPriority="high" />
+            </div>
           </div>
         </div>
       </section>
@@ -104,6 +126,7 @@ export async function renderAboutPage() {
             <OwnerCopySlot slot="about-start-years" note="ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)" />
             <p>{home.node("home.p")}</p>
             <OwnerCopySlot slot="about-father-story" note="เรื่องคุณพ่อและเหตุผลที่ช่วยคนเรื่องค่ารักษาพยาบาลและความมั่นคงทางการเงิน (รอข้อความจากเจ้าของ)" />
+            <FatherPhotoSlot />
             <p>{home.node("home.p2")}</p>
             <p>{home.node("home.p3")}</p>
           </div>

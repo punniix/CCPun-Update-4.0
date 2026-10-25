@@ -10,7 +10,8 @@ import { useCountUp } from "./useCountUp";
 // listed here so the frozen, reviewed Tailwind output is byte-identical; retiring them needs its own
 // compiler-proof review.
 const HAVE_FILL = "color-mix(in srgb, var(--v5-text, #faf9f9) 78%, transparent)";
-const GAP_FILL = "var(--v5-gold, #e0c985)";
+// The gap uses the gold text token: #e0c985 in dark, the darker #7a5c14 in light, so the gold gap keeps >= 3:1 against its track.
+const GAP_FILL = "var(--v5-gold-text, #e0c985)";
 const swatch = (background: string) => ({ display: "inline-block", width: 10, height: 10, marginRight: 8, borderRadius: 3, background });
 interface MoneyComparisonProps {
   need: number;

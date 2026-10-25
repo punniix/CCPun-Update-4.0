@@ -112,7 +112,10 @@ test('licence and AFPT™ cards: native buttons with aria-pressed, back text rea
 
   const afpt = renderToStaticMarkup(React.createElement(Flip.default, { term: copy.V5_AFPT_CARD.term, detail: copy.V5_AFPT_CARD.detail, hint: copy.V5_CREDENTIAL_FLIP_HINT, back: copy.V5_AFPT_CARD.back }));
   assert.match(afpt, /aria-pressed="false"/);
-  for (const fact of ['AFPT™', 'Associate Financial Planner (Thailand)', 'สมาคมนักวางแผนการเงินไทย (TFPA)', 'AFPT260195', '31 ธ.ค. 2571']) assert.ok(afpt.includes(fact), fact);
+  const afptText = afpt.replace(/<[^>]+>/g, '');
+  for (const fact of ['AFPT™', 'Associate Financial Planner (Thailand)', 'สมาคมนักวางแผนการเงินไทย (TFPA)', 'AFPT260195', '31 ธ.ค. 2571']) assert.ok(afptText.includes(fact), fact);
+  // Integration fix (2026-10-25): the TFPA name stays on one line on the card back instead of splitting mid-phrase.
+  assert.ok(afpt.includes('<span class="keep">สมาคมนักวางแผนการเงินไทย</span> (TFPA)'), 'TFPA name is held together');
   assert.doesNotMatch(afpt, /<span class="line" aria-hidden/, 'AFPT™ back facts are all readable');
   const cardCopy = read('components/layout/v5/licence-flip-copy.ts').replace(/\/\/[^\n]*/g, '');
   assert.doesNotMatch(cardCopy, /\bAFPT(?![™0-9])|ฟรี|…|\.\.\./, 'AFPT™ always carries the mark; no banned copy');

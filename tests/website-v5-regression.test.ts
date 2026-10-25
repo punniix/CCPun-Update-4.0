@@ -611,3 +611,35 @@ test("Buttons use 14px corners sitewide (DESIGN.md), including the countdown, ca
   assert.match(read("features/analytics/components/CookieConsent.module.css"), /--cc-radius-button: 14px;/);
   assert.match(read("DESIGN.md"), /- \*\*Shape:\*\* Gently curved \(14px radius\)/);
 });
+
+test("Covers show whole at 1200 / 630 everywhere: no card or featured image is stretched to the card height (owner request 2026-10-25)", () => {
+  const rules = (css: string) => [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({ selector: selector.trim(), body }));
+  for (const file of ["components/layout/v5/V5.module.css", "features/blog/v5/V5Blog.module.css", "features/home/v5/V5Home.module.css"]) {
+    for (const { selector, body } of rules(read(file))) {
+      if (!/articleCardImage|featuredLead|\.feature\b/.test(selector)) continue;
+      assert.ok(!(/aspect-ratio:\s*auto/.test(body) && /min-height:\s*100%/.test(body)), `${file}: ${selector} must not stretch a cover (aspect-ratio: auto + min-height: 100%)`);
+      if (/aspect-ratio/.test(body)) assert.match(body, /aspect-ratio: 1200 \/ 630/, `${file}: ${selector} keeps the 1200 / 630 cover shape`);
+    }
+  }
+  const shell = read("components/layout/v5/V5.module.css");
+  assert.match(shell, /\.articleCardImage \{ display: block; width: 100%; height: auto; aspect-ratio: 1200 \/ 630; object-fit: cover; object-position: center;/);
+  assert.match(shell, /\.articleCardHorizontal \.articleCardImage \{ width: 38%; height: auto; aspect-ratio: 1200 \/ 630; align-self: flex-start; flex: none; \}/);
+  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.featuredLead > img \{ width: 50%; height: auto; aspect-ratio: 1200 \/ 630; align-self: flex-start; flex: none; \}/);
+  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.feature img \{ display: block; width: 100%; height: auto;/, "the article cover keeps its natural shape");
+});
+
+test("Owner photos (v5b set, 2026-10-25): About hero is photo 4 per theme, JSON-LD names it, the father photo stays in the UAT-only slot", () => {
+  const page = read("features/about/page.tsx");
+  assert.match(page, /const PORTRAIT_DARK = "\/assets\/ccpun-portrait-v5-about-dark\.webp";/);
+  assert.match(page, /const PORTRAIT_LIGHT = "\/assets\/ccpun-portrait-v5-about-light\.webp";/);
+  assert.match(page, /"@type": "Person", "@id": CCPUN_PERSON_ID, name: personSchema\.name, image: `https:\/\/ccpun\.com\$\{PORTRAIT_DARK\}`/);
+  assert.doesNotMatch(page, /\/assets\/ccpun\.webp/);
+  assert.doesNotMatch(page, /\bpreload\b|loading="eager"/, "two theme portraits stay lazy so only the visible one loads");
+  assert.match(page, /function FatherPhotoSlot\(\) \{\n  if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
+  assert.doesNotMatch(page, /afpt-certificate/i, "no AFPT certificate image on the site (owner decision)");
+  const css = read("features/about/About.module.css");
+  assert.match(css, /:global\(html\[data-theme="light"\]\) \.portraitDark \{ display: none; \}/);
+  assert.match(css, /:global\(html\[data-theme="light"\]\) \.portraitLight \{ display: block; \}/);
+  const favicon = readFileSync(new URL("../public/favicon.png", import.meta.url));
+  assert.ok(favicon.equals(readFileSync(new URL("../public/assets/ccpun-avatar-v5-256.png", import.meta.url))), "favicon.png is the plain-circle face avatar");
+});

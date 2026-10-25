@@ -117,8 +117,9 @@ export const websiteV5PhaseASources = Object.freeze({
   // BEGIN motion reviewed sources
   // v5 motion round (owner-approved ideas #1, #2, #4, 2026-10-25, UAT only): the shared result comparison
   // animates transform/opacity once and counts the gap up while the final value stays accessible.
-  // `before` is the reviewed source at d77acba8.
-  "components/ui/MoneyComparison.tsx": { before: "3f0c3a9229483df806297d5ab0bf45d7d83d4e158f1a995475a4dabccead5368", after: "66b9bafb291589919893d6ea7f3ad1523f36b1dbf7e7009d9e52f515da56c6c0" },
+  // `before` is the reviewed source at d77acba8. v5 integration (2026-10-25): the gold gap uses the gold text token
+  // (darker #7a5c14 in light mode, >= 3:1 against its track); the reviewed successor moves to that exact file.
+  "components/ui/MoneyComparison.tsx": { before: "3f0c3a9229483df806297d5ab0bf45d7d83d4e158f1a995475a4dabccead5368", after: "6c238ed0f748c1ce06015b82249e608d014240bbe93440f15acbef6c3b100d51" },
   // END motion reviewed sources
 });
 

@@ -6,14 +6,15 @@ export const V5_LICENCE_NUMBER_LABEL = "เลขที่ใบอนุญา�
 // UAT-only placeholder until the owner approves the verification wording (no regulator URL is invented).
 export const V5_LICENCE_VERIFY_PLACEHOLDER = "UAT: รอข้อความวิธีตรวจสอบที่เจ้าของอนุมัติ";
 
-export type V5FlipLine = { label: string; value: string; repeatsFront?: boolean };
+// `keep`: a phrase inside `value` that must not wrap mid-phrase (Thai has no spaces, so the browser would split it by dictionary).
+export type V5FlipLine = { label: string; value: string; repeatsFront?: boolean; keep?: string };
 
 // Always "AFPT™" in uppercase with the mark; it names a credential, never a person ("เป็น AFPT" is wrong).
 export const V5_AFPT_CARD = Object.freeze({
   term: "AFPT™",
   detail: "Associate Financial Planner (Thailand)",
   back: Object.freeze([
-    { label: "ออกโดย", value: "สมาคมนักวางแผนการเงินไทย (TFPA)" },
+    { label: "ออกโดย", value: "สมาคมนักวางแผนการเงินไทย (TFPA)", keep: "สมาคมนักวางแผนการเงินไทย" },
     { label: "เลขที่ใบรับรอง", value: "AFPT260195" },
     { label: "ใช้ได้ถึง", value: "31 ธ.ค. 2571" },
   ]) as readonly V5FlipLine[],
