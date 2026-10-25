@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { RATE_LIMIT_MESSAGE } from "../features/investment-allocation/domain/copy";
 import {
+  bucketKeyForAddress,
   clientKeyFromHeaders,
+  createTrustedProxyList,
+  normalizeAddress,
   enforceInvestmentApiRateLimit,
   InvestmentApiRateLimiter,
   ROUTE_COST,
@@ -43,11 +46,66 @@ test("tracked client keys are bounded", () => {
   assert.ok(store.size <= 3, `size ${store.size}`);
 });
 
-test("client key uses the first forwarded address and rejects malformed values", () => {
-  assert.equal(clientKeyFromHeaders(new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" })), "203.0.113.7");
-  assert.equal(clientKeyFromHeaders(new Headers({ "x-real-ip": "2001:db8::1" })), "2001:db8::1");
-  assert.equal(clientKeyFromHeaders(new Headers({ "x-forwarded-for": "<script>" })), "unknown");
-  assert.equal(clientKeyFromHeaders(new Headers()), "unknown");
+test("client key comes from the trusted proxy hop, never from a client-supplied X-Forwarded-For entry", () => {
+  const key = (headers: Record<string, string>) => clientKeyFromHeaders(new Headers(headers), createTrustedProxyList(""));
+  // Direct to the Hostinger edge: the edge appended the visitor it saw on the right.
+  assert.equal(key({ "x-forwarded-for": "203.0.113.7" }), "203.0.113.7");
+  assert.equal(key({ "x-forwarded-for": "198.51.100.66, 203.0.113.7" }), "203.0.113.7", "a forged left entry is ignored");
+  // Visitor -> Cloudflare -> Hostinger edge -> internal hop.
+  assert.equal(key({ "x-forwarded-for": "203.0.113.7, 162.158.1.2, 10.0.0.5" }), "203.0.113.7");
+  assert.equal(key({ "x-forwarded-for": "1.1.1.1, 9.9.9.9, 203.0.113.7, 2606:4700::6810:84e5, 127.0.0.1" }), "203.0.113.7");
+  // Rotating the forged value no longer mints new per-client buckets.
+  const rotated = new Set(Array.from({ length: 50 }, (_, i) => key({ "x-forwarded-for": `192.0.2.${i}, 203.0.113.7, 172.70.1.1` })));
+  assert.deepEqual([...rotated], ["203.0.113.7"]);
+});
+
+test("headers a visitor can send straight to the origin never choose the bucket", () => {
+  const key = (headers: Record<string, string>) => clientKeyFromHeaders(new Headers(headers), createTrustedProxyList(""));
+  assert.equal(key({ "x-real-ip": "2001:db8::1" }), "unknown");
+  assert.equal(key({ "cf-connecting-ip": "203.0.113.50" }), "unknown");
+  assert.equal(key({ "cf-connecting-ip": "203.0.113.50", "x-forwarded-for": "203.0.113.7" }), "203.0.113.7");
+  assert.equal(key({}), "unknown");
+});
+
+test("malformed, oversized or all-internal chains fall back to the shared unknown bucket", () => {
+  const key = (value: string) => clientKeyFromHeaders(new Headers({ "x-forwarded-for": value }), createTrustedProxyList(""));
+  assert.equal(key("<script>"), "unknown");
+  assert.equal(key("203.0.113.7, not-an-ip, 10.0.0.1"), "unknown", "a malformed hop ends the trusted chain");
+  assert.equal(key("10.0.0.1, 127.0.0.1"), "unknown");
+  assert.equal(key(Array.from({ length: 40 }, () => "203.0.113.7").join(",")), "unknown");
+  const padded = Array.from({ length: 31 }, () => `${" ".repeat(70)}203.0.113.7`).join(",");
+  assert.ok(padded.length > 2048);
+  assert.equal(key(padded), "unknown", "an oversized header is not parsed");
+});
+
+test("addresses are normalized and IPv6 visitors share one bucket per /64", () => {
+  const key = (value: string) => clientKeyFromHeaders(new Headers({ "x-forwarded-for": value }), createTrustedProxyList(""));
+  assert.equal(normalizeAddress("[2001:db8::1]:443"), "2001:db8::1");
+  assert.equal(normalizeAddress("203.0.113.7:51234"), "203.0.113.7");
+  assert.equal(normalizeAddress("::ffff:203.0.113.7"), "203.0.113.7");
+  assert.equal(normalizeAddress("example.com"), null);
+  assert.equal(key("2001:db8:aaaa:bbbb::1"), "2001:db8:aaaa:bbbb::/64");
+  assert.equal(key("2001:db8:aaaa:bbbb:ffff:1:2:3, 2400:cb00::1"), "2001:db8:aaaa:bbbb::/64");
+  assert.equal(bucketKeyForAddress("2001:0DB8:0:0001::5".toLowerCase()), "2001:db8:0:1::/64");
+  assert.equal(key("::ffff:203.0.113.7"), "203.0.113.7");
+});
+
+test("extra trusted hops can be configured without a code change", () => {
+  const withHop = createTrustedProxyList("198.51.100.0/24, not-a-cidr, 2001:db8:ffff::/48");
+  assert.equal(clientKeyFromHeaders(new Headers({ "x-forwarded-for": "203.0.113.7, 198.51.100.9" }), withHop), "203.0.113.7");
+  assert.equal(clientKeyFromHeaders(new Headers({ "x-forwarded-for": "203.0.113.7, 198.51.100.9" }), createTrustedProxyList("")), "198.51.100.9");
+  assert.equal(clientKeyFromHeaders(new Headers({ "x-forwarded-for": "203.0.113.8, 2001:db8:ffff:1::9" }), withHop), "203.0.113.8");
+});
+
+test("forged X-Forwarded-For values cannot escape a refused per-client bucket", () => {
+  const limiter = new InvestmentApiRateLimiter({ capacity: 2, refillPerSecond: 0.001 }, { capacity: 1000, refillPerSecond: 10 });
+  const request = (forged: string) => new Request("https://example.invalid/api/investment-allocation/amcs", {
+    headers: { "x-forwarded-for": `${forged}, 203.0.113.9, 162.158.0.10` },
+  });
+  assert.equal(enforceInvestmentApiRateLimit(request("192.0.2.1"), "amcs", limiter), null);
+  assert.equal(enforceInvestmentApiRateLimit(request("192.0.2.2"), "amcs", limiter), null);
+  assert.equal(enforceInvestmentApiRateLimit(request("192.0.2.3"), "amcs", limiter)?.status, 429);
+  assert.equal(enforceInvestmentApiRateLimit(request("192.0.2.4"), "amcs", limiter)?.status, 429);
 });
 
 test("refused requests get an uncached Thai 429 with Retry-After", async () => {
