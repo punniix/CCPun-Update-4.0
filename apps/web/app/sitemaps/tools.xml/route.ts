@@ -9,6 +9,8 @@ export function GET() {
       { loc: "https://ccpun.com/tools/" },
       { loc: "https://ccpun.com/ci-planning/" },
       { loc: "https://ccpun.com/tools/financial-health-check/" },
+      // Owner-approved 2026-10-25: ships with v5 only; canonical and indexability are unchanged.
+      { loc: "https://ccpun.com/play/money-story/" },
     ]),
   );
 }

@@ -306,6 +306,11 @@ test("T1: /tools/ is an indexable hub with canonical, sitemap entry, nav, footer
   assert.doesNotMatch(hub, /ฟรี|ดีที่สุด|การันตี|…/);
   assert.ok(!hub.split("\n").filter((line) => /[\u0E00-\u0E7F]/.test(line)).some((line) => line.includes("...")), "no ellipsis in Thai copy");
   assert.match(read("apps/web/app/sitemaps/tools.xml/route.ts"), /\{ loc: "https:\/\/ccpun\.com\/tools\/" \}/);
+  // Owner-approved 2026-10-25 (v5 only): Money Story is listed at its unchanged canonical, still indexable outside review lanes.
+  assert.match(read("apps/web/app/sitemaps/tools.xml/route.ts"), /\{ loc: "https:\/\/ccpun\.com\/play\/money-story\/" \}/);
+  const moneyStory = read("features/money-story/page.tsx");
+  assert.match(moneyStory, /alternates: \{ canonical: 'https:\/\/ccpun\.com\/play\/money-story\/' \}/);
+  assert.match(moneyStory, /: \{ index: true, follow: true \}/);
   assert.match(read("components/layout/v5/constants.ts"), /V5_TOOLS_HUB = \{ href: "\/tools\/", label: "เครื่องมือทั้งหมด" \}/);
   for (const file of ["components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx", "features/home/v5/V5Home.tsx"]) assert.match(read(file), /V5_TOOLS_HUB\.href/, file);
 });

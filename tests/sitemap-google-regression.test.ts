@@ -150,7 +150,8 @@ test("preserves static sitemap XML responses for legacy and canonical Web routes
     ["sitemap.xml/route", ["https://ccpun.com/sitemaps/core.xml", "https://ccpun.com/sitemaps/tools.xml", "https://ccpun.com/sitemaps/blog.xml"]],
     ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/"]],
     // Owner-approved 2026-10-25: the /tools/ hub joins the tools sitemap ahead of its tool owners.
-    ["sitemaps/tools.xml/route", ["https://ccpun.com/tools/", "https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/"]],
+    // Owner-approved 2026-10-25 (v5 only): Money Story joins the tools sitemap at its existing canonical.
+    ["sitemaps/tools.xml/route", ["https://ccpun.com/tools/", "https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/", "https://ccpun.com/play/money-story/"]],
   ] as const;
   const legacyIndex = await import("../app/sitemap.xml/route");
   const webIndex = await import("../apps/web/app/sitemap.xml/route");
