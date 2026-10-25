@@ -9,7 +9,8 @@ import { runInNewContext } from "node:vm";
 import { categoryFromPolicy, matchesGeography } from "../../../features/investment-allocation/domain/catalog";
 import { normalizeLiquidity } from "../../../features/investment-allocation/domain/calculation";
 import { encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor } from "../../../features/investment-allocation/server/catalog-cursor";
-import { searchDemoFunds, UAT_SYNTHETIC_FUNDS } from "../../../features/investment-allocation/server/demo-funds";
+import { amcAllowedInScope, isAiaAmcName } from "../../../features/investment-allocation/domain/fund-scope";
+import { searchDemoFunds, syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC, UAT_SYNTHETIC_FUNDS } from "../../../features/investment-allocation/server/demo-funds";
 import { enforceInvestmentApiRateLimit, InvestmentApiRateLimiter, type InvestmentApiRoute } from "../../../features/investment-allocation/server/rate-limit";
 import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../../../lib/runtime/deployment-contract";
 
@@ -23,8 +24,19 @@ const fixture = (name: string): Json => JSON.parse(readFileSync(resolve(FIXTURES
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 const executable = (path: string) => stripTypeScriptTypes(source(path), { mode: "transform" }).replace(/^import [\s\S]*?;\n/gm, "").replace(/export /g, "");
 
-/** Fixture-backed SEC v2: answers by path and query like the real API. */
-export function fixtureSec(overrides: { fail?: (url: URL) => number | Error | null } = {}) {
+// Synthetic บลจ. เอไอเอ rows (names shaped like SEC's, values invented) for the AIA-scope tests.
+export const AIA_FIXTURE_AMC = { unique_id: "C0900", comp_name_th: "บริษัทหลักทรัพย์จัดการกองทุน เอไอเอ (ประเทศไทย) จำกัด", comp_name_en: "AIA Investment Management (Thailand) Limited", last_upd_date: "2026-09-02" };
+const aiaProfile = (projectId: string, abbreviation: string, policy: string) => ({
+  proj_id: projectId, proj_abbr_name: abbreviation, proj_name_th: `กองทุนเปิด ${abbreviation} (fixture)`, proj_name_en: `${abbreviation} Fund`,
+  unique_id: AIA_FIXTURE_AMC.unique_id, comp_name_th: AIA_FIXTURE_AMC.comp_name_th, comp_name_en: AIA_FIXTURE_AMC.comp_name_en,
+  fund_status: "Registered", policy_desc: policy, invest_country_flag: "1", management_style: "AN",
+  feederfund_master_fund: null, feederfund_country: null, last_upd_date: "2026-09-30",
+  fund_class_name: "main", fund_class_detail: null, fund_class_description: null, fund_class_tax_incentive_type: null, fund_class_isin_code: null,
+});
+export const AIA_FIXTURE_PROFILES = [aiaProfile("M0901_2567", "AIA-FX-EQ", "ตราสารทุน"), aiaProfile("M0902_2567", "AIA-FX-FI", "ตราสารหนี้")];
+
+/** Fixture-backed SEC v2: answers by path and query like the real API. `aia` adds a synthetic บลจ. เอไอเอ. */
+export function fixtureSec(overrides: { fail?: (url: URL) => number | Error | null; aia?: boolean | "ambiguous" } = {}) {
   const calls: URL[] = [];
   const respond = (body: unknown, status = 200) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body), headers: { get: () => "application/json" } });
   const fetch = async (raw: string) => {
@@ -35,13 +47,21 @@ export function fixtureSec(overrides: { fail?: (url: URL) => number | Error | nu
     if (typeof failure === "number") return respond({ error: "upstream" }, failure);
     const p = url.searchParams;
     const path = url.pathname;
-    if (path === "/v2/fund/general-info/amcs") return respond(fixture(p.get("next_cursor") === "amc-page-2" ? "amcs-page-2.json" : "amcs-page-1.json"));
+    if (path === "/v2/fund/general-info/amcs") {
+      const page = fixture(p.get("next_cursor") === "amc-page-2" ? "amcs-page-2.json" : "amcs-page-1.json");
+      if (overrides.aia && p.get("next_cursor") === "amc-page-2") page.items.push(AIA_FIXTURE_AMC);
+      if (overrides.aia === "ambiguous" && p.get("next_cursor") === "amc-page-2") page.items.push({ ...AIA_FIXTURE_AMC, unique_id: "C0901", comp_name_th: "บลจ. เอไอเอ อีกแห่ง (fixture)" });
+      return respond(page);
+    }
     if (path === "/v2/fund/general-info/profiles") {
       const projectInfo = p.get("project_info");
       if (projectInfo && /^M\d{4}_\d{4}$/.test(projectInfo) && !p.get("fund_status")) {
+        const aiaRow = overrides.aia ? AIA_FIXTURE_PROFILES.find((row) => row.proj_id === projectInfo) : undefined;
+        if (aiaRow) return respond({ items: [aiaRow], next_cursor: null });
         try { return respond(fixture(`profiles-detail-${projectInfo}.json`)); } catch { return respond({ items: [], next_cursor: null }); }
       }
       const page = fixture(p.get("fund_status") === "IPO" ? "profiles-ipo.json" : "profiles-registered.json");
+      if (overrides.aia && p.get("fund_status") !== "IPO") page.items.splice(1, 0, ...AIA_FIXTURE_PROFILES);
       const text = projectInfo?.toLowerCase();
       page.items = page.items.filter((row: Json) =>
         (!text || `${row.proj_id} ${row.proj_abbr_name} ${row.proj_name_th}`.toLowerCase().includes(text))
@@ -61,9 +81,10 @@ export function adapter(sec: ReturnType<typeof fixtureSec>, options: { key?: str
   const now = options.now;
   // Controllable clock for budget tests; everything else behaves like Date.
   class ClockDate extends Date { static now() { return now ? now() : Date.now(); } }
-  return runInNewContext(`${executable("features/investment-allocation/server/sec-v2.ts")}\n({ listFundAmcs, listFundCatalog, getFundDetail, searchPlanningFunds });`, {
+  return runInNewContext(`${executable("features/investment-allocation/server/sec-v2.ts")}\n({ listFundAmcs, listFundCatalog, getFundDetail, searchPlanningFunds, getAiaAmcId });`, {
     Date: now ? ClockDate : Date, Buffer, URL, URLSearchParams, AbortSignal, Error, createHash,
     categoryFromPolicy, matchesGeography, normalizeLiquidity,
+    amcAllowedInScope, isAiaAmcName, syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC,
     encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor,
     deploymentContractFailures, getDeploymentLaneByEnvironment,
     IS_REVIEW_ENVIRONMENT: review, UAT_SYNTHETIC_FUNDS, searchDemoFunds,

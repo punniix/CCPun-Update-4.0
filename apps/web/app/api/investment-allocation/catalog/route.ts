@@ -23,6 +23,10 @@ export async function GET(request: Request) {
   const amcId = url.searchParams.get("amc")?.trim() || null;
   const cursor = url.searchParams.get("cursor");
   const limitRaw = Number(url.searchParams.get("limit") ?? "20");
+  // Tool scope (owner request 2026-10-26): absent = main tool, "aia" = บลจ. เอไอเอ tool.
+  const scopeRaw = url.searchParams.get("scope");
+  if (scopeRaw !== null && scopeRaw !== "main" && scopeRaw !== "aia") return Response.json({ error: "scope_invalid" }, { status: 400, headers: NO_STORE });
+  const scope = scopeRaw === "aia" ? "aia" : "main";
 
   if (query.length > 120) return Response.json({ error: "query_too_long" }, { status: 400, headers: NO_STORE });
   if (!CATEGORIES.has(categoryRaw as FundCatalogCategory | "all")) return Response.json({ error: "category_invalid" }, { status: 400, headers: NO_STORE });
@@ -39,6 +43,7 @@ export async function GET(request: Request) {
     amcId,
     cursor,
     limit: Number.isFinite(limitRaw) ? limitRaw : 20,
+    scope,
   });
 
   return Response.json(result, {

@@ -17,6 +17,8 @@ import {
 } from "../features/investment-allocation/domain/catalog";
 import type { FundCatalogItem } from "../features/investment-allocation/domain/types";
 import { encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor } from "../features/investment-allocation/server/catalog-cursor";
+import { amcAllowedInScope, isAiaAmcName } from "../features/investment-allocation/domain/fund-scope";
+import { syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC } from "../features/investment-allocation/server/demo-funds";
 import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../lib/runtime/deployment-contract";
 
 function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error; env?: Record<string, string | undefined>; response?: (url: URL) => Response } = {}) {
@@ -31,6 +33,7 @@ function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null
     Date, Buffer, URL, URLSearchParams, AbortSignal, Error, createHash, categoryFromPolicy, matchesGeography,
     encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor,
     deploymentContractFailures, getDeploymentLaneByEnvironment,
+    amcAllowedInScope, isAiaAmcName, syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC,
     console: { warn: (...args: unknown[]) => warnings.push(args) },
     IS_REVIEW_ENVIRONMENT: options.review ?? false, UAT_SYNTHETIC_FUNDS: [], searchDemoFunds: () => [],
     normalizeLiquidity: () => "unknown",

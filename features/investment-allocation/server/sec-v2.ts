@@ -5,6 +5,7 @@ import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "@/lib/runtime/deployment-contract";
 import { normalizeLiquidity } from "../domain/calculation";
 import { categoryFromPolicy, matchesGeography } from "../domain/catalog";
+import { amcAllowedInScope, isAiaAmcName, type FundScope } from "../domain/fund-scope";
 import type {
   FundAmcOption,
   FundAmcResponse,
@@ -21,7 +22,7 @@ import type {
   FundSpecificationFact,
   PlanningFund,
 } from "../domain/types";
-import { searchDemoFunds, UAT_SYNTHETIC_FUNDS } from "./demo-funds";
+import { searchDemoFunds, syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC, UAT_SYNTHETIC_FUNDS } from "./demo-funds";
 import { encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor } from "./catalog-cursor";
 
 const SEC_BASE_URL = "https://api.sec.or.th";
@@ -36,6 +37,10 @@ const ACTIVE_STATUSES = ["Registered", "IPO"] as const;
 // Wall-clock budget for one multi-page request (each upstream call also has its own
 // 10 s timeout). Catalog returns what it has plus a resume cursor; AMCs fail soft.
 const MULTI_PAGE_BUDGET_MS = 20_000;
+// The resolved AIA AMC id is kept per server process; the AMC pages behind it are
+// already cached for 24 h by secGet. Only a successful, unambiguous match is kept.
+const AIA_AMC_ID_TTL_MS = 6 * 60 * 60 * 1000;
+const AIA_UNRESOLVED_MESSAGE = "ยังระบุ บลจ. เอไอเอ จากข้อมูล ก.ล.ต. ไม่ได้ชั่วคราว";
 
 type SecEnvelope = {
   message?: unknown;
@@ -273,7 +278,54 @@ async function secGet(path: string, key: string, revalidate = SEC_REVALIDATE_SEC
   }
 }
 
-export async function listFundAmcs(): Promise<FundAmcResponse> {
+// Every AMC SEC lists (deduplicated, Thai-sorted). Throws on any upstream failure so a
+// partial list is never presented as complete.
+async function loadSecAmcs(key: string): Promise<FundAmcOption[]> {
+  const items: FundAmcOption[] = [];
+  const seen = new Set<string>();
+  let cursor = "";
+  const startedAt = Date.now();
+  for (let page = 0; page < 20; page += 1) {
+    if (page > 0 && Date.now() - startedAt > MULTI_PAGE_BUDGET_MS) throw new Error("sec_budget_exceeded");
+    const params = new URLSearchParams({ page_size: String(SEC_PAGE_SIZE) });
+    if (cursor) params.set("next_cursor", cursor);
+    const envelope = await secGet(`/v2/fund/general-info/amcs?${params.toString()}`, key, 60 * 60 * 24);
+    for (const raw of asItems(envelope)) {
+      const amc = normalizeAmc(raw);
+      if (!amc || seen.has(amc.id)) continue;
+      seen.add(amc.id);
+      items.push(amc);
+    }
+    cursor = asString(envelope.next_cursor) ?? "";
+    if (!cursor) break;
+  }
+  items.sort((a, b) => a.nameTh.localeCompare(b.nameTh, "th"));
+  return items;
+}
+
+let aiaAmcIdMemo: { id: string; at: number } | null = null;
+
+/**
+ * SEC unique_id of บลจ. เอไอเอ, resolved at runtime from /v2/fund/general-info/amcs by
+ * name (isAiaAmcName), never hard-coded. Returns null when SEC is unavailable or the
+ * match is missing or ambiguous, so the AIA tool fails closed instead of guessing.
+ * UAT/demo mode without a SEC key returns the synthetic AIA AMC id.
+ */
+export async function getAiaAmcId(): Promise<string | null> {
+  const key = getSubscriptionKey();
+  if (!key) return isReviewLikeEnvironment() ? UAT_SYNTHETIC_AIA_AMC.id : null;
+  if (aiaAmcIdMemo && Date.now() - aiaAmcIdMemo.at < AIA_AMC_ID_TTL_MS) return aiaAmcIdMemo.id;
+  try {
+    const matches = (await loadSecAmcs(key)).filter((amc) => isAiaAmcName(amc.nameTh, amc.nameEn));
+    if (matches.length !== 1) return null;
+    aiaAmcIdMemo = { id: matches[0].id, at: Date.now() };
+    return matches[0].id;
+  } catch {
+    return null;
+  }
+}
+
+export async function listFundAmcs(scope: FundScope = "main"): Promise<FundAmcResponse> {
   const fetchedAt = new Date().toISOString();
   const key = getSubscriptionKey();
 
@@ -281,35 +333,21 @@ export async function listFundAmcs(): Promise<FundAmcResponse> {
     if (!isReviewLikeEnvironment()) {
       return { source: "unavailable", state: "unavailable", items: [], fetchedAt, message: "รายชื่อ บลจ. ยังไม่พร้อมใช้งาน" };
     }
+    const synthetic: FundAmcOption[] = [
+      { id: "UAT-AMC", nameTh: "บลจ. ตัวอย่าง", nameEn: null, lastUpdated: null },
+      { id: UAT_SYNTHETIC_AIA_AMC.id, nameTh: UAT_SYNTHETIC_AIA_AMC.nameTh, nameEn: UAT_SYNTHETIC_AIA_AMC.nameEn, lastUpdated: null },
+    ];
     return {
       source: "uat_synthetic",
       state: "demo",
-      items: [{ id: "UAT-AMC", nameTh: "บลจ. ตัวอย่าง", nameEn: null, lastUpdated: null }],
+      items: synthetic.filter((amc) => amcAllowedInScope(scope, amc.nameTh, amc.nameEn)),
       fetchedAt,
       message: "ใช้รายชื่อจำลองชั่วคราว",
     };
   }
 
   try {
-    const items: FundAmcOption[] = [];
-    const seen = new Set<string>();
-    let cursor = "";
-    const startedAt = Date.now();
-    for (let page = 0; page < 20; page += 1) {
-      if (page > 0 && Date.now() - startedAt > MULTI_PAGE_BUDGET_MS) throw new Error("sec_budget_exceeded");
-      const params = new URLSearchParams({ page_size: String(SEC_PAGE_SIZE) });
-      if (cursor) params.set("next_cursor", cursor);
-      const envelope = await secGet(`/v2/fund/general-info/amcs?${params.toString()}`, key, 60 * 60 * 24);
-      for (const raw of asItems(envelope)) {
-        const amc = normalizeAmc(raw);
-        if (!amc || seen.has(amc.id)) continue;
-        seen.add(amc.id);
-        items.push(amc);
-      }
-      cursor = asString(envelope.next_cursor) ?? "";
-      if (!cursor) break;
-    }
-    items.sort((a, b) => a.nameTh.localeCompare(b.nameTh, "th"));
+    const items = (await loadSecAmcs(key)).filter((amc) => amcAllowedInScope(scope, amc.nameTh, amc.nameEn));
     return { source: "sec_v2", state: "fresh", items, fetchedAt, message: null };
   } catch {
     return { source: "unavailable", state: "unavailable", items: [], fetchedAt, message: "โหลดรายชื่อ บลจ. ไม่สำเร็จชั่วคราว" };
@@ -325,11 +363,12 @@ function demoCatalogItems(): FundCatalogItem[] {
         : fund.constructionBucket === "fixed_income" || fund.constructionBucket === "money_market"
           ? "fixed_income"
           : "other";
+    const amc = syntheticAmcFor(fund.projectId);
     return {
       projectId: fund.projectId,
-      amcId: "UAT-AMC",
-      amcNameTh: "UAT Asset Management (ข้อมูลสังเคราะห์)",
-      amcNameEn: null,
+      amcId: amc.id,
+      amcNameTh: amc.nameTh,
+      amcNameEn: amc.nameEn,
       nameTh: fund.name,
       nameEn: null,
       abbreviation: fund.shortName,
@@ -352,12 +391,14 @@ export async function listFundCatalog(options: {
   amcId?: string | null;
   cursor?: string | null;
   limit?: number;
+  scope?: FundScope;
 }): Promise<FundCatalogResponse> {
   const fetchedAt = new Date().toISOString();
   const query = options.query?.trim().slice(0, 120) ?? "";
   const category = options.category ?? "all";
   const subcategory = options.subcategory ?? "all";
-  const amcId = options.amcId?.trim() || null;
+  const scope = options.scope ?? "main";
+  let amcId = options.amcId?.trim() || null;
   const limit = Math.min(40, Math.max(8, options.limit ?? CATALOG_PAGE_SIZE));
   const key = getSubscriptionKey();
 
@@ -371,9 +412,18 @@ export async function listFundCatalog(options: {
       if (category !== "all" && item.category !== category) return false;
       if (!matchesGeography(item, subcategory)) return false;
       if (amcId && item.amcId !== amcId) return false;
-      return true;
+      return amcAllowedInScope(scope, item.amcNameTh, item.amcNameEn);
     }).slice(0, limit);
     return { source: "uat_synthetic", state: "demo", items, nextCursor: null, hasMore: false, query, category, subcategory, amcId, fetchedAt, message: "กำลังใช้ข้อมูลตัวอย่างชั่วคราว" };
+  }
+
+  if (scope === "aia") {
+    // The AIA tool is locked to one AMC: the resolved SEC id replaces any client value.
+    const aiaAmcId = await getAiaAmcId();
+    if (!aiaAmcId) {
+      return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, amcId: null, fetchedAt, message: AIA_UNRESOLVED_MESSAGE };
+    }
+    amcId = aiaAmcId;
   }
 
   try {
@@ -409,6 +459,8 @@ export async function listFundCatalog(options: {
         if (!item) continue;
         if (skipProjectId && item.projectId === skipProjectId) continue;
         if (seen.has(item.projectId)) continue;
+        // Scope by the AMC names on each SEC row (main excludes บลจ. เอไอเอ; aia keeps only it).
+        if (!amcAllowedInScope(scope, item.amcNameTh, item.amcNameEn)) continue;
         if (category !== "all" && item.category !== category) continue;
         if (!matchesGeography(item, subcategory)) continue;
         seen.add(item.projectId);
@@ -492,12 +544,19 @@ function latestDate(values: Array<string | null | undefined>): string | null {
   return dates.length ? dates.sort((a, b) => b.localeCompare(a))[0] : null;
 }
 
-export async function getFundDetail(projectId: string, requestedClassName?: string | null): Promise<FundDetailResponse> {
+function outOfScopeDetail(scope: FundScope, fetchedAt: string): FundDetailResponse {
+  const warning = scope === "aia" ? "เครื่องมือนี้แสดงเฉพาะกองทุนของ บลจ. เอไอเอ" : "กองทุนนี้ดูได้ในเครื่องมือกองทุน บลจ. เอไอเอ";
+  return { source: "unavailable", state: "unavailable", fund: null, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt, warnings: [warning], endpointStates: {} };
+}
+
+export async function getFundDetail(projectId: string, requestedClassName?: string | null, scope: FundScope = "main"): Promise<FundDetailResponse> {
   const fetchedAt = new Date().toISOString();
   // Synthetic detail is confined to explicit Web UAT lanes, never a live-data fallback.
   if (IS_REVIEW_ENVIRONMENT && ["web-uat", "local-uat"].includes(process.env.CCPUN_APP_ENV ?? "")) {
     const demo = UAT_SYNTHETIC_FUNDS.find((fund) => fund.projectId === projectId);
     if (demo) {
+      const amc = syntheticAmcFor(demo.projectId);
+      if (!amcAllowedInScope(scope, amc.nameTh, amc.nameEn)) return outOfScopeDetail(scope, fetchedAt);
       const className = demo.className;
       const selectedClassName = !requestedClassName || requestedClassName === className ? className : null;
       return {
@@ -533,6 +592,8 @@ export async function getFundDetail(projectId: string, requestedClassName?: stri
     .filter((row): row is Record<string, unknown> => Boolean(row) && asString(row!.proj_id) === projectId);
   const activeProfiles = profileRows.filter((row) => row.fund_status === "Registered" || row.fund_status === "IPO");
   const fund = normalizeCatalogItem(activeProfiles[0] ?? profileRows[0]);
+  // Each tool shows details only for funds in its own AMC scope.
+  if (fund && !amcAllowedInScope(scope, fund.amcNameTh, fund.amcNameEn)) return outOfScopeDetail(scope, fetchedAt);
   const classes = activeProfiles.map(normalizeClass).filter((row): row is FundClassOption => Boolean(row));
   const classNames = new Set(classes.map((row) => row.name));
   const requested = requestedClassName?.trim() || null;
@@ -654,7 +715,7 @@ function profileToPlanningFund(profile: FundCatalogItem, risk: { level: number |
   };
 }
 
-export async function searchPlanningFunds(query: string): Promise<FundSearchResponse> {
+export async function searchPlanningFunds(query: string, scope: FundScope = "main"): Promise<FundSearchResponse> {
   const normalizedQuery = query.trim().slice(0, 120);
   const fetchedAt = new Date().toISOString();
   const key = getSubscriptionKey();
@@ -662,10 +723,10 @@ export async function searchPlanningFunds(query: string): Promise<FundSearchResp
 
   if (!key) {
     if (!isReviewLikeEnvironment()) return { mode: "sec_live", state: "unavailable", query: normalizedQuery, funds: [], message: "บริการค้นหาข้อมูลกองทุนยังไม่พร้อมใช้งาน", fetchedAt };
-    return { mode: "uat_demo", state: "demo", query: normalizedQuery, funds: searchDemoFunds(normalizedQuery), message: "กำลังใช้ข้อมูลตัวอย่างชั่วคราว", fetchedAt };
+    return { mode: "uat_demo", state: "demo", query: normalizedQuery, funds: searchDemoFunds(normalizedQuery, scope), message: "กำลังใช้ข้อมูลตัวอย่างชั่วคราว", fetchedAt };
   }
 
-  const catalog = await listFundCatalog({ query: normalizedQuery, limit: 8 });
+  const catalog = await listFundCatalog({ query: normalizedQuery, limit: 8, scope });
   if (catalog.source !== "sec_v2") return { mode: "sec_live", state: "unavailable", query: normalizedQuery, funds: [], message: catalog.message, fetchedAt };
   const funds = await Promise.all(catalog.items.map(async (profile) => {
     try { return profileToPlanningFund(profile, await loadLatestRisk(profile.projectId, key), fetchedAt); }

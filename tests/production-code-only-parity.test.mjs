@@ -150,10 +150,11 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   }
   // Owner-approved v5 port (2026-10-24): the tool may exist only behind the server
   // availability flag (OFF in Production unless CCPUN_INVESTMENT_ALLOCATION_ENABLED=1).
-  for (const file of ['apps/web/app/api/investment-allocation/amcs/route.ts', 'apps/web/app/api/investment-allocation/catalog/route.ts', 'apps/web/app/api/investment-allocation/detail/route.ts', 'apps/web/app/api/investment-allocation/funds/route.ts', 'features/investment-allocation/page.tsx']) {
+  for (const file of ['apps/web/app/api/investment-allocation/amcs/route.ts', 'apps/web/app/api/investment-allocation/catalog/route.ts', 'apps/web/app/api/investment-allocation/detail/route.ts', 'apps/web/app/api/investment-allocation/funds/route.ts', 'features/investment-allocation/page.tsx', 'features/investment-allocation/aia-page.tsx']) {
     assert.match(read(file), /if \(!INVESTMENT_ALLOCATION_ENABLED\) (?:notFound\(\);|\{)/, file + ': tool must stay closed unless the availability flag allows it');
   }
   assert.equal(read('apps/web/app/tools/investment-allocation/page.tsx').trim(), 'export { metadata, default } from "@/features/investment-allocation/page";');
+  assert.equal(read('apps/web/app/tools/aia-fund-allocation/page.tsx').trim(), 'export { metadata, default } from "@/features/investment-allocation/aia-page";');
 });
 
 test('reviewed LINE and Google route admissions reject unrelated changes, unknown owners and duplicate guards', () => {

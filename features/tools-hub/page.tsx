@@ -8,7 +8,7 @@ import shell from "@/components/layout/v5/V5.module.css";
 import Link from "next/link";
 import { V5Breadcrumbs, v5Label } from "@/components/layout/v5/V5Primitives";
 import { V5ToolHero } from "@/components/layout/v5/V5ToolParts";
-import { V5_INVESTMENT_TOOL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
+import { V5_AIA_FUND_TOOL, V5_INVESTMENT_TOOL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import styles from "./ToolsHub.module.css";
 
 // Owner-approved new indexable URL (2026-10-25, T1): one hub for the existing tool owners. Each
@@ -40,6 +40,12 @@ export async function renderToolsHubPage() {
       href: V5_INVESTMENT_TOOL.href,
       title: "วางแผนกองทุน",
       body: "เลือกกองทุนเอง แล้วดูว่าเงินอยู่ในอะไร ความเสี่ยงระดับไหน และขายคืนได้แบบไหน จากข้อมูล ก.ล.ต.",
+      action: v5Label(home("home.toolCtaAction2")),
+    }, {
+      // บลจ. เอไอเอ fund tool (owner request 2026-10-26): same flag as the main tool, same card style.
+      href: V5_AIA_FUND_TOOL.href,
+      title: V5_AIA_FUND_TOOL.label,
+      body: "เลือกกองทุนรวมของ บลจ. เอไอเอ เอง แล้วดูว่าเงินอยู่ในอะไร ความเสี่ยงระดับไหน และขายคืนได้แบบไหน จากข้อมูล ก.ล.ต.",
       action: v5Label(home("home.toolCtaAction2")),
     }] : []),
   ];

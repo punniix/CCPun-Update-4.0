@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm';
 import test from 'node:test';
 import { resolveContentEnvironment } from '../lib/content/sanity-lane.ts';
 import { parseCatalogCursor } from '../features/investment-allocation/server/catalog-cursor.ts';
+import { amcAllowedInScope } from '../features/investment-allocation/domain/fund-scope.ts';
 
 const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const flagSource = stripTypeScriptTypes(source('lib/runtime/investment-availability.ts'))
@@ -133,7 +134,8 @@ test('actual synthetic detail mapping preserves fixture facts and cannot call SE
   const calculation = source('features/investment-allocation/domain/calculation.ts');
   const liquidity = calculation.slice(calculation.indexOf('export function normalizeLiquidity'), calculation.indexOf('export function constructionCoverageMatches'));
   const normalizeLiquidity = runInNewContext(`${stripTypeScriptTypes(liquidity).replace('export ', '')}\nnormalizeLiquidity;`);
-  const demos = runInNewContext(`${stripTypeScriptTypes(source('features/investment-allocation/server/demo-funds.ts')).replace(/^import .*;\n/gm, '').replace(/export /g, '')}\nUAT_SYNTHETIC_FUNDS;`, { normalizeLiquidity });
+  const demoModule = runInNewContext(`${stripTypeScriptTypes(source('features/investment-allocation/server/demo-funds.ts')).replace(/^import .*;\n/gm, '').replace(/export /g, '')}\n({ UAT_SYNTHETIC_FUNDS, syntheticAmcFor });`, { normalizeLiquidity, amcAllowedInScope, Set });
+  const demos = demoModule.UAT_SYNTHETIC_FUNDS;
   const adapter = source('features/investment-allocation/server/sec-v2.ts');
   const catalog = adapter.slice(adapter.indexOf('function demoCatalogItems'), adapter.indexOf('export async function listFundCatalog'));
   const detail = adapter.slice(adapter.indexOf('export async function getFundDetail'), adapter.indexOf('async function loadLatestRisk'));
@@ -141,7 +143,7 @@ test('actual synthetic detail mapping preserves fixture facts and cannot call SE
     let calls = 0;
     const getDetail = runInNewContext(`${stripTypeScriptTypes(catalog + detail).replace(/export /g, '')}\ngetFundDetail;`, {
       Date, IS_REVIEW_ENVIRONMENT: true, process: { env: { CCPUN_APP_ENV: environment } }, UAT_SYNTHETIC_FUNDS: demos,
-      getSubscriptionKey: () => null,
+      getSubscriptionKey: () => null, syntheticAmcFor: demoModule.syntheticAmcFor, amcAllowedInScope,
       settledEnvelope: () => { calls++; throw new Error('SEC must not be called'); },
     });
     const result = await getDetail('UAT-MIXED-01');

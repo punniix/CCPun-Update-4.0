@@ -247,6 +247,45 @@ test("Phase B + D9: Investment Allocation stays gated and noindex; the v5 nav li
   }
 });
 
+test("AIA fund tool (2026-10-26): same gate, robots, sitemap status and engine as the main tool, locked to บลจ. เอไอเอ", () => {
+  const main = read("features/investment-allocation/page.tsx");
+  const aia = read("features/investment-allocation/aia-page.tsx");
+  assert.equal(read("apps/web/app/tools/aia-fund-allocation/page.tsx").trim(), 'export { metadata, default } from "@/features/investment-allocation/aia-page";');
+  assert.match(read("components/layout/v5/constants.ts"), /V5_AIA_FUND_TOOL = \{ href: "\/tools\/aia-fund-allocation\/"/);
+  // Gate and robots mirror the main tool exactly (noindex on UAT or while the flag is off).
+  const robots = /robots: !INVESTMENT_ALLOCATION_ENABLED \|\| IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \} : \{ index: true, follow: true \},/;
+  for (const page of [main, aia]) {
+    assert.match(page, /if \(!INVESTMENT_ALLOCATION_ENABLED\) notFound\(\);/);
+    assert.match(page, robots);
+  }
+  assert.match(aia, /const URL = "https:\/\/ccpun\.com\/tools\/aia-fund-allocation\/";/);
+  assert.match(aia, /alternates: \{ canonical: URL,/);
+  assert.match(aia, /<V5Page current=\{V5_AIA_FUND_TOOL\.href\}>/);
+  assert.match(aia, /"@type": "BreadcrumbList"/);
+  assert.match(aia, /<V5Breadcrumbs label="เส้นทางของหน้า" items=\{\[\{ href: "\/", label: "หน้าแรก" \}, \{ href: V5_TOOLS_HUB\.href, label: V5_TOOLS_HUB\.label \}, \{ label: V5_AIA_FUND_TOOL\.label \}\]\} \/>/);
+  assert.match(aia, /<InvestmentAllocationTool scope="aia" \/>/, "same engine, AIA scope");
+  assert.match(main, /<InvestmentAllocationTool \/>/, "main tool keeps the default scope");
+  assert.doesNotMatch(aia, /ฟรี|รับประกัน(?!ผลตอบแทนหรือเงินต้น)|ดีที่สุด|อันดับ ?1/, "no free/guarantee/superlative copy");
+  assert.match(aia, /กองทุนรวมที่บริหารโดย บลจ\. เอไอเอ/);
+  assert.match(aia, /เป็นไปตามเอกสารกรมธรรม์ของบริษัทประกัน/);
+  // Static text LCP: the hero has no image.
+  assert.doesNotMatch(aia, /<(?:img|Image|video)\b/);
+  // Internal links: main -> AIA behind the exclusion constant, AIA -> main, hub card behind the flag.
+  assert.match(main, /\{EXCLUDE_AIA_FROM_MAIN_TOOL \? \(\n\s+<p className=\{shell\.lead\}>กองทุนของ บลจ\. เอไอเอ แยกไว้อีกเครื่องมือหนึ่ง <Link className=\{shell\.textLink\} href=\{V5_AIA_FUND_TOOL\.href\}>ดูเครื่องมือกองทุน บลจ\. เอไอเอ<\/Link><\/p>/);
+  assert.match(aia, /href=\{V5_INVESTMENT_TOOL\.href\}/);
+  const hub = read("features/tools-hub/page.tsx");
+  assert.match(hub, /\.\.\.\(INVESTMENT_ALLOCATION_ENABLED \? \[\{[\s\S]*href: V5_INVESTMENT_TOOL\.href,[\s\S]*href: V5_AIA_FUND_TOOL\.href,[\s\S]*\}\] : \[\]\),/);
+  // Sitemap membership matches the main tool: neither is listed in any sitemap; neither is in the header menu.
+  for (const file of ["apps/web/app/sitemap.xml/route.ts", "apps/web/app/sitemaps/core.xml/route.ts", "apps/web/app/sitemaps/tools.xml/route.ts", "apps/web/app/sitemaps/blog.xml/route.ts", "apps/web/app/sitemaps/ai-search.xml/route.ts"]) {
+    const sitemap = read(file);
+    assert.equal(/investment-allocation/.test(sitemap), /aia-fund-allocation|V5_AIA_FUND_TOOL/.test(sitemap), `${file}: AIA tool sitemap status mirrors the main tool`);
+    assert.doesNotMatch(sitemap, /aia-fund-allocation|V5_AIA_FUND_TOOL/, file);
+  }
+  for (const file of ["components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx", "features/home/v5/V5Home.tsx"]) {
+    assert.doesNotMatch(read(file), /aia-fund-allocation|V5_AIA_FUND_TOOL/, `${file}: not in menus`);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Owner-approved 2026-10-25: D1 glass, D2 theme, D3 bottom bar, D4 blog de-duplication, T1 /tools/ hub.
 // ---------------------------------------------------------------------------
@@ -388,6 +427,7 @@ const v5PageSources = [
   "features/legal/v5/V5CookiePolicy.tsx",
   "features/tools-hub/page.tsx",
   "features/investment-allocation/page.tsx",
+  "features/investment-allocation/aia-page.tsx",
   "features/investment-allocation/InvestmentAllocationTool.tsx",
   "features/investment-allocation/PortfolioBuilder.tsx",
   "features/investment-allocation/SingleFundBuilder.tsx",

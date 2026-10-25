@@ -20,6 +20,7 @@ import type {
 import { createPlanId, parseInvestmentAmount } from "./domain/calculation";
 import styles from "./InvestmentAllocation.module.css";
 import { INVESTMENT_RISK_STATEMENT, requestFailureMessage } from "./domain/copy";
+import { type FundScope, withFundScope } from "./domain/fund-scope";
 
 const CATEGORIES: FundCatalogCategory[] = ["equity", "mixed", "fixed_income", "alternative", "other"];
 
@@ -44,7 +45,9 @@ function rawAllocationTotal(detail: FundDetailResponse | null): number {
   return Math.round(detail.assetAllocation.reduce((sum, row) => sum + row.percentNav, 0) * 100) / 100;
 }
 
-export default function SingleFundBuilder() {
+export default function SingleFundBuilder({ scope = "main" }: { scope?: FundScope }) {
+  // The AIA tool is locked to บลจ. เอไอเอ on the server, so it has no AMC picker.
+  const amcPicker = scope === "main";
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [category, setCategory] = useState<FundCatalogCategory | "all" | null>(null);
   const [subcategory, setSubcategory] = useState<FundCatalogSubcategory>("all");
@@ -69,12 +72,12 @@ export default function SingleFundBuilder() {
   const amount = parseInvestmentAmount(investmentAmount);
   const options = useMemo(() => category ? subcategoryOptions(category) : ["all"] as FundCatalogSubcategory[], [category]);
   const allocationTotal = rawAllocationTotal(detail);
-  const selectedAmcName = amcId === "all" ? "ทุก บลจ." : amcs?.items.find((item) => item.id === amcId)?.nameTh ?? "บลจ. ที่เลือก";
+  const selectedAmcName = !amcPicker ? "บลจ. เอไอเอ" : amcId === "all" ? "ทุก บลจ." : amcs?.items.find((item) => item.id === amcId)?.nameTh ?? "บลจ. ที่เลือก";
   const amcStep = options.length > 1 ? 3 : 2;
-  const fundStep = options.length > 1 ? 4 : 3;
+  const fundStep = (options.length > 1 ? 4 : 3) - (amcPicker ? 0 : 1);
 
   async function loadAmcs() {
-    if (amcs || amcsLoading) return;
+    if (!amcPicker || amcs || amcsLoading) return;
     setAmcsLoading(true);
     try {
       const response = await fetch("/api/investment-allocation/amcs/", { headers: { Accept: "application/json" } });
@@ -112,7 +115,7 @@ export default function SingleFundBuilder() {
       setCatalog(null);
     }
     try {
-      const params = new URLSearchParams({ category: filters.category, subcategory: filters.subcategory, limit: "20" });
+      const params = withFundScope(new URLSearchParams({ category: filters.category, subcategory: filters.subcategory, limit: "20" }), scope);
       if (filters.query) params.set("q", filters.query);
       if (filters.amcId !== "all") params.set("amc", filters.amcId);
       if (filters.cursor) params.set("cursor", filters.cursor);
@@ -179,7 +182,7 @@ export default function SingleFundBuilder() {
     setSaveStatus(null);
     setPlanId(null);
     try {
-      const params = new URLSearchParams({ proj_id: fund.projectId });
+      const params = withFundScope(new URLSearchParams({ proj_id: fund.projectId }), scope);
       if (className) params.set("class_name", className);
       const response = await fetch(`/api/investment-allocation/detail/?${params.toString()}`, { headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`detail_${response.status}`);
@@ -276,7 +279,7 @@ export default function SingleFundBuilder() {
           <div className={styles.stepHeader}>
             <div>
               <h2>เลือกกองเอง แล้วดูว่าเงินถูกนำไปลงทุนอย่างไร</h2>
-              <p>ไม่ต้องจัดพอร์ตหลายกองก่อน เลือกประเภทที่สนใจ กรองตาม บลจ. ได้ แล้วค่อยเลือกกองทุนที่คุณต้องการดู</p>
+              <p>{amcPicker ? "ไม่ต้องจัดพอร์ตหลายกองก่อน เลือกประเภทที่สนใจ กรองตาม บลจ. ได้ แล้วค่อยเลือกกองทุนที่คุณต้องการดู" : "ไม่ต้องจัดพอร์ตหลายกองก่อน เลือกประเภทที่สนใจ แล้วค่อยเลือกกองทุนของ บลจ. เอไอเอ ที่คุณต้องการดู"}</p>
             </div>
             <span className={styles.stepPill}>ข้อมูลจาก ก.ล.ต.</span>
           </div>
@@ -322,7 +325,7 @@ export default function SingleFundBuilder() {
                 </div>
               ) : null}
 
-              <div className={styles.fieldGroup}>
+              {amcPicker ? <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel} htmlFor="fund-amc-filter">{amcStep}. เลือก บลจ. (ไม่จำเป็น)</label>
                 <select id="fund-amc-filter" className={styles.amcSelect} value={amcId} disabled={amcsLoading} onChange={(event) => chooseAmc(event.target.value)}>
                   <option value="all">ทุก บลจ.</option>
@@ -330,7 +333,7 @@ export default function SingleFundBuilder() {
                 </select>
                 <p className={styles.fieldHint}>{amcsLoading ? "กำลังโหลดรายชื่อ บลจ.…" : "ถ้าคุณมี บลจ. ที่ต้องการดูอยู่แล้ว สามารถกรองได้ทันที หรือเลือกทุก บลจ. เพื่อดูทั้งหมด"}</p>
                 {amcs?.state === "unavailable" && amcs.message ? <div className={styles.statusNotice} role="status">{amcs.message}</div> : null}
-              </div>
+              </div> : null}
 
               <div className={styles.fieldGroup}>
                 <span className={styles.fieldLabel}>{fundStep}. เลือกกองทุน</span>
@@ -370,7 +373,7 @@ export default function SingleFundBuilder() {
                 ) : null}
               </div>
             </>
-          ) : <div className={styles.statusNotice}>เลือกประเภทกองด้านบนก่อน จากนั้นคุณสามารถเลือกพื้นที่ลงทุน เลือก บลจ. หรือดูทุก บลจ. แล้วค่อยเลือกกองทุนได้</div>}
+          ) : <div className={styles.statusNotice}>{amcPicker ? "เลือกประเภทกองด้านบนก่อน จากนั้นคุณสามารถเลือกพื้นที่ลงทุน เลือก บลจ. หรือดูทุก บลจ. แล้วค่อยเลือกกองทุนได้" : "เลือกประเภทกองด้านบนก่อน จากนั้นคุณสามารถเลือกพื้นที่ลงทุน แล้วค่อยเลือกกองทุนของ บลจ. เอไอเอ ได้"}</div>}
         </div>
 
         <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label="สรุปการเลือกกองเดียว">

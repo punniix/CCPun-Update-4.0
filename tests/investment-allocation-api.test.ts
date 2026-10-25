@@ -9,7 +9,7 @@ import { RATE_LIMIT_MESSAGE } from "../features/investment-allocation/domain/cop
 import { parseCatalogCursor } from "../features/investment-allocation/server/catalog-cursor";
 import { UAT_SYNTHETIC_FUNDS } from "../features/investment-allocation/server/demo-funds";
 import { InvestmentApiRateLimiter } from "../features/investment-allocation/server/rate-limit";
-import { fixtureSec, route, type Json } from "./fixtures/investment-allocation/harness";
+import { AIA_FIXTURE_AMC, fixtureSec, route, type Json } from "./fixtures/investment-allocation/harness";
 
 // ---------- /amcs ----------
 
@@ -246,7 +246,7 @@ test("funds: missing/long query, no match and SEC outage", async () => {
   assert.equal(down.response.headers.get("Cache-Control"), "no-store");
   const uat = (await route("funds", fixtureSec(), { key: null, lane: "web-uat" })("?q=uat")).body;
   assert.equal(uat.mode, "uat_demo");
-  assert.equal(uat.funds.length, UAT_SYNTHETIC_FUNDS.length);
+  assert.equal(uat.funds.length, UAT_SYNTHETIC_FUNDS.length - 2, "the two synthetic บลจ. เอไอเอ funds stay out of the main tool");
 });
 
 // ---------- cross-cutting ----------
@@ -292,4 +292,87 @@ test("every SEC request carries the server-side key header and a timeout, never 
     assert.ok(init.signal, "each upstream call has an abort/timeout signal");
     assert.equal(init.cache, "no-store");
   }
+});
+
+// ---------- บลจ. เอไอเอ scope (owner request 2026-10-26) ----------
+
+test("AIA scope: the main tool excludes บลจ. เอไอเอ from AMCs, catalog, search and detail", async () => {
+  const sec = fixtureSec({ aia: true });
+  const amcs = (await route("amcs", sec)()).body;
+  assert.deepEqual(amcs.items.map((item: Json) => item.id), ["C0001", "C0002", "C0003"], "AIA is not in the main AMC filter");
+  const catalog = (await route("catalog", sec)("?limit=40")).body;
+  assert.deepEqual(catalog.items.map((item: Json) => item.projectId), ["M0001_2567", "M0002_2567", "M0003_2567", "M0004_2567", "M0005_2567", "M0008_2567"]);
+  const paged: string[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < 6; page += 1) {
+    const { body } = await route("catalog", sec)(`?limit=8${cursor ? `&cursor=${cursor}` : ""}`);
+    paged.push(...body.items.map((item: Json) => item.projectId));
+    cursor = body.nextCursor;
+    if (!cursor) break;
+  }
+  assert.ok(!paged.some((id) => id.startsWith("M090")), "paging never surfaces AIA rows");
+  const byAmc = (await route("catalog", sec)(`?amc=${AIA_FIXTURE_AMC.unique_id}`)).body;
+  assert.deepEqual(byAmc.items, [], "an AIA amc filter on the main tool returns nothing");
+  const search = (await route("funds", sec)("?q=AIA")).body;
+  assert.deepEqual(search.funds, []);
+  const detail = (await route("detail", sec)("?proj_id=M0901_2567")).body;
+  assert.equal(detail.source, "unavailable");
+  assert.equal(detail.fund, null);
+  assert.deepEqual(detail.warnings, ["กองทุนนี้ดูได้ในเครื่องมือกองทุน บลจ. เอไอเอ"]);
+});
+
+test("AIA scope: the AIA tool resolves the AMC id by name at runtime and shows only its funds", async () => {
+  const sec = fixtureSec({ aia: true });
+  const catalog = (await route("catalog", sec)("?scope=aia&limit=40")).body;
+  assert.equal(catalog.source, "sec_v2");
+  assert.deepEqual(catalog.items.map((item: Json) => item.projectId), ["M0901_2567", "M0902_2567"]);
+  assert.equal(catalog.amcId, AIA_FIXTURE_AMC.unique_id);
+  const profileCalls = sec.calls.filter((url) => url.pathname === "/v2/fund/general-info/profiles");
+  assert.ok(profileCalls.length > 0 && profileCalls.every((url) => url.searchParams.get("company_info") === AIA_FIXTURE_AMC.unique_id), "SEC is queried with the resolved AIA id");
+  // A client amc value cannot widen the AIA tool.
+  const forced = (await route("catalog", sec)("?scope=aia&amc=C0001&limit=40")).body;
+  assert.deepEqual(forced.items.map((item: Json) => item.projectId), ["M0901_2567", "M0902_2567"]);
+  const equity = (await route("catalog", sec)("?scope=aia&category=equity")).body;
+  assert.deepEqual(equity.items.map((item: Json) => item.projectId), ["M0901_2567"]);
+  const amcs = (await route("amcs", sec)("?scope=aia")).body;
+  assert.deepEqual(amcs.items.map((item: Json) => item.id), [AIA_FIXTURE_AMC.unique_id]);
+  const search = (await route("funds", sec)("?scope=aia&q=AIA")).body;
+  assert.deepEqual(search.funds.map((fund: Json) => fund.projectId), ["M0901_2567", "M0902_2567"]);
+  const detail = (await route("detail", sec)("?scope=aia&proj_id=M0901_2567")).body;
+  assert.equal(detail.fund.amcId, AIA_FIXTURE_AMC.unique_id);
+  const other = (await route("detail", sec)("?scope=aia&proj_id=M0001_2567&class_name=A")).body;
+  assert.equal(other.source, "unavailable");
+  assert.deepEqual(other.warnings, ["เครื่องมือนี้แสดงเฉพาะกองทุนของ บลจ. เอไอเอ"]);
+});
+
+test("AIA scope: missing, ambiguous or unavailable AMC data fails closed; scope values are validated", async () => {
+  for (const sec of [fixtureSec(), fixtureSec({ aia: "ambiguous" }), fixtureSec({ fail: (url) => url.pathname.endsWith("/amcs") ? 503 : null })]) {
+    const { body } = await route("catalog", sec)("?scope=aia");
+    assert.equal(body.source, "unavailable");
+    assert.deepEqual(body.items, []);
+    assert.equal(body.message, "ยังระบุ บลจ. เอไอเอ จากข้อมูล ก.ล.ต. ไม่ได้ชั่วคราว");
+    assert.ok(!sec.calls.some((url) => url.pathname === "/v2/fund/general-info/profiles"), "no unscoped profile scan");
+  }
+  for (const name of ["amcs", "catalog", "detail", "funds"] as const) {
+    const sec = fixtureSec();
+    const { response, body } = await route(name, sec)(`?scope=all&q=KS&proj_id=M0001_2567`);
+    assert.equal(response.status, 400, name);
+    assert.equal(body.error, "scope_invalid", name);
+    assert.equal(response.headers.get("Cache-Control"), "no-store", name);
+    assert.equal(sec.calls.length, 0, name);
+  }
+});
+
+test("AIA scope: UAT synthetic mode has a clearly synthetic AIA AMC and keeps the two catalogs apart", async () => {
+  const options = { key: null, lane: "web-uat" } as const;
+  const main = (await route("catalog", fixtureSec(), options)("?limit=40")).body;
+  const aia = (await route("catalog", fixtureSec(), options)("?scope=aia&limit=40")).body;
+  assert.equal(aia.source, "uat_synthetic");
+  assert.deepEqual(aia.items.map((item: Json) => item.projectId), ["UAT-AIA-EQUITY-01", "UAT-AIA-FIXED-01"]);
+  assert.ok(aia.items.every((item: Json) => item.amcId === "UAT-AIA-AMC" && /ข้อมูลสังเคราะห์/.test(item.amcNameTh)));
+  assert.ok(main.items.length > 0 && main.items.every((item: Json) => item.amcId === "UAT-AMC"));
+  assert.deepEqual((await route("amcs", fixtureSec(), options)("?scope=aia")).body.items.map((item: Json) => item.id), ["UAT-AIA-AMC"]);
+  assert.ok(!(await route("amcs", fixtureSec(), options)()).body.items.some((item: Json) => item.id === "UAT-AIA-AMC"));
+  assert.equal((await route("detail", fixtureSec(), options)("?scope=aia&proj_id=UAT-AIA-EQUITY-01")).body.source, "uat_synthetic");
+  assert.equal((await route("detail", fixtureSec(), options)("?proj_id=UAT-AIA-EQUITY-01")).body.source, "unavailable");
 });

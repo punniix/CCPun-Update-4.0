@@ -20,3 +20,10 @@ export const V5_TOOLS_HUB = { href: "/tools/", label: "เครื่องม�
  * but only where its server flag is on (UAT). Production keeps it out of every menu until released.
  */
 export const V5_INVESTMENT_TOOL = { href: "/tools/investment-allocation/", label: "วางแผนกองทุน" } as const;
+
+/**
+ * บลจ. เอไอเอ fund tool (owner request 2026-10-26; working slug pending owner approval).
+ * Same engine and server flag as the main tool, locked to บลจ. เอไอเอ funds. Linked from the
+ * main tool and the /tools/ hub only where the flag is on; not in the header menu or sitemaps.
+ */
+export const V5_AIA_FUND_TOOL = { href: "/tools/aia-fund-allocation/", label: "กองทุน บลจ. เอไอเอ" } as const;

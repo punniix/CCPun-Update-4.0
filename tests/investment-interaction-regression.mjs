@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm';
 import test from 'node:test';
 import { RATE_LIMIT_MESSAGE, requestFailureMessage } from '../features/investment-allocation/domain/copy.ts';
 import { parseInvestmentAmount } from '../features/investment-allocation/domain/calculation.ts';
+import { withFundScope } from '../features/investment-allocation/domain/fund-scope.ts';
 
 const source = (name) => readFileSync(new URL(`../features/investment-allocation/${name}.tsx`, import.meta.url), 'utf8');
 const single = source('SingleFundBuilder');
@@ -18,25 +19,51 @@ function functionSource(text, name) {
   return stripTypeScriptTypes(text.slice(start, end));
 }
 
-function runtime(text, name) {
+function runtime(text, name, scope = 'main') {
   const state = {};
   const pending = [];
+  const urls = [];
   const context = {
-    URLSearchParams, Date, Boolean,
+    URLSearchParams, Date, Boolean, withFundScope, scope,
     catalogRequest: { current: 0 }, detailRequest: { current: 0 },
     searchRequest: { current: 0 }, detailRequests: { current: new Map() }, selectedIds: { current: new Set() },
     requestFailureMessage, Error,
     document: { getElementById: () => null },
     window: { setTimeout: (callback) => callback(), matchMedia: () => ({ matches: true }) },
-    fetch: () => new Promise((resolve) => pending.push(resolve)),
+    fetch: (url) => { urls.push(url); return new Promise((resolve) => pending.push(resolve)); },
   };
   for (const key of ['Catalog', 'CatalogLoading', 'CatalogAppending', 'SelectedFund', 'Detail', 'DetailLoading', 'SaveStatus', 'PlanId', 'Searching', 'SearchState', 'SelectedFunds', 'SelectedDetails']) {
     context[`set${key}`] = (value) => { state[key] = typeof value === 'function' ? value(state[key]) : value; };
   }
   const invoke = runInNewContext(`${functionSource(text, name)}\n${name};`, context);
   const respond = (index, data, ok = true, status = ok ? 200 : 503) => pending[index]({ ok, status, json: async () => data });
-  return { state, context, invoke, respond };
+  return { state, context, invoke, respond, urls };
 }
+
+test('AIA tool scope reaches catalog, detail and portfolio search; the main tool keeps its request URLs', async () => {
+  const filters = { category: 'equity', subcategory: 'all', query: '', amcId: 'all' };
+  const mainCatalog = runtime(single, 'loadCatalog');
+  void mainCatalog.invoke(filters);
+  assert.doesNotMatch(mainCatalog.urls[0], /scope=/, 'main catalog URL is unchanged');
+  const aiaCatalog = runtime(single, 'loadCatalog', 'aia');
+  void aiaCatalog.invoke(filters);
+  assert.match(aiaCatalog.urls[0], /^\/api\/investment-allocation\/catalog\/\?.*scope=aia/);
+  const aiaDetail = runtime(single, 'fetchDetail', 'aia');
+  void aiaDetail.invoke({ projectId: 'M0001_2567' }, 'A');
+  assert.match(aiaDetail.urls[0], /^\/api\/investment-allocation\/detail\/\?proj_id=M0001_2567&scope=aia&class_name=A$/);
+  const mainSearch = runtime(portfolio, 'searchFunds');
+  mainSearch.context.query = 'หุ้น ไทย';
+  void mainSearch.invoke({ preventDefault() {} });
+  assert.equal(mainSearch.urls[0], `/api/investment-allocation/funds/?q=${encodeURIComponent('หุ้น ไทย')}`, 'main search URL is byte-identical');
+  const aiaSearch = runtime(portfolio, 'searchFunds', 'aia');
+  aiaSearch.context.query = 'AIA';
+  void aiaSearch.invoke({ preventDefault() {} });
+  assert.equal(aiaSearch.urls[0], '/api/investment-allocation/funds/?q=AIA&scope=aia');
+  // The AIA tool never loads the AMC list (it has no picker); the main tool still does.
+  assert.match(single, /if \(!amcPicker \|\| amcs \|\| amcsLoading\) return;/);
+  assert.match(single, /const amcPicker = scope === "main";/);
+  assert.match(single, /\{amcPicker \? <div className=\{styles\.fieldGroup\}>\n\s+<label className=\{styles\.fieldLabel\} htmlFor="fund-amc-filter">/);
+});
 
 test('builders emit no analytics events until the ia_* contract is owner-approved', () => {
   for (const [name, text] of [['single', single], ['portfolio', portfolio], ['tool', source('InvestmentAllocationTool')]]) {
@@ -190,7 +217,7 @@ function portfolioDetailRuntime() {
   const pending = [];
   const requests = [];
   const context = {
-    URLSearchParams, Map, Set,
+    URLSearchParams, Map, Set, withFundScope, scope: 'main',
     detailRequests: { current: new Map() }, selectedIds: { current: new Set(['a', 'b']) },
     setSaveStatus: () => {},
     setSelectedDetails: (update) => { state.SelectedDetails = update(state.SelectedDetails); },
