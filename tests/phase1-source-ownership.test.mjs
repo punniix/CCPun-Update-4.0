@@ -243,7 +243,7 @@ test('Health retains per-lane reads, partial/ready/warning/off cards and safe ac
         mocks.set(statement.moduleSpecifier.text, exports);
       }
       const fixture = loadFixtureModule(file, { sources: baseline ? sources : new Map(), mocks, globals: { process: { env: { CCPUN_APP_ENV: 'production-admin', PRIVATE_TEST_SECRET: 'never-render-this-env-value' }, get versions() { if (denied) throw new Error('VERSION_READ_BEFORE_PERMISSION'); return runtimeVersions; } } } });
-      try { return { metadata: fixture.metadata, html: renderToStaticMarkup(await serverTree(await fixture.default())), trace }; }
+      try { const html = renderToStaticMarkup(await serverTree(await fixture.default())); return { metadata: fixture.metadata, html: baseline ? html : adminPhase1DomPredecessor(html), trace }; }
       catch (error) { return { metadata: fixture.metadata, error: error.message, trace }; }
     }
     const before = await render(true), after = await render(false);

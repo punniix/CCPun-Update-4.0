@@ -152,7 +152,7 @@ export function ArticleEditorialInput(props: ObjectInputProps) {
         {id && slug && categoryId ? <ArticleDraftPreview id={id} slug={slug} categoryId={categoryId} /> : <span>ระบุ URL และหมวดหมู่ก่อนดูตัวอย่าง</span>}
         <button type="button" onClick={() => props.onPathFocus(["review", "status"])} style={{ padding: "10px 16px", cursor: "pointer" }}>{published ? "อนุมัติก่อนอัปเดต" : "อนุมัติก่อนเผยแพร่"}</button>
       </div>
-      <p>ดูตัวอย่าง → กด {published ? "อนุมัติก่อนอัปเดต" : "อนุมัติก่อนเผยแพร่"} แล้วเลือก อนุมัติเนื้อหาแล้ว → กด {published ? "อัปเดตบทความ" : "เผยแพร่บทความ"} ที่แถบด้านล่าง</p>
+      <p>ดูตัวอย่าง → กด อนุมัติและเผยแพร่ ที่แถบด้านล่าง แล้วยืนยันในกล่องข้อความ ระบบจะบันทึกการอนุมัติและ{published ? "อัปเดตบทความ" : "เผยแพร่บทความ"}ในขั้นตอนเดียว</p>
       {projectId === "ccb9lnw5" && dataset === "uat" && <small>ใน UAT ทดสอบการแก้ไขและตัวอย่างได้ แต่ปุ่มเผยแพร่ถูกปิดตามนโยบาย</small>}
     </section>
     <ArticleLineCopyGenerator

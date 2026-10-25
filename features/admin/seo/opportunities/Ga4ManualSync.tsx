@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Ga4DashboardRow, Ga4MetricTotals } from "@/lib/admin/seo-intelligence/contracts";
 
 type DateRange = { startDate: string; endDate: string };
@@ -54,7 +54,7 @@ function nextCheck(row: Ga4DashboardRow) {
   return "ควรตรวจว่าการเติบโตมาจากเนื้อหาหรือกลุ่มคำค้นใด";
 }
 
-export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel, sessionConnectAllowed = false, sessionConnectionState, sessionConnectError = false, sessionAccountRefreshed = false }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "พื้นที่ทดสอบ"; sessionConnectAllowed?: boolean; sessionConnectionState?: "configuration-required" | "connect-required" | "connected"; sessionConnectError?: boolean; sessionAccountRefreshed?: boolean }) {
+export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLabel, sessionConnectAllowed = false, sessionConnectionState, sessionConnectError = false, sessionAccountRefreshed = false, autoStart = false }: { defaultStartDate: string; defaultEndDate: string; laneLabel: "ระบบจริง" | "พื้นที่ทดสอบ"; sessionConnectAllowed?: boolean; sessionConnectionState?: "configuration-required" | "connect-required" | "connected"; sessionConnectError?: boolean; sessionAccountRefreshed?: boolean; autoStart?: boolean }) {
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
@@ -89,6 +89,16 @@ export default function Ga4ManualSync({ defaultStartDate, defaultEndDate, laneLa
       setState("error");
     }
   }
+
+  // "ดึงใหม่ตอนนี้" on the morning report mounts this control with autoStart:
+  // the same read-only sync runs once, exactly as if the button were pressed.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoStarted.current) return;
+    autoStarted.current = true;
+    void sync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   return (
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-5" aria-labelledby="ga4-title">

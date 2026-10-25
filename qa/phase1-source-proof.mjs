@@ -1,5 +1,6 @@
 import { assertProductionCmsOwner, hasProductionCmsOwner } from './production-cms-source-proof.mjs';
 import { adminPhase1PredecessorDigest } from './admin-phase1-quick-wins-proof.mjs';
+import { adminOps20261025PredecessorDigest } from './admin-ops-20261025-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -29,7 +30,8 @@ export function productionBaselineSource(file) {
   if (cmsSource) assertProductionCmsOwner(file,current);
   else if (file === 'apps/admin/app/(control-plane)/operations/health/page.tsx') {
     assert.equal(projection.candidateSha256, '984d7d0c447f6ad47af560dc2b90612cfaa37029734414edc8c40bc44aacb766', 'original Health composition remains frozen');
-    assert.equal(sha(current), '4d0045767bdbfdf9ed410e0b1d1cb31b1969d07f74ea0fac02f62c26e447bcce', 'only reviewed numeric serving-runtime rows are admitted');
+    // The exact 2026-10-25 reviewed successor (collapsed technical section + Supabase card) chains back to this digest.
+    assert.equal(adminOps20261025PredecessorDigest(file, sha(current)), '4d0045767bdbfdf9ed410e0b1d1cb31b1969d07f74ea0fac02f62c26e447bcce', 'only reviewed numeric serving-runtime rows are admitted');
   } else assert.equal(adminPhase1PredecessorDigest(file, current), projection.candidateSha256, file + ': unreviewed route composition change');
   for (const [owner, digest] of Object.entries(proof.owners)) {
     if(hasProductionCmsOwner(owner)) {assertProductionCmsOwner(owner,read(owner));continue;}

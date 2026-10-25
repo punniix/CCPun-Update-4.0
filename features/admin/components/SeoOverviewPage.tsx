@@ -44,7 +44,7 @@ export async function AdminSeoPage(copy: SeoOverviewCopy) {
           </p>
         </div>
         <div className="flex gap-2">
-          {intelligenceReady ? <Link href="/seo/opportunities/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">{copy.opportunities}</Link> : null}
+          {intelligenceReady ? <Link href="/analytics/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">{copy.opportunities}</Link> : null}
           <Link href="/content/research/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อมูลงานวิจัย</Link>
           <Link href={copy.reviewsHref} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อเสนอที่รอตรวจ</Link>
         </div>
@@ -95,8 +95,8 @@ export async function AdminSeoPage(copy: SeoOverviewCopy) {
                         {article.isDraft && result.status.writeReady ? (
                           <RunSeoAuditButton articleId={article.id} hasPreviousAudit={article.seoScore != null} />
                         ) : !article.isDraft && studioReady ? (
-                          <Link href={`/studio/structure/article;${encodeURIComponent(article.id.replace(/^drafts\./, ""))}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-sm font-medium text-[#f4df9b] hover:bg-[#e0c985]/15">
-                            เปิด Studio เพื่อเริ่มฉบับร่าง<span className="sr-only"> (เปิดแท็บใหม่)</span>
+                          <Link href={`/studio/structure/article;${encodeURIComponent(article.id.replace(/^drafts\./, ""))}`} className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-3.5 py-2 text-sm font-medium text-[#f4df9b] hover:bg-[#e0c985]/15">
+                            เปิด Studio เพื่อเริ่มฉบับร่าง
                           </Link>
                         ) : null}
                       </div>

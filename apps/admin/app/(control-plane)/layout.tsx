@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { AdminProtectedChrome } from "@/features/admin/components/AdminProtectedChrome";
+import DailyJobBanner from "@/features/admin/operations/DailyJobBanner";
 import { getAdminEnvironment } from "@/lib/admin/environment";
 import { environmentLabel } from "@/lib/admin/presentation";
 import { hasAdminPermission, type AdminPermission, type AdminRole } from "@/lib/admin/rbac";
@@ -12,7 +14,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string; permission?: AdminPermission }> }> = [
+// Children marked technical are shown in a collapsed "สำหรับทีมเทคนิค" section (owner decision A9).
+const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string; permission?: AdminPermission; technical?: boolean }> }> = [
   { href: "/dashboard/", label: "ภาพรวม", permission: "dashboard:read", children: [
       { href: "/dashboard/inbox/", label: "ลูกค้า LINE", permission: "advisor:read" },
       { href: "/dashboard/campaigns/", label: "ข้อความแจ้งลูกค้า", permission: "campaign:read" },
@@ -23,9 +26,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
       { href: "/content/calendar/", label: "ปฏิทินเผยแพร่" },
       { href: "/content/research/", label: "ข้อมูลประกอบ" },
   ] },
-  { href: "/seo/", label: "SEO", permission: "seo:read", children: [
-      { href: "/seo/opportunities/", label: "โอกาสพัฒนา" },
-  ] },
+  { href: "/seo/", label: "SEO", permission: "seo:read" },
   { href: "/social/", label: "โซเชียล", permission: "social:read", children: [
       { href: "/social/posts/", label: "โพสต์" },
       { href: "/social/calendar/", label: "ปฏิทินโพสต์" },
@@ -41,7 +42,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
   ] },
   { href: "/operations/", label: "สถานะระบบ", permission: "settings:read", children: [
       { href: "/operations/health/", label: "ภาพรวมระบบ" },
-      { href: "/operations/deployments/", label: "เวอร์ชันที่ใช้งาน" },
+      { href: "/operations/deployments/", label: "เวอร์ชันที่ใช้งาน", technical: true },
       { href: "/operations/jobs/", label: "งานเบื้องหลัง" },
       { href: "/operations/local-ai/", label: "AI ภายใน" },
       { href: "/operations/privacy/", label: "ข้อมูลและความเป็นส่วนตัว" },
@@ -50,7 +51,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
   { href: "/settings/", label: "ตั้งค่า", permission: "settings:read", children: [
       { href: "/settings/integrations/", label: "การเชื่อมต่อ" },
       { href: "/settings/access/", label: "สิทธิ์ผู้ใช้" },
-      { href: "/settings/system/", label: "ข้อมูลระบบ" },
+      { href: "/settings/system/", label: "ข้อมูลระบบ", technical: true },
   ] },
 ];
 
@@ -68,7 +69,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     .flatMap((item) => {
       const children = item.children
         ?.filter((child) => (!child.permission || hasAdminPermission(role, child.permission)) && isAdminCapabilityPathAllowed(child.href, capabilityProfile))
-        .map(({ href, label }) => ({ href, label }));
+        .map(({ href, label, technical }) => (technical ? { href, label, technical } : { href, label }));
       if (isAdminCapabilityPathAllowed(item.href, capabilityProfile)) return [{ ...item, children }];
       // Reviews remains available even while its dashboard parent is disabled.
       return (children ?? []).map((child) => ({ ...child, permission: item.permission, children: undefined }));
@@ -91,6 +92,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     studioLabel="Sanity Studio"
     showLogout={Boolean(session?.user)}
     logout={logout}
+    alert={hasAdminPermission(role, "settings:read") ? <Suspense fallback={null}><DailyJobBanner /></Suspense> : null}
     safety={capabilityProfile === "editorial" && (environment === "production-admin" || environment === "local-production") ? (
               <><strong className="font-medium text-[#f4df9b]">บทความและ SEO · ข้อมูลจริง:</strong> การแก้ฉบับร่างและการเผยแพร่ต้องให้ผู้มีสิทธิ์ตรวจและยืนยัน</>
             ) : environment === "production-admin" || environment === "local-production" ? (

@@ -166,6 +166,7 @@ Production remains stricter:
 | Deployment/runtime configuration | Hostinger for canonical Web/Admin; VPS service configuration for private workers; Vercel retained only as rollback/history compatibility |
 | Local model weights and ephemeral inference memory | Hostinger VPS Private Local-AI Enclave |
 | Local-AI encrypted job state and validated output | Neon `ccpun_admin` |
+| n8n workflow run logs, raw daily GA4/GSC/social pulls, 06:00 job status | Supabase ops telemetry, one project per Admin lane (owner-approved 2026-10-25; see `supabase-ops-telemetry-20261025.md`) |
 
 ## No-new-spend contract
 
@@ -176,6 +177,8 @@ Normal Admin feature development must reuse the current resources. Do not automa
 - another Neon project/branch for each PR;
 - another auth service;
 - another queue/worker/storage service when current Hostinger VPS, n8n, Neon and Drive capabilities suffice.
+
+Owner-approved exception (2026-10-25): high-frequency n8n telemetry moves to a dedicated Supabase project per Admin lane (Singapore, Free plan) so Neon compute can stay asleep. It holds no customer or Admin-owned data, is server-side only (service_role key in Admin server env and n8n credentials), and Admin degrades to "ยังไม่ได้เชื่อม Supabase" when it is absent. Setup and the workflow switch list are in `supabase-ops-telemetry-20261025.md`.
 
 Admin UAT releases share the existing UAT data planes. Synthetic or namespaced test records should be used when parallel work could collide.
 

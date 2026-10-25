@@ -80,7 +80,10 @@ test("v1 keeps Studio outside the Admin shell (embedding is Admin v2) and the St
   assert.equal(existsSync(path.join(root, "apps/admin/app/studio/layout.tsx")), false, "no Admin-shell wrapper around /studio in v1");
   const chrome = read("features/admin/components/AdminProtectedChrome.tsx");
   assert.doesNotMatch(chrome, /studioMode|data-admin-shell|isAdminStudioPath/);
-  assert.match(chrome, /<Link href="\/studio\/" target="_blank" rel="noopener noreferrer"/, "top-bar Studio entry is unchanged");
+  // Owner decision A2 (2026-10-25): Studio opens in the same tab; Studio's own
+  // "← กลับศูนย์จัดการ" link (next test) is the way back.
+  assert.match(chrome, /<Link href="\/studio\/" className="[^"]*">\{studioLabel\}<\/Link>/, "top-bar Studio entry opens in the same tab");
+  assert.doesNotMatch(chrome, /href="\/studio\/" target=/);
   assert.match(read(layoutFile), /studioLabel="Sanity Studio"/);
 
   // Studio guards are untouched: the page keeps its own lane/data-plane checks.

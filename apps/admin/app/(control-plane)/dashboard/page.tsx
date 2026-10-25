@@ -9,6 +9,8 @@ import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { readOperationsJobs } from "@/lib/admin/operations/jobs-read-model";
 import { readConversionAnalytics } from "@/lib/admin/line/business-intelligence";
 import { readEditorialDashboardSummary, editorialDashboardSteps } from "@/lib/admin/dashboard-summary";
+import { readDailyJobHealth } from "@/lib/admin/ops-telemetry/daily-job";
+import { dailyJobStepLabel, opsStoreStateLabel } from "@/lib/admin/ops-telemetry/contracts";
 
 export const metadata: Metadata = { title: "เริ่มที่นี่" };
 
@@ -18,6 +20,9 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
   const identity = await requireAdminPermission("dashboard:read");
   const params = await searchParams;
   const { status, operations, pendingReviews } = await readEditorialDashboardSummary();
+  const canReadSettings = hasAdminPermission(identity.role, "settings:read");
+  // Supabase only: the 06:00 card never wakes Neon. Missing env = "ยังไม่ได้เชื่อม Supabase".
+  const dailyJob = canReadSettings ? await readDailyJobHealth().catch(() => null) : null;
 
   const canReadAdvisor = hasAdminPermission(identity.role, "advisor:read");
   const advisorSummary = canReadAdvisor
@@ -88,6 +93,26 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           <p className={`mt-2 text-xl font-semibold ${operations.identityValid ? "text-emerald-200" : "text-amber-200"}`}>{operations.identityValid ? "พร้อมใช้งาน" : operations.configured ? "ต้องตรวจ" : "ยังตั้งค่าไม่ครบ"}</p>
           <p className="mt-2 text-sm leading-6 text-white/65">ตรวจแหล่งข้อมูล คิวงาน และการเชื่อมต่อภายนอก</p>
         </Link>
+        {dailyJob ? (
+          <Link href="/analytics/" className="glass-card p-5" data-daily-job-card={dailyJob.state}>
+            <p className="text-sm text-white/60">รอบเก็บข้อมูล 06:00</p>
+            <p className={`mt-2 text-xl font-semibold ${dailyJob.state === "failed" || dailyJob.state === "missing" ? "text-amber-200" : dailyJob.state === "ok" ? "text-emerald-200" : "text-gold-400"}`}>
+              {dailyJob.storeState !== "ready" ? opsStoreStateLabel[dailyJob.storeState]
+                : dailyJob.state === "ok" ? "สำเร็จแล้ววันนี้"
+                : dailyJob.state === "running" ? "กำลังเก็บข้อมูล"
+                : dailyJob.state === "failed" ? "ไม่สำเร็จ"
+                : dailyJob.state === "missing" ? "ยังไม่พบรอบของวันนี้"
+                : "ยังไม่ถึงเวลาตรวจ"}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-white/65">
+              {dailyJob.storeState !== "ready"
+                ? "สถานะรอบ 06:00 จะแสดงที่นี่เมื่อเชื่อม Supabase แล้ว ระหว่างนี้ดูสถานะแต่ละแหล่งได้ในรายงานเช้านี้"
+                : dailyJob.state === "failed" && dailyJob.failedSteps.length
+                  ? `ขั้นตอนที่มีปัญหา: ${dailyJob.failedSteps.map(dailyJobStepLabel).join(", ")}`
+                  : "เปิดรายงานเช้านี้ หรือกด “ดึงใหม่ตอนนี้” เมื่อต้องการข้อมูลล่าสุด"}
+            </p>
+          </Link>
+        ) : null}
         {hasAdminPermission(identity.role, "advisor:read") ? (
           <Link href="/dashboard/inbox/" className="glass-card p-5">
             <p className="text-sm text-white/60">ลูกค้าที่ควรดูวันนี้</p>
@@ -114,8 +139,8 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
                 ดูจาก CRM และเส้นทางลูกค้าที่ระบบอ่านได้จริง หากอ่านไม่ได้จะแสดง “—” แทนการเดาเป็นศูนย์
               </p>
             </div>
-            {hasAdminPermission(identity.role, "settings:read") ? (
-              <Link href="/analytics/exports/" className="text-sm text-[#e0c985] hover:underline hover:underline-offset-4">
+            {canReadSettings ? (
+              <Link href="/analytics/exports/" className="inline-flex min-h-11 items-center text-sm text-[#e0c985] hover:underline hover:underline-offset-4">
                 ส่งออกข้อมูล →
               </Link>
             ) : null}
@@ -139,13 +164,13 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/analytics/conversions/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
+            <Link href="/analytics/conversions/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-sm text-white/70 hover:bg-white/5">
               ดูเส้นทางลูกค้า
             </Link>
-            <Link href="/operations/jobs/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
+            <Link href="/operations/jobs/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-sm text-white/70 hover:bg-white/5">
               ดูงานเบื้องหลัง
             </Link>
-            <Link href="/dashboard/inbox/" className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5">
+            <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-sm text-white/70 hover:bg-white/5">
               ดูลูกค้า CRM
             </Link>
           </div>
@@ -218,9 +243,9 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
               return <div key={number} className="min-h-44 rounded-2xl border border-white/10 bg-white/[0.02] p-5 opacity-60"><span className="text-sm font-semibold text-[#e0c985]">ขั้นที่ {number}</span><h3 className="mt-3 text-lg font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-white/65">{detail}</p></div>;
             }
             return (
-              <Link key={number} href={href} target={opensStudio ? "_blank" : undefined} rel={opensStudio ? "noopener noreferrer" : undefined} className="min-h-44 rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">
+              <Link key={number} href={href} className="min-h-44 rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-[#e0c985]/30 hover:bg-white/[0.05]">
                 <span className="text-sm font-semibold text-[#e0c985]">ขั้นที่ {number}</span>
-                <h3 className="mt-3 text-lg font-semibold">{title}{opensStudio ? <span className="sr-only"> (เปิดแท็บใหม่)</span> : null}</h3>
+                <h3 className="mt-3 text-lg font-semibold">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-white/65">{detail}</p>
               </Link>
             );

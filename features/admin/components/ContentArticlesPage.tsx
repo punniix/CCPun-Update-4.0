@@ -112,11 +112,11 @@ export async function AdminContentPage({ searchParams }: AdminContentPageProps, 
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {studioReady ? <Link href="/studio/intent/create/type=article" target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#e0c985] px-4 py-2.5 text-sm font-semibold text-[#17191d] transition hover:brightness-105">สร้างบทความใหม่<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : null}
+          {studioReady ? <Link href="/studio/intent/create/type=article" className="rounded-xl bg-[#e0c985] px-4 py-2.5 text-sm font-semibold text-[#17191d] transition hover:brightness-105">สร้างบทความใหม่</Link> : null}
           <Link href={copy.reviewHref} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 transition hover:bg-white/5 hover:text-white">
             ดูข้อเสนอที่รอตรวจ
           </Link>
-          {studioReady ? <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="rounded-xl border border-[#e0c985]/40 px-4 py-2.5 text-sm font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">เปิด Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : null}
+          {studioReady ? <Link href="/studio/" className="rounded-xl border border-[#e0c985]/40 px-4 py-2.5 text-sm font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">เปิด Studio</Link> : null}
         </div>
       </div>
 
@@ -302,7 +302,7 @@ export async function AdminContentPage({ searchParams }: AdminContentPageProps, 
                               <button type="submit" className="font-medium text-[#e0c985] hover:underline">เปิดตัวอย่าง<span className="sr-only"> (เปิดแท็บใหม่)</span></button>
                             </form>
                           ) : null}
-                          {studioReady ? <Link href={studioHref} target="_blank" rel="noopener noreferrer" className="font-medium text-[#e0c985] hover:underline">เปิดแก้ใน Studio<span className="sr-only"> (เปิดแท็บใหม่)</span></Link> : <span className="text-white/45">อ่านอย่างเดียว</span>}
+                          {studioReady ? <Link href={studioHref} className="font-medium text-[#e0c985] hover:underline">เปิดแก้ใน Studio</Link> : <span className="text-white/45">อ่านอย่างเดียว</span>}
                         </div>
                       </td>
                     </tr>

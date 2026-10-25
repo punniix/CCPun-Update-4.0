@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { adminOps20261025DomPredecessor, adminOps20261025PredecessorDigest } from './admin-ops-20261025-proof.mjs';
 
 // Owner-approved Admin v1 improvements (2026-10-24): de-duplicated navigation,
 // Performance page in the menu, linked article titles with a same-tab
@@ -31,7 +32,8 @@ export const adminPhase1QuickWinSources = Object.freeze({
 // for an exact reviewed successor, otherwise the file's own digest (so any other
 // edit still fails the original assertion).
 export function adminPhase1PredecessorDigest(file, source) {
-  const digest = sha(source);
+  // Later reviewed successors (qa/admin-ops-20261025-proof.mjs) chain back first.
+  const digest = adminOps20261025PredecessorDigest(file, sha(source));
   const entry = Object.hasOwn(adminPhase1QuickWinSources, file) ? adminPhase1QuickWinSources[file] : null;
   return entry && digest === entry.after ? entry.before : digest;
 }
@@ -75,7 +77,7 @@ export const ADMIN_PHASE1_SHORT_N8N_LABELS = Object.freeze(['มีปุ่ม'
 
 export function adminPhase1DomPredecessor(html) {
   if (typeof html !== 'string') return html;
-  let result = html.replace(PRESENTATION_BUTTON, '').replace(TITLE_LINK, '<div class="font-medium text-white/85">$1</div>');
+  let result = adminOps20261025DomPredecessor(html).replace(PRESENTATION_BUTTON, '').replace(TITLE_LINK, '<div class="font-medium text-white/85">$1</div>');
   for (const [candidate, original] of exactPairs) result = result.split(candidate).join(original);
   return result;
 }

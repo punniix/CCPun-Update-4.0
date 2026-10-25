@@ -9,10 +9,10 @@ import AdminNavigation from "./AdminNavigation";
 import { roleLabel } from "@/lib/admin/presentation";
 import type { AdminPermission, AdminRole } from "@/lib/admin/rbac";
 
-type NavigationItem = { href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string }> };
-type AdminChromeProps = { title: string; currentEnvironmentLabel: string; identityLabel: string; role: AdminRole; navItems: NavigationItem[]; showInbox: boolean; inboxLabel: string; studioLabel: string; showLogout: boolean; logout: () => Promise<void>; safety: React.ReactNode; children: React.ReactNode };
+type NavigationItem = { href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string; technical?: boolean }> };
+type AdminChromeProps = { title: string; currentEnvironmentLabel: string; identityLabel: string; role: AdminRole; navItems: NavigationItem[]; showInbox: boolean; inboxLabel: string; studioLabel: string; showLogout: boolean; logout: () => Promise<void>; safety: React.ReactNode; alert?: React.ReactNode; children: React.ReactNode };
 
-export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityLabel, role, navItems, showInbox, inboxLabel, studioLabel, showLogout, logout, safety, children }: AdminChromeProps) {
+export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityLabel, role, navItems, showInbox, inboxLabel, studioLabel, showLogout, logout, safety, alert, children }: AdminChromeProps) {
   const pathname = usePathname();
   const previewPaths = Object.keys(PUBLIC_COPY_SCOPES).flatMap(scope => [
     `/content/website-preview/${scope}`,
@@ -33,9 +33,9 @@ export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityL
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {showInbox ? <Link href="/dashboard/inbox/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">{inboxLabel}</Link> : null}
-            <Link href="/studio/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 px-3.5 py-2 text-xs font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">{studioLabel}<span className="sr-only"> (เปิดแท็บใหม่)</span></Link>
-            <div className="text-right">
-              <div className="text-white/80">{identityLabel}</div>
+            <Link href="/studio/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 px-3.5 py-2 text-xs font-medium text-[#f4df9b] transition hover:bg-[#e0c985]/10">{studioLabel}</Link>
+            <div className="min-w-0 text-right">
+              <div className="break-all text-white/80">{identityLabel}</div>
               <div className="text-xs text-white/55">สิทธิ์: {roleLabel(role)}</div>
             </div>
             {showLogout ? (
@@ -56,6 +56,7 @@ export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityL
         </aside>
 
         <main id="main-content" className="min-w-0 px-5 py-7 lg:px-8 lg:py-8">
+          {alert}
           {children}
         </main>
       </div>
