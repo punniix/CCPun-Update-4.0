@@ -14,6 +14,7 @@ import {
 import type { CIEstimationMethod, CIResult as CIResultType } from '@/features/ci-planning/calculator/types';
 import ResultImageDownloadButton from '@/features/ci-planning/components/ResultImageDownloadButton';
 import { CI_RECOVERY_SOURCES } from '@/features/ci-planning/recovery-evidence';
+import ResultEmailControl from '@/components/ui/result-email/ResultEmailControl';
 
 interface CIResultProps {
   result: CIResultType;
@@ -263,6 +264,8 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
         >
           <MessageCircle className="h-5 w-5" aria-hidden="true" />
           {t.node("ci.result.linkLabel")}</a>
+        {/* Email phase 1 (owner-approved 2026-10-25): renders nothing unless CCPUN_RESULT_EMAIL_ENABLED=1. */}
+        <ResultEmailControl tool="ci_planning" figures={{ totalNeed: selectedNeed, baseNeed: selectedBaseNeed, recoveryReserve: result.recoveryReserveNeed, protectedAssets: result.protectedAssetsNeed, gap: displayedGap, surplus: displayedSurplus }} />
       </div>
     </div>
 

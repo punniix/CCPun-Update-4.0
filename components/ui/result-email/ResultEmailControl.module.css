@@ -1,0 +1,34 @@
+/*
+  "ส่งผลนี้ไปที่อีเมล" (Email phase 1, behind a flag). Secondary styling only: the gold primary
+  stays with each result's existing LINE call to action (One Compass rule). v5 tokens with
+  brand fallbacks so the control also reads correctly inside the calculator scopes.
+*/
+.wrap { margin-top: 16px; width: 100%; }
+.toggle, .submit {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 24px;
+  border-radius: var(--v5-radius-button, 14px); border: 1px solid var(--v5-border, #5b4848); background: transparent;
+  color: var(--v5-text, #faf9f9); font-family: var(--v5-font-display, inherit); font-size: 15px; font-weight: 500; line-height: 1.3; cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.toggle { width: 100%; }
+@media (min-width: 640px) { .toggle { width: auto; } }
+.toggle:hover, .submit:hover:not(:disabled) { border-color: var(--v5-gold, #e0c985); }
+.submit:disabled { opacity: 0.6; cursor: default; }
+.form { display: grid; gap: 12px; padding: 20px; border: 1px solid var(--v5-border-soft, rgba(91, 72, 72, 0.72)); border-radius: var(--v5-radius, 14px); background: var(--v5-card-alt, #2b1d1d); text-align: left; }
+.label { font-family: var(--v5-font-display, inherit); font-size: 15px; font-weight: 500; color: var(--v5-text, #faf9f9); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.input {
+  flex: 1 1 220px; min-width: 0; min-height: 48px; padding: 12px 16px; border-radius: var(--v5-radius, 14px);
+  border: 1px solid var(--v5-field-edge, #9a8585); background: var(--v5-bg, #251818); color: var(--v5-text, #faf9f9); font-size: 16px;
+}
+.input:focus-visible { outline: 3px solid var(--v5-focus, #e0c985); outline-offset: 2px; }
+.input[aria-invalid="true"] { border-width: 2px; border-color: var(--v5-focus, #e0c985); }
+.submit { flex: 0 0 auto; }
+@media (max-width: 479px) { .submit { flex: 1 1 100%; } }
+.check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; font-size: 15px; line-height: 1.6; color: var(--v5-text, #faf9f9); cursor: pointer; }
+.check input { flex: none; width: 20px; height: 20px; margin-top: 3px; accent-color: var(--v5-gold, #e0c985); }
+.notice { margin: 0; font-size: 14px; line-height: 1.6; color: var(--v5-muted, #baabab); }
+.notice a { color: var(--v5-gold-text, #e0c985); text-decoration: underline; text-underline-offset: 3px; }
+.status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--v5-text, #faf9f9); }
+.status[data-state="invalid"], .status[data-state="failed"], .status[data-state="rate-limited"] { font-weight: 500; }
+.trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

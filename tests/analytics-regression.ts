@@ -61,6 +61,8 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   campaign_code: null,
   // Owner-approved 2026-10-25 (Coming Soon): the planned-path dimension is cleared on every event too.
   coming_soon_path: null,
+  // Owner-approved 2026-10-25 (Email phase 1, flag off by default): the result-email tool id is cleared too.
+  result_tool: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
 const semanticModel: Record<string, string | number | null> = {};
@@ -121,6 +123,8 @@ assert.equal(sanitizeEventParams({ surface_group: 'tools' }).surface_group, 'too
 assert.deepEqual(resolveEventMapping('coming_soon_interest', sanitizeEventParams({ coming_soon_path: '/tools/tax-deduction/' })), { ga: ['coming_soon_interest'], meta: 'none' });
 assert.deepEqual(sanitizeEventParams({ coming_soon_path: '/tools/tax-deduction/', email: 'a@b.co', phone: '0800000000' }), { coming_soon_path: '/tools/tax-deduction/' }, 'the interest event never carries personal data');
 for (const value of ['/tools/x/?email=a@b.co', 'https://ccpun.com/tools/x/', '/blog/a/b/']) assert.equal(sanitizeEventParams({ coming_soon_path: value }).coming_soon_path, undefined, value);
+assert.deepEqual(resolveEventMapping('result_email_requested', sanitizeEventParams({ result_tool: 'fhc' })), { ga: ['result_email_requested'], meta: 'none' });
+assert.deepEqual(sanitizeEventParams({ result_tool: 'fhc', email: 'a@b.co', gap: 3200000 }), { result_tool: 'fhc' }, 'the result-email event never carries the address or figures');
 assert.equal(sanitizeEventParams({ page_group: 'coming_soon' }).page_group, 'coming_soon', 'Coming Soon chat panels have their own page group');
 
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');

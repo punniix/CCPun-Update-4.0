@@ -26,8 +26,8 @@ export const websiteV5CopyAdditions = Object.freeze({
     'node --import tsx tests/analytics-component-regression.mjs && node --import tsx --test tests/website-v5-regression.test.ts",',
     'node --import tsx tests/analytics-component-regression.mjs",',
   ], [
-    // v5 extras (owner-approved 2026-10-25, UAT): the Coming Soon regression suite joins test:public.
-    '"test:public": "node --conditions=react-server --import tsx --test tests/coming-soon-regression.test.ts && npm run audit:public-css && ',
+    // v5 extras (owner-approved 2026-10-25, UAT): the Coming Soon and Email phase 1 suites join test:public.
+    '"test:public": "node --conditions=react-server --import tsx --test tests/coming-soon-regression.test.ts tests/result-email-regression.test.ts && npm run audit:public-css && ',
     '"test:public": "npm run audit:public-css && ',
   ]],
   'lib/content/public-copy-registry.ts': [[
@@ -98,12 +98,16 @@ export const websiteV5PhaseASources = Object.freeze({
   // lin.ee click tag), the new /tools/ hub sitemap entry (T1) and Money Story joining the tools sitemap
   // (v5 only). `before` is HEAD f2b163e2.
   // BEGIN LINE chat reviewed sources
-  // Owner-approved 2026-10-25 (v5 extras, UAT): additive Coming Soon tokens (coming_soon_path, page_group coming_soon),
+  // Owner-approved 2026-10-25 (v5 extras, UAT): additive Coming Soon tokens (coming_soon_path, page_group coming_soon)
+  // and the Email phase 1 tool id (result_tool),
   // cleared in the semantic layer like every other dimension. Existing events and mappings are byte-identical.
-  "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "cfd980a5934c6f1ff181e3b3582505983e4c1e22717f1de409164b301a6b105a" },
+  "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "e5b55f200bfddd5b9d2ef14ca0cc397abdb799faf5fcbcc9287c40773712ab8a" },
   "features/analytics/components/GoogleAnalytics.tsx": { before: "6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a", after: "8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206" },
   "features/ci-planning/calculator/constants.ts": { before: "ccdafe5526f8dfe32d129e6f74b0f574f07dbed3aa62d6fa3eb612ed44dbd9c9", after: "0228e217aa05ca1d10deb87f1806a97e6780c467fbcd82e6d77cec08ea78fbb1" },
-  "features/ci-planning/components/result/CIResult.tsx": { before: "b7c793111a1d654e89dcaf1392daf6b3b0bc53f0f310569cab465bbccdc91f85", after: "7935271a76b7830b2b6003ebeb5cde6c862c228a6401333b64ed59dd7fd96dc9" },
+  // Email phase 1 (owner-approved 2026-10-25, flag off by default): the CI and FHC result screens add one
+  // ResultEmailControl that renders nothing unless CCPUN_RESULT_EMAIL_ENABLED=1; calculations and copy are unchanged.
+  "features/ci-planning/components/result/CIResult.tsx": { before: "b7c793111a1d654e89dcaf1392daf6b3b0bc53f0f310569cab465bbccdc91f85", after: "0d7a604f1c26cdb3a513ef15ec83a0cdce57c454630146d22bbbe072efd13276" },
+  "features/financial-health-check/components/LifeCoverageWizard.tsx": { before: "9238203d154b3d296a78e4bfefb4f3d9bb31a491b0a05ba339d4417a7df6caa1", after: "37cd2dd70cb186d2713e5f342530646d011b5a841ddfcd9bbfbb14619e82c382" },
   "apps/web/app/sitemaps/tools.xml/route.ts": { before: "d6f0a88e8e082af3045cd5a4b132241444d50164c9293ec36e647087993033f0", after: "3b01299e0789640a92a78e1d52566889db4da916b7083e4a7176182035d82851" },
   // END LINE chat reviewed sources
 });
