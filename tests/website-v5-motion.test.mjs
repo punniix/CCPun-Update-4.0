@@ -104,7 +104,7 @@ test('licence and AFPT™ cards: native buttons with aria-pressed, back text rea
   assert.match(licence, new RegExp(copy.V5_LICENCE_VERIFY_PLACEHOLDER), 'back note is in the markup (accessibility tree)');
   assert.match(licence, /<span class="line" aria-hidden="true">/, 'the repeated number on the back is hidden from assistive tech');
   assert.doesNotMatch(licence, /https?:\/\//, 'no invented verification URL');
-  assert.match(licence, /<noscript><style>\.card:is\(:hover,:focus-visible\) \.inner\{transform:rotateY\(180deg\)\}<\/style><\/noscript>/);
+  assert.match(licence, /<noscript><style>\.card:is\(:hover,:focus-visible\) \.inner\{transform:rotateY\(180deg\)\}\.card:is\(:hover,:focus-visible\) \.back\{opacity:1\}\.card:is\(:hover,:focus-visible\) \.front\{opacity:0\}<\/style><\/noscript>/);
 
   const production = renderToStaticMarkup(React.createElement(Flip.default, { term: 'ตัวแทนประกันชีวิต', detail: '6801064783', hint: copy.V5_LICENCE_FLIP_HINT, back: [{ label: copy.V5_LICENCE_NUMBER_LABEL, value: '6801064783', repeatsFront: true }], note: null }));
   assert.doesNotMatch(production, /<button|aria-pressed|ดูวิธีตรวจสอบ/, 'without approved verification text the licence card is static');
@@ -137,7 +137,9 @@ test('flip card toggles aria-pressed on click (Enter/Space are native button act
   });
   const css = read('components/layout/v5/V5LicenceFlip.module.css');
   assert.match(css, /\.face \{\s*grid-area: 1 \/ 1;/, 'faces share one grid cell: flipping never changes layout');
-  assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.inner \{ transition: none; \}/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.inner \{ transition: none; \}\s*\.front, \.back \{ transition: none; \}/);
+  // Integration fix (Hallmark gate 73): the turned-away face is transparent, so back text is never painted under the front.
+  assert.match(css, /\.back \{ opacity: 0; \}\n\.card\[aria-pressed="true"\] \.back \{ opacity: 1; \}\n\.card\[aria-pressed="true"\] \.front \{ opacity: 0; \}/);
   assert.match(css, /min-height: 44px/);
 });
 

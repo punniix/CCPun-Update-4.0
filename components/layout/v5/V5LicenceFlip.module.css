@@ -15,6 +15,15 @@
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
 }
 .back { transform: rotateY(180deg); border-color: var(--v5-gold-text); }
+/*
+ * The face turned away is also fully transparent (it stays in the accessibility tree), so the stacked back text is
+ * never painted under the front. The swap happens at the half-turn, when the card is edge-on, so it is never seen;
+ * reduced motion swaps at once.
+ */
+.front, .back { transition: opacity 0s linear 210ms; }
+.back { opacity: 0; }
+.card[aria-pressed="true"] .back { opacity: 1; }
+.card[aria-pressed="true"] .front { opacity: 0; }
 .term { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; }
 .number, .label, .verify { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
 .line { display: flex; flex-direction: column; }
@@ -26,6 +35,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .inner { transition: none; }
+  .front, .back { transition: none; }
 }
 /* No 3D support: swap the faces with opacity instead of turning them. */
 @supports not ((backface-visibility: hidden) or (-webkit-backface-visibility: hidden)) {
