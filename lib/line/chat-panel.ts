@@ -21,6 +21,9 @@ export const LINE_CHAT_FIXED_PAGE_GROUPS = [
   "tool_investment_allocation",
   "tools_hub",
   "about",
+  // Coming Soon pages (owner-approved concept, 2026-10-25): one shared group; each planned page
+  // adds its own code-fallback topic, so demand per page shows in its reference code.
+  "coming_soon",
   "default",
 ] as const;
 export type LineChatFixedPageGroup = (typeof LINE_CHAT_FIXED_PAGE_GROUPS)[number];
@@ -45,6 +48,7 @@ export const LINE_CHAT_REF_PREFIX: Record<LineChatPageGroupToken, string> = {
   tool_investment_allocation: "IA",
   tools_hub: "TL",
   about: "AB",
+  coming_soon: "CS",
   default: "DF",
 };
 
@@ -141,7 +145,7 @@ export const LINE_CHAT_DEFAULTS: LineChatConfig = {
 };
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,95}$/;
-export const LINE_CHAT_PLACEMENT_KEY = /^(?:home|blog_index|tool_ci|tool_fhc|tool_money_story|tool_investment_allocation|tools_hub|about|default|category:[a-z0-9][a-z0-9-]{0,95}|article:[a-z0-9][a-z0-9-]{0,95})$/;
+export const LINE_CHAT_PLACEMENT_KEY = /^(?:home|blog_index|tool_ci|tool_fhc|tool_money_story|tool_investment_allocation|tools_hub|about|coming_soon|default|category:[a-z0-9][a-z0-9-]{0,95}|article:[a-z0-9][a-z0-9-]{0,95})$/;
 
 export type ChatPageContext = {
   /** A fixed group, or `category:<slug>` on blog category and article pages. */
@@ -299,6 +303,20 @@ export function selectChatConfigForPage(config: LineChatConfig, context: ChatPag
     && !(campaign.type === "temporary" && campaign.endsAt && Date.parse(campaign.endsAt) <= now.getTime()));
   const used = new Set([...placements.flatMap((placement) => placement.topicIds), ...campaigns.flatMap((campaign) => campaign.pinnedTopicIds)]);
   return { enabled: config.enabled, topics: config.topics.filter((topic) => topic.enabled && used.has(topic.id)), placements, campaigns };
+}
+
+/**
+ * Code fallback for one page-specific topic (Coming Soon, 2026-10-25; Sanity is never written).
+ * The owner's published config stays authoritative: an owner topic with the same id wins (and
+ * stays disabled if the owner disabled it), and an owner placement for `placementKey` keeps its
+ * topics after this one. Without an owner placement the page offers this topic plus "book-a-chat".
+ */
+export function withPageTopic(config: LineChatConfig, placementKey: string, topic: LineChatTopic): LineChatConfig {
+  if (!config.enabled || !LINE_CHAT_PLACEMENT_KEY.test(placementKey)) return config;
+  const topics = config.topics.some((candidate) => candidate.id === topic.id) ? config.topics : [...config.topics, topic];
+  const base = config.placements.find((placement) => placement.key === placementKey)?.topicIds ?? ["book-a-chat"];
+  const topicIds = [topic.id, ...base.filter((id) => id !== topic.id)].slice(0, LINE_CHAT_LIMITS.placementTopics);
+  return { ...config, topics, placements: [...config.placements.filter((placement) => placement.key !== placementKey), { key: placementKey, topicIds }] };
 }
 
 /** Safe surface_group for line_oa_click, only where an approved value already exists. */

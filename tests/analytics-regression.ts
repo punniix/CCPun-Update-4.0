@@ -61,6 +61,8 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   campaign_code: null,
   // Owner-approved 2026-10-25: which control opened the chat panel is cleared on every event too.
   panel_trigger: null,
+  // Owner-approved 2026-10-25 (Coming Soon): the planned-path dimension is cleared on every event too.
+  coming_soon_path: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
 const semanticModel: Record<string, string | number | null> = {};
@@ -128,6 +130,12 @@ assert.equal(sanitizeEventParams({ surface_group: 'tools' }).surface_group, 'too
   Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel' }), { analytics: true, social: false }));
   assert.equal(model.panel_trigger, null, 'a later event must clear the preceding panel_trigger');
 }
+
+// Coming Soon (owner-approved 2026-10-25): one new GA4-only event carrying only the registered planned path.
+assert.deepEqual(resolveEventMapping('coming_soon_interest', sanitizeEventParams({ coming_soon_path: '/tools/tax-deduction/' })), { ga: ['coming_soon_interest'], meta: 'none' });
+assert.deepEqual(sanitizeEventParams({ coming_soon_path: '/tools/tax-deduction/', email: 'a@b.co', phone: '0800000000' }), { coming_soon_path: '/tools/tax-deduction/' }, 'the interest event never carries personal data');
+for (const value of ['/tools/x/?email=a@b.co', 'https://ccpun.com/tools/x/', '/blog/a/b/']) assert.equal(sanitizeEventParams({ coming_soon_path: value }).coming_soon_path, undefined, value);
+assert.equal(sanitizeEventParams({ page_group: 'coming_soon' }).page_group, 'coming_soon', 'Coming Soon chat panels have their own page group');
 
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
 assert.equal(acquisitionSource.includes('fbclid'), false, 'click identifiers must not be parsed, stored, or sent');

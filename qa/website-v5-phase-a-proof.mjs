@@ -25,6 +25,10 @@ export const websiteV5CopyAdditions = Object.freeze({
   'package.json': [[
     'node --import tsx tests/analytics-component-regression.mjs && node --import tsx --test tests/website-v5-regression.test.ts",',
     'node --import tsx tests/analytics-component-regression.mjs",',
+  ], [
+    // v5 extras (owner-approved 2026-10-25, UAT): the Coming Soon regression suite joins test:public.
+    '"test:public": "node --conditions=react-server --import tsx --test tests/coming-soon-regression.test.ts && npm run audit:public-css && ',
+    '"test:public": "npm run audit:public-css && ',
   ]],
   'lib/content/public-copy-registry.ts': [[
     'เป้าหมายทางการเงินที่ลูกค้าต้องการให้ไปถึง",\n  "home.coreGuides.title": "คู่มือหลัก",\n  "home.latest.title": "บทความล่าสุด",\n  "home.moneyStory.description": "เกมจำลองชีวิตการเงิน 12 เดือน",\n  "home.contactBand.title": "ถ้าอยากรู้ว่าตอนนี้พร้อมแค่ไหน ทักมาคุยทาง LINE ได้เลย"\n',
@@ -101,7 +105,10 @@ export const websiteV5PhaseASources = Object.freeze({
   // BEGIN LINE chat reviewed sources
   // 2026-10-25 (owner-approved, addendum 5): additive allowlisted `panel_trigger` (dock | article_cta) on line_chat_panel_open,
   // cleared on every semantic event like the other chat dimensions. No event or mapping is renamed.
-  "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "0a71fbf0061b12a5374a927f122450ab1a7c73e41b50346b2fdc84f0d0793055" },
+  // Owner-approved 2026-10-25 (v5 extras, UAT): additive Coming Soon tokens (coming_soon_path, page_group coming_soon),
+  // cleared in the semantic layer like every other dimension. Existing events and mappings are byte-identical.
+  // v5 integration (2026-10-25): the reviewed successor is the merge of both additive sets (no other line differs).
+  "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "534030c0144dd78e4c506a2c446d39c0746bda0cfc24ef6de1ccdb5d8be7dc67" },
   "features/analytics/components/GoogleAnalytics.tsx": { before: "6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a", after: "8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206" },
   "features/ci-planning/calculator/constants.ts": { before: "ccdafe5526f8dfe32d129e6f74b0f574f07dbed3aa62d6fa3eb612ed44dbd9c9", after: "0228e217aa05ca1d10deb87f1806a97e6780c467fbcd82e6d77cec08ea78fbb1" },
   "features/ci-planning/components/result/CIResult.tsx": { before: "b7c793111a1d654e89dcaf1392daf6b3b0bc53f0f310569cab465bbccdc91f85", after: "7935271a76b7830b2b6003ebeb5cde6c862c228a6401333b64ed59dd7fd96dc9" },

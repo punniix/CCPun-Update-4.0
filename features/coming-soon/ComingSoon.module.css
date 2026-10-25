@@ -1,0 +1,45 @@
+/*
+  Coming Soon (owner-approved concept, 2026-10-25, UAT). v5 tokens only; both themes come from
+  the shell. Motion: the one-time blueprint draw (stroke-dashoffset, explicitly allowed because the
+  drawing is never the LCP element) plus opacity for the pencil dot and the thank-you check.
+  Nothing else moves; prefers-reduced-motion shows the finished drawing.
+*/
+.hero { padding-block: 32px var(--v5-section-y); }
+.heroGrid { display: grid; gap: 32px; margin-top: 24px; align-items: center; }
+@media (min-width: 1024px) { .heroGrid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 64px; } }
+.heroText { min-width: 0; }
+.status { margin-top: 12px; color: var(--v5-gold-text); font-family: var(--v5-font-display); font-size: 17px; font-weight: 500; }
+.expected { margin-top: 12px; color: var(--v5-muted); font-size: var(--v5-text-meta); }
+
+.blueprint {
+  border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius-lg); background: var(--v5-card);
+  padding: 16px; max-width: 560px; width: 100%; justify-self: center;
+}
+.blueprint svg { display: block; width: 100%; height: auto; }
+.grid path { fill: none; stroke: var(--v5-border-soft); stroke-width: 1; stroke-dasharray: 2 4; }
+.stroke { fill: none; stroke: var(--v5-gold-text); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pencil { fill: var(--v5-gold-text); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .stroke { stroke-dasharray: 1; stroke-dashoffset: 1; animation: comingSoonDraw 900ms ease-out forwards; animation-delay: calc(var(--i, 0) * 70ms + 150ms); }
+  .pencil { opacity: 0; animation: comingSoonAppear 240ms ease-out 1500ms forwards; }
+  .thanks svg { opacity: 0; animation: comingSoonAppear 240ms ease-out 80ms forwards; }
+}
+@keyframes comingSoonDraw { to { stroke-dashoffset: 0; } }
+@keyframes comingSoonAppear { to { opacity: 1; } }
+
+.thanks {
+  display: flex; align-items: flex-start; gap: 12px; margin-top: 28px; padding: 16px 20px; max-width: 560px;
+  border: 1px solid var(--v5-border); border-radius: var(--v5-radius); background: var(--v5-card); color: var(--v5-text);
+  font-size: 16px; line-height: 1.6;
+}
+.thanks svg { flex: none; width: 22px; height: 22px; margin-top: 2px; }
+.thanks svg path { fill: none; stroke: var(--v5-gold-text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.meanwhile {
+  display: grid; gap: 12px; justify-items: start; margin-top: var(--v5-head-gap); padding: 24px; max-width: 760px;
+  background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius);
+}
+.meanwhile p { color: var(--v5-muted); font-size: 16px; line-height: 1.7; }
+.meanwhile .h3, .meanwhile h3 { font-size: 20px; }
+@media (max-width: 479px) { .meanwhile > a { width: 100%; } }
