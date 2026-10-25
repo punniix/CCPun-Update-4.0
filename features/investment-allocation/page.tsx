@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
@@ -6,8 +7,10 @@ import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5ToolHero, v5ToolStyles } from "@/components/layout/v5/V5ToolParts";
 import motionStyles from "@/components/ui/FunctionalMotion.module.css";
+import { V5_AIA_FUND_TOOL } from "@/components/layout/v5/constants";
 import InvestmentAllocationTool from "./InvestmentAllocationTool";
 import { INVESTMENT_NO_GUARANTEE_STATEMENT } from "./domain/copy";
+import { EXCLUDE_AIA_FROM_MAIN_TOOL } from "./domain/fund-scope";
 
 const URL = "https://ccpun.com/tools/investment-allocation/";
 const DESCRIPTION = "เลือกกองทุนด้วยตัวเอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ระดับความเสี่ยงเท่าไร และขายคืนแล้วรับเงินตามเงื่อนไขแบบไหน โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ";
@@ -55,6 +58,9 @@ export default function InvestmentAllocationPage() {
           <p className={shell.lead}>ผลลัพธ์มาจากจำนวนเงินและกองทุนที่คุณเลือกเอง ระบบแสดงระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขขายคืนแยกกัน โดยไม่ตัดสินว่ากองใดเหมาะกับคุณหรือควรซื้อขายกองไหน</p>
           <p className={shell.lead}>ถ้าข้อมูลบางส่วนยังไม่พร้อม ระบบจะแจ้งตรง ๆ และจะไม่เติมข้อมูลหรือเดาแทนข้อมูลจาก ก.ล.ต.</p>
           <p className={shell.lead}>{INVESTMENT_NO_GUARANTEE_STATEMENT}</p>
+          {EXCLUDE_AIA_FROM_MAIN_TOOL ? (
+            <p className={shell.lead}>กองทุนของ บลจ. เอไอเอ แยกไว้อีกเครื่องมือหนึ่ง <Link className={shell.textLink} href={V5_AIA_FUND_TOOL.href}>ดูเครื่องมือกองทุน บลจ. เอไอเอ</Link></p>
+          ) : null}
         </div>
       </section>
     </V5Page>

@@ -14,7 +14,7 @@ import { fixtureSec, routeHandler, type Route } from "./fixtures/investment-allo
 const SCRIPT = resolve(process.cwd(), "qa/investment-allocation-live.mjs");
 
 async function serve(options: { key?: string | null; pageStatus?: number } = {}): Promise<{ server: Server; base: string }> {
-  const sec = fixtureSec();
+  const sec = fixtureSec({ aia: true });
   const limiter = new InvestmentApiRateLimiter();
   const handlers = Object.fromEntries((["amcs", "catalog", "detail", "funds"] as Route[]).map((name) => [name, routeHandler(name, sec, { lane: "web-uat", key: options.key, limiter })]));
   const server = createServer(async (req, res) => {
@@ -63,7 +63,7 @@ test("live script passes every check against a healthy SEC-backed deployment and
     const failed = report.results.filter((row: { status: string }) => row.status === "fail");
     assert.deepEqual(failed, []);
     assert.equal(code, 0);
-    assert.deepEqual(report.counts, { pass: 13, fail: 0, skip: 1 });
+    assert.deepEqual(report.counts, { pass: 14, fail: 0, skip: 1 });
     assert.equal(report.results.find((row: { status: string }) => row.status === "skip").name, "rate limit answers 429 with Retry-After");
     for (const endpoint of ["general-info/amcs", "general-info/profiles", "general-info/specifications", "factsheet/risk-spectrum", "factsheet/asset-allocation", "factsheet/subscription-redemption-periods"]) {
       assert.ok(report.results.some((row: { name: string; status: string }) => row.name.includes(endpoint) && row.status === "pass"), endpoint);
@@ -77,7 +77,7 @@ test("live script exercises the rate limit only when asked", async () => {
     const { code, stdout } = await run(["--base-url", base, "--json", "--check-rate-limit"]);
     const report = JSON.parse(stdout);
     assert.equal(code, 0, stdout);
-    assert.deepEqual(report.counts, { pass: 14, fail: 0, skip: 0 });
+    assert.deepEqual(report.counts, { pass: 15, fail: 0, skip: 0 });
   } finally { server.close(); }
 });
 

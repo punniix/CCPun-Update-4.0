@@ -4,10 +4,12 @@ import { useState } from "react";
 import PortfolioBuilder from "./PortfolioBuilder";
 import SingleFundBuilder from "./SingleFundBuilder";
 import styles from "./InvestmentAllocation.module.css";
+import type { FundScope } from "./domain/fund-scope";
 
 type JourneyMode = "single" | "portfolio";
 
-export default function InvestmentAllocationTool() {
+/** One engine for both tools; `scope` only narrows which AMCs the server returns. */
+export default function InvestmentAllocationTool({ scope = "main" }: { scope?: FundScope }) {
   const [mode, setMode] = useState<JourneyMode>("single");
 
   return (
@@ -30,7 +32,7 @@ export default function InvestmentAllocationTool() {
           </div>
         </div>
       </section>
-      {mode === "single" ? <SingleFundBuilder /> : <PortfolioBuilder />}
+      {mode === "single" ? <SingleFundBuilder scope={scope} /> : <PortfolioBuilder scope={scope} />}
     </>
   );
 }

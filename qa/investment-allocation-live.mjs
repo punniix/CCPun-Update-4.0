@@ -140,6 +140,17 @@ async function main() {
     return { detail: `${result.body.items.length} funds` };
   });
 
+  // บลจ. เอไอเอ fund tool (2026-10-26): the AIA AMC id is resolved from live SEC AMC names.
+  await check('AIA scope: /tools/aia-fund-allocation/ catalog lists only บลจ. เอไอเอ; the main catalog excludes it', async () => {
+    const aia = await get('/api/investment-allocation/catalog/?scope=aia&limit=40');
+    expectLiveJson(aia, 'catalog scope=aia');
+    expect(aia.body.items.length > 0, `no บลจ. เอไอเอ funds (${aia.body.message ?? 'no message'})`);
+    expect(typeof aia.body.amcId === 'string' && aia.body.items.every((item) => item.amcId === aia.body.amcId), 'AIA catalog mixes AMCs');
+    // Reuses the main equity catalog page from the first check (no extra SEC quota).
+    expect(!(state.equity ?? []).some((item) => item.amcId === aia.body.amcId), 'main catalog lists a บลจ. เอไอเอ fund');
+    return { detail: `AIA AMC ${aia.body.amcId}: ${aia.body.items.length} funds` };
+  });
+
   const detailNames = SEC_DETAIL_ENDPOINTS.map(([key, endpoint]) => `SEC ${endpoint} via /detail (${key})`);
   if (!state.equity?.length) {
     for (const name of detailNames) skip(name, 'no fund from the catalog check to look up');

@@ -6,6 +6,7 @@ import { planningFundFromDetail } from "./domain/detail-to-planning";
 import type { AllocationRow, AssetBucket, ConstructionBucket, FundDetailResponse, FundSearchResponse, InvestmentPlanResult, PlanningFund, SelectedFund } from "./domain/types";
 import styles from "./InvestmentAllocation.module.css";
 import { INVESTMENT_RISK_STATEMENT, requestFailureMessage } from "./domain/copy";
+import { type FundScope, withFundScope } from "./domain/fund-scope";
 
 const CONSTRUCTION_LABELS: Record<ConstructionBucket, string> = {
   mixed: "กองทุนผสม",
@@ -60,7 +61,7 @@ function stepCopy(step: number) {
   return { title: "ภาพรวมจากสิ่งที่คุณเลือก", body: "ผลลัพธ์ช่วยให้เห็นโครงสร้าง ความเสี่ยง และเงื่อนไขจากข้อมูลที่มี โดยไม่บอกว่าควรซื้อหรือขายอะไร" };
 }
 
-export default function PortfolioBuilder() {
+export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope }) {
   const [step, setStep] = useState(1);
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [construction, setConstruction] = useState(initialConstruction);
@@ -136,7 +137,7 @@ export default function PortfolioBuilder() {
     setSearching(true);
     setSearchState(null);
     try {
-      const response = await fetch(`/api/investment-allocation/funds/?q=${encodeURIComponent(trimmed)}`, { method: "GET", headers: { Accept: "application/json" } });
+      const response = await fetch(`/api/investment-allocation/funds/?q=${encodeURIComponent(trimmed)}${scope === "main" ? "" : `&${withFundScope(new URLSearchParams(), scope)}`}`, { method: "GET", headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`funds_${response.status}`);
       const data = await response.json() as FundSearchResponse;
       if (request !== searchRequest.current) return;
@@ -162,7 +163,7 @@ export default function PortfolioBuilder() {
     setSaveStatus(null);
     setSelectedDetails((current) => ({ ...current, [fund.id]: { state: "loading", detail: current[fund.id]?.detail ?? null, requestedClass } }));
     try {
-      const params = new URLSearchParams({ proj_id: fund.projectId });
+      const params = withFundScope(new URLSearchParams({ proj_id: fund.projectId }), scope);
       if (requestedClass) params.set("class_name", requestedClass);
       const response = await fetch(`/api/investment-allocation/detail/?${params}`, { headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`detail_${response.status}`);

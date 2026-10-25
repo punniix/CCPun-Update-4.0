@@ -13,6 +13,10 @@ export async function GET(request: Request) {
   if (limited) return limited;
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim() ?? "";
+  // Tool scope (owner request 2026-10-26): absent = main tool, "aia" = บลจ. เอไอเอ tool.
+  const scopeRaw = url.searchParams.get("scope");
+  if (scopeRaw !== null && scopeRaw !== "main" && scopeRaw !== "aia") return Response.json({ error: "scope_invalid" }, { status: 400, headers: NO_STORE });
+  const scope = scopeRaw === "aia" ? "aia" : "main";
   if (!query) {
     return Response.json({ error: "query_required" }, { status: 400, headers: NO_STORE });
   }
@@ -20,7 +24,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "query_too_long" }, { status: 400, headers: NO_STORE });
   }
   const { searchPlanningFunds } = await import("@/features/investment-allocation/server/sec-v2");
-  const result = await searchPlanningFunds(query);
+  const result = await searchPlanningFunds(query, scope);
   return Response.json(result, {
     status: 200,
     headers: {

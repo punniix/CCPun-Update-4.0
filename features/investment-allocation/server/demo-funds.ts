@@ -1,4 +1,5 @@
 import { normalizeLiquidity } from "../domain/calculation";
+import { amcAllowedInScope, type FundScope } from "../domain/fund-scope";
 import type { PlanningFund } from "../domain/types";
 
 const FETCHED_AT = "2026-09-17T00:00:00.000Z";
@@ -114,6 +115,42 @@ export const UAT_SYNTHETIC_FUNDS: PlanningFund[] = [
     state: "partial",
     notes: ["มีเพียง 60% ขององค์ประกอบสินทรัพย์ที่ระบุได้ เพื่อทดสอบ unknown coverage"],
   }),
+  // Synthetic stand-ins for บลจ. เอไอเอ so the AIA tool works offline in UAT/demo mode.
+  // Not real AIA funds: names, codes and facts are invented test data.
+  demoFund({
+    id: "uat-aia-equity-01",
+    projectId: "UAT-AIA-EQUITY-01",
+    className: "UAT-AIA-EQ-A",
+    name: "UAT กองหุ้นตัวอย่าง (บลจ. เอไอเอ สังเคราะห์)",
+    shortName: "UAT-AIA-EQ-A",
+    constructionBucket: "equity",
+    policyText: "ข้อมูลสังเคราะห์: กองหุ้นสำหรับทดสอบเครื่องมือกองทุน บลจ. เอไอเอ ไม่ใช่กองทุนจริง",
+    riskSpectrum: 6,
+    assetAllocation: [
+      { asset: "equity", percent: 95, label: "หุ้น (UAT)", sourceDate: SOURCE_DATE },
+      { asset: "cash", percent: 5, label: "เงินฝาก/เงินสด (UAT)", sourceDate: SOURCE_DATE },
+    ],
+    liquidityText: "T+4",
+    feeSummary: null,
+    masterFund: null,
+  }),
+  demoFund({
+    id: "uat-aia-fixed-01",
+    projectId: "UAT-AIA-FIXED-01",
+    className: "UAT-AIA-FI-A",
+    name: "UAT กองตราสารหนี้ตัวอย่าง (บลจ. เอไอเอ สังเคราะห์)",
+    shortName: "UAT-AIA-FI-A",
+    constructionBucket: "fixed_income",
+    policyText: "ข้อมูลสังเคราะห์: กองตราสารหนี้สำหรับทดสอบเครื่องมือกองทุน บลจ. เอไอเอ ไม่ใช่กองทุนจริง",
+    riskSpectrum: 4,
+    assetAllocation: [
+      { asset: "fixed_income", percent: 92, label: "ตราสารหนี้ (UAT)", sourceDate: SOURCE_DATE },
+      { asset: "cash", percent: 8, label: "เงินฝาก/เงินสด (UAT)", sourceDate: SOURCE_DATE },
+    ],
+    liquidityText: "T+2",
+    feeSummary: null,
+    masterFund: null,
+  }),
   demoFund({
     id: "uat-other-01",
     projectId: "UAT-OTHER-01",
@@ -130,10 +167,33 @@ export const UAT_SYNTHETIC_FUNDS: PlanningFund[] = [
   }),
 ];
 
-export function searchDemoFunds(query: string): PlanningFund[] {
+export type SyntheticAmc = { id: string; nameTh: string; nameEn: string | null };
+
+/** The synthetic AMC every non-AIA demo fund belongs to. */
+export const UAT_SYNTHETIC_AMC: SyntheticAmc = { id: "UAT-AMC", nameTh: "UAT Asset Management (ข้อมูลสังเคราะห์)", nameEn: null };
+
+/** Synthetic AIA AMC (UAT/demo only, never a live fallback). Its names match isAiaAmcName like the real one. */
+export const UAT_SYNTHETIC_AIA_AMC: SyntheticAmc = {
+  id: "UAT-AIA-AMC",
+  nameTh: "บลจ. เอไอเอ (ข้อมูลสังเคราะห์ UAT)",
+  nameEn: "AIA Investment Management (UAT synthetic)",
+};
+
+const UAT_SYNTHETIC_AIA_PROJECT_IDS = new Set(["UAT-AIA-EQUITY-01", "UAT-AIA-FIXED-01"]);
+
+export function syntheticAmcFor(projectId: string): SyntheticAmc {
+  return UAT_SYNTHETIC_AIA_PROJECT_IDS.has(projectId) ? UAT_SYNTHETIC_AIA_AMC : UAT_SYNTHETIC_AMC;
+}
+
+export function syntheticFundInScope(projectId: string, scope: FundScope): boolean {
+  const amc = syntheticAmcFor(projectId);
+  return amcAllowedInScope(scope, amc.nameTh, amc.nameEn);
+}
+
+export function searchDemoFunds(query: string, scope: FundScope = "main"): PlanningFund[] {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return [];
-  return UAT_SYNTHETIC_FUNDS.filter((fund) => {
+  return UAT_SYNTHETIC_FUNDS.filter((fund) => syntheticFundInScope(fund.projectId, scope)).filter((fund) => {
     const haystack = `${fund.name} ${fund.shortName} ${fund.projectId}`.toLowerCase();
     return haystack.includes(normalized) || normalized === "uat" || normalized === "demo" || normalized === "ตัวอย่าง";
   });

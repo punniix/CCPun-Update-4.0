@@ -37,7 +37,8 @@ import {
 } from "../features/investment-allocation/domain/copy";
 import { planningFundFromDetail } from "../features/investment-allocation/domain/detail-to-planning";
 import { encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor } from "../features/investment-allocation/server/catalog-cursor";
-import { searchDemoFunds, UAT_SYNTHETIC_FUNDS } from "../features/investment-allocation/server/demo-funds";
+import { searchDemoFunds, syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC, UAT_SYNTHETIC_FUNDS } from "../features/investment-allocation/server/demo-funds";
+import { amcAllowedInScope, EXCLUDE_AIA_FROM_MAIN_TOOL, isAiaAmcName, withFundScope } from "../features/investment-allocation/domain/fund-scope";
 import type { FundCatalogCategory, FundCatalogSubcategory, FundDetailResponse, PlanningFund, SelectedFund } from "../features/investment-allocation/domain/types";
 
 const CATEGORIES: FundCatalogCategory[] = ["equity", "mixed", "fixed_income", "alternative", "other"];
@@ -378,9 +379,38 @@ test("synthetic UAT funds are internally consistent and clearly labelled", () =>
 test("searchDemoFunds matches name, short name or project and the generic demo keywords", () => {
   assert.deepEqual(searchDemoFunds(""), []);
   assert.deepEqual(searchDemoFunds("   "), []);
-  assert.equal(searchDemoFunds("uat").length, UAT_SYNTHETIC_FUNDS.length);
-  assert.equal(searchDemoFunds("ตัวอย่าง").length, UAT_SYNTHETIC_FUNDS.length);
+  // Main scope excludes the synthetic บลจ. เอไอเอ funds; the AIA scope returns only those.
+  const aiaIds = UAT_SYNTHETIC_FUNDS.filter((fund) => syntheticAmcFor(fund.projectId) === UAT_SYNTHETIC_AIA_AMC).map((fund) => fund.id);
+  assert.deepEqual(aiaIds, ["uat-aia-equity-01", "uat-aia-fixed-01"]);
+  for (const keyword of ["uat", "ตัวอย่าง"]) {
+    assert.deepEqual(searchDemoFunds(keyword).map((fund) => fund.id), UAT_SYNTHETIC_FUNDS.filter((fund) => !aiaIds.includes(fund.id)).map((fund) => fund.id), keyword);
+    assert.deepEqual(searchDemoFunds(keyword, "aia").map((fund) => fund.id), aiaIds, keyword);
+  }
+  for (const id of aiaIds) assert.match(UAT_SYNTHETIC_FUNDS.find((fund) => fund.id === id)!.provenance.notes[0], /ข้อมูลสังเคราะห์/, `${id} is marked synthetic`);
   const first = UAT_SYNTHETIC_FUNDS[0];
   assert.ok(searchDemoFunds(first.projectId.toLowerCase()).some((fund) => fund.id === first.id));
   assert.deepEqual(searchDemoFunds("no-such-fund-xyz"), []);
+});
+
+test("isAiaAmcName matches บลจ. เอไอเอ by SEC names only; the scope constant drives both tools", () => {
+  for (const [th, en] of [
+    ["บริษัทหลักทรัพย์จัดการกองทุน เอไอเอ (ประเทศไทย) จำกัด", null],
+    ["บลจ. เอไอเอ", "AIA Investment Management (Thailand) Limited"],
+    [null, "AIA Investment Management (Thailand) Limited"],
+    ["", "aia asset management company"],
+  ] as const) assert.equal(isAiaAmcName(th, en), true, `${th} / ${en}`);
+  for (const [th, en] of [
+    ["บลจ. กรุงสยาม จำกัด", "Krungsiam Asset Management"],
+    ["บลจ. ตัวอย่าง", "MAIA Investment Management"],
+    [null, "AIA Company Limited"],
+    [null, "Asia Investment Management"],
+    [null, null],
+  ] as const) assert.equal(isAiaAmcName(th, en), false, `${th} / ${en}`);
+  assert.equal(EXCLUDE_AIA_FROM_MAIN_TOOL, true);
+  assert.equal(amcAllowedInScope("main", "บลจ. เอไอเอ"), false);
+  assert.equal(amcAllowedInScope("main", "บลจ. กรุงสยาม จำกัด"), true);
+  assert.equal(amcAllowedInScope("aia", "บลจ. เอไอเอ"), true);
+  assert.equal(amcAllowedInScope("aia", "บลจ. กรุงสยาม จำกัด"), false);
+  assert.equal(withFundScope(new URLSearchParams({ q: "x" }), "main").toString(), "q=x");
+  assert.equal(withFundScope(new URLSearchParams({ q: "x" }), "aia").toString(), "q=x&scope=aia");
 });

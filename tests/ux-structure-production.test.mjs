@@ -137,22 +137,28 @@ const gatedInvestmentEntries = [
   'apps/web/app/api/investment-allocation/catalog/route.ts',
   'apps/web/app/api/investment-allocation/detail/route.ts',
   'apps/web/app/api/investment-allocation/funds/route.ts',
+  'apps/web/app/tools/aia-fund-allocation/page.tsx',
   'apps/web/app/tools/investment-allocation/page.tsx',
 ];
+// บลจ. เอไอเอ fund tool (owner request 2026-10-26): same feature, same server flag, own page owner.
+const gatedInvestmentPageOwners = {
+  'apps/web/app/tools/investment-allocation/page.tsx': 'features/investment-allocation/page.tsx',
+  'apps/web/app/tools/aia-fund-allocation/page.tsx': 'features/investment-allocation/aia-page.tsx',
+};
 
 test('all actual Root/Web entry imports exclude UAT content and separated Investment features', () => {
   const entries = files('apps/web/app').filter(file => /(?:page|route|layout|not-found|robots)\.[jt]sx?$/.test(file));
-  const investmentEntries = entries.filter(file => file.includes('investment-allocation'));
+  const investmentEntries = entries.filter(file => file.includes('investment-allocation') || file.includes('aia-fund-allocation'));
   assert.deepEqual([...investmentEntries].sort(), gatedInvestmentEntries, 'only the reviewed gated Investment entries exist');
   const publicRoots = ['app/layout.tsx','app/page.tsx','app/blog/page.tsx','app/blog/[category]/page.tsx','app/blog/[category]/[slug]/page.tsx','app/ci-planning/page.tsx','app/tools/financial-health-check/page.tsx','app/play/money-story/page.tsx','app/cookie-policy/page.tsx','app/privacy/page.tsx','app/not-found.tsx','app/sitemap.xml/route.ts','app/sitemaps/core.xml/route.ts','app/sitemaps/blog.xml/route.ts','app/sitemaps/tools.xml/route.ts'];
   assert(entries.length > 10);
   for (const file of closure([...entries.filter(file => !investmentEntries.includes(file)), ...publicRoots])) assert.doesNotMatch(file, forbidden, file);
   for (const file of closure(investmentEntries)) assert.doesNotMatch(file, /(?:uat-tax-table-fixture|uat-public-article-snapshots|uat-public-snapshot)/, file);
   for (const file of gatedInvestmentEntries) {
-    const owner = file.endsWith('page.tsx') ? 'features/investment-allocation/page.tsx' : file;
+    const owner = gatedInvestmentPageOwners[file] ?? file;
     assert.match(read(owner), /if \(!INVESTMENT_ALLOCATION_ENABLED\) (?:notFound\(\);|\{)/, `${file} must close before rendering or SEC access`);
   }
-  for (const directory of ['app/tools/investment-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
+  for (const directory of ['app/tools/investment-allocation','app/tools/aia-fund-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
   for (const file of ['lib/content/uat-tax-table-fixture.ts','lib/content/uat-tax-table-fixture.json','lib/content/uat-public-article-snapshots.json']) assert.equal(existsSync(resolve(root, file)), false, file);
 });
 
@@ -188,7 +194,7 @@ test('Investment release capability stays off in Production unless exactly 1 and
       if (value === undefined) delete process.env[name]; else process.env[name] = value;
     }
   }
-  for (const file of ['components/layout/website-43/Website43Navbar.tsx','components/layout/website-43/Website43Shared.tsx','features/home/website-43/Website43Home.tsx','features/home/website-43/Website43HomeStatic.tsx','lib/nav-config.json','public/nav-config.json', ...files('apps/web/app/sitemaps')]) assert.doesNotMatch(read(file), /investment-allocation|INVESTMENT_TOOL_LINK/, file);
+  for (const file of ['components/layout/website-43/Website43Navbar.tsx','components/layout/website-43/Website43Shared.tsx','features/home/website-43/Website43Home.tsx','features/home/website-43/Website43HomeStatic.tsx','lib/nav-config.json','public/nav-config.json', ...files('apps/web/app/sitemaps')]) assert.doesNotMatch(read(file), /investment-allocation|aia-fund-allocation|INVESTMENT_TOOL_LINK|V5_AIA_FUND_TOOL/, file);
 });
 
 function packageBeforePostPublishScripts(source) {
