@@ -379,6 +379,10 @@ test("Phase B performance budget: three Kanit weights, one preloaded LCP face, t
   assert.equal((layout.match(/preload: true/g) ?? []).length, 1, "exactly one preloaded font face (500), Thai + Latin subset files");
   const parts = read("components/layout/v5/V5ToolParts.tsx");
   assert.doesNotMatch(parts, /next\/image|<img/, "tool heroes have no image, so the H1 is the LCP element");
+  // 2026-10-26: on phones the hero lead (18px / 2.0) out-paints the cookie notice description on CI, FHC and /tools/.
+  const toolCss = read("components/layout/v5/V5Tool.module.css");
+  assert.match(toolCss, /\.heroLead \{ color: var\(--v5-muted\); font-size: clamp\(17px, 1\.7vw, 19px\); line-height: 1\.75;/);
+  assert.match(toolCss, /@media \(max-width: 639px\) \{ \.heroLead \{ font-size: 18px; line-height: 2; \} \}/, "phone hero lead stays the LCP candidate ahead of the cookie notice");
   const countdown = read("components/ui/health-happy/HealthHappyCountdown.tsx");
   assert.doesNotMatch(countdown, /preload\(/, "the decorative countdown artwork no longer competes with the /blog/ LCP image");
   assert.match(countdown, /trackEvent\('health_happy_countdown_view'/);
