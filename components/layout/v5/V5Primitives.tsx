@@ -4,6 +4,14 @@ import type { ReactNode } from "react";
 import styles from "./V5.module.css";
 import { V5_LINE_URL } from "./constants";
 
+/**
+ * Link and action labels without a typed arrow (audit #10): screen readers announce "→" as
+ * "right arrow", and the verb already says where the link goes. CMS wording is otherwise kept.
+ */
+export function v5Label(value: string) {
+  return value.replace(/\s*→\s*$/u, "").trim();
+}
+
 export type V5Crumb = { href?: string; label: ReactNode };
 
 /** Visible breadcrumbs; BreadcrumbList JSON-LD stays with the existing schema builders. */

@@ -76,8 +76,8 @@ export const websiteV5PhaseASources = Object.freeze({
   "components/ui/health-happy/HealthHappyCountdown.tsx": { before: "e332ed447c376433404b8f80958edb833671f9983083605d4433b415c32aac05", after: "9c5bc7b625a49755d3be90ef885e4cb3bade1d9bf9fb0fff2ea68f8e609d1618" },
   // Design QA 2026-10-25 (UAT): countdown labels read at 14px on phones (were 12/13px) and the frame
   // radii follow the v5 scale (16/12px); the reviewed v5 successor digest moves to this exact file.
-  // 2026-10-25 UX fixes (owner-approved #4): AIA red per theme, 15px buttons, tabular numerals, 4px label gap.
-  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "3e41b91b99a4dc90282448a75ef3af8d8a3ea92472ec4bb492c508767860cc13" },
+  // 2026-10-25 UX fixes (owner-approved #4, #8): AIA red per theme, 15px buttons, tabular numerals, spacing on the 4px scale.
+  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "5da3152bab3d94d710272e56214e7fe328993f904ae2c1be4a0efa52c30653f7" },
   "features/blog/website-43/ArticleShareActions.tsx": { before: "468315c7dc18c8b6030e8881bf6498fd5df2adc931dc5a0b48d9726c303135af", after: "79595cd57be1e6d2764661826516105ab39a6a16103783047c596f5377ab2058" },
   "features/blog/website-43/ArticleEngagement.tsx": { before: "941020bc1e53917b1fec02af8036ec4053b48e9cf4cc75abbcf41d477a5d3799", after: "146f49c1e9fd9bedacba9c9b602384dc4bd8a5581de901667d3d86b470cd772c" },
   "features/blog/website-43/ArticleDetailAccess.tsx": { before: "9b00002d896f86765bc9216adb1427454b2a734abb257b0505ca77d8f80976c9", after: "689e79413207218ecf12595b8aa08537f5c0e3d49298a16c5e59075aad56d0ed" },
@@ -147,6 +147,6 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // 2026-10-25 (owner-approved, UAT): the v5 shell gains the merged LINE chat dock, the 3-state theme
   // toggle (D2) and the /tools/ hub links (T1), so the tool/legal v5 render digests move once more.
   // 2026-10-25 UX fixes (owner decisions, UAT): no eyebrows or hero kickers on the v5 tool/legal pages.
-  v5: { "3": "d6edde7cf7df76f271cf055a5215925c6b051bb7d88b39c8d59fa7c8bda009ef", "4": "6da4a2b7ac6e551406bafcb6218da0b7373a90f47819becf96252927792fc97d", "8": "e4c8a6f198351acabb878eb83e3ba76c9fe762bd0acd3afa561eee3cd9293985", "9": "3b64ae883210cc96484ced74cf0aadebe21d3995dfbb66eca6b131f95a60c2e0", "10": "c1f29f9af7a43635b9165bc973bae046dd087341f8ab169e84e69685bf2de0b2" },
+  v5: { "3": "d6edde7cf7df76f271cf055a5215925c6b051bb7d88b39c8d59fa7c8bda009ef", "4": "d4359619c84e99efd0f344e5666c7e4afa8922d5c9d45cbd424ee7d90b6ab2d0", "8": "e4c8a6f198351acabb878eb83e3ba76c9fe762bd0acd3afa561eee3cd9293985", "9": "3b64ae883210cc96484ced74cf0aadebe21d3995dfbb66eca6b131f95a60c2e0", "10": "0557f57fbd8adad8c6934d656462feb3e8e163fd29110a354bb3a4854bdaca7a" },
   // END Phase B render goldens
 });

@@ -451,3 +451,32 @@ test("UX: tool heroes fill the wide screen and the calculator follows the hero; 
     assert.ok(Number(size) >= 14, `Investment Allocation font-size ${size}px is below 14px`);
   }
 });
+
+test("UX: v5 spacing sits on the 4px scale, headings step up, short grids adapt and link text has no typed arrow", () => {
+  const sheets = [
+    ...v5Files.filter((file) => file.endsWith(".css")),
+    "features/tools-hub/ToolsHub.module.css",
+    "components/ui/health-happy/HealthHappyCountdown.module.css",
+  ];
+  const spacing = /(?<![-\w])(?:margin|padding|gap|row-gap|column-gap|top|right|bottom|left|inset)(?:-[a-z-]+)?\s*:\s*([^;{}]+)/g;
+  for (const file of sheets) {
+    for (const [, value] of read(file).matchAll(spacing)) {
+      for (const [, px] of value.matchAll(/(\d+(?:\.\d+)?)px/g)) {
+        assert.ok(Number(px) <= 1 || Number(px) % 4 === 0, `${file}: spacing ${px}px is off the 4px scale (${value.trim()})`);
+      }
+    }
+  }
+  const shellCss = read("components/layout/v5/V5.module.css");
+  assert.match(shellCss, /\.h2 \{ font-size: clamp\(24px, 3vw, 40px\); line-height: 1\.3; \}/);
+  assert.match(shellCss, /@media \(min-width: 1024px\) \{ \.root \{ --v5-section-y: 96px;/);
+  assert.match(shellCss, /@media \(min-width: 1440px\) \{ \.root \{ --v5-section-y: 120px; \} \}/);
+  assert.match(shellCss, /:is\(\.cardGrid, \.cardGrid2\):has\(> :only-child\) \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  assert.match(shellCss, /\.cardGrid:has\(> :last-child:nth-child\(2\)\), \.cardGrid:has\(> :last-child:nth-child\(4\)\) \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
+  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.prose :is\(h2, h3, h4\) \+ \* \{ margin-top: 12px; \}/);
+  for (const file of v5PageSources) assert.doesNotMatch(read(file), /→<\/Link>|→\s*<\/a>| →</, `${file}: no typed arrow in link text`);
+  assert.match(read("components/layout/v5/V5Primitives.tsx"), /export function v5Label\(value: string\) \{\n  return value\.replace\(\/\\s\*→\\s\*\$\/u, ""\)\.trim\(\);/);
+  // Copy keys that still carry a trailing arrow in Sanity are rendered through v5Label.
+  for (const [file, key] of [["features/blog/v5/V5BlogIndex.tsx", "blog.group.viewAll"], ["features/home/v5/V5Home.tsx", "home.toolCtaAction"], ["features/tools-hub/page.tsx", "home.toolCtaAction2"], ["features/blog/v5/V5Article.tsx", "blog.articleCategory"]]) {
+    assert.match(read(file), new RegExp(`v5Label\\((?:text|home|homeText|blog)\\("${key.replace(".", "\\.")}"\\)\\)`), `${file}: ${key} goes through v5Label`);
+  }
+});

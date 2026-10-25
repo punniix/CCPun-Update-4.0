@@ -6,7 +6,7 @@ import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import Link from "next/link";
-import { V5Breadcrumbs } from "@/components/layout/v5/V5Primitives";
+import { V5Breadcrumbs, v5Label } from "@/components/layout/v5/V5Primitives";
 import { V5ToolHero } from "@/components/layout/v5/V5ToolParts";
 import { V5_INVESTMENT_TOOL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import styles from "./ToolsHub.module.css";
@@ -33,14 +33,14 @@ export async function renderToolsHubPage() {
   const site = publicCopyText(siteCopy);
   // Names and descriptions reuse the approved Home copy keys so CMS edits stay in one place.
   const tools = [
-    { href: "/ci-planning/", title: home("home.h33"), body: home("home.p6"), action: home("home.toolCtaAction2") },
-    { href: "/tools/financial-health-check/", title: home("home.h32"), body: home("home.p5"), action: home("home.toolCtaAction2") },
-    { href: "/play/money-story/", title: site("site.tools.moneyStory"), body: home("home.moneyStory.description"), action: home("home.toolCtaAction2") },
+    { href: "/ci-planning/", title: home("home.h33"), body: home("home.p6"), action: v5Label(home("home.toolCtaAction2")) },
+    { href: "/tools/financial-health-check/", title: home("home.h32"), body: home("home.p5"), action: v5Label(home("home.toolCtaAction2")) },
+    { href: "/play/money-story/", title: site("site.tools.moneyStory"), body: home("home.moneyStory.description"), action: v5Label(home("home.toolCtaAction2")) },
     ...(INVESTMENT_ALLOCATION_ENABLED ? [{
       href: V5_INVESTMENT_TOOL.href,
       title: "วางแผนกองทุน",
       body: "เลือกกองทุนเอง แล้วดูว่าเงินอยู่ในอะไร ความเสี่ยงระดับไหน และขายคืนได้แบบไหน จากข้อมูล ก.ล.ต.",
-      action: home("home.toolCtaAction2"),
+      action: v5Label(home("home.toolCtaAction2")),
     }] : []),
   ];
   const schema = {

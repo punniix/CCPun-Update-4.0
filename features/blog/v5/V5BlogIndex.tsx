@@ -8,7 +8,7 @@ import { BLOG_GROUP_MIN_ARTICLES, BLOG_START_HERE_SLUGS, type TopicLink } from "
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5ContactBand, type V5CardArticle } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5ContactBand, v5Label, type V5CardArticle } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Card, toV5Cards } from "@/components/layout/v5/article-card-data";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
@@ -127,7 +127,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                   <section key={group.id} className={styles.group} data-v5-group="" aria-labelledby={`${gridId}-title`}>
                     <div className={shell.headingRow}>
                       <h2 id={`${gridId}-title`} className={shell.h2}>{group.title} <span className={shell.count}>{text("blog.group.count").replaceAll("{0}", String(group.cards.length))}</span></h2>
-                      {group.href && <Link className={shell.textLink} href={group.href}>{text.node("blog.group.viewAll")}<span className={shell.srOnly}> {group.title}</span></Link>}
+                      {group.href && <Link className={shell.textLink} href={group.href}>{v5Label(text("blog.group.viewAll"))}<span className={shell.srOnly}> {group.title}</span></Link>}
                     </div>
                     <div id={gridId} className={`${shell.cardGrid} ${styles.groupGrid}`}>
                       {group.cards.map((card, index) => (

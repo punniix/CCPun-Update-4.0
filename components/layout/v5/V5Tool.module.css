@@ -14,17 +14,17 @@
 }
 .heroTitle { font-size: clamp(30px, 6vw, 48px); line-height: 1.3; max-width: 900px; }
 .heroTitle span { color: var(--v5-gold-text); }
-.heroSubtitle { font-size: clamp(20px, 3vw, 28px); line-height: 1.4; margin-top: 10px; }
+.heroSubtitle { font-size: clamp(20px, 3vw, 28px); line-height: 1.4; margin-top: 12px; }
 /* 17px on phones (design QA 2026-10-25): easier Thai reading, and on short heroes such as /tools/ the
    lead stays the largest early paint, so the later cookie notice never becomes the LCP element. */
 .heroLead { color: var(--v5-muted); font-size: clamp(17px, 1.7vw, 19px); line-height: 1.75; margin-top: 16px; max-width: 760px; }
-.heroMeta { color: var(--v5-muted); font-size: var(--v5-text-meta); margin-top: 14px; }
+.heroMeta { color: var(--v5-muted); font-size: var(--v5-text-meta); margin-top: 16px; }
 .heroBreadcrumbs { margin-bottom: 20px; }
 
 /* Two-column intro: heading left, story right. */
 .split { display: grid; gap: 24px 64px; }
 @media (min-width: 900px) { .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
-.story { display: grid; gap: 14px; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
+.story { display: grid; gap: 16px; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
 .story p { margin: 0; }
 
 .infoGrid { display: grid; gap: var(--v5-list-gap); margin-top: var(--v5-head-gap); grid-template-columns: minmax(0, 1fr); }
@@ -47,16 +47,16 @@
 @media (min-width: 1024px) { .calcAside { position: sticky; top: 100px; } }
 .asideCard { padding: 20px 24px; border-radius: var(--v5-radius); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
 .asideCard h3 { font-size: 17px; }
-.asideCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; margin-top: 6px; }
+.asideCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; margin-top: 8px; }
 
 /* FAQ (native details: works without JS, server-rendered answers). */
 .faq { display: grid; gap: var(--v5-list-gap); margin-top: var(--v5-head-gap); }
 .faq details { border: 1px solid var(--v5-border); border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); }
-.faq summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 14px 20px; cursor: pointer; list-style: none; font-size: 17px; font-weight: 500; font-family: var(--v5-font-display); }
+.faq summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 16px 20px; cursor: pointer; list-style: none; font-size: 17px; font-weight: 500; font-family: var(--v5-font-display); }
 .faq summary::-webkit-details-marker { display: none; }
 .faq summary::after { content: "+"; color: var(--v5-gold-text); font-size: 20px; line-height: 1; flex: none; }
 .faq details[open] summary::after { content: "–"; }
-.faq details p { padding: 0 20px 18px; color: var(--v5-muted); font-size: 15px; line-height: 1.75; }
+.faq details p { padding: 0 20px 20px; color: var(--v5-muted); font-size: 15px; line-height: 1.75; }
 
 .note { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.75; margin-top: 24px; max-width: 900px; }
 .note a, .inlineLink { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; }
@@ -83,7 +83,7 @@
   min-width: 0;
   font-family: var(--v5-font);
 }
-.calcScope [data-ui="human-centered-calculator-card"] { max-width: none; border-radius: var(--v5-radius-lg); padding: clamp(18px, 3vw, 28px); background: var(--v5-card-alt) !important; border-color: var(--v5-border-soft) !important; }
+.calcScope [data-ui="human-centered-calculator-card"] { max-width: none; border-radius: var(--v5-radius-lg); padding: clamp(20px, 3vw, 28px); background: var(--v5-card-alt) !important; border-color: var(--v5-border-soft) !important; }
 .calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]), .calcScope select { border-radius: var(--v5-radius-sm); }
 /*
   Thai readability floor inside the reused calculators (design QA 2026-10-25): Tailwind text-xs (12px)
@@ -99,7 +99,7 @@
 */
 .calcScope :global(.text-sm) { font-size: 16px; line-height: 1.6; }
 .calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), .calcScope select, .calcScope textarea { font-size: 16px; }
-.calcScope :global(:is(.gold-button, .glass-button)) { min-height: 48px; height: auto; padding: 10px 26px; font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.3; }
+.calcScope :global(:is(.gold-button, .glass-button)) { min-height: 48px; height: auto; padding: 12px 28px; font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.3; }
 .calcScope :focus-visible { outline: 3px solid var(--v5-focus); outline-offset: 2px; }
 /* Form fields: a visible edge in both themes (>= 3:1) and the focus colour while typing. */
 .calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), .calcScope select, .calcScope textarea { border: 1px solid var(--v5-field-edge); }
@@ -159,7 +159,7 @@
 @media (min-width: 1024px) { .legalGrid { grid-template-columns: 240px minmax(0, 720px); justify-content: center; gap: 56px; } }
 .toc { font-size: var(--v5-text-meta); }
 .toc h2 { font-size: 15px; margin-bottom: 8px; }
-.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 .toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--v5-muted); text-decoration: none; line-height: 1.5; }
 .toc a:hover { color: var(--v5-gold-text); }
 @media (min-width: 1024px) { .toc { position: sticky; top: 100px; align-self: start; } }
@@ -168,14 +168,14 @@
 .legalBody > p:first-child { color: var(--v5-text); }
 .legalBody section { padding-block: 28px; border-top: 1px solid var(--v5-border-soft); scroll-margin-top: 96px; }
 .legalBody h2 { color: var(--v5-text); font-size: 20px; line-height: 1.45; margin-bottom: 12px; }
-.legalBody h3 { color: var(--v5-text); font-size: 17px; margin: 18px 0 8px; }
+.legalBody h3 { color: var(--v5-text); font-size: 17px; margin: 20px 0 8px; }
 .legalBody p + p, .legalBody p + ul, .legalBody ul + p { margin-top: 12px; }
-.legalBody ul { margin: 12px 0 0; padding-left: 1.25rem; display: grid; gap: 6px; }
+.legalBody ul { margin: 12px 0 0; padding-left: 1.25rem; display: grid; gap: 8px; }
 .legalBody li::marker { color: var(--v5-gold-text); }
 .legalBody strong { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); }
 .legalBody a { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
 .legalBody table { width: 100%; border-collapse: collapse; font-size: var(--v5-text-meta); margin-top: 12px; }
-.legalBody th, .legalBody td { text-align: left; vertical-align: top; padding: 10px 12px; border: 1px solid var(--v5-border-soft); }
+.legalBody th, .legalBody td { text-align: left; vertical-align: top; padding: 12px 12px; border: 1px solid var(--v5-border-soft); }
 .legalBody th { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); background: var(--v5-card-alt); }
 .tableScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .legalBody button { min-height: 44px; }
@@ -190,10 +190,10 @@
 .msWrap.msWrap { min-height: 0; overflow-x: visible; background: transparent; font-family: var(--v5-font); }
 
 /* Cookie categories (FigCraft 11). */
-.policyCard { margin-top: 14px; padding: 18px 20px; border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
-.policyCard header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 12px; }
+.policyCard { margin-top: 16px; padding: 20px 20px; border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
+.policyCard header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 12px; }
 .policyCard header > div { flex: 1 1 220px; min-width: 0; }
-.policyTag { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 12px; border-radius: 999px; border: 1px solid var(--v5-border); color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }
+.policyTag { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--v5-border); color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }
 .policyCard header p { margin: 0; }
 .policyCard header p:first-child { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); }
 .policyCard table td:first-child { width: 9rem; color: var(--v5-text); }
@@ -217,21 +217,21 @@
 .calcScope :global(.ccpun-calculator-result-title) { margin: 8px 0 0; color: var(--w43-ink); font-size: 30px; font-weight: 500; line-height: 1.3; }
 .calcScope :global(.ccpun-calculator-result-amount) { display: block; margin-top: 12px; color: var(--w43-gold); font-size: 44px; font-weight: 500; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .calcScope :global(.ccpun-calculator-result-amount) small { font-size: 17px; font-weight: 500; }
-.calcScope :global(.ccpun-calculator-result-body) { margin: 14px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
+.calcScope :global(.ccpun-calculator-result-body) { margin: 16px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
 .calcScope :global(.ccpun-calculator-result-panel) { padding: 20px; border: 1px solid var(--w43-border); border-radius: var(--v5-radius); background: var(--v5-card-alt); }
 .calcScope :global(.ccpun-calculator-result-difference) { font-size: clamp(22px,5vw,30px); line-height: 1.25; }
 .calcScope :global(.ccpun-calculator-result-panel-title) { margin: 0; color: var(--w43-ink); font-size: 18px; font-weight: 500; line-height: 1.45; }
 .calcScope :global(.ccpun-calculator-result-rows) { border-block: 1px solid var(--w43-border); }
 .calcScope :global(.ccpun-calculator-result-breakdown) { margin: 0; border: 0; }
-.calcScope :global(.ccpun-calculator-result-row) { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--w43-border); }
+.calcScope :global(.ccpun-calculator-result-row) { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 0; border-bottom: 1px solid var(--w43-border); }
 .calcScope :global(.ccpun-calculator-result-row:last-child) { border-bottom: 0; }
 .calcScope :global(.ccpun-calculator-result-row) dt { color: var(--w43-muted); font-size: 14px; line-height: 1.5; }
 .calcScope :global(.ccpun-calculator-result-row) dd { margin: 0; color: var(--w43-ink); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
 .calcScope :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) dd { white-space: nowrap; }
-.calcScope :global(.ccpun-calculator-result-notice) { padding: 16px 18px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--v5-bg-alt); color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
-.calcScope :global(.ccpun-calculator-result-cta) { padding: 22px; border: 1px solid var(--w43-border); border-radius: var(--v5-radius); background: var(--w43-deep); text-align: center; }
-.calcScope :global(.ccpun-calculator-result-cta) h3 { margin: 14px 0 0; color: var(--w43-ink); font-size: 18px; font-weight: 500; }
-.calcScope :global(.ccpun-calculator-result-cta) p { margin: 6px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
+.calcScope :global(.ccpun-calculator-result-notice) { padding: 16px 20px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--v5-bg-alt); color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
+.calcScope :global(.ccpun-calculator-result-cta) { padding: 24px; border: 1px solid var(--w43-border); border-radius: var(--v5-radius); background: var(--w43-deep); text-align: center; }
+.calcScope :global(.ccpun-calculator-result-cta) h3 { margin: 16px 0 0; color: var(--w43-ink); font-size: 18px; font-weight: 500; }
+.calcScope :global(.ccpun-calculator-result-cta) p { margin: 8px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
 .calcScope :global(.ccpun-ci-result-cta) { text-align: left; }
 .calcScope :global(.ccpun-ci-result-cta-inner) { width: min(560px,100%); margin-inline: auto; }
 .calcScope :global(.ccpun-ci-result-cta) h3 { margin: 0; line-height: 1.45; }
@@ -241,11 +241,11 @@
 .calcScope :global(.ccpun-ci-result-cta) :global(#ci-result-image-status) { margin-top: 8px; font-size: 13px; line-height: 1.5; }
 .calcScope :global(.ccpun-ci-result-cta) :global(.ccpun-ci-result-cta-line) { margin-top: 20px; }
 .calcScope :global(.ccpun-calculator-result-method-grid) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-.calcScope :global(.ccpun-calculator-result-method) { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--v5-bg-alt); cursor: pointer; }
+.calcScope :global(.ccpun-calculator-result-method) { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--v5-bg-alt); cursor: pointer; }
 .calcScope :global(.ccpun-calculator-result-method-selected) { border-color: rgba(224,201,133,.56); background: rgba(224,201,133,.07); }
-.calcScope :global(.ccpun-calculator-result-details) { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--w43-border); }
+.calcScope :global(.ccpun-calculator-result-details) { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--w43-border); }
 .calcScope :global(.ccpun-calculator-result-details) summary { cursor: pointer; color: var(--w43-ink); font-size: 14px; font-weight: 500; }
-.calcScope :global(.ccpun-calculator-result) :global(.money-comparison) { padding: 2px 0; }
+.calcScope :global(.ccpun-calculator-result) :global(.money-comparison) { padding: 4px 0; }
 .calcScope :global(.ccpun-calculator-result) :global(.money-comparison) dl { border-color: var(--w43-border); background: var(--v5-bg-alt); }
 @media (max-width: 639px) {
   .calcScope :global(.ccpun-calculator-result-lead) { padding: 20px; }

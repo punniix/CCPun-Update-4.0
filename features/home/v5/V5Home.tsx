@@ -7,7 +7,7 @@ import { HOME_CORE_GUIDE_SLUGS } from "@/lib/content/topic-navigation";
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5ContactBand, V5SectionHeading } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5ContactBand, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
 import { V5_LINE_URL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
@@ -64,10 +64,10 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
     { src: "/assets/finnomena-logo.webp", width: 200, height: 200, name: text("home.website43Homealt7"), role: text("home.span6") },
   ];
   const tools = [
-    { href: "/blog/", title: text("home.h3"), body: text("home.p4"), action: text("home.toolCtaAction"), label: text("home.website43Homearialabel") },
-    { href: "/tools/financial-health-check/", title: text("home.h32"), body: text("home.p5"), action: text("home.toolCtaAction2"), label: text("home.website43Homearialabel2") },
-    { href: "/ci-planning/", title: text("home.h33"), body: text("home.p6"), action: text("home.toolCtaAction2"), label: text("home.website43Homearialabel3") },
-    { href: "/play/money-story/", title: siteText("site.tools.moneyStory"), body: text("home.moneyStory.description"), action: text("home.toolCtaAction2"), label: siteText("site.tools.moneyStory") },
+    { href: "/blog/", title: text("home.h3"), body: text("home.p4"), action: v5Label(text("home.toolCtaAction")), label: text("home.website43Homearialabel") },
+    { href: "/tools/financial-health-check/", title: text("home.h32"), body: text("home.p5"), action: v5Label(text("home.toolCtaAction2")), label: text("home.website43Homearialabel2") },
+    { href: "/ci-planning/", title: text("home.h33"), body: text("home.p6"), action: v5Label(text("home.toolCtaAction2")), label: text("home.website43Homearialabel3") },
+    { href: "/play/money-story/", title: siteText("site.tools.moneyStory"), body: text("home.moneyStory.description"), action: v5Label(text("home.toolCtaAction2")), label: siteText("site.tools.moneyStory") },
   ];
   const coreGuides = toV5Cards(HOME_CORE_GUIDE_SLUGS.map((slug) => articles.find((article) => article.slug === slug)).filter((article): article is Article => Boolean(article)), {});
   const latest = toV5Cards(newestFirst(articles).slice(0, 3), {});
@@ -160,7 +160,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
               </div>
             ))}
           </div>
-          <p><Link className={shell.textLink} href={V5_TOOLS_HUB.href}>ดูเครื่องมือทั้งหมด →</Link></p>
+          <p><Link className={shell.textLink} href={V5_TOOLS_HUB.href}>ดูเครื่องมือทั้งหมด</Link></p>
 
           {coreGuides.length > 0 && <div style={{ marginTop: 64 }} aria-labelledby="home-core-guides" role="region">
             <h2 id="home-core-guides" className={shell.h2}>{text.node("home.coreGuides.title")}</h2>
@@ -179,7 +179,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
         <div className={shell.inner}>
           <div className={shell.headingRow}>
             <h2 id="home-latest" className={shell.h2}>{text.node("home.latest.title")}</h2>
-            <Link className={shell.textLink} href="/blog/">{text.node("home.toolCtaAction")}</Link>
+            <Link className={shell.textLink} href="/blog/">{v5Label(text("home.toolCtaAction"))}</Link>
           </div>
           <div className={shell.cardGrid}>{latest.map((card) => <V5ArticleCard key={card.id} article={card} />)}</div>
         </div>

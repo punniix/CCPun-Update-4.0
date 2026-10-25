@@ -10,7 +10,7 @@ import { getTopicFeaturedLink } from "@/lib/content/topic-navigation";
 import type { Article } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5Breadcrumbs, V5ContactBand, V5SectionHeading } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5Breadcrumbs, V5ContactBand, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
 import { toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
@@ -82,12 +82,12 @@ export default async function V5Article({ article, relatedArticles = [], allArti
       const tool = V5_TOOL_LINKS.find((item) => item.id === step.tool)!;
       const ciLink = getTopicFeaturedLink("critical-illness-insurance");
       const body = step.tool === "ci" ? (ciLink?.description ?? homeText("home.p6")) : step.tool === "fhc" ? homeText("home.p5") : homeText("home.moneyStory.description");
-      return [{ key: tool.id, href: tool.href, title: siteText(tool.navKey), body, action: homeText("home.toolCtaAction2"), ci: step.tool === "ci", external: false }];
+      return [{ key: tool.id, href: tool.href, title: siteText(tool.navKey), body, action: v5Label(homeText("home.toolCtaAction2")), ci: step.tool === "ci", external: false }];
     }
     if (step.kind === "article") {
       const target = allArticles.find((candidate) => candidate.slug === step.slug && candidate.status === "published");
       if (!target) return [];
-      return [{ key: target.slug, href: getArticlePath(target), title: target.title, body: target.excerpt, action: text("blog.articleCategory"), ci: false, external: false }];
+      return [{ key: target.slug, href: getArticlePath(target), title: target.title, body: target.excerpt, action: v5Label(text("blog.articleCategory")), ci: false, external: false }];
     }
     // LINE next step: the gold contact band directly below is the CTA, so no duplicate card.
     return [] as Array<{ key: string; href: string; title: string; body: string; action: string; ci: boolean; external: boolean }>;
@@ -157,7 +157,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
                 <Image src={author.avatar.src} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} sizes="88px" loading="lazy" />
                 <div><p className={styles.authorName}>{author.name}</p><p className={styles.authorRole}>{author.role}</p></div>
                 <p className={styles.authorBio}>{author.bio}</p>
-                <Link className={`${shell.textLink} ${styles.authorLink}`} href={author.ctaUrl}>{author.ctaLabel} →</Link>
+                <Link className={`${shell.textLink} ${styles.authorLink}`} href={author.ctaUrl}>{v5Label(author.ctaLabel)}</Link>
               </div>
             </div>
           </section>

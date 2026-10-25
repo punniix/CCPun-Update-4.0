@@ -6,18 +6,18 @@
 .frame {
   isolation: isolate; position: relative; overflow: hidden; width: min(1280px,100%); margin-inline: auto;
   display: grid; grid-template-columns: minmax(0,1.15fr) minmax(305px,1.15fr) minmax(205px,.70fr);
-  align-items: center; column-gap: clamp(14px,2vw,32px); padding: 22px 26px;
+  align-items: center; column-gap: clamp(16px,2vw,32px); padding: 24px 28px;
   border: 1px solid var(--v5-border-soft, #5b4848); border-radius: var(--v5-radius-lg, 16px);
   background: var(--v5-card, #352727); color: var(--v5-text, #faf9f9);
 }
 .info { min-width: 0; }
-.brandLine { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; line-height: 1.2; }
+.brandLine { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; line-height: 1.2; }
 /* AIA red per theme so the wordmark text passes 4.5:1 on the card (audit #4): #f2687f dark (4.8:1), #c8102e light (5.0:1). */
 .brandAia { color: #f2687f; font-size: 15px; font-weight: 500; letter-spacing: .02em; }
 :global(html[data-theme="light"]) .brandAia { color: #c8102e; }
 .brandName { font-size: clamp(18px,1.8vw,22px); font-weight: 500; letter-spacing: .01em; font-family: var(--v5-font-display, inherit); }
-.headline { margin: 6px 0 0; color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.55; }
-.date { margin: 6px 0 0; color: var(--v5-gold-text, #e0c985); font-size: clamp(22px,2.3vw,28px); font-weight: 500; line-height: 1.35; font-family: var(--v5-font-display, inherit); }
+.headline { margin: 8px 0 0; color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.55; }
+.date { margin: 8px 0 0; color: var(--v5-gold-text, #e0c985); font-size: clamp(22px,2.3vw,28px); font-weight: 500; line-height: 1.35; font-family: var(--v5-font-display, inherit); }
 .date span { white-space: nowrap; }
 .timer {
   display: flex; align-items: center; justify-content: center; min-width: 0; padding: 16px 12px;
@@ -31,9 +31,9 @@
 .colon { display: none; }
 .timeLabel { color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.6; margin-top: 4px; }
 .actions { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.actions a { width: 100%; min-width: 0; padding-inline: 14px; text-align: center; white-space: normal; }
+.actions a { width: 100%; min-width: 0; padding-inline: 16px; text-align: center; white-space: normal; }
 .primaryButton, .outlineButton {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 20px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 20px; border-radius: 999px;
   font-size: 15px; font-weight: 500; line-height: 1.35; text-decoration: none; font-family: var(--v5-font-display, inherit);
   transition: background-color 160ms ease, border-color 160ms ease;
 }
@@ -43,16 +43,16 @@
 .outlineButton:hover { border-color: var(--v5-gold, #e0c985); }
 @media (min-width: 1101px) { .frame { min-height: 150px; } }
 @media (max-width: 1100px) {
-  .frame { grid-template-columns: minmax(0,1fr) minmax(300px,1fr); row-gap: 14px; }
+  .frame { grid-template-columns: minmax(0,1fr) minmax(300px,1fr); row-gap: 16px; }
   .actions { grid-column: 1 / -1; flex-direction: row; }
   .actions a { flex: 1; }
 }
 @media (max-width: 650px) {
   .outside { padding: 12px var(--v5-gutter, 16px); }
-  .frame { grid-template-columns: minmax(0,1fr); gap: 12px; padding: 18px; border-radius: var(--v5-radius-lg, 16px); }
+  .frame { grid-template-columns: minmax(0,1fr); gap: 12px; padding: 20px; border-radius: var(--v5-radius-lg, 16px); }
   .brandName { font-size: 19px; }
-  .headline { margin-top: 3px; }
-  .date { font-size: 24px; margin-top: 3px; }
+  .headline { margin-top: 4px; }
+  .date { font-size: 24px; margin-top: 4px; }
   .timer { padding: 12px 8px; }
   .numeral { font-size: clamp(24px,8vw,32px); }
   .timeLabel { font-size: 14px; }

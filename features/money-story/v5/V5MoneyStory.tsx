@@ -4,7 +4,7 @@ import { publicCopyText, type PublicCopyValues } from '@/lib/content/public-copy
 import { PublicCopyProvider } from '@/components/ui/PublicCopyProvider';
 import V5Page from '@/components/layout/v5/V5Page';
 import shell from '@/components/layout/v5/V5.module.css';
-import { V5ArticleCard, V5ContactBand, V5SectionHeading } from '@/components/layout/v5/V5Primitives';
+import { V5ArticleCard, V5ContactBand, V5SectionHeading, v5Label } from '@/components/layout/v5/V5Primitives';
 import { V5InfoCards, V5ToolHero, v5ToolStyles as styles } from '@/components/layout/v5/V5ToolParts';
 import { toV5Cards } from '@/components/layout/v5/article-card-data';
 import { getPublishedArticles } from '@/components/layout/v5/shell-data';
@@ -57,7 +57,7 @@ export default async function V5MoneyStory({ copy, siteCopy }: { copy?: PublicCo
         <div className={shell.inner}>
           <div className={shell.headingRow}>
             <h2 id="money-story-guides" className={shell.h2}>{blog.node('blog.h22')}</h2>
-            <Link className={shell.textLink} href={`/blog/${TOOL_GUIDE_HUB.moneyStory}/`}>{blog.node('blog.group.viewAll')}</Link>
+            <Link className={shell.textLink} href={`/blog/${TOOL_GUIDE_HUB.moneyStory}/`}>{v5Label(blog('blog.group.viewAll'))}</Link>
           </div>
           <div className={shell.cardGrid}>{guides.map((card) => <V5ArticleCard key={card.id} article={card} showExcerpt />)}</div>
         </div>
