@@ -11,7 +11,6 @@ import shell from "@/components/layout/v5/V5.module.css";
 import { V5ArticleCard, V5ContactBand, v5Label, type V5CardArticle } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Card, toV5Cards } from "@/components/layout/v5/article-card-data";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
-import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
 import styles from "./V5Blog.module.css";
 import V5BlogSearch from "./V5BlogSearch";
 import V5GroupPager, { GROUP_PAGE_SIZE } from "./V5GroupPager";
@@ -117,7 +116,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
             </div>
           </section>}
 
-          <V5LegacyBridge><div data-v5-search-hide=""><V5HealthHappyCountdown placement="blog" /></div></V5LegacyBridge>
+          <div data-v5-search-hide=""><V5HealthHappyCountdown placement="blog" /></div>
 
           <section className={shell.section} aria-label={text("blog.website43BlogInteractiveText")}>
             <div className={shell.inner}>

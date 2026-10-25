@@ -413,7 +413,7 @@ test("UX: per-mode focus ring and field edge tokens; whole-card links show the r
 });
 
 test("UX: the v5 Health Happy countdown shows Thai units, an accessible AIA red and room in the article", () => {
-  const wrapper = read("components/layout/v5/V5HealthHappyCountdown.tsx");
+  const wrapper = read("components/layout/v5/V5HealthHappyCountdownLabels.tsx");
   for (const [unit, key] of [["days", "unitDays"], ["hours", "unitHours"], ["minutes", "unitMinutes"], ["seconds", "unitSeconds"]]) {
     assert.match(wrapper, new RegExp(`"site\\.campaign\\.${unit}": text\\("site\\.campaign\\.${key}"\\)`));
   }
@@ -421,7 +421,7 @@ test("UX: the v5 Health Happy countdown shows Thai units, an accessible AIA red 
   for (const line of ['"site.campaign.unitDays": "วัน"', '"site.campaign.unitHours": "ชั่วโมง"', '"site.campaign.unitMinutes": "นาที"', '"site.campaign.unitSeconds": "วินาที"']) assert.ok(defaults.includes(line), line);
   for (const file of ["features/home/v5/V5Home.tsx", "features/blog/v5/V5BlogIndex.tsx", "features/blog/v5/V5Article.tsx"]) {
     const source = read(file);
-    assert.match(source, /<V5HealthHappyCountdown placement="(home|blog|article)" \/>/, file);
+    assert.match(source, /<V5HealthHappyCountdown placement="(home|blog|article)"[^>]*\/>/, file);
     assert.doesNotMatch(source, /<HealthHappyCountdown /, `${file}: v5 never mounts the countdown without the Thai labels`);
   }
   const css = read("components/ui/health-happy/HealthHappyCountdown.module.css");
@@ -526,4 +526,25 @@ test("SEO: /about/ is the approved new owner: self canonical, core sitemap, Prof
   // No historical About URL exists, so there is no redirect to keep in step.
   const ledger = read("qa/legacy-url-ledger.json");
   assert.doesNotMatch(ledger, /about/i);
+});
+
+test("UX: after the Health Happy deadline the countdown slot renders nothing, even on cached HTML", async () => {
+  const slot = read("components/layout/v5/V5HealthHappyCountdown.tsx");
+  const deadline = slot.match(/V5_HEALTH_HAPPY_DEADLINE = "([^"]+)"/)?.[1];
+  assert.equal(deadline, "2026-11-30T23:59:59+07:00");
+  assert.ok(read("components/ui/health-happy/HealthHappyCountdown.tsx").includes(`const TARGET = Date.parse('${deadline}');`), "same deadline as the countdown component");
+  // The check runs before the slot paints (first child of the slot) and the CSS removes the whole slot.
+  assert.match(slot, /data-v5-countdown-slot="">\n      <script dangerouslySetInnerHTML=\{\{ __html: V5_HEALTH_HAPPY_ENDED_CHECK \}\} \/>/);
+  assert.match(read("components/layout/v5/V5.module.css"), /:global\(html\[data-v5-countdown-ended\]\) \.countdownSlot \{ display: none; \}/);
+  const script = JSON.parse(`"${slot.match(/V5_HEALTH_HAPPY_ENDED_CHECK = `([^`]+)`/)![1].replace("${JSON.stringify(V5_HEALTH_HAPPY_DEADLINE)}", `\\"${deadline}\\"`).replace(/"/g, '\\"').replace(/\\\\"/g, '\\"')}"`);
+  const { runInNewContext } = await import("node:vm");
+  for (const [now, ended] of [["2026-11-30T23:59:58+07:00", false], ["2026-11-30T23:59:59+07:00", true], ["2026-12-01T09:00:00+07:00", true]] as const) {
+    const attributes = new Set<string>();
+    const RealDate = Date;
+    const FakeDate = Object.assign(function () {}, { now: () => RealDate.parse(now), parse: RealDate.parse });
+    runInNewContext(script, { Date: FakeDate, document: { documentElement: { setAttribute: (name: string) => attributes.add(name) } } });
+    assert.equal(attributes.has("data-v5-countdown-ended"), ended, now);
+  }
+  // The countdown click event stays the component's own, unchanged.
+  assert.match(read("components/ui/health-happy/HealthHappyCountdown.tsx"), /trackEvent\('health_happy_countdown_click'/);
 });

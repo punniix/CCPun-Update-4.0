@@ -12,7 +12,6 @@ import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
 import { V5_LINE_URL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
-import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
 import protectionGapIcon from "../../../public/assets/website-43/icon-protection-gap.svg";
 import taxIcon from "../../../public/assets/website-43/icon-tax.svg";
 import investmentRiskIcon from "../../../public/assets/website-43/icon-investment-risk.svg";
@@ -70,7 +69,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
         </div>
       </section>
 
-      <V5LegacyBridge><V5HealthHappyCountdown placement="home" /></V5LegacyBridge>
+      <V5HealthHappyCountdown placement="home" />
 
       <section className={shell.section} aria-labelledby="home-pains">
         <div className={shell.inner}>

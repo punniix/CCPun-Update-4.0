@@ -115,7 +115,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             </div>
           </header>
 
-          {article.slug === HEALTH_HAPPY_SLUG && <V5LegacyBridge className={styles.countdownSlot}><V5HealthHappyCountdown placement="article" /></V5LegacyBridge>}
+          {article.slug === HEALTH_HAPPY_SLUG && <V5HealthHappyCountdown placement="article" className={styles.countdownSlot} />}
 
           <div className={`${shell.inner} ${styles.readingGrid}`} id={article.slug === HEALTH_HAPPY_SLUG ? "health-happy-details" : undefined}>
             {tocGroups.length > 0 && <aside className={styles.tocAside} aria-label={text("blog.website43Articlearialabel2")}>

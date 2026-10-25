@@ -287,6 +287,10 @@
 }
 .articleCard[hidden] { display: none; }
 
+/* Health Happy countdown slot: removed entirely (no reserved space) once the deadline has passed. */
+.countdownSlot { display: block; }
+:global(html[data-v5-countdown-ended]) .countdownSlot { display: none; }
+
 /*
   Bridge for reused Website 4.3 widgets (Health Happy countdown, share/engagement
   controls, table scroll hint). Their behaviour and analytics stay single-owner;
