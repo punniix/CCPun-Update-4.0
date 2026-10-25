@@ -75,7 +75,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                   <h1 id="blog-title" className={shell.h1}>{text.node("blog.activeCategoryText")}</h1>
                   <p className={styles.heroLead}>{text.node("blog.website43BlogText")}</p>
                   <p className={styles.authorChip}>
-                    <Image src={author?.profileAvatar?.src ?? "/assets/ccpun.webp"} alt="" width={72} height={72} sizes="36px" loading="lazy" />
+                    <Image src={author?.profileAvatar?.src ?? "/assets/ccpun-avatar-v5-256.png"} alt="" width={72} height={72} sizes="36px" loading="lazy" />
                     <span>{authorName}</span>
                   </p>
                 </div>
