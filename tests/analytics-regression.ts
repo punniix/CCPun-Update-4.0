@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { getDeviceType, getGAAttribution } from '../lib/acquisition';
 import { buildSemanticDataLayerEvent, CCPUN_SITE_VERSION, clearPendingAnalyticsEvents, flushPendingAnalyticsEvents, getCIPlanningPageVersion, resolveEventMapping, sanitizeEventParams, trackEvent } from '../lib/analytics';
@@ -119,6 +120,16 @@ for (const location of ['chat_panel', 'chat_button', 'tools_hub']) {
   assert.equal(sanitizeEventParams({ cta_location: location }).cta_location, location, `approved CTA location ${location}`);
 }
 assert.equal(sanitizeEventParams({ surface_group: 'tools' }).surface_group, 'tools', 'the /tools/ hub has its own approved surface');
+// AIA fund tool (2026-10-26): its LINE clicks reuse the existing line_oa_click with the main tool's "tools" surface.
+// Exact before -> after admission: removing only the AIA clause restores the previous reviewed successor byte for byte.
+{
+  const gaSource = readFileSync('features/analytics/components/GoogleAnalytics.tsx', 'utf8');
+  const aiaClause = " || path.startsWith('/tools/aia-fund-allocation')";
+  assert.equal(gaSource.split(aiaClause).length, 2, 'the AIA path clause occurs exactly once');
+  assert.match(gaSource, /: path === '\/tools' \|\| path === '\/tools\/' \|\| path\.startsWith\('\/tools\/investment-allocation'\) \|\| path\.startsWith\('\/tools\/aia-fund-allocation'\) \? 'tools'\n/, 'the AIA fund tool joins the existing tools surface, nothing else');
+  assert.equal(createHash('sha256').update(gaSource.replace(aiaClause, '')).digest('hex'), '8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206', 'no other GoogleAnalytics.tsx byte changed');
+  assert.match(gaSource, /trackEvent\('line_oa_click', \{/, 'the event name is unchanged');
+}
 {
   const model: Record<string, string | number | null> = {};
   Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel', chat_topic_id: 'tax-deduction', page_group: 'home', campaign_code: 'bio-facebook' }), { analytics: true, social: false }));

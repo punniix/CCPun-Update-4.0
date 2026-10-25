@@ -212,6 +212,7 @@ test("page groups come from the physical path", () => {
   assert.deepEqual(chatContextForPath("/tools/financial-health-check/"), { pageGroup: "tool_fhc" });
   assert.deepEqual(chatContextForPath("/play/money-story/"), { pageGroup: "tool_money_story" });
   assert.deepEqual(chatContextForPath("/tools/investment-allocation/"), { pageGroup: "tool_investment_allocation" });
+  assert.deepEqual(chatContextForPath("/tools/aia-fund-allocation/"), { pageGroup: "tool_investment_allocation" }, "the AIA fund tool shares the main tool's page group");
   assert.deepEqual(chatContextForPath("/tools/"), { pageGroup: "tools_hub" });
   assert.deepEqual(chatContextForPath("/about/"), { pageGroup: "about" });
   assert.deepEqual(chatContextForPath(undefined), { pageGroup: "default" });

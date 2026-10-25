@@ -65,7 +65,7 @@ export default function GoogleAnalytics({ gaId }: { gaId: string }) {
         // v5 (owner-approved 2026-10-25): the GTM lin.ee click tag is paused, so these pages need
         // their own semantic line_oa_click too.
         : path.startsWith('/play/money-story') ? 'money_story'
-        : path === '/tools' || path === '/tools/' || path.startsWith('/tools/investment-allocation') ? 'tools'
+        : path === '/tools' || path === '/tools/' || path.startsWith('/tools/investment-allocation') || path.startsWith('/tools/aia-fund-allocation') ? 'tools'
         : null;
       const campaign = link.closest<HTMLElement>('[data-campaign="aia-health-happy-2026"]');
       const placement = campaign?.dataset.campaignPlacement;

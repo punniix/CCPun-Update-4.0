@@ -339,6 +339,8 @@ const FIXED_PATH_GROUPS: Record<string, LineChatFixedPageGroup> = {
   "/tools/financial-health-check/": "tool_fhc",
   "/play/money-story/": "tool_money_story",
   "/tools/investment-allocation/": "tool_investment_allocation",
+  // บลจ. เอไอเอ fund tool (2026-10-26): same engine, so the same page group and "tools" surface as the main tool.
+  "/tools/aia-fund-allocation/": "tool_investment_allocation",
   "/tools/": "tools_hub",
   // The /about/ page (owner-approved new URL 2026-10-25) uses its own shipped "about" placement.
   "/about/": "about",

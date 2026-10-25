@@ -109,7 +109,12 @@ export const websiteV5PhaseASources = Object.freeze({
   // cleared in the semantic layer like every other dimension. Existing events and mappings are byte-identical.
   // v5 integration (2026-10-25): the reviewed successor is the merge of both additive sets (no other line differs).
   "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "534030c0144dd78e4c506a2c446d39c0746bda0cfc24ef6de1ccdb5d8be7dc67" },
-  "features/analytics/components/GoogleAnalytics.tsx": { before: "6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a", after: "8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206" },
+  // AIA fund tool (2026-10-26, measurement decision delegated by the owner, UAT): the reviewed successor moves from
+  // 8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206 to the exact file whose only difference is
+  // `|| path.startsWith('/tools/aia-fund-allocation')` in the existing 'tools' surface clause, so LINE clicks on
+  // /tools/aia-fund-allocation/ emit the existing line_oa_click with surface_group 'tools' (no rename, consent unchanged).
+  // tests/analytics-regression.ts removes exactly that clause and asserts the previous successor digest.
+  "features/analytics/components/GoogleAnalytics.tsx": { before: "6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a", after: "ed528cd554a3a9be818ea399e65fd23ee2642e6ffe5008186e02ff01892a6a6e" },
   "features/ci-planning/calculator/constants.ts": { before: "ccdafe5526f8dfe32d129e6f74b0f574f07dbed3aa62d6fa3eb612ed44dbd9c9", after: "0228e217aa05ca1d10deb87f1806a97e6780c467fbcd82e6d77cec08ea78fbb1" },
   "features/ci-planning/components/result/CIResult.tsx": { before: "b7c793111a1d654e89dcaf1392daf6b3b0bc53f0f310569cab465bbccdc91f85", after: "7935271a76b7830b2b6003ebeb5cde6c862c228a6401333b64ed59dd7fd96dc9" },
   "apps/web/app/sitemaps/tools.xml/route.ts": { before: "d6f0a88e8e082af3045cd5a4b132241444d50164c9293ec36e647087993033f0", after: "3b01299e0789640a92a78e1d52566889db4da916b7083e4a7176182035d82851" },

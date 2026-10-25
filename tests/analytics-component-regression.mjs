@@ -113,6 +113,7 @@ try {
   clickFixture('/play/money-story/', '<nav><a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a></nav>', ['navbar', 'money_story']);
   clickFixture('/tools/', '<section><a href="https://lin.ee/test" data-analytics-location="tools_hub">LINE</a></section>', ['tools_hub', 'tools']);
   clickFixture('/tools/investment-allocation/', '<nav id="mobile-navigation"><a href="https://lin.ee/test" data-analytics-location="navbar_mobile">LINE</a></nav>', ['navbar_mobile', 'tools']);
+  clickFixture('/tools/aia-fund-allocation/', '<nav><a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a></nav>', ['navbar', 'tools']);
   clickFixture('/tools/', '<section><a href="https://lin.ee/test" data-analytics-location="untrusted">LINE</a></section>', null);
   // The chat button opens line.me oaMessage links and emits its own richer event; the lin.ee
   // listener never double-counts it.
