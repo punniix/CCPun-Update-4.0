@@ -26,12 +26,21 @@ const reviewedProductionGitIdentity = {
   'tests/hostinger-shadow-config.test.mjs': { before: '4c48e59ed5de59304237e09605e3857fe497cc88012447ade5a7cf2623742833', after: '533a86ac229ae28df22a8efe133cef62ea7977eb1967dac3ce989ad342a04ee2' },
   'apps/admin/scripts/build-provider.mjs': { before: '9ef7eeb3cfa9f08b182a1036dd845231e8301553b25c772f2c2e42a9b0c60a9e', after: '51ff9a5e03c009ddcab99c42dfa3d070ae64da7f44af50ee8fc3f96431884e43' },
 };
+// Exact reviewed successor for the Admin Social email-digest worker prefix
+// (/api/internal/social/jobs; mirrored in qa/admin-ops-20261025-proof.mjs
+// adminSocialEmailDigestSources). Kept inline: this proof stays self-contained.
+const reviewedSocialEmailDigest = {
+  'lib/admin/host-routing.ts': { before: 'd51321ba5ef0061f503e8661b4f8c2d5b8102796b006920096885bffcbf728ab', after: 'be0e2d78fc8922ec80ee0ea381cefc4379093a828fef9f3a67fe8960a092287c' },
+};
 function assertCurrentNativeDigest(path, body, originalDigest) {
   const repair = reviewedAdminConfigBuild[path];
   if (repair) assert.equal(originalDigest, repair.before, path + ': original repair seal differs');
   const successor = reviewedProductionGitIdentity[path];
   if (successor) assert.equal(repair?.after ?? originalDigest, successor.before, path + ': previous reviewed successor seal differs');
-  assert.equal(sha(body), successor?.after ?? repair?.after ?? originalDigest, path + ': unreviewed native runtime change');
+  const emailDigest = reviewedSocialEmailDigest[path];
+  const actual = sha(body);
+  // Only the exact reviewed email-digest successor chains back to its seal.
+  assert.equal(emailDigest && actual === emailDigest.after ? emailDigest.before : actual, successor?.after ?? repair?.after ?? originalDigest, path + ': unreviewed native runtime change');
 }
 
 // Explicit current-source admission for the reviewed native policy retirement.

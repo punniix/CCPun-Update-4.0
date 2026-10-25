@@ -85,6 +85,27 @@ export const adminCopyFixesSources = Object.freeze({
   // END reviewed copy-fix sources
 });
 
+// Monthly email digest channel inside Admin Social (owner-approved 2026-10-25,
+// branch claude/feat/admin-social-email-digest-20261025): the n8n social worker
+// pull/claim/result routes under /api/internal/social/jobs authenticate inside
+// their handlers (HMAC-SHA256 + replay window + one-time nonce, 404 unless the
+// server-side send flag is on), so host routing lists that one prefix as an
+// internal service path. `before` is the digest currently frozen by
+// phase3-admin-native-boundaries / phase3-native-provider-parity. Same exact
+// mechanism: any other byte still fails every frozen proof.
+export const adminSocialEmailDigestSources = Object.freeze({
+  // BEGIN reviewed email-digest sources
+  "lib/admin/host-routing.ts": { before: "d51321ba5ef0061f503e8661b4f8c2d5b8102796b006920096885bffcbf728ab", after: "be0e2d78fc8922ec80ee0ea381cefc4379093a828fef9f3a67fe8960a092287c" },
+  // END reviewed email-digest sources
+});
+
+// Maps the digest of an exact email-digest successor to the reviewed digest it
+// replaced; any other digest is returned unchanged.
+export function adminSocialEmailDigestPredecessorDigest(file, digest) {
+  const entry = Object.hasOwn(adminSocialEmailDigestSources, file) ? adminSocialEmailDigestSources[file] : null;
+  return entry && digest === entry.after ? entry.before : digest;
+}
+
 // Maps the digest of an exact copy-fix successor to the reviewed successor it
 // replaced; any other digest is returned unchanged.
 export function adminCopyFixesPredecessorDigest(file, digest) {
@@ -95,7 +116,7 @@ export function adminCopyFixesPredecessorDigest(file, digest) {
 // Maps the digest of an exact reviewed successor to its reviewed predecessor;
 // any other digest is returned unchanged (so an unreviewed edit still fails).
 export function adminOps20261025PredecessorDigest(file, digest) {
-  const copyReviewed = adminCopyFixesPredecessorDigest(file, digest);
+  const copyReviewed = adminCopyFixesPredecessorDigest(file, adminSocialEmailDigestPredecessorDigest(file, digest));
   const cache = Object.hasOwn(adminCacheHardeningSources, file) ? adminCacheHardeningSources[file] : null;
   const cacheReviewed = cache && copyReviewed === cache.after ? cache.before : copyReviewed;
   const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file] : null;

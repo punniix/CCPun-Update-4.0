@@ -90,9 +90,14 @@ export default async function SocialOverviewPage() {
             เริ่มตรวจโพสต์ จัดเวลา ติดตามการส่ง และดูความพร้อมของบัญชีที่เชื่อมต่อได้จากที่นี่
           </p>
         </div>
-        <Link href="/analytics/social/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
-          ดูผลลัพธ์โซเชียล
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/social/email/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
+            อีเมลรายเดือน
+          </Link>
+          <Link href="/analytics/social/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#e0c985]">
+            ดูผลลัพธ์โซเชียล
+          </Link>
+        </div>
       </div>
 
       {!operationStoreAvailable ? (

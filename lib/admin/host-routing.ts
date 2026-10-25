@@ -68,7 +68,9 @@ export function isInternalServiceApiPath(pathname: string): boolean {
     || isPathOrChild(path, "/api/internal/local-ai/jobs")
     || isPathOrChild(path, "/api/internal/local-ai/line-descriptions")
     || isPathOrChild(path, "/api/internal/local-ai/reviews")
-    || isPathOrChild(path, "/api/internal/local-ai/operations");
+    || isPathOrChild(path, "/api/internal/local-ai/operations")
+    // n8n social worker: HMAC + one-time nonce inside the handlers, 404 unless the send flag is on.
+    || isPathOrChild(path, "/api/internal/social/jobs");
 }
 
 export function classifyProductionAdminPath(pathname: string): ProductionAdminPathDisposition {
