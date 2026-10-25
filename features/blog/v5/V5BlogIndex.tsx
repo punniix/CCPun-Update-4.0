@@ -36,21 +36,32 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
   const authorSuffix = (author?.professionalQualifications ?? []).map((item) => item.shortName.trim()).filter(Boolean).join(", ");
   const authorName = author ? `${getPublicAuthorName(author)}${authorSuffix ? `, ${authorSuffix}` : ""}` : text("blog.baseAuthorNameText");
 
+  const featuredArticles = featured.slice(0, 3);
+  const featuredCards = toV5Cards(featuredArticles, copy);
+  const startHereArticles = BLOG_START_HERE_SLUGS.map((slug) => sorted.find((article) => article.slug === slug)).filter((article): article is Article => Boolean(article))
+    .filter((article) => !featuredArticles.some((item) => item.id === article.id));
+  const startHere = startHereArticles.map((article) => toV5Card(article, copy)).filter((card): card is V5CardArticle => Boolean(card));
+  // D4 (owner-approved 2026-10-25): each article appears once per page. Featured and "start here"
+  // articles are not repeated in the groups below; search still finds them where they are shown.
+  const shown = new Set([...featuredArticles, ...startHereArticles].map((article) => article.id));
+  const searchById = new Map([...featuredArticles, ...startHereArticles].flatMap((article) => {
+    const card = toV5Card(article, copy);
+    return card ? [[card.id, searchText(article, card)] as const] : [];
+  }));
+
   // Version B groups: categories with ≥3 articles get their own group; the rest share "latest".
+  // Group membership is decided on every article, then the articles shown above are left out.
   const groups: Group[] = [];
   const grouped = new Set<string>();
   for (const topic of topics) {
     const members = sorted.filter((article) => articleBelongsToPhysicalCategory(article, { slug: topic.slug }));
     if (members.length < BLOG_GROUP_MIN_ARTICLES) continue;
     members.forEach((article) => grouped.add(article.id));
-    groups.push(toGroup(topic.slug, topic.title, topic.href, members, copy));
+    const remaining = members.filter((article) => !shown.has(article.id));
+    if (remaining.length) groups.push(toGroup(topic.slug, topic.title, topic.href, remaining, copy));
   }
-  const rest = sorted.filter((article) => !grouped.has(article.id));
+  const rest = sorted.filter((article) => !grouped.has(article.id) && !shown.has(article.id));
   if (rest.length) groups.push(toGroup("latest", text("blog.group.latest"), undefined, rest, copy));
-
-  const featuredCards = toV5Cards(featured.slice(0, 3), copy);
-  const startHere = BLOG_START_HERE_SLUGS.map((slug) => sorted.find((article) => article.slug === slug)).filter((article): article is Article => Boolean(article))
-    .map((article) => toV5Card(article, copy)).filter((card): card is V5CardArticle => Boolean(card));
 
   return (
     <PublicCopyProvider values={copy}>
@@ -78,24 +89,26 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
             </div>
           </section>
 
-          {featuredCards.length > 0 && <section className={shell.section} data-v5-search-hide="" aria-labelledby="v5-featured">
+          {featuredCards.length > 0 && <section className={shell.section} data-v5-group="" aria-labelledby="v5-featured">
             <div className={shell.inner}>
               <h2 id="v5-featured" className={shell.h2} style={{ marginBottom: 24 }}>{text.node("blog.p")}</h2>
               <div className={styles.featuredGrid}>
                 {featuredCards.map((card, index) => (
-                  <V5ArticleCard key={card.id} article={card} className={index === 0 ? styles.featuredLead : undefined} horizontal={index > 0} priority={index === 0} showExcerpt={index === 0}
-                    headingLevel={3} sizes={index === 0 ? "(max-width: 899px) calc(100vw - 40px), 640px" : "(max-width: 479px) calc(100vw - 40px), 240px"} />
+                  <div key={card.id} className={styles.searchItem} data-v5-search={searchById.get(card.id)}>
+                    <V5ArticleCard article={card} className={index === 0 ? styles.featuredLead : undefined} horizontal={index > 0} priority={index === 0} showExcerpt={index === 0}
+                      headingLevel={3} sizes={index === 0 ? "(max-width: 899px) calc(100vw - 40px), 640px" : "(max-width: 479px) calc(100vw - 40px), 240px"} />
+                  </div>
                 ))}
               </div>
             </div>
           </section>}
 
-          {startHere.length > 0 && <section className={shell.sectionAlt} data-v5-search-hide="" aria-labelledby="v5-start-here">
+          {startHere.length > 0 && <section className={shell.sectionAlt} data-v5-group="" aria-labelledby="v5-start-here">
             <div className={shell.inner}>
               <h2 id="v5-start-here" className={shell.h2} style={{ marginBottom: 24 }}>{text.node("blog.startHere.title")}</h2>
               <ol className={styles.startList}>
                 {startHere.map((card, index) => (
-                  <li key={card.id} className={styles.startItem}>
+                  <li key={card.id} className={styles.startItem} data-v5-search={searchById.get(card.id)}>
                     <span className={styles.startNumber} aria-hidden="true">{index + 1}</span>
                     <div><p className={styles.startTopic}>{card.topic}</p><h3 className={styles.startTitle}><Link href={card.href}>{card.title}</Link></h3></div>
                   </li>

@@ -144,7 +144,9 @@ test("Analytics/consent: v5 emits only through trackEvent with existing event na
   const ci = read("features/blog/v5/NextStepCiLink.tsx");
   assert.match(ci, /trackEvent\("ci_calculator_cta_click", \{ tool_name: "ci_planning", cta_location: "blog_article", surface_group: "blog" \}\)/);
   const events = v5Files.flatMap((file) => [...read(file).matchAll(/trackEvent\("([a-z_]+)"/g)].map((match) => match[1]));
-  assert.deepEqual([...new Set(events)], ["ci_calculator_cta_click"], "no new analytics event names");
+  // Owner-approved 2026-10-25 (L5): the LINE chat button adds line_chat_panel_open and reuses the
+  // existing line_oa_click; no other event name is introduced.
+  assert.deepEqual([...new Set(events)].sort(), ["ci_calculator_cta_click", "line_chat_panel_open", "line_oa_click"], "only the approved chat events are new");
   assert.match(read("lib/analytics.ts"), /eventName === 'ci_calculator_cta_click' && ci\) return \{ ga: \['ci_calculator_cta_click'\], meta: 'none' \}/, "existing GA4-only mapping is reused unchanged");
 });
 
@@ -190,7 +192,7 @@ test("Phase B: every public page renders the single v5 shell and none imports We
   for (const route of ["apps/web/app/ci-planning/page.tsx", "apps/web/app/tools/financial-health-check/page.tsx", "apps/web/app/play/money-story/page.tsx"]) {
     assert.match(read(route), /resolvePageSeoMetadata\(/, `${route}: route-level SEO resolution is unchanged`);
   }
-  assert.match(read("features/investment-allocation/page.tsx"), /<V5Page>/);
+  assert.match(read("features/investment-allocation/page.tsx"), /<V5Page current="\/tools\/investment-allocation\/">/);
   assert.doesNotMatch(read("apps/web/app/layout.tsx"), /Website43ResponsiveStyles|website-43/, "the 4.3 stylesheet no longer ships in the root layout");
   for (const widget of ["components/ui/health-happy/HealthHappyCountdown.tsx", "features/blog/website-43/ArticleShareActions.tsx", "features/blog/website-43/ArticleEngagement.tsx", "features/blog/website-43/ArticleDetailAccess.tsx", "components/layout/v5/V5LegacyBridge.tsx"]) {
     assert.doesNotMatch(read(widget), /website-43\/Website43\.module\.css/, `${widget}: widget styles no longer pull the 68 KB 4.3 module into every v5 page`);
@@ -228,13 +230,84 @@ test("Phase B: legal pages keep their copy scope, anchors and trailing-slash lin
   for (const source of [privacy, cookies]) assert.match(source, /SECTIONS\.map\(\(\[id, key\]\) => <li key=\{id\}><a href=\{`#\$\{id\}`\}>/, "table of contents links to in-page anchors");
 });
 
-test("Phase B: Investment Allocation stays gated, noindex outside an enabled non-review lane, and out of the v5 nav", () => {
+test("Phase B + D9: Investment Allocation stays gated and noindex; the v5 nav lists it only where its flag is on", () => {
   const page = read("features/investment-allocation/page.tsx");
   assert.match(page, /if \(!INVESTMENT_ALLOCATION_ENABLED\) notFound\(\);/);
   assert.match(page, /robots: !INVESTMENT_ALLOCATION_ENABLED \|\| IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \}/);
-  for (const file of ["components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx", "components/layout/v5/constants.ts", "features/home/v5/V5Home.tsx"]) {
-    assert.doesNotMatch(read(file), /investment-allocation/, `${file}: the flag-gated tool is not linked while Production keeps it off`);
+  // D9 (owner-approved 2026-10-25): under "เครื่องมือ" next to CI and FHC, behind the server flag.
+  assert.match(read("components/layout/v5/constants.ts"), /V5_INVESTMENT_TOOL = \{ href: "\/tools\/investment-allocation\/"/);
+  const header = read("components/layout/v5/V5Header.tsx");
+  assert.match(header, /if \(INVESTMENT_ALLOCATION_ENABLED\) tools\.push\(\{ href: V5_INVESTMENT_TOOL\.href/);
+  assert.match(read("components/layout/v5/V5Footer.tsx"), /\{INVESTMENT_ALLOCATION_ENABLED \? <li><Link href=\{V5_INVESTMENT_TOOL\.href\}>/);
+  assert.match(read("features/tools-hub/page.tsx"), /\.\.\.\(INVESTMENT_ALLOCATION_ENABLED \? \[\{/);
+  for (const file of ["features/home/v5/V5Home.tsx", "apps/web/app/sitemaps/tools.xml/route.ts"]) {
+    assert.doesNotMatch(read(file), /investment-allocation/, `${file}: never linked or listed unconditionally`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Owner-approved 2026-10-25: D1 glass, D2 theme, D3 bottom bar, D4 blog de-duplication, T1 /tools/ hub.
+// ---------------------------------------------------------------------------
+
+test("D1: backdrop-filter glass only on the header and the bottom LINE bar", () => {
+  const sources = [...v5Files.filter((file) => file.endsWith(".css")), "features/tools-hub/ToolsHub.module.css"];
+  const glass = sources.flatMap((file) => read(file).split("\n").filter((line) => /backdrop-filter:(?!\s*none)/.test(line)).map((line) => `${file}: ${line.trim().slice(0, 40)}`));
+  assert.deepEqual([...new Set(glass.map((line) => line.split(":")[0]))].sort(), ["components/layout/v5/V5.module.css", "components/layout/v5/V5ChatDock.module.css"].sort());
+  assert.match(read("components/layout/v5/V5.module.css"), /\.header \{[^}]*backdrop-filter: saturate/);
+  assert.match(read("components/layout/v5/V5ChatDock.module.css"), /\.dock \{[^}]*backdrop-filter: saturate/);
+  assert.match(read("components/layout/v5/V5.module.css"), /\.root :global\(:is\(\.glass-card, \.glass-button, \.glass-button-sm\)\) \{ backdrop-filter: none;/);
+});
+
+test("D2: system (default) / light / dark with a no-flash boot script and guarded storage", () => {
+  const header = read("components/layout/v5/V5Header.tsx");
+  assert.match(header, /prefers-color-scheme: light/);
+  assert.match(header, /d\.setAttribute\("data-theme",t\);d\.setAttribute\("data-theme-choice",k\)/);
+  assert.match(header, /try\{c=localStorage\.getItem/);
+  assert.match(header, /<script dangerouslySetInnerHTML=\{\{ __html: THEME_BOOT \}\} \/>/);
+  const enhancer = read("components/layout/v5/V5HeaderEnhancer.tsx");
+  assert.match(enhancer, /current === "system" \? "light" : current === "light" \? "dark" : "system"/);
+  assert.match(enhancer, /if \(next === "system"\) localStorage\.removeItem\(storageKey\); else localStorage\.setItem\(storageKey, next\);/);
+  assert.match(enhancer, /\} catch \{ \/\* Storage is optional\. \*\/ \}/);
+  assert.match(enhancer, /scheme\.addEventListener\("change", onSchemeChange\)/);
+});
+
+test("D3/L8: one bottom LINE element shown after the hero, hidden on scroll down, back on scroll up, reduced motion respected", () => {
+  const dock = read("components/layout/v5/V5ChatDock.tsx");
+  assert.match(dock, /#main-content > :first-child/);
+  assert.match(dock, /delta < -SCROLL_DELTA/);
+  assert.match(dock, /delta > SCROLL_DELTA && y > revealY \+ HIDE_AFTER/);
+  assert.match(dock, /passive: true/);
+  assert.equal((read("components/layout/v5/V5Page.tsx").match(/<V5ChatDockServer/g) ?? []).length, 1, "exactly one bottom element per page");
+  for (const file of v5Files.filter((name) => name.endsWith(".css") && !name.endsWith("V5ChatDock.module.css"))) {
+    assert.doesNotMatch(read(file), /position:\s*fixed[^}]*bottom:\s*0/, `${file}: no second fixed bottom bar`);
+  }
+  assert.match(read("components/layout/v5/V5.module.css"), /@media \(prefers-reduced-motion: reduce\) \{\n  \.root \*, \.root \*::before, \.root \*::after \{ transition: none !important;/);
+  const css = read("components/layout/v5/V5ChatDock.module.css");
+  assert.match(css, /\.dock\[data-state="hidden"\] \{ transform: translateY\(110%\); visibility: hidden;/);
+});
+
+test("D4: /blog/ shows each article once; featured and start-here cards stay searchable", () => {
+  const index = read("features/blog/v5/V5BlogIndex.tsx");
+  assert.match(index, /const shown = new Set\(\[\.\.\.featuredArticles, \.\.\.startHereArticles\]/);
+  assert.match(index, /members\.filter\(\(article\) => !shown\.has\(article\.id\)\)/);
+  assert.match(index, /!grouped\.has\(article\.id\) && !shown\.has\(article\.id\)/);
+  assert.match(index, /data-v5-search=\{searchById\.get\(card\.id\)\}/);
+  assert.doesNotMatch(index, /data-v5-group="" aria-labelledby="v5-featured"[\s\S]*data-v5-search-hide="" aria-labelledby="v5-featured"/);
+});
+
+test("T1: /tools/ is an indexable hub with canonical, sitemap entry, nav, footer and home links", () => {
+  assert.equal(read("apps/web/app/tools/page.tsx"), 'export { default, metadata } from "@/features/tools-hub/page";\n');
+  const hub = read("features/tools-hub/page.tsx");
+  assert.match(hub, /alternates: \{ canonical: URL \}/);
+  assert.match(hub, /const URL = "https:\/\/ccpun\.com\/tools\/";/);
+  assert.match(hub, /robots: \{ index: true, follow: true \}/);
+  for (const href of ["/ci-planning/", "/tools/financial-health-check/", "/play/money-story/"]) assert.ok(hub.includes(`href: "${href}"`), href);
+  assert.match(hub, /data-analytics-location="tools_hub"/);
+  assert.doesNotMatch(hub, /ฟรี|ดีที่สุด|การันตี|…/);
+  assert.ok(!hub.split("\n").filter((line) => /[\u0E00-\u0E7F]/.test(line)).some((line) => line.includes("...")), "no ellipsis in Thai copy");
+  assert.match(read("apps/web/app/sitemaps/tools.xml/route.ts"), /\{ loc: "https:\/\/ccpun\.com\/tools\/" \}/);
+  assert.match(read("components/layout/v5/constants.ts"), /V5_TOOLS_HUB = \{ href: "\/tools\/", label: "เครื่องมือทั้งหมด" \}/);
+  for (const file of ["components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx", "features/home/v5/V5Home.tsx"]) assert.match(read(file), /V5_TOOLS_HUB\.href/, file);
 });
 
 test("Phase B performance budget: three Kanit weights, one preloaded LCP face, text-first tool heroes", () => {

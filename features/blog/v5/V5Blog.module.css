@@ -21,6 +21,9 @@
 @media (min-width: 900px) { .chipRow > ul { flex-wrap: wrap; } }
 
 .featuredGrid { display: grid; gap: 16px; }
+/* Search wrapper that leaves the featured grid layout to the card itself (D4 search coverage). */
+.searchItem { display: contents; }
+.searchItem[hidden], .startItem[hidden] { display: none; }
 @media (min-width: 900px) { .featuredGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } .featuredLead { grid-column: 1 / -1; } }
 .featuredLead { flex-direction: column; }
 @media (min-width: 900px) {

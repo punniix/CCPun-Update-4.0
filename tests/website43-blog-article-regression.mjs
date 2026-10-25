@@ -223,6 +223,10 @@ mock('../lib/content/provider.ts', { getContentProvider: () => ({
 mock('next/headers', { draftMode: async () => ({ isEnabled: true }) });
 mock('next/navigation', { ...nextNavigation, useRouter: () => ({ replace: () => {} }) });
 mock('../lib/deployment-environment.ts', { IS_DRAFT_PREVIEW_ALLOWED: false });
+// 2026-10-25: the v5 shell reads the LINE chat config and the Investment flag through server-only
+// modules; they are mocked like the other providers (chat defaults, Investment off as in Production).
+mock('../lib/content/line-chat-config.ts', { getLineChatConfig: async () => ({ config: { enabled: true, topics: [], placements: [], campaigns: [] }, source: 'default', invalid: false }) });
+mock('../lib/runtime/investment-availability.ts', { INVESTMENT_ALLOCATION_ENABLED: false, isInvestmentAllocationEnabled: () => false });
 const overview = require('../features/blog/pages/BlogArchivePage.tsx').default;
 const category = require('../features/blog/pages/BlogCategoryPage.tsx');
 const articleRoute = require('../features/blog/pages/ArticlePage.tsx');

@@ -49,11 +49,27 @@ export default function V5HeaderEnhancer({ storageKey }: { storageKey: string })
       if (openItem) { setDropdown(openItem, false); openItem.querySelector("button")?.focus(); return; }
       if (menu && !menu.hidden) { setMenu(false); menuButton?.focus(); }
     };
-    const onThemeClick = () => {
-      const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
-      document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem(storageKey, next); } catch { /* Storage is optional. */ }
+    // D2: system -> light -> dark -> system. "system" follows prefers-color-scheme live.
+    const root = document.documentElement;
+    const scheme = window.matchMedia("(prefers-color-scheme: light)");
+    const labels = (() => { try { return JSON.parse(themeButton?.dataset.labels ?? "{}") as Record<string, string>; } catch { return {}; } })();
+    const status = themeButton?.querySelector<HTMLElement>("[data-v5-theme-status]");
+    const applyTheme = (choice: string) => {
+      const resolved = choice === "light" || choice === "dark" ? choice : scheme.matches ? "light" : "dark";
+      root.setAttribute("data-theme", resolved);
+      root.setAttribute("data-theme-choice", choice === "light" || choice === "dark" ? choice : "system");
+      if (status) status.textContent = labels[root.getAttribute("data-theme-choice") ?? "system"] ?? "";
     };
+    applyTheme(root.getAttribute("data-theme-choice") ?? "system");
+    const onThemeClick = () => {
+      const current = root.getAttribute("data-theme-choice") ?? "system";
+      const next = current === "system" ? "light" : current === "light" ? "dark" : "system";
+      applyTheme(next);
+      try {
+        if (next === "system") localStorage.removeItem(storageKey); else localStorage.setItem(storageKey, next);
+      } catch { /* Storage is optional. */ }
+    };
+    const onSchemeChange = () => { if ((root.getAttribute("data-theme-choice") ?? "system") === "system") applyTheme("system"); };
     // An explicit close wins over hover/focus only until the pointer or focus leaves the item.
     const resetIntent = (event: Event) => {
       const item = event.currentTarget as HTMLElement;
@@ -69,7 +85,9 @@ export default function V5HeaderEnhancer({ storageKey }: { storageKey: string })
     document.addEventListener("keydown", onKeyDown);
     themeButton?.addEventListener("click", onThemeClick);
     desktop.addEventListener("change", onBreakpoint);
+    scheme.addEventListener("change", onSchemeChange);
     return () => {
+      scheme.removeEventListener("change", onSchemeChange);
       header.removeEventListener("click", onClick);
       document.removeEventListener("click", onDocumentClick);
       document.removeEventListener("keydown", onKeyDown);

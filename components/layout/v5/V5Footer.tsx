@@ -4,7 +4,8 @@ import { getPublicCopy } from "@/lib/content/public-copy";
 import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import styles from "./V5.module.css";
 import { getShellTopics } from "./shell-data";
-import { V5_TOOL_LINKS } from "./constants";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
+import { V5_INVESTMENT_TOOL, V5_TOOL_LINKS, V5_TOOLS_HUB } from "./constants";
 
 /** The one v5 footer for every page (plan T05), including the topic-hub column. */
 export default async function V5Footer({ siteCopy }: { siteCopy?: PublicCopyValues }) {
@@ -24,7 +25,11 @@ export default async function V5Footer({ siteCopy }: { siteCopy?: PublicCopyValu
           </div>
           <div className={styles.footerColumn}>
             <h2>{text.node("site.nav.tools")}</h2>
-            <ul>{V5_TOOL_LINKS.map((tool) => <li key={tool.href}><Link href={tool.href}>{text.node(tool.nameKey)}</Link></li>)}</ul>
+            <ul>
+              <li><Link href={V5_TOOLS_HUB.href}>{V5_TOOLS_HUB.label}</Link></li>
+              {V5_TOOL_LINKS.map((tool) => <li key={tool.href}><Link href={tool.href}>{text.node(tool.nameKey)}</Link></li>)}
+              {INVESTMENT_ALLOCATION_ENABLED ? <li><Link href={V5_INVESTMENT_TOOL.href}>{V5_INVESTMENT_TOOL.label}</Link></li> : null}
+            </ul>
           </div>
           {topics.length > 0 && <div className={styles.footerColumn}>
             <h2>{text.node("site.nav.topics")}</h2>

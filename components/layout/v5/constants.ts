@@ -11,3 +11,12 @@ export const V5_TOOL_LINKS = [
 ] as const satisfies readonly { id: string; href: string; navKey: SiteCopyKey; nameKey: SiteCopyKey }[];
 
 export type V5ToolId = (typeof V5_TOOL_LINKS)[number]["id"];
+
+/** The /tools/ hub (owner-approved new URL, 2026-10-25). */
+export const V5_TOOLS_HUB = { href: "/tools/", label: "เครื่องมือทั้งหมด" } as const;
+
+/**
+ * D9 (owner-approved 2026-10-25): Investment Allocation sits under "เครื่องมือ" next to CI and FHC,
+ * but only where its server flag is on (UAT). Production keeps it out of every menu until released.
+ */
+export const V5_INVESTMENT_TOOL = { href: "/tools/investment-allocation/", label: "วางแผนกองทุน" } as const;

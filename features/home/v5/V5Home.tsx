@@ -10,7 +10,7 @@ import shell from "@/components/layout/v5/V5.module.css";
 import { V5ArticleCard, V5ContactBand, V5SectionHeading } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
-import { V5_LINE_URL } from "@/components/layout/v5/constants";
+import { V5_LINE_URL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import HealthHappyCountdown from "@/components/ui/health-happy/HealthHappyCountdown";
 import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
 import phillipLogo from "../../../public/assets/phillip-logo.svg";
@@ -161,6 +161,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
               </div>
             ))}
           </div>
+          <p><Link className={shell.textLink} href={V5_TOOLS_HUB.href}>ดูเครื่องมือทั้งหมด →</Link></p>
 
           {coreGuides.length > 0 && <div style={{ marginTop: 64 }} aria-labelledby="home-core-guides" role="region">
             <h2 id="home-core-guides" className={shell.h2}>{text.node("home.coreGuides.title")}</h2>

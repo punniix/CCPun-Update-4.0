@@ -6,7 +6,8 @@ import { createHash } from 'node:crypto';
 // source the redesign touches passes only if it is byte-identical to the reviewed
 // v5 result (or still the original). Historical digests and goldens stay frozen;
 // they keep proving the unchanged Website 4.3 components that Phase B pages still use.
-// No SEO URL, canonical, redirect, sitemap, Sanity schema, analytics event or consent change.
+// Phase A/B: no SEO URL, canonical, redirect, sitemap, Sanity schema, analytics event or consent change.
+// The 2026-10-25 LINE chat block below is the owner-approved exception (L5, L6, T1).
 const sha = value => createHash('sha256').update(value).digest('hex');
 
 // Additive public-copy keys for new v5 UI labels (and the v5 test registration). Removing
@@ -75,9 +76,20 @@ export const websiteV5PhaseASources = Object.freeze({
   "features/blog/website-43/ArticleShareActions.tsx": { before: "468315c7dc18c8b6030e8881bf6498fd5df2adc931dc5a0b48d9726c303135af", after: "79595cd57be1e6d2764661826516105ab39a6a16103783047c596f5377ab2058" },
   "features/blog/website-43/ArticleEngagement.tsx": { before: "941020bc1e53917b1fec02af8036ec4053b48e9cf4cc75abbcf41d477a5d3799", after: "146f49c1e9fd9bedacba9c9b602384dc4bd8a5581de901667d3d86b470cd772c" },
   "features/blog/website-43/ArticleDetailAccess.tsx": { before: "9b00002d896f86765bc9216adb1427454b2a734abb257b0505ca77d8f80976c9", after: "689e79413207218ecf12595b8aa08537f5c0e3d49298a16c5e59075aad56d0ed" },
-  "features/investment-allocation/page.tsx": { before: "3b8268994e496feb67bc99d79b908dc80f68564c727f1473cfad2d7b22689a39", after: "97bb9d599a827cba3ddc66a57ab48755ee4bdc79ce795e37ec095e700b44a976" },
+  // D9 (owner-approved 2026-10-25): the page passes `current` so the gated nav entry is marked.
+  "features/investment-allocation/page.tsx": { before: "3b8268994e496feb67bc99d79b908dc80f68564c727f1473cfad2d7b22689a39", after: "fc8ca4bbefbe65c1e6200b5e514c6fa6bf91b5ca8f7278a5fce047faf8cb3e98" },
   "features/investment-allocation/InvestmentAllocation.module.css": { before: "ca66e94854d773d024f4fa66284a0f3dc14b2fa72b4836fcd3f3328ad4a45543", after: "aa78773441e4d002adc6228f3fb9dc8cbd1ab2e2fea95b85e14122d013cf8088" },
   // END Phase B reviewed sources
+  // Owner-approved 2026-10-25 (UAT): LINE chat button L5/L6 (additive analytics tokens, the CI result
+  // oaMessage prefill without numbers, line_oa_click now owned by the app because GTM v9 paused the
+  // lin.ee click tag) and the new /tools/ hub sitemap entry (T1). `before` is HEAD f2b163e2.
+  // BEGIN LINE chat reviewed sources
+  "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "7f39b536d8e073930e08c6868a744dca944aea9dfb760ab1263aa5e9f77184f9" },
+  "features/analytics/components/GoogleAnalytics.tsx": { before: "6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a", after: "8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206" },
+  "features/ci-planning/calculator/constants.ts": { before: "ccdafe5526f8dfe32d129e6f74b0f574f07dbed3aa62d6fa3eb612ed44dbd9c9", after: "0228e217aa05ca1d10deb87f1806a97e6780c467fbcd82e6d77cec08ea78fbb1" },
+  "features/ci-planning/components/result/CIResult.tsx": { before: "b7c793111a1d654e89dcaf1392daf6b3b0bc53f0f310569cab465bbccdc91f85", after: "7935271a76b7830b2b6003ebeb5cde6c862c228a6401333b64ed59dd7fd96dc9" },
+  "apps/web/app/sitemaps/tools.xml/route.ts": { before: "d6f0a88e8e082af3045cd5a4b132241444d50164c9293ec36e647087993033f0", after: "502f2a489ad661daa5a967cc1a279adaf342a8c6648a8cf6edc88f1055e8506a" },
+  // END LINE chat reviewed sources
 });
 
 /** Digest the frozen proofs should compare: the reviewed predecessor for an exact v5 successor, else the file's own digest. */
@@ -126,6 +138,8 @@ export const websiteV5RendererSources = Object.freeze([
 export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // BEGIN Phase B render goldens
   retained: { "1": "7e17f1d722bd21cfcecd08bf0e581bb91123972f9199b4dbf9694cfc9ffbe29a", "2": "82a8b9aee6ee57ace9bfb584aba0de0d70686689717df26a642fe9fc6fc8ee1a" },
-  v5: { "3": "ef64f1bcc03b751211184479f8ceefd7feff70fdb43bd8a94b4fe53cdd66430c", "4": "cace9a2081e397b65606b31b88d2e4776f07e96f9678cff0c7e7b06670495271", "8": "dc74d91716cf87c4da05db83cd9871cfcb0869518dc285077140534e979e5c12", "9": "d8fe14162fb942669027d07a43cee74e0d6cae7a28c4e56d814e758b837d57c5", "10": "180795ac085d38db5e1a88255f0150cdfb51d1f8761b43838e247032f510706b" },
+  // 2026-10-25 (owner-approved, UAT): the v5 shell gains the merged LINE chat dock, the 3-state theme
+  // toggle (D2) and the /tools/ hub links (T1), so the tool/legal v5 render digests move once more.
+  v5: { "3": "c237a511c5bb667333388564bd7bc4fea270cda283cff29f9cc59336b1fdec64", "4": "e7a6927070b1bb8a98d3a9bac1b59629c6a93e4f251ec2ad7d1610cb3a20b0c0", "8": "aacfd1e30cf4773a372211bfae31e01ed147a5799d080a63b4d9fad729c7b1d6", "9": "b2f703a7905d98900ace78096d2ace326424e90e617895b6da00dd06d701552d", "10": "7547f137574efd788e749fee26ca36b6532118da9648b3256895e3fee1dd8c1b" },
   // END Phase B render goldens
 });

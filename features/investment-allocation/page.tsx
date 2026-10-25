@@ -33,11 +33,12 @@ const schema = {
 };
 
 // Website v5 (FigCraft 14): same gate, metadata, schema and builders, inside the shared v5 shell.
-// The tool stays out of navigation and sitemaps while its flag is off in Production.
+// The tool stays out of navigation and sitemaps while its flag is off in Production; with the flag
+// on (UAT) the v5 nav lists it under "เครื่องมือ" (D9) and `current` marks it.
 export default function InvestmentAllocationPage() {
   if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
   return (
-    <V5Page>
+    <V5Page current="/tools/investment-allocation/">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <V5ToolHero
         id="investment-hero-title"

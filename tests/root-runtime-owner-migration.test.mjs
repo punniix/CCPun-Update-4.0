@@ -1,9 +1,9 @@
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
+import { websiteV5PredecessorDigest } from '../qa/website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
-import { createHash } from 'node:crypto';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -31,7 +31,8 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
         canonicalSource = canonicalSource.replace(insertion, '');
       }
     }
-    if(!cmsSource) assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
+    // Owner-approved 2026-10-25 (T1): the /tools/ hub entry is an exact reviewed successor of the tools sitemap.
+    if(!cmsSource) assert.equal(websiteV5PredecessorDigest(canonical, canonicalSource), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
     const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
     const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
     const metadataExport = canonical.endsWith('/privacy/page.tsx') || canonical.endsWith('/cookie-policy/page.tsx') ? 'generateMetadata' : 'metadata';

@@ -149,7 +149,8 @@ test("preserves static sitemap XML responses for legacy and canonical Web routes
   const routeSpecs = [
     ["sitemap.xml/route", ["https://ccpun.com/sitemaps/core.xml", "https://ccpun.com/sitemaps/tools.xml", "https://ccpun.com/sitemaps/blog.xml"]],
     ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/"]],
-    ["sitemaps/tools.xml/route", ["https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/"]],
+    // Owner-approved 2026-10-25: the /tools/ hub joins the tools sitemap ahead of its tool owners.
+    ["sitemaps/tools.xml/route", ["https://ccpun.com/tools/", "https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/"]],
   ] as const;
   const legacyIndex = await import("../app/sitemap.xml/route");
   const webIndex = await import("../apps/web/app/sitemap.xml/route");
