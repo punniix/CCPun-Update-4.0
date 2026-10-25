@@ -310,7 +310,9 @@ test("Settings > ปุ่มแชท LINE: tabs, phone preview, test link, UTM
 
 test("website: one merged bottom LINE element, panel and QR load on interaction, events only through trackEvent", () => {
   const page = read("components/layout/v5/V5Page.tsx");
-  assert.match(page, /<V5ChatDockServer context=\{chat \?\? chatContextForPath\(current\)\} \/>/);
+  // Coming Soon (owner-approved 2026-10-25) may add one code-fallback topic for its own group; still one dock.
+  assert.match(page, /<V5ChatDockServer context=\{chat \?\? chatContextForPath\(current\)\} pageTopic=\{chatTopic\} \/>/);
+  assert.equal(page.match(/<V5ChatDockServer\b/g)?.length, 1);
   const dock = read("components/layout/v5/V5ChatDock.tsx");
   assert.match(dock, /lazy\(\(\) => import\("\.\/V5ChatPanel"\)\)/);
   assert.match(dock, /aria-haspopup="dialog"/);

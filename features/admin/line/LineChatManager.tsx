@@ -50,7 +50,7 @@ const JOURNEY_LABEL: Record<LineChatJourney, string> = { life_health: "ชีว
 const GROUP_LABEL: Record<string, string> = {
   all: "ทั้งเว็บ", home: "หน้าแรก", blog_index: "หน้ารวมบทความ", blog_category: "หน้าหมวดบทความทุกหมวด", article: "ทุกบทความ",
   tool_ci: "วางแผนเงินก้อนโรคร้ายแรง", tool_fhc: "ตรวจสุขภาพการเงิน", tool_money_story: "Money Story", tool_investment_allocation: "วางแผนกองทุน",
-  tools_hub: "หน้ารวมเครื่องมือ", about: "เกี่ยวกับปั้น", default: "ค่าปกติ (หน้าที่ไม่ได้ตั้ง)",
+  tools_hub: "หน้ารวมเครื่องมือ", about: "เกี่ยวกับปั้น", coming_soon: "หน้าที่กำลังสร้าง", default: "ค่าปกติ (หน้าที่ไม่ได้ตั้ง)",
 };
 const DESTINATIONS = [
   { path: "/", label: "หน้าแรก" },
