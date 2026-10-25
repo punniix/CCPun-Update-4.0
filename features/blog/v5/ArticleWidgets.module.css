@@ -14,14 +14,14 @@
 .articleShareButton svg { width: 18px; height: 18px; }
 .articleShareButton:disabled { cursor: wait; opacity: .65; }
 @media (hover: hover) and (pointer: fine) { .articleShareButton:hover { border-color: var(--v5-gold, #e0c985); background: rgba(224, 201, 133, .08); } }
-.articleShareButton:focus-visible { outline: 3px solid var(--v5-gold, #e0c985); outline-offset: 2px; }
+.articleShareButton:focus-visible { outline: 3px solid var(--v5-focus, #e0c985); outline-offset: 2px; }
 .articleShareStatus { position: absolute; z-index: 2; top: 100%; left: 0; max-width: min(320px, calc(100vw - 48px)); color: var(--v5-gold-text, #e0c985); font-size: 14px; white-space: normal; }
 @media (max-width: 639px) { .articleReadingEstimate { flex-basis: 100%; } }
 
 .articleTableViewport { display: contents; }
 .articleTableTrack { display: none; }
 .articleTableWrap { width: 100%; margin: 28px 0; overflow-x: auto; border-radius: 16px; }
-.articleTableWrap:focus-visible { outline: 3px solid var(--v5-gold, #e0c985); outline-offset: 3px; }
+.articleTableWrap:focus-visible { outline: 3px solid var(--v5-focus, #e0c985); outline-offset: 3px; }
 .tableHint { color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.6; }
 @media (max-width: 767px) {
   .articleTableWrap { scrollbar-width: thin; scrollbar-color: var(--v5-gold, #e0c985) var(--v5-border, #5b4848); }

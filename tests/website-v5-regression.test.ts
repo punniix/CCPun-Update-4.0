@@ -394,3 +394,20 @@ test("UX: no v5 page renders an eyebrow or a tool-hero kicker", () => {
   assert.match(tool, /\.calcScope :global\(\.ccpun-calculator-result-eyebrow\):has\(\+ :is\(h2, h3\)\) \{ display: none; \}/);
   assert.match(tool, /\.msWrap \[data-character\] \+ p:has\(\+ h2\) \{ display: none; \}/);
 });
+
+test("UX: per-mode focus ring and field edge tokens; whole-card links show the ring on the card", () => {
+  const shellCss = read("components/layout/v5/V5.module.css");
+  const [dark, light] = [shellCss.slice(0, shellCss.indexOf(':global(html[data-theme="light"]) .root')), shellCss.slice(shellCss.indexOf(':global(html[data-theme="light"]) .root'))];
+  assert.match(dark, /--v5-focus: #e0c985;/);
+  assert.match(dark, /--v5-field-edge: #9a8585;/);
+  assert.match(light, /--v5-focus: #7a5c14;/);
+  assert.match(light, /--v5-field-edge: #8a7766;/);
+  assert.match(shellCss, /\.root :focus-visible \{ outline: 3px solid var\(--v5-focus\);/);
+  assert.match(shellCss, /\.articleCard:has\(\.articleCardTitle a:focus-visible\) \{ outline: 3px solid var\(--v5-focus\);/);
+  assert.match(read("features/home/v5/V5Home.module.css"), /\.toolCard:has\(h3 a:focus-visible\) \{ outline: 3px solid var\(--v5-focus\);/);
+  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.search input \{[^}]*border: 1px solid var\(--v5-field-edge\)/);
+  assert.match(read("components/layout/v5/V5Tool.module.css"), /\.calcScope select, \.calcScope textarea \{ border: 1px solid var\(--v5-field-edge\); \}/);
+  for (const file of v5Files.filter((name) => name.endsWith(".css"))) {
+    assert.doesNotMatch(read(file), /outline: 3px solid var\(--v5-gold\)/, `${file}: focus uses the per-mode token`);
+  }
+});

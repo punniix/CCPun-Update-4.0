@@ -82,7 +82,10 @@
 */
 .calcScope :global(.text-xs) { font-size: 14px; line-height: 1.6; }
 .calcScope :global(.text-\[11px\]) { font-size: 13px; line-height: 1.5; }
-.calcScope :focus-visible { outline: 3px solid var(--v5-gold); outline-offset: 2px; }
+.calcScope :focus-visible { outline: 3px solid var(--v5-focus); outline-offset: 2px; }
+/* Form fields: a visible edge in both themes (>= 3:1) and the focus colour while typing. */
+.calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), .calcScope select, .calcScope textarea { border: 1px solid var(--v5-field-edge); }
+.calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]):focus, .calcScope select:focus, .calcScope textarea:focus { border-color: var(--v5-focus); }
 
 :global(html[data-theme="light"]) .calcScope {
   --w43-deep: #fffdf9;

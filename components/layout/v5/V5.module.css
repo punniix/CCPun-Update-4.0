@@ -19,6 +19,9 @@
   --v5-gold: #e0c985;
   --v5-highlight: #ebd9a2;
   --v5-gold-text: #e0c985;
+  /* Per-mode keyboard focus ring (>= 3:1 on every v5 surface) and form-field edge (>= 3:1, WCAG 1.4.11). */
+  --v5-focus: #e0c985;
+  --v5-field-edge: #9a8585;
   --v5-on-gold: #251818;
   --v5-band: #e0c985;
   --v5-band-text: #251818;
@@ -62,6 +65,8 @@
   --v5-text: #251818;
   --v5-muted: #5f4c4c;
   --v5-gold-text: #7a5c14;
+  --v5-focus: #7a5c14;
+  --v5-field-edge: #8a7766;
   --v5-header: rgba(250, 246, 240, 0.95);
   --v5-shadow: 0 18px 40px rgba(53, 39, 39, 0.1);
   --v5-watermark: rgba(53, 39, 39, 0.07);
@@ -75,7 +80,7 @@
 
 /* Zero-specificity resets so component classes (buttons, chips) always win. */
 :where(.root) a { color: inherit; }
-.root :focus-visible { outline: 3px solid var(--v5-gold); outline-offset: 3px; border-radius: 6px; }
+.root :focus-visible { outline: 3px solid var(--v5-focus); outline-offset: 3px; border-radius: 6px; }
 :where(.root) h1, :where(.root) h2, :where(.root) h3, :where(.root) h4 { font-family: var(--v5-font-display); font-weight: 500; margin: 0; text-wrap: balance; }
 :where(.root) p { margin: 0; }
 /* Emphasis uses the already-loaded 500 face instead of fetching 600/700 files for a few bold words. */
@@ -139,7 +144,9 @@
 }
 .sectionAlt .articleCard { background: var(--v5-card-alt); }
 .articleCard:hover { border-color: var(--v5-gold); }
-.articleCard:focus-within { border-color: var(--v5-gold); }
+/* Whole-card links (title ::after covers the card): the ring goes on the card, not on the title text. */
+.articleCard:focus-within { border-color: var(--v5-focus); }
+.articleCard:has(.articleCardTitle a:focus-visible) { outline: 3px solid var(--v5-focus); outline-offset: 3px; }
 .articleCardImage { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: cover; background: var(--v5-surface); }
 .articleCardBody { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 18px 20px 20px; }
 .articleCardTopic { color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }

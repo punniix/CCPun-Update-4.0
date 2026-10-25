@@ -2,7 +2,10 @@
 .grid { display: grid; gap: var(--v5-card-gap); }
 @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .card { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: var(--v5-radius); background: var(--v5-card); border: 1px solid var(--v5-border-soft); }
-.card:hover, .card:focus-within { border-color: var(--v5-gold); }
+.card:hover { border-color: var(--v5-gold); }
+.card:focus-within { border-color: var(--v5-focus); }
+.card:has(h2 a:focus-visible) { outline: 3px solid var(--v5-focus); outline-offset: 3px; }
+.card h2 a:focus-visible { outline: none; }
 .card h2 { font-size: 21px; line-height: 1.4; }
 .card h2 a { text-decoration: none; }
 .card h2 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
