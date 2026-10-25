@@ -5,6 +5,10 @@ import { auth, isAdminAuthConfigured, signIn } from "@/auth";
 import { getEnvironmentLabel } from "@/lib/admin/environment";
 import { adminCapabilityLandingPath, getAdminCapabilityProfile, safeAdminCapabilityReturnPath } from "@/lib/admin/capability-profile";
 
+// Render per request so the Google sign-in server-action ID always matches the
+// running build; a prerendered or stored login page cannot outlive a rebuild.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "เข้าสู่ศูนย์จัดการ CCPun",
   robots: { index: false, follow: false, nocache: true },

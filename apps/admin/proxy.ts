@@ -31,6 +31,35 @@ import type { AdminRole } from "@/lib/admin/rbac";
 import { nativeWorkflowTransportDisposition } from "@/lib/admin/workflow-transport-boundary";
 import { resolveDeploymentIdentity } from "@/lib/runtime/deployment-identity";
 
+// Every Admin response except content-hashed public assets is private. Browsers,
+// shared proxies and CDNs (Cloudflare, Hostinger CDN) must never store a page,
+// redirect, auth or API response, even under a cache-everything edge rule. A
+// stored page or redirect can outlive a rebuild (stale server-action IDs) or be
+// replayed to another visitor (redirect loops, another session's HTML).
+export const ADMIN_PRIVATE_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";
+export const ADMIN_CDN_NO_STORE_HEADERS: Readonly<Record<string, string>> = Object.freeze({
+  "CDN-Cache-Control": "no-store",
+  "Cloudflare-CDN-Cache-Control": "no-store",
+});
+
+export function isAdminPublicStaticAssetPath(pathname: string): boolean {
+  return pathname.startsWith("/_next/static/")
+    || pathname === "/_next/image" || pathname.startsWith("/_next/image/")
+    || pathname.startsWith("/assets/")
+    || pathname === "/favicon.ico" || pathname === "/favicon.png";
+}
+
+export function withAdminCachePolicy<T extends Response>(pathname: string, response: T): T {
+  if (isAdminPublicStaticAssetPath(pathname)) return response;
+  // An existing private no-store value (fence 404s) is already equivalent; keep it.
+  const existing = response.headers.get("Cache-Control") ?? "";
+  if (!/(^|,)\s*private\s*(,|$)/i.test(existing) || !/(^|,)\s*no-store\s*(,|$)/i.test(existing)) {
+    response.headers.set("Cache-Control", ADMIN_PRIVATE_CACHE_CONTROL);
+  }
+  for (const [key, value] of Object.entries(ADMIN_CDN_NO_STORE_HEADERS)) response.headers.set(key, value);
+  return response;
+}
+
 function nativeFullAdminHostResponse(request: NextRequest) {
   if (process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim().toLowerCase() !== "hostinger"
     || getAdminCapabilityProfile() !== "full") return null;
@@ -244,10 +273,24 @@ const authenticatedAdminProxy = auth(adminProxy);
 export default function proxy(...args: Parameters<typeof authenticatedAdminProxy>) {
   // Auth.js can rewrite URL to AUTH_URL. Native Workflow must be classified
   // before that wrapper and without reading its body or a browser session.
+  const pathname = args[0].nextUrl.pathname;
   const workflowResponse = nativeWorkflowResponse(args[0]);
-  if (workflowResponse) return workflowResponse;
+  if (workflowResponse) return withAdminCachePolicy(pathname, workflowResponse);
   const hostResponse = nativeFullAdminHostResponse(args[0]);
-  return hostResponse ?? authenticatedAdminProxy(...args);
+  if (hostResponse) return withAdminCachePolicy(pathname, hostResponse);
+  // The routing/auth decision (adminProxy) is unchanged; the cache policy is
+  // applied to its final response after Auth.js has copied it.
+  return withAdminCachePolicyResult(pathname, authenticatedAdminProxy(...args));
+}
+
+function withAdminCachePolicyResult<T>(pathname: string, result: T): T {
+  if (result instanceof Response) return withAdminCachePolicy(pathname, result);
+  if (result instanceof Promise) {
+    return result.then((response: unknown) => response instanceof Response
+      ? withAdminCachePolicy(pathname, response)
+      : response) as T;
+  }
+  return result;
 }
 
 export const config = {

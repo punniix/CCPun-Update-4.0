@@ -53,11 +53,29 @@ export const adminOpsAuditFollowUpSources = Object.freeze({
   // END reviewed follow-up sources
 });
 
+// Admin cache hardening (2026-10-25, security fix on PR #492): every Admin page,
+// redirect, auth and API response carries `private, no-store` plus CDN no-store
+// headers, /_next/static stays cacheable, and /login/ renders per request. The
+// adminProxy routing/auth decision is byte-for-byte unchanged (the cache policy
+// wraps its final response in the outer proxy). `before` is the digest currently
+// frozen by phase3-admin-native-boundaries (proxy) and phase1-source-ownership
+// (login); next.config.ts had no prior seal and is frozen here from now on.
+// Same exact mechanism: any other byte still fails every frozen proof.
+export const adminCacheHardeningSources = Object.freeze({
+  // BEGIN reviewed cache-hardening sources
+  "apps/admin/app/(control-plane-auth)/login/page.tsx": { before: "343322f37dd70534031a38cfe4731714460f0a6ec43b335a55840d6481831b9e", after: "22177830652bc439cfa0fbd02da7a8b6776140e2e4f08244ba0b8d76f718bfca" },
+  "apps/admin/next.config.ts": { before: "202e30306c29ef7ab2c6e6548892cd18df28b741313f92dd3ed4cb4e33e30dc5", after: "4e8a5020135b0644a68e9ef9431f35a90e8b022b7e2551a58ce7d2bb661b276e" },
+  "apps/admin/proxy.ts": { before: "f423de344e00e1219ddb5e2699b4cadf5e6fa8b5d42ce403e371084b3081a7fc", after: "5098b24e07dc12ba94f72bf4d247bc6c770eec680637d367e4bc9f11c75a96e2" },
+  // END reviewed cache-hardening sources
+});
+
 // Maps the digest of an exact reviewed successor to its reviewed predecessor;
 // any other digest is returned unchanged (so an unreviewed edit still fails).
 export function adminOps20261025PredecessorDigest(file, digest) {
+  const cache = Object.hasOwn(adminCacheHardeningSources, file) ? adminCacheHardeningSources[file] : null;
+  const cacheReviewed = cache && digest === cache.after ? cache.before : digest;
   const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file] : null;
-  const reviewed = followUp && digest === followUp.after ? followUp.before : digest;
+  const reviewed = followUp && cacheReviewed === followUp.after ? followUp.before : cacheReviewed;
   const entry = Object.hasOwn(adminOps20261025Sources, file) ? adminOps20261025Sources[file] : null;
   return entry && reviewed === entry.after ? entry.before : reviewed;
 }
