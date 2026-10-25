@@ -14,6 +14,7 @@ import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdow
 import styles from "./V5Blog.module.css";
 import V5BlogSearch from "./V5BlogSearch";
 import V5GroupPager, { GROUP_PAGE_SIZE } from "./V5GroupPager";
+import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngagement";
 
 type Group = { id: string; title: string; href?: string; cards: V5CardArticle[]; searchText: Map<string, string> };
 
@@ -65,6 +66,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
   return (
     <PublicCopyProvider values={copy}>
       <V5Page current="/blog/" siteCopy={siteCopy}>
+        <V5CardMetricsProvider>
         <div id="v5-blog-scope" className={styles.searchScope}>
           <section className={styles.hero} aria-labelledby="blog-title">
             <div className={shell.inner}>
@@ -95,7 +97,8 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                 {featuredCards.map((card, index) => (
                   <div key={card.id} className={styles.searchItem} data-v5-search={searchById.get(card.id)}>
                     <V5ArticleCard article={card} className={index === 0 ? styles.featuredLead : undefined} horizontal={index > 0} priority={index === 0} showExcerpt={index === 0}
-                      headingLevel={3} sizes={index === 0 ? "(max-width: 899px) calc(100vw - 40px), 640px" : "(max-width: 479px) calc(100vw - 40px), 240px"} />
+                      headingLevel={3} sizes={index === 0 ? "(max-width: 899px) calc(100vw - 40px), 640px" : "(max-width: 479px) calc(100vw - 40px), 240px"}
+                      metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
                   </div>
                 ))}
               </div>
@@ -131,7 +134,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                     <div id={gridId} className={`${shell.cardGrid} ${styles.groupGrid}`}>
                       {group.cards.map((card, index) => (
                         <div key={card.id} data-v5-search={group.searchText.get(card.id)} data-pager-hidden={index >= GROUP_PAGE_SIZE ? "" : undefined}>
-                          <V5ArticleCard article={card} showExcerpt />
+                          <V5ArticleCard article={card} showExcerpt metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
                         </div>
                       ))}
                     </div>
@@ -143,6 +146,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
             </div>
           </section>
         </div>
+        </V5CardMetricsProvider>
       </V5Page>
     </PublicCopyProvider>
   );

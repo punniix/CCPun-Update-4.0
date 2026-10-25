@@ -68,6 +68,71 @@ export function takeArticleRateLimit(key: string, maximum: number, now = Date.no
   return true;
 }
 
+// Short-lived, process-local copy of the public aggregate per article. It is used
+// only for GETs without a heart cookie (the aggregate is identical for everyone),
+// so most card/article reads skip Neon and Sanity, and a brief upstream failure can
+// return the last good totals marked `degraded` instead of a 503. No visitor data.
+type Aggregate = { views: number | null; shares: number | null; hearts: number | null; activatedAt: string };
+export const ARTICLE_METRICS_FRESH_MS = 30_000;
+export const ARTICLE_METRICS_STALE_MS = 10 * 60_000;
+const METRICS_CACHE_MAX = 256;
+const metricsCache = new Map<string, { at: number; value: Aggregate }>();
+export function rememberArticleMetrics(articleId: string, value: Aggregate, now = Date.now()) {
+  metricsCache.delete(articleId);
+  if (metricsCache.size >= METRICS_CACHE_MAX) metricsCache.delete(metricsCache.keys().next().value as string);
+  metricsCache.set(articleId, { at: now, value });
+}
+export function cachedArticleMetrics(articleId: string, maxAge: number, now = Date.now()) {
+  const entry = metricsCache.get(articleId);
+  return entry && now - entry.at >= 0 && now - entry.at < maxAge ? entry.value : null;
+}
+
+// Retry once, inside the same 5 s budget, only when the request never produced a
+// SQL answer (fetch failure or Neon proxy 429/5xx). SQL errors carry a SQLSTATE and
+// are never retried. Writes are safe to repeat: hearts are set-not-toggle and
+// view/share events are deduplicated by their eventId nonce.
+type NeonFailure = { code?: unknown; sourceError?: { name?: unknown }; message?: unknown };
+function transportFailure(error: unknown) {
+  if (!error || typeof error !== "object") return null;
+  const failure = error as NeonFailure;
+  if (typeof failure.code === "string" && /^[0-9A-Z]{5}$/.test(failure.code)) return null;
+  if (failure.sourceError && typeof failure.sourceError === "object") {
+    return failure.sourceError.name === "AbortError" || failure.sourceError.name === "TimeoutError" ? "timeout" : "network";
+  }
+  return typeof failure.message === "string" && /^Server error \(HTTP status (?:429|5\d\d)\)/.test(failure.message) ? "upstream" : null;
+}
+async function queryOnceMore<T>(run: () => Promise<T>, signal: AbortSignal) {
+  try { return await run(); } catch (error) {
+    const kind = transportFailure(error);
+    if (kind !== "network" && kind !== "upstream") throw error;
+    if (signal.aborted) throw error;
+    await new Promise(resolve => setTimeout(resolve, 150));
+    if (signal.aborted) throw error;
+    return run();
+  }
+}
+
+// One redacted line per 5xx/degraded answer so the next outage is visible in the
+// Hostinger runtime log. Never logs messages, IDs, cookies, hashes or credentials.
+type Stage = "runtime" | "content" | "database" | "result";
+let logWindow = { start: 0, count: 0 };
+function failureKind(stage: Stage, error: unknown) {
+  if (error instanceof RequestError) return error.code;
+  if (stage === "content") return error instanceof Error && error.message === "CONTENT_TIMEOUT" ? "timeout" : "error";
+  if (stage === "database") {
+    const code = error && typeof error === "object" ? (error as NeonFailure).code : undefined;
+    if (typeof code === "string" && /^[0-9A-Z]{5}$/.test(code)) return `sql_${code}`;
+    return transportFailure(error) ?? "error";
+  }
+  return stage === "result" ? "invalid_result" : "error";
+}
+function reportFailure(outcome: "unavailable" | "degraded", stage: Stage, method: string, error: unknown, now = Date.now()) {
+  if (now - logWindow.start >= 60_000) logWindow = { start: now, count: 0 };
+  if (++logWindow.count > 30) return;
+  const line = `[ARTICLE_ENGAGEMENT] ${JSON.stringify({ schema: "ccpun.article_engagement.v1", outcome, stage, method, error: failureKind(stage, error) })}`;
+  try { (outcome === "degraded" ? console.warn : console.error)(line); } catch { /* logging must never change the response */ }
+}
+
 function digest(value: string) { return createHash("sha256").update(value).digest("hex"); }
 function cookieName(articleId: string) { return `__Secure-ccpun-heart-${digest(articleId).slice(0, 16)}`; }
 function heartToken(request: Request, articleId: string) {
@@ -119,7 +184,7 @@ async function readBody(request: Request): Promise<Record<string, unknown>> {
   }
 }
 
-async function publishedArticleId(id: string) {
+async function publishedArticleIds(ids: readonly string[]) {
   // The common runtime uses current published content. The UAT counterpart adds
   // its existing guarded fixture resolver here; Production has no fixture import.
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -127,9 +192,13 @@ async function publishedArticleId(id: string) {
     getContentProvider().listArticles({ includeDrafts: false }),
     new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("CONTENT_TIMEOUT")), 5000); }),
   ]).finally(() => clearTimeout(timer));
-  const article = articles.find(item => item.id === id && item.status === "published"
-    && !!item.publishedAt && Number.isFinite(Date.parse(item.publishedAt)) && Date.parse(item.publishedAt) <= Date.now());
-  if (!article) throw new RequestError(404, "article_not_found");
+  const wanted = new Set(ids);
+  const published = new Set(articles.filter(item => wanted.has(item.id) && item.status === "published"
+    && !!item.publishedAt && Number.isFinite(Date.parse(item.publishedAt)) && Date.parse(item.publishedAt) <= Date.now()).map(item => item.id));
+  return ids.filter(id => published.has(id));
+}
+async function publishedArticleId(id: string) {
+  if (!(await publishedArticleIds([id])).length) throw new RequestError(404, "article_not_found");
   return id;
 }
 
@@ -148,24 +217,36 @@ function safeCount(value: unknown) {
   return count;
 }
 
+function metricsResponse(value: Aggregate, liked: boolean, degraded: boolean) {
+  return Response.json({ available: true, views: value.views, shares: value.shares, hearts: value.hearts, liked, activatedAt: value.activatedAt, history, degraded }, { headers: HEADERS });
+}
+
+// Shared by the single-article and the card batch handlers.
+function trustedRuntime(request: Request) {
+  const runtime = resolveArticleRuntime();
+  if (!runtime) throw new RequestError(503, "unavailable");
+  // Hostinger may expose its internal HTTP URL. Trust only the pinned external
+  // Host, and reject every supplied forwarded value unless it is single/exact.
+  const requestUrl = new URL(request.url);
+  const expectedHost = new URL(runtime.origin).host;
+  if (!["http:", "https:"].includes(requestUrl.protocol) || requestUrl.username || requestUrl.password
+    || request.headers.get("host") !== expectedHost
+    || (request.headers.has("x-forwarded-host") && request.headers.get("x-forwarded-host") !== expectedHost)
+    || (request.headers.has("x-forwarded-proto") && request.headers.get("x-forwarded-proto") !== "https")
+    || request.headers.get("sec-fetch-site") === "cross-site") {
+    throw new RequestError(403, "invalid_origin");
+  }
+  if (!takeArticleRateLimit("all", 1200)) throw new RequestError(429, "rate_limited");
+  return runtime;
+}
+
 export async function handleArticleEngagement(request: Request, requestedId: string) {
+  let stage: Stage = "runtime";
+  let cacheable = false;
   try {
     if (request.method !== "GET" && request.method !== "POST") throw new RequestError(405, "method_not_allowed");
     if (!ARTICLE_ID.test(requestedId)) throw new RequestError(404, "article_not_found");
-    const runtime = resolveArticleRuntime();
-    if (!runtime) throw new RequestError(503, "unavailable");
-    // Hostinger may expose its internal HTTP URL. Trust only the pinned external
-    // Host, and reject every supplied forwarded value unless it is single/exact.
-    const requestUrl = new URL(request.url);
-    const expectedHost = new URL(runtime.origin).host;
-    if (!["http:", "https:"].includes(requestUrl.protocol) || requestUrl.username || requestUrl.password
-      || request.headers.get("host") !== expectedHost
-      || (request.headers.has("x-forwarded-host") && request.headers.get("x-forwarded-host") !== expectedHost)
-      || (request.headers.has("x-forwarded-proto") && request.headers.get("x-forwarded-proto") !== "https")
-      || request.headers.get("sec-fetch-site") === "cross-site") {
-      throw new RequestError(403, "invalid_origin");
-    }
-    if (!takeArticleRateLimit("all", 1200)) throw new RequestError(429, "rate_limited");
+    const runtime = trustedRuntime(request);
     let body: Record<string, unknown> | null = null;
     if (request.method === "POST") {
       // Match the repository's same-origin mutation rule, using the pinned Web host.
@@ -185,6 +266,11 @@ export async function handleArticleEngagement(request: Request, requestedId: str
         if (body.analyticsConsent !== true) throw new RequestError(403, "analytics_consent_required");
       }
     }
+    // Only cookieless reads share one public answer; a heart cookie needs its own `liked`.
+    cacheable = !body && heartToken(request, requestedId) === null;
+    const fresh = cacheable ? cachedArticleMetrics(requestedId, ARTICLE_METRICS_FRESH_MS) : null;
+    if (fresh) return metricsResponse(fresh, false, false);
+    stage = "content";
     const articleId = await publishedArticleId(requestedId);
     if (body && !takeArticleRateLimit(`article:${articleId}`, 120)) throw new RequestError(429, "rate_limited");
     let token = heartToken(request, articleId);
@@ -194,18 +280,23 @@ export async function handleArticleEngagement(request: Request, requestedId: str
       if (!takeArticleRateLimit(`heart:${heartHash(articleId, token)}`, 12)) throw new RequestError(429, "rate_limited");
     }
     const hash = heartHash(articleId, token);
-    const sql = neon(runtime.connectionString, { fetchOptions: { signal: AbortSignal.timeout(5000) } });
-    const rows = body?.type === "heart"
-      ? await sql.query("SELECT * FROM ccpun_article.set_article_heart($1::text,$2::text,$3::boolean)", [articleId, hash, body.liked])
+    stage = "database";
+    const signal = AbortSignal.timeout(5000);
+    const sql = neon(runtime.connectionString, { fetchOptions: { signal } });
+    const rows = await queryOnceMore(() => body?.type === "heart"
+      ? sql.query("SELECT * FROM ccpun_article.set_article_heart($1::text,$2::text,$3::boolean)", [articleId, hash, body.liked])
       : body
-        ? await sql.query("SELECT * FROM ccpun_article.record_article_event($1::text,$2::text,$3::uuid,$4::text)", [articleId, body.type, body.eventId, hash])
-        : await sql.query("SELECT * FROM ccpun_article.read_article_metrics($1::text,$2::text)", [articleId, hash]);
+        ? sql.query("SELECT * FROM ccpun_article.record_article_event($1::text,$2::text,$3::uuid,$4::text)", [articleId, body.type, body.eventId, hash])
+        : sql.query("SELECT * FROM ccpun_article.read_article_metrics($1::text,$2::text)", [articleId, hash]), signal);
+    stage = "result";
     const row = rows[0];
     const activatedAt = row ? timestampText(row.activated_at) : null;
     if (!row || typeof row.liked !== "boolean" || !activatedAt) {
       throw new Error("INVALID_METRIC_RESULT");
     }
-    const response = Response.json({ available: true, views: safeCount(row.views), shares: safeCount(row.shares), hearts: safeCount(row.hearts), liked: row.liked, activatedAt, history }, { headers: HEADERS });
+    const aggregate: Aggregate = { views: safeCount(row.views), shares: safeCount(row.shares), hearts: safeCount(row.hearts), activatedAt };
+    rememberArticleMetrics(articleId, aggregate);
+    const response = metricsResponse(aggregate, row.liked, false);
     if (setCookie) {
       response.headers.set("Set-Cookie", `${cookieName(articleId)}=${token}; Path=/api/article-engagement/${encodeURIComponent(requestedId)}/; Max-Age=31536000; HttpOnly; Secure; SameSite=Strict`);
     }
@@ -213,6 +304,74 @@ export async function handleArticleEngagement(request: Request, requestedId: str
   } catch (error) {
     const known = error instanceof RequestError;
     const status = known ? error.status : 503;
+    if (status >= 500) {
+      const stale = cacheable && !known ? cachedArticleMetrics(requestedId, ARTICLE_METRICS_STALE_MS) : null;
+      reportFailure(stale ? "degraded" : "unavailable", stage, request.method === "POST" ? "POST" : "GET", error);
+      if (stale) return metricsResponse(stale, false, true);
+    }
+    return Response.json({ available: false, error: known ? error.code : "unavailable" }, {
+      status, headers: { ...HEADERS, ...(status === 429 ? { "Retry-After": "60" } : {}) },
+    });
+  }
+}
+
+// Card lists: one cookieless read for up to 24 published articles instead of one request
+// per card. Aggregates only (no `liked`: heart cookies are scoped to each article path).
+// Shares the 30 s aggregate cache, the global limit, the same trust checks and the same
+// redacted failure log; unknown or unpublished IDs are simply left out of `items`.
+export const ARTICLE_BATCH_MAX = 24;
+function batchResponse(items: Record<string, Aggregate>, degraded: boolean) {
+  const activatedAt = Object.values(items)[0]?.activatedAt ?? null;
+  const rows = Object.fromEntries(Object.entries(items).map(([id, value]) => [id, { views: value.views, shares: value.shares, hearts: value.hearts }]));
+  return Response.json({ available: true, items: rows, activatedAt, history, degraded }, { headers: HEADERS });
+}
+export async function handleArticleEngagementBatch(request: Request) {
+  let stage: Stage = "runtime";
+  let ids: string[] = [];
+  try {
+    if (request.method !== "GET") throw new RequestError(405, "method_not_allowed");
+    const runtime = trustedRuntime(request);
+    const params = new URL(request.url).searchParams;
+    const raw = params.getAll("ids");
+    if ([...params.keys()].some(key => key !== "ids") || raw.length !== 1) throw new RequestError(400, "invalid_payload");
+    ids = [...new Set(raw[0].split(","))];
+    if (!ids.length || ids.length > ARTICLE_BATCH_MAX || ids.some(id => !ARTICLE_ID.test(id))) throw new RequestError(400, "invalid_payload");
+    if (!takeArticleRateLimit("batch", 600)) throw new RequestError(429, "rate_limited");
+    const items: Record<string, Aggregate> = {};
+    for (const id of ids) {
+      const fresh = cachedArticleMetrics(id, ARTICLE_METRICS_FRESH_MS);
+      if (fresh) items[id] = fresh;
+    }
+    const missing = ids.filter(id => !items[id]);
+    if (!missing.length) return batchResponse(items, false);
+    stage = "content";
+    const published = await publishedArticleIds(missing);
+    if (published.length) {
+      stage = "database";
+      const signal = AbortSignal.timeout(5000);
+      const sql = neon(runtime.connectionString, { fetchOptions: { signal } });
+      const rows = await queryOnceMore(() => sql.query(
+        "SELECT i.article_id, m.views, m.shares, m.hearts, m.activated_at FROM unnest($1::text[]) WITH ORDINALITY AS i(article_id, n) CROSS JOIN LATERAL ccpun_article.read_article_metrics(i.article_id, NULL) AS m ORDER BY i.n",
+        [published]), signal);
+      stage = "result";
+      if (rows.length !== published.length) throw new Error("INVALID_METRIC_RESULT");
+      for (const [index, row] of rows.entries()) {
+        const activatedAt = timestampText(row.activated_at);
+        if (row.article_id !== published[index] || !activatedAt) throw new Error("INVALID_METRIC_RESULT");
+        const aggregate: Aggregate = { views: safeCount(row.views), shares: safeCount(row.shares), hearts: safeCount(row.hearts), activatedAt };
+        rememberArticleMetrics(published[index], aggregate);
+        items[published[index]] = aggregate;
+      }
+    }
+    return batchResponse(Object.fromEntries(ids.filter(id => items[id]).map(id => [id, items[id]])), false);
+  } catch (error) {
+    const known = error instanceof RequestError;
+    const status = known ? error.status : 503;
+    if (status >= 500) {
+      const stale = known ? [] : ids.flatMap(id => { const value = cachedArticleMetrics(id, ARTICLE_METRICS_STALE_MS); return value ? [[id, value] as const] : []; });
+      reportFailure(stale.length ? "degraded" : "unavailable", stage, "GET", error);
+      if (stale.length) return batchResponse(Object.fromEntries(stale), true);
+    }
     return Response.json({ available: false, error: known ? error.code : "unavailable" }, {
       status, headers: { ...HEADERS, ...(status === 429 ? { "Retry-After": "60" } : {}) },
     });

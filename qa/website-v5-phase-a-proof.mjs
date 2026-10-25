@@ -18,7 +18,7 @@ export const websiteV5CopyAdditions = Object.freeze({
     '  "site.extra.blogRecovery": "ดูบทความ",\n',
   ]],
   'lib/content/blog-copy-defaults.ts': [[
-    '  "blog.dynamic5": "บทความ{0}",\n  "blog.startHere.title": "เริ่มอ่านที่นี่",\n  "blog.group.latest": "บทความล่าสุด",\n  "blog.group.count": "{0} บทความ",\n  "blog.group.viewAll": "ดูทั้งหมด →",\n  "blog.pager.label": "เลือกหน้าของ {0}",\n  "blog.pager.first": "« หน้าแรก",\n  "blog.pager.last": "หน้าสุดท้าย »",\n  "blog.pager.status": "หน้า {0} จาก {1}",\n  "blog.topicTools.title": "ลองเทียบความคุ้มครองที่มีอยู่กับภาระจริง",\n  "blog.topicTools.description": "เครื่องมือที่เกี่ยวกับหมวดนี้",\n  "blog.nextStep.eyebrow": "ขั้นต่อไป"\n',
+    '  "blog.dynamic5": "บทความ{0}",\n  "blog.startHere.title": "เริ่มอ่านที่นี่",\n  "blog.group.latest": "บทความล่าสุด",\n  "blog.group.count": "{0} บทความ",\n  "blog.group.viewAll": "ดูทั้งหมด →",\n  "blog.pager.label": "เลือกหน้าของ {0}",\n  "blog.pager.first": "« หน้าแรก",\n  "blog.pager.last": "หน้าสุดท้าย »",\n  "blog.pager.status": "หน้า {0} จาก {1}",\n  "blog.topicTools.title": "ลองเทียบความคุ้มครองที่มีอยู่กับภาระจริง",\n  "blog.topicTools.description": "เครื่องมือที่เกี่ยวกับหมวดนี้",\n  "blog.nextStep.eyebrow": "ขั้นต่อไป",\n  "blog.engagement.hearts": "ถูกใจ {0} ครั้ง"\n',
     '  "blog.dynamic5": "บทความ{0}"\n',
   ]],
   // The v5 regression suite joins test:public; nothing else in the manifest changes.
@@ -38,7 +38,9 @@ export const websiteV5NewCopyKeys = Object.freeze([
   'site.campaign.unitDays', 'site.campaign.unitHours', 'site.campaign.unitMinutes', 'site.campaign.unitSeconds',
   'blog.startHere.title', 'blog.group.latest', 'blog.group.count', 'blog.group.viewAll', 'blog.pager.label',
   'blog.pager.first', 'blog.pager.last', 'blog.pager.status', 'blog.topicTools.title', 'blog.topicTools.description',
-  'blog.nextStep.eyebrow', 'home.coreGuides.title', 'home.latest.title', 'home.moneyStory.description', 'home.contactBand.title',
+  'blog.nextStep.eyebrow',
+  // 2026-10-25 (owner-approved): screen-reader label for the heart count on v5 cards and the article header.
+  'blog.engagement.hearts', 'home.coreGuides.title', 'home.latest.title', 'home.moneyStory.description', 'home.contactBand.title',
 ]);
 
 /** Exact inverse of the additive copy keys; any other edit is left in place and still fails the frozen digest. */

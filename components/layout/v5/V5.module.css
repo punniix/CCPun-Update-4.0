@@ -178,6 +178,8 @@
 .articleCardTitle a:focus-visible { outline: none; }
 .articleCardExcerpt { color: var(--v5-muted); font-size: 15px; line-height: 1.65; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .articleCardMeta { color: var(--v5-muted); font-size: var(--v5-text-meta); margin-top: auto; padding-top: 4px; }
+.articleCardFooter { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-top: auto; }
+.articleCardFooter .articleCardMeta { margin-top: 0; padding-top: 0; min-width: 0; }
 .articleCardHorizontal { flex-direction: row; align-items: stretch; }
 .articleCardHorizontal .articleCardImage { width: 38%; aspect-ratio: auto; min-height: 100%; flex: none; }
 .articleCardHorizontal .articleCardBody { padding: 16px 16px; }

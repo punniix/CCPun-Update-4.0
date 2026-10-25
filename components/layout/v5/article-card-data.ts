@@ -16,20 +16,32 @@ export function articleTopic(article: Article) {
   });
 }
 
+/**
+ * Card date (owner decision 2026-10-25): an explicit content optimisation (Sanity contentOptimizedAt)
+ * shows "อัปเดต <date>"; otherwise the publish date shows "เผยแพร่ <date>". `updatedAt` is never
+ * shown, because any edit or migration touches it. List order is decided elsewhere and is unchanged.
+ */
+export function cardDate(article: Pick<Article, "optimizedAt" | "publishedAt">): { key: "blog.date.updated" | "blog.date.published"; at: Date } | null {
+  for (const [key, value] of [["blog.date.updated", article.optimizedAt], ["blog.date.published", article.publishedAt]] as const) {
+    const time = value ? Date.parse(value) : NaN;
+    if (Number.isFinite(time)) return { key, at: new Date(time) };
+  }
+  return null;
+}
+
 /** Maps a Sanity article to a v5 card. Invalid taxonomy returns null so one record never breaks a listing. */
 export function toV5Card(article: Article, copy: PublicCopyValues = {}): V5CardArticle | null {
   const text = publicCopyText(copy);
   try {
     const href = getArticlePath(article);
-    const date = new Date(article.publishedAt ?? article.updatedAt);
-    const label = article.publishedAt ? text("blog.date.published") : text("blog.date.updated");
+    const date = cardDate(article);
     return {
       id: article.id,
       href,
       title: article.title,
       topic: articleTopic(article)?.title ?? article.category,
       excerpt: article.excerpt.trim() || article.title,
-      meta: Number.isFinite(date.getTime()) ? `${label} ${thaiDate.format(date)}` : undefined,
+      meta: date ? `${date.key === "blog.date.updated" ? text("blog.date.updated") : text("blog.date.published")} ${thaiDate.format(date.at)}` : undefined,
       image: article.featuredImage
         ? { src: article.featuredImage.src, width: article.featuredImage.width, height: article.featuredImage.height }
         : { src: "/assets/blog-hub-hero-ccpun-v1.webp", width: 1774, height: 887 },

@@ -28,6 +28,7 @@ import styles from "./V5Blog.module.css";
 import { renderV5ArticleBody } from "./V5ArticleBody";
 import { resolveNextSteps } from "./next-step";
 import NextStepCiLink from "./NextStepCiLink";
+import V5ArticleEngagementMeta from "./V5ArticleEngagementMeta";
 
 const thaiDate = new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Bangkok" });
 const HEALTH_HAPPY_SLUG = "aia-health-happy-describe";
@@ -117,6 +118,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
                 {published && <span>{text.node("blog.articleDateLabel")} <time dateTime={article.publishedAt}>{published}</time></span>}
                 {optimized && <span>{text.node("blog.articleDateLabel2")} <time dateTime={article.optimizedAt}>{optimized}</time></span>}
                 <V5LegacyBridge><ArticleEngagementSummary readingMinutes={readingMinutes} /></V5LegacyBridge>
+                {!preview && <V5ArticleEngagementMeta />}
               </div>
               {!preview && <V5LegacyBridge className={styles.shareSlot}><ArticleShareActions origin="https://ccpun.com" path={path} title={article.title} placement="header" /></V5LegacyBridge>}
             </div>

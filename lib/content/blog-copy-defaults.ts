@@ -75,5 +75,6 @@ export const BLOG_COPY_DEFAULTS = {
   "blog.pager.status": "หน้า {0} จาก {1}",
   "blog.topicTools.title": "ลองเทียบความคุ้มครองที่มีอยู่กับภาระจริง",
   "blog.topicTools.description": "เครื่องมือที่เกี่ยวกับหมวดนี้",
-  "blog.nextStep.eyebrow": "ขั้นต่อไป"
+  "blog.nextStep.eyebrow": "ขั้นต่อไป",
+  "blog.engagement.hearts": "ถูกใจ {0} ครั้ง"
 } as const;
