@@ -72,7 +72,9 @@ export const websiteV5PhaseASources = Object.freeze({
   "features/legal/pages/PrivacyPage.tsx": { before: "4ef0f5077d3d6c6d77d3c5bdc7316c1cb7716a232bfecf0242e808973d062295", after: "abff1a76ad1bcfbfb0f03600be136339c64d13501716d68e429d9b50b6f974ca" },
   "features/legal/pages/CookiePolicyPage.tsx": { before: "6846ce5d39782c288aa5345233b6623772b9839553668a41ec7629415460411d", after: "1630a89601a4361b65b23154e2f62e172c606ffc093df696317331f0fd254652" },
   "components/ui/health-happy/HealthHappyCountdown.tsx": { before: "e332ed447c376433404b8f80958edb833671f9983083605d4433b415c32aac05", after: "9c5bc7b625a49755d3be90ef885e4cb3bade1d9bf9fb0fff2ea68f8e609d1618" },
-  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "16cba845e82be153d6e848735f1f0e6b66c751509983f526c82f72c128aa6060" },
+  // Design QA 2026-10-25 (UAT): countdown labels read at 14px on phones (were 12/13px) and the frame
+  // radii follow the v5 scale (16/12px); the reviewed v5 successor digest moves to this exact file.
+  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "8faa54ccd0be493e4f4cf50b73bf43d0ac091bfa461d0810ddd61cb4d3ca0ae2" },
   "features/blog/website-43/ArticleShareActions.tsx": { before: "468315c7dc18c8b6030e8881bf6498fd5df2adc931dc5a0b48d9726c303135af", after: "79595cd57be1e6d2764661826516105ab39a6a16103783047c596f5377ab2058" },
   "features/blog/website-43/ArticleEngagement.tsx": { before: "941020bc1e53917b1fec02af8036ec4053b48e9cf4cc75abbcf41d477a5d3799", after: "146f49c1e9fd9bedacba9c9b602384dc4bd8a5581de901667d3d86b470cd772c" },
   "features/blog/website-43/ArticleDetailAccess.tsx": { before: "9b00002d896f86765bc9216adb1427454b2a734abb257b0505ca77d8f80976c9", after: "689e79413207218ecf12595b8aa08537f5c0e3d49298a16c5e59075aad56d0ed" },

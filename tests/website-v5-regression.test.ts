@@ -328,3 +328,33 @@ test("Phase B performance budget: three Kanit weights, one preloaded LCP face, t
   assert.match(countdown, /trackEvent\('health_happy_countdown_view'/);
   assert.match(countdown, /trackEvent\('health_happy_countdown_click'/);
 });
+
+// ---------------------------------------------------------------------------
+// Design QA 2026-10-25 (owner request): Thai readability floor, one rhythm/radius scale, phone card fix.
+// ---------------------------------------------------------------------------
+
+test("QA: v5 text never drops below 13px; meta/eyebrow tokens are 14/15px; rhythm and radius are central tokens", () => {
+  const sheets = [
+    ...v5Files.filter((file) => file.endsWith(".css")),
+    "features/tools-hub/ToolsHub.module.css",
+    "components/ui/health-happy/HealthHappyCountdown.module.css",
+  ];
+  for (const file of sheets) {
+    for (const [, size] of read(file).matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {
+      assert.ok(Number(size) >= 13, `${file}: font-size ${size}px is below the 13px floor`);
+    }
+  }
+  const shellCss = read("components/layout/v5/V5.module.css");
+  for (const token of ["--v5-text-meta: 14px;", "--v5-text-eyebrow: 15px;", "--v5-radius: 14px;", "--v5-section-y: 56px;", "--v5-card-gap: 16px;", "--v5-head-gap: 24px;"]) {
+    assert.ok(shellCss.includes(token), token);
+  }
+  assert.match(shellCss, /\.section \{ padding-block: var\(--v5-section-y\); \}/);
+  assert.match(shellCss, /\.articleCardTopic \{[^}]*font-size: var\(--v5-text-meta\)/);
+  assert.match(shellCss, /\.articleCardMeta \{[^}]*font-size: var\(--v5-text-meta\)/);
+  // Phones stack the horizontal card; the image must not keep the full-height rule that hid the title.
+  assert.match(shellCss, /\.articleCardHorizontal \.articleCardImage \{ width: 100%; min-height: 0; aspect-ratio: 1200 \/ 630; \}/);
+  const home = read("features/home/v5/V5Home.module.css");
+  assert.match(home, /\.credentials dd \{[^}]*font-size: var\(--v5-text-meta\)/);
+  assert.doesNotMatch(read("features/blog/v5/V5Blog.module.css"), /radial-gradient/, "no decorative glow panels");
+  assert.match(read("components/layout/v5/V5Tool.module.css"), /\.calcScope :global\(\.text-xs\) \{ font-size: 14px; line-height: 1\.6; \}/);
+});

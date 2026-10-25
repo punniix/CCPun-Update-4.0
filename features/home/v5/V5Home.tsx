@@ -110,7 +110,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
         </div>
       </section>
 
-      <section className={shell.sectionAlt} aria-labelledby="home-partners">
+      <section className={`${shell.sectionAlt} ${styles.partnerStrip}`} aria-labelledby="home-partners">
         <div className={shell.inner}>
           <h2 id="home-partners" className={shell.h3}>{text.node("home.partnerLabel")}</h2>
           <ul className={styles.partners} style={{ listStyle: "none", padding: 0, margin: "24px 0 0" }}>

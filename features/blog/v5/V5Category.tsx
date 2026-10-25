@@ -42,11 +42,8 @@ export default async function V5Category({ slug, title, description, hub, articl
           <div className={shell.inner}>
             <V5Breadcrumbs label={text("blog.website43Articlearialabel")} items={[{ href: "/", label: text.node("blog.link") }, { href: "/blog/", label: text.node("blog.activeCategoryText") }, { label: title }]} />
             <div className={styles.categoryHeroGrid}>
-              <div>
-                <h1 id="category-title" className={shell.h1}>{title}</h1>
-                {description ? <p className={styles.heroLead}>{description}</p> : null}
-              </div>
-              <div className={styles.categoryArt} aria-hidden="true"><span>{hub?.eyebrow ?? title}</span></div>
+              <h1 id="category-title" className={shell.h1}>{title}</h1>
+              {description ? <p className={styles.heroLead}>{description}</p> : null}
             </div>
           </div>
         </section>
