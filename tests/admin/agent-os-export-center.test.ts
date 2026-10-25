@@ -207,7 +207,8 @@ test("Export dataset endpoint uses dedicated n8n auth and owner-friendly read mo
 test("Dashboard shows aggregates without weakening advisor permission boundary", () => {
   const dashboard = read("apps/admin/app/(control-plane)/dashboard/page.tsx");
   assert.match(dashboard, /canReadAdvisor/);
-  assert.match(dashboard, /Qualified Conversation/);
+  assert.match(dashboard, /\["การคุยที่พร้อมให้คำแนะนำ", businessOverview\?\.qualifiedCount\]/);
+  assert.doesNotMatch(dashboard, /"(?:Lead|Qualified Conversation|Won)"/);
   assert.match(dashboard, /automationAttention/);
   assert.match(dashboard, /hasAdminPermission\(identity\.role, "advisor:read"\)/);
 });

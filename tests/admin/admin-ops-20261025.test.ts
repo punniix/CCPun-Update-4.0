@@ -28,7 +28,7 @@ import { ADMIN_NAVIGATION_REDIRECTS, contextualNavigationItems, splitTechnicalNa
 import { LOCAL_AI_FIRST_JOBS, buildArticleSuggestionInput } from "../../lib/local-ai/first-jobs";
 import { LOCAL_AI_TASK_TYPES, localAiTaskInputSchemas } from "../../lib/local-ai/contracts";
 import { hasArticleContentChanges } from "../../cms/sanity/policy/article-publication";
-import { adminOps20261025PredecessorDigest, adminOps20261025SourceDigest, adminOps20261025Sources, adminOpsAuditFollowUpSources } from "../../qa/admin-ops-20261025-proof.mjs";
+import { adminCopyFixesPredecessorDigest, adminOps20261025PredecessorDigest, adminOps20261025SourceDigest, adminOps20261025Sources, adminOpsAuditFollowUpSources } from "../../qa/admin-ops-20261025-proof.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -230,7 +230,7 @@ test("failure email is sent once per failed run; a failed send keeps the claim u
   clock.now += 10 * 60_000;
   assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: ok }), { outcome: "relay-accepted", reference, recorded: true });
   assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: ok }), { outcome: "already-accepted", reference });
-  assert.equal(messages.length, 1); assert.match(messages[0]!, /06:00 วันที่ 2026-10-25 ไม่สำเร็จ/);
+  assert.equal(messages.length, 1); assert.match(messages[0]!, /06:00 วันที่ 25 ต\.ค\. 2569 ไม่สำเร็จ/);
   calls.length = 0;
   assert.deepEqual(await dailyJob.dispatchDailyJobAlert(health, { store: fakeStore, notifier: notifier.disabledNotificationAdapter }), { outcome: "email-disabled", reference });
   assert.deepEqual(calls, [], "disabled email never claims the run");
@@ -406,9 +406,10 @@ test("2026-10-25 frozen-proof admissions are exact and reject any further edit",
   for (const [file, { before: predecessor, after: successor }] of Object.entries(adminOps20261025Sources)) {
     assert.ok(existsSync(path.join(root, file)), file);
     const current = adminOps20261025SourceDigest(read(file));
-    // A later exact follow-up admission may replace the successor; it must name this successor as its predecessor.
+    // Later exact admissions (copy fixes, then the audit follow-up) may replace the successor; each must name the one it replaced.
+    const copyReviewed = adminCopyFixesPredecessorDigest(file, current);
     const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file as keyof typeof adminOpsAuditFollowUpSources] : null;
-    const digest = followUp && current === followUp.after ? followUp.before : current;
+    const digest = followUp && copyReviewed === followUp.after ? followUp.before : copyReviewed;
     assert.equal(digest, successor, `${file} is exactly the reviewed successor`);
     assert.equal(adminOps20261025PredecessorDigest(file, current), predecessor);
     assert.equal(adminOps20261025PredecessorDigest(file, digest), predecessor);

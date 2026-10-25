@@ -23,7 +23,7 @@ import {
   type RunLogRow,
   type RunLogState,
 } from "../../lib/admin/ops-telemetry/contracts";
-import { adminOps20261025PredecessorDigest, adminOps20261025SourceDigest, adminOps20261025Sources, adminOpsAuditFollowUpSources } from "../../qa/admin-ops-20261025-proof.mjs";
+import { adminCopyFixesPredecessorDigest, adminOps20261025PredecessorDigest, adminOps20261025SourceDigest, adminOps20261025Sources, adminOpsAuditFollowUpSources } from "../../qa/admin-ops-20261025-proof.mjs";
 
 // Codex audit follow-ups (2026-10-25): F01 stuck/overdue, F02 scheduled check,
 // F03 crash-safe alert claim, F06 late-row guard. Adapter/synthetic only: no
@@ -241,7 +241,7 @@ test("F03: relay accepted but the client got no response: the retry is de-duplic
   assert.equal((await dailyJob.dispatchDailyJobAlert(health, { store, notifier: relay.adapter })).outcome, "relay-accepted");
   assert.equal(relay.requests.length, 2, "the relay saw the same reference twice");
   assert.equal(new Set(relay.requests.map((item) => item.reference)).size, 1);
-  assert.deepEqual(relay.emails, ["CCPun: รอบเก็บข้อมูล 06:00 วันที่ 2026-10-25 ไม่สำเร็จ"], "no duplicate email");
+  assert.deepEqual(relay.emails, ["CCPun: รอบเก็บข้อมูล 06:00 วันที่ 25 ต.ค. 2569 ไม่สำเร็จ"], "no duplicate email");
   assert.equal(claims.get("production-admin:daily-0600:failed:42")!.state, "accepted");
 });
 
@@ -301,7 +301,7 @@ test("F02: without opening Admin, the scheduled check alerts a missing Productio
   const report = await check.runDailyJobCheck({ store, notifier: relay.adapter, now: clock.now });
   assert.deepEqual([report.lane, report.state, report.alert.outcome, report.exitCode], ["production-admin", "missing", "relay-accepted", 0]);
   assert.equal((report.alert as { reference: string }).reference, "production-admin:daily-0600:missing:2026-10-25");
-  assert.equal(relay.emails[0], "CCPun: ยังไม่พบรอบเก็บข้อมูล 06:00 วันที่ 2026-10-25");
+  assert.equal(relay.emails[0], "CCPun: ยังไม่พบรอบเก็บข้อมูล 06:00 วันที่ 25 ต.ค. 2569");
   const again = await check.runDailyJobCheck({ store, notifier: relay.adapter, now: clock.now + 15 * 60_000 });
   assert.deepEqual([again.alert.outcome, again.exitCode], ["already-accepted", 0]);
   assert.equal(relay.requests.length, 1);
@@ -437,7 +437,8 @@ test("F09: the Supabase guide separates contract from status, names both project
 test("audit follow-up admissions chain exactly to the reviewed 2026-10-25 successors", () => {
   for (const [file, { before: predecessor, after: successor }] of Object.entries(adminOpsAuditFollowUpSources)) {
     const current = adminOps20261025SourceDigest(read(file));
-    assert.equal(current, successor, `${file} is exactly the reviewed follow-up`);
+    // The 2026-10-25 copy-fix admission may replace this follow-up; it must name the follow-up as its predecessor.
+    assert.equal(adminCopyFixesPredecessorDigest(file, current), successor, `${file} is exactly the reviewed follow-up`);
     assert.equal(adminOps20261025Sources[file as keyof typeof adminOps20261025Sources]?.after, predecessor, "chains to the reviewed successor");
     assert.equal(adminOps20261025PredecessorDigest(file, current), adminOps20261025Sources[file as keyof typeof adminOps20261025Sources]!.before);
     const unreviewed = adminOps20261025SourceDigest(read(file) + "\n// unreviewed");

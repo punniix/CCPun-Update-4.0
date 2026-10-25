@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DAILY_JOB_STUCK_AFTER_MINUTES, dailyJobStepLabel, type DailyJobHealth } from "@/lib/admin/ops-telemetry/contracts";
 import { dispatchDailyJobAlert, readDailyJobHealth } from "@/lib/admin/ops-telemetry/daily-job";
+import { thaiDisplayDate } from "@/lib/admin/presentation";
 
 function adminOrigin(): string | null {
   try { return process.env.AUTH_URL ? new URL(process.env.AUTH_URL).origin : null; } catch { return null; }
@@ -13,9 +14,9 @@ const BANNER_STATES: ReadonlySet<DailyJobHealth["state"]> = new Set(["failed", "
 export function DailyJobBannerView({ health }: { health: Pick<DailyJobHealth, "state" | "runDate" | "failedSteps"> }) {
   if (!BANNER_STATES.has(health.state)) return null;
   const steps = health.failedSteps.map(dailyJobStepLabel).join(", ");
-  const day = health.runDate ? ` วันที่ ${health.runDate}` : "";
+  const day = health.runDate ? ` วันที่ ${thaiDisplayDate(health.runDate)}` : "";
   return (
-    <div role="alert" className="mb-5 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-4 text-sm leading-6 text-amber-50" data-daily-job-banner={health.state}>
+    <div role="alert" className="mb-5 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-4 text-sm leading-6 text-amber-50" data-daily-job-banner={health.state} data-daily-job-run-date={health.runDate ?? undefined}>
       <p className="font-semibold">
         {health.state === "failed"
           ? `รอบเก็บข้อมูล 06:00${day} ไม่สำเร็จ`

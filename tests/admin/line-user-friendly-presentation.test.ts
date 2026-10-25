@@ -20,7 +20,7 @@ test("raw LINE states are translated into plain Thai before display", () => {
   assert.equal(lineStageLabel("Quote"), "กำลังดูใบเสนอราคา");
   assert.equal(lineStageLabel("Won"), "ดูแลเรียบร้อยแล้ว");
   assert.equal(lineJourneyLabel("motor_quote_review"), "ประกันรถ");
-  assert.equal(lineBotDecisionLabel("human_handoff"), "รอปันตอบ");
+  assert.equal(lineBotDecisionLabel("human_handoff"), "รอปั้นตอบ");
   assert.equal(lineDocumentStatusLabel("pending_fetch"), "กำลังรับไฟล์จาก LINE");
   assert.equal(lineDocumentStatusLabel("pending_upload"), "กำลังเก็บไฟล์");
   assert.equal(lineDocumentStatusLabel("reconciliation_required"), "สถานะไฟล์ยังไม่ชัด ต้องเช็กอีกครั้ง");

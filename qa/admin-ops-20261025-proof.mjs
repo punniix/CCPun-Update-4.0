@@ -69,11 +69,35 @@ export const adminCacheHardeningSources = Object.freeze({
   // END reviewed cache-hardening sources
 });
 
+// Admin wording fixes (2026-10-25, owner FigCraft review on PR #492): owner name
+// typo "รอปัน…" -> "รอปั้น…" on ลูกค้า LINE, Thai labels on the ภาพรวมธุรกิจ cards
+// (same wording as /analytics/conversions/; data keys unchanged) and Thai
+// display dates on the ดึงใหม่ตอนนี้ GSC/GA4 range labels (the request range
+// values stay ISO). `before` is the reviewed successor currently admitted above
+// (dashboard/page.tsx: the audit follow-up), so each file chains back through
+// that entry. Same exact mechanism: any other byte still fails every frozen proof.
+export const adminCopyFixesSources = Object.freeze({
+  // BEGIN reviewed copy-fix sources
+  "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx": { before: "90a5af4e19c4131a12f09c8f9caf0797656c79323e69fa46abeda6f0375bbf0e", after: "ddfe194cba105ac9e5312355ab8d5caf906a92445f51faae54ff8dd39a323b9b" },
+  "apps/admin/app/(control-plane)/dashboard/page.tsx": { before: "07325e4407b4cbdc27c0c0ddec721458a3e7ffe42d70d271f5e7ccce7adb490d", after: "cb513d139f472171b10d88448819342f1d95150de6e50b9f6a01bf9e5236599c" },
+  "features/admin/seo/opportunities/Ga4ManualSync.tsx": { before: "2901e2bbb9d637100c8d52f1c3dbb92162bbb16235f50beb46e339992a6e6488", after: "ba1720c4b523087efc18905ed63f7e443713eed1eac3c6b5b2264f0c9ed6e42c" },
+  "features/admin/seo/opportunities/GscManualSync.tsx": { before: "6b3d64021226fcaa5398dd8bb494844ac06b1771cf0aa5e623558db0145e0541", after: "c07a26f82e51947e5d46c92be96a00ca53a7719b90fa8484984869d2fbe21b95" },
+  // END reviewed copy-fix sources
+});
+
+// Maps the digest of an exact copy-fix successor to the reviewed successor it
+// replaced; any other digest is returned unchanged.
+export function adminCopyFixesPredecessorDigest(file, digest) {
+  const copy = Object.hasOwn(adminCopyFixesSources, file) ? adminCopyFixesSources[file] : null;
+  return copy && digest === copy.after ? copy.before : digest;
+}
+
 // Maps the digest of an exact reviewed successor to its reviewed predecessor;
 // any other digest is returned unchanged (so an unreviewed edit still fails).
 export function adminOps20261025PredecessorDigest(file, digest) {
+  const copyReviewed = adminCopyFixesPredecessorDigest(file, digest);
   const cache = Object.hasOwn(adminCacheHardeningSources, file) ? adminCacheHardeningSources[file] : null;
-  const cacheReviewed = cache && digest === cache.after ? cache.before : digest;
+  const cacheReviewed = cache && copyReviewed === cache.after ? cache.before : copyReviewed;
   const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file] : null;
   const reviewed = followUp && cacheReviewed === followUp.after ? followUp.before : cacheReviewed;
   const entry = Object.hasOwn(adminOps20261025Sources, file) ? adminOps20261025Sources[file] : null;
@@ -127,6 +151,10 @@ const rules = [
   ['<a href="/analytics/exports/" class="inline-flex min-h-11 items-center text-sm text-[#e0c985] hover:underline hover:underline-offset-4">', '<a href="/analytics/exports/" class="text-sm text-[#e0c985] hover:underline hover:underline-offset-4">'],
   ['class="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3.5 py-2 text-sm text-white/70 hover:bg-white/5"', 'class="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/65 hover:bg-white/5"'],
   // BEGIN reviewed DOM pairs
+  // Copy fixes (adminCopyFixesSources): Thai labels on the ภาพรวมธุรกิจ count cards.
+  ['<p class="text-sm text-white/55">ผู้สนใจ</p>', '<p class="text-sm text-white/55">Lead</p>'],
+  ['<p class="text-sm text-white/55">การคุยที่พร้อมให้คำแนะนำ</p>', '<p class="text-sm text-white/55">Qualified Conversation</p>'],
+  ['<p class="text-sm text-white/55">สำเร็จ</p>', '<p class="text-sm text-white/55">Won</p>'],
   // END reviewed DOM pairs
 ];
 

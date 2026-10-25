@@ -152,9 +152,9 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {[
-              ["Lead", businessOverview?.leadCount],
-              ["Qualified Conversation", businessOverview?.qualifiedCount],
-              ["Won", businessOverview?.wonCount],
+              ["ผู้สนใจ", businessOverview?.leadCount],
+              ["การคุยที่พร้อมให้คำแนะนำ", businessOverview?.qualifiedCount],
+              ["สำเร็จ", businessOverview?.wonCount],
               ["รายการรายได้", businessOverview?.revenueRecordCount],
               ["งานระบบที่ต้องตรวจ", businessOverview?.automationAttention],
             ].map(([label, value]) => (

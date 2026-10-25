@@ -224,7 +224,7 @@ export default async function AdvisorInboxPage({
                       {lineMessageTypeLabel(item.latestMessageType)} · {lineMessageStatusLabel(item.latestMessageStatus)}
                     </p>
                     {item.latestMessageNeedsHuman ? (
-                      <p className="mt-1 text-xs text-[#f4df9b]">รอปันดูต่อ</p>
+                      <p className="mt-1 text-xs text-[#f4df9b]">รอปั้นดูต่อ</p>
                     ) : null}
                   </div>
 

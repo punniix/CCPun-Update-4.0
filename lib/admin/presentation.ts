@@ -139,3 +139,22 @@ export function friendlyApiErrorFromPayload(payload: unknown): string {
   const code = payload && typeof payload === "object" && "error" in payload ? payload.error : null;
   return friendlyApiError(code);
 }
+
+const THAI_DISPLAY_DATE = new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const THAI_DISPLAY_DATE_BANGKOK = new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" });
+
+/**
+ * Display-only Thai date, e.g. "2026-10-25" -> "25 ต.ค. 2569". A plain
+ * YYYY-MM-DD value is already a Bangkok calendar day and is shown as that same
+ * day; a full timestamp is converted to its Asia/Bangkok day. Machine values
+ * (data, attributes, idempotency keys) stay ISO; only the visible text changes.
+ */
+export function thaiDisplayDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const day = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(day.getTime()) ? THAI_DISPLAY_DATE.format(day) : value;
+  }
+  const instant = new Date(value);
+  return Number.isFinite(instant.getTime()) ? THAI_DISPLAY_DATE_BANGKOK.format(instant) : value;
+}

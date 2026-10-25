@@ -13,6 +13,7 @@ import {
   type OpsLane,
 } from "./contracts";
 import { getOpsTelemetryStore, type OpsTelemetryStore } from "./store";
+import { thaiDisplayDate } from "../presentation";
 import { getOwnerNotifier, type NotificationAdapter, type OwnerNotification } from "../notifications/notifier";
 
 // Reads the 06:00 job status from Supabase only. It never queries Neon, so the
@@ -51,8 +52,8 @@ export function dailyJobAlert(health: DailyJobHealth, lane: OpsLane, adminOrigin
     const today = bangkokDate(now);
     return {
       kind,
-      subject: `CCPun: ยังไม่พบรอบเก็บข้อมูล 06:00 วันที่ ${today}`,
-      text: [`ถึงเวลาตรวจแล้วแต่ยังไม่พบรอบเก็บข้อมูลอัตโนมัติ 06:00 ของวันที่ ${today}`, "อาจเป็นเพราะ n8n ไม่ได้เริ่มงาน หรือเริ่มแล้วแต่บันทึกสถานะไม่สำเร็จ", `เปิดรายงานและกด "ดึงใหม่ตอนนี้" ได้ที่: ${link}`, footer].join("\n"),
+      subject: `CCPun: ยังไม่พบรอบเก็บข้อมูล 06:00 วันที่ ${thaiDisplayDate(today)}`,
+      text: [`ถึงเวลาตรวจแล้วแต่ยังไม่พบรอบเก็บข้อมูลอัตโนมัติ 06:00 ของวันที่ ${thaiDisplayDate(today)}`, "อาจเป็นเพราะ n8n ไม่ได้เริ่มงาน หรือเริ่มแล้วแต่บันทึกสถานะไม่สำเร็จ", `เปิดรายงานและกด "ดึงใหม่ตอนนี้" ได้ที่: ${link}`, footer].join("\n"),
       reference: `${lane}:${DAILY_JOB_KEY}:missing:${today}`,
     };
   }
@@ -62,16 +63,16 @@ export function dailyJobAlert(health: DailyJobHealth, lane: OpsLane, adminOrigin
     const steps = health.failedSteps.length ? health.failedSteps.map(dailyJobStepLabel).join(", ") : "ไม่ระบุขั้นตอน";
     return {
       kind,
-      subject: `CCPun: รอบเก็บข้อมูล 06:00 วันที่ ${job.runDate} ไม่สำเร็จ`,
-      text: [`รอบเก็บข้อมูลอัตโนมัติ 06:00 ของวันที่ ${job.runDate} ไม่สำเร็จ`, `ขั้นตอนที่มีปัญหา: ${steps}`, `เปิดรายงานและกด "ดึงใหม่ตอนนี้" ได้ที่: ${link}`, footer].join("\n"),
+      subject: `CCPun: รอบเก็บข้อมูล 06:00 วันที่ ${thaiDisplayDate(job.runDate)} ไม่สำเร็จ`,
+      text: [`รอบเก็บข้อมูลอัตโนมัติ 06:00 ของวันที่ ${thaiDisplayDate(job.runDate)} ไม่สำเร็จ`, `ขั้นตอนที่มีปัญหา: ${steps}`, `เปิดรายงานและกด "ดึงใหม่ตอนนี้" ได้ที่: ${link}`, footer].join("\n"),
       reference: `${lane}:${DAILY_JOB_KEY}:failed:${job.id}`,
     };
   }
   return {
     kind,
-    subject: `CCPun: รอบเก็บข้อมูล 06:00 วันที่ ${job.runDate} ค้างเกินเวลา`,
+    subject: `CCPun: รอบเก็บข้อมูล 06:00 วันที่ ${thaiDisplayDate(job.runDate)} ค้างเกินเวลา`,
     text: [
-      `รอบเก็บข้อมูลของวันที่ ${job.runDate} เริ่มแล้วแต่สถานะยังไม่จบหลังผ่านไป ${DAILY_JOB_STUCK_AFTER_MINUTES} นาที (n8n หยุดงานเองที่ ${DAILY_JOB_N8N_EXECUTION_TIMEOUT_SECONDS / 60} นาที)`,
+      `รอบเก็บข้อมูลของวันที่ ${thaiDisplayDate(job.runDate)} เริ่มแล้วแต่สถานะยังไม่จบหลังผ่านไป ${DAILY_JOB_STUCK_AFTER_MINUTES} นาที (n8n หยุดงานเองที่ ${DAILY_JOB_N8N_EXECUTION_TIMEOUT_SECONDS / 60} นาที)`,
       `ตรวจ execution ใน n8n แล้วกด "ดึงใหม่ตอนนี้" ได้ที่: ${link}`,
       footer,
     ].join("\n"),

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Ga4DashboardRow, Ga4MetricTotals } from "@/lib/admin/seo-intelligence/contracts";
+import { thaiDisplayDate } from "@/lib/admin/presentation";
 
 type DateRange = { startDate: string; endDate: string };
 type SyncResult = {
@@ -31,7 +32,7 @@ function fetchedLabel(value: string) {
 }
 
 function rangeLabel(range: DateRange) {
-  return `${range.startDate} – ${range.endDate}`;
+  return `${thaiDisplayDate(range.startDate)} – ${thaiDisplayDate(range.endDate)}`;
 }
 
 function countDelta(current: number, previous: number | null) {
