@@ -213,6 +213,7 @@ test("page groups come from the physical path", () => {
   assert.deepEqual(chatContextForPath("/play/money-story/"), { pageGroup: "tool_money_story" });
   assert.deepEqual(chatContextForPath("/tools/investment-allocation/"), { pageGroup: "tool_investment_allocation" });
   assert.deepEqual(chatContextForPath("/tools/"), { pageGroup: "tools_hub" });
+  assert.deepEqual(chatContextForPath("/about/"), { pageGroup: "about" });
   assert.deepEqual(chatContextForPath(undefined), { pageGroup: "default" });
   assert.deepEqual(chatContextForPath("/privacy/"), { pageGroup: "default" });
 });

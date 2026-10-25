@@ -4,7 +4,7 @@ import { publicCopyText, type PublicCopyValues } from '@/lib/content/public-copy
 import { getFhcFaqs } from '@/lib/content/tool-copy-defaults';
 import V5Page from '@/components/layout/v5/V5Page';
 import shell from '@/components/layout/v5/V5.module.css';
-import { V5ArticleCard, V5Breadcrumbs, V5ContactBand, V5SectionHeading, v5Label } from '@/components/layout/v5/V5Primitives';
+import { V5ArticleCard, V5Breadcrumbs, V5SectionHeading, v5Label } from '@/components/layout/v5/V5Primitives';
 import { V5Faq, V5InfoCards, V5ToolHero, v5ToolStyles as styles } from '@/components/layout/v5/V5ToolParts';
 import { toV5Cards } from '@/components/layout/v5/article-card-data';
 import { getPublishedArticles } from '@/components/layout/v5/shell-data';
@@ -20,14 +20,12 @@ const PYRAMID_HREF = '/blog/personal-finance/financial-pyramid/';
  * JSON-LD matches the 4.3 page (breadcrumb, WebApplication, FAQPage).
  */
 export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValues; siteCopy?: PublicCopyValues } = {}) {
-  const [fhcCopy, homeCopy, blogCopy, articles] = await Promise.all([
+  const [fhcCopy, blogCopy, articles] = await Promise.all([
     copy ? Promise.resolve(copy) : getPublicCopy('fhc'),
-    getPublicCopy('home'),
     getPublicCopy('blog'),
     getPublishedArticles().catch(() => []),
   ]);
   const t = publicCopyText(fhcCopy);
-  const home = publicCopyText(homeCopy);
   const blog = publicCopyText(blogCopy);
   const site = publicCopyText(siteCopy ?? await getPublicCopy('site'));
   const faqs = getFhcFaqs(t);
@@ -132,8 +130,6 @@ export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValue
           <p className={styles.note}>{t.node('fhc.landing.description5')}</p>
         </div>
       </section>
-
-      <V5ContactBand title={home.node('home.contactBand.title')} cta={site.node('site.extra.a')} />
     </V5Page>
   );
 }

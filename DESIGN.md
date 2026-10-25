@@ -110,6 +110,8 @@ Two poles define the system: deep warm charcoal at the base, muted gold at the s
 ### Named Rules
 **The One Compass Rule.** Warm Gold appears on at most one primary CTA per viewport. It is a signal, not a decoration. If every button is gold, none of them are.
 
+**The One LINE Element Rule** (owner decision 2026-10-25). Each page has exactly one LINE OA button: the floating chat dock, visible from page load (it sits above the cookie notice while that is open), which opens the topic panel with the page's prefill and campaign code. The header, hero, content and page endings carry no other LINE button or link; an article-body LINE CTA renders as an inline text link that opens the same panel. Because the dock is on every viewport, it is an outline control, so the One Compass Rule still leaves gold for the page's own primary action.
+
 **The Temperature Rule.** Never introduce a neutral that trends toward cool grey or blue-grey. All neutrals — surface, bg, ink — must carry the red-orange hue of the charcoal base. Mixing in a cool neutral breaks the room.
 
 ## 3. Typography
@@ -160,6 +162,10 @@ Tactile and confident — pressing a CCPun button should feel like using a quali
 - **Primary Hover:** Gold Bright (`#ebd9a2`) background. Gold glow large shadow. Subtle upward translate (-2px).
 - **Ghost:** Transparent background, Warm Gold border (1px) and text. Used for secondary CTAs.
 - **Transition:** All transitions 200ms ease-out. No bounce, no spring.
+
+### Page endings
+- No full-width gold closing band (owner decision 2026-10-25). A page that needs an ending uses existing approved links (related articles, the About page) on the normal surface colour.
+- No eyebrow label above section headings or tool-hero titles (owner decision 2026-10-25).
 
 ### Cards / Glass Panels
 - **Corner Style:** 16px radius (rounded-lg)

@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import styles from "./V5.module.css";
-import { V5_LINE_URL } from "./constants";
 
 /**
  * Link and action labels without a typed arrow (audit #10): screen readers announce "→" as
@@ -69,25 +68,6 @@ export function V5ArticleCard({ article, headingLevel = 3, sizes = "(max-width: 
         {extra}
       </div>
     </article>
-  );
-}
-
-/**
- * Gold LINE band. `analyticsSection` reuses the existing click-listener contract:
- * "contact" maps to the approved `home_contact` location on the homepage; blog
- * pages fall back to the listener's existing `blog_article` location.
- */
-export function V5ContactBand({ title, lead, cta, analyticsSection, analyticsLocation }: { title: ReactNode; lead?: ReactNode; cta: ReactNode; analyticsSection?: "contact"; analyticsLocation?: "blog_article" }) {
-  return (
-    <section className={styles.band} data-uat-section={analyticsSection}>
-      <div className={styles.inner}>
-        <h2 className={styles.h2}>{title}</h2>
-        {lead ? <p className={styles.bandLead}>{lead}</p> : null}
-        <div className={styles.buttonRow}>
-          <a className={styles.buttonDark} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-surface={analyticsLocation ? "blog" : undefined} data-analytics-location={analyticsLocation}>{cta}</a>
-        </div>
-      </div>
-    </section>
   );
 }
 

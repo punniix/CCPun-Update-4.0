@@ -7,7 +7,7 @@ import { getTopicFeaturedLink, type TopicLink } from "@/lib/content/topic-naviga
 import type { Article } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5Breadcrumbs, V5ContactBand } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5Breadcrumbs } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
 import styles from "./V5Blog.module.css";
@@ -93,7 +93,6 @@ export default async function V5Category({ slug, title, description, hub, articl
           </div>
         </section>
 
-        <V5ContactBand title={text.node("blog.h2")} lead={text.node("blog.lead")} cta={text.node("blog.faqCta")} />
       </V5Page>
     </PublicCopyProvider>
   );

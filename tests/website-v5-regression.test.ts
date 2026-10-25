@@ -103,8 +103,8 @@ test("T01/T04/T05: shell and home links are server-rendered and use the existing
   assert.match(header, /tools\.map\(/, "tool links are in the nav HTML");
   assert.doesNotMatch(header, /\?\s*\(\s*<(?:ul|div)[^>]*dropdown/i, "dropdown markup is never conditionally rendered");
   assert.match(header, /id="mobile-navigation"[^>]*hidden/, "mobile menu links stay in the HTML (hidden attribute only)");
-  assert.match(header, /data-analytics-location="navbar"/);
-  assert.match(header, /data-analytics-location="navbar_mobile"/);
+  // Owner decision 2026-10-25: one LINE OA button per page (the chat dock), so the header has none.
+  assert.doesNotMatch(header, /V5_LINE_URL|lin\.ee|line\.me|data-analytics-location="navbar(?:_mobile)?"/, "no LINE button in the header");
   const footer = read("components/layout/v5/V5Footer.tsx");
   assert.match(footer, /site\.nav\.topics/, "footer has the topics column");
   assert.match(footer, /<CookieSettingsButton \/>/, "consent can be reopened from every v5 footer");
@@ -114,9 +114,9 @@ test("T01/T04/T05: shell and home links are server-rendered and use the existing
   assert.match(home, /HOME_CORE_GUIDE_SLUGS/);
   assert.deepEqual([...HOME_CORE_GUIDE_SLUGS], ["critical-illness-insurance", "aia-health-happy-describe", "tax-deduction", "financial-pyramid"]);
   assert.match(home, /id="about-ccpun"/, "the /#about-ccpun anchor used by author CTAs still resolves");
-  assert.match(home, /id="home"/, "home hero keeps the #home analytics scope (home_hero)");
-  assert.match(home, /data-analytics-location="home_faq"/);
-  assert.match(home, /analyticsSection="contact"/, "home LINE band maps to the approved home_contact location");
+  assert.match(home, /id="home"/, "home hero keeps the #home anchor");
+  // Owner decision 2026-10-25: the hero, About, FAQ and closing LINE buttons are gone; the dock is the one LINE element.
+  assert.doesNotMatch(home, /V5_LINE_URL|lin\.ee|line\.me|home_faq|analyticsSection="contact"|V5ContactBand/, "no LINE button in home content");
   assert.equal(TOPIC_CLUSTER_PILLARS["health-insurance"], "copayment-vs-deductible-health-insurance");
   const constants = read("components/layout/v5/constants.ts");
   for (const href of ["/play/money-story/", "/tools/financial-health-check/", "/ci-planning/"]) assert.ok(constants.includes(`"${href}"`));
@@ -271,20 +271,34 @@ test("D2: system (default) / light / dark with a no-flash boot script and guarde
   assert.match(enhancer, /scheme\.addEventListener\("change", onSchemeChange\)/);
 });
 
-test("D3/L8: one bottom LINE element shown after the hero, hidden on scroll down, back on scroll up, reduced motion respected", () => {
+test("D3/L8 + one LINE button: the dock is visible from load, tucks away below the hero, sits above the cookie notice", () => {
   const dock = read("components/layout/v5/V5ChatDock.tsx");
+  assert.match(dock, /const \[shown, setShown\] = useState\(true\);/, "server-rendered visible (no hide over the hero)");
+  assert.doesNotMatch(dock, /consentDecided|getConsentData/, "no longer hidden until consent is decided");
   assert.match(dock, /document\.querySelector\("#main-content section"\)/);
   assert.match(dock, /Math\.min\(bottom, window\.innerHeight \* 1\.25\)/);
+  assert.match(dock, /if \(y < heroBottom\) \{\n        \/\/ Visible from page load and over the hero\.\n        set\(true\);/);
   assert.match(dock, /delta < -SCROLL_DELTA/);
   assert.match(dock, /delta > SCROLL_DELTA && y > revealY \+ HIDE_AFTER/);
   assert.match(dock, /passive: true/);
+  // Cookie-sheet offset (transform only, so no layout shift); the dock steps aside if the notice covers most of the screen.
+  assert.match(dock, /const COOKIE_DIALOG = '\[role="dialog"\]\[aria-labelledby\^="cookie"\]';/);
+  assert.match(dock, /setCookieCovers\(offset > window\.innerHeight \* 0\.5\)/);
+  assert.match(dock, /"--v5-dock-offset": `\$\{cookieOffset\}px`/);
+  // No-JS fallback: the dock is a real LINE OA link (this page's prefill), enhanced into the panel button.
+  assert.match(dock, /href=\{fallbackHref\} target="_blank" rel="noopener noreferrer"/);
+  assert.match(dock, /role=\{enhanced \? "button" : undefined\}/);
+  assert.match(read("components/layout/v5/V5ChatDockServer.tsx"), /panel\.mode === "panel" \? panel\.topics\[0\]\?\.href \?\? LINE_OA_CHAT_URL : panel\.href/);
   assert.equal((read("components/layout/v5/V5Page.tsx").match(/<V5ChatDockServer/g) ?? []).length, 1, "exactly one bottom element per page");
   for (const file of v5Files.filter((name) => name.endsWith(".css") && !name.endsWith("V5ChatDock.module.css"))) {
     assert.doesNotMatch(read(file), /position:\s*fixed[^}]*bottom:\s*0/, `${file}: no second fixed bottom bar`);
   }
   assert.match(read("components/layout/v5/V5.module.css"), /@media \(prefers-reduced-motion: reduce\) \{\n  \.root \*, \.root \*::before, \.root \*::after \{ transition: none !important;/);
   const css = read("components/layout/v5/V5ChatDock.module.css");
+  assert.match(css, /transform: translateY\(calc\(-1 \* var\(--v5-dock-offset, 0px\)\)\);/);
   assert.match(css, /\.dock\[data-state="hidden"\] \{ transform: translateY\(110%\); visibility: hidden;/);
+  // One Compass: the dock is an outline control, so each viewport keeps gold for the page's own primary action.
+  assert.match(css, /\.trigger \{[^}]*border: 1px solid var\(--v5-gold-text\); border-radius: var\(--v5-radius-button\); background: var\(--v5-card\);/);
 });
 
 test("D4: /blog/ shows each article once; featured and start-here cards stay searchable", () => {
@@ -303,7 +317,7 @@ test("T1: /tools/ is an indexable hub with canonical, sitemap entry, nav, footer
   assert.match(hub, /const URL = "https:\/\/ccpun\.com\/tools\/";/);
   assert.match(hub, /robots: IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \} : \{ index: true, follow: true \}/);
   for (const href of ["/ci-planning/", "/tools/financial-health-check/", "/play/money-story/"]) assert.ok(hub.includes(`href: "${href}"`), href);
-  assert.match(hub, /data-analytics-location="tools_hub"/);
+  assert.doesNotMatch(hub, /lin\.ee|line\.me|shell\.band|data-analytics-location="tools_hub"/, "no closing LINE band (owner decision 2026-10-25)");
   assert.doesNotMatch(hub, /ฟรี|ดีที่สุด|การันตี|…/);
   assert.ok(!hub.split("\n").filter((line) => /[\u0E00-\u0E7F]/.test(line)).some((line) => line.includes("...")), "no ellipsis in Thai copy");
   assert.match(read("apps/web/app/sitemaps/tools.xml/route.ts"), /\{ loc: "https:\/\/ccpun\.com\/tools\/" \}/);
@@ -547,4 +561,44 @@ test("UX: after the Health Happy deadline the countdown slot renders nothing, ev
   }
   // The countdown click event stays the component's own, unchanged.
   assert.match(read("components/ui/health-happy/HealthHappyCountdown.tsx"), /trackEvent\('health_happy_countdown_click'/);
+});
+
+test("One LINE button per page: no other LINE OA link or gold closing band on v5 content surfaces", () => {
+  const surfaces = [
+    "components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx", "components/layout/v5/V5Primitives.tsx",
+    "features/home/v5/V5Home.tsx", "features/blog/v5/V5BlogIndex.tsx", "features/blog/v5/V5Category.tsx", "features/blog/v5/V5Article.tsx",
+    "features/ci-planning/v5/V5CiPlanning.tsx", "features/financial-health-check/v5/V5Fhc.tsx", "features/money-story/v5/V5MoneyStory.tsx",
+    "features/tools-hub/page.tsx", "features/about/page.tsx", "components/layout/v5/V5ToolParts.tsx",
+  ];
+  for (const file of surfaces) {
+    const source = read(file);
+    assert.doesNotMatch(source, /V5_LINE_URL|https:\/\/lin\.ee|https:\/\/line\.me/, `${file}: no LINE OA link besides the dock`);
+    assert.doesNotMatch(source, /V5ContactBand|shell\.band\b|styles\.band\b/, `${file}: no gold closing band`);
+  }
+  assert.doesNotMatch(read("components/layout/v5/V5.module.css"), /\.band \{|--v5-band/, "the gold band styles are gone");
+  // The shared countdown keeps its LINE action for other surfaces; v5 does not render it.
+  assert.match(read("components/layout/v5/V5.module.css"), /\.countdownSlot :global\(\[data-campaign-action="line"\]\) \{ display: none; \}/);
+});
+
+test("Article LINE CTAs open the dock's chat panel; no-JS falls back to the page's LINE link; panel_trigger is tracked", async () => {
+  const { isLineOaContactHref } = await import("../components/layout/v5/chat-events.ts");
+  for (const href of ["https://lin.ee/tqLCs4f", "https://line.me/R/ti/p/%40ccpun", "https://line.me/R/oaMessage/%40ccpun/?hi", "https://page.line.me/ccpun", "line://ti/p/@ccpun"]) assert.ok(isLineOaContactHref(href), href);
+  for (const href of ["https://social-plugins.line.me/lineit/share?url=x", "/blog/", "https://ccpun.com/about/", "", undefined]) assert.ok(!isLineOaContactHref(href), String(href));
+  const body = read("features/blog/v5/V5ArticleBody.tsx");
+  assert.match(body, /if \(isLineOaContactHref\(item\.url\)\) return <p key=\{key\}><V5ChatLink className=\{`\$\{shell\.textLink\} \$\{styles\.chatCta\}`\} href=\{chatHref\}>/, "LINE CTA blocks are link-styled, not gold");
+  assert.match(body, /return <p key=\{key\}><a className=\{item\.style === "primary" \? shell\.button : shell\.buttonOutline\} \{\.\.\.props\}>/, "non-LINE CTA blocks are unchanged");
+  assert.match(body, /isLineOaContactHref\(segment\.href\)\n      \? <V5ChatLink href=\{chatHref\}>/);
+  assert.match(read("features/blog/v5/V5Article.tsx"), /const chatHref = await getV5ChatFallbackHref\(chatContextForPath\(path\)\);/);
+  const link = read("components/layout/v5/V5ChatLink.tsx");
+  assert.match(link, /<a\n      href=\{href\}/, "a real link first (no-JS fallback)");
+  assert.match(link, /new CustomEvent<V5OpenChatDetail>\(V5_OPEN_CHAT_EVENT, \{ cancelable: true, detail \}\)\)\) event\.preventDefault\(\);/);
+  assert.match(link, /trigger: "article_cta"/);
+  assert.doesNotMatch(link, /trackEvent/, "the panel owns the tracking");
+  const dock = read("components/layout/v5/V5ChatDock.tsx");
+  assert.match(dock, /window\.addEventListener\(V5_OPEN_CHAT_EVENT, onOpenChat\)/);
+  assert.match(dock, /setPanel\(\{ trigger: "dock", returnTo: null \}\)/);
+  const panel = read("components/layout/v5/V5ChatPanel.tsx");
+  assert.match(panel, /trackEvent\("line_chat_panel_open", \{ page_group: panel\.pageGroup, panel_trigger: trigger, \.\.\.\(campaignCode \? \{ campaign_code: campaignCode \} : \{\}\) \}\);/);
+  assert.match(panel, /trackEvent\("line_oa_click", \{\n\s+contact_channel: "line", cta_location: "chat_panel", chat_topic_id: topic\.id, page_group: panel\.pageGroup,/, "topic clicks keep line_oa_click unchanged");
+  assert.match(read("lib/analytics.ts"), /panel_trigger: new Set\(\['dock', 'article_cta'\]\),/);
 });

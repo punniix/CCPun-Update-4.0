@@ -59,6 +59,8 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   chat_topic_id: null,
   page_group: null,
   campaign_code: null,
+  // Owner-approved 2026-10-25: which control opened the chat panel is cleared on every event too.
+  panel_trigger: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
 const semanticModel: Record<string, string | number | null> = {};
@@ -103,6 +105,14 @@ assert.deepEqual(
 for (const [key, value] of [['chat_topic_id', 'Has Spaces'], ['chat_topic_id', 'โรงพยาบาล'], ['page_group', 'article:secret-slug'], ['page_group', 'category:health-insurance'], ['campaign_code', 'https://evil.example'], ['campaign_code', 'a'], ['cta_location', 'chat_anything']] as const) {
   assert.equal(sanitizeEventParams({ [key]: value })[key], undefined, `${key}=${value} must be discarded`);
 }
+// panel_trigger (owner-approved 2026-10-25): only the two named controls, nothing free-form.
+for (const trigger of ['dock', 'article_cta']) {
+  assert.equal(sanitizeEventParams({ panel_trigger: trigger }).panel_trigger, trigger, `approved panel trigger ${trigger}`);
+}
+for (const value of ['Dock', 'article', 'header', 'https://evil.example', 'อยากคุย', '']) {
+  assert.equal(sanitizeEventParams({ panel_trigger: value }).panel_trigger, undefined, `panel_trigger=${value} must be discarded`);
+}
+assert.deepEqual(resolveEventMapping('line_chat_panel_open', sanitizeEventParams({ page_group: 'article', panel_trigger: 'article_cta' })), { ga: ['line_chat_panel_open'], meta: 'none' }, 'the trigger never changes the GA4-only mapping');
 for (const location of ['chat_panel', 'chat_button', 'tools_hub']) {
   assert.equal(sanitizeEventParams({ cta_location: location }).cta_location, location, `approved CTA location ${location}`);
 }
@@ -113,6 +123,10 @@ assert.equal(sanitizeEventParams({ surface_group: 'tools' }).surface_group, 'too
   assert.equal(model.chat_topic_id, 'tax-deduction');
   Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'navbar' }), { analytics: true, social: false }));
   for (const key of ['chat_topic_id', 'page_group', 'campaign_code']) assert.equal(model[key], null, `a later LINE click must clear the preceding ${key}`);
+  Object.assign(model, buildSemanticDataLayerEvent('line_chat_panel_open', sanitizeEventParams({ page_group: 'article', panel_trigger: 'article_cta' }), { analytics: true, social: false }));
+  assert.equal(model.panel_trigger, 'article_cta');
+  Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel' }), { analytics: true, social: false }));
+  assert.equal(model.panel_trigger, null, 'a later event must clear the preceding panel_trigger');
 }
 
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
@@ -180,9 +194,13 @@ try {
   assert.equal(semanticRows.length, 2, 'semantic mode must stay consent-gated');
   trackEvent('line_chat_panel_open', { page_group: 'home' });
   assert.equal(semanticRows.length, 2, 'the new chat panel event is consent-gated like every other event');
+  trackEvent('line_chat_panel_open', { page_group: 'article', panel_trigger: 'article_cta' });
+  assert.equal(semanticRows.length, 2, 'panel_trigger does not bypass consent');
   analyticsConsent = true;
   trackEvent('line_chat_panel_open', { page_group: 'home', campaign_code: 'bio-facebook' });
   assert.deepEqual([semanticRows[2].event_name, semanticRows[2].page_group, semanticRows[2].campaign_code], ['line_chat_panel_open', 'home', 'bio-facebook']);
+  trackEvent('line_chat_panel_open', { page_group: 'article', panel_trigger: 'article_cta' });
+  assert.deepEqual([semanticRows[3].event_name, semanticRows[3].page_group, semanticRows[3].panel_trigger, semanticRows[3].campaign_code], ['line_chat_panel_open', 'article', 'article_cta', null]);
   analyticsConsent = false;
   analyticsConsent = true;
 } finally {

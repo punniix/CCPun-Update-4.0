@@ -322,6 +322,8 @@ const FIXED_PATH_GROUPS: Record<string, LineChatFixedPageGroup> = {
   "/play/money-story/": "tool_money_story",
   "/tools/investment-allocation/": "tool_investment_allocation",
   "/tools/": "tools_hub",
+  // The /about/ page (owner-approved new URL 2026-10-25) uses its own shipped "about" placement.
+  "/about/": "about",
 };
 
 /** Page group for a v5 page from its physical path (blog categories and articles by URL segment). */

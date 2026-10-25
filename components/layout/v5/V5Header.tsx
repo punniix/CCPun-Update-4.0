@@ -5,7 +5,7 @@ import styles from "./V5.module.css";
 import { getShellTopics } from "./shell-data";
 import V5HeaderEnhancer from "./V5HeaderEnhancer";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
-import { V5_INVESTMENT_TOOL, V5_LINE_URL, V5_TOOL_LINKS, V5_TOOLS_HUB, V5_THEME_STORAGE_KEY } from "./constants";
+import { V5_INVESTMENT_TOOL, V5_TOOL_LINKS, V5_TOOLS_HUB, V5_THEME_STORAGE_KEY } from "./constants";
 
 // D2 (owner-approved 2026-10-25): system (default) / light / dark. Runs before first paint so the
 // page never flashes the wrong theme: an explicit saved choice wins, otherwise prefers-color-scheme.
@@ -74,7 +74,6 @@ export default async function V5Header({ current = "", siteCopy }: { current?: s
             <svg className={styles.themeIconLight} viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
             <span className={styles.srOnly} data-v5-theme-status="" aria-live="polite">{THEME_CHOICE_LABELS.system}</span>
           </button>
-          <a className={`${styles.button} ${styles.headerCta}`} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-location="navbar">{text.node("site.nav.contact")}</a>
           <button type="button" className={`${styles.iconButton} ${styles.menuButton}`} data-v5-menu-toggle="" aria-controls="mobile-navigation" aria-expanded="false" aria-label={text("site.nav.open")} data-label-open={text("site.nav.open")} data-label-close={text("site.nav.close")}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
@@ -97,7 +96,6 @@ export default async function V5Header({ current = "", siteCopy }: { current?: s
             {tools.map((tool) => <li key={tool.href}><Link href={tool.href} aria-current={isCurrent(tool.href)}>{tool.label}</Link></li>)}
           </ul>
         </div>
-        <a className={`${styles.button} ${styles.mobileCta}`} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-location="navbar_mobile">{text.node("site.nav.contact")}</a>
       </nav>
       <V5HeaderEnhancer storageKey={V5_THEME_STORAGE_KEY} />
     </header>

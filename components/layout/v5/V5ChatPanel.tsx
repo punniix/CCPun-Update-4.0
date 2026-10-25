@@ -5,6 +5,7 @@ import { trackEvent } from "@/lib/analytics";
 import { getAttribution } from "@/lib/acquisition";
 import { getConsentData } from "@/lib/cookie-consent";
 import { chatSurfaceGroup, LINE_CHAT_QR_LABEL, resolveChatPanel, type ChatPageContext, type LineChatConfig } from "@/lib/line/chat-panel";
+import type { V5ChatPanelTrigger } from "./chat-events";
 import styles from "./V5ChatDock.module.css";
 
 const CLOSE_LABEL = "ปิด";
@@ -20,7 +21,7 @@ function Arrow() {
  * page's URL; it follows the visitor to later pages only with analytics consent (L3, via
  * lib/acquisition.ts). Topic links open the @ccpun chat with owner-written text only.
  */
-export default function V5ChatPanel({ config, context, onClose }: { config: LineChatConfig; context: ChatPageContext; onClose: () => void }) {
+export default function V5ChatPanel({ config, context, trigger, onClose }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [qr, setQr] = useState<{ viewBox: string; path: string } | null>(null);
 
@@ -43,7 +44,8 @@ export default function V5ChatPanel({ config, context, onClose }: { config: Line
   const qrHref = topics.at(-1)?.href;
 
   useEffect(() => {
-    trackEvent("line_chat_panel_open", { page_group: panel.pageGroup, ...(campaignCode ? { campaign_code: campaignCode } : {}) });
+    // panel_trigger (owner-approved 2026-10-25): which control opened it, the dock or an article-body LINE CTA.
+    trackEvent("line_chat_panel_open", { page_group: panel.pageGroup, panel_trigger: trigger, ...(campaignCode ? { campaign_code: campaignCode } : {}) });
     // One event per opening of this panel instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

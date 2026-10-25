@@ -8,7 +8,7 @@ import { BLOG_GROUP_MIN_ARTICLES, BLOG_START_HERE_SLUGS, type TopicLink } from "
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5ContactBand, v5Label, type V5CardArticle } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, v5Label, type V5CardArticle } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Card, toV5Cards } from "@/components/layout/v5/article-card-data";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import styles from "./V5Blog.module.css";
@@ -143,7 +143,6 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
             </div>
           </section>
         </div>
-        <V5ContactBand title={text.node("blog.h2")} lead={text.node("blog.lead")} cta={text.node("blog.faqCta")} />
       </V5Page>
     </PublicCopyProvider>
   );

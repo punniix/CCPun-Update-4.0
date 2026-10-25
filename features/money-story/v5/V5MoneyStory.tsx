@@ -4,7 +4,7 @@ import { publicCopyText, type PublicCopyValues } from '@/lib/content/public-copy
 import { PublicCopyProvider } from '@/components/ui/PublicCopyProvider';
 import V5Page from '@/components/layout/v5/V5Page';
 import shell from '@/components/layout/v5/V5.module.css';
-import { V5ArticleCard, V5ContactBand, V5SectionHeading, v5Label } from '@/components/layout/v5/V5Primitives';
+import { V5ArticleCard, V5SectionHeading, v5Label } from '@/components/layout/v5/V5Primitives';
 import { V5InfoCards, V5ToolHero, v5ToolStyles as styles } from '@/components/layout/v5/V5ToolParts';
 import { toV5Cards } from '@/components/layout/v5/article-card-data';
 import { getPublishedArticles } from '@/components/layout/v5/shell-data';
@@ -16,16 +16,13 @@ import gameStyles from '@/features/money-story/MoneyStory.module.css';
 
 /** v5 Money Story (FigCraft 09, UAT prototype). The game, its engine and copy are unchanged. */
 export default async function V5MoneyStory({ copy, siteCopy }: { copy?: PublicCopyValues; siteCopy?: PublicCopyValues } = {}) {
-  const [storyCopy, homeCopy, blogCopy, articles] = await Promise.all([
+  const [storyCopy, blogCopy, articles] = await Promise.all([
     copy ? Promise.resolve(copy) : getPublicCopy('moneyStory'),
-    getPublicCopy('home'),
     getPublicCopy('blog'),
     getPublishedArticles().catch(() => []),
   ]);
   const text = publicCopyText(storyCopy);
-  const home = publicCopyText(homeCopy);
   const blog = publicCopyText(blogCopy);
-  const site = publicCopyText(siteCopy ?? await getPublicCopy('site'));
   const guides = toV5Cards(listToolGuides('moneyStory', articles), blogCopy);
 
   return (
@@ -62,8 +59,6 @@ export default async function V5MoneyStory({ copy, siteCopy }: { copy?: PublicCo
           <div className={shell.cardGrid}>{guides.map((card) => <V5ArticleCard key={card.id} article={card} showExcerpt />)}</div>
         </div>
       </section>}
-
-      <V5ContactBand title={home.node('home.contactBand.title')} cta={site.node('site.extra.a')} />
     </V5Page>
   );
 }

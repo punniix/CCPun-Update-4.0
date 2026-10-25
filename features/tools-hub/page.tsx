@@ -83,15 +83,6 @@ export async function renderToolsHubPage() {
           </div>
         </div>
       </section>
-      <section className={shell.band} aria-labelledby="tools-hub-line">
-        <div className={shell.inner}>
-          <h2 id="tools-hub-line" className={shell.h2}>อยากให้ช่วยดูผลที่ได้</h2>
-          <p className={shell.bandLead}>ส่งผลมาคุยกับปั้นทาง LINE @ccpun ได้เลย</p>
-          <div className={shell.buttonRow}>
-            <a className={shell.buttonDark} href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer" data-analytics-location="tools_hub">ทักปั้นทาง LINE</a>
-          </div>
-        </div>
-      </section>
     </V5Page>
   );
 }

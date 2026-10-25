@@ -1,25 +1,28 @@
 /*
-  LINE chat dock (owner-approved 2026-10-25, L8 + D1 + D3). One bottom element only: on phones a
-  glass bar (D1 allows glass on the header and this bar only), on desktop a floating button.
-  It is fixed-position and starts hidden, so it never moves page content (no CLS) and never
-  competes for LCP. The panel markup renders only after the first tap. v5 tokens only.
+  LINE chat dock (owner decisions 2026-10-25: L8 + D1 + D3, and one LINE OA button per page). One
+  bottom element only: on phones a glass bar (D1 allows glass on the header and this bar only), on
+  desktop a floating button. It is fixed-position and server-rendered visible, so it never moves page
+  content (no CLS); the cookie-notice offset and the tuck-away use transform only. The One Compass
+  rule keeps gold for the page's own primary action, so the dock is a solid outline control with a
+  gold edge (a one-class change if the owner wants it gold). v5 tokens only.
 */
 .dock {
   position: fixed; inset: auto 0 0 0; z-index: 45;
   padding: 12px var(--v5-gutter) calc(12px + env(safe-area-inset-bottom, 0px));
   background: var(--v5-header); border-top: 1px solid var(--v5-border-soft);
   backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px);
-  transform: translateY(0); visibility: visible;
+  transform: translateY(calc(-1 * var(--v5-dock-offset, 0px))); visibility: visible;
   transition: transform 220ms ease, visibility 0s linear 0s;
 }
 .dock[data-state="hidden"] { transform: translateY(110%); visibility: hidden; transition: transform 220ms ease, visibility 0s linear 220ms; }
 .trigger {
   display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px 24px;
-  border: 1px solid var(--v5-gold); border-radius: 999px; background: var(--v5-gold); color: var(--v5-on-gold);
+  border: 1px solid var(--v5-gold-text); border-radius: var(--v5-radius-button); background: var(--v5-card); color: var(--v5-text);
   font-family: var(--v5-font-display); font-size: 16px; font-weight: 500; line-height: 1.3; text-decoration: none; cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
-.trigger:hover { background: var(--v5-highlight); }
-.trigger svg { width: 20px; height: 20px; flex: none; }
+.trigger:hover { background: var(--v5-surface); }
+.trigger svg { width: 20px; height: 20px; flex: none; color: var(--v5-gold-text); }
 @media (min-width: 1024px) {
   .dock { inset: auto 32px 32px auto; padding: 0; background: none; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .trigger { width: auto; box-shadow: var(--v5-shadow); }

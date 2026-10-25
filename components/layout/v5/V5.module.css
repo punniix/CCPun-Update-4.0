@@ -23,8 +23,6 @@
   --v5-focus: #e0c985;
   --v5-field-edge: #9a8585;
   --v5-on-gold: #251818;
-  --v5-band: #e0c985;
-  --v5-band-text: #251818;
   --v5-header: rgba(37, 24, 24, 0.94);
   --v5-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
   --v5-watermark: rgba(250, 249, 249, 0.06);
@@ -189,12 +187,6 @@
   .articleCardHorizontal .articleCardBody { padding: 16px 20px 20px; }
 }
 
-/* Gold contact band. */
-.band { background: var(--v5-band); color: var(--v5-band-text); padding-block: 56px; }
-@media (min-width: 1024px) { .band { padding-block: 72px; } }
-.band .h2 { color: #251818; }
-.bandLead { color: #3d2b2b; font-size: 17px; margin-top: 12px; font-weight: 500; font-family: var(--v5-font-display); }
-
 /* Breadcrumbs. */
 .breadcrumbs { color: var(--v5-muted); font-size: var(--v5-text-meta); }
 .breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; padding: 0; list-style: none; }
@@ -243,12 +235,10 @@
 .themeIconLight, .themeIconDark { display: none; }
 :global(html[data-theme-choice="light"]) .themeIconLight, :global(html[data-theme-choice="dark"]) .themeIconDark { display: block; }
 :global(html[data-theme-choice="light"]) .themeIconSystem, :global(html[data-theme-choice="dark"]) .themeIconSystem { display: none; }
-.headerCta { display: none; }
 .menuButton { display: inline-grid; }
 @media (min-width: 1024px) {
   .desktopNav { display: block; }
   .desktopNav + .headerActions { margin-left: 0; }
-  .headerCta { display: inline-flex; min-height: 44px; padding: 8px 24px; }
   .menuButton { display: none; }
 }
 .mobilePanel { border-top: 1px solid var(--v5-border-soft); padding-block: 12px 24px; max-height: calc(100vh - 68px); overflow-y: auto; }
@@ -260,7 +250,6 @@
 .mobilePanel ul { margin: 0; padding: 0; list-style: none; }
 .mobilePanel a:not(.button) { display: flex; align-items: center; min-height: 48px; padding: 8px 4px; font-size: 17px; font-weight: 500; text-decoration: none; font-family: var(--v5-font-display); }
 .mobilePanel a[aria-current] { color: var(--v5-gold-text); }
-.mobileCta { margin-top: 16px; width: 100%; }
 
 /* Footer. */
 .footer { background: var(--v5-bg); border-top: 1px solid var(--v5-border-soft); padding-block: 56px 32px; }
@@ -290,6 +279,9 @@
 /* Health Happy countdown slot: removed entirely (no reserved space) once the deadline has passed. */
 .countdownSlot { display: block; }
 :global(html[data-v5-countdown-ended]) .countdownSlot { display: none; }
+/* One LINE OA button per page (owner decision 2026-10-25): the dock is it, so the countdown's own
+   LINE action is not rendered in v5; its "read details" action and its analytics stay unchanged. */
+.countdownSlot :global([data-campaign-action="line"]) { display: none; }
 
 /*
   Bridge for reused Website 4.3 widgets (Health Happy countdown, share/engagement

@@ -183,3 +183,5 @@
 .searchScope [hidden] { display: none !important; }
 .groupGrid > div { display: flex; min-width: 0; }
 .groupGrid > div > article { flex: 1; }
+/* Article-body LINE CTA: an inline link-styled control (not gold) that opens the chat panel. */
+.chatCta { text-decoration: underline; text-underline-offset: 4px; }

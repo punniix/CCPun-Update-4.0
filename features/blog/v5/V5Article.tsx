@@ -10,11 +10,15 @@ import { getTopicFeaturedLink } from "@/lib/content/topic-navigation";
 import type { Article } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5Breadcrumbs, V5ContactBand, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5Breadcrumbs, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
 import { toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
+import V5ChatLink from "@/components/layout/v5/V5ChatLink";
+import { getV5ChatFallbackHref } from "@/components/layout/v5/V5ChatDockServer";
+import { isLineOaContactHref } from "@/components/layout/v5/chat-events";
+import { chatContextForPath } from "@/lib/line/chat-panel";
 import Website43ArticleOverview from "@/features/blog/website-43/Website43ArticleOverview";
 import ArticleShareActions from "@/features/blog/website-43/ArticleShareActions";
 import { ArticleEngagementProvider, ArticleEngagementSummary } from "@/features/blog/website-43/ArticleEngagement";
@@ -76,6 +80,8 @@ export default async function V5Article({ article, relatedArticles = [], allArti
   const readingMinutes = estimateArticleReadingMinutes(article);
   const path = getArticlePath(article);
   const relatedCards = toV5Cards(relatedArticles, copy);
+  // The page's LINE OA link with its prefill: the no-JS fallback of LINE CTAs that open the dock's panel.
+  const chatHref = await getV5ChatFallbackHref(chatContextForPath(path));
 
   const nextSteps = resolveNextSteps(topic?.slug, article.slug).flatMap((step) => {
     if (step.kind === "tool") {
@@ -89,7 +95,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
       if (!target) return [];
       return [{ key: target.slug, href: getArticlePath(target), title: target.title, body: target.excerpt, action: v5Label(text("blog.articleCategory")), ci: false, external: false }];
     }
-    // LINE next step: the gold contact band directly below is the CTA, so no duplicate card.
+    // LINE next step: the chat dock is the page's one LINE element (owner decision 2026-10-25), so no card.
     return [] as Array<{ key: string; href: string; title: string; body: string; action: string; ci: boolean; external: boolean }>;
   });
 
@@ -132,7 +138,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
                 <div className={styles.toc}><Toc groups={tocGroups} /></div>
               </details>}
               {(preview || article.status === "published") && <Website43ArticleOverview summary={article.geo?.summary} />}
-              <article className={styles.prose}>{renderV5ArticleBody(article.body, headingIds, copy)}</article>
+              <article className={styles.prose}>{renderV5ArticleBody(article.body, headingIds, copy, chatHref)}</article>
               {!preview && <V5LegacyBridge className={`${styles.bottomShare} ${styles.shareSlot}`}>
                 <ArticleEngagementSummary />
                 <ArticleShareActions origin="https://ccpun.com" path={path} title={article.title} placement="footer" />
@@ -157,7 +163,9 @@ export default async function V5Article({ article, relatedArticles = [], allArti
                 <Image src={author.avatar.src} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} sizes="88px" loading="lazy" />
                 <div><p className={styles.authorName}>{author.name}</p><p className={styles.authorRole}>{author.role}</p></div>
                 <p className={styles.authorBio}>{author.bio}</p>
-                <Link className={`${shell.textLink} ${styles.authorLink}`} href={author.ctaUrl}>{v5Label(author.ctaLabel)}</Link>
+                {isLineOaContactHref(author.ctaUrl)
+                  ? <V5ChatLink className={`${shell.textLink} ${styles.authorLink}`} href={chatHref}>{v5Label(author.ctaLabel)}</V5ChatLink>
+                  : <Link className={`${shell.textLink} ${styles.authorLink}`} href={author.ctaUrl}>{v5Label(author.ctaLabel)}</Link>}
               </div>
             </div>
           </section>
@@ -176,8 +184,6 @@ export default async function V5Article({ article, relatedArticles = [], allArti
               </div>
             </div>
           </section>}
-
-          <V5ContactBand title={text.node("blog.h2")} lead={text.node("blog.lead")} cta={text.node("blog.faqCta")} analyticsLocation="blog_article" />
 
           {relatedCards.length > 0 && <section className={shell.section}>
             <div className={`${shell.inner} ${shell.narrow}`}>

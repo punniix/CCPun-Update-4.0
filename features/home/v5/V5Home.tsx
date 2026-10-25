@@ -7,10 +7,10 @@ import { HOME_CORE_GUIDE_SLUGS } from "@/lib/content/topic-navigation";
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5ContactBand, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
-import { V5_LINE_URL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
+import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import protectionGapIcon from "../../../public/assets/website-43/icon-protection-gap.svg";
 import taxIcon from "../../../public/assets/website-43/icon-tax.svg";
@@ -56,7 +56,6 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <h1 id="home-hero-title" className={styles.heroTitle}>{text.node("home.hero.titleBefore")}<em>{text.node("home.hero.titleEmphasis")}</em>{text.node("home.hero.titleAfter")}</h1>
             <p className={styles.heroBody}>{text.node("home.hero.eyebrow")} {text.node("home.hero.description")}</p>
             <div className={shell.buttonRow}>
-              <a className={shell.button} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-location="home_hero">{text.node("home.contactCta")}</a>
               <Link className={shell.buttonOutline} href="#about-ccpun">{text.node("home.hero.aboutCta")}</Link>
             </div>
             <dl className={styles.credentials}>
@@ -117,9 +116,6 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             {qualifications.length > 0 && <p className={styles.aboutIdentity}><strong>{displayName}</strong><span>{role}{primary?.identifier ? text("home.advisor.qualificationPrefix") + primary.identifier : ""}</span></p>}
             <div className={styles.aboutCopy}><p>{text.node("home.p")}</p><p>{text.node("home.p2")}</p><p>{text.node("home.p3")}</p></div>
             <p className={styles.advisorNote}>{text.node("home.advisorNote")}</p>
-            <div className={shell.buttonRow}>
-              <a className={shell.button} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer">{siteText.node("site.extra.a")}</a>
-            </div>
             <p><Link className={shell.textLink} href="/about/">{text.node("home.hero.aboutCta")}</Link></p>
           </div>
         </div>
@@ -166,15 +162,12 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
         <div className={`${shell.inner} ${styles.faq}`}>
           <div>
             <V5SectionHeading id="home-faq-title" title={text.node("home.website43Hometitle5")} />
-            <div className={shell.buttonRow}><a className={shell.buttonOutline} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-location="home_faq">{text.node("home.contactCta")}</a></div>
           </div>
           <div className={styles.faqList}>
             {faqs.map(({ question, answer }) => <details className={styles.faqItem} key={question}><summary>{question}</summary><p>{answer}</p></details>)}
           </div>
         </div>
       </section>
-
-      <V5ContactBand analyticsSection="contact" title={text.node("home.contactBand.title")} cta={text.node("home.contactCta")} />
     </V5Page>
   );
 }

@@ -3,7 +3,7 @@ import { getPublicCopy } from '@/lib/content/public-copy';
 import { publicCopyText, type PublicCopyValues } from '@/lib/content/public-copy-registry';
 import V5Page from '@/components/layout/v5/V5Page';
 import shell from '@/components/layout/v5/V5.module.css';
-import { V5ArticleCard, V5Breadcrumbs, V5ContactBand, V5SectionHeading, v5Label } from '@/components/layout/v5/V5Primitives';
+import { V5ArticleCard, V5Breadcrumbs, V5SectionHeading, v5Label } from '@/components/layout/v5/V5Primitives';
 import { V5Faq, V5InfoCards, V5ToolHero, v5ToolStyles as styles } from '@/components/layout/v5/V5ToolParts';
 import { toV5Cards } from '@/components/layout/v5/article-card-data';
 import { getPublishedArticles } from '@/components/layout/v5/shell-data';
@@ -18,14 +18,12 @@ import CiLandingViewTracker from './CiLandingViewTracker';
  * JSON-LD (breadcrumb, WebApplication, FAQPage) is byte-equivalent to the 4.3 page.
  */
 export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCopyValues; siteCopy?: PublicCopyValues } = {}) {
-  const [ciCopy, homeCopy, blogCopy, articles] = await Promise.all([
+  const [ciCopy, blogCopy, articles] = await Promise.all([
     copy ? Promise.resolve(copy) : getPublicCopy('ci'),
-    getPublicCopy('home'),
     getPublicCopy('blog'),
     getPublishedArticles().catch(() => []),
   ]);
   const t = publicCopyText(ciCopy);
-  const home = publicCopyText(homeCopy);
   const blog = publicCopyText(blogCopy);
   const site = publicCopyText(siteCopy ?? await getPublicCopy('site'));
 
@@ -140,8 +138,6 @@ export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCo
           </div>
         </div>
       </section>
-
-      <V5ContactBand title={home.node('home.contactBand.title')} cta={site.node('site.extra.a')} />
     </V5Page>
   );
 }

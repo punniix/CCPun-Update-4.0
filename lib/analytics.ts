@@ -48,6 +48,8 @@ const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   chat_topic_id: /^[a-z0-9][a-z0-9-]{1,39}$/,
   page_group: new Set(['home', 'blog_index', 'blog_category', 'article', 'tool_ci', 'tool_fhc', 'tool_money_story', 'tool_investment_allocation', 'tools_hub', 'about', 'default']),
   campaign_code: /^[a-z0-9][a-z0-9_-]{1,63}$/,
+  // Which control opened the LINE chat panel (owner-approved 2026-10-25): the dock or an article-body LINE CTA.
+  panel_trigger: new Set(['dock', 'article_cta']),
   calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
   utm_source: /^[a-z0-9][a-z0-9_-]{0,63}$/,
@@ -157,6 +159,7 @@ export function buildSemanticDataLayerEvent(eventName: string, params: SafeParam
     chat_topic_id: null,
     page_group: null,
     campaign_code: null,
+    panel_trigger: null,
     ...params,
   };
 }

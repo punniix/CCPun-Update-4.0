@@ -95,7 +95,9 @@ export const websiteV5PhaseASources = Object.freeze({
   // lin.ee click tag), the new /tools/ hub sitemap entry (T1) and Money Story joining the tools sitemap
   // (v5 only). `before` is HEAD f2b163e2.
   // BEGIN LINE chat reviewed sources
-  "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "7f39b536d8e073930e08c6868a744dca944aea9dfb760ab1263aa5e9f77184f9" },
+  // 2026-10-25 (owner-approved, addendum 5): additive allowlisted `panel_trigger` (dock | article_cta) on line_chat_panel_open,
+  // cleared on every semantic event like the other chat dimensions. No event or mapping is renamed.
+  "lib/analytics.ts": { before: "4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f", after: "0a71fbf0061b12a5374a927f122450ab1a7c73e41b50346b2fdc84f0d0793055" },
   "features/analytics/components/GoogleAnalytics.tsx": { before: "6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a", after: "8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206" },
   "features/ci-planning/calculator/constants.ts": { before: "ccdafe5526f8dfe32d129e6f74b0f574f07dbed3aa62d6fa3eb612ed44dbd9c9", after: "0228e217aa05ca1d10deb87f1806a97e6780c467fbcd82e6d77cec08ea78fbb1" },
   "features/ci-planning/components/result/CIResult.tsx": { before: "b7c793111a1d654e89dcaf1392daf6b3b0bc53f0f310569cab465bbccdc91f85", after: "7935271a76b7830b2b6003ebeb5cde6c862c228a6401333b64ed59dd7fd96dc9" },
@@ -152,6 +154,8 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // 2026-10-25 (owner-approved, UAT): the v5 shell gains the merged LINE chat dock, the 3-state theme
   // toggle (D2) and the /tools/ hub links (T1), so the tool/legal v5 render digests move once more.
   // 2026-10-25 UX fixes (owner decisions, UAT): no eyebrows or hero kickers on the v5 tool/legal pages.
-  v5: { "3": "4b1d2d4382d7ac54e351ed03c45f5f755fc17a1c5d6b44fa0e6324076eef18f1", "4": "c2ff9ca63ccfad86b9e46e76cc5ede52808578afec7d54b3e22e1d6632d10563", "8": "745116a183230bd8faa67437c1a71a05c35f29dcb48eec39a44b7831097a7ae4", "9": "b6df50bdacc426c10225b861056578891889617f737efb76c30eb710e3b10f44", "10": "16b14eecd5ee986b29949ee4ceb780f86b9923aa87d0d39cf3aa0a07c4b5254d" },
+  // 2026-10-25 owner decisions (addendum, UAT): one LINE element per page (no header LINE button, the dock is a real
+  // LINE link enhanced into the panel button, visible from load) and no gold closing band.
+  v5: { "3": "b9d4893f6e4e0336f239e650dae4a81f5bf6262839e0440b95a1af8e64356b5e", "4": "de7ed1dadfb19f6fe05a9a0757b151f22cfeb8dfa4b3ad1f0efec5a35bdf9bd5", "8": "943dbbb2d5db0dba7987ed8d1efd95ed05ba6a3cfb60cc30c9d9c00a08293d55", "9": "83422f6f47eba8d6054b768c523897b1a7fe61ba85a06bd5c282ff03a62b943d", "10": "cb80925d40449911f7903342975591c13ad6764e885ce1f86d24ed5013561a72" },
   // END Phase B render goldens
 });

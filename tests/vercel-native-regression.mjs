@@ -172,10 +172,13 @@ assert.match(articlePage, /isArticleCanonicalAligned\(article\) \? buildArticleS
 assert.match(articlePage, /<V5Article preview=\{includeDrafts\} article=\{article\}/);
 const v5ArticlePresentation = read('features/blog/v5/V5Article.tsx');
 const v5Primitives = read('components/layout/v5/V5Primitives.tsx');
-assert.match(v5ArticlePresentation, /analyticsLocation="blog_article"/);
-assert.match(v5Primitives, /data-analytics-location=\{analyticsLocation\}/);
+// Owner decision 2026-10-25: the v5 article's one LINE element is the chat dock (no gold band); its
+// LINE CTAs open the dock's panel and fall back to the page's LINE OA link without JavaScript.
+assert.doesNotMatch(v5ArticlePresentation, /V5ContactBand|analyticsLocation="blog_article"/);
+assert.doesNotMatch(v5Primitives, /V5_LINE_URL|V5ContactBand/);
+assert.match(v5ArticlePresentation, /const chatHref = await getV5ChatFallbackHref\(chatContextForPath\(path\)\);/);
 assert.match(read('components/layout/v5/constants.ts'), /V5_LINE_URL = "https:\/\/lin\.ee\/tqLCs4f"/);
-assert.match(v5ArticlePresentation, /renderV5ArticleBody\(article\.body, headingIds, copy\)/);
+assert.match(v5ArticlePresentation, /renderV5ArticleBody\(article\.body, headingIds, copy, chatHref\)/);
 assert.match(read('features/blog/v5/V5ArticleBody.tsx'), /const id = headingIds\.get\(index\)/);
 assert.match(articlePage, /getArticleCanonical/);
 assert.match(articlePresentation, /href="https:\/\/lin\.ee\/tqLCs4f"/);
