@@ -12,6 +12,7 @@ import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data
 import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
 import styles from "./V5Blog.module.css";
 import { resolveHubTools } from "./next-step";
+import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngagement";
 
 /**
  * Category / topic hub (FigCraft 03). Lists every article of the hub on the one
@@ -79,7 +80,8 @@ export default async function V5Category({ slug, title, description, hub, articl
               <h2 id="category-articles" className={shell.h2}>{listTitle} <span className={shell.count}>{text("blog.group.count").replaceAll("{0}", String(cards.length))}</span></h2>
             </div>
             {cards.length > 0
-              ? <div className={shell.cardGrid}>{cards.map((card, index) => <V5ArticleCard key={card.id} article={card} showExcerpt priority={index === 0 && !(hub && hub.intro.length > 0)} />)}</div>
+              ? <V5CardMetricsProvider><div className={shell.cardGrid}>{cards.map((card, index) => <V5ArticleCard key={card.id} article={card} showExcerpt priority={index === 0 && !(hub && hub.intro.length > 0)}
+                metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />)}</div></V5CardMetricsProvider>
               : <p className={styles.empty}>{text.node("blog.div")}</p>}
             {tools.length > 0 && <div className={styles.toolsCard}>
               <div>

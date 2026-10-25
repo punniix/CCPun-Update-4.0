@@ -52,6 +52,7 @@ function load(overrides = {}) {
         assert.ok(options.fetchOptions.signal instanceof AbortSignal);
         calls.push({ sql, params });
         if (fail && failures > 0) { failures -= 1; throw failure(fail); }
+        if (sql.includes("unnest($1::text[])")) return params[0].map((id, index) => ({ article_id: id, views: String(40 + index * 20), shares: 0, hearts: index ? 2 : null, liked: false, activated_at: activatedAt }));
         return [{ views: "2", shares: 0, hearts: sql.includes("set_article_heart") && params[2] ? 1 : null,
           liked: sql.includes("set_article_heart") ? params[2] : !!params.at(-1), activated_at: activatedAt }];
       } }) };
@@ -302,4 +303,97 @@ test("failure logging is redacted and bounded per minute", async () => {
   const missing = load({ CCPUN_ARTICLE_DATABASE_URL: undefined });
   assert.equal((await missing.handleArticleEngagement(request(), productionId)).status, 503);
   assert.deepEqual(JSON.parse(missing.logs[0].line.replace("[ARTICLE_ENGAGEMENT] ", "")), { schema: "ccpun.article_engagement.v1", outcome: "unavailable", stage: "runtime", method: "GET", error: "unavailable" });
+});
+
+const secondId = "second-article-id";
+function batch(ids, headers = {}, init = {}) {
+  const query = ids === null ? "" : `?ids=${ids}`;
+  return new Request(`https://ccpun.com/api/article-engagement/${query}`, { headers: { host: "ccpun.com", ...headers }, ...init });
+}
+function withSecond(overrides) {
+  const lib = load(overrides);
+  lib.articles.push({ id: secondId, status: "published", publishedAt: "2026-10-08T08:00:00.000Z" },
+    { id: "future-id", status: "published", publishedAt: "2999-01-01T00:00:00.000Z" }, { id: "draft-id", status: "draft", publishedAt: null });
+  return lib;
+}
+
+test("card batch reads published aggregates in one SQL call, without liked state or per-card requests", async () => {
+  const lib = withSecond();
+  const response = await lib.handleArticleEngagementBatch(batch(`${productionId},${secondId},future-id,draft-id,unknown-id,${secondId}`));
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("cache-control"), /private, no-store/);
+  const body = await response.json();
+  assert.equal(body.available, true);
+  assert.equal(body.degraded, false);
+  assert.deepEqual(body.items, { [productionId]: { views: 40, shares: 0, hearts: null }, [secondId]: { views: 60, shares: 0, hearts: 2 } }, "unpublished, future and unknown IDs are left out; duplicates collapse");
+  assert.equal(body.activatedAt, "2026-10-19T10:00:00.000Z");
+  assert.ok(!("liked" in body.items[secondId]), "heart cookies are scoped to each article path; the list never guesses liked");
+  assert.equal(lib.calls.length, 1, "one Neon request for the whole list");
+  assert.equal(JSON.stringify(lib.calls[0].params), JSON.stringify([[productionId, secondId]]));
+  assert.match(lib.calls[0].sql, /read_article_metrics\(i\.article_id, NULL\)/, "reuses the existing read function, cookieless");
+  const again = await (await lib.handleArticleEngagementBatch(batch(`${secondId},${productionId}`))).json();
+  assert.deepEqual(Object.keys(again.items), [secondId, productionId], "items follow the request order");
+  assert.equal(lib.calls.length, 1, "cached aggregates are shared with the single-article route for 30 s");
+  const single = await (await lib.handleArticleEngagement(request(secondId), secondId)).json();
+  assert.equal(single.views, 60);
+  assert.equal(lib.calls.length, 1, "a card read warms the article read too");
+});
+
+test("card batch validates IDs, size, method, query shape and origin like the single route", async () => {
+  const lib = withSecond();
+  const many = Array.from({ length: 25 }, (_, index) => `id-${index}`).join(",");
+  for (const [req, status, code] of [
+    [batch(many), 400, "invalid_payload"], [batch(""), 400, "invalid_payload"], [batch(null), 400, "invalid_payload"],
+    [batch(`drafts.${productionId}`), 400, "invalid_payload"], [batch("a b"), 400, "invalid_payload"],
+    [new Request(`https://ccpun.com/api/article-engagement/?ids=${productionId}&ids=${secondId}`, { headers: { host: "ccpun.com" } }), 400, "invalid_payload"],
+    [new Request(`https://ccpun.com/api/article-engagement/?ids=${productionId}&page=2`, { headers: { host: "ccpun.com" } }), 400, "invalid_payload"],
+    [batch(productionId, { "sec-fetch-site": "cross-site" }), 403, "invalid_origin"],
+    [batch(productionId, { host: "evil.example" }), 403, "invalid_origin"],
+    [batch(productionId, {}, { method: "POST", body: "{}" }), 405, "method_not_allowed"],
+  ]) {
+    const response = await lib.handleArticleEngagementBatch(req);
+    assert.equal(response.status, status);
+    assert.deepEqual(await response.json(), { available: false, error: code });
+  }
+  assert.equal((await lib.handleArticleEngagementBatch(batch(Array.from({ length: 24 }, (_, index) => `id-${index}`).join(",")))).status, 200, "24 IDs is the maximum");
+  assert.equal(lib.calls.length, 0, "no SQL for IDs that are not published");
+  assert.equal(lib.ARTICLE_BATCH_MAX, 24);
+  const missing = load({ CCPUN_ARTICLE_DATABASE_URL: undefined });
+  assert.equal((await missing.handleArticleEngagementBatch(batch(productionId))).status, 503);
+});
+
+test("card batch failures serve bounded stale totals as degraded or a generic 503, and retry transport once", async () => {
+  const lib = withSecond();
+  lib.rememberArticleMetrics(productionId, { views: 70, shares: 1, hearts: 4, activatedAt: "2026-10-19T10:00:00.000Z" }, Date.now() - lib.ARTICLE_METRICS_FRESH_MS - 1000);
+  lib.fail();
+  const degraded = await lib.handleArticleEngagementBatch(batch(`${productionId},${secondId}`));
+  assert.equal(degraded.status, 200);
+  const body = await degraded.json();
+  assert.equal(body.degraded, true);
+  assert.deepEqual(body.items, { [productionId]: { views: 70, shares: 1, hearts: 4 } }, "only the last good totals; nothing invented for the rest");
+  assert.deepEqual(JSON.parse(lib.logs.at(-1).line.replace("[ARTICLE_ENGAGEMENT] ", "")), { schema: "ccpun.article_engagement.v1", outcome: "degraded", stage: "database", method: "GET", error: "error" });
+  const cold = withSecond();
+  cold.fail("sql");
+  const failed = await cold.handleArticleEngagementBatch(batch(secondId));
+  assert.equal(failed.status, 503);
+  assert.deepEqual(await failed.json(), { available: false, error: "unavailable" });
+  assert.equal(cold.calls.length, 1, "SQL errors are not retried");
+  assert.doesNotMatch(cold.logs.map(entry => entry.line).join("\n"), /second-article-id|function does not exist|neon\.tech/);
+  const flaky = withSecond();
+  flaky.fail("network", 1);
+  assert.equal((await flaky.handleArticleEngagementBatch(batch(secondId))).status, 200);
+  assert.equal(flaky.calls.length, 2, "one transport retry");
+  const content = withSecond();
+  content.failContent();
+  assert.equal((await content.handleArticleEngagementBatch(batch(secondId))).status, 503);
+  assert.equal(JSON.parse(content.logs.at(-1).line.replace("[ARTICLE_ENGAGEMENT] ", "")).stage, "content");
+});
+
+test("card batch route is a sibling GET-only route; the single-article route is unchanged", () => {
+  const batchRoute = readFileSync(new URL("../apps/web/app/api/article-engagement/route.ts", import.meta.url), "utf8");
+  assert.match(batchRoute, /export async function GET\(request: Request\) \{\n  return handleArticleEngagementBatch\(request\);\n\}/);
+  assert.doesNotMatch(batchRoute, /export async function (POST|PUT|DELETE|PATCH)/);
+  const singleRoute = readFileSync(new URL("../apps/web/app/api/article-engagement/[articleId]/route.ts", import.meta.url), "utf8");
+  assert.match(singleRoute, /return handleArticleEngagement\(request, \(await context\.params\)\.articleId\);/);
+  assert.equal((singleRoute.match(/export async function (GET|POST)/g) ?? []).length, 2);
 });

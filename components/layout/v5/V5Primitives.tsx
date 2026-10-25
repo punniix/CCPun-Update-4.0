@@ -45,7 +45,7 @@ export type V5CardArticle = {
  * Article card: one real link (the title) whose ::after covers the card, so
  * every card contributes exactly one crawlable, descriptive anchor.
  */
-export function V5ArticleCard({ article, headingLevel = 3, sizes = "(max-width: 639px) calc(100vw - 40px), (max-width: 1023px) 46vw, 400px", horizontal = false, showExcerpt = false, priority = false, extra, className }: {
+export function V5ArticleCard({ article, headingLevel = 3, sizes = "(max-width: 639px) calc(100vw - 40px), (max-width: 1023px) 46vw, 400px", horizontal = false, showExcerpt = false, priority = false, extra, metaEnd, className }: {
   article: V5CardArticle;
   headingLevel?: 2 | 3;
   sizes?: string;
@@ -53,6 +53,8 @@ export function V5ArticleCard({ article, headingLevel = 3, sizes = "(max-width: 
   showExcerpt?: boolean;
   priority?: boolean;
   extra?: ReactNode;
+  /** Optional controls on the date row (blog lists: heart + view count), kept above the card link. */
+  metaEnd?: ReactNode;
   className?: string;
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
@@ -65,7 +67,9 @@ export function V5ArticleCard({ article, headingLevel = 3, sizes = "(max-width: 
         <span className={styles.articleCardTopic}>{article.topic}</span>
         <Heading className={styles.articleCardTitle}><Link href={article.href}>{article.title}</Link></Heading>
         {showExcerpt && article.excerpt ? <p className={styles.articleCardExcerpt}>{article.excerpt}</p> : null}
-        {article.meta ? <p className={styles.articleCardMeta}>{article.meta}</p> : null}
+        {metaEnd
+          ? <div className={styles.articleCardFooter}>{article.meta ? <p className={styles.articleCardMeta}>{article.meta}</p> : null}{metaEnd}</div>
+          : article.meta ? <p className={styles.articleCardMeta}>{article.meta}</p> : null}
         {extra}
       </div>
     </article>
