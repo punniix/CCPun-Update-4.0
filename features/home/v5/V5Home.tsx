@@ -8,6 +8,9 @@ import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5ArticleCard, V5ContactBand, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
+import V5LicenceFlip from "@/components/layout/v5/V5LicenceFlip";
+import { V5_AFPT_CARD, V5_CREDENTIAL_FLIP_HINT, V5_LICENCE_FLIP_HINT, V5_LICENCE_NUMBER_LABEL, V5_LICENCE_VERIFY_PLACEHOLDER } from "@/components/layout/v5/licence-flip-copy";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
 import { V5_LINE_URL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
@@ -42,13 +45,13 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
   const licenses = authorProfile?.professionalLicenses?.length
     ? authorProfile.professionalLicenses.map(({ name: label, identifier }) => `${label.trim()} ${identifier.trim()}`)
     : [text("home.licenseLabelsText"), text("home.licenseLabelsText2"), text("home.licenseLabelsText3")];
-  const credentials = [
-    ...(primary ? [{ term: primary.shortName, detail: `${text("home.advisor.qualificationPrefix").replace(/^\s*·\s*/, "")}${primary.identifier ?? ""}`.trim() }] : []),
-    ...licenses.map((label) => {
-      const match = label.match(/^(.*?)\s+([0-9A-Z-]{5,})$/);
-      return match ? { term: match[1], detail: match[2] } : { term: label, detail: "" };
-    }),
-  ];
+  // Owner-approved AFPT™ card (2026-10-25) leads; a different CMS qualification keeps its plain cell.
+  const qualification = primary && !/AFPT/i.test(primary.shortName) ? { term: primary.shortName, detail: `${text("home.advisor.qualificationPrefix").replace(/^\s*·\s*/, "")}${primary.identifier ?? ""}`.trim() } : null;
+  const licenceCards = licenses.map((label) => {
+    const match = label.match(/^(.*?)\s+([0-9A-Z-]{5,})$/);
+    return match ? { term: match[1], detail: match[2] } : { term: label, detail: "" };
+  });
+  const licenceVerifyNote = IS_REVIEW_ENVIRONMENT ? V5_LICENCE_VERIFY_PLACEHOLDER : null;
 
   const pains = [
     [protectionGapIcon, text("home.painsText"), text("home.painsText2")],
@@ -83,9 +86,11 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
               <a className={shell.button} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-location="home_hero">{text.node("home.contactCta")}</a>
               <Link className={shell.buttonOutline} href="#about-ccpun">{text.node("home.hero.aboutCta")}</Link>
             </div>
-            <dl className={styles.credentials}>
-              {credentials.map((item) => <div key={item.term + item.detail}><dt>{item.term}</dt>{item.detail ? <dd>{item.detail}</dd> : null}</div>)}
-            </dl>
+            <ul className={styles.credentials} role="list">
+              {qualification ? <li><dl><div><dt>{qualification.term}</dt>{qualification.detail ? <dd>{qualification.detail}</dd> : null}</div></dl></li> : null}
+              <li><V5LicenceFlip term={V5_AFPT_CARD.term} detail={V5_AFPT_CARD.detail} hint={V5_CREDENTIAL_FLIP_HINT} back={V5_AFPT_CARD.back} /></li>
+              {licenceCards.map((item) => <li key={item.term + item.detail}><V5LicenceFlip term={item.term} detail={item.detail} hint={V5_LICENCE_FLIP_HINT} back={item.detail ? [{ label: V5_LICENCE_NUMBER_LABEL, value: item.detail, repeatsFront: true }] : []} note={licenceVerifyNote} /></li>)}
+            </ul>
           </div>
           <div className={styles.portrait}>
             <Image src="/assets/website-43/home-hero-desktop.png" alt={text("home.website43Homealt")} fill preload loading="eager" fetchPriority="high" sizes="(max-width: 899px) calc(100vw - 40px), 560px" />

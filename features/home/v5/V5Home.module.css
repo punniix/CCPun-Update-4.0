@@ -7,6 +7,8 @@
 .heroTitle em { font-style: normal; color: var(--v5-gold-text); }
 .heroBody { margin-top: 20px; color: var(--v5-muted); font-size: clamp(16px, 1.7vw, 19px); line-height: 1.75; max-width: 620px; }
 .credentials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; margin-top: 28px; padding: 20px 20px; border-radius: var(--v5-radius); border: 1px solid var(--v5-border); background: var(--v5-bg); }
+.credentials { list-style: none; }
+.credentials > li { display: grid; min-width: 0; }
 .credentials dt { font-size: 15px; font-weight: 500; font-family: var(--v5-font-display); }
 .credentials dd { margin: 4px 0 0; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
 .portrait { position: relative; overflow: hidden; border-radius: var(--v5-radius-lg); aspect-ratio: 4 / 3.3; background: var(--v5-surface); box-shadow: var(--v5-shadow); }
