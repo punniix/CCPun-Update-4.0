@@ -16,7 +16,7 @@
 @media (hover: hover) and (pointer: fine) { .articleShareButton:hover { border-color: var(--v5-gold, #e0c985); background: rgba(224, 201, 133, .08); } }
 .articleShareButton:focus-visible { outline: 3px solid var(--v5-focus, #e0c985); outline-offset: 2px; }
 .articleShareStatus { position: absolute; z-index: 2; top: 100%; left: 0; max-width: min(320px, calc(100vw - 48px)); color: var(--v5-gold-text, #e0c985); font-size: 14px; white-space: normal; }
-@media (max-width: 639px) { .articleReadingEstimate { flex-basis: 100%; } }
+/* Phones keep the reading time and the late share count on one line (no flex-basis break), so the count never adds a line. */
 
 .articleTableViewport { display: contents; }
 .articleTableTrack { display: none; }

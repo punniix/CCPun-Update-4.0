@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import styles from "./V5.module.css";
 import { V5SharedTransition } from "./V5ViewTransition";
+import { v5CardGridSizes } from "./card-sizes";
 
 /**
  * Link and action labels without a typed arrow (audit #10): screen readers announce "→" as
@@ -31,6 +32,8 @@ export function V5Breadcrumbs({ items, label }: { items: V5Crumb[]; label: strin
   );
 }
 
+export { v5CardGridSizes, V5_HORIZONTAL_CARD_SIZES } from "./card-sizes";
+
 export type V5CardArticle = {
   id: string;
   href: string;
@@ -45,7 +48,7 @@ export type V5CardArticle = {
  * Article card: one real link (the title) whose ::after covers the card, so
  * every card contributes exactly one crawlable, descriptive anchor.
  */
-export function V5ArticleCard({ article, headingLevel = 3, sizes = "(max-width: 639px) calc(100vw - 40px), (max-width: 1023px) 46vw, 400px", horizontal = false, showExcerpt = false, priority = false, extra, metaEnd, className }: {
+export function V5ArticleCard({ article, headingLevel = 3, sizes = v5CardGridSizes(), horizontal = false, showExcerpt = false, priority = false, extra, metaEnd, className }: {
   article: V5CardArticle;
   headingLevel?: 2 | 3;
   sizes?: string;

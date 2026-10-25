@@ -5,6 +5,8 @@
 .articleMetrics { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 4px; min-height: 44px; margin-block: -12px; margin-inline-start: -8px; }
 .views { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 8ch; color: var(--v5-muted); font-size: var(--v5-text-meta); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .articleMetrics .views { justify-content: flex-start; }
+/* Narrow phones (v5 polish, UAT): the header counts take their own row under the date from the first paint, so the web-font swap or a longer count never wraps them to a new line later. */
+@media (max-width: 379px) { .articleMetrics { flex-basis: 100%; } }
 .heart { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 8px; border: 0; border-radius: var(--v5-radius-sm); background: transparent; color: var(--v5-muted); font: inherit; font-size: var(--v5-text-meta); font-variant-numeric: tabular-nums; cursor: pointer; }
 .heart[aria-pressed="true"] { color: var(--v5-text); }
 .heart:hover { background: var(--v5-border-soft); color: var(--v5-text); }

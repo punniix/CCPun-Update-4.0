@@ -10,6 +10,7 @@ import { resolveHubTools, resolveNextSteps } from "../features/blog/v5/next-step
 import { listFallbackTopics, listLinkableTopics, HOME_CORE_GUIDE_SLUGS, TOPIC_CLUSTER_PILLARS } from "../lib/content/topic-navigation";
 import { buildCategoryRegistry } from "../lib/content/category-registry";
 import { listToolGuides, TOOL_GUIDE_TOPICS } from "../components/layout/v5/tool-guides";
+import { v5CardGridSizes, V5_HORIZONTAL_CARD_SIZES } from "../components/layout/v5/card-sizes";
 // v5 motion round (UAT): result motion, page transition and flip-card contracts.
 import "./website-v5-motion.test.mjs";
 
@@ -642,4 +643,68 @@ test("Owner photos (v5b set, 2026-10-25): About hero is photo 4 per theme, JSON-
   assert.match(css, /:global\(html\[data-theme="light"\]\) \.portraitLight \{ display: block; \}/);
   const favicon = readFileSync(new URL("../public/favicon.png", import.meta.url));
   assert.ok(favicon.equals(readFileSync(new URL("../public/assets/ccpun-avatar-v5-256.png", import.meta.url))), "favicon.png is the plain-circle face avatar");
+});
+
+// v5 polish (UAT, 2026-10-25): label wrapping, card cover widths, the late share count and the phone hero.
+/** Width the browser reads from a `sizes` list at a viewport width (calc(Avw - Bpx) or Npx only). */
+function sizesAt(sizes: string, vw: number): number {
+  for (const part of sizes.split(/,\s*(?![^()]*\))/)) {
+    const match = part.trim().match(/^(?:\(max-width: (\d+)px\)\s+)?(.+)$/);
+    assert.ok(match, part);
+    if (match[1] && vw > Number(match[1])) continue;
+    const value = match[2];
+    const calc = value.match(/^calc\(([\d.]+)vw - (\d+)px\)$/);
+    if (calc) return Number(calc[1]) * vw / 100 - Number(calc[2]);
+    const px = value.match(/^(\d+)px$/);
+    assert.ok(px, value);
+    return Number(px[1]);
+  }
+  throw new Error(`no default in ${sizes}`);
+}
+
+test("Polish: card cover sizes follow the adaptive grid, so next/image never picks a narrower file than the cover draws", () => {
+  // Drawn cover width in .cardGrid / .cardGrid2 for a card count at a viewport width (V5.module.css rules).
+  const content = (vw: number, narrow = false) => Math.min(vw < 768 ? vw - 40 : vw < 1200 ? vw - 64 : vw - 160, narrow ? 1028 : 1280);
+  const drawn = (vw: number, count: number, grid: "cardGrid" | "cardGrid2", narrow = false) => {
+    const w = content(vw, narrow); const gap = vw < 640 ? 16 : 20;
+    if (vw < 640) return w;
+    if (count === 1) return 0.4 * w;
+    const cols = grid === "cardGrid"
+      ? (vw >= 1024 && count !== 2 && count !== 4 ? 3 : 2)
+      : (vw >= 1024 && count === 3 ? 3 : count % 2 === 1 ? 1 : 2);
+    return (w - (cols - 1) * gap) / cols;
+  };
+  for (const vw of [320, 390, 639, 640, 700, 767, 768, 900, 1023, 1024, 1100, 1199, 1200, 1280, 1366, 1439, 1440, 1920]) {
+    for (const count of [1, 2, 3, 4, 5, 6, 9]) {
+      assert.ok(sizesAt(v5CardGridSizes(count), vw) >= drawn(vw, count, "cardGrid") - 1, `cardGrid x${count} at ${vw}px`);
+      assert.ok(sizesAt(v5CardGridSizes(), vw) >= drawn(vw, count, "cardGrid") - 1, `cardGrid (unknown count) x${count} at ${vw}px`);
+      assert.ok(sizesAt(v5CardGridSizes(count, { grid: "cardGrid2", narrow: true }), vw) >= drawn(vw, count, "cardGrid2", true) - 1, `related cardGrid2 x${count} at ${vw}px`);
+    }
+    const horizontal = vw < 480 ? content(vw) : vw < 900 ? 0.38 * content(vw) : 0.38 * (content(vw) - 20) / 2;
+    assert.ok(sizesAt(V5_HORIZONTAL_CARD_SIZES, vw) >= horizontal - 1, `horizontal card at ${vw}px`);
+  }
+  assert.equal(sizesAt(v5CardGridSizes(2), 1440), 630, "two cards at 1440 draw 630px wide, not 400px");
+  assert.equal(sizesAt(v5CardGridSizes(3), 1440), 414);
+  for (const file of ["features/home/v5/V5Home.tsx", "features/blog/v5/V5BlogIndex.tsx", "features/blog/v5/V5Category.tsx", "features/blog/v5/V5Article.tsx", "features/ci-planning/v5/V5CiPlanning.tsx", "features/financial-health-check/v5/V5Fhc.tsx", "features/money-story/v5/V5MoneyStory.tsx"]) {
+    assert.doesNotMatch(read(file), /<V5ArticleCard[^>]*sizes="/, `${file}: card sizes come from the grid helper`);
+  }
+});
+
+test("Polish: the late share count never moves the article header; Thai labels stay on one line; the phone hero is tighter", () => {
+  const blog = read("features/blog/v5/V5Blog.module.css");
+  assert.match(read("features/blog/v5/V5Article.tsx"), /<V5LegacyBridge className=\{styles\.metaSummary\}><ArticleEngagementSummary readingMinutes=\{readingMinutes\} \/><\/V5LegacyBridge>/);
+  assert.match(blog, /\.metaSummary\.metaSummary \{ order: 1; flex-basis: 100%; min-height: 22px; \}/);
+  assert.match(blog, /\.metaDates \{ flex: 1 1 320px; min-width: 0;/);
+  assert.doesNotMatch(read("features/blog/v5/ArticleWidgets.module.css").replace(/\/\*[\s\S]*?\*\//g, ""), /articleReadingEstimate \{ flex-basis: 100%/, "the share count joins the reading-time line instead of adding one");
+  assert.match(blog, /@media \(min-width: 1280px\) \{ \.readingGrid:has\(> \.tocAside\) \{ grid-template-columns: minmax\(260px, 392px\) minmax\(0, 720px\); \} \}/);
+  assert.match(blog, /@media \(min-width: 1280px\) \{ \.tocMobile \{ display: none; \} \}/);
+  const tool = read("components/layout/v5/V5Tool.module.css");
+  assert.match(tool, /\.calcScope :global\(:is\(\.gold-button, \.glass-button\):not\(\.w-full\)\) \{ flex-shrink: 0; max-width: 100%; \}/);
+  assert.match(tool, /\.calcScope :global\(\.justify-between:has\(> \.glass-button\)\) \{ flex-wrap: wrap; \}/);
+  assert.match(tool, /@media \(max-width: 1023px\) \{ \.toc \{ padding: 16px;/);
+  assert.match(tool, /\.legalGrid \{ grid-template-columns: 256px minmax\(0, 720px\);/);
+  const home = read("features/home/v5/V5Home.module.css");
+  assert.match(home, /@media \(min-width: 1024px\) \{ \.hero \{ padding-block: 56px 64px; \} \}/);
+  assert.match(home, /\.credentials \{ gap: 8px; margin-top: 20px; padding: 0; border: 0; background: none; \}/);
+  assert.match(read("components/layout/v5/V5LicenceFlip.module.css"), /\.line \{ display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; \}/);
 });

@@ -1,6 +1,6 @@
 /* v5 homepage (FigCraft 01). Tokens come from the shell root. */
 .hero { background: var(--v5-bg-alt); padding-block: 36px 56px; }
-@media (min-width: 1024px) { .hero { padding-block: 72px 96px; } }
+@media (min-width: 1024px) { .hero { padding-block: 56px 64px; } }
 .heroGrid { display: grid; gap: 28px; align-items: center; }
 @media (min-width: 900px) { .heroGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: 48px; } }
 .heroTitle { font-size: clamp(30px, 5.6vw, 50px); line-height: 1.3; }
@@ -16,6 +16,18 @@
 .portrait { position: relative; overflow: hidden; border-radius: var(--v5-radius-lg); aspect-ratio: 4 / 3.3; background: var(--v5-surface); box-shadow: var(--v5-shadow); }
 .portrait img { object-fit: cover; object-position: 58% 30%; }
 @media (max-width: 899px) { .portrait { order: 2; aspect-ratio: 1 / 1; } }
+/*
+  v5 polish (UAT): a tighter hero. Phones drop the frame around the credential cards (each card keeps its own edge)
+  and close up the hero spacing, so the headline, the lede, the action and the credentials sit in the first screen;
+  desktop trims the hero padding so the hero ends inside a 1440 x 900 screen. Copy is unchanged.
+*/
+@media (min-width: 1024px) { .credentials { margin-top: 24px; } }
+@media (max-width: 639px) {
+  .hero { padding-block: 24px 40px; }
+  .heroBody { margin-top: 16px; }
+  .heroBody + div { margin-top: 20px; }
+  .credentials { gap: 8px; margin-top: 20px; padding: 0; border: 0; background: none; }
+}
 
 /*
   Pains (design QA 2026-10-25): an editorial list instead of three boxed icon-tile cards. Each item

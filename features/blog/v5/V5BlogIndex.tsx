@@ -8,7 +8,7 @@ import { BLOG_GROUP_MIN_ARTICLES, BLOG_START_HERE_SLUGS, type TopicLink } from "
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, v5Label, type V5CardArticle } from "@/components/layout/v5/V5Primitives";
+import { V5_HORIZONTAL_CARD_SIZES, V5ArticleCard, v5CardGridSizes, v5Label, type V5CardArticle } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Card, toV5Cards } from "@/components/layout/v5/article-card-data";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import styles from "./V5Blog.module.css";
@@ -97,7 +97,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                 {featuredCards.map((card, index) => (
                   <div key={card.id} className={styles.searchItem} data-v5-search={searchById.get(card.id)}>
                     <V5ArticleCard article={card} className={index === 0 ? styles.featuredLead : undefined} horizontal={index > 0} priority={index === 0} showExcerpt={index === 0}
-                      headingLevel={3} sizes={index === 0 ? "(max-width: 899px) calc(100vw - 40px), 640px" : "(max-width: 479px) calc(100vw - 40px), 240px"}
+                      headingLevel={3} sizes={index === 0 ? "(max-width: 899px) calc(100vw - 40px), 640px" : V5_HORIZONTAL_CARD_SIZES}
                       metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
                   </div>
                 ))}
@@ -134,7 +134,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                     <div id={gridId} className={`${shell.cardGrid} ${styles.groupGrid}`}>
                       {group.cards.map((card, index) => (
                         <div key={card.id} data-v5-search={group.searchText.get(card.id)} data-pager-hidden={index >= GROUP_PAGE_SIZE ? "" : undefined}>
-                          <V5ArticleCard article={card} showExcerpt metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
+                          <V5ArticleCard article={card} showExcerpt sizes={v5CardGridSizes(group.cards.length)} metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
                         </div>
                       ))}
                     </div>

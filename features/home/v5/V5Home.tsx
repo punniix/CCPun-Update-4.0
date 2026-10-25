@@ -7,7 +7,7 @@ import { HOME_CORE_GUIDE_SLUGS } from "@/lib/content/topic-navigation";
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
+import { V5_HORIZONTAL_CARD_SIZES, V5ArticleCard, V5SectionHeading, v5CardGridSizes, v5Label } from "@/components/layout/v5/V5Primitives";
 import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
@@ -141,7 +141,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
           {coreGuides.length > 0 && <div style={{ marginTop: 64 }} aria-labelledby="home-core-guides" role="region">
             <h2 id="home-core-guides" className={shell.h2}>{text.node("home.coreGuides.title")}</h2>
             <div className={styles.guides}>
-              {coreGuides.map((card) => <V5ArticleCard key={card.id} article={card} horizontal sizes="(max-width: 479px) calc(100vw - 40px), 240px" />)}
+              {coreGuides.map((card) => <V5ArticleCard key={card.id} article={card} horizontal sizes={V5_HORIZONTAL_CARD_SIZES} />)}
             </div>
             {topics.length > 0 && <>
               <p className={styles.topicsLabel}>{siteText.node("site.nav.topics")}</p>
@@ -157,7 +157,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <h2 id="home-latest" className={shell.h2}>{text.node("home.latest.title")}</h2>
             <Link className={shell.textLink} href="/blog/">{v5Label(text("home.toolCtaAction"))}</Link>
           </div>
-          <div className={shell.cardGrid}>{latest.map((card) => <V5ArticleCard key={card.id} article={card} />)}</div>
+          <div className={shell.cardGrid}>{latest.map((card) => <V5ArticleCard key={card.id} article={card} sizes={v5CardGridSizes(latest.length)} />)}</div>
         </div>
       </section>}
 

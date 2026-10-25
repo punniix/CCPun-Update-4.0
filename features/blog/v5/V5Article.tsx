@@ -10,7 +10,7 @@ import { getTopicFeaturedLink } from "@/lib/content/topic-navigation";
 import type { Article } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5Breadcrumbs, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5Breadcrumbs, V5SectionHeading, v5CardGridSizes, v5Label } from "@/components/layout/v5/V5Primitives";
 import { toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
@@ -117,7 +117,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
               <div className={styles.metaDates}>
                 {published && <span>{text.node("blog.articleDateLabel")} <time dateTime={article.publishedAt}>{published}</time></span>}
                 {optimized && <span>{text.node("blog.articleDateLabel2")} <time dateTime={article.optimizedAt}>{optimized}</time></span>}
-                <V5LegacyBridge><ArticleEngagementSummary readingMinutes={readingMinutes} /></V5LegacyBridge>
+                <V5LegacyBridge className={styles.metaSummary}><ArticleEngagementSummary readingMinutes={readingMinutes} /></V5LegacyBridge>
                 {!preview && <V5ArticleEngagementMeta />}
               </div>
               {!preview && <V5LegacyBridge className={styles.shareSlot}><ArticleShareActions origin="https://ccpun.com" path={path} title={article.title} placement="header" /></V5LegacyBridge>}
@@ -192,7 +192,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             <div className={`${shell.inner} ${shell.narrow}`}>
               <h2 className={shell.h2} style={{ marginBottom: 24 }}>{text.node("blog.h22")}</h2>
               <div className={shell.cardGrid2}>
-                {relatedCards.map((card) => <V5ArticleCard key={card.id} article={card} showExcerpt sizes="(max-width: 639px) calc(100vw - 40px), 500px" />)}
+                {relatedCards.map((card) => <V5ArticleCard key={card.id} article={card} showExcerpt sizes={v5CardGridSizes(relatedCards.length, { grid: "cardGrid2", narrow: true })} />)}
               </div>
             </div>
           </section>}

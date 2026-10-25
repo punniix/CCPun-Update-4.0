@@ -101,6 +101,17 @@
 .calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), .calcScope select, .calcScope textarea { font-size: 16px; }
 .calcScope :global(:is(.gold-button, .glass-button)) { min-height: 48px; height: auto; padding: 12px 28px; font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.3; }
 .calcScope :focus-visible { outline: 3px solid var(--v5-focus); outline-offset: 2px; }
+/*
+  v5 polish (UAT): Thai button labels stay on one line on narrow phones without changing the copy. Buttons sized by
+  their label keep their label width (they never shrink beside a heading; the row wraps instead), full-width buttons
+  use a narrower side padding on phones, and a label that still has to wrap breaks into balanced lines.
+*/
+.calcScope :global(:is(.gold-button, .glass-button)) { text-wrap: balance; }
+.calcScope :global(:is(.gold-button, .glass-button):not(.w-full)) { flex-shrink: 0; max-width: 100%; }
+.calcScope :global(.justify-between:has(> .glass-button)) { flex-wrap: wrap; }
+.calcScope :global(.justify-between:has(> .glass-button) > div:first-child) { flex: 1 1 240px; min-width: 0; }
+@media (max-width: 479px) { .calcScope :global(:is(.gold-button, .glass-button).w-full) { padding-inline: 12px; } }
+@media (max-width: 359px) { .calcScope [data-ui="human-centered-calculator-card"] { padding: 16px; } }
 /* Form fields: a visible edge in both themes (>= 3:1) and the focus colour while typing. */
 .calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), .calcScope select, .calcScope textarea { border: 1px solid var(--v5-field-edge); }
 .calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]):focus, .calcScope select:focus, .calcScope textarea:focus { border-color: var(--v5-focus); }
@@ -156,14 +167,15 @@
 
 /* Legal pages (FigCraft 10/11): table of contents + readable column. */
 .legalGrid { display: grid; gap: 32px; }
-@media (min-width: 1024px) { .legalGrid { grid-template-columns: 240px minmax(0, 720px); justify-content: center; gap: 56px; } }
+/* v5 polish (UAT): 256px so the longest contents entry (4.1) stays on one line. */
+@media (min-width: 1024px) { .legalGrid { grid-template-columns: 256px minmax(0, 720px); justify-content: center; gap: 56px; } }
 .toc { font-size: var(--v5-text-meta); }
 .toc h2 { font-size: 15px; margin-bottom: 8px; }
 .toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-.toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--v5-muted); text-decoration: none; line-height: 1.5; }
+.toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--v5-muted); text-decoration: none; line-height: 1.5; text-wrap: balance; }
 .toc a:hover { color: var(--v5-gold-text); }
 @media (min-width: 1024px) { .toc { position: sticky; top: 100px; align-self: start; } }
-@media (max-width: 1023px) { .toc { padding: 16px 20px; border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); } }
+@media (max-width: 1023px) { .toc { padding: 16px; border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); } }
 .legalBody { min-width: 0; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
 .legalBody > p:first-child { color: var(--v5-text); }
 .legalBody section { padding-block: 28px; border-top: 1px solid var(--v5-border-soft); scroll-margin-top: 96px; }

@@ -7,7 +7,7 @@ import { getTopicFeaturedLink, type TopicLink } from "@/lib/content/topic-naviga
 import type { Article } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
-import { V5ArticleCard, V5Breadcrumbs } from "@/components/layout/v5/V5Primitives";
+import { V5ArticleCard, V5Breadcrumbs, v5CardGridSizes } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
 import styles from "./V5Blog.module.css";
@@ -80,7 +80,7 @@ export default async function V5Category({ slug, title, description, hub, articl
               <h2 id="category-articles" className={shell.h2}>{listTitle} <span className={shell.count}>{text("blog.group.count").replaceAll("{0}", String(cards.length))}</span></h2>
             </div>
             {cards.length > 0
-              ? <V5CardMetricsProvider><div className={shell.cardGrid}>{cards.map((card, index) => <V5ArticleCard key={card.id} article={card} showExcerpt priority={index === 0 && !(hub && hub.intro.length > 0)}
+              ? <V5CardMetricsProvider><div className={shell.cardGrid}>{cards.map((card, index) => <V5ArticleCard key={card.id} article={card} showExcerpt sizes={v5CardGridSizes(cards.length)} priority={index === 0 && !(hub && hub.intro.length > 0)}
                 metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />)}</div></V5CardMetricsProvider>
               : <p className={styles.empty}>{text.node("blog.div")}</p>}
             {tools.length > 0 && <div className={styles.toolsCard}>

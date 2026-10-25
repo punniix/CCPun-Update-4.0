@@ -26,13 +26,20 @@
 .card[aria-pressed="true"] .front { opacity: 0; }
 .term { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; }
 .number, .label, .verify { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
-.line { display: flex; flex-direction: column; }
+/* Label and value share a line where they fit (v5 polish, UAT): the back face, which sets the card height, stays short. */
+.line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
 .backValue { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
 /* A phrase that must not split mid-phrase (the TFPA name); the phone layout gives each card the full row so it fits. */
 .keep { white-space: nowrap; }
 .hint { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; }
 .hint svg { flex: none; width: 14px; height: 14px; }
 
+/* Phones (one card per row): the turn hint sits at the right of the front face instead of under it. */
+@media (max-width: 479px) {
+  .front { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; column-gap: 12px; row-gap: 4px; }
+  .front > .term, .front > .number { grid-column: 1; }
+  .front > .hint { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin-top: 0; padding-top: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   .inner { transition: none; }
   .front, .back { transition: none; }

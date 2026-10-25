@@ -174,6 +174,8 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // 2026-10-25 UX fixes (owner decisions, UAT): no eyebrows or hero kickers on the v5 tool/legal pages.
   // 2026-10-25 owner decisions (addendum, UAT): one LINE element per page (no header LINE button, the dock is a real
   // LINE link enhanced into the panel button, visible from load) and no gold closing band.
-  v5: { "3": "b9d4893f6e4e0336f239e650dae4a81f5bf6262839e0440b95a1af8e64356b5e", "4": "de7ed1dadfb19f6fe05a9a0757b151f22cfeb8dfa4b3ad1f0efec5a35bdf9bd5", "8": "943dbbb2d5db0dba7987ed8d1efd95ed05ba6a3cfb60cc30c9d9c00a08293d55", "9": "83422f6f47eba8d6054b768c523897b1a7fe61ba85a06bd5c282ff03a62b943d", "10": "cb80925d40449911f7903342975591c13ad6764e885ce1f86d24ed5013561a72" },
+  // v5 polish (UAT, 2026-10-25): FHC (4) and Money Story (10) guide cards carry the count-aware cover `sizes`
+  // from components/layout/v5/card-sizes.ts; that attribute is the only render difference, so both digests move once.
+  v5: { "3": "b9d4893f6e4e0336f239e650dae4a81f5bf6262839e0440b95a1af8e64356b5e", "4": "78a2a35af336f50b055c645487a45f25bde1dcad226eb18e6659ff051887d4e9", "8": "943dbbb2d5db0dba7987ed8d1efd95ed05ba6a3cfb60cc30c9d9c00a08293d55", "9": "83422f6f47eba8d6054b768c523897b1a7fe61ba85a06bd5c282ff03a62b943d", "10": "65c25c3614a5b110f4eddf35d3b9ead42fbbf91c9a4b40c7f2b3283d261f134a" },
   // END Phase B render goldens
 });
