@@ -314,9 +314,11 @@ test("website: one merged bottom LINE element, panel and QR load on interaction,
   assert.match(page, /<V5ChatDockServer context=\{chat \?\? chatContextForPath\(current\)\} \/>/);
   const dock = read("components/layout/v5/V5ChatDock.tsx");
   assert.match(dock, /lazy\(\(\) => import\("\.\/V5ChatPanel"\)\)/);
-  assert.match(dock, /aria-haspopup="dialog"/);
+  // The dock is a real LINE link without JavaScript; button/dialog semantics apply once it is enhanced.
+  assert.match(dock, /aria-haspopup=\{enhanced \? "dialog" : undefined\}/);
   assert.match(dock, /trackEvent\("line_oa_click", \{ contact_channel: "line", cta_location: "chat_button"/);
-  assert.match(dock, /getConsentData\(\)/, "the bar waits for the cookie banner instead of stacking on it");
+  // Owner decision 2026-10-25: visible from load; it sits above the cookie notice instead of waiting for it.
+  assert.match(dock, /document\.querySelector\(COOKIE_DIALOG\)/, "the bar sits above the cookie notice instead of stacking on it");
   const panel = read("components/layout/v5/V5ChatPanel.tsx");
   assert.match(panel, /role="dialog" aria-modal="true"/);
   assert.match(panel, /event\.key === "Escape"/);
