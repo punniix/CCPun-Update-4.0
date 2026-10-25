@@ -14,6 +14,10 @@ window.requestAnimationFrame = (fn) => window.setTimeout(fn, 0);
 Element.prototype.scrollIntoView = function () {};
 const { createRoot } = await import('react-dom/client');
 const require = createRequire(import.meta.url);
+// Email phase 1 (2026-10-25): result screens include ResultEmailControl, which imports a CSS module. Class
+// names resolve to their keys here, as in analytics-component-regression.mjs; the control renders nothing
+// in these journeys (flag off by default), and no calculator assertion depends on styling.
+require.extensions['.css'] = module => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }; };
 const CI = require('../features/ci-planning/components/CIWizard.tsx').default;
 const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
 

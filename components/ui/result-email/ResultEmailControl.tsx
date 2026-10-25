@@ -67,7 +67,7 @@ export default function ResultEmailControl({ tool, figures }: { tool: ResultEmai
   if (!open) {
     return (
       <div className={styles.wrap}>
-        <button type="button" className={styles.toggle} aria-expanded="false" aria-controls={`${id}-form`} onClick={() => setOpen(true)}>
+        <button type="button" className={styles.toggle} aria-expanded="false" onClick={() => setOpen(true)}>
           ส่งผลนี้ไปที่อีเมล
         </button>
       </div>

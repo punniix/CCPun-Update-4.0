@@ -1,5 +1,6 @@
-import "server-only";
-
+// No "server-only" marker: the v5 page frame imports this and render-fixture tests load that frame
+// outside the react-server condition. Reading a non-NEXT_PUBLIC variable is safe either way: a client
+// bundle never sees the value and evaluates to false.
 // Email phase 1 (owner-approved 2026-10-25): "send my result by email" is OFF on every lane,
 // Production and UAT included, unless the exact flag "1" is set. Anything else (missing, "0",
 // "true") keeps it off. With the flag off nothing renders and every /api/result-email/ route 404s.
