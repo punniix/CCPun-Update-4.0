@@ -87,30 +87,30 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
     // and unmounts on save or Escape, so its box is watched rather than read once.
     let observed: Element | null = null;
     let frame = 0;
-    const resize = typeof ResizeObserver === "function" ? new ResizeObserver(() => schedule()) : null;
+    const boxObserver = typeof ResizeObserver === "function" ? new ResizeObserver(() => schedule()) : null;
     const measure = () => {
       frame = 0;
       const dialog = document.querySelector(COOKIE_DIALOG);
       if (dialog !== observed) {
-        if (observed) resize?.unobserve(observed);
-        if (dialog) resize?.observe(dialog);
+        if (observed) boxObserver?.unobserve(observed);
+        if (dialog) boxObserver?.observe(dialog);
         observed = dialog;
       }
-      const offset = dialog ? Math.max(0, Math.round(window.innerHeight - dialog.getBoundingClientRect().top)) : 0;
+      // The notice is fixed to the bottom edge, so its height is the offset; watching its box also
+      // covers reflow when the window width changes.
+      const offset = dialog ? Math.max(0, Math.round(dialog.getBoundingClientRect().height)) : 0;
       setCookieOffset(offset);
       setCookieCovers(offset > window.innerHeight * 0.5);
     };
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
     const mutations = new MutationObserver(schedule);
     mutations.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("resize", schedule);
     window.addEventListener("ccpun:consent", schedule);
     measure();
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       mutations.disconnect();
-      resize?.disconnect();
-      window.removeEventListener("resize", schedule);
+      boxObserver?.disconnect();
       window.removeEventListener("ccpun:consent", schedule);
     };
   }, []);
