@@ -19,11 +19,17 @@ export function V5ToolHero({ id = "tool-hero-title", title, subtitle, lead, meta
     <section className={styles.hero} aria-labelledby={id}>
       <div className={shell.inner}>
         {breadcrumbs ? <div className={styles.heroBreadcrumbs}>{breadcrumbs}</div> : null}
-        <h1 id={id} className={styles.heroTitle}>{title}</h1>
-        {subtitle ? <p className={styles.heroSubtitle}>{subtitle}</p> : null}
-        {lead ? <p className={styles.heroLead}>{lead}</p> : null}
-        {meta ? <p className={styles.heroMeta}>{meta}</p> : null}
-        {cta ? <div className={shell.buttonRow}><a className={shell.button} href={cta.href}>{cta.label}</a></div> : null}
+        <div className={styles.heroGrid}>
+          <div>
+            <h1 id={id} className={styles.heroTitle}>{title}</h1>
+            {subtitle ? <p className={styles.heroSubtitle}>{subtitle}</p> : null}
+          </div>
+          {lead || meta || cta ? <div className={styles.heroAside}>
+            {lead ? <p className={styles.heroLead}>{lead}</p> : null}
+            {meta ? <p className={styles.heroMeta}>{meta}</p> : null}
+            {cta ? <div className={shell.buttonRow}><a className={shell.button} href={cta.href}>{cta.label}</a></div> : null}
+          </div> : null}
+        </div>
       </div>
     </section>
   );

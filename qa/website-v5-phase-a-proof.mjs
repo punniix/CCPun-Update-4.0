@@ -147,6 +147,6 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // 2026-10-25 (owner-approved, UAT): the v5 shell gains the merged LINE chat dock, the 3-state theme
   // toggle (D2) and the /tools/ hub links (T1), so the tool/legal v5 render digests move once more.
   // 2026-10-25 UX fixes (owner decisions, UAT): no eyebrows or hero kickers on the v5 tool/legal pages.
-  v5: { "3": "9c7b5ea6aea09c9617fbbaf3d00c3c01e71634d721903806d65ad86e0d26d133", "4": "4a53551083c7568f4e71302f511e67f7cad84154ec0adde7f0b8fe6ebbd2bff7", "8": "aacfd1e30cf4773a372211bfae31e01ed147a5799d080a63b4d9fad729c7b1d6", "9": "b2f703a7905d98900ace78096d2ace326424e90e617895b6da00dd06d701552d", "10": "c441de5a33f1d5992ab10cc44dae4570e171cef17a1ad700772c1eed3f7c8b6a" },
+  v5: { "3": "d6edde7cf7df76f271cf055a5215925c6b051bb7d88b39c8d59fa7c8bda009ef", "4": "6da4a2b7ac6e551406bafcb6218da0b7373a90f47819becf96252927792fc97d", "8": "e4c8a6f198351acabb878eb83e3ba76c9fe762bd0acd3afa561eee3cd9293985", "9": "3b64ae883210cc96484ced74cf0aadebe21d3995dfbb66eca6b131f95a60c2e0", "10": "c1f29f9af7a43635b9165bc973bae046dd087341f8ab169e84e69685bf2de0b2" },
   // END Phase B render goldens
 });

@@ -70,17 +70,7 @@ export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValue
         breadcrumbs={<V5Breadcrumbs label={site('site.nav.mainLabel')} items={[{ href: '/', label: t('fhc.breadcrumb.home') }, { label: t('fhc.breadcrumb.tool') }]} />}
       />
 
-      <section className={shell.section} aria-labelledby="fhc-intro-title">
-        <div className={`${shell.inner} ${styles.split}`}>
-          <h2 id="fhc-intro-title" className={shell.h2}>{t.node('fhc.intro.introTitle.heading')}</h2>
-          <div className={styles.story}>
-            <p>{t.node('fhc.intro.description')}</p>
-            <p>{t.node('fhc.intro.description2')}</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="fhc-calculator" className={shell.sectionAlt} aria-labelledby="fhc-calculator-heading">
+      <section id="fhc-calculator" className={`${shell.section} ${styles.calcFirst}`} aria-labelledby="fhc-calculator-heading">
         <div className={shell.inner}>
           <div className={styles.calcHeader}>
             <V5SectionHeading id="fhc-calculator-heading" title={t.node('fhc.landing.calculatorHeading.heading')} description={t.node('fhc.landing.description3')} />
@@ -100,6 +90,16 @@ export default async function V5Fhc({ copy, siteCopy }: { copy?: PublicCopyValue
                 </p>
               </div>
             </aside>
+          </div>
+        </div>
+      </section>
+
+      <section className={shell.sectionAlt} aria-labelledby="fhc-intro-title">
+        <div className={`${shell.inner} ${styles.split}`}>
+          <h2 id="fhc-intro-title" className={shell.h2}>{t.node('fhc.intro.introTitle.heading')}</h2>
+          <div className={styles.story}>
+            <p>{t.node('fhc.intro.description')}</p>
+            <p>{t.node('fhc.intro.description2')}</p>
           </div>
         </div>
       </section>

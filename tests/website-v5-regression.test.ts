@@ -430,3 +430,24 @@ test("UX: the v5 Health Happy countdown shows Thai units, an accessible AIA red 
   assert.doesNotMatch(css, /#e0405c/);
   assert.match(read("features/blog/v5/V5Blog.module.css"), /\.countdownSlot \{ padding-bottom: 24px; \}/);
 });
+
+test("UX: tool heroes fill the wide screen and the calculator follows the hero; calculators use the site type and button scale", () => {
+  const parts = read("components/layout/v5/V5ToolParts.tsx");
+  assert.match(parts, /className=\{styles\.heroGrid\}/);
+  assert.match(parts, /className=\{styles\.heroAside\}/);
+  const tool = read("components/layout/v5/V5Tool.module.css");
+  assert.match(tool, /\.heroGrid \{ display: grid; grid-template-columns: minmax\(0, 7fr\) minmax\(0, 5fr\);/);
+  assert.match(tool, /\.calcScope :global\(\.text-sm\) \{ font-size: 16px;/);
+  assert.match(tool, /\.calcScope :global\(:is\(\.gold-button, \.glass-button\)\) \{ min-height: 48px;/);
+  assert.match(tool, /\.calcScope :global\(\.gold-button\) \{[^}]*border-radius: var\(--v5-radius-button\);/);
+  for (const [file, hero, calc] of [["features/ci-planning/v5/V5CiPlanning.tsx", "<V5ToolHero", 'id="ci-calculator"'], ["features/financial-health-check/v5/V5Fhc.tsx", "<V5ToolHero", 'id="fhc-calculator"']]) {
+    const source = read(file);
+    const afterHero = source.slice(source.indexOf(hero));
+    const firstSection = afterHero.indexOf("<section");
+    assert.equal(afterHero.indexOf(calc), afterHero.indexOf(calc, firstSection), `${file}: the calculator is the first section after the hero`);
+    assert.ok(afterHero.slice(firstSection, firstSection + 120).includes(calc), `${file}: the calculator is the first section after the hero`);
+  }
+  for (const [, size] of read("features/investment-allocation/InvestmentAllocation.module.css").matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {
+    assert.ok(Number(size) >= 14, `Investment Allocation font-size ${size}px is below 14px`);
+  }
+});

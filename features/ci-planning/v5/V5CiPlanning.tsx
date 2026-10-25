@@ -74,26 +74,7 @@ export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCo
         breadcrumbs={<V5Breadcrumbs label={site('site.nav.mainLabel')} items={[{ href: '/', label: t('ci.landing.name') }, { label: t('ci.landing.name2') }]} />}
       />
 
-      <section className={shell.section} aria-labelledby="ci-problem-title">
-        <div className={`${shell.inner} ${styles.split}`}>
-          <h2 id="ci-problem-title" className={shell.h2}>{t.node('ci.story.problemTitle.heading')}</h2>
-          <div>
-            <div className={styles.story}>
-              <p>{t.node('ci.story.description4')}</p>
-              <p>{t.node('ci.story.description5')}</p>
-              <p>{t.node('ci.story.description6')}</p>
-            </div>
-            <V5InfoCards items={[
-              { title: t.node('ci.story.title'), body: t.node('ci.story.description') },
-              { title: t.node('ci.story.title2'), body: t.node('ci.story.description2') },
-              { title: t.node('ci.story.title3'), body: t.node('ci.story.description3') },
-            ]} />
-            <p className={styles.note}>{t.node('ci.story.description8')}</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="ci-calculator" className={shell.sectionAlt} aria-labelledby="ci-calculator-title">
+      <section id="ci-calculator" className={`${shell.section} ${styles.calcFirst}`} aria-labelledby="ci-calculator-title">
         <div className={shell.inner}>
           <div className={styles.calcHeader}>
             <V5SectionHeading id="ci-calculator-title" title={<>{t.node('ci.landing.calculatorTitle.heading')}{t.node('ci.landing.label')}</>} description={t.node('ci.landing.description4')} />
@@ -112,6 +93,25 @@ export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCo
                 <p>{t.node('ci.landing.description10')}</p>
               </div>
             </aside>
+          </div>
+        </div>
+      </section>
+
+      <section className={shell.sectionAlt} aria-labelledby="ci-problem-title">
+        <div className={`${shell.inner} ${styles.split}`}>
+          <h2 id="ci-problem-title" className={shell.h2}>{t.node('ci.story.problemTitle.heading')}</h2>
+          <div>
+            <div className={styles.story}>
+              <p>{t.node('ci.story.description4')}</p>
+              <p>{t.node('ci.story.description5')}</p>
+              <p>{t.node('ci.story.description6')}</p>
+            </div>
+            <V5InfoCards items={[
+              { title: t.node('ci.story.title'), body: t.node('ci.story.description') },
+              { title: t.node('ci.story.title2'), body: t.node('ci.story.description2') },
+              { title: t.node('ci.story.title3'), body: t.node('ci.story.description3') },
+            ]} />
+            <p className={styles.note}>{t.node('ci.story.description8')}</p>
           </div>
         </div>
       </section>
