@@ -581,7 +581,7 @@ test("One LINE button per page: no other LINE OA link or gold closing band on v5
 });
 
 test("Article LINE CTAs open the dock's chat panel; no-JS falls back to the page's LINE link; panel_trigger is tracked", async () => {
-  const { isLineOaContactHref } = await import("../components/layout/v5/chat-events.ts");
+  const { isLineOaContactHref } = await import("../components/layout/v5/chat-events");
   for (const href of ["https://lin.ee/tqLCs4f", "https://line.me/R/ti/p/%40ccpun", "https://line.me/R/oaMessage/%40ccpun/?hi", "https://page.line.me/ccpun", "line://ti/p/@ccpun"]) assert.ok(isLineOaContactHref(href), href);
   for (const href of ["https://social-plugins.line.me/lineit/share?url=x", "/blog/", "https://ccpun.com/about/", "", undefined]) assert.ok(!isLineOaContactHref(href), String(href));
   const body = read("features/blog/v5/V5ArticleBody.tsx");
