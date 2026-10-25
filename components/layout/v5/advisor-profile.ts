@@ -20,14 +20,16 @@ export function v5AdvisorProfile(authorProfile: ArticleAuthorProfile | null, tex
   const licenses = authorProfile?.professionalLicenses?.length
     ? authorProfile.professionalLicenses.map(({ name: label, identifier }) => `${label.trim()} ${identifier.trim()}`)
     : [text("home.licenseLabelsText"), text("home.licenseLabelsText2"), text("home.licenseLabelsText3")];
-  const credentials = [
-    ...(primary ? [{ term: primary.shortName, detail: `${text("home.advisor.qualificationPrefix").replace(/^\s*·\s*/, "")}${primary.identifier ?? ""}`.trim() }] : []),
-    ...licenses.map((label) => {
-      const match = label.match(/^(.*?)\s+([0-9A-Z-]{5,})$/);
-      return match ? { term: match[1], detail: match[2] } : { term: label, detail: "" };
-    }),
-  ];
-  return { qualifications, primary, displayName, role, credentials };
+  const primaryCell = primary ? { term: primary.shortName, detail: `${text("home.advisor.qualificationPrefix").replace(/^\s*·\s*/, "")}${primary.identifier ?? ""}`.trim() } : null;
+  const licenceCards = licenses.map((label) => {
+    const match = label.match(/^(.*?)\s+([0-9A-Z-]{5,})$/);
+    return match ? { term: match[1], detail: match[2] } : { term: label, detail: "" };
+  });
+  const credentials = [...(primaryCell ? [primaryCell] : []), ...licenceCards];
+  // v5 motion round: the owner-approved AFPT™ flip card leads the credential cards, so a CMS AFPT
+  // qualification is not repeated; a different CMS qualification keeps its plain cell.
+  const qualification = primaryCell && !/AFPT/i.test(primaryCell.term) ? primaryCell : null;
+  return { qualifications, primary, displayName, role, credentials, qualification, licenceCards };
 }
 
 /** The six partners and platforms CCPun works with (names and roles from the approved home copy). */

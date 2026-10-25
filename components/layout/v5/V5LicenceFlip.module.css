@@ -1,0 +1,34 @@
+/*
+ * v5 motion round (owner-approved idea #4, UAT prototype): credential and licence cards flip on tap, click, Enter or Space.
+ * Both faces share one grid cell, so the card is as tall as its taller face from the server render on:
+ * flipping never changes layout. Only the inner transform animates. Reduced motion swaps faces instantly.
+ */
+.card {
+  display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit;
+  font: inherit; text-align: left; cursor: pointer; perspective: 800px; border-radius: var(--v5-radius);
+}
+.inner { display: grid; height: 100%; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1); }
+.card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+.face {
+  grid-area: 1 / 1; display: flex; flex-direction: column; gap: 4px; padding: 12px 16px;
+  border: 1px solid var(--v5-border); border-radius: var(--v5-radius); background: var(--v5-card);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.back { transform: rotateY(180deg); border-color: var(--v5-gold-text); }
+.term { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; }
+.number, .label, .verify { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
+.line { display: flex; flex-direction: column; }
+.backValue { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+.hint { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; }
+.hint svg { flex: none; width: 14px; height: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .inner { transition: none; }
+}
+/* No 3D support: swap the faces with opacity instead of turning them. */
+@supports not ((backface-visibility: hidden) or (-webkit-backface-visibility: hidden)) {
+  .card[aria-pressed="true"] .inner { transform: none; }
+  .back { transform: none; opacity: 0; }
+  .card[aria-pressed="true"] .front { opacity: 0; }
+  .card[aria-pressed="true"] .back { opacity: 1; }
+}

@@ -8,6 +8,7 @@ import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5ArticleCard, V5SectionHeading, v5Label } from "@/components/layout/v5/V5Primitives";
+import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
@@ -31,7 +32,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
   const [articles, topics, liveSiteCopy] = await Promise.all([readArticles(), getShellTopics(), siteCopy ? Promise.resolve(siteCopy) : getPublicCopy("site")]);
   const siteText = publicCopyText(liveSiteCopy);
 
-  const { qualifications, primary, displayName, role, credentials } = v5AdvisorProfile(authorProfile, text);
+  const { qualifications, primary, displayName, role, qualification, licenceCards } = v5AdvisorProfile(authorProfile, text);
 
   const pains = [
     [protectionGapIcon, text("home.painsText"), text("home.painsText2")],
@@ -58,9 +59,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <div className={shell.buttonRow}>
               <Link className={shell.buttonOutline} href="#about-ccpun">{text.node("home.hero.aboutCta")}</Link>
             </div>
-            <dl className={styles.credentials}>
-              {credentials.map((item) => <div key={item.term + item.detail}><dt>{item.term}</dt>{item.detail ? <dd>{item.detail}</dd> : null}</div>)}
-            </dl>
+            <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />
           </div>
           <div className={styles.portrait}>
             <Image src="/assets/website-43/home-hero-desktop.png" alt={text("home.website43Homealt")} fill preload loading="eager" fetchPriority="high" sizes="(max-width: 899px) calc(100vw - 40px), 560px" />

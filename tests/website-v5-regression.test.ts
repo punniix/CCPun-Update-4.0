@@ -10,6 +10,8 @@ import { resolveHubTools, resolveNextSteps } from "../features/blog/v5/next-step
 import { listFallbackTopics, listLinkableTopics, HOME_CORE_GUIDE_SLUGS, TOPIC_CLUSTER_PILLARS } from "../lib/content/topic-navigation";
 import { buildCategoryRegistry } from "../lib/content/category-registry";
 import { listToolGuides, TOOL_GUIDE_TOPICS } from "../components/layout/v5/tool-guides";
+// v5 motion round (UAT): result motion, page transition and flip-card contracts.
+import "./website-v5-motion.test.mjs";
 
 const read = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 const v5Files = [

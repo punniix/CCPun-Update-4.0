@@ -11,6 +11,7 @@ import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5Breadcrumbs, v5Label } from "@/components/layout/v5/V5Primitives";
 import { v5AdvisorProfile, v5Partners } from "@/components/layout/v5/advisor-profile";
+import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import styles from "./About.module.css";
 
@@ -45,7 +46,7 @@ export async function renderAboutPage() {
   const [authorProfile, homeCopy, siteCopy] = await Promise.all([getPrimaryAuthorProfile().catch(() => null), getPublicCopy("home"), getPublicCopy("site")]);
   const home = publicCopyText(homeCopy);
   const site = publicCopyText(siteCopy);
-  const { displayName, role, credentials } = v5AdvisorProfile(authorProfile, home);
+  const { displayName, role, qualification, licenceCards } = v5AdvisorProfile(authorProfile, home);
   const partners = v5Partners(home);
   const aboutLabel = site("site.footer.about");
 
@@ -89,9 +90,7 @@ export async function renderAboutPage() {
               <h1 id="about-title" className={shell.h1}>{home.node("home.eyebrow2")}</h1>
               <p className={styles.identity}><strong>{displayName}</strong><span>{role}</span></p>
               <OwnerCopySlot slot="about-hero-sentence" note="ประโยคแนะนำตัวของปั้นหนึ่งประโยค (รอข้อความจากเจ้าของ)" />
-              <dl className={styles.credentials}>
-                {credentials.map((item) => <div key={item.term + item.detail}><dt>{item.term}</dt>{item.detail ? <dd>{item.detail}</dd> : null}</div>)}
-              </dl>
+              <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />
             </div>
             <Image className={styles.portrait} src="/assets/ccpun.webp" alt={home("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 440px" preload loading="eager" fetchPriority="high" />
           </div>

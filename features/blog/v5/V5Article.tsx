@@ -19,6 +19,7 @@ import V5ChatLink from "@/components/layout/v5/V5ChatLink";
 import { getV5ChatFallbackHref } from "@/components/layout/v5/V5ChatDockServer";
 import { isLineOaContactHref } from "@/components/layout/v5/chat-events";
 import { chatContextForPath } from "@/lib/line/chat-panel";
+import { V5SharedTransition } from "@/components/layout/v5/V5ViewTransition";
 import Website43ArticleOverview from "@/features/blog/website-43/Website43ArticleOverview";
 import ArticleShareActions from "@/features/blog/website-43/ArticleShareActions";
 import { ArticleEngagementProvider, ArticleEngagementSummary } from "@/features/blog/website-43/ArticleEngagement";
@@ -110,7 +111,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
           <header className={`${shell.inner} ${shell.narrow} ${styles.articleHeader}`}>
             <V5Breadcrumbs label={text("blog.website43Articlearialabel")} items={[{ href: "/", label: text.node("blog.link") }, { href: "/blog/", label: text.node("blog.activeCategoryText") }, { href: topicHref, label: topicName }]} />
             <p className={styles.byline}>{text.node("blog.articleHeaderMeta")}{author.name.replaceAll("™", "")}</p>
-            <h1 className={styles.articleTitle}>{article.title}</h1>
+            <V5SharedTransition part="title" articleId={article.id}><h1 className={styles.articleTitle}>{article.title}</h1></V5SharedTransition>
             <div className={styles.metaRow}>
               <div className={styles.metaDates}>
                 {published && <span>{text.node("blog.articleDateLabel")} <time dateTime={article.publishedAt}>{published}</time></span>}
@@ -130,7 +131,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             </aside>}
             <div>
               {article.featuredImage && <figure className={styles.feature}>
-                <Image src={article.featuredImage.src} alt={article.featuredImage.alt} width={article.featuredImage.width} height={article.featuredImage.height} sizes="(max-width: 767px) calc(100vw - 40px), 720px" preload loading="eager" fetchPriority="high" />
+                <V5SharedTransition part="cover" articleId={article.id}><Image src={article.featuredImage.src} alt={article.featuredImage.alt} width={article.featuredImage.width} height={article.featuredImage.height} sizes="(max-width: 767px) calc(100vw - 40px), 720px" preload loading="eager" fetchPriority="high" /></V5SharedTransition>
                 {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
               </figure>}
               {tocGroups.length > 0 && <details className={styles.tocMobile}>

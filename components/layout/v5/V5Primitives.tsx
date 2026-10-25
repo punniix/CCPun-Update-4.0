@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import styles from "./V5.module.css";
+import { V5SharedTransition } from "./V5ViewTransition";
 
 /**
  * Link and action labels without a typed arrow (audit #10): screen readers announce "→" as
@@ -58,11 +59,11 @@ export function V5ArticleCard({ article, headingLevel = 3, sizes = "(max-width: 
   return (
     <article className={`${styles.articleCard} ${horizontal ? styles.articleCardHorizontal : ""} ${className ?? ""}`}>
       {article.image
-        ? <Image className={styles.articleCardImage} src={article.image.src} alt="" width={article.image.width} height={article.image.height} sizes={sizes} {...(priority ? { preload: true, loading: "eager" as const, fetchPriority: "high" as const } : { loading: "lazy" as const })} />
+        ? <V5SharedTransition part="cover" articleId={article.id}><Image className={styles.articleCardImage} src={article.image.src} alt="" width={article.image.width} height={article.image.height} sizes={sizes} {...(priority ? { preload: true, loading: "eager" as const, fetchPriority: "high" as const } : { loading: "lazy" as const })} /></V5SharedTransition>
         : <span className={styles.articleCardImage} aria-hidden="true" />}
       <div className={styles.articleCardBody}>
         <span className={styles.articleCardTopic}>{article.topic}</span>
-        <Heading className={styles.articleCardTitle}><Link href={article.href}>{article.title}</Link></Heading>
+        <V5SharedTransition part="title" articleId={article.id}><Heading className={styles.articleCardTitle}><Link href={article.href}>{article.title}</Link></Heading></V5SharedTransition>
         {showExcerpt && article.excerpt ? <p className={styles.articleCardExcerpt}>{article.excerpt}</p> : null}
         {article.meta ? <p className={styles.articleCardMeta}>{article.meta}</p> : null}
         {extra}

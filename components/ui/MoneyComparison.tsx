@@ -1,7 +1,17 @@
 "use client";
 
 import { usePublicCopy } from "./PublicCopyProvider";
+import { useCountUp } from "./useCountUp";
 
+// v5 motion round (UAT): structure and colours are inline so every renderer (tests, the retained 4.3 page)
+// shows the same final state; the one-time transform/opacity motion lives with the v5 tool shell
+// (V5Tool.module.css, `ccpun-money-*` hooks) and is removed for reduced motion.
+// The bar no longer uses `border-primary bg-primary/80 transition-[width] duration-500`. The names stay
+// listed here so the frozen, reviewed Tailwind output is byte-identical; retiring them needs its own
+// compiler-proof review.
+const HAVE_FILL = "color-mix(in srgb, var(--v5-text, #faf9f9) 78%, transparent)";
+const GAP_FILL = "var(--v5-gold, #e0c985)";
+const swatch = (background: string) => ({ display: "inline-block", width: 10, height: 10, marginRight: 8, borderRadius: 3, background });
 interface MoneyComparisonProps {
   need: number;
   resources: number;
@@ -25,18 +35,21 @@ export default function MoneyComparison({
   const gap = Math.max(need - resources, 0);
   const surplus = Math.max(resources - need, 0);
   const coveredPercent = need > 0 ? Math.min((resources / need) * 100, 100) : 0;
+  const shown = gap > 0 ? gap : surplus;
+  const countRef = useCountUp<HTMLSpanElement>(shown, baht);
 
   return (
     <figure className="money-comparison space-y-4">
       <figcaption className="text-sm font-semibold text-foreground">{title}</figcaption>
       {need > 0 ? (
-        <div aria-hidden="true" className="relative h-4 overflow-visible rounded-full border border-border/60 bg-secondary/70">
+        <div key={`${need}:${resources}`} aria-hidden="true" className="relative h-4 overflow-visible rounded-full border border-border/60 bg-secondary/70">
           <span
-            className="absolute -inset-y-px left-[-1px] rounded-full border border-primary bg-primary/80 transition-[width] duration-500 motion-reduce:transition-none"
-            style={{ width: `${coveredPercent}%` }}
+            className="absolute -inset-y-px left-[-1px] rounded-full ccpun-money-have"
+            style={{ width: `${coveredPercent}%`, background: HAVE_FILL }}
           />
+          {gap > 0 ? <span className="ccpun-money-gap" style={{ position: "absolute", top: 0, bottom: 0, left: `${coveredPercent}%`, width: `${100 - coveredPercent}%`, borderRadius: "0 999px 999px 0", background: GAP_FILL }} /> : null}
           <span
-            className="absolute top-1/2 h-7 w-0.5 -translate-x-px -translate-y-1/2 bg-foreground"
+            className="absolute top-1/2 h-7 w-0.5 -translate-x-px -translate-y-1/2 bg-foreground ccpun-money-divider"
             style={{ left: `${coveredPercent}%` }}
           />
         </div>
@@ -51,12 +64,16 @@ export default function MoneyComparison({
           <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(need)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">{resourcesLabel}</dt>
+          <dt className="text-sm text-muted-foreground"><span aria-hidden="true" style={swatch(HAVE_FILL)} />{resourcesLabel}</dt>
           <dd className="mt-1 font-semibold tabular-nums text-foreground">{baht(resources)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">{gap > 0 ? t('site.money.gap') : surplus > 0 ? t('site.money.surplus') : t('site.money.balanced')}</dt>
-          <dd className="mt-1 font-semibold tabular-nums text-primary">{baht(gap > 0 ? gap : surplus)}</dd>
+          <dt className="text-sm text-muted-foreground">{gap > 0 ? <span aria-hidden="true" style={swatch(GAP_FILL)} /> : null}{gap > 0 ? t('site.money.gap') : surplus > 0 ? t('site.money.surplus') : t('site.money.balanced')}</dt>
+          <dd className="mt-1 font-semibold tabular-nums text-primary">
+            <span className="sr-only">{baht(shown)}</span>
+            {/* The final amount reserves the width; the counting copy sits on top of it. */}
+            <span aria-hidden="true" style={{ position: "relative", display: "inline-block" }}><span style={{ visibility: "hidden" }}>{baht(shown)}</span><span ref={countRef} style={{ position: "absolute", left: 0, top: 0, whiteSpace: "nowrap" }}>{baht(shown)}</span></span>
+          </dd>
         </div>
       </dl>
       <p className="sr-only" aria-live="polite">

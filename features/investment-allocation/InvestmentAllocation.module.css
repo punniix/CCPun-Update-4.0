@@ -109,6 +109,11 @@
 .barLabel { color: var(--w43-muted); font-size: 14px; }
 .barTrack { overflow: hidden; height: 10px; border-radius: 999px; background: rgba(255,255,255,.07); }
 .barFill { height: 100%; border-radius: inherit; background: var(--w43-gold); }
+/* v5 motion round (owner-approved idea #1, UAT): allocation bars grow once when the result appears.
+   transform only, the final width is set from the first frame; reduced motion shows the final bar. */
+.barFill { transform-origin: left center; animation: iaBarGrow 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes iaBarGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .barFill { animation: none; } }
 .barValue { color: var(--w43-ink); font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; }
 
 .riskRail { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 5px; margin-top: 14px; }
