@@ -135,7 +135,11 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
 
       <section id="about-ccpun" className={shell.sectionAlt} aria-labelledby="home-about">
         <div className={`${shell.inner} ${styles.about}`}>
-          <Image className={styles.aboutPortrait} src="/assets/ccpun.webp" alt={text("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 400px" loading="lazy" />
+          <div className={styles.aboutPortraitFrame}>
+            {/* One portrait per theme; the hidden one is display:none and, being lazy, is never fetched. */}
+            <Image className={`${styles.aboutPortrait} ${styles.aboutPortraitDark}`} src="/assets/ccpun-portrait-v5-dark.webp" alt={text("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 400px" loading="lazy" />
+            <Image className={`${styles.aboutPortrait} ${styles.aboutPortraitLight}`} src="/assets/ccpun-portrait-v5-light.webp" alt={text("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 400px" loading="lazy" />
+          </div>
           <div>
             <V5SectionHeading id="home-about" title={text.node("home.h2")} />
             {qualifications.length > 0 && <p className={styles.aboutIdentity}><strong>{displayName}</strong><span>{role}{primary?.identifier ? text("home.advisor.qualificationPrefix") + primary.identifier : ""}</span></p>}

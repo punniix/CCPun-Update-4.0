@@ -58,7 +58,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
     bio: managed ? article.author?.profileBio?.trim() || text("blog.dEFAULTAUTHORBIOText") : text("blog.dEFAULTAUTHORBIOText"),
     ctaLabel: article.author?.profileCtaLabel ?? text("blog.authorText"),
     ctaUrl: article.author?.profileCtaUrl?.startsWith("#") ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? "/#about-ccpun",
-    avatar: article.author?.profileAvatar ?? { src: "/assets/ccpun.webp", alt: text("blog.baseAuthorNameText"), width: 1200, height: 1800 },
+    avatar: article.author?.profileAvatar ?? { src: "/assets/ccpun-avatar-v5-256.png", alt: text("blog.baseAuthorNameText"), width: 256, height: 256 },
   };
 
   const topic = getArticleSemanticTopic({ articleSlug: article.slug, semanticTopic: article.semanticTopic, categoryTitle: article.category, categorySlug: article.categorySlug, tags: article.tags });
