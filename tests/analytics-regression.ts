@@ -55,6 +55,10 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   campaign_id: null,
   campaign_placement: null,
   campaign_action: null,
+  // Owner-approved 2026-10-25 (L5): the LINE chat dimensions are cleared on every event too.
+  chat_topic_id: null,
+  page_group: null,
+  campaign_code: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
 const semanticModel: Record<string, string | number | null> = {};
@@ -86,6 +90,30 @@ applySemanticEvent('health_happy_countdown_view', sanitizeEventParams({ campaign
 assert.equal(semanticModel.cta_location, null, 'countdown view must not inherit the preceding LINE CTA');
 assert.equal(semanticModel.contact_channel, null, 'countdown view must not inherit a contact action');
 assert.equal(semanticModel.surface_group, 'blog', 'countdown keeps its own approved surface');
+
+// LINE chat button (owner-approved 2026-10-25, L5): one new event and three safe line_oa_click tokens.
+// Existing event names and mappings above stay byte-identical.
+assert.deepEqual(resolveEventMapping('line_chat_panel_open', sanitizeEventParams({ page_group: 'home' })), { ga: ['line_chat_panel_open'], meta: 'none' }, 'chat panel open is GA4-only');
+assert.deepEqual(resolveEventMapping('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel' })), { ga: ['line_oa_click'], meta: 'none' }, 'chat topic clicks keep the existing line_oa_click event');
+assert.deepEqual(
+  sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel', surface_group: 'blog', chat_topic_id: 'smart-network-hospital', page_group: 'article', campaign_code: 'smartnetwork-2611', prefill: 'อยากเช็กโรงพยาบาล 0812345678', text: 'free text' }),
+  { contact_channel: 'line', cta_location: 'chat_panel', surface_group: 'blog', chat_topic_id: 'smart-network-hospital', page_group: 'article', campaign_code: 'smartnetwork-2611' },
+  'chat clicks send owner-defined tokens only: never the prefill text or anything a person typed',
+);
+for (const [key, value] of [['chat_topic_id', 'Has Spaces'], ['chat_topic_id', 'โรงพยาบาล'], ['page_group', 'article:secret-slug'], ['page_group', 'category:health-insurance'], ['campaign_code', 'https://evil.example'], ['campaign_code', 'a'], ['cta_location', 'chat_anything']] as const) {
+  assert.equal(sanitizeEventParams({ [key]: value })[key], undefined, `${key}=${value} must be discarded`);
+}
+for (const location of ['chat_panel', 'chat_button', 'tools_hub']) {
+  assert.equal(sanitizeEventParams({ cta_location: location }).cta_location, location, `approved CTA location ${location}`);
+}
+assert.equal(sanitizeEventParams({ surface_group: 'tools' }).surface_group, 'tools', 'the /tools/ hub has its own approved surface');
+{
+  const model: Record<string, string | number | null> = {};
+  Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel', chat_topic_id: 'tax-deduction', page_group: 'home', campaign_code: 'bio-facebook' }), { analytics: true, social: false }));
+  assert.equal(model.chat_topic_id, 'tax-deduction');
+  Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'navbar' }), { analytics: true, social: false }));
+  for (const key of ['chat_topic_id', 'page_group', 'campaign_code']) assert.equal(model[key], null, `a later LINE click must clear the preceding ${key}`);
+}
 
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
 assert.equal(acquisitionSource.includes('fbclid'), false, 'click identifiers must not be parsed, stored, or sent');
@@ -150,6 +178,12 @@ try {
   analyticsConsent = false;
   trackEvent('line_oa_click', { contact_channel: 'line', cta_location: 'navbar', surface_group: 'ci_planning' });
   assert.equal(semanticRows.length, 2, 'semantic mode must stay consent-gated');
+  trackEvent('line_chat_panel_open', { page_group: 'home' });
+  assert.equal(semanticRows.length, 2, 'the new chat panel event is consent-gated like every other event');
+  analyticsConsent = true;
+  trackEvent('line_chat_panel_open', { page_group: 'home', campaign_code: 'bio-facebook' });
+  assert.deepEqual([semanticRows[2].event_name, semanticRows[2].page_group, semanticRows[2].campaign_code], ['line_chat_panel_open', 'home', 'bio-facebook']);
+  analyticsConsent = false;
   analyticsConsent = true;
 } finally {
   clearPendingAnalyticsEvents();

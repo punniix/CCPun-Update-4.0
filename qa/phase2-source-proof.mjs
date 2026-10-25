@@ -1,4 +1,5 @@
 import { assertProductionCmsOwner, hasProductionCmsOwner } from './production-cms-source-proof.mjs';
+import { websiteV5PredecessorDigest } from './website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -193,7 +194,8 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
       assert.equal(source.split(addition).length, 2, file + ': one explicit optimization-date addition');
       source = source.replace(addition, '');
     }
-    assert.equal(sha(source), expected, file + ': current reviewed source frozen');
+    // Website v5 (owner-approved 2026-10-25 LINE chat admissions): an exact reviewed successor maps to its frozen predecessor.
+    assert.equal(websiteV5PredecessorDigest(file, source), expected, file + ': current reviewed source frozen');
   }
 }
 

@@ -264,15 +264,20 @@ export function parseLineJourneyIntent(value: unknown): LineJourneyIntent | null
   };
 }
 
+const LINE_CONTINUE_PREFILL: Record<LineJourneyId, string> = {
+  motor_quote_review: "อยากให้ช่วยดูใบเสนอราคาประกันรถครับ",
+  life_health_policy_review: "อยากให้ช่วยดูกรมธรรม์หรือแผนที่มีอยู่ครับ",
+  investment_before_you_act: "กำลังจะลงทุนเพิ่มหรือย้ายกอง อยากให้ช่วยดูก่อนครับ",
+};
+
 export function buildLineContinueLink(value: unknown, officialAccountId = "@ccpun") {
   const intent = parseLineJourneyIntent(value);
   if (!intent || !/^@[a-z0-9_.-]{2,40}$/i.test(officialAccountId)) return null;
   const journey = LINE_VERTICAL_JOURNEYS[intent.journey];
-  const context = [journey.heroOffer, `journey:${intent.journey}`, `entry:${intent.entrypoint}`];
-  if (intent.content_id) context.push(`content:${intent.content_id}`);
-  if (intent.tool_id) context.push(`tool:${intent.tool_id}`);
-  if (intent.saved_result_id) context.push(`saved:${intent.saved_result_id}`);
-  const prefill = context.join(" | ");
+  // The prefill is what the person sees in their own LINE chat box: plain Thai only. Journey,
+  // entry, content and tool identifiers stay in the server-side journey record, never in the text.
+  const lead = intent.tool_id ? "ลองใช้เครื่องมือบนเว็บแล้ว " : intent.content_id ? "อ่านบทความบนเว็บแล้ว " : "";
+  const prefill = `${lead}${LINE_CONTINUE_PREFILL[intent.journey]}`;
   return {
     href: `https://line.me/R/oaMessage/${encodeURIComponent(officialAccountId)}/?${encodeURIComponent(prefill)}`,
     label: journey.heroOffer,

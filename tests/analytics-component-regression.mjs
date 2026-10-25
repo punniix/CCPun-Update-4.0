@@ -105,6 +105,15 @@ try {
   clickFixture('/privacy/', '<a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a>', null);
   clickFixture('/cookie-policy/', '<a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a>', null);
   clickFixture('/missing/', '<a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a>', null);
+  // v5 (owner-approved 2026-10-25): GTM's lin.ee click tag is paused, so Money Story, the /tools/
+  // hub and Investment Allocation emit the semantic line_oa_click from their header/hub CTAs.
+  clickFixture('/play/money-story/', '<nav><a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a></nav>', ['navbar', 'money_story']);
+  clickFixture('/tools/', '<section><a href="https://lin.ee/test" data-analytics-location="tools_hub">LINE</a></section>', ['tools_hub', 'tools']);
+  clickFixture('/tools/investment-allocation/', '<nav id="mobile-navigation"><a href="https://lin.ee/test" data-analytics-location="navbar_mobile">LINE</a></nav>', ['navbar_mobile', 'tools']);
+  clickFixture('/tools/', '<section><a href="https://lin.ee/test" data-analytics-location="untrusted">LINE</a></section>', null);
+  // The chat button opens line.me oaMessage links and emits its own richer event; the lin.ee
+  // listener never double-counts it.
+  clickFixture('/', '<section id="home"><a href="https://line.me/R/oaMessage/%40ccpun/?x" data-analytics-location="navbar">LINE</a></section>', null);
 
   process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'false';
   await consent(true);

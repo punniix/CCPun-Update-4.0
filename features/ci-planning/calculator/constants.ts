@@ -4,6 +4,7 @@
 
 import type { CIEstimationMethod, CIFormData } from './types';
 import { EMPTY_CI_RECOVERY } from '@/features/ci-planning/recovery-evidence';
+import { buildLineOaMessageHref } from '@/lib/line/oa-link';
 
 // ── Step Labels ────────────────────────────────────────────────────────────
 
@@ -36,7 +37,10 @@ export const INITIAL_CI_FORM_DATA: CIFormData = {
 
 // ── LINE OA CTA ───────────────────────────────────────────────────────────
 
-export const CI_LINE_OA_URL = 'https://lin.ee/tqLCs4f';
+// Owner-approved change 2026-10-25 (L6): the result CTA opens the @ccpun chat with a fixed,
+// owner-written prefill. It never carries a calculated amount, an answer or any other number.
+export const CI_LINE_OA_PREFILL = 'เพิ่งลองคำนวณทุนโรคร้ายแรงบนเว็บ อยากคุยต่อเรื่องผลที่ได้ครับ';
+export const CI_LINE_OA_URL = buildLineOaMessageHref(CI_LINE_OA_PREFILL);
 export const CI_LINE_OA_DESTINATION = 'line_oa' as const;
 
 export const CI_ESTIMATION_METHOD_LABELS: Record<CIEstimationMethod, string> = {

@@ -42,8 +42,12 @@ const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   campaign_id: new Set(['aia_health_happy_2026']),
   campaign_placement: new Set(['home', 'blog', 'article']),
   campaign_action: new Set(['line', 'article', 'read_details']),
-  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article', 'countdown']),
-  surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog', 'money_story']),
+  cta_location: new Set(['ci_landing', 'ci_calculator', 'ci_result', 'fhc_landing', 'fhc_calculator', 'fhc_result', 'navbar', 'navbar_mobile', 'home_hero', 'home_faq', 'home_contact', 'blog_article', 'countdown', 'chat_panel', 'chat_button', 'tools_hub']),
+  surface_group: new Set(['homepage', 'ci_planning', 'fhc', 'blog', 'money_story', 'tools']),
+  // LINE chat button (owner-approved 2026-10-25, L5): owner-defined tokens only, never the chat text.
+  chat_topic_id: /^[a-z0-9][a-z0-9-]{1,39}$/,
+  page_group: new Set(['home', 'blog_index', 'blog_category', 'article', 'tool_ci', 'tool_fhc', 'tool_money_story', 'tool_investment_allocation', 'tools_hub', 'about', 'default']),
+  campaign_code: /^[a-z0-9][a-z0-9_-]{1,63}$/,
   calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
   utm_source: /^[a-z0-9][a-z0-9_-]{0,63}$/,
@@ -80,6 +84,7 @@ export function resolveEventMapping(eventName: string, params: SafeParams): { ga
   const fhc = params.tool_name === 'fhc';
   if (eventName === 'cta_click' && params.contact_channel === 'line') return { ga: [], meta: 'none' };
   if (eventName === 'line_oa_click' && params.contact_channel === 'line') return { ga: ['line_oa_click'], meta: 'none' };
+  if (eventName === 'line_chat_panel_open') return { ga: ['line_chat_panel_open'], meta: 'none' };
   if (eventName === 'ci_landing_view' && ci) return { ga: ['ci_landing_view'], meta: 'none' };
   if ((eventName === 'ci_calculator_start' || eventName === 'tool_start') && ci) return { ga: ['ci_calculator_start'], meta: 'custom', metaName: 'StartCIPlanning' };
   if ((eventName === 'ci_step_view' || eventName === 'tool_step') && ci) return { ga: ['ci_step_view'], meta: 'custom', metaName: 'CalculatorStep' };
@@ -149,6 +154,9 @@ export function buildSemanticDataLayerEvent(eventName: string, params: SafeParam
     campaign_id: null,
     campaign_placement: null,
     campaign_action: null,
+    chat_topic_id: null,
+    page_group: null,
+    campaign_code: null,
     ...params,
   };
 }

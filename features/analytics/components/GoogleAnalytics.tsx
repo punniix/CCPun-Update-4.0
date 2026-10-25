@@ -62,12 +62,16 @@ export default function GoogleAnalytics({ gaId }: { gaId: string }) {
         : path.startsWith('/tools/fhc') || path.startsWith('/tools/financial-health-check') ? 'fhc'
         : path === '/blog' || path.startsWith('/blog/') ? 'blog'
         : path === '/' ? 'homepage'
+        // v5 (owner-approved 2026-10-25): the GTM lin.ee click tag is paused, so these pages need
+        // their own semantic line_oa_click too.
+        : path.startsWith('/play/money-story') ? 'money_story'
+        : path === '/tools' || path === '/tools/' || path.startsWith('/tools/investment-allocation') ? 'tools'
         : null;
       const campaign = link.closest<HTMLElement>('[data-campaign="aia-health-happy-2026"]');
       const placement = campaign?.dataset.campaignPlacement;
       const safePlacement = placement === 'home' || placement === 'blog' || placement === 'article' ? placement : undefined;
       const explicitLocation = link.dataset.analyticsLocation;
-      const allowedLocation = explicitLocation === 'navbar' || explicitLocation === 'navbar_mobile' || explicitLocation === 'home_faq'
+      const allowedLocation = explicitLocation === 'navbar' || explicitLocation === 'navbar_mobile' || explicitLocation === 'home_faq' || explicitLocation === 'tools_hub'
         ? explicitLocation : null;
       const location = (campaign && safePlacement) ? 'countdown' : allowedLocation ?? (nav ? (link.closest('#mobile-navigation') ? 'navbar_mobile' : 'navbar')
         : link.closest('#home') ? 'home_hero'

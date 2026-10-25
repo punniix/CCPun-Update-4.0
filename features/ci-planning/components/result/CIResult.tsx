@@ -250,12 +250,16 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
           rel="noopener noreferrer"
           aria-label={t("ci.result.ariaLabel")}
           className="gold-button ccpun-motion-tactile ccpun-ci-result-cta-line inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
-          onClick={() => trackEvent('ci_contact_click', {
-            tool_name: 'ci_planning',
-            cta_location: 'ci_result',
-            contact_channel: 'line',
-            calculator_version: CI_ASSESSMENT_VERSION,
-          })}
+          onClick={() => {
+            trackEvent('ci_contact_click', {
+              tool_name: 'ci_planning',
+              cta_location: 'ci_result',
+              contact_channel: 'line',
+              calculator_version: CI_ASSESSMENT_VERSION,
+            });
+            // GTM's lin.ee click tag is paused (container v9), so the app owns line_oa_click here too.
+            trackEvent('line_oa_click', { contact_channel: 'line', cta_location: 'ci_result', surface_group: 'ci_planning' });
+          }}
         >
           <MessageCircle className="h-5 w-5" aria-hidden="true" />
           {t.node("ci.result.linkLabel")}</a>
