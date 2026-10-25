@@ -99,6 +99,9 @@
 .tocMobile > summary::-webkit-details-marker { display: none; }
 .tocMobile > div { padding: 0 8px 12px; }
 @media (min-width: 1024px) { .tocMobile { display: none; } }
+/* Health Happy countdown in the article (audit #4): room above and below so it never touches the reading grid. */
+.countdownSlot { padding-bottom: 24px; }
+@media (min-width: 1024px) { .countdownSlot { padding-bottom: 40px; } }
 .feature { margin: 0 0 24px; }
 .feature img { display: block; width: 100%; height: auto; border-radius: var(--v5-radius-lg); background: var(--v5-surface); }
 .feature figcaption { color: var(--v5-muted); font-size: var(--v5-text-meta); margin-top: 10px; }

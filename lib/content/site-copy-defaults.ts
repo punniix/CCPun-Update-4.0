@@ -93,4 +93,8 @@ export const SITE_COPY_DEFAULTS = {
   "site.nav.allArticles": "บทความทั้งหมด",
   "site.theme.toggle": "สลับโหมดสว่างและโหมดมืด",
   "site.notFound.latestTitle": "บทความล่าสุด",
+  "site.campaign.unitDays": "วัน",
+  "site.campaign.unitHours": "ชั่วโมง",
+  "site.campaign.unitMinutes": "นาที",
+  "site.campaign.unitSeconds": "วินาที",
 } as const;

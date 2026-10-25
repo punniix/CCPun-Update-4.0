@@ -411,3 +411,22 @@ test("UX: per-mode focus ring and field edge tokens; whole-card links show the r
     assert.doesNotMatch(read(file), /outline: 3px solid var\(--v5-gold\)/, `${file}: focus uses the per-mode token`);
   }
 });
+
+test("UX: the v5 Health Happy countdown shows Thai units, an accessible AIA red and room in the article", () => {
+  const wrapper = read("components/layout/v5/V5HealthHappyCountdown.tsx");
+  for (const [unit, key] of [["days", "unitDays"], ["hours", "unitHours"], ["minutes", "unitMinutes"], ["seconds", "unitSeconds"]]) {
+    assert.match(wrapper, new RegExp(`"site\\.campaign\\.${unit}": text\\("site\\.campaign\\.${key}"\\)`));
+  }
+  const defaults = read("lib/content/site-copy-defaults.ts");
+  for (const line of ['"site.campaign.unitDays": "วัน"', '"site.campaign.unitHours": "ชั่วโมง"', '"site.campaign.unitMinutes": "นาที"', '"site.campaign.unitSeconds": "วินาที"']) assert.ok(defaults.includes(line), line);
+  for (const file of ["features/home/v5/V5Home.tsx", "features/blog/v5/V5BlogIndex.tsx", "features/blog/v5/V5Article.tsx"]) {
+    const source = read(file);
+    assert.match(source, /<V5HealthHappyCountdown placement="(home|blog|article)" \/>/, file);
+    assert.doesNotMatch(source, /<HealthHappyCountdown /, `${file}: v5 never mounts the countdown without the Thai labels`);
+  }
+  const css = read("components/ui/health-happy/HealthHappyCountdown.module.css");
+  assert.match(css, /\.brandAia \{ color: #f2687f;/);
+  assert.match(css, /:global\(html\[data-theme="light"\]\) \.brandAia \{ color: #c8102e; \}/);
+  assert.doesNotMatch(css, /#e0405c/);
+  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.countdownSlot \{ padding-bottom: 24px; \}/);
+});

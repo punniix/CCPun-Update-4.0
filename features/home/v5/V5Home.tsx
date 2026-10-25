@@ -11,7 +11,7 @@ import { V5ArticleCard, V5ContactBand, V5SectionHeading } from "@/components/lay
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
 import { V5_LINE_URL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
-import HealthHappyCountdown from "@/components/ui/health-happy/HealthHappyCountdown";
+import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
 import phillipLogo from "../../../public/assets/phillip-logo.svg";
 import protectionGapIcon from "../../../public/assets/website-43/icon-protection-gap.svg";
@@ -93,7 +93,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
         </div>
       </section>
 
-      <V5LegacyBridge><HealthHappyCountdown placement="home" /></V5LegacyBridge>
+      <V5LegacyBridge><V5HealthHappyCountdown placement="home" /></V5LegacyBridge>
 
       <section className={shell.section} aria-labelledby="home-pains">
         <div className={shell.inner}>

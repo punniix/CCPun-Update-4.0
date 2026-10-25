@@ -13,7 +13,7 @@ import shell from "@/components/layout/v5/V5.module.css";
 import { V5ArticleCard, V5Breadcrumbs, V5ContactBand, V5SectionHeading } from "@/components/layout/v5/V5Primitives";
 import { toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
-import HealthHappyCountdown from "@/components/ui/health-happy/HealthHappyCountdown";
+import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
 import Website43ArticleOverview from "@/features/blog/website-43/Website43ArticleOverview";
 import ArticleShareActions from "@/features/blog/website-43/ArticleShareActions";
@@ -115,7 +115,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             </div>
           </header>
 
-          {article.slug === HEALTH_HAPPY_SLUG && <V5LegacyBridge><HealthHappyCountdown placement="article" /></V5LegacyBridge>}
+          {article.slug === HEALTH_HAPPY_SLUG && <V5LegacyBridge className={styles.countdownSlot}><V5HealthHappyCountdown placement="article" /></V5LegacyBridge>}
 
           <div className={`${shell.inner} ${styles.readingGrid}`} id={article.slug === HEALTH_HAPPY_SLUG ? "health-happy-details" : undefined}>
             {tocGroups.length > 0 && <aside className={styles.tocAside} aria-label={text("blog.website43Articlearialabel2")}>

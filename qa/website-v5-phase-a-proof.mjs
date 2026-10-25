@@ -14,7 +14,7 @@ const sha = value => createHash('sha256').update(value).digest('hex');
 // exactly these blocks reconstructs the frozen sources; existing keys and wording are untouched.
 export const websiteV5CopyAdditions = Object.freeze({
   'lib/content/site-copy-defaults.ts': [[
-    '  "site.extra.blogRecovery": "ดูบทความ",\n  "site.nav.topics": "หมวดความรู้",\n  "site.nav.allArticles": "บทความทั้งหมด",\n  "site.theme.toggle": "สลับโหมดสว่างและโหมดมืด",\n  "site.notFound.latestTitle": "บทความล่าสุด",\n',
+    '  "site.extra.blogRecovery": "ดูบทความ",\n  "site.nav.topics": "หมวดความรู้",\n  "site.nav.allArticles": "บทความทั้งหมด",\n  "site.theme.toggle": "สลับโหมดสว่างและโหมดมืด",\n  "site.notFound.latestTitle": "บทความล่าสุด",\n  "site.campaign.unitDays": "วัน",\n  "site.campaign.unitHours": "ชั่วโมง",\n  "site.campaign.unitMinutes": "นาที",\n  "site.campaign.unitSeconds": "วินาที",\n',
     '  "site.extra.blogRecovery": "ดูบทความ",\n',
   ]],
   'lib/content/blog-copy-defaults.ts': [[
@@ -34,6 +34,8 @@ export const websiteV5CopyAdditions = Object.freeze({
 
 export const websiteV5NewCopyKeys = Object.freeze([
   'site.nav.topics', 'site.nav.allArticles', 'site.theme.toggle', 'site.notFound.latestTitle',
+  // 2026-10-25 (owner-approved, audit #4): Thai countdown unit labels for the v5 placement.
+  'site.campaign.unitDays', 'site.campaign.unitHours', 'site.campaign.unitMinutes', 'site.campaign.unitSeconds',
   'blog.startHere.title', 'blog.group.latest', 'blog.group.count', 'blog.group.viewAll', 'blog.pager.label',
   'blog.pager.first', 'blog.pager.last', 'blog.pager.status', 'blog.topicTools.title', 'blog.topicTools.description',
   'blog.nextStep.eyebrow', 'home.coreGuides.title', 'home.latest.title', 'home.moneyStory.description', 'home.contactBand.title',
@@ -74,7 +76,8 @@ export const websiteV5PhaseASources = Object.freeze({
   "components/ui/health-happy/HealthHappyCountdown.tsx": { before: "e332ed447c376433404b8f80958edb833671f9983083605d4433b415c32aac05", after: "9c5bc7b625a49755d3be90ef885e4cb3bade1d9bf9fb0fff2ea68f8e609d1618" },
   // Design QA 2026-10-25 (UAT): countdown labels read at 14px on phones (were 12/13px) and the frame
   // radii follow the v5 scale (16/12px); the reviewed v5 successor digest moves to this exact file.
-  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "8faa54ccd0be493e4f4cf50b73bf43d0ac091bfa461d0810ddd61cb4d3ca0ae2" },
+  // 2026-10-25 UX fixes (owner-approved #4): AIA red per theme, 15px buttons, tabular numerals, 4px label gap.
+  "components/ui/health-happy/HealthHappyCountdown.module.css": { before: "c9250365f419a79b3e7221c6f9556ce8b6071464118d38ea8419ad89c9375ef2", after: "3e41b91b99a4dc90282448a75ef3af8d8a3ea92472ec4bb492c508767860cc13" },
   "features/blog/website-43/ArticleShareActions.tsx": { before: "468315c7dc18c8b6030e8881bf6498fd5df2adc931dc5a0b48d9726c303135af", after: "79595cd57be1e6d2764661826516105ab39a6a16103783047c596f5377ab2058" },
   "features/blog/website-43/ArticleEngagement.tsx": { before: "941020bc1e53917b1fec02af8036ec4053b48e9cf4cc75abbcf41d477a5d3799", after: "146f49c1e9fd9bedacba9c9b602384dc4bd8a5581de901667d3d86b470cd772c" },
   "features/blog/website-43/ArticleDetailAccess.tsx": { before: "9b00002d896f86765bc9216adb1427454b2a734abb257b0505ca77d8f80976c9", after: "689e79413207218ecf12595b8aa08537f5c0e3d49298a16c5e59075aad56d0ed" },

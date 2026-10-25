@@ -12,7 +12,9 @@
 }
 .info { min-width: 0; }
 .brandLine { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; line-height: 1.2; }
-.brandAia { color: #e0405c; font-size: 15px; font-weight: 500; letter-spacing: .02em; }
+/* AIA red per theme so the wordmark text passes 4.5:1 on the card (audit #4): #f2687f dark (4.8:1), #c8102e light (5.0:1). */
+.brandAia { color: #f2687f; font-size: 15px; font-weight: 500; letter-spacing: .02em; }
+:global(html[data-theme="light"]) .brandAia { color: #c8102e; }
 .brandName { font-size: clamp(18px,1.8vw,22px); font-weight: 500; letter-spacing: .01em; font-family: var(--v5-font-display, inherit); }
 .headline { margin: 6px 0 0; color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.55; }
 .date { margin: 6px 0 0; color: var(--v5-gold-text, #e0c985); font-size: clamp(22px,2.3vw,28px); font-weight: 500; line-height: 1.35; font-family: var(--v5-font-display, inherit); }
@@ -25,14 +27,14 @@
 .timePart { display: flex; align-items: center; min-width: 0; flex: 1 1 0; }
 .timePart:first-child { flex: 1.1 1 0; }
 .timeUnit { display: flex; flex-direction: column; align-items: center; min-width: 0; flex: 1; }
-.numeral { color: var(--v5-text, #faf9f9); font-size: clamp(26px,2.6vw,36px); font-weight: 500; line-height: 1.15; font-family: var(--v5-font-display, inherit); }
+.numeral { font-variant-numeric: tabular-nums; color: var(--v5-text, #faf9f9); font-size: clamp(26px,2.6vw,36px); font-weight: 500; line-height: 1.15; font-family: var(--v5-font-display, inherit); }
 .colon { display: none; }
-.timeLabel { color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.6; margin-top: 2px; }
+.timeLabel { color: var(--v5-muted, #baabab); font-size: 14px; line-height: 1.6; margin-top: 4px; }
 .actions { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .actions a { width: 100%; min-width: 0; padding-inline: 14px; text-align: center; white-space: normal; }
 .primaryButton, .outlineButton {
   display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 20px; border-radius: 999px;
-  font-size: 14px; font-weight: 500; line-height: 1.35; text-decoration: none; font-family: var(--v5-font-display, inherit);
+  font-size: 15px; font-weight: 500; line-height: 1.35; text-decoration: none; font-family: var(--v5-font-display, inherit);
   transition: background-color 160ms ease, border-color 160ms ease;
 }
 .primaryButton { background: var(--v5-gold, #e0c985); border: 1px solid var(--v5-gold, #e0c985); color: var(--v5-on-gold, #251818); }
