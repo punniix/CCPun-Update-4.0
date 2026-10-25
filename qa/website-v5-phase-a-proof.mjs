@@ -67,6 +67,7 @@ export const websiteV5PhaseASources = Object.freeze({
   // storage, defaults, timing, events and copy are unchanged. `before` is the reviewed source at afc0c4c7.
   "features/analytics/components/CookieConsent.tsx": { before: "29bf6a9af3ff34d8bf867acdef1a3718f7d9c27e514591fbcf32628e7de2f0af", after: "5f84509f9b4bb4f15956142229ed4ddfaa994924f44903565594002774467815" },
   "features/analytics/components/CookieConsentPreferences.tsx": { before: "a1da91f8c246c4a59f63b94c68206826d3b28889226beb604b92c0374c81d1dd", after: "7ef7f14e891fbfe09ec67fdafbb94026588f225487fe424a0998005c3dc6558e" },
+  "apps/web/app/sitemaps/core.xml/route.ts": { before: "b65773febf84cb13cc71d28b59d35b1d812db008e721f3c011eca2736c48b7ce", after: "e75e91172e46e1e38fb59c1097825056bcb14030bede4dce6862e8513a5aa48a" },
   // END reviewed sources
   // Website v5 Phase B: tool/legal render owners, root layout fonts and the shared widgets moved
   // off the 4.3 stylesheet. `before` is the Phase A + Investment Allocation merge (b6453d0a).
@@ -151,6 +152,6 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // 2026-10-25 (owner-approved, UAT): the v5 shell gains the merged LINE chat dock, the 3-state theme
   // toggle (D2) and the /tools/ hub links (T1), so the tool/legal v5 render digests move once more.
   // 2026-10-25 UX fixes (owner decisions, UAT): no eyebrows or hero kickers on the v5 tool/legal pages.
-  v5: { "3": "d6edde7cf7df76f271cf055a5215925c6b051bb7d88b39c8d59fa7c8bda009ef", "4": "d4359619c84e99efd0f344e5666c7e4afa8922d5c9d45cbd424ee7d90b6ab2d0", "8": "e4c8a6f198351acabb878eb83e3ba76c9fe762bd0acd3afa561eee3cd9293985", "9": "3b64ae883210cc96484ced74cf0aadebe21d3995dfbb66eca6b131f95a60c2e0", "10": "0557f57fbd8adad8c6934d656462feb3e8e163fd29110a354bb3a4854bdaca7a" },
+  v5: { "3": "4b1d2d4382d7ac54e351ed03c45f5f755fc17a1c5d6b44fa0e6324076eef18f1", "4": "c2ff9ca63ccfad86b9e46e76cc5ede52808578afec7d54b3e22e1d6632d10563", "8": "745116a183230bd8faa67437c1a71a05c35f29dcb48eec39a44b7831097a7ae4", "9": "b6df50bdacc426c10225b861056578891889617f737efb76c30eb710e3b10f44", "10": "16b14eecd5ee986b29949ee4ceb780f86b9923aa87d0d39cf3aa0a07c4b5254d" },
   // END Phase B render goldens
 });

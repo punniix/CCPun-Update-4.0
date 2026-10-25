@@ -64,7 +64,7 @@ export default async function V5Header({ current = "", siteCopy }: { current?: s
                 {tools.map((tool) => <li key={tool.href}><Link href={tool.href} aria-current={isCurrent(tool.href)}>{tool.label}</Link></li>)}
               </ul>
             </li>
-            <li className={styles.navItem}><Link className={styles.navLink} href="/#about-ccpun">{text.node("site.footer.about")}</Link></li>
+            <li className={styles.navItem}><Link className={styles.navLink} href="/about/" aria-current={isCurrent("/about/")}>{text.node("site.footer.about")}</Link></li>
           </ul>
         </nav>
         <div className={styles.headerActions}>
@@ -84,7 +84,7 @@ export default async function V5Header({ current = "", siteCopy }: { current?: s
         <ul className={styles.mobileGroup}>
           <li><Link href="/" aria-current={isCurrent("/")}>{text.node("site.nav.home")}</Link></li>
           <li><Link href="/blog/" aria-current={blogCurrent === "page" ? "page" : undefined}>{text.node("site.nav.allArticles")}</Link></li>
-          <li><Link href="/#about-ccpun">{text.node("site.footer.about")}</Link></li>
+          <li><Link href="/about/" aria-current={isCurrent("/about/")}>{text.node("site.footer.about")}</Link></li>
         </ul>
         {topics.length > 0 && <div className={styles.mobileGroup}>
           <p className={styles.mobileGroupTitle}>{text.node("site.nav.topics")}</p>

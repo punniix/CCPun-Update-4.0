@@ -57,7 +57,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
     role: managed ? article.author?.profileRole?.trim() || text("blog.dEFAULTAUTHORROLEText") : text("blog.dEFAULTAUTHORROLEText"),
     bio: managed ? article.author?.profileBio?.trim() || text("blog.dEFAULTAUTHORBIOText") : text("blog.dEFAULTAUTHORBIOText"),
     ctaLabel: article.author?.profileCtaLabel ?? text("blog.authorText"),
-    ctaUrl: article.author?.profileCtaUrl?.startsWith("#") ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? "/#about-ccpun",
+    ctaUrl: article.author?.profileCtaUrl?.startsWith("#") ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? "/about/",
     avatar: article.author?.profileAvatar ?? { src: "/assets/ccpun.webp", alt: text("blog.baseAuthorNameText"), width: 1200, height: 1800 },
   };
 

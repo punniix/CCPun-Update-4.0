@@ -499,3 +499,31 @@ test("UX: the cookie notice matches the site visually and keeps its consent beha
   assert.match(consent, /new CustomEvent\('ccpun:consent', \{ detail: analytics \? 'accepted' : 'rejected' \}\)/);
   assert.match(consent, /role="dialog"[\s\S]*aria-modal="true"/);
 });
+
+test("SEO: /about/ is the approved new owner: self canonical, core sitemap, ProfilePage + Person, linked from header, footer and home", async () => {
+  const page = read("features/about/page.tsx");
+  assert.equal(read("apps/web/app/about/page.tsx").trim(), 'export { default, metadata } from "@/features/about/page";');
+  assert.match(page, /const URL = "https:\/\/ccpun\.com\/about\/";/);
+  assert.match(page, /alternates: \{ canonical: URL \}/);
+  assert.match(page, /robots: IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \} : \{ index: true, follow: true \}/);
+  assert.match(page, /"@type": "ProfilePage"/);
+  assert.match(page, /mainEntity: \{ "@id": CCPUN_PERSON_ID \}/);
+  assert.match(page, /"@type": "BreadcrumbList"/);
+  // Owner-copy slots render only on UAT/preview, never in a Production build.
+  assert.match(page, /function OwnerCopySlot[\s\S]*?if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
+  for (const slot of ["about-hero-sentence", "about-start-years", "about-father-story"]) assert.ok(page.includes(`slot="${slot}"`), slot);
+  assert.doesNotMatch(page, /ฟรี|รับประกัน|ที่สุด|…|\.\.\./, "About content rules: no free, guarantees, superlatives or ellipsis");
+  assert.doesNotMatch(page, /lin\.ee|line\.me/, "the page's LINE path is the shared chat button only");
+  const core = await import("../apps/web/app/sitemaps/core.xml/route");
+  const xml = await core.GET().text();
+  assert.ok(xml.includes("<loc>https://ccpun.com/about/</loc>"));
+  assert.equal(xml.split("https://ccpun.com/about/").length, 2, "one sitemap entry");
+  for (const file of ["components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx"]) {
+    assert.match(read(file), /href="\/about\/"/, file);
+    assert.doesNotMatch(read(file), /href="\/#about-ccpun"/, `${file}: no longer points at the home section`);
+  }
+  assert.match(read("features/home/v5/V5Home.tsx"), /<section id="about-ccpun"[\s\S]*href="\/about\/"/, "the home About section stays and links to /about/");
+  // No historical About URL exists, so there is no redirect to keep in step.
+  const ledger = read("qa/legacy-url-ledger.json");
+  assert.doesNotMatch(ledger, /about/i);
+});

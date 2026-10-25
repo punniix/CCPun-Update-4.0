@@ -148,7 +148,8 @@ test("active Web core sitemap and private error headers enforce the search bound
 test("preserves static sitemap XML responses for legacy and canonical Web routes", async () => {
   const routeSpecs = [
     ["sitemap.xml/route", ["https://ccpun.com/sitemaps/core.xml", "https://ccpun.com/sitemaps/tools.xml", "https://ccpun.com/sitemaps/blog.xml"]],
-    ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/"]],
+    // Owner-approved 2026-10-25: the new /about/ page joins the core sitemap.
+    ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/", "https://ccpun.com/about/"]],
     // Owner-approved 2026-10-25: the /tools/ hub joins the tools sitemap ahead of its tool owners.
     // Owner-approved 2026-10-25 (v5 only): Money Story joins the tools sitemap at its existing canonical.
     ["sitemaps/tools.xml/route", ["https://ccpun.com/tools/", "https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/", "https://ccpun.com/play/money-story/"]],

@@ -38,7 +38,7 @@ export default async function V5Footer({ siteCopy }: { siteCopy?: PublicCopyValu
           <div className={styles.footerColumn}>
             <h2>{text.node("site.footer.information")}</h2>
             <ul>
-              <li><Link href="/#about-ccpun">{text.node("site.footer.about")}</Link></li>
+              <li><Link href="/about/">{text.node("site.footer.about")}</Link></li>
               <li><Link href="/privacy/">{text.node("site.footer.privacy")}</Link></li>
               <li><Link href="/cookie-policy/">{text.node("site.footer.cookies")}</Link></li>
               <li><CookieSettingsButton /></li>

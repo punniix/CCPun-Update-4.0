@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getPublicCopy } from "@/lib/content/public-copy";
 import { getHomeCopyFaqs, publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
-import { getPublicAuthorName } from "@/lib/content/author-identity";
+import { v5AdvisorProfile, v5Partners } from "@/components/layout/v5/advisor-profile";
 import { HOME_CORE_GUIDE_SLUGS } from "@/lib/content/topic-navigation";
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
@@ -13,7 +13,6 @@ import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/she
 import { V5_LINE_URL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
-import phillipLogo from "../../../public/assets/phillip-logo.svg";
 import protectionGapIcon from "../../../public/assets/website-43/icon-protection-gap.svg";
 import taxIcon from "../../../public/assets/website-43/icon-tax.svg";
 import investmentRiskIcon from "../../../public/assets/website-43/icon-investment-risk.svg";
@@ -33,36 +32,14 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
   const [articles, topics, liveSiteCopy] = await Promise.all([readArticles(), getShellTopics(), siteCopy ? Promise.resolve(siteCopy) : getPublicCopy("site")]);
   const siteText = publicCopyText(liveSiteCopy);
 
-  const qualifications = authorProfile?.professionalQualifications ?? [];
-  const primary = qualifications[0];
-  const suffix = qualifications.map((item) => item.shortName.trim()).filter(Boolean).join(", ");
-  const name = getPublicAuthorName(authorProfile);
-  const role = authorProfile?.profileRole?.trim() || text("home.advisor.defaultRole");
-  const displayName = suffix ? `${name}, ${suffix}` : name;
-  const licenses = authorProfile?.professionalLicenses?.length
-    ? authorProfile.professionalLicenses.map(({ name: label, identifier }) => `${label.trim()} ${identifier.trim()}`)
-    : [text("home.licenseLabelsText"), text("home.licenseLabelsText2"), text("home.licenseLabelsText3")];
-  const credentials = [
-    ...(primary ? [{ term: primary.shortName, detail: `${text("home.advisor.qualificationPrefix").replace(/^\s*·\s*/, "")}${primary.identifier ?? ""}`.trim() }] : []),
-    ...licenses.map((label) => {
-      const match = label.match(/^(.*?)\s+([0-9A-Z-]{5,})$/);
-      return match ? { term: match[1], detail: match[2] } : { term: label, detail: "" };
-    }),
-  ];
+  const { qualifications, primary, displayName, role, credentials } = v5AdvisorProfile(authorProfile, text);
 
   const pains = [
     [protectionGapIcon, text("home.painsText"), text("home.painsText2")],
     [taxIcon, text("home.painsText3"), text("home.painsText4")],
     [investmentRiskIcon, text("home.painsText5"), text("home.painsText6")],
   ] as const;
-  const partners = [
-    { src: "/assets/aia-logo.webp", width: 512, height: 341, name: text("home.website43Homealt2"), role: text("home.span4") },
-    { src: "/assets/website-43/fairdee-logo.png", width: 512, height: 512, name: text("home.website43Homealt3"), role: text("home.span5") },
-    { src: "/assets/maybank-logo.webp", width: 512, height: 512, name: text("home.website43Homealt4"), role: text("home.span6") },
-    { src: phillipLogo, width: 1000, height: 400, name: text("home.website43Homealt5"), role: text("home.span6") },
-    { src: "/assets/website-43/webull-logo.png", width: 736, height: 736, name: text("home.website43Homealt6"), role: text("home.span7") },
-    { src: "/assets/finnomena-logo.webp", width: 200, height: 200, name: text("home.website43Homealt7"), role: text("home.span6") },
-  ];
+  const partners = v5Partners(text);
   const tools = [
     { href: "/blog/", title: text("home.h3"), body: text("home.p4"), action: v5Label(text("home.toolCtaAction")), label: text("home.website43Homearialabel") },
     { href: "/tools/financial-health-check/", title: text("home.h32"), body: text("home.p5"), action: v5Label(text("home.toolCtaAction2")), label: text("home.website43Homearialabel2") },
@@ -144,6 +121,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <div className={shell.buttonRow}>
               <a className={shell.button} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer">{siteText.node("site.extra.a")}</a>
             </div>
+            <p><Link className={shell.textLink} href="/about/">{text.node("home.hero.aboutCta")}</Link></p>
           </div>
         </div>
       </section>
