@@ -344,7 +344,8 @@ export default function SingleFundBuilder({ scope = "main" }: { scope?: FundScop
                 {query ? <button className={styles.clearSearch} type="button" onClick={() => { setQueryInput(""); setQuery(""); if (category) void loadCatalog({ category, subcategory, query: "", amcId }); }}>ล้างคำค้น “{query}”</button> : null}
                 <div className={styles.catalogMeta}>
                   <span>{catalog?.source === "sec_v2" ? `ข้อมูลจาก ก.ล.ต. · ${selectedAmcName} · ลำดับรายการไม่ใช่การจัดอันดับ` : catalog?.source === "uat_synthetic" ? "ข้อมูลตัวอย่างชั่วคราว" : ""}</span>
-                  {catalog?.fetchedAt ? <span>ตรวจข้อมูลล่าสุด {formatDate(catalog.fetchedAt)}</span> : null}
+                  {/* Stored catalog: the date SEC data was fetched by the sync job (new copy pending owner approval 2026-10-26). */}
+                  {catalog?.fetchedAt ? <span>{catalog.origin === "store" ? `ข้อมูล ณ วันที่ ${formatDate(catalog.fetchedAt)}` : `ตรวจข้อมูลล่าสุด ${formatDate(catalog.fetchedAt)}`}</span> : null}
                 </div>
 
                 {catalogLoading ? <CatalogSkeleton /> : null}
