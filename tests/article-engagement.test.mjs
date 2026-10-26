@@ -23,29 +23,45 @@ function load(overrides = {}) {
   const calls = [];
   const articles = [{ id: productionId, status: "published", publishedAt: "2026-10-07T08:14:13.608Z" }];
   let fail = false;
+  let failures = Infinity;
+  let contentFailure = null;
+  const logs = [];
   let activatedAt = "2026-10-19T10:00:00.000Z";
   const exports = {};
+  const failure = kind => {
+    if (kind === "network") return Object.assign(new Error("Error connecting to database: TypeError: fetch failed"), { name: "NeonDbError", sourceError: new TypeError("fetch failed") });
+    if (kind === "timeout") return Object.assign(new Error("Error connecting to database: TimeoutError"), { name: "NeonDbError", sourceError: Object.assign(new Error("timeout"), { name: "TimeoutError" }) });
+    if (kind === "upstream") return Object.assign(new Error("Server error (HTTP status 503): synthetic"), { name: "NeonDbError" });
+    if (kind === "sql") return Object.assign(new Error("function does not exist"), { name: "NeonDbError", code: "42883" });
+    return new Error("synthetic database failure: must never leak");
+  };
   runInNewContext(transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: 9 } }).outputText, {
     exports, process: { env: variables }, Buffer, URL, TextDecoder, Request, Response, Headers, AbortSignal,
     setTimeout, clearTimeout,
+    console: { error: line => logs.push({ level: "error", line }), warn: line => logs.push({ level: "warn", line }) },
     require: name => {
       if (name === "server-only") return {};
       if (name === "node:crypto") return require(name);
       if (name.endsWith("deployment-identity")) return { resolveDeploymentIdentity };
       if (name.endsWith("content/provider")) return { getContentProvider: () => ({ listArticles: async options => {
-        assert.equal(options.includeDrafts, false); return articles;
+        assert.equal(options.includeDrafts, false);
+        if (contentFailure) throw new Error("Sanity content request failed; details redacted");
+        return articles;
       } }) };
       if (name === "@neondatabase/serverless") return { neon: (_url, options) => ({ query: async (sql, params) => {
         assert.ok(options.fetchOptions.signal instanceof AbortSignal);
         calls.push({ sql, params });
-        if (fail) throw new Error("synthetic database failure: must never leak");
+        if (fail && failures > 0) { failures -= 1; throw failure(fail); }
         return [{ views: "2", shares: 0, hearts: sql.includes("set_article_heart") && params[2] ? 1 : null,
           liked: sql.includes("set_article_heart") ? params[2] : !!params.at(-1), activated_at: activatedAt }];
       } }) };
       throw new Error(`Unexpected dependency: ${name}`);
     },
   });
-  return { ...exports, variables, calls, articles, fail: () => { fail = true; }, activatedAt: value => { activatedAt = value; } };
+  return { ...exports, variables, calls, articles, logs,
+    fail: (kind = true, times = Infinity) => { fail = kind; failures = times; },
+    failContent: (value = true) => { contentFailure = value; },
+    activatedAt: value => { activatedAt = value; } };
 }
 function request(id = productionId, body, headers = {}, origin = "https://ccpun.com") {
   return new Request(`${origin}/api/article-engagement/${id}/`, {
@@ -93,10 +109,13 @@ test("activated_at accepts the real Neon driver Date shape and rejects invalid t
   assert.equal(response.status, 200);
   assert.equal((await response.json()).activatedAt, "2026-10-21T09:31:40.940Z");
   for (const bad of [null, "not-a-date", new Date(Number.NaN), 1729500000000]) {
-    lib.activatedAt(bad);
-    const failed = await lib.handleArticleEngagement(request(), productionId);
+    const fresh = load();
+    fresh.activatedAt(bad);
+    const failed = await fresh.handleArticleEngagement(request(), productionId);
     assert.equal(failed.status, 503);
     assert.deepEqual(await failed.json(), { available: false, error: "unavailable" });
+    assert.deepEqual(fresh.logs.map(entry => JSON.parse(entry.line.replace("[ARTICLE_ENGAGEMENT] ", ""))),
+      [{ schema: "ccpun.article_engagement.v1", outcome: "unavailable", stage: "result", method: "GET", error: "invalid_result" }]);
   }
 });
 
@@ -147,10 +166,13 @@ test("UAT uses its own database and current published IDs; failures remain gener
   const uatRequest = () => request(productionId, undefined, {}, "https://test.ccpun.com");
   assert.equal((await lib.handleArticleEngagement(uatRequest(), productionId)).status, 200);
   assert.equal(lib.calls[0].params[0], productionId);
-  lib.fail();
-  const failed = await lib.handleArticleEngagement(uatRequest(), productionId);
+  const cold = load({ CCPUN_APP_ENV: "web-uat", NEXT_PUBLIC_CCPUN_APP_ENV: "web-uat", CCPUN_UAT_MODE: "1", NEXT_PUBLIC_SANITY_PROJECT_ID: "ccb9lnw5", NEXT_PUBLIC_SANITY_DATASET: "uat",
+    CCPUN_ARTICLE_DATABASE_URL: "postgresql://ccpun_article_runtime:synthetic@ep-mute-frost-aztvz394.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require" });
+  cold.fail();
+  const failed = await cold.handleArticleEngagement(uatRequest(), productionId);
   assert.equal(failed.status, 503);
   assert.deepEqual(await failed.json(), { available: false, error: "unavailable" });
+  assert.doesNotMatch(cold.logs.map(entry => entry.line).join("\n"), /synthetic|must never leak|neon\.tech|ccpun_article_runtime/);
 });
 
 test("both lanes accept Hostinger internal URLs only with pinned Host and exact forwarded headers", async () => {
@@ -199,4 +221,85 @@ test("rate limiter has finite capacity and expires without storing network ident
   for (let i = 0; i < 255; i++) assert.equal(lib.takeArticleRateLimit(String(i), 1, 1), true);
   assert.equal(lib.takeArticleRateLimit("overflow", 1, 1), false);
   assert.equal(lib.takeArticleRateLimit("overflow", 1, 60_001), true);
+});
+
+test("cookieless GETs share a 30 s public aggregate; heart-cookie GETs and writes always reach SQL", async () => {
+  const lib = load();
+  assert.equal((await lib.handleArticleEngagement(request(), productionId)).status, 200);
+  const cached = await lib.handleArticleEngagement(request(), productionId);
+  assert.equal(cached.status, 200);
+  const body = await cached.json();
+  assert.deepEqual([body.views, body.shares, body.hearts, body.liked, body.degraded], [2, 0, null, false, false]);
+  assert.equal(body.activatedAt, "2026-10-19T10:00:00.000Z");
+  assert.equal(lib.calls.length, 1, "second cookieless read is served without Neon");
+  assert.match(cached.headers.get("cache-control"), /private, no-store/);
+  const heart = await lib.handleArticleEngagement(request(productionId, { type: "heart", liked: true }), productionId);
+  const cookie = heart.headers.get("set-cookie").split(";")[0];
+  assert.equal(lib.calls.length, 2);
+  assert.equal((await (await lib.handleArticleEngagement(request(), productionId)).json()).hearts, 1, "a write refreshes the shared aggregate");
+  assert.equal(lib.calls.length, 2);
+  assert.equal((await (await lib.handleArticleEngagement(request(productionId, undefined, { cookie }), productionId)).json()).liked, true);
+  assert.equal(lib.calls.length, 3, "a heart cookie needs its own liked state");
+  assert.equal(lib.cachedArticleMetrics(productionId, lib.ARTICLE_METRICS_FRESH_MS, Date.now() + lib.ARTICLE_METRICS_FRESH_MS + 1), null, "fresh window expires");
+  for (const id of ["not-published", "drafts.hidden"]) assert.equal((await lib.handleArticleEngagement(request(id), id)).status, 404);
+});
+
+test("a brief DB or content failure serves the last good totals as degraded, never a fake value", async () => {
+  const lib = load();
+  const old = Date.now() - lib.ARTICLE_METRICS_FRESH_MS - 1000;
+  lib.rememberArticleMetrics(productionId, { views: 40, shares: 1, hearts: 3, activatedAt: "2026-10-19T10:00:00.000Z" }, old);
+  lib.fail();
+  const degraded = await lib.handleArticleEngagement(request(), productionId);
+  assert.equal(degraded.status, 200);
+  const body = await degraded.json();
+  assert.deepEqual([body.available, body.views, body.shares, body.hearts, body.liked, body.degraded], [true, 40, 1, 3, false, true]);
+  assert.equal(lib.logs.at(-1).level, "warn");
+  assert.deepEqual(JSON.parse(lib.logs.at(-1).line.replace("[ARTICLE_ENGAGEMENT] ", "")), { schema: "ccpun.article_engagement.v1", outcome: "degraded", stage: "database", method: "GET", error: "error" });
+  lib.failContent();
+  const content = await lib.handleArticleEngagement(request(), productionId);
+  assert.equal((await content.json()).degraded, true);
+  assert.equal(JSON.parse(lib.logs.at(-1).line.replace("[ARTICLE_ENGAGEMENT] ", "")).stage, "content");
+  lib.failContent(false);
+  const cookie = `__Secure-ccpun-heart-${(await import("node:crypto")).createHash("sha256").update(productionId).digest("hex").slice(0, 16)}=${"a".repeat(64)}`;
+  assert.equal((await lib.handleArticleEngagement(request(productionId, undefined, { cookie }), productionId)).status, 503, "liked state is never guessed");
+  assert.equal((await lib.handleArticleEngagement(request(productionId, { type: "heart", liked: true }), productionId)).status, 503, "writes never fake success");
+  const expired = load();
+  expired.rememberArticleMetrics(productionId, { views: 40, shares: 1, hearts: 3, activatedAt: "2026-10-19T10:00:00.000Z" }, Date.now() - expired.ARTICLE_METRICS_STALE_MS - 1);
+  expired.fail();
+  assert.equal((await expired.handleArticleEngagement(request(), productionId)).status, 503, "stale window is bounded");
+});
+
+test("transient Neon transport errors retry once within the same budget; SQL errors and timeouts do not", async () => {
+  for (const kind of ["network", "upstream"]) {
+    const lib = load();
+    lib.fail(kind, 1);
+    const response = await lib.handleArticleEngagement(request(productionId, { type: "view", eventId: nonce, analyticsConsent: true }), productionId);
+    assert.equal(response.status, 200, `${kind} recovers on the second attempt`);
+    assert.equal(lib.calls.length, 2);
+    assert.deepEqual(lib.calls[0], lib.calls[1], "the retry repeats the same idempotent call (same eventId nonce)");
+    assert.equal(lib.logs.length, 0);
+    const twice = load();
+    twice.fail(kind, 2);
+    assert.equal((await twice.handleArticleEngagement(request(), productionId)).status, 503);
+    assert.equal(twice.calls.length, 2, "never more than one retry");
+    assert.equal(JSON.parse(twice.logs[0].line.replace("[ARTICLE_ENGAGEMENT] ", "")).error, kind);
+  }
+  for (const [kind, logged] of [["sql", "sql_42883"], ["timeout", "timeout"], [true, "error"]]) {
+    const lib = load();
+    lib.fail(kind, 1);
+    assert.equal((await lib.handleArticleEngagement(request(productionId, { type: "heart", liked: true }), productionId)).status, 503);
+    assert.equal(lib.calls.length, 1, `${logged} is not retried`);
+    assert.deepEqual(JSON.parse(lib.logs[0].line.replace("[ARTICLE_ENGAGEMENT] ", "")), { schema: "ccpun.article_engagement.v1", outcome: "unavailable", stage: "database", method: "POST", error: logged });
+  }
+});
+
+test("failure logging is redacted and bounded per minute", async () => {
+  const lib = load();
+  lib.fail("sql");
+  for (let i = 0; i < 40; i++) await lib.handleArticleEngagement(request(productionId, { type: "heart", liked: true }), productionId);
+  assert.equal(lib.logs.length, 30);
+  assert.doesNotMatch(lib.logs.map(entry => entry.line).join("\n"), /function does not exist|91b217d8|[0-9a-f]{64}|synthetic|neon\.tech/);
+  const missing = load({ CCPUN_ARTICLE_DATABASE_URL: undefined });
+  assert.equal((await missing.handleArticleEngagement(request(), productionId)).status, 503);
+  assert.deepEqual(JSON.parse(missing.logs[0].line.replace("[ARTICLE_ENGAGEMENT] ", "")), { schema: "ccpun.article_engagement.v1", outcome: "unavailable", stage: "runtime", method: "GET", error: "unavailable" });
 });

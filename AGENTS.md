@@ -49,9 +49,24 @@ Before modifying Sanity:
 
 ### Concurrent workstream isolation
 
-- Production hotfixes branch from the latest `v4-production`, target `v4-production`, use a dedicated worktree, and stay narrow.
-- Website 4.2 branches normally use `codex/website-42-`, Admin Preview/UAT, and `ccb9lnw5/uat`; do not stack a Production hotfix on them.
+- Production hotfixes branch from the latest `v4-production`, target `v4-production`, use the agent's `hotfix` worktree slot (see Agent scope lock), and stay narrow.
+- Website 4.x work uses the `web` slot, Admin Preview/UAT work the `admin` slot, both with `ccb9lnw5/uat`; do not stack a Production hotfix on them. New branches follow the allowlist below; existing `codex/website-42-*` branches are legacy.
 - Never reuse another active worktree, mix unrelated work in one commit, or copy a hotfix independently into every feature branch. Stop and report an unexpected cross-workstream dependency.
+
+### Agent scope lock (branches and worktrees)
+
+Applies equally to Claude Code, Codex, Khai-Hub, sub-agents and humans. `scripts/agent-guard.mjs` implements it; CI (`CCPun Agent Scope Guard`) and the pre-push hook enforce it. Owner decisions R1–R10 (2026-10-25): the CI guard runs in WARN mode until 2026-11-01, then switches to enforce and becomes a required check; the GitHub "Restrict creations" ruleset follows after that enforce week.
+
+- **No task ID, no branch, no worktree.** A task ID is `<slug>-<YYYYMMDD>` and equals the task receipt ID when one exists. One task = one working branch. UAT is deployed from that same work branch (through the release step's UAT pin); do not create `-uat` twin or port branches. Work found outside the assigned scope is reported as a follow-up, never started on a new branch.
+- **Branch allowlist for new branches:**
+  - `<agent>/<type>/<task-id>`; agent is `claude`, `codex`, `khai` or `owner`; type is `feat`, `fix`, `hotfix`, `chore`, `docs`, `refactor`, `perf`, `seo`, `test`, `security` or `ops`.
+  - Release pins, created only by the authorized release step with `CCPUN_RELEASE_STEP=1`: `codex/hostinger-release-uat-<sha40>`, `codex/hostinger-release-production-<sha40>`, `admin/hostinger-release-uat-<sha40>`. A pin points exactly at the SHA in its name and is never pushed to again. These names are runtime contracts (`scripts/build-root.mjs`, `lib/runtime/hostinger-production-release.mjs`, `cms/sanity/policy/studio-policy.ts`); never rename them, open PRs from them or target PRs at them. Retirement of old pins needs owner approval and Hostinger read-back of the current and rollback builds.
+  - `v4-production` and `uat` are protected; `dependabot/*` is bot-owned. Any other existing name is legacy: it may be finished and deleted, never recreated.
+- **Worktrees:** create them only with `node scripts/agent-guard.mjs start --agent <agent> --workstream <hotfix|web|admin|ops|audit> --type <type> --task <task-id>`. The location is fixed: `${CCPUN_WORKTREE_ROOT:-~/.ccpun-worktrees}/<agent>/<workstream>`, at most one per agent per workstream. `audit` is detached, read-only and removed in the same session. A busy slot means finish, hand off or clean up; never open a second one. Do not create worktrees in the Desktop workspace, `Deploy/`, `Dev/` or `Dev/Worktrees/`, `.claude/worktrees/`, a runtime's automatic worktree mode or any ad-hoc path. Sub-agents work in the parent's worktree.
+- **Mandatory cleanup:** after a PR merges or closes, run `node scripts/agent-guard.mjs cleanup --apply` in the same session (removes clean, merged guard worktrees and their local branches) and delete the remote head branch unless GitHub already did. Never use `--force`, never delete dirty worktrees or another agent's slot.
+- **Primary clone and roles:** on the owner's Mac the one clone agents start from is `Deploy/CCPun-Update-4.0` (works without the external SSD); worktrees still go only into the guard slots above. Codex may take scoped test work (for example calculation tests) on a single `codex/test/<task-id>` branch in its existing slot, without opening extra worktrees.
+- **Agent surfaces outside this repo:** the "CCPun x AI" workspace checks AGENTS.md/CLAUDE.md/skills/roles parity with `Tools/sync-agent-surfaces.mjs` only; the former `QA/codex-claude-parity-check.mjs` and `.claude/scripts/check-skill-sync.sh` checkers are retired and must not be used as evidence.
+- **Evidence:** run `node scripts/agent-guard.mjs report` at the start and end of every repository task. Install the hook once per clone with `node scripts/agent-guard.mjs install-hook`. PR bodies carry `Task-ID: <task-id>` matching the branch.
 
 ## 1. Delivery workflow
 
@@ -147,6 +162,7 @@ Every substantial task should report:
 4. Exact source SHA, Hostinger UAT build status and custom-domain verification when applicable.
 5. Whether SEO URLs, Sanity Production, analytics, or consent changed.
 6. Known risks and rollback path.
+7. Task ID, branch, worktree slot, the `agent-guard report` counts and the cleanup performed.
 
 If a requested change conflicts with these rules, stop the risky part, explain the conflict, and propose the safest implementation that preserves the user's intended outcome.
 
