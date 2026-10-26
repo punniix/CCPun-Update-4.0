@@ -14,6 +14,8 @@ import { v5AdvisorProfile, v5Partners } from "@/components/layout/v5/advisor-pro
 import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import styles from "./About.module.css";
+import flipStyles from "@/components/layout/v5/V5LicenceFlip.module.css";
+import { FATHER_STORY_HEADING, FATHER_STORY_KEEP, FATHER_STORY_PARAGRAPHS, FATHER_STORY_QUESTIONS, FATHER_PHOTO_CAPTION } from "./father-story-copy";
 
 /*
   Owner-approved new indexable URL (2026-10-25): /about/. No historical About URL exists in the
@@ -47,15 +49,39 @@ function OwnerCopySlot({ slot, note }: { slot: string; note: string }) {
 }
 
 /**
- * The owner-chosen father photo (treatment a, colour, 2026-10-25) waits in the UAT-only father-story slot
- * until the owner's story text arrives; Production builds never render it.
+ * The owner-chosen father photo (treatment a, colour, 2026-10-25) accompanies the UAT story trial.
+ * The story and caption await final owner approval; Production builds never render this photo.
  */
 function FatherPhotoSlot() {
   if (!IS_REVIEW_ENVIRONMENT) return null;
   return (
     <figure className={styles.fatherPhoto} data-uat-placeholder="about-father-photo">
-      <Image src="/assets/ccpun-father-v5-colour.webp" alt={FATHER_PHOTO_ALT} width={1086} height={1448} sizes="(max-width: 899px) calc(100vw - 40px), 420px" />
+      <Image src="/assets/ccpun-father-v5-colour.webp" alt={FATHER_PHOTO_ALT} width={1086} height={1448} sizes="(max-width: 899px) calc(100vw - 40px), 280px" />
+      <figcaption>{FATHER_PHOTO_CAPTION.split("\n").map((line, index) => <span key={line}>{index > 0 ? <br /> : null}{keepFatherPhrase(line)}</span>)}</figcaption>
     </figure>
+  );
+}
+
+/** Match the existing licence-card `keep` mechanism without changing the plain text. */
+function keepFatherPhrase(value: string) {
+  const at = value.indexOf(FATHER_STORY_KEEP);
+  if (at < 0) return value;
+  return <>{value.slice(0, at)}<span className={flipStyles.keep}>{FATHER_STORY_KEEP}</span>{value.slice(at + FATHER_STORY_KEEP.length)}</>;
+}
+
+function FatherStory() {
+  if (!IS_REVIEW_ENVIRONMENT) return null;
+  return (
+    <div className={styles.fatherStory} data-uat-trial="about-father-story">
+      <h3>{FATHER_STORY_HEADING}</h3>
+      <p>{keepFatherPhrase(FATHER_STORY_PARAGRAPHS[0])}</p>
+      <FatherPhotoSlot />
+      <div className={styles.fatherStoryBody}>
+        {FATHER_STORY_PARAGRAPHS.slice(1, 6).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        <ul>{FATHER_STORY_QUESTIONS.map((question) => <li key={question}>{question}</li>)}</ul>
+        <p>{FATHER_STORY_PARAGRAPHS[6]}</p>
+      </div>
+    </div>
   );
 }
 
@@ -125,8 +151,7 @@ export async function renderAboutPage() {
           <div className={styles.story}>
             <OwnerCopySlot slot="about-start-years" note="ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)" />
             <p>{home.node("home.p")}</p>
-            <OwnerCopySlot slot="about-father-story" note="เรื่องคุณพ่อและเหตุผลที่ช่วยคนเรื่องค่ารักษาพยาบาลและความมั่นคงทางการเงิน (รอข้อความจากเจ้าของ)" />
-            <FatherPhotoSlot />
+            <FatherStory />
             <p>{home.node("home.p2")}</p>
             <p>{home.node("home.p3")}</p>
           </div>

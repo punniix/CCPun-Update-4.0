@@ -17,6 +17,7 @@ import { transformSync } from "esbuild";
 // v5 motion round (UAT): result motion, page transition and flip-card contracts.
 import "./website-v5-motion.test.mjs";
 import "./money-story-theme.test.mjs";
+import "./about-father-story.test";
 
 const read = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 const v5Files = [
@@ -604,7 +605,9 @@ test("SEO: /about/ is the approved new owner: self canonical, core sitemap, Prof
   assert.match(page, /"@type": "BreadcrumbList"/);
   // Owner-copy slots render only on UAT/preview, never in a Production build.
   assert.match(page, /function OwnerCopySlot[\s\S]*?if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
-  for (const slot of ["about-hero-sentence", "about-start-years", "about-father-story"]) assert.ok(page.includes(`slot="${slot}"`), slot);
+  for (const slot of ["about-hero-sentence", "about-start-years"]) assert.ok(page.includes(`slot="${slot}"`), slot);
+  assert.match(page, /function FatherStory[\s\S]*?if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
+  assert.match(page, /<FatherStory \/>/);
   assert.doesNotMatch(page, /ฟรี|รับประกัน|ที่สุด|…|\.\.\./, "About content rules: no free, guarantees, superlatives or ellipsis");
   assert.doesNotMatch(page, /lin\.ee|line\.me/, "the page's LINE path is the shared chat button only");
   const core = await import("../apps/web/app/sitemaps/core.xml/route");
