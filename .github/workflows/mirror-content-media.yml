@@ -1,0 +1,73 @@
+name: CCPun Content Media Mirror
+
+on:
+  schedule:
+    # 02:30 Asia/Bangkok every day.
+    - cron: '30 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccpun-content-media-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SANITY_PROJECT_ID: kyfxgjnq
+      SANITY_DATASET: production
+      MIRROR_ROOT: ${{ runner.temp }}/ccpun-content-media-mirror
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Use Node 24
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate mirror credentials
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_BACKUP_READ_TOKEN }}
+          GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON }}
+        run: |
+          test -n "$SANITY_AUTH_TOKEN" || { echo 'Missing SANITY_BACKUP_READ_TOKEN'; exit 1; }
+          test -n "$GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON" || { echo 'Missing GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON'; exit 1; }
+
+      - name: Build readable content and media mirror
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_BACKUP_READ_TOKEN }}
+        run: node scripts/backup/build-content-media-mirror-v2.mjs
+
+      - name: Verify generated mirror
+        run: |
+          test -s "$MIRROR_ROOT/manifest.json"
+          test -d "$MIRROR_ROOT/content/Published"
+          test -d "$MIRROR_ROOT/content/Drafts"
+          find "$MIRROR_ROOT/content" -name article.json -type f | grep -q .
+          find "$MIRROR_ROOT/content" -name article.md -type f | grep -q .
+
+      - name: Sync current readable mirror to CCPun Drive
+        env:
+          GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON }}
+        run: node scripts/backup/sync-content-media-mirror-to-drive.mjs
+
+      - name: Mirror summary
+        run: |
+          {
+            echo '### CCPun Content / Media Mirror'
+            echo ''
+            echo '- Source: Sanity kyfxgjnq/production (raw: Published + Draft variants)'
+            echo '- Content: Drive / 02 — Blog Content'
+            echo '- Media: Drive / 03 — Article Media'
+            echo '- Policy: upsert only; mirror automation never deletes Drive files'
+            echo '- Historical recovery remains the versioned full Sanity .tar.gz archive'
+          } >> "$GITHUB_STEP_SUMMARY"
