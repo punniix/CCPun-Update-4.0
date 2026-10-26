@@ -347,7 +347,7 @@ test("D3/L8 + one LINE button: the dock is visible from load, tucks away below t
   assert.match(dock, /if \(offset > 0\) layerRef\.current\?\.style\.setProperty\("--v5-dock-offset", `\$\{offset\}px`\);\n      else layerRef\.current\?\.style\.removeProperty\("--v5-dock-offset"\);\n      setCookieOffset\(offset\);/);
   assert.match(dock, /new MutationObserver\(\(\) => \{ if \(document\.querySelector\(COOKIE_DIALOG\) !== observed\) measure\(\); else schedule\(\); \}\)/);
   assert.doesNotMatch(dock, /cookieCovers/);
-  assert.match(dock, /const state = open \|\| shown \? "shown" : "hidden";/);
+  assert.match(dock, /const state = typing \? "hidden" : open \|\| shown \? "shown" : "hidden";/);
   // It never stays hidden: back on scroll up, at the page end, and when the panel closes.
   assert.match(dock, /y \+ window\.innerHeight >= document\.documentElement\.scrollHeight - 4/);
   // C8: release the dock immediately, retain the inert exit until animationend/token fallback.
