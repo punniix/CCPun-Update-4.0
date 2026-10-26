@@ -15,11 +15,16 @@ export const metadata: Metadata = {
 };
 
 // Children marked technical are shown in a collapsed "สำหรับทีมเทคนิค" section (owner decision A9).
+// Owner decisions 2026-10-26: the home item is "วันนี้" (5.2) and LINE customers, customer notices
+// and the LINE chat button settings form one "ลูกค้า & LINE" group (5.3).
 const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermission; children?: Array<{ href: string; label: string; permission?: AdminPermission; technical?: boolean }> }> = [
-  { href: "/dashboard/", label: "ภาพรวม", permission: "dashboard:read", children: [
+  { href: "/dashboard/", label: "วันนี้", permission: "dashboard:read", children: [
+      { href: "/dashboard/reviews/", label: "งานรอตรวจ", permission: "reviews:read" },
+  ] },
+  { href: "/dashboard/inbox/", label: "ลูกค้า & LINE", permission: "advisor:read", children: [
       { href: "/dashboard/inbox/", label: "ลูกค้า LINE", permission: "advisor:read" },
       { href: "/dashboard/campaigns/", label: "ข้อความแจ้งลูกค้า", permission: "campaign:read" },
-      { href: "/dashboard/reviews/", label: "งานรอตรวจ", permission: "reviews:read" },
+      { href: "/settings/line-chat/", label: "ปุ่มแชท LINE", permission: "settings:read" },
   ] },
   { href: "/content/", label: "เนื้อหา", permission: "content:read", children: [
       { href: "/content/articles/", label: "บทความ" },

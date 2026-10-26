@@ -7,11 +7,12 @@ const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta
 test("Admin navigation keeps seven primary modules and exposes Social contextually", () => {
   const layout = read("apps/admin/app/(control-plane)/layout.tsx");
   const nav = read("features/admin/components/AdminNavigation.tsx");
-  for (const label of ["ภาพรวม", "เนื้อหา", "SEO", "โซเชียล", "ผลลัพธ์", "สถานะระบบ", "ตั้งค่า"]) {
+  // Owner decisions 2026-10-26: ภาพรวม is now "วันนี้" (5.2) and "ลูกค้า & LINE" joins the primary modules (5.3).
+  for (const label of ["วันนี้", "ลูกค้า & LINE", "เนื้อหา", "SEO", "โซเชียล", "ผลลัพธ์", "สถานะระบบ", "ตั้งค่า"]) {
     assert.ok(layout.includes(`label: "${label}"`), `missing primary module ${label}`);
   }
   assert.match(layout, /href: "\/social\/queue\/", label: "คิวส่งโพสต์"/);
-  assert.match(nav, /<PrimaryModules items=\{items\} pathname=\{pathname\} \/>/);
+  assert.match(nav, /<PrimaryModules items=\{items\} pathname=\{pathname\} activeItem=\{activeItem\} \/>/);
   assert.match(nav, /activeItem\?\.children\?\.length \? <ContextNavigation/);
   assert.match(nav, /aria-label="กลับไปเมนูหลัก"/);
   assert.match(nav, /min-h-11 min-w-11/);

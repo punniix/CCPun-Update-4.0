@@ -6,6 +6,7 @@ import { PUBLIC_COPY_SCOPES, type PublicCopyScope } from "@/lib/content/public-c
 import { getPageSeoPage } from "@/lib/content/page-seo-registry";
 import AdminDataRefresh from "./AdminDataRefresh";
 import AdminNavigation from "./AdminNavigation";
+import AdminThemeToggle from "@/features/admin/components/AdminThemeToggle";
 import { roleLabel } from "@/lib/admin/presentation";
 import type { AdminPermission, AdminRole } from "@/lib/admin/rbac";
 
@@ -20,7 +21,7 @@ export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityL
   ]);
   if (pathname === "/content/website-preview/" || pathname === "/content/website-preview" || pathname?.replace(/\/$/, "") === "/content/website-preview/author-home" || previewPaths.includes(pathname?.replace(/\/$/, "") ?? "")) return <>{children}</>;
   return (
-    <div className="min-h-screen overflow-x-hidden bg-navy-900 text-white">
+    <div className="min-h-screen overflow-x-hidden bg-navy-900 text-white admin-theme-scope">
       <AdminDataRefresh />
       <header className="border-b border-white/10 bg-navy-800/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
@@ -38,6 +39,7 @@ export function AdminProtectedChrome({ title, currentEnvironmentLabel, identityL
               <div className="break-all text-white/80">{identityLabel}</div>
               <div className="text-xs text-white/55">สิทธิ์: {roleLabel(role)}</div>
             </div>
+            <AdminThemeToggle />
             {showLogout ? (
               <form action={logout}>
                 <button type="submit" className="min-h-11 rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white">ออกจากระบบ</button>

@@ -28,6 +28,7 @@ import { ADMIN_NAVIGATION_REDIRECTS, contextualNavigationItems, splitTechnicalNa
 import { LOCAL_AI_FIRST_JOBS, buildArticleSuggestionInput } from "../../lib/local-ai/first-jobs";
 import { LOCAL_AI_TASK_TYPES, localAiTaskInputSchemas } from "../../lib/local-ai/contracts";
 import { hasArticleContentChanges } from "../../cms/sanity/policy/article-publication";
+import { adminOwnerDecisions20261026PredecessorDigest } from "../../qa/admin-owner-decisions-20261026-proof.mjs";
 import { adminCopyFixesPredecessorDigest, adminOps20261025PredecessorDigest, adminOps20261025SourceDigest, adminOps20261025Sources, adminOpsAuditFollowUpSources } from "../../qa/admin-ops-20261025-proof.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -406,8 +407,8 @@ test("2026-10-25 frozen-proof admissions are exact and reject any further edit",
   for (const [file, { before: predecessor, after: successor }] of Object.entries(adminOps20261025Sources)) {
     assert.ok(existsSync(path.join(root, file)), file);
     const current = adminOps20261025SourceDigest(read(file));
-    // Later exact admissions (copy fixes, then the audit follow-up) may replace the successor; each must name the one it replaced.
-    const copyReviewed = adminCopyFixesPredecessorDigest(file, current);
+    // Later exact admissions (owner decisions 2026-10-26, copy fixes, then the audit follow-up) may replace the successor; each must name the one it replaced.
+    const copyReviewed = adminCopyFixesPredecessorDigest(file, adminOwnerDecisions20261026PredecessorDigest(file, current));
     const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file as keyof typeof adminOpsAuditFollowUpSources] : null;
     const digest = followUp && copyReviewed === followUp.after ? followUp.before : copyReviewed;
     assert.equal(digest, successor, `${file} is exactly the reviewed successor`);

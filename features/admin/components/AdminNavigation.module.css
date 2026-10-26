@@ -1,0 +1,117 @@
+/*
+ * Admin phone navigation (owner decision 5.4, 2026-10-26): a bottom tab bar with four buttons
+ * instead of the side drawer. Values follow the FigCraft frame "A00 เมนูบนมือถือ · 390":
+ * 56px rows, 14px labels, one gold indicator on the current tab, and the bar clears the iOS
+ * home indicator with env(safe-area-inset-bottom). Light theme colours live in admin-theme.css.
+ */
+.tabBar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  border-top: 1px solid rgb(255 255 255 / 0.1);
+  background: hsl(0 15% 18%);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.tabRow {
+  display: grid;
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  min-height: 56px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.25rem;
+  border: 0;
+  background: transparent;
+  color: rgb(255 255 255 / 0.72);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  text-align: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab:focus-visible {
+  outline: 3px solid #e0c985;
+  outline-offset: -3px;
+}
+
+.tabActive {
+  color: #f4df9b;
+  font-weight: 600;
+}
+
+.tabActive::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22%;
+  right: 22%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: #e0c985;
+}
+
+/* เมนูทั้งหมด: a full-screen sheet with the same tab bar at the bottom. */
+.sheet {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  border: 0;
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.7);
+}
+
+.sheetBody {
+  height: calc(100dvh - 64px - 56px - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 64rem) {
+  .tabBar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tab {
+    transition: color 150ms ease-out;
+  }
+}
+
+/* Light theme (owner decision 5.5). */
+@media screen {
+  :global(html[data-admin-theme="light"]) .tabBar {
+    border-top-color: rgb(37 24 24 / 0.12);
+    background: #fffdf9;
+  }
+
+  :global(html[data-admin-theme="light"]) .tab {
+    color: #4a3a3a;
+  }
+
+  :global(html[data-admin-theme="light"]) .tabActive {
+    color: #6a4e0f;
+  }
+
+  :global(html[data-admin-theme="light"]) .tabActive::before {
+    background: #a8862f;
+  }
+
+  :global(html[data-admin-theme="light"]) .tab:focus-visible {
+    outline-color: #765612;
+  }
+}
