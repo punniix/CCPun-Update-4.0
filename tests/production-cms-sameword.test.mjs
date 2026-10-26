@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { websiteV5PhaseBRenderGoldens } from '../qa/website-v5-phase-a-proof.mjs';
+import { inverseWebsiteV5C11Header } from '../qa/website-v5-c11-render-successor.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -174,7 +175,7 @@ test('eight original scopes retain exact b871 public HTML, current design and si
       html = html.replace(hint, '');
     }
     // Website v5 Phase B: tool/legal scopes render the v5 shell; their reviewed v5 digest replaces the b871 golden.
-    if (Object.hasOwn(websiteV5PhaseBRenderGoldens.v5, index)) { assert.equal(digest(html), websiteV5PhaseBRenderGoldens.v5[index], `${index}:${scope} (v5)`); continue; }
+    if (Object.hasOwn(websiteV5PhaseBRenderGoldens.v5, index)) { assert.equal(digest(inverseWebsiteV5C11Header(html, index)), websiteV5PhaseBRenderGoldens.v5[index], `${index}:${scope} (v5)` ); continue; }
     html = inverseCanonicalShellLinks(html, scope);
     assert.equal(digest(html),websiteV5PhaseBRenderGoldens.retained[index] ?? baseline[index],`${index}:${scope}`);
   }
@@ -449,4 +450,31 @@ test('native Presentation selects the exact page copy or SEO form for every priv
   for(const requested of ['home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
   const filtered=await route({params:Promise.resolve({scope:'blog'}),searchParams:Promise.resolve({scope:'investment',q:'คำค้น',page:'2'})});assert.deepEqual(await filtered.props.searchParams,{scope:'blog',q:'คำค้น',page:'2'});
   for(const requested of ['investment','seo-site','unknown','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
+});
+
+// C11 inverses only complete approved default-shell renders. Existing literal CMS edit tests
+// above continue to inspect the actual current header, labels, destinations and markup.
+test('C11 header inverse preserves all old goldens and rejects unknown, duplicate, moved and unrelated render mutations', async () => {
+  for (const [index, scope] of [[3, 'ci'], [4, 'fhc'], [8, 'privacy'], [9, 'cookies'], [10, 'moneyStory']]) {
+    const current = await renderFixture(scope, {});
+    const restored = inverseWebsiteV5C11Header(current, index);
+    assert.equal(digest(restored), websiteV5PhaseBRenderGoldens.v5[index]);
+    assert.equal(inverseWebsiteV5C11Header(restored, index), restored, 'exact historical output remains accepted');
+    const header = current.match(/<header\b[^>]*data-v5-header=""[\s\S]*?<\/header>/)?.[0];
+    assert.ok(header);
+    for (const mutation of [
+      current.replace('aria-label="ธีม"', 'aria-label="ธีมเปลี่ยน"'),
+      current.replace(header, header + header),
+      current.replace(header, '') + header,
+      current.replace('</main>', 'unrelated-body-change</main>'),
+      current.replace('aria-checked="true"', 'aria-checked="false"'),
+      current.replace('href="/tools/"', 'href="/unowned/"'),
+    ]) assert.throws(() => inverseWebsiteV5C11Header(mutation, index), /unknown full render/);
+  }
+  const edited = await renderFixture('ci', {}, { overrides: { 'site.nav.home': 'ข้อความเมนูเจ้าของ' } });
+  assert.match(edited, /ข้อความเมนูเจ้าของ/, 'CMS test observes the actual edited label');
+  assert.throws(() => inverseWebsiteV5C11Header(edited, 3), /unknown full render/, 'never replace an edited header with default copy');
+  const current = await renderFixture('ci', {});
+  assert.throws(() => inverseWebsiteV5C11Header(current, 4), /unknown full render/, 'cases cannot borrow a different pin');
+  assert.throws(() => inverseWebsiteV5C11Header(current, 5), /unregistered render case/);
 });

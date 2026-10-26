@@ -110,8 +110,13 @@ test("T01/T04/T05: shell and home links are server-rendered and use the existing
   assert.match(header, /tools\.map\(/, "tool links are in the nav HTML");
   assert.doesNotMatch(header, /\?\s*\(\s*<(?:ul|div)[^>]*dropdown/i, "dropdown markup is never conditionally rendered");
   assert.match(header, /id="mobile-navigation"[^>]*hidden/, "mobile menu links stay in the HTML (hidden attribute only)");
-  // Owner decision 2026-10-25: one LINE OA button per page (the chat dock), so the header has none.
-  assert.doesNotMatch(header, /V5_LINE_URL|lin\.ee|line\.me|data-analytics-location="navbar(?:_mobile)?"/, "no LINE button in the header");
+  // C11 (owner-approved 2026-10-26): the mobile LINE row opens the existing dock contract.
+  assert.match(header, /<V5ChatLink href=\{LINE_OA_CHAT_URL\}[^>]*trigger="dock"/);
+  assert.doesNotMatch(header, /data-analytics-location="navbar(?:_mobile)?"|window\.open|dispatchEvent/, "the shared chat link owns opening and tracking");
+  const mobile = header.slice(header.indexOf('id="mobile-navigation"'));
+  assert.equal((mobile.match(/<Link /g) ?? []).length, 4);
+  assert.doesNotMatch(mobile, /topics\.map|tools\.map|mobileGroupTitle/);
+  assert.match(mobile, /role="switch" aria-checked="true" data-v5-theme-system/);
   const footer = read("components/layout/v5/V5Footer.tsx");
   assert.match(footer, /site\.nav\.topics/, "footer has the topics column");
   assert.match(footer, /<CookieSettingsButton \/>/, "consent can be reopened from every v5 footer");
@@ -311,7 +316,12 @@ test("D2: system (default) / light / dark with a no-flash boot script and guarde
   assert.match(header, /try\{c=localStorage\.getItem/);
   assert.match(header, /<script dangerouslySetInnerHTML=\{\{ __html: THEME_BOOT \}\} \/>/);
   const enhancer = read("components/layout/v5/V5HeaderEnhancer.tsx");
-  assert.match(enhancer, /current === "system" \? "light" : current === "light" \? "dark" : "system"/);
+  assert.match(header, /role="radiogroup" aria-label="ธีม"/);
+  assert.equal((header.match(/role="radio"/g) ?? []).length, 3);
+  assert.match(enhancer, /root\.getAttribute\("data-theme"\) === "light" \? "dark" : "light"/);
+  assert.match(enhancer, /const onSystemClick = \(\) => selectTheme\(root\.getAttribute\("data-theme-choice"\) === "system" \? root\.getAttribute\("data-theme"\) \?\? "dark" : "system"\)/);
+  assert.match(enhancer, /option\.tabIndex = checked \? 0 : -1/);
+  assert.match(enhancer, /"ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End", " ", "Enter"/);
   assert.match(enhancer, /if \(next === "system"\) localStorage\.removeItem\(storageKey\); else localStorage\.setItem\(storageKey, next\);/);
   assert.match(enhancer, /\} catch \{ \/\* Storage is optional\. \*\/ \}/);
   assert.match(enhancer, /scheme\.addEventListener\("change", onSchemeChange\)/);

@@ -266,6 +266,9 @@ test('reduced motion is complete: every v5 motion stylesheet, the page transitio
   assert.match(enhancer, /root\.setAttribute\("data-v5-theme-switching", ""\);\n      applyTheme\(choice\);/);
   assert.match(enhancer, /requestAnimationFrame\(\(\) => root\.removeAttribute\("data-v5-theme-switching"\)\)/);
   assert.match(enhancer, /switchTheme\(next\);/);
+  // C11: only the selected segment moves during a theme swap, using the existing fast token.
+  assert.match(read('components/layout/v5/V5.module.css'), /:global\(html\[data-v5-theme-switching\]\) \.themeSegments::before \{ transition: transform var\(--v5-motion-fast\) var\(--v5-ease-standard\) !important; \}/);
+  assert.match(read('components/layout/v5/V5.module.css'), /@media \(prefers-reduced-motion: reduce\) \{ :global\(html\[data-v5-theme-switching\]\) \.themeSegments::before \{ transition: none !important; \} \}/);
   // Client navigations start the next page at its top (Next 16 opt-in), instead of smooth-scrolling under the morph.
   assert.match(enhancer, /root\.dataset\.scrollBehavior = "smooth";/);
 });
