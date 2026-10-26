@@ -6,7 +6,8 @@ import { readLineChatAdminModel, saveLineChatConfig } from "@/lib/admin/line/cha
 import { hasAdminPermission } from "@/lib/admin/rbac";
 
 // LINE chat button settings (owner-approved 2026-10-25). Same access contract as LINE Discovery:
-// GET needs settings:read; PUT is owner-only, same-origin, JSON and size-bounded.
+// GET needs settings:read; PUT is owner-only, same-origin, JSON and size-bounded (256 KB since
+// 2026-10-26: up to 200 per-page overrides).
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export async function PUT(request: Request) {
   }
 
   const raw = await request.text();
-  if (Buffer.byteLength(raw, "utf8") > 65_536) {
+  if (Buffer.byteLength(raw, "utf8") > 262_144) {
     return NextResponse.json({ error: "payload-too-large" }, { status: 413, headers });
   }
 
@@ -55,8 +56,9 @@ export async function PUT(request: Request) {
   }
 
   try {
+    // Draft save, publish of the draft, discard of the draft, or revert (all owner-only, revision-checked).
     const result = await saveLineChatConfig(body, identity.actor);
-    return NextResponse.json({ status: "saved", revision: result.revision, config: result.config }, { headers });
+    return NextResponse.json({ status: result.kind, revision: result.revision, config: result.config }, { headers });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (code === "LINE_CHAT_INVALID") return NextResponse.json({ error: "invalid-request" }, { status: 400, headers });

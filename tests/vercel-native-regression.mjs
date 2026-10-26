@@ -176,7 +176,9 @@ const v5Primitives = read('components/layout/v5/V5Primitives.tsx');
 // LINE CTAs open the dock's panel and fall back to the page's LINE OA link without JavaScript.
 assert.doesNotMatch(v5ArticlePresentation, /V5ContactBand|analyticsLocation="blog_article"/);
 assert.doesNotMatch(v5Primitives, /V5_LINE_URL|V5ContactBand/);
-assert.match(v5ArticlePresentation, /const chatHref = await getV5ChatFallbackHref\(chatContextForPath\(path\)\);/);
+// 2026-10-26 (LINE chat per page): the article's chat context adds its logical id, live title and semantic topic.
+assert.match(v5ArticlePresentation, /const chatContext = chatContextForArticle\(path, article, topic\?\.slug\);\n[^\n]*\n  const chatHref = await getV5ChatFallbackHref\(chatContext\);/);
+assert.match(v5ArticlePresentation, /<V5Page current=\{path\} chat=\{chatContext\}>/);
 assert.match(read('components/layout/v5/constants.ts'), /V5_LINE_URL = "https:\/\/lin\.ee\/tqLCs4f"/);
 assert.match(v5ArticlePresentation, /renderV5ArticleBody\(article\.body, headingIds, copy, chatHref\)/);
 assert.match(read('features/blog/v5/V5ArticleBody.tsx'), /const id = headingIds\.get\(index\)/);
