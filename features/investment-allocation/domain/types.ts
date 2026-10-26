@@ -127,8 +127,13 @@ export type AdvisorHandoffPayload = {
   created_at: string;
 };
 
+// Where SEC v2 data came from: the stored catalog (Neon, refreshed by the sync job)
+// or a live SEC call. Absent on responses that predate the store.
+export type FundDataOrigin = "store" | "live";
+
 export type FundSearchResponse = {
   mode: "sec_live" | "uat_demo";
+  origin?: FundDataOrigin;
   state: DataState;
   query: string;
   funds: PlanningFund[];
@@ -174,6 +179,7 @@ export type FundCatalogItem = {
 
 export type FundCatalogResponse = {
   source: "sec_v2" | "uat_synthetic" | "unavailable";
+  origin?: FundDataOrigin;
   state: DataState;
   items: FundCatalogItem[];
   nextCursor: string | null;
@@ -230,6 +236,7 @@ export type FundDealingFact = {
 
 export type FundDetailResponse = {
   source: FundSource | "unavailable";
+  origin?: FundDataOrigin;
   state: DataState;
   fund: FundCatalogItem | null;
   classes: FundClassOption[];

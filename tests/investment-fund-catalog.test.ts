@@ -1,5 +1,6 @@
 import "./investment-availability.test.mjs";
 import "./investment-interaction-regression.mjs";
+import "./investment-fund-catalog-store.test.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -20,6 +21,8 @@ import { encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor } from 
 import { amcAllowedInScope, isAiaAmcName } from "../features/investment-allocation/domain/fund-scope";
 import { syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC } from "../features/investment-allocation/server/demo-funds";
 import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../lib/runtime/deployment-contract";
+import { SEC_BASE_URL, SEC_HEADER, SEC_PAGE_SIZE, SEC_PUBLIC_FIELDS } from "../features/investment-allocation/server/sec-projection";
+import { FUND_LIVE_FALLBACK_LEASE_SECONDS, readThroughStore } from "../features/investment-allocation/server/store-fallback";
 
 function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null; fail?: boolean; status?: number; review?: boolean; error?: Error; env?: Record<string, string | undefined>; response?: (url: URL) => Response } = {}) {
   const adapter = readFileSync(resolve(process.cwd(), "features/investment-allocation/server/sec-v2.ts"), "utf8");
@@ -37,6 +40,9 @@ function secAdapter(reply: (url: URL) => unknown, options: { key?: string | null
     console: { warn: (...args: unknown[]) => warnings.push(args) },
     IS_REVIEW_ENVIRONMENT: options.review ?? false, UAT_SYNTHETIC_FUNDS: [], searchDemoFunds: () => [],
     normalizeLiquidity: () => "unknown",
+    SEC_BASE_URL, SEC_HEADER, SEC_PAGE_SIZE, SEC_PUBLIC_FIELDS,
+    // No stored fund catalog in these SEC adapter tests.
+    getFundCatalogStore: () => null, readThroughStore, FUND_LIVE_FALLBACK_LEASE_SECONDS,
     process: { env: {
       SEC_API_PRIMARY_KEY: options.key === undefined ? "synthetic-test-key" : options.key,
       CCPUN_DEPLOYMENT_PROVIDER: "hostinger", CCPUN_DEPLOYMENT_ROLE: "web",

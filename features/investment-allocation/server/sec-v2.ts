@@ -24,10 +24,9 @@ import type {
 } from "../domain/types";
 import { searchDemoFunds, syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC, UAT_SYNTHETIC_FUNDS } from "./demo-funds";
 import { encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor } from "./catalog-cursor";
-
-const SEC_BASE_URL = "https://api.sec.or.th";
-const SEC_HEADER = "Ocp-Apim-Subscription-Key";
-const SEC_PAGE_SIZE = 100;
+import { SEC_BASE_URL, SEC_HEADER, SEC_PAGE_SIZE, SEC_PUBLIC_FIELDS } from "./sec-projection";
+import { getFundCatalogStore, type StoredCatalog, type StoredFund } from "./fund-catalog-store";
+import { FUND_LIVE_FALLBACK_LEASE_SECONDS, readThroughStore } from "./store-fallback";
 const CATALOG_PAGE_SIZE = 20;
 // Upper bound on upstream SEC profile pages one catalog request may scan.
 const MAX_CATALOG_SEC_PAGES_PER_REQUEST = 16;
@@ -41,6 +40,13 @@ const MULTI_PAGE_BUDGET_MS = 20_000;
 // already cached for 24 h by secGet. Only a successful, unambiguous match is kept.
 const AIA_AMC_ID_TTL_MS = 6 * 60 * 60 * 1000;
 const AIA_UNRESOLVED_MESSAGE = "ยังระบุ บลจ. เอไอเอ จากข้อมูล ก.ล.ต. ไม่ได้ชั่วคราว";
+// Stored catalog (Neon ccpun_fund, written by the private VPS sync job). New copy
+// pending owner approval (2026-10-26).
+const AIA_STORE_BUSY_MESSAGE = "กำลังอัปเดตข้อมูลกองทุน กรุณาลองใหม่อีกครั้งในอีกสักครู่";
+const AIA_STORE_STALE_MESSAGE = "ข้อมูลกองทุนอาจยังไม่อัปเดตล่าสุด";
+const AIA_FUND_HIDDEN_WARNING = "กองทุนนี้ยกเลิกหรือควบรวมแล้วตามข้อมูล ก.ล.ต. จึงไม่แสดงในเครื่องมือนี้";
+// Marks a catalog cursor issued from the stored catalog; it never reaches SEC.
+const STORE_CURSOR = "ccpun-store-v1";
 
 type SecEnvelope = {
   message?: unknown;
@@ -188,18 +194,6 @@ function normalizeSettlementBucket(raw: string | null) {
   if (/^T\+3\b/.test(value)) return "T+3" as const;
   return normalizeLiquidity(raw);
 }
-
-// Keep original row positions: catalog cursors refer to upstream offsets, including
-// rows rejected by later validation. Only public fields consumed below are stored.
-const SEC_PUBLIC_FIELDS = [
-  "proj_id", "proj_abbr_name", "proj_name_th", "proj_name_en", "unique_id",
-  "comp_name_th", "comp_name_en", "fund_status", "policy_desc", "invest_country_flag",
-  "management_style", "feederfund_master_fund", "feederfund_country", "last_upd_date",
-  "fund_class_name", "fund_class_detail", "fund_class_description",
-  "fund_class_tax_incentive_type", "fund_class_isin_code", "spec_code", "spec_desc",
-  "risk_spectrum", "risk_spectrum_desc", "start_date", "end_date", "prospectus_type",
-  "asset_name", "asset_ratio", "type", "period", "redemp_period_oth", "settlement_period",
-] as const;
 
 class UncachedSecEnvelope extends Error {
   constructor(readonly envelope: SecEnvelope) {
@@ -384,6 +378,113 @@ function demoCatalogItems(): FundCatalogItem[] {
   });
 }
 
+// ---------- Stored catalog for the บลจ. เอไอเอ tool (Neon ccpun_fund) ----------
+
+type AiaCatalogSnapshot = { fetchedAt: string; amcId: string; items: FundCatalogItem[] };
+
+function activeOrFirst(rows: Record<string, unknown>[]): Record<string, unknown> | undefined {
+  return rows.find((row) => row.fund_status === "Registered" || row.fund_status === "IPO") ?? rows[0];
+}
+
+function storedProfileRows(projectId: string, rows: unknown[]): Record<string, unknown>[] {
+  return rows.map(asRecord).filter((row): row is Record<string, unknown> => Boolean(row) && asString(row!.proj_id) === projectId);
+}
+
+function snapshotFromStore(stored: StoredCatalog): AiaCatalogSnapshot {
+  const seen = new Set<string>();
+  const items = stored.funds.flatMap((fund) => {
+    const item = normalizeCatalogItem(activeOrFirst(storedProfileRows(fund.projectId, fund.profileRows)));
+    // The stored scope is AIA; the per-row AMC name check still applies.
+    if (!item || seen.has(item.projectId) || !amcAllowedInScope("aia", item.amcNameTh, item.amcNameEn)) return [];
+    seen.add(item.projectId);
+    return [item];
+  });
+  return { fetchedAt: stored.fetchedAt, amcId: stored.amc.id, items };
+}
+
+// Live fallback: the whole current AIA list in one pass (Registered, then IPO), so the
+// same local filters and cursor apply as for the stored catalog. Throws on failure.
+async function liveAiaSnapshot(key: string): Promise<AiaCatalogSnapshot> {
+  const amcId = await getAiaAmcId();
+  if (!amcId) throw new Error("aia_amc_unresolved");
+  const items: FundCatalogItem[] = [];
+  const seen = new Set<string>();
+  const startedAt = Date.now();
+  for (const status of ACTIVE_STATUSES) {
+    let cursor = "";
+    for (let page = 0; page < 10; page += 1) {
+      if (Date.now() - startedAt > MULTI_PAGE_BUDGET_MS) throw new Error("sec_budget_exceeded");
+      const params = new URLSearchParams({ page_size: String(SEC_PAGE_SIZE), fund_status: status, company_info: amcId });
+      if (cursor) params.set("next_cursor", cursor);
+      const envelope = await secGet(`/v2/fund/general-info/profiles?${params.toString()}`, key);
+      for (const raw of asItems(envelope)) {
+        const item = normalizeCatalogItem(raw);
+        if (!item || seen.has(item.projectId) || !amcAllowedInScope("aia", item.amcNameTh, item.amcNameEn)) continue;
+        seen.add(item.projectId);
+        items.push(item);
+      }
+      cursor = asString(envelope.next_cursor) ?? "";
+      if (!cursor) break;
+    }
+  }
+  return { fetchedAt: new Date().toISOString(), amcId, items };
+}
+
+function pageAiaSnapshot(snapshot: AiaCatalogSnapshot, filters: { query: string; category: FundCatalogCategory | "all"; subcategory: FundCatalogSubcategory; cursor: string | null; limit: number },
+  meta: { stale: boolean; origin: "store" | "live" }): FundCatalogResponse {
+  const { query, category, subcategory, limit } = filters;
+  const needle = query.toLowerCase();
+  const matching = snapshot.items.filter((item) =>
+    (!needle || `${item.projectId} ${item.abbreviation} ${item.nameTh} ${item.nameEn ?? ""}`.toLowerCase().includes(needle))
+    && (category === "all" || item.category === category)
+    && matchesGeography(item, subcategory));
+  const cursor = filters.cursor ? parseCatalogCursor(filters.cursor) : null;
+  const resumeAt = cursor?.secCursor === STORE_CURSOR && cursor.skipProjectId
+    ? matching.findIndex((item) => item.projectId === cursor.skipProjectId) + 1
+    : 0;
+  const items = matching.slice(resumeAt, resumeAt + limit);
+  const hasMore = resumeAt + items.length < matching.length && items.length > 0;
+  return {
+    source: "sec_v2",
+    state: meta.stale ? "stale" : items.length ? "fresh" : "unavailable",
+    origin: meta.origin,
+    items,
+    nextCursor: hasMore ? encodeCatalogCursor({ statusIndex: 0, secCursor: STORE_CURSOR, offset: 0, skipProjectId: items[items.length - 1].projectId }) : null,
+    hasMore,
+    query,
+    category,
+    subcategory,
+    amcId: snapshot.amcId,
+    fetchedAt: snapshot.fetchedAt,
+    message: meta.stale ? AIA_STORE_STALE_MESSAGE : items.length ? null : "ไม่พบกองทุนที่ตรงกับตัวกรองนี้",
+  };
+}
+
+/**
+ * AIA catalog from the stored snapshot. Returns null when this lane has no store, or
+ * when nothing is stored and no SEC key exists, so the existing path still answers.
+ */
+async function aiaCatalogFromStore(filters: { query: string; category: FundCatalogCategory | "all"; subcategory: FundCatalogSubcategory; cursor: string | null; limit: number },
+  key: string | null): Promise<FundCatalogResponse | null> {
+  const store = getFundCatalogStore();
+  if (!store) return null;
+  const result = await readThroughStore<StoredCatalog, AiaCatalogSnapshot>({
+    read: () => store.readCatalog("aia"),
+    fetchedAt: (stored) => stored.fetchedAt,
+    claim: () => store.claimLiveFallback("aia:catalog", FUND_LIVE_FALLBACK_LEASE_SECONDS),
+    live: () => (key ? liveAiaSnapshot(key) : Promise.reject(new Error("sec_key_missing"))),
+    liveUsable: (snapshot) => snapshot.items.length > 0,
+    flightKey: "aia:catalog",
+  });
+  if (result.kind === "busy") {
+    if (!key) return null;
+    const { query, category, subcategory } = filters;
+    return { source: "unavailable", state: "unavailable", items: [], nextCursor: null, hasMore: false, query, category, subcategory, amcId: null, fetchedAt: new Date().toISOString(), message: AIA_STORE_BUSY_MESSAGE };
+  }
+  if (result.kind === "live") return pageAiaSnapshot(result.value, filters, { stale: false, origin: "live" });
+  return pageAiaSnapshot(snapshotFromStore(result.value), filters, { stale: result.stale, origin: "store" });
+}
+
 export async function listFundCatalog(options: {
   query?: string;
   category?: FundCatalogCategory | "all";
@@ -401,6 +502,12 @@ export async function listFundCatalog(options: {
   let amcId = options.amcId?.trim() || null;
   const limit = Math.min(40, Math.max(8, options.limit ?? CATALOG_PAGE_SIZE));
   const key = getSubscriptionKey();
+
+  if (scope === "aia") {
+    // The AIA tool reads the stored catalog when this Web lane has one (null otherwise).
+    const stored = await aiaCatalogFromStore({ query, category, subcategory, cursor: options.cursor ?? null, limit }, key);
+    if (stored) return stored;
+  }
 
   if (!key) {
     if (!isReviewLikeEnvironment()) {
@@ -428,7 +535,9 @@ export async function listFundCatalog(options: {
 
   try {
     // Routes reject malformed cursors; anything else that slips through restarts at page one.
-    const start = (options.cursor ? parseCatalogCursor(options.cursor) : null) ?? INITIAL_CATALOG_CURSOR;
+    const parsedCursor = options.cursor ? parseCatalogCursor(options.cursor) : null;
+    // A stored-catalog cursor is meaningless to SEC: restart at page one.
+    const start = parsedCursor && parsedCursor.secCursor !== STORE_CURSOR ? parsedCursor : INITIAL_CATALOG_CURSOR;
     const results: FundCatalogItem[] = [];
     const seen = new Set<string>();
     let statusIndex: number = start.statusIndex;
@@ -574,19 +683,38 @@ export async function getFundDetail(projectId: string, requestedClassName?: stri
     }
   }
   const key = getSubscriptionKey();
+  if (scope === "aia" && /^M\d{4}_\d{4}$/.test(projectId)) {
+    // The AIA tool reads stored facts when this Web lane has a store (null otherwise).
+    const stored = await aiaDetailFromStore(projectId, requestedClassName ?? null, key);
+    if (stored) return stored;
+  }
   if (!key || !/^M\d{4}_\d{4}$/.test(projectId)) {
     return { source: "unavailable", state: "unavailable", fund: null, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt, warnings: ["ข้อมูลรายละเอียดกองทุนยังไม่พร้อมใช้งาน"], endpointStates: {} };
   }
+  return liveFundDetail(projectId, requestedClassName ?? null, scope, key);
+}
 
+async function liveFundDetail(projectId: string, requestedClassName: string | null, scope: FundScope, key: string): Promise<FundDetailResponse> {
+  const fetchedAt = new Date().toISOString();
   const encoded = encodeURIComponent(projectId);
-  const [profileResult, specificationResult, riskResult, allocationResult, dealingResult] = await Promise.all([
+  const [profile, specification, risk, allocation, dealing] = await Promise.all([
     settledEnvelope(`/v2/fund/general-info/profiles?project_info=${encoded}&page_size=100`, key),
     settledEnvelope(`/v2/fund/general-info/specifications?proj_id=${encoded}&page_size=100`, key),
     settledEnvelope(`/v2/fund/factsheet/risk-spectrum?proj_id=${encoded}&latest=true&page_size=100`, key),
     settledEnvelope(`/v2/fund/factsheet/asset-allocation?proj_id=${encoded}&latest=true&page_size=100`, key),
     settledEnvelope(`/v2/fund/factsheet/subscription-redemption-periods?proj_id=${encoded}&latest=true&page_size=100`, key),
   ]);
+  return buildFundDetail(projectId, requestedClassName, scope, { profile, specification, risk, allocation, dealing }, { fetchedAt });
+}
 
+type EndpointRows = { state: "ok" | "empty" | "unavailable"; items: unknown[] };
+
+// Shared by the live adapter and the stored catalog: both hold the same SEC v2 rows.
+function buildFundDetail(projectId: string, requestedClassName: string | null, scope: FundScope,
+  results: { profile: EndpointRows; specification: EndpointRows; risk: EndpointRows; allocation: EndpointRows; dealing: EndpointRows },
+  meta: { fetchedAt: string; stale?: boolean; origin?: "store" | "live" }): FundDetailResponse {
+  const fetchedAt = meta.fetchedAt;
+  const { profile: profileResult, specification: specificationResult, risk: riskResult, allocation: allocationResult, dealing: dealingResult } = results;
   // project_info is a search parameter; keep only rows for the exact requested project.
   const profileRows = profileResult.items.map(asRecord)
     .filter((row): row is Record<string, unknown> => Boolean(row) && asString(row!.proj_id) === projectId);
@@ -678,9 +806,66 @@ export async function getFundDetail(projectId: string, requestedClassName?: stri
     ...assetAllocation.map((row) => row.sourceDate),
     dealing?.sourceDate,
   ]);
-  const state = fund && risk && assetAllocation.length ? (Object.values(endpointStates).includes("unavailable") ? "partial" : "fresh") : "partial";
+  const computed = fund && risk && assetAllocation.length ? (Object.values(endpointStates).includes("unavailable") ? "partial" : "fresh") : "partial";
+  const state = meta.stale && computed === "fresh" ? "stale" : computed;
+  if (meta.stale) warnings.push(AIA_STORE_STALE_MESSAGE);
 
-  return { source: "sec_v2", state, fund, classes, selectedClassName, specifications, risk, assetAllocation, dealing, dataDate, fetchedAt, warnings, endpointStates };
+  return { source: "sec_v2", state, ...(meta.origin ? { origin: meta.origin } : {}), fund, classes, selectedClassName, specifications, risk, assetAllocation, dealing, dataDate, fetchedAt, warnings, endpointStates };
+}
+
+function hiddenFundDetail(fetchedAt: string): FundDetailResponse {
+  return { source: "unavailable", state: "unavailable", origin: "store", fund: null, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt, warnings: [AIA_FUND_HIDDEN_WARNING], endpointStates: {} };
+}
+
+function detailFromStoredFund(projectId: string, requestedClassName: string | null, stored: StoredFund, stale: boolean): FundDetailResponse {
+  if (!stored.visible) return hiddenFundDetail(stored.catalogFetchedAt);
+  const detail = stored.detail;
+  const rows = (items: unknown[] | undefined, state: "ok" | "empty" | undefined): EndpointRows => ({ state: state ?? (items?.length ? "ok" : "empty"), items: items ?? [] });
+  return buildFundDetail(projectId, requestedClassName, "aia", {
+    profile: { state: "ok", items: stored.profileRows },
+    specification: rows(detail?.specification, detail?.endpointStates.specification),
+    risk: rows(detail?.risk, detail?.endpointStates.risk),
+    allocation: rows(detail?.allocation, detail?.endpointStates.allocation),
+    dealing: rows(detail?.dealing, detail?.endpointStates.dealing),
+  }, { fetchedAt: stored.detailFetchedAt ?? stored.profileFetchedAt, stale, origin: "store" });
+}
+
+/**
+ * AIA fund detail from the store. Hidden (cancelled/merged/unlisted) funds answer
+ * from the store at once. Returns null when this lane has no store, or when nothing
+ * usable is stored and no SEC key exists, so the existing path still answers.
+ */
+async function aiaDetailFromStore(projectId: string, requestedClassName: string | null, key: string | null): Promise<FundDetailResponse | null> {
+  const store = getFundCatalogStore();
+  if (!store) return null;
+  const result = await readThroughStore<StoredFund, FundDetailResponse>({
+    read: () => store.readFund("aia", projectId),
+    // A hidden fund is a definitive stored answer; a visible one needs stored detail.
+    fetchedAt: (stored) => (!stored.visible ? new Date().toISOString() : stored.detail ? stored.detailFetchedAt : null),
+    claim: () => store.claimLiveFallback("aia:detail", FUND_LIVE_FALLBACK_LEASE_SECONDS),
+    live: () => (key ? liveFundDetail(projectId, requestedClassName, "aia", key) : Promise.reject(new Error("sec_key_missing"))),
+    liveUsable: (detail) => detail.source === "sec_v2" && Boolean(detail.fund),
+    flightKey: `aia:detail:${projectId}:${requestedClassName ?? ""}`,
+  });
+  if (result.kind === "busy") {
+    if (!key) return null;
+    return { source: "unavailable", state: "unavailable", fund: null, classes: [], selectedClassName: null, specifications: [], risk: null, assetAllocation: [], dealing: null, dataDate: null, fetchedAt: new Date().toISOString(), warnings: [AIA_STORE_BUSY_MESSAGE], endpointStates: {} };
+  }
+  if (result.kind === "live") return { ...result.value, origin: "live" };
+  return detailFromStoredFund(projectId, requestedClassName, result.value, result.stale);
+}
+
+/** Latest stored risk level for a fund, without calling SEC. */
+async function storedRisk(projectId: string): Promise<{ level: number | null; sourceDate: string | null; snapshotId: string } | null> {
+  const store = getFundCatalogStore();
+  if (!store) return null;
+  try {
+    const stored = await store.readFund("aia", projectId);
+    const latest = stored?.detail?.risk.map(normalizeRisk).find((row): row is SecRiskRow => Boolean(row)) ?? null;
+    return latest ? { level: riskLevel(latest.risk_spectrum), sourceDate: latest.start_date, snapshotId: `sec-v2:risk-spectrum:${projectId}:${latest.start_date ?? "unknown"}` } : null;
+  } catch {
+    return null;
+  }
 }
 
 async function loadLatestRisk(projectId: string, key: string): Promise<{ level: number | null; sourceDate: string | null; snapshotId: string }> {
@@ -720,6 +905,22 @@ export async function searchPlanningFunds(query: string, scope: FundScope = "mai
   const fetchedAt = new Date().toISOString();
   const key = getSubscriptionKey();
   if (!normalizedQuery) return { mode: key ? "sec_live" : "uat_demo", state: "unavailable", query: "", funds: [], message: "กรอกชื่อกองหรือชื่อย่อเพื่อค้นหา", fetchedAt };
+
+  if (scope === "aia" && getFundCatalogStore()) {
+    // Stored AIA catalog: profiles and risk come from the store; SEC is not called.
+    const catalog = await aiaCatalogFromStore({ query: normalizedQuery, category: "all", subcategory: "all", cursor: null, limit: 8 }, key);
+    if (catalog && catalog.source !== "sec_v2") return { mode: "sec_live", state: "unavailable", query: normalizedQuery, funds: [], message: catalog.message, fetchedAt };
+    if (catalog) {
+      const origin = catalog.origin === "store" ? "store" : "live";
+      const funds = await Promise.all(catalog.items.map(async (profile) => {
+        if (origin === "store" || !key) return profileToPlanningFund(profile, await storedRisk(profile.projectId), catalog.fetchedAt);
+        try { return profileToPlanningFund(profile, await loadLatestRisk(profile.projectId, key), catalog.fetchedAt); }
+        catch { return profileToPlanningFund(profile, null, catalog.fetchedAt); }
+      }));
+      return { mode: "sec_live", origin, state: funds.length ? (catalog.state === "stale" ? "stale" : "partial") : "unavailable", query: normalizedQuery, funds,
+        message: funds.length ? "ผลค้นหาจากข้อมูลกองทุนของ ก.ล.ต." : "ไม่พบกองทุนจากคำค้นนี้", fetchedAt: catalog.fetchedAt };
+    }
+  }
 
   if (!key) {
     if (!isReviewLikeEnvironment()) return { mode: "sec_live", state: "unavailable", query: normalizedQuery, funds: [], message: "บริการค้นหาข้อมูลกองทุนยังไม่พร้อมใช้งาน", fetchedAt };

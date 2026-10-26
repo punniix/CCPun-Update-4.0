@@ -12,6 +12,9 @@ import { encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor } from 
 import { amcAllowedInScope, isAiaAmcName } from "../../../features/investment-allocation/domain/fund-scope";
 import { searchDemoFunds, syntheticAmcFor, UAT_SYNTHETIC_AIA_AMC, UAT_SYNTHETIC_FUNDS } from "../../../features/investment-allocation/server/demo-funds";
 import { enforceInvestmentApiRateLimit, InvestmentApiRateLimiter, type InvestmentApiRoute } from "../../../features/investment-allocation/server/rate-limit";
+import { SEC_BASE_URL, SEC_HEADER, SEC_PAGE_SIZE, SEC_PUBLIC_FIELDS } from "../../../features/investment-allocation/server/sec-projection";
+import { FUND_LIVE_FALLBACK_LEASE_SECONDS, readThroughStore } from "../../../features/investment-allocation/server/store-fallback";
+import type { FundCatalogStoreReader } from "../../../features/investment-allocation/server/fund-catalog-store";
 import { deploymentContractFailures, getDeploymentLaneByEnvironment } from "../../../lib/runtime/deployment-contract";
 
 // Parsed JSON response bodies are inspected loosely by the tests.
@@ -75,7 +78,7 @@ export function fixtureSec(overrides: { fail?: (url: URL) => number | Error | nu
   return { fetch, calls };
 }
 
-export function adapter(sec: ReturnType<typeof fixtureSec>, options: { key?: string | null; lane?: "production" | "web-uat"; now?: () => number } = {}) {
+export function adapter(sec: ReturnType<typeof fixtureSec>, options: { key?: string | null; lane?: "production" | "web-uat"; now?: () => number; store?: FundCatalogStoreReader | null } = {}) {
   const lane = options.lane ?? "production";
   const review = lane === "web-uat";
   const now = options.now;
@@ -88,6 +91,9 @@ export function adapter(sec: ReturnType<typeof fixtureSec>, options: { key?: str
     encodeCatalogCursor, INITIAL_CATALOG_CURSOR, parseCatalogCursor,
     deploymentContractFailures, getDeploymentLaneByEnvironment,
     IS_REVIEW_ENVIRONMENT: review, UAT_SYNTHETIC_FUNDS, searchDemoFunds,
+    SEC_BASE_URL, SEC_HEADER, SEC_PAGE_SIZE, SEC_PUBLIC_FIELDS,
+    // No stored catalog unless a test supplies one: the existing live paths stay as they were.
+    getFundCatalogStore: () => options.store ?? null, readThroughStore, FUND_LIVE_FALLBACK_LEASE_SECONDS,
     console: { warn: () => {} },
     process: { env: {
       SEC_API_PRIMARY_KEY: options.key === undefined ? "fixture-key" : options.key ?? undefined,
@@ -98,7 +104,7 @@ export function adapter(sec: ReturnType<typeof fixtureSec>, options: { key?: str
   });
 }
 
-export function routeHandler(name: Route, sec: ReturnType<typeof fixtureSec>, options: { enabled?: boolean; lane?: "production" | "web-uat"; key?: string | null; limiter?: InvestmentApiRateLimiter; now?: () => number } = {}) {
+export function routeHandler(name: Route, sec: ReturnType<typeof fixtureSec>, options: { enabled?: boolean; lane?: "production" | "web-uat"; key?: string | null; limiter?: InvestmentApiRateLimiter; now?: () => number; store?: FundCatalogStoreReader | null } = {}) {
   const limiter = options.limiter ?? new InvestmentApiRateLimiter();
   const text = executable(`apps/web/app/api/investment-allocation/${name}/route.ts`)
     .replace('await import("@/features/investment-allocation/server/sec-v2")', "__loadSEC()");
@@ -109,7 +115,7 @@ export function routeHandler(name: Route, sec: ReturnType<typeof fixtureSec>, op
     process: { env: { CCPUN_APP_ENV: lane } },
     Response, Request, URL, Number, parseCatalogCursor,
     enforceInvestmentApiRateLimit: (request: Request, routeName: InvestmentApiRoute) => enforceInvestmentApiRateLimit(request, routeName, limiter),
-    __loadSEC: () => adapter(sec, { key: options.key, lane, now: options.now }),
+    __loadSEC: () => adapter(sec, { key: options.key, lane, now: options.now, store: options.store }),
   });
   return GET as (request: Request) => Promise<Response>;
 }
