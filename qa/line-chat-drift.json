@@ -1,0 +1,15 @@
+{
+  "description": "SHA-256 of the Admin LINE chat files shared with the v5 branch. tests/admin/line-chat-release-gate.test.ts fails when this branch (or, when the ref is available, the v5 branch) differs. Refresh: copy the files from the v5 ref, then run `node scripts/line-chat-drift.mjs --refresh`.",
+  "sourceRef": "origin/codex/website-v5-uat-20261025",
+  "sourceCommit": "79cc61a35304aa373633220c0da5946c46a6310e",
+  "files": {
+    "apps/admin/app/(control-plane)/settings/line-chat/page.tsx": "16a49b16e362f0906a7eb31fb73adeeafc6e6bb1ae4b73b8b89e914de2e4c6ba",
+    "apps/admin/app/api/admin/line/chat/route.ts": "a959e9d9fef00b12737a079b9edddbc2bd21f806d584521dcce9e8dd73f414c6",
+    "cms/sanity/schema/documents/line-chat-config.ts": "d16fba533036e246808e48b6e1529a2084c12752c50e63397572e7cda36a9767",
+    "features/admin/line/LineChatManager.tsx": "c74f53e3d24b6d3efcd1f6891cd2d932ae0c96f3186dbdfcf0ca9d14de5da72c",
+    "lib/admin/line/chat-config.ts": "9c805da5cb2d6e3d2c1bd361b1e1632bc817126df59312658fb24ac8cbd3126a",
+    "lib/line/chat-config.ts": "e4ef74c36027dc7e724385504ebc6892d48a7213b27cc0323877460b21e42ebb",
+    "lib/line/chat-panel.ts": "af511adc66ef0a7056d848976776d2ae7ada92cd37f51e3115ecc8c965868990",
+    "lib/line/oa-link.ts": "13bf5a6f90401220359c1161c246ab6d7aceeeeca460450d36f4f91e0817c3a0"
+  }
+}
