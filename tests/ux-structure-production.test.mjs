@@ -126,26 +126,66 @@ function closure(entries) {
   return seen;
 }
 const forbidden = /(?:uat-tax-table-fixture|uat-public-article-snapshots|uat-public-snapshot|investment-allocation)/;
+const investmentAvailabilityPath = 'lib/runtime/investment-availability.ts';
+const reviewedInvestmentAvailabilityDigest = '34938dba75d9bdeb14f2bb33dabee8b9559633b95605b2e8a559e43cac438682';
+// Owner-approved v5 Investment Allocation port (2026-10-24): exactly these entries may
+// reach the feature, and each one is gated by the server availability flag.
+const gatedInvestmentEntries = [
+  'apps/web/app/api/investment-allocation/amcs/route.ts',
+  'apps/web/app/api/investment-allocation/catalog/route.ts',
+  'apps/web/app/api/investment-allocation/detail/route.ts',
+  'apps/web/app/api/investment-allocation/funds/route.ts',
+  'apps/web/app/tools/investment-allocation/page.tsx',
+];
 
 test('all actual Root/Web entry imports exclude UAT content and separated Investment features', () => {
   const entries = files('apps/web/app').filter(file => /(?:page|route|layout|not-found|robots)\.[jt]sx?$/.test(file));
+  const investmentEntries = entries.filter(file => file.includes('investment-allocation'));
+  assert.deepEqual([...investmentEntries].sort(), gatedInvestmentEntries, 'only the reviewed gated Investment entries exist');
   const publicRoots = ['app/layout.tsx','app/page.tsx','app/blog/page.tsx','app/blog/[category]/page.tsx','app/blog/[category]/[slug]/page.tsx','app/ci-planning/page.tsx','app/tools/financial-health-check/page.tsx','app/play/money-story/page.tsx','app/cookie-policy/page.tsx','app/privacy/page.tsx','app/not-found.tsx','app/sitemap.xml/route.ts','app/sitemaps/core.xml/route.ts','app/sitemaps/blog.xml/route.ts','app/sitemaps/tools.xml/route.ts'];
   assert(entries.length > 10);
-  for (const file of closure([...entries, ...publicRoots])) assert.doesNotMatch(file, forbidden, file);
-  for (const directory of ['features/investment-allocation','apps/web/app/tools/investment-allocation','apps/web/app/api/investment-allocation','app/tools/investment-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
+  for (const file of closure([...entries.filter(file => !investmentEntries.includes(file)), ...publicRoots])) assert.doesNotMatch(file, forbidden, file);
+  for (const file of closure(investmentEntries)) assert.doesNotMatch(file, /(?:uat-tax-table-fixture|uat-public-article-snapshots|uat-public-snapshot)/, file);
+  for (const file of gatedInvestmentEntries) {
+    const owner = file.endsWith('page.tsx') ? 'features/investment-allocation/page.tsx' : file;
+    assert.match(read(owner), /if \(!INVESTMENT_ALLOCATION_ENABLED\) (?:notFound\(\);|\{)/, `${file} must close before rendering or SEC access`);
+  }
+  for (const directory of ['app/tools/investment-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
   for (const file of ['lib/content/uat-tax-table-fixture.ts','lib/content/uat-tax-table-fixture.json','lib/content/uat-public-article-snapshots.json']) assert.equal(existsSync(resolve(root, file)), false, file);
 });
 
-test('Investment release capability remains false even with explicit environment1 and cannot enter navigation/sitemap/meta', () => {
-  const source = read('lib/runtime/investment-availability.ts');
+test('Investment release capability stays off in Production unless exactly 1 and cannot enter navigation/sitemap/meta', () => {
+  const source = read(investmentAvailabilityPath);
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  const before = process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED;
-  try {
-    process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = '1';
+  // Minimal explicit-lane resolver; the real resolveContentEnvironment is exercised
+  // with this module in tests/investment-availability.test.mjs.
+  const lane = { resolveContentEnvironment: explicit => explicit?.trim() || 'development' };
+  const load = () => {
     const loaded = { exports: {} };
-    new Function('require','module','exports',compiled)(id => { assert.equal(id, 'server-only'); return {}; },loaded,loaded.exports);
-    assert.equal(loaded.exports.INVESTMENT_ALLOCATION_ENABLED, false);
-  } finally { if (before === undefined) delete process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED; else process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = before; }
+    new Function('require','module','exports',compiled)(id => {
+      if (id === 'server-only') return {};
+      assert.equal(id, '../content/sanity-lane');
+      return lane;
+    },loaded,loaded.exports);
+    return loaded.exports;
+  };
+  const before = { flag: process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED, env: process.env.CCPUN_APP_ENV };
+  try {
+    process.env.CCPUN_APP_ENV = 'production';
+    for (const value of [undefined, '', 'true', 'yes', ' 1', '01']) {
+      if (value === undefined) delete process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED; else process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = value;
+      assert.equal(load().INVESTMENT_ALLOCATION_ENABLED, false, `Production with flag ${JSON.stringify(value)}`);
+    }
+    process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = '1';
+    assert.equal(load().INVESTMENT_ALLOCATION_ENABLED, true, 'Production opens only on the exact owner flag');
+    process.env.CCPUN_INVESTMENT_ALLOCATION_ENABLED = '0';
+    process.env.CCPUN_APP_ENV = 'web-uat';
+    assert.equal(load().INVESTMENT_ALLOCATION_ENABLED, false, 'kill switch closes Web UAT');
+  } finally {
+    for (const [name, value] of [['CCPUN_INVESTMENT_ALLOCATION_ENABLED', before.flag], ['CCPUN_APP_ENV', before.env]]) {
+      if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    }
+  }
   for (const file of ['components/layout/website-43/Website43Navbar.tsx','components/layout/website-43/Website43Shared.tsx','features/home/website-43/Website43Home.tsx','features/home/website-43/Website43HomeStatic.tsx','lib/nav-config.json','public/nav-config.json', ...files('apps/web/app/sitemaps')]) assert.doesNotMatch(read(file), /investment-allocation|INVESTMENT_TOOL_LINK/, file);
 });
 
@@ -154,6 +194,10 @@ function packageBeforePostPublishScripts(source) {
   const sameWordTest=' && node --test tests/production-cms-sameword.test.mjs';
   assert.equal(manifest.scripts['test:foundation-contracts'].split(sameWordTest).length,2,'same-word frozen render and metadata checks must run exactly once');
   manifest.scripts['test:foundation-contracts']=manifest.scripts['test:foundation-contracts'].replace(sameWordTest,'');
+  // Owner-approved Investment Allocation port (2026-10-24): its offline regression suite runs exactly once.
+  const investmentTests=' && node --import tsx --test tests/investment-allocation-regression.test.ts tests/investment-fund-catalog.test.ts tests/investment-rate-limit.test.ts tests/investment-allocation-units.test.ts tests/investment-allocation-api.test.ts tests/investment-allocation-live-script.test.ts';
+  assert.equal(manifest.scripts['test:foundation-contracts'].split(investmentTests).length,2,'the Investment offline suite must run exactly once');
+  manifest.scripts['test:foundation-contracts']=manifest.scripts['test:foundation-contracts'].replace(investmentTests,'');
   const addedStaticChecks = " && npm run test:calculators && npm run test:sitemap-google && npm run test:home-lcp && npm run test:seo-topic-hubs";
   assert.ok(manifest.scripts["check:foundation"].endsWith(addedStaticChecks), "all existing static CI gates must also run locally");
   manifest.scripts["check:foundation"] = manifest.scripts["check:foundation"].slice(0, -addedStaticChecks.length);
@@ -422,6 +466,13 @@ test('all39 approved source records retain provenance with exact reviewed Articl
   assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
   for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
     if (file === retired) continue;
+    if (file === investmentAvailabilityPath) {
+      // Owner-approved release contract (2026-10-24): the original always-false pin
+      // stays recorded; only the exact reviewed flag module is admitted.
+      assert.equal(digest, 'd7dadd956963e82c6efe4dd966a8710c44aed30d325e5f7f246261ffa3bfc3fa');
+      assert.equal(sha(read(file)), reviewedInvestmentAvailabilityDigest, file);
+      continue;
+    }
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
     const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
     if (file === 'apps/web/static-images.d.ts') {

@@ -4,7 +4,7 @@ import './ux-structure-production.test.mjs';
 import { assertPhase3AdminNativeBoundaries } from '../qa/phase3-admin-native-boundaries-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
@@ -146,9 +146,12 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
     else if (Object.hasOwn(proof.reviewedUxOwners, file)) assert.equal(proof.reviewedUxOwners[file].baselineSha256, digest, file);
     else assert.equal(adminPhase1PredecessorDigest(file, productionBaselineSource(file)), digest, file);
   }
-  for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
-    assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
+  // Owner-approved v5 port (2026-10-24): the tool may exist only behind the server
+  // availability flag (OFF in Production unless CCPUN_INVESTMENT_ALLOCATION_ENABLED=1).
+  for (const file of ['apps/web/app/api/investment-allocation/amcs/route.ts', 'apps/web/app/api/investment-allocation/catalog/route.ts', 'apps/web/app/api/investment-allocation/detail/route.ts', 'apps/web/app/api/investment-allocation/funds/route.ts', 'features/investment-allocation/page.tsx']) {
+    assert.match(read(file), /if \(!INVESTMENT_ALLOCATION_ENABLED\) (?:notFound\(\);|\{)/, file + ': tool must stay closed unless the availability flag allows it');
   }
+  assert.equal(read('apps/web/app/tools/investment-allocation/page.tsx').trim(), 'export { metadata, default } from "@/features/investment-allocation/page";');
 });
 
 test('reviewed LINE and Google route admissions reject unrelated changes, unknown owners and duplicate guards', () => {

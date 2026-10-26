@@ -1,0 +1,38 @@
+{
+  "_fixture_note": "Contract fixture for offline tests. Field names and envelope follow the SEC Open API v2 responses consumed by features/investment-allocation/server/sec-v2.ts (live-verified in PR #165). Values are synthetic, not a live recording; scripts/qa/investment-allocation-live.mjs checks the live API on UAT.",
+  "message": "success",
+  "items": [
+    {
+      "proj_id": "M0001_2567",
+      "fund_class_name": "A",
+      "type": "subscription",
+      "period": "ทุกวันทำการ",
+      "redemp_period_oth": null,
+      "settlement_period": null,
+      "start_date": "2026-08-31",
+      "last_upd_date": "2026-09-05"
+    },
+    {
+      "proj_id": "M0001_2567",
+      "fund_class_name": "A",
+      "type": "redemption",
+      "period": "ทุกวันทำการ",
+      "redemp_period_oth": null,
+      "settlement_period": "T+2",
+      "start_date": "2026-09-01",
+      "last_upd_date": "2026-09-06"
+    },
+    {
+      "proj_id": "M0001_2567",
+      "fund_class_name": "D",
+      "type": "redemption",
+      "period": "ทุกวันทำการ",
+      "redemp_period_oth": "ภายใน 5 วันทำการ",
+      "settlement_period": "T+5",
+      "start_date": "2026-09-01",
+      "last_upd_date": "2026-09-06"
+    }
+  ],
+  "next_cursor": null,
+  "page_size": 100
+}
